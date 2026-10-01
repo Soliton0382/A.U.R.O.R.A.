@@ -1049,8 +1049,8 @@
    "key": "AURORA_DOMAIN",
    "type": "str",
    "category": "https",
-   "recommended": "aurora.example.org",
-   "evidence": "owner",
+   "recommended": "localhost",
+   "evidence": "installer: localhost for this computer; a name of yours for the other devices",
    "en": "Host name served over HTTPS; must be covered by the certificate.",
    "it": "Nome host servito in HTTPS; deve essere coperto dal certificato.",
    "services": [
@@ -1084,6 +1084,22 @@
    ],
    "min": 1,
    "max": 65535
+  },
+  {
+   "key": "AURORA_TLS_MODE",
+   "type": "enum",
+   "choices": [
+    "internal",
+    "files"
+   ],
+   "category": "https",
+   "recommended": "internal",
+   "evidence": "installer",
+   "en": "internal: Caddy's own local certificate authority (trusted on this computer after `sudo caddy trust`; other devices import its root certificate); files: your certificate and key (AURORA_TLS_CERT, AURORA_TLS_KEY), e.g. Let's Encrypt.",
+   "it": "internal: l'autorità di certificazione locale di Caddy (riconosciuta su questo computer dopo `sudo caddy trust`; gli altri dispositivi importano il suo certificato radice); files: il tuo certificato e la tua chiave (AURORA_TLS_CERT, AURORA_TLS_KEY), per esempio Let's Encrypt.",
+   "services": [
+    "aurora-https"
+   ]
   },
   {
    "key": "AURORA_TLS_CERT",
@@ -1368,6 +1384,18 @@
    "evidence": "M22",
    "en": "Extended reasoning in synthesis: +15 points correct when the knowledge is there; used together with the gate.",
    "it": "Ragionamento esteso nella sintesi: +15 punti di risposte corrette quando la conoscenza c'è; si usa insieme al cancello.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_PIPELINE_SELF_THINKING",
+   "type": "bool",
+   "category": "pipeline",
+   "recommended": "1",
+   "evidence": "A17/M38: 'Come mi chiamo?' wrong 2/5 without thinking, 0/5 with it; median 4.0 → 10.4 s",
+   "en": "Aurora reasons before answering about herself and the past (more accurate who-is-who, about 6 s slower).",
+   "it": "Aurora ragiona prima di rispondere su di sé e sul passato (chi-è-chi più preciso, circa 6 s più lenta).",
    "services": [
     "aurora-api"
    ]

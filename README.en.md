@@ -163,19 +163,26 @@ everything (venv, systemd units, ethics exemption).
 
 ## Install
 
-Today: the scripts below, run in order, on Ubuntu 26.04 with NVIDIA GPUs. A single `install.sh`
-that asks the questions on screen is being written (docs/ROADMAP.md, "Installer specification").
+On Ubuntu 26.04 with one or two NVIDIA GPUs of 16 GB or more:
 
 ```bash
-git clone git@github.com:Soliton0382/A.U.R.O.R.A..git aurora && cd aurora
-sys/core/script/sys_nvidia.sh check                 # then clean / toolkit / (driver) / verify / llama
-python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-.venv/bin/python sys/core/script/sys_env_sync.py    # .env from the schema (review .env.proposed)
-sudo .venv/bin/python sys/core/script/sys_ethics_sign.py setup
-.venv/bin/python sys/core/script/sys_install_services.py && sudo bash sys/deploy/systemd/install.sh
+git clone https://github.com/Soliton0382/A.U.R.O.R.A..git aurora && cd aurora
+./install.sh            # questions on screen; ./install.sh --yes takes the recommended values
 ```
 
-Models are not in the repository (the reasoner alone is 20.6 GB): they come from Hugging Face.
+The installer checks the system and the disk, installs the missing packages and the CUDA toolkit 13 (toolkit
+only: the driver stays Ubuntu's), creates the venv, recognises the hardware and picks a profile, writes the
+`.env` from your answers, downloads the models from Hugging Face at pinned revisions checking their SHA-256,
+builds llama.cpp for your GPUs, runs the tests, makes the code-of-conduct key, installs the systemd services
+and HTTPS, and finally tells you the address and the API key. Everything goes to `install.log`.
+
+| profile | status |
+|---|---|
+| 2 GPUs of 16 GB or more (e.g. 2 × RTX 5060 Ti) | **recommended and measured** |
+| 1 GPU of 24 GB or more | proposed, not measured |
+| 1 GPU of 16 GB (MoE experts in RAM, 48 GB advised) | proposed, not measured |
+
+Models downloaded: ~33 GB (reasoner 21.5 GB; dreams and voice optional, 8.3 GB) — measured: 181 s.
 
 ## Documentation
 

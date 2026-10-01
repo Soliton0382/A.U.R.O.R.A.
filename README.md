@@ -164,19 +164,26 @@ tutto (venv, unit systemd, esenzione etica).
 
 ## Installazione
 
-Oggi: gli script qui sotto, nell'ordine, su Ubuntu 26.04 con GPU NVIDIA. Un unico `install.sh` che fa
-le domande a schermo è in lavorazione (docs/ROADMAP.md, "Installer specification").
+Su Ubuntu 26.04 con una o due GPU NVIDIA da 16 GB o più:
 
 ```bash
-git clone git@github.com:Soliton0382/A.U.R.O.R.A..git aurora && cd aurora
-sys/core/script/sys_nvidia.sh check                 # poi clean / toolkit / (driver) / verify / llama
-python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-.venv/bin/python sys/core/script/sys_env_sync.py    # .env dallo schema (controlla .env.proposed)
-sudo .venv/bin/python sys/core/script/sys_ethics_sign.py setup
-.venv/bin/python sys/core/script/sys_install_services.py && sudo bash sys/deploy/systemd/install.sh
+git clone https://github.com/Soliton0382/A.U.R.O.R.A..git aurora && cd aurora
+./install.sh            # domande a schermo; ./install.sh --yes accetta i valori consigliati
 ```
 
-I modelli non sono nel repository (il solo ragionatore pesa 20,6 GB): arrivano da Hugging Face.
+L'installer controlla sistema e spazio, installa i pacchetti mancanti, il CUDA toolkit 13 (solo il toolkit:
+il driver resta quello di Ubuntu), crea il venv, riconosce l'hardware e sceglie il profilo, scrive il `.env`
+con le tue risposte, scarica i modelli da Hugging Face a revisioni fissate verificandone lo SHA-256, compila
+llama.cpp per le tue GPU, esegue i test, crea la chiave del codice di condotta, installa i servizi systemd e
+l'HTTPS, e alla fine ti dice indirizzo e chiave API. Tutto finisce in `install.log`.
+
+| profilo | stato |
+|---|---|
+| 2 GPU da 16 GB o più (es. 2 × RTX 5060 Ti) | **consigliato e misurato** |
+| 1 GPU da 24 GB o più | proposto, non misurato |
+| 1 GPU da 16 GB (esperti MoE in RAM, 48 GB consigliati) | proposto, non misurato |
+
+Modelli scaricati: ~33 GB (ragionatore 21,5 GB; sogni e voce facoltativi, 8,3 GB) — misurato: 181 s.
 
 ## Documentazione
 

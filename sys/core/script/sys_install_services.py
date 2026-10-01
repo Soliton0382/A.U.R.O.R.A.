@@ -39,7 +39,7 @@ CADDYFILE = Template("""# Generated from .env by sys/core/script/sys_install_ser
 }
 
 $domain:$https_port {
-	tls $cert $key
+	$tls
 	encode gzip zstd
 	reverse_proxy $api {
 		transport http {
@@ -153,7 +153,9 @@ def main() -> int:
         admin=cfg["AURORA_CADDY_ADMIN"], http_port=cfg["AURORA_HTTP_PORT"], https_port=cfg["AURORA_HTTPS_PORT"],
         https_suffix="" if cfg["AURORA_HTTPS_PORT"] == 443 else f":{cfg['AURORA_HTTPS_PORT']}",
         log_dir=log_dir, max_mb=cfg["AURORA_LOG_MAX_MB"], keep_hours=cfg["AURORA_LOG_RETENTION_DAYS"] * 24,
-        domain=cfg["AURORA_DOMAIN"], cert=cfg.path("AURORA_TLS_CERT"), key=cfg.path("AURORA_TLS_KEY"),
+        domain=cfg["AURORA_DOMAIN"],
+        tls=(f"tls {cfg.path('AURORA_TLS_CERT')} {cfg.path('AURORA_TLS_KEY')}" if cfg["AURORA_TLS_MODE"] == "files"
+             else "tls internal"),
         api=f"{cfg['AURORA_API_HOST']}:{cfg['AURORA_API_PORT']}"), encoding="utf-8")
     check = subprocess.run([cfg["AURORA_CADDY_BIN"], "validate", "--config", str(caddyfile), "--adapter", "caddyfile"],
                            capture_output=True, text=True)

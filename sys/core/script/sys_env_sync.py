@@ -43,6 +43,8 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--check", action="store_true", help="report only; exit 1 if .env is not in sync")
     ap.add_argument("--adopt", default="", help="comma-separated keys to set to their recommended value")
+    ap.add_argument("--set", action="append", default=[], metavar="KEY=VALUE",
+                    help="a value for the proposal (installer: the owner's answers, the hardware profile); checked by the schema")
     ap.add_argument("--example", action="store_true",
                     help="write only .env.example from the schema (for publishing; an installation never rewrites it)")
     args = ap.parse_args()
@@ -80,6 +82,19 @@ def main() -> int:
     if "AURORA_ROOT" not in kept:                 # a new installation lives where its code is
         proposed["AURORA_ROOT"] = str(C.CODE_ROOT)
         print(f"  * AURORA_ROOT={C.CODE_ROOT} (this folder)")
+    specs = {sp["key"]: sp for sp in schema["settings"]}
+    for item in args.set:
+        key, _, value = item.partition("=")
+        if key not in specs:
+            print(f"--set: {key} is not in the schema")
+            return 2
+        try:
+            C.convert(specs[key], value)
+        except ValueError as e:
+            print(f"--set: {key}: {e}")
+            return 2
+        proposed[key] = value
+        print(f"  = {key}={'(secret)' if specs[key].get('secret') else value}")
     for spec in schema["settings"]:                  # secrets are generated, never recommended
         if spec.get("generate") == "token" and not proposed[spec["key"]]:
             proposed[spec["key"]] = secrets.token_urlsafe(32)

@@ -6,7 +6,6 @@ Numbered, never deleted: a fixed issue moves to "Closed" with the proof.
 
 | # | issue | impact | plan |
 |---|---|---|---|
-| A17 | "Come mi chiamo?" alone: the local model sometimes answers as the owner ("Mi chiamo <owner's name>"). The speaker is now stated in the message (with the pronouns), and English questions are answered in English. | 1 wrong in 5 (before: 5 wrong in 5). | Measure with thinking on the self route, or a larger model. |
 
 ## Closed
 
@@ -64,6 +63,7 @@ Numbered, never deleted: a fixed issue moves to "Closed" with the proof.
 | C54 | The published `.env.example` lagged behind the schema (update, senses, notification keys missing), and the installer rewrote it, leaving the clone "modified" so that no update could apply. | `sys_env_sync.py` writes .env.example only with `--example`; `dev_publish.sh` regenerates it before every publication. | example has every schema key; clone tree clean |
 | C55 | `.gitignore` ignored `sys/models/` only as a folder: a link to models kept elsewhere showed as a new file and blocked updates. | Data folders ignored by name (folder or link). | clone with linked models: tree clean |
 | C56 | aurora-https (Caddy) did not stop within the unit's timeout and was killed: it waited for the WebUI's never-ending activity stream to close. | `grace_period 5s` in the generated Caddyfile. | restart 5.0 s, before: timeout + SIGKILL |
+| C57 | (was A17) "Come mi chiamo?" answered as the owner ("Mi chiamo …") 2 times in 5. | Aurora reasons before answering about herself (AURORA_PIPELINE_SELF_THINKING). | M38: 0/5 wrong; median 4.0 → 10.4 s |
 | C2 | Resetting the memory left its index behind (vectors of deleted conversations). | `reset_memory` removes the memory index too. | `test_reset_memory_also_drops_the_memory_index` |
 | C3 | PyTorch 2.14 runs a Qwen rotary op through Triton, which compiles against the Python headers; Python 3.13 had none installed. | Environment built on Python 3.14 (headers present). | `test_models_gpu` passes |
 | C4 | A `with sqlite3.connect()` block commits but does not close; files would stay open. | `sol_vault.db` commits or rolls back and always closes. | all vault tests |

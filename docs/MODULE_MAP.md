@@ -71,6 +71,9 @@ call downward (ECOSYSTEM §1).
 | `sys_relocate.sh` | move or rename the installation: folder from AURORA_ROOT, new one asked; venv, units, exemption | owner, sudo |
 | `doc_charts.py` | benchmark charts (SVG, IT/EN) for the README from the measurements | docs |
 | `dev_publish.sh` | copies what .gitignore lets through to a separate repository folder, checks paths, size, secrets, the owner's personal patterns (list kept outside the repo) and the tests, then commits and pushes there | before every publication |
+| `install.sh` (root) | the installer: system, packages, NVIDIA, answers, venv, profile, .env, models, llama.cpp, tests, ethics key, services, HTTPS | a new user |
+| `sys_models_fetch.py` | models from Hugging Face per `config/models.json`: pinned revisions, sizes before, SHA-256 after, resumable | install.sh |
+| `sys_profile.py` | hardware profile (GPUs, VRAM, RAM) → .env values; only the reference profile is measured | install.sh |
 | `bench_image.py` | image model benchmark (load, time per image, peak VRAM at 1:1 and 16:9 ≥ 1024 px) | before choosing the image model |
 | `img_paint.py` | paints one image with SDXL-Lightning and exits (all GPU memory given back) | mdl_image, never by hand during another GPU job |
 | `kno_migrate_legacy.py` | one-time migration of the previous installation's chunk store (knowledge only, owner's exclusions), resumable, through the API | once |

@@ -673,3 +673,50 @@ Found on the way: C52-C56. Not covered: the systemd units and HTTPS of a second 
 same machine (they would replace the owner's), model download (installer manifest not written).
 Updates of a **private** repository need access without a person typing a passphrase: a read-only
 deploy key per installation (or a public repository).
+
+## M37 — Italian dictation (2026-10-01)
+
+8 Italian sentences with a known text, spoken by a synthetic voice (Piper it_IT-paola-medium, installed apart),
+transcribed by Aurora (Whisper large-v3-turbo, CPU). WER **16.0%** (12/75 words): 5 sentences exact; the errors
+are all on technical or English terms ("rotary position embedding" → "subrotare i position embedding",
+"seeing" → "segno", "log … trascrizione" → "luogo … Tasca di Silone"). A vocabulary prompt for Whisper gave the
+same 16.0%: not adopted. A synthetic voice reads English terms the Italian way: the owner's real voice is
+**not measured**. 3.8 s of audio in 4.0-4.7 s.
+
+## M38 — Who is speaking (A17, 2026-10-01)
+
+"Come mi chiamo?", 5 runs per mode, the full self route: without reasoning 2/5 answered as the owner
+("Mi chiamo <owner's name>"), median 4.0 s; with reasoning (AURORA_PIPELINE_SELF_THINKING) 0/5, every answer
+"Ti chiami …", median 10.4 s. Adopted. Live after the change: "Come mi chiamo?" 10.3 s, "What's my name?"
+13.2 s, "Come stai?" 22.8 s.
+
+## M39 — The installer's steps on a fresh copy (2026-10-01)
+
+A copy made by `dev_publish.sh` (what GitHub holds), the steps of `install.sh` that need no sudo, run for real:
+venv 36 s · hardware profile: reference (measured) · `.env` from answers + profile: valid · **models: 6 of 6
+downloaded in 181 s (33 GB), 12 large files SHA-256 identical to Hugging Face's**, verified a second time ·
+llama.cpp build 295 s (during the download) · 117 tests · **SDXL official fp16 variant**: load 5.4 s, painting
+6.1 s, peak 5.45 GB (as the owner's copy) · Whisper downloaded: 13 s of speech exact in 5.1 s · services of the
+unsigned copy refuse to start (ethics manifest missing), as designed. The sudo steps (packages, signature,
+systemd, Caddy trust) are run by the owner.
+
+## M40 — Answer quality: local, local + SSCC, Claude Code (2026-10-01)
+
+8 questions of `retrieval_pool108` whose document the search ranks in the top 3 on the whole vault, the same
+retrieval for every arm; three syntheses: Qwen local, Qwen local through the SSCC path, Claude Code (opus, with
+SSCC); every answer through the same sentence verification; blind judge Claude (opus) with the passages, the
+three answers in random order, score 0-10.
+
+| arm | mean score | synthesis + verification time |
+|---|---|---|
+| Qwen local | 5.25 | 28-48 s |
+| Qwen local + SSCC | 6.00 | 22-32 s |
+| Claude Code + SSCC | 5.38 | 12-24 s |
+
+- SSCC compressed **nothing** on these questions (extractions of 134-671 characters, under the 3-sentence
+  minimum): the first two arms got the same text, so their 0.75 gap is the noise of generation and judge.
+  The effect of SSCC on quality needs long contexts (agents, long extractions): **not measured**.
+- Within that noise, Claude and Qwen give verified answers of the same quality; Claude is about twice as fast
+  but loses many sentences to verification (up to 12 in one answer: knowledge of its own, not in the vault).
+- One question was abstained by all three (gate closed). Judge from the same family as one arm: a bias toward
+  Claude is possible; it did not show.

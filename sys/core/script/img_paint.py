@@ -36,8 +36,10 @@ def main() -> int:
     w, h = (int(x) for x in args.size.lower().split("x"))
     root = cfg.path("AURORA_IMAGE_MODEL_DIR")
     t0 = time.time()
-    pipe = diffusers.StableDiffusionXLPipeline.from_pretrained(root / "stable-diffusion-xl-base-1.0",
-                                                               torch_dtype=torch.float16)
+    base = root / "stable-diffusion-xl-base-1.0"
+    fp16 = any((base / "unet").glob("*.fp16.safetensors"))   # the installer fetches the official fp16 variant
+    pipe = diffusers.StableDiffusionXLPipeline.from_pretrained(base, torch_dtype=torch.float16,
+                                                               variant="fp16" if fp16 else None)
     pipe.load_lora_weights(str(root / "sdxl_lightning_4step_lora.safetensors"))
     pipe.fuse_lora()
     pipe.scheduler = diffusers.EulerDiscreteScheduler.from_config(pipe.scheduler.config, timestep_spacing="trailing")

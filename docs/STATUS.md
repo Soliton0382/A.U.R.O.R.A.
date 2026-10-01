@@ -1,6 +1,6 @@
 # Status — work in progress
 
-Updated at every validated change (last: 2026-10-01). Details: BUGS.md (issues, 1 open / 56 closed),
+Updated at every validated change (last: 2026-10-01). Details: BUGS.md (issues, 0 open / 57 closed),
 TESTS.md (tests and live checks), MEASUREMENTS.md (numbers), MODULE_MAP.md (who does what),
 SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSYSTEM.md (design and decisions).
 
@@ -53,6 +53,7 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | full-disk encryption | owner (reinstall or encrypted home) |
 | README for GitHub: architecture to the bit, how it works, what differs from other systems, benchmarks | these documents |
 
-## Open bugs (1): all measurements or known limits
+## Open bugs (0)
 
-A17 "Come mi chiamo?" answered as the owner 1 time in 5.
+None open. Measurements still to take are listed in ROADMAP.md ("Still to measure").
+

@@ -150,6 +150,28 @@ SDXL-Lightning 6.9 GB. FLUX.2 klein (23 GB) and Z-Image-Turbo (31 GB) were only 
 | AGI test battery: reasoning, memory over time, honesty (abstention, invented facts), autonomy (goals with plugins), self-repair, senses, planning — scored, repeatable, published as benchmarks | after the install test |
 | invite testers to the private repository (GitHub: Settings → Collaborators) | owner |
 
+## Still to measure (2026-10-01)
+
+| what | why not yet |
+|---|---|
+| SSCC on long contexts (agent runs, wide extractions): saving and answer quality | M40: short extractions are never compressed |
+| dictation with the owner's real voice | M37 used a synthetic voice |
+| the two non-reference hardware profiles | no such machine here |
+| the whole `install.sh` with its sudo steps, on another machine | M39 ran the steps without sudo on this one |
+| Web Push delivery on phones | depends on each device and browser |
+| update with a read-only deploy key | the owner's key has a passphrase |
+
+## Still to implement (2026-10-01)
+
+| area | items |
+|---|---|
+| knowledge | sources by domain on abstention (PubMed, Normattiva, Wikipedia, programming docs); the owner's sources with wildcard URLs and site crawls (Sophos KBA); owner-defined domains; cross-domain deductions shown as Aurora's, with premises |
+| presence | proactive messages in the chat; autonomy ledger and levels; plugin "lab" (projects in usr/documents/papers, scripts in usr/test_area with its own venv) |
+| plugins | astro suite (PHD2, N.I.N.A., planner, Alpaca, astrometry, Flickr, mini PC, sky events); firewall (Sophos API, sentinel inside); Facebook Page autonomous (waits for Meta's SMS), Instagram |
+| tests | AGI battery: reasoning, memory over time, honesty, autonomy, self-repair, senses, planning, scored and repeatable |
+| GitHub | public page (Pages) with the charts; releases with a changelog; issue templates |
+| security | see SECURITY.md, "Hardening still to do" |
+
 ## Open measurements (BUGS.md)
 
 A3 drop on a large domain · A4 CUDA ≥ 12.8 build · A5 encoder on the full vault · A7 tensor split ·

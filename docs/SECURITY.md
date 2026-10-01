@@ -79,3 +79,18 @@ legal advice.
 - Plugins run as the same user as Aurora: "only the declared secrets" is what the host passes, not
   an isolation (a plugin could read the configuration file itself).
 - Telegram and Facebook content is readable by the platforms.
+
+## Hardening still to do (2026-10-01)
+
+| risk | today | to do |
+|---|---|---|
+| plugins and services run as the owner's user | a plugin could read the configuration file itself | a dedicated system user for Aurora; plugins in a sandbox (systemd DynamicUser, bubblewrap or containers) with only their own secrets |
+| systemd units with no confinement | full user privileges | ProtectSystem=strict, ProtectHome, PrivateTmp, NoNewPrivileges, CapabilityBoundingSet=, RestrictAddressFamilies, MemoryMax per service |
+| storage not encrypted | ext4 without LUKS | full-disk encryption (owner) or SQLCipher for the vault (cost not measured) |
+| supply chain | requirements pinned by version | pinned by hash (`pip install --require-hashes`), llama.cpp by commit (done), models by revision + SHA-256 (done), Dependabot/OSV scan on the repository |
+| releases | git commits only | signed tags and releases (the owner's key), the updater accepting only signed commits |
+| WebUI sessions | device cookie, HttpOnly, SameSite=Strict | rate limit and lockout on the API key login, session expiry shown and revocable (revocation exists) |
+| DNS rebinding in the web plugin | not closed | pin the resolved address for the connection |
+| secrets in memory and logs | logs never print secrets (checked by grep) | an automated test that scans the logs for every secret of .env |
+| tampering with the code of conduct | signed manifest of 6 files, key in /etc/aurora | sign the whole code base (not only the 6 files) and check it at start; keep the private key offline (not on the machine) |
+| prompt injection from web pages, papers, plugin results | answers are verified against passages; actions need approval | mark untrusted text in prompts, never let it set tool arguments without the owner (partly done by the approval gate) |

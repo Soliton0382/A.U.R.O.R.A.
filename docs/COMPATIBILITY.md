@@ -28,6 +28,15 @@ What Aurora was measured on (**recommended**: the owner's machine), and what is 
   a newer *major* needs a newer driver.
 - cuDNN from a repository for another Ubuntu release is not needed: torch's wheel carries its own.
 
+## Hardware profiles (sys_profile.py, chosen by install.sh)
+
+| profile | .env values | status |
+|---|---|---|
+| 2 GPUs ≥ 16 GB | split 4.5,3.5, experts on GPU, ctx 32k, encoder + re-ranker on the second GPU | **measured** (this page) |
+| 1 GPU ≥ 24 GB | split 1, 8 MoE layers' experts in RAM, ctx 32k, everything on one GPU | not measured |
+| 1 GPU of 16 GB | 28 MoE layers' experts in RAM, ctx 16k, everything on one GPU (48 GB RAM advised) | not measured |
+| less, or no NVIDIA GPU | — | not supported |
+
 ## Expected to work, not measured
 
 | case | expectation |

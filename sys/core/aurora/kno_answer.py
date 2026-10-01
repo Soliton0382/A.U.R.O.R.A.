@@ -398,7 +398,9 @@ class Pipeline:
         said = (f"[{o} writes to you; reply in English; 'I', 'me', 'my' mean {o}, not you] {question}"
                 if txt_lang.detect(question) == "en"
                 else f"[{o} ti scrive; «io», «mi», «me», «mio» indicano {o}, non te] {question}")
-        for kind, piece in model.stream(system, said, 600, think=False):
+        think = self.cfg["AURORA_PIPELINE_SELF_THINKING"]    # A17: without it "Come mi chiamo?" was answered as the owner
+        budget = self.cfg["AURORA_PIPELINE_THINK_TOKENS"] if think else 600
+        for kind, piece in model.stream(system, said, budget, think=think):
             if kind == "answer":
                 parts.append(piece)
             if self.cfg["AURORA_CHAT_STREAMING"]:

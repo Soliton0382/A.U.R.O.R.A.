@@ -1,0 +1,136 @@
+{
+ "about": "Models Aurora downloads at install time from Hugging Face, at pinned revisions, each file checked against the SHA-256 Hugging Face publishes. Measured on the reference machine (docs/COMPATIBILITY.md). sys_models_fetch.py reads it; the installer chooses the entries from the hardware profile.",
+ "models": {
+  "llm": {
+   "purpose": "reasoner and vision (llama.cpp)",
+   "repo": "unsloth/Qwen3.6-35B-A3B-GGUF",
+   "revision": "a483e9e6cbd595906af30beda3187c2663a1118c",
+   "license": "apache-2.0",
+   "dir": "sys/models/llm/qwen3.6",
+   "files": [
+    "Qwen3.6-35B-A3B-UD-Q4_K_M.gguf",
+    "mmproj-F16.gguf"
+   ],
+   "size_gb": 21.45,
+   "required": true,
+   "settings": {
+    "AURORA_LLM_MODEL": "sys/models/llm/qwen3.6/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf",
+    "AURORA_LLM_MMPROJ": "sys/models/llm/qwen3.6/mmproj-F16.gguf"
+   }
+  },
+  "embedder": {
+   "purpose": "encoder of the vault",
+   "repo": "Qwen/Qwen3-Embedding-0.6B",
+   "revision": "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3",
+   "license": "apache-2.0",
+   "dir": "sys/models/embedder/Qwen3-Embedding-0.6B",
+   "files": [
+    "1_Pooling/config.json",
+    "README.md",
+    "config.json",
+    "config_sentence_transformers.json",
+    "merges.txt",
+    "model.safetensors",
+    "modules.json",
+    "tokenizer.json",
+    "tokenizer_config.json",
+    "vocab.json"
+   ],
+   "size_gb": 1.12,
+   "required": true,
+   "settings": {
+    "AURORA_EMBEDDER_DIR": "sys/models/embedder/Qwen3-Embedding-0.6B"
+   }
+  },
+  "reranker": {
+   "purpose": "re-ranker of the search",
+   "repo": "BAAI/bge-reranker-v2-m3",
+   "revision": "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e",
+   "license": "apache-2.0",
+   "dir": "sys/models/reranker/bge-reranker-v2-m3",
+   "files": [
+    "config.json",
+    "model.safetensors",
+    "sentencepiece.bpe.model",
+    "special_tokens_map.json",
+    "tokenizer.json",
+    "tokenizer_config.json"
+   ],
+   "size_gb": 2.14,
+   "required": true,
+   "settings": {
+    "AURORA_RERANKER_DIR": "sys/models/reranker/bge-reranker-v2-m3"
+   }
+  },
+  "image_base": {
+   "purpose": "dream paintings (SDXL base, fp16)",
+   "repo": "stabilityai/stable-diffusion-xl-base-1.0",
+   "revision": "462165984030d82259a11f4367a4eed129e94a7b",
+   "license": "openrail++",
+   "dir": "sys/models/image/SDXL-Lightning/stable-diffusion-xl-base-1.0",
+   "files": [
+    "model_index.json",
+    "scheduler/scheduler_config.json",
+    "text_encoder/config.json",
+    "text_encoder/model.fp16.safetensors",
+    "text_encoder_2/config.json",
+    "text_encoder_2/model.fp16.safetensors",
+    "tokenizer/merges.txt",
+    "tokenizer/special_tokens_map.json",
+    "tokenizer/tokenizer_config.json",
+    "tokenizer/vocab.json",
+    "tokenizer_2/merges.txt",
+    "tokenizer_2/special_tokens_map.json",
+    "tokenizer_2/tokenizer_config.json",
+    "tokenizer_2/vocab.json",
+    "unet/config.json",
+    "unet/diffusion_pytorch_model.fp16.safetensors",
+    "vae/config.json",
+    "vae/diffusion_pytorch_model.fp16.safetensors"
+   ],
+   "size_gb": 6.46,
+   "required": false,
+   "settings": {}
+  },
+  "image_lora": {
+   "purpose": "dream paintings (Lightning 4 steps)",
+   "repo": "ByteDance/SDXL-Lightning",
+   "revision": "c9a24f48e1c025556787b0c58dd67a091ece2e44",
+   "license": "openrail++",
+   "dir": "sys/models/image/SDXL-Lightning",
+   "files": [
+    "sdxl_lightning_4step_lora.safetensors"
+   ],
+   "size_gb": 0.37,
+   "required": false,
+   "settings": {
+    "AURORA_IMAGE_MODEL_DIR": "sys/models/image/SDXL-Lightning"
+   }
+  },
+  "stt": {
+   "purpose": "speech to text (senses, dictation)",
+   "repo": "openai/whisper-large-v3-turbo",
+   "revision": "41f01f3fe87f28c78e2fbf8b568835947dd65ed9",
+   "license": "mit",
+   "dir": "sys/models/stt/whisper-large-v3-turbo",
+   "files": [
+    "added_tokens.json",
+    "config.json",
+    "generation_config.json",
+    "merges.txt",
+    "model.safetensors",
+    "normalizer.json",
+    "preprocessor_config.json",
+    "special_tokens_map.json",
+    "tokenizer.json",
+    "tokenizer_config.json",
+    "vocab.json"
+   ],
+   "size_gb": 1.51,
+   "required": false,
+   "settings": {
+    "AURORA_STT_MODEL_DIR": "sys/models/stt/whisper-large-v3-turbo"
+   }
+  }
+ }
+}

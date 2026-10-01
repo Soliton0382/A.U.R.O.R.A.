@@ -40,3 +40,6 @@ sys/https/
 # Signed per installation with its own key (/etc/aurora): never committed
 sys/core/ethics/MANIFEST.json
 sys/core/ethics/exemption.sig
+
+# The installer's log (it shows the API key at the end)
+install.log
