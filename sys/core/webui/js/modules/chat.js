@@ -34,7 +34,7 @@ export default {
           <button type="button" class="icon cam" data-i18n-title="chat.camera">📷</button>
           <button type="button" class="icon mic" data-i18n-title="chat.mic">🎙️</button>
           <button type="button" class="icon src"></button>
-          <input type="file" multiple hidden accept="image/*,.txt,.md,.markdown,.html,.htm,.pdf">
+          <input type="file" multiple hidden accept="image/*,video/*,.txt,.md,.markdown,.html,.htm,.pdf">
           <input type="file" class="shoot" hidden accept="image/*" capture="environment">
           <textarea rows="2" data-i18n-placeholder="chat.placeholder"></textarea>
           <button type="submit" class="send" data-i18n="chat.send"></button>

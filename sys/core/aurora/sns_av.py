@@ -103,7 +103,7 @@ def record(seconds: float, cfg: sys_config.Config | None = None) -> np.ndarray:
     return np.frombuffer(r.stdout, np.int16).astype(np.float32) / 32768
 
 
-def decode(data: bytes, cfg: sys_config.Config | None = None) -> np.ndarray:
+def decode(data: bytes, cfg: sys_config.Config | None = None, max_s: float | None = None) -> np.ndarray:
     """Audio recorded by a browser (WebM/Opus on Android, MP4/AAC on iOS, anything ffmpeg reads) as 16 kHz mono,
     at most AURORA_SENSES_LISTEN_MAX_S. Through a private temporary file: an MP4 keeps its index at the end and
     ffmpeg cannot read it from a pipe."""
@@ -113,8 +113,8 @@ def decode(data: bytes, cfg: sys_config.Config | None = None) -> np.ndarray:
         f.write(data)
         f.flush()
         r = subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-i", f.name,
-                            "-t", str(cfg["AURORA_SENSES_LISTEN_MAX_S"]), "-ac", "1", "-ar", "16000", "-f", "s16le", "-"],
-                           capture_output=True, timeout=120)
+                            "-t", str(max_s or cfg["AURORA_SENSES_LISTEN_MAX_S"]), "-vn", "-ac", "1", "-ar", "16000",
+                            "-f", "s16le", "-"], capture_output=True, timeout=max(120, (max_s or 0) * 2))
     if r.returncode != 0 or not r.stdout:
         raise ValueError(f"audio not readable: {r.stderr.decode(errors='replace').strip()[-200:]}")
     return np.frombuffer(r.stdout, np.int16).astype(np.float32) / 32768
@@ -131,16 +131,37 @@ def clear_speech(text: str) -> bool:
     return not (len(t) > 20 and len(set(t.replace(" ", ""))) < 4)
 
 
-def transcribe(audio: np.ndarray, lang: str, cfg: sys_config.Config | None = None) -> dict:
-    """{"text", "clear", "seconds", "audio_s"} — the model is loaded once per process, on the CPU."""
+def transcribe_segments(audio: np.ndarray, lang: str, cfg: sys_config.Config | None = None) -> list[tuple[float, float, str]]:
+    """Long audio (a video's track) in 30 s windows, with timestamps; segments Whisper invents on silence are dropped."""
+    _load(cfg or sys_config.get())
+    sec = len(audio) / 16000
+    t0 = time.time()
+    out = _asr({"raw": audio, "sampling_rate": 16000}, chunk_length_s=30, return_timestamps=True,
+               generate_kwargs={"task": "transcribe", "language": lang})
+    segs = []
+    for c in out.get("chunks", []):
+        start, end = c.get("timestamp") or (0.0, None)
+        text = (c.get("text") or "").strip()
+        if text and clear_speech(text):
+            segs.append((float(start or 0.0), float(end if end is not None else sec), text))
+    sys_log.get_logger("senses").info("transcribed %.1f s of audio in %d segments in %.1f s", sec, len(segs), time.time() - t0)
+    return segs
+
+
+def _load(cfg: sys_config.Config) -> None:
     global _asr
-    cfg = cfg or sys_config.get()
-    import torch
-    from transformers import pipeline
     if _asr is None:
+        import torch
+        from transformers import pipeline
         torch.set_num_threads(min(8, os.cpu_count() or 4))
         _asr = pipeline("automatic-speech-recognition", model=str(cfg.path("AURORA_STT_MODEL_DIR")), device="cpu",
                         dtype=torch.float32)
+
+
+def transcribe(audio: np.ndarray, lang: str, cfg: sys_config.Config | None = None) -> dict:
+    """{"text", "clear", "seconds", "audio_s"} — the model is loaded once per process, on the CPU."""
+    cfg = cfg or sys_config.get()
+    _load(cfg)
     sec = len(audio) / 16000
     t0 = time.time()
     out = _asr({"raw": audio, "sampling_rate": 16000},

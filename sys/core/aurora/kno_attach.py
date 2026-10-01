@@ -5,6 +5,8 @@
  image     scaled to AURORA_VISION_MAX_PX, described by the reasoner (vision), visible text
            transcribed; the description becomes a citable passage "attached image" for this
            question only (it is an observation, not knowledge: it is not written to the vault).
+ video     watched (kno_video): frames at the scene changes seen in one call, the speech transcribed with
+           timestamps; like an image, an observation for this question only (not written to the vault)
  document  imported into the vault like any document (kno_ingest), in the domain the reasoner
            picks from the taxonomy; its chunks are put first among the passages of the question.
 """
@@ -30,7 +32,7 @@ SYS_DOMAIN = ("You classify a document into exactly one domain of a list. Reply 
 @dataclass
 class Attached:
     name: str
-    kind: str                          # image | document
+    kind: str                          # image | video | document
     solitons: list[Soliton]
     domain: str = ""
 
@@ -69,16 +71,28 @@ class AttachmentHandler:
 
     def check(self, name: str, data: bytes, mime: str = "") -> None:
         """Raises ValueError for a file that cannot be attached (before any work starts)."""
-        if len(data) > self.cfg["AURORA_ATTACH_MAX_MB"] * 1024 * 1024:
-            raise ValueError(f"{name}: larger than {self.cfg['AURORA_ATTACH_MAX_MB']} MB")
-        if not is_image(name, mime) and Path(name).suffix.lower() not in FORMATS:
-            raise ValueError(f"{name}: unsupported (images, or {', '.join(sorted(FORMATS))})")
+        from .kno_video import is_video
+        limit = self.cfg["AURORA_VIDEO_MAX_MB"] if is_video(name, mime) else self.cfg["AURORA_ATTACH_MAX_MB"]
+        if len(data) > limit * 1024 * 1024:
+            raise ValueError(f"{name}: larger than {limit} MB")
+        if not is_image(name, mime) and not is_video(name, mime) and Path(name).suffix.lower() not in FORMATS:
+            raise ValueError(f"{name}: unsupported (images, videos, or {', '.join(sorted(FORMATS))})")
 
     def prepare(self, files: list[tuple[str, bytes, str]], question: str, emit, run_id: str) -> list[Attached]:
         lang = "Italian" if txt_lang.detect(question or "ciao come stai") == "it" else "English"
+        from . import kno_video
         out = []
         for name, data, mime in files:
-            if is_image(name, mime):
+            if kno_video.is_video(name, mime):
+                w = kno_video.watch(data, name, lang, self.p.llm, self.cfg, emit)
+                sols = [Soliton.new(t, "attachment", "knowledge", txt_lang.detect(t), f"attachment:{run_id}:{name}",
+                                    title=name, chunk_index=i, chunk_count=len(texts), extra={"attachment": "video"})
+                        for texts in [kno_video.passages(w, name)] for i, t in enumerate(texts)]
+                emit("attach.video", {"name": name, "duration": round(w["duration"], 1), "watched": w["watched_s"],
+                                      "frames": len(w["frames"]), "speech": len(w["speech"]), "seconds": w["seconds"],
+                                      "description": w["visual"][:2000]})
+                out.append(Attached(name, "video", sols))
+            elif is_image(name, mime):
                 jpeg = to_jpeg(data, self.cfg["AURORA_VISION_MAX_PX"])
                 text = self.p.llm.see(jpeg, SEE.format(lang=lang))
                 sol = Soliton.new(text, "attachment", "knowledge", txt_lang.detect(text), f"attachment:{run_id}:{name}",

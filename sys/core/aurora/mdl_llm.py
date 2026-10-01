@@ -89,6 +89,21 @@ class LLM:
         self.log.info("see: %d bytes image, %d chars in %.1f s", len(jpeg), len(text), time.time() - t0)
         return text.strip()
 
+    def see_many(self, frames: list[tuple[str, bytes]], instruction: str, max_tokens: int = 1600) -> str:
+        """Look at several images in order, each with its label (a video's frames with their time), in one call."""
+        t0 = time.time()
+        parts: list[dict] = [{"type": "text", "text": instruction}]
+        for label, jpeg in frames:
+            parts += [{"type": "text", "text": f"Frame at {label}:"},
+                      {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," + base64.b64encode(jpeg).decode("ascii")}}]
+        r = httpx.post(self.url + "/v1/chat/completions", timeout=self.timeout, json={
+            "messages": [{"role": "user", "content": parts}], "max_tokens": max_tokens, "temperature": 0.0,
+            "chat_template_kwargs": {"enable_thinking": False}})
+        r.raise_for_status()
+        text = r.json()["choices"][0]["message"].get("content") or ""
+        self.log.info("see_many: %d images, %d chars in %.1f s", len(frames), len(text), time.time() - t0)
+        return text.strip()
+
     def complete(self, system: str, user: str, max_tokens: int, think: bool = False) -> Completion:
         t0 = time.time()
         r = httpx.post(self.url + "/completion", json=self._body(system, user, max_tokens, think, False),

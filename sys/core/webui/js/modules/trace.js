@@ -9,7 +9,7 @@ import { t } from "../i18n.js";
 import { renderMarkdown } from "../md.js";
 
 export const ICONS = {
-  "run.start": "▶️", route: "🧭", "attach.image": "🖼️", "attach.document": "📄", "self.state": "🩺", translate: "🌐",
+  "run.start": "▶️", route: "🧭", "attach.image": "🖼️", "attach.video": "🎬", "video.frames": "🎞️", "attach.document": "📄", "self.state": "🩺", translate: "🌐",
   "retrieval.filter": "🧹", "retrieval.hits": "🔎", "memory.recent": "🧠", gate: "🚪", "synthesis.domain": "🧩",
   "verify.keep": "✅", "verify.drop": "✂️", "memory.write": "💾", "answer.final": "📝", "run.end": "🏁", error: "⛔",
   "acquire.confirmed": "🛰️", "acquire.round": "🛰️", "acquire.candidates": "📚", "acquire.paper": "📥", "acquire.error": "⚠️", "acquire.done": "🏁",
@@ -25,6 +25,8 @@ export function describe(name, p) {
   switch (name) {
     case "route": return t(`ev.route.${p.mode}`);
     case "attach.image": return t("ev.attach.image", { name: p.name });
+    case "video.frames": return t("ev.video.frames", { name: p.name, n: p.frames.length, s: p.scenes });
+    case "attach.video": return t("ev.attach.video", { name: p.name, w: Math.round(p.watched), f: p.frames, n: p.speech, s: p.seconds });
     case "attach.document": return t("ev.attach.document", { name: p.name, domain: p.domain, n: p.chunks, w: p.written });
     case "translate": return t("ev.translate", { text: p.translation });
     case "retrieval.filter": return t("ev.retrieval.filter", { n: p.dropped_own_answers });
@@ -86,7 +88,7 @@ function traceLine(steps, name, p) {
     for (const c of p.top) list.append(el("div", "muted", `${c.score} · ${c.category} · ${c.title}`));
     extra.append(details("top", list));
   }
-  if (name === "attach.image") extra.append(details(t("chat.seen"), p.description));
+  if (name === "attach.image" || name === "attach.video") extra.append(details(t("chat.seen"), p.description));
   if (name === "self.state") extra.append(details(t("chat.facts"), el("pre", "facts", JSON.stringify(p, null, 1))));
   if (name.startsWith("rem.") && p.text) extra.append(details(t("chat.read"), p.text));
   if (name === "agent.thought") extra.append(details(t("chat.read"), p.text));

@@ -433,6 +433,48 @@
    ]
   },
   {
+   "key": "AURORA_VIDEO_MAX_MB",
+   "type": "int",
+   "min": 10,
+   "max": 4000,
+   "category": "attachments",
+   "recommended": "500",
+   "evidence": "a few minutes of phone video",
+   "en": "Largest video that can be attached to a message.",
+   "it": "Video più grande che si può allegare a un messaggio.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_VIDEO_MAX_S",
+   "type": "int",
+   "min": 10,
+   "max": 7200,
+   "category": "attachments",
+   "recommended": "600",
+   "evidence": "M48: the transcript runs on the CPU at about half real time",
+   "en": "Only the first seconds of a video that are watched and listened to.",
+   "it": "Quanti secondi di un video vengono guardati e ascoltati (i primi).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_VIDEO_FRAMES",
+   "type": "int",
+   "min": 2,
+   "max": 24,
+   "category": "attachments",
+   "recommended": "12",
+   "evidence": "M48: one vision call with all frames fits the 32k context",
+   "en": "Frames of a video shown to Aurora's vision (scene changes first).",
+   "it": "Fotogrammi di un video mostrati alla visione di Aurora (prima i cambi di scena).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_VAULT_SHARD_MAX_MB",
    "type": "int",
    "min": 16,

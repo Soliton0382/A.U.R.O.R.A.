@@ -400,5 +400,7 @@
   "chat.src.device": "Fotocamera e microfono di questo dispositivo (tocca per usare quelli del PC di Aurora)",
   "chat.src.pc": "Fotocamera e microfono del PC di Aurora (tocca per usare quelli di questo dispositivo)",
   "chat.src.unsupported": "Questo browser non può registrare: serve HTTPS e un browser recente.",
-  "chat.src.denied": "Microfono non consentito: abilitalo nelle impostazioni del sito (lucchetto nella barra degli indirizzi)."
+  "chat.src.denied": "Microfono non consentito: abilitalo nelle impostazioni del sito (lucchetto nella barra degli indirizzi).",
+  "ev.video.frames": "Ho preso {n} fotogrammi da {name} ({s} cambi di scena)",
+  "ev.attach.video": "Ho guardato {name}: {w} s, {f} fotogrammi, {n} frasi ascoltate ({s} s)"
 }

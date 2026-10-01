@@ -815,3 +815,18 @@ Italian sentence in the box 7.5 s after the stop; the same with WebM hidden (MP4
 4000×3000 picture through the camera input left as a JPEG (shrunk to 2048 px on the device). Not measured on a real
 Android or iPhone.
 
+## M48 — Aurora watches a video (2026-10-01)
+
+Test video built for the purpose: 21 s, 1280x720, three title cards (blue "SCENA 1 - IL MARE", green "SCENA 2 - LA
+MONTAGNA", red "SCENA 3 - 42 GATTI", cuts at 7 and 14 s) over 21 s of CC BY-SA Italian speech. ffmpeg's scene score
+follows brightness: at these cuts it is 0.086–0.087 against a median of 0.00002, so a fixed 0.30 threshold found
+none; a peak rule (>= 0.30, or >= 0.06 and >= 8x the median) finds 7.0 and 14.0 (0.18 s for the whole video).
+Watching: 12 frames to the vision in ONE call 16.6 s (1196 characters), 21 s of speech in 4 segments 11.7 s (CPU),
+the whole observation 32.2 s. Answers through the pipeline: "Riassumi questo video…" 56 s and 68 s (two runs): the
+three cards in order with their times, the speech summarised, 0 sentences dropped by the verifier. Before marking
+the attachment in the synthesis, the same question got the cards right but said "no audio": the extraction had the
+transcript, the synthesis was misled by vault passages about video captioning (now: the attached file's extraction
+comes first, headed as the file the owner attached; the other domains are background).
+Not measured: long videos (the CPU transcript runs at about half real time: 10 minutes ≈ 5 minutes), real phone
+footage, answer quality of ordinary questions after the synthesis prompt change.
+
