@@ -1,0 +1,25 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Projects page: cards, repositories, tree and viewer side by side (stacked on a phone). */
+.prj-card { cursor: pointer; margin: .4rem 0; }
+.prj-card:hover { border-color: var(--accent); }
+.prj-repo { padding: .35rem 0; border-bottom: 1px solid var(--line); }
+.prj-repo button { margin-left: auto; }
+.prj-desc { flex-basis: 100%; }
+.prj-new { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.prj-new input, .prj-new select { width: auto; flex: 1 1 10rem; }
+.prj-bar h3 { margin: 0 auto 0 .5rem; }
+.prj-ask { display: flex; gap: .5rem; margin: .6rem 0; }
+.prj-body { display: grid; grid-template-columns: minmax(12rem, 1fr) 3fr; gap: 1rem; }
+.prj-tree { max-height: 70vh; overflow: auto; font-size: .9rem; border-right: 1px solid var(--line); padding-right: .5rem; }
+.prj-node { cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: .1rem 0; }
+.prj-node.dir { cursor: default; opacity: .85; }
+.prj-node:not(.dir):hover { color: var(--accent); }
+.prj-view { min-width: 0; }
+.prj-code { max-height: 70vh; overflow: auto; font-size: .85rem; white-space: pre; padding: .6rem; border: 1px solid var(--line); border-radius: 8px; }
+.prj-img { max-width: 100%; max-height: 70vh; }
+.prj-frame { width: 100%; height: 70vh; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+.hidden { display: none !important; }
+@media (max-width: 760px) {
+  .prj-body { grid-template-columns: 1fr; }
+  .prj-tree { max-height: 30vh; border-right: 0; border-bottom: 1px solid var(--line); }
+}

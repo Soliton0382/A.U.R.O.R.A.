@@ -8,6 +8,7 @@ Every AURORA_REM_TICK_S it reads GET /v1/aurora/rem/state and starts at most one
  introspect   once a day, owner silent: a self-review from the logs (problems, causes, proposals)
  repair       after a self-review with problems (AURORA_SELF_REPAIR): an agent investigates, fixes in
               the sandbox, proposes the change (the owner approves, AURORA_FORGE_MODE=ask)
+ routines     every tick, also with REM off: the owner's periodic checks that are due (sys_routines)
  reflect      boredom: silent for AURORA_REM_BORED_MIN (halved when it rains or the sky is
               overcast with low pressure: the previous installation's "melancholy"), and no
               thought in the last AURORA_REM_REFLECTION_GAP_MIN
@@ -117,6 +118,12 @@ def main() -> int:
             except (httpx.HTTPError, ValueError) as e:
                 log.warning("update check failed: %s", e)
         sys_health.heartbeat(cfg, "rem")
+        try:                                          # the owner's routines: not autonomic, so even with REM off
+            t = client.post(f"{BASE}/v1/aurora/routines/tick").raise_for_status().json()
+            if t["started"] or t["welcomed"]:
+                log.info("routines started: %s; plugins welcomed: %s", t["started"], t["welcomed"])
+        except (httpx.HTTPError, KeyError, ValueError) as e:
+            log.warning("routines tick failed: %s", e)
         if time.time() - last_purge > 86400:          # daily: retention of every component's logs
             removed = sys_log.purge_all(cfg)
             log.info("log retention: %d old files removed", len(removed))

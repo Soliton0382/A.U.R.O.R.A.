@@ -11,6 +11,7 @@ The reading is plain data (temperature, humidity, pressure, clouds, rain, wind) 
 """
 from __future__ import annotations
 
+import re
 import threading
 import time
 
@@ -20,6 +21,11 @@ from . import sys_config, sys_log
 
 _lock = threading.Lock()
 _cache: dict = {"at": 0.0, "reading": None}
+
+
+def _no_query(e: Exception) -> str:
+    """An error without the query of its URL."""
+    return re.sub(r"\?[^'\"\s]*", "?…", f"{type(e).__name__}: {e}")
 
 
 def _condition(r: dict) -> str:
@@ -72,7 +78,8 @@ def read(cfg: sys_config.Config | None = None) -> dict | None:
             fetch = _openweathermap if provider == "openweathermap" else _open_meteo
             r = fetch(cfg, float(lat), float(lon))
         except (httpx.HTTPError, KeyError, ValueError) as e:
-            sys_log.get_logger("senses").warning("weather (%s) failed: %s", provider, e)
+            # never the URL: its query holds the home's coordinates (and the key of a keyed provider)
+            sys_log.get_logger("senses").warning("weather (%s) failed: %s", provider, _no_query(e))
             return _cache["reading"]                      # the last good reading, if any
         r["condition"], r["provider"] = _condition(r), provider
         r["place"] = cfg["AURORA_WEATHER_PLACE"]

@@ -30,6 +30,11 @@
     GET|PUT /v1/aurora/notifications                which events notify, on which channel (push, WebUI)
     GET  /v1/aurora/harvester; POST /v1/aurora/harvester/{now|batch}  the owner steers aurora-harvester
     PUT  /v1/aurora/harvester/domains {domain: off|round|exhaust}   which domains it harvests, and how
+    GET|POST /v1/aurora/routines; PUT|DELETE /v1/aurora/routines/{id}; POST /v1/aurora/routines/{id}/run
+    POST /v1/aurora/routines/tick                  aurora-rem: start the due routines, welcome newly ready plugins
+    GET  /v1/aurora/projects[/github]; GET /v1/aurora/projects/{name}/{tree|file|log}; POST .../preview
+    POST /v1/aurora/projects {name,...} (create); POST /v1/aurora/projects/clone {full_name}
+    GET  /v1/preview/{token}/{path}                a project's page, sandboxed, under a 10-minute token (no cookie)
     GET  /v1/aurora/update; POST /v1/aurora/update/{check|apply}  updates from GitHub: changelog, approval or auto
     GET  /v1/aurora/senses/devices; POST /v1/aurora/senses/{photo|listen}  camera and microphone of this machine
     POST /v1/aurora/sentinel/incident              aurora-sentinel reports a firewall incident (stored, investigated)
@@ -65,6 +70,7 @@ import base64
 import binascii
 import json
 import os
+import re
 import secrets
 import subprocess
 import sys
@@ -781,6 +787,246 @@ async def harvester_action(action: str, request: Request) -> dict:
         log.info("audit: owner sent the harvester a batch of %d papers", len(ids))
         return {"queued": item["id"], "ids": ids, "unsupported": unsupported}
     raise HTTPException(status_code=404, detail="unknown action")
+
+
+# ---- projects: the Projects page (prj_browse reads; the "projects" plugin writes) ---------------------------
+
+def _prj(fn, *a):
+    from aurora import prj_browse  # noqa: F401
+    try:
+        return fn(cfg, *a)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="not found")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/v1/aurora/projects", dependencies=[Depends(auth)])
+def projects_list() -> dict:
+    from aurora import prj_browse
+    return {"projects": _prj(prj_browse.list_projects), "base": cfg["AURORA_PROJECTS_DIR"]}
+
+
+@app.get("/v1/aurora/projects/github", dependencies=[Depends(auth)])
+async def projects_github() -> dict:
+    """The owner's GitHub repositories through the github plugin (read): stars, forks, issues, pages."""
+    def work():
+        from aurora.plg_host import PluginHost
+        host = PluginHost(cfg)
+        p = host.get("github")
+        if p is None or not p.available:
+            return {"connected": False, "repos": []}
+        me = host.call("github", "get_me", {})
+        login = json.loads(me["text"]).get("login", "") if me["ok"] else ""
+        res = host.call("github", "search_repositories", {"query": f"user:{login}", "minimal_output": False})
+        items = json.loads(res["text"]).get("items", []) if res["ok"] else []
+        keep = ("full_name", "name", "private", "description", "stargazers_count", "forks_count", "open_issues_count",
+                "language", "pushed_at", "html_url", "homepage", "has_pages", "default_branch", "archived")
+        return {"connected": True, "login": login, "error": "" if res["ok"] else res["text"][:300],
+                "repos": [{k: it.get(k) for k in keep} for it in items]}
+    return await asyncio.to_thread(work)
+
+
+@app.get("/v1/aurora/projects/{name}/tree", dependencies=[Depends(auth)])
+def project_tree_api(name: str) -> dict:
+    from aurora import prj_browse
+    return {"name": name, "files": _prj(prj_browse.tree, name)}
+
+
+@app.get("/v1/aurora/projects/{name}/file", dependencies=[Depends(auth)])
+def project_file_api(name: str, path: str) -> dict:
+    from aurora import prj_browse
+    return _prj(prj_browse.read_file, name, path)
+
+
+@app.get("/v1/aurora/projects/{name}/log", dependencies=[Depends(auth)])
+def project_log_api(name: str) -> dict:
+    from aurora import prj_browse
+    return {"name": name, "commits": _prj(prj_browse.log, name)}
+
+
+@app.post("/v1/aurora/projects/{name}/preview", dependencies=[Depends(auth)])
+def project_preview(name: str) -> dict:
+    from aurora import prj_browse
+    return {"url": f"/v1/preview/{_prj(prj_browse.preview_token, name)}/", "seconds": prj_browse.PREVIEW_S}
+
+
+@app.get("/v1/preview/{token}/{path:path}")
+def preview(token: str, path: str = ""):
+    """No login: the token is the key (one project, 10 minutes). The page runs sandboxed (opaque origin, no cookie)."""
+    from fastapi import Response
+    from aurora import prj_browse
+    try:
+        data, mime = prj_browse.preview_file(cfg, token, path)
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="preview expired: open it again from the Projects page")
+    except (FileNotFoundError, ValueError):
+        raise HTTPException(status_code=404, detail="not found")
+    return Response(data, media_type=mime, headers={
+        "Content-Security-Policy": "sandbox allow-scripts allow-forms allow-popups; frame-ancestors 'self'",
+        "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store", "Referrer-Policy": "no-referrer"})
+
+
+@app.post("/v1/aurora/projects", dependencies=[Depends(auth)])
+async def project_new(request: Request) -> dict:
+    """A new project from the page (a local write, like the plugin does for the agent)."""
+    body = await request.json()
+    args = {k: str(body[k]) for k in ("name", "description", "license", "language") if body.get(k)}
+
+    def work():
+        from aurora.plg_host import PluginHost
+        return PluginHost(cfg).call("projects", "project_create", args)
+    out = await asyncio.to_thread(work)
+    log.info("audit: project created from the page: %s (%s)", args.get("name"), "ok" if out["ok"] else "failed")
+    if not out["ok"]:
+        raise HTTPException(status_code=422, detail=out["text"][:400])
+    return out
+
+
+@app.post("/v1/aurora/projects/clone", dependencies=[Depends(auth)])
+async def project_clone(request: Request) -> dict:
+    """One of the owner's GitHub repositories, cloned into the projects folder to browse and preview it.
+    The token goes to git as a request header, never into the repository's config."""
+    from aurora import prj_browse
+    full = str((await request.json()).get("full_name", ""))
+    if not re.fullmatch(r"[A-Za-z0-9-]+/[A-Za-z0-9._-]+", full):
+        raise HTTPException(status_code=400, detail="owner/repository expected")
+    dest = prj_browse.base(cfg) / prj_browse.clone_name(full)
+    if dest.exists():
+        raise HTTPException(status_code=409, detail=f"{dest.name} already exists")
+    token = str(cfg["AURORA_GITHUB_TOKEN"] or "")
+    extra = ["-c", "http.extraHeader=Authorization: Basic "
+             + base64.b64encode(f"x-access-token:{token}".encode()).decode()] if token else []
+
+    def work():
+        import subprocess
+        return subprocess.run(["git", *extra, "clone", "--quiet", f"https://github.com/{full}.git", str(dest)],
+                              capture_output=True, text=True, timeout=900)
+    r = await asyncio.to_thread(work)
+    log.info("audit: cloned %s into %s: %s", full, dest.name, "ok" if r.returncode == 0 else "failed")
+    if r.returncode != 0:
+        raise HTTPException(status_code=502, detail=(r.stderr or "git clone failed").replace(token, "***")[-400:])
+    return {"name": dest.name}
+
+
+# ---- routines: periodic checks the owner switched on (sys_routines) -------------------------------------
+
+def _routine_job(r: dict):
+    from aurora import sys_routines
+    from aurora.kno_answer import Answer
+
+    def job(q, emit, run_id):
+        ok, text = True, ""
+        if r["kind"] == "tool":
+            from aurora.plg_host import PluginHost
+            host = PluginHost(cfg)
+            p = host.get(r["plugin"])
+            if p is None or not p.available:
+                ok, text = False, f"plugin {r['plugin']} not available"
+            elif p.effect(r["tool"]) != "read":                  # a routine by itself only reads
+                ok, text = False, f"{r['plugin']}.{r['tool']} is not read-only: a routine cannot call it"
+            else:
+                res = host.call(r["plugin"], r["tool"], r.get("args") or {}, run_id=run_id)
+                ok, text = res["ok"], res["text"].strip()
+            emit("routine.result", {"routine": r["id"], "ok": ok, "text": text[:2000]})
+            ans = Answer(run_id, q, text or "Niente da segnalare.", False, mode="agent")
+        else:
+            from aurora.agt_loop import Agent
+            ans = Agent(pipeline(), cfg, notify=lambda e, p: note("agent", e, p)).run(
+                r["goal"], emit, run_id, f"A routine the owner switched on: {r.get('title', '')}. Read only unless asked.")
+            text = ans.text.strip()
+        routine, notify = sys_routines.record(cfg, r["id"], text, ok, run_id)
+        if notify:
+            note("routine", r.get("event", "routine.done") if ok else "routine.failed",
+                 {"routine": r["id"], "title": routine.get("title", ""), "run_id": run_id,
+                  "text": (f"{routine.get('title', '')}: " if r.get("event", "routine.done") == "routine.done" else "") + text})
+        return ans
+    return job
+
+
+def _start_routine(r: dict) -> str:
+    from aurora import sys_routines
+    sys_routines.mark_started(cfg, r["id"])
+    return start_run(f"[routine] {r.get('title', r['id'])}", origin="routine", job=_routine_job(r))["id"]
+
+
+@app.get("/v1/aurora/routines", dependencies=[Depends(auth)])
+def routines() -> dict:
+    from aurora import sys_routines
+    from aurora.plg_host import PluginHost
+    plugins = PluginHost(cfg).plugins(with_tools=False)
+    rs = sys_routines.all_routines(cfg)
+    lang = "it" if str(cfg["AURORA_LANG_DEFAULT"]).startswith("it") else "en"
+    return {"routines": rs, "suggestions": sys_routines.suggestions(plugins, rs),
+            "welcome": [{"plugin": p.name, "text": (p.manifest.get("welcome") or {}).get(lang, "")}
+                        for p in plugins if p.available and p.manifest.get("welcome")]}
+
+
+@app.post("/v1/aurora/routines", dependencies=[Depends(auth)])
+async def routine_create(request: Request) -> dict:
+    from aurora import sys_routines
+    from aurora.plg_host import PluginHost
+    body = await request.json()
+    lang = "it" if str(cfg["AURORA_LANG_DEFAULT"]).startswith("it") else "en"
+    try:
+        if body.get("suggestion"):
+            r = sys_routines.from_suggestion(cfg, PluginHost(cfg).plugins(with_tools=False), str(body["suggestion"]), lang)
+        else:
+            r = sys_routines.create(cfg, body)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="unknown suggestion")
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    log.info("audit: routine %s switched on: %s", r["id"], r.get("title"))
+    return r
+
+
+@app.put("/v1/aurora/routines/{rid}", dependencies=[Depends(auth)])
+async def routine_update(rid: str, request: Request) -> dict:
+    from aurora import sys_routines
+    try:
+        r = sys_routines.update(cfg, rid, await request.json())
+    except KeyError:
+        raise HTTPException(status_code=404, detail="unknown routine")
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    log.info("audit: routine %s changed", rid)
+    return r
+
+
+@app.delete("/v1/aurora/routines/{rid}", dependencies=[Depends(auth)])
+def routine_delete(rid: str) -> dict:
+    from aurora import sys_routines
+    if not sys_routines.delete(cfg, rid):
+        raise HTTPException(status_code=404, detail="unknown routine")
+    log.info("audit: routine %s removed", rid)
+    return {"deleted": rid}
+
+
+@app.post("/v1/aurora/routines/{rid}/run", dependencies=[Depends(auth)])
+def routine_run(rid: str) -> dict:
+    from aurora import sys_routines
+    r = sys_routines.get(cfg, rid)
+    if r is None:
+        raise HTTPException(status_code=404, detail="unknown routine")
+    return {"run_id": _start_routine(r)}
+
+
+@app.post("/v1/aurora/routines/tick", dependencies=[Depends(auth)])
+def routine_tick() -> dict:
+    """aurora-rem, every tick: start what is due; tell the owner, once, what a newly ready plugin can do."""
+    from aurora import sys_routines
+    from aurora.plg_host import PluginHost
+    started = [_start_routine(r) for r in sys_routines.due(cfg)]
+    lang = "it" if str(cfg["AURORA_LANG_DEFAULT"]).startswith("it") else "en"
+    new = sys_routines.newly_ready(cfg, PluginHost(cfg).plugins(with_tools=False))
+    if new:
+        n = sum(len(p.manifest.get("routines", [])) for p in new)
+        note("plugins", "plugin.ready", {"plugins": [p.name for p in new], "text": " ".join(
+            (p.manifest.get("welcome") or {}).get(lang, "") for p in new)
+            + (f" Ti propongo {n} controlli periodici nella pagina 🔁 Routine." if n and lang == "it"
+               else f" I suggest {n} periodic checks in the 🔁 Routines page." if n else "")})
+    return {"started": started, "welcomed": [p.name for p in new]}
 
 
 @app.get("/v1/aurora/notifications", dependencies=[Depends(auth)])

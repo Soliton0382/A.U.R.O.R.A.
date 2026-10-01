@@ -1599,6 +1599,38 @@
    "max": 180
   },
   {
+   "key": "AURORA_WEATHER_REGION",
+   "type": "str",
+   "category": "senses",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Region for the official weather warnings (MeteoAlarm), as the national service names it, e.g. Lombardia. Empty: no official warnings.",
+   "it": "Regione per le allerte meteo ufficiali (MeteoAlarm), come la chiama il servizio nazionale, per esempio Lombardia. Vuoto: niente allerte ufficiali.",
+   "services": []
+  },
+  {
+   "key": "AURORA_WEATHER_ALERT_HOURS",
+   "type": "int",
+   "min": 3,
+   "max": 48,
+   "category": "senses",
+   "recommended": "12",
+   "evidence": "a forecast stays useful for a short warning within half a day",
+   "en": "How many hours ahead the weather plugin looks for sudden changes.",
+   "it": "Quante ore in avanti il plugin meteo cerca cambi repentini.",
+   "services": []
+  },
+  {
+   "key": "AURORA_WEATHER_WARNINGS_FEED",
+   "type": "str",
+   "category": "senses",
+   "recommended": "https://feeds.meteoalarm.org/api/v1/warnings/feeds-italy",
+   "evidence": "MeteoAlarm public API",
+   "en": "MeteoAlarm feed of the country (official warnings of the national weather services).",
+   "it": "Feed MeteoAlarm del paese (allerte ufficiali dei servizi meteorologici nazionali).",
+   "services": []
+  },
+  {
    "key": "AURORA_MEDIA_DIR",
    "type": "path",
    "category": "layout",

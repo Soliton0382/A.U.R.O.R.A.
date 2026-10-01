@@ -50,7 +50,16 @@ $domain:$https_port {
 		}
 		flush_interval -1
 	}
-	header {
+	# project previews (/v1/preview/*): framed by the WebUI only, sandboxed by the API's own CSP (opaque origin)
+	@app not path /v1/preview/*
+	header /v1/preview/* {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		X-Frame-Options SAMEORIGIN
+		-Server
+	}
+	header @app {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Content-Type-Options nosniff
 		Referrer-Policy strict-origin-when-cross-origin

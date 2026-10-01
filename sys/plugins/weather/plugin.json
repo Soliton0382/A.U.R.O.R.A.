@@ -1,0 +1,35 @@
+{
+  "name": "weather",
+  "version": "1.0",
+  "kind": "tool",
+  "description": {
+    "en": "The weather at home: now, the forecast for 3 days, a daily report and alerts on sudden changes (falling pressure, gusts, heavy rain, storms, snow, ice) plus the official warnings of the region (MeteoAlarm). Open-Meteo, no key.",
+    "it": "Il meteo di casa: adesso, le previsioni a 3 giorni, un bollettino giornaliero e l'allerta sui cambi repentini (pressione in calo, raffiche, pioggia intensa, temporali, neve, ghiaccio) più le allerte ufficiali della regione (MeteoAlarm). Open-Meteo, senza chiave."
+  },
+  "command": ["{python}", "server.py"],
+  "env": ["AURORA_WEATHER_LAT", "AURORA_WEATHER_LON", "AURORA_WEATHER_PLACE", "AURORA_WEATHER_REGION",
+          "AURORA_WEATHER_ALERT_HOURS", "AURORA_WEATHER_WARNINGS_FEED", "AURORA_TIMEZONE"],
+  "requires": ["AURORA_WEATHER_LAT", "AURORA_WEATHER_LON"],
+  "effects": {"*": "read"},
+  "welcome": {
+    "it": "🌦️ Meteo collegato. Posso dirti che tempo fa adesso, le previsioni a 3 giorni, mandarti un bollettino ogni mattina e avvisarti se il tempo cambia di colpo (pressione che crolla, raffiche, temporali, neve) o se la regione emette un'allerta.",
+    "en": "🌦️ Weather connected. I can tell you the weather now, the 3-day forecast, send you a report every morning and warn you when the weather turns suddenly (falling pressure, gusts, storms, snow) or the region issues a warning."
+  },
+  "routines": [
+    {"id": "daily", "title": {"it": "Bollettino meteo ogni mattina", "en": "Weather report every morning"},
+     "kind": "tool", "tool": "weather_today", "args": {}, "schedule": {"every": "day", "at": "07:30"},
+     "notify": "always", "event": "weather.daily"},
+    {"id": "alerts", "title": {"it": "Allerta meteo (controllo ogni ora)", "en": "Weather alerts (checked every hour)"},
+     "kind": "tool", "tool": "weather_alerts", "args": {}, "schedule": {"every": "hours", "hours": 1},
+     "notify": "if_new", "event": "weather.alert"}
+  ],
+  "setup": {
+    "it": "Il meteo usa il luogo di casa: `AURORA_WEATHER_LAT`, `AURORA_WEATHER_LON` e `AURORA_WEATHER_PLACE` (Impostazioni → sensi). Per le allerte ufficiali indica la regione in `AURORA_WEATHER_REGION` (per esempio *Lombardia*). Nessuna chiave: i dati sono di Open-Meteo e di MeteoAlarm.",
+    "en": "The weather uses the home place: `AURORA_WEATHER_LAT`, `AURORA_WEATHER_LON`, `AURORA_WEATHER_PLACE`. For official warnings set the region in `AURORA_WEATHER_REGION`. No key: data from Open-Meteo and MeteoAlarm.",
+    "links": [
+      {"label": "Open-Meteo", "url": "https://open-meteo.com/"},
+      {"label": "MeteoAlarm", "url": "https://meteoalarm.org/"}
+    ]
+  },
+  "settings": ["AURORA_WEATHER_LAT", "AURORA_WEATHER_LON", "AURORA_WEATHER_PLACE", "AURORA_WEATHER_REGION", "AURORA_WEATHER_ALERT_HOURS"]
+}

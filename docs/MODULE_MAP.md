@@ -25,6 +25,8 @@ call downward (ECOSYSTEM §1).
 | `sys_push.py` | system | Web Push (VAPID) to the owner's browsers: key pair made locally, subscriptions, which events notify (AURORA_PUSH_EVENTS), gone subscriptions dropped | pywebpush | svc_api |
 | `sys_update.py` | system | updates from the git repository: check (commits, files, protected files), changelog, apply fast-forward with pip, tests and rollback | git, sys_tests, sys_ethics | svc_api, svc_rem |
 | `sns_av.py` | senses | cameras and microphones of the machine: list, photo (ffmpeg/V4L2), recording (PipeWire), Whisper transcription on CPU with a filter for inventions on silence | ffmpeg, transformers | plugin senses, svc_api |
+| `sys_routines.py` | system | routines: the owner's periodic checks (tool or agent), schedules in local time, notify rules, plugins' suggestions and welcome | sns_clock | svc_api (run, tick), svc_rem (tick) |
+| `prj_browse.py` | projects | Projects page, read side: list, tree, files, git log, sandboxed previews under a 10-minute token | git | svc_api |
 | `kno_sources.py` | knowledge | the harvester's sources per domain (config/harvest_sources.json): arXiv, Normattiva (Akoma Ntoso), Europe PMC and bioRxiv/medRxiv (JATS), Wikipedia, GitHub; cursors, the owner's domain modes (off, round, until exhausted), licence per text | kno_acquire, httpx (via svc_harvester) | svc_harvester, svc_api |
 | `kno_harvest.py` | knowledge | the owner steers the harvester: arXiv ids/links parsed, command queue and status files shared by aurora-api and aurora-harvester | — | svc_api, svc_harvester |
 | `txt_compress.py` | text | SSCC salience compression of what goes to a cloud reasoner, saving measured per call | numpy | kno_answer |

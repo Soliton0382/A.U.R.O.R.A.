@@ -2,6 +2,7 @@
 // Copyright 2026 A.U.R.O.R.A. Project
 // The conversation: history on load, composer with attachments, live answers.
 import { call, stream } from "../api.js";
+import { bus } from "../bus.js";
 import { clock, el, scrollEnd, toBase64, useCss } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { auroraBubble, follow, renderPast } from "./trace.js";
@@ -195,6 +196,9 @@ export default {
         input.focus();
       }
     });
+
+    // Another page asks Aurora something (e.g. "review this project"): it goes out as if typed here.
+    bus.on("ask", async ({ text }) => { await ctx.show("chat"); input.value = text; form.requestSubmit(); });
 
     // The latest turns from Aurora's memory: a refresh does not start from an empty page.
     this.loadHistory = async () => {

@@ -791,3 +791,16 @@ github, netintel, projects, senses: 28/28 right, median 0.23 s, max 0.43 s per m
 messages resemble the prompt's examples: the score is optimistic. Live, from the chat: "Quante stelle e quanti fork
 hanno i miei repository su GitHub?" → route tools → get_me, search_repositories → a table, 13 s.
 
+## M46 — Routines, weather plugin, Projects page (2026-10-01)
+
+Weather plugin (Open-Meteo, in the bubblewrap cage): weather_now 0.14 s, weather_forecast 0.13 s, weather_today
+0.28 s and weather_alerts 0.28 s (with the MeteoAlarm feed of Italy: 0.22 s, 19 warnings that day, none for
+Lombardy). Routine "weather report every morning" run now: 4.0 s end to end, notification "☀️ Il meteo di oggi"
+in the activity feed. Chat "Che tempo farà domani? Devo uscire in bici" → route tools → weather_forecast → a
+table, 15 s. Plugins' welcome: github, projects, weather told once (aurora-rem, 21:02). Projects page: the owner's
+GitHub repositories through the plugin 3.8 s (the private ones are not visible to the current token); clone of a
+public repository 0.7 s, the token not written to .git/config; tree 23 entries; reading ../../../.env and
+.git/config refused (400); preview through Caddy: `sandbox allow-scripts allow-forms allow-popups;
+frame-ancestors 'self'`, X-Frame-Options SAMEORIGIN, while the WebUI keeps DENY; a wrong token 403.
+Tests: 138 (routines 6, weather plugin 3).
+

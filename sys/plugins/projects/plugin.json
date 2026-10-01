@@ -47,5 +47,9 @@
     "write": [
       "AURORA_PROJECTS_DIR"
     ]
+  },
+  "welcome": {
+    "it": "📁 Progetti pronti. Posso creare un progetto nuovo pronto per GitHub (README, licenza, .gitignore), scriverne i file, fare commit in locale e, con il tuo ok, pubblicarlo. Li trovi nella pagina 📁 Progetti, con l'albero delle cartelle e l'anteprima delle pagine.",
+    "en": "📁 Projects ready. I can start a new project ready for GitHub (README, licence, .gitignore), write its files, commit locally and, with your approval, publish it. See them in the 📁 Projects page, with the folder tree and page previews."
   }
 }

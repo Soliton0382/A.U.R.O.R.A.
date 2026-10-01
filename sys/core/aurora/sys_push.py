@@ -33,6 +33,11 @@ TEXTS = {   # event -> (kind the owner chooses, view to open, {lang: title})
     "update.done": ("update", "status", {"it": "⬆️ Aggiornamento di Aurora", "en": "⬆️ Aurora update"}),
     "harvest.batch_end": ("harvest", "harvester", {"it": "🌾 Batch di paper scaricato", "en": "🌾 Batch of papers downloaded"}),
     "harvest.end": ("harvest", "harvester", {"it": "🌾 Giro dell'harvester finito", "en": "🌾 Harvester round finished"}),
+    "routine.done": ("routine", "routines", {"it": "🔁 Routine di Aurora", "en": "🔁 Aurora's routine"}),
+    "routine.failed": ("routine", "routines", {"it": "⚠️ Una routine non è riuscita", "en": "⚠️ A routine failed"}),
+    "weather.daily": ("weather", "routines", {"it": "☀️ Il meteo di oggi", "en": "☀️ Today's weather"}),
+    "weather.alert": ("weather", "routines", {"it": "⛈️ Allerta meteo", "en": "⛈️ Weather alert"}),
+    "plugin.ready": ("plugin", "routines", {"it": "🧩 Nuovo plugin pronto", "en": "🧩 New plugin ready"}),
     "test": ("test", "chat", {"it": "🔔 Notifiche attive", "en": "🔔 Notifications on"}),
 }
 KINDS = {   # what the owner chooses from, in the Notifications page
@@ -43,8 +48,13 @@ KINDS = {   # what the owner chooses from, in the Notifications page
     "self_review": {"it": "Autodiagnosi", "en": "Self-reviews"},
     "thought": {"it": "Pensieri", "en": "Thoughts"},
     "harvest": {"it": "Harvester (paper scaricati)", "en": "Harvester (papers downloaded)"},
+    "routine": {"it": "Routine (controlli periodici)", "en": "Routines (periodic checks)"},
+    "weather": {"it": "Meteo (bollettino e allerte)", "en": "Weather (report and alerts)"},
+    "plugin": {"it": "Plugin appena collegati", "en": "Newly connected plugins"},
 }
-PRESETS = {"suggested": ["incident", "approval", "update", "dream", "self_review"], "all": list(KINDS), "none": []}
+PRESETS = {"suggested": ["incident", "approval", "update", "dream", "self_review", "routine", "weather", "plugin"],
+           "all": list(KINDS), "none": []}
+KNOWN_BEFORE = ["incident", "approval", "update", "dream", "self_review", "thought", "harvest"]   # prefs saved without "known"
 CHANNELS = ("push", "webui")
 
 
@@ -53,7 +63,9 @@ def prefs(cfg: sys_config.Config) -> dict:
     f = _dir(cfg) / "prefs.json"
     try:
         p = json.loads(f.read_text(encoding="utf-8"))
-        return {c: [k for k in p.get(c, []) if k in KINDS] for c in CHANNELS}
+        # a kind added after the owner chose is on when suggested; the kinds he saw keep his choice
+        new = [k for k in PRESETS["suggested"] if k not in p.get("known", KNOWN_BEFORE)]
+        return {c: [k for k in KINDS if k in p.get(c, []) or k in new] for c in CHANNELS}
     except (OSError, ValueError):
         push = [k.strip() for k in cfg["AURORA_PUSH_EVENTS"].split(",") if k.strip() in KINDS]
         return {"push": push, "webui": list(PRESETS["suggested"])}
@@ -61,7 +73,7 @@ def prefs(cfg: sys_config.Config) -> dict:
 
 def set_prefs(cfg: sys_config.Config, choice: dict) -> dict:
     p = {c: [k for k in KINDS if k in set(choice.get(c, []))] for c in CHANNELS}
-    _write_private(_dir(cfg) / "prefs.json", json.dumps(p, indent=1).encode())
+    _write_private(_dir(cfg) / "prefs.json", json.dumps({**p, "known": list(KINDS)}, indent=1).encode())
     return p
 
 
