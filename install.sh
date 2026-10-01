@@ -118,7 +118,8 @@ step "5. Python (venv)"
 if [ "$RESET_VENV" = 1 ] && [ -d .venv ]; then mv .venv ".venv.old-$(date +%s)"; fi
 [ -x .venv/bin/python ] || python3 -m venv .venv
 .venv/bin/pip install -q --upgrade pip
-.venv/bin/pip install -q -r requirements.txt || die "pip install -r requirements.txt"
+# every package byte for byte as tested: versions and SHA-256 pinned in requirements.lock
+.venv/bin/pip install -q --require-hashes -r requirements.lock || die "pip install --require-hashes -r requirements.lock"
 ok "$(.venv/bin/python --version), torch $(.venv/bin/python -c 'import torch; print(torch.__version__, "cuda", torch.cuda.is_available())')"
 
 # ---------------------------------------------------------------------------------------------------

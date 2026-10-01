@@ -147,6 +147,26 @@ def trace(component: str, event: str, payload: dict[str, Any] | None = None,
     return seq
 
 
+def scan_secrets(cfg: sys_config.Config | None = None) -> list[tuple[str, str]]:
+    """(log file, secret name) for every .env secret whose value appears in a log of the last 2 days: no log
+    must ever hold a key or a token (the daily check of aurora-rem; a hit becomes a security incident)."""
+    import gzip
+    cfg = cfg or _config()
+    specs = {s["key"]: s for s in sys_config.load_schema()["settings"]}
+    secrets = {k: str(cfg.values.get(k) or "") for k, s in specs.items() if s.get("secret")}
+    secrets = {k: v for k, v in secrets.items() if len(v) >= 8 and v != "redacted"}
+    hits, since = [], time.time() - 2 * 86400
+    for f in cfg.path("AURORA_LOG_DIR").rglob("*"):
+        if not f.is_file() or f.stat().st_mtime < since:
+            continue
+        try:
+            data = (gzip.open(f, "rt", errors="replace") if f.suffix == ".gz" else open(f, errors="replace")).read()
+        except OSError:
+            continue
+        hits += [(str(f.relative_to(cfg.root)), k) for k, v in secrets.items() if v in data]
+    return hits
+
+
 def purge_all(cfg: sys_config.Config | None = None) -> list[Path]:
     cfg = cfg or _config()
     removed = []

@@ -37,6 +37,16 @@ def _state_file(cfg: sys_config.Config) -> Path:
     return d / "last_check.json"
 
 
+def _signed(root: Path, commit: str) -> bool:
+    """A commit signed (SSH) by a key of the LOCAL allowed_signers: an update cannot bring its own signer."""
+    signers = root / "sys" / "core" / "config" / "allowed_signers"
+    if not signers.exists():
+        return False
+    r = subprocess.run(["git", "-C", str(root), "-c", f"gpg.ssh.allowedSignersFile={signers}", "verify-commit", commit],
+                       capture_output=True, text=True, timeout=60)
+    return r.returncode == 0
+
+
 def last(cfg: sys_config.Config) -> dict:
     try:
         return json.loads(_state_file(cfg).read_text(encoding="utf-8"))
@@ -72,7 +82,8 @@ def check(cfg: sys_config.Config, root: Path | None = None, fetch: bool = True) 
                    requirements="requirements.txt" in files,
                    schema="sys/core/config/settings_schema.json" in files,
                    protected=sorted(set(files) & set(sys_ethics.PROTECTED)))
-        out["safe"] = bool(commits) and not out["protected"] and out["ahead"] == 0
+        out["unsigned"] = [c["hash"] for c in commits if not _signed(root, c["hash"])]
+        out["safe"] = bool(commits) and not out["protected"] and out["ahead"] == 0 and not out["unsigned"]
     except (RuntimeError, subprocess.TimeoutExpired) as e:
         out["error"] = str(e)
     _state_file(cfg).write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -89,6 +100,9 @@ def changelog(info: dict, lang: str = "it") -> str:
         notes.append("installa nuove dipendenze Python" if lang == "it" else "installs new Python dependencies")
     if info.get("schema"):
         notes.append("nuove impostazioni nel .env" if lang == "it" else "new settings in .env")
+    if info.get("unsigned"):
+        notes.append(("commit NON firmati da una chiave autorizzata: " if lang == "it" else "commits NOT signed by an allowed key: ")
+                     + ", ".join(info["unsigned"]))
     if info.get("protected"):
         notes.append(("tocca file protetti del codice etico: va applicato a mano e firmato" if lang == "it"
                       else "touches protected files of the code of conduct: apply by hand and sign")
@@ -110,6 +124,8 @@ def apply(cfg: sys_config.Config, emit=None, root: Path | None = None, run_tests
         return {"applied": False, "reason": f"protected files change: {', '.join(info['protected'])} (apply by hand, then sign)"}
     if info["ahead"]:
         return {"applied": False, "reason": f"{info['ahead']} local commits not on the remote: merge by hand"}
+    if info["unsigned"] and cfg["AURORA_UPDATE_REQUIRE_SIGNED"]:
+        return {"applied": False, "reason": f"commits not signed by an allowed key: {', '.join(info['unsigned'])}"}
     local = dirty(root)
     if local:
         return {"applied": False, "reason": f"local changes not committed: {', '.join(local[:8])}"}

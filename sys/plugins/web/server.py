@@ -7,7 +7,7 @@ import html.parser
 import ipaddress
 import os
 import socket
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import httpx
 from mcp.server.mcpserver import MCPServer
@@ -17,17 +17,30 @@ KEY = os.environ.get("AURORA_BRAVE_SEARCH_KEY", "")
 server = MCPServer("web", version="1.0")
 
 
-def _public(url: str) -> str:
+def _public(url: str) -> tuple[str, str]:
+    """(url, address): the name resolved once, every address public; the connection goes to that address, so a
+    DNS answer that changes between the check and the connection (rebinding) cannot reach the local network."""
     u = urlparse(url)
     if u.scheme not in ("https", "http") or not u.hostname:
         raise ToolError("only http(s) URLs")
     try:
-        addrs = {ai[4][0] for ai in socket.getaddrinfo(u.hostname, None)}
+        addrs = [ai[4][0] for ai in socket.getaddrinfo(u.hostname, None)]
     except socket.gaierror:
         raise ToolError(f"cannot resolve {u.hostname}")
-    if any(not ipaddress.ip_address(a.split("%")[0]).is_global for a in addrs):
+    if not addrs or any(not ipaddress.ip_address(a.split("%")[0]).is_global for a in addrs):
         raise ToolError(f"{u.hostname} resolves to a local or private address: refused")
-    return url
+    v4 = [a for a in addrs if ":" not in a]
+    return url, (v4 or addrs)[0]
+
+
+def _get(c: httpx.Client, url: str, addr: str) -> httpx.Response:
+    """GET to the checked address; the name travels in Host and in TLS (SNI), so the certificate is checked."""
+    u = urlparse(url)
+    host = f"[{addr}]" if ":" in addr else addr
+    netloc = host + (f":{u.port}" if u.port else "")
+    headers = {"Host": u.hostname + (f":{u.port}" if u.port else "")}
+    ext = {"sni_hostname": u.hostname} if u.scheme == "https" else {}
+    return c.get(u._replace(netloc=netloc).geturl(), headers=headers, extensions=ext)
 
 
 class _Text(html.parser.HTMLParser):
@@ -57,12 +70,12 @@ class _Text(html.parser.HTMLParser):
 @server.tool()
 def fetch_url(url: str, max_chars: int = 12000) -> str:
     """A public web page as plain text (title first). Follows redirects, but only to public addresses."""
-    url = _public(url)
-    with httpx.Client(timeout=30, follow_redirects=False, headers={"User-Agent": "Aurora (personal assistant)"}) as c:
+    url, addr = _public(url)
+    with httpx.Client(timeout=30, follow_redirects=False, headers={"User-Agent": "Aurora/1.0 (https://github.com/Soliton0382/A.U.R.O.R.A.; personal assistant)"}) as c:
         for _ in range(5):
-            r = c.get(url)
+            r = _get(c, url, addr)
             if r.is_redirect:
-                url = _public(str(r.next_request.url))
+                url, addr = _public(urljoin(url, r.headers.get("location", "")))
                 continue
             break
     if r.status_code >= 400:

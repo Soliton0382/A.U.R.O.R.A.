@@ -42,5 +42,10 @@
     "AURORA_GITHUB_OWNER",
     "AURORA_GIT_AUTHOR_NAME",
     "AURORA_GIT_AUTHOR_EMAIL"
-  ]
+  ],
+  "sandbox": {
+    "write": [
+      "AURORA_PROJECTS_DIR"
+    ]
+  }
 }

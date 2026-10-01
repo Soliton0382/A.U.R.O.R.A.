@@ -1,0 +1,2 @@
+# Keys whose signed commits Aurora's updater accepts (git verify-commit, SSH signatures).
+267948178+Soliton0382@users.noreply.github.com namespaces="git" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAy9y122c6D0DlL4zheNsPunVpd0Tk5TWXj/huKCfl4m

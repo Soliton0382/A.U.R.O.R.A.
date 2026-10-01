@@ -32,7 +32,8 @@ PRIVATE_KEY = KEY_DIR / "owner_ed25519"
 PUBLIC_KEY = KEY_DIR / "owner_ed25519.pub"
 CODE_ROOT = Path(__file__).resolve().parents[3]
 PROTECTED = ("sys/core/ethics/CODE.md", "sys/core/aurora/sys_ethics.py", "sys/core/aurora/plg_host.py",
-             "sys/core/aurora/sys_approvals.py", "sys/core/aurora/sys_disclosure.py", "sys/core/aurora/agt_change.py")
+             "sys/core/aurora/sys_approvals.py", "sys/core/aurora/sys_disclosure.py", "sys/core/aurora/agt_change.py",
+             "sys/core/aurora/plg_sandbox.py")
 MANIFEST = "sys/core/ethics/MANIFEST.json"
 FORBIDDEN = {"offensive_scan", "exploit", "denial_of_service", "person_lookup", "person_tracking",
              "credential_attack", "malware", "unauthorized_access", "impersonation"}
@@ -98,6 +99,51 @@ def integrity(root: Path = CODE_ROOT, public_hex: str = "") -> tuple[bool, str]:
     return (False, f"changed without the owner's signature: {', '.join(changed)}") if changed else (True, "intact")
 
 
+CODE_PATTERNS = ("install.sh", "requirements.txt", "sys/core/**/*.py", "sys/core/**/*.js", "sys/core/**/*.css",
+                 "sys/core/**/*.html", "sys/core/**/*.json", "sys/core/**/*.md", "sys/core/**/*.sh", "sys/plugins/*/*")
+
+
+def code_files(root: Path = CODE_ROOT) -> list[str]:
+    """Every file of the code base the owner signs as a whole (the second tier: changes are reported, not fatal)."""
+    found = set()
+    for pattern in CODE_PATTERNS:
+        for p in root.glob(pattern):
+            rel = p.relative_to(root).as_posix()
+            if p.is_file() and "__pycache__" not in rel and rel not in (MANIFEST, "sys/core/ethics/exemption.sig"):
+                found.add(rel)
+    return sorted(found)
+
+
+def code_drift(root: Path = CODE_ROOT, public_hex: str = "") -> dict:
+    """{"changed", "added", "removed"} files against the signed code list; {"unsigned": reason} if there is none.
+    The rules (PROTECTED) stop Aurora when changed; the rest of the code is made evident, so that a self-repair
+    the owner approved does not stop her until he signs again."""
+    if not public_hex:
+        public_hex, problem = owner_public_key()
+        if not public_hex:
+            return {"unsigned": problem}
+    try:
+        m = json.loads((root / MANIFEST).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {"unsigned": f"{MANIFEST} missing or unreadable"}
+    code = m.get("code")
+    if not code:
+        return {"unsigned": "the manifest has no code list (sign again)"}
+    if not _verify(_canonical(code), m.get("code_signature", ""), public_hex):
+        return {"unsigned": "the code list is not signed by the owner"}
+    now = set(code_files(root))
+    return {"changed": sorted(f for f in now & set(code) if _sha(root / f) != code[f]),
+            "added": sorted(now - set(code)), "removed": sorted(set(code) - now)}
+
+
+def drift_summary(d: dict) -> str:
+    if "unsigned" in d:
+        return d["unsigned"]
+    n = len(d["changed"]) + len(d["added"]) + len(d["removed"])
+    return "" if not n else (f"{n} code files differ from the owner's signature: "
+                             + ", ".join((d["changed"] + d["added"] + d["removed"])[:8]) + (" …" if n > 8 else ""))
+
+
 def require_intact(log=None) -> None:
     """Every service calls this at start: rules changed without the owner mean no Aurora."""
     ok, reason = integrity()
@@ -109,6 +155,9 @@ def require_intact(log=None) -> None:
         sys.exit(78)                                       # EX_CONFIG: systemd does not loop on it
     if log:
         log.info("ethics code: intact; level B %s", "exempted (owner)" if exempt() else "active")
+        drift = drift_summary(code_drift())
+        if drift:
+            log.warning("code signature: %s", drift)
 
 
 def machine_id() -> str:

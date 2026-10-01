@@ -976,6 +976,34 @@
    "generate": "token"
   },
   {
+   "key": "AURORA_AUTH_MAX_FAILS",
+   "type": "int",
+   "category": "network",
+   "recommended": "10",
+   "evidence": "SECURITY.md",
+   "en": "Failed logins from one address before it is refused for AURORA_AUTH_WINDOW_S.",
+   "it": "Accessi falliti da uno stesso indirizzo prima che venga respinto per AURORA_AUTH_WINDOW_S.",
+   "services": [
+    "aurora-api"
+   ],
+   "min": 3,
+   "max": 1000
+  },
+  {
+   "key": "AURORA_AUTH_WINDOW_S",
+   "type": "int",
+   "category": "network",
+   "recommended": "900",
+   "evidence": "SECURITY.md",
+   "en": "Window, in seconds, of the failed-login count and of the refusal.",
+   "it": "Finestra, in secondi, del conteggio degli accessi falliti e del blocco.",
+   "services": [
+    "aurora-api"
+   ],
+   "min": 60,
+   "max": 86400
+  },
+  {
    "key": "AURORA_DEVICE_DAYS",
    "type": "int",
    "min": 1,
@@ -1353,8 +1381,8 @@
    "key": "AURORA_CLOUD_KEEP_PCT",
    "type": "int",
    "category": "llm",
-   "recommended": "35",
-   "evidence": "owner (SSCC paper default 0.35)",
+   "recommended": "60",
+   "evidence": "M41: long contexts, 35% kept -54% tokens but quality 8.5→6.25; 60% kept -29.5% tokens, quality within noise",
    "en": "Percent of sentences kept by the compression.",
    "it": "Percentuale di frasi mantenute dalla compressione.",
    "services": [
@@ -1451,6 +1479,18 @@
    "evidence": "owner",
    "en": "System user that runs the services.",
    "it": "Utente di sistema che esegue i servizi.",
+   "services": [
+    "all"
+   ]
+  },
+  {
+   "key": "AURORA_SERVICE_HARDENING",
+   "type": "bool",
+   "category": "services",
+   "recommended": "1",
+   "evidence": "SECURITY.md",
+   "en": "Confine the systemd services (read-only system and home but Aurora's folder, no new privileges, no capabilities, kernel protected). Re-run the service installer after a change.",
+   "it": "Confina i servizi systemd (sistema e home in sola lettura tranne la cartella di Aurora, nessun nuovo privilegio, nessuna capability, kernel protetto). Dopo un cambio rilancia l'installatore dei servizi.",
    "services": [
     "all"
    ]
@@ -1855,6 +1895,18 @@
    ],
    "min": 5,
    "max": 3600
+  },
+  {
+   "key": "AURORA_PLUGIN_SANDBOX",
+   "type": "bool",
+   "category": "plugins",
+   "recommended": "1",
+   "evidence": "SECURITY.md",
+   "en": "Run every plugin inside bubblewrap: system read-only, home hidden, only its own secrets, writable only the folders its manifest names.",
+   "it": "Esegue ogni plugin dentro bubblewrap: sistema in sola lettura, home nascosta, solo i suoi segreti, scrivibili solo le cartelle che il suo manifest dichiara.",
+   "services": [
+    "aurora-api"
+   ]
   },
   {
    "key": "AURORA_AGENT_MAX_STEPS",
@@ -2360,6 +2412,19 @@
    "evidence": "git",
    "en": "Branch followed for updates.",
    "it": "Branch seguito per gli aggiornamenti.",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ]
+  },
+  {
+   "key": "AURORA_UPDATE_REQUIRE_SIGNED",
+   "type": "bool",
+   "category": "services",
+   "recommended": "1",
+   "evidence": "SECURITY.md",
+   "en": "Apply only commits signed by a key in sys/core/config/allowed_signers (the local copy: an update cannot bring its own signer).",
+   "it": "Applica solo commit firmati da una chiave di sys/core/config/allowed_signers (la copia locale: un aggiornamento non può portarsi il proprio firmatario).",
    "services": [
     "aurora-api",
     "aurora-rem"

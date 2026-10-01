@@ -25,5 +25,10 @@
   "settings": [
     "AURORA_DOCUMENTS_DIR",
     "AURORA_CHROME_BIN"
-  ]
+  ],
+  "sandbox": {
+    "write": [
+      "AURORA_DOCUMENTS_DIR"
+    ]
+  }
 }

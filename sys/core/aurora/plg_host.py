@@ -10,7 +10,8 @@ A plugin is a folder in AURORA_PLUGINS_DIR with a manifest, plugin.json:
    "env": ["AURORA_TELEGRAM_BOT_TOKEN"],           # the only .env values the process receives
    "requires": ["AURORA_TELEGRAM_BOT_TOKEN"],      # available only when these are not empty
    "effects": {"send_message": "external", "*": "read"},
-   "effect_prefixes": {"get_": "read"}}            # optional: by tool-name prefix (large connectors)
+   "effect_prefixes": {"get_": "read"},            # optional: by tool-name prefix (large connectors)
+   "sandbox": {"write": ["AURORA_PROJECTS_DIR"]}}  # optional: the only folders it may write (plg_sandbox)
 
 Effects decide the gate (sys_approvals): read and write_local run at once, external and
 code_change wait for the owner as the .env says. The owner can switch a plugin off; the
@@ -133,6 +134,12 @@ class PluginHost:
             env[k] = str(self.cfg.values.get(k, "") or "")
         for k, v in p.manifest.get("env_as", {}).items():     # .env key -> name the program expects
             env[v] = str(self.cfg.values.get(k, "") or "")
+        from . import plg_sandbox
+        filtered = plg_sandbox.env_file(p.name, p.manifest, self.cfg)    # only this plugin's own secrets
+        if self.cfg["AURORA_PLUGIN_SANDBOX"] and plg_sandbox.available():
+            cmd = plg_sandbox.wrap(cmd, p.folder, p.manifest, filtered, self.cfg)   # inside, .env is the filtered one
+        else:
+            env["AURORA_ENV_FILE"] = str(filtered)
         return StdioServerParameters(command=cmd[0], args=cmd[1:], env=env, cwd=str(p.folder))
 
     async def _session(self, p: Plugin, work):
@@ -164,12 +171,28 @@ class PluginHost:
         self._cache[p.name] = (mtime, tools)
         return tools
 
+    def _secrets_in(self, args: dict, p: Plugin) -> list[str]:
+        """Names of the .env secrets whose value appears in the arguments (except the plugin's own, which it
+        receives anyway). A prompt-injected agent cannot send a key or a token out through a tool."""
+        mine = set(p.manifest.get("env", [])) | set(p.manifest.get("env_as", {}))
+        blob = json.dumps(args or {}, ensure_ascii=False)
+        specs = {s["key"]: s for s in sys_config.load_schema()["settings"]}
+        return sorted(k for k, s in specs.items()
+                      if s.get("secret") and k not in mine and len(str(self.cfg.values.get(k) or "")) >= 8
+                      and str(self.cfg.values[k]) in blob)
+
     def call(self, plugin: str, tool: str, args: dict, run_id: str | None = None) -> dict:
         """Run one tool now (the gate is the caller's job). Returns {"ok", "text", "seconds"}."""
         p = self.get(plugin)
         if p is None or not p.available:
             return {"ok": False, "text": f"plugin {plugin} not available"
                                         + (f" (missing {', '.join(p.missing)})" if p and p.missing else ""), "seconds": 0}
+        leaked = self._secrets_in(args, p)
+        if leaked:                                    # whatever the model "decided": a secret never leaves in arguments
+            self.log.warning("audit: call %s.%s REFUSED: its arguments contain the secret %s", plugin, tool, ", ".join(leaked))
+            sys_log.trace("plugins", "plugin.refused", {"plugin": plugin, "tool": tool, "secrets": leaked}, run_id=run_id)
+            return {"ok": False, "text": f"refused: the arguments contain a secret of Aurora ({', '.join(leaked)})",
+                    "seconds": 0}
         t0 = time.time()
 
         async def work(session):

@@ -23,6 +23,7 @@ _lock = threading.Lock()
 
 TEXTS = {   # event -> (kind the owner chooses, view to open, {lang: title})
     "incident": ("incident", "security", {"it": "🛡️ Incidente di sicurezza", "en": "🛡️ Security incident"}),
+    "auth.lockout": ("incident", "security", {"it": "🔐 Troppi accessi falliti", "en": "🔐 Too many failed logins"}),
     "approval.pending": ("approval", "approvals", {"it": "🛎️ Aurora aspetta la tua approvazione",
                                                    "en": "🛎️ Aurora is waiting for your approval"}),
     "rem.dream": ("dream", "chat", {"it": "🌙 Aurora ha sognato", "en": "🌙 Aurora had a dream"}),

@@ -147,14 +147,49 @@ def _is_key(token: str) -> bool:
     return bool(token) and secrets.compare_digest(token.encode(), str(cfg["AURORA_API_KEY"]).encode())
 
 
+# Failed logins per client address: after AURORA_AUTH_MAX_FAILS in AURORA_AUTH_WINDOW_S the address is refused
+# for the same window (429), and the owner is told (a security incident notification).
+_fails: dict[str, list[float]] = {}
+_fails_lock = threading.Lock()
+
+
+def _client(request: Request) -> str:
+    """The caller's address; behind Caddy (a local proxy) the first X-Forwarded-For is the real one."""
+    peer = request.client.host if request.client else "?"
+    fwd = request.headers.get("x-forwarded-for", "")
+    return fwd.split(",")[0].strip() if peer in ("127.0.0.1", "::1") and fwd else peer
+
+
+def _locked(request: Request) -> None:
+    now, ip = time.time(), _client(request)
+    with _fails_lock:
+        recent = [t for t in _fails.get(ip, []) if now - t < cfg["AURORA_AUTH_WINDOW_S"]]
+        _fails[ip] = recent
+    if len(recent) >= cfg["AURORA_AUTH_MAX_FAILS"]:
+        raise HTTPException(status_code=429, detail="too many failed attempts: try again later")
+
+
+def _failed(request: Request) -> None:
+    ip = _client(request)
+    with _fails_lock:
+        _fails.setdefault(ip, []).append(time.time())
+        n = len(_fails[ip])
+    if n == cfg["AURORA_AUTH_MAX_FAILS"]:
+        log.warning("audit: %d failed logins from %s: refused for %d s", n, ip, cfg["AURORA_AUTH_WINDOW_S"])
+        note("security", "auth.lockout", {"title": f"{n} tentativi di accesso falliti da {ip}", "ip": ip})
+
+
 def auth(request: Request) -> None:
     """The API key (third-party clients) or a registered device (WebUI cookie)."""
+    _locked(request)
     bearer = request.headers.get("authorization", "").removeprefix("Bearer ").strip()
     if _is_key(bearer):
         request.state.device = None
         return
     dev = devices.check(bearer) or devices.check(request.cookies.get(COOKIE, ""))
     if dev is None:
+        if bearer or request.cookies.get(COOKIE):              # a wrong credential, not a page asking who we are
+            _failed(request)
         raise HTTPException(status_code=401, detail="invalid or missing API key")
     request.state.device = dev
 
@@ -1241,7 +1276,9 @@ def rem_repair() -> dict:
 async def register_device(request: Request) -> Response:
     """Only the API key can register a device: a device cannot make more devices."""
     bearer = request.headers.get("authorization", "").removeprefix("Bearer ").strip()
+    _locked(request)
     if not _is_key(bearer):
+        _failed(request)
         raise HTTPException(status_code=401, detail="the API key is required to register a device")
     body = await request.json() if request.headers.get("content-length", "0") != "0" else {}
     token, rec = devices.register(body.get("name", ""), request.headers.get("user-agent", ""))

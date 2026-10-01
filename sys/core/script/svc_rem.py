@@ -120,6 +120,16 @@ def main() -> int:
         if time.time() - last_purge > 86400:          # daily: retention of every component's logs
             removed = sys_log.purge_all(cfg)
             log.info("log retention: %d old files removed", len(removed))
+            leaks = sys_log.scan_secrets(cfg)              # no key or token may ever sit in a log
+            if leaks:
+                log.warning("SECRETS IN LOGS: %s", ", ".join(f"{k} in {f}" for f, k in leaks[:10]))
+                try:
+                    client.post(f"{BASE}/v1/aurora/activity", json={"source": "rem", "event": "incident", "payload": {
+                        "title": f"segreti nei log: {', '.join(sorted({k for _, k in leaks}))}"}})
+                except httpx.HTTPError:
+                    pass
+            else:
+                log.info("secret scan of the logs: clean")
             last_purge = time.time()
         if cfg["AURORA_REM_ENABLED"]:
             try:

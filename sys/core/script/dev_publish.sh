@@ -44,6 +44,14 @@ fail() { echo -e "\e[31mSTOP: $*\e[0m"; exit 1; }
 say "== .env.example from the schema (never behind the settings)"
 "$SRC/.venv/bin/python" "$SRC/sys/core/script/sys_env_sync.py" --example
 
+say "== dependencies: lock and known vulnerabilities"
+[ "$SRC/requirements.lock" -nt "$SRC/requirements.txt" ] || fail "requirements.txt changed: regenerate requirements.lock (pip-compile --generate-hashes)"
+if command -v pip-audit >/dev/null; then
+  pip-audit --disable-pip --require-hashes -r "$SRC/requirements.lock" || fail "known vulnerabilities above"
+else
+  echo "  pip-audit not installed: vulnerability scan skipped (pipx install pip-audit)"
+fi
+
 say "== files to publish (what .gitignore lets through)"
 # a throw-away git directory reads .gitignore: the installation itself needs no repository
 git init -q --bare "$GITTMP"

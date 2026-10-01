@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import html
 import re
+import os
 import subprocess
 import tempfile
 import time
@@ -67,7 +68,10 @@ def create(title: str, markdown: str, lang: str = "it", cfg: sys_config.Config |
         page = Path(tmp) / "page.html"
         page.write_text(to_html(title, markdown, lang, cfg), encoding="utf-8")
         raw = Path(tmp) / "raw.pdf"
-        r = subprocess.run([str(cfg["AURORA_CHROME_BIN"]), "--headless=new", "--disable-gpu", "--no-first-run",
+        # inside a plugin's bubblewrap cage Chrome cannot nest its own namespace sandbox (AppArmor forbids it):
+        # the cage stands in for it, and the page is Aurora's own HTML with raw HTML disabled (no scripts)
+        cage = ["--no-sandbox"] if os.environ.get("AURORA_IN_SANDBOX") == "1" else []
+        r = subprocess.run([str(cfg["AURORA_CHROME_BIN"]), *cage, "--headless=new", "--disable-gpu", "--no-first-run",
                             f"--user-data-dir={tmp}/profile", "--no-pdf-header-footer", f"--print-to-pdf={raw}",
                             page.as_uri()], capture_output=True, text=True, timeout=120)
         if r.returncode != 0 or not raw.exists():

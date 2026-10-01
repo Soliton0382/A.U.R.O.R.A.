@@ -720,3 +720,26 @@ three answers in random order, score 0-10.
   but loses many sentences to verification (up to 12 in one answer: knowledge of its own, not in the vault).
 - One question was abstained by all three (gate closed). Judge from the same family as one arm: a bias toward
   Claude is possible; it did not show.
+
+## M41 — SSCC on long contexts (2026-10-01)
+
+8 questions of `retrieval_pool108` (document in the top 3); context = the 12 retrieved passages **whole**
+(26-48 k characters), the same local model answers from the whole context and from the SSCC-compressed one;
+blind judge Claude (opus) with the whole passages, score 0-10. Prompt tokens by the reasoner's tokenizer.
+
+| SSCC kept | prompt tokens (8 questions) | mean score: whole / compressed |
+|---|---|---|
+| 35% | 99,445 → 45,568 (**−54.2%**) | 8.50 / **6.25** (two answers lost their key fact: 10→1, 8→3) |
+| **60%** | 99,445 → 70,138 (**−29.5%**) | 8.25 / **7.62** (−0.63: within the ±0.75 noise of M40) |
+
+Default AURORA_CLOUD_KEEP_PCT moved to 60. Below 60% the saving is paid in answer quality.
+
+## M42 — Security measures (2026-10-01)
+
+Probe plugin without / with the bubblewrap cage: reads the API key, `~/.ssh`, the push key and writes into Aurora's
+folder / sees `redacted`, nothing, an empty folder, and cannot write. 12 real plugins work inside (camera look 2.8 s,
+PDF 4.2 s after giving Chrome the cage as its sandbox). Prompt injection: poisoned passage 0/5 hijacked; agent
+reading a phishing e-mail 0/3 (no send). A tool call carrying the API key: refused. Web plugin: rebinding closed,
+self-signed certificate refused. systemd exposure 9.2 → 4.1. requirements.lock = the tested venv (109 packages,
+0 differences), `--require-hashes` install 36 s, pip-audit: no known vulnerabilities. Signed updates: unsigned and
+foreign-key commits refused (tests). Secret scan of the logs: clean, 0.3 s.

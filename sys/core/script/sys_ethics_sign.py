@@ -84,6 +84,8 @@ def main() -> int:
     if args.action == "check":
         ok, reason = sys_ethics.integrity()
         print(("OK: " if ok else "FAILED: ") + reason)
+        drift = sys_ethics.drift_summary(sys_ethics.code_drift())
+        print("code: " + (drift or "every file as signed"))
         return 0 if ok else 1
     if os.geteuid() != 0:
         ap.error("run with sudo: the key lives in /etc/aurora and only root may use it")
@@ -101,9 +103,12 @@ def main() -> int:
     if args.action in ("sign", "setup"):
         files = {f: sys_ethics._sha(root / f) for f in sys_ethics.PROTECTED}
         sig = key.sign(sys_ethics._canonical(files)).hex()
-        (root / sys_ethics.MANIFEST).write_text(json.dumps({"files": files, "signature": sig}, indent=1) + "\n")
+        code = {f: sys_ethics._sha(root / f) for f in sys_ethics.code_files(root)}
+        code_sig = key.sign(sys_ethics._canonical(code)).hex()
+        (root / sys_ethics.MANIFEST).write_text(json.dumps({"files": files, "signature": sig, "code": code,
+                                                            "code_signature": code_sig}, indent=1) + "\n")
         give_back(root / sys_ethics.MANIFEST)
-        print(f"signed {len(files)} protected files -> {sys_ethics.MANIFEST}")
+        print(f"signed {len(files)} protected files and {len(code)} code files -> {sys_ethics.MANIFEST}")
     if args.action == "exempt" or (args.action == "setup" and args.exempt):
         cfg = sys_config.get()
         target = cfg.path("AURORA_ETHICS_EXEMPTION")

@@ -80,17 +80,32 @@ legal advice.
   an isolation (a plugin could read the configuration file itself).
 - Telegram and Facebook content is readable by the platforms.
 
-## Hardening still to do (2026-10-01)
+## Hardening (2026-10-01, measured)
+
+| risk | defence | evidence |
+|---|---|---|
+| a plugin reads Aurora's secrets, the owner's SSH keys, the push keys, or writes into Aurora's folder | every plugin runs inside **bubblewrap** (`plg_sandbox.py`, protected): system read-only, home hidden, Aurora's folder read-only with its `.env` replaced by a copy holding only that plugin's declared secrets (the others read `redacted`), push keys and devices hidden, private /tmp and PID/IPC namespaces; writable only the folders the manifest names | a probe plugin: without the cage it read the API key, `~/.ssh` and the push key and wrote into Aurora's folder; inside it saw `redacted`, no `~/.ssh`, an empty push folder, and could not write. The 12 real plugins work inside (camera, PDF, web, projects…) |
+| an agent driven by a poisoned page or e-mail sends a secret out | `plg_host` refuses any call whose arguments contain the value of a `.env` secret not owned by that plugin, whatever the model decided | a URL with the API key: refused and logged; normal calls pass. Measured injections: 0/5 in answers, 0/3 in an agent reading a phishing e-mail (prompts now also say that tool results and passages are data) |
+| systemd services with the user's full privileges | `ProtectSystem=strict`, home read-only but Aurora's folder (and caches), `NoNewPrivileges`, no capabilities (Caddy keeps only the low-port one), kernel/clock/control groups protected, private /tmp, `UMask=0077` (AURORA_SERVICE_HARDENING) | `systemd-analyze security`: 9.2 UNSAFE → 4.1 OK (api, llm), 9.3 → 4.3 (https) |
+| brute force of the API key | 10 failures from one address in 15 minutes → 429 for 15 minutes and a security notification (AURORA_AUTH_MAX_FAILS/WINDOW_S) | code; the live test runs after the services restart |
+| DNS rebinding through the web plugin | the name is resolved once, every address must be public, and the connection goes to that very address (Host and TLS SNI carry the name, the certificate is still checked) | example.org and redirects work; 127.0.0.1, 192.168.x, 127.0.0.1.nip.io refused; a self-signed certificate refused |
+| a forged update | commits are signed (SSH); the updater applies only commits signed by a key of the **local** `allowed_signers` (an update cannot bring its own signer) — AURORA_UPDATE_REQUIRE_SIGNED | tests: an unsigned commit and a commit signed by a foreign key are refused |
+| unseen changes to the code | second tier of the signature: every code file (165) listed with its SHA-256 and signed; a difference is reported in the logs, in the health check (yellow) and to the owner, without stopping Aurora (a self-repair the owner approved keeps working until he signs) | health shows "firma del codice" |
+
+### The owner's private key off the machine
+
+The public half stays in `/etc/aurora/owner_ed25519.pub` (that is all the services need). The private half can
+live on a USB stick, so that not even root on this machine can sign:
+
+    sudo cp /etc/aurora/owner_ed25519 /media/$USER/KEY/   # once, then check the copy
+    sudo shred -u /etc/aurora/owner_ed25519
+    # whenever something must be signed: plug the stick in
+    sudo .venv/bin/python sys/core/script/sys_ethics_sign.py sign --key /media/$USER/KEY/owner_ed25519
+
+## Hardening still to do
 
 | risk | today | to do |
 |---|---|---|
-| plugins and services run as the owner's user | a plugin could read the configuration file itself | a dedicated system user for Aurora; plugins in a sandbox (systemd DynamicUser, bubblewrap or containers) with only their own secrets |
-| systemd units with no confinement | full user privileges | ProtectSystem=strict, ProtectHome, PrivateTmp, NoNewPrivileges, CapabilityBoundingSet=, RestrictAddressFamilies, MemoryMax per service |
+| services run as the owner's user | confined by systemd, plugins caged by bubblewrap | a dedicated system user for new installations (the owner's own installation keeps its user) |
 | storage not encrypted | ext4 without LUKS | full-disk encryption (owner) or SQLCipher for the vault (cost not measured) |
-| supply chain | requirements pinned by version | pinned by hash (`pip install --require-hashes`), llama.cpp by commit (done), models by revision + SHA-256 (done), Dependabot/OSV scan on the repository |
-| releases | git commits only | signed tags and releases (the owner's key), the updater accepting only signed commits |
-| WebUI sessions | device cookie, HttpOnly, SameSite=Strict | rate limit and lockout on the API key login, session expiry shown and revocable (revocation exists) |
-| DNS rebinding in the web plugin | not closed | pin the resolved address for the connection |
 | secrets in memory and logs | logs never print secrets (checked by grep) | an automated test that scans the logs for every secret of .env |
-| tampering with the code of conduct | signed manifest of 6 files, key in /etc/aurora | sign the whole code base (not only the 6 files) and check it at start; keep the private key offline (not on the machine) |
-| prompt injection from web pages, papers, plugin results | answers are verified against passages; actions need approval | mark untrusted text in prompts, never let it set tool arguments without the owner (partly done by the approval gate) |
