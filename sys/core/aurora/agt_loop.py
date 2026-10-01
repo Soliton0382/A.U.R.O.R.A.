@@ -21,6 +21,8 @@ import re
 import time
 from pathlib import Path
 
+import httpx
+
 from . import agt_change, sns_clock, sys_config, sys_log, sys_tests
 from .kno_answer import Answer, Trail
 from .mdl_llm import chatml_turns
@@ -201,8 +203,20 @@ class Agent:
                 messages[i]["content"] = messages[i]["content"][:400] + "\n[shortened: an older result]"
                 cut += 1
                 used = self._tokens(messages)
-        if cut:
-            emit("agent.compact", {"shortened": cut, "prompt_tokens": used})
+        dropped = 0
+        while ctx - used < want + 256 and len(messages) > 2 + 2 * self.KEEP_FULL:
+            # shortening was not enough (a long run, C68): the oldest steps go, the goal and the latest stay
+            del messages[2]
+            dropped += 1
+            if dropped % 4 == 0 or ctx - used < want + 256:
+                used = self._tokens(messages)
+        if dropped:
+            note = f"[{dropped} earlier messages of this run were removed to fit the context]"
+            if not messages[2]["content"].startswith("[") or "removed to fit" not in messages[2]["content"]:
+                messages.insert(2, {"role": "user", "content": note})
+            used = self._tokens(messages)
+        if cut or dropped:
+            emit("agent.compact", {"shortened": cut, "removed": dropped, "prompt_tokens": used})
         return max(256, ctx - used - 256)
 
     # ---- the loop ----------------------------------------------------------------------------
@@ -270,7 +284,11 @@ class Agent:
             messages.append({"role": "user", "content": "Stop using tools now. Write the final report in Italian: what "
                              "you found (with evidence), what you changed or proposed, what is still open."})
             room = self._fit(messages, 1500, emit)
-            report = self.p._for("agent").complete_turns(messages, min(1500, room), think=False).answer
+            try:
+                report = self.p._for("agent").complete_turns(messages, min(1500, room), think=False).answer
+            except httpx.HTTPError as e:                    # never a run without a report (C68)
+                self.log.warning("agent run %s: final report failed: %s", run_id, e)
+                report = "Non sono riuscita a scrivere il resoconto finale (" + type(e).__name__ + ")."
             report = CALL.sub("", report).strip()
             limit = time.time() - t0 >= limit_s or steps >= self.cfg["AURORA_AGENT_MAX_STEPS"]
             summary = ((f"(Limite raggiunto: {steps} passi, {round((time.time() - t0) / 60, 1)} min.) " if limit else "")

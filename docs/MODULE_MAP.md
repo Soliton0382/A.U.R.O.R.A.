@@ -27,6 +27,7 @@ call downward (ECOSYSTEM §1).
 | `sns_av.py` | senses | cameras and microphones of the machine: list, photo (ffmpeg/V4L2), recording (PipeWire), Whisper transcription on CPU with a filter for inventions on silence | ffmpeg, transformers | plugin senses, svc_api |
 | `sys_routines.py` | system | routines: the owner's periodic checks (tool or agent), schedules in local time, notify rules, plugins' suggestions and welcome | sns_clock | svc_api (run, tick), svc_rem (tick) |
 | `prj_browse.py` | projects | Projects page, read side: list, tree, files, git log, sandboxed previews under a 10-minute token | git | svc_api |
+| plugin `security` | security | read only: sentinel incidents, firewall summary over a window, night report (shares sec_sentinel.is_ips) | sec_sentinel | agent, routines |
 | `img_edit.py` | images | picture edits in words: intent (edit/look/other), a checked list of operations planned by the reasoner, Pillow applies them | Pillow | svc_api |
 | `sys_uploads.py` | system | files attached in the chat and Aurora's edits: kept with their turn, served safely, purged with the memory | — | svc_api, svc_rem |
 | `kno_video.py` | knowledge | watching a video: probe, scene changes (peak rule), moments, frames, one vision call, timestamped transcript, passages | ffmpeg, mdl_llm.see_many, sns_av | kno_attach |

@@ -1072,9 +1072,18 @@ def _routine_job(r: dict):
             ans = Answer(run_id, q, text or "Niente da segnalare.", False, mode="agent")
         else:
             from aurora.agt_loop import Agent
-            ans = Agent(pipeline(), cfg, notify=lambda e, p: note("agent", e, p)).run(
-                r["goal"], emit, run_id, f"A routine the owner switched on: {r.get('title', '')}. Read only unless asked.")
-            text = ans.text.strip()
+            # the owner's words may carry the schedule ("ogni mattina..."): the schedule exists, the task is now (C68)
+            goal = (f"Do this task now, once, and report the result: {r['goal']}\n(It is one run of a periodic check the "
+                    "owner already scheduled: do not create or change routines, do not study Aurora's code to do it; use "
+                    "the tools that read the data. If no tool can read what is needed, say so in one line.)")
+            try:
+                ans = Agent(pipeline(), cfg, notify=lambda e, p: note("agent", e, p)).run(
+                    goal, emit, run_id, f"Routine: {r.get('title', '')}. Read only.")
+                text = ans.text.strip()
+            except Exception as e:                       # a failed routine is recorded and said, never left pending
+                log.exception("routine %s failed", r["id"])
+                ok, text = False, f"{type(e).__name__}: {str(e)[:300]}"
+                ans = Answer(run_id, q, f"Routine non riuscita: {text}", False, mode="agent")
         routine, notify = sys_routines.record(cfg, r["id"], text, ok, run_id)
         if notify:
             note("routine", r.get("event", "routine.done") if ok else "routine.failed",

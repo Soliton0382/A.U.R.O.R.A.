@@ -35,6 +35,14 @@ def src_of(f: dict) -> str | None:
     return None
 
 
+def is_ips(f: dict) -> bool:
+    """An intrusion-prevention or threat-protection event (IDP/IPS/ATP): the rule the detector and the security
+    plugin share."""
+    kind = (f.get("log_type") or "").lower()
+    return kind in ("idp", "ips", "intrusion", "atp") or "intrusion" in f.get("_raw", "").lower() \
+        or (f.get("log_component") or "").lower() == "ips"
+
+
 LOCAL_NETS = [ipaddress.ip_network(n) for n in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.0/8",
                                                   "169.254.0.0/16", "::1/128", "fc00::/7", "fe80::/10")]
 
@@ -94,7 +102,7 @@ class Detector:
         text = f["_raw"].lower()
         kind = (f.get("log_type") or "").lower()
         out = []
-        if kind in ("idp", "ips", "intrusion", "atp") or "intrusion" in text or "ips" == (f.get("log_component") or "").lower():
+        if is_ips(f):
             if (i := self._raise("ips_alert", src, deque([(now, f["_raw"])]), now,
                                  {"signature": f.get("signature_msg") or f.get("message") or ""})):
                 out.append(i)

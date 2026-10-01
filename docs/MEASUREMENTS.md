@@ -856,3 +856,10 @@ attaching it again → the edited picture, 800x960, still grey, 2 s; "Cosa mostr
 looked at again (56 s); "Rendila un po' più luminosa" → brightness x1.3, 2 s. "Ruotala di 90 gradi" without a direction
 turns it counter-clockwise (the mathematical convention).
 
+## M52 — Security plugin and the owner's firewall routine (2026-10-01)
+
+A night of the owner's firewall: about 112,000 lines in 10 hours (133,000 in 12), parsed in 1.5–1.8 s. security_incidents
+0.0 s; firewall_summary and security_night_report 1.5 s. The owner's routine, unchanged, after C68: 40 s, ok, tools
+security_night_report and firewall_summary (and a PDF through documents). Before: 3 minutes reading source code, then
+400 Bad Request (context), never recorded.
+
