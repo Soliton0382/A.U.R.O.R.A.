@@ -970,7 +970,10 @@
    "en": "Key required by every API call and by the WebUI login (Authorization: Bearer). Generated at first setup.",
    "it": "Chiave richiesta da ogni chiamata API e dall'accesso alla WebUI (Authorization: Bearer). Generata al primo avvio.",
    "services": [
-    "aurora-api"
+    "aurora-api",
+    "aurora-rem",
+    "aurora-harvester",
+    "aurora-sentinel"
    ],
    "secret": true,
    "generate": "token"
@@ -1836,8 +1839,22 @@
    "category": "harvest",
    "recommended": "cs.AI,cs.LG,cs.CL,quant-ph,gr-qc,hep-th,math-ph,cond-mat.str-el,nlin.PS,physics.gen-ph,astro-ph.CO,math.DG,stat.ML,cs.CR,cs.SE,cs.PL",
    "evidence": "owner",
-   "en": "arXiv categories harvested, newest first; each goes to its domain (config/arxiv_domains.json).",
-   "it": "Categorie arXiv raccolte, dalle più recenti; ognuna va nel suo dominio (config/arxiv_domains.json).",
+   "en": "arXiv categories whose domains are harvested by default, until the owner chooses the domains on the Harvester page (config/harvest_sources.json).",
+   "it": "Categorie arXiv i cui domini vengono raccolti di default, finché il proprietario non sceglie i domini dalla pagina Harvester (config/harvest_sources.json).",
+   "services": [
+    "aurora-harvester"
+   ]
+  },
+  {
+   "key": "AURORA_HARVEST_DELAY_S",
+   "type": "int",
+   "min": 1,
+   "max": 60,
+   "category": "harvest",
+   "recommended": "1",
+   "evidence": "politeness towards public APIs (Normattiva, Europe PMC, bioRxiv, Wikipedia, GitHub)",
+   "en": "Pause between two calls to the same host, for every source but arXiv (which keeps AURORA_ARXIV_DELAY_S).",
+   "it": "Pausa tra due chiamate allo stesso sito, per tutte le fonti tranne arXiv (che usa AURORA_ARXIV_DELAY_S).",
    "services": [
     "aurora-harvester"
    ]

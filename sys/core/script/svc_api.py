@@ -29,6 +29,7 @@
     GET  /v1/aurora/push; POST /v1/aurora/push/{subscribe|unsubscribe|test}  Web Push to this browser
     GET|PUT /v1/aurora/notifications                which events notify, on which channel (push, WebUI)
     GET  /v1/aurora/harvester; POST /v1/aurora/harvester/{now|batch}  the owner steers aurora-harvester
+    PUT  /v1/aurora/harvester/domains {domain: off|round|exhaust}   which domains it harvests, and how
     GET  /v1/aurora/update; POST /v1/aurora/update/{check|apply}  updates from GitHub: changelog, approval or auto
     GET  /v1/aurora/senses/devices; POST /v1/aurora/senses/{photo|listen}  camera and microphone of this machine
     POST /v1/aurora/sentinel/incident              aurora-sentinel reports a firewall incident (stored, investigated)
@@ -148,7 +149,9 @@ def _is_key(token: str) -> bool:
 
 
 # Failed logins per client address: after AURORA_AUTH_MAX_FAILS in AURORA_AUTH_WINDOW_S the address is refused
-# for the same window (429), and the owner is told (a security incident notification).
+# for the same window (429), and the owner is told (a security incident notification). A direct loopback
+# caller (no proxy header) is never counted nor locked: Aurora's own services live there, and a 256-bit key
+# cannot be guessed by trying; remote clients always come through Caddy and keep the lockout.
 _fails: dict[str, list[float]] = {}
 _fails_lock = threading.Lock()
 
@@ -160,7 +163,14 @@ def _client(request: Request) -> str:
     return fwd.split(",")[0].strip() if peer in ("127.0.0.1", "::1") and fwd else peer
 
 
+def _local(request: Request) -> bool:
+    peer = request.client.host if request.client else "?"
+    return peer in ("127.0.0.1", "::1") and not request.headers.get("x-forwarded-for")
+
+
 def _locked(request: Request) -> None:
+    if _local(request):
+        return
     now, ip = time.time(), _client(request)
     with _fails_lock:
         recent = [t for t in _fails.get(ip, []) if now - t < cfg["AURORA_AUTH_WINDOW_S"]]
@@ -170,6 +180,9 @@ def _locked(request: Request) -> None:
 
 
 def _failed(request: Request) -> None:
+    if _local(request):
+        log.warning("audit: wrong credential from a local process (not counted for the lockout)")
+        return
     ip = _client(request)
     with _fails_lock:
         _fails.setdefault(ip, []).append(time.time())
@@ -480,11 +493,11 @@ def domains() -> list[dict]:
     return [d for d in load_taxonomy().values() if not d.get("memory")]
 
 
-def _import(name: str, data: bytes, domain: str, title: str, origin: str = "upload") -> dict:
+def _import(name: str, data: bytes, domain: str, title: str, origin: str = "upload", meta: dict | None = None) -> dict:
     from aurora.kno_ingest import Importer
     p = pipeline()
     with _run_lock:                                   # vault and index have one writer: this process
-        rep = Importer(p.writer, p.indexer, cfg, llm=p.llm).add(name, data, domain, title, origin=origin)
+        rep = Importer(p.writer, p.indexer, cfg, llm=p.llm).add(name, data, domain, title, origin=origin, meta=meta)
     return {"name": rep.name, "source_id": rep.source_id, "domain": rep.domain, "chunks": rep.chunks,
             "written": rep.written, "duplicates": rep.duplicates, "rejected": rep.rejected, "indexed": rep.indexed}
 
@@ -505,7 +518,8 @@ async def import_document(request: Request) -> dict:
         raise HTTPException(status_code=422, detail="empty document")
     try:
         return await asyncio.to_thread(_import, os.path.basename(body.get("name", "document.txt")), data, domain,
-                                       body.get("title", "").strip(), body.get("origin", "upload"))
+                                       body.get("title", "").strip(), body.get("origin", "upload"),
+                                       {"licence": body.get("licence", ""), "url": body.get("url", "")})
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
 
@@ -680,6 +694,28 @@ def _start_update(to: str) -> str:
     return start_run(f"[update] {to}", origin="update", job=job)["id"]
 
 
+def _harvest_domains() -> list[dict]:
+    from aurora import kno_sources
+    from aurora.sol_schema import load_taxonomy
+    tax = load_taxonomy()
+    return [{"id": d, "it": tax.get(d, {}).get("it", d), "en": tax.get(d, {}).get("en", d), "mode": m,
+             **kno_sources.progress(cfg, d)} for d, m in kno_sources.modes(cfg).items()]
+
+
+@app.put("/v1/aurora/harvester/domains", dependencies=[Depends(auth)])
+async def harvester_domains(request: Request) -> dict:
+    from aurora import kno_harvest, kno_sources
+    changes = {str(k): str(v) for k, v in (await request.json()).items()}
+    try:
+        kno_sources.set_modes(cfg, changes)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    if any(v != "off" for v in changes.values()):
+        kno_harvest.send(cfg, "wake")                   # the harvester re-reads the choice within seconds
+    log.info("audit: harvester domains: %s", ", ".join(f"{k}={v}" for k, v in sorted(changes.items())))
+    return {"domains": _harvest_domains()}
+
+
 @app.get("/v1/aurora/harvester", dependencies=[Depends(auth)])
 def harvester() -> dict:
     from aurora import kno_harvest
@@ -689,7 +725,8 @@ def harvester() -> dict:
             "enabled_setting": env.get("AURORA_HARVEST_ENABLED", "0").lower() in sys_config.TRUE_WORDS,
             "categories": cfg["AURORA_HARVEST_CATEGORIES"], "per_category": cfg["AURORA_HARVEST_PER_CATEGORY"],
             "interval_h": cfg["AURORA_HARVEST_INTERVAL_H"],
-            "papers_seen": len(json.loads(seen.read_text())) if seen.exists() else 0}
+            "papers_seen": len(json.loads(seen.read_text())) if seen.exists() else 0,
+            "domains": _harvest_domains()}
 
 
 @app.post("/v1/aurora/harvester/{action}", dependencies=[Depends(auth)])

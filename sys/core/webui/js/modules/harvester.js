@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 A.U.R.O.R.A. Project
-// The harvester, steered by the owner: on/off, a round now, a batch of papers (arXiv ids or links),
-// each paper placed in the domain of its arXiv category; progress follows live.
+// The harvester, steered by the owner: on/off, a round now, which domains to harvest (off, a round, until
+// exhausted) with their sources and progress, a batch of arXiv papers; progress follows live.
 import { call } from "../api.js";
 import { clock, el } from "../dom.js";
-import { apply, t } from "../i18n.js";
+import { apply, lang, t } from "../i18n.js";
 import { restartPrompt } from "../restart.js";
 
 const when = (s) => (s ? clock(new Date(s * 1000).toISOString()) : "—");
@@ -22,6 +22,9 @@ export default {
       <div class="harvest-state"></div>
       <div class="harvest-actions"><button class="toggle"></button> <button class="now" data-i18n="harvest.now"></button>
         <span class="result muted"></span></div>
+      <h3 class="setting-cat" data-i18n="harvest.domains"></h3>
+      <p class="muted" data-i18n="harvest.domains_hint"></p>
+      <div class="harvest-domains"></div>
       <h3 class="setting-cat" data-i18n="harvest.batch"></h3>
       <p class="muted" data-i18n="harvest.batch_hint"></p>
       <textarea class="batch-items" rows="6"></textarea>
@@ -29,6 +32,7 @@ export default {
       <div class="batch-progress"></div>`;
     apply(root);
     this.stateBox = root.querySelector(".harvest-state");
+    this.domainsBox = root.querySelector(".harvest-domains");
     this.progress = root.querySelector(".batch-progress");
     this.out = root.querySelector(".result");
     this.toggle = root.querySelector(".toggle");
@@ -68,7 +72,7 @@ export default {
     row(t("harvest.last"), when(s.last_round));
     if (s.next_round && s.enabled_setting) row(t("harvest.next"), when(s.next_round));
     row(t("harvest.seen"), String(s.papers_seen));
-    row(t("harvest.cats"), s.categories.join(", "));
+    this.renderDomains(s.domains || []);
     const b = s.batch;
     this.progress.replaceChildren();
     if (b) {
@@ -82,6 +86,36 @@ export default {
         if (i.state === "done") r.append(el("span", "muted", t("harvest.chunks", { n: i.written })));
         this.progress.append(r);
       }
+    }
+  },
+
+  renderDomains(domains) {
+    const box = this.domainsBox;
+    if (box.contains(document.activeElement)) return;      // never redraw under the owner's hand
+    box.replaceChildren();
+    for (const d of domains) {
+      const r = el("div", "ev");
+      const sel = el("select", "");
+      sel.style.width = "auto";
+      for (const m of ["off", "round", "exhaust"]) {
+        const o = el("option", "", t(`harvest.mode.${m}`));
+        o.value = m;
+        o.selected = d.mode === m;
+        sel.append(o);
+      }
+      sel.disabled = !d.sources.length;
+      sel.addEventListener("change", async () => {
+        const out = await call("/v1/aurora/harvester/domains", { method: "PUT", body: JSON.stringify({ [d.id]: sel.value }) });
+        sel.blur();
+        this.out.textContent = this.enabled || sel.value === "off" ? t("harvest.saved") : t("harvest.saved_off");
+        this.renderDomains(out.domains);
+      });
+      const state = !d.sources.length ? el("span", "muted", t("harvest.no_source"))
+        : d.done ? el("span", "pill ok", t("harvest.complete"))
+        : el("span", "muted", t("harvest.taken", { n: d.taken }));
+      r.append(el("strong", "", lang.startsWith("it") ? d.it : d.en), sel,
+        el("span", "muted", [...new Set(d.sources)].join(" · ")), state);
+      box.append(r);
     }
   },
 

@@ -172,6 +172,20 @@ SDXL-Lightning 6.9 GB. FLUX.2 klein (23 GB) and Z-Image-Turbo (31 GB) were only 
 | GitHub | public page (Pages) with the charts; releases with a changelog; issue templates |
 | security | see SECURITY.md, "Hardening still to do" |
 
+## Harvester beyond arXiv (owner, 2026-10-01) — done, M44
+
+| item | state |
+|---|---|
+| licence per source | ✅ every harvested text stores licence, origin and URL in its solitons |
+| domains with a choice | ✅ Harvester page: off / a round / until exhausted, per domain, with sources and progress |
+| Normattiva → law_it | ✅ official pre-packed collections (open data API of api.normattiva.it), Akoma Ntoso, one passage per article, text in force |
+| Europe PMC open access → medicine, biomedicine, genomics | ✅ |
+| bioRxiv / medRxiv | ✅ |
+| GitHub → programming | ✅ READMEs of repositories with an open licence; documentation folders still to add |
+| Wikipedia → philosophy, religion, history, literature, society, general | ✅ English "Vital articles"; Italian Wikipedia still to add |
+| a public estimate | ✅ README, per source |
+| still open | patents (EPO OPS needs a key); the Constitution itself (not in a collection: one act to fetch by URN); per-topic queries chosen by the owner |
+
 ## Open measurements (BUGS.md)
 
 A3 drop on a large domain · A4 CUDA ≥ 12.8 build · A5 encoder on the full vault · A7 tensor split ·

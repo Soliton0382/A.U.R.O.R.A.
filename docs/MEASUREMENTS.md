@@ -743,3 +743,43 @@ reading a phishing e-mail 0/3 (no send). A tool call carrying the API key: refus
 self-signed certificate refused. systemd exposure 9.2 → 4.1. requirements.lock = the tested venv (109 packages,
 0 differences), `--require-hashes` install 36 s, pip-audit: no known vulnerabilities. Signed updates: unsigned and
 foreign-key commits refused (tests). Secret scan of the logs: clean, 0.3 s.
+
+**Retracted in part (C60):** the plugins inside the cage were measured with the services not yet confined by
+systemd. Under the confined units the cage could not mount its /proc and no plugin started.
+
+## M43 — Live check under the confined units (2026-10-01)
+
+After C60 (aurora-api without ProtectKernelTunables/ProtectKernelLogs/ProtectHostname), all seven services under
+the confined units. Health ok, 11 items. Plugins in the bubblewrap cage: tools listed in 2.8 s (documents 2,
+netintel 3, projects 9, self 11, senses 3, web 2; the others wait for their credentials). Chat with sources 49 s.
+Agent → documents__create_pdf: 10 s, PDF 21 KB. Camera photo 1.1 s; microphone 3 s → 10.9 s (silence: "Grazie.",
+clear=false, the hallucination filter flags it). Dream with GPU swap (systemctl from a confined unit): painted in
+23 s, swap true, aurora-llm back. Push test: sent 1, failed 0. Login lockout: 10 wrong keys from a remote
+address → 401, the 11th → 429, the right key refused while locked, another address 200; local wrong keys not
+counted (C58). API key rotated: new key in ~/.config/aurora/api_key.txt (0600), rem/harvester/sentinel restarted
+with it (C59). systemd exposure of aurora-api 4.5 OK.
+
+Licences of arXiv (OAI-PMH, records of 2026-09-01..03, 3,900 records): 46.4% arXiv non-exclusive licence (no
+redistribution), 42.1% CC BY 4.0, 5.1% CC BY-NC-ND, 3.7% CC BY-NC-SA, 1.8% CC BY-SA, 0.9% CC0. About 45% could be
+redistributed with attribution (CC BY, BY-SA, CC0): the vault is not published, every installation harvests.
+
+## M44 — The harvester's sources (2026-10-01)
+
+Each source live, download → aurora-api → vault and index (2 × RTX 5060 Ti), small samples:
+
+| source | sample | solitons | time | per item |
+|---|---|---|---|---|
+| arXiv (harvester logs, 2026-09-30/10-01) | 59 papers | 28.1 per paper | 3.9 s median | — |
+| Normattiva, collection "Codici" (in force) | 40 codes, 19,434 articles | 8,480 (packed passages) | 567 s | 14.2 s, 212 solitons |
+| Europe PMC open access | 3 texts | 33 | 9.2 s | 3.1 s |
+| medRxiv | 3 preprints | 33 | 6.1 s | 2.0 s |
+| bioRxiv | 3 preprints | 48 | 7.3 s | 2.4 s |
+| Wikipedia (Vital articles) | 3 articles | 26 | 5.4 s | 1.8 s |
+| GitHub (open-licence READMEs) | 3 repositories | 19 | 4.8 s | 1.6 s |
+
+Normattiva open data: 55 pre-packed collections (api.normattiva.it, bff-opendata), AKN zip of the codes 10.5 MB
+in 2.1 s, 97 MB unpacked; the civil code and its implementing rules are base64 inside the zip, the codes keep
+their articles in attachments (C61). Ceiling of the chosen collections: 67,872 acts. Europe PMC: 806,873
+open-access CC BY hits for "clinical trial" alone. GitHub search: 10 requests a minute without a token, at most
+1,000 repositories per topic (8 topics: ceiling ~8,000 READMEs, ~50,000 solitons).
+

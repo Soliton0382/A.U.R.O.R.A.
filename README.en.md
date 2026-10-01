@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.en.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-118%20passed-1baf7a" alt="Tests"></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-128%20passed-1baf7a" alt="Tests"></p>
 
 <p align="center">🇮🇹 <a href="README.md">Italiano</a> · 🇬🇧 <b>English</b></p>
 
@@ -183,6 +183,47 @@ and HTTPS, and finally tells you the address and the API key. Everything goes to
 | 1 GPU of 16 GB (MoE experts in RAM, 48 GB advised) | proposed, not measured |
 
 Models downloaded: ~33 GB (reasoner 21.5 GB; dreams and voice optional, 8.3 GB) — measured: 181 s.
+
+## 📚 Aurora starts empty: knowledge is harvested
+
+The repository holds **no knowledge**: no texts, no vectors, no memory. That is deliberate: scientific texts are
+licensed to be read, rarely to be redistributed, and the reference machine's vault (2.4 GB, 344,483 solitons) is
+96% full arXiv papers. Every installation therefore **downloads its own knowledge**, from the official sources,
+within their rate limits. Every text keeps its **licence and origin** next to it, and nothing harvested ever goes
+into the repository.
+
+**Who gathers it.** `aurora-harvester`, steered from the 🌾 Harvester page of the WebUI. For each domain choose:
+⏸️ off, 🔁 a round (what is new at every automatic round) or ♾️ until exhausted (round after round, until every
+source of the domain has given everything). For example: only Italian law and medicine, left on until done. The
+sources of each domain are in `sys/core/config/harvest_sources.json`.
+
+| source | domains | what it brings | licence stored |
+|---|---|---|---|
+| **arXiv** | AI, computer science, mathematics, physics, astrophysics, statistics, economics, engineering, robotics… | full papers (PDF) | the paper's |
+| **Normattiva** | Italian law | the official collections (codes, consolidated acts, legislative decrees, decree-laws, regulations…), one passage per article, text in force | public act, no copyright (L. 633/1941 art. 5) |
+| **Europe PMC** | medicine, biomedicine, genomics | open-access full texts | the article's (cc by, cc by-nc…) |
+| **bioRxiv / medRxiv** | biomedicine, genomics / medicine | full preprints | the preprint's |
+| **Wikipedia** (en) | philosophy, religion, history, literature, society, general | the articles of the "Vital articles" lists | CC BY-SA 4.0 |
+| **GitHub** | programming | READMEs of the most followed repositories per topic, open licence only (MIT, Apache, BSD, GPL…) | the repository's |
+
+Your own documents (PDF, text) can be imported from the WebUI into the domain you choose, and the harvester also
+takes a list of arXiv ids.
+
+**How long it takes (indicative).** Measured on the reference machine (2 × RTX 5060 Ti), download, reading, writing
+and indexing included (docs/MEASUREMENTS.md, M43–M44).
+
+| source | measured | for 100,000 solitons |
+|---|---|---|
+| arXiv | 28 solitons per paper, 3.9 s per paper (59 papers) | ~3,600 papers, ~4 h |
+| Normattiva | the 40 codes in force: 8,480 solitons in 567 s (212 per code, 14.2 s per code) | ~1.9 h at the pace of the codes; ordinary acts are shorter (not measured). Ceiling: ~68,000 acts in the chosen collections |
+| Europe PMC | 11 solitons per text, 3.1 s per text (3 texts) | ~9,100 texts, ~8 h |
+| bioRxiv / medRxiv | 11–16 solitons per preprint, 2.0–2.4 s (6 preprints) | ~6,300–9,100 preprints, ~4–5 h |
+| Wikipedia | 9 solitons per article, 1.8 s per article (3 articles) | ~11,500 articles, ~6 h |
+| GitHub | 6 solitons per README, 1.6 s (3 repositories) | not reachable: GitHub search returns at most 1,000 repositories per topic; with 8 topics the ceiling is ~50,000 solitons |
+
+Linear estimates from small samples (Normattiva aside): other hardware, longer texts or the sites' limits change
+them. The default automatic rounds (every 6 h, 10 items per source) are much slower; "until exhausted" runs at the
+speed of the table.
 
 ## Documentation
 

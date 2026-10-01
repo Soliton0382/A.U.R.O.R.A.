@@ -139,10 +139,13 @@ exit $$fail
 """)
 
 
-def hardening(root: Path, user: str, bind_low_port: bool) -> str:
+def hardening(root: Path, user: str, bind_low_port: bool, hosts_plugins: bool = False) -> str:
     """systemd confinement: the system read-only, the home read-only but for what a service writes, no new
     privileges, no capabilities (Caddy keeps only the one to open ports below 1024), kernel and clock protected.
-    Devices stay visible: the GPUs and the camera are devices. A "-" path may be missing."""
+    Devices stay visible: the GPUs and the camera are devices. A "-" path may be missing.
+    The unit that hosts the plugins (aurora-api) keeps /proc whole: ProtectKernelTunables/ProtectKernelLogs/
+    ProtectHostname mount over parts of /proc, and the kernel then refuses the plugin cage (bubblewrap) its own /proc
+    ("Can't mount proc ... Operation not permitted"): no plugin would start."""
     import pwd
     home = Path(pwd.getpwnam(user).pw_dir)
     writable = [str(root), f"-{home}/.cache", f"-{home}/.local/share/caddy", f"-{home}/.config/caddy",
@@ -152,8 +155,9 @@ def hardening(root: Path, user: str, bind_low_port: bool) -> str:
             "NoNewPrivileges=yes\nProtectSystem=strict\nProtectHome=read-only\n"
             f"ReadWritePaths={' '.join(writable)}\nPrivateTmp=yes\n"
             f"CapabilityBoundingSet={caps}\nRestrictSUIDSGID=yes\nLockPersonality=yes\nRestrictRealtime=yes\n"
-            "ProtectKernelTunables=yes\nProtectKernelModules=yes\nProtectKernelLogs=yes\nProtectControlGroups=yes\n"
-            "ProtectClock=yes\nProtectHostname=yes\nSystemCallArchitectures=native\n"
+            + ("" if hosts_plugins else "ProtectKernelTunables=yes\nProtectKernelLogs=yes\nProtectHostname=yes\n")
+            + "ProtectKernelModules=yes\nProtectControlGroups=yes\n"
+            "ProtectClock=yes\nSystemCallArchitectures=native\n"
             "RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK\nUMask=0077\n")
 
 
@@ -203,7 +207,8 @@ def main() -> int:
     out.mkdir(parents=True, exist_ok=True)
     for name, (desc, after, exec_, extra) in units.items():
         if cfg["AURORA_SERVICE_HARDENING"]:
-            extra += hardening(root, cfg["AURORA_SERVICE_USER"], name == "aurora-https" and low_ports)
+            extra += hardening(root, cfg["AURORA_SERVICE_USER"], name == "aurora-https" and low_ports,
+                               hosts_plugins=name == "aurora-api")
         (out / f"{name}.service").write_text(UNIT.substitute(
             description=desc, after=after, user=cfg["AURORA_SERVICE_USER"], root=root, exec=exec_, extra=extra),
             encoding="utf-8")

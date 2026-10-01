@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-118%20passed-1baf7a" alt="Tests"></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-128%20passed-1baf7a" alt="Tests"></p>
 
 <p align="center">🇮🇹 <b>Italiano</b> · 🇬🇧 <a href="README.en.md">English</a></p>
 
@@ -184,6 +184,47 @@ l'HTTPS, e alla fine ti dice indirizzo e chiave API. Tutto finisce in `install.l
 | 1 GPU da 16 GB (esperti MoE in RAM, 48 GB consigliati) | proposto, non misurato |
 
 Modelli scaricati: ~33 GB (ragionatore 21,5 GB; sogni e voce facoltativi, 8,3 GB) — misurato: 181 s.
+
+## 📚 Aurora parte vuota: la conoscenza va raccolta
+
+Il repository **non contiene conoscenza**: niente testi, niente vettori, niente memoria. È voluto: i testi
+scientifici hanno licenze che ne permettono la lettura ma quasi mai la ridistribuzione, e il vault della macchina
+di riferimento (2,4 GB, 344.483 solitoni) è per il 96% fatto di articoli completi di arXiv. Ogni installazione
+quindi **scarica la propria conoscenza da sé**, dalle fonti ufficiali, rispettandone i limiti di frequenza. Ogni
+testo conserva accanto a sé **licenza e provenienza**, e nulla di ciò che viene raccolto finisce nel repository.
+
+**Chi la raccoglie.** `aurora-harvester`, guidato dalla pagina 🌾 Harvester della WebUI. Per ogni dominio scegli:
+⏸️ spento, 🔁 a giro (le novità a ogni giro automatico) oppure ♾️ fino a esaurimento (un giro dopo l'altro,
+finché ogni fonte del dominio non ha dato tutto). Per esempio: solo legge italiana e medicina, lasciate andare
+fino alla fine. Le fonti di ogni dominio sono in `sys/core/config/harvest_sources.json`.
+
+| fonte | domini | cosa porta | licenza registrata |
+|---|---|---|---|
+| **arXiv** | IA, informatica, matematica, fisica, astrofisica, statistica, economia, ingegneria, robotica… | articoli completi (PDF) | quella dell'articolo |
+| **Normattiva** | legge italiana | le collezioni ufficiali (Codici, Testi unici, Decreti legislativi, DL, regolamenti…), un passaggio per articolo, testo vigente | atto pubblico, senza diritto d'autore (L. 633/1941 art. 5) |
+| **Europe PMC** | medicina, biomedicina, genomica | testi completi open access | quella dell'articolo (cc by, cc by-nc…) |
+| **bioRxiv / medRxiv** | biomedicina, genomica / medicina | preprint completi | quella del preprint |
+| **Wikipedia** (en) | filosofia, religione, storia, letteratura, società, generale | le voci delle liste «Vital articles» | CC BY-SA 4.0 |
+| **GitHub** | programmazione | README dei repository più seguiti per argomento, solo con licenza libera (MIT, Apache, BSD, GPL…) | quella del repository |
+
+Si possono anche importare i propri documenti (PDF, testi) dalla WebUI, nel dominio che si sceglie, o dare
+all'harvester un elenco di ID arXiv.
+
+**Quanto ci vuole (stima indicativa).** Misure sulla macchina di riferimento (2 × RTX 5060 Ti): download, lettura,
+scrittura e indicizzazione comprese (docs/MEASUREMENTS.md, M43–M44).
+
+| fonte | misurato | per 100.000 solitoni |
+|---|---|---|
+| arXiv | 28 solitoni ad articolo, 3,9 s ad articolo (59 articoli) | ~3.600 articoli, ~4 h |
+| Normattiva | i 40 codici in vigore: 8.480 solitoni in 567 s (212 a codice, 14,2 s a codice) | ~1,9 h al ritmo dei codici; gli atti ordinari sono più corti (non misurato). Tetto: ~68.000 atti nelle collezioni scelte |
+| Europe PMC | 11 solitoni a testo, 3,1 s a testo (3 testi) | ~9.100 testi, ~8 h |
+| bioRxiv / medRxiv | 11–16 solitoni a preprint, 2,0–2,4 s (6 preprint) | ~6.300–9.100 preprint, ~4–5 h |
+| Wikipedia | 9 solitoni a voce, 1,8 s a voce (3 voci) | ~11.500 voci, ~6 h |
+| GitHub | 6 solitoni a README, 1,6 s (3 repository) | non raggiungibile: la ricerca di GitHub dà al massimo 1.000 repository per argomento, con 8 argomenti il tetto è ~50.000 solitoni |
+
+Sono stime lineari da campioni piccoli (tranne Normattiva): hardware diverso, testi più lunghi o i limiti dei siti
+le cambiano. Con i giri automatici di default (ogni 6 h, 10 elementi per fonte) si va molto più piano; con «fino a
+esaurimento» si va alla velocità della tabella.
 
 ## Documentazione
 

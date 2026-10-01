@@ -144,7 +144,7 @@ def chunk(text: str, size: int, min_chars: int) -> list[str]:
 
     chunks, cur = [], ""
     for p in pieces:
-        if cur and len(cur) + 2 + len(p) > size:
+        if cur and len(cur) + 2 + len(p) > size and len(cur) >= min_chars:   # a short chunk is never left alone
             chunks.append(cur)
             cur = p
         else:
@@ -164,7 +164,7 @@ class Importer:
         self.log = sys_log.get_logger("ingest")
 
     def add(self, name: str, data: bytes, domain: str, title: str = "", origin: str = "",
-            run_id: str | None = None) -> ImportReport:
+            run_id: str | None = None, meta: dict | None = None) -> ImportReport:
         source_id = "doc:" + hashlib.blake2b(data, digest_size=16).hexdigest()
         rep = ImportReport(name, source_id, domain)
         text, found_title = read_text(name, data, self.cfg)
@@ -174,7 +174,8 @@ class Importer:
         rep.chunks = len(parts)
         if not parts:
             raise ValueError(f"{name}: no text found")
-        extra = {"file": name, **({"origin": origin} if origin else {})}
+        extra = {"file": name, **({"origin": origin} if origin else {}),
+                 **{k: str(v)[:300] for k, v in (meta or {}).items() if k in ("licence", "url") and v}}
         sols = [Soliton.new(p, domain, "knowledge", txt_lang.detect(p), source_id, title or found_title,
                             chunk_index=i, chunk_count=len(parts), extra=extra) for i, p in enumerate(parts)]
         rep.sids = [x.sid for x in sols]

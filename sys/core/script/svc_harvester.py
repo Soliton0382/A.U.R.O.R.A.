@@ -1,12 +1,15 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2026 A.U.R.O.R.A. Project
-"""aurora-harvester: brings new arXiv papers into the vault, round after round.
+"""aurora-harvester: brings new knowledge into the vault, round after round.
 
-Each round (every AURORA_HARVEST_INTERVAL_H hours), for every category in
-AURORA_HARVEST_CATEGORIES: the newest submissions, the first AURORA_HARVEST_PER_CATEGORY
-not harvested before are downloaded and sent to aurora-api (POST /v1/aurora/import),
-in the domain of their primary category (config/arxiv_domains.json). arXiv is asked at
-most once every AURORA_ARXIV_DELAY_S seconds.
+The owner chooses the domains on the Harvester page (kno_sources): off, "round" (every
+AURORA_HARVEST_INTERVAL_H hours, the newest AURORA_HARVEST_PER_CATEGORY items of each source) or
+"until exhausted" (rounds follow one another, walking back through every source of the domain, until
+all are done). The sources of each domain are in config/harvest_sources.json: arXiv, Normattiva,
+Europe PMC, bioRxiv/medRxiv, Wikipedia, GitHub. Files go to POST /v1/aurora/import, ready passages
+(the articles of a law) to POST /v1/aurora/solitons; each text keeps its licence and origin.
+arXiv is asked at most once every AURORA_ARXIV_DELAY_S seconds, every other host once every
+AURORA_HARVEST_DELAY_S.
 
 The harvester waits while a migration is running (a state file in
 <AURORA_STATUS_DIR>/migrate/ updated in the last 15 minutes): the encoder is busy.
@@ -29,8 +32,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import httpx  # noqa: E402
 
-from aurora import kno_harvest, sys_config, sys_health, sys_log  # noqa: E402
+from aurora import kno_harvest, kno_sources, sys_config, sys_health, sys_log  # noqa: E402
 from aurora.kno_acquire import MAP_FILE, domain_of, parse_atom  # noqa: E402
+from aurora.kno_ingest import chunk  # noqa: E402
 
 cfg = sys_config.get()
 log = sys_log.get_logger("harvester")
@@ -47,13 +51,13 @@ def migration_running() -> bool:
 class Harvester:
     def __init__(self):
         self.api = httpx.Client(headers={"Authorization": f"Bearer {cfg['AURORA_API_KEY']}"}, timeout=1800)
-        self.web = httpx.Client(timeout=120, follow_redirects=True,
-                                headers={"User-Agent": "Aurora knowledge harvester (personal, local)"})
+        self.web = httpx.Client(timeout=300, follow_redirects=True, headers={
+            "User-Agent": "Aurora/1.0 (https://github.com/Soliton0382/A.U.R.O.R.A.; personal knowledge harvester)"})
         self.table = json.loads(MAP_FILE.read_text(encoding="utf-8"))["map"]
         STATE.mkdir(parents=True, exist_ok=True)
         self.seen_file = STATE / "seen.json"
         self.seen: set[str] = set(json.loads(self.seen_file.read_text())) if self.seen_file.exists() else set()
-        self._last = 0.0
+        self._last: dict[str, float] = {}
 
     def tell(self, event: str, payload: dict) -> None:
         """Report to aurora-api's activity feed (shown in the WebUI); never blocks harvesting."""
@@ -69,29 +73,74 @@ class Harvester:
         tmp.replace(self.seen_file)
 
     def _get(self, url: str, **params) -> httpx.Response:
-        wait = self._last + cfg["AURORA_ARXIV_DELAY_S"] - time.time()
+        """One host at a time, politely: arXiv every AURORA_ARXIV_DELAY_S, the others every AURORA_HARVEST_DELAY_S."""
+        host = httpx.URL(url).host
+        gap = cfg["AURORA_ARXIV_DELAY_S"] if "arxiv.org" in host else cfg["AURORA_HARVEST_DELAY_S"]
+        wait = self._last.get(host, 0.0) + gap - time.time()
         if wait > 0:
             time.sleep(wait)
         try:
             return self.web.get(url, params=params or None).raise_for_status()
         finally:
-            self._last = time.time()
+            self._last[host] = time.time()
 
-    def category(self, cat: str) -> dict:
-        want = cfg["AURORA_HARVEST_PER_CATEGORY"]
-        xml = self._get(cfg["AURORA_ARXIV_API"], search_query=f"cat:{cat}", sortBy="submittedDate",
-                        sortOrder="descending", start=0, max_results=want * 3).text
-        fresh = [e for e in parse_atom(xml) if e.arxiv_id not in self.seen][:want]
-        stats = {"category": cat, "new": 0, "chunks": 0, "failed": 0}
-        for e in fresh:
+    def take(self, doc: kno_sources.Doc) -> int | None:
+        """Send one harvested document to aurora-api; the passages written, or None when it failed (logged)."""
+        try:
+            if doc.passages:
+                parts = [c for p in doc.passages for c in chunk(p, cfg["AURORA_CHUNK_CHARS"], cfg["AURORA_CHUNK_MIN_CHARS"])]
+                written = 0
+                for i in range(0, len(parts), 300):
+                    r = self.api.post(f"{BASE}/v1/aurora/solitons", json={"items": [
+                        {"text": t, "domain": doc.domain, "lang": doc.lang, "source_id": doc.origin, "title": doc.title,
+                         "chunk_index": i + j, "chunk_count": len(parts),
+                         "extra": {"origin": doc.origin, "licence": doc.licence, "url": doc.url}}
+                        for j, t in enumerate(parts[i:i + 300])]}).raise_for_status().json()
+                    written += r["written"]
+                chunks = len(parts)
+            else:
+                r = self.api.post(f"{BASE}/v1/aurora/import", json={
+                    "name": doc.name, "domain": doc.domain, "title": doc.title, "origin": doc.origin,
+                    "licence": doc.licence, "url": doc.url,
+                    "data": base64.b64encode(doc.data).decode("ascii")}).raise_for_status().json()
+                written, chunks = r["written"], r["chunks"]
+        except (httpx.HTTPError, ValueError) as err:
+            log.warning("%s (%s): %s", doc.key, doc.title[:60], err)
+            return None
+        self.seen.add(doc.key)
+        self._save()
+        log.info("%s -> %s: %s (%d chunks, %d new) [%s]", doc.key, doc.domain, doc.title[:80], chunks, written, doc.licence)
+        self.tell("harvest.paper", {"id": doc.key, "title": doc.title, "domain": doc.domain, "chunks": chunks,
+                                    "written": written, "licence": doc.licence})
+        return written
+
+    def domain(self, domain: str, mode: str) -> dict:
+        """One pass over the sources of a domain: the newest (round) or the next stretch (exhaust)."""
+        stats = {"domain": domain, "new": 0, "chunks": 0, "failed": 0}
+        for n, spec in enumerate(kno_sources.catalogue()["domains"].get(domain, [])):
             if _stop:
                 break
-            r = self.ingest(e, domain_of(e.category or cat, self.table))
-            if r is None:
-                stats["failed"] += 1
+            st = kno_sources.load_state(cfg, domain, n)
+            if mode == "exhaust" and st.get("done"):
                 continue
-            stats["new"] += 1
-            stats["chunks"] += r["written"]
+            try:
+                docs = kno_sources.SOURCES[spec["source"]](self._get, cfg, domain, spec, st,
+                                                         cfg["AURORA_HARVEST_PER_CATEGORY"], mode == "exhaust", self.seen)
+            except (httpx.HTTPError, ValueError, KeyError) as e:
+                log.warning("%s/%s failed: %s", domain, spec["source"], e)
+                kno_sources.save_state(cfg, domain, n, st)
+                continue
+            for doc in docs:
+                if _stop:
+                    break
+                w = self.take(doc)
+                if w is None:
+                    stats["failed"] += 1
+                else:
+                    stats["new"] += 1
+                    stats["chunks"] += w
+                    st["taken"] = st.get("taken", 0) + 1
+            kno_sources.save_state(cfg, domain, n, st)
         return stats
 
     def ingest(self, e, domain: str) -> dict | None:
@@ -146,23 +195,19 @@ class Harvester:
                                         "text": f"{done}/{len(items)} paper in {time.time() - t0:.0f} s"})
         show(finished=time.time())
 
-    def round(self) -> None:
+    def round(self, only_exhaust: bool = False) -> bool:
+        """Every chosen domain once; True when a domain "until exhausted" still has something to take."""
         t0 = time.time()
-        totals = []
-        self.tell("harvest.start", {"categories": cfg["AURORA_HARVEST_CATEGORIES"]})
-        for cat in cfg["AURORA_HARVEST_CATEGORIES"]:
-            if _stop:
-                return
-            try:
-                totals.append(self.category(cat))
-            except httpx.HTTPError as e:
-                log.warning("category %s failed: %s", cat, e)
-        new = sum(s["new"] for s in totals)
-        log.info("round done in %.0f s: %d papers, %d chunks", time.time() - t0, new, sum(s["chunks"] for s in totals))
-        self.tell("harvest.end", {"papers": new, "chunks": sum(s["chunks"] for s in totals),
-                                  "failed": sum(s["failed"] for s in totals), "seconds": round(time.time() - t0),
-                                  "text": f"{new} paper, {sum(s['chunks'] for s in totals)} passaggi"})
-        sys_log.trace("harvester", "harvest.round", {"categories": totals, "seconds": round(time.time() - t0)})
+        chosen = {d: m for d, m in kno_sources.modes(cfg).items() if m != "off" and (m == "exhaust" or not only_exhaust)}
+        self.tell("harvest.start", {"domains": sorted(chosen)})
+        totals = [self.domain(d, m) for d, m in chosen.items() if not _stop]
+        new, chunks = sum(s["new"] for s in totals), sum(s["chunks"] for s in totals)
+        log.info("round done in %.0f s: %d documents, %d passages (%s)", time.time() - t0, new, chunks,
+                 ", ".join(sorted(chosen)) or "no domain chosen")
+        self.tell("harvest.end", {"papers": new, "chunks": chunks, "failed": sum(s["failed"] for s in totals),
+                                  "seconds": round(time.time() - t0), "text": f"{new} documenti, {chunks} passaggi"})
+        sys_log.trace("harvester", "harvest.round", {"domains": totals, "seconds": round(time.time() - t0)})
+        return any(m == "exhaust" and not kno_sources.progress(cfg, d)["done"] for d, m in chosen.items())
 
 
 def sleep(seconds: float) -> None:
@@ -185,8 +230,9 @@ def main() -> int:
     signal.signal(signal.SIGINT, stop)
     from aurora import sys_ethics
     sys_ethics.require_intact(log)
-    log.info("aurora-harvester started: %d categories, every %d h", len(cfg["AURORA_HARVEST_CATEGORIES"]),
-             cfg["AURORA_HARVEST_INTERVAL_H"])
+    chosen = {d: m for d, m in kno_sources.modes(cfg).items() if m != "off"}
+    log.info("aurora-harvester started: %d domains chosen (%s), every %d h", len(chosen),
+             ", ".join(f"{d}:{m}" for d, m in sorted(chosen.items())), cfg["AURORA_HARVEST_INTERVAL_H"])
     h = Harvester()
     end = time.time() + 300                             # units start together: wait for aurora-api
     while not _stop and time.time() < end:
@@ -198,7 +244,7 @@ def main() -> int:
             pass
         time.sleep(2)
     said_off = False
-    next_round = time.time()
+    next_round = regular = time.time()
     while not _stop:
         if migration_running():
             log.info("a migration is running: waiting")
@@ -214,6 +260,8 @@ def main() -> int:
                 kno_harvest.set_status(cfg, last_round=time.time())
             elif c["cmd"] == "batch":
                 h.batch(c.get("ids", []), c["id"])
+            elif c["cmd"] == "wake":                      # the owner changed the domains: look again now
+                next_round = time.time()
         if not cfg["AURORA_HARVEST_ENABLED"]:
             if not said_off:
                 log.info("harvesting is off (AURORA_HARVEST_ENABLED=0): idle, alive for the health check")
@@ -223,8 +271,11 @@ def main() -> int:
             continue
         if time.time() >= next_round:
             kno_harvest.set_status(cfg, state="harvesting", enabled=True, started=time.time())
-            h.round()
-            next_round = time.time() + cfg["AURORA_HARVEST_INTERVAL_H"] * 3600
+            due = time.time() >= regular                 # the regular round; otherwise only "until exhausted"
+            more = h.round(only_exhaust=not due)
+            if due:
+                regular = time.time() + cfg["AURORA_HARVEST_INTERVAL_H"] * 3600
+            next_round = time.time() + 60 if more else regular   # more to take: the next stretch in a minute
             kno_harvest.set_status(cfg, last_round=time.time())
         kno_harvest.set_status(cfg, state="idle", enabled=True, next_round=next_round)
         sleep(next_round - time.time())
