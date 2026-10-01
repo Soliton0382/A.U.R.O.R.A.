@@ -8,6 +8,7 @@ A need passes when every expected number is in the output. Results go to <STATUS
 
     python sys/core/script/bench_forge.py            # all needs
     python sys/core/script/bench_forge.py 1 4        # some of them
+    python sys/core/script/bench_forge.py --cloud    # the cloud reasoner writes and judges (masked samples)
 """
 from __future__ import annotations
 
@@ -152,13 +153,18 @@ def run_tool(stage: str, manifest: dict) -> str:
     return "\n".join(c.text for c in getattr(res, "content", []) if getattr(c, "type", "") == "text")
 
 
-def main(which: list[int]) -> None:
-    llm, host, rows = LLM(cfg), PluginHost(cfg), []
+def main(which: list[int], cloud: bool = False) -> None:
+    host, rows = PluginHost(cfg), []
+    if cloud:
+        from aurora.mdl_cloud import ClaudeCodeLLM
+        llm, masker = ClaudeCodeLLM(cfg), agt_forge.Masker(cfg)
+    else:
+        llm, masker = LLM(cfg), None
     for i, (need, truth) in enumerate(NEEDS, 1):
         if which and i not in which:
             continue
         t0 = time.time()
-        res = agt_forge.build(cfg, llm, host, {"id": f"bench{i}", "need": need, "why": "benchmark"}, lambda e, p: None)
+        res = agt_forge.build(cfg, llm, host, {"id": f"bench{i}", "need": need, "why": "benchmark"}, lambda e, p: None, masker)
         row = {"n": i, "need": need, "built": res["ok"], "attempts": res.get("attempts"), "seconds": round(time.time() - t0)}
         if res["ok"]:
             expected = truth()
@@ -174,8 +180,9 @@ def main(which: list[int]) -> None:
     print(f"RIGHT {right}/{len(rows)}; built {sum(r['built'] for r in rows)}/{len(rows)}")
     out = cfg.path("AURORA_STATUS_DIR") / "bench"
     out.mkdir(parents=True, exist_ok=True)
-    (out / "forge.json").write_text(json.dumps({"at": NOW.isoformat(), "rows": rows}, ensure_ascii=False, indent=1))
+    (out / ("forge_cloud.json" if cloud else "forge.json")).write_text(
+        json.dumps({"at": NOW.isoformat(), "cloud": cloud, "rows": rows}, ensure_ascii=False, indent=1))
 
 
 if __name__ == "__main__":
-    main([int(x) for x in sys.argv[1:]])
+    main([int(x) for x in sys.argv[1:] if x.isdigit()], cloud="--cloud" in sys.argv)

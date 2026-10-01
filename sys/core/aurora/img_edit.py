@@ -22,13 +22,15 @@ import re
 from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 
 OPS = ("crop", "rotate", "flip", "resize", "brightness", "contrast", "saturation", "sharpness", "grayscale", "sepia",
-       "autocontrast", "invert", "blur", "format")
+       "autocontrast", "invert", "blur", "format", "creative", "upscale", "remove_background")
+AI_OPS = ("creative", "upscale", "remove_background")   # done by an image model (mdl_image.gpu_job), not by Pillow
 SYS_EDIT = ("A picture is in the conversation. Classify the owner's last message. EDIT: he asks to change the "
             "picture (crop, cut, rotate, turn, mirror, flip, resize, enlarge, shrink, brighter, darker, contrast, "
             "colours, black and white, sepia, blur, sharpen, negative, convert to png/jpg/webp). LOOK: he asks "
             "something about the picture itself (what it shows, what is written, a description, a detail of it). "
             "OTHER: anything else (a new subject, small talk, a question about the world). Examples: 'ritagliala' EDIT; "
-            "'rendila più luminosa' EDIT; 'mettila in bianco e nero' EDIT; 'cosa c'è scritto?' LOOK; 'descrivila' LOOK; "
+            "'rendila più luminosa' EDIT; 'mettila in bianco e nero' EDIT; 'togli lo sfondo' EDIT; 'mettici la neve' EDIT; "
+            "'trasformala in un acquerello' EDIT; 'aumenta la risoluzione' EDIT; 'cosa c'è scritto?' LOOK; 'descrivila' LOOK; "
             "'cosa mostra l'immagine?' LOOK; 'che animale è?' LOOK; 'come stai?' OTHER; 'cos'è l'entanglement?' "
             "OTHER. Reply with one word.")
 SYS_PLAN = ("You turn the owner's request about a picture into a JSON list of operations, applied in order. Allowed "
@@ -37,7 +39,11 @@ SYS_PLAN = ("You turn the owner's request about a picture into a JSON list of op
             "{\"direction\": \"horizontal\"|\"vertical\"}; resize {\"scale\"} or {\"width\"} or {\"height\"} in px; "
             "brightness/contrast/saturation/sharpness {\"factor\"} 0-3 with 1 unchanged (a bit more = 1.3, much more "
             "= 1.7, less = 0.7); grayscale, sepia, autocontrast, invert {}; blur {\"radius\"} px; format {\"to\": "
-            "\"jpeg\"|\"png\"|\"webp\"}. Italian words: ritagliare/tagliare = crop; ruotare/girare = rotate; "
+            "\"jpeg\"|\"png\"|\"webp\"}; creative {\"prompt\": \"<the change, in English, saying what must stay the same>\"} for any "
+            "change of CONTENT or STYLE (add or remove things, another sky, season, light of day, a painting style, a "
+            "different background scene); upscale {\"scale\": 2|4} for more resolution and detail (aumenta la risoluzione, "
+            "migliora la qualità, rendila in alta definizione) — resize is only for plain pixel size; remove_background {} "
+            "for cutting out the subject (togli/rimuovi lo sfondo, scontorna). Italian words: ritagliare/tagliare = crop; ruotare/girare = rotate; "
             "specchiare/riflettere = flip horizontal; capovolgere/sottosopra = flip vertical; ingrandire/rimpicciolire/"
             "dimezzare = resize; luminosa/chiara/scura = brightness; scala di grigi/bianco e nero = grayscale; "
             "seppia/vintage = sepia; sfocare = blur; nitida = sharpness; negativo = invert. Reply ONLY with the JSON, like [{\"op\": \"crop\", \"left\": 10, \"right\": 10}, "
@@ -84,6 +90,12 @@ def validate(ops) -> list[dict]:
             to = str(o.get("to", "")).lower().replace("jpg", "jpeg")
             if to in ("jpeg", "png", "webp"):
                 out.append({"op": op, "to": to})
+        elif op == "creative":
+            prompt = " ".join(str(o.get("prompt", "")).split())[:500]
+            if len(prompt) >= 5:
+                out.append({"op": op, "prompt": prompt})
+        elif op == "upscale":
+            out.append({"op": op, "scale": 2 if _num(o.get("scale", 4), 2, 4, 4) < 3 else 4})
         else:
             out.append({"op": op})
     return out[:12]
@@ -108,6 +120,8 @@ def apply(data: bytes, ops: list[dict]) -> tuple[bytes, str, dict]:
     im = im.convert("RGBA" if im.mode in ("RGBA", "LA", "P") and fmt != "jpeg" else "RGB")
     for o in validate(ops):
         op, w, h = o["op"], im.width, im.height
+        if op in AI_OPS:                                 # never here: the caller runs them with the image models
+            raise ValueError(f"{op} needs an image model (mdl_image.gpu_job)")
         if op == "crop":
             box = (round(w * o["left"] / 100), round(h * o["top"] / 100), w - round(w * o["right"] / 100), h - round(h * o["bottom"] / 100))
             if box[2] - box[0] >= 8 and box[3] - box[1] >= 8:
@@ -154,10 +168,12 @@ def describe(ops: list[dict], lang: str = "it") -> str:
     it = {"crop": "ritagliata", "rotate": "ruotata di {degrees:.0f}°", "flip": "specchiata", "resize": "ridimensionata",
           "brightness": "luminosità ×{factor:.1f}", "contrast": "contrasto ×{factor:.1f}", "saturation": "saturazione ×{factor:.1f}",
           "sharpness": "nitidezza ×{factor:.1f}", "grayscale": "in bianco e nero", "sepia": "seppia", "autocontrast":
-          "contrasto automatico", "invert": "in negativo", "blur": "sfocata ({radius:.0f} px)", "format": "convertita in {to}"}
+          "contrasto automatico", "invert": "in negativo", "blur": "sfocata ({radius:.0f} px)", "format": "convertita in {to}", "creative": "trasformata (FLUX.2: «{prompt}»)",
+          "upscale": "ingrandita ×{scale} con Swin2SR", "remove_background": "scontornata (sfondo trasparente)"}
     en = {"crop": "cropped", "rotate": "rotated by {degrees:.0f}°", "flip": "mirrored", "resize": "resized",
           "brightness": "brightness ×{factor:.1f}", "contrast": "contrast ×{factor:.1f}", "saturation": "saturation ×{factor:.1f}",
           "sharpness": "sharpness ×{factor:.1f}", "grayscale": "black and white", "sepia": "sepia", "autocontrast":
-          "auto contrast", "invert": "negative", "blur": "blurred ({radius:.0f} px)", "format": "converted to {to}"}
+          "auto contrast", "invert": "negative", "blur": "blurred ({radius:.0f} px)", "format": "converted to {to}", "creative": "changed (FLUX.2: \"{prompt}\")",
+          "upscale": "enlarged ×{scale} with Swin2SR", "remove_background": "cut out (transparent background)"}
     words = it if lang == "it" else en
     return ", ".join(words[o["op"]].format(**o) for o in ops)

@@ -893,3 +893,15 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M55 — Forge with the cloud, and I2 picture models (2026-10-02)
+
+Forge benchmark with the cloud reasoner (owner's consent, masked samples): 8/8 built; right 6 for certain (harvester by
+source, firewall denied, incidents, dreams, routines, log MB), 2 ambiguous (warnings per component: the plugin counts 516
+firewall lines my truth misses; PDFs: 223 counting subfolders). Local reasoner: 4/8 right.
+Models (Hugging Face, pinned, SHA-256 ok, optional in the installer): FLUX.2 klein 4B (Apache-2.0, 14.88 GB), Swin2SR x4
+real-world (Apache-2.0, 0.05 GB), SAM 2.1 small (Apache-2.0, 0.17 GB); 15.1 GB in 78.6 s. torchvision 0.29.0 added
+(locked with PyPI hashes; SAM 2.1 needs it). On a CC photo: cut-out 3.9 s CPU (score 0.959 with a full-frame box and a
+smoothed alpha; 0.907 and a cut border before); upscale x4 of 320 px 23.6 s CPU; klein edit 29.6 s with the GPU swap
+(peak 9.23 GB). Planner 24/25 (the miss was right: width 2400 = double), intent 30/30. From the chat: snow 30 s, cut-out
+6 s, upscale 24 s — the upscale dropped the transparency (fixed: alpha enlarged apart).
+

@@ -279,7 +279,7 @@ def data_places(cfg: sys_config.Config) -> str:
         if s.get("type") == "path" and not s.get("secret"):
             try:
                 rel = cfg.path(s["key"]).resolve().relative_to(cfg.root.resolve())
-            except ValueError:
+            except (ValueError, KeyError):                  # outside Aurora's folder, or a key this config predates
                 continue
             if not any(str(rel).startswith(n) for n in NEVER):
                 rows.append(f"- {rel}: {s.get('en', '')[:140]}")

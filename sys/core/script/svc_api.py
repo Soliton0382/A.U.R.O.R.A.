@@ -280,6 +280,42 @@ def last_picture(recent: list) -> tuple[str, bytes] | None:
     return None
 
 
+def _run_picture_ops(data: bytes, ops: list[dict], emit, name: str, lang: str) -> tuple[bytes, str, dict]:
+    """The planned operations in order: plain ones with Pillow (in runs), the others with an image model in its own
+    process (mdl_image.gpu_job: FLUX.2 klein on the GPU, Swin2SR, SAM 2.1). A picture changed by FLUX.2 carries the
+    AI disclosure (EU AI Act art. 50)."""
+    from PIL import Image
+    from aurora import img_edit, mdl_image, sys_disclosure
+    cur, mime, plain, creative = data, None, [], False
+
+    def flush():
+        nonlocal cur, mime, plain
+        if plain:
+            cur, mime, _ = img_edit.apply(cur, plain)
+            plain = []
+    for o in ops:
+        if o["op"] not in img_edit.AI_OPS:
+            plain.append(o)
+            continue
+        flush()
+        if o["op"] == "creative":
+            cur, st = mdl_image.gpu_job("edit", cur, cfg, emit, need_gb=9, prompt=o["prompt"])
+            creative = True
+        elif o["op"] == "upscale":
+            big = max(Image.open(io.BytesIO(cur)).size) > 400        # small pictures are quick on the CPU
+            cur, st = mdl_image.gpu_job("upscale", cur, cfg, emit, need_gb=3 if big else 0, scale=o["scale"])
+        else:
+            cur, st = mdl_image.gpu_job("cutout", cur, cfg, emit)
+        mime = "image/png"
+        emit("image.model", {"op": o["op"], **st})
+    flush()
+    img = Image.open(io.BytesIO(cur))
+    if creative:
+        cur, mime = sys_disclosure.mark_image(img, name, lang, cfg), "image/png"
+        img = Image.open(io.BytesIO(cur))
+    return cur, mime or Image.MIME.get(img.format, "image/png"), {"width": img.width, "height": img.height}
+
+
 def edit_pictures(question: str, pictures: list[tuple[str, bytes]], emit, run_id: str, remember: bool = True):
     """Each picture edited as asked (img_edit: a checked list of operations, Pillow); the results are new files of
     the conversation, shown in Aurora's bubble. The originals are never touched."""
@@ -298,7 +334,7 @@ def edit_pictures(question: str, pictures: list[tuple[str, bytes]], emit, run_id
         if not ops:
             lines.append(f"{name}: " + ("non ho capito quale modifica fare." if lang == "it" else "I did not understand what to change."))
             continue
-        out, mime, size = img_edit.apply(data, ops)
+        out, mime, size = _run_picture_ops(data, ops, emit, name, lang)
         ext = mime.split("/")[1].replace("jpeg", "jpg")
         stem = re.sub(r"(-(modificata|edited))+$", "", Path(name).stem)          # not -modificata-modificata
         new = f"{stem}-{'modificata' if lang == 'it' else 'edited'}.{ext}"

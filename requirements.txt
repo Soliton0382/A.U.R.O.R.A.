@@ -5,6 +5,7 @@ numpy==2.5.3
 pytest==9.1.1
 sentence-transformers==6.1.0
 torch==2.14.0
+torchvision==0.29.0      # SAM 2.1 (background removal) needs its image processors
 transformers==5.17.0
 pillow==12.3.0
 diffusers==0.40.0

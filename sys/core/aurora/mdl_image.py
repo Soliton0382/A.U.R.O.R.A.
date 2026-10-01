@@ -95,6 +95,50 @@ def paint(prompt: str, name: str, cfg: sys_config.Config | None = None, emit=Non
     return result
 
 
+AI_SCRIPT = Path(__file__).resolve().parents[1] / "script" / "img_ai.py"
+
+
+def gpu_job(task: str, src: bytes, cfg: sys_config.Config | None = None, emit=None, need_gb: float = 0.0,
+            prompt: str = "", scale: int = 4) -> tuple[bytes, dict]:
+    """A picture job of img_ai.py (edit, upscale, cutout) on AURORA_IMAGE_GPU, in its own process. When the GPU has
+    less than `need_gb` free, the reasoner is stopped for the job and started again whatever happens (as for dreams).
+    need_gb 0 runs on the CPU. Returns (PNG bytes, measures)."""
+    cfg = cfg or sys_config.get()
+    log = sys_log.get_logger("image")
+    ev = emit or (lambda e, d: None)
+    gpu, swapped, t0 = cfg["AURORA_IMAGE_GPU"], False, time.time()
+    try:
+        if need_gb and free_gb(gpu) < need_gb:
+            if not (cfg["AURORA_IMAGE_SWAP_LLM"] and _active(LLM_UNIT)):
+                raise RuntimeError(f"GPU {gpu}: {free_gb(gpu):.1f} GB free, {need_gb} GB needed, and the reasoner may not be swapped")
+            log.info("planned swap for %s: stopping %s", task, LLM_UNIT)
+            ev("image.swap", {"stop": LLM_UNIT, "task": task})
+            _unit("stop", LLM_UNIT)
+            swapped = True
+            if not _wait(lambda: free_gb(gpu) >= need_gb, 90):
+                raise RuntimeError(f"GPU {gpu} still has {free_gb(gpu):.1f} GB free after stopping {LLM_UNIT}")
+        with tempfile.TemporaryDirectory() as tmp:
+            inp, out, pf = Path(tmp) / "in.png", Path(tmp) / "out.png", Path(tmp) / "prompt.txt"
+            inp.write_bytes(src)
+            pf.write_text(prompt, encoding="utf-8")
+            cmd = [sys.executable, str(AI_SCRIPT), "--task", task, "--in", str(inp), "--out", str(out),
+                   "--gpu", str(gpu if need_gb else -1), "--prompt-file", str(pf), "--scale", str(scale)]
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=cfg["AURORA_IMAGE_TIMEOUT_S"])
+            if r.returncode != 0 or not out.exists():
+                raise RuntimeError(f"img_ai {task} failed ({r.returncode}): {r.stderr.strip()[-600:]}")
+            stats = json.loads(r.stdout.strip().splitlines()[-1])
+            data = out.read_bytes()
+    finally:
+        if swapped:
+            _unit("start", LLM_UNIT)
+            up = _wait(lambda: _llm_ok(cfg), cfg["AURORA_IMAGE_TIMEOUT_S"], 3)
+            log.info("planned swap: %s started again (%s)", LLM_UNIT, "healthy" if up else "NOT healthy yet")
+            ev("image.swap", {"start": LLM_UNIT, "healthy": up})
+    stats.update(total_seconds=round(time.time() - t0, 1), swap=swapped)
+    log.info("%s done: %s", task, stats)
+    return data, stats
+
+
 def _llm_ok(cfg: sys_config.Config) -> bool:
     try:
         return httpx.get(f"http://127.0.0.1:{cfg['AURORA_LLM_PORT']}/health", timeout=5).status_code == 200

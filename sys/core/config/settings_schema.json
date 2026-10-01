@@ -501,6 +501,42 @@
    ]
   },
   {
+   "key": "AURORA_EDIT_MODEL_DIR",
+   "type": "path",
+   "category": "attachments",
+   "recommended": "sys/models/image/FLUX.2-klein-4B",
+   "evidence": "models.json",
+   "en": "FLUX.2 klein 4B: picture edits in words (optional model).",
+   "it": "FLUX.2 klein 4B: modifiche delle immagini a parole (modello facoltativo).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_UPSCALE_MODEL_DIR",
+   "type": "path",
+   "category": "attachments",
+   "recommended": "sys/models/image/swin2SR-realworld-x4",
+   "evidence": "models.json",
+   "en": "Swin2SR x4: enlarging pictures (optional model).",
+   "it": "Swin2SR x4: ingrandimento delle immagini (modello facoltativo).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_SEGMENT_MODEL_DIR",
+   "type": "path",
+   "category": "attachments",
+   "recommended": "sys/models/image/sam2.1-hiera-small",
+   "evidence": "models.json",
+   "en": "SAM 2.1: cutting out the subject, background removal (optional model).",
+   "it": "SAM 2.1: ritaglio del soggetto, rimozione dello sfondo (modello facoltativo).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_VAULT_SHARD_MAX_MB",
    "type": "int",
    "min": 16,
