@@ -153,6 +153,10 @@ approvi; `auto` — le applica da sola se sono sicure (nessun file protetto del 
 verdi; altrimenti chiede); `off`. Un aggiornamento è solo fast-forward, installa i requisiti se
 cambiano, esegue i test e torna alla versione precedente se qualcosa fallisce.
 
+Per un repository **privato** l'installazione deve poter leggere da GitHub senza che nessuno digiti una
+passphrase: aggiungi una *deploy key* in sola lettura (Settings → Deploy keys) generata sulla macchina
+con `ssh-keygen -t ed25519 -N "" -f ~/.ssh/aurora_deploy`.
+
 ## Spostare l'installazione
 
 `sys/core/script/sys_relocate.sh` legge la cartella attuale dal `.env`, chiede la nuova e sposta

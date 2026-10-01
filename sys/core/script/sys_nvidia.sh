@@ -228,7 +228,7 @@ llama)
   say "The current build is kept as bin.previous; the new one replaces bin only after it starts"
   run "rm -rf '$OUT/bin.new' && mkdir -p '$OUT/bin.new' && cp -a '$SRC/build/bin/.' '$OUT/bin.new/'"
   run "'$OUT/bin.new/llama-server' --version"
-  run "[ -e '$OUT/bin.previous' ] || cp -a '$OUT/bin' '$OUT/bin.previous'"
+  run "[ -e '$OUT/bin.previous' ] || [ ! -e '$OUT/bin' ] || cp -a '$OUT/bin' '$OUT/bin.previous'"   # a first install has no build yet
   run "rm -rf '$OUT/bin' && mv '$OUT/bin.new' '$OUT/bin'"
   echo "Then: systemctl restart aurora-llm, and measure the first load (A4: 15.8 s with JIT, 0.71 s warm)."
   echo "Back to the previous build: rm -rf '$OUT/bin' && cp -a '$OUT/bin.previous' '$OUT/bin'"

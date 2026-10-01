@@ -25,6 +25,7 @@ from aurora import sys_config  # noqa: E402
 CADDYFILE = Template("""# Generated from .env by sys/core/script/sys_install_services.py — edit .env, not this file.
 {
 	admin $admin
+	grace_period 5s
 	auto_https disable_redirects
 	http_port $http_port
 	https_port $https_port

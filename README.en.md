@@ -152,6 +152,10 @@ approve; `auto` — applied by itself when safe (no protected file of the code o
 green, otherwise it asks); `off`. An update is fast-forward only, installs the requirements when they
 change, runs the tests and goes back to the previous version if anything fails.
 
+For a **private** repository the installation must read from GitHub without anyone typing a passphrase:
+add a read-only *deploy key* (Settings → Deploy keys) made on the machine with
+`ssh-keygen -t ed25519 -N "" -f ~/.ssh/aurora_deploy`.
+
 ## Moving the installation
 
 `sys/core/script/sys_relocate.sh` reads the current folder from `.env`, asks the new one, and moves

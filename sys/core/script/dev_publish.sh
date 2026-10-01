@@ -41,6 +41,9 @@ LIST="$(mktemp)"; GITTMP="$(mktemp -d)"; trap 'rm -rf "$LIST" "$GITTMP"' EXIT
 say() { echo -e "\e[1m$*\e[0m"; }
 fail() { echo -e "\e[31mSTOP: $*\e[0m"; exit 1; }
 
+say "== .env.example from the schema (never behind the settings)"
+"$SRC/.venv/bin/python" "$SRC/sys/core/script/sys_env_sync.py" --example
+
 say "== files to publish (what .gitignore lets through)"
 # a throw-away git directory reads .gitignore: the installation itself needs no repository
 git init -q --bare "$GITTMP"

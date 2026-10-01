@@ -10,13 +10,13 @@ __pycache__/
 .pytest_cache/
 
 # Aurora's data: models, vault, indexes, logs, runtime state, user files.
-sys/models/
-sys/vault/
-sys/logs/
-sys/status/
-sys/tmp/
-sys/sandbox/
-usr/
+sys/models
+sys/vault
+sys/logs
+sys/status
+sys/tmp
+sys/sandbox
+usr
 
 # Scratch space
 tmp/
@@ -28,7 +28,7 @@ tmp/
 .DS_Store
 
 # Built or downloaded by the installer: llama.cpp (sys_nvidia.sh llama), GitHub MCP server
-sys/runtime/
+sys/runtime
 
 # The owner's Claude Code workspace (personal paths and settings)
 .claude/

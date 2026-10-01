@@ -648,3 +648,28 @@ CPU only (Ryzen 7 7700X, 8 threads): the GPUs belong to the reasoner and the enc
 
 Italian dictation accuracy: **not measured** (no Italian speech with a known text recorded yet). A real
 voice-activity detector is not there: the filter covers the inventions seen, not every one.
+
+## M36 — Clean install from `git clone` (2026-10-01)
+
+A clone of the private repository (SSH) in a new folder, the README's steps run in order, the owner's
+installation stopped (one GPU job at a time), its units untouched (the clone's services started by hand).
+
+| step | result |
+|---|---|
+| clone | 8.2 MB |
+| `sys_nvidia.sh check` | Ubuntu 26.04.1, driver 595 / CUDA 13.2, nvcc 13.4 |
+| venv from requirements.txt | 37 s (pip cache warm; a new machine downloads torch) |
+| `.env` from the schema | failed (AURORA_ROOT) → fixed (C52) |
+| tests with the clone's venv | 117 passed |
+| `sys_ethics_sign.py setup` (sudo) | signed, no exemption: level B active, as for anyone who downloads |
+| `sys_nvidia.sh llama` | build 212 s, 144 sm_120 kernels; stopped at the backup step → fixed (C53) |
+| models | not in the installer yet: linked read-only from the owner's installation for the test |
+| services (models, llm, api) | up; empty vault; WebUI 200; 172 settings; token plugins off |
+| "Che cos'è un solitone?" on the empty vault | honest abstention + offer to search, 1.4 s |
+| "Come stai?" | answers as Aurora to "Owner" (no personal name), 2.6 s |
+| update from GitHub (f3d3769 → 95f775b) | fast-forward, 117 tests, applied in 10 s; tree clean after C54/C55 |
+
+Found on the way: C52-C56. Not covered: the systemd units and HTTPS of a second installation on the
+same machine (they would replace the owner's), model download (installer manifest not written).
+Updates of a **private** repository need access without a person typing a passphrase: a read-only
+deploy key per installation (or a public repository).

@@ -43,8 +43,15 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--check", action="store_true", help="report only; exit 1 if .env is not in sync")
     ap.add_argument("--adopt", default="", help="comma-separated keys to set to their recommended value")
+    ap.add_argument("--example", action="store_true",
+                    help="write only .env.example from the schema (for publishing; an installation never rewrites it)")
     args = ap.parse_args()
     schema = C.load_schema()
+    if args.example:
+        recommended = {s["key"]: s["recommended"] for s in schema["settings"]}
+        (C.CODE_ROOT / ".env.example").write_text(render(schema, recommended), encoding="utf-8")
+        print(f"written {C.CODE_ROOT / '.env.example'}")
+        return 0
     env_file = C.env_file_path()
     current = C.parse_env(env_file.read_text(encoding="utf-8"), str(env_file)) if env_file.is_file() else {}
     declared = [s["key"] for s in schema["settings"]]
@@ -82,8 +89,7 @@ def main() -> int:
     proposed_file = env_file.parent / ".env.proposed"
     proposed_file.write_text(render(schema, proposed), encoding="utf-8")
     proposed_file.chmod(0o600)                       # it holds the secrets: owner only
-    (env_file.parent / ".env.example").write_text(render(schema, recommended), encoding="utf-8")
-    print(f"written {env_file.parent / '.env.proposed'} and {env_file.parent / '.env.example'}")
+    print(f"written {proposed_file} (review it, then: mv .env.proposed .env)")
     return 0
 
 
