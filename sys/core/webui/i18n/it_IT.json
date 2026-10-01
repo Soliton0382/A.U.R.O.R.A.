@@ -396,5 +396,9 @@
   "rt.n.always": "avvisa sempre",
   "rt.n.if_any": "avvisa solo se c'è qualcosa",
   "rt.n.if_new": "avvisa solo se è nuovo",
-  "rt.n.never": "non avvisare"
+  "rt.n.never": "non avvisare",
+  "chat.src.device": "Fotocamera e microfono di questo dispositivo (tocca per usare quelli del PC di Aurora)",
+  "chat.src.pc": "Fotocamera e microfono del PC di Aurora (tocca per usare quelli di questo dispositivo)",
+  "chat.src.unsupported": "Questo browser non può registrare: serve HTTPS e un browser recente.",
+  "chat.src.denied": "Microfono non consentito: abilitalo nelle impostazioni del sito (lucchetto nella barra degli indirizzi)."
 }

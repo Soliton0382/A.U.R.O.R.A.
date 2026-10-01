@@ -396,5 +396,9 @@
   "rt.n.always": "always notify",
   "rt.n.if_any": "notify only if there is something",
   "rt.n.if_new": "notify only if new",
-  "rt.n.never": "do not notify"
+  "rt.n.never": "do not notify",
+  "chat.src.device": "Camera and microphone of this device (tap to use those of Aurora's PC)",
+  "chat.src.pc": "Camera and microphone of Aurora's PC (tap to use those of this device)",
+  "chat.src.unsupported": "This browser cannot record: HTTPS and a recent browser are needed.",
+  "chat.src.denied": "Microphone not allowed: enable it in the site settings (padlock in the address bar)."
 }

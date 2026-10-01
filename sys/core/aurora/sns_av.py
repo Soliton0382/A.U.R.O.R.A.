@@ -5,6 +5,7 @@
 devices()   what is connected, for the owner to choose (AURORA_SENSES_CAMERA / AURORA_SENSES_MIC, "auto" = first)
 photo()     one JPEG from the chosen camera (ffmpeg)
 record()    N seconds of 16 kHz mono audio from the chosen microphone (ffmpeg)
+decode()    audio recorded by the owner's browser (phone or PC) to 16 kHz mono (ffmpeg)
 transcribe() speech to text with the local Whisper model (AURORA_STT_MODEL_DIR), on the CPU: the GPUs belong
             to the reasoner and the encoder. Whisper invents text on silence ("Grazie.", repetitions): those
             outputs are reported as no clear speech.
@@ -99,6 +100,23 @@ def record(seconds: float, cfg: sys_config.Config | None = None) -> np.ndarray:
     if r.returncode != 0 or not r.stdout:
         raise RuntimeError(f"microphone {mic}: {r.stderr.decode(errors='replace').strip()[-300:]}")
     sys_log.get_logger("senses").info("recorded %.1f s from %s", seconds, mic)
+    return np.frombuffer(r.stdout, np.int16).astype(np.float32) / 32768
+
+
+def decode(data: bytes, cfg: sys_config.Config | None = None) -> np.ndarray:
+    """Audio recorded by a browser (WebM/Opus on Android, MP4/AAC on iOS, anything ffmpeg reads) as 16 kHz mono,
+    at most AURORA_SENSES_LISTEN_MAX_S. Through a private temporary file: an MP4 keeps its index at the end and
+    ffmpeg cannot read it from a pipe."""
+    import tempfile
+    cfg = cfg or sys_config.get()
+    with tempfile.NamedTemporaryFile(prefix="aurora-voice-", suffix=".bin") as f:
+        f.write(data)
+        f.flush()
+        r = subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-i", f.name,
+                            "-t", str(cfg["AURORA_SENSES_LISTEN_MAX_S"]), "-ac", "1", "-ar", "16000", "-f", "s16le", "-"],
+                           capture_output=True, timeout=120)
+    if r.returncode != 0 or not r.stdout:
+        raise ValueError(f"audio not readable: {r.stderr.decode(errors='replace').strip()[-200:]}")
     return np.frombuffer(r.stdout, np.int16).astype(np.float32) / 32768
 
 

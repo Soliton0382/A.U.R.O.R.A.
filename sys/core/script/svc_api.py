@@ -672,6 +672,22 @@ async def senses_action(action: str, request: Request) -> dict:
             out = await asyncio.to_thread(sns_av.transcribe, audio, str(cfg["AURORA_LANG_DEFAULT"])[:2], cfg)
             log.info("audit: owner dictated %.1f s (clear: %s)", out["audio_s"], out["clear"])
             return out
+        if action == "transcribe":                       # the owner's own device (phone, PC browser) recorded it
+            body = await request.json()
+            try:
+                data = base64.b64decode(str(body.get("data", "")), validate=True)
+            except binascii.Error:
+                raise HTTPException(status_code=422, detail="data is not valid base64")
+            if not data or len(data) > 20 * 1024 * 1024:
+                raise HTTPException(status_code=413, detail="audio missing or larger than 20 MB")
+            try:
+                audio = await asyncio.to_thread(sns_av.decode, data, cfg)
+            except ValueError as e:
+                raise HTTPException(status_code=422, detail=str(e))
+            out = await asyncio.to_thread(sns_av.transcribe, audio, str(cfg["AURORA_LANG_DEFAULT"])[:2], cfg)
+            log.info("audit: owner dictated %.1f s from a device (%s, %d bytes; clear: %s)", out["audio_s"],
+                     str(body.get("mime", "?"))[:40], len(data), out["clear"])
+            return out
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e))
     raise HTTPException(status_code=404, detail="unknown action")

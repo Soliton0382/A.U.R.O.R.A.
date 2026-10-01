@@ -804,3 +804,14 @@ public repository 0.7 s, the token not written to .git/config; tree 23 entries; 
 frame-ancestors 'self'`, X-Frame-Options SAMEORIGIN, while the WebUI keeps DENY; a wrong token 403.
 Tests: 138 (routines 6, weather plugin 3).
 
+## M47 — The phone's camera and microphone in the PWA (2026-10-01)
+
+Server, POST /v1/aurora/senses/transcribe (ffmpeg through a private temporary file, then the same Whisper large-v3-turbo
+on the CPU), a CC BY-SA Italian clip (Wikimedia Commons, "Itwiki-Massa (fisica).ogg"): 10 s WebM/Opus 39 KB 7.6 s
+(model already loaded: 4.5 s of it transcription), 10 s MP4/AAC 76 KB with the index at the end (as iOS writes it)
+3.7 and 4.5 s, 20 s WebM 10.8 s with the whole passage right; a non-audio file 422. Browser, headless Chrome through
+Caddy (HTTPS, secure context) with a fake microphone playing the clip, source 📱: tap, 8.5 s, tap → the right
+Italian sentence in the box 7.5 s after the stop; the same with WebM hidden (MP4 chosen, as on Safari) 7.5 s; a
+4000×3000 picture through the camera input left as a JPEG (shrunk to 2048 px on the device). Not measured on a real
+Android or iPhone.
+

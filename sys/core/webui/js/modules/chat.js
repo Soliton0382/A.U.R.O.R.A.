@@ -33,7 +33,9 @@ export default {
           <button type="button" class="icon attach" data-i18n-title="chat.attach">📎</button>
           <button type="button" class="icon cam" data-i18n-title="chat.camera">📷</button>
           <button type="button" class="icon mic" data-i18n-title="chat.mic">🎙️</button>
+          <button type="button" class="icon src"></button>
           <input type="file" multiple hidden accept="image/*,.txt,.md,.markdown,.html,.htm,.pdf">
+          <input type="file" class="shoot" hidden accept="image/*" capture="environment">
           <textarea rows="2" data-i18n-placeholder="chat.placeholder"></textarea>
           <button type="submit" class="send" data-i18n="chat.send"></button>
         </form>
@@ -43,7 +45,7 @@ export default {
     const messages = root.querySelector(".messages");
     const form = root.querySelector("form");
     const input = root.querySelector("textarea");
-    const fileInput = root.querySelector("input[type=file]");
+    const fileInput = root.querySelector("input[type=file]:not(.shoot)");
     const send = root.querySelector(".send");
     const chipsBox = root.querySelector(".chips.pending");
     let pending = [];
@@ -61,9 +63,47 @@ export default {
     const addFiles = (list) => { pending.push(...Array.from(list)); renderChips(); };
 
     root.querySelector(".attach").addEventListener("click", () => fileInput.click());
-    // the machine's camera and microphone (plugin "senses"): the owner's click is the consent
+    // Camera and microphone: of this device (the phone's, through the browser) or of Aurora's machine (plugin
+    // "senses"). A touch screen starts on this device, a PC on the machine; the owner's choice is remembered.
+    // The owner's click is the consent; the browser asks its own permission the first time.
     const cam = root.querySelector(".cam");
+    const mic = root.querySelector(".mic");
+    const srcBtn = root.querySelector(".src");
+    const shoot = root.querySelector(".shoot");
+    const canRecord = !!(window.isSecureContext && navigator.mediaDevices?.getUserMedia && window.MediaRecorder);
+    let source = "pc";
+    try { source = localStorage.getItem("aurora.senses.source") || ""; } catch { /* storage unavailable */ }
+    if (source !== "device" && source !== "pc") source = matchMedia("(pointer: coarse)").matches ? "device" : "pc";
+    const showSource = () => {
+      srcBtn.textContent = source === "device" ? "📱" : "🖥️";
+      srcBtn.title = t(source === "device" ? "chat.src.device" : "chat.src.pc");
+    };
+    showSource();
+    srcBtn.addEventListener("click", () => {
+      source = source === "device" ? "pc" : "device";
+      try { localStorage.setItem("aurora.senses.source", source); } catch { /* storage unavailable */ }
+      showSource();
+    });
+
+    // a phone photo, made light before it leaves: at most 2048 px, upright, JPEG (also from HEIC when the browser reads it)
+    const shrink = async (file) => {
+      try {
+        const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
+        const k = Math.min(1, 2048 / Math.max(bmp.width, bmp.height));
+        const cv = document.createElement("canvas");
+        cv.width = Math.round(bmp.width * k); cv.height = Math.round(bmp.height * k);
+        cv.getContext("2d").drawImage(bmp, 0, 0, cv.width, cv.height);
+        const blob = await new Promise((ok) => cv.toBlob(ok, "image/jpeg", 0.85));
+        return blob ? new File([blob], `foto-${Date.now()}.jpg`, { type: "image/jpeg" }) : file;
+      } catch { return file; }
+    };
+    shoot.addEventListener("change", async () => {
+      const f = shoot.files?.[0];
+      shoot.value = "";
+      if (f) addFiles([await shrink(f)]);
+    });
     cam.addEventListener("click", async () => {
+      if (source === "device") { shoot.click(); return; }
       cam.disabled = true;
       try {
         const r = await call("/v1/aurora/senses/photo", { method: "POST", body: "{}" });
@@ -72,8 +112,48 @@ export default {
       } catch (e) { input.placeholder = t("ev.error", { m: e.message }); }
       cam.disabled = false;
     });
-    const mic = root.querySelector(".mic");
+
+    const heard = (r) => {
+      if (r.clear) input.value = (input.value ? input.value + " " : "") + r.text;
+      else input.placeholder = t("chat.mic.none");
+      input.focus();
+    };
+    // this device's microphone: tap to start, tap to stop (at most MAX s); WebM/Opus on Android, MP4/AAC on iOS
+    const MAX = 30;
+    let rec = null;
+    const recordHere = async () => {
+      if (rec) { rec.stop(); return; }
+      if (!canRecord) { input.placeholder = t("chat.src.unsupported"); return; }
+      let stream;
+      try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); }
+      catch (e) { input.placeholder = t(e.name === "NotAllowedError" ? "chat.src.denied" : "ev.error", { m: e.message }); return; }
+      const type = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/aac"].find((m) => MediaRecorder.isTypeSupported?.(m));
+      const chunks = [];
+      rec = new MediaRecorder(stream, type ? { mimeType: type } : {});
+      rec.ondataavailable = (ev) => { if (ev.data.size) chunks.push(ev.data); };
+      let secs = 0;
+      mic.classList.add("recording");
+      mic.textContent = "⏹️ 0";
+      const tick = setInterval(() => { mic.textContent = `⏹️ ${++secs}`; if (secs >= MAX) rec?.stop(); }, 1000);
+      rec.onstop = async () => {
+        clearInterval(tick);
+        stream.getTracks().forEach((tr) => tr.stop());          // the phone's microphone is released at once
+        const mime = rec.mimeType || type || "audio/webm";
+        rec = null;
+        mic.textContent = "…";
+        mic.disabled = true;
+        try {
+          const data = await toBase64(new Blob(chunks, { type: mime }));
+          heard(await call("/v1/aurora/senses/transcribe", { method: "POST", body: JSON.stringify({ data, mime }) }));
+        } catch (e) { input.placeholder = t("ev.error", { m: e.message }); }
+        mic.textContent = "🎙️";
+        mic.classList.remove("recording");
+        mic.disabled = false;
+      };
+      rec.start();
+    };
     mic.addEventListener("click", async () => {
+      if (source === "device") { recordHere(); return; }
       const seconds = 8;
       mic.disabled = true;
       mic.classList.add("recording");
@@ -81,10 +161,7 @@ export default {
       const tick = setInterval(() => { mic.textContent = `🔴 ${--left > 0 ? left : "…"}`; }, 1000);
       mic.textContent = `🔴 ${left}`;
       try {
-        const r = await call("/v1/aurora/senses/listen", { method: "POST", body: JSON.stringify({ seconds }) });
-        if (r.clear) input.value = (input.value ? input.value + " " : "") + r.text;
-        else input.placeholder = t("chat.mic.none");
-        input.focus();
+        heard(await call("/v1/aurora/senses/listen", { method: "POST", body: JSON.stringify({ seconds }) }));
       } catch (e) { input.placeholder = t("ev.error", { m: e.message }); }
       clearInterval(tick);
       mic.textContent = "🎙️";
