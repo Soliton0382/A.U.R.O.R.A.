@@ -137,6 +137,10 @@ def main() -> int:
                     pass
             else:
                 log.info("secret scan of the logs: clean")
+            try:                                      # attached files follow their conversation turns
+                client.post(f"{BASE}/v1/aurora/uploads/purge", timeout=300).raise_for_status()
+            except httpx.HTTPError as e:
+                log.warning("uploads purge failed: %s", e)
             last_purge = time.time()
         if cfg["AURORA_REM_ENABLED"]:
             try:

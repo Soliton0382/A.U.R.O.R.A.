@@ -17,6 +17,7 @@
     DELETE /v1/aurora/sources?domain=&source_id=   remove a source from vault and index (no re-encoding)
     POST /v1/aurora/memory/reset {"confirm": true} delete all memory (conversations, reflections) and its index
     GET  /v1/aurora/history?n=8                    the latest conversation turns (the WebUI shows them on load)
+    GET  /v1/aurora/uploads[/{id}]; DELETE /v1/aurora/uploads/{id}; POST /v1/aurora/uploads/purge  files attached in the chat
     GET  /v1/aurora/metrics                        CPU, RAM, GPUs now
     GET  /v1/aurora/rem/state                      what the autonomic cycle needs: idle time, open sessions, weather
     POST /v1/aurora/rem/{consolidate|reflect|dream|introspect} one autonomic task, as a run (aurora-rem)
@@ -482,6 +483,10 @@ async def ask(request: Request) -> dict:
         raise HTTPException(status_code=400, detail="empty question")
     def job(q, emit, run_id):
         attached = []
+        if files and remember:                         # kept to show them again in the conversation (sys_uploads)
+            from aurora import sys_uploads
+            for name, data, mime in files:
+                sys_uploads.save(cfg, run_id, name, mime, data)
         if files:
             from aurora.kno_attach import AttachmentHandler
             attached = AttachmentHandler(pipeline(), cfg).prepare(files, q, emit, run_id)
@@ -621,7 +626,9 @@ async def reset_memory(request: Request) -> dict:
         with _run_lock:
             files = pipeline().writer.reset_memory(confirm=True)
             _state.pop("pipeline", None)          # readers and indexes start again from the new state
-            return {"files_removed": files}
+            from aurora import sys_uploads
+            uploads = sys_uploads.purge(cfg, set(), grace=0)     # no turn left: no attached file either
+            return {"files_removed": files, "uploads_removed": len(uploads)}
     return await asyncio.to_thread(work)
 
 
@@ -633,7 +640,55 @@ def history(n: int = 8) -> list[dict]:
              "mode": t.extra.get("mode"), "seconds": t.extra.get("seconds"), "speed": t.extra.get("speed"),
              "sources": t.extra.get("source_list", []), "trace": t.extra.get("trace", []),
              "thought": t.extra.get("thought", ""), "long_term": t.consolidated} for t in turns]
+    from aurora import sys_uploads
+    files = sys_uploads.by_run(cfg, {i["run_id"] for i in items if i["role"] == "user" and i["run_id"]})
+    for i in items:
+        if i["role"] == "user":
+            i["attachments"] = files.get(i["run_id"], [])
     return sorted(items + recent_dreams(), key=lambda x: x["created_at"])          # same UTC ISO format
+
+
+@app.get("/v1/aurora/uploads", dependencies=[Depends(auth)])
+def uploads_list() -> dict:
+    from aurora import sys_uploads
+    return {"files": sys_uploads.all_uploads(cfg), "total_bytes": sys_uploads.total_bytes(cfg),
+            "keep_days": cfg["AURORA_UPLOADS_KEEP_DAYS"]}
+
+
+@app.get("/v1/aurora/uploads/{uid}", dependencies=[Depends(auth)])
+def upload_get(uid: str):
+    """Images, videos and audio inline; anything else only as a download (an HTML or SVG never runs here)."""
+    from fastapi.responses import FileResponse
+    from aurora import sys_uploads
+    found = sys_uploads.get(cfg, uid) if re.fullmatch(r"[0-9a-f]{16}", uid) else None
+    if found is None:
+        raise HTTPException(status_code=404, detail="no such file")
+    path, item = found
+    inline = bool(sys_uploads.INLINE.match(item["mime"]))
+    return FileResponse(path, media_type=item["mime"] if inline else "application/octet-stream",
+                        filename=item["name"], content_disposition_type="inline" if inline else "attachment",
+                        headers={"X-Content-Type-Options": "nosniff", "Content-Security-Policy": "sandbox",
+                                 "Cache-Control": "private, max-age=86400"})
+
+
+@app.delete("/v1/aurora/uploads/{uid}", dependencies=[Depends(auth)])
+def upload_delete(uid: str) -> dict:
+    from aurora import sys_uploads
+    if not sys_uploads.delete(cfg, uid):
+        raise HTTPException(status_code=404, detail="no such file")
+    log.info("audit: owner deleted an attached file (%s)", uid)
+    return {"deleted": uid}
+
+
+@app.post("/v1/aurora/uploads/purge", dependencies=[Depends(auth)])
+def uploads_purge() -> dict:
+    """aurora-rem, daily: files whose conversation turn is gone, and those older than AURORA_UPLOADS_KEEP_DAYS."""
+    from aurora import sys_uploads
+    live = {t.extra.get("run_id") for t in pipeline().reader.recent(1_000_000)} - {None}
+    removed = sys_uploads.purge(cfg, live)
+    if removed:
+        log.info("uploads purge: %d files removed", len(removed))
+    return {"removed": len(removed)}
 
 
 def recent_dreams() -> list[dict]:

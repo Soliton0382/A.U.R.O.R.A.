@@ -475,6 +475,32 @@
    ]
   },
   {
+   "key": "AURORA_UPLOADS_DIR",
+   "type": "path",
+   "category": "attachments",
+   "recommended": "usr/uploads",
+   "evidence": "owner",
+   "en": "Where the files attached in the chat are kept, so that the conversation shows them again (private, 0600).",
+   "it": "Dove restano i file allegati in chat, perché la conversazione li mostri ancora (privati, 0600).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_UPLOADS_KEEP_DAYS",
+   "type": "int",
+   "min": 0,
+   "max": 3650,
+   "category": "attachments",
+   "recommended": "0",
+   "evidence": "owner",
+   "en": "Days an attached file is kept; 0 = as long as its conversation turn (until a memory reset or the owner deletes it).",
+   "it": "Giorni di conservazione di un file allegato; 0 = finché esiste il suo turno di conversazione (fino a un reset della memoria o a quando lo cancelli).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_VAULT_SHARD_MAX_MB",
    "type": "int",
    "min": 16,

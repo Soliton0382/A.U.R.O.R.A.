@@ -63,3 +63,6 @@ details.thought pre, pre.facts { white-space: pre-wrap; font: .78rem/1.4 var(--m
   background: rgba(0, 0, 0, .88); cursor: zoom-out; padding: 1rem; }
 .lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; box-shadow: 0 0 40px rgba(0, 0, 0, .8); }
 .ask .icon.recording { color: #e34948; animation: pulse 1s ease-in-out infinite; }
+/* a picture of a message (just sent or from the history) is shown, not only named */
+.msg .chip img { width: auto; height: 7rem; max-width: 12rem; }
+a.chip { color: inherit; text-decoration: none; }

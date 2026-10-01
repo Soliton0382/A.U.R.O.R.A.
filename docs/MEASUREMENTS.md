@@ -830,3 +830,11 @@ comes first, headed as the file the owner attached; the other domains are backgr
 Not measured: long videos (the CPU transcript runs at about half real time: 10 minutes ≈ 5 minutes), real phone
 footage, answer quality of ordinary questions after the synthesis prompt change.
 
+## M49 — Attached files kept with the conversation (2026-10-01)
+
+"Di che colore è la figura?" with a 400x400 blue JPEG: answered "La figura è di colore blu [1]" in 38 s; /history returns
+the file with its turn; GET returns the same bytes, image/jpeg, inline, CSP sandbox; ids outside the index 404; the
+daily purge keeps it (its turn exists). Headless Chrome after a reload: the picture is back in the user bubble, loaded;
+the Files page lists 1 file, 3 KB. A 400x300 rectangle asked as "questo quadrato" was refused by the verifier (the
+picture is not a square; the vision also invented two black bands, C67).
+

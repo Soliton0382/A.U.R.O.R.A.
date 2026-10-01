@@ -9,10 +9,18 @@ import { auroraBubble, follow, renderPast } from "./trace.js";
 
 const HISTORY_TURNS = 8;          // 4 exchanges: the same memory Aurora keeps in context
 
+// A file of a message: one just chosen (a File) or one kept by Aurora ({name, mime, url}, from the history).
 function chip(file) {
-  const c = el("span", "chip");
-  if (file.type.startsWith("image/")) { const img = el("img"); img.src = URL.createObjectURL(file); c.append(img); }
-  else c.append(el("span", "", "📄"));
+  const type = file.type || file.mime || "";
+  const kept = !(file instanceof Blob);
+  const c = el(kept ? "a" : "span", "chip");
+  if (kept) { c.href = file.url; c.target = "_blank"; c.rel = "noopener"; }
+  if (type.startsWith("image/") && (!kept || file.inline)) {
+    const img = el("img");
+    img.src = kept ? file.url : URL.createObjectURL(file);
+    img.loading = "lazy";
+    c.append(img);
+  } else c.append(el("span", "", type.startsWith("video/") ? "🎬" : type.startsWith("audio/") ? "🎧" : "📄"));
   c.append(el("span", "", file.name));
   return c;
 }
@@ -282,7 +290,7 @@ export default {
       const turns = await call(`/v1/aurora/history?n=${HISTORY_TURNS}`);
       messages.replaceChildren();
       for (const turn of turns) {
-        if (turn.role === "user") { userBubble(turn.text, [], turn.created_at); continue; }
+        if (turn.role === "user") { userBubble(turn.text, turn.attachments || [], turn.created_at); continue; }
         if (turn.role === "dream") { dreamBubble(turn); continue; }
         const b = auroraBubble(messages);
         renderPast(b, turn);

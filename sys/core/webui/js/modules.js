@@ -10,6 +10,7 @@ import diary from "./modules/diary.js";
 import harvester from "./modules/harvester.js";
 import notifications from "./modules/notifications.js";
 import importDocs from "./modules/import.js";
+import uploads from "./modules/uploads.js";
 import metrics from "./modules/metrics.js";
 import plugins from "./modules/plugins.js";
 import projects from "./modules/projects.js";
@@ -22,5 +23,5 @@ import social from "./modules/social.js";
 import status from "./modules/status.js";
 import updates from "./modules/updates.js";
 
-export const views = [chat, approvals, security, diary, social, projects, routines, plugins, importDocs, harvester, runs, status, notifications, updates, settings];
+export const views = [chat, approvals, security, diary, social, projects, routines, plugins, importDocs, uploads, harvester, runs, status, notifications, updates, settings];
 export const widgets = [sky, alerts, metrics];

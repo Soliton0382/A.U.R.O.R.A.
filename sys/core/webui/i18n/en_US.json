@@ -402,5 +402,13 @@
   "chat.src.unsupported": "This browser cannot record: HTTPS and a recent browser are needed.",
   "chat.src.denied": "Microphone not allowed: enable it in the site settings (padlock in the address bar).",
   "ev.video.frames": "I took {n} frames from {name} ({s} scene changes)",
-  "ev.attach.video": "I watched {name}: {w} s, {f} frames, {n} sentences heard ({s} s)"
+  "ev.attach.video": "I watched {name}: {w} s, {f} frames, {n} sentences heard ({s} s)",
+  "nav.uploads": "Files",
+  "up.title": "📎 Attached files",
+  "up.hint": "{n} files, {size}.",
+  "up.keep_turn": "They stay as long as their conversation; a memory reset deletes them all.",
+  "up.keep_days": "They stay at most {d} days.",
+  "up.none": "No file attached in the chat.",
+  "up.delete": "Delete",
+  "up.confirm": "Delete {name}? The conversation will keep only its name."
 }

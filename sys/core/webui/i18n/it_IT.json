@@ -402,5 +402,13 @@
   "chat.src.unsupported": "Questo browser non può registrare: serve HTTPS e un browser recente.",
   "chat.src.denied": "Microfono non consentito: abilitalo nelle impostazioni del sito (lucchetto nella barra degli indirizzi).",
   "ev.video.frames": "Ho preso {n} fotogrammi da {name} ({s} cambi di scena)",
-  "ev.attach.video": "Ho guardato {name}: {w} s, {f} fotogrammi, {n} frasi ascoltate ({s} s)"
+  "ev.attach.video": "Ho guardato {name}: {w} s, {f} fotogrammi, {n} frasi ascoltate ({s} s)",
+  "nav.uploads": "File",
+  "up.title": "📎 File allegati",
+  "up.hint": "{n} file, {size}.",
+  "up.keep_turn": "Restano finché esiste la loro conversazione; un reset della memoria li cancella tutti.",
+  "up.keep_days": "Restano al massimo {d} giorni.",
+  "up.none": "Nessun file allegato in chat.",
+  "up.delete": "Elimina",
+  "up.confirm": "Eliminare {name}? Nella conversazione resterà solo il nome."
 }
