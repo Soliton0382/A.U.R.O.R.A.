@@ -70,6 +70,9 @@ def main() -> int:
         print(f"--adopt: keys not in the schema: {unknown}")
         return 2
     proposed = {**recommended, **kept, **{k: recommended[k] for k in adopt}}
+    if "AURORA_ROOT" not in kept:                 # a new installation lives where its code is
+        proposed["AURORA_ROOT"] = str(C.CODE_ROOT)
+        print(f"  * AURORA_ROOT={C.CODE_ROOT} (this folder)")
     for spec in schema["settings"]:                  # secrets are generated, never recommended
         if spec.get("generate") == "token" and not proposed[spec["key"]]:
             proposed[spec["key"]] = secrets.token_urlsafe(32)

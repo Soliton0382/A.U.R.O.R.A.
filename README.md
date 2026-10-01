@@ -42,6 +42,92 @@ firmata dal proprietario.
 | **AI Act UE, art. 50** | dichiarazione su testi pubblicati, immagini (XMP/IPTC) e PDF |
 | **WebUI / PWA** | chat con risposte in diretta e token/s, sogni, riparazioni, sicurezza, diario, social, plugin, harvester, impostazioni (ogni valore del `.env` spiegato), notifiche (push e nella WebUI, scelte evento per evento), aggiornamenti, IT/EN |
 
+## 🧬 Come funziona dentro
+
+### Il percorso di una domanda
+
+```mermaid
+flowchart LR
+  Q([domanda]) --> R{smistamento}
+  R -- "su di sé / sul passato" --> S[stato misurato<br/>+ ricordi pertinenti] --> W
+  R -- conoscenza --> T[traduzione EN] --> E[encoder<br/>Qwen3-Embedding-0.6B]
+  E --> V[(vault<br/>per dominio)] --> C[300 candidati<br/>per query]
+  C --> X[re-ranker bge-v2-m3<br/>ogni passaggio nella sua lingua] --> K[12 passaggi]
+  K --> G{cancello}
+  G -- nessuno risponde --> A([astensione onesta<br/>+ proposta arXiv])
+  G -- passaggi utili --> D[estrazione<br/>per dominio] --> W[sintesi<br/>con ragionamento]
+  W --> F{verifica<br/>frase per frase}
+  F --> O([risposta + fonti]) --> M[(memoria STM)]
+  M -. notte .-> L[(LTM, pensieri,<br/>sogni)]
+```
+
+### Il solitone
+
+L'unità di conoscenza e di memoria. La conoscenza ha un'identità **data dal contenuto**: lo stesso testo
+è sempre lo stesso solitone, quindi i duplicati non esistono.
+
+$$\mathrm{sid} = \mathrm{BLAKE2b}_{128}\big(\mathrm{normalize}(\text{testo})\big)$$
+
+Ogni solitone vive in uno shard SQLite del suo dominio (conoscenza e memoria separate); l'indice di ogni
+dominio tiene i vettori in `float16` e gli `sid` nello stesso ordine. Sotto i 250.000 vettori per
+dominio la ricerca è esatta; sopra, un grafo HNSW (ricostruirlo su 55.208 vettori costa 4,4 s, M30).
+
+### La ricerca
+
+Encoder e vettori sono normalizzati, quindi il prodotto scalare è il coseno. Per la domanda $q$ e la sua
+traduzione inglese $q'$, ogni passaggio $d$ riceve
+
+$$s_{\text{dense}}(d) = \max\big(\langle e(q), e(d)\rangle,\ \langle e(q'), e(d)\rangle\big)$$
+
+e i 300 migliori per query passano al re-ranker, che legge ogni passaggio **con la domanda nella sua
+lingua** (italiano con italiano, inglese con la traduzione):
+
+$$s(d) = \sigma\big(f_{\text{bge}}(q_{\text{lingua}(d)},\ d)\big) \in [0,1], \qquad \text{risposta} \leftarrow \text{top}_{12}\, s(d)$$
+
+Sul vault intero (344.499 solitoni) il documento giusto è tra i 12 nel 92,1% dei casi (M31).
+
+### La verifica
+
+Una frase $f$ della risposta resta solo se cita almeno un passaggio **e** il verificatore conferma che
+ogni sua affermazione è nei passaggi $P$ dati alla sintesi (le righe sotto i 25 caratteri, come i titoli, restano):
+
+$$\text{tieni}(f) \iff \mathrm{cit}(f) \neq \varnothing \ \wedge\ V(f, P) = \text{SÌ}$$
+
+Contro un giudice esterno (Claude): 26/32 in accordo, **0 frasi non supportate tenute** (M32).
+
+### SSCC — compressione per il ragionatore cloud
+
+Quando si usa un ragionatore cloud, il testo inviato viene compresso con il **Soliton-Salience Context
+Compressor**: ogni frase $c_i$ (su $n$) riceve una salienza
+
+$$\mathrm{score}_i = \cos(q, c_i)\cdot\big(1 + \alpha\,\mathrm{Amp}_i\big)\cdot\big(\gamma + (1-\gamma)\,\mathrm{Vel}_i\big)$$
+
+$$\mathrm{Amp}_i = \frac{u_i / t_i}{\max_j\, u_j / t_j}, \qquad \mathrm{Vel}_i = \frac{i+1}{n}, \qquad \alpha = 0{,}35,\ \ \gamma = 0{,}70$$
+
+dove $\cos$ è la similarità TF-IDF tra domanda e frase, $u_i/t_i$ la densità d'informazione (token unici
+sui token), $\mathrm{Vel}_i$ la posizione (più recente = più fresca). Restano le migliori
+$\min\big(n,\ \max(3,\ \mathrm{round}(0{,}35\,n))\big)$ frasi, nell'ordine originale, **più tutte quelle con una citazione**,
+così la verifica funziona ancora. Misurato: −29,6% di testo su una domanda (M26); l'effetto sulla qualità
+delle risposte **non è ancora misurato**.
+
+### Il ciclo autonomo
+
+```mermaid
+flowchart LR
+  I([inattività]) --> C{REM}
+  C -- sessioni chiuse --> S[memoria di sessione → LTM]
+  C -- notte 2-6 --> D[sogno + dipinto SDXL<br/>LLM fermato ~20 s]
+  C -- ogni 24 h --> R[autodiagnosi dai log]
+  R -- problemi ricorrenti --> P[riparazione: sandbox → test<br/>→ approvazione → test dal vivo]
+  C -- noia --> T[pensiero]
+```
+
+### Le regole firmate
+
+I file che applicano il codice di condotta sono elencati in un manifesto con il loro SHA-256, firmato
+Ed25519 con la chiave **di questa installazione** (`/etc/aurora`, leggibile solo da root). Ogni servizio,
+all'avvio, ricalcola gli hash e verifica la firma: se qualcosa è cambiato senza firma, Aurora non parte.
+
 ## Misure sulla macchina di riferimento
 
 2 × RTX 5060 Ti 16 GB, Ubuntu 26.04, driver 595, CUDA 13.4 (docs/COMPATIBILITY.md).

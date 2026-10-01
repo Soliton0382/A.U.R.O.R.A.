@@ -42,6 +42,91 @@ exemption.
 | **EU AI Act art. 50** | disclosure on published text, images (XMP/IPTC) and PDFs |
 | **WebUI / PWA** | chat with live answers and tokens/s, dreams, repairs, security, diary, social, plugins, harvester, settings (every `.env` value explained), notifications (push and in-app, chosen event by event), updates, IT/EN |
 
+## 🧬 How it works inside
+
+### The path of a question
+
+```mermaid
+flowchart LR
+  Q([question]) --> R{route}
+  R -- "about herself / the past" --> S[measured state<br/>+ relevant memories] --> W
+  R -- knowledge --> T[English translation] --> E[encoder<br/>Qwen3-Embedding-0.6B]
+  E --> V[(vault<br/>per domain)] --> C[300 candidates<br/>per query]
+  C --> X[bge-v2-m3 re-ranker<br/>each passage in its language] --> K[12 passages]
+  K --> G{gate}
+  G -- none answers --> A([honest abstention<br/>+ arXiv offer])
+  G -- useful passages --> D[per-domain<br/>extraction] --> W[synthesis<br/>with reasoning]
+  W --> F{sentence-by-sentence<br/>verification}
+  F --> O([answer + sources]) --> M[(STM memory)]
+  M -. night .-> L[(LTM, thoughts,<br/>dreams)]
+```
+
+### The soliton
+
+The unit of knowledge and memory. Knowledge has an identity **given by its content**: the same text is
+always the same soliton, so duplicates cannot exist.
+
+$$\mathrm{sid} = \mathrm{BLAKE2b}_{128}\big(\mathrm{normalize}(\text{text})\big)$$
+
+Every soliton lives in a SQLite shard of its domain (knowledge and memory apart); each domain's index keeps
+the vectors in `float16` and the `sid`s in the same order. Below 250,000 vectors per domain the search is
+exact; above, an HNSW graph (rebuilding it on 55,208 vectors takes 4.4 s, M30).
+
+### Search
+
+Encoder and vectors are normalised, so the dot product is the cosine. For the question $q$ and its English
+translation $q'$, every passage $d$ gets
+
+$$s_{\text{dense}}(d) = \max\big(\langle e(q), e(d)\rangle,\ \langle e(q'), e(d)\rangle\big)$$
+
+and the best 300 per query go to the re-ranker, which reads each passage **with the question in the
+passage's language** (Italian with Italian, English with the translation):
+
+$$s(d) = \sigma\big(f_{\text{bge}}(q_{\text{lang}(d)},\ d)\big) \in [0,1], \qquad \text{answer} \leftarrow \text{top}_{12}\, s(d)$$
+
+On the whole vault (344,499 solitons) the right document is among the 12 in 92.1% of the cases (M31).
+
+### Verification
+
+A sentence $f$ of the answer stays only if it cites at least one passage **and** the verifier confirms that
+every claim in it is in the passages $P$ given to synthesis (lines under 25 characters, such as headings, stay):
+
+$$\text{keep}(f) \iff \mathrm{cit}(f) \neq \varnothing \ \wedge\ V(f, P) = \text{YES}$$
+
+Against an external judge (Claude): 26/32 agreement, **0 unsupported sentences kept** (M32).
+
+### SSCC — compression for the cloud reasoner
+
+With a cloud reasoner, the text sent is compressed by the **Soliton-Salience Context Compressor**: each
+sentence $c_i$ (of $n$) gets a salience
+
+$$\mathrm{score}_i = \cos(q, c_i)\cdot\big(1 + \alpha\,\mathrm{Amp}_i\big)\cdot\big(\gamma + (1-\gamma)\,\mathrm{Vel}_i\big)$$
+
+$$\mathrm{Amp}_i = \frac{u_i / t_i}{\max_j\, u_j / t_j}, \qquad \mathrm{Vel}_i = \frac{i+1}{n}, \qquad \alpha = 0.35,\ \ \gamma = 0.70$$
+
+where $\cos$ is the TF-IDF similarity of question and sentence, $u_i/t_i$ the information density (unique
+tokens over tokens), $\mathrm{Vel}_i$ the position (later = fresher). The best $\min\big(n,\ \max(3,\ \mathrm{round}(0.35\,n))\big)$
+sentences stay, in their original order, **plus every sentence with a citation**, so verification still
+works. Measured: −29.6% of text on one question (M26); the effect on answer quality is **not measured yet**.
+
+### The autonomic cycle
+
+```mermaid
+flowchart LR
+  I([idle]) --> C{REM}
+  C -- closed sessions --> S[session memory → LTM]
+  C -- night 2-6 --> D[dream + SDXL painting<br/>reasoner paused ~20 s]
+  C -- every 24 h --> R[self-review from the logs]
+  R -- recurring problems --> P[repair: sandbox → tests<br/>→ approval → live tests]
+  C -- boredom --> T[thought]
+```
+
+### Signed rules
+
+The files that enforce the code of conduct are listed in a manifest with their SHA-256, signed Ed25519 with
+**this installation's** key (`/etc/aurora`, readable by root only). Every service recomputes the hashes and
+checks the signature at start: changed without a signature, Aurora does not start.
+
 ## Measured on the reference machine
 
 2 × RTX 5060 Ti 16 GB, Ubuntu 26.04, driver 595, CUDA 13.4 (docs/COMPATIBILITY.md).
