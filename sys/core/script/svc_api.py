@@ -1063,15 +1063,32 @@ def _forge_done(req_id: str, name: str) -> None:
         _start_routine(r)
 
 
-def _forge_job(req: dict):
+def _forge_job(req: dict, cloud: bool = False):
     def job(q, emit, run_id):
         from aurora import agt_forge
         from aurora.kno_answer import Answer
         from aurora.plg_host import PluginHost
         agt_forge.update(cfg, req["id"], status="building", started=time.time(), attempts=req.get("attempts", 0) + 1)
-        emit("forge.start", {"id": req["id"], "need": req["need"]})
+        emit("forge.start", {"id": req["id"], "need": req["need"], "cloud": cloud})
         host = PluginHost(cfg)
-        res = agt_forge.build(cfg, pipeline().llm, host, req, emit)     # the local reasoner: it looks at the data
+        if cloud:                                       # the owner allowed it for this request: masked samples only
+            from aurora.mdl_cloud import ClaudeCodeLLM
+            res = agt_forge.build(cfg, ClaudeCodeLLM(cfg), host, req, emit, masker=agt_forge.Masker(cfg))
+        else:
+            res = agt_forge.build(cfg, pipeline().llm, host, req, emit)     # the local reasoner first
+        if not res["ok"] and not cloud:                 # ask once whether the cloud may try, showing what would leave
+            from aurora.sys_approvals import Approvals
+            m = agt_forge.Masker(cfg)
+            sample = m(agt_forge.peek(cfg, re.findall(r"[\w./-]+/[\w./-]+", req["need"])[:3] or ["sys/logs"]))
+            item = Approvals(cfg).request("forge_cloud", "external", f"Posso farmi aiutare dal cloud per «{req['need'][:80]}»?",
+                                          "La forgia locale non ci è riuscita. Il ragionatore cloud (Claude) vedrebbe la "
+                                          "richiesta e questi campioni, mascherati (IP, email, token, nomi di dispositivi, "
+                                          "i tuoi dati personali). Il plugin girerebbe comunque solo qui, nella gabbia.",
+                                          {"need": req["need"], "campioni mascherati": sample[:4000],
+                                           "errori locali": res["errors"][:3]}, {"request": req["id"]}, run_id)
+            agt_forge.update(cfg, req["id"], status="awaiting_cloud", errors=res["errors"][:5], approval=item["id"])
+            note("forge", "approval.pending", {"id": item["id"], "kind": "forge_cloud", "title": item["title"]})
+            return Answer(run_id, q, "Forgia locale non riuscita: chiedo il permesso per il cloud.", False, mode="agent")
         if not res["ok"]:
             agt_forge.update(cfg, req["id"], status="failed", errors=res["errors"][:5])
             note("forge", "forge.failed", {"id": req["id"], "text": f"Non sono riuscita a costruire: {req['need'][:120]}"})
@@ -1145,6 +1162,7 @@ def _routine_job(r: dict):
                 agent.routine = r["id"]                     # a capability it requests runs this routine again
                 ans = agent.run(goal, emit, run_id, f"Routine: {r.get('title', '')}. Read only.")
                 text, files = ans.text.strip(), agent.produced
+                _gap_check(agent, r["goal"], text, emit, run_id, r["id"])
             except Exception as e:                       # a failed routine is recorded and said, never left pending
                 log.exception("routine %s failed", r["id"])
                 ok, text = False, f"{type(e).__name__}: {str(e)[:300]}"
@@ -1555,6 +1573,21 @@ async def social_publish(request: Request) -> dict:
 
 
 # ---- agents, plugins, approvals ------------------------------------------------------------------
+def _gap_check(agent, goal: str, report: str, emit, run_id: str, routine: str | None = None) -> None:
+    """After an agent run, by code: a report saying a tool is missing becomes a forge request (agt_forge.detect_gap)."""
+    from aurora import agt_forge
+    try:
+        need = agt_forge.detect_gap(pipeline().llm, goal, report, getattr(agent, "requested", False))
+    except Exception:                                    # the check never breaks the run
+        log.exception("gap check")
+        return
+    if need:
+        req = agt_forge.request(cfg, need, f"rilevato dopo il run: {goal[:300]}", run_id, routine)
+        emit("forge.request", {"id": req["id"], "need": req["need"], "status": req["status"], "by": "code"})
+        note("forge", "forge.request", {"id": req["id"], "title": req["need"][:160]})
+        log.info("gap found after run %s: forge request %s (%s)", run_id, req["id"], need[:120])
+
+
 def _agent_job(goal: str, context: str = "", after=None, remember: bool = False, label: str | None = None):
     """An agent run. `remember`: the owner asked for it, so goal and report become conversation turns
     (with the whole path), like any other answer; the autonomic ones become reflections (`after`)."""
@@ -1564,6 +1597,7 @@ def _agent_job(goal: str, context: str = "", after=None, remember: bool = False,
         asked_at = now_iso()
         agent = Agent(pipeline(), cfg, notify=lambda e, p: note("agent", e, p))
         ans = agent.run(goal, emit, run_id, context)
+        _gap_check(agent, goal, ans.text, emit, run_id)
         if agent.produced:                             # the documents it wrote stay with its turn (downloadable)
             from aurora import sys_uploads
             for f in agent.produced:
@@ -1728,6 +1762,12 @@ def decide(approval_id: str, decision: str) -> dict:
     now = time.strftime("%Y-%m-%dT%H:%M:%S%z")
     if decision == "reject":
         store.update(approval_id, status="rejected", decided=now)
+        if item["kind"] in ("forge_cloud", "plugin_install"):      # the forge request ends with the owner's no
+            from aurora import agt_forge
+            try:
+                agt_forge.update(cfg, item["action"]["request"], status="declined", decided=time.time())
+            except StopIteration:
+                pass
         note("owner", "approval.rejected", {"id": approval_id, "title": item["title"]})
         return {"id": approval_id, "status": "rejected"}
     store.update(approval_id, status="approved", decided=now)
@@ -1739,6 +1779,11 @@ def decide(approval_id: str, decision: str) -> dict:
                 from aurora import agt_change
                 out = agt_change.apply(item["action"]["sandbox_id"], emit, cfg)
                 ok = out.get("applied", False)
+            elif item["kind"] == "forge_cloud":             # the owner allowed the cloud for this request
+                from aurora import agt_forge
+                req = next(r for r in agt_forge.requests(cfg) if r["id"] == item["action"]["request"])
+                rid = start_run(f"[forge, cloud] {req['need'][:100]}", origin="forge", job=_forge_job(req, cloud=True))["id"]
+                out, ok = {"forge_run": rid}, True
             elif item["kind"] == "plugin_install":          # a forged plugin the owner approved
                 from aurora import agt_forge
                 a = item["action"]

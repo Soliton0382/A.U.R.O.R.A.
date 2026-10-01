@@ -879,3 +879,17 @@ europepmc 25, medrxiv 11, biorxiv 3, wikipedia 2). Builds with the local reasone
    refused (the judge's reason partly wrong: it took computer_science 50 for start lines).
 Judge calibration on three outputs ×3: 9/9. Builds 4–6: no wrong plugin accepted, no right one produced.
 
+## M54 — Gap detection and the forge benchmark (2026-10-02)
+
+Gap detection by code after agent runs (textual filter, then the reasoner names the missing capability): 12/12 on
+reports written for the test (6 missing tools; 6 other failures or none: a plugin not configured, a network error, an
+approval waiting, a forbidden .env, a report with nothing new), the reasoner asked 9 times out of 12, 2.2 s in all.
+Forge benchmark (sys/core/script/bench_forge.py): 8 needs on Aurora's own data, each with the answer computed by code.
+Strict checker: 1/8. Read line by line: plugins right 4/8 (incidents by severity, PDFs, routines, log MB), of which the
+judge accepted 2 and refused 2 by mistake; plugins wrong 4/8 (harvester by source: arxiv 0 against 237; firewall
+denied in 6 h: 22,130 against about 2,810; warnings per component: close but off; dreams: a crash), of which the
+judge refused 3 and accepted 1. Two fixes after the run: the checker accepts rounding (5.64 MB = 5.6), the judge is
+told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent, MAC, e-mail before the owner's words —
+it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
+coordinates): on real firewall lines no address, domain or serial number left.
+

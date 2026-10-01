@@ -55,3 +55,27 @@ def test_the_sample_shows_each_kind_of_line_with_counts_and_the_line_untouched()
     out = F.kinds_of(lines, hours=24 * 3650)
     assert len(out) == 2 and out[0].startswith("# kind: 5 lines") and out[1].startswith("# kind: 1 lines")
     assert out[1].split("\n", 1)[1] == lines[-1]                                   # the example is the real line
+
+
+def test_what_may_leave_for_the_cloud_is_masked(cfg):
+    cfg.values.update(AURORA_DOMAIN="aurora.example.net", AURORA_OWNER_NAME="Mario")
+    m = F.Masker(cfg)
+    raw = ('2026-10-01 fw 192.168.0.205 device_name="xg.example.net" device_serial_id="X99000AB1CDEF23" '
+           'src_ip=192.168.0.205 dst_ip=8.8.8.8 user=mario mail mario@example.net token ' + "a1" * 20
+           + " mac 00:11:22:33:44:55 da Mario /home/" + m.user + "/x")
+    out = m(raw)
+    assert "192.168" not in out and "8.8.8.8" not in out
+    assert out.count("198.51.100.1 ") + out.count("198.51.100.1\n") == 2 or out.count("=198.51.100.1 ") == 1   # same ip, same stand-in
+    assert "198.51.100.2" in out                                                               # another ip, another
+    assert "example.net" not in out and "X99000" not in out and "Mario" not in out and "mario@" not in out
+    assert "a1a1a1" not in out and "00:11:22" not in out
+    assert m.user == "user" or f"/home/{m.user}/" not in out
+    assert "2026-10-01 fw" in out                                                              # the format stays
+
+
+def test_the_textual_filter_asks_the_reasoner_only_on_a_missing_tool():
+    assert F.GAP_HINT.search("Non ho trovato nessuno strumento per leggere gli incidenti")
+    assert F.GAP_HINT.search("non posso leggere lo storico delle metriche")
+    assert not F.GAP_HINT.search("Resoconto completato: 13 incidenti, nessun evento esterno.")
+    assert F.detect_gap(None, "g", "Resoconto completato.", False) is None                     # no call at all
+    assert F.detect_gap(None, "g", "nessuno strumento", True) is None                          # already requested

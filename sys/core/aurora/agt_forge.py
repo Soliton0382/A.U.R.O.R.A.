@@ -110,6 +110,55 @@ def request(cfg: sys_config.Config, need: str, why: str, run_id: str | None, rou
     return item
 
 
+GAP_HINT = re.compile(r"(?i)(nessuno strumento|non ho (uno |gli |lo )?strument|non ho accesso|non posso (leggere|accedere|vedere|"
+                      r"consultare|recuperare)|non dispongo|non (è|e') disponibile|non ho modo|non esiste (un|uno|alcun) "
+                      r"(plugin|strumento)|no tool|cannot (read|access)|not available|unknown tool)")
+SYS_GAP = ("An agent worked on a goal for Aurora and wrote a report. Did it fail, fully or in part, because Aurora has no "
+           "tool to read some data or to reach some service? If yes, reply with ONE line: the missing capability, precise "
+           "(what data, from where, what it should return). If it failed for another reason (an error, the network, a "
+           "permission, a service not configured, nothing new to report) or did not fail, reply NONE.")
+
+
+def detect_gap(llm, goal: str, report: str, requested: bool) -> str | None:
+    """By code after every agent run (routines, chat, services): a report that says a tool is missing becomes a forge
+    request even when the agent did not ask. A cheap textual filter decides when the reasoner is asked at all."""
+    if requested or not GAP_HINT.search(report or ""):
+        return None
+    out = llm.complete(SYS_GAP, f"GOAL: {goal[:1500]}\n\nREPORT: {report[:3000]}", 120).answer.strip()
+    return None if out.upper().startswith("NONE") or len(out) < 15 else out.splitlines()[0][:500]
+
+
+class Masker:
+    """What may leave for the cloud reasoner, with the owner's consent: the same text with addresses, e-mails, tokens and
+    the owner's own words replaced. An address keeps the same stand-in everywhere, so formats and counts stay coherent."""
+
+    def __init__(self, cfg: sys_config.Config):
+        self.ips: dict[str, str] = {}
+        own = [str(cfg.values.get(k) or "") for k in ("AURORA_OWNER_NAME", "AURORA_DOMAIN", "AURORA_WEATHER_PLACE",
+                                                       "AURORA_WEATHER_LAT", "AURORA_WEATHER_LON")]
+        dom = str(cfg.values.get("AURORA_DOMAIN") or "")
+        if dom.count(".") >= 1:                          # aurora.example.com -> also example.com
+            own.append(".".join(dom.split(".")[-2:]))
+        self.own = sorted({w for w in own if len(w) >= 4 and w not in ("localhost",)}, key=len, reverse=True)
+        self.user = Path.home().name
+
+    def _ip(self, m: re.Match) -> str:
+        return self.ips.setdefault(m.group(0), f"198.51.100.{len(self.ips) % 250 + 1}")
+
+    SENSITIVE = re.compile(r'\b(\w*(?:serial|user|name|host|mac|email|domain|url|account|login)\w*)=("[^"]*"|\S+)', re.I)
+
+    def __call__(self, text: str) -> str:
+        # e-mails first: replacing the owner's domain before would leave "name@<private>" (the name leaks)
+        text = re.sub(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+", "user@example.org", text)
+        text = self.SENSITIVE.sub(lambda m: f'{m.group(1)}="<masked>"', text)   # key=value logs: who and which device
+        for w in self.own:
+            text = text.replace(w, "<private>")
+        text = re.sub(r"\b(?:\d{1,3}\.){3}\d{1,3}\b", self._ip, text)
+        text = re.sub(r"\b[0-9a-fA-F]{2}(?::[0-9a-fA-F]{2}){5}\b", "00:00:5e:00:53:01", text)
+        text = re.sub(r"\b[0-9a-fA-F]{24,}\b|\b[A-Za-z0-9_\-]{32,}\b", "<token>", text)
+        return text.replace(f"/home/{self.user}/", "/home/user/") if self.user else text
+
+
 def next_pending(cfg: sys_config.Config) -> dict | None:
     if any(i["status"] == "building" and time.time() - i.get("started", 0) < 1800 for i in requests(cfg)):
         return None                                          # one build at a time
@@ -239,7 +288,7 @@ def data_places(cfg: sys_config.Config) -> str:
 
 # ---- build ---------------------------------------------------------------------------------------------
 
-def build(cfg: sys_config.Config, llm, host, req: dict, emit) -> dict:
+def build(cfg: sys_config.Config, llm, host, req: dict, emit, masker=None) -> dict:
     """Write, check and test the plugin (up to 3 attempts); returns {"ok", "manifest", "stage", "errors"}."""
     log = sys_log.get_logger("forge")
     existing = {p.name for p in host.plugins(with_tools=False)}
@@ -253,7 +302,9 @@ def build(cfg: sys_config.Config, llm, host, req: dict, emit) -> dict:
     except ValueError:
         looked = []
     seen = peek(cfg, [str(x) for x in looked if isinstance(x, str)])
-    emit("forge.look", {"paths": looked[:3]})
+    if masker:                                           # the cloud sees the data only masked
+        seen = masker(seen)
+    emit("forge.look", {"paths": looked[:3], "masked": bool(masker)})
     errors: list[str] = []
     for attempt in range(1, 4):
         prompt = (f"{ask}\n\nPLUGINS ALREADY THERE (do not duplicate):\n{tools}\n\nWHAT THE DATA LOOKS LIKE:\n{seen}"
@@ -275,7 +326,7 @@ def build(cfg: sys_config.Config, llm, host, req: dict, emit) -> dict:
             stage.mkdir(parents=True)
             (stage / "plugin.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             (stage / "server.py").write_text(code, encoding="utf-8")
-            errors = test(host, manifest, stage, llm, seen)
+            errors = test(host, manifest, stage, llm, seen, masker)
         emit("forge.attempt", {"attempt": attempt, "ok": not errors, "errors": errors[:5], "name": manifest.get("name")})
         log.info("forge %s attempt %d: %s", req["id"], attempt, "ok" if not errors else "; ".join(errors)[:300])
         if not errors:
@@ -285,14 +336,16 @@ def build(cfg: sys_config.Config, llm, host, req: dict, emit) -> dict:
 
 SYS_JUDGE = ("You check a tool a forge just wrote. The SAMPLE shows the real data it reads: for logs, one line of each "
              "kind with how many lines of that kind exist in the last 24 h and in all (counted by code: facts). The OUTPUT "
-             "is what the tool returned. Reply WRONG: <reason> when the output contradicts the sample or its counts: it "
+             "is what the tool returned. A folder listing in the sample is cut (at most 25 entries) and files may have been added "
+             "since: more files than listed is not a contradiction. Reply WRONG: <reason> when the output contradicts the "
+             "sample or its counts: it "
              "says nothing (or zero) although lines exist in the period; a total or a group is far from the counted lines "
              "of its kind (more than 10% off, or larger than all the lines); a kind of line with many lines in the period "
              "is missing from the output; it describes fields or a format the sample does not have. Otherwise reply OK. "
              "Reply with OK or WRONG: <reason> only.")
 
 
-def test(host, manifest: dict, stage: Path, llm=None, sample: str = "") -> list[str]:
+def test(host, manifest: dict, stage: Path, llm=None, sample: str = "", masker=None) -> list[str]:
     """Run the manifest's tests in the cage, from the stage folder: every call must work and say something, and
     (with a sample of the data) a judge must find the output true to it: "no data" on data is a failure (M53)."""
     from .plg_host import Plugin
@@ -319,7 +372,8 @@ def test(host, manifest: dict, stage: Path, llm=None, sample: str = "") -> list[
             if getattr(res, "is_error", False) or not text.strip() or text.lstrip().startswith("ERRORE:"):
                 errs.append(f"{name}({args}) failed or returned nothing: {text[:400]}")
             elif llm is not None and sample:
-                verdict = llm.complete(SYS_JUDGE, f"SAMPLE:\n{sample[:6000]}\n\nTOOL {name}({args}) OUTPUT:\n{text[:3000]}", 120).answer.strip()
+                shown = masker(text) if masker else text
+                verdict = llm.complete(SYS_JUDGE, f"SAMPLE:\n{sample[:6000]}\n\nTOOL {name}({args}) OUTPUT:\n{shown[:3000]}", 120).answer.strip()
                 if not verdict.upper().startswith("OK"):
                     errs.append(f"{name}({args}) returned \"{text[:300]}\", judged {verdict[:300]}")
         except Exception as e:                               # noqa: BLE001

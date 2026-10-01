@@ -191,6 +191,16 @@ SDXL-Lightning 6.9 GB. FLUX.2 klein (23 GB) and Z-Image-Turbo (31 GB) were only 
 | a public estimate | ✅ README, per source |
 | still open | patents (EPO OPS needs a key); the Constitution itself (not in a collection: one act to fetch by URN); per-topic queries chosen by the owner |
 
+## Self-improvement — where it really is (2026-10-02, measured)
+
+| ability | what exists | evidence | missing |
+|---|---|---|---|
+| notice a fault | daily self-review from the logs | 4 self-reviews in 2 days | — |
+| fix itself | repair agent: sandbox, tests, proposal, rollback | 2 repairs, both found nothing to fix; 0 changes ever proposed | a real bug fixed by it, measured |
+| notice a missing capability | the agent's request_capability, and a check by code after every agent run (routines, chat, services) | M54: 12/12 on test reports | live cases over weeks |
+| build the capability | forge: write, cage, judge, install read-only; the cloud (Claude) only with the owner's consent per request, masked samples | M54 benchmark: 4/8 plugins right, judge kept 2 of them, let 1 wrong through | a run-and-read loop; judge errors; re-run the benchmark (bench_forge.py) after each change, with the cloud too |
+| notice it lacks knowledge | abstention → "sì, cerca" → arXiv agent; harvester | live | sources beyond arXiv in the abstention path |
+
 ## Open measurements (BUGS.md)
 
 A3 drop on a large domain · A4 CUDA ≥ 12.8 build · A5 encoder on the full vault · A7 tensor split ·

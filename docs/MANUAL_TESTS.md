@@ -36,6 +36,10 @@ mark each line ✅ / ❌ with a note. Reload the WebUI first (the service worker
 | R5 | A routine that cannot work (e.g. "read my e-mail" with e-mail not connected) | ❌ and a notification "una routine non è riuscita", never ⏳ forever |
 | R6 | Chat: "che tempo farà domani?", "quante stelle ha il mio repository?", "cosa ha visto il firewall stanotte?" | answered with the plugins, not from the vault |
 | R7 | Weather alerts on a stormy day | one notification per new alert, not one an hour |
+| R8 | A routine's push on the phone (▶ Run now on the firewall routine) | a notification "🔁 Routine di Aurora" (C69) |
+| R9 | An agent PDF ("/agente crea un PDF con…") | a 📄 chip in Aurora's bubble: one tap downloads it; also in 📎 Files → Aurora's documents |
+| R10 | Plugins → 🛡️ security → settings | the sentinel's address, allowed firewalls, thresholds; saving restarts the sentinel |
+| R11 | After signing: a routine asking for something no plugin does (e.g. "ogni sera dimmi quanti documenti ha raccolto l'harvester per fonte") | a forge request in the run, then "🔨 si è costruita un plugin" or "una capacità non è riuscita" — never a wrong plugin installed |
 
 ## Knowledge
 

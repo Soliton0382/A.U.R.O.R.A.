@@ -141,6 +141,7 @@ class Agent:
             from . import agt_forge
             req = agt_forge.request(self.cfg, str(args.get("need", "")), str(args.get("why", "")), run_id,
                                     getattr(self, "routine", None))
+            self.requested = True
             emit("forge.request", {"id": req["id"], "need": req["need"], "status": req["status"]})
             self.notify("forge.request", {"id": req["id"], "title": req["need"][:160]})
             return (f"REQUESTED (forge request {req['id']}, {req['status']}): the plugin is built and tested in the "
@@ -257,6 +258,7 @@ class Agent:
                     {"role": "user", "content": f"GOAL: {goal}" + (f"\n\nCONTEXT:\n{context}" if context else "")}]
         summary, steps, nudged = None, 0, 0
         self.produced: list[dict] = []                      # files made by the tools: links in the answer
+        self.requested = False                              # it asked the forge itself (request_capability)
         self.ledger: list[tuple[str, bool]] = []
         budget = self.cfg["AURORA_PIPELINE_THINK_TOKENS"]
         limit_s = self.cfg["AURORA_AGENT_MAX_MIN"] * 60

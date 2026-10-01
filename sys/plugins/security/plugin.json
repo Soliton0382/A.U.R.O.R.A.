@@ -6,21 +6,49 @@
     "en": "What the firewall saw, read only: the incidents raised by the sentinel and a summary of the firewall's traffic over a window (allowed and denied, IPS events, busiest denied sources and ports), and a morning report of the night.",
     "it": "Cosa ha visto il firewall, in sola lettura: gli incidenti sollevati dalla sentinella e un riassunto del traffico in una finestra di ore (permesso e negato, eventi IPS, sorgenti e porte più negate), più un resoconto mattutino della notte."
   },
-  "command": ["{python}", "server.py"],
+  "command": [
+    "{python}",
+    "server.py"
+  ],
   "env": [],
   "requires": [],
-  "effects": {"*": "read"},
+  "effects": {
+    "*": "read"
+  },
   "welcome": {
     "it": "🛡️ Sicurezza collegata. Posso dirti quali incidenti ha visto la sentinella, riassumerti il traffico del firewall (permesso, negato, eventi IPS, chi bussa di più) e mandarti ogni mattina il resoconto della notte.",
     "en": "🛡️ Security connected. I can tell you which incidents the sentinel saw, summarise the firewall's traffic (allowed, denied, IPS events, who knocks the most) and send you the night's report every morning."
   },
   "routines": [
-    {"id": "night", "title": {"it": "Resoconto notturno del firewall", "en": "Night report of the firewall"},
-     "kind": "tool", "tool": "security_night_report", "args": {"hours": 10}, "schedule": {"every": "day", "at": "07:00"},
-     "notify": "always", "event": "routine.done"}
+    {
+      "id": "night",
+      "title": {
+        "it": "Resoconto notturno del firewall",
+        "en": "Night report of the firewall"
+      },
+      "kind": "tool",
+      "tool": "security_night_report",
+      "args": {
+        "hours": 10
+      },
+      "schedule": {
+        "every": "day",
+        "at": "07:00"
+      },
+      "notify": "always",
+      "event": "routine.done"
+    }
   ],
   "setup": {
-    "it": "Nessuna configurazione: legge ciò che la sentinella (aurora-sentinel) riceve dal syslog del firewall. Se il riassunto dice «nessuna riga», controlla che il firewall mandi il syslog all'indirizzo di `AURORA_SENTINEL_BIND`.",
-    "en": "No configuration: it reads what the sentinel (aurora-sentinel) receives from the firewall's syslog. If the summary says \"no line\", check that the firewall sends syslog to `AURORA_SENTINEL_BIND`."
-  }
+    "it": "Il firewall manda il suo syslog alla sentinella (aurora-sentinel). Qui sotto: l'indirizzo su cui ascolta (`AURORA_SENTINEL_BIND`), i firewall ammessi (`AURORA_SENTINEL_ALLOW`), la finestra e le soglie degli incidenti, e se Aurora indaga da sola. Salvando, la sentinella riparte. Se il riassunto dice «nessuna riga», controlla che il firewall mandi il syslog all'indirizzo di `AURORA_SENTINEL_BIND`.",
+    "en": "The firewall sends its syslog to the sentinel (aurora-sentinel). Below: the address it listens on, the firewalls allowed, the window and thresholds of incidents, and whether Aurora investigates by herself. Saving restarts the sentinel."
+  },
+  "settings": [
+    "AURORA_SENTINEL_BIND",
+    "AURORA_SENTINEL_ALLOW",
+    "AURORA_SENTINEL_WINDOW_MIN",
+    "AURORA_SENTINEL_DENY_THRESHOLD",
+    "AURORA_SENTINEL_SCAN_PORTS",
+    "AURORA_SENTINEL_INVESTIGATE"
+  ]
 }

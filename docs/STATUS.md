@@ -1,6 +1,7 @@
 # Status — work in progress
 
-Updated at every validated change (last: 2026-10-01). Details: BUGS.md (issues, 0 open / 57 closed),
+Updated at every validated change (last: 2026-10-02). Details: BUGS.md (issues, 1 open / 69 closed),
+MANUAL_TESTS.md (what the owner checks by hand),
 TESTS.md (tests and live checks), MEASUREMENTS.md (numbers), MODULE_MAP.md (who does what),
 SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSYSTEM.md (design and decisions).
 
@@ -28,32 +29,44 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | updates | Updates page: mode (notify / auto / off), what a new version changes, update now; daily check by the REM, approval in Repairs, fast-forward + tests + rollback | tests with real git repositories; live once the remote exists |
 | notifications | Notifications page: push on each device and toasts in the WebUI, which events on each channel (suggested / all / none / custom), effective at once | tests; live delivery depends on the browser |
 | senses | plugin `senses`: camera photo described by Aurora's vision, microphone transcribed locally (Whisper on CPU); 📷 photo and 🎙️ dictation in the chat; devices chosen from a list | live (M35) |
+| knowledge sources | harvester per domain (off / a round / until exhausted) from arXiv, Normattiva (Akoma Ntoso, one passage per group of articles), Europe PMC, bioRxiv/medRxiv, Wikipedia, GitHub; licence kept with every text; certificate chains completed (AIA) | M43–M44, tests |
+| chat → services | a third route "tools": requests about connected services go to the agent with the plugins | M45 |
+| routines | 🔁 page: plugins' suggestions, tool or agent routines by aurora-rem, notify always / if any / if new, failures recorded and notified, documents linked | M46, M52, tests |
+| projects | 📁 page: local projects and GitHub repositories, clone, tree, files, history, sandboxed page preview, ask Aurora | M46 |
+| weather | plugin: now, forecast, morning report, alerts on sudden changes, MeteoAlarm warnings; coordinates never logged | M46, C65 |
+| security plugin | firewall incidents, traffic summary, night report (read only); the sentinel's settings from its card | M52 |
+| phone | the PWA uses the phone's camera and microphone (Android, iOS formats), transcribed by the local Whisper | M47 |
+| video | attached videos watched: scene changes, frames in one vision call, timestamped transcript | M48 |
+| pictures | edits in words (checked operations, Pillow), look again at the latest picture; the vision gets 32-px tiles | M50, M51 |
+| files | attached files kept with their turn, 📎 Files page, Aurora's documents downloadable | M49, C66, C69 |
+| forge | capability requests, plugins written, tested in the cage (no network), judged; read-only installed alone, else Approvals — safe, not yet useful with the local reasoner | M53, C70 |
 | WebUI | modular showcase: chat (full width, dates, path, share), repairs, security, diary, social, plugins, import, activity, status, settings; sky with orbiting fireflies; metrics with GPU load; PWA; safe Markdown | headless Chrome checks |
 | logs | one file per component, rotation, gzip, 12-month retention, traces, lifecycle lines; Aurora reads them | sys_logread |
 | encryption | TLS 1.3 to clients, HTTPS everywhere outwards, secrets 0600; storage not encrypted (no LUKS) | SECURITY.md |
 
-## In progress
+## In progress (2026-10-02)
 
 | what | state |
 |---|---|
-| migration of the previous knowledge (355,415 solitons, owner's exclusions) | **done** 20:45: 316,866 written, 37,046 duplicates, 1,474 rejected |
-| harvester | waits for the migration, then starts by itself (now also cs.CR, cs.SE, cs.PL) |
-| image model | benchmark done (M27): SDXL 2.9 s, klein 10.3 s, Z-Image 21.4 s per 1024² image; the owner chooses from the images |
+| owner's signature | plg_sandbox.py changed (network isolation): sign before any service restart, or they refuse to start |
+| forge | works safely, produces no right plugin yet (C70): cloud reasoner option, execution loop, a benchmark of needs |
+| self-repair | runs daily (4 self-reviews, 2 repairs in 2 days); 0 code changes proposed so far: no evidence yet that it fixes a real bug |
+| I1b / I2 | background removal, AI enlargement, creative edits in words: models from Hugging Face, installer |
+| V2 | generating short videos |
+| multi-user | performance check on install, admin and users, TOTP MFA |
+| social | Facebook, Instagram, LinkedIn plugins and the autonomous mode (Mastodon home, Facebook mirror) |
+| network finding | 11,945 denied connections to port 6667 (IRC) from one internal host, 107 ATP matches: the owner checks the device |
 
 ## To do (designed)
 
 | what | depends on |
 |---|---|
-| install the new unit aurora-sentinel (install.sh), point the firewall's syslog to it | owner |
-| move the owner's key to root-only custody | owner (SECURITY.md) |
-| firewall actions (block an address) and abuse reports as approvals | a firewall API plugin, email configured |
-| plugin triggers (a Telegram message becomes a goal) and forging new agents/plugins during a run | agents (working) |
-| Instagram (Graph API business account), other platforms | the owner's accounts |
-| Italian law corpus (Normattiva) | harvester |
-| full-disk encryption | owner (reinstall or encrypted home) |
-| README for GitHub: architecture to the bit, how it works, what differs from other systems, benchmarks | these documents |
+| move the owner's key to root-only custody (USB) | owner (SECURITY.md) |
+| firewall actions (block an address) and abuse reports as approvals | Sophos API plugin |
+| full-disk encryption | owner |
+| re-measure answer quality (M40) after the synthesis prompt change (M48) | a run of the benchmark |
 
-## Open bugs (0)
+## Open bugs (1)
 
-None open. Measurements still to take are listed in ROADMAP.md ("Still to measure").
+C70 (the forge does not yet build right plugins). Measurements still to take are listed in ROADMAP.md ("Still to measure").
 
