@@ -41,14 +41,25 @@ def is_image(name: str, mime: str = "") -> bool:
     return mime.startswith("image/") or Path(name).suffix.lower() in IMAGE_EXT
 
 
+MIN_SHORT_PX = 384      # C67: the vision works on 32-px tiles and fills what does not fit with black
+TILE = 32
+
+
 def to_jpeg(data: bytes, max_px: int) -> bytes:
-    """Any image Pillow reads -> RGB JPEG with the longest side at most max_px, upright."""
+    """Any image Pillow reads -> RGB JPEG with the longest side about max_px, upright, both sides a multiple of 32
+    (at most 16 px of stretch, invisible) and the short side at least MIN_SHORT_PX: otherwise the vision projector
+    pads the remainder with black and the description gets bands that are not there (C67, M50)."""
     from PIL import Image, ImageOps
     im = ImageOps.exif_transpose(Image.open(io.BytesIO(data)))
     if getattr(im, "n_frames", 1) > 1:
         im.seek(0)
     im = im.convert("RGB")
     im.thumbnail((max_px, max_px))
+    short, long_ = min(im.size), max(im.size)
+    k = min(MIN_SHORT_PX / short, 2 * max_px / long_) if short < MIN_SHORT_PX else 1.0
+    size = tuple(max(TILE, round(x * k / TILE) * TILE) for x in im.size)
+    if size != im.size:
+        im = im.resize(size, Image.LANCZOS)
     out = io.BytesIO()
     im.save(out, "JPEG", quality=90)
     return out.getvalue()

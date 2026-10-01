@@ -410,5 +410,7 @@
   "up.keep_days": "They stay at most {d} days.",
   "up.none": "No file attached in the chat.",
   "up.delete": "Delete",
-  "up.confirm": "Delete {name}? The conversation will keep only its name."
+  "up.confirm": "Delete {name}? The conversation will keep only its name.",
+  "ev.image.plan": "I planned {n} operations for {name}",
+  "ev.image.edited": "I made {name} ({w}×{h})"
 }

@@ -115,8 +115,9 @@ def watch(data: bytes, name: str, lang: str, llm, cfg: sys_config.Config | None 
         seconds = min(info["duration"] or cfg["AURORA_VIDEO_MAX_S"], cfg["AURORA_VIDEO_MAX_S"])
         scenes = scene_changes(path, seconds)
         times = pick_times(scenes, seconds, cfg["AURORA_VIDEO_FRAMES"])
+        from .kno_attach import to_jpeg               # 32-px tiles, or the vision sees black bands (C67)
         shots = [(t, frame(path, t, cfg["AURORA_VISION_MAX_PX"])) for t in times]
-        shots = [(t, j) for t, j in shots if j]
+        shots = [(t, to_jpeg(j, cfg["AURORA_VISION_MAX_PX"])) for t, j in shots if j]
         ev("video.frames", {"name": name, "duration": round(info["duration"], 1), "scenes": len(scenes),
                             "frames": [mmss(t) for t, _ in shots]})
         visual = llm.see_many([(mmss(t), j) for t, j in shots], WATCH.format(lang=lang), max_tokens=1600) if shots else ""

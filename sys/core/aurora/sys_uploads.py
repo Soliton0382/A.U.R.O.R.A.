@@ -53,7 +53,7 @@ def safe_name(name: str) -> str:
     return base[-120:]
 
 
-def save(cfg: sys_config.Config, run_id: str, name: str, mime: str, data: bytes) -> dict:
+def save(cfg: sys_config.Config, run_id: str, name: str, mime: str, data: bytes, role: str = "user") -> dict:
     uid = uuid.uuid4().hex[:16]
     rel = Path(time.strftime("%Y-%m")) / f"{uid}-{safe_name(name)}"
     path = _dir(cfg) / rel
@@ -62,7 +62,7 @@ def save(cfg: sys_config.Config, run_id: str, name: str, mime: str, data: bytes)
     with os.fdopen(fd, "wb") as h:
         h.write(data)
     item = {"id": uid, "name": Path(name).name[:200], "mime": mime or mimetypes.guess_type(name)[0] or "application/octet-stream",
-            "size": len(data), "run_id": run_id, "created": time.time(), "path": str(rel)}
+            "size": len(data), "run_id": run_id, "created": time.time(), "path": str(rel), "role": role}
     items = _index(cfg)
     items.append(item)
     _write_index(cfg, items)
@@ -70,7 +70,7 @@ def save(cfg: sys_config.Config, run_id: str, name: str, mime: str, data: bytes)
 
 
 def public(item: dict) -> dict:
-    return {k: v for k, v in item.items() if k != "path"} | {"url": f"/v1/aurora/uploads/{item['id']}",
+    return {k: v for k, v in item.items() if k != "path"} | {"role": item.get("role", "user"), "url": f"/v1/aurora/uploads/{item['id']}",
                                                              "inline": bool(INLINE.match(item["mime"]))}
 
 

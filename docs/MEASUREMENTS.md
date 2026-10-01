@@ -838,3 +838,21 @@ daily purge keeps it (its turn exists). Headless Chrome after a reload: the pict
 the Files page lists 1 file, 3 KB. A 400x300 rectangle asked as "questo quadrato" was refused by the verifier (the
 picture is not a square; the vision also invented two black bands, C67).
 
+## M50 — The vision's black bands (C67) (2026-10-01)
+
+A plain blue picture, 3 descriptions each, "bands/borders" mentioned: 400x300 3/3, 300x400 3/3, 400x400 0/3, 1024x768 0/3;
+512x384 0/3, 640x480 0/3, 768x576 0/3, 900x300 3/3, 1024x300 3/3. First guess (aspect ratio) wrong: 1024x768 is not
+square. Second guess (a minimum short side) wrong: enlarging to 448 fixed landscapes but not 448x597, and 512 made
+683x512 fail. What fits every case: sides that are multiples of 32 px are clean. After rounding both sides to 32 px
+(short side >= 384): 400x300, 300x400, 1024x300, 300x1024, 200x150, 150x200, 683x512, 900x300, 4032x3024, 3024x4032 —
+0 bands in 30 descriptions.
+
+## M51 — Picture edits in words (2026-10-01)
+
+Picture intent (edit / look / other) on 24 messages, 8 each: 24/24, median 0.22 s. Planner: 15/15 (10 written with the
+prompt, 5 new afterwards; "specchiala" failed before Italian synonyms were added), median 0.33 s. Live: a 1200x800
+picture "Ritagliala un po' ai lati e mettila in bianco e nero" → 960x800, grey, 2 s; "Ora ruotala di 90 gradi" without
+attaching it again → the edited picture, 800x960, still grey, 2 s; "Cosa mostra l'immagine?" → the latest picture
+looked at again (56 s); "Rendila un po' più luminosa" → brightness x1.3, 2 s. "Ruotala di 90 gradi" without a direction
+turns it counter-clockwise (the mathematical convention).
+

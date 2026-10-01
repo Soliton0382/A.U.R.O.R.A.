@@ -410,5 +410,7 @@
   "up.keep_days": "Restano al massimo {d} giorni.",
   "up.none": "Nessun file allegato in chat.",
   "up.delete": "Elimina",
-  "up.confirm": "Eliminare {name}? Nella conversazione resterà solo il nome."
+  "up.confirm": "Eliminare {name}? Nella conversazione resterà solo il nome.",
+  "ev.image.plan": "Ho deciso {n} operazioni per {name}",
+  "ev.image.edited": "Ho creato {name} ({w}×{h})"
 }

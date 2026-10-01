@@ -9,7 +9,7 @@ import { t } from "../i18n.js";
 import { renderMarkdown } from "../md.js";
 
 export const ICONS = {
-  "run.start": "▶️", route: "🧭", "attach.image": "🖼️", "attach.video": "🎬", "video.frames": "🎞️", "attach.document": "📄", "self.state": "🩺", translate: "🌐",
+  "run.start": "▶️", route: "🧭", "attach.image": "🖼️", "attach.video": "🎬", "image.plan": "🛠️", "image.edited": "🎨", "video.frames": "🎞️", "attach.document": "📄", "self.state": "🩺", translate: "🌐",
   "retrieval.filter": "🧹", "retrieval.hits": "🔎", "memory.recent": "🧠", gate: "🚪", "synthesis.domain": "🧩",
   "verify.keep": "✅", "verify.drop": "✂️", "memory.write": "💾", "answer.final": "📝", "run.end": "🏁", error: "⛔",
   "acquire.confirmed": "🛰️", "acquire.round": "🛰️", "acquire.candidates": "📚", "acquire.paper": "📥", "acquire.error": "⚠️", "acquire.done": "🏁",
@@ -25,6 +25,8 @@ export function describe(name, p) {
   switch (name) {
     case "route": return t(`ev.route.${p.mode}`);
     case "attach.image": return t("ev.attach.image", { name: p.name });
+    case "image.plan": return t("ev.image.plan", { name: p.name, n: p.ops.length });
+    case "image.edited": return t("ev.image.edited", { name: p.name, w: p.width, h: p.height });
     case "video.frames": return t("ev.video.frames", { name: p.name, n: p.frames.length, s: p.scenes });
     case "attach.video": return t("ev.attach.video", { name: p.name, w: Math.round(p.watched), f: p.frames, n: p.speech, s: p.seconds });
     case "attach.document": return t("ev.attach.document", { name: p.name, domain: p.domain, n: p.chunks, w: p.written });
@@ -117,6 +119,17 @@ export function renderAnswer(b, p, when) {
   box.replaceChildren();
   b.root.classList.toggle("abstained", !!p.abstained);
   box.append(renderMarkdown(p.text));
+  if (p.images?.length) {                        // pictures Aurora made (edits): shown, kept in the conversation
+    const row = el("div", "chips");
+    for (const f of p.images) {
+      if (!f.url) continue;
+      const a = el("a", "chip"); a.href = f.url; a.target = "_blank"; a.rel = "noopener";
+      const img = el("img"); img.src = f.url; img.alt = f.name; img.loading = "lazy";
+      a.append(img, el("span", "", f.name));
+      row.append(a);
+    }
+    box.append(row);
+  }
   if (p.sources?.length) {
     box.append(el("div", "meta", t("chat.sources")));
     const ol = el("ol", "sources");
@@ -172,7 +185,8 @@ export function renderPast(b, turn) {
   b.head.querySelector(".iter-text").textContent = n
     ? `🧭 ${t("chat.iter", { n, s: turn.seconds ?? "–" })}` : `🧭 ${t("chat.nopath")}`;
   b.iter.open = false;
-  renderAnswer(b, { text: turn.text, abstained: turn.abstained, sources: turn.sources, seconds: turn.seconds, speed: turn.speed },
+  renderAnswer(b, { text: turn.text, abstained: turn.abstained, sources: turn.sources, seconds: turn.seconds, speed: turn.speed,
+    images: (turn.attachments || []).filter((f) => f.inline && f.mime.startsWith("image/")) },
     turn.created_at);
 }
 

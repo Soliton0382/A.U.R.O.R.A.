@@ -69,6 +69,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import binascii
+import io
 import json
 import os
 import re
@@ -258,13 +259,78 @@ def wants_tools(question: str, recent: list, emit=None) -> bool:
     return out.answer.strip().upper().startswith("TOOLS")
 
 
+def picture_intent(question: str) -> str:
+    """edit | look | other, for a message when a picture is in the conversation."""
+    from aurora.img_edit import SYS_EDIT
+    out = pipeline().llm.complete(SYS_EDIT, question, 3).answer.strip().upper()
+    return "edit" if out.startswith("EDIT") else "look" if out.startswith("LOOK") else "other"
+
+
+def last_picture(recent: list) -> tuple[str, bytes] | None:
+    """The latest picture of the conversation (Aurora's last edit first, then the owner's): what "now make it
+    brighter" refers to, without attaching it again."""
+    from aurora import sys_uploads
+    files = sys_uploads.by_run(cfg, {t.extra.get("run_id") for t in recent[-6:]} - {None})
+    for t in reversed(recent[-6:]):
+        for f in sorted(files.get(t.extra.get("run_id"), []), key=lambda f: f["role"] != "assistant"):
+            found = sys_uploads.get(cfg, f["id"]) if f["inline"] and f["mime"].startswith("image/") else None
+            if found:
+                return f["name"], found[0].read_bytes()
+    return None
+
+
+def edit_pictures(question: str, pictures: list[tuple[str, bytes]], emit, run_id: str, remember: bool = True):
+    """Each picture edited as asked (img_edit: a checked list of operations, Pillow); the results are new files of
+    the conversation, shown in Aurora's bubble. The originals are never touched."""
+    from pathlib import Path
+    from aurora import img_edit, sys_uploads
+    from aurora.kno_answer import Answer
+    from aurora.sol_schema import now_iso
+    asked_at, t0 = now_iso(), time.time()
+    lang = "it" if str(cfg["AURORA_LANG_DEFAULT"]).startswith("it") else "en"
+    from PIL import Image
+    p, lines, images = pipeline(), [], []
+    for name, data in pictures:
+        w, h = Image.open(io.BytesIO(data)).size
+        ops = img_edit.plan(p.llm, question, w, h)
+        emit("image.plan", {"name": name, "ops": ops})
+        if not ops:
+            lines.append(f"{name}: " + ("non ho capito quale modifica fare." if lang == "it" else "I did not understand what to change."))
+            continue
+        out, mime, size = img_edit.apply(data, ops)
+        ext = mime.split("/")[1].replace("jpeg", "jpg")
+        stem = re.sub(r"(-(modificata|edited))+$", "", Path(name).stem)          # not -modificata-modificata
+        new = f"{stem}-{'modificata' if lang == 'it' else 'edited'}.{ext}"
+        url = sys_uploads.public(sys_uploads.save(cfg, run_id, new, mime, out, role="assistant"))["url"] if remember else ""
+        emit("image.edited", {"name": new, "url": url, "ops": ops, "width": size["width"], "height": size["height"]})
+        images.append({"name": new, "url": url, "mime": mime, "inline": True})
+        lines.append(f"{new}: {img_edit.describe(ops, lang)} ({size['width']}×{size['height']}).")
+    ans = Answer(run_id, question, ("Ecco: " if lang == "it" else "Here it is: ") + " ".join(lines), False, mode="edit",
+                 seconds=round(time.time() - t0, 1))
+    emit("answer.final", {"text": ans.text, "abstained": False, "sources": [], "seconds": ans.seconds, "mode": "edit",
+                          "images": images})
+    if remember:
+        p.remember(question, ans, run_id, emit, None, asked_at)
+    emit("run.end", {"seconds": ans.seconds})
+    return ans
+
+
 def answer_or_acquire(question: str, emit, run_id: str, **kw):
     """The default job of a message. When Aurora's last answer in this session was an abstention and the
     message asks her to go and search, the arXiv agent works on the *previous* question (A11: the
     same for the WebUI and third-party clients, which have no button)."""
     from datetime import datetime, timezone
     p = pipeline()
-    recent = p.reader.recent(4)
+    recent = p.reader.recent(6)
+    pic = None if kw.get("attached") else last_picture(recent)
+    intent = picture_intent(question) if pic else "other"
+    if intent == "edit":                              # "ora rendila più luminosa": the latest picture, edited again
+        return edit_pictures(question, [pic], emit, run_id)
+    if intent == "look":                              # "cosa mostra?": the latest picture, looked at again
+        from aurora.kno_attach import AttachmentHandler
+        attached = AttachmentHandler(p, cfg).prepare([(pic[0], pic[1], "image/jpeg")], question, emit, run_id)
+        return p.run(question, emit=emit, run_id=run_id, attached=attached)
+    recent = recent[-4:]
     # a request about a connected service (GitHub, e-mail, the house...) goes to the agent, before anything else:
     # also right after an abstention, where "check my repositories" is not a "yes, search arXiv"
     if not kw.get("attached") and wants_tools(question, recent, emit):     # a connected service, not the vault
@@ -487,6 +553,10 @@ async def ask(request: Request) -> dict:
             from aurora import sys_uploads
             for name, data, mime in files:
                 sys_uploads.save(cfg, run_id, name, mime, data)
+        from aurora.kno_attach import is_image
+        pictures = [(n, d) for n, d, m in files if is_image(n, m)]
+        if pictures and picture_intent(q) == "edit":    # "ritagliala", "in bianco e nero": an edit, not a question
+            return edit_pictures(q, pictures, emit, run_id, remember)
         if files:
             from aurora.kno_attach import AttachmentHandler
             attached = AttachmentHandler(pipeline(), cfg).prepare(files, q, emit, run_id)
@@ -641,10 +711,9 @@ def history(n: int = 8) -> list[dict]:
              "sources": t.extra.get("source_list", []), "trace": t.extra.get("trace", []),
              "thought": t.extra.get("thought", ""), "long_term": t.consolidated} for t in turns]
     from aurora import sys_uploads
-    files = sys_uploads.by_run(cfg, {i["run_id"] for i in items if i["role"] == "user" and i["run_id"]})
-    for i in items:
-        if i["role"] == "user":
-            i["attachments"] = files.get(i["run_id"], [])
+    files = sys_uploads.by_run(cfg, {i["run_id"] for i in items if i["run_id"]})
+    for i in items:                                   # the owner's files with his turn, Aurora's (edits) with hers
+        i["attachments"] = [f for f in files.get(i["run_id"], []) if f["role"] == ("user" if i["role"] == "user" else "assistant")]
     return sorted(items + recent_dreams(), key=lambda x: x["created_at"])          # same UTC ISO format
 
 
