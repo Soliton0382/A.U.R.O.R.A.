@@ -1,0 +1,21 @@
+# Direct dependencies of Aurora (every import in sys/core and sys/plugins), pinned.
+# torch from PyPI carries CUDA 13 (cu130) and its own cuDNN on Linux.
+faiss-cpu==1.15.1
+numpy==2.5.3
+pytest==9.1.1
+sentence-transformers==6.1.0
+torch==2.14.0
+transformers==5.17.0
+pillow==12.3.0
+diffusers==0.40.0
+peft==0.21.1
+accelerate==1.15.0
+pywebpush==2.5.0
+mcp==2.2.0
+pypdf==6.19.0
+markdown-it-py==4.2.0
+fastapi==0.142.1
+uvicorn==0.54.0
+httpx==0.28.1
+pydantic==2.13.5
+cryptography==50.0.1

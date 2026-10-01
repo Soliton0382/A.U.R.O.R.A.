@@ -1,0 +1,16 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright 2026 A.U.R.O.R.A. Project */
+/* Metrics widget: compact gauges in the top bar. */
+.metrics { display: flex; gap: .9rem; align-items: center; font-size: .74rem; color: var(--muted); overflow-x: auto; scrollbar-width: none; }
+.metrics::-webkit-scrollbar { display: none; }
+.gauge { display: flex; align-items: center; gap: .35rem; white-space: nowrap; }
+.gauge .label { font-weight: 600; color: #aeb8d0; }
+.gauge .bar { width: 46px; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .08); overflow: hidden; }
+.gauge .fill { display: block; height: 100%; width: 0; background: var(--accent); transition: width .6s ease; }
+.gauge .fill.warm { background: var(--warn); }
+.gauge .fill.hot { background: var(--bad); }
+.gauge .load { min-width: 2.6em; text-align: right; font-variant-numeric: tabular-nums; color: #cfdcff; }
+.gauge .load.warm { color: var(--warn); }
+.gauge .load.hot { color: #d9ff8a; }
+.metrics.busy .gauge .label { color: #d9ff8a; }
+@media (max-width: 820px) { .gauge .bar { width: 26px; } .gauge .value { display: none; } }

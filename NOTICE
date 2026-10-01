@@ -1,0 +1,9 @@
+A.U.R.O.R.A. — Architettura Unificata Risonante per l'Orchestrazione del Ragionamento Autonomo
+Copyright 2026 A.U.R.O.R.A. Project
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+It runs third-party software and models under their own licenses, which are not included here
+and are downloaded by the installer: llama.cpp (MIT), Caddy (Apache-2.0), GitHub MCP server (MIT),
+Qwen3 models (Apache-2.0), bge-reranker-v2-m3 (MIT), Stable Diffusion XL (CreativeML Open RAIL++-M),
+SDXL-Lightning (CreativeML Open RAIL++-M). Python dependencies are listed in requirements.txt.

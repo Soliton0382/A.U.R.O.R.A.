@@ -1,0 +1,34 @@
+{
+  "name": "self",
+  "version": "1.0",
+  "kind": "tool",
+  "description": {
+    "en": "Aurora works on herself: reads her code and logs, changes code only inside a sandbox copy, runs the tests there or on the live code.",
+    "it": "Aurora lavora su sé stessa: legge il suo codice e i suoi log, modifica il codice solo in una copia sandbox, lancia i test lì o sul codice vivo."
+  },
+  "command": [
+    "{python}",
+    "server.py"
+  ],
+  "env": [],
+  "requires": [],
+  "effects": {
+    "list_files": "read",
+    "read_file": "read",
+    "search_code": "read",
+    "logs_inventory": "read",
+    "read_log": "read",
+    "sandbox_read": "read",
+    "sandbox_diff": "read",
+    "sandbox_create": "write_local",
+    "sandbox_replace": "write_local",
+    "sandbox_write": "write_local",
+    "run_tests": "write_local",
+    "*": "external"
+  },
+  "setup": {
+    "it": "Nessuna configurazione: sono gli strumenti con cui Aurora lavora su sé stessa, nella sandbox.",
+    "en": "Nothing to configure.",
+    "links": []
+  }
+}

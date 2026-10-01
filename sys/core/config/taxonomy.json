@@ -1,0 +1,186 @@
+{
+  "version": 1,
+  "about": {
+    "en": "Domains of the vault. 'memory' domains hold conversations and Aurora's own reflections and live in separate shards (vault/memory), so that a reset of the memory never touches knowledge. A domain is a subject, never a source: where a text comes from is recorded in source_id.",
+    "it": "Domini del vault. I domini di 'memoria' contengono le conversazioni e le riflessioni di Aurora e stanno in shard separati (vault/memory), così un reset della memoria non tocca mai la conoscenza. Un dominio è una materia, mai una fonte: da dove viene un testo è registrato in source_id."
+  },
+  "domains": [
+    {
+      "id": "artificial_intelligence",
+      "it": "Intelligenza artificiale",
+      "en": "Artificial intelligence"
+    },
+    {
+      "id": "computer_science",
+      "it": "Informatica",
+      "en": "Computer science"
+    },
+    {
+      "id": "network_security",
+      "it": "Sicurezza informatica e reti",
+      "en": "Network security"
+    },
+    {
+      "id": "cyber_security",
+      "it": "Cybersicurezza",
+      "en": "Cyber security"
+    },
+    {
+      "id": "programming",
+      "it": "Programmazione",
+      "en": "Programming"
+    },
+    {
+      "id": "information_theory",
+      "it": "Teoria dell'informazione",
+      "en": "Information theory"
+    },
+    {
+      "id": "mathematics",
+      "it": "Matematica",
+      "en": "Mathematics"
+    },
+    {
+      "id": "statistics",
+      "it": "Statistica",
+      "en": "Statistics"
+    },
+    {
+      "id": "physics",
+      "it": "Fisica",
+      "en": "Physics"
+    },
+    {
+      "id": "quantum_physics",
+      "it": "Fisica quantistica",
+      "en": "Quantum physics"
+    },
+    {
+      "id": "particle_physics",
+      "it": "Fisica delle particelle",
+      "en": "Particle physics"
+    },
+    {
+      "id": "condensed_matter",
+      "it": "Materia condensata",
+      "en": "Condensed matter"
+    },
+    {
+      "id": "astrophysics",
+      "it": "Astrofisica",
+      "en": "Astrophysics"
+    },
+    {
+      "id": "relativity",
+      "it": "Relatività e gravitazione",
+      "en": "Relativity and gravitation"
+    },
+    {
+      "id": "mathematical_physics",
+      "it": "Fisica matematica",
+      "en": "Mathematical physics"
+    },
+    {
+      "id": "nonlinear_science",
+      "it": "Scienza non lineare",
+      "en": "Nonlinear science"
+    },
+    {
+      "id": "chemistry",
+      "it": "Chimica",
+      "en": "Chemistry"
+    },
+    {
+      "id": "materials",
+      "it": "Scienza dei materiali",
+      "en": "Materials science"
+    },
+    {
+      "id": "earth_science",
+      "it": "Scienze della Terra",
+      "en": "Earth science"
+    },
+    {
+      "id": "engineering",
+      "it": "Ingegneria",
+      "en": "Engineering"
+    },
+    {
+      "id": "robotics",
+      "it": "Robotica",
+      "en": "Robotics"
+    },
+    {
+      "id": "biomedicine",
+      "it": "Biomedicina",
+      "en": "Biomedicine"
+    },
+    {
+      "id": "genomics",
+      "it": "Genomica",
+      "en": "Genomics"
+    },
+    {
+      "id": "medicine",
+      "it": "Medicina",
+      "en": "Medicine"
+    },
+    {
+      "id": "economics",
+      "it": "Economia",
+      "en": "Economics"
+    },
+    {
+      "id": "society",
+      "it": "Società",
+      "en": "Society"
+    },
+    {
+      "id": "history",
+      "it": "Storia",
+      "en": "History"
+    },
+    {
+      "id": "philosophy",
+      "it": "Filosofia",
+      "en": "Philosophy"
+    },
+    {
+      "id": "religion",
+      "it": "Religione",
+      "en": "Religion"
+    },
+    {
+      "id": "literature",
+      "it": "Letteratura",
+      "en": "Literature"
+    },
+    {
+      "id": "law_it",
+      "it": "Diritto italiano",
+      "en": "Italian law"
+    },
+    {
+      "id": "patents",
+      "it": "Brevetti",
+      "en": "Patents"
+    },
+    {
+      "id": "general",
+      "it": "Generale",
+      "en": "General"
+    },
+    {
+      "id": "conversation",
+      "it": "Conversazioni",
+      "en": "Conversations",
+      "memory": true
+    },
+    {
+      "id": "reflection",
+      "it": "Riflessioni di Aurora",
+      "en": "Aurora's reflections",
+      "memory": true
+    }
+  ]
+}

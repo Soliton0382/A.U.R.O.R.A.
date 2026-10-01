@@ -1,0 +1,52 @@
+{
+  "name": "mastodon",
+  "version": "1.0",
+  "kind": "connector",
+  "description": {
+    "en": "The owner's Mastodon account: statistics of the latest posts; posting waits for the owner.",
+    "it": "L'account Mastodon del proprietario: statistiche degli ultimi post; pubblicare aspetta il proprietario."
+  },
+  "command": [
+    "{python}",
+    "server.py"
+  ],
+  "env": [
+    "AURORA_MASTODON_URL",
+    "AURORA_MASTODON_TOKEN"
+  ],
+  "requires": [
+    "AURORA_MASTODON_URL",
+    "AURORA_MASTODON_TOKEN"
+  ],
+  "effects": {
+    "account_stats": "read",
+    "post_status": "external",
+    "*": "external"
+  },
+  "publishes": {
+    "post_status": "status"
+  },
+  "social": {
+    "label": "Mastodon",
+    "publish": {
+      "tool": "post_status",
+      "field": "status"
+    },
+    "stats": "account_stats",
+    "max_chars": 500
+  },
+  "setup": {
+    "it": "1. Sul tuo server Mastodon: **Preferenze → Sviluppo → Nuova applicazione**; permessi `read` e `write:statuses`.\n2. Salva, apri l'applicazione e copia **Il tuo token d'accesso**.\n3. Aurora → **Impostazioni → Plugin**: `AURORA_MASTODON_URL` = l'indirizzo del server (es. `https://mastodon.social`), `AURORA_MASTODON_TOKEN` = il token.\n4. **▶ Prova** su `account_stats`.",
+    "en": "Preferences → Development → New application (`read`, `write:statuses`) → copy the access token → `AURORA_MASTODON_URL`, `AURORA_MASTODON_TOKEN`. **▶ Try** `account_stats`.",
+    "links": [
+      {
+        "label": "Ottenere un token",
+        "url": "https://docs.joinmastodon.org/client/token/"
+      },
+      {
+        "label": "API dei post",
+        "url": "https://docs.joinmastodon.org/methods/statuses/"
+      }
+    ]
+  }
+}

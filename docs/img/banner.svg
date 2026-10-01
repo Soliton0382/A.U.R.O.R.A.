@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="1200" height="300" role="img" aria-labelledby="t d">
+  <title id="t">A.U.R.O.R.A.</title>
+  <desc id="d">Architettura Unificata Risonante per l'Orchestrazione del Ragionamento Autonomo — a local AI that knows what she knows.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#020617"/>
+      <stop offset="1" stop-color="#0d1a33"/>
+    </linearGradient>
+    <linearGradient id="ribbon1" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#1baf7a" stop-opacity="0"/>
+      <stop offset=".35" stop-color="#1baf7a" stop-opacity=".8"/>
+      <stop offset=".7" stop-color="#3987e5" stop-opacity=".7"/>
+      <stop offset="1" stop-color="#9085e9" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="ribbon2" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#9085e9" stop-opacity="0"/>
+      <stop offset=".4" stop-color="#9085e9" stop-opacity=".55"/>
+      <stop offset=".8" stop-color="#1baf7a" stop-opacity=".3"/>
+      <stop offset="1" stop-color="#1baf7a" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="14"/></filter>
+  </defs>
+  <rect width="1200" height="300" rx="18" fill="url(#sky)"/>
+  <g filter="url(#blur)">
+    <path d="M-40 150 C 220 40, 420 230, 640 120 S 1020 60, 1240 140 L 1240 190 C 1020 110, 860 260, 640 175 S 220 100, -40 210 Z" fill="url(#ribbon1)"/>
+    <path d="M-40 95 C 260 170, 520 20, 760 90 S 1060 190, 1240 80 L 1240 115 C 1060 215, 800 60, 560 120 S 200 150, -40 130 Z" fill="url(#ribbon2)"/>
+  </g>
+  <g fill="#ffffff">
+    <circle cx="82" cy="46" r="1.4" opacity=".8"/><circle cx="214" cy="262" r="1.1" opacity=".6"/>
+    <circle cx="331" cy="38" r="1.6" opacity=".9"/><circle cx="472" cy="248" r="1.2" opacity=".7"/>
+    <circle cx="905" cy="34" r="1.5" opacity=".8"/><circle cx="1032" cy="252" r="1.3" opacity=".6"/>
+    <circle cx="1128" cy="52" r="1.1" opacity=".7"/><circle cx="760" cy="268" r="1.4" opacity=".7"/>
+    <circle cx="610" cy="30" r="1" opacity=".6"/><circle cx="1160" cy="210" r="1.6" opacity=".8"/>
+  </g>
+  <g fill="#ffd27a">
+    <circle cx="268" cy="118" r="2.2" opacity=".85"/><circle cx="946" cy="168" r="2" opacity=".8"/>
+    <circle cx="700" cy="72" r="1.8" opacity=".75"/>
+  </g>
+  <text x="600" y="138" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,sans-serif"
+        font-size="76" font-weight="700" letter-spacing="10" fill="#ffffff">A.U.R.O.R.A.</text>
+  <text x="600" y="184" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,sans-serif"
+        font-size="20" fill="#c3c2b7">Architettura Unificata Risonante per l'Orchestrazione del Ragionamento Autonomo</text>
+  <text x="600" y="228" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,sans-serif"
+        font-size="17" fill="#86b6ef">locale · verificata · con memoria · sogna · si ripara · dice "non lo so"</text>
+</svg>

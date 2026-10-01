@@ -1,0 +1,29 @@
+{
+  "name": "documents",
+  "version": "1.0",
+  "kind": "tool",
+  "description": {
+    "en": "Documents: Aurora writes a PDF from Markdown (headings, lists, tables, code), marked as AI-generated (EU AI Act); files in AURORA_DOCUMENTS_DIR, downloadable from the WebUI.",
+    "it": "Documenti: Aurora scrive un PDF da Markdown (titoli, elenchi, tabelle, codice), marcato come generato da IA (AI Act); i file stanno in AURORA_DOCUMENTS_DIR e si scaricano dalla WebUI."
+  },
+  "command": [
+    "{python}",
+    "server.py"
+  ],
+  "env": [],
+  "requires": [],
+  "effects": {
+    "create_pdf": "write_local",
+    "list_documents": "read",
+    "*": "external"
+  },
+  "setup": {
+    "it": "Nessuna configurazione: usa Chrome (`AURORA_CHROME_BIN`) per stampare i PDF in `usr/documents`.",
+    "en": "Nothing to configure.",
+    "links": []
+  },
+  "settings": [
+    "AURORA_DOCUMENTS_DIR",
+    "AURORA_CHROME_BIN"
+  ]
+}

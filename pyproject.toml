@@ -1,0 +1,11 @@
+[project]
+name = "aurora"
+version = "0.1.0"
+description = "A.U.R.O.R.A.: a local AI that answers only from knowledge it can show, remembers, dreams and repairs herself under her owner's approval."
+requires-python = ">=3.14"
+license = "Apache-2.0"
+
+[tool.pytest.ini_options]
+pythonpath = ["sys/core", "sys/core/tests"]
+testpaths = ["sys/core/tests"]
+addopts = "-q"

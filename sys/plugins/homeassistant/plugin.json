@@ -1,0 +1,47 @@
+{
+  "name": "homeassistant",
+  "version": "1.0",
+  "kind": "connector",
+  "description": {
+    "en": "The owner's Home Assistant: read the state of devices and sensors; commands to devices act on the physical world and wait for the owner.",
+    "it": "L'Home Assistant del proprietario: leggere lo stato di dispositivi e sensori; i comandi ai dispositivi agiscono sul mondo fisico e aspettano il proprietario."
+  },
+  "command": [
+    "{python}",
+    "server.py"
+  ],
+  "env": [
+    "AURORA_HA_URL",
+    "AURORA_HA_TOKEN"
+  ],
+  "requires": [
+    "AURORA_HA_URL",
+    "AURORA_HA_TOKEN"
+  ],
+  "capabilities": [
+    "home_automation_owner"
+  ],
+  "effects": {
+    "states": "read",
+    "call_service": "external",
+    "*": "external"
+  },
+  "setup": {
+    "it": "1. In Home Assistant apri il tuo **profilo** (in basso a sinistra) → scheda **Sicurezza** → **Token di accesso a lunga durata** → *Crea token*.\n2. Aurora → **Impostazioni → Plugin**: `AURORA_HA_URL` (es. `https://homeassistant.local:8123`, meglio in HTTPS) e `AURORA_HA_TOKEN`.\n3. **▶ Prova** su `states`.\n\nI comandi ai dispositivi agiscono sul mondo fisico: passano sempre dalla tua approvazione.",
+    "en": "Profile → Security → Long-lived access tokens → `AURORA_HA_URL`, `AURORA_HA_TOKEN`. **▶ Try** `states`.",
+    "links": [
+      {
+        "label": "Il tuo profilo e i token",
+        "url": "https://www.home-assistant.io/docs/authentication/#your-account-profile"
+      },
+      {
+        "label": "Token a lunga durata",
+        "url": "https://developers.home-assistant.io/docs/auth_api/#long-lived-access-token"
+      },
+      {
+        "label": "REST API",
+        "url": "https://developers.home-assistant.io/docs/api/rest/"
+      }
+    ]
+  }
+}

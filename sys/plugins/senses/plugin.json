@@ -1,0 +1,35 @@
+{
+  "name": "senses",
+  "version": "1.0",
+  "kind": "tool",
+  "description": {
+    "en": "Senses: Aurora sees through the camera (one photo, described by her own vision) and hears through the microphone (local transcription with Whisper). Local only: nothing leaves the machine. Choose the devices in the settings.",
+    "it": "Sensi: Aurora vede dalla videocamera (una foto, descritta dalla sua visione) e sente dal microfono (trascrizione locale con Whisper). Solo in locale: nulla esce dalla macchina. I dispositivi si scelgono nelle impostazioni."
+  },
+  "command": [
+    "{python}",
+    "server.py"
+  ],
+  "env": [],
+  "requires": [],
+  "effects": {
+    "devices": "read",
+    "look": "external",
+    "listen": "external",
+    "*": "external"
+  },
+  "setup": {
+    "it": "Collega una webcam (va bene anche con microfono integrato). Nella finestra del plugin scegli **videocamera** e **microfono** tra quelli rilevati, oppure lascia `auto` (il primo). Usare videocamera e microfono tocca la privacy di chi è nella stanza: senza l'esenzione del proprietario ogni uso da parte di Aurora aspetta l'approvazione. In chat: 📷 manda ad Aurora una foto dalla videocamera, 🎙️ detta il messaggio.",
+    "en": "Connect a webcam (a built-in microphone works too). In the plugin window choose the **camera** and the **microphone** among those found, or leave `auto` (the first). Camera and microphone touch the privacy of whoever is in the room: without the owner's exemption every use by Aurora waits for approval. In the chat: 📷 sends Aurora a photo from the camera, 🎙️ dictates the message.",
+    "links": [
+      {"label": "Whisper large-v3-turbo (model)", "url": "https://huggingface.co/openai/whisper-large-v3-turbo"}
+    ]
+  },
+  "settings": [
+    "AURORA_SENSES_CAMERA",
+    "AURORA_SENSES_MIC",
+    "AURORA_SENSES_PHOTO_SIZE",
+    "AURORA_SENSES_LISTEN_MAX_S",
+    "AURORA_STT_MODEL_DIR"
+  ]
+}

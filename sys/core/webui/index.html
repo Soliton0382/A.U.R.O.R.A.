@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#020617">
+<title>Aurora</title>
+<link rel="stylesheet" href="/static/app.css">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/static/assets/icon-192.png">
+<link rel="apple-touch-icon" href="/static/assets/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Aurora">
+</head>
+<body>
+<!-- The shell only: every piece of content is a module (js/modules.js). -->
+<div id="slot-background" aria-hidden="true"></div>
+
+<div id="login" class="login hidden">
+  <form id="login-form" class="card">
+    <h1>Aurora</h1>
+    <p data-i18n="login.hint"></p>
+    <input id="login-key" type="password" autocomplete="current-password" data-i18n-placeholder="login.key" required>
+    <button type="submit" data-i18n="login.enter"></button>
+    <p id="login-error" class="error hidden" data-i18n="login.error"></p>
+  </form>
+</div>
+
+<div id="app" class="app hidden">
+  <header class="topbar">
+    <button id="menu" class="icon" aria-label="menu">☰</button>
+    <span class="brand">Aurora</span>
+    <div id="slot-alerts"></div>
+    <div id="slot-topbar" class="slot-topbar"></div>
+  </header>
+  <aside id="drawer" class="drawer">
+    <nav id="nav"></nav>
+    <div class="drawer-foot">
+      <select id="lang" aria-label="language">
+        <option value="it_IT">Italiano</option>
+        <option value="en_US">English</option>
+      </select>
+    </div>
+  </aside>
+  <div id="scrim" class="scrim"></div>
+  <main id="views"></main>
+</div>
+<script type="module" src="/static/js/main.js"></script>
+</body>
+</html>

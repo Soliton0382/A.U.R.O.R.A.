@@ -1,0 +1,2403 @@
+{
+ "version": 1,
+ "about": {
+  "en": "Describes every variable of .env: type, allowed values, explanation and the evidence behind the recommended value. .env holds the values; this file only describes them. The WebUI Settings page and .env.example are generated from it.",
+  "it": "Descrive ogni variabile del .env: tipo, valori ammessi, spiegazione e la prova dietro il valore consigliato. I valori stanno nel .env; questo file li descrive soltanto. La pagina Impostazioni della WebUI e .env.example si generano da qui."
+ },
+ "categories": {
+  "root": {
+   "en": "Installation root",
+   "it": "Radice dell'installazione"
+  },
+  "layout": {
+   "en": "Folders",
+   "it": "Cartelle"
+  },
+  "vault": {
+   "en": "Vault and solitons",
+   "it": "Vault e solitoni"
+  },
+  "embedder": {
+   "en": "Embedder",
+   "it": "Encoder"
+  },
+  "index": {
+   "en": "Index",
+   "it": "Indice"
+  },
+  "search": {
+   "en": "Search",
+   "it": "Ricerca"
+  },
+  "memory": {
+   "en": "Memory",
+   "it": "Memoria"
+  },
+  "autonomy": {
+   "en": "Autonomy",
+   "it": "Autonomia"
+  },
+  "logging": {
+   "en": "Logging",
+   "it": "Log"
+  },
+  "interface": {
+   "en": "Interface",
+   "it": "Interfaccia"
+  },
+  "network": {
+   "en": "Network and ports",
+   "it": "Rete e porte"
+  },
+  "https": {
+   "en": "HTTPS (Caddy)",
+   "it": "HTTPS (Caddy)"
+  },
+  "llm": {
+   "en": "Reasoner (llama.cpp)",
+   "it": "Ragionatore (llama.cpp)"
+  },
+  "pipeline": {
+   "en": "Answer pipeline",
+   "it": "Pipeline di risposta"
+  },
+  "services": {
+   "en": "Services",
+   "it": "Servizi"
+  },
+  "acquire": {
+   "en": "Knowledge acquisition (arXiv)",
+   "it": "Acquisizione di conoscenza (arXiv)"
+  },
+  "attachments": {
+   "en": "Attachments (images, documents)",
+   "it": "Allegati (immagini, documenti)"
+  },
+  "senses": {
+   "en": "Senses (time, weather)",
+   "it": "Sensi (ora, meteo)"
+  },
+  "rem": {
+   "en": "Autonomic cycle (consolidation, reflections, dreams)",
+   "it": "Ciclo autonomo (consolidamento, riflessioni, sogni)"
+  },
+  "harvest": {
+   "en": "Harvester (new knowledge)",
+   "it": "Harvester (nuova conoscenza)"
+  },
+  "agents": {
+   "en": "Agents and self-repair",
+   "it": "Agenti e autoriparazione"
+  },
+  "plugins": {
+   "en": "Plugins",
+   "it": "Plugin"
+  },
+  "compliance": {
+   "en": "Compliance and ethics",
+   "it": "Conformità ed etica"
+  },
+  "projects": {
+   "en": "Projects (GitHub)",
+   "it": "Progetti (GitHub)"
+  },
+  "security": {
+   "en": "Network security (firewall)",
+   "it": "Sicurezza di rete (firewall)"
+  },
+  "documents": {
+   "en": "Documents (PDF)",
+   "it": "Documenti (PDF)"
+  }
+ },
+ "settings": [
+  {
+   "key": "AURORA_ROOT",
+   "type": "path_abs",
+   "category": "root",
+   "recommended": "/opt/aurora",
+   "evidence": "the installer writes the real folder",
+   "en": "Absolute path of the installation. Every other path is relative to it. Moving or renaming the installation means changing only this value and re-running the service installer.",
+   "it": "Percorso assoluto dell'installazione. Tutti gli altri percorsi sono relativi a questo. Spostare o rinominare l'installazione significa cambiare solo questo valore e rilanciare l'installatore dei servizi.",
+   "services": [
+    "all"
+   ]
+  },
+  {
+   "key": "AURORA_CORE_DIR",
+   "type": "path",
+   "category": "layout",
+   "recommended": "sys/core",
+   "evidence": "owner",
+   "en": "Code of the core.",
+   "it": "Codice del nucleo.",
+   "services": [
+    "all"
+   ]
+  },
+  {
+   "key": "AURORA_VAULT_DIR",
+   "type": "path",
+   "category": "layout",
+   "recommended": "sys/vault",
+   "evidence": "owner",
+   "en": "The vault: knowledge and memory shards.",
+   "it": "Il vault: shard di conoscenza e di memoria.",
+   "services": [
+    "all"
+   ]
+  },
+  {
+   "key": "AURORA_INDEX_DIR",
+   "type": "path",
+   "category": "layout",
+   "recommended": "sys/vault/index",
+   "evidence": "owner",
+   "en": "Vector indexes, rebuildable from the vault at any time.",
+   "it": "Indici vettoriali, ricostruibili dal vault in qualunque momento.",
+   "services": [
+    "aurora-api",
+    "aurora-harvester"
+   ]
+  },
+  {
+   "key": "AURORA_MODELS_DIR",
+   "type": "path",
+   "category": "layout",
+   "recommended": "sys/models",
+   "evidence": "owner",
+   "en": "Model weights.",
+   "it": "Pesi dei modelli.",
+   "services": [
+    "aurora-models"
+   ]
+  },
+  {
+   "key": "AURORA_LOG_DIR",
+   "type": "path",
+   "category": "layout",
+   "recommended": "sys/logs",
+   "evidence": "owner",
+   "en": "Logs: one folder per component, plus trace/.",
+   "it": "Log: una cartella per componente, più trace/.",
+   "services": [
+    "all"
+   ]
+  },
+  {
+   "key": "AURORA_STATUS_DIR",
+   "type": "path",
+   "category": "layout",
+   "recommended": "sys/status",
+   "evidence": "owner",
+   "en": "Runtime state and benchmark results.",
+   "it": "Stato di esecuzione e risultati dei banchi di prova.",
+   "services": [
+    "all"
+   ]
+  },
+  {
+   "key": "AURORA_TMP_DIR",
+   "type": "path",
+   "category": "layout",
+   "recommended": "sys/tmp",
+   "evidence": "owner",
+   "en": "Temporary files of the running system.",
+   "it": "File temporanei del sistema in esecuzione.",
+   "services": [
+    "all"
+   ]
+  },
+  {
+   "key": "AURORA_SANDBOX_DIR",
+   "type": "path",
+   "category": "layout",
+   "recommended": "sys/sandbox",
+   "evidence": "owner",
+   "en": "Sandbox where forged agents and plugins are tested.",
+   "it": "Sandbox dove si collaudano agenti e plugin forgiati.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_USER_DOCUMENTS_DIR",
+   "type": "path",
+   "category": "layout",
+   "recommended": "usr/documents",
+   "evidence": "owner",
+   "en": "The owner's documents.",
+   "it": "I documenti del proprietario.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_USER_MEDIA_DIR",
+   "type": "path",
+   "category": "layout",
+   "recommended": "usr/media",
+   "evidence": "owner",
+   "en": "Images and media produced or received.",
+   "it": "Immagini e media prodotti o ricevuti.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_USER_UPLOAD_DIR",
+   "type": "path",
+   "category": "layout",
+   "recommended": "usr/upload",
+   "evidence": "owner",
+   "en": "Files uploaded from the chat.",
+   "it": "File caricati dalla chat.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_VENV_DIR",
+   "type": "path",
+   "category": "layout",
+   "recommended": ".venv",
+   "evidence": "owner",
+   "en": "Python virtual environment used by the services.",
+   "it": "Ambiente virtuale Python usato dai servizi.",
+   "services": [
+    "all"
+   ]
+  },
+  {
+   "key": "AURORA_HTTPS_DIR",
+   "type": "path",
+   "category": "layout",
+   "recommended": "sys/https",
+   "evidence": "owner",
+   "en": "Caddyfile, certificates and Caddy logs.",
+   "it": "Caddyfile, certificati e log di Caddy.",
+   "services": [
+    "aurora-https"
+   ]
+  },
+  {
+   "key": "AURORA_CHUNK_CHARS",
+   "type": "int",
+   "min": 500,
+   "max": 20000,
+   "category": "vault",
+   "recommended": "4000",
+   "evidence": "M5, M6, M8",
+   "en": "Target length of a knowledge soliton in characters. Smaller chunks were within noise on retrieval and cost 2.8x-4.7x the vectors. Legal texts use the article as unit instead.",
+   "it": "Lunghezza obiettivo di un solitone di conoscenza, in caratteri. Chunk più piccoli erano nel rumore sul recupero e costavano da 2,8 a 4,7 volte i vettori. I testi giuridici usano invece l'articolo come unità.",
+   "services": [
+    "aurora-harvester",
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_CHUNK_MIN_CHARS",
+   "type": "int",
+   "min": 1,
+   "max": 5000,
+   "category": "vault",
+   "recommended": "300",
+   "evidence": "INITIAL",
+   "en": "Chunks of a document split into several chunks that are shorter than this are not forged (the tail of a long text). A complete short document, such as a law article, is always kept. Does not apply to conversation turns.",
+   "it": "I chunk di un documento diviso in più parti più corti di così non vengono forgiati (la coda di un testo lungo). Un documento completo e breve, come un articolo di legge, si tiene sempre. Non si applica ai turni di conversazione.",
+   "services": [
+    "aurora-harvester",
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_PDFTOTEXT_BIN",
+   "type": "path_abs",
+   "category": "vault",
+   "recommended": "/usr/bin/pdftotext",
+   "evidence": "owner",
+   "en": "pdftotext executable (poppler-utils), used to read PDF documents on import.",
+   "it": "Eseguibile pdftotext (poppler-utils), usato per leggere i documenti PDF all'importazione.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_ARXIV_API",
+   "type": "str",
+   "category": "acquire",
+   "recommended": "https://export.arxiv.org/api/query",
+   "evidence": "owner",
+   "en": "arXiv search API (Atom). Only titles, abstracts and PDFs are read; nothing is sent but the search queries.",
+   "it": "API di ricerca di arXiv (Atom). Si leggono solo titoli, abstract e PDF; non si invia nulla oltre alle query.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_ARXIV_ROUNDS",
+   "type": "int",
+   "min": 1,
+   "max": 10,
+   "category": "acquire",
+   "recommended": "3",
+   "evidence": "M22",
+   "en": "Search rounds before giving up. Each round asks for new queries, informed by the titles already seen. One round found the source 1 time in 17 (M22).",
+   "it": "Giri di ricerca prima di arrendersi. Ogni giro chiede query nuove, sapendo i titoli già visti. Un giro solo ha trovato la fonte 1 volta su 17 (M22).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_ARXIV_QUERIES",
+   "type": "int",
+   "min": 1,
+   "max": 10,
+   "category": "acquire",
+   "recommended": "3",
+   "evidence": "INITIAL",
+   "en": "Search queries written by the reasoner per round.",
+   "it": "Query di ricerca scritte dal ragionatore per ogni giro.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_ARXIV_RESULTS",
+   "type": "int",
+   "min": 5,
+   "max": 100,
+   "category": "acquire",
+   "recommended": "20",
+   "evidence": "INITIAL",
+   "en": "Results read (title and abstract) per query; all of them are re-ranked against the question.",
+   "it": "Risultati letti (titolo e abstract) per query; vengono tutti riordinati rispetto alla domanda.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_ARXIV_PAPERS",
+   "type": "int",
+   "min": 1,
+   "max": 10,
+   "category": "acquire",
+   "recommended": "3",
+   "evidence": "M22",
+   "en": "Best-ranked papers downloaded and imported per round.",
+   "it": "Articoli meglio classificati scaricati e importati per giro.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_ARXIV_DELAY_S",
+   "type": "int",
+   "min": 3,
+   "max": 60,
+   "category": "acquire",
+   "recommended": "3",
+   "evidence": "arXiv API terms",
+   "en": "Pause between two calls to arXiv; their terms of use ask for at least 3 seconds.",
+   "it": "Pausa tra due chiamate ad arXiv; le loro condizioni d'uso chiedono almeno 3 secondi.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_VISION_MAX_PX",
+   "type": "int",
+   "min": 256,
+   "max": 4096,
+   "category": "attachments",
+   "recommended": "1024",
+   "evidence": "INITIAL",
+   "en": "Longest side of an attached image as the reasoner sees it; larger images are scaled down. 768 px: 605 prompt tokens, 6.5 s for a description.",
+   "it": "Lato più lungo di un'immagine allegata come la vede il ragionatore; le immagini più grandi vengono ridotte. 768 px: 605 token di prompt, 6,5 s per una descrizione.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_ATTACH_MAX_MB",
+   "type": "int",
+   "min": 1,
+   "max": 500,
+   "category": "attachments",
+   "recommended": "50",
+   "evidence": "INITIAL",
+   "en": "Largest attachment accepted, per file.",
+   "it": "Dimensione massima di un allegato, per file.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_VAULT_SHARD_MAX_MB",
+   "type": "int",
+   "min": 16,
+   "max": 1000000,
+   "category": "vault",
+   "recommended": "2048",
+   "evidence": "INITIAL",
+   "en": "When a shard file reaches this size a new shard is opened for that domain. Keeps files portable and backups incremental.",
+   "it": "Quando uno shard raggiunge questa dimensione si apre un nuovo shard per quel dominio. Mantiene i file trasportabili e i backup incrementali.",
+   "services": [
+    "aurora-harvester",
+    "aurora-api",
+    "aurora-rem"
+   ]
+  },
+  {
+   "key": "AURORA_SOLITON_SCHEMA",
+   "type": "int",
+   "min": 1,
+   "max": 1000,
+   "category": "vault",
+   "recommended": "1",
+   "evidence": "owner",
+   "en": "Schema version written into every soliton.",
+   "it": "Versione dello schema scritta in ogni solitone.",
+   "services": [
+    "all"
+   ]
+  },
+  {
+   "key": "AURORA_EMBEDDER_DIR",
+   "type": "path",
+   "category": "embedder",
+   "recommended": "sys/models/embedder/Qwen3-Embedding-0.6B",
+   "evidence": "M18",
+   "en": "Encoder of solitons and questions. Qwen3-Embedding-0.6B: rank-1 76.9% (Italian question) vs 71.3% of bge-m3 on the same pool; provisional until re-checked on the new vault.",
+   "it": "Encoder di solitoni e domande. Qwen3-Embedding-0.6B: rango-1 76,9% (domanda italiana) contro 71,3% di bge-m3 sullo stesso pool; provvisorio finché non verificato sul nuovo vault.",
+   "services": [
+    "aurora-models",
+    "aurora-harvester"
+   ]
+  },
+  {
+   "key": "AURORA_EMBEDDER_DIM",
+   "type": "int",
+   "min": 64,
+   "max": 8192,
+   "category": "embedder",
+   "recommended": "1024",
+   "evidence": "M18",
+   "en": "Vector dimension produced by the encoder.",
+   "it": "Dimensione dei vettori prodotti dall'encoder.",
+   "services": [
+    "aurora-models",
+    "aurora-harvester",
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_EMBEDDER_QUERY_PROMPT",
+   "type": "str",
+   "category": "embedder",
+   "recommended": "Instruct: Given a web search query, retrieve relevant passages that answer the query\\nQuery:",
+   "evidence": "M18 (retraction of M8)",
+   "en": "Instruction prepended to questions (not to solitons). The official prompt matters: a custom one cost 21 points of rank-1.",
+   "it": "Istruzione anteposta alle domande (non ai solitoni). Il prompt ufficiale conta: uno scritto a mano è costato 21 punti di rango-1.",
+   "services": [
+    "aurora-models"
+   ]
+  },
+  {
+   "key": "AURORA_EMBEDDER_DEVICE",
+   "type": "str",
+   "category": "embedder",
+   "recommended": "cuda:1",
+   "evidence": "M23",
+   "en": "Device of the encoder. GPU 1 (PCIe x4, slow to load) holds the resident models; GPU 0 (PCIe 5.0 x8) is kept for swaps.",
+   "it": "Dispositivo dell'encoder. La GPU 1 (PCIe x4, lenta da caricare) tiene i modelli residenti; la GPU 0 (PCIe 5.0 x8) resta per gli scambi.",
+   "services": [
+    "aurora-models"
+   ]
+  },
+  {
+   "key": "AURORA_EMBEDDER_DTYPE",
+   "type": "enum",
+   "choices": [
+    "float16",
+    "bfloat16",
+    "float32"
+   ],
+   "category": "embedder",
+   "recommended": "float16",
+   "evidence": "M8, M18",
+   "en": "Numeric precision of the encoder.",
+   "it": "Precisione numerica dell'encoder.",
+   "services": [
+    "aurora-models"
+   ]
+  },
+  {
+   "key": "AURORA_EMBEDDER_MAX_TOKENS",
+   "type": "int",
+   "min": 128,
+   "max": 32768,
+   "category": "embedder",
+   "recommended": "2560",
+   "evidence": "M5",
+   "en": "Longest input the encoder reads. p95 of a 4,000-character chunk is 1,648 tokens.",
+   "it": "Input più lungo che l'encoder legge. Il p95 di un chunk da 4.000 caratteri è 1.648 token.",
+   "services": [
+    "aurora-models"
+   ]
+  },
+  {
+   "key": "AURORA_EMBEDDER_BATCH",
+   "type": "int",
+   "min": 1,
+   "max": 1024,
+   "category": "embedder",
+   "recommended": "8",
+   "evidence": "M11",
+   "en": "Chunks encoded per batch.",
+   "it": "Chunk codificati per lotto.",
+   "services": [
+    "aurora-models",
+    "aurora-harvester"
+   ]
+  },
+  {
+   "key": "AURORA_INDEX_EXACT_MAX",
+   "type": "int",
+   "min": 0,
+   "max": 100000000,
+   "category": "index",
+   "recommended": "250000",
+   "evidence": "M4, INITIAL",
+   "en": "Below this many vectors a shard is searched exactly (no approximation); above, with HNSW.",
+   "it": "Sotto questo numero di vettori uno shard si cerca in modo esatto (nessuna approssimazione); sopra, con HNSW.",
+   "services": [
+    "aurora-api",
+    "aurora-harvester"
+   ]
+  },
+  {
+   "key": "AURORA_INDEX_HNSW_M",
+   "type": "int",
+   "min": 4,
+   "max": 128,
+   "category": "index",
+   "recommended": "32",
+   "evidence": "M16",
+   "en": "HNSW graph degree.",
+   "it": "Grado del grafo HNSW.",
+   "services": [
+    "aurora-api",
+    "aurora-harvester"
+   ]
+  },
+  {
+   "key": "AURORA_INDEX_HNSW_EF_CONSTRUCTION",
+   "type": "int",
+   "min": 16,
+   "max": 2000,
+   "category": "index",
+   "recommended": "200",
+   "evidence": "M16",
+   "en": "HNSW build effort.",
+   "it": "Sforzo di costruzione HNSW.",
+   "services": [
+    "aurora-harvester"
+   ]
+  },
+  {
+   "key": "AURORA_INDEX_HNSW_EF_SEARCH",
+   "type": "int",
+   "min": 16,
+   "max": 5000,
+   "category": "index",
+   "recommended": "300",
+   "evidence": "M16",
+   "en": "HNSW search effort. At 300: document recall@300 88.9% vs 89.8% exact, 1.1 ms per query.",
+   "it": "Sforzo di ricerca HNSW. A 300: richiamo del documento@300 88,9% contro 89,8% esatto, 1,1 ms a domanda.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_SEARCH_CANDIDATES",
+   "type": "int",
+   "min": 10,
+   "max": 5000,
+   "category": "search",
+   "recommended": "300",
+   "evidence": "M15, M17",
+   "en": "Candidates handed from the vector search to the re-ranker. 300 raises the ceiling to 88-90% at ~6 s of re-ranking.",
+   "it": "Candidati passati dalla ricerca vettoriale al riordinatore. 300 alza il tetto all'88-90% con ~6 s di riordino.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_SEARCH_TOPK",
+   "type": "int",
+   "min": 1,
+   "max": 200,
+   "category": "search",
+   "recommended": "12",
+   "evidence": "M20, M24",
+   "en": "Passages given to the answer stage after re-ranking.",
+   "it": "Passaggi dati alla fase di risposta dopo il riordino.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_SEARCH_DOMAIN_FILTER",
+   "type": "bool",
+   "category": "search",
+   "recommended": "0",
+   "evidence": "M10, M13",
+   "en": "Filter the search by a predicted domain. Off: a wrong domain filter loses the answer; domains group the results instead.",
+   "it": "Filtrare la ricerca per un dominio previsto. Spento: un filtro sbagliato perde la risposta; i domini raggruppano invece i risultati.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_RERANKER_DIR",
+   "type": "path",
+   "category": "search",
+   "recommended": "sys/models/reranker/bge-reranker-v2-m3",
+   "evidence": "M12, M15, M17",
+   "en": "Cross-encoder re-ranker.",
+   "it": "Riordinatore cross-encoder.",
+   "services": [
+    "aurora-models"
+   ]
+  },
+  {
+   "key": "AURORA_RERANKER_DEVICE",
+   "type": "str",
+   "category": "search",
+   "recommended": "cuda:1",
+   "evidence": "M23",
+   "en": "Device of the re-ranker: resident, on GPU 1 with the encoder.",
+   "it": "Dispositivo del riordinatore: residente, sulla GPU 1 con l'encoder.",
+   "services": [
+    "aurora-models"
+   ]
+  },
+  {
+   "key": "AURORA_RERANKER_BATCH",
+   "type": "int",
+   "min": 1,
+   "max": 1024,
+   "category": "search",
+   "recommended": "32",
+   "evidence": "M15",
+   "en": "Question-passage pairs scored per batch.",
+   "it": "Coppie domanda-passaggio valutate per lotto.",
+   "services": [
+    "aurora-models"
+   ]
+  },
+  {
+   "key": "AURORA_RERANKER_MAX_TOKENS",
+   "type": "int",
+   "min": 128,
+   "max": 8192,
+   "category": "search",
+   "recommended": "1024",
+   "evidence": "M15",
+   "en": "Longest input the re-ranker reads. 1,024 halves the cost of 2,048 for about 1 point.",
+   "it": "Input più lungo che il riordinatore legge. 1.024 dimezza il costo di 2.048 per circa 1 punto.",
+   "services": [
+    "aurora-models"
+   ]
+  },
+  {
+   "key": "AURORA_MEMORY_RECENT_TURNS",
+   "type": "int",
+   "min": 0,
+   "max": 200,
+   "category": "memory",
+   "recommended": "8",
+   "evidence": "owner",
+   "en": "Every message is treated as the first; the latest turns by time are always added to memory retrieval so that short follow-ups keep their context.",
+   "it": "Ogni messaggio è trattato come il primo; gli ultimi turni in ordine di tempo si aggiungono sempre al recupero dalla memoria, così i seguiti brevi non perdono il contesto.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_MEMORY_RECALL_K",
+   "type": "int",
+   "category": "memory",
+   "recommended": "12",
+   "evidence": "owner (2026-10-01: LTM written but not read)",
+   "en": "Memories recalled by meaning when Aurora answers about herself or the past (past turns, session memories, thoughts, dreams).",
+   "it": "Ricordi richiamati per significato quando Aurora risponde su di sé o sul passato (turni passati, memorie di sessione, pensieri, sogni).",
+   "services": [
+    "aurora-api"
+   ],
+   "min": 0,
+   "max": 50
+  },
+  {
+   "key": "AURORA_MEMORY_SELF_DAYS",
+   "type": "int",
+   "category": "memory",
+   "recommended": "7",
+   "evidence": "owner",
+   "en": "Session memories of the last days always given to Aurora when she answers about herself.",
+   "it": "Memorie di sessione degli ultimi giorni sempre date ad Aurora quando risponde su di sé.",
+   "services": [
+    "aurora-api"
+   ],
+   "min": 0,
+   "max": 365
+  },
+  {
+   "key": "AURORA_MEMORY_RECALL_DAYS",
+   "type": "int",
+   "category": "memory",
+   "recommended": "365",
+   "evidence": "owner (2026-10-01: at least 12 months)",
+   "en": "How far back the recall by meaning reaches in long-term memory.",
+   "it": "Fin dove arriva nel passato il richiamo per significato nella memoria a lungo termine.",
+   "services": [
+    "aurora-api"
+   ],
+   "min": 1,
+   "max": 36500
+  },
+  {
+   "key": "AURORA_MEMORY_RECALL_CHARS",
+   "type": "int",
+   "category": "memory",
+   "recommended": "12000",
+   "evidence": "context 32k tokens: ~3k tokens of memories",
+   "en": "Most characters of recalled memories in one prompt; the newest are kept.",
+   "it": "Massimo di caratteri di ricordi in un prompt; si tengono i più recenti.",
+   "services": [
+    "aurora-api"
+   ],
+   "min": 1000,
+   "max": 200000
+  },
+  {
+   "key": "AURORA_FORGE_MODE",
+   "type": "enum",
+   "choices": [
+    "ask",
+    "auto"
+   ],
+   "category": "autonomy",
+   "recommended": "ask",
+   "evidence": "owner",
+   "en": "Creating agents or plugins during a run. ask: state the purpose and permissions and wait for approval. auto: forge, test in the sandbox and enable without asking (always logged).",
+   "it": "Creazione di agenti o plugin durante un lavoro. ask: indicare scopo e permessi e attendere l'approvazione. auto: forgiare, collaudare nella sandbox e attivare senza chiedere (sempre registrato).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_CONFIRM_EXTERNAL_ACTIONS",
+   "type": "bool",
+   "category": "autonomy",
+   "recommended": "1",
+   "evidence": "owner",
+   "en": "Actions with effects outside the machine (email, publishing, commits, opening a port) wait for the owner's confirmation. Independent from AURORA_FORGE_MODE.",
+   "it": "Le azioni con effetti fuori dalla macchina (mail, pubblicazioni, commit, apertura di porte) attendono la conferma del proprietario. Indipendente da AURORA_FORGE_MODE.",
+   "services": [
+    "aurora-api",
+    "aurora-plugins"
+   ]
+  },
+  {
+   "key": "AURORA_LOG_LEVEL",
+   "type": "enum",
+   "choices": [
+    "DEBUG",
+    "INFO",
+    "WARNING",
+    "ERROR"
+   ],
+   "category": "logging",
+   "recommended": "INFO",
+   "evidence": "owner",
+   "en": "Minimum level written to the logs.",
+   "it": "Livello minimo scritto nei log.",
+   "services": [
+    "all"
+   ]
+  },
+  {
+   "key": "AURORA_LOG_MAX_MB",
+   "type": "int",
+   "min": 1,
+   "max": 1024,
+   "category": "logging",
+   "recommended": "10",
+   "evidence": "owner",
+   "en": "A log file is rotated and compressed when it reaches this size.",
+   "it": "Un file di log viene ruotato e compresso quando raggiunge questa dimensione.",
+   "services": [
+    "all"
+   ]
+  },
+  {
+   "key": "AURORA_LOG_RETENTION_DAYS",
+   "type": "int",
+   "min": 1,
+   "max": 36500,
+   "category": "logging",
+   "recommended": "365",
+   "evidence": "owner",
+   "en": "Rotated log files older than this are deleted.",
+   "it": "I file di log ruotati più vecchi di così vengono eliminati.",
+   "services": [
+    "all"
+   ]
+  },
+  {
+   "key": "AURORA_OWNER_NAME",
+   "type": "str",
+   "category": "interface",
+   "recommended": "Owner",
+   "evidence": "owner (2026-10-01: no personal name in the code)",
+   "en": "Your name: how Aurora calls you in her prompts, memories and posts.",
+   "it": "Il tuo nome: come Aurora ti chiama nei prompt, nei ricordi e nei post.",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ]
+  },
+  {
+   "key": "AURORA_LANG_DEFAULT",
+   "type": "enum",
+   "choices": [
+    "it_IT",
+    "en_US"
+   ],
+   "category": "interface",
+   "recommended": "it_IT",
+   "evidence": "owner",
+   "en": "Default interface language.",
+   "it": "Lingua predefinita dell'interfaccia.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_LANGS",
+   "type": "list",
+   "category": "interface",
+   "recommended": "it_IT,en_US",
+   "evidence": "owner",
+   "en": "Interface languages available.",
+   "it": "Lingue disponibili nell'interfaccia.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_PUSH_EVENTS",
+   "type": "str",
+   "category": "interface",
+   "recommended": "incident,approval,dream,self_review,update",
+   "evidence": "owner",
+   "en": "Events that send a push notification to the subscribed browsers: incident, approval, dream, thought, self_review, update.",
+   "it": "Eventi che mandano una notifica push ai browser iscritti: incident, approval, dream, thought, self_review, update.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_PUSH_SUBJECT",
+   "type": "str",
+   "category": "interface",
+   "recommended": "mailto:aurora@example.org",
+   "evidence": "RFC 8292",
+   "en": "VAPID contact (mailto: or https:) the push services may use to reach the sender; put your own address.",
+   "it": "Contatto VAPID (mailto: o https:) che i servizi push possono usare per raggiungere il mittente; metti il tuo indirizzo.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_CHAT_STREAMING",
+   "type": "bool",
+   "category": "interface",
+   "recommended": "1",
+   "evidence": "owner",
+   "en": "Show the answer while Aurora writes it (and her thinking); 0: only the finished, verified answer.",
+   "it": "Mostra la risposta mentre Aurora la scrive (e il suo ragionamento); 0: solo la risposta finita e verificata.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_API_HOST",
+   "type": "str",
+   "category": "network",
+   "recommended": "127.0.0.1",
+   "evidence": "owner",
+   "en": "Address aurora-api listens on. Local only: the outside world goes through Caddy.",
+   "it": "Indirizzo su cui ascolta aurora-api. Solo locale: dall'esterno si passa da Caddy.",
+   "services": [
+    "aurora-api",
+    "aurora-https"
+   ]
+  },
+  {
+   "key": "AURORA_API_PORT",
+   "type": "int",
+   "category": "network",
+   "recommended": "9700",
+   "evidence": "owner",
+   "en": "Port of aurora-api: OpenAI-compatible API, event stream, WebUI.",
+   "it": "Porta di aurora-api: API compatibile OpenAI, flusso di eventi, WebUI.",
+   "services": [
+    "aurora-api",
+    "aurora-https"
+   ],
+   "min": 1024,
+   "max": 65535
+  },
+  {
+   "key": "AURORA_API_KEY",
+   "type": "str",
+   "category": "network",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Key required by every API call and by the WebUI login (Authorization: Bearer). Generated at first setup.",
+   "it": "Chiave richiesta da ogni chiamata API e dall'accesso alla WebUI (Authorization: Bearer). Generata al primo avvio.",
+   "services": [
+    "aurora-api"
+   ],
+   "secret": true,
+   "generate": "token"
+  },
+  {
+   "key": "AURORA_DEVICE_DAYS",
+   "type": "int",
+   "min": 1,
+   "max": 400,
+   "category": "network",
+   "recommended": "400",
+   "evidence": "owner",
+   "en": "Days a registered device (WebUI login) stays logged in. Browsers keep a cookie at most 400 days. A device can be revoked at any time from Settings.",
+   "it": "Giorni per cui un dispositivo registrato (login della WebUI) resta collegato. I browser tengono un cookie al massimo 400 giorni. Un dispositivo si può revocare in qualsiasi momento dalle Impostazioni.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_MODELS_HOST",
+   "type": "str",
+   "category": "network",
+   "recommended": "127.0.0.1",
+   "evidence": "owner",
+   "en": "Address of aurora-models (encoder and re-ranker).",
+   "it": "Indirizzo di aurora-models (encoder e riordinatore).",
+   "services": [
+    "aurora-models",
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_MODELS_PORT",
+   "type": "int",
+   "category": "network",
+   "recommended": "9710",
+   "evidence": "owner",
+   "en": "Port of aurora-models.",
+   "it": "Porta di aurora-models.",
+   "services": [
+    "aurora-models",
+    "aurora-api"
+   ],
+   "min": 1024,
+   "max": 65535
+  },
+  {
+   "key": "AURORA_LLM_HOST",
+   "type": "str",
+   "category": "network",
+   "recommended": "127.0.0.1",
+   "evidence": "owner",
+   "en": "Address of the reasoner server (llama.cpp).",
+   "it": "Indirizzo del server del ragionatore (llama.cpp).",
+   "services": [
+    "aurora-llm",
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_LLM_PORT",
+   "type": "int",
+   "category": "network",
+   "recommended": "9711",
+   "evidence": "owner",
+   "en": "Port of the reasoner server.",
+   "it": "Porta del server del ragionatore.",
+   "services": [
+    "aurora-llm",
+    "aurora-api"
+   ],
+   "min": 1024,
+   "max": 65535
+  },
+  {
+   "key": "AURORA_DOMAIN",
+   "type": "str",
+   "category": "https",
+   "recommended": "aurora.example.org",
+   "evidence": "owner",
+   "en": "Host name served over HTTPS; must be covered by the certificate.",
+   "it": "Nome host servito in HTTPS; deve essere coperto dal certificato.",
+   "services": [
+    "aurora-https"
+   ]
+  },
+  {
+   "key": "AURORA_HTTPS_PORT",
+   "type": "int",
+   "category": "https",
+   "recommended": "443",
+   "evidence": "owner",
+   "en": "Public HTTPS port. 443 when this installation replaces the previous one.",
+   "it": "Porta HTTPS pubblica. 443 quando questa installazione sostituirà la precedente.",
+   "services": [
+    "aurora-https"
+   ],
+   "min": 1,
+   "max": 65535
+  },
+  {
+   "key": "AURORA_HTTP_PORT",
+   "type": "int",
+   "category": "https",
+   "recommended": "80",
+   "evidence": "owner",
+   "en": "Plain HTTP port: redirects to HTTPS.",
+   "it": "Porta HTTP semplice: reindirizza a HTTPS.",
+   "services": [
+    "aurora-https"
+   ],
+   "min": 1,
+   "max": 65535
+  },
+  {
+   "key": "AURORA_TLS_CERT",
+   "type": "path",
+   "category": "https",
+   "recommended": "sys/https/cert/fullchain.pem",
+   "evidence": "owner",
+   "en": "Certificate chain (fullchain.pem).",
+   "it": "Catena del certificato (fullchain.pem).",
+   "services": [
+    "aurora-https"
+   ]
+  },
+  {
+   "key": "AURORA_TLS_KEY",
+   "type": "path",
+   "category": "https",
+   "recommended": "sys/https/cert/privkey.pem",
+   "evidence": "owner",
+   "en": "Private key of the certificate.",
+   "it": "Chiave privata del certificato.",
+   "services": [
+    "aurora-https"
+   ]
+  },
+  {
+   "key": "AURORA_CADDY_BIN",
+   "type": "path_abs",
+   "category": "https",
+   "recommended": "/usr/bin/caddy",
+   "evidence": "owner",
+   "en": "Caddy executable.",
+   "it": "Eseguibile di Caddy.",
+   "services": [
+    "aurora-https"
+   ]
+  },
+  {
+   "key": "AURORA_CADDY_ADMIN",
+   "type": "str",
+   "category": "https",
+   "recommended": "127.0.0.1:2019",
+   "evidence": "owner",
+   "en": "Caddy admin endpoint (the previous installation uses 2019).",
+   "it": "Endpoint di amministrazione di Caddy (l'installazione precedente usa 2019).",
+   "services": [
+    "aurora-https"
+   ]
+  },
+  {
+   "key": "AURORA_LLAMACPP_DIR",
+   "type": "path",
+   "category": "llm",
+   "recommended": "sys/runtime/llama.cpp",
+   "evidence": "owner",
+   "en": "llama.cpp binaries and libraries (bin/).",
+   "it": "Binari e librerie di llama.cpp (bin/).",
+   "services": [
+    "aurora-llm"
+   ]
+  },
+  {
+   "key": "AURORA_LLM_MODEL",
+   "type": "path",
+   "category": "llm",
+   "recommended": "sys/models/llm/qwen3.6/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf",
+   "evidence": "M20, M22, M23",
+   "en": "Reasoner weights. Qwen3.6-35B-A3B: fastest and most careful of the measured models.",
+   "it": "Pesi del ragionatore. Qwen3.6-35B-A3B: il più veloce e il più prudente fra i modelli misurati.",
+   "services": [
+    "aurora-llm"
+   ]
+  },
+  {
+   "key": "AURORA_LLM_MMPROJ",
+   "type": "path",
+   "category": "llm",
+   "recommended": "sys/models/llm/qwen3.6/mmproj-F16.gguf",
+   "evidence": "owner",
+   "en": "Vision projector of the reasoner (reads images).",
+   "it": "Proiettore di visione del ragionatore (legge le immagini).",
+   "services": [
+    "aurora-llm"
+   ]
+  },
+  {
+   "key": "AURORA_LLM_GPUS",
+   "type": "str",
+   "category": "llm",
+   "recommended": "0,1",
+   "evidence": "M23",
+   "en": "GPUs used by the reasoner (CUDA_VISIBLE_DEVICES).",
+   "it": "GPU usate dal ragionatore (CUDA_VISIBLE_DEVICES).",
+   "services": [
+    "aurora-llm"
+   ]
+  },
+  {
+   "key": "AURORA_LLM_TENSOR_SPLIT",
+   "type": "str",
+   "category": "llm",
+   "recommended": "4.5,3.5",
+   "evidence": "M28 (A7): speed equal for 5,3 / 4.5,3.5 / 4,4 (110.6 tok/s); 4.5,3.5 leaves margin on both GPUs",
+   "en": "Share of the reasoner per GPU. More on GPU 0: GPU 1 also holds the encoder and the re-ranker (~6 GB at peak, M25).",
+   "it": "Quota del ragionatore per GPU. Di più sulla GPU 0: la GPU 1 tiene anche encoder e riordinatore (~6 GB al picco, M25).",
+   "services": [
+    "aurora-llm"
+   ]
+  },
+  {
+   "key": "AURORA_LLM_CPU_MOE_LAYERS",
+   "type": "int",
+   "category": "llm",
+   "recommended": "0",
+   "evidence": "M23",
+   "en": "Layers whose experts stay in RAM. 0 = all in VRAM (answering: 2,752 prompt tok/s); 99 = all in RAM (standby: 2.95 GB of VRAM, 519 tok/s).",
+   "it": "Strati i cui esperti restano in RAM. 0 = tutto in VRAM (risposta: 2.752 tok/s di lettura); 99 = tutto in RAM (attesa: 2,95 GB di VRAM, 519 tok/s).",
+   "services": [
+    "aurora-llm"
+   ],
+   "min": 0,
+   "max": 999
+  },
+  {
+   "key": "AURORA_LLM_CTX",
+   "type": "int",
+   "category": "llm",
+   "recommended": "32768",
+   "evidence": "M20, M22",
+   "en": "Context window in tokens. 12 passages take ~19k tokens, thinking up to ~6k more.",
+   "it": "Finestra di contesto in token. 12 passaggi occupano ~19k token, il ragionamento fino a ~6k in più.",
+   "services": [
+    "aurora-llm"
+   ],
+   "min": 2048,
+   "max": 262144
+  },
+  {
+   "key": "AURORA_LLM_TIMEOUT_S",
+   "type": "int",
+   "category": "llm",
+   "recommended": "600",
+   "evidence": "owner",
+   "en": "Longest wait for one reasoner call.",
+   "it": "Attesa massima per una chiamata al ragionatore.",
+   "services": [
+    "aurora-api"
+   ],
+   "min": 10,
+   "max": 7200
+  },
+  {
+   "key": "AURORA_REASONER_PROVIDER",
+   "type": "enum",
+   "choices": [
+    "local",
+    "anthropic",
+    "claude_code"
+   ],
+   "category": "llm",
+   "recommended": "local",
+   "evidence": "owner",
+   "en": "Who reasons in the reasoning roles: the local model, the Anthropic API (key), or Claude Code (CLI, the owner's subscription). Service calls stay local.",
+   "it": "Chi ragiona nei ruoli di ragionamento: il modello locale, l'API Anthropic (chiave) o Claude Code (CLI, abbonamento del proprietario). Le chiamate di servizio restano locali.",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ]
+  },
+  {
+   "key": "AURORA_CLOUD_ROLES",
+   "type": "str",
+   "category": "llm",
+   "recommended": "synthesis,self,agent,rem",
+   "evidence": "owner",
+   "en": "Comma-separated roles sent to the cloud reasoner: synthesis, self, agent, rem.",
+   "it": "Ruoli (separati da virgola) affidati al ragionatore cloud: synthesis, self, agent, rem.",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ]
+  },
+  {
+   "key": "AURORA_ANTHROPIC_API_KEY",
+   "type": "str",
+   "category": "llm",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Anthropic API key (console.anthropic.com). Empty: provider 'anthropic' unavailable.",
+   "it": "Chiave API Anthropic (console.anthropic.com). Vuota: provider 'anthropic' non disponibile.",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ],
+   "secret": true,
+   "optional": true
+  },
+  {
+   "key": "AURORA_ANTHROPIC_MODEL",
+   "type": "str",
+   "category": "llm",
+   "recommended": "claude-opus-5-5",
+   "evidence": "owner",
+   "en": "Model id for the Anthropic API.",
+   "it": "Identificativo del modello per l'API Anthropic.",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ]
+  },
+  {
+   "key": "AURORA_CLAUDE_CODE_BIN",
+   "type": "str",
+   "category": "llm",
+   "recommended": "claude",
+   "evidence": "owner",
+   "en": "Claude Code executable (name in PATH or full path).",
+   "it": "Eseguibile di Claude Code (nome nel PATH o percorso completo).",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ]
+  },
+  {
+   "key": "AURORA_CLAUDE_CODE_MODEL",
+   "type": "str",
+   "category": "llm",
+   "recommended": "opus",
+   "evidence": "owner",
+   "en": "Model alias for Claude Code (opus, sonnet, haiku or a full id).",
+   "it": "Alias del modello per Claude Code (opus, sonnet, haiku o id completo).",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ]
+  },
+  {
+   "key": "AURORA_CLOUD_COMPRESSION",
+   "type": "bool",
+   "category": "llm",
+   "recommended": "true",
+   "evidence": "owner",
+   "en": "Compress the passages sent to a cloud reasoner (SSCC salience, sentence level). Saving logged per call.",
+   "it": "Comprime i passaggi inviati al ragionatore cloud (salienza SSCC, per frase). Risparmio registrato a ogni chiamata.",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ]
+  },
+  {
+   "key": "AURORA_CLOUD_KEEP_PCT",
+   "type": "int",
+   "category": "llm",
+   "recommended": "35",
+   "evidence": "owner (SSCC paper default 0.35)",
+   "en": "Percent of sentences kept by the compression.",
+   "it": "Percentuale di frasi mantenute dalla compressione.",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ],
+   "min": 10,
+   "max": 100
+  },
+  {
+   "key": "AURORA_PIPELINE_GATE",
+   "type": "bool",
+   "category": "pipeline",
+   "recommended": "1",
+   "evidence": "M24",
+   "en": "Before answering, check that the passages answer this very question; if not, abstain (and keep searching). Halves wrong answers.",
+   "it": "Prima di rispondere, verificare che i passaggi rispondano proprio a questa domanda; se no, astenersi (e continuare a cercare). Dimezza le risposte sbagliate.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_PIPELINE_THINKING",
+   "type": "bool",
+   "category": "pipeline",
+   "recommended": "1",
+   "evidence": "M22",
+   "en": "Extended reasoning in synthesis: +15 points correct when the knowledge is there; used together with the gate.",
+   "it": "Ragionamento esteso nella sintesi: +15 punti di risposte corrette quando la conoscenza c'è; si usa insieme al cancello.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_VERIFY_MODE",
+   "type": "enum",
+   "choices": [
+    "all",
+    "all_or_english",
+    "cited"
+   ],
+   "category": "pipeline",
+   "recommended": "all",
+   "evidence": "M32: 32 real sentences judged by Claude — all: 0 unsupported kept, 6/18 correct dropped; all_or_english: 4 kept, 1 dropped; cited: 8 kept, 4 dropped",
+   "en": "How each sentence of an answer is verified: against every passage given to synthesis (all), the same with a second try in English (all_or_english, keeps more correct sentences and a few unsupported ones), or only the cited passages (cited, the old way).",
+   "it": "Come si verifica ogni frase della risposta: contro tutti i passaggi dati alla sintesi (all), lo stesso con un secondo tentativo in inglese (all_or_english: tiene più frasi corrette e qualche frase non supportata), o solo contro i passaggi citati (cited, il vecchio modo).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_PIPELINE_VERIFY",
+   "type": "bool",
+   "category": "pipeline",
+   "recommended": "1",
+   "evidence": "M22",
+   "en": "Check every sentence against the solitons it cites and drop unsupported ones (citations 98-100% faithful).",
+   "it": "Verificare ogni frase contro i solitoni che cita e togliere quelle non sostenute (citazioni fedeli al 98-100%).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_PIPELINE_THINK_TOKENS",
+   "type": "int",
+   "category": "pipeline",
+   "recommended": "6000",
+   "evidence": "M22",
+   "en": "Token budget of one reasoning step (1 answer in 40 exhausted 6,000).",
+   "it": "Budget di token di un passo di ragionamento (1 risposta su 40 ha esaurito 6.000).",
+   "services": [
+    "aurora-api"
+   ],
+   "min": 256,
+   "max": 65536
+  },
+  {
+   "key": "AURORA_SERVICE_USER",
+   "type": "str",
+   "category": "services",
+   "recommended": "master",
+   "evidence": "owner",
+   "en": "System user that runs the services.",
+   "it": "Utente di sistema che esegue i servizi.",
+   "services": [
+    "all"
+   ]
+  },
+  {
+   "key": "AURORA_TIMEZONE",
+   "type": "str",
+   "category": "senses",
+   "recommended": "Europe/Rome",
+   "evidence": "owner",
+   "en": "Time zone of Aurora's clock (IANA name). Every prompt carries the exact local time.",
+   "it": "Fuso orario dell'orologio di Aurora (nome IANA). Ogni prompt contiene l'ora locale esatta.",
+   "services": [
+    "aurora-api",
+    "aurora-rem",
+    "aurora-harvester"
+   ]
+  },
+  {
+   "key": "AURORA_WEATHER_PROVIDER",
+   "type": "enum",
+   "category": "senses",
+   "recommended": "open-meteo",
+   "evidence": "owner",
+   "en": "Weather source: open-meteo (no key) or openweathermap (needs AURORA_WEATHER_API_KEY).",
+   "it": "Fonte del meteo: open-meteo (senza chiave) o openweathermap (serve AURORA_WEATHER_API_KEY).",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ],
+   "choices": [
+    "open-meteo",
+    "openweathermap"
+   ]
+  },
+  {
+   "key": "AURORA_WEATHER_API_KEY",
+   "type": "str",
+   "category": "senses",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "OpenWeatherMap key; empty with open-meteo.",
+   "it": "Chiave di OpenWeatherMap; vuota con open-meteo.",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ],
+   "secret": true,
+   "optional": true
+  },
+  {
+   "key": "AURORA_WEATHER_LAT",
+   "type": "str",
+   "category": "senses",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Latitude of Aurora's home (decimal degrees). Empty: weather sense off. Private: stays in .env only.",
+   "it": "Latitudine della casa di Aurora (gradi decimali). Vuota: senso del meteo spento. Privata: resta solo nel .env.",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ]
+  },
+  {
+   "key": "AURORA_WEATHER_LON",
+   "type": "str",
+   "category": "senses",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Longitude of Aurora's home (decimal degrees).",
+   "it": "Longitudine della casa di Aurora (gradi decimali).",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ]
+  },
+  {
+   "key": "AURORA_WEATHER_PLACE",
+   "type": "str",
+   "category": "senses",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Name of the place, for Aurora's words.",
+   "it": "Nome del luogo, per le parole di Aurora.",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ]
+  },
+  {
+   "key": "AURORA_WEATHER_INTERVAL_MIN",
+   "type": "int",
+   "category": "senses",
+   "recommended": "15",
+   "evidence": "INITIAL",
+   "en": "Minutes a weather reading is kept before asking again.",
+   "it": "Minuti per cui una lettura del meteo resta valida prima di richiederla.",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ],
+   "min": 5,
+   "max": 180
+  },
+  {
+   "key": "AURORA_MEDIA_DIR",
+   "type": "path",
+   "category": "layout",
+   "recommended": "usr/media",
+   "evidence": "owner",
+   "en": "Images Aurora makes (dreams, generations).",
+   "it": "Immagini create da Aurora (sogni, generazioni).",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ]
+  },
+  {
+   "key": "AURORA_REM_ENABLED",
+   "type": "bool",
+   "category": "rem",
+   "recommended": "1",
+   "evidence": "owner",
+   "en": "The autonomic cycle runs: consolidation, reflections, dreams.",
+   "it": "Il ciclo autonomo è attivo: consolidamento, riflessioni, sogni.",
+   "services": [
+    "aurora-rem"
+   ]
+  },
+  {
+   "key": "AURORA_REM_TICK_S",
+   "type": "int",
+   "category": "rem",
+   "recommended": "60",
+   "evidence": "INITIAL",
+   "en": "Seconds between two looks of the autonomic cycle at Aurora's state.",
+   "it": "Secondi tra due controlli del ciclo autonomo sullo stato di Aurora.",
+   "services": [
+    "aurora-rem"
+   ],
+   "min": 10,
+   "max": 3600
+  },
+  {
+   "key": "AURORA_REM_IDLE_MIN",
+   "type": "int",
+   "category": "rem",
+   "recommended": "20",
+   "evidence": "INITIAL",
+   "en": "Minutes without messages before the cycle works (it never competes with a conversation).",
+   "it": "Minuti senza messaggi prima che il ciclo lavori (non entra mai in concorrenza con una conversazione).",
+   "services": [
+    "aurora-rem"
+   ],
+   "min": 1,
+   "max": 1440
+  },
+  {
+   "key": "AURORA_REM_SESSION_GAP_MIN",
+   "type": "int",
+   "category": "rem",
+   "recommended": "30",
+   "evidence": "INITIAL",
+   "en": "A pause this long between turns closes a conversation session; each closed session is consolidated into one memory.",
+   "it": "Una pausa così lunga tra due turni chiude una sessione di conversazione; ogni sessione chiusa viene consolidata in un ricordo.",
+   "services": [
+    "aurora-rem"
+   ],
+   "min": 5,
+   "max": 1440
+  },
+  {
+   "key": "AURORA_REM_BORED_MIN",
+   "type": "int",
+   "category": "rem",
+   "recommended": "120",
+   "evidence": "INITIAL",
+   "en": "Idle minutes after which Aurora may have a spontaneous reflection (sooner when it rains or the sky is overcast).",
+   "it": "Minuti di inattività dopo i quali Aurora può avere una riflessione spontanea (prima se piove o il cielo è coperto).",
+   "services": [
+    "aurora-rem"
+   ],
+   "min": 10,
+   "max": 10080
+  },
+  {
+   "key": "AURORA_REM_REFLECTION_GAP_MIN",
+   "type": "int",
+   "category": "rem",
+   "recommended": "240",
+   "evidence": "INITIAL",
+   "en": "At most one spontaneous reflection in this many minutes.",
+   "it": "Al massimo una riflessione spontanea ogni tanti minuti.",
+   "services": [
+    "aurora-rem"
+   ],
+   "min": 30,
+   "max": 10080
+  },
+  {
+   "key": "AURORA_REM_DREAM_HOURS",
+   "type": "str",
+   "category": "rem",
+   "recommended": "2-6",
+   "evidence": "owner",
+   "en": "Night window (local hours, start-end) in which Aurora dreams, once per night.",
+   "it": "Finestra notturna (ore locali, inizio-fine) in cui Aurora sogna, una volta per notte.",
+   "services": [
+    "aurora-rem"
+   ]
+  },
+  {
+   "key": "AURORA_IMAGE_ENABLED",
+   "type": "bool",
+   "category": "rem",
+   "recommended": "true",
+   "evidence": "owner",
+   "en": "Aurora paints her dreams (SDXL-Lightning).",
+   "it": "Aurora dipinge i suoi sogni (SDXL-Lightning).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_IMAGE_MODEL_DIR",
+   "type": "path",
+   "category": "rem",
+   "recommended": "sys/models/image/SDXL-Lightning",
+   "evidence": "owner",
+   "en": "Folder with stable-diffusion-xl-base-1.0 and sdxl_lightning_4step_lora.safetensors.",
+   "it": "Cartella con stable-diffusion-xl-base-1.0 e sdxl_lightning_4step_lora.safetensors.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_IMAGE_DIR",
+   "type": "path",
+   "category": "rem",
+   "recommended": "usr/images",
+   "evidence": "owner",
+   "en": "Where painted images are saved (with the AI disclosure).",
+   "it": "Dove vengono salvate le immagini dipinte (con la dichiarazione IA).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_IMAGE_GPU",
+   "type": "int",
+   "category": "rem",
+   "recommended": "0",
+   "evidence": "owner",
+   "en": "GPU used to paint.",
+   "it": "GPU usata per dipingere.",
+   "services": [
+    "aurora-api"
+   ],
+   "min": 0,
+   "max": 15
+  },
+  {
+   "key": "AURORA_IMAGE_MIN_FREE_GB",
+   "type": "float",
+   "category": "rem",
+   "recommended": "7",
+   "evidence": "M27: peak 6.21 GB",
+   "en": "Free GPU memory needed to paint; below it the reasoner is swapped out.",
+   "it": "Memoria GPU libera necessaria per dipingere; sotto, il ragionatore viene fermato e riavviato.",
+   "services": [
+    "aurora-api"
+   ],
+   "min": 1,
+   "max": 80
+  },
+  {
+   "key": "AURORA_IMAGE_SWAP_LLM",
+   "type": "bool",
+   "category": "rem",
+   "recommended": "true",
+   "evidence": "owner",
+   "en": "May stop aurora-llm while painting and start it again (about a minute, at night).",
+   "it": "Può fermare aurora-llm durante la pittura e riavviarlo (circa un minuto, di notte).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_IMAGE_SIZE",
+   "type": "str",
+   "category": "rem",
+   "recommended": "1344x768",
+   "evidence": "M27",
+   "en": "Width x height of painted images.",
+   "it": "Larghezza x altezza delle immagini dipinte.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_IMAGE_TIMEOUT_S",
+   "type": "int",
+   "category": "rem",
+   "recommended": "300",
+   "evidence": "owner",
+   "en": "Longest wait for one painting (and for the reasoner to come back).",
+   "it": "Attesa massima per un dipinto (e per il ritorno del ragionatore).",
+   "services": [
+    "aurora-api"
+   ],
+   "min": 30,
+   "max": 3600
+  },
+  {
+   "key": "AURORA_CHAT_DREAM_HOURS",
+   "type": "int",
+   "category": "rem",
+   "recommended": "36",
+   "evidence": "owner",
+   "en": "Dreams of the last hours shown in the chat.",
+   "it": "Sogni delle ultime ore mostrati in chat.",
+   "services": [
+    "aurora-api"
+   ],
+   "min": 0,
+   "max": 720
+  },
+  {
+   "key": "AURORA_HARVEST_ENABLED",
+   "type": "bool",
+   "category": "harvest",
+   "recommended": "0",
+   "evidence": "owner (2026-09-30: off by default)",
+   "en": "The harvester brings new papers into the vault. It waits for a running migration to finish.",
+   "it": "L'harvester porta nuovi articoli nel vault. Aspetta che una migrazione in corso finisca.",
+   "services": [
+    "aurora-harvester"
+   ]
+  },
+  {
+   "key": "AURORA_HARVEST_CATEGORIES",
+   "type": "list",
+   "category": "harvest",
+   "recommended": "cs.AI,cs.LG,cs.CL,quant-ph,gr-qc,hep-th,math-ph,cond-mat.str-el,nlin.PS,physics.gen-ph,astro-ph.CO,math.DG,stat.ML,cs.CR,cs.SE,cs.PL",
+   "evidence": "owner",
+   "en": "arXiv categories harvested, newest first; each goes to its domain (config/arxiv_domains.json).",
+   "it": "Categorie arXiv raccolte, dalle più recenti; ognuna va nel suo dominio (config/arxiv_domains.json).",
+   "services": [
+    "aurora-harvester"
+   ]
+  },
+  {
+   "key": "AURORA_HARVEST_PER_CATEGORY",
+   "type": "int",
+   "category": "harvest",
+   "recommended": "10",
+   "evidence": "INITIAL",
+   "en": "New papers per category per round.",
+   "it": "Nuovi articoli per categoria a ogni giro.",
+   "services": [
+    "aurora-harvester"
+   ],
+   "min": 1,
+   "max": 200
+  },
+  {
+   "key": "AURORA_HARVEST_INTERVAL_H",
+   "type": "int",
+   "category": "harvest",
+   "recommended": "6",
+   "evidence": "INITIAL",
+   "en": "Hours between two harvesting rounds.",
+   "it": "Ore tra due giri di raccolta.",
+   "services": [
+    "aurora-harvester"
+   ],
+   "min": 1,
+   "max": 168
+  },
+  {
+   "key": "AURORA_PLUGINS_DIR",
+   "type": "path",
+   "category": "layout",
+   "recommended": "sys/plugins",
+   "evidence": "owner",
+   "en": "Installed plugins: one folder each with its plugin.json manifest.",
+   "it": "Plugin installati: una cartella ciascuno con il suo manifest plugin.json.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_PLUGIN_TIMEOUT_S",
+   "type": "int",
+   "category": "plugins",
+   "recommended": "300",
+   "evidence": "INITIAL",
+   "en": "Longest time a plugin tool call may take (tests included).",
+   "it": "Tempo massimo di una chiamata a uno strumento di un plugin (test compresi).",
+   "services": [
+    "aurora-api"
+   ],
+   "min": 5,
+   "max": 3600
+  },
+  {
+   "key": "AURORA_AGENT_MAX_STEPS",
+   "type": "int",
+   "category": "agents",
+   "recommended": "60",
+   "evidence": "owner",
+   "en": "Steps (tool calls) an agent run may take before it reports what it has.",
+   "it": "Passi (chiamate a strumenti) di un agente prima che riporti quello che ha.",
+   "services": [
+    "aurora-api"
+   ],
+   "min": 1,
+   "max": 200
+  },
+  {
+   "key": "AURORA_AGENT_MAX_MIN",
+   "type": "int",
+   "category": "agents",
+   "recommended": "90",
+   "evidence": "owner",
+   "en": "Minutes an agent run may take before it reports what it has.",
+   "it": "Minuti di un agente prima che riporti quello che ha.",
+   "services": [
+    "aurora-api"
+   ],
+   "min": 1,
+   "max": 600
+  },
+  {
+   "key": "AURORA_SELF_REPAIR",
+   "type": "bool",
+   "category": "agents",
+   "recommended": "1",
+   "evidence": "owner",
+   "en": "After a self-review that found problems, an agent investigates, fixes in the sandbox and proposes the change (applied as AURORA_FORGE_MODE says).",
+   "it": "Dopo un'autodiagnosi che ha trovato problemi, un agente indaga, corregge nella sandbox e propone la modifica (applicata come dice AURORA_FORGE_MODE).",
+   "services": [
+    "aurora-rem"
+   ]
+  },
+  {
+   "key": "AURORA_GITHUB_TOKEN",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "GitHub personal access token for the GitHub plugin; empty: plugin off.",
+   "it": "Token di accesso personale GitHub per il plugin GitHub; vuoto: plugin spento.",
+   "services": [
+    "aurora-api"
+   ],
+   "secret": true,
+   "optional": true
+  },
+  {
+   "key": "AURORA_TELEGRAM_BOT_TOKEN",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Telegram bot token (from @BotFather); empty: plugin off.",
+   "it": "Token del bot Telegram (da @BotFather); vuoto: plugin spento.",
+   "services": [
+    "aurora-api"
+   ],
+   "secret": true,
+   "optional": true
+  },
+  {
+   "key": "AURORA_TELEGRAM_OWNER_CHAT_ID",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "The owner's Telegram chat id: messages go there by default.",
+   "it": "L'id della chat Telegram del proprietario: i messaggi vanno lì per default.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_FACEBOOK_PAGE_ID",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Facebook page Aurora may publish on; empty: plugin off.",
+   "it": "Pagina Facebook su cui Aurora può pubblicare; vuota: plugin spento.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_FACEBOOK_PAGE_TOKEN",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Page access token of that Facebook page.",
+   "it": "Token di accesso di quella pagina Facebook.",
+   "services": [
+    "aurora-api"
+   ],
+   "secret": true,
+   "optional": true
+  },
+  {
+   "key": "AURORA_AI_DISCLOSURE",
+   "type": "bool",
+   "category": "compliance",
+   "recommended": "1",
+   "evidence": "EU AI Act art. 50",
+   "en": "Mark what Aurora generates as AI-generated: a line on published text, machine-readable metadata and a label on images. Forced on unless the owner's installation is exempted (ethics code, level B).",
+   "it": "Marca ciò che Aurora genera come generato da IA: una riga sui testi pubblicati, metadati leggibili dalle macchine e un'etichetta sulle immagini. Obbligatorio salvo esenzione dell'installazione del proprietario (codice etico, livello B).",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ]
+  },
+  {
+   "key": "AURORA_AI_DISCLOSURE_IT",
+   "type": "str",
+   "category": "compliance",
+   "recommended": "🤖 Contenuto generato con l'intelligenza artificiale (Aurora).",
+   "evidence": "EU AI Act art. 50",
+   "en": "Disclosure line for Italian text.",
+   "it": "Riga di dichiarazione per i testi in italiano.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_AI_DISCLOSURE_EN",
+   "type": "str",
+   "category": "compliance",
+   "recommended": "🤖 Content generated with artificial intelligence (Aurora).",
+   "evidence": "EU AI Act art. 50",
+   "en": "Disclosure line for English text.",
+   "it": "Riga di dichiarazione per i testi in inglese.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_AI_IMAGE_LABEL",
+   "type": "bool",
+   "category": "compliance",
+   "recommended": "1",
+   "evidence": "owner",
+   "en": "A small visible \"AI · Aurora\" label on generated images (the machine-readable mark is always there).",
+   "it": "Una piccola etichetta visibile \"AI · Aurora\" sulle immagini generate (il marchio leggibile dalle macchine c'è sempre).",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ]
+  },
+  {
+   "key": "AURORA_ETHICS_EXEMPTION",
+   "type": "path",
+   "category": "compliance",
+   "recommended": "sys/core/ethics/exemption.sig",
+   "evidence": "owner",
+   "en": "Owner's exemption from level B of the ethics code, signed for this machine only (never in git). Level A is always active.",
+   "it": "Esenzione del proprietario dal livello B del codice etico, firmata solo per questa macchina (mai su git). Il livello A è sempre attivo.",
+   "services": [
+    "aurora-api",
+    "aurora-rem",
+    "aurora-harvester",
+    "aurora-models"
+   ]
+  },
+  {
+   "key": "AURORA_PROJECTS_DIR",
+   "type": "path",
+   "category": "projects",
+   "recommended": "usr/projects",
+   "evidence": "owner",
+   "en": "Where Aurora creates and keeps software projects (one git repository each).",
+   "it": "Dove Aurora crea e tiene i progetti software (un repository git ciascuno).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_GIT_AUTHOR_NAME",
+   "type": "str",
+   "category": "projects",
+   "recommended": "Aurora",
+   "evidence": "owner",
+   "en": "Author name of Aurora's commits.",
+   "it": "Nome dell'autore dei commit di Aurora.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_GIT_AUTHOR_EMAIL",
+   "type": "str",
+   "category": "projects",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Author email of Aurora's commits (empty: aurora@localhost).",
+   "it": "Email dell'autore dei commit di Aurora (vuota: aurora@localhost).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_GITHUB_OWNER",
+   "type": "str",
+   "category": "projects",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "GitHub user or organisation new repositories are created under.",
+   "it": "Utente od organizzazione GitHub sotto cui creare i nuovi repository.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_MASTODON_URL",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Address of the owner's Mastodon instance (https://...); empty: plugin off.",
+   "it": "Indirizzo dell'istanza Mastodon del proprietario (https://...); vuoto: plugin spento.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_MASTODON_TOKEN",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Access token of the owner's Mastodon account (read and write:statuses).",
+   "it": "Token di accesso dell'account Mastodon del proprietario (read e write:statuses).",
+   "services": [
+    "aurora-api"
+   ],
+   "secret": true,
+   "optional": true
+  },
+  {
+   "key": "AURORA_SENTINEL_BIND",
+   "type": "str",
+   "category": "security",
+   "recommended": "127.0.0.1:5514",
+   "evidence": "owner",
+   "en": "Address:port where the firewall's syslog (UDP) is received. To receive from the LAN use the machine's LAN address: opening the port is the owner's decision.",
+   "it": "Indirizzo:porta dove si ricevono i syslog del firewall (UDP). Per ricevere dalla LAN usa l'indirizzo LAN della macchina: aprire la porta è una decisione del proprietario.",
+   "services": [
+    "aurora-sentinel"
+   ]
+  },
+  {
+   "key": "AURORA_SENTINEL_ALLOW",
+   "type": "list",
+   "category": "security",
+   "recommended": "127.0.0.1",
+   "evidence": "owner",
+   "en": "Addresses allowed to send syslog (the firewall); anything else is dropped.",
+   "it": "Indirizzi autorizzati a inviare syslog (il firewall); il resto viene scartato.",
+   "services": [
+    "aurora-sentinel"
+   ]
+  },
+  {
+   "key": "AURORA_SENTINEL_WINDOW_MIN",
+   "type": "int",
+   "category": "security",
+   "recommended": "5",
+   "evidence": "INITIAL",
+   "en": "Sliding window of the detector, in minutes.",
+   "it": "Finestra mobile del rilevatore, in minuti.",
+   "services": [
+    "aurora-sentinel"
+   ],
+   "min": 1,
+   "max": 120
+  },
+  {
+   "key": "AURORA_SENTINEL_DENY_THRESHOLD",
+   "type": "int",
+   "category": "security",
+   "recommended": "50",
+   "evidence": "INITIAL",
+   "en": "Denied connections from one source within the window that make an incident.",
+   "it": "Connessioni negate da una stessa sorgente nella finestra che fanno un incidente.",
+   "services": [
+    "aurora-sentinel"
+   ],
+   "min": 5,
+   "max": 100000
+  },
+  {
+   "key": "AURORA_SENTINEL_SCAN_PORTS",
+   "type": "int",
+   "category": "security",
+   "recommended": "20",
+   "evidence": "INITIAL",
+   "en": "Distinct destination ports from one source within the window that make a port-scan incident.",
+   "it": "Porte di destinazione diverse da una stessa sorgente nella finestra che fanno un incidente di scansione.",
+   "services": [
+    "aurora-sentinel"
+   ],
+   "min": 3,
+   "max": 65535
+  },
+  {
+   "key": "AURORA_SENTINEL_INVESTIGATE",
+   "type": "bool",
+   "category": "security",
+   "recommended": "1",
+   "evidence": "owner",
+   "en": "Investigate every incident at once (public registry data, report, recommended actions).",
+   "it": "Indagare subito ogni incidente (dati pubblici del registro, resoconto, azioni consigliate).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_ABUSEIPDB_KEY",
+   "type": "str",
+   "category": "security",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "AbuseIPDB API key for IP reputation (optional).",
+   "it": "Chiave API di AbuseIPDB per la reputazione degli IP (facoltativa).",
+   "services": [
+    "aurora-api"
+   ],
+   "secret": true,
+   "optional": true
+  },
+  {
+   "key": "AURORA_BRAVE_SEARCH_KEY",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Brave Search API key for web search (optional).",
+   "it": "Chiave API di Brave Search per la ricerca web (facoltativa).",
+   "services": [
+    "aurora-api"
+   ],
+   "secret": true,
+   "optional": true
+  },
+  {
+   "key": "AURORA_EMAIL_IMAP_HOST",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "IMAP server of the owner's mailbox, host[:port] (TLS, default 993).",
+   "it": "Server IMAP della casella del proprietario, host[:porta] (TLS, default 993).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_EMAIL_SMTP_HOST",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "SMTP server, host[:port] (465 TLS or 587 STARTTLS).",
+   "it": "Server SMTP, host[:porta] (465 TLS o 587 STARTTLS).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_EMAIL_USER",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Mailbox user (address).",
+   "it": "Utente della casella (indirizzo).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_EMAIL_PASSWORD",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Mailbox password or app password.",
+   "it": "Password della casella o password per app.",
+   "services": [
+    "aurora-api"
+   ],
+   "secret": true,
+   "optional": true
+  },
+  {
+   "key": "AURORA_HA_URL",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Home Assistant address (https://... recommended).",
+   "it": "Indirizzo di Home Assistant (https://... consigliato).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_HA_TOKEN",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Home Assistant long-lived access token.",
+   "it": "Token di accesso a lunga durata di Home Assistant.",
+   "services": [
+    "aurora-api"
+   ],
+   "secret": true,
+   "optional": true
+  },
+  {
+   "key": "AURORA_DOCUMENTS_DIR",
+   "type": "path",
+   "category": "documents",
+   "recommended": "usr/documents",
+   "evidence": "owner",
+   "en": "Where Aurora keeps the documents (PDF) she writes.",
+   "it": "Dove Aurora tiene i documenti (PDF) che scrive.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_CHROME_BIN",
+   "type": "path_abs",
+   "category": "documents",
+   "recommended": "/usr/bin/google-chrome",
+   "evidence": "owner",
+   "en": "Chrome or Chromium executable, used headless to print documents to PDF.",
+   "it": "Eseguibile di Chrome o Chromium, usato senza interfaccia per stampare i documenti in PDF.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_UPDATE_MODE",
+   "type": "enum",
+   "choices": [
+    "notify",
+    "auto",
+    "off"
+   ],
+   "category": "services",
+   "recommended": "notify",
+   "evidence": "owner",
+   "en": "Updates from the GitHub repository: notify (you read the list of changes and approve), auto (applied when safe: no protected file, tests green; otherwise it asks), off.",
+   "it": "Aggiornamenti dal repository GitHub: notify (leggi l'elenco delle novità e approvi), auto (applicati se sicuri: nessun file protetto, test verdi; altrimenti chiede), off.",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ]
+  },
+  {
+   "key": "AURORA_UPDATE_INTERVAL_H",
+   "type": "int",
+   "category": "services",
+   "recommended": "24",
+   "evidence": "owner",
+   "en": "Hours between two update checks.",
+   "it": "Ore tra due controlli degli aggiornamenti.",
+   "services": [
+    "aurora-rem"
+   ],
+   "min": 1,
+   "max": 720
+  },
+  {
+   "key": "AURORA_UPDATE_REMOTE",
+   "type": "str",
+   "category": "services",
+   "recommended": "origin",
+   "evidence": "git",
+   "en": "Git remote the updates come from.",
+   "it": "Remote git da cui arrivano gli aggiornamenti.",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ]
+  },
+  {
+   "key": "AURORA_UPDATE_BRANCH",
+   "type": "str",
+   "category": "services",
+   "recommended": "main",
+   "evidence": "git",
+   "en": "Branch followed for updates.",
+   "it": "Branch seguito per gli aggiornamenti.",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ]
+  },
+  {
+   "key": "AURORA_SENSES_CAMERA",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "auto",
+   "evidence": "owner",
+   "en": "Camera Aurora uses (/dev/videoN), or auto for the first one found.",
+   "it": "Videocamera usata da Aurora (/dev/videoN), o auto per la prima trovata.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_SENSES_MIC",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "auto",
+   "evidence": "owner",
+   "en": "Microphone Aurora uses (PipeWire source name), or auto for the first one found.",
+   "it": "Microfono usato da Aurora (nome della sorgente PipeWire), o auto per il primo trovato.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_SENSES_PHOTO_SIZE",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "1280x720",
+   "evidence": "measured: 1.2 s per photo on an HP 320 FHD",
+   "en": "Size of the photos taken by the camera.",
+   "it": "Dimensione delle foto scattate dalla videocamera.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_SENSES_LISTEN_MAX_S",
+   "type": "int",
+   "category": "plugins",
+   "recommended": "30",
+   "evidence": "owner",
+   "en": "Longest recording, in seconds.",
+   "it": "Registrazione più lunga, in secondi.",
+   "services": [
+    "aurora-api"
+   ],
+   "min": 1,
+   "max": 600
+  },
+  {
+   "key": "AURORA_STT_MODEL_DIR",
+   "type": "path",
+   "category": "plugins",
+   "recommended": "sys/models/stt/whisper-large-v3-turbo",
+   "evidence": "measured on CPU: 13 s of English speech in 5.2 s, exact",
+   "en": "Speech-to-text model (Whisper), run on the CPU.",
+   "it": "Modello di trascrizione vocale (Whisper), eseguito sulla CPU.",
+   "services": [
+    "aurora-api"
+   ]
+  }
+ ]
+}

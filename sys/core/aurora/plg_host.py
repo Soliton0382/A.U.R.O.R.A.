@@ -1,0 +1,188 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 A.U.R.O.R.A. Project
+"""Plugin host: Aurora is the only MCP client; plugins are child processes on stdio, never on a port.
+
+A plugin is a folder in AURORA_PLUGINS_DIR with a manifest, plugin.json:
+
+  {"name": "telegram", "version": "1.0", "kind": "connector",
+   "description": {"en": "...", "it": "..."},
+   "command": ["{python}", "server.py"],          # {python}: Aurora's venv, {plugin}: this folder, {root}
+   "env": ["AURORA_TELEGRAM_BOT_TOKEN"],           # the only .env values the process receives
+   "requires": ["AURORA_TELEGRAM_BOT_TOKEN"],      # available only when these are not empty
+   "effects": {"send_message": "external", "*": "read"},
+   "effect_prefixes": {"get_": "read"}}            # optional: by tool-name prefix (large connectors)
+
+Effects decide the gate (sys_approvals): read and write_local run at once, external and
+code_change wait for the owner as the .env says. The owner can switch a plugin off; the
+state lives in <AURORA_STATUS_DIR>/plugins.json. One process per call keeps plugins
+isolated and stateless; tool lists are cached until the manifest changes.
+"""
+from __future__ import annotations
+
+import asyncio
+import json
+import os
+import sys
+import threading
+import time
+from dataclasses import dataclass, field
+from pathlib import Path
+
+from . import sys_config, sys_log
+
+EFFECTS = ("read", "write_local", "external", "code_change")
+_lock = threading.Lock()
+
+
+def _explain(e: BaseException) -> str:
+    """The real error inside the task groups of the MCP client."""
+    while isinstance(e, BaseExceptionGroup) and e.exceptions:
+        e = e.exceptions[0]
+    return f"{type(e).__name__}: {e}"
+
+
+@dataclass
+class Plugin:
+    name: str
+    folder: Path
+    manifest: dict
+    missing: list[str] = field(default_factory=list)       # required .env keys that are empty
+    enabled: bool = True
+    tools: list[dict] = field(default_factory=list)          # {"name", "description", "input_schema", "effect"}
+    error: str = ""
+
+    @property
+    def available(self) -> bool:
+        return self.enabled and not self.missing and not self.error
+
+    def effect(self, tool: str) -> str:
+        m = self.manifest
+        if tool in m.get("effects", {}):
+            return m["effects"][tool]
+        for prefix, eff in m.get("effect_prefixes", {}).items():
+            if tool.startswith(prefix):
+                return eff
+        return m.get("effects", {}).get("*", "external")      # unknown: the careful default
+
+
+class PluginHost:
+    def __init__(self, cfg: sys_config.Config | None = None):
+        self.cfg = cfg or sys_config.get()
+        self.dir = self.cfg.path("AURORA_PLUGINS_DIR")
+        self.state_file = self.cfg.path("AURORA_STATUS_DIR") / "plugins.json"
+        self.log = sys_log.get_logger("plugins")
+        self._cache: dict[str, tuple[float, list[dict]]] = {}
+
+    # ---- discovery and state ---------------------------------------------------------------
+    def _state(self) -> dict:
+        return json.loads(self.state_file.read_text(encoding="utf-8")) if self.state_file.exists() else {}
+
+    def set_enabled(self, name: str, enabled: bool) -> None:
+        with _lock:
+            st = self._state()
+            st.setdefault(name, {})["enabled"] = enabled
+            self.state_file.parent.mkdir(parents=True, exist_ok=True)
+            tmp = self.state_file.with_suffix(".tmp")
+            tmp.write_text(json.dumps(st, indent=1), encoding="utf-8")
+            os.replace(tmp, self.state_file)
+        self.log.info("audit: plugin %s %s", name, "enabled" if enabled else "disabled")
+
+    def plugins(self, with_tools: bool = True) -> list[Plugin]:
+        out, st = [], self._state()
+        if not self.dir.is_dir():
+            return out
+        for mf in sorted(self.dir.glob("*/plugin.json")):
+            try:
+                manifest = json.loads(mf.read_text(encoding="utf-8"))
+            except ValueError as e:
+                out.append(Plugin(mf.parent.name, mf.parent, {}, error=f"bad manifest: {e}"))
+                continue
+            p = Plugin(manifest.get("name", mf.parent.name), mf.parent, manifest,
+                       missing=[k for k in manifest.get("requires", []) if not str(self.cfg.values.get(k, "") or "").strip()],
+                       enabled=st.get(manifest.get("name", mf.parent.name), {}).get("enabled", True))
+            from . import sys_ethics
+            if (bad := sys_ethics.forbidden_capabilities(manifest)):      # ethics code, level A: never loaded
+                p.error = f"refused by the ethics code (level A): {', '.join(bad)}"
+                self.log.warning("plugin %s refused by the ethics code: %s", p.name, ", ".join(bad))
+                out.append(p)
+                continue
+            if with_tools and p.enabled and not p.missing:
+                try:
+                    p.tools = self._tools(p, mf.stat().st_mtime)
+                except Exception as e:                       # a broken plugin must not break the others
+                    p.error = _explain(e)
+                    self.log.warning("plugin %s: cannot list tools: %s", p.name, p.error)
+            out.append(p)
+        return out
+
+    def get(self, name: str) -> Plugin | None:
+        return next((p for p in self.plugins() if p.name == name), None)
+
+    # ---- MCP over stdio ------------------------------------------------------------------
+    def _params(self, p: Plugin):
+        from mcp import StdioServerParameters
+        subst = {"{python}": sys.executable, "{plugin}": str(p.folder), "{root}": str(self.cfg.root)}
+        cmd = []
+        for a in p.manifest["command"]:
+            for k, v in subst.items():
+                a = a.replace(k, v)
+            cmd.append(a)
+        env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "HOME": os.environ.get("HOME", ""),
+               "AURORA_ENV_FILE": str(self.cfg.env_file), "PYTHONPATH": str(Path(__file__).resolve().parents[1])}
+        for k in p.manifest.get("env", []):
+            env[k] = str(self.cfg.values.get(k, "") or "")
+        for k, v in p.manifest.get("env_as", {}).items():     # .env key -> name the program expects
+            env[v] = str(self.cfg.values.get(k, "") or "")
+        return StdioServerParameters(command=cmd[0], args=cmd[1:], env=env, cwd=str(p.folder))
+
+    async def _session(self, p: Plugin, work):
+        from mcp import ClientSession
+        from mcp.client.stdio import stdio_client
+        errlog = open(self.cfg.path("AURORA_LOG_DIR") / "plugins" / f"{p.name}.stderr.log", "a", encoding="utf-8")
+        try:
+            async with stdio_client(self._params(p), errlog=errlog) as (read, write):
+                async with ClientSession(read, write) as session:
+                    await session.initialize()
+                    return await work(session)
+        finally:
+            errlog.close()
+
+    def _run(self, coro):
+        return asyncio.run(asyncio.wait_for(coro, self.cfg["AURORA_PLUGIN_TIMEOUT_S"]))
+
+    def _tools(self, p: Plugin, mtime: float) -> list[dict]:
+        cached = self._cache.get(p.name)
+        if cached and cached[0] == mtime:
+            return cached[1]
+
+        async def work(session):
+            res = await session.list_tools()
+            return [{"name": t.name, "description": t.description or "", "input_schema": t.input_schema or {},
+                     "effect": p.effect(t.name)} for t in res.tools]
+        (self.cfg.path("AURORA_LOG_DIR") / "plugins").mkdir(parents=True, exist_ok=True)
+        tools = self._run(self._session(p, work))
+        self._cache[p.name] = (mtime, tools)
+        return tools
+
+    def call(self, plugin: str, tool: str, args: dict, run_id: str | None = None) -> dict:
+        """Run one tool now (the gate is the caller's job). Returns {"ok", "text", "seconds"}."""
+        p = self.get(plugin)
+        if p is None or not p.available:
+            return {"ok": False, "text": f"plugin {plugin} not available"
+                                        + (f" (missing {', '.join(p.missing)})" if p and p.missing else ""), "seconds": 0}
+        t0 = time.time()
+
+        async def work(session):
+            return await session.call_tool(tool, args or {})
+        try:
+            res = self._run(self._session(p, work))
+            parts = [c.text for c in getattr(res, "content", []) if getattr(c, "type", "") == "text"]
+            ok = not getattr(res, "is_error", False)
+            text = "\n".join(parts)
+        except Exception as e:
+            ok, text = False, _explain(e)
+        secs = round(time.time() - t0, 2)
+        self.log.info("call %s.%s (%s) %s in %.1f s", plugin, tool, p.effect(tool), "ok" if ok else "FAILED", secs)
+        sys_log.trace("plugins", "plugin.call", {"plugin": plugin, "tool": tool, "effect": p.effect(tool), "ok": ok,
+                                                 "seconds": secs}, run_id=run_id)
+        return {"ok": ok, "text": text, "seconds": secs}

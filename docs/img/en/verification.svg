@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" width="720" height="380" role="img" aria-labelledby="t d">
+<title id="t">Sentence verification: who errs, and how</title>
+<desc id="d">32 real sentences judged by Claude (opus) · M32. correct sentences dropped (of 18): cited passages
+(before) 4, cited,
+English sentence 2, all passages
+(now) 6, all,
+in English 2, all,
+Italian or English 1; unsupported sentences kept (of 14): cited passages
+(before) 8, cited,
+English sentence 12, all passages
+(now) 0, all,
+in English 4, all,
+Italian or English 4</desc>
+<style>
+.bg{fill:#fcfcfb}.t1{fill:#0b0b0b}.t2{fill:#52514e}.grid{stroke:#e4e3df}.axis{stroke:#bdbcb6}
+.s1{fill:#2a78d6}.s2{fill:#eb6834}.s3{fill:#1baf7a}.ref{stroke:#52514e}
+@media (prefers-color-scheme: dark){.bg{fill:#1a1a19}.t1{fill:#ffffff}.t2{fill:#c3c2b7}.grid{stroke:#383835}
+.axis{stroke:#5c5b57}.s1{fill:#3987e5}.s2{fill:#d95926}.s3{fill:#199e70}.ref{stroke:#c3c2b7}}
+text{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+</style>
+<rect class="bg" width="720" height="380" rx="8"/>
+<text class="t1" x="56" y="30" font-size="17" font-weight="600">Sentence verification: who errs, and how</text>
+<text class="t2" x="56" y="52" font-size="12.5">32 real sentences judged by Claude (opus) · M32</text>
+<rect class="s1" x="56" y="68" width="12" height="12" rx="3"/><text class="t2" x="74" y="78.5" font-size="12.5">correct sentences dropped (of 18)</text>
+<rect class="s2" x="317.0" y="68" width="12" height="12" rx="3"/><text class="t2" x="335.0" y="78.5" font-size="12.5">unsupported sentences kept (of 14)</text>
+<line class="grid" x1="56" x2="696" y1="316.0" y2="316.0" stroke-width="1"/><text class="t2" x="48" y="320.0" font-size="11" text-anchor="end">0</text>
+<line class="grid" x1="56" x2="696" y1="263.0" y2="263.0" stroke-width="1"/><text class="t2" x="48" y="267.0" font-size="11" text-anchor="end">4</text>
+<line class="grid" x1="56" x2="696" y1="210.0" y2="210.0" stroke-width="1"/><text class="t2" x="48" y="214.0" font-size="11" text-anchor="end">8</text>
+<line class="grid" x1="56" x2="696" y1="157.0" y2="157.0" stroke-width="1"/><text class="t2" x="48" y="161.0" font-size="11" text-anchor="end">12</text>
+<line class="grid" x1="56" x2="696" y1="104.0" y2="104.0" stroke-width="1"/><text class="t2" x="48" y="108.0" font-size="11" text-anchor="end">16</text>
+<path class="s1" d="M80.3,316.0 V267.0 Q80.3,263.0 84.3,263.0 H115.0 Q119.0,263.0 119.0,267.0 V316.0 Z"/>
+<text class="t1" x="99.7" y="257.0" font-size="12" text-anchor="middle" font-weight="600">4</text>
+<path class="s2" d="M121.0,316.0 V214.0 Q121.0,210.0 125.0,210.0 H155.7 Q159.7,210.0 159.7,214.0 V316.0 Z"/>
+<text class="t1" x="140.3" y="204.0" font-size="12" text-anchor="middle" font-weight="600">8</text>
+<text class="t2" x="120.0" y="334.0" font-size="12" text-anchor="middle">cited passages</text>
+<text class="t2" x="120.0" y="348.0" font-size="12" text-anchor="middle">(before)</text>
+<path class="s1" d="M208.3,316.0 V293.5 Q208.3,289.5 212.3,289.5 H243.0 Q247.0,289.5 247.0,293.5 V316.0 Z"/>
+<text class="t1" x="227.7" y="283.5" font-size="12" text-anchor="middle" font-weight="600">2</text>
+<path class="s2" d="M249.0,316.0 V161.0 Q249.0,157.0 253.0,157.0 H283.7 Q287.7,157.0 287.7,161.0 V316.0 Z"/>
+<text class="t1" x="268.3" y="151.0" font-size="12" text-anchor="middle" font-weight="600">12</text>
+<text class="t2" x="248.0" y="334.0" font-size="12" text-anchor="middle">cited,</text>
+<text class="t2" x="248.0" y="348.0" font-size="12" text-anchor="middle">English sentence</text>
+<path class="s1" d="M336.3,316.0 V240.5 Q336.3,236.5 340.3,236.5 H371.0 Q375.0,236.5 375.0,240.5 V316.0 Z"/>
+<text class="t1" x="355.7" y="230.5" font-size="12" text-anchor="middle" font-weight="600">6</text>
+<text class="t1" x="396.3" y="310.0" font-size="12" text-anchor="middle" font-weight="600">0</text>
+<text class="t2" x="376.0" y="334.0" font-size="12" text-anchor="middle">all passages</text>
+<text class="t2" x="376.0" y="348.0" font-size="12" text-anchor="middle">(now)</text>
+<path class="s1" d="M464.3,316.0 V293.5 Q464.3,289.5 468.3,289.5 H499.0 Q503.0,289.5 503.0,293.5 V316.0 Z"/>
+<text class="t1" x="483.7" y="283.5" font-size="12" text-anchor="middle" font-weight="600">2</text>
+<path class="s2" d="M505.0,316.0 V267.0 Q505.0,263.0 509.0,263.0 H539.7 Q543.7,263.0 543.7,267.0 V316.0 Z"/>
+<text class="t1" x="524.3" y="257.0" font-size="12" text-anchor="middle" font-weight="600">4</text>
+<text class="t2" x="504.0" y="334.0" font-size="12" text-anchor="middle">all,</text>
+<text class="t2" x="504.0" y="348.0" font-size="12" text-anchor="middle">in English</text>
+<path class="s1" d="M592.3,316.0 V306.8 Q592.3,302.8 596.3,302.8 H627.0 Q631.0,302.8 631.0,306.8 V316.0 Z"/>
+<text class="t1" x="611.7" y="296.8" font-size="12" text-anchor="middle" font-weight="600">1</text>
+<path class="s2" d="M633.0,316.0 V267.0 Q633.0,263.0 637.0,263.0 H667.7 Q671.7,263.0 671.7,267.0 V316.0 Z"/>
+<text class="t1" x="652.3" y="257.0" font-size="12" text-anchor="middle" font-weight="600">4</text>
+<text class="t2" x="632.0" y="334.0" font-size="12" text-anchor="middle">all,</text>
+<text class="t2" x="632.0" y="348.0" font-size="12" text-anchor="middle">Italian or English</text>
+<line class="axis" x1="56" x2="696" y1="316" y2="316" stroke-width="1"/>
+<text class="t2" x="56" y="368" font-size="11">Chosen: “all passages”, the only rule that lets no unsupported sentence through.</text>
+</svg>

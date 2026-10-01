@@ -1,0 +1,50 @@
+{
+  "name": "github",
+  "version": "1.12.2",
+  "kind": "connector",
+  "description": {
+    "en": "GitHub through the official GitHub MCP server: repositories, issues, pull requests, code search. Reading is automatic; every write (issue, comment, commit, push, merge) waits for the owner.",
+    "it": "GitHub tramite il server MCP ufficiale di GitHub: repository, issue, pull request, ricerca nel codice. Leggere è automatico; ogni scrittura (issue, commento, commit, push, merge) aspetta il proprietario."
+  },
+  "command": [
+    "{root}/sys/runtime/github-mcp-server/github-mcp-server",
+    "stdio"
+  ],
+  "env_as": {
+    "AURORA_GITHUB_TOKEN": "GITHUB_PERSONAL_ACCESS_TOKEN"
+  },
+  "requires": [
+    "AURORA_GITHUB_TOKEN"
+  ],
+  "effect_prefixes": {
+    "get_": "read",
+    "list_": "read",
+    "search_": "read"
+  },
+  "effects": {
+    "*": "external"
+  },
+  "publishes": {
+    "add_issue_comment": "body",
+    "create_issue": "body",
+    "create_pull_request": "body"
+  },
+  "setup": {
+    "it": "1. Su GitHub → **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**.\n2. Scadenza (ad esempio 90 giorni); *Repository access*: tutti i repository o solo quelli scelti.\n3. Permessi *Repository*: **Contents**, **Issues**, **Pull requests** in *Read and write*; **Administration** in *Read and write* solo se vuoi che Aurora crei repository nuovi.\n4. Genera e copia il token → Aurora **Impostazioni → Plugin**: `AURORA_GITHUB_TOKEN`. Facoltativi: `AURORA_GITHUB_OWNER` (utente od organizzazione dei nuovi repository), `AURORA_GIT_AUTHOR_NAME`/`EMAIL`.\n5. **▶ Prova** su `get_me`: vedi il tuo utente GitHub.\n\nTutto ciò che scrive su GitHub (commit, issue, pull request, push) passa da **Riparazioni** per la tua approvazione.",
+    "en": "Fine-grained personal access token with Contents, Issues, Pull requests (read and write), Administration only to create repositories → `AURORA_GITHUB_TOKEN`. **▶ Try** `get_me`.",
+    "links": [
+      {
+        "label": "Token fine-grained",
+        "url": "https://github.com/settings/personal-access-tokens"
+      },
+      {
+        "label": "Guida ufficiale ai token",
+        "url": "https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens"
+      },
+      {
+        "label": "GitHub MCP server (ufficiale)",
+        "url": "https://github.com/github/github-mcp-server"
+      }
+    ]
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "name": "projects",
+  "version": "1.0",
+  "kind": "tool",
+  "description": {
+    "en": "Software projects in AURORA_PROJECTS_DIR: scaffold (README, licence, .gitignore, changelog), write files, commit locally; publishing to GitHub and pushing wait for the owner.",
+    "it": "Progetti software in AURORA_PROJECTS_DIR: impalcatura (README, licenza, .gitignore, changelog), scrittura dei file, commit in locale; pubblicare su GitHub e fare push aspettano il proprietario."
+  },
+  "command": [
+    "{python}",
+    "server.py"
+  ],
+  "env": [
+    "AURORA_GITHUB_TOKEN"
+  ],
+  "requires": [],
+  "effects": {
+    "project_list": "read",
+    "project_tree": "read",
+    "project_read_file": "read",
+    "project_status": "read",
+    "project_create": "write_local",
+    "project_write_file": "write_local",
+    "project_commit": "write_local",
+    "project_publish": "external",
+    "project_push": "external",
+    "*": "external"
+  },
+  "publishes": {},
+  "setup": {
+    "it": "Funziona subito in locale (`usr/projects`). Per **pubblicare** su GitHub serve il token del plugin **github** (`AURORA_GITHUB_TOKEN`, con *Administration* per creare repository). Facoltativi: `AURORA_GITHUB_OWNER`, `AURORA_GIT_AUTHOR_NAME`, `AURORA_GIT_AUTHOR_EMAIL` (titolare della licenza e autore dei commit).",
+    "en": "Works locally at once; publishing needs `AURORA_GITHUB_TOKEN`.",
+    "links": [
+      {
+        "label": "Token GitHub (serve per pubblicare)",
+        "url": "https://github.com/settings/personal-access-tokens"
+      }
+    ]
+  },
+  "settings": [
+    "AURORA_GITHUB_TOKEN",
+    "AURORA_GITHUB_OWNER",
+    "AURORA_GIT_AUTHOR_NAME",
+    "AURORA_GIT_AUTHOR_EMAIL"
+  ]
+}

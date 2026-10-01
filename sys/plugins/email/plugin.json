@@ -1,0 +1,54 @@
+{
+  "name": "email",
+  "version": "1.0",
+  "kind": "connector",
+  "description": {
+    "en": "The owner's mailbox over encrypted connections only (IMAPS, SMTP with TLS): read unread messages; sending waits for the owner and carries the AI disclosure.",
+    "it": "La casella del proprietario solo su connessioni cifrate (IMAPS, SMTP con TLS): leggere i messaggi non letti; inviare aspetta il proprietario e porta la dichiarazione IA."
+  },
+  "command": [
+    "{python}",
+    "server.py"
+  ],
+  "env": [
+    "AURORA_EMAIL_IMAP_HOST",
+    "AURORA_EMAIL_SMTP_HOST",
+    "AURORA_EMAIL_USER",
+    "AURORA_EMAIL_PASSWORD"
+  ],
+  "requires": [
+    "AURORA_EMAIL_IMAP_HOST",
+    "AURORA_EMAIL_USER",
+    "AURORA_EMAIL_PASSWORD"
+  ],
+  "capabilities": [
+    "mailbox_owner"
+  ],
+  "effects": {
+    "list_unread": "read",
+    "read_message": "read",
+    "send_email": "external",
+    "*": "external"
+  },
+  "publishes": {
+    "send_email": "body"
+  },
+  "setup": {
+    "it": "Aurora usa solo connessioni cifrate (IMAP su TLS, SMTP su TLS o STARTTLS).\n\n**Gmail**: attiva la verifica in due passaggi, poi crea una **password per le app** e usala al posto della tua password. IMAP `imap.gmail.com:993`, SMTP `smtp.gmail.com:465`.\n**Altri provider**: cerca nelle impostazioni del provider i server IMAP/SMTP con SSL/TLS.\n\n1. Aurora → **Impostazioni → Plugin**: `AURORA_EMAIL_IMAP_HOST`, `AURORA_EMAIL_SMTP_HOST`, `AURORA_EMAIL_USER` (il tuo indirizzo), `AURORA_EMAIL_PASSWORD`.\n2. **▶ Prova** su `list_unread`: i messaggi restano non letti.\n\nInviare una mail è un'azione esterna: passa sempre dalla tua approvazione e porta la dichiarazione IA.",
+    "en": "IMAPS/SMTP with TLS only. Gmail: app password; imap.gmail.com:993, smtp.gmail.com:465. **▶ Try** `list_unread`.",
+    "links": [
+      {
+        "label": "Gmail – password per le app",
+        "url": "https://support.google.com/accounts/answer/185833"
+      },
+      {
+        "label": "Crea password per le app",
+        "url": "https://myaccount.google.com/apppasswords"
+      },
+      {
+        "label": "Gmail – impostazioni IMAP",
+        "url": "https://support.google.com/mail/answer/7126229"
+      }
+    ]
+  }
+}

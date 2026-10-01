@@ -1,0 +1,24 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 A.U.R.O.R.A. Project
+// The showcase: which modules make up the WebUI, in menu order.
+// Views get a page and a menu entry; widgets live in a slot (background, topbar).
+// Adding a piece to the interface = one import and one line here.
+import approvals from "./modules/approvals.js";
+import alerts from "./modules/alerts.js";
+import chat from "./modules/chat.js";
+import diary from "./modules/diary.js";
+import harvester from "./modules/harvester.js";
+import notifications from "./modules/notifications.js";
+import importDocs from "./modules/import.js";
+import metrics from "./modules/metrics.js";
+import plugins from "./modules/plugins.js";
+import runs from "./modules/runs.js";
+import settings from "./modules/settings.js";
+import security from "./modules/security.js";
+import sky from "./modules/sky.js";
+import social from "./modules/social.js";
+import status from "./modules/status.js";
+import updates from "./modules/updates.js";
+
+export const views = [chat, approvals, security, diary, social, plugins, importDocs, harvester, runs, status, notifications, updates, settings];
+export const widgets = [sky, alerts, metrics];

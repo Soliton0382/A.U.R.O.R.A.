@@ -1,0 +1,22 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright 2026 A.U.R.O.R.A. Project */
+/* Health dot and pending-approval bell next to Aurora's name. */
+#slot-alerts { display: flex; align-items: center; gap: .5rem; }
+.health-dot { width: .85rem; height: .85rem; padding: 0; border-radius: 50%; border: 0; cursor: pointer; }
+.health-dot.ok { background: var(--ok); box-shadow: 0 0 8px rgba(91, 208, 138, .7); }
+.health-dot.warn { background: var(--warn); box-shadow: 0 0 8px rgba(240, 179, 90, .8); }
+.health-dot.down { background: var(--bad); box-shadow: 0 0 10px rgba(239, 107, 107, .9); animation: pulse 1.2s ease-in-out infinite; }
+.health-dot.unknown { background: #555; }
+.bell { font-size: .8rem; padding: .15rem .6rem; border-radius: 999px; border-color: var(--warn); color: #ffd79a;
+  background: rgba(240, 179, 90, .15); animation: pulse 1.6s ease-in-out infinite; white-space: nowrap; }
+@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .55; transform: scale(1.06); } }
+@media (prefers-reduced-motion: reduce) { .bell, .health-dot.down { animation: none; } }
+.bell.shield { border-color: var(--warn); }
+.bell.shield.high { border-color: var(--bad); color: #ffb0b0; background: rgba(239, 107, 107, .18); }
+.notif-toggle { font-size: 1rem; padding: .1rem .35rem; border-radius: 999px; background: transparent; border-color: transparent; opacity: .6; cursor: pointer; }
+.notif-toggle.on { opacity: 1; }
+.notif-toggle.hidden { display: none; }
+.toasts { position: fixed; right: 16px; bottom: 16px; z-index: 900; display: flex; flex-direction: column; gap: 8px; max-width: min(380px, calc(100vw - 32px)); }
+.toast { display: flex; flex-direction: column; gap: 2px; text-align: left; padding: .6rem .8rem; border-radius: 10px;
+  background: var(--panel-solid, #11141c); border: 1px solid var(--line, #333); box-shadow: 0 6px 24px rgba(0,0,0,.45); cursor: pointer; }
+.toast span { font-size: .85rem; color: var(--muted, #aaa); }

@@ -1,0 +1,47 @@
+{
+  "name": "telegram",
+  "version": "1.0",
+  "kind": "connector",
+  "description": {
+    "en": "Telegram through Aurora's bot: send a message (waits for the owner unless confirmation is off), read the messages the bot received.",
+    "it": "Telegram tramite il bot di Aurora: inviare un messaggio (aspetta il proprietario salvo conferma disattivata), leggere i messaggi ricevuti dal bot."
+  },
+  "command": [
+    "{python}",
+    "server.py"
+  ],
+  "env": [
+    "AURORA_TELEGRAM_BOT_TOKEN",
+    "AURORA_TELEGRAM_OWNER_CHAT_ID"
+  ],
+  "requires": [
+    "AURORA_TELEGRAM_BOT_TOKEN"
+  ],
+  "effects": {
+    "send_message": "external",
+    "get_me": "read",
+    "get_updates": "read",
+    "*": "external"
+  },
+  "publishes": {
+    "send_message": "text"
+  },
+  "setup": {
+    "it": "1. In Telegram apri **@BotFather**, scrivi `/newbot`, scegli nome e username: ricevi il **token** del bot.\n2. Aurora → **Impostazioni → Plugin**: `AURORA_TELEGRAM_BOT_TOKEN` = il token. Salva.\n3. Scrivi un messaggio qualsiasi al tuo bot (serve perché il bot conosca la tua chat).\n4. Qui sotto premi **▶ Prova** su `get_updates`: nel risultato, il numero dopo `chat` è il tuo **chat id** → mettilo in `AURORA_TELEGRAM_OWNER_CHAT_ID`.\n5. **▶ Prova** su `get_me` deve mostrare il nome del bot.\n\nNota: i messaggi dei bot sono cifrati verso Telegram ma non end-to-end.",
+    "en": "1. In Telegram open **@BotFather**, `/newbot`: you get the bot **token** → `AURORA_TELEGRAM_BOT_TOKEN`.\n2. Send any message to your bot, then **▶ Try** `get_updates`: the number after `chat` is your chat id → `AURORA_TELEGRAM_OWNER_CHAT_ID`.",
+    "links": [
+      {
+        "label": "Tutorial ufficiale dei bot",
+        "url": "https://core.telegram.org/bots/tutorial"
+      },
+      {
+        "label": "BotFather",
+        "url": "https://core.telegram.org/bots/features#botfather"
+      },
+      {
+        "label": "Bot API – getUpdates",
+        "url": "https://core.telegram.org/bots/api#getupdates"
+      }
+    ]
+  }
+}

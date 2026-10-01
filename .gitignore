@@ -1,0 +1,42 @@
+# Secrets and local configuration: .env holds values and credentials.
+.env
+.env.*
+!.env.example
+
+# Environments
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Aurora's data: models, vault, indexes, logs, runtime state, user files.
+sys/models/
+sys/vault/
+sys/logs/
+sys/status/
+sys/tmp/
+sys/sandbox/
+usr/
+
+# Scratch space
+tmp/
+
+# Editors and OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Built or downloaded by the installer: llama.cpp (sys_nvidia.sh llama), GitHub MCP server
+sys/runtime/
+
+# The owner's Claude Code workspace (personal paths and settings)
+.claude/
+CLAUDE.md
+
+# Generated from .env (absolute paths): regenerate with sys/core/script/sys_install_services.py
+sys/deploy/
+sys/https/
+# Signed per installation with its own key (/etc/aurora): never committed
+sys/core/ethics/MANIFEST.json
+sys/core/ethics/exemption.sig

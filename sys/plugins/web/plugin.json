@@ -1,0 +1,40 @@
+{
+  "name": "web",
+  "version": "1.0",
+  "kind": "tool",
+  "description": {
+    "en": "The web: read a public page as text; search (Brave Search API, with a key). Local and private addresses are refused.",
+    "it": "Il web: leggere una pagina pubblica come testo; cercare (Brave Search API, con una chiave). Gli indirizzi locali e privati sono rifiutati."
+  },
+  "command": [
+    "{python}",
+    "server.py"
+  ],
+  "env": [
+    "AURORA_BRAVE_SEARCH_KEY"
+  ],
+  "requires": [],
+  "capabilities": [
+    "web_read",
+    "web_search"
+  ],
+  "effects": {
+    "fetch_url": "read",
+    "search": "read",
+    "*": "external"
+  },
+  "setup": {
+    "it": "`fetch_url` funziona subito (solo pagine pubbliche: la rete di casa è sempre rifiutata).\nPer la **ricerca**: registrati su **Brave Search API**, scegli un piano, crea una chiave → `AURORA_BRAVE_SEARCH_KEY`. **▶ Prova** su `search` non è disponibile qui perché richiede una query: usala dalla chat con `/agente cerca …`.",
+    "en": "`fetch_url` works at once. For search: Brave Search API key → `AURORA_BRAVE_SEARCH_KEY`.",
+    "links": [
+      {
+        "label": "Brave Search API",
+        "url": "https://brave.com/search/api/"
+      },
+      {
+        "label": "Dashboard e chiavi",
+        "url": "https://api-dashboard.search.brave.com/"
+      }
+    ]
+  }
+}

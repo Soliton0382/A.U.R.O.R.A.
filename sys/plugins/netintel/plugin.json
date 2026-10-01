@@ -1,0 +1,46 @@
+{
+  "name": "netintel",
+  "version": "1.0",
+  "kind": "tool",
+  "description": {
+    "en": "Defensive network intelligence on an IP address, from public sources only: registry (RDAP: network, organisation, country of registration, abuse contact), reverse DNS, reputation (AbuseIPDB, with a key). Never about persons.",
+    "it": "Informazioni difensive su un indirizzo IP, solo da fonti pubbliche: registro (RDAP: rete, organizzazione, paese di registrazione, contatto abuse), DNS inverso, reputazione (AbuseIPDB, con una chiave). Mai sulle persone."
+  },
+  "command": [
+    "{python}",
+    "server.py"
+  ],
+  "env": [
+    "AURORA_ABUSEIPDB_KEY"
+  ],
+  "requires": [],
+  "capabilities": [
+    "network_registry",
+    "ip_reputation",
+    "reverse_dns"
+  ],
+  "effects": {
+    "rdap_ip": "read",
+    "reverse_dns": "read",
+    "ip_reputation": "read",
+    "*": "external"
+  },
+  "setup": {
+    "it": "Registro RDAP e DNS inverso funzionano subito. Per la **reputazione** degli IP: registrati su **AbuseIPDB** → *Account → API* → *Create Key* → `AURORA_ABUSEIPDB_KEY`.",
+    "en": "RDAP and reverse DNS work at once; AbuseIPDB key for reputation → `AURORA_ABUSEIPDB_KEY`.",
+    "links": [
+      {
+        "label": "AbuseIPDB – registrazione",
+        "url": "https://www.abuseipdb.com/register"
+      },
+      {
+        "label": "AbuseIPDB – documentazione",
+        "url": "https://docs.abuseipdb.com/"
+      },
+      {
+        "label": "Cos'è RDAP",
+        "url": "https://about.rdap.org/"
+      }
+    ]
+  }
+}

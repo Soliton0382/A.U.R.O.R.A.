@@ -1,0 +1,39 @@
+# Compatibility
+
+What Aurora was measured on (**recommended**: the owner's machine), and what is expected to work.
+"Measured" means run here, with the measurement named; everything else is marked as not measured.
+
+## Recommended stack (measured, 2026-10-01)
+
+| layer | version | how it is installed | evidence |
+|---|---|---|---|
+| OS | Ubuntu 26.04 LTS, kernel 7.0.0-34-generic | — | all services, tests |
+| GPUs | 2 × NVIDIA GeForce RTX 5060 Ti 16 GB (Blackwell, compute capability 12.0) | — | M23, M28 |
+| NVIDIA driver | **595-open (595.91.07, CUDA 13.2)**; 580-server-open (580.178.04, CUDA 13.0) also measured | Ubuntu's signed, precompiled modules (`linux-modules-nvidia-*-generic`), never NVIDIA's driver packages | `sys_nvidia.sh verify`; M34: 112.4 tok/s on 595, 112.3 on 580 |
+| CUDA toolkit | 13.4 (`cuda-toolkit-13-4`) from NVIDIA's ubuntu2604 repository, toolkit only, apt pin against NVIDIA drivers | `sys_nvidia.sh toolkit` | M34 |
+| llama.cpp | commit 7fee178, built for sm_120 with CUDA 13.4, RUNPATH $ORIGIN | `sys_nvidia.sh llama` | M34: 112.3 tok/s |
+| Python | 3.14 (venv) with torch 2.14 + cu130 (carries its own CUDA runtime and cuDNN) | requirements.txt | tests |
+| Reasoner | Qwen3.6-35B-A3B UD-Q4_K_M, ctx 32k, split 4.5,3.5 over two GPUs | — | M28 |
+| Encoder / re-ranker | Qwen3-Embedding-0.6B / bge-reranker-v2-m3 (GPU 1, ~3.3-6.2 GB) | — | M25, M31 |
+| Images | SDXL-Lightning 4 steps, CPU offload, reasoner swapped out (~20 s) | — | M27 |
+| HTTPS | Caddy, TLS 1.3 | install.sh | SECURITY.md |
+
+## Rules learnt the hard way
+
+- The driver comes from Ubuntu, CUDA toolkits from NVIDIA: installing NVIDIA's `cuda` meta-package
+  pulls NVIDIA's driver and fights Ubuntu's (the GPUs disappeared in March 2026 after repeated
+  580 ↔ 590 switches). `sys_nvidia.sh toolkit` pins NVIDIA's driver packages to -1.
+- Blackwell (RTX 50) needs the **open** kernel modules and nvcc ≥ 12.8 to build native kernels.
+- The toolkit may be newer than the driver within CUDA 13 (13.4 toolkit on a 13.0 driver: verified);
+  a newer *major* needs a newer driver.
+- cuDNN from a repository for another Ubuntu release is not needed: torch's wheel carries its own.
+
+## Expected to work, not measured
+
+| case | expectation |
+|---|---|
+| one 24 GB GPU | the reasoner fits on one GPU with the models service on the same card only if VRAM allows; not measured |
+| one 16 GB GPU | reasoner with MoE experts on CPU (`AURORA_LLM_CPU_MOE_LAYERS`, M23 measured the transfer cost), slower; not measured end to end |
+| Ampere / Ada (RTX 30 / 40) | CUDA 13 supports them; `sys_nvidia.sh llama` builds for the compute capability it finds; not measured |
+| no NVIDIA GPU | not supported today |
+| other distributions | the scripts use apt and Ubuntu's driver packages: Ubuntu only |
