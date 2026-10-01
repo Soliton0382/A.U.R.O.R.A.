@@ -33,6 +33,7 @@
     PUT  /v1/aurora/harvester/domains {domain: off|round|exhaust}   which domains it harvests, and how
     GET|POST /v1/aurora/routines; PUT|DELETE /v1/aurora/routines/{id}; POST /v1/aurora/routines/{id}/run
     POST /v1/aurora/routines/tick                  aurora-rem: start the due routines, welcome newly ready plugins
+    GET  /v1/aurora/forge; POST /v1/aurora/forge/tick  the capability forge: requests, and aurora-rem builds them
     GET  /v1/aurora/projects[/github]; GET /v1/aurora/projects/{name}/{tree|file|log}; POST .../preview
     POST /v1/aurora/projects {name,...} (create); POST /v1/aurora/projects/clone {full_name}
     GET  /v1/preview/{token}/{path}                a project's page, sandboxed, under a 10-minute token (no cookie)
@@ -1049,6 +1050,69 @@ async def project_clone(request: Request) -> dict:
     return {"name": dest.name}
 
 
+# ---- the capability forge (agt_forge): Aurora builds the plugin she is missing -----------------------------
+
+def _forge_done(req_id: str, name: str) -> None:
+    """A forged plugin is live: tell the owner, and run again the routine that asked for it."""
+    from aurora import agt_forge, sys_routines
+    req = agt_forge.update(cfg, req_id, status="installed", plugin=name, installed=time.time())
+    note("forge", "forge.installed", {"id": req_id, "plugin": name,
+                                      "text": f"Mi sono costruita il plugin «{name}»: {req['need'][:160]}"})
+    r = sys_routines.get(cfg, req["routine"]) if req.get("routine") else None
+    if r:
+        _start_routine(r)
+
+
+def _forge_job(req: dict):
+    def job(q, emit, run_id):
+        from aurora import agt_forge
+        from aurora.kno_answer import Answer
+        from aurora.plg_host import PluginHost
+        agt_forge.update(cfg, req["id"], status="building", started=time.time(), attempts=req.get("attempts", 0) + 1)
+        emit("forge.start", {"id": req["id"], "need": req["need"]})
+        host = PluginHost(cfg)
+        res = agt_forge.build(cfg, pipeline().llm, host, req, emit)     # the local reasoner: it looks at the data
+        if not res["ok"]:
+            agt_forge.update(cfg, req["id"], status="failed", errors=res["errors"][:5])
+            note("forge", "forge.failed", {"id": req["id"], "text": f"Non sono riuscita a costruire: {req['need'][:120]}"})
+            return Answer(run_id, q, "Forgia non riuscita: " + "; ".join(res["errors"])[:1500], False, mode="agent")
+        m = res["manifest"]
+        if agt_forge.read_only(m):
+            agt_forge.install(cfg, res["stage"])
+            log.info("audit: forged plugin %s installed (read only, no network)", m["name"])
+            _forge_done(req["id"], m["name"])
+            text = f"Plugin «{m['name']}» costruito, provato nella gabbia e acceso (sola lettura, senza rete)."
+        else:
+            from aurora.sys_approvals import Approvals
+            code = (Path(res["stage"]) / "server.py").read_text(encoding="utf-8")
+            item = Approvals(cfg).request("plugin_install", "external", f"Installare il plugin «{m['name']}»?",
+                                          f"{req['need']}\n\nMotivo: {req['why']}",
+                                          {"manifest": m, "server.py": code[:6000]},
+                                          {"request": req["id"], "stage": res["stage"], "name": m["name"]}, run_id)
+            agt_forge.update(cfg, req["id"], status="proposed", plugin=m["name"], approval=item["id"])
+            note("forge", "approval.pending", {"id": item["id"], "kind": "plugin_install", "title": item["title"]})
+            text = f"Plugin «{m['name']}» costruito e provato: scrive, invia o usa la rete, quindi aspetta la tua approvazione."
+        return Answer(run_id, q, text, False, mode="agent")
+    return job
+
+
+@app.get("/v1/aurora/forge", dependencies=[Depends(auth)])
+def forge_list() -> dict:
+    from aurora import agt_forge
+    return {"requests": list(reversed(agt_forge.requests(cfg)))}
+
+
+@app.post("/v1/aurora/forge/tick", dependencies=[Depends(auth)])
+def forge_tick() -> dict:
+    """aurora-rem, every tick: the oldest pending request is built (one at a time)."""
+    from aurora import agt_forge
+    req = agt_forge.next_pending(cfg)
+    if req is None:
+        return {"started": None}
+    agt_forge.update(cfg, req["id"], status="building", started=time.time())
+    return {"started": start_run(f"[forge] {req['need'][:120]}", origin="forge", job=_forge_job(req))["id"]}
+
+
 # ---- routines: periodic checks the owner switched on (sys_routines) -------------------------------------
 
 def _routine_job(r: dict):
@@ -1056,7 +1120,7 @@ def _routine_job(r: dict):
     from aurora.kno_answer import Answer
 
     def job(q, emit, run_id):
-        ok, text = True, ""
+        ok, text, files = True, "", []
         if r["kind"] == "tool":
             from aurora.plg_host import PluginHost
             host = PluginHost(cfg)
@@ -1077,14 +1141,15 @@ def _routine_job(r: dict):
                     "owner already scheduled: do not create or change routines, do not study Aurora's code to do it; use "
                     "the tools that read the data. If no tool can read what is needed, say so in one line.)")
             try:
-                ans = Agent(pipeline(), cfg, notify=lambda e, p: note("agent", e, p)).run(
-                    goal, emit, run_id, f"Routine: {r.get('title', '')}. Read only.")
-                text = ans.text.strip()
+                agent = Agent(pipeline(), cfg, notify=lambda e, p: note("agent", e, p))
+                agent.routine = r["id"]                     # a capability it requests runs this routine again
+                ans = agent.run(goal, emit, run_id, f"Routine: {r.get('title', '')}. Read only.")
+                text, files = ans.text.strip(), agent.produced
             except Exception as e:                       # a failed routine is recorded and said, never left pending
                 log.exception("routine %s failed", r["id"])
                 ok, text = False, f"{type(e).__name__}: {str(e)[:300]}"
                 ans = Answer(run_id, q, f"Routine non riuscita: {text}", False, mode="agent")
-        routine, notify = sys_routines.record(cfg, r["id"], text, ok, run_id)
+        routine, notify = sys_routines.record(cfg, r["id"], text, ok, run_id, files)
         if notify:
             note("routine", r.get("event", "routine.done") if ok else "routine.failed",
                  {"routine": r["id"], "title": routine.get("title", ""), "run_id": run_id,
@@ -1499,6 +1564,10 @@ def _agent_job(goal: str, context: str = "", after=None, remember: bool = False,
         asked_at = now_iso()
         agent = Agent(pipeline(), cfg, notify=lambda e, p: note("agent", e, p))
         ans = agent.run(goal, emit, run_id, context)
+        if agent.produced:                             # the documents it wrote stay with its turn (downloadable)
+            from aurora import sys_uploads
+            for f in agent.produced:
+                sys_uploads.link(cfg, run_id, f["name"], f["url"], f["mime"])
         if remember:
             pipeline().remember(label or f"/agente {goal}", ans, run_id, emit, agent.trail, asked_at)
         if after:
@@ -1670,6 +1739,12 @@ def decide(approval_id: str, decision: str) -> dict:
                 from aurora import agt_change
                 out = agt_change.apply(item["action"]["sandbox_id"], emit, cfg)
                 ok = out.get("applied", False)
+            elif item["kind"] == "plugin_install":          # a forged plugin the owner approved
+                from aurora import agt_forge
+                a = item["action"]
+                dest = agt_forge.install(cfg, a["stage"])
+                _forge_done(a["request"], a["name"])
+                out, ok = {"installed": str(dest)}, True
             elif item["kind"] == "update":
                 from aurora import sys_update
                 out = sys_update.apply(cfg, emit)

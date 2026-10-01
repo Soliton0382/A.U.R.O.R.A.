@@ -123,6 +123,15 @@ export default {
     if (r.last_run) {
       c.append(el("div", "muted", `${t("rt.last")} ${clock(r.last_run)} ${r.last_ok === false ? "❌" : r.last_ok ? "✅" : "⏳"}`));
       if (r.last_text) c.append(renderMarkdown(r.last_text));
+      if (r.last_files?.length) {                   // documents the routine wrote: download them
+        const row = el("div", "chips");
+        for (const f of r.last_files) {
+          const a = el("a", "chip"); a.href = f.url; a.setAttribute("download", f.name);
+          a.append(el("span", "", "📄"), el("span", "", f.name));
+          row.append(a);
+        }
+        c.append(row);
+      }
     }
     return c;
   },

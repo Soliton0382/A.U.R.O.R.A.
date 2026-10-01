@@ -37,6 +37,8 @@ TEXTS = {   # event -> (kind the owner chooses, view to open, {lang: title})
     "routine.failed": ("routine", "routines", {"it": "⚠️ Una routine non è riuscita", "en": "⚠️ A routine failed"}),
     "weather.daily": ("weather", "routines", {"it": "☀️ Il meteo di oggi", "en": "☀️ Today's weather"}),
     "weather.alert": ("weather", "routines", {"it": "⛈️ Allerta meteo", "en": "⛈️ Weather alert"}),
+    "forge.installed": ("plugin", "plugins", {"it": "🔨 Aurora si è costruita un plugin", "en": "🔨 Aurora built herself a plugin"}),
+    "forge.failed": ("plugin", "plugins", {"it": "🔨 Una capacità non è riuscita", "en": "🔨 A capability could not be built"}),
     "plugin.ready": ("plugin", "routines", {"it": "🧩 Nuovo plugin pronto", "en": "🧩 New plugin ready"}),
     "test": ("test", "chat", {"it": "🔔 Notifiche attive", "en": "🔔 Notifications on"}),
 }
@@ -67,7 +69,9 @@ def prefs(cfg: sys_config.Config) -> dict:
         new = [k for k in PRESETS["suggested"] if k not in p.get("known", KNOWN_BEFORE)]
         return {c: [k for k in KINDS if k in p.get(c, []) or k in new] for c in CHANNELS}
     except (OSError, ValueError):
+        # never chosen: AURORA_PUSH_EVENTS, plus the suggested kinds that setting predates (routines, weather, plugins)
         push = [k.strip() for k in cfg["AURORA_PUSH_EVENTS"].split(",") if k.strip() in KINDS]
+        push += [k for k in PRESETS["suggested"] if k not in KNOWN_BEFORE and k not in push]
         return {"push": push, "webui": list(PRESETS["suggested"])}
 
 

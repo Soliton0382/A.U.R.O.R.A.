@@ -160,14 +160,15 @@ def should_notify(r: dict, text: str, ok: bool) -> bool:
     return not empty and text.strip() != (r.get("last_notified") or "").strip()      # if_new
 
 
-def record(cfg: sys_config.Config, rid: str, text: str, ok: bool, run_id: str | None = None) -> tuple[dict, bool]:
+def record(cfg: sys_config.Config, rid: str, text: str, ok: bool, run_id: str | None = None,
+           files: list[dict] | None = None) -> tuple[dict, bool]:
     """Store a result; (routine, notify?)."""
     rs = all_routines(cfg)
     r = next((x for x in rs if x["id"] == rid), None)
     if r is None:
         raise KeyError(rid)
     notify = should_notify(r, text, ok)
-    r.update(last_run=time.time(), last_ok=ok, last_text=text[:4000], last_run_id=run_id)
+    r.update(last_run=time.time(), last_ok=ok, last_text=text[:4000], last_run_id=run_id, last_files=files or [])
     if notify and ok:
         r["last_notified"] = text[:4000]
     _save(cfg, "routines.json", rs)

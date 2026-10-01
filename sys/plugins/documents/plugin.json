@@ -30,5 +30,12 @@
     "write": [
       "AURORA_DOCUMENTS_DIR"
     ]
+  },
+  "outputs": {
+    "create_pdf": {
+      "pattern": "created (\\S+\\.pdf)",
+      "url": "/v1/aurora/documents/{name}",
+      "mime": "application/pdf"
+    }
   }
 }

@@ -863,3 +863,19 @@ A night of the owner's firewall: about 112,000 lines in 10 hours (133,000 in 12)
 security_night_report and firewall_summary (and a PDF through documents). Before: 3 minutes reading source code, then
 400 Bad Request (context), never recorded.
 
+## M53 — The capability forge (2026-10-01)
+
+Network isolation of the cage ("sandbox": {"network": false} → --unshare-net): a probe reached 1.1.1.1:443 and the API on
+127.0.0.1:9700 without the flag, neither with it. Need: "summarise the documents the harvester collected in the last N
+hours, by domain and source" (truth by an independent count: 17,716 in 24 h; normattiva 17,413, arxiv 219, github 43,
+europepmc 25, medrxiv 11, biorxiv 3, wikipedia 2). Builds with the local reasoner, 21–138 s each:
+1. sample = folder listing only: invented a log format, "no documents" — accepted (the test only wanted text);
+2. with file head + judge: 17,293, arxiv and europepmc missing — accepted;
+3. with the log's latest lines: 174,335 (ten times too many) — accepted by the judge;
+4. with one line per kind and per-kind counts on the same line as the example: parsed "[N lines…]" as the format,
+   "no documents" ×3 — refused, nothing installed;
+5. errors returned as text: same, refused;
+6. counts on their own line: 17,853 / 17,857 / 17,867 with every domain, but europepmc not grouped as one source —
+   refused (the judge's reason partly wrong: it took computer_science 50 for start lines).
+Judge calibration on three outputs ×3: 9/9. Builds 4–6: no wrong plugin accepted, no right one produced.
+

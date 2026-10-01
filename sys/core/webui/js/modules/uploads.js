@@ -15,17 +15,26 @@ export default {
 
   mount(root) {
     root.classList.add("page");
-    root.innerHTML = `<h2 data-i18n="up.title"></h2><p class="muted up-hint"></p><div class="up-grid"></div>`;
+    root.innerHTML = `<h2 data-i18n="up.title"></h2><p class="muted up-hint"></p><div class="up-grid"></div>
+      <h3 class="setting-cat" data-i18n="up.docs"></h3><div class="up-docs"></div>`;
     apply(root);
     this.hint = root.querySelector(".up-hint");
     this.grid = root.querySelector(".up-grid");
+    this.docs = root.querySelector(".up-docs");
   },
 
   async enter() {
     const { files, total_bytes: total, keep_days: days } = await call("/v1/aurora/uploads");
     this.hint.textContent = t("up.hint", { n: files.length, size: size(total) }) + " "
       + (days ? t("up.keep_days", { d: days }) : t("up.keep_turn"));
-    this.grid.replaceChildren(...(files.length ? files.map((f) => this.card(f)) : [el("p", "muted", t("up.none"))]));
+    this.grid.replaceChildren(...(files.filter((f) => f.size).length
+      ? files.filter((f) => f.size).map((f) => this.card(f)) : [el("p", "muted", t("up.none"))]));
+    const docs = await call("/v1/aurora/documents");          // the PDFs Aurora wrote: download them
+    this.docs.replaceChildren(...(docs.length ? docs.map((d) => {
+      const a = el("a", "ev"); a.href = d.url; a.setAttribute("download", d.name);
+      a.append(el("span", "", "📄"), el("span", "", d.name), el("span", "muted", size(d.bytes)));
+      return a;
+    }) : [el("p", "muted", t("up.no_docs"))]));
   },
 
   card(f) {

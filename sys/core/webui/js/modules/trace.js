@@ -16,7 +16,7 @@ export const ICONS = {
   "rem.start": "🌙", "rem.session_memory": "🗂️", "rem.thought": "💭", "rem.dream": "🌌", "rem.self_review": "🔍", "rem.repair": "🛠️",
   "rem.end": "🏁",
   "agent.start": "🤖", "agent.thought": "💭", "agent.say": "💬", "tool.call": "🔧", "tool.result": "📎",
-  "approval.request": "🛎️", "approval.execute": "▶️", "approval.done": "🏁", "agent.finish": "🏁",
+  "approval.request": "🛎️", "approval.execute": "▶️", "approval.done": "🏁", "agent.finish": "🏁", "agent.file": "📄",
   "change.check": "🧬", "change.tests.sandbox": "🧪", "change.applied": "📦", "change.tests.live": "🧪",
   "change.rollback": "↩️", "change.restart": "🔄",
 };
@@ -58,6 +58,7 @@ export function describe(name, p) {
     case "approval.request": return t("ev.approval.request", { title: p.title });
     case "approval.execute": return t("ev.approval.execute", { title: p.title });
     case "approval.done": return t(p.ok ? "ev.approval.ok" : "ev.approval.fail");
+    case "agent.file": return t("ev.agent.file", { name: p.name });
     case "agent.finish": return t("ev.agent.finish", { n: p.steps, s: p.seconds });
     case "change.check": return t("ev.change.check", { files: p.files.join(", ") });
     case "change.tests.sandbox": return t("ev.change.tests.sandbox", { r: p.summary });
@@ -130,6 +131,15 @@ export function renderAnswer(b, p, when) {
     }
     box.append(row);
   }
+  if (p.files?.length) {                         // documents Aurora wrote (a PDF...): one tap downloads them
+    const row = el("div", "chips");
+    for (const f of p.files) {
+      const a = el("a", "chip"); a.href = f.url; a.setAttribute("download", f.name);
+      a.append(el("span", "", "📄"), el("span", "", f.name));
+      row.append(a);
+    }
+    box.append(row);
+  }
   if (p.sources?.length) {
     box.append(el("div", "meta", t("chat.sources")));
     const ol = el("ol", "sources");
@@ -186,7 +196,8 @@ export function renderPast(b, turn) {
     ? `🧭 ${t("chat.iter", { n, s: turn.seconds ?? "–" })}` : `🧭 ${t("chat.nopath")}`;
   b.iter.open = false;
   renderAnswer(b, { text: turn.text, abstained: turn.abstained, sources: turn.sources, seconds: turn.seconds, speed: turn.speed,
-    images: (turn.attachments || []).filter((f) => f.inline && f.mime.startsWith("image/")) },
+    images: (turn.attachments || []).filter((f) => f.inline && f.mime.startsWith("image/")),
+    files: (turn.attachments || []).filter((f) => !(f.inline && f.mime.startsWith("image/"))) },
     turn.created_at);
 }
 
@@ -228,7 +239,7 @@ export async function follow(runId, b, scroller) {
       if (name === "answer.final") { final = p; renderAnswer(b, p); }
       else if (name === "error") b.body.replaceChildren(el("p", "error", describe(name, p)));
       else if (name.startsWith("rem.") && p.text) { b.body.replaceChildren(el("p", "", p.text)); }
-      else if (name === "agent.finish") { final = { text: p.summary, seconds: p.seconds }; renderAnswer(b, final); }
+      else if (name === "agent.finish") { final = { text: p.summary, seconds: p.seconds, files: p.files || [] }; renderAnswer(b, final); }
       traceLine(b.steps, name, p);
       b.count += 1;
       status(`${ICONS[name] || "•"} ${describe(name, p)}`);

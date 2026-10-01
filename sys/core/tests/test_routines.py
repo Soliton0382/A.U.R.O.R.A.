@@ -97,3 +97,8 @@ def test_new_notification_kinds_are_on_for_owners_who_chose_before(cfg):
     assert {"routine", "weather", "plugin"} <= set(p["push"]) and "thought" not in p["webui"]
     sys_push.set_prefs(cfg, {"push": ["incident"], "webui": ["incident"]})            # now he chose with them in sight
     assert sys_push.prefs(cfg) == {"push": ["incident"], "webui": ["incident"]}
+
+
+def test_owners_who_never_chose_get_the_new_kinds_on_their_phone(cfg):
+    p = sys_push.prefs(cfg)                                    # no prefs.json: AURORA_PUSH_EVENTS + the new kinds
+    assert {"routine", "weather", "plugin"} <= set(p["push"]) and "thought" not in p["push"]

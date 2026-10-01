@@ -69,8 +69,19 @@ def save(cfg: sys_config.Config, run_id: str, name: str, mime: str, data: bytes,
     return item
 
 
+def link(cfg: sys_config.Config, run_id: str, name: str, url: str, mime: str, role: str = "assistant") -> dict:
+    """A file kept elsewhere (a document Aurora wrote) shown with its turn: only the link is indexed."""
+    item = {"id": uuid.uuid4().hex[:16], "name": name[:200], "mime": mime or "application/octet-stream", "size": 0,
+            "run_id": run_id, "created": time.time(), "link": url, "role": role}
+    items = _index(cfg)
+    items.append(item)
+    _write_index(cfg, items)
+    return item
+
+
 def public(item: dict) -> dict:
-    return {k: v for k, v in item.items() if k != "path"} | {"role": item.get("role", "user"), "url": f"/v1/aurora/uploads/{item['id']}",
+    return {k: v for k, v in item.items() if k not in ("path", "link")} | {"role": item.get("role", "user"),
+                                                                         "url": item.get("link") or f"/v1/aurora/uploads/{item['id']}",
                                                              "inline": bool(INLINE.match(item["mime"]))}
 
 
@@ -88,7 +99,7 @@ def by_run(cfg: sys_config.Config, run_ids: set[str]) -> dict[str, list[dict]]:
 
 def get(cfg: sys_config.Config, uid: str) -> tuple[Path, dict] | None:
     item = next((i for i in _index(cfg) if i["id"] == uid), None)
-    if item is None:
+    if item is None or "path" not in item:            # a link is served by its own endpoint
         return None
     path = (_dir(cfg) / item["path"]).resolve()
     if _dir(cfg).resolve() not in path.parents or not path.is_file():
@@ -100,7 +111,7 @@ def delete(cfg: sys_config.Config, uid: str) -> bool:
     items = _index(cfg)
     keep = [i for i in items if i["id"] != uid]
     for i in items:
-        if i["id"] == uid:
+        if i["id"] == uid and "path" in i:
             (_dir(cfg) / i["path"]).unlink(missing_ok=True)
     _write_index(cfg, keep)
     return len(keep) != len(items)

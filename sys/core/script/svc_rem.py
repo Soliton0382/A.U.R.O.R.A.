@@ -122,6 +122,9 @@ def main() -> int:
             t = client.post(f"{BASE}/v1/aurora/routines/tick").raise_for_status().json()
             if t["started"] or t["welcomed"]:
                 log.info("routines started: %s; plugins welcomed: %s", t["started"], t["welcomed"])
+            f = client.post(f"{BASE}/v1/aurora/forge/tick").raise_for_status().json()
+            if f["started"]:
+                log.info("forge: building a missing capability, run %s", f["started"])
         except (httpx.HTTPError, KeyError, ValueError) as e:
             log.warning("routines tick failed: %s", e)
         if time.time() - last_purge > 86400:          # daily: retention of every component's logs

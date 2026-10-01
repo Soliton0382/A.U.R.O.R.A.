@@ -412,5 +412,8 @@
   "up.delete": "Elimina",
   "up.confirm": "Eliminare {name}? Nella conversazione resterà solo il nome.",
   "ev.image.plan": "Ho deciso {n} operazioni per {name}",
-  "ev.image.edited": "Ho creato {name} ({w}×{h})"
+  "ev.image.edited": "Ho creato {name} ({w}×{h})",
+  "ev.agent.file": "Ho preparato {name} (scaricabile)",
+  "up.docs": "📄 Documenti di Aurora",
+  "up.no_docs": "Nessun documento."
 }
