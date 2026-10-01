@@ -783,3 +783,11 @@ their articles in attachments (C61). Ceiling of the chosen collections: 67,872 a
 open-access CC BY hits for "clinical trial" alone. GitHub search: 10 requests a minute without a token, at most
 1,000 repositories per topic (8 topics: ceiling ~8,000 READMEs, ~50,000 solitons).
 
+## M45 — Chat → connected services (2026-10-01)
+
+Router "tools" on 28 messages labelled by hand (14 for a connected service: GitHub, projects, camera, microphone,
+IP, PDF; 14 not: knowledge of the world, law, medicine, Aurora herself, small talk), connected services documents,
+github, netintel, projects, senses: 28/28 right, median 0.23 s, max 0.43 s per message (the reasoner, 4 tokens). Three
+messages resemble the prompt's examples: the score is optimistic. Live, from the chat: "Quante stelle e quanti fork
+hanno i miei repository su GitHub?" → route tools → get_me, search_repositories → a table, 13 s.
+

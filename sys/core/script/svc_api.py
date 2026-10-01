@@ -220,6 +220,37 @@ SYS_CONFIRM = ("Aurora could not answer the owner's previous question from her v
                "procedi, cerca, vai)? Reply YES or NO only.")
 
 
+SYS_TOOLS = ("Decide whether the owner's last message asks Aurora to use one of her CONNECTED SERVICES (listed below) "
+             "to read live data there or to do something there: e.g. look at his repositories, their issues or "
+             "statistics, his e-mail, the house, the files of a project, take a photo, check an IP address. Reply TOOLS "
+             "if so. Reply NO if it is small talk, a question about Aurora herself, or a question about knowledge of the "
+             "world (science, law, medicine, history, definitions, how something works) that a knowledge base answers. "
+             "Examples: 'controlla i miei repository su GitHub' TOOLS; 'quante stelle ha il mio progetto?' TOOLS; "
+             "'ho nuove mail?' TOOLS; 'mostrami i file del progetto aurora-site' TOOLS; 'cos'è un repository git?' NO; "
+             "'come funziona una pull request?' NO; 'cosa dice l'articolo 2043 del codice civile?' NO; 'come stai?' NO. "
+             "Reply with exactly one word.\n\nCONNECTED SERVICES:\n{services}")
+ROUTER_SKIP = {"web", "self"}          # web search is the knowledge path's job; "self" is Aurora's own maintenance
+
+
+def connected_services() -> list[str]:
+    """The plugins the owner has connected (enabled, configured, no error): what the chat may hand to the agent."""
+    from aurora.plg_host import PluginHost
+    return [f"- {p.name}: {(p.manifest.get('description') or {}).get('en', '')[:200]}"
+            for p in PluginHost(cfg).plugins(with_tools=False) if p.available and p.name not in ROUTER_SKIP]
+
+
+def wants_tools(question: str, recent: list, emit=None) -> bool:
+    services = connected_services()
+    if not services:
+        return False
+    prev = "\n".join(f"{'Owner' if t.extra.get('role') == 'user' else 'Aurora'}: {t.text[:300]}" for t in recent[-2:])
+    out = pipeline().llm.complete(SYS_TOOLS.replace("{services}", "\n".join(services)),
+                                  (f"PREVIOUS TURNS:\n{prev}\n\n" if prev else "") + f"LAST MESSAGE: {question}", 4)
+    if emit:
+        emit("route.tools", {"services": [x[2:].split(":")[0] for x in services], "reply": out.answer.strip()[:20]})
+    return out.answer.strip().upper().startswith("TOOLS")
+
+
 def answer_or_acquire(question: str, emit, run_id: str, **kw):
     """The default job of a message. When Aurora's last answer in this session was an abstention and the
     message asks her to go and search, the arXiv agent works on the *previous* question (A11: the
@@ -227,6 +258,12 @@ def answer_or_acquire(question: str, emit, run_id: str, **kw):
     from datetime import datetime, timezone
     p = pipeline()
     recent = p.reader.recent(4)
+    # a request about a connected service (GitHub, e-mail, the house...) goes to the agent, before anything else:
+    # also right after an abstention, where "check my repositories" is not a "yes, search arXiv"
+    if not kw.get("attached") and wants_tools(question, recent, emit):     # a connected service, not the vault
+        emit("route", {"mode": "tools"})
+        context = "\n".join(f"{'Owner' if t.extra.get('role') == 'user' else 'Aurora'}: {t.text[:500]}" for t in recent[-4:])
+        return _agent_job(question, context, remember=True, label=question)(question, emit, run_id)
     last = recent[-1] if recent else None
     if (last is not None and last.extra.get("role") == "assistant" and last.extra.get("abstained")
             and last.extra.get("mode", "knowledge") == "knowledge" and len(question) < 200
@@ -1058,7 +1095,7 @@ async def social_publish(request: Request) -> dict:
 
 
 # ---- agents, plugins, approvals ------------------------------------------------------------------
-def _agent_job(goal: str, context: str = "", after=None, remember: bool = False):
+def _agent_job(goal: str, context: str = "", after=None, remember: bool = False, label: str | None = None):
     """An agent run. `remember`: the owner asked for it, so goal and report become conversation turns
     (with the whole path), like any other answer; the autonomic ones become reflections (`after`)."""
     def job(q, emit, run_id):
@@ -1068,7 +1105,7 @@ def _agent_job(goal: str, context: str = "", after=None, remember: bool = False)
         agent = Agent(pipeline(), cfg, notify=lambda e, p: note("agent", e, p))
         ans = agent.run(goal, emit, run_id, context)
         if remember:
-            pipeline().remember(f"/agente {goal}", ans, run_id, emit, agent.trail, asked_at)
+            pipeline().remember(label or f"/agente {goal}", ans, run_id, emit, agent.trail, asked_at)
         if after:
             after(ans, emit)
         return ans
