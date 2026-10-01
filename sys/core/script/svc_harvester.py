@@ -58,6 +58,7 @@ class Harvester:
         self.seen_file = STATE / "seen.json"
         self.seen: set[str] = set(json.loads(self.seen_file.read_text())) if self.seen_file.exists() else set()
         self._last: dict[str, float] = {}
+        self._tls: dict[str, httpx.Client] = {}            # hosts whose certificate chain had to be completed
 
     def tell(self, event: str, payload: dict) -> None:
         """Report to aurora-api's activity feed (shown in the WebUI); never blocks harvesting."""
@@ -80,9 +81,38 @@ class Harvester:
         if wait > 0:
             time.sleep(wait)
         try:
-            return self.web.get(url, params=params or None).raise_for_status()
+            try:
+                return self._tls.get(host, self.web).get(url, params=params or None).raise_for_status()
+            except httpx.ConnectError as e:
+                if "CERTIFICATE_VERIFY_FAILED" not in str(e) or host in self._tls or not self._complete_chain(host):
+                    raise
+                return self._tls[host].get(url, params=params or None).raise_for_status()
         finally:
             self._last[host] = time.time()
+
+    def _complete_chain(self, host: str) -> bool:
+        """A server that sends its certificate without the intermediate (as api.normattiva.it did on 2026-10-01):
+        fetch the intermediate named in the certificate (AIA "CA Issuers"), as browsers do. Verification stays
+        whole: the chain must still reach a root of the system store and the name must match."""
+        import ssl
+        from cryptography import x509
+        from cryptography.hazmat.primitives.serialization import Encoding
+        from cryptography.x509.oid import AuthorityInformationAccessOID, ExtensionOID
+        try:
+            leaf = x509.load_pem_x509_certificate(ssl.get_server_certificate((host, 443), timeout=20).encode())
+            aia = leaf.extensions.get_extension_for_oid(ExtensionOID.AUTHORITY_INFORMATION_ACCESS).value
+            url = next(d.access_location.value for d in aia if d.access_method == AuthorityInformationAccessOID.CA_ISSUERS)
+            raw = httpx.get(url, timeout=30, follow_redirects=True).content
+            inter = x509.load_der_x509_certificate(raw) if raw[:1] == b"\x30" else x509.load_pem_x509_certificate(raw)
+            ctx = ssl.create_default_context()
+            ctx.load_verify_locations(cadata=inter.public_bytes(Encoding.PEM).decode())
+        except (OSError, ValueError, StopIteration, x509.ExtensionNotFound, httpx.HTTPError) as e:
+            log.warning("%s: incomplete certificate chain, intermediate not found: %s", host, e)
+            return False
+        self._tls[host] = httpx.Client(timeout=300, follow_redirects=True, headers=self.web.headers, verify=ctx)
+        log.warning("%s sends no intermediate certificate: fetched %s from %s (chain still verified)",
+                    host, inter.subject.rfc4514_string(), url)
+        return True
 
     def take(self, doc: kno_sources.Doc) -> int | None:
         """Send one harvested document to aurora-api; the passages written, or None when it failed (logged)."""
@@ -275,7 +305,8 @@ def main() -> int:
             more = h.round(only_exhaust=not due)
             if due:
                 regular = time.time() + cfg["AURORA_HARVEST_INTERVAL_H"] * 3600
-            next_round = time.time() + 60 if more else regular   # more to take: the next stretch in a minute
+            # more to take: the next stretch at once (each host is still asked at most once every DELAY_S)
+            next_round = time.time() + 5 if more else regular
             kno_harvest.set_status(cfg, last_round=time.time())
         kno_harvest.set_status(cfg, state="idle", enabled=True, next_round=next_round)
         sleep(next_round - time.time())

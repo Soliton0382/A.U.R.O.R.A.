@@ -30,6 +30,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
+import httpx
+
 from . import sys_config
 from .kno_acquire import parse_atom
 
@@ -254,7 +256,9 @@ def normattiva(fetch: Fetch, cfg, domain: str, spec: dict, st: dict, want: int, 
                     data = fetch(NORMATTIVA, nome=name, formato="AKN", formatoRichiesta=vig).content
                     if data[:2] == b"PK":
                         break
-                except Exception:                                 # noqa: BLE001 - a 400 means "not in this form"
+                except httpx.HTTPStatusError as e:                # 400: not in this form; anything else
+                    if e.response.status_code != 400:             # (network, TLS, 5xx) is retried next round,
+                        raise                                     # never taken for a missing collection
                     data = b""
             if data[:2] != b"PK":
                 st["collection"], st["member"] = ci + 1, 0

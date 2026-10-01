@@ -147,3 +147,23 @@ def test_chunker_never_emits_a_short_chunk_between_long_ones():
     text = "\n\n".join(["A" * 900, "Art. 2. Abrogato.", "B. " * 400, "C" * 950])
     parts = chunk(text, 1000, 300)
     assert all(len(p) >= 300 for p in parts) and "Abrogato" in "".join(parts)
+
+
+def test_normattiva_network_error_is_retried_not_taken_for_a_missing_collection(cfg):
+    import httpx
+
+    def down(url, **p):
+        raise httpx.ConnectError("[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed")
+
+    st = {"collection": 0}
+    with pytest.raises(httpx.ConnectError):
+        K.normattiva(down, cfg, "law_it", {"collections": ["Codici", "DPR"]}, st, 1, True, set())
+    assert st == {"collection": 0}
+
+    def absent(url, **p):
+        req = httpx.Request("GET", url)
+        raise httpx.HTTPStatusError("400", request=req, response=httpx.Response(400, request=req))
+
+    st = {}
+    assert K.normattiva(absent, cfg, "law_it", {"collections": ["Codici"]}, st, 1, True, set()) == []
+    assert st["missing"] == ["Codici"] and st["done"]
