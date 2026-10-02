@@ -28,7 +28,7 @@ export default {
       const b = el("button", `plug-tile ${p.available ? "on" : "off"}`);
       b.type = "button";
       const img = el("img");
-      img.src = `${p.icon}?v=${Date.now()}`;
+      img.src = p.icon;
       img.alt = "";
       b.append(img, el("span", "name", p.name), el("span", "state", p.available ? t("plug.on") : t("plug.off")));
       b.title = p.description?.[code] || p.description?.en || "";
@@ -43,7 +43,7 @@ export default {
     close.addEventListener("click", () => { dlg.close(); dlg.remove(); this.enter(); });
     const head = el("div", "plug-head");
     const img = el("img");
-    img.src = `${p.icon}?v=${Date.now()}`;
+    img.src = p.icon;
     head.append(img, el("h3", "", `${p.name} · v${p.version || "?"}`), close);
     dlg.append(head, el("p", "", p.description?.[code] || p.description?.en || ""));
     const state = !p.enabled ? t("plug.state.disabled") : p.missing.length ? t("plug.state.missing", { keys: p.missing.join(", ") })
@@ -164,7 +164,7 @@ export default {
       try {
         const body = file.files[0] ? { data: await toBase64(file.files[0]) } : { url: url.value.trim() };
         await call(`/v1/aurora/plugins/${p.name}/icon`, { method: "POST", body: JSON.stringify(body) });
-        img.src = `${p.icon}?v=${Date.now()}`;
+        img.src = `${p.icon.split("?")[0]}?v=${Date.now()}`;
         icOut.textContent = t("plug.icon.done");
       } catch (e) { icOut.textContent = t("ev.error", { m: e.message }); }
     });

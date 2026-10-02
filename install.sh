@@ -134,19 +134,19 @@ step "6b. $(t 'Funzioni facoltative (modelli da scaricare)' 'Optional features (
 PICK=""; MODELS=""; EXTRA=0
 PROFILE_FILE=$(mktemp)
 echo "$PROFILE" > "$PROFILE_FILE"
-while IFS='|' read -r g size fits def why lit len mods; do
+while IFS='|' read -r g size fits def why lit len mods todo; do
   label=$(t "$lit" "$len")
   if [ "$OPTIONAL" = 0 ]; then continue; fi
   if [ "$fits" != 1 ]; then warn "$label: $(t 'non adatta a questa macchina' 'not for this machine') ($why)"; continue; fi
   d=$([ "$def" = 1 ] && echo y || echo n); [ "$g" = video ] && [ "$VIDEO" = 1 ] && d=y
   if yesno "$label (+${size} GB)?" "$d"; then
-    PICK="$PICK,$g"; MODELS="$MODELS,$mods"; EXTRA=$(.venv/bin/python -c "print(round($EXTRA + $size, 1))")
+    PICK="$PICK,$g"; MODELS="$MODELS,$mods"; EXTRA=$(.venv/bin/python -c "print(round($EXTRA + $todo, 1))")   # only what is missing
   fi
 done < <(.venv/bin/python sys/core/script/sys_doctor.py --groups "$PROFILE_FILE")
 PICK="${PICK#,}"; MODELS="${MODELS#,}"
 NEED=$(.venv/bin/python -c "print(int(45 + $EXTRA + 0.999))")
 [ "$FREE" -ge "$NEED" ] || die "$(t "servono ${NEED} GB liberi per le scelte fatte, ce ne sono ${FREE}" "${NEED} GB free needed for these choices, ${FREE} available")"
-ok "$(t 'scelte' 'chosen'): ${PICK:-$(t 'nessuna' 'none')} (+${EXTRA} GB)"
+ok "$(t 'scelte' 'chosen'): ${PICK:-$(t 'nessuna' 'none')} ($(t 'da scaricare' 'to download'): ${EXTRA} GB)"
 
 # ---------------------------------------------------------------------------------------------------
 step "7. $(t 'Configurazione (.env)' 'Configuration (.env)')"
@@ -183,18 +183,28 @@ ok "$(sys/runtime/llama.cpp/bin/llama-server --version 2>&1 | head -1)"
 
 # ---------------------------------------------------------------------------------------------------
 step "10. Test"
-(cd sys/core && ../../.venv/bin/python -m pytest -q -p no:cacheprovider tests --ignore=tests/test_models_gpu.py 2>&1 | tail -2) || die "test"
+(cd sys/core && ../../.venv/bin/python -m pytest -p no:cacheprovider tests --ignore=tests/test_models_gpu.py 2>&1 | tail -1) || die "test"
 
 # ---------------------------------------------------------------------------------------------------
 step "11. $(t 'Codice di condotta: la chiave di questa installazione' 'Code of conduct: this installation'"'"'s key')"
-if [ "$EXEMPT" = 1 ]; then sudo .venv/bin/python sys/core/script/sys_ethics_sign.py setup --exempt
-else sudo .venv/bin/python sys/core/script/sys_ethics_sign.py setup; fi
-.venv/bin/python sys/core/script/sys_ethics_sign.py check || die "ethics"
+SIGN="sudo .venv/bin/python sys/core/script/sys_ethics_sign.py setup"
+[ "$EXEMPT" = 1 ] && SIGN="$SIGN --exempt"           # a false test before && does not stop set -e
+SUDO_LATER=0
+if sudo -n true 2>/dev/null || (exec </dev/tty) 2>/dev/null; then
+  $SIGN
+  .venv/bin/python sys/core/script/sys_ethics_sign.py check || die "ethics"
+else                                   # no terminal to type the sudo password in (a script, a remote run)
+  SUDO_LATER=1
+  warn "$(t 'nessun terminale per sudo: la firma e i servizi vanno completati a mano, da questa cartella:' 'no terminal for sudo: signature and services must be completed by hand, from this folder:')"
+  echo "    $SIGN"
+  [ "$SERVICES" = 1 ] && echo "    .venv/bin/python sys/core/script/sys_install_services.py && sudo bash sys/deploy/systemd/install.sh"
+fi
 
 # ---------------------------------------------------------------------------------------------------
-if [ "$SERVICES" = 0 ]; then
-  step "$(t 'Servizi saltati (--no-services)' 'Services skipped (--no-services)')"
+if [ "$SERVICES" = 0 ] || [ "$SUDO_LATER" = 1 ]; then
+  step "$(t 'Servizi non installati' 'Services not installed') ($([ "$SERVICES" = 0 ] && echo --no-services || echo sudo))"
   echo "  .venv/bin/python sys/core/script/sys_install_services.py && sudo bash sys/deploy/systemd/install.sh"
+  .venv/bin/python sys/core/script/sys_doctor.py || true          # what works already, and what is left to do
   exit 0
 fi
 step "12. $(t 'Servizi (systemd) e HTTPS' 'Services (systemd) and HTTPS')"

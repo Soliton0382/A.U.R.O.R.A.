@@ -178,8 +178,36 @@ def scan_secrets(cfg: sys_config.Config | None = None) -> list[tuple[str, str]]:
     return hits
 
 
-def purge_all(cfg: sys_config.Config | None = None) -> list[Path]:
+# written in append mode by programs without a rotating handler: the plugins' stderr, kept by the plugin host
+LOOSE = ("plugins/*.stderr.log",)
+
+
+def rotate_loose(cfg: sys_config.Config | None = None) -> list[Path]:
+    """Above AURORA_LOG_MAX_MB a loose log is compressed with a timestamp, as the handlers do, and emptied in
+    place (copy, then cut to zero: a writer in append mode goes on at the new end; lines written between the copy
+    and the cut, a few milliseconds, are lost)."""
     cfg = cfg or _config()
+    root, limit, out = cfg.path("AURORA_LOG_DIR"), cfg["AURORA_LOG_MAX_MB"] * MIB, []
+    for pattern in LOOSE:
+        for live in sorted(root.glob(pattern)):
+            if live.stat().st_size <= limit:
+                continue
+            stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+            target = live.with_name(f"{live.stem}.{stamp}{live.suffix}.gz")
+            with open(live, "r+b") as src:
+                with gzip.open(target, "wb") as dst:
+                    shutil.copyfileobj(src, dst)
+                src.truncate(0)
+            out.append(target)
+    return out
+
+
+def purge_all(cfg: sys_config.Config | None = None) -> list[Path]:
+    """Daily (aurora-rem): rotate the loose logs, then delete every rotated file older than the retention."""
+    cfg = cfg or _config()
+    rotated = rotate_loose(cfg)
+    if rotated:
+        get_logger("sys_log").info("rotated %d loose logs: %s", len(rotated), ", ".join(f.name for f in rotated))
     removed = []
     root = cfg.path("AURORA_LOG_DIR")
     for folder in [root] + [p for p in root.rglob("*") if p.is_dir()]:

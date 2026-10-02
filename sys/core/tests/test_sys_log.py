@@ -60,3 +60,21 @@ def test_a_caged_plugin_logs_to_stderr_not_to_the_read_only_folder(cfg, monkeypa
     err = capsys.readouterr().err
     assert "INFO aurora.caged_probe pdf made" in err and '"event": "made"' in err
     assert not (cfg.path("AURORA_LOG_DIR") / "caged_probe").exists()
+
+
+def test_a_loose_plugin_log_is_rotated_and_keeps_being_written(cfg):
+    folder = cfg.path("AURORA_LOG_DIR") / "plugins"
+    folder.mkdir(parents=True, exist_ok=True)
+    live, small = folder / "github.stderr.log", folder / "web.stderr.log"
+    big = cfg["AURORA_LOG_MAX_MB"] * sys_log.MIB + 10
+    writer = open(live, "a", encoding="utf-8")            # the plugin host keeps it open in append mode
+    writer.write("x" * big)
+    writer.flush()
+    small.write_text("short\n")
+    rotated = sys_log.rotate_loose(cfg)
+    assert [f.name.startswith("github.stderr.") and f.name.endswith(".log.gz") for f in rotated] == [True]
+    assert live.stat().st_size == 0 and small.read_text() == "short\n"
+    assert len(gzip.decompress(rotated[0].read_bytes())) == big
+    writer.write("after\n")
+    writer.close()
+    assert live.read_text() == "after\n"                   # no hole of zeros: append mode writes at the new end

@@ -72,10 +72,10 @@ LOOP_TOOLS = [
 
 
 class Agent:
-    def __init__(self, pipeline, cfg: sys_config.Config | None = None, notify=None):
+    def __init__(self, pipeline, cfg: sys_config.Config | None = None, notify=None, host: PluginHost | None = None):
         self.cfg = cfg or sys_config.get()
         self.p = pipeline
-        self.host = PluginHost(self.cfg)
+        self.host = host or PluginHost(self.cfg)      # the API passes its own: the tool lists stay cached
         self.approvals = Approvals(self.cfg)
         self.notify = notify or (lambda event, payload: None)   # activity feed of the API
         self.log = sys_log.get_logger("agent")

@@ -26,6 +26,7 @@ mark each line ✅ / ❌ with a note. Reload the WebUI first (the service worker
 | N3 | 📖 Guide: open each «Apri →» | every page opens; the texts read well on the phone |
 | N4 | ⚙️ Status → «Funzioni di questa installazione» | 10 ✅; nothing red |
 | N5 | ⚙️ Settings: categories | each category once (C71) |
+| N6 | 🧩 Plugins: open the page, then a card, then back | the grid appears at once; icons do not flash (C80) |
 
 ## Pictures
 

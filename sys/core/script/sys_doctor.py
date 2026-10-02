@@ -4,7 +4,7 @@
 
     python sys/core/script/sys_doctor.py                        # the report; exit 1 when something required is wrong
     python sys/core/script/sys_doctor.py --groups profile.json  # for the installer: the optional model groups,
-                                                                #   name|GB|fits|default|why|label_it|label_en|models
+                                                                #   name|GB|fits|default|why|label_it|label_en|models|GB to download
 Read only: it changes nothing. The installer runs it at the end; the Status page shows the same features.
 """
 from __future__ import annotations
@@ -21,12 +21,20 @@ UNITS = ("aurora-api", "aurora-models", "aurora-llm", "aurora-https", "aurora-re
 
 
 def groups(profile_file: Path) -> int:
+    from aurora import sys_config
     from aurora import sys_features as F
     profile = json.loads(profile_file.read_text(encoding="utf-8"))
+    try:
+        cfg = sys_config.get()
+    except sys_config.ConfigError:                   # a first install: no .env yet, nothing downloaded
+        cfg = None
+    man = F.manifest()
     for name, g in F.GROUPS.items():
         ok, why = F.fits(profile, name)
+        todo = g["models"] if cfg is None else [m for m in g["models"] if F._model_missing(cfg, m, man[m])]
         print("|".join([name, f"{F.group_size_gb(name):.1f}", "1" if ok else "0", "1" if g["default"] else "0", why,
-                        g["label"]["it"], g["label"]["en"], ",".join(g["models"])]))
+                        g["label"]["it"], g["label"]["en"], ",".join(g["models"]),
+                        f"{sum(man[m]['size_gb'] for m in todo):.1f}"]))
     return 0
 
 
@@ -58,8 +66,10 @@ def report(lang: str) -> int:
     eth = subprocess.run([sys.executable, str(ROOT / "sys/core/script/sys_ethics_sign.py"), "check"], capture_output=True, text=True)
     out = (eth.stdout + eth.stderr).strip().splitlines()
     drift = any("differ" in o for o in out)           # code tier: a warning until the owner signs again
+    first = any("missing" in o for o in out)        # never signed: setup makes the key (or reuses it) and signs
     line("⛔" if eth.returncode else "⚠️" if drift else "✅", out[-1][:160] if out else "?",
-         "sudo .venv/bin/python sys/core/script/sys_ethics_sign.py sign" if drift or eth.returncode else "")
+         f"sudo .venv/bin/python sys/core/script/sys_ethics_sign.py {'setup' if first else 'sign'}"
+         if drift or eth.returncode else "")
     bad += eth.returncode != 0
 
     print("== funzioni" if lang == "it" else "== features")
@@ -71,6 +81,10 @@ def report(lang: str) -> int:
     print("== servizi" if lang == "it" else "== services")
     for u in UNITS:
         st = subprocess.run(["systemctl", "is-active", u], capture_output=True, text=True).stdout.strip() or "?"
+        cmd = subprocess.run(["systemctl", "show", "-p", "ExecStart", u], capture_output=True, text=True).stdout
+        if st == "active" and str(ROOT) + "/" not in cmd:  # the unit names are the machine's: another folder may own it
+            line("⚪", f"{u}: {'di un' + chr(39) + 'altra installazione' if lang == 'it' else 'another installation'}")
+            continue
         line("✅" if st == "active" else "⚪" if st in ("inactive", "unknown") else "⛔", f"{u}: {st}")
     return 1 if bad else 0
 

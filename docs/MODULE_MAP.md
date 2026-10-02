@@ -49,6 +49,8 @@ call downward (ECOSYSTEM §1).
 | `agt_loop.py` | agents | the agent loop: Qwen tool calls, budgets, context compaction, propose_change, honest report with the record of calls | plg_host, sys_approvals, agt_change, mdl_llm | svc_api |
 | `agt_change.py` | agents | apply an approved sandbox change: tests, backup, copy, live tests, rollback, restart of the affected services | sys_tests | svc_api, agt_loop |
 | `sys_tests.py` | system | run the test suite (no GPU tests) on the live code or a sandbox, with Aurora's venv, never the real .env | pytest | agt_change, plugin self |
+| `api/core.py` | api | what every part of aurora-api shares: config, activity feed and notifications, authentication (key, devices, lockout), the pipeline, one plugin host (cached tool lists), runs (one at a time), the chat's routing (tools, pictures, videos) | aurora modules | every api module |
+| `api/*.py` | api | one module per area, each with its router: oai, runs, knowledge, projects, models, forge, routines, activity, documents, incidents, social, agents, access, system (order in `api/__init__.py`) | api/core | svc_api |
 | `sys_features.py` | system | what this installation can do: each feature with its models (all files), setting paths, switch, programs; `need` turns a missing one into a sentence with the command; installer groups with measured hardware needs; contradicting settings | sys_config, models.json, mdl_router | svc_api, kno_attach, kno_video, kno_rem, sys_health, sys_doctor |
 | `sys_health.py` | system | every service (systemd + real check or heartbeat), disk, GPUs → ok / warn / down with reasons | sys_metrics, httpx, curl | svc_api (/health), WebUI dot |
 | `sys_ethics.py` | system | code of conduct: signed integrity of the protected files (services refuse to start otherwise), level A forbidden plugin capabilities, owner's level-B exemption | cryptography | every service, plg_host, sys_approvals, sys_disclosure, agt_change |
@@ -71,7 +73,7 @@ call downward (ECOSYSTEM §1).
 | `bench_retrieval.py` | permanent retrieval benchmark on a fixed suite, isolated vault; results + history | after any change to encoder, index or search |
 | `svc_models.py` | service aurora-models (127.0.0.1:9710): encoder + re-ranker on GPU1 | systemd |
 | `svc_llm.py` | service aurora-llm (127.0.0.1:9711): launches llama-server with the `.env` values | systemd |
-| `svc_api.py` | service aurora-api (127.0.0.1:9700): OpenAI API, runs + SSE events, import, acquire, settings, WebUI | systemd |
+| `svc_api.py` | service aurora-api (127.0.0.1:9700): builds the app from the routers of `aurora/api/` (in order), the WebUI, start (vault check, plugin tools listed in the background) | systemd |
 | `sys_install_services.py` | writes `sys/https/Caddyfile` (validated) and the systemd units in `sys/deploy/systemd/` | after changing ports, domain, certificates, root |
 | `kno_import.py` | imports files or folders into a domain through the API | by hand |
 | `svc_sentinel.py` | service aurora-sentinel: syslog receiver (UDP, allow-listed), firewall log, incidents to the API | systemd |

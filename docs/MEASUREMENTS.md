@@ -893,6 +893,24 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M59 — Clean install, modular API, faster Plugins page (2026-10-02)
+
+Clean install of the published commit (6faed9e, cloned from the mirror: GitHub is not reachable from Claude's shell)
+in a new folder, `./install.sh --yes --no-services --with-video`: steps 1–10 in 10 min 55 s, all included — venv
+(6.0 GB), hardware profile, every model (81 GB, SHA-256 verified), llama.cpp built for the GPUs (0.98 GB), 181 tests.
+Step 11 needs sudo (no terminal here): now it says which commands to run and goes on (C81). Rerun: 7 s, nothing
+downloaded or built twice. On the copy: sys_doctor 10/10 features; its llama-server with its model healthy in 6 s,
+"17+25" → 42 (81 tok/s on a few words; not comparable with M-reference runs), vision projector loaded; GPU test with
+its encoder and re-ranker passed. The ethics key lives in /etc/aurora: setup reuses an existing key (never
+overwrites), so a second installation cannot replace the owner's.
+API: svc_api.py (2,197 lines) split mechanically into aurora/api/ (core + 14 routers, largest 520 lines) and a
+143-line entry point; 94 routes identical in path, methods, function, auth and order; 35 GET endpoints answer as
+before; chat and agent runs live. /openapi.json was public (C79): now 404. Plugins page: 3.8 s → 0.002–0.004 s (C80).
+Logs: plugins' stderr files rotate above AURORA_LOG_MAX_MB (copy and cut, gzip) in the daily purge. Tests 184.
+Not measured: the services of a second installation started for real (same ports as the owner's), install on a
+machine without the CUDA toolkit or the packages, a download interrupted and resumed, the agent's time saved per run
+by the shared plugin host.
+
 ## M58 — Consolidation: features, gates, doctor, installer (2026-10-02)
 
 Features on this machine: 10/10. Live gates, with the model setting pointed to a missing folder (then restored):

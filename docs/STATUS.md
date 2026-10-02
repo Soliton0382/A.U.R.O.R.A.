@@ -42,6 +42,9 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | forge | capability requests, plugins written, tested in the cage (no network), judged; read-only installed alone, else Approvals — safe, not yet useful with the local reasoner | M53, C70 |
 | WebUI | modular showcase: chat (full width, dates, path, share), repairs, security, diary, social, plugins, import, activity, status, settings; sky with orbiting fireflies; metrics with GPU load; PWA; safe Markdown | headless Chrome checks |
 | videos | «fammi un video di…», «anima questa foto»: Wan 2.2 TI2V 5B, 5 s at 1280×704 (a photo keeps its shape), ~19 min with the reasoner swapped out; immediate answer with the estimate, the chat says when it will be ready, push when done or failed; AI label and metadata; GPU lock shared with dreams and edits | M57, C74 |
+| API structure | aurora-api in modules: aurora/api/core (shared) + 14 routers, entry svc_api.py 143 lines; no public API map (C79); one plugin host with cached tool lists, warmed at start (Plugins page 0.004 s, C80) | M59 |
+| install | clean install validated end to end in a new folder (10 min 55 s with 81 GB of models), rerun 7 s, missing sudo handled, doctor at the end | M59, C81 |
+| log rotation | handler logs rotate and compress by size; loose logs (plugins' stderr) too, in the daily purge; 12-month retention | M59 |
 | features and gates | 10 features, each with what it needs; a missing model or a contradicting setting becomes an answer with the command, never a crash mid-job (live: cut-out and dictation with the model pointed away); ⚙️ Status lists them; sys_doctor checks the whole installation; the installer offers optional groups by measured hardware | M58, C75–C77 |
 | models per step | 🧠 Models page: each of 12 steps on local or a cloud provider (keys in the ☁️ cloud plugin), masked by default (C72), fallback to local, statistics of calls, cost, masked items, pictures sent, SSCC | M56 |
 | guide | 📖 Guide page: first steps, cloud, phone, plugins, safety, and every page of the menu with a button | — |
@@ -57,6 +60,14 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | multi-user | performance check on install, admin and users, TOTP MFA |
 | social | Facebook, Instagram, LinkedIn plugins and the autonomous mode (Mastodon home, Facebook mirror) |
 | network finding | 11,945 denied connections to port 6667 (IRC) from one internal host, 107 ATP matches: the owner checks the device |
+
+## Owner (2026-10-02)
+
+| what | why |
+|---|---|
+| check the GitHub repository's visibility | the public API answers 404 for Soliton0382/A.U.R.O.R.A.: anonymous clones (the README's `git clone https://…`) fail |
+| sign | code changed in this round (API split, sys_log, installer…): `sudo .venv/bin/python sys/core/script/sys_ethics_sign.py sign` |
+| delete the test copy when done | `~/Scaricati/Aurora_installtest` holds 88 GB (its own models and venv) |
 
 ## To do (designed)
 

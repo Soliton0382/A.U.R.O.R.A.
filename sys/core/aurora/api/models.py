@@ -1,0 +1,55 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 A.U.R.O.R.A. Project
+"""Which model does each step (mdl_router): providers, roles, model lists, cloud statistics."""
+from __future__ import annotations
+
+import asyncio
+
+from fastapi import APIRouter, Depends, HTTPException, Request
+
+from .core import auth, cfg, log
+
+router = APIRouter()
+
+
+# ---- models: which model does each step (mdl_router) ----------------------------------------------------------
+
+@router.get("/v1/aurora/models", dependencies=[Depends(auth)])
+def models_overview() -> dict:
+    from aurora import mdl_router, sys_ethics
+    a = mdl_router.assignments(cfg)
+    return {"exempt": sys_ethics.exempt(cfg), "mask": bool(cfg["AURORA_CLOUD_MASK"]),
+            "mask_words": cfg["AURORA_CLOUD_MASK_WORDS"],
+            "providers": [{"id": k, "label": v["label"], "kind": v["kind"], "key": v.get("key"),
+                           "configured": v["kind"] in ("local", "claude_code") or bool(cfg.values.get(v.get("key", "")))}
+                          for k, v in mdl_router.PROVIDERS.items()],
+            "roles": [{"id": r, "it": it, "en": en, "sees": sees, **a[r]} for r, (it, en, sees) in mdl_router.ROLES.items()]}
+
+
+@router.put("/v1/aurora/models/roles", dependencies=[Depends(auth)])
+async def models_roles(request: Request) -> dict:
+    from aurora import mdl_router
+    try:
+        out = mdl_router.set_assignments(cfg, await request.json())
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    log.info("audit: model assignments changed: %s", ", ".join(f"{k}={v['provider']}:{v['model']}" for k, v in out.items()
+                                                                  if v["provider"] != "local"))
+    return out
+
+
+@router.get("/v1/aurora/models/{provider}/list", dependencies=[Depends(auth)])
+async def models_list(provider: str) -> dict:
+    from aurora import mdl_router
+    if provider not in mdl_router.PROVIDERS:
+        raise HTTPException(status_code=404, detail="unknown provider")
+    try:
+        return {"provider": provider, "models": await asyncio.to_thread(mdl_router.list_models, provider, cfg)}
+    except Exception as e:                               # a wrong key, a provider down: said, not hidden
+        raise HTTPException(status_code=502, detail=f"{type(e).__name__}: {str(e)[:300]}")
+
+
+@router.get("/v1/aurora/models/stats", dependencies=[Depends(auth)])
+async def models_stats(days: float = 7) -> dict:
+    from aurora import mdl_router
+    return await asyncio.to_thread(mdl_router.stats, cfg, max(1.0, min(days, 90)))

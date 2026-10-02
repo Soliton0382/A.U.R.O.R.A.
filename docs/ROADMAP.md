@@ -3,6 +3,23 @@
 Every request of the owner is recorded here as soon as it is made, so that nothing is lost between
 sessions. Each item moves to STATUS.md ("Working") when it is validated. Updated 2026-09-30.
 
+## Depth before breadth (proposed 2026-10-02, the owner decides)
+
+The structure is complete; what is missing is proof that each part is good, not more parts. In order:
+
+1. **Backup of the owner's data** — none exists today: vault 3.7 GB (knowledge and memory), usr 25 GB, status
+   (routines, approvals, settings), .env, keys. A nightly copy (encrypted, to a second disk or the NAS) with a
+   restore tested once a month: a lost disk is the only failure that cannot be repaired.
+2. **The manual tests** (docs/MANUAL_TESTS.md, ~30 lines): one pass by the owner on the phone and the PC.
+3. **The HTTP layer under test**: 89 routes and no test calls them (the tests cover the modules). A smoke suite
+   with FastAPI's TestClient on a test configuration: every route answers, auth refuses without a key.
+4. **Answer quality re-measured** (M40, the core of Aurora): the benchmark after the synthesis prompt change (M48)
+   and with the cloud steps; the result decides the default per step.
+5. **Switch off what does not work yet, or prove it**: the forge with the local reasoner (C70, 4/8) and the
+   self-repair (0 code fixes so far) — on only when a benchmark says they help.
+6. **A week of soak**: memory of each service, log growth, GPU swaps, failed routines, measured daily
+   (the doctor and health already give the numbers); then multi-user.
+
 ## Principles restated by the owner (2026-09-30)
 
 - Aurora grows more independent; her autonomy is **measured and tracked** (what she did alone, how it

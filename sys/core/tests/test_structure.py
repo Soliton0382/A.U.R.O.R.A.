@@ -16,7 +16,7 @@ PROCESS_ENV = {"AURORA_ENV_FILE", "AURORA_IN_SANDBOX", "AURORA_PUBLISH_DENY"}   
 
 
 def code_files():
-    yield from (CORE / "aurora").glob("*.py")
+    yield from (CORE / "aurora").rglob("*.py")
     yield from (CORE / "script").glob("*.py")
     yield from (CORE / "script").glob("*.sh")
     yield from (ROOT / "sys" / "plugins").glob("*/*.py")
@@ -71,6 +71,29 @@ def test_the_offline_shell_lists_only_files_that_exist():
     missing = [f for f in files if not (WEB / f.removeprefix("/static/")).is_file()
                and not (WEB / f.lstrip("/")).is_file()]
     assert len(files) > 20 and missing == []
+
+
+def test_every_api_module_has_a_router_and_only_public_functions_are_routes():
+    import ast
+    api = CORE / "aurora" / "api"
+    modules = ast.literal_eval(re.search(r"MODULES = (\[.*\])", (api / "__init__.py").read_text()).group(1))
+    assert sorted(modules) == sorted(f.stem for f in api.glob("*.py") if f.stem not in ("__init__", "core"))
+    routes = 0
+    for name in modules:
+        tree = ast.parse((api / f"{name}.py").read_text(encoding="utf-8"))
+        assert any(isinstance(n, ast.Assign) and any(getattr(t, "id", "") == "router" for t in n.targets) for n in tree.body)
+        for n in tree.body:
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and any(
+                    "router." in ast.unparse(d) for d in n.decorator_list):
+                assert not n.name.startswith("_"), f"{name}.{n.name}: a helper took a route's decorator"
+                routes += sum("router." in ast.unparse(d) for d in n.decorator_list)
+    assert routes >= 89                     # 89 on 2 October 2026 (+ the WebUI's 3 and /static in svc_api): none lost
+
+
+def test_the_api_publishes_no_map_of_itself():
+    src = (CORE / "script" / "svc_api.py").read_text(encoding="utf-8")
+    app = re.search(r"^app = FastAPI\((.*)\)", src, re.M).group(1)
+    assert all(f"{k}=None" in app for k in ("docs_url", "redoc_url", "openapi_url"))   # C79
 
 
 def test_models_features_and_installer_groups_agree():
