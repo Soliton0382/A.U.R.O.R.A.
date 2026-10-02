@@ -893,6 +893,17 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M64 — Forge with the cloud steps, full check of the NAS backup (2026-10-02)
+
+NAS backup: verify --full decrypted and checked 1,224 of 1,224 blobs in 2 min 18 s (exit 0).
+Forge benchmark `bench_forge.py --roles` (the Models page's assignments, masked samples):
+writer Claude Code opus + judge Gemini 2.5 Flash: built 2/8 in 14 min 24 s, right plugins refused by the judge (C93).
+Writer and judge Claude Code opus: built 8/8 in 7 min 48 s. After correcting the benchmark's own truths (C94: rotated
+logs, keys with spaces, Caddy's JSON log), needs 1 and 2 re-run: right. Need 4: the plugin counted Caddy's warnings
+of the whole file (670 = 430 in the 24 h window + 240 older), so it is wrong. Result: 7 right of 8 (local, M54: 4).
+Facebook: page bio set through an approval ("page updated: about"); the Messenger greeting refused by Meta's API
+("Requires one of the params: get_started, persistent_menu, …" — greeting is not among them).
+
 ## M63 — First backup to the NAS (2026-10-02)
 
 aurora-mount (after the fix of C90): mounted in 1 s, //NAS/share on /mnt/aurora-nas, cifs 3.0, owned by the service

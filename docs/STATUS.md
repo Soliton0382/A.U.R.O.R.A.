@@ -58,10 +58,10 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 
 | what | state |
 |---|---|
-| forge | now written by Claude Code (opus) and judged by Gemini 2.5 Flash (M55: cloud 6/8 right, local 4/8); C70 stays open until the benchmark is run again with this setting |
+| forge | written and judged by Claude Code (opus): 8 of 8 built, 7 right (M64; local 4/8). Known limit: a plugin that ignored the time window of a JSON log passed the judge; read-only plugins only install alone |
 | self-repair | runs daily (4 self-reviews, 2 repairs in 2 days); 0 code changes proposed so far: no evidence yet that it fixes a real bug |
 | multi-user | performance check on install, admin and users, TOTP MFA |
-| social | Facebook connected (page token, posts, statistics, comments, page info, welcome message; writes wait for approval); routines: a post a day proposed when there is something new, weekly statistics. Next: a tool to read her own dream and the day's papers (today the agent can only read logs); Instagram, LinkedIn, TikTok |
+| social | Facebook connected (page token with 8 scopes; posts, statistics, comments, page info; writes wait for approval; the Messenger welcome message is not accepted by Meta's API for this page: set by hand in Business Suite); routines: a post a day proposed when there is something new, weekly statistics. Next: a tool to read her own dream and the day's papers (today the agent can only read logs); Instagram, LinkedIn, TikTok |
 | network finding | 11,945 denied connections to port 6667 (IRC) from one internal host, 107 ATP matches: the owner checks the device |
 
 ## Owner (2026-10-02)
@@ -70,7 +70,7 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 |---|---|
 | sign | code changed in this round (API split, sys_log, installer…): `sudo .venv/bin/python sys/core/script/sys_ethics_sign.py sign` |
 | delete the test copies when done | `~/Scaricati/Aurora_installtest` (88 GB), `~/Scaricati/aurora-backup-test` (28 GB), `~/Scaricati/aurora-restore-test` (4 GB) |
-| clean the history (C83) | the repository is public and its history still holds the firewall serial: `bash ~/Scaricati/pulisci-storia-git.sh` (backup, rewrite, check, force push) |
+| clean the history (C83) | rewritten locally (0 occurrences); the push was refused as "stale": `git fetch origin && git push --force-with-lease origin main` in Aurora_git |
 | approve the Facebook page texts | 🛠️ Repairs: the page bio and the welcome message proposed by Aurora |
 | GitHub settings | rulesets, Actions read-only, private vulnerability reporting, Dependabot, secret scanning, CodeQL |
 | GitHub keys | delete `aurora-readonly` (an account key, read/write on every repo, used by nothing); keep the push key (the one named after this computer), better with a passphrase (`ssh-keygen -p -f ~/.ssh/id_ed25519`) |
@@ -84,7 +84,7 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | full-disk encryption | owner |
 | re-measure answer quality (M40) after the synthesis prompt change (M48) | a run of the benchmark |
 
-## Open bugs (1)
+## Open bugs (0)
 
 C70 (the forge does not yet build right plugins). Measurements still to take are listed in ROADMAP.md ("Still to measure").
 

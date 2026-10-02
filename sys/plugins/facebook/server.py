@@ -125,7 +125,14 @@ def set_welcome_message(text: str) -> str:
     """The greeting Messenger shows before someone writes to the page (max 160 characters; an external action)."""
     if len(text) > 160:
         raise ToolError(f"{len(text)} characters: Messenger allows 160")
-    _call("POST", "me/messenger_profile", need="greeting", json_body={"greeting": [{"locale": "default", "text": text}]})
+    try:
+        _call("POST", "me/messenger_profile", need="greeting", json_body={"greeting": [{"locale": "default", "text": text}]})
+    except ToolError as e:
+        if "Requires one of the params" not in str(e):
+            raise
+        # measured on 2 October 2026: Meta no longer takes "greeting" for this kind of page through the API
+        raise ToolError("Meta does not accept the welcome message through the API for this page: set it by hand in "
+                        "Meta Business Suite → Inbox → Automations → Instant reply (text: " + text + ")") from None
     return "welcome message set"
 
 
