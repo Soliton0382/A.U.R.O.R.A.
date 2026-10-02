@@ -893,6 +893,21 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M60 — Backup, bug reports, cloud keys, routine PDFs (2026-10-02)
+
+Backup (sys_backup, real data, NVMe to the same NVMe, test key and folder): first run 1,340 files, 30.4 GB read, 28.4 GB
+written encrypted (identical files once) in 40.2 s; second run 4.5 s, 1 blob written (1 KB of status); verify --full
+1,189 blobs decrypted and checked in 17.5 s; restore of the vault 130 files, 3.89 GB in 2.9 s, SQLite integrity_check
+ok on every shard; a restored status file identical. Retention computed by hand and by code: the same 14 snapshots.
+Bug report (live): 34 files, 443 KB, masked 838 addresses, 45 device fields, 39 tokens, 15 phones, 5 MAC, 5 of the
+owner's words; the privacy scan of the publish found none of the owner's terms in it. Cloud: Gemini key valid
+(61 models), a masked call to gemini-2.5-flash in 0.9 s with nothing real sent; xAI key valid but the team has no
+credit (403, the provider's words now shown by sys_doctor). Routine "resoconto notturno" run by hand: PDF made and
+downloadable. API: 37 GET endpoints answer 200, none changed. Tests 193; the publish check passes (no secret, none of the
+owner's 13 terms, tests on the clean mirror).
+Not measured: a backup to the second disk or the NAS (slower than NVMe), the timer firing at night (the unit is not
+installed until the owner sets the folder), a restore of the whole 30 GB, the bug report page in the browser.
+
 ## M59 — Clean install, modular API, faster Plugins page (2026-10-02)
 
 Clean install of the published commit (6faed9e, cloned from the mirror: GitHub is not reachable from Claude's shell)

@@ -90,6 +90,13 @@ def test_every_api_module_has_a_router_and_only_public_functions_are_routes():
     assert routes >= 89                     # 89 on 2 October 2026 (+ the WebUI's 3 and /static in svc_api): none lost
 
 
+def test_every_setting_category_is_declared_with_both_labels():
+    schema = sys_config.load_schema()
+    used = {s["category"] for s in schema["settings"]}
+    assert sorted(used - set(schema["categories"])) == []          # .env.example and the Settings page need them
+    assert all({"it", "en"} <= set(v) for v in schema["categories"].values())
+
+
 def test_the_api_publishes_no_map_of_itself():
     src = (CORE / "script" / "svc_api.py").read_text(encoding="utf-8")
     app = re.search(r"^app = FastAPI\((.*)\)", src, re.M).group(1)

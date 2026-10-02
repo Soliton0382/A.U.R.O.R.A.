@@ -33,6 +33,26 @@ export default {
     }
     if (health) box.append(el("div", "muted", t("status.checked", { at: clock(health.checked) })));
     const f = await call("/v1/aurora/features").catch(() => null);
+    const b = await call("/v1/aurora/backup").catch(() => null);
+    if (b) {                                       // the owner's data: where it is copied, when, how many copies
+      box.append(el("h3", "setting-cat", t("status.backup")));
+      const row = el("div", "ev");
+      if (!b.configured) row.append(el("span", "ic", "⚠️"), el("span", "error", t("status.backup.off", { why: b.problem })));
+      else {
+        const l = b.last;
+        row.append(el("span", "ic", l ? "✅" : "⏳"), el("span", "", l ? t("status.backup.last", { at: clock(l.at), files: l.files,
+          gb: (l.bytes / 1e9).toFixed(1), n: b.snapshots.length }) : t("status.backup.never")),
+        el("span", "muted", b.installed ? t("status.backup.next", { at: b.next || b.time }) : t("status.backup.unit")));
+        const go = el("button", "", t("status.backup.run"));
+        go.addEventListener("click", async () => {
+          go.disabled = true;
+          try { await call("/v1/aurora/backup/run", { method: "POST" }); go.textContent = t("status.backup.started"); }
+          catch (e) { go.textContent = t("ev.error", { m: e.message }); }
+        });
+        row.append(go);
+      }
+      box.append(row);
+    }
     if (f) {                                       // what works here, and the command for what is missing
       box.append(el("h3", "setting-cat", t("status.features")));
       const code = lang.slice(0, 2);

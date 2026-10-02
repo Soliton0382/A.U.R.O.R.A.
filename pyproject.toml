@@ -5,6 +5,10 @@ description = "A.U.R.O.R.A.: a local AI that answers only from knowledge it can 
 requires-python = ">=3.14"
 license = "Apache-2.0"
 
+[project.urls]
+Repository = "https://github.com/Soliton0382/A.U.R.O.R.A."
+Issues = "https://github.com/Soliton0382/A.U.R.O.R.A./issues"
+
 [tool.pytest.ini_options]
 pythonpath = ["sys/core", "sys/core/tests"]
 testpaths = ["sys/core/tests"]

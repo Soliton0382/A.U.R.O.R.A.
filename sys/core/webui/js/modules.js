@@ -15,6 +15,7 @@ import metrics from "./modules/metrics.js";
 import plugins from "./modules/plugins.js";
 import models from "./modules/models.js";
 import guide from "./modules/guide.js";
+import bugreport from "./modules/bugreport.js";
 import projects from "./modules/projects.js";
 import routines from "./modules/routines.js";
 import runs from "./modules/runs.js";
@@ -25,5 +26,5 @@ import social from "./modules/social.js";
 import status from "./modules/status.js";
 import updates from "./modules/updates.js";
 
-export const views = [chat, approvals, security, diary, social, projects, routines, models, plugins, importDocs, uploads, harvester, runs, status, notifications, updates, settings, guide];
+export const views = [chat, approvals, security, diary, social, projects, routines, models, plugins, importDocs, uploads, harvester, runs, status, notifications, updates, settings, guide, bugreport];
 export const widgets = [sky, alerts, metrics];

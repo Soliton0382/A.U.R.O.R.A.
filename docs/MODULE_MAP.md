@@ -51,6 +51,8 @@ call downward (ECOSYSTEM §1).
 | `sys_tests.py` | system | run the test suite (no GPU tests) on the live code or a sandbox, with Aurora's venv, never the real .env | pytest | agt_change, plugin self |
 | `api/core.py` | api | what every part of aurora-api shares: config, activity feed and notifications, authentication (key, devices, lockout), the pipeline, one plugin host (cached tool lists), runs (one at a time), the chat's routing (tools, pictures, videos) | aurora modules | every api module |
 | `api/*.py` | api | one module per area, each with its router: oai, runs, knowledge, projects, models, forge, routines, activity, documents, incidents, social, agents, access, system (order in `api/__init__.py`) | api/core | svc_api |
+| `sys_backup.py` | system | the owner's data to another disk: AES-256-GCM frames, blobs named by HMAC (dedup), SQLite backup API, snapshots, retention, verify, restore into an empty folder | sys_config | svc_backup, api/backup, sys_health, sys_doctor |
+| `sys_bugreport.py` | system | a bug report zip: description, environment, health, settings (secrets as set/empty), logs of N hours, problems of 7 days, plugin stderr, chosen runs; one masker for all | sec_mask, sys_logread | api/bugreport |
 | `sys_features.py` | system | what this installation can do: each feature with its models (all files), setting paths, switch, programs; `need` turns a missing one into a sentence with the command; installer groups with measured hardware needs; contradicting settings | sys_config, models.json, mdl_router | svc_api, kno_attach, kno_video, kno_rem, sys_health, sys_doctor |
 | `sys_health.py` | system | every service (systemd + real check or heartbeat), disk, GPUs → ok / warn / down with reasons | sys_metrics, httpx, curl | svc_api (/health), WebUI dot |
 | `sys_ethics.py` | system | code of conduct: signed integrity of the protected files (services refuse to start otherwise), level A forbidden plugin capabilities, owner's level-B exemption | cryptography | every service, plg_host, sys_approvals, sys_disclosure, agt_change |
@@ -87,6 +89,8 @@ call downward (ECOSYSTEM §1).
 | `doc_charts.py` | benchmark charts (SVG, IT/EN) for the README from the measurements | docs |
 | `dev_publish.sh` | copies what .gitignore lets through to a separate repository folder, checks paths, size, secrets, the owner's personal patterns (list kept outside the repo) and the tests, then commits and pushes there | before every publication |
 | `install.sh` (root) | the installer: system, packages, NVIDIA, answers, venv, profile, .env, models, llama.cpp, tests, ethics key, services, HTTPS | a new user |
+| `svc_backup.py` | aurora-backup (oneshot, timer AURORA_BACKUP_TIME): init (key + recovery code), run, list, verify, restore | systemd timer, the owner |
+| `dev_privacy_scan.py` | before a publish: the masker's terms and the firewall's devices must not be in the published folder (file:line, kind) | dev_publish.sh |
 | `sys_doctor.py` | read-only check of the installation: .env and schema, code signature, features, contradicting settings, services; `--groups` for the installer | install.sh (end), the owner |
 | `sys_models_fetch.py` | models from Hugging Face per `config/models.json`: pinned revisions, sizes before, SHA-256 after, resumable | install.sh |
 | `sys_profile.py` | hardware profile (GPUs, VRAM, RAM) → .env values; only the reference profile is measured | install.sh |

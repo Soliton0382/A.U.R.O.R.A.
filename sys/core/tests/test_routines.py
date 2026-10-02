@@ -102,3 +102,19 @@ def test_new_notification_kinds_are_on_for_owners_who_chose_before(cfg):
 def test_owners_who_never_chose_get_the_new_kinds_on_their_phone(cfg):
     p = sys_push.prefs(cfg)                                    # no prefs.json: AURORA_PUSH_EVENTS + the new kinds
     assert {"routine", "weather", "plugin"} <= set(p["push"]) and "thought" not in p["push"]
+
+
+def test_a_routine_report_becomes_a_downloadable_pdf_and_a_failed_pdf_never_fails_it(cfg, monkeypatch, tmp_path):
+    import logging
+    from aurora import doc_pdf, sys_uploads
+    events = []
+    made = tmp_path / "20261002-report.pdf"
+    monkeypatch.setattr(doc_pdf, "create", lambda title, text, lang, cfg: (made.write_bytes(b"%PDF"), made)[1])
+    files = R.report_pdf(cfg, {"id": "r1", "title": "Resoconto notturno"}, "testo " * 50, "run1",
+                         lambda e, p: events.append((e, p)), logging.getLogger("t"))
+    assert files == [{"name": made.name, "url": f"/v1/aurora/documents/{made.name}", "mime": "application/pdf"}]
+    assert events[-1][1]["ok"] is True
+    assert any(f["name"] == made.name for f in sys_uploads.by_run(cfg, {"run1"})["run1"])   # shown with the turn
+    monkeypatch.setattr(doc_pdf, "create", lambda *a: (_ for _ in ()).throw(RuntimeError("no chrome")))
+    assert R.report_pdf(cfg, {"id": "r1"}, "x" * 300, "run2", lambda e, p: events.append((e, p)), logging.getLogger("t")) == []
+    assert events[-1][1]["ok"] is False and "no chrome" in events[-1][1]["error"]

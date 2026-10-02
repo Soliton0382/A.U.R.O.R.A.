@@ -219,3 +219,21 @@ def newly_ready(cfg: sys_config.Config, plugins: list) -> list:
     ready = {p.name for p in plugins if p.available}
     _save(cfg, "plugins_ready.json", sorted(ready))
     return [p for p in plugins if p.name in ready - known and p.manifest.get("welcome")]
+
+
+def report_pdf(cfg: sys_config.Config, r: dict, text: str, run_id: str, emit, log) -> list[dict]:
+    """A routine's report is also a PDF the owner can download (card, conversation, Files page), with the AI
+    disclosure; a failure here never fails the routine."""
+    from datetime import date
+    from . import doc_pdf, sys_uploads
+    lang = "it" if str(cfg["AURORA_LANG_DEFAULT"]).startswith("it") else "en"
+    try:
+        p = doc_pdf.create(f"{(r.get('title') or 'Routine')[:60]} — {date.today().isoformat()}", text, lang, cfg)
+    except Exception as e:                               # noqa: BLE001 - the text report stays, the PDF is said missing
+        log.warning("routine %s: report PDF not made: %s", r["id"], e)
+        emit("routine.pdf", {"routine": r["id"], "ok": False, "error": str(e)[:200]})
+        return []
+    f = {"name": p.name, "url": f"/v1/aurora/documents/{p.name}", "mime": "application/pdf"}
+    sys_uploads.link(cfg, run_id, f["name"], f["url"], f["mime"])
+    emit("routine.pdf", {"routine": r["id"], "ok": True, "name": p.name})
+    return [f]

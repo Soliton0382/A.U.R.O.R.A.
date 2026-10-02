@@ -26,6 +26,8 @@ mark each line ✅ / ❌ with a note. Reload the WebUI first (the service worker
 | N3 | 📖 Guide: open each «Apri →» | every page opens; the texts read well on the phone |
 | N4 | ⚙️ Status → «Funzioni di questa installazione» | 10 ✅; nothing red |
 | N5 | ⚙️ Settings: categories | each category once (C71) |
+| N7 | ⚙️ Status → Backup → 💾 Run now (after the owner's setup) | a notification at the end; the Status line shows files, GB, copies |
+| N8 | 🐞 Report a bug: describe, tick a conversation, Prepare | the files and what was masked; the zip opens; nothing private inside |
 | N6 | 🧩 Plugins: open the page, then a card, then back | the grid appears at once; icons do not flash (C80) |
 
 ## Pictures

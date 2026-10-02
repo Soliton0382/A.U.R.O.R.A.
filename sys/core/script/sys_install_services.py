@@ -97,6 +97,36 @@ $extra
 WantedBy=aurora.target
 """)
 
+# The nightly backup: a oneshot started by its timer (not part of aurora.target: it runs and ends), low priority for
+# the disk and the CPU, allowed to write only Aurora's folder and the backup folder.
+BACKUP_UNIT = Template("""# Generated from .env by sys/core/script/sys_install_services.py
+[Unit]
+Description=Aurora — backup of the owner's data (encrypted, to $dest)
+After=aurora-api.service
+
+[Service]
+Type=oneshot
+User=$user
+WorkingDirectory=$root
+ExecStart=$exec
+Nice=15
+IOSchedulingClass=idle
+TimeoutStartSec=6h
+$extra""")
+
+BACKUP_TIMER = Template("""# Generated from .env by sys/core/script/sys_install_services.py
+[Unit]
+Description=Aurora — nightly backup at $time
+
+[Timer]
+OnCalendar=*-*-* $time:00
+Persistent=true
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target
+""")
+
 TARGET = Template("""# Generated from .env by sys/core/script/sys_install_services.py
 [Unit]
 Description=Aurora — all services
@@ -125,12 +155,13 @@ INSTALL = Template("""#!/usr/bin/env bash
 set -u
 [ "$$(id -u)" -eq 0 ] || { echo "run as root: sudo bash $$0"; exit 1; }
 cd /
-for u in $units; do install -m 0644 "$src/$$u" "/etc/systemd/system/$$u"; done
+for u in $units $backup; do install -m 0644 "$src/$$u" "/etc/systemd/system/$$u"; done
 # polkit: the service user may start/stop/restart aurora units only (read again by polkit at once)
 install -m 0644 "$src/50-aurora.rules" /etc/polkit-1/rules.d/50-aurora.rules
 systemctl daemon-reload
 systemctl reset-failed $units 2>/dev/null || true
 systemctl enable $units
+[ -n "$backup" ] && systemctl enable --now aurora-backup.timer && echo "  backup timer: $$(systemctl show -p NextElapseUSecRealtime --value aurora-backup.timer)"
 systemctl restart $services aurora.target
 
 check() {  # name url: wait up to 180 s for a healthy answer
@@ -148,7 +179,7 @@ exit $$fail
 """)
 
 
-def hardening(root: Path, user: str, bind_low_port: bool, hosts_plugins: bool = False) -> str:
+def hardening(root: Path, user: str, bind_low_port: bool, hosts_plugins: bool = False, also: tuple = ()) -> str:
     """systemd confinement: the system read-only, the home read-only but for what a service writes, no new
     privileges, no capabilities (Caddy keeps only the one to open ports below 1024), kernel and clock protected.
     Devices stay visible: the GPUs and the camera are devices. A "-" path may be missing.
@@ -158,7 +189,7 @@ def hardening(root: Path, user: str, bind_low_port: bool, hosts_plugins: bool = 
     import pwd
     home = Path(pwd.getpwnam(user).pw_dir)
     writable = [str(root), f"-{home}/.cache", f"-{home}/.local/share/caddy", f"-{home}/.config/caddy",
-                f"-{home}/.claude", f"-{home}/.claude.json", f"-{home}/.ssh/known_hosts"]
+                f"-{home}/.claude", f"-{home}/.claude.json", f"-{home}/.ssh/known_hosts", *also]
     caps = "CAP_NET_BIND_SERVICE" if bind_low_port else ""
     return ("# confinement (AURORA_SERVICE_HARDENING)\n"
             "NoNewPrivileges=yes\nProtectSystem=strict\nProtectHome=read-only\n"
@@ -221,6 +252,20 @@ def main() -> int:
         (out / f"{name}.service").write_text(UNIT.substitute(
             description=desc, after=after, user=cfg["AURORA_SERVICE_USER"], root=root, exec=exec_, extra=extra),
             encoding="utf-8")
+    backup = []                                        # only when a backup folder is set
+    dest = str(cfg["AURORA_BACKUP_DIR"] or "").strip()
+    if dest:
+        import re
+        hhmm = str(cfg["AURORA_BACKUP_TIME"]).strip()
+        if not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", hhmm):
+            print(f"AURORA_BACKUP_TIME {hhmm!r} is not HH:MM")
+            return 1
+        extra = hardening(root, cfg["AURORA_SERVICE_USER"], False, also=(dest,)) if cfg["AURORA_SERVICE_HARDENING"] else ""
+        (out / "aurora-backup.service").write_text(BACKUP_UNIT.substitute(
+            dest=dest, user=cfg["AURORA_SERVICE_USER"], root=root, exec=f"{py} {script / 'svc_backup.py'} run",
+            extra=extra), encoding="utf-8")
+        (out / "aurora-backup.timer").write_text(BACKUP_TIMER.substitute(time=hhmm), encoding="utf-8")
+        backup = ["aurora-backup.service", "aurora-backup.timer"]
     (out / "aurora.target").write_text(TARGET.substitute(wants=" ".join(f"{n}.service" for n in units)),
                                        encoding="utf-8")
     (out / "50-aurora.rules").write_text(POLKIT.substitute(user=cfg["AURORA_SERVICE_USER"]), encoding="utf-8")
@@ -236,7 +281,7 @@ def main() -> int:
               "aurora-https": f"https://{cfg['AURORA_DOMAIN']}:{cfg['AURORA_HTTPS_PORT']}/"}
     script_sh = out / "install.sh"
     script_sh.write_text(INSTALL.substitute(
-        src=out, units=" ".join(names), services=" ".join(f"{n}.service" for n in units),
+        src=out, units=" ".join(names), services=" ".join(f"{n}.service" for n in units), backup=" ".join(backup),
         checks="\n".join(f"check {n} {u} || fail=1" for n, u in checks.items()),
         https_port=cfg["AURORA_HTTPS_PORT"], domain=cfg["AURORA_DOMAIN"]), encoding="utf-8")
     script_sh.chmod(0o755)

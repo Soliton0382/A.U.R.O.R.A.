@@ -88,6 +88,9 @@ else
   [ -z "$MSG" ] || fail "a commit needs the personal-data check"
 fi
 
+say "== private data Aurora knows (masker terms, firewall devices)"
+"$SRC/.venv/bin/python" "$SRC/sys/core/script/dev_privacy_scan.py" "$DST" || fail "private data above (file:line, kind)"
+
 say "== code"
 PY="$SRC/.venv/bin/python"
 (cd "$DST" && "$PY" -m compileall -q sys/core sys/plugins >/dev/null) || fail "Python files that do not compile"

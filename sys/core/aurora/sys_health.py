@@ -117,6 +117,18 @@ def check(cfg: sys_config.Config | None = None) -> dict:
     for p in sys_features.config_problems(cfg):
         add("configurazione", "warn", p)
 
+    from . import sys_backup                             # the owner's data: copied, and recently
+    b = sys_backup.status(cfg)
+    last = b.get("last") or {}
+    age_h = (time.time() - last["at"]) / 3600 if last.get("at") else None
+    if not b["configured"]:
+        add("backup", "warn", f"nessun backup: {b['problem']}", "AURORA_BACKUP_DIR + svc_backup.py init")
+    elif age_h is None or age_h > 30:
+        add("backup", "warn", "nessun backup riuscito" + (f" da {age_h:.0f} ore" if age_h else " ancora"), b.get("dest", ""))
+    else:
+        add("backup", "ok", f"ultimo {age_h:.0f} h fa: {last.get('files')} file, {last.get('bytes', 0) / 1e9:.1f} GB, "
+            f"{len(b['snapshots'])} copie", b.get("dest", ""))
+
     from . import sys_ethics                             # the code as the owner signed it (second tier)
     drift = sys_ethics.drift_summary(sys_ethics.code_drift(cfg.root))
     add("firma del codice", "warn" if drift else "ok", drift or "ogni file come firmato dal proprietario")

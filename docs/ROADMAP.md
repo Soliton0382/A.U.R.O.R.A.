@@ -7,9 +7,8 @@ sessions. Each item moves to STATUS.md ("Working") when it is validated. Updated
 
 The structure is complete; what is missing is proof that each part is good, not more parts. In order:
 
-1. **Backup of the owner's data** — none exists today: vault 3.7 GB (knowledge and memory), usr 25 GB, status
-   (routines, approvals, settings), .env, keys. A nightly copy (encrypted, to a second disk or the NAS) with a
-   restore tested once a month: a lost disk is the only failure that cannot be repaired.
+1. **Backup of the owner's data** — **done** (M60): nightly, encrypted, deduplicated, checked; the owner chooses the
+   folder (second disk or NAS) and keeps the recovery code; a full restore test once a month stays his habit.
 2. **The manual tests** (docs/MANUAL_TESTS.md, ~30 lines): one pass by the owner on the phone and the PC.
 3. **The HTTP layer under test**: 89 routes and no test calls them (the tests cover the modules). A smoke suite
    with FastAPI's TestClient on a test configuration: every route answers, auth refuses without a key.

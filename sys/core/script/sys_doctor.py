@@ -78,6 +78,34 @@ def report(lang: str) -> int:
         line(mark, c["label"][lang] + ("" if c["ok"] else f" — {', '.join(c['missing'])}"), " | ".join(c["fix"]))
         bad += c["required"] and not c["ok"]
 
+    print("== backup")
+    from aurora import sys_backup
+    b = sys_backup.status(cfg)
+    last = b.get("last") or {}
+    if not b["configured"]:
+        line("⚠️", b["problem"], "AURORA_BACKUP_DIR (Impostazioni) + .venv/bin/python sys/core/script/svc_backup.py init")
+    else:
+        line("✅" if last else "⚠️", f"{b['dest']}: {len(b['snapshots'])} " + ("copie" if lang == "it" else "snapshots")
+             + (f", {last.get('files')} file, {last.get('bytes', 0) / 1e9:.1f} GB" if last else ""))
+
+    print("== provider cloud" if lang == "it" else "== cloud providers")
+    from aurora import mdl_router
+    for name, spec in mdl_router.PROVIDERS.items():
+        if not spec.get("key") or not str(cfg.values.get(spec["key"]) or "").strip():
+            continue                                    # not configured: nothing to check
+        try:
+            n = len(mdl_router.list_models(name, cfg))
+            line("✅", f"{spec['label']}: " + (f"chiave valida, {n} modelli" if lang == "it" else f"key valid, {n} models"))
+        except Exception as e:                          # noqa: BLE001 - a wrong key, a network error: said, not raised
+            msg = str(e).split("\n")[0][:120]
+            try:                                        # the provider's own words: no credit, wrong key...
+                body = e.response.json()
+                msg = f"{e.response.status_code}: {body.get('error') or body.get('message') or body}"[:220]
+            except Exception:                           # noqa: BLE001 - no response body: the plain error
+                pass
+            line("⛔", f"{spec['label']}: {msg}", (f"{spec['key']}: controlla la chiave nella scheda del plugin ☁️ cloud"
+                                                    if lang == "it" else f"{spec['key']}: check the key in the cloud plugin's card"))
+
     print("== servizi" if lang == "it" else "== services")
     for u in UNITS:
         st = subprocess.run(["systemctl", "is-active", u], capture_output=True, text=True).stdout.strip() or "?"
