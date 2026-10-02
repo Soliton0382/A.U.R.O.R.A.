@@ -456,7 +456,7 @@
   "gd.b.plugins": "- Ogni plugin gira in una gabbia: vede solo le sue chiavi e, se lo dichiara, non ha rete.\n- **🔁 Routine**: Aurora propone controlli periodici per i plugin collegati; li attivi con un clic e ricevi una notifica con l'esito.\n- Se le manca una capacità, Aurora può scrivere da sola un plugin: lo prova nella gabbia, lo fa giudicare e, se è di sola lettura, lo installa; tutto il resto aspetta il tuo ok in **🛠️ Riparazioni**.",
   "gd.h.safety": "🛡️ Sicurezza e controllo",
   "gd.b.safety": "- **🛠️ Riparazioni**: tutto ciò che Aurora vuole fare e che richiede il tuo permesso; approvi ✅ o rifiuti ❌.\n- I file del codice etico sono firmati: una loro modifica richiede la tua firma, altrimenti i servizi non partono. Aurora non firma mai il proprio codice.\n- **🛡️ Sicurezza**: gli incidenti del firewall, con un resoconto e le azioni difensive consigliate.\n- Le impostazioni si cambiano dalla WebUI; le chiavi non vengono mai mostrate.",
-  "gd.p.chat": "Parli con Aurora; allegati, voce, immagini da modificare. Ogni risposta mostra il percorso che ha seguito.",
+  "gd.p.chat": "Parli con Aurora; allegati, voce, immagini da modificare, video da creare («fammi un video di…», «anima questa foto»: circa 20 minuti, la chat resta in pausa). Ogni risposta mostra il percorso che ha seguito.",
   "gd.p.approvals": "Ciò che aspetta una tua decisione, le autovalutazioni e i rapporti di riparazione.",
   "gd.p.security": "Incidenti del firewall con i dati pubblici della rete d'origine e le azioni consigliate.",
   "gd.p.diary": "La vita interiore di Aurora: ricordi delle conversazioni, pensieri, sogni.",
@@ -472,5 +472,6 @@
   "gd.p.status": "Servizi, ciclo autonomo, meteo, vault.",
   "gd.p.notifications": "Quali eventi ti avvisano e su quale canale.",
   "gd.p.updates": "Aggiornamenti da GitHub: cosa cambia, aggiorna ora, ritorno indietro se i test falliscono.",
-  "gd.p.settings": "Dispositivi registrati e ogni valore di Aurora, con la sua spiegazione."
+  "gd.p.settings": "Dispositivi registrati e ogni valore di Aurora, con la sua spiegazione.",
+  "ev.video.plan": "{src} Video «{title}»: circa {m} minuti (prompt scritto in inglese per il modello)"
 }

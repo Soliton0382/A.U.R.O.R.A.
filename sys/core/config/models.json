@@ -204,6 +204,41 @@
    "settings": {
     "AURORA_SEGMENT_MODEL_DIR": "sys/models/image/sam2.1-hiera-small"
    }
+  },
+  "video": {
+   "purpose": "short videos from words or from a picture (Wan 2.2 TI2V 5B)",
+   "repo": "Wan-AI/Wan2.2-TI2V-5B-Diffusers",
+   "revision": "b8fff7315c768468a5333511427288870b2e9635",
+   "license": "apache-2.0",
+   "dir": "sys/models/video/Wan2.2-TI2V-5B",
+   "size_gb": 34.2,
+   "required": false,
+   "settings": {
+    "AURORA_VIDEO_MODEL_DIR": "sys/models/video/Wan2.2-TI2V-5B"
+   },
+   "files": [
+    "README.md",
+    "model_index.json",
+    "scheduler/scheduler_config.json",
+    "text_encoder/config.json",
+    "text_encoder/model-00001-of-00003.safetensors",
+    "text_encoder/model-00002-of-00003.safetensors",
+    "text_encoder/model-00003-of-00003.safetensors",
+    "text_encoder/model.safetensors.index.json",
+    "tokenizer/special_tokens_map.json",
+    "tokenizer/spiece.model",
+    "tokenizer/tokenizer.json",
+    "tokenizer/tokenizer_config.json",
+    "transformer/config.json",
+    "transformer/diffusion_pytorch_model-00001-of-00005.safetensors",
+    "transformer/diffusion_pytorch_model-00002-of-00005.safetensors",
+    "transformer/diffusion_pytorch_model-00003-of-00005.safetensors",
+    "transformer/diffusion_pytorch_model-00004-of-00005.safetensors",
+    "transformer/diffusion_pytorch_model-00005-of-00005.safetensors",
+    "transformer/diffusion_pytorch_model.safetensors.index.json",
+    "vae/config.json",
+    "vae/diffusion_pytorch_model.safetensors"
+   ]
   }
  }
 }

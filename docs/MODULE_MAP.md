@@ -24,7 +24,8 @@ call downward (ECOSYSTEM §1).
 | `sec_mask.py` | security | reversible Pseudonymizer for what leaves for the cloud: addresses, e-mails, phones, IBANs, cards (Luhn), keys, secret settings, the owner's words; placeholders put back in the answer and in a stream | sys_config | mdl_router, agt_forge |
 | plugin `cloud` | models | read only: which cloud providers have a key, the models of one; its card holds the keys and the masking settings | mdl_router | Models page |
 | `mdl_cloud.py` | models | cloud reasoners with the local interface: Anthropic API and Claude Code CLI; `make_reasoner` (rule 9 without exemption: local) | httpx, sys_ethics | kno_answer |
-| `mdl_image.py` | models | Aurora paints (dreams): SDXL-Lightning in a separate process, reasoner swapped out when the GPU is short, AI disclosure on the image | img_paint, sys_disclosure | kno_rem |
+| `mdl_image.py` | models | Aurora paints (dreams): SDXL-Lightning in a separate process, reasoner swapped out when the GPU is short, AI disclosure on the image; picture jobs (img_ai); `gpu_lock`, one GPU job at a time across processes | img_paint, img_ai, sys_disclosure | kno_rem, svc_api, mdl_video |
+| `mdl_video.py` | models | short videos (Wan 2.2 TI2V 5B): `plan` (does a message ask to create a video? English prompt, title), `estimate_minutes` from M57, `generate` under the GPU lock with the reasoner swapped, AI label and metadata | vid_ai, mdl_image, sys_disclosure | svc_api |
 | `sys_push.py` | system | Web Push (VAPID) to the owner's browsers: key pair made locally, subscriptions, which events notify (AURORA_PUSH_EVENTS), gone subscriptions dropped | pywebpush | svc_api |
 | `sys_update.py` | system | updates from the git repository: check (commits, files, protected files), changelog, apply fast-forward with pip, tests and rollback | git, sys_tests, sys_ethics | svc_api, svc_rem |
 | `sns_av.py` | senses | cameras and microphones of the machine: list, photo (ffmpeg/V4L2), recording (PipeWire), Whisper transcription on CPU with a filter for inventions on silence | ffmpeg, transformers | plugin senses, svc_api |
@@ -86,6 +87,7 @@ call downward (ECOSYSTEM §1).
 | `sys_models_fetch.py` | models from Hugging Face per `config/models.json`: pinned revisions, sizes before, SHA-256 after, resumable | install.sh |
 | `sys_profile.py` | hardware profile (GPUs, VRAM, RAM) → .env values; only the reference profile is measured | install.sh |
 | `bench_image.py` | image model benchmark (load, time per image, peak VRAM at 1:1 and 16:9 ≥ 1024 px) | before choosing the image model |
+| `vid_ai.py` | makes one video with Wan 2.2 TI2V 5B (from words or a picture; fp8 weights, CPU offload, VAE tiling), labels the frames, encodes H.264 with metadata, exits | mdl_video, never by hand during another GPU job |
 | `img_paint.py` | paints one image with SDXL-Lightning and exits (all GPU memory given back) | mdl_image, never by hand during another GPU job |
 | `kno_migrate_legacy.py` | one-time migration of the previous installation's chunk store (knowledge only, owner's exclusions), resumable, through the API | once |
 

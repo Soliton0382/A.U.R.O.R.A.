@@ -456,7 +456,7 @@
   "gd.b.plugins": "- Every plugin runs in a cage: it sees only its own keys and, when it says so, has no network.\n- **🔁 Routines**: Aurora proposes periodic checks for the connected plugins; switch them on with one click and get a notification with the result.\n- When a capability is missing, Aurora can write a plugin herself: she tries it in the cage, has it judged and, if it only reads, installs it; anything else waits for your ok in **🛠️ Repairs**.",
   "gd.h.safety": "🛡️ Safety and control",
   "gd.b.safety": "- **🛠️ Repairs**: everything Aurora wants to do that needs your permission; approve ✅ or reject ❌.\n- The ethics code files are signed: changing them needs your signature, otherwise the services do not start. Aurora never signs her own code.\n- **🛡️ Security**: firewall incidents, with a report and the recommended defensive actions.\n- Settings are changed from the WebUI; keys are never shown.",
-  "gd.p.chat": "Talk with Aurora; attachments, voice, pictures to edit. Every answer shows the path it took.",
+  "gd.p.chat": "Talk with Aurora; attachments, voice, pictures to edit, videos to make (\"make me a video of…\", \"animate this photo\": about 20 minutes, the chat pauses meanwhile). Every answer shows the path it took.",
   "gd.p.approvals": "What waits for your decision, the self-reviews and the repair reports.",
   "gd.p.security": "Firewall incidents with public data about the source network and the recommended actions.",
   "gd.p.diary": "Aurora's inner life: memories of conversations, thoughts, dreams.",
@@ -472,5 +472,6 @@
   "gd.p.status": "Services, autonomic cycle, weather, vault.",
   "gd.p.notifications": "Which events notify you and on which channel.",
   "gd.p.updates": "Updates from GitHub: what changes, update now, roll back if tests fail.",
-  "gd.p.settings": "Registered devices and every value of Aurora, with its explanation."
+  "gd.p.settings": "Registered devices and every value of Aurora, with its explanation.",
+  "ev.video.plan": "{src} Video \"{title}\": about {m} minutes (prompt written in English for the model)"
 }

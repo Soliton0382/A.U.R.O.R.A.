@@ -353,14 +353,91 @@ def edit_pictures(question: str, pictures: list[tuple[str, bytes]], emit, run_id
     return ans
 
 
+_video = {"busy": False, "title": "", "ready_at": 0.0}
+
+
+def _say(question: str, text: str, emit, run_id: str, mode: str, remember: bool = True):
+    """A short answer that needs no reasoner (it may be off for a GPU job)."""
+    from aurora.kno_answer import Answer
+    from aurora.sol_schema import now_iso
+    asked_at = now_iso()
+    ans = Answer(run_id, question, text, False, mode=mode, seconds=0.0)
+    emit("answer.final", {"text": text, "abstained": False, "sources": [], "seconds": 0.0, "mode": mode})
+    if remember:
+        pipeline().remember(question, ans, run_id, emit, None, asked_at)
+    emit("run.end", {"seconds": 0.0})
+    return ans
+
+
+def video_busy_answer(question: str, emit, run_id: str):
+    """While a video is being made the reasoner is off: say so, and when the video should be ready."""
+    if not _video["busy"]:
+        return None
+    it = str(cfg["AURORA_LANG_DEFAULT"]).startswith("it")
+    at = time.strftime("%H:%M", time.localtime(_video["ready_at"]))
+    text = (f"🎬 Sto creando il video «{_video['title']}»: finché non ho finito il mio ragionatore è spento. "
+            f"Dovrebbe essere pronto verso le {at}, ti avviso io." if it else
+            f"🎬 I am making the video \"{_video['title']}\": until it is done my reasoner is off. "
+            f"It should be ready around {at}; I will let you know.")
+    return _say(question, text, emit, run_id, "video", remember=False)
+
+
+def make_video(question: str, vp: dict, picture: tuple[str, bytes] | None, emit, run_id: str, remember: bool = True):
+    """A short video (mdl_video): Aurora answers at once with the time it will take, makes it in the background
+    (the reasoner is off meanwhile) and notifies the owner; the video is kept with this turn of the conversation."""
+    from aurora import mdl_video, sys_uploads
+    it = str(cfg["AURORA_LANG_DEFAULT"]).startswith("it")
+    if not mdl_video.available(cfg):
+        return _say(question, "Il modello video non è installato: si scarica con `sys_models_fetch.py --models video` "
+                    "(34 GB)." if it else "The video model is not installed: `sys_models_fetch.py --models video` (34 GB).",
+                    emit, run_id, "video", remember)
+    if _video["busy"]:
+        return video_busy_answer(question, emit, run_id)
+    minutes = mdl_video.estimate_minutes(cfg)
+    secs, title = cfg["AURORA_VIDEO_SECONDS"], vp["title"]
+    _video.update(busy=True, title=title, ready_at=time.time() + minutes * 60)
+    src = "dalla tua foto, " if it and picture else "from your picture, " if picture else ""
+    text = (f"🎬 Creo il video «{title}» ({src}{secs:g} secondi): ci vorranno circa {minutes} minuti. Mentre lo creo "
+            f"il ragionatore è spento, quindi non posso risponderti; ti avviso appena è pronto e lo trovi qui." if it else
+            f"🎬 Making the video \"{title}\" ({src}{secs:g} seconds): about {minutes} minutes. Meanwhile my reasoner "
+            f"is off, so I cannot answer; I will notify you when it is ready, and it will be here.")
+    emit("video.plan", {"title": title, "prompt": vp["prompt"], "from_picture": bool(picture), "minutes": minutes})
+    lang = "it" if it else "en"
+
+    def work():
+        try:
+            data, st = mdl_video.generate(vp["prompt"], cfg, image=picture[1] if picture else None, title=title, lang=lang)
+            name = re.sub(r"[^\w-]+", "-", title.lower()).strip("-")[:40] or "video"
+            url = sys_uploads.public(sys_uploads.save(cfg, run_id, f"{name}.mp4", "video/mp4", data, role="assistant"))["url"] \
+                if remember else ""
+            note("video", "video.done", {"text": f"{title}: {st['seconds_video']} s, {st['width']}×{st['height']}, "
+                                         f"{round(st['total_seconds'] / 60)} min", "run_id": run_id, "url": url, **st})
+        except Exception as e:                        # the owner is told, never silence
+            log.exception("video %s failed", run_id)
+            note("video", "video.failed", {"text": f"{title}: {type(e).__name__}: {str(e)[:120]}", "run_id": run_id})
+        finally:
+            _video["busy"] = False
+
+    ans = _say(question, text, emit, run_id, "video", remember)
+    threading.Thread(target=work, name=f"video-{run_id}", daemon=True).start()
+    return ans
+
+
 def answer_or_acquire(question: str, emit, run_id: str, **kw):
     """The default job of a message. When Aurora's last answer in this session was an abstention and the
     message asks her to go and search, the arXiv agent works on the *previous* question (A11: the
     same for the WebUI and third-party clients, which have no button)."""
     from datetime import datetime, timezone
+    busy = video_busy_answer(question, emit, run_id)
+    if busy:
+        return busy
     p = pipeline()
     recent = p.reader.recent(6)
     pic = None if kw.get("attached") else last_picture(recent)
+    from aurora import mdl_video
+    vp = None if kw.get("attached") else mdl_video.plan(p._for("route"), question, pic is not None)
+    if vp:                                            # "fammi un video di...", "anima questa foto"
+        return make_video(question, vp, pic if vp["from_picture"] else None, emit, run_id)
     intent = picture_intent(question) if pic else "other"
     if intent == "edit":                              # "ora rendila più luminosa": the latest picture, edited again
         return edit_pictures(question, [pic], emit, run_id)
@@ -593,6 +670,14 @@ async def ask(request: Request) -> dict:
                 sys_uploads.save(cfg, run_id, name, mime, data)
         from aurora.kno_attach import is_image
         pictures = [(n, d) for n, d, m in files if is_image(n, m)]
+        busy = video_busy_answer(q, emit, run_id)
+        if busy:
+            return busy
+        if pictures:                                   # "anima questa foto": a video from the attached picture
+            from aurora import mdl_video
+            vp = mdl_video.plan(pipeline()._for("route"), q, True)
+            if vp:
+                return make_video(q, vp, pictures[0] if vp["from_picture"] else None, emit, run_id, remember)
         if pictures and picture_intent(q) == "edit":    # "ritagliala", "in bianco e nero": an edit, not a question
             return edit_pictures(q, pictures, emit, run_id, remember)
         if files:

@@ -513,6 +513,86 @@
    ]
   },
   {
+   "key": "AURORA_VIDEO_MODEL_DIR",
+   "type": "path",
+   "category": "attachments",
+   "recommended": "sys/models/video/Wan2.2-TI2V-5B",
+   "evidence": "models.json",
+   "en": "Wan 2.2 TI2V 5B: short videos from words or from a picture (optional model).",
+   "it": "Wan 2.2 TI2V 5B: brevi video da una descrizione o da una foto (modello facoltativo).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_VIDEO_SIZE",
+   "type": "str",
+   "category": "attachments",
+   "recommended": "1280x704",
+   "evidence": "M57",
+   "en": "Size of a video from words (WxH, multiples of 32; 704x1280 for portrait). A video from a picture keeps the picture's shape with the same area. Wan 2.2 TI2V 5B is trained at 1280x704.",
+   "it": "Dimensione di un video da una descrizione (LxA, multipli di 32; 704x1280 in verticale). Un video da una foto mantiene la forma della foto con la stessa area. Wan 2.2 TI2V 5B è addestrato a 1280x704.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_VIDEO_SECONDS",
+   "type": "float",
+   "category": "attachments",
+   "recommended": 5,
+   "min": 1,
+   "max": 5,
+   "evidence": "M57",
+   "en": "Length of a video in seconds (24 frames per second). 5 s is the length the model is trained for; the time grows with the length.",
+   "it": "Durata di un video in secondi (24 fotogrammi al secondo). 5 s è la durata per cui il modello è addestrato; il tempo cresce con la durata.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_VIDEO_STEPS",
+   "type": "int",
+   "category": "attachments",
+   "recommended": 30,
+   "min": 10,
+   "max": 50,
+   "evidence": "M57",
+   "en": "Denoising steps of a video: more steps, more detail and more time (measured: 28 s per step plus ~216 s fixed for 5 s at 1280x704; 30 steps about 18 minutes, 50 about 27).",
+   "it": "Passi di generazione di un video: più passi, più dettaglio e più tempo (misurato: 28 s per passo più ~216 s fissi per 5 s a 1280x704; 30 passi circa 18 minuti, 50 circa 27).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_VIDEO_TIMEOUT_S",
+   "type": "int",
+   "category": "attachments",
+   "recommended": 2700,
+   "min": 600,
+   "max": 7200,
+   "evidence": "M57",
+   "en": "Longest a video job may take before it is stopped (the reasoner is started again anyway). The ceiling is 50 steps, about 1,620 s measured: 2,700 leaves room.",
+   "it": "Tempo massimo di un lavoro video prima di fermarlo (il ragionatore viene riacceso comunque). Il tetto è 50 passi, circa 1.620 s misurati: 2.700 lascia margine.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_VIDEO_MIN_FREE_GB",
+   "type": "float",
+   "category": "attachments",
+   "recommended": 14,
+   "min": 8,
+   "max": 16,
+   "evidence": "M57",
+   "en": "GPU memory a video needs (measured peaks with the transformer weights stored in fp8: 10.9 GB from words, 13.9 GB from a picture): with less free, the reasoner is stopped for the job.",
+   "it": "Memoria GPU che serve a un video (picchi misurati con i pesi del trasformatore conservati in fp8: 10,9 GB da una descrizione, 13,9 GB da una foto): se ce n'è meno libera, il ragionatore viene fermato per il lavoro.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_UPSCALE_MODEL_DIR",
    "type": "path",
    "category": "attachments",

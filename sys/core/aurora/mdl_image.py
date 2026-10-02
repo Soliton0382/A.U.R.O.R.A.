@@ -10,6 +10,8 @@ and is saved in AURORA_IMAGE_DIR. One GPU job at a time: the swap is the only wa
 """
 from __future__ import annotations
 
+import contextlib
+import fcntl
 import json
 import subprocess
 import sys
@@ -29,6 +31,33 @@ def free_gb(gpu: int) -> float:
     out = subprocess.run(["nvidia-smi", "-i", str(gpu), "--query-gpu=memory.free", "--format=csv,noheader,nounits"],
                          capture_output=True, text=True, check=True, timeout=30).stdout
     return float(out.strip()) / 1024
+
+
+@contextlib.contextmanager
+def gpu_lock(cfg: sys_config.Config, wait_s: float, what: str):
+    """One GPU job at a time across processes (the API's edits and videos, the REM's dreams): a file lock in the
+    status folder, waited for at most `wait_s` seconds. The holder writes what it is doing, for the error message."""
+    f = cfg.path("AURORA_STATUS_DIR") / "gpu.lock"
+    f.parent.mkdir(parents=True, exist_ok=True)
+    with open(f, "a+", encoding="utf-8") as fh:
+        end = time.time() + wait_s
+        while True:
+            try:
+                fcntl.flock(fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError:
+                if time.time() >= end:
+                    fh.seek(0)
+                    raise RuntimeError(f"the GPU is busy with another job: {fh.read().strip() or 'unknown'}") from None
+                time.sleep(2)
+        fh.seek(0)
+        fh.truncate()
+        fh.write(f"{what} since {time.strftime('%H:%M:%S')}")
+        fh.flush()
+        try:
+            yield
+        finally:
+            fcntl.flock(fh, fcntl.LOCK_UN)
 
 
 def _unit(verb: str, unit: str) -> None:
@@ -58,6 +87,8 @@ def paint(prompt: str, name: str, cfg: sys_config.Config | None = None, emit=Non
     out_dir.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
     swapped = False
+    lock = gpu_lock(cfg, cfg["AURORA_IMAGE_TIMEOUT_S"], f"dream {name}")
+    lock.__enter__()
     free = free_gb(gpu)
     try:
         if free < need:
@@ -89,6 +120,7 @@ def paint(prompt: str, name: str, cfg: sys_config.Config | None = None, emit=Non
             up = _wait(lambda: _llm_ok(cfg), cfg["AURORA_IMAGE_TIMEOUT_S"], 3)
             log.info("planned swap: %s started again (%s)", LLM_UNIT, "healthy" if up else "NOT healthy yet")
             ev("image.swap", {"start": LLM_UNIT, "healthy": up})
+        lock.__exit__(None, None, None)
     result = {"file": target.name, "seconds": round(time.time() - t0, 1), "swap": swapped, **stats}
     log.info("painted %s: %s", target.name, result)
     ev("image.painted", result)
@@ -107,6 +139,8 @@ def gpu_job(task: str, src: bytes, cfg: sys_config.Config | None = None, emit=No
     log = sys_log.get_logger("image")
     ev = emit or (lambda e, d: None)
     gpu, swapped, t0 = cfg["AURORA_IMAGE_GPU"], False, time.time()
+    lock = gpu_lock(cfg, cfg["AURORA_IMAGE_TIMEOUT_S"], f"picture {task}")
+    lock.__enter__()
     try:
         if need_gb and free_gb(gpu) < need_gb:
             if not (cfg["AURORA_IMAGE_SWAP_LLM"] and _active(LLM_UNIT)):
@@ -134,6 +168,7 @@ def gpu_job(task: str, src: bytes, cfg: sys_config.Config | None = None, emit=No
             up = _wait(lambda: _llm_ok(cfg), cfg["AURORA_IMAGE_TIMEOUT_S"], 3)
             log.info("planned swap: %s started again (%s)", LLM_UNIT, "healthy" if up else "NOT healthy yet")
             ev("image.swap", {"start": LLM_UNIT, "healthy": up})
+        lock.__exit__(None, None, None)
     stats.update(total_seconds=round(time.time() - t0, 1), swap=swapped)
     log.info("%s done: %s", task, stats)
     return data, stats

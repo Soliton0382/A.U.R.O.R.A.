@@ -41,6 +41,7 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | files | attached files kept with their turn, 📎 Files page, Aurora's documents downloadable | M49, C66, C69 |
 | forge | capability requests, plugins written, tested in the cage (no network), judged; read-only installed alone, else Approvals — safe, not yet useful with the local reasoner | M53, C70 |
 | WebUI | modular showcase: chat (full width, dates, path, share), repairs, security, diary, social, plugins, import, activity, status, settings; sky with orbiting fireflies; metrics with GPU load; PWA; safe Markdown | headless Chrome checks |
+| videos | «fammi un video di…», «anima questa foto»: Wan 2.2 TI2V 5B, 5 s at 1280×704 (a photo keeps its shape), ~19 min with the reasoner swapped out; immediate answer with the estimate, the chat says when it will be ready, push when done or failed; AI label and metadata; GPU lock shared with dreams and edits | M57, C74 |
 | models per step | 🧠 Models page: each of 12 steps on local or a cloud provider (keys in the ☁️ cloud plugin), masked by default (C72), fallback to local, statistics of calls, cost, masked items, pictures sent, SSCC | M56 |
 | guide | 📖 Guide page: first steps, cloud, phone, plugins, safety, and every page of the menu with a button | — |
 | logs | one file per component, rotation, gzip, 12-month retention, traces, lifecycle lines; Aurora reads them | sys_logread |
@@ -52,7 +53,6 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 |---|---|
 | forge | works safely, produces no right plugin yet (C70): cloud reasoner option, execution loop, a benchmark of needs |
 | self-repair | runs daily (4 self-reviews, 2 repairs in 2 days); 0 code changes proposed so far: no evidence yet that it fixes a real bug |
-| V2 | generating short videos |
 | multi-user | performance check on install, admin and users, TOTP MFA |
 | social | Facebook, Instagram, LinkedIn plugins and the autonomous mode (Mastodon home, Facebook mirror) |
 | network finding | 11,945 denied connections to port 6667 (IRC) from one internal host, 107 ATP matches: the owner checks the device |

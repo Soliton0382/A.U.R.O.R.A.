@@ -893,6 +893,24 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M57 — Making videos (2026-10-02)
+
+Model: Wan 2.2 TI2V 5B (Apache-2.0, diffusers, pinned, SHA-256 ok, 34.2 GB, 31.85 GB downloaded). On one RTX 5060 Ti
+16 GB with the reasoner stopped: bf16 weights ran out of memory at 5 s 1280×704 (in the transformer); with the
+weights stored in fp8 (computed in bf16), model CPU offload and VAE tiling: peak 10.87 GB from words, 13.88 GB from a
+picture (the threshold AURORA_VIDEO_MIN_FREE_GB, first set at 12 from the words case only, is 14). Process RAM 42 GB
+(probe). 5 s, 121 frames: 2 steps 272 s, 6 steps 384 s → 28 s per step + ~216 s fixed.
+From the chat, 30 steps: «una volpe rossa che corre in un bosco innevato all'alba» → 1,089 s in all (estimate 19 min,
+announced ready at 07:19, done 07:18:50), 8.2 MB, H.264 1280×704 24 fps; the fox comes from the back to the camera,
+the forest stays coherent. «Anima questa foto» (CC photo of a cat, 960×960 kept square) → first failed in 16 s (C74),
+then 1,111 s, 3.5 MB: the first frame is the photo, the cat turns its head to the camera and stays the same cat
+(the blink asked for is not visible in the 3 frames looked at). Both carry the visible label and the metadata
+(comment = disclosure line, description = IPTC trainedAlgorithmicMedia). During the job a chat message got the
+"busy, ready at…" answer at once, without the reasoner; push "creation" sent for done and for the failure; the
+reasoner healthy again after each job. Range requests on the file: 206. Tests 170.
+Not measured: quality at 50 steps vs 30, portrait size, videos shorter than 5 s, the effect of fp8 on quality
+(no bf16 run fits to compare), a dream starting during a video (the lock is there, the race was not provoked).
+
 ## M56 — Models per step, masking, cloud statistics (2026-10-02)
 
 Router: 12 steps (route, translate, gate, extract, synthesis, verify, self, agent, rem, forge write, forge judge,

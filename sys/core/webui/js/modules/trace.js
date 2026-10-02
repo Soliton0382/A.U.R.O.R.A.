@@ -9,7 +9,7 @@ import { t } from "../i18n.js";
 import { renderMarkdown } from "../md.js";
 
 export const ICONS = {
-  "run.start": "▶️", route: "🧭", "attach.image": "🖼️", "attach.video": "🎬", "image.plan": "🛠️", "image.edited": "🎨", "video.frames": "🎞️", "attach.document": "📄", "self.state": "🩺", translate: "🌐",
+  "run.start": "▶️", route: "🧭", "attach.image": "🖼️", "attach.video": "🎬", "image.plan": "🛠️", "image.edited": "🎨", "video.frames": "🎞️", "video.plan": "🎬", "attach.document": "📄", "self.state": "🩺", translate: "🌐",
   "retrieval.filter": "🧹", "retrieval.hits": "🔎", "memory.recent": "🧠", gate: "🚪", "synthesis.domain": "🧩",
   "verify.keep": "✅", "verify.drop": "✂️", "memory.write": "💾", "answer.final": "📝", "run.end": "🏁", error: "⛔",
   "acquire.confirmed": "🛰️", "acquire.round": "🛰️", "acquire.candidates": "📚", "acquire.paper": "📥", "acquire.error": "⚠️", "acquire.done": "🏁",
@@ -27,6 +27,7 @@ export function describe(name, p) {
     case "attach.image": return t("ev.attach.image", { name: p.name });
     case "image.plan": return t("ev.image.plan", { name: p.name, n: p.ops.length });
     case "image.edited": return t("ev.image.edited", { name: p.name, w: p.width, h: p.height });
+    case "video.plan": return t("ev.video.plan", { title: p.title, m: p.minutes, src: p.from_picture ? "📷" : "✍️" });
     case "video.frames": return t("ev.video.frames", { name: p.name, n: p.frames.length, s: p.scenes });
     case "attach.video": return t("ev.attach.video", { name: p.name, w: Math.round(p.watched), f: p.frames, n: p.speech, s: p.seconds });
     case "attach.document": return t("ev.attach.document", { name: p.name, domain: p.domain, n: p.chunks, w: p.written });
@@ -131,6 +132,14 @@ export function renderAnswer(b, p, when) {
     }
     box.append(row);
   }
+  if (p.videos?.length) {                        // videos Aurora made: played in place
+    for (const f of p.videos) {
+      if (!f.url) continue;
+      const v = el("video", "made-video"); v.src = f.url; v.controls = true; v.playsInline = true; v.preload = "metadata";
+      const a = el("a", "chip"); a.href = f.url; a.setAttribute("download", f.name); a.append(el("span", "", "🎬"), el("span", "", f.name));
+      box.append(v, a);
+    }
+  }
   if (p.files?.length) {                         // documents Aurora wrote (a PDF...): one tap downloads them
     const row = el("div", "chips");
     for (const f of p.files) {
@@ -197,7 +206,8 @@ export function renderPast(b, turn) {
   b.iter.open = false;
   renderAnswer(b, { text: turn.text, abstained: turn.abstained, sources: turn.sources, seconds: turn.seconds, speed: turn.speed,
     images: (turn.attachments || []).filter((f) => f.inline && f.mime.startsWith("image/")),
-    files: (turn.attachments || []).filter((f) => !(f.inline && f.mime.startsWith("image/"))) },
+    videos: (turn.attachments || []).filter((f) => f.inline && f.mime.startsWith("video/")),
+    files: (turn.attachments || []).filter((f) => !(f.inline && /^(image|video)\//.test(f.mime))) },
     turn.created_at);
 }
 

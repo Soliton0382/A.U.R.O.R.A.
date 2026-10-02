@@ -40,6 +40,8 @@ TEXTS = {   # event -> (kind the owner chooses, view to open, {lang: title})
     "forge.installed": ("plugin", "plugins", {"it": "🔨 Aurora si è costruita un plugin", "en": "🔨 Aurora built herself a plugin"}),
     "forge.failed": ("plugin", "plugins", {"it": "🔨 Una capacità non è riuscita", "en": "🔨 A capability could not be built"}),
     "plugin.ready": ("plugin", "routines", {"it": "🧩 Nuovo plugin pronto", "en": "🧩 New plugin ready"}),
+    "video.done": ("creation", "chat", {"it": "🎬 Il tuo video è pronto", "en": "🎬 Your video is ready"}),
+    "video.failed": ("creation", "chat", {"it": "🎬 Il video non è riuscito", "en": "🎬 The video failed"}),
     "test": ("test", "chat", {"it": "🔔 Notifiche attive", "en": "🔔 Notifications on"}),
 }
 KINDS = {   # what the owner chooses from, in the Notifications page
@@ -53,8 +55,9 @@ KINDS = {   # what the owner chooses from, in the Notifications page
     "routine": {"it": "Routine (controlli periodici)", "en": "Routines (periodic checks)"},
     "weather": {"it": "Meteo (bollettino e allerte)", "en": "Weather (report and alerts)"},
     "plugin": {"it": "Plugin appena collegati", "en": "Newly connected plugins"},
+    "creation": {"it": "Creazioni pronte (video)", "en": "Creations ready (videos)"},
 }
-PRESETS = {"suggested": ["incident", "approval", "update", "dream", "self_review", "routine", "weather", "plugin"],
+PRESETS = {"suggested": ["incident", "approval", "update", "dream", "self_review", "routine", "weather", "plugin", "creation"],
            "all": list(KINDS), "none": []}
 KNOWN_BEFORE = ["incident", "approval", "update", "dream", "self_review", "thought", "harvest"]   # prefs saved without "known"
 CHANNELS = ("push", "webui")

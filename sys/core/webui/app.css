@@ -119,3 +119,4 @@ details.gd-item { border: 1px solid var(--line); border-radius: 10px; padding: .
 details.gd-item summary { cursor: pointer; font-weight: 600; }
 .gd-page { padding: .45rem 0; border-bottom: 1px solid var(--line); align-items: center; }
 .gd-page .gd-text { flex: 1 1 16rem; }
+.made-video { display: block; max-width: 100%; max-height: 60vh; border-radius: 10px; margin: .5rem 0; background: #000; }
