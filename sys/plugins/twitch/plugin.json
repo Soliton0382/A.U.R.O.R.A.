@@ -1,0 +1,40 @@
+{
+ "name": "twitch",
+ "version": "1.0",
+ "kind": "connector",
+ "description": {
+  "it": "Twitch in sola lettura: chi è in diretta tra i tuoi canali preferiti e cosa sta trasmettendo, le dirette più viste.",
+  "en": "Twitch, read only: which of your favourite channels are live and what they stream, the most watched streams."
+ },
+ "command": [
+  "{python}",
+  "server.py"
+ ],
+ "env": [
+  "AURORA_TWITCH_CLIENT_ID",
+  "AURORA_TWITCH_CLIENT_SECRET",
+  "AURORA_TWITCH_CHANNELS"
+ ],
+ "requires": [
+  "AURORA_TWITCH_CLIENT_ID",
+  "AURORA_TWITCH_CLIENT_SECRET"
+ ],
+ "effects": {
+  "*": "read"
+ },
+ "setup": {
+  "it": "**dev.twitch.tv/console → Register Your Application**: categoria *Other*, OAuth Redirect `http://localhost`. Copia **Client ID** e genera un **Client Secret**. Qui sotto anche i tuoi canali preferiti separati da virgole. Poi **▶ Prova** su `twitch_live`.",
+  "en": "**dev.twitch.tv/console → Register Your Application**: category *Other*, OAuth Redirect `http://localhost`. Copy the **Client ID** and make a **Client Secret**. Below also your favourite channels, comma separated. Then **▶ Try** on `twitch_live`.",
+  "links": [
+   {
+    "label": "Twitch Developer Console",
+    "url": "https://dev.twitch.tv/console"
+   }
+  ]
+ },
+ "settings": [
+  "AURORA_TWITCH_CLIENT_ID",
+  "AURORA_TWITCH_CLIENT_SECRET",
+  "AURORA_TWITCH_CHANNELS"
+ ]
+}

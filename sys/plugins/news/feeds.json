@@ -1,10 +1,115 @@
 {
- "about": "Official RSS feeds of established newsrooms and institutions, by topic. Checked on 2 October 2026: all answer 200 (Il Post refuses automated readers: left out).",
+ "about": "Official RSS feeds of established newsrooms and institutions, by topic. Checked on 2 October 2026: all answer 200 with items (Il Post, Sky & Telescope refuse automated readers; APOD's feed had no items; Le Scienze and CERN feeds not found: left out).",
  "topics": {
-  "italia": [["ANSA", "https://www.ansa.it/sito/notizie/topnews/topnews_rss.xml"]],
-  "mondo": [["BBC World", "https://feeds.bbci.co.uk/news/world/rss.xml"], ["The Guardian", "https://www.theguardian.com/world/rss"]],
-  "scienza": [["ANSA Scienza", "https://www.ansa.it/canale_scienza_tecnica/notizie/scienzaetecnica_rss.xml"], ["BBC Science", "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml"], ["Nature", "https://www.nature.com/nature.rss"], ["ScienceDaily", "https://www.sciencedaily.com/rss/all.xml"]],
-  "tecnologia": [["ANSA Tecnologia", "https://www.ansa.it/sito/notizie/tecnologia/tecnologia_rss.xml"], ["BBC Technology", "https://feeds.bbci.co.uk/news/technology/rss.xml"], ["Ars Technica", "https://feeds.arstechnica.com/arstechnica/index"], ["MIT Technology Review", "https://www.technologyreview.com/feed/"], ["Hacker News", "https://hnrss.org/frontpage"]],
-  "spazio": [["ESA", "https://www.esa.int/rssfeed/Our_Activities/Space_Science"], ["NASA", "https://www.nasa.gov/news-release/feed/"]]
+  "italia": [
+   [
+    "ANSA",
+    "https://www.ansa.it/sito/notizie/topnews/topnews_rss.xml"
+   ]
+  ],
+  "mondo": [
+   [
+    "BBC World",
+    "https://feeds.bbci.co.uk/news/world/rss.xml"
+   ],
+   [
+    "The Guardian",
+    "https://www.theguardian.com/world/rss"
+   ]
+  ],
+  "scienza": [
+   [
+    "ANSA Scienza",
+    "https://www.ansa.it/canale_scienza_tecnica/notizie/scienzaetecnica_rss.xml"
+   ],
+   [
+    "BBC Science",
+    "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml"
+   ],
+   [
+    "Nature",
+    "https://www.nature.com/nature.rss"
+   ],
+   [
+    "ScienceDaily",
+    "https://www.sciencedaily.com/rss/all.xml"
+   ]
+  ],
+  "tecnologia": [
+   [
+    "ANSA Tecnologia",
+    "https://www.ansa.it/sito/notizie/tecnologia/tecnologia_rss.xml"
+   ],
+   [
+    "BBC Technology",
+    "https://feeds.bbci.co.uk/news/technology/rss.xml"
+   ],
+   [
+    "Ars Technica",
+    "https://feeds.arstechnica.com/arstechnica/index"
+   ],
+   [
+    "MIT Technology Review",
+    "https://www.technologyreview.com/feed/"
+   ],
+   [
+    "Hacker News",
+    "https://hnrss.org/frontpage"
+   ]
+  ],
+  "spazio": [
+   [
+    "ESA",
+    "https://www.esa.int/rssfeed/Our_Activities/Space_Science"
+   ],
+   [
+    "NASA",
+    "https://www.nasa.gov/news-release/feed/"
+   ]
+  ],
+  "astronomia": [
+   [
+    "ESO",
+    "https://www.eso.org/public/news/feed/"
+   ],
+   [
+    "INAF",
+    "https://www.media.inaf.it/feed/"
+   ],
+   [
+    "Universe Today",
+    "https://www.universetoday.com/feed/"
+   ],
+   [
+    "Phys.org Space",
+    "https://phys.org/rss-feed/space-news/"
+   ]
+  ],
+  "astrofotografia": [
+   [
+    "AstroBin — immagine del giorno",
+    "https://www.astrobin.com/iotd/rss/iotd"
+   ]
+  ],
+  "fisica": [
+   [
+    "Phys.org Physics",
+    "https://phys.org/rss-feed/physics-news/"
+   ],
+   [
+    "Quanta Magazine",
+    "https://api.quantamagazine.org/feed/"
+   ]
+  ],
+  "biologia": [
+   [
+    "Phys.org Biology",
+    "https://phys.org/rss-feed/biology-news/"
+   ],
+   [
+    "ScienceDaily",
+    "https://www.sciencedaily.com/rss/plants_animals.xml"
+   ]
+  ]
  }
 }

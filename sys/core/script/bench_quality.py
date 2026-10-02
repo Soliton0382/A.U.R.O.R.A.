@@ -4,6 +4,7 @@
 
     python sys/core/script/bench_quality.py                 # questions of <STATUS>/bench/quality_questions.json
     python sys/core/script/bench_quality.py --judge sonnet  # another Claude model as the judge
+    python sys/core/script/bench_quality.py --pool 30       # 30 questions of retrieval_pool108 (fixed sample, seed 7)
 
 For each question: POST /v1/aurora/ask (remember: false — nothing goes into her memory), the run's events followed to
 the answer; the passages she retrieved are read from the vault by their ids; the judge (Claude Code, opus by default)
@@ -47,22 +48,45 @@ def questions(path: Path) -> list[str]:
     return qs
 
 
+def pool(n: int) -> list[str]:
+    import random
+    f = cfg.path("AURORA_STATUS_DIR") / "bench" / "retrieval_pool108" / "questions.jsonl"
+    qs = [json.loads(line)["question"] for line in f.read_text(encoding="utf-8").splitlines() if line.strip()]
+    return random.Random(7).sample(qs, min(n, len(qs)))
+
+
+def stage(events: list[dict]) -> str:
+    """Where an abstention happened: the gate closed, every extraction empty, verification dropped everything, or the
+    synthesis said it had nothing."""
+    gate = next((e for e in events if e["event"] == "gate"), None)
+    if gate and not gate["payload"].get("open"):
+        return "gate"
+    doms = [e for e in events if e["event"] == "synthesis.domain"]
+    if doms and not any(e["payload"].get("kept") for e in doms):
+        return "extraction"
+    if any(e["event"] == "verify.drop" for e in events) and not any(e["event"] == "verify.keep" for e in events):
+        return "verification"
+    return "synthesis"
+
+
 def ask(q: str) -> dict:
     run = httpx.post(f"{BASE}/v1/aurora/ask", headers=HEAD, json={"question": q, "remember": False}, timeout=60).json()["run_id"]
-    t0, hits, final = time.time(), [], None
+    t0, hits, final, events = time.time(), [], None, []
     with httpx.stream("GET", f"{BASE}/v1/aurora/runs/{run}/events", headers=HEAD, timeout=900) as r:
         for line in r.iter_lines():
             if not line.startswith("data: "):
                 continue
             e = json.loads(line[6:])
+            events.append(e)
             if e["event"] == "retrieval.hits":
                 hits = [h["sid"] for h in e["payload"]["hits"]]
             elif e["event"] == "answer.final":
                 final = e["payload"]
             elif e["event"] in ("run.end", "error") and final is not None or e["event"] == "error":
                 break
-    return {"run": run, "hits": hits, "answer": (final or {}).get("text", ""), "abstained": (final or {}).get("abstained"),
-            "seconds": round(time.time() - t0, 1)}
+    abstained = bool((final or {}).get("abstained"))
+    return {"run": run, "hits": hits, "answer": (final or {}).get("text", ""), "abstained": abstained,
+            "stage": stage(events) if abstained else None, "seconds": round(time.time() - t0, 1)}
 
 
 def passages(sids: list[str]) -> str:
@@ -74,12 +98,19 @@ def passages(sids: list[str]) -> str:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--judge", default="opus")
+    ap.add_argument("--pool", type=int, default=0, help="N questions of retrieval_pool108 instead of the 8 of M40")
+    ap.add_argument("--only", default="", help="only these positions of the pool sample, e.g. 4,6,12")
+    ap.add_argument("--tag", default="", help="a word in the result's file name (before, after…)")
     a = ap.parse_args()
     from aurora.mdl_cloud import ClaudeCodeLLM
     judge = ClaudeCodeLLM(cfg, a.judge)
     bench = cfg.path("AURORA_STATUS_DIR") / "bench"
     rows = []
-    for i, q in enumerate(questions(bench / "quality_questions.json"), 1):
+    qs = pool(a.pool) if a.pool else questions(bench / "quality_questions.json")
+    keep = {int(x) for x in a.only.split(",") if x.strip().isdigit()}
+    for i, q in enumerate(qs, 1):
+        if keep and i not in keep:
+            continue
         res = ask(q)
         ctx = passages(res["hits"])
         out = judge.complete(JUDGE, f"QUESTION: {q}\n\nPASSAGES:\n{ctx}\n\nANSWER:\n{res['answer']}", 400).answer
@@ -90,11 +121,15 @@ def main() -> int:
             verdict = {}
         score = verdict.get("score")
         rows.append({**res, "q": q, "score": score, "why": verdict.get("why", out[:300])})
-        print(f"{i}. {score}/10 in {res['seconds']} s — {q[:70]}… | {str(verdict.get('why', ''))[:120]}", flush=True)
+        print(f"{i}. {score}/10 in {res['seconds']} s{' [abstained: ' + res['stage'] + ']' if res['abstained'] else ''} — "
+              f"{q[:60]}… | {str(verdict.get('why', ''))[:110]}", flush=True)
     scored = [r["score"] for r in rows if isinstance(r["score"], (int, float))]
     mean = round(sum(scored) / len(scored), 2) if scored else None
-    print(f"MEAN {mean} on {len(scored)} questions (M40: local 5.25, local+SSCC 6.00, Claude 5.38; noise ±0.75)")
-    (bench / f"quality_{datetime.now():%Y%m%d-%H%M}.json").write_text(
+    from collections import Counter
+    wrong = Counter(r["stage"] for r in rows if r["abstained"] and (r["score"] or 0) < 5)
+    print(f"MEAN {mean} on {len(scored)} questions (M40: local 5.25, local+SSCC 6.00, Claude 5.38; noise ±0.75); "
+          f"answered {sum(not r['abstained'] for r in rows)}, wrong abstentions by stage {dict(wrong)}")
+    (bench / f"quality_{datetime.now():%Y%m%d-%H%M}{'_' + a.tag if a.tag else ''}.json").write_text(
         json.dumps({"at": datetime.now().isoformat(), "judge": a.judge, "mean": mean, "rows": rows}, ensure_ascii=False,
                    indent=1), encoding="utf-8")
     return 0

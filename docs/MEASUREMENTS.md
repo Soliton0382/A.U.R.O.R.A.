@@ -893,6 +893,24 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M67 — Answer quality: the three stages fixed, measured on 30 questions (2 October 2026)
+
+`bench_quality.py --pool 30` (a fixed sample of retrieval_pool108, seed 7), live API, blind judge Claude Code opus.
+Before (old pipeline put back for the run): mean **6.03**, 19 answered, wrong abstentions: gate 3, verification 2.
+After (whole passages to verification, complete facts in extraction, synthesis gives what the extractions hold,
+gate asked for passages holding *needed* information): mean **6.90**, 22 answered, wrong abstentions: gate 3,
+verification 0. The gain (+0.87) is just above the ±0.75 noise; the verification fix is clear.
+Gate switched off, on the 8 questions where it closed in either run: 6.50 against 6.25 with it — the same within the
+noise (two partial answers instead of abstentions, one right abstention turned into a wrong answer, ~30 s more per
+question): the gate stays on. Its 3 wrong closures are vague questions ("the author", "the mechanism") written with
+the document in view.
+News: 4 topics added (astronomia: ESO, INAF, Universe Today, Phys.org Space; astrofotografia: AstroBin's image of
+the day; fisica: Phys.org, Quanta; biologia: Phys.org, ScienceDaily); 9 of 13 candidate feeds answered with items.
+The Facebook routine on science: 9 tool calls, a post proposed from Quanta Magazine with its link. Home Assistant
+(owner's container): reached, 18 entities (no devices yet). 7 plugins added (calendar, notes, Nextcloud/WebDAV,
+Dropbox, Discord, WhatsApp, Twitch) without a new dependency; the ICS reader read Google's public Italian holidays
+calendar (209 events, the next holidays right). Tests 207.
+
 ## M66 — Answer quality now, news and diary (2026-10-02)
 
 `bench_quality.py` (new, in the repository): M40's 8 questions asked to the real API (nothing remembered), the

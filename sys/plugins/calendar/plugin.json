@@ -1,0 +1,36 @@
+{
+ "name": "calendar",
+ "version": "1.0",
+ "kind": "connector",
+ "description": {
+  "it": "I tuoi calendari: link ICS in lettura (Google, Outlook, qualsiasi .ics) e un calendario CalDAV in lettura e scrittura (Nextcloud, iCloud, Fastmail). Aggiungere un evento aspetta la tua approvazione.",
+  "en": "Your calendars: ICS links read only (Google, Outlook, any .ics) and one CalDAV calendar read and written (Nextcloud, iCloud, Fastmail). Adding an event waits for your approval."
+ },
+ "command": [
+  "{python}",
+  "server.py"
+ ],
+ "env": [
+  "AURORA_CALENDAR_ICS_URLS",
+  "AURORA_CALDAV_URL",
+  "AURORA_CALDAV_USER",
+  "AURORA_CALDAV_PASSWORD"
+ ],
+ "requires": [],
+ "effects": {
+  "calendar_agenda": "read",
+  "calendar_add_event": "external",
+  "*": "external"
+ },
+ "setup": {
+  "it": "**Solo lettura (il più semplice):** Google Calendar → Impostazioni del calendario → *Indirizzo segreto in formato iCal*; Outlook → Calendario → Condividi → *ICS*. Incolla uno o più link in `AURORA_CALENDAR_ICS_URLS`, separati da virgole. Sono link segreti: Aurora non li mostra mai.\n\n**Lettura e scrittura (CalDAV):** l'indirizzo del calendario e una *password per app*.\n- Nextcloud: `https://<host>/remote.php/dav/calendars/<utente>/personal/`\n- iCloud: `https://caldav.icloud.com/` e una password per app da appleid.apple.com\n- Fastmail: `https://caldav.fastmail.com/dav/calendars/user/<email>/Default/`\n\nPremi **▶ Prova** su `calendar_agenda`.",
+  "en": "**Read only (simplest):** Google Calendar → calendar settings → *Secret address in iCal format*; Outlook → Calendar → Share → *ICS*. Paste one or more links in `AURORA_CALENDAR_ICS_URLS`, comma separated. They are secret links: Aurora never shows them.\n\n**Read and write (CalDAV):** the calendar's address and an *app password*.\n- Nextcloud: `https://<host>/remote.php/dav/calendars/<user>/personal/`\n- iCloud: `https://caldav.icloud.com/` and an app password from appleid.apple.com\n- Fastmail: `https://caldav.fastmail.com/dav/calendars/user/<email>/Default/`\n\nPress **▶ Try** on `calendar_agenda`.",
+  "links": []
+ },
+ "settings": [
+  "AURORA_CALENDAR_ICS_URLS",
+  "AURORA_CALDAV_URL",
+  "AURORA_CALDAV_USER",
+  "AURORA_CALDAV_PASSWORD"
+ ]
+}

@@ -13,8 +13,7 @@ The structure is complete; what is missing is proof that each part is good, not 
 3. **The HTTP layer under test**: 89 routes and no test calls them (the tests cover the modules). A smoke suite
    with FastAPI's TestClient on a test configuration: every route answers, auth refuses without a key.
 4. **Answer quality re-measured** — **done** (M66): 5.5, the answers given 8.8; three wrong abstentions, one per
-   stage (verification of formulas, the gate, the synthesis over a short extraction). Next: fix each against a
-   larger set (retrieval_pool108), keeping only what raises the score.
+   stage. Fixed and measured on 30 questions (M67): 6.03 → 6.90; the gate kept after measuring it off.
 5. **Switch off what does not work yet, or prove it**: the forge with the local reasoner (C70, 4/8) and the
    self-repair (0 code fixes so far) — on only when a benchmark says they help.
 6. **A week of soak**: memory of each service, log growth, GPU swaps, failed routines, measured daily

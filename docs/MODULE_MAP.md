@@ -22,6 +22,14 @@ call downward (ECOSYSTEM §1).
 | `txt_lang.py` | text | Italian/English detection by stop words | — | kno_answer, kno_ingest |
 | `mdl_router.py` | models | which model does each step: providers (local, Claude Code, Anthropic, OpenAI-compatible), roles.json, MaskedLLM, Fallback to local, list of a provider's models, cloud statistics from the traces | mdl_cloud, sec_mask, httpx | kno_answer, kno_attach, svc_api |
 | `sec_mask.py` | security | reversible Pseudonymizer for what leaves for the cloud: addresses, e-mails, phones, IBANs, cards (Luhn), keys, secret settings, the owner's words; placeholders put back in the answer and in a stream | sys_config | mdl_router, agt_forge |
+| `txt_ical.py` | knowledge | iCalendar: events in a window, recurrences (DAILY/WEEKLY/MONTHLY/YEARLY, COUNT, UNTIL, BYDAY, EXDATE), time zones, all-day; a VEVENT for CalDAV; complex rules said, not guessed | zoneinfo | plugin calendar |
+| plugin `calendar` | services | ICS links read only (secret, never shown) + one CalDAV calendar read and written (add event = external) | txt_ical | chat, agent |
+| plugin `notes` | services | a Markdown folder / Obsidian vault: list, search, read, write (append only, never overwrite); no network, writes only there | AURORA_NOTES_DIR | chat, agent |
+| plugin `nextcloud` | services | any WebDAV (Nextcloud, ownCloud, NAS): list, read text, upload a document (no overwrite, no delete) | — | agent |
+| plugin `dropbox` | services | Dropbox API v2 with a refresh token (authorize.py once): list, search, read text, upload (mode add) | — | agent |
+| plugin `discord` | social | one channel through a bot (REST v10): read, send (external, AI line, no mentions) | — | agent |
+| plugin `whatsapp` | social | WhatsApp Business Cloud API, send only to the owner (text within 24 h, templates outside) | — | agent, notifications |
+| plugin `twitch` | social | Helix with an app token: favourite channels live, top streams; read only | — | chat |
 | plugin `news` | knowledge | read only, network: headlines of official RSS feeds by topic (feeds.json), title, summary, source, link; never the article | — | chat (current events), Facebook routine |
 | plugin `diary` | knowledge | read only, no network: Aurora's latest dream and thoughts (vault reflections, never conversations; owner's name replaced) and what the harvester took | vault (read only) | Facebook routine |
 | plugin `instagram` | social | the IG professional account linked to the Facebook page (page token): profile, posts, publishing a picture (via an unpublished page photo: IG takes JPEG from a public URL only) | facebook settings | agent |

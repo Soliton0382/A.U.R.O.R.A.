@@ -1,0 +1,45 @@
+{
+ "name": "dropbox",
+ "version": "1.0",
+ "kind": "connector",
+ "description": {
+  "it": "Il tuo Dropbox: elencare, cercare, leggere file di testo, caricare un documento di Aurora (con la tua approvazione). Mai cancellare né sovrascrivere.",
+  "en": "Your Dropbox: list, search, read text files, upload one of Aurora's documents (with your approval). Never deleting or overwriting."
+ },
+ "command": [
+  "{python}",
+  "server.py"
+ ],
+ "env": [
+  "AURORA_DROPBOX_APP_KEY",
+  "AURORA_DROPBOX_APP_SECRET",
+  "AURORA_DROPBOX_REFRESH_TOKEN"
+ ],
+ "requires": [
+  "AURORA_DROPBOX_APP_KEY",
+  "AURORA_DROPBOX_APP_SECRET",
+  "AURORA_DROPBOX_REFRESH_TOKEN"
+ ],
+ "effects": {
+  "dropbox_list": "read",
+  "dropbox_search": "read",
+  "dropbox_read": "read",
+  "dropbox_upload": "external",
+  "*": "external"
+ },
+ "setup": {
+  "it": "1. **dropbox.com/developers/apps → Create app**: *Scoped access*, *Full Dropbox* (o *App folder*).\n2. Scheda **Permissions**: spunta `files.metadata.read`, `files.content.read`, `files.content.write` e salva.\n3. Copia **App key** e **App secret** qui sotto e salva.\n4. Una volta, nel terminale dalla cartella di Aurora: `.venv/bin/python sys/plugins/dropbox/authorize.py`.\n5. **▶ Prova** su `dropbox_list`.",
+  "en": "1. **dropbox.com/developers/apps → Create app**: *Scoped access*, *Full Dropbox* (or *App folder*).\n2. **Permissions** tab: tick `files.metadata.read`, `files.content.read`, `files.content.write`, submit.\n3. Copy **App key** and **App secret** below and save.\n4. Once, in a terminal from Aurora's folder: `.venv/bin/python sys/plugins/dropbox/authorize.py`.\n5. **▶ Try** on `dropbox_list`.",
+  "links": [
+   {
+    "label": "Dropbox App Console",
+    "url": "https://www.dropbox.com/developers/apps"
+   }
+  ]
+ },
+ "settings": [
+  "AURORA_DROPBOX_APP_KEY",
+  "AURORA_DROPBOX_APP_SECRET",
+  "AURORA_DROPBOX_REFRESH_TOKEN"
+ ]
+}

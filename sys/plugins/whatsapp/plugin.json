@@ -1,0 +1,46 @@
+{
+ "name": "whatsapp",
+ "version": "1.0",
+ "kind": "connector",
+ "description": {
+  "it": "Aurora ti scrive su WhatsApp (WhatsApp Business Cloud API): solo invio, con la tua approvazione. Il testo libero arriva entro 24 ore dal tuo ultimo messaggio al suo numero.",
+  "en": "Aurora writes to you on WhatsApp (WhatsApp Business Cloud API): send only, with your approval. Free text arrives within 24 hours of your last message to her number."
+ },
+ "command": [
+  "{python}",
+  "server.py"
+ ],
+ "env": [
+  "AURORA_WHATSAPP_TOKEN",
+  "AURORA_WHATSAPP_PHONE_ID",
+  "AURORA_WHATSAPP_TO"
+ ],
+ "requires": [
+  "AURORA_WHATSAPP_TOKEN",
+  "AURORA_WHATSAPP_PHONE_ID",
+  "AURORA_WHATSAPP_TO"
+ ],
+ "effects": {
+  "whatsapp_send": "external",
+  "whatsapp_send_template": "external",
+  "*": "external"
+ },
+ "setup": {
+  "it": "1. **developers.facebook.com → My Apps → Create App → Business**, aggiungi il prodotto **WhatsApp**.\n2. In *WhatsApp → API Setup* trovi un numero di prova e il suo **Phone number ID**; aggiungi il tuo numero tra i destinatari e verificalo.\n3. Token permanente: **Business Settings → System users → Generate token** con `whatsapp_business_messaging`.\n4. Qui sotto: token, Phone number ID, il tuo numero con prefisso (es. 39333…). Salva, poi **▶ Prova** `whatsapp_send_template`.\n\nRegola di WhatsApp: il testo libero arriva solo entro 24 ore da quando hai scritto tu al numero di Aurora; fuori da quella finestra serve un template approvato. Ricevere messaggi richiederebbe un indirizzo pubblico (webhook): non incluso.",
+  "en": "1. **developers.facebook.com → My Apps → Create App → Business**, add the **WhatsApp** product.\n2. *WhatsApp → API Setup* shows a test number and its **Phone number ID**; add your number as a recipient and verify it.\n3. Permanent token: **Business Settings → System users → Generate token** with `whatsapp_business_messaging`.\n4. Below: token, Phone number ID, your number with country code (e.g. 39333…). Save, then **▶ Try** `whatsapp_send_template`.\n\nWhatsApp's rule: free text arrives only within 24 hours after you wrote to Aurora's number; outside that window an approved template is needed. Receiving would need a public address (webhook): not included.",
+  "links": [
+   {
+    "label": "WhatsApp Cloud API",
+    "url": "https://developers.facebook.com/docs/whatsapp/cloud-api/get-started"
+   }
+  ]
+ },
+ "settings": [
+  "AURORA_WHATSAPP_TOKEN",
+  "AURORA_WHATSAPP_PHONE_ID",
+  "AURORA_WHATSAPP_TO"
+ ],
+ "publishes": {
+  "whatsapp_send": "text"
+ }
+}

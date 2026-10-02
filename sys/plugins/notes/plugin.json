@@ -1,0 +1,36 @@
+{
+ "name": "notes",
+ "version": "1.0",
+ "kind": "tool",
+ "description": {
+  "it": "Le tue note: una cartella di file Markdown (anche un vault Obsidian). Aurora cerca, legge e scrive note nuove; una nota esistente può solo crescere, mai essere sovrascritta.",
+  "en": "Your notes: a folder of Markdown files (an Obsidian vault too). Aurora searches, reads and writes new notes; an existing note can only grow, never be overwritten."
+ },
+ "command": [
+  "{python}",
+  "server.py"
+ ],
+ "env": [],
+ "requires": [],
+ "effects": {
+  "notes_list": "read",
+  "notes_search": "read",
+  "notes_read": "read",
+  "notes_write": "write_local",
+  "*": "write_local"
+ },
+ "setup": {
+  "it": "Imposta `AURORA_NOTES_DIR` sulla cartella delle note (per esempio il tuo vault Obsidian, `/home/<utente>/Documenti/Obsidian`). Di default è `usr/notes` dentro Aurora. Il plugin non ha rete e può scrivere solo in quella cartella.",
+  "en": "Set `AURORA_NOTES_DIR` to the notes folder (e.g. your Obsidian vault, `/home/<user>/Documents/Obsidian`). By default `usr/notes` inside Aurora. The plugin has no network and may write in that folder only.",
+  "links": []
+ },
+ "settings": [
+  "AURORA_NOTES_DIR"
+ ],
+ "sandbox": {
+  "network": false,
+  "write": [
+   "AURORA_NOTES_DIR"
+  ]
+ }
+}

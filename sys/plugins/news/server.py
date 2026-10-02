@@ -84,7 +84,8 @@ def news_topics() -> str:
 
 @server.tool()
 def news_headlines(topic: str = "mondo", hours: int = 24, limit: int = 12) -> str:
-    """The latest news of a topic (italia, mondo, scienza, tecnologia, spazio, or "tutto"): title, source, time,
+    """The latest news of a topic (italia, mondo, scienza, tecnologia, spazio, astronomia, astrofotografia, fisica,
+    biologia, or "tutto"): title, source, time,
     a short summary and the link. Newest first; items without a date at the end."""
     topic = topic.strip().lower()
     if topic in ("tutto", "all", "*"):

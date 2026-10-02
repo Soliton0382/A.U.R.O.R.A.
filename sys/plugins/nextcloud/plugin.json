@@ -1,0 +1,39 @@
+{
+ "name": "nextcloud",
+ "version": "1.0",
+ "kind": "connector",
+ "description": {
+  "it": "I tuoi file su Nextcloud (o qualsiasi WebDAV: ownCloud, un NAS, Box): elencare, leggere file di testo, caricare un documento di Aurora (con la tua approvazione). Mai cancellare.",
+  "en": "Your files on Nextcloud (or any WebDAV: ownCloud, a NAS, Box): list, read text files, upload one of Aurora's documents (with your approval). Never deleting."
+ },
+ "command": [
+  "{python}",
+  "server.py"
+ ],
+ "env": [
+  "AURORA_WEBDAV_URL",
+  "AURORA_WEBDAV_USER",
+  "AURORA_WEBDAV_PASSWORD"
+ ],
+ "requires": [
+  "AURORA_WEBDAV_URL",
+  "AURORA_WEBDAV_USER",
+  "AURORA_WEBDAV_PASSWORD"
+ ],
+ "effects": {
+  "files_list": "read",
+  "files_read": "read",
+  "files_upload": "external",
+  "*": "external"
+ },
+ "setup": {
+  "it": "Nextcloud: **Impostazioni → Sicurezza → Crea una nuova password per app**. Indirizzo: `https://<host>/remote.php/dav/files/<utente>/`. Per altri server WebDAV usa il loro indirizzo dei file. Poi **▶ Prova** su `files_list`.",
+  "en": "Nextcloud: **Settings → Security → Create new app password**. Address: `https://<host>/remote.php/dav/files/<user>/`. For other WebDAV servers use their files address. Then **▶ Try** on `files_list`.",
+  "links": []
+ },
+ "settings": [
+  "AURORA_WEBDAV_URL",
+  "AURORA_WEBDAV_USER",
+  "AURORA_WEBDAV_PASSWORD"
+ ]
+}

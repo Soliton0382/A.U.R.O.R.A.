@@ -1,0 +1,43 @@
+{
+ "name": "discord",
+ "version": "1.0",
+ "kind": "connector",
+ "description": {
+  "it": "Un canale del tuo server Discord tramite un bot: leggere gli ultimi messaggi e scriverne (con la tua approvazione).",
+  "en": "One channel of your Discord server through a bot: read the latest messages and write (with your approval)."
+ },
+ "command": [
+  "{python}",
+  "server.py"
+ ],
+ "env": [
+  "AURORA_DISCORD_BOT_TOKEN",
+  "AURORA_DISCORD_CHANNEL_ID"
+ ],
+ "requires": [
+  "AURORA_DISCORD_BOT_TOKEN",
+  "AURORA_DISCORD_CHANNEL_ID"
+ ],
+ "effects": {
+  "discord_read": "read",
+  "discord_send": "external",
+  "*": "external"
+ },
+ "setup": {
+  "it": "1. **discord.com/developers/applications → New Application → Bot → Reset Token**: copia il token.\n2. Nella stessa pagina attiva **Message Content Intent**.\n3. **OAuth2 → URL Generator**: scope `bot`, permessi *View Channels*, *Send Messages*, *Read Message History*; apri il link e aggiungi il bot al tuo server.\n4. In Discord: *Impostazioni → Avanzate → Modalità sviluppatore*, poi tasto destro sul canale → *Copia ID canale*.\n5. Token e ID qui sotto, salva, **▶ Prova** su `discord_read`.",
+  "en": "1. **discord.com/developers/applications → New Application → Bot → Reset Token**: copy the token.\n2. On the same page enable **Message Content Intent**.\n3. **OAuth2 → URL Generator**: scope `bot`, permissions *View Channels*, *Send Messages*, *Read Message History*; open the link, add the bot to your server.\n4. Discord: *Settings → Advanced → Developer Mode*, then right click on the channel → *Copy Channel ID*.\n5. Token and ID below, save, **▶ Try** on `discord_read`.",
+  "links": [
+   {
+    "label": "Discord Developer Portal",
+    "url": "https://discord.com/developers/applications"
+   }
+  ]
+ },
+ "settings": [
+  "AURORA_DISCORD_BOT_TOKEN",
+  "AURORA_DISCORD_CHANNEL_ID"
+ ],
+ "publishes": {
+  "discord_send": "message"
+ }
+}

@@ -32,6 +32,9 @@ mark each line ✅ / ❌ with a note. Reload the WebUI first (the service worker
 | N10 | 🛠️ Repairs after the 18:30 Facebook routine (on a day with news) | a post proposed with the AI line at the end; approve → it appears on the page |
 | N11 | Chat: «che notizie ci sono oggi di tecnologia?» | headlines with source and link, from the 📰 news plugin |
 | N12 | 🛠️ Repairs: the Facebook post proposed at 18:30 | a post on her day or a science/tech news item, with its link; approve → on the page |
+| N13 | 📅 calendar: an ICS link (Google → secret address) in the card, then «cosa ho in agenda questa settimana?» | the events, at the right local time |
+| N14 | 📝 notes: AURORA_NOTES_DIR on your Obsidian vault, «cerca nelle mie note …», «aggiungi alla nota X …» | found; the addition waits for approval, the note only grows |
+| N15 | 🏠 «che luci ci sono accese?» once devices are in Home Assistant | read from HA; switching asks for approval |
 | N6 | 🧩 Plugins: open the page, then a card, then back | the grid appears at once; icons do not flash (C80) |
 
 ## Pictures

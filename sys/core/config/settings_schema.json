@@ -2324,6 +2324,261 @@
    ]
   },
   {
+   "key": "AURORA_CALENDAR_ICS_URLS",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "ICS links of the calendars to read, comma separated (secret addresses: never shown).",
+   "it": "Link ICS dei calendari da leggere, separati da virgole (indirizzi segreti: mai mostrati).",
+   "services": [
+    "aurora-api"
+   ],
+   "secret": true,
+   "optional": true
+  },
+  {
+   "key": "AURORA_CALDAV_URL",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "CalDAV calendar address (Nextcloud, iCloud, Fastmail…), to read and add events.",
+   "it": "Indirizzo del calendario CalDAV (Nextcloud, iCloud, Fastmail…), per leggere e aggiungere eventi.",
+   "services": [
+    "aurora-api"
+   ],
+   "optional": true
+  },
+  {
+   "key": "AURORA_CALDAV_USER",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "CalDAV user.",
+   "it": "Utente CalDAV.",
+   "services": [
+    "aurora-api"
+   ],
+   "optional": true
+  },
+  {
+   "key": "AURORA_CALDAV_PASSWORD",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "CalDAV app password (not the account's).",
+   "it": "Password per app CalDAV (non quella dell'account).",
+   "services": [
+    "aurora-api"
+   ],
+   "secret": true,
+   "optional": true
+  },
+  {
+   "key": "AURORA_NOTES_DIR",
+   "type": "path",
+   "category": "plugins",
+   "recommended": "usr/notes",
+   "evidence": "owner",
+   "en": "Folder of the Markdown notes (an Obsidian vault too).",
+   "it": "Cartella delle note Markdown (anche un vault Obsidian).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_WEBDAV_URL",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "WebDAV address of the files (Nextcloud: https://host/remote.php/dav/files/user/).",
+   "it": "Indirizzo WebDAV dei file (Nextcloud: https://host/remote.php/dav/files/utente/).",
+   "services": [
+    "aurora-api"
+   ],
+   "optional": true
+  },
+  {
+   "key": "AURORA_WEBDAV_USER",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "WebDAV user.",
+   "it": "Utente WebDAV.",
+   "services": [
+    "aurora-api"
+   ],
+   "optional": true
+  },
+  {
+   "key": "AURORA_WEBDAV_PASSWORD",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "WebDAV app password.",
+   "it": "Password per app WebDAV.",
+   "services": [
+    "aurora-api"
+   ],
+   "secret": true,
+   "optional": true
+  },
+  {
+   "key": "AURORA_DROPBOX_APP_KEY",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Dropbox app key.",
+   "it": "App key dell'app Dropbox.",
+   "services": [
+    "aurora-api"
+   ],
+   "optional": true
+  },
+  {
+   "key": "AURORA_DROPBOX_APP_SECRET",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Dropbox app secret.",
+   "it": "App secret dell'app Dropbox.",
+   "services": [
+    "aurora-api"
+   ],
+   "secret": true,
+   "optional": true
+  },
+  {
+   "key": "AURORA_DROPBOX_REFRESH_TOKEN",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Written by authorize.py: do not type it.",
+   "it": "Lo scrive authorize.py: non scriverlo a mano.",
+   "services": [
+    "aurora-api"
+   ],
+   "secret": true,
+   "optional": true
+  },
+  {
+   "key": "AURORA_DISCORD_BOT_TOKEN",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Discord bot token.",
+   "it": "Token del bot Discord.",
+   "services": [
+    "aurora-api"
+   ],
+   "secret": true,
+   "optional": true
+  },
+  {
+   "key": "AURORA_DISCORD_CHANNEL_ID",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "ID of the channel where Aurora reads and writes.",
+   "it": "ID del canale dove Aurora legge e scrive.",
+   "services": [
+    "aurora-api"
+   ],
+   "optional": true
+  },
+  {
+   "key": "AURORA_WHATSAPP_TOKEN",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Permanent (System user) token of the WhatsApp Cloud API.",
+   "it": "Token permanente (System user) della WhatsApp Cloud API.",
+   "services": [
+    "aurora-api"
+   ],
+   "secret": true,
+   "optional": true
+  },
+  {
+   "key": "AURORA_WHATSAPP_PHONE_ID",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Phone number ID of Aurora's number.",
+   "it": "Phone number ID del numero di Aurora.",
+   "services": [
+    "aurora-api"
+   ],
+   "optional": true
+  },
+  {
+   "key": "AURORA_WHATSAPP_TO",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Your WhatsApp number with country code (e.g. 39333…).",
+   "it": "Il tuo numero WhatsApp con prefisso internazionale (es. 39333…).",
+   "services": [
+    "aurora-api"
+   ],
+   "secret": true,
+   "optional": true
+  },
+  {
+   "key": "AURORA_TWITCH_CLIENT_ID",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Twitch app client ID.",
+   "it": "Client ID dell'app Twitch.",
+   "services": [
+    "aurora-api"
+   ],
+   "optional": true
+  },
+  {
+   "key": "AURORA_TWITCH_CLIENT_SECRET",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Twitch app client secret.",
+   "it": "Client secret dell'app Twitch.",
+   "services": [
+    "aurora-api"
+   ],
+   "secret": true,
+   "optional": true
+  },
+  {
+   "key": "AURORA_TWITCH_CHANNELS",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Your favourite Twitch channels, comma separated.",
+   "it": "I tuoi canali Twitch preferiti, separati da virgole.",
+   "services": [
+    "aurora-api"
+   ],
+   "optional": true
+  },
+  {
    "key": "AURORA_AI_DISCLOSURE",
    "type": "bool",
    "category": "compliance",
