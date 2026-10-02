@@ -80,3 +80,11 @@ def test_prompts_name_the_owner_from_the_settings(cfg):
     cfg.values["AURORA_OWNER_NAME"] = "Ada"
     assert sys_config.personal("Sei l'amica di %OWNER%.", cfg) == "Sei l'amica di Ada."
     assert sys_config.personal("nessun segnaposto {label}", cfg) == "nessun segnaposto {label}"
+
+
+def test_the_service_user_is_the_setting_else_the_owner_of_the_folder(cfg):
+    import pwd
+    cfg.values["AURORA_SERVICE_USER"] = ""
+    assert sys_config.service_user(cfg) == pwd.getpwuid(cfg.root.stat().st_uid).pw_name     # never root by accident
+    cfg.values["AURORA_SERVICE_USER"] = "someone"
+    assert sys_config.service_user(cfg) == "someone"

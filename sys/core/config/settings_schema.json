@@ -1696,13 +1696,14 @@
    "key": "AURORA_SERVICE_USER",
    "type": "str",
    "category": "services",
-   "recommended": "master",
+   "recommended": "",
    "evidence": "owner",
-   "en": "System user that runs the services.",
-   "it": "Utente di sistema che esegue i servizi.",
+   "en": "User the services run as. Empty: the owner of Aurora's folder (the installer writes the user who installs).",
+   "it": "Utente con cui girano i servizi. Vuoto: il proprietario della cartella di Aurora (l'installer scrive l'utente che installa).",
    "services": [
     "all"
-   ]
+   ],
+   "optional": true
   },
   {
    "key": "AURORA_SERVICE_HARDENING",

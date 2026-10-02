@@ -155,7 +155,8 @@ if [ -f .env ]; then
   .venv/bin/python sys/core/script/sys_env_sync.py >/dev/null && mv .env.proposed .env
 else
   SETS=(--set "AURORA_OWNER_NAME=$OWNER" --set "AURORA_LANG_DEFAULT=$ULANG" --set "AURORA_DOMAIN=$DOMAIN"
-        --set "AURORA_HTTPS_PORT=$PORT" --set "AURORA_TLS_MODE=$TLS" --set "AURORA_UPDATE_MODE=notify")
+        --set "AURORA_HTTPS_PORT=$PORT" --set "AURORA_TLS_MODE=$TLS" --set "AURORA_UPDATE_MODE=notify"
+        --set "AURORA_SERVICE_USER=$USER")
   [ -n "$BROWSER" ] && SETS+=(--set "AURORA_CHROME_BIN=$BROWSER")
   while IFS='=' read -r k v; do [ -n "$k" ] && SETS+=(--set "$k=$v"); done < <(echo "$PROFILE" | .venv/bin/python -c 'import json,sys; [print(f"{k}={v}") for k, v in json.load(sys.stdin)["env"].items()]')
   case ",$PICK," in *,dreams,*) ;; *) SETS+=(--set "AURORA_IMAGE_ENABLED=0") ;; esac   # no dream model, no dream painting

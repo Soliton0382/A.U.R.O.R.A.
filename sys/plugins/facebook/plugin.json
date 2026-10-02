@@ -1,78 +1,83 @@
 {
-  "name": "facebook",
-  "version": "1.0",
-  "kind": "connector",
-  "description": {
-    "en": "The owner's Facebook page through the Graph API: read the latest posts; publishing a post waits for the owner.",
-    "it": "La pagina Facebook del proprietario tramite la Graph API: leggere gli ultimi post; pubblicare un post aspetta il proprietario."
+ "name": "facebook",
+ "version": "1.0",
+ "kind": "connector",
+ "description": {
+  "en": "The owner's Facebook page through the Graph API: posts, statistics, comments, page info; whatever writes to the page waits for the owner's approval.",
+  "it": "La pagina Facebook tramite la Graph API: post, statistiche, commenti, informazioni della pagina; tutto ciò che scrive sulla pagina aspetta l'approvazione del proprietario."
+ },
+ "command": [
+  "{python}",
+  "server.py"
+ ],
+ "env": [
+  "AURORA_FACEBOOK_PAGE_ID",
+  "AURORA_FACEBOOK_PAGE_TOKEN"
+ ],
+ "requires": [
+  "AURORA_FACEBOOK_PAGE_ID",
+  "AURORA_FACEBOOK_PAGE_TOKEN"
+ ],
+ "effects": {
+  "publish_post": "external",
+  "page_info": "read",
+  "list_posts": "read",
+  "*": "external",
+  "page_stats": "read",
+  "list_comments": "read",
+  "reply_comment": "external",
+  "update_page_info": "external",
+  "set_welcome_message": "external"
+ },
+ "social": {
+  "label": "Facebook",
+  "publish": {
+   "tool": "publish_post",
+   "field": "message"
   },
-  "command": [
-    "{python}",
-    "server.py"
-  ],
-  "env": [
-    "AURORA_FACEBOOK_PAGE_ID",
-    "AURORA_FACEBOOK_PAGE_TOKEN"
-  ],
-  "requires": [
-    "AURORA_FACEBOOK_PAGE_ID",
-    "AURORA_FACEBOOK_PAGE_TOKEN"
-  ],
-  "effects": {
-    "publish_post": "external",
-    "page_info": "read",
-    "list_posts": "read",
-    "*": "external",
-    "page_stats": "read"
-  },
-  "social": {
-    "label": "Facebook",
-    "publish": {
-      "tool": "publish_post",
-      "field": "message"
-    },
-    "stats": "page_stats",
-    "max_chars": 1200
-  },
-  "publishes": {
-    "publish_post": "message"
-  },
-  "setup": {
-    "it": "**Serve una Pagina Facebook**, non il profilo personale: dal 2018 Meta non permette alle app di pubblicare sui profili. Se non ne hai una, creane una (anche di prova).\n\n1. Su **Meta for Developers** → *My Apps* → *Create App*: scegli un'app di tipo **Business**.\n2. Apri **Graph API Explorer**, seleziona la tua app, poi *Get Token* → *Get User Access Token* e spunta i permessi `pages_show_list`, `pages_read_engagement`, `pages_manage_posts`.\n3. Il token dell'Explorer dura circa un'ora: incollalo nell'**Access Token Debugger** e premi *Extend Access Token* (diventa di lunga durata).\n4. Torna nell'Explorer con il token esteso ed esegui `me/accounts`: per ogni pagina che amministri vedi `id` (l'ID della pagina) e `access_token` (il token della pagina, che così non scade).\n5. In Aurora → **Impostazioni → Plugin**: `AURORA_FACEBOOK_PAGE_ID` = l'id, `AURORA_FACEBOOK_PAGE_TOKEN` = il token della pagina. Salva.\n6. Qui sotto premi **▶ Prova** su `page_info`: devi vedere il nome della pagina.\n\nPer le pagine che amministri tu, con l'app in modalità sviluppo non dovrebbe servire la revisione di Meta; se Meta la chiede, le guide ufficiali qui sotto spiegano come.",
-    "en": "**A Facebook Page is needed**, not the personal profile (Meta does not let apps post on profiles since 2018).\n\n1. **Meta for Developers** → *My Apps* → *Create App*, type **Business**.\n2. **Graph API Explorer**: select the app, *Get User Access Token* with `pages_show_list`, `pages_read_engagement`, `pages_manage_posts`.\n3. Paste the token into the **Access Token Debugger** and press *Extend Access Token*.\n4. With the extended token run `me/accounts` in the Explorer: `id` is the page id, `access_token` the page token (it does not expire).\n5. Aurora → **Settings → Plugins**: `AURORA_FACEBOOK_PAGE_ID`, `AURORA_FACEBOOK_PAGE_TOKEN`.\n6. Press **▶ Try** on `page_info`.",
-    "links": [
-      {
-        "label": "Crea una Pagina",
-        "url": "https://www.facebook.com/pages/create"
-      },
-      {
-        "label": "Meta for Developers – App",
-        "url": "https://developers.facebook.com/apps/"
-      },
-      {
-        "label": "Graph API Explorer",
-        "url": "https://developers.facebook.com/tools/explorer/"
-      },
-      {
-        "label": "Access Token Debugger",
-        "url": "https://developers.facebook.com/tools/debug/accesstoken/"
-      },
-      {
-        "label": "Pages API – guida ufficiale",
-        "url": "https://developers.facebook.com/docs/pages-api/getting-started"
-      },
-      {
-        "label": "Token di lunga durata",
-        "url": "https://developers.facebook.com/docs/facebook-login/guides/access-tokens/get-long-lived"
-      },
-      {
-        "label": "Pubblicare post",
-        "url": "https://developers.facebook.com/docs/pages-api/posts"
-      },
-      {
-        "label": "Permessi",
-        "url": "https://developers.facebook.com/docs/permissions"
-      }
-    ]
-  }
+  "stats": "page_stats",
+  "max_chars": 1200
+ },
+ "publishes": {
+  "publish_post": "message",
+  "reply_comment": "message"
+ },
+ "setup": {
+  "it": "**Serve una Pagina Facebook**, non il profilo personale: dal 2018 Meta non permette alle app di pubblicare sui profili. Se non ne hai una, creane una (anche di prova).\n\n1. Su **Meta for Developers** → *My Apps* → *Create App*: scegli un'app di tipo **Business**.\n2. Apri **Graph API Explorer**, seleziona la tua app, poi *Get Token* → *Get User Access Token* e spunta i permessi `pages_show_list`, `pages_read_engagement`, `pages_manage_posts`, e per gestire la pagina anche `pages_manage_metadata` (descrizione), `pages_read_user_content` e `pages_manage_engagement` (commenti), `pages_messaging` (messaggio di benvenuto).\n3. Il token dell'Explorer dura circa un'ora: incollalo nell'**Access Token Debugger** e premi *Extend Access Token* (diventa di lunga durata).\n4. Torna nell'Explorer con il token esteso ed esegui `me/accounts`: per ogni pagina che amministri vedi `id` (l'ID della pagina) e `access_token` (il token della pagina, che così non scade).\n5. In Aurora → **Impostazioni → Plugin**: `AURORA_FACEBOOK_PAGE_ID` = l'id, `AURORA_FACEBOOK_PAGE_TOKEN` = il token della pagina. Salva.\n6. Qui sotto premi **▶ Prova** su `page_info`: devi vedere il nome della pagina.\n\nPer le pagine che amministri tu, con l'app in modalità sviluppo non dovrebbe servire la revisione di Meta; se Meta la chiede, le guide ufficiali qui sotto spiegano come.",
+  "en": "**A Facebook Page is needed**, not the personal profile (Meta does not let apps post on profiles since 2018).\n\n1. **Meta for Developers** → *My Apps* → *Create App*, type **Business**.\n2. **Graph API Explorer**: select the app, *Get User Access Token* with `pages_show_list`, `pages_read_engagement`, `pages_manage_posts`, and to manage the page also `pages_manage_metadata` (description), `pages_read_user_content` and `pages_manage_engagement` (comments), `pages_messaging` (welcome message).\n3. Paste the token into the **Access Token Debugger** and press *Extend Access Token*.\n4. With the extended token run `me/accounts` in the Explorer: `id` is the page id, `access_token` the page token (it does not expire).\n5. Aurora → **Settings → Plugins**: `AURORA_FACEBOOK_PAGE_ID`, `AURORA_FACEBOOK_PAGE_TOKEN`.\n6. Press **▶ Try** on `page_info`.",
+  "links": [
+   {
+    "label": "Crea una Pagina",
+    "url": "https://www.facebook.com/pages/create"
+   },
+   {
+    "label": "Meta for Developers – App",
+    "url": "https://developers.facebook.com/apps/"
+   },
+   {
+    "label": "Graph API Explorer",
+    "url": "https://developers.facebook.com/tools/explorer/"
+   },
+   {
+    "label": "Access Token Debugger",
+    "url": "https://developers.facebook.com/tools/debug/accesstoken/"
+   },
+   {
+    "label": "Pages API – guida ufficiale",
+    "url": "https://developers.facebook.com/docs/pages-api/getting-started"
+   },
+   {
+    "label": "Token di lunga durata",
+    "url": "https://developers.facebook.com/docs/facebook-login/guides/access-tokens/get-long-lived"
+   },
+   {
+    "label": "Pubblicare post",
+    "url": "https://developers.facebook.com/docs/pages-api/posts"
+   },
+   {
+    "label": "Permessi",
+    "url": "https://developers.facebook.com/docs/permissions"
+   }
+  ]
+ }
 }

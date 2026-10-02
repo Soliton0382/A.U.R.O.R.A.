@@ -79,7 +79,7 @@ def main() -> int:
     cfg = sys_config.get()
     status = cfg.path("AURORA_STATUS_DIR") / "backup" / "nas.json"
     status.parent.mkdir(parents=True, exist_ok=True)
-    user = pwd.getpwnam(cfg["AURORA_SERVICE_USER"])
+    user = pwd.getpwnam(sys_config.service_user(cfg))
     out = {"at": time.time(), "ok": False, "mount": str(MOUNT)}
     try:
         if os.geteuid() != 0:
@@ -102,26 +102,37 @@ def main() -> int:
             os.chmod(tmp, 0o644)
             os.replace(tmp, FSTAB)
             subprocess.run(["systemctl", "daemon-reload"], check=True, timeout=60)
-        if os.path.ismount(MOUNT):
-            subprocess.run(["umount", str(MOUNT)], timeout=60)
-        opts = line.split()[3]
-        r = subprocess.run(["mount", "-t", "cifs", f"//{host}/{share}", str(MOUNT), "-o",
-                            ",".join(o for o in opts.split(",") if not o.startswith(("x-systemd", "_netdev", "nofail")))],
-                           capture_output=True, text=True, timeout=90)
+        # systemd mounts it, in the namespace of the whole system: a mount made by this unit itself would stay in the
+        # unit's private namespace and vanish with it (C90)
+        unit = subprocess.run(["systemd-escape", "-p", "--suffix=mount", str(MOUNT)], capture_output=True, text=True,
+                              check=True, timeout=30).stdout.strip()
+        if cfg["AURORA_NAS_FSTAB"]:
+            for u in (unit.replace(".mount", ".automount"), unit):
+                subprocess.run(["systemctl", "stop", u], capture_output=True, timeout=60)
+            r = subprocess.run(["systemctl", "start", unit], capture_output=True, text=True, timeout=120)
+            subprocess.run(["systemctl", "start", unit.replace(".mount", ".automount")], capture_output=True, timeout=60)
+        else:
+            subprocess.run(["systemd-umount", str(MOUNT)], capture_output=True, timeout=60)
+            opts = ",".join(o for o in line.split()[3].split(",") if not o.startswith(("x-systemd", "_netdev", "nofail")))
+            r = subprocess.run(["systemd-mount", "-t", "cifs", "-o", opts, f"//{host}/{share}", str(MOUNT)],
+                               capture_output=True, text=True, timeout=120)
         if r.returncode != 0:
-            raise RuntimeError(f"mount failed: {(r.stderr or r.stdout).strip()[-300:]}")
+            log = subprocess.run(["journalctl", "-u", unit, "-n", "5", "--no-pager"], capture_output=True, text=True).stdout
+            raise RuntimeError(f"mount failed: {(r.stderr or r.stdout).strip()[-200:]} {log.strip()[-300:]}")
         dest = MOUNT / sub if sub else MOUNT
-        dest.mkdir(parents=True, exist_ok=True)
-        os.chown(dest, user.pw_uid, user.pw_gid)
+        dest.mkdir(parents=True, exist_ok=True)                  # owned by the service user: the mount's uid/gid
         probe = dest / ".aurora-write-test"
         subprocess.run(["runuser", "-u", user.pw_name, "--", "touch", str(probe)], check=True, timeout=30)
         probe.unlink()
         out.update(ok=True, dest=str(dest), fstab=bool(cfg["AURORA_NAS_FSTAB"]), share=f"//{host}/{share}")
     except Exception as e:                              # said in the card, never silent
         out["error"] = f"{type(e).__name__}: {e}"[:400]
-    status.write_text(json.dumps(out))
-    os.chown(status, user.pw_uid, user.pw_gid)
-    print(json.dumps(out))
+    print(json.dumps(out), flush=True)                          # in the journal first: never lost again
+    try:
+        status.write_text(json.dumps(out))
+        os.chown(status, user.pw_uid, user.pw_gid)
+    except OSError as e:
+        print(f"status not written ({e}): the card cannot show it", file=sys.stderr)
     return 0 if out["ok"] else 1
 
 

@@ -16,21 +16,40 @@ GRAPH = "https://graph.facebook.com"
 server = MCPServer("facebook", version="1.0")
 
 
-def _call(method: str, path: str, **params) -> dict:
+# what each kind of action needs on the token (Meta's permission names), said when the Graph API refuses
+NEEDS = {"metadata": "pages_manage_metadata", "comments": "pages_read_user_content",
+         "reply": "pages_manage_engagement", "greeting": "pages_messaging"}
+
+
+def _call(method: str, path: str, need: str = "", json_body: dict | None = None, **params) -> dict:
     if not PAGE or not TOKEN:
         raise ToolError("AURORA_FACEBOOK_PAGE_ID or AURORA_FACEBOOK_PAGE_TOKEN is empty")
-    r = httpx.request(method, f"{GRAPH}/{path}", params={**params, "access_token": TOKEN}, timeout=30)
+    r = httpx.request(method, f"{GRAPH}/{path}", params={**params, "access_token": TOKEN}, json=json_body, timeout=30)
     data = r.json()
     if "error" in data:
-        raise ToolError(f"Graph API: {data['error'].get('message', r.status_code)}")
+        e = data["error"]
+        hint = ""
+        if need and (e.get("code") in (10, 200, 190) or "permission" in str(e.get("message", "")).lower()):
+            hint = (f" — the page token lacks `{NEEDS[need]}`: add it in Graph API Explorer, take the page token again "
+                    "from me/accounts and save it in the plugin's card")
+        if e.get("code") == 100 and "does not exist" in str(e.get("message", "")):
+            hint = " — AURORA_FACEBOOK_PAGE_ID is not this token's page: `page_info` shows the right id"
+        raise ToolError(f"Graph API: {e.get('message', r.status_code)}{hint}")
     return data
 
 
 @server.tool()
 def page_info() -> str:
-    """Name and followers of the page (checks that the token works)."""
-    d = _call("GET", PAGE, fields="name,followers_count,link")
-    return f"{d.get('name')} · {d.get('followers_count', '?')} followers · {d.get('link', '')}"
+    """Name, followers, category, description and website of the page (checks that the token and the id agree)."""
+    if not TOKEN:
+        raise ToolError("AURORA_FACEBOOK_PAGE_TOKEN is empty")
+    me = httpx.get(f"{GRAPH}/me", params={"fields": "id", "access_token": TOKEN}, timeout=30).json()
+    if me.get("id") and me["id"] != PAGE:
+        return f"⚠️ the token is page {me['id']}, AURORA_FACEBOOK_PAGE_ID says {PAGE or '(empty)'}: save {me['id']}"
+    d = _call("GET", PAGE, fields="name,followers_count,link,category,about,description,website")
+    return (f"{d.get('name')} · {d.get('followers_count', '?')} followers · {d.get('category', '')} · {d.get('link', '')}\n"
+            f"about: {d.get('about') or '(empty)'}\ndescription: {d.get('description') or '(empty)'}\n"
+            f"website: {d.get('website') or '(empty)'}")
 
 
 @server.tool()
@@ -69,6 +88,45 @@ def publish_post(message: str, link: str = "") -> str:
     """Publish a post on the page (an external action: the owner confirms it)."""
     d = _call("POST", f"{PAGE}/feed", message=message, **({"link": link} if link else {}))
     return f"published: post id {d.get('id')}"
+
+
+@server.tool()
+def list_comments(limit: int = 20) -> str:
+    """The latest comments on the page's posts, with their ids (to answer them)."""
+    d = _call("GET", f"{PAGE}/posts", need="comments", limit=10,
+              fields=f"message,comments.limit({max(1, min(limit, 50))}){{id,from,message,created_time}}")
+    rows = []
+    for p in d.get("data", []):
+        for c in (p.get("comments") or {}).get("data", []):
+            rows.append(f"[{c.get('created_time', '')[:16]}] {c['id']} · {(c.get('from') or {}).get('name', '?')}: "
+                        f"{(c.get('message') or '')[:200]}  (on «{(p.get('message') or '')[:50]}»)")
+    return "\n".join(rows[:limit]) or "no comments"
+
+
+@server.tool()
+def reply_comment(comment_id: str, message: str) -> str:
+    """Answer a comment as the page (an external action: the owner confirms it)."""
+    d = _call("POST", f"{comment_id}/comments", need="reply", message=message)
+    return f"answered: comment id {d.get('id')}"
+
+
+@server.tool()
+def update_page_info(about: str = "", description: str = "", website: str = "") -> str:
+    """Change the page's short "about", its longer description and its website (an external action)."""
+    fields = {k: v for k, v in (("about", about), ("description", description), ("website", website)) if v.strip()}
+    if not fields:
+        raise ToolError("nothing to change")
+    _call("POST", PAGE, need="metadata", **fields)
+    return "page updated: " + ", ".join(fields)
+
+
+@server.tool()
+def set_welcome_message(text: str) -> str:
+    """The greeting Messenger shows before someone writes to the page (max 160 characters; an external action)."""
+    if len(text) > 160:
+        raise ToolError(f"{len(text)} characters: Messenger allows 160")
+    _call("POST", "me/messenger_profile", need="greeting", json_body={"greeting": [{"locale": "default", "text": text}]})
+    return "welcome message set"
 
 
 if __name__ == "__main__":

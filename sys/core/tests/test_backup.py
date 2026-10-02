@@ -134,6 +134,7 @@ def test_the_backup_unit_and_timer_are_made_only_with_a_folder_and_may_write_onl
     assert sis.main() == 0
     mount, unit = (out / "aurora-mount.service").read_text(), (out / "aurora-backup.service").read_text()
     assert "User=root" in mount and "sys_nas_mount.py" in mount
+    assert "ReadWritePaths=-" in mount and "status/backup" in mount           # the result reaches the card (C90)
     assert " /mnt/aurora-nas" in unit and "smb://" not in unit.split("ReadWritePaths=")[1].split("\n")[0]
     assert "aurora-mount.service" in (out / "install.sh").read_text()
     cfg.values["AURORA_BACKUP_TIME"] = "25:99"

@@ -143,6 +143,7 @@ ExecStart=$exec
 TimeoutStartSec=180
 NoNewPrivileges=yes
 ProtectHome=read-only
+ReadWritePaths=-$status
 PrivateTmp=yes
 """)
 
@@ -274,10 +275,10 @@ def main() -> int:
     out.mkdir(parents=True, exist_ok=True)
     for name, (desc, after, exec_, extra) in units.items():
         if cfg["AURORA_SERVICE_HARDENING"]:
-            extra += hardening(root, cfg["AURORA_SERVICE_USER"], name == "aurora-https" and low_ports,
+            extra += hardening(root, sys_config.service_user(cfg), name == "aurora-https" and low_ports,
                                hosts_plugins=name == "aurora-api")
         (out / f"{name}.service").write_text(UNIT.substitute(
-            description=desc, after=after, user=cfg["AURORA_SERVICE_USER"], root=root, exec=exec_, extra=extra),
+            description=desc, after=after, user=sys_config.service_user(cfg), root=root, exec=exec_, extra=extra),
             encoding="utf-8")
     backup = []                                        # only when a backup folder is set
     dest = str(cfg["AURORA_BACKUP_DIR"] or "").strip()
@@ -288,19 +289,21 @@ def main() -> int:
             print(f"AURORA_BACKUP_TIME {hhmm!r} is not HH:MM")
             return 1
         writable = "/mnt/aurora-nas" if dest.startswith("smb://") else dest
-        extra = hardening(root, cfg["AURORA_SERVICE_USER"], False, also=(writable,)) if cfg["AURORA_SERVICE_HARDENING"] else ""
+        extra = hardening(root, sys_config.service_user(cfg), False, also=(writable,)) if cfg["AURORA_SERVICE_HARDENING"] else ""
         (out / "aurora-backup.service").write_text(BACKUP_UNIT.substitute(
-            dest=dest, user=cfg["AURORA_SERVICE_USER"], root=root, exec=f"{py} {script / 'svc_backup.py'} run",
+            dest=dest, user=sys_config.service_user(cfg), root=root, exec=f"{py} {script / 'svc_backup.py'} run",
             extra=extra), encoding="utf-8")
         (out / "aurora-backup.timer").write_text(BACKUP_TIMER.substitute(time=hhmm), encoding="utf-8")
         backup = ["aurora-backup.service", "aurora-backup.timer"]
         if dest.startswith("smb://"):
+            (cfg.path("AURORA_STATUS_DIR") / "backup").mkdir(parents=True, exist_ok=True)
             (out / "aurora-mount.service").write_text(MOUNT_UNIT.substitute(
-                root=root, exec=f"{py} {script / 'sys_nas_mount.py'}"), encoding="utf-8")
+                root=root, exec=f"{py} {script / 'sys_nas_mount.py'}",
+                status=cfg.path("AURORA_STATUS_DIR") / "backup"), encoding="utf-8")
             backup.append("aurora-mount.service")
     (out / "aurora.target").write_text(TARGET.substitute(wants=" ".join(f"{n}.service" for n in units)),
                                        encoding="utf-8")
-    (out / "50-aurora.rules").write_text(POLKIT.substitute(user=cfg["AURORA_SERVICE_USER"]), encoding="utf-8")
+    (out / "50-aurora.rules").write_text(POLKIT.substitute(user=sys_config.service_user(cfg)), encoding="utf-8")
     print(f"units written to {out}:")
     for p in sorted(out.iterdir()):
         print(f"  {p.name}")

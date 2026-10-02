@@ -165,6 +165,13 @@ def load(env_file: Path | None = None, schema_file: Path = SCHEMA_FILE, check_ro
 _cached: Config | None = None
 
 
+def service_user(cfg: "Config") -> str:
+    """The user the services run as: AURORA_SERVICE_USER, else the owner of Aurora's folder (the one who installed
+    it). Never the user of the calling process: the NAS mount runs as root (C92)."""
+    import pwd
+    return str(cfg.values.get("AURORA_SERVICE_USER") or "").strip() or pwd.getpwuid(cfg.root.stat().st_uid).pw_name
+
+
 def get() -> Config:
     """The configuration of this process, loaded once."""
     global _cached

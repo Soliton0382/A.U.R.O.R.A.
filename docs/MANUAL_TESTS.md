@@ -28,6 +28,8 @@ mark each line ✅ / ❌ with a note. Reload the WebUI first (the service worker
 | N5 | ⚙️ Settings: categories | each category once (C71) |
 | N7 | ⚙️ Status → Backup → 💾 Run now (after the owner's setup) | a notification at the end; the Status line shows files, GB, copies |
 | N8 | 🐞 Report a bug: describe, tick a conversation, Prepare | the files and what was masked; the zip opens; nothing private inside |
+| N9 | Zoom the browser to 150%: the side menu | the list of pages scrolls; the language selector stays at the bottom |
+| N10 | 🛠️ Repairs after the 18:30 Facebook routine (on a day with news) | a post proposed with the AI line at the end; approve → it appears on the page |
 | N6 | 🧩 Plugins: open the page, then a card, then back | the grid appears at once; icons do not flash (C80) |
 
 ## Pictures

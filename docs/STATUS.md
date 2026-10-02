@@ -58,10 +58,10 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 
 | what | state |
 |---|---|
-| forge | works safely, produces no right plugin yet (C70): cloud reasoner option, execution loop, a benchmark of needs |
+| forge | now written by Claude Code (opus) and judged by Gemini 2.5 Flash (M55: cloud 6/8 right, local 4/8); C70 stays open until the benchmark is run again with this setting |
 | self-repair | runs daily (4 self-reviews, 2 repairs in 2 days); 0 code changes proposed so far: no evidence yet that it fixes a real bug |
 | multi-user | performance check on install, admin and users, TOTP MFA |
-| social | Facebook, Instagram, LinkedIn plugins and the autonomous mode (Mastodon home, Facebook mirror) |
+| social | Facebook connected (page token, posts, statistics, comments, page info, welcome message; writes wait for approval); routines: a post a day proposed when there is something new, weekly statistics. Next: a tool to read her own dream and the day's papers (today the agent can only read logs); Instagram, LinkedIn, TikTok |
 | network finding | 11,945 denied connections to port 6667 (IRC) from one internal host, 107 ATP matches: the owner checks the device |
 
 ## Owner (2026-10-02)
@@ -73,9 +73,9 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | delete the test copies when done | `~/Scaricati/Aurora_installtest` (88 GB), `~/Scaricati/aurora-backup-test` (28 GB), `~/Scaricati/aurora-restore-test` (4 GB) |
 | rewrite the history before going public (C83) | the firewall serial is in 3 commits: `git filter-branch` on the mirror, then `git push --force` (commands in the reply of 2 October) |
 | GitHub keys | delete `aurora-readonly` (an account key, read/write on every repo, used by nothing); keep the push key (the one named after this computer), better with a passphrase (`ssh-keygen -p -f ~/.ssh/id_ed25519`) |
+| Facebook permissions | for description, comments and welcome message the page token needs `pages_manage_metadata`, `pages_read_user_content`, `pages_manage_engagement`, `pages_messaging` (plugin card, step 2) |
 | backup on the NAS | backup plugin card: NAS user + password, Save (mounts it); units reinstalled once with sudo |
 | backup: choose the folder, make the key | AURORA_BACKUP_DIR (second disk or NAS, mounted at boot) → `svc_backup.py init` (keep the recovery code) → `sys_install_services.py` + `sudo bash sys/deploy/systemd/install.sh` |
-| xAI | the key is valid; the team needs credit or a higher spending limit (console.x.ai) |
 
 ## To do (designed)
 
@@ -86,7 +86,7 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | full-disk encryption | owner |
 | re-measure answer quality (M40) after the synthesis prompt change (M48) | a run of the benchmark |
 
-## Open bugs (1)
+## Open bugs (2)
 
 C70 (the forge does not yet build right plugins). Measurements still to take are listed in ROADMAP.md ("Still to measure").
 

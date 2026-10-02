@@ -118,3 +118,11 @@ def test_a_routine_report_becomes_a_downloadable_pdf_and_a_failed_pdf_never_fail
     monkeypatch.setattr(doc_pdf, "create", lambda *a: (_ for _ in ()).throw(RuntimeError("no chrome")))
     assert R.report_pdf(cfg, {"id": "r1"}, "x" * 300, "run2", lambda e, p: events.append((e, p)), logging.getLogger("t")) == []
     assert events[-1][1]["ok"] is False and "no chrome" in events[-1][1]["error"]
+
+
+def test_a_routine_may_propose_actions_only_when_asked_and_only_with_a_true_or_false():
+    spec = {"kind": "agent", "goal": "prepara un post", "schedule": {"every": "day", "at": "18:30"}}
+    assert "propose" not in R.validate(spec)
+    assert R.validate({**spec, "propose": True})["propose"] is True
+    with pytest.raises(ValueError):
+        R.validate({**spec, "propose": "yes"})

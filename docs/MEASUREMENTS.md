@@ -893,6 +893,16 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M62 — Facebook, model choices, NAS mount diagnosis (2026-10-02)
+
+Facebook: page token valid, never expiring, scopes pages_show_list, pages_read_engagement, pages_manage_posts; the
+saved page id was wrong (C91). Live: page_info, page_stats (2 posts), list_comments. The daily post routine run by
+hand: 8 read tools in one run, answer "niente da pubblicare oggi" with its reasons, nothing proposed — it could not
+read its own dream or the day's papers (no tool for that). Models: forge to the cloud (M55: 6/8 vs 4/8); synthesis
+stays local because M40 measured the same quality (Claude 5.38, Qwen 5.25 and 6.00 out of 10, ±0.75 noise).
+NAS: credentials verified with smbclient (the backup folder listed); the mount failure was the unit's private mount
+namespace (C90). Tests 201.
+
 ## M61 — NAS backup, cloud ceiling, keys (2026-10-02)
 
 Cloud calls of Aurora (115 with Claude Code): median 7,556 tokens in+out, p90 9,968, max 13,695 → the daily ceiling

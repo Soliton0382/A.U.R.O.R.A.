@@ -85,7 +85,11 @@ def validate(spec: dict) -> dict:
         raise ValueError("schedule.every must be hours, day or week")
     if spec.get("notify", "always") not in NOTIFY:
         raise ValueError(f"notify must be one of {NOTIFY}")
-    keep = ("title", "plugin", "kind", "tool", "args", "goal", "schedule", "notify", "event", "suggestion", "enabled")
+    if "propose" in spec and not isinstance(spec["propose"], bool):
+        raise ValueError("propose must be true or false")
+    # propose: an agent routine may propose actions that write or publish; each still waits for the owner's approval
+    keep = ("title", "plugin", "kind", "tool", "args", "goal", "schedule", "notify", "event", "suggestion", "enabled",
+            "propose")
     return {k: spec[k] for k in keep if k in spec}
 
 
@@ -104,7 +108,7 @@ def update(cfg: sys_config.Config, rid: str, changes: dict) -> dict:
     r = next((x for x in rs if x["id"] == rid), None)
     if r is None:
         raise KeyError(rid)
-    allowed = {k: v for k, v in changes.items() if k in ("enabled", "schedule", "notify", "title")}
+    allowed = {k: v for k, v in changes.items() if k in ("enabled", "schedule", "notify", "title", "propose")}
     merged = {**r, **allowed}
     validate(merged)
     r.update(allowed)

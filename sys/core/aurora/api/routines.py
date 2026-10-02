@@ -43,7 +43,9 @@ def _routine_job(r: dict):
             try:
                 agent = Agent(pipeline(), cfg, notify=lambda e, p: note("agent", e, p), host=plugin_host())
                 agent.routine = r["id"]                     # a capability it requests runs this routine again
-                ans = agent.run(goal, emit, run_id, f"Routine: {r.get('title', '')}. Read only.")
+                rule = ("You may propose actions that write or publish: each one waits for the owner's approval, "
+                        "never runs by itself." if r.get("propose") else "Read only.")
+                ans = agent.run(goal, emit, run_id, f"Routine: {r.get('title', '')}. {rule}")
                 text, files = ans.text.strip(), agent.produced
                 _gap_check(agent, r["goal"], text, emit, run_id, r["id"])
                 if len(text) >= 200 and not any(f.get("mime") == "application/pdf" for f in files):

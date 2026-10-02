@@ -45,8 +45,9 @@ input, select, textarea { background: rgba(20, 24, 33, .92); border: 1px solid v
 body.drawer-open .drawer { transform: none; }
 .scrim { position: fixed; inset: 0; z-index: 3; background: rgba(0, 0, 0, .45); opacity: 0; pointer-events: none; transition: opacity .22s; }
 body.drawer-open .scrim { opacity: 1; pointer-events: auto; }
-#nav { display: flex; flex-direction: column; gap: .25rem; flex: 1; }
-#nav button { display: flex; align-items: center; gap: .7rem; text-align: left; background: none; border-color: transparent; padding: .6rem .7rem; }
+#nav { display: flex; flex-direction: column; gap: .25rem; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  scrollbar-width: thin; scrollbar-color: rgba(122, 162, 255, .35) transparent; }   /* many pages or a big zoom: the list scrolls */
+#nav button { flex-shrink: 0; display: flex; align-items: center; gap: .7rem; text-align: left; background: none; border-color: transparent; padding: .6rem .7rem; }
 #nav button:hover { background: rgba(122, 162, 255, .08); }
 #nav button.active { background: rgba(122, 162, 255, .14); border-color: rgba(122, 162, 255, .35); color: #cfdcff; }
 #nav .ic { width: 1.4rem; text-align: center; }
