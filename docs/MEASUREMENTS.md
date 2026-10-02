@@ -893,6 +893,14 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M68 — Scheduled tasks checked, a picture on request (2 October 2026, evening)
+
+The 18:30 Facebook routine ran from its timer (9 tool calls, a science post proposed, approved, published). The
+models service at 2.6 GB after 6 hours (6.6 GB before C95's fix); no CUDA out-of-memory since 14:48, the reasoner
+never restarted. The NAS stays mounted; the backup timer fires at 03:30 (not yet run from the timer). A picture on
+request (C97): SDXL 1344×768 painted in 22.4 s with the reasoner swapped out (peak 5.45 GB), kept with the turn,
+posted on the page with it after the owner's approval. Tests 208.
+
 ## M67 — Answer quality: the three stages fixed, measured on 30 questions (2 October 2026)
 
 `bench_quality.py --pool 30` (a fixed sample of retrieval_pool108, seed 7), live API, blind judge Claude Code opus.

@@ -74,7 +74,7 @@ def test_agent_reads_asks_for_external_and_finishes(cfg):
     assert [x["title"] for x in pending] == ["demo.send_message"]
     sent = pending[0]["action"]["arguments"]["text"]                  # AI Act art. 50: marked, in its language
     assert sent.startswith("ciao") and sent.endswith((cfg["AURORA_AI_DISCLOSURE_IT"], cfg["AURORA_AI_DISCLOSURE_EN"]))
-    assert ans.text.startswith("Letto il log") and ans.mode == "agent"
+    assert ans.text.startswith("⏳ Proposto, non ancora fatto") and "\n\nLetto il log" in ans.text and ans.mode == "agent"
     names = [e for e, _ in events]
     assert names[0] == "agent.start" and "approval.request" in names and names[-1] == "agent.finish"
     assert llm.seen[1]["role"] == "tool" and "log line 1" in llm.seen[1]["content"]
@@ -153,3 +153,14 @@ def test_each_claim_needs_its_action_in_the_log(cfg):
     ans = agent.run("prova", lambda e, p: None, "run4")
     first = ans.text.splitlines()[0]
     assert "modifiche al codice" in first and "sandbox create" not in first     # the sandbox was made, the edit not
+
+
+def test_a_report_never_says_published_while_the_post_waits_for_the_owner():
+    import logging
+    from aurora.agt_loop import Agent
+    a = Agent.__new__(Agent)
+    a.ledger, a.log, a.pending = [("facebook__publish_post", True)], logging.getLogger("t"), ["facebook.publish_post"]
+    out = a._honest("Ho pubblicato la foto su Facebook con una bella didascalia.")
+    assert out.startswith("⚠️ Niente è stato ancora pubblicato") and "facebook.publish_post" in out.splitlines()[1]
+    a.pending = []
+    assert a._honest("Ecco la didascalia che ti propongo.") == "Ecco la didascalia che ti propongo."

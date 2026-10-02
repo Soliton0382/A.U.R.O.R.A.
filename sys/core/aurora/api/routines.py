@@ -48,7 +48,8 @@ def _routine_job(r: dict):
                 ans = agent.run(goal, emit, run_id, f"Routine: {r.get('title', '')}. {rule}")
                 text, files = ans.text.strip(), agent.produced
                 _gap_check(agent, r["goal"], text, emit, run_id, r["id"])
-                if len(text) >= 200 and not any(f.get("mime") == "application/pdf" for f in files):
+                # a report becomes a PDF; a routine that proposes actions (a post) does not: its result is the proposal
+                if not r.get("propose") and len(text) >= 200 and not any(f.get("mime") == "application/pdf" for f in files):
                     files = files + sys_routines.report_pdf(cfg, r, text, run_id, emit, log)
             except Exception as e:                       # a failed routine is recorded and said, never left pending
                 log.exception("routine %s failed", r["id"])

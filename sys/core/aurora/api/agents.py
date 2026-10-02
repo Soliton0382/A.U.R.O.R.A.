@@ -49,7 +49,8 @@ def _agent_job(goal: str, context: str = "", after=None, remember: bool = False,
         if agent.produced:                             # the documents it wrote stay with its turn (downloadable)
             from aurora import sys_uploads
             for f in agent.produced:
-                sys_uploads.link(cfg, run_id, f["name"], f["url"], f["mime"])
+                if not f["url"].startswith("/v1/aurora/uploads/"):    # a picture it painted is kept already
+                    sys_uploads.link(cfg, run_id, f["name"], f["url"], f["mime"])
         if remember:
             pipeline().remember(label or f"/agente {goal}", ans, run_id, emit, agent.trail, asked_at)
         if after:
@@ -258,6 +259,10 @@ def decide(approval_id: str, decision: str) -> dict:
         store.update(approval_id, status="executed" if ok else "failed", result=out)
         emit("approval.done", {"id": approval_id, "ok": ok, "result": json.dumps(out, ensure_ascii=False)[:1500]})
         note("owner", "approval.done", {"id": approval_id, "ok": ok, "title": item["title"]})
+        if not ok:                                        # an approved action that failed is told, never silent
+            why = str(out.get("text") or out.get("error") or out)[:160]
+            note("owner", "approval.failed", {"id": approval_id, "title": item["title"],
+                                             "text": f"{item['title']}: {why}"})
         from aurora.kno_answer import Answer
         return Answer(run_id, q, ("Fatto: " if ok else "Non riuscito: ") + json.dumps(out, ensure_ascii=False)[:1500],
                       False, mode="agent")

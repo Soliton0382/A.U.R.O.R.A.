@@ -30,6 +30,7 @@ call downward (ECOSYSTEM §1).
 | plugin `discord` | social | one channel through a bot (REST v10): read, send (external, AI line, no mentions) | — | agent |
 | plugin `whatsapp` | social | WhatsApp Business Cloud API, send only to the owner (text within 24 h, templates outside) | — | agent, notifications |
 | plugin `twitch` | social | Helix with an app token: favourite channels live, top streams; read only | — | chat |
+| agent tool `create_picture` | agents | inside agt_loop: mdl_image.paint (GPU lock, swap), the picture saved with the run (chat, Files); facebook `publish_photo` posts it | mdl_image, sys_uploads | agent |
 | plugin `news` | knowledge | read only, network: headlines of official RSS feeds by topic (feeds.json), title, summary, source, link; never the article | — | chat (current events), Facebook routine |
 | plugin `diary` | knowledge | read only, no network: Aurora's latest dream and thoughts (vault reflections, never conversations; owner's name replaced) and what the harvester took | vault (read only) | Facebook routine |
 | plugin `instagram` | social | the IG professional account linked to the Facebook page (page token): profile, posts, publishing a picture (via an unpublished page photo: IG takes JPEG from a public URL only) | facebook settings | agent |

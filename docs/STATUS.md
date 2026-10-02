@@ -44,6 +44,7 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | videos | «fammi un video di…», «anima questa foto»: Wan 2.2 TI2V 5B, 5 s at 1280×704 (a photo keeps its shape), ~19 min with the reasoner swapped out; immediate answer with the estimate, the chat says when it will be ready, push when done or failed; AI label and metadata; GPU lock shared with dreams and edits | M57, C74 |
 | news and diary | 📰 news (14 official feeds, by topic) and 📔 diary (dream, thoughts, what she learned): current events in the chat, the Facebook routine's material | M66 |
 | answer quality | 30 questions, live: 6.90 (was 6.03), 22 of 30 answered; verification no longer drops right sentences; the gate stays (measured) | M66, M67 |
+| pictures on request | «crea una foto per Facebook»: the agent paints it (create_picture), shows it in the chat and Files, proposes the post with the picture (facebook publish_photo) | M68, C97 |
 | your services | calendar (ICS, CalDAV), notes (Markdown/Obsidian), Nextcloud/WebDAV, Dropbox, Discord, WhatsApp, Twitch, Home Assistant connected | M67 |
 | security page | closed incidents archived with one button (kept in the file: the morning report still counts them) | M65 |
 | backup | to the NAS every night at 03:30: encrypted (AES-256-GCM), deduplicated, SQLite-consistent, retention 7/4/6, checked every run; first copy 30.5 GB in 4 min 48 s, the vault restored from it intact | M60, M63 |

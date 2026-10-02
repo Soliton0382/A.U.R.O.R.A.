@@ -90,6 +90,39 @@ def publish_post(message: str, link: str = "") -> str:
     return f"published: post id {d.get('id')}"
 
 
+def _picture(name: str):
+    """One of Aurora's pictures by its file name (her paintings, the chat's files, her documents)."""
+    from pathlib import Path
+    from aurora import sys_config
+    cfg = sys_config.get()
+    if not name or "/" in name or "\\" in name or name.startswith("."):
+        raise ToolError("give the picture's file name only")
+    for key in ("AURORA_IMAGE_DIR", "AURORA_UPLOADS_DIR", "AURORA_DOCUMENTS_DIR"):
+        found = next((p for p in Path(cfg.path(key)).rglob(name) if p.is_file()), None)
+        if found:
+            return found
+    raise ToolError(f"no picture named {name}")
+
+
+@server.tool()
+def publish_photo(picture: str, message: str) -> str:
+    """Publish one of Aurora's pictures (file name, e.g. one made with create_picture) with its text on the page (an
+    external action: the owner confirms it)."""
+    import mimetypes
+    src = _picture(picture)
+    mime = mimetypes.guess_type(src.name)[0] or "image/png"
+    if not mime.startswith("image/"):
+        raise ToolError(f"{picture} is not a picture")
+    if not PAGE or not TOKEN:
+        raise ToolError("AURORA_FACEBOOK_PAGE_ID or AURORA_FACEBOOK_PAGE_TOKEN is empty")
+    r = httpx.post(f"{GRAPH}/{PAGE}/photos", params={"access_token": TOKEN}, data={"caption": message},
+                   files={"source": (src.name, src.read_bytes(), mime)}, timeout=120)
+    data = r.json()
+    if "error" in data:
+        raise ToolError(f"Graph API: {data['error'].get('message', r.status_code)}")
+    return f"published with the picture: post id {data.get('post_id') or data.get('id')}"
+
+
 @server.tool()
 def list_comments(limit: int = 20) -> str:
     """The latest comments on the page's posts, with their ids (to answer them)."""

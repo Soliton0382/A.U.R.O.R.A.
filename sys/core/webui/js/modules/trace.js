@@ -249,7 +249,7 @@ export async function follow(runId, b, scroller) {
       if (name === "answer.final") { final = p; renderAnswer(b, p); }
       else if (name === "error") b.body.replaceChildren(el("p", "error", describe(name, p)));
       else if (name.startsWith("rem.") && p.text) { b.body.replaceChildren(el("p", "", p.text)); }
-      else if (name === "agent.finish") { final = { text: p.summary, seconds: p.seconds, files: p.files || [] }; renderAnswer(b, final); }
+      else if (name === "agent.finish") { final = { text: p.summary, seconds: p.seconds, files: p.files || [], images: p.images || [] }; renderAnswer(b, final); }
       traceLine(b.steps, name, p);
       b.count += 1;
       status(`${ICONS[name] || "•"} ${describe(name, p)}`);

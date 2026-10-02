@@ -29,6 +29,8 @@ TEXTS = {   # event -> (kind the owner chooses, view to open, {lang: title})
     "rem.dream": ("dream", "chat", {"it": "🌙 Aurora ha sognato", "en": "🌙 Aurora had a dream"}),
     "rem.thought": ("thought", "diary", {"it": "💭 Un pensiero di Aurora", "en": "💭 A thought from Aurora"}),
     "rem.self_review": ("self_review", "diary", {"it": "🩺 Autodiagnosi di Aurora", "en": "🩺 Aurora's self-review"}),
+    "approval.failed": ("approval", "approvals", {"it": "⚠️ Un'azione approvata non è riuscita",
+                                                  "en": "⚠️ An approved action failed"}),
     "update.available": ("update", "approvals", {"it": "⬆️ Aggiornamento di Aurora disponibile", "en": "⬆️ Aurora update available"}),
     "update.done": ("update", "status", {"it": "⬆️ Aggiornamento di Aurora", "en": "⬆️ Aurora update"}),
     "harvest.batch_end": ("harvest", "harvester", {"it": "🌾 Batch di paper scaricato", "en": "🌾 Batch of papers downloaded"}),

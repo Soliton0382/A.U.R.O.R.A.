@@ -27,7 +27,8 @@
   "list_comments": "read",
   "reply_comment": "external",
   "update_page_info": "external",
-  "set_welcome_message": "external"
+  "set_welcome_message": "external",
+  "publish_photo": "external"
  },
  "social": {
   "label": "Facebook",
@@ -40,7 +41,8 @@
  },
  "publishes": {
   "publish_post": "message",
-  "reply_comment": "message"
+  "reply_comment": "message",
+  "publish_photo": "message"
  },
  "setup": {
   "it": "**Serve una Pagina Facebook**, non il profilo personale: dal 2018 Meta non permette alle app di pubblicare sui profili. Se non ne hai una, creane una (anche di prova).\n\n1. Su **Meta for Developers** → *My Apps* → *Create App*: scegli un'app di tipo **Business**.\n2. Apri **Graph API Explorer**, seleziona la tua app, poi *Get Token* → *Get User Access Token* e spunta i permessi `pages_show_list`, `pages_read_engagement`, `pages_manage_posts`, e per gestire la pagina anche `pages_manage_metadata` (descrizione), `pages_read_user_content` e `pages_manage_engagement` (commenti), `pages_messaging` (messaggio di benvenuto).\n3. Il token dell'Explorer dura circa un'ora: incollalo nell'**Access Token Debugger** e premi *Extend Access Token* (diventa di lunga durata).\n4. Torna nell'Explorer con il token esteso ed esegui `me/accounts`: per ogni pagina che amministri vedi `id` (l'ID della pagina) e `access_token` (il token della pagina, che così non scade).\n5. In Aurora → **Impostazioni → Plugin**: `AURORA_FACEBOOK_PAGE_ID` = l'id, `AURORA_FACEBOOK_PAGE_TOKEN` = il token della pagina. Salva.\n6. Qui sotto premi **▶ Prova** su `page_info`: devi vedere il nome della pagina.\n\nPer le pagine che amministri tu, con l'app in modalità sviluppo non dovrebbe servire la revisione di Meta; se Meta la chiede, le guide ufficiali qui sotto spiegano come.",
