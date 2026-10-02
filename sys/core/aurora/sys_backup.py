@@ -157,10 +157,22 @@ def _decrypt_bytes(data: bytes, key: bytes) -> bytes:
 
 
 # ---- what is copied ---------------------------------------------------------------------------------
-def target(cfg: sys_config.Config) -> Path:
+NAS_MOUNT = Path("/mnt/aurora-nas")                    # where aurora-mount puts the NAS share (sys_nas_mount.py)
+
+
+def target(cfg: sys_config.Config, mount: Path = NAS_MOUNT) -> Path:
     raw = str(cfg["AURORA_BACKUP_DIR"] or "").strip()
     if not raw:
         raise BackupError("no backup folder: set AURORA_BACKUP_DIR (another disk, or the NAS)")
+    if raw.startswith("smb://"):                         # the NAS: its share mounted by aurora-mount
+        sub = "/".join(raw[6:].strip("/").split("/")[2:])
+        if not os.path.ismount(mount):
+            raise BackupError(f"the NAS is not mounted on {mount}: save the backup plugin (it mounts it), or check "
+                              "the NAS user and password")
+        d = mount / sub if sub else mount
+        if not d.is_dir():
+            raise BackupError(f"{d} does not exist on the NAS")
+        return d
     d = Path(os.path.expanduser(raw))
     if not d.is_absolute():
         raise BackupError(f"AURORA_BACKUP_DIR must be an absolute path: {raw}")

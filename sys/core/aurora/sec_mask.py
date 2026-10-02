@@ -31,6 +31,9 @@ PATTERNS = [   # (kind, regex): order matters, the most specific first
 FIELD = re.compile(r'\b(\w*(?:serial|user|username|login|account|host|hostname|mac|email|domain|device_name)\w*)='
                    r'("[^"]*"|\S+)', re.I)
 PLACEHOLDER = re.compile(r"\[(EMAIL|IBAN|CARD|MAC|IP|IP6|PHONE|TOKEN|SECRET|PRIVATE|FIELD)_(\d+)\]")
+BARE = re.compile(r"\b(EMAIL|IBAN|CARD|MAC|IP|IP6|PHONE|TOKEN|SECRET|PRIVATE|FIELD)_(\d+)\b")   # brackets dropped
+KEEP = ("\n\nSome private data in this text was replaced by placeholders in square brackets, like [IP_1] or [EMAIL_2]: "
+        "write them back exactly as they are, brackets included; never explain, translate or change them.")
 
 
 def luhn(number: str) -> bool:
@@ -97,7 +100,9 @@ class Pseudonymizer:
 
     def unmask(self, text: str) -> str:
         """The model's answer with the real values back (a placeholder it invented stays as it is)."""
-        return PLACEHOLDER.sub(lambda m: self.to_val.get(m.group(0), m.group(0)), text or "")
+        text = PLACEHOLDER.sub(lambda m: self.to_val.get(m.group(0), m.group(0)), text or "")
+        # a model that dropped the brackets (C86): only the placeholders made in this conversation come back
+        return BARE.sub(lambda m: self.to_val.get(f"[{m.group(0)}]", m.group(0)), text)
 
     def unmask_stream(self, pieces):
         """Unmask a stream of text pieces: a placeholder may arrive split across two pieces."""

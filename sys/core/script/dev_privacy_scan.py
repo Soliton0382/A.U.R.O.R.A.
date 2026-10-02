@@ -29,6 +29,19 @@ def terms(cfg: sys_config.Config) -> dict[str, str]:
     p = Pseudonymizer(cfg)
     out = {t: "secret setting" for t in p.secrets}
     out.update({t: "owner's own words" for t in p.private})
+    import socket
+    out.setdefault(socket.gethostname(), "this computer's name")
+    nas = re.match(r"smb://([^/]+)/([^/]+)", str(cfg.values.get("AURORA_BACKUP_DIR") or ""))
+    if nas:
+        out.setdefault(nas.group(1), "backup NAS address")
+        out.setdefault(f"{nas.group(1)}/{nas.group(2)}", "backup NAS share")
+    if cfg.values.get("AURORA_NAS_USER"):
+        out.setdefault(str(cfg.values["AURORA_NAS_USER"]), "NAS user")
+    private_ip = re.compile(r"\b(?:10|192\.168|172\.(?:1[6-9]|2\d|3[01]))(?:\.\d{1,3}){2,3}\b")
+    for v in cfg.values.values():                       # the owner's LAN addresses written in the settings
+        for m in private_ip.finditer(str(v)):
+            if m.group(0).count(".") == 3 and not m.group(0).startswith("127."):
+                out.setdefault(m.group(0), "LAN address from the settings")
     for f in cfg.path("AURORA_LOG_DIR").glob("firewall/*.log"):
         with open(f, encoding="utf-8", errors="replace") as fh:
             for i, line in enumerate(fh):

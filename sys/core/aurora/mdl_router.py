@@ -116,6 +116,8 @@ class OpenAICompatLLM:
                       usage.get("completion_tokens"), seconds)
         sys_log.trace("llm_client", "cloud.call", {"provider": self.name, "model": self.model, "usage": usage,
                                                    "cost_usd": usage.get("cost"), "seconds": round(seconds, 2)})
+        from . import mdl_budget
+        mdl_budget.record(self.cfg, self.name, usage)
 
     def _chat(self, messages: list[dict], max_tokens: int) -> Completion:
         t0 = time.time()
@@ -191,21 +193,36 @@ class MaskedLLM:
         sys_log.trace("llm_client", "cloud.mask", {"role": self.role, "provider": self.name, "model": self.model,
                                                    "masked": dict(p.counts), "images": images})
 
+    @staticmethod
+    def _keep(p: Pseudonymizer, system: str) -> str:
+        """The masked system prompt, told to keep the placeholders as they are when there are any (C86)."""
+        from .sec_mask import KEEP
+        return system + KEEP if p.counts else system
+
     def complete(self, system: str, user: str, max_tokens: int, think: bool = False) -> Completion:
         p = self._p()
-        c = self.inner.complete(p.mask(system), p.mask(user), max_tokens, think)
+        ms, mu = p.mask(system), p.mask(user)
+        c = self.inner.complete(self._keep(p, ms), mu, max_tokens, think)
         self._note(p)
         return Completion(p.unmask(c.answer), p.unmask(c.thought), c.tokens, c.seconds, c.truncated)
 
     def complete_turns(self, messages: list[dict], max_tokens: int, think: bool = False) -> Completion:
         p = self._p()
-        c = self.inner.complete_turns([{**m, "content": p.mask(m["content"])} for m in messages], max_tokens, think)
+        masked = [{**m, "content": p.mask(m["content"])} for m in messages]
+        if p.counts:                                     # keep the placeholders (C86): told in the system message
+            i = next((n for n, m in enumerate(masked) if m.get("role") == "system" and isinstance(m["content"], str)), None)
+            if i is None:
+                masked.insert(0, {"role": "system", "content": self._keep(p, "").strip()})
+            else:
+                masked[i] = {**masked[i], "content": self._keep(p, masked[i]["content"])}
+        c = self.inner.complete_turns(masked, max_tokens, think)
         self._note(p)
         return Completion(p.unmask(c.answer), p.unmask(c.thought), c.tokens, c.seconds, c.truncated)
 
     def stream(self, system: str, user: str, max_tokens: int, think: bool = False) -> Iterator[tuple[str, str]]:
         p = self._p()
-        yield from p.unmask_stream(self.inner.stream(p.mask(system), p.mask(user), max_tokens, think))
+        ms, mu = p.mask(system), p.mask(user)
+        yield from p.unmask_stream(self.inner.stream(self._keep(p, ms), mu, max_tokens, think))
         self.last_speed = getattr(self.inner, "last_speed", None)
         self._note(p)
 
@@ -222,13 +239,16 @@ class MaskedLLM:
 class Fallback:
     """A cloud model that falls back to the local one on any error (logged), so a step never dies."""
 
-    def __init__(self, primary, local, role: str):
-        self.primary, self.local, self.role = primary, local, role
+    def __init__(self, primary, local, role: str, cfg: sys_config.Config | None = None, provider: str = ""):
+        self.primary, self.local, self.role, self.cfg, self.provider = primary, local, role, cfg, provider
         self.name, self.model = primary.name, getattr(primary, "model", "")
         self.context_tokens = getattr(primary, "context_tokens", 32_000)
         self.last_speed = None
 
     def _try(self, method: str, *a, **k):
+        from . import mdl_budget
+        if self.cfg is not None and mdl_budget.over(self.cfg, self.provider):    # today's ceiling: the local model
+            return getattr(self.local, method)(*a, **k)
         try:
             return getattr(self.primary, method)(*a, **k)
         except Exception as e:                           # noqa: BLE001 - a provider down must not stop Aurora
@@ -260,15 +280,22 @@ class Fallback:
             self.last_speed = getattr(self.local, "last_speed", None)
 
 
+def is_local(model, local) -> bool:
+    """Whether a step's model is the local one (model_for wraps it in a meter: identity is not the test)."""
+    return model is local or getattr(model, "_inner", None) is local
+
+
 def model_for(role: str, local, cfg: sys_config.Config | None = None):
     """The model that does `role` now: the owner's assignment, masked and with a local fallback when it is cloud."""
     cfg = cfg or sys_config.get()
     a = assignments(cfg).get(role, {"provider": "local", "model": ""})
     provider = a["provider"]
+    from .mdl_budget import Metered
+    metered = Metered(local, role)                       # every local call traced with its step (what it would cost)
     if provider == "local":
-        return local
+        return metered
     if not sys_ethics.exempt(cfg):                       # rule 9: no private data to cloud models without the exemption
-        return local
+        return metered
     from . import mdl_cloud
     kind = PROVIDERS[provider]["kind"]
     if kind == "claude_code":
@@ -277,10 +304,10 @@ def model_for(role: str, local, cfg: sys_config.Config | None = None):
         inner = mdl_cloud.AnthropicLLM(cfg, a["model"] or None)
     else:
         if not a["model"]:
-            return local
+            return metered
         inner = OpenAICompatLLM(provider, a["model"], cfg)
     model = MaskedLLM(inner, role, cfg) if cfg["AURORA_CLOUD_MASK"] else inner
-    return Fallback(model, local, role)
+    return Fallback(model, metered, role, cfg, provider)
 
 
 # ---- statistics (the 🧠 Models page) ---------------------------------------------------------------------------

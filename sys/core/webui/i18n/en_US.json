@@ -500,5 +500,8 @@
   "status.backup.next": "next: {at}",
   "status.backup.unit": "unit not installed: sys_install_services.py and sys/deploy/systemd/install.sh",
   "status.backup.run": "💾 Run now",
-  "status.backup.started": "Started: I will tell you when it ends"
+  "status.backup.started": "Started: I will tell you when it ends",
+  "md.budget": "💶 {p} today: {n} of {cap} tokens",
+  "md.budget_stop": "⛔ {p}: today's ceiling reached ({n} of {cap} tokens): its steps go back to local until tomorrow",
+  "md.budget_free": "{p} today: {n} tokens (subscription, no ceiling)"
 }

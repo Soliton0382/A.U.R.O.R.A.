@@ -106,6 +106,14 @@ export default {
     box.append(el("p", s.pictures_sent ? "error" : "muted", t("md.pictures_sent", { n: s.pictures_sent })));
     const fb = Object.entries(s.fallbacks).map(([k, n]) => `${k} ${n}`).join(", ");
     if (fb) box.append(el("p", "error", t("md.fallbacks", { what: fb })));
+    const spent = s.today?.tokens || {};
+    for (const [prov, n] of Object.entries(spent)) {      // today's tokens against the daily ceiling
+      const paid = s.paid?.includes(prov) && s.daily_cap > 0;
+      const stopped = (s.today.stopped || []).includes(prov);
+      box.append(el("p", stopped ? "error" : "muted", paid
+        ? t(stopped ? "md.budget_stop" : "md.budget", { p: prov, n: n.toLocaleString(), cap: s.daily_cap.toLocaleString() })
+        : t("md.budget_free", { p: prov, n: n.toLocaleString() })));
+    }
     const sc = s.sscc;
     box.append(el("p", "", sc.calls ? t("md.sscc_live", { n: sc.calls, pct: sc.saved_pct, i: sc.chars_in, o: sc.chars_out }) : t("md.sscc_none")));
     if (s.sscc_reference) {

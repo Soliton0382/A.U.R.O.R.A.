@@ -114,6 +114,23 @@ class Harvester:
                     host, inter.subject.rfc4514_string(), url)
         return True
 
+    def _post(self, url: str, body: dict) -> dict:
+        """POST to aurora-api, waiting through a restart of it (~10-20 s): a document harvested while the API is
+        briefly down is delivered, not lost (C87). Other errors are raised at once."""
+        for attempt in range(12):
+            try:
+                r = self.api.post(url, json=body)
+                if r.status_code in (502, 503) and attempt < 11:
+                    raise httpx.ConnectError(f"API {r.status_code}")
+                return r.raise_for_status().json()
+            except (httpx.ConnectError, httpx.RemoteProtocolError) as e:
+                if attempt == 11 or _stop:
+                    raise
+                if attempt == 0:
+                    log.info("aurora-api not answering (%s): waiting for it", e)
+                time.sleep(5)
+        raise httpx.ConnectError("aurora-api did not come back")
+
     def take(self, doc: kno_sources.Doc) -> int | None:
         """Send one harvested document to aurora-api; the passages written, or None when it failed (logged)."""
         try:
@@ -121,24 +138,25 @@ class Harvester:
                 parts = [c for p in doc.passages for c in chunk(p, cfg["AURORA_CHUNK_CHARS"], cfg["AURORA_CHUNK_MIN_CHARS"])]
                 written = 0
                 for i in range(0, len(parts), 300):
-                    r = self.api.post(f"{BASE}/v1/aurora/solitons", json={"items": [
+                    r = self._post(f"{BASE}/v1/aurora/solitons", {"items": [
                         {"text": t, "domain": doc.domain, "lang": doc.lang, "source_id": doc.origin, "title": doc.title,
                          "chunk_index": i + j, "chunk_count": len(parts),
                          "extra": {"origin": doc.origin, "licence": doc.licence, "url": doc.url}}
-                        for j, t in enumerate(parts[i:i + 300])]}).raise_for_status().json()
+                        for j, t in enumerate(parts[i:i + 300])]})
                     written += r["written"]
                 chunks = len(parts)
             else:
-                r = self.api.post(f"{BASE}/v1/aurora/import", json={
+                r = self._post(f"{BASE}/v1/aurora/import", {
                     "name": doc.name, "domain": doc.domain, "title": doc.title, "origin": doc.origin,
                     "licence": doc.licence, "url": doc.url,
-                    "data": base64.b64encode(doc.data).decode("ascii")}).raise_for_status().json()
+                    "data": base64.b64encode(doc.data).decode("ascii")})
                 written, chunks = r["written"], r["chunks"]
         except (httpx.HTTPError, ValueError) as err:
             log.warning("%s (%s): %s", doc.key, doc.title[:60], err)
             return None
         self.seen.add(doc.key)
         self._save()
+        sys_health.heartbeat(cfg, "harvester")             # alive inside a long round too, not only between rounds
         log.info("%s -> %s: %s (%d chunks, %d new) [%s]", doc.key, doc.domain, doc.title[:80], chunks, written, doc.licence)
         self.tell("harvest.paper", {"id": doc.key, "title": doc.title, "domain": doc.domain, "chunks": chunks,
                                     "written": written, "licence": doc.licence})

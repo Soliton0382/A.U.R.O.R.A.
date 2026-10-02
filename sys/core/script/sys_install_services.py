@@ -102,7 +102,7 @@ WantedBy=aurora.target
 BACKUP_UNIT = Template("""# Generated from .env by sys/core/script/sys_install_services.py
 [Unit]
 Description=Aurora — backup of the owner's data (encrypted, to $dest)
-After=aurora-api.service
+After=aurora-api.service remote-fs.target
 
 [Service]
 Type=oneshot
@@ -125,6 +125,25 @@ RandomizedDelaySec=120
 
 [Install]
 WantedBy=timers.target
+""")
+
+# Root, on purpose and for one job: mount the backup's NAS share (sys_nas_mount.py checks every value it writes).
+# Started by the API when the backup plugin is saved (polkit: the service user may start aurora units).
+MOUNT_UNIT = Template("""# Generated from .env by sys/core/script/sys_install_services.py
+[Unit]
+Description=Aurora — mount the backup's NAS share (/mnt/aurora-nas)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=$root
+ExecStart=$exec
+TimeoutStartSec=180
+NoNewPrivileges=yes
+ProtectHome=read-only
+PrivateTmp=yes
 """)
 
 TARGET = Template("""# Generated from .env by sys/core/script/sys_install_services.py
@@ -162,6 +181,9 @@ systemctl daemon-reload
 systemctl reset-failed $units 2>/dev/null || true
 systemctl enable $units
 [ -n "$backup" ] && systemctl enable --now aurora-backup.timer && echo "  backup timer: $$(systemctl show -p NextElapseUSecRealtime --value aurora-backup.timer)"
+case " $backup " in *" aurora-mount.service "*)
+  systemctl start aurora-mount.service && echo "  NAS: mounted on /mnt/aurora-nas" || echo "  NAS: not mounted yet (user/password in the backup plugin's card, then Save)";;
+esac
 systemctl restart $services aurora.target
 
 check() {  # name url: wait up to 180 s for a healthy answer
@@ -191,10 +213,15 @@ def hardening(root: Path, user: str, bind_low_port: bool, hosts_plugins: bool = 
     writable = [str(root), f"-{home}/.cache", f"-{home}/.local/share/caddy", f"-{home}/.config/caddy",
                 f"-{home}/.claude", f"-{home}/.claude.json", f"-{home}/.ssh/known_hosts", *also]
     caps = "CAP_NET_BIND_SERVICE" if bind_low_port else ""
+    # the owner's private SSH keys (an account key can write to every repository he has): no service needs them
+    ssh = home / ".ssh"
+    hidden = sorted(f"-{f}" for f in (ssh.iterdir() if ssh.is_dir() else []) if f.is_file()
+                    and not f.name.endswith(".pub") and not f.name.startswith(("known_hosts", "config", "authorized_keys")))
     return ("# confinement (AURORA_SERVICE_HARDENING)\n"
             "NoNewPrivileges=yes\nProtectSystem=strict\nProtectHome=read-only\n"
             f"ReadWritePaths={' '.join(writable)}\nPrivateTmp=yes\n"
-            f"CapabilityBoundingSet={caps}\nRestrictSUIDSGID=yes\nLockPersonality=yes\nRestrictRealtime=yes\n"
+            + (f"InaccessiblePaths={' '.join(hidden)}\n" if hidden else "")
+            + f"CapabilityBoundingSet={caps}\nRestrictSUIDSGID=yes\nLockPersonality=yes\nRestrictRealtime=yes\n"
             + ("" if hosts_plugins else "ProtectKernelTunables=yes\nProtectKernelLogs=yes\nProtectHostname=yes\n")
             + "ProtectKernelModules=yes\nProtectControlGroups=yes\n"
             "ProtectClock=yes\nSystemCallArchitectures=native\n"
@@ -260,12 +287,17 @@ def main() -> int:
         if not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", hhmm):
             print(f"AURORA_BACKUP_TIME {hhmm!r} is not HH:MM")
             return 1
-        extra = hardening(root, cfg["AURORA_SERVICE_USER"], False, also=(dest,)) if cfg["AURORA_SERVICE_HARDENING"] else ""
+        writable = "/mnt/aurora-nas" if dest.startswith("smb://") else dest
+        extra = hardening(root, cfg["AURORA_SERVICE_USER"], False, also=(writable,)) if cfg["AURORA_SERVICE_HARDENING"] else ""
         (out / "aurora-backup.service").write_text(BACKUP_UNIT.substitute(
             dest=dest, user=cfg["AURORA_SERVICE_USER"], root=root, exec=f"{py} {script / 'svc_backup.py'} run",
             extra=extra), encoding="utf-8")
         (out / "aurora-backup.timer").write_text(BACKUP_TIMER.substitute(time=hhmm), encoding="utf-8")
         backup = ["aurora-backup.service", "aurora-backup.timer"]
+        if dest.startswith("smb://"):
+            (out / "aurora-mount.service").write_text(MOUNT_UNIT.substitute(
+                root=root, exec=f"{py} {script / 'sys_nas_mount.py'}"), encoding="utf-8")
+            backup.append("aurora-mount.service")
     (out / "aurora.target").write_text(TARGET.substitute(wants=" ".join(f"{n}.service" for n in units)),
                                        encoding="utf-8")
     (out / "50-aurora.rules").write_text(POLKIT.substitute(user=cfg["AURORA_SERVICE_USER"]), encoding="utf-8")

@@ -893,6 +893,18 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M61 — NAS backup, cloud ceiling, keys (2026-10-02)
+
+Cloud calls of Aurora (115 with Claude Code): median 7,556 tokens in+out, p90 9,968, max 13,695 → the daily ceiling
+AURORA_CLOUD_DAILY_TOKENS = 200,000 is ~20 calls at the p90 per paid provider. xAI after the top-up: 14 models; a
+masked call to grok-4.20-0309-non-reasoning in 0.9 s, 224 tokens counted in the day's file; Gemini 2.5 Flash 0.9 s.
+Local calls now traced with their step (local.call) to measure what a step would cost before moving it.
+NAS: AURORA_BACKUP_DIR=smb://… was not a folder (systemd: "path is not absolute"); aurora-mount (root, one job, every
+value checked: 10 injection attempts refused in the tests) mounts the share on /mnt/aurora-nas with nofail+automount;
+the backup refuses to run while the share is not mounted (never the local disk in its place). Not measured yet: the
+mount on the owner's NAS (needs his user/password and the units reinstalled), a backup over SMB.
+Harvester: a delivery during an API restart now waits (delivered after 10 s in the probe). Tests 199.
+
 ## M60 — Backup, bug reports, cloud keys, routine PDFs (2026-10-02)
 
 Backup (sys_backup, real data, NVMe to the same NVMe, test key and folder): first run 1,340 files, 30.4 GB read, 28.4 GB

@@ -117,6 +117,11 @@ def check(cfg: sys_config.Config | None = None) -> dict:
     for p in sys_features.config_problems(cfg):
         add("configurazione", "warn", p)
 
+    from . import mdl_budget                             # a cloud provider stopped by today's ceiling
+    for prov in mdl_budget.today(cfg).get("stopped", []):
+        add("cloud", "warn", f"{prov}: tetto giornaliero di token raggiunto, passaggi in locale fino a domani",
+            "AURORA_CLOUD_DAILY_TOKENS")
+
     from . import sys_backup                             # the owner's data: copied, and recently
     b = sys_backup.status(cfg)
     last = b.get("last") or {}

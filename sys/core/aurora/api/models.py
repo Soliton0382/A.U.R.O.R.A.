@@ -51,5 +51,7 @@ async def models_list(provider: str) -> dict:
 
 @router.get("/v1/aurora/models/stats", dependencies=[Depends(auth)])
 async def models_stats(days: float = 7) -> dict:
-    from aurora import mdl_router
-    return await asyncio.to_thread(mdl_router.stats, cfg, max(1.0, min(days, 90)))
+    from aurora import mdl_budget, mdl_router
+    out = await asyncio.to_thread(mdl_router.stats, cfg, max(1.0, min(days, 90)))
+    return {**out, "today": mdl_budget.today(cfg), "daily_cap": cfg["AURORA_CLOUD_DAILY_TOKENS"],
+            "paid": sorted(mdl_budget.PAID)}

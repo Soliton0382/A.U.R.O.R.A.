@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security problem / Problema di sicurezza
+    url: https://github.com/Soliton0382/A.U.R.O.R.A./security/advisories/new
+    about: Report it privately, not in a public issue. / Segnalalo in privato, non in una issue pubblica.

@@ -70,6 +70,8 @@ class ClaudeCodeLLM:
                       u.get("output_tokens"), d.get("total_cost_usd") or 0, seconds)
         sys_log.trace("llm_client", "cloud.call", {"provider": self.name, "model": self.model, "usage": u,
                                                    "cost_usd": d.get("total_cost_usd"), "seconds": round(seconds, 2)})
+        from . import mdl_budget
+        mdl_budget.record(self.cfg, self.name, u)
 
     def complete(self, system: str, user: str, max_tokens: int, think: bool = False) -> Completion:
         t0 = time.time()
@@ -148,6 +150,8 @@ class AnthropicLLM:
     def _account(self, usage: dict, seconds: float) -> None:
         self.log.info("anthropic %s: in %s out %s, %.1f s", self.model, usage.get("input_tokens"),
                       usage.get("output_tokens"), seconds)
+        from . import mdl_budget
+        mdl_budget.record(self.cfg, self.name, usage)
         sys_log.trace("llm_client", "cloud.call", {"provider": self.name, "model": self.model, "usage": usage,
                                                    "seconds": round(seconds, 2)})
 

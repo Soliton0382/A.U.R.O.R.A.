@@ -44,3 +44,9 @@ def test_a_phone_at_the_end_of_a_sentence_is_masked(cfg):
     out = p.mask("Chiamami al +39 333 123 4567. Oppure allo 02 1234 5678.")
     assert "333" not in out and "1234" not in out and out.count("[PHONE_") == 2
     assert p.mask("Il 01.10.2026. Versione 2.14.0.") == "Il 01.10.2026. Versione 2.14.0."
+
+
+def test_a_model_that_drops_the_brackets_still_gets_the_real_values_back_only_for_its_own(cfg):
+    p = Pseudonymizer(cfg)
+    p.mask("server 10.20.30.40, mail mario@example.org")
+    assert p.unmask("IP_1 | EMAIL_1 | IP_7 | VIP_1x") == "10.20.30.40 | mario@example.org | IP_7 | VIP_1x"

@@ -129,5 +129,12 @@ def test_the_backup_unit_and_timer_are_made_only_with_a_folder_and_may_write_onl
     assert "Type=oneshot" in unit and "svc_backup.py run" in unit and f" {dest}" in unit and "IOSchedulingClass=idle" in unit
     assert "OnCalendar=*-*-* 03:30:00" in timer and "Persistent=true" in timer
     assert "enable --now aurora-backup.timer" in (out / "install.sh").read_text()
+    assert not (out / "aurora-mount.service").exists()          # a local folder needs no mount
+    cfg.values["AURORA_BACKUP_DIR"] = "smb://192.168.1.20/backups/aurora/"
+    assert sis.main() == 0
+    mount, unit = (out / "aurora-mount.service").read_text(), (out / "aurora-backup.service").read_text()
+    assert "User=root" in mount and "sys_nas_mount.py" in mount
+    assert " /mnt/aurora-nas" in unit and "smb://" not in unit.split("ReadWritePaths=")[1].split("\n")[0]
+    assert "aurora-mount.service" in (out / "install.sh").read_text()
     cfg.values["AURORA_BACKUP_TIME"] = "25:99"
     assert sis.main() == 1

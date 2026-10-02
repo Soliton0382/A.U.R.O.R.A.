@@ -30,7 +30,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Callable
 
-from . import mdl_cloud, sns_clock, sns_weather, sys_config, sys_log, txt_compress, txt_lang
+from . import mdl_cloud, mdl_router, sns_clock, sns_weather, sys_config, sys_log, txt_compress, txt_lang
 from .mdl_llm import LLM
 from .sol_index import Indexer
 from .sol_reader import VaultReader
@@ -244,7 +244,7 @@ class Pipeline:
             return None
 
         think = self.cfg["AURORA_PIPELINE_THINKING"]
-        if self._for("synthesis") is not self.llm and self.cfg["AURORA_CLOUD_COMPRESSION"]:
+        if not mdl_router.is_local(self._for("synthesis"), self.llm) and self.cfg["AURORA_CLOUD_COMPRESSION"]:
             extracts = {d: self._compress(question, t, ev) for d, t in extracts.items()}
         heading = {"attachment": "attachment — THE FILE THE OWNER ATTACHED TO THIS QUESTION (what is seen and heard in it)"}
         ordered = sorted(extracts.items(), key=lambda kv: kv[0] != "attachment")      # the attached file first

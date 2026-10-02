@@ -20,8 +20,44 @@ def backup_state() -> dict:
                           capture_output=True, text=True).stdout.split()
     timer = subprocess.run(["systemctl", "show", "-p", "NextElapseUSecRealtime", "--value", "aurora-backup.timer"],
                            capture_output=True, text=True).stdout.strip()
+    import json
+    nas_f = cfg.path("AURORA_STATUS_DIR") / "backup" / "nas.json"
+    try:
+        st["nas"] = json.loads(nas_f.read_text()) if nas_f.exists() else None
+    except ValueError:
+        st["nas"] = None
     return {**st, "installed": bool(unit) and unit[0] == "loaded", "running": len(unit) > 1 and unit[1] == "activating",
             "next": timer or None, "time": cfg["AURORA_BACKUP_TIME"]}
+
+
+NAS_KEYS = {"AURORA_BACKUP_DIR", "AURORA_NAS_USER", "AURORA_NAS_PASSWORD", "AURORA_NAS_FSTAB"}
+
+
+def start_mount(folder: str) -> bool:
+    """Saving the NAS settings mounts the share in the background (aurora-mount reads the new .env itself);
+    the result appears in the card (nas.json)."""
+    if not folder.startswith("smb://"):
+        return False
+    r = subprocess.run(["systemctl", "start", "--no-block", "aurora-mount.service"], capture_output=True, text=True)
+    log.info("audit: NAS mount started after a settings change (%s)", "ok" if r.returncode == 0 else r.stderr.strip()[-200:])
+    return r.returncode == 0
+
+
+def mount_nas() -> dict:
+    """Start aurora-mount (root, installed by the owner once) when the backup folder is on the NAS."""
+    if not str(cfg["AURORA_BACKUP_DIR"] or "").startswith("smb://"):
+        return {"started": False, "why": "not a NAS folder"}
+    r = subprocess.run(["systemctl", "start", "aurora-mount.service"], capture_output=True, text=True, timeout=200)
+    log.info("audit: NAS mount requested (%s)", "ok" if r.returncode == 0 else r.stderr.strip()[-200:])
+    return {"started": True, "ok": r.returncode == 0, "error": r.stderr.strip()[-300:]}
+
+
+@router.post("/v1/aurora/backup/mount", dependencies=[Depends(auth)])
+def backup_mount() -> dict:
+    out = mount_nas()
+    if out.get("started") and not out["ok"]:
+        raise HTTPException(status_code=409, detail=out["error"] or "mount failed: see the backup card")
+    return out
 
 
 @router.post("/v1/aurora/backup/run", dependencies=[Depends(auth)])

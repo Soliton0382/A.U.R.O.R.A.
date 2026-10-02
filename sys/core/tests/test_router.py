@@ -38,11 +38,11 @@ def test_rule_9_keeps_everything_local_without_the_exemption(cfg, monkeypatch):
     R.set_assignments(cfg, {"synthesis": {"provider": "openai", "model": "gpt-x"}})
     local = object()
     monkeypatch.setattr(R.sys_ethics, "exempt", lambda c: False)
-    assert R.model_for("synthesis", local, cfg) is local
+    assert R.is_local(R.model_for("synthesis", local, cfg), local)
     monkeypatch.setattr(R.sys_ethics, "exempt", lambda c: True)
     m = R.model_for("synthesis", local, cfg)
     assert isinstance(m, R.Fallback) and isinstance(m.primary, R.MaskedLLM) and m.primary.name == "openai"
-    assert R.model_for("route", local, cfg) is local
+    assert R.is_local(R.model_for("route", local, cfg), local) and not R.is_local(m, local)
 
 
 def test_the_cloud_sees_masked_text_and_aurora_gets_the_real_one_back(cfg):

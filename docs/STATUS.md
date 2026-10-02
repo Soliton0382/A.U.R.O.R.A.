@@ -72,6 +72,8 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | sign | code changed in this round (API split, sys_log, installer…): `sudo .venv/bin/python sys/core/script/sys_ethics_sign.py sign` |
 | delete the test copies when done | `~/Scaricati/Aurora_installtest` (88 GB), `~/Scaricati/aurora-backup-test` (28 GB), `~/Scaricati/aurora-restore-test` (4 GB) |
 | rewrite the history before going public (C83) | the firewall serial is in 3 commits: `git filter-branch` on the mirror, then `git push --force` (commands in the reply of 2 October) |
+| GitHub keys | delete `aurora-readonly` (an account key, read/write on every repo, used by nothing); keep the push key (the one named after this computer), better with a passphrase (`ssh-keygen -p -f ~/.ssh/id_ed25519`) |
+| backup on the NAS | backup plugin card: NAS user + password, Save (mounts it); units reinstalled once with sudo |
 | backup: choose the folder, make the key | AURORA_BACKUP_DIR (second disk or NAS, mounted at boot) → `svc_backup.py init` (keep the recovery code) → `sys_install_services.py` + `sudo bash sys/deploy/systemd/install.sh` |
 | xAI | the key is valid; the team needs credit or a higher spending limit (console.x.ai) |
 

@@ -1,0 +1,41 @@
+{
+ "name": "backup",
+ "version": "1.0",
+ "kind": "service",
+ "description": {
+  "it": "Backup notturno dei tuoi dati su un altro disco o sul NAS: cifrato, deduplicato, verificato.",
+  "en": "Nightly backup of your data to another disk or the NAS: encrypted, deduplicated, checked."
+ },
+ "command": [
+  "{python}",
+  "server.py"
+ ],
+ "env": [],
+ "requires": [],
+ "effects": {
+  "*": "read"
+ },
+ "sandbox": {
+  "network": false
+ },
+ "welcome": {
+  "it": "💾 Il backup è pronto da configurare: scegli dove (un altro disco o il NAS) e salva.",
+  "en": "💾 The backup is ready to set up: choose where (another disk or the NAS) and save."
+ },
+ "setup": {
+  "it": "**Dove**: in *Cartella del backup* scrivi una cartella di un altro disco (es. `/media/master/Dati/aurora-backup`) oppure la cartella del NAS come `smb://192.168.1.20/backups/aurora`.\n\n**NAS**: metti utente e password della condivisione. Con *Monta a ogni avvio* (già attivo) Aurora aggiunge una riga a `/etc/fstab` con `nofail`: se il NAS è spento il computer parte lo stesso. Al **Salva** Aurora monta la condivisione da sola; il permesso di root lo hai dato una volta, con `sudo bash sys/deploy/systemd/install.sh`.\n\n**La chiave**: una volta sola, `.venv/bin/python sys/core/script/svc_backup.py init`, e scrivi il *codice di recupero* fuori da questo computer: senza, un backup non si legge.\n\n**Quando**: ogni notte all'ora scelta; se il PC era spento, al primo avvio. Lo stato e *Esegui ora* sono in ⚙️ Stato.",
+  "en": "**Where**: in *Backup folder* write a folder on another disk (e.g. `/media/master/Data/aurora-backup`) or the NAS folder as `smb://192.168.1.20/backups/aurora`.\n\n**NAS**: put the share's user and password. With *Mount at every start* (on) Aurora adds one line to `/etc/fstab` with `nofail`: a NAS switched off never stops the computer. On **Save** Aurora mounts the share by herself; you gave root's consent once, with `sudo bash sys/deploy/systemd/install.sh`.\n\n**The key**: once, `.venv/bin/python sys/core/script/svc_backup.py init`, and write the *recovery code* outside this computer: without it a backup cannot be read.\n\n**When**: every night at the chosen time; if the computer was off, at the next start. State and *Run now* are in ⚙️ Status.",
+  "links": []
+ },
+ "settings": [
+  "AURORA_BACKUP_DIR",
+  "AURORA_NAS_USER",
+  "AURORA_NAS_PASSWORD",
+  "AURORA_NAS_FSTAB",
+  "AURORA_BACKUP_TIME",
+  "AURORA_BACKUP_KEEP_DAILY",
+  "AURORA_BACKUP_KEEP_WEEKLY",
+  "AURORA_BACKUP_KEEP_MONTHLY",
+  "AURORA_BACKUP_KEY_FILE"
+ ]
+}

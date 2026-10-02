@@ -73,4 +73,6 @@ async def update_settings(request: Request) -> dict:
     restart = sorted({svc for k in changes for svc in specs[k]["services"]})
     log.info("audit: settings changed: %s; services to restart: %s", ", ".join(sorted(changes)), ", ".join(restart))
     sys_log.trace("api", "settings.change", {"keys": sorted(changes), "restart": restart})
-    return {"changed": sorted(changes), "restart": restart}
+    from .backup import NAS_KEYS, start_mount             # the backup plugin saved with a NAS folder: mount it now
+    mounting = bool(NAS_KEYS & set(changes)) and start_mount(str(changes.get("AURORA_BACKUP_DIR", cfg["AURORA_BACKUP_DIR"])))
+    return {"changed": sorted(changes), "restart": restart, "mounting": mounting}

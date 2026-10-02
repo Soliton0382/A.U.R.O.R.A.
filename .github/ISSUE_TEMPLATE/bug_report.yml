@@ -1,0 +1,35 @@
+name: Bug report / Segnala un bug
+description: Something does not work as it should / Qualcosa non funziona come dovrebbe
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The quickest way: in Aurora open **🐞 Segnala un bug**, describe the problem and attach the zip it prepares
+        (logs with private data already masked). Please look inside it before attaching.
+        Il modo più rapido: in Aurora apri **🐞 Segnala un bug** e allega lo zip che prepara (dati privati già mascherati).
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened / Cosa è successo
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps / Cosa stavi facendo
+      placeholder: "1. …\n2. …"
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected / Cosa ti aspettavi
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit / Versione o commit
+      placeholder: "0.1.0 / abc1234 (in the zip: environment.json)"
+  - type: textarea
+    id: report
+    attributes:
+      label: Bug report zip / Zip della segnalazione
+      description: Drag the aurora-bug-….zip here. / Trascina qui lo zip aurora-bug-….zip.

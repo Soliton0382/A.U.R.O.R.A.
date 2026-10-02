@@ -1498,6 +1498,21 @@
    "max": 100
   },
   {
+   "key": "AURORA_CLOUD_DAILY_TOKENS",
+   "type": "int",
+   "min": 0,
+   "max": 100000000,
+   "category": "llm",
+   "recommended": 200000,
+   "evidence": "M61",
+   "en": "Daily ceiling of tokens for each cloud provider paid by the token (Anthropic API, OpenAI, Google, xAI, Mistral, OpenRouter): reached it, that provider's steps go back to the local model until tomorrow. 200,000 is ~20 calls at the measured p90 of 9,968 tokens. 0 = no ceiling. Claude Code (subscription) has none.",
+   "it": "Tetto giornaliero di token per ogni provider cloud a consumo (Anthropic API, OpenAI, Google, xAI, Mistral, OpenRouter): raggiunto, i passaggi di quel provider tornano al modello locale fino a domani. 200.000 sono ~20 chiamate al p90 misurato di 9.968 token. 0 = nessun tetto. Claude Code (abbonamento) non ne ha.",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ]
+  },
+  {
    "key": "AURORA_CLOUD_MASK",
    "type": "bool",
    "category": "llm",
@@ -2750,8 +2765,47 @@
    "category": "backup",
    "recommended": "",
    "evidence": "owner",
-   "en": "Where the nightly backup goes: an absolute folder on ANOTHER disk or the NAS (not inside Aurora's folder). Empty: no backup. After changing it, regenerate and reinstall the units (the backup service may write only there).",
-   "it": "Dove va il backup notturno: una cartella assoluta su un ALTRO disco o sul NAS (non dentro la cartella di Aurora). Vuoto: nessun backup. Dopo averla cambiata, rigenera e reinstalla le unità (il servizio di backup può scrivere solo lì).",
+   "en": "Where the nightly backup goes: a folder on ANOTHER disk (absolute path) or on the NAS as smb://address/share/folder (the backup plugin mounts it). Not inside Aurora's folder. Empty: no backup.",
+   "it": "Dove va il backup notturno: una cartella su un ALTRO disco (percorso assoluto) o sul NAS come smb://indirizzo/condivisione/cartella (lo monta il plugin backup). Non dentro la cartella di Aurora. Vuoto: nessun backup.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_NAS_USER",
+   "type": "str",
+   "optional": true,
+   "category": "backup",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "NAS user for an smb:// backup folder (kept by root in /etc/aurora/nas.cred, never in fstab).",
+   "it": "Utente del NAS per una cartella di backup smb:// (custodito da root in /etc/aurora/nas.cred, mai in fstab).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_NAS_PASSWORD",
+   "type": "str",
+   "secret": true,
+   "optional": true,
+   "category": "backup",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "NAS password for an smb:// backup folder.",
+   "it": "Password del NAS per una cartella di backup smb://.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_NAS_FSTAB",
+   "type": "bool",
+   "category": "backup",
+   "recommended": "true",
+   "evidence": "owner",
+   "en": "Mount the NAS at every start (one line in /etc/fstab, with nofail: a NAS switched off never blocks the computer).",
+   "it": "Monta il NAS a ogni avvio (una riga in /etc/fstab, con nofail: un NAS spento non blocca mai il computer).",
    "services": [
     "aurora-api"
    ]
