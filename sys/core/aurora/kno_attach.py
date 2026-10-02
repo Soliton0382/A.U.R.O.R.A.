@@ -105,7 +105,7 @@ class AttachmentHandler:
                 out.append(Attached(name, "video", sols))
             elif is_image(name, mime):
                 jpeg = to_jpeg(data, self.cfg["AURORA_VISION_MAX_PX"])
-                text = self.p.llm.see(jpeg, SEE.format(lang=lang))
+                text = self.p._for("vision").see(jpeg, SEE.format(lang=lang))   # a picture cannot be masked
                 sol = Soliton.new(text, "attachment", "knowledge", txt_lang.detect(text), f"attachment:{run_id}:{name}",
                                   title=name, extra={"attachment": "image"})
                 emit("attach.image", {"name": name, "description": text})

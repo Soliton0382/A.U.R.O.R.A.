@@ -84,6 +84,10 @@ export default {
     this.nav.replaceChildren();
     this.original = {};
     let lastCat = null;
+    // one section per category, in the declared order: the schema grows in any order (a category could repeat)
+    const order = Object.keys(categories);
+    const rank = (c) => (order.indexOf(c) < 0 ? order.length : order.indexOf(c));
+    settings.sort((a, b) => rank(a.category) - rank(b.category));
     for (const s of settings) {
       if (s.category !== lastCat) {
         lastCat = s.category;

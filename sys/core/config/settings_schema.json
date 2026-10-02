@@ -1500,6 +1500,107 @@
    "max": 100
   },
   {
+   "key": "AURORA_CLOUD_MASK",
+   "type": "bool",
+   "category": "llm",
+   "recommended": "true",
+   "evidence": "sec_mask, tests",
+   "en": "Mask personal and sensitive data in everything sent to a cloud model, and put it back in the answer.",
+   "it": "Maschera i dati personali e sensibili in tutto ciò che va a un modello cloud, e li rimette nella risposta.",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ]
+  },
+  {
+   "key": "AURORA_CLOUD_MASK_WORDS",
+   "type": "str",
+   "category": "llm",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Your own sensitive words, comma separated (names, places, projects): always masked towards the cloud.",
+   "it": "Le tue parole sensibili, separate da virgole (nomi, luoghi, progetti): sempre mascherate verso il cloud.",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ]
+  },
+  {
+   "key": "AURORA_OPENAI_API_KEY",
+   "type": "str",
+   "category": "llm",
+   "recommended": "",
+   "evidence": "owner",
+   "secret": true,
+   "en": "OpenAI API key (only if you assign a step to OpenAI in the Models page).",
+   "it": "Chiave API di OpenAI (solo se assegni un passaggio a OpenAI nella pagina Modelli).",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ],
+   "optional": true
+  },
+  {
+   "key": "AURORA_GOOGLE_API_KEY",
+   "type": "str",
+   "category": "llm",
+   "recommended": "",
+   "evidence": "owner",
+   "secret": true,
+   "en": "Google Gemini API key (only if you assign a step to Google Gemini in the Models page).",
+   "it": "Chiave API di Google Gemini (solo se assegni un passaggio a Google Gemini nella pagina Modelli).",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ],
+   "optional": true
+  },
+  {
+   "key": "AURORA_XAI_API_KEY",
+   "type": "str",
+   "category": "llm",
+   "recommended": "",
+   "evidence": "owner",
+   "secret": true,
+   "en": "xAI Grok API key (only if you assign a step to xAI Grok in the Models page).",
+   "it": "Chiave API di xAI Grok (solo se assegni un passaggio a xAI Grok nella pagina Modelli).",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ],
+   "optional": true
+  },
+  {
+   "key": "AURORA_MISTRAL_API_KEY",
+   "type": "str",
+   "category": "llm",
+   "recommended": "",
+   "evidence": "owner",
+   "secret": true,
+   "en": "Mistral API key (only if you assign a step to Mistral in the Models page).",
+   "it": "Chiave API di Mistral (solo se assegni un passaggio a Mistral nella pagina Modelli).",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ],
+   "optional": true
+  },
+  {
+   "key": "AURORA_OPENROUTER_API_KEY",
+   "type": "str",
+   "category": "llm",
+   "recommended": "",
+   "evidence": "owner",
+   "secret": true,
+   "en": "OpenRouter API key (only if you assign a step to OpenRouter in the Models page).",
+   "it": "Chiave API di OpenRouter (solo se assegni un passaggio a OpenRouter nella pagina Modelli).",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ],
+   "optional": true
+  },
+  {
    "key": "AURORA_PIPELINE_GATE",
    "type": "bool",
    "category": "pipeline",

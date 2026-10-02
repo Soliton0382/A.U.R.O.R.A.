@@ -13,6 +13,8 @@ import importDocs from "./modules/import.js";
 import uploads from "./modules/uploads.js";
 import metrics from "./modules/metrics.js";
 import plugins from "./modules/plugins.js";
+import models from "./modules/models.js";
+import guide from "./modules/guide.js";
 import projects from "./modules/projects.js";
 import routines from "./modules/routines.js";
 import runs from "./modules/runs.js";
@@ -23,5 +25,5 @@ import social from "./modules/social.js";
 import status from "./modules/status.js";
 import updates from "./modules/updates.js";
 
-export const views = [chat, approvals, security, diary, social, projects, routines, plugins, importDocs, uploads, harvester, runs, status, notifications, updates, settings];
+export const views = [chat, approvals, security, diary, social, projects, routines, models, plugins, importDocs, uploads, harvester, runs, status, notifications, updates, settings, guide];
 export const widgets = [sky, alerts, metrics];

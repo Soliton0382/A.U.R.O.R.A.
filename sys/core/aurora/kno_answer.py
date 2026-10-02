@@ -165,7 +165,7 @@ class Pipeline:
         ev("route", {"mode": "attachments" if attached else "knowledge"})
         translation = None
         if lang != "en":
-            translation = self.llm.complete(SYS_TRANSLATE, question, 200).answer
+            translation = self._for("translate").complete(SYS_TRANSLATE, question, 200).answer
             ev("translate", {"from": lang, "translation": translation})
 
         hits = self.search.search(question, translation, run_id=run_id)
@@ -224,7 +224,7 @@ class Pipeline:
     def _answer(self, question: str, hits: list[Hit], recent: str, ev: Emit):
         ids = list(range(1, len(hits) + 1))
         if self.cfg["AURORA_PIPELINE_GATE"]:
-            g = self.llm.complete(SYS_GATE, f"PASSAGES:\n\n{_passages(hits, ids)}\n\nQUESTION: {question}", 32)
+            g = self._for("gate").complete(SYS_GATE, f"PASSAGES:\n\n{_passages(hits, ids)}\n\nQUESTION: {question}", 32)
             opened = [int(x) for x in re.findall(r"\d+", g.answer) if 1 <= int(x) <= len(hits)]
             ev("gate", {"open": bool(opened) and ABSTAIN_MARK not in g.answer.upper(), "passages": opened})
             if not opened or ABSTAIN_MARK in g.answer.upper():
@@ -235,7 +235,7 @@ class Pipeline:
             by_domain[h.soliton.domain].append(n)
         extracts = {}
         for domain, dom_ids in by_domain.items():
-            x = self.llm.complete(SYS_EXTRACT, f"QUESTION: {question}\n\nPASSAGES:\n\n{_passages(hits, dom_ids)}", 700)
+            x = self._for("extract").complete(SYS_EXTRACT, f"QUESTION: {question}\n\nPASSAGES:\n\n{_passages(hits, dom_ids)}", 700)
             keep = x.answer.strip().upper() != ABSTAIN_MARK
             ev("synthesis.domain", {"domain": domain, "passages": dom_ids, "kept": keep, "text": x.answer if keep else ""})
             if keep:
@@ -294,10 +294,11 @@ class Pipeline:
                 ctx = "\n\n".join(f"[{n}] {hits[n - 1].soliton.text}" for n in ids[:4])
             else:                                # every passage given to synthesis: same prefix, cached by llama-server
                 ctx = all_ctx
-            ok = self.llm.complete(SYS_VERIFY, f"PASSAGES:\n{ctx}\n\nSENTENCE: {plain}", 4).answer.upper().startswith("YES")
+            verifier = self._for("verify")
+            ok = verifier.complete(SYS_VERIFY, f"PASSAGES:\n{ctx}\n\nSENTENCE: {plain}", 4).answer.upper().startswith("YES")
             if not ok and mode == "all_or_english":
-                en = self.llm.complete(SYS_TRANSLATE, plain, 200).answer.strip()
-                ok = self.llm.complete(SYS_VERIFY, f"PASSAGES:\n{ctx}\n\nSENTENCE: {en}", 4).answer.upper().startswith("YES")
+                en = self._for("translate").complete(SYS_TRANSLATE, plain, 200).answer.strip()
+                ok = verifier.complete(SYS_VERIFY, f"PASSAGES:\n{ctx}\n\nSENTENCE: {en}", 4).answer.upper().startswith("YES")
             if ok:
                 kept.append(s)
                 ev("verify.keep", {"sentence": s})
@@ -315,7 +316,7 @@ class Pipeline:
     def _route(self, question: str, recent: list[Soliton]) -> str:
         """'self' for small talk and questions about Aurora, 'knowledge' for everything else."""
         user = (f"PREVIOUS TURNS:\n{self._turns(recent, 2)}\n\n" if recent else "") + f"LAST MESSAGE: {question}"
-        out = self.llm.complete(SYS_ROUTE, user, 4).answer.strip().upper()
+        out = self._for("route").complete(SYS_ROUTE, user, 4).answer.strip().upper()
         return "self" if out.startswith("SELF") else "knowledge"
 
     def self_state(self) -> dict:
@@ -415,8 +416,10 @@ class Pipeline:
         return "".join(parts).strip()
 
     def _for(self, role: str):
-        """The model for a role: the chosen reasoner for the reasoning roles, the local one otherwise."""
-        return self.reasoner if role in self.cloud_roles else self.llm
+        """The model for a step, as the owner assigned it in the Models page (mdl_router: masked towards the cloud,
+        the local model as fallback)."""
+        from . import mdl_router
+        return mdl_router.model_for(role, self.llm, self.cfg)
 
     def _compress(self, question: str, text: str, ev: Emit) -> str:
         out, stats = txt_compress.compress(question, text, self.cfg["AURORA_CLOUD_KEEP_PCT"])

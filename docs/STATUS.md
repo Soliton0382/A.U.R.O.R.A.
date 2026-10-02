@@ -41,6 +41,8 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | files | attached files kept with their turn, 📎 Files page, Aurora's documents downloadable | M49, C66, C69 |
 | forge | capability requests, plugins written, tested in the cage (no network), judged; read-only installed alone, else Approvals — safe, not yet useful with the local reasoner | M53, C70 |
 | WebUI | modular showcase: chat (full width, dates, path, share), repairs, security, diary, social, plugins, import, activity, status, settings; sky with orbiting fireflies; metrics with GPU load; PWA; safe Markdown | headless Chrome checks |
+| models per step | 🧠 Models page: each of 12 steps on local or a cloud provider (keys in the ☁️ cloud plugin), masked by default (C72), fallback to local, statistics of calls, cost, masked items, pictures sent, SSCC | M56 |
+| guide | 📖 Guide page: first steps, cloud, phone, plugins, safety, and every page of the menu with a button | — |
 | logs | one file per component, rotation, gzip, 12-month retention, traces, lifecycle lines; Aurora reads them | sys_logread |
 | encryption | TLS 1.3 to clients, HTTPS everywhere outwards, secrets 0600; storage not encrypted (no LUKS) | SECURITY.md |
 
@@ -48,10 +50,8 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 
 | what | state |
 |---|---|
-| owner's signature | plg_sandbox.py changed (network isolation): sign before any service restart, or they refuse to start |
 | forge | works safely, produces no right plugin yet (C70): cloud reasoner option, execution loop, a benchmark of needs |
 | self-repair | runs daily (4 self-reviews, 2 repairs in 2 days); 0 code changes proposed so far: no evidence yet that it fixes a real bug |
-| I1b / I2 | background removal, AI enlargement, creative edits in words: models from Hugging Face, installer |
 | V2 | generating short videos |
 | multi-user | performance check on install, admin and users, TOTP MFA |
 | social | Facebook, Instagram, LinkedIn plugins and the autonomous mode (Mastodon home, Facebook mirror) |

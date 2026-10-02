@@ -1,0 +1,117 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 A.U.R.O.R.A. Project
+// Models: which model does each step of Aurora (local, Claude, Gemini, Grok...), what each step sends out, masking,
+// and what the cloud cost and saved (calls, tokens, cost, masked items, SSCC), measured from the traces.
+import { call } from "../api.js";
+import { el } from "../dom.js";
+import { apply, lang, t } from "../i18n.js";
+
+export default {
+  id: "models",
+  icon: "🧠",
+  title: "nav.models",
+
+  mount(root) {
+    root.classList.add("page");
+    root.innerHTML = `
+      <h2 data-i18n="md.title"></h2><p class="muted" data-i18n="md.hint"></p>
+      <div class="md-state"></div>
+      <h3 class="setting-cat" data-i18n="md.roles"></h3><div class="md-roles"></div>
+      <div><button class="md-save" data-i18n="md.save"></button> <span class="muted md-out"></span></div>
+      <h3 class="setting-cat" data-i18n="md.stats"></h3>
+      <div class="ev"><select class="md-days"><option value="1">24 h</option><option value="7" selected>7 gg</option><option value="30">30 gg</option></select></div>
+      <div class="md-stats"></div>`;
+    apply(root);
+    this.state = root.querySelector(".md-state");
+    this.roles = root.querySelector(".md-roles");
+    this.stats = root.querySelector(".md-stats");
+    this.out = root.querySelector(".md-out");
+    root.querySelector(".md-days").addEventListener("change", (e) => this.loadStats(e.target.value));
+    root.querySelector(".md-save").addEventListener("click", async () => {
+      const changes = {};
+      for (const row of this.roles.querySelectorAll(".md-role")) {
+        changes[row.dataset.role] = { provider: row.querySelector("select").value, model: row.querySelector("input").value.trim() };
+      }
+      try { await call("/v1/aurora/models/roles", { method: "PUT", body: JSON.stringify(changes) }); this.out.textContent = t("md.saved"); }
+      catch (e) { this.out.textContent = t("ev.error", { m: e.message }); }
+    });
+  },
+
+  async enter() {
+    const m = await call("/v1/aurora/models");
+    const box = this.state;
+    box.replaceChildren();
+    const line = (cls, text) => box.append(el("p", cls, text));
+    line(m.exempt ? "muted" : "error", t(m.exempt ? "md.exempt_on" : "md.exempt_off"));
+    line(m.mask ? "muted" : "error", t(m.mask ? "md.mask_on" : "md.mask_off"));
+    line("muted", t("md.pictures"));
+    this.providers = m.providers;
+    this.roles.replaceChildren(...m.roles.map((r) => this.row(r)));
+    this.loadStats(7);
+  },
+
+  row(r) {
+    const row = el("div", "ev md-role");
+    row.dataset.role = r.id;
+    const sel = el("select");
+    for (const p of this.providers) {
+      const o = el("option", "", p.configured ? p.label : `${p.label} — ${t("md.no_key")}`);
+      o.value = p.id;
+      o.disabled = !p.configured && p.id !== r.provider;
+      o.selected = p.id === r.provider;
+      sel.append(o);
+    }
+    const list = el("datalist");
+    list.id = `md-list-${r.id}`;
+    const model = el("input");
+    model.value = r.model || "";
+    model.setAttribute("list", list.id);
+    model.placeholder = t("md.model_ph");
+    const warn = el("span", "md-warn", "📷");
+    warn.title = t("md.pictures");
+    const fill = async () => {
+      list.replaceChildren();
+      if (sel.value === "local") { model.value = ""; model.disabled = true; return; }
+      model.disabled = false;
+      try {
+        const { models } = await call(`/v1/aurora/models/${sel.value}/list`);
+        list.replaceChildren(...models.map((n) => { const o = el("option"); o.value = n; return o; }));
+      } catch (e) { model.placeholder = t("ev.error", { m: e.message }); }
+    };
+    sel.addEventListener("change", () => { model.value = ""; fill(); warn.hidden = !(r.id === "vision" && sel.value !== "local"); });
+    model.disabled = r.provider === "local";
+    if (r.provider !== "local") fill();
+    warn.hidden = !(r.id === "vision" && r.provider !== "local");
+    const name = el("div", "md-name");
+    name.append(el("strong", "", lang.startsWith("it") ? r.it : r.en), el("div", "muted", t("md.sees", { what: r.sees })));
+    row.append(name, sel, model, list, warn);
+    return row;
+  },
+
+  async loadStats(days) {
+    const s = await call(`/v1/aurora/models/stats?days=${days}`);
+    const box = this.stats;
+    box.replaceChildren();
+    const calls = Object.entries(s.calls);
+    if (!calls.length) box.append(el("p", "muted", t("md.no_calls")));
+    for (const [k, v] of calls) {
+      const r = el("div", "ev");
+      r.append(el("strong", "", k), el("span", "", t("md.calls", { n: v.calls })),
+        el("span", "muted", t("md.tokens", { i: v.in.toLocaleString(), o: v.out.toLocaleString(), c: v.cached.toLocaleString() })),
+        el("span", "", `💶 ${v.cost_usd.toFixed(2)} $`), el("span", "muted", `${Math.round(v.seconds)} s`));
+      box.append(r);
+    }
+    const masked = Object.entries(s.masked).map(([k, n]) => `${k} ${n}`).join(", ");
+    box.append(el("p", "", t("md.masked", { what: masked || t("md.nothing") })));
+    box.append(el("p", s.pictures_sent ? "error" : "muted", t("md.pictures_sent", { n: s.pictures_sent })));
+    const fb = Object.entries(s.fallbacks).map(([k, n]) => `${k} ${n}`).join(", ");
+    if (fb) box.append(el("p", "error", t("md.fallbacks", { what: fb })));
+    const sc = s.sscc;
+    box.append(el("p", "", sc.calls ? t("md.sscc_live", { n: sc.calls, pct: sc.saved_pct, i: sc.chars_in, o: sc.chars_out }) : t("md.sscc_none")));
+    if (s.sscc_reference) {
+      const r = s.sscc_reference;
+      box.append(el("p", "muted", t("md.sscc_ref", { full: r.tokens_full.toLocaleString(), sscc: r.tokens_sscc.toLocaleString(),
+        pct: Math.round(100 * (1 - r.tokens_sscc / r.tokens_full)), sf: r.score?.full, ss: r.score?.sscc })));
+    }
+  },
+};

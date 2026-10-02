@@ -32,13 +32,6 @@ def test_reasoner_choice_and_rule_nine(cfg, monkeypatch):
     assert isinstance(mdl_cloud.make_reasoner(cfg, local), mdl_cloud.AnthropicLLM)
 
 
-def test_roles_pick_the_reasoner_only_where_configured():
-    p = Pipeline.__new__(Pipeline)
-    p.llm, p.reasoner, p.cloud_roles = "local", "cloud", {"synthesis", "self"}
-    assert p._for("synthesis") == "cloud" and p._for("self") == "cloud"
-    assert p._for("agent") == "local" and p._for("route") == "local"
-
-
 def test_turns_are_flattened_for_a_single_prompt_provider():
     system, text = mdl_cloud._flatten([{"role": "system", "content": "S"}, {"role": "user", "content": "a"},
                                        {"role": "assistant", "content": "b"}, {"role": "tool", "content": "r"}])

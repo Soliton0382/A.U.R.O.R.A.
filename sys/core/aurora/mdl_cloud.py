@@ -46,10 +46,10 @@ class ClaudeCodeLLM:
     name = "claude_code"
     context_tokens = 200_000
 
-    def __init__(self, cfg: sys_config.Config | None = None):
+    def __init__(self, cfg: sys_config.Config | None = None, model: str | None = None):
         self.cfg = cfg or sys_config.get()
         self.bin = str(self.cfg["AURORA_CLAUDE_CODE_BIN"])
-        self.model = self.cfg["AURORA_CLAUDE_CODE_MODEL"]
+        self.model = model or self.cfg["AURORA_CLAUDE_CODE_MODEL"]
         self.cwd = self.cfg.path("AURORA_STATUS_DIR") / "claude_code"      # empty: no project instructions
         self.cwd.mkdir(parents=True, exist_ok=True)
         self.log = sys_log.get_logger("llm_client")
@@ -126,9 +126,9 @@ class AnthropicLLM:
     name = "anthropic"
     context_tokens = 200_000
 
-    def __init__(self, cfg: sys_config.Config | None = None):
+    def __init__(self, cfg: sys_config.Config | None = None, model: str | None = None):
         self.cfg = cfg or sys_config.get()
-        self.model = self.cfg["AURORA_ANTHROPIC_MODEL"]
+        self.model = model or self.cfg["AURORA_ANTHROPIC_MODEL"]
         self.key = self.cfg["AURORA_ANTHROPIC_API_KEY"]
         self.log = sys_log.get_logger("llm_client")
 

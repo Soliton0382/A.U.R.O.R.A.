@@ -20,6 +20,9 @@ call downward (ECOSYSTEM §1).
 | `mdl_remote.py` | models | encoder and re-ranker over HTTP (aurora-models), same interface as the local ones | httpx | svc_api |
 | `mdl_llm.py` | models | client of llama-server: ChatML, thinking on/off, complete and stream | httpx | kno_answer, kno_acquire |
 | `txt_lang.py` | text | Italian/English detection by stop words | — | kno_answer, kno_ingest |
+| `mdl_router.py` | models | which model does each step: providers (local, Claude Code, Anthropic, OpenAI-compatible), roles.json, MaskedLLM, Fallback to local, list of a provider's models, cloud statistics from the traces | mdl_cloud, sec_mask, httpx | kno_answer, kno_attach, svc_api |
+| `sec_mask.py` | security | reversible Pseudonymizer for what leaves for the cloud: addresses, e-mails, phones, IBANs, cards (Luhn), keys, secret settings, the owner's words; placeholders put back in the answer and in a stream | sys_config | mdl_router, agt_forge |
+| plugin `cloud` | models | read only: which cloud providers have a key, the models of one; its card holds the keys and the masking settings | mdl_router | Models page |
 | `mdl_cloud.py` | models | cloud reasoners with the local interface: Anthropic API and Claude Code CLI; `make_reasoner` (rule 9 without exemption: local) | httpx, sys_ethics | kno_answer |
 | `mdl_image.py` | models | Aurora paints (dreams): SDXL-Lightning in a separate process, reasoner swapped out when the GPU is short, AI disclosure on the image | img_paint, sys_disclosure | kno_rem |
 | `sys_push.py` | system | Web Push (VAPID) to the owner's browsers: key pair made locally, subscriptions, which events notify (AURORA_PUSH_EVENTS), gone subscriptions dropped | pywebpush | svc_api |

@@ -34,6 +34,7 @@
     GET|POST /v1/aurora/routines; PUT|DELETE /v1/aurora/routines/{id}; POST /v1/aurora/routines/{id}/run
     POST /v1/aurora/routines/tick                  aurora-rem: start the due routines, welcome newly ready plugins
     GET  /v1/aurora/forge; POST /v1/aurora/forge/tick  the capability forge: requests, and aurora-rem builds them
+    GET  /v1/aurora/models[/stats|/{provider}/list]; PUT /v1/aurora/models/roles  which model does each step
     GET  /v1/aurora/projects[/github]; GET /v1/aurora/projects/{name}/{tree|file|log}; POST .../preview
     POST /v1/aurora/projects {name,...} (create); POST /v1/aurora/projects/clone {full_name}
     GET  /v1/preview/{token}/{path}                a project's page, sandboxed, under a 10-minute token (no cookie)
@@ -253,7 +254,7 @@ def wants_tools(question: str, recent: list, emit=None) -> bool:
     if not services:
         return False
     prev = "\n".join(f"{'Owner' if t.extra.get('role') == 'user' else 'Aurora'}: {t.text[:300]}" for t in recent[-2:])
-    out = pipeline().llm.complete(SYS_TOOLS.replace("{services}", "\n".join(services)),
+    out = pipeline()._for("route").complete(SYS_TOOLS.replace("{services}", "\n".join(services)),
                                   (f"PREVIOUS TURNS:\n{prev}\n\n" if prev else "") + f"LAST MESSAGE: {question}", 4)
     if emit:
         emit("route.tools", {"services": [x[2:].split(":")[0] for x in services], "reply": out.answer.strip()[:20]})
@@ -263,7 +264,7 @@ def wants_tools(question: str, recent: list, emit=None) -> bool:
 def picture_intent(question: str) -> str:
     """edit | look | other, for a message when a picture is in the conversation."""
     from aurora.img_edit import SYS_EDIT
-    out = pipeline().llm.complete(SYS_EDIT, question, 3).answer.strip().upper()
+    out = pipeline()._for("route").complete(SYS_EDIT, question, 3).answer.strip().upper()
     return "edit" if out.startswith("EDIT") else "look" if out.startswith("LOOK") else "other"
 
 
@@ -381,7 +382,7 @@ def answer_or_acquire(question: str, emit, run_id: str, **kw):
             < cfg["AURORA_REM_SESSION_GAP_MIN"] * 60):
         asked = next((t for t in recent if t.extra.get("role") == "user"
                       and t.extra.get("run_id") == last.extra.get("run_id")), None)
-        if asked and p.llm.complete(SYS_CONFIRM, f"PREVIOUS QUESTION: {asked.text}\nNEW MESSAGE: {question}",
+        if asked and p._for("route").complete(SYS_CONFIRM, f"PREVIOUS QUESTION: {asked.text}\nNEW MESSAGE: {question}",
                                     3).answer.strip().upper().startswith("YES"):
             from aurora.kno_acquire import ArxivAgent
             prev = asked.text.split(" [")[0]
@@ -1086,6 +1087,49 @@ async def project_clone(request: Request) -> dict:
     return {"name": dest.name}
 
 
+# ---- models: which model does each step (mdl_router) ----------------------------------------------------------
+
+@app.get("/v1/aurora/models", dependencies=[Depends(auth)])
+def models_overview() -> dict:
+    from aurora import mdl_router, sys_ethics
+    a = mdl_router.assignments(cfg)
+    return {"exempt": sys_ethics.exempt(cfg), "mask": bool(cfg["AURORA_CLOUD_MASK"]),
+            "mask_words": cfg["AURORA_CLOUD_MASK_WORDS"],
+            "providers": [{"id": k, "label": v["label"], "kind": v["kind"], "key": v.get("key"),
+                           "configured": v["kind"] in ("local", "claude_code") or bool(cfg.values.get(v.get("key", "")))}
+                          for k, v in mdl_router.PROVIDERS.items()],
+            "roles": [{"id": r, "it": it, "en": en, "sees": sees, **a[r]} for r, (it, en, sees) in mdl_router.ROLES.items()]}
+
+
+@app.put("/v1/aurora/models/roles", dependencies=[Depends(auth)])
+async def models_roles(request: Request) -> dict:
+    from aurora import mdl_router
+    try:
+        out = mdl_router.set_assignments(cfg, await request.json())
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    log.info("audit: model assignments changed: %s", ", ".join(f"{k}={v['provider']}:{v['model']}" for k, v in out.items()
+                                                                  if v["provider"] != "local"))
+    return out
+
+
+@app.get("/v1/aurora/models/{provider}/list", dependencies=[Depends(auth)])
+async def models_list(provider: str) -> dict:
+    from aurora import mdl_router
+    if provider not in mdl_router.PROVIDERS:
+        raise HTTPException(status_code=404, detail="unknown provider")
+    try:
+        return {"provider": provider, "models": await asyncio.to_thread(mdl_router.list_models, provider, cfg)}
+    except Exception as e:                               # a wrong key, a provider down: said, not hidden
+        raise HTTPException(status_code=502, detail=f"{type(e).__name__}: {str(e)[:300]}")
+
+
+@app.get("/v1/aurora/models/stats", dependencies=[Depends(auth)])
+async def models_stats(days: float = 7) -> dict:
+    from aurora import mdl_router
+    return await asyncio.to_thread(mdl_router.stats, cfg, max(1.0, min(days, 90)))
+
+
 # ---- the capability forge (agt_forge): Aurora builds the plugin she is missing -----------------------------
 
 def _forge_done(req_id: str, name: str) -> None:
@@ -1111,7 +1155,8 @@ def _forge_job(req: dict, cloud: bool = False):
             from aurora.mdl_cloud import ClaudeCodeLLM
             res = agt_forge.build(cfg, ClaudeCodeLLM(cfg), host, req, emit, masker=agt_forge.Masker(cfg))
         else:
-            res = agt_forge.build(cfg, pipeline().llm, host, req, emit)     # the local reasoner first
+            res = agt_forge.build(cfg, pipeline()._for("forge_write"), host, req, emit,     # as assigned (local by default)
+                                  judge=pipeline()._for("forge_judge"))
         if not res["ok"] and not cloud:                 # ask once whether the cloud may try, showing what would leave
             from aurora.sys_approvals import Approvals
             m = agt_forge.Masker(cfg)
@@ -1613,7 +1658,7 @@ def _gap_check(agent, goal: str, report: str, emit, run_id: str, routine: str | 
     """After an agent run, by code: a report saying a tool is missing becomes a forge request (agt_forge.detect_gap)."""
     from aurora import agt_forge
     try:
-        need = agt_forge.detect_gap(pipeline().llm, goal, report, getattr(agent, "requested", False))
+        need = agt_forge.detect_gap(pipeline()._for("route"), goal, report, getattr(agent, "requested", False))
     except Exception:                                    # the check never breaks the run
         log.exception("gap check")
         return

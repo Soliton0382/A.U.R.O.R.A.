@@ -893,6 +893,18 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M56 — Models per step, masking, cloud statistics (2026-10-02)
+
+Router: 12 steps (route, translate, gate, extract, synthesis, verify, self, agent, rem, forge write, forge judge,
+vision), each on local or a provider (Claude Code, Anthropic, OpenAI, Google, xAI, Mistral, OpenRouter; the last five
+OpenAI-compatible). With no saved choice the old settings decide: all 12 local today, as before. Rule 9 still wins.
+Masker: on by default; the first live call (Claude Code haiku, fake data) let a phone out at the end of a sentence
+(C72); after the fix nothing real left (IP, e-mail, phone → placeholders) and the answer came back with the real
+values, 4.1 s. Statistics from the traces in 0.06 s; 7 days: SSCC 18 compressions, 12% of characters saved (live),
+reference M41 99,445 → 70,138 tokens (−29%), quality 8.25 → 7.62. Tests 168.
+Not measured: an OpenAI-compatible provider (no key configured), quality of any step on a cloud model other than
+Claude, the cost of a full day with cloud steps.
+
 ## M55 — Forge with the cloud, and I2 picture models (2026-10-02)
 
 Forge benchmark with the cloud reasoner (owner's consent, masked samples): 8/8 built; right 6 for certain (harvester by

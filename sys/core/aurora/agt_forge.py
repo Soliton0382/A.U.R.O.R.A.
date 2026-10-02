@@ -288,7 +288,7 @@ def data_places(cfg: sys_config.Config) -> str:
 
 # ---- build ---------------------------------------------------------------------------------------------
 
-def build(cfg: sys_config.Config, llm, host, req: dict, emit, masker=None) -> dict:
+def build(cfg: sys_config.Config, llm, host, req: dict, emit, masker=None, judge=None) -> dict:
     """Write, check and test the plugin (up to 3 attempts); returns {"ok", "manifest", "stage", "errors"}."""
     log = sys_log.get_logger("forge")
     existing = {p.name for p in host.plugins(with_tools=False)}
@@ -326,7 +326,7 @@ def build(cfg: sys_config.Config, llm, host, req: dict, emit, masker=None) -> di
             stage.mkdir(parents=True)
             (stage / "plugin.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             (stage / "server.py").write_text(code, encoding="utf-8")
-            errors = test(host, manifest, stage, llm, seen, masker)
+            errors = test(host, manifest, stage, judge or llm, seen, masker)
         emit("forge.attempt", {"attempt": attempt, "ok": not errors, "errors": errors[:5], "name": manifest.get("name")})
         log.info("forge %s attempt %d: %s", req["id"], attempt, "ok" if not errors else "; ".join(errors)[:300])
         if not errors:
