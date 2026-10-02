@@ -30,6 +30,8 @@ call downward (ECOSYSTEM §1).
 | plugin `discord` | social | one channel through a bot (REST v10): read, send (external, AI line, no mentions) | — | agent |
 | plugin `whatsapp` | social | WhatsApp Business Cloud API, send only to the owner (text within 24 h, templates outside) | — | agent, notifications |
 | plugin `twitch` | social | Helix with an app token: favourite channels live, top streams; read only | — | chat |
+| `agt_react.py` | agents | a failure met by the owner (chat, approval, routine) → an immediate repair: should_react (once per kind of error / 6 h, 6 a day), the context (error, recent warnings, installed plugins), the goal | sys_logread | api/core, api/agents, api/routines |
+| `webui/js/viewer.js` | webui | pictures, PDFs and videos opened inside the page with a Download button (never a new window: C39, C100) | dom, i18n | chat, trace, uploads |
 | agent tool `create_picture` | agents | inside agt_loop: mdl_image.paint (GPU lock, swap), the picture saved with the run (chat, Files); facebook `publish_photo` posts it | mdl_image, sys_uploads | agent |
 | plugin `news` | knowledge | read only, network: headlines of official RSS feeds by topic (feeds.json), title, summary, source, link; never the article | — | chat (current events), Facebook routine |
 | plugin `diary` | knowledge | read only, no network: Aurora's latest dream and thoughts (vault reflections, never conversations; owner's name replaced) and what the harvester took | vault (read only) | Facebook routine |

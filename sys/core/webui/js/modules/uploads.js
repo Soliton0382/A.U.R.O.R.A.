@@ -5,6 +5,7 @@
 import { call } from "../api.js";
 import { clock, el } from "../dom.js";
 import { apply, t } from "../i18n.js";
+import { viewLink } from "../viewer.js";
 
 const size = (n) => (n < 1048576 ? `${(n / 1024).toFixed(0)} KB` : `${(n / 1048576).toFixed(1)} MB`);
 
@@ -31,7 +32,7 @@ export default {
       ? files.filter((f) => f.size).map((f) => this.card(f)) : [el("p", "muted", t("up.none"))]));
     const docs = await call("/v1/aurora/documents");          // the PDFs Aurora wrote: download them
     this.docs.replaceChildren(...(docs.length ? docs.map((d) => {
-      const a = el("a", "ev"); a.href = d.url; a.setAttribute("download", d.name);
+      const a = viewLink(el("a", "ev"), d.url, d.name, "application/pdf");
       a.append(el("span", "", "📄"), el("span", "", d.name), el("span", "muted", size(d.bytes)));
       return a;
     }) : [el("p", "muted", t("up.no_docs"))]));
@@ -40,7 +41,7 @@ export default {
   card(f) {
     const c = el("div", "appr-card up-card");
     const open = el("a", "up-open");
-    open.href = f.url; open.target = "_blank"; open.rel = "noopener";
+    viewLink(open, f.url, f.name, f.mime);
     if (f.inline && f.mime.startsWith("image/")) { const img = el("img"); img.src = f.url; img.loading = "lazy"; img.alt = f.name; open.append(img); }
     else if (f.inline && f.mime.startsWith("video/")) { const v = el("video"); v.src = f.url; v.preload = "metadata"; v.muted = true; open.append(v); }
     else open.append(el("div", "up-icon", f.mime.startsWith("audio/") ? "🎧" : "📄"));

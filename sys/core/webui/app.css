@@ -121,3 +121,13 @@ details.gd-item summary { cursor: pointer; font-weight: 600; }
 .gd-page { padding: .45rem 0; border-bottom: 1px solid var(--line); align-items: center; }
 .gd-page .gd-text { flex: 1 1 16rem; }
 .made-video { display: block; max-width: 100%; max-height: 60vh; border-radius: 10px; margin: .5rem 0; background: #000; }
+/* the file viewer (viewer.js): a picture, a PDF or a video inside the page */
+.viewer { position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column; background: rgba(0, 0, 0, .9);
+  padding: max(.6rem, env(safe-area-inset-top)) .6rem max(.6rem, env(safe-area-inset-bottom)); gap: .5rem; }
+.viewer-bar { display: flex; align-items: center; gap: .5rem; color: #e8ecf5; }
+.viewer-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .9rem; }
+.viewer-btn { background: rgba(255, 255, 255, .12); color: #fff; border: 1px solid rgba(255, 255, 255, .25); border-radius: 8px;
+  padding: .35rem .7rem; text-decoration: none; cursor: pointer; }
+.viewer-body { flex: 1; min-height: 0; width: 100%; border: 0; border-radius: 6px; }
+.viewer-image .viewer-body, .viewer-video .viewer-body { object-fit: contain; max-height: 100%; }
+.viewer-pdf .viewer-body { background: #fff; }

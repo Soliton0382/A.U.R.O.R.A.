@@ -6,6 +6,7 @@ import { bus } from "../bus.js";
 import { clock, el, scrollEnd, toBase64, useCss } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { auroraBubble, follow, renderPast } from "./trace.js";
+import { view, viewLink } from "../viewer.js";
 
 const HISTORY_TURNS = 8;          // 4 exchanges: the same memory Aurora keeps in context
 
@@ -14,7 +15,7 @@ function chip(file) {
   const type = file.type || file.mime || "";
   const kept = !(file instanceof Blob);
   const c = el(kept ? "a" : "span", "chip");
-  if (kept) { c.href = file.url; c.target = "_blank"; c.rel = "noopener"; }
+  if (kept) viewLink(c, file.url, file.name, type);         // inside the page: the PWA has no cookie in a new window
   if (type.startsWith("image/") && (!kept || file.inline)) {
     const img = el("img");
     img.src = kept ? file.url : URL.createObjectURL(file);
@@ -196,21 +197,6 @@ export default {
       messages.append(m);
     };
 
-    // Full-size view inside the page: a standalone PWA would open a new window in the system browser,
-    // which has no device cookie (401).
-    const lightbox = (src, alt) => {
-      const box = el("div", "lightbox");
-      const img = el("img");
-      img.src = src;
-      img.alt = alt;
-      box.append(img);
-      const close = () => { box.remove(); document.removeEventListener("keydown", onKey); };
-      const onKey = (ev) => { if (ev.key === "Escape") close(); };
-      box.addEventListener("click", close);
-      document.addEventListener("keydown", onKey);
-      document.body.append(box);
-    };
-
     // A dream of the last nights, among the turns: Aurora's own painting and the story.
     const dreamBubble = (d) => {
       const m = el("div", "msg aurora dream past");
@@ -221,7 +207,7 @@ export default {
         img.alt = t("chat.dream_alt");
         img.loading = "lazy";
         if (d.image_prompt) img.title = d.image_prompt;
-        img.addEventListener("click", () => lightbox(d.image, img.alt));
+        img.addEventListener("click", () => view(d.image, img.alt || "sogno.png", "image/png"));
         m.append(img);
       }
       for (const para of d.text.split(/\n\s*\n/)) if (para.trim()) m.append(el("p", "", para.trim()));

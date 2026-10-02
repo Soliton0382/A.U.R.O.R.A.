@@ -51,7 +51,18 @@ $domain:$https_port {
 		flush_interval -1
 	}
 	# project previews (/v1/preview/*): framed by the WebUI only, sandboxed by the API's own CSP (opaque origin)
-	@app not path /v1/preview/*
+	# Aurora's own documents and the chat's files: shown inside the WebUI (picture, PDF, video viewer), never framed by
+	# another site; the PWA cannot open them in a new window (the system browser has no device cookie, C39/C100)
+	@files path /v1/aurora/documents/* /v1/aurora/uploads/*
+	header @files {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		X-Frame-Options SAMEORIGIN
+		Content-Security-Policy "default-src 'none'; img-src 'self' data:; media-src 'self'; style-src 'unsafe-inline'; frame-ancestors 'self'"
+		-Server
+	}
+	@app not path /v1/preview/* /v1/aurora/documents/* /v1/aurora/uploads/*
 	header /v1/preview/* {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Content-Type-Options nosniff

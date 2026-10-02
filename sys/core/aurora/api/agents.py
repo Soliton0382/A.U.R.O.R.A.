@@ -263,11 +263,34 @@ def decide(approval_id: str, decision: str) -> dict:
             why = str(out.get("text") or out.get("error") or out)[:160]
             note("owner", "approval.failed", {"id": approval_id, "title": item["title"],
                                              "text": f"{item['title']}: {why}"})
+            react("approval", item["title"], why, run_id)
         from aurora.kno_answer import Answer
         return Answer(run_id, q, ("Fatto: " if ok else "Non riuscito: ") + json.dumps(out, ensure_ascii=False)[:1500],
                       False, mode="agent")
     return {"id": approval_id, "status": "approved", "run_id": start_run(f"[approval] {item['title']}",
                                                                           origin="approval", job=job)["id"]}
+
+
+def react(origin: str, title: str, error: str, run_id: str) -> str | None:
+    """A request of the owner failed: diagnose it now (agt_react), not at the next self-review. Returns the repair's
+    run id, or None when it was not started (not the owner's, already looked at, today's limit)."""
+    from aurora import agt_react
+    try:
+        if not agt_react.should_react(cfg, origin, error):
+            return None
+        ctx = agt_react.context(cfg, origin, title, error, run_id)
+    except Exception:                                       # the reaction must never make the failure worse
+        log.exception("react: not started")
+        return None
+    p = pipeline()
+
+    def after(ans, emit):
+        from aurora.kno_rem import Rem
+        Rem(p, cfg)._write(ans.text, "repair", f"react:{int(time.time())}",
+                           {"failed_run": run_id, "origin": origin, "run_id": ans.run_id}, emit)
+        note("react", "react.done", {"text": f"{title[:60]}: {ans.text[:160]}", "run_id": ans.run_id, "failed_run": run_id})
+    log.info("react: a failed %s request (%s) is diagnosed now", origin, title[:80])
+    return start_run(f"[riparazione] {title[:80]}", origin="react", job=_agent_job(agt_react.GOAL, ctx, after))["id"]
 
 
 @router.post("/v1/aurora/rem/repair", dependencies=[Depends(auth)])

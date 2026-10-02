@@ -115,3 +115,11 @@ def test_models_features_and_installer_groups_agree():
     assert {f for g in F.GROUPS.values() for f in g["features"]} <= set(F.FEATURES)
     for m, spec in man.items():
         assert set(spec.get("settings", {})) <= schema
+
+
+def test_aurora_s_own_files_open_inside_the_page_never_in_a_new_window():
+    # the installed app opens a new window in the system browser, which has no device cookie: "invalid key" (C39, C100)
+    for name in ("chat.js", "trace.js", "uploads.js"):
+        src = (WEB / "js" / "modules" / name).read_text(encoding="utf-8")
+        assert '"_blank"' not in src and "window.open" not in src, name
+    assert "viewLink" in (WEB / "js" / "modules" / "trace.js").read_text(encoding="utf-8")

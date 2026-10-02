@@ -505,5 +505,7 @@
   "md.budget_stop": "⛔ {p}: today's ceiling reached ({n} of {cap} tokens): its steps go back to local until tomorrow",
   "md.budget_free": "{p} today: {n} tokens (subscription, no ceiling)",
   "status.backup.mount": "🔌 Mount the NAS",
-  "sec.archive": "🧹 Archive the closed ones ({n})"
+  "sec.archive": "🧹 Archive the closed ones ({n})",
+  "viewer.save": "Download",
+  "viewer.close": "Close"
 }

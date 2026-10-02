@@ -56,6 +56,8 @@ def _routine_job(r: dict):
                 ok, text = False, f"{type(e).__name__}: {str(e)[:300]}"
                 ans = Answer(run_id, q, f"Routine non riuscita: {text}", False, mode="agent")
         routine, notify = sys_routines.record(cfg, r["id"], text, ok, run_id, files)
+        if not ok:                                           # a routine of the owner failed: diagnosed now
+            react("routine", r.get("title", r["id"]), text, run_id)
         if notify:
             note("routine", r.get("event", "routine.done") if ok else "routine.failed",
                  {"routine": r["id"], "title": routine.get("title", ""), "run_id": run_id,
@@ -255,6 +257,6 @@ def rem_task(task: str) -> dict:
 
 # names of sibling modules, looked up only when called: imported last, so that modules that use each
 # other (routines, forge, agents) load in any order
-from .agents import _gap_check, agent, plugins, rem_repair  # noqa: E402
+from .agents import _gap_check, agent, plugins, react, rem_repair  # noqa: E402
 from .knowledge import _start_update  # noqa: E402
 from .social import social  # noqa: E402

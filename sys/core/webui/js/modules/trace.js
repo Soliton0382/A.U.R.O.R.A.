@@ -7,6 +7,7 @@ import { bus, runEnded, runStarted } from "../bus.js";
 import { clock, el, scrollEnd } from "../dom.js";
 import { t } from "../i18n.js";
 import { renderMarkdown } from "../md.js";
+import { viewLink } from "../viewer.js";
 
 export const ICONS = {
   "run.start": "▶️", route: "🧭", "attach.image": "🖼️", "attach.video": "🎬", "image.plan": "🛠️", "image.edited": "🎨", "video.frames": "🎞️", "video.plan": "🎬", "attach.document": "📄", "self.state": "🩺", translate: "🌐",
@@ -125,7 +126,7 @@ export function renderAnswer(b, p, when) {
     const row = el("div", "chips");
     for (const f of p.images) {
       if (!f.url) continue;
-      const a = el("a", "chip"); a.href = f.url; a.target = "_blank"; a.rel = "noopener";
+      const a = viewLink(el("a", "chip"), f.url, f.name, f.mime || "image/png");
       const img = el("img"); img.src = f.url; img.alt = f.name; img.loading = "lazy";
       a.append(img, el("span", "", f.name));
       row.append(a);
@@ -143,7 +144,7 @@ export function renderAnswer(b, p, when) {
   if (p.files?.length) {                         // documents Aurora wrote (a PDF...): one tap downloads them
     const row = el("div", "chips");
     for (const f of p.files) {
-      const a = el("a", "chip"); a.href = f.url; a.setAttribute("download", f.name);
+      const a = viewLink(el("a", "chip"), f.url, f.name, f.mime);       // a PDF opens in place; it can be saved there
       a.append(el("span", "", "📄"), el("span", "", f.name));
       row.append(a);
     }

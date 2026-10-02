@@ -893,6 +893,13 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M69 — Files in place, repairs at once (2 October 2026, night)
+
+Headers through HTTPS: a PDF `inline`, `X-Frame-Options: SAMEORIGIN`, `frame-ancestors 'self'`; the WebUI page still
+`DENY`. Immediate repair, live: a routine calling a plugin that does not exist → the repair started in the same second;
+first version 60 steps in 2.8 min (limit reached, the report left inside a raw call); with the installed plugins in its
+context and the report unwrapped: 38 calls, 88.8 s, the right cause and what to do. Tests 212.
+
 ## M68 — Scheduled tasks checked, a picture on request (2 October 2026, evening)
 
 The 18:30 Facebook routine ran from its timer (9 tool calls, a science post proposed, approved, published). The

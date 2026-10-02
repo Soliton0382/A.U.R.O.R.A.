@@ -462,6 +462,8 @@ def start_run(question: str, origin: str, job=None) -> dict:
             except Exception as e:                        # the run fails visibly, never silently
                 log.exception("run %s failed", run["id"])
                 emit("error", {"message": f"{type(e).__name__}: {e}"})
+                from .agents import react                    # a request of the owner failed: diagnosed now
+                react(origin, question, f"{type(e).__name__}: {e}", run["id"])
             finally:
                 with run["cond"]:
                     run["done"] = True

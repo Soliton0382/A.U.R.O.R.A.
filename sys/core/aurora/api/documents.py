@@ -45,4 +45,5 @@ def document(name: str):
     f = cfg.path("AURORA_DOCUMENTS_DIR") / name
     if not f.is_file():
         raise HTTPException(status_code=404, detail="no such document")
-    return FileResponse(f, media_type="application/pdf", filename=name)
+    # inline: the WebUI shows it in its viewer; the viewer's download button saves it (the link's download attribute)
+    return FileResponse(f, media_type="application/pdf", filename=name, content_disposition_type="inline")

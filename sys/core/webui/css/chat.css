@@ -59,9 +59,6 @@ details.thought pre, pre.facts { white-space: pre-wrap; font: .78rem/1.4 var(--m
 .msg.aurora.dream { border-color: rgba(170, 140, 255, .45); background: rgba(22, 16, 40, .82); }
 .msg.dream .dream-title { font-weight: 600; color: #c9b8ff; margin-bottom: .45rem; }
 .msg.dream .dream-img { display: block; width: 100%; max-width: 900px; height: auto; border-radius: calc(var(--radius) - 4px); cursor: zoom-in; margin-bottom: .5rem; }
-.lightbox { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center;
-  background: rgba(0, 0, 0, .88); cursor: zoom-out; padding: 1rem; }
-.lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; box-shadow: 0 0 40px rgba(0, 0, 0, .8); }
 .ask .icon.recording { color: #e34948; animation: pulse 1s ease-in-out infinite; }
 /* a picture of a message (just sent or from the history) is shown, not only named */
 .msg .chip img { width: auto; height: 7rem; max-width: 12rem; }

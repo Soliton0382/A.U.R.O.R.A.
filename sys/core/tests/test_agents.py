@@ -164,3 +164,11 @@ def test_a_report_never_says_published_while_the_post_waits_for_the_owner():
     assert out.startswith("⚠️ Niente è stato ancora pubblicato") and "facebook.publish_post" in out.splitlines()[1]
     a.pending = []
     assert a._honest("Ecco la didascalia che ti propongo.") == "Ecco la didascalia che ti propongo."
+
+
+def test_a_report_left_inside_an_unclosed_finish_call_is_unwrapped():
+    from aurora.agt_loop import unwrap
+    raw = '<tool_call>\n{"name": "finish", "arguments": {"summary": "Causa trovata:\\nil plugin non è installato."'
+    assert unwrap(raw) == "Causa trovata:\nil plugin non è installato."
+    assert unwrap("Resoconto normale.") == "Resoconto normale."
+    assert unwrap("Testo prima <tool_call> {rotto") == "Testo prima"

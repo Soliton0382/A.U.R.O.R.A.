@@ -31,6 +31,20 @@ from .sys_approvals import Approvals, needs_owner
 
 IDENTITY_FILE = Path(__file__).resolve().parents[1] / "prompts" / "identity.md"
 CALL = re.compile(r"<tool_call>\s*(\{.*?\})\s*</tool_call>", re.S)
+SUMMARY = re.compile(r'"summary"\s*:\s*"((?:[^"\\]|\\.)*)', re.S)
+
+
+def unwrap(report: str) -> str:
+    """A report the model wrapped in a finish call it never closed: its summary's text, not the raw call."""
+    if "<tool_call>" not in report:
+        return report
+    m = SUMMARY.search(report)
+    if m:
+        try:
+            return json.loads('"' + m.group(1).rstrip("\\") + '"').strip()
+        except ValueError:
+            return m.group(1).replace("\\n", "\n").strip()
+    return report.split("<tool_call>")[0].strip()
 SEP = "__"                                               # plugin__tool: a function name the model can write
 
 SYS_AGENT = """You are Aurora, working as an agent on a goal given below. You act through tools.
@@ -362,7 +376,7 @@ class Agent:
             except httpx.HTTPError as e:                    # never a run without a report (C68)
                 self.log.warning("agent run %s: final report failed: %s", run_id, e)
                 report = "Non sono riuscita a scrivere il resoconto finale (" + type(e).__name__ + ")."
-            report = CALL.sub("", report).strip()
+            report = unwrap(CALL.sub("", report).strip())
             limit = time.time() - t0 >= limit_s or steps >= self.cfg["AURORA_AGENT_MAX_STEPS"]
             summary = ((f"(Limite raggiunto: {steps} passi, {round((time.time() - t0) / 60, 1)} min.) " if limit else "")
                        + (report or "Nessun resoconto prodotto."))
