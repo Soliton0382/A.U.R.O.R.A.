@@ -58,6 +58,12 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | logs | one file per component, rotation, gzip, 12-month retention, traces, lifecycle lines; Aurora reads them | sys_logread |
 | encryption | TLS 1.3 to clients, HTTPS everywhere outwards, secrets 0600; storage not encrypted (no LUKS) | SECURITY.md |
 
+## Closed on 2 October 2026
+
+Signed and published (commit d4ce54f, 29 commits, the history clean of the firewall serial); health green; 0 open bugs;
+207 tests; the Messenger welcome message set by hand. The next roadmap is decided by the owner after the weekend
+(ROADMAP.md, "Next roadmap").
+
 ## In progress (2026-10-02)
 
 | what | state |
@@ -73,8 +79,8 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 
 | what | why |
 |---|---|
-| sign | code changed today (the health is yellow until then): `sudo .venv/bin/python sys/core/script/sys_ethics_sign.py sign` |
-| Messenger welcome message | Meta Business Suite → Inbox → Automations → Instant reply (Meta's API refuses it for this page) |
+| manual tests N13–N15 | when calendar, notes and Home Assistant devices are set up (docs/MANUAL_TESTS.md) |
+| Instagram, TikTok | parked by the owner: plugins ready, accounts not connected |
 
 ## To do (designed)
 

@@ -3,6 +3,19 @@
 Every request of the owner is recorded here as soon as it is made, so that nothing is lost between
 sessions. Each item moves to STATUS.md ("Working") when it is validated. Updated 2026-09-30.
 
+## Next roadmap (to decide with the owner, after 2 October 2026)
+
+Candidates, each with the measure that says it worked:
+1. **The gate on vague questions** — rewrite a question with the conversation's context before the gate;
+   measure: `bench_quality.py --pool 30` above 6.90, wrong gate closures below 3.
+2. **Multi-user** — performance check on install (users the machine can serve), an admin, users, TOTP MFA on by
+   default; measure: concurrent users at the measured ceiling, no data seen across users (tests).
+3. **The whole 108 questions** — the quality benchmark on retrieval_pool108 entire, once, as the new reference.
+4. **The forge's known limit** — a judge that checks time windows; measure: `bench_forge.py --roles` 8/8.
+5. **Self-repair proven or switched off** — a week of its reports; on only with one real fix.
+6. **The device on port 6667** — the owner checks it (11,945 denied connections to IRC).
+7. **Feedback of the company's AI team** — their install on other hardware: the profiles not measured here.
+
 ## Depth before breadth (proposed 2026-10-02, the owner decides)
 
 The structure is complete; what is missing is proof that each part is good, not more parts. In order:
