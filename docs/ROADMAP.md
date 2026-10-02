@@ -12,8 +12,9 @@ The structure is complete; what is missing is proof that each part is good, not 
 2. **The manual tests** (docs/MANUAL_TESTS.md, ~30 lines): one pass by the owner on the phone and the PC.
 3. **The HTTP layer under test**: 89 routes and no test calls them (the tests cover the modules). A smoke suite
    with FastAPI's TestClient on a test configuration: every route answers, auth refuses without a key.
-4. **Answer quality re-measured** (M40, the core of Aurora): the benchmark after the synthesis prompt change (M48)
-   and with the cloud steps; the result decides the default per step.
+4. **Answer quality re-measured** — **done** (M66): 5.5, the answers given 8.8; three wrong abstentions, one per
+   stage (verification of formulas, the gate, the synthesis over a short extraction). Next: fix each against a
+   larger set (retrieval_pool108), keeping only what raises the score.
 5. **Switch off what does not work yet, or prove it**: the forge with the local reasoner (C70, 4/8) and the
    self-repair (0 code fixes so far) — on only when a benchmark says they help.
 6. **A week of soak**: memory of each service, log growth, GPU swaps, failed routines, measured daily

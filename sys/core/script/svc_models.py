@@ -31,6 +31,21 @@ app = FastAPI(title="aurora-models")
 state: dict = {}
 
 
+SPARE_MB = 256          # cache kept above what the models use; the rest goes back to the GPU after each request
+
+
+def give_back() -> None:
+    """PyTorch keeps the memory of the largest batch seen; on the GPU it shares with the reasoner that cache grew
+    by 4.2 GB in a day and llama.cpp could no longer allocate its compute buffers: a crash at every request (C95)."""
+    import torch
+    if not torch.cuda.is_available():
+        return
+    for d in range(torch.cuda.device_count()):
+        if torch.cuda.memory_reserved(d) - torch.cuda.memory_allocated(d) > SPARE_MB * 2**20:
+            with torch.cuda.device(d):
+                torch.cuda.empty_cache()
+
+
 class EmbedIn(BaseModel):
     texts: list[str]
     kind: str = "documents"
@@ -57,6 +72,7 @@ def embed(body: EmbedIn) -> dict:
     t0 = time.time()
     e = state["embedder"]
     v = e.encode_queries(body.texts) if body.kind == "queries" else e.encode_documents(body.texts)
+    give_back()
     log.debug("embed %s: %d texts in %.2f s", body.kind, len(body.texts), time.time() - t0)
     return {"vectors": v.astype("float32").tolist(), "dim": e.dim, "encoder": e.name}
 
@@ -65,6 +81,7 @@ def embed(body: EmbedIn) -> dict:
 def rerank(body: RerankIn) -> dict:
     t0 = time.time()
     scores = state["reranker"].score(body.pairs)
+    give_back()
     log.debug("rerank: %d pairs in %.2f s", len(body.pairs), time.time() - t0)
     return {"scores": scores.tolist()}
 

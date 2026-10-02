@@ -1,0 +1,41 @@
+{
+ "name": "instagram",
+ "version": "1.0",
+ "kind": "connector",
+ "description": {
+  "it": "L'account Instagram professionale collegato alla pagina Facebook: profilo, ultimi post, e pubblicazione delle immagini di Aurora (con la tua approvazione).",
+  "en": "The Instagram professional account linked to the Facebook page: profile, latest posts, and publishing Aurora's pictures (with your approval)."
+ },
+ "command": [
+  "{python}",
+  "server.py"
+ ],
+ "env": [
+  "AURORA_FACEBOOK_PAGE_ID",
+  "AURORA_FACEBOOK_PAGE_TOKEN"
+ ],
+ "requires": [
+  "AURORA_FACEBOOK_PAGE_ID",
+  "AURORA_FACEBOOK_PAGE_TOKEN"
+ ],
+ "effects": {
+  "ig_account": "read",
+  "ig_recent": "read",
+  "ig_publish_photo": "external",
+  "*": "external"
+ },
+ "publishes": {
+  "ig_publish_photo": "caption"
+ },
+ "setup": {
+  "it": "Usa la pagina Facebook già collegata: nessuna chiave nuova.\n\n1. Nell'app Instagram: **Impostazioni → Tipo di account → passa a professionale** (Creator o Business).\n2. Collega l'account alla pagina Facebook di Aurora: **pagina Facebook → Impostazioni → Account collegati → Instagram**.\n3. In **Graph API Explorer** aggiungi ai permessi `instagram_basic` e `instagram_content_publish`, rigenera il token, esegui `me/accounts` e copia il nuovo token della pagina nella scheda del plugin **facebook**.\n4. Qui sotto premi **▶ Prova** su `ig_account`: devi vedere il nome dell'account.\n\nLe foto: Instagram accetta solo JPEG da un indirizzo pubblico. Aurora converte l'immagine e la carica prima sulla pagina Facebook come foto *non pubblicata* (nessuno la vede), poi Instagram la prende dai server di Meta.",
+  "en": "Uses the Facebook page already connected: no new key.\n\n1. Instagram app: **Settings → Account type → switch to professional** (Creator or Business).\n2. Link the account to Aurora's Facebook page: **Facebook page → Settings → Linked accounts → Instagram**.\n3. In **Graph API Explorer** add `instagram_basic` and `instagram_content_publish`, get the token again, run `me/accounts` and paste the new page token in the **facebook** plugin's card.\n4. Below press **▶ Try** on `ig_account`: you should see the account's name.\n\nPictures: Instagram takes JPEG only, from a public address. Aurora converts the picture and uploads it to the Facebook page as an *unpublished* photo (nobody sees it), then Instagram takes it from Meta's servers.",
+  "links": [
+   {
+    "label": "Instagram Graph API — Content publishing",
+    "url": "https://developers.facebook.com/docs/instagram-platform/content-publishing"
+   }
+  ]
+ },
+ "settings": []
+}

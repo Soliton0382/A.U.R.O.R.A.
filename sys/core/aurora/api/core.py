@@ -162,11 +162,12 @@ SYS_CONFIRM = ("Aurora could not answer the owner's previous question from her v
 
 SYS_TOOLS = ("Decide whether the owner's last message asks Aurora to use one of her CONNECTED SERVICES (listed below) "
              "to read live data there or to do something there: e.g. look at his repositories, their issues or "
-             "statistics, his e-mail, the house, the files of a project, take a photo, check an IP address. Reply TOOLS "
+             "statistics, his e-mail, the house, the files of a project, take a photo, check an IP address, today's NEWS "
+             "and current events (what is happening now, the latest news of a topic: a news service reads them). Reply TOOLS "
              "if so. Reply NO if it is small talk, a question about Aurora herself, or a question about knowledge of the "
              "world (science, law, medicine, history, definitions, how something works) that a knowledge base answers. "
              "Examples: 'controlla i miei repository su GitHub' TOOLS; 'quante stelle ha il mio progetto?' TOOLS; "
-             "'ho nuove mail?' TOOLS; 'mostrami i file del progetto aurora-site' TOOLS; 'cos'è un repository git?' NO; "
+             "'ho nuove mail?' TOOLS; 'che novità ci sono oggi nello spazio?' TOOLS; 'ultime notizie di tecnologia' TOOLS; 'mostrami i file del progetto aurora-site' TOOLS; 'cos'è un repository git?' NO; "
              "'come funziona una pull request?' NO; 'cosa dice l'articolo 2043 del codice civile?' NO; 'come stai?' NO. "
              "Reply with exactly one word.\n\nCONNECTED SERVICES:\n{services}")
 ROUTER_SKIP = {"web", "self"}          # web search is the knowledge path's job; "self" is Aurora's own maintenance

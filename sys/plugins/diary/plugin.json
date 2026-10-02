@@ -1,0 +1,27 @@
+{
+ "name": "diary",
+ "version": "1.0",
+ "kind": "tool",
+ "description": {
+  "it": "La giornata di Aurora, in sola lettura: il suo ultimo sogno, i suoi pensieri, cosa ha imparato. Materiale per i suoi post, senza dati privati.",
+  "en": "Aurora's own day, read only: her latest dream, her thoughts, what she learned. Material for her posts, with no private data."
+ },
+ "command": [
+  "{python}",
+  "server.py"
+ ],
+ "env": [],
+ "requires": [],
+ "effects": {
+  "*": "read"
+ },
+ "sandbox": {
+  "network": false
+ },
+ "setup": {
+  "it": "Niente da configurare: legge solo i sogni e i pensieri di Aurora (mai le conversazioni) e il registro dell'harvester.",
+  "en": "Nothing to set up: it reads only Aurora's dreams and thoughts (never the conversations) and the harvester's log.",
+  "links": []
+ },
+ "settings": []
+}

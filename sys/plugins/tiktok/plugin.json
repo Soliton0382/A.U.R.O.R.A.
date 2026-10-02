@@ -1,0 +1,51 @@
+{
+ "name": "tiktok",
+ "version": "1.0",
+ "kind": "connector",
+ "description": {
+  "it": "I video di Aurora su TikTok (Content Posting API). Finché TikTok non approva la tua app, i post sono visibili solo all'account.",
+  "en": "Aurora's videos on TikTok (Content Posting API). Until TikTok audits your app, posts are visible to the account alone."
+ },
+ "command": [
+  "{python}",
+  "server.py"
+ ],
+ "env": [
+  "AURORA_TIKTOK_CLIENT_KEY",
+  "AURORA_TIKTOK_CLIENT_SECRET",
+  "AURORA_TIKTOK_REFRESH_TOKEN"
+ ],
+ "requires": [
+  "AURORA_TIKTOK_CLIENT_KEY",
+  "AURORA_TIKTOK_CLIENT_SECRET",
+  "AURORA_TIKTOK_REFRESH_TOKEN"
+ ],
+ "effects": {
+  "tiktok_account": "read",
+  "tiktok_post_video": "external",
+  "*": "external"
+ },
+ "publishes": {
+  "tiktok_post_video": "title"
+ },
+ "setup": {
+  "it": "1. Su **TikTok for Developers** crea un'app, aggiungi i prodotti **Login Kit** e **Content Posting API** (con *Direct Post* attivo) e gli scope `user.info.basic`, `video.publish`, `video.upload`.\n2. Nelle impostazioni dell'app aggiungi come **Redirect URI** l'indirizzo della tua WebUI, es. `https://aurora.example.com/` (deve essere HTTPS).\n3. Qui sotto inserisci **client key**, **client secret** e lo stesso **redirect URI**, e salva.\n4. Una volta sola, nel terminale dalla cartella di Aurora: `.venv/bin/python sys/plugins/tiktok/authorize.py` e segui le istruzioni (apri il link, accetti, incolli l'indirizzo che compare).\n5. Premi **▶ Prova** su `tiktok_account`.\n\n**Importante:** finché TikTok non fa l'*audit* della tua app, ogni video pubblicato via API è visibile **solo a te** e l'account deve essere privato. Per i post pubblici chiedi l'audit dalla console dell'app. Ogni pubblicazione aspetta la tua approvazione e il video è dichiarato generato dall'IA.",
+  "en": "1. On **TikTok for Developers** create an app, add **Login Kit** and **Content Posting API** (with *Direct Post* on) and the scopes `user.info.basic`, `video.publish`, `video.upload`.\n2. In the app's settings add as **Redirect URI** your WebUI's address, e.g. `https://aurora.example.com/` (HTTPS).\n3. Below put **client key**, **client secret** and the same **redirect URI**, and save.\n4. Once, in a terminal from Aurora's folder: `.venv/bin/python sys/plugins/tiktok/authorize.py` and follow it (open the link, accept, paste the address shown).\n5. Press **▶ Try** on `tiktok_account`.\n\n**Important:** until TikTok audits your app, every video posted through the API is visible **only to you** and the account must be private. For public posts ask for the audit in the app's console. Every post waits for your approval and is declared AI-generated.",
+  "links": [
+   {
+    "label": "TikTok for Developers",
+    "url": "https://developers.tiktok.com/"
+   },
+   {
+    "label": "Content Posting API",
+    "url": "https://developers.tiktok.com/doc/content-posting-api-get-started"
+   }
+  ]
+ },
+ "settings": [
+  "AURORA_TIKTOK_CLIENT_KEY",
+  "AURORA_TIKTOK_CLIENT_SECRET",
+  "AURORA_TIKTOK_REDIRECT_URI",
+  "AURORA_TIKTOK_REFRESH_TOKEN"
+ ]
+}

@@ -893,6 +893,19 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M66 — Answer quality now, news and diary (2026-10-02)
+
+`bench_quality.py` (new, in the repository): M40's 8 questions asked to the real API (nothing remembered), the
+retrieved passages read from the vault, blind judge Claude Code opus. Mean **5.5** (M40: local 5.25, ±0.75 noise):
+the 5 answers given score 9, 9, 8, 9, 9 (**8.8**); the 3 others are wrong abstentions (0), each at a different stage —
+verification dropped 3 right sentences of a formula with "ǫ" (4), the gate closed with 0 passages while the article
+was retrieved (6), the synthesis wrote "no information" over an extraction that named Jules Michelet (8). Depth work:
+those three stages, measured on a larger set (retrieval_pool108) before and after.
+News plugin: 14 of 15 official feeds answer (Il Post refuses automated readers); the chat routes "che novità ci
+sono oggi nello spazio?" and "ultime notizie dal mondo?" to it, "cos'è un buco nero?" and "art. 2043" to the vault
+(4/4). Diary plugin: dream and thoughts read from the vault inside the cage, the owner's name replaced. The Facebook
+routine with both: 6 tool calls, a post proposed on the Herculaneum papyri with its source and link. Tests 203.
+
 ## M65 — Public history, Facebook, Security page (2026-10-02)
 
 Public repository read over HTTPS without a key: 26 commits, 0 occurrences of the firewall serial in the whole

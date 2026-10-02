@@ -1,0 +1,24 @@
+{
+ "name": "news",
+ "version": "1.0",
+ "kind": "tool",
+ "description": {
+  "it": "Le notizie dal mondo dai feed ufficiali di redazioni e istituzioni (ANSA, BBC, The Guardian, Nature, ESA, NASA…): titolo, riassunto, fonte e link. Per le domande sull'attualità e per i post di Aurora.",
+  "en": "World news from the official feeds of newsrooms and institutions (ANSA, BBC, The Guardian, Nature, ESA, NASA…): title, summary, source and link. For questions about current events and Aurora's posts."
+ },
+ "command": [
+  "{python}",
+  "server.py"
+ ],
+ "env": [],
+ "requires": [],
+ "effects": {
+  "*": "read"
+ },
+ "setup": {
+  "it": "Niente da configurare. Le fonti sono in `sys/plugins/news/feeds.json` (argomento → fonti): puoi aggiungerne o toglierne. Aurora legge solo titolo e riassunto e rimanda all'articolo con il link: il testo resta all'editore.",
+  "en": "Nothing to set up. The sources are in `sys/plugins/news/feeds.json` (topic → sources): add or remove some. Aurora reads only title and summary and links to the article: the text stays with its publisher.",
+  "links": []
+ },
+ "settings": []
+}

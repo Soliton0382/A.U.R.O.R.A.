@@ -2270,6 +2270,60 @@
    "optional": true
   },
   {
+   "key": "AURORA_TIKTOK_CLIENT_KEY",
+   "type": "str",
+   "optional": true,
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "TikTok app's client key (TikTok for Developers).",
+   "it": "Client key dell'app TikTok (TikTok for Developers).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_TIKTOK_CLIENT_SECRET",
+   "type": "str",
+   "secret": true,
+   "optional": true,
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "TikTok app's client secret.",
+   "it": "Client secret dell'app TikTok.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_TIKTOK_REDIRECT_URI",
+   "type": "str",
+   "optional": true,
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Redirect URI registered in the TikTok app (HTTPS, e.g. the WebUI's address): used once by authorize.py.",
+   "it": "Redirect URI registrato nell'app TikTok (HTTPS, es. l'indirizzo della WebUI): lo usa una volta authorize.py.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_TIKTOK_REFRESH_TOKEN",
+   "type": "str",
+   "secret": true,
+   "optional": true,
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Written by authorize.py (valid 365 days): do not type it.",
+   "it": "Lo scrive authorize.py (vale 365 giorni): non scriverlo a mano.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_AI_DISCLOSURE",
    "type": "bool",
    "category": "compliance",

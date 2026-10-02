@@ -1,0 +1,10 @@
+{
+ "about": "Official RSS feeds of established newsrooms and institutions, by topic. Checked on 2 October 2026: all answer 200 (Il Post refuses automated readers: left out).",
+ "topics": {
+  "italia": [["ANSA", "https://www.ansa.it/sito/notizie/topnews/topnews_rss.xml"]],
+  "mondo": [["BBC World", "https://feeds.bbci.co.uk/news/world/rss.xml"], ["The Guardian", "https://www.theguardian.com/world/rss"]],
+  "scienza": [["ANSA Scienza", "https://www.ansa.it/canale_scienza_tecnica/notizie/scienzaetecnica_rss.xml"], ["BBC Science", "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml"], ["Nature", "https://www.nature.com/nature.rss"], ["ScienceDaily", "https://www.sciencedaily.com/rss/all.xml"]],
+  "tecnologia": [["ANSA Tecnologia", "https://www.ansa.it/sito/notizie/tecnologia/tecnologia_rss.xml"], ["BBC Technology", "https://feeds.bbci.co.uk/news/technology/rss.xml"], ["Ars Technica", "https://feeds.arstechnica.com/arstechnica/index"], ["MIT Technology Review", "https://www.technologyreview.com/feed/"], ["Hacker News", "https://hnrss.org/frontpage"]],
+  "spazio": [["ESA", "https://www.esa.int/rssfeed/Our_Activities/Space_Science"], ["NASA", "https://www.nasa.gov/news-release/feed/"]]
+ }
+}

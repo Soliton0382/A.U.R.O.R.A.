@@ -30,6 +30,8 @@ mark each line ✅ / ❌ with a note. Reload the WebUI first (the service worker
 | N8 | 🐞 Report a bug: describe, tick a conversation, Prepare | the files and what was masked; the zip opens; nothing private inside |
 | N9 | Zoom the browser to 150%: the side menu | the list of pages scrolls; the language selector stays at the bottom |
 | N10 | 🛠️ Repairs after the 18:30 Facebook routine (on a day with news) | a post proposed with the AI line at the end; approve → it appears on the page |
+| N11 | Chat: «che notizie ci sono oggi di tecnologia?» | headlines with source and link, from the 📰 news plugin |
+| N12 | 🛠️ Repairs: the Facebook post proposed at 18:30 | a post on her day or a science/tech news item, with its link; approve → on the page |
 | N6 | 🧩 Plugins: open the page, then a card, then back | the grid appears at once; icons do not flash (C80) |
 
 ## Pictures

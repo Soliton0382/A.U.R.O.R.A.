@@ -22,6 +22,11 @@ call downward (ECOSYSTEM §1).
 | `txt_lang.py` | text | Italian/English detection by stop words | — | kno_answer, kno_ingest |
 | `mdl_router.py` | models | which model does each step: providers (local, Claude Code, Anthropic, OpenAI-compatible), roles.json, MaskedLLM, Fallback to local, list of a provider's models, cloud statistics from the traces | mdl_cloud, sec_mask, httpx | kno_answer, kno_attach, svc_api |
 | `sec_mask.py` | security | reversible Pseudonymizer for what leaves for the cloud: addresses, e-mails, phones, IBANs, cards (Luhn), keys, secret settings, the owner's words; placeholders put back in the answer and in a stream | sys_config | mdl_router, agt_forge |
+| plugin `news` | knowledge | read only, network: headlines of official RSS feeds by topic (feeds.json), title, summary, source, link; never the article | — | chat (current events), Facebook routine |
+| plugin `diary` | knowledge | read only, no network: Aurora's latest dream and thoughts (vault reflections, never conversations; owner's name replaced) and what the harvester took | vault (read only) | Facebook routine |
+| plugin `instagram` | social | the IG professional account linked to the Facebook page (page token): profile, posts, publishing a picture (via an unpublished page photo: IG takes JPEG from a public URL only) | facebook settings | agent |
+| plugin `tiktok` | social | Content Posting API, direct post of a local video; SELF_ONLY until the app is audited; authorize.py for the one-time OAuth | TikTok app keys | agent |
+| `bench_quality.py` (script) | bench | answer quality of the live system: the API answers, the vault's passages, a blind Claude judge | api, vault | the owner |
 | plugin `cloud` | models | read only: which cloud providers have a key, the models of one; its card holds the keys and the masking settings | mdl_router | Models page |
 | `mdl_cloud.py` | models | cloud reasoners with the local interface: Anthropic API and Claude Code CLI; `make_reasoner` (rule 9 without exemption: local) | httpx, sys_ethics | kno_answer |
 | `mdl_image.py` | models | Aurora paints (dreams): SDXL-Lightning in a separate process, reasoner swapped out when the GPU is short, AI disclosure on the image; picture jobs (img_ai); `gpu_lock`, one GPU job at a time across processes | img_paint, img_ai, sys_disclosure | kno_rem, svc_api, mdl_video |
