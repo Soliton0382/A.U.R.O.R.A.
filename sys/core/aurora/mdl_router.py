@@ -81,6 +81,9 @@ def set_assignments(cfg: sys_config.Config, changes: dict[str, dict]) -> dict[st
     for role, a in changes.items():
         if role not in ROLES or a.get("provider") not in PROVIDERS:
             raise ValueError(f"unknown role or provider: {role} {a.get('provider')}")
+        key = PROVIDERS[a["provider"]].get("key")
+        if key and not cfg.values.get(key) and a["provider"] != cur[role]["provider"]:
+            raise ValueError(f"{a['provider']} has no key yet ({key}): add it in the cloud plugin's card first")
         cur[role] = {"provider": a["provider"], "model": str(a.get("model", ""))[:200]}
     f = _dir(cfg) / "roles.json"
     tmp = f.with_suffix(".tmp")

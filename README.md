@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-168%20passed-1baf7a" alt="Tests"></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-181%20passed-1baf7a" alt="Tests"></p>
 
 <p align="center">🇮🇹 <b>Italiano</b> · 🇬🇧 <a href="README.en.md">English</a></p>
 
@@ -185,13 +185,24 @@ con le tue risposte, scarica i modelli da Hugging Face a revisioni fissate verif
 llama.cpp per le tue GPU, esegue i test, crea la chiave del codice di condotta, installa i servizi systemd e
 l'HTTPS, e alla fine ti dice indirizzo e chiave API. Tutto finisce in `install.log`.
 
+Le funzioni facoltative si scelgono una per una, con la loro dimensione: sogni dipinti (6,8 GB), voce (1,5 GB),
+ingrandimento e scontorno (0,2 GB), modifiche creative delle foto (14,9 GB), creare video (34,2 GB). Quelle che la
+tua macchina non regge (VRAM e RAM misurate) non vengono proposte. Alla fine `sys_doctor.py` controlla tutto:
+configurazione, firma, modelli, servizi. Una funzione non installata non si rompe: Aurora risponde che manca e
+con quale comando aggiungerla (la pagina ⚙️ Stato mostra lo stesso elenco).
+
+```bash
+.venv/bin/python sys/core/script/sys_doctor.py                          # è tutto a posto?
+.venv/bin/python sys/core/script/sys_models_fetch.py --models video --yes  # aggiungere una funzione dopo
+```
+
 | profilo | stato |
 |---|---|
 | 2 GPU da 16 GB o più (es. 2 × RTX 5060 Ti) | **consigliato e misurato** |
 | 1 GPU da 24 GB o più | proposto, non misurato |
 | 1 GPU da 16 GB (esperti MoE in RAM, 48 GB consigliati) | proposto, non misurato |
 
-Modelli scaricati: ~33 GB (ragionatore 21,5 GB; sogni e voce facoltativi, 8,3 GB) — misurato: 181 s.
+Modelli: 24,7 GB obbligatori (ragionatore 21,5 GB, encoder, re-ranker), fino a 57,6 GB facoltativi.
 
 ## 📚 Aurora parte vuota: la conoscenza va raccolta
 

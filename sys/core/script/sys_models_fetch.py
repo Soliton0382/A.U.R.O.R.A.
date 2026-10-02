@@ -4,7 +4,7 @@
 
     python sys/core/script/sys_models_fetch.py --list                 # what, how big, what is already here
     python sys/core/script/sys_models_fetch.py --required --yes       # reasoner, encoder, re-ranker
-    python sys/core/script/sys_models_fetch.py --all --yes            # + dream paintings and speech to text
+    python sys/core/script/sys_models_fetch.py --all --yes            # every model: + dreams, speech, photos, video
     python sys/core/script/sys_models_fetch.py --models llm,stt --yes
     python sys/core/script/sys_models_fetch.py --verify               # SHA-256 of every big file already here
 
@@ -73,7 +73,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--list", action="store_true")
     ap.add_argument("--required", action="store_true", help="the models Aurora cannot run without")
-    ap.add_argument("--all", action="store_true", help="also dreams (images) and speech to text")
+    ap.add_argument("--all", action="store_true", help="every model of the manifest (also photos and video: see --list)")
     ap.add_argument("--models", default="", help="comma-separated names from the manifest")
     ap.add_argument("--verify", action="store_true", help="SHA-256 of the big files already present")
     ap.add_argument("--yes", action="store_true", help="do not ask before downloading")

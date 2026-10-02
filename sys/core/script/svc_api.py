@@ -91,7 +91,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request  # noqa: E402
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 
-from aurora import sys_config, sys_log  # noqa: E402
+from aurora import sys_config, sys_features, sys_log  # noqa: E402
 from aurora.sys_devices import COOKIE, Devices  # noqa: E402
 
 cfg = sys_config.get()
@@ -317,6 +317,9 @@ def _run_picture_ops(data: bytes, ops: list[dict], emit, name: str, lang: str) -
     return cur, mime or Image.MIME.get(img.format, "image/png"), {"width": img.width, "height": img.height}
 
 
+AI_FEATURE = {"creative": "edit_ai", "upscale": "upscale", "remove_background": "cutout"}
+
+
 def edit_pictures(question: str, pictures: list[tuple[str, bytes]], emit, run_id: str, remember: bool = True):
     """Each picture edited as asked (img_edit: a checked list of operations, Pillow); the results are new files of
     the conversation, shown in Aurora's bubble. The originals are never touched."""
@@ -332,6 +335,9 @@ def edit_pictures(question: str, pictures: list[tuple[str, bytes]], emit, run_id
         w, h = Image.open(io.BytesIO(data)).size
         ops = img_edit.plan(p.llm, question, w, h)
         emit("image.plan", {"name": name, "ops": ops})
+        for o in ops:
+            if o["op"] in AI_FEATURE:
+                sys_features.need(cfg, AI_FEATURE[o["op"]], lang)
         if not ops:
             lines.append(f"{name}: " + ("non ho capito quale modifica fare." if lang == "it" else "I did not understand what to change."))
             continue
@@ -387,10 +393,7 @@ def make_video(question: str, vp: dict, picture: tuple[str, bytes] | None, emit,
     (the reasoner is off meanwhile) and notifies the owner; the video is kept with this turn of the conversation."""
     from aurora import mdl_video, sys_uploads
     it = str(cfg["AURORA_LANG_DEFAULT"]).startswith("it")
-    if not mdl_video.available(cfg):
-        return _say(question, "Il modello video non è installato: si scarica con `sys_models_fetch.py --models video` "
-                    "(34 GB)." if it else "The video model is not installed: `sys_models_fetch.py --models video` (34 GB).",
-                    emit, run_id, "video", remember)
+    sys_features.need(cfg, "video_make", "it" if it else "en")
     if _video["busy"]:
         return video_busy_answer(question, emit, run_id)
     minutes = mdl_video.estimate_minutes(cfg)
@@ -521,6 +524,11 @@ def start_run(question: str, origin: str, job=None) -> dict:
             try:
                 work_fn = job or (lambda q, emit, run_id: pipeline().run(q, emit=emit, run_id=run_id))
                 run["answer"] = work_fn(question, emit, run["id"])
+            except sys_features.Missing as e:             # a model or setting this installation lacks: say what to do
+                log.info("run %s: %s", run["id"], e)
+                emit("feature.missing", {"feature": e.feature})
+                emit("answer.final", {"text": f"⚠️ {e}", "abstained": False, "sources": [], "seconds": 0.0, "mode": "missing"})
+                emit("run.end", {"seconds": round(time.time() - run["started"], 1)})
             except Exception as e:                        # the run fails visibly, never silently
                 log.exception("run %s failed", run["id"])
                 emit("error", {"message": f"{type(e).__name__}: {e}"})
@@ -907,6 +915,11 @@ def senses_devices() -> dict:
 async def senses_action(action: str, request: Request) -> dict:
     """The owner's own click in the WebUI (📷, 🎙️): consent is the click itself, no approval needed."""
     from aurora import sns_av
+    if action in ("listen", "transcribe"):
+        try:
+            sys_features.need(cfg, "speech", str(cfg["AURORA_LANG_DEFAULT"]))
+        except sys_features.Missing as e:
+            raise HTTPException(status_code=409, detail=str(e))
     try:
         if action == "photo":
             jpeg = await asyncio.to_thread(sns_av.photo, cfg)
@@ -938,6 +951,12 @@ async def senses_action(action: str, request: Request) -> dict:
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e))
     raise HTTPException(status_code=404, detail="unknown action")
+
+
+@app.get("/v1/aurora/features", dependencies=[Depends(auth)])
+def features() -> dict:
+    """What this installation can do, what is missing for the rest (and how to add it), contradicting settings."""
+    return {"features": sys_features.report(cfg), "config": sys_features.config_problems(cfg)}
 
 
 @app.get("/v1/aurora/update", dependencies=[Depends(auth)])

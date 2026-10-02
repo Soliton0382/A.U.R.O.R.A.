@@ -106,6 +106,17 @@ def check(cfg: sys_config.Config | None = None) -> dict:
         add(f"GPU{g['index']}", "warn" if used > 0.97 else "ok",
             f"VRAM {g['used_mib'] / 1024:.1f}/{g['total_mib'] / 1024:.1f} GB · carico {g['util_pct']}% · {g['temp_c']} °C")
 
+    from . import sys_features                           # what this installation can do, and what contradicts itself
+    feats = sys_features.report(cfg)
+    for name, f in feats.items():
+        if f["required"] and not f["ok"]:
+            add(name, "down", f"manca {', '.join(f['missing'])}", " / ".join(f["fix"]))
+    off = [f["label"]["it"] for f in feats.values() if not f["required"] and not f["ok"]]
+    add("funzioni", "ok", f"{sum(f['ok'] for f in feats.values())}/{len(feats)} disponibili"
+        + (f"; non installate: {', '.join(off)}" if off else ""))
+    for p in sys_features.config_problems(cfg):
+        add("configurazione", "warn", p)
+
     from . import sys_ethics                             # the code as the owner signed it (second tier)
     drift = sys_ethics.drift_summary(sys_ethics.code_drift(cfg.root))
     add("firma del codice", "warn" if drift else "ok", drift or "ogni file come firmato dal proprietario")

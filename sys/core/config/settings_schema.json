@@ -197,18 +197,6 @@
    ]
   },
   {
-   "key": "AURORA_TMP_DIR",
-   "type": "path",
-   "category": "layout",
-   "recommended": "sys/tmp",
-   "evidence": "owner",
-   "en": "Temporary files of the running system.",
-   "it": "File temporanei del sistema in esecuzione.",
-   "services": [
-    "all"
-   ]
-  },
-  {
    "key": "AURORA_SANDBOX_DIR",
    "type": "path",
    "category": "layout",
@@ -216,42 +204,6 @@
    "evidence": "owner",
    "en": "Sandbox where forged agents and plugins are tested.",
    "it": "Sandbox dove si collaudano agenti e plugin forgiati.",
-   "services": [
-    "aurora-api"
-   ]
-  },
-  {
-   "key": "AURORA_USER_DOCUMENTS_DIR",
-   "type": "path",
-   "category": "layout",
-   "recommended": "usr/documents",
-   "evidence": "owner",
-   "en": "The owner's documents.",
-   "it": "I documenti del proprietario.",
-   "services": [
-    "aurora-api"
-   ]
-  },
-  {
-   "key": "AURORA_USER_MEDIA_DIR",
-   "type": "path",
-   "category": "layout",
-   "recommended": "usr/media",
-   "evidence": "owner",
-   "en": "Images and media produced or received.",
-   "it": "Immagini e media prodotti o ricevuti.",
-   "services": [
-    "aurora-api"
-   ]
-  },
-  {
-   "key": "AURORA_USER_UPLOAD_DIR",
-   "type": "path",
-   "category": "layout",
-   "recommended": "usr/upload",
-   "evidence": "owner",
-   "en": "Files uploaded from the chat.",
-   "it": "File caricati dalla chat.",
    "services": [
     "aurora-api"
    ]
@@ -633,20 +585,6 @@
    ]
   },
   {
-   "key": "AURORA_SOLITON_SCHEMA",
-   "type": "int",
-   "min": 1,
-   "max": 1000,
-   "category": "vault",
-   "recommended": "1",
-   "evidence": "owner",
-   "en": "Schema version written into every soliton.",
-   "it": "Versione dello schema scritta in ogni solitone.",
-   "services": [
-    "all"
-   ]
-  },
-  {
    "key": "AURORA_EMBEDDER_DIR",
    "type": "path",
    "category": "embedder",
@@ -827,18 +765,6 @@
    "evidence": "M20, M24",
    "en": "Passages given to the answer stage after re-ranking.",
    "it": "Passaggi dati alla fase di risposta dopo il riordino.",
-   "services": [
-    "aurora-api"
-   ]
-  },
-  {
-   "key": "AURORA_SEARCH_DOMAIN_FILTER",
-   "type": "bool",
-   "category": "search",
-   "recommended": "0",
-   "evidence": "M10, M13",
-   "en": "Filter the search by a predicted domain. Off: a wrong domain filter loses the answer; domains group the results instead.",
-   "it": "Filtrare la ricerca per un dominio previsto. Spento: un filtro sbagliato perde la risposta; i domini raggruppano invece i risultati.",
    "services": [
     "aurora-api"
    ]
@@ -1065,18 +991,6 @@
    "evidence": "owner",
    "en": "Default interface language.",
    "it": "Lingua predefinita dell'interfaccia.",
-   "services": [
-    "aurora-api"
-   ]
-  },
-  {
-   "key": "AURORA_LANGS",
-   "type": "list",
-   "category": "interface",
-   "recommended": "it_IT,en_US",
-   "evidence": "owner",
-   "en": "Interface languages available.",
-   "it": "Lingue disponibili nell'interfaccia.",
    "services": [
     "aurora-api"
    ]
@@ -1914,19 +1828,6 @@
    "en": "MeteoAlarm feed of the country (official warnings of the national weather services).",
    "it": "Feed MeteoAlarm del paese (allerte ufficiali dei servizi meteorologici nazionali).",
    "services": []
-  },
-  {
-   "key": "AURORA_MEDIA_DIR",
-   "type": "path",
-   "category": "layout",
-   "recommended": "usr/media",
-   "evidence": "owner",
-   "en": "Images Aurora makes (dreams, generations).",
-   "it": "Immagini create da Aurora (sogni, generazioni).",
-   "services": [
-    "aurora-api",
-    "aurora-rem"
-   ]
   },
   {
    "key": "AURORA_REM_ENABLED",

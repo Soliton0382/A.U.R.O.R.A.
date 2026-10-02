@@ -473,5 +473,7 @@
   "gd.p.notifications": "Quali eventi ti avvisano e su quale canale.",
   "gd.p.updates": "Aggiornamenti da GitHub: cosa cambia, aggiorna ora, ritorno indietro se i test falliscono.",
   "gd.p.settings": "Dispositivi registrati e ogni valore di Aurora, con la sua spiegazione.",
-  "ev.video.plan": "{src} Video «{title}»: circa {m} minuti (prompt scritto in inglese per il modello)"
+  "ev.video.plan": "{src} Video «{title}»: circa {m} minuti (prompt scritto in inglese per il modello)",
+  "status.features": "Funzioni di questa installazione",
+  "status.missing": "manca: {what}"
 }

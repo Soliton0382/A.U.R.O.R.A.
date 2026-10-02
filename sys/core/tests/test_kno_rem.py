@@ -72,6 +72,7 @@ def dreaming(cfg, monkeypatch, paint):
     p.llm.complete = lambda system, user, max_tokens, think=False: SimpleNamespace(
         answer="Sogno onde di luce.\nIMAGE: a luminous soliton wave")
     monkeypatch.setattr("aurora.kno_rem.mdl_image.paint", paint)
+    monkeypatch.setattr("aurora.kno_rem.sys_features.ok", lambda cfg, name: True)   # the models, as on a full install
     monkeypatch.setattr(Rem, "_random_knowledge", lambda self, n: [])
     out = Rem(p, cfg).dream(lambda e, x: None)
     return out, [s for s in p.reader.recent(5, domain="reflection") if s.extra.get("type") == "dream"][-1]
@@ -92,6 +93,22 @@ def test_a_dream_survives_a_failed_painting(cfg, monkeypatch):
         raise RuntimeError("GPU 0: 0.7 GB free")
     out, dream = dreaming(cfg, monkeypatch, paint)
     assert dream.extra["image"] is None and "GPU 0" in dream.extra["painting_problem"] and out["sid"] == dream.sid
+
+
+def test_without_the_dream_models_the_dream_is_written_and_says_why_it_is_not_painted(cfg, monkeypatch):
+    def paint(*a, **k):
+        raise AssertionError("no model, no painting job")
+    p = pipeline(cfg)
+    p.writer.add_many([turn("user", "Parlami dei solitoni", 30), turn("assistant", "Onde che non si disperdono.", 29)])
+    p.llm.complete = lambda system, user, max_tokens, think=False: SimpleNamespace(
+        answer="Sogno onde di luce.\nIMAGE: a luminous soliton wave")
+    monkeypatch.setattr("aurora.kno_rem.mdl_image.paint", paint)
+    monkeypatch.setattr(Rem, "_random_knowledge", lambda self, n: [])
+    monkeypatch.setattr("aurora.kno_rem.sys_features.ok", lambda cfg, name: False)
+    monkeypatch.setattr("aurora.kno_rem.sys_features.check", lambda cfg, name: {"missing": ["image_base (18 file)"]})
+    cfg.values["AURORA_IMAGE_ENABLED"] = True
+    out = Rem(p, cfg).dream(lambda e, x: None)
+    assert out["image"] is None and out["painting_problem"] == "image_base (18 file)"
 
 
 def test_dates_are_labelled_relative_to_today(cfg):

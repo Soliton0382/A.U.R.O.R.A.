@@ -893,6 +893,21 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M58 — Consolidation: features, gates, doctor, installer (2026-10-02)
+
+Features on this machine: 10/10. Live gates, with the model setting pointed to a missing folder (then restored):
+"togli lo sfondo" on a photo → plan understood, then the answer "Scontorno (SAM 2.1): non disponibile … Per
+attivarla: … --models segment" (no GPU job started); dictation → HTTP 409 with the same kind of sentence; health
+"8/10 disponibili". Models: sys_models_fetch --verify exit 0 (every SHA-256 matches, 10 models). GPU end-to-end
+test (real encoder and re-ranker, reasoner paused): passed in 6.6 s. pip check: no broken requirements. 31 JS
+modules parse. Units: 7/7 enabled and active. Logs of the last day: no new error (the firewall "ERROR" lines are the
+firewall's own texts; plugin errors date from 30 Sep–1 Oct, one is C76). Installer selection simulated: this machine
+→ dreams, speech, photo tools, photo AI (+23.4 GB), video offered (default no); a 8 GB GPU profile → photo AI and
+video not offered with the measured reason. Structure tests: settings ↔ code, it ↔ en texts, a guide line per page,
+the offline shell's files, models ↔ features ↔ installer groups. Tests 181, also on the clean mirror (C78).
+Not measured: a real installation from scratch with the new installer (simulated only), a caged plugin's log line
+written live (tested in the suite), the growth of plugins/*.stderr.log (not rotated by the host).
+
 ## M57 — Making videos (2026-10-02)
 
 Model: Wan 2.2 TI2V 5B (Apache-2.0, diffusers, pinned, SHA-256 ok, 34.2 GB, 31.85 GB downloaded). On one RTX 5060 Ti

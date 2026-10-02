@@ -1,6 +1,6 @@
 # Manual tests — what only the owner can check
 
-Everything below was measured by machine (M43–M52), but not by a person on a real device. One pass, top to bottom;
+Everything below was measured by machine (M43–M58), but not by a person on a real device. One pass, top to bottom;
 mark each line ✅ / ❌ with a note. Reload the WebUI first (the service worker caches the old pages).
 
 ## Phone (PWA)
@@ -14,6 +14,18 @@ mark each line ✅ / ❌ with a note. Reload the WebUI first (the service worker
 | P5 | 📎 a video from the gallery (30 s–2 min) + "riassumilo" | scenes in order with times, what is said; time in the run (not measured on phone footage) |
 | P6 | Leave the chat, come back | the photos and videos sent are in the conversation again |
 | P7 | Push on the phone for a routine (Routines → ▶ Run now on the weather report) | a notification "☀️ Il meteo di oggi" |
+| P8 | Chat on 📱: «fammi un video di un gatto che gioca con la neve», then leave the app | at once the estimate (~19 min); a push «🎬 Il tuo video è pronto»; the video plays in the conversation |
+| P9 | While the video is being made, write anything | «sto creando il video… pronto verso le HH:MM», at once |
+
+## Pages added on 2 October
+
+| # | Test | Expected |
+|---|---|---|
+| N1 | 🧠 Models: assign «sintesi» to Claude Code · sonnet, Save, ask a question | the answer comes; Statistics shows a claude_code call and what was masked |
+| N2 | 🧠 Models: choose a provider without a key | it is greyed out (— manca la chiave) and the server refuses it |
+| N3 | 📖 Guide: open each «Apri →» | every page opens; the texts read well on the phone |
+| N4 | ⚙️ Status → «Funzioni di questa installazione» | 10 ✅; nothing red |
+| N5 | ⚙️ Settings: categories | each category once (C71) |
 
 ## Pictures
 

@@ -3,7 +3,7 @@
 // Services, autonomic cycle, weather, vault.
 import { call } from "../api.js";
 import { clock, el } from "../dom.js";
-import { apply, t } from "../i18n.js";
+import { apply, lang, t } from "../i18n.js";
 
 const pill = (ok, text) => el("span", `pill ${ok ? "ok" : "bad"}`, text);
 
@@ -32,6 +32,21 @@ export default {
       box.append(row);
     }
     if (health) box.append(el("div", "muted", t("status.checked", { at: clock(health.checked) })));
+    const f = await call("/v1/aurora/features").catch(() => null);
+    if (f) {                                       // what works here, and the command for what is missing
+      box.append(el("h3", "setting-cat", t("status.features")));
+      const code = lang.slice(0, 2);
+      for (const x of Object.values(f.features)) {
+        const row = el("div", "ev");
+        row.append(el("span", "ic", x.ok ? "✅" : x.required ? "⛔" : "⚪"), el("strong", "", x.label[code] || x.label.en));
+        if (!x.ok) {
+          row.append(el("span", "muted", t("status.missing", { what: x.missing.join(", ") })));
+          for (const c of x.fix) row.append(el("code", "", c));
+        }
+        box.append(row);
+      }
+      for (const p of f.config) box.append(el("p", "error", `⚠️ ${p}`));
+    }
     if (rem) {
       box.append(el("h3", "setting-cat", t("status.rem")));
       const last = (k) => (rem.last[k] ? clock(rem.last[k]) : "—");

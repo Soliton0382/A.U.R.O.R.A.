@@ -7,7 +7,8 @@
 #   ./install.sh                     # asks a few questions (defaults in brackets)
 #   ./install.sh --yes               # takes every default
 #   options: --no-services (stop before systemd/HTTPS: for a second copy on a machine that already runs Aurora)
-#            --no-optional-models (no dream paintings, no speech to text)   --reset-venv   --skip-build
+#            --no-optional-models (only the required models; add others later with sys_models_fetch.py)
+#            --with-video (also the video model under --yes, 34 GB)   --reset-venv   --skip-build
 #
 # Steps: system check → packages → NVIDIA (driver present, CUDA toolkit 13) → your answers → venv → hardware
 # profile → .env → models from Hugging Face → llama.cpp for your GPUs → tests → code of conduct key → systemd
@@ -16,12 +17,13 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
-YES=0; SERVICES=1; OPTIONAL=1; RESET_VENV=0; BUILD=1
+YES=0; SERVICES=1; OPTIONAL=1; RESET_VENV=0; BUILD=1; VIDEO=0
 for a in "$@"; do
   case "$a" in
     --yes|-y) YES=1 ;;
     --no-services) SERVICES=0 ;;
     --no-optional-models) OPTIONAL=0 ;;
+    --with-video) VIDEO=1 ;;
     --reset-venv) RESET_VENV=1 ;;
     --skip-build) BUILD=0 ;;
     -h|--help) sed -n '4,15p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
@@ -57,7 +59,7 @@ case "$ID:$VERSION_ID" in ubuntu:26.04*) ;; ubuntu:24.04*) warn "$(t 'Ubuntu 24.
 command -v sudo >/dev/null || die "sudo"
 FREE=$(df -BG --output=avail "$ROOT" | tail -1 | tr -dc 0-9)
 ok "$(t 'spazio libero' 'free space'): ${FREE} GB"
-[ "$FREE" -ge 50 ] || die "$(t 'servono almeno 50 GB liberi (modelli ~33 GB + build)' 'at least 50 GB free needed (models ~33 GB + build)')"
+[ "$FREE" -ge 45 ] || die "$(t 'servono almeno 45 GB liberi (modelli obbligatori 24,7 GB + ambiente e build)' 'at least 45 GB free needed (required models 24.7 GB + environment and build)')"
 
 # ---------------------------------------------------------------------------------------------------
 step "2. $(t 'Pacchetti di sistema' 'System packages')"
@@ -108,7 +110,6 @@ if [ "$DOMAIN" != localhost ] && yesno "$(t 'Hai un tuo certificato per' 'Do you
   TLS=files
 fi
 PORT=$(ask "$(t 'Porta HTTPS' 'HTTPS port')" "443")
-[ "$OPTIONAL" = 1 ] && ! yesno "$(t 'Scaricare anche sogni dipinti e trascrizione vocale (+8,3 GB)?' 'Also download painted dreams and speech to text (+8.3 GB)?')" y && OPTIONAL=0
 EXEMPT=0
 echo "  $(t 'Livello B del codice di condotta: conferma delle azioni esterne, approvazione delle modifiche al codice, dichiarazione IA.' 'Level B of the code of conduct: confirmation of external actions, approval of code changes, AI disclosure.')"
 yesno "$(t 'Esentare questa installazione dal livello B? (sconsigliato all inizio)' 'Exempt this installation from level B? (not advised at first)')" n && EXEMPT=1
@@ -128,6 +129,26 @@ PROFILE=$(.venv/bin/python sys/core/script/sys_profile.py --json) || { .venv/bin
 .venv/bin/python sys/core/script/sys_profile.py | sed 's/^/  /' || true
 
 # ---------------------------------------------------------------------------------------------------
+step "6b. $(t 'Funzioni facoltative (modelli da scaricare)' 'Optional features (models to download)')"
+# one question per group; a group this machine cannot run (measured VRAM / RAM) is not offered
+PICK=""; MODELS=""; EXTRA=0
+PROFILE_FILE=$(mktemp)
+echo "$PROFILE" > "$PROFILE_FILE"
+while IFS='|' read -r g size fits def why lit len mods; do
+  label=$(t "$lit" "$len")
+  if [ "$OPTIONAL" = 0 ]; then continue; fi
+  if [ "$fits" != 1 ]; then warn "$label: $(t 'non adatta a questa macchina' 'not for this machine') ($why)"; continue; fi
+  d=$([ "$def" = 1 ] && echo y || echo n); [ "$g" = video ] && [ "$VIDEO" = 1 ] && d=y
+  if yesno "$label (+${size} GB)?" "$d"; then
+    PICK="$PICK,$g"; MODELS="$MODELS,$mods"; EXTRA=$(.venv/bin/python -c "print(round($EXTRA + $size, 1))")
+  fi
+done < <(.venv/bin/python sys/core/script/sys_doctor.py --groups "$PROFILE_FILE")
+PICK="${PICK#,}"; MODELS="${MODELS#,}"
+NEED=$(.venv/bin/python -c "print(int(45 + $EXTRA + 0.999))")
+[ "$FREE" -ge "$NEED" ] || die "$(t "servono ${NEED} GB liberi per le scelte fatte, ce ne sono ${FREE}" "${NEED} GB free needed for these choices, ${FREE} available")"
+ok "$(t 'scelte' 'chosen'): ${PICK:-$(t 'nessuna' 'none')} (+${EXTRA} GB)"
+
+# ---------------------------------------------------------------------------------------------------
 step "7. $(t 'Configurazione (.env)' 'Configuration (.env)')"
 if [ -f .env ]; then
   ok "$(t '.env esistente: lo tengo (le chiavi nuove prendono il valore consigliato)' 'existing .env kept (new keys take their recommended value)')"
@@ -137,7 +158,7 @@ else
         --set "AURORA_HTTPS_PORT=$PORT" --set "AURORA_TLS_MODE=$TLS" --set "AURORA_UPDATE_MODE=notify")
   [ -n "$BROWSER" ] && SETS+=(--set "AURORA_CHROME_BIN=$BROWSER")
   while IFS='=' read -r k v; do [ -n "$k" ] && SETS+=(--set "$k=$v"); done < <(echo "$PROFILE" | .venv/bin/python -c 'import json,sys; [print(f"{k}={v}") for k, v in json.load(sys.stdin)["env"].items()]')
-  if [ "$OPTIONAL" = 0 ]; then SETS+=(--set "AURORA_IMAGE_ENABLED=0"); fi
+  case ",$PICK," in *,dreams,*) ;; *) SETS+=(--set "AURORA_IMAGE_ENABLED=0") ;; esac   # no dream model, no dream painting
   .venv/bin/python sys/core/script/sys_env_sync.py "${SETS[@]}" | grep -E '^\s+[=*]' || true
   mv .env.proposed .env
 fi
@@ -148,8 +169,10 @@ ok "$(t '.env valido (permessi 600)' '.env valid (mode 600)')"
 
 # ---------------------------------------------------------------------------------------------------
 step "8. $(t 'Modelli (Hugging Face, revisioni fissate, SHA-256 verificati)' 'Models (Hugging Face, pinned revisions, SHA-256 checked)')"
-if [ "$OPTIONAL" = 1 ]; then .venv/bin/python sys/core/script/sys_models_fetch.py --all --yes; else .venv/bin/python sys/core/script/sys_models_fetch.py --required --yes; fi \
-  || die "$(t 'download dei modelli' 'model download')"
+.venv/bin/python sys/core/script/sys_models_fetch.py --required --yes || die "$(t 'download dei modelli' 'model download')"
+if [ -n "$MODELS" ]; then
+  .venv/bin/python sys/core/script/sys_models_fetch.py --models "$MODELS" --yes || die "$(t 'download dei modelli facoltativi' 'optional model download')"
+fi
 
 # ---------------------------------------------------------------------------------------------------
 step "9. llama.cpp $(t 'per le tue GPU' 'for your GPUs')"
@@ -197,4 +220,7 @@ port = "" if c["AURORA_HTTPS_PORT"] == 443 else f":{c['AURORA_HTTPS_PORT']}"
 print(f"  WebUI:   https://{c['AURORA_DOMAIN']}{port}/")
 print(f"  API key: {c['AURORA_API_KEY']}   (once, to register each browser or app)")
 EOF
+echo
+.venv/bin/python sys/core/script/sys_doctor.py || warn "$(t 'qualcosa di obbligatorio non va: vedi sopra' 'something required is wrong: see above')"
+echo "  $(t 'Funzioni non scelte: si aggiungono quando vuoi con' 'Features not chosen: add them any time with'): .venv/bin/python sys/core/script/sys_models_fetch.py --models <$(t 'nome' 'name')> --yes"
 echo "  $(t 'Log dell installazione' 'Installation log'): $ROOT/install.log"

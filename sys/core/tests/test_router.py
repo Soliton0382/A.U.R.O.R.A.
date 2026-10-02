@@ -24,6 +24,10 @@ def test_without_a_choice_the_old_two_settings_decide(cfg):
     a = R.assignments(cfg)
     assert a["synthesis"]["provider"] == "claude_code" and a["agent"]["provider"] == "claude_code"
     assert a["route"]["provider"] == "local" and a["vision"]["provider"] == "local"
+    cfg.values["AURORA_XAI_API_KEY"] = ""
+    with pytest.raises(ValueError):                    # a provider without its key cannot be chosen
+        R.set_assignments(cfg, {"forge_judge": {"provider": "xai", "model": "grok-x"}})
+    cfg.values["AURORA_XAI_API_KEY"] = "k"
     a = R.set_assignments(cfg, {"forge_judge": {"provider": "xai", "model": "grok-x"}})
     assert R.assignments(cfg)["forge_judge"] == {"provider": "xai", "model": "grok-x"}
     with pytest.raises(ValueError):

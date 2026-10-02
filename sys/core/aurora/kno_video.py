@@ -20,7 +20,7 @@ import tempfile
 import time
 from pathlib import Path
 
-from . import sys_config, sys_log
+from . import sys_config, sys_features, sys_log
 
 VIDEO_EXT = {".mp4", ".webm", ".mov", ".mkv", ".avi", ".m4v", ".3gp", ".mpeg", ".mpg", ".ogv"}
 WATCH = ("These are frames of one video, in order, each preceded by its time. Describe what happens over time, "
@@ -122,7 +122,9 @@ def watch(data: bytes, name: str, lang: str, llm, cfg: sys_config.Config | None 
                             "frames": [mmss(t) for t, _ in shots]})
         visual = llm.see_many([(mmss(t), j) for t, j in shots], WATCH.format(lang=lang), max_tokens=1600) if shots else ""
         speech: list[tuple[float, float, str]] = []
-        if info["audio"]:
+        if info["audio"] and not sys_features.ok(cfg, "speech"):
+            ev("video.no_speech", {"name": name})             # watched without its words: the speech model is missing
+        elif info["audio"]:
             audio = sns_av.decode(path.read_bytes(), cfg, max_s=seconds)
             speech = sns_av.transcribe_segments(audio, "it" if lang == "Italian" else "en", cfg)
     out = {**info, "watched_s": round(seconds, 1), "frames": [t for t, _ in shots], "scenes": len(scenes),

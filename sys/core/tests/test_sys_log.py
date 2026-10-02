@@ -51,3 +51,12 @@ def test_trace_is_one_json_event_per_line(cfg):
     events = [json.loads(line) for line in lines]
     assert [e["event"] for e in events] == ["run.start", "run.end"]
     assert b > a and events[1]["parent"] == a and events[0]["payload"] == {"goal": "test"}
+
+
+def test_a_caged_plugin_logs_to_stderr_not_to_the_read_only_folder(cfg, monkeypatch, capsys):
+    monkeypatch.setenv("AURORA_IN_SANDBOX", "1")
+    sys_log.get_logger("caged_probe").info("pdf made")
+    sys_log.trace("caged_probe", "made", {"n": 1})
+    err = capsys.readouterr().err
+    assert "INFO aurora.caged_probe pdf made" in err and '"event": "made"' in err
+    assert not (cfg.path("AURORA_LOG_DIR") / "caged_probe").exists()

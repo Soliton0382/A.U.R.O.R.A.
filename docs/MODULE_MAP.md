@@ -49,6 +49,7 @@ call downward (ECOSYSTEM §1).
 | `agt_loop.py` | agents | the agent loop: Qwen tool calls, budgets, context compaction, propose_change, honest report with the record of calls | plg_host, sys_approvals, agt_change, mdl_llm | svc_api |
 | `agt_change.py` | agents | apply an approved sandbox change: tests, backup, copy, live tests, rollback, restart of the affected services | sys_tests | svc_api, agt_loop |
 | `sys_tests.py` | system | run the test suite (no GPU tests) on the live code or a sandbox, with Aurora's venv, never the real .env | pytest | agt_change, plugin self |
+| `sys_features.py` | system | what this installation can do: each feature with its models (all files), setting paths, switch, programs; `need` turns a missing one into a sentence with the command; installer groups with measured hardware needs; contradicting settings | sys_config, models.json, mdl_router | svc_api, kno_attach, kno_video, kno_rem, sys_health, sys_doctor |
 | `sys_health.py` | system | every service (systemd + real check or heartbeat), disk, GPUs → ok / warn / down with reasons | sys_metrics, httpx, curl | svc_api (/health), WebUI dot |
 | `sys_ethics.py` | system | code of conduct: signed integrity of the protected files (services refuse to start otherwise), level A forbidden plugin capabilities, owner's level-B exemption | cryptography | every service, plg_host, sys_approvals, sys_disclosure, agt_change |
 | `sys_disclosure.py` | compliance | EU AI Act art. 50: disclosure line on published text, machine-readable mark and label on images, header on documents | Pillow | agt_loop, kno_social, plugin projects |
@@ -84,6 +85,7 @@ call downward (ECOSYSTEM §1).
 | `doc_charts.py` | benchmark charts (SVG, IT/EN) for the README from the measurements | docs |
 | `dev_publish.sh` | copies what .gitignore lets through to a separate repository folder, checks paths, size, secrets, the owner's personal patterns (list kept outside the repo) and the tests, then commits and pushes there | before every publication |
 | `install.sh` (root) | the installer: system, packages, NVIDIA, answers, venv, profile, .env, models, llama.cpp, tests, ethics key, services, HTTPS | a new user |
+| `sys_doctor.py` | read-only check of the installation: .env and schema, code signature, features, contradicting settings, services; `--groups` for the installer | install.sh (end), the owner |
 | `sys_models_fetch.py` | models from Hugging Face per `config/models.json`: pinned revisions, sizes before, SHA-256 after, resumable | install.sh |
 | `sys_profile.py` | hardware profile (GPUs, VRAM, RAM) → .env values; only the reference profile is measured | install.sh |
 | `bench_image.py` | image model benchmark (load, time per image, peak VRAM at 1:1 and 16:9 ≥ 1024 px) | before choosing the image model |

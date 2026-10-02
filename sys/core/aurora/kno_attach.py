@@ -16,7 +16,7 @@ import io
 from dataclasses import dataclass
 from pathlib import Path
 
-from . import sys_config, sys_log, txt_lang
+from . import sys_config, sys_features, sys_log, txt_lang
 from .kno_ingest import FORMATS, Importer
 from .sol_schema import Soliton, load_taxonomy
 
@@ -95,6 +95,8 @@ class AttachmentHandler:
         out = []
         for name, data, mime in files:
             if kno_video.is_video(name, mime):
+                sys_features.need(self.cfg, "video_watch", lang)
+                sys_features.need(self.cfg, "vision", lang)
                 w = kno_video.watch(data, name, lang, self.p.llm, self.cfg, emit)
                 sols = [Soliton.new(t, "attachment", "knowledge", txt_lang.detect(t), f"attachment:{run_id}:{name}",
                                     title=name, chunk_index=i, chunk_count=len(texts), extra={"attachment": "video"})
@@ -104,6 +106,7 @@ class AttachmentHandler:
                                       "description": w["visual"][:2000]})
                 out.append(Attached(name, "video", sols))
             elif is_image(name, mime):
+                sys_features.need(self.cfg, "vision", lang)
                 jpeg = to_jpeg(data, self.cfg["AURORA_VISION_MAX_PX"])
                 text = self.p._for("vision").see(jpeg, SEE.format(lang=lang))   # a picture cannot be masked
                 sol = Soliton.new(text, "attachment", "knowledge", txt_lang.detect(text), f"attachment:{run_id}:{name}",

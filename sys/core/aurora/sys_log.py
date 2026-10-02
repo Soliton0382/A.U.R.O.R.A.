@@ -100,7 +100,17 @@ class _Formatter(logging.Formatter):
         return datetime.fromtimestamp(record.created).astimezone().isoformat(timespec="milliseconds")
 
 
-def _handler(path: Path, fmt: str) -> GzipRotatingFileHandler:
+def _caged() -> bool:
+    """Inside the plugin cage the log folder is read-only: the host keeps the plugin's stderr instead
+    (sys/logs/plugins/<plugin>.stderr.log), so a caged plugin logs there, every level."""
+    return bool(os.environ.get("AURORA_IN_SANDBOX"))
+
+
+def _handler(path: Path, fmt: str) -> logging.Handler:
+    if _caged():
+        h = logging.StreamHandler(sys.stderr)
+        h.setFormatter(_Formatter(fmt))
+        return h
     cfg = _config()
     h = GzipRotatingFileHandler(path, cfg["AURORA_LOG_MAX_MB"] * MIB, cfg["AURORA_LOG_RETENTION_DAYS"])
     h.setFormatter(_Formatter(fmt))
@@ -118,10 +128,11 @@ def get_logger(component: str) -> logging.Logger:
         lg.propagate = False
         lg.addHandler(_handler(cfg.path("AURORA_LOG_DIR") / component / f"{component}.log",
                                "%(asctime)s %(levelname)s %(name)s %(message)s"))
-        err = logging.StreamHandler(sys.stderr)
-        err.setLevel(logging.WARNING)
-        err.setFormatter(_Formatter("%(asctime)s %(levelname)s %(name)s %(message)s"))
-        lg.addHandler(err)
+        if not _caged():                                 # caged, the handler above is stderr already
+            err = logging.StreamHandler(sys.stderr)
+            err.setLevel(logging.WARNING)
+            err.setFormatter(_Formatter("%(asctime)s %(levelname)s %(name)s %(message)s"))
+            lg.addHandler(err)
         _loggers[component] = lg
     if cfg.unknown_keys:
         lg.warning("keys in %s not declared in the settings schema: %s", cfg.env_file, ", ".join(cfg.unknown_keys))

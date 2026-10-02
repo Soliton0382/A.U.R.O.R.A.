@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from . import mdl_image, sns_clock, sns_weather, sol_vault, sys_config, sys_log, sys_logread, txt_lang
+from . import mdl_image, sns_clock, sns_weather, sol_vault, sys_config, sys_features, sys_log, sys_logread, txt_lang
 from .sol_schema import Soliton
 
 IDENTITY_FILE = Path(__file__).resolve().parents[1] / "prompts" / "identity.md"
@@ -221,7 +221,9 @@ class Rem:
         out = self.p._for("rem").complete(self._identity() + SYS_DREAM, user, 900).answer.strip()
         text, _, image = out.partition("IMAGE:")
         painted, problem = None, None
-        if image.strip() and self.cfg["AURORA_IMAGE_ENABLED"]:
+        if image.strip() and self.cfg["AURORA_IMAGE_ENABLED"] and not sys_features.ok(self.cfg, "dreams"):
+            problem = "; ".join(sys_features.check(self.cfg, "dreams")["missing"])   # dreamt, not painted: no model
+        elif image.strip() and self.cfg["AURORA_IMAGE_ENABLED"]:
             try:                                          # a dream without its painting is still a dream
                 painted = mdl_image.paint(image.strip(), f"dream-{time.strftime('%Y%m%d-%H%M%S')}", self.cfg, emit,
                                           title="Aurora's dream")
