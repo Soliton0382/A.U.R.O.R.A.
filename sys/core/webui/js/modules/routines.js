@@ -6,6 +6,7 @@
 import { call } from "../api.js";
 import { clock, el } from "../dom.js";
 import { apply, t } from "../i18n.js";
+import { viewLink } from "../viewer.js";
 import { renderMarkdown } from "../md.js";
 
 const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
@@ -126,7 +127,7 @@ export default {
       if (r.last_files?.length) {                   // documents the routine wrote: download them
         const row = el("div", "chips");
         for (const f of r.last_files) {
-          const a = el("a", "chip"); a.href = f.url; a.setAttribute("download", f.name);
+          const a = viewLink(el("a", "chip"), f.url, f.name, f.mime);
           a.append(el("span", "", "📄"), el("span", "", f.name));
           row.append(a);
         }

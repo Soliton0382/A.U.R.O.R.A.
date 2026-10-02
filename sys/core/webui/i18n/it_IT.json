@@ -507,5 +507,6 @@
   "status.backup.mount": "🔌 Monta il NAS",
   "sec.archive": "🧹 Archivia i chiusi ({n})",
   "viewer.save": "Scarica",
-  "viewer.close": "Chiudi"
+  "viewer.close": "Chiudi",
+  "viewer.loading": "Preparo l'anteprima…"
 }

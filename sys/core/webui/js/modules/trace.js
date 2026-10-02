@@ -7,7 +7,7 @@ import { bus, runEnded, runStarted } from "../bus.js";
 import { clock, el, scrollEnd } from "../dom.js";
 import { t } from "../i18n.js";
 import { renderMarkdown } from "../md.js";
-import { viewLink } from "../viewer.js";
+import { view, viewLink } from "../viewer.js";
 
 export const ICONS = {
   "run.start": "▶️", route: "🧭", "attach.image": "🖼️", "attach.video": "🎬", "image.plan": "🛠️", "image.edited": "🎨", "video.frames": "🎞️", "video.plan": "🎬", "attach.document": "📄", "self.state": "🩺", translate: "🌐",
@@ -173,17 +173,12 @@ export function renderAnswer(b, p, when) {
     share.addEventListener("click", () => bus.emit("share", { text: p.text }));
     const pdf = el("button", "share", "⬇ PDF");
     pdf.type = "button";
-    pdf.addEventListener("click", async () => {         // the answer as a PDF, downloaded at once
+    pdf.addEventListener("click", async () => {         // the answer as a PDF, opened in the viewer (Download there)
       pdf.disabled = true;
       try {
         const title = p.text.split("\n").find((l) => l.trim())?.replace(/[#*`]/g, "").trim().slice(0, 80) || "Aurora";
         const doc = await call("/v1/aurora/documents/pdf", { method: "POST", body: JSON.stringify({ title, text: p.text }) });
-        const blob = await (await fetch(doc.url, { credentials: "same-origin" })).blob();
-        const a = el("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = doc.name;
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+        view(doc.url, doc.name, "application/pdf");
       } catch (e) { pdf.textContent = `⛔ ${e.message}`; }
       pdf.disabled = false;
     });

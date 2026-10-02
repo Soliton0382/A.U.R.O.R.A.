@@ -63,7 +63,7 @@ ok "$(t 'spazio libero' 'free space'): ${FREE} GB"
 
 # ---------------------------------------------------------------------------------------------------
 step "2. $(t 'Pacchetti di sistema' 'System packages')"
-PKGS="python3-venv python3-dev build-essential cmake git curl ffmpeg caddy libnss3-tools openssl"
+PKGS="python3-venv python3-dev build-essential cmake git curl ffmpeg poppler-utils caddy libnss3-tools openssl"
 MISSING=$(for p in $PKGS; do dpkg -s "$p" >/dev/null 2>&1 || echo "$p"; done | tr '\n' ' ')
 if [ -n "${MISSING// /}" ]; then
   echo "  $(t 'da installare' 'to install'): $MISSING"

@@ -38,6 +38,7 @@ FEATURES = {
                 ["edit"], [], None, []),
     "upscale": (False, {"it": "Ingrandimento IA (Swin2SR)", "en": "AI enlargement (Swin2SR)"}, ["upscale"], [], None, []),
     "cutout": (False, {"it": "Scontorno (SAM 2.1)", "en": "Background removal (SAM 2.1)"}, ["segment"], [], None, []),
+    "pdf_preview": (False, {"it": "Anteprima dei PDF", "en": "PDF preview"}, [], [], None, ["pdftoppm", "pdfinfo"]),
     "video_make": (False, {"it": "Creare video (Wan 2.2)", "en": "Making videos (Wan 2.2)"},
                    ["video"], [], None, ["ffmpeg"]),
 }
@@ -124,7 +125,7 @@ def check(cfg: sys_config.Config, name: str) -> dict:
     for p in programs:
         if not shutil.which(p):
             missing.append(p)
-            fix.append(f"sudo apt install {'ffmpeg' if p.startswith('ff') else p}")
+            fix.append(f"sudo apt install {'ffmpeg' if p.startswith('ff') else 'poppler-utils' if p.startswith('pdf') else p}")
     if switch and not cfg[switch]:
         missing.append(f"{switch} = off")
         fix.append(f"{switch}=1 (Impostazioni / Settings)")

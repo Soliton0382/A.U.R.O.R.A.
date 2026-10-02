@@ -893,6 +893,11 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M70 — PDF preview as pictures (3 October 2026)
+
+A one-page PDF of Aurora's: its page drawn at 110 dpi (909×1287 PNG, 134 KB) in 0.11 s through HTTPS; a second view
+from the cache. /etc/passwd as the preview's url → 404; without a key → 401. Tests 214.
+
 ## M69 — Files in place, repairs at once (2 October 2026, night)
 
 Headers through HTTPS: a PDF `inline`, `X-Frame-Options: SAMEORIGIN`, `frame-ancestors 'self'`; the WebUI page still
