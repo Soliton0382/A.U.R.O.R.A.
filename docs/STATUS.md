@@ -42,7 +42,7 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | forge | capability requests, plugins written, tested in the cage (no network), judged; read-only installed alone, else Approvals — safe, not yet useful with the local reasoner | M53, C70 |
 | WebUI | modular showcase: chat (full width, dates, path, share), repairs, security, diary, social, plugins, import, activity, status, settings; sky with orbiting fireflies; metrics with GPU load; PWA; safe Markdown | headless Chrome checks |
 | videos | «fammi un video di…», «anima questa foto»: Wan 2.2 TI2V 5B, 5 s at 1280×704 (a photo keeps its shape), ~19 min with the reasoner swapped out; immediate answer with the estimate, the chat says when it will be ready, push when done or failed; AI label and metadata; GPU lock shared with dreams and edits | M57, C74 |
-| backup | nightly, encrypted (AES-256-GCM), deduplicated, SQLite-consistent, retention 7/4/6, checked every run, restore into an empty folder; its own unit and timer, writing only there; Status page and health; not configured yet (owner: folder + key) | M60 |
+| backup | to the NAS every night at 03:30: encrypted (AES-256-GCM), deduplicated, SQLite-consistent, retention 7/4/6, checked every run; first copy 30.5 GB in 4 min 48 s, the vault restored from it intact | M60, M63 |
 | bug reports | 🐞 page: description, runs, hours of logs → a zip with private data masked, the list of files and of what was masked, a GitHub issue link | M60 |
 | routine PDFs | an agent routine's report is always also a PDF (C84) | M60 |
 | API structure | aurora-api in modules: aurora/api/core (shared) + 14 routers, entry svc_api.py 143 lines; no public API map (C79); one plugin host with cached tool lists, warmed at start (Plugins page 0.004 s, C80) | M59 |
@@ -68,14 +68,12 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 
 | what | why |
 |---|---|
-| check the GitHub repository's visibility | the public API answers 404 for Soliton0382/A.U.R.O.R.A.: anonymous clones (the README's `git clone https://…`) fail |
 | sign | code changed in this round (API split, sys_log, installer…): `sudo .venv/bin/python sys/core/script/sys_ethics_sign.py sign` |
 | delete the test copies when done | `~/Scaricati/Aurora_installtest` (88 GB), `~/Scaricati/aurora-backup-test` (28 GB), `~/Scaricati/aurora-restore-test` (4 GB) |
-| rewrite the history before going public (C83) | the firewall serial is in 3 commits: `git filter-branch` on the mirror, then `git push --force` (commands in the reply of 2 October) |
+| clean the history (C83) | the repository is public and its history still holds the firewall serial: `bash ~/Scaricati/pulisci-storia-git.sh` (backup, rewrite, check, force push) |
+| approve the Facebook page texts | 🛠️ Repairs: the page bio and the welcome message proposed by Aurora |
+| GitHub settings | rulesets, Actions read-only, private vulnerability reporting, Dependabot, secret scanning, CodeQL |
 | GitHub keys | delete `aurora-readonly` (an account key, read/write on every repo, used by nothing); keep the push key (the one named after this computer), better with a passphrase (`ssh-keygen -p -f ~/.ssh/id_ed25519`) |
-| Facebook permissions | for description, comments and welcome message the page token needs `pages_manage_metadata`, `pages_read_user_content`, `pages_manage_engagement`, `pages_messaging` (plugin card, step 2) |
-| backup on the NAS | backup plugin card: NAS user + password, Save (mounts it); units reinstalled once with sudo |
-| backup: choose the folder, make the key | AURORA_BACKUP_DIR (second disk or NAS, mounted at boot) → `svc_backup.py init` (keep the recovery code) → `sys_install_services.py` + `sudo bash sys/deploy/systemd/install.sh` |
 
 ## To do (designed)
 
@@ -86,7 +84,7 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | full-disk encryption | owner |
 | re-measure answer quality (M40) after the synthesis prompt change (M48) | a run of the benchmark |
 
-## Open bugs (2)
+## Open bugs (1)
 
 C70 (the forge does not yet build right plugins). Measurements still to take are listed in ROADMAP.md ("Still to measure").
 

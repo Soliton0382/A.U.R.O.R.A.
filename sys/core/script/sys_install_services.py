@@ -111,6 +111,7 @@ WorkingDirectory=$root
 ExecStart=$exec
 Nice=15
 IOSchedulingClass=idle
+MemoryHigh=2G
 TimeoutStartSec=6h
 $extra""")
 

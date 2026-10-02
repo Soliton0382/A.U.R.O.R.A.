@@ -38,6 +38,15 @@ export default {
       box.append(el("h3", "setting-cat", t("status.backup")));
       const row = el("div", "ev");
       if (!b.configured) row.append(el("span", "ic", "⚠️"), el("span", "error", t("status.backup.off", { why: b.problem })));
+      if (!b.configured && String(b.problem).includes("NAS")) {       // a NAS folder not mounted: mount it from here
+        const m = el("button", "", t("status.backup.mount"));
+        m.addEventListener("click", async () => {
+          m.disabled = true;
+          try { await call("/v1/aurora/backup/mount", { method: "POST" }); this.enter(); }
+          catch (e) { m.textContent = t("ev.error", { m: e.message }); }
+        });
+        row.append(m);
+      }
       else {
         const l = b.last;
         row.append(el("span", "ic", l ? "✅" : "⏳"), el("span", "", l ? t("status.backup.last", { at: clock(l.at), files: l.files,

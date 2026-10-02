@@ -893,6 +893,16 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M63 — First backup to the NAS (2026-10-02)
+
+aurora-mount (after the fix of C90): mounted in 1 s, //NAS/share on /mnt/aurora-nas, cifs 3.0, owned by the service
+user. Backup from its unit: 1,390 files, 30.52 GB read, 28.49 GB encrypted and written in 287.6 s (~99 MB/s, the
+gigabit LAN), 20 blobs checked; systemd counted a 26 GB memory peak (the page cache of the files read): the unit now
+has MemoryHigh=2G. Restore of the vault from the NAS into an empty folder: 142 files, 3.7 GB in 20.2 s, SQLite
+integrity_check ok on 37 of 37 databases. Facebook: the new page token has the 8 scopes needed (posts, comments,
+answers, page info, Messenger); the agent proposed the page bio (85 characters, the limit is 101) and the welcome
+message (152 of 160): both wait for the owner's approval.
+
 ## M62 — Facebook, model choices, NAS mount diagnosis (2026-10-02)
 
 Facebook: page token valid, never expiring, scopes pages_show_list, pages_read_engagement, pages_manage_posts; the
