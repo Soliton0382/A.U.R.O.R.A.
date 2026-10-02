@@ -92,7 +92,6 @@ Signed and published (commit d4ce54f, 29 commits, the history clean of the firew
 | move the owner's key to root-only custody (USB) | owner (SECURITY.md) |
 | firewall actions (block an address) and abuse reports as approvals | Sophos API plugin |
 | full-disk encryption | owner |
-| re-measure answer quality (M40) after the synthesis prompt change (M48) | a run of the benchmark |
 
 ## Open bugs (0)
 

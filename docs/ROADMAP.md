@@ -188,7 +188,6 @@ SDXL-Lightning 6.9 GB. FLUX.2 klein (23 GB) and Z-Image-Turbo (31 GB) were only 
 
 | what | why not yet |
 |---|---|
-| dictation with the owner's real voice | M37 used a synthetic voice |
 | the two non-reference hardware profiles | no such machine here |
 | the whole `install.sh` with its sudo steps, on another machine | M39 ran the steps without sudo on this one |
 | Web Push delivery on phones | depends on each device and browser |
