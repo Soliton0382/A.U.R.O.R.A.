@@ -71,9 +71,23 @@ class Incidents:
             self._save(items)
         return item
 
-    def list(self, status: str | None = None) -> list[dict]:
+    def list(self, status: str | None = None, archived: bool = True) -> list[dict]:
         with _lock:
-            return [i for i in reversed(self._load()) if status is None or i["status"] == status]
+            return [i for i in reversed(self._load()) if (status is None or i["status"] == status)
+                    and (archived or not i.get("archived"))]
+
+    def archive_closed(self) -> int:
+        """The closed incidents leave the Security page; they stay in the file, so the morning report and the
+        statistics still count them. Returns how many were archived."""
+        with _lock:
+            items, n = self._load(), 0
+            for i in items:
+                if i["status"] != "open" and not i.get("archived"):
+                    i.update(archived=True, archived_at=time.strftime("%Y-%m-%dT%H:%M:%S%z"))
+                    n += 1
+            if n:
+                self._save(items)
+        return n
 
 
 def investigate(pipeline, host, incident: dict, emit, cfg: sys_config.Config | None = None) -> str:

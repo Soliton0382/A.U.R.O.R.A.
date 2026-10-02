@@ -29,3 +29,14 @@ def test_ips_alert_and_internal_sources():
     inc = d.feed(parse('log_type="IDP" src_ip="192.168.1.50" signature_msg="ET SCAN Nmap" dst_port=445'), now=10)
     assert inc[0].kind == "ips_alert" and inc[0].internal and inc[0].detail["signature"] == "ET SCAN Nmap"
     assert is_private("10.0.0.1") and not is_private("203.0.113.7")
+
+
+def test_closed_incidents_leave_the_page_but_stay_for_the_reports(cfg):
+    from aurora.sec_incidents import Incidents
+    inc = Incidents(cfg)
+    a = inc.add({"kind": "port_scan", "source": "203.0.113.5", "count": 40})
+    b = inc.add({"kind": "deny_burst", "source": "203.0.113.6", "count": 90})
+    inc.update(a["id"], status="closed")
+    assert inc.archive_closed() == 1 and inc.archive_closed() == 0          # once, the open one untouched
+    assert [i["id"] for i in inc.list(archived=False)] == [b["id"]]       # the page
+    assert {i["id"] for i in inc.list()} == {a["id"], b["id"]}            # the reports still see both

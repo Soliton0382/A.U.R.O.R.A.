@@ -31,9 +31,18 @@ async def sentinel_incident(request: Request) -> dict:
 
 
 @router.get("/v1/aurora/incidents", dependencies=[Depends(auth)])
-def incidents(status: str | None = None) -> list[dict]:
+def incidents(status: str | None = None, archived: bool = False) -> list[dict]:
     from aurora.sec_incidents import Incidents
-    return Incidents(cfg).list(status)[:200]
+    return Incidents(cfg).list(status, archived)[:200]
+
+
+@router.post("/v1/aurora/incidents/archive-closed", dependencies=[Depends(auth)])
+def incidents_archive_closed() -> dict:
+    """The owner tidies the Security page: closed incidents archived (kept for the reports)."""
+    from aurora.sec_incidents import Incidents
+    n = Incidents(cfg).archive_closed()
+    log.info("audit: owner archived %d closed incidents", n)
+    return {"archived": n}
 
 
 @router.post("/v1/aurora/incidents/{incident_id}/close", dependencies=[Depends(auth)])

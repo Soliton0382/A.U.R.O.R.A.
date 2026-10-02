@@ -175,12 +175,12 @@ SDXL-Lightning 6.9 GB. FLUX.2 klein (23 GB) and Z-Image-Turbo (31 GB) were only 
 
 | what | why not yet |
 |---|---|
-| SSCC on long contexts (agent runs, wide extractions): saving and answer quality | M40: short extractions are never compressed |
 | dictation with the owner's real voice | M37 used a synthetic voice |
 | the two non-reference hardware profiles | no such machine here |
 | the whole `install.sh` with its sudo steps, on another machine | M39 ran the steps without sudo on this one |
 | Web Push delivery on phones | depends on each device and browser |
-| update with a read-only deploy key | the owner's key has a passphrase |
+| an update from the public repository (HTTPS, no key) | the installation of the owner has no git; the first public user's will |
+| the nightly backup started by its timer | first night: 3 October 03:30 |
 
 ## Still to implement (2026-10-01)
 

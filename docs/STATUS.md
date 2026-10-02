@@ -42,6 +42,7 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | forge | capability requests, plugins written, tested in the cage (no network), judged; read-only installed alone, else Approvals — safe, not yet useful with the local reasoner | M53, C70 |
 | WebUI | modular showcase: chat (full width, dates, path, share), repairs, security, diary, social, plugins, import, activity, status, settings; sky with orbiting fireflies; metrics with GPU load; PWA; safe Markdown | headless Chrome checks |
 | videos | «fammi un video di…», «anima questa foto»: Wan 2.2 TI2V 5B, 5 s at 1280×704 (a photo keeps its shape), ~19 min with the reasoner swapped out; immediate answer with the estimate, the chat says when it will be ready, push when done or failed; AI label and metadata; GPU lock shared with dreams and edits | M57, C74 |
+| security page | closed incidents archived with one button (kept in the file: the morning report still counts them) | M65 |
 | backup | to the NAS every night at 03:30: encrypted (AES-256-GCM), deduplicated, SQLite-consistent, retention 7/4/6, checked every run; first copy 30.5 GB in 4 min 48 s, the vault restored from it intact | M60, M63 |
 | bug reports | 🐞 page: description, runs, hours of logs → a zip with private data masked, the list of files and of what was masked, a GitHub issue link | M60 |
 | routine PDFs | an agent routine's report is always also a PDF (C84) | M60 |
@@ -68,11 +69,9 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 
 | what | why |
 |---|---|
-| sign | code changed in this round (API split, sys_log, installer…): `sudo .venv/bin/python sys/core/script/sys_ethics_sign.py sign` |
-| delete the test copies when done | `~/Scaricati/Aurora_installtest` (88 GB), `~/Scaricati/aurora-backup-test` (28 GB), `~/Scaricati/aurora-restore-test` (4 GB) |
-| clean the history (C83) | rewritten locally (0 occurrences); the push was refused as "stale": `git fetch origin && git push --force-with-lease origin main` in Aurora_git |
-| approve the Facebook page texts | 🛠️ Repairs: the page bio and the welcome message proposed by Aurora |
-| GitHub settings | rulesets, Actions read-only, private vulnerability reporting, Dependabot, secret scanning, CodeQL |
+| sign | code changed today (the health is yellow until then): `sudo .venv/bin/python sys/core/script/sys_ethics_sign.py sign` |
+| Messenger welcome message | Meta Business Suite → Inbox → Automations → Instant reply (Meta's API refuses it for this page) |
+| the history's safety copy | `~/Scaricati/Aurora_git-copia-20261002-114536.tgz` holds the old history (with the serial): delete it when sure |
 | GitHub keys | delete `aurora-readonly` (an account key, read/write on every repo, used by nothing); keep the push key (the one named after this computer), better with a passphrase (`ssh-keygen -p -f ~/.ssh/id_ed25519`) |
 
 ## To do (designed)
@@ -86,5 +85,5 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 
 ## Open bugs (0)
 
-C70 (the forge does not yet build right plugins). Measurements still to take are listed in ROADMAP.md ("Still to measure").
+None. Measurements still to take are listed in ROADMAP.md ("Still to measure").
 

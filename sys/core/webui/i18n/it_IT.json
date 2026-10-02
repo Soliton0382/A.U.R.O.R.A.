@@ -504,5 +504,6 @@
   "md.budget": "💶 {p} oggi: {n} di {cap} token",
   "md.budget_stop": "⛔ {p}: tetto di oggi raggiunto ({n} di {cap} token): i suoi passaggi tornano in locale fino a domani",
   "md.budget_free": "{p} oggi: {n} token (abbonamento, nessun tetto)",
-  "status.backup.mount": "🔌 Monta il NAS"
+  "status.backup.mount": "🔌 Monta il NAS",
+  "sec.archive": "🧹 Archivia i chiusi ({n})"
 }

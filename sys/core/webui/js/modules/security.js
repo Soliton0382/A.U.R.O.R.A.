@@ -18,10 +18,18 @@ export default {
     root.classList.add("page");
     root.innerHTML = `<h2 data-i18n="sec.title"></h2><p class="muted" data-i18n="sec.hint"></p>
       <h3 class="setting-cat" data-i18n="sec.open"></h3><div class="open"></div>
-      <h3 class="setting-cat" data-i18n="sec.closed"></h3><div class="closed"></div>`;
+      <h3 class="setting-cat"><span data-i18n="sec.closed"></span> <button class="sec-archive" hidden></button></h3>
+      <div class="closed"></div>`;
     apply(root);
     this.open = root.querySelector(".open");
     this.closed = root.querySelector(".closed");
+    this.archive = root.querySelector(".sec-archive");
+    this.archive.addEventListener("click", async () => {      // tidy the page: archived, still in the reports
+      this.archive.disabled = true;
+      await call("/v1/aurora/incidents/archive-closed", { method: "POST" }).catch(() => null);
+      this.archive.disabled = false;
+      this.enter();
+    });
   },
 
   card(i) {
@@ -52,5 +60,8 @@ export default {
     const open = all.filter((i) => i.status === "open"), closed = all.filter((i) => i.status !== "open").slice(0, 30);
     this.open.replaceChildren(...(open.length ? open.map((i) => this.card(i)) : [el("p", "muted", t("sec.none"))]));
     this.closed.replaceChildren(...closed.map((i) => this.card(i)));
+    const nClosed = all.filter((i) => i.status !== "open").length;
+    this.archive.hidden = nClosed === 0;
+    this.archive.textContent = t("sec.archive", { n: nClosed });
   },
 };

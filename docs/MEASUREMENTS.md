@@ -893,6 +893,14 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M65 — Public history, Facebook, Security page (2026-10-02)
+
+Public repository read over HTTPS without a key: 26 commits, 0 occurrences of the firewall serial in the whole
+history (8 before the force push). Facebook: bio, website (the GitHub repository) and the presentation post applied
+through 3 approvals; 1 follower. Security page: 32 incidents shown → 1 (the open one) after archiving 31 closed;
+the file keeps 32 and the security plugin (morning report) still lists them. Health yellow only for the code
+signature (8 files changed today). Tests 202.
+
 ## M64 — Forge with the cloud steps, full check of the NAS backup (2026-10-02)
 
 NAS backup: verify --full decrypted and checked 1,224 of 1,224 blobs in 2 min 18 s (exit 0).
