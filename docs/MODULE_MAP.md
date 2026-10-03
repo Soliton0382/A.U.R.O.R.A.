@@ -82,6 +82,7 @@ call downward (ECOSYSTEM §1).
 | `sys_logread.py` | system | Aurora reads her logs: inventory with the last day's problems, tail of a component, a run's events from the traces, answer statistics | sys_config | kno_answer (self state), kno_rem (self-review), svc_api (/logs) |
 | `sys_metrics.py` | system | CPU, RAM, GPUs for the WebUI top bar, sampled at most every 1.5 s | /proc, nvidia-smi | svc_api |
 | `kno_rem.py` | memory | autonomic work: closed sessions → session memories (STM → LTM), spontaneous thoughts, dreams | mdl_llm, sol_writer, sol_index, sns_* | svc_api (started by svc_rem) |
+| `sys_users.py` | system | users (admin, users): `<status>/users.db` (600, schema versioned), scrypt passwords, TOTP RFC 6238 with replay refused; not wired yet (docs/MULTIUSER.md, U1) | — | — |
 | `sys_devices.py` | system | registered devices: token hashes in `<status>/devices.json` (600), HttpOnly cookie for the WebUI | — | svc_api |
 | `kno_acquire.py` | knowledge | iterative arXiv agent: queries, re-ranked abstracts, PDF import, answer again | kno_ingest, kno_answer, arXiv API | svc_api |
 
@@ -108,7 +109,7 @@ call downward (ECOSYSTEM §1).
 | `dev_publish.sh` | copies what .gitignore lets through to a separate repository folder, checks paths, size, secrets, the owner's personal patterns (list kept outside the repo) and the tests, then commits and pushes there | before every publication |
 | `install.sh` (root) | the installer: system, packages, NVIDIA, answers, venv, profile, .env, models, llama.cpp, tests, ethics key, services, HTTPS | a new user |
 | `sys_nas_mount.py` | aurora-mount (root, oneshot): checks smb://host/share/folder, writes /etc/aurora/nas.cred, one marked fstab line (copy first), mounts /mnt/aurora-nas | API on the backup plugin's Save, install.sh |
-| `svc_backup.py` | aurora-backup (oneshot, timer AURORA_BACKUP_TIME): init (key + recovery code), run, list, verify, restore | systemd timer, the owner |
+| `svc_backup.py` | aurora-backup (oneshot, timer AURORA_BACKUP_TIME): init (key + recovery code), run, list, verify, restore, failed (the unit could not start: `aurora-backup-failed`, OnFailure) | systemd timer, the owner |
 | `dev_privacy_scan.py` | before a publish: the masker's terms and the firewall's devices must not be in the published folder (file:line, kind) | dev_publish.sh |
 | `sys_doctor.py` | read-only check of the installation: .env and schema, code signature, features, contradicting settings, services; `--groups` for the installer | install.sh (end), the owner |
 | `sys_models_fetch.py` | models from Hugging Face per `config/models.json`: pinned revisions, sizes before, SHA-256 after, resumable | install.sh |

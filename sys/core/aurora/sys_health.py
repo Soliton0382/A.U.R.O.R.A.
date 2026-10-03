@@ -130,6 +130,8 @@ def check(cfg: sys_config.Config | None = None) -> dict:
         add("backup", "warn", f"nessun backup: {b['problem']}", "AURORA_BACKUP_DIR + svc_backup.py init")
     elif age_h is None or age_h > 30:
         add("backup", "warn", "nessun backup riuscito" + (f" da {age_h:.0f} ore" if age_h else " ancora"), b.get("dest", ""))
+    elif (why := sys_backup.unit_failure()):
+        add("backup", "warn", f"ultimo tentativo fallito: {why}", b.get("dest", ""))
     else:
         add("backup", "ok", f"ultimo {age_h:.0f} h fa: {last.get('files')} file, {last.get('bytes', 0) / 1e9:.1f} GB, "
             f"{len(b['snapshots'])} copie", b.get("dest", ""))

@@ -52,6 +52,11 @@ SYS_ROUTE = ("Classify the owner's last message to the assistant Aurora. Reply S
              "l'articolo 1571?' KNOWLEDGE; 'e nel caso di un affitto breve?' KNOWLEDGE. "
              "Reply with exactly one word.")
 SYS_TRANSLATE = "Translate the user's question into English. Output only the translation."
+SYS_STANDALONE = ("You get the last turns of a conversation and the owner's LAST MESSAGE. If the last message can be "
+                  "understood only with the turns before it (it points to something said there: 'it', 'he', 'that "
+                  "one', 'the author', 'and what about…', 'why?'), rewrite it as ONE complete question that names what "
+                  "it points to, in the language of the last message, adding nothing else. If it is already complete "
+                  "on its own, copy it EXACTLY as it is. Output only the question.")
 SYS_GATE = ("You decide whether numbered passages can answer a question. List the numbers of the passages that "
             "contain information needed for the answer, even if only part of it (a definition, a value, a name, a "
             "condition the question asks about), separated by commas. Ignore passages that are only about the same "
@@ -167,6 +172,9 @@ class Pipeline:
             ev("run.end", {"seconds": round(result.seconds, 1)})
             return result
         ev("route", {"mode": "attachments" if attached else "knowledge"})
+        asked = question                            # the owner's words, kept for the answer and the memory
+        question = self._standalone(question, recent, ev)
+        lang = txt_lang.detect(question)
         translation = None
         if lang != "en":
             translation = self._for("translate").complete(SYS_TRANSLATE, question, 200).answer
@@ -194,9 +202,9 @@ class Pipeline:
         answer = self._answer(question, hits, recent_block, ev) if hits else None
         if answer is None:
             text = self._abstention(question, lang)
-            result = Answer(run_id, question, text, True)
+            result = Answer(run_id, asked, text, True)
         else:
-            result = Answer(run_id, question, answer[0], False, answer[1], answer[2])
+            result = Answer(run_id, asked, answer[0], False, answer[1], answer[2])
         result.seconds = time.time() - t0
         result.speed = None if result.abstained else self.speed
         ev("answer.final", {"text": result.text, "abstained": result.abstained, "sources": result.sources,
@@ -204,7 +212,7 @@ class Pipeline:
                             "speed": result.speed})
         if remember:
             names = f" [{', '.join(a.name for a in attached)}]" if attached else ""
-            self.remember(question + names, result, run_id, ev, trail, asked_at)
+            self.remember(asked + names, result, run_id, ev, trail, asked_at)
         ev("run.end", {"seconds": round(result.seconds, 1)})
         return result
 
@@ -313,6 +321,26 @@ class Pipeline:
         return " ".join(kept).strip(), dropped
 
     # ---- stage 0: route ------------------------------------------------------------
+    def _standalone(self, question: str, recent: list[Soliton], ev: Emit) -> str:
+        """A follow-up ("e chi l'ha scoperto?") made a complete question with the turns before it, so that the search,
+        the gate and the synthesis know what it is about; a question complete on its own is left as it is."""
+        if not self.cfg["AURORA_PIPELINE_STANDALONE"] or not recent:
+            return question
+        gap = self.cfg["AURORA_REM_SESSION_GAP_MIN"] * 60
+        try:
+            last = datetime.fromisoformat(recent[-1].created_at)
+        except ValueError:
+            return question
+        if (sns_clock.now(self.cfg) - last).total_seconds() > gap:       # an old conversation: a new topic
+            return question
+        out = self._for("translate").complete(SYS_STANDALONE, f"TURNS:\n{self._turns(recent, 4, 400)}\n\n"
+                                              f"LAST MESSAGE: {question}", 200).answer.strip().strip('"«»').strip()
+        if not out or len(out) > 3 * len(question) + 200 or "\n" in out:      # not a question: keep the owner's
+            return question
+        if out != question:
+            ev("question.standalone", {"question": out})
+        return out
+
     def _turns(self, recent: list[Soliton], n: int, cut: int | None = 500) -> str:
         """The last n turns with their local time and day: '[mercoledì 2026-09-30 10:31 (ieri)] Owner: ...'."""
         return "\n".join(f"[{sns_clock.when(s.created_at, self.cfg)}] {'Owner' if s.extra.get('role') == 'user' else 'Aurora'}: "

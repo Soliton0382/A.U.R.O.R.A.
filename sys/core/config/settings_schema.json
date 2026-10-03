@@ -1614,6 +1614,18 @@
    "optional": true
   },
   {
+   "key": "AURORA_PIPELINE_STANDALONE",
+   "type": "bool",
+   "category": "pipeline",
+   "recommended": "true",
+   "evidence": "M71",
+   "en": "A follow-up question (\"and who discovered it?\") is rewritten as a complete question with the conversation of the last minutes before the search; a complete question stays as it is.",
+   "it": "Una domanda di seguito («e chi l'ha scoperto?») viene riscritta come domanda completa con la conversazione degli ultimi minuti prima della ricerca; una domanda già completa resta com'è.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_PIPELINE_GATE",
    "type": "bool",
    "category": "pipeline",

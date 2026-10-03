@@ -103,6 +103,11 @@ BACKUP_UNIT = Template("""# Generated from .env by sys/core/script/sys_install_s
 [Unit]
 Description=Aurora — backup of the owner's data (encrypted, to $dest)
 After=aurora-api.service remote-fs.target
+# a NAS asleep at night: tried again every 20 minutes, 4 times; then the failure is told by a unit of its own,
+# since a backup that cannot reach its folder cannot even start (status 226/NAMESPACE, A18)
+StartLimitIntervalSec=2h
+StartLimitBurst=4
+OnFailure=aurora-backup-failed.service
 
 [Service]
 Type=oneshot
@@ -113,6 +118,21 @@ Nice=15
 IOSchedulingClass=idle
 MemoryHigh=2G
 TimeoutStartSec=6h
+Restart=on-failure
+RestartSec=20min
+$extra""")
+
+# The backup's failure told to the owner (push, WebUI): no access to the backup folder, so it runs when that is gone.
+BACKUP_FAILED_UNIT = Template("""# Generated from .env by sys/core/script/sys_install_services.py
+[Unit]
+Description=Aurora — tell the owner that the backup failed
+
+[Service]
+Type=oneshot
+User=$user
+WorkingDirectory=$root
+ExecStart=$exec
+TimeoutStartSec=60
 $extra""")
 
 BACKUP_TIMER = Template("""# Generated from .env by sys/core/script/sys_install_services.py
@@ -225,6 +245,9 @@ def hardening(root: Path, user: str, bind_low_port: bool, hosts_plugins: bool = 
             + (f"InaccessiblePaths={' '.join(hidden)}\n" if hidden else "")
             + f"CapabilityBoundingSet={caps}\nRestrictSUIDSGID=yes\nLockPersonality=yes\nRestrictRealtime=yes\n"
             + ("" if hosts_plugins else "ProtectKernelTunables=yes\nProtectKernelLogs=yes\nProtectHostname=yes\n")
+            # read-only vault connections are cached per thread: ~50 pooled threads x 37 shards x 3 files can pass
+            # the default 1024 (C103)
+            + ("LimitNOFILE=8192\n" if hosts_plugins else "")
             + "ProtectKernelModules=yes\nProtectControlGroups=yes\n"
             "ProtectClock=yes\nSystemCallArchitectures=native\n"
             "RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK\nUMask=0077\n")
@@ -295,7 +318,11 @@ def main() -> int:
             dest=dest, user=sys_config.service_user(cfg), root=root, exec=f"{py} {script / 'svc_backup.py'} run",
             extra=extra), encoding="utf-8")
         (out / "aurora-backup.timer").write_text(BACKUP_TIMER.substitute(time=hhmm), encoding="utf-8")
-        backup = ["aurora-backup.service", "aurora-backup.timer"]
+        (out / "aurora-backup-failed.service").write_text(BACKUP_FAILED_UNIT.substitute(
+            user=sys_config.service_user(cfg), root=root, exec=f"{py} {script / 'svc_backup.py'} failed",
+            extra=hardening(root, sys_config.service_user(cfg), False) if cfg["AURORA_SERVICE_HARDENING"] else ""),
+            encoding="utf-8")
+        backup = ["aurora-backup.service", "aurora-backup.timer", "aurora-backup-failed.service"]
         if dest.startswith("smb://"):
             (cfg.path("AURORA_STATUS_DIR") / "backup").mkdir(parents=True, exist_ok=True)
             (out / "aurora-mount.service").write_text(MOUNT_UNIT.substitute(

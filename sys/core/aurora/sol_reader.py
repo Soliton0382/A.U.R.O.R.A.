@@ -8,18 +8,30 @@
 - the most recent memory turns by time: the window that keeps short follow-ups
   in context (AURORA_MEMORY_RECENT_TURNS).
 
-Connections are read-only and kept per thread and per file.
+Connections are read-only and kept per thread and per file. A thread made for one job calls `release()` when it
+ends: the connections of a finished thread sit in reference cycles until the garbage collector passes, and the API
+reached its 1024 open files after a few dozen questions (C103).
 """
 from __future__ import annotations
 
 import sqlite3
 import threading
+import weakref
 from collections import defaultdict
 from pathlib import Path
 from typing import Iterable, Iterator
 
 from . import sol_vault, sys_config
 from .sol_schema import Soliton
+
+_readers: "weakref.WeakSet[VaultReader]" = weakref.WeakSet()
+
+
+def release() -> None:
+    """Close this thread's connections of every reader (end of a job thread)."""
+    for r in list(_readers):
+        r.close()
+
 
 _SELECT = f"SELECT rowid, {', '.join(sol_vault.COLUMNS)} FROM solitons"
 
@@ -29,6 +41,7 @@ class VaultReader:
         self.cfg = cfg or sys_config.get()
         self.layout = sol_vault.Layout.from_config(self.cfg)
         self._local = threading.local()
+        _readers.add(self)
 
     def _con(self, path: Path) -> sqlite3.Connection | None:
         cache = self._local.__dict__.setdefault("cons", {})

@@ -15,7 +15,7 @@ import time
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse, Response
 
-from .core import auth, cfg, log, note, pipeline, plugin_host, start_run
+from .core import auth, cfg, in_thread, log, note, pipeline, plugin_host, start_run
 
 router = APIRouter()
 
@@ -191,7 +191,7 @@ async def plugin_try(name: str, tool: str, request: Request) -> dict:
         if p.effect(tool) != "read":
             raise HTTPException(status_code=403, detail="only read-only tools can be tried here")
         return host.call(name, tool, args or {})
-    return await asyncio.to_thread(work)
+    return await in_thread(work)
 
 
 @router.get("/v1/aurora/approvals", dependencies=[Depends(auth)])

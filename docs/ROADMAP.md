@@ -9,7 +9,9 @@ Candidates, each with the measure that says it worked:
 1. **The gate on vague questions** — rewrite a question with the conversation's context before the gate;
    measure: `bench_quality.py --pool 30` above 6.90, wrong gate closures below 3.
 2. **Multi-user** — performance check on install (users the machine can serve), an admin, users, TOTP MFA on by
-   default; measure: concurrent users at the measured ceiling, no data seen across users (tests).
+   default; measure: concurrent users at the measured ceiling, no data seen across users (tests). Owner
+   (2026-10-02): an install option, single or multi, changeable later; single = the admin alone; switching leaves no
+   traces. Design and phases U1–U5: docs/MULTIUSER.md (U1 done).
 3. **The whole 108 questions** — the quality benchmark on retrieval_pool108 entire, once, as the new reference.
 4. **The forge's known limit** — a judge that checks time windows; measure: `bench_forge.py --roles` 8/8.
 5. **Self-repair proven or switched off** — a week of its reports; on only with one real fix.
@@ -192,7 +194,7 @@ SDXL-Lightning 6.9 GB. FLUX.2 klein (23 GB) and Z-Image-Turbo (31 GB) were only 
 | the whole `install.sh` with its sudo steps, on another machine | M39 ran the steps without sudo on this one |
 | Web Push delivery on phones | depends on each device and browser |
 | an update from the public repository (HTTPS, no key) | the installation of the owner has no git; the first public user's will |
-| the nightly backup started by its timer | first night: 3 October 03:30 |
+| the nightly backup started by its timer | first night 3 October: failed, NAS not answering (C105); retries and the notice installed, next night 4 October 03:30 |
 
 ## Still to implement (2026-10-01)
 

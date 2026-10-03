@@ -3,7 +3,6 @@
 """Projects page: local projects, GitHub repositories, files, history, sandboxed preview."""
 from __future__ import annotations
 
-import asyncio
 import base64
 import json
 import re
@@ -12,7 +11,7 @@ import subprocess
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import Response
 
-from .core import auth, cfg, log, plugin_host
+from .core import auth, cfg, in_thread, log, plugin_host
 
 router = APIRouter()
 
@@ -51,7 +50,7 @@ async def projects_github() -> dict:
                 "language", "pushed_at", "html_url", "homepage", "has_pages", "default_branch", "archived")
         return {"connected": True, "login": login, "error": "" if res["ok"] else res["text"][:300],
                 "repos": [{k: it.get(k) for k in keep} for it in items]}
-    return await asyncio.to_thread(work)
+    return await in_thread(work)
 
 
 @router.get("/v1/aurora/projects/{name}/tree", dependencies=[Depends(auth)])
@@ -102,7 +101,7 @@ async def project_new(request: Request) -> dict:
 
     def work():
         return plugin_host().call("projects", "project_create", args)
-    out = await asyncio.to_thread(work)
+    out = await in_thread(work)
     log.info("audit: project created from the page: %s (%s)", args.get("name"), "ok" if out["ok"] else "failed")
     if not out["ok"]:
         raise HTTPException(status_code=422, detail=out["text"][:400])
@@ -128,7 +127,7 @@ async def project_clone(request: Request) -> dict:
         import subprocess
         return subprocess.run(["git", *extra, "clone", "--quiet", f"https://github.com/{full}.git", str(dest)],
                               capture_output=True, text=True, timeout=900)
-    r = await asyncio.to_thread(work)
+    r = await in_thread(work)
     log.info("audit: cloned %s into %s: %s", full, dest.name, "ok" if r.returncode == 0 else "failed")
     if r.returncode != 0:
         raise HTTPException(status_code=502, detail=(r.stderr or "git clone failed").replace(token, "***")[-400:])

@@ -5,6 +5,7 @@
 
     python sys/core/script/svc_backup.py init                   # once: the key and its recovery code
     python sys/core/script/svc_backup.py run                    # one backup now (what the timer runs)
+    python sys/core/script/svc_backup.py failed                 # the unit could not start: tell the owner (OnFailure)
     python sys/core/script/svc_backup.py list                   # the snapshots kept
     python sys/core/script/svc_backup.py verify [--full]        # decrypt and check a sample (or every blob)
     python sys/core/script/svc_backup.py restore --to DIR [--snapshot S] [--only sys/vault] [--code RECOVERY]
@@ -36,7 +37,7 @@ def tell(cfg, event: str, payload: dict) -> None:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("action", choices=["init", "run", "list", "verify", "restore"])
+    ap.add_argument("action", choices=["init", "run", "list", "verify", "restore", "failed"])
     ap.add_argument("--full", action="store_true")
     ap.add_argument("--to", type=Path)
     ap.add_argument("--snapshot", default="latest")
@@ -58,6 +59,11 @@ def main() -> int:
             tell(cfg, "backup.done", {"text": f"{out['files']} file, {out['bytes'] / 1e9:.1f} GB "
                                       f"({out['bytes_written'] / 1e9:.2f} GB nuovi) in {out['seconds']:.0f} s", **out})
             print(json.dumps(out))
+            return 0
+        if a.action == "failed":
+            why = sys_backup.unit_failure() or "il servizio di backup non è riuscito"
+            log.error("backup unit failed: %s", why)
+            tell(cfg, "backup.failed", {"text": why})
             return 0
         if a.action == "list":
             st = sys_backup.status(cfg)

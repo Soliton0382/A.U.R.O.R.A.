@@ -139,3 +139,19 @@ def test_the_backup_unit_and_timer_are_made_only_with_a_folder_and_may_write_onl
     assert "aurora-mount.service" in (out / "install.sh").read_text()
     cfg.values["AURORA_BACKUP_TIME"] = "25:99"
     assert sis.main() == 1
+
+
+def test_a_backup_unit_that_could_not_start_is_reported(monkeypatch):
+    """A18: the NAS asleep at 03:30 → the unit failed before Aurora's code ran (226/NAMESPACE): no log, no push."""
+    import subprocess
+
+    from aurora import sys_backup
+
+    def show(out):
+        return lambda *a, **k: subprocess.CompletedProcess(a, 0, stdout=out, stderr="")
+    monkeypatch.setattr(subprocess, "run", show("Result=exit-code\nExecMainStatus=226\nLoadState=loaded\n"))
+    assert "NAS" in sys_backup.unit_failure()
+    monkeypatch.setattr(subprocess, "run", show("Result=success\nExecMainStatus=0\nLoadState=loaded\n"))
+    assert sys_backup.unit_failure() is None
+    monkeypatch.setattr(subprocess, "run", show("Result=success\nExecMainStatus=0\nLoadState=not-found\n"))
+    assert sys_backup.unit_failure() is None

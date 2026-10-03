@@ -17,7 +17,7 @@ import uuid
 
 from collections import OrderedDict
 from pathlib import Path
-from aurora import sys_config, sys_features, sys_log
+from aurora import sol_reader, sys_config, sys_features, sys_log
 from aurora.sys_devices import COOKIE, Devices
 from fastapi import HTTPException, Request
 
@@ -63,6 +63,17 @@ def _push(event: str, payload: dict) -> None:
         threading.Thread(target=sys_push.send, args=(msg, cfg), name="push", daemon=True).start()
 
 
+
+
+async def in_thread(fn, *args):
+    """asyncio.to_thread for a job that may read the vault: the pooled thread lives on, its connections are
+    closed at the end of the job (C103)."""
+    def job():
+        try:
+            return fn(*args)
+        finally:
+            sol_reader.release()
+    return await asyncio.to_thread(job)
 
 
 async def quiet(stream):
@@ -350,6 +361,7 @@ def make_video(question: str, vp: dict, picture: tuple[str, bytes] | None, emit,
             note("video", "video.failed", {"text": f"{title}: {type(e).__name__}: {str(e)[:120]}", "run_id": run_id})
         finally:
             _video["busy"] = False
+            sol_reader.release()
 
     ans = _say(question, text, emit, run_id, "video", remember)
     threading.Thread(target=work, name=f"video-{run_id}", daemon=True).start()
@@ -465,6 +477,7 @@ def start_run(question: str, origin: str, job=None) -> dict:
                 from .agents import react                    # a request of the owner failed: diagnosed now
                 react(origin, question, f"{type(e).__name__}: {e}", run["id"])
             finally:
+                sol_reader.release()                      # this thread's vault connections, now (C103)
                 with run["cond"]:
                     run["done"] = True
                     run["cond"].notify_all()

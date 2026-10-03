@@ -465,3 +465,22 @@ def status(cfg: sys_config.Config | None = None) -> dict:
         except ValueError:
             pass
     return out
+
+
+UNIT_STATUS = {226: "la cartella del backup (NAS) non era raggiungibile quando il servizio è partito"}
+
+
+def unit_failure(unit: str = "aurora-backup.service") -> str | None:
+    """Why the last start of the backup unit failed, or None (succeeded, never ran, not installed). A failure
+    before Aurora's code runs (the NAS asleep: 226/NAMESPACE) leaves no line in Aurora's own log (A18)."""
+    import subprocess
+    try:
+        out = subprocess.run(["systemctl", "show", unit, "-p", "Result", "-p", "ExecMainStatus", "-p", "LoadState"],
+                             capture_output=True, text=True, timeout=10).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    v = dict(line.split("=", 1) for line in out.splitlines() if "=" in line)
+    if v.get("LoadState") != "loaded" or v.get("Result", "success") == "success":
+        return None
+    code = int(v.get("ExecMainStatus") or 0)
+    return UNIT_STATUS.get(code, f"esito {v.get('Result')}, codice {code}")

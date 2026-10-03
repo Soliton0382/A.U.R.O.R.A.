@@ -893,6 +893,33 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M72 — Follow-ups, the answers (3 October 2026)
+
+The 14 valid follow-ups of M71 answered end to end (synthetic turns, nothing written), rewrite off and on; opus judged
+each answer against the **source text** for the complete question (an "I don't know" scores 0, the source exists).
+| | answered | mean (0-10) | right (≥7) |
+|---|---|---|---|
+| rewrite off | 3 / 14 | 1.43 | 1 |
+| rewrite on | **9 / 14** | **3.64** | **3** |
+The two low answers with the rewrite (0 and 2) are not invented: the rewritten question stayed generic and Aurora
+answered from other papers, with their sources (A22). Judged instead against the passages each run found (the
+pool30 judge), the off run scores higher (6.93 vs 5.29) because it abstains honestly on wrong passages: that judge
+measures honesty, not whether the owner got the answer.
+
+## M71 — Follow-up questions, and the open-files leak (3 October 2026)
+
+Follow-ups (`bench_followup.py` logic, 20 questions of retrieval_pool108, seed 11; 6 generated follow-ups dropped
+because the generator copied the original or the prompt's example; synthetic turns, nothing written to the vault).
+Source document in the top 3, of 14 valid: original question 10 (ceiling), bare follow-up 4, rewritten **8**; none
+worse; top 10: 11 / 6 / 10. Control, 20 complete questions with recent turns about another topic: 1 changed (a grammar
+fix, same rank 2). First count was 0/20 everywhere: my script compared `v1:` ids of the suite with the vault's
+`legacy:` ids (the same documents; fixed by comparing the part after the colon).
+Pool 30 (`bench_quality.py --pool 30`): **6.80** (M67 6.90; noise ±0.75), answered 22, wrong abstentions gate 3,
+extraction 1; the rewrite fired 0 times (no conversation in the last 30 minutes): same code path as M67, so the target
+"gate closures below 3" is not reached by this step, which serves follow-ups only. A first run gave 6.37: one question
+scored 0 on a run failed with "unable to open database file" → C103. Open files of the API: +50 per question before,
++4 then +0 after; 295 after 36 questions. Tests 225.
+
 ## M70 — PDF preview as pictures (3 October 2026)
 
 A one-page PDF of Aurora's: its page drawn at 110 dpi (909×1287 PNG, 134 KB) in 0.11 s through HTTPS; a second view
