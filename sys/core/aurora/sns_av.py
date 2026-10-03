@@ -112,12 +112,15 @@ def decode(data: bytes, cfg: sys_config.Config | None = None, max_s: float | Non
     with tempfile.NamedTemporaryFile(prefix="aurora-voice-", suffix=".bin") as f:
         f.write(data)
         f.flush()
+        # No "-t": a browser's first recording after the microphone permission can jump in its timestamps, and
+        # "-t" cut it to 0.1 s (C121); the length is limited on the samples instead.
         r = subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-i", f.name,
-                            "-t", str(max_s or cfg["AURORA_SENSES_LISTEN_MAX_S"]), "-vn", "-ac", "1", "-ar", "16000",
-                            "-f", "s16le", "-"], capture_output=True, timeout=max(120, (max_s or 0) * 2))
-    if r.returncode != 0 or not r.stdout:
+                            "-vn", "-ac", "1", "-ar", "16000", "-f", "s16le", "-"],
+                           capture_output=True, timeout=max(120, (max_s or 0) * 2))
+    if not r.stdout:
         raise ValueError(f"audio not readable: {r.stderr.decode(errors='replace').strip()[-200:]}")
-    return np.frombuffer(r.stdout, np.int16).astype(np.float32) / 32768
+    limit = int(float(max_s or cfg["AURORA_SENSES_LISTEN_MAX_S"]) * 16000)
+    return np.frombuffer(r.stdout, np.int16)[:limit].astype(np.float32) / 32768
 
 
 def clear_speech(text: str) -> bool:

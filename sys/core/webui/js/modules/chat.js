@@ -174,6 +174,7 @@ export default {
       if (r.clear) spoken = true;
       if (r.clear) input.value = (input.value ? input.value + " " : "") + r.text;
       else input.placeholder = t("chat.mic.none");
+      if (r.clear) { form.requestSubmit(); return; }   // hands-free: what was dictated goes, the answer comes aloud
       input.focus();
     };
     // this device's microphone: tap to start, tap to stop (at most MAX s); WebM/Opus on Android, MP4/AAC on iOS

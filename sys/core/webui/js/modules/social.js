@@ -12,6 +12,7 @@ export default {
   id: "social",
   icon: "📣",
   title: "nav.social",
+  plugin: "social",                 // in the menu only when that plugin is on (social: any platform connected)
 
   mount(root, ctx) {
     root.classList.add("page");
@@ -72,7 +73,8 @@ export default {
 
   async enter() {
     const s = await call("/v1/aurora/social");
-    this.platforms.replaceChildren(...(s.platforms.length ? s.platforms.map((p) => {
+    const on = s.platforms.filter((p) => p.available);       // only the platforms switched on and connected
+    this.platforms.replaceChildren(...(on.length ? on.map((p) => {
       const r = el("div", "ev");
       r.append(el("span", `pill ${p.available ? "ok" : "warn"}`, p.available ? t("social.connected") : t("social.off")),
         el("strong", "", p.label), el("span", "muted", p.available ? "" : t("plug.state.missing", { keys: p.missing.join(", ") })));

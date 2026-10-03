@@ -49,6 +49,17 @@ mark each line ✅ / ❌ with a note. Reload the WebUI first (the service worker
 | N28 | 🧩 Plugins → backup: «💾 Esegui ora»; and ⚙️ Status: the same row | the row says «Backup in corso…», then the new copy (time, files, GB) without reloading; a notification when it ends |
 | N29 | 👥 Users → My account → 🔑 API keys: «Chatbox sul PC», Create; in Chatbox: OpenAI API, the address and model shown, the key; ask something; then Revoke | Chatbox answers as you (your memory: «cosa ti avevo chiesto…» works); after Revoke Chatbox gets «invalid key» |
 | N30 | A second user with their own Facebook page in ⚙️ Settings (their token) | their posts go to their page, their autonomy and daily number are theirs; yours unchanged |
+| N31 | On the phone, the first dictation after opening the app: 🎙️, speak 5 s, ⏹️ | the text is right the first time, it is sent by itself and the answer is read aloud |
+| N32 | 💾 Backup card: the time 23:00, Save, reload the card | "next backup" says 23:0x (after `sudo bash sys/deploy/systemd/install.sh` once) |
+| N33 | 🧠 Models: choose a provider in a step | a menu with its models; "other" for a name not listed |
+| N34 | 📁 Files: 🗑️ on a PDF Aurora wrote | it is gone after the confirmation; a PDF of yours in that folder is refused |
+| N35 | 🧩 Plugins: switch off the security plugin, then on | 🛡️ Security leaves the menu and comes back; 📣 Social lists only Facebook |
+| N36 | As a second user: 🧩 Plugins; as the admin: 👥 on a plugin's card | the user sees no backup/security/senses and cannot switch plugins; a plugin shared appears for them |
+| N37 | ⚙️ Settings, then 🧩 Plugins → facebook | Settings says which settings are in the cards; Facebook's card has ☑ "publishes by herself", the posts a day |
+| N38 | 🔔 Notifications as a second user, then as the admin | the user has no incidents/backup/cloud; the admin has "Cloud" |
+| N39 | 📎 Files: 🗑️ an attachment and a PDF, then ♻️ | both in the Trash with the day they go; restored where they were |
+| N40 | 🔁 Routines: "days and times", 08:00 + 18:30, working days | saved; the line says "giorni lavorativi alle 08:00, 18:30"; it runs Monday, not on 8 December |
+| N41 | 📁 Projects → 💻 Local: ask Aurora "crea il progetto prova-calc con una funzione somma e i suoi test, eseguili" | the project, the tests run (EXIT 0) in the run's steps, a local commit |
 | N17 | Ask a knowledge question (e.g. «Come funziona la fotosintesi?»), then tap one of the «Approfondisci» questions; then type a short follow-up («e chi l'ha scoperta?») | 3-4 complete questions appear under the answer a few seconds after it; the tapped one is sent whole and its trace shows 🎯 when the sources were used; the typed follow-up shows 🧷 with the completed question |
 | N6 | 🧩 Plugins: open the page, then a card, then back | the grid appears at once; icons do not flash (C80) |
 

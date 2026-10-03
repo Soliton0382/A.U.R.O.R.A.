@@ -38,6 +38,12 @@ _lock = threading.Lock()
 _loggers: dict[str, logging.Logger] = {}
 _tracers: dict[str, logging.Logger] = {}
 _seq = itertools.count(1)
+_listeners: list = []          # fn(component, event, payload): a service turns some trace events into notifications
+
+
+def on_trace(fn) -> None:
+    """Call fn for every trace event of this process (it must be quick and must not raise)."""
+    _listeners.append(fn)
 
 
 def configure(cfg: sys_config.Config) -> None:
@@ -158,6 +164,11 @@ def trace(component: str, event: str, payload: dict[str, Any] | None = None,
     if sys_context.user():
         record["user"] = sys_context.user()
     tr.info(json.dumps(record, ensure_ascii=False, default=str))
+    for fn in _listeners:
+        try:
+            fn(component, event, payload or {})
+        except Exception:  # noqa: BLE001 — a listener never breaks the traced work
+            pass
     return seq
 
 

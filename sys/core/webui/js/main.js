@@ -126,9 +126,24 @@ $("lang").addEventListener("change", async (ev) => {
   if (current) show(current);
 });
 
+// a page that belongs to a plugin shows in the menu only while the plugin is on (and connected: "social" means
+// any social platform); a failure leaves the menu whole
+async function pluginNav() {
+  let list;
+  try { list = await call("/v1/aurora/plugins"); } catch { return; }
+  const on = (p) => p.enabled && p.available;
+  for (const v of views) {
+    if (!v.plugin) continue;
+    const shown = v.plugin === "social" ? list.some((p) => p.social && on(p)) : list.some((p) => p.name === v.plugin && on(p));
+    document.querySelector(`#nav button[data-view="${v.id}"]`)?.classList.toggle("hidden", !shown);
+  }
+}
+bus.on("plugins", pluginNav);
+
 let started = false;
 function start() {
   showLogin(false);
+  pluginNav();
   if (!started) { for (const w of widgets) w.enter?.(); started = true; }
   const asked = new URLSearchParams(location.search).get("view");
   show(current || (asked && byId[asked] ? asked : "chat"));

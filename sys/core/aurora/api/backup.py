@@ -34,6 +34,13 @@ def backup_state() -> dict:
 NAS_KEYS = {"AURORA_BACKUP_DIR", "AURORA_NAS_USER", "AURORA_NAS_PASSWORD", "AURORA_NAS_FSTAB"}
 
 
+def start_retime() -> bool:
+    """Saving the backup time moves the timer (aurora-retime, root, installed once by install.sh)."""
+    r = subprocess.run(["systemctl", "start", "--no-block", "aurora-retime.service"], capture_output=True, text=True)
+    log.info("audit: backup timer moved after a settings change (%s)", "ok" if r.returncode == 0 else r.stderr.strip()[-200:])
+    return r.returncode == 0
+
+
 def start_mount(folder: str) -> bool:
     """Saving the NAS settings mounts the share in the background (aurora-mount reads the new .env itself);
     the result appears in the card (nas.json)."""

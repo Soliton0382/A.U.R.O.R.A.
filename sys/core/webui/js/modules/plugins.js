@@ -3,6 +3,7 @@
 // Plugins: a grid of icons (green = active, red = off); a click opens the plugin's card with its guide,
 // official links, its own settings, its tools (read-only ones can be tried) and its icon.
 import { call } from "../api.js";
+import { bus } from "../bus.js";
 import { el, toBase64, useCss } from "../dom.js";
 import { apply, lang, t } from "../i18n.js";
 import { renderMarkdown } from "../md.js";
@@ -24,6 +25,7 @@ export default {
   async enter() {
     const code = lang.slice(0, 2);
     const plugins = await call("/v1/aurora/plugins");
+    this.me = await call("/v1/aurora/me").catch(() => ({ admin: true }));
     this.grid.replaceChildren(...plugins.map((p) => {
       const b = el("button", `plug-tile ${p.available ? "on" : "off"}`);
       b.type = "button";
@@ -52,9 +54,22 @@ export default {
     sw.addEventListener("click", async () => {
       await call(`/v1/aurora/plugins/${p.name}/${p.enabled ? "disable" : "enable"}`, { method: "POST" });
       dlg.close(); dlg.remove(); this.enter();
+      bus.emit("plugins", {});                       // the menu follows: a plugin's page appears or goes
     });
     const stRow = el("div", "appr-actions");
-    stRow.append(el("span", `pill ${p.available ? "ok" : "bad"}`, p.available ? t("plug.on") : t("plug.off")), el("span", "", state), sw);
+    stRow.append(el("span", `pill ${p.available ? "ok" : "bad"}`, p.available ? t("plug.on") : t("plug.off")), el("span", "", state));
+    if (this.me.admin) {                            // switching on/off and sharing are the admin's (multi-user)
+      const share = el("label", "plug-share");
+      const box = el("input");
+      box.type = "checkbox";
+      box.checked = !!p.users;
+      box.addEventListener("change", async () => {
+        try { await call(`/v1/aurora/plugins/${p.name}/${box.checked ? "share" : "unshare"}`, { method: "POST" }); p.users = box.checked; }
+        catch (e) { box.checked = !box.checked; alert(e.message); }
+      });
+      share.append(box, el("span", "", t("plug.users")));
+      stRow.append(sw, share);
+    }
     dlg.append(stRow);
     if (p.name === "backup") {                      // the backup itself: last copy, next one, 💾 Run now
       const { backupRow } = await import("../backup.js");
@@ -92,7 +107,23 @@ export default {
       for (const s of specs) {
         const row = el("label", "plug-field");
         const list = choices[s.key];
-        const input = el(list ? "select" : "input");
+        // yes/no as a checkbox, a choice as a menu, a number as a number (owner, 2026-10-04)
+        const on = (v) => ["1", "true", "yes", "on"].includes(String(v).toLowerCase());
+        if (s.type === "bool") {
+          const box = el("input");
+          box.type = "checkbox";
+          box.checked = on(s.value);
+          box.dataset.key = s.key;
+          box.dataset.bool = "1";
+          box.dataset.orig = on(s.value) ? "1" : "0";
+          const r = el("label", "plug-field plug-check");
+          r.append(box, el("span", "", s[code] || s.en));
+          form.append(r);
+          continue;
+        }
+        const input = el(list || s.type === "enum" ? "select" : "input");
+        if (!list && s.type === "enum") for (const c of s.choices) input.append(el("option", "", c));
+        if (s.type === "int") { input.type = "number"; if (s.min !== undefined) input.min = s.min; if (s.max !== undefined) input.max = s.max; }
         if (list) {
           for (const d of [{ id: "auto", name: t("plug.device.auto") }, ...list]) {
             const o = el("option", "", d.id === "auto" ? d.name : `${d.name} — ${d.id}`);
@@ -115,6 +146,7 @@ export default {
       save.addEventListener("click", async () => {
         const changes = {};
         form.querySelectorAll("[data-key]").forEach((i) => {
+          if (i.dataset.bool) { const v = i.checked ? "1" : "0"; if (v !== i.dataset.orig) changes[i.dataset.key] = v; return; }
           if (i.dataset.secret ? i.value !== "" : i.value !== i.dataset.orig) changes[i.dataset.key] = i.value;
         });
         if (!Object.keys(changes).length) { out.textContent = t("settings.none"); return; }

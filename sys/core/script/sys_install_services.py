@@ -102,7 +102,7 @@ WantedBy=aurora.target
 BACKUP_UNIT = Template("""# Generated from .env by sys/core/script/sys_install_services.py
 [Unit]
 Description=Aurora — backup of the owner's data (encrypted, to $dest)
-After=aurora-api.service remote-fs.target
+After=aurora-api.service remote-fs.target$order
 # a NAS asleep at night: tried again every 20 minutes, 4 times; then the failure is told by a unit of its own,
 # since a backup that cannot reach its folder cannot even start (status 226/NAMESPACE, A18)
 StartLimitIntervalSec=2h
@@ -165,6 +165,23 @@ TimeoutStartSec=180
 NoNewPrivileges=yes
 ProtectHome=read-only
 ReadWritePaths=-$status
+PrivateTmp=yes
+""")
+
+# Root, on purpose and for one job: move the backup timer to AURORA_BACKUP_TIME (sys_backup_retime.py checks HH:MM
+# and writes one drop-in). Started by the API when the backup time is saved (polkit: aurora units).
+RETIME_UNIT = Template("""# Generated from .env by sys/core/script/sys_install_services.py
+[Unit]
+Description=Aurora — move the nightly backup to AURORA_BACKUP_TIME
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=$root
+ExecStart=$exec
+TimeoutStartSec=60
+NoNewPrivileges=yes
+ProtectHome=read-only
 PrivateTmp=yes
 """)
 
@@ -316,13 +333,17 @@ def main() -> int:
         extra = hardening(root, sys_config.service_user(cfg), False, also=(writable,)) if cfg["AURORA_SERVICE_HARDENING"] else ""
         (out / "aurora-backup.service").write_text(BACKUP_UNIT.substitute(
             dest=dest, user=sys_config.service_user(cfg), root=root, exec=f"{py} {script / 'svc_backup.py'} run",
+            # C123: a timer's catch-up run started 1 s before the NAS was mounted and wrote into the bare folder
+            order=("\nWants=aurora-mount.service\nAfter=aurora-mount.service" if dest.startswith("smb://") else ""),
             extra=extra), encoding="utf-8")
         (out / "aurora-backup.timer").write_text(BACKUP_TIMER.substitute(time=hhmm), encoding="utf-8")
         (out / "aurora-backup-failed.service").write_text(BACKUP_FAILED_UNIT.substitute(
             user=sys_config.service_user(cfg), root=root, exec=f"{py} {script / 'svc_backup.py'} failed",
             extra=hardening(root, sys_config.service_user(cfg), False) if cfg["AURORA_SERVICE_HARDENING"] else ""),
             encoding="utf-8")
-        backup = ["aurora-backup.service", "aurora-backup.timer", "aurora-backup-failed.service"]
+        (out / "aurora-retime.service").write_text(RETIME_UNIT.substitute(
+            root=root, exec=f"{py} {script / 'sys_backup_retime.py'}"), encoding="utf-8")
+        backup = ["aurora-backup.service", "aurora-backup.timer", "aurora-backup-failed.service", "aurora-retime.service"]
         if dest.startswith("smb://"):
             (cfg.path("AURORA_STATUS_DIR") / "backup").mkdir(parents=True, exist_ok=True)
             (out / "aurora-mount.service").write_text(MOUNT_UNIT.substitute(

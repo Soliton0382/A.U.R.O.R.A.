@@ -461,6 +461,32 @@
    ]
   },
   {
+   "key": "AURORA_TRASH_ENABLED",
+   "type": "bool",
+   "category": "attachments",
+   "recommended": "1",
+   "evidence": "owner",
+   "en": "A file deleted from the Files page goes to the trash (restorable) instead of being removed at once.",
+   "it": "Un file eliminato dalla pagina File va nel cestino (ripristinabile) invece di sparire subito.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_TRASH_DAYS",
+   "type": "int",
+   "min": 1,
+   "max": 3650,
+   "category": "attachments",
+   "recommended": "30",
+   "evidence": "owner",
+   "en": "Days a file stays in the trash before it is removed for good (checked every night).",
+   "it": "Giorni in cui un file resta nel cestino prima di essere cancellato per sempre (controllo ogni notte).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_EDIT_MODEL_DIR",
    "type": "path",
    "category": "attachments",
@@ -2807,6 +2833,20 @@
    "evidence": "owner",
    "en": "Where Aurora creates and keeps software projects (one git repository each).",
    "it": "Dove Aurora crea e tiene i progetti software (un repository git ciascuno).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_PROJECT_RUN_S",
+   "type": "int",
+   "min": 5,
+   "max": 1800,
+   "category": "projects",
+   "recommended": "120",
+   "evidence": "owner",
+   "en": "Longest run of a command (tests, a program) in a local project, in its cage with no network; then it is stopped.",
+   "it": "Durata massima di un comando (test, un programma) in un progetto locale, nella sua gabbia senza rete; poi viene fermato.",
    "services": [
     "aurora-api"
    ]

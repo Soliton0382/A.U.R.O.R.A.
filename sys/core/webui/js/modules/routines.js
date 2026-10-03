@@ -11,30 +11,62 @@ import { renderMarkdown } from "../md.js";
 
 const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
+const GROUPS = ["all", "weekdays", "weekend", "workdays", "holidays"];
+
 function when(s) {
   if (s.every === "hours") return t("rt.every_hours", { n: s.hours });
   if (s.every === "day") return t("rt.every_day", { at: s.at });
-  return t("rt.every_week", { day: t(`rt.day.${DAYS[s.weekday]}`), at: s.at });
+  if (s.every === "week") return t("rt.every_week", { day: t(`rt.day.${DAYS[s.weekday]}`), at: s.at });
+  const days = s.group ? t(`rt.g.${s.group}`) : s.days.map((d) => t(`rt.day.${DAYS[d]}`)).join(", ");
+  return t("rt.every_custom", { days, at: s.times.join(", ") });
 }
 
+// every N hours, or days and times (several times with "+", days one by one or a group: weekdays, holidays...):
+// a calendar's recurrence, simpler (owner, 2026-10-04). An old daily or weekly routine opens as days and times.
 function scheduleEditor(s) {
   const box = el("span", "rt-sched");
   const every = el("select");
-  for (const v of ["hours", "day", "week"]) { const o = el("option", "", t(`rt.e.${v}`)); o.value = v; o.selected = s.every === v; every.append(o); }
+  for (const v of ["hours", "custom"]) { const o = el("option", "", t(`rt.e.${v}`)); o.value = v; o.selected = (s.every === "hours") === (v === "hours"); every.append(o); }
   const hours = el("input"); hours.type = "number"; hours.min = 1; hours.max = 168; hours.value = s.hours || 1;
-  const day = el("select");
-  DAYS.forEach((d, i) => { const o = el("option", "", t(`rt.day.${d}`)); o.value = i; o.selected = s.weekday === i; day.append(o); });
-  const at = el("input"); at.type = "time"; at.value = s.at || "08:00";
+  const c = s.every === "day" ? { times: [s.at], group: "all" } : s.every === "week" ? { times: [s.at], days: [s.weekday] }
+    : s.every === "custom" ? s : { times: ["08:00"], group: "all" };
+  const times = el("span", "rt-times");
+  const addTime = (v) => {
+    const one = el("span", "rt-time");
+    const at = el("input"); at.type = "time"; at.value = v;
+    const x = el("button", "icon", "✖"); x.type = "button";
+    x.addEventListener("click", () => { if (times.querySelectorAll("input").length > 1) one.remove(); });
+    one.append(at, x);
+    times.insertBefore(one, plus);
+  };
+  const plus = el("button", "", "+"); plus.type = "button"; plus.title = t("rt.add_time");
+  plus.addEventListener("click", () => { if (times.querySelectorAll("input").length < 12) addTime("12:00"); });
+  times.append(plus);
+  for (const v of c.times) addTime(v);
+  const group = el("select");
+  for (const g of ["pick", ...GROUPS]) { const o = el("option", "", t(`rt.g.${g}`)); o.value = g; group.append(o); }
+  group.value = c.group || "pick";
+  const days = el("span", "rt-days");
+  DAYS.forEach((d, i) => {
+    const l = el("label", "rt-day"); const cb = el("input"); cb.type = "checkbox"; cb.value = i;
+    cb.checked = (c.days || []).includes(i);
+    l.append(cb, el("span", "", t(`rt.day.${d}`).slice(0, 3))); days.append(l);
+  });
   const sync = () => {
     hours.classList.toggle("hidden", every.value !== "hours");
-    at.classList.toggle("hidden", every.value === "hours");
-    day.classList.toggle("hidden", every.value !== "week");
+    for (const x of [times, group]) x.classList.toggle("hidden", every.value === "hours");
+    days.classList.toggle("hidden", every.value === "hours" || group.value !== "pick");
   };
   every.addEventListener("change", sync);
+  group.addEventListener("change", sync);
   sync();
-  box.append(every, hours, day, at);
-  box.value = () => (every.value === "hours" ? { every: "hours", hours: Number(hours.value) }
-    : every.value === "day" ? { every: "day", at: at.value } : { every: "week", weekday: Number(day.value), at: at.value });
+  box.append(every, hours, times, group, days);
+  box.value = () => {
+    if (every.value === "hours") return { every: "hours", hours: Number(hours.value) };
+    const at = [...new Set([...times.querySelectorAll("input")].map((i) => i.value).filter(Boolean))].sort();
+    if (group.value !== "pick") return { every: "custom", times: at, group: group.value };
+    return { every: "custom", times: at, days: [...days.querySelectorAll("input:checked")].map((i) => Number(i.value)) };
+  };
   return box;
 }
 

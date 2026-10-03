@@ -55,6 +55,15 @@ def to_html(title: str, markdown: str, lang: str, cfg) -> str:
             f"<footer>{html.escape(disclosure)}</footer></body></html>")
 
 
+def made_by_aurora(path: Path) -> bool:
+    """True only for a PDF this module wrote (Creator: Aurora): the only ones the Files page may delete."""
+    from pypdf import PdfReader
+    try:
+        return (PdfReader(str(path)).metadata or {}).get("/Creator") == "Aurora"
+    except Exception:  # noqa: BLE001 — an unreadable PDF is not provably Aurora's
+        return False
+
+
 def create(title: str, markdown: str, lang: str = "it", cfg: sys_config.Config | None = None) -> Path:
     cfg = cfg or sys_config.get()
     out_dir = cfg.path("AURORA_DOCUMENTS_DIR")

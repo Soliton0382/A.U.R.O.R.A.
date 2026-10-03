@@ -39,10 +39,18 @@ def settings(request: Request) -> dict:
         own = sys_config.parse_env(sys_user_config.env_path(cfg, user).read_text(encoding="utf-8")) \
             if sys_user_config.env_path(cfg, user).is_file() else {}
         current.update({s["key"]: own.get(s["key"], s["recommended"]) for s in schema["settings"] if s.get("scope") == "user"})
+    from .core import plugin_host
+    card = {}                                           # a plugin's settings live in its card on the Plugins page
+    for p in plugin_host().plugins(with_tools=False):
+        if getattr(p, "admin_only", False):
+            continue
+        m = p.manifest
+        for k in m.get("env", []) + m.get("requires", []) + list(m.get("env_as", {})) + m.get("settings", []):
+            card.setdefault(k, p.name)
     items = []
     for s in schema["settings"]:
         value = current.get(s["key"], "")
-        items.append({**s, "value": ("••••••" if s.get("secret") and value else value)})
+        items.append({**s, "value": ("••••••" if s.get("secret") and value else value), "plugin": card.get(s["key"])})
     return {"categories": schema["categories"], "settings": items}
 
 
@@ -85,4 +93,6 @@ async def update_settings(request: Request) -> dict:
     sys_log.trace("api", "settings.change", {"keys": sorted(changes), "restart": restart})
     from .backup import NAS_KEYS, start_mount             # the backup plugin saved with a NAS folder: mount it now
     mounting = bool(NAS_KEYS & set(changes)) and start_mount(str(changes.get("AURORA_BACKUP_DIR", cfg["AURORA_BACKUP_DIR"])))
-    return {"changed": sorted(changes), "restart": restart, "mounting": mounting}
+    from .backup import start_retime                        # a new backup time: the timer follows it
+    retimed = "AURORA_BACKUP_TIME" in changes and start_retime()
+    return {"changed": sorted(changes), "restart": restart, "mounting": mounting, "retimed": retimed}

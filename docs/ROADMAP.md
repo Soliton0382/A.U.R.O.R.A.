@@ -3,6 +3,47 @@
 Every request of the owner is recorded here as soon as it is made, so that nothing is lost between
 sessions. Each item moves to STATUS.md ("Working") when it is validated. Updated 2026-09-30.
 
+## Owner's list of 2026-10-04 — in order of priority
+
+Quick fixes, done in the same session (each verified in STATUS when closed):
+| # | request | state |
+|---|---|---|
+| Q1 | forge writer back on Claude Code (opus) instead of Grok; the judge was already on Claude Code (set by the owner). Grok's cost measured by the owner: 746,041 tokens = $2.27 | ✅ roles set 2026-10-04 |
+| Q2 | dictation: the first attempt always fails, the second works; send automatically after dictation (hands-free), Aurora answers aloud | ✅ C121, M84; to verify N31 |
+| Q3 | backup page shows the next backup at 03:31 with the time set to 23:00 | ✅ C122; needs install.sh once; to verify N32 |
+| Q4 | choosing an API provider shows its list of models, to assign them easily | ✅ a real menu (the list was a datalist, hidden on phones); N33 |
+| Q5 | Files: PDFs made by Aurora cannot be deleted | ✅ 🗑️ on Aurora's PDFs only (Creator: Aurora); N34 |
+| Q6 | side menu: an entry only when its plugin is on (Social shows only Facebook) | ✅ Social, Security, Projects follow their plugins; Social lists only platforms on and connected; N35 |
+
+Larger, by priority (highest first):
+1. **Voice** — owner (2026-10-04): the voice is natural, a neural one is not needed; the choice works (N24).
+2. **The judge on zeros (A22)** — an output of 0 is checked to be really 0, else rejected. The owner changed the
+   judge already: read his change before touching it. Measure: `bench_forge.py --roles` 8/8.
+3. **Plugins: admin or user** — ✅ (2026-10-04) plg_access: the machine's plugins (backup, security, netintel, self,
+   senses, homeassistant, cloud) the admin's, the personal ones everyone's; a new or forged plugin the admin's until
+   shared; 👥 in each card. Switching plugins is the admin's (C124). N36.
+4. **Plugin settings inside the plugin's card** — ✅ the settings of a plugin are in its card only (Settings lists the
+   rest and says where the others are); yes/no as checkboxes; Facebook's card carries the autonomy (posts by herself,
+   posts a day, which tools). N37.
+5. **Alerts per user** — ✅ each user's choice was already theirs; a user now sees only the personal kinds (the
+   machine's — incidents, backup, updates, harvester, cloud — are the admin's). Missing alerts found and added: the
+   cloud ceiling reached, a cloud provider failing (answers from the local model), a plugin stopped for a secret, the
+   harvester waiting; once an hour each, to the admin. N38.
+6. **Trash with retention** — ✅ sys_trash: a file deleted from Files (attachments, Aurora's PDFs) goes to
+   usr/<user>/trash, restorable; removed after AURORA_TRASH_DAYS (30) by the nightly round; AURORA_TRASH_ENABLED. N39.
+7. **Routines: several times and day groups** — ✅ "days and times": times with "+", days one by one or a group
+   (every day, Monday-Friday, weekend, working days without Italian public holidays, holidays). N40.
+8. **Research beyond arXiv** — when an answer is not found, also the configured repositories (harvester sources);
+   the best information is chosen and saved in the vault in the right domain.
+9. **Projects per user** — ✅ per user already (usr/<user>/projects, the GitHub token a personal setting); two tabs,
+   Local and GitHub; Aurora runs tests and programs in a cage of her own (run_in_project: no network, no keys, only
+   the project writable, AURORA_PROJECT_RUN_S) and iterates; GitHub writes through Approvals as before. M85, N41.
+10. **Configurable security** — in the security plugin's card: a field for the official Sophos syslog
+    documentation (docs.sophos.com/nsg/sophos-firewall/21.5/syslog), the agents adapt to it and the menu proposes
+    what to watch and which actions to suggest; the XG API (XML tags, firewall 21.0) configured for defence actions
+    on the firewall — each action through the owner's approval.
+11. Left from before: A18/A19 (gate and extraction quality), U4 (concurrent users measured), U6 (system accounts).
+
 ## Next roadmap (to decide with the owner, after 2 October 2026)
 
 Candidates, each with the measure that says it worked:

@@ -70,6 +70,29 @@ def note(source: str, event: str, payload: dict | None = None) -> dict:
     return item
 
 
+_TOLD = {"cloud.budget": "provider", "cloud.fallback": "provider", "plugin.refused": "plugin"}
+_told_at: dict = {}
+
+
+def _from_trace(component: str, event: str, payload: dict) -> None:
+    """Trace events nobody was told of (the cloud ceiling, a failing provider, a plugin stopped): a notification,
+    once an hour per event and provider/plugin (owner, 2026-10-04)."""
+    if event not in _TOLD:
+        return
+    key = (event, str(payload.get(_TOLD[event], "")))
+    if time.time() - _told_at.get(key, 0) < 3600:
+        return
+    _told_at[key] = time.time()
+    text = {"cloud.budget": lambda p: f"{p.get('provider')}: {p.get('spent')} / {p.get('cap')} token",
+            "cloud.fallback": lambda p: f"{p.get('provider')} ({p.get('role')}): {str(p.get('error', ''))[:120]}",
+            "plugin.refused": lambda p: f"{p.get('plugin')}.{p.get('tool')}"}[event](payload)
+    with sys_context.acting_as(_admin()):            # the machine's news: the admin's, whoever's call it was
+        note(component, event, {**payload, "text": text})
+
+
+sys_log.on_trace(_from_trace)
+
+
 def _push(event: str, payload: dict) -> None:
     """Events the owner chose (Notifications page) become a toast in the WebUI and/or a push to the devices."""
     from aurora import sys_push
@@ -197,8 +220,10 @@ def plugin_host(user=_NOBODY):
     hosts = _state.setdefault("plugin_hosts", {})
     if user not in hosts:
         from aurora import sys_user_config
+        from aurora.plg_access import UserPluginHost
         from aurora.plg_host import PluginHost
-        hosts[user] = PluginHost(sys_user_config.for_user(BASE, user) if user else BASE)
+        cls = UserPluginHost if user and user != _admin() else PluginHost    # the admin's plugins: not for users
+        hosts[user] = cls(sys_user_config.for_user(BASE, user) if user else BASE)
     return hosts[user]
 
 

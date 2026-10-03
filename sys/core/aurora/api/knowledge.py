@@ -168,6 +168,37 @@ def upload_delete(uid: str) -> dict:
     return {"deleted": uid}
 
 
+@router.get("/v1/aurora/trash", dependencies=[Depends(auth)])
+def trash_list() -> dict:
+    from aurora import sys_trash
+    return {"items": sys_trash.items(cfg), "enabled": bool(cfg["AURORA_TRASH_ENABLED"]), "days": cfg["AURORA_TRASH_DAYS"]}
+
+
+@router.post("/v1/aurora/trash/{tid}/restore", dependencies=[Depends(auth)])
+def trash_restore(tid: str) -> dict:
+    from aurora import sys_trash, sys_uploads
+    back = sys_trash.restore(cfg, tid)
+    if back is None:
+        raise HTTPException(status_code=404, detail="not in the trash")
+    path, meta = back
+    if meta["kind"] == "upload" and meta.get("record"):
+        sys_uploads.reindex(cfg, meta["record"], path)
+    log.info("audit: %s restored from the trash", meta["name"])
+    return {"restored": meta["name"]}
+
+
+@router.delete("/v1/aurora/trash/{tid}", dependencies=[Depends(auth)])
+def trash_remove(tid: str) -> dict:
+    """One item removed for good; "all" empties the trash."""
+    from aurora import sys_trash
+    ids = [i["id"] for i in sys_trash.items(cfg)] if tid == "all" else [tid]
+    gone = sum(sys_trash.remove(cfg, i) for i in ids)
+    if not gone and tid != "all":
+        raise HTTPException(status_code=404, detail="not in the trash")
+    log.info("audit: %d items removed from the trash", gone)
+    return {"removed": gone}
+
+
 @router.post("/v1/aurora/uploads/purge", dependencies=[Depends(auth)])
 def uploads_purge() -> dict:
     """aurora-rem, daily: files whose conversation turn is gone, and those older than AURORA_UPLOADS_KEEP_DAYS."""
@@ -176,7 +207,11 @@ def uploads_purge() -> dict:
     removed = sys_uploads.purge(cfg, live)
     if removed:
         log.info("uploads purge: %d files removed", len(removed))
-    return {"removed": len(removed)}
+    from aurora import sys_trash                       # the same daily round empties every user's expired trash
+    expired = sys_trash.expire(cfg)
+    if expired:
+        log.info("trash: %d expired items removed", expired)
+    return {"removed": len(removed), "trash_expired": expired}
 
 
 def recent_dreams() -> list[dict]:

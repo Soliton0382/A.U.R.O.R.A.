@@ -23,3 +23,7 @@
   .prj-body { grid-template-columns: 1fr; }
   .prj-tree { max-height: 30vh; border-right: 0; border-bottom: 1px solid var(--line); }
 }
+/* the Local / GitHub tabs */
+.prj-tabs { display: flex; gap: .4rem; margin: .5rem 0 .75rem; }
+.prj-tabs .cat-chip { font-size: .9rem; padding: .3rem .9rem; }
+.prj-tabs .cat-chip.on { background: var(--accent, #4b6bff); color: #fff; }

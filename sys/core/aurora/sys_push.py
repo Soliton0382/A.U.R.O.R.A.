@@ -49,6 +49,13 @@ TEXTS = {   # event -> (kind the owner chooses, view to open, {lang: title})
     "video.failed": ("creation", "chat", {"it": "🎬 Il video non è riuscito", "en": "🎬 The video failed"}),
     "backup.failed": ("backup", "status", {"it": "💾 Il backup non è riuscito", "en": "💾 The backup failed"}),
     "backup.done": ("backup_ok", "status", {"it": "💾 Backup fatto", "en": "💾 Backup done"}),
+    "cloud.budget": ("cloud", "models", {"it": "💶 Tetto cloud di oggi raggiunto: si torna in locale",
+                                         "en": "💶 Today's cloud ceiling reached: back to local"}),
+    "cloud.fallback": ("cloud", "models", {"it": "↩️ Provider cloud in errore: risposte dal modello locale",
+                                           "en": "↩️ Cloud provider failing: answers from the local model"}),
+    "plugin.refused": ("plugin", "plugins", {"it": "🚫 Un plugin è stato fermato (provava a usare un segreto)",
+                                             "en": "🚫 A plugin was stopped (it tried to use a secret)"}),
+    "harvest.waiting": ("harvest", "harvester", {"it": "🌾 L'harvester è in attesa", "en": "🌾 The harvester is waiting"}),
     "test": ("test", "chat", {"it": "🔔 Notifiche attive", "en": "🔔 Notifications on"}),
 }
 KINDS = {   # what the owner chooses from, in the Notifications page
@@ -65,8 +72,12 @@ KINDS = {   # what the owner chooses from, in the Notifications page
     "creation": {"it": "Creazioni pronte (video)", "en": "Creations ready (videos)"},
     "backup": {"it": "Backup non riuscito", "en": "Backup failed"},
     "backup_ok": {"it": "Backup riuscito (ogni notte)", "en": "Backup done (every night)"},
+    "cloud": {"it": "Cloud (tetto raggiunto, provider in errore)", "en": "Cloud (ceiling reached, provider failing)"},
 }
-PRESETS = {"suggested": ["incident", "approval", "update", "dream", "self_review", "routine", "weather", "plugin", "creation", "backup"],
+# the machine's: only the admin chooses them (a user is not told of the backup or the firewall)
+MACHINE = {"incident", "update", "self_review", "harvest", "plugin", "backup", "backup_ok", "cloud"}
+PRESETS = {"suggested": ["incident", "approval", "update", "dream", "self_review", "routine", "weather", "plugin", "creation", "backup",
+                         "cloud"],
            "all": list(KINDS), "none": []}
 KNOWN_BEFORE = ["incident", "approval", "update", "dream", "self_review", "thought", "harvest"]   # prefs saved without "known"
 CHANNELS = ("push", "webui")

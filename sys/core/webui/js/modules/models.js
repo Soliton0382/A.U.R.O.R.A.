@@ -30,7 +30,7 @@ export default {
     root.querySelector(".md-save").addEventListener("click", async () => {
       const changes = {};
       for (const row of this.roles.querySelectorAll(".md-role")) {
-        changes[row.dataset.role] = { provider: row.querySelector("select").value, model: row.querySelector("input").value.trim() };
+        changes[row.dataset.role] = { provider: row.querySelector("select:not(.md-pick)").value, model: row.querySelector("input").value.trim() };
       }
       try { await call("/v1/aurora/models/roles", { method: "PUT", body: JSON.stringify(changes) }); this.out.textContent = t("md.saved"); }
       catch (e) { this.out.textContent = t("ev.error", { m: e.message }); }
@@ -61,30 +61,41 @@ export default {
       o.selected = p.id === r.provider;
       sel.append(o);
     }
-    const list = el("datalist");
-    list.id = `md-list-${r.id}`;
+    // the provider's models in a real menu (a datalist hid them on phones and filtered them by what was typed);
+    // "other" opens the box for a name not in the list. The box stays what is saved.
+    const pick = el("select", "md-pick");
     const model = el("input");
     model.value = r.model || "";
-    model.setAttribute("list", list.id);
     model.placeholder = t("md.model_ph");
     const warn = el("span", "md-warn", "📷");
     warn.title = t("md.pictures");
+    const option = (value, text) => { const o = el("option", "", text); o.value = value; return o; };
     const fill = async () => {
-      list.replaceChildren();
-      if (sel.value === "local") { model.value = ""; model.disabled = true; return; }
-      model.disabled = false;
-      try {
-        const { models } = await call(`/v1/aurora/models/${sel.value}/list`);
-        list.replaceChildren(...models.map((n) => { const o = el("option"); o.value = n; return o; }));
-      } catch (e) { model.placeholder = t("ev.error", { m: e.message }); }
+      pick.replaceChildren();
+      if (sel.value === "local") { model.value = ""; model.hidden = true; pick.hidden = true; return; }
+      pick.hidden = false;
+      let models = [];
+      try { ({ models } = await call(`/v1/aurora/models/${sel.value}/list`)); }
+      catch (e) { model.placeholder = t("ev.error", { m: e.message }); }
+      pick.append(option("", t("md.model_default")), ...models.map((n) => option(n, n)), option("\u0000", t("md.model_other")));
+      const known = !model.value || models.includes(model.value);
+      pick.value = known ? model.value : "\u0000";
+      model.hidden = known;
     };
+    pick.addEventListener("change", () => {
+      const other = pick.value === "\u0000";
+      model.hidden = !other;
+      model.value = other ? "" : pick.value;
+      if (other) model.focus();
+    });
     sel.addEventListener("change", () => { model.value = ""; fill(); warn.hidden = !(r.id === "vision" && sel.value !== "local"); });
-    model.disabled = r.provider === "local";
+    model.hidden = r.provider === "local";
+    pick.hidden = r.provider === "local";
     if (r.provider !== "local") fill();
     warn.hidden = !(r.id === "vision" && r.provider !== "local");
     const name = el("div", "md-name");
     name.append(el("strong", "", lang.startsWith("it") ? r.it : r.en), el("div", "muted", t("md.sees", { what: r.sees })));
-    row.append(name, sel, model, list, warn);
+    row.append(name, sel, pick, model, warn);
     return row;
   },
 

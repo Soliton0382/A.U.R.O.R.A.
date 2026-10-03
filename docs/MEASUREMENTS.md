@@ -893,6 +893,22 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M85 — Aurora's code in a cage of its own (4 October 2026)
+
+prj_run on this machine: pytest in a project 1 passed; a connection out: name resolution fails (no network); Aurora's
+.env, the NAS (/mnt/aurora-nas) and the home folder not visible; the environment holds only HOME, LANG, PATH,
+PYTHONDONTWRITEBYTECODE; a write to /etc refused (read-only), in the project allowed. A cage inside a plugin's cage is
+not possible here (the kernel refuses a nested user namespace): the run is the API's. `test_owner_list_1004.py`.
+Not measured: a long project iterated by Aurora end to end.
+
+## M84 — Dictation that failed the first time (4 October 2026)
+
+The API's audit lines of 3-4 October: 8 dictations from the phone, 5 decoded to 0.1 s although their files were
+35-198 KB (0.1 s of Opus is under 2 KB), one of 5.0 s not clear speech, 2 decoded right (7.7 s, 12.0 s). Reproduced: a 6 s WebM/Opus with a
+timestamp jump of 60 s after the 5th packet gives 0.05 s with ffmpeg "-t 30" and 6.0 s without it. After the fix
+(no "-t", the length cut on the samples) the same file decodes to 6.0 s. Not measured: the phone's own files (none
+kept), the share of first recordings with a jump.
+
 ## M83 — The forge with Grok (4 October 2026, night)
 
 Writer xAI grok-4.20-0309-non-reasoning, judge grok-4.7 (the owner's choice: cheap and good with code; Claude Code

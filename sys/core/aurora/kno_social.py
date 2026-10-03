@@ -31,7 +31,7 @@ def platforms(host: PluginHost) -> list[dict]:
     out = []
     for p in host.plugins():
         social = p.manifest.get("social")
-        if social:
+        if social and p.enabled:                       # a platform switched off is not offered anywhere
             out.append({"plugin": p.name, "label": social.get("label", p.name), "available": p.available,
                         "missing": p.missing, "max_chars": social.get("max_chars", 1000),
                         "publish": social.get("publish"), "photo": social.get("photo"), "stats": social.get("stats")})

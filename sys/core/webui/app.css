@@ -160,3 +160,8 @@ details.gd-item summary { cursor: pointer; font-weight: 600; }
 .link { background: none; border: 0; color: var(--accent); text-decoration: underline; padding: .3rem 0; }
 button.danger { border-color: #c0392b; color: #ff8a80; }
 .enrol { margin-top: .6rem; }
+/* routines: several times and days (owner, 2026-10-04) */
+.rt-sched { display: inline-flex; flex-wrap: wrap; gap: .35rem; align-items: center; }
+.rt-times, .rt-days { display: inline-flex; flex-wrap: wrap; gap: .3rem; align-items: center; }
+.rt-time { display: inline-flex; gap: .15rem; align-items: center; }
+.rt-day { display: inline-flex; gap: .15rem; align-items: center; font-size: .85rem; }

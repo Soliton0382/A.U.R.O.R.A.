@@ -6,7 +6,10 @@ A routine is either
     tool   one read-only tool of a plugin, called directly (no model: fast, deterministic), e.g. weather alerts
     agent  a goal for the agent with the plugins' tools, e.g. a weekly report of the GitHub repositories
 and has a schedule: {"every": "hours", "hours": n} | {"every": "day", "at": "HH:MM"} |
-{"every": "week", "weekday": 0-6 (Monday 0), "at": "HH:MM"}, in local time.
+{"every": "week", "weekday": 0-6 (Monday 0), "at": "HH:MM"} |
+{"every": "custom", "times": ["HH:MM", ...], "days": [0-6, ...] or "group": all | weekdays | weekend | workdays |
+holidays} (owner, 2026-10-04: several times, days or groups of days, like a calendar's recurrence), in local time.
+workdays: Monday to Friday but not the Italian public holidays; holidays: Saturday, Sunday and those holidays.
 
 Notify: always | if_any (only when there is something: a tool's output is not empty, an agent does not
 answer NOTHING) | if_new (if_any, and different from the last notified text: an alert is said once) | never.
@@ -25,7 +28,7 @@ import os
 import re
 import time
 import uuid
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from . import sns_clock, sys_config
@@ -77,13 +80,24 @@ def validate(spec: dict) -> dict:
     if every == "hours":
         if not 1 <= int(sch.get("hours", 0)) <= 168:
             raise ValueError("hours between 1 and 168")
+    elif every == "custom":
+        times = sch.get("times")
+        if not isinstance(times, list) or not 1 <= len(times) <= 12 or \
+                not all(re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", str(x)) for x in times):
+            raise ValueError("times: 1 to 12 of HH:MM")
+        if "group" in sch:
+            if sch["group"] not in GROUPS:
+                raise ValueError(f"group must be one of {GROUPS}")
+        elif not isinstance(sch.get("days"), list) or not sch["days"] or \
+                not all(isinstance(d, int) and 0 <= d <= 6 for d in sch["days"]):
+            raise ValueError("days: a list of 0 (Monday) to 6, or a group")
     elif every in ("day", "week"):
         if not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", str(sch.get("at", ""))):
             raise ValueError("at must be HH:MM")
         if every == "week" and not 0 <= int(sch.get("weekday", -1)) <= 6:
             raise ValueError("weekday between 0 (Monday) and 6")
     else:
-        raise ValueError("schedule.every must be hours, day or week")
+        raise ValueError("schedule.every must be hours, day, week or custom")
     if spec.get("notify", "always") not in NOTIFY:
         raise ValueError(f"notify must be one of {NOTIFY}")
     if "propose" in spec and not isinstance(spec["propose"], bool):
@@ -124,8 +138,51 @@ def delete(cfg: sys_config.Config, rid: str) -> bool:
     return len(keep) != len(rs)
 
 
+GROUPS = ("all", "weekdays", "weekend", "workdays", "holidays")
+
+
+def easter(year: int) -> date:
+    """Easter Sunday (Gregorian, the anonymous algorithm)."""
+    a, b, c = year % 19, year // 100, year % 100
+    d, e = b // 4, b % 4
+    g = (8 * b + 13) // 25
+    h = (19 * a + b - d - g + 15) % 30
+    i, k = c // 4, c % 4
+    l_ = (32 + 2 * e + 2 * i - h - k) % 7
+    m = (a + 11 * h + 22 * l_) // 451
+    month = (h + l_ - 7 * m + 114) // 31
+    return date(year, month, (h + l_ - 7 * m + 114) % 31 + 1)
+
+
+def holiday_it(d: date) -> bool:
+    """An Italian national public holiday (the fixed ones and Easter Monday)."""
+    fixed = {(1, 1), (1, 6), (4, 25), (5, 1), (6, 2), (8, 15), (11, 1), (12, 8), (12, 25), (12, 26)}
+    return (d.month, d.day) in fixed or d == easter(d.year) + timedelta(days=1)
+
+
+def day_ok(sch: dict, d: date) -> bool:
+    """Whether a custom schedule runs on day d."""
+    g = sch.get("group")
+    if g is None:
+        return d.weekday() in sch["days"]
+    return {"all": True, "weekdays": d.weekday() < 5, "weekend": d.weekday() >= 5,
+            "workdays": d.weekday() < 5 and not holiday_it(d),
+            "holidays": d.weekday() >= 5 or holiday_it(d)}[g]
+
+
 def _slot(now: datetime, sch: dict) -> datetime:
-    """The latest scheduled moment not after `now` (day/week)."""
+    """The latest scheduled moment not after `now` (day/week/custom)."""
+    if sch["every"] == "custom":
+        for back in range(0, 15):                    # a group always has a day within two weeks
+            d = (now - timedelta(days=back)).date()
+            if not day_ok(sch, d):
+                continue
+            slots = [now.replace(year=d.year, month=d.month, day=d.day, hour=int(x[:2]), minute=int(x[3:]), second=0,
+                                 microsecond=0) for x in sch["times"]]
+            past = [s for s in slots if s <= now]
+            if past:
+                return max(past)
+        return now - timedelta(days=15)
     h, m = (int(x) for x in sch["at"].split(":"))
     slot = now.replace(hour=h, minute=m, second=0, microsecond=0)
     if sch["every"] == "day":

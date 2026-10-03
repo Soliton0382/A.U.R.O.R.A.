@@ -99,7 +99,10 @@ export default {
     const order = Object.keys(categories);
     const rank = (c) => (order.indexOf(c) < 0 ? order.length : order.indexOf(c));
     settings.sort((a, b) => rank(a.category) - rank(b.category));
-    for (const s of settings) {
+    // a plugin's settings are in its card (🧩 Plugins): here only the rest, a menu less crowded (owner, 2026-10-04)
+    const inCards = [...new Set(settings.filter((s) => s.plugin).map((s) => s.plugin))].sort();
+    if (inCards.length) this.box.append(el("p", "muted", t("settings.in_cards", { n: settings.filter((s) => s.plugin).length, list: inCards.join(", ") })));
+    for (const s of settings.filter((x) => !x.plugin)) {
       if (s.category !== lastCat) {
         lastCat = s.category;
         const name = categories[s.category]?.[code] || s.category;

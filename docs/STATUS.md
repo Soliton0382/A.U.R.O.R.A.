@@ -67,6 +67,15 @@ Signed and published (commit d4ce54f, 29 commits, the history clean of the firew
 207 tests; the Messenger welcome message set by hand. The next roadmap is decided by the owner after the weekend
 (ROADMAP.md, "Next roadmap").
 
+## Done 2026-10-04, to verify by the owner (N31-N41)
+
+Verified by the owner: the WebUI changes (models menu, PDFs deletable, menu by plugin) and the backup timer.
+Code and tests (273 green), not yet live (aurora-api restarts after the owner's signature): dictation decoded whole
+and sent by itself (C121); plugins of the admin or of everyone, switching the admin's (C124); plugin settings in their
+cards with checkboxes; alerts per user, the cloud ceiling and failing providers notified; the trash (30 days);
+routines with several times and groups of days; projects in two tabs, Aurora's tests in a cage of her own (M85);
+the NAS backup after the mount (C123).
+
 ## In progress (2026-10-03)
 
 | what | state |

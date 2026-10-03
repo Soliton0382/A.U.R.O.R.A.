@@ -15,7 +15,7 @@ import time
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse, Response
 
-from .core import auth, cfg, in_thread, log, note, pipeline, plugin_host, start_run
+from .core import _admin, auth, cfg, in_thread, log, me, note, pipeline, plugin_host, start_run
 
 router = APIRouter()
 
@@ -71,24 +71,34 @@ async def agent(request: Request) -> dict:
 
 @router.get("/v1/aurora/plugins", dependencies=[Depends(auth)])
 def plugins() -> list[dict]:
-    return [{"name": p.name, "version": p.manifest.get("version"), "kind": p.manifest.get("kind"),
+    from aurora import plg_access
+    admin = me() == _admin()
+    return [{"name": p.name, "users": plg_access.for_users(cfg, p.name), "version": p.manifest.get("version"), "kind": p.manifest.get("kind"),
              "description": p.manifest.get("description", {}), "enabled": p.enabled, "available": p.available,
-             "missing": p.missing, "error": p.error, "setup": p.manifest.get("setup", {}),
+             "social": bool(p.manifest.get("social")), "missing": p.missing, "error": p.error, "setup": p.manifest.get("setup", {}),
              "settings": [k for k in dict.fromkeys(p.manifest.get("env", []) + p.manifest.get("requires", [])
                                                    + list(p.manifest.get("env_as", {})) + p.manifest.get("settings", []))],
              "icon": f"/v1/aurora/plugins/{p.name}/icon?v={_icon_version(p)}",
              "tools": [{"name": t["name"], "effect": t["effect"], "description": t["description"],
                         "required": (t.get("input_schema") or {}).get("required", [])} for t in p.tools]}
-            for p in plugin_host().plugins()]
+            for p in plugin_host().plugins() if admin or not getattr(p, "admin_only", False)]
 
 
 @router.post("/v1/aurora/plugins/{name}/{action}", dependencies=[Depends(auth)])
 def plugin_switch(name: str, action: str) -> dict:
-    if action not in ("enable", "disable"):
+    """enable / disable (for everyone), share / unshare (the users may use it, or only the admin): the admin's."""
+    from aurora import plg_access
+    if action not in ("enable", "disable", "share", "unshare"):
         raise HTTPException(status_code=404, detail="unknown action")
+    if me() != _admin():
+        raise HTTPException(status_code=403, detail="only the admin switches plugins")
     host = plugin_host()
     if name not in {p.name for p in host.plugins(with_tools=False)}:
         raise HTTPException(status_code=404, detail="unknown plugin")
+    if action in ("share", "unshare"):
+        plg_access.set_for_users(cfg, name, action == "share")
+        log.info("audit: plugin %s %s", name, "shared with the users" if action == "share" else "kept for the admin")
+        return {"name": name, "users": action == "share"}
     host.set_enabled(name, action == "enable")
     return {"name": name, "enabled": action == "enable"}
 

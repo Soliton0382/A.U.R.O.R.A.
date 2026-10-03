@@ -15,6 +15,7 @@ export default {
   id: "projects",
   icon: "📁",
   title: "nav.projects",
+  plugin: "projects",                 // in the menu only when that plugin is on (social: any platform connected)
 
   mount(root) {
     useCss("/static/css/projects.css");
@@ -22,14 +23,16 @@ export default {
     root.innerHTML = `
       <h2 data-i18n="prj.title"></h2><p class="muted" data-i18n="prj.hint"></p>
       <div class="prj-list">
-        <h3 class="setting-cat" data-i18n="prj.local"></h3><div class="prj-local"></div>
-        <h3 class="setting-cat" data-i18n="prj.github"></h3><div class="prj-github"></div>
+        <div class="prj-tabs"><button type="button" class="cat-chip on" data-tab="local" data-i18n="prj.local"></button>
+          <button type="button" class="cat-chip" data-tab="github" data-i18n="prj.github"></button></div>
+        <div class="prj-tab" data-tab="github" hidden><p class="muted" data-i18n="prj.github_hint"></p><div class="prj-github"></div></div>
+        <div class="prj-tab" data-tab="local"><p class="muted" data-i18n="prj.local_hint"></p><div class="prj-local"></div>
         <h3 class="setting-cat" data-i18n="prj.new"></h3>
         <form class="prj-new"><input name="name" required pattern="[a-z0-9][a-z0-9._-]{0,63}" data-i18n-placeholder="prj.name">
           <input name="description" required data-i18n-placeholder="prj.description">
           <select name="license"><option>MIT</option><option>Apache-2.0</option><option>GPL-3.0</option><option>BSD-3-Clause</option></select>
           <input name="language" value="Python" data-i18n-placeholder="prj.language">
-          <button type="submit" data-i18n="prj.create"></button> <span class="muted out"></span></form>
+          <button type="submit" data-i18n="prj.create"></button> <span class="muted out"></span></form></div>
       </div>
       <div class="prj-detail hidden"></div>`;
     apply(root);
@@ -38,6 +41,11 @@ export default {
     this.github = root.querySelector(".prj-github");
     this.list = root.querySelector(".prj-list");
     this.detail = root.querySelector(".prj-detail");
+    // two tabs (owner, 2026-10-04): the local projects, where Aurora writes, tests and tries again; GitHub's
+    root.querySelectorAll(".prj-tabs button").forEach((b) => b.addEventListener("click", () => {
+      root.querySelectorAll(".prj-tabs button").forEach((x) => x.classList.toggle("on", x === b));
+      root.querySelectorAll(".prj-tab").forEach((p) => { p.hidden = p.dataset.tab !== b.dataset.tab; });
+    }));
     const form = root.querySelector(".prj-new");
     form.addEventListener("submit", async (ev) => {
       ev.preventDefault();

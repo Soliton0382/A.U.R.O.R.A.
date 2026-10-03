@@ -13,6 +13,7 @@ export default {
   id: "security",
   icon: "🛡️",
   title: "nav.security",
+  plugin: "security",                 // in the menu only when that plugin is on (social: any platform connected)
 
   mount(root) {
     root.classList.add("page");

@@ -17,8 +17,11 @@ export default {
   mount(root) {
     root.classList.add("page");
     root.innerHTML = `<h2 data-i18n="up.title"></h2><p class="muted up-hint"></p><div class="up-grid"></div>
-      <h3 class="setting-cat" data-i18n="up.docs"></h3><div class="up-docs"></div>`;
+      <h3 class="setting-cat" data-i18n="up.docs"></h3><div class="up-docs"></div>
+      <h3 class="setting-cat" data-i18n="up.trash"></h3><p class="muted up-trash-hint"></p><div class="up-trash"></div>`;
     apply(root);
+    this.trash = root.querySelector(".up-trash");
+    this.trashHint = root.querySelector(".up-trash-hint");
     this.hint = root.querySelector(".up-hint");
     this.grid = root.querySelector(".up-grid");
     this.docs = root.querySelector(".up-docs");
@@ -33,9 +36,54 @@ export default {
     const docs = await call("/v1/aurora/documents");          // the PDFs Aurora wrote: download them
     this.docs.replaceChildren(...(docs.length ? docs.map((d) => {
       const a = viewLink(el("a", "ev"), d.url, d.name, "application/pdf");
-      a.append(el("span", "", "📄"), el("span", "", d.name), el("span", "muted", size(d.bytes)));
+      const del = el("button", "", "🗑️");
+      del.title = t("up.delete");
+      del.addEventListener("click", async (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();                                  // the row opens the viewer: the bin must not
+        if (!confirm(t("up.confirm", { name: d.name }))) return;
+        try { await call(d.url, { method: "DELETE" }); } catch (e) { alert(e.message); }
+        this.enter();
+      });
+      a.append(el("span", "", "📄"), el("span", "", d.name), el("span", "muted", size(d.bytes)), del);
       return a;
     }) : [el("p", "muted", t("up.no_docs"))]));
+    await this.loadTrash();
+  },
+
+  // the trash: what was deleted here, restorable until it expires (AURORA_TRASH_DAYS)
+  async loadTrash() {
+    const { items, enabled, days } = await call("/v1/aurora/trash");
+    this.trashHint.textContent = enabled ? t("up.trash_hint", { d: days }) : t("up.trash_off");
+    const rows = items.map((i) => {
+      const row = el("div", "ev");
+      const back = el("button", "", "♻️");
+      back.title = t("up.restore");
+      back.addEventListener("click", async () => {
+        try { await call(`/v1/aurora/trash/${i.id}/restore`, { method: "POST" }); } catch (e) { alert(e.message); }
+        this.enter();
+      });
+      const del = el("button", "danger", "✖");
+      del.title = t("up.remove");
+      del.addEventListener("click", async () => {
+        if (!confirm(t("up.remove_q", { name: i.name }))) return;
+        await call(`/v1/aurora/trash/${i.id}`, { method: "DELETE" });
+        this.loadTrash();
+      });
+      row.append(el("span", "", i.kind === "document" ? "📄" : "📎"), el("span", "up-name", i.name),
+        el("span", "muted", `${size(i.bytes)} · ${t("up.expires", { at: clock(i.expires) })}`), back, del);
+      return row;
+    });
+    if (items.length) {
+      const empty = el("button", "danger", t("up.empty"));
+      empty.addEventListener("click", async () => {
+        if (!confirm(t("up.empty_q", { n: items.length }))) return;
+        await call("/v1/aurora/trash/all", { method: "DELETE" });
+        this.loadTrash();
+      });
+      rows.push(empty);
+    }
+    this.trash.replaceChildren(...(rows.length ? rows : [el("p", "muted", t("up.trash_none"))]));
   },
 
   card(f) {

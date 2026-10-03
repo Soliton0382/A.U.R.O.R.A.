@@ -108,13 +108,22 @@ def get(cfg: sys_config.Config, uid: str) -> tuple[Path, dict] | None:
 
 
 def delete(cfg: sys_config.Config, uid: str) -> bool:
+    """The owner's delete: the file goes to the trash (sys_trash), its line kept there to take it back."""
+    from . import sys_trash
     items = _index(cfg)
     keep = [i for i in items if i["id"] != uid]
     for i in items:
-        if i["id"] == uid and "path" in i:
-            (_dir(cfg) / i["path"]).unlink(missing_ok=True)
+        if i["id"] == uid and "path" in i and (_dir(cfg) / i["path"]).is_file():
+            sys_trash.discard(cfg, _dir(cfg) / i["path"], "upload", i["name"], record=i)
     _write_index(cfg, keep)
     return len(keep) != len(items)
+
+
+def reindex(cfg: sys_config.Config, record: dict, path: Path) -> None:
+    """An upload back from the trash: its line again (at the path it came back to)."""
+    items = [i for i in _index(cfg) if i["id"] != record["id"]]
+    items.append({**record, "path": str(path.relative_to(_dir(cfg)))})
+    _write_index(cfg, items)
 
 
 def purge(cfg: sys_config.Config, live_runs: set[str] | None, now: float | None = None, grace: float = GRACE_S) -> list[str]:

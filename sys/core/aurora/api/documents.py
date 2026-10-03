@@ -9,7 +9,7 @@ import re
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse
 
-from .core import auth, cfg
+from .core import auth, cfg, log
 
 router = APIRouter()
 
@@ -47,3 +47,18 @@ def document(name: str):
         raise HTTPException(status_code=404, detail="no such document")
     # inline: the WebUI shows it in its viewer; the viewer's download button saves it (the link's download attribute)
     return FileResponse(f, media_type="application/pdf", filename=name, content_disposition_type="inline")
+
+
+@router.delete("/v1/aurora/documents/{name}", dependencies=[Depends(auth)])
+def document_delete(name: str) -> dict:
+    """Only a PDF Aurora wrote (its metadata say Creator: Aurora): never one of the owner's own documents."""
+    from aurora import doc_pdf
+    f = cfg.path("AURORA_DOCUMENTS_DIR") / name
+    if not re.fullmatch(r"[a-z0-9-]+\.pdf", name) or not f.is_file():
+        raise HTTPException(status_code=404, detail="no such document")
+    if not doc_pdf.made_by_aurora(f):
+        raise HTTPException(status_code=403, detail="not a document Aurora wrote: delete it from its folder")
+    from aurora import sys_trash
+    tid = sys_trash.discard(cfg, f, "document")
+    log.info("audit: document %s deleted (%s)", name, f"trash {tid}" if tid else "removed")
+    return {"deleted": name, "trash": tid}

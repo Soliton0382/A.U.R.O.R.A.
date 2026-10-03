@@ -100,6 +100,14 @@ LOOP_TOOLS = [
      "input_schema": {"type": "object", "properties": {
          "title": {"type": "string", "description": "a short title in Italian"},
          "html": {"type": "string", "description": "the whole page"}}, "required": ["title", "html"]}},
+    {"name": "run_in_project", "description": "Run a command in one of the owner's local projects (made with "
+     "projects.project_create): its tests (python -m pytest -q), the program. A cage with NO network, no keys, only the "
+     "project's folder writable, a time limit. Returns the exit code and the output's end: read it, fix the files "
+     "with projects.project_write_file, run again until it works; then commit.",
+     "input_schema": {"type": "object", "properties": {
+         "project": {"type": "string", "description": "the project's name"},
+         "command": {"type": "string", "description": "a shell command run in the project's folder"}},
+         "required": ["project", "command"]}},
     {"name": "finish", "description": "End the work with a report in Italian for the owner.",
      "input_schema": {"type": "object", "properties": {"summary": {"type": "string"}}, "required": ["summary"]}},
 ]
@@ -207,6 +215,15 @@ class Agent:
             return self._artifact(args, emit, run_id)
         if name == "create_picture":
             return self._picture(args, emit, run_id)
+        if name == "run_in_project":                         # Aurora's own code, in a cage without network (prj_run)
+            from . import prj_run
+            try:
+                r = prj_run.run(self.cfg, str(args.get("project", "")), str(args.get("command", "")))
+            except (ValueError, RuntimeError) as e:
+                return f"ERROR: {e}"
+            emit("project.run", {"project": args.get("project"), "command": str(args.get("command", ""))[:200],
+                                 "exit": r["exit"], "seconds": r["seconds"]})
+            return f"EXIT {r['exit']} in {r['seconds']} s\n{r['output']}"
         if name == "propose_change":
             return self._propose(args, emit, run_id)
         if name == "request_capability":                     # the forge builds what is missing (agt_forge)

@@ -167,8 +167,10 @@ def _welcome(sys_routines) -> list[str]:
 def notifications() -> dict:
     from aurora import sys_push
     lang = "it" if str(cfg["AURORA_LANG_DEFAULT"]).startswith("it") else "en"
+    admin = me() == _admin()                        # each user their own choice; the machine's kinds the admin's
     return {"prefs": sys_push.prefs(cfg), "presets": sys_push.PRESETS, "subscriptions": sys_push.count(cfg),
-            "kinds": [{"id": k, "label": v[lang], "it": v["it"], "en": v["en"]} for k, v in sys_push.KINDS.items()]}
+            "kinds": [{"id": k, "label": v[lang], "it": v["it"], "en": v["en"]} for k, v in sys_push.KINDS.items()
+                      if admin or k not in sys_push.MACHINE]}
 
 
 @router.put("/v1/aurora/notifications", dependencies=[Depends(auth)])
