@@ -7,3 +7,6 @@ It runs third-party software and models under their own licenses, which are not 
 and are downloaded by the installer: llama.cpp (MIT), Caddy (Apache-2.0), GitHub MCP server (MIT),
 Qwen3 models (Apache-2.0), bge-reranker-v2-m3 (MIT), Stable Diffusion XL (CreativeML Open RAIL++-M),
 SDXL-Lightning (CreativeML Open RAIL++-M). Python dependencies are listed in requirements.txt.
+
+Included: KaTeX 0.19.0 (MIT, Copyright (c) 2013-2020 Khan Academy and other contributors), in
+sys/core/webui/vendor/katex with its LICENSE, to draw formulas in the chat.

@@ -98,8 +98,18 @@ for _name in MODULES:                               # each area of the API is it
 
 
 # ---- WebUI -------------------------------------------------------------------------------------
+class WebUIFiles(StaticFiles):
+    """The WebUI's files are checked again at every load (ETag: an unchanged file is a 304): without a Cache-Control
+    the browser kept modules by its own heuristics, and an old social.js lost the dream's picture of a share (C107)."""
+
+    async def get_response(self, path, scope):
+        r = await super().get_response(path, scope)
+        r.headers["Cache-Control"] = "no-cache"
+        return r
+
+
 if WEBUI.is_dir():
-    app.mount("/static", StaticFiles(directory=WEBUI), name="static")
+    app.mount("/static", WebUIFiles(directory=WEBUI), name="static")
 
 
 @app.get("/")
