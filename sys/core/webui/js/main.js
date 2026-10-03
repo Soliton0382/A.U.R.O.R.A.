@@ -107,6 +107,11 @@ mountAll();
 if (await authorized()) start(); else showLogin(true);
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/sw.js").catch(() => { /* no offline shell */ });
+  // a new version of the WebUI took over this page: load it once, so the page runs the new modules (C109)
+  if (navigator.serviceWorker.controller) {
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => { if (!reloaded) { reloaded = true; location.reload(); } });
+  }
   navigator.serviceWorker.addEventListener("message", (ev) => {      // a notification was clicked
     if (ev.data?.type === "show" && byId[ev.data.view]) show(ev.data.view);
   });

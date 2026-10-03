@@ -113,6 +113,7 @@ class Answer:
     seconds: float = 0.0
     mode: str = "knowledge"                        # knowledge | self
     speed: dict | None = None                      # {"tokens", "per_second"} of the writing call, as measured
+    suggestions: list = field(default_factory=list)  # follow-up questions with their sources (kno_followup.suggest)
 
 
 def _passages(hits: list[Hit], ids: list[int]) -> str:
@@ -211,14 +212,14 @@ class Pipeline:
         ev("answer.final", {"text": result.text, "abstained": result.abstained, "sources": result.sources,
                             "dropped": result.dropped, "seconds": round(result.seconds, 1), "mode": "knowledge",
                             "speed": result.speed})
-        if remember:
-            names = f" [{', '.join(a.name for a in attached)}]" if attached else ""
-            self.remember(asked + names, result, run_id, ev, trail, asked_at)
         if suggest and not result.abstained and self.cfg["AURORA_PIPELINE_SUGGEST"]:
             try:                                    # after the answer is shown: never a reason to fail it
-                kno_followup.suggest(self, question, result.text, result.sources, hits, ev)
+                result.suggestions = kno_followup.suggest(self, question, result.text, result.sources, hits, ev)
             except Exception as e:
                 self.log.warning("suggestions failed: %s", e)
+        if remember:                                # with the suggestions: another window shows them too (C110)
+            names = f" [{', '.join(a.name for a in attached)}]" if attached else ""
+            self.remember(asked + names, result, run_id, ev, trail, asked_at)
         ev("run.end", {"seconds": round(result.seconds, 1)})
         return result
 
@@ -471,6 +472,7 @@ class Pipeline:
                                     "mode": result.mode, "seconds": round(result.seconds, 1), "speed": result.speed,
                                     "sources": [s["sid"] for s in result.sources],
                                     "source_list": result.sources,
+                                    **({"suggestions": result.suggestions} if result.suggestions else {}),
                                     **(trail.export() if trail else {})})]
         rep = self.writer.add_many(turns, run_id=run_id)
         added = self.indexer.update("conversation", run_id=run_id)

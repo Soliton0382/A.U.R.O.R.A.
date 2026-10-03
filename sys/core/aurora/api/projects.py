@@ -81,7 +81,15 @@ def project_preview(name: str) -> dict:
 def preview(token: str, path: str = ""):
     """No login: the token is the key (one project, 10 minutes). The page runs sandboxed (opaque origin, no cookie)."""
     from fastapi import Response
-    from aurora import prj_browse
+    from aurora import doc_artifact, prj_browse
+    if token.startswith(doc_artifact.PREFIX):             # an artifact of Aurora's: inline only, no network (doc_artifact)
+        try:
+            data = doc_artifact.page(token)
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="artifact expired: open it again from the chat")
+        return Response(data, media_type="text/html; charset=utf-8", headers={
+            "Content-Security-Policy": doc_artifact.CSP, "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store",
+            "Referrer-Policy": "no-referrer"})
     try:
         data, mime = prj_browse.preview_file(cfg, token, path)
     except PermissionError:

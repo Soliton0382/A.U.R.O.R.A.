@@ -172,3 +172,14 @@ def test_a_report_left_inside_an_unclosed_finish_call_is_unwrapped():
     assert unwrap(raw) == "Causa trovata:\nil plugin non è installato."
     assert unwrap("Resoconto normale.") == "Resoconto normale."
     assert unwrap("Testo prima <tool_call> {rotto") == "Testo prima"
+
+
+def test_a_tool_call_closed_with_the_wrong_tag_or_left_open_is_still_a_call():
+    """C111: a long create_artifact call closed with </tool_response> was taken for the report."""
+    import json
+
+    from aurora.agt_loop import CALL
+    for text, names in (('<tool_call>{"name": "a", "arguments": {"x": "}"}}</tool_call>', ["a"]),
+                        ('<tool_call>\n{"name": "b", "arguments": {}}\n</tool_response>', ["b"]),
+                        ('ok <tool_call>{"name": "c", "arguments": {"h": "<p>{}</p>"}}', ["c"])):
+        assert [json.loads(m)["name"] for m in CALL.findall(text)] == names

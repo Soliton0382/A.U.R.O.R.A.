@@ -512,5 +512,7 @@
   "chat.deeper": "Go deeper:",
   "ev.question.standalone": "Question completed with the conversation: {q}",
   "ev.retrieval.focus": "Sources of the previous answer in focus: {k} passages entered ({n} sources)",
-  "ev.answer.suggestions": "{n} questions to go deeper"
+  "ev.answer.suggestions": "{n} questions to go deeper",
+  "artifact.full": "Full screen",
+  "artifact.reload": "Reload"
 }

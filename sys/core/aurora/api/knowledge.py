@@ -127,7 +127,8 @@ def history(n: int = 8) -> list[dict]:
              "run_id": t.extra.get("run_id"), "abstained": t.extra.get("abstained", False),
              "mode": t.extra.get("mode"), "seconds": t.extra.get("seconds"), "speed": t.extra.get("speed"),
              "sources": t.extra.get("source_list", []), "trace": t.extra.get("trace", []),
-             "thought": t.extra.get("thought", ""), "long_term": t.consolidated} for t in turns]
+             "thought": t.extra.get("thought", ""), "suggestions": t.extra.get("suggestions", []),
+             "long_term": t.consolidated} for t in turns]
     from aurora import sys_uploads
     files = sys_uploads.by_run(cfg, {i["run_id"] for i in items if i["run_id"]})
     for i in items:                                   # the owner's files with his turn, Aurora's (edits) with hers

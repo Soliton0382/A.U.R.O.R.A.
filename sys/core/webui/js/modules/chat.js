@@ -301,11 +301,13 @@ export default {
     this.loadHistory = async () => {
       const turns = await call(`/v1/aurora/history?n=${HISTORY_TURNS}`);
       messages.replaceChildren();
+      const lastAnswer = turns.filter((x) => x.role === "assistant").pop();
       for (const turn of turns) {
         if (turn.role === "user") { userBubble(turn.text, turn.attachments || [], turn.created_at); continue; }
         if (turn.role === "dream") { dreamBubble(turn); continue; }
         const b = auroraBubble(messages);
         renderPast(b, turn);
+        if (turn === lastAnswer && turn.suggestions?.length) offerDeeper(b, turn.suggestions);   // the latest answer only
         b.root.classList.add("past");
         if (turn.run_id) mine.add(turn.run_id);
       }
@@ -332,7 +334,8 @@ export default {
       const b = auroraBubble(messages);
       if (a.payload.origin !== "webui") b.root.classList.add("elsewhere");
       if (stick) scrollEnd(messages);
-      await follow(id, b, messages);
+      const final = await follow(id, b, messages);
+      if (final?.suggestions?.length) offerDeeper(b, final.suggestions);   // asked on another device: go deeper here too
     };
     this.watch = async () => {
       for (;;) {

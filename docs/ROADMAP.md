@@ -8,6 +8,9 @@ sessions. Each item moves to STATUS.md ("Working") when it is validated. Updated
 Candidates, each with the measure that says it worked:
 1. **The gate on vague questions** — rewrite a question with the conversation's context before the gate;
    measure: `bench_quality.py --pool 30` above 6.90, wrong gate closures below 3.
+1d. **Artifacts** (owner, 2026-10-03) — **done, to verify (N21)**: interactive pages Aurora makes (charts,
+   simulations, calculators) live in the chat, sandboxed with no network (M74). Also: formulas (KaTeX) and tables in
+   the chat, suggestions kept with the answer.
 1c. **Social, more autonomous** (owner, 2026-10-03) — **done, to verify (N18, N19)**: Share on dreams and
    thoughts (with the dream's picture); Aurora publishes her own posts by herself (Facebook posts and photos,
    at most 3 a day, recorded and notified); a morning routine (09:30) for a dream or a thought, the 18:30 one for

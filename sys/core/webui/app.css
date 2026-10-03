@@ -143,3 +143,11 @@ details.gd-item summary { cursor: pointer; font-weight: 600; }
 .md th, .md td { border: 1px solid var(--line); padding: .3rem .55rem; text-align: left; vertical-align: top; }
 .md th { background: rgba(255, 255, 255, .04); }
 .md .katex { font-size: 1.05em; }
+.artifact { border: 1px solid var(--line); border-radius: 10px; margin: .6rem 0; overflow: hidden; background: var(--panel2); }
+.artifact-bar { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; padding: .35rem .5rem; border-bottom: 1px solid var(--line); }
+.artifact-title { flex: 1; min-width: 8rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.artifact-bar button { padding: .2rem .55rem; }
+.artifact-body { height: 440px; display: flex; align-items: center; justify-content: center; color: var(--muted); }
+.artifact-frame { width: 100%; height: 100%; border: 0; background: #fff; }
+.artifact.full { position: fixed; inset: 0; z-index: 60; margin: 0; border-radius: 0; display: flex; flex-direction: column; }
+.artifact.full .artifact-body { flex: 1; height: auto; }

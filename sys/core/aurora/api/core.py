@@ -179,15 +179,20 @@ SYS_TOOLS = ("Decide whether the owner's last message asks Aurora to use one of 
              "world (science, law, medicine, history, definitions, how something works) that a knowledge base answers. "
              "Examples: 'controlla i miei repository su GitHub' TOOLS; 'quante stelle ha il mio progetto?' TOOLS; "
              "'ho nuove mail?' TOOLS; 'che novità ci sono oggi nello spazio?' TOOLS; 'ultime notizie di tecnologia' TOOLS; 'mostrami i file del progetto aurora-site' TOOLS; 'cos'è un repository git?' NO; "
-             "'come funziona una pull request?' NO; 'cosa dice l'articolo 2043 del codice civile?' NO; 'come stai?' NO. "
+             "'come funziona una pull request?' NO; 'cosa dice l'articolo 2043 del codice civile?' NO; 'come stai?' NO; "
+             "'fammi un grafico interattivo della funzione seno' TOOLS; 'crea una foto di un gatto astronauta' TOOLS; "
+             "'cos'è la funzione seno?' NO. "
              "Reply with exactly one word.\n\nCONNECTED SERVICES:\n{services}")
 ROUTER_SKIP = {"web", "self"}          # web search is the knowledge path's job; "self" is Aurora's own maintenance
 
 
 def connected_services() -> list[str]:
     """The plugins the owner has connected (enabled, configured, no error): what the chat may hand to the agent."""
-    return [f"- {p.name}: {(p.manifest.get('description') or {}).get('en', '')[:200]}"
-            for p in plugin_host().plugins(with_tools=False) if p.available and p.name not in ROUTER_SKIP]
+    built_in = ["- pictures: paint a new picture on request (a photo, an illustration)",
+                "- artifacts: make an interactive page shown live in the chat (a chart, a plot of a function, a "
+                "calculator, a simulation, a small game or app)"]
+    return built_in + [f"- {p.name}: {(p.manifest.get('description') or {}).get('en', '')[:200]}"
+                       for p in plugin_host().plugins(with_tools=False) if p.available and p.name not in ROUTER_SKIP]
 
 
 def wants_tools(question: str, recent: list, emit=None) -> bool:

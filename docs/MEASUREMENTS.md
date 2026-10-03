@@ -893,6 +893,15 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M74 — Artifacts, formulas, routing (3 October 2026)
+
+Artifacts: «Fammi un grafico interattivo della funzione seno con uno slider» → the agent made a working page (canvas,
+slider redrawing the sine) at the second try (C111 at the first); through HTTPS the page is served with
+`sandbox allow-scripts` (no same origin), `connect-src 'none'`, `frame-ancestors 'self'`, X-Frame-Options
+SAMEORIGIN, no cookie; an unknown url 404, no key 401; an HTML the owner uploaded never runs (test). Routing of
+the chat: 6 of 6 (3 creations to the agent, 3 knowledge questions not). Formulas: the owner's real answers with
+`$…$` become formula elements in md.js (node). Tests 240.
+
 ## M73 — Follow-ups with the previous answer, sources in focus, suggestions (3 October 2026)
 
 The 14 follow-ups of M72, now after a **real** first answer of Aurora (with its sources; 3 of the 14 first questions

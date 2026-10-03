@@ -30,7 +30,9 @@ from .plg_host import PluginHost
 from .sys_approvals import Approvals, needs_owner
 
 IDENTITY_FILE = Path(__file__).resolve().parents[1] / "prompts" / "identity.md"
-CALL = re.compile(r"<tool_call>\s*(\{.*?\})\s*</tool_call>", re.S)
+# closed as it should, or with the wrong tag (</tool_response>), or left open at the end of the text: a long call
+# (a whole HTML page for create_artifact) was written with the wrong closing tag and taken for the report (C111)
+CALL = re.compile(r"<tool_call>\s*(\{.*?\})\s*(?:</tool_call>|</tool_response>|\Z)", re.S)
 SUMMARY = re.compile(r'"summary"\s*:\s*"((?:[^"\\]|\\.)*)', re.S)
 
 
@@ -90,6 +92,14 @@ LOOP_TOOLS = [
      "input_schema": {"type": "object", "properties": {
          "prompt": {"type": "string", "description": "what the picture shows, in English: subject, style, light, colours"},
          "title": {"type": "string", "description": "a short title in Italian"}}, "required": ["prompt", "title"]}},
+    {"name": "create_artifact", "description": "Make an interactive page shown live in the conversation: a chart, a "
+     "calculator, a simulation, a small game or app. ONE self-contained HTML page: CSS and JavaScript inline, data inline, "
+     "drawn with SVG or canvas; it has NO network (no CDN, no external script, font or image, no fetch). It must fit "
+     "a phone screen (width 100%, sizes from the window, no fixed 600 px). Call it ONCE with the finished page, never a "
+     "test page. Returns its file name.",
+     "input_schema": {"type": "object", "properties": {
+         "title": {"type": "string", "description": "a short title in Italian"},
+         "html": {"type": "string", "description": "the whole page"}}, "required": ["title", "html"]}},
     {"name": "finish", "description": "End the work with a report in Italian for the owner.",
      "input_schema": {"type": "object", "properties": {"summary": {"type": "string"}}, "required": ["summary"]}},
 ]
@@ -158,6 +168,17 @@ class Agent:
         out = agt_change.apply(sid, emit, self.cfg)
         return f"APPLIED (forging is automatic): {json.dumps(out, ensure_ascii=False)[:2000]}"
 
+    def _artifact(self, args: dict, emit, run_id: str) -> str:
+        """An interactive page (doc_artifact), kept with this turn and shown live in the conversation."""
+        from . import doc_artifact
+        try:
+            f = doc_artifact.create(self.cfg, run_id, str(args.get("title", "")), str(args.get("html", "")))
+        except ValueError as e:
+            return f"ERROR: {e}"
+        self.produced.append(f)
+        emit("agent.file", f)
+        return f"MADE: {f['name']}, shown live to the owner in the conversation (it has no network: data must be inline)"
+
     def _picture(self, args: dict, emit, run_id: str) -> str:
         """A new picture (mdl_image.paint, the dream painter), kept with this turn of the conversation."""
         from . import mdl_image, sys_features, sys_uploads
@@ -182,6 +203,8 @@ class Agent:
         return f"PAINTED: {out['file']} ({out.get('seconds', '?')} s), shown to the owner in the conversation"
 
     def _call(self, name: str, args: dict, index: dict, emit, run_id: str) -> str:
+        if name == "create_artifact":
+            return self._artifact(args, emit, run_id)
         if name == "create_picture":
             return self._picture(args, emit, run_id)
         if name == "propose_change":

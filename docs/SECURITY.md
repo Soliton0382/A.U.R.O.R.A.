@@ -40,6 +40,11 @@ Level B, by default: AI disclosure, confirmation of external actions, approval o
 The owner's installation is exempted by a file signed with the owner's Ed25519 key for this machine
 and this installation only (never committed).
 
+Artifacts (interactive pages Aurora makes, 2026-10-03): they run only under `/v1/preview/` through a token valid
+10 minutes that the logged-in WebUI asks for, in a sandbox without `allow-same-origin` (opaque origin: no cookie,
+no access to the API) and with no network (`connect-src 'none'`, nothing external); only HTML files Aurora made
+(role assistant) can be opened; the file itself is always a download.
+
 Autonomous posts (owner, 2026-10-03): on an exempted installation, with `AURORA_SOCIAL_AUTONOMY` on, Aurora
 publishes her own posts without waiting, but only through the tools of `AURORA_SOCIAL_AUTO_TOOLS`
 (`facebook.publish_post`, `facebook.publish_photo`) and at most `AURORA_SOCIAL_POSTS_PER_DAY` a day (3); the

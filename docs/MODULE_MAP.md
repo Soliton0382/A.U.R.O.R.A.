@@ -80,6 +80,7 @@ call downward (ECOSYSTEM §1).
 | `sec_sentinel.py` | security | firewall syslog parsing (key=value), sliding-window detector: deny bursts, port scans, IPS alerts, failed logins | — | svc_sentinel |
 | `sec_incidents.py` | security | incident store, severity by rule, investigation with public network registry data and a defensive report | plg_host (netintel), mdl_llm | svc_api |
 | `doc_pdf.py` | documents | Markdown → HTML (raw HTML off) → PDF with Chrome headless; AI mark in metadata and footer | markdown-it, pypdf, Chrome | plugin documents, svc_api |
+| `doc_artifact.py` | documents | artifacts: an interactive HTML page Aurora makes (agent tool create_artifact), kept with the turn; run only under /v1/preview/ with a 10-minute token, sandboxed, no network | sys_uploads | agt_loop, api/projects, api/preview |
 | `sys_logread.py` | system | Aurora reads her logs: inventory with the last day's problems, tail of a component, a run's events from the traces, answer statistics | sys_config | kno_answer (self state), kno_rem (self-review), svc_api (/logs) |
 | `sys_metrics.py` | system | CPU, RAM, GPUs for the WebUI top bar, sampled at most every 1.5 s | /proc, nvidia-smi | svc_api |
 | `kno_rem.py` | memory | autonomic work: closed sessions → session memories (STM → LTM), spontaneous thoughts, dreams | mdl_llm, sol_writer, sol_index, sns_* | svc_api (started by svc_rem) |
@@ -166,6 +167,7 @@ Static files served by aurora-api; no build step. The page is a showcase that co
 | `js/modules/{diary,social,security}.js` | diary (session memories, thoughts, dreams); social (platforms, report with ideas, drafts, publish); security (incidents, registry data, reports, close) |
 | `js/modules/alerts.js` (+ `css/alerts.css`) | top-bar widget: health dot (green/yellow/red, reasons on hover), pulsing bell for pending approvals, shield for open incidents |
 | `js/md.js` | Markdown to DOM (never HTML): headings, lists, code, tables, formulas drawn by KaTeX (`vendor/katex`, loaded only when a formula is there; prices like $5 stay text) |
+| `js/artifact.js` | an artifact live in the answer (sandboxed frame, full screen, download) |
 | `js/share.js` | ↗ Share on dreams and thoughts: the Social page with the drafts and the dream's picture |
 | `js/restart.js` | after a settings change: popup "restart the services now?", restart and wait for the API |
 | `js/modules/{import,runs,settings,status}.js` | the other views |
