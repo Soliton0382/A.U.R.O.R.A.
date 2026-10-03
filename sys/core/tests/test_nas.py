@@ -42,8 +42,16 @@ def test_one_marked_line_replaced_never_duplicated_and_no_password_in_fstab():
             N.credentials(u, p)
 
 
-def test_a_nas_folder_is_used_only_when_the_share_is_mounted(cfg, tmp_path):
+def test_a_nas_asleep_is_said_at_once(cfg, monkeypatch):
     cfg.values["AURORA_BACKUP_DIR"] = "smb://192.168.1.20/backups/aurora/"
+    monkeypatch.setattr(B, "nas_reachable", lambda url, timeout=1.5: False)
+    with pytest.raises(B.BackupError, match="does not answer"):     # C125: never a 10 s wait on a hanging mount
+        B.target(cfg)
+
+
+def test_a_nas_folder_is_used_only_when_the_share_is_mounted(cfg, tmp_path, monkeypatch):
+    cfg.values["AURORA_BACKUP_DIR"] = "smb://192.168.1.20/backups/aurora/"
+    monkeypatch.setattr(B, "nas_reachable", lambda url, timeout=1.5: True)
     with pytest.raises(B.BackupError, match="not mounted"):
         B.target(cfg, mount=tmp_path / "not-a-mount")          # never the local disk in the NAS's place
     import os

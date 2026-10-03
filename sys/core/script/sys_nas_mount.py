@@ -88,6 +88,9 @@ def main() -> int:
         if not url.startswith("smb://"):
             raise ValueError("AURORA_BACKUP_DIR is not smb://…: nothing to mount")
         host, share, sub = parse(url)
+        from aurora import sys_backup                   # C125: a NAS asleep said as such, not "File exists"
+        if not sys_backup.nas_reachable(url):
+            raise RuntimeError(f"the NAS {host} does not answer (off or asleep): mount it again when it is on")
         CRED.parent.mkdir(parents=True, exist_ok=True)
         fd = os.open(CRED, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
         with os.fdopen(fd, "w") as f:

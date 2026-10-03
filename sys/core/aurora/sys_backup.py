@@ -160,13 +160,35 @@ def _decrypt_bytes(data: bytes, key: bytes) -> bytes:
 NAS_MOUNT = Path("/mnt/aurora-nas")                    # where aurora-mount puts the NAS share (sys_nas_mount.py)
 
 
+def nas_reachable(url: str, timeout: float = 1.5) -> bool:
+    """The NAS answers on SMB (445). Asked before touching its folder: a NAS asleep or off leaves the mount hanging,
+    and every look at the folder waited 10 s — the health took 10 s and the Status page stayed empty (C125)."""
+    host = url[6:].strip("/").split("/")[0]
+    try:
+        socket.create_connection((host, 445), timeout).close()
+        return True
+    except OSError:
+        return False
+
+
+def mounted(mount: Path = NAS_MOUNT) -> bool:
+    """In the mount table, read without touching the folder (a hanging mount never blocks this)."""
+    try:
+        return any(line.split()[1] == str(mount) for line in Path("/proc/self/mounts").read_text().splitlines())
+    except (OSError, IndexError):
+        return False
+
+
 def target(cfg: sys_config.Config, mount: Path = NAS_MOUNT) -> Path:
     raw = str(cfg["AURORA_BACKUP_DIR"] or "").strip()
     if not raw:
         raise BackupError("no backup folder: set AURORA_BACKUP_DIR (another disk, or the NAS)")
     if raw.startswith("smb://"):                         # the NAS: its share mounted by aurora-mount
         sub = "/".join(raw[6:].strip("/").split("/")[2:])
-        if not os.path.ismount(mount):
+        if not nas_reachable(raw):
+            raise BackupError(f"the NAS ({raw[6:].split('/')[0]}) does not answer: off or asleep; the backup "
+                              "tries again by itself")
+        if not mounted(mount):
             raise BackupError(f"the NAS is not mounted on {mount}: save the backup plugin (it mounts it), or check "
                               "the NAS user and password")
         d = mount / sub if sub else mount

@@ -126,7 +126,9 @@ def check(cfg: sys_config.Config | None = None) -> dict:
     b = sys_backup.status(cfg)
     last = b.get("last") or {}
     age_h = (time.time() - last["at"]) / 3600 if last.get("at") else None
-    if not b["configured"]:
+    if not b["configured"] and age_h is not None and age_h <= 30:      # the NAS asleep now, the last copy recent
+        add("backup", "warn", f"ultimo {age_h:.0f} h fa; ora il NAS non risponde", b["problem"])
+    elif not b["configured"]:
         add("backup", "warn", f"nessun backup: {b['problem']}", "AURORA_BACKUP_DIR + svc_backup.py init")
     elif age_h is None or age_h > 30:
         add("backup", "warn", "nessun backup riuscito" + (f" da {age_h:.0f} ore" if age_h else " ancora"), b.get("dest", ""))
