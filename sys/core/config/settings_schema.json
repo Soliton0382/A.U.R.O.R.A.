@@ -2452,6 +2452,56 @@
    ]
   },
   {
+   "key": "AURORA_TMDB_TOKEN",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "secret": true,
+   "optional": true,
+   "en": "TMDB key (themoviedb.org → Settings → API): the read access token or the API key.",
+   "it": "Chiave TMDB (themoviedb.org → Impostazioni → API): il token di lettura o la API key.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_TMDB_REGION",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "IT",
+   "evidence": "owner",
+   "en": "Country (two letters) for where films and series can be watched.",
+   "it": "Paese (due lettere) per dove vedere film e serie.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_EXPENSES_DIR",
+   "type": "path",
+   "category": "plugins",
+   "recommended": "usr/expenses",
+   "evidence": "owner",
+   "en": "Folder of the expenses database (this machine only).",
+   "it": "Cartella del database delle spese (solo su questa macchina).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_EXPENSES_CURRENCY",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "EUR",
+   "evidence": "owner",
+   "en": "Currency of the expenses (ISO code).",
+   "it": "Valuta delle spese (codice ISO).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_WEBDAV_URL",
    "type": "str",
    "category": "plugins",

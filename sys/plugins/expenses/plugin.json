@@ -1,0 +1,39 @@
+{
+ "name": "expenses",
+ "version": "1.0",
+ "kind": "tool",
+ "description": {
+  "it": "Le tue spese, solo su questa macchina: «ho speso 45 € di benzina» le registra; riepilogo del mese per categoria, confronto con il mese prima, budget mensili per categoria.",
+  "en": "Your spending, on this machine only: \"I spent 45 € on fuel\" records it; the month by category, against the month before, monthly budgets per category."
+ },
+ "command": [
+  "{python}",
+  "server.py"
+ ],
+ "env": [],
+ "requires": [],
+ "effects": {
+  "expense_list": "read",
+  "expense_summary": "read",
+  "*": "write_local"
+ },
+ "welcome": {
+  "it": "💶 Spese collegate. Dimmi «ho speso 30 € al supermercato» e lo registro; chiedimi il riepilogo del mese o fissa un budget per categoria. Restano solo qui.",
+  "en": "💶 Expenses connected. Tell me \"I spent 30 € at the supermarket\" and I record it; ask for the month's summary or set a budget per category. They stay here."
+ },
+ "setup": {
+  "it": "Niente da configurare: le spese stanno in `usr/expenses/expenses.db` (solo su questa macchina, mai nel repository; `AURORA_EXPENSES_DIR` per spostarle). Il plugin non ha rete.",
+  "en": "Nothing to set up: the spending is kept in `usr/expenses/expenses.db` (this machine only, never in the repository; `AURORA_EXPENSES_DIR` to move it). The plugin has no network.",
+  "links": []
+ },
+ "settings": [
+  "AURORA_EXPENSES_DIR",
+  "AURORA_EXPENSES_CURRENCY"
+ ],
+ "sandbox": {
+  "network": false,
+  "write": [
+   "AURORA_EXPENSES_DIR"
+  ]
+ }
+}

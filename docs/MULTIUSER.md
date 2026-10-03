@@ -71,7 +71,14 @@ each item with the registered users (one, several, all). Personal files private.
 `sys_users.py`: SQLite `users.db` (600, schema versioned), one admin, scrypt passwords, TOTP RFC 6238 (±30 s,
 a code never twice). Tests: `test_users.py` (RFC vectors, replay, one admin never removed). Not wired yet.
 
-### U2 — Mode, migration, purge (the clean switch)
+### U2 — Mode, migration, purge (the clean switch) — core ✅ (2026-10-03)
+Done: `sys_users_layout` (the areas, `<area>/users/<uid>/`, migration plan, migrate, rollback, purge with its check:
+files, trace lines, devices, the user record) and `script/sys_users_migrate.py` (plan by default; `--yes` only with
+the services stopped and a backup of the last 24 h). Tests on a fake installation: rollback gives back the same
+bytes, a second migration moves nothing, a purge leaves 0 traces, the admin cannot be purged, bad ids never reach
+the file system. Real plan on this machine (read only): 101 files, 37.9 MB; the papers of the library (25 GB) are
+shared and stay (M75). Still in U2, with U3: the mode setting and the switch from Settings. **The migration runs
+only at the end of U3**, when the code reads the per-user layout.
 | Task | Where |
 |---|---|
 | settings `AURORA_USER_MODE` (single/multi), `AURORA_USERS_MFA` (true), `AURORA_USERS_MAX` (from U4) | settings_schema.json |

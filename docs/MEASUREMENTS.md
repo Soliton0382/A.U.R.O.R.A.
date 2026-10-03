@@ -893,6 +893,15 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M75 — Plugins cinema and expenses, the per-user plan (3 October 2026)
+
+Expenses in its sandbox (no network, writes only usr/expenses): the database made at the first call, mode 600,
+"no spendings in 2026-10"; the chat routes "ho speso 45 euro di benzina" and "quanto ho speso questo mese al
+ristorante?" to the tools, "come si calcola un budget familiare?" not. Cinema waits for the TMDB key (off; "dove
+posso vedere Inception?" therefore not routed: to measure with the key). A test found trending people shown as films
+(fixed). Multi-user migration plan on this machine, read only: first 1,098 files, 26.6 GB — 25 GB were the papers of
+the shared library, excluded — then 101 files, 37.9 MB. Tests 245.
+
 ## M74 — Artifacts, formulas, routing (3 October 2026)
 
 Artifacts: «Fammi un grafico interattivo della funzione seno con uno slider» → the agent made a working page (canvas,

@@ -1,0 +1,49 @@
+{
+ "name": "cinema",
+ "version": "1.0",
+ "kind": "tool",
+ "description": {
+  "it": "Film e serie da TMDB: cosa è di tendenza, cosa c'è al cinema, cercare un titolo, trama, cast, voto, e dove vederlo in Italia (Netflix, Prime Video, Disney+… in abbonamento, a noleggio o in vendita; dati JustWatch).",
+  "en": "Films and series from TMDB: what is trending, what is in cinemas, search a title, plot, cast, vote, and where to watch it in your country (Netflix, Prime Video, Disney+… subscription, rent or buy; data by JustWatch)."
+ },
+ "command": [
+  "{python}",
+  "server.py"
+ ],
+ "env": [
+  "AURORA_TMDB_TOKEN",
+  "AURORA_TMDB_REGION",
+  "AURORA_LANG_DEFAULT"
+ ],
+ "requires": [
+  "AURORA_TMDB_TOKEN"
+ ],
+ "effects": {
+  "*": "read"
+ },
+ "welcome": {
+  "it": "🎬 Cinema collegato. Chiedimi cosa è di tendenza questa settimana, cosa c'è al cinema, o dove vedere un film o una serie.",
+  "en": "🎬 Cinema connected. Ask me what is trending this week, what is in cinemas, or where to watch a film or a series."
+ },
+ "setup": {
+  "it": "1. Crea un account gratuito su **themoviedb.org**.\n2. Profilo → **Impostazioni → API**: chiedi una chiave per uso personale.\n3. Copia la **API Read Access Token** (lunga) oppure la **API Key** (corta): vanno bene entrambe.\n4. In Aurora → **Impostazioni → Plugin**: `AURORA_TMDB_TOKEN` = la chiave; `AURORA_TMDB_REGION` = il paese per «dove vederlo» (IT).\n5. Qui sotto premi **▶ Prova** su `cinema_trending`.\n\nQuesto prodotto usa l'API di TMDB ma non è approvato né certificato da TMDB. I dati su dove vedere i titoli sono di JustWatch.",
+  "en": "1. A free account on **themoviedb.org**.\n2. Profile → **Settings → API**: ask for a personal key.\n3. Copy the **API Read Access Token** (long) or the **API Key** (short): both work.\n4. Aurora → **Settings → Plugins**: `AURORA_TMDB_TOKEN`, `AURORA_TMDB_REGION` (IT).\n5. Press **▶ Try** on `cinema_trending`.\n\nThis product uses the TMDB API but is not endorsed or certified by TMDB. Where-to-watch data by JustWatch.",
+  "links": [
+   {
+    "label": "TMDB – API",
+    "url": "https://www.themoviedb.org/settings/api"
+   },
+   {
+    "label": "JustWatch",
+    "url": "https://www.justwatch.com"
+   }
+  ]
+ },
+ "settings": [
+  "AURORA_TMDB_TOKEN",
+  "AURORA_TMDB_REGION"
+ ],
+ "sandbox": {
+  "write": []
+ }
+}

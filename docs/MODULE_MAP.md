@@ -85,6 +85,7 @@ call downward (ECOSYSTEM §1).
 | `sys_metrics.py` | system | CPU, RAM, GPUs for the WebUI top bar, sampled at most every 1.5 s | /proc, nvidia-smi | svc_api |
 | `kno_rem.py` | memory | autonomic work: closed sessions → session memories (STM → LTM), spontaneous thoughts, dreams | mdl_llm, sol_writer, sol_index, sns_* | svc_api (started by svc_rem) |
 | `sys_users.py` | system | users (admin, users): `<status>/users.db` (600, schema versioned), scrypt passwords, TOTP RFC 6238 with replay refused; not wired yet (docs/MULTIUSER.md, U1) | — | — |
+| `sys_users_layout.py` | system | where each user's personal data lives (`<area>/users/<uid>/`), the migration from today's layout and its rollback, the purge of a user with its check (files, trace lines, devices, record); shared data never moves | sys_users, sys_devices | script/sys_users_migrate.py |
 | `sys_devices.py` | system | registered devices: token hashes in `<status>/devices.json` (600), HttpOnly cookie for the WebUI | — | svc_api |
 | `kno_acquire.py` | knowledge | iterative arXiv agent: queries, re-ranked abstracts, PDF import, answer again | kno_ingest, kno_answer, arXiv API | svc_api |
 

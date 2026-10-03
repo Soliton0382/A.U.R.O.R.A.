@@ -40,6 +40,8 @@ mark each line ✅ / ❌ with a note. Reload the WebUI first (the service worker
 | N19 | The morning routine (09:30) on a day with a dream | the post is published by itself with the picture, a notification «📣 Aurora ha pubblicato un post», the approvals list shows it as "auto"; a 4th post the same day waits |
 | N20 | Ask «Mi spieghi la formula di Einstein-Cartan?» and a question whose answer is a table | formulas drawn (fractions, integrals, Greek letters), not `$…$`; the table with lines; a wide formula or table scrolls inside itself, the chat does not widen |
 | N21 | In the chat: «fammi un grafico interattivo della funzione seno con uno slider»; then reopen the chat on another device | a 🧩 card with the live chart in the answer; the slider works; ⛶ full screen and back; ⬇ saves the .html; on the other device the card is there again |
+| N22 | Put the TMDB key in Settings → Plugins → cinema; ask «quali film sono di tendenza questa settimana?» and «dove posso vedere Inception?» | the list with votes; where it streams in Italy (subscription, rent, buy) with the TMDB and JustWatch credit |
+| N23 | «ho speso 45 € di benzina», then «quanto ho speso questo mese?», «metti un budget di 40 € per l'auto» | recorded with its #id; the month by category; ⚠️ budget passed |
 | N17 | Ask a knowledge question (e.g. «Come funziona la fotosintesi?»), then tap one of the «Approfondisci» questions; then type a short follow-up («e chi l'ha scoperta?») | 3-4 complete questions appear under the answer a few seconds after it; the tapped one is sent whole and its trace shows 🎯 when the sources were used; the typed follow-up shows 🧷 with the completed question |
 | N6 | 🧩 Plugins: open the page, then a card, then back | the grid appears at once; icons do not flash (C80) |
 
