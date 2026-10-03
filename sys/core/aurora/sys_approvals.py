@@ -58,7 +58,8 @@ def social_auto(cfg: sys_config.Config, action: str) -> bool:
 class Approvals:
     def __init__(self, cfg: sys_config.Config | None = None):
         self.cfg = cfg or sys_config.get()
-        self.file: Path = self.cfg.path("AURORA_STATUS_DIR") / "approvals.json"
+        from . import sys_users_layout                 # the user's (the admin's after the migration: U3)
+        self.file: Path = sys_users_layout.place(self.cfg, "state", self.cfg.user) / "approvals.json"
         self.log = sys_log.get_logger("approvals")
 
     def _load(self) -> list[dict]:

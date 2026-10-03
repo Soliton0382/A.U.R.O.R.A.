@@ -174,4 +174,10 @@ def test_a_plugin_runs_with_the_settings_and_folders_of_its_user(cfg):
     for who, token in (("boss", "boss-token"), ("guest", "guest-token")):
         host = PluginHost(U.for_user(cfg, who))
         p = next(x for x in host.plugins(with_tools=False) if x.name == "cinema")
-        assert host._params(p).env.get("AURORA_TMDB_TOKEN") == token
+        params = host._params(p)
+        assert params.env.get("AURORA_TMDB_TOKEN") == token and params.env["AURORA_PLUGIN"] == "cinema"
+        from aurora import plg_sandbox                                  # the .env the plugin reads: its user's
+        e = plg_sandbox.env_file("expenses", {"env": [], "settings": []}, U.for_user(cfg, who))
+        text = e.read_text()
+        assert e.name == f"expenses.{who}.env" and f"AURORA_EXPENSES_DIR=usr/{who}/" in text
+        assert "AURORA_TMDB_TOKEN=" in text and token not in text      # another plugin's secret: redacted

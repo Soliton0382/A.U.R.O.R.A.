@@ -37,7 +37,8 @@ def _public(text: str) -> str:
 def _reflections(kinds: tuple[str, ...], hours: float, limit: int) -> list[dict]:
     since = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
     out = []
-    for db in sorted((cfg.path("AURORA_VAULT_DIR") / "memory" / "reflection").glob("[0-9][0-9][0-9][0-9].db")):
+    from aurora import sys_users_layout              # the memory of the user (the admin's after the migration: C115)
+    for db in sorted((sys_users_layout.place(cfg, "memory", None) / "reflection").glob("[0-9][0-9][0-9][0-9].db")):
         con = sqlite3.connect(f"file:{db}?mode=ro", uri=True, timeout=10)
         try:
             for created, text, extra in con.execute(

@@ -73,7 +73,7 @@ class DomainFiles:
 def memory_index(cfg: sys_config.Config, user: str | None) -> Path:
     """The memory index of a user (multi-user, U3): today's index/memory until the migration."""
     from . import sys_users_layout
-    return sys_users_layout.place(cfg, "memory_index", user) if user else cfg.path("AURORA_INDEX_DIR") / "memory"
+    return sys_users_layout.place(cfg, "memory_index", user)     # no user after the migration: the admin's
 
 
 def _index_dirs(cfg: sys_config.Config, user: str | None = None) -> list[tuple[str, str, DomainFiles]]:

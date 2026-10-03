@@ -893,6 +893,19 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M77 — The migration to the per-user layout, verified (3 October 2026)
+
+Run by the owner at 19:53 (services stopped, backup first). Through Aurora's own code, read only: 25 of 25 checks —
+usr/ holds only the admin's folder and the owner's untouchable folder; the seven usr folders resolve to usr/<admin>/…; the memory
+at vault/memory/users/<admin> with 114 turns and 57 reflections readable, nothing left at its root, its index
+there; the admin's own .env mode 600, no personal setting left in the system's; tokens and place set in the admin's
+view; 6 routines and 19 approvals from the admin's state, none at the shared root; signature intact. Live: 8 services
+active, health ok; history, uploads (14, 21.1 MB), documents (11), a PDF preview, a dream's picture all served; the
+plugins cinema, expenses, weather, notes, news answer; the diary did not (C115, fixed live); a memory question answered
+from the migrated memory in 10.3 s ("Ieri, alle 15:07, mi hai scritto…"), a knowledge question in 53.7 s with 4
+sources and 3 suggestions; new turns and the index would be written under users/<admin>; 0 errors in every log since
+the start.
+
 ## M76 — Dictation, per-user memory (3 October 2026)
 
 Dictation (C114): the server received 0.1 s of audio twice (on 1 October 10-20 s); a 5 s WebM sent to the same

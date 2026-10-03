@@ -102,13 +102,14 @@ is converted and tested on its own; the migration is the last switch, run by the
 | `place()` and the migration flag (`status/users_layout.json`) | ✅ tests |
 | every request knows its user (`request.state.user`: the device's, or the admin's for the API key; none while there are no users) | ✅ live, nothing changed for the owner |
 | memory: vault, index, search, the answer pipeline per user; one shared knowledge index | ✅ tests: a user never finds another's conversations, the knowledge is everyone's and loaded once; live answer unchanged |
-| the user carried into runs, history, activity, agents; REM (consolidation, reflections, dreams) per user | next |
+| no user given = the admin after the migration: every process (API, REM, harvester, routines) works with the admin's settings, memory and folders; plugins get their user's filtered .env (`<plugin>.<user>.env`), never the system's file; routines, approvals, repairs, push choices and announced plugins from the user's state | ✅ tests; ready for the migration (single-user, no hybrid) |
+| several users at once: the user carried into runs, history, activity, agents; REM for each user; login (U5) | after the migration |
 | uploads, documents, pictures, projects, notes | |
 | routines, approvals, push, react | |
 | settings per user (owner, 2026-10-03): plugins are everyone's; the 49 personal settings (`"scope": "user"`: accounts, tokens, place, name) in `usr/<name>/.env` (600); the migration moves them from the system's .env into the admin's, the rollback back; the Settings page writes a user's own to their .env, the machine's only for the admin; a plugin runs with its user's settings and folders | ✅ tests (same plugin, each user's token); live: settings and cinema unchanged |
 | the diary plugin reads the reflections by a fixed path: to its user's | |
 | the crossing test on every API route | |
-| the migration, by the owner | last |
+| the migration, by the owner (plan: 103 files, 38.8 MB; papers absent) | ✅ done 2026-10-03 19:53, verified (M77) |
 
 | Area | Change |
 |---|---|

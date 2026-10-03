@@ -47,8 +47,8 @@ class Area:
 SYS_AREAS = (
     Area("memory", "AURORA_VAULT_DIR", "memory"),
     Area("memory_index", "AURORA_INDEX_DIR", "memory"),
-    Area("state", "AURORA_STATUS_DIR", "", ("routines.json", "approvals.json", "react.json", "push/subscriptions.json",
-                                            "push/prefs.json")),
+    Area("state", "AURORA_STATUS_DIR", "", ("routines.json", "approvals.json", "react.json", "plugins_ready.json",
+                                            "push/subscriptions.json", "push/prefs.json")),
 )
 BY_NAME = {a.name: a for a in SYS_AREAS}
 # the folders of usr/ the modules know by their setting; place() turns usr/x into usr/<name>/x
@@ -92,18 +92,21 @@ def usr_home(cfg: sys_config.Config, name: str) -> Path:
 
 
 def place(cfg: sys_config.Config, area: str, name: str | None) -> Path:
-    """Where `area`'s data of user `name` is now: today's folder until the migration, the user's folder after it.
-    Every module asks here (U3), so that each one can be converted and work before the migration switches."""
+    """Where `area`'s data of user `name` is now: today's folder until the migration, the user's folder after it
+    (no user given: the admin's). Every module asks here (U3)."""
+    m = migrated(cfg)
+    name = name or (m or {}).get("admin")
+    cfg = cfg.base or cfg                                    # the machine's paths, never a user's view of them
     if area in USR_SETTINGS:
         p = cfg.path(USR_SETTINGS[area])
-        if not (name and migrated(cfg)):
+        if not (name and m):
             return p
         try:
             return usr_home(cfg, name) / p.relative_to(usr(cfg))
         except ValueError:                                   # a folder the owner put outside usr/
             return p / USERS / check_name(cfg, name)
     a = BY_NAME[area]
-    return home(cfg, a, name) if name and migrated(cfg) else root(cfg, a)
+    return home(cfg, a, name) if name and m else root(cfg, a)
 
 
 def _size(p: Path) -> int:

@@ -36,32 +36,34 @@ def _own(cfg: sys_config.Config, name: str) -> dict[str, str]:
 
 
 def for_user(cfg: sys_config.Config, name: str | None) -> sys_config.Config:
-    """The configuration of `name`'s work. No user, or before the migration: the system's, unchanged."""
+    """The configuration of `name`'s work, computed from the machine's (cfg.base when cfg is already a view). No
+    user, or before the migration: the configuration given, unchanged."""
     if not name or not L.migrated(cfg):
         return cfg
+    cfg = cfg.base or cfg
     f = env_path(cfg, name)
     stamp = f.stat().st_mtime if f.is_file() else 0.0
     with _lock:
         hit = _cache.get(name)
         if hit and hit[0] == stamp and hit[1].env_file == cfg.env_file:
             return hit[1]
-    values = dict(cfg.values)
+    values, raw = dict(cfg.values), dict(cfg.raw)
     own = _own(cfg, name)
     for k in user_keys(cfg):
-        raw = own.get(k, cfg.specs[k]["recommended"])
+        text = own.get(k, cfg.specs[k]["recommended"])
         try:
-            values[k] = sys_config.convert(cfg.specs[k], raw)
+            values[k] = sys_config.convert(cfg.specs[k], text)
         except ValueError:
-            values[k] = sys_config.convert(cfg.specs[k], cfg.specs[k]["recommended"])
+            text = cfg.specs[k]["recommended"]
+            values[k] = sys_config.convert(cfg.specs[k], text)
+        raw[k] = text
     usr = L.usr(cfg)
     for k, spec in cfg.specs.items():                      # usr/x → usr/<name>/x (the same tree for each user)
         if spec["type"] == "path" and k != "AURORA_ROOT":
             p = (cfg.root / str(values[k])).resolve()
-            if p == usr or usr in p.parents:
-                rel = p.relative_to(usr)
-                if not rel.parts or rel.parts[0] != name:
-                    values[k] = str((L.usr_home(cfg, name) / rel).relative_to(cfg.root))
-    user_cfg = replace(cfg, values=values)
+            if (p == usr or usr in p.parents) and not str(p.relative_to(usr)).startswith(tuple(L.UNTOUCHED)):
+                values[k] = raw[k] = str((L.usr_home(cfg, name) / p.relative_to(usr)).relative_to(cfg.root))
+    user_cfg = replace(cfg, values=values, raw=raw, base=cfg, user=name)
     with _lock:
         _cache[name] = (stamp, user_cfg)
     return user_cfg

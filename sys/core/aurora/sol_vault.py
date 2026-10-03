@@ -119,7 +119,7 @@ class Layout:
     @classmethod
     def from_config(cls, cfg: sys_config.Config, user: str | None = None) -> "Layout":
         from . import sys_users_layout
-        mem = sys_users_layout.place(cfg, "memory", user) if user else None
+        mem = sys_users_layout.place(cfg, "memory", user)        # no user after the migration: the admin's
         return cls(cfg.path("AURORA_VAULT_DIR"), sol_schema.load_taxonomy(), mem)
 
     def base(self, section: str) -> Path:

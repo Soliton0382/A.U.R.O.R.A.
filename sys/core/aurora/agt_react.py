@@ -37,7 +37,8 @@ def signature(error: str) -> str:
 
 
 def _file(cfg: sys_config.Config) -> Path:
-    return cfg.path("AURORA_STATUS_DIR") / "react.json"
+    from . import sys_users_layout
+    return sys_users_layout.place(cfg, "state", cfg.user) / "react.json"
 
 
 def should_react(cfg: sys_config.Config, origin: str, error: str, now: float | None = None) -> bool:

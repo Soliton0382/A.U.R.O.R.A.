@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import threading
 from pathlib import Path
 
 from . import sys_config
@@ -30,7 +31,8 @@ def _declared(manifest: dict) -> set[str]:
 
 def env_file(name: str, manifest: dict, cfg: sys_config.Config) -> Path:
     specs = {s["key"]: s for s in sys_config.load_schema()["settings"]}
-    raw = sys_config.parse_env(cfg.env_file.read_text(encoding="utf-8"), str(cfg.env_file))
+    # the effective values of the plugin's user (the machine's, their own settings, their folders: U3), else the file
+    raw = dict(cfg.raw) or sys_config.parse_env(cfg.env_file.read_text(encoding="utf-8"), str(cfg.env_file))
     mine = _declared(manifest)
     lines = []
     for k, v in raw.items():
@@ -40,11 +42,14 @@ def env_file(name: str, manifest: dict, cfg: sys_config.Config) -> Path:
     d = cfg.path("AURORA_STATUS_DIR") / "plugins" / "env"
     d.mkdir(parents=True, exist_ok=True)
     os.chmod(d, 0o700)
-    f = d / f"{name}.env"
-    fd = os.open(f.with_suffix(".tmp"), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    f = d / (f"{name}.{cfg.user}.env" if cfg.user else f"{name}.env")      # one per user: never each other's
+    # a temporary file of this call only: two calls of the same plugin at once (the tool lists at start) collided
+    # on one shared name and one failed (C115)
+    tmp = f.with_name(f"{f.name}.{os.getpid()}.{threading.get_ident()}.tmp")
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(fd, "w", encoding="utf-8") as fh:
         fh.write("\n".join(lines) + "\n")
-    os.replace(f.with_suffix(".tmp"), f)
+    os.replace(tmp, f)
     return f
 
 

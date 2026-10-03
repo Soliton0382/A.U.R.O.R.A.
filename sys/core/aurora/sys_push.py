@@ -74,7 +74,7 @@ CHANNELS = ("push", "webui")
 
 def prefs(cfg: sys_config.Config) -> dict:
     """{"push": [kinds], "webui": [kinds]}: the saved choice, else the suggested one (push from AURORA_PUSH_EVENTS)."""
-    f = _dir(cfg) / "prefs.json"
+    f = _mine(cfg) / "prefs.json"
     try:
         p = json.loads(f.read_text(encoding="utf-8"))
         # a kind added after the owner chose is on when suggested; the kinds he saw keep his choice
@@ -89,12 +89,20 @@ def prefs(cfg: sys_config.Config) -> dict:
 
 def set_prefs(cfg: sys_config.Config, choice: dict) -> dict:
     p = {c: [k for k in KINDS if k in set(choice.get(c, []))] for c in CHANNELS}
-    _write_private(_dir(cfg) / "prefs.json", json.dumps({**p, "known": list(KINDS)}, indent=1).encode())
+    _write_private(_mine(cfg) / "prefs.json", json.dumps({**p, "known": list(KINDS)}, indent=1).encode())
     return p
 
 
 def _dir(cfg: sys_config.Config) -> Path:
     d = cfg.path("AURORA_STATUS_DIR") / "push"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def _mine(cfg: sys_config.Config) -> Path:
+    """The user's subscriptions and choices (the admin's after the migration: U3); the VAPID key stays the machine's."""
+    from . import sys_users_layout
+    d = sys_users_layout.place(cfg, "state", cfg.user) / "push"
     d.mkdir(parents=True, exist_ok=True)
     return d
 
@@ -128,12 +136,12 @@ def public_key(cfg: sys_config.Config) -> str:
 
 
 def _load(cfg: sys_config.Config) -> list[dict]:
-    f = _dir(cfg) / "subscriptions.json"
+    f = _mine(cfg) / "subscriptions.json"
     return json.loads(f.read_text()) if f.exists() else []
 
 
 def _save(cfg: sys_config.Config, subs: list[dict]) -> None:
-    _write_private(_dir(cfg) / "subscriptions.json", json.dumps(subs, indent=1).encode())
+    _write_private(_mine(cfg) / "subscriptions.json", json.dumps(subs, indent=1).encode())
 
 
 def subscribe(sub: dict, device: str | None, cfg: sys_config.Config) -> int:

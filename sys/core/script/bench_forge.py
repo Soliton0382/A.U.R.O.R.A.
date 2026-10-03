@@ -105,7 +105,8 @@ def documents_pdf():
 
 
 def routines_active():
-    rs = json.loads((cfg.path("AURORA_STATUS_DIR") / "routines.json").read_text())
+    from aurora import sys_users_layout
+    rs = json.loads((sys_users_layout.place(cfg, "state", None) / "routines.json").read_text())
     return {"active": sum(1 for r in rs if r.get("enabled", True)), "total": len(rs)}
 
 

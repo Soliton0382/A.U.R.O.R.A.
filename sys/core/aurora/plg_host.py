@@ -129,7 +129,8 @@ class PluginHost:
                 a = a.replace(k, v)
             cmd.append(a)
         env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "HOME": os.environ.get("HOME", ""),
-               "AURORA_ENV_FILE": str(self.cfg.env_file), "PYTHONPATH": str(Path(__file__).resolve().parents[1])}
+               "AURORA_ENV_FILE": str(self.cfg.env_file), "PYTHONPATH": str(Path(__file__).resolve().parents[1]),
+               "AURORA_PLUGIN": p.name}                 # its config is its user's filtered one, taken as it is (U3)
         for k in p.manifest.get("env", []):
             env[k] = str(self.cfg.values.get(k, "") or "")
         for k, v in p.manifest.get("env_as", {}).items():     # .env key -> name the program expects

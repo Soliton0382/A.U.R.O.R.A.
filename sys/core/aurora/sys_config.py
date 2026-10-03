@@ -114,6 +114,9 @@ class Config:
     specs: dict[str, dict]
     env_file: Path
     unknown_keys: list[str] = field(default_factory=list)
+    raw: dict[str, str] = field(default_factory=dict, repr=False)      # the effective values as written in an .env
+    base: "Config | None" = field(default=None, repr=False, compare=False)   # the machine's, under a user's view
+    user: str | None = None                                             # whose view (multi-user, U3)
 
     @property
     def root(self) -> Path:
@@ -159,7 +162,8 @@ def load(env_file: Path | None = None, schema_file: Path = SCHEMA_FILE, check_ro
     if problems:
         raise ConfigError(f"configuration problems in {env_file}:\n  " + "\n  ".join(problems))
     unknown = sorted(set(raw) - set(specs))
-    return Config(values=values, specs=specs, env_file=env_file, unknown_keys=unknown)
+    return Config(values=values, specs=specs, env_file=env_file, unknown_keys=unknown,
+                  raw={k: raw[k] for k in specs if k in raw})
 
 
 _cached: Config | None = None
@@ -197,17 +201,27 @@ def service_user(cfg: "Config") -> str:
     return str(cfg.values.get("AURORA_SERVICE_USER") or "").strip() or pwd.getpwuid(cfg.root.stat().st_uid).pw_name
 
 
+def _view(cfg: Config) -> Config:
+    """After the migration to the per-user layout a process works as the admin unless told otherwise (U3): their
+    settings and folders. A plugin's own process never: its .env is already the filtered one of its user."""
+    if os.environ.get("AURORA_PLUGIN"):
+        return cfg
+    from . import sys_user_config, sys_users_layout
+    m = sys_users_layout.migrated(cfg)
+    return sys_user_config.for_user(cfg, m["admin"]) if m else cfg
+
+
 def get() -> Config:
-    """The configuration of this process, loaded once."""
+    """The configuration of this process, loaded once (the admin's view after the migration)."""
     global _cached
     if _cached is None:
-        _cached = load()
+        _cached = _view(load())
     return _cached
 
 
 def reload() -> Config:
     global _cached
-    _cached = load()
+    _cached = _view(load())
     return _cached
 
 

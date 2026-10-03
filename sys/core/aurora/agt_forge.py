@@ -26,7 +26,7 @@ from pathlib import Path
 from . import sys_config, sys_log
 
 NAME = re.compile(r"^[a-z][a-z0-9_]{2,30}$")
-NEVER = (".env", "sys/vault", "usr/uploads", "sys/status/push", "sys/status/plugins/env", "sys/status/devices.json", ".ssh")
+NEVER = (".env", "sys/vault", "usr", "sys/status/push", "sys/status/plugins/env", "sys/status/devices.json", ".ssh")
 TEMPLATE = '''# SPDX-License-Identifier: Apache-2.0
 """Plugin "NAME": one line on what it reads."""
 from __future__ import annotations

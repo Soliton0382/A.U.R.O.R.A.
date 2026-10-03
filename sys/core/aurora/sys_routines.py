@@ -35,7 +35,8 @@ NOTHING = re.compile(r"^\s*(niente|nothing|nessuna novit|no news)", re.I)
 
 
 def _file(cfg: sys_config.Config, name: str) -> Path:
-    d = cfg.path("AURORA_STATUS_DIR")
+    from . import sys_users_layout                      # the user's routines (the admin's after the migration: U3)
+    d = sys_users_layout.place(cfg, "state", cfg.user)
     d.mkdir(parents=True, exist_ok=True)
     return d / name
 

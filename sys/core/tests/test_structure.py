@@ -12,7 +12,7 @@ from aurora import sys_features as F
 CORE = Path(__file__).resolve().parents[1]
 ROOT = CORE.parents[1]
 WEB = CORE / "webui"
-PROCESS_ENV = {"AURORA_ENV_FILE", "AURORA_IN_SANDBOX", "AURORA_PUBLISH_DENY"}   # variables of a process, not settings
+PROCESS_ENV = {"AURORA_ENV_FILE", "AURORA_IN_SANDBOX", "AURORA_PUBLISH_DENY", "AURORA_PLUGIN"}   # variables of a process, not settings
 
 
 def code_files():
