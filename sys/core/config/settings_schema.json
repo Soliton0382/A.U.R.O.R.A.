@@ -925,6 +925,44 @@
    ]
   },
   {
+   "key": "AURORA_SOCIAL_AUTONOMY",
+   "type": "bool",
+   "category": "autonomy",
+   "recommended": "false",
+   "evidence": "owner",
+   "en": "Aurora publishes her own posts on her social pages without waiting (only an installation exempted from level B; only the tools in AURORA_SOCIAL_AUTO_TOOLS; at most AURORA_SOCIAL_POSTS_PER_DAY a day). Each post is recorded among the approvals as \"auto\" and notified. Replies, page changes and every other external action still wait.",
+   "it": "Aurora pubblica da sola i suoi post sulle sue pagine social (solo con l'esenzione dal livello B; solo gli strumenti di AURORA_SOCIAL_AUTO_TOOLS; al massimo AURORA_SOCIAL_POSTS_PER_DAY al giorno). Ogni post resta tra le approvazioni come «auto» e ti viene notificato. Risposte, modifiche alla pagina e ogni altra azione esterna aspettano ancora.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_SOCIAL_POSTS_PER_DAY",
+   "type": "int",
+   "min": 0,
+   "max": 10,
+   "category": "autonomy",
+   "recommended": "3",
+   "evidence": "owner",
+   "en": "Most posts Aurora may publish by herself in a day (AURORA_SOCIAL_AUTONOMY); beyond it they wait for approval.",
+   "it": "Numero massimo di post che Aurora pubblica da sola in un giorno (AURORA_SOCIAL_AUTONOMY); oltre, aspettano l'approvazione.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_SOCIAL_AUTO_TOOLS",
+   "type": "str",
+   "category": "autonomy",
+   "recommended": "facebook.publish_post,facebook.publish_photo",
+   "evidence": "owner",
+   "en": "Which plugin tools count as Aurora's own posts (plugin.tool, comma-separated).",
+   "it": "Quali strumenti dei plugin contano come post di Aurora (plugin.strumento, separati da virgola).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_LOG_LEVEL",
    "type": "enum",
    "choices": [

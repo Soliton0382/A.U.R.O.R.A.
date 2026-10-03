@@ -202,7 +202,7 @@ class Agent:
         if field and isinstance(args.get(field), str):       # EU AI Act art. 50: what is published says it is AI
             from . import sys_disclosure, txt_lang
             args[field] = sys_disclosure.mark_text(args[field], txt_lang.detect(args[field]), self.cfg)
-        if needs_owner(effect, self.cfg):
+        if needs_owner(effect, self.cfg, f"{plugin}.{tool}"):
             req = self.approvals.request("tool_call", effect, f"{plugin}.{tool}", args.pop("_purpose", ""),
                                          {"plugin": plugin, "tool": tool, "arguments": args},
                                          {"plugin": plugin, "tool": tool, "arguments": args}, run_id)
@@ -210,7 +210,16 @@ class Agent:
             self.notify("approval.pending", {"id": req["id"], "kind": "tool_call", "title": req["title"]})
             self.pending.append(req["title"])
             return f"WAITING: {effect} action, the owner decides (request {req['id']}). Go on without its result."
+        purpose = args.pop("_purpose", "") if effect == "external" else ""
         r = self.host.call(plugin, tool, args, run_id)
+        if effect == "external":                             # done without the owner: recorded and told, never silent
+            self.approvals.record_auto(f"{plugin}.{tool}", purpose, {"plugin": plugin, "tool": tool, "arguments": args},
+                                       r["text"], run_id)
+            text = args.get(field, "") if field else ""
+            from .sys_approvals import auto_tools
+            if not r["ok"] or f"{plugin}.{tool}" in auto_tools(self.cfg):
+                self.notify("social.auto" if r["ok"] else "approval.failed",
+                            {"title": f"{plugin}.{tool}", "text": (text or r["text"])[:180]})
         out = (self.host.get(plugin).manifest.get("outputs") or {}).get(tool) if r["ok"] else None
         m = re.search(out["pattern"], r["text"]) if out else None
         if m:                                                # a file the owner can download (a PDF...)

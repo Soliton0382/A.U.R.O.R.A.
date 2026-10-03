@@ -90,7 +90,8 @@ def my_day(hours: int = 24) -> str:
     parts = [f"La giornata di Aurora (ultime {hours} ore)"]
     refl = _reflections(PUBLIC, hours, 6)
     for r in refl:
-        parts.append(f"\n[{'sogno' if r['type'] == 'dream' else 'pensiero'} · {r['at'][11:16]} UTC] {r['text'][:900]}")
+        pic = f" (immagine: {r['image']})" if r.get("image") else ""          # a dream's painting, publishable with its text
+        parts.append(f"\n[{'sogno' if r['type'] == 'dream' else 'pensiero'} · {r['at'][11:16]} UTC]{pic} {r['text'][:900]}")
     if not refl:
         parts.append("\nNessun sogno né pensiero nel periodo.")
     rows = _taken(hours)

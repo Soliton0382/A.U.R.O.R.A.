@@ -8,6 +8,10 @@ sessions. Each item moves to STATUS.md ("Working") when it is validated. Updated
 Candidates, each with the measure that says it worked:
 1. **The gate on vague questions** — rewrite a question with the conversation's context before the gate;
    measure: `bench_quality.py --pool 30` above 6.90, wrong gate closures below 3.
+1c. **Social, more autonomous** (owner, 2026-10-03) — **done, to verify (N18, N19)**: Share on dreams and
+   thoughts (with the dream's picture); Aurora publishes her own posts by herself (Facebook posts and photos,
+   at most 3 a day, recorded and notified); a morning routine (09:30) for a dream or a thought, the 18:30 one for
+   science news.
 1b. **Suggested follow-ups** (owner, 2026-10-03) — **done** (C106, M73) — 3-4 complete questions under each knowledge answer, drawn from
    the passages found but not used, carrying the previous answer's sources; a click starts a search that is right by
    construction. Free follow-ups: the rewrite sees the whole previous answer and its sources' titles (A22), only there,

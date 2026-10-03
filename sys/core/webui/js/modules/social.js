@@ -38,7 +38,9 @@ export default {
       go.disabled = false;
     };
     root.querySelector(".compose").addEventListener("submit", (ev) => { ev.preventDefault(); if (input.value.trim()) make(input.value.trim()); });
-    bus.on("share", async ({ text }) => { await ctx.show("social"); input.value = text; make(text); });
+    // a dream or a picture of Aurora's travels with its file name: the post carries the picture
+    bus.on("share", async ({ text, picture }) => { await ctx.show("social"); this.picture = picture || null; input.value = text; make(text); });
+    root.querySelector(".compose").addEventListener("input", () => { if (!input.value.trim()) this.picture = null; });
   },
 
   card(d) {
@@ -50,18 +52,21 @@ export default {
     const upd = () => { count.textContent = `${area.value.length}/${d.max_chars}`; count.className = area.value.length > d.max_chars ? "error" : "muted"; };
     area.addEventListener("input", upd);
     upd();
+    const picture = d.photo ? this.picture : null;
     const pub = el("button", "approve big", `✔ ${t("social.publish", { p: d.label })}`);
     const out = el("span", "muted");
     pub.addEventListener("click", async () => {
       pub.disabled = true;
       try {
-        await call("/v1/aurora/social/publish", { method: "POST", body: JSON.stringify({ plugin: d.plugin, text: area.value }) });
+        await call("/v1/aurora/social/publish", { method: "POST", body: JSON.stringify({ plugin: d.plugin, text: area.value, ...(picture ? { picture } : {}) }) });
         out.textContent = t("social.sent");
       } catch (e) { out.textContent = t("ev.error", { m: e.message }); pub.disabled = false; }
     });
     const row = el("div", "appr-actions");
     row.append(pub, count, out);
-    c.append(el("div", "appr-head", d.label), area, row);
+    c.append(el("div", "appr-head", d.label));
+    if (picture) { const img = el("img", "share-pic"); img.src = `/v1/aurora/images/${picture}`; img.alt = picture; c.append(img); }
+    c.append(area, row);
     return c;
   },
 

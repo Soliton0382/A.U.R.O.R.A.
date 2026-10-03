@@ -34,7 +34,7 @@ def platforms(host: PluginHost) -> list[dict]:
         if social:
             out.append({"plugin": p.name, "label": social.get("label", p.name), "available": p.available,
                         "missing": p.missing, "max_chars": social.get("max_chars", 1000),
-                        "publish": social.get("publish"), "stats": social.get("stats")})
+                        "publish": social.get("publish"), "photo": social.get("photo"), "stats": social.get("stats")})
     return out
 
 

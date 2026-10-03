@@ -43,7 +43,12 @@ def _routine_job(r: dict):
             try:
                 agent = Agent(pipeline(), cfg, notify=lambda e, p: note("agent", e, p), host=plugin_host())
                 agent.routine = r["id"]                     # a capability it requests runs this routine again
-                rule = ("You may propose actions that write or publish: each one waits for the owner's approval, "
+                from aurora import sys_approvals
+                auto = r.get("propose") and cfg["AURORA_SOCIAL_AUTONOMY"]
+                rule = (f"You may publish posts on your social pages by yourself ({', '.join(sorted(sys_approvals.auto_tools(cfg)))};"
+                        f" at most {cfg['AURORA_SOCIAL_POSTS_PER_DAY']} a day, the owner is told); any other action that "
+                        "writes or publishes waits for the owner's approval." if auto else
+                        "You may propose actions that write or publish: each one waits for the owner's approval, "
                         "never runs by itself." if r.get("propose") else "Read only.")
                 ans = agent.run(goal, emit, run_id, f"Routine: {r.get('title', '')}. {rule}")
                 text, files = ans.text.strip(), agent.produced

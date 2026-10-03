@@ -5,7 +5,10 @@
 Every action has an effect (ECOSYSTEM §3.3):
   read          automatic
   write_local   automatic, logged
-  external      waits for the owner when AURORA_CONFIRM_EXTERNAL_ACTIONS is on (send, publish, push)
+  external      waits for the owner when AURORA_CONFIRM_EXTERNAL_ACTIONS is on (send, publish, push); Aurora's own
+                posts on her social pages may go without waiting (AURORA_SOCIAL_AUTONOMY, a level-B-exempt
+                installation only, the listed tools, at most AURORA_SOCIAL_POSTS_PER_DAY a day): each is recorded
+                here with status "auto" and told to the owner
   code_change   a change to Aurora's own code: waits for the owner when AURORA_FORGE_MODE is "ask"
 
 A request keeps what is needed to decide and to act: who asks, why, the preview (a message,
@@ -27,15 +30,29 @@ EFFECTS = ("read", "write_local", "external", "code_change")
 _lock = threading.Lock()
 
 
-def needs_owner(effect: str, cfg: sys_config.Config) -> bool:
+def needs_owner(effect: str, cfg: sys_config.Config, action: str = "") -> bool:
+    """`action` is "plugin.tool": a post of Aurora's own may be autonomous (social_auto)."""
     from . import sys_ethics
     if effect in ("external", "code_change") and not sys_ethics.exempt(cfg):
         return True                                   # ethics code, level B: not negotiable by .env
     if effect == "external":
+        if action and social_auto(cfg, action):
+            return False
         return bool(cfg["AURORA_CONFIRM_EXTERNAL_ACTIONS"])
     if effect == "code_change":
         return cfg["AURORA_FORGE_MODE"] != "auto"
     return False
+
+
+def auto_tools(cfg: sys_config.Config) -> set[str]:
+    return {t.strip() for t in str(cfg["AURORA_SOCIAL_AUTO_TOOLS"]).split(",") if t.strip()}
+
+
+def social_auto(cfg: sys_config.Config, action: str) -> bool:
+    """A post Aurora may publish by herself now: switched on by the owner, a listed tool, under today's number."""
+    if not cfg["AURORA_SOCIAL_AUTONOMY"] or action not in auto_tools(cfg):
+        return False
+    return Approvals(cfg).auto_today(auto_tools(cfg)) < int(cfg["AURORA_SOCIAL_POSTS_PER_DAY"])
 
 
 class Approvals:
@@ -67,6 +84,26 @@ class Approvals:
         sys_log.trace("approvals", "approval.request", {"id": item["id"], "kind": kind, "effect": effect, "title": title},
                       run_id=run_id)
         return item
+
+    def record_auto(self, title: str, purpose: str, action: dict, result: str, run_id: str | None = None) -> dict:
+        """An external action done without waiting (an autonomous post): kept with the others, status "auto"."""
+        now = time.strftime("%Y-%m-%dT%H:%M:%S%z")
+        item = {"id": uuid.uuid4().hex[:10], "kind": "tool_call", "effect": "external", "title": title[:200],
+                "purpose": purpose[:2000], "preview": action, "action": action, "run_id": run_id, "status": "auto",
+                "created": now, "decided": now, "result": result[:2000]}
+        with _lock:
+            items = self._load()
+            items.append(item)
+            self._save(items[-500:])
+        self.log.info("audit: autonomous action %s: %s", item["id"], title)
+        sys_log.trace("approvals", "approval.auto", {"id": item["id"], "title": title}, run_id=run_id)
+        return item
+
+    def auto_today(self, titles: set[str]) -> int:
+        today = time.strftime("%Y-%m-%d")
+        with _lock:
+            return sum(1 for a in self._load() if a["status"] == "auto" and a["title"] in titles
+                       and str(a.get("created", "")).startswith(today))
 
     def get(self, approval_id: str) -> dict | None:
         with _lock:

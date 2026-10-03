@@ -6,6 +6,7 @@ import { bus } from "../bus.js";
 import { clock, el, scrollEnd, toBase64, useCss } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { auroraBubble, follow, renderPast } from "./trace.js";
+import { shareButton } from "../share.js";
 import { view, viewLink } from "../viewer.js";
 
 const HISTORY_TURNS = 8;          // 4 exchanges: the same memory Aurora keeps in context
@@ -211,6 +212,7 @@ export default {
         m.append(img);
       }
       for (const para of d.text.split(/\n\s*\n/)) if (para.trim()) m.append(el("p", "", para.trim()));
+      m.append(shareButton(d.text, d.image));
       m.append(el("div", "meta", clock(d.created_at)));
       messages.append(m);
     };

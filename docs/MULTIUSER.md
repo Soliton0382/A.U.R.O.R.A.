@@ -25,7 +25,7 @@ is the same operation that removes a single user in multi mode: one code path, t
 
 | Data | Today | Whose | In the new layout |
 |---|---|---|---|
-| knowledge vault + index (2.7 GB + 1.2 GB) | `vault/knowledge`, `vault/index/knowledge` | shared | unchanged |
+| knowledge vault + index (2.7 GB + 1.2 GB) | `vault/knowledge`, `vault/index/knowledge` | shared (harvested, installed) | unchanged; a user's own documents carry `owner` and `shared_with`, filtered at search time |
 | memory: conversations, reflections (4.3 MB) | `vault/memory`, `vault/index/memory` | personal | `vault/memory/<uid>/`, `vault/index/memory/<uid>/` |
 | uploads, documents (PDF), projects, notes, pictures | `AURORA_*_DIR` | personal | `<dir>/<uid>/` |
 | routines, approvals, push subscriptions | `status/*.json` | personal | one file per user under `status/users/<uid>/` |
@@ -62,9 +62,10 @@ phase U4.
 
 ## Plan (each phase closed with tests and a measure; one phase at a time)
 
-### U0 — Decisions of the owner (before U3)
-Answers to the open questions below; the default if no answer: dreams and reflections per user, private; the
-library shared (what a user uploads to the knowledge is seen by everyone, as today); personal files private.
+### U0 — Decisions of the owner ✅ (2026-10-03)
+Dreams, reflections and what a user adds to the library are **private by default**, and their owner can **share**
+each item with the registered users (one, several, all). Personal files private. Sharing is a grant on the item
+(who may read it), never a copy: revoking it or purging the owner leaves nothing behind.
 
 ### U1 — Users store ✅ done (2026-10-02)
 `sys_users.py`: SQLite `users.db` (600, schema versioned), one admin, scrypt passwords, TOTP RFC 6238 (±30 s,
@@ -86,7 +87,8 @@ traces, rollback gives back byte-identical files. Measure: time and size of the 
 | Area | Change |
 |---|---|
 | auth | `request.state.user` from the device (cookie) or the API key (= admin); every route gets its user |
-| memory | `VaultReader`/`VaultWriter`/index of the `memory` section rooted at the user's folder; REM (consolidation, reflections, dreams) per user |
+| memory | `VaultReader`/`VaultWriter`/index of the `memory` section rooted at the user's folder; REM (consolidation, reflections, dreams) per user, private, shareable item by item |
+| library | a user's documents private by default (`owner`), shareable with users (`shared_with`); the search filters by them |
 | chat, runs, activity | runs and their trace carry `user`; lists filtered by it |
 | files | uploads, documents, projects, notes, pictures under the user's folder; `doc_preview.resolve` checks the owner |
 | routines, approvals, push | per user; external plugins and code changes: admin only (or granted) |
@@ -108,8 +110,3 @@ single or multi; manual tests N17+ (phone and PC, two users, switching modes bot
 U2 → U3 → U4 → U5; U3 is the largest (every module with personal data). Each phase is published on its own,
 signed by the owner where it touches protected files (plg_host, sys_approvals).
 
-## Open questions for the owner
-
-1. Dreams and reflections: per user (private), or only on the admin's memory?
-2. Shared knowledge: a document a user uploads to the library is seen by everyone (today's behaviour) or only
-   by them?

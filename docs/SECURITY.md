@@ -40,6 +40,13 @@ Level B, by default: AI disclosure, confirmation of external actions, approval o
 The owner's installation is exempted by a file signed with the owner's Ed25519 key for this machine
 and this installation only (never committed).
 
+Autonomous posts (owner, 2026-10-03): on an exempted installation, with `AURORA_SOCIAL_AUTONOMY` on, Aurora
+publishes her own posts without waiting, but only through the tools of `AURORA_SOCIAL_AUTO_TOOLS`
+(`facebook.publish_post`, `facebook.publish_photo`) and at most `AURORA_SOCIAL_POSTS_PER_DAY` a day (3); the
+AI disclosure stays; each post is recorded in the approvals with status "auto" and notified. Replies to
+comments, page changes and every other external action still wait. The rule lives in the signed approval
+gate (`sys_approvals.social_auto`). Without the exemption nothing changes.
+
 Integrity: the protected files (the rules, the code that enforces them, the approval gate, the
 disclosure, the change applier) are signed in `MANIFEST.json`; a change without the owner's
 signature stops every service at start (verified: one changed line gives "changed without the

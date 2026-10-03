@@ -4,12 +4,14 @@
 from __future__ import annotations
 
 import asyncio
+import re
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from .core import auth, cfg, pipeline, plugin_host
 
 router = APIRouter()
+PICTURE = re.compile(r"[\w.-]{1,120}\.(?:png|jpe?g|webp)")
 
 
 # ---- social -------------------------------------------------------------------------------------
@@ -34,8 +36,8 @@ async def social_draft(request: Request) -> dict:
     if not targets:
         raise HTTPException(status_code=409, detail="no social platform connected (tokens in Settings)")
     drafts = await asyncio.to_thread(draft, pipeline().llm, text, targets, cfg)
-    return {"drafts": [{"plugin": t["plugin"], "label": t["label"], "max_chars": t["max_chars"], "text": drafts[t["plugin"]]}
-                       for t in targets]}
+    return {"drafts": [{"plugin": t["plugin"], "label": t["label"], "max_chars": t["max_chars"], "text": drafts[t["plugin"]],
+                        "photo": bool(t.get("photo"))} for t in targets]}
 
 
 @router.post("/v1/aurora/social/publish", dependencies=[Depends(auth)])
@@ -47,16 +49,20 @@ async def social_publish(request: Request) -> dict:
     from aurora.sys_approvals import Approvals
     body = await request.json()
     plugin, text = str(body.get("plugin", "")), str(body.get("text", "")).strip()
+    picture = str(body.get("picture") or "")
+    if picture and not PICTURE.fullmatch(picture):        # one of Aurora's pictures, by its file name only
+        raise HTTPException(status_code=400, detail="picture: a file name of Aurora's pictures")
     found = await asyncio.to_thread(lambda: platforms(plugin_host()))
     target = next((t for t in found if t["plugin"] == plugin and t["available"]), None)
     if target is None or not text:
         raise HTTPException(status_code=409, detail="platform not connected or empty text")
     text = sys_disclosure.mark_text(text, txt_lang.detect(text), cfg)
-    args = {target["publish"]["field"]: text}
-    req = Approvals(cfg).request("tool_call", "external", f"{plugin}.{target['publish']['tool']}",
-                                 "post shared by the owner from the chat", {"plugin": plugin, "tool": target["publish"]["tool"],
+    how = target["photo"] if picture and target.get("photo") else target["publish"]
+    args = {how["field"]: text, **({how["picture"]: picture} if how is target.get("photo") else {})}
+    req = Approvals(cfg).request("tool_call", "external", f"{plugin}.{how['tool']}",
+                                 "post shared by the owner from the chat", {"plugin": plugin, "tool": how["tool"],
                                                                             "arguments": args},
-                                 {"plugin": plugin, "tool": target["publish"]["tool"], "arguments": args})
+                                 {"plugin": plugin, "tool": how["tool"], "arguments": args})
     return decide(req["id"], "approve")
 
 

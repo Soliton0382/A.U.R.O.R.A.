@@ -37,7 +37,12 @@
    "field": "message"
   },
   "stats": "page_stats",
-  "max_chars": 1200
+  "max_chars": 1200,
+  "photo": {
+   "tool": "publish_photo",
+   "field": "message",
+   "picture": "picture"
+  }
  },
  "publishes": {
   "publish_post": "message",

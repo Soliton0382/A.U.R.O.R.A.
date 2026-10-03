@@ -136,3 +136,4 @@ details.gd-item summary { cursor: pointer; font-weight: 600; }
 .deeper { display: flex; flex-direction: column; align-items: flex-start; gap: .35rem; margin-top: .7rem; }
 .deeper-q { text-align: left; border: 1px solid var(--line, #3a4258); background: transparent; color: inherit; border-radius: 10px; padding: .4rem .7rem; font: inherit; font-size: .92em; cursor: pointer; max-width: 100%; }
 .deeper-q:hover { border-color: var(--accent, #6aa0ff); }
+.share-pic { max-width: 100%; max-height: 320px; border-radius: 8px; margin: .4rem 0; }

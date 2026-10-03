@@ -31,6 +31,7 @@ TEXTS = {   # event -> (kind the owner chooses, view to open, {lang: title})
     "rem.self_review": ("self_review", "diary", {"it": "🩺 Autodiagnosi di Aurora", "en": "🩺 Aurora's self-review"}),
     "react.done": ("self_review", "approvals", {"it": "🛠️ Aurora ha analizzato subito un errore",
                                                 "en": "🛠️ Aurora looked into an error at once"}),
+    "social.auto": ("approval", "approvals", {"it": "📣 Aurora ha pubblicato un post", "en": "📣 Aurora published a post"}),
     "approval.failed": ("approval", "approvals", {"it": "⚠️ Un'azione approvata non è riuscita",
                                                   "en": "⚠️ An approved action failed"}),
     "update.available": ("update", "approvals", {"it": "⬆️ Aggiornamento di Aurora disponibile", "en": "⬆️ Aurora update available"}),
