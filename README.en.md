@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.en.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-252%20passed-1baf7a" alt="Tests"></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-254%20passed-1baf7a" alt="Tests"></p>
 
 <p align="center">🇮🇹 <a href="README.md">Italiano</a> · 🇬🇧 <b>English</b></p>
 
@@ -169,6 +169,17 @@ approve; `auto` — applied by itself when safe (no protected file of the code o
 green, otherwise it asks); `off`. An update is fast-forward only, installs the requirements when they
 change, runs the tests and goes back to the previous version if anything fails.
 
+## Users: single or multi
+
+Each person who uses Aurora has their folder `usr/<name>/`, with the same tree for everyone (uploads, documents,
+projects, notes, images, expenses…), their personal settings in `usr/<name>/.env` (accounts, tokens, place) and their
+private memory (conversations, dreams, reflections). Plugins and knowledge are everyone's; the machine's settings
+(models, cloud providers, backup, security) only the admin changes. **single**: one person, the admin; **multi**:
+several people, login with password and the Authenticator app's code. Chosen at installation, changed whenever you
+like in ⚙️ Settings → Users: from single to multi nothing moves; from multi to single the other users are deleted
+with all their data, after the list and your confirmation; the admin's data is never touched. Multi-user switches on
+once the login with the code is ready (docs/MULTIUSER.md).
+
 ## Moving the installation
 
 `sys/core/script/sys_relocate.sh` reads the current folder from `.env`, asks the new one, and moves
@@ -186,7 +197,7 @@ git clone https://github.com/Soliton0382/A.U.R.O.R.A..git aurora && cd aurora
 The installer checks the system and the disk, installs the missing packages and the CUDA toolkit 13 (toolkit
 only: the driver stays Ubuntu's), creates the venv, recognises the hardware and picks a profile, writes the
 `.env` from your answers, downloads the models from Hugging Face at pinned revisions checking their SHA-256,
-builds llama.cpp for your GPUs, runs the tests, makes the code-of-conduct key, installs the systemd services
+builds llama.cpp for your GPUs, runs the tests, makes your folder `usr/<name>/` (asking single or multi-user), makes the code-of-conduct key, installs the systemd services
 and HTTPS, and finally tells you the address and the API key. Everything goes to `install.log`.
 
 Optional features are chosen one by one, with their size: painted dreams (6.8 GB), voice (1.5 GB), enlargement

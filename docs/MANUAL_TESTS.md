@@ -44,6 +44,7 @@ mark each line ✅ / ❌ with a note. Reload the WebUI first (the service worker
 | N23 | «ho speso 45 € di benzina», then «quanto ho speso questo mese?», «metti un budget di 40 € per l'auto» | recorded with its #id; the month by category; ⚠️ budget passed |
 | N24 | 🗣️ next to the microphone (default): dictate a question with 🎙️ and send it; then type one; tap 🗣️ to 🔊 (always) and 🔇 (off) | the dictated question's answer is read aloud by the device you used (PC speakers or phone), the typed one not; 🔊 reads every answer, 🔇 none; a tap while she speaks stops her; no formulas, links or [1] read |
 | N25 | Hold 🗣️ in the chat | the device's voices, the best female one marked; ▶ plays a sample; tapping a name makes it Aurora's voice on this device |
+| N26 | ⚙️ Settings → Users: read the explanation; set «multi», save; then (when there are other users) «single» | multi: refused with the reason (the login is not ready yet); single with other users: the list of who is deleted and how many files, then a confirmation |
 | N17 | Ask a knowledge question (e.g. «Come funziona la fotosintesi?»), then tap one of the «Approfondisci» questions; then type a short follow-up («e chi l'ha scoperta?») | 3-4 complete questions appear under the answer a few seconds after it; the tapped one is sent whole and its trace shows 🎯 when the sources were used; the typed follow-up shows 🧷 with the completed question |
 | N6 | 🧩 Plugins: open the page, then a card, then back | the grid appears at once; icons do not flash (C80) |
 

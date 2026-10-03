@@ -893,6 +893,15 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M78 — After the migration: the first chat, the doctor, the mode switch (3 October 2026)
+
+The owner's first chat after the migration: both turns in the admin's memory, the memory index at 116 = the 116 turns
+of the vault; nothing at the old memory root or at the root of usr/. The migration plan now: 0 files to move. The
+doctor: signature intact, 11 of 11 features, backup (2 copies, 1,483 files, 30.7 GB), Google and xAI keys valid,
+7 services active; its "49 missing" settings were the admin's own (C116, fixed: 0 missing). User mode: a switch to
+multi refused until the login exists (U5), back to single lists the users to delete and removes them only when
+confirmed (tests). Tests 254.
+
 ## M77 — The migration to the per-user layout, verified (3 October 2026)
 
 Run by the owner at 19:53 (services stopped, backup first). Through Aurora's own code, read only: 25 of 25 checks —

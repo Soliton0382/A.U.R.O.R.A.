@@ -522,5 +522,6 @@
   "chat.mic.closed": "The browser closed the microphone as soon as it opened: check which microphone it uses (icon in the address bar) and try again",
   "chat.mic.short": "Recording too short ({s} s): tap 🎙️, speak, then tap again to finish",
   "chat.voice.pick": "Voices of this device (▶ to hear them, tap a name to choose):",
-  "chat.voice.sample": "Hello, I am Aurora. This is my voice on this device."
+  "chat.voice.sample": "Hello, I am Aurora. This is my voice on this device.",
+  "settings.mode.purge": "Going back to single DELETES these users with all their data (folder, memory, devices, log lines):\n\n{who}\n\nYour admin data is not touched. Go on?"
 }

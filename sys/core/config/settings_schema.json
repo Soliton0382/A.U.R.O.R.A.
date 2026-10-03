@@ -112,6 +112,10 @@
   "backup": {
    "en": "Backup (encrypted, to another disk)",
    "it": "Backup (cifrato, su un altro disco)"
+  },
+  "users": {
+   "en": "Users",
+   "it": "Utenti"
   }
  },
  "settings": [
@@ -3343,6 +3347,22 @@
    "evidence": "owner",
    "en": "Monthly snapshots kept.",
    "it": "Copie mensili conservate.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_USER_MODE",
+   "type": "enum",
+   "choices": [
+    "single",
+    "multi"
+   ],
+   "category": "users",
+   "recommended": "single",
+   "evidence": "owner",
+   "it": "Chi usa Aurora. «single»: una persona sola, l'amministratore. «multi»: più persone, ciascuna con la sua cartella usr/<nome>, il suo .env (account, token, luogo) e la sua memoria privata (chat, sogni e riflessioni, condivisibili con gli altri); l'accesso chiede nome, password e il codice dell'app Authenticator; plugin e sapere restano di tutti, le impostazioni della macchina le cambia solo l'admin. Si cambia quando vuoi: da single a multi non si sposta nulla; da multi a single gli altri utenti vengono ELIMINATI con tutti i loro dati (cartella, memoria, dispositivi, righe nei log), dopo l'elenco di cosa sparisce e una tua conferma; i dati dell'admin non vengono mai toccati. Il passaggio a «multi» si attiva quando l'accesso con codice è pronto.",
+   "en": "Who uses Aurora. \"single\": one person, the admin. \"multi\": several people, each with their folder usr/<name>, their .env (accounts, tokens, place) and their private memory (chats, dreams and reflections, shareable); the login asks for name, password and the Authenticator app's code; plugins and knowledge stay everyone's, the machine's settings only the admin changes. Change it whenever you like: from single to multi nothing moves; from multi to single the other users are DELETED with all their data (folder, memory, devices, log lines), after the list of what goes and your confirmation; the admin's data is never touched. \"multi\" can be chosen once the login with the code is ready.",
    "services": [
     "aurora-api"
    ]

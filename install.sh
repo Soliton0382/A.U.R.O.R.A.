@@ -113,6 +113,16 @@ PORT=$(ask "$(t 'Porta HTTPS' 'HTTPS port')" "443")
 EXEMPT=0
 echo "  $(t 'Livello B del codice di condotta: conferma delle azioni esterne, approvazione delle modifiche al codice, dichiarazione IA.' 'Level B of the code of conduct: confirmation of external actions, approval of code changes, AI disclosure.')"
 yesno "$(t 'Esentare questa installazione dal livello B? (sconsigliato all inizio)' 'Exempt this installation from level B? (not advised at first)')" n && EXEMPT=1
+echo "  $(t 'Tipo di installazione:' 'Installation type:')"
+echo "    single — $(t 'una persona: tu, amministratore' 'one person: you, the admin')"
+echo "    multi  — $(t 'più persone: ognuna con la sua cartella usr/<nome>, le sue impostazioni e la sua memoria privata; accesso con password e codice Authenticator' 'several people: each with their folder usr/<name>, their settings and private memory; login with password and Authenticator code')"
+echo "  $(t 'È reversibile dalle Impostazioni → Utenti: da single a multi non si sposta nulla; da multi a single gli altri utenti vengono eliminati, dopo un elenco e una conferma. I tuoi dati non vengono mai toccati.' 'Reversible from Settings → Users: from single to multi nothing moves; from multi to single the other users are deleted, after a list and a confirmation. Your data is never touched.')"
+UMODE=$(ask "$(t 'single o multi' 'single or multi')" "single")
+case "$UMODE" in
+  single) ;;
+  multi) warn "$(t 'il multi-utente si attiva quando sarà pronto l accesso con codice: parto come single, lo attivi poi dalle Impostazioni' 'multi-user switches on once the login with the code is ready: starting as single, switch it on later in Settings')"; UMODE=single ;;
+  *) UMODE=single ;;
+esac
 
 # ---------------------------------------------------------------------------------------------------
 step "5. Python (venv)"
@@ -156,7 +166,7 @@ if [ -f .env ]; then
 else
   SETS=(--set "AURORA_OWNER_NAME=$OWNER" --set "AURORA_LANG_DEFAULT=$ULANG" --set "AURORA_DOMAIN=$DOMAIN"
         --set "AURORA_HTTPS_PORT=$PORT" --set "AURORA_TLS_MODE=$TLS" --set "AURORA_UPDATE_MODE=notify"
-        --set "AURORA_SERVICE_USER=$USER")
+        --set "AURORA_SERVICE_USER=$USER" --set "AURORA_USER_MODE=$UMODE")
   [ -n "$BROWSER" ] && SETS+=(--set "AURORA_CHROME_BIN=$BROWSER")
   while IFS='=' read -r k v; do [ -n "$k" ] && SETS+=(--set "$k=$v"); done < <(echo "$PROFILE" | .venv/bin/python -c 'import json,sys; [print(f"{k}={v}") for k, v in json.load(sys.stdin)["env"].items()]')
   case ",$PICK," in *,dreams,*) ;; *) SETS+=(--set "AURORA_IMAGE_ENABLED=0") ;; esac   # no dream model, no dream painting
@@ -167,6 +177,15 @@ chmod 600 .env
 if [ "$TLS" = files ]; then mkdir -p sys/https/cert && install -m 600 "$CERT" sys/https/cert/fullchain.pem && install -m 600 "$KEY" sys/https/cert/privkey.pem; fi
 .venv/bin/python -c 'import sys; sys.path.insert(0, "sys/core"); from aurora import sys_config; sys_config.get()' || die ".env"
 ok "$(t '.env valido (permessi 600)' '.env valid (mode 600)')"
+# the per-user layout (usr/<you>/, your own .env, your memory): a new installation starts on it, nothing to move
+if [ ! -f "$(.venv/bin/python -c 'import sys; sys.path.insert(0, "sys/core"); from aurora import sys_config; print(sys_config.get().path("AURORA_STATUS_DIR"))')/users_layout.json" ]; then
+  if .venv/bin/python sys/core/script/sys_users_migrate.py migrate --yes --fresh >/dev/null; then
+    ok "$(t 'struttura per utente: usr/'"$USER"'/ e le tue impostazioni personali in usr/'"$USER"'/.env' 'per-user layout: usr/'"$USER"'/ and your personal settings in usr/'"$USER"'/.env')"
+  else
+    warn "$(t 'ci sono già dati: la struttura per utente si crea con la migrazione, dopo un backup:' 'there is data already: the per-user layout comes with the migration, after a backup:')"
+    echo "    .venv/bin/python sys/core/script/sys_users_migrate.py plan"
+  fi
+fi
 
 # ---------------------------------------------------------------------------------------------------
 step "8. $(t 'Modelli (Hugging Face, revisioni fissate, SHA-256 verificati)' 'Models (Hugging Face, pinned revisions, SHA-256 checked)')"

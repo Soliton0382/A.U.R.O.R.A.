@@ -13,6 +13,7 @@ It also writes .env.example with the recommended values.
 from __future__ import annotations
 
 import argparse
+import json
 import secrets
 import sys
 from pathlib import Path
@@ -39,6 +40,17 @@ def render(schema: dict, values: dict[str, str], lang: str = "en") -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
+def migrated(current: dict[str, str], schema: dict) -> bool:
+    """Is this installation on the per-user layout? (status/users_layout.json, written by the migration)"""
+    rec = {s["key"]: s["recommended"] for s in schema["settings"]}
+    root = Path(current.get("AURORA_ROOT") or C.CODE_ROOT)
+    status = root / (current.get("AURORA_STATUS_DIR") or rec["AURORA_STATUS_DIR"])
+    try:
+        return json.loads((status / "users_layout.json").read_text(encoding="utf-8")).get("layout") == 1
+    except (OSError, ValueError):
+        return False
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--check", action="store_true", help="report only; exit 1 if .env is not in sync")
@@ -57,6 +69,9 @@ def main() -> int:
     env_file = C.env_file_path()
     current = C.parse_env(env_file.read_text(encoding="utf-8"), str(env_file)) if env_file.is_file() else {}
     declared = [s["key"] for s in schema["settings"]]
+    if migrated(current, schema):          # per-user layout: the personal settings live in usr/<name>/.env (C116)
+        declared = [s["key"] for s in schema["settings"] if s.get("scope") != "user"]
+        print("per-user layout: the personal settings are in each user's usr/<name>/.env, not here")
     missing = [k for k in declared if k not in current]
     obsolete = sorted(set(current) - set(declared))
     kept = {k: current[k] for k in declared if k in current}
@@ -78,7 +93,7 @@ def main() -> int:
     if unknown:
         print(f"--adopt: keys not in the schema: {unknown}")
         return 2
-    proposed = {**recommended, **kept, **{k: recommended[k] for k in adopt}}
+    proposed = {**{k: recommended[k] for k in declared}, **kept, **{k: recommended[k] for k in adopt}}
     if "AURORA_ROOT" not in kept:                 # a new installation lives where its code is
         proposed["AURORA_ROOT"] = str(C.CODE_ROOT)
         print(f"  * AURORA_ROOT={C.CODE_ROOT} (this folder)")

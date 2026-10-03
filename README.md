@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-252%20passed-1baf7a" alt="Tests"></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-254%20passed-1baf7a" alt="Tests"></p>
 
 <p align="center">🇮🇹 <b>Italiano</b> · 🇬🇧 <a href="README.en.md">English</a></p>
 
@@ -170,6 +170,18 @@ approvi; `auto` — le applica da sola se sono sicure (nessun file protetto del 
 verdi; altrimenti chiede); `off`. Un aggiornamento è solo fast-forward, installa i requisiti se
 cambiano, esegue i test e torna alla versione precedente se qualcosa fallisce.
 
+## Utenti: single o multi
+
+Ogni persona che usa Aurora ha la sua cartella `usr/<nome>/`, con lo stesso albero per tutti (upload, documenti,
+progetti, note, immagini, spese…), le sue impostazioni personali in `usr/<nome>/.env` (account, token, luogo) e la
+sua memoria privata (conversazioni, sogni, riflessioni). I plugin e il sapere sono di tutti; le impostazioni della
+macchina (modelli, provider cloud, backup, sicurezza) le cambia solo l'amministratore. **single**: una persona,
+l'amministratore; **multi**: più persone, accesso con password e codice dell'app Authenticator. Lo scegli
+all'installazione e lo cambi quando vuoi da ⚙️ Impostazioni → Utenti: da single a multi non si sposta nulla; da
+multi a single gli altri utenti vengono eliminati con tutti i loro dati, dopo l'elenco e una tua conferma; i dati
+dell'amministratore non vengono mai toccati. Il multi-utente si attiva quando l'accesso con codice è pronto
+(docs/MULTIUSER.md).
+
 ## Spostare l'installazione
 
 `sys/core/script/sys_relocate.sh` legge la cartella attuale dal `.env`, chiede la nuova e sposta
@@ -187,7 +199,8 @@ git clone https://github.com/Soliton0382/A.U.R.O.R.A..git aurora && cd aurora
 L'installer controlla sistema e spazio, installa i pacchetti mancanti, il CUDA toolkit 13 (solo il toolkit:
 il driver resta quello di Ubuntu), crea il venv, riconosce l'hardware e sceglie il profilo, scrive il `.env`
 con le tue risposte, scarica i modelli da Hugging Face a revisioni fissate verificandone lo SHA-256, compila
-llama.cpp per le tue GPU, esegue i test, crea la chiave del codice di condotta, installa i servizi systemd e
+llama.cpp per le tue GPU, esegue i test, crea la tua cartella `usr/<nome>/` (chiede single o multi-utente), crea la
+chiave del codice di condotta, installa i servizi systemd e
 l'HTTPS, e alla fine ti dice indirizzo e chiave API. Tutto finisce in `install.log`.
 
 Le funzioni facoltative si scelgono una per una, con la loro dimensione: sogni dipinti (6,8 GB), voce (1,5 GB),

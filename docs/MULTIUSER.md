@@ -123,6 +123,12 @@ is converted and tested on its own; the migration is the last switch, run by the
 Tests: a matrix "user B asks every API route for user A's things" → 403/404 everywhere (the smoke suite of the
 89 routes, ROADMAP "depth" 3, becomes this). Measure: 0 crossings; single-user mode behaves as today (pool30, tests).
 
+### The mode and the installer ✅ (2026-10-03)
+`AURORA_USER_MODE` (⚙️ Settings → Users) with its explanation; `sys_users_mode.switch`: to multi only on the per-user
+layout and once the login exists (`MULTI_READY`, U5), to single only after the list of the users to delete and a
+confirmation. The installer asks single or multi, says it is reversible, and starts a new installation directly on
+the per-user layout (`sys_users_migrate.py migrate --fresh`: only when there is nothing to move).
+
 ### U4 — Ceiling of users
 Load test: 1, 2, 4, 8 concurrent questions; time to the first word and to the answer, VRAM per llama.cpp slot.
 Ceiling = concurrent users with first word ≤ a threshold chosen with the owner (calculated before set: law 2).

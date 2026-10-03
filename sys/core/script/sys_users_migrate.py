@@ -5,6 +5,7 @@
     python sys/core/script/sys_users_migrate.py plan                 # what would move, nothing is touched (default)
     python sys/core/script/sys_users_migrate.py migrate --yes        # services stopped, a backup of the last 24 h
     python sys/core/script/sys_users_migrate.py rollback --yes       # back to today's layout (admin only)
+    python sys/core/script/sys_users_migrate.py migrate --yes --fresh  # a new installation: nothing to move yet
 
 The admin is created in users.db when missing, named as the service's system user (AURORA_SERVICE_USER:
 today's usr/ goes under usr/<that name>/), with no password: single-user logs in as today.
@@ -44,6 +45,8 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("action", nargs="?", default="plan", choices=["plan", "migrate", "rollback"])
     ap.add_argument("--yes", action="store_true", help="do it (without: the plan only)")
+    ap.add_argument("--fresh", action="store_true",
+                    help="a new installation (the installer): allowed only when there is no data to move")
     a = ap.parse_args()
     cfg = sys_config.get()
     admin = admin_name(cfg, create=a.action == "migrate" and a.yes)
@@ -54,6 +57,12 @@ def main() -> int:
         print(f"total: {len(plan)} entries, {sum(s['files'] for s in plan)} files, {sum(s['bytes'] for s in plan) / 1e6:.1f} MB")
     if a.action == "plan" or not a.yes:
         print("(plan only: nothing was moved)" if a.action != "rollback" else "(add --yes to roll back)")
+        return 0
+    if a.fresh and a.action == "migrate":
+        if any(s["files"] for s in plan):
+            print("STOP: --fresh is for a new installation, and there is data to move: run it without --fresh")
+            return 1
+        print(L.migrate(cfg, admin))
         return 0
     running = services_running()
     if running:

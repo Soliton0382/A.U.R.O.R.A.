@@ -61,8 +61,14 @@ async def update_settings(request: Request) -> dict:
             problems.append(f"{key}: {e}")
     if problems:
         raise HTTPException(status_code=422, detail=problems)
-    from aurora import sys_user_config, sys_users_layout
+    from aurora import sys_user_config, sys_users_layout, sys_users_mode
     user, admin = user_of(request), _admin()
+    if "AURORA_USER_MODE" in changes and str(changes["AURORA_USER_MODE"]) != sys_users_mode.current(cfg):
+        try:                                                 # single ↔ multi: what it does, refused or confirmed
+            sys_users_mode.switch(cfg, str(changes["AURORA_USER_MODE"]), user, admin,
+                                  confirm=request.query_params.get("confirm") == "purge")
+        except sys_users_mode.ModeError as e:
+            raise HTTPException(status_code=409, detail={"message": str(e), "plan": e.plan}) from None
     if user and sys_users_layout.migrated(cfg):              # U3: a user's own settings go to their usr/<name>/.env
         mine = {k: str(v) for k, v in changes.items() if specs[k].get("scope") == "user"}
         machine = {k: str(v) for k, v in changes.items() if k not in mine}

@@ -40,8 +40,19 @@ export default {
         if (i.dataset.secret ? i.value !== "" : i.value !== this.original[i.dataset.key]) changes[i.dataset.key] = i.value;
       });
       if (!Object.keys(changes).length) { out.textContent = t("settings.none"); return; }
+      const put = (q = "") => call(`/v1/aurora/settings${q}`, { method: "PUT", body: JSON.stringify(changes) });
       try {
-        const r = await call("/v1/aurora/settings", { method: "PUT", body: JSON.stringify(changes) });
+        let r;
+        try { r = await put(); } catch (e) {
+          // single ↔ multi (sys_users_mode): a refusal says why; going back to single lists who is deleted and asks
+          let d = null;
+          try { d = JSON.parse(e.message); } catch { /* not a structured refusal */ }
+          if (e.status !== 409 || !d?.message) throw e;
+          if (!d.plan?.length) throw new Error(d.message);
+          const who = d.plan.map((u) => `• ${u.user}: ${u.items.reduce((n, i) => n + (i.files || 0), 0)} file`).join("\n");
+          if (!confirm(t("settings.mode.purge", { who }))) { out.textContent = t("settings.none"); return; }
+          r = await put("?confirm=purge");
+        }
         out.textContent = t("settings.saved", { keys: r.changed.join(", "), services: r.restart.join(", ") || "—" });
         out.className = "result";
         await restartPrompt(r.restart);
