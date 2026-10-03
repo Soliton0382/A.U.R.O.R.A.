@@ -119,10 +119,11 @@ NEEDS = [
     ("Quanti documenti ha raccolto l'harvester nelle ultime 24 ore, per fonte (arxiv, normattiva, europepmc, github, medrxiv, biorxiv, wikipedia), dal log dell'harvester", harvest_by_source),
     ("Quante connessioni ha negato il firewall nelle ultime 6 ore (righe Denied nel log del firewall)", firewall_denied),
     ("Quanti incidenti di sicurezza negli ultimi 7 giorni, per gravità (high, medium, low), da status/incidents.json", incidents_by_severity),
-    ("Quante righe WARNING o ERROR ha scritto ogni componente di Aurora nelle ultime 24 ore (le 5 con più righe), dai log in sys/logs", warnings_by_component),
+    # the truth counts every line of level WARNING or above: the need says so (the judge read "WARNING o ERROR" literally)
+    ("Quante righe WARNING, ERROR o CRITICAL ha scritto ogni componente di Aurora nelle ultime 24 ore (le 5 con più righe), dai log in sys/logs", warnings_by_component),
     ("Quanti sogni (immagini dream-*.png) ha dipinto Aurora negli ultimi 7 giorni, nella cartella delle immagini", dreams),
     ("Quanti PDF ci sono nella cartella dei documenti di Aurora", documents_pdf),
-    ("Quante routine sono attive e quante in tutto, da status/routines.json", routines_active),
+    ("Quante routine sono attive e quante in tutto, dal file routines.json dell'utente", routines_active),
     ("Quanto spazio occupano, in MB, i log dell'harvester (cartella sys/logs/harvester)", log_mb),
 ]
 

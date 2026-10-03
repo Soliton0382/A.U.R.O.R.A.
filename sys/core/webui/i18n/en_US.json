@@ -567,5 +567,13 @@
   "users.delete": "Delete",
   "users.delete_q": "Delete {name} with ALL their data ({files} files, memory, devices, log lines)? There is no way back.",
   "gd.p.users": "👥 Users: your account (password and the Authenticator app with its QR code) and, if you are the admin, the people who use Aurora: create them, reset password and code, delete them seeing first what goes.",
-  "status.backup.running": "Backup running…"
+  "status.backup.running": "Backup running…",
+  "users.keys": "API keys (Chatbox, LibreChat…)",
+  "users.keys_hint": "In Chatbox: provider \"OpenAI API\" or compatible, address {url}, model \"{model}\", key = one of your keys. The program works as you: your memory, your settings.",
+  "users.revoke": "Revoke",
+  "users.revoke_q": "Revoke the key \"{name}\"? The program using it stops working.",
+  "users.key_seen": "last used: {at}",
+  "users.key_name": "Name (e.g. Chatbox on the PC)",
+  "users.key_new": "Create key",
+  "users.key_once": "Copy it now: it will not be shown again."
 }

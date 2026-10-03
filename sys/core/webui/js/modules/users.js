@@ -83,7 +83,38 @@ export default {
       enrol.replaceChildren(el("p", "", t("login.enroll")), qrSvg(r.uri),
         el("p", "muted", `${t("login.secret")} ${r.secret}`), code, ok, msg);
     });
-    box.append(pw, res, totp, enrol);
+    box.append(pw, res, totp, enrol, el("h4", "", `🔑 ${t("users.keys")}`), this.keysBox = el("div", "keys"));
+    this.loadKeys();
+  },
+
+  // the user's own API keys: one per program (Chatbox, LibreChat...), each working as this user, revocable
+  async loadKeys(justMade = null) {
+    const box = this.keysBox;
+    const k = await call("/v1/aurora/me/keys");
+    box.replaceChildren(el("p", "muted", t("users.keys_hint", { url: k.base_url, model: k.model })));
+    for (const key of k.keys) {
+      const row = el("div", "ev");
+      const del = el("button", "", t("users.revoke"));
+      del.addEventListener("click", async () => {
+        if (!confirm(t("users.revoke_q", { name: key.name }))) return;
+        await call(`/v1/aurora/me/keys/${key.id}`, { method: "DELETE" });
+        this.loadKeys();
+      });
+      row.append(el("strong", "", key.name), el("span", "muted", t("users.key_seen", { at: key.last_seen || "—" })), del);
+      box.append(row);
+    }
+    const form = el("form", "import");
+    const name = el("input"); name.placeholder = t("users.key_name"); name.required = true;
+    const add = el("button", "", t("users.key_new")); add.type = "submit";
+    const shown = el("div", "result");
+    form.append(name, add);
+    form.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const r = await call("/v1/aurora/me/keys", { method: "POST", body: JSON.stringify({ name: name.value.trim() }) });
+      this.loadKeys(r.key);                          // the list again, with the new key shown once below it
+    });
+    if (justMade) shown.append(el("p", "", t("users.key_once")), el("code", "", justMade));
+    box.append(form, shown);
   },
 
   async loadUsers() {

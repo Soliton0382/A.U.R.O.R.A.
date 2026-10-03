@@ -92,6 +92,27 @@ def split(cfg: sys_config.Config, admin: str) -> int:
     return len(mine)
 
 
+def adopt(cfg: sys_config.Config, admin: str) -> list[str]:
+    """Settings that became a user's (a new `"scope": "user"` in the schema) and still sit in the system's .env: to the
+    admin's own .env, checked, then out of the system's. On the per-user layout only; nothing else moves."""
+    if not L.migrated(cfg):
+        return []
+    cfg = cfg.base or cfg
+    raw = sys_config.parse_env(cfg.env_file.read_text(encoding="utf-8"), str(cfg.env_file))
+    moving = {k: raw[k] for k in user_keys(cfg) if k in raw}
+    if not moving:
+        return []
+    own = _own(cfg, admin)
+    sys_config.write_env(env_path(cfg, admin), {k: v for k, v in moving.items() if k not in own})
+    back = _own(cfg, admin)
+    if any(k not in back for k in moving):
+        raise RuntimeError("the admin's .env does not hold the settings: the system's .env is left as it was")
+    sys_config.write_env(cfg.env_file, {}, drop=set(moving))
+    with _lock:
+        _cache.pop(admin, None)
+    return sorted(moving)
+
+
 def merge(cfg: sys_config.Config, admin: str) -> int:
     """Back: the admin's own settings into the system's .env, and the admin's .env removed."""
     f = env_path(cfg, admin)

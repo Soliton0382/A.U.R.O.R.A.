@@ -77,6 +77,8 @@ def over(cfg: sys_config.Config, provider: str) -> bool:
     d = today(cfg)
     spent = d.get("tokens", {}).get(provider, 0)
     if spent < cap:
+        if provider in d.get("stopped", []):              # the owner raised the ceiling: no longer stopped
+            _update(cfg, lambda x: x["stopped"].remove(provider) if provider in x.get("stopped", []) else None)
         return False
     if provider not in d.get("stopped", []):
         _update(cfg, lambda x: x.setdefault("stopped", []).append(provider) if provider not in x.get("stopped", []) else None)

@@ -893,6 +893,26 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M83 — The forge with Grok (4 October 2026, night)
+
+Writer xAI grok-4.20-0309-non-reasoning, judge grok-4.7 (the owner's choice: cheap and good with code; Claude Code
+opus did 7 of 8 on 2 October with the old judge). Per call about 3,000-4,000 tokens, a plugin 15,000-35,000; the
+benchmark of 8 needs about 200,000 (Aurora's daily cloud ceiling raised by the owner from 200,000 to 600,000: the
+first full run hit the ceiling at 23:06 and went on with the local model, discarded). grok-4.7 as writer: right code
+but 120-200 s a call and one timeout; the non-reasoning model writes in seconds. Result: **5 of 8 right** (6 built):
+incidents per severity, WARNING/ERROR/CRITICAL per component in 24 h (the A20 case), PDFs, routines, MB of the
+harvester's logs; not right: the harvester's documents per source (plugins rejected by the judge), the firewall's
+denials in 6 h (0 passed the judge: A22), the dreams (an invented setting). Two first runs of the night were spoilt
+by my own changes (the owner's folders hidden from the forge, a 24 h window told for needs without one): fixed.
+
+## M82 — The benchmark suite's ids (3 October 2026)
+
+retrieval_pool108 with its 108 questions and 3,108 passages renamed from `v1:` to `legacy:` (the vault's names), the
+index rebuilt through the running models service (`--remote`; the first try loaded a second copy of encoder and
+re-ranker on a GPU already holding the models service and ran out of memory: law 2 not kept, the ceiling not
+computed first). Document rank 1 94.4% (as on 30 September), rank 5 95.4% (as before), rank 10 96.3% (95.4%: one
+question more), rank 12 96.3% (as before); chunk rank 1 91.7% (as before). The old cache of the suite (23 MB) removed.
+
 ## M81 — Backup from the plugin's card (3 October 2026)
 
 💾 Run now (the same unit as the timer, admin only): started through the API, followed every 5 s, result success:

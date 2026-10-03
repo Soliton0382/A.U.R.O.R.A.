@@ -45,6 +45,8 @@ def rate(ranks: list[int | None], k: int) -> float:
 def main() -> int:
     ap = argparse.ArgumentParser(description="permanent retrieval benchmark")
     ap.add_argument("--suite", required=True)
+    ap.add_argument("--remote", action="store_true",
+                    help="the encoder and re-ranker of the running models service (no second copy on the GPU)")
     ap.add_argument("--no-translation", action="store_true", help="search with the original question only")
     ap.add_argument("--candidates", type=int, default=None, help="default: AURORA_SEARCH_CANDIDATES")
     ap.add_argument("--min-doc-r1", type=float, default=None, help="exit 1 if document rank-1 falls below this")
@@ -67,7 +69,11 @@ def main() -> int:
     from aurora.sol_writer import VaultWriter
 
     t0 = time.time()
-    embedder, reranker = Embedder(cfg), Reranker(cfg)
+    if args.remote:                                     # the production models, already loaded: no GPU memory of its own
+        from aurora.mdl_remote import RemoteEmbedder, RemoteReranker
+        embedder, reranker = RemoteEmbedder(cfg), RemoteReranker(cfg)
+    else:
+        embedder, reranker = Embedder(cfg), Reranker(cfg)
     t_models = time.time() - t0
     if not (work / "ready").exists():
         sols = [sol_schema.Soliton.new(r["text"], r["domain"], "knowledge", r["lang"], r["source_id"], title=r["title"])

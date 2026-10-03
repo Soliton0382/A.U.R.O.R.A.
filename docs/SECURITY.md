@@ -40,6 +40,11 @@ Level B, by default: AI disclosure, confirmation of external actions, approval o
 The owner's installation is exempted by a file signed with the owner's Ed25519 key for this machine
 and this installation only (never committed).
 
+Plugins and users (2026-10-03): in the cage of a user a plugin sees nothing of the other users (their usr/<name>/,
+memory, index, state), never users.db, never a whole .env (its filtered one only); the owner's own folders of usr/
+(his papers) only to the admin's plugins. The forge's look at the data never takes another user's things, the users
+store or the owner's files (C119).
+
 Users (multi-user, 2026-10-03): each request carries its user; nobody reads another user's conversations, files,
 settings, routines, approvals, runs or live activity (a crossing test through the API checks it). The login asks for
 name, password (scrypt) and, by default, the Authenticator's 6-digit code (RFC 6238; a code is never accepted twice);

@@ -121,6 +121,35 @@ def forget(name: str) -> None:
     sys_user_config._cache.pop(name, None)
 
 
+# ---- the user's own API keys (Chatbox, LibreChat...: an OpenAI-compatible client works as this user) ------------
+@router.get("/v1/aurora/me/keys", dependencies=[Depends(auth)])
+def my_keys() -> dict:
+    who = me()
+    keys = [d for d in devices.list() if d.get("kind") == "api" and (d.get("user") or _admin()) == who]
+    domain, port = cfg["AURORA_DOMAIN"], cfg["AURORA_HTTPS_PORT"]
+    return {"keys": keys, "base_url": f"https://{domain}{'' if port == 443 else f':{port}'}/v1", "model": "aurora"}
+
+
+@router.post("/v1/aurora/me/keys", dependencies=[Depends(auth)])
+async def my_key_new(request: Request) -> dict:
+    """{"name"}: a key for one program; shown only now, kept only as a hash; it works as this user."""
+    name = str((await request.json()).get("name", "")).strip()[:60] or "API"
+    token, rec = devices.register(name, "api key", user=me(), kind="api")
+    log.info("audit: %s created an API key (%s)", me(), rec["id"])
+    return {"key": token, **rec}
+
+
+@router.delete("/v1/aurora/me/keys/{key_id}", dependencies=[Depends(auth)])
+def my_key_revoke(key_id: str) -> dict:
+    who = me()
+    d = next((x for x in devices.list() if x["id"] == key_id and x.get("kind") == "api"), None)
+    if d is None or (d.get("user") or _admin()) != who:
+        raise HTTPException(status_code=404, detail="unknown key")
+    devices.revoke(key_id)
+    log.info("audit: %s revoked an API key (%s)", who, key_id)
+    return {"revoked": key_id}
+
+
 # ---- the admin's Users page ---------------------------------------------------------------------------------------
 @router.get("/v1/aurora/users", dependencies=[Depends(admin_only)])
 def users_list() -> dict:

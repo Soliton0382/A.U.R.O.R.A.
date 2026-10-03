@@ -45,12 +45,12 @@ class Devices:
             json.dump(items, f, indent=1)
         os.replace(tmp, self.file)
 
-    def register(self, name: str, agent: str, user: str | None = None) -> tuple[str, dict]:
+    def register(self, name: str, agent: str, user: str | None = None, kind: str = "device") -> tuple[str, dict]:
         """A new device of `user` (none: the admin's, as before multi-user): returns (token, public record). The token
         is shown only now."""
         token = secrets.token_urlsafe(32)
         rec = {"id": uuid.uuid4().hex[:12], "name": name.strip()[:80] or "device", "agent": agent[:200],
-               **({"user": user} if user else {}),
+               **({"user": user} if user else {}), **({"kind": kind} if kind != "device" else {}),
                "created": time.strftime("%Y-%m-%dT%H:%M:%S"), "last_seen": time.strftime("%Y-%m-%dT%H:%M:%S"),
                "token_sha256": _hash(token)}
         with _lock:

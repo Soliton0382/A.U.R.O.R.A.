@@ -26,7 +26,7 @@ from pathlib import Path
 from . import sys_config, sys_log
 
 NAME = re.compile(r"^[a-z][a-z0-9_]{2,30}$")
-NEVER = (".env", "sys/vault", "usr", "sys/status/push", "sys/status/plugins/env", "sys/status/devices.json", ".ssh")
+NEVER = (".env", "sys/vault", "usr/uploads", "sys/status/push", "sys/status/plugins/env", "sys/status/devices.json", ".ssh")
 TEMPLATE = '''# SPDX-License-Identifier: Apache-2.0
 """Plugin "NAME": one line on what it reads."""
 from __future__ import annotations
@@ -60,7 +60,11 @@ SYS_WRITE = ("You are Aurora's forge: you write a small MCP plugin, in Python, t
              "capability is impossible without it); standard library, httpx and aurora.sys_config only; tools return "
              "plain text in Italian, short, never raise for 'no data'; wrap each tool body in try/except returning "
              "'ERRORE: ' and the traceback (as in the template); timestamps like 2026-10-01T23:42:53.023+02:00 parse with "
-             "datetime.fromisoformat; no secrets in the code. Reply with exactly two "
+             "datetime.fromisoformat; no secrets in the code. Aurora's logs: one folder per component under sys/logs, the "
+             "live <name>.log and rotated copies <name>.<time>.log.gz (read them too when the window reaches back); a "
+             "line's level is the word right after its timestamp (DEBUG, INFO, WARNING, ERROR, CRITICAL), or the JSON "
+             "field \"level\" (Caddy: \"warn\", \"error\", time in the field \"ts\" in seconds) — never a word inside the "
+             "message. Reply with exactly two "
              "fenced blocks: ```json with plugin.json and ```python with server.py. plugin.json: {\"name\", \"version\": "
              "\"1.0\", \"kind\": \"tool\", \"description\": {\"en\", \"it\"}, \"command\": [\"{python}\", \"server.py\"], "
              "\"env\": [], \"requires\": [], \"effects\": {\"*\": \"read\"}, \"sandbox\": {\"network\": false}, \"tests\": "
@@ -208,15 +212,52 @@ def read_only(manifest: dict) -> bool:
     return bool(effects) and all(v == "read" for v in effects.values()) and not sb.get("write") and sb.get("network") is False
 
 
-def peek(cfg: sys_config.Config, paths: list[str]) -> str:
-    """What the forge may look at: a folder's listing or a file's first lines, inside Aurora's folder, never NEVER."""
+def _others(cfg: sys_config.Config, p: Path) -> bool:
+    """Another user's things, or the users store: never looked at by the forge working for this user (multi-user)."""
+    from . import sys_users_layout as L
+    base = cfg.base or cfg
+    m = L.migrated(base)
+    if not m:
+        return False
+    me = cfg.user or m["admin"]
+    if p == base.path("AURORA_STATUS_DIR") / "users.db":
+        return True
+    others = L._registered(base) - {me}
+    homes = [L.usr(base) / o for o in others] + [L.root(base, a) / L.USERS / o for a in L.SYS_AREAS for o in others]
+    return any(p == h or h in p.parents for h in homes)
+
+
+def peek(cfg: sys_config.Config, paths: list[str], hours: float = 24) -> str:
+    """What the forge may look at: a folder's listing or a file's first lines, inside Aurora's folder, never NEVER.
+    A log's kinds are counted over the need's window (`hours`), its rotated copies included (A20)."""
     root = cfg.root.resolve()
     out = []
     for rel in paths[:3]:
         rel = str(rel).strip().lstrip("/")
         p = (root / rel).resolve()
-        if root not in p.parents and p != root or any(rel == n or rel.startswith(n + "/") or n in p.parts for n in NEVER):
+        if (root not in p.parents and p != root or any(rel == n or rel.startswith(n + "/") or n in p.parts for n in NEVER)
+                or _others(cfg, p)):
             out.append(f"## {rel}\n(not allowed)")
+            continue
+        if p.is_dir() and any(x.is_dir() for x in p.iterdir()):
+            # a folder of folders (sys/logs: one per component): each one's newest file, its rotated copies of the
+            # window included, counted by level over the need's window, and one example line per format (A20)
+            rows, formats = [], {}
+            for sub in sorted(x for x in p.iterdir() if x.is_dir())[:30]:
+                files = sorted((x for x in sub.iterdir() if x.is_file() and not x.name.endswith(".gz")), key=lambda x: -x.stat().st_mtime)
+                if not files:
+                    continue
+                newest = files[0]
+                with open(newest, "rb") as h:
+                    h.seek(max(0, newest.stat().st_size - 20_000_000))
+                    lines = h.read().decode(errors="replace").splitlines()[1:]
+                lines = _rotated(newest, time.time() - hours * 3600 - 3600) + lines
+                rows.append(f"{sub.name}/{newest.name}: {levels_of(lines, hours)}")
+                if lines:
+                    formats.setdefault(_shape(lines[-1])[:20], f"{sub.name}/{newest.name}: {lines[-1][:220]}")
+            out.append(f"## {rel}/ (one folder per component; lines per level, counted by code over the live log and its "
+                       f"rotated copies)\n" + "\n".join(rows) + "\n## example lines, one per format\n"
+                       + "\n".join(list(formats.values())[:8]))
             continue
         if p.is_dir():
             items = sorted(p.iterdir(), key=lambda x: -x.stat().st_mtime)[:25]
@@ -235,11 +276,92 @@ def peek(cfg: sys_config.Config, paths: list[str]) -> str:
                     head = h.read(800).decode(errors="replace")
                     h.seek(max(0, size - 20_000_000))
                     recent = h.read().decode(errors="replace").splitlines()[1:]
-                out.append(f"## {rel} (first lines)\n{head}\n...\n## {rel} ({len(recent)} lines read; one line of each kind, with counts)\n"
-                           + "\n".join(kinds_of(recent))[:4000] if size > 3800 else f"## {rel}\n{head}")
+                recent = _rotated(p, time.time() - hours * 3600 - 3600) + recent
+                out.append(f"## {rel} (first lines)\n{head}\n...\n## {rel} ({len(recent)} lines read, rotated copies of the "
+                           f"window included; one line of each kind, with counts)\n"
+                           + "\n".join(kinds_of(recent, hours=hours))[:4000] if size > 3800 else f"## {rel}\n{head}")
         else:
             out.append(f"## {rel}\n(not found)")
     return "\n\n".join(out)
+
+
+WINDOW = (  # the time window a need asks for, in hours (A20: the judge counted 24 h whatever the need said)
+    (r"(?:ultim[aoie]|last|past)\s+(\d+)\s*(?:or[ae]|hours?|h)\b", 1),
+    (r"(?:ultim[aoie]|last|past)\s+(\d+)\s*(?:giorn[oi]|days?)\b", 24),
+    (r"(?:ultim[aoie]|last|past)\s+(\d+)\s*(?:settiman[ae]|weeks?)\b", 168),
+    (r"(?:ultim[ao]|last|past)\s+or[ae]\b|(?:last|past)\s+hour\b", "1"),
+    (r"(?:ultim[ao]|last|past)\s+giorn[oi]\b|(?:last|past)\s+day\b|\boggi\b|\btoday\b", "24"),
+    (r"(?:ultim[ao]|last|past)\s+settimana\b|(?:last|past)\s+week\b", "168"),
+    (r"(?:ultim[ao]|last|past)\s+mese\b|(?:last|past)\s+month\b", "720"),
+)
+
+
+def window_hours(need: str, default: float | None = None) -> float | None:
+    """«nelle ultime 6 ore» → 6, «negli ultimi 7 giorni» → 168, «nell'ultima settimana» → 168; no window asked: `default`
+    (None: the judge is not told of a window the need does not have). Pure."""
+    text = need.lower()
+    for rx, unit in WINDOW:
+        m = re.search(rx, text)
+        if m:
+            return float(unit) if isinstance(unit, str) else float(m.group(1)) * unit
+    return default
+
+
+def _rotated(path: Path, since: float) -> list[str]:
+    """The lines of a log's rotated copies (<stem>.<time>.<ext>.gz) changed since `since`: a window often spans
+    several files, and counting only the live one gave the judge wrong facts (C94, A20)."""
+    import gzip
+    stem, ext = path.name.rsplit(".", 1) if "." in path.name else (path.name, "")
+    out = []
+    for f in sorted(path.parent.glob(f"{stem}.*.{ext}.gz" if ext else f"{stem}.*.gz")):
+        if f.stat().st_mtime >= since:
+            with gzip.open(f, "rt", errors="replace") as h:
+                out += h.read().splitlines()
+    return out
+
+
+LEVEL = re.compile(r"\b(DEBUG|INFO|WARNING|WARN|ERROR|CRITICAL)\b|\"level\"\s*:\s*\"(\w+)\"", re.I)
+
+
+def _when(line: str):
+    """A log line's time: ISO at its start, or a JSON "ts" in seconds (Caddy); None when it has none."""
+    import datetime as dt
+    try:
+        return dt.datetime.fromisoformat(line[:29])
+    except ValueError:
+        m = re.search(r"\"ts\"\s*:\s*(\d{9,11}(?:\.\d+)?)", line[:200])
+        return dt.datetime.fromtimestamp(float(m.group(1))).astimezone() if m else None
+
+
+def levels_of(lines: list[str], hours: float) -> str:
+    """Lines per level in the window and in all (WARNING and WARN are one level; JSON "level" too): facts for the
+    judge of a tool that counts by level (A20). Pure."""
+    import datetime as dt
+    from collections import Counter
+    since = dt.datetime.now().astimezone() - dt.timedelta(hours=hours)
+    inside, total = Counter(), Counter()
+    for line in lines:
+        m = LEVEL.search(line[:300])
+        if not m:
+            continue
+        lvl = (m.group(1) or m.group(2)).upper().replace("WARN", "WARNING").replace("WARNINGING", "WARNING")
+        total[lvl] += 1
+        w = _when(line)
+        if w is not None and w >= since:
+            inside[lvl] += 1
+    fmt = lambda c: ", ".join(f"{k} {v}" for k, v in sorted(c.items())) or "none"  # noqa: E731
+    bad = lambda c: c["WARNING"] + c["ERROR"] + c["CRITICAL"]  # noqa: E731
+    return (f"in the last {hours:g} h: {fmt(inside)} (WARNING+ERROR+CRITICAL = {bad(inside)}); in all: {fmt(total)} "
+            f"(WARNING+ERROR+CRITICAL = {bad(total)})")
+
+
+def _dated(line: str) -> bool:
+    import datetime as dt
+    try:
+        dt.datetime.fromisoformat(line[:29])
+        return True
+    except ValueError:
+        return False
 
 
 def _shape(line: str) -> str:
@@ -266,6 +388,10 @@ def kinds_of(lines: list[str], most: int = 20, hours: float = 24) -> list[str]:
         except ValueError:
             pass
     top = sorted(counts.values(), key=lambda c: -c[1])[:most]
+    dated = sum(c[0] for c in counts.values()) or any(_dated(c[2]) for c in counts.values())
+    if not dated:                     # no time at the start of the lines (a JSON file): no window to count by (A20)
+        return [f"# kind: {total} lines in all (the lines carry no time at their start: count the window from the "
+                f"data's own time fields); an example line follows\n{line[:260]}" for _, total, line in top]
     # the facts on their own line: the example below them is the log line exactly as it is (M53: a prefix on the same
     # line made the forge parse "[N lines...]" as part of the format)
     return [f"# kind: {recent} lines in the last {hours:g} h, {total} in all; an example line follows\n{line[:260]}"
@@ -283,7 +409,13 @@ def data_places(cfg: sys_config.Config) -> str:
                 continue
             if not any(str(rel).startswith(n) for n in NEVER):
                 rows.append(f"- {rel}: {s.get('en', '')[:140]}")
-    return "\n".join(rows[:40])
+    from . import sys_users_layout                       # this user's own state (routines, approvals): its real place
+    state = sys_users_layout.place(cfg, "state", cfg.user)
+    try:
+        rows.append(f"- {state.relative_to(cfg.root.resolve())}: this user's routines.json, approvals.json, react.json")
+    except ValueError:
+        pass
+    return "\n".join(rows[:41])
 
 
 # ---- build ---------------------------------------------------------------------------------------------
@@ -301,7 +433,8 @@ def build(cfg: sys_config.Config, llm, host, req: dict, emit, masker=None, judge
         looked = json.loads(m.group(0)) if m else []
     except ValueError:
         looked = []
-    seen = peek(cfg, [str(x) for x in looked if isinstance(x, str)])
+    hours = window_hours(req["need"])                    # the counts the judge checks are for the need's window
+    seen = peek(cfg, [str(x) for x in looked if isinstance(x, str)], hours or 24)
     if masker:                                           # the cloud sees the data only masked
         seen = masker(seen)
     emit("forge.look", {"paths": looked[:3], "masked": bool(masker)})
@@ -326,7 +459,7 @@ def build(cfg: sys_config.Config, llm, host, req: dict, emit, masker=None, judge
             stage.mkdir(parents=True)
             (stage / "plugin.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             (stage / "server.py").write_text(code, encoding="utf-8")
-            errors = test(host, manifest, stage, judge or llm, seen, masker)
+            errors = test(host, manifest, stage, judge or llm, seen, masker, need=req["need"], hours=hours)
         emit("forge.attempt", {"attempt": attempt, "ok": not errors, "errors": errors[:5], "name": manifest.get("name")})
         log.info("forge %s attempt %d: %s", req["id"], attempt, "ok" if not errors else "; ".join(errors)[:300])
         if not errors:
@@ -334,8 +467,11 @@ def build(cfg: sys_config.Config, llm, host, req: dict, emit, masker=None, judge
     return {"ok": False, "manifest": None, "stage": None, "errors": errors, "attempts": 3}
 
 
-SYS_JUDGE = ("You check a tool a forge just wrote. The SAMPLE shows the real data it reads: for logs, one line of each "
-             "kind with how many lines of that kind exist in the last 24 h and in all (counted by code: facts). The OUTPUT "
+SYS_JUDGE = ("You check a tool a forge just wrote for a NEED. The SAMPLE shows the real data it reads: for logs, one "
+             "line of each kind with how many lines of that kind exist in the NEED's time window and in all (counted by "
+             "code over the live log and its rotated copies: facts). When the NEED asks for a time window, the output must "
+             "count that window only: a total that matches 'in all' while the window's count differs, or that ignores the "
+             "window, is WRONG (A20). The OUTPUT "
              "is what the tool returned. A folder listing in the sample is cut (at most 25 entries) and files may have been added "
              "since: more files than listed is not a contradiction. Reply WRONG: <reason> when the output contradicts the "
              "sample or its counts: it "
@@ -345,7 +481,8 @@ SYS_JUDGE = ("You check a tool a forge just wrote. The SAMPLE shows the real dat
              "Reply with OK or WRONG: <reason> only.")
 
 
-def test(host, manifest: dict, stage: Path, llm=None, sample: str = "", masker=None) -> list[str]:
+def test(host, manifest: dict, stage: Path, llm=None, sample: str = "", masker=None, need: str = "",
+         hours: float | None = None) -> list[str]:
     """Run the manifest's tests in the cage, from the stage folder: every call must work and say something, and
     (with a sample of the data) a judge must find the output true to it: "no data" on data is a failure (M53)."""
     from .plg_host import Plugin
@@ -357,7 +494,10 @@ def test(host, manifest: dict, stage: Path, llm=None, sample: str = "", masker=N
     try:
         listed = {t.name for t in host._run(host._session(p, tools)).tools}
     except Exception as e:                                   # noqa: BLE001 - reported to the next attempt
-        return [f"the plugin does not start in the cage: {type(e).__name__}: {str(e)[:400]}"]
+        err = host.cfg.path("AURORA_LOG_DIR") / "plugins" / f"{p.name}.stderr.log"
+        tail = err.read_text(errors="replace")[-1200:] if err.exists() else ""   # why: the plugin's own traceback
+        return [f"the plugin does not start in the cage: {type(e).__name__}: {str(e)[:300]}"
+                + (f"\nITS ERROR OUTPUT (last lines):\n{tail}" if tail.strip() else "")]
     for t in manifest.get("tests", [])[:5]:
         name, args = t.get("tool"), t.get("args") or {}
         if name not in listed:
@@ -373,7 +513,9 @@ def test(host, manifest: dict, stage: Path, llm=None, sample: str = "", masker=N
                 errs.append(f"{name}({args}) failed or returned nothing: {text[:400]}")
             elif llm is not None and sample:
                 shown = masker(text) if masker else text
-                verdict = llm.complete(SYS_JUDGE, f"SAMPLE:\n{sample[:6000]}\n\nTOOL {name}({args}) OUTPUT:\n{shown[:3000]}", 120).answer.strip()
+                window = f"window: {hours:g} h" if hours else "no time window asked: judge the whole data"
+                verdict = llm.complete(SYS_JUDGE, f"NEED: {need} ({window})\n\nSAMPLE:\n{sample[:6000]}\n\n"
+                                                  f"TOOL {name}({args}) OUTPUT:\n{shown[:3000]}", 120).answer.strip()
                 if not verdict.upper().startswith("OK"):
                     errs.append(f"{name}({args}) returned \"{text[:300]}\", judged {verdict[:300]}")
         except Exception as e:                               # noqa: BLE001

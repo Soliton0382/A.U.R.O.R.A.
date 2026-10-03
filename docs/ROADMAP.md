@@ -15,7 +15,7 @@ Candidates, each with the measure that says it worked:
 1e. **Cinema and expenses plugins** (owner, 2026-10-03) — **done, to verify (N22, N23)**: cinema from TMDB
    (trending, in cinemas, search, details, where to watch in Italy, JustWatch data; needs the owner's free TMDB key);
    expenses on this machine only (amounts in cents, categories, monthly budgets, summary against the month before).
-   Netflix and Amazon: set aside by the owner (2026-10-03). The owner does not want to give TMDB personal data: the source of the catalogue is to choose (TMDB, Watchmode); the wanted use: «che film comico mi consigli stasera?» on the providers he has. Not doable as asked: Netflix has no public API (TMDB covers "what and where"); the Amazon cart is reachable by no
+   Netflix and Amazon: set aside by the owner (2026-10-03). **The film source is closed: TMDB, with the owner's key** (2026-10-03). Not doable as asked: Netflix has no public API (TMDB covers "what and where"); the Amazon cart is reachable by no
    API and reading the pages breaks Amazon's terms. Price watch of chosen products: Keepa (paid) or Amazon's PA-API
    (an affiliate account with sales) — the owner decides.
 1d. **Artifacts** (owner, 2026-10-03) — **done, to verify (N21)**: interactive pages Aurora makes (charts,
@@ -37,7 +37,8 @@ Candidates, each with the measure that says it worked:
    Authenticator code, Users page, REM and routines per user; crossing test M79, live M80. Left: U4, the ceiling of
    concurrent users measured; U6, the folders protected by system accounts (to decide).
 3. **The whole 108 questions** — the quality benchmark on retrieval_pool108 entire, once, as the new reference.
-4. **The forge's known limit** — a judge that checks time windows; measure: `bench_forge.py --roles` 8/8.
+4. **The forge** — the judge checks time windows (C118, C120); with Grok 5 of 8 right (M83), A22 open; measure:
+   `bench_forge.py --roles` 8/8.
 5. **Self-repair proven or switched off** — a week of its reports; on only with one real fix.
 6. **The device on port 6667** — the owner checks it (11,945 denied connections to IRC).
 7. **Feedback of the company's AI team** — their install on other hardware: the profiles not measured here.

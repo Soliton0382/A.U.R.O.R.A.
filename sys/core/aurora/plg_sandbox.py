@@ -57,6 +57,31 @@ def available() -> bool:
     return shutil.which("bwrap") is not None
 
 
+def _others_hidden(cfg: sys_config.Config) -> list[str]:
+    """Multi-user: a plugin working for a user sees nothing of the others (their usr/<name>/, memory, index, state),
+    nor the users store, nor its own user's whole .env (it gets its filtered one); the owner's top-level folders of
+    usr/ (his papers) only for the admin's plugins."""
+    from . import sys_users_layout as L
+    base = cfg.base or cfg
+    m = L.migrated(base)
+    if not m:
+        return []
+    me, admin, out = cfg.user or m["admin"], m["admin"], []
+    usr = L.usr(base)
+    for d in (x for x in usr.iterdir() if x.is_dir()) if usr.is_dir() else []:
+        if d.name != me and not (me == admin and d.name not in L._registered(base) | {admin}):
+            out += ["--tmpfs", str(d)]
+    for area in L.SYS_AREAS:
+        users = L.root(base, area) / L.USERS
+        for d in (x for x in users.iterdir() if x.is_dir()) if users.is_dir() else []:
+            if d.name != me:
+                out += ["--tmpfs", str(d)]
+    for secret in (base.path("AURORA_STATUS_DIR") / "users.db", usr / me / ".env"):
+        if secret.exists():
+            out += ["--ro-bind", "/dev/null", str(secret)]
+    return out
+
+
 def wrap(cmd: list[str], folder: Path, manifest: dict, filtered_env: Path, cfg: sys_config.Config) -> list[str]:
     root = cfg.root
     status = cfg.path("AURORA_STATUS_DIR")
@@ -66,12 +91,15 @@ def wrap(cmd: list[str], folder: Path, manifest: dict, filtered_env: Path, cfg: 
             "--tmpfs", "/tmp"]
     if home != Path("/") and root.is_relative_to(home):
         args += ["--tmpfs", str(home), "--ro-bind", str(root), str(root)]
+    elif root.is_relative_to("/tmp"):                         # an installation under /tmp (the tests): visible again
+        args += ["--ro-bind", str(root), str(root)]
     args += ["--ro-bind", str(filtered_env), str(cfg.env_file)]
     for hidden in (status / "push", status / "plugins" / "env"):
         if hidden.is_dir():
             args += ["--tmpfs", str(hidden)]
     if (status / "devices.json").exists():
         args += ["--ro-bind", "/dev/null", str(status / "devices.json")]
+    args += _others_hidden(cfg)
     for key in manifest.get("sandbox", {}).get("write", []):
         p = cfg.path(key)
         p.mkdir(parents=True, exist_ok=True)

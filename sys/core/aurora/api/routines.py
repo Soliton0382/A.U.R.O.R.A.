@@ -270,8 +270,8 @@ def rem_state(user: str | None = None) -> dict:
 def rem_task(task: str, user: str | None = None) -> dict:
     from aurora import sys_context
     who = _rem_user(user)
-    if task in ("repair", "introspect", "social") and who != _admin():
-        raise HTTPException(status_code=403, detail="Aurora's own diagnosis and the social pages are the admin's")
+    if task in ("repair", "introspect") and who != _admin():
+        raise HTTPException(status_code=403, detail="Aurora's own diagnosis is the admin's")
     if task == "repair":                              # registered earlier than /rem/repair: hand over
         return rem_repair()
     if task not in ("consolidate", "reflect", "dream", "introspect", "social"):

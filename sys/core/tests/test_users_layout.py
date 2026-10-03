@@ -181,3 +181,17 @@ def test_a_plugin_runs_with_the_settings_and_folders_of_its_user(cfg):
         text = e.read_text()
         assert e.name == f"expenses.{who}.env" and f"AURORA_EXPENSES_DIR=usr/{who}/" in text
         assert "AURORA_TMDB_TOKEN=" in text and token not in text      # another plugin's secret: redacted
+
+
+def test_a_setting_that_becomes_personal_moves_into_the_admin_s_env(cfg):
+    """A key turned `"scope": "user"` after the migration: adopt() moves it, so nothing is left behind or reset."""
+    from aurora import sys_config, sys_user_config as U
+    today_layout(cfg)
+    L.migrate(cfg, "boss")
+    sys_config.write_env(U.env_path(cfg, "boss"), {}, drop={"AURORA_TMDB_TOKEN"})       # a key turned personal later:
+    sys_config.write_env(cfg.env_file, {"AURORA_TMDB_TOKEN": "left-in-system"})        # not in the admin's .env yet
+    cfg = sys_config.load(cfg.env_file, check_root=False)
+    assert U.adopt(cfg, "boss") == ["AURORA_TMDB_TOKEN"]
+    assert "AURORA_TMDB_TOKEN" not in cfg.env_file.read_text()
+    assert U.for_user(sys_config.load(cfg.env_file, check_root=False), "boss")["AURORA_TMDB_TOKEN"] == "left-in-system"
+    assert U.adopt(sys_config.load(cfg.env_file, check_root=False), "boss") == []                # nothing twice

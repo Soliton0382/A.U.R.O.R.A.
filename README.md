@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-256%20passed-1baf7a" alt="Tests"></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-261%20passed-1baf7a" alt="Tests"></p>
 
 <p align="center">🇮🇹 <b>Italiano</b> · 🇬🇧 <a href="README.en.md">English</a></p>
 
@@ -34,6 +34,7 @@ con l'esenzione firmata dal proprietario, e ciò che parte è mascherato per def
 | **Vault di solitoni** | shard SQLite, conoscenza e memoria separate, deduplica per hash del contenuto, ricerca vettoriale esatta sotto i 250k vettori per dominio, HNSW sopra (M30) |
 | **Memoria** | turni a breve termine, memorie di sessione a lungo termine scritte di notte, richiamo per significato su 12 mesi, date etichettate dall'orologio |
 | **Ciclo autonomo** | consolidamento, pensieri quando si annoia, un **sogno notturno dipinto con SDXL-Lightning** (marcato come IA), un'autodiagnosi quotidiana dai propri log, autoriparazione sui problemi ricorrenti |
+| **Forgia (Aurora si costruisce i plugin)** | quando le manca una capacità, scrive un plugin, lo prova nella gabbia sui dati veri e un giudice lo controlla contro i conteggi fatti dal codice (finestre di tempo comprese); quelli di sola lettura si installano da soli. Scrittore e giudice si scelgono nella pagina 🧠 Modelli: consigliato un modello cloud bravo col codice (Claude Code, o xAI Grok che costa poco: 5 su 8 al banco, M83); il modello locale ne fa meno |
 | **Artefatti** | «fammi un grafico interattivo della funzione seno»: Aurora crea una pagina interattiva (grafici, simulazioni, calcolatori) e te la mostra viva nella risposta, a schermo intero o da scaricare; gira isolata, senza rete e senza accesso ai tuoi dati |
 | **Post autonomi** | se lo accendi (`AURORA_SOCIAL_AUTONOMY`, solo con l'esenzione firmata), Aurora pubblica da sola i suoi post su Facebook — un sogno con il suo dipinto al mattino, una notizia di scienza la sera — al massimo 3 al giorno, ognuno registrato e notificato; risposte e modifiche alla pagina aspettano sempre te. Sogni e pensieri hanno ↗ Condividi |
 | **Immagini a richiesta** | «crea una foto sulla tua esistenza e caricala su Facebook»: Aurora la dipinge in locale (~20 s), te la mostra in chat e nei File, e propone il post con la foto; nulla parte senza la tua approvazione |

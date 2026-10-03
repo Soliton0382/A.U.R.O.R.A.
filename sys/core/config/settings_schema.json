@@ -938,7 +938,8 @@
    "it": "Aurora pubblica da sola i suoi post sulle sue pagine social (solo con l'esenzione dal livello B; solo gli strumenti di AURORA_SOCIAL_AUTO_TOOLS; al massimo AURORA_SOCIAL_POSTS_PER_DAY al giorno). Ogni post resta tra le approvazioni come «auto» e ti viene notificato. Risposte, modifiche alla pagina e ogni altra azione esterna aspettano ancora.",
    "services": [
     "aurora-api"
-   ]
+   ],
+   "scope": "user"
   },
   {
    "key": "AURORA_SOCIAL_POSTS_PER_DAY",
@@ -952,7 +953,8 @@
    "it": "Numero massimo di post che Aurora pubblica da sola in un giorno (AURORA_SOCIAL_AUTONOMY); oltre, aspettano l'approvazione.",
    "services": [
     "aurora-api"
-   ]
+   ],
+   "scope": "user"
   },
   {
    "key": "AURORA_SOCIAL_AUTO_TOOLS",
@@ -964,7 +966,8 @@
    "it": "Quali strumenti dei plugin contano come post di Aurora (plugin.strumento, separati da virgola).",
    "services": [
     "aurora-api"
-   ]
+   ],
+   "scope": "user"
   },
   {
    "key": "AURORA_LOG_LEVEL",

@@ -60,7 +60,7 @@ def dreamt_tonight(last_dream: str | None, now: datetime) -> bool:
 
 def choose(st: dict, system: bool = True) -> tuple[str | None, str]:
     """The task to start now and why (or None and why not). `system`: the admin's turn, the only one with Aurora's
-    own self-review, repairs and social report."""
+    own self-review and repairs; each user's social pages have their own report."""
     if st.get("rem_running"):
         return None, "an autonomic task is already running or queued"
     idle = st["idle_min"] if st["idle_min"] is not None else float("inf")
@@ -73,7 +73,7 @@ def choose(st: dict, system: bool = True) -> tuple[str | None, str]:
         return "dream", "night window, no dream yet"
     if system and _minutes_since(st["last"].get("self_review")) >= 24 * 60:
         return "introspect", "no self-review in the last 24 hours"
-    if system and st.get("social_platforms") and _minutes_since(st["last"].get("social_report")) >= 24 * 60:
+    if st.get("social_platforms") and _minutes_since(st["last"].get("social_report")) >= 24 * 60:   # each user's pages
         return "social", f"{st['social_platforms']} social platforms connected, no report in the last 24 hours"
     review, repair = st["last"].get("self_review"), st["last"].get("repair")
     if system and cfg["AURORA_SELF_REPAIR"] and review and st.get("review_problems") and (not repair or repair < review):

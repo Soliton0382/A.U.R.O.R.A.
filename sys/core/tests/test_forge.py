@@ -79,3 +79,52 @@ def test_the_textual_filter_asks_the_reasoner_only_on_a_missing_tool():
     assert not F.GAP_HINT.search("Resoconto completato: 13 incidenti, nessun evento esterno.")
     assert F.detect_gap(None, "g", "Resoconto completato.", False) is None                     # no call at all
     assert F.detect_gap(None, "g", "nessuno strumento", True) is None                          # already requested
+
+
+def test_the_judge_s_counts_are_for_the_need_s_window_rotated_logs_included(tmp_path):
+    """A20: the sample counted 24 hours whatever the need said, and only the live log."""
+    import datetime as dt
+    import gzip
+    from aurora import agt_forge as F
+    assert F.window_hours("Quante connessioni ha negato il firewall nelle ultime 6 ore") == 6
+    assert F.window_hours("negli ultimi 7 giorni, per gravità") == 168 and F.window_hours("nell'ultima settimana") == 168
+    assert F.window_hours("nell'ultima ora") == 1 and F.window_hours("last 3 days") == 72
+    assert F.window_hours("Quanti PDF ci sono nella cartella") is None          # no window asked: none told
+    now = dt.datetime.now().astimezone()
+    line = lambda h: (now - dt.timedelta(hours=h)).isoformat(timespec="milliseconds") + " WARNING aurora.x something"  # noqa: E731
+    log = tmp_path / "x.log"
+    log.write_text("\n".join([line(1), line(2)] + [line(30)] * 3) + "\n")
+    with gzip.open(tmp_path / "x.20261001-000000.log.gz", "wt") as g:      # a rotated copy inside the window
+        g.write(line(5) + "\n")
+    lines = F._rotated(log, 0) + log.read_text().splitlines()
+    kinds = F.kinds_of(lines, hours=6)
+    assert "3 lines in the last 6 h, 6 in all" in kinds[0]
+
+
+def test_lines_without_a_time_at_their_start_get_no_window_count():
+    """A20 side effect: incidents in a JSON file counted '0 in the window' and a right plugin was judged wrong."""
+    from aurora import agt_forge as F
+    kinds = F.kinds_of(['  {"severity": "high", "at": "2026-10-03T10:00:00+02:00"},'] * 5, hours=168)
+    assert "5 lines in all" in kinds[0] and "in the last" not in kinds[0]
+
+
+def test_the_forge_never_looks_at_another_user_s_things_nor_the_users_store(cfg):
+    import json
+    from aurora import agt_forge as F, sys_user_config as U, sys_users_layout as L
+    from aurora.sys_users import Users
+    st = cfg.path("AURORA_STATUS_DIR")
+    st.mkdir(parents=True, exist_ok=True)
+    (st / L.STATE).write_text(json.dumps({"layout": 1, "admin": "boss"}))
+    Users(cfg).add("boss", "admin", "a long password")
+    Users(cfg).add("guest", "user", "another long password")
+    for who in ("boss", "guest"):
+        (cfg.root / "usr" / who / "notes").mkdir(parents=True)
+        (cfg.root / "usr" / who / "notes" / "n.md").write_text(f"{who} private")
+    for who in ("boss", "guest"):
+        d = st / "users" / who
+        d.mkdir(parents=True)
+        (d / "routines.json").write_text(f'[{{"title": "{who} routine"}}]')
+    seen = F.peek(U.for_user(cfg, "guest"), ["sys/status/users/boss", "sys/status/users.db", "sys/status/users/guest"])
+    assert seen.count("(not allowed)") == 2 and "boss routine" not in seen and "guest routine" in seen
+    assert "guest private" in F.peek(U.for_user(cfg, "guest"), ["usr/guest/notes"])     # the user's own: yes
+    assert "(not allowed)" in F.peek(U.for_user(cfg, "guest"), ["usr/boss/notes"])      # another's: never

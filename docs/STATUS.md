@@ -93,8 +93,7 @@ Signed and published (commit d4ce54f, 29 commits, the history clean of the firew
 | firewall actions (block an address) and abuse reports as approvals | Sophos API plugin |
 | full-disk encryption | owner |
 
-## Open bugs (4)
+## Open bugs (3)
 
-A18 the gate's wrong closures (3/30), A19 the extraction's (1/30), A20 the forge judge and time windows,
-A21 the benchmark suite's ids (details in BUGS.md). Measurements still to take: ROADMAP.md ("Still to measure").
+A18 the gate's wrong closures (3/30), A19 the extraction's (1/30), A22 the forge with Grok 5 of 8 (details in BUGS.md). Measurements still to take: ROADMAP.md ("Still to measure").
 

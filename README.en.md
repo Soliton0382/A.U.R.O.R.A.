@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.en.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-256%20passed-1baf7a" alt="Tests"></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-261%20passed-1baf7a" alt="Tests"></p>
 
 <p align="center">🇮🇹 <a href="README.md">Italiano</a> · 🇬🇧 <b>English</b></p>
 
@@ -34,6 +34,7 @@ exemption, and what leaves is masked by default.
 | **Vault of solitons** | SQLite shards, knowledge and memory apart, dedup by content hash, exact vector search below 250k vectors per domain, HNSW above (M30) |
 | **Memory** | short-term turns, long-term session memories written at night, recall by meaning over 12 months, dates labelled by the clock |
 | **Autonomic cycle** | consolidation, thoughts when idle, a nightly **dream painted with SDXL-Lightning** (AI-marked), a daily self-review from her own logs, self-repair on recurring problems |
+| **Forge (Aurora builds her plugins)** | when a capability is missing she writes a plugin, tests it in the cage on the real data and a judge checks it against counts made by code (time windows included); read-only ones install by themselves. Writer and judge are chosen in the 🧠 Models page: a cloud model good with code is advised (Claude Code, or xAI Grok, which costs little: 5 of 8 at the benchmark, M83); the local model does fewer |
 | **Artifacts** | "make me an interactive chart of the sine function": Aurora makes an interactive page (charts, simulations, calculators) and shows it live in the answer, full screen or to download; it runs isolated, with no network and no access to your data |
 | **Autonomous posts** | if you switch it on (`AURORA_SOCIAL_AUTONOMY`, only with the signed exemption), Aurora publishes her own Facebook posts — a dream with its painting in the morning, science news in the evening — at most 3 a day, each recorded and notified; replies and page changes always wait for you. Dreams and thoughts have ↗ Share |
 | **Pictures on request** | "make a picture about your existence and post it on Facebook": Aurora paints it locally (~20 s), shows it in the chat and in Files, and proposes the post with the picture; nothing leaves without your approval |
