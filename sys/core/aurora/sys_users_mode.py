@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from . import sys_config, sys_users_layout as L
 
-MULTI_READY = False          # U5: the login page (name, password, TOTP) and the Users page; until then no "multi"
+MULTI_READY = True           # U5: the login (name, password, TOTP) and the Users page exist
 MODES = ("single", "multi")
 
 
@@ -48,6 +48,11 @@ def switch(cfg: sys_config.Config, to: str, user: str | None, admin: str | None,
         if not MULTI_READY:
             raise ModeError("il multi-utente si attiva quando l'accesso con password e codice Authenticator sarà pronto "
                             "(fase U5): per ora Aurora resta single")
+        from .sys_users import Users
+        a = Users(base).by_name(admin or "") if admin else None
+        if not a or not a["has_password"] or (base["AURORA_USERS_MFA"] and not a["totp_on"]):
+            raise ModeError("prima imposta la tua password e collega l'app Authenticator (⚙️ Impostazioni → Il mio "
+                            "account): in multi-utente si entra solo così, altrimenti resteresti fuori")
         return {"removed": []}
     gone = others(base, admin)
     if not gone:

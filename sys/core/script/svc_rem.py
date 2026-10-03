@@ -58,8 +58,9 @@ def dreamt_tonight(last_dream: str | None, now: datetime) -> bool:
     return datetime.fromisoformat(last_dream) >= night
 
 
-def choose(st: dict) -> tuple[str | None, str]:
-    """The task to start now and why (or None and why not)."""
+def choose(st: dict, system: bool = True) -> tuple[str | None, str]:
+    """The task to start now and why (or None and why not). `system`: the admin's turn, the only one with Aurora's
+    own self-review, repairs and social report."""
     if st.get("rem_running"):
         return None, "an autonomic task is already running or queued"
     idle = st["idle_min"] if st["idle_min"] is not None else float("inf")
@@ -70,12 +71,12 @@ def choose(st: dict) -> tuple[str | None, str]:
         return "consolidate", f"{st['sessions_to_consolidate']} closed sessions"
     if in_dream_window(now) and not dreamt_tonight(st["last"]["dream"], now):
         return "dream", "night window, no dream yet"
-    if _minutes_since(st["last"].get("self_review")) >= 24 * 60:
+    if system and _minutes_since(st["last"].get("self_review")) >= 24 * 60:
         return "introspect", "no self-review in the last 24 hours"
-    if st.get("social_platforms") and _minutes_since(st["last"].get("social_report")) >= 24 * 60:
+    if system and st.get("social_platforms") and _minutes_since(st["last"].get("social_report")) >= 24 * 60:
         return "social", f"{st['social_platforms']} social platforms connected, no report in the last 24 hours"
     review, repair = st["last"].get("self_review"), st["last"].get("repair")
-    if cfg["AURORA_SELF_REPAIR"] and review and st.get("review_problems") and (not repair or repair < review):
+    if system and cfg["AURORA_SELF_REPAIR"] and review and st.get("review_problems") and (not repair or repair < review):
         return "repair", f"the last self-review found problems in {st['review_problems']} components"
     w = st.get("weather") or {}
     bored_after = cfg["AURORA_REM_BORED_MIN"] * (0.5 if w.get("condition") in ("rain", "low_pressure_overcast") else 1)
@@ -146,15 +147,22 @@ def main() -> int:
                 log.warning("uploads purge failed: %s", e)
             last_purge = time.time()
         if cfg["AURORA_REM_ENABLED"]:
-            try:
-                st = client.get(f"{BASE}/v1/aurora/rem/state").raise_for_status().json()
-                task, reason = choose(st)
-                if task:
-                    run = client.post(f"{BASE}/v1/aurora/rem/{task}").raise_for_status().json()
-                    log.info("started %s (%s): run %s", task, reason, run["run_id"])
-                    sys_log.trace("rem", "rem.task", {"task": task, "reason": reason, "run_id": run["run_id"]})
-                elif reason != last_reason:
-                    log.info("idle: %s", reason)
+            try:                                      # every user's memory, one task at a time (one GPU)
+                who = client.get(f"{BASE}/v1/aurora/rem/users").raise_for_status().json()
+                reason = "nothing to do"
+                for user in who["users"]:
+                    q = {"user": user} if user else {}
+                    st = client.get(f"{BASE}/v1/aurora/rem/state", params=q).raise_for_status().json()
+                    task, reason = choose(st, system=user in (None, who["admin"]))
+                    if task:
+                        run = client.post(f"{BASE}/v1/aurora/rem/{task}", params=q).raise_for_status().json()
+                        log.info("started %s for %s (%s): run %s", task, "the admin" if user == who["admin"] else
+                                 "a user", reason, run["run_id"])
+                        sys_log.trace("rem", "rem.task", {"task": task, "reason": reason, "run_id": run["run_id"]})
+                        break
+                else:
+                    if reason != last_reason:
+                        log.info("idle: %s", reason)
                 last_reason = reason
             except (httpx.HTTPError, KeyError, ValueError) as e:
                 log.warning("state or task failed: %s", e)

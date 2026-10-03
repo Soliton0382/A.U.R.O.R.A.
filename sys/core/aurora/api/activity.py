@@ -11,7 +11,7 @@ from aurora import sys_log
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
-from .core import MAX_ACTIVITY, _activity, _activity_cond, auth, cfg, note, pipeline, quiet
+from .core import MAX_ACTIVITY, _activity, _activity_cond, auth, cfg, me, mine, note, pipeline, quiet
 
 router = APIRouter()
 
@@ -28,13 +28,16 @@ async def post_activity(request: Request) -> dict:
 
 @router.get("/v1/aurora/activity", dependencies=[Depends(auth)])
 def get_activity(after: int = 0, limit: int = 200) -> list[dict]:
+    who = me()
     with _activity_cond:
-        return [a for a in _activity if a["seq"] > after][-max(1, min(limit, MAX_ACTIVITY)):]
+        return [a for a in _activity if a["seq"] > after and mine(a, who)][-max(1, min(limit, MAX_ACTIVITY)):]
 
 
 @router.get("/v1/aurora/activity/stream", dependencies=[Depends(auth)])
 async def activity_stream(after: int | None = None):
-    """SSE of the activity feed from `after` (default: from now)."""
+    """SSE of the activity feed from `after` (default: from now): the requesting user's items only."""
+    who = me()                                          # taken now, in the request: the stream keeps it
+
     def wait(seen: int) -> list[dict]:
         with _activity_cond:
             if not any(a["seq"] > seen for a in _activity):
@@ -47,8 +50,9 @@ async def activity_stream(after: int | None = None):
         while True:
             items = await asyncio.to_thread(wait, seen)
             for a in items:
-                yield f"data: {json.dumps(a, ensure_ascii=False, default=str)}\n\n"
                 seen = a["seq"]
+                if mine(a, who):
+                    yield f"data: {json.dumps(a, ensure_ascii=False, default=str)}\n\n"
             if not items:
                 yield ": keep-alive\n\n"
     return StreamingResponse(quiet(gen()), media_type="text/event-stream")

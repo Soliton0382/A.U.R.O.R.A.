@@ -198,6 +198,25 @@ class Users:
             con.execute("UPDATE users SET totp_on=1, totp_last=? WHERE id=?", (step, uid))
         return True
 
+    def check_password(self, name: str, password: str) -> dict | None:
+        """The user if the password is right (the first step of a login, and of the first TOTP enrolment)."""
+        with self._db() as con:
+            r = con.execute("SELECT * FROM users WHERE name=?", (name.strip(),)).fetchone()
+        if r is None or not r["password"]:
+            check_password(password, hash_password("x" * 10))       # same time as a wrong password
+            return None
+        return {**self.public(r), "totp": r["totp"]} if check_password(password, r["password"]) else None
+
+    def by_name(self, name: str) -> dict | None:
+        with self._db() as con:
+            r = con.execute("SELECT * FROM users WHERE name=?", (name.strip(),)).fetchone()
+        return self.public(r) if r else None
+
+    def totp_reset(self, uid: str) -> None:
+        """The admin resets a lost authenticator: the next login asks to enrol again."""
+        with self._db() as con:
+            con.execute("UPDATE users SET totp='', totp_on=0, totp_last=0 WHERE id=?", (uid,))
+
     def login(self, name: str, password: str, code: str, mfa: bool = True, now: float | None = None) -> dict | None:
         """The user if name, password and (when MFA is required or enrolled) the TOTP code are right.
         A code already used cannot be used again (replay inside its 30 seconds)."""

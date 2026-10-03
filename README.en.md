@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.en.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-254%20passed-1baf7a" alt="Tests"></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-256%20passed-1baf7a" alt="Tests"></p>
 
 <p align="center">🇮🇹 <a href="README.md">Italiano</a> · 🇬🇧 <b>English</b></p>
 
@@ -177,8 +177,8 @@ private memory (conversations, dreams, reflections). Plugins and knowledge are e
 (models, cloud providers, backup, security) only the admin changes. **single**: one person, the admin; **multi**:
 several people, login with password and the Authenticator app's code. Chosen at installation, changed whenever you
 like in ⚙️ Settings → Users: from single to multi nothing moves; from multi to single the other users are deleted
-with all their data, after the list and your confirmation; the admin's data is never touched. Multi-user switches on
-once the login with the code is ready (docs/MULTIUSER.md).
+with all their data, after the list and your confirmation; the admin's data is never touched. To pass to multi, first set your
+password and link the Authenticator in 👥 Users, then create the users there (docs/MULTIUSER.md).
 
 ## Moving the installation
 

@@ -9,4 +9,6 @@ Qwen3 models (Apache-2.0), bge-reranker-v2-m3 (MIT), Stable Diffusion XL (Creati
 SDXL-Lightning (CreativeML Open RAIL++-M). Python dependencies are listed in requirements.txt.
 
 Included: KaTeX 0.19.0 (MIT, Copyright (c) 2013-2020 Khan Academy and other contributors), in
-sys/core/webui/vendor/katex with its LICENSE, to draw formulas in the chat.
+sys/core/webui/vendor/katex with its LICENSE, to draw formulas in the chat; qrcode-generator 2.0.4 (MIT,
+Copyright (c) 2009 Kazuhiko Arase, the license in the file's header), in sys/core/webui/vendor/qrcode, for the
+Authenticator's QR code.

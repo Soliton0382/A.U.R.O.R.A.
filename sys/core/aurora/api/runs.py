@@ -12,7 +12,7 @@ import os
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
-from .core import _runs, answer_or_acquire, auth, cfg, edit_pictures, make_video, picture_intent, pipeline, quiet, start_run, video_busy_answer, wait_events
+from .core import _runs, answer_or_acquire, mine, own_run, auth, cfg, edit_pictures, make_video, picture_intent, pipeline, quiet, start_run, video_busy_answer, wait_events
 
 router = APIRouter()
 
@@ -92,14 +92,12 @@ async def acquire(request: Request) -> dict:
 @router.get("/v1/aurora/runs", dependencies=[Depends(auth)])
 def runs() -> list[dict]:
     return [{"id": r["id"], "question": r["question"], "origin": r["origin"], "started": r["started"],
-             "done": r["done"], "events": len(r["events"])} for r in reversed(_runs.values())]
+             "done": r["done"], "events": len(r["events"])} for r in reversed(_runs.values()) if mine(r)]
 
 
 @router.get("/v1/aurora/runs/{run_id}/events", dependencies=[Depends(auth)])
 async def run_events(run_id: str, after: int = 0):
-    run = _runs.get(run_id)
-    if not run:
-        raise HTTPException(status_code=404, detail="unknown run")
+    run = own_run(run_id)                               # another user's run: as if it did not exist
 
     async def gen():
         seen = after

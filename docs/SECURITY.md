@@ -40,6 +40,13 @@ Level B, by default: AI disclosure, confirmation of external actions, approval o
 The owner's installation is exempted by a file signed with the owner's Ed25519 key for this machine
 and this installation only (never committed).
 
+Users (multi-user, 2026-10-03): each request carries its user; nobody reads another user's conversations, files,
+settings, routines, approvals, runs or live activity (a crossing test through the API checks it). The login asks for
+name, password (scrypt) and, by default, the Authenticator's 6-digit code (RFC 6238; a code is never accepted twice);
+the failed-login lockout applies to it. The admin can pass to multi only after setting their own password and code;
+the API key stays the admin's. Deleting a user removes their folder, memory, devices, trace lines and what the API
+holds in memory; the audit log keeps the event (who, when) until its retention.
+
 Artifacts (interactive pages Aurora makes, 2026-10-03): they run only under `/v1/preview/` through a token valid
 10 minutes that the logged-in WebUI asks for, in a sandbox without `allow-same-origin` (opaque origin: no cookie,
 no access to the API) and with no network (`connect-src 'none'`, nothing external); only HTML files Aurora made

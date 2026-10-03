@@ -10,7 +10,7 @@ import time
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from .core import answer_or_acquire, auth, final_text, quiet, start_run, text_of, trace_line, wait_events
+from .core import answer_or_acquire, auth, cfg, final_text, quiet, start_run, text_of, trace_line, wait_events
 
 router = APIRouter()
 
@@ -18,7 +18,8 @@ router = APIRouter()
 # ---- OpenAI-compatible -------------------------------------------------------------------
 @router.get("/health")
 def health() -> dict:
-    return {"status": "ok"}
+    """Public: alive, and how the WebUI's login looks (the API key, or users with password and code)."""
+    return {"status": "ok", "login": "users" if str(cfg["AURORA_USER_MODE"]) == "multi" else "key"}
 
 
 @router.get("/v1/models", dependencies=[Depends(auth)])

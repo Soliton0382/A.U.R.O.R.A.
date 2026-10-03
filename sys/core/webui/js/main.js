@@ -28,7 +28,43 @@ async function authorized() {
 function showLogin(on) {
   $("login").classList.toggle("hidden", !on);
   $("app").classList.toggle("hidden", on);
+  if (on) {                       // multi-user: name, password and code first; the API key stays the admin's way in
+    fetch("/health").then((r) => r.json()).then((h) => {
+      const users = h.login === "users";
+      $("login-user").classList.toggle("hidden", !users);
+      $("login-form").classList.toggle("hidden", users);
+      $("login-to-user").classList.toggle("hidden", !users);
+    }).catch(() => {});
+  }
 }
+$("login-to-key").addEventListener("click", () => { $("login-user").classList.add("hidden"); $("login-form").classList.remove("hidden"); });
+$("login-to-user").addEventListener("click", () => { $("login-form").classList.add("hidden"); $("login-user").classList.remove("hidden"); });
+
+$("login-user").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const err = $("login-user-error");
+  err.classList.add("hidden");
+  const body = { name: $("login-name").value.trim(), password: $("login-password").value,
+    code: $("login-code").value.trim(), device: deviceName() };
+  try {
+    const r = await call("/v1/aurora/login", { method: "POST", body: JSON.stringify(body) });
+    if (r.enroll) {               // the first login: the authenticator is linked here, then the first code
+      const { qrSvg } = await import("./qr.js");
+      $("login-qr").replaceChildren(qrSvg(r.enroll.uri));
+      $("login-secret").textContent = r.enroll.secret;
+      $("login-enroll").classList.remove("hidden");
+      $("login-code").required = true;
+      $("login-code").focus();
+      return;
+    }
+    $("login-password").value = ""; $("login-code").value = "";
+    $("login-enroll").classList.add("hidden");
+    if (await authorized()) start();
+  } catch (e) {
+    err.textContent = i18n.t(e.status === 429 ? "login.locked" : "login.user_error");
+    err.classList.remove("hidden");
+  }
+});
 
 $("login-form").addEventListener("submit", async (ev) => {
   ev.preventDefault();

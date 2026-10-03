@@ -23,6 +23,22 @@
     <input id="login-key" type="password" autocomplete="current-password" data-i18n-placeholder="login.key" required>
     <button type="submit" data-i18n="login.enter"></button>
     <p id="login-error" class="error hidden" data-i18n="login.error"></p>
+    <button type="button" id="login-to-user" class="link hidden" data-i18n="login.as_user"></button>
+  </form>
+  <form id="login-user" class="card hidden">
+    <h1>Aurora</h1>
+    <p data-i18n="login.user_hint"></p>
+    <input id="login-name" autocomplete="username" autocapitalize="none" data-i18n-placeholder="login.name" required>
+    <input id="login-password" type="password" autocomplete="current-password" data-i18n-placeholder="login.password" required>
+    <div id="login-enroll" class="hidden">
+      <p data-i18n="login.enroll"></p>
+      <div id="login-qr"></div>
+      <p class="muted"><span data-i18n="login.secret"></span> <code id="login-secret"></code></p>
+    </div>
+    <input id="login-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" data-i18n-placeholder="login.code">
+    <button type="submit" data-i18n="login.enter"></button>
+    <p id="login-user-error" class="error hidden"></p>
+    <button type="button" id="login-to-key" class="link" data-i18n="login.with_key"></button>
   </form>
 </div>
 

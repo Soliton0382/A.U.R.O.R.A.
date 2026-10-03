@@ -3361,8 +3361,20 @@
    "category": "users",
    "recommended": "single",
    "evidence": "owner",
-   "it": "Chi usa Aurora. «single»: una persona sola, l'amministratore. «multi»: più persone, ciascuna con la sua cartella usr/<nome>, il suo .env (account, token, luogo) e la sua memoria privata (chat, sogni e riflessioni, condivisibili con gli altri); l'accesso chiede nome, password e il codice dell'app Authenticator; plugin e sapere restano di tutti, le impostazioni della macchina le cambia solo l'admin. Si cambia quando vuoi: da single a multi non si sposta nulla; da multi a single gli altri utenti vengono ELIMINATI con tutti i loro dati (cartella, memoria, dispositivi, righe nei log), dopo l'elenco di cosa sparisce e una tua conferma; i dati dell'admin non vengono mai toccati. Il passaggio a «multi» si attiva quando l'accesso con codice è pronto.",
-   "en": "Who uses Aurora. \"single\": one person, the admin. \"multi\": several people, each with their folder usr/<name>, their .env (accounts, tokens, place) and their private memory (chats, dreams and reflections, shareable); the login asks for name, password and the Authenticator app's code; plugins and knowledge stay everyone's, the machine's settings only the admin changes. Change it whenever you like: from single to multi nothing moves; from multi to single the other users are DELETED with all their data (folder, memory, devices, log lines), after the list of what goes and your confirmation; the admin's data is never touched. \"multi\" can be chosen once the login with the code is ready.",
+   "it": "Chi usa Aurora. «single»: una persona sola, l'amministratore. «multi»: più persone, ciascuna con la sua cartella usr/<nome>, il suo .env (account, token, luogo) e la sua memoria privata (chat, sogni e riflessioni, condivisibili con gli altri); l'accesso chiede nome, password e il codice dell'app Authenticator; plugin e sapere restano di tutti, le impostazioni della macchina le cambia solo l'admin. Si cambia quando vuoi: da single a multi non si sposta nulla; da multi a single gli altri utenti vengono ELIMINATI con tutti i loro dati (cartella, memoria, dispositivi, righe nei log), dopo l'elenco di cosa sparisce e una tua conferma; i dati dell'admin non vengono mai toccati. Per passare a «multi» imposta prima la tua password e collega l'app Authenticator in 👥 Utenti → Il mio account (altrimenti resteresti fuori); poi crea gli utenti in 👥 Utenti. La chiave di Aurora resta l'accesso di riserva dell'amministratore.",
+   "en": "Who uses Aurora. \"single\": one person, the admin. \"multi\": several people, each with their folder usr/<name>, their .env (accounts, tokens, place) and their private memory (chats, dreams and reflections, shareable); the login asks for name, password and the Authenticator app's code; plugins and knowledge stay everyone's, the machine's settings only the admin changes. Change it whenever you like: from single to multi nothing moves; from multi to single the other users are DELETED with all their data (folder, memory, devices, log lines), after the list of what goes and your confirmation; the admin's data is never touched. To pass to \"multi\" first set your password and link the Authenticator app in 👥 Users → My account (else you would be locked out); then create the users in 👥 Users. Aurora's key stays the admin's spare way in.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_USERS_MFA",
+   "type": "bool",
+   "category": "users",
+   "recommended": "true",
+   "evidence": "owner",
+   "it": "In multi-utente l'accesso chiede, oltre alla password, il codice a 6 cifre dell'app Authenticator (Google o Microsoft). Al primo accesso Aurora mostra il QR da inquadrare. Sconsigliato spegnerlo.",
+   "en": "In multi-user mode the login asks, besides the password, for the 6-digit code of the Authenticator app (Google or Microsoft). At the first login Aurora shows the QR code to scan. Not advised to switch it off.",
    "services": [
     "aurora-api"
    ]

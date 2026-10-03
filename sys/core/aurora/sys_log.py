@@ -154,6 +154,9 @@ def trace(component: str, event: str, payload: dict[str, Any] | None = None,
     record = {"ts": datetime.now().astimezone().isoformat(timespec="milliseconds"), "seq": seq,
               "pid": os.getpid(), "component": component, "event": event, "run_id": run_id,
               "parent": parent, "payload": payload or {}}
+    from . import sys_context                        # whose work (multi-user): a purge removes a user's lines
+    if sys_context.user():
+        record["user"] = sys_context.user()
     tr.info(json.dumps(record, ensure_ascii=False, default=str))
     return seq
 

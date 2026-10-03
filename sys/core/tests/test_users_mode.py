@@ -18,13 +18,19 @@ def setup(cfg):
     return users
 
 
-def test_multi_is_refused_until_the_login_exists(cfg, monkeypatch):
+def test_multi_needs_the_layout_and_the_admin_s_password_and_code(cfg):
+    from aurora import sys_users
     with pytest.raises(M.ModeError, match="per-user layout"):
         M.switch(cfg, "multi", None, None)
-    setup(cfg)
-    with pytest.raises(M.ModeError, match="U5"):
+    users = setup(cfg)
+    with pytest.raises(M.ModeError, match="password"):                  # the admin would be locked out
         M.switch(cfg, "multi", "boss", "boss")
-    monkeypatch.setattr(M, "MULTI_READY", True)
+    boss = users.by_name("boss")
+    users.set_password(boss["id"], "a long password")
+    with pytest.raises(M.ModeError, match="Authenticator"):
+        M.switch(cfg, "multi", "boss", "boss")
+    secret = users.totp_begin(boss["id"])
+    assert users.totp_confirm(boss["id"], sys_users.hotp(secret, int(__import__("time").time()) // 30))
     assert M.switch(cfg, "multi", "boss", "boss") == {"removed": []}
     with pytest.raises(M.ModeError, match="only the admin"):
         M.switch(cfg, "multi", "guest", "boss")

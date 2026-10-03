@@ -25,6 +25,7 @@ import sky from "./modules/sky.js";
 import social from "./modules/social.js";
 import status from "./modules/status.js";
 import updates from "./modules/updates.js";
+import users from "./modules/users.js";
 
-export const views = [chat, approvals, security, diary, social, projects, routines, models, plugins, importDocs, uploads, harvester, runs, status, notifications, updates, settings, guide, bugreport];
+export const views = [chat, approvals, security, diary, social, projects, routines, models, plugins, importDocs, uploads, harvester, runs, status, notifications, updates, users, settings, guide, bugreport];
 export const widgets = [sky, alerts, metrics];

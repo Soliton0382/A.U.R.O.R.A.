@@ -9,7 +9,7 @@ import re
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse
 
-from .core import _run_lock, _runs, auth, cfg, log, note, pipeline, plugin_host, start_run
+from .core import _admin, _run_lock, _runs, auth, cfg, everyone, log, me, note, pipeline, plugin_host, start_run
 
 router = APIRouter()
 
@@ -139,9 +139,19 @@ def routine_run(rid: str) -> dict:
 
 @router.post("/v1/aurora/routines/tick", dependencies=[Depends(auth)])
 def routine_tick() -> dict:
-    """aurora-rem, every tick: start what is due; tell the owner, once, what a newly ready plugin can do."""
-    from aurora import sys_routines
-    started = [_start_routine(r) for r in sys_routines.due(cfg)]
+    """aurora-rem, every tick: start what is due, for every user (their routines run as their work); tell each, once,
+    what a newly ready plugin can do."""
+    from aurora import sys_context, sys_routines
+    started, welcomed = [], set()
+    for who in everyone():
+        with sys_context.acting_as(who):
+            started += [_start_routine(r) for r in sys_routines.due(cfg)]
+            welcomed |= set(_welcome(sys_routines))
+    return {"started": started, "welcomed": sorted(welcomed)}
+
+
+def _welcome(sys_routines) -> list[str]:
+    """This user's message about the plugins newly ready for them."""
     lang = "it" if str(cfg["AURORA_LANG_DEFAULT"]).startswith("it") else "en"
     new = sys_routines.newly_ready(cfg, plugin_host().plugins(with_tools=False))
     if new:
@@ -150,7 +160,7 @@ def routine_tick() -> dict:
             (p.manifest.get("welcome") or {}).get(lang, "") for p in new)
             + (f" Ti propongo {n} controlli periodici nella pagina 🔁 Routine." if n and lang == "it"
                else f" I suggest {n} periodic checks in the 🔁 Routines page." if n else "")})
-    return {"started": started, "welcomed": [p.name for p in new]}
+    return [p.name for p in new]
 
 
 @router.get("/v1/aurora/notifications", dependencies=[Depends(auth)])
@@ -229,22 +239,48 @@ def metrics() -> dict:
     return m
 
 
+def _rem_user(user: str | None) -> str | None:
+    """Whose autonomic work: another user's only for the admin (aurora-rem calls with the admin's key)."""
+    if user and me() != _admin():
+        raise HTTPException(status_code=403, detail="only the admin")
+    return user or me()
+
+
+@router.get("/v1/aurora/rem/users", dependencies=[Depends(auth)])
+def rem_users() -> dict:
+    """aurora-rem: whose memory to consolidate, dream and think about (the admin first)."""
+    if me() != _admin():
+        raise HTTPException(status_code=403, detail="only the admin")
+    return {"users": everyone(), "admin": _admin()}
+
+
 @router.get("/v1/aurora/rem/state", dependencies=[Depends(auth)])
-def rem_state() -> dict:
+def rem_state(user: str | None = None) -> dict:
+    from aurora import sys_context
     from aurora.kno_rem import Rem
     from aurora.kno_social import platforms
     rem_running = any(r["origin"] == "rem" and not r["done"] for r in list(_runs.values()))
-    social = sum(1 for t in platforms(plugin_host()) if t["available"] and t["stats"])
-    return {**Rem(pipeline(), cfg).state(), "busy": _run_lock.locked(), "rem_running": rem_running,
-            "social_platforms": social}
+    with sys_context.acting_as(_rem_user(user)):
+        social = sum(1 for t in platforms(plugin_host()) if t["available"] and t["stats"])
+        return {**Rem(pipeline(), cfg).state(), "busy": _run_lock.locked(), "rem_running": rem_running,
+                "social_platforms": social}
 
 
 @router.post("/v1/aurora/rem/{task}", dependencies=[Depends(auth)])
-def rem_task(task: str) -> dict:
+def rem_task(task: str, user: str | None = None) -> dict:
+    from aurora import sys_context
+    who = _rem_user(user)
+    if task in ("repair", "introspect", "social") and who != _admin():
+        raise HTTPException(status_code=403, detail="Aurora's own diagnosis and the social pages are the admin's")
     if task == "repair":                              # registered earlier than /rem/repair: hand over
         return rem_repair()
     if task not in ("consolidate", "reflect", "dream", "introspect", "social"):
         raise HTTPException(status_code=404, detail="unknown task")
+    with sys_context.acting_as(who):                  # the run works on this user's memory and is theirs
+        return _rem_run(task)
+
+
+def _rem_run(task: str) -> dict:
 
     def job(q, emit, run_id):
         from aurora.kno_rem import Rem

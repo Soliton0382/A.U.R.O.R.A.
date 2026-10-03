@@ -156,3 +156,7 @@ details.gd-item summary { cursor: pointer; font-weight: 600; }
 .voice-row button:last-child { flex: 1; text-align: left; }
 .voice-row button.on { border-color: var(--accent); }
 .conversation { position: relative; }
+.qr { display: block; margin: .6rem auto; border-radius: 6px; }
+.link { background: none; border: 0; color: var(--accent); text-decoration: underline; padding: .3rem 0; }
+button.danger { border-color: #c0392b; color: #ff8a80; }
+.enrol { margin-top: .6rem; }

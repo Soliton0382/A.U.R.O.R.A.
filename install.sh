@@ -120,7 +120,7 @@ echo "  $(t 'È reversibile dalle Impostazioni → Utenti: da single a multi non
 UMODE=$(ask "$(t 'single o multi' 'single or multi')" "single")
 case "$UMODE" in
   single) ;;
-  multi) warn "$(t 'il multi-utente si attiva quando sarà pronto l accesso con codice: parto come single, lo attivi poi dalle Impostazioni' 'multi-user switches on once the login with the code is ready: starting as single, switch it on later in Settings')"; UMODE=single ;;
+  multi) echo "  $(t 'Multi-utente: alla fine entra con la chiave che ti mostro, poi in 👥 Utenti imposta la tua password e collega l app Authenticator, e crea gli utenti.' 'Multi-user: at the end log in with the key shown, then in 👥 Users set your password, link the Authenticator app and create the users.')" ;;
   *) UMODE=single ;;
 esac
 

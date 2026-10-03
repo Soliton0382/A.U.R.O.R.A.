@@ -8,7 +8,7 @@ from aurora.sys_devices import COOKIE
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, Response
 
-from .core import _failed, _is_key, _locked, auth, cfg, devices, log
+from .core import _admin, _failed, _is_key, _locked, auth, cfg, devices, log
 
 router = APIRouter()
 
@@ -34,12 +34,19 @@ async def register_device(request: Request) -> Response:
 
 @router.get("/v1/aurora/devices", dependencies=[Depends(auth)])
 def list_devices(request: Request) -> list[dict]:
-    me = getattr(request.state, "device", None)
-    return [{**d, "current": bool(me and me["id"] == d["id"])} for d in devices.list()]
+    """The user's own devices; the admin sees everyone's (with whose they are)."""
+    mine_dev = getattr(request.state, "device", None)
+    who, admin = request.state.user, _admin()
+    return [{**d, "current": bool(mine_dev and mine_dev["id"] == d["id"])} for d in devices.list()
+            if who == admin or (d.get("user") or admin) == who]
 
 
 @router.delete("/v1/aurora/devices/{device_id}", dependencies=[Depends(auth)])
-def revoke_device(device_id: str) -> dict:
+def revoke_device(device_id: str, request: Request) -> dict:
+    who, admin = request.state.user, _admin()
+    d = next((x for x in devices.list() if x["id"] == device_id), None)
+    if d is None or (who != admin and (d.get("user") or admin) != who):  # another user's device: as if absent
+        raise HTTPException(status_code=404, detail="unknown device")
     if not devices.revoke(device_id):
         raise HTTPException(status_code=404, detail="unknown device")
     log.info("audit: device revoked: %s", device_id)

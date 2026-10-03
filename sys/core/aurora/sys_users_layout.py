@@ -91,6 +91,18 @@ def usr_home(cfg: sys_config.Config, name: str) -> Path:
     return usr(cfg) / check_name(cfg, name)
 
 
+def make_home(cfg: sys_config.Config, name: str) -> Path:
+    """A new user's usr/<name>/ with the same tree as everyone's (the folders the settings name), mode 700."""
+    cfg = cfg.base or cfg
+    home = usr_home(cfg, name)
+    home.mkdir(parents=True, exist_ok=True, mode=0o700)
+    for key in USR_SETTINGS.values():
+        p = cfg.path(key)
+        if p == usr(cfg) or usr(cfg) in p.parents:
+            (home / p.relative_to(usr(cfg))).mkdir(parents=True, exist_ok=True, mode=0o700)
+    return home
+
+
 def place(cfg: sys_config.Config, area: str, name: str | None) -> Path:
     """Where `area`'s data of user `name` is now: today's folder until the migration, the user's folder after it
     (no user given: the admin's). Every module asks here (U3)."""

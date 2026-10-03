@@ -212,10 +212,16 @@ def _view(cfg: Config) -> Config:
 
 
 def get() -> Config:
-    """The configuration of this process, loaded once (the admin's view after the migration)."""
+    """The configuration of this process (loaded once; the admin's view after the migration), as seen by the user
+    whose request is being served (sys_context: their settings and folders)."""
     global _cached
     if _cached is None:
         _cached = _view(load())
+    from . import sys_context
+    who = sys_context.user()
+    if who and who != _cached.user and not os.environ.get("AURORA_PLUGIN"):
+        from . import sys_user_config
+        return sys_user_config.for_user(_cached, who)
     return _cached
 
 

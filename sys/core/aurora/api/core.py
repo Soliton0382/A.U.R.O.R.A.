@@ -17,12 +17,32 @@ import uuid
 
 from collections import OrderedDict
 from pathlib import Path
-from aurora import sol_reader, sys_config, sys_features, sys_log
+from aurora import sol_reader, sys_config, sys_context, sys_features, sys_log
 from aurora.sys_devices import COOKIE, Devices
 from fastapi import HTTPException, Request
 
-cfg = sys_config.get()
-devices = Devices(cfg)
+BASE = sys_config.get()                         # the admin's view (or the single owner's, before the migration)
+
+
+class _UserConfig:
+    """The `cfg` every module of the API shares: the configuration of the user whose request is being served
+    (sys_context, set by `auth`: their settings, folders, state); the admin's for work without a user (U3)."""
+
+    __slots__ = ()
+
+    @staticmethod
+    def now() -> sys_config.Config:
+        return sys_config.get()                       # context-aware: the request's user, else the admin's view
+
+    def __getattr__(self, name):
+        return getattr(self.now(), name)
+
+    def __getitem__(self, key):
+        return self.now()[key]
+
+
+cfg = _UserConfig()
+devices = Devices(BASE)
 log = sys_log.get_logger("api")
 WEBUI = Path(__file__).resolve().parents[2] / "webui"     # sys/core/webui
 _run_lock = threading.Lock()                    # one run at a time: one reasoner slot
@@ -38,9 +58,11 @@ MAX_ACTIVITY = 1000
 
 
 def note(source: str, event: str, payload: dict | None = None) -> dict:
+    """An item of the activity feed, the user's whose work it is (none given: the admin's); each user sees theirs."""
     with _activity_cond:
         seq = (_activity[-1]["seq"] + 1) if _activity else 1
-        item = {"seq": seq, "ts": time.time(), "source": source, "event": event, "payload": payload or {}}
+        item = {"seq": seq, "ts": time.time(), "source": source, "event": event, "payload": payload or {},
+                "user": sys_context.user() or _admin()}
         _activity.append(item)
         del _activity[:-MAX_ACTIVITY]
         _activity_cond.notify_all()
@@ -60,7 +82,7 @@ def _push(event: str, payload: dict) -> None:
     if toast and event != "test":
         note("notify", "notify", toast)              # the WebUI shows it (alerts widget); "notify" itself is not in TEXTS
     if msg and sys_push.count(cfg):
-        threading.Thread(target=sys_push.send, args=(msg, cfg), name="push", daemon=True).start()
+        sys_context.start(sys_push.send, msg, cfg.now(), name="push")     # to the devices of the event's user
 
 
 
@@ -134,13 +156,15 @@ def _failed(request: Request) -> None:
         note("security", "auth.lockout", {"title": f"{n} tentativi di accesso falliti da {ip}", "ip": ip})
 
 
-def auth(request: Request) -> None:
-    """The API key (third-party clients) or a registered device (WebUI cookie)."""
+async def auth(request: Request) -> None:
+    """The API key (third-party clients) or a registered device (WebUI cookie). Async on purpose: the user it sets
+    (sys_context) stays in the request's context, where the route runs (a sync dependency runs in another thread)."""
     _locked(request)
     bearer = request.headers.get("authorization", "").removeprefix("Bearer ").strip()
     if _is_key(bearer):
         request.state.device = None
         request.state.user = _admin()                    # the API key is the admin's (third-party clients)
+        sys_context.CURRENT.set(request.state.user)
         return
     dev = devices.check(bearer) or devices.check(request.cookies.get(COOKIE, ""))
     if dev is None:
@@ -149,39 +173,47 @@ def auth(request: Request) -> None:
         raise HTTPException(status_code=401, detail="invalid or missing API key")
     request.state.device = dev
     request.state.user = dev.get("user") or _admin()   # a device made before multi-user is the admin's
+    sys_context.CURRENT.set(request.state.user)
 
 
 def _admin() -> str | None:
     """The admin's name; None while the installation has no users (today's layout: every path as before)."""
     from aurora.sys_users import Users
-    return Users(cfg).admin_name()
+    return Users(BASE.base or BASE).admin_name()
 
 
 def user_of(request: Request) -> str | None:
     return getattr(request.state, "user", None)
 
 
-def plugin_host(user: str | None = None):
+_NOBODY = object()
+
+
+def plugin_host(user=_NOBODY):
     """One plugin host per user for the whole API: the plugins are everyone's, their settings and folders the
     user's (sys_user_config.for_user; before the migration the same for all). Its cache of tool lists lasts as long
     as the service, so listing the plugins does not start every plugin again (the Plugins page took 3.8 s)."""
+    user = (sys_context.user() or _admin()) if user is _NOBODY else user
     hosts = _state.setdefault("plugin_hosts", {})
     if user not in hosts:
         from aurora import sys_user_config
         from aurora.plg_host import PluginHost
-        hosts[user] = PluginHost(sys_user_config.for_user(cfg, user))
+        hosts[user] = PluginHost(sys_user_config.for_user(BASE, user) if user else BASE)
     return hosts[user]
 
 
-def pipeline(user: str | None = None):
+def pipeline(user=_NOBODY):
     """The answer pipeline of a user (their memory and conversations); every user's shares the models and the
     knowledge index of the first. No user: today's single owner (multi-user, U3)."""
+    user = (sys_context.user() or _admin()) if user is _NOBODY else user
     pipes = _state.setdefault("pipelines", {})
     if user not in pipes:
+        from aurora import sys_user_config
         from aurora.kno_answer import Pipeline
         from aurora.mdl_remote import RemoteEmbedder, RemoteReranker
         first = next(iter(pipes.values()), None)
-        pipes[user] = Pipeline(RemoteEmbedder(cfg), RemoteReranker(cfg), cfg, state_fn=self_facts, user=user,
+        ucfg = sys_user_config.for_user(BASE, user) if user else BASE    # fixed: also used outside a request
+        pipes[user] = Pipeline(RemoteEmbedder(ucfg), RemoteReranker(ucfg), ucfg, state_fn=self_facts, user=user,
                                index=first.search.index if first else None)
     return pipes[user]
 
@@ -389,7 +421,7 @@ def make_video(question: str, vp: dict, picture: tuple[str, bytes] | None, emit,
             sol_reader.release()
 
     ans = _say(question, text, emit, run_id, "video", remember)
-    threading.Thread(target=work, name=f"video-{run_id}", daemon=True).start()
+    sys_context.start(work, name=f"video-{run_id}")
     return ans
 
 
@@ -475,7 +507,8 @@ def text_of(content) -> str:
 def start_run(question: str, origin: str, job=None) -> dict:
     """Run `job(question, emit, run_id)` (default: the answer pipeline) in the background, one at a time."""
     run = {"id": uuid.uuid4().hex[:12], "question": question, "origin": origin, "started": time.time(),
-           "events": [], "done": False, "answer": None, "cond": threading.Condition()}
+           "events": [], "done": False, "answer": None, "cond": threading.Condition(),
+           "user": sys_context.user() or _admin()}                   # whose run: only they follow it
     _runs[run["id"]] = run
     while len(_runs) > MAX_RUNS:
         _runs.popitem(last=False)
@@ -509,7 +542,35 @@ def start_run(question: str, origin: str, job=None) -> dict:
                 note(origin, "run.end", {"run_id": run["id"], "origin": origin,
                                          "seconds": round(time.time() - run["started"], 1)})
 
-    threading.Thread(target=work, name=f"run-{run['id']}", daemon=True).start()
+    sys_context.start(work, name=f"run-{run['id']}")                 # the run works for the request's user
+    return run
+
+
+def everyone() -> list:
+    """Every user's name (the admin first); [None] while the installation has no users: today's single owner."""
+    from aurora.sys_users import Users
+    base = BASE.base or BASE
+    if not base.path("AURORA_STATUS_DIR").joinpath("users.db").exists():
+        return [None]
+    admin = _admin()
+    names = [u["name"] for u in Users(base).list()]
+    return sorted(names, key=lambda n: n != admin) or [None]
+
+
+def me() -> str | None:
+    """The user of the request being served (the admin for the API key and for work without a user)."""
+    return sys_context.user() or _admin()
+
+
+def mine(item: dict, who: str | None = None) -> bool:
+    """An activity item or a run of this user's: nobody follows another user's questions, answers or notes."""
+    return item.get("user") == (who if who is not None else me())
+
+
+def own_run(run_id: str) -> dict:
+    run = _runs.get(run_id)
+    if not run or not mine(run):
+        raise HTTPException(status_code=404, detail="unknown run")
     return run
 
 

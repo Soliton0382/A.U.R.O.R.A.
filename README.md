@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-254%20passed-1baf7a" alt="Tests"></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-256%20passed-1baf7a" alt="Tests"></p>
 
 <p align="center">🇮🇹 <b>Italiano</b> · 🇬🇧 <a href="README.en.md">English</a></p>
 
@@ -179,8 +179,8 @@ macchina (modelli, provider cloud, backup, sicurezza) le cambia solo l'amministr
 l'amministratore; **multi**: più persone, accesso con password e codice dell'app Authenticator. Lo scegli
 all'installazione e lo cambi quando vuoi da ⚙️ Impostazioni → Utenti: da single a multi non si sposta nulla; da
 multi a single gli altri utenti vengono eliminati con tutti i loro dati, dopo l'elenco e una tua conferma; i dati
-dell'amministratore non vengono mai toccati. Il multi-utente si attiva quando l'accesso con codice è pronto
-(docs/MULTIUSER.md).
+dell'amministratore non vengono mai toccati. Per passare a multi imposti prima la tua password e colleghi
+l'Authenticator in 👥 Utenti, poi crei gli utenti lì (docs/MULTIUSER.md).
 
 ## Spostare l'installazione
 

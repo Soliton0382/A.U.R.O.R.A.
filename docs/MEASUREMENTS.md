@@ -893,6 +893,27 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M80 — Several users, live on the owner's installation (3 October 2026)
+
+A temporary user `prova`, created by the admin through the API (usr/prova/ with the same tree), with a device of
+its own: their question ("il mio colore preferito è il verde smeraldo") answered and remembered in
+vault/memory/users/prova; the admin's chat, runs and activity never show it, the admin cannot follow prova's run
+(404); prova sees none of the admin's uploads, approvals, routines (0 of the admin's 6), documents, TMDB token,
+devices, cannot open the Users page nor change the machine (403). Deleting prova: without confirmation the list (409),
+with it 200; no folder, memory, trace line or device left; prova's device refused (401); the admin's chat clean.
+24 of 24 (one check of mine compared the routines' answer with an empty list, but the answer carries the plugins'
+suggestions too: re-measured with a second user, 0 routines). aurora-rem restarted with the per-user loop: 0 errors.
+
+## M79 — Several users at once: the crossing test (3 October 2026)
+
+Through the real API (FastAPI TestClient, a fake installation, its own process): boss (the admin) writes an activity
+note, a personal setting, a routine, an upload, an approval, a conversation turn, a document and a run; guest, with
+their own device, asks every route that lists or serves them. Boss sees each of the 16 (the positive control), guest
+none: activity, the TMDB setting, routines, uploads (0; the file 404), approvals, history, documents (the file 404),
+runs (the events 404), devices (only their own), the Users page 403, a machine setting 403, revoking boss's device
+404. Of 111 routes, 7 go without authentication, all public by design (health, the timed preview, the device
+registration that asks for the API key itself, the login, the WebUI's three files). Tests 256.
+
 ## M78 — After the migration: the first chat, the doctor, the mode switch (3 October 2026)
 
 The owner's first chat after the migration: both turns in the admin's memory, the memory index at 116 = the 116 turns
