@@ -4,12 +4,11 @@
 from __future__ import annotations
 
 import httpx
-import os
 
 from aurora import sys_config, sys_log
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from .core import auth, cfg, log
+from .core import _admin, auth, cfg, log, user_of
 
 router = APIRouter()
 
@@ -30,9 +29,16 @@ def status() -> dict:
 
 
 @router.get("/v1/aurora/settings", dependencies=[Depends(auth)])
-def settings() -> dict:
+def settings(request: Request) -> dict:
+    """The settings as the asking user sees them: the machine's, and their own (U3: their usr/<name>/.env)."""
+    from aurora import sys_user_config, sys_users_layout
     schema = sys_config.load_schema()
     current = sys_config.parse_env(sys_config.env_file_path().read_text(encoding="utf-8"))
+    user = user_of(request)
+    if user and sys_users_layout.migrated(cfg):
+        own = sys_config.parse_env(sys_user_config.env_path(cfg, user).read_text(encoding="utf-8")) \
+            if sys_user_config.env_path(cfg, user).is_file() else {}
+        current.update({s["key"]: own.get(s["key"], s["recommended"]) for s in schema["settings"] if s.get("scope") == "user"})
     items = []
     for s in schema["settings"]:
         value = current.get(s["key"], "")
@@ -55,21 +61,19 @@ async def update_settings(request: Request) -> dict:
             problems.append(f"{key}: {e}")
     if problems:
         raise HTTPException(status_code=422, detail=problems)
-    env = sys_config.env_file_path()
-    lines = env.read_text(encoding="utf-8").splitlines()
-    done = set()
-    for i, line in enumerate(lines):
-        k = line.split("=", 1)[0].strip()
-        if k in changes and not line.lstrip().startswith("#"):
-            lines[i] = f"{k}={changes[k]}"
-            done.add(k)
-    lines += [f"{k}={v}" for k, v in changes.items() if k not in done]
-    tmp = env.with_name(env.name + ".tmp")
-    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)     # secrets inside: owner only
-    with os.fdopen(fd, "w", encoding="utf-8") as fh:
-        fh.write("\n".join(lines) + "\n")
-    os.chmod(tmp, 0o600)
-    os.replace(tmp, env)
+    from aurora import sys_user_config, sys_users_layout
+    user, admin = user_of(request), _admin()
+    if user and sys_users_layout.migrated(cfg):              # U3: a user's own settings go to their usr/<name>/.env
+        mine = {k: str(v) for k, v in changes.items() if specs[k].get("scope") == "user"}
+        machine = {k: str(v) for k, v in changes.items() if k not in mine}
+        if machine and user != admin:
+            raise HTTPException(status_code=403, detail="only the admin changes the machine's settings")
+        if mine:
+            sys_user_config.write(cfg, user, mine)
+    else:
+        machine = {k: str(v) for k, v in changes.items()}
+    if machine:
+        sys_config.write_env(sys_config.env_file_path(), machine)
     restart = sorted({svc for k in changes for svc in specs[k]["services"]})
     log.info("audit: settings changed: %s; services to restart: %s", ", ".join(sorted(changes)), ", ".join(restart))
     sys_log.trace("api", "settings.change", {"keys": sorted(changes), "restart": restart})

@@ -134,7 +134,33 @@ export default {
       voiceBtn.title = t(`chat.voice.${m}`);
     };
     if (voice.supported()) showVoice(); else voiceBtn.hidden = true;
+    // a long press on the button: the device's own voices, each with ▶ to hear it; the choice stays on this device
+    let pressTimer = null, longPress = false;
+    const pickVoice = async () => {
+      const list = await voice.localVoices(lang.replace("_", "-"));
+      const box = el("div", "voice-pick");
+      box.append(el("div", "meta", list.length ? t("chat.voice.pick") : t("chat.voice.novoice")));
+      for (const vo of list) {
+        const row = el("div", "voice-row");
+        const pick = el("button", vo.name === voice.chosen() || (!voice.chosen() && vo === list[0]) ? "on" : "", vo.name);
+        const play = el("button", "", "▶");
+        pick.type = play.type = "button";
+        pick.addEventListener("click", () => { voice.choose(vo.name); box.remove(); });
+        play.addEventListener("click", () => voice.speak(t("chat.voice.sample"), vo.lang, vo));
+        row.append(play, pick);
+        box.append(row);
+      }
+      const close = el("button", "", "✕");
+      close.type = "button";
+      close.addEventListener("click", () => box.remove());
+      box.append(close);
+      root.querySelector(".conversation").append(box);
+    };
+    voiceBtn.addEventListener("pointerdown", () => { longPress = false; pressTimer = setTimeout(() => { longPress = true; pickVoice(); }, 600); });
+    for (const evName of ["pointerup", "pointerleave", "pointercancel"]) voiceBtn.addEventListener(evName, () => clearTimeout(pressTimer));
+    voiceBtn.addEventListener("contextmenu", (ev) => ev.preventDefault());
     voiceBtn.addEventListener("click", () => {
+      if (longPress) { longPress = false; return; }
       if (voice.speaking()) { voice.stop(); return; }            // a tap while she speaks: silence
       voice.nextMode();
       showVoice();

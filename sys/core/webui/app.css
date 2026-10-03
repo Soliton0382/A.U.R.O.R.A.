@@ -151,3 +151,8 @@ details.gd-item summary { cursor: pointer; font-weight: 600; }
 .artifact-frame { width: 100%; height: 100%; border: 0; background: #fff; }
 .artifact.full { position: fixed; inset: 0; z-index: 60; margin: 0; border-radius: 0; display: flex; flex-direction: column; }
 .artifact.full .artifact-body { flex: 1; height: auto; }
+.voice-pick { position: absolute; bottom: 4.5rem; left: .5rem; right: .5rem; max-height: 50vh; overflow-y: auto; z-index: 30; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: .6rem; display: flex; flex-direction: column; gap: .3rem; }
+.voice-row { display: flex; gap: .4rem; }
+.voice-row button:last-child { flex: 1; text-align: left; }
+.voice-row button.on { border-color: var(--accent); }
+.conversation { position: relative; }

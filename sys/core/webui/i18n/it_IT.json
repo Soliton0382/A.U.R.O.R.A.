@@ -515,10 +515,12 @@
   "ev.answer.suggestions": "{n} domande per approfondire",
   "artifact.full": "Schermo intero",
   "artifact.reload": "Ricarica",
-  "chat.voice.voice": "Risposte a voce quando parli tu (tocca per cambiare)",
+  "chat.voice.voice": "Risposte a voce quando parli tu (tocca per cambiare, tieni premuto per scegliere la voce)",
   "chat.voice.always": "Risposte sempre a voce (tocca per cambiare)",
   "chat.voice.off": "Risposte a voce spente (tocca per cambiare)",
   "chat.voice.novoice": "Nessuna voce italiana su questo dispositivo: installala nelle impostazioni di sintesi vocale",
   "chat.mic.closed": "Il browser ha chiuso il microfono appena aperto: controlla quale microfono usa (icona nella barra degli indirizzi) e riprova",
-  "chat.mic.short": "Registrazione troppo breve ({s} s): tocca 🎙️, parla, poi tocca di nuovo per finire"
+  "chat.mic.short": "Registrazione troppo breve ({s} s): tocca 🎙️, parla, poi tocca di nuovo per finire",
+  "chat.voice.pick": "Voci di questo dispositivo (▶ per ascoltarle, tocca il nome per sceglierla):",
+  "chat.voice.sample": "Ciao, sono Aurora. Questa è la mia voce su questo dispositivo."
 }

@@ -105,7 +105,8 @@ is converted and tested on its own; the migration is the last switch, run by the
 | the user carried into runs, history, activity, agents; REM (consolidation, reflections, dreams) per user | next |
 | uploads, documents, pictures, projects, notes | |
 | routines, approvals, push, react | |
-| plugins with personal data (expenses, notes, diary — it reads the reflections by a fixed path): told which user they work for | |
+| settings per user (owner, 2026-10-03): plugins are everyone's; the 49 personal settings (`"scope": "user"`: accounts, tokens, place, name) in `usr/<name>/.env` (600); the migration moves them from the system's .env into the admin's, the rollback back; the Settings page writes a user's own to their .env, the machine's only for the admin; a plugin runs with its user's settings and folders | ✅ tests (same plugin, each user's token); live: settings and cinema unchanged |
+| the diary plugin reads the reflections by a fixed path: to its user's | |
 | the crossing test on every API route | |
 | the migration, by the owner | last |
 

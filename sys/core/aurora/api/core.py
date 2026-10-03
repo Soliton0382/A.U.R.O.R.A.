@@ -161,13 +161,16 @@ def user_of(request: Request) -> str | None:
     return getattr(request.state, "user", None)
 
 
-def plugin_host():
-    """One plugin host for the whole API: its cache of tool lists (by plugin.json) lasts as long as the service,
-    so listing the plugins does not start every plugin again at each request (the Plugins page took 3.8 s)."""
-    if "plugins" not in _state:
+def plugin_host(user: str | None = None):
+    """One plugin host per user for the whole API: the plugins are everyone's, their settings and folders the
+    user's (sys_user_config.for_user; before the migration the same for all). Its cache of tool lists lasts as long
+    as the service, so listing the plugins does not start every plugin again (the Plugins page took 3.8 s)."""
+    hosts = _state.setdefault("plugin_hosts", {})
+    if user not in hosts:
+        from aurora import sys_user_config
         from aurora.plg_host import PluginHost
-        _state["plugins"] = PluginHost(cfg)
-    return _state["plugins"]
+        hosts[user] = PluginHost(sys_user_config.for_user(cfg, user))
+    return hosts[user]
 
 
 def pipeline(user: str | None = None):

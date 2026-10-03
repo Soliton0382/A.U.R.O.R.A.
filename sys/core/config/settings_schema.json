@@ -1019,7 +1019,8 @@
    "services": [
     "aurora-api",
     "aurora-rem"
-   ]
+   ],
+   "scope": "user"
   },
   {
    "key": "AURORA_LANG_DEFAULT",
@@ -1836,7 +1837,8 @@
    "services": [
     "aurora-api",
     "aurora-rem"
-   ]
+   ],
+   "scope": "user"
   },
   {
    "key": "AURORA_WEATHER_LON",
@@ -1849,7 +1851,8 @@
    "services": [
     "aurora-api",
     "aurora-rem"
-   ]
+   ],
+   "scope": "user"
   },
   {
    "key": "AURORA_WEATHER_PLACE",
@@ -1862,7 +1865,8 @@
    "services": [
     "aurora-api",
     "aurora-rem"
-   ]
+   ],
+   "scope": "user"
   },
   {
    "key": "AURORA_WEATHER_INTERVAL_MIN",
@@ -1887,7 +1891,8 @@
    "evidence": "owner",
    "en": "Region for the official weather warnings (MeteoAlarm), as the national service names it, e.g. Lombardia. Empty: no official warnings.",
    "it": "Regione per le allerte meteo ufficiali (MeteoAlarm), come la chiama il servizio nazionale, per esempio Lombardia. Vuoto: niente allerte ufficiali.",
-   "services": []
+   "services": [],
+   "scope": "user"
   },
   {
    "key": "AURORA_WEATHER_ALERT_HOURS",
@@ -1899,7 +1904,8 @@
    "evidence": "a forecast stays useful for a short warning within half a day",
    "en": "How many hours ahead the weather plugin looks for sudden changes.",
    "it": "Quante ore in avanti il plugin meteo cerca cambi repentini.",
-   "services": []
+   "services": [],
+   "scope": "user"
   },
   {
    "key": "AURORA_WEATHER_WARNINGS_FEED",
@@ -1909,7 +1915,8 @@
    "evidence": "MeteoAlarm public API",
    "en": "MeteoAlarm feed of the country (official warnings of the national weather services).",
    "it": "Feed MeteoAlarm del paese (allerte ufficiali dei servizi meteorologici nazionali).",
-   "services": []
+   "services": [],
+   "scope": "user"
   },
   {
    "key": "AURORA_REM_ENABLED",
@@ -2277,7 +2284,8 @@
     "aurora-api"
    ],
    "secret": true,
-   "optional": true
+   "optional": true,
+   "scope": "user"
   },
   {
    "key": "AURORA_TELEGRAM_BOT_TOKEN",
@@ -2291,7 +2299,8 @@
     "aurora-api"
    ],
    "secret": true,
-   "optional": true
+   "optional": true,
+   "scope": "user"
   },
   {
    "key": "AURORA_TELEGRAM_OWNER_CHAT_ID",
@@ -2303,7 +2312,8 @@
    "it": "L'id della chat Telegram del proprietario: i messaggi vanno lì per default.",
    "services": [
     "aurora-api"
-   ]
+   ],
+   "scope": "user"
   },
   {
    "key": "AURORA_FACEBOOK_PAGE_ID",
@@ -2315,7 +2325,8 @@
    "it": "Pagina Facebook su cui Aurora può pubblicare; vuota: plugin spento.",
    "services": [
     "aurora-api"
-   ]
+   ],
+   "scope": "user"
   },
   {
    "key": "AURORA_FACEBOOK_PAGE_TOKEN",
@@ -2329,7 +2340,8 @@
     "aurora-api"
    ],
    "secret": true,
-   "optional": true
+   "optional": true,
+   "scope": "user"
   },
   {
    "key": "AURORA_TIKTOK_CLIENT_KEY",
@@ -2342,7 +2354,8 @@
    "it": "Client key dell'app TikTok (TikTok for Developers).",
    "services": [
     "aurora-api"
-   ]
+   ],
+   "scope": "user"
   },
   {
    "key": "AURORA_TIKTOK_CLIENT_SECRET",
@@ -2356,7 +2369,8 @@
    "it": "Client secret dell'app TikTok.",
    "services": [
     "aurora-api"
-   ]
+   ],
+   "scope": "user"
   },
   {
    "key": "AURORA_TIKTOK_REDIRECT_URI",
@@ -2369,7 +2383,8 @@
    "it": "Redirect URI registrato nell'app TikTok (HTTPS, es. l'indirizzo della WebUI): lo usa una volta authorize.py.",
    "services": [
     "aurora-api"
-   ]
+   ],
+   "scope": "user"
   },
   {
    "key": "AURORA_TIKTOK_REFRESH_TOKEN",
@@ -2383,7 +2398,8 @@
    "it": "Lo scrive authorize.py (vale 365 giorni): non scriverlo a mano.",
    "services": [
     "aurora-api"
-   ]
+   ],
+   "scope": "user"
   },
   {
    "key": "AURORA_CALENDAR_ICS_URLS",
@@ -2397,7 +2413,8 @@
     "aurora-api"
    ],
    "secret": true,
-   "optional": true
+   "optional": true,
+   "scope": "user"
   },
   {
    "key": "AURORA_CALDAV_URL",
@@ -2410,7 +2427,8 @@
    "services": [
     "aurora-api"
    ],
-   "optional": true
+   "optional": true,
+   "scope": "user"
   },
   {
    "key": "AURORA_CALDAV_USER",
@@ -2423,7 +2441,8 @@
    "services": [
     "aurora-api"
    ],
-   "optional": true
+   "optional": true,
+   "scope": "user"
   },
   {
    "key": "AURORA_CALDAV_PASSWORD",
@@ -2437,7 +2456,8 @@
     "aurora-api"
    ],
    "secret": true,
-   "optional": true
+   "optional": true,
+   "scope": "user"
   },
   {
    "key": "AURORA_NOTES_DIR",
@@ -2463,7 +2483,8 @@
    "it": "Chiave TMDB (themoviedb.org → Impostazioni → API): il token di lettura o la API key.",
    "services": [
     "aurora-api"
-   ]
+   ],
+   "scope": "user"
   },
   {
    "key": "AURORA_TMDB_REGION",
@@ -2475,7 +2496,8 @@
    "it": "Paese (due lettere) per dove vedere film e serie.",
    "services": [
     "aurora-api"
-   ]
+   ],
+   "scope": "user"
   },
   {
    "key": "AURORA_EXPENSES_DIR",
@@ -2499,7 +2521,8 @@
    "it": "Valuta delle spese (codice ISO).",
    "services": [
     "aurora-api"
-   ]
+   ],
+   "scope": "user"
   },
   {
    "key": "AURORA_WEBDAV_URL",
@@ -2512,7 +2535,8 @@
    "services": [
     "aurora-api"
    ],
-   "optional": true
+   "optional": true,
+   "scope": "user"
   },
   {
    "key": "AURORA_WEBDAV_USER",
@@ -2525,7 +2549,8 @@
    "services": [
     "aurora-api"
    ],
-   "optional": true
+   "optional": true,
+   "scope": "user"
   },
   {
    "key": "AURORA_WEBDAV_PASSWORD",
@@ -2539,7 +2564,8 @@
     "aurora-api"
    ],
    "secret": true,
-   "optional": true
+   "optional": true,
+   "scope": "user"
   },
   {
    "key": "AURORA_DROPBOX_APP_KEY",
@@ -2552,7 +2578,8 @@
    "services": [
     "aurora-api"
    ],
-   "optional": true
+   "optional": true,
+   "scope": "user"
   },
   {
    "key": "AURORA_DROPBOX_APP_SECRET",
@@ -2566,7 +2593,8 @@
     "aurora-api"
    ],
    "secret": true,
-   "optional": true
+   "optional": true,
+   "scope": "user"
   },
   {
    "key": "AURORA_DROPBOX_REFRESH_TOKEN",
@@ -2580,7 +2608,8 @@
     "aurora-api"
    ],
    "secret": true,
-   "optional": true
+   "optional": true,
+   "scope": "user"
   },
   {
    "key": "AURORA_DISCORD_BOT_TOKEN",
@@ -2594,7 +2623,8 @@
     "aurora-api"
    ],
    "secret": true,
-   "optional": true
+   "optional": true,
+   "scope": "user"
   },
   {
    "key": "AURORA_DISCORD_CHANNEL_ID",
@@ -2607,7 +2637,8 @@
    "services": [
     "aurora-api"
    ],
-   "optional": true
+   "optional": true,
+   "scope": "user"
   },
   {
    "key": "AURORA_WHATSAPP_TOKEN",
@@ -2621,7 +2652,8 @@
     "aurora-api"
    ],
    "secret": true,
-   "optional": true
+   "optional": true,
+   "scope": "user"
   },
   {
    "key": "AURORA_WHATSAPP_PHONE_ID",
@@ -2634,7 +2666,8 @@
    "services": [
     "aurora-api"
    ],
-   "optional": true
+   "optional": true,
+   "scope": "user"
   },
   {
    "key": "AURORA_WHATSAPP_TO",
@@ -2648,7 +2681,8 @@
     "aurora-api"
    ],
    "secret": true,
-   "optional": true
+   "optional": true,
+   "scope": "user"
   },
   {
    "key": "AURORA_TWITCH_CLIENT_ID",
@@ -2661,7 +2695,8 @@
    "services": [
     "aurora-api"
    ],
-   "optional": true
+   "optional": true,
+   "scope": "user"
   },
   {
    "key": "AURORA_TWITCH_CLIENT_SECRET",
@@ -2675,7 +2710,8 @@
     "aurora-api"
    ],
    "secret": true,
-   "optional": true
+   "optional": true,
+   "scope": "user"
   },
   {
    "key": "AURORA_TWITCH_CHANNELS",
@@ -2688,7 +2724,8 @@
    "services": [
     "aurora-api"
    ],
-   "optional": true
+   "optional": true,
+   "scope": "user"
   },
   {
    "key": "AURORA_AI_DISCLOSURE",
@@ -2777,7 +2814,8 @@
    "it": "Nome dell'autore dei commit di Aurora.",
    "services": [
     "aurora-api"
-   ]
+   ],
+   "scope": "user"
   },
   {
    "key": "AURORA_GIT_AUTHOR_EMAIL",
@@ -2789,7 +2827,8 @@
    "it": "Email dell'autore dei commit di Aurora (vuota: aurora@localhost).",
    "services": [
     "aurora-api"
-   ]
+   ],
+   "scope": "user"
   },
   {
    "key": "AURORA_GITHUB_OWNER",
@@ -2801,7 +2840,8 @@
    "it": "Utente od organizzazione GitHub sotto cui creare i nuovi repository.",
    "services": [
     "aurora-api"
-   ]
+   ],
+   "scope": "user"
   },
   {
    "key": "AURORA_MASTODON_URL",
@@ -2813,7 +2853,8 @@
    "it": "Indirizzo dell'istanza Mastodon del proprietario (https://...); vuoto: plugin spento.",
    "services": [
     "aurora-api"
-   ]
+   ],
+   "scope": "user"
   },
   {
    "key": "AURORA_MASTODON_TOKEN",
@@ -2827,7 +2868,8 @@
     "aurora-api"
    ],
    "secret": true,
-   "optional": true
+   "optional": true,
+   "scope": "user"
   },
   {
    "key": "AURORA_SENTINEL_BIND",
@@ -2933,7 +2975,8 @@
     "aurora-api"
    ],
    "secret": true,
-   "optional": true
+   "optional": true,
+   "scope": "user"
   },
   {
    "key": "AURORA_EMAIL_IMAP_HOST",
@@ -2945,7 +2988,8 @@
    "it": "Server IMAP della casella del proprietario, host[:porta] (TLS, default 993).",
    "services": [
     "aurora-api"
-   ]
+   ],
+   "scope": "user"
   },
   {
    "key": "AURORA_EMAIL_SMTP_HOST",
@@ -2957,7 +3001,8 @@
    "it": "Server SMTP, host[:porta] (465 TLS o 587 STARTTLS).",
    "services": [
     "aurora-api"
-   ]
+   ],
+   "scope": "user"
   },
   {
    "key": "AURORA_EMAIL_USER",
@@ -2969,7 +3014,8 @@
    "it": "Utente della casella (indirizzo).",
    "services": [
     "aurora-api"
-   ]
+   ],
+   "scope": "user"
   },
   {
    "key": "AURORA_EMAIL_PASSWORD",
@@ -2983,7 +3029,8 @@
     "aurora-api"
    ],
    "secret": true,
-   "optional": true
+   "optional": true,
+   "scope": "user"
   },
   {
    "key": "AURORA_HA_URL",
@@ -2995,7 +3042,8 @@
    "it": "Indirizzo di Home Assistant (https://... consigliato).",
    "services": [
     "aurora-api"
-   ]
+   ],
+   "scope": "user"
   },
   {
    "key": "AURORA_HA_TOKEN",
@@ -3009,7 +3057,8 @@
     "aurora-api"
    ],
    "secret": true,
-   "optional": true
+   "optional": true,
+   "scope": "user"
   },
   {
    "key": "AURORA_DOCUMENTS_DIR",

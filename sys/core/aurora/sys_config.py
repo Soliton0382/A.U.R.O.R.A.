@@ -145,8 +145,8 @@ def load(env_file: Path | None = None, schema_file: Path = SCHEMA_FILE, check_ro
             pass
     problems, values = [], {}
     for key, spec in specs.items():
-        if key not in raw and spec.get("optional"):
-            raw[key] = spec["recommended"]                 # an optional value may be left out
+        if key not in raw and (spec.get("optional") or spec.get("scope") == "user"):
+            raw[key] = spec["recommended"]                 # optional, or a user's (their own .env holds it: U3)
         if key not in raw:
             problems.append(f"{key}: missing in {env_file}")
             continue
@@ -163,6 +163,31 @@ def load(env_file: Path | None = None, schema_file: Path = SCHEMA_FILE, check_ro
 
 
 _cached: Config | None = None
+
+
+def write_env(env: Path, changes: dict[str, str], drop: set[str] = frozenset()) -> None:
+    """Set `changes` and remove `drop` in an .env file, keeping its comments and order; atomic, mode 600."""
+    lines = env.read_text(encoding="utf-8").splitlines() if env.exists() else []
+    out, done = [], set()
+    for line in lines:
+        k = line.split("=", 1)[0].strip()
+        if line.lstrip().startswith("#") or "=" not in line:
+            out.append(line)
+        elif k in drop:
+            continue
+        elif k in changes:
+            out.append(f"{k}={changes[k]}")
+            done.add(k)
+        else:
+            out.append(line)
+    out += [f"{k}={v}" for k, v in changes.items() if k not in done]
+    env.parent.mkdir(parents=True, exist_ok=True)
+    tmp = env.with_name(env.name + ".tmp")
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)     # secrets inside: owner only
+    with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        fh.write("\n".join(out) + "\n")
+    os.chmod(tmp, 0o600)
+    os.replace(tmp, env)
 
 
 def service_user(cfg: "Config") -> str:

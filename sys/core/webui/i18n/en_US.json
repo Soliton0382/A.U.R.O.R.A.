@@ -515,10 +515,12 @@
   "ev.answer.suggestions": "{n} questions to go deeper",
   "artifact.full": "Full screen",
   "artifact.reload": "Reload",
-  "chat.voice.voice": "Answers aloud when you speak (tap to change)",
+  "chat.voice.voice": "Answers aloud when you speak (tap to change, hold to choose the voice)",
   "chat.voice.always": "Answers always aloud (tap to change)",
   "chat.voice.off": "Answers aloud off (tap to change)",
   "chat.voice.novoice": "No voice for this language on this device: install one in the text-to-speech settings",
   "chat.mic.closed": "The browser closed the microphone as soon as it opened: check which microphone it uses (icon in the address bar) and try again",
-  "chat.mic.short": "Recording too short ({s} s): tap 🎙️, speak, then tap again to finish"
+  "chat.mic.short": "Recording too short ({s} s): tap 🎙️, speak, then tap again to finish",
+  "chat.voice.pick": "Voices of this device (▶ to hear them, tap a name to choose):",
+  "chat.voice.sample": "Hello, I am Aurora. This is my voice on this device."
 }

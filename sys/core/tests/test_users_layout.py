@@ -125,3 +125,53 @@ def test_names_are_folders_never_paths(cfg):
         with pytest.raises(ValueError):
             L.usr_home(cfg, bad)
     assert L.usr_home(cfg, "mario.rossi").name == "mario.rossi"
+
+
+def test_personal_settings_follow_the_admin_and_come_back(cfg):
+    """The owner's design: personal settings in usr/<name>/.env; the system's .env keeps the machine's."""
+    from aurora import sys_config, sys_user_config as U
+    today_layout(cfg)
+    sys_config.write_env(cfg.env_file, {"AURORA_TMDB_TOKEN": "tok-123", "AURORA_WEATHER_PLACE": "Casa"})
+    cfg = sys_config.load(cfg.env_file, check_root=False)
+    system_before = cfg.env_file.read_text()
+    assert U.for_user(cfg, "boss") is cfg                                 # before the migration: the same values
+    out = L.migrate(cfg, "boss")
+    assert out["settings"] == len(U.user_keys(cfg))
+    raw = cfg.env_file.read_text()
+    assert "AURORA_TMDB_TOKEN" not in raw and "AURORA_LLM_MODEL" in raw  # personal out, the machine's stay
+    own = U.env_path(cfg, "boss")
+    assert own.stat().st_mode & 0o777 == 0o600 and "AURORA_TMDB_TOKEN=tok-123" in own.read_text()
+    cfg = sys_config.load(cfg.env_file, check_root=False)                 # the system's .env still loads
+    assert cfg["AURORA_TMDB_TOKEN"] == ""
+    mine = U.for_user(cfg, "boss")
+    assert mine["AURORA_TMDB_TOKEN"] == "tok-123" and mine["AURORA_WEATHER_PLACE"] == "Casa"
+    assert mine.path("AURORA_UPLOADS_DIR") == cfg.root / "usr" / "boss" / "uploads"
+    guest = U.for_user(cfg, "guest")
+    assert guest["AURORA_TMDB_TOKEN"] == "" and guest.path("AURORA_UPLOADS_DIR") == cfg.root / "usr" / "guest" / "uploads"
+    U.write(cfg, "guest", {"AURORA_TMDB_TOKEN": "guest-tok"})
+    assert U.for_user(cfg, "guest")["AURORA_TMDB_TOKEN"] == "guest-tok" and U.for_user(cfg, "boss")["AURORA_TMDB_TOKEN"] == "tok-123"
+    with pytest.raises(ValueError):
+        U.write(cfg, "guest", {"AURORA_LLM_MODEL": "x"})                   # the machine's settings are not a user's
+    (cfg.root / "usr" / "guest" / ".env").unlink()
+    (cfg.root / "usr" / "guest").rmdir()
+    L.rollback(cfg, "boss")
+    assert sys_config.parse_env(cfg.env_file.read_text()) == sys_config.parse_env(system_before)
+    assert not (cfg.root / "usr" / ".env").exists() and not (cfg.root / "usr" / "boss").exists()
+
+
+def test_a_plugin_runs_with_the_settings_and_folders_of_its_user(cfg):
+    """The plugins are everyone's; the environment a plugin process gets is its user's (sys_user_config.for_user)."""
+    from aurora import sys_config, sys_user_config as U
+    from aurora.plg_host import PluginHost
+    today_layout(cfg)
+    sys_config.write_env(cfg.env_file, {"AURORA_TMDB_TOKEN": "boss-token"})
+    cfg = sys_config.load(cfg.env_file, check_root=False)
+    L.migrate(cfg, "boss")
+    cfg = sys_config.load(cfg.env_file, check_root=False)
+    U.write(cfg, "guest", {"AURORA_TMDB_TOKEN": "guest-token"})
+    from pathlib import Path
+    cfg.values["AURORA_PLUGINS_DIR"] = str(Path(__file__).resolve().parents[2] / "plugins")   # the real ones, read only
+    for who, token in (("boss", "boss-token"), ("guest", "guest-token")):
+        host = PluginHost(U.for_user(cfg, who))
+        p = next(x for x in host.plugins(with_tools=False) if x.name == "cinema")
+        assert host._params(p).env.get("AURORA_TMDB_TOKEN") == token

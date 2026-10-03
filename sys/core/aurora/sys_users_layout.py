@@ -191,8 +191,10 @@ def migrate(cfg: sys_config.Config, admin: str) -> dict:
     moved = sum(_count(Path(s["to"])) for s in plan)
     if moved != files or any(Path(s["from"]).exists() for s in plan):
         raise RuntimeError(f"migration check failed: {files} files planned, {moved} found")
+    from . import sys_user_config                              # the personal settings into the admin's own .env
+    settings = sys_user_config.split(cfg, admin)
     _mark(cfg, state)
-    return {"moved": len(plan), "files": files}
+    return {"moved": len(plan), "files": files, "settings": settings}
 
 
 def _prune(path: Path, stop: Path) -> None:
@@ -211,6 +213,8 @@ def rollback(cfg: sys_config.Config, admin: str) -> dict:
               if usr_home(cfg, n).exists() or any(home(cfg, a, n).exists() for a in SYS_AREAS)]
     if others:
         raise RuntimeError(f"other users have data ({', '.join(sorted(others))}): purge them first")
+    from . import sys_user_config                              # first: the admin's .env must not land in usr/
+    sys_user_config.merge(cfg, admin)
     moved = 0
     pairs = [(usr_home(cfg, admin), usr(cfg), None)] + [(home(cfg, a, admin), root(cfg, a), a) for a in SYS_AREAS]
     for h, base, area in pairs:
