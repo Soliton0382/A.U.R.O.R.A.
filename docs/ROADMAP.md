@@ -8,6 +8,11 @@ sessions. Each item moves to STATUS.md ("Working") when it is validated. Updated
 Candidates, each with the measure that says it worked:
 1. **The gate on vague questions** — rewrite a question with the conversation's context before the gate;
    measure: `bench_quality.py --pool 30` above 6.90, wrong gate closures below 3.
+1b. **Suggested follow-ups** (owner, 2026-10-03) — **done** (C106, M73) — 3-4 complete questions under each knowledge answer, drawn from
+   the passages found but not used, carrying the previous answer's sources; a click starts a search that is right by
+   construction. Free follow-ups: the rewrite sees the whole previous answer and its sources' titles (A22), only there,
+   no redundancy in the synthesis. Measure: the 14 follow-ups of M72 (3 right today) and the suggestions judged
+   against their sources; the extra time per answer. Before multi-user U2.
 2. **Multi-user** — performance check on install (users the machine can serve), an admin, users, TOTP MFA on by
    default; measure: concurrent users at the measured ceiling, no data seen across users (tests). Owner
    (2026-10-02): an install option, single or multi, changeable later; single = the admin alone; switching leaves no

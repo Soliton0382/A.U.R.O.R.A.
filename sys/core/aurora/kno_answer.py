@@ -30,7 +30,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Callable
 
-from . import mdl_cloud, mdl_router, sns_clock, sns_weather, sys_config, sys_log, txt_compress, txt_lang
+from . import kno_followup, mdl_cloud, mdl_router, sns_clock, sns_weather, sys_config, sys_log, txt_compress, txt_lang
 from .mdl_llm import LLM
 from .sol_index import Indexer
 from .sol_reader import VaultReader
@@ -52,11 +52,6 @@ SYS_ROUTE = ("Classify the owner's last message to the assistant Aurora. Reply S
              "l'articolo 1571?' KNOWLEDGE; 'e nel caso di un affitto breve?' KNOWLEDGE. "
              "Reply with exactly one word.")
 SYS_TRANSLATE = "Translate the user's question into English. Output only the translation."
-SYS_STANDALONE = ("You get the last turns of a conversation and the owner's LAST MESSAGE. If the last message can be "
-                  "understood only with the turns before it (it points to something said there: 'it', 'he', 'that "
-                  "one', 'the author', 'and what about…', 'why?'), rewrite it as ONE complete question that names what "
-                  "it points to, in the language of the last message, adding nothing else. If it is already complete "
-                  "on its own, copy it EXACTLY as it is. Output only the question.")
 SYS_GATE = ("You decide whether numbered passages can answer a question. List the numbers of the passages that "
             "contain information needed for the answer, even if only part of it (a definition, a value, a name, a "
             "condition the question asks about), separated by commas. Ignore passages that are only about the same "
@@ -140,9 +135,12 @@ class Pipeline:
         self.log = sys_log.get_logger("api")
 
     def run(self, question: str, emit: Emit | None = None, run_id: str | None = None,
-            remember: bool = True, attached: list | None = None) -> Answer:
+            remember: bool = True, attached: list | None = None, focus: list[dict] | None = None,
+            suggest: bool = False) -> Answer:
         """`remember=False` leaves the memory untouched (a caller that retries remembers only the outcome).
-        `attached`: kno_attach.Attached items; their passages come first for this question."""
+        `attached`: kno_attach.Attached items; their passages come first for this question.
+        `focus`: sources ({"source", "domain"}) whose passages compete with the search's (a suggested follow-up).
+        `suggest`: follow-up questions after a knowledge answer (the WebUI asks for them)."""
         attached = attached or []
         run_id = run_id or uuid.uuid4().hex[:12]
         t0 = time.time()
@@ -173,7 +171,8 @@ class Pipeline:
             return result
         ev("route", {"mode": "attachments" if attached else "knowledge"})
         asked = question                            # the owner's words, kept for the answer and the memory
-        question = self._standalone(question, recent, ev)
+        question, auto_focus = kno_followup.standalone(self, question, recent, ev)
+        focus = (focus or []) + [f for f in auto_focus if f not in (focus or [])]
         lang = txt_lang.detect(question)
         translation = None
         if lang != "en":
@@ -190,6 +189,8 @@ class Pipeline:
         if own:
             hits = [h for h in hits if h not in own]
             ev("retrieval.filter", {"dropped_own_answers": len(own)})
+        if focus:
+            hits = kno_followup.with_focus(self, question, translation, hits, focus, ev)
         if attached:
             hits = self._with_attached(question, translation, hits, attached)
         ev("retrieval.hits", {"hits": [{"n": i, "sid": h.sid, "domain": h.soliton.domain, "title": h.soliton.title,
@@ -213,6 +214,11 @@ class Pipeline:
         if remember:
             names = f" [{', '.join(a.name for a in attached)}]" if attached else ""
             self.remember(asked + names, result, run_id, ev, trail, asked_at)
+        if suggest and not result.abstained and self.cfg["AURORA_PIPELINE_SUGGEST"]:
+            try:                                    # after the answer is shown: never a reason to fail it
+                kno_followup.suggest(self, question, result.text, result.sources, hits, ev)
+            except Exception as e:
+                self.log.warning("suggestions failed: %s", e)
         ev("run.end", {"seconds": round(result.seconds, 1)})
         return result
 
@@ -322,24 +328,8 @@ class Pipeline:
 
     # ---- stage 0: route ------------------------------------------------------------
     def _standalone(self, question: str, recent: list[Soliton], ev: Emit) -> str:
-        """A follow-up ("e chi l'ha scoperto?") made a complete question with the turns before it, so that the search,
-        the gate and the synthesis know what it is about; a question complete on its own is left as it is."""
-        if not self.cfg["AURORA_PIPELINE_STANDALONE"] or not recent:
-            return question
-        gap = self.cfg["AURORA_REM_SESSION_GAP_MIN"] * 60
-        try:
-            last = datetime.fromisoformat(recent[-1].created_at)
-        except ValueError:
-            return question
-        if (sns_clock.now(self.cfg) - last).total_seconds() > gap:       # an old conversation: a new topic
-            return question
-        out = self._for("translate").complete(SYS_STANDALONE, f"TURNS:\n{self._turns(recent, 4, 400)}\n\n"
-                                              f"LAST MESSAGE: {question}", 200).answer.strip().strip('"«»').strip()
-        if not out or len(out) > 3 * len(question) + 200 or "\n" in out:      # not a question: keep the owner's
-            return question
-        if out != question:
-            ev("question.standalone", {"question": out})
-        return out
+        """The follow-up rewritten (kno_followup.standalone), without its focus: for the benchmarks."""
+        return kno_followup.standalone(self, question, recent, ev)[0]
 
     def _turns(self, recent: list[Soliton], n: int, cut: int | None = 500) -> str:
         """The last n turns with their local time and day: '[mercoledì 2026-09-30 10:31 (ieri)] Owner: ...'."""

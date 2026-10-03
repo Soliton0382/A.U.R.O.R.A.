@@ -508,5 +508,9 @@
   "sec.archive": "🧹 Archive the closed ones ({n})",
   "viewer.save": "Download",
   "viewer.close": "Close",
-  "viewer.loading": "Preparing the preview…"
+  "viewer.loading": "Preparing the preview…",
+  "chat.deeper": "Go deeper:",
+  "ev.question.standalone": "Question completed with the conversation: {q}",
+  "ev.retrieval.focus": "Sources of the previous answer in focus: {k} passages entered ({n} sources)",
+  "ev.answer.suggestions": "{n} questions to go deeper"
 }

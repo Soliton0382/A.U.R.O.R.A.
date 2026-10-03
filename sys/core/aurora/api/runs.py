@@ -22,10 +22,15 @@ router = APIRouter()
 async def ask(request: Request) -> dict:
     """{"question": str, "attachments": [{"name", "mime", "data": base64}], "remember": true} -> {"run_id"}.
 
-    "remember": false leaves the memory untouched (checks and tests must not become memories)."""
+    "remember": false leaves the memory untouched (checks and tests must not become memories).
+    "suggest": true asks for follow-up questions after a knowledge answer (the WebUI); "focus": [{"source", "domain"}]
+    are the sources a suggested follow-up carries (kno_followup)."""
     body = await request.json()
     question = body.get("question", "").strip()
     remember = body.get("remember", True) is not False
+    suggest = body.get("suggest") is True
+    from aurora import kno_followup, sol_schema
+    focus = kno_followup.clean_focus(body.get("focus"), sol_schema.load_taxonomy())
     files = []
     if body.get("attachments"):
         from aurora.kno_attach import AttachmentHandler, is_image
@@ -64,9 +69,10 @@ async def ask(request: Request) -> dict:
         if files:
             from aurora.kno_attach import AttachmentHandler
             attached = AttachmentHandler(pipeline(), cfg).prepare(files, q, emit, run_id)
-        if attached or not remember:
-            return pipeline().run(q, emit=emit, run_id=run_id, attached=attached, remember=remember)
-        return answer_or_acquire(q, emit, run_id)
+        if attached or not remember or focus:          # a suggested follow-up is a question for the vault
+            return pipeline().run(q, emit=emit, run_id=run_id, attached=attached, remember=remember, focus=focus,
+                                  suggest=suggest)
+        return answer_or_acquire(q, emit, run_id, suggest=suggest)
     return {"run_id": start_run(question, origin="webui", job=job)["id"]}
 
 

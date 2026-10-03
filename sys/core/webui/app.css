@@ -133,3 +133,6 @@ details.gd-item summary { cursor: pointer; font-weight: 600; }
 .viewer-pages { overflow-y: auto; display: flex; flex-direction: column; align-items: center; gap: .6rem; }
 .viewer-page { width: 100%; max-width: 900px; background: #fff; border-radius: 4px; box-shadow: 0 0 20px rgba(0,0,0,.6); }
 .viewer-wait { color: #e8ecf5; margin: auto; }
+.deeper { display: flex; flex-direction: column; align-items: flex-start; gap: .35rem; margin-top: .7rem; }
+.deeper-q { text-align: left; border: 1px solid var(--line, #3a4258); background: transparent; color: inherit; border-radius: 10px; padding: .4rem .7rem; font: inherit; font-size: .92em; cursor: pointer; max-width: 100%; }
+.deeper-q:hover { border-color: var(--accent, #6aa0ff); }

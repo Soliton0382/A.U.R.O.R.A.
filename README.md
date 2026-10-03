@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-226%20passed-1baf7a" alt="Tests"></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-231%20passed-1baf7a" alt="Tests"></p>
 
 <p align="center">🇮🇹 <b>Italiano</b> · 🇬🇧 <a href="README.en.md">English</a></p>
 
@@ -44,6 +44,7 @@ con l'esenzione firmata dal proprietario, e ciò che parte è mascherato per def
 | **Progetti** | pagina 📁: progetti locali e repository GitHub (stelle, fork, issue), clone in locale, albero delle cartelle, file, README, storia, **anteprima delle pagine in sandbox**, «chiedi ad Aurora» su un progetto |
 | **Routine** | pagina 🔁: i plugin collegati propongono controlli periodici (meteo ogni mattina, allerta ogni ora, report GitHub settimanale…), si attivano con un clic o a parole tue; lettura automatica, ogni scrittura aspetta l'approvazione |
 | **Meteo** | plugin 🌦️ (Open-Meteo, senza chiave): adesso, previsioni a 3 giorni, bollettino giornaliero, allerta sui cambi repentini e allerte ufficiali della regione (MeteoAlarm) |
+| **Domande di seguito** | «e chi l'ha scoperto?» viene completata con la conversazione e la risposta precedente, con le sue fonti a fuoco; sotto ogni risposta 3-4 domande complete per approfondire, ognuna con le sue fonti (M73: seguiti giusti 2 → 6 su 14, approfondimenti 8 su 11 con voto ≥ 7; 0 domande complete cambiate su 20) |
 | **Backup** | ogni notte su un altro disco o sul NAS, cifrato (AES-256-GCM), deduplicato (30 GB la prima volta, poi solo ciò che cambia: 4,5 s), coerente anche mentre Aurora scrive, verificato a ogni giro; ripristino in una cartella vuota con il codice di recupero |
 | **Reattiva** | se qualcosa che le hai chiesto fallisce, Aurora lo analizza subito: un difetto del codice lo corregge in una sandbox e te lo propone, una causa esterna (account, permesso, credito) te la spiega con cosa fare; ti avvisa in entrambi i casi |
 | **Segnala un bug** | pagina 🐞: descrivi il problema, scegli le conversazioni; Aurora prepara uno zip con i log necessari e i dati privati mascherati, e il link per aprire la issue |

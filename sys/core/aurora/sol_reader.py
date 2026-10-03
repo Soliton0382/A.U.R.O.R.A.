@@ -120,6 +120,20 @@ class VaultReader:
                              for s in self.layout.shards(section, d))
         return out
 
+    # ---- by source ---------------------------------------------------------------
+    def by_source(self, domain: str, source_id: str, limit: int = 120) -> list[Soliton]:
+        """The passages of one source (a paper, a law), in their order: the sources in focus of a follow-up."""
+        if domain not in self.layout.taxonomy:
+            return []
+        out: list[Soliton] = []
+        for shard in self.layout.shards(self.layout.section_of(domain), domain):
+            con = self._con(shard)
+            out += [Soliton.from_row(dict(r)) for r in con.execute(
+                f"{_SELECT} WHERE source_id = ? ORDER BY chunk_index LIMIT ?", (source_id, limit - len(out)))]
+            if len(out) >= limit:
+                break
+        return out
+
     # ---- memory ------------------------------------------------------------------
     def recent(self, n: int, domain: str = "conversation") -> list[Soliton]:
         """The n most recent memory solitons of a domain, newest last."""

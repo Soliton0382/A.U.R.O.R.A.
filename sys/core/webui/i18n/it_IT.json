@@ -508,5 +508,9 @@
   "sec.archive": "🧹 Archivia i chiusi ({n})",
   "viewer.save": "Scarica",
   "viewer.close": "Chiudi",
-  "viewer.loading": "Preparo l'anteprima…"
+  "viewer.loading": "Preparo l'anteprima…",
+  "chat.deeper": "Approfondisci:",
+  "ev.question.standalone": "Domanda completata con la conversazione: {q}",
+  "ev.retrieval.focus": "Fonti della risposta precedente a fuoco: {k} passaggi entrati ({n} fonti)",
+  "ev.answer.suggestions": "{n} domande per approfondire"
 }

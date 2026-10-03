@@ -73,7 +73,7 @@ Signed and published (commit d4ce54f, 29 commits, the history clean of the firew
 |---|---|
 | forge | written and judged by Claude Code (opus): 8 of 8 built, 7 right (M64; local 4/8). Known limit: a plugin that ignored the time window of a JSON log passed the judge; read-only plugins only install alone |
 | self-repair | runs daily (4 self-reviews, 2 repairs in 2 days); 0 code changes proposed so far: no evidence yet that it fixes a real bug |
-| depth | follow-ups rewritten with the conversation before the search (C104, M71: source in top 3 for 4 → 8 of 14); the gate's 3 wrong closures of 30 on complete questions remain (pool30 6.80) |
+| depth | follow-ups: rewritten with the conversation and the previous answer, its sources in focus, 3-4 suggested questions under each answer (C104, C106, M73: typed follow-ups right 2 → 6 of 14, suggestions 8 of 11 ≥ 7); the gate's 3 wrong closures of 30 on complete questions remain (A18) |
 | multi-user (building site) | design and phases in MULTIUSER.md; U1 done (sys_users: users, scrypt, TOTP RFC 6238); open questions for the owner |
 | social | Instagram and TikTok plugins ready, waiting for the owner's accounts (Instagram professional linked to the page; TikTok developer app). Facebook connected (page token with 8 scopes; posts, statistics, comments, page info; writes wait for approval; the Messenger welcome message is not accepted by Meta's API for this page: set by hand in Business Suite); routines: a post a day proposed when there is something new, weekly statistics. LinkedIn later |
 | network finding | 11,945 denied connections to port 6667 (IRC) from one internal host, 107 ATP matches: the owner checks the device |
@@ -93,8 +93,8 @@ Signed and published (commit d4ce54f, 29 commits, the history clean of the firew
 | firewall actions (block an address) and abuse reports as approvals | Sophos API plugin |
 | full-disk encryption | owner |
 
-## Open bugs (5)
+## Open bugs (4)
 
 A18 the gate's wrong closures (3/30), A19 the extraction's (1/30), A20 the forge judge and time windows,
-A21 the benchmark suite's ids, A22 follow-ups still generic (3/14 answered right) (details in BUGS.md). Measurements still to take: ROADMAP.md ("Still to measure").
+A21 the benchmark suite's ids (details in BUGS.md). Measurements still to take: ROADMAP.md ("Still to measure").
 

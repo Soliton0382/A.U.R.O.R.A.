@@ -36,6 +36,7 @@ mark each line ✅ / ❌ with a note. Reload the WebUI first (the service worker
 | N14 | 📝 notes: AURORA_NOTES_DIR on your Obsidian vault, «cerca nelle mie note …», «aggiungi alla nota X …» | found; the addition waits for approval, the note only grows |
 | N15 | 🏠 «che luci ci sono accese?» once devices are in Home Assistant | read from HA; switching asks for approval |
 | N16 | In the installed app (phone): tap a picture Aurora made, then a PDF in 📎 Files | each opens inside the app; ⬇️ Download saves it; ✕ closes |
+| N17 | Ask a knowledge question (e.g. «Come funziona la fotosintesi?»), then tap one of the «Approfondisci» questions; then type a short follow-up («e chi l'ha scoperta?») | 3-4 complete questions appear under the answer a few seconds after it; the tapped one is sent whole and its trace shows 🎯 when the sources were used; the typed follow-up shows 🧷 with the completed question |
 | N6 | 🧩 Plugins: open the page, then a card, then back | the grid appears at once; icons do not flash (C80) |
 
 ## Pictures

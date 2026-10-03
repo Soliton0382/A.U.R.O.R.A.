@@ -11,6 +11,7 @@ import { view, viewLink } from "../viewer.js";
 
 export const ICONS = {
   "run.start": "▶️", route: "🧭", "attach.image": "🖼️", "attach.video": "🎬", "image.plan": "🛠️", "image.edited": "🎨", "video.frames": "🎞️", "video.plan": "🎬", "attach.document": "📄", "self.state": "🩺", translate: "🌐",
+  "question.standalone": "🧷", "retrieval.focus": "🎯", "answer.suggestions": "🧭",
   "retrieval.filter": "🧹", "retrieval.hits": "🔎", "memory.recent": "🧠", gate: "🚪", "synthesis.domain": "🧩",
   "verify.keep": "✅", "verify.drop": "✂️", "memory.write": "💾", "answer.final": "📝", "run.end": "🏁", error: "⛔",
   "acquire.confirmed": "🛰️", "acquire.round": "🛰️", "acquire.candidates": "📚", "acquire.paper": "📥", "acquire.error": "⚠️", "acquire.done": "🏁",
@@ -34,6 +35,9 @@ export function describe(name, p) {
     case "attach.document": return t("ev.attach.document", { name: p.name, domain: p.domain, n: p.chunks, w: p.written });
     case "translate": return t("ev.translate", { text: p.translation });
     case "retrieval.filter": return t("ev.retrieval.filter", { n: p.dropped_own_answers });
+    case "question.standalone": return t("ev.question.standalone", { q: p.question });
+    case "retrieval.focus": return t("ev.retrieval.focus", { k: p.kept, n: p.sources });
+    case "answer.suggestions": return t("ev.answer.suggestions", { n: p.items.length });
     case "retrieval.hits": return t("ev.retrieval.hits", { n: p.hits.length });
     case "memory.recent": return t("ev.memory.recent", { n: p.turns });
     case "gate": return p.open ? t("ev.gate.open", { ids: p.passages.join(", ") }) : t("ev.gate.closed");
@@ -243,6 +247,7 @@ export async function follow(runId, b, scroller) {
       }
       if (name === "run.start") { thought = null; draft = null; }
       if (name === "answer.final") { final = p; renderAnswer(b, p); }
+      else if (name === "answer.suggestions" && final) final.suggestions = p.items;
       else if (name === "error") b.body.replaceChildren(el("p", "error", describe(name, p)));
       else if (name.startsWith("rem.") && p.text) { b.body.replaceChildren(el("p", "", p.text)); }
       else if (name === "agent.finish") { final = { text: p.summary, seconds: p.seconds, files: p.files || [], images: p.images || [] }; renderAnswer(b, final); }

@@ -215,6 +215,27 @@ export default {
       messages.append(m);
     };
 
+    // Questions to go deeper, under a knowledge answer: complete on their own, each with the answer's sources
+    // in focus (kno_followup), so a click searches the right way; the owner sees the whole question sent.
+    let nextFocus = null;
+    const offerDeeper = (b, items) => {
+      const row = el("div", "deeper");
+      row.append(el("div", "meta", t("chat.deeper")));
+      for (const it of items) {
+        const go = el("button", "deeper-q", `🔎 ${it.question}`);
+        go.type = "button";
+        go.addEventListener("click", () => {
+          if (send.disabled) return;
+          row.remove();
+          nextFocus = it.focus || [];
+          input.value = it.question;
+          form.requestSubmit();
+        });
+        row.append(go);
+      }
+      b.body.append(row);
+    };
+
     const offerAcquire = (b, question) => {
       // Searching outside is an external action: it starts only from the owner's click.
       const go = el("button", "", `🛰️ ${t("chat.acquire")}`);
@@ -238,6 +259,8 @@ export default {
       ev.preventDefault();
       const question = input.value.trim();
       const files = pending;
+      const focus = nextFocus;
+      nextFocus = null;
       if (!question && !files.length) return;
       send.disabled = true;
       input.value = "";
@@ -253,11 +276,12 @@ export default {
         const goal = question.match(/^\/agen(?:te|t)\s+(.+)/s)?.[1];
         const { run_id } = await (goal
           ? call("/v1/aurora/agent", { method: "POST", body: JSON.stringify({ goal }) })
-          : call("/v1/aurora/ask", { method: "POST", body: JSON.stringify({ question, attachments }) })
+          : call("/v1/aurora/ask", { method: "POST", body: JSON.stringify({ question, attachments, suggest: true, ...(focus ? { focus } : {}) }) })
         ).finally(() => asking--);
         mine.add(run_id);
         const final = await follow(run_id, b, messages);
         if (final?.abstained && final.mode !== "self") offerAcquire(b, question);
+        else if (final?.suggestions?.length) { const stick = messages.scrollHeight - messages.scrollTop - messages.clientHeight < 120; offerDeeper(b, final.suggestions); if (stick) scrollEnd(messages); }
       } catch (e) {
         b.body.replaceChildren(el("p", "error", t("ev.error", { m: e.message })));
         b.head.classList.remove("running");

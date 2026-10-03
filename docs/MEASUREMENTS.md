@@ -893,6 +893,20 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M73 — Follow-ups with the previous answer, sources in focus, suggestions (3 October 2026)
+
+The 14 follow-ups of M72, now after a **real** first answer of Aurora (with its sources; 3 of the 14 first questions
+abstained); nothing written. Typed follow-up judged by opus against the source text of the complete question:
+| | answered | mean (0-10) | right (≥7) |
+|---|---|---|---|
+| rewrite off | 4 / 14 | 1.36 | 2 |
+| rewrite with the whole previous answer + sources in focus | **10 / 14** | **4.79** | **6** |
+The rewrite fired 11 times, the focus was used 8 times and brought passages in 3. Suggestions: made under the 11
+answers (none under an abstention), 3-4 each; the first one clicked (its sources in focus): **11 of 11 answered, mean
+7.55, 8 scored ≥ 7** (judged against the passages found: suggested questions have no fixed source). Live: suggestions
+2.4-3 s after the answer is shown. Topic change (20 complete questions, the previous answer about another paper with
+its sources): 0 changed, focus never used, top 3 15 → 15, none worse. Tests 231.
+
 ## M72 — Follow-ups, the answers (3 October 2026)
 
 The 14 valid follow-ups of M71 answered end to end (synthetic turns, nothing written), rewrite off and on; opus judged

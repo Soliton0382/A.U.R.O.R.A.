@@ -1626,6 +1626,18 @@
    ]
   },
   {
+   "key": "AURORA_PIPELINE_SUGGEST",
+   "type": "bool",
+   "category": "pipeline",
+   "recommended": "true",
+   "evidence": "M73",
+   "en": "Under a knowledge answer in the WebUI, 3-4 complete questions to go deeper, drawn from the passages found; a click searches with the answer's sources in focus.",
+   "it": "Sotto una risposta dal sapere, nella WebUI, 3-4 domande complete per approfondire, tratte dai passaggi trovati; un clic cerca con le fonti della risposta a fuoco.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_PIPELINE_GATE",
    "type": "bool",
    "category": "pipeline",

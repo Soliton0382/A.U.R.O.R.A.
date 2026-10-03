@@ -57,6 +57,7 @@ call downward (ECOSYSTEM §1).
 | `kno_harvest.py` | knowledge | the owner steers the harvester: arXiv ids/links parsed, command queue and status files shared by aurora-api and aurora-harvester | — | svc_api, svc_harvester |
 | `txt_compress.py` | text | SSCC salience compression of what goes to a cloud reasoner, saving measured per call | numpy | kno_answer |
 | `kno_answer.py` | knowledge | the answer pipeline: route (self or knowledge), translate, search, gate, extract, synthesize, verify, remember | sol_search, sol_writer, sol_index, mdl_llm | svc_api, kno_acquire |
+| `kno_followup.py` | knowledge | after an answer: a typed follow-up rewritten with the whole previous answer and its sources' titles, the previous sources in focus (their passages compete on the same re-ranker score); 3-4 suggested complete questions under a knowledge answer, each with its sources (C104, A22) | kno_answer, sol_reader, sol_search | kno_answer, api/runs |
 | `kno_ingest.py` | knowledge | documents (txt, md, html, pdf) → chunks → solitons, written and indexed | sol_writer, sol_index, pdftotext | svc_api, kno_acquire |
 | `kno_attach.py` | knowledge | chat attachments: images described by the reasoner (vision) as citable passages; documents imported in the domain the reasoner picks | mdl_llm, kno_ingest, Pillow | svc_api |
 | `sns_clock.py` | senses | exact local time (AURORA_TIMEZONE) for every prompt; local rendering of stored timestamps | zoneinfo | kno_answer, kno_rem, svc_rem |
