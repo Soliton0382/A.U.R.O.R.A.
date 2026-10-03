@@ -123,16 +123,19 @@ def _passages(hits: list[Hit], ids: list[int]) -> str:
 
 class Pipeline:
     def __init__(self, embedder, reranker, cfg: sys_config.Config | None = None, llm: LLM | None = None,
-                 state_fn: Callable[[], dict] | None = None):
+                 state_fn: Callable[[], dict] | None = None, user: str | None = None, index=None):
         self.cfg = cfg or sys_config.get()
         self.state_fn = state_fn                   # facts about Aurora measured by the caller (services, uptime)
         self.llm = llm or LLM(self.cfg)
         self.reasoner = mdl_cloud.make_reasoner(self.cfg, self.llm)   # reasoning roles; service calls stay local
         self.cloud_roles = {r.strip() for r in self.cfg["AURORA_CLOUD_ROLES"].split(",") if r.strip()}
-        self.search = Searcher(embedder, reranker, self.cfg)
-        self.reader = VaultReader(self.cfg)
-        self.writer = VaultWriter(self.cfg, component="api")
-        self.indexer = Indexer(embedder, self.cfg, component="api")
+        # whose conversations and memories (multi-user, U3; None: today's single owner); the knowledge index is
+        # shared between the users' pipelines (`index`): loaded once
+        self.user = user
+        self.search = Searcher(embedder, reranker, self.cfg, index=index, user=user)
+        self.reader = VaultReader(self.cfg, user=user)
+        self.writer = VaultWriter(self.cfg, component="api", user=user)
+        self.indexer = Indexer(embedder, self.cfg, component="api", user=user)
         self.log = sys_log.get_logger("api")
 
     def run(self, question: str, emit: Emit | None = None, run_id: str | None = None,

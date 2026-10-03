@@ -163,6 +163,10 @@ export default {
       const chunks = [];
       rec = new MediaRecorder(stream, type ? { mimeType: type } : {});
       rec.ondataavailable = (ev) => { if (ev.data.size) chunks.push(ev.data); };
+      // C114: a recording of 0.1 s reached the server twice (the microphone closed at once): said, never sent
+      let closed = false;
+      stream.getAudioTracks().forEach((tr) => tr.addEventListener("ended", () => { closed = true; }));
+      const t0 = performance.now();
       let secs = 0;
       mic.classList.add("recording");
       mic.textContent = "⏹️ 0";
@@ -172,6 +176,13 @@ export default {
         stream.getTracks().forEach((tr) => tr.stop());          // the phone's microphone is released at once
         const mime = rec.mimeType || type || "audio/webm";
         rec = null;
+        const took = (performance.now() - t0) / 1000;
+        if (closed || took < 0.8) {
+          input.placeholder = closed ? t("chat.mic.closed") : t("chat.mic.short", { s: took.toFixed(1) });
+          mic.textContent = "🎙️";
+          mic.classList.remove("recording");
+          return;
+        }
         mic.textContent = "…";
         mic.disabled = true;
         try {
@@ -182,7 +193,7 @@ export default {
         mic.classList.remove("recording");
         mic.disabled = false;
       };
-      rec.start();
+      rec.start(500);                                // pieces every half second, not only at the stop
     };
     mic.addEventListener("click", async () => {
       if (source === "device") { recordHere(); return; }

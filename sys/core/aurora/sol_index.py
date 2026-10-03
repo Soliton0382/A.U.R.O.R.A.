@@ -70,11 +70,17 @@ class DomainFiles:
         return json.loads(self.manifest.read_text(encoding="utf-8")) if self.manifest.exists() else None
 
 
-def _index_dirs(cfg: sys_config.Config) -> list[tuple[str, str, DomainFiles]]:
+def memory_index(cfg: sys_config.Config, user: str | None) -> Path:
+    """The memory index of a user (multi-user, U3): today's index/memory until the migration."""
+    from . import sys_users_layout
+    return sys_users_layout.place(cfg, "memory_index", user) if user else cfg.path("AURORA_INDEX_DIR") / "memory"
+
+
+def _index_dirs(cfg: sys_config.Config, user: str | None = None) -> list[tuple[str, str, DomainFiles]]:
     root = cfg.path("AURORA_INDEX_DIR")
     out = []
     for section in sol_vault.SECTIONS:
-        base = root / section
+        base = memory_index(cfg, user) if section == "memory" else root / section
         if base.is_dir():
             out += [(section, d.name, DomainFiles(d)) for d in sorted(base.iterdir()) if (d / "manifest.json").exists()]
     return out
@@ -83,16 +89,19 @@ def _index_dirs(cfg: sys_config.Config) -> list[tuple[str, str, DomainFiles]]:
 class Indexer:
     """Writer side: brings the index of a domain up to date with the vault."""
 
-    def __init__(self, encoder: Encoder, cfg: sys_config.Config | None = None, component: str = "index"):
+    def __init__(self, encoder: Encoder, cfg: sys_config.Config | None = None, component: str = "index",
+                 user: str | None = None):
         self.cfg = cfg or sys_config.get()
         self.encoder = encoder
-        self.reader = VaultReader(self.cfg)
+        self.user = user
+        self.reader = VaultReader(self.cfg, user=user)
         self.log = sys_log.get_logger(component)
         self.component = component
 
     def files(self, domain: str) -> DomainFiles:
         section = self.reader.layout.section_of(domain)
-        return DomainFiles(self.cfg.path("AURORA_INDEX_DIR") / section / domain)
+        base = memory_index(self.cfg, self.user) if section == "memory" else self.cfg.path("AURORA_INDEX_DIR") / section
+        return DomainFiles(base / domain)
 
     def update(self, domain: str, extend_hnsw: bool = True, run_id: str | None = None) -> int:
         """Index the solitons of `domain` not indexed yet. Returns how many were added."""
@@ -259,11 +268,13 @@ class IndexSet:
         keep = np.argsort(-best_s)[:k]
         return best_s[keep], best_i[keep]
 
-    def search(self, queries: np.ndarray, k: int, sections: set[str] | None = None) -> list[list[tuple[str, float, str, str]]]:
-        """For each query vector: the k best (sid, cosine, section, domain) over every domain (of `sections`)."""
+    def search(self, queries: np.ndarray, k: int, sections: set[str] | None = None,
+               user: str | None = None) -> list[list[tuple[str, float, str, str]]]:
+        """For each query vector: the k best (sid, cosine, section, domain) over every domain (of `sections`); the
+        memory is `user`'s. One IndexSet serves every user: the knowledge stays loaded once."""
         queries = np.asarray(queries, dtype=np.float32)
         results: list[list[tuple[str, float, str, str]]] = [[] for _ in range(len(queries))]
-        for section, domain, f in _index_dirs(self.cfg):
+        for section, domain, f in _index_dirs(self.cfg, user):
             if sections and section not in sections:
                 continue
             e = self._load(f)

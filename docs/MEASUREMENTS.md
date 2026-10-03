@@ -893,6 +893,14 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M76 — Dictation, per-user memory (3 October 2026)
+
+Dictation (C114): the server received 0.1 s of audio twice (on 1 October 10-20 s); a 5 s WebM sent to the same
+endpoint decodes to 5.0 s; the machine's microphone (the webcam's) records 2.8 s of 3 at -51 dB mean (a quiet room):
+the browser's recording stopped at once. The machine's default audio output is `auto_null` (no speakers). Per-user
+memory: two users in a migrated test vault, each finds only their own conversation, both the shared paper; the
+knowledge index loaded once for both. Live after the change: an answer in 45.1 s with 4 suggestions. Tests 250.
+
 ## M75 — Plugins cinema and expenses, the per-user plan (3 October 2026)
 
 Expenses in its sandbox (no network, writes only usr/expenses): the database made at the first call, mode 600,

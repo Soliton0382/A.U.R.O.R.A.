@@ -37,9 +37,10 @@ _SELECT = f"SELECT rowid, {', '.join(sol_vault.COLUMNS)} FROM solitons"
 
 
 class VaultReader:
-    def __init__(self, cfg: sys_config.Config | None = None):
+    def __init__(self, cfg: sys_config.Config | None = None, user: str | None = None):
         self.cfg = cfg or sys_config.get()
-        self.layout = sol_vault.Layout.from_config(self.cfg)
+        self.user = user                                   # whose memory (multi-user, U3); None: today's
+        self.layout = sol_vault.Layout.from_config(self.cfg, user)
         self._local = threading.local()
         _readers.add(self)
 

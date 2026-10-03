@@ -170,12 +170,17 @@ def plugin_host():
     return _state["plugins"]
 
 
-def pipeline():
-    if "pipeline" not in _state:
+def pipeline(user: str | None = None):
+    """The answer pipeline of a user (their memory and conversations); every user's shares the models and the
+    knowledge index of the first. No user: today's single owner (multi-user, U3)."""
+    pipes = _state.setdefault("pipelines", {})
+    if user not in pipes:
         from aurora.kno_answer import Pipeline
         from aurora.mdl_remote import RemoteEmbedder, RemoteReranker
-        _state["pipeline"] = Pipeline(RemoteEmbedder(cfg), RemoteReranker(cfg), cfg, state_fn=self_facts)
-    return _state["pipeline"]
+        first = next(iter(pipes.values()), None)
+        pipes[user] = Pipeline(RemoteEmbedder(cfg), RemoteReranker(cfg), cfg, state_fn=self_facts, user=user,
+                               index=first.search.index if first else None)
+    return pipes[user]
 
 
 SYS_CONFIRM = ("Aurora could not answer the owner's previous question from her vault and offered to search "

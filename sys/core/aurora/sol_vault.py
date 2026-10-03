@@ -114,30 +114,36 @@ def db(path: Path, readonly: bool = False, ddl: str | None = None):
 class Layout:
     root: Path
     taxonomy: dict[str, dict]
+    memory: Path | None = None          # a user's memory folder (multi-user, U3); None: <root>/memory
 
     @classmethod
-    def from_config(cls, cfg: sys_config.Config) -> "Layout":
-        return cls(cfg.path("AURORA_VAULT_DIR"), sol_schema.load_taxonomy())
+    def from_config(cls, cfg: sys_config.Config, user: str | None = None) -> "Layout":
+        from . import sys_users_layout
+        mem = sys_users_layout.place(cfg, "memory", user) if user else None
+        return cls(cfg.path("AURORA_VAULT_DIR"), sol_schema.load_taxonomy(), mem)
+
+    def base(self, section: str) -> Path:
+        return self.memory if section == "memory" and self.memory is not None else self.root / section
 
     def section_of(self, domain: str) -> str:
         return "memory" if self.taxonomy[domain].get("memory") else "knowledge"
 
     def registry(self, section: str) -> Path:
-        return self.root / section / "registry.db"
+        return self.base(section) / "registry.db"
 
     def shards(self, section: str, domain: str) -> list[Path]:
-        return sorted((self.root / section / domain).glob("[0-9][0-9][0-9][0-9].db"))
+        return sorted((self.base(section) / domain).glob("[0-9][0-9][0-9][0-9].db"))
 
     def domains(self, section: str) -> list[str]:
-        base = self.root / section
-        return sorted(p.name for p in base.iterdir() if p.is_dir()) if base.is_dir() else []
+        base = self.base(section)                      # only real domains: users/ is not one (U3)
+        return sorted(p.name for p in base.iterdir() if p.is_dir() and p.name in self.taxonomy) if base.is_dir() else []
 
     def shard_key(self, path: Path) -> str:
         """Shard as stored in the registry: '<domain>/<nnnn>.db', relative to its section."""
         return f"{path.parent.name}/{path.name}"
 
     def shard_path(self, section: str, key: str) -> Path:
-        return self.root / section / key
+        return self.base(section) / key
 
 
 def check(layout: Layout) -> dict:

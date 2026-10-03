@@ -518,5 +518,7 @@
   "chat.voice.voice": "Answers aloud when you speak (tap to change)",
   "chat.voice.always": "Answers always aloud (tap to change)",
   "chat.voice.off": "Answers aloud off (tap to change)",
-  "chat.voice.novoice": "No voice for this language on this device: install one in the text-to-speech settings"
+  "chat.voice.novoice": "No voice for this language on this device: install one in the text-to-speech settings",
+  "chat.mic.closed": "The browser closed the microphone as soon as it opened: check which microphone it uses (icon in the address bar) and try again",
+  "chat.mic.short": "Recording too short ({s} s): tap 🎙️, speak, then tap again to finish"
 }

@@ -37,9 +37,10 @@ class WriteReport:
 
 
 class VaultWriter:
-    def __init__(self, cfg: sys_config.Config | None = None, component: str = "vault"):
+    def __init__(self, cfg: sys_config.Config | None = None, component: str = "vault", user: str | None = None):
         self.cfg = cfg or sys_config.get()
-        self.layout = sol_vault.Layout.from_config(self.cfg)
+        self.user = user                                   # whose memory (multi-user, U3); None: today's
+        self.layout = sol_vault.Layout.from_config(self.cfg, user)
         self.max_bytes = self.cfg["AURORA_VAULT_SHARD_MAX_MB"] * MIB
         self.min_chars = self.cfg["AURORA_CHUNK_MIN_CHARS"]
         self.component = component
@@ -51,7 +52,7 @@ class VaultWriter:
         if shards and shards[-1].stat().st_size < self.max_bytes:
             return shards[-1]
         number = int(shards[-1].stem) + 1 if shards else 1
-        new = self.layout.root / section / domain / f"{number:04d}.db"
+        new = self.layout.base(section) / domain / f"{number:04d}.db"
         if shards:
             self.log.info("shard rollover: %s reached %d MB, opening %s", shards[-1].name,
                           shards[-1].stat().st_size // MIB, new.name)
@@ -187,7 +188,8 @@ class VaultWriter:
             raise PermissionError("reset_memory needs confirm=True")
         files = 0
         # the index goes too: stale vectors would point to conversations that no longer exist
-        for target in (self.layout.root / "memory", self.cfg.path("AURORA_INDEX_DIR") / "memory"):
+        from .sol_index import memory_index
+        for target in (self.layout.base("memory"), memory_index(self.cfg, self.user)):
             if target.exists():
                 files += sum(1 for p in target.rglob("*") if p.is_file())
                 shutil.rmtree(target)

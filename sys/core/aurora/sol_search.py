@@ -39,11 +39,12 @@ class Hit:
 
 class Searcher:
     def __init__(self, embedder, reranker, cfg: sys_config.Config | None = None,
-                 reader: VaultReader | None = None, index: IndexSet | None = None):
+                 reader: VaultReader | None = None, index: IndexSet | None = None, user: str | None = None):
         self.cfg = cfg or sys_config.get()
         self.embedder, self.reranker = embedder, reranker
-        self.reader = reader or VaultReader(self.cfg)
-        self.index = index or IndexSet(self.cfg)
+        self.user = user                                   # whose memory is searched (multi-user, U3)
+        self.reader = reader or VaultReader(self.cfg, user=user)
+        self.index = index or IndexSet(self.cfg)            # shared between users: the knowledge loaded once
         self.log = sys_log.get_logger("search")
 
     def search(self, question: str, translation: str | None = None, candidates: int | None = None,
@@ -55,7 +56,7 @@ class Searcher:
         qv = self.embedder.encode_queries(queries)
         t1 = time.time()
         dense: dict[str, float] = {}
-        for per_query in self.index.search(np.asarray(qv), candidates, sections):
+        for per_query in self.index.search(np.asarray(qv), candidates, sections, self.user):
             for sid, score, _, _ in per_query:
                 dense[sid] = max(score, dense.get(sid, -1.0))
         t2 = time.time()

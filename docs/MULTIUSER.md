@@ -101,10 +101,11 @@ is converted and tested on its own; the migration is the last switch, run by the
 |---|---|
 | `place()` and the migration flag (`status/users_layout.json`) | ✅ tests |
 | every request knows its user (`request.state.user`: the device's, or the admin's for the API key; none while there are no users) | ✅ live, nothing changed for the owner |
-| memory (reader, writer, index; REM per user) | next |
+| memory: vault, index, search, the answer pipeline per user; one shared knowledge index | ✅ tests: a user never finds another's conversations, the knowledge is everyone's and loaded once; live answer unchanged |
+| the user carried into runs, history, activity, agents; REM (consolidation, reflections, dreams) per user | next |
 | uploads, documents, pictures, projects, notes | |
 | routines, approvals, push, react | |
-| plugins with personal data (expenses, notes): their folder per user | |
+| plugins with personal data (expenses, notes, diary — it reads the reflections by a fixed path): told which user they work for | |
 | the crossing test on every API route | |
 | the migration, by the owner | last |
 
