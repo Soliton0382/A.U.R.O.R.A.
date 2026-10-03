@@ -566,5 +566,6 @@
   "users.reset_totp_q": "Reset {name}'s Authenticator? At the next login they link it again.",
   "users.delete": "Delete",
   "users.delete_q": "Delete {name} with ALL their data ({files} files, memory, devices, log lines)? There is no way back.",
-  "gd.p.users": "👥 Users: your account (password and the Authenticator app with its QR code) and, if you are the admin, the people who use Aurora: create them, reset password and code, delete them seeing first what goes."
+  "gd.p.users": "👥 Users: your account (password and the Authenticator app with its QR code) and, if you are the admin, the people who use Aurora: create them, reset password and code, delete them seeing first what goes.",
+  "status.backup.running": "Backup running…"
 }

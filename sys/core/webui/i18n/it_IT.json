@@ -566,5 +566,6 @@
   "users.reset_totp_q": "Reimpostare l'Authenticator di {name}? Al prossimo accesso lo ricollegherà.",
   "users.delete": "Elimina",
   "users.delete_q": "Eliminare {name} con TUTTI i suoi dati ({files} file, memoria, dispositivi, righe nei log)? Non si torna indietro.",
-  "gd.p.users": "👥 Utenti: il tuo account (password e app Authenticator con il QR) e, se sei l'amministratore, le persone che usano Aurora: crearle, reimpostare password e codice, eliminarle vedendo prima cosa sparisce."
+  "gd.p.users": "👥 Utenti: il tuo account (password e app Authenticator con il QR) e, se sei l'amministratore, le persone che usano Aurora: crearle, reimpostare password e codice, eliminarle vedendo prima cosa sparisce.",
+  "status.backup.running": "Backup in corso…"
 }

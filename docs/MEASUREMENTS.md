@@ -893,6 +893,13 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M81 — Backup from the plugin's card (3 October 2026)
+
+💾 Run now (the same unit as the timer, admin only): started through the API, followed every 5 s, result success:
+1,502 files, 30.77 GB, 128 new blobs (2.32 GB written) in 43.2 s. The snapshot holds the per-user tree: the
+admin's own .env, usr/<admin>/uploads, the memory under users/<admin>, the admin's routines, the users store and
+the owner's untouchable folder.
+
 ## M80 — Several users, live on the owner's installation (3 October 2026)
 
 A temporary user `prova`, created by the admin through the API (usr/prova/ with the same tree), with a device of

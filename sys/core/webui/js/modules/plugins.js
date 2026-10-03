@@ -56,6 +56,11 @@ export default {
     const stRow = el("div", "appr-actions");
     stRow.append(el("span", `pill ${p.available ? "ok" : "bad"}`, p.available ? t("plug.on") : t("plug.off")), el("span", "", state), sw);
     dlg.append(stRow);
+    if (p.name === "backup") {                      // the backup itself: last copy, next one, 💾 Run now
+      const { backupRow } = await import("../backup.js");
+      const row = await backupRow();
+      if (row) dlg.append(row);
+    }
 
     // guide and official links
     const setup = p.setup || {};

@@ -6,8 +6,8 @@ sessions. Each item moves to STATUS.md ("Working") when it is validated. Updated
 ## Next roadmap (to decide with the owner, after 2 October 2026)
 
 Candidates, each with the measure that says it worked:
-1. **The gate on vague questions** — rewrite a question with the conversation's context before the gate;
-   measure: `bench_quality.py --pool 30` above 6.90, wrong gate closures below 3.
+1. **The gate on vague questions** — follow-ups **done** (C104, C106, M71-M73); the gate's 3 wrong closures of 30 on
+   complete questions remain (A18, A19): measure `bench_quality.py --pool 30` above 6.90, wrong gate closures below 3.
 1f. **Answers aloud** (owner, 2026-10-03) — **done, to verify (N24)**: the device that asked reads the answer
    (browser speech synthesis, the device's own voices only); per device: when I speak (default), always, off. A
    local voice on the server (Kokoro, Apache-2.0, Italian voices graded C by their author) if the device voices are
@@ -33,7 +33,9 @@ Candidates, each with the measure that says it worked:
 2. **Multi-user** — performance check on install (users the machine can serve), an admin, users, TOTP MFA on by
    default; measure: concurrent users at the measured ceiling, no data seen across users (tests). Owner
    (2026-10-02): an install option, single or multi, changeable later; single = the admin alone; switching leaves no
-   traces. Design and phases U1–U5: docs/MULTIUSER.md (U1 done).
+   traces. **Done 2026-10-03** (docs/MULTIUSER.md): per-user layout migrated, settings per user, login with
+   Authenticator code, Users page, REM and routines per user; crossing test M79, live M80. Left: U4, the ceiling of
+   concurrent users measured; U6, the folders protected by system accounts (to decide).
 3. **The whole 108 questions** — the quality benchmark on retrieval_pool108 entire, once, as the new reference.
 4. **The forge's known limit** — a judge that checks time windows; measure: `bench_forge.py --roles` 8/8.
 5. **Self-repair proven or switched off** — a week of its reports; on only with one real fix.
@@ -47,8 +49,8 @@ The structure is complete; what is missing is proof that each part is good, not 
 1. **Backup of the owner's data** — **done** (M60): nightly, encrypted, deduplicated, checked; the owner chooses the
    folder (second disk or NAS) and keeps the recovery code; a full restore test once a month stays his habit.
 2. **The manual tests** (docs/MANUAL_TESTS.md, ~30 lines): one pass by the owner on the phone and the PC.
-3. **The HTTP layer under test**: 89 routes and no test calls them (the tests cover the modules). A smoke suite
-   with FastAPI's TestClient on a test configuration: every route answers, auth refuses without a key.
+3. **The HTTP layer under test**: in part (2026-10-03): the crossing test drives the real API with TestClient (16
+   routes, two users) and a test lists the 7 routes without authentication of 111; a smoke of every route is left.
 4. **Answer quality re-measured** — **done** (M66): 5.5, the answers given 8.8; three wrong abstentions, one per
    stage. Fixed and measured on 30 questions (M67): 6.03 → 6.90; the gate kept after measuring it off.
 5. **Switch off what does not work yet, or prove it**: the forge with the local reasoner (C70, 4/8) and the
@@ -216,7 +218,7 @@ SDXL-Lightning 6.9 GB. FLUX.2 klein (23 GB) and Z-Image-Turbo (31 GB) were only 
 | the whole `install.sh` with its sudo steps, on another machine | M39 ran the steps without sudo on this one |
 | Web Push delivery on phones | depends on each device and browser |
 | an update from the public repository (HTTPS, no key) | the installation of the owner has no git; the first public user's will |
-| the nightly backup started by its timer | first night 3 October: failed, NAS not answering (C105); retries and the notice installed, next night 4 October 03:30 |
+| the nightly backup started by its timer | first night 3 October failed, NAS not answering (C105; retries and the notice installed); the backup works by hand and from 💾 Run now (3 October 21:18, 1,502 files with the per-user tree); the timer on the night of 4 October |
 
 ## Still to implement (2026-10-01)
 

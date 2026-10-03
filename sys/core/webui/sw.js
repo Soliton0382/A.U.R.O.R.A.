@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 A.U.R.O.R.A. Project
 // Aurora service worker: the app shell works offline-first-paint; the API is never cached.
-const SHELL = "aurora-shell-v48";
+const SHELL = "aurora-shell-v49";
 const FILES = ["/", "/static/app.css", "/static/css/chat.css", "/static/css/metrics.css", "/static/css/agents.css", "/static/css/alerts.css",
   "/static/js/main.js", "/static/js/modules.js", "/static/js/api.js", "/static/js/i18n.js", "/static/js/dom.js", "/static/js/md.js", "/static/js/restart.js",
   "/static/js/bus.js", "/static/js/modules/chat.js", "/static/js/modules/trace.js", "/static/js/modules/import.js",
   "/static/js/modules/runs.js", "/static/js/modules/settings.js", "/static/js/modules/status.js",
-  "/static/js/modules/metrics.js", "/static/js/modules/approvals.js", "/static/js/modules/alerts.js", "/static/js/modules/diary.js", "/static/js/modules/social.js", "/static/js/modules/security.js", "/static/js/modules/plugins.js", "/static/js/modules/models.js", "/static/js/modules/guide.js", "/static/js/modules/bugreport.js", "/static/js/modules/harvester.js", "/static/js/modules/notifications.js", "/static/js/modules/updates.js", "/static/js/push.js", "/static/js/viewer.js", "/static/js/share.js", "/static/js/artifact.js", "/static/js/voice.js", "/static/js/qr.js", "/static/vendor/qrcode/qrcode.mjs", "/static/js/modules/users.js", "/static/js/modules/sky.js", "/static/i18n/it_IT.json", "/static/i18n/en_US.json",
+  "/static/js/modules/metrics.js", "/static/js/modules/approvals.js", "/static/js/modules/alerts.js", "/static/js/modules/diary.js", "/static/js/modules/social.js", "/static/js/modules/security.js", "/static/js/modules/plugins.js", "/static/js/modules/models.js", "/static/js/modules/guide.js", "/static/js/modules/bugreport.js", "/static/js/modules/harvester.js", "/static/js/modules/notifications.js", "/static/js/modules/updates.js", "/static/js/push.js", "/static/js/viewer.js", "/static/js/share.js", "/static/js/artifact.js", "/static/js/voice.js", "/static/js/backup.js", "/static/js/qr.js", "/static/vendor/qrcode/qrcode.mjs", "/static/js/modules/users.js", "/static/js/modules/sky.js", "/static/i18n/it_IT.json", "/static/i18n/en_US.json",
   "/static/assets/aurora_face_bg.webp", "/static/assets/aurora_face_bg_s.webp", "/static/assets/icon-192.png",
   "/manifest.webmanifest"];
 

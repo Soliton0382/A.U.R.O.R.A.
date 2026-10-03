@@ -7,12 +7,13 @@ import subprocess
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from .core import auth, cfg, log
+from .core import cfg, log
+from .users import admin_only                      # the machine's backup: the admin's (multi-user)
 
 router = APIRouter()
 
 
-@router.get("/v1/aurora/backup", dependencies=[Depends(auth)])
+@router.get("/v1/aurora/backup", dependencies=[Depends(admin_only)])
 def backup_state() -> dict:
     from aurora import sys_backup
     st = sys_backup.status(cfg)
@@ -52,7 +53,7 @@ def mount_nas() -> dict:
     return {"started": True, "ok": r.returncode == 0, "error": r.stderr.strip()[-300:]}
 
 
-@router.post("/v1/aurora/backup/mount", dependencies=[Depends(auth)])
+@router.post("/v1/aurora/backup/mount", dependencies=[Depends(admin_only)])
 def backup_mount() -> dict:
     out = mount_nas()
     if out.get("started") and not out["ok"]:
@@ -60,7 +61,7 @@ def backup_mount() -> dict:
     return out
 
 
-@router.post("/v1/aurora/backup/run", dependencies=[Depends(auth)])
+@router.post("/v1/aurora/backup/run", dependencies=[Depends(admin_only)])
 def backup_now() -> dict:
     """Start the backup unit now (polkit lets the service user start aurora units); the result comes as a notification."""
     from aurora import sys_backup
