@@ -514,5 +514,9 @@
   "ev.retrieval.focus": "Sources of the previous answer in focus: {k} passages entered ({n} sources)",
   "ev.answer.suggestions": "{n} questions to go deeper",
   "artifact.full": "Full screen",
-  "artifact.reload": "Reload"
+  "artifact.reload": "Reload",
+  "chat.voice.voice": "Answers aloud when you speak (tap to change)",
+  "chat.voice.always": "Answers always aloud (tap to change)",
+  "chat.voice.off": "Answers aloud off (tap to change)",
+  "chat.voice.novoice": "No voice for this language on this device: install one in the text-to-speech settings"
 }

@@ -59,3 +59,23 @@ def test_cinema_lines_providers_and_refs(monkeypatch):
     assert cin._providers("movie", 603) == "Dove vederlo (IT, dati JustWatch): in abbonamento: Netflix; a noleggio: Apple TV"
     with pytest.raises(cin.ToolError):
         cin._ref("person:1")
+
+
+def test_social_plugins_never_find_a_picture_inside_papers(cfg, monkeypatch, tmp_path):
+    """With autonomous posts, a picture inside the owner's papers must never be publishable."""
+    from aurora import sys_config
+    docs = tmp_path / "docs"
+    (docs / "papers").mkdir(parents=True)
+    (docs / "papers" / "brevetto.png").write_bytes(b"patent drawing")
+    (docs / "ok.png").write_bytes(b"aurora's")
+    for key in ("AURORA_IMAGE_DIR", "AURORA_UPLOADS_DIR"):
+        cfg.values[key] = str(tmp_path / key)
+        (tmp_path / key).mkdir()
+    cfg.values["AURORA_DOCUMENTS_DIR"] = str(docs)
+    monkeypatch.setattr(sys_config, "get", lambda *a, **k: cfg)
+    for name in ("facebook", "instagram"):
+        mod = load(name, monkeypatch)
+        mod.cfg = cfg
+        assert mod._picture("ok.png").read_bytes() == b"aurora's"
+        with pytest.raises(mod.ToolError):
+            mod._picture("brevetto.png")

@@ -6,14 +6,15 @@
     python sys/core/script/sys_users_migrate.py migrate --yes        # services stopped, a backup of the last 24 h
     python sys/core/script/sys_users_migrate.py rollback --yes       # back to today's layout (admin only)
 
-The admin is created in users.db when missing (AURORA_OWNER_NAME, no password: single-user logs in as today).
+The admin is created in users.db when missing, named as the service's system user (AURORA_SERVICE_USER:
+today's usr/ goes under usr/<that name>/), with no password: single-user logs in as today.
+The owner's usr/documents/papers is never moved (sys_users_layout.UNTOUCHED).
 Shared data (knowledge, models, plugins, settings) never moves. The migration is run once, when the code reads the
 per-user layout (U3); before that Aurora would not find her memory.
 """
 from __future__ import annotations
 
 import argparse
-import re
 import subprocess
 import sys
 import time
@@ -30,13 +31,13 @@ def services_running() -> list[str]:
     return [n for n, s in zip(names, out) if s == "active"]
 
 
-def admin_id(cfg, create: bool) -> str | None:
+def admin_name(cfg, create: bool) -> str:
     users = Users(cfg)
-    a = users.admin()
-    if a or not create:
-        return a["id"] if a else None
-    name = re.sub(r"[^\w.-]+", "", str(cfg["AURORA_OWNER_NAME"] or "admin"))[:40] or "admin"
-    return users.add(name, "admin")["id"]
+    a = users.admin_name()                                 # reading never creates the store (the plan writes nothing)
+    if a:
+        return a
+    name = L.check_name(cfg, sys_config.service_user(cfg))
+    return users.add(name, "admin")["name"] if create else name
 
 
 def main() -> int:
@@ -45,9 +46,9 @@ def main() -> int:
     ap.add_argument("--yes", action="store_true", help="do it (without: the plan only)")
     a = ap.parse_args()
     cfg = sys_config.get()
-    admin = admin_id(cfg, create=a.action == "migrate" and a.yes)
+    admin = admin_name(cfg, create=a.action == "migrate" and a.yes)
     if a.action in ("plan", "migrate"):
-        plan = L.migration_plan(cfg, admin or "ADMIN")
+        plan = L.migration_plan(cfg, admin)
         for s in plan:
             print(f"{s['area']:12} {s['files']:6} files {s['bytes'] / 1e6:9.1f} MB  {s['from']}")
         print(f"total: {len(plan)} entries, {sum(s['files'] for s in plan)} files, {sum(s['bytes'] for s in plan) / 1e6:.1f} MB")

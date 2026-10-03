@@ -168,6 +168,7 @@ Static files served by aurora-api; no build step. The page is a showcase that co
 | `js/modules/{diary,social,security}.js` | diary (session memories, thoughts, dreams); social (platforms, report with ideas, drafts, publish); security (incidents, registry data, reports, close) |
 | `js/modules/alerts.js` (+ `css/alerts.css`) | top-bar widget: health dot (green/yellow/red, reasons on hover), pulsing bell for pending approvals, shield for open incidents |
 | `js/md.js` | Markdown to DOM (never HTML): headings, lists, code, tables, formulas drawn by KaTeX (`vendor/katex`, loaded only when a formula is there; prices like $5 stay text) |
+| `js/voice.js` | answers read aloud by the device (speech synthesis, local voices only; modes per device) |
 | `js/artifact.js` | an artifact live in the answer (sandboxed frame, full screen, download) |
 | `js/share.js` | ↗ Share on dreams and thoughts: the Social page with the drafts and the dream's picture |
 | `js/restart.js` | after a settings change: popup "restart the services now?", restart and wait for the API |

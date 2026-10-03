@@ -8,10 +8,14 @@ sessions. Each item moves to STATUS.md ("Working") when it is validated. Updated
 Candidates, each with the measure that says it worked:
 1. **The gate on vague questions** — rewrite a question with the conversation's context before the gate;
    measure: `bench_quality.py --pool 30` above 6.90, wrong gate closures below 3.
+1f. **Answers aloud** (owner, 2026-10-03) — **done, to verify (N24)**: the device that asked reads the answer
+   (browser speech synthesis, the device's own voices only); per device: when I speak (default), always, off. A
+   local voice on the server (Kokoro, Apache-2.0, Italian voices graded C by their author) if the device voices are
+   not good enough.
 1e. **Cinema and expenses plugins** (owner, 2026-10-03) — **done, to verify (N22, N23)**: cinema from TMDB
    (trending, in cinemas, search, details, where to watch in Italy, JustWatch data; needs the owner's free TMDB key);
    expenses on this machine only (amounts in cents, categories, monthly budgets, summary against the month before).
-   Not doable as asked: Netflix has no public API (TMDB covers "what and where"); the Amazon cart is reachable by no
+   Netflix and Amazon: set aside by the owner (2026-10-03). The owner does not want to give TMDB personal data: the source of the catalogue is to choose (TMDB, Watchmode); the wanted use: «che film comico mi consigli stasera?» on the providers he has. Not doable as asked: Netflix has no public API (TMDB covers "what and where"); the Amazon cart is reachable by no
    API and reading the pages breaks Amazon's terms. Price watch of chosen products: Keepa (paid) or Amazon's PA-API
    (an affiliate account with sales) — the owner decides.
 1d. **Artifacts** (owner, 2026-10-03) — **done, to verify (N21)**: interactive pages Aurora makes (charts,

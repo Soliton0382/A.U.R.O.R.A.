@@ -514,5 +514,9 @@
   "ev.retrieval.focus": "Fonti della risposta precedente a fuoco: {k} passaggi entrati ({n} fonti)",
   "ev.answer.suggestions": "{n} domande per approfondire",
   "artifact.full": "Schermo intero",
-  "artifact.reload": "Ricarica"
+  "artifact.reload": "Ricarica",
+  "chat.voice.voice": "Risposte a voce quando parli tu (tocca per cambiare)",
+  "chat.voice.always": "Risposte sempre a voce (tocca per cambiare)",
+  "chat.voice.off": "Risposte a voce spente (tocca per cambiare)",
+  "chat.voice.novoice": "Nessuna voce italiana su questo dispositivo: installala nelle impostazioni di sintesi vocale"
 }

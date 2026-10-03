@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2026 A.U.R.O.R.A. Project
-"""U2: the migration to the per-user layout, its rollback, the purge of a user (a fake installation in tmp)."""
+"""U2: the per-user layout (usr/<name>/ with today's tree; sys areas under users/<name>/), the migration, its rollback,
+the purge of a user, and the owner's papers never touched (a fake installation in tmp)."""
 import gzip
 import json
-from pathlib import Path
 
 import pytest
 
@@ -13,87 +13,115 @@ from aurora.sys_users import Users
 
 
 def tree(cfg) -> dict:
-    """Every file of every personal area and the shared ones, with its bytes."""
+    """Every file under usr/ and the personal sys areas, with its bytes."""
     out = {}
-    for key in ("AURORA_VAULT_DIR", "AURORA_UPLOADS_DIR", "AURORA_DOCUMENTS_DIR", "AURORA_STATUS_DIR"):
-        base = cfg.path(key)
+    for base in (cfg.root / "usr", cfg.path("AURORA_VAULT_DIR"), cfg.path("AURORA_STATUS_DIR")):
         for f in sorted(base.rglob("*")) if base.exists() else []:
-            if f.is_file() and "users.db" not in f.name and "devices" not in f.name:
+            if f.is_file() and f.name not in ("users.db", "devices.json", L.STATE):
                 out[str(f.relative_to(cfg.root))] = f.read_bytes()
     return out
 
 
 def today_layout(cfg):
+    for key in ("AURORA_UPLOADS_DIR", "AURORA_DOCUMENTS_DIR", "AURORA_IMAGE_DIR"):
+        cfg.values[key] = f"usr/{key.split('_')[1].lower()}"
+    usr = cfg.root / "usr"
+    (usr / "uploads" / "2026-10").mkdir(parents=True)
+    (usr / "uploads" / "2026-10" / "a-photo.png").write_bytes(b"png")
+    (usr / "documents" / "papers").mkdir(parents=True)
+    (usr / "documents" / "papers" / "brevetto.pdf").write_bytes(b"the owner's patent")
+    (usr / "documents" / "report.pdf").write_bytes(b"pdf")
+    (usr / "test_area").mkdir()
+    (usr / "test_area" / "x.txt").write_text("owner's folder")
     mem = cfg.path("AURORA_VAULT_DIR") / "memory" / "conversation"
     mem.mkdir(parents=True)
     (mem / "0001.db").write_bytes(b"turns")
-    (cfg.path("AURORA_VAULT_DIR") / "memory" / "registry.db").write_bytes(b"reg")
-    know = cfg.path("AURORA_VAULT_DIR") / "knowledge" / "physics"
-    know.mkdir(parents=True)
-    (know / "0001.db").write_bytes(b"shared knowledge")
-    up = cfg.path("AURORA_UPLOADS_DIR") / "2026-10"
-    up.mkdir(parents=True)
-    (up / "a-photo.png").write_bytes(b"png")
-    cfg.path("AURORA_DOCUMENTS_DIR").mkdir(parents=True, exist_ok=True)
-    (cfg.path("AURORA_DOCUMENTS_DIR") / "report.pdf").write_bytes(b"pdf")
-    (cfg.path("AURORA_DOCUMENTS_DIR") / "papers").mkdir()
-    (cfg.path("AURORA_DOCUMENTS_DIR") / "papers" / "arxiv-1.pdf").write_bytes(b"the library")      # shared
+    (cfg.path("AURORA_VAULT_DIR") / "knowledge" / "physics").mkdir(parents=True)
+    (cfg.path("AURORA_VAULT_DIR") / "knowledge" / "physics" / "0001.db").write_bytes(b"shared knowledge")
     st = cfg.path("AURORA_STATUS_DIR")
     (st / "push").mkdir(parents=True, exist_ok=True)
     (st / "routines.json").write_text("[]")
     (st / "push" / "subscriptions.json").write_text("[]")
-    (st / "plugins.json").write_text("{}")                     # shared: never moves
+    (st / "plugins.json").write_text("{}")                      # shared: never moves
 
 
-def test_migrate_then_rollback_gives_back_the_same_files(cfg):
+def test_migrate_moves_today_s_tree_under_the_admin_and_rollback_gives_it_back(cfg):
     today_layout(cfg)
     before = tree(cfg)
-    plan = L.migration_plan(cfg, "admin1")
-    assert {s["area"] for s in plan} == {"memory", "uploads", "documents", "state"}
-    assert not any("knowledge" in s["from"] or "plugins.json" in s["from"] or "papers" in s["from"] for s in plan)
-    L.migrate(cfg, "admin1")
-    assert (cfg.path("AURORA_VAULT_DIR") / "memory" / "users" / "admin1" / "conversation" / "0001.db").read_bytes() == b"turns"
-    assert (cfg.path("AURORA_STATUS_DIR") / "users" / "admin1" / "push" / "subscriptions.json").exists()
-    assert (cfg.path("AURORA_STATUS_DIR") / "plugins.json").exists()
-    assert (cfg.path("AURORA_VAULT_DIR") / "knowledge" / "physics" / "0001.db").exists()
-    assert L.migrate(cfg, "admin1") == {"moved": 0, "files": {}}      # a second run moves nothing
-    L.rollback(cfg, "admin1")
-    assert tree(cfg) == before                                  # byte for byte, and no users/ folder left
-    assert not any(p.name == "users" for p in cfg.root.rglob("users") if p.is_dir())
+    plan = L.migration_plan(cfg, "boss")
+    froms = {s["from"].replace(str(cfg.root) + "/", "") for s in plan}
+    assert "usr/uploads" in froms and "usr/test_area" in froms and "usr/documents/report.pdf" in froms
+    assert not any("papers" in f or "knowledge" in f or "plugins.json" in f for f in froms)
+    L.migrate(cfg, "boss")
+    usr = cfg.root / "usr"
+    assert (usr / "boss" / "uploads" / "2026-10" / "a-photo.png").read_bytes() == b"png"
+    assert (usr / "boss" / "documents" / "report.pdf").exists() and (usr / "boss" / "test_area" / "x.txt").exists()
+    assert (usr / "documents" / "papers" / "brevetto.pdf").read_bytes() == b"the owner's patent"     # never moved
+    assert (cfg.path("AURORA_VAULT_DIR") / "memory" / "users" / "boss" / "conversation" / "0001.db").exists()
+    assert (cfg.path("AURORA_STATUS_DIR") / "users" / "boss" / "push" / "subscriptions.json").exists()
+    assert L.place(cfg, "uploads", "boss") == usr / "boss" / "uploads"
+    assert L.migrate(cfg, "boss") == {"moved": 0, "files": 0}           # a second run moves nothing
+    L.rollback(cfg, "boss")
+    assert tree(cfg) == before                                            # byte for byte
+    assert not (usr / "boss").exists() and not (cfg.path("AURORA_VAULT_DIR") / "memory" / "users").exists()
+    assert L.migrated(cfg) is None and L.place(cfg, "uploads", "boss") == usr / "uploads"
+
+
+def test_the_owner_s_papers_stop_the_rollback_and_the_purge(cfg):
+    today_layout(cfg)
+    L.migrate(cfg, "boss")
+    mine = cfg.root / "usr" / "boss" / "documents" / "papers"
+    mine.mkdir()                                                          # the owner moved them into his folder
+    (mine / "brevetto.pdf").write_bytes(b"patent")
+    with pytest.raises(RuntimeError, match="papers"):
+        L.rollback(cfg, "boss")
+    assert (mine / "brevetto.pdf").read_bytes() == b"patent"
+    theirs = cfg.root / "usr" / "guest" / "documents" / "papers"
+    theirs.mkdir(parents=True)
+    (theirs / "x.pdf").write_bytes(b"x")
+    with pytest.raises(RuntimeError, match="papers"):
+        L.purge(cfg, "guest", "boss")
+    assert (theirs / "x.pdf").exists()
 
 
 def test_purge_leaves_nothing_of_the_user(cfg):
     today_layout(cfg)
     users = Users(cfg)
-    admin = users.add("owner", "admin", "a long password")["id"]
-    guest = users.add("guest", "user")["id"]
-    L.migrate(cfg, admin)
-    for a in L.AREAS[:3]:
-        h = L.home(cfg, a, guest)
-        h.mkdir(parents=True)
-        (h / "mine.txt").write_text("guest data")
+    users.add("boss", "admin", "a long password")
+    users.add("guest", "user")
+    L.migrate(cfg, "boss")
+    (cfg.root / "usr" / "guest" / "uploads").mkdir(parents=True)
+    (cfg.root / "usr" / "guest" / "uploads" / "mine.png").write_bytes(b"guest")
+    L.home(cfg, L.BY_NAME["memory"], "guest").mkdir(parents=True)
+    (L.home(cfg, L.BY_NAME["memory"], "guest") / "0001.db").write_bytes(b"guest turns")
     trace = cfg.path("AURORA_LOG_DIR") / "trace"
     trace.mkdir(parents=True, exist_ok=True)
-    (trace / "api.jsonl").write_text(json.dumps({"event": "a", "user": guest}) + "\n" + json.dumps({"event": "b", "user": admin}) + "\n")
+    (trace / "api.jsonl").write_text(json.dumps({"event": "a", "user": "guest"}) + "\n"
+                                     + json.dumps({"event": "b", "user": "boss"}) + "\n")
     with gzip.open(trace / "api.1.jsonl.gz", "wt") as f:
-        f.write(json.dumps({"event": "c", "user": guest}) + "\n")
+        f.write(json.dumps({"event": "c", "user": "guest"}) + "\n")
     devices = Devices(cfg)
-    _, dev = devices.register("guest phone", "ua")
+    devices.register("guest phone", "ua")
     items = json.loads(devices.file.read_text())
-    items[0]["user"] = guest
+    items[0]["user"] = "guest"
     devices.file.write_text(json.dumps(items))
-    plan = L.purge_plan(cfg, guest)
-    assert {s["what"] for s in plan} == {"memory", "memory_index", "uploads", "trace"}
-    out = L.purge(cfg, guest, admin)
-    assert out["devices"] == 1 and users.get(guest) is None
-    assert L.purge_plan(cfg, guest) == []
-    assert (trace / "api.jsonl").read_text().count(admin) == 1 and guest not in (trace / "api.jsonl").read_text()
-    assert L.home(cfg, L.AREAS[0], admin).exists()              # the admin's data untouched
+    assert {s["what"] for s in L.purge_plan(cfg, "guest")} == {"usr", "memory", "trace"}
+    out = L.purge(cfg, "guest", "boss")
+    assert out["devices"] == 1 and not any(u["name"] == "guest" for u in users.list())
+    assert L.purge_plan(cfg, "guest") == [] and not (cfg.root / "usr" / "guest").exists()
+    assert "guest" not in (trace / "api.jsonl").read_text() and "boss" in (trace / "api.jsonl").read_text()
+    assert (cfg.root / "usr" / "boss" / "uploads").exists()             # the admin's data untouched
     with pytest.raises(ValueError):
-        L.purge(cfg, admin, admin)
+        L.purge(cfg, "boss", "boss")
+    users.add("guest2", "user")
+    (cfg.root / "usr" / "guest2").mkdir()
+    with pytest.raises(RuntimeError, match="other users"):
+        L.rollback(cfg, "boss")
 
 
-def test_bad_ids_never_reach_the_file_system(cfg):
-    for bad in ("", "../x", "a/b", "."):
+def test_names_are_folders_never_paths(cfg):
+    cfg.values["AURORA_UPLOADS_DIR"] = "usr/uploads"
+    for bad in ("", "../x", "a/b", ".", "..", ".hidden", "uploads", "users", "x" * 41):
         with pytest.raises(ValueError):
-            L.home(cfg, L.AREAS[0], bad)
+            L.usr_home(cfg, bad)
+    assert L.usr_home(cfg, "mario.rossi").name == "mario.rossi"

@@ -899,8 +899,8 @@ Expenses in its sandbox (no network, writes only usr/expenses): the database mad
 "no spendings in 2026-10"; the chat routes "ho speso 45 euro di benzina" and "quanto ho speso questo mese al
 ristorante?" to the tools, "come si calcola un budget familiare?" not. Cinema waits for the TMDB key (off; "dove
 posso vedere Inception?" therefore not routed: to measure with the key). A test found trending people shown as films
-(fixed). Multi-user migration plan on this machine, read only: first 1,098 files, 26.6 GB — 25 GB were the papers of
-the shared library, excluded — then 101 files, 37.9 MB. Tests 245.
+(fixed). Multi-user migration plan on this machine, read only: first 1,098 files, 26.6 GB — 25 GB were the owner's
+`papers` (his documents and patents), now untouchable (C112) — then 101 files, 37.9 MB. Tests 245.
 
 ## M74 — Artifacts, formulas, routing (3 October 2026)
 

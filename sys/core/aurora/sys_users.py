@@ -133,6 +133,13 @@ class Users:
             r = con.execute("SELECT * FROM users WHERE id=?", (uid,)).fetchone()
         return self.public(r) if r else None
 
+    def admin_name(self) -> str | None:
+        """The admin's name (the key of the per-user folders) without creating the store: None while there are no users."""
+        if not self.path.exists():
+            return None
+        a = self.admin()
+        return a["name"] if a else None
+
     def admin(self) -> dict | None:
         with self._db() as con:
             r = con.execute("SELECT * FROM users WHERE role='admin' ORDER BY created LIMIT 1").fetchone()

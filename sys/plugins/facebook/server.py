@@ -98,7 +98,9 @@ def _picture(name: str):
     if not name or "/" in name or "\\" in name or name.startswith("."):
         raise ToolError("give the picture's file name only")
     for key in ("AURORA_IMAGE_DIR", "AURORA_UPLOADS_DIR", "AURORA_DOCUMENTS_DIR"):
-        found = next((p for p in Path(cfg.path(key)).rglob(name) if p.is_file()), None)
+        # never the owner's papers (his documents and patents): they are not Aurora's to publish
+        found = next((p for p in Path(cfg.path(key)).rglob(name) if p.is_file()
+                      and "papers" not in p.relative_to(cfg.path(key)).parts), None)
         if found:
             return found
     raise ToolError(f"no picture named {name}")

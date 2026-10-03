@@ -4,10 +4,11 @@
 import { call, stream } from "../api.js";
 import { bus } from "../bus.js";
 import { clock, el, scrollEnd, toBase64, useCss } from "../dom.js";
-import { apply, t } from "../i18n.js";
+import { apply, lang, t } from "../i18n.js";
 import { auroraBubble, follow, renderPast } from "./trace.js";
 import { shareButton } from "../share.js";
 import { view, viewLink } from "../viewer.js";
+import * as voice from "../voice.js";
 
 const HISTORY_TURNS = 8;          // 4 exchanges: the same memory Aurora keeps in context
 
@@ -44,6 +45,7 @@ export default {
           <button type="button" class="icon cam" data-i18n-title="chat.camera">📷</button>
           <button type="button" class="icon mic" data-i18n-title="chat.mic">🎙️</button>
           <button type="button" class="icon src"></button>
+          <button type="button" class="icon voice"></button>
           <input type="file" multiple hidden accept="image/*,video/*,.txt,.md,.markdown,.html,.htm,.pdf">
           <input type="file" class="shoot" hidden accept="image/*" capture="environment">
           <textarea rows="2" data-i18n-placeholder="chat.placeholder"></textarea>
@@ -123,7 +125,27 @@ export default {
       cam.disabled = false;
     });
 
+    // Answers aloud (voice.js): off, when the owner spoke (the default), always; the device's own voices only.
+    const voiceBtn = root.querySelector(".voice");
+    let spoken = false;                              // the message in the box was dictated
+    const showVoice = () => {
+      const m = voice.mode();
+      voiceBtn.textContent = m === "off" ? "🔇" : m === "always" ? "🔊" : "🗣️";
+      voiceBtn.title = t(`chat.voice.${m}`);
+    };
+    if (voice.supported()) showVoice(); else voiceBtn.hidden = true;
+    voiceBtn.addEventListener("click", () => {
+      if (voice.speaking()) { voice.stop(); return; }            // a tap while she speaks: silence
+      voice.nextMode();
+      showVoice();
+    });
+    const sayAloud = async (text) => {
+      const r = await voice.speak(text, lang.replace("_", "-"));
+      if (r === "novoice") input.placeholder = t("chat.voice.novoice");
+    };
+
     const heard = (r) => {
+      if (r.clear) spoken = true;
       if (r.clear) input.value = (input.value ? input.value + " " : "") + r.text;
       else input.placeholder = t("chat.mic.none");
       input.focus();
@@ -263,6 +285,10 @@ export default {
       const files = pending;
       const focus = nextFocus;
       nextFocus = null;
+      const aloud = voice.mode() === "always" || (voice.mode() === "voice" && spoken);
+      spoken = false;
+      if (aloud) voice.unlock();                     // during the owner's tap: some phones speak only after one
+      else voice.stop();
       if (!question && !files.length) return;
       send.disabled = true;
       input.value = "";
@@ -282,6 +308,7 @@ export default {
         ).finally(() => asking--);
         mine.add(run_id);
         const final = await follow(run_id, b, messages);
+        if (aloud && final?.text) sayAloud(final.text);
         if (final?.abstained && final.mode !== "self") offerAcquire(b, question);
         else if (final?.suggestions?.length) { const stick = messages.scrollHeight - messages.scrollTop - messages.clientHeight < 120; offerDeeper(b, final.suggestions); if (stick) scrollEnd(messages); }
       } catch (e) {

@@ -27,3 +27,14 @@ def test_formulas_tables_and_prices():
     out = subprocess.run(["node", str(HERE / "js" / "md_render.mjs"), MD.as_uri(), json.dumps(list(CASES))],
                          capture_output=True, text=True, timeout=30, check=True).stdout
     assert dict(zip(CASES, json.loads(out))) == CASES
+
+
+@pytest.mark.skipif(not shutil.which("node"), reason="node not installed")
+def test_what_is_read_aloud_has_no_markdown_citations_formulas_or_links():
+    voice = (HERE.parent / "webui" / "js" / "voice.js").as_uri()
+    text = ("## Risposta\nLa varianza è **quadratica** [1]. La formula $V = M_2 - M_1^2$ vale [2, 3].\n\n| A | B |\n"
+            "|---|---|\n| 1 | 2 |\n\nVedi https://arxiv.org/abs/1 e `codice`.\n```py\nx=1\n```\nFine.")
+    out = subprocess.run(["node", "--input-type=module", "-e",
+                          f"const {{ speakable }} = await import({json.dumps(voice)}); console.log(speakable({json.dumps(text)}))"],
+                         capture_output=True, text=True, timeout=30, check=True).stdout.strip()
+    assert out == "Risposta La varianza è quadratica. La formula vale. Vedi e codice. Fine."

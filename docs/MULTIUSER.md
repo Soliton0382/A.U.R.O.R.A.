@@ -26,9 +26,9 @@ is the same operation that removes a single user in multi mode: one code path, t
 | Data | Today | Whose | In the new layout |
 |---|---|---|---|
 | knowledge vault + index (2.7 GB + 1.2 GB) | `vault/knowledge`, `vault/index/knowledge` | shared (harvested, installed) | unchanged; a user's own documents carry `owner` and `shared_with`, filtered at search time |
-| memory: conversations, reflections (4.3 MB) | `vault/memory`, `vault/index/memory` | personal | `vault/memory/<uid>/`, `vault/index/memory/<uid>/` |
-| uploads, documents (PDF), projects, notes, pictures | `AURORA_*_DIR` | personal | `<dir>/<uid>/` |
-| routines, approvals, push subscriptions | `status/*.json` | personal | one file per user under `status/users/<uid>/` |
+| memory: conversations, reflections (4.3 MB) | `vault/memory`, `vault/index/memory` | personal | `vault/memory/users/<name>/`, `vault/index/memory/users/<name>/` |
+| everything under `usr/` (uploads, documents, projects, notes, images, expenses, bugreports, media, test_area…) | `usr/` | personal | **`usr/<name>/` with the same tree** (owner, 2026-10-03): a path changes only by the user's name; today's tree goes under `usr/<admin>/` (the admin is named as the system user of the services); `usr/documents/papers` stays where it is until the owner moves it |
+| routines, approvals, push subscriptions | `status/*.json` | personal | one file per user under `status/users/<name>/` |
 | devices | `status/devices.json` | personal | same file, every device with its `user` |
 | trace of runs (questions, answers) | `logs/trace/*.jsonl` | personal | every event with `user`; the purge rewrites the files without the user's lines |
 | settings, plugins, models, forge, incidents, backup, harvest | `.env`, `status/` | admin | unchanged |
@@ -72,12 +72,14 @@ each item with the registered users (one, several, all). Personal files private.
 a code never twice). Tests: `test_users.py` (RFC vectors, replay, one admin never removed). Not wired yet.
 
 ### U2 — Mode, migration, purge (the clean switch) — core ✅ (2026-10-03)
-Done: `sys_users_layout` (the areas, `<area>/users/<uid>/`, migration plan, migrate, rollback, purge with its check:
+Done: `sys_users_layout` (`usr/<name>/` with today's tree, the sys areas under `users/<name>/`; users are known by
+their name, which never changes; migration plan, migrate, rollback, purge with its check:
 files, trace lines, devices, the user record) and `script/sys_users_migrate.py` (plan by default; `--yes` only with
 the services stopped and a backup of the last 24 h). Tests on a fake installation: rollback gives back the same
 bytes, a second migration moves nothing, a purge leaves 0 traces, the admin cannot be purged, bad ids never reach
-the file system. Real plan on this machine (read only): 101 files, 37.9 MB; the papers of the library (25 GB) are
-shared and stay (M75). Still in U2, with U3: the mode setting and the switch from Settings. **The migration runs
+the file system. Real plan on this machine (read only), with the owner's tree: 100 files, 38.6 MB. **`usr/documents/papers` (25 GB, the
+owner's documents and patents) is never touched**: not moved, not purged; the owner moves it into his folder himself
+(C112). Still in U2, with U3: the mode setting and the switch from Settings. **The migration runs
 only at the end of U3**, when the code reads the per-user layout.
 | Task | Where |
 |---|---|
@@ -90,7 +92,22 @@ only at the end of U3**, when the code reads the per-user layout.
 Tests: migration on a copied test vault (never the real one: law 5), dry-run changes nothing, purge leaves 0
 traces, rollback gives back byte-identical files. Measure: time and size of the migration on a copy of this vault.
 
-### U3 — Data scoped by user (the long phase)
+### U3 — Data scoped by user (the long phase) — started 2026-10-03
+How it is built without ever breaking Aurora: every module asks `sys_users_layout.place(cfg, area, user)` where its
+data is; until the migration the answer is today's folder (nothing changes), after it the user's folder. Each module
+is converted and tested on its own; the migration is the last switch, run by the owner.
+
+| Step | State |
+|---|---|
+| `place()` and the migration flag (`status/users_layout.json`) | ✅ tests |
+| every request knows its user (`request.state.user`: the device's, or the admin's for the API key; none while there are no users) | ✅ live, nothing changed for the owner |
+| memory (reader, writer, index; REM per user) | next |
+| uploads, documents, pictures, projects, notes | |
+| routines, approvals, push, react | |
+| plugins with personal data (expenses, notes): their folder per user | |
+| the crossing test on every API route | |
+| the migration, by the owner | last |
+
 | Area | Change |
 |---|---|
 | auth | `request.state.user` from the device (cookie) or the API key (= admin); every route gets its user |
@@ -112,6 +129,14 @@ The installer shows it and writes `AURORA_USERS_MAX`. Measure: an M-number on th
 Login page (name, password, 6-digit code); TOTP enrolment with a QR code (a vendored QR library, no CDN: CSP);
 Users page for the admin (create, reset password, reset TOTP, remove with the purge listing); the installer asks
 single or multi; manual tests N17+ (phone and PC, two users, switching modes both ways).
+
+### U6 — Folders protected by the system (owner, 2026-10-03), to decide
+The owner wants only an admin (and Aurora) to browse the users' folders. Proposal: Aurora's services run as a
+dedicated system account `aurora` (no login), owner of `usr/` and of every `usr/<name>/` (mode 0750, group
+`aurora-admins`, whose members are the admins' system accounts): other accounts of the machine see nothing; people
+use Aurora through the WebUI, so they need no system account. Creating a system account per Aurora user is needed
+only if users must also reach their folder outside Aurora (a network share): to decide. Today the services run as
+the owner's own account: the change of service account is an installer step with sudo, done once.
 
 ### Order and size (estimated, not measured)
 U2 → U3 → U4 → U5; U3 is the largest (every module with personal data). Each phase is published on its own,

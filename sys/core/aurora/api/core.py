@@ -140,6 +140,7 @@ def auth(request: Request) -> None:
     bearer = request.headers.get("authorization", "").removeprefix("Bearer ").strip()
     if _is_key(bearer):
         request.state.device = None
+        request.state.user = _admin()                    # the API key is the admin's (third-party clients)
         return
     dev = devices.check(bearer) or devices.check(request.cookies.get(COOKIE, ""))
     if dev is None:
@@ -147,6 +148,17 @@ def auth(request: Request) -> None:
             _failed(request)
         raise HTTPException(status_code=401, detail="invalid or missing API key")
     request.state.device = dev
+    request.state.user = dev.get("user") or _admin()   # a device made before multi-user is the admin's
+
+
+def _admin() -> str | None:
+    """The admin's name; None while the installation has no users (today's layout: every path as before)."""
+    from aurora.sys_users import Users
+    return Users(cfg).admin_name()
+
+
+def user_of(request: Request) -> str | None:
+    return getattr(request.state, "user", None)
 
 
 def plugin_host():
