@@ -28,7 +28,7 @@ Larger, by priority (highest first):
 5. **Alerts per user** — ✅ each user's choice was already theirs; a user now sees only the personal kinds (the
    machine's — incidents, backup, updates, harvester, cloud — are the admin's). Missing alerts found and added: the
    cloud ceiling reached, a cloud provider failing (answers from the local model), a plugin stopped for a secret, the
-   harvester waiting; once an hour each, to the admin. N38.
+   harvester waiting; once an hour each, to the admin. Then (C126): Aurora's health, new sign-ins, her posts. N38.
 6. **Trash with retention** — ✅ sys_trash: a file deleted from Files (attachments, Aurora's PDFs) goes to
    usr/<user>/trash, restorable; removed after AURORA_TRASH_DAYS (30) by the nightly round; AURORA_TRASH_ENABLED. N39.
 7. **Routines: several times and day groups** — ✅ "days and times": times with "+", days one by one or a group

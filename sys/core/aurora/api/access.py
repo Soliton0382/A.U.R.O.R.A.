@@ -26,6 +26,8 @@ async def register_device(request: Request) -> Response:
     token, rec = devices.register(body.get("name", ""), request.headers.get("user-agent", ""))
     log.info("audit: device registered: %s (%s)", rec["name"], rec["id"])
     sys_log.trace("api", "device.register", {"id": rec["id"], "name": rec["name"]})
+    from .core import note
+    note("api", "device.new", {"text": rec["name"]})              # a new device on the account: told
     resp = JSONResponse(rec)
     resp.set_cookie(COOKIE, token, max_age=cfg["AURORA_DEVICE_DAYS"] * 86400, httponly=True, secure=True,
                     samesite="strict", path="/")

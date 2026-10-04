@@ -137,3 +137,24 @@ def test_a_project_runs_its_tests_with_no_network_and_no_secrets(cfg):
     for bad in ("../x", "Demo", ""):
         with pytest.raises(ValueError):
             prj_run.run(cfg, bad, "true")
+
+
+# ---- the notifications that were missing ---------------------------------------------------------------------
+def test_every_event_aurora_tells_has_a_kind_the_owner_can_choose():
+    for ev, (kind, _view, titles) in sys_push.TEXTS.items():
+        assert kind == "test" or kind in sys_push.KINDS, ev
+        assert titles["it"] and titles["en"]
+    for ev, kind in (("health.down", "health"), ("device.new", "access"), ("social.auto", "social"),
+                     ("forge.request", "plugin")):
+        assert sys_push.TEXTS[ev][0] == kind
+    assert "health" in sys_push.MACHINE and "access" not in sys_push.MACHINE and "social" not in sys_push.MACHINE
+
+
+def test_a_service_down_is_told_once_and_its_return_too():
+    from aurora.sys_health import health_change
+    ok = [{"name": "aurora-llm", "level": "ok", "text": "attivo"}]
+    down = [{"name": "aurora-llm", "level": "down", "text": "fermo"}]
+    assert health_change(ok, set()) is None
+    assert health_change(down, set()) == ("health.down", "aurora-llm: fermo")
+    assert health_change(down, {"aurora-llm"}) is None                  # still down: not said again
+    assert health_change(ok, {"aurora-llm"}) == ("health.up", "aurora-llm")

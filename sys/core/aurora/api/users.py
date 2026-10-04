@@ -56,6 +56,8 @@ async def login(request: Request) -> JSONResponse:
     log.info("audit: login of %s, device %s", u["name"], rec["id"])
     with sys_context.acting_as(u["name"]):              # the user's own line: their purge removes it
         sys_log.trace("api", "user.login", {"device": rec["id"]})
+        from .core import note
+        note("api", "device.new", {"text": rec["name"]})
     resp = JSONResponse({"user": u["name"], "role": u["role"]})
     resp.set_cookie(COOKIE, token, max_age=cfg["AURORA_DEVICE_DAYS"] * 86400, httponly=True, secure=True,
                     samesite="strict", path="/")

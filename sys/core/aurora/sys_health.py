@@ -61,6 +61,17 @@ def _beat_age_min(cfg, name: str) -> float | None:
     return (time.time() - f.stat().st_mtime) / 60 if f.exists() else None
 
 
+def health_change(items: list[dict], before: set[str]) -> tuple[str, str] | None:
+    """(event, text) when a check went down since `before` (the names down then), or all came back; else None."""
+    down = {i["name"]: i for i in items if i["level"] == "down"}
+    new = [down[n] for n in down if n not in before]
+    if new:
+        return "health.down", "; ".join(f"{i['name']}: {i['text']}" for i in new)[:300]
+    if before and not down:
+        return "health.up", ", ".join(sorted(before))
+    return None
+
+
 def check(cfg: sys_config.Config | None = None) -> dict:
     cfg = cfg or sys_config.get()
     items = []

@@ -163,4 +163,7 @@ if __name__ == "__main__":
     import threading
     app.router.add_event_handler("startup", lambda: threading.Thread(target=_warm_plugins, name="warm-plugins",
                                                                       daemon=True).start())
+    from aurora.api.activity import watch_health      # a service down or the disk full becomes an alert
+    app.router.add_event_handler("startup", lambda: threading.Thread(target=watch_health, name="watch-health",
+                                                                      daemon=True).start())
     uvicorn.run(app, host=cfg["AURORA_API_HOST"], port=cfg["AURORA_API_PORT"], log_level="warning", timeout_graceful_shutdown=5)

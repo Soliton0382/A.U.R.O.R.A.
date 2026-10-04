@@ -83,6 +83,28 @@ def run_record(run_id: str) -> list[dict]:
 _health_cache: dict = {"at": 0.0, "value": None}
 
 
+_down: set[str] = set()
+
+
+def watch_health(every_s: int = 120) -> None:
+    """Every two minutes: a check that went down (a service, the disk) is told to the admin, and when all is fine
+    again (owner, 2026-10-04: no alert existed, a stopped service was seen only on the Status page)."""
+    from aurora import sys_context, sys_health
+    from .core import _admin
+    while True:
+        time.sleep(every_s)
+        try:
+            items = health_all()["items"]
+            change = sys_health.health_change(items, _down)
+            if change:
+                with sys_context.acting_as(_admin()):
+                    note("health", change[0], {"text": change[1]})
+            _down.clear()
+            _down.update(i["name"] for i in items if i["level"] == "down")
+        except Exception:  # noqa: BLE001 — the watcher never dies
+            continue
+
+
 @router.get("/v1/aurora/health", dependencies=[Depends(auth)])
 def health_all() -> dict:
     from aurora import sys_health

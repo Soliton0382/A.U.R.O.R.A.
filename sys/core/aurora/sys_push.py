@@ -31,7 +31,7 @@ TEXTS = {   # event -> (kind the owner chooses, view to open, {lang: title})
     "rem.self_review": ("self_review", "diary", {"it": "🩺 Autodiagnosi di Aurora", "en": "🩺 Aurora's self-review"}),
     "react.done": ("self_review", "approvals", {"it": "🛠️ Aurora ha analizzato subito un errore",
                                                 "en": "🛠️ Aurora looked into an error at once"}),
-    "social.auto": ("approval", "approvals", {"it": "📣 Aurora ha pubblicato un post", "en": "📣 Aurora published a post"}),
+    "social.auto": ("social", "social", {"it": "📣 Aurora ha pubblicato un post", "en": "📣 Aurora published a post"}),
     "approval.failed": ("approval", "approvals", {"it": "⚠️ Un'azione approvata non è riuscita",
                                                   "en": "⚠️ An approved action failed"}),
     "update.available": ("update", "approvals", {"it": "⬆️ Aggiornamento di Aurora disponibile", "en": "⬆️ Aurora update available"}),
@@ -56,6 +56,10 @@ TEXTS = {   # event -> (kind the owner chooses, view to open, {lang: title})
     "plugin.refused": ("plugin", "plugins", {"it": "🚫 Un plugin è stato fermato (provava a usare un segreto)",
                                              "en": "🚫 A plugin was stopped (it tried to use a secret)"}),
     "harvest.waiting": ("harvest", "harvester", {"it": "🌾 L'harvester è in attesa", "en": "🌾 The harvester is waiting"}),
+    "health.down": ("health", "status", {"it": "🚨 Aurora non sta bene", "en": "🚨 Aurora is not well"}),
+    "health.up": ("health", "status", {"it": "✅ Aurora è tornata a posto", "en": "✅ Aurora is fine again"}),
+    "device.new": ("access", "settings", {"it": "🔐 Nuovo accesso al tuo account", "en": "🔐 A new sign-in to your account"}),
+    "forge.request": ("plugin", "plugins", {"it": "🔨 Aurora chiede una nuova capacità", "en": "🔨 Aurora asks for a new capability"}),
     "test": ("test", "chat", {"it": "🔔 Notifiche attive", "en": "🔔 Notifications on"}),
 }
 KINDS = {   # what the owner chooses from, in the Notifications page
@@ -73,11 +77,15 @@ KINDS = {   # what the owner chooses from, in the Notifications page
     "backup": {"it": "Backup non riuscito", "en": "Backup failed"},
     "backup_ok": {"it": "Backup riuscito (ogni notte)", "en": "Backup done (every night)"},
     "cloud": {"it": "Cloud (tetto raggiunto, provider in errore)", "en": "Cloud (ceiling reached, provider failing)"},
+    "health": {"it": "Salute di Aurora (un servizio fermo, disco quasi pieno, e quando torna a posto)",
+               "en": "Aurora's health (a service down, the disk nearly full, and when it is fine again)"},
+    "access": {"it": "Nuovi accessi e dispositivi sul tuo account", "en": "New sign-ins and devices on your account"},
+    "social": {"it": "Post pubblicati da Aurora", "en": "Posts Aurora published"},
 }
 # the machine's: only the admin chooses them (a user is not told of the backup or the firewall)
-MACHINE = {"incident", "update", "self_review", "harvest", "plugin", "backup", "backup_ok", "cloud"}
+MACHINE = {"incident", "update", "self_review", "harvest", "plugin", "backup", "backup_ok", "cloud", "health"}
 PRESETS = {"suggested": ["incident", "approval", "update", "dream", "self_review", "routine", "weather", "plugin", "creation", "backup",
-                         "cloud"],
+                         "cloud", "health", "access", "social"],
            "all": list(KINDS), "none": []}
 KNOWN_BEFORE = ["incident", "approval", "update", "dream", "self_review", "thought", "harvest"]   # prefs saved without "known"
 CHANNELS = ("push", "webui")
