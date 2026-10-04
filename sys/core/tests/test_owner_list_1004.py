@@ -337,3 +337,14 @@ def test_the_gate_keeps_a_passage_the_reranker_is_sure_of(cfg):
     events.clear()
     Pipeline._answer(me, "q", hits, "", lambda e, p: events.append((e, p)))
     assert dict(events)["gate"]["open"] is False
+
+
+def test_the_harvester_s_sources_load_first_without_a_circle():
+    """C130: kno_sources → kno_acquire → kno_acquire_more → kno_sources broke the Harvester page (HTTP 500)."""
+    import subprocess
+    import sys as _sys
+    for first in ("kno_sources", "kno_acquire", "kno_acquire_more"):
+        r = subprocess.run([_sys.executable, "-c", f"import aurora.{first}; from aurora import kno_acquire_more as M; "
+                                                   "from aurora import kno_sources; print(M.KS.EPMC)"],
+                           cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True)
+        assert r.returncode == 0 and "ebi.ac.uk" in r.stdout, (first, r.stderr[-400:])

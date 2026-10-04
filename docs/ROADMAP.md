@@ -3,6 +3,40 @@
 Every request of the owner is recorded here as soon as it is made, so that nothing is lost between
 sessions. Each item moves to STATUS.md ("Working") when it is validated. Updated 2026-09-30.
 
+## Where Aurora is (2026-10-04, evening) — what is left, in order
+
+Done today and yesterday, live: the owner's list of 4 October, all 10 points (3-7 and 9 on the night of the 4th; 2, 8 and 10 on the morning), the forge 8 of 8
+(M89), security from the firewall's documentation (M88), the search beyond arXiv (M86), notifications complete (C126).
+
+| # | what is left | kind | first step / measure |
+|---|---|---|---|
+| 1 | A18 — the gate closes on 3 of 30 answerable questions | bug | the gate step on a stronger model (cloud, masked) vs local on pool30; a re-ranker threshold is ruled out (M92) |
+| 2 | A19 — garbled formulas in 92 PDFs make a right sentence fail verification | bug | measure a math-aware PDF extractor on those 92 documents, re-import them |
+| 3 | The owner's manual tests N13-N44 | verification | one pass on the phone and the PC |
+| 4 | U4 — how many users at once the machine serves | measure | a load test at the measured ceiling (answers per minute, GPU memory) |
+| 5 | U6 — each user's folders protected by a system account | decision | the owner decides; today the separation is Aurora's (tests M79-M80) |
+| 6 | A week of soak — memory, logs, GPU swaps, failed routines, measured daily | measure | the doctor and health give the numbers; a daily line in MEASUREMENTS |
+| 7 | 🎧 DJ plugin (owner, 2026-10-04) — see below | new | proposal to approve |
+| 8 | The XG API live: the owner turns it on, Aurora blocks one test address (N44) | verification | after the owner's setup on the firewall |
+| 9 | The forge with the local reasoner after C129 | measure | `bench_forge.py` without --roles |
+
+### 🎧 DJ plugin — proposal (owner, 2026-10-04), not started
+
+"Not professional, a few ready presets": the owner's own tracks (uploaded or in a music folder) become a mix.
+- **Presets, ready to go:** *smooth* (beat-aware crossfades, same loudness), *party* (tempo matched to one BPM, short
+  cuts on the beat), *mashup* (the vocals of one song over the instrumental of another, tempo and key aligned),
+  *chill* (slower, long fades, a touch of reverb), *radio edit* (a track cut to ~3 minutes at its phrase boundaries).
+- **What it needs:** ffmpeg (present: acrossfade, rubberband for tempo without pitch, loudnorm, amix); beat and key
+  detection (librosa, to install, ISC licence); vocals/instrumental separation for mashups (Demucs, to install and
+  measure on the GPU, its licence checked before); everything local, nothing uploaded.
+- **How it is used:** a card with the tracks, the preset and a few sliders (length, BPM, how much of each); or in the
+  chat ("fammi un mix party con questi tre brani"); the result in Files and playable in the chat.
+- **Limits said plainly:** only music the owner has the right to use; a mix of others' songs stays private (no
+  automatic social post, the AI Act mark on anything published); generating new music from nothing is not in this
+  first version (the open models' licences to be checked first).
+- **Measures before "done":** BPM detection against tracks of known tempo; a mix's beat alignment (offset in ms);
+  the GPU time of a separation; the owner's ear on 3 presets.
+
 ## Owner's list of 2026-10-04 — in order of priority
 
 Quick fixes, done in the same session (each verified in STATUS when closed):

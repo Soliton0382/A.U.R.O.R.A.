@@ -18,7 +18,7 @@ import re
 from typing import Callable
 
 from .kno_acquire import Entry
-from .kno_sources import EPMC, OPEN_LICENCES, WIKI, catalogue, jats_text
+from . import kno_sources as KS        # its names read at call time: kno_sources imports kno_acquire (C130)
 
 Get = Callable[..., object]             # ArxivAgent._polite_get(url, **params) -> httpx.Response
 SEARCHERS = ("europepmc", "wikipedia", "github")
@@ -29,7 +29,7 @@ def _plain(html: str) -> str:
 
 
 def europepmc(get: Get, query: str, n: int) -> list[Entry]:
-    r = get(f"{EPMC}/search", query=f"OPEN_ACCESS:y AND HAS_FT:y AND ({query})", resultType="core", format="json",
+    r = get(f"{KS.EPMC}/search", query=f"OPEN_ACCESS:y AND HAS_FT:y AND ({query})", resultType="core", format="json",
             pageSize=n).json()
     out = []
     for h in r.get("resultList", {}).get("result", []):
@@ -39,7 +39,7 @@ def europepmc(get: Get, query: str, n: int) -> list[Entry]:
         lic = h.get("license") or "open access"
 
         def fetch(pmc=pmc, lic=lic):
-            title, text = jats_text(get(f"{EPMC}/{pmc}/fullTextXML").content)
+            title, text = KS.jats_text(get(f"{KS.EPMC}/{pmc}/fullTextXML").content)
             return f"{pmc}.txt", text.encode(), lic, f"https://europepmc.org/article/PMC/{pmc}"
         about = _plain(h.get("abstractText", "")) or ", ".join(        # no abstract: its MeSH terms for the re-ranker
             m.get("descriptorName", "") for m in (h.get("meshHeadingList") or {}).get("meshHeading", []))
@@ -49,17 +49,17 @@ def europepmc(get: Get, query: str, n: int) -> list[Entry]:
 
 
 def wikipedia(get: Get, query: str, n: int) -> list[Entry]:
-    r = get(WIKI, action="query", list="search", srsearch=query, srlimit=n, format="json").json()
+    r = get(KS.WIKI, action="query", list="search", srsearch=query, srlimit=n, format="json").json()
     out = []
     for h in r.get("query", {}).get("search", []):
         title = h["title"]
 
         def fetch(title=title):
-            page = next(iter(get(WIKI, action="query", prop="extracts", explaintext=1, titles=title, redirects=1,
+            page = next(iter(get(KS.WIKI, action="query", prop="extracts", explaintext=1, titles=title, redirects=1,
                                  format="json").json().get("query", {}).get("pages", {}).values()), {})
             text = re.split(r"\n== (See also|References|Notes|Further reading|External links|Bibliography) ==",
                             page.get("extract", ""))[0]
-            return (re.sub(r"\W+", "_", title)[:80] + ".txt", text.encode(), catalogue()["licences"]["wikipedia"],
+            return (re.sub(r"\W+", "_", title)[:80] + ".txt", text.encode(), KS.catalogue()["licences"]["wikipedia"],
                     "https://en.wikipedia.org/wiki/" + title.replace(" ", "_"))
         out.append(Entry(f"wikipedia:{title}", title, _plain(h.get("snippet", "")), "", "", source="wikipedia",
                          fetch=fetch))
@@ -71,7 +71,7 @@ def github(get: Get, query: str, n: int) -> list[Entry]:
     out = []
     for it in r.get("items", []):
         lic = (it.get("license") or {}).get("spdx_id") or ""
-        if lic not in OPEN_LICENCES or it.get("archived") or it.get("fork"):
+        if lic not in KS.OPEN_LICENCES or it.get("archived") or it.get("fork"):
             continue
 
         def fetch(it=it, lic=lic):
@@ -92,7 +92,7 @@ SEARCH = {"europepmc": europepmc, "wikipedia": wikipedia, "github": github}
 
 def domains_of(source: str) -> list[str]:
     """The vault domains whose harvester uses this source (their order in the file: the first is the default)."""
-    return [d for d, srcs in catalogue()["domains"].items() if any(s["source"] == source for s in srcs)]
+    return [d for d, srcs in KS.catalogue()["domains"].items() if any(s["source"] == source for s in srcs)]
 
 
 def choose_domain(llm, source: str, question: str, title: str) -> str:
