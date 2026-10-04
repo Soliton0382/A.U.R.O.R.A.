@@ -308,3 +308,32 @@ def test_a_proposal_is_played_on_the_real_traffic_before_the_owner_decides(cfg):
     r = sec_rules.check({"id": "denied", "match": {"log_id": "010302"}, "threshold": 10, "window_min": 5})
     [out] = sec_profile.tried(cfg, [r], 24)
     assert out["tried"] == {"incidents": 1, "sources": 1, "hours": 24} and sec_rules.check(out)["tried"] == out["tried"]
+
+
+# ---- A18: a passage the re-ranker is sure of passes a closed gate --------------------------------------------------
+def test_the_gate_keeps_a_passage_the_reranker_is_sure_of(cfg):
+    from types import SimpleNamespace
+    from aurora import sol_schema as S
+    from aurora.kno_answer import Pipeline
+    from aurora.sol_search import Hit
+
+    class LLM:
+        def complete(self, system, user, n):
+            return SimpleNamespace(answer="NONE")              # the gate closes; the extraction finds nothing
+    sol = lambda t: S.Soliton.new(t, "physics", "knowledge", "en", "arxiv:a")  # noqa: E731
+    events = []
+    me = SimpleNamespace(cfg=cfg, _for=lambda role: LLM())
+    cfg.values["AURORA_PIPELINE_GATE_KEEP"] = 0.88                    # off by default (M91): switched on here
+    hits = [Hit("a", sol("Z equals the inverse normal of one minus p."), 0.5, 0.97, "original"),
+            Hit("b", sol("Unrelated."), 0.5, 0.20, "original")]
+    assert Pipeline._answer(me, "formula of Z?", hits, "", lambda e, p: events.append((e, p))) is None
+    gate = dict(events)["gate"]
+    assert gate["open"] and gate["kept_by_reranker"] == [1] and "synthesis.domain" in dict(events)   # went on
+    events.clear()
+    low = [Hit("b", sol("Unrelated."), 0.5, 0.20, "original")]
+    assert Pipeline._answer(me, "q", low, "", lambda e, p: events.append((e, p))) is None
+    assert dict(events)["gate"]["open"] is False and "synthesis.domain" not in dict(events)       # still closed
+    me.cfg.values["AURORA_PIPELINE_GATE_KEEP"] = 0.0                                               # off
+    events.clear()
+    Pipeline._answer(me, "q", hits, "", lambda e, p: events.append((e, p)))
+    assert dict(events)["gate"]["open"] is False

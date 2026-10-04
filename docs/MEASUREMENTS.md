@@ -893,6 +893,46 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M92 — The same on the real vault; the garbled formulas counted (4 October 2026)
+
+The 108 questions of retrieval_pool108 against the real index (the models service, no copy): the source's best
+passage in the top 12 for 81, another document's for 102. Above T, positives / negatives: 0.70 → 67/81, 61/102;
+0.90 → 52, 25; 0.95 → 33, 12; 0.98 → 19, 6; 0.99 → 9, 2. On the real vault related papers score as high as the
+source: **no threshold of the re-ranker separates a passage with the answer from one without** — the A18 way of a
+threshold is closed. The vault read for norms printed "kxk" (3 or more in a passage, dictionary words excluded):
+**209 of 221,791 passages (0.09%) in 92 documents**, mostly mathematics (112 in 44 documents); other garbling
+(subscripts on other lines) not counted.
+
+## M91 — The gate's threshold on the real vault, and why A19 abstains (4 October 2026)
+
+`bench_quality.py --pool 30 --tag gatekeep` with AURORA_PIPELINE_GATE_KEEP 0.88: mean **6.57** (M71 6.80; noise
+±0.75), answered 21, wrong abstentions gate 3, verification 1. None of the gate's wrong closures was kept: on the real
+vault the right passage of the Z-score question scored **0.694** (0.97 on the isolated benchmark of M90; the real
+vault's passages are cut otherwise and the top passages of other papers score 0.78-0.72): a threshold measured on the
+benchmark does not carry over. Switched off (0), the code kept for a measure on the real vault.
+A19 this time passed gate and extraction and was dropped by the verification: the passage comes from a PDF whose
+text extraction garbled the formula (the norm ‖x‖ printed as "kxk", subscripts on other lines), the answer re-typeset
+it, and the verifier, against the garbled text, said NO. Five sentences tried against the same 12 passages, with the
+present prompt and with one telling the verifier about garbled formulas: the right sentence with the formula NO/NO,
+the same claim in words YES/YES, three wrong sentences NO/NO. The prompt changes nothing: not adopted. The cause is
+upstream, in the PDF's text. Not measured: how many passages of the vault carry garbled formulas.
+
+## M90 — How sure the re-ranker is, with and without the answer (4 October 2026)
+
+retrieval_pool108 through the running models service (no second copy on the GPU, C117): for each question the
+re-ranker's best score among the source document's passages (the answer is there: 104, four sources not in the top
+12) and among all other documents' (it is not: 108). Above a threshold T, positives / negatives: 0.80 → 76/104,
+4/108; 0.87 → 68, 3; **0.88 → 67 (64%), 1 (0.9%)**; 0.90 → 64, 1; 0.95 → 48, 1; 0.98 → 22, 0. Chosen 0.88: two in
+three answers kept, one false opening in a hundred, and the extraction still filters after it. The A18 cases: the
+Z-score formula's passage 0.97 (kept), the Antikythera astronomer 0.65 (not), "the key to stability" not in the top
+12 (a retrieval miss, no gate can help); A19's passage 0.93 (the gate opened it already).
+
+## M89 — The forge 8 of 8 (4 October 2026)
+
+`bench_forge.py --roles` after C129, writer and judge Claude Code opus: **8 of 8 built, 8 of 8 right**, 31-104 s per
+need (M87: 6 of 8; Grok M83: 5 of 8; the local reasoner M54: 4 of 8). Not measured: needs outside these 8; the same
+run with the local reasoner after C129.
+
 ## M88 — Security checks proposed from the documentation, tried on real traffic (4 October 2026)
 
 The firewall's last 24 h: 218,549 lines in 20 groups (log type, component, subtype, log_id digits), grouped in 3.4 s;

@@ -459,7 +459,11 @@ def build(cfg: sys_config.Config, llm, host, req: dict, emit, masker=None, judge
             stage.mkdir(parents=True)
             (stage / "plugin.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             (stage / "server.py").write_text(code, encoding="utf-8")
-            errors = test(host, manifest, stage, judge or llm, seen, masker, need=req["need"], hours=hours)
+            # A23: the judge's facts counted now, when the plugin runs — the logs grow while the forge works (its own
+            # cage runs write to the plugins' log), and an earlier count made a right output look wrong
+            now_seen = peek(cfg, [str(x) for x in looked if isinstance(x, str)], hours or 24)
+            errors = test(host, manifest, stage, judge or llm, masker(now_seen) if masker else now_seen, masker,
+                          need=req["need"], hours=hours)
         emit("forge.attempt", {"attempt": attempt, "ok": not errors, "errors": errors[:5], "name": manifest.get("name")})
         log.info("forge %s attempt %d: %s", req["id"], attempt, "ok" if not errors else "; ".join(errors)[:300])
         if not errors:

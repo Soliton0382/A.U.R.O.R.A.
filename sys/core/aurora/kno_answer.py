@@ -248,8 +248,12 @@ class Pipeline:
         if self.cfg["AURORA_PIPELINE_GATE"]:
             g = self._for("gate").complete(SYS_GATE, f"PASSAGES:\n\n{_passages(hits, ids)}\n\nQUESTION: {question}", 32)
             opened = [int(x) for x in re.findall(r"\d+", g.answer) if 1 <= int(x) <= len(hits)]
-            ev("gate", {"open": bool(opened) and ABSTAIN_MARK not in g.answer.upper(), "passages": opened})
-            if not opened or ABSTAIN_MARK in g.answer.upper():
+            closed = not opened or ABSTAIN_MARK in g.answer.upper()
+            keep = float(self.cfg["AURORA_PIPELINE_GATE_KEEP"] or 0)
+            sure = [n for n, h in enumerate(hits, 1) if keep and h.rerank >= keep]
+            ev("gate", {"open": not closed or bool(sure), "passages": opened if not closed else sure,
+                        **({"kept_by_reranker": sure} if closed and sure else {})})
+            if closed and not sure:      # A18: a passage the re-ranker is sure of goes on to the extraction (M90)
                 return None
 
         by_domain: dict[str, list[int]] = defaultdict(list)

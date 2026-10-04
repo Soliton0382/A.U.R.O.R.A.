@@ -17,8 +17,7 @@ Quick fixes, done in the same session (each verified in STATUS when closed):
 
 Larger, by priority (highest first):
 1. **Voice** — owner (2026-10-04): the voice is natural, a neural one is not needed; the choice works (N24).
-2. **The judge on zeros (A22)** — ✅ C128: with Claude Code opus the firewall's count is right (M87); the forge 6 of 8,
-   the two left are A23.
+2. **The judge on zeros (A22)** — ✅ C128, then C129: the forge **8 of 8** with Claude Code opus (M89).
 3. **Plugins: admin or user** — ✅ (2026-10-04) plg_access: the machine's plugins (backup, security, netintel, self,
    senses, homeassistant, cloud) the admin's, the personal ones everyone's; a new or forged plugin the admin's until
    shared; 👥 in each card. Switching plugins is the admin's (C124). N36.
@@ -48,6 +47,9 @@ Larger, by priority (highest first):
     the sentinel follows within a minute (sec_rules). Defence: ⛔ on an incident puts the address in the group
     AURORA_XG_BLOCK_GROUP through the XML API (IPHost, HostGroupList), only on the owner's click; Aurora never writes
     firewall rules and never blocks loopback, the firewall or herself. M88, N43, N44.
+12. **Mathematics in PDFs** (from A19, 2026-10-04) — the text of some papers comes out of the PDF with formulas garbled
+    (‖x‖ as "kxk"): Aurora re-typesets them and the verification cannot match them. Count the garbled passages of the
+    vault, measure a math-aware extractor on those papers, re-import them.
 11. Left from before: A18/A19 (gate and extraction quality), U4 (concurrent users measured), U6 (system accounts).
 
 ## Next roadmap (to decide with the owner, after 2 October 2026)

@@ -1734,6 +1734,20 @@
    ]
   },
   {
+   "key": "AURORA_PIPELINE_GATE_KEEP",
+   "type": "float",
+   "min": 0,
+   "max": 1,
+   "category": "pipeline",
+   "recommended": "0",
+   "evidence": "M91",
+   "en": "When the gate finds no passage but the re-ranker scores one at least this much, that passage goes on to the extraction (which may still abstain). Off (0): M90 found 0.88 on the isolated benchmark, but on the real vault the passages score lower (the A18 case 0.69 there, 0.97 in the benchmark) and none of the 3 wrong closures was kept (M91).",
+   "it": "Quando il filtro non trova passaggi ma il re-ranker ne valuta uno almeno così, quel passaggio passa all'estrazione (che può ancora astenersi). Spento (0): M90 ha trovato 0,88 sul banco isolato, ma nel vault vero i passaggi hanno punteggi più bassi (il caso A18 0,69 contro 0,97) e nessuna delle 3 chiusure sbagliate è stata recuperata (M91).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_PIPELINE_THINKING",
    "type": "bool",
    "category": "pipeline",

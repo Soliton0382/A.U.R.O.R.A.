@@ -190,8 +190,12 @@ def main(which: list[int], cloud: bool = False, roles: bool = False) -> None:
                               judge=judge)
         row = {"n": i, "need": need, "built": res["ok"], "attempts": res.get("attempts"), "seconds": round(time.time() - t0)}
         if res["ok"]:
-            expected = truth()
+            # A23: the truth's window is now, the moment the plugin runs too, not the script's start (minutes before:
+            # what entered or left a 24 h window meanwhile was counted on one side only)
+            global NOW
+            NOW = dt.datetime.now().astimezone()
             out = run_tool(res["stage"], res["manifest"])
+            expected = truth()
             ok, missing = passes(expected, out)
             row.update(right=ok, expected=expected, missing=missing, output=out[:600])
         else:

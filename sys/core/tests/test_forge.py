@@ -128,3 +128,25 @@ def test_the_forge_never_looks_at_another_user_s_things_nor_the_users_store(cfg)
     assert seen.count("(not allowed)") == 2 and "boss routine" not in seen and "guest routine" in seen
     assert "guest private" in F.peek(U.for_user(cfg, "guest"), ["usr/guest/notes"])     # the user's own: yes
     assert "(not allowed)" in F.peek(U.for_user(cfg, "guest"), ["usr/boss/notes"])      # another's: never
+
+
+def test_the_judge_gets_the_facts_counted_when_the_plugin_runs(cfg, monkeypatch):
+    """C129: the logs grow while the forge works; the judge must not compare with the count taken before the build."""
+    import json as _json
+    counts = iter(["FACTS BEFORE", "FACTS NOW"])
+    monkeypatch.setattr(F, "peek", lambda cfg, paths, hours: next(counts))
+    monkeypatch.setattr(F, "check", lambda manifest, code, existing: [])
+    seen = {}
+    monkeypatch.setattr(F, "test", lambda host, m, stage, llm, sample, masker, need, hours: seen.setdefault("sample", sample) and [])
+
+    class LLM:
+        def complete(self, system, user, n):
+            reply = '["sys/logs"]' if "MISSING" in user and "WHAT THE DATA" not in user else \
+                f"```json\n{_json.dumps(GOOD)}\n```\n```python\n{CODE}```"
+            return type("A", (), {"answer": reply})()
+
+    class Host:
+        def plugins(self, with_tools=False):
+            return []
+    out = F.build(cfg, LLM(), Host(), {"id": "r1", "need": "count lines in the last 24 hours", "why": "t"}, lambda e, p: None)
+    assert out["ok"] and seen["sample"] == "FACTS NOW"
