@@ -158,3 +158,153 @@ def test_a_service_down_is_told_once_and_its_return_too():
     assert health_change(down, set()) == ("health.down", "aurora-llm: fermo")
     assert health_change(down, {"aurora-llm"}) is None                  # still down: not said again
     assert health_change(ok, {"aurora-llm"}) == ("health.up", "aurora-llm")
+
+
+# ---- the search beyond arXiv --------------------------------------------------------------------------------------
+class _Resp:
+    def __init__(self, data=None, text="", content=b""):
+        self._d, self.text, self.content = data, text, content
+
+    def json(self):
+        return self._d
+
+
+def test_the_other_sources_give_candidates_and_their_documents_on_demand():
+    from aurora import kno_acquire_more as M
+    calls = []
+
+    def get(url, **p):
+        calls.append(url)
+        if url.endswith("/search") and "europepmc" in url:
+            return _Resp({"resultList": {"result": [
+                {"pmcid": "PMC1", "title": "Off-target", "license": "cc by", "abstractText": "<b>CRISPR</b> errors"},
+                {"pmcid": "PMC2", "title": "No abstract", "meshHeadingList": {"meshHeading": [{"descriptorName": "Genes"}]}},
+                {"title": "no pmcid: skipped"}]}})
+        if url.endswith("fullTextXML"):
+            return _Resp(content=b"<article><front><article-meta><title-group><article-title>T</article-title></title-group>"
+                                 b"</article-meta></front><body><p>" + b"text " * 200 + b"</p></body></article>")
+        if "wikipedia" in url and p.get("list") == "search":
+            return _Resp({"query": {"search": [{"title": "Stoicism", "snippet": "a <span>school</span>"}]}})
+        if "wikipedia" in url:
+            return _Resp({"query": {"pages": {"1": {"title": "Stoicism", "extract": "Body\n== References ==\nx"}}}})
+        if "api.github.com" in url:
+            return _Resp({"items": [{"full_name": "a/b", "description": "db", "license": {"spdx_id": "MIT"},
+                                     "default_branch": "main", "html_url": "https://github.com/a/b"},
+                                    {"full_name": "c/d", "license": {"spdx_id": "NOASSERTION"}}]})
+        return _Resp(text="# README " + "x" * 900)
+    e = M.europepmc(get, "crispr", 5)
+    assert [x.arxiv_id for x in e] == ["europepmc:PMC1", "europepmc:PMC2"] and e[0].abstract == "CRISPR errors"
+    assert e[1].abstract == "Genes" and e[0].source == "europepmc" and not any("fullTextXML" in c for c in calls)
+    name, data, lic, url = e[0].fetch()                               # fetched only when chosen
+    assert name == "PMC1.txt" and b"text" in data and lic == "cc by"
+    w = M.wikipedia(get, "stoic", 5)
+    assert w[0].abstract == "a school" and w[0].fetch()[1] == b"Body"   # the references cut away
+    g = M.github(get, "vector database", 5)
+    assert [x.arxiv_id for x in g] == ["github:a/b"] and g[0].fetch()[2] == "MIT"   # only an open licence
+
+
+def test_a_document_goes_to_a_domain_of_its_source():
+    from aurora import kno_acquire_more as M
+
+    class LLM:
+        def __init__(self, reply):
+            self.reply = reply
+
+        def complete(self, system, user, n):
+            return type("A", (), {"answer": self.reply})()
+    assert "medicine" in M.domains_of("europepmc") and M.domains_of("github") == ["programming"]
+    assert M.choose_domain(LLM("genomics"), "europepmc", "q", "t") == "genomics"
+    assert M.choose_domain(LLM("astrology"), "wikipedia", "q", "t") == M.domains_of("wikipedia")[0]   # never outside
+    assert M.choose_domain(LLM("whatever"), "github", "q", "t") == "programming"
+
+
+# ---- security: the owner's checks, the documentation, the firewall's API ---------------------------------------
+def _fw_line(ts, **kv):
+    return f"{ts} INFO aurora.firewall 192.0.2.1 <29>" + " ".join(f'{k}="{v}"' for k, v in kv.items()) + "\n"
+
+
+def test_a_rule_is_checked_and_counts_per_source():
+    from aurora import sec_rules
+    for bad in ({"id": "Bad Id", "match": {"x": "y"}}, {"id": "a", "match": {}}, {"id": "a", "match": {"x": "y"}, "threshold": 0},
+                {"id": "a", "match": {"bad field!": "y"}}):
+        with pytest.raises(ValueError):
+            sec_rules.check(bad)
+    r = sec_rules.check({"id": "appliance_denied", "match": {"log_component": "Appliance Access", "log_id": "010302"},
+                         "threshold": 3, "window_min": 10, "on": True})
+    rs = sec_rules.RuleSet([r])
+    line = {"log_component": "appliance access", "log_id": "010302600001", "_raw": "x"}
+    assert rs.feed(line, "1.2.3.4", 0) == [] and rs.feed(line, "5.6.7.8", 1) == []
+    assert rs.feed(line, "1.2.3.4", 2) == [] and len(rs.feed(line, "1.2.3.4", 3)) == 1          # 3 from one source
+    assert rs.feed(line, "1.2.3.4", 4) == []                                                     # once an hour
+    assert rs.feed({**line, "log_id": "019999"}, "9.9.9.9", 5) == []                             # another log_id
+    assert sec_rules.RuleSet([{**r, "on": False}]).rules == []
+
+
+def test_the_traffic_is_grouped_and_a_proposal_out_of_it_is_dropped(cfg):
+    from datetime import datetime
+    from aurora import sec_profile
+    d = cfg.path("AURORA_LOG_DIR") / "firewall"
+    d.mkdir(parents=True)
+    now = datetime.now().astimezone().isoformat(timespec="milliseconds")
+    old = "2020-01-01T00:00:00.000+02:00"
+    with open(d / "firewall.log", "w") as fh:
+        for _ in range(5):
+            fh.write(_fw_line(now, log_id="010302600001", log_type="Firewall", log_component="Appliance Access",
+                              log_subtype="Denied", src_ip="203.0.113.9", device_serial_id="SERIAL123"))
+        fh.write(_fw_line(old, log_id="010101600001", log_type="Firewall", log_component="Firewall Rule"))
+    groups = sec_profile.observe(cfg, 24)
+    assert len(groups) == 1 and groups[0]["count"] == 5 and groups[0]["log_id"] == "010302"
+    assert "203.0.113.9" not in json.dumps(groups) and "SERIAL123" not in json.dumps(groups)   # never sent out
+
+    class LLM:
+        def complete(self, system, user, n):
+            assert "203.0.113.9" not in user
+            return type("A", (), {"answer": json.dumps([
+                {"id": "denied_admin", "title": "t", "match": {"log_component": ["Appliance Access"]}, "threshold": 50,
+                 "window_min": 10, "action": "bloccare"},
+                {"id": "invented", "match": {"made_up_field": "x"}, "threshold": 1, "window_min": 1},
+                {"id": "BROKEN"}])})()
+    got = sec_profile.proposals(LLM(), "doc", groups)
+    assert [r["id"] for r in got] == ["denied_admin"] and got[0]["on"] is False
+
+
+def test_the_firewall_api_blocks_only_on_good_addresses(cfg, monkeypatch):
+    from aurora import sec_xg
+    cfg.values.update(AURORA_XG_API_URL="https://192.0.2.1:4444", AURORA_XG_API_USER="aurora",
+                      AURORA_XG_API_PASSWORD="p<w>&d", AURORA_XG_VERIFY_TLS=False, AURORA_XG_BLOCK_GROUP="Aurora-Blocklist")
+    for bad in ("127.0.0.1", "192.0.2.1", "not-an-ip", "224.0.0.1", "::1"):
+        with pytest.raises(sec_xg.XGError):
+            sec_xg.blockable(cfg, bad)
+    sent = []
+
+    class R:
+        status_code = 200
+        text = '<Response><IPHost transactionid=""><Status code="200">Configuration applied successfully.</Status></IPHost></Response>'
+    monkeypatch.setattr(sec_xg.httpx, "post", lambda url, files, timeout, verify: sent.append((url, files["reqxml"][1])) or R())
+    out = sec_xg.block(cfg, "203.0.113.9", "port scan <x>")
+    assert out["blocked"] == "203.0.113.9" and sent[0][0] == "https://192.0.2.1:4444/webconsole/APIController"
+    xml = sent[1][1]
+    assert "<Password>p&lt;w&gt;&amp;d</Password>" in xml                       # escaped, never injected
+    assert "<IPHost><Name>aurora-block-203.0.113.9</Name>" in xml and "<HostGroup>Aurora-Blocklist</HostGroup>" in xml
+    assert "port scan &lt;x&gt;" in xml and "<IPHostGroup><Name>Aurora-Blocklist</Name>" in sent[0][1]
+
+    class Refused(R):
+        text = "<Response><Login><status>Authentication Failure</status></Login></Response>"
+    monkeypatch.setattr(sec_xg.httpx, "post", lambda *a, **k: Refused())
+    with pytest.raises(sec_xg.XGError, match="refused the login"):
+        sec_xg.test(cfg)
+
+
+def test_a_proposal_is_played_on_the_real_traffic_before_the_owner_decides(cfg):
+    from datetime import datetime, timedelta
+    from aurora import sec_profile, sec_rules
+    d = cfg.path("AURORA_LOG_DIR") / "firewall"
+    d.mkdir(parents=True)
+    t0 = datetime.now().astimezone() - timedelta(hours=2)
+    with open(d / "firewall.log", "w") as fh:
+        for i in range(12):                                   # 12 denials from one source in 2 minutes
+            fh.write(_fw_line((t0 + timedelta(seconds=10 * i)).isoformat(timespec="milliseconds"), log_id="010302600001",
+                              log_component="Appliance Access", src_ip="203.0.113.9"))
+    r = sec_rules.check({"id": "denied", "match": {"log_id": "010302"}, "threshold": 10, "window_min": 5})
+    [out] = sec_profile.tried(cfg, [r], 24)
+    assert out["tried"] == {"incidents": 1, "sources": 1, "hours": 24} and sec_rules.check(out)["tried"] == out["tried"]

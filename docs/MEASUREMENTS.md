@@ -893,6 +893,30 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M88 — Security checks proposed from the documentation, tried on real traffic (4 October 2026)
+
+The firewall's last 24 h: 218,549 lines in 20 groups (log type, component, subtype, log_id digits), grouped in 3.4 s;
+the Sophos 21.5 syslog guide read in 0.1 s (12,000 characters kept). The local model proposed 8 checks in 14 s,
+all valid by code (none with an invented field); played on the same 24 h: appliance access denied 84 incidents
+from 10 sources (too noisy as proposed), invalid traffic 26 from 4, ATP firewall threats 2 from 1, ATP DNS 1, the
+other 4 none. The count is shown next to each check before the owner switches it on. Not measured: the firewall's
+API (not set yet: the owner turns it on and gives a user); a check switched on, live in the sentinel.
+
+## M87 — The forge with Claude Code opus, writer and judge (4 October 2026)
+
+`bench_forge.py --roles`, writer claude_code opus, judge claude_code (default model): built 7 of 8, right 5 of 8;
+need 2 (the firewall's denials in 6 h, the A22 case) was not built because of my error (C127): run again alone,
+built and right in 91 s. So 6 of 8 right (Grok: 5 of 8, M83). Wrong: harvester documents per source (Wikipedia 370
+for 420), warnings per component (api 30 for 31, the log growing while measured): A23. 49-99 s per need.
+
+## M86 — The search beyond arXiv, live (4 October 2026)
+
+One query each from this machine: Europe PMC "CRISPR off-target effects" 5 candidates in 0.2 s (4 of 5 with an
+abstract or MeSH terms for the re-ranker), the first full text 21 KB, licence CC BY; Wikipedia "Stoic philosophy
+virtue" 5 in 0.3 s, "Stoicism" 29 KB, CC BY-SA (the first try got 403: Wikimedia refuses a user agent without a
+contact; the harvester's is used now); GitHub "vector database" 3 with an open licence in 0.5 s, Milvus' README
+71 KB, Apache-2.0. Not measured: a whole search run where another source answers a question arXiv could not.
+
 ## M85 — Aurora's code in a cage of its own (4 October 2026)
 
 prj_run on this machine: pytest in a project 1 passed; a connection out: name resolution fails (no network); Aurora's

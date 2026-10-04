@@ -58,6 +58,8 @@ class Entry:
     category: str
     pdf: str
     score: float = 0.0
+    source: str = "arxiv"                 # beyond arXiv (kno_acquire_more): where it comes from
+    fetch: object = None                  # () -> (file name, data, licence, url), for a source other than arXiv
 
 
 def domain_of(category: str, table: dict[str, str]) -> str:
@@ -90,9 +92,24 @@ class ArxivAgent:
         self.importer = Importer(pipeline.writer, pipeline.indexer, self.cfg)
         self.table = json.loads(MAP_FILE.read_text(encoding="utf-8"))["map"]
         self.http = httpx.Client(timeout=120, follow_redirects=True,
-                                 headers={"User-Agent": "Aurora knowledge agent (personal, local)"})
+                                 headers={"User-Agent": "Aurora/1.0 (https://github.com/Soliton0382/A.U.R.O.R.A.; personal knowledge agent)"})
+        # Wikimedia refuses a user agent without a way to reach its author (403): the harvester's own
         self.log = sys_log.get_logger("acquire")
         self._last_call = 0.0
+        self.more = [s.strip() for s in str(self.cfg["AURORA_ACQUIRE_SOURCES"]).split(",") if s.strip() in more.SEARCH]
+        self._other_last = 0.0
+
+    def _get(self, url: str, **params) -> httpx.Response:
+        """The other sources: one call a second at most (they ask for no delay; arXiv's own rule stays its own)."""
+        wait = self._other_last + 1.0 - time.time()
+        if wait > 0:
+            time.sleep(wait)
+        try:
+            r = self.http.get(url, params=params or None)
+        finally:
+            self._other_last = time.time()
+        r.raise_for_status()
+        return r
 
     def _polite_get(self, url: str, **params) -> httpx.Response:
         wait = self._last_call + self.cfg["AURORA_ARXIV_DELAY_S"] - time.time()
@@ -160,10 +177,17 @@ class ArxivAgent:
                                            max_results=self.cfg["AURORA_ARXIV_RESULTS"]).text
                 except httpx.HTTPError as e:
                     emit("acquire.error", {"stage": "search", "query": q, "message": str(e)})
-                    continue
-                for en in parse_atom(xml):
+                    xml = ""
+                for en in parse_atom(xml) if xml else []:
                     if en.arxiv_id not in seen:
                         fresh.setdefault(en.arxiv_id, en)
+                for name in self.more:                    # the other sources, the same query (owner, 2026-10-04)
+                    try:
+                        for en in more.SEARCH[name](self._get, q, self.cfg["AURORA_ARXIV_RESULTS"]):
+                            if en.arxiv_id not in seen:
+                                fresh.setdefault(en.arxiv_id, en)
+                    except Exception as e:  # noqa: BLE001 — one source down never stops the search
+                        emit("acquire.error", {"stage": "search", "source": name, "query": q, "message": str(e)[:200]})
             seen.update(fresh)
             entries = list(fresh.values())
             if entries:
@@ -180,11 +204,17 @@ class ArxivAgent:
             imported = 0
             for e in entries[:self.cfg["AURORA_ARXIV_PAPERS"]]:
                 read_titles.append(e.title)
-                domain = domain_of(e.category, self.table)
                 try:
-                    pdf = self._polite_get(e.pdf).content
-                    rep = self.importer.add(f"{e.arxiv_id}.pdf", pdf, domain, title=e.title,
-                                            origin=f"arxiv:{e.arxiv_id}", run_id=run_id)
+                    if e.source == "arxiv":
+                        domain = domain_of(e.category, self.table)
+                        pdf = self._polite_get(e.pdf).content
+                        rep = self.importer.add(f"{e.arxiv_id}.pdf", pdf, domain, title=e.title,
+                                                origin=f"arxiv:{e.arxiv_id}", run_id=run_id)
+                    else:                                 # chosen among all the sources: its domain, its licence
+                        name, data, lic, url = e.fetch()
+                        domain = more.choose_domain(self.p.llm, e.source, english, e.title)
+                        rep = self.importer.add(name, data, domain, title=e.title, origin=e.arxiv_id, run_id=run_id,
+                                                meta={"licence": lic, "url": url})
                 except (httpx.HTTPError, ValueError) as err:
                     emit("acquire.error", {"stage": "import", "id": e.arxiv_id, "message": str(err)})
                     continue
@@ -204,3 +234,6 @@ class ArxivAgent:
             last = self.p.run(question, emit=emit, run_id=run_id, remember=False)
         self.p.remember(question, last, run_id, emit, trail, asked_at)
         return last
+
+
+from . import kno_acquire_more as more  # noqa: E402 — at the end: it uses Entry, defined above

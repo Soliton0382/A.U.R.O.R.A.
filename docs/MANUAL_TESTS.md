@@ -59,6 +59,9 @@ mark each line ✅ / ❌ with a note. Reload the WebUI first (the service worker
 | N38 | 🔔 Notifications as a second user, then as the admin | the user has no incidents/backup/cloud; the admin has "Cloud" |
 | N39 | 📎 Files: 🗑️ an attachment and a PDF, then ♻️ | both in the Trash with the day they go; restored where they were |
 | N40 | 🔁 Routines: "days and times", 08:00 + 18:30, working days | saved; the line says "giorni lavorativi alle 08:00, 18:30"; it runs Monday, not on 8 December |
+| N42 | Ask something not in the vault and not on arXiv (e.g. a Stoic philosopher's life), then "sì, cerca" | the search steps show Wikipedia (or Europe PMC/GitHub) candidates; the answer comes, the document in the right domain with its licence |
+| N43 | 🛡️ Security → 📖 Read the documentation and propose; switch on a check with few incidents | proposals with "in the last 24 hours it would have raised N"; the next matching lines make an incident with its 💡 action |
+| N44 | On the firewall: Backup & firmware → API on, Aurora's address allowed, a user; in the security card its address/user/password; a rule that drops "Aurora-Blocklist"; then ⛔ on an incident | the address appears in the group on the firewall; nothing else changed there |
 | N41 | 📁 Projects → 💻 Local: ask Aurora "crea il progetto prova-calc con una funzione somma e i suoi test, eseguili" | the project, the tests run (EXIT 0) in the run's steps, a local commit |
 | N17 | Ask a knowledge question (e.g. «Come funziona la fotosintesi?»), then tap one of the «Approfondisci» questions; then type a short follow-up («e chi l'ha scoperta?») | 3-4 complete questions appear under the answer a few seconds after it; the tapped one is sent whole and its trace shows 🎯 when the sources were used; the typed follow-up shows 🧷 with the completed question |
 | N6 | 🧩 Plugins: open the page, then a card, then back | the grid appears at once; icons do not flash (C80) |

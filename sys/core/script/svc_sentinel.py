@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import httpx  # noqa: E402
 
 from aurora import sys_config, sys_health, sys_log  # noqa: E402
-from aurora.sec_sentinel import Detector, parse  # noqa: E402
+from aurora.sec_sentinel import Detector, is_private, parse, src_of  # noqa: E402
 
 cfg = sys_config.get()
 log = sys_log.get_logger("sentinel")
@@ -44,6 +44,8 @@ def main() -> int:
     det = Detector(cfg["AURORA_SENTINEL_WINDOW_MIN"] * 60, cfg["AURORA_SENTINEL_DENY_THRESHOLD"],
                    cfg["AURORA_SENTINEL_SCAN_PORTS"])
     api = httpx.Client(headers={"Authorization": f"Bearer {cfg['AURORA_API_KEY']}"}, timeout=30)
+    from aurora import sec_rules                       # the owner's own checks (Security page), read every minute
+    rules = sec_rules.RuleSet(sec_rules.load(cfg))
     log.info("aurora-sentinel started: syslog on %s:%s, allowed %s", host, port, ", ".join(sorted(allow)))
     received = dropped = 0
     beat = 0.0
@@ -51,6 +53,10 @@ def main() -> int:
         if time.time() - beat > 60:
             sys_health.heartbeat(cfg, "sentinel")
             beat = time.time()
+            fresh = sec_rules.load(cfg)
+            if [r for r in fresh if r["on"]] != rules.rules:
+                rules = sec_rules.RuleSet(fresh)
+                log.info("checks of the owner: %d on", len(rules.rules))
             if dropped:
                 log.warning("dropped %d datagrams from addresses not allowed", dropped)
                 dropped = 0
@@ -64,11 +70,18 @@ def main() -> int:
         received += 1
         line = data.decode("utf-8", errors="replace").strip()
         fw.info("%s %s", addr, line)
-        for incident in det.feed(parse(line)):
+        f = parse(line)
+        found = [i.as_dict() for i in det.feed(f)]
+        for r, who, n, samples in rules.feed(f, src_of(f)):
+            now = time.strftime("%Y-%m-%dT%H:%M:%S%z")
+            found.append({"kind": f"rule:{r['id']}", "source": who, "count": n, "internal": who != "*" and is_private(who),
+                          "first": now, "last": now, "samples": samples,
+                          "detail": {"title": r["title"], "action": r["action"], "why": r["why"]}})
+        for incident in found:
             try:
-                api.post(f"{BASE}/v1/aurora/sentinel/incident", json=incident.as_dict()).raise_for_status()
+                api.post(f"{BASE}/v1/aurora/sentinel/incident", json=incident).raise_for_status()
             except httpx.HTTPError as e:
-                log.warning("incident %s from %s not delivered: %s", incident.kind, incident.source, e)
+                log.warning("incident %s from %s not delivered: %s", incident["kind"], incident["source"], e)
     log.info("aurora-sentinel stopped after %d lines", received)
     return 0
 

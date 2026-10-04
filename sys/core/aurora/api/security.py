@@ -1,0 +1,74 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 A.U.R.O.R.A. Project
+"""Security, configurable (owner, 2026-10-04): what the firewall sends, the checks Aurora proposes from its
+documentation (switched on by the owner), and the defence on the firewall through its API — on the owner's click."""
+from __future__ import annotations
+
+import asyncio
+
+from aurora import sys_log
+from fastapi import APIRouter, Depends, HTTPException, Request
+
+from .core import cfg, log, note, pipeline
+from .users import admin_only
+
+router = APIRouter()
+
+
+@router.get("/v1/aurora/security/profile", dependencies=[Depends(admin_only)])
+def profile(hours: float = 24) -> dict:
+    from aurora import sec_profile, sec_rules, sec_xg
+    return {"groups": sec_profile.observe(cfg, max(1.0, min(hours, 168.0))), "rules": sec_rules.load(cfg),
+            "doc": cfg["AURORA_SECURITY_SYSLOG_DOC"], "xg": sec_xg.configured(cfg), "group": cfg["AURORA_XG_BLOCK_GROUP"]}
+
+
+@router.post("/v1/aurora/security/learn", dependencies=[Depends(admin_only)])
+async def learn() -> dict:
+    """Read the documentation and the last day's traffic; propose checks (off until the owner turns them on)."""
+    from aurora import sec_profile
+    try:
+        out = await asyncio.to_thread(sec_profile.learn, cfg, pipeline()._for("agent"))
+    except Exception as e:  # noqa: BLE001 — the documentation unreachable, the model failing: said in the page
+        raise HTTPException(status_code=502, detail=f"{type(e).__name__}: {str(e)[:300]}") from None
+    log.info("audit: security checks proposed: %d (%d groups, %d lines)", out["proposed"], out["groups"], out["lines"])
+    return out
+
+
+@router.put("/v1/aurora/security/rules", dependencies=[Depends(admin_only)])
+async def rules_set(request: Request) -> dict:
+    """{"on": {id: true/false}} switches checks; {"remove": [ids]} drops proposals. aurora-sentinel follows in 1 min."""
+    from aurora import sec_rules
+    body = await request.json()
+    on, gone = body.get("on") or {}, set(body.get("remove") or [])
+    rules = [{**r, "on": bool(on.get(r["id"], r["on"]))} for r in sec_rules.load(cfg) if r["id"] not in gone]
+    rules = sec_rules.save(cfg, rules)
+    log.info("audit: security checks on: %s", ", ".join(r["id"] for r in rules if r["on"]) or "-")
+    return {"rules": rules}
+
+
+@router.post("/v1/aurora/security/xg/test", dependencies=[Depends(admin_only)])
+async def xg_test() -> dict:
+    from aurora import sec_xg
+    try:
+        return await asyncio.to_thread(sec_xg.test, cfg)
+    except sec_xg.XGError as e:
+        raise HTTPException(status_code=502, detail=str(e)) from None
+
+
+@router.post("/v1/aurora/security/block", dependencies=[Depends(admin_only)])
+async def xg_block(request: Request) -> dict:
+    """{"ip", "reason", "unblock": bool}: the owner's click on an incident is the consent; recorded and told."""
+    from aurora import sec_xg
+    body = await request.json()
+    ip, reason = str(body.get("ip", "")), str(body.get("reason", ""))[:200]
+    try:
+        out = await asyncio.to_thread(sec_xg.unblock if body.get("unblock") else sec_xg.block, cfg, ip,
+                                      *(() if body.get("unblock") else (reason,)))
+    except sec_xg.XGError as e:
+        raise HTTPException(status_code=502, detail=str(e)) from None
+    what = "unblocked" if body.get("unblock") else "blocked"
+    log.info("audit: owner %s %s on the firewall (%s)", what, ip, reason or "-")
+    sys_log.trace("security", f"xg.{what}", {"ip": ip, "reason": reason})
+    note("security", "security.action", {"title": f"🛡️ {ip} {'sbloccato' if what == 'unblocked' else 'bloccato'} sul firewall",
+                                  "text": reason})
+    return out

@@ -17,8 +17,8 @@ Quick fixes, done in the same session (each verified in STATUS when closed):
 
 Larger, by priority (highest first):
 1. **Voice** — owner (2026-10-04): the voice is natural, a neural one is not needed; the choice works (N24).
-2. **The judge on zeros (A22)** — an output of 0 is checked to be really 0, else rejected. The owner changed the
-   judge already: read his change before touching it. Measure: `bench_forge.py --roles` 8/8.
+2. **The judge on zeros (A22)** — ✅ C128: with Claude Code opus the firewall's count is right (M87); the forge 6 of 8,
+   the two left are A23.
 3. **Plugins: admin or user** — ✅ (2026-10-04) plg_access: the machine's plugins (backup, security, netintel, self,
    senses, homeassistant, cloud) the admin's, the personal ones everyone's; a new or forged plugin the admin's until
    shared; 👥 in each card. Switching plugins is the admin's (C124). N36.
@@ -33,15 +33,21 @@ Larger, by priority (highest first):
    usr/<user>/trash, restorable; removed after AURORA_TRASH_DAYS (30) by the nightly round; AURORA_TRASH_ENABLED. N39.
 7. **Routines: several times and day groups** — ✅ "days and times": times with "+", days one by one or a group
    (every day, Monday-Friday, weekend, working days without Italian public holidays, holidays). N40.
-8. **Research beyond arXiv** — when an answer is not found, also the configured repositories (harvester sources);
-   the best information is chosen and saved in the vault in the right domain.
+8. **Research beyond arXiv** — ✅ (2026-10-04) kno_acquire_more: the search agent asks, with the same queries,
+   Europe PMC (open-access full texts, bioRxiv/medRxiv preprints included), Wikipedia and GitHub (READMEs with an
+   open licence) besides arXiv; the re-ranker orders all candidates together; a chosen document is fetched then, with
+   its licence and URL, and goes to a domain of its source (the reasoner chooses among them). Normattiva is not
+   searchable by words (whole collections only). AURORA_ACQUIRE_SOURCES. Live: the three answer (M86). N42.
 9. **Projects per user** — ✅ per user already (usr/<user>/projects, the GitHub token a personal setting); two tabs,
    Local and GitHub; Aurora runs tests and programs in a cage of her own (run_in_project: no network, no keys, only
    the project writable, AURORA_PROJECT_RUN_S) and iterates; GitHub writes through Approvals as before. M85, N41.
-10. **Configurable security** — in the security plugin's card: a field for the official Sophos syslog
-    documentation (docs.sophos.com/nsg/sophos-firewall/21.5/syslog), the agents adapt to it and the menu proposes
-    what to watch and which actions to suggest; the XG API (XML tags, firewall 21.0) configured for defence actions
-    on the firewall — each action through the owner's approval.
+10. **Configurable security** — ✅ (2026-10-04) in the security plugin's card: the syslog documentation's link and the
+    firewall's API (address, user, password, the blocking group). Security page: "What to watch": Aurora reads the
+    documentation with the last day's traffic (grouped by log_id: type, component, subtype, severity) and proposes
+    checks, each tried on that traffic (how many incidents it would have raised) and off until the owner turns it on;
+    the sentinel follows within a minute (sec_rules). Defence: ⛔ on an incident puts the address in the group
+    AURORA_XG_BLOCK_GROUP through the XML API (IPHost, HostGroupList), only on the owner's click; Aurora never writes
+    firewall rules and never blocks loopback, the firewall or herself. M88, N43, N44.
 11. Left from before: A18/A19 (gate and extraction quality), U4 (concurrent users measured), U6 (system accounts).
 
 ## Next roadmap (to decide with the owner, after 2 October 2026)
