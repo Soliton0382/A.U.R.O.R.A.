@@ -63,6 +63,8 @@ def choose(st: dict, system: bool = True) -> tuple[str | None, str]:
     own self-review and repairs; each user's social pages have their own report."""
     if st.get("rem_running"):
         return None, "an autonomic task is already running or queued"
+    if st.get("morning_due"):                         # the good morning: a short count, no reasoning, owner or not
+        return "morning", "the morning hour, no good morning yet today"
     idle = st["idle_min"] if st["idle_min"] is not None else float("inf")
     if idle < cfg["AURORA_REM_IDLE_MIN"]:
         return None, f"owner active {idle:.0f} min ago"
@@ -71,6 +73,8 @@ def choose(st: dict, system: bool = True) -> tuple[str | None, str]:
         return "consolidate", f"{st['sessions_to_consolidate']} closed sessions"
     if in_dream_window(now) and not dreamt_tonight(st["last"]["dream"], now):
         return "dream", "night window, no dream yet"
+    if in_dream_window(now) and st.get("to_study") and not st.get("studied_tonight"):
+        return "study", f"night window, {st['to_study']} questions declined and not studied yet"
     if system and _minutes_since(st["last"].get("self_review")) >= 24 * 60:
         return "introspect", "no self-review in the last 24 hours"
     if st.get("social_platforms") and _minutes_since(st["last"].get("social_report")) >= 24 * 60:   # each user's pages

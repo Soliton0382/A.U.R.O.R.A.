@@ -34,6 +34,13 @@ Done today and yesterday, live: the owner's list of 4 October, all 10 points (3-
 | 20b | 🧠 Synapses page and level 2 (owner, 2026-10-05) — ✅ 🧠 Sinapsi in Knowledge: every link with its passages, weight, uses; pin, wake, weaken, delete; asleep below 0.5 instead of deleted; synapses of synapses (triads ≥ 0.60) and concepts named by the local model, by themselves every 50 new links (M108) | new | concepts growing over weeks; a benchmark of questions across domains |
 | 21 | 🧠 Psychology (owner, 2026-10-05) — ✅ a domain with Europe PMC, medRxiv (psychiatry and clinical psychology), bioRxiv (animal behaviour and cognition); Wikipedia stays for general culture only | new | the harvest |
 | 22 | ↩️ Undo — ✅ the firewall's blocks (by the owner or by Aurora) undone with one click; next: a post deleted | new | — |
+| 24 | 🌙 "Tonight I studied what I did not know" (owner, 2026-10-05) — ✅ the questions she declined, studied at night (search, import, answer again), kept as "study" reflections | new | the declined share going down week by week (Status) |
+| 25 | ☀️ Aurora's good morning (owner, 2026-10-05) — ✅ at 8: her night in counts (learned, harvested, links, attacks stopped, the dream), in the chat with 🔊 and as a notification | new | the owner's ear (N78) |
+| 26 | 🧠 Links explained: synapses with a meaning ("same method", "applies", "contradicts") read by the reasoner at night, and answers that say the link between fields | new | a benchmark of questions across domains |
+| 27 | ⚡ Faster answers — measured (M110): first word after ~20 s, whole answer 45-50 s; writing 16 s, retrieval 9 s, extraction 6 s, gate 3 s, verification 2 s | new | each step's time down, measured |
+| 28 | 🌗 Answer "shadow" cache (owner, 2026-10-05): a new question inside the shadow of an answer already given gets it at once, Aurora checks it again in the background and adds to it in the chat if needed; the shadow defined by two tests, not one: the question close to the old one (embedding, threshold calibrated on the 108 paraphrased questions) AND the old answer itself judged by the re-ranker as answering the new question; a change in its sources' domains makes it stale | new | precision of the hits on paraphrases; how often real questions fall in a shadow |
+| 29 | 🧬 LoRA on the vault (owner, 2026-10-05) — studied, not planned for facts: fine-tuning puts knowledge into weights that cannot cite nor be verified (Aurora's first rule), the vault changes every day, and a 35B model does not train on 2 × 16 GB; LoRA kept for skills and style (how to answer, use tools, Italian), possibly a small fast model trained on Aurora's own verified answers | study | a measured comparison before any choice |
+| 23 | 🔭 Astrophotography (owner, 2026-10-05): the equipment watched and tuned (the astro suite below: N.I.N.A., PHD2, Alpaca, planner, astrometry), then **PixInsight driven by Aurora** — "develop last night's photos" — see below | new | read-only plugins first; WBPP headless on one night's folder |
 
 Done on 2026-10-05 (night): menu areas open beside the menu on a PC (C138); arXiv papers from HTML (C137); updates add
 new settings before their tests and restart only their own services (C139, C140); 2 reasoner slots (M102); push
@@ -91,6 +98,31 @@ apart from 🩺 Reports (self-reviews, repairs); the firewall's API generic (AUR
   ML-KEM-768, ML-DSA-65, X25519, Ed25519, Argon2id: nothing to install.
 - The owner's earlier SQC-P V1/V2 and Genesis stay on his PC as history (he moves them): SQC-P V2's effective key is
   64 bits, no authentication (shown in experiments, 2026-10-05); SOLITON-X v0.2 a footprint up to 4 of 12 rounds.
+
+### 🔭 Astrophotography with Aurora — the equipment, then PixInsight (owner, 2026-10-05)
+
+The owner images the sky with a mini PC at the telescope (N.I.N.A. sequences, PHD2 guiding) and develops in
+PixInsight. What Aurora can do, in order, each step measured before the next:
+1. **Watch the equipment** (read only): N.I.N.A.'s Advanced API (sequence, current image, HFR, stars), PHD2's event
+   server (guiding RMS, stars lost), ASCOM Alpaca (mount, camera, focuser, filters). A night report in the morning:
+   frames taken and rejected and why (clouds, guiding, focus drift), with the numbers.
+2. **Plan the night**: targets above the horizon, moon, darkness, clouds and seeing, framing for the owner's sensor and
+   focal length; the plan proposed, the owner chooses (N.I.N.A. sequences started only on his click).
+3. **Tune the guiding**, one parameter at a time with an A/B on the RMS (PHD2) — proposed, then by itself if the
+   Autonomy panel allows it.
+4. **Develop the photos — "sviluppa le foto di stanotte"**: PixInsight runs headless (`PixInsight -n
+   --automation-mode --force-exit`) with a startup script (`-r=script.js,args`); WeightedBatchPreprocessing (WBPP)
+   takes its settings as name=value parameters in automation mode (listed in BPP-Automation.js) — calibration with
+   the owner's dark/flat/bias library matched by temperature, gain and filter, registration, integration, drizzle when
+   chosen. Aurora picks last night's folder, matches the calibration frames, runs WBPP, reads its log, and shows the
+   stacked image with what was rejected. Post-processing (gradient removal, colour calibration, stretch, noise reduction)
+   follows the owner's own recipe written once, step by step; every image he publishes keeps the AI disclosure.
+   Open: PixInsight is a commercial licence on the owner's machine (Linux supported); it needs a display server or
+   its offscreen mode — to measure on the mini PC or here. Community bridges exist to learn from (an MCP server and
+   a connector that run WBPP headless).
+5. **Astrometry and sharing**: plate solving and annotation, Flickr upload on confirmation, the description written
+   by Aurora.
+Measure for each step: on one real night, the time saved and the frames she rejected compared with the owner's eye.
 
 ### 🧭 Autonomy panel — the owner's decisions (2026-10-05)
 

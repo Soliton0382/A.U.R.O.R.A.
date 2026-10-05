@@ -129,3 +129,13 @@ def test_the_same_article_twice_is_one_document():
     a = SimpleNamespace(source_id="legacy:wiki_Existentialism", title="Existentialism")
     b = SimpleNamespace(source_id="doc:0d60e5", title="Existentialism")
     assert S.same_source(a, b) and not S.same_source(a, SimpleNamespace(source_id="doc:1", title="Kafka"))
+
+
+def test_an_answer_citing_sources_wires_them_and_never_fails(cfg):
+    """C151: the Hebb step inside every cited answer unpacked pairs from triples and crashed the answer."""
+    from aurora.kno_answer import hebb
+    one = [{"sid": "p1", "domain": "physics", "source": "arxiv:1"}]
+    assert hebb(cfg, one) == 0                                               # one domain: nothing to wire, no error
+    two = one + [{"sid": "b1", "domain": "biomedicine", "source": "arxiv:2"},
+                 {"sid": "m1", "domain": "conversation", "source": "chat"}]
+    assert hebb(cfg, two) == 1 and S.stats(cfg)["kinds"] == {"hebb": 1}

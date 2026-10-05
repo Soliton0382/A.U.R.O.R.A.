@@ -2242,6 +2242,35 @@
    ]
   },
   {
+   "key": "AURORA_STUDY_PER_NIGHT",
+   "type": "int",
+   "category": "rem",
+   "recommended": "5",
+   "evidence": "owner, 2026-10-05",
+   "en": "Questions Aurora could not answer that she studies each night (searching and importing sources, then answering again); 0 = never.",
+   "it": "Domande a cui Aurora non ha saputo rispondere che studia ogni notte (cerca e importa fonti, poi risponde di nuovo); 0 = mai.",
+   "services": [
+    "aurora-api"
+   ],
+   "min": 0,
+   "max": 50
+  },
+  {
+   "key": "AURORA_MORNING_HOUR",
+   "type": "int",
+   "category": "rem",
+   "recommended": "8",
+   "evidence": "owner, 2026-10-05",
+   "en": "Hour of Aurora's good morning: what she did and learned overnight, in the chat and as a notification; 0 = never.",
+   "it": "Ora del buongiorno di Aurora: cosa ha fatto e imparato stanotte, in chat e come notifica; 0 = mai.",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ],
+   "min": 0,
+   "max": 23
+  },
+  {
    "key": "AURORA_IMAGE_ENABLED",
    "type": "bool",
    "category": "rem",

@@ -410,6 +410,8 @@
   "syn.wake": "Wake",
   "syn.delete_q": "Delete this link?",
   "gd.p.synapses": "Aurora's synapses: the links between knowledge of different domains, the concepts they make, the weight and uses of each; you can strengthen, pin, wake or delete them.",
+  "chat.morning": "☀️ Aurora's good morning",
+  "chat.listen": "Listen",
   "social.draft": "Prepare the drafts",
   "social.working": "Aurora is writing the drafts…",
   "social.publish": "Publish on {p}",

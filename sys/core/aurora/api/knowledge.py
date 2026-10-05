@@ -225,7 +225,10 @@ def recent_dreams() -> list[dict]:
               if d.extra.get("type") == "dream" and datetime.fromisoformat(d.created_at) >= since]
     return [{"sid": d.sid, "role": "dream", "text": d.text, "created_at": d.created_at,
              "image": f"/v1/aurora/images/{d.extra['image']}" if d.extra.get("image") else None,
-             "image_prompt": d.extra.get("image_prompt", "")} for d in dreams[-2:]]
+             "image_prompt": d.extra.get("image_prompt", "")} for d in dreams[-2:]] + [
+        {"sid": m.sid, "role": "morning", "text": m.text, "created_at": m.created_at}       # today's good morning
+        for m in [d for d in pipeline().reader.recent(100, domain="reflection")
+                  if d.extra.get("type") == "morning" and datetime.fromisoformat(d.created_at) >= since][-1:]]
 
 
 @router.get("/v1/aurora/senses/devices", dependencies=[Depends(auth)])

@@ -151,7 +151,7 @@ class ArxivAgent:
         qs = [re.sub(r"^[\s\-*\d.)]+", "", l).strip().strip('"') for l in out.splitlines()]
         return [q for q in qs if q and q.lower() not in {t.lower() for t in tried}][:n]
 
-    def run(self, question: str, emit, run_id: str):
+    def run(self, question: str, emit, run_id: str, remember: bool = True, min_score: float = 0.0):
         """The final Answer of the pipeline, answered or still abstained; only this outcome is remembered,
         with the whole path of the search."""
         from .kno_answer import Trail
@@ -202,7 +202,7 @@ class ArxivAgent:
                                         "top": [{"id": e.arxiv_id, "title": e.title, "score": round(e.score, 3),
                                                  "category": e.category} for e in entries[:10]]})
             imported = 0
-            for e in entries[:self.cfg["AURORA_ARXIV_PAPERS"]]:
+            for e in [x for x in entries if x.score >= min_score][:self.cfg["AURORA_ARXIV_PAPERS"]]:   # the night is pickier
                 read_titles.append(e.title)
                 try:
                     if e.source == "arxiv":
@@ -226,13 +226,15 @@ class ArxivAgent:
             last = self.p.run(question, emit=emit, run_id=run_id, remember=False)
             if not last.abstained:
                 emit("acquire.done", {"round": rnd, "found": True, "papers": len(read_titles)})
-                self.p.remember(question, last, run_id, emit, trail, asked_at)
+                if remember:                              # the night's study keeps its own record (kno_study)
+                    self.p.remember(question, last, run_id, emit, trail, asked_at)
                 return last
         emit("acquire.done", {"round": self.cfg["AURORA_ARXIV_ROUNDS"], "found": False, "papers": len(read_titles)})
         self.log.info("acquire %s: not found after %d queries, %d papers read", run_id, len(tried), len(read_titles))
         if last is None:
             last = self.p.run(question, emit=emit, run_id=run_id, remember=False)
-        self.p.remember(question, last, run_id, emit, trail, asked_at)
+        if remember:
+            self.p.remember(question, last, run_id, emit, trail, asked_at)
         return last
 
 

@@ -288,8 +288,17 @@ def rem_state(user: str | None = None) -> dict:
     rem_running = any(r["origin"] == "rem" and not r["done"] for r in list(_runs.values()))
     with sys_context.acting_as(_rem_user(user)):
         social = sum(1 for t in platforms(plugin_host()) if t["available"] and t["stats"])
-        return {**Rem(pipeline(), cfg).state(), "busy": _run_lock.locked(), "rem_running": rem_running,
-                "social_platforms": social}
+        from datetime import datetime
+        from aurora import kno_morning, kno_study
+        p = pipeline()
+        hour = int(cfg["AURORA_MORNING_HOUR"])
+        studies = kno_study.tonight(p)
+        return {**Rem(p, cfg).state(), "busy": _run_lock.locked(), "rem_running": rem_running,
+                "social_platforms": social,
+                "to_study": len(kno_study.pending(p, cfg)) if int(cfg["AURORA_STUDY_PER_NIGHT"]) else 0,
+                "studied_tonight": bool(studies),
+                "morning_due": bool(hour) and hour <= datetime.now().hour < hour + 4    # a good morning, not at 9 p.m.
+                and not kno_morning.greeted_today(p)}
 
 
 @router.post("/v1/aurora/rem/{task}", dependencies=[Depends(auth)])
@@ -300,7 +309,7 @@ def rem_task(task: str, user: str | None = None) -> dict:
         raise HTTPException(status_code=403, detail="Aurora's own diagnosis is the admin's")
     if task == "repair":                              # registered earlier than /rem/repair: hand over
         return rem_repair()
-    if task not in ("consolidate", "reflect", "dream", "introspect", "social"):
+    if task not in ("consolidate", "reflect", "dream", "introspect", "social", "study", "morning"):
         raise HTTPException(status_code=404, detail="unknown task")
     with sys_context.acting_as(who):                  # the run works on this user's memory and is theirs
         return _rem_run(task)
@@ -313,10 +322,17 @@ def _rem_run(task: str) -> dict:
 
         def tell(event, payload):                         # what Aurora wrote tonight reaches the owner too
             emit(event, payload)
-            if event in ("rem.dream", "rem.thought", "rem.self_review"):
+            if event in ("rem.dream", "rem.thought", "rem.self_review", "rem.morning"):
                 note("rem", event, {"sid": payload.get("sid"), "text": payload.get("text", "")})
         emit("rem.start", {"task": task})
-        out = getattr(Rem(pipeline(), cfg), task)(tell)
+        if task == "study":                               # what she declined, studied at night (kno_study)
+            from aurora import kno_study
+            out = kno_study.study(pipeline(), cfg, tell, int(cfg["AURORA_STUDY_PER_NIGHT"]))
+        elif task == "morning":                           # the good morning (kno_morning)
+            from aurora import kno_morning
+            out = kno_morning.write(pipeline(), cfg, tell)
+        else:
+            out = getattr(Rem(pipeline(), cfg), task)(tell)
         emit("rem.end", {"task": task, **out})
         return None
     return {"run_id": start_run(f"[{task}]", origin="rem", job=job)["id"]}

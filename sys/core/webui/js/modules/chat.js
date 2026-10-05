@@ -277,6 +277,18 @@ export default {
       messages.append(m);
     };
 
+    // The good morning (kno_morning): what she did and learned overnight, with "listen" (a tap: browsers speak only after one)
+    const morningBubble = (d) => {
+      const m = el("div", "msg aurora dream morning past");
+      m.append(el("div", "dream-title", t("chat.morning")));
+      for (const para of d.text.split(/\n\s*\n/)) if (para.trim()) m.append(el("p", "", para.trim()));
+      const listen = el("button", "", `🔊 ${t("chat.listen")}`);
+      listen.type = "button";
+      listen.addEventListener("click", () => (voice.speaking() ? voice.stop() : sayAloud(d.text.replace(/^[^\p{L}]+/gmu, ""))));
+      m.append(listen, el("div", "meta", clock(d.created_at)));
+      messages.append(m);
+    };
+
     // Questions to go deeper, under a knowledge answer: complete on their own, each with the answer's sources
     // in focus (kno_followup), so a click searches the right way; the owner sees the whole question sent.
     let nextFocus = null;
@@ -370,13 +382,14 @@ export default {
       for (const turn of turns) {
         if (turn.role === "user") { userBubble(turn.text, turn.attachments || [], turn.created_at); continue; }
         if (turn.role === "dream") { dreamBubble(turn); continue; }
+        if (turn.role === "morning") { morningBubble(turn); continue; }
         const b = auroraBubble(messages);
         renderPast(b, turn);
         if (turn === lastAnswer && turn.suggestions?.length) offerDeeper(b, turn.suggestions);   // the latest answer only
         b.root.classList.add("past");
         if (turn.run_id) mine.add(turn.run_id);
       }
-      const n = turns.filter((x) => x.role !== "dream").length;
+      const n = turns.filter((x) => x.role !== "dream" && x.role !== "morning").length;
       if (n) messages.append(el("div", "divider", t("chat.history", { n })));
       scrollEnd(messages);
     };

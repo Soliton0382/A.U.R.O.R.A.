@@ -910,6 +910,22 @@ suite green in the sandbox (328 passed), proposed — refused by the API still r
 right** — each bug found from the symptom alone, fixed, the whole suite green in the sandbox, the change proposed
 (90, 130, 140, 110 s); every proposal refused by the benchmark, the live code untouched.
 
+## M110 — Studying at night, the first two runs; where an answer's time goes (5 October 2026)
+
+Study (kno_study), run by hand at 21:44 instead of 2:00: 5 questions she had declined, 45-110 s each. Read honestly:
+**2 truly learned** ("che cos'è un autovalore?" — imported "Characteristic polynomial", "Eigenvalues and
+eigenvectors", answered with them; GitHub repository statistics), **1 false** ("che colore è questo quadrato?" — a
+question about a picture, "answered" from SMPTE colour bars), 2 not found (a picture again; entropy). The first run
+also showed a question about an attached image importing unrelated articles (Red, GIMP, Green), and a crash (C151).
+Fixes: a question is studied only if the LOCAL model says it can be answered from books and articles alone (8 of 8
+right on these questions: the picture, the square, the owner's repositories and a follow-up "e chi l'ha scoperto?"
+skipped; eigenvalue, entropy, the first astronomer studied — a word list missed "questo quadrato"); at night only
+sources the re-ranker scored ≥ 0.5 are imported (relevant 0.58-0.97, useless 0.11-0.32 in these runs: provisional).
+The 4 wrong records removed from her memory. Not measured: a real night; the declined share over weeks.
+Time of an answer, 3 live questions: total 45-50 s (15 s for one declined at the gate), the first written word after
+19-22 s. By step: writing (thinking included) 16.3 s, retrieval with the filter 9.3 s, extraction per domain 5.7 s,
+gate 2.7 s, verification 2.3 s, route and translation 0.6 s.
+
 ## M109 — How clean is the vault? (5 October 2026)
 
 The owner asked, after M108 found one article twice. The whole knowledge read (672,423 passages, 33 domains, 10 s):
