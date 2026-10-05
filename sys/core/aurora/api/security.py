@@ -17,9 +17,9 @@ router = APIRouter()
 
 @router.get("/v1/aurora/security/profile", dependencies=[Depends(admin_only)])
 def profile(hours: float = 24) -> dict:
-    from aurora import sec_profile, sec_rules, sec_xg
+    from aurora import sec_profile, sec_rules, sec_fwapi
     return {"groups": sec_profile.observe(cfg, max(1.0, min(hours, 168.0))), "rules": sec_rules.load(cfg),
-            "doc": cfg["AURORA_SECURITY_SYSLOG_DOC"], "xg": sec_xg.configured(cfg), "group": cfg["AURORA_XG_BLOCK_GROUP"]}
+            "doc": cfg["AURORA_SECURITY_SYSLOG_DOC"], "firewall_api": sec_fwapi.configured(cfg), "group": cfg["AURORA_FIREWALL_BLOCK_GROUP"]}
 
 
 @router.post("/v1/aurora/security/learn", dependencies=[Depends(admin_only)])
@@ -46,29 +46,29 @@ async def rules_set(request: Request) -> dict:
     return {"rules": rules}
 
 
-@router.post("/v1/aurora/security/xg/test", dependencies=[Depends(admin_only)])
-async def xg_test() -> dict:
-    from aurora import sec_xg
+@router.post("/v1/aurora/security/firewall/test", dependencies=[Depends(admin_only)])
+async def firewall_test() -> dict:
+    from aurora import sec_fwapi
     try:
-        return await asyncio.to_thread(sec_xg.test, cfg)
-    except sec_xg.XGError as e:
+        return await asyncio.to_thread(sec_fwapi.test, cfg)
+    except sec_fwapi.FirewallAPIError as e:
         raise HTTPException(status_code=502, detail=str(e)) from None
 
 
 @router.post("/v1/aurora/security/block", dependencies=[Depends(admin_only)])
-async def xg_block(request: Request) -> dict:
+async def firewall_block(request: Request) -> dict:
     """{"ip", "reason", "unblock": bool}: the owner's click on an incident is the consent; recorded and told."""
-    from aurora import sec_xg
+    from aurora import sec_fwapi
     body = await request.json()
     ip, reason = str(body.get("ip", "")), str(body.get("reason", ""))[:200]
     try:
-        out = await asyncio.to_thread(sec_xg.unblock if body.get("unblock") else sec_xg.block, cfg, ip,
+        out = await asyncio.to_thread(sec_fwapi.unblock if body.get("unblock") else sec_fwapi.block, cfg, ip,
                                       *(() if body.get("unblock") else (reason,)))
-    except sec_xg.XGError as e:
+    except sec_fwapi.FirewallAPIError as e:
         raise HTTPException(status_code=502, detail=str(e)) from None
     what = "unblocked" if body.get("unblock") else "blocked"
     log.info("audit: owner %s %s on the firewall (%s)", what, ip, reason or "-")
-    sys_log.trace("security", f"xg.{what}", {"ip": ip, "reason": reason})
+    sys_log.trace("security", f"firewall.{what}", {"ip": ip, "reason": reason})
     note("security", "security.action", {"title": f"🛡️ {ip} {'sbloccato' if what == 'unblocked' else 'bloccato'} sul firewall",
                                   "text": reason})
     return out

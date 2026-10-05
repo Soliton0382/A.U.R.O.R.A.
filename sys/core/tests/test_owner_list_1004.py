@@ -269,19 +269,20 @@ def test_the_traffic_is_grouped_and_a_proposal_out_of_it_is_dropped(cfg):
 
 
 def test_the_firewall_api_blocks_only_on_good_addresses(cfg, monkeypatch):
-    from aurora import sec_xg
-    cfg.values.update(AURORA_XG_API_URL="https://192.0.2.1:4444", AURORA_XG_API_USER="aurora",
-                      AURORA_XG_API_PASSWORD="p<w>&d", AURORA_XG_VERIFY_TLS=False, AURORA_XG_BLOCK_GROUP="Aurora-Blocklist")
+    from aurora import sec_fwapi as fw
+    cfg.values.update(AURORA_FIREWALL_API_URL="https://192.0.2.1:4444", AURORA_FIREWALL_API_USER="aurora",
+                      AURORA_FIREWALL_API_PASSWORD="p<w>&d", AURORA_FIREWALL_VERIFY_TLS=False, AURORA_FIREWALL_BLOCK_GROUP="Aurora-Blocklist")
     for bad in ("127.0.0.1", "192.0.2.1", "not-an-ip", "224.0.0.1", "::1"):
-        with pytest.raises(sec_xg.XGError):
-            sec_xg.blockable(cfg, bad)
+        with pytest.raises(fw.FirewallAPIError):
+            fw.blockable(cfg, bad)
     sent = []
 
     class R:
         status_code = 200
-        text = '<Response><IPHost transactionid=""><Status code="200">Configuration applied successfully.</Status></IPHost></Response>'
-    monkeypatch.setattr(sec_xg.httpx, "post", lambda url, files, timeout, verify: sent.append((url, files["reqxml"][1])) or R())
-    out = sec_xg.block(cfg, "203.0.113.9", "port scan <x>")
+        text = ('<Response APIVersion="2200.1"><Login><status>Authentication Successful</status></Login>'
+                '<IPHost transactionid=""><Status code="200">Configuration applied successfully.</Status></IPHost></Response>')
+    monkeypatch.setattr(fw.httpx, "post", lambda url, files, timeout, verify: sent.append((url, files["reqxml"][1])) or R())
+    out = fw.block(cfg, "203.0.113.9", "port scan <x>")
     assert out["blocked"] == "203.0.113.9" and sent[0][0] == "https://192.0.2.1:4444/webconsole/APIController"
     xml = sent[1][1]
     assert "<Password>p&lt;w&gt;&amp;d</Password>" in xml                       # escaped, never injected
@@ -290,9 +291,20 @@ def test_the_firewall_api_blocks_only_on_good_addresses(cfg, monkeypatch):
 
     class Refused(R):
         text = "<Response><Login><status>Authentication Failure</status></Login></Response>"
-    monkeypatch.setattr(sec_xg.httpx, "post", lambda *a, **k: Refused())
-    with pytest.raises(sec_xg.XGError, match="refused the login"):
-        sec_xg.test(cfg)
+    monkeypatch.setattr(fw.httpx, "post", lambda *a, **k: Refused())
+    with pytest.raises(fw.FirewallAPIError, match="refused the login"):
+        fw.test(cfg)
+
+    class NoVersion(R):                                   # C131: the firewall refusing the whole request
+        text = '<?xml version="1.0"?><Response><Status code="529">There is no API Version</Status></Response>'
+    monkeypatch.setattr(fw.httpx, "post", lambda *a, **k: NoVersion())
+    with pytest.raises(fw.FirewallAPIError, match="529"):
+        fw.test(cfg)
+    assert "APIVersion" not in sent[0][1]                 # the firewall answers with its own version
+    cfg.values["AURORA_FIREWALL_API_URL"] = 'https://172.16.16.16:4444/webconsole/APIController -F "reqxml=<{payload file.xml}"'
+    assert fw.base_url(cfg) == "https://172.16.16.16:4444"            # a copied curl example: address and port kept
+    cfg.values["AURORA_FIREWALL_API_URL"] = "172.16.16.16"
+    assert fw.base_url(cfg) == "" and not fw.configured(cfg)
 
 
 def test_a_proposal_is_played_on_the_real_traffic_before_the_owner_decides(cfg):

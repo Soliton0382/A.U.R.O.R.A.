@@ -7,6 +7,7 @@ import { call } from "../api.js";
 import { bus } from "../bus.js";
 import { clock, el } from "../dom.js";
 import { apply, t } from "../i18n.js";
+import { approvalCard, isPost, socialPlugins } from "./approvals.js";
 
 export default {
   id: "social",
@@ -18,15 +19,19 @@ export default {
     root.classList.add("page");
     root.innerHTML = `<h2 data-i18n="social.title"></h2><p class="muted" data-i18n="social.hint"></p>
       <div class="platforms"></div>
+      <h3 class="setting-cat" data-i18n="social.to_approve"></h3><div class="soc-pending"></div>
       <h3 class="setting-cat" data-i18n="social.compose"></h3>
       <form class="import compose"><textarea rows="4" data-i18n-placeholder="social.topic"></textarea>
         <button type="submit" data-i18n="social.draft"></button></form>
       <div class="drafts"></div>
-      <h3 class="setting-cat" data-i18n="social.report"></h3><div class="report"></div>`;
+      <h3 class="setting-cat" data-i18n="social.report"></h3><div class="report"></div>
+      <h3 class="setting-cat" data-i18n="social.history"></h3><div class="soc-history"></div>`;
     apply(root);
     this.platforms = root.querySelector(".platforms");
     this.drafts = root.querySelector(".drafts");
     this.report = root.querySelector(".report");
+    this.socPending = root.querySelector(".soc-pending");
+    this.socHistory = root.querySelector(".soc-history");
     const input = root.querySelector("textarea");
     const go = root.querySelector(".compose button");
     const make = async (text) => {
@@ -71,7 +76,33 @@ export default {
     return c;
   },
 
+  // the posts: those waiting for the owner, and every one published (by her click or by Aurora by herself)
+  async loadPosts() {
+    const [all, social] = await Promise.all([call("/v1/aurora/approvals"), socialPlugins()]);
+    const posts = all.filter((a) => isPost(a, social));
+    const pending = posts.filter((a) => a.status === "pending");
+    this.socPending.replaceChildren(...(pending.length ? pending.map((a) => approvalCard(a, () => this.loadPosts()))
+      : [el("p", "muted", t("social.none_to_approve"))]));
+    const done = posts.filter((a) => a.status !== "pending").slice(0, 50);
+    this.socHistory.replaceChildren(...(done.length ? done.map((a) => {
+      const args = (a.action || a.preview || {}).arguments || {};
+      const d = el("details", "report");
+      const icon = { executed: "✅", auto: "🤖", failed: "⛔", rejected: "✖️", approved: "⏳" }[a.status] || "•";
+      d.append(el("summary", "", `${icon} ${clock(a.created)} · ${a.title} · ${t(`social.st.${a.status}`)}`));
+      if (args.picture) { const img = el("img", "share-pic"); img.src = `/v1/aurora/images/${args.picture}`; img.alt = args.picture; img.loading = "lazy"; d.append(img); }
+      d.append(el("p", "", args.message || args.text || ""));
+      const id = /post id (\S+)/.exec(typeof a.result === "string" ? a.result : a.result?.text || "")?.[1];
+      if (id && (a.action || {}).plugin === "facebook") {
+        const link = el("a", "", t("social.open_post"));
+        link.href = `https://www.facebook.com/${id}`; link.target = "_blank"; link.rel = "noopener noreferrer";
+        d.append(link);
+      }
+      return d;
+    }) : [el("p", "muted", t("social.no_history"))]));
+  },
+
   async enter() {
+    this.loadPosts().catch(() => {});
     const s = await call("/v1/aurora/social");
     const on = s.platforms.filter((p) => p.available);       // only the platforms switched on and connected
     this.platforms.replaceChildren(...(on.length ? on.map((p) => {

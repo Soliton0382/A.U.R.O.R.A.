@@ -118,6 +118,13 @@ async function show(id) {
 }
 
 $("menu").addEventListener("click", () => drawer(!document.body.classList.contains("drawer-open")));
+// log out: this device is forgotten (its key revoked); the next visit asks for the login again
+$("logout").addEventListener("click", async () => {
+  if (!confirm(i18n.t("nav.logout_q"))) return;
+  try { await call("/v1/aurora/logout", { method: "POST" }); } catch { /* already out: the login anyway */ }
+  drawer(false);
+  showLogin(true);
+});
 $("scrim").addEventListener("click", () => drawer(false));
 document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") drawer(false); });
 $("lang").addEventListener("change", async (ev) => {

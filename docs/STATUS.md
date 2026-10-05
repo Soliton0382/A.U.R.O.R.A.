@@ -67,6 +67,11 @@ Signed and published (commit d4ce54f, 29 commits, the history clean of the firew
 207 tests; the Messenger welcome message set by hand. The next roadmap is decided by the owner after the weekend
 (ROADMAP.md, "Next roadmap").
 
+## Done 2026-10-05, to verify by the owner (N45-N48)
+
+Log out; Social with posts to approve and history; Approvals apart from Reports; the firewall's API generic and
+working (C131: login verified live). The autonomy panel is a design to decide (ROADMAP).
+
 ## Done 2026-10-04, to verify by the owner (N31-N41)
 
 Verified by the owner: the WebUI changes (models menu, PDFs deletable, menu by plugin) and the backup timer.

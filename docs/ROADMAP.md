@@ -17,8 +17,32 @@ Done today and yesterday, live: the owner's list of 4 October, all 10 points (3-
 | 5 | U6 — each user's folders protected by a system account | decision | the owner decides; today the separation is Aurora's (tests M79-M80) |
 | 6 | A week of soak — memory, logs, GPU swaps, failed routines, measured daily | measure | the doctor and health give the numbers; a daily line in MEASUREMENTS |
 | 7 | 🎧 DJ plugin (owner, 2026-10-04) — see below | new | proposal to approve |
-| 8 | The XG API live: the owner turns it on, Aurora blocks one test address (N44) | verification | after the owner's setup on the firewall |
+| 8 | The firewall's API live: login works (C131); a first block of a test address, after the owner's drop rule for the group (N44) | verification | the owner's rule on the firewall |
 | 9 | The forge with the local reasoner after C129 | measure | `bench_forge.py` without --roles |
+
+| 10 | 🧭 An autonomy panel (owner, 2026-10-05) — see below | design | to decide with the owner |
+
+Done on 2026-10-05: 🚪 log out in the side menu; 📣 Social with posts to approve and the post history; 🛎️ Approvals
+apart from 🩺 Reports (self-reviews, repairs); the firewall's API generic (AURORA_FIREWALL_*, kind sophos) and live
+(C131). N45-N48.
+
+### 🧭 Autonomy panel — to reason on with the owner (2026-10-05)
+
+Today Aurora's freedom is spread over many settings (social autonomy and posts a day, forge mode, external actions'
+confirmation, self-repair, incident investigation, update mode, the inner cycle). One page, by area, each with three
+levels and what each level means, the code's limits shown and never crossed (the ethics code's level A, Aurora never
+signs her own code, the owner's papers untouched):
+| area | 🔒 ask always | 🤝 propose, the owner decides | 🚀 by herself, within limits |
+|---|---|---|---|
+| social | every post approved | drafts ready in Social | posts by herself, N a day, recorded and told |
+| capabilities (forge) | asks to build | builds, the owner installs | installs read-only plugins, the others to approval |
+| repairs | reports only | repairs in the sandbox, proposes | — (code changes always approved) |
+| security | incidents only | investigates and suggests | — (blocks on the firewall only on the owner's click) |
+| updates | off | notifies, the owner applies | applies the safe ones |
+| knowledge | searches only when asked | — | searches and imports by herself when she does not know |
+| inner life | off | — | thoughts, dreams, reflections |
+Open questions for the owner: per user or the machine's? presets (careful / balanced / free)? a daily line of what
+she did by herself? which areas never go past 🤝?
 
 ### 🎧 DJ plugin — proposal (owner, 2026-10-04), not started
 

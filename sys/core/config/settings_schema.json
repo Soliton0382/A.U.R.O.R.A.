@@ -3035,63 +3035,78 @@
    ]
   },
   {
-   "key": "AURORA_XG_API_URL",
-   "type": "str",
+   "key": "AURORA_FIREWALL_API_KIND",
+   "type": "enum",
+   "choices": [
+    "sophos"
+   ],
    "category": "security",
-   "recommended": "",
+   "recommended": "sophos",
    "evidence": "owner",
-   "en": "Sophos firewall API address, e.g. https://192.168.1.1:4444 (the admin console's port). Empty: no action on the firewall. Turn the API on there and allow this machine's address.",
-   "it": "Indirizzo dell'API del firewall Sophos, es. https://192.168.1.1:4444 (la porta della console di amministrazione). Vuoto: nessuna azione sul firewall. Sul firewall accendi l'API e autorizza l'indirizzo di questa macchina.",
+   "en": "The firewall API's dialect (sophos: the XML API of Sophos firewalls; others to come).",
+   "it": "Il dialetto dell'API del firewall (sophos: l'API XML dei firewall Sophos; altri in futuro).",
    "services": [
     "aurora-api"
    ]
   },
   {
-   "key": "AURORA_XG_API_USER",
+   "key": "AURORA_FIREWALL_API_URL",
    "type": "str",
    "category": "security",
    "recommended": "",
    "evidence": "owner",
-   "en": "Firewall API user (best a dedicated administrator with only the rights it needs).",
+   "en": "The firewall's API address: https://address:port only, e.g. https://172.16.16.16:4444 (the admin console's port). Empty: no action on the firewall. Turn the API on there and allow this machine's address.",
+   "it": "Indirizzo dell'API del firewall: solo https://indirizzo:porta, es. https://172.16.16.16:4444 (la porta della console di amministrazione). Vuoto: nessuna azione sul firewall. Sul firewall accendi l'API e autorizza l'indirizzo di questa macchina.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_FIREWALL_API_USER",
+   "type": "str",
+   "category": "security",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "The firewall API's user (best a dedicated administrator with only the rights it needs).",
    "it": "Utente dell'API del firewall (meglio un amministratore dedicato con i soli permessi necessari).",
    "services": [
     "aurora-api"
    ]
   },
   {
-   "key": "AURORA_XG_API_PASSWORD",
+   "key": "AURORA_FIREWALL_API_PASSWORD",
    "type": "str",
    "category": "security",
    "recommended": "",
    "evidence": "owner",
    "secret": true,
    "optional": true,
-   "en": "Firewall API password.",
+   "en": "The firewall API's password.",
    "it": "Password dell'API del firewall.",
    "services": [
     "aurora-api"
    ]
   },
   {
-   "key": "AURORA_XG_VERIFY_TLS",
+   "key": "AURORA_FIREWALL_VERIFY_TLS",
    "type": "bool",
    "category": "security",
    "recommended": "0",
    "evidence": "owner",
-   "en": "Check the firewall's HTTPS certificate (off for the firewall's own self-signed one).",
+   "en": "Check the firewall's HTTPS certificate (off for a firewall's own self-signed one).",
    "it": "Verificare il certificato HTTPS del firewall (spento per quello autofirmato del firewall).",
    "services": [
     "aurora-api"
    ]
   },
   {
-   "key": "AURORA_XG_BLOCK_GROUP",
+   "key": "AURORA_FIREWALL_BLOCK_GROUP",
    "type": "str",
    "category": "security",
    "recommended": "Aurora-Blocklist",
    "evidence": "owner",
-   "en": "IP host group on the firewall where the addresses you block go; make once a firewall rule that drops traffic from this group (Aurora never writes rules).",
-   "it": "Gruppo di host IP sul firewall dove finiscono gli indirizzi che blocchi; crea una volta una regola del firewall che scarta il traffico da questo gruppo (Aurora non scrive mai regole).",
+   "en": "Host group on the firewall where the addresses you block go; make once a rule that drops traffic from this group (Aurora never writes rules).",
+   "it": "Gruppo di host sul firewall dove finiscono gli indirizzi che blocchi; crea una volta una regola che scarta il traffico da questo gruppo (Aurora non scrive mai regole).",
    "services": [
     "aurora-api"
    ]

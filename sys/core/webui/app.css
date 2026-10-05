@@ -52,6 +52,8 @@ body.drawer-open .scrim { opacity: 1; pointer-events: auto; }
 #nav button.active { background: rgba(122, 162, 255, .14); border-color: rgba(122, 162, 255, .35); color: #cfdcff; }
 #nav .ic { width: 1.4rem; text-align: center; }
 .drawer-foot { padding-top: .6rem; border-top: 1px solid var(--line); }
+.drawer-foot { display: flex; gap: .5rem; align-items: center; justify-content: space-between; }
+.drawer-foot .logout { font-size: .85rem; }
 
 #views { flex: 1; min-height: 0; position: relative; }
 .view { position: absolute; inset: 0; overflow: auto; }

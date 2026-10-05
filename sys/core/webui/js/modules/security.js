@@ -64,7 +64,7 @@ export default {
       c.append(d);
     }
     if (i.detail?.action) c.append(el("p", "", `💡 ${i.detail.action}`));
-    if (this.xg && /^\d+\.\d+\.\d+\.\d+$/.test(i.source)) {   // the owner's click is the consent
+    if (this.fwApi && /^\d+\.\d+\.\d+\.\d+$/.test(i.source)) {   // the owner's click is the consent
       const block = el("button", "danger", `⛔ ${t("sec.block", { ip: i.source })}`);
       block.addEventListener("click", async () => {
         if (!confirm(t("sec.block_q", { ip: i.source, group: this.group }))) return;
@@ -85,7 +85,7 @@ export default {
   async loadProfile() {
     let p;
     try { p = await call("/v1/aurora/security/profile"); } catch { this.watchHint.textContent = ""; return; }
-    this.xg = p.xg;
+    this.fwApi = p.firewall_api;
     this.group = p.group;
     this.watchHint.textContent = t("sec.watch_hint", { doc: p.doc });
     this.rules.replaceChildren(...(p.rules.length ? p.rules.map((r) => {

@@ -4,6 +4,7 @@
 // Views get a page and a menu entry; widgets live in a slot (background, topbar).
 // Adding a piece to the interface = one import and one line here.
 import approvals from "./modules/approvals.js";
+import reports from "./modules/reports.js";
 import alerts from "./modules/alerts.js";
 import chat from "./modules/chat.js";
 import diary from "./modules/diary.js";
@@ -27,5 +28,5 @@ import status from "./modules/status.js";
 import updates from "./modules/updates.js";
 import users from "./modules/users.js";
 
-export const views = [chat, approvals, security, diary, social, projects, routines, models, plugins, importDocs, uploads, harvester, runs, status, notifications, updates, users, settings, guide, bugreport];
+export const views = [chat, approvals, reports, security, diary, social, projects, routines, models, plugins, importDocs, uploads, harvester, runs, status, notifications, updates, users, settings, guide, bugreport];
 export const widgets = [sky, alerts, metrics];
