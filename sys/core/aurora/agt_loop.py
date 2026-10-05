@@ -222,6 +222,12 @@ class Agent:
                 return f"ERROR: {e}"
             emit("project.run", {"project": args.get("project"), "command": str(args.get("command", ""))[:200],
                                  "exit": r["exit"], "seconds": r["seconds"]})
+            name = str(args.get("project", ""))
+            self.projects.add(name)
+            if r["exit"] == 0 and name not in self.passed:     # the owner is told the first time it works
+                self.passed.add(name)
+                self.notify("project.progress", {"project": name, "text": f"{name}: ok in {r['seconds']} s — "
+                                                                           f"{str(args.get('command', ''))[:80]}"})
             return f"EXIT {r['exit']} in {r['seconds']} s\n{r['output']}"
         if name == "propose_change":
             return self._propose(args, emit, run_id)
@@ -237,6 +243,8 @@ class Agent:
         if name not in index:
             return f"ERROR: unknown tool {name}"
         plugin, tool, effect = index[name]
+        if plugin == "projects" and args.get("name"):
+            self.projects.add(str(args["name"]))
         if self.host.get(plugin).manifest.get("private"):      # health data never reaches a cloud model (owner, 2026-10-05)
             from . import mdl_router
             if not mdl_router.is_local(self.p._for("agent"), self.p.llm):
@@ -277,8 +285,10 @@ class Agent:
     CLAIMS = {
         "sandbox": (re.compile(r"(?i)ho creato (?:una )?sandbox|created a sandbox"), ("sandbox_create",)),
         "edit": (re.compile(r"(?i)\b(?:ho (?:applicato|corretto|modificato|sostituito|cambiato)|sostituit[oa] l|"
-                            r"fix applicat|i fixed|i changed)"), ("sandbox_replace", "sandbox_write")),
-        "tests": (re.compile(r"(?i)test (?:passano|superati|verdi)|ho eseguito i test|tests? pass"), ("run_tests",)),
+                            r"fix applicat|i fixed|i changed)"), ("sandbox_replace", "sandbox_write", "project_write_file")),
+        # a project's files and tests count too (C134: a project's report was flagged as false)
+        "tests": (re.compile(r"(?i)test (?:passano|superati|verdi)|ho eseguito i test|tests? pass"),
+                  ("run_tests", "run_in_project")),
         "proposal": (re.compile(r"(?i)ho proposto|proposta inviata|in attesa (?:della tua )?approvazione|i proposed"),
                      ("propose_change",)),
     }
@@ -295,7 +305,9 @@ class Agent:
         return (f"— Azioni eseguite (dal registro delle chiamate): {len(self.ledger)} chiamate; {reads} letture; "
                 f"{self._count('sandbox_create')} sandbox create; {self._count('sandbox_replace', 'sandbox_write')} "
                 f"modifiche in sandbox; {self._count('run_tests')} esecuzioni di test; "
-                f"{self._count('propose_change')} proposte di modifica; {failed} chiamate non riuscite.")
+                f"{self._count('propose_change')} proposte di modifica; "
+                f"{self._count('project_write_file')} file scritti nei progetti; {self._count('run_in_project')} "
+                f"esecuzioni nei progetti; {failed} chiamate non riuscite.")
 
     def _honest(self, summary: str) -> str:
         """Every claim the log of calls does not support gets a warning at the top of the report; actions still
@@ -374,6 +386,8 @@ class Agent:
         self.produced: list[dict] = []                      # files made by the tools: links in the answer
         self.pending: list[str] = []                        # actions waiting for the owner: said in the report
         self.requested = False                              # it asked the forge itself (request_capability)
+        self.projects: set[str] = set()                     # the projects it worked on: told at the end
+        self.passed: set[str] = set()                       # those whose tests passed once: told at once
         self.ledger: list[tuple[str, bool]] = []
         budget = self.cfg["AURORA_PIPELINE_THINK_TOKENS"]
         limit_s = self.cfg["AURORA_AGENT_MAX_MIN"] * 60
@@ -439,6 +453,9 @@ class Agent:
                               "files": [f for f in self.produced if not f.get("mime", "").startswith("image/")],
                               "images": [{**f, "inline": True} for f in self.produced if f.get("mime", "").startswith("image/")]})
         self.log.info("agent run %s: %d steps in %.0f s", run_id, steps, seconds)
+        if self.projects:                                    # a project's work done: the owner is told, with the report's start
+            self.notify("project.update", {"projects": sorted(self.projects),
+                                           "text": f"{', '.join(sorted(self.projects))}: {summary[:160]}"})
         ans = Answer(run_id, goal, summary, False, mode="agent")
         ans.seconds = seconds
         return ans

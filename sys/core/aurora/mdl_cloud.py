@@ -58,8 +58,11 @@ class ClaudeCodeLLM:
         # The CLI has no output limit (A16): the budget is stated in the prompt; Italian measured at ~3.1
         # tokens per word (273 tokens / 88 words), so 0.35 words per token.
         system = sys_config.personal(system, self.cfg) + f"\n\nLENGTH: answer in at most about {max(20, int(max_tokens * 0.35))} words."
+        # --strict-mcp-config with no --mcp-config: no MCP server at all. Without it the CLI loads the account's
+        # claude.ai connectors (C133): the model saw those tools, called Aurora's in that form and failed, and could
+        # act on the owner's account. The text is the only channel: Aurora's tools go through her own CALL format.
         cmd = [self.bin, "-p", "--model", self.model, "--no-session-persistence", "--tools", "",
-               "--setting-sources", "", "--system-prompt", system]
+               "--setting-sources", "", "--strict-mcp-config", "--system-prompt", system]
         return cmd + (["--output-format", "stream-json", "--include-partial-messages", "--verbose"] if stream
                       else ["--output-format", "json"])
 

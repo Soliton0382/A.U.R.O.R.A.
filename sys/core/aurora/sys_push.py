@@ -15,6 +15,7 @@ import base64
 import json
 import os
 import threading
+import time
 from pathlib import Path
 
 from . import sys_config, sys_log
@@ -45,6 +46,8 @@ TEXTS = {   # event -> (kind the owner chooses, view to open, {lang: title})
     "forge.installed": ("plugin", "plugins", {"it": "🔨 Aurora si è costruita un plugin", "en": "🔨 Aurora built herself a plugin"}),
     "forge.failed": ("plugin", "plugins", {"it": "🔨 Una capacità non è riuscita", "en": "🔨 A capability could not be built"}),
     "plugin.ready": ("plugin", "routines", {"it": "🧩 Nuovo plugin pronto", "en": "🧩 New plugin ready"}),
+    "project.progress": ("project", "projects", {"it": "🧪 Un progetto avanza: i test passano", "en": "🧪 A project moves on: the tests pass"}),
+    "project.update": ("project", "projects", {"it": "📁 Lavoro su un progetto concluso", "en": "📁 Work on a project done"}),
     "dj.done": ("creation", "dj", {"it": "🎧 Il tuo mix è pronto", "en": "🎧 Your mix is ready"}),
     "dj.failed": ("creation", "dj", {"it": "🎧 Il mix non è riuscito", "en": "🎧 The mix failed"}),
     "video.done": ("creation", "chat", {"it": "🎬 Il tuo video è pronto", "en": "🎬 Your video is ready"}),
@@ -83,11 +86,12 @@ KINDS = {   # what the owner chooses from, in the Notifications page
                "en": "Aurora's health (a service down, the disk nearly full, and when it is fine again)"},
     "access": {"it": "Nuovi accessi e dispositivi sul tuo account", "en": "New sign-ins and devices on your account"},
     "social": {"it": "Post pubblicati da Aurora", "en": "Posts Aurora published"},
+    "project": {"it": "Progetti (avanzamento e resoconti)", "en": "Projects (progress and reports)"},
 }
 # the machine's: only the admin chooses them (a user is not told of the backup or the firewall)
 MACHINE = {"incident", "update", "self_review", "harvest", "plugin", "backup", "backup_ok", "cloud", "health"}
 PRESETS = {"suggested": ["incident", "approval", "update", "dream", "self_review", "routine", "weather", "plugin", "creation", "backup",
-                         "cloud", "health", "access", "social"],
+                         "cloud", "health", "access", "social", "project"],
            "all": list(KINDS), "none": []}
 KNOWN_BEFORE = ["incident", "approval", "update", "dream", "self_review", "thought", "harvest"]   # prefs saved without "known"
 CHANNELS = ("push", "webui")
@@ -198,6 +202,31 @@ def message(event: str, payload: dict, cfg: sys_config.Config, channel: str = "p
     body = str(payload.get("text") or payload.get("title") or "").strip()
     body = body if len(body) <= 180 else body[:177].rsplit(" ", 1)[0] + "…"
     return {"title": titles[lang], "body": body, "view": view, "tag": f"aurora-{kind}"}
+
+
+HISTORY_MAX = 500
+
+
+def remember(msg: dict, event: str, channels: list[str], cfg: sys_config.Config) -> None:
+    """Every notification Aurora made, for the Notifications page's history (owner, 2026-10-05): the user's own, the
+    last HISTORY_MAX, in their state folder."""
+    f = _mine(cfg) / "history.jsonl"
+    line = json.dumps({"at": time.time(), "event": event, "title": msg.get("title", ""), "body": msg.get("body", ""),
+                       "view": msg.get("view", ""), "channels": channels}, ensure_ascii=False)
+    with _lock:
+        old = f.read_text(encoding="utf-8").splitlines()[-(HISTORY_MAX - 1):] if f.exists() else []
+        _write_private(f, ("\n".join(old + [line]) + "\n").encode())
+
+
+def history(cfg: sys_config.Config, n: int = 200) -> list[dict]:
+    f = _mine(cfg) / "history.jsonl"
+    out = []
+    for line in (f.read_text(encoding="utf-8").splitlines() if f.exists() else [])[-n:]:
+        try:
+            out.append(json.loads(line))
+        except ValueError:
+            continue
+    return out[::-1]
 
 
 def send(msg: dict, cfg: sys_config.Config) -> dict:

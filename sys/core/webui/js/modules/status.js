@@ -10,7 +10,7 @@ const pill = (ok, text) => el("span", `pill ${ok ? "ok" : "bad"}`, text);
 
 export default {
   id: "status",
-  icon: "🩺",
+  icon: "📊",
   title: "nav.status",
 
   mount(root) {

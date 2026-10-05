@@ -31,7 +31,7 @@ export default {
       return d;
     }));
     const rows = [];
-    for (const b of document.querySelectorAll("#nav button")) {
+    for (const b of document.querySelectorAll("#nav button[data-view]")) {     // pages, not the areas' headers
       const id = b.dataset.view;
       if (id === this.id) continue;
       const row = el("div", "ev gd-page");

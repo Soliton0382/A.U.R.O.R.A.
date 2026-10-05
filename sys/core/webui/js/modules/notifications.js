@@ -19,6 +19,7 @@ export default {
     root.classList.add("page");
     root.innerHTML = `
       <h2 data-i18n="notif.title"></h2>
+      <h3 class="setting-cat" data-i18n="notif.history"></h3><div class="notif-history"></div>
       <p class="muted" data-i18n="notif.hint"></p>
       <h3 class="setting-cat" data-i18n="notif.device"></h3>
       <div class="notif-device"></div>
@@ -27,12 +28,29 @@ export default {
       <div class="settings-actions"><button class="save" data-i18n="settings.save"></button> <span class="result muted"></span></div>`;
     apply(root);
     this.device = root.querySelector(".notif-device");
+    this.history = root.querySelector(".notif-history");
     this.grid = root.querySelector(".notif-grid");
     this.out = root.querySelector(".result");
     root.querySelector(".save").addEventListener("click", () => this.save());
   },
 
-  async enter() { await Promise.all([this.showDevice(), this.showGrid()]); },
+  async enter() { await Promise.all([this.showDevice(), this.showGrid(), this.showHistory()]); },
+
+  // every notification Aurora made (owner, 2026-10-05): newest first, a click opens its page
+  async showHistory() {
+    let items = [];
+    try { items = await call("/v1/aurora/notifications/history?n=200"); } catch { /* an API before the history */ }
+    this.history.replaceChildren(...(items.length ? items.map((n) => {
+      const row = el("button", "ev notif-row");
+      row.type = "button";
+      const when = new Date(n.at * 1000);
+      row.append(el("span", "muted", `${when.toLocaleDateString([], { day: "2-digit", month: "2-digit" })} ${when.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`),
+        el("strong", "", n.title), el("span", "", n.body || ""),
+        el("span", "muted", n.channels.includes("push") ? "📱" : "🖥️"));
+      if (n.view) row.addEventListener("click", () => bus.emit("show", { id: n.view }));
+      return row;
+    }) : [el("p", "muted", t("notif.history_none"))]));
+  },
 
   async showDevice() {
     const st = await pushState();

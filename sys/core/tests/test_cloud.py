@@ -44,3 +44,11 @@ def test_anthropic_turns_merge_consecutive_roles():
                                                   {"role": "user", "content": "c"}])
     assert system == "S" and [m["role"] for m in msgs] == ["user", "assistant", "user"]
     assert "<tool_response>\nr" in msgs[2]["content"] and msgs[2]["content"].endswith("c")
+
+
+def test_claude_code_runs_with_no_tool_and_no_mcp_server(cfg):
+    """C133: without --strict-mcp-config the CLI loaded the account's claude.ai connectors; the agent's model saw
+    them, failed on Aurora's tools and could have acted on the owner's account."""
+    cmd = mdl_cloud.ClaudeCodeLLM(cfg, "opus")._cmd("sys", False, 100)
+    assert "--strict-mcp-config" in cmd and "--mcp-config" not in cmd
+    assert cmd[cmd.index("--tools") + 1] == "" and cmd[cmd.index("--setting-sources") + 1] == ""

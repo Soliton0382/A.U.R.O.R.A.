@@ -1,7 +1,9 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /* Copyright 2026 A.U.R.O.R.A. Project */
 /* Health dot and pending-approval bell next to Aurora's name. */
-#slot-alerts { display: flex; align-items: center; gap: .5rem; }
+#slot-alerts { display: flex; align-items: center; gap: .4rem; min-height: 1.2rem; }
+#slot-alerts:empty { display: none; }
+#slot-health { display: inline-flex; align-items: center; }
 .health-dot { width: .85rem; height: .85rem; padding: 0; border-radius: 50%; border: 0; cursor: pointer; }
 .health-dot.ok { background: var(--ok); box-shadow: 0 0 8px rgba(91, 208, 138, .7); }
 .health-dot.warn { background: var(--warn); box-shadow: 0 0 8px rgba(240, 179, 90, .8); }

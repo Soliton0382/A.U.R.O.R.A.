@@ -1,0 +1,44 @@
+{
+  "name": "pyenv",
+  "version": "1.0",
+  "kind": "tool",
+  "description": {
+    "en": "Aurora's Python environment, read only: Python and installed library versions, the dependencies a project declares compared with what is installed, and whether the cryptography library offers ML-KEM-768, X25519 and HKDF-SHA256. It runs a short self-test in memory and does not change anything.",
+    "it": "L'ambiente Python di Aurora, in sola lettura: le versioni di Python e delle librerie installate, le dipendenze dichiarate da un progetto confrontate con quelle installate, e se la libreria cryptography offre ML-KEM-768, X25519 e HKDF-SHA256. Esegue una breve prova in memoria e non modifica nulla."
+  },
+  "command": [
+    "{python}",
+    "server.py"
+  ],
+  "env": [],
+  "requires": [],
+  "effects": {
+    "*": "read"
+  },
+  "sandbox": {
+    "network": false
+  },
+  "tests": [
+    {
+      "tool": "pyenv_crypto_check",
+      "args": {}
+    },
+    {
+      "tool": "pyenv_versions",
+      "args": {
+        "packages": "cryptography, httpx"
+      }
+    },
+    {
+      "tool": "pyenv_project_deps",
+      "args": {
+        "project": ""
+      }
+    }
+  ],
+  "forged": {
+    "request": "b5a9bfa344",
+    "at": "2026-10-05T10:59:44+0200",
+    "need": "Missing capability: tool `projects__project_create` to create local Python projects, tool `run_in_project` to execute code and check library versions (specifically to verify if ML-KEM-768 is available"
+  }
+}

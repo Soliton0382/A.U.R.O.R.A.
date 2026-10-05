@@ -27,6 +27,14 @@ export default {
           <button type="button" class="cat-chip" data-tab="github" data-i18n="prj.github"></button></div>
         <div class="prj-tab" data-tab="github" hidden><p class="muted" data-i18n="prj.github_hint"></p><div class="prj-github"></div></div>
         <div class="prj-tab" data-tab="local"><p class="muted" data-i18n="prj.local_hint"></p><div class="prj-local"></div>
+        <h3 class="setting-cat" data-i18n="prj.brief"></h3><p class="muted" data-i18n="prj.brief_hint"></p>
+        <form class="import prj-brief">
+          <input name="name" required pattern="[a-z0-9][a-z0-9._-]{0,63}" data-i18n-placeholder="prj.name">
+          <textarea name="goal" rows="2" required data-i18n-placeholder="prj.b_goal"></textarea>
+          <textarea name="reqs" rows="4" data-i18n-placeholder="prj.b_reqs"></textarea>
+          <textarea name="tests" rows="3" required data-i18n-placeholder="prj.b_tests"></textarea>
+          <textarea name="limits" rows="2" data-i18n-placeholder="prj.b_limits"></textarea>
+          <button type="submit" class="approve" data-i18n="prj.b_go"></button></form>
         <h3 class="setting-cat" data-i18n="prj.new"></h3>
         <form class="prj-new"><input name="name" required pattern="[a-z0-9][a-z0-9._-]{0,63}" data-i18n-placeholder="prj.name">
           <input name="description" required data-i18n-placeholder="prj.description">
@@ -46,6 +54,16 @@ export default {
       root.querySelectorAll(".prj-tabs button").forEach((x) => x.classList.toggle("on", x === b));
       root.querySelectorAll(".prj-tab").forEach((p) => { p.hidden = p.dataset.tab !== b.dataset.tab; });
     }));
+    // a project given to Aurora as a brief (owner, 2026-10-05): goal, requirements, acceptance tests, limits, and how
+    // to work — she creates it, writes, runs the tests in her cage, iterates, commits, reports (and notifies)
+    root.querySelector(".prj-brief").addEventListener("submit", (ev) => {
+      ev.preventDefault();
+      const b = ev.target;
+      const block = (k, v) => (v.trim() ? `${t(k)}\n${v.trim()}\n\n` : "");
+      bus.emit("ask", { text: `${t("prj.b_title", { name: b.name.value.trim() })}\n\n${block("prj.b_goal_h", b.goal.value)}`
+        + `${block("prj.b_reqs_h", b.reqs.value)}${block("prj.b_tests_h", b.tests.value)}`
+        + `${block("prj.b_limits_h", b.limits.value || t("prj.b_limits_default"))}${t("prj.b_how", { name: b.name.value.trim() })}` });
+    });
     const form = root.querySelector(".prj-new");
     form.addEventListener("submit", async (ev) => {
       ev.preventDefault();

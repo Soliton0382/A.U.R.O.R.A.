@@ -75,6 +75,10 @@ mark each line ✅ / ❌ with a note. Reload the WebUI first (the service worker
 | N55 | ❤️ Salute → Dieta: upload the dietitian's PDF; in the chat "cosa prevede la dieta per pranzo?" | the answer from the plan; on disk only sealed files |
 | N56 | 🧠 Models: agent → a cloud provider; ask about the diet | "REFUSED": health data stays local; back to local |
 | N57 | 🧠 Models page | "masking always on" |
+| N58 | ☰ the side menu on the phone and on the PC | areas (Activity, Life, Work, Knowledge, System, Help): a tap opens one on the phone, hovering on the PC; the shown page's area stays open; an approval waiting puts a dot on its area |
+| N59 | The top bar | the state dot beside the name, the bells under it; CPU/RAM and the GPUs on two rows; it fits the phone |
+| N60 | 🛎️ Activity → 🔔 Notifications | "Notification history" on top: every alert with its time, 📱 or 🖥️; a click opens its page |
+| N61 | 📁 Projects → 💻 Local → 🤖 Give Aurora a project | the brief goes to the chat; a 🧪 alert when its tests first pass, a 📁 alert at the end |
 | N41 | 📁 Projects → 💻 Local: ask Aurora "crea il progetto prova-calc con una funzione somma e i suoi test, eseguili" | the project, the tests run (EXIT 0) in the run's steps, a local commit |
 | N17 | Ask a knowledge question (e.g. «Come funziona la fotosintesi?»), then tap one of the «Approfondisci» questions; then type a short follow-up («e chi l'ha scoperta?») | 3-4 complete questions appear under the answer a few seconds after it; the tapped one is sent whole and its trace shows 🎯 when the sources were used; the typed follow-up shows 🧷 with the completed question |
 | N6 | 🧩 Plugins: open the page, then a card, then back | the grid appears at once; icons do not flash (C80) |

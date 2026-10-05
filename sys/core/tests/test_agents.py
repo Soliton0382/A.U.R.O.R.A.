@@ -183,3 +183,15 @@ def test_a_tool_call_closed_with_the_wrong_tag_or_left_open_is_still_a_call():
                         ('<tool_call>\n{"name": "b", "arguments": {}}\n</tool_response>', ["b"]),
                         ('ok <tool_call>{"name": "c", "arguments": {"h": "<p>{}</p>"}}', ["c"])):
         assert [json.loads(m)["name"] for m in CALL.findall(text)] == names
+
+
+def test_a_project_s_report_is_not_flagged_as_false(cfg):
+    """C134: files written and tests run in a project are actions in the log, not claims without evidence."""
+    from types import SimpleNamespace
+    from aurora.agt_loop import Agent
+    a = Agent(SimpleNamespace(llm=None, _for=lambda r: None), cfg, host=SimpleNamespace())
+    a.ledger = [("projects__project_write_file", True), ("run_in_project", True)]
+    out = a._honest("Ho modificato core.py e i test passano: 32 superati.")
+    assert not out.startswith("⚠️") and "1 file scritti nei progetti" in a._record()
+    a.ledger = []
+    assert a._honest("Ho modificato core.py e i test passano.").startswith("⚠️")

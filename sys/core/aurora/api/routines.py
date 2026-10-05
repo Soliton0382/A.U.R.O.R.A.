@@ -173,6 +173,12 @@ def notifications() -> dict:
                       if admin or k not in sys_push.MACHINE]}
 
 
+@router.get("/v1/aurora/notifications/history", dependencies=[Depends(auth)])
+def notifications_history(n: int = 200) -> list[dict]:
+    from aurora import sys_push
+    return sys_push.history(cfg, max(1, min(n, 500)))
+
+
 @router.put("/v1/aurora/notifications", dependencies=[Depends(auth)])
 async def notifications_set(request: Request) -> dict:
     from aurora import sys_push

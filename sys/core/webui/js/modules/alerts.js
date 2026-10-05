@@ -23,7 +23,8 @@ export default {
     shield.type = "button";
     const notif = el("button", "notif-toggle");
     notif.type = "button";
-    root.append(dot, bell, shield, notif);
+    (document.getElementById("slot-health") || root).append(dot);    // the state beside the name
+    root.append(bell, shield, notif);                                // the rest under it
     notif.addEventListener("click", () => ctx.show("notifications"));
     this.showPush = async () => {
       const st = await pushState();

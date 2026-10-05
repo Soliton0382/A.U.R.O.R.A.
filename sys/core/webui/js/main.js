@@ -7,7 +7,7 @@ import { bus } from "./bus.js";
 import { $, el } from "./dom.js";
 import * as i18n from "./i18n.js";
 import * as voice from "./voice.js";
-import { views, widgets } from "./modules.js";
+import { groups, views, widgets } from "./modules.js";
 
 const byId = Object.fromEntries(views.map((v) => [v.id, v]));
 let current = null;
@@ -83,17 +83,44 @@ const ctx = {
   replay: async (run) => { await show("chat"); byId.chat.replay(run); },
 };
 
+function navButton(v) {
+  const b = el("button");
+  b.dataset.view = v.id;
+  const label = el("span", "label");
+  label.dataset.i18n = v.title;
+  b.append(el("span", "ic", v.icon), label);
+  b.addEventListener("click", () => show(v.id));
+  return b;
+}
+
 function buildNav() {
   const nav = $("nav");
-  for (const v of views) {
-    const b = el("button");
-    b.dataset.view = v.id;
+  const byView = Object.fromEntries(views.map((v) => [v.id, v]));
+  const placed = new Set();
+  for (const g of groups) {
+    const members = g.views.map((id) => byView[id]).filter(Boolean);
+    members.forEach((v) => placed.add(v.id));
+    if (members.length === 1 && !g.title) { nav.append(navButton(members[0])); continue; }
+    const box = el("div", "nav-group");
+    box.dataset.group = g.id;
+    const head = el("button", "nav-head");
     const label = el("span", "label");
-    label.dataset.i18n = v.title;
-    b.append(el("span", "ic", v.icon), label);
-    b.addEventListener("click", () => show(v.id));
-    nav.append(b);
+    label.dataset.i18n = g.title;
+    head.append(el("span", "ic", g.icon), label, el("span", "chev", "▸"));
+    head.addEventListener("click", () => box.classList.toggle("open"));
+    const sub = el("div", "nav-sub");
+    sub.append(...members.map(navButton));
+    box.append(head, sub);
+    nav.append(box);
   }
+  views.filter((v) => !placed.has(v.id)).forEach((v) => nav.append(navButton(v)));   // a page not in an area yet
+}
+
+// an area with no visible page (its plugins off) is hidden too
+function tidyNav() {
+  document.querySelectorAll("#nav .nav-group").forEach((g) => {
+    g.classList.toggle("hidden", ![...g.querySelectorAll(".nav-sub button")].some((b) => !b.classList.contains("hidden")));
+  });
 }
 
 function mountAll() {
@@ -112,7 +139,10 @@ function drawer(open) { document.body.classList.toggle("drawer-open", open); }
 async function show(id) {
   current = id;
   drawer(false);
-  document.querySelectorAll("#nav button").forEach((b) => b.classList.toggle("active", b.dataset.view === id));
+  document.querySelectorAll("#nav button[data-view]").forEach((b) => b.classList.toggle("active", b.dataset.view === id));
+  document.querySelectorAll("#nav .nav-group").forEach((g) => {        // the shown page's area stays open
+    if (g.querySelector(`button[data-view="${id}"]`)) g.classList.add("open");
+  });
   document.querySelectorAll(".view").forEach((s) => s.classList.toggle("hidden", s.id !== `view-${id}`));
   bus.emit("view", { id });
   try { await byId[id].enter?.(); } catch (e) { if (e.status === 401) showLogin(true); else console.error(e); }
@@ -145,8 +175,10 @@ async function pluginNav() {
     const shown = v.plugin === "social" ? list.some((p) => p.social && on(p)) : list.some((p) => p.name === v.plugin && on(p));
     document.querySelector(`#nav button[data-view="${v.id}"]`)?.classList.toggle("hidden", !shown);
   }
+  tidyNav();
 }
 bus.on("plugins", pluginNav);
+bus.on("show", ({ id }) => { if (byId[id]) show(id); });              // a page asked from inside another one
 
 // who the assistant is for this user (name in the top bar, the voice's gender): their own settings
 async function persona() {

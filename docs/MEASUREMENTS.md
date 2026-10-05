@@ -893,6 +893,28 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M94 — Aurora's first two projects, given as briefs (5 October 2026)
+
+Agent on Claude Code opus (after C133). `soliton-crypt`: 15 minutes (11:11-11:25), 30 tool calls; its first test run
+stopped at 120 s, she found the slow tests herself (`--durations`), lightened them and ran them in groups; **32
+tests** (49.8 s, run again by me: 32/32), commit d7d54e1; her bench: AES-256-GCM 14,232 MB/s, SOLITON-X v0.3 in pure
+Python 3.6 MB/s. Reviewed: header in every chunk's associated data, index and "last" flag in nonce and associated
+data (chunks removed, reordered or truncated are refused), the two KEM secrets bound to capsule and public keys,
+separate keys for AES and SOLITON-X, Argon2 parameters capped. `genesis-p2p`: 22 tool calls, **10 tests** (1.6 s;
+mine 10/10), commit cff44de; packets of 2048 bytes, envelope signed Ed25519 + ML-DSA-65 with the recipient's
+fingerprint inside, fragments, replay and too-far sequences refused. Trial decryption measured by me: 18,653
+packets/s on one core for a packet not one's own, 18,760 for one's own (the same time: no timing tells the
+recipient). SOLITON-X v0.3 (fixed columns/diagonals, 20 rounds), the differential test of 2026-10-05 with 2^16
+pairs: footprint at 3 rounds (158.6 sigma), none at 4 (3.3) or 5 (3.2) — v0.2's golden schedule kept it to 4 of 12;
+margin about 20/3 against 12/4. Not measured: advanced attacks; SOLITON-X in C at 20 rounds.
+
+## M95 — A19: arXiv's HTML gives the formulas clean (5 October 2026)
+
+Of 10 vault documents with garbled norms (all arXiv papers of the old vault), 5 found on arXiv by the first words of
+their (truncated) title; for all 5 arXiv's HTML version has **0** garbled norms against 6-31 in the vault, and
+393-1,258 formulas each in LaTeX (the MathML's alttext). The other 5 not found by a title search: their titles in
+the vault are cut at 50 characters. Not measured: the 92 re-imported, the A19 question answered after it.
+
 ## M93 — The DJ on signals with a known answer (5 October 2026)
 
 aud_analysis on synthetic tracks: tempo 100 / 128 / 140 BPM read 100.0 / 128.1 / 139.9; keys A minor, C major, G minor

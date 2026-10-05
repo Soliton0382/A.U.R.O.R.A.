@@ -102,6 +102,11 @@ def _push(event: str, payload: dict) -> None:
     except Exception:
         log.exception("notification for %s", event)
         return
+    if (toast or msg) and event != "test":           # kept for the Notifications page's history
+        try:
+            sys_push.remember(toast or msg, event, [c for c, m in (("webui", toast), ("push", msg)) if m], cfg)
+        except OSError:
+            log.exception("notification history")
     if toast and event != "test":
         note("notify", "notify", toast)              # the WebUI shows it (alerts widget); "notify" itself is not in TEXTS
     if msg and sys_push.count(cfg):

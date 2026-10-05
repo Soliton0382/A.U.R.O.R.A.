@@ -35,6 +35,8 @@ input, select, textarea { background: rgba(20, 24, 33, .92); border: 1px solid v
 .topbar { display: flex; align-items: center; gap: .8rem; padding: .5rem .8rem; padding-top: max(.5rem, env(safe-area-inset-top));
   background: rgba(8, 11, 20, .55); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); z-index: 2; }
 .brand { font-weight: 700; letter-spacing: .08em; }
+.brand-box { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
+.brand-row { display: flex; align-items: center; gap: .45rem; }
 .slot-topbar { flex: 1; min-width: 0; display: flex; justify-content: flex-end; }
 
 /* Side drawer: hidden on the left, slides in over the content. */
@@ -86,7 +88,7 @@ body.drawer-open .scrim { opacity: 1; pointer-events: auto; }
 @media (max-width: 820px) {
   .setting { grid-template-columns: 1fr; }
   .setting .help { grid-column: 1; }
-  .brand { display: none; }
+  .brand { font-size: .9rem; }
 }
 
 /* rendered Markdown (answers, reports, diary) */
@@ -171,3 +173,14 @@ button.danger { border-color: #c0392b; color: #ff8a80; }
 .dj-upload { display: inline-block; cursor: pointer; padding: .35rem .8rem; border: 1px solid var(--line); border-radius: 8px; }
 .dj-row { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
 .dj-row audio { height: 32px; max-width: 100%; }
+
+/* the side menu in areas (owner, 2026-10-05): a head per area, its pages under it, open on tap or on hover */
+.nav-group { display: flex; flex-direction: column; flex-shrink: 0; }
+.nav-head { display: flex; align-items: center; gap: .7rem; text-align: left; background: none; border-color: transparent;
+  padding: .6rem .7rem; font-weight: 600; color: #cfdcff; }
+.nav-head .chev { margin-left: auto; transition: transform .2s; opacity: .6; }
+.nav-group.open .nav-head .chev { transform: rotate(90deg); }
+.nav-sub { display: none; flex-direction: column; gap: .15rem; padding-left: 1.1rem; border-left: 1px solid var(--line); margin-left: 1.1rem; }
+.nav-group.open .nav-sub { display: flex; }
+@media (hover: hover) and (pointer: fine) { .nav-group:hover .nav-sub { display: flex; } .nav-group:hover .chev { transform: rotate(90deg); } }
+.nav-group:has(.has-badge) > .nav-head .label::after { content: " •"; color: var(--warn); }

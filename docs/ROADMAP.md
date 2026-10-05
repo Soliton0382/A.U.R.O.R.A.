@@ -40,6 +40,16 @@ apart from 🩺 Reports (self-reviews, repairs); the firewall's API generic (AUR
   the trainer's plan as a calendar.
 - The owner's post-quantum scheme (SQC-P) stays his: the sealed files carry a MAGIC so a cipher can be swapped later.
 
+### Projects with Aurora (2026-10-05)
+
+- "🤖 Give Aurora a project" in Projects → Local: a brief (goal, requirements, acceptance tests, limits, how to work)
+  sent to the chat; notifications "🧪 a project moves on" (first passing tests) and "📁 work on a project done".
+- The first two: `soliton-crypt` (hybrid post-quantum file encryption: ML-KEM-768 + X25519, AES-256-GCM over the
+  owner's SOLITON-X v0.3) and `genesis-p2p` (decentralised messaging with no metadata). `cryptography` 50 has
+  ML-KEM-768, ML-DSA-65, X25519, Ed25519, Argon2id: nothing to install.
+- The owner's earlier SQC-P V1/V2 and Genesis stay on his PC as history (he moves them): SQC-P V2's effective key is
+  64 bits, no authentication (shown in experiments, 2026-10-05); SOLITON-X v0.2 a footprint up to 4 of 12 rounds.
+
 ### 🧭 Autonomy panel — the owner's decisions (2026-10-05)
 
 - **Per user, under the admin:** a user starts *careful*; the admin, in the user's management, chooses the profile and
@@ -368,7 +378,7 @@ SDXL-Lightning 6.9 GB. FLUX.2 klein (23 GB) and Z-Image-Turbo (31 GB) were only 
 | the whole `install.sh` with its sudo steps, on another machine | M39 ran the steps without sudo on this one |
 | Web Push delivery on phones | depends on each device and browser |
 | an update from the public repository (HTTPS, no key) | the installation of the owner has no git; the first public user's will |
-| the nightly backup started by its timer | first night 3 October failed, NAS not answering (C105; retries and the notice installed); the backup works by hand and from 💾 Run now (3 October 21:18, 1,502 files with the per-user tree); the timer on the night of 4 October |
+| ~~the nightly backup started by its timer~~ | ✅ measured: 4 October 23:00, 1,590 files, 30.89 GB in 53 s (the time moved by C122) |
 
 ## Still to implement (2026-10-01)
 
