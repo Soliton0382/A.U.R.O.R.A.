@@ -13,6 +13,7 @@ CORE = Path(__file__).resolve().parents[1]
 ROOT = CORE.parents[1]
 WEB = CORE / "webui"
 PROCESS_ENV = {"AURORA_ENV_FILE", "AURORA_IN_SANDBOX", "AURORA_PUBLISH_DENY", "AURORA_PLUGIN"}   # variables of a process, not settings
+# (AURORA_INSTALL_* too: the installer's unattended answers, read once by install.sh)
 
 
 def code_files():
@@ -39,7 +40,7 @@ def test_every_setting_the_code_reads_is_in_the_schema_and_every_setting_is_read
     schema = {s["key"] for s in sys_config.load_schema()["settings"]}
     named = named_keys()
     assert sorted(k for k in named if k not in schema and k not in PROCESS_ENV
-                  and not k.endswith("_")) == [], "the code reads a setting the schema does not describe"
+                  and not k.endswith("_") and not k.startswith("AURORA_INSTALL_")) == [],"the code reads a setting the schema does not describe"
     assert sorted(schema - set(named) - {"AURORA_ROOT"}) == [], "a setting nothing reads: changing it would do nothing"
 
 

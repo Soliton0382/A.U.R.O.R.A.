@@ -83,6 +83,13 @@ def run_record(run_id: str) -> list[dict]:
 _health_cache: dict = {"at": 0.0, "value": None}
 
 
+@router.get("/v1/aurora/soak", dependencies=[Depends(auth)])
+def soak(days: int = 14) -> list[dict]:
+    """The daily snapshots of the soak (aurora-rem writes one a day): memory and restarts per service, logs, swaps."""
+    from aurora import sys_soak
+    return sys_soak.days(cfg, max(1, min(days, 60)))
+
+
 _down: set[str] = set()
 
 

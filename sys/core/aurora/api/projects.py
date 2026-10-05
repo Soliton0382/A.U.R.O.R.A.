@@ -65,6 +65,16 @@ def project_file_api(name: str, path: str) -> dict:
     return _prj(prj_browse.read_file, name, path)
 
 
+@router.get("/v1/aurora/projects/{name}/reports", dependencies=[Depends(auth)])
+def project_reports(name: str) -> list[dict]:
+    """Aurora's reports on this project, newest first."""
+    from aurora import prj_reports
+    try:
+        return prj_reports.all_of(cfg, name)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="no such project") from None
+
+
 @router.get("/v1/aurora/projects/{name}/log", dependencies=[Depends(auth)])
 def project_log_api(name: str) -> dict:
     from aurora import prj_browse

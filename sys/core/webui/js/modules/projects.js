@@ -154,7 +154,7 @@ export default {
     const d = this.detail;
     d.innerHTML = `
       <div class="ev prj-bar"><button class="back"></button><h3></h3>
-        <button class="preview"></button><button class="history"></button></div>
+        <button class="preview"></button><button class="history"></button><button class="reports"></button></div>
       <form class="prj-ask"><input data-i18n-placeholder="prj.ask_ph"><button type="submit" data-i18n="prj.ask"></button></form>
       <div class="prj-body"><div class="prj-tree"></div><div class="prj-view"></div></div>`;
     apply(d);
@@ -174,6 +174,20 @@ export default {
         f.src = url;
         view.replaceChildren(el("p", "muted", t("prj.preview_note")), f);
       } catch (e) { view.replaceChildren(el("p", "error", t("ev.error", { m: e.message }))); }
+    });
+    // Aurora's reports on this project (owner, 2026-10-05): her considerations, beside the alerts and the chat
+    const reportsBtn = d.querySelector(".reports");
+    reportsBtn.textContent = t("prj.reports");
+    reportsBtn.addEventListener("click", async () => {
+      let items = [];
+      try { items = await call(`/v1/aurora/projects/${name}/reports`); } catch (e) { view.replaceChildren(el("p", "error", t("ev.error", { m: e.message }))); return; }
+      view.replaceChildren(el("h4", "", t("prj.reports")), ...(items.length ? items.map((r, i) => {
+        const box = el("details", "report");
+        box.open = i === 0;
+        box.append(el("summary", "", `${clock(r.at)} · ${t("prj.report_meta", { steps: r.steps ?? "?", min: Math.round((r.seconds || 0) / 60) })}`),
+          renderMarkdown(r.summary || ""));
+        return box;
+      }) : [el("p", "muted", t("prj.no_reports"))]));
     });
     const hist = d.querySelector(".history");
     hist.textContent = t("prj.history");

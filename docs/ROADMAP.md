@@ -10,15 +10,15 @@ Done today and yesterday, live: the owner's list of 4 October, all 10 points (3-
 
 | # | what is left | kind | first step / measure |
 |---|---|---|---|
-| 1 | A18 — the gate closes on 3 of 30 answerable questions | bug | the gate step on a stronger model (cloud, masked) vs local on pool30; a re-ranker threshold is ruled out (M92) |
-| 2 | A19 — garbled formulas in 92 PDFs make a right sentence fail verification | bug | measure a math-aware PDF extractor on those 92 documents, re-import them |
+| 1 | ~~A18~~ — ✅ closed by measurement (C136, M98): a stronger gate gives the same quality (6.87 vs 6.90), the errors only move downstream; the gate stays local | bug | — |
+| 2 | ~~A19~~ — ✅ closed (C135, M97): 107 of 120 garbled arXiv papers re-imported from arXiv's HTML; the question 8/10 | bug | 13 left without HTML: a math-aware PDF extractor, if ever needed |
 | 3 | The owner's manual tests N13-N44 | verification | one pass on the phone and the PC |
-| 4 | U4 — how many users at once the machine serves | measure | a load test at the measured ceiling (answers per minute, GPU memory) |
+| 4 | ~~U4~~ — ✅ measured (M99): 1 slot, answers queue; 4 at once all answered, the last after 190 s; GPU memory flat | measure | `--parallel 2` if the waits matter |
 | 5 | U6 — each user's folders protected by a system account | decision | the owner decides; today the separation is Aurora's (tests M79-M80) |
-| 6 | A week of soak — memory, logs, GPU swaps, failed routines, measured daily | measure | the doctor and health give the numbers; a daily line in MEASUREMENTS |
+| 6 | A week of soak — ✅ now measured by itself: aurora-rem writes a snapshot a day (memory and restarts per service, logs, GPU swaps, failed routines, free disk), the Status page shows the days; first line 5 October | measure | it completes on 12 October by itself |
 | 7 | 🎧 DJ — ✅ first version (2026-10-05, M93): remix and mix, 8 styles; next: mashups (vocals of one track over another: Demucs, MIT, to measure on the GPU) | new | the owner's ear on real tracks (N49) |
 | 8 | The firewall's API live: login works (C131); a first block of a test address, after the owner's drop rule for the group (N44) | verification | the owner's rule on the firewall |
-| 9 | The forge with the local reasoner after C129 | measure | `bench_forge.py` without --roles |
+| 9 | ~~The forge with the local reasoner~~ — ✅ measured (M100): 3 of 8 against 8 of 8 with Claude; the forge stays on Claude | measure | — |
 
 | 10 | 🧭 Autonomy panel — the owner's decisions below, to build | new | the panel, presets, the daily line, the statistics |
 | 11 | 👤 Users as system accounts (U6, owner, 2026-10-05) — see below | design | the design first: it changes how every user's work runs |
@@ -376,7 +376,7 @@ SDXL-Lightning 6.9 GB. FLUX.2 klein (23 GB) and Z-Image-Turbo (31 GB) were only 
 |---|---|
 | the two non-reference hardware profiles | no such machine here |
 | the whole `install.sh` with its sudo steps, on another machine | M39 ran the steps without sudo on this one |
-| Web Push delivery on phones | depends on each device and browser |
+| ~~Web Push delivery on phones~~ | ✅ measured: 146 pushes from 30 September to 5 October, 146 accepted by the push service, 0 failed, 2 expired subscriptions dropped by themselves |
 | an update from the public repository (HTTPS, no key) | the installation of the owner has no git; the first public user's will |
 | ~~the nightly backup started by its timer~~ | ✅ measured: 4 October 23:00, 1,590 files, 30.89 GB in 53 s (the time moved by C122) |
 
@@ -417,5 +417,5 @@ SDXL-Lightning 6.9 GB. FLUX.2 klein (23 GB) and Z-Image-Turbo (31 GB) were only 
 
 ## Open measurements (BUGS.md)
 
-A3 drop on a large domain · A4 CUDA ≥ 12.8 build · A5 encoder on the full vault · A7 tensor split ·
-A8 sentence verification · A9 acquisition sources — the migration ended (2026-09-30): measurable now.
+None open: A1-A23 all measured and closed (BUGS.md, "was A…"). What is left to measure needs another
+machine or the owner ("Still to measure" above).

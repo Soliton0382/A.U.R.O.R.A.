@@ -145,6 +145,11 @@ def main() -> int:
                 client.post(f"{BASE}/v1/aurora/uploads/purge", timeout=300).raise_for_status()
             except httpx.HTTPError as e:
                 log.warning("uploads purge failed: %s", e)
+            try:                                      # the soak, measured by itself: one snapshot a day
+                from aurora import sys_soak
+                sys_soak.record(cfg)
+            except Exception as e:  # noqa: BLE001 — a measure never stops the cycle
+                log.warning("soak snapshot failed: %s", e)
             last_purge = time.time()
         if cfg["AURORA_REM_ENABLED"]:
             try:                                      # every user's memory, one task at a time (one GPU)

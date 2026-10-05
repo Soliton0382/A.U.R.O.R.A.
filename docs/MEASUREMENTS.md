@@ -893,6 +893,67 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M100 — The forge with the local reasoner, after C129 (5 October 2026)
+
+`bench_forge.py` without --roles: the local Qwen 35B writes and judges, the same 8 needs of M89. **3 of 8 right**,
+4 built, 4 m 48 s in all (M89, Claude Code writer and judge: 8 of 8). The 4 not built: the judge refused, after 3
+attempts each, plugins whose counts were wrong (harvester per source, firewall denied: 22,924 against 71,717 in the
+judge's sample, warnings per component, routines). One built and wrong: the harvester's log size, judged right by the
+local judge. Decision kept: the forge's writer and judge are Claude Code (the owner's choice in Models); the local
+reasoner is not enough for the forge. Not measured: local writer with the cloud judge.
+
+## M99 — U4: users at once (5 October 2026)
+
+Ceiling computed first: the LLM runs with `--parallel 1`, one slot, so answers queue and answers per minute cannot
+exceed 60 / (seconds of one answer). Load test: N clients at once on /v1/chat/completions (the full pipeline:
+retrieval, gate, extraction, synthesis, verification), four short questions in Italian, the admin's key, GPU memory
+sampled every second.
+
+| users at once | all answered | wall (s) | each one's wait (s) | answers per minute | GPU peak (MiB, both cards) |
+|---|---|---|---|---|---|
+| 1 | 1/1 | 50.3 | 50.3 | 1.19 | 26,899 |
+| 2 | 2/2 | 70.2 | 20.2, 70.2 | 1.71 | 26,835 |
+| 4 | 4/4 | 190.1 | 19.5, 82.0, 138.8, 190.1 | 1.26 | 26,851 |
+
+Nothing fails and memory does not grow with the users (the slot is one): the cost is the wait, which grows in line —
+with 4 at once the last waits about 3 minutes. The questions differ, so the rate swings with them (1.2-1.7 a minute).
+For a family the queue is acceptable; more slots (`--parallel 2`, each with half the context) are the next measure
+if the waits matter. Not measured: more than 4 users; logged-in users with their own keys (same pipeline, same queue).
+
+## M98 — A18: the gate on a stronger model changes nothing (5 October 2026)
+
+`bench_quality.py --pool 30`, the same 30 questions on the same vault (after M97), judge opus, the gate role local
+and then on Claude Sonnet through Claude Code (masked), every other step local:
+
+| gate | mean | answered | wrong abstentions | right abstentions | seconds per question |
+|---|---|---|---|---|---|
+| local (Qwen 35B) | **6.90** | 23 | 3 (gate 12, 23; verification 15) | 4 | 39.9 |
+| Claude Sonnet | **6.87** | 25 | 1 (verification 12) | 4 | 46.2 |
+
+The difference is inside the noise (±0.75). The stronger gate opens on the gate's two wrong closures, but question
+12 is then stopped by the verification and question 23 answered 4/10; and it opens on question 7, where the local
+abstention was right, giving an answer judged 1/10. The judge also scores the same abstention differently from one run
+to the next (question 15: wrong for local, right for Sonnet). The gate is not the limit: A18 closed with no change,
+the gate stays local. Not measured: the gate on opus.
+
+## M97 — A19 closed: 107 arXiv papers re-imported from HTML (5 October 2026)
+
+The vault's arXiv documents with at least one passage holding 3 or more garbled norms ("kxk" for ‖x‖, the test of
+M92 over 14 domains): 120. Each looked up by title on arXiv's API (3 s between requests, arXiv's terms), its HTML
+version fetched, the formulas taken from the MathML's LaTeX alttext, the bibliography dropped; imported only if the
+text had 3,000 characters or more and no garbled norm, the old source removed after. Result: **107 replaced**
+(3,626 passages in, 2,770 removed), 10 without an HTML version on arXiv, 3 not found by title. Recount with the same
+test: 13 legacy arXiv documents left (exactly those 13), plus 13 non-arXiv documents never counted before. The
+question of A19 (pool30 position 19): **8/10, answered** (before: 1/10, abstained by the verification). The log ran from 11:48 to 12:12, 24 minutes.
+
+## M96 — Web Push delivery, and the soak that measures itself (5 October 2026)
+
+Every push log line from 30 September to 5 October: 146 pushes, 146 accepted by the push service, 0 failed, 2 subscriptions expired and dropped by themselves (status 404/410). What the push
+service does after accepting — the phone asleep, the browser closed — is outside Aurora's reach and not measured.
+The soak (ROADMAP row 6) is now a daily line written by aurora-rem (sys_soak.py): memory and restarts of each
+service, logs' size, planned GPU swaps and failed routines of the last 24 h, free disk. First line 5 October;
+the week closes on 12 October without anyone.
+
 ## M94 — Aurora's first two projects, given as briefs (5 October 2026)
 
 Agent on Claude Code opus (after C133). `soliton-crypt`: 15 minutes (11:11-11:25), 30 tool calls; its first test run

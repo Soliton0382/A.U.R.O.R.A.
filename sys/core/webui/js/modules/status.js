@@ -33,6 +33,25 @@ export default {
       box.append(row);
     }
     if (health) box.append(el("div", "muted", t("status.checked", { at: clock(health.checked) })));
+    // the soak, measured by itself (owner, 2026-10-05): a line a day — memory per service, restarts, logs, swaps
+    const soak = await call("/v1/aurora/soak?days=14").catch(() => []);
+    if (soak.length) {
+      box.append(el("h3", "setting-cat", t("status.soak", { n: soak.length })));
+      const table = el("table", "table");
+      const units = Object.keys(soak[soak.length - 1].services);
+      const head = el("tr");
+      for (const h of [t("status.soak_day"), ...units.map((u) => u.replace("aurora-", "")), t("status.soak_logs"), t("status.soak_swaps"), t("status.soak_failed"), t("status.soak_disk")]) head.append(el("th", "", h));
+      table.append(head);
+      for (const d of soak.slice().reverse()) {
+        const tr = el("tr");
+        tr.append(el("td", "", d.day), ...units.map((u) => {
+          const s = d.services[u] || {};
+          return el("td", s.restarts ? "warn" : "", s.mem_mib == null ? "—" : `${Math.round(s.mem_mib)} MB${s.restarts ? ` ↻${s.restarts}` : ""}`);
+        }), el("td", "", `${d.logs_mb} MB`), el("td", "", String(d.gpu_swaps_24h)), el("td", d.routines_failed_24h ? "warn" : "", String(d.routines_failed_24h)), el("td", "", `${d.disk_free_gb} GB`));
+        table.append(tr);
+      }
+      box.append(table);
+    }
     const f = await call("/v1/aurora/features").catch(() => null);
     const b = await backupRow();                  // the owner's data: where it is copied, when, how many copies
     if (b) box.append(el("h3", "setting-cat", t("status.backup")), b);

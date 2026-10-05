@@ -360,3 +360,24 @@ def test_the_harvester_s_sources_load_first_without_a_circle():
                                                    "from aurora import kno_sources; print(M.KS.EPMC)"],
                            cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True)
         assert r.returncode == 0 and "ebi.ac.uk" in r.stdout, (first, r.stderr[-400:])
+
+
+def test_a_project_keeps_aurora_s_reports_newest_first(cfg):
+    from aurora import prj_reports
+    prj_reports.add(cfg, "demo", {"summary": "primo", "steps": 3})
+    prj_reports.add(cfg, "demo", {"summary": "secondo", "steps": 5})
+    assert [r["summary"] for r in prj_reports.all_of(cfg, "demo")] == ["secondo", "primo"]
+    assert prj_reports.all_of(cfg, "other") == []
+    with pytest.raises(ValueError):
+        prj_reports.add(cfg, "../escape", {"summary": "x"})
+
+
+def test_the_soak_counts_only_the_last_day_and_every_word(tmp_path):
+    from datetime import datetime, timedelta
+    from aurora import sys_soak
+    now = datetime.now().astimezone()
+    f = tmp_path / "api.log"
+    f.write_text("".join(f"{ts.isoformat(timespec='milliseconds')} ERROR aurora.api {msg}\n" for ts, msg in (
+        (now - timedelta(hours=1), "routine 12 failed"), (now - timedelta(hours=2), "run 9 failed"),
+        (now - timedelta(days=2), "routine 3 failed"))))
+    assert sys_soak._lines_since(f, (now - timedelta(days=1)).timestamp(), "routine ", "failed") == 1

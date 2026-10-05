@@ -7,6 +7,8 @@
 #   ./install.sh                     # asks a few questions (defaults in brackets)
 #   ./install.sh --yes               # takes every default
 #   options: --no-services (stop before systemd/HTTPS: for a second copy on a machine that already runs Aurora)
+#   unattended: each answer from AURORA_INSTALL_<NAME> (NAME, ASSISTANT, PERSONALITY 1-4, VOICE f/m, LANG, DOMAIN, PORT,
+#            EXEMPT y/n, MODE single/multi), e.g. AURORA_INSTALL_MODE=multi ./install.sh --yes
 #            --no-optional-models (only the required models; add others later with sys_models_fetch.py)
 #            --with-video (also the video model under --yes, 34 GB)   --reset-venv   --skip-build
 #
@@ -37,14 +39,15 @@ step() { echo; echo -e "\e[1;36m━━ $* ━━\e[0m"; }
 ok() { echo -e "  \e[32m✓\e[0m $*"; }
 warn() { echo -e "  \e[33m!\e[0m $*"; }
 die() { echo -e "\n\e[31m✗ $*\e[0m"; echo "$(t 'Dettagli in' 'Details in') $ROOT/install.log"; exit 1; }
-ask() {  # ask "question" default -> echo answer
-  local q="$1" d="$2" a
+ask() {  # ask "question" default [NAME] -> echo answer; AURORA_INSTALL_<NAME> answers without asking
+  local q="$1" d="$2" a v="AURORA_INSTALL_${3:-}"
+  if [ -n "${3:-}" ] && [ -n "${!v:-}" ]; then echo "${!v}"; return; fi
   if [ "$YES" = 1 ]; then echo "$d"; return; fi
   read -r -p "  $q [$d]: " a </dev/tty
   echo "${a:-$d}"
 }
-yesno() {  # yesno "question" y|n -> exit status
-  local a; a=$(ask "$1 (y/n)" "$2")
+yesno() {  # yesno "question" y|n [NAME] -> exit status
+  local a; a=$(ask "$1 (y/n)" "$2" "${3:-}")
   case "$a" in y|Y|s|S|si|sì|yes) return 0 ;; *) return 1 ;; esac
 }
 echo -e "\e[1mA.U.R.O.R.A.\e[0m — $(t 'installazione' 'installation') $(date '+%Y-%m-%d %H:%M')  ($ROOT)"
@@ -98,19 +101,19 @@ fi
 # ---------------------------------------------------------------------------------------------------
 step "4. $(t 'Le tue scelte' 'Your choices')"
 DEF_NAME="$(getent passwd "$USER" | cut -d: -f5 | cut -d, -f1)"; DEF_NAME="${DEF_NAME:-$USER}"
-OWNER=$(ask "$(t 'Il tuo nome (come ti chiamerà Aurora)' 'Your name (what Aurora will call you)')" "$DEF_NAME")
+OWNER=$(ask "$(t 'Il tuo nome (come ti chiamerà Aurora)' 'Your name (what Aurora will call you)')" "$DEF_NAME" NAME)
 # who the assistant is (each user changes it later in their settings): her name, her character, her voice
-ANAME=$(ask "$(t 'Il nome della tua assistente' 'Your assistant'"'"'s name')" "Aurora")
+ANAME=$(ask "$(t 'Il nome della tua assistente' 'Your assistant'"'"'s name')" "Aurora" ASSISTANT)
 echo "  $(t 'Personalità:' 'Personality:') 1) $(t 'Aurora, scienziata poliedrica' 'Aurora, the many-souled scientist')  2) $(t 'Filosofa' 'Philosopher')  3) $(t 'Empatica' 'Empathic')  4) $(t 'Pratica' 'Practical')"
-case "$(ask "$(t 'Scegli 1-4' 'Choose 1-4')" "1")" in
+case "$(ask "$(t 'Scegli 1-4' 'Choose 1-4')" "1" PERSONALITY)" in
   2) PERSONA=philosopher ;; 3) PERSONA=empathic ;; 4) PERSONA=practical ;; *) PERSONA=aurora ;;
 esac
-case "$(ask "$(t 'Voce femminile o maschile (f/m)' 'Female or male voice (f/m)')" "f")" in
+case "$(ask "$(t 'Voce femminile o maschile (f/m)' 'Female or male voice (f/m)')" "f" VOICE)" in
   m|M) AGENDER=male ;; *) AGENDER=female ;;
 esac
 LANGDEF=$([ "$IT" = 1 ] && echo it_IT || echo en_US)
-ULANG=$(ask "$(t 'Lingua (it_IT / en_US)' 'Language (it_IT / en_US)')" "$LANGDEF")
-DOMAIN=$(ask "$(t 'Nome per la WebUI (localhost = solo questo computer)' 'Name for the WebUI (localhost = this computer only)')" "localhost")
+ULANG=$(ask "$(t 'Lingua (it_IT / en_US)' 'Language (it_IT / en_US)')" "$LANGDEF" LANG)
+DOMAIN=$(ask "$(t 'Nome per la WebUI (localhost = solo questo computer)' 'Name for the WebUI (localhost = this computer only)')" "localhost" DOMAIN)
 TLS=internal; CERT=""; KEY=""
 if [ "$DOMAIN" != localhost ] && yesno "$(t 'Hai un tuo certificato per' 'Do you have your own certificate for') $DOMAIN?" n; then
   CERT=$(ask "$(t 'file del certificato (fullchain)' 'certificate file (fullchain)')" "")
@@ -118,15 +121,15 @@ if [ "$DOMAIN" != localhost ] && yesno "$(t 'Hai un tuo certificato per' 'Do you
   [ -r "$CERT" ] && [ -r "$KEY" ] || die "$(t 'certificato o chiave non leggibili' 'certificate or key not readable')"
   TLS=files
 fi
-PORT=$(ask "$(t 'Porta HTTPS' 'HTTPS port')" "443")
+PORT=$(ask "$(t 'Porta HTTPS' 'HTTPS port')" "443" PORT)
 EXEMPT=0
 echo "  $(t 'Livello B del codice di condotta: conferma delle azioni esterne, approvazione delle modifiche al codice, dichiarazione IA.' 'Level B of the code of conduct: confirmation of external actions, approval of code changes, AI disclosure.')"
-yesno "$(t 'Esentare questa installazione dal livello B? (sconsigliato all inizio)' 'Exempt this installation from level B? (not advised at first)')" n && EXEMPT=1
+yesno "$(t 'Esentare questa installazione dal livello B? (sconsigliato all inizio)' 'Exempt this installation from level B? (not advised at first)')" n EXEMPT && EXEMPT=1
 echo "  $(t 'Tipo di installazione:' 'Installation type:')"
 echo "    single — $(t 'una persona: tu, amministratore' 'one person: you, the admin')"
 echo "    multi  — $(t 'più persone: ognuna con la sua cartella usr/<nome>, le sue impostazioni e la sua memoria privata; accesso con password e codice Authenticator' 'several people: each with their folder usr/<name>, their settings and private memory; login with password and Authenticator code')"
 echo "  $(t 'È reversibile dalle Impostazioni → Utenti: da single a multi non si sposta nulla; da multi a single gli altri utenti vengono eliminati, dopo un elenco e una conferma. I tuoi dati non vengono mai toccati.' 'Reversible from Settings → Users: from single to multi nothing moves; from multi to single the other users are deleted, after a list and a confirmation. Your data is never touched.')"
-UMODE=$(ask "$(t 'single o multi' 'single or multi')" "single")
+UMODE=$(ask "$(t 'single o multi' 'single or multi')" "single" MODE)
 case "$UMODE" in
   single) ;;
   multi) echo "  $(t 'Multi-utente: alla fine entra con la chiave che ti mostro, poi in 👥 Utenti imposta la tua password e collega l app Authenticator, e crea gli utenti.' 'Multi-user: at the end log in with the key shown, then in 👥 Users set your password, link the Authenticator app and create the users.')" ;;

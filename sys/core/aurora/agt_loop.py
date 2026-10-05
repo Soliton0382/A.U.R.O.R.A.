@@ -454,6 +454,13 @@ class Agent:
                               "images": [{**f, "inline": True} for f in self.produced if f.get("mime", "").startswith("image/")]})
         self.log.info("agent run %s: %d steps in %.0f s", run_id, steps, seconds)
         if self.projects:                                    # a project's work done: the owner is told, with the report's start
+            from . import prj_reports
+            for name in sorted(self.projects):                # and the report stays with each project (its page)
+                try:
+                    prj_reports.add(self.cfg, name, {"run_id": run_id, "goal": goal[:300], "summary": summary,
+                                                     "steps": steps, "seconds": seconds})
+                except (ValueError, OSError) as e:
+                    self.log.warning("report of project %s not kept: %s", name, e)
             self.notify("project.update", {"projects": sorted(self.projects),
                                            "text": f"{', '.join(sorted(self.projects))}: {summary[:160]}"})
         ans = Answer(run_id, goal, summary, False, mode="agent")

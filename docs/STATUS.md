@@ -123,7 +123,8 @@ the NAS backup after the mount (C123).
 | firewall actions (block an address) and abuse reports as approvals | Sophos API plugin |
 | full-disk encryption | owner |
 
-## Open bugs (2)
+## Open bugs (0)
 
-A18 the gate's wrong closures (3/30), A19 the extraction's (1/30), (the forge closed: 8 of 8, M89; details in BUGS.md). Measurements still to take: ROADMAP.md ("Still to measure").
+None (5 October 2026): A19 closed by re-importing 107 arXiv papers from HTML (C135, M97), A18 closed by
+measurement (C136, M98). Measurements still to take: ROADMAP.md ("Still to measure").
 
