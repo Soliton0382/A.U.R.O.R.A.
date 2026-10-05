@@ -66,6 +66,10 @@ mark each line ✅ / ❌ with a note. Reload the WebUI first (the service worker
 | N46 | 📣 Social | "Posts to approve" (if any) and "Post history" with date, text, picture, a link to the post |
 | N47 | 🛎️ Approvals and 🩺 Reports | approvals without posts and without self-reviews; reports with the self-reviews and repairs |
 | N48 | 🧩 Plugins → security: address https://172.16.16.16:4444 style, user, password; 🛡️ Security | the firewall's API answers (C131); ⛔ on an incident appears |
+| N49 | 🎧 DJ: upload a song you own (e.g. a church song), select it, style techno-trance, Create | a notification when ready; the mix plays in the page, in time and in key (or kept in its own time if it had no beat) |
+| N50 | 🎧 DJ: two or three tracks, style house | one continuous mix at 124 BPM, crossfades on the beat |
+| N51 | Log out, then log in again | name, password and the Authenticator's code (the API key still works from "use the key") |
+| N52 | 🛡️ Security → Read the documentation; select two checks, "Switch on selected" | both show "on"; "Delete selected" asks first |
 | N41 | 📁 Projects → 💻 Local: ask Aurora "crea il progetto prova-calc con una funzione somma e i suoi test, eseguili" | the project, the tests run (EXIT 0) in the run's steps, a local commit |
 | N17 | Ask a knowledge question (e.g. «Come funziona la fotosintesi?»), then tap one of the «Approfondisci» questions; then type a short follow-up («e chi l'ha scoperta?») | 3-4 complete questions appear under the answer a few seconds after it; the tapped one is sent whole and its trace shows 🎯 when the sources were used; the typed follow-up shows 🧷 with the completed question |
 | N6 | 🧩 Plugins: open the page, then a card, then back | the grid appears at once; icons do not flash (C80) |

@@ -167,3 +167,7 @@ button.danger { border-color: #c0392b; color: #ff8a80; }
 .rt-times, .rt-days { display: inline-flex; flex-wrap: wrap; gap: .3rem; align-items: center; }
 .rt-time { display: inline-flex; gap: .15rem; align-items: center; }
 .rt-day { display: inline-flex; gap: .15rem; align-items: center; font-size: .85rem; }
+/* the DJ: tracks and mixes with their players */
+.dj-upload { display: inline-block; cursor: pointer; padding: .35rem .8rem; border: 1px solid var(--line); border-radius: 8px; }
+.dj-row { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.dj-row audio { height: 32px; max-width: 100%; }

@@ -18,8 +18,10 @@ router = APIRouter()
 # ---- OpenAI-compatible -------------------------------------------------------------------
 @router.get("/health")
 def health() -> dict:
-    """Public: alive, and how the WebUI's login looks (the API key, or users with password and code)."""
-    return {"status": "ok", "login": "users" if str(cfg["AURORA_USER_MODE"]) == "multi" else "key"}
+    """Public: alive, and how the WebUI's login looks: name, password and code in multi-user, and in single-user too
+    once the admin has a password (and the code when MFA is on: owner, 2026-10-05); else the API key."""
+    from .users import users_login
+    return {"status": "ok", "login": "users" if users_login() else "key"}
 
 
 @router.get("/v1/models", dependencies=[Depends(auth)])

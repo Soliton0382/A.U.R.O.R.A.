@@ -893,6 +893,17 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M93 — The DJ on signals with a known answer (5 October 2026)
+
+aud_analysis on synthetic tracks: tempo 100 / 128 / 140 BPM read 100.0 / 128.1 / 139.9; keys A minor, C major, G minor
+right 3 of 3; the first beat within ±11 ms (one analysis frame; 35 ms early before the window's delay was counted).
+Steady or not — the pulse, onset energy on the beat grid over the average: beats 11.2-15.1 (soft beats the lowest),
+synthetic choirs 1.27-3.35 (three voices with a vibrato in phase the highest): STEADY = 6, the geometric middle; the
+first threshold, 3, let a choir through (a test found it). A D major progression D-G-A-D came out A major (tonic and
+fifth equally present): said in the code. Speed: a 64 s track remixed in 2.3 s, a mix of two in 3.1 s (CPU, no
+GPU). My first test choir was wrong (its vibrato grew with time): found and redone. Not measured: real tracks (the
+owner's ear, N49), the cage's speed on a 5-minute track.
+
 ## M92 — The same on the real vault; the garbled formulas counted (4 October 2026)
 
 The 108 questions of retrieval_pool108 against the real index (the models service, no copy): the source's best

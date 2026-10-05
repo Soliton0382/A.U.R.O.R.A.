@@ -1,0 +1,39 @@
+{
+ "name": "dj",
+ "version": "1.0",
+ "kind": "tool",
+ "description": {
+  "it": "Il DJ di Aurora: remix di un tuo brano in uno stile (techno, trance, trance vocale, techno-trance, house, rock, chill) o un mix di più brani a un unico tempo. Tutto in locale, suoni creati da Aurora.",
+  "en": "Aurora's DJ: a remix of a track of yours in a style (techno, trance, vocal trance, techno-trance, house, rock, chill) or a mix of several tracks at one tempo. All local, sounds made by Aurora."
+ },
+ "command": [
+  "{python}",
+  "server.py"
+ ],
+ "env": [],
+ "requires": [],
+ "effects": {
+  "dj_styles": "read",
+  "dj_tracks": "read",
+  "*": "write_local"
+ },
+ "welcome": {
+  "it": "🎧 DJ pronto. Carica i tuoi brani nella pagina 🎧 DJ, scegli uno stile e premi «Crea»; oppure chiedimi «fammi un remix trance di Ave Maria». Usa solo musica che hai il diritto di usare: i mix restano tuoi e privati.",
+  "en": "🎧 DJ ready. Upload your tracks in the 🎧 DJ page, choose a style and press “Create”; or ask me “make a trance remix of Ave Maria”. Use only music you have the right to use: the mixes stay yours and private."
+ },
+ "setup": {
+  "it": "Niente da configurare: i brani stanno in `usr/<utente>/music`, i mix in `music/mixes` (`AURORA_MUSIC_DIR`). Il DJ analizza tempo e tonalità, porta il brano al BPM dello stile quando ha un battito regolare (altrimenti lo lascia nel suo tempo) e aggiunge batteria, basso e pad creati da Aurora, nella tonalità del brano.",
+  "en": "Nothing to set up: tracks in `usr/<user>/music`, mixes in `music/mixes` (`AURORA_MUSIC_DIR`). The DJ reads tempo and key, brings the track to the style's BPM when it has a steady beat (else it keeps its own time) and adds drums, bass and pads made by Aurora, in the track's key.",
+  "links": []
+ },
+ "settings": [
+  "AURORA_MUSIC_DIR",
+  "AURORA_DJ_MAX_MINUTES"
+ ],
+ "sandbox": {
+  "network": false,
+  "write": [
+   "AURORA_MUSIC_DIR"
+  ]
+ }
+}

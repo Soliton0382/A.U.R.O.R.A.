@@ -16,17 +16,30 @@ Done today and yesterday, live: the owner's list of 4 October, all 10 points (3-
 | 4 | U4 — how many users at once the machine serves | measure | a load test at the measured ceiling (answers per minute, GPU memory) |
 | 5 | U6 — each user's folders protected by a system account | decision | the owner decides; today the separation is Aurora's (tests M79-M80) |
 | 6 | A week of soak — memory, logs, GPU swaps, failed routines, measured daily | measure | the doctor and health give the numbers; a daily line in MEASUREMENTS |
-| 7 | 🎧 DJ plugin (owner, 2026-10-04) — see below | new | proposal to approve |
+| 7 | 🎧 DJ — ✅ first version (2026-10-05, M93): remix and mix, 8 styles; next: mashups (vocals of one track over another: Demucs, MIT, to measure on the GPU) | new | the owner's ear on real tracks (N49) |
 | 8 | The firewall's API live: login works (C131); a first block of a test address, after the owner's drop rule for the group (N44) | verification | the owner's rule on the firewall |
 | 9 | The forge with the local reasoner after C129 | measure | `bench_forge.py` without --roles |
 
-| 10 | 🧭 An autonomy panel (owner, 2026-10-05) — see below | design | to decide with the owner |
+| 10 | 🧭 Autonomy panel — the owner's decisions below, to build | new | the panel, presets, the daily line, the statistics |
+| 11 | 👤 Users as system accounts (U6, owner, 2026-10-05) — see below | design | the design first: it changes how every user's work runs |
+| 12 | 🛡️ Autonomous defence (owner's goal) — see below | goal | on top of 10 and the firewall's API |
 
 Done on 2026-10-05: 🚪 log out in the side menu; 📣 Social with posts to approve and the post history; 🛎️ Approvals
 apart from 🩺 Reports (self-reviews, repairs); the firewall's API generic (AURORA_FIREWALL_*, kind sophos) and live
 (C131). N45-N48.
 
-### 🧭 Autonomy panel — to reason on with the owner (2026-10-05)
+### 🧭 Autonomy panel — the owner's decisions (2026-10-05)
+
+- **Per user, under the admin:** a user starts *careful*; the admin, in the user's management, chooses the profile and
+  whether the user may choose one by themselves. Default for users: careful.
+- **Ready profiles:** yes (careful / balanced / free), and the areas one by one for who wants them.
+- **A daily line** of what Aurora did by herself: yes; everything about autonomy in one "Autonomy" menu.
+- **No area capped at 🤝 in principle.** The aim is self-adaptation: statistics of what she proposes, how she behaves,
+  what the owner authorises and rejects, per area — a history that lets her autonomy grow where she has proved good.
+  To design: what counts as "proved" (e.g. N proposals in an area, ≥ X% approved, none reverted), always shown to the
+  owner and never raised by herself without the owner seeing it (the ethics code's limits stay).
+
+### 🧭 Autonomy panel — the first draft (2026-10-05)
 
 Today Aurora's freedom is spread over many settings (social autonomy and posts a day, forge mode, external actions'
 confirmation, self-repair, incident investigation, update mode, the inner cycle). One page, by area, each with three
@@ -44,7 +57,24 @@ signs her own code, the owner's papers untouched):
 Open questions for the owner: per user or the machine's? presets (careful / balanced / free)? a daily line of what
 she did by herself? which areas never go past 🤝?
 
-### 🎧 DJ plugin — proposal (owner, 2026-10-04), not started
+### 👤 Users as system accounts (U6) — the owner's decision (2026-10-05)
+
+Each user is also an account of the operating system, its home their folder in Aurora (usr/<name>); a user can act
+only there, and everything run for them (their plugins, their projects' tests, future tools) inherits their rights,
+so nothing of theirs can walk around the system. Only the admin and Aurora reach every user's folder. To design
+before building: how the API (one service) runs a user's work as that account (a small privileged helper, or one
+worker per user), the cages on top, the backup and the purge of a user, the migration of today's folders. A first
+measure: what today runs as the service user for a user (plugins, prj_run, uploads, DJ).
+
+### 🛡️ Autonomous defence — the owner's goal (2026-10-05)
+
+When an attack is detected Aurora does not only tell it: she takes the right decisions to defend the network and
+herself, by herself. The pieces exist: the sentinel's incidents, the checks from the documentation (M88), the
+firewall's API (C131). Missing: the autonomy panel's "security" area at 🚀 with its limits (what she may block, for
+how long, never the owner's own devices or the firewall), automatic release after a time, a daily line, and the
+statistics of her decisions the owner approved.
+
+### 🎧 DJ plugin — proposal (owner, 2026-10-04) — first version built 2026-10-05
 
 "Not professional, a few ready presets": the owner's own tracks (uploaded or in a music folder) become a mix.
 - **Presets, ready to go:** *smooth* (beat-aware crossfades, same loudness), *party* (tempo matched to one BPM, short

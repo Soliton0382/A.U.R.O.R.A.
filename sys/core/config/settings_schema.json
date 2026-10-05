@@ -499,6 +499,32 @@
    ]
   },
   {
+   "key": "AURORA_MUSIC_DIR",
+   "type": "path",
+   "category": "attachments",
+   "recommended": "usr/music",
+   "evidence": "owner",
+   "en": "Your music for the DJ: the tracks you upload, and the mixes in its mixes/ folder (each user their own).",
+   "it": "La tua musica per il DJ: i brani che carichi e, nella sottocartella mixes/, i mix (ognuno ha la sua).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_DJ_MAX_MINUTES",
+   "type": "int",
+   "min": 1,
+   "max": 60,
+   "category": "attachments",
+   "recommended": "12",
+   "evidence": "owner",
+   "en": "Longest part of a track the DJ uses, in minutes (a remix of a longer track is cut there).",
+   "it": "Parte più lunga di un brano che il DJ usa, in minuti (il remix di un brano più lungo si ferma lì).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_EDIT_MODEL_DIR",
    "type": "path",
    "category": "attachments",

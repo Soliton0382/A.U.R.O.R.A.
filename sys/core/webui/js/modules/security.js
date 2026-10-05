@@ -88,22 +88,45 @@ export default {
     this.fwApi = p.firewall_api;
     this.group = p.group;
     this.watchHint.textContent = t("sec.watch_hint", { doc: p.doc });
-    this.rules.replaceChildren(...(p.rules.length ? p.rules.map((r) => {
-      const row = el("label", "plug-field plug-check");
+    // each check with its state; the boxes only select, the buttons below act on the selection (owner, 2026-10-05)
+    const boxes = [];
+    const rows = p.rules.map((r) => {
+      const row = el("label", "plug-field plug-check sec-rule");
       const box = el("input");
       box.type = "checkbox";
-      box.checked = r.on;
-      box.addEventListener("change", async () => {
-        try { await call("/v1/aurora/security/rules", { method: "PUT", body: JSON.stringify({ on: { [r.id]: box.checked } }) }); }
-        catch (e) { box.checked = !box.checked; alert(e.message); }
-      });
-      const text = el("span");
+      box.value = r.id;
+      boxes.push(box);
       const tried = r.tried ? ` · ${t("sec.tried", { i: r.tried.incidents, s: r.tried.sources, h: r.tried.hours })}` : "";
-      text.append(el("strong", "", r.title), el("div", "muted", `${r.why} · ${t("sec.rule_n", { n: r.threshold, m: r.window_min })}${tried}`),
+      const text = el("span");
+      text.append(el("span", `pill ${r.on ? "ok" : ""}`, r.on ? t("sec.on") : t("sec.off")), el("strong", "", ` ${r.title}`),
+        el("div", "muted", `${r.why} · ${t("sec.rule_n", { n: r.threshold, m: r.window_min })}${tried}`),
         el("div", "muted", `💡 ${r.action}`));
       row.append(box, text);
       return row;
-    }) : [el("p", "muted", t("sec.no_rules"))]));
+    });
+    const out = el("span", "muted");
+    const act = async (what) => {
+      const ids = boxes.filter((b) => b.checked).map((b) => b.value);
+      if (!ids.length) { out.textContent = t("sec.pick_first"); return; }
+      if (what === "drop" && !confirm(t("sec.remove_q", { n: ids.length }))) return;
+      const body = what === "drop" ? { remove: ids } : { on: Object.fromEntries(ids.map((i) => [i, what === "on"])) };
+      try { await call("/v1/aurora/security/rules", { method: "PUT", body: JSON.stringify(body) }); }
+      catch (e) { out.textContent = t("ev.error", { m: e.message }); return; }
+      this.loadProfile();
+    };
+    const bar = el("div", "appr-actions");
+    const pickAll = el("button", "", t("sec.select_all"));
+    pickAll.addEventListener("click", () => { const v = !boxes.every((b) => b.checked); boxes.forEach((b) => { b.checked = v; }); });
+    const turnOn = el("button", "approve", `🟢 ${t("sec.turn_on")}`), turnOff = el("button", "", `⚪ ${t("sec.turn_off")}`),
+      dropBtn = el("button", "danger", `🗑️ ${t("sec.remove")}`);
+    turnOn.addEventListener("click", () => act("on"));
+    turnOff.addEventListener("click", () => act("off"));
+    dropBtn.addEventListener("click", () => act("drop"));
+    bar.append(pickAll, turnOn, turnOff, dropBtn, out);
+    const active = p.rules.filter((r) => r.on).length;
+    this.rules.replaceChildren(...(p.rules.length
+      ? [el("p", "muted", t("sec.active_n", { n: active, of: p.rules.length })), ...rows, bar]
+      : [el("p", "muted", t("sec.no_rules"))]));
     const table = el("table", "table");
     for (const g of p.groups.slice(0, 20)) {
       const tr = el("tr");

@@ -26,15 +26,28 @@ async def admin_only(request: Request) -> None:
 
 
 # ---- login --------------------------------------------------------------------------------------------------------
+def users_login() -> bool:
+    """Name, password and code at the login: multi-user, or single-user with the admin's password (and code) set."""
+    if str(cfg["AURORA_USER_MODE"]) == "multi":
+        return True
+    admin = _admin()
+    u = _users().by_name(admin) if admin else None
+    return bool(u and u["has_password"] and (u["totp_on"] or not cfg["AURORA_USERS_MFA"]))
+
+
+
 @router.post("/v1/aurora/login")
 async def login(request: Request) -> JSONResponse:
     """{"name", "password", "code", "device"}. Multi-user only (single-user logs in with the API key). With a right
     password and no authenticator yet: {"enroll": {"secret", "uri"}}, then the same call with the first code."""
     _locked(request)
-    if str(cfg["AURORA_USER_MODE"]) != "multi":
-        raise HTTPException(status_code=409, detail="single-user: log in with the API key")
+    if not users_login():
+        raise HTTPException(status_code=409, detail="single-user without the admin's password: log in with the API key")
     body = await request.json()
     name, password, code = str(body.get("name", "")).strip(), str(body.get("password", "")), str(body.get("code", "")).strip()
+    if str(cfg["AURORA_USER_MODE"]) != "multi" and name != _admin():     # single-user: the admin alone
+        _failed(request)
+        raise HTTPException(status_code=401, detail="wrong name or password")
     users = _users()
     u = users.check_password(name, password)
     if u is None:

@@ -45,6 +45,8 @@ TEXTS = {   # event -> (kind the owner chooses, view to open, {lang: title})
     "forge.installed": ("plugin", "plugins", {"it": "🔨 Aurora si è costruita un plugin", "en": "🔨 Aurora built herself a plugin"}),
     "forge.failed": ("plugin", "plugins", {"it": "🔨 Una capacità non è riuscita", "en": "🔨 A capability could not be built"}),
     "plugin.ready": ("plugin", "routines", {"it": "🧩 Nuovo plugin pronto", "en": "🧩 New plugin ready"}),
+    "dj.done": ("creation", "dj", {"it": "🎧 Il tuo mix è pronto", "en": "🎧 Your mix is ready"}),
+    "dj.failed": ("creation", "dj", {"it": "🎧 Il mix non è riuscito", "en": "🎧 The mix failed"}),
     "video.done": ("creation", "chat", {"it": "🎬 Il tuo video è pronto", "en": "🎬 Your video is ready"}),
     "video.failed": ("creation", "chat", {"it": "🎬 Il video non è riuscito", "en": "🎬 The video failed"}),
     "backup.failed": ("backup", "status", {"it": "💾 Il backup non è riuscito", "en": "💾 The backup failed"}),
