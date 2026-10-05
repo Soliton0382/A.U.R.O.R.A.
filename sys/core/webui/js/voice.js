@@ -33,9 +33,14 @@ function voices() {
 }
 
 const NAME = "aurora.voice.name";
-// Better first: the voices engines call natural or neural, then female ones (the owner's choice), then the rest.
+// Better first: the voices engines call natural or neural, then those of the user's chosen gender
+// (AURORA_ASSISTANT_GENDER, female by default), then the rest. Engines give no gender: their names tell it.
 const FEMALE = /(elsa|alice|federica|paola|isabella|bianca|lucia|carla|emma|giulia|sara|silvia|chiara|female|donna|woman)/i;
-const rank = (v) => (/(natural|neural|enhanced|premium|wavenet|high)/i.test(v.name) ? 0 : 2) + (FEMALE.test(v.name) ? 0 : 1);
+const MALE = /(luca|cosimo|diego|giorgio|roberto|marco|paolo|giuseppe|andrea|matteo|riccardo|male\b|uomo|\bman\b)/i;
+let gender = "female";
+export function setGender(g) { gender = g === "male" ? "male" : "female"; }
+const rank = (v) => (/(natural|neural|enhanced|premium|wavenet|high)/i.test(v.name) ? 0 : 2)
+  + ((gender === "male" ? MALE.test(v.name) && !/female/i.test(v.name) : FEMALE.test(v.name)) ? 0 : 1);
 
 export async function localVoices(lang) {
   const base = lang.slice(0, 2).toLowerCase();

@@ -6,6 +6,7 @@ import { call, register } from "./api.js";
 import { bus } from "./bus.js";
 import { $, el } from "./dom.js";
 import * as i18n from "./i18n.js";
+import * as voice from "./voice.js";
 import { views, widgets } from "./modules.js";
 
 const byId = Object.fromEntries(views.map((v) => [v.id, v]));
@@ -147,9 +148,20 @@ async function pluginNav() {
 }
 bus.on("plugins", pluginNav);
 
+// who the assistant is for this user (name in the top bar, the voice's gender): their own settings
+async function persona() {
+  try {
+    const m = await call("/v1/aurora/me");
+    document.querySelector(".topbar .brand").textContent = m.assistant || "Aurora";
+    document.title = m.assistant || "Aurora";
+    voice.setGender(m.gender);
+  } catch { /* the defaults stay */ }
+}
+
 let started = false;
 function start() {
   showLogin(false);
+  persona();
   pluginNav();
   if (!started) { for (const w of widgets) w.enter?.(); started = true; }
   const asked = new URLSearchParams(location.search).get("view");

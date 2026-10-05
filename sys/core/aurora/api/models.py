@@ -18,7 +18,7 @@ router = APIRouter()
 def models_overview() -> dict:
     from aurora import mdl_router, sys_ethics
     a = mdl_router.assignments(cfg)
-    return {"exempt": sys_ethics.exempt(cfg), "mask": bool(cfg["AURORA_CLOUD_MASK"]),
+    return {"exempt": sys_ethics.exempt(cfg), "mask": True,
             "mask_words": cfg["AURORA_CLOUD_MASK_WORDS"],
             "providers": [{"id": k, "label": v["label"], "kind": v["kind"], "key": v.get("key"),
                            "configured": v["kind"] in ("local", "claude_code") or bool(cfg.values.get(v.get("key", "")))}

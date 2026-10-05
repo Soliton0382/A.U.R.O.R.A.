@@ -30,7 +30,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Callable
 
-from . import kno_followup, mdl_cloud, mdl_router, sns_clock, sns_weather, sys_config, sys_log, txt_compress, txt_lang
+from . import (kno_followup, mdl_router, sns_clock, sns_weather, sys_config, sys_log, sys_persona, txt_compress,
+               txt_lang)
 from .mdl_llm import LLM
 from .sol_index import Indexer
 from .sol_reader import VaultReader
@@ -39,7 +40,6 @@ from .sol_search import Hit, Searcher
 from .sol_writer import VaultWriter
 
 ABSTAIN_MARK = "NONE"
-IDENTITY_FILE = Path(__file__).resolve().parents[1] / "prompts" / "identity.md"
 Emit = Callable[[str, dict], None]
 
 SYS_ROUTE = ("Classify the owner's last message to the assistant Aurora. Reply SELF if it is a greeting, small talk, "
@@ -127,7 +127,6 @@ class Pipeline:
         self.cfg = cfg or sys_config.get()
         self.state_fn = state_fn                   # facts about Aurora measured by the caller (services, uptime)
         self.llm = llm or LLM(self.cfg)
-        self.reasoner = mdl_cloud.make_reasoner(self.cfg, self.llm)   # reasoning roles; service calls stay local
         self.cloud_roles = {r.strip() for r in self.cfg["AURORA_CLOUD_ROLES"].split(",") if r.strip()}
         # whose conversations and memories (multi-user, U3; None: today's single owner); the knowledge index is
         # shared between the users' pipelines (`index`): loaded once
@@ -407,7 +406,7 @@ class Pipeline:
         """Newest memories win when the block is over AURORA_MEMORY_RECALL_CHARS (the context is finite)."""
         lines, used = [], 0
         for s in reversed(mems):
-            kind = s.extra.get("type") or (self.cfg["AURORA_OWNER_NAME"] if s.extra.get("role") == "user" else "tu (Aurora)")
+            kind = s.extra.get("type") or (self.cfg["AURORA_OWNER_NAME"] if s.extra.get("role") == "user" else f"tu ({sys_persona.name(self.cfg)})")
             line = f"- [{sns_clock.when(s.created_at, self.cfg)} · {kind}] {s.text[:700]}"
             if used + len(line) > self.cfg["AURORA_MEMORY_RECALL_CHARS"]:
                 break
@@ -422,7 +421,7 @@ class Pipeline:
         today = sns_clock.now(self.cfg)
         days = "; ".join(f"{label} = {sns_clock.DAYS_IT[d.weekday()]} {d:%Y-%m-%d}" for label, d in
                          (("oggi", today), ("ieri", today - timedelta(days=1)), ("l'altro ieri", today - timedelta(days=2))))
-        system = (IDENTITY_FILE.read_text(encoding="utf-8")
+        system = (sys_persona.identity(self.cfg)
                   + "\nFACTS ABOUT YOURSELF, MEASURED NOW:\n" + json.dumps(state, ensure_ascii=False, indent=1)
                   + f"\n\nCALENDAR: {days}. Use these dates for 'oggi', 'ieri', 'stamattina'; never compute them yourself."
                   + (f"\n\nYOUR MEMORIES RELEVANT TO THE QUESTION (oldest first; each with its date and how long ago). "

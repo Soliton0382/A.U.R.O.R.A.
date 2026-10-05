@@ -24,10 +24,10 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from . import mdl_image, sns_clock, sns_weather, sol_vault, sys_config, sys_features, sys_log, sys_logread, txt_lang
+from . import (mdl_image, sns_clock, sns_weather, sol_vault, sys_config, sys_features, sys_log, sys_logread, sys_persona,
+               txt_lang)
 from .sol_schema import Soliton
 
-IDENTITY_FILE = Path(__file__).resolve().parents[1] / "prompts" / "identity.md"
 
 SYS_SESSION = ("You turn a conversation session between %OWNER% (the owner) and Aurora into one memory, "
                "written by Aurora in first person, in Italian. Keep: what %OWNER% asked, said about himself, "
@@ -130,9 +130,10 @@ class Rem:
         for s in self._sessions(closed_only=True):
             lines = []
             for t in s.turns:
-                who = self.cfg["AURORA_OWNER_NAME"] if t.extra.get("role") == "user" else "Aurora"
-                if who == "Aurora" and t.extra.get("abstained"):
-                    lines.append(f"[{sns_clock.local(t.created_at, self.cfg)}] Aurora: (non ha trovato nulla nel vault)")
+                me = sys_persona.name(self.cfg)
+                who = self.cfg["AURORA_OWNER_NAME"] if t.extra.get("role") == "user" else me
+                if who == me and t.extra.get("abstained"):
+                    lines.append(f"[{sns_clock.local(t.created_at, self.cfg)}] {me}: (non ha trovato nulla nel vault)")
                 else:
                     lines.append(f"[{sns_clock.local(t.created_at, self.cfg)}] {who}: {t.text}")
             span = f"{sns_clock.local(s.start, self.cfg)} → {sns_clock.local(s.end, self.cfg)[-5:]}"
@@ -163,7 +164,7 @@ class Rem:
         w = sns_weather.read(self.cfg)
         weather = (f"{w['temperature_c']} °C, umidità {w['humidity_pct']}%, nuvole {w['clouds_pct']}%, "
                    f"pioggia {w['rain_mm']} mm, condizione {w['condition']}") if w else "non misurato"
-        return (IDENTITY_FILE.read_text(encoding="utf-8")
+        return (sys_persona.identity(self.cfg)
                 + f"\nADESSO: {sns_clock.now_text(self.cfg)}. METEO A CASA: {weather}.")
 
     def reflect(self, emit) -> dict:

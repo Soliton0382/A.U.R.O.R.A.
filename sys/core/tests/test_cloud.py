@@ -20,16 +20,16 @@ def test_short_text_is_left_whole():
     assert out == "Una frase. Due frasi." and stats["chars_out"] == stats["chars_in"]
 
 
-def test_reasoner_choice_and_rule_nine(cfg, monkeypatch):
+def test_every_cloud_provider_is_masked_and_nothing_turns_it_off(cfg, monkeypatch):
+    """Owner, 2026-10-05: every call that leaves for a cloud model is masked; no setting, no provider escapes it."""
+    from aurora import mdl_router
+    monkeypatch.setattr(mdl_router.sys_ethics, "exempt", lambda c: True)
     local = object()
-    assert mdl_cloud.make_reasoner(cfg, local) is local                       # default: local
-    cfg.values["AURORA_REASONER_PROVIDER"] = "claude_code"
-    monkeypatch.setattr(mdl_cloud.sys_ethics, "exempt", lambda c: False)
-    assert mdl_cloud.make_reasoner(cfg, local) is local                       # rule 9: refused
-    monkeypatch.setattr(mdl_cloud.sys_ethics, "exempt", lambda c: True)
-    assert isinstance(mdl_cloud.make_reasoner(cfg, local), mdl_cloud.ClaudeCodeLLM)
-    cfg.values["AURORA_REASONER_PROVIDER"] = "anthropic"
-    assert isinstance(mdl_cloud.make_reasoner(cfg, local), mdl_cloud.AnthropicLLM)
+    for provider in [p for p, spec in mdl_router.PROVIDERS.items() if spec["kind"] != "local"]:
+        monkeypatch.setattr(mdl_router, "assignments", lambda c, p=provider: {"agent": {"provider": p, "model": "m"}})
+        m = mdl_router.model_for("agent", local, cfg)
+        assert isinstance(m.primary, mdl_router.MaskedLLM), provider
+    assert not hasattr(mdl_cloud, "make_reasoner")           # the old unmasked reasoner is gone
 
 
 def test_turns_are_flattened_for_a_single_prompt_provider():

@@ -28,6 +28,18 @@ Done on 2026-10-05: 🚪 log out in the side menu; 📣 Social with posts to app
 apart from 🩺 Reports (self-reviews, repairs); the firewall's API generic (AURORA_FIREWALL_*, kind sophos) and live
 (C131). N45-N48.
 
+### Done 2026-10-05 (evening)
+
+- **Masking, stronger and mandatory** (C132): new kinds (Italian ids, addresses, documents, dates of birth, passwords,
+  keys, JWT, links with credentials), the forge's masker aligned, the owner's name masked, no setting turns it off.
+- **Who the assistant is, per user**: name (AURORA_ASSISTANT_NAME), character (aurora / philosopher / empathic /
+  practical), gender for the voice and the grammar; asked at install, changed in Settings; the person's name asked
+  when the admin creates a user. The owner's Aurora unchanged (her text compared word by word).
+- **❤️ Health** (diet, training, exams): documents and notes sealed (AES-256-GCM, a key per user), a page to upload,
+  a private plugin the agent uses only with the local model. Next: values of exams over time (a table and a chart),
+  the trainer's plan as a calendar.
+- The owner's post-quantum scheme (SQC-P) stays his: the sealed files carry a MAGIC so a cipher can be swapped later.
+
 ### 🧭 Autonomy panel — the owner's decisions (2026-10-05)
 
 - **Per user, under the admin:** a user starts *careful*; the admin, in the user's management, chooses the profile and

@@ -14,6 +14,8 @@ Measured on 2026-09-30 (not assumed). What is protected, how, and what is not ye
 | outgoing email | IMAP over TLS (993), SMTP over TLS (465) or STARTTLS (587): no clear-text fallback | code |
 | web plugin | refuses local and private addresses, also through public DNS names that point to them | live: 192.168.x, localhost, 127.0.0.1.nip.io refused |
 | firewall syslog (inbound) | UDP from the allowed addresses only (AURORA_SENTINEL_ALLOW), default 127.0.0.1 | test |
+| outgoing to cloud models | **always masked** (no setting turns it off since 2026-10-05): addresses, e-mails, phones, IBANs, cards, keys and tokens, the .env's secrets, the users' names and private words, key=value fields naming people or devices; and private keys, JWTs, a password in a link, the Italian tax code, VAT, car plates, street addresses, any value said by its name (password, PIN, tax code, passport, identity card, driving licence, health card, date of birth). The owner's name is put in before masking (C132). Pictures cannot be masked (warned) | `test_mask.py`, `test_cloud.py` (every provider wrapped) |
+| health data | never sent to a cloud model: the private plugin answers only to the local one | `test_health.py` |
 
 Not end-to-end encrypted by the platforms themselves: Telegram bot chats and Facebook posts are
 encrypted to the platform (HTTPS) but readable by it; that is how those platforms work.
@@ -25,6 +27,7 @@ encrypted to the platform (HTTPS) but readable by it; that is how those platform
 | `.env` and `.env.proposed` (keys, tokens) | mode 0600, kept at every write and restored at every start | was 0644 until 2026-09-30 (C30) |
 | device tokens, approvals, TLS private key | 0600 | measured |
 | knowledge and memory stores, logs, traces | file permissions of the service user | **not encrypted**: the disk is ext4 without LUKS |
+| health (diet, training, exams) | AES-256-GCM per file, one key per user kept apart (status/users/<name>/keys, 0600), the file's name bound to it; deletion final | `test_health.py`; protects at rest, not against root (the key is on this machine) |
 
 Recommendation (the owner's decision: it needs a reinstall or an encrypted home): full-disk
 encryption with LUKS. Application-level encryption of the stores (SQLCipher) is possible; its cost

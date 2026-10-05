@@ -67,6 +67,11 @@ Signed and published (commit d4ce54f, 29 commits, the history clean of the firew
 207 tests; the Messenger welcome message set by hand. The next roadmap is decided by the owner after the weekend
 (ROADMAP.md, "Next roadmap").
 
+## Done 2026-10-05 (evening), to verify by the owner (N53-N57)
+
+Masking stronger and mandatory (C132); the assistant's name, character and gender per user (install, Settings, the
+admin's new user with the person's name); ❤️ Health sealed per user, local model only.
+
 ## Done 2026-10-05 (later), to verify by the owner (N49-N52)
 
 🎧 DJ (remix and mix, 8 styles, all local, M93); the login with name, password and code also in single-user once the

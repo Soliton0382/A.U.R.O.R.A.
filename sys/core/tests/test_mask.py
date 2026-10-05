@@ -50,3 +50,43 @@ def test_a_model_that_drops_the_brackets_still_gets_the_real_values_back_only_fo
     p = Pseudonymizer(cfg)
     p.mask("server 10.20.30.40, mail mario@example.org")
     assert p.unmask("IP_1 | EMAIL_1 | IP_7 | VIP_1x") == "10.20.30.40 | mario@example.org | IP_7 | VIP_1x"
+
+
+# a fake key block, written in pieces: the publication's secret scan must not see a key header in the repository
+KEY_BLOCK = ("-----BEGIN OPENSSH " + "PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAA\n" + "-----END OPENSSH " + "PRIVATE KEY-----")
+
+
+def test_the_new_kinds_are_masked_and_come_back_while_plain_text_stays(cfg):
+    """Owner, 2026-10-05: tax code, VAT, plates, addresses, documents, dates of birth, passwords, keys, JWT, links."""
+    from aurora.sec_mask import Pseudonymizer
+    p = Pseudonymizer(cfg)
+    secret_bits = ["RSSMRA80A01H501U", "IT01234567890", "Via Giuseppe Verdi 12", "AB 123 CD", "S3gret!xyz", "03/04/1980",
+                   "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U",
+                   "mario:segretissima", "U1A2B3C4D", "YA1234567", "b3BlbnNzaC1rZXktdjEAAAA"]
+    text = ("Codice fiscale RSSMRA80A01H501U, P.IVA IT01234567890; abito in Via Giuseppe Verdi 12, targa AB 123 CD. "
+            "password: S3gret!xyz, nato il 03/04/1980. Token eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0."
+            "dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U, repo https://mario:segretissima@git.example.org/x.git, "
+            "patente U1A2B3C4D, passaporto YA1234567.\n" + KEY_BLOCK)
+    m = p.mask(text)
+    assert not [b for b in secret_bits if b in m], m
+    assert p.unmask(m) == text
+    plain = "The year 2024 had 365 days, version 3.14.2, room 101; the Via Lattea is a galaxy; I was born in Rome."
+    assert p.mask(plain) == plain
+
+
+def test_the_owner_s_name_is_put_in_before_masking_so_it_never_leaves(cfg):
+    """C132: %OWNER% was filled by the provider's client, after the masking: the name would have left in clear."""
+    from aurora.mdl_router import MaskedLLM
+    from aurora.mdl_llm import Completion
+    cfg.values["AURORA_OWNER_NAME"] = "Giacomino"
+    sent = {}
+
+    class Inner:
+        name, model = "fake", "m"
+
+        def complete(self, system, user, max_tokens, think=False):
+            sent["system"], sent["user"] = system, user
+            return Completion("Ciao [PRIVATE_1]", "", 1, 0.1, False)
+    out = MaskedLLM(Inner(), "agent", cfg).complete("You speak with %OWNER%.", "Sono Giacomino", 50)
+    assert "Giacomino" not in sent["system"] and "Giacomino" not in sent["user"] and "%OWNER%" not in sent["system"]
+    assert out.answer == "Ciao Giacomino"

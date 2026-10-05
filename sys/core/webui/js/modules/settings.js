@@ -124,7 +124,12 @@ export default {
       let input;
       if (s.type === "bool" || s.type === "enum") {
         input = el("select");
-        for (const c of s.type === "bool" ? ["0", "1"] : s.choices) input.append(el("option", "", c));
+        for (const c of s.type === "bool" ? ["0", "1"] : s.choices) {
+          const label = t(`choice.${s.key}.${c}`);           // a readable name when there is one
+          const o = el("option", "", label.startsWith("choice.") ? c : label);
+          o.value = c;
+          input.append(o);
+        }
       } else {
         input = el("input");
         if (s.type === "int") { input.type = "number"; if (s.min !== undefined) input.min = s.min; if (s.max !== undefined) input.max = s.max; }

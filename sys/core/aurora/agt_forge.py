@@ -145,6 +145,8 @@ class Masker:
             own.append(".".join(dom.split(".")[-2:]))
         self.own = sorted({w for w in own if len(w) >= 4 and w not in ("localhost",)}, key=len, reverse=True)
         self.user = Path.home().name
+        from .sec_mask import Pseudonymizer               # the secrets of the .env and the ids (tax code, plates...)
+        self.p = Pseudonymizer(cfg)
 
     def _ip(self, m: re.Match) -> str:
         return self.ips.setdefault(m.group(0), f"198.51.100.{len(self.ips) % 250 + 1}")
@@ -160,6 +162,7 @@ class Masker:
         text = re.sub(r"\b(?:\d{1,3}\.){3}\d{1,3}\b", self._ip, text)
         text = re.sub(r"\b[0-9a-fA-F]{2}(?::[0-9a-fA-F]{2}){5}\b", "00:00:5e:00:53:01", text)
         text = re.sub(r"\b[0-9a-fA-F]{24,}\b|\b[A-Za-z0-9_\-]{32,}\b", "<token>", text)
+        text = self.p.mask(text, skip=frozenset({"IP", "IP6", "MAC"}))   # one way: the forge never unmasks
         return text.replace(f"/home/{self.user}/", "/home/user/") if self.user else text
 
 

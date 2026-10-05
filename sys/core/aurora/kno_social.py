@@ -13,10 +13,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from . import sys_config, sys_disclosure, sys_log, txt_lang
+from . import sys_config, sys_disclosure, sys_log, sys_persona, txt_lang
 from .plg_host import PluginHost
 
-IDENTITY_FILE = Path(__file__).resolve().parents[1] / "prompts" / "identity.md"
 SYS_DRAFT = ("\nYou write a social media post for %OWNER%'s {label} page from the content below. A classic post: "
              "no links, no hashtags spam (at most 3 relevant hashtags), engaging first line, in {lang}, at most "
              "{max_chars} characters. Plain text: no markdown (no ** bold, no # headings). Only what the content says: "
@@ -41,7 +40,7 @@ def platforms(host: PluginHost) -> list[dict]:
 def draft(llm, content: str, targets: list[dict], cfg: sys_config.Config | None = None) -> dict[str, str]:
     cfg = cfg or sys_config.get()
     lang = txt_lang.detect(content)
-    identity = IDENTITY_FILE.read_text(encoding="utf-8")
+    identity = sys_persona.identity(cfg)
     out = {}
     for t in targets:
         room = t["max_chars"] - len(cfg["AURORA_AI_DISCLOSURE_IT"]) - 10
@@ -65,6 +64,6 @@ def report(p, host: PluginHost, cfg: sys_config.Config | None = None) -> dict:
     inner = [s.text[:300] for s in p.reader.recent(6, domain="reflection")] \
         if p.reader.layout.shards("memory", "reflection") else []
     user = json.dumps({"statistics": stats, "recent_conversation": recent, "recent_thoughts": inner}, ensure_ascii=False)
-    text = p._for("rem").complete(IDENTITY_FILE.read_text(encoding="utf-8") + SYS_IDEAS, user, 900).answer.strip()
+    text = p._for("rem").complete(sys_persona.identity(p.cfg) + SYS_IDEAS, user, 900).answer.strip()
     sys_log.get_logger("social").info("social report: %s", ", ".join(stats))
     return {"text": text, "stats": stats}

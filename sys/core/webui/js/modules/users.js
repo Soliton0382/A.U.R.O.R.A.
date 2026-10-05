@@ -17,7 +17,8 @@ export default {
     root.innerHTML = `<h2 data-i18n="users.title"></h2><p class="muted" data-i18n="users.hint"></p>
       <h3 class="setting-cat" data-i18n="users.me"></h3><div class="me"></div>
       <div class="admin hidden"><h3 class="setting-cat" data-i18n="users.all"></h3><div class="list"></div>
-        <form class="import add"><input name="name" autocapitalize="none" data-i18n-placeholder="users.name" required>
+        <form class="import add"><input name="person" data-i18n-placeholder="users.person">
+          <input name="name" autocapitalize="none" data-i18n-placeholder="users.name" required>
           <input name="password" type="password" autocomplete="new-password" data-i18n-placeholder="users.password" required>
           <button type="submit" data-i18n="users.add"></button></form><p class="result add-out"></p></div>`;
     apply(root);
@@ -29,7 +30,7 @@ export default {
       ev.preventDefault();
       const f = ev.target;
       try {
-        await call("/v1/aurora/users", { method: "POST", body: JSON.stringify({ name: f.name.value.trim(), password: f.password.value }) });
+        await call("/v1/aurora/users", { method: "POST", body: JSON.stringify({ name: f.name.value.trim(), person: f.person.value.trim(), password: f.password.value }) });
         out.textContent = t("users.added", { name: f.name.value.trim() });
         out.className = "result add-out";
         f.reset();

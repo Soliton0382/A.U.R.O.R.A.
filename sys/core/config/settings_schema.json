@@ -525,6 +525,18 @@
    ]
   },
   {
+   "key": "AURORA_HEALTH_DIR",
+   "type": "path",
+   "category": "attachments",
+   "recommended": "usr/health",
+   "evidence": "owner",
+   "en": "Your health folder (diet, training, exams), sealed with your own key; never sent to a cloud model.",
+   "it": "La tua cartella della salute (dieta, allenamento, esami), cifrata con la tua chiave; mai inviata a un modello cloud.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_EDIT_MODEL_DIR",
    "type": "path",
    "category": "attachments",
@@ -1094,6 +1106,55 @@
    "scope": "user"
   },
   {
+   "key": "AURORA_ASSISTANT_NAME",
+   "type": "str",
+   "category": "interface",
+   "recommended": "Aurora",
+   "evidence": "owner",
+   "scope": "user",
+   "en": "Your assistant's name (the project is Aurora; yours can be called otherwise).",
+   "it": "Il nome della tua assistente (il progetto si chiama Aurora; la tua può chiamarsi diversamente).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_PERSONALITY",
+   "type": "enum",
+   "choices": [
+    "aurora",
+    "philosopher",
+    "empathic",
+    "practical"
+   ],
+   "category": "interface",
+   "recommended": "aurora",
+   "evidence": "owner",
+   "scope": "user",
+   "en": "Her character: aurora (the many-souled scientist: physics, mathematics, philosophy, friendship), philosopher (questions, meaning, the history of ideas), empathic (listening, warmth, support), practical (straight to the point, steps and lists).",
+   "it": "Il suo carattere: aurora (la scienziata poliedrica: fisica, matematica, filosofia, amicizia), philosopher (domande, senso, storia delle idee), empathic (ascolto, calore, sostegno), practical (dritta al punto, passi ed elenchi).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_ASSISTANT_GENDER",
+   "type": "enum",
+   "choices": [
+    "female",
+    "male"
+   ],
+   "category": "interface",
+   "recommended": "female",
+   "evidence": "owner",
+   "scope": "user",
+   "en": "Female or male: the voice that reads the answers aloud and how she (or he) speaks of herself (himself).",
+   "it": "Femminile o maschile: la voce che legge le risposte e come parla di sé («sono pronta» o «sono pronto»).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_LANG_DEFAULT",
    "type": "enum",
    "choices": [
@@ -1617,19 +1678,6 @@
    "evidence": "M61",
    "en": "Daily ceiling of tokens for each cloud provider paid by the token (Anthropic API, OpenAI, Google, xAI, Mistral, OpenRouter): reached it, that provider's steps go back to the local model until tomorrow. 200,000 is ~20 calls at the measured p90 of 9,968 tokens. 0 = no ceiling. Claude Code (subscription) has none.",
    "it": "Tetto giornaliero di token per ogni provider cloud a consumo (Anthropic API, OpenAI, Google, xAI, Mistral, OpenRouter): raggiunto, i passaggi di quel provider tornano al modello locale fino a domani. 200.000 sono ~20 chiamate al p90 misurato di 9.968 token. 0 = nessun tetto. Claude Code (abbonamento) non ne ha.",
-   "services": [
-    "aurora-api",
-    "aurora-rem"
-   ]
-  },
-  {
-   "key": "AURORA_CLOUD_MASK",
-   "type": "bool",
-   "category": "llm",
-   "recommended": "true",
-   "evidence": "sec_mask, tests",
-   "en": "Mask personal and sensitive data in everything sent to a cloud model, and put it back in the answer.",
-   "it": "Maschera i dati personali e sensibili in tutto ciò che va a un modello cloud, e li rimette nella risposta.",
    "services": [
     "aurora-api",
     "aurora-rem"

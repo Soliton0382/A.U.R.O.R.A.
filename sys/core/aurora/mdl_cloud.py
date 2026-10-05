@@ -227,23 +227,3 @@ class AnthropicLLM:
             {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": base64.b64encode(jpeg).decode()}},
             {"type": "text", "text": instruction}]}]
         return self._complete("", msg, max_tokens, False).answer
-
-
-def make_reasoner(cfg: sys_config.Config, local):
-    """The reasoner for the reasoning roles: the local model, or a cloud provider.
-
-    Code of conduct, rule 9 (level B): private data never leaves the machine towards cloud models.
-    The reasoning roles carry memory, logs and conversation, so without the owner's exemption the
-    cloud provider is refused and the local model reasons.
-    """
-    provider = cfg["AURORA_REASONER_PROVIDER"]
-    if provider != "local" and not sys_ethics.exempt(cfg):
-        sys_log.get_logger("llm_client").warning(
-            "reasoner %s refused: code of conduct rule 9 (no private data to cloud models) without the owner's exemption",
-            provider)
-        return local
-    if provider == "claude_code":
-        return ClaudeCodeLLM(cfg)
-    if provider == "anthropic":
-        return AnthropicLLM(cfg)
-    return local

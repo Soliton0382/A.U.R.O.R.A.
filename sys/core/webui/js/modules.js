@@ -9,6 +9,7 @@ import alerts from "./modules/alerts.js";
 import chat from "./modules/chat.js";
 import diary from "./modules/diary.js";
 import dj from "./modules/dj.js";
+import care from "./modules/care.js";
 import harvester from "./modules/harvester.js";
 import notifications from "./modules/notifications.js";
 import importDocs from "./modules/import.js";
@@ -29,5 +30,5 @@ import status from "./modules/status.js";
 import updates from "./modules/updates.js";
 import users from "./modules/users.js";
 
-export const views = [chat, approvals, reports, security, diary, social, dj, projects, routines, models, plugins, importDocs, uploads, harvester, runs, status, notifications, updates, users, settings, guide, bugreport];
+export const views = [chat, approvals, reports, security, diary, social, dj, care, projects, routines, models, plugins, importDocs, uploads, harvester, runs, status, notifications, updates, users, settings, guide, bugreport];
 export const widgets = [sky, alerts, metrics];

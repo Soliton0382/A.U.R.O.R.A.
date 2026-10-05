@@ -99,6 +99,15 @@ fi
 step "4. $(t 'Le tue scelte' 'Your choices')"
 DEF_NAME="$(getent passwd "$USER" | cut -d: -f5 | cut -d, -f1)"; DEF_NAME="${DEF_NAME:-$USER}"
 OWNER=$(ask "$(t 'Il tuo nome (come ti chiamerà Aurora)' 'Your name (what Aurora will call you)')" "$DEF_NAME")
+# who the assistant is (each user changes it later in their settings): her name, her character, her voice
+ANAME=$(ask "$(t 'Il nome della tua assistente' 'Your assistant'"'"'s name')" "Aurora")
+echo "  $(t 'Personalità:' 'Personality:') 1) $(t 'Aurora, scienziata poliedrica' 'Aurora, the many-souled scientist')  2) $(t 'Filosofa' 'Philosopher')  3) $(t 'Empatica' 'Empathic')  4) $(t 'Pratica' 'Practical')"
+case "$(ask "$(t 'Scegli 1-4' 'Choose 1-4')" "1")" in
+  2) PERSONA=philosopher ;; 3) PERSONA=empathic ;; 4) PERSONA=practical ;; *) PERSONA=aurora ;;
+esac
+case "$(ask "$(t 'Voce femminile o maschile (f/m)' 'Female or male voice (f/m)')" "f")" in
+  m|M) AGENDER=male ;; *) AGENDER=female ;;
+esac
 LANGDEF=$([ "$IT" = 1 ] && echo it_IT || echo en_US)
 ULANG=$(ask "$(t 'Lingua (it_IT / en_US)' 'Language (it_IT / en_US)')" "$LANGDEF")
 DOMAIN=$(ask "$(t 'Nome per la WebUI (localhost = solo questo computer)' 'Name for the WebUI (localhost = this computer only)')" "localhost")
@@ -164,7 +173,8 @@ if [ -f .env ]; then
   ok "$(t '.env esistente: lo tengo (le chiavi nuove prendono il valore consigliato)' 'existing .env kept (new keys take their recommended value)')"
   .venv/bin/python sys/core/script/sys_env_sync.py >/dev/null && mv .env.proposed .env
 else
-  SETS=(--set "AURORA_OWNER_NAME=$OWNER" --set "AURORA_LANG_DEFAULT=$ULANG" --set "AURORA_DOMAIN=$DOMAIN"
+  SETS=(--set "AURORA_OWNER_NAME=$OWNER" --set "AURORA_ASSISTANT_NAME=$ANAME" --set "AURORA_PERSONALITY=$PERSONA"
+        --set "AURORA_ASSISTANT_GENDER=$AGENDER" --set "AURORA_LANG_DEFAULT=$ULANG" --set "AURORA_DOMAIN=$DOMAIN"
         --set "AURORA_HTTPS_PORT=$PORT" --set "AURORA_TLS_MODE=$TLS" --set "AURORA_UPDATE_MODE=notify"
         --set "AURORA_SERVICE_USER=$USER" --set "AURORA_USER_MODE=$UMODE")
   [ -n "$BROWSER" ] && SETS+=(--set "AURORA_CHROME_BIN=$BROWSER")

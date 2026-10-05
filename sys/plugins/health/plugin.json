@@ -1,0 +1,39 @@
+{
+ "name": "health",
+ "version": "1.0",
+ "kind": "tool",
+ "private": true,
+ "description": {
+  "it": "La tua salute, cifrata: i piani del dietologo, i programmi del personal trainer, gli esami medici. Aurora li legge per risponderti («cosa mangio stasera?», «com'era il colesterolo?») e registra i tuoi appunti. Solo il modello locale li vede, mai il cloud.",
+  "en": "Your health, sealed: the dietitian's plans, the trainer's programmes, medical exams. Aurora reads them to answer you (\"what do I eat tonight?\", \"how was my cholesterol?\") and records your notes. Only the local model sees them, never the cloud."
+ },
+ "command": [
+  "{python}",
+  "server.py"
+ ],
+ "env": [],
+ "requires": [],
+ "effects": {
+  "health_list": "read",
+  "health_read": "read",
+  "*": "write_local"
+ },
+ "welcome": {
+  "it": "❤️ Salute collegata. Carica i documenti del dietologo, del trainer e i tuoi esami nella pagina ❤️ Salute: restano cifrati con la tua chiave e li vede solo il modello locale. Poi chiedimi «cosa prevede la dieta per pranzo?» o «segna: oggi 40 minuti di corsa». Non sono un medico: per ogni dubbio sulla salute il riferimento resta il tuo medico.",
+  "en": "❤️ Health connected. Upload the dietitian's, the trainer's documents and your exams in the ❤️ Health page: they stay sealed with your key and only the local model sees them. Then ask me \"what does the diet say for lunch?\" or \"note: 40 minutes of running today\". I am not a doctor: for any doubt about your health, your doctor is the reference."
+ },
+ "setup": {
+  "it": "Niente da configurare. I documenti stanno in `usr/<utente>/health` cifrati (AES-256-GCM) con una chiave tua, tenuta a parte; entrambi finiscono nel backup cifrato. Il plugin non ha rete e risponde solo al modello locale: se nella pagina 🧠 Modelli il passaggio «agent» va al cloud, si rifiuta. Protegge i dati a riposo (altri utenti, una copia della cartella), non da root su questa macchina.",
+  "en": "Nothing to set up. Documents are in `usr/<user>/health`, sealed (AES-256-GCM) with a key of yours kept apart; both are in the encrypted backup. The plugin has no network and answers only to the local model: if the Models page sends the \"agent\" step to the cloud, it refuses. It protects the data at rest (other users, a copy of the folder), not against root on this machine.",
+  "links": []
+ },
+ "settings": [
+  "AURORA_HEALTH_DIR"
+ ],
+ "sandbox": {
+  "network": false,
+  "write": [
+   "AURORA_HEALTH_DIR"
+  ]
+ }
+}

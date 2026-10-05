@@ -29,7 +29,6 @@ from .mdl_llm import chatml_turns
 from .plg_host import PluginHost
 from .sys_approvals import Approvals, needs_owner
 
-IDENTITY_FILE = Path(__file__).resolve().parents[1] / "prompts" / "identity.md"
 # closed as it should, or with the wrong tag (</tool_response>), or left open at the end of the text: a long call
 # (a whole HTML page for create_artifact) was written with the wrong closing tag and taken for the report (C111)
 CALL = re.compile(r"<tool_call>\s*(\{.*?\})\s*(?:</tool_call>|</tool_response>|\Z)", re.S)
@@ -238,6 +237,11 @@ class Agent:
         if name not in index:
             return f"ERROR: unknown tool {name}"
         plugin, tool, effect = index[name]
+        if self.host.get(plugin).manifest.get("private"):      # health data never reaches a cloud model (owner, 2026-10-05)
+            from . import mdl_router
+            if not mdl_router.is_local(self.p._for("agent"), self.p.llm):
+                return (f"REFUSED: {plugin} holds private data and the agent step runs on a cloud model; it answers only "
+                        "to the local model (Models page: agent → local).")
         field = (self.host.get(plugin).manifest.get("publishes") or {}).get(tool) if effect == "external" else None
         if field and isinstance(args.get(field), str):       # EU AI Act art. 50: what is published says it is AI
             from . import sys_disclosure, txt_lang

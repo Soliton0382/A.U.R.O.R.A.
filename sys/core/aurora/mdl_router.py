@@ -8,7 +8,7 @@
  roles      the steps of Aurora (ROLES): routing, translation, gate, extraction, synthesis, verification, self, agent,
             autonomic cycle, forge writer, forge judge, vision. Stored in <AURORA_STATUS_DIR>/models/roles.json; without
             it, the old AURORA_REASONER_PROVIDER / AURORA_CLOUD_ROLES decide.
- masking    every cloud call goes through sec_mask.Pseudonymizer (AURORA_CLOUD_MASK, on by default): what leaves is
+ masking    every cloud call goes through sec_mask.Pseudonymizer, always (no setting turns it off): what leaves is
             masked, the answer comes back unmasked; pictures cannot be masked and are counted apart.
  ethics     rule 9 (level B): without the owner's exemption no role goes to the cloud; a cloud error falls back to the
             local model, so a step never dies because a provider is down.
@@ -189,6 +189,11 @@ class MaskedLLM:
     def _p(self) -> Pseudonymizer:
         return Pseudonymizer(self.cfg)
 
+    def _named(self, system: str) -> str:
+        """The names put into the prompt BEFORE masking (C132): filled after it, by the provider's client, the owner's
+        name left unmasked."""
+        return sys_config.personal(system, self.cfg)
+
     def _note(self, p: Pseudonymizer, images: int = 0) -> None:
         sys_log.trace("llm_client", "cloud.mask", {"role": self.role, "provider": self.name, "model": self.model,
                                                    "masked": dict(p.counts), "images": images})
@@ -201,14 +206,15 @@ class MaskedLLM:
 
     def complete(self, system: str, user: str, max_tokens: int, think: bool = False) -> Completion:
         p = self._p()
-        ms, mu = p.mask(system), p.mask(user)
+        ms, mu = p.mask(self._named(system)), p.mask(user)
         c = self.inner.complete(self._keep(p, ms), mu, max_tokens, think)
         self._note(p)
         return Completion(p.unmask(c.answer), p.unmask(c.thought), c.tokens, c.seconds, c.truncated)
 
     def complete_turns(self, messages: list[dict], max_tokens: int, think: bool = False) -> Completion:
         p = self._p()
-        masked = [{**m, "content": p.mask(m["content"])} for m in messages]
+        masked = [{**m, "content": p.mask(self._named(m["content"]) if m.get("role") == "system" else m["content"])}
+                  for m in messages]
         if p.counts:                                     # keep the placeholders (C86): told in the system message
             i = next((n for n, m in enumerate(masked) if m.get("role") == "system" and isinstance(m["content"], str)), None)
             if i is None:
@@ -221,7 +227,7 @@ class MaskedLLM:
 
     def stream(self, system: str, user: str, max_tokens: int, think: bool = False) -> Iterator[tuple[str, str]]:
         p = self._p()
-        ms, mu = p.mask(system), p.mask(user)
+        ms, mu = p.mask(self._named(system)), p.mask(user)
         yield from p.unmask_stream(self.inner.stream(self._keep(p, ms), mu, max_tokens, think))
         self.last_speed = getattr(self.inner, "last_speed", None)
         self._note(p)
@@ -306,7 +312,7 @@ def model_for(role: str, local, cfg: sys_config.Config | None = None):
         if not a["model"]:
             return metered
         inner = OpenAICompatLLM(provider, a["model"], cfg)
-    model = MaskedLLM(inner, role, cfg) if cfg["AURORA_CLOUD_MASK"] else inner
+    model = MaskedLLM(inner, role, cfg)                 # always: no setting turns the masking off (owner, 2026-10-05)
     return Fallback(model, metered, role, cfg, provider)
 
 

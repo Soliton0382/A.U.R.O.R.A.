@@ -19,7 +19,7 @@ from .plg_host import PluginHost, _explain
 
 ADMIN_ONLY = {"backup", "security", "netintel", "self", "senses", "homeassistant", "cloud"}
 FOR_USERS = {"calendar", "cinema", "diary", "discord", "dj", "documents", "dropbox", "email", "expenses", "facebook",
-             "github", "instagram", "mastodon", "news", "nextcloud", "notes", "projects", "telegram", "tiktok",
+             "github", "health", "instagram", "mastodon", "news", "nextcloud", "notes", "projects", "telegram", "tiktok",
              "twitch", "weather", "web", "whatsapp"}
 _lock = threading.Lock()
 

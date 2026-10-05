@@ -82,7 +82,10 @@ async def login(request: Request) -> JSONResponse:
 def whoami() -> dict:
     name = me()
     u = _users().by_name(name) if name else None
+    from aurora import sys_persona
     return {"name": name, "role": (u or {}).get("role", "admin"), "admin": name == _admin(),
+            "assistant": sys_persona.name(cfg), "personality": str(cfg["AURORA_PERSONALITY"]),
+            "gender": str(cfg["AURORA_ASSISTANT_GENDER"]), "person": str(cfg["AURORA_OWNER_NAME"]),
             "mode": str(cfg["AURORA_USER_MODE"]), "mfa": bool(cfg["AURORA_USERS_MFA"]),
             "has_password": bool(u and u["has_password"]), "totp_on": bool(u and u["totp_on"])}
 
@@ -193,6 +196,10 @@ async def users_add(request: Request) -> dict:
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from None
     sys_users_layout.make_home(base, name)
+    person = str(body.get("person", "")).strip()[:60]           # how the assistant calls them: not the login name
+    if person:
+        from aurora import sys_user_config
+        sys_user_config.write(base, name, {"AURORA_OWNER_NAME": person})
     log.info("audit: user %s created by %s", name, me())
     sys_log.trace("api", "user.create", {"name": name})
     return rec

@@ -21,7 +21,7 @@ def test_parse_env_refuses_malformed_files(text):
 
 def test_load_converts_types(cfg):
     assert cfg["AURORA_CHUNK_CHARS"] == 4000
-    assert cfg["AURORA_CLOUD_MASK"] is True
+    assert "AURORA_CLOUD_" + "MASK" not in cfg.values            # the masking is not a setting: always on
     assert cfg["AURORA_CONFIRM_EXTERNAL_ACTIONS"] is True
     assert sys_config.convert({"type": "list"}, " it_IT, en_US,") == ["it_IT", "en_US"]
     assert cfg.path("AURORA_VAULT_DIR") == (cfg.root / "sys" / "vault").resolve()
