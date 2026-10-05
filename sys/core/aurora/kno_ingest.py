@@ -40,6 +40,7 @@ class ImportReport:
     rejected: dict[str, list[str]] = field(default_factory=dict)
     indexed: int = 0
     sids: list[str] = field(default_factory=list)          # every chunk of the document, new or known
+    duplicate_of: str = ""                                  # domain/source of the same document already there (C150)
 
 
 class _TextOfHtml(html.parser.HTMLParser):
@@ -174,6 +175,16 @@ class Importer:
         rep.chunks = len(parts)
         if not parts:
             raise ValueError(f"{name}: no text found")
+        from . import kno_dedup                       # the same document in another form: not a second copy (C150)
+        lang = txt_lang.detect(" ".join(parts[:3]))
+        from .sol_reader import VaultReader
+        copy_of = kno_dedup.find(self.cfg, VaultReader(self.cfg), title or found_title, lang, " ".join(parts[:3]), origin) \
+            if not (meta or {}).get("replace") else None
+        if copy_of:
+            rep.duplicate_of = f"{copy_of[0]}/{copy_of[1]}"
+            self.log.info("import %s -> %s: the same document is already in the vault (%s), not written",
+                          name, domain, rep.duplicate_of)
+            return rep
         extra = {"file": name, **({"origin": origin} if origin else {}),
                  **{k: str(v)[:300] for k, v in (meta or {}).items() if k in ("licence", "url") and v}}
         sols = [Soliton.new(p, domain, "knowledge", txt_lang.detect(p), source_id, title or found_title,
@@ -183,6 +194,7 @@ class Importer:
         rep.written, rep.duplicates, rep.rejected = len(w.written), len(w.duplicates), w.rejected
         if w.written:
             rep.indexed = self.indexer.update(domain, run_id=run_id)
+            kno_dedup.remember(self.cfg, title or found_title, domain, source_id, lang, " ".join(parts[:3]), origin)
         self.log.info("import %s -> %s/%s: %d chunks, %d written, %d duplicates, %d rejected, %d indexed",
                       name, domain, source_id, rep.chunks, rep.written, rep.duplicates, len(rep.rejected), rep.indexed)
         sys_log.trace("ingest", "import", {"name": name, "domain": domain, "source_id": source_id,

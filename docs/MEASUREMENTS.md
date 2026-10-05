@@ -910,6 +910,23 @@ suite green in the sandbox (328 passed), proposed — refused by the API still r
 right** — each bug found from the symptom alone, fixed, the whole suite green in the sandbox, the change proposed
 (90, 130, 140, 110 s); every proposal refused by the benchmark, the live code untouched.
 
+## M109 — How clean is the vault? (5 October 2026)
+
+The owner asked, after M108 found one article twice. The whole knowledge read (672,423 passages, 33 domains, 10 s):
+**identical passages 0** (the content hash works). The same title in more than one domain: 65 documents; the same
+title twice in one domain under different ids: 1,225 — of which 1,164 Normattiva titles that are **distinct acts**
+(the same title over many decrees: "Modificazioni allo statuto dell'Università di Roma", 226 acts since 1948): clean.
+The 126 other groups read by their words (shared words over the union): **76 true copies** (67-99% shared; median
+91%) — a paper of the previous installation harvested again, the same article as PDF and as HTML, an arXiv paper
+cross-listed into two domains — and 50 different documents with one title (1-37%: mostly Wikipedia's English and
+Italian article on one subject, and the owner's own papers in several versions, kept). The 76 copies removed through
+Aurora's API, one copy kept each (the newer, from HTML, with its licence; then the fuller): **1,732 passages, 0
+failures**, the exact list kept before removing. Cause and fix (C150): the importer recognised only an identical
+file; now a document with the same title in the same language and the same words (a 32-hash signature, ≥ 0.5) is not
+written again — unless both carry an official id and they differ: without that rule Normattiva's distinct acts gave
+38,625 false copies (seen before switching it on). After: 85,781 titled documents, 0 copies left; the signatures of
+the whole vault build in 21.4 s, once per process.
+
 ## M108 — Synapses of synapses, and what the first links really were (5 October 2026)
 
 Level 2 threshold first: in the first graph, the triads A↔B↔C with A and C of different domains and not linked (12):
