@@ -18,6 +18,7 @@
     "web_read",
     "web_search"
   ],
+  "cache": {"fetch_url": 900, "search": 900},
   "effects": {
     "fetch_url": "read",
     "search": "read",

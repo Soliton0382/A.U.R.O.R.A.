@@ -856,6 +856,8 @@
   "chat.deeper": "Approfondisci:",
   "ev.question.standalone": "Domanda completata con la conversazione: {q}",
   "ev.retrieval.focus": "Fonti della risposta precedente a fuoco: {k} passaggi entrati ({n} fonti)",
+  "ev.route.shadow": "Domanda già risposta: uso l'ombra della risposta verificata",
+  "ev.tool.cached": "{plugin}.{tool}: risultato già ottenuto poco fa (cache del plugin)",
   "ev.answer.suggestions": "{n} domande per approfondire",
   "artifact.full": "Schermo intero",
   "artifact.reload": "Ricarica",

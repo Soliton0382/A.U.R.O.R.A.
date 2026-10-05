@@ -61,7 +61,7 @@ mark each line ✅ / ❌ with a note. Reload the WebUI first (the service worker
 | N40 | 🔁 Routines: "days and times", 08:00 + 18:30, working days | saved; the line says "giorni lavorativi alle 08:00, 18:30"; it runs Monday, not on 8 December |
 | N42 | Ask something not in the vault and not on arXiv (e.g. a Stoic philosopher's life), then "sì, cerca" | the search steps show Wikipedia (or Europe PMC/GitHub) candidates; the answer comes, the document in the right domain with its licence |
 | N43 | 🛡️ Security → 📖 Read the documentation and propose; switch on a check with few incidents | proposals with "in the last 24 hours it would have raised N"; the next matching lines make an incident with its 💡 action |
-| N44 | On the firewall: Backup & firmware → API on, Aurora's address allowed, a user; in the security card its address/user/password; a rule that drops "Aurora-Blocklist"; then ⛔ on an incident | the address appears in the group on the firewall; nothing else changed there |
+| N44 ✅ | On the firewall: Backup & firmware → API on, Aurora's address allowed, a user; in the security card its address/user/password; a rule that drops "Aurora-Blocklist"; then ⛔ on an incident | the address appears in the group on the firewall; nothing else changed there |
 | N45 | ☰ menu → 🚪 Log out, confirm | back to the login; the device no longer works until you log in again |
 | N46 | 📣 Social | "Posts to approve" (if any) and "Post history" with date, text, picture, a link to the post |
 | N47 | 🛎️ Approvals and 🩺 Reports | approvals without posts and without self-reviews; reports with the self-reviews and repairs |
@@ -91,10 +91,13 @@ mark each line ✅ / ❌ with a note. Reload the WebUI first (the service worker
 | N72 | Ask a knowledge question | under the answer "🔎 Verificata sulle fonti: N frasi confermate, M scartate · K fonti"; Status shows the answered/declined line |
 | N73 | 🧭 Autonomy: click a few levels in a row | "✅ Salvato" every time, no "errore", the level highlighted at once |
 | N74 | 🛡️ Security → an incident → ⛔ then ↩️ Annulla; Difesa → 🧱 Sul firewall → Prova la connessione | the address blocked then unblocked; the group and rule names shown, "Collegato" |
-| N75 | Phone, the installed app: the chat | the buttons on a row above, the text field the whole width |
+| N75 ✅ | Phone, the installed app: the chat | the buttons on a row above, the text field the whole width |
 | N76 | Status → 🧠 Sinapsi (after a night) | links grown between domains, the pairs of domains most linked |
 | N77 | Ask something she does not know; the next morning | the good morning says she studied it; ask again: an answer with sources |
 | N78 | ☀️ The good morning in the chat (after 8) → 🔊 Ascolta | the night's counts, read aloud |
+| N79 ✅ | Ask a question, then the same in other words | the second at once, with "🌗 Risposta già verificata il …" |
+| N80 | `python sys/core/script/shadow_seed.py` in the day (about 2 hours, Ctrl-C and again is fine), then `--export` | most answered 🌗; config/shadow_seed.json with public sources only |
+| N81 | «che tempo fa a Roma?» twice within 10 minutes | the second without calling the weather service: in its steps «🌗 weather.…: risultato già ottenuto poco fa» |
 | N69 | Multi-user first login of an admin without password (a clean install) | after the API key, the Users page with the note: password and Google Authenticator first |
 | N41 | 📁 Projects → 💻 Local: ask Aurora "crea il progetto prova-calc con una funzione somma e i suoi test, eseguili" | the project, the tests run (EXIT 0) in the run's steps, a local commit |
 | N17 | Ask a knowledge question (e.g. «Come funziona la fotosintesi?»), then tap one of the «Approfondisci» questions; then type a short follow-up («e chi l'ha scoperta?») | 3-4 complete questions appear under the answer a few seconds after it; the tapped one is sent whole and its trace shows 🎯 when the sources were used; the typed follow-up shows 🧷 with the completed question |

@@ -10,6 +10,7 @@
   "env": ["AURORA_WEATHER_LAT", "AURORA_WEATHER_LON", "AURORA_WEATHER_PLACE", "AURORA_WEATHER_REGION",
           "AURORA_WEATHER_ALERT_HOURS", "AURORA_WEATHER_WARNINGS_FEED", "AURORA_TIMEZONE"],
   "requires": ["AURORA_WEATHER_LAT", "AURORA_WEATHER_LON"],
+  "cache": {"*": 600},
   "effects": {"*": "read"},
   "welcome": {
     "it": "🌦️ Meteo collegato. Posso dirti che tempo fa adesso, le previsioni a 3 giorni, mandarti un bollettino ogni mattina e avvisarti se il tempo cambia di colpo (pressione che crolla, raffiche, temporali, neve) o se la regione emette un'allerta.",

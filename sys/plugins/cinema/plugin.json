@@ -18,6 +18,7 @@
  "requires": [
   "AURORA_TMDB_TOKEN"
  ],
+ "cache": {"*": 3600},
  "effects": {
   "*": "read"
  },

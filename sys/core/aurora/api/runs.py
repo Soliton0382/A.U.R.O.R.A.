@@ -24,11 +24,13 @@ async def ask(request: Request) -> dict:
 
     "remember": false leaves the memory untouched (checks and tests must not become memories).
     "suggest": true asks for follow-up questions after a knowledge answer (the WebUI); "focus": [{"source", "domain"}]
-    are the sources a suggested follow-up carries (kno_followup)."""
+    are the sources a suggested follow-up carries (kno_followup). "shadow_seed": true (script/shadow_seed.py, with
+    "remember": false) casts the answer's shadow as a seed (kno_shadow)."""
     body = await request.json()
     question = body.get("question", "").strip()
     remember = body.get("remember", True) is not False
     suggest = body.get("suggest") is True
+    seed = body.get("shadow_seed") is True and not remember
     from aurora import kno_followup, sol_schema
     focus = kno_followup.clean_focus(body.get("focus"), sol_schema.load_taxonomy())
     files = []
@@ -70,10 +72,27 @@ async def ask(request: Request) -> dict:
             from aurora.kno_attach import AttachmentHandler
             attached = AttachmentHandler(pipeline(), cfg).prepare(files, q, emit, run_id)
         if attached or not remember or focus:          # a suggested follow-up is a question for the vault
-            return pipeline().run(q, emit=emit, run_id=run_id, attached=attached, remember=remember, focus=focus,
-                                  suggest=suggest)
+            ans = pipeline().run(q, emit=emit, run_id=run_id, attached=attached, remember=remember, focus=focus,
+                                 suggest=suggest)
+            if seed and cfg["AURORA_SHADOW"] and not attached and not ans.abstained and ans.mode == "knowledge" and ans.sources:
+                from aurora import kno_shadow
+                kno_shadow.add(cfg, pipeline().search.embedder, q, ans.text, ans.sources, origin="seed",
+                               follow=ans.suggestions)
+            return ans
         return answer_or_acquire(q, emit, run_id, suggest=suggest)
     return {"run_id": start_run(question, origin="webui", job=job)["id"]}
+
+
+@router.post("/v1/aurora/shadow/import", dependencies=[Depends(auth)])
+def shadow_import() -> dict:
+    """The seed published with the code (config/shadow_seed.json) into this user's shadow (script/shadow_seed.py)."""
+    import json
+    from aurora import kno_shadow
+    f = cfg.root / "sys" / "core" / "config" / "shadow_seed.json"
+    if not f.exists():
+        raise HTTPException(status_code=404, detail="no seed published yet (config/shadow_seed.json)")
+    return {**kno_shadow.import_seed(cfg, pipeline().search.embedder, json.loads(f.read_text(encoding="utf-8"))),
+            **kno_shadow.stats(cfg)}
 
 
 @router.post("/v1/aurora/acquire", dependencies=[Depends(auth)])

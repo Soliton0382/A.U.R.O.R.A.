@@ -19,6 +19,7 @@
   "AURORA_FACEBOOK_PAGE_ID",
   "AURORA_FACEBOOK_PAGE_TOKEN"
  ],
+ "cache": {"page_info": 3600, "page_stats": 900, "list_posts": 600},
  "effects": {
   "publish_post": "external",
   "page_info": "read",

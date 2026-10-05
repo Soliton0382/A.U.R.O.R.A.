@@ -23,6 +23,7 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | exam values | read by the local model from the exams, sealed, a chart over time with the range | tests |
 | knowledge by language | Wikipedia in the installation's language and ticked ones; programming docs (Python, MDN, Rust) | tests |
 | answer shadow | a paraphrase of a question already answered with sources gets that answer in 0.6 s (51 s before), said in the chat with the original question and date, rechecked in the background | M111, tests |
+| shadow seed and plugin caches | script/shadow_seed.py asks 128 questions on 32 domains to fill the shadow; --export keeps only answers with public sources (with their attribution) for new installations; each plugin's read tools cached apart | M112, tests |
 | synapses | links between domains grown at night (99 from 990 passages, 18 min), spread in the search, Hebbian, fading | M107, tests |
 | firewall undo | every block (the owner's or Aurora's) undone with one click; group and rule names shown once the API is set | live (N44), tests |
 | self-update | the clean clone updated itself from GitHub: 332 tests, 19.7 s | M103 bis |

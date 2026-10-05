@@ -856,6 +856,8 @@
   "chat.deeper": "Go deeper:",
   "ev.question.standalone": "Question completed with the conversation: {q}",
   "ev.retrieval.focus": "Sources of the previous answer in focus: {k} passages entered ({n} sources)",
+  "ev.route.shadow": "A question already answered: I use the shadow of the verified answer",
+  "ev.tool.cached": "{plugin}.{tool}: a result obtained shortly before (the plugin's cache)",
   "ev.answer.suggestions": "{n} questions to go deeper",
   "artifact.full": "Full screen",
   "artifact.reload": "Reload",

@@ -1,0 +1,146 @@
+[
+ {
+  "question": "Cos'è la dilatazione del tempo?",
+  "answer": "La dilatazione del tempo si riferisce al fatto che il tempo scorre più lentamente in un sistema di riferimento in movimento rispetto a un sistema di riferimento stazionario, o in un campo gravitazionale forte rispetto a uno debole [1]. Einstein la derivò dalle trasformazioni di Lorentz, mostrando che un orologio in movimento scorre più lentamente dello stesso fattore con cui l'asse x si contrae [5]. La formula esatta derivata da Einstein è $\\tau = t \\sqrt{1 - v^2/c^2}$, dove $t$ è il tempo coordinato misurato nel sistema stazionario, $\\tau$ è l'intervallo di tempo misurato dall'orologio in movimento, $v$ è la velocità dell'orologio e $c$ è la velocità della luce [5]. Secondo la dilatazione del tempo, quando un orologio in movimento raggiunge un punto, è trascorso meno tempo su di esso rispetto a un orologio stazionario [5]. La dilatazione del tempo dipende dallo stato non inerziale dell'osservatore, e per stati non inerziali la simultaneità è diversa; gli orologi devono essere in quiete inerziale l'uno rispetto all'altro per misurare il passaggio del tempo allo stesso tasso [6]. La dilatazione del tempo è osservata sperimentalmente, ad esempio nella vita media di particelle instabili ad alta energia come i muoni nelle docce di raggi cosmici [3]. La dilatazione del tempo cosmologico è dovuta sia all'espansione dell'Universo sia alla differenza nei valori della velocità della luce locale in alcuni modelli [11]. Quando la velocità di una particella si avvicina a $V$ o la temperatura si avvicina a $T_{min}$, l'intervallo di tempo proprio $\\Delta \\tau$ subisce una grande dilatazione, arrivando a una dilatazione infinita del tempo proprio rispetto al tempo improprio $\\Delta t$ dato all'osservatore nel laboratorio [12]. In un modello computazionale discreto, se due orologi identici sono posizionati ai lati di un vertice di dilatazione, l'orologio sul lato destro del vertice batte la metà della velocità di quello sul lato sinistro [4].",
+  "made": 1791232974,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "eef5d959330742a43b8b081cfbd181f8",
+    "title": "The happening of events in temporal relation to one another establishes bistable and self-sustaining dynamics of the Universe",
+    "source": "legacy:arxiv_The_happening_of_events_in_temporal_relation_to_on_txt_done",
+    "domain": "physics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 3,
+    "sid": "116aed86357187ecea997194488da034",
+    "title": "The path to Special Relativity",
+    "source": "legacy:arxiv_The_path_to_Special_Relativity_txt_done",
+    "domain": "physics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 4,
+    "sid": "4da8474e379a2d2e632058ea1d816fb4",
+    "title": "Causal graph rewriting",
+    "source": "doc:76b1d6d94e5337d1ccd951f46287f0f5",
+    "domain": "nonlinear_science",
+    "origin": "arxiv:2609.25188",
+    "url": "https://arxiv.org/abs/2609.25188",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   },
+   {
+    "n": 5,
+    "sid": "fa2514d6ec2aadf4d809bb1f7510ab08",
+    "title": "Einstein's Hidden Scaffolding, with a Glance at Poincaré",
+    "source": "legacy:arxiv_Einstein_s_Hidden_Scaffolding_with_a_Glance_at_Poi_txt_done",
+    "domain": "physics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 6,
+    "sid": "0c263864a8ab9a2201003d1013deb592",
+    "title": "Noninertial Relativistic Symmetry",
+    "source": "legacy:arxiv_Noninertial_Relativistic_Symmetry_txt_done",
+    "domain": "physics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 11,
+    "sid": "72ef514a7e88d86e690dbefe46b4d85c",
+    "title": "A viable varying speed of light model in the RW metric",
+    "source": "legacy:arxiv_A_viable_varying_speed_of_light_model_in_the_RW_me_txt_done",
+    "domain": "physics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 12,
+    "sid": "a28b95600fc6f207bdcdc470dbdaa094",
+    "title": "Cosmology of the Symmetrical Relativity versus Spontaneous Creation of the Universe Ex Nihilo",
+    "source": "legacy:arxiv_Cosmology_of_the_Symmetrical_Relativity_versus_Spo_txt_done",
+    "domain": "physics",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": []
+ },
+ {
+  "question": "Cosa sono le onde gravitazionali?",
+  "answer": "Le onde gravitazionali sono increspature nella curvatura e nella geometria dello spaziotempo che si propagano come onde [3][5][9]. Si propagano alla velocità della luce, viaggiando verso l'esterno dalla sorgente e trasportando energia come radiazione gravitazionale [2][5][7]. Sono generate ogni volta che oggetti massicci accelerano in modo asimmetrico o in seguito a cambiamenti improvvisi nella distribuzione di materia ed energia [2][7]. Eventi violenti come la collisione di buchi neri, le fusioni di stelle di neutroni e le esplosioni di supernove sono esempi di fenomeni che le producono [2][7]. Trasportano energia, momento lineare, momento angolare e informazioni sulle loro sorgenti lontano da esse [2][7]. Si manifestano come due modi di polarizzazione trasversali (comunemente indicati come modi “plus” e “cross”) che stirano e comprimono lo spazio mentre si propagano [7].",
+  "made": 1791233138,
+  "sources": [
+   {
+    "n": 2,
+    "sid": "c0d6767705f7275c19286ad6bd1759a8",
+    "title": "Gravitational-Wave Sky Mapping with Pulsar Timing Arrays: The Full Earth-Pulsar Response and Fundamental Resolution Limits",
+    "source": "legacy:arxiv_Gravitational_Wave_Sky_Mapping_with_Pulsar_Timing_txt_done",
+    "domain": "astrophysics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 3,
+    "sid": "0c5e84757c3314145ca3d48703783f0a",
+    "title": "Characterization of the Scattered Light Noise in KAGRA Interferometer",
+    "source": "legacy:arxiv_Characterization_of_the_Scattered_Light_Noise_in_K_txt_done",
+    "domain": "relativity",
+    "origin": "arxiv"
+   },
+   {
+    "n": 5,
+    "sid": "55294c916de4ab6496a62d2bd24fdc99",
+    "title": "Albert Einstein",
+    "source": "doc:09db5ed93a82a3546030b2084c6a833c",
+    "domain": "general",
+    "origin": "wikipedia:Albert Einstein",
+    "url": "https://en.wikipedia.org/wiki/Albert_Einstein",
+    "licence": "CC BY-SA 4.0 (Wikipedia contributors)"
+   },
+   {
+    "n": 7,
+    "sid": "e3ee4325d92265163e8274948a97e770",
+    "title": "Attenuated gravitational radiation",
+    "source": "legacy:arxiv_Attenuated_gravitational_radiation_txt_done",
+    "domain": "physics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 9,
+    "sid": "a19b5109fd2ec0152f3dbcf879a24b42",
+    "title": "New constraints on modified gravity with dimension-six operators from gravitational waves",
+    "source": "legacy:arxiv_New_constraints_on_modified_gravity_with_dimension_txt_done",
+    "domain": "relativity",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Qual è il ruolo delle onde gravitazionali come sirene standard per misurare la curvatura dell'universo?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Shape_of_U_Measuring_the_Curvature_of_the_Universe_txt_done",
+      "domain": "relativity"
+     }
+    ]
+   },
+   {
+    "question": "Come possono le nuvole di bosoni attorno ai buchi neri amplificare le onde gravitazionali?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Stimulated_Emission_from_Boson_Clouds_txt_done",
+      "domain": "relativity"
+     }
+    ]
+   },
+   {
+    "question": "Quali sono le implicazioni cosmologiche delle survey di onde gravitazionali per l'energia oscura?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Particle_Cosmology_txt_done",
+      "domain": "particle_physics"
+     }
+    ]
+   }
+  ]
+ }
+]

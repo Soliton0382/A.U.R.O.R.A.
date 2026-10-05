@@ -19,6 +19,7 @@
     "ip_reputation",
     "reverse_dns"
   ],
+  "cache": {"rdap_ip": 86400, "reverse_dns": 3600, "ip_reputation": 3600},
   "effects": {
     "rdap_ip": "read",
     "reverse_dns": "read",

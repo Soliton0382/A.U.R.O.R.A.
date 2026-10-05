@@ -281,7 +281,16 @@ class Agent:
             self.pending.append(req["title"])
             return f"WAITING: {effect} action, the owner decides (request {req['id']}). Go on without its result."
         purpose = args.pop("_purpose", "") if effect == "external" else ""
-        r = self.host.call(plugin, tool, args, run_id)
+        from . import plg_shadow                             # the plugin's own small cache: read tools it declares
+        keep = plg_shadow.ttl(self.host.get(plugin).manifest, tool, effect) if self.cfg["AURORA_PLUGIN_SHADOW"] else 0
+        cached = plg_shadow.get(self.cfg, plugin, tool, args, keep)
+        if cached is not None:
+            emit("tool.cached", {"plugin": plugin, "tool": tool})
+            r = {"ok": True, "text": cached}
+        else:
+            r = self.host.call(plugin, tool, args, run_id)
+            if keep and r["ok"]:
+                plg_shadow.put(self.cfg, plugin, tool, args, r["text"])
         if not r["ok"] and "Connection closed" in r["text"]:   # the plugin died starting: its own last words say why
             r = {**r, "text": r["text"] + plugin_cause(self.cfg, plugin)}
         if effect == "external":                             # done without the owner: recorded and told, never silent

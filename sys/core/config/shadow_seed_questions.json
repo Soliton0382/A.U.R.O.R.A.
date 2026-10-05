@@ -1,0 +1,642 @@
+[
+ {
+  "domain": "artificial_intelligence",
+  "question": "Come funziona il meccanismo di attenzione nei transformer?",
+  "lang": "it"
+ },
+ {
+  "domain": "artificial_intelligence",
+  "question": "Cos'è il reinforcement learning from human feedback?",
+  "lang": "it"
+ },
+ {
+  "domain": "artificial_intelligence",
+  "question": "Perché i modelli linguistici hanno allucinazioni?",
+  "lang": "it"
+ },
+ {
+  "domain": "artificial_intelligence",
+  "question": "Cos'è la retrieval augmented generation?",
+  "lang": "it"
+ },
+ {
+  "domain": "computer_science",
+  "question": "Cos'è la complessità computazionale P contro NP?",
+  "lang": "it"
+ },
+ {
+  "domain": "computer_science",
+  "question": "Come funziona una tabella hash?",
+  "lang": "it"
+ },
+ {
+  "domain": "computer_science",
+  "question": "Cos'è il teorema CAP nei sistemi distribuiti?",
+  "lang": "it"
+ },
+ {
+  "domain": "computer_science",
+  "question": "Che differenza c'è tra un processo e un thread?",
+  "lang": "it"
+ },
+ {
+  "domain": "network_security",
+  "question": "Come funziona un attacco DDoS?",
+  "lang": "it"
+ },
+ {
+  "domain": "network_security",
+  "question": "Cos'è un firewall stateful?",
+  "lang": "it"
+ },
+ {
+  "domain": "network_security",
+  "question": "Come funziona il protocollo TLS?",
+  "lang": "it"
+ },
+ {
+  "domain": "network_security",
+  "question": "Cos'è un attacco man-in-the-middle?",
+  "lang": "it"
+ },
+ {
+  "domain": "cyber_security",
+  "question": "Cos'è un ransomware e come si diffonde?",
+  "lang": "it"
+ },
+ {
+  "domain": "cyber_security",
+  "question": "Cos'è un attacco di phishing?",
+  "lang": "it"
+ },
+ {
+  "domain": "cyber_security",
+  "question": "Come funziona l'autenticazione a due fattori?",
+  "lang": "it"
+ },
+ {
+  "domain": "cyber_security",
+  "question": "Cos'è la crittografia post-quantistica?",
+  "lang": "it"
+ },
+ {
+  "domain": "programming",
+  "question": "Cos'è la ricorsione in programmazione?",
+  "lang": "it"
+ },
+ {
+  "domain": "programming",
+  "question": "Che cos'è un garbage collector?",
+  "lang": "it"
+ },
+ {
+  "domain": "programming",
+  "question": "Cos'è il borrow checker di Rust?",
+  "lang": "it"
+ },
+ {
+  "domain": "programming",
+  "question": "Cosa sono i decoratori in Python?",
+  "lang": "it"
+ },
+ {
+  "domain": "information_theory",
+  "question": "Cos'è l'entropia di Shannon?",
+  "lang": "it"
+ },
+ {
+  "domain": "information_theory",
+  "question": "Cosa dice il teorema della capacità di canale?",
+  "lang": "it"
+ },
+ {
+  "domain": "information_theory",
+  "question": "Cos'è la divergenza di Kullback-Leibler?",
+  "lang": "it"
+ },
+ {
+  "domain": "information_theory",
+  "question": "Come funzionano i codici correttori d'errore?",
+  "lang": "it"
+ },
+ {
+  "domain": "mathematics",
+  "question": "Cos'è un autovalore di una matrice?",
+  "lang": "it"
+ },
+ {
+  "domain": "mathematics",
+  "question": "Cosa dice l'ipotesi di Riemann?",
+  "lang": "it"
+ },
+ {
+  "domain": "mathematics",
+  "question": "Cos'è un gruppo in algebra?",
+  "lang": "it"
+ },
+ {
+  "domain": "mathematics",
+  "question": "Cosa afferma il teorema di incompletezza di Gödel?",
+  "lang": "it"
+ },
+ {
+  "domain": "statistics",
+  "question": "Cos'è il teorema di Bayes?",
+  "lang": "it"
+ },
+ {
+  "domain": "statistics",
+  "question": "Cos'è un p-value?",
+  "lang": "it"
+ },
+ {
+  "domain": "statistics",
+  "question": "Che differenza c'è tra correlazione e causalità?",
+  "lang": "it"
+ },
+ {
+  "domain": "statistics",
+  "question": "Cos'è la regressione lineare?",
+  "lang": "it"
+ },
+ {
+  "domain": "physics",
+  "question": "Cos'è il principio di minima azione?",
+  "lang": "it"
+ },
+ {
+  "domain": "physics",
+  "question": "Cos'è l'entropia in termodinamica?",
+  "lang": "it"
+ },
+ {
+  "domain": "physics",
+  "question": "Cos'è l'effetto fotoelettrico?",
+  "lang": "it"
+ },
+ {
+  "domain": "physics",
+  "question": "Cos'è la rottura spontanea di simmetria?",
+  "lang": "it"
+ },
+ {
+  "domain": "quantum_physics",
+  "question": "Cos'è la decoerenza quantistica?",
+  "lang": "it"
+ },
+ {
+  "domain": "quantum_physics",
+  "question": "Cos'è l'entanglement quantistico?",
+  "lang": "it"
+ },
+ {
+  "domain": "quantum_physics",
+  "question": "Cosa afferma il principio di indeterminazione di Heisenberg?",
+  "lang": "it"
+ },
+ {
+  "domain": "quantum_physics",
+  "question": "Cos'è un qubit?",
+  "lang": "it"
+ },
+ {
+  "domain": "particle_physics",
+  "question": "Cos'è il bosone di Higgs?",
+  "lang": "it"
+ },
+ {
+  "domain": "particle_physics",
+  "question": "Cos'è il Modello Standard delle particelle?",
+  "lang": "it"
+ },
+ {
+  "domain": "particle_physics",
+  "question": "Cosa sono i neutrini e perché oscillano?",
+  "lang": "it"
+ },
+ {
+  "domain": "particle_physics",
+  "question": "Cos'è la cromodinamica quantistica?",
+  "lang": "it"
+ },
+ {
+  "domain": "condensed_matter",
+  "question": "Cos'è la superconduttività?",
+  "lang": "it"
+ },
+ {
+  "domain": "condensed_matter",
+  "question": "Cos'è un isolante topologico?",
+  "lang": "it"
+ },
+ {
+  "domain": "condensed_matter",
+  "question": "Cos'è un condensato di Bose-Einstein?",
+  "lang": "it"
+ },
+ {
+  "domain": "condensed_matter",
+  "question": "Cos'è il grafene e perché è speciale?",
+  "lang": "it"
+ },
+ {
+  "domain": "astrophysics",
+  "question": "Cos'è la materia oscura?",
+  "lang": "it"
+ },
+ {
+  "domain": "astrophysics",
+  "question": "Come si forma un buco nero?",
+  "lang": "it"
+ },
+ {
+  "domain": "astrophysics",
+  "question": "Cos'è la radiazione cosmica di fondo?",
+  "lang": "it"
+ },
+ {
+  "domain": "astrophysics",
+  "question": "Cos'è una supernova?",
+  "lang": "it"
+ },
+ {
+  "domain": "relativity",
+  "question": "Cos'è la dilatazione del tempo?",
+  "lang": "it"
+ },
+ {
+  "domain": "relativity",
+  "question": "Cosa sono le onde gravitazionali?",
+  "lang": "it"
+ },
+ {
+  "domain": "relativity",
+  "question": "Cos'è la teoria di Einstein-Cartan?",
+  "lang": "it"
+ },
+ {
+  "domain": "relativity",
+  "question": "Cosa dice il principio di equivalenza?",
+  "lang": "it"
+ },
+ {
+  "domain": "mathematical_physics",
+  "question": "Cos'è una teoria di gauge?",
+  "lang": "it"
+ },
+ {
+  "domain": "mathematical_physics",
+  "question": "Cos'è il teorema di Noether?",
+  "lang": "it"
+ },
+ {
+  "domain": "mathematical_physics",
+  "question": "Cos'è uno spazio di Hilbert?",
+  "lang": "it"
+ },
+ {
+  "domain": "mathematical_physics",
+  "question": "Cosa sono i gruppi di Lie in fisica?",
+  "lang": "it"
+ },
+ {
+  "domain": "nonlinear_science",
+  "question": "Cos'è il caos deterministico?",
+  "lang": "it"
+ },
+ {
+  "domain": "nonlinear_science",
+  "question": "Cos'è un attrattore strano?",
+  "lang": "it"
+ },
+ {
+  "domain": "nonlinear_science",
+  "question": "Cos'è un solitone?",
+  "lang": "it"
+ },
+ {
+  "domain": "nonlinear_science",
+  "question": "Cos'è l'effetto farfalla?",
+  "lang": "it"
+ },
+ {
+  "domain": "chemistry",
+  "question": "Cos'è un legame covalente?",
+  "lang": "it"
+ },
+ {
+  "domain": "chemistry",
+  "question": "Cos'è la catalisi enzimatica?",
+  "lang": "it"
+ },
+ {
+  "domain": "chemistry",
+  "question": "Cos'è il pH?",
+  "lang": "it"
+ },
+ {
+  "domain": "chemistry",
+  "question": "Cos'è la chiralità di una molecola?",
+  "lang": "it"
+ },
+ {
+  "domain": "materials",
+  "question": "Cosa sono i metamateriali?",
+  "lang": "it"
+ },
+ {
+  "domain": "materials",
+  "question": "Cos'è una perovskite e perché interessa il fotovoltaico?",
+  "lang": "it"
+ },
+ {
+  "domain": "materials",
+  "question": "Cosa sono i materiali compositi?",
+  "lang": "it"
+ },
+ {
+  "domain": "materials",
+  "question": "Cos'è un semiconduttore?",
+  "lang": "it"
+ },
+ {
+  "domain": "earth_science",
+  "question": "Cos'è la tettonica a placche?",
+  "lang": "it"
+ },
+ {
+  "domain": "earth_science",
+  "question": "Come si forma un terremoto?",
+  "lang": "it"
+ },
+ {
+  "domain": "earth_science",
+  "question": "Cos'è l'effetto serra?",
+  "lang": "it"
+ },
+ {
+  "domain": "earth_science",
+  "question": "Cos'è El Niño?",
+  "lang": "it"
+ },
+ {
+  "domain": "engineering",
+  "question": "Cos'è un controllore PID?",
+  "lang": "it"
+ },
+ {
+  "domain": "engineering",
+  "question": "Come funziona un motore elettrico?",
+  "lang": "it"
+ },
+ {
+  "domain": "engineering",
+  "question": "Cos'è la trasformata di Fourier e a cosa serve?",
+  "lang": "it"
+ },
+ {
+  "domain": "engineering",
+  "question": "Come funziona una batteria al litio?",
+  "lang": "it"
+ },
+ {
+  "domain": "robotics",
+  "question": "Cos'è la cinematica inversa?",
+  "lang": "it"
+ },
+ {
+  "domain": "robotics",
+  "question": "Cos'è lo SLAM in robotica?",
+  "lang": "it"
+ },
+ {
+  "domain": "robotics",
+  "question": "Come cammina un robot bipede?",
+  "lang": "it"
+ },
+ {
+  "domain": "robotics",
+  "question": "Cos'è il controllo a retroazione in robotica?",
+  "lang": "it"
+ },
+ {
+  "domain": "biomedicine",
+  "question": "Come funziona un vaccino a mRNA?",
+  "lang": "it"
+ },
+ {
+  "domain": "biomedicine",
+  "question": "Cos'è il sistema immunitario adattativo?",
+  "lang": "it"
+ },
+ {
+  "domain": "biomedicine",
+  "question": "Cosa sono le cellule staminali?",
+  "lang": "it"
+ },
+ {
+  "domain": "biomedicine",
+  "question": "Come agiscono gli antibiotici?",
+  "lang": "it"
+ },
+ {
+  "domain": "genomics",
+  "question": "Cos'è CRISPR-Cas9?",
+  "lang": "it"
+ },
+ {
+  "domain": "genomics",
+  "question": "Cos'è l'epigenetica?",
+  "lang": "it"
+ },
+ {
+  "domain": "genomics",
+  "question": "Come funziona il sequenziamento del DNA?",
+  "lang": "it"
+ },
+ {
+  "domain": "genomics",
+  "question": "Cos'è un polimorfismo a singolo nucleotide?",
+  "lang": "it"
+ },
+ {
+  "domain": "medicine",
+  "question": "Cos'è il diabete di tipo 2?",
+  "lang": "it"
+ },
+ {
+  "domain": "medicine",
+  "question": "Cos'è l'ipertensione arteriosa?",
+  "lang": "it"
+ },
+ {
+  "domain": "medicine",
+  "question": "Come funziona l'anestesia generale?",
+  "lang": "it"
+ },
+ {
+  "domain": "medicine",
+  "question": "Cos'è la malattia di Alzheimer?",
+  "lang": "it"
+ },
+ {
+  "domain": "psychology",
+  "question": "Cos'è la dissonanza cognitiva?",
+  "lang": "it"
+ },
+ {
+  "domain": "psychology",
+  "question": "Cos'è la teoria dell'attaccamento?",
+  "lang": "it"
+ },
+ {
+  "domain": "psychology",
+  "question": "Cos'è il bias di conferma?",
+  "lang": "it"
+ },
+ {
+  "domain": "psychology",
+  "question": "Cos'è la terapia cognitivo-comportamentale?",
+  "lang": "it"
+ },
+ {
+  "domain": "economics",
+  "question": "Cos'è l'inflazione?",
+  "lang": "it"
+ },
+ {
+  "domain": "economics",
+  "question": "Cos'è la teoria dei giochi?",
+  "lang": "it"
+ },
+ {
+  "domain": "economics",
+  "question": "Cos'è il prodotto interno lordo?",
+  "lang": "it"
+ },
+ {
+  "domain": "economics",
+  "question": "Cosa sono i rendimenti di scala?",
+  "lang": "it"
+ },
+ {
+  "domain": "society",
+  "question": "Cos'è la globalizzazione?",
+  "lang": "it"
+ },
+ {
+  "domain": "society",
+  "question": "Cos'è il capitale sociale?",
+  "lang": "it"
+ },
+ {
+  "domain": "society",
+  "question": "Cos'è la stratificazione sociale?",
+  "lang": "it"
+ },
+ {
+  "domain": "society",
+  "question": "Cos'è il welfare state?",
+  "lang": "it"
+ },
+ {
+  "domain": "history",
+  "question": "Quali furono le cause della prima guerra mondiale?",
+  "lang": "it"
+ },
+ {
+  "domain": "history",
+  "question": "Cos'è stato il Rinascimento?",
+  "lang": "it"
+ },
+ {
+  "domain": "history",
+  "question": "Perché cadde l'Impero romano d'Occidente?",
+  "lang": "it"
+ },
+ {
+  "domain": "history",
+  "question": "Cos'è stata la rivoluzione industriale?",
+  "lang": "it"
+ },
+ {
+  "domain": "philosophy",
+  "question": "Cos'è l'imperativo categorico di Kant?",
+  "lang": "it"
+ },
+ {
+  "domain": "philosophy",
+  "question": "Cos'è lo stoicismo?",
+  "lang": "it"
+ },
+ {
+  "domain": "philosophy",
+  "question": "Cos'è il problema mente-corpo?",
+  "lang": "it"
+ },
+ {
+  "domain": "philosophy",
+  "question": "Cos'è l'esistenzialismo?",
+  "lang": "it"
+ },
+ {
+  "domain": "religion",
+  "question": "Cos'è il buddhismo?",
+  "lang": "it"
+ },
+ {
+  "domain": "religion",
+  "question": "Cosa furono le riforme protestanti?",
+  "lang": "it"
+ },
+ {
+  "domain": "religion",
+  "question": "Cos'è il Concilio Vaticano II?",
+  "lang": "it"
+ },
+ {
+  "domain": "religion",
+  "question": "Cos'è l'induismo?",
+  "lang": "it"
+ },
+ {
+  "domain": "literature",
+  "question": "Di cosa parla la Divina Commedia?",
+  "lang": "it"
+ },
+ {
+  "domain": "literature",
+  "question": "Cos'è il verismo di Verga?",
+  "lang": "it"
+ },
+ {
+  "domain": "literature",
+  "question": "Cos'è il realismo magico?",
+  "lang": "it"
+ },
+ {
+  "domain": "literature",
+  "question": "Chi era Italo Calvino?",
+  "lang": "it"
+ },
+ {
+  "domain": "law_it",
+  "question": "Cosa dice l'articolo 2043 del codice civile?",
+  "lang": "it"
+ },
+ {
+  "domain": "law_it",
+  "question": "Cosa stabilisce l'articolo 3 della Costituzione?",
+  "lang": "it"
+ },
+ {
+  "domain": "law_it",
+  "question": "Cos'è la legittima difesa nel codice penale?",
+  "lang": "it"
+ },
+ {
+  "domain": "law_it",
+  "question": "Cosa prevede il GDPR sul consenso al trattamento dei dati?",
+  "lang": "it"
+ }
+]

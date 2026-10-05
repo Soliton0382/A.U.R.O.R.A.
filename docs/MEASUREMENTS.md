@@ -910,6 +910,16 @@ suite green in the sandbox (328 passed), proposed — refused by the API still r
 right** — each bug found from the symptom alone, fixed, the whole suite green in the sandbox, the change proposed
 (90, 130, 140, 110 s); every proposal refused by the benchmark, the live code untouched.
 
+## M112 — Seeding the shadow, the plugins' caches (5 October 2026)
+
+script/shadow_seed.py, 128 questions (4 for each of 32 knowledge domains), through the API without memory: the first two
+(relativity) answered with sources in 83.9 s (the first after a restart) and 70.3 s, 7 and 5 sources, both cast as seed
+shadows; the second with its 3 follow-up questions (kept with the shadow since this run: before, an answer from the
+shadow came without "Approfondisci" — found here). Export: 2 of 2 answers public, every source with an arXiv identity
+(one of them only through its passage's origin "arxiv:2609.25188": the id alone, "doc:…", would have excluded it).
+Plugins' caches (plg_shadow): declared by weather, news, cinema, netintel, web, facebook (read tools only); tested
+(351 tests). Not measured: the whole seed (about 2 hours), its share on a fresh vault, a plugin cache hit live.
+
 ## M111 — The shadow of an answer: calibration and the first live hit (5 October 2026)
 
 Calibrated on the 23 answered questions of pool30 before choosing the thresholds (kno_shadow). Cosine between a

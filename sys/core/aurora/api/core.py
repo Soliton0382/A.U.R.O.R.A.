@@ -504,7 +504,7 @@ def answer_or_acquire(question: str, emit, run_id: str, **kw):
     ans = p.run(question, emit=emit, run_id=run_id, **kw)
     if cfg["AURORA_SHADOW"] and not ans.abstained and ans.mode == "knowledge" and ans.sources:
         from aurora import kno_shadow                     # a verified answer casts its shadow
-        kno_shadow.add(cfg, p.search.embedder, question, ans.text, ans.sources)
+        kno_shadow.add(cfg, p.search.embedder, question, ans.text, ans.sources, follow=ans.suggestions)
     if (cfg["AURORA_ACQUIRE_AUTO"] and ans.abstained and ans.mode == "knowledge" and not kw.get("attached")
             and len(question) < 400):                 # Autonomy panel, knowledge at 🚀: she searches by herself
         from aurora.kno_acquire import ArxivAgent
@@ -526,21 +526,23 @@ def shadow_answer(p, question: str, emit, run_id: str):
     if hit is None:
         return None
     emit("route", {"mode": "shadow"})
-    ans = Answer(run_id, question, hit["text"], False, hit["sources"], [], round(time.time() - t0, 2))
+    ans = Answer(run_id, question, hit["text"], False, hit["sources"], [], round(time.time() - t0, 2),
+                 suggestions=hit["follow"])
     emit("answer.final", {"text": ans.text, "abstained": False, "sources": ans.sources, "dropped": [], "mode": "knowledge",
-                          "seconds": ans.seconds, "shadow": {k: hit[k] for k in ("question", "made", "cos", "score")}})
+                          "seconds": ans.seconds, "shadow": {k: hit[k] for k in ("question", "made", "cos", "score")},
+                          **({"suggestions": ans.suggestions} if ans.suggestions else {})})
     p.remember(question, ans, run_id, emit, Trail(), now_iso())
     emit("run.end", {"seconds": ans.seconds})
 
     def recheck():
         try:
-            new = p.run(question, emit=lambda e, d: None, run_id=run_id + "-recheck", remember=False)
+            new = p.run(question, emit=lambda e, d: None, run_id=run_id + "-recheck", remember=False, suggest=True)
         except Exception as e:                            # noqa: BLE001 — the answer given stands
             log.warning("shadow recheck failed: %s", e)
             return
         if new.abstained or not new.sources:
             return
-        kno_shadow.add(cfg, p.search.embedder, question, new.text, new.sources)
+        kno_shadow.add(cfg, p.search.embedder, question, new.text, new.sources, follow=new.suggestions)
         if {s["source"] for s in new.sources} != {s["source"] for s in hit["sources"]}:
             note("api", "answer.refined", {"run_id": run_id, "title": f"🔁 {question[:80]}", "text": new.text[:1500]})
     sys_context.start(recheck, name="shadow-recheck")

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 A.U.R.O.R.A. Project
 // Aurora service worker: the app shell works offline-first-paint; the API is never cached.
-const SHELL = "aurora-shell-v62";
+const SHELL = "aurora-shell-v63";
 const FILES = ["/", "/static/app.css", "/static/css/chat.css", "/static/css/metrics.css", "/static/css/agents.css", "/static/css/alerts.css",
   "/static/js/main.js", "/static/js/modules.js", "/static/js/api.js", "/static/js/i18n.js", "/static/js/dom.js", "/static/js/md.js", "/static/js/restart.js",
   "/static/js/bus.js", "/static/js/modules/chat.js", "/static/js/modules/trace.js", "/static/js/modules/import.js",

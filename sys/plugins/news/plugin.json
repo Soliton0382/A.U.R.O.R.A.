@@ -12,6 +12,7 @@
  ],
  "env": [],
  "requires": [],
+ "cache": {"*": 900},
  "effects": {
   "*": "read"
  },

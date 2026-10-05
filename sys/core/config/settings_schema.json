@@ -878,6 +878,18 @@
    ]
   },
   {
+   "key": "AURORA_PLUGIN_SHADOW",
+   "type": "bool",
+   "category": "plugins",
+   "recommended": "1",
+   "evidence": "M112",
+   "en": "Each plugin's small cache: a read-only tool the plugin declares (manifest \"cache\") called again with the same arguments gets the result already obtained, while it is younger than the seconds declared. Never for tools that write, send or publish.",
+   "it": "La piccola cache di ogni plugin: uno strumento di sola lettura che il plugin dichiara (manifest \"cache\"), chiamato di nuovo con gli stessi argomenti, riceve il risultato già ottenuto finché è più giovane dei secondi dichiarati. Mai per strumenti che scrivono, inviano o pubblicano.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_SHADOW_COS",
    "type": "float",
    "category": "search",
