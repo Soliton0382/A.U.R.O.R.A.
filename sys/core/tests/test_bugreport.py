@@ -59,3 +59,17 @@ def test_an_empty_description_is_refused_and_odd_run_ids_are_ignored(cfg):
     assert not any(n.startswith("runs/") for n in out["files"])
     cfg.values["AURORA_UPDATE_REMOTE"] = "https://example.org/repo.git"
     assert R.issue_url(cfg, "t", "b") == ""                                     # not GitHub: no link
+
+
+def test_a_private_name_in_the_description_is_masked_everywhere(cfg):
+    from types import SimpleNamespace
+
+    class Reader:                                      # the local model reads the names of the description
+        def complete(self, *a, **k):
+            return SimpleNamespace(answer='[{"name": "Giulia", "type": "private"}]')
+    logs = cfg.path("AURORA_LOG_DIR")
+    (logs / "api").mkdir(parents=True)
+    (logs / "api" / "api.log").write_text(f"{stamp(1)} ERROR aurora.api upload of Giulia failed\n")
+    out = R.build(cfg, "Il caricamento di Giulia si blocca", hours=6, llm=Reader())
+    z = zipfile.ZipFile(cfg.path("AURORA_BUGREPORT_DIR") / out["name"])
+    assert not any("Giulia" in z.read(n).decode() for n in z.namelist()) and "Giulia" not in out["issue_url"]

@@ -89,3 +89,21 @@ def test_protected_files_and_local_work_are_never_updated_here(cfg, tmp_path):
     commit(there2, "a.txt", "2\n", "ok")
     (here2 / "a.txt").write_text("my local change\n")
     assert "local changes" in sys_update.apply(cfg, root=here2, run_tests=lambda: {"ok": True})["reason"]
+
+
+def test_a_new_setting_is_in_the_env_before_the_tests_and_leaves_with_a_rollback(cfg, tmp_path):
+    import json
+    here, there = setup(tmp_path)
+    schema = lambda keys: json.dumps({"categories": {}, "settings": [{"key": k, "recommended": "1"} for k in keys]
+                                      + [{"key": "MINE", "recommended": "x", "scope": "user"}]})   # never copied (C141)
+    commit(there, ".gitignore", ".env\n", "the .env is never in git, as in the real repository")
+    commit(there, "sys/core/config/settings_schema.json", schema(["OLD"]), "schema")
+    git(here, "pull", "-q")
+    (here / ".env").write_text("OLD=5\n")
+    commit(there, "sys/core/config/settings_schema.json", schema(["OLD", "NEW"]), "a new setting (C139)")
+    seen = []
+    ok = lambda: (seen.append((here / ".env").read_text()), {"ok": True, "passed": 1})[1]
+    assert sys_update.apply(cfg, root=here, run_tests=ok)["applied"] and seen == ["OLD=5\nNEW=1\n"]
+    commit(there, "sys/core/config/settings_schema.json", schema(["OLD", "NEW", "NEWER"]), "breaks")
+    out = sys_update.apply(cfg, root=here, run_tests=lambda: {"ok": False, "summary": "1 failed"})
+    assert out["rolled_back"] and (here / ".env").read_text() == "OLD=5\nNEW=1\n"

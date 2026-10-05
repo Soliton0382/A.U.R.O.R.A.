@@ -22,6 +22,8 @@ export default {
       <div class="harvest-state"></div>
       <div class="harvest-actions"><button class="toggle"></button> <button class="now" data-i18n="harvest.now"></button>
         <span class="result muted"></span></div>
+      <h3 class="setting-cat" data-i18n="harvest.langs"></h3>
+      <p class="muted" data-i18n="harvest.langs_hint"></p><div class="harvest-langs"></div>
       <h3 class="setting-cat" data-i18n="harvest.domains"></h3>
       <p class="muted" data-i18n="harvest.domains_hint"></p>
       <div class="harvest-domains"></div>
@@ -33,6 +35,7 @@ export default {
     apply(root);
     this.stateBox = root.querySelector(".harvest-state");
     this.domainsBox = root.querySelector(".harvest-domains");
+    this.langsBox = root.querySelector(".harvest-langs");
     this.progress = root.querySelector(".batch-progress");
     this.out = root.querySelector(".result");
     this.toggle = root.querySelector(".toggle");
@@ -119,7 +122,33 @@ export default {
     }
   },
 
+  // Wikipedia in other languages (owner, 2026-10-05): English always; the installation's language by default; a tick more
+  async langs() {
+    let st;
+    try { st = await call("/v1/aurora/settings"); } catch { return; }
+    const cur = (st.settings.find((x) => x.key === "AURORA_HARVEST_LANGS")?.value || "").split(",").map((x) => x.trim()).filter(Boolean);
+    const lang = (st.settings.find((x) => x.key === "AURORA_LANG_DEFAULT")?.value || "it_IT").slice(0, 2);
+    const chosen = new Set(cur.length ? cur : [lang]);
+    this.langsBox.replaceChildren(...["en", "it", "fr", "de", "es", "pt"].map((l) => {
+      const lbl = el("label", "cat-chip");
+      const box = el("input");
+      box.type = "checkbox";
+      box.checked = l === "en" || chosen.has(l);
+      box.disabled = l === "en";                       // the models' language: always
+      box.addEventListener("change", async () => {
+        const list = [...this.langsBox.querySelectorAll("input")].filter((b) => b.checked && !b.disabled).map((b) => b.value);
+        await call("/v1/aurora/settings", { method: "PUT", body: JSON.stringify({ AURORA_HARVEST_LANGS: list.join(",") }) });
+        await call("/v1/aurora/services/restart", { method: "POST", body: JSON.stringify({ services: ["aurora-harvester"] }) }).catch(() => null);
+        this.refresh();
+      });
+      box.value = l;
+      lbl.append(box, el("span", "", ` ${t(`harvest.lang.${l}`)}`));
+      return lbl;
+    }));
+  },
+
   async enter() {
+    this.langs();
     await this.refresh();
     clearInterval(this.timer);
     this.timer = setInterval(() => { if (!document.hidden && document.querySelector("#view-harvester:not(.hidden)")) this.refresh().catch(() => {}); }, 5000);

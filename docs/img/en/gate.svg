@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" width="720" height="380" role="img" aria-labelledby="t d">
+<title id="t">Answer quality with different models at the gate</title>
+<desc id="d">30 questions, Claude opus as judge, same vault · M98. mean score of 10: local
+(Qwen 35B, chosen) 6.9, Claude Sonnet 6.87, Claude Opus 6.87</desc>
+<style>
+.bg{fill:#fcfcfb}.t1{fill:#0b0b0b}.t2{fill:#52514e}.grid{stroke:#e4e3df}.axis{stroke:#bdbcb6}
+.s1{fill:#2a78d6}.s2{fill:#eb6834}.s3{fill:#1baf7a}.ref{stroke:#52514e}
+@media (prefers-color-scheme: dark){.bg{fill:#1a1a19}.t1{fill:#ffffff}.t2{fill:#c3c2b7}.grid{stroke:#383835}
+.axis{stroke:#5c5b57}.s1{fill:#3987e5}.s2{fill:#d95926}.s3{fill:#199e70}.ref{stroke:#c3c2b7}}
+text{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+</style>
+<rect class="bg" width="720" height="380" rx="8"/>
+<text class="t1" x="56" y="30" font-size="17" font-weight="600">Answer quality with different models at the gate</text>
+<text class="t2" x="56" y="52" font-size="12.5">30 questions, Claude opus as judge, same vault · M98</text>
+<line class="grid" x1="56" x2="696" y1="316.0" y2="316.0" stroke-width="1"/><text class="t2" x="48" y="320.0" font-size="11" text-anchor="end">0</text>
+<line class="grid" x1="56" x2="696" y1="263.0" y2="263.0" stroke-width="1"/><text class="t2" x="48" y="267.0" font-size="11" text-anchor="end">2.5</text>
+<line class="grid" x1="56" x2="696" y1="210.0" y2="210.0" stroke-width="1"/><text class="t2" x="48" y="214.0" font-size="11" text-anchor="end">5</text>
+<line class="grid" x1="56" x2="696" y1="157.0" y2="157.0" stroke-width="1"/><text class="t2" x="48" y="161.0" font-size="11" text-anchor="end">7.5</text>
+<line class="grid" x1="56" x2="696" y1="104.0" y2="104.0" stroke-width="1"/><text class="t2" x="48" y="108.0" font-size="11" text-anchor="end">10</text>
+<path class="s1" d="M130.7,316.0 V173.7 Q130.7,169.7 134.7,169.7 H190.7 Q194.7,169.7 194.7,173.7 V316.0 Z"/>
+<text class="t1" x="162.7" y="163.7" font-size="12" text-anchor="middle" font-weight="600">6.9</text>
+<text class="t2" x="162.7" y="334.0" font-size="12" text-anchor="middle">local</text>
+<text class="t2" x="162.7" y="348.0" font-size="12" text-anchor="middle">(Qwen 35B, chosen)</text>
+<path class="s1" d="M344.0,316.0 V174.4 Q344.0,170.4 348.0,170.4 H404.0 Q408.0,170.4 408.0,174.4 V316.0 Z"/>
+<text class="t1" x="376.0" y="164.4" font-size="12" text-anchor="middle" font-weight="600">6.87</text>
+<text class="t2" x="376.0" y="334.0" font-size="12" text-anchor="middle">Claude Sonnet</text>
+<path class="s1" d="M557.3,316.0 V174.4 Q557.3,170.4 561.3,170.4 H617.3 Q621.3,170.4 621.3,174.4 V316.0 Z"/>
+<text class="t1" x="589.3" y="164.4" font-size="12" text-anchor="middle" font-weight="600">6.87</text>
+<text class="t2" x="589.3" y="334.0" font-size="12" text-anchor="middle">Claude Opus</text>
+<line class="axis" x1="56" x2="696" y1="316" y2="316" stroke-width="1"/>
+<text class="t2" x="56" y="368" font-size="11">Differences within the noise (±0.75): the gate is not the limit, it stays local.</text>
+</svg>

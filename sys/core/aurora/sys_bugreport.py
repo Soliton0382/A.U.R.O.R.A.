@@ -145,13 +145,21 @@ def issue_url(cfg: sys_config.Config, title: str, body: str) -> str:
 
 
 def build(cfg: sys_config.Config, description: str, steps: str = "", expected: str = "", run_ids: list[str] | None = None,
-          hours: float = 6, health: dict | None = None, features: dict | None = None) -> dict:
+          hours: float = 6, health: dict | None = None, features: dict | None = None, llm=None) -> dict:
     """Write the zip; returns its name, size, files, what was masked, and the issue link."""
     description = description.strip()
     if len(description) < 10:
         raise ValueError("describe the bug in a few words (at least 10 characters)")
     hours = max(1.0, min(float(hours), 72.0))
     mask = Pseudonymizer(cfg)
+    # people's names too (owner, 2026-10-05): the users, the names Aurora calls them, and the private names the local
+    # model reads in what the owner wrote — a report goes to a public issue
+    from . import sec_privacy
+    names = set(sec_privacy._people(cfg))
+    if llm is not None:
+        written = "\n".join((description, steps, expected))
+        names |= {f["value"] for f in sec_privacy.findings(written, cfg, llm=llm) if f["kind"] == "PERSON"}
+    mask.private = sorted(set(mask.private) | {n for n in names if len(n) >= 3}, key=len, reverse=True)
     since = datetime.now().astimezone() - timedelta(hours=hours)
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     out_dir = cfg.path("AURORA_BUGREPORT_DIR")

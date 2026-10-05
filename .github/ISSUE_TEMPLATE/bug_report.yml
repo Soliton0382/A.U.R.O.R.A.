@@ -6,8 +6,10 @@ body:
     attributes:
       value: |
         The quickest way: in Aurora open **🐞 Segnala un bug**, describe the problem and attach the zip it prepares
-        (logs with private data already masked). Please look inside it before attaching.
-        Il modo più rapido: in Aurora apri **🐞 Segnala un bug** e allega lo zip che prepara (dati privati già mascherati).
+        (logs with private data already masked: addresses, keys, contacts, and the names of the people Aurora knows
+        or reads in your description). Please look inside it before attaching.
+        Il modo più rapido: in Aurora apri **🐞 Segnala un bug** e allega lo zip che prepara (dati privati già mascherati,
+        compresi i nomi delle persone). Guardaci dentro prima di allegarlo.
   - type: textarea
     id: what
     attributes:

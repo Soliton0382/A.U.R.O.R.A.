@@ -16,6 +16,7 @@
  "effects": {
   "health_list": "read",
   "health_read": "read",
+  "health_values": "read",
   "*": "write_local"
  },
  "welcome": {

@@ -68,7 +68,7 @@ call downward (ECOSYSTEM §1).
 | `agt_change.py` | agents | apply an approved sandbox change: tests, backup, copy, live tests, rollback, restart of the affected services | sys_tests | svc_api, agt_loop |
 | `sys_tests.py` | system | run the test suite (no GPU tests) on the live code or a sandbox, with Aurora's venv, never the real .env | pytest | agt_change, plugin self |
 | `api/core.py` | api | what every part of aurora-api shares: config, activity feed and notifications, authentication (key, devices, lockout), the pipeline, one plugin host (cached tool lists), runs (one at a time), the chat's routing (tools, pictures, videos) | aurora modules | every api module |
-| `api/*.py` | api | one module per area, each with its router: oai, runs, knowledge, projects, models, forge, routines, activity, documents, incidents, social, agents, access, system (order in `api/__init__.py`) | api/core | svc_api |
+| `api/*.py` | api | one module per area, each with its router: oai, runs, knowledge, projects, models, forge, routines, activity, documents, incidents, social, agents, access, system, backup, bugreport, preview, users, security, dj, care, autonomy (order in `api/__init__.py`) | api/core | svc_api |
 | `mdl_budget.py` | models | the day's tokens per cloud provider (shared file, locked), the daily ceiling for providers paid by the token, `Metered`: every local call traced with its step | sys_config, sys_log | mdl_router, mdl_cloud, api/models, sys_health |
 | `sys_backup.py` | system | the owner's data to another disk: AES-256-GCM frames, blobs named by HMAC (dedup), SQLite backup API, snapshots, retention, verify, restore into an empty folder | sys_config | svc_backup, api/backup, sys_health, sys_doctor |
 | `sys_bugreport.py` | system | a bug report zip: description, environment, health, settings (secrets as set/empty), logs of N hours, problems of 7 days, plugin stderr, chosen runs; one masker for all | sec_mask, sys_logread | api/bugreport |
@@ -91,13 +91,41 @@ call downward (ECOSYSTEM §1).
 | `sys_context.py` | system | whose work: the user of the request being served (a context variable set by the API's auth); `sys_config.get()` answers with their configuration, the trace records them, threads carry them (`start`), background work acts as a user (`acting_as`) | — | api/core, sys_config, sys_log |
 | `api/users.py` | api | login (password, Authenticator code, first-login QR), my account, the admin's Users page (create, reset, delete with the purge list) | sys_users, sys_users_layout, sys_devices | WebUI |
 | `sys_devices.py` | system | registered devices: token hashes in `<status>/devices.json` (600), HttpOnly cookie for the WebUI | — | svc_api |
-| `kno_acquire.py` | knowledge | iterative arXiv agent: queries, re-ranked abstracts, PDF import, answer again | kno_ingest, kno_answer, arXiv API | svc_api |
+| `kno_acquire.py` | knowledge | iterative arXiv agent: queries, re-ranked abstracts, import (HTML first, kno_arxiv), answer again | kno_ingest, kno_answer, arXiv API | svc_api |
+| `aud_analysis.py` | audio | audio in and out, and what a track is: its tempo, where its beats fall, its key (the DJ) | numpy | aud_dj, aud_synth |
+| `aud_synth.py` | audio | the DJ's instruments drawn with numpy (kick, clap, hats, snare, bass and pad in the track's key) and the effects of a remix (sidechain, filter, saturation, riser) | aud_analysis, numpy | aud_dj |
+| `aud_dj.py` | audio | the DJ: a track remixed in a style, or several tracks mixed into one set | aud_analysis, aud_synth | api/dj |
+| `hlt_store.py` | health | a user's health folder, sealed: the dietitian's plans, the trainer's programmes, medical exams; documents and notes, the index | sys_seal, kno_ingest | api/care, hlt_labs, plugin health |
+| `hlt_labs.py` | health | exam values over time: read by the LOCAL model from an exam, sealed, a series per test with its range, corrected by the owner; never a diagnosis | hlt_store, sys_seal | api/care, plugin health |
+| `kno_acquire_more.py` | knowledge | beyond arXiv: when Aurora does not know, the search agent also asks the harvester's sources searchable by words, the re-ranker picks the best | kno_acquire, kno_sources | kno_acquire |
+| `kno_arxiv.py` | knowledge | an arXiv paper's text with readable formulas: arXiv's HTML (or ar5iv's) first, the PDF only when neither has it (C135, C137) | — | kno_acquire, kno_sources, svc_harvester |
+| `kno_docs.py` | knowledge | programming documentation as knowledge: Python's text archive, documentation repositories on GitHub (MDN JavaScript, the Rust book) | kno_sources | kno_sources |
+| `plg_access.py` | plugins | which plugins the other users may use, and which stay the admin's | sys_config | api/agents, api/core |
+| `plg_sandbox.py` | plugins | what a plugin process can see (protected): its own secrets only, a bubblewrap cage over the filesystem | sys_config | plg_host |
+| `prj_run.py` | projects | a command in one of the user's local projects (tests, the program) in a cage of its own, no network | sys_config | agt_loop |
+| `prj_reports.py` | projects | Aurora's reports on a project, one per work done on it, for the Projects page | sys_config | agt_loop, api/projects |
+| `sec_privacy.py` | security | what a public text (a post, a bug report) would give away — private names read by the local model, places, contacts, ids — and the safer text proposed | sec_mask, sys_users | agt_loop, api/social, sys_bugreport |
+| `sec_profile.py` | security | what the firewall really sends, read with its official documentation, and the checks Aurora proposes from it | sec_rules | api/security |
+| `sec_rules.py` | security | the owner's own checks on the firewall's syslog, proposed by Aurora, switched on in Security | sys_config | api/security, sec_profile, svc_sentinel |
+| `sec_fwapi.py` | security | the firewall's API (kind sophos): an address into the blocking group and out of it; never the firewall, this machine, special addresses | sys_config, httpx | api/security, sec_defence |
+| `sec_defence.py` | security | autonomous defence: the source of a serious attack blocked by herself within the owner's limits (exemption, severity, never the home network nor protected addresses, a daily maximum), lifted when its time is over | sec_fwapi, sys_ethics, sys_autonomy | api/incidents, api/security |
+| `sys_autonomy.py` | system | the Autonomy panel: areas and levels read from (and written to) the settings, profiles, the ledger of what she did alone, the statistics of her proposals | sys_config, sec_defence | api/autonomy, agt_loop, api/forge, api/knowledge, api/core, sec_defence |
+| `sys_persona.py` | system | who the assistant is for each user: name, character, gender | sys_config | api/users, kno_social |
+| `sys_seal.py` | system | sealed files for a user's most private data (AES-256-GCM, a key per user and purpose) | cryptography | hlt_store, hlt_labs, api/care |
+| `sys_soak.py` | system | the daily soak line: memory and restarts per service, logs, GPU swaps, failed routines, free disk | sys_config | svc_rem, api/activity |
+| `sys_trash.py` | system | the trash: a deleted file waits AURORA_TRASH_DAYS before going for good | sys_config | api/dj, api/documents, api/knowledge, sys_uploads |
 
 ## Scripts: `sys/core/script/`
 
 | script | does | when |
 |---|---|---|
 | `sys_env_sync.py` | compares `.env` with the schema; writes `.env.proposed` and `.env.example` | after the schema changes |
+| `bench_forge.py` | the forge's benchmark: 8 needs on Aurora's own data, each with its answer computed by code (M89, M100) | after a change to the forge |
+| `bench_repair.py` | the self-repair benchmark: a realistic bug in a sandbox, the symptom to the agent, fixed if the tests turn green and the change is proposed (M104) | after a change to the repair path |
+| `bench_followup.py` | follow-up questions: typed and suggested, against their sources (M72, M73) | after a change to follow-ups |
+| `img_ai.py` | the picture tools the image service runs (cut-out, enlargement, edit) | called by the image pipeline |
+| `sys_backup_retime.py` | moves the nightly backup timer (root helper, aurora-retime) | when the owner changes the backup time |
+| `sys_users_migrate.py` | to the per-user layout: plan, migrate (with a backup first), fresh for a new install | once, at the passage to users |
 | `bench_retrieval.py` | permanent retrieval benchmark on a fixed suite, isolated vault; results + history | after any change to encoder, index or search |
 | `svc_models.py` | service aurora-models (127.0.0.1:9710): encoder + re-ranker on GPU1 | systemd |
 | `svc_llm.py` | service aurora-llm (127.0.0.1:9711): launches llama-server with the `.env` values | systemd |

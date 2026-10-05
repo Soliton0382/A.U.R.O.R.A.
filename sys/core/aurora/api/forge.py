@@ -61,6 +61,8 @@ def _forge_job(req: dict, cloud: bool = False):
         if agt_forge.read_only(m):
             agt_forge.install(cfg, res["stage"])
             log.info("audit: forged plugin %s installed (read only, no network)", m["name"])
+            from aurora import sys_autonomy
+            sys_autonomy.log(cfg, "forge", f"plugin {m['name']} built and installed (read only): {req['need'][:150]}")
             _forge_done(req["id"], m["name"])
             text = f"Plugin «{m['name']}» costruito, provato nella gabbia e acceso (sola lettura, senza rete)."
         else:

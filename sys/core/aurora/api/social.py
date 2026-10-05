@@ -40,6 +40,17 @@ async def social_draft(request: Request) -> dict:
                         "photo": bool(t.get("photo"))} for t in targets]}
 
 
+@router.post("/v1/aurora/social/check", dependencies=[Depends(auth)])
+async def social_check(request: Request) -> dict:
+    """{"text"} -> what a post would give away (names of private people, places, contacts, ids) and the text with the
+    sure ones replaced (owner, 2026-10-05). Read by the LOCAL model only: the text may hold private data."""
+    from aurora import sec_privacy, txt_lang
+    text = str((await request.json()).get("text", ""))[:8000]
+    lang = txt_lang.detect(text) if text.strip() else "it"
+    found = await asyncio.to_thread(sec_privacy.findings, text, cfg, lang, pipeline().llm)
+    return {"findings": found, "proposed": sec_privacy.propose(text, [f for f in found if f["sure"]])}
+
+
 @router.post("/v1/aurora/social/publish", dependencies=[Depends(auth)])
 async def social_publish(request: Request) -> dict:
     """The owner clicked "Publish" on a draft he read: that click is the confirmation (recorded as an

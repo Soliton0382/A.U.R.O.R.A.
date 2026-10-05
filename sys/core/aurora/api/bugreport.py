@@ -9,7 +9,7 @@ import re
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse
 
-from .core import auth, cfg, log
+from .core import auth, cfg, log, pipeline
 
 router = APIRouter()
 
@@ -23,7 +23,8 @@ async def bugreport_make(request: Request) -> dict:
         health = await asyncio.to_thread(sys_health.check, cfg)
         feats = {"features": sys_features.report(cfg), "config": sys_features.config_problems(cfg)}
         out = await asyncio.to_thread(sys_bugreport.build, cfg, str(body.get("description", "")), str(body.get("steps", "")),
-                                      str(body.get("expected", "")), runs, float(body.get("hours", 6)), health, feats)
+                                      str(body.get("expected", "")), runs, float(body.get("hours", 6)), health, feats,
+                                      pipeline().llm)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
     log.info("audit: bug report %s written (%d files, %d bytes, masked %s)", out["name"], len(out["files"]), out["bytes"],

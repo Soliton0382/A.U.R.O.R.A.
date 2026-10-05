@@ -363,6 +363,18 @@
    ]
   },
   {
+   "key": "AURORA_ACQUIRE_AUTO",
+   "type": "bool",
+   "category": "acquire",
+   "recommended": "0",
+   "evidence": "owner, 2026-10-05",
+   "en": "When the vault does not answer, Aurora searches the sources and imports by herself instead of asking «sì, cerca» (Autonomy panel, knowledge).",
+   "it": "Quando il sapere non risponde, Aurora cerca nelle fonti e importa da sola invece di chiedere «sì, cerca» (pannello Autonomia, conoscenza).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_ARXIV_DELAY_S",
    "type": "int",
    "min": 3,
@@ -2276,6 +2288,19 @@
    "max": 720
   },
   {
+   "key": "AURORA_HARVEST_LANGS",
+   "type": "str",
+   "category": "harvest",
+   "recommended": "",
+   "evidence": "owner, 2026-10-05",
+   "en": "Languages of Wikipedia harvested besides English (always: the models' language), comma separated: it, fr, de, es, pt. Empty: the installation's language. Ticked on the Harvester page.",
+   "it": "Lingue di Wikipedia raccolte oltre all'inglese (sempre: la lingua dei modelli), separate da virgola: it, fr, de, es, pt. Vuoto: la lingua dell'installazione. Si spuntano nella pagina Harvester.",
+   "services": [
+    "aurora-harvester",
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_HARVEST_ENABLED",
    "type": "bool",
    "category": "harvest",
@@ -3200,6 +3225,79 @@
    ]
   },
   {
+   "key": "AURORA_DEFENCE_MODE",
+   "type": "enum",
+   "choices": [
+    "suggest",
+    "auto",
+    "off"
+   ],
+   "category": "security",
+   "recommended": "suggest",
+   "evidence": "owner, 2026-10-05",
+   "en": "Defence on an attack: suggest (the incident shows ⛔, you decide), auto (Aurora blocks the source on the firewall by herself, within the limits below, for AURORA_DEFENCE_HOURS; only an installation exempted from level B; never an address of the local network), off.",
+   "it": "Difesa durante un attacco: suggest (l'incidente mostra ⛔, decidi tu), auto (Aurora blocca da sola l'origine sul firewall, entro i limiti qui sotto, per AURORA_DEFENCE_HOURS; solo con l'esenzione dal livello B; mai un indirizzo della rete locale), off.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_DEFENCE_HOURS",
+   "type": "int",
+   "category": "security",
+   "recommended": "24",
+   "evidence": "owner, 2026-10-05",
+   "en": "How long an automatic block lasts; then Aurora lifts it by herself.",
+   "it": "Quanto dura un blocco automatico; poi Aurora lo toglie da sola.",
+   "services": [
+    "aurora-api"
+   ],
+   "min": 1,
+   "max": 720
+  },
+  {
+   "key": "AURORA_DEFENCE_MIN_SEVERITY",
+   "type": "enum",
+   "choices": [
+    "high",
+    "medium"
+   ],
+   "category": "security",
+   "recommended": "high",
+   "evidence": "owner, 2026-10-05",
+   "en": "The least severity of an incident Aurora blocks by herself.",
+   "it": "La gravità minima di un incidente che Aurora blocca da sola.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_DEFENCE_MAX_PER_DAY",
+   "type": "int",
+   "category": "security",
+   "recommended": "20",
+   "evidence": "owner, 2026-10-05",
+   "en": "Most automatic blocks in a day; beyond it the incidents wait for you.",
+   "it": "Numero massimo di blocchi automatici in un giorno; oltre, gli incidenti aspettano te.",
+   "services": [
+    "aurora-api"
+   ],
+   "min": 1,
+   "max": 500
+  },
+  {
+   "key": "AURORA_DEFENCE_PROTECTED",
+   "type": "str",
+   "category": "security",
+   "recommended": "",
+   "evidence": "owner, 2026-10-05",
+   "en": "Addresses or networks Aurora never blocks by herself, comma separated (e.g. 192.0.2.10, 198.51.100.0/24): your own devices outside, your office.",
+   "it": "Indirizzi o reti che Aurora non blocca mai da sola, separati da virgola (es. 192.0.2.10, 198.51.100.0/24): i tuoi dispositivi fuori casa, l'ufficio.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_ABUSEIPDB_KEY",
    "type": "str",
    "category": "security",
@@ -3619,8 +3717,8 @@
    "category": "users",
    "recommended": "true",
    "evidence": "owner",
-   "it": "In multi-utente l'accesso chiede, oltre alla password, il codice a 6 cifre dell'app Authenticator (Google o Microsoft). Al primo accesso Aurora mostra il QR da inquadrare. Sconsigliato spegnerlo.",
-   "en": "In multi-user mode the login asks, besides the password, for the 6-digit code of the Authenticator app (Google or Microsoft). At the first login Aurora shows the QR code to scan. Not advised to switch it off.",
+   "it": "In multi-utente l'accesso chiede, oltre alla password, il codice a 6 cifre dell'app Google Authenticator (l'unica provata). Al primo accesso Aurora mostra il QR da inquadrare. Sconsigliato spegnerlo.",
+   "en": "In multi-user mode the login asks, besides the password, for the 6-digit code of the Google Authenticator app (the only one tested). At the first login Aurora shows the QR code to scan. Not advised to switch it off.",
    "services": [
     "aurora-api"
    ]

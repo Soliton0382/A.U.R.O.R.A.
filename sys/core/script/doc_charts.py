@@ -91,6 +91,7 @@ def _dec(v: float, lang: str) -> str:
 
 pct = {lang: (lambda v, lang=lang: _dec(v, lang) + "%") for lang in ("it", "en")}
 num = {lang: (lambda v: f"{v:.0f}") for lang in ("it", "en")}
+score = {lang: (lambda v, lang=lang: (f"{v:.2f}".rstrip("0").rstrip(".")).replace(".", "," if lang == "it" else ".")) for lang in ("it", "en")}
 sec = {lang: (lambda v, lang=lang: _dec(round(v, 1), lang) + " s" if v else "0") for lang in ("it", "en")}
 
 CHARTS = {
@@ -145,6 +146,26 @@ CHARTS = {
                    cats=["keyword queries\n(before)", "+ title of the original\n(now)"],
                    series=[("originals reachable, of 12", [4, 8])], ymax=12, fmt=num["en"],
                    note="The model's proposed title is accepted only if arXiv has the same title: 0 wrong imports."),
+    },
+    "users": {
+        "it": dict(title="Più persone insieme: attesa dell'ultima risposta", subtitle="domande da 4 client in parallelo, pipeline completa · M99, M102",
+                   cats=["2 insieme", "4 insieme"],
+                   series=[("1 slot del ragionatore", [70.2, 190.1]), ("2 slot (scelto)", [53.7, 145.3])], ymax=200, fmt=sec["it"],
+                   note="Con 2 slot: 8 persone insieme tutte servite, l'ultima dopo 231,5 s; +482 MiB di memoria GPU."),
+        "en": dict(title="Several people at once: wait for the last answer", subtitle="questions from parallel clients, full pipeline · M99, M102",
+                   cats=["2 at once", "4 at once"],
+                   series=[("1 reasoner slot", [70.2, 190.1]), ("2 slots (chosen)", [53.7, 145.3])], ymax=200, fmt=sec["en"],
+                   note="With 2 slots: 8 people at once all served, the last after 231.5 s; +482 MiB of GPU memory."),
+    },
+    "gate": {
+        "it": dict(title="Qualità delle risposte con modelli diversi al cancello", subtitle="30 domande, giudice Claude opus, stesso vault · M98",
+                   cats=["locale\n(Qwen 35B, scelto)", "Claude Sonnet", "Claude Opus"],
+                   series=[("voto medio su 10", [6.90, 6.87, 6.87])], ymax=10, fmt=score["it"],
+                   note="Differenze dentro il rumore (±0,75): il cancello non è il limite, resta locale."),
+        "en": dict(title="Answer quality with different models at the gate", subtitle="30 questions, Claude opus as judge, same vault · M98",
+                   cats=["local\n(Qwen 35B, chosen)", "Claude Sonnet", "Claude Opus"],
+                   series=[("mean score of 10", [6.90, 6.87, 6.87])], ymax=10, fmt=score["en"],
+                   note="Differences within the noise (±0.75): the gate is not the limit, it stays local."),
     },
 }
 

@@ -205,8 +205,22 @@ async function persona() {
     document.querySelector(".topbar .brand").textContent = m.assistant || "Aurora";
     document.title = m.assistant || "Aurora";
     voice.setGender(m.gender);
+    firstSetup(m);
   } catch { /* the defaults stay */ }
 }
+
+// multi-user, the admin's first login (owner, 2026-10-05): in with the installer's API key, then a password and Google
+// Authenticator before anything else — the Users page, with a note, until both are done
+function firstSetup(m) {
+  const todo = m.mode === "multi" && m.admin && m.name && (!m.has_password || (m.mfa && !m.totp_on));
+  document.body.classList.toggle("first-setup", Boolean(todo));
+  if (!todo) { document.getElementById("first-setup")?.remove(); return; }
+  show("users");
+  const note = document.getElementById("first-setup") || Object.assign(document.createElement("p"), { id: "first-setup", className: "warn first-setup-note" });
+  note.textContent = i18n.t("users.first_setup");
+  document.getElementById("view-users")?.prepend(note);
+}
+bus.on("me-changed", persona);
 
 let started = false;
 function start() {

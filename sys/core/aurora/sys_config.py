@@ -150,6 +150,8 @@ def load(env_file: Path | None = None, schema_file: Path = SCHEMA_FILE, check_ro
     for key, spec in specs.items():
         if key not in raw and (spec.get("optional") or spec.get("scope") == "user"):
             raw[key] = spec["recommended"]                 # optional, or a user's (their own .env holds it: U3)
+        elif key not in raw and os.environ.get("AURORA_PLUGIN"):
+            raw[key] = spec["recommended"]                 # a plugin never dies of a setting just added (C142)
         if key not in raw:
             problems.append(f"{key}: missing in {env_file}")
             continue
@@ -192,6 +194,18 @@ def write_env(env: Path, changes: dict[str, str], drop: set[str] = frozenset()) 
         fh.write("\n".join(out) + "\n")
     os.chmod(tmp, 0o600)
     os.replace(tmp, env)
+
+
+def add_missing(env: Path | None = None, schema: Path = SCHEMA_FILE) -> list[str]:
+    """Keys the schema declares and the .env lacks get their recommended value: an update that brings a new setting
+    must not stop Aurora (C139). Returns the keys added."""
+    env = env or env_file_path()
+    current = parse_env(env.read_text(encoding="utf-8")) if env.exists() else {}
+    missing = {s["key"]: s["recommended"] for s in load_schema(schema)["settings"]
+               if s["key"] not in current and not s.get("optional") and s.get("scope") != "user"}   # a user's own (C141)
+    if missing:
+        write_env(env, missing)
+    return list(missing)
 
 
 def service_user(cfg: "Config") -> str:

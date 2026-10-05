@@ -20,6 +20,7 @@ async def sentinel_incident(request: Request) -> dict:
     item = Incidents(cfg).add(await request.json())
     note("sentinel", "incident", {"id": item["id"], "kind": item["kind"], "source": item["source"],
                                   "severity": item["severity"], "title": f"{item['kind']} · {item['source']}"})
+    defend(item)
     if cfg["AURORA_SENTINEL_INVESTIGATE"]:
         def job(q, emit, run_id):
             from aurora.kno_answer import Answer
@@ -28,6 +29,29 @@ async def sentinel_incident(request: Request) -> dict:
             return Answer(run_id, q, text, False, mode="agent")
         start_run(f"[incident] {item['kind']} {item['source']}", origin="sentinel", job=job)
     return {"id": item["id"], "severity": item["severity"]}
+
+
+def defend(item: dict) -> None:
+    """Autonomous defence (sec_defence): the source blocked now when every limit allows it, told either way."""
+    import threading
+    from aurora import sec_defence, sec_fwapi
+    from aurora.sec_incidents import Incidents
+    ok, why = sec_defence.decide(cfg, item)
+    if not ok:
+        if why != "mode":
+            Incidents(cfg).update(item["id"], defence=why)
+        return
+
+    def run():
+        try:
+            out = sec_defence.act(cfg, item)
+            Incidents(cfg).update(item["id"], defence="blocked", blocked_until=out["until"])
+            note("security", "defence.block", {"title": f"🛡️ {item['source']} bloccato da Aurora",
+                                               "text": f"{item['kind']} · {item['severity']} · {cfg['AURORA_DEFENCE_HOURS']} h"})
+        except sec_fwapi.FirewallAPIError as e:
+            Incidents(cfg).update(item["id"], defence=f"failed: {e}")
+            note("security", "defence.failed", {"title": f"⚠️ {item['source']} non bloccato", "text": str(e)[:180]})
+    threading.Thread(target=run, name="defence", daemon=True).start()
 
 
 @router.get("/v1/aurora/incidents", dependencies=[Depends(auth)])

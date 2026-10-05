@@ -16,7 +16,8 @@ def run_suite(base: Path, select: str = "", timeout: int = 1800) -> dict:
     core = base / "sys" / "core"
     expr = "not gpu" + (f" and ({select})" if select else "")
     env = dict(os.environ, PYTHONPATH=f"{core}:{core / 'tests'}", PYTHONDONTWRITEBYTECODE="1")
-    env.pop("AURORA_ENV_FILE", None)                 # tests build their own .env: never the real one
+    for k in ("AURORA_ENV_FILE", "AURORA_PLUGIN", "AURORA_IN_SANDBOX"):   # tests build their own .env, and are not a
+        env.pop(k, None)                              # plugin: run from the self plugin's cage they failed 5 (C144)
     t0 = time.time()
     r = subprocess.run([sys.executable, "-m", "pytest", "-p", "no:cacheprovider", "-rfE", "-k", expr, str(core / "tests")],
                        cwd=base, env=env, capture_output=True, text=True, timeout=timeout)

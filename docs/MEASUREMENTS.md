@@ -893,6 +893,30 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M104 — Self-repair, measured end to end on seeded bugs (5 October 2026)
+
+`bench_repair.py`: a sandbox per case (a copy of sys/core and, since C143, sys/plugins) with ONE realistic bug put in;
+the agent (Claude Code, masked) gets only the symptom as the owner would say it and the sandbox's name; a case is right
+when the sandbox's suite turns green and the change is proposed; every proposal is refused at the end. Four bugs, each
+failing exactly one test: the soak counting with any() instead of all(); a push confirmed twice by the same device;
+the defence blocking an address of the house; ar5iv's redirect to the abstract taken as a paper.
+First run: soak **right** (found, fixed, suite green, proposed, 100 s); push fixed but not proposed (100 s);
+defence and arXiv not even started (40 s): the plugins were dying of a setting I had just added (C142). Reading the
+runs found why self-repair had fixed nothing in 6 days, and three faults behind it: a sandbox's suite could not run
+at all (C143), the suite failed 5 tests inside the plugin's cage on correct code (C144), and the diff and the change
+applied were measured against the live code instead of the sandbox's start (C145, with a real risk: an approved
+repair would have reverted live changes made meanwhile). Second run, after C142-C144: soak found, fixed, the whole
+suite green in the sandbox (328 passed), proposed — refused by the API still running the code before C145. To be run
+again once the owner has signed C145 (agt_change.py is protected).
+
+## M105 — The privacy check of a post, live (5 October 2026)
+
+`POST /v1/aurora/social/check` with the local model: "Stanotte ho sognato le stelle. Giulia mi ha chiesto perché
+brillano, e ho pensato a Marco che guardava il cielo a Roma." → Giulia and Marco as private people (replaced), Roma a
+place (proposed, not ticked) in 0.6 s; "…Scrivimi a test@example.com o chiama 333 123 4567." → e-mail and phone,
+0.2 s; "La Luna e il Sole danzano. Einstein diceva…" → nothing (0.4 s). Without the model, a dictionary rule marks
+possible names unticked (it misses a name opening a sentence: the model is the real check).
+
 ## M103 — Clean install from GitHub, multi-user, first configuration (5 October 2026)
 
 `git clone https://github.com/Soliton0382/A.U.R.O.R.A..git` over HTTPS with no key (the public repository, commit

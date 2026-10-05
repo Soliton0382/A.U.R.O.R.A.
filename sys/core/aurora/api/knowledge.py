@@ -303,6 +303,8 @@ async def update_check() -> dict:
     note("update", "update.available", {"text": f"{info['behind']} novità: " + "; ".join(c["subject"] for c in info["commits"])[:300],
                                          "to": info["there"]})
     if cfg["AURORA_UPDATE_MODE"] == "auto" and info["safe"]:
+        from aurora import sys_autonomy
+        sys_autonomy.log(cfg, "updates", f"update to {info['there']} ({info['behind']} commits) started by herself")
         return {**info, "run_id": _start_update(info["there"])}
     item = Approvals(cfg).request("update", "code_change", f"Aggiornamento: {info['behind']} commit fino a {info['there']}",
                                   text, {"commits": info["commits"], "files": info["files"], "protected": info["protected"]},
@@ -312,18 +314,19 @@ async def update_check() -> dict:
 
 def _env_add_missing() -> list[str]:
     """Keys a new schema declares and .env lacks get their recommended value (an update must not stop Aurora)."""
-    specs = sys_config.load_schema()["settings"]
-    env = sys_config.env_file_path()
-    current = sys_config.parse_env(env.read_text(encoding="utf-8"))
-    missing = [s for s in specs if s["key"] not in current and not s.get("optional")]
-    if missing:
-        lines = env.read_text(encoding="utf-8").rstrip("\n").splitlines() + [f"{s['key']}={s['recommended']}" for s in missing]
-        fd = os.open(env.with_name(env.name + ".tmp"), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-        with os.fdopen(fd, "w", encoding="utf-8") as fh:
-            fh.write("\n".join(lines) + "\n")
-        os.replace(env.with_name(env.name + ".tmp"), env)
-        log.info("audit: update added settings with their recommended value: %s", ", ".join(s["key"] for s in missing))
-    return [s["key"] for s in missing]
+    added = sys_config.add_missing()
+    if added:
+        log.info("audit: update added settings with their recommended value: %s", ", ".join(added))
+    return added
+
+
+def _runs_here(unit: str) -> bool:
+    """The unit runs this folder's code (its ExecStart names cfg.root): units of the same name may be another copy's."""
+    try:
+        out = subprocess.run(["systemctl", "show", unit, "-p", "ExecStart"], capture_output=True, text=True, timeout=10).stdout
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return f"{cfg.root}/" in out
 
 
 def _start_update(to: str) -> str:
@@ -333,10 +336,14 @@ def _start_update(to: str) -> str:
         out = sys_update.apply(cfg, emit)
         if out.get("applied"):
             out["settings_added"] = _env_add_missing()
-            threading.Timer(2.0, lambda: subprocess.run(["systemctl", "restart", "--no-block", *[u for u in UNITS if u != "aurora-api"]],
-                                                        capture_output=True)).start()
-            threading.Timer(4.0, lambda: subprocess.run(["systemctl", "restart", "--no-block", "aurora-api"],
-                                                        capture_output=True)).start()
+            mine = [u for u in UNITS if _runs_here(u)]          # a second copy never restarts another's services (C140)
+            out["restarted"] = mine
+            if [u for u in mine if u != "aurora-api"]:
+                threading.Timer(2.0, lambda: subprocess.run(["systemctl", "restart", "--no-block",
+                                                             *[u for u in mine if u != "aurora-api"]], capture_output=True)).start()
+            if "aurora-api" in mine:
+                threading.Timer(4.0, lambda: subprocess.run(["systemctl", "restart", "--no-block", "aurora-api"],
+                                                            capture_output=True)).start()
         note("update", "update.done", {"ok": out.get("applied", False), "text": out.get("reason", f"aggiornata a {to}")})
         return Answer(run_id, q, json.dumps(out, ensure_ascii=False), False, mode="agent")
     return start_run(f"[update] {to}", origin="update", job=job)["id"]

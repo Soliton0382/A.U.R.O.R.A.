@@ -12,7 +12,13 @@ from aurora import plg_sandbox, sys_user_config as U, sys_users_layout as L
 from aurora.sys_users import Users
 
 
-@pytest.mark.skipif(not shutil.which("bwrap"), reason="bubblewrap not installed")
+def _cage_works() -> bool:
+    """bubblewrap installed and able to make a namespace here: not inside another cage (the self plugin's tests, C144)."""
+    return bool(shutil.which("bwrap")) and subprocess.run(["bwrap", "--ro-bind", "/", "/", "true"],
+                                                          capture_output=True).returncode == 0
+
+
+@pytest.mark.skipif(not _cage_works(), reason="bubblewrap missing, or inside a cage (no nested namespaces)")
 def test_each_user_s_plugins_see_only_their_own_things(cfg, tmp_path):
     st = cfg.path("AURORA_STATUS_DIR")
     st.mkdir(parents=True, exist_ok=True)

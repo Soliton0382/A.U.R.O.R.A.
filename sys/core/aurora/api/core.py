@@ -497,7 +497,15 @@ def answer_or_acquire(question: str, emit, run_id: str, **kw):
             prev = asked.text.split(" [")[0]
             emit("acquire.confirmed", {"question": prev})
             return ArxivAgent(p, cfg).run(prev, emit, run_id)
-    return p.run(question, emit=emit, run_id=run_id, **kw)
+    ans = p.run(question, emit=emit, run_id=run_id, **kw)
+    if (cfg["AURORA_ACQUIRE_AUTO"] and ans.abstained and ans.mode == "knowledge" and not kw.get("attached")
+            and len(question) < 400):                 # Autonomy panel, knowledge at 🚀: she searches by herself
+        from aurora.kno_acquire import ArxivAgent
+        emit("acquire.confirmed", {"question": question, "auto": True})
+        from aurora import sys_autonomy
+        sys_autonomy.log(cfg, "knowledge", f"searched the sources by herself: {question[:180]}")
+        return ArxivAgent(p, cfg).run(question, emit, run_id)
+    return ans
 
 
 def self_facts() -> dict:

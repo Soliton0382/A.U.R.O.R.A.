@@ -2,7 +2,7 @@
 
 Request of the owner (2026-10-02): single-user or multi-user chosen at install, changeable later. Single-user is
 the admin alone; going back from multi to single leaves only the admin. Switching moves the databases cleanly,
-**no scattered traces**. TOTP MFA on by default (Google / Microsoft Authenticator), a ceiling of users from the
+**no scattered traces**. TOTP MFA on by default (Google Authenticator: the app tested; Microsoft Authenticator did not work for the owner), a ceiling of users from the
 performance check, the admin keeps the important settings and creates users, users set their basic things.
 
 ## The principle: one layout, two modes

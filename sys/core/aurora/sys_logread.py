@@ -37,6 +37,12 @@ def _dir(cfg) -> Path:
     return cfg.path("AURORA_LOG_DIR")
 
 
+# warnings that are a known state, not a fault: the self-review and the repairs do not count them (noise that made
+# every repair end with "nothing to fix", 2026-09-30 → 10-05): code not yet signed by the owner, a network incident
+# (it has the Security page), an audit line of an action someone chose
+EXPECTED = re.compile(r"^(code signature: |incident [0-9a-f]+: |audit: )")
+
+
 def _since(hours: float) -> datetime:
     return datetime.now().astimezone() - timedelta(hours=hours)
 
@@ -63,6 +69,8 @@ def inventory(cfg: sys_config.Config | None = None, hours: float = 24) -> dict:
                         entry["lifecycle"].append(f"{m.group(1)[:19]} {m.group(4)[:60]}")
                         del entry["lifecycle"][:-12]
                     if not m or m.group(2) not in ("WARNING", "ERROR", "CRITICAL"):
+                        continue
+                    if m.group(2) == "WARNING" and EXPECTED.match(m.group(4)):
                         continue
                     try:
                         when = datetime.fromisoformat(m.group(1))

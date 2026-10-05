@@ -41,6 +41,23 @@ def health_read(area: str) -> str:
 
 
 @server.tool()
+def health_values(test: str = "") -> str:
+    """The exam values over time (read from the uploaded exams): each test with its values, dates, reference range and
+    whether the last one is outside it; `test` narrows to one (e.g. "colesterolo"). Never a diagnosis: a value outside
+    its range is told with "talk to your doctor"."""
+    from aurora import hlt_labs
+    rows = [s for s in hlt_labs.series(cfg) if not test or hlt_labs.key(test) in s["key"]]
+    if not rows:
+        return "Nessun valore" + (f" per «{test}»" if test else "") + ": carica gli esami nella pagina ❤️ Salute."
+    out = []
+    for s in rows:
+        pts = ", ".join(f"{p['date']}: {p['value']:g} {p['unit']}" for p in s["points"])
+        rng = f" (riferimento {s['last']['low']}–{s['last']['high']})" if s["last"]["low"] is not None or s["last"]["high"] is not None else ""
+        out.append(f"- {s['name']}{rng}: {pts}" + (" — ultimo FUORI intervallo: parlane con il medico" if s["out_of_range"] else ""))
+    return "\n".join(out)
+
+
+@server.tool()
 def health_note(area: str, text: str, title: str = "") -> str:
     """Record a note in an area: a workout done, a weight, a meal, a value of an exam (with its day)."""
     try:

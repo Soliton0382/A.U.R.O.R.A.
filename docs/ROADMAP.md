@@ -20,9 +20,47 @@ Done today and yesterday, live: the owner's list of 4 October, all 10 points (3-
 | 8 | The firewall's API live: login works (C131); a first block of a test address, after the owner's drop rule for the group (N44) | verification | the owner's rule on the firewall |
 | 9 | ~~The forge with the local reasoner~~ — ✅ measured (M100): 3 of 8 against 8 of 8 with Claude; the forge stays on Claude | measure | — |
 
-| 10 | 🧭 Autonomy panel — the owner's decisions below, to build | new | the panel, presets, the daily line, the statistics |
+| 10 | 🧭 Autonomy panel — ✅ built (2026-10-05): 7 areas read from the settings, profiles, daily line, statistics, users and who may choose | new | the owner's pass (N65) |
 | 11 | 👤 Users as system accounts (U6, owner, 2026-10-05) — see below | design | the design first: it changes how every user's work runs |
-| 12 | 🛡️ Autonomous defence (owner's goal) — see below | goal | on top of 10 and the firewall's API |
+| 12 | 🛡️ Autonomous defence — ✅ built (2026-10-05): auto mode in Autonomy, limits (exemption, severity, never the home network nor protected addresses, a daily maximum), blocks lifted by themselves; tests with a fake firewall | goal | N44 (the owner's drop rule), then a live block |
+| 13 | 🔧 Self-repair — the causes found and fixed (C142-C145); a seeded bug found, fixed and proposed (M104) | build | bench_repair.py again after the signature of C145 |
+| 14 | ❤️ Health, medical part — ✅ exam values read by the local model, sealed, over time with a chart and the reference range, "talk to your doctor" outside it, corrected by hand | build | a real exam of the owner (N67) |
+| 15 | 📚 Knowledge by language — ✅ Wikipedia in en + the installation's language + ticked ones (it, fr, de, es, pt) via the interlanguage links; no patents. Laws: Italy only (Normattiva); France (Légifrance), Spain (BOE), UK (legislation.gov.uk), Germany (gesetze-im-internet) to add | build | the laws of other countries |
+| 16 | 💻 Programming documentation — ✅ sources: Python 3.14 (official text archive), MDN JavaScript (1,342 pages), the Rust book (112) | build | harvest them, then a coding question answered from them (measure) |
+| 17 | 🌍 More interface languages (owner, 2026-10-05): beyond it/en | new | the i18n is per key: a third language file, the README's |
+| 18 | 🧪 AGI test battery — reasoning, memory over time, honesty (including disagreeing when the user is wrong), autonomy, self-repair, planning | measure | scored and repeatable |
+| 19 | GitHub page (Pages) with the charts, releases with a changelog | publish | see "What point 9 meant" below |
+
+Done on 2026-10-05 (night): menu areas open beside the menu on a PC (C138); arXiv papers from HTML (C137); updates add
+new settings before their tests and restart only their own services (C139, C140); 2 reasoner slots (M102); push
+delivery confirmed by the devices (M101); the clean install from GitHub (M103); social posts: 🗑️ Discard and
+🔍 Sensitive data? (private names, places, contacts found by the local model, the replacements proposed), and a post
+Aurora would publish by herself waits for the owner when it names someone; bug reports mask people's names too; the
+admin's first login in multi-user leads to password and Google Authenticator (the only app tested).
+
+### What people want from an AI — research (2026-10-05) and where Aurora stands
+
+| what people ask (source) | Aurora today | to do |
+|---|---|---|
+| **Accuracy** first: hallucination is the top frustration, 22% of complaints; accuracy 45% as a choice factor | every sentence verified against the passages, abstains rather than invent (M32, M98: 23/30 answered, 6.90) | a visible "how sure" per answer; the abstention rate in Status |
+| **Privacy and local**: 57% would use assistants more with strong data protection; 81% worry about their conversations; local-first is a preference, not a niche | local models, cloud only masked, sealed health data | a page "what left this machine today": cloud calls and what was masked, per day |
+| **Control**: 55-60% want more control; 51% want to limit features; 44% fear actions done without their consent | approvals, the ethics code, posts gated by privacy | the Autonomy panel (row 10) with the daily line of what she did alone |
+| **Confirm before send, pay, delete, publish**, with a log | external actions wait, every one recorded | an "undo" where it exists (a post deleted, a block lifted) |
+| **Transparency** of how an answer was made: 48% | the trace of every run, sources under each answer | — |
+| **Memory that can be trusted**: memory is now expected; the question is whether the user controls it | private memory per user, purge on deletion | a page "what Aurora remembers about me" with forget |
+| **No over-refusal**: 15% of complaints | the gate abstains when the passages do not answer | measure her refusals on ordinary questions (AGI battery) |
+| **Not sycophantic**: models that agree to please give worse advice | — | a test: she must disagree when the user is wrong (AGI battery) |
+| **Human support in key moments**: 46% | — | for health: "this needs a doctor" said plainly (row 14) |
+
+Sources: Zendesk CX Trends personal-AI survey (2025); Pew Research Center (April and September 2025); Menlo Ventures /
+Morning Consult, 5,067 US adults (July 2026); "Beyond Benchmarks: How Users Evaluate AI Chat Assistants" (arXiv
+2603.25220); the local-LLM community's reasons (privacy, cost, no limits, offline).
+
+### What point 9 meant (GitHub)
+
+A public web page for the project (GitHub Pages: the README's content with the charts, readable without opening the
+code) and numbered releases (v0.2, v0.3…) each with the list of what changed, so that whoever installs knows what an
+update brings. Nothing for Aurora's own work: only how the project shows itself outside.
 
 Done on 2026-10-05: 🚪 log out in the side menu; 📣 Social with posts to approve and the post history; 🛎️ Approvals
 apart from 🩺 Reports (self-reviews, repairs); the firewall's API generic (AURORA_FIREWALL_*, kind sophos) and live

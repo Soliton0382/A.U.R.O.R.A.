@@ -9,6 +9,46 @@ import { clock, el } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { approvalCard, isPost, socialPlugins } from "./approvals.js";
 
+// what a post would give away (owner, 2026-10-05): the names of private people, places, contacts, ids — read by the
+// local model; each finding with its replacement, the sure ones ticked; "apply" rewrites the text, then onApply
+export function privacyBox(getText, setText, onApply) {
+  const box = el("div", "privacy-box");
+  const check = el("button", "", t("social.privacy"));
+  const out = el("div", "privacy-out");
+  check.type = "button";
+  check.addEventListener("click", async () => {
+    check.disabled = true;
+    out.replaceChildren(el("p", "muted", t("social.privacy_working")));
+    try {
+      const r = await call("/v1/aurora/social/check", { method: "POST", body: JSON.stringify({ text: getText() }) });
+      if (!r.findings.length) { out.replaceChildren(el("p", "ok", t("social.privacy_clean"))); return; }
+      const ticks = r.findings.map((f) => {
+        const row = el("label", "privacy-row");
+        const box = el("input");
+        box.type = "checkbox";
+        box.checked = f.sure;
+        row.append(box, el("strong", "", f.value), el("span", "muted", ` (${t(`social.kind.${f.kind}`) || f.kind}) → `),
+          el("span", "", f.replacement));
+        return [box, f, row];
+      });
+      const go = el("button", "approve", t("social.privacy_apply"));
+      go.type = "button";
+      go.addEventListener("click", () => {
+        let text = getText();
+        for (const f of ticks.filter(([b]) => b.checked).map(([, f]) => f).sort((a, b) => b.value.length - a.value.length)) {
+          text = text.split(f.value).join(f.replacement);
+        }
+        setText(text);
+        out.replaceChildren(el("p", "ok", t("social.privacy_done")));
+        onApply?.(text);
+      });
+      out.replaceChildren(el("p", "warn", t("social.privacy_found", { n: r.findings.length })), ...ticks.map(([, , row]) => row), go);
+    } catch (e) { out.replaceChildren(el("p", "error", t("ev.error", { m: e.message }))); } finally { check.disabled = false; }
+  });
+  box.append(check, out);
+  return box;
+}
+
 export default {
   id: "social",
   icon: "📣",
@@ -68,11 +108,42 @@ export default {
         out.textContent = t("social.sent");
       } catch (e) { out.textContent = t("ev.error", { m: e.message }); pub.disabled = false; }
     });
+    const drop = el("button", "reject", `🗑️ ${t("social.discard")}`);     // changed my mind: the draft goes away
+    drop.type = "button";
+    drop.addEventListener("click", () => c.remove());
     const row = el("div", "appr-actions");
-    row.append(pub, count, out);
+    row.append(pub, drop, count, out);
     c.append(el("div", "appr-head", d.label));
     if (picture) { const img = el("img", "share-pic"); img.src = `/v1/aurora/images/${picture}`; img.alt = picture; c.append(img); }
-    c.append(area, row);
+    c.append(area, privacyBox(() => area.value, (v) => { area.value = v; upd(); }), row);
+    return c;
+  },
+
+  // a post waiting for the owner, with the privacy check: "fix and publish" publishes the corrected text (that click is
+  // the confirmation, as for a draft) and turns the original down
+  pendingCard(a) {
+    const c = approvalCard(a, () => this.loadPosts());
+    const act = a.action || a.preview || {};
+    const args = act.arguments || {};
+    const field = "message" in args ? "message" : "text";
+    let fixed = null;
+    const fix = el("button", "approve", `✔ ${t("social.fix_publish")}`);
+    fix.type = "button";
+    fix.hidden = true;
+    fix.addEventListener("click", async () => {
+      fix.disabled = true;
+      try {
+        await call("/v1/aurora/social/publish", { method: "POST", body: JSON.stringify({ plugin: act.plugin, text: fixed,
+          ...(args.picture ? { picture: args.picture } : {}) }) });
+        await call(`/v1/aurora/approvals/${a.id}/reject`, { method: "POST" });
+        setTimeout(() => this.loadPosts(), 1000);
+      } catch (e) { fix.disabled = false; fix.textContent = t("ev.error", { m: e.message }); }
+    });
+    const preview = el("p", "privacy-fixed");
+    c.insertBefore(privacyBox(() => fixed ?? String(args[field] || ""), (v) => { fixed = v; preview.textContent = v; },
+      () => { fix.hidden = false; }), c.querySelector(".appr-actions"));
+    c.insertBefore(preview, c.querySelector(".appr-actions"));
+    c.querySelector(".appr-actions").prepend(fix);
     return c;
   },
 
@@ -81,7 +152,7 @@ export default {
     const [all, social] = await Promise.all([call("/v1/aurora/approvals"), socialPlugins()]);
     const posts = all.filter((a) => isPost(a, social));
     const pending = posts.filter((a) => a.status === "pending");
-    this.socPending.replaceChildren(...(pending.length ? pending.map((a) => approvalCard(a, () => this.loadPosts()))
+    this.socPending.replaceChildren(...(pending.length ? pending.map((a) => this.pendingCard(a))
       : [el("p", "muted", t("social.none_to_approve"))]));
     const done = posts.filter((a) => a.status !== "pending").slice(0, 50);
     this.socHistory.replaceChildren(...(done.length ? done.map((a) => {

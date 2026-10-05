@@ -263,6 +263,7 @@ port = "" if c["AURORA_HTTPS_PORT"] == 443 else f":{c['AURORA_HTTPS_PORT']}"
 print(f"  WebUI:   https://{c['AURORA_DOMAIN']}{port}/")
 print(f"  API key: {c['AURORA_API_KEY']}   (once, to register each browser or app)")
 EOF
+[ "$UMODE" = multi ] && echo "  $(t 'Multi-utente: al primo accesso entra con la chiave API, poi crea la tua password e collega Google Authenticator; da lì entrerai con nome, password e codice.' 'Multi-user: at the first login enter with the API key, then create your password and link Google Authenticator; from then on you enter with name, password and code.')"
 echo
 .venv/bin/python sys/core/script/sys_doctor.py || warn "$(t 'qualcosa di obbligatorio non va: vedi sopra' 'something required is wrong: see above')"
 echo "  $(t 'Funzioni non scelte: si aggiungono quando vuoi con' 'Features not chosen: add them any time with'): .venv/bin/python sys/core/script/sys_models_fetch.py --models <$(t 'nome' 'name')> --yes"

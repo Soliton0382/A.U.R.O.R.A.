@@ -165,7 +165,7 @@ class Harvester:
     def domain(self, domain: str, mode: str) -> dict:
         """One pass over the sources of a domain: the newest (round) or the next stretch (exhaust)."""
         stats = {"domain": domain, "new": 0, "chunks": 0, "failed": 0}
-        for n, spec in enumerate(kno_sources.catalogue()["domains"].get(domain, [])):
+        for n, spec in kno_sources.specs(cfg, domain):       # with each language harvested (Wikipedia)
             if _stop:
                 break
             st = kno_sources.load_state(cfg, domain, n)

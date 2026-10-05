@@ -4,6 +4,7 @@
 // Views get a page and a menu entry; widgets live in a slot (background, topbar).
 // Adding a piece to the interface = one import and one line here.
 import approvals from "./modules/approvals.js";
+import autonomy from "./modules/autonomy.js";
 import reports from "./modules/reports.js";
 import alerts from "./modules/alerts.js";
 import chat from "./modules/chat.js";
@@ -30,7 +31,7 @@ import status from "./modules/status.js";
 import updates from "./modules/updates.js";
 import users from "./modules/users.js";
 
-export const views = [chat, approvals, reports, security, diary, social, dj, care, projects, routines, models, plugins, importDocs, uploads, harvester, runs, status, notifications, updates, users, settings, guide, bugreport];
+export const views = [chat, approvals, reports, security, autonomy, diary, social, dj, care, projects, routines, models, plugins, importDocs, uploads, harvester, runs, status, notifications, updates, users, settings, guide, bugreport];
 export const widgets = [sky, alerts, metrics];
 
 // the side menu in areas (owner, 2026-10-05): an area of one page is a plain entry; the others open on a tap
@@ -42,6 +43,7 @@ export const groups = [
   { id: "work", icon: "🛠️", title: "nav.g.work", views: ["projects", "routines", "uploads"] },
   { id: "knowledge", icon: "📚", title: "nav.g.knowledge", views: ["import", "harvester"] },
   { id: "security", views: ["security"] },
+  { id: "autonomy", views: ["autonomy"] },
   { id: "system", icon: "⚙️", title: "nav.g.system", views: ["status", "models", "plugins", "users", "settings", "updates"] },
   { id: "help", icon: "❓", title: "nav.g.help", views: ["guide", "bugreport"] },
 ];

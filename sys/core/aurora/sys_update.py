@@ -133,8 +133,12 @@ def apply(cfg: sys_config.Config, emit=None, root: Path | None = None, run_tests
     ev("update.start", {"from": before[:10], "to": info["there"], "commits": info["behind"]})
     log.info("audit: update %s -> %s (%d commits)", before[:10], info["there"], info["behind"])
 
+    added: list[str] = []
+
     def back(reason: str) -> dict:
         _git(root, "reset", "--hard", before)
+        if added:                                    # the settings the update brought go with it
+            sys_config.write_env(env, {}, drop=set(added))
         if info["requirements"]:
             subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-r", str(root / "requirements.txt")],
                            capture_output=True, text=True, timeout=3600)
@@ -151,6 +155,13 @@ def apply(cfg: sys_config.Config, emit=None, root: Path | None = None, run_tests
                            capture_output=True, text=True, timeout=3600)
         if r.returncode != 0:
             return back(f"pip failed: {r.stderr.strip()[-300:]}")
+    # the new schema's settings before the tests: the suite loads the real .env (C139)
+    env = sys_config.env_file_path() if root == cfg.root else root / ".env"
+    if env.exists():
+        schema = root / "sys" / "core" / "config" / "settings_schema.json"
+        added += sys_config.add_missing(env, schema if schema.exists() else sys_config.SCHEMA_FILE)
+        if added:
+            log.info("audit: update added settings with their recommended value: %s", ", ".join(added))
     tests = (run_tests or (lambda: sys_tests.run_suite(root)))()
     ev("update.tests", {"ok": tests["ok"], "passed": tests.get("passed"), "failed": tests.get("failed")})
     if not tests["ok"]:

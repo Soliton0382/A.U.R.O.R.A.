@@ -6,6 +6,7 @@ import { call } from "../api.js";
 import { clock, el, toBase64 } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { renderMarkdown } from "../md.js";
+import { renderValues } from "./care_values.js";
 
 const AREAS = ["diet", "training", "exams"];
 
@@ -25,13 +26,14 @@ export default {
         <span class="muted care-out"></span>
         <form class="import care-note"><input name="title" data-i18n-placeholder="care.note_title"><input name="text" required data-i18n-placeholder="care.note_text">
           <button type="submit" data-i18n="care.note_add"></button></form>
-        <div class="care-items"></div></div>`).join("")}`;
+        ${a === "exams" ? '<div class="care-values"></div>' : ""}<div class="care-items"></div></div>`).join("")}`;
     apply(root);
     root.querySelectorAll(".prj-tabs button").forEach((b) => b.addEventListener("click", () => {
       root.querySelectorAll(".prj-tabs button").forEach((x) => x.classList.toggle("on", x === b));
       root.querySelectorAll(".care-tab").forEach((p) => { p.hidden = p.dataset.tab !== b.dataset.tab; });
     }));
     this.tabs = {};
+    this.values = root.querySelector(".care-values");
     root.querySelectorAll(".care-tab").forEach((tab) => {
       const area = tab.dataset.tab, out = tab.querySelector(".care-out");
       this.tabs[area] = tab.querySelector(".care-items");
@@ -71,6 +73,15 @@ export default {
       a.href = `/v1/aurora/care/${area}/${it.id}/file`;
       bar.append(a);
     }
+    if (area === "exams" && it.kind === "document") {     // read its values again with the local model
+      const again = el("button", "", `📈 ${t("care.read_again")}`);
+      again.addEventListener("click", async () => {
+        await call(`/v1/aurora/health/values/read/${it.id}`, { method: "POST" });
+        again.textContent = t("care.reading", { n: 1 });
+        setTimeout(() => renderValues(this.values), 20000);
+      });
+      bar.append(again);
+    }
     const del = el("button", "danger", `🗑️ ${t("care.delete")}`);
     del.addEventListener("click", async () => {
       if (!confirm(t("care.delete_q", { name: it.title }))) return;
@@ -88,5 +99,6 @@ export default {
       const list = areas[a] || [];
       this.tabs[a].replaceChildren(...(list.length ? list.map((it) => this.row(a, it)) : [el("p", "muted", t("care.none"))]));
     }
+    renderValues(this.values);
   },
 };

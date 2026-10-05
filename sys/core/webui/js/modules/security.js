@@ -3,6 +3,7 @@
 // Firewall incidents: severity, public registry data about the source network, Aurora's report
 // with the defensive actions she recommends; the owner closes them.
 import { call } from "../api.js";
+import { bus } from "../bus.js";
 import { clock, el } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { renderMarkdown } from "../md.js";
@@ -18,6 +19,7 @@ export default {
   mount(root) {
     root.classList.add("page");
     root.innerHTML = `<h2 data-i18n="sec.title"></h2><p class="muted" data-i18n="sec.hint"></p>
+      <h3 class="setting-cat" data-i18n="sec.defence"></h3><div class="sec-defence"></div>
       <h3 class="setting-cat" data-i18n="sec.open"></h3><div class="open"></div>
       <h3 class="setting-cat" data-i18n="sec.watch"></h3><p class="muted sec-watch-hint"></p>
       <div class="appr-actions"><button class="sec-learn" data-i18n="sec.learn"></button><span class="muted sec-learn-out"></span></div>
@@ -26,6 +28,7 @@ export default {
       <div class="closed"></div>`;
     apply(root);
     this.open = root.querySelector(".open");
+    this.defence = root.querySelector(".sec-defence");
     this.closed = root.querySelector(".closed");
     this.archive = root.querySelector(".sec-archive");
     this.rules = root.querySelector(".sec-rules");
@@ -64,6 +67,8 @@ export default {
       c.append(d);
     }
     if (i.detail?.action) c.append(el("p", "", `💡 ${i.detail.action}`));
+    if (i.defence) c.append(el("p", i.defence === "blocked" ? "ok" : "muted", i.defence === "blocked"
+      ? `🛡️ ${t("sec.def_blocked", { until: new Date(i.blocked_until * 1000).toLocaleString() })}` : `🛡️ ${t("sec.def_not")}: ${i.defence}`));
     if (this.fwApi && /^\d+\.\d+\.\d+\.\d+$/.test(i.source)) {   // the owner's click is the consent
       const block = el("button", "danger", `⛔ ${t("sec.block", { ip: i.source })}`);
       block.addEventListener("click", async () => {
@@ -136,7 +141,35 @@ export default {
     this.groups.replaceChildren(table);
   },
 
+  // autonomous defence (owner, 2026-10-05): the mode, today's blocks, the active ones with "lift now", the history
+  async loadDefence() {
+    let d;
+    try { d = await call("/v1/aurora/security/defence"); } catch { this.defence.replaceChildren(); return; }
+    const head = el("p", "", `${t(`sec.def_mode.${d.mode}`)} · ${t("sec.def_today", { n: d.today, max: d.max_per_day })} · `
+      + t("sec.def_limits", { h: d.hours, sev: t(`sec.sev.${d.min_severity}`) }));
+    const go = el("button", "", `🧭 ${t("sec.def_change")}`);
+    go.addEventListener("click", () => bus.emit("show", { id: "autonomy" }));
+    const prot = el("p", "muted", d.protected.length ? t("sec.def_protected", { list: d.protected.join(", ") }) : t("sec.def_no_protected"));
+    const act = d.active.map((b) => {
+      const r = el("div", "ev");
+      const lift = el("button", "", t("sec.def_lift"));
+      lift.addEventListener("click", async () => {
+        lift.disabled = true;
+        try { await call("/v1/aurora/security/defence/release", { method: "POST", body: JSON.stringify({ ip: b.ip }) }); this.loadDefence(); }
+        catch (e) { alert(e.message); lift.disabled = false; }
+      });
+      r.append(el("strong", "", `⛔ ${b.ip}`), el("span", "muted", ` ${b.kind} · ${t("sec.def_until", { until: new Date(b.until * 1000).toLocaleString() })} `), lift);
+      return r;
+    });
+    const hist = el("details", "report");
+    hist.append(el("summary", "", t("sec.def_history", { n: d.history.length })),
+      ...d.history.map((b) => el("p", "", `${new Date(b.at * 1000).toLocaleString()} · ${b.ip} · ${b.kind} · `
+        + (b.released ? t("sec.def_released", { by: t(`sec.def_by.${b.released_by}`) }) : t("sec.def_active")))));
+    this.defence.replaceChildren(head, prot, ...(d.configured ? [] : [el("p", "warn", t("sec.def_no_api"))]), ...act, go, hist);
+  },
+
   async enter() {
+    this.loadDefence();
     await this.loadProfile();
     const all = await call("/v1/aurora/incidents");
     const open = all.filter((i) => i.status === "open"), closed = all.filter((i) => i.status !== "open").slice(0, 30);

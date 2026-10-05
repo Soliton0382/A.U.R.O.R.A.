@@ -143,7 +143,13 @@ def sandbox_create(label: str = "change") -> str:
     """Create a sandbox: a copy of sys/core (and pyproject.toml) where code can be changed and tested safely."""
     sid = f"{re.sub(r'[^a-z0-9]+', '-', label.lower()).strip('-')[:20] or 'change'}-{uuid.uuid4().hex[:6]}"
     box = SANDBOX / sid
-    shutil.copytree(ROOT / "sys" / "core", box / "sys" / "core", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    ignore = shutil.ignore_patterns("__pycache__", "*.pyc")
+    shutil.copytree(ROOT / "sys" / "core", box / "sys" / "core", ignore=ignore)
+    # the plugins too, read only for the tests that load them: without them the suite never ran green in a sandbox
+    # and no repair could ever be proposed (C143); only sys/core is ever applied (agt_change)
+    shutil.copytree(ROOT / "sys" / "plugins", box / "sys" / "plugins", ignore=ignore)
+    # the starting copy: the diff and the change applied are what was done HERE, not what moved in the live code (C145)
+    shutil.copytree(box / "sys" / "core", box / ".base" / "sys" / "core")
     shutil.copy2(ROOT / "pyproject.toml", box / "pyproject.toml")
     (box / "SANDBOX.txt").write_text(f"created {time.strftime('%Y-%m-%d %H:%M:%S')} from {ROOT}/sys/core\n")
     return f"sandbox {sid} created: edit files as sys/core/..."
@@ -178,17 +184,18 @@ def sandbox_write(sandbox_id: str, path: str, content: str) -> str:
 
 @tool
 def sandbox_diff(sandbox_id: str) -> str:
-    """The unified diff between the sandbox and the live code."""
+    """The unified diff of what was changed in the sandbox (against its starting copy; an older sandbox: the live code)."""
     box, out = _box(sandbox_id), []
+    base = box / ".base"
     for f in sorted((box / "sys" / "core").rglob("*")):
         if not f.is_file() or "__pycache__" in f.parts or f.suffix == ".pyc":
             continue
         rel = f.relative_to(box).as_posix()
-        live = ROOT / rel
-        a = live.read_text(encoding="utf-8", errors="replace").splitlines(keepends=True) if live.exists() else []
+        ref = base / rel if base.is_dir() else ROOT / rel
+        a = ref.read_text(encoding="utf-8", errors="replace").splitlines(keepends=True) if ref.exists() else []
         b = f.read_text(encoding="utf-8", errors="replace").splitlines(keepends=True)
         if a != b:
-            out += difflib.unified_diff(a, b, f"live/{rel}", f"sandbox/{rel}")
+            out += difflib.unified_diff(a, b, f"{'base' if base.is_dir() else 'live'}/{rel}", f"sandbox/{rel}")
     return "".join(out) or "no differences"
 
 

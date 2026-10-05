@@ -55,6 +55,38 @@ async def firewall_test() -> dict:
         raise HTTPException(status_code=502, detail=str(e)) from None
 
 
+@router.get("/v1/aurora/security/defence", dependencies=[Depends(admin_only)])
+def defence_state() -> dict:
+    from aurora import sec_defence
+    return sec_defence.summary(cfg)
+
+
+@router.post("/v1/aurora/security/defence/release", dependencies=[Depends(admin_only)])
+async def defence_release(request: Request) -> dict:
+    """{"ip"}: the owner lifts an automatic block before its time."""
+    from aurora import sec_defence, sec_fwapi
+    ip = str((await request.json()).get("ip", ""))
+    try:
+        out = await asyncio.to_thread(sec_defence.release, cfg, ip, "owner")
+    except sec_fwapi.FirewallAPIError as e:
+        raise HTTPException(status_code=502, detail=str(e)) from None
+    log.info("audit: owner lifted Aurora's block of %s", ip)
+    return out
+
+
+def watch_defence() -> None:
+    """Every 5 minutes: the automatic blocks whose time is over are lifted (a thread of the API)."""
+    import time as _t
+    from aurora import sec_defence
+    while True:
+        _t.sleep(300)
+        try:
+            for ip in sec_defence.release_due(cfg):
+                note("security", "defence.release", {"title": f"🛡️ {ip}: blocco scaduto, tolto", "text": ""})
+        except Exception as e:                        # noqa: BLE001 — a bad round never stops the next
+            log.warning("defence: release round failed: %s", e)
+
+
 @router.post("/v1/aurora/security/block", dependencies=[Depends(admin_only)])
 async def firewall_block(request: Request) -> dict:
     """{"ip", "reason", "unblock": bool}: the owner's click on an incident is the consent; recorded and told."""

@@ -163,6 +163,9 @@ if __name__ == "__main__":
     import threading
     app.router.add_event_handler("startup", lambda: threading.Thread(target=_warm_plugins, name="warm-plugins",
                                                                       daemon=True).start())
+    from aurora.api.security import watch_defence     # automatic blocks lifted when their time is over
+    app.router.add_event_handler("startup", lambda: threading.Thread(target=watch_defence, name="watch-defence",
+                                                                      daemon=True).start())
     from aurora.api.activity import watch_health      # a service down or the disk full becomes an alert
     app.router.add_event_handler("startup", lambda: threading.Thread(target=watch_health, name="watch-health",
                                                                       daemon=True).start())

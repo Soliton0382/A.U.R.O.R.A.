@@ -17,6 +17,11 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | concurrent users | 2 slots of the reasoner (AURORA_LLM_PARALLEL), 8 users at once all answered | M99, M102 |
 | clean install | from GitHub over HTTPS, multi-user, unattended answers, 303 tests in the clone, first login with Authenticator | M103 |
 | push delivery | the devices confirm each push; the rate on the Notifications page | M101 |
+| autonomy | 🧭 page: 7 areas, levels read from the settings, profiles, daily line, statistics, users | tests |
+| autonomous defence | auto blocks within the owner's limits, lifted by themselves, never the home network | tests (fake firewall) |
+| post privacy | 🔍 private names (local model), places, contacts; 🗑️ discard; an autonomous post naming someone waits | M105, tests |
+| exam values | read by the local model from the exams, sealed, a chart over time with the range | tests |
+| knowledge by language | Wikipedia in the installation's language and ticked ones; programming docs (Python, MDN, Rust) | tests |
 | memory | STM turns with their path; recent turns in context and in the chat after a refresh; session memories (LTM) written by the REM and recalled by meaning when Aurora answers about herself or the past, dates labelled by the clock | tests, live |
 | autonomic cycle | aurora-rem: session memories, thoughts (boredom, weather), dreams painted with SDXL-Lightning (reasoner swapped out for ~20 s, AI-marked) and shown in the chat, daily self-review from the logs with measured evidence, self-repair on recurring problems only, daily social report, log retention | tests, live |
 | agents | agent loop with budgets (60 steps / 90 min), context compaction, honest report with the record of calls, `/agente <goal>` in the chat; code changes in a sandbox, tests, owner's approval, live tests, rollback | tests, live |

@@ -88,3 +88,16 @@ def test_the_service_user_is_the_setting_else_the_owner_of_the_folder(cfg):
     assert sys_config.service_user(cfg) == pwd.getpwuid(cfg.root.stat().st_uid).pw_name     # never root by accident
     cfg.values["AURORA_SERVICE_USER"] = "someone"
     assert sys_config.service_user(cfg) == "someone"
+
+
+def test_a_plugin_process_takes_the_recommended_value_of_a_setting_just_added(cfg, monkeypatch):
+    """C142: a key added to the schema before the .env made every plugin die at start ("Connection closed")."""
+    from aurora import sys_config
+    text = cfg.env_file.read_text()
+    key = next(k for k in sys_config.load_schema()["settings"] if not k.get("optional") and k.get("scope") != "user"
+               and k["key"] != "AURORA_ROOT")["key"]
+    cfg.env_file.write_text("\n".join(l for l in text.splitlines() if not l.startswith(f"{key}=")) + "\n")
+    with pytest.raises(sys_config.ConfigError):
+        sys_config.load(cfg.env_file, check_root=False)                  # a service still stops: it must be seen
+    monkeypatch.setenv("AURORA_PLUGIN", "weather")
+    assert key in sys_config.load(cfg.env_file, check_root=False).values

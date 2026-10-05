@@ -4,7 +4,7 @@
 
     <AURORA_STATUS_DIR>/users.db        SQLite, mode 600, schema versioned in `meta`
 
-A user logs in with name, password and a TOTP code (RFC 6238, the 6 digits of Google or Microsoft
+A user logs in with name, password and a TOTP code (RFC 6238, the 6 digits of Google
 Authenticator). The password is kept only as a scrypt hash, the TOTP secret only here. Single-user mode is
 the same table with the admin alone: going back from multi to single removes every other user with all that
 is theirs (sys_users_mode), so the two modes never leave traces of each other.

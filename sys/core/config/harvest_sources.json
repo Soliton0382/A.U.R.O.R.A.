@@ -3,7 +3,10 @@
  "licences": {
   "arxiv": "per paper (arXiv licence or Creative Commons; see the abstract page)",
   "normattiva": "Italian official act: no copyright (L. 633/1941 art. 5); Normattiva open data",
-  "wikipedia": "CC BY-SA 4.0 (Wikipedia contributors)"
+  "wikipedia": "CC BY-SA 4.0 (Wikipedia contributors)",
+  "python-docs": "PSF-2.0",
+  "rust-book": "MIT OR Apache-2.0",
+  "mdn": "CC-BY-SA-2.5"
  },
  "domains": {
   "artificial_intelligence": [{"source": "arxiv", "categories": ["cs.AI", "cs.LG", "cs.CL", "cs.CV", "cs.NE", "cs.MA", "cs.IR", "stat.ML"]}],
@@ -11,7 +14,10 @@
   "cyber_security": [{"source": "arxiv", "categories": ["cs.CR"]}],
   "network_security": [{"source": "arxiv", "categories": ["cs.NI"]}],
   "programming": [{"source": "arxiv", "categories": ["cs.SE", "cs.PL"]},
-                  {"source": "github", "topics": ["python", "rust", "linux", "algorithms", "compiler", "database", "cuda", "networking"]}],
+                  {"source": "github", "topics": ["python", "rust", "linux", "algorithms", "compiler", "database", "cuda", "networking"]},
+                  {"source": "docs", "set": "python"},
+                  {"source": "docs", "set": "github", "repo": "mdn/content", "branch": "main", "prefix": "files/en-us/web/javascript/", "suffix": "/index.md", "licence": "CC-BY-SA-2.5", "label": "MDN JavaScript", "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/{path}"},
+                  {"source": "docs", "set": "github", "repo": "rust-lang/book", "branch": "main", "prefix": "src/", "suffix": ".md", "licence": "MIT OR Apache-2.0", "label": "The Rust Programming Language", "url": "https://doc.rust-lang.org/book/{path}.html"}],
   "information_theory": [{"source": "arxiv", "categories": ["cs.IT"]}],
   "mathematics": [{"source": "arxiv", "categories": ["math.AG", "math.AP", "math.CO", "math.DG", "math.GT", "math.NT", "math.PR", "math.FA", "math.OC", "math.NA", "math.LO", "math.GR", "math.RT"]}],
   "statistics": [{"source": "arxiv", "categories": ["stat.ME", "stat.TH", "stat.AP", "stat.CO"]}],

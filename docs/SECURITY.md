@@ -60,6 +60,16 @@ that has none. It only counts: the body (at most 2 KB) must name the random 16-h
 48 h, once per device (the endpoint is stored as a 12-hex hash); anything else answers `counted: false`. It reads and
 returns nothing. A test lists the 8 routes without authentication.
 
+Autonomous defence (2026-10-05): off by default (suggest: the owner's click). In auto, a block happens only on an
+installation exempted from level B (rule 7), for an incident of the chosen severity, from a public address that is
+neither protected (AURORA_DEFENCE_PROTECTED) nor the firewall nor this machine; never an address of the local network;
+at most AURORA_DEFENCE_MAX_PER_DAY a day; each lasts AURORA_DEFENCE_HOURS and is lifted by itself; recorded (audit,
+trace, the Autonomy ledger) and notified. Aurora never writes a firewall rule: only the address into the group.
+
+Privacy of what is published (2026-10-05): a social post is checked by the local model for private people's names,
+places and personal data (sec_privacy) on the owner's click; an autonomous post that names someone waits for the
+owner. Bug reports mask the names of the people Aurora knows and those the local model reads in the description.
+
 Artifacts (interactive pages Aurora makes, 2026-10-03): they run only under `/v1/preview/` through a token valid
 10 minutes that the logged-in WebUI asks for, in a sandbox without `allow-same-origin` (opaque origin: no cookie,
 no access to the API) and with no network (`connect-src 'none'`, nothing external); only HTML files Aurora made

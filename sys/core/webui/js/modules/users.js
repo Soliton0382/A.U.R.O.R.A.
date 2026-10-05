@@ -6,6 +6,7 @@ import { call } from "../api.js";
 import { el } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { qrSvg } from "../qr.js";
+import { bus } from "../bus.js";
 
 export default {
   id: "users",
@@ -64,6 +65,7 @@ export default {
         await call("/v1/aurora/me/password", { method: "POST", body: JSON.stringify({ old: old.value, new: neu.value }) });
         res.textContent = t("users.password_ok"); res.className = "result"; old.value = neu.value = "";
         this.renderMe(await call("/v1/aurora/me"));
+        bus.emit("me-changed");
       } catch (e) { res.textContent = t("ev.error", { m: e.message }); res.className = "result error"; }
     });
     const totp = el("button", "", t(me.totp_on ? "users.totp_again" : "users.totp_link"));
@@ -79,6 +81,7 @@ export default {
           await call("/v1/aurora/me/totp", { method: "POST", body: JSON.stringify({ code: code.value.trim() }) });
           enrol.replaceChildren(el("p", "result", t("users.totp_ok")));
           this.renderMe(await call("/v1/aurora/me"));
+          bus.emit("me-changed");
         } catch (e) { msg.textContent = t("ev.error", { m: e.message }); msg.className = "result error"; }
       });
       enrol.replaceChildren(el("p", "", t("login.enroll")), qrSvg(r.uri),

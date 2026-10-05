@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-308%20passed-1baf7a" alt="Tests"></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-331%20passed-1baf7a" alt="Tests"></p>
 
 <p align="center">🇮🇹 <b>Italiano</b> · 🇬🇧 <a href="README.en.md">English</a></p>
 
@@ -37,15 +37,19 @@ con l'esenzione firmata dal proprietario, e ciò che parte è mascherato per def
 | **Forgia (Aurora si costruisce i plugin)** | quando le manca una capacità, scrive un plugin, lo prova nella gabbia sui dati veri e un giudice lo controlla contro i conteggi fatti dal codice (finestre di tempo comprese); quelli di sola lettura si installano da soli. Scrittore e giudice si scelgono nella pagina 🧠 Modelli: consigliato un modello cloud bravo col codice (Claude Code, o xAI Grok che costa poco: 5 su 8 al banco, M83); il modello locale ne fa meno |
 | **Artefatti** | «fammi un grafico interattivo della funzione seno»: Aurora crea una pagina interattiva (grafici, simulazioni, calcolatori) e te la mostra viva nella risposta, a schermo intero o da scaricare; gira isolata, senza rete e senza accesso ai tuoi dati |
 | **Post autonomi** | se lo accendi (`AURORA_SOCIAL_AUTONOMY`, solo con l'esenzione firmata), Aurora pubblica da sola i suoi post su Facebook — un sogno con il suo dipinto al mattino, una notizia di scienza la sera — al massimo 3 al giorno, ognuno registrato e notificato; risposte e modifiche alla pagina aspettano sempre te. Sogni e pensieri hanno ↗ Condividi |
+| **Privacy dei post** | ogni post, prima di uscire: 🔍 «Dati sensibili?» trova nomi di persone private (letti dal modello locale), luoghi, contatti, documenti e propone il testo corretto; un post che Aurora pubblicherebbe da sola e che nomina qualcuno aspetta te; 🗑️ Scarta per le bozze |
 | **Immagini a richiesta** | «crea una foto sulla tua esistenza e caricala su Facebook»: Aurora la dipinge in locale (~20 s), te la mostra in chat e nei File, e propone il post con la foto; nulla parte senza la tua approvazione |
 | **Notizie e diario** | plugin 📰 notizie (ANSA, BBC, Guardian, Nature, ESO, INAF, NASA, Phys.org, Quanta, AstroBin…: titolo, riassunto e link, mai l'articolo) e 📔 diario (il suo ultimo sogno, i suoi pensieri, cosa ha imparato oggi): l'attualità in chat e i post di Aurora su astronomia, astrofotografia, fisica e biologia |
 | **I tuoi servizi** | 📅 calendario (link ICS di Google/Outlook in lettura, CalDAV di Nextcloud/iCloud/Fastmail anche in scrittura), 📝 note (una cartella Markdown o un vault Obsidian: cerca, legge, aggiunge, mai sovrascrive), ☁️ Nextcloud/WebDAV e Dropbox (file), 💬 Discord e WhatsApp, 🎮 Twitch, 🏠 Home Assistant; ogni scrittura passa dalla tua approvazione |
 | **Agenti e plugin** | plugin MCP (GitHub, Telegram, Facebook, Instagram, TikTok, Mastodon, Discord, WhatsApp, e-mail, Home Assistant, web, documenti, cinema con TMDB, spese…), un cancello di approvazione per ogni azione esterna e ogni modifica al codice (sandbox → test → proprietario → test dal vivo → rollback) |
 | **Crescita della conoscenza** | harvester arXiv per categoria, batch di paper dalla WebUI, acquisizione che cerca prima il paper *originale* (M33) |
 | **Sicurezza** | sentinella del syslog del firewall con rapporti difensivi sugli incidenti; TLS 1.3, CSP, cookie per dispositivo, segreti 0600 (docs/SECURITY.md) |
+| **Difesa automatica** | se la accendi (🧭 Autonomia → sicurezza 🚀, solo con l'esenzione firmata): Aurora blocca da sola sul firewall l'origine di un attacco grave, per un tempo (24 h), mai la rete di casa né gli indirizzi che proteggi, al massimo N al giorno; ogni blocco è registrato, notificato e si toglie con un clic |
+| **Autonomia** | pagina 🧭: quanto è libera Aurora area per area (social, forgia, riparazioni, sicurezza, aggiornamenti, conoscenza, vita interiore), profili pronti (prudente, equilibrata, libera), cosa ha fatto da sola ogni giorno e le statistiche delle sue proposte; per ogni utente lo decide l'amministratore |
 | **Codice di condotta** | livello A (mai: attacchi, localizzare persone, malware), livello B (conferme, dichiarazione IA) esentabile solo con una firma con la chiave della propria installazione; i servizi non partono se le regole cambiano senza firma |
 | **Progetti** | pagina 📁: progetti locali e repository GitHub (stelle, fork, issue), clone in locale, albero delle cartelle, file, README, storia, **anteprima delle pagine in sandbox**, «chiedi ad Aurora» su un progetto |
 | **Routine** | pagina 🔁: i plugin collegati propongono controlli periodici (meteo ogni mattina, allerta ogni ora, report GitHub settimanale…), si attivano con un clic o a parole tue; lettura automatica, ogni scrittura aspetta l'approvazione |
+| **Salute** | pagina ❤️: piani del dietologo, programmi del trainer, esami, cifrati con la tua chiave; dagli esami il modello locale legge i valori (📈 nel tempo, con l'intervallo di riferimento e i valori fuori segnalati «parlane con il tuo medico»); mai al cloud |
 | **Meteo** | plugin 🌦️ (Open-Meteo, senza chiave): adesso, previsioni a 3 giorni, bollettino giornaliero, allerta sui cambi repentini e allerte ufficiali della regione (MeteoAlarm) |
 | **Domande di seguito** | «e chi l'ha scoperto?» viene completata con la conversazione e la risposta precedente, con le sue fonti a fuoco; sotto ogni risposta 3-4 domande complete per approfondire, ognuna con le sue fonti (M73: seguiti giusti 2 → 6 su 14, approfondimenti 8 su 11 con voto ≥ 7; 0 domande complete cambiate su 20) |
 | **Backup** | ogni notte su un altro disco o sul NAS, cifrato (AES-256-GCM), deduplicato (30 GB la prima volta, poi solo ciò che cambia: 4,5 s), coerente anche mentre Aurora scrive, verificato a ogni giro; ripristino in una cartella vuota con il codice di recupero |
@@ -155,6 +159,8 @@ all'avvio, ricalcola gli hash e verifica la firma: se qualcosa è cambiato senza
 ![Trovare il paper originale](docs/img/it/originals.svg)
 ![Primo avvio del ragionatore](docs/img/it/startup.svg)
 ![Dipingere un sogno](docs/img/it/images.svg)
+![Più persone insieme](docs/img/it/users.svg)
+![Qualità con modelli diversi al cancello](docs/img/it/gate.svg)
 
 | **Misura** | **Risultato** |
 |---|---|
@@ -162,6 +168,8 @@ all'avvio, ricalcola gli hash e verifica la firma: se qualcosa è cambiato senza
 | ricerca su 344.499 solitoni | documento giusto al 1° posto nel 74,2%, tra i 12 passaggi dati alla sintesi nel 92,1% (M31) |
 | verifica delle frasi contro un giudice esterno | 26/32 in accordo, 0 frasi non supportate tenute (M32) |
 | sogno dipinto | ~20 s compreso lo scambio del ragionatore (M27) |
+| qualità delle risposte (30 domande, giudice esterno) | 6,90 su 10, risposte date 23 su 30 (M98) |
+| persone insieme | 8 tutte servite con 2 slot, con 4 l'ultima dopo 145 s (M102) |
 
 ## Aggiornamenti
 
@@ -177,11 +185,12 @@ Ogni persona che usa Aurora ha la sua cartella `usr/<nome>/`, con lo stesso albe
 progetti, note, immagini, spese…), le sue impostazioni personali in `usr/<nome>/.env` (account, token, luogo) e la
 sua memoria privata (conversazioni, sogni, riflessioni). I plugin e il sapere sono di tutti; le impostazioni della
 macchina (modelli, provider cloud, backup, sicurezza) le cambia solo l'amministratore. **single**: una persona,
-l'amministratore; **multi**: più persone, accesso con password e codice dell'app Authenticator. Lo scegli
+l'amministratore; **multi**: più persone, accesso con password e codice di Google Authenticator (l'app provata). Lo scegli
 all'installazione e lo cambi quando vuoi da ⚙️ Impostazioni → Utenti: da single a multi non si sposta nulla; da
 multi a single gli altri utenti vengono eliminati con tutti i loro dati, dopo l'elenco e una tua conferma; i dati
 dell'amministratore non vengono mai toccati. Per passare a multi imposti prima la tua password e colleghi
-l'Authenticator in 👥 Utenti, poi crei gli utenti lì (docs/MULTIUSER.md).
+l'Authenticator in 👥 Utenti, poi crei gli utenti lì. Installata direttamente in multi, al primo accesso entri con la
+chiave API e Aurora ti porta a creare password e codice prima di tutto il resto (docs/MULTIUSER.md).
 
 ## Spostare l'installazione
 
@@ -221,7 +230,9 @@ con quale comando aggiungerla (la pagina ⚙️ Stato mostra lo stesso elenco).
 | 1 GPU da 24 GB o più | proposto, non misurato |
 | 1 GPU da 16 GB (esperti MoE in RAM, 48 GB consigliati) | proposto, non misurato |
 
-Modelli: 24,7 GB obbligatori (ragionatore 21,5 GB, encoder, re-ranker), fino a 57,6 GB facoltativi.
+Modelli: 24,7 GB obbligatori (ragionatore 21,5 GB, encoder, re-ranker), fino a 57,6 GB facoltativi. Un'installazione
+pulita con tutti i modelli ha richiesto 10 min 55 s sulla macchina di riferimento (M59); da GitHub, multi-utente e
+solo i modelli obbligatori, 6 min 39 s con 303 test passati (M103).
 
 ## 📚 Aurora parte vuota: la conoscenza va raccolta
 
@@ -242,8 +253,9 @@ fino alla fine. Le fonti di ogni dominio sono in `sys/core/config/harvest_source
 | **Normattiva** | legge italiana | le collezioni ufficiali (Codici, Testi unici, Decreti legislativi, DL, regolamenti…), un passaggio per articolo, testo vigente | atto pubblico, senza diritto d'autore (L. 633/1941 art. 5) |
 | **Europe PMC** | medicina, biomedicina, genomica | testi completi open access | quella dell'articolo (cc by, cc by-nc…) |
 | **bioRxiv / medRxiv** | biomedicina, genomica / medicina | preprint completi | quella del preprint |
-| **Wikipedia** (en) | filosofia, religione, storia, letteratura, società, generale | le voci delle liste «Vital articles» | CC BY-SA 4.0 |
+| **Wikipedia** (en + la tua lingua; altre con una spunta) | filosofia, religione, storia, letteratura, società, generale | le voci delle liste «Vital articles» | CC BY-SA 4.0 |
 | **GitHub** | programmazione | README dei repository più seguiti per argomento, solo con licenza libera (MIT, Apache, BSD, GPL…) | quella del repository |
+| **Documentazione** | programmazione | Python (archivio ufficiale), MDN JavaScript, il libro di Rust: per scrivere codice dalla documentazione | licenze aperte (PSF, CC-BY-SA, MIT/Apache) |
 
 Si possono anche importare i propri documenti (PDF, testi) dalla WebUI, nel dominio che si sceglie, o dare
 all'harvester un elenco di ID arXiv.

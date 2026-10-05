@@ -112,6 +112,17 @@ LOOP_TOOLS = [
 ]
 
 
+def plugin_cause(cfg, plugin: str, lines: int = 4) -> str:
+    """The last lines of a plugin's stderr (a traceback's end: the cause), for a call that found it dead — even when
+    the plugin that reads logs is the one that died (C142)."""
+    f = cfg.path("AURORA_LOG_DIR") / "plugins" / f"{plugin}.stderr.log"
+    try:
+        tail = [x for x in f.read_text(encoding="utf-8", errors="replace").splitlines() if x.strip()][-lines:]
+    except OSError:
+        return ""
+    return ("\nThe plugin's process ended while starting; the end of its error log:\n" + "\n".join(tail)) if tail else ""
+
+
 class Agent:
     def __init__(self, pipeline, cfg: sys_config.Config | None = None, notify=None, host: PluginHost | None = None):
         self.cfg = cfg or sys_config.get()
@@ -254,7 +265,14 @@ class Agent:
         if field and isinstance(args.get(field), str):       # EU AI Act art. 50: what is published says it is AI
             from . import sys_disclosure, txt_lang
             args[field] = sys_disclosure.mark_text(args[field], txt_lang.detect(args[field]), self.cfg)
-        if needs_owner(effect, self.cfg, f"{plugin}.{tool}"):
+        private = []                                         # a post naming private people waits for the owner
+        if field and isinstance(args.get(field), str):
+            from . import sec_privacy
+            private = [f["value"] for f in sec_privacy.findings(args[field], self.cfg, llm=self.p.llm) if f["sure"]]
+        if private or needs_owner(effect, self.cfg, f"{plugin}.{tool}"):
+            if private:
+                args["_purpose"] = (args.get("_purpose", "") + f" — privacy: {len(private)} sensitive "
+                                    f"item(s) found, check before publishing").strip(" —")
             req = self.approvals.request("tool_call", effect, f"{plugin}.{tool}", args.pop("_purpose", ""),
                                          {"plugin": plugin, "tool": tool, "arguments": args},
                                          {"plugin": plugin, "tool": tool, "arguments": args}, run_id)
@@ -264,11 +282,16 @@ class Agent:
             return f"WAITING: {effect} action, the owner decides (request {req['id']}). Go on without its result."
         purpose = args.pop("_purpose", "") if effect == "external" else ""
         r = self.host.call(plugin, tool, args, run_id)
+        if not r["ok"] and "Connection closed" in r["text"]:   # the plugin died starting: its own last words say why
+            r = {**r, "text": r["text"] + plugin_cause(self.cfg, plugin)}
         if effect == "external":                             # done without the owner: recorded and told, never silent
             self.approvals.record_auto(f"{plugin}.{tool}", purpose, {"plugin": plugin, "tool": tool, "arguments": args},
                                        r["text"], run_id)
             text = args.get(field, "") if field else ""
+            from . import sys_autonomy
             from .sys_approvals import auto_tools
+            sys_autonomy.log(self.cfg, "social" if f"{plugin}.{tool}" in auto_tools(self.cfg) else "other",
+                             f"{plugin}.{tool}: {str(text or purpose)[:180]}")    # the Autonomy panel's daily line
             if not r["ok"] or f"{plugin}.{tool}" in auto_tools(self.cfg):
                 self.notify("social.auto" if r["ok"] else "approval.failed",
                             {"title": f"{plugin}.{tool}", "text": (text or r["text"])[:180]})

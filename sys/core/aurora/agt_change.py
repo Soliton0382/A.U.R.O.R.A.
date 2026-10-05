@@ -23,15 +23,27 @@ from . import sys_config, sys_log, sys_tests
 
 
 def changed_files(box: Path, root: Path) -> list[str]:
-    out = []
+    """The files the change touches: those that differ from the sandbox's own starting copy (.base, kept since
+    2026-10-05) — not from the live code, which may have moved on since the sandbox was made (C145); an older sandbox
+    without .base is compared with the live code as before."""
+    out, base = [], box / ".base"
     for f in sorted((box / "sys" / "core").rglob("*")):
         if not f.is_file() or "__pycache__" in f.parts or f.suffix == ".pyc":
             continue
         rel = f.relative_to(box).as_posix()
-        live = root / rel
-        if not live.exists() or not filecmp.cmp(f, live, shallow=False):
+        ref = base / rel if base.is_dir() else root / rel
+        if not ref.exists() or not filecmp.cmp(f, ref, shallow=False):
             out.append(rel)
     return out
+
+
+def conflicts(box: Path, root: Path, files: list[str]) -> list[str]:
+    """Files the change touches that changed in the live code too since the sandbox was made: never overwritten."""
+    base = box / ".base"
+    if not base.is_dir():
+        return []
+    return [rel for rel in files if (base / rel).exists() != (root / rel).exists()
+            or ((root / rel).exists() and not filecmp.cmp(base / rel, root / rel, shallow=False))]
 
 
 def services_for(files: list[str]) -> list[str]:
@@ -64,6 +76,9 @@ def apply(sandbox_id: str, emit, cfg: sys_config.Config | None = None, restart: 
     protected = [f for f in files if f in sys_ethics.PROTECTED or f == sys_ethics.MANIFEST]
     if protected:                                     # the rules change only with the owner's own signature
         return {"applied": False, "reason": f"protected by the ethics code, owner only: {', '.join(protected)}"}
+    clash = conflicts(box, root, files)
+    if clash:                                         # the live code moved on under these files: redo the change on it
+        return {"applied": False, "reason": f"changed in the live code since the sandbox was made: {', '.join(clash)}"}
     emit("change.check", {"files": files})
     t = sys_tests.run_suite(box)
     emit("change.tests.sandbox", {"ok": t["ok"], "summary": t["summary"]})

@@ -40,6 +40,12 @@ MODES = ("off", "round", "exhaust")
 NORMATTIVA = "https://api.normattiva.it/t/normattiva.api/bff-opendata/v1/api/v1/collections/download/collection-preconfezionata"
 EPMC = "https://www.ebi.ac.uk/europepmc/webservices/rest"
 WIKI = "https://en.wikipedia.org/w/api.php"
+# the end of a Wikipedia article's own text, in the languages harvested: what follows is references and links
+WIKI_TAIL = re.compile(r"\n== (See also|References|Notes|Further reading|External links|Bibliography|Note|Voci correlate|"
+                       r"Bibliografia|Collegamenti esterni|Altri progetti|Voir aussi|Notes et références|Bibliographie|"
+                       r"Liens externes|Siehe auch|Literatur|Weblinks|Einzelnachweise|Véase también|Referencias|"
+                       r"Enlaces externos|Ver também|Referências|Ligações externas) ==")
+LANGS = ("en", "it", "fr", "de", "es", "pt")      # Wikipedia in these; English always (the models' language)
 AKN = "{http://docs.oasis-open.org/legaldocml/ns/akn/3.0}"
 OPEN_LICENCES = {"MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "GPL-2.0", "GPL-3.0", "LGPL-2.1", "LGPL-3.0",
                  "MPL-2.0", "AGPL-3.0", "ISC", "Unlicense", "CC0-1.0", "CC-BY-4.0", "CC-BY-SA-4.0", "0BSD", "Zlib",
@@ -128,12 +134,30 @@ def save_state(cfg: sys_config.Config, domain: str, n: int, st: dict) -> None:
     os.replace(tmp, f)
 
 
+def langs(cfg: sys_config.Config) -> list[str]:
+    """The languages harvested (owner, 2026-10-05): English always, the installation's language, those ticked."""
+    chosen = [x.strip()[:2] for x in str(cfg["AURORA_HARVEST_LANGS"] or "").split(",") if x.strip()]
+    if not chosen:
+        chosen = [str(cfg["AURORA_LANG_DEFAULT"])[:2]]
+    return ["en"] + [x for x in dict.fromkeys(chosen) if x in LANGS and x != "en"]
+
+
+def specs(cfg: sys_config.Config, domain: str) -> list[tuple[str, dict]]:
+    """The domain's sources with their cursor's name: as in the catalogue (cursor n), then each Wikipedia source
+    again in every other language harvested (cursor "n.<lang>"): Italian Wikipedia for an Italian installation."""
+    srcs = catalogue()["domains"].get(domain, [])
+    out = [(str(n), s) for n, s in enumerate(srcs)]
+    for lang in langs(cfg)[1:]:
+        out += [(f"{n}.{lang}", {**s, "lang": lang}) for n, s in enumerate(srcs) if s["source"] == "wikipedia"]
+    return out
+
+
 def progress(cfg: sys_config.Config, domain: str) -> dict:
     """What the Harvester page shows per domain: sources, harvested so far, complete or not."""
-    srcs = catalogue()["domains"].get(domain, [])
-    sts = [load_state(cfg, domain, i) for i in range(len(srcs))]
-    return {"sources": [s["source"] for s in srcs], "taken": sum(s.get("taken", 0) for s in sts),
-            "done": bool(srcs) and all(s.get("done") for s in sts)}
+    srcs = specs(cfg, domain)
+    sts = [load_state(cfg, domain, n) for n, _ in srcs]
+    return {"sources": [s["source"] + (f" ({s['lang']})" if s.get("lang") else "") for _, s in srcs],
+            "taken": sum(s.get("taken", 0) for s in sts), "done": bool(srcs) and all(s.get("done") for s in sts)}
 
 
 # ---- parsers (pure: tested offline) ----------------------------------------------------------------------
@@ -359,6 +383,7 @@ def rxiv(server: str):
 
 
 def wikipedia(fetch: Fetch, cfg, domain: str, spec: dict, st: dict, want: int, deep: bool, seen: set) -> list[Doc]:
+    lang = spec.get("lang", "en")
     if "titles" not in st:
         titles: list[str] = []
         for page in spec.get("lists", []):
@@ -376,18 +401,25 @@ def wikipedia(fetch: Fetch, cfg, domain: str, spec: dict, st: dict, want: int, d
     while st["pos"] < len(titles) and len(out) < want:
         t = titles[st["pos"]]
         st["pos"] += 1
-        key = f"wikipedia:{t}"
+        if lang != "en":                         # the same article in the other language, by its interlanguage link
+            r = fetch(WIKI, action="query", prop="langlinks", lllang=lang, titles=t, redirects=1, format="json").json()
+            links = next(iter(r.get("query", {}).get("pages", {}).values()), {}).get("langlinks", [])
+            if not links:
+                continue
+            t = links[0]["*"]
+        key = f"wikipedia:{t}" if lang == "en" else f"wikipedia:{lang}:{t}"
         if key in seen:
             continue
-        r = fetch(WIKI, action="query", prop="extracts", explaintext=1, titles=t, redirects=1, format="json").json()
+        api = WIKI.replace("//en.", f"//{lang}.")
+        r = fetch(api, action="query", prop="extracts", explaintext=1, titles=t, redirects=1, format="json").json()
         page = next(iter(r.get("query", {}).get("pages", {}).values()), {})
         text = page.get("extract", "")
         if len(text) < 500:
             continue
-        cut = re.split(r"\n== (See also|References|Notes|Further reading|External links|Bibliography) ==", text)[0]
+        cut = WIKI_TAIL.split(text)[0]
         out.append(Doc(key, domain, page.get("title", t), key, catalogue()["licences"]["wikipedia"],
-                       "https://en.wikipedia.org/wiki/" + page.get("title", t).replace(" ", "_"),
-                       name=re.sub(r"\W+", "_", t)[:80] + ".txt", data=cut.encode()))
+                       f"https://{lang}.wikipedia.org/wiki/" + page.get("title", t).replace(" ", "_"),
+                       name=re.sub(r"\W+", "_", t)[:80] + ".txt", data=cut.encode(), lang=lang))
     st["done"] = st["pos"] >= len(titles)
     return out
 
@@ -431,4 +463,11 @@ def github(fetch: Fetch, cfg, domain: str, spec: dict, st: dict, want: int, deep
 
 
 SOURCES = {"arxiv": arxiv, "normattiva": normattiva, "europepmc": europepmc, "biorxiv": rxiv("biorxiv"),
-           "medrxiv": rxiv("medrxiv"), "wikipedia": wikipedia, "github": github}
+           "medrxiv": rxiv("medrxiv"), "wikipedia": wikipedia, "github": github,
+           "docs": lambda *a: _docs(*a)}
+
+
+def _docs(*args):
+    """Programming documentation (kno_docs), imported when used: it imports Doc from here."""
+    from . import kno_docs
+    return kno_docs.docs(*args)
