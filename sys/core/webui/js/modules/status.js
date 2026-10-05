@@ -33,6 +33,9 @@ export default {
       box.append(row);
     }
     if (health) box.append(el("div", "muted", t("status.checked", { at: clock(health.checked) })));
+    // answered and declined questions on knowledge, 7 days (owner, 2026-10-05: honesty measured, not claimed)
+    const ans = await call("/v1/aurora/answers/stats?days=7").catch(() => null);
+    if (ans && ans.questions) box.append(el("p", "", t("status.answers", { q: ans.questions, a: ans.answered, d: ans.declined, p: ans.declined_pct })));
     // the soak, measured by itself (owner, 2026-10-05): a line a day — memory per service, restarts, logs, swaps
     const soak = await call("/v1/aurora/soak?days=14").catch(() => []);
     if (soak.length) {

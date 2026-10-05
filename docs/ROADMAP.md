@@ -17,13 +17,13 @@ Done today and yesterday, live: the owner's list of 4 October, all 10 points (3-
 | 5 | U6 — each user's folders protected by a system account | decision | the owner decides; today the separation is Aurora's (tests M79-M80) |
 | 6 | A week of soak — ✅ now measured by itself: aurora-rem writes a snapshot a day (memory and restarts per service, logs, GPU swaps, failed routines, free disk), the Status page shows the days; first line 5 October | measure | it completes on 12 October by itself |
 | 7 | 🎧 DJ — ✅ first version (2026-10-05, M93): remix and mix, 8 styles; next: mashups (vocals of one track over another: Demucs, MIT, to measure on the GPU) | new | the owner's ear on real tracks (N49) |
-| 8 | The firewall's API live: login works (C131); a first block of a test address, after the owner's drop rule for the group (N44) | verification | the owner's rule on the firewall |
+| 8 | ~~The firewall's API live~~ — ✅ N44 measured live (2026-10-05): the owner's drop rule on top, a documentation address blocked, seen in the group on the firewall, lifted (after C146), gone | verification | — |
 | 9 | ~~The forge with the local reasoner~~ — ✅ measured (M100): 3 of 8 against 8 of 8 with Claude; the forge stays on Claude | measure | — |
 
 | 10 | 🧭 Autonomy panel — ✅ built (2026-10-05): 7 areas read from the settings, profiles, daily line, statistics, users and who may choose | new | the owner's pass (N65) |
 | 11 | 👤 Users as system accounts (U6, owner, 2026-10-05) — see below | design | the design first: it changes how every user's work runs |
 | 12 | 🛡️ Autonomous defence — ✅ built (2026-10-05): auto mode in Autonomy, limits (exemption, severity, never the home network nor protected addresses, a daily maximum), blocks lifted by themselves; tests with a fake firewall | goal | N44 (the owner's drop rule), then a live block |
-| 13 | 🔧 Self-repair — the causes found and fixed (C142-C145); a seeded bug found, fixed and proposed (M104) | build | bench_repair.py again after the signature of C145 |
+| 13 | 🔧 Self-repair — ✅ works end to end: 4 of 4 seeded bugs found, fixed, tested and proposed (M104), after C142-C145 | build | the first real fix of a live problem, approved by the owner |
 | 14 | ❤️ Health, medical part — ✅ exam values read by the local model, sealed, over time with a chart and the reference range, "talk to your doctor" outside it, corrected by hand | build | a real exam of the owner (N67) |
 | 15 | 📚 Knowledge by language — ✅ Wikipedia in en + the installation's language + ticked ones (it, fr, de, es, pt) via the interlanguage links; no patents. Laws: Italy only (Normattiva); France (Légifrance), Spain (BOE), UK (legislation.gov.uk), Germany (gesetze-im-internet) to add | build | the laws of other countries |
 | 16 | 💻 Programming documentation — ✅ sources: Python 3.14 (official text archive), MDN JavaScript (1,342 pages), the Rust book (112) | build | harvest them, then a coding question answered from them (measure) |
@@ -42,14 +42,14 @@ admin's first login in multi-user leads to password and Google Authenticator (th
 
 | what people ask (source) | Aurora today | to do |
 |---|---|---|
-| **Accuracy** first: hallucination is the top frustration, 22% of complaints; accuracy 45% as a choice factor | every sentence verified against the passages, abstains rather than invent (M32, M98: 23/30 answered, 6.90) | a visible "how sure" per answer; the abstention rate in Status |
-| **Privacy and local**: 57% would use assistants more with strong data protection; 81% worry about their conversations; local-first is a preference, not a niche | local models, cloud only masked, sealed health data | a page "what left this machine today": cloud calls and what was masked, per day |
+| **Accuracy** first: hallucination is the top frustration, 22% of complaints; accuracy 45% as a choice factor | every sentence verified against the passages, abstains rather than invent (M32, M98: 23/30 answered, 6.90) | ✅ under each answer the sentences confirmed and dropped by the verification and the sources; Status: questions answered and declined in 7 days |
+| **Privacy and local**: 57% would use assistants more with strong data protection; 81% worry about their conversations; local-first is a preference, not a niche | local models, cloud only masked, sealed health data | ✅ Security → 📤 What left this machine (today, 7 days): cloud calls by step, what was masked by kind, pictures, posts, pushes, firewall actions |
 | **Control**: 55-60% want more control; 51% want to limit features; 44% fear actions done without their consent | approvals, the ethics code, posts gated by privacy | the Autonomy panel (row 10) with the daily line of what she did alone |
 | **Confirm before send, pay, delete, publish**, with a log | external actions wait, every one recorded | an "undo" where it exists (a post deleted, a block lifted) |
 | **Transparency** of how an answer was made: 48% | the trace of every run, sources under each answer | — |
-| **Memory that can be trusted**: memory is now expected; the question is whether the user controls it | private memory per user, purge on deletion | a page "what Aurora remembers about me" with forget |
+| **Memory that can be trusted**: memory is now expected; the question is whether the user controls it | private memory per user, purge on deletion | ✅ 🧠 What I remember of you: her long-term memories, each with Forget |
 | **No over-refusal**: 15% of complaints | the gate abstains when the passages do not answer | measure her refusals on ordinary questions (AGI battery) |
-| **Not sycophantic**: models that agree to please give worse advice | — | a test: she must disagree when the user is wrong (AGI battery) |
+| **Not sycophantic**: models that agree to please give worse advice | — | bench_honesty.py (M106): never agreed with a false premise (0/6) but corrected none (6 abstentions: no general knowledge yet) — again after Wikipedia's harvest |
 | **Human support in key moments**: 46% | — | for health: "this needs a doctor" said plainly (row 14) |
 
 Sources: Zendesk CX Trends personal-AI survey (2025); Pew Research Center (April and September 2025); Menlo Ventures /

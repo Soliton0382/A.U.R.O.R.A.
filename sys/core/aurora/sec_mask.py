@@ -30,8 +30,10 @@ BLOCKS = [
 CONTEXT = re.compile(
     r"(?i)\b(password|passwd|pwd|passphrase|pin|puk|otp|codice fiscale|c\.f\.|partita iva|p\.\s?iva|vat(?: number)?|"
     r"passaporto|passport(?: number)?|carta d'identit[aà]|identity card|patente|driving licen[cs]e|tessera sanitaria|"
-    r"nato il|nata il|data di nascita|date of birth|born on|born)\s*(?::|=|n\.|nr\.?|is)?\s*"
+    r"nato il|nata il|data di nascita|date of birth|born on|born)(?![A-Za-z])\s*(:|=|n\.|nr\.?|is|è)?\s*"
     r"(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}|\d{1,2} \w+ \d{4}|[^\s,;]{3,64})")
+# the word ends there ("pinned" is not a PIN) and, without a separator, the value has a digit: "password hashes" is
+# prose, "password: x7" and "PIN 1234" are values (2026-10-05, 299 ID items masked in a day)
 PATTERNS = [   # (kind, regex): order matters, the most specific first
     ("EMAIL", re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")),
     ("CF", re.compile(r"\b[A-Z]{6}\d{2}[A-EHLMPRST]\d{2}[A-Z]\d{3}[A-Z]\b", re.I)),     # Italian tax code
@@ -107,8 +109,9 @@ class Pseudonymizer:
                 text = text.replace(v, self._ph("SECRET", v))
         for kind, rx in BLOCKS:
             text = rx.sub(lambda m, k=kind: m.group(0) if PLACEHOLDER.fullmatch(m.group(0)) else self._ph(k, m.group(0)), text)
-        text = CONTEXT.sub(lambda m: m.group(0) if PLACEHOLDER.fullmatch(m.group(2))
-                           else m.group(0)[: m.start(2) - m.start(0)] + self._ph("ID", m.group(2)), text)
+        text = CONTEXT.sub(lambda m: m.group(0) if PLACEHOLDER.fullmatch(m.group(3))
+                           or (not m.group(2) and not any(ch.isdigit() for ch in m.group(3)))
+                           else m.group(0)[: m.start(3) - m.start(0)] + self._ph("ID", m.group(3)), text)
         text = FIELD.sub(lambda m: f"{m.group(1)}={self._ph('FIELD', m.group(2))}", text)
         for kind, rx in PATTERNS:
             if kind in skip:

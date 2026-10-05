@@ -20,6 +20,7 @@ export default {
     root.classList.add("page");
     root.innerHTML = `<h2 data-i18n="sec.title"></h2><p class="muted" data-i18n="sec.hint"></p>
       <h3 class="setting-cat" data-i18n="sec.defence"></h3><div class="sec-defence"></div>
+      <h3 class="setting-cat" data-i18n="sec.out"></h3><p class="muted" data-i18n="sec.out_hint"></p><div class="sec-out"></div>
       <h3 class="setting-cat" data-i18n="sec.open"></h3><div class="open"></div>
       <h3 class="setting-cat" data-i18n="sec.watch"></h3><p class="muted sec-watch-hint"></p>
       <div class="appr-actions"><button class="sec-learn" data-i18n="sec.learn"></button><span class="muted sec-learn-out"></span></div>
@@ -29,6 +30,7 @@ export default {
     apply(root);
     this.open = root.querySelector(".open");
     this.defence = root.querySelector(".sec-defence");
+    this.outbound = root.querySelector(".sec-out");
     this.closed = root.querySelector(".closed");
     this.archive = root.querySelector(".sec-archive");
     this.rules = root.querySelector(".sec-rules");
@@ -168,8 +170,32 @@ export default {
     this.defence.replaceChildren(head, prot, ...(d.configured ? [] : [el("p", "warn", t("sec.def_no_api"))]), ...act, go, hist);
   },
 
+  // what left this machine (owner, 2026-10-05): measured from the traces, today and the last 7 days
+  async loadOutbound() {
+    const rows = [];
+    for (const days of [1, 7]) {
+      let o;
+      try { o = await call(`/v1/aurora/security/outbound?days=${days}`); } catch { this.outbound.replaceChildren(); return; }
+      const masked = Object.entries(o.cloud.masked).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${t(`social.kind.${k}`)} ${n}`).join(", ");
+      const steps = Object.entries(o.cloud.by_step).map(([k, n]) => `${k} ${n}`).join(", ");
+      const fw = Object.entries(o.firewall).map(([k, n]) => `${t(`sec.out_fw.${k}`)} ${n}`).join(", ");
+      const d = el("details", "report");
+      d.open = days === 1;
+      d.append(el("summary", "", t(days === 1 ? "sec.out_today" : "sec.out_week")),
+        el("p", "", `☁️ ${t("sec.out_cloud", { n: o.cloud.calls })}${steps ? ` (${steps})` : ""}`),
+        el("p", "muted", `🎭 ${t("sec.out_masked")}: ${masked || "—"}`),
+        el("p", o.cloud.pictures ? "warn" : "muted", `🖼️ ${t("sec.out_pictures", { n: o.cloud.pictures })}`),
+        el("p", "", `📣 ${t("sec.out_posts", { n: o.posts.length })}${o.posts.length ? ": " + o.posts.slice(0, 5).map((p) => `${p.title} (${t(`sec.out_by.${p.by}`)})`).join(", ") : ""}`),
+        el("p", "", `🔔 ${t("sec.out_push", { n: o.push.sent })}`),
+        el("p", "", `🧱 ${t("sec.out_fw")}: ${fw || "—"}`));
+      rows.push(d);
+    }
+    this.outbound.replaceChildren(...rows);
+  },
+
   async enter() {
     this.loadDefence();
+    this.loadOutbound();
     await this.loadProfile();
     const all = await call("/v1/aurora/incidents");
     const open = all.filter((i) => i.status === "open"), closed = all.filter((i) => i.status !== "open").slice(0, 30);

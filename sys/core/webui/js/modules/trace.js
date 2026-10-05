@@ -122,11 +122,22 @@ export function auroraBubble(container) {
   return { root, iter, head, steps, body, count: 0, t0: Date.now() };
 }
 
+// how the answer was checked (owner, 2026-10-05, from what people ask of an AI: accuracy first): counted from the run's
+// own verification events — the sentences kept against the passages and those dropped — never an invented "confidence"
+export function checks(trace) {
+  let kept = 0, dropped = 0;
+  for (const [name] of trace || []) { if (name === "verify.keep") kept += 1; else if (name === "verify.drop") dropped += 1; }
+  return { kept, dropped };
+}
+
 export function renderAnswer(b, p, when) {
   const box = b.body;
   box.replaceChildren();
   b.root.classList.toggle("abstained", !!p.abstained);
   box.append(renderMarkdown(p.text));
+  if (p.checked && p.checked.kept + p.checked.dropped > 0 && !p.abstained) {
+    box.append(el("div", "meta checked", t("chat.checked", { k: p.checked.kept, d: p.checked.dropped, s: p.sources?.length || 0 })));
+  }
   if (p.images?.length) {                        // pictures Aurora made (edits): shown, kept in the conversation
     const row = el("div", "chips");
     for (const f of p.images) {
@@ -207,6 +218,7 @@ export function renderPast(b, turn) {
     ? `🧭 ${t("chat.iter", { n, s: turn.seconds ?? "–" })}` : `🧭 ${t("chat.nopath")}`;
   b.iter.open = false;
   renderAnswer(b, { text: turn.text, abstained: turn.abstained, sources: turn.sources, seconds: turn.seconds, speed: turn.speed,
+    checked: checks(turn.trace),
     images: (turn.attachments || []).filter((f) => f.inline && f.mime.startsWith("image/")),
     videos: (turn.attachments || []).filter((f) => f.inline && f.mime.startsWith("video/")),
     files: (turn.attachments || []).filter((f) => !(f.inline && /^(image|video)\//.test(f.mime))) },
@@ -216,6 +228,7 @@ export function renderPast(b, turn) {
 // Follow a run's events into a bubble. Returns the final answer payload (or null).
 export async function follow(runId, b, scroller) {
   let thought = null, draft = null, final = null;
+  const seen = [];                                  // the run's events, for the answer's check line
   b.iter.open = true;
   b.head.classList.add("running");
   const status = (text) => { b.head.querySelector(".iter-text").textContent = text; };
@@ -248,7 +261,8 @@ export async function follow(runId, b, scroller) {
         return;
       }
       if (name === "run.start") { thought = null; draft = null; }
-      if (name === "answer.final") { final = p; renderAnswer(b, p); }
+      seen.push([name]);
+      if (name === "answer.final") { final = p; renderAnswer(b, { ...p, checked: checks(seen) }); }
       else if (name === "answer.suggestions" && final) final.suggestions = p.items;
       else if (name === "error") b.body.replaceChildren(el("p", "error", describe(name, p)));
       else if (name.startsWith("rem.") && p.text) { b.body.replaceChildren(el("p", "", p.text)); }

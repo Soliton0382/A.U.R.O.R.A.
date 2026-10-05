@@ -86,6 +86,9 @@ mark each line ✅ / ❌ with a note. Reload the WebUI first (the service worker
 | N66 | 📣 Social: a draft naming a person → 🔍 Dati sensibili? → apply; 🗑️ Scarta another draft | the name replaced by "una persona a me cara"; the discarded draft gone |
 | N67 | ❤️ Health → Esami: upload a real exam (PDF or photo) | after a minute 📈 shows its values; one outside the range says "parlane con il tuo medico"; correct a value |
 | N68 | 📚 Harvester: tick a language; Security → 🛡️ Difesa | the language saved, the harvester restarts; the defence's mode, limits and history shown |
+| N70 | 🛡️ Security → 📤 Cosa è uscito dalla macchina | today and 7 days: cloud calls, what was masked, posts, pushes, firewall actions |
+| N71 | ✨ → 🧠 Cosa ricordo di te: open one, Dimentica | it disappears and does not come back after a reload |
+| N72 | Ask a knowledge question | under the answer "🔎 Verificata sulle fonti: N frasi confermate, M scartate · K fonti"; Status shows the answered/declined line |
 | N69 | Multi-user first login of an admin without password (a clean install) | after the API key, the Users page with the note: password and Google Authenticator first |
 | N41 | 📁 Projects → 💻 Local: ask Aurora "crea il progetto prova-calc con una funzione somma e i suoi test, eseguili" | the project, the tests run (EXIT 0) in the run's steps, a local commit |
 | N17 | Ask a knowledge question (e.g. «Come funziona la fotosintesi?»), then tap one of the «Approfondisci» questions; then type a short follow-up («e chi l'ha scoperta?») | 3-4 complete questions appear under the answer a few seconds after it; the tapped one is sent whole and its trace shows 🎯 when the sources were used; the typed follow-up shows 🧷 with the completed question |

@@ -55,6 +55,14 @@ async def firewall_test() -> dict:
         raise HTTPException(status_code=502, detail=str(e)) from None
 
 
+@router.get("/v1/aurora/security/outbound", dependencies=[Depends(admin_only)])
+async def outbound(days: float = 1) -> dict:
+    """What left this machine in the last days: cloud calls and what was masked, posts, pushes, firewall actions."""
+    from aurora import sec_outbound
+    from aurora.sys_approvals import Approvals, auto_tools
+    return await asyncio.to_thread(sec_outbound.summary, cfg, Approvals(cfg)._load(), auto_tools(cfg), max(1.0, min(days, 30)))
+
+
 @router.get("/v1/aurora/security/defence", dependencies=[Depends(admin_only)])
 def defence_state() -> dict:
     from aurora import sec_defence

@@ -11,7 +11,7 @@ from aurora import sys_log
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
-from .core import MAX_ACTIVITY, _activity, _activity_cond, auth, cfg, me, mine, note, pipeline, quiet
+from .core import MAX_ACTIVITY, _activity, _activity_cond, _run_lock, auth, cfg, log, me, mine, note, pipeline, quiet
 
 router = APIRouter()
 
@@ -118,6 +118,45 @@ def health_all() -> dict:
     if time.time() - _health_cache["at"] > 10:
         _health_cache.update(at=time.time(), value=sys_health.check(cfg))
     return _health_cache["value"]
+
+
+@router.get("/v1/aurora/answers/stats", dependencies=[Depends(auth)])
+def answers_stats(days: float = 7) -> dict:
+    """Questions on knowledge answered and declined in the last days, from the user's own conversation (owner,
+    2026-10-05: accuracy and honesty are what people ask first; an abstention is Aurora saying she does not know)."""
+    from datetime import datetime, timedelta, timezone
+    since = (datetime.now(timezone.utc) - timedelta(days=max(1.0, min(days, 90)))).isoformat()
+    turns = [t for t in pipeline().reader.recent(2000) if t.extra.get("role") == "assistant"
+             and t.extra.get("mode", "knowledge") == "knowledge" and t.created_at >= since]
+    declined = sum(1 for t in turns if t.extra.get("abstained"))
+    return {"days": days, "questions": len(turns), "answered": len(turns) - declined, "declined": declined,
+            "declined_pct": round(100 * declined / len(turns), 1) if turns else None}
+
+
+@router.get("/v1/aurora/memory/about-me", dependencies=[Depends(auth)])
+def about_me(n: int = 100) -> list[dict]:
+    """What Aurora remembers of the user (owner, 2026-10-05, from what people ask of an AI: a memory they control):
+    her long-term memories of their conversations, newest first, each with what it came from."""
+    p = pipeline()
+    if not p.reader.layout.shards("memory", "reflection"):
+        return []
+    items = [s for s in p.reader.recent(1000, domain="reflection") if s.extra.get("type") == "session_memory"]
+    return [{"source_id": s.source_id, "text": s.text, "created_at": s.created_at,
+             "turns": len(s.extra.get("turns") or [])} for s in reversed(items[-max(1, min(n, 500)):])]
+
+
+@router.delete("/v1/aurora/memory/about-me", dependencies=[Depends(auth)])
+def forget(source_id: str) -> dict:
+    """Forget one memory of the user's for good (the memory and its index rows); only a session memory of theirs."""
+    p = pipeline()
+    mine = {s.source_id for s in p.reader.recent(1000, domain="reflection") if s.extra.get("type") == "session_memory"}
+    if source_id not in mine:
+        raise HTTPException(status_code=404, detail="no such memory")
+    with _run_lock:
+        sids = p.writer.remove_source("reflection", source_id)
+        p.indexer.drop("reflection", sids)
+    log.info("audit: a memory forgotten at the user's request (%d solitons)", len(sids))
+    return {"forgotten": len(sids)}
 
 
 @router.get("/v1/aurora/reflections", dependencies=[Depends(auth)])

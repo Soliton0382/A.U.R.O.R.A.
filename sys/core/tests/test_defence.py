@@ -59,3 +59,17 @@ def test_the_daily_limit_stops_her(cfg, firewall):
     for ip in ("45.33.32.157", "45.33.32.158"):
         sec_defence.act(cfg, {**ATTACK, "source": ip})
     assert sec_defence.decide(cfg, ATTACK) == (False, "today's limit of automatic blocks reached")
+
+
+def test_unblock_takes_the_host_out_of_the_group_before_removing_it(cfg, monkeypatch):
+    """C146, measured on the real firewall: removing a host still in the group is refused (509)."""
+    sent = []
+    cfg.values.update(AURORA_FIREWALL_API_URL="https://192.0.2.1:4444", AURORA_FIREWALL_API_USER="aurora",
+                      AURORA_FIREWALL_API_PASSWORD="secret-password")
+
+    def fake(cfg, body):
+        sent.append(body)
+        return '<IPHost><Status code="200">Configuration applied successfully.</Status></IPHost>'
+    monkeypatch.setattr(sec_fwapi, "request", fake)
+    assert sec_fwapi.unblock(cfg, "45.33.32.156")["status"] == "200"
+    assert "<HostGroupList></HostGroupList>" in sent[0] and sent[1].startswith("<Remove>")

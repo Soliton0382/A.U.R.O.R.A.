@@ -125,7 +125,13 @@ def block(cfg: sys_config.Config, ip: str, reason: str = "") -> dict:
 
 
 def unblock(cfg: sys_config.Config, ip: str) -> dict:
+    """Out of the group first, then removed: the firewall refuses to delete a host a group still refers to (509, C146)."""
     ip = blockable(cfg, ip)
+    text = request(cfg, f'<Set operation="update"><IPHost><Name>aurora-block-{ip}</Name><IPFamily>IPv4</IPFamily>'
+                        f"<HostType>IP</HostType><IPAddress>{ip}</IPAddress><HostGroupList></HostGroupList></IPHost></Set>")
+    code, msg = _status(text, "IPHost")
+    if code != "200":
+        raise FirewallAPIError(f"the firewall did not take {ip} out of the group: {code} {msg}")
     text = request(cfg, f"<Remove><IPHost><Name>aurora-block-{ip}</Name></IPHost></Remove>")
     code, msg = _status(text, "IPHost")
     if code != "200":

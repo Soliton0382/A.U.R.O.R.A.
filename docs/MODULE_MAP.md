@@ -109,6 +109,7 @@ call downward (ECOSYSTEM §1).
 | `sec_rules.py` | security | the owner's own checks on the firewall's syslog, proposed by Aurora, switched on in Security | sys_config | api/security, sec_profile, svc_sentinel |
 | `sec_fwapi.py` | security | the firewall's API (kind sophos): an address into the blocking group and out of it; never the firewall, this machine, special addresses | sys_config, httpx | api/security, sec_defence |
 | `sec_defence.py` | security | autonomous defence: the source of a serious attack blocked by herself within the owner's limits (exemption, severity, never the home network nor protected addresses, a daily maximum), lifted when its time is over | sec_fwapi, sys_ethics, sys_autonomy | api/incidents, api/security |
+| `sec_outbound.py` | security | what left this machine, measured: cloud calls, masked items by kind, pictures, posts, pushes, firewall actions | mdl_router, sys_push, sys_autonomy | api/security |
 | `sys_autonomy.py` | system | the Autonomy panel: areas and levels read from (and written to) the settings, profiles, the ledger of what she did alone, the statistics of her proposals | sys_config, sec_defence | api/autonomy, agt_loop, api/forge, api/knowledge, api/core, sec_defence |
 | `sys_persona.py` | system | who the assistant is for each user: name, character, gender | sys_config | api/users, kno_social |
 | `sys_seal.py` | system | sealed files for a user's most private data (AES-256-GCM, a key per user and purpose) | cryptography | hlt_store, hlt_labs, api/care |
@@ -121,6 +122,7 @@ call downward (ECOSYSTEM §1).
 |---|---|---|
 | `sys_env_sync.py` | compares `.env` with the schema; writes `.env.proposed` and `.env.example` | after the schema changes |
 | `bench_forge.py` | the forge's benchmark: 8 needs on Aurora's own data, each with its answer computed by code (M89, M100) | after a change to the forge |
+| `bench_honesty.py` | honesty: questions on a false premise must be corrected, controls left alone; judged by Claude (M106) | after a change to the answer prompts |
 | `bench_repair.py` | the self-repair benchmark: a realistic bug in a sandbox, the symptom to the agent, fixed if the tests turn green and the change is proposed (M104) | after a change to the repair path |
 | `bench_followup.py` | follow-up questions: typed and suggested, against their sources (M72, M73) | after a change to follow-ups |
 | `img_ai.py` | the picture tools the image service runs (cut-out, enlargement, edit) | called by the image pipeline |
