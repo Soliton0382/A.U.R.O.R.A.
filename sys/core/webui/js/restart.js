@@ -5,6 +5,16 @@ import { call } from "./api.js";
 import { el } from "./dom.js";
 import { t } from "./i18n.js";
 
+// after aurora-api restarts: wait until it answers again (a call made meanwhile fails with an empty error)
+export async function apiBack() {
+  await new Promise((ok) => setTimeout(ok, 3000));
+  for (let i = 0; i < 40; i++) {                     // the API comes back in a few seconds
+    try { if ((await fetch("/health")).ok) return true; } catch { /* restarting */ }
+    await new Promise((ok) => setTimeout(ok, 1000));
+  }
+  return false;
+}
+
 export function restartPrompt(services) {
   const known = (services || []).filter((s) => s.startsWith("aurora-"));
   if (!known.length) return Promise.resolve(false);
@@ -24,13 +34,7 @@ export function restartPrompt(services) {
       status.textContent = t("restart.doing");
       try {
         await call("/v1/aurora/services/restart", { method: "POST", body: JSON.stringify({ services: known }) });
-        if (known.includes("aurora-api")) {
-          await new Promise((ok) => setTimeout(ok, 3000));
-          for (let i = 0; i < 40; i++) {                 // the API comes back in a few seconds
-            try { if ((await fetch("/health")).ok) break; } catch { /* restarting */ }
-            await new Promise((ok) => setTimeout(ok, 1000));
-          }
-        }
+        if (known.includes("aurora-api")) await apiBack();
         status.textContent = t("restart.done");
         setTimeout(() => { dlg.close(); dlg.remove(); done(true); }, 900);
       } catch (e) { status.textContent = t("ev.error", { m: e.message }); no.disabled = false; }

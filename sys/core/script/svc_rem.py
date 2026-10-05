@@ -145,6 +145,10 @@ def main() -> int:
                 client.post(f"{BASE}/v1/aurora/uploads/purge", timeout=300).raise_for_status()
             except httpx.HTTPError as e:
                 log.warning("uploads purge failed: %s", e)
+            try:                                      # synapses: new links between domains, then the fade
+                client.post(f"{BASE}/v1/aurora/synapses/grow").raise_for_status()
+            except httpx.HTTPError as e:
+                log.warning("synapses round not started: %s", e)
             try:                                      # the soak, measured by itself: one snapshot a day
                 from aurora import sys_soak
                 sys_soak.record(cfg)

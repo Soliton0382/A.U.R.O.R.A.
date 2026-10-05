@@ -7,6 +7,7 @@
 import { call } from "../api.js";
 import { el } from "../dom.js";
 import { apply, t } from "../i18n.js";
+import { apiBack } from "../restart.js";
 
 const ICON = { 0: "🔒", 1: "🤝", 2: "🚀" };
 const AREA_ICON = { social: "📣", forge: "🧰", repairs: "🔧", security: "🛡️", updates: "⬆️", knowledge: "📚", inner: "💭" };
@@ -42,8 +43,10 @@ export default {
       const r = await call("/v1/aurora/autonomy", { method: "PUT", body: JSON.stringify(body) });
       out.textContent = r.restart.length ? t("auto.saved_restart", { s: r.restart.join(", ") }) : t("auto.saved");
       await restart(r.restart);
-      setTimeout(() => this.enter(), r.restart.includes("aurora-api") ? 4000 : 300);
-    } catch (e) { out.textContent = t("ev.error", { m: e.message }); }
+      if (r.restart.includes("aurora-api")) await apiBack();   // the page reloads only once the API is back (the "" error)
+      await this.enter();
+      out.textContent = t("auto.saved");
+    } catch (e) { out.textContent = t("ev.error", { m: e.message || t("auto.offline") }); }
   },
 
   profiles(v, user) {

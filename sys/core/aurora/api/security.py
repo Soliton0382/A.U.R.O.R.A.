@@ -107,6 +107,11 @@ async def firewall_block(request: Request) -> dict:
     except sec_fwapi.FirewallAPIError as e:
         raise HTTPException(status_code=502, detail=str(e)) from None
     what = "unblocked" if body.get("unblock") else "blocked"
+    from aurora import sec_defence                     # kept, so that "undo" finds it (owner, 2026-10-05)
+    if body.get("unblock"):
+        sec_defence.mark_released(cfg, out["unblocked"], "owner")
+    else:
+        sec_defence.record_manual(cfg, out["blocked"], reason)
     log.info("audit: owner %s %s on the firewall (%s)", what, ip, reason or "-")
     sys_log.trace("security", f"firewall.{what}", {"ip": ip, "reason": reason})
     note("security", "security.action", {"title": f"🛡️ {ip} {'sbloccato' if what == 'unblocked' else 'bloccato'} sul firewall",

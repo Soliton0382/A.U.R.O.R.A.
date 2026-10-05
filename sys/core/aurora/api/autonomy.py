@@ -16,7 +16,7 @@ router = APIRouter()
 
 def _view(user: str | None) -> dict:
     from aurora import sys_autonomy, sys_ethics, sys_user_config
-    ucfg = sys_user_config.for_user(BASE, user) if user else cfg
+    ucfg = sys_user_config.for_user(BASE, user) if user else BASE      # the objects updated in place, not the proxy
     lv = sys_autonomy.levels(ucfg)
     admin = user is None or user == _admin()
     may = admin or sys_autonomy.policy(cfg).get("may_choose", {}).get(user, False)
@@ -79,7 +79,21 @@ async def autonomy_set(request: Request) -> dict:
         else:
             sys_config.write_env(sys_config.env_file_path(), user)
     specs = {s["key"]: s for s in sys_config.load_schema()["settings"]}
-    restart = sorted({svc for k in {**machine, **user} for svc in specs[k]["services"]})
+    # the API reads these settings at each action: reloaded here, in memory, instead of restarting aurora-api (a
+    # restart per click left the page calling a server that was not back yet: the "" error, 2026-10-05)
+    fresh = sys_config.load(sys_config.env_file_path())
+    sys_user_config._cache.clear()                    # first: _view goes through that cache (a stale view otherwise)
+    view = sys_config._view(fresh)                    # the admin's view, as the process holds it
+    live = {id(c): c for c in (BASE, sys_config._cached) if c is not None}   # every live view, updated in place
+    for c in list(live.values()):
+        if c.base is not None:
+            live[id(c.base)] = c.base
+    for c in live.values():
+        new = fresh if c.base is None else view
+        c.values.update(new.values)
+        c.raw.update(new.raw)
+    sys_user_config._cache.clear()
+    restart = sorted({svc for k in {**machine, **user} for svc in specs[k]["services"]} - {"aurora-api"})
     log.info("audit: autonomy of %s set by %s: %s", target or "the machine", me or "admin",
              ", ".join(f"{a}={n}" for a, n in choice.items()))
     sys_log.trace("api", "autonomy.change", {"user": target, "levels": choice})

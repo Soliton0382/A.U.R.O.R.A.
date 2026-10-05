@@ -910,6 +910,28 @@ suite green in the sandbox (328 passed), proposed — refused by the API still r
 right** — each bug found from the symptom alone, fixed, the whole suite green in the sandbox, the change proposed
 (90, 130, 140, 110 s); every proposal refused by the benchmark, the live code untouched.
 
+## M107 — Synapses: links between domains, grown, used, measured (5 October 2026)
+
+Threshold first: 200 random passages of 33 domains, each one's best match by vector in ANOTHER domain: percentiles
+50/75/90/95/99 = 0.60/0.65/0.70/0.73/0.83 (in the same domain 0.74/0.80/0.85/0.88/0.92). Read above 0.70 the pairs make
+sense (Kafka ↔ existentialism, radar nowcasting ↔ stochastic models of AI, LLM evaluation in statistics ↔ AI): the
+threshold is **0.72**, about the top 5%. A night round on 990 passages: **99 links in 1,103 s** (literature ↔ religion
+33, physics ↔ relativity 16, AI ↔ earth science 8, AI ↔ astrophysics 7). Pool30, three versions:
+
+| version | mean | answered | linked passages offered | chosen by the re-ranker |
+|---|---|---|---|---|
+| spread from the vector candidates, 99 night links | 6.57 | 22 | 0 | 0 |
+| + links grown from use (30) and Hebb (14) — run A | 6.73 | 23 | 0 | 0 |
+| same links, run B | 7.07 | 23 | 0 | 0 |
+| spread from the passages the re-ranker chose (kept) — run C | **7.00** | 23 | 25 | **2, in 2 questions** |
+
+From the vector candidates a link added nothing: its neighbour (similar ≥ 0.72) was already among them. From the
+chosen passages it reaches new ones, the re-ranker reads them with the question and takes one only when it beats the
+weakest chosen. The means move inside the noise (±0.75; today's runs 6.57-7.07): the synapses work and cost nothing,
+their use grows with the links (150 after the runs: 99 night, 30 from use, 21 Hebbian). Caveat: run C's links grew
+on the same questions (learning by use, not a test on new questions). Not measured: the effect with many thousands
+of links; new questions.
+
 ## M106 — Honesty: does she agree with a false premise? (5 October 2026)
 
 `bench_honesty.py`: 6 questions on a false premise said with confidence (light slower in vacuum than in water,
@@ -945,6 +967,11 @@ authenticator's secret (QR); a wrong first code 401; the right one logs in with 
 (the API key never in the answer); the machine's settings and the mode change only by the admin (code read:
 sys_users_mode.switch and update_settings). Not measured: the sudo steps (packages, NVIDIA toolkit, systemd units)
 on a machine without them — here everything was present; a phone scanning the real QR.
+Self-update, measured after (5 October, evening): the first try, from 2c3225d, rolled back by itself in 19.1 s (1 test
+failed: the C139 fault); the clone was brought to b5c8748 by hand (git pull, the 8 new settings added, 331 tests);
+then, with the fixed updater, sys_update.apply on the clone took the next published commit by itself: d1245b7, 1
+commit, signed, safe, **332 tests passed, 19.7 s**, no rollback. That commit brought no new setting: the C139 path
+(a new setting before the tests) is covered by its test, not yet by a live update.
 
 ## M101 — Web Push: the devices now say what they received (5 October 2026)
 

@@ -89,6 +89,10 @@ mark each line ✅ / ❌ with a note. Reload the WebUI first (the service worker
 | N70 | 🛡️ Security → 📤 Cosa è uscito dalla macchina | today and 7 days: cloud calls, what was masked, posts, pushes, firewall actions |
 | N71 | ✨ → 🧠 Cosa ricordo di te: open one, Dimentica | it disappears and does not come back after a reload |
 | N72 | Ask a knowledge question | under the answer "🔎 Verificata sulle fonti: N frasi confermate, M scartate · K fonti"; Status shows the answered/declined line |
+| N73 | 🧭 Autonomy: click a few levels in a row | "✅ Salvato" every time, no "errore", the level highlighted at once |
+| N74 | 🛡️ Security → an incident → ⛔ then ↩️ Annulla; Difesa → 🧱 Sul firewall → Prova la connessione | the address blocked then unblocked; the group and rule names shown, "Collegato" |
+| N75 | Phone, the installed app: the chat | the buttons on a row above, the text field the whole width |
+| N76 | Status → 🧠 Sinapsi (after a night) | links grown between domains, the pairs of domains most linked |
 | N69 | Multi-user first login of an admin without password (a clean install) | after the API key, the Users page with the note: password and Google Authenticator first |
 | N41 | 📁 Projects → 💻 Local: ask Aurora "crea il progetto prova-calc con una funzione somma e i suoi test, eseguili" | the project, the tests run (EXIT 0) in the run's steps, a local commit |
 | N17 | Ask a knowledge question (e.g. «Come funziona la fotosintesi?»), then tap one of the «Approfondisci» questions; then type a short follow-up («e chi l'ha scoperta?») | 3-4 complete questions appear under the answer a few seconds after it; the tapped one is sent whole and its trace shows 🎯 when the sources were used; the typed follow-up shows 🧷 with the completed question |

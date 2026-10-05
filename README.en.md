@@ -11,14 +11,14 @@ approval, and says "I don't know" when the vault does not know.
 Everything runs on the owner's machine: the reasoner (llama.cpp), the encoder and re-ranker, the
 vault, the memory, the WebUI. Any step can be given to a cloud model (Claude Code, Anthropic API, OpenAI,
 Google Gemini, xAI Grok, Mistral, OpenRouter); the code of conduct allows it only with the owner's signed
-exemption, and what leaves is masked by default.
+exemption, and what leaves is always masked (no setting turns it off).
 
 ## ✨ What makes her different
 
 | | Aurora | a typical assistant (chat + model + documents) |
 |---|---|---|
 | 🔎 **Truth** | every sentence of an answer is verified against the vault's passages; what is not supported is removed, and with nothing found she abstains (M32: 0 unsupported sentences of 14 kept) | cites sources, but the sentences the model writes are not checked one by one |
-| 📏 **Measurement** | every choice has a numbered measurement (M1–M35), every error a number in BUGS.md, every limit is written down | performance is claimed, rarely measured in public |
+| 📏 **Measurement** | every choice has a numbered measurement (M1–M107), every error a number in BUGS.md, every limit is written down | performance is claimed, rarely measured in public |
 | 🌙 **A life of her own** | consolidates memories, thinks when idle, dreams and paints the dream, reviews herself every day from her own logs | wakes up only when you write |
 | 🛠️ **Repairs herself** | fixes her own code in a sandbox, with tests, your approval, live tests and rollback | only the developer changes the code |
 | 🔏 **Signed rules** | a code of conduct bound to your installation's key: changed without a signature, Aurora does not start | rules in a prompt, changed without a trace |
@@ -33,6 +33,7 @@ exemption, and what leaves is masked by default.
 | **Answers from the vault** | route → translate → search (encoder + re-ranker over every domain) → per-domain extraction → synthesis → **every sentence verified against the passages** → sources. Unsupported sentences are dropped (M32: 0 of 14 kept); with nothing found, an honest abstention and an offer to search arXiv |
 | **Vault of solitons** | SQLite shards, knowledge and memory apart, dedup by content hash, exact vector search below 250k vectors per domain, HNSW above (M30) |
 | **Memory** | short-term turns, long-term session memories written at night, recall by meaning over 12 months, dates labelled by the clock |
+| **Synapses** | links between knowledge of different domains (a physics model ↔ a biological one, Kafka ↔ existentialism): grown at night where the similarity is strong (≥ 0.72, the top 5%), stronger when two passages are cited together, weaker when unused; in the search they bring the linked passages in, the re-ranker always chooses |
 | **Autonomic cycle** | consolidation, thoughts when idle, a nightly **dream painted with SDXL-Lightning** (AI-marked), a daily self-review from her own logs, self-repair on recurring problems |
 | **Forge (Aurora builds her plugins)** | when a capability is missing she writes a plugin, tests it in the cage on the real data and a judge checks it against counts made by code (time windows included); read-only ones install by themselves. Writer and judge are chosen in the 🧠 Models page: a cloud model good with code is advised (Claude Code, or xAI Grok, which costs little: 5 of 8 at the benchmark, M83); the local model does fewer |
 | **Artifacts** | "make me an interactive chart of the sine function": Aurora makes an interactive page (charts, simulations, calculators) and shows it live in the answer, full screen or to download; it runs isolated, with no network and no access to your data |
@@ -59,7 +60,7 @@ exemption, and what leaves is masked by default.
 | **Picture edits** | "crop the sides and make it black and white", "now rotate it", "make it brighter": the reasoner turns the request into checked operations (crop, rotate, mirror, size, light, contrast, colours, sepia, blur, format) and Pillow applies them; the original stays, the result appears in the chat and in 📎 Files |
 | **Video** | attach a video (from the phone too) and she watches it: frames at the scene changes seen in one call, speech transcribed with timestamps by the local Whisper; summaries and answers with the exact minutes |
 | **Senses** | camera (Aurora describes what she sees) and microphone (local transcription with Whisper); 📷 and 🎙️ in the chat, with **📱 the phone's camera and microphone** (Android and iOS: the photo is shrunk on the phone, the voice transcribed by the home Whisper, never by an outside service) or 🖥️ the PC's |
-| **Models per step** | 🧠 page: each of 12 steps (routing, synthesis, verification, agent, plugin writing and judging, vision…) local or on a cloud provider; **sensitive data masked by default** (addresses, e-mails, phones, IBANs, cards, keys, your words) and put back in the answer; falls back to local on a provider error; daily token ceiling per paid provider; statistics of calls, cost, masked items and SSCC. Pictures cannot be masked: said explicitly |
+| **Models per step** | 🧠 page: each of 12 steps (routing, synthesis, verification, agent, plugin writing and judging, vision…) local or on a cloud provider; **sensitive data always masked** (addresses, e-mails, phones, IBANs, cards, keys, your words) and put back in the answer; falls back to local on a provider error; daily token ceiling per paid provider; statistics of calls, cost, masked items and SSCC. Pictures cannot be masked: said explicitly |
 | **Guide** | 📖 page: first steps, common configurations (cloud, phone, plugins, safety) and what each page is for |
 | **EU AI Act art. 50** | disclosure on published text, images (XMP/IPTC) and PDFs |
 | **WebUI / PWA** | chat with live answers and tokens/s, formulas drawn (KaTeX) and tables, dreams, repairs, security, diary, social, plugins, harvester, settings (every `.env` value explained), notifications (push and in-app, chosen event by event), updates, IT/EN |
@@ -249,9 +250,9 @@ sources of each domain are in `sys/core/config/harvest_sources.json`.
 |---|---|---|---|
 | **arXiv** | AI, computer science, mathematics, physics, astrophysics, statistics, economics, engineering, robotics… | full papers (PDF) | the paper's |
 | **Normattiva** | Italian law | the official collections (codes, consolidated acts, legislative decrees, decree-laws, regulations…), one passage per article, text in force | public act, no copyright (L. 633/1941 art. 5) |
-| **Europe PMC** | medicine, biomedicine, genomics | open-access full texts | the article's (cc by, cc by-nc…) |
-| **bioRxiv / medRxiv** | biomedicine, genomics / medicine | full preprints | the preprint's |
-| **Wikipedia** (en + your language; others with a tick) | philosophy, religion, history, literature, society, general | the articles of the "Vital articles" lists | CC BY-SA 4.0 |
+| **Europe PMC** | medicine, biomedicine, genomics, psychology | open-access full texts | the article's (cc by, cc by-nc…) |
+| **bioRxiv / medRxiv** | biomedicine, genomics, behaviour and cognition / medicine, psychiatry and clinical psychology | full preprints | the preprint's |
+| **Wikipedia** (en + your language; others with a tick) | philosophy, religion, history, literature, society, general | the articles of the "Vital articles" lists, each in its domain; general culture only: medicine, physics and the other sciences come from the official repositories above | CC BY-SA 4.0 |
 | **GitHub** | programming | READMEs of the most followed repositories per topic, open licence only (MIT, Apache, BSD, GPL…) | the repository's |
 | **Documentation** | programming | Python (official archive), MDN JavaScript, the Rust book: to write code from the documentation | open licences (PSF, CC-BY-SA, MIT/Apache) |
 

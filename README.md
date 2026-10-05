@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-332%20passed-1baf7a" alt="Tests"></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-336%20passed-1baf7a" alt="Tests"></p>
 
 <p align="center">🇮🇹 <b>Italiano</b> · 🇬🇧 <a href="README.en.md">English</a></p>
 
@@ -11,14 +11,14 @@ l'approvazione del proprietario e dice "non lo so" quando il vault non lo sa.
 Tutto gira sulla macchina del proprietario: il ragionatore (llama.cpp), l'encoder e il re-ranker, il
 vault, la memoria, la WebUI. Per ogni passaggio si può scegliere un modello cloud (Claude Code, API
 Anthropic, OpenAI, Google Gemini, xAI Grok, Mistral, OpenRouter); il codice di condotta lo permette solo
-con l'esenzione firmata dal proprietario, e ciò che parte è mascherato per default.
+con l'esenzione firmata dal proprietario, e ciò che parte è sempre mascherato (nessuna impostazione lo spegne).
 
 ## ✨ Cosa la rende diversa
 
 | | Aurora | un assistente tipico (chat + modello + documenti) |
 |---|---|---|
 | 🔎 **Verità** | ogni frase della risposta è verificata sui passaggi del vault; ciò che non è supportato viene tolto, e se non c'è nulla si astiene (M32: 0 frasi non supportate su 14) | cita le fonti, ma le frasi scritte dal modello non vengono controllate una per una |
-| 📏 **Misura** | ogni scelta ha una misura numerata (M1–M35), ogni errore un numero in BUGS.md, ogni limite è scritto | le prestazioni si dichiarano, raramente si misurano in pubblico |
+| 📏 **Misura** | ogni scelta ha una misura numerata (M1–M107), ogni errore un numero in BUGS.md, ogni limite è scritto | le prestazioni si dichiarano, raramente si misurano in pubblico |
 | 🌙 **Vita propria** | consolida i ricordi, pensa quando si annoia, sogna e dipinge il sogno, fa un'autodiagnosi quotidiana dai propri log | si attiva solo quando le scrivi |
 | 🛠️ **Si ripara** | corregge il proprio codice in una sandbox, con test, la tua approvazione, test dal vivo e rollback | il codice lo cambia solo lo sviluppatore |
 | 🔏 **Regole firmate** | codice di condotta con la chiave della tua installazione: se qualcuno lo modifica senza firma, Aurora non parte | regole nel prompt, modificabili senza traccia |
@@ -33,6 +33,7 @@ con l'esenzione firmata dal proprietario, e ciò che parte è mascherato per def
 | **Risponde dal vault** | smistamento → traduzione → ricerca (encoder + re-ranker su tutti i domini) → estrazione per dominio → sintesi → **ogni frase verificata sui passaggi** → fonti. Le frasi non supportate vengono tolte (M32: 0 su 14 passano); se non trova nulla, si astiene onestamente e propone di cercare su arXiv |
 | **Vault di solitoni** | shard SQLite, conoscenza e memoria separate, deduplica per hash del contenuto, ricerca vettoriale esatta sotto i 250k vettori per dominio, HNSW sopra (M30) |
 | **Memoria** | turni a breve termine, memorie di sessione a lungo termine scritte di notte, richiamo per significato su 12 mesi, date etichettate dall'orologio |
+| **Sinapsi** | collegamenti fra conoscenze di domini diversi (un modello fisico ↔ uno biologico, Kafka ↔ l'esistenzialismo): crescono di notte dove la somiglianza è forte (≥ 0,72, il 5% più alto), si rafforzano quando due passaggi vengono citati insieme, si indeboliscono se non usati; nella ricerca portano in gara i passaggi collegati, sceglie sempre il re-ranker |
 | **Ciclo autonomo** | consolidamento, pensieri quando si annoia, un **sogno notturno dipinto con SDXL-Lightning** (marcato come IA), un'autodiagnosi quotidiana dai propri log, autoriparazione sui problemi ricorrenti |
 | **Forgia (Aurora si costruisce i plugin)** | quando le manca una capacità, scrive un plugin, lo prova nella gabbia sui dati veri e un giudice lo controlla contro i conteggi fatti dal codice (finestre di tempo comprese); quelli di sola lettura si installano da soli. Scrittore e giudice si scelgono nella pagina 🧠 Modelli: consigliato un modello cloud bravo col codice (Claude Code, o xAI Grok che costa poco: 5 su 8 al banco, M83); il modello locale ne fa meno |
 | **Artefatti** | «fammi un grafico interattivo della funzione seno»: Aurora crea una pagina interattiva (grafici, simulazioni, calcolatori) e te la mostra viva nella risposta, a schermo intero o da scaricare; gira isolata, senza rete e senza accesso ai tuoi dati |
@@ -59,7 +60,7 @@ con l'esenzione firmata dal proprietario, e ciò che parte è mascherato per def
 | **Modifica immagini** | «ritagliala ai lati e mettila in bianco e nero», «ora ruotala», «rendila più luminosa»: il ragionatore traduce la richiesta in operazioni controllate (ritaglio, rotazione, specchio, dimensioni, luce, contrasto, colori, seppia, sfocatura, formato) e Pillow le esegue; l'originale resta, il risultato compare in chat e nei 📎 File |
 | **Video** | le alleghi un video (anche dal telefono) e lo guarda: fotogrammi ai cambi di scena visti in una sola chiamata, voce trascritta con i tempi dal Whisper locale; riassunti e risposte con i minuti esatti |
 | **Sensi** | videocamera (Aurora descrive ciò che vede) e microfono (trascrizione locale con Whisper); 📷 e 🎙️ in chat, con **📱 fotocamera e microfono del telefono** (Android e iOS: la foto viene ridotta sul telefono, la voce trascritta dal Whisper di casa, mai da servizi esterni) o 🖥️ quelli del PC |
-| **Modelli per passaggio** | pagina 🧠: ognuno dei 12 passaggi (smistamento, sintesi, verifica, agente, scrittura e giudizio dei plugin, visione…) in locale o su un provider cloud; **dati sensibili mascherati per default** (IP, email, telefoni, IBAN, carte, chiavi, le tue parole) e rimessi nella risposta; se il provider fallisce torna al locale; statistiche di chiamate, costo, dati mascherati e SSCC. Le immagini non si possono mascherare: avviso esplicito |
+| **Modelli per passaggio** | pagina 🧠: ognuno dei 12 passaggi (smistamento, sintesi, verifica, agente, scrittura e giudizio dei plugin, visione…) in locale o su un provider cloud; **dati sensibili sempre mascherati** (IP, email, telefoni, IBAN, carte, chiavi, le tue parole) e rimessi nella risposta; se il provider fallisce torna al locale; statistiche di chiamate, costo, dati mascherati e SSCC. Le immagini non si possono mascherare: avviso esplicito |
 | **Guida** | pagina 📖: primi passi, configurazioni comuni (cloud, telefono, plugin, sicurezza) e a cosa serve ogni pagina |
 | **AI Act UE, art. 50** | dichiarazione su testi pubblicati, immagini (XMP/IPTC) e PDF |
 | **WebUI / PWA** | chat con risposte in diretta e token/s, formule disegnate (KaTeX) e tabelle, sogni, riparazioni, sicurezza, diario, social, plugin, harvester, impostazioni (ogni valore del `.env` spiegato), notifiche (push e nella WebUI, scelte evento per evento), aggiornamenti, IT/EN |
@@ -251,9 +252,9 @@ fino alla fine. Le fonti di ogni dominio sono in `sys/core/config/harvest_source
 |---|---|---|---|
 | **arXiv** | IA, informatica, matematica, fisica, astrofisica, statistica, economia, ingegneria, robotica… | articoli completi (PDF) | quella dell'articolo |
 | **Normattiva** | legge italiana | le collezioni ufficiali (Codici, Testi unici, Decreti legislativi, DL, regolamenti…), un passaggio per articolo, testo vigente | atto pubblico, senza diritto d'autore (L. 633/1941 art. 5) |
-| **Europe PMC** | medicina, biomedicina, genomica | testi completi open access | quella dell'articolo (cc by, cc by-nc…) |
-| **bioRxiv / medRxiv** | biomedicina, genomica / medicina | preprint completi | quella del preprint |
-| **Wikipedia** (en + la tua lingua; altre con una spunta) | filosofia, religione, storia, letteratura, società, generale | le voci delle liste «Vital articles» | CC BY-SA 4.0 |
+| **Europe PMC** | medicina, biomedicina, genomica, psicologia | testi completi open access | quella dell'articolo (cc by, cc by-nc…) |
+| **bioRxiv / medRxiv** | biomedicina, genomica, comportamento e cognizione / medicina, psichiatria e psicologia clinica | preprint completi | quella del preprint |
+| **Wikipedia** (en + la tua lingua; altre con una spunta) | filosofia, religione, storia, letteratura, società, generale | le voci delle liste «Vital articles», ognuna nel suo dominio; solo per la cultura generale: medicina, fisica e le altre scienze vengono dai repository ufficiali qui sopra | CC BY-SA 4.0 |
 | **GitHub** | programmazione | README dei repository più seguiti per argomento, solo con licenza libera (MIT, Apache, BSD, GPL…) | quella del repository |
 | **Documentazione** | programmazione | Python (archivio ufficiale), MDN JavaScript, il libro di Rust: per scrivere codice dalla documentazione | licenze aperte (PSF, CC-BY-SA, MIT/Apache) |
 

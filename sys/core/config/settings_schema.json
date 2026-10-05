@@ -866,6 +866,48 @@
    ]
   },
   {
+   "key": "AURORA_SYNAPSE_MIN",
+   "type": "float",
+   "category": "search",
+   "recommended": "0.72",
+   "evidence": "M107",
+   "en": "Similarity from which two passages of different domains are linked (a synapse): 0.72 keeps the top ~5% of each passage's best match in another domain.",
+   "it": "Somiglianza da cui due passaggi di domini diversi vengono collegati (una sinapsi): 0,72 tiene il ~5% più forte del miglior vicino di ogni passaggio in un altro dominio.",
+   "services": [
+    "aurora-api"
+   ],
+   "min": 0.5,
+   "max": 0.99
+  },
+  {
+   "key": "AURORA_SYNAPSE_EXPAND",
+   "type": "int",
+   "category": "search",
+   "recommended": "8",
+   "evidence": "M107",
+   "en": "Linked passages added to a question's candidates (the re-ranker still chooses); 0 switches the synapses off in the search.",
+   "it": "Passaggi collegati aggiunti ai candidati di una domanda (sceglie sempre il re-ranker); 0 spegne le sinapsi nella ricerca.",
+   "services": [
+    "aurora-api"
+   ],
+   "min": 0,
+   "max": 48
+  },
+  {
+   "key": "AURORA_SYNAPSE_PER_NIGHT",
+   "type": "int",
+   "category": "search",
+   "recommended": "400",
+   "evidence": "M107",
+   "en": "Passages Aurora looks at each night to grow new links (about 1 s each).",
+   "it": "Passaggi che Aurora guarda ogni notte per far crescere nuovi collegamenti (circa 1 s ciascuno).",
+   "services": [
+    "aurora-rem"
+   ],
+   "min": 0,
+   "max": 20000
+  },
+  {
    "key": "AURORA_RERANKER_DIR",
    "type": "path",
    "category": "search",

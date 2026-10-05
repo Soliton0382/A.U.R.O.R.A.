@@ -29,7 +29,10 @@ Done today and yesterday, live: the owner's list of 4 October, all 10 points (3-
 | 16 | 💻 Programming documentation — ✅ sources: Python 3.14 (official text archive), MDN JavaScript (1,342 pages), the Rust book (112) | build | harvest them, then a coding question answered from them (measure) |
 | 17 | 🌍 More interface languages (owner, 2026-10-05): beyond it/en | new | the i18n is per key: a third language file, the README's |
 | 18 | 🧪 AGI test battery — reasoning, memory over time, honesty (including disagreeing when the user is wrong), autonomy, self-repair, planning | measure | scored and repeatable |
-| 19 | GitHub page (Pages) with the charts, releases with a changelog | publish | see "What point 9 meant" below |
+| 19 | GitHub page (Pages) — docs/index.md and docs/_config.yml ready: Settings → Pages → Deploy from a branch → main, /docs; releases with a changelog still to do | publish | the owner switches Pages on |
+| 20 | 🧠 Synapses (owner, 2026-10-05) — ✅ links between domains: grown at night and from use, spread after the re-ranker, Hebbian, fading; M107: 2 linked passages chosen in 30 questions, quality within the noise | new | the effect with thousands of links, on new questions |
+| 21 | 🧠 Psychology (owner, 2026-10-05) — ✅ a domain with Europe PMC, medRxiv (psychiatry and clinical psychology), bioRxiv (animal behaviour and cognition); Wikipedia stays for general culture only | new | the harvest |
+| 22 | ↩️ Undo — ✅ the firewall's blocks (by the owner or by Aurora) undone with one click; next: a post deleted | new | — |
 
 Done on 2026-10-05 (night): menu areas open beside the menu on a PC (C138); arXiv papers from HTML (C137); updates add
 new settings before their tests and restart only their own services (C139, C140); 2 reasoner slots (M102); push
@@ -415,7 +418,7 @@ SDXL-Lightning 6.9 GB. FLUX.2 klein (23 GB) and Z-Image-Turbo (31 GB) were only 
 | the two non-reference hardware profiles | no such machine here |
 | the whole `install.sh` with its sudo steps, on another machine | M103: from GitHub, multi-user, 6 min 39 s, 303 tests, first configuration; the sudo steps for missing packages need a machine without them |
 | ~~Web Push delivery on phones~~ | ✅ measured: 146 pushes from 30 September to 5 October, 146 accepted by the push service, 0 failed, 2 expired subscriptions dropped by themselves |
-| an update from the public repository (HTTPS, no key) | the clone over HTTPS with no key: ✅ (M103); a `git pull` update: measured on the clone after the next publish |
+| ~~an update from the public repository~~ | ✅ the clone updated itself from GitHub: 332 tests, 19.7 s (M103) |
 | ~~the nightly backup started by its timer~~ | ✅ measured: 4 October 23:00, 1,590 files, 30.89 GB in 53 s (the time moved by C122) |
 
 ## Still to implement (2026-10-01)

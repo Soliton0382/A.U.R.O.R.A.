@@ -70,15 +70,52 @@ class Searcher:
         t3 = time.time()
         ranked = sorted(zip(order, scores, use_translation), key=lambda x: -x[1])[:top_k]
         hits = [Hit(sid, sols[sid], dense[sid], float(s), "translation" if tr else "original") for sid, s, tr in ranked]
+        spread: set[str] = set()
+        if int(self.cfg["AURORA_SYNAPSE_EXPAND"]) > 0 and (sections is None or "knowledge" in sections):
+            hits, spread = self._synapses(hits, question, translation, top_k)
+            self._grow_where_used([h.sid for h in hits])
+        through = [h.sid for h in hits if h.sid in spread]          # brought by a synapse and chosen by the re-ranker
+        if through:
+            from . import kno_synapse
+            kno_synapse.used(self.cfg, through)
         self.log.info("search: %d queries, %d candidates, %d kept | encode %.2f s, vector %.3f s, rerank %.2f s",
                       len(queries), len(order), len(hits), t1 - t0, t2 - t1, t3 - t2)
         sys_log.trace("search", "retrieval.hits",
-                      {"question": question, "translated": bool(translation), "candidates": len(order),
+                      {"question": question, "translated": bool(translation), "candidates": len(order), "synapses": {"added": len(spread), "kept": through},
                        "hits": [{"sid": h.sid, "domain": h.soliton.domain, "rerank": round(h.rerank, 4),
                                  "dense": round(h.dense, 4)} for h in hits],
                        "seconds": {"encode": round(t1 - t0, 3), "vector": round(t2 - t1, 3), "rerank": round(t3 - t2, 3)}},
                       run_id=run_id)
         return hits
+
+    def _grow_where_used(self, sids: list[str]) -> None:
+        """Synapses form where knowledge is used: the passages of this question get their links, in the background."""
+        import threading
+        from . import kno_synapse
+
+        def work():
+            try:
+                kno_synapse.grow_for(self.cfg, self.reader, self.index, self.embedder, sids)
+            except Exception as e:                        # noqa: BLE001 — never a cost to the answer
+                self.log.warning("synapses: growth from use failed: %s", e)
+        threading.Thread(target=work, name="synapse-grow", daemon=True).start()
+
+    def _synapses(self, hits: list[Hit], question: str, translation: str | None, top_k: int) -> tuple[list[Hit], set[str]]:
+        """The passages linked to the chosen ones (kno_synapse) read by the re-ranker with the same question; one that
+        beats the weakest chosen passage takes its place. Measured: from the vector candidates a link added nothing
+        (its neighbours were there already), from the chosen passages it reaches new ones (M107)."""
+        from . import kno_synapse
+        nb = kno_synapse.neighbours(self.cfg, [h.sid for h in hits], int(self.cfg["AURORA_SYNAPSE_EXPAND"]))
+        sols = self.reader.get_many({sid: 0 for sid, _, _ in nb})
+        new = [sid for sid, _, _ in nb if sid in sols]
+        if not new:
+            return hits, set()
+        use_tr = [bool(translation) and sols[sid].lang == "en" for sid in new]
+        scores = self.reranker.score([((translation if tr else question), sols[sid].text) for sid, tr in zip(new, use_tr)])
+        extra = [Hit(sid, sols[sid], 0.0, float(sc), "translation" if tr else "original")
+                 for sid, sc, tr in zip(new, scores, use_tr)]
+        merged = sorted(hits + extra, key=lambda h: -h.rerank)[:top_k]
+        return merged, set(new)
 
     @staticmethod
     def group_by_domain(hits: list[Hit]) -> dict[str, list[Hit]]:

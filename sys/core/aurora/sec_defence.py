@@ -117,14 +117,31 @@ def act(cfg: sys_config.Config, incident: dict) -> dict:
     return {**out, "until": rec["until"]}
 
 
-def release(cfg: sys_config.Config, ip: str, by: str = "time") -> dict:
-    out = sec_fwapi.unblock(cfg, ip)
+RULE = "Aurora_Block_List"      # the name suggested for the owner's drop rule on the firewall (Aurora writes no rule)
+
+
+def record_manual(cfg: sys_config.Config, ip: str, reason: str) -> None:
+    """A block made by the owner's click: kept here too, so the Security page can undo it (no expiry)."""
+    now = time.time()
+    with _lock:
+        items = _load(cfg)
+        items.append({"ip": ip, "at": now, "until": now + 10 * 365 * 86400, "day": time.strftime("%Y-%m-%d"),
+                      "incident": None, "kind": "manual", "reason": reason, "auto": False, "released": None})
+        _save(cfg, items)
+
+
+def mark_released(cfg: sys_config.Config, ip: str, by: str) -> None:
     with _lock:
         items = _load(cfg)
         for b in items:
             if b["ip"] == ip and not b.get("released"):
                 b["released"], b["released_by"] = time.time(), by
         _save(cfg, items)
+
+
+def release(cfg: sys_config.Config, ip: str, by: str = "time") -> dict:
+    out = sec_fwapi.unblock(cfg, ip)
+    mark_released(cfg, ip, by)
     sys_log.get_logger("security").info("audit: block of %s lifted (%s)", ip, by)
     sys_log.trace("security", "defence.release", {"ip": ip, "by": by})
     return out
@@ -133,7 +150,7 @@ def release(cfg: sys_config.Config, ip: str, by: str = "time") -> dict:
 def release_due(cfg: sys_config.Config) -> list[str]:
     """Lift every automatic block whose time is over; an error leaves it for the next round."""
     now, done = time.time(), []
-    for b in [b for b in _load(cfg) if not b.get("released") and b["until"] <= now]:
+    for b in [b for b in _load(cfg) if not b.get("released") and b["until"] <= now and b.get("auto", True)]:
         try:
             release(cfg, b["ip"])
             done.append(b["ip"])
@@ -147,5 +164,5 @@ def summary(cfg: sys_config.Config) -> dict:
     items = _load(cfg)
     return {"mode": str(cfg["AURORA_DEFENCE_MODE"]), "hours": cfg["AURORA_DEFENCE_HOURS"],
             "min_severity": str(cfg["AURORA_DEFENCE_MIN_SEVERITY"]), "max_per_day": cfg["AURORA_DEFENCE_MAX_PER_DAY"],
-            "protected": [str(n) for n in protected(cfg)], "today": sum(1 for b in items if b.get("auto") and b.get("day") == today),
+            "protected": [str(n) for n in protected(cfg)], "group": str(cfg["AURORA_FIREWALL_BLOCK_GROUP"]), "rule": RULE, "today": sum(1 for b in items if b.get("auto") and b.get("day") == today),
             "active": active(cfg), "history": items[-50:][::-1], "configured": sec_fwapi.configured(cfg)}

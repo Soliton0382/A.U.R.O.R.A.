@@ -36,6 +36,12 @@ export default {
     // answered and declined questions on knowledge, 7 days (owner, 2026-10-05: honesty measured, not claimed)
     const ans = await call("/v1/aurora/answers/stats?days=7").catch(() => null);
     if (ans && ans.questions) box.append(el("p", "", t("status.answers", { q: ans.questions, a: ans.answered, d: ans.declined, p: ans.declined_pct })));
+    const syn = await call("/v1/aurora/synapses").catch(() => null);     // links between domains (kno_synapse)
+    if (syn) {
+      const pairs = syn.pairs.map((x) => `${x.a} ↔ ${x.b} ${x.n}`).join(" · ");
+      box.append(el("p", "", t("status.synapses", { n: syn.links, u: syn.used, d: syn.today }) + (syn.growing ? ` ${t("status.syn_growing")}` : "")),
+        ...(pairs ? [el("p", "muted", pairs)] : []));
+    }
     // the soak, measured by itself (owner, 2026-10-05): a line a day — memory per service, restarts, logs, swaps
     const soak = await call("/v1/aurora/soak?days=14").catch(() => []);
     if (soak.length) {

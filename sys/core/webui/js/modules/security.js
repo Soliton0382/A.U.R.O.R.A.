@@ -75,7 +75,17 @@ export default {
       const block = el("button", "danger", `⛔ ${t("sec.block", { ip: i.source })}`);
       block.addEventListener("click", async () => {
         if (!confirm(t("sec.block_q", { ip: i.source, group: this.group }))) return;
-        try { await call("/v1/aurora/security/block", { method: "POST", body: JSON.stringify({ ip: i.source, reason: `${i.kind} ${i.id}` }) }); alert(t("sec.blocked", { ip: i.source })); }
+        try {
+          await call("/v1/aurora/security/block", { method: "POST", body: JSON.stringify({ ip: i.source, reason: `${i.kind} ${i.id}` }) });
+          const undo = el("button", "", `↩️ ${t("sec.undo", { ip: i.source })}`);    // changed my mind: one click back
+          undo.addEventListener("click", async () => {
+            try { await call("/v1/aurora/security/block", { method: "POST", body: JSON.stringify({ ip: i.source, unblock: true }) });
+              undo.replaceWith(el("span", "ok", t("sec.undone", { ip: i.source }))); this.loadDefence(); }
+            catch (e) { alert(e.message); }
+          });
+          block.replaceWith(undo);
+          this.loadDefence();
+        }
         catch (e) { alert(e.message); }
       });
       c.append(block);
@@ -160,14 +170,31 @@ export default {
         try { await call("/v1/aurora/security/defence/release", { method: "POST", body: JSON.stringify({ ip: b.ip }) }); this.loadDefence(); }
         catch (e) { alert(e.message); lift.disabled = false; }
       });
-      r.append(el("strong", "", `⛔ ${b.ip}`), el("span", "muted", ` ${b.kind} · ${t("sec.def_until", { until: new Date(b.until * 1000).toLocaleString() })} `), lift);
+      lift.textContent = `↩️ ${t("sec.undo", { ip: b.ip })}`;
+      r.append(el("strong", "", `⛔ ${b.ip}`), el("span", "muted", b.auto
+        ? ` ${b.kind} · ${t("sec.def_until", { until: new Date(b.until * 1000).toLocaleString() })} ` : ` ${t("sec.def_manual")} · ${b.reason || ""} `), lift);
       return r;
     });
     const hist = el("details", "report");
     hist.append(el("summary", "", t("sec.def_history", { n: d.history.length })),
       ...d.history.map((b) => el("p", "", `${new Date(b.at * 1000).toLocaleString()} · ${b.ip} · ${b.kind} · `
         + (b.released ? t("sec.def_released", { by: t(`sec.def_by.${b.released_by}`) }) : t("sec.def_active")))));
-    this.defence.replaceChildren(head, prot, ...(d.configured ? [] : [el("p", "warn", t("sec.def_no_api"))]), ...act, go, hist);
+    // the firewall's side, said only once its API is set: the group Aurora fills and the drop rule the owner makes
+    const fw = [];
+    if (d.configured) {
+      const box = el("details", "report");
+      box.append(el("summary", "", `🧱 ${t("sec.fw_setup")}`), el("p", "", t("sec.fw_names", { group: d.group, rule: d.rule })));
+      const test = el("button", "", `🔌 ${t("sec.fw_test")}`), res = el("span", "muted");
+      test.addEventListener("click", async () => {
+        res.textContent = "…";
+        try { const r = await call("/v1/aurora/security/firewall/test", { method: "POST" });
+          res.textContent = r.group_exists ? t("sec.fw_ok", { group: d.group }) : t("sec.fw_nogroup", { group: d.group }); }
+        catch (e) { res.textContent = t("ev.error", { m: e.message }); }
+      });
+      box.append(test, res);
+      fw.push(box);
+    } else fw.push(el("p", "warn", t("sec.def_no_api")));
+    this.defence.replaceChildren(head, prot, ...fw, ...act, go, hist);
   },
 
   // what left this machine (owner, 2026-10-05): measured from the traces, today and the last 7 days

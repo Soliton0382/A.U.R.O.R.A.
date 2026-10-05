@@ -73,3 +73,12 @@ def test_unblock_takes_the_host_out_of_the_group_before_removing_it(cfg, monkeyp
     monkeypatch.setattr(sec_fwapi, "request", fake)
     assert sec_fwapi.unblock(cfg, "45.33.32.156")["status"] == "200"
     assert "<HostGroupList></HostGroupList>" in sent[0] and sent[1].startswith("<Remove>")
+
+
+def test_a_block_by_the_owner_never_expires_by_itself_and_is_undone_with_a_click(cfg, firewall, monkeypatch):
+    sec_defence.record_manual(cfg, "45.33.32.200", "ips_alert i9")
+    later = time.time() + 400 * 86400
+    monkeypatch.setattr(time, "time", lambda: later)
+    assert sec_defence.release_due(cfg) == [] and [b["ip"] for b in sec_defence.active(cfg)] == ["45.33.32.200"]
+    sec_defence.release(cfg, "45.33.32.200", "owner")                     # "Annulla"
+    assert firewall[-1] == ("unblock", "45.33.32.200") and sec_defence.active(cfg) == []
