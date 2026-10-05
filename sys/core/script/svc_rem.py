@@ -123,6 +123,7 @@ def main() -> int:
             t = client.post(f"{BASE}/v1/aurora/routines/tick").raise_for_status().json()
             if t["started"] or t["welcomed"]:
                 log.info("routines started: %s; plugins welcomed: %s", t["started"], t["welcomed"])
+            client.post(f"{BASE}/v1/aurora/synapses/level2", params={"if_due": "true"})   # synapses of synapses when due
             f = client.post(f"{BASE}/v1/aurora/forge/tick").raise_for_status().json()
             if f["started"]:
                 log.info("forge: building a missing capability, run %s", f["started"])

@@ -908,6 +908,34 @@
    "max": 20000
   },
   {
+   "key": "AURORA_SYNAPSE_L2_MIN",
+   "type": "float",
+   "category": "search",
+   "recommended": "0.6",
+   "evidence": "M108",
+   "en": "Synapses of synapses: A↔B↔C become A↔C (level 2) when A and C are this similar themselves; measured, the pairs fall at 0.23-0.31 (only a shared bridge) or 0.60-0.76 (related).",
+   "it": "Sinapsi fra sinapsi: A↔B↔C diventa A↔C (livello 2) quando A e C sono simili almeno così; misurato, le coppie stanno a 0,23-0,31 (solo un ponte in comune) o a 0,60-0,76 (imparentate).",
+   "services": [
+    "aurora-api"
+   ],
+   "min": 0.3,
+   "max": 0.99
+  },
+  {
+   "key": "AURORA_SYNAPSE_L2_EVERY",
+   "type": "int",
+   "category": "search",
+   "recommended": "50",
+   "evidence": "owner, 2026-10-05",
+   "en": "New links after which the level-2 round runs by itself (triads, concepts named by the local model).",
+   "it": "Nuovi collegamenti dopo i quali parte da solo il giro di livello 2 (terne, concetti con un nome dal modello locale).",
+   "services": [
+    "aurora-api"
+   ],
+   "min": 5,
+   "max": 100000
+  },
+  {
    "key": "AURORA_RERANKER_DIR",
    "type": "path",
    "category": "search",

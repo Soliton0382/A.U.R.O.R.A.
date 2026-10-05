@@ -27,12 +27,13 @@ import runs from "./modules/runs.js";
 import settings from "./modules/settings.js";
 import security from "./modules/security.js";
 import sky from "./modules/sky.js";
+import synapses from "./modules/synapses.js";
 import social from "./modules/social.js";
 import status from "./modules/status.js";
 import updates from "./modules/updates.js";
 import users from "./modules/users.js";
 
-export const views = [chat, approvals, reports, security, autonomy, diary, memory, social, dj, care, projects, routines, models, plugins, importDocs, uploads, harvester, runs, status, notifications, updates, users, settings, guide, bugreport];
+export const views = [chat, approvals, reports, security, autonomy, diary, memory, social, dj, care, projects, routines, models, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, settings, guide, bugreport];
 export const widgets = [sky, alerts, metrics];
 
 // the side menu in areas (owner, 2026-10-05): an area of one page is a plain entry; the others open on a tap
@@ -42,7 +43,7 @@ export const groups = [
   { id: "activity", icon: "🛎️", title: "nav.g.activity", views: ["approvals", "notifications", "reports", "runs"] },
   { id: "life", icon: "✨", title: "nav.g.life", views: ["diary", "memory", "social", "dj", "care"] },
   { id: "work", icon: "🛠️", title: "nav.g.work", views: ["projects", "routines", "uploads"] },
-  { id: "knowledge", icon: "📚", title: "nav.g.knowledge", views: ["import", "harvester"] },
+  { id: "knowledge", icon: "📚", title: "nav.g.knowledge", views: ["import", "harvester", "synapses"] },
   { id: "security", views: ["security"] },
   { id: "autonomy", views: ["autonomy"] },
   { id: "system", icon: "⚙️", title: "nav.g.system", views: ["status", "models", "plugins", "users", "settings", "updates"] },

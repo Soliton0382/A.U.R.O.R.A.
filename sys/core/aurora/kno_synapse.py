@@ -17,6 +17,7 @@ State: <AURORA_STATUS_DIR>/synapses.db (SQLite): the knowledge is shared, so are
 """
 from __future__ import annotations
 
+import re
 import sqlite3
 import threading
 import time
@@ -39,7 +40,33 @@ def _db(cfg: sys_config.Config) -> sqlite3.Connection:
     con.execute("CREATE INDEX IF NOT EXISTS links_b ON links (b)")
     con.execute("CREATE TABLE IF NOT EXISTS cursor (domain TEXT PRIMARY KEY, shard TEXT, row INTEGER)")
     con.execute("CREATE TABLE IF NOT EXISTS looked (sid TEXT PRIMARY KEY, at REAL)")
+    have = {r[1] for r in con.execute("PRAGMA table_info(links)")}
+    for col, decl in (("pinned", "INTEGER DEFAULT 0"), ("level", "INTEGER DEFAULT 1"), ("active", "INTEGER DEFAULT 1"),
+                      ("note", "TEXT DEFAULT ''")):
+        if col not in have:                           # an older synapses.db: the columns of 2026-10-05 evening
+            con.execute(f"ALTER TABLE links ADD COLUMN {col} {decl}")
+    con.execute("CREATE TABLE IF NOT EXISTS concepts (id INTEGER PRIMARY KEY, members TEXT, domains TEXT, name TEXT,"
+                " made REAL)")
+    con.execute("CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT)")
     return con
+
+
+REFS = re.compile(r"\[\d{1,3}\]\s*[A-Z]|et al\.|doi:|arXiv:\d")
+
+
+def references(text: str) -> bool:
+    """A bibliography's passage: lists of references look alike by their form, not by what they say (M107 bis)."""
+    return len(REFS.findall(text)) >= 4
+
+
+def same_source(x, y) -> bool:
+    """Two passages of one document — the same source, or the same title (an article that came twice: from the
+    previous installation in literature, from the harvester in religion, M108): a link would teach nothing."""
+    sx, sy = getattr(x, "source_id", None), getattr(y, "source_id", None)
+    if sx and sx == sy:
+        return True
+    tx, ty = (re.sub(r"\W+", " ", str(getattr(o, "title", "") or "")).strip().lower() for o in (x, y))
+    return len(tx) >= 6 and tx == ty
 
 
 def _pair(a: str, b: str) -> tuple[str, str]:
@@ -73,14 +100,16 @@ def grow(cfg: sys_config.Config, reader, index, embedder, limit: int) -> dict:
                 break
         if not batch:
             continue
-        vecs = embedder.encode_queries([s.text[:1500] for s in batch])
-        for s, found in zip(batch, index.search(np.asarray(vecs), 30, {"knowledge"}, None)):
+        seen += len(batch)                                # looked at, bibliographies included (they get no link)
+        useful = [s for s in batch if not references(s.text)]
+        vecs = embedder.encode_queries([s.text[:1500] for s in useful]) if useful else []
+        for s, found in zip(useful, index.search(np.asarray(vecs), 30, {"knowledge"}, None) if useful else []):
             near = [(sid, sc) for sid, sc, _, _ in found if sid != s.sid and sc >= cfg["AURORA_SYNAPSE_MIN"]]
             got = reader.get_many({sid: 0 for sid, _ in near})
-            for sid, sc in [(sid, sc) for sid, sc in near if sid in got and got[sid].domain != d][:3]:
+            for sid, sc in [(sid, sc) for sid, sc in near if sid in got and got[sid].domain != d
+                            and not references(got[sid].text) and not same_source(s, got[sid])][:3]:
                 link(cfg, (s.sid, d), (sid, got[sid].domain), sc)
                 made += 1
-        seen += len(batch)
         with _lock, closing(_db(cfg)) as con, con:
             con.execute("INSERT OR REPLACE INTO cursor VALUES (?, ?, ?)", (d, last[0], last[1]))
         if seen >= limit:
@@ -95,7 +124,7 @@ def grow_for(cfg: sys_config.Config, reader, index, embedder, sids: list[str]) -
         q = ",".join("?" * len(sids))
         done = {r[0] for r in con.execute(f"SELECT sid FROM looked WHERE sid IN ({q})", sids)} if sids else set()
     todo = [s for s in reader.get_many({sid: 0 for sid in sids if sid not in done}).values()]
-    todo = [s for s in todo if s.kind not in ("conversation", "reflection")]
+    todo = [s for s in todo if s.kind not in ("conversation", "reflection") and not references(s.text)]
     if not todo:
         return 0
     made = 0
@@ -103,7 +132,8 @@ def grow_for(cfg: sys_config.Config, reader, index, embedder, sids: list[str]) -
     for s, found in zip(todo, index.search(np.asarray(vecs), 30, {"knowledge"}, None)):
         near = [(sid, sc) for sid, sc, _, _ in found if sid != s.sid and sc >= cfg["AURORA_SYNAPSE_MIN"]]
         got = reader.get_many({sid: 0 for sid, _ in near})
-        for sid, sc in [(sid, sc) for sid, sc in near if sid in got and got[sid].domain != s.domain][:3]:
+        for sid, sc in [(sid, sc) for sid, sc in near if sid in got and got[sid].domain != s.domain
+                        and not references(got[sid].text) and not same_source(s, got[sid])][:3]:
             link(cfg, (s.sid, s.domain), (sid, got[sid].domain), sc, kind="activity")
             made += 1
     with _lock, closing(_db(cfg)) as con, con:
@@ -118,7 +148,7 @@ def neighbours(cfg: sys_config.Config, sids: list[str], limit: int) -> list[tupl
     given = set(sids)
     q = ",".join("?" * len(sids))
     with closing(_db(cfg)) as con:
-        rows = con.execute(f"SELECT a, b, w FROM links WHERE a IN ({q}) OR b IN ({q})", sids + sids).fetchall()
+        rows = con.execute(f"SELECT a, b, w FROM links WHERE active = 1 AND (a IN ({q}) OR b IN ({q}))", sids + sids).fetchall()
     out: dict[str, tuple[float, str]] = {}
     for a, b, w in rows:
         for src, dst in ((a, b), (b, a)):
@@ -133,41 +163,94 @@ def used(cfg: sys_config.Config, sids: list[str]) -> None:
         return
     q = ",".join("?" * len(sids))
     with _lock, closing(_db(cfg)) as con, con:
-        con.execute(f"UPDATE links SET last = ?, uses = uses + 1 WHERE a IN ({q}) OR b IN ({q})", [time.time()] + sids + sids)
+        con.execute(f"UPDATE links SET last = ?, uses = uses + 1 WHERE active = 1 AND (a IN ({q}) OR b IN ({q}))",
+                    [time.time()] + sids + sids)
 
 
-def strengthen(cfg: sys_config.Config, cited: list[tuple[str, str]]) -> int:
-    """Passages (sid, domain) cited together in one answer: each cross-domain pair linked, or its link stronger."""
+def strengthen(cfg: sys_config.Config, cited: list[tuple]) -> int:
+    """Passages (sid, domain[, source]) cited together in one answer: each cross-domain pair of different documents
+    linked, or its link stronger."""
     n, now = 0, time.time()
-    for i, (a, da) in enumerate(cited):
-        for b, db in cited[i + 1:]:
-            if da == db or a == b:
+    for i, x in enumerate(cited):
+        for y in cited[i + 1:]:
+            (a, da), (b, db) = x[:2], y[:2]
+            if da == db or a == b or (len(x) > 2 and len(y) > 2 and x[2] and x[2] == y[2]):
                 continue
-            x, y = _pair(a, b)
-            dx, dy = (da, db) if x == a else (db, da)
+            lo, hi = _pair(a, b)
+            dlo, dhi = (da, db) if lo == a else (db, da)
             with _lock, closing(_db(cfg)) as con, con:
                 con.execute("INSERT INTO links (a, b, da, db, w, kind, made, last, uses) VALUES (?, ?, ?, ?, ?, 'hebb', ?, ?, 1) "
-                            "ON CONFLICT (a, b) DO UPDATE SET w = min(1.0, w + ?), last = ?, uses = uses + 1",
-                            (x, y, dx, dy, HEBB_NEW, now, now, HEBB_STEP, now))
+                            "ON CONFLICT (a, b) DO UPDATE SET w = min(1.0, w + ?), last = ?, uses = uses + 1, active = 1",
+                            (lo, hi, dlo, dhi, HEBB_NEW, now, now, HEBB_STEP, now))
             n += 1
     return n
 
 
 def fade(cfg: sys_config.Config, now: float | None = None) -> dict:
-    """Once a day: links unused for a week lose FADE_DAY; those below FADE_FLOOR are gone."""
+    """Once a day: links unused for a week lose FADE_DAY, except those the owner pinned; below FADE_FLOOR a link is
+    put to sleep, not deleted (owner, 2026-10-05: he may want a faded concept back) — it no longer spreads."""
     now = now or time.time()
     with _lock, closing(_db(cfg)) as con, con:
-        weaker = con.execute("UPDATE links SET w = w - ? WHERE last < ?", (FADE_DAY, now - FADE_AFTER)).rowcount
-        gone = con.execute("DELETE FROM links WHERE w < ?", (FADE_FLOOR,)).rowcount
+        weaker = con.execute("UPDATE links SET w = w - ? WHERE last < ? AND pinned = 0 AND active = 1",
+                             (FADE_DAY, now - FADE_AFTER)).rowcount
+        gone = con.execute("UPDATE links SET active = 0 WHERE w < ? AND pinned = 0 AND active = 1", (FADE_FLOOR,)).rowcount
     return {"weaker": weaker, "gone": gone}
+
+
+def edit(cfg: sys_config.Config, a: str, b: str, w: float | None = None, pinned: bool | None = None,
+         active: bool | None = None, delete: bool = False) -> dict | None:
+    """The owner's hand on a link: its weight, pinned (never fades), awake again, or deleted."""
+    x, y = _pair(a, b)
+    with _lock, closing(_db(cfg)) as con, con:
+        if delete:
+            con.execute("DELETE FROM links WHERE a = ? AND b = ?", (x, y))
+            return None
+        if w is not None:
+            con.execute("UPDATE links SET w = ?, active = CASE WHEN ? >= ? THEN 1 ELSE active END, last = ? "
+                        "WHERE a = ? AND b = ?", (max(0.0, min(1.0, float(w))), float(w), FADE_FLOOR, time.time(), x, y))
+        if pinned is not None:
+            con.execute("UPDATE links SET pinned = ? WHERE a = ? AND b = ?", (int(bool(pinned)), x, y))
+        if active is not None:
+            con.execute("UPDATE links SET active = ?, w = CASE WHEN ? = 1 AND w < ? THEN ? ELSE w END, last = ? "
+                        "WHERE a = ? AND b = ?", (int(bool(active)), int(bool(active)), FADE_FLOOR, HEBB_NEW, time.time(), x, y))
+        row = con.execute("SELECT a, b, da, db, w, kind, made, last, uses, pinned, level, active, note FROM links "
+                          "WHERE a = ? AND b = ?", (x, y)).fetchone()
+    return _row(row) if row else None
+
+
+def _row(r) -> dict:
+    keys = ("a", "b", "da", "db", "w", "kind", "made", "last", "uses", "pinned", "level", "active", "note")
+    return dict(zip(keys, r))
+
+
+def listing(cfg: sys_config.Config, active: bool = True, domain: str = "", level: int = 0, limit: int = 100,
+            offset: int = 0) -> list[dict]:
+    """The links for the Synapses page: awake or asleep, of a domain, of a level; strongest first."""
+    where, args = ["active = ?"], [int(active)]
+    if domain:
+        where.append("(da = ? OR db = ?)")
+        args += [domain, domain]
+    if level:
+        where.append("level = ?")
+        args.append(int(level))
+    with closing(_db(cfg)) as con:
+        rows = con.execute(f"SELECT a, b, da, db, w, kind, made, last, uses, pinned, level, active, note FROM links "
+                           f"WHERE {' AND '.join(where)} ORDER BY pinned DESC, w DESC LIMIT ? OFFSET ?",
+                           args + [int(limit), int(offset)]).fetchall()
+    return [_row(r) for r in rows]
 
 
 def stats(cfg: sys_config.Config) -> dict:
     with closing(_db(cfg)) as con:
-        total, used_ = con.execute("SELECT count(*), sum(uses > 0) FROM links").fetchone()
-        kinds = dict(con.execute("SELECT kind, count(*) FROM links GROUP BY kind").fetchall())
-        pairs = con.execute("SELECT min(da, db), max(da, db), count(*) n FROM links GROUP BY min(da, db), max(da, db) "
+        total, used_ = con.execute("SELECT count(*), sum(uses > 0) FROM links WHERE active = 1").fetchone()
+        asleep, pinned = con.execute("SELECT sum(active = 0), sum(pinned = 1) FROM links").fetchone()
+        levels = dict(con.execute("SELECT level, count(*) FROM links WHERE active = 1 GROUP BY level").fetchall())
+        concepts = con.execute("SELECT count(*) FROM concepts").fetchone()[0]
+        kinds = dict(con.execute("SELECT kind, count(*) FROM links WHERE active = 1 GROUP BY kind").fetchall())
+        pairs = con.execute("SELECT min(da, db), max(da, db), count(*) n FROM links WHERE active = 1 "
+                            "GROUP BY min(da, db), max(da, db) "
                             "ORDER BY n DESC LIMIT 8").fetchall()      # a pair of domains once, whatever the order
-        day = con.execute("SELECT count(*) FROM links WHERE made > ?", (time.time() - 86400,)).fetchone()[0]
-    return {"links": total or 0, "used": used_ or 0, "kinds": kinds, "today": day,
+        day = con.execute("SELECT count(*) FROM links WHERE active = 1 AND made > ?", (time.time() - 86400,)).fetchone()[0]
+    return {"links": total or 0, "used": used_ or 0, "kinds": kinds, "today": day, "asleep": asleep or 0,
+            "pinned": pinned or 0, "levels": levels, "concepts": concepts,
             "pairs": [{"a": a, "b": b, "n": n} for a, b, n in pairs]}

@@ -910,6 +910,23 @@ suite green in the sandbox (328 passed), proposed — refused by the API still r
 right** — each bug found from the symptom alone, fixed, the whole suite green in the sandbox, the change proposed
 (90, 130, 140, 110 s); every proposal refused by the benchmark, the live code untouched.
 
+## M108 — Synapses of synapses, and what the first links really were (5 October 2026)
+
+Level 2 threshold first: in the first graph, the triads A↔B↔C with A and C of different domains and not linked (12):
+the A–C similarities fall in two groups, 0.23-0.31 (two passages that only share a bridge) and 0.60-0.76 (related);
+AURORA_SYNAPSE_L2_MIN = 0.60, in the gap. Then the first concepts (groups of ≥ 3 passages held by links ≥ 0.6
+across ≥ 2 domains, named by the local model) showed what the 151 links of the day were: **42 between bibliographies**
+(lists of references alike by their form) and **47 between two copies of one document** (Existentialism, harvested
+once by the previous installation in literature and again by the harvester in religion — different source ids, the
+same title): **89 of 151 were noise** (C149), now asleep (not deleted, visible in the page). Rules added: no synapse
+for a passage that is a bibliography, none between passages of one document (same source or same title). Left: **64
+active links, 10 concepts**, each one a real idea across fields — dark energy models (physics, relativity), Rastall
+and unimodular gravity, quantum field theory (computer science, condensed matter, quantum physics, relativity),
+short-term weather forecasting (AI, earth science), the Enlightenment and the Encyclopédie (history, literature), Greek
+myth and religion, empirical positivism, civilisations and astronomy, line-of-sight acceleration, and one weak group
+(stability across economics, nonlinear science, particle physics). Level-2 links made so far: 2, both between copies
+of one document (asleep): the graph is still too small for triads. A round takes 2-5 s.
+
 ## M107 — Synapses: links between domains, grown, used, measured (5 October 2026)
 
 Threshold first: 200 random passages of 33 domains, each one's best match by vector in ANOTHER domain: percentiles

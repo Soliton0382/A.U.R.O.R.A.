@@ -17,7 +17,7 @@ class Reader:
         return [r for r in rows if after is None or r[1] > after[1]]
 
     def get_many(self, sids):
-        return {s: SimpleNamespace(sid=s, domain=P[s]) for s in sids if s in P}
+        return {s: SimpleNamespace(sid=s, domain=P[s], text=s) for s in sids if s in P}
 
 
 class Index:
@@ -69,3 +69,63 @@ def test_activity_makes_synapses_once_per_passage(cfg):
     assert S.grow_for(cfg, R(), idx, Embedder(idx), ["p1"]) == 1          # p1 ↔ b1, used: linked now
     assert S.grow_for(cfg, R(), idx, Embedder(idx), ["p1"]) == 0          # looked at already: not again
     assert S.stats(cfg)["kinds"] == {"activity": 1}
+
+
+def test_synapses_of_synapses_and_concepts(cfg):
+    """A↔B↔C: A↔C of level 2 only when A and C are similar themselves; strong groups become named concepts (M108)."""
+    from aurora import kno_synapse2 as S2
+    cfg.values.update(AURORA_SYNAPSE_L2_MIN=0.6, AURORA_SYNAPSE_L2_EVERY=2)
+    S.link(cfg, ("p1", "physics"), ("b1", "biomedicine"), 0.8)
+    S.link(cfg, ("b1", "biomedicine"), ("l1", "literature"), 0.8)
+    S.link(cfg, ("b1", "biomedicine"), ("x1", "history"), 0.8)
+    vec = {"p1": [1, 0, 0], "l1": [0.9, 0.1, 0], "x1": [0, 0, 1]}          # p1~l1 related, x1 apart
+
+    class Emb:
+        def encode_queries(self, texts):
+            return [vec[t] for t in texts]
+
+    class R:
+        def get_many(self, sids):
+            dom = {"p1": "physics", "b1": "biomedicine", "l1": "literature", "x1": "history"}
+            return {s: SimpleNamespace(sid=s, text=s, title=s.upper(), domain=dom[s]) for s in sids}
+
+    class Namer:
+        def complete(self, *a, **k):
+            return SimpleNamespace(answer="Modelli di crescita\n")
+    assert S2.due(cfg)
+    out = S2.round_(cfg, R(), Emb(), Namer())
+    assert out["candidates"] == 3 and out["made"] == 1                     # only p1↔l1
+    assert [(x["a"], x["b"], x["level"]) for x in S.listing(cfg, level=2)] == [("l1", "p1", 2)]
+    c = S2.list_concepts(cfg)
+    assert len(c) == 1 and c[0]["name"] == "Modelli di crescita" and len(c[0]["members"]) == 4
+    assert not S2.due(cfg)                                                 # nothing new since the round
+
+
+def test_the_owner_pins_wakes_and_deletes(cfg):
+    S.link(cfg, ("p1", "physics"), ("b1", "biomedicine"), 0.55)
+    S.edit(cfg, "b1", "p1", pinned=True)
+    later = time.time() + 60 * 86400
+    for _ in range(30):
+        S.fade(cfg, later)
+    assert S.listing(cfg)[0]["w"] == 0.55                                  # pinned: never fades
+    S.edit(cfg, "p1", "b1", pinned=False)
+    for _ in range(10):
+        S.fade(cfg, later)
+    assert S.listing(cfg) == [] and len(S.listing(cfg, active=False)) == 1  # asleep, not gone
+    assert S.edit(cfg, "p1", "b1", active=True)["active"] == 1              # woken by the owner
+    assert S.edit(cfg, "p1", "b1", delete=True) is None and S.listing(cfg, active=False) == []
+
+
+def test_no_synapse_between_two_copies_of_one_document(cfg):
+    """An article harvested in two domains (Existentialism in literature and religion) is not a link (M108)."""
+    assert S.strengthen(cfg, [("e1", "literature", "wikipedia:Existentialism"), ("e2", "religion", "wikipedia:Existentialism"),
+                              ("k1", "philosophy", "wikipedia:Kafka")]) == 2
+    assert {(x["a"], x["b"]) for x in S.listing(cfg)} == {("e1", "k1"), ("e2", "k1")}
+    assert S.same_source(SimpleNamespace(source_id="x"), SimpleNamespace(source_id="x"))
+    assert not S.same_source(SimpleNamespace(source_id=None), SimpleNamespace(source_id=None))
+
+
+def test_the_same_article_twice_is_one_document():
+    a = SimpleNamespace(source_id="legacy:wiki_Existentialism", title="Existentialism")
+    b = SimpleNamespace(source_id="doc:0d60e5", title="Existentialism")
+    assert S.same_source(a, b) and not S.same_source(a, SimpleNamespace(source_id="doc:1", title="Kafka"))

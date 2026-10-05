@@ -297,7 +297,7 @@ class Pipeline:
         cited = sorted({int(x) for x in re.findall(r"\[(\d+)\]", text) if 1 <= int(x) <= len(hits)})
         sources = [{"n": n, "sid": hits[n - 1].sid, "title": hits[n - 1].soliton.title,
                     "source": hits[n - 1].soliton.source_id, "domain": hits[n - 1].soliton.domain} for n in cited]
-        known = [(x["sid"], x["domain"]) for x in sources if x["domain"] not in ("conversation", "reflection")]
+        known = [(x["sid"], x["domain"], x["source"]) for x in sources if x["domain"] not in ("conversation", "reflection")]
         if len({d for _, d in known}) > 1:                # cited together after the verification: they wire (Hebb)
             from . import kno_synapse
             kno_synapse.strengthen(self.cfg, known)

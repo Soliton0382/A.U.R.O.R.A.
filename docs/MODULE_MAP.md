@@ -100,6 +100,7 @@ call downward (ECOSYSTEM §1).
 | `kno_acquire_more.py` | knowledge | beyond arXiv: when Aurora does not know, the search agent also asks the harvester's sources searchable by words, the re-ranker picks the best | kno_acquire, kno_sources | kno_acquire |
 | `kno_arxiv.py` | knowledge | an arXiv paper's text with readable formulas: arXiv's HTML (or ar5iv's) first, the PDF only when neither has it (C135, C137) | — | kno_acquire, kno_sources, svc_harvester |
 | `kno_synapse.py` | knowledge | synapses: weighted links between passages of different domains — grown at night above 0.72 (M107), spread into a question's candidates (the re-ranker chooses), strengthened when cited together (Hebb), faded when unused | numpy, sqlite3 | sol_search, kno_answer, api/synapses |
+| `kno_synapse2.py` | knowledge | synapses of synapses: level-2 links from triads A↔B↔C whose ends are similar (≥ 0.60, M108), concepts (strong groups across domains) named by the local model, run every N new links | kno_synapse, numpy | api/synapses |
 | `kno_docs.py` | knowledge | programming documentation as knowledge: Python's text archive, documentation repositories on GitHub (MDN JavaScript, the Rust book) | kno_sources | kno_sources |
 | `plg_access.py` | plugins | which plugins the other users may use, and which stay the admin's | sys_config | api/agents, api/core |
 | `plg_sandbox.py` | plugins | what a plugin process can see (protected): its own secrets only, a bubblewrap cage over the filesystem | sys_config | plg_host |

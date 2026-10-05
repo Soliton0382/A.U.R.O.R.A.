@@ -31,6 +31,7 @@ Done today and yesterday, live: the owner's list of 4 October, all 10 points (3-
 | 18 | 🧪 AGI test battery — reasoning, memory over time, honesty (including disagreeing when the user is wrong), autonomy, self-repair, planning | measure | scored and repeatable |
 | 19 | GitHub page (Pages) — docs/index.md and docs/_config.yml ready: Settings → Pages → Deploy from a branch → main, /docs; releases with a changelog still to do | publish | the owner switches Pages on |
 | 20 | 🧠 Synapses (owner, 2026-10-05) — ✅ links between domains: grown at night and from use, spread after the re-ranker, Hebbian, fading; M107: 2 linked passages chosen in 30 questions, quality within the noise | new | the effect with thousands of links, on new questions |
+| 20b | 🧠 Synapses page and level 2 (owner, 2026-10-05) — ✅ 🧠 Sinapsi in Knowledge: every link with its passages, weight, uses; pin, wake, weaken, delete; asleep below 0.5 instead of deleted; synapses of synapses (triads ≥ 0.60) and concepts named by the local model, by themselves every 50 new links (M108) | new | concepts growing over weeks; a benchmark of questions across domains |
 | 21 | 🧠 Psychology (owner, 2026-10-05) — ✅ a domain with Europe PMC, medRxiv (psychiatry and clinical psychology), bioRxiv (animal behaviour and cognition); Wikipedia stays for general culture only | new | the harvest |
 | 22 | ↩️ Undo — ✅ the firewall's blocks (by the owner or by Aurora) undone with one click; next: a post deleted | new | — |
 
