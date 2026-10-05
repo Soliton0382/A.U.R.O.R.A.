@@ -378,14 +378,13 @@ export default {
     this.loadHistory = async () => {
       const turns = await call(`/v1/aurora/history?n=${HISTORY_TURNS}`);
       messages.replaceChildren();
-      const lastAnswer = turns.filter((x) => x.role === "assistant").pop();
       for (const turn of turns) {
         if (turn.role === "user") { userBubble(turn.text, turn.attachments || [], turn.created_at); continue; }
         if (turn.role === "dream") { dreamBubble(turn); continue; }
         if (turn.role === "morning") { morningBubble(turn); continue; }
         const b = auroraBubble(messages);
         renderPast(b, turn);
-        if (turn === lastAnswer && turn.suggestions?.length) offerDeeper(b, turn.suggestions);   // the latest answer only
+        if (turn.suggestions?.length) offerDeeper(b, turn.suggestions);   // under every answer that has them (owner, 2026-10-05)
         b.root.classList.add("past");
         if (turn.run_id) mine.add(turn.run_id);
       }

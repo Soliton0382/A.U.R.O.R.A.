@@ -910,6 +910,19 @@ suite green in the sandbox (328 passed), proposed — refused by the API still r
 right** — each bug found from the symptom alone, fixed, the whole suite green in the sandbox, the change proposed
 (90, 130, 140, 110 s); every proposal refused by the benchmark, the live code untouched.
 
+## M111 — The shadow of an answer: calibration and the first live hit (5 October 2026)
+
+Calibrated on the 23 answered questions of pool30 before choosing the thresholds (kno_shadow). Cosine between a
+question and its paraphrase: 0.78-1.00, median 0.945; between unrelated questions: at most 0.555. The hard case, another
+question on the same subject: the re-ranker alone (old answer vs new question ≥ 0.5) let 9 through, 2 right and **7
+wrong**, all at cosine 0.72-0.86 — a topic in common is not an answer. Hence both tests: at cosine ≥ 0.90 and re-rank
+≥ 0.5, **18 of 23** paraphrases served, **0 of 46** hard negatives. Live, through the API: "Cos'è la decoerenza
+quantistica?" 51.2 s (full pipeline, 4 sources); "Che cos'è la decoerenza quantistica?" **0.6 s** from the shadow
+(cosine 0.995, re-rank 1.00), checked again in the background in 70 s with the same sources (no correction shown);
+"Chi ha scoperto la decoerenza quantistica?" not served (full pipeline, 3 sources) — 67.6 s instead of ~50 because the
+background recheck held the other LLM slot meanwhile. Not measured: how often real questions fall in a shadow; a
+recheck that changes the answer.
+
 ## M110 — Studying at night, the first two runs; where an answer's time goes (5 October 2026)
 
 Study (kno_study), run by hand at 21:44 instead of 2:00: 5 questions she had declined, 45-110 s each. Read honestly:

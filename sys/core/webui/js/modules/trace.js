@@ -135,6 +135,10 @@ export function renderAnswer(b, p, when) {
   box.replaceChildren();
   b.root.classList.toggle("abstained", !!p.abstained);
   box.append(renderMarkdown(p.text));
+  if (p.shadow) {                                // from the shadow of an earlier answer (kno_shadow): said, and rechecked
+    box.append(el("div", "meta checked", t("chat.shadow", { q: p.shadow.question, d: new Date(p.shadow.made * 1000).toLocaleDateString(),
+      c: Number(p.shadow.cos).toFixed(2) })));
+  }
   if (p.checked && p.checked.kept + p.checked.dropped > 0 && !p.abstained) {
     box.append(el("div", "meta checked", t("chat.checked", { k: p.checked.kept, d: p.checked.dropped, s: p.sources?.length || 0 })));
   }

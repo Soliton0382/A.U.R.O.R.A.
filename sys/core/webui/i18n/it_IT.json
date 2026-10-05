@@ -412,6 +412,7 @@
   "gd.p.synapses": "Le sinapsi di Aurora: i collegamenti fra conoscenze di domini diversi, i concetti che formano, peso e usi di ciascuno; puoi rafforzarli, fissarli, risvegliarli o cancellarli.",
   "chat.morning": "☀️ Il buongiorno di Aurora",
   "chat.listen": "Ascolta",
+  "chat.shadow": "🌗 Risposta già verificata il {d} per «{q}» (vicinanza {c}): data subito, la sto ricontrollando con tutte le fonti.",
   "social.draft": "Prepara le bozze",
   "social.working": "Aurora scrive le bozze…",
   "social.publish": "Pubblica su {p}",

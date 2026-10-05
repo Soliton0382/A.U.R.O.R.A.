@@ -497,7 +497,14 @@ def answer_or_acquire(question: str, emit, run_id: str, **kw):
             prev = asked.text.split(" [")[0]
             emit("acquire.confirmed", {"question": prev})
             return ArxivAgent(p, cfg).run(prev, emit, run_id)
+    if cfg["AURORA_SHADOW"] and not kw.get("attached") and not kw.get("focus"):
+        hit = shadow_answer(p, question, emit, run_id)
+        if hit is not None:
+            return hit
     ans = p.run(question, emit=emit, run_id=run_id, **kw)
+    if cfg["AURORA_SHADOW"] and not ans.abstained and ans.mode == "knowledge" and ans.sources:
+        from aurora import kno_shadow                     # a verified answer casts its shadow
+        kno_shadow.add(cfg, p.search.embedder, question, ans.text, ans.sources)
     if (cfg["AURORA_ACQUIRE_AUTO"] and ans.abstained and ans.mode == "knowledge" and not kw.get("attached")
             and len(question) < 400):                 # Autonomy panel, knowledge at 🚀: she searches by herself
         from aurora.kno_acquire import ArxivAgent
@@ -505,6 +512,39 @@ def answer_or_acquire(question: str, emit, run_id: str, **kw):
         from aurora import sys_autonomy
         sys_autonomy.log(cfg, "knowledge", f"searched the sources by herself: {question[:180]}")
         return ArxivAgent(p, cfg).run(question, emit, run_id)
+    return ans
+
+
+def shadow_answer(p, question: str, emit, run_id: str):
+    """A question in the shadow of an answer already given (kno_shadow): that answer now, saying for which question and
+    when, then the whole pipeline again in the background — a different answer replaces it and is told in the chat."""
+    from aurora import kno_shadow
+    from aurora.kno_answer import Answer, Trail
+    from aurora.sol_schema import now_iso
+    t0 = time.time()
+    hit = kno_shadow.find(cfg, p.search.embedder, p.search.reranker, question)
+    if hit is None:
+        return None
+    emit("route", {"mode": "shadow"})
+    ans = Answer(run_id, question, hit["text"], False, hit["sources"], [], round(time.time() - t0, 2))
+    emit("answer.final", {"text": ans.text, "abstained": False, "sources": ans.sources, "dropped": [], "mode": "knowledge",
+                          "seconds": ans.seconds, "shadow": {k: hit[k] for k in ("question", "made", "cos", "score")}})
+    p.remember(question, ans, run_id, emit, Trail(), now_iso())
+    emit("run.end", {"seconds": ans.seconds})
+
+    def recheck():
+        try:
+            new = p.run(question, emit=lambda e, d: None, run_id=run_id + "-recheck", remember=False)
+        except Exception as e:                            # noqa: BLE001 — the answer given stands
+            log.warning("shadow recheck failed: %s", e)
+            return
+        if new.abstained or not new.sources:
+            return
+        kno_shadow.add(cfg, p.search.embedder, question, new.text, new.sources)
+        if {s["source"] for s in new.sources} != {s["source"] for s in hit["sources"]}:
+            note("api", "answer.refined", {"run_id": run_id, "title": f"🔁 {question[:80]}", "text": new.text[:1500]})
+    sys_context.start(recheck, name="shadow-recheck")
+    log.info("shadow: answered at once (cosine %.3f, re-rank %.3f) from «%s»", hit["cos"], hit["score"], hit["question"][:80])
     return ans
 
 
