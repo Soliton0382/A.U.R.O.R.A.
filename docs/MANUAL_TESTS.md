@@ -79,6 +79,9 @@ mark each line ✅ / ❌ with a note. Reload the WebUI first (the service worker
 | N59 | The top bar | the state dot beside the name, the bells under it; CPU/RAM and the GPUs on two rows; it fits the phone |
 | N60 | 🛎️ Activity → 🔔 Notifications | "Notification history" on top: every alert with its time, 📱 or 🖥️; a click opens its page |
 | N61 | 📁 Projects → 💻 Local → 🤖 Give Aurora a project | the brief goes to the chat; a 🧪 alert when its tests first pass, a 📁 alert at the end |
+| N62 | PC, the side menu: pass the mouse over an area, then move up and right fast into its pages | the pages open in a panel beside the menu, nothing below moves; the panel stays while you cross; a phone still opens areas in place on tap |
+| N63 | Phone: open the WebUI once (new service worker), then wait for a few alerts; 🔔 Notifications | "Last 7 days: N confirmed out of M sent" — N close to M |
+| N64 | 📁 Projects → a project → 📝 Aurora's reports | her reports of every work on it, newest first |
 | N41 | 📁 Projects → 💻 Local: ask Aurora "crea il progetto prova-calc con una funzione somma e i suoi test, eseguili" | the project, the tests run (EXIT 0) in the run's steps, a local commit |
 | N17 | Ask a knowledge question (e.g. «Come funziona la fotosintesi?»), then tap one of the «Approfondisci» questions; then type a short follow-up («e chi l'ha scoperta?») | 3-4 complete questions appear under the answer a few seconds after it; the tapped one is sent whole and its trace shows 🎯 when the sources were used; the typed follow-up shows 🧷 with the completed question |
 | N6 | 🧩 Plugins: open the page, then a card, then back | the grid appears at once; icons do not flash (C80) |

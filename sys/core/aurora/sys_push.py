@@ -229,11 +229,63 @@ def history(cfg: sys_config.Config, n: int = 200) -> list[dict]:
     return out[::-1]
 
 
+# ---- delivery: the device says it received a push (its service worker posts the push's id back) ----------------
+ACK_WINDOW = 48 * 3600                                 # a push the device got later than this is counted lost
+
+
+def _ledger(cfg: sys_config.Config, kind: str, row: dict) -> None:
+    with _lock, open(_dir(cfg) / "delivery.jsonl", "a", encoding="utf-8") as f:
+        f.write(json.dumps({"kind": kind, "at": round(time.time(), 1), **row}) + "\n")
+
+
+def _rows(cfg: sys_config.Config, since: float) -> list[dict]:
+    f = _dir(cfg) / "delivery.jsonl"
+    out = []
+    for line in f.read_text(encoding="utf-8").splitlines() if f.exists() else []:
+        try:
+            r = json.loads(line)
+        except ValueError:
+            continue
+        if r.get("at", 0) >= since:
+            out.append(r)
+    return out
+
+
+def ack(push_id: str, endpoint: str, cfg: sys_config.Config) -> bool:
+    """A device received push `push_id`: counted once per device, only for a push really sent in the last 48 h — the id
+    is random, so only who received the push knows it."""
+    import hashlib
+    if not (isinstance(push_id, str) and len(push_id) == 16 and push_id.isalnum()):
+        return False
+    dev = hashlib.sha256(str(endpoint).encode()).hexdigest()[:12]
+    rows = _rows(cfg, time.time() - ACK_WINDOW)
+    if not any(r["kind"] == "sent" and r["id"] == push_id for r in rows) or \
+            any(r["kind"] == "ack" and r["id"] == push_id and r.get("dev") == dev for r in rows):
+        return False
+    _ledger(cfg, "ack", {"id": push_id, "dev": dev})
+    return True
+
+
+def delivery(cfg: sys_config.Config, days: float = 7) -> dict:
+    """Pushes accepted by the push services and pushes the devices confirmed, over the last `days` (pushes younger
+    than the ack window are still on their way and not counted)."""
+    now = time.time()
+    rows = _rows(cfg, now - days * 86400 - ACK_WINDOW)
+    sent = [r for r in rows if r["kind"] == "sent" and now - days * 86400 <= r["at"] <= now - 60]
+    ids = {r["id"] for r in sent}
+    acks = {(r["id"], r.get("dev")) for r in rows if r["kind"] == "ack" and r["id"] in ids}
+    expected = sum(r.get("sent", 0) for r in sent)
+    return {"days": days, "pushes": len(sent), "accepted": expected, "confirmed": len(acks),
+            "rate": round(len(acks) / expected, 3) if expected else None}
+
+
 def send(msg: dict, cfg: sys_config.Config) -> dict:
     """Deliver to every subscription; returns {"sent", "dropped", "failed"}."""
+    import secrets
     from pywebpush import WebPushException, webpush
     log = sys_log.get_logger("push")
     pem = str(_vapid_pem(cfg))
+    msg = {**msg, "id": secrets.token_hex(8)}             # the device posts it back: delivery measured (M101)
     sent, dropped, failed = 0, [], 0
     for s in _load(cfg):
         try:
@@ -253,4 +305,6 @@ def send(msg: dict, cfg: sys_config.Config) -> dict:
     for ep in dropped:
         unsubscribe(ep, cfg)
     log.info("push %s: sent %d, dropped %d, failed %d", msg.get("tag"), sent, len(dropped), failed)
+    if sent:
+        _ledger(cfg, "sent", {"id": msg["id"], "sent": sent, "tag": msg.get("tag")})
     return {"sent": sent, "dropped": len(dropped), "failed": failed}

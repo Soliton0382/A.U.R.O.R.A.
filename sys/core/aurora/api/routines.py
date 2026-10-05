@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import re
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -204,6 +205,23 @@ def push_info() -> dict:
     from aurora import sys_push
     return {"public_key": sys_push.public_key(cfg), "subscriptions": sys_push.count(cfg),
             "events": [e.strip() for e in cfg["AURORA_PUSH_EVENTS"].split(",") if e.strip()]}
+
+
+@router.post("/v1/aurora/push-ack")
+async def push_ack(request: Request) -> dict:
+    """The service worker got a push: no key (it has none), the push's random id is the proof (sys_push.ack)."""
+    from aurora import sys_push
+    try:
+        body = json.loads((await request.body())[:2048])
+    except ValueError:
+        raise HTTPException(status_code=422, detail="bad body")
+    return {"counted": await asyncio.to_thread(sys_push.ack, body.get("id"), body.get("endpoint", ""), cfg)}
+
+
+@router.get("/v1/aurora/push/delivery", dependencies=[Depends(auth)])
+def push_delivery(days: float = 7) -> dict:
+    from aurora import sys_push
+    return sys_push.delivery(cfg, max(1.0, min(days, 90)))
 
 
 @router.post("/v1/aurora/push/{action}", dependencies=[Depends(auth)])

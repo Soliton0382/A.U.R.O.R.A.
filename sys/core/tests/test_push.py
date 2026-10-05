@@ -53,3 +53,21 @@ def test_each_channel_follows_the_owners_choice(cfg):
     assert sys_push.message("rem.dream", {"text": "x"}, cfg, "webui")["title"]
     sys_push.set_prefs(cfg, {"push": [], "webui": []})
     assert sys_push.message("incident", {"title": "t"}, cfg, "webui") is None
+
+
+def test_a_device_confirms_a_push_once_and_only_a_real_one(cfg, monkeypatch):
+    import json
+    import time
+    import pywebpush
+    sys_push.subscribe(SUB, None, cfg)
+    sys_push.subscribe({**SUB, "endpoint": "https://push.example/two"}, None, cfg)
+    payloads = []
+    monkeypatch.setattr(pywebpush, "webpush", lambda info, data, **kw: payloads.append(json.loads(data)))
+    sys_push.send(sys_push.message("test", {}, cfg), cfg)
+    pid = payloads[0]["id"]
+    assert len(pid) == 16 and payloads[1]["id"] == pid                 # one id per push, the same on every device
+    assert not sys_push.ack("0" * 16, SUB["endpoint"], cfg)              # an id never sent
+    assert sys_push.ack(pid, SUB["endpoint"], cfg) and not sys_push.ack(pid, SUB["endpoint"], cfg)
+    assert not sys_push.ack("../../etc", SUB["endpoint"], cfg)
+    monkeypatch.setattr(time, "time", lambda real=time.time(): real + 120)      # past the one minute still on its way
+    assert sys_push.delivery(cfg) == {"days": 7, "pushes": 1, "accepted": 2, "confirmed": 1, "rate": 0.5}

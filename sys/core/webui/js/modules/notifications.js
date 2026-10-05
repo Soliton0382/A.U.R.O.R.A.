@@ -19,7 +19,7 @@ export default {
     root.classList.add("page");
     root.innerHTML = `
       <h2 data-i18n="notif.title"></h2>
-      <h3 class="setting-cat" data-i18n="notif.history"></h3><div class="notif-history"></div>
+      <h3 class="setting-cat" data-i18n="notif.history"></h3><p class="muted notif-delivery"></p><div class="notif-history"></div>
       <p class="muted" data-i18n="notif.hint"></p>
       <h3 class="setting-cat" data-i18n="notif.device"></h3>
       <div class="notif-device"></div>
@@ -29,12 +29,22 @@ export default {
     apply(root);
     this.device = root.querySelector(".notif-device");
     this.history = root.querySelector(".notif-history");
+    this.delivery = root.querySelector(".notif-delivery");
     this.grid = root.querySelector(".notif-grid");
     this.out = root.querySelector(".result");
     root.querySelector(".save").addEventListener("click", () => this.save());
   },
 
-  async enter() { await Promise.all([this.showDevice(), this.showGrid(), this.showHistory()]); },
+  async enter() { await Promise.all([this.showDevice(), this.showGrid(), this.showHistory(), this.showDelivery()]); },
+
+  // how many pushes the devices said they received (M101): measured, not assumed
+  async showDelivery() {
+    let d = null;
+    try { d = await call("/v1/aurora/push/delivery?days=7"); } catch { /* an API before the measure */ }
+    this.delivery.textContent = d && d.accepted
+      ? t("notif.delivery").replace("{c}", d.confirmed).replace("{a}", d.accepted).replace("{p}", Math.round(100 * d.rate))
+      : "";
+  },
 
   // every notification Aurora made (owner, 2026-10-05): newest first, a click opens its page
   async showHistory() {

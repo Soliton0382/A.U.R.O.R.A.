@@ -13,7 +13,7 @@ Done today and yesterday, live: the owner's list of 4 October, all 10 points (3-
 | 1 | ~~A18~~ — ✅ closed by measurement (C136, M98): a stronger gate gives the same quality (6.87 vs 6.90), the errors only move downstream; the gate stays local | bug | — |
 | 2 | ~~A19~~ — ✅ closed (C135, M97): 107 of 120 garbled arXiv papers re-imported from arXiv's HTML; the question 8/10 | bug | 13 left without HTML: a math-aware PDF extractor, if ever needed |
 | 3 | The owner's manual tests N13-N44 | verification | one pass on the phone and the PC |
-| 4 | ~~U4~~ — ✅ measured (M99): 1 slot, answers queue; 4 at once all answered, the last after 190 s; GPU memory flat | measure | `--parallel 2` if the waits matter |
+| 4 | ~~U4~~ — ✅ measured (M99, M102): with 2 slots (kept) 8 at once all answered, 4 at once the last after 145 s (190 with 1 slot); +482 MiB | measure | — |
 | 5 | U6 — each user's folders protected by a system account | decision | the owner decides; today the separation is Aurora's (tests M79-M80) |
 | 6 | A week of soak — ✅ now measured by itself: aurora-rem writes a snapshot a day (memory and restarts per service, logs, GPU swaps, failed routines, free disk), the Status page shows the days; first line 5 October | measure | it completes on 12 October by itself |
 | 7 | 🎧 DJ — ✅ first version (2026-10-05, M93): remix and mix, 8 styles; next: mashups (vocals of one track over another: Demucs, MIT, to measure on the GPU) | new | the owner's ear on real tracks (N49) |
@@ -375,9 +375,9 @@ SDXL-Lightning 6.9 GB. FLUX.2 klein (23 GB) and Z-Image-Turbo (31 GB) were only 
 | what | why not yet |
 |---|---|
 | the two non-reference hardware profiles | no such machine here |
-| the whole `install.sh` with its sudo steps, on another machine | M39 ran the steps without sudo on this one |
+| the whole `install.sh` with its sudo steps, on another machine | M103: from GitHub, multi-user, 6 min 39 s, 303 tests, first configuration; the sudo steps for missing packages need a machine without them |
 | ~~Web Push delivery on phones~~ | ✅ measured: 146 pushes from 30 September to 5 October, 146 accepted by the push service, 0 failed, 2 expired subscriptions dropped by themselves |
-| an update from the public repository (HTTPS, no key) | the installation of the owner has no git; the first public user's will |
+| an update from the public repository (HTTPS, no key) | the clone over HTTPS with no key: ✅ (M103); a `git pull` update: measured on the clone after the next publish |
 | ~~the nightly backup started by its timer~~ | ✅ measured: 4 October 23:00, 1,590 files, 30.89 GB in 53 s (the time moved by C122) |
 
 ## Still to implement (2026-10-01)

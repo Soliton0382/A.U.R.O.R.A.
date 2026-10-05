@@ -353,6 +353,7 @@
   "nav.updates": "Updates",
   "notif.title": "🔔 Notifications",
   "notif.history": "🕓 Notification history",
+  "notif.delivery": "📬 Last 7 days: {c} pushes confirmed by the devices out of {a} sent ({p}%).",
   "notif.history_none": "No notification yet.",
   "notif.hint": "Choose what tells you, and where: a push notification on the device (even with the WebUI closed) or a toast in the WebUI.",
   "notif.device": "This device",

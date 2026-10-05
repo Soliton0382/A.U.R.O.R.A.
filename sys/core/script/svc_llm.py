@@ -27,7 +27,7 @@ def command(cfg: sys_config.Config) -> list[str]:
            "-m", str(cfg.path("AURORA_LLM_MODEL")),
            "--host", cfg["AURORA_LLM_HOST"], "--port", str(cfg["AURORA_LLM_PORT"]),
            "-c", str(cfg["AURORA_LLM_CTX"]), "-ngl", "999", "-fa", "on", "--no-webui",
-           "--tensor-split", cfg["AURORA_LLM_TENSOR_SPLIT"], "--parallel", "1"]
+           "--tensor-split", cfg["AURORA_LLM_TENSOR_SPLIT"], "--parallel", str(cfg["AURORA_LLM_PARALLEL"])]
     mmproj = cfg.path("AURORA_LLM_MMPROJ")
     if mmproj.exists():
         cmd += ["--mmproj", str(mmproj)]

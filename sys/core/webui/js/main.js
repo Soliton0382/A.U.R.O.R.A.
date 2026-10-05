@@ -107,13 +107,28 @@ function buildNav() {
     const label = el("span", "label");
     label.dataset.i18n = g.title;
     head.append(el("span", "ic", g.icon), label, el("span", "chev", "▸"));
-    head.addEventListener("click", () => box.classList.toggle("open"));
+    head.addEventListener("click", () => (FLY.matches ? fly(box, !box.classList.contains("fly")) : box.classList.toggle("open")));
+    box.addEventListener("mouseenter", () => FLY.matches && fly(box, true));
+    box.addEventListener("mouseleave", () => FLY.matches && (box._shut = setTimeout(() => fly(box, false), 250)));
     const sub = el("div", "nav-sub");
     sub.append(...members.map(navButton));
     box.append(head, sub);
     nav.append(box);
   }
   views.filter((v) => !placed.has(v.id)).forEach((v) => nav.append(navButton(v)));   // a page not in an area yet
+}
+
+// with a mouse an area's pages open in a panel beside the menu, at the height of its head; leaving it closes after
+// 250 ms, so the pointer can cross the gap
+const FLY = matchMedia("(hover: hover) and (pointer: fine)");
+function fly(box, on) {
+  clearTimeout(box._shut);
+  if (!on) { box.classList.remove("fly"); return; }
+  document.querySelectorAll("#nav .nav-group.fly").forEach((g) => g !== box && fly(g, false));
+  const sub = box.querySelector(".nav-sub");
+  box.classList.add("fly");
+  const top = box.querySelector(".nav-head").getBoundingClientRect().top;
+  box.style.setProperty("--fly-top", `${Math.max(8, Math.min(top, innerHeight - sub.offsetHeight - 8))}px`);
 }
 
 // an area with no visible page (its plugins off) is hidden too
@@ -134,7 +149,10 @@ function mountAll() {
   i18n.apply(document);
 }
 
-function drawer(open) { document.body.classList.toggle("drawer-open", open); }
+function drawer(open) {
+  document.body.classList.toggle("drawer-open", open);
+  if (!open) document.querySelectorAll("#nav .nav-group.fly").forEach((g) => fly(g, false));
+}
 
 async function show(id) {
   current = id;

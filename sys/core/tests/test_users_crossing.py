@@ -55,4 +55,4 @@ print("\\n".join(sorted(f"{{min(r.methods)}} {{r.path}}" for r in walk(svc_api.a
     assert r.returncode == 0, r.stderr[-2000:]
     assert r.stdout.split("\n")[:-1] == ["GET /", "GET /health", "GET /manifest.webmanifest", "GET /sw.js",
                                          "GET /v1/preview/{token}/{path:path}", "POST /v1/aurora/devices",
-                                         "POST /v1/aurora/login"]
+                                         "POST /v1/aurora/login", "POST /v1/aurora/push-ack"]   # the push's id is its proof

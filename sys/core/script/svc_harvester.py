@@ -32,7 +32,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import httpx  # noqa: E402
 
-from aurora import kno_harvest, kno_sources, sys_config, sys_health, sys_log  # noqa: E402
+from aurora import kno_arxiv, kno_harvest, kno_sources, sys_config, sys_health, sys_log  # noqa: E402
 from aurora.kno_acquire import MAP_FILE, domain_of, parse_atom  # noqa: E402
 from aurora.kno_ingest import chunk  # noqa: E402
 
@@ -194,10 +194,10 @@ class Harvester:
     def ingest(self, e, domain: str) -> dict | None:
         """Download one paper and import it into `domain`; None when it failed (logged)."""
         try:
-            pdf = self._get(e.pdf).content
+            name, data = kno_arxiv.paper(e.arxiv_id, e.pdf, self._get)        # HTML first: formulas readable (C137)
             r = self.api.post(f"{BASE}/v1/aurora/import", json={
-                "name": f"{e.arxiv_id.replace('/', '_')}.pdf", "domain": domain, "title": e.title,
-                "origin": f"arxiv:{e.arxiv_id}", "data": base64.b64encode(pdf).decode("ascii")}).raise_for_status().json()
+                "name": name, "domain": domain, "title": e.title,
+                "origin": f"arxiv:{e.arxiv_id}", "data": base64.b64encode(data).decode("ascii")}).raise_for_status().json()
         except (httpx.HTTPError, ValueError) as err:
             log.warning("%s (%s): %s", e.arxiv_id, e.title[:60], err)
             return None

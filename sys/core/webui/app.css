@@ -182,5 +182,15 @@ button.danger { border-color: #c0392b; color: #ff8a80; }
 .nav-group.open .nav-head .chev { transform: rotate(90deg); }
 .nav-sub { display: none; flex-direction: column; gap: .15rem; padding-left: 1.1rem; border-left: 1px solid var(--line); margin-left: 1.1rem; }
 .nav-group.open .nav-sub { display: flex; }
-@media (hover: hover) and (pointer: fine) { .nav-group:hover .nav-sub { display: flex; } .nav-group:hover .chev { transform: rotate(90deg); } }
+/* with a mouse the area's pages open beside the menu, not inside it (owner, 2026-10-05): opening inline pushed the
+   list down, the pointer left the area and the list jumped back */
+@media (hover: hover) and (pointer: fine) {
+  .nav-group.open .nav-sub { display: none; }
+  .nav-group.fly .nav-sub { display: flex; position: fixed; left: calc(var(--drawer) - .3rem); top: var(--fly-top, 0);
+    min-width: 13rem; max-height: calc(100vh - 1rem); overflow-y: auto; margin: 0; padding: .4rem; z-index: 6;
+    background: rgba(14, 18, 30, .98); border: 1px solid var(--line); border-radius: 10px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, .45); }
+  .nav-group.fly > .nav-head { background: rgba(122, 162, 255, .08); }
+  .nav-group.fly .nav-head .chev, .nav-group.open .nav-head .chev { transform: none; }
+}
 .nav-group:has(.has-badge) > .nav-head .label::after { content: " •"; color: var(--warn); }

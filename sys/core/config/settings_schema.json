@@ -1542,6 +1542,20 @@
    "max": 262144
   },
   {
+   "key": "AURORA_LLM_PARALLEL",
+   "type": "int",
+   "category": "llm",
+   "recommended": "1",
+   "evidence": "M99, M102",
+   "en": "Questions the reasoner answers at once (llama.cpp slots). The context is shared: each slot gets AURORA_LLM_CTX divided by this, and an answer needs ~25k tokens, so 2 slots need a context of 65536.",
+   "it": "Domande a cui il ragionatore risponde insieme (slot di llama.cpp). Il contesto è diviso: ogni slot ha AURORA_LLM_CTX diviso questo numero, e una risposta usa ~25k token, quindi 2 slot vogliono un contesto di 65536.",
+   "services": [
+    "aurora-llm"
+   ],
+   "min": 1,
+   "max": 4
+  },
+  {
    "key": "AURORA_LLM_TIMEOUT_S",
    "type": "int",
    "category": "llm",

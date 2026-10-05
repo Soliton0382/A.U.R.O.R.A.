@@ -26,7 +26,7 @@ from pathlib import Path
 
 import httpx
 
-from . import sys_config, sys_log, txt_lang
+from . import kno_arxiv, sys_config, sys_log, txt_lang
 from .kno_ingest import Importer
 
 MAP_FILE = Path(__file__).resolve().parents[1] / "config" / "arxiv_domains.json"
@@ -207,8 +207,8 @@ class ArxivAgent:
                 try:
                     if e.source == "arxiv":
                         domain = domain_of(e.category, self.table)
-                        pdf = self._polite_get(e.pdf).content
-                        rep = self.importer.add(f"{e.arxiv_id}.pdf", pdf, domain, title=e.title,
+                        name, data = kno_arxiv.paper(e.arxiv_id, e.pdf, self._polite_get)   # HTML first (C137)
+                        rep = self.importer.add(name, data, domain, title=e.title,
                                                 origin=f"arxiv:{e.arxiv_id}", run_id=run_id)
                     else:                                 # chosen among all the sources: its domain, its licence
                         name, data, lic, url = e.fetch()

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 A.U.R.O.R.A. Project
 // Aurora service worker: the app shell works offline-first-paint; the API is never cached.
-const SHELL = "aurora-shell-v50";
+const SHELL = "aurora-shell-v51";
 const FILES = ["/", "/static/app.css", "/static/css/chat.css", "/static/css/metrics.css", "/static/css/agents.css", "/static/css/alerts.css",
   "/static/js/main.js", "/static/js/modules.js", "/static/js/api.js", "/static/js/i18n.js", "/static/js/dom.js", "/static/js/md.js", "/static/js/restart.js",
   "/static/js/bus.js", "/static/js/modules/chat.js", "/static/js/modules/trace.js", "/static/js/modules/import.js",
@@ -38,10 +38,14 @@ self.addEventListener("fetch", (ev) => {
 self.addEventListener("push", (ev) => {
   let d = {};
   try { d = ev.data ? ev.data.json() : {}; } catch { d = { title: "Aurora", body: ev.data ? ev.data.text() : "" }; }
-  ev.waitUntil(self.registration.showNotification(d.title || "Aurora", {
+  // the device says it got it (M101): the push's random id is the proof, no key needed; a failure changes nothing
+  const ack = d.id ? self.registration.pushManager.getSubscription()
+    .then((sub) => fetch("/v1/aurora/push-ack", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: d.id, endpoint: sub ? sub.endpoint : "" }) })).catch(() => {}) : Promise.resolve();
+  ev.waitUntil(Promise.all([ack, self.registration.showNotification(d.title || "Aurora", {
     body: d.body || "", tag: d.tag, icon: "/static/assets/icon-192.png", badge: "/static/assets/icon-192.png",
     data: { view: d.view || "chat" },
-  }));
+  })]));
 });
 
 self.addEventListener("notificationclick", (ev) => {

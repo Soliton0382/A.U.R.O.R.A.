@@ -32,7 +32,7 @@ from typing import Callable
 
 import httpx
 
-from . import sys_config
+from . import kno_arxiv, sys_config
 from .kno_acquire import parse_atom
 
 SOURCES_FILE = Path(__file__).resolve().parents[1] / "config" / "harvest_sources.json"
@@ -226,9 +226,9 @@ def arxiv(fetch: Fetch, cfg, domain: str, spec: dict, st: dict, want: int, deep:
     for e in entries:
         if e.arxiv_id in seen or len(out) >= want:
             continue
-        pdf = fetch(e.pdf).content
+        name, data = kno_arxiv.paper(e.arxiv_id, e.pdf, fetch)           # HTML first: formulas readable (C137)
         out.append(Doc(e.arxiv_id, domain, e.title, f"arxiv:{e.arxiv_id}", catalogue()["licences"]["arxiv"],
-                       f"https://arxiv.org/abs/{e.arxiv_id}", name=f"{e.arxiv_id.replace('/', '_')}.pdf", data=pdf))
+                       f"https://arxiv.org/abs/{e.arxiv_id}", name=name, data=data))
     return out
 
 

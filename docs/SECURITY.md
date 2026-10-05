@@ -55,6 +55,11 @@ the failed-login lockout applies to it. The admin can pass to multi only after s
 the API key stays the admin's. Deleting a user removes their folder, memory, devices, trace lines and what the API
 holds in memory; the audit log keeps the event (who, when) until its retention.
 
+Push delivery (2026-10-05, M101): one more route without a key, `POST /v1/aurora/push-ack`, for the service worker
+that has none. It only counts: the body (at most 2 KB) must name the random 16-hex id of a push sent in the last
+48 h, once per device (the endpoint is stored as a 12-hex hash); anything else answers `counted: false`. It reads and
+returns nothing. A test lists the 8 routes without authentication.
+
 Artifacts (interactive pages Aurora makes, 2026-10-03): they run only under `/v1/preview/` through a token valid
 10 minutes that the logged-in WebUI asks for, in a sandbox without `allow-same-origin` (opaque origin: no cookie,
 no access to the API) and with no network (`connect-src 'none'`, nothing external); only HTML files Aurora made

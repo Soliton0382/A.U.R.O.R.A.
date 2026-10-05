@@ -893,6 +893,52 @@ told a folder listing is cut. Masking for the cloud (IP stand-ins kept coherent,
 it leaked "name@" before —, tokens, key=value fields naming a device or a user, the owner's name, domain, place,
 coordinates): on real firewall lines no address, domain or serial number left.
 
+## M103 — Clean install from GitHub, multi-user, first configuration (5 October 2026)
+
+`git clone https://github.com/Soliton0382/A.U.R.O.R.A..git` over HTTPS with no key (the public repository, commit
+2c3225d) into a second folder of this machine, then `./install.sh --yes --no-services --no-optional-models` with
+every answer from AURORA_INSTALL_* (MODE=multi) and no terminal. 14:21:23 → 14:28:02, **6 min 39 s**: hardware profile
+"reference, measured"; .env written and valid (600); per-user layout made; models 24.71 GB downloaded and checked
+(this line is fast: the time is not a promise elsewhere); llama.cpp built (build 11272); **303 tests passed** in the
+clone; step 11 (the code of conduct's key, sudo) deferred by itself with the command to run, as designed. The owner
+ran it; the clone's integrity then "intact". Its API on port 9800, beside production: health says `login: users`.
+First configuration through the API: the admin (API key) creates a user with the name the assistant calls them;
+a password under 10 characters refused (422); no key 401; wrong password 401; first login answers with the
+authenticator's secret (QR); a wrong first code 401; the right one logs in with a device cookie; the user sees
+/me as a user, gets 403 on the users' list and on creating a user; reads the settings with every secret masked
+(the API key never in the answer); the machine's settings and the mode change only by the admin (code read:
+sys_users_mode.switch and update_settings). Not measured: the sudo steps (packages, NVIDIA toolkit, systemd units)
+on a machine without them — here everything was present; a phone scanning the real QR.
+
+## M101 — Web Push: the devices now say what they received (5 October 2026)
+
+M96 counted what the push services accepted; what reached the phone was not measurable. Now every push carries a
+random id (16 hex), the service worker posts it back when the push arrives (POST /v1/aurora/push-ack, no key: the
+id is the proof, counted once per device and only for a push really sent in the last 48 h), and Notifications shows
+"last 7 days: N confirmed out of M sent". Live checks: an unknown id not counted, a malformed body 422, the new
+service worker served (shell v51). The rate itself is still to read: it fills as pushes go out, once each phone has
+opened the WebUI and taken the new service worker.
+
+## M102 — U4 again with two slots (5 October 2026)
+
+Ceiling first: an answer takes ~25k tokens (M20, M22), so two slots need a context of 65,536 (32,768 each); from the
+prompt cache's entries (~20 KiB a token) the extra KV was estimated at ~640 MiB. New setting AURORA_LLM_PARALLEL
+(it was fixed at 1 in svc_llm.py); set 2 with AURORA_LLM_CTX 65536. Measured at start: 2 slots of 32,768,
+**+482 MiB** (GPU 0 +312, GPU 1 +170); at rest 1.8 GB free on GPU 0, 4.3 GB on GPU 1. Same load test as M99:
+
+| users at once | all answered | wall (s) | each one's wait (s) | answers per minute | GPU peak (MiB) | M99, 1 slot |
+|---|---|---|---|---|---|---|
+| 1 | 1/1 | 41.3 | 41.3 | 1.45 | 27,519 | 50.3 s |
+| 2 | 2/2 | 53.7 | 35.6, 53.7 | 2.23 | 28,057 | 70.2 s |
+| 4 | 4/4 | 145.3 | 31.1, 48.7, 95.9, 145.3 | 1.65 | 29,641 | 190.1 s |
+| 8 | 8/8 | 231.5 | 47.8 … 231.5 (median 141.5) | 2.07 | 28,411 | — |
+
+Four users wait a quarter less (the last 145 s instead of 190, the median 72 instead of 110); eight are all answered,
+the last after under 4 minutes. Kept: 2 slots on the reference machine; the schema's recommended value stays 1 (a
+smaller GPU may not have the room). Quality with two slots, pool30 measured after: **6.70** (one slot, same day,
+M98: 6.90; noise ±0.75), 23 answered, 3 wrong abstentions as before, 41.6 s a question. Not measured: the dream
+painter's swap with the bigger context (it stops the reasoner first, then starts it again: the next one will say).
+
 ## M100 — The forge with the local reasoner, after C129 (5 October 2026)
 
 `bench_forge.py` without --roles: the local Qwen 35B writes and judges, the same 8 needs of M89. **3 of 8 right**,
@@ -900,7 +946,9 @@ coordinates): on real firewall lines no address, domain or serial number left.
 attempts each, plugins whose counts were wrong (harvester per source, firewall denied: 22,924 against 71,717 in the
 judge's sample, warnings per component, routines). One built and wrong: the harvester's log size, judged right by the
 local judge. Decision kept: the forge's writer and judge are Claude Code (the owner's choice in Models); the local
-reasoner is not enough for the forge. Not measured: local writer with the cloud judge.
+reasoner is not enough for the forge. Local writer with the Claude judge (`--roles`, measured after): **5 of 8**,
+6 built, 4 m 38 s; the two not built are the same counts as above, and the Claude judge too let the wrong log size
+through. Writer and judge on Claude stay the forge's setting (8 of 8, M89).
 
 ## M99 — U4: users at once (5 October 2026)
 
@@ -929,12 +977,14 @@ and then on Claude Sonnet through Claude Code (masked), every other step local:
 |---|---|---|---|---|---|
 | local (Qwen 35B) | **6.90** | 23 | 3 (gate 12, 23; verification 15) | 4 | 39.9 |
 | Claude Sonnet | **6.87** | 25 | 1 (verification 12) | 4 | 46.2 |
+| Claude Opus | **6.87** | 24 | 2 (verification 12, 23) | 4 | 43.7 |
 
 The difference is inside the noise (±0.75). The stronger gate opens on the gate's two wrong closures, but question
 12 is then stopped by the verification and question 23 answered 4/10; and it opens on question 7, where the local
 abstention was right, giving an answer judged 1/10. The judge also scores the same abstention differently from one run
-to the next (question 15: wrong for local, right for Sonnet). The gate is not the limit: A18 closed with no change,
-the gate stays local. Not measured: the gate on opus.
+to the next (question 15: wrong for local, right for Sonnet). Opus (measured after): no wrong gate closure and the
+right abstention on 7, but the two questions it opens (12, 23) are stopped by the verification — the same mean. The
+gate is not the limit: A18 closed with no change, the gate stays local.
 
 ## M97 — A19 closed: 107 arXiv papers re-imported from HTML (5 October 2026)
 
@@ -945,6 +995,11 @@ text had 3,000 characters or more and no garbled norm, the old source removed af
 (3,626 passages in, 2,770 removed), 10 without an HTML version on arXiv, 3 not found by title. Recount with the same
 test: 13 legacy arXiv documents left (exactly those 13), plus 13 non-arXiv documents never counted before. The
 question of A19 (pool30 position 19): **8/10, answered** (before: 1/10, abstained by the verification). The log ran from 11:48 to 12:12, 24 minutes.
+Second pass, the same afternoon: of the 26 sources the test still flagged, 13 were false positives (Turkish and
+Slavic words like "kaynak", "korak"; k_bulk, k_peak; "keys", "ker"); the true ones were 10 documents of the last
+days' acquisitions — the cause of C137 — and 4 legacy. 8 of the 10 re-imported from arXiv's HTML (+443 passages,
+−328), one legacy (Zeno, 2012) from ar5iv (+11, −8). Left with garbled norms: 5 (3 not on arXiv under their
+title, 2 with no HTML anywhere).
 
 ## M96 — Web Push delivery, and the soak that measures itself (5 October 2026)
 
