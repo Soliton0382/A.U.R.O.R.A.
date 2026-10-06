@@ -320,10 +320,12 @@ def rem_state(user: str | None = None) -> dict:
     with sys_context.acting_as(who):
         social = sum(1 for t in platforms(plugin_host()) if t["available"] and t["stats"])
         from datetime import datetime
-        from aurora import kno_morning, kno_study
+        from aurora import kno_morning, kno_review, kno_study
         p = pipeline()
         hour = int(cfg["AURORA_MORNING_HOUR"])
-        return {**Rem(p, cfg).state(), "busy": _run_lock.locked(), "rem_running": rem_running,
+        st = Rem(p, cfg).state()
+        return {**st, "busy": _run_lock.locked(), "rem_running": rem_running,
+                "review_due": kno_review.due(p, cfg), "drives": kno_review.drives(p, cfg, st["idle_min"]),
                 "social_platforms": social,
                 "to_study": len(kno_study.pending(p, cfg)) if int(cfg["AURORA_STUDY_PER_NIGHT"]) else 0,
                 "studied_tonight": kno_study.studied_tonight(p, cfg),
@@ -341,7 +343,7 @@ def rem_task(task: str, user: str | None = None) -> dict:
         raise HTTPException(status_code=403, detail="Aurora's own diagnosis is the admin's")
     if task == "repair":                              # registered earlier than /rem/repair: hand over
         return rem_repair()
-    if task not in ("consolidate", "reflect", "dream", "introspect", "social", "study", "morning", "train"):
+    if task not in ("consolidate", "reflect", "dream", "introspect", "social", "study", "morning", "train", "review"):
         raise HTTPException(status_code=404, detail="unknown task")
     with sys_context.acting_as(who):                  # the run works on this user's memory and is theirs
         return _rem_run(task)
@@ -354,7 +356,7 @@ def _rem_run(task: str) -> dict:
 
         def tell(event, payload):                         # what Aurora wrote tonight reaches the owner too
             emit(event, payload)
-            if event in ("rem.dream", "rem.thought", "rem.self_review", "rem.morning"):
+            if event in ("rem.dream", "rem.thought", "rem.self_review", "rem.morning", "rem.review"):
                 note("rem", event, {"sid": payload.get("sid"), "text": payload.get("text", "")})
         emit("rem.start", {"task": task})
         if task == "study":                               # what she declined, studied at night (kno_study)
@@ -363,6 +365,9 @@ def _rem_run(task: str) -> dict:
         elif task == "train":                             # the shadow trained on the vault's documents (kno_train)
             from aurora import kno_train
             out = kno_train.train(pipeline(), cfg, tell, int(cfg["AURORA_SHADOW_TRAIN_PER_NIGHT"]))
+        elif task == "review":                            # past answers answered again (kno_review)
+            from aurora import kno_review
+            out = kno_review.review(pipeline(), cfg, tell, kno_review.due(pipeline(), cfg))
         elif task == "morning":                           # the good morning (kno_morning)
             from aurora import kno_morning
             out = kno_morning.write(pipeline(), cfg, tell)

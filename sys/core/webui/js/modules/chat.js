@@ -294,9 +294,10 @@ export default {
     };
 
     // The good morning (kno_morning): what she did and learned overnight, with "listen" (a tap: browsers speak only after one)
+    // a second thought (kno_review): a past answer answered again, better, with its sources — the same bubble
     const morningBubble = (d) => {
-      const m = el("div", "msg aurora dream morning past");
-      m.append(el("div", "dream-title", t("chat.morning")));
+      const m = el("div", `msg aurora dream ${d.role === "review" ? "review" : "morning"} past`);
+      m.append(el("div", "dream-title", t(d.role === "review" ? "chat.review" : "chat.morning")));
       for (const para of d.text.split(/\n\s*\n/)) if (para.trim()) m.append(el("p", "", para.trim()));
       const listen = el("button", "", `🔊 ${t("chat.listen")}`);
       listen.type = "button";
@@ -400,7 +401,7 @@ export default {
       shown.add(turn.sid);
       if (turn.role === "user") { userBubble(turn.text, turn.attachments || [], turn.created_at); return; }
       if (turn.role === "dream") { dreamBubble(turn); return; }
-      if (turn.role === "morning") { morningBubble(turn); return; }
+      if (turn.role === "morning" || turn.role === "review") { morningBubble(turn); return; }
       const b = auroraBubble(messages);
       renderPast(b, turn);
       if (turn.suggestions?.length) offerDeeper(b, turn.suggestions);
@@ -427,14 +428,14 @@ export default {
         shown.add(turn.sid);
         if (turn.role === "user") { userBubble(turn.text, turn.attachments || [], turn.created_at); continue; }
         if (turn.role === "dream") { dreamBubble(turn); continue; }
-        if (turn.role === "morning") { morningBubble(turn); continue; }
+        if (turn.role === "morning" || turn.role === "review") { morningBubble(turn); continue; }
         const b = auroraBubble(messages);
         renderPast(b, turn);
         if (turn.suggestions?.length) offerDeeper(b, turn.suggestions);   // under every answer that has them (owner, 2026-10-05)
         b.root.classList.add("past");
         if (turn.run_id) mine.add(turn.run_id);
       }
-      const n = turns.filter((x) => x.role !== "dream" && x.role !== "morning").length;
+      const n = turns.filter((x) => !["dream", "morning", "review"].includes(x.role)).length;
       if (n) messages.append(el("div", "divider", t("chat.history", { n })));
       scrollEnd(messages);
     };
@@ -447,6 +448,7 @@ export default {
     // The chat stays a chat: Aurora's autonomous work (REM, agents, approvals, harvester) lives in
     // Repairs, Diary and Activity, and the bell in the top bar says when something waits for the owner.
     const onActivity = async (a) => {
+      if (["rem.review", "rem.morning", "rem.dream"].includes(a.event)) { this.catchUp(); return; }   // written while the page is open
       if (a.event !== "run.begin" || !["webui", "openai", "acquire"].includes(a.payload.origin)) return;
       const id = a.payload.run_id;
       if (asking) await new Promise((ok) => setTimeout(ok, 800));      // maybe it is ours: its id is on the way

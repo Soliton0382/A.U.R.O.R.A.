@@ -33,6 +33,7 @@ TEXTS = {   # event -> (kind the owner chooses, view to open, {lang: title})
                                                    "en": "🛎️ Aurora is waiting for your approval"}),
     "rem.dream": ("dream", "chat", {"it": "🌙 Aurora ha sognato", "en": "🌙 Aurora had a dream"}),
     "rem.morning": ("morning", "chat", {"it": "☀️ Il buongiorno di Aurora", "en": "☀️ Aurora's good morning"}),
+    "rem.review": ("review", "chat", {"it": "🔁 Aurora ci ha ripensato", "en": "🔁 Aurora thought it over"}),
     "rem.thought": ("thought", "diary", {"it": "💭 Un pensiero di Aurora", "en": "💭 A thought from Aurora"}),
     "rem.self_review": ("self_review", "diary", {"it": "🩺 Autodiagnosi di Aurora", "en": "🩺 Aurora's self-review"}),
     "react.done": ("self_review", "approvals", {"it": "🛠️ Aurora ha analizzato subito un errore",
@@ -80,6 +81,7 @@ KINDS = {   # what the owner chooses from, in the Notifications page
     "morning": {"it": "Buongiorno (cosa ha fatto e imparato stanotte)", "en": "Good morning (what she did and learned overnight)"},
     "self_review": {"it": "Autodiagnosi", "en": "Self-reviews"},
     "thought": {"it": "Pensieri", "en": "Thoughts"},
+    "review": {"it": "Ripensamenti (una risposta passata migliorata)", "en": "Second thoughts (a past answer improved)"},
     "harvest": {"it": "Harvester (paper scaricati)", "en": "Harvester (papers downloaded)"},
     "routine": {"it": "Routine (controlli periodici)", "en": "Routines (periodic checks)"},
     "weather": {"it": "Meteo (bollettino e allerte)", "en": "Weather (report and alerts)"},
@@ -96,7 +98,7 @@ KINDS = {   # what the owner chooses from, in the Notifications page
 }
 # the machine's: only the admin chooses them (a user is not told of the backup or the firewall)
 MACHINE = {"incident", "update", "self_review", "harvest", "plugin", "backup", "backup_ok", "cloud", "health"}
-PRESETS = {"suggested": ["incident", "approval", "update", "dream", "self_review", "routine", "weather", "plugin", "creation", "backup",
+PRESETS = {"suggested": ["incident", "approval", "update", "dream", "review", "self_review", "routine", "weather", "plugin", "creation", "backup",
                          "cloud", "health", "access", "social", "project"],
            "all": list(KINDS), "none": []}
 KNOWN_BEFORE = ["incident", "approval", "update", "dream", "self_review", "thought", "harvest"]   # prefs saved without "known"

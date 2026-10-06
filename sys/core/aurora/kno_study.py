@@ -132,7 +132,9 @@ def studied_tonight(pipeline, cfg: sys_config.Config, now: datetime | None = Non
     """A study since tonight's window began — not "in the last 18 hours": a study run by hand in the evening counted as
     the night's and the night studied nothing (C152)."""
     since = window_start(cfg, now).astimezone(timezone.utc).isoformat()
-    return any(s.created_at >= since for s in tonight(pipeline))
+    refl = pipeline.reader.recent(300, domain="reflection") if pipeline.reader.layout.shards("memory", "reflection") else []
+    # its own window, not tonight()'s last 18 hours of the real clock: after 20:30 a study at 02:30 fell out of them (C171)
+    return any(s.extra.get("type") == "study" and s.created_at >= since for s in refl)
 
 
 def tonight(pipeline) -> list:

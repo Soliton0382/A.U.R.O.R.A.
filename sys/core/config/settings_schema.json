@@ -2347,6 +2347,48 @@
    "max": 50
   },
   {
+   "key": "AURORA_REVIEW_PER_DAY",
+   "type": "int",
+   "category": "rem",
+   "recommended": "3",
+   "evidence": "owner, 2026-10-06",
+   "en": "Past answers Aurora answers again each day when you are silent, to see whether she now knows more (the weakest first); 0 = never.",
+   "it": "Risposte passate che Aurora rifà ogni giorno mentre sei in silenzio, per vedere se ora sa di più (prima le più deboli); 0 = mai.",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ],
+   "min": 0,
+   "max": 20
+  },
+  {
+   "key": "AURORA_REVIEW_MESSAGES",
+   "type": "int",
+   "category": "rem",
+   "recommended": "2",
+   "evidence": "owner, 2026-10-06",
+   "en": "At most this many messages a day in the chat when a review finds a better answer (new facts or a correction, with new sources).",
+   "it": "Al massimo questi messaggi al giorno in chat quando una revisione trova una risposta migliore (fatti nuovi o una correzione, con fonti nuove).",
+   "services": [
+    "aurora-api"
+   ],
+   "min": 0,
+   "max": 10
+  },
+  {
+   "key": "AURORA_REVIEW_HOURS",
+   "type": "str",
+   "category": "rem",
+   "recommended": "9-22",
+   "evidence": "owner, 2026-10-06",
+   "en": "Hours (local, start-end) in which Aurora may review past answers and write to you about them.",
+   "it": "Ore (locali, inizio-fine) in cui Aurora può rivedere le risposte passate e scriverti.",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ]
+  },
+  {
    "key": "AURORA_MORNING_HOUR",
    "type": "int",
    "category": "rem",

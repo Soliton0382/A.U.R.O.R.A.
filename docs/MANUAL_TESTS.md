@@ -7,7 +7,7 @@ end, duplicates and tests of pages that no longer exist removed (each with its r
 | session | tests |
 |---|---|
 | 🌙 they come by themselves (look in the morning) | N19, N63, N77, N78 |
-| 🔁 again after a change | I5, N25, N93–N96 |
+| 🔁 again after a change | I5, N25, N93–N98 |
 | 📱 phone, ~10 min | N31 |
 | 🖥️ chat on the PC, ~15 min | I4 |
 | 🧭 pages, ~25 min | K1, N32, N35, N37, N40, N43, N46, N53, N62, N64, N66, N68, N73, N74, R1, R10 |
@@ -50,6 +50,8 @@ end, duplicates and tests of pages that no longer exist removed (each with its r
 | N93 | `sudo bash sys/deploy/nft/install.sh`; then 🛡️ Sicurezza → Difesa e rete → 🧱 | «Firewall di Aurora attivo»; from another PC (not the phone): `nc <aurora> 2222` → incident «Esca toccata», the PC kept off Aurora for 24 h, ↩️ lifts it |
 | N94 | The chat open on the PC and on the phone (the app in the background); write on one | the other shows it by itself, also after waking up |
 | N95 | «anima questa foto» with the video given to Google (Models → 🎨) | the video from Veo; while it is made, the bar «🎬 … in corso · circa N%» over the chat |
+| N97 | The chat on the phone: a question, then the network cut for a few seconds (airplane mode) while she answers | «🔌 connessione persa: riprendo…», then the whole answer — no «network error» (C170) |
+| N98 | Tomorrow between 9 and 22, silent for a while: the chat | at most 2 bubbles «🔁 Aurora ci ha ripensato» on an old answer, with its sources; tell whether they were worth it (M120) |
 | N96 | 🛡️ → 📊 La settimana della sicurezza; and on Monday 08:30 the routine (switch it on in Agenti e routine) | the score, campaigns, what is missing |
 | N69 | Multi-user first login of an admin without password (a clean install) | after the API key, the Users page with the note: password and Google Authenticator first |
 

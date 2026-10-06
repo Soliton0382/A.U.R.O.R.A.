@@ -910,6 +910,18 @@ suite green in the sandbox (328 passed), proposed — refused by the API still r
 right** — each bug found from the symptom alone, fixed, the whole suite green in the sandbox, the change proposed
 (90, 130, 140, 110 s); every proposal refused by the benchmark, the live code untouched.
 
+## M120 — Second thoughts: past answers answered again (6 October 2026)
+
+Drives counted from the vault at 20:38 (not simulated): the admin 5 declined questions not studied (curiosity), 11
+answers with sentences dropped by the verification or a single source (dissatisfaction), 8 others older than 6 hours
+(novelty), silent 1.5 h; the user alice 3 / 3 / 1. aurora-rem started the review by itself at 20:38:03 (in 9-22, the
+owner silent): 3 answers of 2 October, each with 6 sentences dropped by the verification (old 376, 628, 1,049
+characters). All 3 judged NEW_INFO with 3, 3, 1 sources the old answers lacked; 84, 87, 97 s each (local reasoner);
+2 told in the chat (the daily limit), 3 in the shadow. The judge on two controls: the same answer twice → SAME; the old
+weak answer as the "new" one → SAME (no message either way). Shown in the chat: 2 bubbles «🔁 Aurora ci ha ripensato»
+(headless Chrome). Not measured yet: on answers that were already good, how often the judge says NEW_INFO without
+reason — the first 3 were the weakest of all, the easy case.
+
 ## M119 — Security beyond the address, the owner's tests of the evening (6 October 2026)
 
 Threat lists downloaded by aurora-rem's daily round: Spamhaus DROP 1,641 networks, abuse.ch Feodo 5, FireHOL level1

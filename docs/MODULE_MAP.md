@@ -111,6 +111,7 @@ call downward (ECOSYSTEM §1).
 | `mdl_media.py` | models | pictures, edits, videos from a cloud provider chosen per task; masked words, a photo only with the exemption, counted | mdl_router, sec_mask, sys_ethics | mdl_image, mdl_video, api/models |
 | `sys_capabilities.py` | system | what works read live: plugins, connections, abilities | plg_host, mdl_router, sec_fwapi, sys_push, sys_backup… | api/knowledge (/features) |
 | `sys_ideas.py` | system | the owner's ideas to improve Aurora, moved new → considered → planned → done | — | api/bugreport |
+| `kno_review.py` | knowledge | second thoughts: drives counted (curiosity, dissatisfaction, novelty, social); past knowledge answers answered again (remember=False), judged against the old one; a better one with new sources becomes a "review" reflection in the chat and replaces the shadow; review.json per user, a pause after 12 with nothing better | kno_answer, kno_shadow, kno_rem, kno_study | api/routines (rem review, rem/state drives) |
 | `kno_train.py` | knowledge | the shadow trained at night: random documents → general questions → answered → shadows ("train") | kno_shadow, kno_study | api/routines (rem train) |
 | `sys_formats.py` | system | the versions of the data formats; a backup records them, a restore compares and migrates | — | sys_backup, script/sys_restore.py |
 | `sys_reset.py` | system | factory settings (behaviour only) and Aurora as just installed (her mind moved aside, never usr/) | sys_config | api/system, script/sys_factory_reset.py |

@@ -439,6 +439,7 @@
   "syn.delete_q": "Cancellare questo collegamento?",
   "gd.p.synapses": "Le sinapsi di Aurora: i collegamenti fra conoscenze di domini diversi, i concetti che formano, peso e usi di ciascuno; puoi rafforzarli, fissarli, risvegliarli o cancellarli.",
   "chat.morning": "☀️ Il buongiorno di Aurora",
+  "chat.review": "🔁 Aurora ci ha ripensato",
   "chat.listen": "Ascolta",
   "chat.shadow.adapted": "🌗 Scritta per te dalla risposta verificata il {d} per «{q}» (vicinanza {c}), con le stesse fonti, frase per frase.",
   "chat.shadow.adapted.recheck": "🌗 Scritta per te dalla risposta verificata il {d} per «{q}» (vicinanza {c}), con le stesse fonti; la ricontrollo con tutte le fonti.",

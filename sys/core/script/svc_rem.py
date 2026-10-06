@@ -9,6 +9,8 @@ Every AURORA_REM_TICK_S it reads GET /v1/aurora/rem/state and starts at most one
  repair       after a self-review with problems (AURORA_SELF_REPAIR): an agent investigates, fixes in
               the sandbox, proposes the change (the owner approves, AURORA_FORGE_MODE=ask)
  routines     every tick, also with REM off: the owner's periodic checks that are due (sys_routines)
+ review       inside AURORA_REVIEW_HOURS, owner silent: past answers answered again; a better one is told
+              in the chat (kno_review)
  reflect      boredom: silent for AURORA_REM_BORED_MIN (halved when it rains or the sky is
               overcast with low pressure: the previous installation's "melancholy"), and no
               thought in the last AURORA_REM_REFLECTION_GAP_MIN
@@ -84,6 +86,8 @@ def choose(st: dict, system: bool = True) -> tuple[str | None, str]:
     review, repair = st["last"].get("self_review"), st["last"].get("repair")
     if system and cfg["AURORA_SELF_REPAIR"] and review and st.get("review_problems") and (not repair or repair < review):
         return "repair", f"the last self-review found problems in {st['review_problems']} components"
+    if st.get("review_due"):
+        return "review", f"{st['review_due']} past answers to think again about"
     w = st.get("weather") or {}
     bored_after = cfg["AURORA_REM_BORED_MIN"] * (0.5 if w.get("condition") in ("rain", "low_pressure_overcast") else 1)
     since_thought = _minutes_since(st["last"]["thought"])
