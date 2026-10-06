@@ -125,6 +125,36 @@ def publish_photo(picture: str, message: str) -> str:
     return f"published with the picture: post id {data.get('post_id') or data.get('id')}"
 
 
+def _video(name: str) -> Path:
+    """One of Aurora's videos (her narrated videos, the chat's files), by its file name only."""
+    from pathlib import Path
+    from aurora import sys_config
+    cfg = sys_config.get()
+    if not name or "/" in name or "\\" in name or name.startswith("."):
+        raise ToolError("give the video's file name only")
+    for key in ("AURORA_IMAGE_DIR", "AURORA_UPLOADS_DIR"):
+        found = next((p for p in Path(cfg.path(key)).rglob(name) if p.is_file() and p.suffix.lower() in (".mp4", ".mov")), None)
+        if found:
+            return found
+    raise ToolError(f"no video named {name}")
+
+
+@server.tool()
+def publish_video(video: str, message: str) -> str:
+    """Publish one of Aurora's videos (file name, e.g. one of her narrated videos) with its text on the page (an external
+    action: the owner confirms it). The file is uploaded as it is: no public address needed."""
+    src = _video(video)
+    if not PAGE or not TOKEN:
+        raise ToolError("AURORA_FACEBOOK_PAGE_ID or AURORA_FACEBOOK_PAGE_TOKEN is empty")
+    r = httpx.post(f"https://graph-video.facebook.com/{PAGE}/videos", params={"access_token": TOKEN},
+                   data={"description": message}, files={"source": (src.name, src.read_bytes(), "video/mp4")}, timeout=600)
+    data = r.json()
+    if "error" in data:
+        raise ToolError(f"Graph API: {data['error'].get('message', r.status_code)} — the page token needs "
+                        "pages_manage_posts")
+    return f"published with the video: post id {data.get('id')}"
+
+
 @server.tool()
 def list_comments(limit: int = 20) -> str:
     """The latest comments on the page's posts, with their ids (to answer them)."""

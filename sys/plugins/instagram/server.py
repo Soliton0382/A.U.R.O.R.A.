@@ -99,5 +99,41 @@ def ig_publish_photo(picture: str, caption: str) -> str:
     return f"published on Instagram: media id {post.get('id')}"
 
 
+
+def _video(name: str) -> Path:
+    """One of Aurora's videos (her narrated videos, the chat's files), by its file name only."""
+    if not name or "/" in name or "\\" in name or name.startswith("."):
+        raise ToolError("give the video's file name only")
+    for key in ("AURORA_IMAGE_DIR", "AURORA_UPLOADS_DIR"):
+        found = next((p for p in cfg.path(key).rglob(name) if p.is_file() and p.suffix.lower() in (".mp4", ".mov")), None)
+        if found:
+            return found
+    raise ToolError(f"no video named {name}")
+
+
+@server.tool()
+def ig_publish_reel(video: str, caption: str) -> str:
+    """Publish one of Aurora's videos (file name) as a Reel with its caption (an external action: the owner confirms
+    it). Uploaded straight to Meta (resumable upload): no public address needed."""
+    src = _video(video)
+    data = src.read_bytes()
+    ig = _account()
+    box = _call("POST", f"{ig}/media", media_type="REELS", upload_type="resumable", caption=caption[:2200])
+    r = httpx.post(box.get("uri") or f"https://rupload.facebook.com/ig-api-upload/v21.0/{box['id']}", content=data,
+                   headers={"Authorization": f"OAuth {TOKEN}", "offset": "0", "file_size": str(len(data))}, timeout=600)
+    if r.status_code >= 300:
+        raise ToolError(f"upload refused: HTTP {r.status_code} {r.text[:200]}")
+    status = ""
+    for _ in range(60):                                        # Meta processes the video: up to ~5 minutes
+        status = _call("GET", box["id"], fields="status_code").get("status_code", "")
+        if status in ("FINISHED", "ERROR", "EXPIRED"):
+            break
+        time.sleep(5)
+    if status != "FINISHED":
+        raise ToolError(f"Instagram did not finish processing the video: {status or 'no answer'}")
+    post = _call("POST", f"{ig}/media_publish", creation_id=box["id"])
+    return f"published on Instagram as a Reel: media id {post.get('id')}"
+
+
 if __name__ == "__main__":
     server.run("stdio")

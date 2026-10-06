@@ -47,5 +47,14 @@
   "AURORA_TIKTOK_CLIENT_SECRET",
   "AURORA_TIKTOK_REDIRECT_URI",
   "AURORA_TIKTOK_REFRESH_TOKEN"
- ]
+ ],
+ "social": {
+  "label": "TikTok",
+  "max_chars": 2200,
+  "video": {
+   "tool": "tiktok_post_video",
+   "field": "title",
+   "video": "video"
+  }
+ }
 }

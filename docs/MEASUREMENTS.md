@@ -910,6 +910,19 @@ suite green in the sandbox (328 passed), proposed — refused by the API still r
 right** — each bug found from the symptom alone, fixed, the whole suite green in the sandbox, the change proposed
 (90, 130, 140, 110 s); every proposal refused by the benchmark, the live code untouched.
 
+## M123 — The videos on the Social page, ready to approve (6 October 2026)
+
+Social → 🎬 Video di Aurora (webui social_video.js): a topic, the steps shown while she works, then every video with
+its preview, the post (editable, with the privacy check) and one «Publish» per platform that takes videos — the click
+is the approval. «Perché il cielo è blu?»: 31.4 s of video in 225.6 s (answer 40.2, pictures 37.8, natural voice on the
+CPU and clips 138.4), mood «wonder», Dvořák's Largo; sources: Wikipedia «Atmosphere of Earth», «Atmosfera terrestre».
+Headless Chrome: 4 videos listed, the first opened with its player, its post and «✔ Pubblica su Facebook» (the only
+video platform connected: TikTok installed without its authorization, Instagram switched off). The video's address:
+200 video/mp4 9.9 MB with the key, 401 without, 404 for a crafted path. The video's metadata did not load in the
+headless test, which adds the key to fetch() only, not to a <video> — not measured on a real device. The first three
+videos all had the same name (aurora.mp4): the plugins find a video by its name, so they were renamed with their
+time, and every new video has its own (aurora-<time>.mp4). Not published: the owner approves.
+
 ## M122 — Aurora's natural voice: Qwen3-TTS cloning her Piper voice (6 October 2026)
 
 The owner listened to 6 samples (Piper as it is, three Piper tunings, Qwen3-TTS 0.6B cloning the first one from 15.8 s

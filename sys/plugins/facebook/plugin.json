@@ -14,12 +14,20 @@
   "AURORA_FACEBOOK_PAGE_ID",
   "AURORA_FACEBOOK_PAGE_TOKEN"
  ],
- "settings": ["AURORA_SOCIAL_AUTONOMY", "AURORA_SOCIAL_POSTS_PER_DAY", "AURORA_SOCIAL_AUTO_TOOLS"],
-  "requires": [
+ "settings": [
+  "AURORA_SOCIAL_AUTONOMY",
+  "AURORA_SOCIAL_POSTS_PER_DAY",
+  "AURORA_SOCIAL_AUTO_TOOLS"
+ ],
+ "requires": [
   "AURORA_FACEBOOK_PAGE_ID",
   "AURORA_FACEBOOK_PAGE_TOKEN"
  ],
- "cache": {"page_info": 3600, "page_stats": 900, "list_posts": 600},
+ "cache": {
+  "page_info": 3600,
+  "page_stats": 900,
+  "list_posts": 600
+ },
  "effects": {
   "publish_post": "external",
   "page_info": "read",
@@ -44,6 +52,11 @@
    "tool": "publish_photo",
    "field": "message",
    "picture": "picture"
+  },
+  "video": {
+   "tool": "publish_video",
+   "field": "message",
+   "video": "video"
   }
  },
  "publishes": {

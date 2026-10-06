@@ -141,6 +141,7 @@ details.gd-item summary { cursor: pointer; font-weight: 600; }
 .deeper-q { text-align: left; border: 1px solid var(--line, #3a4258); background: transparent; color: inherit; border-radius: 10px; padding: .4rem .7rem; font: inherit; font-size: .92em; cursor: pointer; max-width: 100%; }
 .deeper-q:hover { border-color: var(--accent, #6aa0ff); }
 .share-pic { max-width: 100%; max-height: 320px; border-radius: 8px; margin: .4rem 0; }
+.story-video { display: block; width: min(100%, 360px); max-height: 70vh; aspect-ratio: 9 / 16; background: #000; border-radius: 8px; margin: .4rem 0; }
 .md .math-block { overflow-x: auto; overflow-y: hidden; margin: .5rem 0; padding: .2rem 0; }
 .md .table-wrap { overflow-x: auto; margin: .5rem 0; }
 .md table { border-collapse: collapse; font-size: .92em; }

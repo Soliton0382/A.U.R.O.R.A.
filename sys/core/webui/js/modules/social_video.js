@@ -1,0 +1,92 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 A.U.R.O.R.A. Project
+// 🎬 Aurora's narrated videos on the Social page (owner, 2026-10-06: "we let her make one and approve it"): a topic →
+// the video made on her machine (kno_story: vault, checked script, pictures, her voice, music), each step shown; then
+// every video with its post, editable, and one "Publish" per platform that takes videos — that click is the approval.
+import { call, stream } from "../api.js";
+import { el } from "../dom.js";
+import { t } from "../i18n.js";
+import { privacyBox } from "./social.js";
+
+const STEPS = { "run.start": "social.video.st_answer", "story.script": "social.video.st_script", "image.batch": "social.video.st_pictures",
+  "image.swap": "social.video.st_pictures", "story.done": "social.video.st_done" };
+
+export function videoSection(box) {
+  const form = el("form", "import compose");
+  const topic = el("input");
+  topic.type = "text";
+  topic.placeholder = t("social.video.topic");
+  const make = el("button", "", `🎬 ${t("social.video.make")}`);
+  make.type = "submit";
+  const status = el("p", "muted");
+  const list = el("div", "soc-videos");
+  form.append(topic, make);
+  box.append(el("p", "muted", t("social.video.hint")), form, status, list);
+
+  const load = async () => {
+    let r;
+    try { r = await call("/v1/aurora/social/stories"); } catch (e) { list.replaceChildren(el("p", "error", t("ev.error", { m: e.message }))); return; }
+    const on = r.platforms.filter((p) => p.available);
+    list.replaceChildren(...(r.stories.length ? r.stories.map((s) => card(s, on)) : [el("p", "muted", t("social.video.none"))]));
+  };
+
+  const card = (s, platforms) => {
+    const c = el("details", "appr-card external");
+    c.append(el("summary", "", `🎬 ${s.topic || s.stamp} · ${s.length_s ? `${Math.round(s.length_s)} s` : ""} · ${s.stamp.slice(9, 11)}:${s.stamp.slice(11, 13)} ${s.stamp.slice(6, 8)}/${s.stamp.slice(4, 6)}`));
+    c.addEventListener("toggle", () => {
+      if (!c.open || c.dataset.ready) return;
+      c.dataset.ready = "1";
+      const video = el("video", "story-video");
+      video.controls = true;
+      video.preload = "metadata";
+      video.playsInline = true;
+      video.src = `/v1/aurora/social/stories/${s.stamp}/video`;
+      const area = el("textarea");
+      area.rows = 7;
+      area.value = s.post;
+      const row = el("div", "appr-actions");
+      const out = el("span", "muted");
+      for (const p of platforms) {
+        const pub = el("button", "approve", `✔ ${t("social.publish", { p: p.label })}`);
+        pub.type = "button";
+        pub.addEventListener("click", async () => {
+          pub.disabled = true;
+          out.textContent = t("social.video.sending", { p: p.label });
+          try {
+            const r = await call("/v1/aurora/social/publish", { method: "POST",
+              body: JSON.stringify({ plugin: p.plugin, text: area.value.slice(0, p.max_chars), video: s.video }) });
+            out.textContent = `${p.label}: ${r.result?.text || r.status || t("social.sent")}`;
+          } catch (e) { out.textContent = t("ev.error", { m: e.message }); pub.disabled = false; }
+        });
+        row.append(pub);
+      }
+      if (!platforms.length) row.append(el("span", "muted", t("social.video.no_platform")));
+      row.append(out);
+      c.append(video, area, privacyBox(() => area.value, (v) => { area.value = v; }), row);
+    });
+    return c;
+  };
+
+  form.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const q = topic.value.trim();
+    if (q.length < 3) return;
+    make.disabled = true;
+    status.textContent = `⏳ ${t("social.video.st_answer")}`;
+    try {
+      const { run_id } = await call("/v1/aurora/social/story", { method: "POST", body: JSON.stringify({ topic: q }) });
+      let failed = "";
+      await stream(`/v1/aurora/runs/${run_id}/events`, (e) => {
+        if (STEPS[e.event]) status.textContent = `⏳ ${t(STEPS[e.event])}`;
+        if (e.event === "error") failed = e.payload?.message || "error";
+        if (e.event === "story.ready") status.textContent = `✅ ${t("social.video.ready", { s: Math.round(e.payload.length_s) })}`;
+      });
+      if (failed) status.textContent = `⚠️ ${failed}`;
+      topic.value = "";
+      await load();
+      list.querySelector("details")?.setAttribute("open", "");
+    } catch (e) { status.textContent = t("ev.error", { m: e.message }); }
+    make.disabled = false;
+  });
+  return { load };
+}

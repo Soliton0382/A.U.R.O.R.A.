@@ -69,3 +69,19 @@ def test_the_music_follows_the_mood_and_is_credited(cfg, monkeypatch, tmp_path):
     assert kno_story.mood(llm("boh"), "t", "x") == "calm"
     post = kno_story._post("Laser", [{"say": "Ciao."}], [{"title": "Laser"}], cfg, wonder)
     assert "Musica: " + wonder["credit"] in post and "Wikimedia Commons" in post
+
+
+def test_the_videos_made_are_listed_newest_first(cfg, tmp_path):
+    import json as _json
+    cfg.values["AURORA_IMAGE_DIR"] = str(tmp_path)
+    for stamp, topic in (("20261006-211705", "Laser"), ("20261006-230557", "Buco nero")):
+        d = tmp_path / "stories" / stamp
+        d.mkdir(parents=True)
+        (d / f"aurora-{stamp}.mp4").write_bytes(b"mp4")
+        (d / "script.json").write_text(_json.dumps({"topic": topic, "length_s": 36.0}), encoding="utf-8")
+        (d / "post.txt").write_text(f"{topic}\n\nFonti: x", encoding="utf-8")
+    (tmp_path / "stories" / "20261007-000000").mkdir()                       # a video that failed: no file
+    got = kno_story.stories(cfg)
+    assert [s["topic"] for s in got] == ["Buco nero", "Laser"] and got[0]["video"] == "aurora-20261006-230557.mp4"
+    assert got[0]["post"].startswith("Buco nero") and got[0]["length_s"] == 36.0
+

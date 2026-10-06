@@ -13,6 +13,8 @@ from .core import auth, cfg, pipeline, plugin_host
 
 router = APIRouter()
 PICTURE = re.compile(r"[\w.-]{1,120}\.(?:png|jpe?g|webp)")
+VIDEO = re.compile(r"[\w.-]{1,120}\.mp4")
+STAMP = re.compile(r"\d{8}-\d{6}")
 
 
 # ---- social -------------------------------------------------------------------------------------
@@ -64,13 +66,24 @@ async def social_publish(request: Request) -> dict:
     picture = str(body.get("picture") or "")
     if picture and not PICTURE.fullmatch(picture):        # one of Aurora's pictures, by its file name only
         raise HTTPException(status_code=400, detail="picture: a file name of Aurora's pictures")
+    video = str(body.get("video") or "")
+    if video and not VIDEO.fullmatch(video):              # one of Aurora's videos (kno_story), by its file name only
+        raise HTTPException(status_code=400, detail="video: a file name of Aurora's videos")
     found = await asyncio.to_thread(lambda: platforms(plugin_host()))
     target = next((t for t in found if t["plugin"] == plugin and t["available"]), None)
     if target is None or not text:
         raise HTTPException(status_code=409, detail="platform not connected or empty text")
+    if video and not target.get("video"):
+        raise HTTPException(status_code=409, detail=f"{plugin} does not publish videos")
     text = sys_disclosure.mark_text(text, txt_lang.detect(text), cfg)
-    how = target["photo"] if picture and target.get("photo") else target["publish"]
-    args = {how["field"]: text, **({how["picture"]: picture} if how is target.get("photo") else {})}
+    if video:
+        how = target["video"]
+        args = {how["field"]: text, how["video"]: video}
+    else:
+        how = target["photo"] if picture and target.get("photo") else target["publish"]
+        if not how:
+            raise HTTPException(status_code=409, detail=f"{plugin} publishes only pictures or videos")
+        args = {how["field"]: text, **({how["picture"]: picture} if how is target.get("photo") else {})}
     req = Approvals(cfg).request("tool_call", "external", f"{plugin}.{how['tool']}",
                                  "post shared by the owner from the chat", {"plugin": plugin, "tool": how["tool"],
                                                                             "arguments": args},
@@ -82,6 +95,26 @@ async def social_publish(request: Request) -> dict:
 # other (routines, forge, agents) load in any order
 from .activity import reflections  # noqa: E402
 from .agents import decide  # noqa: E402
+
+
+@router.get("/v1/aurora/social/stories", dependencies=[Depends(auth)])
+def social_stories() -> dict:
+    """The narrated videos made (newest first) and the platforms that publish videos."""
+    from aurora import kno_story
+    from aurora.kno_social import platforms
+    return {"stories": kno_story.stories(cfg),
+            "platforms": [{"plugin": t["plugin"], "label": t["label"], "available": t["available"], "max_chars": t["max_chars"]}
+                          for t in platforms(plugin_host()) if t.get("video")]}
+
+
+@router.get("/v1/aurora/social/stories/{stamp}/video", dependencies=[Depends(auth)])
+def social_story_video(stamp: str):
+    from fastapi.responses import FileResponse
+    from aurora import kno_story
+    s = next((x for x in kno_story.stories(cfg, 200) if x["stamp"] == stamp), None) if STAMP.fullmatch(stamp) else None
+    if s is None:
+        raise HTTPException(status_code=404, detail="no such video")
+    return FileResponse(cfg.path("AURORA_IMAGE_DIR") / "stories" / stamp / s["video"], media_type="video/mp4")
 
 
 @router.post("/v1/aurora/social/story", dependencies=[Depends(auth)])

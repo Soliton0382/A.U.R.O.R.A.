@@ -8,6 +8,7 @@ import { bus } from "../bus.js";
 import { clock, el } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { approvalCard, isPost, socialPlugins } from "./approvals.js";
+import { videoSection } from "./social_video.js";
 
 // what a post would give away (owner, 2026-10-05): the names of private people, places, contacts, ids — read by the
 // local model; each finding with its replacement, the sure ones ticked; "apply" rewrites the text, then onApply
@@ -64,6 +65,7 @@ export default {
       <form class="import compose"><textarea rows="4" data-i18n-placeholder="social.topic"></textarea>
         <button type="submit" data-i18n="social.draft"></button></form>
       <div class="drafts"></div>
+      <h3 class="setting-cat" data-i18n="social.video.title"></h3><div class="soc-video"></div>
       <h3 class="setting-cat" data-i18n="social.report"></h3><div class="report"></div>
       <h3 class="setting-cat" data-i18n="social.history"></h3><div class="soc-history"></div>`;
     apply(root);
@@ -72,6 +74,7 @@ export default {
     this.report = root.querySelector(".report");
     this.socPending = root.querySelector(".soc-pending");
     this.socHistory = root.querySelector(".soc-history");
+    this.videos = videoSection(root.querySelector(".soc-video"));
     const input = root.querySelector("textarea");
     const go = root.querySelector(".compose button");
     const make = async (text) => {
@@ -161,7 +164,8 @@ export default {
       const icon = { executed: "✅", auto: "🤖", failed: "⛔", rejected: "✖️", approved: "⏳" }[a.status] || "•";
       d.append(el("summary", "", `${icon} ${clock(a.created)} · ${a.title} · ${t(`social.st.${a.status}`)}`));
       if (args.picture) { const img = el("img", "share-pic"); img.src = `/v1/aurora/images/${args.picture}`; img.alt = args.picture; img.loading = "lazy"; d.append(img); }
-      d.append(el("p", "", args.message || args.text || ""));
+      if (args.video) d.append(el("p", "muted", `🎬 ${args.video}`));
+      d.append(el("p", "", args.message || args.text || args.caption || args.title || ""));
       const id = /post id (\S+)/.exec(typeof a.result === "string" ? a.result : a.result?.text || "")?.[1];
       if (id && (a.action || {}).plugin === "facebook") {
         const link = el("a", "", t("social.open_post"));
@@ -174,6 +178,7 @@ export default {
 
   async enter() {
     this.loadPosts().catch(() => {});
+    this.videos.load();
     const s = await call("/v1/aurora/social");
     const on = s.platforms.filter((p) => p.available);       // only the platforms switched on and connected
     this.platforms.replaceChildren(...(on.length ? on.map((p) => {

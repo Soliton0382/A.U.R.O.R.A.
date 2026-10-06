@@ -166,6 +166,26 @@ def _post(topic: str, items: list[dict], sources: list[dict], cfg: sys_config.Co
     return sys_disclosure.mark_text(body, "it", cfg)
 
 
+def stories(cfg: sys_config.Config, n: int = 12) -> list[dict]:
+    """The latest videos made, newest first: {"stamp", "video", "topic", "post", "length_s", "music"}."""
+    root = cfg.path("AURORA_IMAGE_DIR") / "stories"
+    out = []
+    for d in sorted((p for p in root.iterdir() if p.is_dir()), reverse=True) if root.is_dir() else []:
+        video = next(iter(sorted(d.glob("aurora*.mp4"))), None)
+        if not video:
+            continue
+        try:
+            meta = json.loads((d / "script.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            meta = {}
+        post = (d / "post.txt").read_text(encoding="utf-8") if (d / "post.txt").is_file() else ""
+        out.append({"stamp": d.name, "video": video.name, "topic": meta.get("topic", ""), "post": post,
+                    "length_s": meta.get("length_s"), "music": meta.get("music")})
+        if len(out) >= n:
+            break
+    return out
+
+
 def make(pipeline, cfg: sys_config.Config, topic: str, emit, out_root: Path | None = None) -> dict:
     """The whole video for `topic`. Raises ValueError when the vault does not answer it (no video without sources)."""
     from . import mdl_image, mdl_tts
@@ -213,7 +233,7 @@ def make(pipeline, cfg: sys_config.Config, topic: str, emit, out_root: Path | No
     meta = ["-metadata", f"title={topic[:120]}", "-metadata", "encoder_tool=Aurora"]
     if on:
         meta += ["-metadata", f"comment={sys_disclosure._line(cfg, 'it')}", "-metadata", f"description={sys_disclosure.IPTC_AI}"]
-    video = folder / "aurora.mp4"
+    video = folder / f"aurora-{stamp}.mp4"            # a name of its own: the social plugins find a video by its name
     feel = mood(pipeline.llm, topic, ans.text)
     music = pick_music(cfg, feel)
     length = sum(s for _, s in parts)
@@ -229,7 +249,9 @@ def make(pipeline, cfg: sys_config.Config, topic: str, emit, out_root: Path | No
     post = _post(topic, items, ans.sources, cfg, music[1] if music else None)
     (folder / "post.txt").write_text(post, encoding="utf-8")
     (folder / "script.json").write_text(json.dumps({"topic": topic, "scenes": items, "cut": cut, "answer": ans.text,
-                                                    "sources": ans.sources, "seconds": took}, ensure_ascii=False, indent=1),
+                                                    "sources": ans.sources, "seconds": took, "length_s": round(length, 1),
+                                                    "music": music[1]["credit"] if music else None},
+                                                   ensure_ascii=False, indent=1),
                                         encoding="utf-8")
     for f in [*clips, folder / "joined.mp4", folder / "clips.txt", *folder.glob("voice-*.wav")]:
         f.unlink(missing_ok=True)                     # the parts: the video, its pictures, script and post stay
