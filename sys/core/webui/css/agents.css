@@ -93,3 +93,19 @@ pre.try-out { white-space: pre-wrap; font: .76rem/1.4 var(--mono); background: r
 dialog.plug-modal.net-modal { width: min(96vw, 1200px); max-width: 96vw; }
 .chips .chip.off { opacity: .55; }
 .idea-form input, .idea-form textarea { width: 100%; box-sizing: border-box; margin: .3rem 0; }
+
+/* ⓘ a control's short explanation (dom.info) */
+.info-i { display: inline-flex; align-items: center; justify-content: center; width: 1.15rem; height: 1.15rem; padding: 0; margin: 0 .35rem;
+  border-radius: 50%; border: 0; background: #2f6fed; color: #fff; font: italic 700 .75rem Georgia, serif; cursor: help; vertical-align: middle; }
+.info-pop { display: block; white-space: pre-line; background: #1b2436; border: 1px solid #2f6fed; border-radius: 8px; padding: .45rem .6rem;
+  margin: .3rem 0; font-size: .85rem; color: #dbe4f5; max-width: 34rem; }
+
+/* 🔎 the security checks as a table of three columns (security_watch.js) */
+.sec-rules-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.sec-rules-table th, .sec-rules-table td { padding: .4rem .35rem; border-bottom: 1px solid var(--line); vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+.sec-rules-table th:first-child, .sec-rules-table td:first-child { width: 2rem; }
+.sec-rules-table td:nth-child(2) { width: 45%; }
+.sec-rules-table tr.on td:nth-child(2) strong { color: #5bd08a; }
+@media (max-width: 600px) { .sec-rules-table td:nth-child(2) { width: 50%; } .sec-rules-table td { font-size: .85rem; } }
+.md-limits-table input[type=number] { width: 6rem; max-width: 100%; }
+.md-free { margin-left: .3rem; }

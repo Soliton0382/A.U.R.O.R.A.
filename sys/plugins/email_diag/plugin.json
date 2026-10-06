@@ -1,0 +1,38 @@
+{
+  "name": "email_diag",
+  "version": "1.0",
+  "kind": "tool",
+  "description": {
+    "en": "Read only diagnosis of the email plugin: whether it is installed and configured (variable names only, never values), how its recent calls went in Aurora's traces and logs, and the latest errors. It explains why reading the mailbox failed.",
+    "it": "Diagnosi in sola lettura del plugin email: se è installato e configurato (solo i nomi delle variabili, mai i valori), come sono andate le sue chiamate recenti nelle tracce e nei log di Aurora, e gli ultimi errori. Spiega perché la lettura della posta non è riuscita."
+  },
+  "command": [
+    "{python}",
+    "server.py"
+  ],
+  "env": [],
+  "requires": [],
+  "effects": {
+    "*": "read"
+  },
+  "sandbox": {
+    "network": false
+  },
+  "tests": [
+    {
+      "tool": "email_diag_stato",
+      "args": {}
+    },
+    {
+      "tool": "email_diag_chiamate",
+      "args": {
+        "hours": 48
+      }
+    }
+  ],
+  "forged": {
+    "request": "ea8045c5b3",
+    "at": "2026-10-06T12:23:24+0200",
+    "need": "Missing capability to read email from the user's mailbox"
+  }
+}

@@ -53,3 +53,36 @@ export async function backupRow() {
   if (b.running) follow();
   return row;
 }
+
+// ♻️ restore (owner, 2026-10-06): the snapshots with whether they fit this Aurora (sys_formats), and the command that
+// restores one — it stops Aurora and moves the data aside, so it runs in a terminal, never from this page
+export function restoreBox() {
+  const d = el("details", "report");
+  d.append(el("summary", "", `♻️ ${t("bk.restore")}`));
+  const body = el("div");
+  d.append(body);
+  d.addEventListener("toggle", async () => {
+    if (!d.open || body.dataset.done) return;
+    body.dataset.done = "1";
+    body.replaceChildren(el("p", "muted", t("bk.reading")));
+    let rows;
+    try { rows = await call("/v1/aurora/backup/snapshots"); } catch (e) { body.replaceChildren(el("p", "error", t("ev.error", { m: e.message }))); return; }
+    const mark = { same: "✅", migrate: "🔄", unknown: "ℹ️", newer: "⛔" };
+    body.replaceChildren(el("p", "muted", t("bk.restore_hint")), ...rows.map((r) => {
+      const row = el("div", "ev");
+      row.append(el("span", "ic", mark[r.compat.verdict] || "•"), el("strong", "", r.snapshot),
+        el("span", "muted", `${r.files} file · ${(r.bytes / 1e9).toFixed(1)} GB · ${t(`bk.v.${r.compat.verdict}`)}`));
+      if (r.compat.verdict !== "newer") {
+        const copy = el("button", "", `📋 ${t("bk.copy")}`);
+        copy.title = r.command;
+        copy.addEventListener("click", async () => {
+          try { await navigator.clipboard.writeText(r.command); copy.textContent = `✅ ${t("idea.copied")}`; }
+          catch { copy.replaceWith(el("code", "", r.command)); }
+        });
+        row.append(copy);
+      } else row.append(el("span", "error", r.compat.why));
+      return row;
+    }));
+  });
+  return d;
+}

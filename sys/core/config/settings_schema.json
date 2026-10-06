@@ -878,6 +878,21 @@
    ]
   },
   {
+   "key": "AURORA_SHADOW_TRAIN_PER_NIGHT",
+   "type": "int",
+   "category": "rem",
+   "recommended": "20",
+   "evidence": "owner, 2026-10-06",
+   "min": 0,
+   "max": 200,
+   "en": "Night training of the shadow: documents of the vault turned into questions and answered each night (≈75 s each), so that a question asked in other words is answered at once. 0 = off.",
+   "it": "Allenamento notturno dell'ombra: documenti del vault trasformati in domande e risolti ogni notte (≈75 s l'uno), così una domanda fatta con altre parole ha subito la risposta. 0 = spento.",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ]
+  },
+  {
    "key": "AURORA_SHADOW_SURE",
    "type": "float",
    "category": "search",

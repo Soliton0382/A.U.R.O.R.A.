@@ -35,3 +35,19 @@ export function useCss(href) {
   l.dataset.moduleCss = href;
   document.head.append(l);
 }
+
+// ⓘ a short explanation of a control (owner, 2026-10-06): on hover with a mouse, on a tap on the phone
+export function info(text) {
+  const i = el("button", "info-i", "i");
+  i.type = "button";
+  i.title = text;
+  i.setAttribute("aria-label", text);
+  i.addEventListener("click", (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    const open = i.nextElementSibling?.classList.contains("info-pop");
+    document.querySelectorAll(".info-pop").forEach((p) => p.remove());
+    if (!open) i.after(el("span", "info-pop", text));
+  });
+  return i;
+}

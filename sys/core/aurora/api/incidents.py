@@ -9,6 +9,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from .core import auth, cfg, log, note, pipeline, plugin_host, start_run
 
+from .users import admin_only  # noqa: E402
+
 router = APIRouter()
 
 
@@ -16,12 +18,21 @@ router = APIRouter()
 @router.post("/v1/aurora/sentinel/incident", dependencies=[Depends(auth)])
 async def sentinel_incident(request: Request) -> dict:
     """aurora-sentinel reports an incident: kept, shown, investigated at once if the .env says so."""
+    from aurora import sec_netmap
     from aurora.sec_incidents import Incidents
-    item = Incidents(cfg).add(await request.json())
-    note("sentinel", "incident", {"id": item["id"], "kind": item["kind"], "source": item["source"],
-                                  "severity": item["severity"], "title": f"{item['kind']} · {item['source']}"})
+    incident = await request.json()
+    name = sec_netmap.names(cfg).get(incident.get("source", "")) if incident.get("internal") else None
+    if name:                                              # one of the owner's devices (the firewall knows its name)
+        incident["known"] = name
+    item = Incidents(cfg).add(incident)
+    if item.get("merged"):                                # a repeat of an open incident: counted, not said again
+        return {"id": item["id"], "severity": item["severity"], "merged": True}
+    who = f"{name} ({item['source']})" if name else item["source"]
+    if not (name and item["severity"] == "low"):          # a known device's routine traffic: in the list, no alert
+        note("sentinel", "incident", {"id": item["id"], "kind": item["kind"], "source": item["source"],
+                                      "severity": item["severity"], "title": f"{item['kind']} · {who}"})
     defend(item)
-    if cfg["AURORA_SENTINEL_INVESTIGATE"]:
+    if cfg["AURORA_SENTINEL_INVESTIGATE"] and not name:   # the public registry says nothing about a device at home
         def job(q, emit, run_id):
             from aurora.kno_answer import Answer
             from aurora.sec_incidents import investigate
@@ -54,13 +65,13 @@ def defend(item: dict) -> None:
     threading.Thread(target=run, name="defence", daemon=True).start()
 
 
-@router.get("/v1/aurora/incidents", dependencies=[Depends(auth)])
+@router.get("/v1/aurora/incidents", dependencies=[Depends(admin_only)])
 def incidents(status: str | None = None, archived: bool = False) -> list[dict]:
     from aurora.sec_incidents import Incidents
     return Incidents(cfg).list(status, archived)[:200]
 
 
-@router.post("/v1/aurora/incidents/archive-closed", dependencies=[Depends(auth)])
+@router.post("/v1/aurora/incidents/archive-closed", dependencies=[Depends(admin_only)])
 def incidents_archive_closed() -> dict:
     """The owner tidies the Security page: closed incidents archived (kept for the reports)."""
     from aurora.sec_incidents import Incidents
@@ -69,7 +80,7 @@ def incidents_archive_closed() -> dict:
     return {"archived": n}
 
 
-@router.post("/v1/aurora/incidents/{incident_id}/close", dependencies=[Depends(auth)])
+@router.post("/v1/aurora/incidents/{incident_id}/close", dependencies=[Depends(admin_only)])
 def close_incident(incident_id: str) -> dict:
     from aurora.sec_incidents import Incidents
     try:

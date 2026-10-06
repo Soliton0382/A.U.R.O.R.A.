@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import subprocess
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -66,6 +67,22 @@ def backup_mount() -> dict:
     if out.get("started") and not out["ok"]:
         raise HTTPException(status_code=409, detail=out["error"] or "mount failed: see the backup card")
     return out
+
+
+@router.get("/v1/aurora/backup/snapshots", dependencies=[Depends(admin_only)])
+def backup_snapshots() -> list[dict]:
+    """The backup's snapshots, each with whether it can be restored here (sys_formats) and the command that does it:
+    a restore stops Aurora and moves the data, so it runs in a terminal (sys_restore.py), never from inside the API."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("sys_restore", Path(__file__).resolve().parents[2] / "script" / "sys_restore.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    try:
+        rows = mod.listing(cfg)
+    except Exception as e:  # noqa: BLE001 — the NAS asleep, no key: said on the card
+        raise HTTPException(status_code=409, detail=f"{type(e).__name__}: {str(e)[:200]}") from None
+    return [{**r, "command": f"cd {cfg.root} && .venv/bin/python sys/core/script/sys_restore.py --apply {r['snapshot']}"}
+            for r in reversed(rows)]
 
 
 @router.post("/v1/aurora/backup/run", dependencies=[Depends(admin_only)])

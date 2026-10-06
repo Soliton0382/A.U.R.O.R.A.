@@ -76,10 +76,27 @@ def add(cfg: sys_config.Config, embedder, question: str, text: str, sources: lis
                         (n - MAX_ROWS,))
 
 
+def _shared(cfg: sys_config.Config):
+    """The admin's shadow file when the asking user is someone else: its seed answers are knowledge, not memories, and
+    serve every user (2026-10-06: a user's «Cos'è la decoerenza quantistica?» went through the whole search)."""
+    from . import sys_users_layout
+    m = sys_users_layout.migrated(cfg)
+    admin = (m or {}).get("admin")
+    if not admin or (cfg.user or admin) == admin:
+        return None
+    f = sys_users_layout.place(cfg, "state", admin) / "shadow.db"
+    return f if f.is_file() else None
+
+
 def find(cfg: sys_config.Config, embedder, reranker, question: str) -> dict | None:
     """The answer whose shadow this question falls in, or None."""
     with closing(_db(cfg)) as con:
-        rows = con.execute("SELECT id, question, vec, answer, sources, made, follow FROM shadows").fetchall()
+        rows = [(*r, False) for r in con.execute("SELECT id, question, vec, answer, sources, made, follow FROM shadows").fetchall()]
+    seed = _shared(cfg)
+    if seed is not None:
+        with closing(sqlite3.connect(f"file:{seed}?mode=ro", uri=True, timeout=30)) as con:
+            rows += [(*r, True) for r in con.execute("SELECT id, question, vec, answer, sources, made, follow FROM shadows "
+                                                      "WHERE origin IN ('seed', 'train')").fetchall()]
     if not rows:
         return None
     q = _unit(embedder.encode_queries([question])[0])
@@ -94,9 +111,10 @@ def find(cfg: sys_config.Config, embedder, reranker, question: str) -> dict | No
     best, score = near[k], scores[k]
     if score < float(cfg["AURORA_SHADOW_ANSWER"]):
         return None
-    rid, old_q, _, text, sources, made, follow = rows[best]
-    with _lock, closing(_db(cfg)) as con, con:
-        con.execute("UPDATE shadows SET used = used + 1, last = ? WHERE id = ?", (time.time(), rid))
+    rid, old_q, _, text, sources, made, follow, shared = rows[best]
+    if not shared:                                     # the admin's seed is read only for the other users
+        with _lock, closing(_db(cfg)) as con, con:
+            con.execute("UPDATE shadows SET used = used + 1, last = ? WHERE id = ?", (time.time(), rid))
     return {"question": old_q, "text": text, "sources": json.loads(sources), "made": made, "follow": json.loads(follow or "[]"),
             "cos": round(float(cos[best]), 3), "score": round(score, 3), "overlap": len(near),
             "sure": float(cos[best]) >= float(cfg["AURORA_SHADOW_SURE"])}
@@ -155,7 +173,8 @@ def export_seed(cfg: sys_config.Config, reader=None) -> list[dict]:
     """The seed's answers that may leave this machine: asked by the seed script, every source public. With the vault's
     reader each source carries the origin, address and licence its passage was imported with (the attribution)."""
     with closing(_db(cfg)) as con:
-        rows = con.execute("SELECT question, answer, sources, made, follow FROM shadows WHERE origin = 'seed' ORDER BY id").fetchall()
+        rows = con.execute("SELECT question, answer, sources, made, follow FROM shadows WHERE origin IN ('seed', 'train') "
+                           "ORDER BY id").fetchall()
     found = reader.get_many([s.get("sid") for r in rows for s in json.loads(r[2]) if s.get("sid")]) if reader else {}
     out = []
     for q, text, sources, made, follow in rows:

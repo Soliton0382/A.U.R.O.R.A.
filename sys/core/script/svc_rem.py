@@ -75,6 +75,8 @@ def choose(st: dict, system: bool = True) -> tuple[str | None, str]:
         return "dream", "night window, no dream yet"
     if in_dream_window(now) and st.get("to_study") and not st.get("studied_tonight"):
         return "study", f"night window, {st['to_study']} questions declined and not studied yet"
+    if in_dream_window(now) and st.get("train_due"):
+        return "train", "night window, the shadow not trained tonight"
     if system and _minutes_since(st["last"].get("self_review")) >= 24 * 60:
         return "introspect", "no self-review in the last 24 hours"
     if st.get("social_platforms") and _minutes_since(st["last"].get("social_report")) >= 24 * 60:   # each user's pages

@@ -32,8 +32,9 @@ import social from "./modules/social.js";
 import status from "./modules/status.js";
 import updates from "./modules/updates.js";
 import users from "./modules/users.js";
+import ideas from "./modules/ideas_page.js";
 
-export const views = [chat, approvals, reports, security, autonomy, diary, memory, social, dj, care, projects, routines, models, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, settings, guide, bugreport];
+export const views = [chat, approvals, reports, security, autonomy, diary, memory, social, dj, care, projects, routines, models, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, settings, guide, bugreport, ideas];
 export const widgets = [sky, alerts, metrics];
 
 // the side menu in areas (owner, 2026-10-05): an area of one page is a plain entry; the others open on a tap
@@ -47,5 +48,8 @@ export const groups = [
   { id: "security", views: ["security"] },
   { id: "autonomy", views: ["autonomy"] },
   { id: "system", icon: "⚙️", title: "nav.g.system", views: ["status", "models", "plugins", "users", "settings", "updates"] },
-  { id: "help", icon: "❓", title: "nav.g.help", views: ["guide", "bugreport"] },
+  { id: "help", icon: "❓", title: "nav.g.help", views: ["guide", "bugreport", "ideas"] },
 ];
+// the machine's pages (owner, 2026-10-06, multi-user): a user sees neither them in the menu nor their data (the API
+// answers 403); their own preferences are in 👥 Users → My account, their plugins' settings in the plugins' cards
+export const adminOnly = new Set(["security", "models", "harvester", "synapses", "status", "updates", "settings", "import"]);

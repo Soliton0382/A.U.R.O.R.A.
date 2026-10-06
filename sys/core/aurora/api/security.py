@@ -5,6 +5,7 @@ documentation (switched on by the owner), and the defence on the firewall throug
 from __future__ import annotations
 
 import asyncio
+import time
 
 from aurora import sys_log
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -15,10 +16,20 @@ from .users import admin_only
 router = APIRouter()
 
 
+_traffic: dict = {"at": 0.0, "hours": 0.0, "groups": []}
+
+
 @router.get("/v1/aurora/security/profile", dependencies=[Depends(admin_only)])
-def profile(hours: float = 24) -> dict:
+def profile(hours: float = 24, traffic: bool = True) -> dict:
+    """The checks, and (traffic=1) the last hours' traffic in groups — 4.5 s to read, so asked apart and kept 5 min."""
     from aurora import sec_profile, sec_rules, sec_fwapi
-    return {"groups": sec_profile.observe(cfg, max(1.0, min(hours, 168.0))), "rules": sec_rules.load(cfg),
+    groups = []
+    if traffic:
+        h = max(1.0, min(hours, 168.0))
+        if time.time() - _traffic["at"] > 300 or _traffic["hours"] != h:
+            _traffic.update(at=time.time(), hours=h, groups=sec_profile.observe(cfg, h))
+        groups = _traffic["groups"]
+    return {"groups": groups, "rules": sec_rules.load(cfg),
             "doc": cfg["AURORA_SECURITY_SYSLOG_DOC"], "firewall_api": sec_fwapi.configured(cfg), "group": cfg["AURORA_FIREWALL_BLOCK_GROUP"]}
 
 

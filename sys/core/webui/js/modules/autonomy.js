@@ -5,12 +5,13 @@
 // for the admin each user's profile and whether they may choose it. A level is a set of settings: reading the page
 // reads the settings, a click writes them (then the services that read them restart).
 import { call } from "../api.js";
-import { el } from "../dom.js";
+import { el, info } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { apiBack } from "../restart.js";
 
 const ICON = { 0: "🔒", 1: "🤝", 2: "🚀" };
-const AREA_ICON = { social: "📣", forge: "🧰", repairs: "🔧", security: "🛡️", updates: "⬆️", knowledge: "📚", inner: "💭" };
+const AREA_ICON = { social: "📣", forge: "🧰", repairs: "🔧", security: "🛡️", updates: "⬆️", knowledge: "📚", inner: "💭",
+  study: "🌙", shadow: "🌗", morning: "☀️", train: "🏋️" };
 
 async function restart(services) {
   if (services?.length) await call("/v1/aurora/services/restart", { method: "POST", body: JSON.stringify({ services }) }).catch(() => null);
@@ -62,14 +63,15 @@ export default {
   areaRow(a, user) {
     const row = el("div", "auto-area");
     const name = el("div", "auto-name");
-    name.append(el("strong", "", `${AREA_ICON[a.id] || "•"} ${t(`auto.area.${a.id}`)}`),
+    // ⓘ what each level of this area does (owner, 2026-10-06: "it is not clear which buttons can be clicked")
+    const explain = a.levels.map((n) => `${ICON[n]} ${t(`auto.level.${n}`)}: ${t(`auto.what.${a.id}.${n}`)}`).join("\n");
+    name.append(el("strong", "", `${AREA_ICON[a.id] || "•"} ${t(`auto.area.${a.id}`)}`), info(explain),
       el("span", "muted", a.level === null ? ` · ${t("auto.by_hand")}` : ""));
     const levels = el("div", "auto-levels");
-    for (const n of [0, 1, 2]) {
+    for (const n of a.levels) {                          // only the levels this area has: no button that cannot be pressed
       const b = el("button", a.level === n ? "approve" : "", `${ICON[n]} ${t(`auto.level.${n}`)}`);
       b.title = t(`auto.what.${a.id}.${n}`);
-      b.disabled = !a.levels.includes(n) || !a.mine;
-      if (!a.levels.includes(n)) b.classList.add("auto-none");
+      b.disabled = !a.mine;
       b.addEventListener("click", () => this.set({ levels: { [a.id]: n }, ...(user ? { user } : {}) }));
       levels.append(b);
     }
@@ -113,7 +115,10 @@ export default {
     try { v = await call("/v1/aurora/autonomy"); } catch (e) { this.q(".auto-out").textContent = t("ev.error", { m: e.message }); return; }
     this.q(".auto-exempt").hidden = v.exempt;
     this.q(".auto-profiles").replaceChildren(...this.profiles(v), el("span", "muted", v.profile === "custom" ? ` ${t("auto.custom")}` : ""));
-    this.q(".auto-areas").replaceChildren(...v.areas.map((a) => this.areaRow(a)));
+    // a user sees the areas that are theirs; the machine's are the admin's (said once, not as grey buttons)
+    const shown = v.admin ? v.areas : v.areas.filter((a) => a.mine || a.scope === "user");
+    this.q(".auto-areas").replaceChildren(...shown.map((a) => this.areaRow(a)),
+      ...(v.admin ? [] : [el("p", "muted", t(v.may_choose ? "auto.user_note" : "auto.user_admin_decides"))]));
     this.q(".auto-days").replaceChildren(...this.days(v.days));
     this.q(".auto-admin").hidden = !v.admin;
     if (!v.admin) return;

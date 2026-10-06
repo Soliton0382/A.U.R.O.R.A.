@@ -356,8 +356,9 @@ def run(cfg: sys_config.Config | None = None, emit=None) -> dict:
             entries.append([rel, size, int(st.st_mtime), st.st_mode & 0o777, bid])
             if made:
                 made.unlink()
+        from . import sys_formats                       # the formats it was made with: a restore checks them
         snap = {"version": 1, "created": stamp, "host": socket.gethostname(), "root": str(cfg.root),
-                "files": entries}
+                "formats": sys_formats.current(cfg), "files": entries}
         _write_atomic(dest / "snapshots" / f"{stamp}.snap", _encrypt_bytes(json.dumps(snap).encode(), enc))
         _write_atomic(cache_f, json.dumps(new_cache).encode())
     finally:

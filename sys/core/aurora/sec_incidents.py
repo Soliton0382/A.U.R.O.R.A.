@@ -28,10 +28,19 @@ SYS_REPORT = ("You are Aurora, defending %OWNER%'s network. Write, in Italian, a
               "suggest attacking back. Only the facts given; say 'non misurato' for anything missing.")
 
 
+# how long an open incident takes the same kind from the same source as a repeat, not as a new one
+MERGE_HOURS = 24
+
+
 def severity(incident: dict) -> str:
     s = SEVERITY.get(incident["kind"], "low")
     if incident["kind"] == "deny_burst" and incident.get("count", 0) >= 500:
         s = "medium"
+    if incident.get("known"):
+        # one of the owner's devices, known to the firewall by name (sec_netmap; owner, 2026-10-06: 117 of 118
+        # incidents came from them): a check of the firewall's rules is their normal traffic, an IPS alert is worth a
+        # look but is not an intruder
+        return "low" if str(incident["kind"]).startswith("rule:") else ("medium" if s == "high" else s)
     if incident.get("internal") and s != "high":
         s = "medium" if s == "low" else "high"          # a host inside behaving badly matters more
     return s
@@ -52,8 +61,22 @@ class Incidents:
         os.replace(tmp, self.file)
 
     def add(self, incident: dict) -> dict:
+        """A new incident, or a repeat of an open one (same kind, same source, within MERGE_HOURS): then the open one
+        counts it ("repeats", "count", "last") and the result says "merged" — nothing more to notify or investigate."""
+        now = time.time()
+        with _lock:
+            items = self._load()
+            for old in reversed(items):
+                if (old["status"] == "open" and old["kind"] == incident["kind"] and old["source"] == incident["source"]
+                        and now - float(old.get("received_ts") or 0) < MERGE_HOURS * 3600):
+                    old["repeats"] = int(old.get("repeats") or 0) + 1
+                    old["count"] = int(old.get("count") or 0) + int(incident.get("count") or 0)
+                    old["last"] = incident.get("last", old.get("last"))
+                    old["samples"] = (list(old.get("samples") or []) + list(incident.get("samples") or []))[-20:]
+                    self._save(items)
+                    return {**old, "merged": True}
         item = {"id": uuid.uuid4().hex[:10], "status": "open", "severity": severity(incident),
-                "received": time.strftime("%Y-%m-%dT%H:%M:%S%z"), **incident, "report": None, "intel": None}
+                "received": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "received_ts": now, **incident, "report": None, "intel": None}
         with _lock:
             items = self._load()
             items.append(item)

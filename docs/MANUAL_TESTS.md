@@ -7,11 +7,11 @@ end, duplicates and tests of pages that no longer exist removed (each with its r
 | session | tests |
 |---|---|
 | 🌙 they come by themselves (look in the morning) | N19, N63, N77, N78, R4, R7 |
-| 🔁 again after a change | N4, N5, N86, N87, N88 |
+| 🔁 again after a change | N4, N5, N86, N88–N92 |
 | 📱 phone, ~10 min | N16, N25, N31, N58, N59 |
-| 🖥️ chat on the PC, ~15 min | N11, N17, N20, N21, N41, N42, N72, I1–I5, R9 |
-| 🧭 pages, ~25 min | N3, N6, N32, N34, N35, N37, N39, N40, N43, N46, N47, N53, N57, N60, N62, N64–N66, N68, N70, N71, N73, N74, R1, R3, R5, R10, K1, K3 |
-| 🔑 a setup first (keys, devices, a second user) | N2, N13–N15, N18, N22, N23, N26, N27, N29, N30, N33, N36, N38, N48–N51, N54–N56, N61, N67, N69, R2, R11 |
+| 🖥️ chat on the PC, ~15 min | I1–I5, N41, N42 |
+| 🧭 pages, ~25 min | K1, K3, N3, N6, N32, N34, N35, N37, N39, N40, N43, N46, N47, N53, N57, N60, N62, N64–N66, N68, N70, N71, N73, N74, R1, R3, R10 |
+| 🔑 a setup first (keys, devices, a second user) | N2, N13–N15, N18, N22, N23, N30, N33, N36, N38, N48–N51, N54–N56, N61, N67, N69, R2, R11 |
 
 ## Pages added on 2 October
 
@@ -21,21 +21,15 @@ end, duplicates and tests of pages that no longer exist removed (each with its r
 | N3 | 📖 Guide: open each «Apri →» | every page opens; the texts read well on the phone |
 | N4 | ⚙️ Status → «Funzioni di questa installazione» | 10 ✅; nothing red — ❌ owner: incomplete — to be made dynamic, then again |
 | N5 | ⚙️ Settings: categories | each category once (C71) — ❌ owner: on the phone the categories take half the screen — a 3-level menu, then again |
-| N11 | Chat: «che notizie ci sono oggi di tecnologia?» | headlines with source and link, from the 📰 news plugin |
 | N13 | 📅 calendar: an ICS link (Google → secret address) in the card, then «cosa ho in agenda questa settimana?» | the events, at the right local time |
 | N14 | 📝 notes: AURORA_NOTES_DIR on your Obsidian vault, «cerca nelle mie note …», «aggiungi alla nota X …» | found; the addition waits for approval, the note only grows |
 | N15 | 🏠 «che luci ci sono accese?» once devices are in Home Assistant | read from HA; switching asks for approval |
 | N16 | In the installed app (phone): tap a picture Aurora made, then a PDF in 📎 Files | each opens inside the app; ⬇️ Download saves it; ✕ closes |
 | N18 | 📔 Diary: open a dream; then a dream in the chat | its painting is shown (tap: the viewer); ↗ Condividi opens Social with the drafts and the picture; Publish posts it with the picture; a session memory has no Share |
 | N19 | The morning routine (09:30) on a day with a dream | the post is published by itself with the picture, a notification «📣 Aurora ha pubblicato un post», the approvals list shows it as "auto"; a 4th post the same day waits |
-| N20 | Ask «Mi spieghi la formula di Einstein-Cartan?» and a question whose answer is a table | formulas drawn (fractions, integrals, Greek letters), not `$…$`; the table with lines; a wide formula or table scrolls inside itself, the chat does not widen |
-| N21 | In the chat: «fammi un grafico interattivo della funzione seno con uno slider»; then reopen the chat on another device | a 🧩 card with the live chart in the answer; the slider works; ⛶ full screen and back; ⬇ saves the .html; on the other device the card is there again |
 | N22 | Put the TMDB key in Settings → Plugins → cinema; ask «quali film sono di tendenza questa settimana?» and «dove posso vedere Inception?» | the list with votes; where it streams in Italy (subscription, rent, buy) with the TMDB and JustWatch credit |
 | N23 | «ho speso 45 € di benzina», then «quanto ho speso questo mese?», «metti un budget di 40 € per l'auto» | recorded with its #id; the month by category; ⚠️ budget passed |
 | N25 | Hold 🗣️ in the chat | the device's voices, the best female one marked; ▶ plays a sample; tapping a name makes it Aurora's voice on this device |
-| N26 | ⚙️ Settings → Users: read the explanation; set «multi», save; then (when there are other users) «single» | multi: refused with the reason (the login is not ready yet); single with other users: the list of who is deleted and how many files, then a confirmation |
-| N27 | 👥 Users → My account: set your password, link the Authenticator (scan the QR, type the code); ⚙️ Settings → Users: «multi»; 👥 Users: create «prova»; on the phone log in as prova (QR at the first login); ask something; on the PC look at chat, files, activity | the switch is accepted only after password and code; prova enrols at the first login; prova's question never appears on your devices nor yours on prova's; deleting prova lists what goes and removes it |
-| N29 | 👥 Users → My account → 🔑 API keys: «Chatbox sul PC», Create; in Chatbox: OpenAI API, the address and model shown, the key; ask something; then Revoke | Chatbox answers as you (your memory: «cosa ti avevo chiesto…» works); after Revoke Chatbox gets «invalid key» |
 | N30 | A second user with their own Facebook page in ⚙️ Settings (their token) | their posts go to their page, their autonomy and daily number are theirs; yours unchanged |
 | N31 | On the phone, the first dictation after opening the app: 🎙️, speak 5 s, ⏹️ | the text is right the first time, it is sent by itself and the answer is read aloud |
 | N32 | 💾 Backup card: the time 23:00, Save, reload the card | "next backup" says 23:0x (after `sudo bash sys/deploy/systemd/install.sh` once) |
@@ -73,17 +67,18 @@ end, duplicates and tests of pages that no longer exist removed (each with its r
 | N68 | 📚 Harvester: tick a language; Security → 🛡️ Difesa | the language saved, the harvester restarts; the defence's mode, limits and history shown |
 | N70 | 🛡️ Security → 📤 Cosa è uscito dalla macchina | today and 7 days: cloud calls, what was masked, posts, pushes, firewall actions |
 | N71 | ✨ → 🧠 Cosa ricordo di te: open one, Dimentica | it disappears and does not come back after a reload |
-| N72 | Ask a knowledge question | under the answer "🔎 Verificata sulle fonti: N frasi confermate, M scartate · K fonti"; Status shows the answered/declined line |
 | N73 | 🧭 Autonomy: click a few levels in a row | "✅ Salvato" every time, no "errore", the level highlighted at once |
 | N74 | 🛡️ Security → an incident → ⛔ then ↩️ Annulla; Difesa → 🧱 Sul firewall → Prova la connessione | the address blocked then unblocked; the group and rule names shown, "Collegato" |
 | N77 | Ask something she does not know; the next morning | the good morning says she studied it; ask again: an answer with sources — ❌ C152 — again after tonight |
 | N78 | ☀️ The good morning in the chat (after 8) → 🔊 Ascolta | the night's counts, read aloud — ❌ C154 — again after the fix |
 | N86 | 🧠 Models → 🎨: «Immagini nuove» to Google (or xAI), Save; ask «disegnami un faro al tramonto»; then put it back to Locale | the picture from the provider; Security → 📤 shows the call; back to local, local again |
-| N87 | 🛡️ Security: the four tabs; Difesa e rete → 🗺️ Visualizza la mappa: zoom, drag, hover a device | the page opens at once; the drawing with the devices on their interfaces |
 | N88 | 🐞 → 💡 Proponi un'idea: tick two areas, write it, Save; change its state | it is in the list with its state; 📋 copies it |
+| N89 | `bash uninstall.sh --dry-run 1` then `--dry-run 2` | the plan of each choice; nothing changed |
+| N90 | ⚙️ Settings → ⚠️ Impostazioni di fabbrica (keys kept) | the behaviour settings back; folders, ports, NAS, firewall unchanged; the .env before saved |
+| N91 | 🧩 Plugin → backup → ♻️ Ripristina un backup | the snapshots with their compatibility; 📋 the command (do not run it unless you want to restore) |
+| N92 | As a user (alice): the menu | no Settings, Models, Security, Harvester, Status; 👥 My account → ⚙️ Le mie preferenze |
 | N69 | Multi-user first login of an admin without password (a clean install) | after the API key, the Users page with the note: password and Google Authenticator first |
 | N41 | 📁 Projects → 💻 Local: ask Aurora "crea il progetto prova-calc con una funzione somma e i suoi test, eseguili" | the project, the tests run (EXIT 0) in the run's steps, a local commit |
-| N17 | Ask a knowledge question (e.g. «Come funziona la fotosintesi?»), then tap one of the «Approfondisci» questions; then type a short follow-up («e chi l'ha scoperta?») | 3-4 complete questions appear under the answer a few seconds after it; the tapped one is sent whole and its trace shows 🎯 when the sources were used; the typed follow-up shows 🧷 with the completed question |
 | N6 | 🧩 Plugins: open the page, then a card, then back | the grid appears at once; icons do not flash (C80) |
 
 ## Pictures
@@ -104,9 +99,7 @@ end, duplicates and tests of pages that no longer exist removed (each with its r
 | R2 | GitHub token with "All repositories" → 📁 Projects | the private repositories appear too |
 | R3 | Routines → GitHub weekly report → ▶ Run now | a table of the repositories; a notification |
 | R4 | Routines → Security "night report" (or your own routine) at 07:00 | the report arrives in the morning |
-| R5 | A routine that cannot work (e.g. "read my e-mail" with e-mail not connected) | ❌ and a notification "una routine non è riuscita", never ⏳ forever |
 | R7 | Weather alerts on a stormy day | one notification per new alert, not one an hour |
-| R9 | An agent PDF ("/agente crea un PDF con…") | a 📄 chip in Aurora's bubble: one tap downloads it; also in 📎 Files → Aurora's documents |
 | R10 | Plugins → 🛡️ security → settings | the sentinel's address, allowed firewalls, thresholds; saving restarts the sentinel |
 | R11 | After signing: a routine asking for something no plugin does (e.g. "ogni sera dimmi quanti documenti ha raccolto l'harvester per fonte") | a forge request in the run, then "🔨 si è costruita un plugin" or "una capacità non è riuscita" — never a wrong plugin installed |
 
@@ -140,13 +133,24 @@ end, duplicates and tests of pages that no longer exist removed (each with its r
 | N79 | Ask a question, then the same in other words | owner, 5 Oct |
 | N80 | `python sys/core/script/shadow_seed.py` in the day (about 2 hours, Ctrl-C and again is fine), then `--export` | owner, 6 Oct (M113) |
 | N81 | «che tempo fa a Roma?» twice within 10 minutes | machine, 6 Oct (M114) |
-| N82 | ❤️ Salute → ⚕️ Medico: fill the hours, phone, notes, 💾 Salva; reload; then «a che ora riceve oggi il medico?» | owner, 6 Oct |
-| N83 | `bash sys/core/script/sys_tts_install.sh`, then 🔊 on the good morning on the PC (Chrome on Linux) | owner, 6 Oct |
-| N84 | 🤖 Agenti e routine: the icons; ➕ → 🔬 Ricerca, write the subject, plugin web, Salva; ▶ Esegui ora; then ⧉ Clona | owner, 6 Oct |
-| N85 | 🛡️ Sicurezza → 🗺️ Mappa della rete: «Guarda la rete», search a device; switch on the proposed routine «Disposi… | owner, 6 Oct (asked: a drawn map) |
 | R6 | Chat: "che tempo farà domani?", "quante stelle ha il mio repository?", "cosa ha visto il firewall stanotte?" | machine, 6 Oct (weather and GitHub stars through the plugins) |
 | K2 | "Cosa dice l'articolo 2043 del codice civile?" | machine, 6 Oct (from the shadow, 13 s) |
 | N8 | 🐞 Report a bug: describe, tick a conversation, Prepare | machine, 6 Oct (M115: nothing private in the zip; not sent) |
+| N11 | Chat: «che notizie ci sono oggi di tecnologia?» | machine as a user, 6 Oct (M116) |
+| N17 | Ask a knowledge question (e.g. «Come funziona la fotosintesi?»), then tap one of the «Approfondisci» questions | machine as a user, 6 Oct (4 follow-ups; the tap is the owner's) |
+| N20 | Ask «Mi spieghi la formula di Einstein-Cartan?» and a question whose answer is a table | machine as a user, 6 Oct (7 formulas) |
+| N21 | In the chat: «fammi un grafico interattivo della funzione seno con uno slider»; then reopen the chat on anothe | machine as a user, 6 Oct |
+| N72 | Ask a knowledge question | machine as a user, 6 Oct |
+| R9 | An agent PDF ("/agente crea un PDF con…") | machine as a user, 6 Oct |
+| R5 | A routine that cannot work (e.g. "read my e-mail" with e-mail not connected) | machine as a user, 6 Oct (then fixed: ❌ when it cannot) |
+| N82 | ❤️ Salute → ⚕️ Medico: fill the hours, phone, notes, 💾 Salva; reload; then «a che ora riceve oggi il medico?» | owner, 6 Oct |
+| N83 | `bash sys/core/script/sys_tts_install.sh`, then 🔊 on the good morning on the PC (Chrome on Linux) | owner, 6 Oct |
+| N84 | 🤖 Agenti e routine: the icons; ➕ → 🔬 Ricerca, write the subject, plugin web, Salva; ▶ Esegui ora; then ⧉ Clona | owner, 6 Oct |
+| N85 | 🛡️ Sicurezza → 🗺️ Mappa della rete: «Guarda la rete», search a device; switch on the proposed routine «Disposi | owner, 6 Oct |
+| N87 | 🛡️ Security: the four tabs; Difesa e rete → 🗺️ Visualizza la mappa: zoom, drag, hover a device | owner, 6 Oct (the checks' layout: fixed after) |
+| N26 | ⚙️ Settings → Users: read the explanation; set «multi», save; then (when there are other users) «single» | owner, 6 Oct (single → multi) |
+| N27 | 👥 Users → My account: set your password, link the Authenticator (scan the QR, type the code); ⚙️ Settings → Us | owner, 6 Oct (user created and deleted) |
+| N29 | 👥 Users → My account → 🔑 API keys: «Chatbox sul PC», Create; in Chatbox: OpenAI API, the address and model sho | owner, 6 Oct (Chatbox) |
 
 ## 🗑️ Removed
 

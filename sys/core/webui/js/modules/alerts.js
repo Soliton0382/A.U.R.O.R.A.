@@ -58,7 +58,7 @@ export default {
         shield.classList.toggle("hidden", open.length === 0);
         shield.classList.toggle("high", open.some((i) => i.severity === "high"));
         shield.textContent = `🛡️ ${t("alerts.incidents", { n: open.length })}`;
-      } catch { /* logged out */ }
+      } catch { shield.classList.add("hidden"); }          // logged out, or a user: incidents are the admin's
     };
     let timer = 0;
     this.start = () => { if (!timer) { tick(); timer = setInterval(tick, 10000); } };

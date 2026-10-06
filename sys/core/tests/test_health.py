@@ -51,16 +51,19 @@ def test_the_health_plugin_is_private():
     assert m["private"] is True and m["sandbox"]["network"] is False
 
 
-def test_the_agent_refuses_a_private_plugin_to_a_cloud_model(cfg):
+def test_private_data_moves_the_agent_to_the_local_model(cfg):
+    """2026-10-06: «a che ora ho il medico?» was refused because the agent ran on a cloud model; now the run goes on
+    with the local model from the moment private data is read — the cloud model never sees it."""
     from types import SimpleNamespace
     from aurora.agt_loop import Agent
     local, cloud = object(), object()
-    called = []
+    called, events = [], []
     host = SimpleNamespace(get=lambda name: SimpleNamespace(manifest={"private": True, "effects": {"*": "read"}}),
                            call=lambda *a, **k: called.append(a) or {"ok": True, "text": "dati"})
     index = {"health__health_read": ("health", "health_read", "read")}
-    for model, refused in ((cloud, True), (local, False)):
-        p = SimpleNamespace(llm=local, _for=lambda role, m=model: m)
-        out = Agent(p, cfg, host=host)._call("health__health_read", {"area": "diet"}, index, lambda e, d: None, "r1")
-        assert out.startswith("REFUSED") is refused, out
-    assert len(called) == 1                                          # only the local model's call reached the plugin
+    p = SimpleNamespace(llm=local, _for=lambda role: cloud)
+    a = Agent(p, cfg, host=host)
+    assert a._model() is cloud
+    out = a._call("health__health_read", {"area": "diet"}, index, lambda e, d: events.append(e), "r1")
+    assert out == "dati" and len(called) == 1 and "agent.local" in events
+    assert a.local_only and a._model() is local                     # every next step: the local model

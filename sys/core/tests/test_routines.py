@@ -148,3 +148,14 @@ def test_a_personal_agent_its_fields_its_clone_and_its_memory(cfg):
     c = R.clone(cfg, a["id"])
     assert c["id"] != a["id"] and c["enabled"] is False and c["title"].endswith("(copia)") and c["plugins"] == ["web", "news"]
     assert "memory_text" not in c                                               # a clone starts without memories
+
+
+def test_the_rem_state_of_a_user_is_readable_by_the_admin():
+    """2026-10-06: a line added for the night training asked "who" again while acting as the user — 403 for every user
+    but the admin, so aurora-rem could not consolidate their memory. The caller is asked once, before."""
+    import re
+    from pathlib import Path
+    src = (Path(__file__).resolve().parents[1] / "aurora" / "api" / "routines.py").read_text()
+    body = src[src.index("def rem_state"):src.index("@router.post(\"/v1/aurora/rem/{task}\"")]
+    inside = body[body.index("with sys_context.acting_as"):]
+    assert "_rem_user(" not in inside

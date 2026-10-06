@@ -12,6 +12,8 @@ from fastapi.responses import FileResponse
 
 from .core import _admin, _run_lock, _runs, auth, cfg, everyone, log, me, note, pipeline, plugin_host, start_run
 
+from .users import admin_only  # noqa: E402
+
 router = APIRouter()
 
 
@@ -62,6 +64,10 @@ def _routine_job(r: dict):
                         "never runs by itself." if r.get("propose") else "Read only.")
                 ans = agent.run(goal, emit, run_id, f"Routine: {r.get('title', '')}. {rule}")
                 text, files = ans.text.strip(), agent.produced
+                # R5 (2026-10-06): "I cannot read your e-mail" with no call made is a routine that did not work, not ✅
+                if not agent.ledger and re.match(r"(?i)\s*(⚠️[^\n]*\n+)?\s*(non posso|non riesco|non ho (?:nessuno|alcuno)|"
+                                                 r"nessuno dei miei strumenti|i cannot|i can't|i can not|none of my tools)", text):
+                    ok = False
                 _gap_check(agent, r["goal"], text, emit, run_id, r["id"])
                 # a report becomes a PDF; a routine that proposes actions (a post) does not: its result is the proposal
                 if not r.get("propose") and len(text) >= 200 and not any(f.get("mime") == "application/pdf" for f in files):
@@ -70,7 +76,11 @@ def _routine_job(r: dict):
                 log.exception("routine %s failed", r["id"])
                 ok, text = False, f"{type(e).__name__}: {str(e)[:300]}"
                 ans = Answer(run_id, q, f"Routine non riuscita: {text}", False, mode="agent")
-        routine, notify = sys_routines.record(cfg, r["id"], text, ok, run_id, files)
+        try:
+            routine, notify = sys_routines.record(cfg, r["id"], text, ok, run_id, files)
+        except KeyError:                                     # removed while it ran (2026-10-06): nothing to record
+            log.info("routine %s removed while it ran: result not kept", r["id"])
+            return ans
         if not ok:                                           # a routine of the owner failed: diagnosed now
             react("routine", r.get("title", r["id"]), text, run_id)
         if notify:
@@ -158,7 +168,7 @@ def routine_run(rid: str) -> dict:
     return {"run_id": _start_routine(r)}
 
 
-@router.post("/v1/aurora/routines/tick", dependencies=[Depends(auth)])
+@router.post("/v1/aurora/routines/tick", dependencies=[Depends(admin_only)])
 def routine_tick() -> dict:
     """aurora-rem, every tick: start what is due, for every user (their routines run as their work); tell each, once,
     what a newly ready plugin can do."""
@@ -208,7 +218,7 @@ async def notifications_set(request: Request) -> dict:
     return {"prefs": p}
 
 
-@router.post("/v1/aurora/update/apply", dependencies=[Depends(auth)])
+@router.post("/v1/aurora/update/apply", dependencies=[Depends(admin_only)])
 def update_apply() -> dict:
     """The owner's click on "update now" in the Updates page: the same path as an approved update."""
     from aurora import sys_update
@@ -306,7 +316,8 @@ def rem_state(user: str | None = None) -> dict:
     from aurora.kno_rem import Rem
     from aurora.kno_social import platforms
     rem_running = any(r["origin"] == "rem" and not r["done"] for r in list(_runs.values()))
-    with sys_context.acting_as(_rem_user(user)):
+    who = _rem_user(user)                             # asked as the caller (the admin), before acting as the user
+    with sys_context.acting_as(who):
         social = sum(1 for t in platforms(plugin_host()) if t["available"] and t["stats"])
         from datetime import datetime
         from aurora import kno_morning, kno_study
@@ -316,11 +327,13 @@ def rem_state(user: str | None = None) -> dict:
                 "social_platforms": social,
                 "to_study": len(kno_study.pending(p, cfg)) if int(cfg["AURORA_STUDY_PER_NIGHT"]) else 0,
                 "studied_tonight": kno_study.studied_tonight(p, cfg),
+                "train_due": int(cfg["AURORA_SHADOW_TRAIN_PER_NIGHT"]) > 0 and bool(cfg["AURORA_SHADOW"])
+                and who == _admin() and not __import__("aurora.kno_train", fromlist=["x"]).trained_tonight(cfg),
                 "morning_due": bool(hour) and hour <= datetime.now().hour < hour + 4    # a good morning, not at 9 p.m.
                 and not kno_morning.greeted_today(p)}
 
 
-@router.post("/v1/aurora/rem/{task}", dependencies=[Depends(auth)])
+@router.post("/v1/aurora/rem/{task}", dependencies=[Depends(admin_only)])
 def rem_task(task: str, user: str | None = None) -> dict:
     from aurora import sys_context
     who = _rem_user(user)
@@ -328,7 +341,7 @@ def rem_task(task: str, user: str | None = None) -> dict:
         raise HTTPException(status_code=403, detail="Aurora's own diagnosis is the admin's")
     if task == "repair":                              # registered earlier than /rem/repair: hand over
         return rem_repair()
-    if task not in ("consolidate", "reflect", "dream", "introspect", "social", "study", "morning"):
+    if task not in ("consolidate", "reflect", "dream", "introspect", "social", "study", "morning", "train"):
         raise HTTPException(status_code=404, detail="unknown task")
     with sys_context.acting_as(who):                  # the run works on this user's memory and is theirs
         return _rem_run(task)
@@ -347,6 +360,9 @@ def _rem_run(task: str) -> dict:
         if task == "study":                               # what she declined, studied at night (kno_study)
             from aurora import kno_study
             out = kno_study.study(pipeline(), cfg, tell, int(cfg["AURORA_STUDY_PER_NIGHT"]))
+        elif task == "train":                             # the shadow trained on the vault's documents (kno_train)
+            from aurora import kno_train
+            out = kno_train.train(pipeline(), cfg, tell, int(cfg["AURORA_SHADOW_TRAIN_PER_NIGHT"]))
         elif task == "morning":                           # the good morning (kno_morning)
             from aurora import kno_morning
             out = kno_morning.write(pipeline(), cfg, tell)

@@ -72,3 +72,21 @@ def test_the_local_painting_is_untouched_when_nothing_is_chosen(cfg):
     from aurora import mdl_image
     import logging
     assert mdl_image._cloud(cfg, "image", "x", None, logging.getLogger("t")) is None
+
+
+def test_a_provider_kept_in_its_free_tier_goes_back_to_local(cfg, monkeypatch):
+    """Owner, 2026-10-06: a tick to stay in a provider's free tier; past it, the local model."""
+    from aurora import mdl_budget as B
+    assert B.free_reason(cfg, "google") == ""                                  # not ticked: no limit of ours
+    B.set_limits(cfg, {"google": {"free": True, "per_minute": 2, "per_day": 3, "tokens_per_day": 0}})
+    B.record(cfg, "google", {"prompt_tokens": 10})
+    assert not B.over(cfg, "google")
+    B.record(cfg, "google", {"prompt_tokens": 10})
+    assert B.over(cfg, "google") and "minute" in B.free_reason(cfg, "google")
+    later = B.time.time() + 120
+    monkeypatch.setattr(B.time, "time", lambda: later)
+    assert not B.over(cfg, "google")                                           # a new minute
+    B.record(cfg, "google", {"prompt_tokens": 10})
+    assert "a day" in B.free_reason(cfg, "google")
+    with pytest.raises(ValueError):
+        B.set_limits(cfg, {"google": {"per_day": -1}})

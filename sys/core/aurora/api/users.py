@@ -185,7 +185,7 @@ async def users_add(request: Request) -> dict:
     """{"name", "password"}: a user with their usr/<name>/ tree; they enrol their authenticator at the first login."""
     body = await request.json()
     base = BASE.base or BASE
-    name = str(body.get("name", "")).strip()
+    name = str(body.get("name", "")).strip().lower()     # "Giulia" and "giulia" are one user
     try:
         sys_users_layout.check_name(base, name)
         if not sys_users_layout.migrated(base):

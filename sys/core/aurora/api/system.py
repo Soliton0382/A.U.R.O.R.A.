@@ -48,10 +48,27 @@ def settings(request: Request) -> dict:
         for k in m.get("env", []) + m.get("requires", []) + list(m.get("env_as", {})) + m.get("settings", []):
             card.setdefault(k, p.name)
     items = []
+    mine_only = bool(user) and user != _admin()   # a user: only their own settings, never the machine's values
     for s in schema["settings"]:
+        if mine_only and s.get("scope") != "user":
+            continue
         value = current.get(s["key"], "")
         items.append({**s, "value": ("••••••" if s.get("secret") and value else value), "plugin": card.get(s["key"])})
     return {"categories": schema["categories"], "settings": items}
+
+
+@router.post("/v1/aurora/settings/factory", dependencies=[Depends(auth)])
+async def settings_factory(request: Request) -> dict:
+    """{"keep_keys": true}: the behaviour settings back to their recommended values (sys_reset.settings); the .env before
+    is kept. The admin's only. Aurora as just installed (memory, state) is script/sys_factory_reset.py."""
+    from aurora import sys_reset
+    user, admin = user_of(request), _admin()
+    if user and admin and user != admin:
+        raise HTTPException(status_code=403, detail="only the admin")
+    body = await request.json()
+    out = sys_reset.settings(cfg, keep_keys=body.get("keep_keys", True) is not False)
+    log.info("audit: factory settings: %d changed, .env kept in %s", len(out["changed"]), out["backup"])
+    return {**out, "command_mind": f"cd {cfg.root} && .venv/bin/python sys/core/script/sys_factory_reset.py --apply"}
 
 
 @router.put("/v1/aurora/settings", dependencies=[Depends(auth)])
@@ -71,6 +88,8 @@ async def update_settings(request: Request) -> dict:
         raise HTTPException(status_code=422, detail=problems)
     from aurora import sys_user_config, sys_users_layout, sys_users_mode
     user, admin = user_of(request), _admin()
+    if user and admin and user != admin and any(specs[k].get("scope") != "user" for k in changes):
+        raise HTTPException(status_code=403, detail="only the admin changes the machine's settings")   # before anything
     if "AURORA_USER_MODE" in changes and str(changes["AURORA_USER_MODE"]) != sys_users_mode.current(cfg):
         try:                                                 # single ↔ multi: what it does, refused or confirmed
             sys_users_mode.switch(cfg, str(changes["AURORA_USER_MODE"]), user, admin,

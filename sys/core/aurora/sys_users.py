@@ -146,7 +146,7 @@ class Users:
         return self.public(r) if r else None
 
     def add(self, name: str, role: str = "user", password: str = "") -> dict:
-        name = name.strip()
+        name = name.strip().lower()                    # a user name in small letters (owner, 2026-10-06)
         if not name or len(name) > 40 or not all(c.isalnum() or c in "._-" for c in name):
             raise ValueError("name: 1-40 letters, digits, . _ -")
         if role not in ROLES:
@@ -209,7 +209,7 @@ class Users:
 
     def by_name(self, name: str) -> dict | None:
         with self._db() as con:
-            r = con.execute("SELECT * FROM users WHERE name=?", (name.strip(),)).fetchone()
+            r = con.execute("SELECT * FROM users WHERE name=?", (name.strip().lower(),)).fetchone()
         return self.public(r) if r else None
 
     def totp_reset(self, uid: str) -> None:
@@ -221,7 +221,7 @@ class Users:
         """The user if name, password and (when MFA is required or enrolled) the TOTP code are right.
         A code already used cannot be used again (replay inside its 30 seconds)."""
         with self._db() as con:
-            r = con.execute("SELECT * FROM users WHERE name=?", (name.strip(),)).fetchone()
+            r = con.execute("SELECT * FROM users WHERE name=?", (name.strip().lower(),)).fetchone()
             if r is None or not r["password"]:
                 check_password(password, hash_password("x" * 10))       # same time as a wrong password
                 return None

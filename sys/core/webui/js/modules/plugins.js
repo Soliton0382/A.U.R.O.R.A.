@@ -72,9 +72,9 @@ export default {
     }
     dlg.append(stRow);
     if (p.name === "backup") {                      // the backup itself: last copy, next one, 💾 Run now
-      const { backupRow } = await import("../backup.js");
+      const { backupRow, restoreBox } = await import("../backup.js");
       const row = await backupRow();
-      if (row) dlg.append(row);
+      if (row) dlg.append(row, restoreBox());
     }
 
     // guide and official links

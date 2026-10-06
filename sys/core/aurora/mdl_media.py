@@ -105,7 +105,17 @@ def _picture_allowed(cfg: sys_config.Config, task: str) -> None:
         raise PermissionError(f"{task}: a picture cannot be masked and goes to the cloud only on an exempted installation")
 
 
-def _account(p: str, model: str, t0: float, task: str) -> None:
+def _allowed(cfg: sys_config.Config, p: str) -> None:
+    """The provider's free tier (if the owner keeps it there) or the daily ceiling: else the local model does it."""
+    from . import mdl_budget
+    if mdl_budget.over(cfg, p):
+        raise RuntimeError(f"{p}: limit reached ({mdl_budget.free_reason(cfg, p) or 'daily ceiling'})")
+
+
+def _account(p: str, model: str, t0: float, task: str, cfg: sys_config.Config | None = None) -> None:
+    if cfg is not None:
+        from . import mdl_budget
+        mdl_budget.record(cfg, p, {})                  # a request counted (pictures are not billed in tokens)
     sys_log.trace("llm_client", "cloud.call", {"provider": p, "model": model, "usage": {}, "seconds": round(time.time() - t0, 2),
                                                "task": task})
 
@@ -144,13 +154,14 @@ def picture(cfg: sys_config.Config, task: str, prompt: str, src: bytes | None = 
     p, model = provider(cfg, task)
     if src is not None:
         _picture_allowed(cfg, task)
+    _allowed(cfg, p)
     t0 = time.time()
     said = _masked(cfg, prompt, task, p, model, 1 if src is not None else 0)
     if p == "google":
         data = _google_image(_key(cfg, p), model, said, src)
     else:
         data = _openai_like({"openai": "https://api.openai.com/v1", "xai": "https://api.x.ai/v1"}[p], _key(cfg, p), model, said, src)
-    _account(p, model, t0, task)
+    _account(p, model, t0, task, cfg)
     return data, {"provider": p, "model": model, "seconds": round(time.time() - t0, 1)}
 
 
@@ -161,6 +172,7 @@ def video(cfg: sys_config.Config, prompt: str, image: bytes | None = None, limit
         raise RuntimeError(f"{p} cannot make videos")
     if image is not None:
         _picture_allowed(cfg, "video")
+    _allowed(cfg, p)
     key, t0 = _key(cfg, p), time.time()
     inst = {"prompt": _masked(cfg, prompt, "video", p, model, 1 if image is not None else 0)}
     if image is not None:
@@ -180,5 +192,5 @@ def video(cfg: sys_config.Config, prompt: str, image: bytes | None = None, limit
         raise RuntimeError(f"Veo: {op['error'].get('message', op['error'])}")
     uri = op["response"]["generateVideoResponse"]["generatedSamples"][0]["video"]["uri"]
     data = httpx.get(uri, headers=head, timeout=300, follow_redirects=True).content
-    _account(p, model, t0, "video")
+    _account(p, model, t0, "video", cfg)
     return data, {"provider": p, "model": model, "seconds_total": round(time.time() - t0, 1), "bytes": len(data)}

@@ -133,8 +133,13 @@ class Agent:
         self.log = sys_log.get_logger("agent")
         # a personal agent (sys_routines, owner 2026-10-06) may be given only some plugins and its own budget
         self.allow: set[str] | None = None
+        self.local_only = False                               # a private plugin was read: the local model only
         self.max_steps = int(self.cfg["AURORA_AGENT_MAX_STEPS"])
         self.max_min = float(self.cfg["AURORA_AGENT_MAX_MIN"])
+
+    def _model(self):
+        """The model of the next step: the one the Models page gave the agent, the local one after private data."""
+        return self.p.llm if self.local_only else self.p._for("agent")
 
     # ---- tools ------------------------------------------------------------------------------
     def _catalog(self) -> tuple[list[dict], dict]:
@@ -260,11 +265,13 @@ class Agent:
         plugin, tool, effect = index[name]
         if plugin == "projects" and args.get("name"):
             self.projects.add(str(args["name"]))
-        if self.host.get(plugin).manifest.get("private"):      # health data never reaches a cloud model (owner, 2026-10-05)
+        if self.host.get(plugin).manifest.get("private") and not self.local_only:
+            # health data never reaches a cloud model (owner, 2026-10-05) — but the question is answered (2026-10-06:
+            # "a che ora ho il medico?" was refused): from here the run goes on with the local model only
             from . import mdl_router
             if not mdl_router.is_local(self.p._for("agent"), self.p.llm):
-                return (f"REFUSED: {plugin} holds private data and the agent step runs on a cloud model; it answers only "
-                        "to the local model (Models page: agent → local).")
+                self.local_only = True
+                emit("agent.local", {"plugin": plugin, "why": "private data: the local model reads it"})
         field = (self.host.get(plugin).manifest.get("publishes") or {}).get(tool) if effect == "external" else None
         if field and isinstance(args.get(field), str):       # EU AI Act art. 50: what is published says it is AI
             from . import sys_disclosure, txt_lang
@@ -379,13 +386,13 @@ class Agent:
     def _tokens(self, messages: list[dict]) -> int:
         prompt = chatml_turns(messages, True)
         try:
-            return self.p._for("agent").count_tokens(prompt)
+            return self._model().count_tokens(prompt)
         except Exception:                               # no tokenizer at hand: a safe estimate
             return len(prompt) // 3
 
     def _fit(self, messages: list[dict], want: int, emit) -> int:
         """Shorten the oldest tool results until `want` tokens fit; returns the tokens left for the answer."""
-        ctx = getattr(self.p._for("agent"), "context_tokens", 0) or self.cfg["AURORA_LLM_CTX"]
+        ctx = getattr(self._model(), "context_tokens", 0) or self.cfg["AURORA_LLM_CTX"]
         used = self._tokens(messages)
         tools = [i for i, m in enumerate(messages) if m["role"] == "tool"]
         cut = 0
@@ -438,7 +445,7 @@ class Agent:
         limit_s = self.max_min * 60
         while steps < self.max_steps and time.time() - t0 < limit_s:
             room = self._fit(messages, budget, emit)
-            c = self.p._for("agent").complete_turns(messages, min(budget, room), think=True)
+            c = self._model().complete_turns(messages, min(budget, room), think=True)
             text = c.answer
             calls = CALL.findall(text)
             said = CALL.sub("", text).strip()
@@ -485,7 +492,7 @@ class Agent:
                              "you found (with evidence), what you changed or proposed, what is still open."})
             room = self._fit(messages, 1500, emit)
             try:
-                report = self.p._for("agent").complete_turns(messages, min(1500, room), think=False).answer
+                report = self._model().complete_turns(messages, min(1500, room), think=False).answer
             except httpx.HTTPError as e:                    # never a run without a report (C68)
                 self.log.warning("agent run %s: final report failed: %s", run_id, e)
                 report = "Non sono riuscita a scrivere il resoconto finale (" + type(e).__name__ + ")."

@@ -17,6 +17,8 @@ from fastapi.responses import FileResponse, Response
 
 from .core import _admin, auth, cfg, in_thread, log, me, note, pipeline, plugin_host, start_run
 
+from .users import admin_only  # noqa: E402
+
 router = APIRouter()
 
 
@@ -167,7 +169,7 @@ async def plugin_icon_set(name: str, request: Request) -> dict:
 UNITS = ("aurora-llm", "aurora-models", "aurora-api", "aurora-rem", "aurora-harvester", "aurora-sentinel", "aurora-https")
 
 
-@router.post("/v1/aurora/services/restart", dependencies=[Depends(auth)])
+@router.post("/v1/aurora/services/restart", dependencies=[Depends(admin_only)])
 async def restart_services(request: Request) -> dict:
     """Restart services from the WebUI (after a settings change). aurora-api restarts last, after this
     answer has left: the page reconnects by itself."""
@@ -303,7 +305,7 @@ def react(origin: str, title: str, error: str, run_id: str) -> str | None:
     return start_run(f"[riparazione] {title[:80]}", origin="react", job=_agent_job(agt_react.GOAL, ctx, after))["id"]
 
 
-@router.post("/v1/aurora/rem/repair", dependencies=[Depends(auth)])
+@router.post("/v1/aurora/rem/repair", dependencies=[Depends(admin_only)])
 def rem_repair() -> dict:
     """Self-repair: an agent works on the problems of the last self-review; its report becomes a memory."""
     p = pipeline()

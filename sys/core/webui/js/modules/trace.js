@@ -18,7 +18,7 @@ export const ICONS = {
   "acquire.confirmed": "🛰️", "acquire.round": "🛰️", "acquire.candidates": "📚", "acquire.paper": "📥", "acquire.error": "⚠️", "acquire.done": "🏁",
   "rem.start": "🌙", "rem.session_memory": "🗂️", "rem.thought": "💭", "rem.dream": "🌌", "rem.self_review": "🔍", "rem.repair": "🛠️",
   "rem.end": "🏁",
-  "agent.start": "🤖", "agent.thought": "💭", "agent.say": "💬", "tool.call": "🔧", "tool.result": "📎", "tool.cached": "🌗",
+  "agent.start": "🤖", "agent.thought": "💭", "agent.say": "💬", "tool.call": "🔧", "tool.result": "📎", "tool.cached": "🌗", "agent.local": "🔒",
   "approval.request": "🛎️", "approval.execute": "▶️", "approval.done": "🏁", "agent.finish": "🏁", "agent.file": "📄",
   "change.check": "🧬", "change.tests.sandbox": "🧪", "change.applied": "📦", "change.tests.live": "🧪",
   "change.rollback": "↩️", "change.restart": "🔄",
@@ -40,6 +40,7 @@ export function describe(name, p) {
     case "retrieval.focus": return t("ev.retrieval.focus", { k: p.kept, n: p.sources });
     case "answer.suggestions": return t("ev.answer.suggestions", { n: p.items.length });
     case "tool.cached": return t("ev.tool.cached", { plugin: p.plugin, tool: p.tool });
+    case "agent.local": return t("ev.agent.local", { plugin: p.plugin });
     case "retrieval.hits": return t("ev.retrieval.hits", { n: p.hits.length });
     case "memory.recent": return t("ev.memory.recent", { n: p.turns });
     case "gate": return p.open ? t("ev.gate.open", { ids: p.passages.join(", ") }) : t("ev.gate.closed");

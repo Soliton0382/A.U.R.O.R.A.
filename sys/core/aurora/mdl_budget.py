@@ -59,7 +59,69 @@ def record(cfg: sys_config.Config, provider: str, usage: dict) -> int:
     def add(d):
         d.setdefault("tokens", {})[provider] = d.get("tokens", {}).get(provider, 0) + n
         d.setdefault("calls", {})[provider] = d.get("calls", {}).get(provider, 0) + 1
+        now = time.time()                               # the last minute's calls, for a per-minute limit
+        d.setdefault("recent", {})[provider] = [t for t in d.get("recent", {}).get(provider, []) if now - t < 60] + [now]
     return _update(cfg, add)["tokens"][provider]
+
+
+# Per-provider limits (owner, 2026-10-06: "a tick beside each choice to stay in the free usage"): a provider with
+# "free" on is not called past its requests a minute, requests a day or tokens a day — its steps go to the local model
+# until the minute or the day turns. The presets are the free tiers as the providers published them (2025-2026),
+# NOT measured here and changed by the providers often: the owner can correct them on the Models page.
+FREE_PRESETS = {"google": {"per_minute": 10, "per_day": 250, "tokens_per_day": 250000},
+                "xai": {"per_minute": 0, "per_day": 0, "tokens_per_day": 0},
+                "openai": {"per_minute": 0, "per_day": 0, "tokens_per_day": 0},
+                "anthropic": {"per_minute": 0, "per_day": 0, "tokens_per_day": 0},
+                "mistral": {"per_minute": 1, "per_day": 0, "tokens_per_day": 0},
+                "openrouter": {"per_minute": 20, "per_day": 50, "tokens_per_day": 0}}
+
+
+def _limits_file(cfg: sys_config.Config) -> Path:
+    d = cfg.path("AURORA_STATUS_DIR") / "models"
+    d.mkdir(parents=True, exist_ok=True)
+    return d / "limits.json"
+
+
+def limits(cfg: sys_config.Config) -> dict:
+    try:
+        saved = json.loads(_limits_file(cfg).read_text())
+    except (OSError, ValueError):
+        saved = {}
+    return {p: {"free": bool((saved.get(p) or {}).get("free")), **FREE_PRESETS[p],
+                **{k: int(v) for k, v in (saved.get(p) or {}).items() if k in FREE_PRESETS[p]}} for p in FREE_PRESETS}
+
+
+def set_limits(cfg: sys_config.Config, changes: dict) -> dict:
+    cur = limits(cfg)
+    for p, c in changes.items():
+        if p not in FREE_PRESETS or not isinstance(c, dict):
+            raise ValueError(f"provider: one of {sorted(FREE_PRESETS)}")
+        if "free" in c:
+            cur[p]["free"] = bool(c["free"])
+        for k in FREE_PRESETS[p]:
+            if k in c:
+                v = int(c[k])
+                if not 0 <= v <= 10_000_000:
+                    raise ValueError(f"{p}.{k}: 0-10,000,000 (0 = no limit)")
+                cur[p][k] = v
+    _limits_file(cfg).write_text(json.dumps(cur, indent=1))
+    return cur
+
+
+def free_reason(cfg: sys_config.Config, provider: str, d: dict | None = None) -> str:
+    """Why a provider kept in its free tier may not be called now ("" when it may)."""
+    lim = limits(cfg).get(provider)
+    if not lim or not lim["free"]:
+        return ""
+    d = today(cfg) if d is None else d
+    now = time.time()
+    if lim["per_minute"] and len([t for t in d.get("recent", {}).get(provider, []) if now - t < 60]) >= lim["per_minute"]:
+        return f"{lim['per_minute']} requests a minute"
+    if lim["per_day"] and d.get("calls", {}).get(provider, 0) >= lim["per_day"]:
+        return f"{lim['per_day']} requests a day"
+    if lim["tokens_per_day"] and d.get("tokens", {}).get(provider, 0) >= lim["tokens_per_day"]:
+        return f"{lim['tokens_per_day']} tokens a day"
+    return ""
 
 
 def today(cfg: sys_config.Config) -> dict:
@@ -71,10 +133,14 @@ def today(cfg: sys_config.Config) -> dict:
 
 def over(cfg: sys_config.Config, provider: str) -> bool:
     """True when a provider paid by the token has spent today's ceiling (said once a day in the log and the trace)."""
+    d = today(cfg)
+    why = free_reason(cfg, provider, d)
+    if why:                                             # the free tier the owner chose to stay in: the local model
+        sys_log.trace("llm_client", "cloud.free_limit", {"provider": provider, "limit": why})
+        return True
     cap = int(cfg["AURORA_CLOUD_DAILY_TOKENS"] or 0)
     if provider not in PAID or cap <= 0:
         return False
-    d = today(cfg)
     spent = d.get("tokens", {}).get(provider, 0)
     if spent < cap:
         if provider in d.get("stopped", []):              # the owner raised the ceiling: no longer stopped

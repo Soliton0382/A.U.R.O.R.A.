@@ -1,0 +1,51 @@
+{
+  "name": "logs",
+  "version": "1.0",
+  "kind": "tool",
+  "description": {
+    "en": "Aurora's logs, read only: for each component, how many lines per level (WARNING, ERROR, CRITICAL…) over a time window, and the latest warnings and errors. Rotated .gz copies included.",
+    "it": "I log di Aurora, in sola lettura: per ogni componente quante righe per livello (WARNING, ERROR, CRITICAL…) in una finestra di tempo, e gli ultimi avvisi ed errori. Comprese le copie ruotate .gz."
+  },
+  "command": [
+    "{python}",
+    "server.py"
+  ],
+  "env": [],
+  "requires": [],
+  "effects": {
+    "*": "read"
+  },
+  "sandbox": {
+    "network": false
+  },
+  "tests": [
+    {
+      "tool": "logs_summary",
+      "args": {
+        "hours": 24
+      }
+    },
+    {
+      "tool": "logs_errors",
+      "args": {
+        "hours": 24,
+        "min_level": "WARNING",
+        "limit": 10
+      }
+    },
+    {
+      "tool": "logs_errors",
+      "args": {
+        "component": "https",
+        "hours": 48,
+        "min_level": "ERROR",
+        "limit": 5
+      }
+    }
+  ],
+  "forged": {
+    "request": "69ca19389e",
+    "at": "2026-10-06T12:21:21+0200",
+    "need": ""
+  }
+}

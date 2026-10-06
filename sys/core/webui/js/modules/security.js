@@ -83,7 +83,7 @@ export default {
     const head = el("summary");
     head.append(el("span", `pill ${SEV[i.severity] || "warn"}`, t(`sec.sev.${i.severity}`)),
       el("span", "", ` ${i.kind.startsWith("rule:") ? (i.detail?.title || i.kind) : t(`sec.kind.${i.kind}`)} · ${this.who(i.source)}${i.internal ? " (" + t("sec.internal") + ")" : ""} · `
-        + `${i.count} ${t("sec.events")} · ${clock(i.received)}`));
+        + `${i.count} ${t("sec.events")}${i.repeats ? ` · ${t("sec.repeats", { n: i.repeats })}` : ""}${i.known ? " · 🏠" : ""} · ${clock(i.received)}`));
     c.append(head);
     if (i.intel) for (const [k, v] of Object.entries(i.intel)) c.append(el("div", "muted", `${k}: ${v}`));
     c.append(i.report ? renderMarkdown(i.report) : el("p", "muted", t("sec.pending")));

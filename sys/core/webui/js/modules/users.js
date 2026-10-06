@@ -18,8 +18,8 @@ export default {
     root.innerHTML = `<h2 data-i18n="users.title"></h2><p class="muted" data-i18n="users.hint"></p>
       <h3 class="setting-cat" data-i18n="users.me"></h3><div class="me"></div>
       <div class="admin hidden"><h3 class="setting-cat" data-i18n="users.all"></h3><div class="list"></div>
-        <form class="import add"><input name="person" data-i18n-placeholder="users.person">
-          <input name="name" autocapitalize="none" data-i18n-placeholder="users.name" required>
+        <form class="import add"><input name="person" data-i18n-placeholder="users.person" required>
+          <input name="name" autocapitalize="none" autocomplete="off" spellcheck="false" data-i18n-placeholder="users.name" required>
           <input name="password" type="password" autocomplete="new-password" data-i18n-placeholder="users.password" required>
           <button type="submit" data-i18n="users.add"></button></form><p class="result add-out"></p></div>`;
     apply(root);
@@ -27,6 +27,8 @@ export default {
     this.adminBox = root.querySelector(".admin");
     this.list = root.querySelector(".list");
     const out = root.querySelector(".add-out");
+    const uname = root.querySelector(".add input[name=name]");
+    uname.addEventListener("input", () => { uname.value = uname.value.toLowerCase().replace(/\s+/g, ""); });
     root.querySelector(".add").addEventListener("submit", async (ev) => {
       ev.preventDefault();
       const f = ev.target;
@@ -38,6 +40,44 @@ export default {
         this.loadUsers();
       } catch (e) { out.textContent = t("ev.error", { m: e.message }); out.className = "result add-out error"; }
     });
+  },
+
+  // ⚙️ my preferences (owner, 2026-10-06: a user does not enter the Settings): what is theirs and not in a plugin's card
+  async preferences(box) {
+    let r;
+    try { r = await call("/v1/aurora/settings"); } catch { return; }
+    const code = (document.documentElement.lang || "it").slice(0, 2);
+    const mine = r.settings.filter((s) => s.scope === "user" && !s.plugin && !s.secret);
+    if (!mine.length) return;
+    const d = el("details", "report");
+    d.append(el("summary", "", `⚙️ ${t("users.prefs")}`));
+    const inputs = mine.map((s) => {
+      const row = el("label", "plug-field");
+      let i;
+      if (s.type === "bool" || s.type === "enum") {
+        i = el("select");
+        for (const c of s.type === "bool" ? ["0", "1"] : s.choices) {
+          const lab = t(`choice.${s.key}.${c}`);
+          const o = el("option", "", lab.startsWith("choice.") ? c : lab); o.value = c; i.append(o);
+        }
+        i.value = s.type === "bool" ? (["1", "true", "yes", "on"].includes(String(s.value).toLowerCase()) ? "1" : "0") : s.value;
+      } else { i = el("input"); i.value = s.value ?? ""; }
+      i.dataset.key = s.key;
+      i.dataset.was = i.value;
+      row.append(el("span", "", s[code] || s.en), i);
+      return row;
+    });
+    const out = el("span", "muted");
+    const save = el("button", "", t("settings.save"));
+    save.addEventListener("click", async () => {
+      const changes = {};
+      d.querySelectorAll("[data-key]").forEach((i) => { if (i.value !== i.dataset.was) changes[i.dataset.key] = i.value; });
+      if (!Object.keys(changes).length) { out.textContent = t("settings.none"); return; }
+      try { await call("/v1/aurora/settings", { method: "PUT", body: JSON.stringify(changes) }); out.textContent = `✅ ${t("users.prefs_saved")}`; }
+      catch (e) { out.textContent = t("ev.error", { m: e.message }); }
+    });
+    d.append(...inputs, save, out);
+    box.append(d);
   },
 
   async enter() {
@@ -52,6 +92,7 @@ export default {
     box.replaceChildren(el("p", "", t("users.me_line", { name: me.name || "—", role: t(`users.role.${me.admin ? "admin" : "user"}`),
       mode: me.mode })), el("p", "muted", `${me.has_password ? "✅" : "⚠️"} ${t("users.has_password")} · ${me.totp_on ? "✅" : "⚠️"} ${t("users.totp")}`));
     if (!me.name) { box.append(el("p", "muted", t("users.no_users"))); return; }
+    if (!me.admin) this.preferences(box);              // a user: their own preferences here, not in ⚙️ Settings
     const pw = el("form", "import");
     const old = el("input"); old.type = "password"; old.placeholder = t("users.old"); old.autocomplete = "current-password";
     const neu = el("input"); neu.type = "password"; neu.placeholder = t("users.new"); neu.autocomplete = "new-password"; neu.required = true;

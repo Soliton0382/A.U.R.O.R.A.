@@ -7,10 +7,11 @@ import { bus } from "./bus.js";
 import { $, el } from "./dom.js";
 import * as i18n from "./i18n.js";
 import * as voice from "./voice.js";
-import { groups, views, widgets } from "./modules.js";
+import { adminOnly, groups, views, widgets } from "./modules.js";
 
 const byId = Object.fromEntries(views.map((v) => [v.id, v]));
 let current = null;
+let isAdmin = true;                // multi-user: a user does not see the machine's pages (adminOnly)
 
 // ---- login: this browser becomes a registered device ------------------------------------
 function deviceName() {
@@ -154,7 +155,14 @@ function drawer(open) {
   if (!open) document.querySelectorAll("#nav .nav-group.fly").forEach((g) => fly(g, false));
 }
 
+// the machine's pages hidden from a user (their API refuses them anyway)
+function adminNav() {
+  for (const id of adminOnly) if (!isAdmin) document.querySelector(`#nav button[data-view="${id}"]`)?.classList.add("hidden");
+  tidyNav();
+}
+
 async function show(id) {
+  if (!isAdmin && adminOnly.has(id)) id = "chat";
   current = id;
   drawer(false);
   document.querySelectorAll("#nav button[data-view]").forEach((b) => b.classList.toggle("active", b.dataset.view === id));
@@ -191,7 +199,7 @@ async function pluginNav() {
   for (const v of views) {
     if (!v.plugin) continue;
     const shown = v.plugin === "social" ? list.some((p) => p.social && on(p)) : list.some((p) => p.name === v.plugin && on(p));
-    document.querySelector(`#nav button[data-view="${v.id}"]`)?.classList.toggle("hidden", !shown);
+    document.querySelector(`#nav button[data-view="${v.id}"]`)?.classList.toggle("hidden", !shown || (!isAdmin && adminOnly.has(v.id)));
   }
   tidyNav();
 }
@@ -205,6 +213,9 @@ async function persona() {
     document.querySelector(".topbar .brand").textContent = m.assistant || "Aurora";
     document.title = m.assistant || "Aurora";
     voice.setGender(m.gender);
+    isAdmin = m.admin !== false;
+    adminNav();
+    if (!isAdmin && adminOnly.has(current)) show("chat");
     firstSetup(m);
   } catch { /* the defaults stay */ }
 }

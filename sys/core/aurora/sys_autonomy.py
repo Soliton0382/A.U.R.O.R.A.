@@ -39,11 +39,19 @@ AREAS: dict[str, tuple[str, dict[int, dict[str, str]]]] = {
                             2: {"AURORA_UPDATE_MODE": "auto"}}),
     "knowledge": ("machine", {0: {"AURORA_ACQUIRE_AUTO": "0"}, 2: {"AURORA_ACQUIRE_AUTO": "1"}}),
     "inner": ("machine", {0: {"AURORA_REM_ENABLED": "0"}, 2: {"AURORA_REM_ENABLED": "1"}}),
+    # owner, 2026-10-06: "widen what we can let her do"
+    "study": ("machine", {0: {"AURORA_STUDY_PER_NIGHT": "0"}, 1: {"AURORA_STUDY_PER_NIGHT": "2"}, 2: {"AURORA_STUDY_PER_NIGHT": "5"}}),
+    "shadow": ("machine", {0: {"AURORA_SHADOW": "0"}, 2: {"AURORA_SHADOW": "1"}}),
+    "morning": ("machine", {0: {"AURORA_MORNING_HOUR": "0"}, 2: {"AURORA_MORNING_HOUR": "8"}}),
+    "train": ("machine", {0: {"AURORA_SHADOW_TRAIN_PER_NIGHT": "0"}, 2: {"AURORA_SHADOW_TRAIN_PER_NIGHT": "20"}}),
 }
 PROFILES = {
-    "careful": {"social": 0, "forge": 0, "repairs": 0, "security": 1, "updates": 1, "knowledge": 0, "inner": 2},
-    "balanced": {"social": 0, "forge": 0, "repairs": 1, "security": 1, "updates": 1, "knowledge": 2, "inner": 2},
-    "free": {"social": 2, "forge": 2, "repairs": 1, "security": 2, "updates": 2, "knowledge": 2, "inner": 2},
+    "careful": {"social": 0, "forge": 0, "repairs": 0, "security": 1, "updates": 1, "knowledge": 0, "inner": 2,
+                "study": 1, "shadow": 2, "morning": 2, "train": 0},
+    "balanced": {"social": 0, "forge": 0, "repairs": 1, "security": 1, "updates": 1, "knowledge": 2, "inner": 2,
+                 "study": 2, "shadow": 2, "morning": 2, "train": 2},
+    "free": {"social": 2, "forge": 2, "repairs": 1, "security": 2, "updates": 2, "knowledge": 2, "inner": 2,
+             "study": 2, "shadow": 2, "morning": 2, "train": 2},
 }
 EXTERNAL = {"social", "security"}       # their 🚀 acts outside the machine: level B decides
 PROVED = {"days": 30, "decided": 10, "approved": 0.9}   # what "proved good" means; shown, never acted on alone

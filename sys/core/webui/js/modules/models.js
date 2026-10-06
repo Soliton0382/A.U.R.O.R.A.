@@ -3,7 +3,7 @@
 // Models: which model does each step of Aurora (local, Claude, Gemini, Grok...), what each step sends out, masking,
 // and what the cloud cost and saved (calls, tokens, cost, masked items, SSCC), measured from the traces.
 import { call } from "../api.js";
-import { el } from "../dom.js";
+import { el, info } from "../dom.js";
 import { apply, lang, t } from "../i18n.js";
 
 export default {
@@ -19,6 +19,7 @@ export default {
       <h3 class="setting-cat" data-i18n="md.roles"></h3><div class="md-roles"></div>
       <div><button class="md-save" data-i18n="md.save"></button> <span class="muted md-out"></span></div>
       <h3 class="setting-cat" data-i18n="md.media"></h3><p class="muted" data-i18n="md.media_hint"></p><div class="md-media"></div>
+      <h3 class="setting-cat" data-i18n="md.limits"></h3><p class="muted" data-i18n="md.limits_hint"></p><div class="md-limits"></div>
       <h3 class="setting-cat" data-i18n="md.stats"></h3>
       <div class="ev"><select class="md-days"><option value="1">24 h</option><option value="7" selected>7 gg</option><option value="30">30 gg</option></select></div>
       <div class="md-stats"></div>`;
@@ -49,7 +50,53 @@ export default {
     this.providers = m.providers;
     this.roles.replaceChildren(...m.roles.map((r) => this.row(r)));
     this.loadMedia();
+    this.loadLimits();
     this.loadStats(7);
+  },
+
+  // 🆓 each provider's free tier (owner, 2026-10-06): a tick to stay in it, its numbers, today's use; past them the
+  // local model does the step until the minute or the day turns (mdl_budget)
+  async loadLimits() {
+    const box = document.querySelector(".md-limits");
+    let m;
+    try { m = await call("/v1/aurora/models/limits"); } catch (e) { box.replaceChildren(el("p", "muted", t("ev.error", { m: e.message }))); return; }
+    const table = el("table", "sec-rules-table md-limits-table");
+    const head = el("tr");
+    for (const h of ["", "provider", "per_minute", "per_day", "tokens_per_day", "today"]) head.append(el("th", "", h ? t(`md.lim.${h}`) : "🆓"));
+    table.append(head);
+    const label = Object.fromEntries((this.providers || []).map((p) => [p.id, p.label]));
+    for (const [p, lim] of Object.entries(m.limits)) {
+      if (!m.configured[p]) continue;                   // only the providers with a key
+      const tr = el("tr");
+      const free = el("input"); free.type = "checkbox"; free.checked = lim.free; free.dataset.p = p; free.dataset.k = "free";
+      const c0 = el("td"); c0.append(free);
+      tr.append(c0, el("td", "", label[p] || p));
+      for (const k of ["per_minute", "per_day", "tokens_per_day"]) {
+        const i = el("input"); i.type = "number"; i.min = 0; i.value = lim[k]; i.dataset.p = p; i.dataset.k = k; i.title = t("md.lim.zero");
+        const td = el("td"); td.append(i); tr.append(td);
+      }
+      const d = m.today[p];
+      tr.append(el("td", d.stopped ? "warn" : "muted", `${d.calls} · ${d.tokens}${d.stopped ? ` · ⏸️ ${d.stopped}` : ""}`));
+      table.append(tr);
+    }
+    const out = el("span", "muted");
+    const save = el("button", "", t("md.save"));
+    save.addEventListener("click", async () => {
+      const changes = {};
+      box.querySelectorAll("[data-p]").forEach((i) => { (changes[i.dataset.p] ??= {})[i.dataset.k] = i.type === "checkbox" ? i.checked : Number(i.value); });
+      try { await call("/v1/aurora/models/limits", { method: "PUT", body: JSON.stringify(changes) }); out.textContent = t("md.saved"); this.loadLimits(); }
+      catch (e) { out.textContent = t("ev.error", { m: e.message }); }
+    });
+    const bar = el("div");
+    bar.append(save, out);
+    box.replaceChildren(table.rows.length > 1 ? table : el("p", "muted", t("md.lim.none")), bar);
+    // 🆓 beside each step given to a provider kept in its free tier
+    const free = new Set(Object.entries(m.limits).filter(([, l]) => l.free).map(([p]) => p));
+    document.querySelectorAll(".md-role").forEach((row) => {
+      row.querySelector(".md-free")?.remove();
+      const p = row.querySelector("select:not(.md-pick)")?.value;
+      if (free.has(p)) { const b = el("span", "md-free", "🆓"); b.title = t("md.lim.badge"); row.append(b); }
+    });
   },
 
   // 🎨 pictures, edits, videos (owner, 2026-10-06): the local models or a provider that really does that task
@@ -128,7 +175,7 @@ export default {
     if (r.provider !== "local") fill();
     warn.hidden = !(r.id === "vision" && r.provider !== "local");
     const name = el("div", "md-name");
-    name.append(el("strong", "", lang.startsWith("it") ? r.it : r.en), el("div", "muted", t("md.sees", { what: r.sees })));
+    name.append(el("strong", "", lang.startsWith("it") ? r.it : r.en), info(t("md.sees", { what: r.sees })));
     row.append(name, sel, pick, model, warn);
     return row;
   },

@@ -52,6 +52,13 @@ Done today and yesterday, live: the owner's list of 4 October, all 10 points (3-
 | 39 | ⚙️ Settings: a menu in three levels (areas → categories → settings), the search always in sight (owner, 2026-10-06) | ✅ | N5 again |
 | 40 | 🧩 Status: what works read live — plugins, connections, abilities (owner, 2026-10-06) | ✅ (sys_capabilities) | N4 again |
 | 41 | 💡 Ideas to improve Aurora: ticks, kind, priority, notes; new → considered → planned → done (owner, 2026-10-06) | ✅ (sys_ideas, in the bug report's page) | N88 |
+| 42 | 👥 Multi-user done right (owner, 2026-10-06): a user never sees the machine's settings, models, security, harvester, status (menu and API 403); their preferences in My account; user names in small letters; the seed's shadow shared; the sentinel's incidents the admin's | ✅ (M116) | the owner's second device as a user |
+| 43 | 🛡️ The sentinel knows the owner's devices: repeats counted, known devices' routine traffic quiet | ✅ (M116) | a week of incidents |
+| 44 | 🧹 Uninstall (uninstall.sh: keep the data, or everything — usr/ kept aside unless asked a third time), factory settings (Settings), Aurora as just installed (sys_factory_reset.py), restore a backup (backup card → sys_restore.py) with data formats checked (sys_formats) | ✅ built; the destructive steps run only by the owner | N89-N91 |
+| 45 | 🆓 Per-provider free tiers: a tick to stay in a provider's free usage (requests a minute, a day, tokens a day), past it the local model; 🆓 beside each step | ✅ | the providers' real numbers |
+| 46 | 🏋️ The shadow trained at night: 20 documents a night turned into general questions and answered | ✅ built (kno_train) | tomorrow's count of shadows; questions' quality on a night |
+| 47 | 🛡️ Security beyond blocking an address (owner, 2026-10-06): see the proposal in the answer of 6 October | to decide | — |
+| 48 | 🧪 A false premise is said even without sources (M117: 2 of 6): when the vault does not answer, a check of the question's premise by the reasoner — "la premessa sembra falsa: …" marked as not verified on sources, the abstention kept | to decide (it bends the rule "only what the vault shows") | bench_honesty again |
 | 23 | 🔭 Astrophotography (owner, 2026-10-05): the equipment watched and tuned (the astro suite below: N.I.N.A., PHD2, Alpaca, planner, astrometry), then **PixInsight driven by Aurora** — "develop last night's photos" — see below | new | read-only plugins first; WBPP headless on one night's folder |
 
 Done on 2026-10-05 (night): menu areas open beside the menu on a PC (C138); arXiv papers from HTML (C137); updates add

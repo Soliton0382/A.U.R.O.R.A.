@@ -2,7 +2,7 @@
 // Copyright 2026 A.U.R.O.R.A. Project
 // Registered devices and every .env value, with its explanation, editable.
 import { call } from "../api.js";
-import { el } from "../dom.js";
+import { el, info } from "../dom.js";
 import { apply, lang, t } from "../i18n.js";
 import { restartPrompt } from "../restart.js";
 
@@ -33,7 +33,13 @@ export default {
       <div class="settings-tools"><input class="settings-filter" type="search" data-i18n-placeholder="settings.filter">
         <div class="settings-nav"></div></div>
       <div class="settings"></div>
-      <div class="settings-actions"><button class="save" data-i18n="settings.save"></button><span class="result muted"></span></div>`;
+      <div class="settings-actions"><button class="save" data-i18n="settings.save"></button><span class="result muted"></span></div>
+      <details class="report settings-danger"><summary data-i18n="settings.factory"></summary>
+        <p class="muted" data-i18n="settings.factory_hint"></p>
+        <label class="rt-opt"><input type="checkbox" class="keep-keys" checked><span data-i18n="settings.factory_keep"></span></label>
+        <div class="appr-actions"><button class="danger factory-go" data-i18n="settings.factory_go"></button><span class="muted factory-out"></span></div>
+        <p class="muted" data-i18n="settings.factory_mind"></p>
+        <code class="factory-cmd">.venv/bin/python sys/core/script/sys_factory_reset.py --apply</code></details>`;
     apply(root);
     this.devices = root.querySelector(".devices");
     this.box = root.querySelector(".settings");
@@ -43,6 +49,16 @@ export default {
     this.filter.addEventListener("input", () => { if (this.filter.value) this.cat = ""; this.applyFilter(); });
     this.cat = "";
     this.original = {};
+    const fout = root.querySelector(".factory-out");
+    root.querySelector(".factory-go").addEventListener("click", async () => {      // back to the factory's settings
+      if (!confirm(t("settings.factory_q"))) return;
+      try {
+        const r = await call("/v1/aurora/settings/factory", { method: "POST", body: JSON.stringify({ keep_keys: root.querySelector(".keep-keys").checked }) });
+        fout.textContent = t("settings.factory_done", { n: r.changed.length, file: r.backup });
+        await restartPrompt(r.restart);
+        await this.loadSettings();
+      } catch (e) { fout.textContent = t("ev.error", { m: e.message }); }
+    });
     const out = root.querySelector(".result");
     root.querySelector(".save").addEventListener("click", async () => {
       const changes = {};
@@ -127,7 +143,7 @@ export default {
       this.original[s.key] = s.value;
       const row = el("div", "setting");
       const label = el("div");
-      label.append(el("code", "", s.key), el("div", "ev-tag",
+      label.append(el("code", "", s.key), info(s[code] || s.en), el("div", "ev-tag",
         `${s.recommended !== undefined && s.recommended !== "" ? "★ " + s.recommended : ""}${s.evidence ? " · " + t("settings.evidence", { e: s.evidence }) : ""}`));
       let input;
       if (s.type === "bool" || s.type === "enum") {
@@ -146,7 +162,8 @@ export default {
       input.value = s.secret ? "" : s.value;
       input.dataset.key = s.key;
       input.dataset.secret = s.secret ? "1" : "";
-      const help = el("div", "help", s[code] || s.en);
+      // the description behind its ⓘ (owner, 2026-10-06): half the page on a phone; the search still finds it
+      const help = el("div", "help");
       if (s.services?.length) help.append(el("div", "", `⟳ ${s.services.join(", ")}`));
       row.append(label, input, help);
       row.dataset.cat = s.category;

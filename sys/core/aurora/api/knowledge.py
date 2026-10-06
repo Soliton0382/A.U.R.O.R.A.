@@ -19,6 +19,8 @@ from fastapi.responses import FileResponse
 
 from .core import _run_lock, _state, auth, cfg, log, note, pipeline, start_run
 
+from .users import admin_only  # noqa: E402
+
 router = APIRouter()
 
 
@@ -38,7 +40,7 @@ def _import(name: str, data: bytes, domain: str, title: str, origin: str = "uplo
             "written": rep.written, "duplicates": rep.duplicates, "rejected": rep.rejected, "indexed": rep.indexed}
 
 
-@router.post("/v1/aurora/import", dependencies=[Depends(auth)])
+@router.post("/v1/aurora/import", dependencies=[Depends(admin_only)])
 async def import_document(request: Request) -> dict:
     body = await request.json()
     from aurora.sol_schema import load_taxonomy
@@ -73,7 +75,7 @@ def _add_solitons(items: list[dict]) -> dict:
             "rejected": rep.rejected, "indexed": indexed}
 
 
-@router.post("/v1/aurora/solitons", dependencies=[Depends(auth)])
+@router.post("/v1/aurora/solitons", dependencies=[Depends(admin_only)])
 async def add_solitons(request: Request) -> dict:
     items = (await request.json()).get("items", [])
     from aurora.sol_schema import load_taxonomy
@@ -87,7 +89,7 @@ async def add_solitons(request: Request) -> dict:
     return await asyncio.to_thread(_add_solitons, items)
 
 
-@router.delete("/v1/aurora/sources", dependencies=[Depends(auth)])
+@router.delete("/v1/aurora/sources", dependencies=[Depends(admin_only)])
 async def remove_source(domain: str, source_id: str) -> dict:
     from aurora.sol_schema import load_taxonomy
     if domain not in load_taxonomy():
@@ -294,7 +296,7 @@ def update_info() -> dict:
     return {**sys_update.last(cfg), "mode": cfg["AURORA_UPDATE_MODE"]}
 
 
-@router.post("/v1/aurora/update/check", dependencies=[Depends(auth)])
+@router.post("/v1/aurora/update/check", dependencies=[Depends(admin_only)])
 async def update_check() -> dict:
     """Fetch and compare; new commits become a notification and an approval (notify), or are applied (auto, when safe)."""
     from aurora import sys_update
@@ -363,7 +365,7 @@ def _harvest_domains() -> list[dict]:
              **kno_sources.progress(cfg, d)} for d, m in kno_sources.modes(cfg).items()]
 
 
-@router.put("/v1/aurora/harvester/domains", dependencies=[Depends(auth)])
+@router.put("/v1/aurora/harvester/domains", dependencies=[Depends(admin_only)])
 async def harvester_domains(request: Request) -> dict:
     from aurora import kno_harvest, kno_sources
     changes = {str(k): str(v) for k, v in (await request.json()).items()}
@@ -390,7 +392,7 @@ def harvester() -> dict:
             "domains": _harvest_domains()}
 
 
-@router.post("/v1/aurora/harvester/{action}", dependencies=[Depends(auth)])
+@router.post("/v1/aurora/harvester/{action}", dependencies=[Depends(admin_only)])
 async def harvester_action(action: str, request: Request) -> dict:
     from aurora import kno_harvest
     if action == "now":
