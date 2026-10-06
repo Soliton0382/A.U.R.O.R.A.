@@ -58,6 +58,9 @@ GROUPS = {
                            "en": "Photos: creative edits in words (FLUX.2 klein)"}},
     "voice": {"models": ["tts"], "features": ["voice_out"], "default": True,
               "label": {"it": "Voce di Aurora (lettura ad alta voce, sulla CPU)", "en": "Aurora's voice (reading aloud, on the CPU)"}},
+    "voice_natural": {"models": ["tts_qwen"], "features": [], "default": True,
+                      "label": {"it": "Voce naturale di Aurora (Qwen3-TTS, sulla GPU, ~2,5 GB)",
+                                "en": "Aurora's natural voice (Qwen3-TTS, on the GPU, ~2.5 GB)"}},
     "video": {"models": ["video"], "features": ["video_make"], "default": False,
               "label": {"it": "Creare video (~19 minuti per 5 secondi)", "en": "Making videos (~19 minutes for 5 seconds)"}},
 }
@@ -85,7 +88,8 @@ def group_size_gb(group: str) -> float:
 
 
 LLM_FILES = {"AURORA_LLM_MODEL": "llm", "AURORA_LLM_MMPROJ": "llm"}   # where a missing path comes from
-SCRIPTS = {"tts": "bash sys/core/script/sys_tts_install.sh", "AURORA_TTS_BIN": "bash sys/core/script/sys_tts_install.sh"}
+SCRIPTS = {"tts": "bash sys/core/script/sys_tts_install.sh", "AURORA_TTS_BIN": "bash sys/core/script/sys_tts_install.sh",
+           "tts_qwen": "bash sys/core/script/sys_tts_qwen_install.sh"}
 
 
 class Missing(RuntimeError):

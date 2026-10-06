@@ -18,6 +18,7 @@ What Aurora was measured on (**recommended**: the owner's machine), and what is 
 | Images | SDXL-Lightning 4 steps, CPU offload, reasoner swapped out (~20 s) | — | M27 |
 | HTTPS | Caddy, TLS 1.3 | install.sh | SECURITY.md |
 | Voice (TTS) | Piper 1.8.0 (piper-tts, **GPL-3**: its own venv in sys/runtime/piper, run as a separate program, never imported into Aurora's Apache-2.0 code); voices rhasspy/piper-voices @c10ece1 (MIT): it_IT paola (dataset CC0), en_US ljspeech (public domain), CPU | `script/sys_tts_install.sh` | M114: 12.7 s of speech in 0.95 s, 248 MB |
+| Natural voice (TTS) | Qwen3-TTS-12Hz-0.6B-Base @5d83992 (Apache-2.0) with qwen-tts 0.1.1, transformers 4.57.3, tokenizers 0.22.1, huggingface_hub 0.36.2, accelerate 1.12.0 in sys/runtime/qwen-tts/pkgs (Aurora's torch 2.14 reused; librosa and torchaudio replaced by script/tts_qwen_shims) | `script/sys_tts_qwen_install.sh` | M122: GPU 0.7 s per second of speech, 3.5 GB; CPU 3.8-4 s per second |
 
 ## Rules learnt the hard way
 

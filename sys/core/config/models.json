@@ -186,6 +186,32 @@
     "AURORA_TTS_DIR": "sys/models/tts/piper-voices"
    }
   },
+  "tts_qwen": {
+   "purpose": "Aurora's natural voice (Qwen3-TTS 0.6B, on the GPU): her Piper voice cloned from one reference clip, chosen by the owner on 2026-10-06",
+   "repo": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+   "revision": "5d83992436eae1d760afd27aff78a71d676296fc",
+   "license": "apache-2.0",
+   "dir": "sys/models/tts/qwen3-tts-0.6b",
+   "files": [
+    "README.md",
+    "config.json",
+    "generation_config.json",
+    "merges.txt",
+    "model.safetensors",
+    "preprocessor_config.json",
+    "speech_tokenizer/config.json",
+    "speech_tokenizer/configuration.json",
+    "speech_tokenizer/model.safetensors",
+    "speech_tokenizer/preprocessor_config.json",
+    "tokenizer_config.json",
+    "vocab.json"
+   ],
+   "size_gb": 2.52,
+   "required": false,
+   "settings": {
+    "AURORA_TTS_QWEN_DIR": "sys/models/tts/qwen3-tts-0.6b"
+   }
+  },
   "upscale": {
    "purpose": "enlarging pictures x4 (Swin2SR, real-world photos)",
    "repo": "caidas/swin2SR-realworld-sr-x4-64-bsrgan-psnr",

@@ -7,7 +7,7 @@ end, duplicates and tests of pages that no longer exist removed (each with its r
 | session | tests |
 |---|---|
 | 🌙 they come by themselves (look in the morning) | N19, N63, N77, N78 |
-| 🔁 again after a change | I5, N25, N93–N98 |
+| 🔁 again after a change | I5, N25, N93–N100 |
 | 📱 phone, ~10 min | N31 |
 | 🖥️ chat on the PC, ~15 min | I4 |
 | 🧭 pages, ~25 min | K1, N32, N35, N37, N40, N43, N46, N53, N62, N64, N66, N68, N73, N74, R1, R10 |
@@ -52,6 +52,8 @@ end, duplicates and tests of pages that no longer exist removed (each with its r
 | N95 | «anima questa foto» with the video given to Google (Models → 🎨) | the video from Veo; while it is made, the bar «🎬 … in corso · circa N%» over the chat |
 | N97 | The chat on the phone: a question, then the network cut for a few seconds (airplane mode) while she answers | «🔌 connessione persa: riprendo…», then the whole answer — no «network error» (C170) |
 | N98 | Tomorrow between 9 and 22, silent for a while: the chat | at most 2 bubbles «🔁 Aurora ci ha ripensato» on an old answer, with its sources; tell whether they were worth it (M120) |
+| N100 | The third video (black hole: natural voice, music); then 🔊 on an answer in the chat | the chat's voice is sample 3 (steadier, slower); in the video sample 5, the music low under it and fitting, the credit in the post |
+| N99 | Watch the two pilot videos (laser, free will: usr/<you>/images/stories/) | the pictures fit the words, the voice is clear, subtitles readable, the label «Generato con IA» visible; tell what to change |
 | N96 | 🛡️ → 📊 La settimana della sicurezza; and on Monday 08:30 the routine (switch it on in Agenti e routine) | the score, campaigns, what is missing |
 | N69 | Multi-user first login of an admin without password (a clean install) | after the API key, the Users page with the note: password and Google Authenticator first |
 

@@ -1,6 +1,6 @@
 # Status — work in progress
 
-Updated at every validated change (last: 2026-10-06). Details: BUGS.md (issues, 0 open / 171 closed),
+Updated at every validated change (last: 2026-10-06). Details: BUGS.md (issues, 0 open / 173 closed),
 MANUAL_TESTS.md (what the owner checks by hand),
 TESTS.md (tests and live checks), MEASUREMENTS.md (numbers), MODULE_MAP.md (who does what),
 SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSYSTEM.md (design and decisions).
@@ -37,7 +37,7 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | firewall undo | every block (the owner's or Aurora's) undone with one click; group and rule names shown once the API is set | live (N44), tests |
 | self-update | the clean clone updated itself from GitHub: 332 tests, 19.7 s | M103 bis |
 | memory | STM turns with their path; recent turns in context and in the chat after a refresh; session memories (LTM) written by the REM and recalled by meaning when Aurora answers about herself or the past, dates labelled by the clock | tests, live |
-| autonomic cycle | aurora-rem: session memories, thoughts (boredom, weather), dreams painted with SDXL-Lightning (reasoner swapped out for ~20 s, AI-marked) and shown in the chat, daily self-review from the logs with measured evidence, self-repair on recurring problems only, daily social report, log retention; second thoughts (kno_review): drives counted (curiosity, dissatisfaction, novelty, social), past answers answered again in AURORA_REVIEW_HOURS, a better one with new sources told in the chat (≤ AURORA_REVIEW_MESSAGES a day) and put in the shadow, paused by itself after 12 reviews with nothing better | tests, live (M120) |
+| autonomic cycle | aurora-rem: session memories, thoughts (boredom, weather), dreams painted with SDXL-Lightning (reasoner swapped out for ~20 s, AI-marked) and shown in the chat, daily self-review from the logs with measured evidence, self-repair on recurring problems only, daily social report, log retention; second thoughts (kno_review): drives counted (curiosity, dissatisfaction, novelty, social), past answers answered again in AURORA_REVIEW_HOURS, a better one with new sources told in the chat (≤ AURORA_REVIEW_MESSAGES a day) and put in the shadow, paused by itself after 12 reviews with nothing better; narrated videos (kno_story): from the vault, checked, local pictures, Aurora's natural voice and free classical music by mood, cost zero; the natural voice in the chat when GPU 1 has room (M122) | tests, live (M120, M121) |
 | agents | agent loop with budgets (60 steps / 90 min), context compaction, honest report with the record of calls, `/agente <goal>` in the chat; code changes in a sandbox, tests, owner's approval, live tests, rollback | tests, live |
 | plugins (12) | self, projects, netintel, web, documents, senses: active; github (official MCP server), telegram, facebook, mastodon, email, homeassistant: ready, off until their tokens are set | live listing and calls |
 | approval gate | read/write_local automatic; external actions and code changes wait for the owner (Repairs page, pulsing bell) | tests, live |

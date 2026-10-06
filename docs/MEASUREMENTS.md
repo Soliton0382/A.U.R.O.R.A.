@@ -910,6 +910,33 @@ suite green in the sandbox (328 passed), proposed — refused by the API still r
 right** — each bug found from the symptom alone, fixed, the whole suite green in the sandbox, the change proposed
 (90, 130, 140, 110 s); every proposal refused by the benchmark, the live code untouched.
 
+## M122 — Aurora's natural voice: Qwen3-TTS cloning her Piper voice (6 October 2026)
+
+The owner listened to 6 samples (Piper as it is, three Piper tunings, Qwen3-TTS 0.6B cloning the first one from 15.8 s
+of it) and chose the clone: «la 5! è la voce di Aurora». Qwen3-TTS-12Hz-0.6B-Base (Apache-2.0, @5d83992) in its own
+packages (sys/runtime/qwen-tts: qwen_tts pins transformers 4.57.3, Aurora has 5.17; librosa and torchaudio replaced by
+two small stand-ins — llvmlite would not download, torchaudio has no build for torch 2.14). On GPU 1: 16.1 s of speech
+in 11.6 s, 10.2 s in 7.1 s; through the API the first sentence 7.0 s (loading included, 2.0 s), then 3.9 s for 5.5 s
+and 3.5 s for 4.9 s; the process holds 3.5 GB (nvidia-smi). On the CPU (16 threads): 16.2 s in 61.3 s, 10.3 s in 41.2 s
+— four times slower than speech. GPU 1 with the reasoner (9.6 GB) and the embedder + re-ranker (2.7 GB) has 4.0 GB free:
+with the voice loaded the re-ranker ran out of memory (C173). Music for the videos: 11 recordings downloaded from
+Wikimedia Commons, each licence read again before keeping it (CC0 or public domain; Commons answered 429 to a quick
+series: a pause of 8 s between files). The owner's final choice: the chat with Piper tuned (sample 3: length 1.08,
+noise 0.5, width 0.6, pause 0.35 — 0.82 s for a sentence), the videos with the natural voice on the CPU (a sentence of
+2 s in 14.8 s, loading included). The clip the natural voice clones is the owner's: kept in sys/status/voice (never
+published; checked: removed from the mirror before any commit, 0 commits ever held it).
+
+## M121 — Narrated videos made on this machine, cost zero (6 October 2026)
+
+Two pilots through POST /v1/aurora/social/story (kno_story), all local: the answer from the vault, 6-7 scenes written by
+the reasoner, the check, 6-7 pictures by SDXL-Lightning 768x1344 in one swap (model loaded 5.3-6.7 s, painted
+25.3-28.1 s, the reasoner back healthy), Piper's voice, ffmpeg 1080x1920 with subtitles, the label «Generato con IA ·
+Aurora» and the IPTC metadata. «Come funziona un laser?»: 48.0 s of video in 116.3 s (answer 47.6, script 5.0,
+pictures 43.5, voice and clips 12.3, montage 7.9), 12.9 MB, sources: Wikipedia «Laser». «Che cos'è il libero
+arbitrio?»: 61.8 s of video in 172.9 s (answer 99.0). The check cut nothing in either script; on a control with two
+false sentences planted («Galileo built the first laser in 1610», «laser light faster than sunlight») it cut both and
+kept the 3 true ones. Not measured: whether the pictures show what the words say (no eye on them yet but the owner's).
+
 ## M120 — Second thoughts: past answers answered again (6 October 2026)
 
 Drives counted from the vault at 20:38 (not simulated): the admin 5 declined questions not studied (curiosity), 11

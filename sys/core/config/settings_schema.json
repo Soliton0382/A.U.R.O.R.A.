@@ -3887,6 +3887,172 @@
    ]
   },
   {
+   "key": "AURORA_TTS_LENGTH",
+   "type": "float",
+   "category": "interface",
+   "recommended": "1.08",
+   "evidence": "owner, 2026-10-06: sample 3 «Piper C, stabile e lenta» for the chat",
+   "en": "Speed of Aurora's voice: above 1 slower, below 1 faster (Piper's length scale).",
+   "it": "Velocità della voce di Aurora: sopra 1 più lenta, sotto 1 più veloce (length scale di Piper).",
+   "services": [
+    "aurora-api"
+   ],
+   "min": 0.7,
+   "max": 1.5
+  },
+  {
+   "key": "AURORA_TTS_NOISE",
+   "type": "float",
+   "category": "interface",
+   "recommended": "0.5",
+   "evidence": "owner, 2026-10-06: sample 3 «Piper C, stabile e lenta» for the chat",
+   "en": "Variation of the voice's sound: lower is steadier and less wobbly, higher more expressive (Piper's noise scale).",
+   "it": "Variazione del suono della voce: più bassa è più stabile e meno incerta, più alta più espressiva (noise scale di Piper).",
+   "services": [
+    "aurora-api"
+   ],
+   "min": 0.0,
+   "max": 1.0
+  },
+  {
+   "key": "AURORA_TTS_NOISE_W",
+   "type": "float",
+   "category": "interface",
+   "recommended": "0.6",
+   "evidence": "owner, 2026-10-06: sample 3 «Piper C, stabile e lenta» for the chat",
+   "en": "Variation of the voice's rhythm: lower is more even, higher more lively (Piper's noise width).",
+   "it": "Variazione del ritmo della voce: più bassa è più regolare, più alta più vivace (noise width di Piper).",
+   "services": [
+    "aurora-api"
+   ],
+   "min": 0.0,
+   "max": 1.0
+  },
+  {
+   "key": "AURORA_TTS_PAUSE",
+   "type": "float",
+   "category": "interface",
+   "recommended": "0.35",
+   "evidence": "owner, 2026-10-06: sample 3 «Piper C, stabile e lenta» for the chat",
+   "en": "Seconds of silence after each sentence.",
+   "it": "Secondi di silenzio dopo ogni frase.",
+   "services": [
+    "aurora-api"
+   ],
+   "min": 0.0,
+   "max": 1.5
+  },
+  {
+   "key": "AURORA_TTS_ENGINE",
+   "type": "enum",
+   "choices": [
+    "qwen",
+    "piper"
+   ],
+   "category": "interface",
+   "recommended": "piper",
+   "evidence": "owner, 2026-10-06: the chat with Piper (sample 3), the natural voice for the videos; C173",
+   "en": "Aurora's voice in the chat: piper = on the CPU, instant (the owner's choice); qwen = natural, on the GPU only when it has room.",
+   "it": "La voce di Aurora in chat: piper = sulla CPU, immediata (scelta del proprietario); qwen = naturale, sulla GPU solo quando c'è spazio.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_VIDEO_VOICE",
+   "type": "enum",
+   "choices": [
+    "qwen",
+    "piper"
+   ],
+   "category": "interface",
+   "recommended": "qwen",
+   "evidence": "owner, 2026-10-06: sample 5 «Qwen clone» for the videos",
+   "en": "The voice of Aurora's videos: qwen = natural (on the CPU, ~4 s of work per second of speech), piper = the classic one.",
+   "it": "La voce dei video di Aurora: qwen = naturale (sulla CPU, ~4 s di lavoro per secondo di parlato), piper = quella classica.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_TTS_QWEN_REF",
+   "type": "path",
+   "category": "interface",
+   "recommended": "sys/status/voice/aurora_ref.flac",
+   "evidence": "owner, 2026-10-06: «almeno la voce la vorrei solo mia»",
+   "en": "The clip the natural voice clones (its words in the .txt beside it): private, never published; the installer makes one if missing.",
+   "it": "Il campione che la voce naturale clona (le sue parole nel .txt accanto): privato, mai pubblicato; l'installatore ne crea uno se manca.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_TTS_GPU",
+   "type": "int",
+   "category": "interface",
+   "recommended": "1",
+   "evidence": "owner, 2026-10-06 («la 5! è la voce di Aurora»), M122",
+   "en": "The GPU of the natural voice (it is closed before any picture or video job).",
+   "it": "La GPU della voce naturale (viene chiusa prima di ogni lavoro di immagini o video).",
+   "services": [
+    "aurora-api"
+   ],
+   "min": 0,
+   "max": 7
+  },
+  {
+   "key": "AURORA_TTS_QWEN_DIR",
+   "type": "path",
+   "category": "interface",
+   "recommended": "sys/models/tts/qwen3-tts-0.6b",
+   "evidence": "owner, 2026-10-06 («la 5! è la voce di Aurora»), M122",
+   "en": "The natural voice's model (config/models.json \"tts_qwen\").",
+   "it": "Il modello della voce naturale (config/models.json \"tts_qwen\").",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_TTS_QWEN_RUNTIME",
+   "type": "path",
+   "category": "interface",
+   "recommended": "sys/runtime/qwen-tts/pkgs",
+   "evidence": "owner, 2026-10-06 («la 5! è la voce di Aurora»), M122",
+   "en": "The natural voice's own packages (its transformers is not Aurora's).",
+   "it": "I pacchetti propri della voce naturale (il suo transformers non è quello di Aurora).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_TTS_QWEN_IDLE_S",
+   "type": "int",
+   "category": "interface",
+   "recommended": "600",
+   "evidence": "owner, 2026-10-06 («la 5! è la voce di Aurora»), M122",
+   "en": "Seconds of silence after which the natural voice is closed and its GPU memory given back.",
+   "it": "Secondi di silenzio dopo cui la voce naturale viene chiusa e la sua memoria GPU restituita.",
+   "services": [
+    "aurora-api"
+   ],
+   "min": 30,
+   "max": 86400
+  },
+  {
+   "key": "AURORA_TTS_QWEN_MIN_FREE_GB",
+   "type": "float",
+   "category": "interface",
+   "recommended": "5.0",
+   "evidence": "M122, C173: the voice takes 3.5 GB; the re-ranker failed with 0.47 GB free",
+   "en": "Free memory (GB) the natural voice needs on its GPU before it is loaded for the chat: its 3.5 GB plus room for the re-ranker; less, and Piper speaks.",
+   "it": "Memoria libera (GB) che la voce naturale chiede sulla sua GPU prima di caricarsi per la chat: i suoi 3,5 GB più lo spazio per il re-ranker; con meno parla Piper.",
+   "services": [
+    "aurora-api"
+   ],
+   "min": 3.5,
+   "max": 16
+  },
+  {
    "key": "AURORA_TTS_BIN",
    "type": "path",
    "category": "interface",

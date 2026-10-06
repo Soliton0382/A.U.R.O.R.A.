@@ -28,6 +28,20 @@ SCRIPT = Path(__file__).resolve().parents[1] / "script" / "img_paint.py"
 LLM_UNIT = "aurora-llm"
 
 
+def gpu_busy(cfg: sys_config.Config) -> bool:
+    """A GPU job holds the lock now (a picture, an edit, a video): asked without waiting."""
+    f = cfg.path("AURORA_STATUS_DIR") / "gpu.lock"
+    if not f.is_file():
+        return False
+    with open(f, "a+", encoding="utf-8") as fh:
+        try:
+            fcntl.flock(fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            return True
+        fcntl.flock(fh, fcntl.LOCK_UN)
+        return False
+
+
 def free_gb(gpu: int) -> float:
     out = subprocess.run(["nvidia-smi", "-i", str(gpu), "--query-gpu=memory.free", "--format=csv,noheader,nounits"],
                          capture_output=True, text=True, check=True, timeout=30).stdout
@@ -55,6 +69,8 @@ def gpu_lock(cfg: sys_config.Config, wait_s: float, what: str):
         fh.truncate()
         fh.write(f"{what} since {time.strftime('%H:%M:%S')}")
         fh.flush()
+        from . import mdl_tts
+        mdl_tts.release()                             # the natural voice gives its GPU memory back first
         try:
             yield
         finally:
@@ -139,6 +155,54 @@ def paint(prompt: str, name: str, cfg: sys_config.Config | None = None, emit=Non
     ev("image.painted", result)
     return result
 
+
+
+def paint_many(prompts: list[str], out_dir: Path, cfg: sys_config.Config | None = None, emit=None,
+               size: str | None = None, title: str = "") -> dict:
+    """Many pictures on this machine (never the cloud: no cost), the model loaded once and the reasoner swapped out
+    once — a video's scenes. Files out_dir/scene-<n>.png, each with the AI disclosure. Returns {"files", "seconds", ...}."""
+    cfg = cfg or sys_config.get()
+    log = sys_log.get_logger("image")
+    ev = emit or (lambda e, d: None)
+    gpu, need, t0, swapped = cfg["AURORA_IMAGE_GPU"], cfg["AURORA_IMAGE_MIN_FREE_GB"], time.time(), False
+    out_dir.mkdir(parents=True, exist_ok=True)
+    timeout = cfg["AURORA_IMAGE_TIMEOUT_S"] * max(1, len(prompts))
+    with gpu_lock(cfg, cfg["AURORA_IMAGE_TIMEOUT_S"], f"{len(prompts)} pictures"):
+        try:
+            if free_gb(gpu) < need:
+                if not (cfg["AURORA_IMAGE_SWAP_LLM"] and _active(LLM_UNIT)):
+                    raise RuntimeError(f"GPU {gpu}: {free_gb(gpu):.1f} GB free, {need} GB needed, and the reasoner may not be swapped")
+                log.info("planned swap: stopping %s to paint %d pictures", LLM_UNIT, len(prompts))
+                ev("image.swap", {"stop": LLM_UNIT})
+                _unit("stop", LLM_UNIT)
+                swapped = True
+                if not _wait(lambda: free_gb(gpu) >= need, 90):
+                    raise RuntimeError(f"GPU {gpu} still has {free_gb(gpu):.1f} GB free after stopping {LLM_UNIT}")
+            with tempfile.TemporaryDirectory() as tmp:
+                jobs = [{"prompt": p, "out": str(Path(tmp) / f"raw-{i}.png")} for i, p in enumerate(prompts, 1)]
+                (Path(tmp) / "batch.json").write_text(json.dumps(jobs, ensure_ascii=False), encoding="utf-8")
+                ev("image.batch", {"pictures": len(jobs)})
+                r = subprocess.run([sys.executable, str(SCRIPT), "--batch-file", str(Path(tmp) / "batch.json"), "--gpu", str(gpu),
+                                    "--size", size or cfg["AURORA_IMAGE_SIZE"]], capture_output=True, text=True, timeout=timeout)
+                if r.returncode != 0:
+                    raise RuntimeError(f"img_paint failed ({r.returncode}): {r.stderr.strip()[-600:]}")
+                stats = json.loads(r.stdout.strip().splitlines()[-1])
+                from PIL import Image
+                files = []
+                for i, job in enumerate(jobs, 1):
+                    with Image.open(job["out"]) as img:
+                        target = out_dir / f"scene-{i}.png"
+                        target.write_bytes(sys_disclosure.mark_image(img, title, "it", cfg))
+                        files.append(target)
+        finally:
+            if swapped:
+                _unit("start", LLM_UNIT)
+                up = _wait(lambda: _llm_ok(cfg), cfg["AURORA_IMAGE_TIMEOUT_S"], 3)
+                log.info("planned swap: %s started again (%s)", LLM_UNIT, "healthy" if up else "NOT healthy yet")
+                ev("image.swap", {"start": LLM_UNIT, "healthy": up})
+    result = {"files": files, "seconds": round(time.time() - t0, 1), "swap": swapped, **stats}
+    log.info("painted %d pictures: %s", len(files), {k: v for k, v in result.items() if k != "files"})
+    return result
 
 AI_SCRIPT = Path(__file__).resolve().parents[1] / "script" / "img_ai.py"
 

@@ -24,8 +24,9 @@ from aurora import sys_config  # noqa: E402
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--prompt-file", type=Path, required=True)
-    ap.add_argument("--out", type=Path, required=True)
+    ap.add_argument("--prompt-file", type=Path)
+    ap.add_argument("--out", type=Path)
+    ap.add_argument("--batch-file", type=Path, help='[{"prompt", "out"}]: many pictures, the model loaded once')
     ap.add_argument("--gpu", type=int, required=True)
     ap.add_argument("--size", default="1344x768")
     ap.add_argument("--seed", type=int, default=None)
@@ -47,11 +48,13 @@ def main() -> int:
     load_s = time.time() - t0
     seed = args.seed if args.seed is not None else random.randrange(2**31)
     t1 = time.time()
-    img = pipe(prompt=args.prompt_file.read_text(encoding="utf-8").strip(), width=w, height=h,
-               num_inference_steps=4, guidance_scale=0.0,
-               generator=torch.Generator(f"cuda:{args.gpu}").manual_seed(seed)).images[0]
-    img.save(args.out)
-    print(json.dumps({"load_s": round(load_s, 1), "paint_s": round(time.time() - t1, 1), "seed": seed,
+    jobs = json.loads(args.batch_file.read_text(encoding="utf-8")) if args.batch_file else \
+        [{"prompt": args.prompt_file.read_text(encoding="utf-8"), "out": str(args.out)}]
+    for i, job in enumerate(jobs):
+        img = pipe(prompt=job["prompt"].strip(), width=w, height=h, num_inference_steps=4, guidance_scale=0.0,
+                   generator=torch.Generator(f"cuda:{args.gpu}").manual_seed(seed + i)).images[0]
+        img.save(job["out"])
+    print(json.dumps({"load_s": round(load_s, 1), "paint_s": round(time.time() - t1, 1), "seed": seed, "pictures": len(jobs),
                       "size": f"{w}x{h}", "peak_vram_gb": round(torch.cuda.max_memory_allocated(args.gpu) / 2**30, 2)}))
     return 0
 

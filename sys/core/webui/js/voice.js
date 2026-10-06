@@ -63,16 +63,21 @@ export const SERVER = "__aurora__";                  // the name kept when this 
 
 export async function localVoice(lang) {
   if (chosen() === SERVER) return null;               // chosen on purpose: Aurora's voice from her machine
+  // nothing chosen on this device: Aurora's own voice first, when her machine has it (owner, 2026-10-06)
+  if (!chosen() && await serverAvailable(lang)) return null;
   const all = await localVoices(lang);
   return all.find((v) => v.name === chosen()) || all[0] || null;
 }
 
 // Aurora's voice made on her machine (mdl_tts): offered in the list of voices even when the device has none
+let serverLangs = null;                              // asked once per page: the machine's voices do not change
 export async function serverAvailable(lang) {
   try {
-    const r = await fetch("/v1/aurora/tts", { credentials: "same-origin" });
-    const s = await r.json();
-    return Boolean(s.enabled && s.languages?.includes(lang.slice(0, 2).toLowerCase()));
+    if (!serverLangs) {
+      const s = await (await fetch("/v1/aurora/tts", { credentials: "same-origin" })).json();
+      serverLangs = s.enabled ? s.languages || [] : [];
+    }
+    return serverLangs.includes(lang.slice(0, 2).toLowerCase());
   } catch { return false; }
 }
 

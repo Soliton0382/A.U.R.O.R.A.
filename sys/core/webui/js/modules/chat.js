@@ -143,7 +143,7 @@ export default {
       box.append(el("div", "meta", list.length || server ? t("chat.voice.pick") : t(`chat.voice.novoice.${await voice.why(code)}`)));
       if (server) {                                   // Aurora's own voice (Piper on her machine): on every device
         const row = el("div", "voice-row");
-        const pick = el("button", voice.chosen() === voice.SERVER || (!list.length && !voice.chosen()) ? "on" : "", `🌸 ${t("chat.voice.server")}`);
+        const pick = el("button", voice.chosen() === voice.SERVER || !voice.chosen() ? "on" : "", `🌸 ${t("chat.voice.server")}`);
         const play = el("button", "", "▶");
         pick.type = play.type = "button";
         pick.addEventListener("click", () => { voice.choose(voice.SERVER); box.remove(); });
@@ -153,7 +153,7 @@ export default {
       }
       for (const vo of list) {
         const row = el("div", "voice-row");
-        const pick = el("button", vo.name === voice.chosen() || (!voice.chosen() && vo === list[0]) ? "on" : "", vo.name);
+        const pick = el("button", vo.name === voice.chosen() || (!voice.chosen() && !server && vo === list[0]) ? "on" : "", vo.name);
         const play = el("button", "", "▶");
         pick.type = play.type = "button";
         pick.addEventListener("click", () => { voice.choose(vo.name); box.remove(); });

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import asyncio
 import re
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
@@ -81,3 +82,22 @@ async def social_publish(request: Request) -> dict:
 # other (routines, forge, agents) load in any order
 from .activity import reflections  # noqa: E402
 from .agents import decide  # noqa: E402
+
+
+@router.post("/v1/aurora/social/story", dependencies=[Depends(auth)])
+async def social_story(request: Request) -> dict:
+    """{"topic"}: a narrated video from the vault, made on this machine (kno_story); the run's events say each step and
+    end with the video's address. Published only by the owner, like every post."""
+    from .core import start_run
+    topic = str((await request.json()).get("topic", "")).strip()
+    if not 3 <= len(topic) <= 300:
+        raise HTTPException(status_code=400, detail="a topic of 3-300 characters")
+
+    def job(q, emit, run_id):
+        from aurora import kno_story, sys_uploads
+        out = kno_story.make(pipeline(), cfg, q, emit)
+        data = Path(out["video"]).read_bytes()
+        url = sys_uploads.public(sys_uploads.save(cfg, run_id, "aurora-story.mp4", "video/mp4", data, role="assistant"))["url"]
+        emit("story.ready", {"url": url, "post": out["post"], "folder": out["folder"], "length_s": out["length_s"]})
+        return None
+    return {"run_id": start_run(topic, origin="story", job=job)["id"]}
