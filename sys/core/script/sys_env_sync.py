@@ -28,6 +28,8 @@ def render(schema: dict, values: dict[str, str], lang: str = "en") -> str:
              "# edit the values here or from the WebUI Settings page.", ""]
     current = None
     for spec in schema["settings"]:
+        if spec["key"] not in values:            # a personal setting on the per-user layout lives in usr/<name>/.env (C165)
+            continue
         if spec["category"] != current:
             current = spec["category"]
             title = schema["categories"][current][lang]

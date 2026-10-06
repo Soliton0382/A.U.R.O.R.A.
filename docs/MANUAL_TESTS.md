@@ -7,9 +7,9 @@ end, duplicates and tests of pages that no longer exist removed (each with its r
 | session | tests |
 |---|---|
 | 🌙 they come by themselves (look in the morning) | N19, N63, N77, N78 |
-| 🔁 again after a change | N4, N5, N86, N90 |
-| 📱 phone, ~10 min | N16, N25, N31 |
-| 🖥️ chat on the PC, ~15 min | I4, I5, N41, N42 |
+| 🔁 again after a change | I5, N25, N93–N96 |
+| 📱 phone, ~10 min | N31 |
+| 🖥️ chat on the PC, ~15 min | I4 |
 | 🧭 pages, ~25 min | K1, N32, N35, N37, N40, N43, N46, N53, N62, N64, N66, N68, N73, N74, R1, R10 |
 | 🔑 a setup first (keys, devices, a second user) | N13–N15, N18, N22, N30, N49–N51, N61, N67, N69, R2, R11 |
 
@@ -17,23 +17,19 @@ end, duplicates and tests of pages that no longer exist removed (each with its r
 
 | # | Test | Expected |
 |---|---|---|
-| N4 | ⚙️ Status → «Funzioni di questa installazione» | 10 ✅; nothing red — ❌ owner: incomplete — to be made dynamic, then again |
-| N5 | ⚙️ Settings: categories | each category once (C71) — ❌ owner: on the phone the categories take half the screen — a 3-level menu, then again |
 | N13 | 📅 calendar: an ICS link (Google → secret address) in the card, then «cosa ho in agenda questa settimana?» | the events, at the right local time |
 | N14 | 📝 notes: AURORA_NOTES_DIR on your Obsidian vault, «cerca nelle mie note …», «aggiungi alla nota X …» | found; the addition waits for approval, the note only grows |
 | N15 | 🏠 «che luci ci sono accese?» once devices are in Home Assistant | read from HA; switching asks for approval |
-| N16 | In the installed app (phone): tap a picture Aurora made, then a PDF in 📎 Files | each opens inside the app; ⬇️ Download saves it; ✕ closes |
 | N18 | 📔 Diary: open a dream; then a dream in the chat | its painting is shown (tap: the viewer); ↗ Condividi opens Social with the drafts and the picture; Publish posts it with the picture; a session memory has no Share |
 | N19 | The morning routine (09:30) on a day with a dream | the post is published by itself with the picture, a notification «📣 Aurora ha pubblicato un post», the approvals list shows it as "auto"; a 4th post the same day waits |
 | N22 | Put the TMDB key in Settings → Plugins → cinema; ask «quali film sono di tendenza questa settimana?» and «dove posso vedere Inception?» | the list with votes; where it streams in Italy (subscription, rent, buy) with the TMDB and JustWatch credit |
-| N25 | Hold 🗣️ in the chat | the device's voices, the best female one marked; ▶ plays a sample; tapping a name makes it Aurora's voice on this device |
+| N25 | Hold 🗣️ in the chat | the device's voices, the best female one marked; ▶ plays a sample; tapping a name makes it Aurora's voice on this device — ❌ owner: «nessuna voce»; now Aurora's voice is in the list (6 Oct): again |
 | N30 | A second user with their own Facebook page in ⚙️ Settings (their token) | their posts go to their page, their autonomy and daily number are theirs; yours unchanged |
 | N31 | On the phone, the first dictation after opening the app: 🎙️, speak 5 s, ⏹️ | the text is right the first time, it is sent by itself and the answer is read aloud |
 | N32 | 💾 Backup card: the time 23:00, Save, reload the card | "next backup" says 23:0x (after `sudo bash sys/deploy/systemd/install.sh` once) |
 | N35 | 🧩 Plugins: switch off the security plugin, then on | 🛡️ Security leaves the menu and comes back; 📣 Social lists only Facebook |
 | N37 | ⚙️ Settings, then 🧩 Plugins → facebook | Settings says which settings are in the cards; Facebook's card has ☑ "publishes by herself", the posts a day |
 | N40 | 🔁 Routines: "days and times", 08:00 + 18:30, working days | saved; the line says "giorni lavorativi alle 08:00, 18:30"; it runs Monday, not on 8 December |
-| N42 | Ask something not in the vault and not on arXiv (e.g. a Stoic philosopher's life), then "sì, cerca" | the search steps show Wikipedia (or Europe PMC/GitHub) candidates; the answer comes, the document in the right domain with its licence |
 | N43 | 🛡️ Security → 📖 Read the documentation and propose; switch on a check with few incidents | proposals with "in the last 24 hours it would have raised N"; the next matching lines make an incident with its 💡 action |
 | N46 | 📣 Social | "Posts to approve" (if any) and "Post history" with date, text, picture, a link to the post |
 | N49 | 🎧 DJ: upload a song you own (e.g. a church song), select it, style techno-trance, Create | a notification when ready; the mix plays in the page, in time and in key (or kept in its own time if it had no beat) |
@@ -51,17 +47,18 @@ end, duplicates and tests of pages that no longer exist removed (each with its r
 | N74 | 🛡️ Security → an incident → ⛔ then ↩️ Annulla; Difesa → 🧱 Sul firewall → Prova la connessione | the address blocked then unblocked; the group and rule names shown, "Collegato" |
 | N77 | Ask something she does not know; the next morning | the good morning says she studied it; ask again: an answer with sources — ❌ C152 — again after tonight |
 | N78 | ☀️ The good morning in the chat (after 8) → 🔊 Ascolta | the night's counts, read aloud — ❌ C154 — again after the fix |
-| N86 | 🧠 Models → 🎨: «Immagini nuove» to Google (or xAI), Save; ask «disegnami un faro al tramonto»; then put it back to Locale | the picture from the provider; Security → 📤 shows the call; back to local, local again |
-| N90 | ⚙️ Settings → ⚠️ Impostazioni di fabbrica (keys kept) | the behaviour settings back; folders, ports, NAS, firewall unchanged; the .env before saved |
+| N93 | `sudo bash sys/deploy/nft/install.sh`; then 🛡️ Sicurezza → Difesa e rete → 🧱 | «Firewall di Aurora attivo»; from another PC (not the phone): `nc <aurora> 2222` → incident «Esca toccata», the PC kept off Aurora for 24 h, ↩️ lifts it |
+| N94 | The chat open on the PC and on the phone (the app in the background); write on one | the other shows it by itself, also after waking up |
+| N95 | «anima questa foto» with the video given to Google (Models → 🎨) | the video from Veo; while it is made, the bar «🎬 … in corso · circa N%» over the chat |
+| N96 | 🛡️ → 📊 La settimana della sicurezza; and on Monday 08:30 the routine (switch it on in Agenti e routine) | the score, campaigns, what is missing |
 | N69 | Multi-user first login of an admin without password (a clean install) | after the API key, the Users page with the note: password and Google Authenticator first |
-| N41 | 📁 Projects → 💻 Local: ask Aurora "crea il progetto prova-calc con una funzione somma e i suoi test, eseguili" | the project, the tests run (EXIT 0) in the run's steps, a local commit |
 
 ## Pictures
 
 | # | Test | Expected |
 |---|---|---|
 | I4 | A very large photo (> 20 MP) and a PNG with transparency | edited without errors, the kind kept |
-| I5 | 📎 Files page | thumbnails, open, delete (the conversation keeps only the name) |
+| I5 | 📎 Files page | thumbnails, open, delete (the conversation keeps only the name) — owner: no PDF thumbnails; now the first page (6 Oct): again |
 
 ## Projects, routines, plugins
 
@@ -149,6 +146,13 @@ end, duplicates and tests of pages that no longer exist removed (each with its r
 | N58 | ☰ the side menu on the phone and on the PC | owner, 5 Oct («la ui sul cel va benissimo») |
 | N48 | 🧩 Plugins → security: address https://172.16.16.16:4444 style, user, password; 🛡️ Security | owner + machine, 6 Oct (the network map reads the firewall's API; N44 blocked) |
 | N33 | 🧠 Models: choose a provider in a step | machine, 6 Oct (12 steps, each with its menu of models) |
+| N4 | ⚙️ Status → «Funzioni di questa installazione» | machine, 6 Oct (M119) |
+| N5 | ⚙️ Settings: categories | owner, 6 Oct |
+| N16 | In the installed app (phone): tap a picture Aurora made, then a PDF in 📎 Files | owner, 6 Oct |
+| N41 | 📁 Projects → 💻 Local: ask Aurora "crea il progetto prova-calc con una funzione somma e i suoi test, eseguili" | machine as a user, 6 Oct |
+| N42 | Ask something not in the vault and not on arXiv (e.g. a Stoic philosopher's life), then "sì, cerca" | machine as a user, 6 Oct (after C166) |
+| N90 | ⚙️ Settings → ⚠️ Impostazioni di fabbrica (keys kept) | machine in the test clone, 6 Oct (M119) |
+| N86 | 🧠 Models → 🎨: «Immagini nuove» to Google (or xAI), Save; ask «disegnami un faro al tramonto»; then put it back | owner, 6 Oct (the picture; the video after C168) |
 
 ## 🗑️ Removed
 

@@ -12,6 +12,7 @@ from __future__ import annotations
 import signal
 import socket
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -26,6 +27,42 @@ log = sys_log.get_logger("sentinel")
 fw = sys_log.get_logger("firewall")
 BASE = f"http://{cfg['AURORA_API_HOST']}:{cfg['AURORA_API_PORT']}"
 _stop = False
+
+
+def honeypot(api: httpx.Client) -> None:
+    """Decoy ports (owner, 2026-10-06): nothing real listens there, so whoever opens one is looking for a way in —
+    told at once as a high incident; aurora-api may block them on this machine (sec_hostfw). Nothing is read or sent."""
+    ports = [int(p) for p in str(cfg["AURORA_HONEYPOT_PORTS"] or "").split(",") if p.strip().isdigit()]
+
+    def watch(port: int) -> None:
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            s.bind(("0.0.0.0", port))
+            s.listen(16)
+        except OSError as e:
+            log.warning("decoy port %d not opened: %s", port, e)
+            return
+        log.info("decoy port %d open", port)
+        while not _stop:
+            s.settimeout(1.0)
+            try:
+                conn, (ip, _p) = s.accept()
+            except (socket.timeout, OSError):
+                continue
+            conn.close()
+            now = time.strftime("%Y-%m-%dT%H:%M:%S%z")
+            incident = {"kind": "honeypot", "source": ip, "count": 1, "internal": is_private(ip), "first": now, "last": now,
+                        "samples": [f"connection to decoy port {port}"],
+                        "detail": {"title": f"Esca toccata: porta {port}", "why": "Su questa porta non c'è nessun servizio: "
+                                   "chi la apre sta cercando un modo per entrare.", "action": "Chi è questo dispositivo? "
+                                   "Se non lo riconosci, isolalo.", "port": port}}
+            try:
+                api.post(f"{BASE}/v1/aurora/sentinel/incident", json=incident).raise_for_status()
+            except httpx.HTTPError as e:
+                log.warning("decoy incident not delivered: %s", e)
+    for p in ports:
+        threading.Thread(target=watch, args=(p,), name=f"decoy-{p}", daemon=True).start()
 
 
 def main() -> int:
@@ -46,6 +83,9 @@ def main() -> int:
     api = httpx.Client(headers={"Authorization": f"Bearer {cfg['AURORA_API_KEY']}"}, timeout=30)
     from aurora import sec_rules                       # the owner's own checks (Security page), read every minute
     rules = sec_rules.RuleSet(sec_rules.load(cfg))
+    honeypot(api)
+    from aurora import sec_baseline                    # what each device of the house normally does
+    base = sec_baseline.Baseline(cfg)
     log.info("aurora-sentinel started: syslog on %s:%s, allowed %s", host, port, ", ".join(sorted(allow)))
     received = dropped = 0
     beat = 0.0
@@ -72,6 +112,10 @@ def main() -> int:
         fw.info("%s %s", addr, line)
         f = parse(line)
         found = [i.as_dict() for i in det.feed(f)]
+        try:
+            found += base.feed(f)
+        except Exception as e:  # noqa: BLE001 — the baseline never stops the sentinel
+            log.warning("baseline: %s", e)
         for r, who, n, samples in rules.feed(f, src_of(f)):
             now = time.strftime("%Y-%m-%dT%H:%M:%S%z")
             found.append({"kind": f"rule:{r['id']}", "source": who, "count": n, "internal": who != "*" and is_private(who),

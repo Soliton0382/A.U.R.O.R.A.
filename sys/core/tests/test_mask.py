@@ -8,7 +8,7 @@ def test_sensitive_data_goes_out_masked_and_comes_back_whole(cfg):
                       AURORA_CLOUD_MASK_WORDS="Progetto Fenice, Via Roma 1")
     key = cfg.values["AURORA_API_KEY"]
     p = Pseudonymizer(cfg)
-    raw = (f"Mario Rossi (mario@example.net, +39 333 123 4567) vede 192.168.0.205 e di nuovo 192.168.0.205; "
+    raw = (f"Mario Rossi (mario@example.net, +39 333 123 4567) vede 172.16.5.205 e di nuovo 172.16.5.205; "
            f"IBAN IT60 X054 2811 1010 0000 0123 456, carta 4111 1111 1111 1111, chiave {key}, mac 00:11:22:33:44:55, "
            f'device_name="xg.example.net" serial=X99000AB1CDEF23, Progetto Fenice in Via Roma 1, ts 1790881354569')
     out = p.mask(raw)
@@ -18,7 +18,7 @@ def test_sensitive_data_goes_out_masked_and_comes_back_whole(cfg):
     assert out.count("[IP_1]") == 2 and "[IP_2]" not in out              # the same address, the same placeholder
     assert "1790881354569" in out                                          # a timestamp is not a card (Luhn)
     assert p.unmask(out) == raw
-    assert p.unmask("Il dispositivo [IP_1] e [IP_9]") == "Il dispositivo 192.168.0.205 e [IP_9]"
+    assert p.unmask("Il dispositivo [IP_1] e [IP_9]") == "Il dispositivo 172.16.5.205 e [IP_9]"
     assert p.counts["IP"] == 1 and p.counts["SECRET"] == 1
 
 

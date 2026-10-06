@@ -25,6 +25,7 @@ from . import sys_config
 # (C158: the first version reset AURORA_BACKUP_DIR, AURORA_FIREWALL_API_URL, AURORA_LLM_CTX and 12 more)
 BEHAVIOUR = {"search", "pipeline", "memory", "autonomy", "rem", "acquire", "agents", "interface", "compliance", "logging"}
 SECRET = re.compile(r"(KEY|TOKEN|PASSWORD|SECRET)", re.I)
+INSTALLED = {"AURORA_IMAGE_ENABLED"}               # set by the installer from the models it downloaded (N90)
 PLACE = re.compile(r"(URL|USER|_DIR$|_BIN$|BIND|ALLOW|HOST|PORT|PATH|_CTX$|PARALLEL|GPU|SPLIT|DOMAIN|_DOC$)", re.I)
 # Aurora's mind in the status folder (relative names); everything else there stays (users, devices, keys, backup...)
 MIND_STATUS = ("routines.json", "approvals.json", "incidents.json", "synapses.db", "autonomy_ledger.jsonl", "forge",
@@ -43,7 +44,7 @@ def settings(cfg: sys_config.Config, keep_keys: bool = True) -> dict:
     changes, services = {}, set()
     for s in sys_config.load_schema()["settings"]:
         k = s["key"]
-        if s.get("category") not in BEHAVIOUR or s.get("scope") == "user" or PLACE.search(k):
+        if s.get("category") not in BEHAVIOUR or s.get("scope") == "user" or PLACE.search(k) or k in INSTALLED:
             continue
         if keep_keys and (s.get("secret") or SECRET.search(k)):
             continue

@@ -24,6 +24,11 @@ async def sentinel_incident(request: Request) -> dict:
     name = sec_netmap.names(cfg).get(incident.get("source", "")) if incident.get("internal") else None
     if name:                                              # one of the owner's devices (the firewall knows its name)
         incident["known"] = name
+    if not incident.get("internal"):                      # an address on a public list of attackers (sec_intel)
+        from aurora import sec_intel
+        hits = sec_intel.lookup(cfg, incident.get("source", ""))
+        if hits:
+            incident["intel_lists"] = hits
     item = Incidents(cfg).add(incident)
     if item.get("merged"):                                # a repeat of an open incident: counted, not said again
         return {"id": item["id"], "severity": item["severity"], "merged": True}
@@ -32,6 +37,16 @@ async def sentinel_incident(request: Request) -> dict:
         note("sentinel", "incident", {"id": item["id"], "kind": item["kind"], "source": item["source"],
                                       "severity": item["severity"], "title": f"{item['kind']} · {who}"})
     defend(item)
+    if item["kind"] == "honeypot":                        # a decoy touched: off this machine at once (sec_hostfw)
+        import threading
+
+        def keep_out():
+            from aurora import sec_hostfw
+            r = sec_hostfw.block(cfg, item["source"], f"esca toccata (porta {item.get('detail', {}).get('port')})")
+            Incidents(cfg).update(item["id"], hostfw="blocked" if r.get("ok") else f"not blocked: {r.get('why')}")
+            if r.get("ok"):
+                note("security", "hostfw.block", {"title": f"🧱 {item['source']} bloccato sul computer di Aurora", "text": "esca toccata"})
+        threading.Thread(target=keep_out, name="hostfw", daemon=True).start()
     if cfg["AURORA_SENTINEL_INVESTIGATE"] and not name:   # the public registry says nothing about a device at home
         def job(q, emit, run_id):
             from aurora.kno_answer import Answer

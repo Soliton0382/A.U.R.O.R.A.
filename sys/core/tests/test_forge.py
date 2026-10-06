@@ -60,8 +60,8 @@ def test_the_sample_shows_each_kind_of_line_with_counts_and_the_line_untouched()
 def test_what_may_leave_for_the_cloud_is_masked(cfg):
     cfg.values.update(AURORA_DOMAIN="aurora.example.net", AURORA_OWNER_NAME="Mario")
     m = F.Masker(cfg)
-    raw = ('2026-10-01 fw 192.168.0.205 device_name="xg.example.net" device_serial_id="X99000AB1CDEF23" '
-           'src_ip=192.168.0.205 dst_ip=8.8.8.8 user=mario mail mario@example.net token ' + "a1" * 20
+    raw = ('2026-10-01 fw 172.16.5.205 device_name="xg.example.net" device_serial_id="X99000AB1CDEF23" '
+           'src_ip=172.16.5.205 dst_ip=8.8.8.8 user=mario mail mario@example.net token ' + "a1" * 20
            + " mac 00:11:22:33:44:55 da Mario /home/" + m.user + "/x")
     out = m(raw)
     assert "192.168" not in out and "8.8.8.8" not in out

@@ -183,6 +183,13 @@ def _failed(request: Request) -> None:
         log.warning("audit: %d failed logins from %s: refused for %d s", n, ip, cfg["AURORA_AUTH_WINDOW_S"])
         note("security", "auth.lockout", {"title": f"{n} tentativi di accesso falliti da {ip}", "ip": ip})
 
+        def keep_out():                                   # and off this machine for hours (sec_hostfw), if installed
+            from aurora import sec_hostfw
+            r = sec_hostfw.block(cfg, ip, f"{n} credenziali sbagliate")
+            if r.get("ok"):
+                note("security", "hostfw.block", {"title": f"🧱 {ip} bloccato sul computer di Aurora", "text": "login falliti"})
+        threading.Thread(target=keep_out, name="hostfw", daemon=True).start()
+
 
 async def auth(request: Request) -> None:
     """The API key (third-party clients) or a registered device (WebUI cookie). Async on purpose: the user it sets
@@ -387,7 +394,27 @@ def edit_pictures(question: str, pictures: list[tuple[str, bytes]], emit, run_id
     return ans
 
 
-_video = {"busy": False, "title": "", "ready_at": 0.0}
+_video = {"busy": False, "title": "", "ready_at": 0.0, "started": 0.0}
+
+
+def gpu_busy() -> dict | None:
+    """A job on the GPU with the reasoner stopped for it (a local video, a painting, an edit) — also one this API did
+    not start as such (6 October: a cloud video fell back to the local model and the chat answered with an error)."""
+    from aurora import mdl_video, sys_health
+    if _video["busy"]:
+        return {**_video}
+    job = sys_health.gpu_job(cfg)
+    if not job or sys_health._unit("aurora-llm") == "active":
+        return None
+    title, _, since = job.partition(" since ")
+    try:
+        h, m, s_ = (int(x) for x in since.split(":"))
+        t = time.localtime()
+        started = time.mktime((t.tm_year, t.tm_mon, t.tm_mday, h, m, s_, 0, 0, -1))
+    except ValueError:
+        started = time.time()
+    minutes = mdl_video.estimate_minutes(cfg) if title.startswith("video") else 2
+    return {"busy": True, "title": title.split(" ", 1)[-1], "started": started, "ready_at": started + minutes * 60}
 
 
 def _say(question: str, text: str, emit, run_id: str, mode: str, remember: bool = True):
@@ -405,13 +432,14 @@ def _say(question: str, text: str, emit, run_id: str, mode: str, remember: bool 
 
 def video_busy_answer(question: str, emit, run_id: str):
     """While a video is being made the reasoner is off: say so, and when the video should be ready."""
-    if not _video["busy"]:
+    v = gpu_busy()
+    if not v:
         return None
     it = str(cfg["AURORA_LANG_DEFAULT"]).startswith("it")
-    at = time.strftime("%H:%M", time.localtime(_video["ready_at"]))
-    text = (f"🎬 Sto creando il video «{_video['title']}»: finché non ho finito il mio ragionatore è spento. "
+    at = time.strftime("%H:%M", time.localtime(max(v["ready_at"], time.time() + 60)))
+    text = (f"🎬 Sto creando il video «{v['title']}»: finché non ho finito il mio ragionatore è spento. "
             f"Dovrebbe essere pronto verso le {at}, ti avviso io." if it else
-            f"🎬 I am making the video \"{_video['title']}\": until it is done my reasoner is off. "
+            f"🎬 I am making the video \"{v['title']}\": until it is done my reasoner is off. "
             f"It should be ready around {at}; I will let you know.")
     return _say(question, text, emit, run_id, "video", remember=False)
 
@@ -429,7 +457,7 @@ def make_video(question: str, vp: dict, picture: tuple[str, bytes] | None, emit,
     minutes = 3 if cloud else mdl_video.estimate_minutes(cfg)
     secs, title = cfg["AURORA_VIDEO_SECONDS"], vp["title"]
     if not cloud:
-        _video.update(busy=True, title=title, ready_at=time.time() + minutes * 60)
+        _video.update(busy=True, title=title, ready_at=time.time() + minutes * 60, started=time.time())
     src = "dalla tua foto, " if it and picture else "from your picture, " if picture else ""
     text = (f"🎬 Creo il video «{title}» ({src}con {mdl_media.provider(cfg, 'video')[1]}): qualche minuto; intanto puoi "
             f"continuare a scrivermi, ti avviso quando è pronto." if it else
@@ -617,10 +645,10 @@ def start_run(question: str, origin: str, job=None) -> dict:
         _runs.popitem(last=False)
     note(origin, "run.begin", {"run_id": run["id"], "question": question, "origin": origin})
 
-    def emit(event: str, payload: dict) -> None:
-        with run["cond"]:
-            run["events"].append({"seq": len(run["events"]) + 1, "ts": time.time(), "event": event, "payload": payload})
-            run["cond"].notify_all()
+    from aurora import sys_runs
+
+    def emit(event: str, payload: dict) -> None:          # only the run's own end ends it (C166, sys_runs)
+        sys_runs.emit(run, event, payload)
 
     def work() -> None:
         with _run_lock:
@@ -639,9 +667,7 @@ def start_run(question: str, origin: str, job=None) -> dict:
                 react(origin, question, f"{type(e).__name__}: {e}", run["id"])
             finally:
                 sol_reader.release()                      # this thread's vault connections, now (C103)
-                with run["cond"]:
-                    run["done"] = True
-                    run["cond"].notify_all()
+                sys_runs.end(run)
                 note(origin, "run.end", {"run_id": run["id"], "origin": origin,
                                          "seconds": round(time.time() - run["started"], 1)})
 

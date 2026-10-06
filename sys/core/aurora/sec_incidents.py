@@ -19,7 +19,9 @@ from pathlib import Path
 from . import sys_config, sys_log
 
 _lock = threading.Lock()
-SEVERITY = {"ips_alert": "high", "auth_fail": "high", "port_scan": "medium", "deny_burst": "low"}
+SEVERITY = {"ips_alert": "high", "auth_fail": "high", "port_scan": "medium", "deny_burst": "low", "honeypot": "high",
+            "behaviour:new_country": "medium", "behaviour:new_port": "medium", "behaviour:upload": "high",
+            "behaviour:new_device": "medium"}
 SYS_REPORT = ("You are Aurora, defending %OWNER%'s network. Write, in Italian, a short incident report from the facts "
               "below: what happened (kind, source, how many events, when), what the public registry says about the "
               "source network, how serious it is and why, and the defensive actions you recommend (e.g. block the "
@@ -34,6 +36,8 @@ MERGE_HOURS = 24
 
 def severity(incident: dict) -> str:
     s = SEVERITY.get(incident["kind"], "low")
+    if incident.get("intel_lists") or incident["kind"] == "honeypot":
+        return "high"                                   # a known attacker, or someone touching a decoy: always
     if incident["kind"] == "deny_burst" and incident.get("count", 0) >= 500:
         s = "medium"
     if incident.get("known"):

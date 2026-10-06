@@ -438,3 +438,32 @@ def test_a_plugin_knows_its_user_from_its_folders(cfg):
     cfg.values.update(AURORA_UPLOADS_DIR="usr/uploads", AURORA_HEALTH_DIR="usr/health", AURORA_DOCUMENTS_DIR="usr/documents",
                       AURORA_PROJECTS_DIR="usr/projects")
     assert sys_config._plugin_user(cfg) is None                                # before the per-user layout
+
+
+def test_the_env_sync_writes_a_machine_env_without_the_personal_settings():
+    """C165: on the per-user layout the sync left the personal settings out of the list, then wrote every key and
+    crashed (KeyError: 'AURORA_SOCIAL_AUTONOMY') — install.sh run again, or an update by git, stopped at the .env."""
+    import importlib.util
+    from pathlib import Path
+    spec = importlib.util.spec_from_file_location("env_sync", Path(__file__).resolve().parents[1] / "script" / "sys_env_sync.py")
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    from aurora import sys_config
+    schema = sys_config.load_schema()
+    machine = {s["key"]: s["recommended"] for s in schema["settings"] if s.get("scope") != "user"}
+    text = m.render(schema, machine)
+    assert "AURORA_SOCIAL_AUTONOMY=" not in text and "AURORA_API_PORT=" in text
+
+
+def test_a_run_ends_once_at_its_real_end():
+    """C166: the pipeline's own run.end (the abstention) ended the run for the chat, while the search by herself went
+    on and found the answer — nobody saw it. Only the run's end ends it now."""
+    import threading
+    import time
+    from aurora import sys_runs
+    run = {"events": [], "cond": threading.Condition(), "started": time.time(), "done": False}
+    for ev in ("answer.final", "run.end", "acquire.confirmed", "answer.final", "run.end"):
+        sys_runs.emit(run, ev, {})
+    sys_runs.end(run)
+    names = [e["event"] for e in run["events"]]
+    assert names == ["answer.final", "acquire.confirmed", "answer.final", "run.end"] and run["done"]

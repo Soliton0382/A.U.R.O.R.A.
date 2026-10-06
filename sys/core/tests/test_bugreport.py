@@ -21,7 +21,7 @@ def test_a_report_carries_the_logs_needed_and_nothing_private(cfg):
     (logs / "api").mkdir(parents=True)
     (logs / "api" / "api.log").write_text(
         f"{stamp(30)} INFO aurora.api old line outside the window\n"
-        f"{stamp(1)} ERROR aurora.api upstream 192.168.0.205 refused for Mario Rossi, key {key}\n"
+        f"{stamp(1)} ERROR aurora.api upstream 172.16.5.205 refused for Mario Rossi, key {key}\n"
         "Traceback (most recent call last):\n  File \"x.py\", line 1\n"
         f"{stamp(0.5)} WARNING aurora.api aurora.example.net slow\n")
     (logs / "firewall").mkdir()
@@ -39,7 +39,7 @@ def test_a_report_carries_the_logs_needed_and_nothing_private(cfg):
     assert {"report.md", "environment.json", "settings.txt", "health.json", "logs/api.log", "logs/problems.log",
             "logs/plugins/web.stderr.log", "runs/abc123def456.jsonl"} <= names
     everything = "\n".join(z.read(n).decode() for n in names)
-    for leak in (key, "Mario", "192.168.0.205", "10.1.2.3", "example.net", "X99000AB1CDEF23"):
+    for leak in (key, "Mario", "172.16.5.205", "10.1.2.3", "example.net", "X99000AB1CDEF23"):
         assert leak not in everything, leak
     api = z.read("logs/api.log").decode()
     assert "old line outside the window" not in api and "Traceback" in api       # the window, with its tracebacks

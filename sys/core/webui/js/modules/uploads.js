@@ -45,7 +45,10 @@ export default {
         try { await call(d.url, { method: "DELETE" }); } catch (e) { alert(e.message); }
         this.enter();
       });
-      a.append(el("span", "", "📄"), el("span", "", d.name), el("span", "muted", size(d.bytes)), del);
+      const thumb = el("img", "doc-thumb"); thumb.loading = "lazy"; thumb.alt = "";      // the first page (I5)
+      thumb.src = `/v1/aurora/preview/page?url=${encodeURIComponent(d.url)}&n=1`;
+      thumb.addEventListener("error", () => thumb.replaceWith(el("span", "", "📄")), { once: true });
+      a.append(thumb, el("span", "", d.name), el("span", "muted", size(d.bytes)), del);
       return a;
     }) : [el("p", "muted", t("up.no_docs"))]));
     await this.loadTrash();
@@ -92,6 +95,12 @@ export default {
     viewLink(open, f.url, f.name, f.mime);
     if (f.inline && f.mime.startsWith("image/")) { const img = el("img"); img.src = f.url; img.loading = "lazy"; img.alt = f.name; open.append(img); }
     else if (f.inline && f.mime.startsWith("video/")) { const v = el("video"); v.src = f.url; v.preload = "metadata"; v.muted = true; open.append(v); }
+    else if (f.mime === "application/pdf" || /\.pdf$/i.test(f.name)) {   // I5 (6 October): the first page, not an icon
+      const img = el("img"); img.loading = "lazy"; img.alt = f.name;
+      img.src = `/v1/aurora/preview/page?url=${encodeURIComponent(f.url)}&n=1`;
+      img.addEventListener("error", () => img.replaceWith(el("div", "up-icon", "📄")), { once: true });
+      open.append(img);
+    }
     else open.append(el("div", "up-icon", f.mime.startsWith("audio/") ? "🎧" : "📄"));
     const del = el("button", "", "🗑️");
     del.title = t("up.delete");

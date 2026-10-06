@@ -41,6 +41,37 @@ export const defence = {
     this.map.replaceChildren(line, ...said, bar, found);
   },
 
+  // 🧱 Aurora's own firewall, the threat lists, the devices learning their normal, the decoys, the week (owner, 2026-10-06)
+  async loadHost() {
+    let h;
+    try { h = await call("/v1/aurora/security/host"); } catch { this.host.replaceChildren(); return; }
+    const out = [];
+    const fw = h.hostfw;
+    if (!fw.installed) out.push(el("p", "warn", t("sec.host_install")), el("code", "", "sudo bash sys/deploy/nft/install.sh"));
+    else out.push(el("p", "", t("sec.host_on", { n: fw.active.length })));
+    for (const b of fw.active) {
+      const r = el("div", "ev");
+      const lift = el("button", "", `↩️ ${t("sec.def_lift")}`);
+      lift.addEventListener("click", async () => {
+        lift.disabled = true;
+        await call("/v1/aurora/security/host/unblock", { method: "POST", body: JSON.stringify({ ip: b.ip }) }).catch(() => null);
+        this.loadHost();
+      });
+      r.append(el("strong", "", `🧱 ${this.who(b.ip)}`), el("span", "muted", ` ${b.why} · ${t("sec.def_until", { until: new Date(b.until * 1000).toLocaleString() })} `), lift);
+      out.push(r);
+    }
+    const lists = Object.entries(h.intel.lists || {});
+    out.push(el("p", "muted", lists.length ? t("sec.intel_on", { lists: lists.map(([k, n]) => `${k} ${n}`).join(", "),
+      when: new Date(h.intel.at * 1000).toLocaleString() }) : t("sec.intel_none")));
+    if (h.baseline.devices !== undefined) out.push(el("p", "muted", h.baseline.learning_days_left > 0
+      ? t("sec.base_learning", { n: h.baseline.devices, d: h.baseline.learning_days_left }) : t("sec.base_on", { n: h.baseline.devices, k: h.baseline.told })));
+    out.push(el("p", "muted", h.decoys.length ? t("sec.decoys", { p: h.decoys.join(", ") }) : t("sec.no_decoys")));
+    const wk = el("button", "", `📊 ${t("sec.weekly")}`), wkOut = el("pre", "sec-weekly");
+    wk.addEventListener("click", async () => { wkOut.textContent = "…"; try { wkOut.textContent = (await call("/v1/aurora/security/weekly")).text; } catch (e) { wkOut.textContent = e.message; } });
+    out.push(wk, wkOut);
+    this.host.replaceChildren(...out);
+  },
+
   // autonomous defence (owner, 2026-10-05): the mode, today's blocks, the active ones with "lift now", the history
   async loadDefence() {
     let d;

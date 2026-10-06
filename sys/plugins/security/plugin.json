@@ -38,7 +38,8 @@
       "notify": "always",
       "event": "routine.done"
     },
-    {"id": "network", "title": {"it": "Dispositivi nuovi nella rete", "en": "New devices on the network"}, "kind": "tool", "tool": "network_changes", "args": {}, "schedule": {"every": "day", "at": "07:30"}, "notify": "if_any", "event": "routine.done"}
+    {"id": "network", "title": {"it": "Dispositivi nuovi nella rete", "en": "New devices on the network"}, "kind": "tool", "tool": "network_changes", "args": {}, "schedule": {"every": "day", "at": "07:30"}, "notify": "if_any", "event": "routine.done"},
+    {"id": "weekly", "title": {"it": "Sicurezza della settimana (punteggio)", "en": "The week's security (score)"}, "kind": "tool", "tool": "security_weekly_report", "args": {"days": 7}, "schedule": {"every": "week", "weekday": 0, "at": "08:30"}, "notify": "always", "event": "routine.done"}
   ],
   "setup": {
     "it": "Il firewall manda il suo syslog alla sentinella (aurora-sentinel). Qui sotto: l'indirizzo su cui ascolta (`AURORA_SENTINEL_BIND`), i firewall ammessi (`AURORA_SENTINEL_ALLOW`), la finestra e le soglie degli incidenti, e se Aurora indaga da sola. Salvando, la sentinella riparte. Se il riassunto dice «nessuna riga», controlla che il firewall mandi il syslog all'indirizzo di `AURORA_SENTINEL_BIND`.",

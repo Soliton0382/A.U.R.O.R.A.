@@ -7,7 +7,8 @@ The Models page assigns each media task to the local models (SDXL, FLUX.2 klein,
 really does that task, with its key in the settings:
   image  OpenAI gpt-image-1 · Google gemini-2.5-flash-image · xAI grok-2-image
   edit   OpenAI gpt-image-1 · Google gemini-2.5-flash-image
-  video  Google veo-3.0-fast-generate-001 (a long-running job, polled)
+  video  Google veo-3.1-fast-generate-preview (a long-running job, polled; on a 404 the key's own Veo models are
+         listed and the closest one taken — 6 October: veo-3.0 was not offered to the owner's key)
 The words of a request are masked like any cloud call (sec_mask); a picture cannot be masked, so an edit, or a video
 from a picture, goes to the cloud only on an installation the owner exempted (as for vision), else it is refused and
 the local model is used. Every call is counted in "What went out" (cloud.call, cloud.mask with the pictures sent).
@@ -26,7 +27,7 @@ from . import sys_config, sys_log
 
 TASKS = ("image", "edit", "video")
 CAN = {"openai": {"image": "gpt-image-1", "edit": "gpt-image-1"},
-       "google": {"image": "gemini-2.5-flash-image", "edit": "gemini-2.5-flash-image", "video": "veo-3.0-fast-generate-001"},
+       "google": {"image": "gemini-2.5-flash-image", "edit": "gemini-2.5-flash-image", "video": "veo-3.1-fast-generate-preview"},
        "xai": {"image": "grok-2-image"}}
 GOOGLE = "https://generativelanguage.googleapis.com/v1beta"
 
@@ -165,6 +166,14 @@ def picture(cfg: sys_config.Config, task: str, prompt: str, src: bytes | None = 
     return data, {"provider": p, "model": model, "seconds": round(time.time() - t0, 1)}
 
 
+def _google_video_model(key: str) -> str | None:
+    """The Veo model this key offers (the fast one first): a listing, no cost."""
+    r = httpx.get(f"{GOOGLE}/models", headers={"x-goog-api-key": key}, params={"pageSize": 1000}, timeout=60)
+    names = [m["name"].split("/", 1)[-1] for m in r.json().get("models", []) if "predictLongRunning" in (m.get("supportedGenerationMethods") or [])
+             and "veo" in m["name"]]
+    return next((n for n in names if "fast" in n), names[0] if names else None)
+
+
 def video(cfg: sys_config.Config, prompt: str, image: bytes | None = None, limit_s: float = 900) -> tuple[bytes, dict]:
     """A video from Google Veo: a long-running operation polled every 10 s, then the file downloaded."""
     p, model = provider(cfg, "video")
@@ -179,6 +188,9 @@ def video(cfg: sys_config.Config, prompt: str, image: bytes | None = None, limit
         inst["image"] = {"bytesBase64Encoded": base64.b64encode(image).decode(), "mimeType": "image/png"}
     head = {"x-goog-api-key": key}
     r = httpx.post(f"{GOOGLE}/models/{model}:predictLongRunning", headers=head, json={"instances": [inst]}, timeout=120)
+    if r.status_code == 404:                               # a name the key does not have: its own Veo models
+        model = _google_video_model(key) or model
+        r = httpx.post(f"{GOOGLE}/models/{model}:predictLongRunning", headers=head, json={"instances": [inst]}, timeout=120)
     r.raise_for_status()
     name = r.json()["name"]
     while True:

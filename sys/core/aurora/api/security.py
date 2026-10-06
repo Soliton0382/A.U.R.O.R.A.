@@ -57,6 +57,38 @@ async def rules_set(request: Request) -> dict:
     return {"rules": rules}
 
 
+@router.get("/v1/aurora/security/host", dependencies=[Depends(admin_only)])
+def security_host() -> dict:
+    """Aurora's own firewall, the threat lists, the devices' baseline, the decoys: their state for the Security page."""
+    import json as _json
+    from aurora import sec_hostfw, sec_intel
+    base = {}
+    try:
+        st = _json.loads((cfg.path("AURORA_STATUS_DIR") / "security" / "baseline.json").read_text())
+        left = max(0.0, float(cfg["AURORA_BASELINE_DAYS"]) - (time.time() - st["since"]) / 86400)
+        base = {"devices": len(st.get("devices", {})), "learning_days_left": round(left, 1), "told": len(st.get("told", []))}
+    except (OSError, ValueError, KeyError):
+        pass
+    return {"hostfw": {"on": bool(cfg["AURORA_HOSTFW"]), "installed": sec_hostfw.available(), "active": sec_hostfw.active(cfg)},
+            "intel": sec_intel.summary(cfg), "baseline": base,
+            "decoys": [p for p in str(cfg["AURORA_HONEYPOT_PORTS"] or "").split(",") if p.strip()]}
+
+
+@router.post("/v1/aurora/security/host/unblock", dependencies=[Depends(admin_only)])
+async def security_host_unblock(request: Request) -> dict:
+    from aurora import sec_hostfw
+    ip = str((await request.json()).get("ip", ""))
+    log.info("audit: owner lifted %s from Aurora's own firewall", ip)
+    return await asyncio.to_thread(sec_hostfw.unblock, cfg, ip)
+
+
+@router.get("/v1/aurora/security/weekly", dependencies=[Depends(admin_only)])
+def security_weekly() -> dict:
+    from aurora import sec_report
+    r = sec_report.week(cfg)
+    return {**r, "text": sec_report.text(r)}
+
+
 @router.get("/v1/aurora/security/netmap", dependencies=[Depends(admin_only)])
 def netmap() -> dict:
     """The network seen from the firewall (sec_netmap): counts, what the last look changed, address -> name."""

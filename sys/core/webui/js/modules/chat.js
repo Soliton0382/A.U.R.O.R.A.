@@ -137,9 +137,20 @@ export default {
     // a long press on the button: the device's own voices, each with ▶ to hear it; the choice stays on this device
     let pressTimer = null, longPress = false;
     const pickVoice = async () => {
-      const list = await voice.localVoices(lang.replace("_", "-"));
+      const code = lang.replace("_", "-");
+      const [list, server] = await Promise.all([voice.localVoices(code), voice.serverAvailable(code)]);
       const box = el("div", "voice-pick");
-      box.append(el("div", "meta", list.length ? t("chat.voice.pick") : t("chat.voice.novoice")));
+      box.append(el("div", "meta", list.length || server ? t("chat.voice.pick") : t(`chat.voice.novoice.${await voice.why(code)}`)));
+      if (server) {                                   // Aurora's own voice (Piper on her machine): on every device
+        const row = el("div", "voice-row");
+        const pick = el("button", voice.chosen() === voice.SERVER || (!list.length && !voice.chosen()) ? "on" : "", `🌸 ${t("chat.voice.server")}`);
+        const play = el("button", "", "▶");
+        pick.type = play.type = "button";
+        pick.addEventListener("click", () => { voice.choose(voice.SERVER); box.remove(); });
+        play.addEventListener("click", () => voice.speakServer(t("chat.voice.sample"), code));
+        row.append(play, pick);
+        box.append(row);
+      }
       for (const vo of list) {
         const row = el("div", "voice-row");
         const pick = el("button", vo.name === voice.chosen() || (!voice.chosen() && vo === list[0]) ? "on" : "", vo.name);
@@ -384,10 +395,36 @@ export default {
     bus.on("ask", async ({ text }) => { await ctx.show("chat"); input.value = text; form.requestSubmit(); });
 
     // The latest turns from Aurora's memory: a refresh does not start from an empty page.
+    const shown = new Set();                           // the turns on screen (their sid): a catch-up adds only the others
+    const renderTurn = (turn) => {
+      shown.add(turn.sid);
+      if (turn.role === "user") { userBubble(turn.text, turn.attachments || [], turn.created_at); return; }
+      if (turn.role === "dream") { dreamBubble(turn); return; }
+      if (turn.role === "morning") { morningBubble(turn); return; }
+      const b = auroraBubble(messages);
+      renderPast(b, turn);
+      if (turn.suggestions?.length) offerDeeper(b, turn.suggestions);
+      b.root.classList.add("past");
+      if (turn.run_id) mine.add(turn.run_id);
+    };
+    // back on the page (the app was asleep, the stream lost): what happened meanwhile on other devices (owner, 2026-10-06)
+    this.catchUp = async () => {
+      let turns;
+      try { turns = await call(`/v1/aurora/history?n=${HISTORY_TURNS}`); } catch { return; }
+      const fresh = turns.filter((x) => !shown.has(x.sid) && !(x.run_id && mine.has(x.run_id) && x.role !== "user"));
+      const live = new Set(turns.filter((x) => x.run_id && mine.has(x.run_id)).map((x) => x.run_id));
+      const add = fresh.filter((x) => !(x.role === "user" && live.has(x.run_id)));     // a question followed live: shown
+      if (!add.length) return;
+      const stick = messages.scrollHeight - messages.scrollTop - messages.clientHeight < 80;
+      add.forEach(renderTurn);
+      if (stick) scrollEnd(messages);
+    };
     this.loadHistory = async () => {
       const turns = await call(`/v1/aurora/history?n=${HISTORY_TURNS}`);
       messages.replaceChildren();
+      shown.clear();
       for (const turn of turns) {
+        shown.add(turn.sid);
         if (turn.role === "user") { userBubble(turn.text, turn.attachments || [], turn.created_at); continue; }
         if (turn.role === "dream") { dreamBubble(turn); continue; }
         if (turn.role === "morning") { morningBubble(turn); continue; }
@@ -423,13 +460,34 @@ export default {
       const final = await follow(id, b, messages);
       if (final?.suggestions?.length) offerDeeper(b, final.suggestions);   // asked on another device: go deeper here too
     };
+    let lastSeq = 0;
     this.watch = async () => {
       for (;;) {
-        try { await stream("/v1/aurora/activity/stream", (a) => { onActivity(a); }); }
+        // reconnected after a sleep or a restart: from the last item seen, so nothing in between is lost
+        try { await stream(`/v1/aurora/activity/stream${lastSeq ? `?after=${lastSeq}` : ""}`, (a) => { lastSeq = a.seq || lastSeq; onActivity(a); }); }
         catch (e) { if (e.status === 401) return; }
+        this.catchUp();
         await new Promise((ok) => setTimeout(ok, 5000));               // reconnect after a restart of the API
       }
     };
+    document.addEventListener("visibilitychange", () => { if (!document.hidden && this.loaded) this.catchUp(); });
+    // 🎬 a video in progress (owner, 2026-10-06: pictures had their steps, videos nothing): a bar over the conversation,
+    // the time gone over the time estimated — said as an estimate
+    const bar = el("div", "video-progress hidden");
+    messages.before(bar);
+    const videoTick = async () => {
+      if (document.hidden) return;
+      let v;
+      try { v = await call("/v1/aurora/video/status"); } catch { return; }
+      bar.classList.toggle("hidden", !v.busy);
+      if (!v.busy) return;
+      const at = new Date(v.ready_at * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      const fill = el("div", "video-fill"); fill.style.width = `${v.percent}%`;
+      const track = el("div", "video-track"); track.append(fill);
+      bar.replaceChildren(el("div", "", t("chat.video_progress", { title: v.title, p: v.percent, at })), track);
+    };
+    videoTick();
+    setInterval(videoTick, 15000);
   },
 
   async enter() {

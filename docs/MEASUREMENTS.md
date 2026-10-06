@@ -910,6 +910,22 @@ suite green in the sandbox (328 passed), proposed — refused by the API still r
 right** — each bug found from the symptom alone, fixed, the whole suite green in the sandbox, the change proposed
 (90, 130, 140, 110 s); every proposal refused by the benchmark, the live code untouched.
 
+## M119 — Security beyond the address, the owner's tests of the evening (6 October 2026)
+
+Threat lists downloaded by aurora-rem's daily round: Spamhaus DROP 1,641 networks, abuse.ch Feodo 5, FireHOL level1
+4,614; the IEEE list of MAC makers 40,305 lines (it refuses a bare client: 418 — with a declared User-Agent 200). Decoy
+ports 2222, 2323, 8088 open in aurora-sentinel; a connection from this machine to 2222 → incident "honeypot", high,
+«not blocked: never blocked» (this machine's own address). Baseline: 8 devices in their 7 days of learning. Aurora's
+own firewall: the helper refuses a too short time, loopback, an unknown command (no nft run); not installed yet — the
+week's score says so: 86/100, 122 incidents, 3 "campaigns" all from the house's network (the owner's devices: low,
+counted, quiet). 5 ATP matches (GreyNoise lists) from two phones — destinations of cloud services (34.102.215.99 is
+Google Cloud): to keep an eye on, not an alarm. The owner's phone added to the protected addresses before Aurora's
+firewall could block anything. Tests by machine: N4 (Status: models + plugins 24/34, connections 5/10, abilities 5/5),
+N41 (prova-calc as a user: files, tests EXIT 0, 2 local commits, 30 s), N42 (after C166: found by herself, 106 s), N90
+in the test clone (3 behaviour settings back; port, backup folder, API key kept; the .env saved). Live sync: a question
+from the OpenAI endpoint appeared by itself in an open chat. The test clone, updated by git, could not sync its
+settings: C165.
+
 ## M118 — The manual tests run by machine; what a user really gets (6 October 2026)
 
 Through the API and headless Chrome, as the admin (reading only) or as the user alice (her chat, files, health — a key

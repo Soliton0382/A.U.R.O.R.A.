@@ -156,6 +156,13 @@ def main() -> int:
                 client.post(f"{BASE}/v1/aurora/synapses/grow").raise_for_status()
             except httpx.HTTPError as e:
                 log.warning("synapses round not started: %s", e)
+            try:                                      # the public lists of attackers and the MAC makers (sec_intel)
+                from aurora import sec_baseline, sec_intel
+                if cfg["AURORA_INTEL_ENABLED"]:
+                    log.info("threat lists: %s", sec_intel.refresh(cfg))
+                    log.info("MAC makers: %d lines", sec_baseline.refresh_makers(cfg))
+            except Exception as e:  # noqa: BLE001 — a list that cannot be read waits for tomorrow
+                log.warning("threat lists not refreshed: %s", e)
             try:                                      # the soak, measured by itself: one snapshot a day
                 from aurora import sys_soak
                 sys_soak.record(cfg)

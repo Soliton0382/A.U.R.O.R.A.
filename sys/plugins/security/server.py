@@ -164,5 +164,13 @@ def network_changes() -> str:
         raise ToolError(f"the firewall's API: {e}") from None
 
 
+@tool
+def security_weekly_report(days: float = 7) -> str:
+    """The week of the house's security: a score out of 100, incidents by kind, campaigns (the same kind from one
+    network more than once), what the defences blocked, what is missing."""
+    from aurora import sec_report
+    return sec_report.text(sec_report.week(cfg, max(1.0, min(days, 31))))
+
+
 if __name__ == "__main__":
     server.run("stdio")

@@ -59,10 +59,24 @@ export async function localVoices(lang) {
 export function chosen() { try { return localStorage.getItem(NAME) || ""; } catch { return ""; } }
 export function choose(name) { try { localStorage.setItem(NAME, name); } catch { /* storage unavailable */ } }
 
+export const SERVER = "__aurora__";                  // the name kept when this device chose Aurora's own voice
+
 export async function localVoice(lang) {
+  if (chosen() === SERVER) return null;               // chosen on purpose: Aurora's voice from her machine
   const all = await localVoices(lang);
   return all.find((v) => v.name === chosen()) || all[0] || null;
 }
+
+// Aurora's voice made on her machine (mdl_tts): offered in the list of voices even when the device has none
+export async function serverAvailable(lang) {
+  try {
+    const r = await fetch("/v1/aurora/tts", { credentials: "same-origin" });
+    const s = await r.json();
+    return Boolean(s.enabled && s.languages?.includes(lang.slice(0, 2).toLowerCase()));
+  } catch { return false; }
+}
+
+export const speakServer = (text, lang) => serverSpeak(text, lang);
 
 // What is said: the answer without Markdown, citations, code, formulas and links.
 export function speakable(text) {

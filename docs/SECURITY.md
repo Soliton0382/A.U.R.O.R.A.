@@ -32,6 +32,7 @@ encrypted to the platform (HTTPS) but readable by it; that is how those platform
 | the network map (hosts by name, DHCP reservations with MAC addresses, interfaces, routes) | AES-256-GCM, its own key "network" (sec_netmap), the one before kept to say what changed; read only from the firewall's API, never written there; never in the repository | `test_netmap.py`; the owner's map: 363 hosts, 66 reservations (M114) |
 | pictures, edits, videos given to a cloud provider (mdl_media) | the words masked like any cloud call; a photo cannot be masked: an edit or a video from a photo leaves only on an installation the owner exempted, else the local model does it; every call counted in "What went out" | `test_media.py` |
 | a user's view (multi-user) | the machine's settings, models, incidents, security, harvester, updates, services and the vault's imports answer 403 to a user; a user's settings are only their own (scope user); their chats, memory and files theirs; the vault and the seed's shadow shared | M116 |
+| Aurora's own firewall (nftables) | Aurora may run ONE root command, /usr/local/sbin/aurora-nft (sudoers, checked with visudo), and it touches only its own table inet aurora: an address in a timed blocklist, out, the list; never a protected address (AURORA_DEFENCE_PROTECTED), this machine, the firewall | test_security_plus.py; installed by the owner |
 
 Recommendation (the owner's decision: it needs a reinstall or an encrypted home): full-disk
 encryption with LUKS. Application-level encryption of the stores (SQLCipher) is possible; its cost

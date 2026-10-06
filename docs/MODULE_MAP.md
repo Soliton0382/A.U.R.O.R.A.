@@ -114,6 +114,10 @@ call downward (ECOSYSTEM §1).
 | `kno_train.py` | knowledge | the shadow trained at night: random documents → general questions → answered → shadows ("train") | kno_shadow, kno_study | api/routines (rem train) |
 | `sys_formats.py` | system | the versions of the data formats; a backup records them, a restore compares and migrates | — | sys_backup, script/sys_restore.py |
 | `sys_reset.py` | system | factory settings (behaviour only) and Aurora as just installed (her mind moved aside, never usr/) | sys_config | api/system, script/sys_factory_reset.py |
+| `sec_intel.py` | security | public lists of attackers, downloaded daily, looked up for every incident from outside | — | api/incidents, svc_rem |
+| `sec_baseline.py` | security | each device's normal (countries, ports, apps, data a day) learned for days, then what is new; new devices with their maker | — | svc_sentinel |
+| `sec_hostfw.py` | security | Aurora's own firewall on this machine (nftables through the root helper aurora-nft): decoys touched, login lockouts | sec_defence, sec_fwapi | api/incidents, api/core |
+| `sec_report.py` | security | the week: score, incidents, campaigns, what is missing | sec_incidents, sec_fwapi, sec_hostfw, sec_intel, sys_backup | plugins/security, api/security |
 | `kno_morning.py` | knowledge | the good morning: the night in counts (learned, harvested, links, attacks stopped, the dream), a "morning" reflection and a notification | kno_study, kno_synapse, sec_defence, kno_rem | api/routines (rem morning) |
 | `kno_docs.py` | knowledge | programming documentation as knowledge: Python's text archive, documentation repositories on GitHub (MDN JavaScript, the Rust book) | kno_sources | kno_sources |
 | `plg_access.py` | plugins | which plugins the other users may use, and which stay the admin's | sys_config | api/agents, api/core |

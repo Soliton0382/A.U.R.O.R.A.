@@ -3476,6 +3476,71 @@
    "max": 500
   },
   {
+   "key": "AURORA_INTEL_ENABLED",
+   "type": "bool",
+   "category": "security",
+   "recommended": "1",
+   "evidence": "owner, 2026-10-06",
+   "en": "Public lists of known attackers (Spamhaus DROP, abuse.ch Feodo, FireHOL level1), downloaded once a day: an incident from a listed address becomes high.",
+   "it": "Liste pubbliche di attaccanti noti (Spamhaus DROP, abuse.ch Feodo, FireHOL livello 1), scaricate una volta al giorno: un incidente da un indirizzo in lista diventa alto.",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ]
+  },
+  {
+   "key": "AURORA_BASELINE_DAYS",
+   "type": "int",
+   "category": "security",
+   "recommended": "7",
+   "evidence": "owner, 2026-10-06",
+   "min": 1,
+   "max": 60,
+   "en": "Days each device of the house is only watched (countries, ports, apps, data sent) before something it never did is told.",
+   "it": "Giorni in cui ogni dispositivo di casa viene solo osservato (paesi, porte, app, dati inviati) prima di segnalare quello che non aveva mai fatto.",
+   "services": [
+    "aurora-sentinel"
+   ]
+  },
+  {
+   "key": "AURORA_HONEYPOT_PORTS",
+   "type": "str",
+   "category": "security",
+   "recommended": "2222,2323,8088",
+   "evidence": "owner, 2026-10-06",
+   "en": "Decoy ports on Aurora's machine (nothing real listens there): whoever opens one is a high incident, and kept off this machine. Empty: no decoy.",
+   "it": "Porte esca sul computer di Aurora (lì non c'è nessun servizio vero): chi ne apre una è un incidente alto, e viene tenuto fuori da questo computer. Vuoto: nessuna esca.",
+   "services": [
+    "aurora-sentinel"
+   ]
+  },
+  {
+   "key": "AURORA_HOSTFW",
+   "type": "bool",
+   "category": "security",
+   "recommended": "1",
+   "evidence": "owner, 2026-10-06",
+   "en": "Aurora's own firewall on this machine (nftables, through /usr/local/sbin/aurora-nft installed with sudo bash sys/deploy/nft/install.sh): a decoy touched or a login lockout, the address off this machine for some hours; never a protected address.",
+   "it": "Il firewall di Aurora su questo computer (nftables, tramite /usr/local/sbin/aurora-nft installato con sudo bash sys/deploy/nft/install.sh): un'esca toccata o un blocco per troppi login sbagliati, e l'indirizzo resta fuori da questo computer per alcune ore; mai un indirizzo protetto.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_HOSTFW_HOURS",
+   "type": "int",
+   "category": "security",
+   "recommended": "24",
+   "evidence": "owner, 2026-10-06",
+   "min": 1,
+   "max": 168,
+   "en": "Hours an address stays off Aurora's machine.",
+   "it": "Ore in cui un indirizzo resta fuori dal computer di Aurora.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_DEFENCE_PROTECTED",
    "type": "str",
    "category": "security",

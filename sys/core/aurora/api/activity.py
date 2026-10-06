@@ -112,6 +112,19 @@ def watch_health(every_s: int = 120) -> None:
             continue
 
 
+@router.get("/v1/aurora/video/status", dependencies=[Depends(auth)])
+def video_status() -> dict:
+    """A video (or another GPU job with the reasoner stopped) in progress: title, start, expected end, a percent that is
+    the time gone over the time estimated — an estimate, said as such in the chat (owner, 2026-10-06)."""
+    from .core import gpu_busy
+    v = gpu_busy()
+    if not v:
+        return {"busy": False}
+    span = max(60.0, v["ready_at"] - v["started"])
+    return {"busy": True, "title": v["title"], "started": v["started"], "ready_at": v["ready_at"],
+            "percent": max(1, min(99, round(100 * (time.time() - v["started"]) / span)))}
+
+
 @router.get("/v1/aurora/health", dependencies=[Depends(auth)])
 def health_all() -> dict:
     from aurora import sys_health
