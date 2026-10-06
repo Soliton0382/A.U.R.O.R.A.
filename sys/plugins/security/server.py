@@ -141,5 +141,28 @@ def security_night_report(hours: float = 10) -> str:
             + _format_summary(summary(lines_since(h)), h))
 
 
+@tool
+def network_map(query: str = "") -> str:
+    """The network as the firewall sees it (the sealed map): with `query` (a name or an address: "NAS", "192.0.2.10")
+    the matching hosts, reserved DHCP addresses and the interface whose network holds it; without, the interfaces,
+    zones, DHCP servers, groups and routes."""
+    from aurora import sec_netmap
+    m = sec_netmap.load(cfg)
+    if query.strip():
+        return "\n".join(sec_netmap.find(m or {}, query)) or f"Nessun host «{query}» nella mappa di rete."
+    return sec_netmap.text(m)
+
+
+@tool
+def network_changes() -> str:
+    """Look at the network now through the firewall's API and say what changed since the last look (new devices,
+    gone, another address); empty when nothing changed. The map stays sealed."""
+    from aurora import sec_fwapi, sec_netmap
+    try:
+        return sec_netmap.changes_text(sec_netmap.refresh(cfg)["changes"])
+    except sec_fwapi.FirewallAPIError as e:
+        raise ToolError(f"the firewall's API: {e}") from None
+
+
 if __name__ == "__main__":
     server.run("stdio")

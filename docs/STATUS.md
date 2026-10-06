@@ -24,6 +24,10 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | knowledge by language | Wikipedia in the installation's language and ticked ones; programming docs (Python, MDN, Rust) | tests |
 | answer shadow | a question in the shadow of a verified answer gets it written again for itself from the same passages, verified, in 6-13 s (52-62 s through the whole pipeline); at cosine ≥ 0.97 nothing more, at 0.90-0.97 rechecked in the background and a new shadow; overlapping shadows chosen by the re-ranker; said in the chat | M111, M113, tests |
 | shadow seed and plugin caches | script/shadow_seed.py asks 128 questions on 32 domains to fill the shadow; --export keeps only answers with public sources (with their attribution) for new installations; each plugin's read tools cached apart | M112, tests |
+| doctors' cards | ❤️ Health → ⚕️ Medico: the hours of each day, phone, address, how to book, notes, sealed; Aurora answers "a che ora riceve oggi?" from the local model | test_doctor |
+| Aurora's voice | the device's own voice, or Aurora's made on her CPU (Piper) when the device has none — waits for `sys_tts_install.sh` | M114, test_tts |
+| agents and routines | a grid of icons; personal agents with a goal, chosen plugins, memory of the last report, a budget; clone | test_routines |
+| network map | the firewall's hosts, groups, interfaces, zones, DHCP reservations, read only and sealed; names in the incidents; what changed | M114, test_netmap |
 | synapses | links between domains grown at night (99 from 990 passages, 18 min), spread in the search, Hebbian, fading | M107, tests |
 | firewall undo | every block (the owner's or Aurora's) undone with one click; group and rule names shown once the API is set | live (N44), tests |
 | self-update | the clean clone updated itself from GitHub: 332 tests, 19.7 s | M103 bis |

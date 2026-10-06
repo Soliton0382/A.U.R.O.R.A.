@@ -44,6 +44,15 @@ def _routine_job(r: dict):
             try:
                 agent = Agent(pipeline(), cfg, notify=lambda e, p: note("agent", e, p), host=plugin_host())
                 agent.routine = r["id"]                     # a capability it requests runs this routine again
+                if r.get("plugins"):                        # a personal agent: only the plugins the owner chose
+                    agent.allow = set(r["plugins"])
+                agent.max_steps = int(r.get("steps") or agent.max_steps)
+                agent.max_min = float(r.get("minutes") or agent.max_min)
+                if r.get("memory") and r.get("memory_text"):         # its own memory: only what is new
+                    from datetime import datetime
+                    goal += (f"\n\nLAST TIME ({datetime.fromtimestamp(r['memory_at']):%d/%m/%Y %H:%M}) YOU REPORTED:\n"
+                             f"{r['memory_text'][:2000]}\n\nReport only what is new or changed since then; if nothing is, "
+                             "answer exactly NOTHING.")
                 from aurora import sys_approvals
                 auto = r.get("propose") and cfg["AURORA_SOCIAL_AUTONOMY"]
                 rule = (f"You may publish posts on your social pages by yourself ({', '.join(sorted(sys_approvals.auto_tools(cfg)))};"
@@ -127,6 +136,17 @@ def routine_delete(rid: str) -> dict:
         raise HTTPException(status_code=404, detail="unknown routine")
     log.info("audit: routine %s removed", rid)
     return {"deleted": rid}
+
+
+@router.post("/v1/aurora/routines/{rid}/clone", dependencies=[Depends(auth)])
+def routine_clone(rid: str) -> dict:
+    from aurora import sys_routines
+    try:
+        r = sys_routines.clone(cfg, rid)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="unknown routine") from None
+    log.info("audit: routine %s cloned as %s", rid, r["id"])
+    return r
 
 
 @router.post("/v1/aurora/routines/{rid}/run", dependencies=[Depends(auth)])

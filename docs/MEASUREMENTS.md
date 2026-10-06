@@ -910,6 +910,25 @@ suite green in the sandbox (328 passed), proposed — refused by the API still r
 right** — each bug found from the symptom alone, fixed, the whole suite green in the sandbox, the change proposed
 (90, 130, 140, 110 s); every proposal refused by the benchmark, the live code untouched.
 
+## M114 — Aurora's voice on the CPU, the network map, the new pages (6 October 2026)
+
+Voice (Piper 1.8.0, CPU, voice it_IT paola medium, in a scratch environment — the voices go to sys/models only through
+the owner's sys_tts_install.sh): 12.7 s of speech in **0.95 s** (248 MB of memory, model load included); through
+mdl_tts.speak, the good morning (17.6 s of speech, 759 KB WAV) in 1.02 s, the second time 0.00 s (kept). Network map,
+read only through the firewall's API: **4.5 s**; 363 IP hosts (121 single addresses with a name, 204 networks, 18
+ranges, 5 lists, 15 system hosts), 15 groups, 9 interfaces, 7 zones, 4 DHCP servers with 66 reservations, 1 route; 119
+addresses get a name; dynamic DHCP leases, gateways and ARP are not in the API (529). Of 69 incidents, 68 come from
+inside the network and all 68 now show a name; on the page 38 of 39 cards. Pages measured in headless Chrome at 1300 and
+390 px: Agents (7 tiles), an agent's card, a new agent from a model, Health → Medico (today marked), Security → map —
+no horizontal overflow after two fixes (the card's buttons did not wrap: +73 px on the phone; a title's emoji shown
+twice), no script errors.
+Where the local model's time goes (4 days, 7,972 calls, 446 min): writing 47.7% (22.7 s a call), extraction 22.3%
+(2.9 s), verification 9.0% (1.0 s), gate 8.1% (3.5 s), agent 5.5%, translation 2.8% (0.61 s), route 1.4% (0.46 s).
+Live through the API: the weather asked twice — weather.weather_today from the plugin's cache both times after the
+first (the agent also read a web page, not cached for that address yet); article 2043 from the shadow in 13.1 s with 2
+sources and 3 follow-ups; "Come funziona la fotosintesi?" 78.8 s (retrieval 10 s with 421 candidates, extraction and a
+14-sentence writing 63 s, verification 4 s: 12 kept, 2 dropped).
+
 ## M113 — The shadow in two bands, written again for the question; the seed's run (6 October 2026)
 
 The strict band (no recheck) needs the closest different question: 46 generated with the local model ("the same

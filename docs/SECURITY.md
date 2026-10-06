@@ -28,6 +28,8 @@ encrypted to the platform (HTTPS) but readable by it; that is how those platform
 | device tokens, approvals, TLS private key | 0600 | measured |
 | knowledge and memory stores, logs, traces | file permissions of the service user | **not encrypted**: the disk is ext4 without LUKS |
 | health (diet, training, exams) | AES-256-GCM per file, one key per user kept apart (status/users/<name>/keys, 0600), the file's name bound to it; deletion final | `test_health.py`; protects at rest, not against root (the key is on this machine) |
+| the doctors' cards (hours, phone, notes) | the same as health: sealed with the user's key (hlt_doctor) | `test_doctor.py` |
+| the network map (hosts by name, DHCP reservations with MAC addresses, interfaces, routes) | AES-256-GCM, its own key "network" (sec_netmap), the one before kept to say what changed; read only from the firewall's API, never written there; never in the repository | `test_netmap.py`; the owner's map: 363 hosts, 66 reservations (M114) |
 
 Recommendation (the owner's decision: it needs a reinstall or an encrypted home): full-disk
 encryption with LUKS. Application-level encryption of the stores (SQLCipher) is possible; its cost

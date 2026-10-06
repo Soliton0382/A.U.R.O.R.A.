@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 A.U.R.O.R.A. Project
-// Routines: what Aurora proposes for the connected plugins (switch on with one click), the active routines
-// (schedule, on/off, last result, run now) and a routine of the owner's own words. Reading is automatic;
-// anything else an agent routine wants to do waits in Approvals.
+// Agents and routines (owner, 2026-10-06): a grid of icons like the Plugins page — a click opens the card (change,
+// run now, clone, pause, remove); "➕" makes a personal agent: a goal it works on until done, the plugins it may use,
+// memory of its last report (only what is new), a budget of steps and minutes. What Aurora proposes for the connected
+// plugins below, switched on with one tap. Reading is automatic; anything else an agent wants to do waits in Approvals.
 import { call } from "../api.js";
 import { clock, el } from "../dom.js";
 import { apply, t } from "../i18n.js";
@@ -70,102 +71,198 @@ function scheduleEditor(s) {
   return box;
 }
 
+// The icon of a routine (owner, 2026-10-06: "icons chosen automatically, like the plugins"): its own, its plugin's
+// picture, or one read from the words of an agent's goal.
+const WORDS = [[/prezz|price|offert|sconto|amazon/i, "🏷️"], [/notizi|news|giornal/i, "📰"], [/meteo|weather|pioggia/i, "☀️"],
+  [/github|repository|issue|pull request/i, "🐙"], [/firewall|attacc|sicurezz|security/i, "🛡️"], [/mail|posta/i, "✉️"],
+  [/calendar|agenda|appuntament/i, "📅"], [/film|serie|cinema/i, "🎬"], [/arxiv|paper|ricerca|studi|scienz/i, "🔬"],
+  [/telescop|stell|astro|cielo/i, "🔭"], [/spes|budget|soldi|conto/i, "💶"], [/salute|dieta|allenament/i, "❤️"],
+  [/post|facebook|instagram|social/i, "📣"], [/backup/i, "💾"], [/web|sito|pagina|cerca/i, "🔎"]];
+const LEAD = /^(\p{Extended_Pictographic}\uFE0F?)\s*/u;
+function emoji(r) {
+  if (r.icon) return r.icon;
+  const lead = LEAD.exec(r.title || "");
+  if (lead) return lead[1];                          // the title's own emoji ("📘 Post del giorno")
+  const hit = WORDS.find(([re]) => re.test(`${r.title || ""} ${r.goal || ""}`));
+  return hit ? hit[1] : r.kind === "agent" ? "🤖" : "⚙️";
+}
+
+// Ready-made personal agents: a goal to complete, the plugins they use, an icon (owner, 2026-10-06; most asked of
+// personal agents: research and summary of a subject, news, prices).
+const TEMPLATES = [
+  { key: "research", icon: "🔬", plugins: ["web"], memory: true, sched: { every: "custom", times: ["08:00"], group: "all" } },
+  { key: "news", icon: "📰", plugins: ["web", "news"], memory: true, sched: { every: "custom", times: ["07:30"], group: "all" } },
+  { key: "price", icon: "🏷️", plugins: ["web"], memory: true, sched: { every: "hours", hours: 12 } },
+  { key: "page", icon: "👀", plugins: ["web"], memory: true, sched: { every: "hours", hours: 6 } },
+  { key: "github", icon: "🐙", plugins: ["github"], memory: false, sched: { every: "custom", times: ["09:00"], days: [0] } },
+];
+
 export default {
   id: "routines",
-  icon: "🔁",
+  icon: "🤖",
   title: "nav.routines",
 
   mount(root) {
     root.classList.add("page");
     root.innerHTML = `
       <h2 data-i18n="rt.title"></h2><p class="muted" data-i18n="rt.hint"></p>
-      <h3 class="setting-cat" data-i18n="rt.proposed"></h3><div class="rt-welcome"></div><div class="rt-sugg"></div>
-      <h3 class="setting-cat" data-i18n="rt.active"></h3><div class="rt-list"></div>
-      <h3 class="setting-cat" data-i18n="rt.custom"></h3><p class="muted" data-i18n="rt.custom_hint"></p>
-      <form class="rt-new"><textarea rows="2" data-i18n-placeholder="rt.goal_ph"></textarea><span class="sched"></span>
-        <select class="notify"></select><button type="submit" data-i18n="rt.add"></button> <span class="muted out"></span></form>`;
+      <div class="rt-welcome"></div><div class="plug-grid rt-grid"></div>
+      <h3 class="setting-cat" data-i18n="rt.proposed"></h3><div class="plug-grid rt-sugg"></div>`;
     apply(root);
     this.welcome = root.querySelector(".rt-welcome");
+    this.grid = root.querySelector(".rt-grid");
     this.sugg = root.querySelector(".rt-sugg");
-    this.list = root.querySelector(".rt-list");
-    const form = root.querySelector(".rt-new");
-    const sched = scheduleEditor({ every: "day", at: "08:00" });
-    form.querySelector(".sched").append(sched);
-    const notify = form.querySelector(".notify");
-    for (const v of ["always", "if_any", "if_new"]) { const o = el("option", "", t(`rt.n.${v}`)); o.value = v; notify.append(o); }
-    form.addEventListener("submit", async (ev) => {
-      ev.preventDefault();
-      const goal = form.querySelector("textarea").value.trim();
-      if (!goal) return;
-      const out = form.querySelector(".out");
-      try {
-        await call("/v1/aurora/routines", { method: "POST", body: JSON.stringify({
-          kind: "agent", goal, title: goal.slice(0, 80), schedule: sched.value(), notify: notify.value, event: "routine.done" }) });
-        form.querySelector("textarea").value = "";
-        out.textContent = t("rt.added");
-        this.refresh();
-      } catch (e) { out.textContent = t("ev.error", { m: e.message }); }
-    });
   },
 
   async enter() { await this.refresh(); },
 
   async refresh() {
-    const { routines, suggestions, welcome } = await call("/v1/aurora/routines");
+    const [{ routines, suggestions, welcome }, plugins] = await Promise.all([call("/v1/aurora/routines"),
+      call("/v1/aurora/plugins").catch(() => [])]);
+    this.plugins = plugins;
     this.welcome.replaceChildren(...welcome.map((w) => el("p", "", w.text)));
+    const add = this.tile("➕", t("rt.new_agent"), t("rt.new_hint"), "new");
+    add.addEventListener("click", () => this.open(null));
+    this.grid.replaceChildren(...routines.map((r) => {
+      const b = this.tile(emoji(r), (r.title || "").replace(LEAD, ""), `${r.enabled ? (r.last_ok === false ? "❌" : "✅") : "⏸️"} ${when(r.schedule)}`,
+        r.enabled ? "on" : "off", r.icon ? null : this.picture(r.plugin));
+      b.addEventListener("click", () => this.open(r));
+      return b;
+    }), add);
     const open = suggestions.filter((s) => !s.active);
-    this.sugg.replaceChildren(...(open.length ? open.map((s) => this.suggestion(s)) : [el("p", "muted", t("rt.no_sugg"))]));
-    this.list.replaceChildren(...(routines.length ? routines.map((r) => this.routine(r)) : [el("p", "muted", t("rt.none"))]));
+    this.sugg.replaceChildren(...(open.length ? open.map((s) => {
+      const title = typeof s.title === "object" ? (s.title.it || s.title.en) : s.title;
+      const b = this.tile(emoji({ ...s, title }), title.replace(LEAD, ""), `${when(s.schedule)} · ${t("rt.switch_on")}`, "sugg", this.picture(s.plugin));
+      b.addEventListener("click", async () => {
+        b.disabled = true;
+        try { await call("/v1/aurora/routines", { method: "POST", body: JSON.stringify({ suggestion: s.suggestion }) }); this.refresh(); }
+        catch (e) { b.title = t("ev.error", { m: e.message }); b.disabled = false; }
+      });
+      return b;
+    }) : [el("p", "muted", t("rt.no_sugg"))]));
   },
 
-  suggestion(s) {
-    const row = el("div", "ev");
-    const title = typeof s.title === "object" ? (s.title.it || s.title.en) : s.title;
-    const b = el("button", "", t("rt.switch_on"));
-    b.addEventListener("click", async () => {
-      b.disabled = true;
-      try { await call("/v1/aurora/routines", { method: "POST", body: JSON.stringify({ suggestion: s.suggestion }) }); this.refresh(); }
-      catch (e) { b.textContent = t("ev.error", { m: e.message }); }
-    });
-    row.append(el("strong", "", title), el("span", "pill", s.plugin), el("span", "muted", `${when(s.schedule)} · ${t(`rt.n.${s.notify || "always"}`)}`), b);
-    return row;
+  picture(plugin) { return plugin ? this.plugins?.find((p) => p.name === plugin)?.icon || null : null; },
+
+  tile(icon, name, state, cls, src = null) {
+    const b = el("button", `plug-tile rt-tile ${cls}`);
+    b.type = "button";
+    if (src) { const img = el("img"); img.src = src; img.alt = ""; b.append(img); }
+    else b.append(el("span", "rt-emoji", icon));
+    b.append(el("span", "name", name), el("span", "state", state));
+    b.title = name;
+    return b;
   },
 
-  routine(r) {
-    const c = el("div", "appr-card");
-    const head = el("div", "ev");
-    const toggle = el("button", "", r.enabled ? "⏸️" : "▶️");
-    toggle.title = t(r.enabled ? "rt.pause" : "rt.resume");
-    toggle.addEventListener("click", async () => { await call(`/v1/aurora/routines/${r.id}`, { method: "PUT", body: JSON.stringify({ enabled: !r.enabled }) }); this.refresh(); });
-    const now = el("button", "", t("rt.run_now"));
-    now.addEventListener("click", async () => { now.disabled = true; await call(`/v1/aurora/routines/${r.id}/run`, { method: "POST", body: "{}" }); now.textContent = t("rt.started"); setTimeout(() => this.refresh(), 8000); });
-    const del = el("button", "", "🗑️");
-    del.title = t("rt.remove");
-    del.addEventListener("click", async () => { if (confirm(t("rt.confirm_remove"))) { await call(`/v1/aurora/routines/${r.id}`, { method: "DELETE" }); this.refresh(); } });
-    head.append(el("strong", "", r.title), r.plugin ? el("span", "pill", r.plugin) : el("span", "pill", "agent"),
-      el("span", r.enabled ? "pill ok" : "pill warn", r.enabled ? t("rt.on") : t("rt.off")), toggle, now, del);
-    const sched = scheduleEditor(r.schedule);
-    const save = el("button", "", t("rt.save"));
+  // A routine's card in a window (like a plugin's): everything to change, run, clone, pause, remove.
+  open(r) {
+    const dlg = el("dialog", "modal plug-modal");
+    const shut = () => { dlg.close(); dlg.remove(); this.refresh(); };
+    const close = el("button", "icon close", "✕");
+    close.addEventListener("click", shut);
+    const agent = !r || r.kind === "agent";
+    const head = el("div", "plug-head");
+    const icon = el("input", "rt-icon");
+    icon.value = r ? emoji(r) : "🤖";
+    icon.maxLength = 8;
+    icon.title = t("rt.icon");
+    head.append(icon, el("h3", "", r ? r.title : t("rt.new_agent")), close);
+    dlg.append(head);
+    const form = el("div", "rt-form");
+    const goal = el("textarea");
+    goal.rows = 4;
+    goal.placeholder = t("rt.goal_ph");
+    goal.value = r?.goal || "";
+    goal.disabled = !agent;
+    if (!r) {                                          // ready-made agents: one tap fills the card
+      const chips = el("div", "chips");
+      for (const tp of TEMPLATES) {
+        const c = el("button", "chip", `${tp.icon} ${t(`rt.tpl.${tp.key}`)}`);
+        c.type = "button";
+        c.addEventListener("click", () => {
+          goal.value = t(`rt.tpl.${tp.key}.goal`);
+          icon.value = tp.icon;
+          memory.checked = tp.memory;
+          plugs.querySelectorAll("input").forEach((i) => { i.checked = tp.plugins.includes(i.value); });
+          sched.replaceWith(sched = scheduleEditor(tp.sched));
+          goal.focus();
+        });
+        chips.append(c);
+      }
+      form.append(el("p", "muted", t("rt.tpl_hint")), chips);
+    }
+    form.append(r?.plugin ? el("p", "", `🧩 ${r.plugin}.${r.tool}`) : goal);
+    let sched = scheduleEditor(r?.schedule || { every: "custom", times: ["08:00"], group: "all" });
+    const notify = el("select");
+    for (const v of ["always", "if_any", "if_new", "never"]) { const o = el("option", "", t(`rt.n.${v}`)); o.value = v; o.selected = (r?.notify || "if_any") === v; notify.append(o); }
+    const schedRow = el("div", "ev");
+    schedRow.append(sched, notify);
+    form.append(schedRow);
+    const memory = el("input"); memory.type = "checkbox"; memory.checked = r ? Boolean(r.memory) : true;
+    const steps = el("input"); steps.type = "number"; steps.min = 3; steps.max = 60; steps.value = r?.steps || 15;
+    const minutes = el("input"); minutes.type = "number"; minutes.min = 1; minutes.max = 60; minutes.value = r?.minutes || 10;
+    const plugs = el("div", "rt-plugins");
+    if (agent) {
+      const lab = (input, key) => { const l = el("label", "rt-opt"); l.append(input, el("span", "", t(key))); return l; };
+      const budget = el("div", "ev");
+      budget.append(lab(memory, "rt.memory"), el("span", "muted", t("rt.steps")), steps, el("span", "muted", t("rt.minutes")), minutes);
+      for (const p of (this.plugins || []).filter((x) => x.available)) {
+        const cb = el("input"); cb.type = "checkbox"; cb.value = p.name; cb.checked = (r?.plugins || []).includes(p.name);
+        const l = el("label", "rt-day"); l.append(cb, el("span", "", p.name)); plugs.append(l);
+      }
+      form.append(budget, el("p", "muted", t("rt.plugins_hint")), plugs);
+    }
+    const out = el("span", "muted");
+    const bar = el("div", "appr-actions");
+    const spec = () => {
+      const s = { schedule: sched.value(), notify: notify.value, icon: icon.value.trim() || undefined };
+      if (agent) {
+        const chosen = [...plugs.querySelectorAll("input:checked")].map((i) => i.value);
+        Object.assign(s, { goal: goal.value.trim(), memory: memory.checked, steps: Number(steps.value), minutes: Number(minutes.value),
+          plugins: chosen.length ? chosen : undefined });
+        if (!r) Object.assign(s, { kind: "agent", title: s.goal.slice(0, 80), event: "routine.done" });
+      }
+      return s;
+    };
+    const save = el("button", "primary", `💾 ${t(r ? "rt.save_all" : "rt.add")}`);
     save.addEventListener("click", async () => {
-      try { await call(`/v1/aurora/routines/${r.id}`, { method: "PUT", body: JSON.stringify({ schedule: sched.value() }) }); this.refresh(); }
-      catch (e) { save.textContent = t("ev.error", { m: e.message }); }
+      try {
+        if (r) await call(`/v1/aurora/routines/${r.id}`, { method: "PUT", body: JSON.stringify(spec()) });
+        else { if (!goal.value.trim()) { goal.focus(); return; } await call("/v1/aurora/routines", { method: "POST", body: JSON.stringify(spec()) }); }
+        shut();
+      } catch (e) { out.textContent = t("ev.error", { m: e.message }); }
     });
-    const line = el("div", "ev");
-    line.append(el("span", "muted", `${when(r.schedule)} · ${t(`rt.n.${r.notify}`)}`), sched, save);
-    c.append(head, line);
-    if (r.last_run) {
-      c.append(el("div", "muted", `${t("rt.last")} ${clock(r.last_run)} ${r.last_ok === false ? "❌" : r.last_ok ? "✅" : "⏳"}`));
-      if (r.last_text) c.append(renderMarkdown(r.last_text));
-      if (r.last_files?.length) {                   // documents the routine wrote: download them
+    bar.append(save);
+    if (r) {
+      const now = el("button", "", t("rt.run_now"));
+      now.addEventListener("click", async () => { now.disabled = true; await call(`/v1/aurora/routines/${r.id}/run`, { method: "POST", body: "{}" }); now.textContent = t("rt.started"); });
+      const toggle = el("button", "", r.enabled ? `⏸️ ${t("rt.pause")}` : `▶️ ${t("rt.resume")}`);
+      toggle.addEventListener("click", async () => { await call(`/v1/aurora/routines/${r.id}`, { method: "PUT", body: JSON.stringify({ enabled: !r.enabled }) }); shut(); });
+      const copy = el("button", "", `⧉ ${t("rt.clone")}`);
+      copy.addEventListener("click", async () => { const c = await call(`/v1/aurora/routines/${r.id}/clone`, { method: "POST" }); shut(); this.open(c); });
+      const del = el("button", "danger", `🗑️ ${t("rt.remove")}`);
+      del.addEventListener("click", async () => { if (confirm(t("rt.confirm_remove"))) { await call(`/v1/aurora/routines/${r.id}`, { method: "DELETE" }); shut(); } });
+      bar.append(now, toggle, copy, del);
+    }
+    bar.append(out);
+    form.append(bar);
+    if (r?.last_run) {                                 // what it found last time
+      const last = el("div", "rt-last");
+      last.append(el("div", "muted", `${t("rt.last")} ${clock(r.last_run)} ${r.last_ok === false ? "❌" : r.last_ok ? "✅" : "⏳"}`));
+      if (r.last_text) last.append(renderMarkdown(r.last_text));
+      if (r.last_files?.length) {
         const row = el("div", "chips");
         for (const f of r.last_files) {
           const a = viewLink(el("a", "chip"), f.url, f.name, f.mime);
           a.append(el("span", "", "📄"), el("span", "", f.name));
           row.append(a);
         }
-        c.append(row);
+        last.append(row);
       }
+      form.append(last);
     }
-    return c;
+    dlg.append(form);
+    document.body.append(dlg);
+    dlg.showModal();
   },
 };

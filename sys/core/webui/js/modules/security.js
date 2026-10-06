@@ -20,6 +20,7 @@ export default {
     root.classList.add("page");
     root.innerHTML = `<h2 data-i18n="sec.title"></h2><p class="muted" data-i18n="sec.hint"></p>
       <h3 class="setting-cat" data-i18n="sec.defence"></h3><div class="sec-defence"></div>
+      <h3 class="setting-cat" data-i18n="sec.map"></h3><p class="muted" data-i18n="sec.map_hint"></p><div class="sec-map"></div>
       <h3 class="setting-cat" data-i18n="sec.out"></h3><p class="muted" data-i18n="sec.out_hint"></p><div class="sec-out"></div>
       <h3 class="setting-cat" data-i18n="sec.open"></h3><div class="open"></div>
       <h3 class="setting-cat" data-i18n="sec.watch"></h3><p class="muted sec-watch-hint"></p>
@@ -30,6 +31,8 @@ export default {
     apply(root);
     this.open = root.querySelector(".open");
     this.defence = root.querySelector(".sec-defence");
+    this.map = root.querySelector(".sec-map");
+    this.names = {};
     this.outbound = root.querySelector(".sec-out");
     this.closed = root.querySelector(".closed");
     this.archive = root.querySelector(".sec-archive");
@@ -58,7 +61,7 @@ export default {
     c.open = i.status === "open";
     const head = el("summary");
     head.append(el("span", `pill ${SEV[i.severity] || "warn"}`, t(`sec.sev.${i.severity}`)),
-      el("span", "", ` ${i.kind.startsWith("rule:") ? (i.detail?.title || i.kind) : t(`sec.kind.${i.kind}`)} · ${i.source}${i.internal ? " (" + t("sec.internal") + ")" : ""} · `
+      el("span", "", ` ${i.kind.startsWith("rule:") ? (i.detail?.title || i.kind) : t(`sec.kind.${i.kind}`)} · ${this.who(i.source)}${i.internal ? " (" + t("sec.internal") + ")" : ""} · `
         + `${i.count} ${t("sec.events")} · ${clock(i.received)}`));
     c.append(head);
     if (i.intel) for (const [k, v] of Object.entries(i.intel)) c.append(el("div", "muted", `${k}: ${v}`));
@@ -153,6 +156,38 @@ export default {
     this.groups.replaceChildren(table);
   },
 
+  // "NAS (192.0.2.10)" when the firewall knows the address (sec_netmap, owner 2026-10-06)
+  who(ip) { return this.names[ip] ? `${this.names[ip]} (${ip})` : ip; },
+
+  // the network as the firewall sees it: counts, what the last look changed, a search, "look again"
+  async loadMap() {
+    let m;
+    try { m = await call("/v1/aurora/security/netmap"); } catch { this.map.replaceChildren(); return; }
+    this.names = m.names || {};
+    if (!m.configured) { this.map.replaceChildren(el("p", "warn", t("sec.def_no_api"))); return; }
+    const line = el("p", "", m.at ? t("sec.map_counts", { when: new Date(m.at * 1000).toLocaleString(), d: m.devices, h: m.hosts,
+      g: m.groups, i: m.interfaces, z: m.zones, r: m.reserved }) : t("sec.map_none"));
+    const c = m.changes, said = [];
+    if (c && !c.first) {
+      for (const k of ["new", "gone", "moved"]) if (c[k]?.length) said.push(el("p", k === "new" ? "warn" : "", `${t(`sec.map_${k}`)}: ${c[k].join(", ")}`));
+      if (!said.length) said.push(el("p", "muted", t("sec.map_same")));
+    }
+    const look = el("button", "", `🔄 ${t("sec.map_refresh")}`), out = el("span", "muted");
+    look.addEventListener("click", async () => {
+      look.disabled = true; out.textContent = "…";
+      try { await call("/v1/aurora/security/netmap/refresh", { method: "POST" }); this.loadMap(); }
+      catch (e) { out.textContent = t("ev.error", { m: e.message }); look.disabled = false; }
+    });
+    const q = el("input"); q.placeholder = t("sec.map_find"); const found = el("div");
+    q.addEventListener("change", async () => {
+      const r = await call(`/v1/aurora/security/netmap/find?q=${encodeURIComponent(q.value)}`).catch(() => ({ lines: [] }));
+      found.replaceChildren(...(r.lines.length ? r.lines.map((x) => el("div", "", x)) : [el("p", "muted", t("sec.map_nothing"))]));
+    });
+    const bar = el("div", "appr-actions");
+    bar.append(look, q, out);
+    this.map.replaceChildren(line, ...said, bar, found);
+  },
+
   // autonomous defence (owner, 2026-10-05): the mode, today's blocks, the active ones with "lift now", the history
   async loadDefence() {
     let d;
@@ -171,13 +206,13 @@ export default {
         catch (e) { alert(e.message); lift.disabled = false; }
       });
       lift.textContent = `↩️ ${t("sec.undo", { ip: b.ip })}`;
-      r.append(el("strong", "", `⛔ ${b.ip}`), el("span", "muted", b.auto
+      r.append(el("strong", "", `⛔ ${this.who(b.ip)}`), el("span", "muted", b.auto
         ? ` ${b.kind} · ${t("sec.def_until", { until: new Date(b.until * 1000).toLocaleString() })} ` : ` ${t("sec.def_manual")} · ${b.reason || ""} `), lift);
       return r;
     });
     const hist = el("details", "report");
     hist.append(el("summary", "", t("sec.def_history", { n: d.history.length })),
-      ...d.history.map((b) => el("p", "", `${new Date(b.at * 1000).toLocaleString()} · ${b.ip} · ${b.kind} · `
+      ...d.history.map((b) => el("p", "", `${new Date(b.at * 1000).toLocaleString()} · ${this.who(b.ip)} · ${b.kind} · `
         + (b.released ? t("sec.def_released", { by: t(`sec.def_by.${b.released_by}`) }) : t("sec.def_active")))));
     // the firewall's side, said only once its API is set: the group Aurora fills and the drop rule the owner makes
     const fw = [];
@@ -221,6 +256,7 @@ export default {
   },
 
   async enter() {
+    await this.loadMap();                                     // the names first: the incidents and blocks use them
     this.loadDefence();
     this.loadOutbound();
     await this.loadProfile();

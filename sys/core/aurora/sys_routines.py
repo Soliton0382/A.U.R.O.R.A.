@@ -102,9 +102,21 @@ def validate(spec: dict) -> dict:
         raise ValueError(f"notify must be one of {NOTIFY}")
     if "propose" in spec and not isinstance(spec["propose"], bool):
         raise ValueError("propose must be true or false")
+    # a personal agent (owner, 2026-10-06): an icon, the plugins it may use, memory of its last report, a budget
+    if "icon" in spec and (not isinstance(spec["icon"], str) or len(spec["icon"]) > 8):
+        raise ValueError("icon: one emoji")
+    if "plugins" in spec and (not isinstance(spec["plugins"], list) or len(spec["plugins"]) > 30
+                              or not all(isinstance(x, str) and re.fullmatch(r"[a-z0-9_-]{1,40}", x) for x in spec["plugins"])):
+        raise ValueError("plugins: a list of plugin names")
+    if "memory" in spec and not isinstance(spec["memory"], bool):
+        raise ValueError("memory must be true or false")
+    if "steps" in spec and not (isinstance(spec["steps"], int) and 3 <= spec["steps"] <= 60):
+        raise ValueError("steps between 3 and 60")
+    if "minutes" in spec and not (isinstance(spec["minutes"], int) and 1 <= spec["minutes"] <= 60):
+        raise ValueError("minutes between 1 and 60")
     # propose: an agent routine may propose actions that write or publish; each still waits for the owner's approval
     keep = ("title", "plugin", "kind", "tool", "args", "goal", "schedule", "notify", "event", "suggestion", "enabled",
-            "propose")
+            "propose", "icon", "plugins", "memory", "steps", "minutes")
     return {k: spec[k] for k in keep if k in spec}
 
 
@@ -123,12 +135,25 @@ def update(cfg: sys_config.Config, rid: str, changes: dict) -> dict:
     r = next((x for x in rs if x["id"] == rid), None)
     if r is None:
         raise KeyError(rid)
-    allowed = {k: v for k, v in changes.items() if k in ("enabled", "schedule", "notify", "title", "propose")}
+    allowed = {k: v for k, v in changes.items() if k in ("enabled", "schedule", "notify", "title", "propose", "icon",
+                                                          "plugins", "memory", "steps", "minutes")
+               or k == "goal" and r.get("kind") == "agent"}
     merged = {**r, **allowed}
     validate(merged)
     r.update(allowed)
     _save(cfg, "routines.json", rs)
     return r
+
+
+def clone(cfg: sys_config.Config, rid: str) -> dict:
+    """A copy to change (owner, 2026-10-06): paused, so that it never runs twice before the owner edits it."""
+    r = get(cfg, rid)
+    if r is None:
+        raise KeyError(rid)
+    spec = {k: v for k, v in r.items() if k in ("title", "plugin", "kind", "tool", "args", "goal", "schedule", "notify",
+                                                "event", "propose", "icon", "plugins", "memory", "steps", "minutes")}
+    spec["title"] = f"{r.get('title', '')[:70]} (copia)"
+    return create(cfg, {**spec, "enabled": False})
 
 
 def delete(cfg: sys_config.Config, rid: str) -> bool:
@@ -233,6 +258,8 @@ def record(cfg: sys_config.Config, rid: str, text: str, ok: bool, run_id: str | 
     r.update(last_run=time.time(), last_ok=ok, last_text=text[:4000], last_run_id=run_id, last_files=files or [])
     if notify and ok:
         r["last_notified"] = text[:4000]
+    if ok and text.strip() and not NOTHING.match(text):     # an agent's memory: its last real report, not "nothing new"
+        r["memory_text"], r["memory_at"] = text[:4000], time.time()
     _save(cfg, "routines.json", rs)
     return r, notify
 

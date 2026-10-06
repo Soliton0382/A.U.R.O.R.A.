@@ -41,6 +41,8 @@ FEATURES = {
     "pdf_preview": (False, {"it": "Anteprima dei PDF", "en": "PDF preview"}, [], [], None, ["pdftoppm", "pdfinfo"]),
     "video_make": (False, {"it": "Creare video (Wan 2.2)", "en": "Making videos (Wan 2.2)"},
                    ["video"], [], None, ["ffmpeg"]),
+    "voice_out": (False, {"it": "Voce di Aurora sui dispositivi senza voce (Piper)", "en": "Aurora's voice on devices without one (Piper)"},
+                  ["tts"], ["AURORA_TTS_BIN"], "AURORA_TTS", []),
 }
 # what the installer offers, one question each: the models of a group and the features they open
 GROUPS = {
@@ -54,6 +56,8 @@ GROUPS = {
     "photo_ai": {"models": ["edit"], "features": ["edit_ai"], "default": True,
                  "label": {"it": "Foto: modifiche creative a parole (FLUX.2 klein)",
                            "en": "Photos: creative edits in words (FLUX.2 klein)"}},
+    "voice": {"models": ["tts"], "features": ["voice_out"], "default": True,
+              "label": {"it": "Voce di Aurora (lettura ad alta voce, sulla CPU)", "en": "Aurora's voice (reading aloud, on the CPU)"}},
     "video": {"models": ["video"], "features": ["video_make"], "default": False,
               "label": {"it": "Creare video (~19 minuti per 5 secondi)", "en": "Making videos (~19 minutes for 5 seconds)"}},
 }
@@ -81,6 +85,7 @@ def group_size_gb(group: str) -> float:
 
 
 LLM_FILES = {"AURORA_LLM_MODEL": "llm", "AURORA_LLM_MMPROJ": "llm"}   # where a missing path comes from
+SCRIPTS = {"tts": "bash sys/core/script/sys_tts_install.sh", "AURORA_TTS_BIN": "bash sys/core/script/sys_tts_install.sh"}
 
 
 class Missing(RuntimeError):
@@ -112,11 +117,11 @@ def check(cfg: sys_config.Config, name: str) -> dict:
         lost = _model_missing(cfg, mname, man[mname]) if mname in man else ["not in models.json"]
         if lost:
             missing.append(f"{mname} ({len(lost)} file)")
-            fix.append(FETCH.format(m=mname))
+            fix.append(SCRIPTS.get(mname) or FETCH.format(m=mname))
     for key in paths:
         if not cfg.path(key).is_file():
             missing.append(f"{key} = {cfg[key]}")
-            fix.append(FETCH.format(m=LLM_FILES.get(key, "llm")))
+            fix.append(SCRIPTS.get(key) or FETCH.format(m=LLM_FILES.get(key, "llm")))
     if name == "vision" and missing:                 # vision assigned to a cloud model needs no local projector
         from . import mdl_router, sys_ethics
         a = mdl_router.assignments(cfg).get("vision", {})

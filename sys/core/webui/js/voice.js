@@ -83,15 +83,35 @@ export function unlock() {
   if (supported() && !speechSynthesis.speaking) speechSynthesis.speak(new SpeechSynthesisUtterance(""));
 }
 
-export function stop() { if (supported()) speechSynthesis.cancel(); }
+// Aurora's own voice, made on her machine (mdl_tts, Piper): for a device with no local voice. The text goes only to
+// Aurora's server — never to a browser maker's online voice.
+let audio = null;
+async function serverSpeak(text, lang) {
+  const say = speakable(text);
+  if (!say) return "ok";
+  try {
+    const res = await fetch("/v1/aurora/tts", { method: "POST", credentials: "same-origin",
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: say, lang }) });
+    if (!res.ok) return "novoice";
+    stop();
+    audio = new Audio(URL.createObjectURL(await res.blob()));
+    audio.addEventListener("ended", () => { URL.revokeObjectURL(audio.src); audio = null; }, { once: true });
+    await audio.play();
+    return "ok";
+  } catch { return "novoice"; }
+}
 
-export const speaking = () => supported() && (speechSynthesis.speaking || speechSynthesis.pending);
+export function stop() {
+  if (supported()) speechSynthesis.cancel();
+  if (audio) { audio.pause(); audio = null; }
+}
+
+export const speaking = () => Boolean(audio && !audio.paused) || (supported() && (speechSynthesis.speaking || speechSynthesis.pending));
 
 // Long texts in sentences: some engines stop a single long utterance after ~15 s.
 export async function speak(text, lang, only = null) {
-  if (!supported()) return "unsupported";
-  const voice = only || await localVoice(lang);
-  if (!voice) return "novoice";
+  const voice = only || (supported() ? await localVoice(lang) : null);
+  if (!voice) return serverSpeak(text, lang);              // none here: Aurora's own voice from her machine
   stop();
   const parts = speakable(text).match(/[^.!?;:]+[.!?;:]*\s*/g) || [];
   for (const p of parts) {

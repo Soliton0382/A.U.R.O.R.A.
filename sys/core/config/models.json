@@ -166,6 +166,26 @@
     "AURORA_EDIT_MODEL_DIR": "sys/models/image/FLUX.2-klein-4B"
    }
   },
+  "tts": {
+   "purpose": "Aurora's voice for devices with none (Piper voices, on the CPU)",
+   "repo": "rhasspy/piper-voices",
+   "revision": "c10ece1aade47bb51c153c893d14e5bf8e5b7117",
+   "license": "mit (voices: paola dataset cc0-1.0, ljspeech public domain)",
+   "dir": "sys/models/tts/piper-voices",
+   "files": [
+    "it/it_IT/paola/medium/it_IT-paola-medium.onnx",
+    "it/it_IT/paola/medium/it_IT-paola-medium.onnx.json",
+    "it/it_IT/paola/medium/MODEL_CARD",
+    "en/en_US/ljspeech/medium/en_US-ljspeech-medium.onnx",
+    "en/en_US/ljspeech/medium/en_US-ljspeech-medium.onnx.json",
+    "en/en_US/ljspeech/medium/MODEL_CARD"
+   ],
+   "size_gb": 0.13,
+   "required": false,
+   "settings": {
+    "AURORA_TTS_DIR": "sys/models/tts/piper-voices"
+   }
+  },
   "upscale": {
    "purpose": "enlarging pictures x4 (Swin2SR, real-world photos)",
    "repo": "caidas/swin2SR-realworld-sr-x4-64-bsrgan-psnr",

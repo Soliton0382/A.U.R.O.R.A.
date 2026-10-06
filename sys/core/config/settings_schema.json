@@ -3753,6 +3753,42 @@
    ]
   },
   {
+   "key": "AURORA_TTS",
+   "type": "bool",
+   "category": "interface",
+   "recommended": "1",
+   "evidence": "M114",
+   "en": "Aurora's voice made on this machine (Piper, on the CPU) for the devices with no voice of their own: the text never leaves the house.",
+   "it": "La voce di Aurora fatta su questa macchina (Piper, sulla CPU) per i dispositivi senza una voce propria: il testo non esce mai di casa.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_TTS_BIN",
+   "type": "path",
+   "category": "interface",
+   "recommended": "sys/runtime/piper/bin/piper",
+   "evidence": "M114",
+   "en": "The Piper program (GPL-3: in its own environment, made by script/sys_tts_install.sh; never imported into Aurora).",
+   "it": "Il programma Piper (GPL-3: in un ambiente suo, creato da script/sys_tts_install.sh; mai importato nel codice di Aurora).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_TTS_DIR",
+   "type": "path",
+   "category": "interface",
+   "recommended": "sys/models/tts/piper-voices",
+   "evidence": "M114",
+   "en": "The voices (config/models.json \"tts\"): Italian paola, English ljspeech.",
+   "it": "Le voci (config/models.json \"tts\"): italiana paola, inglese ljspeech.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_BACKUP_DIR",
    "type": "str",
    "optional": true,

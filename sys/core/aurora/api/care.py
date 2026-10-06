@@ -76,6 +76,25 @@ def health_value_delete(vid: str) -> dict:
     return {"deleted": vid}
 
 
+@router.get("/v1/aurora/care/doctors", dependencies=[Depends(auth)])
+def doctors() -> dict:
+    from aurora import hlt_doctor, sys_seal
+    sys_seal._key(cfg, cfg.user, "health")
+    return {"doctors": hlt_doctor.load(cfg), "days": list(hlt_doctor.DAYS)}
+
+
+@router.put("/v1/aurora/care/doctors", dependencies=[Depends(auth)])
+async def doctors_save(request: Request) -> dict:
+    """{"doctors": [{role, name, phone, address, booking, notes, hours: {mon: {am, pm}...}}]}: all the cards, sealed."""
+    from aurora import hlt_doctor
+    body = await request.json()
+    if not isinstance(body.get("doctors"), list):
+        raise HTTPException(status_code=422, detail="doctors: a list")
+    cards = hlt_doctor.save(cfg, body["doctors"])
+    log.info("audit: %s saved %d doctors' cards (sealed)", me(), len(cards))
+    return {"doctors": cards}
+
+
 @router.get("/v1/aurora/care", dependencies=[Depends(auth)])
 def care() -> dict:
     from aurora import hlt_store, sys_seal

@@ -24,6 +24,15 @@
   .prj-tree { max-height: 30vh; border-right: 0; border-bottom: 1px solid var(--line); }
 }
 /* the Local / GitHub tabs */
-.prj-tabs { display: flex; gap: .4rem; margin: .5rem 0 .75rem; }
+.prj-tabs { display: flex; flex-wrap: wrap; gap: .4rem; margin: .5rem 0 .75rem; }
 .prj-tabs .cat-chip { font-size: .9rem; padding: .3rem .9rem; }
 .prj-tabs .cat-chip.on { background: var(--accent, #4b6bff); color: #fff; }
+
+/* ⚕️ the doctors' cards (care_doctor.js): fields in a grid, the week as a table, today marked */
+.doc-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: .4rem; margin: .5rem 0; }
+.doc-hours { width: 100%; border-collapse: collapse; margin: .4rem 0; }
+.doc-hours th { text-align: left; font-weight: 600; padding: .2rem .4rem; white-space: nowrap; }
+.doc-hours td { padding: .15rem .2rem; }
+.doc-hours input { width: 100%; min-width: 0; box-sizing: border-box; }
+.doc-hours tr.today th, .doc-hours tr.today td { background: rgba(75, 107, 255, .18); }
+.doc-notes { width: 100%; min-height: 4rem; box-sizing: border-box; }

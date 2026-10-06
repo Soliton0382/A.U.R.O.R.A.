@@ -105,6 +105,9 @@ call downward (ECOSYSTEM §1).
 | `kno_study.py` | knowledge | the questions she declined, studied at night (the search agent, not remembered as a conversation), each outcome a "study" reflection, once per question | kno_acquire, kno_rem | api/routines (rem study) |
 | `kno_shadow.py` | knowledge | the shadow of a verified answer: a question close enough (cosine ≥ 0.90) whose answer the old one is (re-rank ≥ 0.5) gets it at once; rechecked in the background | sys_users_layout | api/core (answer_or_acquire) |
 | `plg_shadow.py` | plugins | each plugin's small cache: a read tool it declares (manifest "cache") called again with the same arguments gets the result already obtained | sys_users_layout | agt_loop |
+| `hlt_doctor.py` | health | the doctors' cards: hours of the week, phone, address, booking, notes — sealed; told to the local model with today's day | sys_seal | api/care, plugins/health (health_doctors) |
+| `mdl_tts.py` | models | Aurora's own voice on the CPU (Piper as a separate program, GPL-3) for devices with none; spoken sentences kept | — | api/voice, webui/js/voice.js |
+| `sec_netmap.py` | security | the network as the firewall sees it: read only, sealed, compared with the last look, address → name | sec_fwapi, sys_seal | api/security, plugins/security (network_map, network_changes) |
 | `kno_morning.py` | knowledge | the good morning: the night in counts (learned, harvested, links, attacks stopped, the dream), a "morning" reflection and a notification | kno_study, kno_synapse, sec_defence, kno_rem | api/routines (rem morning) |
 | `kno_docs.py` | knowledge | programming documentation as knowledge: Python's text archive, documentation repositories on GitHub (MDN JavaScript, the Rust book) | kno_sources | kno_sources |
 | `plg_access.py` | plugins | which plugins the other users may use, and which stay the admin's | sys_config | api/agents, api/core |

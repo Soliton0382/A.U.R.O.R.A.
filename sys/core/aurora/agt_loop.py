@@ -131,13 +131,17 @@ class Agent:
         self.approvals = Approvals(self.cfg)
         self.notify = notify or (lambda event, payload: None)   # activity feed of the API
         self.log = sys_log.get_logger("agent")
+        # a personal agent (sys_routines, owner 2026-10-06) may be given only some plugins and its own budget
+        self.allow: set[str] | None = None
+        self.max_steps = int(self.cfg["AURORA_AGENT_MAX_STEPS"])
+        self.max_min = float(self.cfg["AURORA_AGENT_MAX_MIN"])
 
     # ---- tools ------------------------------------------------------------------------------
     def _catalog(self) -> tuple[list[dict], dict]:
         """Tool specs for the prompt, and name -> (plugin, tool, effect)."""
         specs, index = [], {}
         for p in self.host.plugins():
-            if not p.available:
+            if not p.available or (self.allow is not None and p.name not in self.allow):
                 continue
             for t in p.tools:
                 name = f"{p.name}{SEP}{t['name']}"
@@ -422,8 +426,8 @@ class Agent:
         self.passed: set[str] = set()                       # those whose tests passed once: told at once
         self.ledger: list[tuple[str, bool]] = []
         budget = self.cfg["AURORA_PIPELINE_THINK_TOKENS"]
-        limit_s = self.cfg["AURORA_AGENT_MAX_MIN"] * 60
-        while steps < self.cfg["AURORA_AGENT_MAX_STEPS"] and time.time() - t0 < limit_s:
+        limit_s = self.max_min * 60
+        while steps < self.max_steps and time.time() - t0 < limit_s:
             room = self._fit(messages, budget, emit)
             c = self.p._for("agent").complete_turns(messages, min(budget, room), think=True)
             text = c.answer
@@ -476,7 +480,7 @@ class Agent:
                 self.log.warning("agent run %s: final report failed: %s", run_id, e)
                 report = "Non sono riuscita a scrivere il resoconto finale (" + type(e).__name__ + ")."
             report = unwrap(CALL.sub("", report).strip())
-            limit = time.time() - t0 >= limit_s or steps >= self.cfg["AURORA_AGENT_MAX_STEPS"]
+            limit = time.time() - t0 >= limit_s or steps >= self.max_steps
             summary = ((f"(Limite raggiunto: {steps} passi, {round((time.time() - t0) / 60, 1)} min.) " if limit else "")
                        + (report or "Nessun resoconto prodotto."))
         summary = self._honest(summary.strip()) + "\n\n" + self._record()

@@ -7,6 +7,7 @@ import { clock, el, toBase64 } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { renderMarkdown } from "../md.js";
 import { renderValues } from "./care_values.js";
+import { renderDoctors } from "./care_doctor.js";
 
 const AREAS = ["diet", "training", "exams"];
 
@@ -19,14 +20,15 @@ export default {
   mount(root) {
     root.classList.add("page");
     root.innerHTML = `<h2 data-i18n="care.title"></h2><p class="muted" data-i18n="care.hint"></p>
-      <div class="prj-tabs">${AREAS.map((a, i) => `<button type="button" class="cat-chip${i ? "" : " on"}" data-tab="${a}" data-i18n="care.${a}"></button>`).join("")}</div>
+      <div class="prj-tabs">${AREAS.map((a, i) => `<button type="button" class="cat-chip${i ? "" : " on"}" data-tab="${a}" data-i18n="care.${a}"></button>`).join("")}<button type="button" class="cat-chip" data-tab="doctor" data-i18n="care.doc.tab"></button></div>
       ${AREAS.map((a, i) => `<div class="care-tab" data-tab="${a}"${i ? " hidden" : ""}>
         <p class="muted" data-i18n="care.${a}_hint"></p>
         <label class="dj-upload"><span data-i18n="care.upload"></span><input type="file" accept=".pdf,.txt,.md,.docx,image/*" multiple hidden></label>
         <span class="muted care-out"></span>
         <form class="import care-note"><input name="title" data-i18n-placeholder="care.note_title"><input name="text" required data-i18n-placeholder="care.note_text">
           <button type="submit" data-i18n="care.note_add"></button></form>
-        ${a === "exams" ? '<div class="care-values"></div>' : ""}<div class="care-items"></div></div>`).join("")}`;
+        ${a === "exams" ? '<div class="care-values"></div>' : ""}<div class="care-items"></div></div>`).join("")}
+      <div class="care-tab" data-tab="doctor" hidden><p class="muted" data-i18n="care.doc.hint"></p><div class="care-doctors"></div></div>`;
     apply(root);
     root.querySelectorAll(".prj-tabs button").forEach((b) => b.addEventListener("click", () => {
       root.querySelectorAll(".prj-tabs button").forEach((x) => x.classList.toggle("on", x === b));
@@ -34,7 +36,8 @@ export default {
     }));
     this.tabs = {};
     this.values = root.querySelector(".care-values");
-    root.querySelectorAll(".care-tab").forEach((tab) => {
+    this.doctors = root.querySelector(".care-doctors");
+    root.querySelectorAll(".care-tab:not([data-tab=doctor])").forEach((tab) => {
       const area = tab.dataset.tab, out = tab.querySelector(".care-out");
       this.tabs[area] = tab.querySelector(".care-items");
       tab.querySelector("input[type=file]").addEventListener("change", async (ev) => {
@@ -100,5 +103,6 @@ export default {
       this.tabs[a].replaceChildren(...(list.length ? list.map((it) => this.row(a, it)) : [el("p", "muted", t("care.none"))]));
     }
     renderValues(this.values);
+    renderDoctors(this.doctors);
   },
 };

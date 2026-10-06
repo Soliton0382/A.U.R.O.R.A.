@@ -58,6 +58,17 @@ def health_values(test: str = "") -> str:
 
 
 @server.tool()
+def health_doctors() -> str:
+    """The user's doctors (family doctor, paediatrician, dentist...): the hours of each day of the week, phone, address,
+    how to book, notes, and today's day and time — to answer "a che ora riceve oggi il medico?", "che numero ha?"."""
+    from aurora import hlt_doctor
+    try:
+        return hlt_doctor.text(hlt_doctor.load(cfg))
+    except (ValueError, OSError) as e:
+        raise ToolError(f"not readable: {e} (open the ❤️ Health page once: it makes the user's key)") from None
+
+
+@server.tool()
 def health_note(area: str, text: str, title: str = "") -> str:
     """Record a note in an area: a workout done, a weight, a meal, a value of an exam (with its day)."""
     try:

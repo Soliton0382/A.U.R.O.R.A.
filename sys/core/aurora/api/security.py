@@ -46,6 +46,37 @@ async def rules_set(request: Request) -> dict:
     return {"rules": rules}
 
 
+@router.get("/v1/aurora/security/netmap", dependencies=[Depends(admin_only)])
+def netmap() -> dict:
+    """The network seen from the firewall (sec_netmap): counts, what the last look changed, address -> name."""
+    from aurora import sec_fwapi, sec_netmap
+    try:
+        m = sec_netmap.load(cfg)
+    except ValueError as e:
+        raise HTTPException(status_code=500, detail=str(e)) from None
+    return {**sec_netmap.summary(m), "changes": (m or {}).get("changes"), "names": sec_netmap.names(cfg),
+            "configured": sec_fwapi.configured(cfg)}
+
+
+@router.post("/v1/aurora/security/netmap/refresh", dependencies=[Depends(admin_only)])
+async def netmap_refresh() -> dict:
+    from aurora import sec_fwapi, sec_netmap
+    try:
+        r = await asyncio.to_thread(sec_netmap.refresh, cfg)
+    except sec_fwapi.FirewallAPIError as e:
+        raise HTTPException(status_code=502, detail=str(e)) from None
+    log.info("audit: network map refreshed (%d hosts, %d new, %d gone)", r["hosts"], len(r["changes"]["new"]),
+             len(r["changes"]["gone"]))
+    return r
+
+
+@router.get("/v1/aurora/security/netmap/find", dependencies=[Depends(admin_only)])
+def netmap_find(q: str) -> dict:
+    from aurora import sec_netmap
+    m = sec_netmap.load(cfg)
+    return {"lines": sec_netmap.find(m, q) if m and q.strip() else []}
+
+
 @router.post("/v1/aurora/security/firewall/test", dependencies=[Depends(admin_only)])
 async def firewall_test() -> dict:
     from aurora import sec_fwapi

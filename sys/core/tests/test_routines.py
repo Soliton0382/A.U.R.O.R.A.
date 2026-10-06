@@ -126,3 +126,25 @@ def test_a_routine_may_propose_actions_only_when_asked_and_only_with_a_true_or_f
     assert R.validate({**spec, "propose": True})["propose"] is True
     with pytest.raises(ValueError):
         R.validate({**spec, "propose": "yes"})
+
+
+def test_a_personal_agent_its_fields_its_clone_and_its_memory(cfg):
+    """Owner, 2026-10-06: personal agents — an icon, the plugins it may use, memory of the last real report, a budget."""
+    import pytest
+    from aurora import sys_routines as R
+    spec = {"kind": "agent", "goal": "Cerca sul web novità sul telescopio X", "schedule": {"every": "hours", "hours": 24},
+            "icon": "🔭", "plugins": ["web", "news"], "memory": True, "steps": 12, "minutes": 5, "notify": "if_any"}
+    a = R.create(cfg, spec)
+    assert (a["icon"], a["plugins"], a["memory"], a["steps"], a["minutes"]) == ("🔭", ["web", "news"], True, 12, 5)
+    for bad in ({"steps": 1}, {"minutes": 0}, {"plugins": ["../x"]}, {"icon": "x" * 9}, {"memory": "yes"}):
+        with pytest.raises(ValueError):
+            R.validate({**spec, **bad})
+    R.update(cfg, a["id"], {"goal": "Cerca novità sul telescopio Y", "steps": 20})
+    assert R.get(cfg, a["id"])["goal"].endswith("Y") and R.get(cfg, a["id"])["steps"] == 20
+    R.record(cfg, a["id"], "Uscito il firmware 2.1", True)
+    R.record(cfg, a["id"], "NOTHING", True)                                   # nothing new: the memory stays
+    r = R.get(cfg, a["id"])
+    assert r["last_text"] == "NOTHING" and r["memory_text"] == "Uscito il firmware 2.1"
+    c = R.clone(cfg, a["id"])
+    assert c["id"] != a["id"] and c["enabled"] is False and c["title"].endswith("(copia)") and c["plugins"] == ["web", "news"]
+    assert "memory_text" not in c                                               # a clone starts without memories

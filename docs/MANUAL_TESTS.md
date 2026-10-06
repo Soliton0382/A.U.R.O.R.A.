@@ -97,7 +97,11 @@ mark each line ✅ / ❌ with a note. Reload the WebUI first (the service worker
 | N78 | ☀️ The good morning in the chat (after 8) → 🔊 Ascolta | the night's counts, read aloud — ❌ C154 — again after the fix |
 | N79 ✅ | Ask a question, then the same in other words | the second at once, with "🌗 Risposta già verificata il …" |
 | N80 ✅ | `python sys/core/script/shadow_seed.py` in the day (about 2 hours, Ctrl-C and again is fine), then `--export` | most answered 🌗; config/shadow_seed.json with public sources only |
-| N81 | «che tempo fa a Roma?» twice within 10 minutes | the second without calling the weather service: in its steps «🌗 weather.…: risultato già ottenuto poco fa» |
+| N81 ✅ | «che tempo fa a Roma?» twice within 10 minutes | the second without calling the weather service: in its steps «🌗 weather.…: risultato già ottenuto poco fa» |
+| N82 | ❤️ Salute → ⚕️ Medico: fill the hours, phone, notes, 💾 Salva; reload; then «a che ora riceve oggi il medico?» | the card comes back as saved, today's row marked; the answer from the card |
+| N83 | `bash sys/core/script/sys_tts_install.sh`, then 🔊 on the good morning on the PC (Chrome on Linux) | Aurora's voice (paola) reads it; on the phone the phone's own voice |
+| N84 | 🤖 Agenti e routine: the icons; ➕ → 🔬 Ricerca, write the subject, plugin web, Salva; ▶ Esegui ora; then ⧉ Clona | the agent's tile; its report; the clone paused with "(copia)" |
+| N85 | 🛡️ Sicurezza → 🗺️ Mappa della rete: «Guarda la rete», search a device; switch on the proposed routine «Dispositivi nuovi nella rete» | counts, names in the incidents; the device found; next morning a notice only if something changed |
 | N69 | Multi-user first login of an admin without password (a clean install) | after the API key, the Users page with the note: password and Google Authenticator first |
 | N41 | 📁 Projects → 💻 Local: ask Aurora "crea il progetto prova-calc con una funzione somma e i suoi test, eseguili" | the project, the tests run (EXIT 0) in the run's steps, a local commit |
 | N17 | Ask a knowledge question (e.g. «Come funziona la fotosintesi?»), then tap one of the «Approfondisci» questions; then type a short follow-up («e chi l'ha scoperta?») | 3-4 complete questions appear under the answer a few seconds after it; the tapped one is sent whole and its trace shows 🎯 when the sources were used; the typed follow-up shows 🧷 with the completed question |
