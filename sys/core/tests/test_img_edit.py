@@ -48,7 +48,7 @@ def test_each_operation_does_what_it_says():
     assert mime == "image/png" and opened(out).format == "PNG"                                      # the kind is kept
     out, mime, _ = E.apply(src, [{"op": "format", "to": "webp"}])
     assert mime == "image/webp" and opened(out).format == "WEBP"
-    assert E.describe([{"op": "rotate", "degrees": 90}, {"op": "grayscale"}]) == "ruotata di 90°, in bianco e nero"
+    assert E.describe([{"op": "rotate", "degrees": 90}, {"op": "grayscale"}]) == "ruotata di 90° in senso antiorario, in bianco e nero"
 
 
 def test_model_operations_are_checked_and_never_run_by_pillow():

@@ -296,7 +296,10 @@ def send(msg: dict, cfg: sys_config.Config) -> dict:
     for s in _load(cfg):
         try:
             webpush({"endpoint": s["endpoint"], "keys": s["keys"]}, json.dumps(msg), vapid_private_key=pem,
-                    vapid_claims={"sub": cfg["AURORA_PUSH_SUBJECT"]}, ttl=12 * 3600, timeout=20)
+                    vapid_claims={"sub": cfg["AURORA_PUSH_SUBJECT"]}, ttl=12 * 3600, timeout=20,
+                    # every push of Aurora's shows a notification: "high", or Android in Doze holds it for hours
+                    # (6 October: 38 of 97 never confirmed, 12 of them around 17:00)
+                    headers={"Urgency": "high"})
             sent += 1
         except WebPushException as e:
             code = getattr(e.response, "status_code", None)

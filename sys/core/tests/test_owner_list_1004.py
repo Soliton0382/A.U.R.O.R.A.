@@ -428,3 +428,13 @@ def test_the_live_capabilities_say_what_is_missing(cfg):
     assert any(x["name"] == "cloud:openai" for x in r["connections"]) and len(r["abilities"]) == 5
     boom = C._safe("x", "X", "X", lambda: 1 / 0)
     assert boom["ok"] is False and "ZeroDivisionError" in boom["detail"]
+
+
+def test_a_plugin_knows_its_user_from_its_folders(cfg):
+    """C162: a user's health data (sealed with their key) did not open in the plugin, which used the admin's."""
+    from aurora import sys_config
+    cfg.values["AURORA_UPLOADS_DIR"] = "usr/alice/uploads"
+    assert sys_config._plugin_user(cfg) == "alice"
+    cfg.values.update(AURORA_UPLOADS_DIR="usr/uploads", AURORA_HEALTH_DIR="usr/health", AURORA_DOCUMENTS_DIR="usr/documents",
+                      AURORA_PROJECTS_DIR="usr/projects")
+    assert sys_config._plugin_user(cfg) is None                                # before the per-user layout

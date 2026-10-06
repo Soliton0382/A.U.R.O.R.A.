@@ -176,4 +176,12 @@ def describe(ops: list[dict], lang: str = "it") -> str:
           "auto contrast", "invert": "negative", "blur": "blurred ({radius:.0f} px)", "format": "converted to {to}", "creative": "changed (FLUX.2: \"{prompt}\")",
           "upscale": "enlarged ×{scale} with Swin2SR", "remove_background": "cut out (transparent background)"}
     words = it if lang == "it" else en
-    return ", ".join(words[o["op"]].format(**o) for o in ops)
+
+    def one(o):
+        if o["op"] == "rotate":                       # counter-clockwise inside; said the way people say it
+            d = float(o.get("degrees", 0)) % 360
+            if d > 180:
+                return (f"ruotata di {360 - d:.0f}° in senso orario" if lang == "it" else f"rotated {360 - d:.0f}° clockwise")
+            return (f"ruotata di {d:.0f}° in senso antiorario" if lang == "it" else f"rotated {d:.0f}° counter-clockwise")
+        return words[o["op"]].format(**o)
+    return ", ".join(one(o) for o in ops)

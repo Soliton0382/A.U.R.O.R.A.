@@ -115,6 +115,13 @@ def delete(cfg: sys_config.Config, uid: str) -> bool:
     for i in items:
         if i["id"] == uid and "path" in i and (_dir(cfg) / i["path"]).is_file():
             sys_trash.discard(cfg, _dir(cfg) / i["path"], "upload", i["name"], record=i)
+        elif i["id"] == uid and str(i.get("url", "")).startswith("/v1/aurora/documents/"):
+            # a PDF Aurora wrote, shown with its turn: the 🗑️ sends the document itself to the trash (6 October: only
+            # the link went, the file stayed) — never one the owner put in the folder himself
+            from . import doc_pdf
+            f = cfg.path("AURORA_DOCUMENTS_DIR") / str(i["url"]).rsplit("/", 1)[-1]
+            if f.is_file() and doc_pdf.made_by_aurora(f):
+                sys_trash.discard(cfg, f, "document", i["name"])
     _write_index(cfg, keep)
     return len(keep) != len(items)
 

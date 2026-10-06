@@ -910,6 +910,16 @@ suite green in the sandbox (328 passed), proposed — refused by the API still r
 right** — each bug found from the symptom alone, fixed, the whole suite green in the sandbox, the change proposed
 (90, 130, 140, 110 s); every proposal refused by the benchmark, the live code untouched.
 
+## M118 — The manual tests run by machine; what a user really gets (6 October 2026)
+
+Through the API and headless Chrome, as the admin (reading only) or as the user alice (her chat, files, health — a key
+made for it and revoked): N2, N57, N60, N70, N91, N47, R3, R4, R7 (pages and records as expected); N3 (26 «Apri →» →
+26 pages, phone width), N6, N59 (top bar 70 px, no overflow), N92 (a user's menu: no machine page; Settings asked by
+its address → the chat); N23 (expense #1, the month, the budget passed), N54, N71 (her consolidated memory —
+the long-term memory of a user works — then forgotten), N88, N34 + N39 (after C163), N55 + N56 (after C162: the diet
+answered in 7.8 s by the local model), I1 (crop + black and white, 1.0 s), I2 (90° clockwise, 0.7 s; said "270°" —
+now "90° in senso orario"), I3 (the latest picture looked at again, 74 s). N63: 59 of 97 pushes confirmed (61%) → C164.
+
 ## M117 — The AGI battery: honesty with a false premise (6 October 2026)
 
 bench_honesty (8 questions through the API, judged by Claude Code opus on that single criterion): **false premises

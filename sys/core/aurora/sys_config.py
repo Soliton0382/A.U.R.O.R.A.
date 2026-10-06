@@ -215,10 +215,27 @@ def service_user(cfg: "Config") -> str:
     return str(cfg.values.get("AURORA_SERVICE_USER") or "").strip() or pwd.getpwuid(cfg.root.stat().st_uid).pw_name
 
 
+def _plugin_user(cfg: Config) -> str | None:
+    """The user a plugin's process works for, read from its folders (the filtered .env holds usr/<name>/…), or None."""
+    usr = (cfg.root / "usr").resolve()
+    for k in ("AURORA_UPLOADS_DIR", "AURORA_HEALTH_DIR", "AURORA_DOCUMENTS_DIR", "AURORA_PROJECTS_DIR"):
+        try:
+            p = (cfg.root / str(cfg.values.get(k) or "")).resolve()
+            rel = p.relative_to(usr)
+        except (ValueError, TypeError):
+            continue
+        if len(rel.parts) >= 2:                       # usr/<name>/<area>: a user's folder, not the shared usr/<area>
+            return rel.parts[0]
+    return None
+
+
 def _view(cfg: Config) -> Config:
     """After the migration to the per-user layout a process works as the admin unless told otherwise (U3): their
     settings and folders. A plugin's own process never: its .env is already the filtered one of its user."""
     if os.environ.get("AURORA_PLUGIN"):
+        # whose work: its folders are its user's (usr/<name>/…), so is its key — 6 October: a user's health data,
+        # sealed with their key, did not open in the plugin, which used the admin's ("the sealed file does not open")
+        cfg.user = cfg.user or _plugin_user(cfg)
         return cfg
     from . import sys_user_config, sys_users_layout
     m = sys_users_layout.migrated(cfg)
