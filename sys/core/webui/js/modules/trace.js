@@ -137,7 +137,7 @@ export function renderAnswer(b, p, when) {
   b.root.classList.toggle("abstained", !!p.abstained);
   box.append(renderMarkdown(p.text));
   if (p.shadow) {                                // from the shadow of an earlier answer (kno_shadow): said, and rechecked
-    box.append(el("div", "meta checked", t("chat.shadow", { q: p.shadow.question, d: new Date(p.shadow.made * 1000).toLocaleDateString(),
+    box.append(el("div", "meta checked", t(p.shadow.adapted ? (p.shadow.recheck ? "chat.shadow.adapted.recheck" : "chat.shadow.adapted") : (p.shadow.recheck === false ? "chat.shadow.sure" : "chat.shadow"), { q: p.shadow.question, d: new Date(p.shadow.made * 1000).toLocaleDateString(),
       c: Number(p.shadow.cos).toFixed(2) })));
   }
   if (p.checked && p.checked.kept + p.checked.dropped > 0 && !p.abstained) {

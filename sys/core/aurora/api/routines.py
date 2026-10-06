@@ -292,11 +292,10 @@ def rem_state(user: str | None = None) -> dict:
         from aurora import kno_morning, kno_study
         p = pipeline()
         hour = int(cfg["AURORA_MORNING_HOUR"])
-        studies = kno_study.tonight(p)
         return {**Rem(p, cfg).state(), "busy": _run_lock.locked(), "rem_running": rem_running,
                 "social_platforms": social,
                 "to_study": len(kno_study.pending(p, cfg)) if int(cfg["AURORA_STUDY_PER_NIGHT"]) else 0,
-                "studied_tonight": bool(studies),
+                "studied_tonight": kno_study.studied_tonight(p, cfg),
                 "morning_due": bool(hour) and hour <= datetime.now().hour < hour + 4    # a good morning, not at 9 p.m.
                 and not kno_morning.greeted_today(p)}
 

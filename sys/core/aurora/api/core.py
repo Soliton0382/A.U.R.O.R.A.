@@ -516,8 +516,10 @@ def answer_or_acquire(question: str, emit, run_id: str, **kw):
 
 
 def shadow_answer(p, question: str, emit, run_id: str):
-    """A question in the shadow of an answer already given (kno_shadow): that answer now, saying for which question and
-    when, then the whole pipeline again in the background — a different answer replaces it and is told in the chat."""
+    """A question in the shadow of an answer already given (kno_shadow): that answer, written again for this question
+    from the same passages and verified (kno_shadow.adapt), saying for which question and when. Two bands (owner,
+    2026-10-06): at cosine ≥ AURORA_SHADOW_SURE nothing more; below it the whole pipeline again in the background — its
+    verified answer casts a shadow of its own, a different one is told in the chat."""
     from aurora import kno_shadow
     from aurora.kno_answer import Answer, Trail
     from aurora.sol_schema import now_iso
@@ -526,10 +528,22 @@ def shadow_answer(p, question: str, emit, run_id: str):
     if hit is None:
         return None
     emit("route", {"mode": "shadow"})
-    ans = Answer(run_id, question, hit["text"], False, hit["sources"], [], round(time.time() - t0, 2),
-                 suggestions=hit["follow"])
+    text, sources, adapted = hit["text"], hit["sources"], False
+    if cfg["AURORA_SHADOW_ADAPT"]:
+        try:
+            new = kno_shadow.adapt(p, question, hit, emit)
+        except Exception as e:                            # noqa: BLE001 — the verified answer as it was
+            log.warning("shadow adapt failed: %s", e)
+            new = ""
+        if new:
+            cited = {int(x) for x in re.findall(r"\[(\d+)\]", new)}
+            text, sources, adapted = new, [s for s in hit["sources"] if s.get("n") in cited] or hit["sources"], True
+    again = not hit["sure"]
+    ans = Answer(run_id, question, text, False, sources, [], round(time.time() - t0, 2), suggestions=hit["follow"])
     emit("answer.final", {"text": ans.text, "abstained": False, "sources": ans.sources, "dropped": [], "mode": "knowledge",
-                          "seconds": ans.seconds, "shadow": {k: hit[k] for k in ("question", "made", "cos", "score")},
+                          "seconds": ans.seconds, "shadow": {**{k: hit[k] for k in ("question", "made", "cos", "score",
+                                                                                    "overlap")},
+                                                             "adapted": adapted, "recheck": again},
                           **({"suggestions": ans.suggestions} if ans.suggestions else {})})
     p.remember(question, ans, run_id, emit, Trail(), now_iso())
     emit("run.end", {"seconds": ans.seconds})
@@ -545,8 +559,10 @@ def shadow_answer(p, question: str, emit, run_id: str):
         kno_shadow.add(cfg, p.search.embedder, question, new.text, new.sources, follow=new.suggestions)
         if {s["source"] for s in new.sources} != {s["source"] for s in hit["sources"]}:
             note("api", "answer.refined", {"run_id": run_id, "title": f"🔁 {question[:80]}", "text": new.text[:1500]})
-    sys_context.start(recheck, name="shadow-recheck")
-    log.info("shadow: answered at once (cosine %.3f, re-rank %.3f) from «%s»", hit["cos"], hit["score"], hit["question"][:80])
+    if again:
+        sys_context.start(recheck, name="shadow-recheck")
+    log.info("shadow: answered in %.1f s (cosine %.3f, re-rank %.3f, %d overlapping, adapted %s, recheck %s) from «%s»",
+             ans.seconds, hit["cos"], hit["score"], hit["overlap"], adapted, again, hit["question"][:80])
     return ans
 
 

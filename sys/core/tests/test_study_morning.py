@@ -42,3 +42,20 @@ def test_the_good_morning_says_only_what_happened():
     assert text.startswith("☀️ Buongiorno, Ada!") and "ora so rispondere su «Cos'è la decoerenza quantistica?»" in text
     assert "12 documenti nuovi (340 passaggi)" in text and "fermato un attacco" in text and "Su una domanda" in text and "🧠" not in text
     assert "Good morning" in kno_morning.compose(night, "Ada", "Aurora", "en_US")
+
+
+def test_a_study_in_the_evening_is_not_the_nights(cfg):
+    """C152: studied by hand at 21:44, the night at 02:00 studied nothing ("studied tonight" was the last 18 hours)."""
+    cfg.values["AURORA_REM_DREAM_HOURS"] = "2-6"
+    local = datetime.now().astimezone()
+    at3 = local.replace(hour=3, minute=0, second=0, microsecond=0)
+    evening = (at3 - timedelta(hours=5, minutes=16)).astimezone(timezone.utc).isoformat()      # 21:44 the day before
+    night = (at3 - timedelta(minutes=30)).astimezone(timezone.utc).isoformat()                 # 02:30
+    study = lambda when: SimpleNamespace(created_at=when, extra={"type": "study"})
+    def P(items):
+        return SimpleNamespace(reader=SimpleNamespace(recent=lambda n, domain="reflection": items,
+                                                      layout=SimpleNamespace(shards=lambda *a: True)))
+    assert kno_study.window_start(cfg, at3).hour == 2
+    assert kno_study.window_start(cfg, at3.replace(hour=21)).date() == at3.date()
+    assert not kno_study.studied_tonight(P([study(evening)]), cfg, at3)
+    assert kno_study.studied_tonight(P([study(night)]), cfg, at3)

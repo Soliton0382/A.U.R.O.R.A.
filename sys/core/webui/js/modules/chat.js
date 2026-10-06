@@ -167,7 +167,12 @@ export default {
     });
     const sayAloud = async (text) => {
       const r = await voice.speak(text, lang.replace("_", "-"));
-      if (r === "novoice") input.placeholder = t("chat.voice.novoice");
+      if (r === "novoice") {                       // said where it shows, and why: only online voices, or none
+        const msg = t(`chat.voice.novoice.${await voice.why(lang.replace("_", "-"))}`);
+        input.placeholder = msg;
+        return msg;
+      }
+      return "";
     };
 
     const heard = (r) => {
@@ -284,7 +289,11 @@ export default {
       for (const para of d.text.split(/\n\s*\n/)) if (para.trim()) m.append(el("p", "", para.trim()));
       const listen = el("button", "", `🔊 ${t("chat.listen")}`);
       listen.type = "button";
-      listen.addEventListener("click", () => (voice.speaking() ? voice.stop() : sayAloud(d.text.replace(/^[^\p{L}]+/gmu, ""))));
+      listen.addEventListener("click", async () => {
+        if (voice.speaking()) { voice.stop(); return; }
+        const msg = await sayAloud(d.text.replace(/^[^\p{L}]+/gmu, ""));
+        if (msg) listen.after(el("div", "meta", msg));          // said under the button pressed, not only in the composer
+      });
       m.append(listen, el("div", "meta", clock(d.created_at)));
       messages.append(m);
     };

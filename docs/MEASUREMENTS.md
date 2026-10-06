@@ -910,6 +910,28 @@ suite green in the sandbox (328 passed), proposed — refused by the API still r
 right** — each bug found from the symptom alone, fixed, the whole suite green in the sandbox, the change proposed
 (90, 130, 140, 110 s); every proposal refused by the benchmark, the live code untouched.
 
+## M113 — The shadow in two bands, written again for the question; the seed's run (6 October 2026)
+
+The strict band (no recheck) needs the closest different question: 46 generated with the local model ("the same
+subject, another thing asked"), judged by hand — 2 were copies and 1 a paraphrase, discarded; the closest true one
+**0.958** ("ordine di grandezza" vs "valore numerico esatto" of a Stokes discontinuity), then 0.943, 0.922, 0.920.
+AURORA_SHADOW_SURE = **0.97**: above it 7 of the 23 paraphrases of M111. Live (the API, 6 October), each answer
+written again from the same passages and verified sentence by sentence (kno_shadow.adapt):
+
+| question | cosine | band | seconds |
+|---|---|---|---|
+| Cos'è la dilatazione del tempo? (the seed's own) | 1.000 | sure: no recheck | 12.3 |
+| Mi spieghi le onde gravitazionali? | 0.968 | rechecked | 6.3 |
+| Mi spieghi la dilatazione del tempo? | 0.953 | rechecked | 13.4 |
+| Che cosa si intende per dilatazione temporale? | < 0.90 | full pipeline | 61.7 |
+
+Both rechecks ended within 130 s with the same sources (no correction) and cast a shadow of their own. The seed, run by
+the owner at 06:53-09:18: **122 of 128 answered** with sources, 6 declined (TLS, linear regression, mRNA vaccines, stem
+cells, social stratification, Verga's verismo), 0 errors; 37-103 s, median 72 s, 148 min in all. Exported: **116 of
+124** seed answers whose every source is public (citations: arXiv 359, Wikipedia 122, Normattiva 18, PMC 12…), 415 KB.
+A side effect: the seed's cited answers strengthened 854 links between passages (Hebb) — co-citations in verified
+answers, but not from questions the owner asked. The night: dream at 02:00, good morning at 08:00, no study (C152).
+
 ## M112 — Seeding the shadow, the plugins' caches (5 October 2026)
 
 script/shadow_seed.py, 128 questions (4 for each of 32 knowledge domains), through the API without memory: the first two

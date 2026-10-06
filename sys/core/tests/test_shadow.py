@@ -21,7 +21,7 @@ class RR:
 
 
 def test_a_close_question_gets_the_answer_a_far_one_does_not(cfg):
-    cfg.values.update(AURORA_SHADOW_COS=0.9, AURORA_SHADOW_ANSWER=0.5)
+    cfg.values.update(AURORA_SHADOW_COS=0.9, AURORA_SHADOW_ANSWER=0.5, AURORA_SHADOW_SURE=0.97)
     K.add(cfg, Emb(), "Cos'è la decoerenza quantistica?", "La decoerenza è… [1]", [{"source": "arxiv:1", "n": 1}])
     hit = K.find(cfg, Emb(), RR(0.99), "Che cos'è la decoerenza quantistica?")
     assert hit and hit["question"] == "Cos'è la decoerenza quantistica?" and hit["cos"] >= 0.9
@@ -49,3 +49,55 @@ def test_only_seed_answers_with_public_sources_leave_and_come_back(cfg):
     assert K.public(imported) and not K.public(mine) and not K.public([])
     out.append({"question": "Che ore sono?", "answer": "x", "sources": mine})              # a tampered seed
     assert K.import_seed(cfg, Emb(), out) == {"added": 0, "skipped": 2}                  # already here / not public
+
+
+class ByText:
+    """A re-ranker that likes one answer."""
+    def __init__(self, good):
+        self.good = good
+
+    def score(self, pairs):
+        return [0.9 if self.good in a else 0.6 for _, a in pairs]
+
+
+def test_overlapping_shadows_the_reranker_chooses_and_the_bands(cfg):
+    cfg.values.update(AURORA_SHADOW_COS=0.9, AURORA_SHADOW_ANSWER=0.5, AURORA_SHADOW_SURE=0.97)
+    VEC["Decoerenza?"] = [0.96, 0.28, 0]
+    K.add(cfg, Emb(), "Cos'è la decoerenza quantistica?", "Risposta A [1]", [{"source": "x", "n": 1}])
+    K.add(cfg, Emb(), "Decoerenza?", "Risposta B [1]", [{"source": "y", "n": 1}])
+    hit = K.find(cfg, Emb(), ByText("B"), "Che cos'è la decoerenza quantistica?")
+    assert hit["text"] == "Risposta B [1]" and hit["overlap"] == 2           # not the nearest: the better answer
+    assert hit["sure"] is True                                                # 0.999: no recheck
+    cfg.values["AURORA_SHADOW_SURE"] = 0.98
+    hit = K.find(cfg, Emb(), ByText("A"), "Che cos'è la decoerenza quantistica?")
+    assert hit["text"] == "Risposta A [1]" and hit["sure"] is False          # cosine 0.9707 < 0.98: rechecked
+
+
+def test_adapt_writes_again_from_the_same_passages_and_verifies():
+    from types import SimpleNamespace as N
+    seen = {}
+
+    class Model:
+        def stream(self, system, user, budget, think=False):
+            seen["user"] = user
+            yield "answer", "La decoerenza è la perdita di coerenza [1]. Inventato [2]."
+
+    class P:
+        cfg = {"AURORA_PIPELINE_THINK_TOKENS": 100, "AURORA_CHAT_STREAMING": True, "AURORA_PIPELINE_VERIFY": True}
+        reader = N(get_many=lambda sids: {"a": N(text="passaggio sulla decoerenza")} if "a" in sids else {})
+
+        def _for(self, role):
+            return Model()
+
+        def _verify(self, text, hits, emit):
+            assert hits[0].soliton.text == "passaggio sulla decoerenza"
+            return text.split(" Inventato")[0], ["Inventato [2]."]
+
+    hit = {"question": "Cos'è la decoerenza?", "text": "La decoerenza… [1]", "sources": [{"n": 1, "sid": "a"}]}
+    events = []
+    out = K.adapt(P(), "E la decoerenza cos'è?", hit, lambda e, d: events.append(e))
+    assert out == "La decoerenza è la perdita di coerenza [1]."
+    assert "[1] passaggio sulla decoerenza" in seen["user"] and "NEW QUESTION: E la decoerenza cos'è?" in seen["user"]
+    assert "synthesis.delta" in events
+    gone = {**hit, "sources": [{"n": 1, "sid": "zz"}]}                       # a seed whose passages are not here
+    assert K.adapt(P(), "E la decoerenza cos'è?", gone, lambda e, d: None) == ""

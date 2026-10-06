@@ -92,11 +92,11 @@ mark each line ✅ / ❌ with a note. Reload the WebUI first (the service worker
 | N73 | 🧭 Autonomy: click a few levels in a row | "✅ Salvato" every time, no "errore", the level highlighted at once |
 | N74 | 🛡️ Security → an incident → ⛔ then ↩️ Annulla; Difesa → 🧱 Sul firewall → Prova la connessione | the address blocked then unblocked; the group and rule names shown, "Collegato" |
 | N75 ✅ | Phone, the installed app: the chat | the buttons on a row above, the text field the whole width |
-| N76 | Status → 🧠 Sinapsi (after a night) | links grown between domains, the pairs of domains most linked |
-| N77 | Ask something she does not know; the next morning | the good morning says she studied it; ask again: an answer with sources |
-| N78 | ☀️ The good morning in the chat (after 8) → 🔊 Ascolta | the night's counts, read aloud |
+| N76 ✅ | Status → 🧠 Sinapsi (after a night) | links grown between domains, the pairs of domains most linked |
+| N77 | Ask something she does not know; the next morning | the good morning says she studied it; ask again: an answer with sources — ❌ C152 — again next night |
+| N78 | ☀️ The good morning in the chat (after 8) → 🔊 Ascolta | the night's counts, read aloud — ❌ C154 — again after the fix |
 | N79 ✅ | Ask a question, then the same in other words | the second at once, with "🌗 Risposta già verificata il …" |
-| N80 | `python sys/core/script/shadow_seed.py` in the day (about 2 hours, Ctrl-C and again is fine), then `--export` | most answered 🌗; config/shadow_seed.json with public sources only |
+| N80 ✅ | `python sys/core/script/shadow_seed.py` in the day (about 2 hours, Ctrl-C and again is fine), then `--export` | most answered 🌗; config/shadow_seed.json with public sources only |
 | N81 | «che tempo fa a Roma?» twice within 10 minutes | the second without calling the weather service: in its steps «🌗 weather.…: risultato già ottenuto poco fa» |
 | N69 | Multi-user first login of an admin without password (a clean install) | after the API key, the Users page with the note: password and Google Authenticator first |
 | N41 | 📁 Projects → 💻 Local: ask Aurora "crea il progetto prova-calc con una funzione somma e i suoi test, eseguili" | the project, the tests run (EXIT 0) in the run's steps, a local commit |

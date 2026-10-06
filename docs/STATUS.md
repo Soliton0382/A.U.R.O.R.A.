@@ -1,6 +1,6 @@
 # Status — work in progress
 
-Updated at every validated change (last: 2026-10-05). Details: BUGS.md (issues, 0 open / 151 closed),
+Updated at every validated change (last: 2026-10-06). Details: BUGS.md (issues, 0 open / 154 closed),
 MANUAL_TESTS.md (what the owner checks by hand),
 TESTS.md (tests and live checks), MEASUREMENTS.md (numbers), MODULE_MAP.md (who does what),
 SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSYSTEM.md (design and decisions).
@@ -22,7 +22,7 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | post privacy | 🔍 private names (local model), places, contacts; 🗑️ discard; an autonomous post naming someone waits | M105, tests |
 | exam values | read by the local model from the exams, sealed, a chart over time with the range | tests |
 | knowledge by language | Wikipedia in the installation's language and ticked ones; programming docs (Python, MDN, Rust) | tests |
-| answer shadow | a paraphrase of a question already answered with sources gets that answer in 0.6 s (51 s before), said in the chat with the original question and date, rechecked in the background | M111, tests |
+| answer shadow | a question in the shadow of a verified answer gets it written again for itself from the same passages, verified, in 6-13 s (52-62 s through the whole pipeline); at cosine ≥ 0.97 nothing more, at 0.90-0.97 rechecked in the background and a new shadow; overlapping shadows chosen by the re-ranker; said in the chat | M111, M113, tests |
 | shadow seed and plugin caches | script/shadow_seed.py asks 128 questions on 32 domains to fill the shadow; --export keeps only answers with public sources (with their attribution) for new installations; each plugin's read tools cached apart | M112, tests |
 | synapses | links between domains grown at night (99 from 990 passages, 18 min), spread in the search, Hebbian, fading | M107, tests |
 | firewall undo | every block (the owner's or Aurora's) undone with one click; group and rule names shown once the API is set | live (N44), tests |

@@ -19,7 +19,8 @@ export function nextMode() {
 
 export const supported = () => "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
 
-// The voices load late in some browsers: wait for them once.
+// The voices load late in some browsers: wait for them; an empty list is never kept (it was, until a reload:
+// a first tap before the voices arrived said "no voice" for the whole session).
 let voicesReady = null;
 function voices() {
   voicesReady ??= new Promise((ok) => {
@@ -27,9 +28,16 @@ function voices() {
     if (now.length) { ok(now); return; }
     const done = () => ok(speechSynthesis.getVoices());
     speechSynthesis.addEventListener("voiceschanged", done, { once: true });
-    setTimeout(done, 1500);
-  });
+    setTimeout(done, 3000);
+  }).then((list) => { if (!list.length) voicesReady = null; return list; });
   return voicesReady;
+}
+
+// Why there is no voice here: none at all, or only online ones (the browser maker's: never used, they would get the text).
+export async function why(lang) {
+  const base = lang.slice(0, 2).toLowerCase();
+  const all = (await voices()).filter((v) => v.lang.toLowerCase().startsWith(base));
+  return all.length ? "online" : "none";
 }
 
 const NAME = "aurora.voice.name";

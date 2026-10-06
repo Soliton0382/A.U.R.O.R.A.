@@ -31,6 +31,7 @@ import numpy as np
 from . import sys_config
 
 MAX_ROWS = 2000
+OVERLAP = 5                                       # the nearest shadows the re-ranker chooses among
 # sources a seed may cite: public identities only — never a document of the owner's (legacy:arxiv_ is the arXiv
 # imported by the first installation)
 PUBLIC = ("arxiv:", "legacy:arxiv_", "wikipedia:", "normattiva:", "europepmc:", "pmc", "biorxiv:", "medrxiv:", "github:",
@@ -84,17 +85,56 @@ def find(cfg: sys_config.Config, embedder, reranker, question: str) -> dict | No
     q = _unit(embedder.encode_queries([question])[0])
     mat = np.stack([np.frombuffer(r[2], dtype=np.float32) for r in rows])
     cos = mat @ q
-    best = int(np.argmax(cos))
-    if float(cos[best]) < float(cfg["AURORA_SHADOW_COS"]):
+    near = [int(i) for i in np.argsort(-cos)[:OVERLAP] if float(cos[i]) >= float(cfg["AURORA_SHADOW_COS"])]
+    if not near:
         return None
-    rid, old_q, _, text, sources, made, follow = rows[best]
-    score = float(reranker.score([(question, text[:3000])])[0])
+    # shadows that overlap: the re-ranker chooses the answer that answers this question best (the nearest on a tie)
+    scores = [float(x) for x in reranker.score([(question, rows[i][3][:3000]) for i in near])]
+    k = max(range(len(near)), key=lambda j: (scores[j], float(cos[near[j]])))
+    best, score = near[k], scores[k]
     if score < float(cfg["AURORA_SHADOW_ANSWER"]):
         return None
+    rid, old_q, _, text, sources, made, follow = rows[best]
     with _lock, closing(_db(cfg)) as con, con:
         con.execute("UPDATE shadows SET used = used + 1, last = ? WHERE id = ?", (time.time(), rid))
     return {"question": old_q, "text": text, "sources": json.loads(sources), "made": made, "follow": json.loads(follow or "[]"),
-            "cos": round(float(cos[best]), 3), "score": round(score, 3)}
+            "cos": round(float(cos[best]), 3), "score": round(score, 3), "overlap": len(near),
+            "sure": float(cos[best]) >= float(cfg["AURORA_SHADOW_SURE"])}
+
+
+SYS_ADAPT = ("You answer the NEW QUESTION from an answer Aurora already gave and verified for an EARLIER QUESTION very "
+             "close to it, and from the PASSAGES that answer cited. Answer the new question directly, in its language, "
+             "as a fresh answer: not a copy, and never mentioning the earlier question. Use only what the passages and "
+             "the earlier answer say; every sentence ends with the citation [n] of the passage that supports it, with "
+             "the same numbers. If the new question asks something they do not cover, say so in one sentence.")
+
+
+def adapt(p, question: str, hit: dict, emit) -> str:
+    """The shadow's answer written again for this question (owner, 2026-10-06: "not a copy in 3 ms: Aurora takes the
+    answer and the question and adapts it"), from the same passages, streamed like any answer and verified sentence by
+    sentence like any answer. "" when its passages are not in this vault (a seed on a new installation): nothing to
+    verify against, the answer is given as it was."""
+    from types import SimpleNamespace
+    srcs = [s for s in hit["sources"] if s.get("sid") and s.get("n")]
+    found = p.reader.get_many([s["sid"] for s in srcs])
+    if not srcs or any(s["sid"] not in found for s in srcs):
+        return ""
+    hits = [SimpleNamespace(soliton=SimpleNamespace(text="")) for _ in range(max(int(s["n"]) for s in srcs))]
+    for s in srcs:
+        hits[int(s["n"]) - 1] = SimpleNamespace(soliton=found[s["sid"]])
+    passages = "\n\n".join(f"[{s['n']}] {found[s['sid']].text}" for s in srcs)
+    user = (f"PASSAGES:\n{passages}\n\nEARLIER QUESTION: {hit['question']}\nEARLIER ANSWER (verified):\n{hit['text']}"
+            f"\n\nNEW QUESTION: {question}")
+    model, parts = p._for("synthesis"), []
+    for kind, piece in model.stream(SYS_ADAPT, user, p.cfg["AURORA_PIPELINE_THINK_TOKENS"], think=False):
+        if kind == "answer":
+            parts.append(piece)
+        if p.cfg["AURORA_CHAT_STREAMING"]:
+            emit("synthesis.delta", {"kind": kind, "text": piece})
+    text = "".join(parts).strip()
+    if text and p.cfg["AURORA_PIPELINE_VERIFY"]:
+        text, _ = p._verify(text, hits, emit)
+    return text
 
 
 def stats(cfg: sys_config.Config) -> dict:

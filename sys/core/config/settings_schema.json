@@ -878,6 +878,30 @@
    ]
   },
   {
+   "key": "AURORA_SHADOW_SURE",
+   "type": "float",
+   "category": "search",
+   "recommended": "0.97",
+   "evidence": "M113",
+   "en": "The shadow's strict band: at this cosine or more an answer from the shadow is not checked again by the whole pipeline. Measured: the closest different question on the same subject was at 0.958; 7 of 23 paraphrases are at 0.97 or more.",
+   "it": "La fascia stretta dell'ombra: da questo coseno in su una risposta dall'ombra non viene ricontrollata da tutta la pipeline. Misurato: la domanda diversa sullo stesso argomento più vicina era a 0,958; 7 parafrasi su 23 stanno a 0,97 o più.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_SHADOW_ADAPT",
+   "type": "bool",
+   "category": "search",
+   "recommended": "1",
+   "evidence": "M113",
+   "en": "An answer from the shadow is written again for the new question, from the same passages, and verified sentence by sentence (about 15-20 s instead of 1 s: an answer, not a copy).",
+   "it": "Una risposta dall'ombra viene riscritta per la nuova domanda, dagli stessi passaggi, e verificata frase per frase (circa 15-20 s invece di 1 s: una risposta, non una copia).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_PLUGIN_SHADOW",
    "type": "bool",
    "category": "plugins",

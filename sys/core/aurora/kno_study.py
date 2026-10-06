@@ -120,6 +120,21 @@ def study(pipeline, cfg: sys_config.Config, emit, limit: int) -> dict:
     return {"studied": len(todo), "learned": learned, "skipped": skipped, "left": max(0, len(pending(pipeline, cfg)))}
 
 
+def window_start(cfg: sys_config.Config, now: datetime | None = None) -> datetime:
+    """When tonight's dream window began (local time): "2-6" at 03:00 -> today 02:00; at 21:00 -> yesterday 02:00."""
+    now = now or datetime.now().astimezone()
+    start = int(str(cfg["AURORA_REM_DREAM_HOURS"]).split("-")[0])
+    t = now.replace(hour=start, minute=0, second=0, microsecond=0)
+    return t if now >= t else t - timedelta(days=1)
+
+
+def studied_tonight(pipeline, cfg: sys_config.Config, now: datetime | None = None) -> bool:
+    """A study since tonight's window began — not "in the last 18 hours": a study run by hand in the evening counted as
+    the night's and the night studied nothing (C152)."""
+    since = window_start(cfg, now).astimezone(timezone.utc).isoformat()
+    return any(s.created_at >= since for s in tonight(pipeline))
+
+
 def tonight(pipeline) -> list:
     """The study reflections of the last 18 hours (for the morning greeting)."""
     since = (datetime.now(timezone.utc) - timedelta(hours=18)).isoformat()
