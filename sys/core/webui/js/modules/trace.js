@@ -240,8 +240,15 @@ export async function follow(runId, b, scroller) {
   const status = (text) => { b.head.querySelector(".iter-text").textContent = text; };
   const nearEnd = () => scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 80;
   runStarted();
-  try {
-    await stream(`/v1/aurora/runs/${runId}/events`, ({ event: name, payload: p }) => {
+  // a connection lost while following (the phone asleep, a change of network): taken up again from the last event seen,
+  // a few times — 6 October, «network error» 15 s before the answer, which was complete and saved
+  let lastSeq = 0, ended = false;
+  const onEvent = (e) => {
+    lastSeq = e.seq || lastSeq;
+    if (e.event === "run.end" || e.event === "error") ended = true;
+    handle(e);
+  };
+  const handle = ({ event: name, payload: p }) => {
       const stick = nearEnd();
       if (name === "synthesis.delta") {
         if (p.kind === "thought") {
@@ -277,7 +284,20 @@ export async function follow(runId, b, scroller) {
       b.count += 1;
       status(`${ICONS[name] || "•"} ${describe(name, p)}`);
       if (stick) scrollEnd(scroller);
-    });
+  };
+  try {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        await stream(`/v1/aurora/runs/${runId}/events${lastSeq ? `?after=${lastSeq}` : ""}`, onEvent);
+        if (ended) break;
+      } catch (err) {
+        if (err.status === 404 || err.status === 401 || attempt >= 30) throw err;      // gone, or not ours
+        status(`🔌 ${t("chat.reconnecting")}`);
+        await new Promise((ok) => setTimeout(ok, Math.min(2000 * (attempt + 1), 10000)));
+        continue;
+      }
+      if (ended || attempt >= 30) break;
+    }
   } finally {
     runEnded();
     b.head.classList.remove("running");

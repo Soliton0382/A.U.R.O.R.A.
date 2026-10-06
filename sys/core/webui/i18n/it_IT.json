@@ -1040,6 +1040,7 @@
   "chat.voice.off": "Risposte a voce spente (tocca per cambiare)",
   "chat.voice.novoice.online": "Su questo dispositivo ci sono solo voci online (il testo andrebbe al produttore del browser): installa una voce italiana locale — Windows: Impostazioni → Ora e lingua → Voce; Android: Sintesi vocale di Google con la voce italiana scaricata; Linux: speech-dispatcher (es. con espeak-ng o Piper).",
   "chat.voice.novoice.none": "Su questo dispositivo non c'è nessuna voce italiana: installala nelle impostazioni di sintesi vocale (Windows: Ora e lingua → Voce; Android: Sintesi vocale di Google; Linux: speech-dispatcher).",
+  "chat.reconnecting": "connessione persa: riprendo…",
   "chat.video_progress": "🎬 «{title}» in corso · circa {p}% (stima) · pronto verso le {at}",
   "chat.voice.server": "Voce di Aurora (dal suo computer)",
   "chat.voice.novoice": "Nessuna voce italiana su questo dispositivo: installala nelle impostazioni di sintesi vocale",
