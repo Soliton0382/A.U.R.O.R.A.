@@ -381,3 +381,50 @@ def test_the_soak_counts_only_the_last_day_and_every_word(tmp_path):
         (now - timedelta(hours=1), "routine 12 failed"), (now - timedelta(hours=2), "run 9 failed"),
         (now - timedelta(days=2), "routine 3 failed"))))
     assert sys_soak._lines_since(f, (now - timedelta(days=1)).timestamp(), "routine ", "failed") == 1
+
+
+def test_short_italian_chat_is_italian():
+    """C156: «brava aurora hai descritto davvero la foto in modo impeccabile» was answered in English (14 of the
+    owner's 105 Italian messages read as English, among them «Perche mi hai risposto in inglese?»)."""
+    from aurora import txt_lang
+    for q in ("brava aurora hai descritto davvero la foto in modo impeccabile", "grazie mille", "Perche mi hai risposto in inglese?",
+              "Spiegami in due frasi cos'è l'entropia.", "Sogni d'oro amica mia", "Che tempo farà domani? Devo uscire in bici"):
+        assert txt_lang.detect(q) == "it", q
+    for q in ("Hi", "What color is in this image?", "Thanks a lot!", "The entropy of a closed system never decreases."):
+        assert txt_lang.detect(q) == "en", q
+
+
+def test_the_reasoner_stopped_for_a_gpu_job_is_not_down(cfg):
+    """C157: «🚨 Aurora non sta bene — aurora-llm non risponde» while it was stopped on purpose to make a video."""
+    import threading
+    from aurora import mdl_image, sys_health
+    assert sys_health.gpu_job(cfg) == ""
+    inside, done = threading.Event(), threading.Event()
+
+    def hold():
+        with mdl_image.gpu_lock(cfg, 5, "video Gattino"):
+            inside.set()
+            done.wait(5)
+    t = threading.Thread(target=hold)
+    t.start()
+    inside.wait(5)
+    try:
+        assert sys_health.gpu_job(cfg).startswith("video Gattino since")
+    finally:
+        done.set()
+        t.join()
+    assert sys_health.gpu_job(cfg) == ""
+
+
+def test_the_live_capabilities_say_what_is_missing(cfg):
+    """N4 (owner, 2026-10-06): plugins, connections and abilities read live, a failing check is a line, not an error."""
+    from types import SimpleNamespace
+    from aurora import sys_capabilities as C
+    host = SimpleNamespace(plugins=lambda with_tools=False: [
+        SimpleNamespace(name="weather", available=True, enabled=True, missing=[], error=""),
+        SimpleNamespace(name="email", available=False, enabled=True, missing=["AURORA_EMAIL_USER"], error="")])
+    r = C.report(cfg, host)
+    assert [x["ok"] for x in r["plugins"]] == [True, False] and "AURORA_EMAIL_USER" in r["plugins"][1]["detail"]
+    assert any(x["name"] == "cloud:openai" for x in r["connections"]) and len(r["abilities"]) == 5
+    boom = C._safe("x", "X", "X", lambda: 1 / 0)
+    assert boom["ok"] is False and "ZeroDivisionError" in boom["detail"]

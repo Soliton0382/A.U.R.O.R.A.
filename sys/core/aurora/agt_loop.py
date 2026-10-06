@@ -335,8 +335,9 @@ class Agent:
         return sum(1 for name, ok in self.ledger if ok and name.split(SEP)[-1] in suffixes)
 
     def _record(self) -> str:
-        reads = self._count("list_files", "read_file", "search_code", "logs_inventory", "read_log", "sandbox_read",
-                            "sandbox_diff")
+        own = ("list_files", "read_file", "search_code", "logs_inventory", "read_log", "sandbox_read", "sandbox_diff")
+        reads = self._count(*own) + sum(1 for name, ok in self.ledger if ok and name.split(SEP)[-1] not in own
+                                        and getattr(self, "effects", {}).get(name) == "read")   # the plugins' reads too
         failed = sum(1 for _, ok in self.ledger if not ok)
         return (f"— Azioni eseguite (dal registro delle chiamate): {len(self.ledger)} chiamate; {reads} letture; "
                 f"{self._count('sandbox_create')} sandbox create; {self._count('sandbox_replace', 'sandbox_write')} "
@@ -345,11 +346,18 @@ class Agent:
                 f"{self._count('project_write_file')} file scritti nei progetti; {self._count('run_in_project')} "
                 f"esecuzioni nei progetti; {failed} chiamate non riuscite.")
 
+    # "Non ho creato sandbox e non ho proposto modifiche" is not a claim (C155: a weather report was flagged for it)
+    NEG = re.compile(r"(?i)\b(?:non|nessun\w*|senza|né|not|never|no|didn't|did not|without)\b[^.!?\n]{0,40}$")
+
+    def _claims(self, rx: re.Pattern, text: str) -> bool:
+        """A match of a claim that is not denied in the words just before it."""
+        return any(not self.NEG.search(text[max(0, m.start() - 60):m.start()]) for m in rx.finditer(text))
+
     def _honest(self, summary: str) -> str:
         """Every claim the log of calls does not support gets a warning at the top of the report; actions still
         waiting for the owner are listed at the end, whatever the model wrote."""
         pending = getattr(self, "pending", [])
-        false = [what for what, (rx, tools) in self.CLAIMS.items() if rx.search(summary) and not self._count(*tools)
+        false = [what for what, (rx, tools) in self.CLAIMS.items() if self._claims(rx, summary) and not self._count(*tools)
                  and not (what == "proposal" and pending)]       # "waiting for your approval" is true for a post
         if pending:
             head = ("⏳ Proposto, non ancora fatto — aspetta la tua approvazione (🛠️ Riparazioni): "
@@ -425,6 +433,7 @@ class Agent:
         self.projects: set[str] = set()                     # the projects it worked on: told at the end
         self.passed: set[str] = set()                       # those whose tests passed once: told at once
         self.ledger: list[tuple[str, bool]] = []
+        self.effects: dict[str, str] = {}                    # tool -> its effect: the plugins' reads are counted too
         budget = self.cfg["AURORA_PIPELINE_THINK_TOKENS"]
         limit_s = self.max_min * 60
         while steps < self.max_steps and time.time() - t0 < limit_s:
@@ -464,6 +473,7 @@ class Agent:
                                    "effect": index.get(name, ("", "", "loop"))[2]})
                 result = self._call(name, args, index, emit, run_id)
                 self.ledger.append((name, not result.startswith(("ERROR", "REFUSED"))))
+                self.effects[name] = index[name][2] if name in index else ""
                 emit("tool.result", {"name": name, "ok": not result.startswith(("ERROR", "REFUSED")),
                                      "text": result[:1500]})
                 messages.append({"role": "tool", "content": result[:6000]})

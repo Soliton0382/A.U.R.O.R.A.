@@ -65,3 +65,31 @@ pre.try-out { white-space: pre-wrap; font: .76rem/1.4 var(--mono); background: r
 .rt-form .rt-sched, .rt-form .rt-times, .rt-form .rt-days { display: inline-flex; flex-wrap: wrap; gap: .3rem; max-width: 100%; }
 .rt-form select { max-width: 100%; }
 .rt-form .appr-actions, .doc-card .appr-actions { flex-wrap: wrap; }
+
+/* 🗺️ the network drawn (security_map.js) */
+.net-modal { width: min(96vw, 1200px); max-width: none; }
+.net-map { width: 100%; height: min(72vh, 900px); background: #11151e; border-radius: 10px; touch-action: none; cursor: grab; }
+.net-label { font-size: 9px; fill: #c9d1df; pointer-events: none; }
+.net-hub-name { font-size: 11px; font-weight: 700; fill: #e8ecf3; }
+.net-hub-zone { font-size: 9px; fill: #9aa3b2; }
+.net-fw { font-size: 30px; }
+.net-dev:hover circle, .net-dev:hover rect { stroke: #fff; stroke-width: 2; }
+.sec-tab { margin-top: .4rem; }
+
+/* 🗂️ the settings' menu in three levels (settings.js) */
+.settings-tools { position: sticky; top: 0; z-index: 3; background: var(--bg, #0f131b); padding: .4rem 0; display: flex; flex-wrap: wrap; gap: .4rem; align-items: flex-start; }
+.settings-tools .settings-filter { flex: 1 1 12rem; min-width: 0; }
+.settings-nav { position: relative; }
+.settings-menu { position: absolute; z-index: 4; left: 0; top: 2.4rem; width: min(92vw, 26rem); max-height: 70vh; overflow: auto;
+  background: rgba(20, 24, 33, .98); border: 1px solid var(--line); border-radius: 10px; padding: .5rem; }
+.settings-menu.hidden { display: none; }
+.settings-area summary { cursor: pointer; padding: .35rem .2rem; font-weight: 600; }
+.settings-area .cat-chip { margin: .2rem; }
+.settings-menu-all { width: 100%; margin-bottom: .3rem; }
+.settings-tools .settings-filter { flex-basis: 8rem; }
+.settings-menu-btn { max-width: 46vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.settings-tools { flex-wrap: nowrap; }
+.settings-menu { left: auto; right: 0; }
+dialog.plug-modal.net-modal { width: min(96vw, 1200px); max-width: 96vw; }
+.chips .chip.off { opacity: .55; }
+.idea-form input, .idea-form textarea { width: 100%; box-sizing: border-box; margin: .3rem 0; }

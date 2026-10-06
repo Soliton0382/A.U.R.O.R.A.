@@ -282,7 +282,10 @@ async def senses_action(action: str, request: Request) -> dict:
 @router.get("/v1/aurora/features", dependencies=[Depends(auth)])
 def features() -> dict:
     """What this installation can do, what is missing for the rest (and how to add it), contradicting settings."""
-    return {"features": sys_features.report(cfg), "config": sys_features.config_problems(cfg)}
+    from aurora import sys_capabilities
+    from .core import plugin_host
+    return {"features": sys_features.report(cfg), "config": sys_features.config_problems(cfg),
+            "live": sys_capabilities.report(cfg, plugin_host())}
 
 
 @router.get("/v1/aurora/update", dependencies=[Depends(auth)])

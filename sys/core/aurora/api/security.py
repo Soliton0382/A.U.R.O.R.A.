@@ -70,6 +70,12 @@ async def netmap_refresh() -> dict:
     return r
 
 
+@router.get("/v1/aurora/security/netmap/graph", dependencies=[Depends(admin_only)])
+def netmap_graph() -> dict:
+    from aurora import sec_netmap
+    return sec_netmap.graph(sec_netmap.load(cfg))
+
+
 @router.get("/v1/aurora/security/netmap/find", dependencies=[Depends(admin_only)])
 def netmap_find(q: str) -> dict:
     from aurora import sec_netmap

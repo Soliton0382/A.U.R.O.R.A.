@@ -108,6 +108,9 @@ call downward (ECOSYSTEM §1).
 | `hlt_doctor.py` | health | the doctors' cards: hours of the week, phone, address, booking, notes — sealed; told to the local model with today's day | sys_seal | api/care, plugins/health (health_doctors) |
 | `mdl_tts.py` | models | Aurora's own voice on the CPU (Piper as a separate program, GPL-3) for devices with none; spoken sentences kept | — | api/voice, webui/js/voice.js |
 | `sec_netmap.py` | security | the network as the firewall sees it: read only, sealed, compared with the last look, address → name | sec_fwapi, sys_seal | api/security, plugins/security (network_map, network_changes) |
+| `mdl_media.py` | models | pictures, edits, videos from a cloud provider chosen per task; masked words, a photo only with the exemption, counted | mdl_router, sec_mask, sys_ethics | mdl_image, mdl_video, api/models |
+| `sys_capabilities.py` | system | what works read live: plugins, connections, abilities | plg_host, mdl_router, sec_fwapi, sys_push, sys_backup… | api/knowledge (/features) |
+| `sys_ideas.py` | system | the owner's ideas to improve Aurora, moved new → considered → planned → done | — | api/bugreport |
 | `kno_morning.py` | knowledge | the good morning: the night in counts (learned, harvested, links, attacks stopped, the dream), a "morning" reflection and a notification | kno_study, kno_synapse, sec_defence, kno_rem | api/routines (rem morning) |
 | `kno_docs.py` | knowledge | programming documentation as knowledge: Python's text archive, documentation repositories on GitHub (MDN JavaScript, the Rust book) | kno_sources | kno_sources |
 | `plg_access.py` | plugins | which plugins the other users may use, and which stay the admin's | sys_config | api/agents, api/core |

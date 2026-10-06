@@ -41,3 +41,12 @@ def test_parsed_compared_named(cfg, monkeypatch):
     assert any("interfaccia Port1" in x for x in N.find(N.load(cfg), "192.0.2.55"))
     assert N.find(N.load(cfg), "tv_sala")[0].startswith("- TV_SALA (192.0.2.20)")
     assert "Port1" in N.text(N.load(cfg))
+
+
+def test_the_drawing_puts_each_device_on_its_interface():
+    g = N.graph(N.parse(raw()))
+    lan = g["interfaces"][0]
+    assert lan["name"] == "Port1" and lan["network"] == "192.0.2.0/24" and lan["zone"] == "LAN"
+    assert [(d["name"], d["ip"], d["kind"]) for d in lan["devices"]] == [("NAS", "192.0.2.10", "host"), ("TV_SALA", "192.0.2.20", "dhcp")]
+    assert g["other"] == []                                     # Aurora's blocks are not devices
+    assert N.graph(None)["interfaces"] == []

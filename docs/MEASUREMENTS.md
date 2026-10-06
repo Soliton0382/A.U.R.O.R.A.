@@ -910,6 +910,21 @@ suite green in the sandbox (328 passed), proposed — refused by the API still r
 right** — each bug found from the symptom alone, fixed, the whole suite green in the sandbox, the change proposed
 (90, 130, 140, 110 s); every proposal refused by the benchmark, the live code untouched.
 
+## M115 — The owner's tests of 6 October, the Security page, the language of a message (6 October 2026)
+
+The owner's P1-P9 on the phone: photo described, video summarised, video made (Wan 2.2, 1280×704, 5 s, 18 min, from
+10:34 to 10:52) — three faults found in the chat and the alerts: C155 (a false "⚠️" on every agent report), C156 (an
+answer in English), C157 (a health alarm during the video). Language (txt_lang), before → after, on the owner's 108
+messages: 17 → 3 read as English (the 3 really English); on 900 English arXiv passages: 4 → 3 read as Italian (the 3
+really Italian or French). Security page, headless Chrome: before — 4.8 s (what went out) and 4.5 s (the checks) on
+opening, 344 KB of incidents, 1,599 elements, 6,566 px; after (four tabs, each loaded when opened) — the slowest call
+10 ms, 22 KB (open incidents only), 253 elements; 5 of the 10 open incidents with a name. The map drawn: 119 devices on
+5 interfaces + "other networks" (LAN 70, DMZ 12, WAN 2 + 3, LAN 2.5G 1, other 31), zoom and drag. Settings on a 390 px
+phone: the bar 58 px on one line (the categories' chips: half the screen, the owner's measure), the menu inside the
+screen (15-374 px). Bug report (N8) made by machine: 6.0 s, 372 KB, 11,640 addresses and 389 tokens masked; in the zip
+0 of: the owner's name, private addresses, the user name, the e-mail, device names, the home town. Not measured: cloud
+pictures, edits and videos live (every call is billed: N86).
+
 ## M114 — Aurora's voice on the CPU, the network map, the new pages (6 October 2026)
 
 Voice (Piper 1.8.0, CPU, voice it_IT paola medium, in a scratch environment — the voices go to sys/models only through

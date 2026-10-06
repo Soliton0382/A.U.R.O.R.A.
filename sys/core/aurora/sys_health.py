@@ -72,6 +72,21 @@ def health_change(items: list[dict], before: set[str]) -> tuple[str, str] | None
     return None
 
 
+def gpu_job(cfg: sys_config.Config) -> str:
+    """What holds the GPU lock now (mdl_image.gpu_lock: a painting, an edit, a video), "" when nobody does."""
+    import fcntl
+    f = cfg.path("AURORA_STATUS_DIR") / "gpu.lock"
+    if not f.exists():
+        return ""
+    with open(f, encoding="utf-8") as fh:
+        try:
+            fcntl.flock(fh, fcntl.LOCK_SH | fcntl.LOCK_NB)
+            fcntl.flock(fh, fcntl.LOCK_UN)
+            return ""
+        except BlockingIOError:
+            return fh.read().strip() or "a GPU job"
+
+
 def check(cfg: sys_config.Config | None = None) -> dict:
     cfg = cfg or sys_config.get()
     items = []
@@ -89,6 +104,8 @@ def check(cfg: sys_config.Config | None = None) -> dict:
             add(unit, "ok", "attivo e risponde", how)
         elif ok:
             add(unit, "warn", f"risponde ma systemd dice {state!r}", how)
+        elif unit == "aurora-llm" and state == "inactive" and (job := gpu_job(cfg)):
+            add(unit, "ok", f"spento apposta per un lavoro sulla GPU: {job}", "si riaccende alla fine (C157)")
         else:
             add(unit, "down", f"non risponde ({how}), systemd: {state}", url)
 

@@ -195,3 +195,16 @@ def test_a_project_s_report_is_not_flagged_as_false(cfg):
     assert not out.startswith("⚠️") and "1 file scritti nei progetti" in a._record()
     a.ledger = []
     assert a._honest("Ho modificato core.py e i test passano.").startswith("⚠️")
+
+
+
+def test_a_denied_action_is_not_a_claim():
+    """C155: «Non ho modificato codice, non ho creato sandbox e non ho proposto modifiche» flagged a weather report."""
+    from aurora.agt_loop import Agent
+    a = Agent.__new__(Agent)
+    a.ledger, a.pending, a.effects = [], [], {}
+    import logging
+    a.log = logging.getLogger("t")
+    text = "Meteo a Roma: 20 °C. Non ho modificato codice, non ho creato sandbox e non ho proposto modifiche: non servivano."
+    assert a._honest(text) == text
+    assert a._honest("I did not create a sandbox. Ho creato una sandbox e ho applicato il fix.").startswith("⚠️")

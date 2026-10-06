@@ -77,6 +77,26 @@ export default {
         box.append(row);
       }
       for (const p of f.config) box.append(el("p", "error", `⚠️ ${p}`));
+      // read live (sys_capabilities, owner 2026-10-06): plugins, connections, abilities — each with what is missing
+      for (const [k, rows] of Object.entries(f.live || {})) {
+        box.append(el("h3", "setting-cat", t(`status.live.${k}`, { ok: rows.filter((x) => x.ok).length, n: rows.length })));
+        if (k === "plugins") {                       // many: one line of chips, the missing keys on hover
+          const line = el("div", "chips");
+          for (const x of rows) {
+            const c = el("span", `chip ${x.ok ? "" : "off"}`, `${x.ok ? "✅" : "⚪"} ${x.label[code] || x.label.en}`);
+            c.title = x.detail || "";
+            line.append(c);
+          }
+          box.append(line);
+          continue;
+        }
+        for (const x of rows) {
+          const row = el("div", "ev");
+          row.append(el("span", "ic", x.ok ? "✅" : "⚪"), el("strong", "", x.label[code] || x.label.en), el("span", "muted", x.detail));
+          if (!x.ok && x.fix) row.append(el("code", "", x.fix));
+          box.append(row);
+        }
+      }
     }
     if (rem) {
       box.append(el("h3", "setting-cat", t("status.rem")));

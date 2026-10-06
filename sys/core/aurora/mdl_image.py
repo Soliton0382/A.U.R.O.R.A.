@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import contextlib
 import fcntl
+import io
 import json
 import subprocess
 import sys
@@ -82,6 +83,18 @@ def paint(prompt: str, name: str, cfg: sys_config.Config | None = None, emit=Non
     cfg = cfg or sys_config.get()
     log = sys_log.get_logger("image")
     ev = emit or (lambda e, d: None)
+    cloud = _cloud(cfg, "image", prompt, None, log)           # the Models page may give new pictures to a provider
+    if cloud is not None:
+        from PIL import Image
+        out_dir = cfg.path("AURORA_IMAGE_DIR")
+        out_dir.mkdir(parents=True, exist_ok=True)
+        with Image.open(io.BytesIO(cloud[0])) as img:
+            data = sys_disclosure.mark_image(img.convert("RGB"), title, "it", cfg)
+        target = out_dir / f"{name}.png"
+        target.write_bytes(data)
+        result = {"file": target.name, "swap": False, **cloud[1]}
+        ev("image.painted", result)
+        return result
     gpu, need = cfg["AURORA_IMAGE_GPU"], cfg["AURORA_IMAGE_MIN_FREE_GB"]
     out_dir = cfg.path("AURORA_IMAGE_DIR")
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -130,6 +143,26 @@ def paint(prompt: str, name: str, cfg: sys_config.Config | None = None, emit=Non
 AI_SCRIPT = Path(__file__).resolve().parents[1] / "script" / "img_ai.py"
 
 
+def _cloud(cfg: sys_config.Config, task: str, prompt: str, src: bytes | None, log) -> tuple[bytes, dict] | None:
+    """The picture from the provider the Models page chose for `task`, as PNG, or None: local, or the cloud failed
+    or refused (a photo on an installation not exempted) — then the local model does it, and the trace says why."""
+    from . import mdl_media
+    if mdl_media.provider(cfg, task)[0] == "local":
+        return None
+    try:
+        data, st = mdl_media.picture(cfg, task, prompt, src)
+        from PIL import Image
+        with Image.open(io.BytesIO(data)) as img:
+            buf = io.BytesIO()
+            img.save(buf, "PNG")
+        return buf.getvalue(), st
+    except Exception as e:                                # noqa: BLE001 — the local model is the fallback
+        log.warning("cloud %s failed, local instead: %s", task, e)
+        sys_log.trace("llm_client", "cloud.fallback", {"role": task, "provider": mdl_media.provider(cfg, task)[0],
+                                                       "error": str(e)[:300]})
+        return None
+
+
 def gpu_job(task: str, src: bytes, cfg: sys_config.Config | None = None, emit=None, need_gb: float = 0.0,
             prompt: str = "", scale: int = 4) -> tuple[bytes, dict]:
     """A picture job of img_ai.py (edit, upscale, cutout) on AURORA_IMAGE_GPU, in its own process. When the GPU has
@@ -138,6 +171,10 @@ def gpu_job(task: str, src: bytes, cfg: sys_config.Config | None = None, emit=No
     cfg = cfg or sys_config.get()
     log = sys_log.get_logger("image")
     ev = emit or (lambda e, d: None)
+    if task == "creative":                                   # a creative edit may go to a provider (Models page)
+        cloud = _cloud(cfg, "edit", prompt, src, log)
+        if cloud is not None:
+            return cloud
     gpu, swapped, t0 = cfg["AURORA_IMAGE_GPU"], False, time.time()
     lock = gpu_lock(cfg, cfg["AURORA_IMAGE_TIMEOUT_S"], f"picture {task}")
     lock.__enter__()

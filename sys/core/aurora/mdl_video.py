@@ -74,6 +74,19 @@ def generate(prompt_en: str, cfg: sys_config.Config | None = None, emit=None, im
     cfg = cfg or sys_config.get()
     log = sys_log.get_logger("video")
     ev = emit or (lambda e, d: None)
+    from . import mdl_media
+    if mdl_media.provider(cfg, "video")[0] != "local":       # the Models page gave videos to a cloud provider
+        try:
+            ev("video.start", {"from": "image" if image else "words", "provider": mdl_media.provider(cfg, "video")[1]})
+            data, st = mdl_media.video(cfg, prompt_en, image)
+            log.info("video done in the cloud: %s", st)
+            return data, st
+        except Exception as e:                            # noqa: BLE001 — said, then the local model if there is one
+            log.warning("cloud video failed, local instead: %s", e)
+            sys_log.trace("llm_client", "cloud.fallback", {"role": "video", "provider": mdl_media.provider(cfg, "video")[0],
+                                                           "error": str(e)[:300]})
+            if not available(cfg):
+                raise
     if not available(cfg):
         raise RuntimeError("the video model is not installed: sys_models_fetch.py --models video")
     gpu, need, swapped, t0 = cfg["AURORA_IMAGE_GPU"], cfg["AURORA_VIDEO_MIN_FREE_GB"], False, time.time()

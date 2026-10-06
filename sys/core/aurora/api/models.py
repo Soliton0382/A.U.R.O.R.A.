@@ -26,6 +26,24 @@ def models_overview() -> dict:
             "roles": [{"id": r, "it": it, "en": en, "sees": sees, **a[r]} for r, (it, en, sees) in mdl_router.ROLES.items()]}
 
 
+@router.get("/v1/aurora/models/media", dependencies=[Depends(auth)])
+def models_media() -> dict:
+    """Pictures, edits and videos: who makes them (mdl_media) and who could."""
+    from aurora import mdl_media, sys_ethics
+    return {"assigned": mdl_media.assignments(cfg), "choices": mdl_media.choices(cfg), "exempt": sys_ethics.exempt(cfg)}
+
+
+@router.put("/v1/aurora/models/media", dependencies=[Depends(auth)])
+async def models_media_set(request: Request) -> dict:
+    from aurora import mdl_media
+    try:
+        out = mdl_media.set_assignments(cfg, await request.json())
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
+    log.info("audit: media assignments: %s", ", ".join(f"{k}={v['provider']}" for k, v in out.items()))
+    return out
+
+
 @router.put("/v1/aurora/models/roles", dependencies=[Depends(auth)])
 async def models_roles(request: Request) -> dict:
     from aurora import mdl_router

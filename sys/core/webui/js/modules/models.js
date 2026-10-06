@@ -18,6 +18,7 @@ export default {
       <div class="md-state"></div>
       <h3 class="setting-cat" data-i18n="md.roles"></h3><div class="md-roles"></div>
       <div><button class="md-save" data-i18n="md.save"></button> <span class="muted md-out"></span></div>
+      <h3 class="setting-cat" data-i18n="md.media"></h3><p class="muted" data-i18n="md.media_hint"></p><div class="md-media"></div>
       <h3 class="setting-cat" data-i18n="md.stats"></h3>
       <div class="ev"><select class="md-days"><option value="1">24 h</option><option value="7" selected>7 gg</option><option value="30">30 gg</option></select></div>
       <div class="md-stats"></div>`;
@@ -47,7 +48,40 @@ export default {
     line("muted", t("md.pictures"));
     this.providers = m.providers;
     this.roles.replaceChildren(...m.roles.map((r) => this.row(r)));
+    this.loadMedia();
     this.loadStats(7);
+  },
+
+  // 🎨 pictures, edits, videos (owner, 2026-10-06): the local models or a provider that really does that task
+  async loadMedia() {
+    const box = this.root?.querySelector(".md-media") || document.querySelector(".md-media");
+    let m;
+    try { m = await call("/v1/aurora/models/media"); } catch (e) { box.replaceChildren(el("p", "muted", t("ev.error", { m: e.message }))); return; }
+    const out = el("span", "muted");
+    const rows = Object.entries(m.choices).map(([task, opts]) => {
+      const row = el("div", "ev");
+      const sel = el("select");
+      sel.dataset.task = task;
+      for (const o of opts) {
+        const op = el("option", "", o.provider === "local" ? t(`md.media_local.${task}`) : `${o.label} · ${o.model}${o.ready ? "" : ` — ${t("md.no_key")}`}`);
+        op.value = o.provider;
+        op.disabled = !o.ready && o.provider !== m.assigned[task].provider;
+        op.selected = o.provider === m.assigned[task].provider;
+        sel.append(op);
+      }
+      row.append(el("strong", "", t(`md.media.${task}`)), sel);
+      if (task !== "image" && !m.exempt) row.append(el("span", "muted", t("md.media_photo")));
+      return row;
+    });
+    const save = el("button", "", t("md.save"));
+    save.addEventListener("click", async () => {
+      const changes = Object.fromEntries([...box.querySelectorAll("select")].map((s) => [s.dataset.task, { provider: s.value }]));
+      try { await call("/v1/aurora/models/media", { method: "PUT", body: JSON.stringify(changes) }); out.textContent = t("md.saved"); }
+      catch (e) { out.textContent = t("ev.error", { m: e.message }); }
+    });
+    const bar = el("div");
+    bar.append(save, out);
+    box.replaceChildren(...rows, bar);
   },
 
   row(r) {

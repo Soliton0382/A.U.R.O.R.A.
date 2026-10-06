@@ -5,6 +5,7 @@
 import { call } from "../api.js";
 import { clock, el } from "../dom.js";
 import { apply, t } from "../i18n.js";
+import { renderIdeas } from "./ideas.js";
 
 export default {
   id: "bugreport",
@@ -14,6 +15,9 @@ export default {
   mount(root) {
     root.classList.add("page");
     root.innerHTML = `
+      <div class="prj-tabs"><button type="button" class="cat-chip on" data-tab="bug" data-i18n="bug.tab"></button><button type="button" class="cat-chip" data-tab="idea" data-i18n="idea.tab"></button></div>
+      <div class="bug-tab" data-tab="idea" hidden><h2 data-i18n="idea.title"></h2><p class="muted" data-i18n="idea.hint"></p><div class="ideas"></div></div>
+      <div class="bug-tab" data-tab="bug">
       <h2 data-i18n="bug.title"></h2><p class="muted" data-i18n="bug.hint"></p>
       <label data-i18n="bug.what"></label><textarea class="bug-what" rows="4"></textarea>
       <label data-i18n="bug.steps"></label><textarea class="bug-steps" rows="3"></textarea>
@@ -23,8 +27,13 @@ export default {
         <select class="bug-hours"><option value="2">2 h</option><option value="6" selected>6 h</option><option value="24">24 h</option><option value="72">72 h</option></select>
         <button class="bug-make" data-i18n="bug.make"></button></div>
       <div class="bug-out"></div>
-      <h3 class="setting-cat" data-i18n="bug.past"></h3><div class="bug-past"></div>`;
+      <h3 class="setting-cat" data-i18n="bug.past"></h3><div class="bug-past"></div></div>`;
     apply(root);
+    root.querySelectorAll(".prj-tabs button").forEach((b) => b.addEventListener("click", () => {
+      root.querySelectorAll(".prj-tabs button").forEach((x) => x.classList.toggle("on", x === b));
+      root.querySelectorAll(".bug-tab").forEach((p) => { p.hidden = p.dataset.tab !== b.dataset.tab; });
+      if (b.dataset.tab === "idea") renderIdeas(root.querySelector(".ideas"));
+    }));
     this.q = (s) => root.querySelector(s);
     this.q(".bug-make").addEventListener("click", () => this.make());
   },

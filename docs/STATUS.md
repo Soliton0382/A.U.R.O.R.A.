@@ -1,6 +1,6 @@
 # Status — work in progress
 
-Updated at every validated change (last: 2026-10-06). Details: BUGS.md (issues, 0 open / 154 closed),
+Updated at every validated change (last: 2026-10-06). Details: BUGS.md (issues, 0 open / 157 closed),
 MANUAL_TESTS.md (what the owner checks by hand),
 TESTS.md (tests and live checks), MEASUREMENTS.md (numbers), MODULE_MAP.md (who does what),
 SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSYSTEM.md (design and decisions).
@@ -28,6 +28,9 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | Aurora's voice | the device's own voice, or Aurora's made on her CPU (Piper) when the device has none — waits for `sys_tts_install.sh` | M114, test_tts |
 | agents and routines | a grid of icons; personal agents with a goal, chosen plugins, memory of the last report, a budget; clone | test_routines |
 | network map | the firewall's hosts, groups, interfaces, zones, DHCP reservations, read only and sealed; names in the incidents; what changed | M114, test_netmap |
+| security page | four tabs (incidents, defence and network, checks, what went out), each loaded when opened; the network drawn | M115 |
+| media providers | pictures, edits and videos: local or a cloud provider per task (Models page) | test_media; live: N86 |
+| ideas | 💡 a tidy request to improve Aurora, with its state | test_ideas |
 | synapses | links between domains grown at night (99 from 990 passages, 18 min), spread in the search, Hebbian, fading | M107, tests |
 | firewall undo | every block (the owner's or Aurora's) undone with one click; group and rule names shown once the API is set | live (N44), tests |
 | self-update | the clean clone updated itself from GitHub: 332 tests, 19.7 s | M103 bis |

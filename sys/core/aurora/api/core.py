@@ -419,16 +419,23 @@ def video_busy_answer(question: str, emit, run_id: str):
 def make_video(question: str, vp: dict, picture: tuple[str, bytes] | None, emit, run_id: str, remember: bool = True):
     """A short video (mdl_video): Aurora answers at once with the time it will take, makes it in the background
     (the reasoner is off meanwhile) and notifies the owner; the video is kept with this turn of the conversation."""
-    from aurora import mdl_video, sys_uploads
+    from aurora import mdl_media, mdl_video, sys_uploads
     it = str(cfg["AURORA_LANG_DEFAULT"]).startswith("it")
-    sys_features.need(cfg, "video_make", "it" if it else "en")
+    cloud = mdl_media.provider(cfg, "video")[0] != "local"      # a cloud provider (Models page): the reasoner stays on
+    if not cloud:
+        sys_features.need(cfg, "video_make", "it" if it else "en")
     if _video["busy"]:
         return video_busy_answer(question, emit, run_id)
-    minutes = mdl_video.estimate_minutes(cfg)
+    minutes = 3 if cloud else mdl_video.estimate_minutes(cfg)
     secs, title = cfg["AURORA_VIDEO_SECONDS"], vp["title"]
-    _video.update(busy=True, title=title, ready_at=time.time() + minutes * 60)
+    if not cloud:
+        _video.update(busy=True, title=title, ready_at=time.time() + minutes * 60)
     src = "dalla tua foto, " if it and picture else "from your picture, " if picture else ""
-    text = (f"🎬 Creo il video «{title}» ({src}{secs:g} secondi): ci vorranno circa {minutes} minuti. Mentre lo creo "
+    text = (f"🎬 Creo il video «{title}» ({src}con {mdl_media.provider(cfg, 'video')[1]}): qualche minuto; intanto puoi "
+            f"continuare a scrivermi, ti avviso quando è pronto." if it else
+            f"🎬 Making the video \"{title}\" ({src}with {mdl_media.provider(cfg, 'video')[1]}): a few minutes; you can "
+            f"keep writing to me meanwhile, I will tell you when it is ready.") if cloud else (
+            f"🎬 Creo il video «{title}» ({src}{secs:g} secondi): ci vorranno circa {minutes} minuti. Mentre lo creo "
             f"il ragionatore è spento, quindi non posso risponderti; ti avviso appena è pronto e lo trovi qui." if it else
             f"🎬 Making the video \"{title}\" ({src}{secs:g} seconds): about {minutes} minutes. Meanwhile my reasoner "
             f"is off, so I cannot answer; I will notify you when it is ready, and it will be here.")

@@ -8,6 +8,15 @@ import { restartPrompt } from "../restart.js";
 
 const TRUE = ["1", "true", "yes", "on"];
 
+// the areas of the settings' menu, each with its categories (a category the schema adds later goes to "system")
+const AREAS = [
+  ["ai", ["llm", "pipeline", "search", "embedder", "index", "memory", "rem", "autonomy", "agents"]],
+  ["knowledge", ["vault", "acquire", "harvest", "attachments", "documents", "projects"]],
+  ["people", ["interface", "users", "senses"]],
+  ["safety", ["security", "compliance", "backup", "https"]],
+  ["system", ["root", "layout", "network", "services", "logging", "plugins"]],
+];
+
 export default {
   id: "settings",
   icon: "⚙️",
@@ -31,7 +40,8 @@ export default {
     this.nav = root.querySelector(".settings-nav");
     this.filter = root.querySelector(".settings-filter");
     this.filter.placeholder = t("settings.filter");
-    this.filter.addEventListener("input", () => this.applyFilter());
+    this.filter.addEventListener("input", () => { if (this.filter.value) this.cat = ""; this.applyFilter(); });
+    this.cat = "";
     this.original = {};
     const out = root.querySelector(".result");
     root.querySelector(".save").addEventListener("click", async () => {
@@ -94,6 +104,7 @@ export default {
     this.box.replaceChildren();
     this.nav.replaceChildren();
     this.original = {};
+    this.names = {};
     let lastCat = null;
     // one section per category, in the declared order: the schema grows in any order (a category could repeat)
     const order = Object.keys(categories);
@@ -109,10 +120,7 @@ export default {
         const head = el("h3", "setting-cat", name);
         head.dataset.cat = s.category;
         this.box.append(head);
-        const chip = el("button", "cat-chip", name);
-        chip.type = "button";
-        chip.addEventListener("click", () => { this.filter.value = ""; this.applyFilter(); head.scrollIntoView({ behavior: "smooth" }); });
-        this.nav.append(chip);
+        this.names[s.category] = name;
       }
       // .env holds booleans as 1/0 or true/false: the select shows 1/0, so compare in that form
       if (s.type === "bool") s.value = TRUE.includes(String(s.value).toLowerCase()) ? "1" : "0";
@@ -145,14 +153,49 @@ export default {
       row.dataset.text = `${s.key} ${s[code] || s.en}`.toLowerCase();
       this.box.append(row);
     }
+    this.menu();
     this.applyFilter();
+  },
+
+  // 🗂️ three levels (owner, 2026-10-06: on the phone the chips of 29 categories took half the screen): a button opens
+  // the areas, an area its categories, a category shows only its settings; the search stays in sight
+  menu() {
+    const btn = el("button", "settings-menu-btn");
+    btn.type = "button";
+    const panel = el("div", "settings-menu hidden");
+    const label = () => { btn.textContent = `🗂️ ${this.cat ? this.names[this.cat] : t("settings.all")} ▾`; };
+    const pick = (cat) => { this.cat = cat; this.filter.value = ""; label(); panel.classList.add("hidden"); this.applyFilter(); };
+    btn.addEventListener("click", () => panel.classList.toggle("hidden"));
+    const all = el("button", "settings-menu-all", t("settings.all"));
+    all.type = "button";
+    all.addEventListener("click", () => pick(""));
+    panel.append(all);
+    const present = new Set(Object.keys(this.names));
+    const placed = new Set();
+    for (const [area, cats] of AREAS) {
+      const here = (area === "system" ? [...cats, ...[...present].filter((c) => !AREAS.some(([, l]) => l.includes(c)))] : cats)
+        .filter((c) => present.has(c) && !placed.has(c));
+      if (!here.length) continue;
+      here.forEach((c) => placed.add(c));
+      const d = el("details", "settings-area");
+      d.append(el("summary", "", `${t(`settings.area.${area}`)} · ${here.length}`));
+      for (const c of here) {
+        const b = el("button", "cat-chip", `${this.names[c]} (${this.box.querySelectorAll(`.setting[data-cat="${c}"]`).length})`);
+        b.type = "button";
+        b.addEventListener("click", () => pick(c));
+        d.append(b);
+      }
+      panel.append(d);
+    }
+    label();
+    this.nav.replaceChildren(btn, panel);
   },
 
   applyFilter() {
     const q = this.filter.value.trim().toLowerCase();
     const shown = new Set();
     this.box.querySelectorAll(".setting").forEach((r) => {
-      const hit = !q || r.dataset.text.includes(q);
+      const hit = (!q || r.dataset.text.includes(q)) && (q || !this.cat || r.dataset.cat === this.cat);
       r.classList.toggle("hidden", !hit);
       if (hit) shown.add(r.dataset.cat);
     });

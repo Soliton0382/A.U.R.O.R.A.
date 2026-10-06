@@ -134,6 +134,44 @@ def label(cfg: sys_config.Config, ip: str) -> str:
     return f"{n} ({ip})" if n else ip
 
 
+def graph(m: dict | None) -> dict:
+    """The map to draw (owner, 2026-10-06: "a button that opens a drawing of the network"): the firewall, its
+    interfaces with their zone and network, and on each one the devices whose address falls in it — named hosts and
+    reserved DHCP addresses, one entry per address (the firewall's own name wins over the DHCP host name)."""
+    if not m:
+        return {"at": None, "interfaces": [], "other": []}
+    devices: dict[str, dict] = {}
+    for s in m.get("dhcp", []):
+        for l in s["static"]:
+            devices[l["ip"]] = {"name": l["host"] or l["mac"], "ip": l["ip"], "kind": "dhcp", "groups": []}
+    for h in m.get("hosts", []):
+        if h["type"] == "IP" and h["address"] and not h["name"].startswith("aurora-block-"):
+            old = devices.get(h["address"], {})
+            devices[h["address"]] = {"name": h["name"], "ip": h["address"], "kind": "dhcp+host" if old else "host",
+                                     "groups": h["groups"]}
+    ifaces, placed = [], set()
+    for i in m.get("interfaces", []):
+        if not (i["ip"] and i["netmask"]):
+            continue
+        try:
+            net = ipaddress.ip_network(f"{i['ip']}/{i['netmask']}", strict=False)
+        except ValueError:
+            continue
+        inside = []
+        for ip, d in devices.items():
+            try:
+                if ip not in placed and ipaddress.ip_address(ip) in net:
+                    inside.append(d)
+                    placed.add(ip)
+            except ValueError:
+                continue
+        inside.sort(key=lambda d: tuple(int(x) for x in d["ip"].split(".")) if d["ip"].count(".") == 3 else (0,))
+        ifaces.append({"name": i["name"], "zone": i["zone"], "network": str(net), "ip": i["ip"], "status": i["status"],
+                       "devices": inside})
+    other = [d for ip, d in devices.items() if ip not in placed]
+    return {"at": m.get("at"), "interfaces": ifaces, "other": other, "routes": m.get("routes", [])}
+
+
 def find(m: dict, query: str) -> list[str]:
     """Lines about a name or an address (for the model: "che IP ha il NAS?", "chi è 192.0.2.10?")."""
     q = query.strip().lower()

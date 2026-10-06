@@ -32,6 +32,36 @@ async def bugreport_make(request: Request) -> dict:
     return {**out, "url": f"/v1/aurora/bugreports/{out['name']}"}
 
 
+@router.get("/v1/aurora/ideas", dependencies=[Depends(auth)])
+def ideas() -> dict:
+    from aurora import sys_ideas
+    items = sys_ideas.listing(cfg)
+    return {"ideas": [{**i, "markdown": sys_ideas.as_markdown(i)} for i in items], "areas": list(sys_ideas.AREAS),
+            "kinds": list(sys_ideas.KINDS), "priorities": list(sys_ideas.PRIORITIES), "states": list(sys_ideas.STATES)}
+
+
+@router.post("/v1/aurora/ideas", dependencies=[Depends(auth)])
+async def idea_add(request: Request) -> dict:
+    from aurora import sys_ideas
+    try:
+        it = sys_ideas.add(cfg, await request.json())
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
+    log.info("audit: idea %s added", it["id"])
+    return it
+
+
+@router.put("/v1/aurora/ideas/{iid}", dependencies=[Depends(auth)])
+async def idea_update(iid: str, request: Request) -> dict:
+    from aurora import sys_ideas
+    try:
+        return sys_ideas.update(cfg, iid, await request.json())
+    except KeyError:
+        raise HTTPException(status_code=404, detail="no such idea") from None
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
+
+
 @router.get("/v1/aurora/bugreports", dependencies=[Depends(auth)])
 def bugreports() -> list[dict]:
     from aurora import sys_bugreport
