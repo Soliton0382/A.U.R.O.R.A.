@@ -72,3 +72,25 @@ def test_a_provision_is_read_from_its_number():
     assert kno_cites.parse("Art. 9 d.lgs. 102/2014") == ("9", "normattiva:urn:nir:stato:decreto.legislativo:2014-%;102")
     assert kno_cites.parse("art. 6 d.P.R. 380/2001")[1].endswith("presidente.della.repubblica:2001-%;380")
     assert kno_cites.parse("il condominio") is None and kno_cites.parse("art. 3 Costituzione") is None
+
+
+def test_a_case_whose_provisions_were_refused_is_read_again_as_the_story():
+    """C189: with the problems listed the extraction said NONE to the civil code; once more on the story alone."""
+    import pytest
+    from aurora.kno_stages import Stages
+
+    asked, answers = [], iter(["NONE", "- Art. 1117: gli impianti idrici sono parti comuni [1]."])
+
+    def complete(system, user, max_tokens, think=False):
+        asked.append(user)
+        return SimpleNamespace(answer=next(answers))
+
+    events = []
+    me = SimpleNamespace(cfg={"AURORA_PIPELINE_GATE": False}, _for=lambda role: SimpleNamespace(complete=complete))
+    hit = SimpleNamespace(sid="a", rerank=0.9, query_used="cited",
+                          soliton=SimpleNamespace(domain="law_it", title="Codice civile", source_id="cc", text="Art. 1117"))
+    question = kno_split.with_searches(CASE, ["chi decide i contatori?"])
+    with pytest.raises(KeyError):                  # no synthesis settings: it stops there, the extraction is under test
+        Stages._answer(me, question, [hit], "", lambda e, p: events.append((e, p)))
+    assert kno_split.MARK in asked[0] and asked[1].startswith(f"QUESTION: {CASE}\n\nPASSAGES")
+    assert [p["kept"] for e, p in events if e == "synthesis.domain"] == [True]

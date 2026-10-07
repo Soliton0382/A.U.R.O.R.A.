@@ -97,6 +97,13 @@ class Stages:
             system = SYS_EXTRACT + (kno_split.EXTRACT_CASE if kno_split.is_case(question) else "")
             x = self._for("extract").complete(system, f"QUESTION: {question}\n\nPASSAGES:\n\n{_passages(hits, dom_ids)}", 700)
             keep = x.answer.strip().upper() != ABSTAIN_MARK
+            if not keep and kno_split.is_case(question) and any(hits[n - 1].query_used == "cited" for n in dom_ids):
+                # C189: with the problems listed the model looked for a passage that ANSWERS one and refused provisions
+                # that apply; the story alone, once more, read the civil code (owner's case replayed: 1 of 1;
+                # with the problems listed 0 of 4)
+                story = question.split(f"\n\n{kno_split.MARK}")[0]
+                x = self._for("extract").complete(system, f"QUESTION: {story}\n\nPASSAGES:\n\n{_passages(hits, dom_ids)}", 700)
+                keep = x.answer.strip().upper() != ABSTAIN_MARK
             ev("synthesis.domain", {"domain": domain, "passages": dom_ids, "kept": keep, "text": x.answer if keep else ""})
             if keep:
                 extracts[domain] = x.answer

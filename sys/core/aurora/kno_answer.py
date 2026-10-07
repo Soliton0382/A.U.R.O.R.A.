@@ -213,7 +213,7 @@ class Pipeline(Stages, SelfTalk):
                                     **({"came_from": result.came_from} if result.came_from else {}),
                                     **({"learn": True} if result.learn else {}),
                                     "mode": result.mode, "seconds": round(result.seconds, 1), "speed": result.speed,
-                                    "sources": [s["sid"] for s in result.sources],
+                                    "sources": [s["sid"] for s in result.sources if s.get("sid")],
                                     "source_list": result.sources,
                                     **({"suggestions": result.suggestions} if result.suggestions else {}),
                                     **(trail.export() if trail else {})})]

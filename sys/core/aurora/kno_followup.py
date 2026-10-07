@@ -113,7 +113,7 @@ def with_focus(p: "Pipeline", question: str, translation: str | None, hits: list
 
 
 def suggest(p: "Pipeline", question: str, answer_text: str, sources: list[dict], hits: list[Hit], ev) -> list[dict]:
-    cited = {s["sid"] for s in sources}
+    cited = {s.get("sid") for s in sources}
     pool = [h for h in hits if h.soliton.kind != "conversation"][:8]
     if not pool:
         return []

@@ -926,6 +926,20 @@ person) —, the shadow trained 20/20 in 22.3 min, reflections at 01:11, 02:55, 
 with 2 sources in 66.2 s, «cos'è l'entropia» with 2 in 56.5 s — both declined before the night (N77, the machine's
 part). Facebook: the owner's first video published (approval executed, 5.9 s). Security (C174/C175): see BUGS. The face beside the health dot (owner, same morning): /v1/aurora/mood 0.02 s from the REM's last measure (53 s old); headless at 1280×850 a mouse over it opens the card (7 rows, 124–544 px), away closes it; at 390×844 a tap opens it inside the screen (8–382 px, no sideways scroll), a tap elsewhere closes it.
 
+## M133 — The owner's case in the chat, after «abbiamo una base stabile?» (7 October 2026, C188-C189)
+
+| step | time | way | outcome |
+|---|---|---|---|
+| the case in the chat (before) | — | case → web | error in the chat: KeyError 'sid' while remembering a web answer (C188) |
+| «Chi decide l'installazione di contatori individuali…?» with memory, after C188 | 5.0 s | fact → web | answered and remembered |
+| the case with memory, after C188 | 73.2 s | case → deep → (law_it NONE) → web | answered from one web page; deep found nothing to extract (C189) |
+| the same, again | 35.9 s | case → web | the web answer says «imposed by law» and «optional» in the same text |
+| replay of the law_it extraction (15 passages, 51,023 characters) | — | — | problems listed «answers»: NONE 4 of 4 · story alone: extracted 1 of 1 · «answers or governs»: extracted 2 of 3 |
+| the case after C189, twice | 79.6 s, 75.7 s | case → deep | law_it kept; problem by problem on arts. 1117, 1122, 1122-bis, 1136, 1118 c.c., 4 sources; the builder's opposition: «no provision in my vault», said by dropping, not by silence |
+
+D.Lgs. 102/2014 (individual meters in condominiums) was among the passages and is not in the final answer: not
+investigated.
+
 ## M132 — A day of use, through the API as in the chat (7 October 2026)
 
 | request | time | way | outcome |

@@ -40,7 +40,10 @@ CASE_NOTE = {"it": "⚖️ Sono le norme che il mio vault contiene su questi pun
 
 EXTRACT_CASE = (" THIS QUESTION IS A CASE: leave out every passage from an act that does not apply to this kind of "
                 "building and of people — e.g. the law on public or social housing (edilizia popolare ed economica) for "
-                "private homes or villas — even if its words match.")
+                "private homes or villas — even if its words match. A provision that GOVERNS the situation of the case "
+                "(common parts, works on one's own unit or on common installations, who decides and with which majority, "
+                "the owners' duties and costs) is relevant even when it never names the object of the case: extract "
+                "what it says and whom it binds, so that the answer can apply it.")
 
 
 def is_case(question: str) -> bool:
@@ -119,4 +122,5 @@ def with_searches(question: str, subs: list[str]) -> str:
     """The question as the gate and the extraction read it: the story, then the problems it holds."""
     if not subs:
         return question
-    return question + f"\n\n{MARK} (a passage that answers any of them counts):\n" + "\n".join(f"- {s}" for s in subs)
+    return question + f"\n\n{MARK} (a passage that answers any of them, or a provision that governs it, counts):\n" + \
+        "\n".join(f"- {s}" for s in subs)

@@ -103,3 +103,17 @@ def test_a_follow_up_reads_the_sources_in_focus_first(run, monkeypatch):
     (r, _, _, _) = T.answer(SimpleNamespace(cfg={}), "e chi l'ha inventato?", None, "auto", lambda rc: (["h"], []),
                             lambda h, s: None, lambda e, pl: None, focused=True)
     assert calls == ["vault(fact)"] and r["came_from"] == "vault"                     # not the slow pipeline, not the web
+
+
+def test_a_web_answer_is_remembered_with_its_links(monkeypatch):
+    """C188: web sources carry no vault sid; remembering the answer raised KeyError and the chat showed an error."""
+    from aurora.kno_answer import Pipeline
+    from aurora.kno_trail import Answer
+    written = []
+    fake = SimpleNamespace(writer=SimpleNamespace(add_many=lambda turns, run_id: written.extend(turns) or SimpleNamespace(written=turns)),
+                           indexer=SimpleNamespace(update=lambda *a, **k: 0))
+    web = {"n": 1, "url": "https://example.org/a", "title": "A", "source": "https://example.org/a", "domain": "web"}
+    ans = Answer("r1", "chi decide?", "L'assemblea [1].", False, sources=[web], came_from="web")
+    Pipeline.remember(fake, "chi decide?", ans, "r1", lambda *a: None)
+    reply = written[1].extra
+    assert reply["sources"] == [] and reply["source_list"] == [web] and reply["came_from"] == "web"
