@@ -15,6 +15,7 @@ Never blocked: loopback, link-local, multicast, the firewall itself, this machin
 """
 from __future__ import annotations
 
+import contextlib
 import ipaddress
 import re
 import socket
@@ -81,6 +82,22 @@ def blockable(cfg: sys_config.Config, ip: str) -> str:
     return str(a)
 
 
+@contextlib.contextmanager
+def _one_at_a_time(cfg: sys_config.Config):
+    """One API call at a time on this machine, across processes (the API, the security plugin, the sentinel): the
+    firewall refused simultaneous logins of the same user as «wrong credentials» — three in one second (C192), and it
+    locks the user out after 5 failures in a minute."""
+    import fcntl
+    f = cfg.path("AURORA_STATUS_DIR") / "security" / "fwapi.lock"
+    f.parent.mkdir(parents=True, exist_ok=True)
+    with open(f, "a") as h:
+        fcntl.flock(h, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(h, fcntl.LOCK_UN)
+
+
 def request(cfg: sys_config.Config, body: str) -> str:
     """One API call; returns the firewall's XML answer. FirewallAPIError when the login or the call is refused."""
     if not configured(cfg):
@@ -91,7 +108,8 @@ def request(cfg: sys_config.Config, body: str) -> str:
            f'<Password>{escape(str(cfg["AURORA_FIREWALL_API_PASSWORD"]))}</Password></Login>{body}</Request>')
     url = base_url(cfg) + "/webconsole/APIController"
     try:
-        r = httpx.post(url, files={"reqxml": (None, xml)}, timeout=30, verify=bool(cfg["AURORA_FIREWALL_VERIFY_TLS"]))
+        with _one_at_a_time(cfg):
+            r = httpx.post(url, files={"reqxml": (None, xml)}, timeout=30, verify=bool(cfg["AURORA_FIREWALL_VERIFY_TLS"]))
     except httpx.HTTPError as e:
         raise FirewallAPIError(f"the firewall does not answer: {e}") from None
     text = r.text

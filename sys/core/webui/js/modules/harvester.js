@@ -6,6 +6,7 @@ import { call } from "../api.js";
 import { clock, el } from "../dom.js";
 import { apply, lang, t } from "../i18n.js";
 import { restartPrompt } from "../restart.js";
+import { autonomySlot } from "./autonomy_box.js";
 
 const when = (s) => (s ? clock(new Date(s * 1000).toISOString()) : "—");
 
@@ -32,6 +33,7 @@ export default {
       <textarea class="batch-items" rows="6"></textarea>
       <div><button class="send" data-i18n="harvest.send"></button></div>
       <div class="batch-progress"></div>`;
+    root.querySelector("h2").after(autonomySlot("knowledge", "study"));   // how free Aurora is, here (owner, 2026-10-08)
     apply(root);
     this.stateBox = root.querySelector(".harvest-state");
     this.domainsBox = root.querySelector(".harvest-domains");

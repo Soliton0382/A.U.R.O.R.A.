@@ -6,6 +6,7 @@
 import { call } from "../api.js";
 import { clock, el } from "../dom.js";
 import { apply, t } from "../i18n.js";
+import { autonomySlot } from "./autonomy_box.js";
 
 export default {
   id: "synapses",
@@ -25,6 +26,7 @@ export default {
         <button class="syn-go" data-i18n="syn.show"></button>
       </div>
       <div class="syn-list"></div><div class="syn-more"></div>`;
+    root.querySelector("h2").after(autonomySlot("shadow", "train"));   // how free Aurora is, here (owner, 2026-10-08)
     apply(root);
     this.q = (s) => root.querySelector(s);
     this.q(".syn-go").addEventListener("click", () => this.links(0));

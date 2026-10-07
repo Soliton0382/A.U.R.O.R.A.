@@ -3487,10 +3487,84 @@
    "key": "AURORA_SECURITY_SYSLOG_DOC",
    "type": "str",
    "category": "security",
-   "recommended": "https://docs.sophos.com/nsg/sophos-firewall/21.5/syslog/index.html",
+   "recommended": "https://docs.sophos.com/nsg/sophos-firewall/22.0/syslog/index.html",
    "evidence": "owner",
    "en": "The firewall's official syslog documentation: Aurora reads it with the traffic the firewall really sends and proposes what to watch (Security page).",
    "it": "La documentazione ufficiale del syslog del firewall: Aurora la legge insieme al traffico che il firewall manda davvero e propone cosa controllare (pagina Sicurezza).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_FIREWALL_MANUAL_URL",
+   "type": "str",
+   "category": "security",
+   "recommended": "https://docs.sophos.com/nsg/sophos-firewall/22.0/Help/en-us/webhelp/onlinehelp/index.html",
+   "evidence": "owner, 2026-10-07",
+   "en": "The firewall's official administrator help: Aurora keeps it indexed on this machine (never published) and reads it before every operation on the firewall. A new firmware: change the version in the link.",
+   "it": "Il manuale ufficiale del firewall: Aurora lo tiene indicizzato su questa macchina (mai pubblicato) e lo legge prima di ogni operazione sul firewall. Con un firmware nuovo basta cambiare la versione nel link.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_FIREWALL_API_DOC_URL",
+   "type": "str",
+   "category": "security",
+   "recommended": "https://docs.sophos.com/nsg/sophos-firewall/22.0/api/index.html",
+   "evidence": "owner, 2026-10-07",
+   "en": "The firewall's XML API reference: the sample request of each operation is what Aurora follows to write rules and NAT.",
+   "it": "Il riferimento dell'API XML del firewall: l'esempio di ogni operazione è ciò che Aurora segue per scrivere regole e NAT.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_HUNT_IGNORE",
+   "type": "str",
+   "category": "security",
+   "recommended": "",
+   "evidence": "owner, 2026-10-07",
+   "en": "Addresses of the house allowed to touch many devices or call outside regularly (your network scanner, a monitoring server), comma separated: the threat hunt leaves them out.",
+   "it": "Indirizzi della casa autorizzati a toccare molti dispositivi o a chiamare fuori a intervalli regolari (il tuo scanner di rete, un server di monitoraggio), separati da virgola: la caccia alle minacce li esclude.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_FIREWALL_WRITE",
+   "type": "bool",
+   "category": "security",
+   "recommended": "0",
+   "evidence": "owner, 2026-10-07",
+   "en": "Aurora may change the firewall beyond her blocking group: publish a server (NAT and rule), put a device in quarantine, apply an IPS policy. Every change waits for your approval, starts from a saved copy and is undone by itself if the firewall stops answering.",
+   "it": "Aurora può modificare il firewall oltre al gruppo dei blocchi: pubblicare un server (NAT e regola), mettere in quarantena un dispositivo, applicare una policy IPS. Ogni modifica aspetta la tua approvazione, parte da una copia salvata e si annulla da sola se il firewall smette di rispondere.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_FIREWALL_CONFIRM_S",
+   "type": "int",
+   "category": "security",
+   "recommended": "60",
+   "evidence": "owner, 2026-10-07",
+   "en": "Seconds after a change in which the firewall must still answer Aurora's API, or the change is undone (like a router's «commit confirmed»).",
+   "it": "Secondi dopo una modifica entro cui il firewall deve ancora rispondere all'API di Aurora, altrimenti la modifica si annulla (come il «commit confirmed» dei router).",
+   "min": 10,
+   "max": 900,
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_QUARANTINE_GROUP",
+   "type": "str",
+   "category": "security",
+   "recommended": "Aurora-Quarantine",
+   "evidence": "owner, 2026-10-07",
+   "en": "The firewall's group of the devices in quarantine: a rule made once by Aurora (with your approval) drops all their traffic but towards the firewall itself.",
+   "it": "Il gruppo del firewall dei dispositivi in quarantena: una regola creata una volta da Aurora (con la tua approvazione) ne scarta tutto il traffico tranne quello verso il firewall stesso.",
    "services": [
     "aurora-api"
    ]

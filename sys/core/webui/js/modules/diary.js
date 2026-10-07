@@ -7,6 +7,7 @@ import { apply, t } from "../i18n.js";
 import { renderMarkdown } from "../md.js";
 import { shareButton } from "../share.js";
 import { view } from "../viewer.js";
+import { autonomySlot } from "./autonomy_box.js";
 
 const ICON = { session_memory: "🗂️", thought: "💭", dream: "🌌" };
 
@@ -18,6 +19,7 @@ export default {
   mount(root) {
     root.classList.add("page");
     root.innerHTML = `<h2 data-i18n="diary.title"></h2><p class="muted" data-i18n="diary.hint"></p><div class="entries"></div>`;
+    root.querySelector("h2").after(autonomySlot("inner", "morning"));   // how free Aurora is, here (owner, 2026-10-08)
     apply(root);
     this.box = root.querySelector(".entries");
   },

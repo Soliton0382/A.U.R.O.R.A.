@@ -3,8 +3,8 @@
   "version": "1.0",
   "kind": "tool",
   "description": {
-    "en": "What the firewall saw, read only: the incidents raised by the sentinel and a summary of the firewall's traffic over a window (allowed and denied, IPS events, busiest denied sources and ports), and a morning report of the night.",
-    "it": "Cosa ha visto il firewall, in sola lettura: gli incidenti sollevati dalla sentinella e un riassunto del traffico in una finestra di ore (permesso e negato, eventi IPS, sorgenti e porte più negate), più un resoconto mattutino della notte."
+    "en": "The house's security officer on the firewall: incidents and traffic, an audit of the configuration (published services, IPS, administration, blocking rule), threat hunting in the logs (beaconing, lateral movement, threat-protection matches judged, dubious domains, admin logins and changes), the security posture with playbooks, the firewall's manual and API searched on this machine, and changes — publish a server, quarantine a device, harden a rule — planned by Aurora and applied only with the owner's approval, undone by themselves if anything fails.",
+    "it": "La responsabile della sicurezza di casa sul firewall: incidenti e traffico, audit della configurazione (servizi pubblicati, IPS, amministrazione, regola dei blocchi), caccia alle minacce nei log (chiamate regolari verso l'esterno, movimento laterale, allarmi ATP giudicati, domini dubbi, login e modifiche al firewall), il quadro della sicurezza con i playbook, il manuale e l'API del firewall consultati in locale, e modifiche — pubblicare un server, mettere in quarantena un dispositivo, proteggere una regola — preparate da Aurora e applicate solo con la tua approvazione, annullate da sole se qualcosa va storto."
   },
   "command": [
     "{python}",
@@ -13,6 +13,14 @@
   "env": [],
   "requires": [],
   "effects": {
+    "firewall_docs_refresh": "write_local",
+    "firewall_plan_publish": "write_local",
+    "firewall_plan_unpublish": "write_local",
+    "firewall_plan_quarantine": "write_local",
+    "firewall_plan_release": "write_local",
+    "firewall_plan_harden": "write_local",
+    "firewall_apply": "external",
+    "firewall_revert": "external",
     "*": "read"
   },
   "welcome": {
@@ -39,6 +47,7 @@
       "event": "routine.done"
     },
     {"id": "network", "title": {"it": "Dispositivi nuovi nella rete", "en": "New devices on the network"}, "kind": "tool", "tool": "network_changes", "args": {}, "schedule": {"every": "day", "at": "07:30"}, "notify": "if_any", "event": "routine.done"},
+    {"id": "hunt", "title": {"it": "Caccia alle minacce (ogni 6 ore)", "en": "Threat hunt (every 6 hours)"}, "kind": "tool", "tool": "threat_hunt", "args": {"hours": 6, "only_new": true}, "schedule": {"every": "hours", "hours": 6}, "notify": "if_any", "event": "routine.done"},
     {"id": "weekly", "title": {"it": "Sicurezza della settimana (punteggio)", "en": "The week's security (score)"}, "kind": "tool", "tool": "security_weekly_report", "args": {"days": 7}, "schedule": {"every": "week", "weekday": 0, "at": "08:30"}, "notify": "always", "event": "routine.done"}
   ],
   "setup": {
@@ -58,6 +67,12 @@
     "AURORA_FIREWALL_API_USER",
     "AURORA_FIREWALL_API_PASSWORD",
     "AURORA_FIREWALL_VERIFY_TLS",
-    "AURORA_FIREWALL_BLOCK_GROUP"
+    "AURORA_FIREWALL_BLOCK_GROUP",
+    "AURORA_FIREWALL_MANUAL_URL",
+    "AURORA_FIREWALL_API_DOC_URL",
+    "AURORA_HUNT_IGNORE",
+    "AURORA_FIREWALL_WRITE",
+    "AURORA_FIREWALL_CONFIRM_S",
+    "AURORA_QUARANTINE_GROUP"
   ]
 }

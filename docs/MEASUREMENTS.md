@@ -926,6 +926,22 @@ person) —, the shadow trained 20/20 in 22.3 min, reflections at 01:11, 02:55, 
 with 2 sources in 66.2 s, «cos'è l'entropia» with 2 in 56.5 s — both declined before the night (N77, the machine's
 part). Facebook: the owner's first video published (approval executed, 5.9 s). Security (C174/C175): see BUGS. The face beside the health dot (owner, same morning): /v1/aurora/mood 0.02 s from the REM's last measure (53 s old); headless at 1280×850 a mouse over it opens the card (7 rows, 124–544 px), away closes it; at 390×844 a tap opens it inside the screen (8–382 px, no sideways scroll), a tap elsewhere closes it.
 
+## M134 — The security officer on the firewall (7-8 October 2026, roadmap 59-60)
+
+Sophos Firewall SFOS 22.0.2 MR-2, the owner's, read through its API; the last 24 hours of its syslog.
+
+| piece | measured |
+|---|---|
+| documentation indexed (sec_fwdocs) | 1,234 pages (manual 881, API 352, syslog 1), 5,460 passages, 144 sample requests, 684 s; 69 API pages listed by Sophos's own index answer 404 |
+| a search in it | «DNAT port forwarding» → «How to configure NAT», under 0.1 s (FTS5, no GPU) |
+| audit (sec_audit) | 10.8-10.9 s, 13 requests; first run: 1 🔴 (a published media server: no IPS, no log, open to everyone — and an IPS policy made for it, not applied), 3 🟡; the owner applied that policy the same night: then 0 🔴, 1 🟠 (log still off) |
+| hunt (sec_hunt) | 195,623 lines in 4.2 s; 7 findings: scanners from 3 addresses of a threat feed on the published port, one on Aurora's 443 (a DNAT that existed a few hours that day), a PC touching 22 devices in 10 minutes, dubious domains on two phones (a VPN service, a newly registered domain), an ATP match on a Google Cloud address judged a false positive, 22 configuration changes with who and from where |
+| posture (sec_playbook) | 15.1 s through the plugin; after the correlation fix the owner's own edits and a false positive no longer make the owner's phone a suspect |
+| shared networks (sec_intel) | Cloudflare 15, Google Cloud 1,012, Google 130 ranges; three addresses blocked that day by the owner's clicks are Cloudflare's (C190) |
+| firewall API | three simultaneous logins refused in one second (C192); after the lock, only successful logins |
+
+Not measured: a write on the firewall (the first one is the owner's: N110-N112), the pages in a browser (N113-N115).
+
 ## M133 — The owner's case in the chat, after «abbiamo una base stabile?» (7 October 2026, C188-C189)
 
 | step | time | way | outcome |

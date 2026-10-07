@@ -29,6 +29,9 @@ async def sentinel_incident(request: Request) -> dict:
         hits = sec_intel.lookup(cfg, incident.get("source", ""))
         if hits:
             incident["intel_lists"] = hits
+        provider = sec_intel.shared(cfg, incident.get("source", ""))
+        if provider:                                      # a CDN's or a cloud's: blocking it cuts off sites (C190)
+            incident["shared"] = provider
     item = Incidents(cfg).add(incident)
     if item.get("merged"):                                # a repeat of an open incident: counted, not said again
         return {"id": item["id"], "severity": item["severity"], "merged": True}

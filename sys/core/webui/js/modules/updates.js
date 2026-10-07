@@ -6,6 +6,7 @@ import { call } from "../api.js";
 import { clock, el } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { restartPrompt } from "../restart.js";
+import { autonomySlot } from "./autonomy_box.js";
 
 export default {
   id: "updates",
@@ -19,6 +20,7 @@ export default {
       <p class="muted" data-i18n="update.hint"></p>
       <div class="upd-mode"></div>
       <div class="upd-state"></div>`;
+    root.querySelector("h2").after(autonomySlot("updates"));   // how free Aurora is, here (owner, 2026-10-08)
     apply(root);
     this.ctx = ctx;
     this.modeBox = root.querySelector(".upd-mode");

@@ -88,15 +88,25 @@ def plugins() -> list[dict]:
 
 @router.post("/v1/aurora/plugins/{name}/{action}", dependencies=[Depends(auth)])
 def plugin_switch(name: str, action: str) -> dict:
-    """enable / disable (for everyone), share / unshare (the users may use it, or only the admin): the admin's."""
+    """enable / disable (for everyone), share / unshare (the users may use it, or only the admin), delete (into the
+    trash, plg_trash): the admin's."""
     from aurora import plg_access
-    if action not in ("enable", "disable", "share", "unshare"):
+    if action not in ("enable", "disable", "share", "unshare", "delete"):
         raise HTTPException(status_code=404, detail="unknown action")
     if me() != _admin():
         raise HTTPException(status_code=403, detail="only the admin switches plugins")
     host = plugin_host()
     if name not in {p.name for p in host.plugins(with_tools=False)}:
         raise HTTPException(status_code=404, detail="unknown plugin")
+    if action == "delete":
+        from aurora import plg_trash
+        if name == "cloudflare":                      # its service goes with it
+            from .tunnel import stop_tunnel
+            stop_tunnel()
+        try:
+            return plg_trash.delete(cfg, name)
+        except plg_trash.TrashError as e:
+            raise HTTPException(status_code=409, detail=str(e)) from None
     if action in ("share", "unshare"):
         plg_access.set_for_users(cfg, name, action == "share")
         log.info("audit: plugin %s %s", name, "shared with the users" if action == "share" else "kept for the admin")
@@ -106,6 +116,26 @@ def plugin_switch(name: str, action: str) -> dict:
         from .tunnel import start_tunnel, stop_tunnel
         start_tunnel() if action == "enable" else stop_tunnel()
     return {"name": name, "enabled": action == "enable"}
+
+
+@router.get("/v1/aurora/plugins-trash", dependencies=[Depends(auth)])
+def plugins_trash() -> list[dict]:
+    """The deleted plugins, newest first: the admin's."""
+    from aurora import plg_trash
+    if me() != _admin():
+        raise HTTPException(status_code=403, detail="only the admin")
+    return plg_trash.trashed(cfg)
+
+
+@router.post("/v1/aurora/plugins-trash/{item}/restore", dependencies=[Depends(auth)])
+def plugins_restore(item: str) -> dict:
+    from aurora import plg_trash
+    if me() != _admin():
+        raise HTTPException(status_code=403, detail="only the admin")
+    try:
+        return plg_trash.restore(cfg, item)
+    except plg_trash.TrashError as e:
+        raise HTTPException(status_code=409, detail=str(e)) from None
 
 
 ICON_DEFAULT = {"tool": "🛠️", "connector": "🔌", "service": "🛰️", "trigger": "⚡"}

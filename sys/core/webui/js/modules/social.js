@@ -9,6 +9,7 @@ import { clock, el } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { approvalCard, isPost, socialPlugins } from "./approvals.js";
 import { videoSection } from "./social_video.js";
+import { autonomySlot } from "./autonomy_box.js";
 
 // what a post would give away (owner, 2026-10-05): the names of private people, places, contacts, ids — read by the
 // local model; each finding with its replacement, the sure ones ticked; "apply" rewrites the text, then onApply
@@ -68,6 +69,7 @@ export default {
       <h3 class="setting-cat" data-i18n="social.video.title"></h3><div class="soc-video"></div>
       <h3 class="setting-cat" data-i18n="social.report"></h3><div class="report"></div>
       <h3 class="setting-cat" data-i18n="social.history"></h3><div class="soc-history"></div>`;
+    root.querySelector("h2").after(autonomySlot("social"));   // how free Aurora is, here (owner, 2026-10-08)
     apply(root);
     this.platforms = root.querySelector(".platforms");
     this.drafts = root.querySelector(".drafts");

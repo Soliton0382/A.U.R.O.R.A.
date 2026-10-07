@@ -11,15 +11,16 @@ import { apply, t } from "../i18n.js";
 import { renderMarkdown } from "../md.js";
 import { defence } from "./security_defence.js";
 import { watch } from "./security_watch.js";
+import { autonomySlot } from "./autonomy_box.js";
 
 const TABS = ["incidents", "defence", "watch", "out"];
 
 const SEV = { high: "bad", medium: "warn", low: "ok" };
 
-export default {
-  id: "security",
-  icon: "🛡️",
-  title: "nav.security",
+// each tab is a page of its own in the menu's security area (owner, 2026-10-08: «sotto menù specifici… così teniamo
+// le cose separate e pulite»): the same code, one tab shown, its tab bar hidden
+export function page(tab, meta) { const { title } = meta; return {
+  ...meta,
   plugin: "security",                 // in the menu only when that plugin is on (social: any platform connected)
 
   mount(root) {
@@ -40,9 +41,13 @@ export default {
         <div class="sec-rules"></div><details class="report"><summary data-i18n="sec.traffic"></summary><div class="sec-groups"></div></details></div>
       <div class="sec-tab" data-tab="out" hidden>
         <h3 class="setting-cat" data-i18n="sec.out"></h3><p class="muted" data-i18n="sec.out_hint"></p><div class="sec-out"></div></div>`;
+    root.querySelector(".prj-tabs").hidden = true;
+    root.querySelectorAll(".sec-tab").forEach((p) => { p.hidden = p.dataset.tab !== tab; });
+    root.querySelector("h2").dataset.i18n = title;
+    root.querySelector("h2").after(autonomySlot("security"));
     apply(root);
     this.loaded = new Set();
-    this.tab = "incidents";
+    this.tab = tab;
     root.querySelectorAll(".prj-tabs button").forEach((b) => b.addEventListener("click", () => {
       root.querySelectorAll(".prj-tabs button").forEach((x) => x.classList.toggle("on", x === b));
       root.querySelectorAll(".sec-tab").forEach((p) => { p.hidden = p.dataset.tab !== b.dataset.tab; });
@@ -100,9 +105,11 @@ export default {
     if (this.blocked.has(i.source)) c.append(el("p", "ok", `🛡️ ${t("sec.already_blocked")}`));
     // the owner's click is the consent; never offered for an address at home (the owner's devices, C174)
     else if (this.fwApi && !i.internal && /^\d+\.\d+\.\d+\.\d+$/.test(i.source)) {
+      // a CDN's or a cloud's shared address (C190): the owner may block it, warned first
+      if (i.shared) c.append(el("p", "warn", `⚠️ ${t("sec.shared", { who: i.shared })}`));
       const block = el("button", "danger", `⛔ ${t("sec.block", { ip: i.source })}`);
       block.addEventListener("click", async () => {
-        if (!confirm(t("sec.block_q", { ip: i.source, group: this.group }))) return;
+        if (!confirm(t("sec.block_q", { ip: i.source, group: this.group }) + (i.shared ? `\n\n⚠️ ${t("sec.shared", { who: i.shared })}` : ""))) return;
         try {
           await call("/v1/aurora/security/block", { method: "POST", body: JSON.stringify({ ip: i.source, reason: `${i.kind} ${i.id}`, incident: i.id }) });
           this.blocked.add(i.source);
@@ -168,4 +175,6 @@ export default {
     this.loaded.clear();
     await this.show(this.tab, true);
   },
-};
+}; }
+
+export default page("incidents", { id: "security", icon: "🚨", title: "nav.sec.incidents" });

@@ -8,6 +8,7 @@ import { el, toBase64, useCss } from "../dom.js";
 import { apply, lang, t } from "../i18n.js";
 import { renderMarkdown } from "../md.js";
 import { restartPrompt } from "../restart.js";
+import { autonomySlot } from "./autonomy_box.js";
 
 export default {
   id: "plugins",
@@ -18,8 +19,10 @@ export default {
     useCss("/static/css/agents.css");
     root.classList.add("page");
     root.innerHTML = `<h2 data-i18n="plug.title"></h2><p class="muted" data-i18n="plug.hint"></p><div class="plug-grid"></div>`;
+    root.querySelector("h2").after(autonomySlot("forge"));   // how free Aurora is, here (owner, 2026-10-08)
     apply(root);
     this.grid = root.querySelector(".plug-grid");
+    this.root = root;
   },
 
   async enter() {
@@ -37,6 +40,23 @@ export default {
       b.addEventListener("click", () => this.open(p, code));
       return b;
     }));
+    this.root?.querySelector(".plug-trash")?.remove();
+    if (!this.me.admin) return;                      // the trash is the admin's, like deleting
+    const items = await call("/v1/aurora/plugins-trash").catch(() => []);
+    if (!items.length) return;
+    const box = el("details", "plug-trash");
+    box.append(el("summary", "", `🗑️ ${t("plug.trash", { n: items.length })}`));
+    for (const it of items) {
+      const row = el("div", "appr-actions");
+      const back = el("button", "", `↩️ ${t("plug.restore")}`);
+      back.addEventListener("click", async () => {
+        try { await call(`/v1/aurora/plugins-trash/${it.id}/restore`, { method: "POST" }); this.enter(); bus.emit("plugins", {}); }
+        catch (e) { alert(e.message); }
+      });
+      row.append(el("span", "", `${it.name} · ${new Date(it.at * 1000).toLocaleString()}`), back);
+      box.append(row);
+    }
+    this.grid.after(box);
   },
 
   async open(p, code) {
@@ -69,6 +89,17 @@ export default {
       });
       share.append(box, el("span", "", t("plug.users")));
       stRow.append(sw, share);
+      if (p.name !== "self") {                      // deleted into the trash: restored from the foot of this page
+        const del = el("button", "danger", `🗑️ ${t("plug.delete")}`);
+        del.addEventListener("click", async () => {
+          if (!confirm(t("plug.delete_q", { name: p.name }))) return;
+          try { await call(`/v1/aurora/plugins/${p.name}/delete`, { method: "POST" }); }
+          catch (e) { alert(e.message); return; }
+          dlg.close(); dlg.remove(); this.enter();
+          bus.emit("plugins", {});
+        });
+        stRow.append(del);
+      }
     }
     dlg.append(stRow);
     if (p.name === "backup") {                      // the backup itself: last copy, next one, 💾 Run now

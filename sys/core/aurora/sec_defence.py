@@ -8,6 +8,8 @@ Auto blocks an incident's source only when ALL hold:
 - the installation is exempted from the ethics code's level B (rule 7: an action outside the machine waits for the
   owner otherwise) — the code's level A asks exactly this: "an attack is answered by defence";
 - the incident's severity reaches AURORA_DEFENCE_MIN_SEVERITY;
+- the source is not a shared address of a CDN or a cloud (sec_intel.SHARED: Cloudflare, Google), which serves many
+  sites and the owner's tunnel (C190);
 - the source is a public address: an address of the local network is never blocked by herself (a device of the
   house behaving badly is told, the owner decides), nor one of AURORA_DEFENCE_PROTECTED, nor what sec_fwapi refuses
   (the firewall, this machine, special addresses);
@@ -82,6 +84,10 @@ def decide(cfg: sys_config.Config, incident: dict) -> tuple[bool, str]:
         return False, "an address of the local network: told, never blocked by herself"
     if any(ip in net for net in protected(cfg)):
         return False, "a protected address"
+    from . import sec_intel
+    provider = sec_intel.shared(cfg, str(ip))
+    if provider:                         # a CDN or cloud address serves many sites, the owner's tunnel too (C190)
+        return False, f"a shared address of {provider}: blocking it may cut off sites and services — the owner decides"
     try:
         sec_fwapi.blockable(cfg, str(ip))
     except sec_fwapi.FirewallAPIError as e:

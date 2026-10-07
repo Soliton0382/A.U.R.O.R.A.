@@ -27,6 +27,15 @@ FEEDS = {
     "firehol_l1": ("https://iplists.firehol.org/files/firehol_level1.netset",
                    "FireHOL livello 1: attaccante noto"),
 }
+# Shared infrastructure (owner, 2026-10-07: Aurora blocked three Cloudflare addresses in one day): networks that serve
+# millions of sites and the owner's own tunnel. Not attackers — kept apart from FEEDS: an address here is never blocked
+# by Aurora alone (sec_defence) and is named in the hunt's judgement.
+SHARED = {
+    "Cloudflare": "https://www.cloudflare.com/ips-v4",
+    "Google Cloud": "https://www.gstatic.com/ipranges/cloud.json",
+    "Google": "https://www.gstatic.com/ipranges/goog.json",
+}
+_shared: dict = {"at": 0.0, "nets": []}
 _NET = re.compile(r"^\s*(\d{1,3}(?:\.\d{1,3}){3}(?:/\d{1,2})?)")
 _cache: dict = {"at": 0.0, "ranges": [], "starts": []}
 
@@ -39,6 +48,11 @@ def _file(cfg: sys_config.Config):
 
 def parse(name: str, text: str) -> list[str]:
     nets = []
+    if text.lstrip().startswith("{") and "prefixes" in text[:2000]:   # Google's ranges: {"prefixes": [{"ipv4Prefix"}]}
+        try:
+            return [p["ipv4Prefix"] for p in json.loads(text).get("prefixes", []) if p.get("ipv4Prefix")]
+        except ValueError:
+            return []
     if name == "spamhaus_drop":                       # one JSON object a line
         for line in text.splitlines():
             try:
@@ -73,8 +87,19 @@ def refresh(cfg: sys_config.Config) -> dict:
                 out["lists"][name] = {"at": time.time(), "nets": nets}
         except httpx.HTTPError:
             continue
+    out["shared"] = dict(old.get("shared", {}))
+    for name, url in SHARED.items():
+        try:
+            r = httpx.get(url, timeout=60, follow_redirects=True)
+            r.raise_for_status()
+            nets = parse(name, r.text)
+            if nets:
+                out["shared"][name] = nets
+        except httpx.HTTPError:
+            continue
     _file(cfg).write_text(json.dumps(out))
     _cache["at"] = 0.0
+    _shared["at"] = 0.0
     return {n: len(v["nets"]) for n, v in out["lists"].items()}
 
 
@@ -126,3 +151,25 @@ def summary(cfg: sys_config.Config) -> dict:
     except (OSError, ValueError):
         return {"at": None, "lists": {}}
     return {"at": data.get("at"), "lists": {n: len(v.get("nets", [])) for n, v in data.get("lists", {}).items()}}
+
+
+def shared(cfg: sys_config.Config, ip: str) -> str:
+    """The provider whose shared network holds `ip` ("Cloudflare", "Google Cloud"…), or ""."""
+    try:
+        a = ipaddress.ip_address(ip)
+    except ValueError:
+        return ""
+    if time.time() - _shared["at"] > 60:
+        try:
+            data = json.loads(_file(cfg).read_text()).get("shared", {})
+        except (OSError, ValueError):
+            data = {}
+        nets = []
+        for name, items in data.items():
+            for n in items:
+                try:
+                    nets.append((ipaddress.ip_network(n, strict=False), name))
+                except ValueError:
+                    continue
+        _shared.update(at=time.time(), nets=nets)
+    return next((name for net, name in _shared["nets"] if a.version == net.version and a in net), "")

@@ -26,6 +26,11 @@ import routines from "./modules/routines.js";
 import runs from "./modules/runs.js";
 import settings from "./modules/settings.js";
 import security from "./modules/security.js";
+import secDefence from "./modules/security_defence_page.js";
+import secWatch from "./modules/security_watch_page.js";
+import secOut from "./modules/security_out_page.js";
+import ciso from "./modules/ciso.js";
+import firewall from "./modules/firewall.js";
 import sky from "./modules/sky.js";
 import synapses from "./modules/synapses.js";
 import social from "./modules/social.js";
@@ -34,7 +39,7 @@ import updates from "./modules/updates.js";
 import users from "./modules/users.js";
 import ideas from "./modules/ideas_page.js";
 
-export const views = [chat, approvals, reports, security, autonomy, diary, memory, social, dj, care, projects, routines, models, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, settings, guide, bugreport, ideas];
+export const views = [chat, approvals, reports, security, ciso, firewall, secDefence, secWatch, secOut, autonomy, diary, memory, social, dj, care, projects, routines, models, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, settings, guide, bugreport, ideas];
 export const widgets = [sky, alerts, metrics];
 
 // the side menu in areas (owner, 2026-10-05): an area of one page is a plain entry; the others open on a tap
@@ -45,11 +50,12 @@ export const groups = [
   { id: "life", icon: "✨", title: "nav.g.life", views: ["diary", "memory", "social", "dj", "care"] },
   { id: "work", icon: "🛠️", title: "nav.g.work", views: ["projects", "routines", "uploads"] },
   { id: "knowledge", icon: "📚", title: "nav.g.knowledge", views: ["import", "harvester", "synapses"] },
-  { id: "security", views: ["security"] },
+  // the security area (owner, 2026-10-08: «sotto menù specifici CISO, etc… separate e pulite»)
+  { id: "security", icon: "🛡️", title: "nav.g.security", views: ["security", "ciso", "firewall", "secdefence", "secwatch", "secout"] },
   { id: "autonomy", views: ["autonomy"] },
   { id: "system", icon: "⚙️", title: "nav.g.system", views: ["status", "models", "plugins", "users", "settings", "updates"] },
   { id: "help", icon: "❓", title: "nav.g.help", views: ["guide", "bugreport", "ideas"] },
 ];
 // the machine's pages (owner, 2026-10-06, multi-user): a user sees neither them in the menu nor their data (the API
 // answers 403); their own preferences are in 👥 Users → My account, their plugins' settings in the plugins' cards
-export const adminOnly = new Set(["security", "models", "harvester", "synapses", "status", "updates", "settings", "import"]);
+export const adminOnly = new Set(["security", "ciso", "firewall", "secdefence", "secwatch", "secout", "models", "harvester", "synapses", "status", "updates", "settings", "import"]);

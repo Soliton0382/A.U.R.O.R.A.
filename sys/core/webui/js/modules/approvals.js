@@ -5,6 +5,7 @@
 import { call } from "../api.js";
 import { clock, el, useCss } from "../dom.js";
 import { apply, t } from "../i18n.js";
+import { autonomySlot } from "./autonomy_box.js";
 
 function badge(n) {
   const b = document.querySelector('#nav button[data-view="approvals"] .label');
@@ -68,6 +69,7 @@ export default {
     root.innerHTML = `<h2 data-i18n="appr.title"></h2><p class="muted" data-i18n="appr.hint"></p>
       <div class="pending"></div><p class="muted appr-posts"></p>
       <h3 class="setting-cat" data-i18n="appr.history"></h3><div class="history"></div>`;
+    root.querySelector("h2").after(autonomySlot("repairs"));   // how free Aurora is, here (owner, 2026-10-08)
     apply(root);
     this.pending = root.querySelector(".pending");
     this.history = root.querySelector(".history");

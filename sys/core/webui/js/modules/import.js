@@ -4,6 +4,7 @@
 import { call } from "../api.js";
 import { el, toBase64 } from "../dom.js";
 import { apply, lang, t } from "../i18n.js";
+import { autonomySlot } from "./autonomy_box.js";
 
 export default {
   id: "import",
@@ -21,6 +22,7 @@ export default {
         <button type="submit" data-i18n="import.send"></button>
       </form>
       <div class="log"></div>`;
+    root.querySelector("h2").after(autonomySlot("knowledge"));   // how free Aurora is, here (owner, 2026-10-08)
     apply(root);
     this.select = root.querySelector("select");
     const files = root.querySelector("input[type=file]");

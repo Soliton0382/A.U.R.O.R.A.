@@ -172,5 +172,175 @@ def security_weekly_report(days: float = 7) -> str:
     return sec_report.text(sec_report.week(cfg, max(1.0, min(days, 31))))
 
 
+# ---- the firewall's documentation, audit, hunt, the security officer's view (owner, 2026-10-07) ----------------------
+@tool
+def firewall_docs(query: str, kind: str = "") -> str:
+    """Search the firewall's official documentation kept on this machine (Sophos Firewall 22.0: the administrator's
+    manual, the XML API reference with its sample requests, the syslog reference). Use it before explaining a feature
+    or planning a change. `kind`: "manual", "api", "syslog" or "" for all."""
+    from aurora import sec_fwdocs
+    hits = sec_fwdocs.search(cfg, query, 5, kind or None)
+    if not hits:
+        st = sec_fwdocs.stats(cfg)
+        return ("La documentazione del firewall non è ancora indicizzata (strumento firewall_docs_refresh)."
+                if not st["passages"] else f"Nulla su «{query}» nella documentazione.")
+    return "\n\n".join(f"[{h['kind']}] {h['title']}\n{h['url']}\n{h['text'][:1500]}" for h in hits)
+
+
+@tool
+def firewall_docs_refresh() -> str:
+    """Download and index again the firewall's documentation (manual, API, syslog: about 1,200 pages, some minutes)."""
+    from aurora import sec_fwdocs
+    out = sec_fwdocs.refresh(cfg)
+    return "📚 Documentazione indicizzata: " + ", ".join(f"{k} {v['pages']} pagine ({v['failed']} non lette)" for k, v in out.items())
+
+
+@tool
+def firewall_audit() -> str:
+    """Judge the firewall's configuration as a security officer: services published on the Internet (with or without
+    IPS and log), administration reachable from outside, threat protection, login security, whether Aurora's blocking
+    rule works, whether the syslog reaches Aurora, rules too wide. Read only; each finding has its fix."""
+    from aurora import sec_audit, sec_fwapi
+    try:
+        return sec_audit.text(sec_audit.run(cfg))
+    except sec_fwapi.FirewallAPIError as e:
+        raise ToolError(f"the firewall's API: {e}") from None
+
+
+@tool
+def threat_hunt(hours: float = 6, only_new: bool = False) -> str:
+    """Hunt in the firewall's logs of the last `hours`: devices calling outside at regular intervals (beaconing),
+    devices touching many others (lateral movement), Advanced Threat Protection matches judged (false positive or
+    not), dubious domains, logins and configuration changes on the firewall. `only_new`: only what was not told in the
+    last 24 hours (the routine)."""
+    from aurora import sec_hunt
+    r = sec_hunt.run(cfg, max(1.0, min(hours, 72)))
+    if only_new:
+        r["findings"] = [f for f in sec_hunt.fresh(cfg, r["findings"]) if f["severity"] != "low"]
+        if not r["findings"]:
+            return ""
+    return sec_hunt.text(r)
+
+
+@tool
+def security_posture(hours: float = 24) -> str:
+    """The security officer's view: the open risks (configuration and activity), signals joined by device (two
+    different signals on one device make it a suspect) and, for each scenario, the playbook: the steps in order, who
+    does each (Aurora with which tool, or the owner)."""
+    from aurora import sec_audit, sec_fwapi, sec_hunt, sec_netmap, sec_playbook
+    try:
+        audit = sec_audit.run(cfg)
+    except sec_fwapi.FirewallAPIError:
+        audit = None
+    hunt = sec_hunt.run(cfg, max(1.0, min(hours, 72)))
+    groups = sec_playbook.correlate(hunt["findings"], incidents_since(hours))
+    text = sec_playbook.text(groups, sec_playbook.register(audit, groups), sec_netmap.names(cfg))
+    return text + ("" if audit else "\n\n(Configurazione non letta: l'API del firewall non risponde.)")
+
+
+@tool
+def firewall_config(entity: str = "FirewallRule", name: str = "") -> str:
+    """The firewall's configuration of one entity, read only (<Get>): FirewallRule, NATRule, Services, IPHost,
+    IPHostGroup, Zone, Interface, IPSPolicy, ATP, AdminSettings, LocalServiceACL, SyslogServers, WebFilterPolicy…
+    `name`: only the item with that name. Taken from the plugin «xgaudit» Aurora forged (owner, 2026-10-07)."""
+    import json as _json
+    import re as _re
+    from aurora import sec_fwapi, sec_fwconf
+    if not _re.fullmatch(r"[A-Za-z][A-Za-z0-9]{1,40}", entity):
+        raise ToolError("entity: a name of the API, e.g. NATRule")
+    try:
+        items = sec_fwconf.get(cfg, entity)
+    except (sec_fwapi.FirewallAPIError, sec_fwconf.ConfigError) as e:
+        raise ToolError(str(e)) from None
+    if name:
+        items = [i for i in items if i.get("Name") == name]
+    if not items:
+        return f"Nessun {entity}" + (f" «{name}»" if name else "") + " sul firewall."
+    return f"{len(items)} {entity}:\n" + "\n".join(_json.dumps(i, ensure_ascii=False)[:1500] for i in items[:40])
+
+# ---- changes on the firewall: planned here, applied only with the owner's approval -----------------------------------
+def _plan(make) -> str:
+    from aurora import sec_fwapi, sec_fwwrite
+    try:
+        change = sec_fwwrite.propose(cfg, make())
+    except (sec_fwwrite.WriteError, sec_fwapi.FirewallAPIError, ValueError) as e:
+        raise ToolError(str(e)) from None
+    off = "" if cfg["AURORA_FIREWALL_WRITE"] else ("\n\n⚠️ Le modifiche al firewall sono spente (AURORA_FIREWALL_WRITE): "
+                                                   "il piano resta pronto.")
+    return (sec_fwwrite.text(change) + f"\n\nPer applicarla: firewall_apply con change_id «{change['id']}» "
+            "(chiede la tua approvazione)." + off)
+
+
+@tool
+def firewall_plan_publish(name: str, host: str, ports: str, sources: str = "") -> str:
+    """Plan making a server of the house reachable from the Internet (not applied): its host, a service with the
+    ports, a rule from WAN with intrusion prevention and log (after Aurora's blocking rule), the DNAT on the WAN
+    address. `name`: a short label ("Nextcloud"); `host`: the server's private address; `ports`: "443", "443/tcp",
+    "32400/tcp,32400/udp"; `sources`: countries or addresses allowed ("Italy", "203.0.113.7"), empty = everyone.
+    Show the plan to the owner; firewall_apply applies it."""
+    from aurora import sec_fwwrite
+    return _plan(lambda: sec_fwwrite.plan_publish(cfg, name, host, ports, sources))
+
+
+@tool
+def firewall_plan_unpublish(name: str) -> str:
+    """Plan closing a publication Aurora made (its DNAT, rule and service; not applied)."""
+    from aurora import sec_fwwrite
+    return _plan(lambda: sec_fwwrite.plan_unpublish(cfg, name))
+
+
+@tool
+def firewall_plan_quarantine(ip: str, reason: str) -> str:
+    """Plan isolating a device of the house (not applied): its address in Aurora's quarantine group, whose Drop rule
+    stops everything it sends through the firewall."""
+    from aurora import sec_fwwrite
+    return _plan(lambda: sec_fwwrite.plan_quarantine(cfg, ip, reason))
+
+
+@tool
+def firewall_plan_release(ip: str) -> str:
+    """Plan the end of a device's quarantine (not applied)."""
+    from aurora import sec_fwwrite
+    return _plan(lambda: sec_fwwrite.plan_release(cfg, ip))
+
+
+@tool
+def firewall_plan_harden(rule: str, ips_policy: str, log: bool = True) -> str:
+    """Plan putting an intrusion-prevention policy (and the log) on an existing firewall rule — the audit's fix for a
+    published service (not applied). The rule as it is now is kept: firewall_revert puts it back."""
+    from aurora import sec_fwwrite
+    return _plan(lambda: sec_fwwrite.plan_harden(cfg, rule, ips_policy, log))
+
+
+@tool
+def firewall_apply(change_id: str) -> str:
+    """Apply a planned firewall change (asks the owner's approval). Every step is checked; at the first failure, or
+    if the firewall does not read the objects back within the confirmation time, everything done is undone."""
+    from aurora import sec_fwapi, sec_fwwrite
+    try:
+        return sec_fwwrite.text(sec_fwwrite.apply(cfg, change_id))
+    except (sec_fwwrite.WriteError, sec_fwapi.FirewallAPIError) as e:
+        raise ToolError(str(e)) from None
+
+
+@tool
+def firewall_revert(change_id: str) -> str:
+    """Undo a firewall change Aurora applied (asks the owner's approval)."""
+    from aurora import sec_fwapi, sec_fwwrite
+    try:
+        return sec_fwwrite.text(sec_fwwrite.revert(cfg, change_id))
+    except (sec_fwwrite.WriteError, sec_fwapi.FirewallAPIError) as e:
+        raise ToolError(str(e)) from None
+
+
+@tool
+def firewall_changes(limit: int = 10) -> str:
+    """The firewall changes Aurora planned or applied, newest first, with their state (planned, applied, undone,
+    reverted, failed)."""
+    from aurora import sec_fwwrite
+    items = sec_fwwrite.history(cfg)[-max(1, min(limit, 50)):][::-1]
+    return "\n\n".join(sec_fwwrite.text(c) for c in items) or "Nessuna modifica del firewall."
+
+
 if __name__ == "__main__":
     server.run("stdio")

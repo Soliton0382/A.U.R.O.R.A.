@@ -121,6 +121,20 @@ label; documents Aurora writes start with a disclosure header. Obligations apply
 (2 December 2026 for systems already on the market). Implemented as the sources describe them; not
 legal advice.
 
+## Changes on the firewall (2026-10-07)
+
+Aurora's own blocking group was the only thing she wrote on the firewall. Now she can also publish a server, put a
+device in quarantine and put an IPS policy on a rule (sec_fwwrite), within these limits:
+- off by default (`AURORA_FIREWALL_WRITE`); every change is planned first and applied by a tool whose effect is
+  "external": the owner approves each one;
+- she adds and removes only objects named `Aurora-…`/`aurora-…`; an owner's rule is changed only by «harden» (IPS
+  policy and log), its XML before the change kept as the undo;
+- each step is checked; at the first refusal, or if the objects do not read back within `AURORA_FIREWALL_CONFIRM_S`,
+  every step done is undone; the record of every change is in `status/security/fwchanges.json`;
+- a shared address of a CDN or a cloud (Cloudflare, Google) is never blocked by her alone (C190).
+The firewall's documentation is kept in `status/security/fwdocs.sqlite`: copyrighted, for the licensee's own use on
+this machine, never in the repository.
+
 ## Known limits
 
 - DNS rebinding between the address check and the connection (web plugin) is not closed.
