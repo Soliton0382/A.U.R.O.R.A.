@@ -926,6 +926,14 @@ person) —, the shadow trained 20/20 in 22.3 min, reflections at 01:11, 02:55, 
 with 2 sources in 66.2 s, «cos'è l'entropia» with 2 in 56.5 s — both declined before the night (N77, the machine's
 part). Facebook: the owner's first video published (approval executed, 5.9 s). Security (C174/C175): see BUGS. The face beside the health dot (owner, same morning): /v1/aurora/mood 0.02 s from the REM's last measure (53 s old); headless at 1280×850 a mouse over it opens the card (7 rows, 124–544 px), away closes it; at 390×844 a tap opens it inside the screen (8–382 px, no sideways scroll), a tap elsewhere closes it.
 
+## M125 — The good morning aloud (7 October 2026, C177)
+
+Today's good morning, 521 characters, 34.2 s of speech: Piper 1.36 s on the CPU (cached: 0.003 s), WAV 1.5 MB; as a
+64 kb/s mono MP3 274 KB (5.5× lighter), converted by ffmpeg in 0.10 s, the request 0.14 s in all. Headless Chrome with
+--autoplay-policy=document-user-activation-required: the tap unlocks the player (50 ms of silence), the voice plays with
+no delay and with 6 s of latency on every request (it starts more than 12 s after the tap). Not reproduced: the
+failure on the owner's phone and PC — the cause above is the likely one, not a measured one.
+
 ## M123 — The videos on the Social page, ready to approve (6 October 2026)
 
 Social → 🎬 Video di Aurora (webui social_video.js): a topic, the steps shown while she works, then every video with

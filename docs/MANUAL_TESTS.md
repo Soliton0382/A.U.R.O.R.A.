@@ -46,7 +46,7 @@ end, duplicates and tests of pages that no longer exist removed (each with its r
 | N73 | 🧭 Autonomy: click a few levels in a row | "✅ Salvato" every time, no "errore", the level highlighted at once |
 | N74 | 🛡️ Security → an incident → ⛔ then ↩️ Annulla; Difesa → 🧱 Sul firewall → Prova la connessione | the address blocked then unblocked; the group and rule names shown, "Collegato" |
 | N77 | Ask something she does not know; the next morning | the good morning says she studied it; ask again: an answer with sources — ❌ C152; 7 Oct, the machine's part ✅ (M124: laser, entropy answered with sources): only the good morning at 9:30 to look at |
-| N78 | ☀️ The good morning in the chat (after 8) → 🔊 Ascolta | the night's counts, read aloud — ❌ C154 — again after the fix |
+| N78 | ☀️ The good morning in the chat (after 8) → 🔊 Ascolta, on the phone and on the PC | the night's counts, read aloud — ❌ C154; ❌ 7 Oct «solo voci online» (C177) — again after reloading (v89); if it says «il browser ha bloccato l'audio», a second tap plays it |
 | N93 | `sudo bash sys/deploy/nft/install.sh`; then 🛡️ Sicurezza → Difesa e rete → 🧱 | «Firewall di Aurora attivo»; from another PC (not the phone): `nc <aurora> 2222` → incident «Esca toccata», the PC kept off Aurora for 24 h, ↩️ lifts it |
 | N94 | The chat open on the PC and on the phone (the app in the background); write on one | the other shows it by itself, also after waking up |
 | N95 | «anima questa foto» with the video given to Google (Models → 🎨) | the video from Veo; while it is made, the bar «🎬 … in corso · circa N%» over the chat |

@@ -178,6 +178,11 @@ export default {
     });
     const sayAloud = async (text) => {
       const r = await voice.speak(text, lang.replace("_", "-"));
+      if (r === "blocked" || r === "server" || r === "offline") {   // the true reason (C177), not «only online voices»
+        const msg = t(`chat.voice.${r}`);
+        input.placeholder = msg;
+        return msg;
+      }
       if (r === "novoice") {                       // said where it shows, and why: only online voices, or none
         const msg = t(`chat.voice.novoice.${await voice.why(lang.replace("_", "-"))}`);
         input.placeholder = msg;

@@ -104,20 +104,34 @@ export function unlock() {
 
 // Aurora's own voice, made on her machine (mdl_tts, Piper): for a device with no local voice. The text goes only to
 // Aurora's server — never to a browser maker's online voice.
-let audio = null;
+// One player for the page, unlocked during the owner's tap (prime): browsers let a tap start sound only for a few
+// seconds, and the voice may come later than that on a phone (C177: «solo voci online» said for a refused play).
+const SILENCE = "data:audio/wav;base64,UklGRrQBAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YZABAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA";
+let audio = null, player = null, ready = null;
+export function prime() {
+  if (!player) player = new Audio();
+  if (player.src && !player.paused) return;
+  player.src = SILENCE;
+  player.play().catch(() => { /* not a tap: nothing unlocked, the real play says so */ });
+}
 async function serverSpeak(text, lang) {
   const say = speakable(text);
   if (!say) return "ok";
+  let res;
   try {
-    const res = await fetch("/v1/aurora/tts", { method: "POST", credentials: "same-origin",
-      headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: say, lang }) });
-    if (!res.ok) return "novoice";
-    stop();
-    audio = new Audio(URL.createObjectURL(await res.blob()));
-    audio.addEventListener("ended", () => { URL.revokeObjectURL(audio.src); audio = null; }, { once: true });
+    res = await fetch("/v1/aurora/tts", { method: "POST", credentials: "same-origin",
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: say, lang, format: "mp3" }) });
+  } catch { return "offline"; }
+  if (!res.ok) return res.status === 503 ? "novoice" : "server";
+  stop();
+  if (ready) URL.revokeObjectURL(ready);
+  ready = URL.createObjectURL(await res.blob());
+  audio = player || new Audio();
+  audio.src = ready;
+  try {
     await audio.play();
     return "ok";
-  } catch { return "novoice"; }
+  } catch { return "blocked"; }                  // the browser refused: a second tap plays it at once (it is here)
 }
 
 export function stop() {
@@ -129,6 +143,7 @@ export const speaking = () => Boolean(audio && !audio.paused) || (supported() &&
 
 // Long texts in sentences: some engines stop a single long utterance after ~15 s.
 export async function speak(text, lang, only = null) {
+  prime();
   const voice = only || (supported() ? await localVoice(lang) : null);
   if (!voice) return serverSpeak(text, lang);              // none here: Aurora's own voice from her machine
   stop();
