@@ -132,10 +132,11 @@ class Pipeline(Stages, SelfTalk):
             ev("memory.recent", {"turns": len(recent)})
         # how much to think (kno_think): the vault pipeline as before, or the way of the question's kind — the web
         # for a fact, the vault for an explanation, the deep pipeline for a case — read with where it was read
-        # (kno_read); an attached file or a follow-up's sources keep the vault pipeline
-        mode = "vault" if attached or focus else kno_think.mode_of(self.cfg, think)
+        # (kno_read); an attached file keeps the vault pipeline; a follow-up reads its sources in focus first
+        mode = "vault" if attached else kno_think.mode_of(self.cfg, think)
         classic = lambda h, sb: self._answer(kno_split.with_searches(question, sb), h, recent_block, ev) if h else None  # noqa: E731
-        verified, answer, hits, subs = kno_think.answer(self, question, translation, mode, retrieve, classic, ev)
+        verified, answer, hits, subs = kno_think.answer(self, question, translation, mode, retrieve, classic, ev,
+                                                        focused=bool(focus))
         if verified:
             hebb(self.cfg, [x for x in verified["sources"] if x.get("sid")])
             result = Answer(run_id, asked, verified["text"], False, verified["sources"], verified["dropped"],

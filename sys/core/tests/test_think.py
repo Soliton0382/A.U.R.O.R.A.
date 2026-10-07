@@ -93,3 +93,13 @@ def test_an_explanation_the_vault_lacked_is_studied_at_night_a_fact_is_not(run):
     assert r["came_from"] == "web" and r["learn"] is False            # a fact: the cache is enough
     (r, _, _, _), _, _ = run("auto", "explain", vault=READ)
     assert r["came_from"] == "vault" and r["learn"] is False
+
+
+def test_a_follow_up_reads_the_sources_in_focus_first(run, monkeypatch):
+    calls = []
+    monkeypatch.setattr(T.kno_read, "kind", lambda p, q: "fact")
+    monkeypatch.setattr(T.kno_read, "from_vault", lambda p, q, hits, size="explain": calls.append(f"vault({size})") or READ)
+    monkeypatch.setattr(T.kno_read, "from_web", lambda *a, **k: calls.append("web") or READ)
+    (r, _, _, _) = T.answer(SimpleNamespace(cfg={}), "e chi l'ha inventato?", None, "auto", lambda rc: (["h"], []),
+                            lambda h, s: None, lambda e, pl: None, focused=True)
+    assert calls == ["vault(fact)"] and r["came_from"] == "vault"                     # not the slow pipeline, not the web

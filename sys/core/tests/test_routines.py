@@ -159,3 +159,18 @@ def test_the_rem_state_of_a_user_is_readable_by_the_admin():
     body = src[src.index("def rem_state"):src.index("@router.post(\"/v1/aurora/rem/{task}\"")]
     inside = body[body.index("with sys_context.acting_as"):]
     assert "_rem_user(" not in inside
+
+
+def test_the_routines_wait_while_a_person_uses_aurora():
+    import time as _t
+    from aurora import sys_routines as S
+    people, since, now = ("webui", "openai", "acquire"), [], _t.time()
+    runs = [{"origin": "routine", "done": False, "started": now - 5}]
+    assert S.person_first(runs, now, 180, since, people) is None                       # Aurora's own work does not count
+    runs.append({"origin": "webui", "done": True, "started": now - 60})
+    assert "1 question" in S.person_first(runs, now, 180, since, people)               # asked a minute ago: wait
+    assert S.person_first(runs, now + 200, 180, since, people) is None                 # quiet for 3 minutes: go
+    runs.append({"origin": "webui", "done": False, "started": now})
+    assert S.person_first(runs, now + 300, 180, since, people)
+    assert S.person_first(runs, now + 300 + 901, 180, since, people) is None           # never more than 15 minutes
+    assert S.person_first(runs, now, 0, [], people) is None                            # 0: never wait

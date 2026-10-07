@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio
 import json
 import re
+import time
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse
@@ -173,12 +174,27 @@ def routine_tick() -> dict:
     """aurora-rem, every tick: start what is due, for every user (their routines run as their work); tell each, once,
     what a newly ready plugin can do."""
     from aurora import sys_context, sys_routines
+    if (wait := _someone_talking()) is not None:      # a person first: the routines wait (owner, 2026-10-07)
+        return {"started": [], "welcomed": [], "deferred": wait}
     started, welcomed = [], set()
     for who in everyone():
         with sys_context.acting_as(who):
             started += [_start_routine(r) for r in sys_routines.due(cfg)]
             welcomed |= set(_welcome(sys_routines))
     return {"started": started, "welcomed": sorted(welcomed)}
+
+
+PEOPLE = ("webui", "openai", "acquire")               # a person's runs; routines, REM, forge… are Aurora's own
+_deferred_since: list[float] = []
+
+
+def _someone_talking(now: float | None = None) -> str | None:
+    """Why the routines wait now, or None: a person's question running or asked in the last AURORA_ROUTINE_QUIET_S
+    seconds — 7 October: «Che tempo farà domani?» waited 51.7 s behind the daily post that started 1 s before it. Never
+    more than 15 minutes in a row: a routine due waits, it is never lost (sys_routines.is_due)."""
+    from aurora import sys_routines
+    return sys_routines.person_first(list(_runs.values()), now or time.time(), float(cfg["AURORA_ROUTINE_QUIET_S"] or 0),
+                                     _deferred_since, PEOPLE)
 
 
 def _welcome(sys_routines) -> list[str]:

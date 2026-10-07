@@ -926,6 +926,20 @@ person) —, the shadow trained 20/20 in 22.3 min, reflections at 01:11, 02:55, 
 with 2 sources in 66.2 s, «cos'è l'entropia» with 2 in 56.5 s — both declined before the night (N77, the machine's
 part). Facebook: the owner's first video published (approval executed, 5.9 s). Security (C174/C175): see BUGS. The face beside the health dot (owner, same morning): /v1/aurora/mood 0.02 s from the REM's last measure (53 s old); headless at 1280×850 a mouse over it opens the card (7 rows, 124–544 px), away closes it; at 390×844 a tap opens it inside the screen (8–382 px, no sideways scroll), a tap elsewhere closes it.
 
+## M132 — A day of use, through the API as in the chat (7 October 2026)
+
+| request | time | way | outcome |
+|---|---|---|---|
+| «Come funziona un laser?» | 14.5 s | explanation → vault | 8 sentences, each cited |
+| «E chi l'ha inventato?» | 66.2 s → 4.7 s | the vault pipeline → (C185) the cache | Einstein 1917, Gould, Townes and Schawlow, Maiman 1960 |
+| «Che tempo farà domani a Lodi?» | 23.6-28 s (self, wrong) → 62.1 s → about 10 s | C186, then 51.7 s behind a routine (C187) | the forecast, rain 90 %, and «the tool forecasts the home's place only» |
+| «Piove lì da te adesso?» | 17.7 s | self | not raining, covered, 75 % humidity |
+| a project: temperature conversions with tests, README, run the tests | 96.0 s, 12 steps | the agent, the projects plugin | 86 + 97 lines, **30 of 30 tests passed**, a local commit, an honest report |
+| «Quanti progetti ho e cosa fanno?» | 27.0 s | the agent | 4 projects described; numbers from a README «not verified by me» |
+
+A trap of the test itself: an API question with «remember: false» goes straight to the pipeline and skips the tools'
+router — the chat never does that (a third-party client asking without memory gets no tools: noted, not changed).
+
 ## M131 — The forge, for a plugin of a service (7 October 2026, C184)
 
 The Cloudflare need of the morning (request 328397d269) given again to the local forge (Qwen, offline, not installed).

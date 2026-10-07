@@ -228,6 +228,21 @@ def is_due(r: dict, now: datetime) -> bool:
     return (last is None or last < slot) and created < slot      # a new routine waits for its first slot
 
 
+def person_first(runs: list[dict], now: float, quiet: float, since: list[float], people: tuple) -> str | None:
+    """Why the routines wait now, or None: a person's run going on or started in the last `quiet` seconds (C187);
+    never more than 15 minutes in a row (`since` keeps when the waiting began); a routine due is never lost."""
+    busy = [r for r in runs if r["origin"] in people and (not r["done"] or now - r["started"] < quiet)]
+    if not quiet or not busy:
+        since.clear()
+        return None
+    if not since:
+        since.append(now)
+    if now - since[0] > 900:
+        since.clear()
+        return None
+    return f"a person is using Aurora ({len(busy)} question(s) in the last {quiet:g} s)"
+
+
 def due(cfg: sys_config.Config, now: datetime | None = None) -> list[dict]:
     now = now or sns_clock.now(cfg)
     return [r for r in all_routines(cfg) if is_due(r, now)]

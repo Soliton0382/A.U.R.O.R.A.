@@ -26,7 +26,7 @@ def mode_of(cfg, asked: str | None) -> str:
     return m if m in MODES else "vault"
 
 
-def answer(p, question: str, translation: str | None, mode: str, retrieve, classic, ev) -> tuple:
+def answer(p, question: str, translation: str | None, mode: str, retrieve, classic, ev, focused: bool = False) -> tuple:
     """(read | None, classic answer | None, hits, subs). `retrieve(recall)` → (hits, subs); `classic(hits, subs)` →
     the vault pipeline's (text, sources, dropped) or None. `read` is kno_read's {"text", "sources", "dropped"}."""
     got: dict = {}
@@ -52,7 +52,11 @@ def answer(p, question: str, translation: str | None, mode: str, retrieve, class
     steps = []
     if deep:
         steps.append(("deep", lambda: ("classic", classic(*hits()))))
-    if kind == "fact" and not deep:
+    if focused and not deep:                          # a follow-up: the sources of the answer before come first
+        steps.append(("vault", lambda: ("read", kno_read.from_vault(p, question, hits()[0], "fact" if kind == "fact" else "explain"))))
+        steps.append(("web", lambda: ("read", kno_read.from_web(p, question, ev, "fact" if kind == "fact" else "explain",
+                                                                 open_pages, translation))))
+    elif kind == "fact" and not deep:
         steps.append(("web", lambda: ("read", kno_read.from_web(p, question, ev, "fact", open_pages, translation))))
         steps.append(("vault", lambda: ("read", kno_read.from_vault(p, question, hits()[0], "fact"))))
     else:

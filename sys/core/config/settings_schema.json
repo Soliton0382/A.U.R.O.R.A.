@@ -2761,6 +2761,20 @@
    ]
   },
   {
+   "key": "AURORA_ROUTINE_QUIET_S",
+   "type": "int",
+   "min": 0,
+   "max": 3600,
+   "category": "agents",
+   "recommended": "180",
+   "evidence": "owner, 2026-10-07: a question waited 51.7 s behind a routine that started 1 s before it",
+   "en": "The routines wait while a person is using Aurora: a question running or asked in the last N seconds (at most 15 minutes in a row; a routine due is never lost). 0 = never wait.",
+   "it": "Le routine aspettano mentre una persona usa Aurora: una domanda in corso o fatta negli ultimi N secondi (al massimo 15 minuti di fila; una routine in scadenza non va mai persa). 0 = non aspettano mai.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_GITHUB_TOKEN",
    "type": "str",
    "category": "plugins",
