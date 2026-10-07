@@ -79,6 +79,10 @@ def speak(cfg: sys_config.Config, text: str, lang: str, use: str = "chat") -> by
     if not (cfg["AURORA_TTS"] and _bin(cfg).is_file() and v):
         raise RuntimeError("no voice on this machine: run script/sys_tts_install.sh")
     tune = [str(float(cfg[k])) for k in ("AURORA_TTS_LENGTH", "AURORA_TTS_NOISE", "AURORA_TTS_NOISE_W", "AURORA_TTS_PAUSE")]
+    if use == "chat" and cfg["AURORA_MOOD"]:         # 💗 tired: up to 8 % slower (kno_mood), in steps of a tenth
+        from . import kno_mood
+        tired = kno_mood.tiredness(cfg)["value"] or 0
+        tune[0] = str(round(float(tune[0]) * (1 + 0.08 * round(tired, 1)), 3))
     place = "cpu" if use == "video" else f"cuda:{int(cfg['AURORA_TTS_GPU'])}"
     natural = cfg["AURORA_VIDEO_VOICE" if use == "video" else "AURORA_TTS_ENGINE"] == "qwen" and qwen_ready(cfg, place)
     engine = "qwen" if natural else v.name

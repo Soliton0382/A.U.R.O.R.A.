@@ -97,12 +97,15 @@ export default {
     if (i.detail?.action) c.append(el("p", "", `💡 ${i.detail.action}`));
     if (i.defence) c.append(el("p", i.defence === "blocked" ? "ok" : "muted", i.defence === "blocked"
       ? `🛡️ ${t("sec.def_blocked", { until: new Date(i.blocked_until * 1000).toLocaleString() })}` : `🛡️ ${t("sec.def_not")}: ${i.defence}`));
-    if (this.fwApi && /^\d+\.\d+\.\d+\.\d+$/.test(i.source)) {   // the owner's click is the consent
+    if (this.blocked.has(i.source)) c.append(el("p", "ok", `🛡️ ${t("sec.already_blocked")}`));
+    // the owner's click is the consent; never offered for an address at home (the owner's devices, C174)
+    else if (this.fwApi && !i.internal && /^\d+\.\d+\.\d+\.\d+$/.test(i.source)) {
       const block = el("button", "danger", `⛔ ${t("sec.block", { ip: i.source })}`);
       block.addEventListener("click", async () => {
         if (!confirm(t("sec.block_q", { ip: i.source, group: this.group }))) return;
         try {
-          await call("/v1/aurora/security/block", { method: "POST", body: JSON.stringify({ ip: i.source, reason: `${i.kind} ${i.id}` }) });
+          await call("/v1/aurora/security/block", { method: "POST", body: JSON.stringify({ ip: i.source, reason: `${i.kind} ${i.id}`, incident: i.id }) });
+          this.blocked.add(i.source);
           const undo = el("button", "", `↩️ ${t("sec.undo", { ip: i.source })}`);    // changed my mind: one click back
           undo.addEventListener("click", async () => {
             try { await call("/v1/aurora/security/block", { method: "POST", body: JSON.stringify({ ip: i.source, unblock: true }) });
@@ -110,6 +113,8 @@ export default {
             catch (e) { alert(e.message); }
           });
           block.replaceWith(undo);
+          c.querySelector(".sec-close")?.remove();            // closed with the block: it moves to the closed ones
+          c.append(el("p", "ok", t("sec.blocked_closed")));
           this.loadDefence();
         }
         catch (e) { alert(e.message); }
@@ -117,7 +122,7 @@ export default {
       c.append(block);
     }
     if (i.status === "open") {
-      const b = el("button", "", `✔ ${t("sec.close")}`);
+      const b = el("button", "sec-close", `✔ ${t("sec.close")}`);
       b.addEventListener("click", async () => { await call(`/v1/aurora/incidents/${i.id}/close`, { method: "POST" }); this.enter(); });
       c.append(b);
     }
@@ -158,6 +163,7 @@ export default {
       call("/v1/aurora/security/defence").catch(() => ({}))]);
     this.names = m.names || {};
     this.fwApi = Boolean(m.configured);
+    this.blocked = new Set((d.active || []).map((b) => b.ip));
     this.group = d.group;
     this.loaded.clear();
     await this.show(this.tab, true);

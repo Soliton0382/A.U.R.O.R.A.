@@ -82,6 +82,8 @@ def compose(f: dict, name: str, assistant: str, lang: str = "it") -> str:
         lines.append((f"🌙 Ho sognato: {f['dream']}" if it else f"🌙 I dreamt: {f['dream']}"))
     if len(lines) == 1:
         lines.append("Notte tranquilla: niente da raccontare." if it else "A quiet night: nothing to tell.")
+    if f.get("mood"):
+        lines.append(f"💗 {f['mood']}")
     lines.append(f"— {assistant}")
     return "\n\n".join(lines)
 
@@ -96,6 +98,10 @@ def write(pipeline, cfg: sys_config.Config, emit) -> dict:
     from . import sys_persona
     from .kno_rem import Rem
     f = facts(pipeline, cfg)
+    from . import kno_mood
+    m = kno_mood.last(cfg)
+    if m:
+        f["mood"] = kno_mood.feeling(m, str(cfg["AURORA_LANG_DEFAULT"]))
     text = compose(f, str(cfg["AURORA_OWNER_NAME"] or ""), sys_persona.name(cfg), str(cfg["AURORA_LANG_DEFAULT"]))
     Rem(pipeline, cfg)._write(text, "morning", f"morning:{int(time.time())}",
                               {"day": datetime.now().astimezone().date().isoformat(), "facts": f}, emit)

@@ -7,7 +7,7 @@ end, duplicates and tests of pages that no longer exist removed (each with its r
 | session | tests |
 |---|---|
 | 🌙 they come by themselves (look in the morning) | N19, N63, N77, N78 |
-| 🔁 again after a change | I5, N25, N93–N101 |
+| 🔁 again after a change | I5, N25, N93–N100, N102–N104 |
 | 📱 phone, ~10 min | N31 |
 | 🖥️ chat on the PC, ~15 min | I4 |
 | 🧭 pages, ~25 min | K1, N32, N35, N37, N40, N43, N46, N53, N62, N64, N66, N68, N73, N74, R1, R10 |
@@ -45,14 +45,17 @@ end, duplicates and tests of pages that no longer exist removed (each with its r
 | N68 | 📚 Harvester: tick a language; Security → 🛡️ Difesa | the language saved, the harvester restarts; the defence's mode, limits and history shown |
 | N73 | 🧭 Autonomy: click a few levels in a row | "✅ Salvato" every time, no "errore", the level highlighted at once |
 | N74 | 🛡️ Security → an incident → ⛔ then ↩️ Annulla; Difesa → 🧱 Sul firewall → Prova la connessione | the address blocked then unblocked; the group and rule names shown, "Collegato" |
-| N77 | Ask something she does not know; the next morning | the good morning says she studied it; ask again: an answer with sources — ❌ C152 — again after tonight |
+| N77 | Ask something she does not know; the next morning | the good morning says she studied it; ask again: an answer with sources — ❌ C152; 7 Oct, the machine's part ✅ (M124: laser, entropy answered with sources): only the good morning at 9:30 to look at |
 | N78 | ☀️ The good morning in the chat (after 8) → 🔊 Ascolta | the night's counts, read aloud — ❌ C154 — again after the fix |
 | N93 | `sudo bash sys/deploy/nft/install.sh`; then 🛡️ Sicurezza → Difesa e rete → 🧱 | «Firewall di Aurora attivo»; from another PC (not the phone): `nc <aurora> 2222` → incident «Esca toccata», the PC kept off Aurora for 24 h, ↩️ lifts it |
 | N94 | The chat open on the PC and on the phone (the app in the background); write on one | the other shows it by itself, also after waking up |
 | N95 | «anima questa foto» with the video given to Google (Models → 🎨) | the video from Veo; while it is made, the bar «🎬 … in corso · circa N%» over the chat |
 | N97 | The chat on the phone: a question, then the network cut for a few seconds (airplane mode) while she answers | «🔌 connessione persa: riprendo…», then the whole answer — no «network error» (C170) |
 | N98 | Tomorrow between 9 and 22, silent for a while: the chat | at most 2 bubbles «🔁 Aurora ci ha ripensato» on an old answer, with its sources; tell whether they were worth it (M120) |
-| N101 | 📣 Social → 🎬 Video di Aurora: open «Perché il cielo è blu?», watch it, fix the post if needed, ✔ Pubblica su Facebook | the video on the page, with its text and «🤖 Contenuto generato…»; the post in the history below; then Instagram on (Plugins) and TikTok authorized: their buttons appear |
+| N104 | 🛡️ Security: on an incident from outside, ⛔ Blocca | the card says it is blocked and closed; reload: it is among the closed ones, no new alert for that address; 🤝 Autonomy → statistics: security counts it as approved |
+| N103 | 📊 Health, in the morning and while she answers | «💗 Come si sente: prevale …» with seven rows, each with its causes; ask «come ti senti?» in the chat: she says it with the causes; the good morning ends with «💗 Stamattina prevale …» |
+| N102 | 📣 Social → 🎬 a video → «come Reel» → ✔ Pubblica su Facebook | a Reel on the page (Reels tab); «come storia»: 24 h, no text; a video over 60 s as a story: refused with its length |
+| N101 | ✅ owner, 7 Oct: published on Facebook. 📣 Social → 🎬 Video di Aurora: open «Perché il cielo è blu?», watch it, fix the post if needed, ✔ Pubblica su Facebook | the video on the page, with its text and «🤖 Contenuto generato…»; the post in the history below; then Instagram on (Plugins) and TikTok authorized: their buttons appear |
 | N100 | The third video (black hole: natural voice, music); then 🔊 on an answer in the chat | the chat's voice is sample 3 (steadier, slower); in the video sample 5, the music low under it and fitting, the credit in the post |
 | N99 | Watch the two pilot videos (laser, free will: usr/<you>/images/stories/) | the pictures fit the words, the voice is clear, subtitles readable, the label «Generato con IA» visible; tell what to change |
 | N96 | 🛡️ → 📊 La settimana della sicurezza; and on Monday 08:30 the routine (switch it on in Agenti e routine) | the score, campaigns, what is missing |

@@ -310,6 +310,34 @@ def rem_users() -> dict:
     return {"users": everyone(), "admin": _admin()}
 
 
+def _mood(st: dict, admin: bool) -> dict:
+    """💗 her emotions measured now (kno_mood), with a busy-sample for tiredness; saved for her own prompts."""
+    from aurora import kno_mood
+    if not cfg["AURORA_MOOD"]:
+        return {"on": False, "emotions": {}, "dominant": None}
+    active = sum(1 for r in list(_runs.values()) if not r["done"])
+    g = kno_mood.gpus()
+    kno_mood.record(cfg, _run_lock.locked() or active > 0, g)
+    if admin:
+        try:
+            from .activity import health_all
+            st = {**st, "health_problems": health_all()["problems"]}
+        except Exception as e:                        # noqa: BLE001 — a health check never stops the REM look
+            log.warning("mood: health not read: %s", e)
+    m = kno_mood.measure(cfg, st, active, admin)
+    try:
+        kno_mood.save(cfg, m)
+    except OSError as e:
+        log.warning("mood: not saved: %s", e)
+    return m
+
+
+@router.get("/v1/aurora/mood", dependencies=[Depends(auth)])
+def mood() -> dict:
+    """How Aurora feels now, each emotion with its measured causes (the Health page; roadmap 52)."""
+    return rem_state()["mood"]
+
+
 @router.get("/v1/aurora/rem/state", dependencies=[Depends(auth)])
 def rem_state(user: str | None = None) -> dict:
     from aurora import sys_context
@@ -324,10 +352,12 @@ def rem_state(user: str | None = None) -> dict:
         p = pipeline()
         hour = int(cfg["AURORA_MORNING_HOUR"])
         st = Rem(p, cfg).state()
+        st["drives"] = kno_review.drives(p, cfg, st["idle_min"])
+        st["to_study"] = len(kno_study.pending(p, cfg)) if int(cfg["AURORA_STUDY_PER_NIGHT"]) else 0
+        st["mood"] = _mood(st, who == _admin())
         return {**st, "busy": _run_lock.locked(), "rem_running": rem_running,
-                "review_due": kno_review.due(p, cfg), "drives": kno_review.drives(p, cfg, st["idle_min"]),
+                "review_due": kno_review.due(p, cfg),
                 "social_platforms": social,
-                "to_study": len(kno_study.pending(p, cfg)) if int(cfg["AURORA_STUDY_PER_NIGHT"]) else 0,
                 "studied_tonight": kno_study.studied_tonight(p, cfg),
                 "train_due": int(cfg["AURORA_SHADOW_TRAIN_PER_NIGHT"]) > 0 and bool(cfg["AURORA_SHADOW"])
                 and who == _admin() and not __import__("aurora.kno_train", fromlist=["x"]).trained_tonight(cfg),

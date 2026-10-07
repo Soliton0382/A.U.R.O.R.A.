@@ -79,6 +79,11 @@ async def social_publish(request: Request) -> dict:
     if video:
         how = target["video"]
         args = {how["field"]: text, how["video"]: video}
+        shape = str(body.get("format") or "")             # post / reel / story (Facebook), when the platform has them
+        if how.get("format") and shape:
+            if shape not in how.get("formats", []):
+                raise HTTPException(status_code=400, detail=f"format: one of {how.get('formats')}")
+            args[how["format"]] = shape
     else:
         how = target["photo"] if picture and target.get("photo") else target["publish"]
         if not how:
@@ -103,7 +108,9 @@ def social_stories() -> dict:
     from aurora import kno_story
     from aurora.kno_social import platforms
     return {"stories": kno_story.stories(cfg),
-            "platforms": [{"plugin": t["plugin"], "label": t["label"], "available": t["available"], "max_chars": t["max_chars"]}
+            "platforms": [{"plugin": t["plugin"], "label": t["label"], "available": t["available"], "max_chars": t["max_chars"],
+                           "formats": t["video"].get("formats", []),
+                           "format": str(cfg.values.get(t["video"].get("default", ""), "") or (t["video"].get("formats") or [""])[0])}
                           for t in platforms(plugin_host()) if t.get("video")]}
 
 

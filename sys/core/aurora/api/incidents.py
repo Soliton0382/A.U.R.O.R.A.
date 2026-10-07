@@ -32,6 +32,11 @@ async def sentinel_incident(request: Request) -> dict:
     item = Incidents(cfg).add(incident)
     if item.get("merged"):                                # a repeat of an open incident: counted, not said again
         return {"id": item["id"], "severity": item["severity"], "merged": True}
+    from aurora import sec_defence
+    if sec_defence.blocked(cfg, item["source"]):          # blocked already: the firewall drops it — kept, closed, not
+        Incidents(cfg).update(item["id"], status="closed", closed=time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                              defence="already blocked")  # said again (C174)
+        return {"id": item["id"], "severity": item["severity"], "blocked": True}
     who = f"{name} ({item['source']})" if name else item["source"]
     if not (name and item["severity"] == "low"):          # a known device's routine traffic: in the list, no alert
         note("sentinel", "incident", {"id": item["id"], "kind": item["kind"], "source": item["source"],

@@ -191,7 +191,12 @@ async def firewall_block(request: Request) -> dict:
     if body.get("unblock"):
         sec_defence.mark_released(cfg, out["unblocked"], "owner")
     else:
-        sec_defence.record_manual(cfg, out["blocked"], reason)
+        sec_defence.record_manual(cfg, out["blocked"], reason, str(body.get("incident") or "") or None)
+        from aurora.sec_incidents import Incidents       # blocked: its incidents are done (C174: the alert came back)
+        inc = Incidents(cfg)
+        for i in inc.list("open"):
+            if i["source"] == ip:
+                inc.update(i["id"], status="closed", closed=time.strftime("%Y-%m-%dT%H:%M:%S%z"), defence="blocked by the owner")
     log.info("audit: owner %s %s on the firewall (%s)", what, ip, reason or "-")
     sys_log.trace("security", f"firewall.{what}", {"ip": ip, "reason": reason})
     note("security", "security.action", {"title": f"🛡️ {ip} {'sbloccato' if what == 'unblocked' else 'bloccato'} sul firewall",

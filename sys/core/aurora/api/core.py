@@ -606,6 +606,8 @@ def self_facts() -> dict:
     import subprocess
     import httpx
     facts = {"api_uptime_minutes": round((time.time() - STARTED) / 60), "runs_served": len(_runs)}
+    from aurora import kno_mood                        # 💗 how she feels, measured at the REM's last look (roadmap 52)
+    facts["my_emotions_measured"] = kno_mood.compact(kno_mood.last(cfg))
     try:
         from aurora import sys_health
         h = health_all()

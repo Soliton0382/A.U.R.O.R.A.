@@ -70,6 +70,9 @@ def choose(st: dict, system: bool = True) -> tuple[str | None, str]:
     idle = st["idle_min"] if st["idle_min"] is not None else float("inf")
     if idle < cfg["AURORA_REM_IDLE_MIN"]:
         return None, f"owner active {idle:.0f} min ago"
+    stress = ((st.get("mood") or {}).get("emotions") or {}).get("stress") or {}
+    if (stress.get("value") or 0) >= float(cfg["AURORA_MOOD_STRESS_PAUSE"]):     # 💗 kno_mood: the machine is busy
+        return None, f"stressed ({stress['value']}: {', '.join(stress['causes'])}): waiting"
     now = sns_clock.now(cfg)
     if st["sessions_to_consolidate"]:
         return "consolidate", f"{st['sessions_to_consolidate']} closed sessions"

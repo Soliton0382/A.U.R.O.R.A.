@@ -219,3 +219,8 @@ button.danger { border-color: #c0392b; color: #ff8a80; }
 .care-dot { fill: var(--accent); stroke: var(--panel-solid); stroke-width: 2; }
 .care-dot.out { fill: var(--warn); }
 .care-label { fill: var(--text); font-size: 12px; font-weight: 600; }
+
+/* 💗 the mood rows on the Health page (status.js) */
+.mood-row { align-items: center; }
+.mood-bar { display: inline-block; width: 90px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; flex: none; }
+.mood-bar > span { display: block; height: 100%; border-radius: 3px; background: var(--accent); }

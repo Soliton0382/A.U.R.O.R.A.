@@ -139,13 +139,63 @@ def _video(name: str) -> Path:
     raise ToolError(f"no video named {name}")
 
 
+# how a video goes on the page (owner, 2026-10-07: "post, reel… both as the automatic action and as a choice"): the
+# limits are Meta's (Reels 3–90 s, video stories 3–60 s, both upright); a post takes any video
+LIMITS = {"reel": (3, 90), "story": (3, 60)}
+RUPLOAD = "https://rupload.facebook.com/video-upload/v21.0"
+
+
+def _length(src) -> float | None:
+    import subprocess
+    try:
+        out = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(src)],
+                             capture_output=True, text=True, timeout=30)
+        return float(out.stdout.strip())
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return None
+
+
+def _upload_phases(edge: str, src, finish: dict) -> dict:
+    """Reels and stories: start → the file to rupload.facebook.com → finish (Meta's three-phase upload)."""
+    v = f"{GRAPH}/v21.0/{PAGE}/{edge}"
+    start = httpx.post(v, params={"access_token": TOKEN}, data={"upload_phase": "start"}, timeout=60).json()
+    if "error" in start or "video_id" not in start:
+        raise ToolError(f"Graph API ({edge} start): {start.get('error', {}).get('message', start)} — the page token "
+                        "needs pages_manage_posts")
+    data = src.read_bytes()
+    up = httpx.post(start.get("upload_url") or f"{RUPLOAD}/{start['video_id']}", content=data, timeout=600,
+                    headers={"Authorization": f"OAuth {TOKEN}", "offset": "0", "file_size": str(len(data))})
+    if up.status_code >= 300 or not up.json().get("success", True):
+        raise ToolError(f"upload refused: HTTP {up.status_code} {up.text[:200]}")
+    end = httpx.post(v, params={"access_token": TOKEN}, data={"upload_phase": "finish", "video_id": start["video_id"],
+                                                                **finish}, timeout=120).json()
+    if "error" in end:
+        raise ToolError(f"Graph API ({edge} finish): {end['error'].get('message', end)}")
+    return {**end, "video_id": start["video_id"]}
+
+
 @server.tool()
-def publish_video(video: str, message: str) -> str:
-    """Publish one of Aurora's videos (file name, e.g. one of her narrated videos) with its text on the page (an external
-    action: the owner confirms it). The file is uploaded as it is: no public address needed."""
+def publish_video(video: str, message: str, format: str = "") -> str:
+    """Publish one of Aurora's videos (file name, e.g. one of her narrated videos) on the page (an external action: the
+    owner confirms it). format: "post" (a video post in the feed), "reel" (a Facebook Reel, 3–90 s, upright) or "story"
+    (24 hours, 3–60 s, no text); empty = AURORA_FACEBOOK_VIDEO_AS. The file is uploaded as it is: no public address."""
     src = _video(video)
     if not PAGE or not TOKEN:
         raise ToolError("AURORA_FACEBOOK_PAGE_ID or AURORA_FACEBOOK_PAGE_TOKEN is empty")
+    how = (format or os.environ.get("AURORA_FACEBOOK_VIDEO_AS") or "reel").strip().lower()
+    if how not in ("post", "reel", "story"):
+        raise ToolError("format: post, reel or story")
+    if how in LIMITS:
+        lo, hi = LIMITS[how]
+        n = _length(src)
+        if n is not None and not lo <= n <= hi:
+            raise ToolError(f"a Facebook {how} lasts {lo}–{hi} s; this video lasts {n:.0f} s: publish it as a post")
+    if how == "reel":
+        out = _upload_phases("video_reels", src, {"video_state": "PUBLISHED", "description": message})
+        return f"published as a Reel: video id {out['video_id']}"
+    if how == "story":
+        out = _upload_phases("video_stories", src, {})
+        return f"published as a story (24 h): post id {out.get('post_id') or out['video_id']}"
     r = httpx.post(f"https://graph-video.facebook.com/{PAGE}/videos", params={"access_token": TOKEN},
                    data={"description": message}, files={"source": (src.name, src.read_bytes(), "video/mp4")}, timeout=600)
     data = r.json()

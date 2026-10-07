@@ -47,6 +47,13 @@ export function videoSection(box) {
       const row = el("div", "appr-actions");
       const out = el("span", "muted");
       for (const p of platforms) {
+        let shape = null;                                   // Facebook: reel, post or story (its setting preselected)
+        if (p.formats?.length) {
+          shape = el("select");
+          for (const f of p.formats) shape.append(new Option(t(`social.video.as.${f}`), f, false, f === p.format));
+          shape.title = t("social.video.as_hint");
+          row.append(shape);
+        }
         const pub = el("button", "approve", `✔ ${t("social.publish", { p: p.label })}`);
         pub.type = "button";
         pub.addEventListener("click", async () => {
@@ -54,7 +61,7 @@ export function videoSection(box) {
           out.textContent = t("social.video.sending", { p: p.label });
           try {
             const r = await call("/v1/aurora/social/publish", { method: "POST",
-              body: JSON.stringify({ plugin: p.plugin, text: area.value.slice(0, p.max_chars), video: s.video }) });
+              body: JSON.stringify({ plugin: p.plugin, text: area.value.slice(0, p.max_chars), video: s.video, ...(shape ? { format: shape.value } : {}) }) });
             out.textContent = `${p.label}: ${r.result?.text || r.status || t("social.sent")}`;
           } catch (e) { out.textContent = t("ev.error", { m: e.message }); pub.disabled = false; }
         });

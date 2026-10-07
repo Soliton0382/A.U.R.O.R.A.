@@ -157,6 +157,30 @@ def area_of(item: dict, social_tools: set[str]) -> str:
     return "other"
 
 
+def _security(cfg: sys_config.Config, c: Counter, since: float) -> None:
+    """Security's proposals are the incidents from an address outside the house (each offers its block): approved
+    when the owner blocked it, refused when closed without a block, pending while open; alone: her automatic blocks.
+    One per address (C174: before, the owner's blocks were never counted and a second click made a second row)."""
+    from . import sec_defence
+    from .sec_incidents import Incidents
+    rows = sec_defence._load(cfg)
+    manual = {b["ip"] for b in rows if not b.get("auto") and b["at"] >= since}
+    for ip in {b["ip"] for b in rows if b.get("auto") and b["at"] >= since}:
+        c["alone"] += 1
+        if any(b["ip"] == ip and b.get("auto") and b.get("released_by") == "owner" for b in rows):
+            c["undone"] += 1
+    seen: dict[str, str] = {}
+    for i in Incidents(cfg).list(None, True):
+        if i.get("internal") or float(i.get("received_ts") or 0) < since or i.get("defence") in ("blocked", "already blocked"):
+            continue
+        st = "approved" if i["source"] in manual else "pending" if i.get("status") == "open" else "refused"
+        if seen.get(i["source"]) != "approved":       # an address blocked once counts once, as approved
+            seen[i["source"]] = st
+    for st in seen.values():
+        c["proposed"] += 1
+        c[st] += 1
+
+
 def statistics(cfg: sys_config.Config, approvals: list[dict], social_tools: set[str]) -> dict[str, dict]:
     """Per area over PROVED["days"]: proposed, approved, refused, done alone, and whether she proved good."""
     since = time.time() - PROVED["days"] * 86400
@@ -175,12 +199,16 @@ def statistics(cfg: sys_config.Config, approvals: list[dict], social_tools: set[
         out[a]["proposed"] += 1
         out[a]["approved" if st in ("approved", "executed") else "refused" if st == "rejected"
                else "alone" if st == "auto" else "failed" if st == "failed" else "pending"] += 1
-    from . import sec_defence
-    for b in sec_defence._load(cfg):
-        if b.get("auto") and b["at"] >= since:
-            out["security"]["alone"] += 1
-            if b.get("released_by") == "owner":
-                out["security"]["undone"] += 1
+    _security(cfg, out["security"], since)
+    f = _ledger(cfg)                                  # what she did by herself (searches, plugins, …): the ledger (C174)
+    for line in f.read_text(encoding="utf-8").splitlines() if f.exists() else []:
+        try:
+            r = json.loads(line)
+        except ValueError:
+            continue
+        # social: her own posts are the approvals' "auto" rows; security: the blocks themselves (above)
+        if r.get("at", 0) >= since and r.get("area") in out and r["area"] not in ("social", "security"):
+            out[r["area"]]["alone"] += 1
     res = {}
     for a, c in out.items():
         decided = c["approved"] + c["refused"]

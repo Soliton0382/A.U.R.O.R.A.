@@ -2347,6 +2347,33 @@
    "max": 50
   },
   {
+   "key": "AURORA_MOOD",
+   "type": "bool",
+   "category": "rem",
+   "recommended": "true",
+   "evidence": "owner, 2026-10-06: «le emozioni basate su misurazioni… una bella personalità» (roadmap 52)",
+   "en": "Aurora's emotions from measurements (stress, satisfaction, curiosity, tiredness, longing, melancholy, worry), each with its causes: shown in Health, in the words she uses about herself, in her spontaneous thoughts and good morning; the autonomic cycle waits when stressed; the chat voice is a little slower when tired. Off = none of it.",
+   "it": "Le emozioni di Aurora dalle misure (stress, soddisfazione, curiosità, stanchezza, nostalgia, malinconia, preoccupazione), ognuna con le sue cause: in Salute, nelle parole che usa su di sé, nei pensieri spontanei e nel buongiorno; il ciclo autonomo aspetta se è stressata; la voce in chat un po' più lenta se è stanca. Spento = niente di tutto questo.",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ]
+  },
+  {
+   "key": "AURORA_MOOD_STRESS_PAUSE",
+   "type": "float",
+   "min": 0.5,
+   "max": 1.0,
+   "category": "rem",
+   "recommended": "0.8",
+   "evidence": "computed: stress 0.8 = a GPU at 80 % load, or 4 °C from its thermal limit (15/(15+4)), or 4 errors in the last hour (4/5)",
+   "en": "Stress (0–1) from which the autonomic cycle waits instead of starting a task of its own; 1 = never waits.",
+   "it": "Stress (0–1) da cui il ciclo autonomo aspetta invece di iniziare un suo compito; 1 = non aspetta mai.",
+   "services": [
+    "aurora-rem"
+   ]
+  },
+  {
    "key": "AURORA_REVIEW_PER_DAY",
    "type": "int",
    "category": "rem",
@@ -2745,6 +2772,24 @@
    ],
    "secret": true,
    "optional": true,
+   "scope": "user"
+  },
+  {
+   "key": "AURORA_FACEBOOK_VIDEO_AS",
+   "type": "enum",
+   "choices": [
+    "reel",
+    "post",
+    "story"
+   ],
+   "category": "plugins",
+   "recommended": "reel",
+   "evidence": "owner, 2026-10-07: «le opzioni come post, come reel… sia come azione automatica che come scelta»",
+   "en": "How Aurora's videos go on the Facebook page when nobody chooses (her own posts, a request in the chat; the Social page preselects it): reel = a Facebook Reel (3–90 s, upright, as her videos are); post = a video post in the feed; story = 24 hours, 3–60 s, without text.",
+   "it": "Come vanno i video di Aurora sulla pagina Facebook quando nessuno sceglie (i suoi post, una richiesta in chat; la pagina Social la propone già scelta): reel = un Reel di Facebook (3–90 s, verticale, come i suoi video); post = un post con il video nella bacheca; story = 24 ore, 3–60 s, senza testo.",
+   "services": [
+    "aurora-api"
+   ],
    "scope": "user"
   },
   {

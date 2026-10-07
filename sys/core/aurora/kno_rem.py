@@ -164,8 +164,12 @@ class Rem:
         w = sns_weather.read(self.cfg)
         weather = (f"{w['temperature_c']} °C, umidità {w['humidity_pct']}%, nuvole {w['clouds_pct']}%, "
                    f"pioggia {w['rain_mm']} mm, condizione {w['condition']}") if w else "non misurato"
+        from . import kno_mood                         # 💗 measured, with its causes: a colour, never the subject
+        m = kno_mood.last(self.cfg)
+        feel = (f" COME TI SENTI (misurato, usalo solo come tono; se lo nomini, dì la causa): {kno_mood.words(m)}."
+                if m else "")
         return (sys_persona.identity(self.cfg)
-                + f"\nADESSO: {sns_clock.now_text(self.cfg)}. METEO A CASA: {weather}.")
+                + f"\nADESSO: {sns_clock.now_text(self.cfg)}. METEO A CASA: {weather}.{feel}")
 
     def reflect(self, emit) -> dict:
         frag = self._random_knowledge(1)

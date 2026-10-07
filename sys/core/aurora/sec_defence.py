@@ -120,14 +120,21 @@ def act(cfg: sys_config.Config, incident: dict) -> dict:
 RULE = "Aurora_Block_List"      # the name suggested for the owner's drop rule on the firewall (Aurora writes no rule)
 
 
-def record_manual(cfg: sys_config.Config, ip: str, reason: str) -> None:
-    """A block made by the owner's click: kept here too, so the Security page can undo it (no expiry)."""
+def record_manual(cfg: sys_config.Config, ip: str, reason: str, incident: str | None = None) -> None:
+    """A block made by the owner's click: kept here too, so the Security page can undo it (no expiry). Once per
+    address: a second click on a source already blocked adds nothing (C174: three rows for one address)."""
     now = time.time()
     with _lock:
         items = _load(cfg)
+        if any(b["ip"] == ip and not b.get("released") and b["until"] > now for b in items):
+            return
         items.append({"ip": ip, "at": now, "until": now + 10 * 365 * 86400, "day": time.strftime("%Y-%m-%d"),
-                      "incident": None, "kind": "manual", "reason": reason, "auto": False, "released": None})
+                      "incident": incident, "kind": "manual", "reason": reason, "auto": False, "released": None})
         _save(cfg, items)
+
+
+def blocked(cfg: sys_config.Config, ip: str) -> bool:
+    return any(b["ip"] == ip for b in active(cfg))
 
 
 def mark_released(cfg: sys_config.Config, ip: str, by: str) -> None:

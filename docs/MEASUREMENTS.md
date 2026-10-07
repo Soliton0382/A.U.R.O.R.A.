@@ -910,6 +910,22 @@ suite green in the sandbox (328 passed), proposed — refused by the API still r
 right** — each bug found from the symptom alone, fixed, the whole suite green in the sandbox, the change proposed
 (90, 130, 140, 110 s); every proposal refused by the benchmark, the live code untouched.
 
+## M124 — Her emotions measured, the night checked, Security recounted (7 October 2026)
+
+💗 kno_mood live at 07:12, after the night: stress 0.00 (GPUs at rest, 51–55 °C from their thermal limit by the driver's
+T.Limit), satisfaction 1.00 (10 questions of 10 answered in 24 h), curiosity 0.62 (2 to study + 11 past answers to look
+at again: 13/(13+8)), tiredness not said (1 sample of 30), longing 0.86 (12.0 h silent: 720/(720+120)), melancholy 0.50
+(clouds 100 %, no rain), worry 0.50 (Health: the code signature differs, until the owner signs): longing prevails. The
+REM state with the measure: 0.15–0.38 s (9.3 s the first call after a restart). Under load (two answers of 56–66 s),
+sampled each second for 246 s: GPU 1 at most 72 °C, 17 °C from its limit — the heat part of stress 15/(15+17) = 0.47,
+GPU load at most 51 %: answering she is «a little under pressure», never past the 0.8 that makes the cycle wait.
+The night (6–7 Oct): dream 02:00 (with its painting), study 02:01 — eigenvalue, entropy, laser learned for the owner;
+Musonius Rufus and Hierocles for the second user; two skipped (a question about the owner's GitHub, one about a
+person) —, the shadow trained 20/20 in 22.3 min, reflections at 01:11, 02:55, 05:11 (silent), reviews 20:38 and 20:43;
+0 errors in the API log from 23:05 to 07:00. Asked again without remembering: «Come funziona un laser?» answered
+with 2 sources in 66.2 s, «cos'è l'entropia» with 2 in 56.5 s — both declined before the night (N77, the machine's
+part). Facebook: the owner's first video published (approval executed, 5.9 s). Security (C174/C175): see BUGS.
+
 ## M123 — The videos on the Social page, ready to approve (6 October 2026)
 
 Social → 🎬 Video di Aurora (webui social_video.js): a topic, the steps shown while she works, then every video with
