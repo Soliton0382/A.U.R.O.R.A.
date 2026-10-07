@@ -48,6 +48,13 @@ def test_the_firewall_s_xml_becomes_dicts_and_an_entity_is_never_expanded():
         sec_fwconf.parse('<!DOCTYPE x [<!ENTITY a "aaaa">]><Response>&a;</Response>', "FirewallRule")
 
 
+def test_an_entity_the_firewall_does_not_know_is_an_error_not_an_item():
+    xml = ('<Response><CountryHostGroup><Status code="529">Input request module is Invalid</Status>'
+           "</CountryHostGroup></Response>")
+    with pytest.raises(sec_fwconf.ConfigError, match="529|Invalid"):
+        sec_fwconf.parse(xml, "CountryHostGroup")
+
+
 def test_a_service_published_without_ips_names_the_policy_that_exists_for_it(cfg):
     cfg.values.update(AURORA_FIREWALL_BLOCK_GROUP="Aurora-Blocklist")
     found = sec_audit.exposed(CONF)
@@ -249,6 +256,14 @@ def test_a_change_is_applied_read_back_and_reverted_last_first(cfg, firewall):
     assert removed == ["NATRule", "FirewallRule", "Services", "IPHost"]
 
 
+def test_a_plan_not_wanted_is_discarded_and_never_applied(cfg, firewall):
+    ch = sec_fwwrite.propose(cfg, sec_fwwrite.plan_publish(cfg, "Cloud", "10.0.0.8", "443", conf=CONF))
+    assert sec_fwwrite.discard(cfg, ch["id"])["status"] == "discarded"
+    with pytest.raises(sec_fwwrite.WriteError):
+        sec_fwwrite.apply(cfg, ch["id"])
+    assert firewall.calls == []
+
+
 def test_a_step_the_firewall_refuses_undoes_the_steps_done(cfg, firewall):
     firewall.refuse = "<NATRule>"
     ch = sec_fwwrite.apply(cfg, sec_fwwrite.propose(cfg, sec_fwwrite.plan_publish(cfg, "Cloud", "10.0.0.8", "443", conf=CONF))["id"])
@@ -310,4 +325,24 @@ def test_every_route_of_the_ciso_and_firewall_pages_is_the_admin_s():
     from pathlib import Path
     src = (Path(__file__).parents[1] / "aurora/api/security_ciso.py").read_text(encoding="utf-8")
     routes = re.findall(r"@router\.\w+\(([^\n]+)\)\n", src)
-    assert len(routes) == 7 and all("dependencies=[Depends(admin_only)]" in r for r in routes)
+    assert len(routes) == 10 and all("dependencies=[Depends(admin_only)]" in r for r in routes)
+
+
+def test_aurora_s_machine_doors_judged_from_what_listens(cfg):
+    from aurora import sec_hostaudit
+    cfg.values.update(AURORA_HONEYPOT_PORTS="2222", AURORA_SENTINEL_BIND="10.0.0.5:5514")
+    raw = "\n".join([
+        'tcp LISTEN 0 4096 127.0.0.1:9700 0.0.0.0:* users:(("python",pid=1,fd=7))',
+        "tcp LISTEN 0 4096 *:443 *:*",
+        'tcp LISTEN 0 5 0.0.0.0:2222 0.0.0.0:* users:(("python",pid=2,fd=5))',
+        'udp UNCONN 0 0 10.0.0.5:5514 0.0.0.0:* users:(("python",pid=2,fd=4))',
+        "tcp LISTEN 0 128 0.0.0.0:22 0.0.0.0:*",
+        'udp UNCONN 0 0 *:41689 *:* users:(("cloudflared",pid=3,fd=4))',
+        'tcp LISTEN 0 50 0.0.0.0:6379 0.0.0.0:* users:(("redis-server",pid=4,fd=6))',
+        "udp UNCONN 0 0 0.0.0.0%virbr0:67 0.0.0.0:*"])
+    socks = sec_hostaudit.sockets(raw)
+    found = sec_hostaudit.findings(cfg, socks)
+    kinds = {s["port"]: s["kind"] for s in socks}
+    assert kinds == {"9700": "local", "443": "expected", "2222": "expected", "5514": "expected", "22": "exposed",
+                     "41689": "client", "6379": "exposed", "67": "local"}
+    assert [(f["severity"], f["port"]) for f in found] == [("medium", "6379"), ("low", "22")]

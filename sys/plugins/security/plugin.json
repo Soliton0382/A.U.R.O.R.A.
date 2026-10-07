@@ -14,6 +14,7 @@
   "requires": [],
   "effects": {
     "firewall_docs_refresh": "write_local",
+    "firewall_plan_request": "write_local",
     "firewall_plan_publish": "write_local",
     "firewall_plan_unpublish": "write_local",
     "firewall_plan_quarantine": "write_local",

@@ -272,6 +272,23 @@ def _plan(make) -> str:
 
 
 @tool
+def firewall_plan_request(request: str) -> str:
+    """Plan ANY change on the firewall from the owner's words (not applied): «a rule that denies traffic to the
+    Internet on every port but 443», «block every foreign address but Italy», «open 8443 to the NAS from Italy only».
+    The local model reads the configuration and the SFOS manual and writes the API steps; the code checks each one
+    (allowed entities, new objects named Aurora-…, the owner's objects only updated, with the undo kept). Show the plan
+    to the owner; firewall_apply applies it. When the request is unclear, it answers with questions."""
+    from aurora import sec_fwplan
+    try:
+        out = sec_fwplan.plan(cfg, request)
+    except Exception as e:  # noqa: BLE001 — said to the owner, never a crash of the tool
+        raise ToolError(str(e)) from None
+    if "questions" in out:
+        return "Prima di preparare il piano mi serve sapere:\n" + "\n".join(f"- {q}" for q in out["questions"])
+    return _plan(lambda: out)
+
+
+@tool
 def firewall_plan_publish(name: str, host: str, ports: str, sources: str = "") -> str:
     """Plan making a server of the house reachable from the Internet (not applied): its host, a service with the
     ports, a rule from WAN with intrusion prevention and log (after Aurora's blocking rule), the DNAT on the WAN

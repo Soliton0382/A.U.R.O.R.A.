@@ -140,6 +140,8 @@ call downward (ECOSYSTEM §1).
 | `sec_intel.py` | security | public lists of attackers, downloaded daily, looked up for every incident from outside | — | api/incidents, svc_rem |
 | `sec_baseline.py` | security | each device's normal (countries, ports, apps, data a day) learned for days, then what is new; new devices with their maker | — | svc_sentinel |
 | `sec_hostfw.py` | security | Aurora's own firewall on this machine (nftables through the root helper aurora-nft): decoys touched, login lockouts | sec_defence, sec_fwapi | api/incidents, api/core |
+| `sec_fwplan.py` | security | any firewall change asked in words: the local model plans, the code checks (allowed entities, names, wide Accept, shadowed blocks) | sec_fwconf, sec_fwdocs, sec_fwwrite, mdl_llm | api/security_ciso, plugins/security (firewall_plan_request) |
+| `sec_hostaudit.py` | security | Aurora's machine: what listens and who can reach it, judged | sys_config | api/security_ciso (🔥 page) |
 | `plg_trash.py` | plugins | a plugin deleted into the trash and restored; «self» never deleted | sys_config | api/agents |
 | `api/security_ciso.py` | api | the CISO and Firewall pages: posture, hunt, audit, changes (plan, apply, revert), documentation | sec_* | webui ciso.js, firewall.js |
 | `sec_fwdocs.py` | security | the firewall's documentation (manual, API with sample requests, syslog) downloaded and indexed on this machine (SQLite FTS5), searched by the plugin | sys_config | plugins/security (firewall_docs) |

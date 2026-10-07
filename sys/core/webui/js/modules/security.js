@@ -33,7 +33,6 @@ export function page(tab, meta) { const { title } = meta; return {
         <div class="closed"></div></div>
       <div class="sec-tab" data-tab="defence" hidden>
         <h3 class="setting-cat" data-i18n="sec.defence"></h3><div class="sec-defence"></div>
-        <h3 class="setting-cat" data-i18n="sec.host"></h3><div class="sec-host"></div>
         <h3 class="setting-cat" data-i18n="sec.map"></h3><p class="muted" data-i18n="sec.map_hint"></p><div class="sec-map"></div></div>
       <div class="sec-tab" data-tab="watch" hidden>
         <h3 class="setting-cat" data-i18n="sec.watch"></h3><p class="muted sec-watch-hint"></p>
@@ -147,7 +146,7 @@ export function page(tab, meta) { const { title } = meta; return {
     if (this.loaded.has(tab) && !again) return;
     this.loaded.add(tab);
     if (tab === "incidents") await this.loadOpen();
-    if (tab === "defence") { await this.loadDefence(); await this.loadHost(); await this.loadMap(); }
+    if (tab === "defence") { await this.loadDefence(); await this.loadMap(); }   // Aurora's own machine: 🔥 its page
     if (tab === "watch") { this.rules.replaceChildren(el("p", "muted", "…")); await this.loadProfile(); }
     if (tab === "out") { this.outbound.replaceChildren(el("p", "muted", "…")); await this.loadOutbound(); }
   },

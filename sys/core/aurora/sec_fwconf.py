@@ -46,7 +46,11 @@ def parse(text: str, entity: str) -> list[dict]:
         root = ET.fromstring(text)
     except ET.ParseError as e:
         raise ConfigError(f"the firewall's answer is not XML: {e}") from None
-    return [_value(el) for el in root.iter(entity) if isinstance(_value(el), dict)]
+    items = [_value(el) for el in root.iter(entity) if isinstance(_value(el), dict)]
+    refused = [i for i in items if set(i) == {"Status"}]
+    if refused and len(refused) == len(items):        # «529 Input request module is Invalid»: not an item (C193)
+        raise ConfigError(f"{entity}: {refused[0]['Status']}")
+    return [i for i in items if set(i) != {"Status"}]
 
 
 def listed(value, key: str | None = None) -> list[str]:

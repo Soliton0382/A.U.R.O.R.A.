@@ -10,7 +10,7 @@ import { apiBack } from "../restart.js";
 import { autonomySlot } from "./autonomy_box.js";
 
 const ICON = { high: "🔴", medium: "🟠", low: "🟡" };
-const STATE = { planned: "📝", applied: "✅", undone: "↩️", reverted: "↩️", failed: "❌" };
+const STATE = { planned: "📝", applied: "✅", undone: "↩️", reverted: "↩️", failed: "❌", discarded: "🗑️" };
 
 export default {
   id: "firewall",
@@ -22,6 +22,9 @@ export default {
     root.classList.add("page");
     root.innerHTML = `<h2 data-i18n="nav.sec.firewall"></h2><p class="muted" data-i18n="fw.hint"></p>
       <div class="appr-actions fw-write"></div>
+      <h3 class="setting-cat" data-i18n="fw.ask"></h3>
+      <textarea class="fw-ask" rows="3" data-i18n-placeholder="fw.ask_ph"></textarea>
+      <div class="appr-actions"><button class="approve fw-ask-go" data-i18n="fw.ask_go"></button><span class="muted fw-ask-out"></span></div>
       <h3 class="setting-cat"><span data-i18n="fw.changes"></span></h3><div class="fw-changes"></div>
       <h3 class="setting-cat"><span data-i18n="fw.audit"></span> <button class="fw-again" data-i18n="ciso.again"></button></h3><div class="fw-audit"></div>
       <details class="report"><summary data-i18n="fw.publish"></summary>
@@ -42,12 +45,37 @@ export default {
       host: this.v(".fw-p-host"), ports: this.v(".fw-p-ports"), sources: this.v(".fw-p-src") }));
     this.q(".fw-q-go").addEventListener("click", () => this.plan({ kind: "quarantine", ip: this.v(".fw-q-ip"), reason: this.v(".fw-q-why") }));
     this.q(".fw-q-end").addEventListener("click", () => this.plan({ kind: "release", ip: this.v(".fw-q-ip") }));
+    this.q(".fw-ask-go").addEventListener("click", () => this.ask(this.v(".fw-ask")));
     const search = () => this.docs(this.v(".fw-d-q"));
     this.q(".fw-d-go").addEventListener("click", search);
     this.q(".fw-d-q").addEventListener("keydown", (e) => { if (e.key === "Enter") search(); });
   },
 
   v(s) { return this.q(s).value.trim(); },
+
+  // the owner's words → a plan by the local model, checked by the code; questions when the request is unclear
+  async ask(text) {
+    const out = this.q(".fw-ask-out"), go = this.q(".fw-ask-go");
+    if (!text) return;
+    go.disabled = true;
+    out.textContent = t("fw.ask_wait");
+    const t0 = Date.now();
+    try {
+      const r = await call("/v1/aurora/security/changes/ask", { method: "POST", body: JSON.stringify({ text }) });
+      const s = Math.round((Date.now() - t0) / 1000);
+      if (r.questions) out.textContent = `❓ ${r.questions.join(" · ")}`;
+      else { out.textContent = t("fw.ask_done", { s }); await this.loadChanges(); }
+    } catch (e) { out.textContent = t("ev.error", { m: e.message }); }
+    go.disabled = false;
+  },
+
+  // a finding of the audit handed to the request field (owner, 2026-10-08: «si troverebbe ad ogni suggerimento?»)
+  askFor(f) {
+    const box = this.q(".fw-ask");
+    box.value = t("fw.ask_fix", { what: f.title, why: f.why, fix: f.fix });
+    box.scrollIntoView({ behavior: "smooth", block: "center" });
+    this.ask(box.value);
+  },
 
   async enter() { await Promise.all([this.loadChanges(), this.loadAudit(false), this.docs("")]); },
 
@@ -104,7 +132,15 @@ export default {
       });
       return b;
     };
-    if (ch.status === "planned") d.append(act(`✔ ${t("fw.apply")}`, "apply", "approve", t("fw.apply_q", { title: ch.title })));
+    if (ch.status === "planned") {
+      d.append(act(`✔ ${t("fw.apply")}`, "apply", "approve", t("fw.apply_q", { title: ch.title })));
+      const drop = el("button", "", `🗑️ ${t("fw.discard")}`);      // a plan not wanted: never applied, kept in the record
+      drop.addEventListener("click", async () => {
+        try { await call(`/v1/aurora/security/changes/${ch.id}/discard`, { method: "POST" }); } catch (e) { alert(e.message); }
+        this.loadChanges();
+      });
+      d.append(drop);
+    }
     if (ch.status === "applied" && ch.steps.some((s) => s.undo)) d.append(act(`↩️ ${t("fw.revert")}`, "revert", "", t("fw.revert_q", { title: ch.title })));
     return d;
   },
@@ -116,7 +152,11 @@ export default {
       const a = await call(`/v1/aurora/security/audit?again=${again}`);
       box.replaceChildren(...a.findings.map((f) => {
         const d = el("details", "report");
+        d.open = f.severity !== "low";                                 // what needs doing is shown, its buttons too
         d.append(el("summary", "", `${ICON[f.severity]} ${f.title}`), el("p", "", f.why), el("p", "muted", `➜ ${f.fix}`));
+        const ask = el("button", "", `✨ ${t("fw.ask_aurora")}`);
+        ask.addEventListener("click", () => this.askFor(f));
+        d.append(ask);
         // the fix Aurora can make: the IPS policy (the rule's own when it has one) and the log
         const policy = f.ips && f.ips !== "None" ? f.ips : f.ips_policy;
         if (f.rule && policy && (f.ips === "None" || !f.log)) {

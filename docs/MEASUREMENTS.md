@@ -926,6 +926,23 @@ person) —, the shadow trained 20/20 in 22.3 min, reflections at 01:11, 02:55, 
 with 2 sources in 66.2 s, «cos'è l'entropia» with 2 in 56.5 s — both declined before the night (N77, the machine's
 part). Facebook: the owner's first video published (approval executed, 5.9 s). Security (C174/C175): see BUGS. The face beside the health dot (owner, same morning): /v1/aurora/mood 0.02 s from the REM's last measure (53 s old); headless at 1280×850 a mouse over it opens the card (7 rows, 124–544 px), away closes it; at 390×844 a tap opens it inside the screen (8–382 px, no sideways scroll), a tap elsewhere closes it.
 
+## M135 — Any firewall change asked in words (8 October 2026, roadmap 61)
+
+sec_fwplan: the local model (Qwen3.6-35B-A3B, the configuration never leaves the machine) with the configuration in short
+(30,147 characters with the manual's passages), never applied — plans only. The owner's two examples:
+
+| attempt | «nega il traffico verso Internet su ogni porta tranne la 443» | «metti in black list tutti gli IP esteri tranne l'Italia» |
+|---|---|---|
+| thinking on, 4,000 tokens | no answer: the thinking used all of them (15,902 characters), 82 s | the same, 81 s |
+| no thinking | refused by the code: new names «Aurora_…» (the owner's own rule is «Aurora_Block_List»: never taken for Aurora's) | the same |
+| + new names renamed «Aurora-…» | valid for the code, wrong for a security officer: <UserPolicy>, «any» as an object | **dangerous**: a second rule accepting everything from Italy to every zone |
+| + tidy, no wide Accept from WAN | placed before #Default — **shadowed** by four Accept rules above it | outbound now (no foreign site for the house) — the request is ambiguous |
+| + shadowing check, zone types | **right**: Drop at the top, LAN and WiFi → WAN, HTTPS excluded, 11 s | the reading said in the plan's title; the owner decides at «Applica» |
+
+Through the API: «a group for the IoT devices» planned in 17 s (then discarded). Aurora's machine (sec_hostaudit): 7
+expected doors (Caddy, the sentinel, three decoys), 3 low findings (SSH, KDE Connect, mDNS on the network), 18 local only.
+Not measured: a plan applied on the firewall (the owner's first «Applica»), a third request outside these.
+
 ## M134 — The security officer on the firewall (7-8 October 2026, roadmap 59-60)
 
 Sophos Firewall SFOS 22.0.2 MR-2, the owner's, read through its API; the last 24 hours of its syslog.

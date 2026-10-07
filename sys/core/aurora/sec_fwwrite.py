@@ -434,6 +434,16 @@ def revert(cfg: sys_config.Config, change_id: str) -> dict:
     return change
 
 
+def discard(cfg: sys_config.Config, change_id: str) -> dict:
+    """A planned change the owner does not want: kept in the record as discarded, never applied."""
+    change = get_change(cfg, change_id)
+    if change["status"] != "planned":
+        raise WriteError(f"la modifica {change_id} è {change['status']}: si scarta solo un piano")
+    change.update(status="discarded", discarded=time.time())
+    _keep(cfg, change)
+    return change
+
+
 def text(change: dict) -> str:
     lines = [f"🧱 **{change['title']}** (modifica `{change['id']}`, {change['status']})", f"Perché: {change.get('why', '')}"]
     lines += [f"{i}. {st['why']}" for i, st in enumerate(change["steps"], 1)]

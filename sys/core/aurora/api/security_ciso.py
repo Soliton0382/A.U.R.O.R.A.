@@ -108,19 +108,67 @@ async def plan(request: Request) -> dict:
         raise HTTPException(status_code=409, detail=str(e)) from None
 
 
+@router.post("/v1/aurora/security/changes/ask", dependencies=[Depends(admin_only)])
+async def ask(request: Request) -> dict:
+    """{"text": what the owner wants on the firewall}: the local model plans it (sec_fwplan), the code checks every
+    step; a planned change, or {"questions"} when the request needs an answer first."""
+    from aurora import sec_fwapi, sec_fwplan, sec_fwwrite
+    text = str((await request.json()).get("text", ""))
+    try:
+        out = await asyncio.to_thread(sec_fwplan.plan, cfg, text)
+    except (sec_fwwrite.WriteError, sec_fwapi.FirewallAPIError) as e:
+        raise HTTPException(status_code=409, detail=str(e)) from None
+    if "questions" in out:
+        return out
+    change = sec_fwwrite.propose(cfg, out)
+    log.info("audit: owner asked a firewall change in words → %s planned (%d steps)", change["id"], len(change["steps"]))
+    return change
+
+
 @router.post("/v1/aurora/security/changes/{change_id}/{action}", dependencies=[Depends(admin_only)])
 async def change_action(change_id: str, action: str) -> dict:
-    """apply (the owner's click is the approval) or revert."""
+    """apply (the owner's click is the approval), revert, or discard a plan."""
     from aurora import sec_fwapi, sec_fwwrite
-    if action not in ("apply", "revert"):
-        raise HTTPException(status_code=404, detail="apply or revert")
-    fn = sec_fwwrite.apply if action == "apply" else sec_fwwrite.revert
+    if action not in ("apply", "revert", "discard"):
+        raise HTTPException(status_code=404, detail="apply, revert or discard")
+    fn = {"apply": sec_fwwrite.apply, "revert": sec_fwwrite.revert, "discard": sec_fwwrite.discard}[action]
     try:
         out = await asyncio.to_thread(fn, cfg, change_id)
     except (sec_fwwrite.WriteError, sec_fwapi.FirewallAPIError) as e:
         raise HTTPException(status_code=409, detail=str(e)) from None
     _kept.pop("audit", None)                        # the configuration changed: read it again next time
     log.info("audit: owner %s firewall change %s → %s", action, change_id, out["status"])
+    return out
+
+
+# ---- Aurora's own machine and firewall (owner, 2026-10-08: «un menù a parte per il firewall di Aurora… mini CISO») --
+@router.get("/v1/aurora/security/aurora", dependencies=[Depends(admin_only)])
+async def aurora_host() -> dict:
+    """Her firewall (installed, on, the addresses it keeps off), the decoys, what listens on her machine and who can
+    reach it, the incidents about her machine (a decoy touched, the API's lockout)."""
+    from aurora import sec_hostaudit, sec_hostfw, sec_incidents
+
+    def make():
+        incidents = [i for i in sec_incidents.Incidents(cfg).list(archived=False)
+                     if i.get("kind") in ("honeypot", "auth_fail", "login")][-20:][::-1]
+        return {"hostfw": {"on": bool(cfg["AURORA_HOSTFW"]), "installed": sec_hostfw.available(),
+                           "active": sec_hostfw.active(cfg)},
+                "decoys": [p for p in str(cfg["AURORA_HONEYPOT_PORTS"] or "").split(",") if p.strip()],
+                "audit": sec_hostaudit.run(cfg), "incidents": incidents}
+    return await asyncio.to_thread(make)
+
+
+@router.post("/v1/aurora/security/aurora/block", dependencies=[Depends(admin_only)])
+async def aurora_block(request: Request) -> dict:
+    """{"ip", "why", "hours"}: an address kept off Aurora's machine by the owner (her nftables table)."""
+    from aurora import sec_hostfw
+    body = await request.json()
+    try:
+        out = await asyncio.to_thread(sec_hostfw.block, cfg, str(body.get("ip", "")), str(body.get("why") or "dal proprietario")[:200],
+                                      float(body.get("hours") or 24))
+    except (ValueError, RuntimeError) as e:
+        raise HTTPException(status_code=409, detail=str(e)) from None
+    log.info("audit: owner kept %s off Aurora's machine", body.get("ip"))
     return out
 
 
