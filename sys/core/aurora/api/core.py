@@ -155,6 +155,13 @@ def _client(request: Request) -> str:
     return fwd.split(",")[0].strip() if peer in ("127.0.0.1", "::1") and fwd else peer
 
 
+def via_tunnel(ip: str) -> bool:
+    """A caller that reached Caddy from one of this machine's own non-loopback addresses: a Cloudflare tunnel
+    (cloudflared connects from here, every remote device the same address) or a browser on this computer."""
+    from aurora import sec_fwapi
+    return not ip.startswith("127.") and ip != "::1" and ip in sec_fwapi._own_addresses()
+
+
 def _local(request: Request) -> bool:
     peer = request.client.host if request.client else "?"
     return peer in ("127.0.0.1", "::1") and not request.headers.get("x-forwarded-for")
@@ -180,8 +187,14 @@ def _failed(request: Request) -> None:
         _fails.setdefault(ip, []).append(time.time())
         n = len(_fails[ip])
     if n == cfg["AURORA_AUTH_MAX_FAILS"]:
-        log.warning("audit: %d failed logins from %s: refused for %d s", n, ip, cfg["AURORA_AUTH_WINDOW_S"])
-        note("security", "auth.lockout", {"title": f"{n} tentativi di accesso falliti da {ip}", "ip": ip})
+        tunnel = via_tunnel(ip)                           # every remote device shares it: said, and never firewalled
+        log.warning("audit: %d failed logins from %s%s: refused for %d s", n, ip, " (tunnel or this machine)" if tunnel
+                    else "", cfg["AURORA_AUTH_WINDOW_S"])
+        note("security", "auth.lockout", {"title": f"{n} tentativi di accesso falliti da {ip}" + (
+            " — dal tunnel Cloudflare o da questo computer: chi è fuori casa resta fuori per qualche minuto" if tunnel else ""),
+            "ip": ip})
+        if tunnel:
+            return
 
         def keep_out():                                   # and off this machine for hours (sec_hostfw), if installed
             from aurora import sec_hostfw

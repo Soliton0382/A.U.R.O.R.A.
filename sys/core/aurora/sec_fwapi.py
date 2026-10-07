@@ -46,7 +46,17 @@ def configured(cfg: sys_config.Config) -> bool:
 
 
 def _own_addresses() -> set[str]:
+    """Every address of this machine's interfaces (`ip -j addr`), and its host name's. The host name alone gave only
+    127.0.1.1 (C180): the LAN address was blockable — and a Cloudflare tunnel's traffic comes from it."""
+    import json
+    import subprocess
     out = set()
+    try:
+        r = subprocess.run(["ip", "-j", "addr", "show"], capture_output=True, text=True, timeout=5)
+        for iface in json.loads(r.stdout or "[]"):
+            out.update(a["local"] for a in iface.get("addr_info", []) if a.get("local"))
+    except (OSError, ValueError, subprocess.SubprocessError):
+        pass
     try:
         for info in socket.getaddrinfo(socket.gethostname(), None):
             out.add(info[4][0])

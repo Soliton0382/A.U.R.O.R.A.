@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from .core import _admin, auth, cfg, log, user_of
 
 router = APIRouter()
+from aurora.net_cloudflare import KEYS as TUNNEL_KEYS  # noqa: E402
 
 
 # ---- status and settings -------------------------------------------------------------------
@@ -112,6 +113,8 @@ async def update_settings(request: Request) -> dict:
     sys_log.trace("api", "settings.change", {"keys": sorted(changes), "restart": restart})
     from .backup import NAS_KEYS, start_mount             # the backup plugin saved with a NAS folder: mount it now
     mounting = bool(NAS_KEYS & set(changes)) and start_mount(str(changes.get("AURORA_BACKUP_DIR", cfg["AURORA_BACKUP_DIR"])))
+    from .tunnel import start_tunnel                        # the cloudflare plugin saved: everything set up (roadmap 56)
+    tunnel = bool(TUNNEL_KEYS & set(changes)) and start_tunnel()
     from .backup import start_retime                        # a new backup time: the timer follows it
     retimed = "AURORA_BACKUP_TIME" in changes and start_retime()
-    return {"changed": sorted(changes), "restart": restart, "mounting": mounting, "retimed": retimed}
+    return {"changed": sorted(changes), "restart": restart, "mounting": mounting, "retimed": retimed, "tunnel": tunnel}

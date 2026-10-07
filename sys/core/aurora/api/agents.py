@@ -102,6 +102,9 @@ def plugin_switch(name: str, action: str) -> dict:
         log.info("audit: plugin %s %s", name, "shared with the users" if action == "share" else "kept for the admin")
         return {"name": name, "users": action == "share"}
     host.set_enabled(name, action == "enable")
+    if name == "cloudflare":                          # on: the tunnel set up and started; off: stopped (roadmap 56)
+        from .tunnel import start_tunnel, stop_tunnel
+        start_tunnel() if action == "enable" else stop_tunnel()
     return {"name": name, "enabled": action == "enable"}
 
 

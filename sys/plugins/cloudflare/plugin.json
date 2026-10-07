@@ -1,0 +1,38 @@
+{
+ "name": "cloudflare",
+ "version": "1.0",
+ "kind": "connector",
+ "description": {
+  "it": "Aurora raggiungibile ovunque con Cloudflare One (WARP), senza aprire porte: con «Salva» crea il tunnel, le rotte private, le regole di WARP e avvia il servizio; lo stato e cosa manca li legge Aurora (scritti da lei stessa con la forgia, 7 ottobre 2026).",
+  "en": "Aurora reachable everywhere with Cloudflare One (WARP), with no port opened: «Save» creates the tunnel, the private routes, WARP's rules and starts the service; the state and what is missing are read by Aurora (written by herself through the forge, 7 October 2026)."
+ },
+ "command": [
+  "{python}",
+  "server.py"
+ ],
+ "env": [
+  "AURORA_CLOUDFLARE_ACCOUNT_ID",
+  "AURORA_CLOUDFLARE_API_TOKEN",
+  "AURORA_CLOUDFLARE_TUNNEL",
+  "AURORA_CLOUDFLARE_NETWORK",
+  "AURORA_CLOUDFLARE_DOMAIN",
+  "AURORA_CLOUDFLARE_DNS"
+ ],
+ "requires": [
+  "AURORA_CLOUDFLARE_ACCOUNT_ID",
+  "AURORA_CLOUDFLARE_API_TOKEN"
+ ],
+ "effects": {
+  "cloudflare_status": "read",
+  "cloudflare_check": "read",
+  "cloudflare_activate": "external",
+  "*": "external"
+ },
+ "sandbox": {
+  "network": true
+ },
+ "setup": {
+  "it": "**Aurora raggiungibile ovunque, a casa e fuori, senza aprire porte sul router.** Il telefono usa l'app gratuita *Cloudflare One*; Aurora fa tutto il resto da sola quando premi **Salva**. Tempo: circa 15 minuti, una volta.\n\n**A. Un account Cloudflare Zero Trust (gratis)**\n1. Vai su **dash.cloudflare.com** e crea un account (o accedi).\n2. Nel menu a sinistra apri **Zero Trust**. La prima volta chiede un **nome del team** (es. *casa-rossi*): scegline uno e annotalo, servirà sul telefono. Scegli il piano **Free** (fino a 50 utenti).\n3. Chi può collegare un dispositivo: in Zero Trust → **Settings → WARP Client → Device enrollment permissions → Manage → Add a rule**: *Include* → *Emails* → la tua e-mail (e quella di chi in famiglia usa Aurora). Salva.\n\n**B. La chiave per Aurora (token API)**\n4. In alto a destra: icona del profilo → **My Profile → API Tokens → Create Token → Create Custom Token** (in fondo alla pagina).\n5. Nome: *Aurora*. Permessi, due righe: **Account · Cloudflare Tunnel · Edit** e **Account · Zero Trust · Edit**. *Account Resources*: il tuo account. **Continue to summary → Create Token** e copia il token (si vede una volta sola).\n6. L'**Account ID**: nella home della dashboard, sul nome del tuo account → menu **⋯ → Copy account ID**.\n\n**C. Una volta sul computer di Aurora**\n7. In un terminale nella cartella di Aurora: `sudo bash sys/deploy/cloudflared/install.sh` — installa *cloudflared* e il servizio *aurora-tunnel*. Non chiede nulla.\n\n**D. In Aurora: Salva**\n8. Qui, **⚙️ Impostazioni** del plugin: incolla **Account ID** e **token API**. Se apri Aurora con un nome (es. *aurora.casa.it*) metti il **dominio** (*casa.it*) e il **DNS di casa** che lo risolve (di solito il router, es. 192.168.1.1). L'indirizzo del computer Aurora lo trova da sola.\n9. **Salva** (il plugin acceso): Aurora crea il tunnel, le rotte, le regole di WARP, scarica il token del tunnel e avvia il servizio. Arriva una notifica 🌐 con l'esito; **▶ Prova** su *cloudflare_status*: il tunnel **healthy**.\n\n**E. Sul telefono**\n10. Installa **Cloudflare One** (Android / iOS) → *Accedi con Cloudflare Zero Trust* → il **nome del team** del passo 2 → la tua e-mail → il codice che ti arriva. Attiva l'interruttore.\n11. Spegni il Wi-Fi e apri Aurora con lo stesso indirizzo di casa: risponde anche in 4G, con il lucchetto valido.\n\n**Da non fare**: non aggiungere *Published application routes* (hostname pubblici) al tunnel — metterebbero Aurora su Internet; Aurora te lo segnala se ce ne sono.",
+  "en": "**Aurora reachable everywhere, at home and away, with no port opened on the router.** The phone uses the free *Cloudflare One* app; Aurora does the rest by herself when you press **Save**. About 15 minutes, once.\n\n**A. A Cloudflare Zero Trust account (free)**\n1. Go to **dash.cloudflare.com** and sign up (or log in).\n2. In the left menu open **Zero Trust**. The first time it asks for a **team name** (e.g. *smith-home*): note it, the phone needs it. Choose the **Free** plan (up to 50 users).\n3. Who may connect a device: Zero Trust → **Settings → WARP Client → Device enrollment permissions → Manage → Add a rule**: *Include* → *Emails* → your e-mail (and your family's). Save.\n\n**B. Aurora's key (API token)**\n4. Top right: profile icon → **My Profile → API Tokens → Create Token → Create Custom Token**.\n5. Name *Aurora*; permissions: **Account · Cloudflare Tunnel · Edit** and **Account · Zero Trust · Edit**; *Account Resources*: your account. **Continue to summary → Create Token**, copy it (shown once).\n6. The **Account ID**: dashboard home, on your account's name → **⋯ → Copy account ID**.\n\n**C. Once on Aurora's computer**\n7. In a terminal in Aurora's folder: `sudo bash sys/deploy/cloudflared/install.sh` — installs *cloudflared* and the *aurora-tunnel* service. It asks nothing.\n\n**D. In Aurora: Save**\n8. Here, the plugin's **⚙️ Settings**: paste the **Account ID** and the **API token**. If you open Aurora by a name (e.g. *aurora.home.example*) set the **domain** and the **home DNS** that resolves it (usually the router).\n9. **Save** (plugin on): Aurora creates the tunnel, the routes, WARP's rules, fetches the tunnel's token and starts the service; a 🌐 notification says how it went; **▶ Try** *cloudflare_status*: the tunnel **healthy**.\n\n**E. On the phone**\n10. Install **Cloudflare One** → *Log in with Cloudflare Zero Trust* → the **team name** → your e-mail → the code. Switch it on.\n11. Wi-Fi off, open Aurora at the same address as at home: it answers in 4G too, with a valid padlock.\n\n**Don't**: add *Published application routes* (public hostnames) to the tunnel — they put Aurora on the Internet; Aurora warns you if there are any."
+ }
+}

@@ -105,6 +105,8 @@ call downward (ECOSYSTEM §1).
 | `kno_study.py` | knowledge | the questions she declined, studied at night (the search agent, not remembered as a conversation), each outcome a "study" reflection, once per question | kno_acquire, kno_rem | api/routines (rem study) |
 | `kno_shadow.py` | knowledge | the shadow of a verified answer: a question close enough (cosine ≥ 0.90) whose answer the old one is (re-rank ≥ 0.5) gets it at once; rechecked in the background | sys_users_layout | api/core (answer_or_acquire) |
 | `plg_shadow.py` | plugins | each plugin's small cache: a read tool it declares (manifest "cache") called again with the same arguments gets the result already obtained | sys_users_layout | agt_loop |
+| `net_cloudflare.py` | network | Aurora reachable from away (Cloudflare One, WARP private network): the account's state, what is missing, `apply` («Salva»: tunnel, /32 routes, split tunnel carved, local domain fallback, the tunnel's token fetched and kept 0600, aurora-tunnel started) | httpx, systemctl (polkit) | plugins/cloudflare, api/tunnel |
+| `api/tunnel.py` | network | the cloudflare plugin saved or switched on: `apply` in the background, told by a notification (tunnel.done/failed); off: aurora-tunnel stopped; at the API's start: up again if it should be | net_cloudflare | api/system (settings), api/agents (plugin switch), svc_api |
 | `hlt_diet.py` | health | the dietitian's plan followed day by day: the week read from the text (days × meals, foods, food groups), the frequencies and free meals, rules by the LOCAL model; what was eaten, sealed; the meal proposed with its reasons, alternatives and variety hints; reminder times; the texts the chat's model reads (meal_text, plan_text: the code's date, C179) | hlt_store, sys_seal, kno_ingest | api/diet |
 | `api/diet.py` | health | /v1/aurora/diet (the day's meals, the week), /diet/process, /diet/choice, /diet/pending; watch_diet: each minute, the meal reminder of each user who turned it on (notification «diet.meal») | hlt_diet, sys_push (note) | webui care_diet.js, diet.js |
 | `webui/js/diet.js` | interface | 🍽️ a meal's card (proposed, alternatives, «scelgo questo», free meal, something else) and the chat's reminder bubbles | api/diet | care_diet.js, chat.js |
@@ -208,6 +210,7 @@ call downward (ECOSYSTEM §1).
 | `github` | connector | official GitHub MCP server v1.12.2 (`sys/runtime/github-mcp-server`, SHA-256 verified): get_/list_/search_ read, everything else external | AURORA_GITHUB_TOKEN |
 | `telegram` | connector | get_me, get_updates (read); send_message (external) | AURORA_TELEGRAM_BOT_TOKEN, owner chat id |
 | `facebook` | connector | page_info, list_posts (read); publish_post (external) | AURORA_FACEBOOK_PAGE_ID/TOKEN |
+| `cloudflare` | connector | cloudflare_status, cloudflare_check (read: tunnel, published hostnames, routes, split tunnel, fallback, aurora-tunnel); cloudflare_activate (external, approved each time) — all in net_cloudflare. State tools written by Aurora (forge, 7 Oct) | AURORA_CLOUDFLARE_ACCOUNT_ID/API_TOKEN; `sys/deploy/cloudflared/install.sh` once |
 
 ## Prompts: `sys/core/prompts/`
 

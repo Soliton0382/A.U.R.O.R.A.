@@ -51,6 +51,8 @@ TEXTS = {   # event -> (kind the owner chooses, view to open, {lang: title})
     "weather.alert": ("weather", "routines", {"it": "⛈️ Allerta meteo", "en": "⛈️ Weather alert"}),
     "forge.installed": ("plugin", "plugins", {"it": "🔨 Aurora si è costruita un plugin", "en": "🔨 Aurora built herself a plugin"}),
     "forge.failed": ("plugin", "plugins", {"it": "🔨 Una capacità non è riuscita", "en": "🔨 A capability could not be built"}),
+    "tunnel.done": ("plugin", "plugins", {"it": "🌐 Accesso da fuori casa (Cloudflare)", "en": "🌐 Access from away (Cloudflare)"}),
+    "tunnel.failed": ("plugin", "plugins", {"it": "🌐 Accesso Cloudflare: qualcosa non è riuscito", "en": "🌐 Cloudflare access: something failed"}),
     "plugin.ready": ("plugin", "routines", {"it": "🧩 Nuovo plugin pronto", "en": "🧩 New plugin ready"}),
     "project.progress": ("project", "projects", {"it": "🧪 Un progetto avanza: i test passano", "en": "🧪 A project moves on: the tests pass"}),
     "project.update": ("project", "projects", {"it": "📁 Lavoro su un progetto concluso", "en": "📁 Work on a project done"}),

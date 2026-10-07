@@ -4288,6 +4288,83 @@
    "it": "Gli orari dei pasti per i promemoria: pasto=HH:MM separati da virgole (colazione, spuntino, pranzo, merenda, cena). Un pasto non elencato non ha promemoria.",
    "services": [],
    "scope": "user"
+  },
+  {
+   "key": "AURORA_CLOUDFLARE_ACCOUNT_ID",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner, 2026-10-07: «aurora sempre e ovunque raggiungibile… una sorta di ztna» (roadmap 56)",
+   "en": "Cloudflare account ID (dashboard home): the cloudflare plugin works on it. Empty: plugin off.",
+   "it": "ID dell'account Cloudflare (home della dashboard): il plugin cloudflare lavora su questo. Vuoto: plugin spento.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_CLOUDFLARE_API_TOKEN",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner, 2026-10-07: «aurora sempre e ovunque raggiungibile… una sorta di ztna» (roadmap 56)",
+   "en": "Cloudflare API token with Cloudflare Tunnel: Edit and Zero Trust: Edit. Never shown, never sent to a model.",
+   "it": "Token API di Cloudflare con Cloudflare Tunnel: Edit e Zero Trust: Edit. Mai mostrato, mai mandato a un modello.",
+   "services": [
+    "aurora-api"
+   ],
+   "secret": true,
+   "optional": true
+  },
+  {
+   "key": "AURORA_CLOUDFLARE_TUNNEL",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "aurora",
+   "evidence": "owner, 2026-10-07: «aurora sempre e ovunque raggiungibile… una sorta di ztna» (roadmap 56)",
+   "en": "Name of the Cloudflare tunnel of this computer.",
+   "it": "Nome del tunnel Cloudflare di questo computer.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_CLOUDFLARE_NETWORK",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner, 2026-10-07: «aurora sempre e ovunque raggiungibile… una sorta di ztna» (roadmap 56)",
+   "en": "The private address WARP reaches (IP/32); empty: this computer's own LAN address.",
+   "it": "L'indirizzo privato che WARP raggiunge (IP/32); vuoto: l'indirizzo LAN di questo computer.",
+   "services": [
+    "aurora-api"
+   ],
+   "optional": true
+  },
+  {
+   "key": "AURORA_CLOUDFLARE_DOMAIN",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner, 2026-10-07: «aurora sempre e ovunque raggiungibile… una sorta di ztna» (roadmap 56)",
+   "en": "Internal domain resolved by the home DNS also away (WARP local domain fallback), e.g. the domain of Aurora's address; empty: none.",
+   "it": "Dominio interno risolto dal DNS di casa anche fuori (local domain fallback di WARP), es. il dominio dell'indirizzo di Aurora; vuoto: nessuno.",
+   "services": [
+    "aurora-api"
+   ],
+   "optional": true
+  },
+  {
+   "key": "AURORA_CLOUDFLARE_DNS",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner, 2026-10-07: «aurora sempre e ovunque raggiungibile… una sorta di ztna» (roadmap 56)",
+   "en": "The home DNS server that resolves that domain (an IP); WARP carries it too.",
+   "it": "Il server DNS di casa che risolve quel dominio (un IP); anche lui passa in WARP.",
+   "services": [
+    "aurora-api"
+   ],
+   "optional": true
   }
  ]
 }

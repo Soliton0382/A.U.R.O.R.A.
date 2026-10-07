@@ -926,6 +926,24 @@ person) —, the shadow trained 20/20 in 22.3 min, reflections at 01:11, 02:55, 
 with 2 sources in 66.2 s, «cos'è l'entropia» with 2 in 56.5 s — both declined before the night (N77, the machine's
 part). Facebook: the owner's first video published (approval executed, 5.9 s). Security (C174/C175): see BUGS. The face beside the health dot (owner, same morning): /v1/aurora/mood 0.02 s from the REM's last measure (53 s old); headless at 1280×850 a mouse over it opens the card (7 rows, 124–544 px), away closes it; at 390×844 a tap opens it inside the screen (8–382 px, no sideways scroll), a tap elsewhere closes it.
 
+## M127 — Aurora builds her own Cloudflare plugin (7 October 2026, roadmap 56)
+
+Asked in the chat from the owner's account (the API key, as the owner asked: the turn is in the owner's conversation):
+the router sent it to the agent (142 tools), which searched the plugins for «cloudflare|cfd_tunnel|cloudflared» (no
+match) and asked the forge — 29.7 s, 3 steps. The forge built `cloudflare` in about 65 s at the first attempt: 204
+lines, two read-only tools (status; what is missing), the token never in a text, every API error said, this
+computer's /32 found by itself, cloudflared looked for; network on, so proposed, and approved by the owner. What it
+could not do: an activation tool (the forge writes read-only plugins by rule), settings the WebUI can show (keys
+outside the schema, CLOUDFLARE_*), the token marked secret. Completed by hand as a project plugin (activation,
+AURORA_CLOUDFLARE_* in the schema, the token secret, the home DNS carried too); Aurora's original kept in the forge's
+stage. On a fake account (tests): the check lists 5 missing steps without writing; activate creates the tunnel, 2
+routes, carves 192.0.0.0/16 into 16 pieces around the /32, adds the fallback; a second run changes nothing. The home
+DNS resolves Aurora's name to the LAN address (dig).
+Then on the owner's account (read only, 7 October): API token active; tunnel «aurora» made by hand, inactive; the
+/32 route present on it; the home DNS's /32 covered by the LAN route of another tunnel of the owner; both excluded from
+WARP by 192.168.0.0/16; no fallback for the domain; aurora-tunnel not installed — what «Salva» and the installer do
+(C181). The tunnel's first start, its HEALTHY state and the phone in 4G: not measured yet.
+
 ## M126 — The diet plan, processed (7 October 2026, roadmap 55, C178)
 
 A user's real plan (a dietitian's .docx, 15 316 characters once C178 let it be read): «Elabora documenti» found 28

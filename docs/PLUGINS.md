@@ -14,6 +14,7 @@ Generated from `sys/plugins/*/plugin.json` by `sys/core/script/doc_plugins.py`: 
 | `dropbox` | connector | dropbox_list (read), dropbox_search (read), dropbox_read (read), dropbox_upload (external) | AURORA_DROPBOX_APP_KEY, AURORA_DROPBOX_APP_SECRET, AURORA_DROPBOX_REFRESH_TOKEN |
 | `email` | connector | list_unread (read), read_message (read), send_email (external) | AURORA_EMAIL_IMAP_HOST, AURORA_EMAIL_USER, AURORA_EMAIL_PASSWORD |
 | `expenses` | tool | expense_list (read), expense_summary (read) | — |
+| `cloudflare` | connector | cloudflare_status (read), cloudflare_check (read), cloudflare_activate (external) | AURORA_CLOUDFLARE_ACCOUNT_ID, AURORA_CLOUDFLARE_API_TOKEN |
 | `facebook` | connector | publish_post (external), page_info (read), list_posts (read), page_stats (read), list_comments (read), reply_comment (external), update_page_info (external), set_welcome_message (external), publish_photo (external) | AURORA_FACEBOOK_PAGE_ID, AURORA_FACEBOOK_PAGE_TOKEN |
 | `github` | connector | get_* (read), list_* (read), search_* (read), everything else (external) | AURORA_GITHUB_TOKEN |
 | `homeassistant` | connector | states (read), call_service (external) | AURORA_HA_URL, AURORA_HA_TOKEN |

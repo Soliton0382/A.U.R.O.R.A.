@@ -7,7 +7,7 @@ end, duplicates and tests of pages that no longer exist removed (each with its r
 | session | tests |
 |---|---|
 | 🌙 they come by themselves (look in the morning) | N19, N63, N77, N78 |
-| 🔁 again after a change | I5, N25, N93–N100, N102–N106 |
+| 🔁 again after a change | I5, N25, N93–N100, N102–N107 |
 | 📱 phone, ~10 min | N31 |
 | 🖥️ chat on the PC, ~15 min | I4 |
 | 🧭 pages, ~25 min | K1, N32, N35, N37, N40, N43, N46, N53, N62, N64, N66, N68, N73, N74, R1, R10 |
@@ -52,6 +52,7 @@ end, duplicates and tests of pages that no longer exist removed (each with its r
 | N95 | «anima questa foto» with the video given to Google (Models → 🎨) | the video from Veo; while it is made, the bar «🎬 … in corso · circa N%» over the chat |
 | N97 | The chat on the phone: a question, then the network cut for a few seconds (airplane mode) while she answers | «🔌 connessione persa: riprendo…», then the whole answer — no «network error» (C170) |
 | N98 | Tomorrow between 9 and 22, silent for a while: the chat | at most 2 bubbles «🔁 Aurora ci ha ripensato» on an old answer, with its sources; tell whether they were worth it (M120) |
+| N107 | 🌐 Cloudflare, following the guide in the plugin's card: `sudo bash sys/deploy/cloudflared/install.sh` once; account ID and API token in the card → Salva; on the phone Cloudflare One connected, Wi-Fi off | a 🌐 notification «Fatto» with each step; ▶ cloudflare_status: tunnel healthy, routes present, split tunnel «passa in WARP», fallback present, aurora-tunnel attivo; the tunnel HEALTHY in Zero Trust; the PWA opens at the home address in 4G, the padlock valid |
 | N106 | 🍽️ As the user with the diet: Health → Diet → «Elabora documenti»; then «Scelgo questo» on a meal; turn the reminders on | the plan from the dietitian's document (28 meals, the frequencies' chips); a meal chosen shows ✅ and the week's chips move; at the next meal time a notification «🍽️ È ora di mangiare» and a bubble in the chat, answered there; in the chat «cosa ho oggi a pranzo?»: today's right weekday, the plan's proposal and alternatives, the card under the answer, well under the 110 s of C179 |
 | N105 | 👤 Open the menu ☰ (PC and phone), then log in as another user | above the language and «Esci»: 🛡️ your name, «il tuo login · amministratore»; as the other user: 👤 their name and «utente» |
 | N104 | 🛡️ Security: on an incident from outside, ⛔ Blocca | the card says it is blocked and closed; reload: it is among the closed ones, no new alert for that address; 🤝 Autonomy → statistics: security counts it as approved |
