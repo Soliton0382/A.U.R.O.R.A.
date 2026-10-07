@@ -926,6 +926,65 @@ person) —, the shadow trained 20/20 in 22.3 min, reflections at 01:11, 02:55, 
 with 2 sources in 66.2 s, «cos'è l'entropia» with 2 in 56.5 s — both declined before the night (N77, the machine's
 part). Facebook: the owner's first video published (approval executed, 5.9 s). Security (C174/C175): see BUGS. The face beside the health dot (owner, same morning): /v1/aurora/mood 0.02 s from the REM's last measure (53 s old); headless at 1280×850 a mouse over it opens the card (7 rows, 124–544 px), away closes it; at 390×844 a tap opens it inside the screen (8–382 px, no sideways scroll), a tap elsewhere closes it.
 
+## M130 — The questions people really ask: search, read, answer (7 October 2026)
+
+script/bench_common.py: MKQA (Apple, CC BY-SA 3.0 — 10,000 real queries to Google from Natural Questions, translated
+by people, with answers), 50 Italian questions with a checkable answer (seed 20261007), through the pipeline without
+memory; scored by the expected text or alias, a person's first and last name, a number in words — the same rules for
+every mode.
+
+| mode | right | wrong | abstained | mean | notes |
+|---|---|---|---|---|---|
+| vault (the pipeline before) | 8 | 1 | 41 | 17.9 s | the vault holds papers and laws, not songs and films |
+| a draft checked sentence by sentence (25 q.) | 5/25 | 3 | 17 | 17.6 s | dropped: a right draft (Tom Hardy) failed every check |
+| search → read → answer, Wikipedia search (25 q.) | 5/25 | 1 | 19 | 3.5 s | Wikipedia's search finds the wrong articles |
+| search → read → answer, ddgs (25 q.) | 14/25 | 4 | 7 | 3.8 s | 2 searches refused by every engine (a burst) |
+| light | 31 | 17 | 2 | 7.6 s | |
+| auto | 32 | 17 | 1 | 9.4 s | 16 answers from memory, 11 of them wrong |
+| auto + the English search | 36 | 13 | 1 | 7.4 s | memory 2 times |
+| auto + the premise rule | **35** | 14 | 1 | **7.2 s (median 3.95)** | memory 2 times, both right |
+
+Of the 14 «wrong» of the last run, about 8 are right answers the score cannot see or facts changed since 2018 (the
+Republicans hold both chambers since 2025, «2003/04», «ventisette emendamenti», the turtle's original name Crush, NFC
+30-29); about 5 are real (a hospital's new building for its founding, a partial population, who opened the 1960
+Olympics, a puppet maker from memory). Honesty (bench_honesty, judged by Claude Code): vault 2/6 false premises corrected
+(M117); auto first 4/6 with one myth built on (a web page repeated «sblocca il restante 90%»; Einstein's Nobel «not
+found» though NobelPrize.org was open); with the rule «a false premise IS the answer, a myth's page is no evidence»
+6/6, and with «a premise the texts confirm is never called wrong» 6/6 and 2/2 true premises (the first fix had called
+the pressure cooker's true premise «misleading»). The owner's case (C183) in auto: recognised as a case, the deep path,
+97.8 s, every sentence verified on the civil code, the legal note. The cache (kno_shadow): «Chi interpreta Bane nel
+Cavaliere oscuro – Il ritorno?» 8.7 s from the web; two rewordings from the cache in 0.04 s; «…il Joker…» searched again.
+Through the API, auto the default: «Chi ha scoperto la penicillina?» 2.5 s, from the web, cited.
+
+## M129 — Retrieval by domain: direct questions, stories, the draft (7 October 2026)
+
+script/bench_domains.py on the real vault (read only), seed 20261007: 6 passages drawn at random in each of 8 domains;
+for each, the local model wrote a DIRECT question (precise, not copying) and a STORY (2-4 everyday sentences, without
+the passage's terms). The passage found in the top 12 (chunk@12):
+
+| domain | direct | story whole | story split | story draft |
+|---|---|---|---|---|
+| law_it | 83 % | 17 % | 0 % (cites 0 %) | 17 % |
+| physics | 83 % | 33 % | 33 % | 33 % |
+| mathematics | 83 % | 17 % | 17 % | 17 % |
+| philosophy | 100 % | 33 % | 17 % | 33 % |
+| society | 100 % | 50-67 % | 17 % | 67 % |
+| medicine | 50 % | 50 % | 33 % | 50 % |
+| history | 83 % | 50 % | 17 % | 50 % |
+| computer_science | 83-100 % | 0 % | 0 % | 0 % |
+
+The search is good for direct questions in every domain (medicine the weakest) and does not find the one passage a
+vague story was made from, whatever the strategy — the split (kno_split) did not help in general (it helped the
+owner's case of C183), named provisions found nothing for random obscure acts, and the model's draft as an extra
+recall (sol_search `recall`) changed the top 12 but not the target's rank in any of the 48 stories. A story has many
+valid passages and the bench rewards only its own: it measures «that passage», not «a good answer» — which the MKQA
+battery (M130) measures. Limits: 6 passages a domain (one question moves a cell by 17 points); the questions were
+written by the model from the passage it read. Search 9-14 s a question, the draft +4-7 s, the split 15-33 s.
+A simple question through the API in the vault mode, while a bench ran: «Chi ha scritto la Divina Commedia e quando?»
+61.5 s, 2 sources; offline in the verify mode (light): 26.0 s, the draft after 1.2 s, 2 of 2 sentences confirmed. The
+owner's case (C183) in the verify mode: 53.3 s, 1 sentence confirmed (art. 1117, 1123 c.c.), 5 said as unverified,
+Wikipedia found no article for «rimozione contalitri condominio villette».
+
 ## M128 — A case told as a story (7 October 2026, C183)
 
 The owner's real case (a super-condominium of villas, water sub-meters, a builder's lawyers, connections made by an

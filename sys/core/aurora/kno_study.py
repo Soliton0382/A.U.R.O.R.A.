@@ -66,7 +66,9 @@ def pending(pipeline, cfg: sys_config.Config, days: float = 7) -> list[dict]:
     out, seen = [], set()
     for t in turns:
         rid = t.extra.get("run_id")
-        if (t.extra.get("role") == "assistant" and t.extra.get("abstained") and t.extra.get("mode", "knowledge") == "knowledge"
+        # declined, or answered from the web or from memory where the vault had nothing (kno_think: «learn»)
+        if (t.extra.get("role") == "assistant" and (t.extra.get("abstained") or t.extra.get("learn"))
+                and t.extra.get("mode", "knowledge") == "knowledge"
                 and t.created_at >= since and rid in asked and rid not in done):
             q = asked[rid].text.split(" [")[0].strip()
             if rid in with_files or CONTEXT.search(q):

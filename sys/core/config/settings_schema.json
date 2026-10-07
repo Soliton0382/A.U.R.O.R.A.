@@ -929,6 +929,20 @@
    ]
   },
   {
+   "key": "AURORA_SHADOW_WEB_DAYS",
+   "type": "float",
+   "min": 0.1,
+   "max": 365,
+   "category": "pipeline",
+   "recommended": "30",
+   "evidence": "owner, 2026-10-07: «se le ricerche danno risposte giuste… una cache… prima nella cache e poi sul web»",
+   "en": "How long an answer read on the web stays in the shadow (the cache of verified answers) before the web is searched again: facts change. Answers from the vault stay; answers from memory are never cached.",
+   "it": "Quanti giorni una risposta letta sul web resta nell'ombra (la cache delle risposte verificate) prima di cercare di nuovo sul web: i fatti cambiano. Le risposte dal vault restano; quelle dalla memoria non vanno mai in cache.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_SHADOW_COS",
    "type": "float",
    "category": "search",
@@ -2021,6 +2035,35 @@
    "services": [
     "aurora-api"
    ]
+  },
+  {
+   "key": "AURORA_ANSWER_MODE",
+   "type": "enum",
+   "choices": [
+    "vault",
+    "light",
+    "medium",
+    "deep",
+    "auto"
+   ],
+   "category": "pipeline",
+   "recommended": "auto",
+   "evidence": "owner, 2026-10-07; M130: auto 35-36/50 common questions right (vault 8/50) in 7.2 s (17.9 s), false premises 6/6 (vault 2/6)",
+   "en": "How Aurora answers a question of knowledge (the chat's 🧠 button chooses it for one message). vault = only from the vault's passages, as before (gate, extraction, synthesis, verification). light = the question's kind decides: a fact is looked up on the web, an explanation read in the vault, each read once and answered with where it was read; then the other source; then her own memory, marked ⚠️. medium = light, opening the best pages when the snippets are not enough. auto = medium, and a case with several problems goes to the deep path first. deep = the deep path first for every question.",
+   "it": "Come risponde Aurora a una domanda di conoscenza (il pulsante 🧠 della chat la sceglie per un messaggio). vault = solo dai passaggi del vault, come prima (filtro, estrazione, sintesi, verifica). light = decide il tipo di domanda: un fatto si cerca sul web, una spiegazione si legge nel vault, una lettura sola e la risposta con la fonte; poi l'altra fonte; poi la sua memoria, segnata ⚠️. medium = light, aprendo le pagine migliori quando gli estratti non bastano. auto = medium, e un caso con più problemi passa prima dal percorso profondo. deep = il percorso profondo per ogni domanda.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_VERIFY_WEB",
+   "type": "bool",
+   "category": "pipeline",
+   "recommended": "true",
+   "evidence": "owner, 2026-10-07: «internet va bene… basta che i dati sensibili siano mascherati»",
+   "en": "Aurora may search the web to answer (kno_web: DuckDuckGo and other engines through ddgs, no key): only a query on the subject leaves the machine, written by the local model and masked (names, addresses, numbers removed). Off: the vault and her memory only.",
+   "it": "Aurora può cercare sul web per rispondere (kno_web: DuckDuckGo e altri motori tramite ddgs, senza chiave): esce solo una query sull'argomento, scritta dal modello locale e mascherata (nomi, indirizzi, numeri tolti). Spento: solo il vault e la sua memoria.",
+   "services": []
   },
   {
    "key": "AURORA_PIPELINE_THINKING",

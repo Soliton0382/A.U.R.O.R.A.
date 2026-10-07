@@ -60,3 +60,5 @@ class Answer:
     mode: str = "knowledge"                        # knowledge | self
     speed: dict | None = None                      # {"tokens", "per_second"} of the writing call, as measured
     suggestions: list = field(default_factory=list)  # follow-up questions with their sources (kno_followup.suggest)
+    came_from: str = ""                            # kno_think: vault | web | memory | deep ("" for the vault pipeline)
+    learn: bool = False                            # an explanation the vault lacked: studied at night (kno_study)

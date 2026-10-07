@@ -12,6 +12,16 @@ export function el(tag, cls, text) {
 
 export const scrollEnd = (box) => { box.scrollTop = box.scrollHeight; };
 
+// a link to ANOTHER site (a web source): opened apart; Aurora's own addresses never (they need the device's cookie,
+// which a new window of the installed app does not have: C39, C100)
+export function external(a, url) {
+  a.href = url;
+  let u = null;
+  try { u = new URL(url, location.href); } catch { return a; }
+  if (u.protocol === "https:" && u.origin !== location.origin) { a.target = "_blank"; a.rel = "noopener noreferrer"; }
+  return a;
+}
+
 export const toBase64 = (file) => new Promise((ok, fail) => {
   const r = new FileReader();
   r.onload = () => ok(r.result.slice(r.result.indexOf(",") + 1));

@@ -78,7 +78,8 @@ def test_every_api_module_has_a_router_and_only_public_functions_are_routes():
     import ast
     api = CORE / "aurora" / "api"
     modules = ast.literal_eval(re.search(r"MODULES = (\[.*\])", (api / "__init__.py").read_text()).group(1))
-    assert sorted(modules) == sorted(f.stem for f in api.glob("*.py") if f.stem not in ("__init__", "core"))
+    # core and its parts (core_*: shared code, no routes) are not routers
+    assert sorted(modules) == sorted(f.stem for f in api.glob("*.py") if f.stem != "__init__" and not f.stem.startswith("core"))
     routes = 0
     for name in modules:
         tree = ast.parse((api / f"{name}.py").read_text(encoding="utf-8"))

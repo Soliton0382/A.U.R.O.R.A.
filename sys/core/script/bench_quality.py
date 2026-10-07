@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 import time
@@ -70,7 +71,9 @@ def stage(events: list[dict]) -> str:
 
 
 def ask(q: str) -> dict:
-    run = httpx.post(f"{BASE}/v1/aurora/ask", headers=HEAD, json={"question": q, "remember": False}, timeout=60).json()["run_id"]
+    think = os.environ.get("BENCH_THINK")          # a thinking mode for this run (kno_think), else the setting
+    run = httpx.post(f"{BASE}/v1/aurora/ask", headers=HEAD, timeout=60,
+                     json={"question": q, "remember": False, **({"think": think} if think else {})}).json()["run_id"]
     t0, hits, final, events = time.time(), [], None, []
     with httpx.stream("GET", f"{BASE}/v1/aurora/runs/{run}/events", headers=HEAD, timeout=900) as r:
         for line in r.iter_lines():

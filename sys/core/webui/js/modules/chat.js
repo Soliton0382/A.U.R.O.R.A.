@@ -6,10 +6,11 @@ import { bus } from "../bus.js";
 import { clock, el, scrollEnd, toBase64, useCss } from "../dom.js";
 import { apply, lang, t } from "../i18n.js";
 import { auroraBubble, follow, renderPast } from "./trace.js";
-import { shareButton } from "../share.js";
-import { view, viewLink } from "../viewer.js";
+import { viewLink } from "../viewer.js";
 import * as voice from "../voice.js";
 import { dietBubbles, dietCards } from "../diet.js";
+import { dreamOf, makeRecorder, morningOf, shrink } from "./chat_media.js";
+import { thinkButton } from "./chat_think.js";
 
 const HISTORY_TURNS = 8;          // 4 exchanges: the same memory Aurora keeps in context
 
@@ -47,6 +48,7 @@ export default {
           <button type="button" class="icon mic" data-i18n-title="chat.mic">🎙️</button>
           <button type="button" class="icon src"></button>
           <button type="button" class="icon voice"></button>
+          <button type="button" class="icon think"></button>
           <input type="file" multiple hidden accept="image/*,video/*,.txt,.md,.markdown,.html,.htm,.pdf">
           <input type="file" class="shoot" hidden accept="image/*" capture="environment">
           <textarea rows="2" data-i18n-placeholder="chat.placeholder"></textarea>
@@ -61,6 +63,7 @@ export default {
     const fileInput = root.querySelector("input[type=file]:not(.shoot)");
     const send = root.querySelector(".send");
     const chipsBox = root.querySelector(".chips.pending");
+    const thinking = thinkButton(root.querySelector(".think"));      // how much to think (chat_think.js)
     let pending = [];
     const mine = new Set();          // runs started from this page: the activity feed must not show them twice
     let asking = 0;                  // requests in flight whose run id is not known yet
@@ -98,18 +101,6 @@ export default {
       showSource();
     });
 
-    // a phone photo, made light before it leaves: at most 2048 px, upright, JPEG (also from HEIC when the browser reads it)
-    const shrink = async (file) => {
-      try {
-        const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
-        const k = Math.min(1, 2048 / Math.max(bmp.width, bmp.height));
-        const cv = document.createElement("canvas");
-        cv.width = Math.round(bmp.width * k); cv.height = Math.round(bmp.height * k);
-        cv.getContext("2d").drawImage(bmp, 0, 0, cv.width, cv.height);
-        const blob = await new Promise((ok) => cv.toBlob(ok, "image/jpeg", 0.85));
-        return blob ? new File([blob], `foto-${Date.now()}.jpg`, { type: "image/jpeg" }) : file;
-      } catch { return file; }
-    };
     shoot.addEventListener("change", async () => {
       const f = shoot.files?.[0];
       shoot.value = "";
@@ -199,51 +190,7 @@ export default {
       if (r.clear) { form.requestSubmit(); return; }   // hands-free: what was dictated goes, the answer comes aloud
       input.focus();
     };
-    // this device's microphone: tap to start, tap to stop (at most MAX s); WebM/Opus on Android, MP4/AAC on iOS
-    const MAX = 30;
-    let rec = null;
-    const recordHere = async () => {
-      if (rec) { rec.stop(); return; }
-      if (!canRecord) { input.placeholder = t("chat.src.unsupported"); return; }
-      let stream;
-      try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); }
-      catch (e) { input.placeholder = t(e.name === "NotAllowedError" ? "chat.src.denied" : "ev.error", { m: e.message }); return; }
-      const type = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/aac"].find((m) => MediaRecorder.isTypeSupported?.(m));
-      const chunks = [];
-      rec = new MediaRecorder(stream, type ? { mimeType: type } : {});
-      rec.ondataavailable = (ev) => { if (ev.data.size) chunks.push(ev.data); };
-      // C114: a recording of 0.1 s reached the server twice (the microphone closed at once): said, never sent
-      let closed = false;
-      stream.getAudioTracks().forEach((tr) => tr.addEventListener("ended", () => { closed = true; }));
-      const t0 = performance.now();
-      let secs = 0;
-      mic.classList.add("recording");
-      mic.textContent = "⏹️ 0";
-      const tick = setInterval(() => { mic.textContent = `⏹️ ${++secs}`; if (secs >= MAX) rec?.stop(); }, 1000);
-      rec.onstop = async () => {
-        clearInterval(tick);
-        stream.getTracks().forEach((tr) => tr.stop());          // the phone's microphone is released at once
-        const mime = rec.mimeType || type || "audio/webm";
-        rec = null;
-        const took = (performance.now() - t0) / 1000;
-        if (closed || took < 0.8) {
-          input.placeholder = closed ? t("chat.mic.closed") : t("chat.mic.short", { s: took.toFixed(1) });
-          mic.textContent = "🎙️";
-          mic.classList.remove("recording");
-          return;
-        }
-        mic.textContent = "…";
-        mic.disabled = true;
-        try {
-          const data = await toBase64(new Blob(chunks, { type: mime }));
-          heard(await call("/v1/aurora/senses/transcribe", { method: "POST", body: JSON.stringify({ data, mime }) }));
-        } catch (e) { input.placeholder = t("ev.error", { m: e.message }); }
-        mic.textContent = "🎙️";
-        mic.classList.remove("recording");
-        mic.disabled = false;
-      };
-      rec.start(500);                                // pieces every half second, not only at the stop
-    };
+    const recordHere = makeRecorder({ mic, input, heard, canRecord });     // chat_media.js
     mic.addEventListener("click", async () => {
       if (source === "device") { recordHere(); return; }
       const seconds = 8;
@@ -280,41 +227,8 @@ export default {
       messages.append(m);
     };
 
-    // A dream of the last nights, among the turns: Aurora's own painting and the story.
-    const dreamBubble = (d) => {
-      const m = el("div", "msg aurora dream past");
-      m.append(el("div", "dream-title", t("chat.dream")));
-      if (d.image) {
-        const img = el("img", "dream-img");
-        img.src = d.image;
-        img.alt = t("chat.dream_alt");
-        img.loading = "lazy";
-        if (d.image_prompt) img.title = d.image_prompt;
-        img.addEventListener("click", () => view(d.image, img.alt || "sogno.png", "image/png"));
-        m.append(img);
-      }
-      for (const para of d.text.split(/\n\s*\n/)) if (para.trim()) m.append(el("p", "", para.trim()));
-      m.append(shareButton(d.text, d.image));
-      m.append(el("div", "meta", clock(d.created_at)));
-      messages.append(m);
-    };
-
-    // The good morning (kno_morning): what she did and learned overnight, with "listen" (a tap: browsers speak only after one)
-    // a second thought (kno_review): a past answer answered again, better, with its sources — the same bubble
-    const morningBubble = (d) => {
-      const m = el("div", `msg aurora dream ${d.role === "review" ? "review" : "morning"} past`);
-      m.append(el("div", "dream-title", t(d.role === "review" ? "chat.review" : "chat.morning")));
-      for (const para of d.text.split(/\n\s*\n/)) if (para.trim()) m.append(el("p", "", para.trim()));
-      const listen = el("button", "", `🔊 ${t("chat.listen")}`);
-      listen.type = "button";
-      listen.addEventListener("click", async () => {
-        if (voice.speaking()) { voice.stop(); return; }
-        const msg = await sayAloud(d.text.replace(/^[^\p{L}]+/gmu, ""));
-        if (msg) listen.after(el("div", "meta", msg));          // said under the button pressed, not only in the composer
-      });
-      m.append(listen, el("div", "meta", clock(d.created_at)));
-      messages.append(m);
-    };
+    const dreamBubble = (d) => dreamOf(messages, d);                     // chat_media.js
+    const morningBubble = (d) => morningOf(messages, d, sayAloud);       // chat_media.js
 
     // Questions to go deeper, under a knowledge answer: complete on their own, each with the answer's sources
     // in focus (kno_followup), so a click searches the right way; the owner sees the whole question sent.
@@ -381,7 +295,7 @@ export default {
         const goal = question.match(/^\/agen(?:te|t)\s+(.+)/s)?.[1];
         const { run_id } = await (goal
           ? call("/v1/aurora/agent", { method: "POST", body: JSON.stringify({ goal }) })
-          : call("/v1/aurora/ask", { method: "POST", body: JSON.stringify({ question, attachments, suggest: true, ...(focus ? { focus } : {}) }) })
+          : call("/v1/aurora/ask", { method: "POST", body: JSON.stringify({ question, attachments, suggest: true, ...(focus ? { focus } : {}), ...(thinking() ? { think: thinking() } : {}) }) })
         ).finally(() => asking--);
         mine.add(run_id);
         const final = await follow(run_id, b, messages);

@@ -4,7 +4,7 @@
 // Used by the chat module; knows nothing about the page around it.
 import { call, stream } from "../api.js";
 import { bus, runEnded, runStarted } from "../bus.js";
-import { clock, el, scrollEnd } from "../dom.js";
+import { clock, el, external, scrollEnd } from "../dom.js";
 import { t } from "../i18n.js";
 import { renderMarkdown } from "../md.js";
 import { artifactCard } from "../artifact.js";
@@ -35,7 +35,13 @@ export function describe(name, p) {
     case "attach.video": return t("ev.attach.video", { name: p.name, w: Math.round(p.watched), f: p.frames, n: p.speech, s: p.seconds });
     case "attach.document": return t("ev.attach.document", { name: p.name, domain: p.domain, n: p.chunks, w: p.written });
     case "translate": return t("ev.translate", { text: p.translation });
-    case "retrieval.filter": return t("ev.retrieval.filter", { n: p.dropped_own_answers });
+    case "retrieval.filter": return t("ev.retrieval.filter", { n: p.dropped_own_answers ?? p.dropped_same_message });
+    case "think": return t("ev.think", { m: t(`chat.think.${p.used}`), why: p.why ? ` — ${p.why}` : "" });
+    case "read.web": return t("ev.read.web", { q: p.query, n: p.results.length });
+    case "read.pages": return t("ev.read.pages", { list: p.opened.join(", ") || "—" });
+    case "read.memory": return t("ev.read.memory");
+    case "retrieval.split": return t("ev.retrieval.split", { n: p.searches.length, c: p.cited ?? 0 });
+    case "retrieval.cited": return t("ev.retrieval.cited", { n: p.found, list: p.named.join(", ") });
     case "question.standalone": return t("ev.question.standalone", { q: p.question });
     case "retrieval.focus": return t("ev.retrieval.focus", { k: p.kept, n: p.sources });
     case "answer.suggestions": return t("ev.answer.suggestions", { n: p.items.length });
@@ -178,6 +184,11 @@ export function renderAnswer(b, p, when) {
     const ol = el("ol", "sources");
     for (const s of p.sources) {
       const li = el("li", "", `${s.title || s.source} (${s.domain})`);
+      if (s.url) {                                   // a web source (kno_read): its page, opened apart
+        const a = el("a", "", `🌐 ${s.title || s.url}`);
+        external(a, s.url);
+        li.replaceChildren(a);
+      }
       li.value = s.n;
       ol.append(li);
     }

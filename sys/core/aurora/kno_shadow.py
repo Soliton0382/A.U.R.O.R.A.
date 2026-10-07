@@ -50,6 +50,8 @@ def _db(cfg: sys_config.Config) -> sqlite3.Connection:
         con.execute("ALTER TABLE shadows ADD COLUMN origin TEXT DEFAULT 'chat'")
     if "follow" not in {r[1] for r in con.execute("PRAGMA table_info(shadows)")}:
         con.execute("ALTER TABLE shadows ADD COLUMN follow TEXT")       # the answer's follow-up questions
+    if "expires" not in {r[1] for r in con.execute("PRAGMA table_info(shadows)")}:
+        con.execute("ALTER TABLE shadows ADD COLUMN expires REAL")      # a web answer's end (facts change); NULL: never
     return con
 
 
@@ -60,16 +62,20 @@ def _unit(v) -> np.ndarray:
 
 def add(cfg: sys_config.Config, embedder, question: str, text: str, sources: list[dict], origin: str = "chat",
         made: float | None = None, follow: list | None = None) -> None:
-    """A verified knowledge answer casts its shadow (an older one of the same question is replaced)."""
+    """A verified knowledge answer casts its shadow (an older one of the same question is replaced). An answer read
+    from the web (a source with a «url») is kept AURORA_SHADOW_WEB_DAYS, then searched again (M130)."""
     if not text or not sources:
         return
+    web = any(s.get("url") for s in sources)
+    origin = "web" if web and origin == "chat" else origin
+    expires = time.time() + float(cfg["AURORA_SHADOW_WEB_DAYS"]) * 86400 if web else None
     vec = _unit(embedder.encode_queries([question])[0])
     with _lock, closing(_db(cfg)) as con, con:
         con.execute("DELETE FROM shadows WHERE question = ?", (question,))
-        con.execute("INSERT INTO shadows (question, vec, answer, sources, made, last, origin, follow)"
-                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        con.execute("INSERT INTO shadows (question, vec, answer, sources, made, last, origin, follow, expires)"
+                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (question, vec.tobytes(), text, json.dumps(sources, ensure_ascii=False), made or time.time(),
-                     time.time(), origin, json.dumps(follow or [], ensure_ascii=False)))
+                     time.time(), origin, json.dumps(follow or [], ensure_ascii=False), expires))
         n = con.execute("SELECT count(*) FROM shadows").fetchone()[0]
         if n > MAX_ROWS:                               # the least used and oldest go first
             con.execute("DELETE FROM shadows WHERE id IN (SELECT id FROM shadows ORDER BY used, last LIMIT ?)",
@@ -91,7 +97,8 @@ def _shared(cfg: sys_config.Config):
 def find(cfg: sys_config.Config, embedder, reranker, question: str) -> dict | None:
     """The answer whose shadow this question falls in, or None."""
     with closing(_db(cfg)) as con:
-        rows = [(*r, False) for r in con.execute("SELECT id, question, vec, answer, sources, made, follow FROM shadows").fetchall()]
+        rows = [(*r, False) for r in con.execute("SELECT id, question, vec, answer, sources, made, follow FROM shadows "
+                                                  "WHERE expires IS NULL OR expires > ?", (time.time(),)).fetchall()]
     seed = _shared(cfg)
     if seed is not None:
         with closing(sqlite3.connect(f"file:{seed}?mode=ro", uri=True, timeout=30)) as con:

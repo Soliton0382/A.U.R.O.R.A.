@@ -23,6 +23,7 @@ async def ask(request: Request) -> dict:
     """{"question": str, "attachments": [{"name", "mime", "data": base64}], "remember": true} -> {"run_id"}.
 
     "remember": false leaves the memory untouched (checks and tests must not become memories).
+    "think": vault, light, medium, deep or auto — how much to think for this message (kno_think; default the setting).
     "suggest": true asks for follow-up questions after a knowledge answer (the WebUI); "focus": [{"source", "domain"}]
     are the sources a suggested follow-up carries (kno_followup). "shadow_seed": true (script/shadow_seed.py, with
     "remember": false) casts the answer's shadow as a seed (kno_shadow)."""
@@ -30,6 +31,10 @@ async def ask(request: Request) -> dict:
     question = body.get("question", "").strip()
     remember = body.get("remember", True) is not False
     suggest = body.get("suggest") is True
+    from aurora.kno_think import MODES
+    think = str(body.get("think") or "").lower() or None          # how much to think for this message (kno_think)
+    if think and think not in MODES:
+        raise HTTPException(status_code=422, detail=f"think: one of {', '.join(MODES)}")
     seed = body.get("shadow_seed") is True and not remember
     from aurora import kno_followup, sol_schema
     focus = kno_followup.clean_focus(body.get("focus"), sol_schema.load_taxonomy())
@@ -73,13 +78,13 @@ async def ask(request: Request) -> dict:
             attached = AttachmentHandler(pipeline(), cfg).prepare(files, q, emit, run_id)
         if attached or not remember or focus:          # a suggested follow-up is a question for the vault
             ans = pipeline().run(q, emit=emit, run_id=run_id, attached=attached, remember=remember, focus=focus,
-                                 suggest=suggest)
+                                 suggest=suggest, think=think)
             if seed and cfg["AURORA_SHADOW"] and not attached and not ans.abstained and ans.mode == "knowledge" and ans.sources:
                 from aurora import kno_shadow
                 kno_shadow.add(cfg, pipeline().search.embedder, q, ans.text, ans.sources, origin="seed",
                                follow=ans.suggestions)
             return ans
-        return answer_or_acquire(q, emit, run_id, suggest=suggest)
+        return answer_or_acquire(q, emit, run_id, suggest=suggest, think=think)
     return {"run_id": start_run(question, origin="webui", job=job)["id"]}
 
 

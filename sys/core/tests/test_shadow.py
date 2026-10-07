@@ -101,3 +101,13 @@ def test_adapt_writes_again_from_the_same_passages_and_verifies():
     assert "synthesis.delta" in events
     gone = {**hit, "sources": [{"n": 1, "sid": "zz"}]}                       # a seed whose passages are not here
     assert K.adapt(P(), "E la decoerenza cos'è?", gone, lambda e, d: None) == ""
+
+
+def test_a_web_answer_is_cached_until_it_expires(cfg, monkeypatch):
+    cfg.values.update(AURORA_SHADOW_COS=0.9, AURORA_SHADOW_ANSWER=0.5, AURORA_SHADOW_SURE=0.97, AURORA_SHADOW_WEB_DAYS=30)
+    web = [{"n": 1, "url": "https://it.wikipedia.org/wiki/Decoerenza", "title": "Decoerenza", "domain": "web"}]
+    K.add(cfg, Emb(), "Cos'è la decoerenza quantistica?", "La decoerenza è… [1]", web)
+    assert K.find(cfg, Emb(), RR(0.99), "Che cos'è la decoerenza quantistica?")              # the cache first
+    now = K.time.time()
+    monkeypatch.setattr(K.time, "time", lambda: now + 31 * 86400)                            # a month later: facts change
+    assert K.find(cfg, Emb(), RR(0.99), "Che cos'è la decoerenza quantistica?") is None      # the web again

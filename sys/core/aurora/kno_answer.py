@@ -27,7 +27,7 @@ import time
 import uuid
 from typing import Callable
 
-from . import kno_followup, kno_split, sys_config, sys_log, txt_lang
+from . import kno_followup, kno_split, kno_think, sys_config, sys_log, txt_lang
 from .kno_self import SelfTalk
 from .kno_stages import SYS_TRANSLATE, Emit, Stages
 from .kno_trail import Answer, Trail, hebb  # noqa: F401 — imported from here by the API, the agents, the tests
@@ -57,7 +57,7 @@ class Pipeline(Stages, SelfTalk):
 
     def run(self, question: str, emit: Emit | None = None, run_id: str | None = None,
             remember: bool = True, attached: list | None = None, focus: list[dict] | None = None,
-            suggest: bool = False) -> Answer:
+            suggest: bool = False, think: str | None = None) -> Answer:
         """`remember=False` leaves the memory untouched (a caller that retries remembers only the outcome).
         `attached`: kno_attach.Attached items; their passages come first for this question.
         `focus`: sources ({"source", "domain"}) whose passages compete with the search's (a suggested follow-up).
@@ -100,38 +100,48 @@ class Pipeline(Stages, SelfTalk):
             translation = self._for("translate").complete(SYS_TRANSLATE, question, 200).answer
             ev("translate", {"from": lang, "translation": translation})
 
-        # a case told as a story is searched by its problems and the provisions they need (C183); the story whole
-        # only when those find nothing
-        hits, subs = kno_split.search(self, question, lambda: self.search.search(question, translation, run_id=run_id),
-                                      ev, run_id)
-        same = [h for h in hits if kno_split.same_message(h, asked) or kno_split.same_message(h, question)]
-        if same:                                     # the owner's own message asked before: not a source
-            hits = [h for h in hits if h not in same]
-            ev("retrieval.filter", {"dropped_same_message": len(same)})
-        # Aurora's own past answers are never a source: their sources are already in the vault, and
-        # letting them cite each other is how the previous installation turned its diary into "philosophy".
-        # The owner's messages stay citable: they are facts about the owner.
-        # Aurora's reflections and dreams are hers, not facts about the world: never sources either.
-        own = [h for h in hits if (h.soliton.kind == "conversation" and h.soliton.extra.get("role") == "assistant")
-               or h.soliton.kind == "reflection"]
-        if own:
-            hits = [h for h in hits if h not in own]
-            ev("retrieval.filter", {"dropped_own_answers": len(own)})
-        if focus:
-            hits = kno_followup.with_focus(self, question, translation, hits, focus, ev)
-        if attached:
-            hits = self._with_attached(question, translation, hits, attached)
-        ev("retrieval.hits", {"hits": [{"n": i, "sid": h.sid, "domain": h.soliton.domain, "title": h.soliton.title,
-                                        "source": h.soliton.source_id, "rerank": round(h.rerank, 3)}
-                                       for i, h in enumerate(hits, 1)]})
+        def retrieve(recall: list[str] | None = None):
+            # a case told as a story is searched by its problems and the provisions they need (C183); the story whole
+            # only when those find nothing
+            hits, subs = kno_split.search(self, question, lambda: self.search.search(question, translation, run_id=run_id,
+                                                                                     recall=recall), ev, run_id)
+            same = [h for h in hits if kno_split.same_message(h, asked) or kno_split.same_message(h, question)]
+            if same:                                     # the owner's own message asked before: not a source
+                hits = [h for h in hits if h not in same]
+                ev("retrieval.filter", {"dropped_same_message": len(same)})
+            # Aurora's own past answers are never a source: their sources are already in the vault, and
+            # letting them cite each other is how the previous installation turned its diary into "philosophy".
+            # The owner's messages stay citable: they are facts about the owner.
+            # Aurora's reflections and dreams are hers, not facts about the world: never sources either.
+            own = [h for h in hits if (h.soliton.kind == "conversation" and h.soliton.extra.get("role") == "assistant")
+                   or h.soliton.kind == "reflection"]
+            if own:
+                hits = [h for h in hits if h not in own]
+                ev("retrieval.filter", {"dropped_own_answers": len(own)})
+            if focus:
+                hits = kno_followup.with_focus(self, question, translation, hits, focus, ev)
+            if attached:
+                hits = self._with_attached(question, translation, hits, attached)
+            ev("retrieval.hits", {"hits": [{"n": i, "sid": h.sid, "domain": h.soliton.domain, "title": h.soliton.title,
+                                            "source": h.soliton.source_id, "rerank": round(h.rerank, 3)}
+                                           for i, h in enumerate(hits, 1)]})
+            return hits, subs
+
         recent_block = self._turns(recent, len(recent), cut=None)
         if recent:
             ev("memory.recent", {"turns": len(recent)})
-
-        answer = self._answer(kno_split.with_searches(question, subs), hits, recent_block, ev) if hits else None
-        if answer is None:
-            text = self._abstention(question, lang)
-            result = Answer(run_id, asked, text, True)
+        # how much to think (kno_think): the vault pipeline as before, or the way of the question's kind — the web
+        # for a fact, the vault for an explanation, the deep pipeline for a case — read with where it was read
+        # (kno_read); an attached file or a follow-up's sources keep the vault pipeline
+        mode = "vault" if attached or focus else kno_think.mode_of(self.cfg, think)
+        classic = lambda h, sb: self._answer(kno_split.with_searches(question, sb), h, recent_block, ev) if h else None  # noqa: E731
+        verified, answer, hits, subs = kno_think.answer(self, question, translation, mode, retrieve, classic, ev)
+        if verified:
+            hebb(self.cfg, [x for x in verified["sources"] if x.get("sid")])
+            result = Answer(run_id, asked, verified["text"], False, verified["sources"], verified["dropped"],
+                            came_from=verified.get("came_from", ""), learn=verified.get("learn", False))
+        elif answer is None:
+            result = Answer(run_id, asked, self._abstention(question, lang, mode), True)
         else:
             result = Answer(run_id, asked, answer[0], False, answer[1], answer[2])
         result.seconds = time.time() - t0
@@ -177,7 +187,12 @@ class Pipeline(Stages, SelfTalk):
         from . import mdl_router
         return mdl_router.model_for(role, self.llm, self.cfg)
 
-    def _abstention(self, question: str, lang: str) -> str:
+    def _abstention(self, question: str, lang: str, mode: str = "vault") -> str:
+        if mode != "vault":                          # the web was searched already: the night studies it (kno_study)
+            if lang == "it":
+                return ("Non ho trovato una risposta né nel vault né sul web, e non voglio inventarla. La studio stanotte: "
+                        "domani ne saprò di più.")
+            return "I found no answer in my vault nor on the web, and I will not make one up. I will study it tonight."
         if lang == "it":
             return ("Nel mio vault non ho trovato conoscenza verificata che risponda a questa domanda, quindi non "
                     "rispondo di mio. Posso cercare fonti esterne e acquisirle: rispondimi «sì, cerca».")
@@ -194,6 +209,8 @@ class Pipeline(Stages, SelfTalk):
                              extra={"role": "user", "run_id": run_id}, created_at=asked_at),
                  Soliton.new(result.text, "conversation", "conversation", txt_lang.detect(result.text), f"run:{run_id}",
                              extra={"role": "assistant", "run_id": run_id, "abstained": result.abstained,
+                                    **({"came_from": result.came_from} if result.came_from else {}),
+                                    **({"learn": True} if result.learn else {}),
                                     "mode": result.mode, "seconds": round(result.seconds, 1), "speed": result.speed,
                                     "sources": [s["sid"] for s in result.sources],
                                     "source_list": result.sources,

@@ -48,11 +48,15 @@ class Searcher:
         self.log = sys_log.get_logger("search")
 
     def search(self, question: str, translation: str | None = None, candidates: int | None = None,
-               top_k: int | None = None, run_id: str | None = None, sections: set[str] | None = None) -> list[Hit]:
+               top_k: int | None = None, run_id: str | None = None, sections: set[str] | None = None,
+               recall: list[str] | None = None) -> list[Hit]:
+        """`recall`: more texts that only bring candidates (the vector search), never judge them — e.g. the model's
+        draft answer (M129: it changed the top 12, not the passage's rank); the re-ranker reads the question."""
         candidates = candidates or self.cfg["AURORA_SEARCH_CANDIDATES"]
         top_k = top_k or self.cfg["AURORA_SEARCH_TOPK"]
         t0 = time.time()
         queries = [question] + ([translation] if translation and translation != question else [])
+        queries += [r for r in (recall or []) if r and r.strip() and r not in queries]
         qv = self.embedder.encode_queries(queries)
         t1 = time.time()
         dense: dict[str, float] = {}
