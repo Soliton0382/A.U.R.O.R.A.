@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" width="720" height="380" role="img" aria-labelledby="t d">
+<title id="t">Le domande che la gente fa davvero</title>
+<desc id="d">50 domande reali (MKQA, da Google), risposta controllata · M130. giuste: vault
+(prima) 16%, auto
+(ora) 70%; sbagliate: vault
+(prima) 2%, auto
+(ora) 28%; astenute: vault
+(prima) 82%, auto
+(ora) 2%</desc>
+<style>
+.bg{fill:#fcfcfb}.t1{fill:#0b0b0b}.t2{fill:#52514e}.grid{stroke:#e4e3df}.axis{stroke:#bdbcb6}
+.s1{fill:#2a78d6}.s2{fill:#eb6834}.s3{fill:#1baf7a}.ref{stroke:#52514e}
+@media (prefers-color-scheme: dark){.bg{fill:#1a1a19}.t1{fill:#ffffff}.t2{fill:#c3c2b7}.grid{stroke:#383835}
+.axis{stroke:#5c5b57}.s1{fill:#3987e5}.s2{fill:#d95926}.s3{fill:#199e70}.ref{stroke:#c3c2b7}}
+text{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+</style>
+<rect class="bg" width="720" height="380" rx="8"/>
+<text class="t1" x="56" y="30" font-size="17" font-weight="600">Le domande che la gente fa davvero</text>
+<text class="t2" x="56" y="52" font-size="12.5">50 domande reali (MKQA, da Google), risposta controllata · M130</text>
+<rect class="s1" x="56" y="68" width="12" height="12" rx="3"/><text class="t2" x="74" y="78.5" font-size="12.5">giuste</text>
+<rect class="s2" x="128.0" y="68" width="12" height="12" rx="3"/><text class="t2" x="146.0" y="78.5" font-size="12.5">sbagliate</text>
+<rect class="s3" x="221.0" y="68" width="12" height="12" rx="3"/><text class="t2" x="239.0" y="78.5" font-size="12.5">astenute</text>
+<line class="grid" x1="56" x2="696" y1="316.0" y2="316.0" stroke-width="1"/><text class="t2" x="48" y="320.0" font-size="11" text-anchor="end">0%</text>
+<line class="grid" x1="56" x2="696" y1="263.0" y2="263.0" stroke-width="1"/><text class="t2" x="48" y="267.0" font-size="11" text-anchor="end">25%</text>
+<line class="grid" x1="56" x2="696" y1="210.0" y2="210.0" stroke-width="1"/><text class="t2" x="48" y="214.0" font-size="11" text-anchor="end">50%</text>
+<line class="grid" x1="56" x2="696" y1="157.0" y2="157.0" stroke-width="1"/><text class="t2" x="48" y="161.0" font-size="11" text-anchor="end">75%</text>
+<line class="grid" x1="56" x2="696" y1="104.0" y2="104.0" stroke-width="1"/><text class="t2" x="48" y="108.0" font-size="11" text-anchor="end">100%</text>
+<path class="s1" d="M118.0,316.0 V286.1 Q118.0,282.1 122.0,282.1 H178.0 Q182.0,282.1 182.0,286.1 V316.0 Z"/>
+<text class="t1" x="150.0" y="276.1" font-size="12" text-anchor="middle" font-weight="600">16%</text>
+<path class="s2" d="M184.0,316.0 V315.8 Q184.0,311.8 188.0,311.8 H244.0 Q248.0,311.8 248.0,315.8 V316.0 Z"/>
+<text class="t1" x="216.0" y="305.8" font-size="12" text-anchor="middle" font-weight="600">2%</text>
+<path class="s3" d="M250.0,316.0 V146.2 Q250.0,142.2 254.0,142.2 H310.0 Q314.0,142.2 314.0,146.2 V316.0 Z"/>
+<text class="t1" x="282.0" y="136.2" font-size="12" text-anchor="middle" font-weight="600">82%</text>
+<text class="t2" x="216.0" y="334.0" font-size="12" text-anchor="middle">vault</text>
+<text class="t2" x="216.0" y="348.0" font-size="12" text-anchor="middle">(prima)</text>
+<path class="s1" d="M438.0,316.0 V171.6 Q438.0,167.6 442.0,167.6 H498.0 Q502.0,167.6 502.0,171.6 V316.0 Z"/>
+<text class="t1" x="470.0" y="161.6" font-size="12" text-anchor="middle" font-weight="600">70%</text>
+<path class="s2" d="M504.0,316.0 V260.6 Q504.0,256.6 508.0,256.6 H564.0 Q568.0,256.6 568.0,260.6 V316.0 Z"/>
+<text class="t1" x="536.0" y="250.6" font-size="12" text-anchor="middle" font-weight="600">28%</text>
+<path class="s3" d="M570.0,316.0 V315.8 Q570.0,311.8 574.0,311.8 H630.0 Q634.0,311.8 634.0,315.8 V316.0 Z"/>
+<text class="t1" x="602.0" y="305.8" font-size="12" text-anchor="middle" font-weight="600">2%</text>
+<text class="t2" x="536.0" y="334.0" font-size="12" text-anchor="middle">auto</text>
+<text class="t2" x="536.0" y="348.0" font-size="12" text-anchor="middle">(ora)</text>
+<line class="axis" x1="56" x2="696" y1="316" y2="316" stroke-width="1"/>
+<text class="t2" x="56" y="368" font-size="11">Delle «sbagliate» di auto ~8 su 14 sono giuste ma non riconosciute o fatti cambiati dal 2018.</text>
+</svg>

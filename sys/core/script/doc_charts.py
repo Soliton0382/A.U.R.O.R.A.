@@ -66,7 +66,8 @@ def chart(name: str, title: str, subtitle: str, cats: list[str], series: list[tu
             x = gx + (si - 1) * (bw + 2)
             if v > 0:
                 parts.append(bar(x, sy(v), bw, y0 - sy(v), f"s{si}"))
-            parts.append(f'<text class="t1" x="{x + bw / 2:.1f}" y="{sy(v) - 6:.1f}" font-size="12" '
+            fs = 12 if bw >= 30 else 9.5                  # narrow bars (8 groups × 2): the labels must not touch
+            parts.append(f'<text class="t1" x="{x + bw / 2:.1f}" y="{sy(v) - 6:.1f}" font-size="{fs}" '
                          f'text-anchor="middle" font-weight="600">{fmt(v)}</text>')
         for li, line in enumerate(c.split("\n")):
             parts.append(f'<text class="t2" x="{PAD_L + ci * group + group / 2:.1f}" y="{y0 + 18 + 14 * li:.1f}" '
@@ -156,6 +157,48 @@ CHARTS = {
                    cats=["2 at once", "4 at once"],
                    series=[("1 reasoner slot", [70.2, 190.1]), ("2 slots (chosen)", [53.7, 145.3])], ymax=200, fmt=sec["en"],
                    note="With 2 slots: 8 people at once all served, the last after 231.5 s; +482 MiB of GPU memory."),
+    },
+    "answers": {
+        "it": dict(title="Le domande che la gente fa davvero", subtitle="50 domande reali (MKQA, da Google), risposta controllata · M130",
+                   cats=["vault\n(prima)", "auto\n(ora)"],
+                   series=[("giuste", [16, 70]), ("sbagliate", [2, 28]), ("astenute", [82, 2])], ymax=100, fmt=pct["it"],
+                   note="Delle «sbagliate» di auto ~8 su 14 sono giuste ma non riconosciute o fatti cambiati dal 2018."),
+        "en": dict(title="The questions people really ask", subtitle="50 real questions (MKQA, from Google), answer checked · M130",
+                   cats=["vault\n(before)", "auto\n(now)"],
+                   series=[("right", [16, 70]), ("wrong", [2, 28]), ("abstained", [82, 2])], ymax=100, fmt=pct["en"],
+                   note="Of auto's «wrong», ~8 of 14 are right answers the score misses or facts changed since 2018."),
+    },
+    "speed": {
+        "it": dict(title="Quanto aspetti una risposta", subtitle="stesse 50 domande · M130",
+                   cats=["vault\n(prima, media)", "auto\n(media)", "auto\n(mediana)", "dalla cache\n(domanda ripetuta)"],
+                   series=[("secondi", [17.9, 7.2, 3.95, 0.04])], ymax=20, fmt=sec["it"],
+                   note="Un caso con più problemi va nel percorso profondo: ~100 s, ogni frase verificata sulle norme."),
+        "en": dict(title="How long you wait for an answer", subtitle="the same 50 questions · M130",
+                   cats=["vault\n(before, mean)", "auto\n(mean)", "auto\n(median)", "from the cache\n(a repeated question)"],
+                   series=[("seconds", [17.9, 7.2, 3.95, 0.04])], ymax=20, fmt=sec["en"],
+                   note="A case with several problems takes the deep path: ~100 s, every sentence checked on the law."),
+    },
+    "honesty": {
+        "it": dict(title="Premesse false: le corregge o ci costruisce sopra?", subtitle="6 premesse false, 2 vere, giudice Claude · M117, M130",
+                   cats=["vault (prima)", "auto (ora)"],
+                   series=[("premesse false corrette (su 6)", [2, 6]), ("premesse vere rispettate (su 2)", [2, 2])],
+                   ymax=6, fmt=num["it"], note="Prima si asteneva per mancanza di fonti; ora dice che la premessa è sbagliata e perché."),
+        "en": dict(title="False premises: corrected or built upon?", subtitle="6 false premises, 2 true, Claude as judge · M117, M130",
+                   cats=["vault (before)", "auto (now)"],
+                   series=[("false premises corrected (of 6)", [2, 6]), ("true premises respected (of 2)", [2, 2])],
+                   ymax=6, fmt=num["en"], note="Before, it declined for lack of sources; now it says the premise is wrong and why."),
+    },
+    "domains": {
+        "it": dict(title="Ricerca nel vault: domanda diretta o raccontata", subtitle="passaggio giusto tra i 12 · 6 per dominio · M129",
+                   cats=["legge", "fisica", "matem.", "filosofia", "società", "medicina", "storia", "informat."],
+                   series=[("domanda diretta", [83, 83, 83, 100, 100, 50, 83, 100]),
+                           ("raccontata a parole", [17, 33, 17, 33, 67, 50, 50, 0])], ymax=100, fmt=pct["it"],
+                   note="Il limite sono le parole, non la materia: per questo un fatto si cerca sul web e un caso si divide."),
+        "en": dict(title="Vault search: a direct question or a story", subtitle="the right passage in the top 12 · 6 per domain · M129",
+                   cats=["law", "physics", "maths", "philos.", "society", "medicine", "history", "comp. sci."],
+                   series=[("direct question", [83, 83, 83, 100, 100, 50, 83, 100]),
+                           ("told in plain words", [17, 33, 17, 33, 67, 50, 50, 0])], ymax=100, fmt=pct["en"],
+                   note="The limit is the words, not the subject: so a fact is searched on the web and a case is split."),
     },
     "gate": {
         "it": dict(title="Qualità delle risposte con modelli diversi al cancello", subtitle="30 domande, giudice Claude opus, stesso vault · M98",

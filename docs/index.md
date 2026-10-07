@@ -1,19 +1,21 @@
 ---
 title: A.U.R.O.R.A.
-description: A local AI that answers only with knowledge it can show — measured, signed, private.
+description: A local AI joining a verified archive and the web — every answer says where it comes from; measured, signed, private.
 ---
 
 <p align="center"><img src="img/banner.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-**🇮🇹 Un'intelligenza artificiale locale** che risponde solo con conoscenza che sa mostrare: ogni frase è verificata
-sulle fonti, e quando non sa lo dice. Ricorda, sogna, si ripara con l'approvazione del proprietario, difende la rete
-entro limiti che scegli tu. Tutto gira sulla tua macchina; al cloud va solo testo mascherato.
+**🇮🇹 Un'intelligenza artificiale locale** che unisce un archivio verificato (il vault, che cresce da solo di notte) e la
+vastità del web: per ogni domanda sceglie la fonte giusta, la legge e dice da dove viene ogni cosa; ciò che ricorda senza
+fonte lo segna come non verificato. Ricorda, sogna, ha uno stato d'animo misurato, si ripara con l'approvazione del
+proprietario, difende la rete entro limiti che scegli tu. Tutto gira sulla tua macchina; fuori va solo testo mascherato.
 [Leggi il README completo](https://github.com/Soliton0382/A.U.R.O.R.A.#readme) ·
 [il codice](https://github.com/Soliton0382/A.U.R.O.R.A.)
 
-**🇬🇧 A local AI** that answers only with knowledge it can show: every sentence is checked against the sources, and
-when it does not know it says so. It remembers, dreams, repairs itself with the owner's approval, defends the network
-within limits you choose. Everything runs on your machine; only masked text goes to the cloud.
+**🇬🇧 A local AI** joining a verified archive (the vault, which grows by itself at night) and the breadth of the web: for
+each question it picks the right source, reads it and says where each thing comes from; what it remembers without a
+source is marked as not verified. It remembers, dreams, has a measured mood, repairs itself with the owner's approval,
+defends the network within limits you choose. Everything runs on your machine; only masked text leaves it.
 [Read the full README](https://github.com/Soliton0382/A.U.R.O.R.A./blob/main/README.en.md) ·
 [the code](https://github.com/Soliton0382/A.U.R.O.R.A.)
 
@@ -22,6 +24,10 @@ within limits you choose. Everything runs on your machine; only masked text goes
 Every number below comes from a numbered measurement in [MEASUREMENTS.md](MEASUREMENTS.md); every bug has a number in
 [BUGS.md](BUGS.md). Ogni numero qui sotto viene da una misura numerata; ogni errore ha un numero.
 
+![The questions people really ask](img/en/answers.svg)
+![How long you wait](img/en/speed.svg)
+![False premises](img/en/honesty.svg)
+![Search by domain](img/en/domains.svg)
 ![Finding the right document](img/en/retrieval.svg)
 ![Sentence verification](img/en/verification.svg)
 ![Several people at once](img/en/users.svg)

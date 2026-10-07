@@ -1,12 +1,16 @@
 <p align="center"><img src="docs/img/banner.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-429%20passed-1baf7a" alt="Tests"></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-447%20passed-1baf7a" alt="Tests"></p>
 
 <p align="center">🇮🇹 <b>Italiano</b> · 🇬🇧 <a href="README.en.md">English</a></p>
 
 **Architettura Unificata Risonante per l'Orchestrazione del Ragionamento Autonomo** — un'intelligenza
-artificiale locale che risponde solo con conoscenza che sa mostrare, ricorda, sogna, si ripara con
-l'approvazione del proprietario e dice "non lo so" quando il vault non lo sa.
+artificiale locale che unisce il meglio di due mondi: la **solidità di un archivio verificato** (il vault,
+che cresce da solo di notte) e la **vastità del web**, tenuti insieme da un sistema che sceglie la fonte
+giusta per ogni domanda, la legge, risponde dicendo da dove viene ogni cosa e, quando nessuna fonte
+risponde, dice ciò che ricorda **segnandolo come non verificato**. Non un motore di ricerca con l'IA sopra,
+non un archivio accademico che tace: Aurora ricorda, sogna, ha un suo stato d'animo misurato, impara di
+notte ciò che non sapeva e si ripara con l'approvazione del proprietario.
 
 Tutto gira sulla macchina del proprietario: il ragionatore (llama.cpp), l'encoder e il re-ranker, il
 vault, la memoria, la WebUI. Per ogni passaggio si può scegliere un modello cloud (Claude Code, API
@@ -17,8 +21,10 @@ con l'esenzione firmata dal proprietario, e ciò che parte è sempre mascherato 
 
 | | Aurora | un assistente tipico (chat + modello + documenti) |
 |---|---|---|
-| 🔎 **Verità** | ogni frase della risposta è verificata sui passaggi del vault; ciò che non è supportato viene tolto, e se non c'è nulla si astiene (M32: 0 frasi non supportate su 14) | cita le fonti, ma le frasi scritte dal modello non vengono controllate una per una |
-| 📏 **Misura** | ogni scelta ha una misura numerata (M1–M107), ogni errore un numero in BUGS.md, ogni limite è scritto | le prestazioni si dichiarano, raramente si misurano in pubblico |
+| 🔎 **Verità** | ogni risposta dice da dove viene: ✅ il vault [n], 🌐 il web con il link, ⚠️ «dalla mia memoria, non verificato»; una premessa falsa viene corretta, mai assecondata (6 su 6, M130) | cita le fonti, ma non distingue ciò che ha letto da ciò che ricorda |
+| ⚡ **Giusta e veloce** | domande comuni: 70% giuste (prima 16%), mediana 4 s; ripetute: 0,04 s dalla cache (M130) | — |
+| 🔎 **Risposte dal vault** | ogni frase di una risposta profonda è verificata sui passaggi del vault; ciò che non è supportato viene tolto (M32: 0 frasi non supportate su 14) | cita le fonti, ma le frasi scritte dal modello non vengono controllate una per una |
+| 📏 **Misura** | ogni scelta ha una misura numerata (M1–M130), ogni errore un numero in BUGS.md, ogni limite è scritto | le prestazioni si dichiarano, raramente si misurano in pubblico |
 | 🌙 **Vita propria** | consolida i ricordi, pensa quando si annoia, sogna e dipinge il sogno, fa un'autodiagnosi quotidiana dai propri log | si attiva solo quando le scrivi |
 | 🛠️ **Si ripara** | corregge il proprio codice in una sandbox, con test, la tua approvazione, test dal vivo e rollback | il codice lo cambia solo lo sviluppatore |
 | 🔏 **Regole firmate** | codice di condotta con la chiave della tua installazione: se qualcuno lo modifica senza firma, Aurora non parte | regole nel prompt, modificabili senza traccia |
@@ -30,12 +36,14 @@ con l'esenzione firmata dal proprietario, e ciò che parte è sempre mascherato 
 
 | **Funzione** | **Come** |
 |---|---|
-| **Risponde dal vault** | smistamento → traduzione → ricerca (encoder + re-ranker su tutti i domini) → estrazione per dominio → sintesi → **ogni frase verificata sui passaggi** → fonti. Le frasi non supportate vengono tolte (M32: 0 su 14 passano); se non trova nulla, si astiene onestamente e propone di cercare su arXiv |
+| **Risponde scegliendo la fonte** | prima la **cache** delle risposte verificate (domanda simile: 0,04 s); poi il **tipo** di domanda decide: un **fatto** (chi, quando, quanto) si cerca sul **web** (DuckDuckGo e altri motori, senza chiave: esce solo una query sull'argomento, mascherata), una **spiegazione** si legge nel **vault**, un **caso** con più problemi va nel **percorso profondo** (diviso nei suoi problemi, norme cercate per numero, ogni frase verificata). Una lettura sola, con le fonti; nessuna fonte → la sua memoria segnata ⚠️. Su 50 domande reali (MKQA): 70% giuste, prima 16% (M130) |
+| **Modalità di pensiero** | 🧠 in chat: ⚡ leggera, ⚖️ media, 🔬 profonda, 🤖 auto (predefinita: parte leggera e approfondisce solo quando serve); la traccia dice quale strada ha preso e perché |
+| **Risponde dal vault** | il percorso completo per le spiegazioni e i casi: smistamento → traduzione → ricerca (encoder + re-ranker su tutti i domini) → estrazione per dominio → sintesi → **ogni frase verificata sui passaggi** → fonti (M32: 0 frasi non supportate su 14 passano) |
 | **Vault di solitoni** | shard SQLite, conoscenza e memoria separate, deduplica per hash del contenuto, ricerca vettoriale esatta sotto i 250k vettori per dominio, HNSW sopra (M30) |
 | **Memoria** | turni a breve termine, memorie di sessione a lungo termine scritte di notte, richiamo per significato su 12 mesi, date etichettate dall'orologio |
 | **Sinapsi** | collegamenti fra conoscenze di domini diversi (un modello fisico ↔ uno biologico, Kafka ↔ l'esistenzialismo): crescono di notte dove la somiglianza è forte (≥ 0,72, il 5% più alto), si rafforzano quando due passaggi vengono citati insieme, si indeboliscono se non usati; nella ricerca portano in gara i passaggi collegati, sceglie sempre il re-ranker |
 | **Ciclo autonomo** | consolidamento, pensieri quando si annoia, un **sogno notturno dipinto con SDXL-Lightning** (marcato come IA), un'autodiagnosi quotidiana dai propri log, autoriparazione sui problemi ricorrenti |
-| **Studia di notte, ti saluta al mattino** | le domande a cui ha detto «non lo so» le studia di notte (cerca, importa le fonti, risponde di nuovo); alle 8 il buongiorno: cosa ha imparato, raccolto, collegato, fermato e sognato, in chat con 🔊 e come notifica |
+| **Studia di notte, ti saluta al mattino** | le domande a cui ha detto «non lo so» e le spiegazioni che il vault non aveva (risposte dal web o dalla memoria) le studia di notte, da sola (cerca su arXiv, Europe PMC, Wikipedia, importa le fonti nel vault, risponde di nuovo); alle 8 il buongiorno: cosa ha imparato, raccolto, collegato, fermato e sognato, in chat con 🔊 e come notifica |
 | **Forgia (Aurora si costruisce i plugin)** | quando le manca una capacità, scrive un plugin, lo prova nella gabbia sui dati veri e un giudice lo controlla contro i conteggi fatti dal codice (finestre di tempo comprese); quelli di sola lettura si installano da soli. Scrittore e giudice si scelgono nella pagina 🧠 Modelli: consigliato un modello cloud bravo col codice (Claude Code, o xAI Grok che costa poco: 5 su 8 al banco, M83); il modello locale ne fa meno |
 | **Artefatti** | «fammi un grafico interattivo della funzione seno»: Aurora crea una pagina interattiva (grafici, simulazioni, calcolatori) e te la mostra viva nella risposta, a schermo intero o da scaricare; gira isolata, senza rete e senza accesso ai tuoi dati |
 | **Post autonomi** | se lo accendi (`AURORA_SOCIAL_AUTONOMY`, solo con l'esenzione firmata), Aurora pubblica da sola i suoi post su Facebook — un sogno con il suo dipinto al mattino, una notizia di scienza la sera — al massimo 3 al giorno, ognuno registrato e notificato; risposte e modifiche alla pagina aspettano sempre te. Sogni e pensieri hanno ↗ Condividi |
@@ -51,6 +59,9 @@ con l'esenzione firmata dal proprietario, e ciò che parte è sempre mascherato 
 | **Codice di condotta** | livello A (mai: attacchi, localizzare persone, malware), livello B (conferme, dichiarazione IA) esentabile solo con una firma con la chiave della propria installazione; i servizi non partono se le regole cambiano senza firma |
 | **Progetti** | pagina 📁: progetti locali e repository GitHub (stelle, fork, issue), clone in locale, albero delle cartelle, file, README, storia, **anteprima delle pagine in sandbox**, «chiedi ad Aurora» su un progetto |
 | **Routine** | pagina 🔁: i plugin collegati propongono controlli periodici (meteo ogni mattina, allerta ogni ora, report GitHub settimanale…), si attivano con un clic o a parole tue; lettura automatica, ogni scrittura aspetta l'approvazione |
+| **Emozioni** | uno stato d'animo **misurato**, non recitato: stress (carico GPU, temperatura, errori), soddisfazione, curiosità, stanchezza, nostalgia, malinconia, preoccupazione, ognuna con le sue cause; un volto accanto al pallino della salute, una scheda al passaggio del mouse o al tocco; entra nel buongiorno e nei pensieri |
+| **Dieta guidata** | «Elabora documenti»: dal piano del dietologo (PDF o Word) Aurora ricava i pasti di ogni giorno e le frequenze settimanali; a ogni pasto propone il piatto e le alternative, ricalibrate sulla settimana (pesce, uova, legumi…) e sulla varietà («lo scegli spesso, prova…»); promemoria con notifica e bolla in chat; in chat «cosa mangio a pranzo?» risponde dal piano elaborato |
+| **Accesso da fuori casa** | plugin Cloudflare One: con un «Salva» crea il tunnel, le rotte private e le regole di WARP e avvia il servizio; nessuna porta aperta sul router, stesso indirizzo e certificato in casa e fuori |
 | **Salute** | pagina ❤️: piani del dietologo, programmi del trainer, esami, cifrati con la tua chiave; dagli esami il modello locale legge i valori (📈 nel tempo, con l'intervallo di riferimento e i valori fuori segnalati «parlane con il tuo medico»); mai al cloud |
 | **Meteo** | plugin 🌦️ (Open-Meteo, senza chiave): adesso, previsioni a 3 giorni, bollettino giornaliero, allerta sui cambi repentini e allerte ufficiali della regione (MeteoAlarm) |
 | **Domande di seguito** | «e chi l'ha scoperto?» viene completata con la conversazione e la risposta precedente, con le sue fonti a fuoco; sotto ogni risposta 3-4 domande complete per approfondire, ognuna con le sue fonti (M73: seguiti giusti 2 → 6 su 14, approfondimenti 8 su 11 con voto ≥ 7; 0 domande complete cambiate su 20) |
@@ -72,13 +83,26 @@ con l'esenzione firmata dal proprietario, e ciò che parte è sempre mascherato 
 
 ```mermaid
 flowchart LR
+  Q([domanda]) --> H{cache}
+  H -- già risposta --> O2([risposta in 0,04 s])
+  H --> K2{che tipo?}
+  K2 -- fatto --> WB[web: cerca → leggi<br/>pagine se serve] --> O3([risposta + link])
+  K2 -- spiegazione --> VR[vault: leggi i passaggi] --> O3
+  K2 -- caso --> P[percorso profondo ↓]
+  WB & VR -. nessuna fonte .-> ME([memoria ⚠️<br/>non verificato])
+```
+
+Il percorso profondo, per i casi e le spiegazioni difficili:
+
+```mermaid
+flowchart LR
   Q([domanda]) --> R{smistamento}
   R -- "su di sé / sul passato" --> S[stato misurato<br/>+ ricordi pertinenti] --> W
   R -- conoscenza --> T[traduzione EN] --> E[encoder<br/>Qwen3-Embedding-0.6B]
   E --> V[(vault<br/>per dominio)] --> C[300 candidati<br/>per query]
   C --> X[re-ranker bge-v2-m3<br/>ogni passaggio nella sua lingua] --> K[12 passaggi]
   K --> G{cancello}
-  G -- nessuno risponde --> A([astensione onesta<br/>+ proposta arXiv])
+  G -- nessuno risponde --> A([web, poi memoria ⚠️<br/>studiata di notte])
   G -- passaggi utili --> D[estrazione<br/>per dominio] --> W[sintesi<br/>con ragionamento]
   W --> F{verifica<br/>frase per frase}
   F --> O([risposta + fonti]) --> M[(memoria STM)]
@@ -156,6 +180,10 @@ all'avvio, ricalcola gli hash e verifica la firma: se qualcosa è cambiato senza
 
 2 × RTX 5060 Ti 16 GB, Ubuntu 26.04, driver 595, CUDA 13.4 (docs/COMPATIBILITY.md).
 
+![Le domande che la gente fa davvero](docs/img/it/answers.svg)
+![Quanto aspetti una risposta](docs/img/it/speed.svg)
+![Premesse false](docs/img/it/honesty.svg)
+![Ricerca per dominio](docs/img/it/domains.svg)
 ![Trovare il documento giusto](docs/img/it/retrieval.svg)
 ![Verifica delle frasi](docs/img/it/verification.svg)
 ![Trovare il paper originale](docs/img/it/originals.svg)
@@ -166,6 +194,9 @@ all'avvio, ricalcola gli hash e verifica la firma: se qualcosa è cambiato senza
 
 | **Misura** | **Risultato** |
 |---|---|
+| domande reali (MKQA, 50) | 70% giuste in auto (16% nel solo vault), media 7,2 s, mediana 4 s; dalla cache 0,04 s (M130) |
+| premesse false | 6 su 6 corrette, 2 su 2 premesse vere rispettate (M130; prima 2 su 6, M117) |
+| ricerca per dominio | domanda diretta 50–100% tra i 12, raccontata a parole 0–67% (M129) |
 | ragionatore Qwen3.6-35B-A3B Q4 | 112,4 token/s in generazione, 2.788 token/s sul prompt (M34) |
 | ricerca su 344.499 solitoni | documento giusto al 1° posto nel 74,2%, tra i 12 passaggi dati alla sintesi nel 92,1% (M31) |
 | verifica delle frasi contro un giudice esterno | 26/32 in accordo, 0 frasi non supportate tenute (M32) |

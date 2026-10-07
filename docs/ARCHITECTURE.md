@@ -1,5 +1,8 @@
 # Aurora — Architecture (first design draft, 2026-09-29)
 
+> The first design, kept as it was. What Aurora is today: README (how a question is answered), KNOWLEDGE_PIPELINE.md
+> (the measured pipeline and the ways by the question's kind), MODULE_MAP.md (who does what), STATUS.md (what works).
+
 > Partly superseded. The ecosystem is described in `ECOSYSTEM.md`. Later
 > measurements changed two points of this draft: the index is per-shard HNSW
 > over fp16 vectors (M16), and the embedder choice is open between bge-m3 and

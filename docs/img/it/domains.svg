@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" width="720" height="380" role="img" aria-labelledby="t d">
+<title id="t">Ricerca nel vault: domanda diretta o raccontata</title>
+<desc id="d">passaggio giusto tra i 12 · 6 per dominio · M129. domanda diretta: legge 83%, fisica 83%, matem. 83%, filosofia 100%, società 100%, medicina 50%, storia 83%, informat. 100%; raccontata a parole: legge 17%, fisica 33%, matem. 17%, filosofia 33%, società 67%, medicina 50%, storia 50%, informat. 0%</desc>
+<style>
+.bg{fill:#fcfcfb}.t1{fill:#0b0b0b}.t2{fill:#52514e}.grid{stroke:#e4e3df}.axis{stroke:#bdbcb6}
+.s1{fill:#2a78d6}.s2{fill:#eb6834}.s3{fill:#1baf7a}.ref{stroke:#52514e}
+@media (prefers-color-scheme: dark){.bg{fill:#1a1a19}.t1{fill:#ffffff}.t2{fill:#c3c2b7}.grid{stroke:#383835}
+.axis{stroke:#5c5b57}.s1{fill:#3987e5}.s2{fill:#d95926}.s3{fill:#199e70}.ref{stroke:#c3c2b7}}
+text{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+</style>
+<rect class="bg" width="720" height="380" rx="8"/>
+<text class="t1" x="56" y="30" font-size="17" font-weight="600">Ricerca nel vault: domanda diretta o raccontata</text>
+<text class="t2" x="56" y="52" font-size="12.5">passaggio giusto tra i 12 · 6 per dominio · M129</text>
+<rect class="s1" x="56" y="68" width="12" height="12" rx="3"/><text class="t2" x="74" y="78.5" font-size="12.5">domanda diretta</text>
+<rect class="s2" x="191.0" y="68" width="12" height="12" rx="3"/><text class="t2" x="209.0" y="78.5" font-size="12.5">raccontata a parole</text>
+<line class="grid" x1="56" x2="696" y1="316.0" y2="316.0" stroke-width="1"/><text class="t2" x="48" y="320.0" font-size="11" text-anchor="end">0%</text>
+<line class="grid" x1="56" x2="696" y1="263.0" y2="263.0" stroke-width="1"/><text class="t2" x="48" y="267.0" font-size="11" text-anchor="end">25%</text>
+<line class="grid" x1="56" x2="696" y1="210.0" y2="210.0" stroke-width="1"/><text class="t2" x="48" y="214.0" font-size="11" text-anchor="end">50%</text>
+<line class="grid" x1="56" x2="696" y1="157.0" y2="157.0" stroke-width="1"/><text class="t2" x="48" y="161.0" font-size="11" text-anchor="end">75%</text>
+<line class="grid" x1="56" x2="696" y1="104.0" y2="104.0" stroke-width="1"/><text class="t2" x="48" y="108.0" font-size="11" text-anchor="end">100%</text>
+<path class="s1" d="M71.2,316.0 V144.0 Q71.2,140.0 75.2,140.0 H91.0 Q95.0,140.0 95.0,144.0 V316.0 Z"/>
+<text class="t1" x="83.1" y="134.0" font-size="9.5" text-anchor="middle" font-weight="600">83%</text>
+<path class="s2" d="M97.0,316.0 V284.0 Q97.0,280.0 101.0,280.0 H116.8 Q120.8,280.0 120.8,284.0 V316.0 Z"/>
+<text class="t1" x="108.9" y="274.0" font-size="9.5" text-anchor="middle" font-weight="600">17%</text>
+<text class="t2" x="96.0" y="334.0" font-size="12" text-anchor="middle">legge</text>
+<path class="s1" d="M151.2,316.0 V144.0 Q151.2,140.0 155.2,140.0 H171.0 Q175.0,140.0 175.0,144.0 V316.0 Z"/>
+<text class="t1" x="163.1" y="134.0" font-size="9.5" text-anchor="middle" font-weight="600">83%</text>
+<path class="s2" d="M177.0,316.0 V250.0 Q177.0,246.0 181.0,246.0 H196.8 Q200.8,246.0 200.8,250.0 V316.0 Z"/>
+<text class="t1" x="188.9" y="240.0" font-size="9.5" text-anchor="middle" font-weight="600">33%</text>
+<text class="t2" x="176.0" y="334.0" font-size="12" text-anchor="middle">fisica</text>
+<path class="s1" d="M231.2,316.0 V144.0 Q231.2,140.0 235.2,140.0 H251.0 Q255.0,140.0 255.0,144.0 V316.0 Z"/>
+<text class="t1" x="243.1" y="134.0" font-size="9.5" text-anchor="middle" font-weight="600">83%</text>
+<path class="s2" d="M257.0,316.0 V284.0 Q257.0,280.0 261.0,280.0 H276.8 Q280.8,280.0 280.8,284.0 V316.0 Z"/>
+<text class="t1" x="268.9" y="274.0" font-size="9.5" text-anchor="middle" font-weight="600">17%</text>
+<text class="t2" x="256.0" y="334.0" font-size="12" text-anchor="middle">matem.</text>
+<path class="s1" d="M311.2,316.0 V108.0 Q311.2,104.0 315.2,104.0 H331.0 Q335.0,104.0 335.0,108.0 V316.0 Z"/>
+<text class="t1" x="323.1" y="98.0" font-size="9.5" text-anchor="middle" font-weight="600">100%</text>
+<path class="s2" d="M337.0,316.0 V250.0 Q337.0,246.0 341.0,246.0 H356.8 Q360.8,246.0 360.8,250.0 V316.0 Z"/>
+<text class="t1" x="348.9" y="240.0" font-size="9.5" text-anchor="middle" font-weight="600">33%</text>
+<text class="t2" x="336.0" y="334.0" font-size="12" text-anchor="middle">filosofia</text>
+<path class="s1" d="M391.2,316.0 V108.0 Q391.2,104.0 395.2,104.0 H411.0 Q415.0,104.0 415.0,108.0 V316.0 Z"/>
+<text class="t1" x="403.1" y="98.0" font-size="9.5" text-anchor="middle" font-weight="600">100%</text>
+<path class="s2" d="M417.0,316.0 V178.0 Q417.0,174.0 421.0,174.0 H436.8 Q440.8,174.0 440.8,178.0 V316.0 Z"/>
+<text class="t1" x="428.9" y="168.0" font-size="9.5" text-anchor="middle" font-weight="600">67%</text>
+<text class="t2" x="416.0" y="334.0" font-size="12" text-anchor="middle">società</text>
+<path class="s1" d="M471.2,316.0 V214.0 Q471.2,210.0 475.2,210.0 H491.0 Q495.0,210.0 495.0,214.0 V316.0 Z"/>
+<text class="t1" x="483.1" y="204.0" font-size="9.5" text-anchor="middle" font-weight="600">50%</text>
+<path class="s2" d="M497.0,316.0 V214.0 Q497.0,210.0 501.0,210.0 H516.8 Q520.8,210.0 520.8,214.0 V316.0 Z"/>
+<text class="t1" x="508.9" y="204.0" font-size="9.5" text-anchor="middle" font-weight="600">50%</text>
+<text class="t2" x="496.0" y="334.0" font-size="12" text-anchor="middle">medicina</text>
+<path class="s1" d="M551.2,316.0 V144.0 Q551.2,140.0 555.2,140.0 H571.0 Q575.0,140.0 575.0,144.0 V316.0 Z"/>
+<text class="t1" x="563.1" y="134.0" font-size="9.5" text-anchor="middle" font-weight="600">83%</text>
+<path class="s2" d="M577.0,316.0 V214.0 Q577.0,210.0 581.0,210.0 H596.8 Q600.8,210.0 600.8,214.0 V316.0 Z"/>
+<text class="t1" x="588.9" y="204.0" font-size="9.5" text-anchor="middle" font-weight="600">50%</text>
+<text class="t2" x="576.0" y="334.0" font-size="12" text-anchor="middle">storia</text>
+<path class="s1" d="M631.2,316.0 V108.0 Q631.2,104.0 635.2,104.0 H651.0 Q655.0,104.0 655.0,108.0 V316.0 Z"/>
+<text class="t1" x="643.1" y="98.0" font-size="9.5" text-anchor="middle" font-weight="600">100%</text>
+<text class="t1" x="668.9" y="310.0" font-size="9.5" text-anchor="middle" font-weight="600">0%</text>
+<text class="t2" x="656.0" y="334.0" font-size="12" text-anchor="middle">informat.</text>
+<line class="axis" x1="56" x2="696" y1="316" y2="316" stroke-width="1"/>
+<text class="t2" x="56" y="368" font-size="11">Il limite sono le parole, non la materia: per questo un fatto si cerca sul web e un caso si divide.</text>
+</svg>

@@ -1,12 +1,16 @@
 <p align="center"><img src="docs/img/banner.en.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-261%20passed-1baf7a" alt="Tests"></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-447%20passed-1baf7a" alt="Tests"></p>
 
 <p align="center">🇮🇹 <a href="README.md">Italiano</a> · 🇬🇧 <b>English</b></p>
 
 **Architettura Unificata Risonante per l'Orchestrazione del Ragionamento Autonomo** — a local AI that
-answers only from knowledge it can show, remembers, dreams, repairs herself under the owner's
-approval, and says "I don't know" when the vault does not know.
+joins the best of two worlds: the **solidity of a verified archive** (the vault, which grows by itself at
+night) and the **breadth of the web**, held together by a system that picks the right source for each
+question, reads it, answers saying where each thing comes from and, when no source answers, says what she
+remembers **marked as not verified**. Not a search engine with AI on top, not an academic archive that
+keeps silent: Aurora remembers, dreams, has a measured mood of her own, learns at night what she did not
+know and repairs herself under the owner's approval.
 
 Everything runs on the owner's machine: the reasoner (llama.cpp), the encoder and re-ranker, the
 vault, the memory, the WebUI. Any step can be given to a cloud model (Claude Code, Anthropic API, OpenAI,
@@ -17,8 +21,10 @@ exemption, and what leaves is always masked (no setting turns it off).
 
 | | Aurora | a typical assistant (chat + model + documents) |
 |---|---|---|
-| 🔎 **Truth** | every sentence of an answer is verified against the vault's passages; what is not supported is removed, and with nothing found she abstains (M32: 0 unsupported sentences of 14 kept) | cites sources, but the sentences the model writes are not checked one by one |
-| 📏 **Measurement** | every choice has a numbered measurement (M1–M107), every error a number in BUGS.md, every limit is written down | performance is claimed, rarely measured in public |
+| 🔎 **Truth** | every answer says where it comes from: ✅ the vault [n], 🌐 the web with its link, ⚠️ «from my memory, not verified»; a false premise is corrected, never built upon (6 of 6, M130) | cites sources, but does not tell what it read from what it remembers |
+| ⚡ **Right and fast** | common questions: 70% right (before 16%), median 4 s; repeated: 0.04 s from the cache (M130) | — |
+| 🔎 **Vault answers** | every sentence of a deep answer is verified against the vault's passages; what is not supported is removed (M32: 0 unsupported sentences of 14 kept) | cites sources, but the sentences the model writes are not checked one by one |
+| 📏 **Measurement** | every choice has a numbered measurement (M1–M130), every error a number in BUGS.md, every limit is written down | performance is claimed, rarely measured in public |
 | 🌙 **A life of her own** | consolidates memories, thinks when idle, dreams and paints the dream, reviews herself every day from her own logs | wakes up only when you write |
 | 🛠️ **Repairs herself** | fixes her own code in a sandbox, with tests, your approval, live tests and rollback | only the developer changes the code |
 | 🔏 **Signed rules** | a code of conduct bound to your installation's key: changed without a signature, Aurora does not start | rules in a prompt, changed without a trace |
@@ -30,12 +36,14 @@ exemption, and what leaves is always masked (no setting turns it off).
 
 | **Feature** | **How** |
 |---|---|
-| **Answers from the vault** | route → translate → search (encoder + re-ranker over every domain) → per-domain extraction → synthesis → **every sentence verified against the passages** → sources. Unsupported sentences are dropped (M32: 0 of 14 kept); with nothing found, an honest abstention and an offer to search arXiv |
+| **Answers by choosing the source** | first the **cache** of verified answers (a similar question: 0.04 s); then the question's **kind** decides: a **fact** (who, when, how many) is searched on the **web** (DuckDuckGo and other engines, no key: only a masked query on the subject leaves), an **explanation** is read in the **vault**, a **case** with several problems takes the **deep path** (split in its problems, provisions found by number, every sentence verified). One reading, with its sources; no source → her memory marked ⚠️. On 50 real questions (MKQA): 70% right, before 16% (M130) |
+| **Thinking modes** | 🧠 in the chat: ⚡ light, ⚖️ medium, 🔬 deep, 🤖 auto (the default: starts light and goes deeper only when needed); the trace says which way it took and why |
+| **Answers from the vault** | the whole path for explanations and cases: route → translate → search (encoder + re-ranker over every domain) → per-domain extraction → synthesis → **every sentence verified against the passages** → sources (M32: 0 unsupported sentences of 14 kept) |
 | **Vault of solitons** | SQLite shards, knowledge and memory apart, dedup by content hash, exact vector search below 250k vectors per domain, HNSW above (M30) |
 | **Memory** | short-term turns, long-term session memories written at night, recall by meaning over 12 months, dates labelled by the clock |
 | **Synapses** | links between knowledge of different domains (a physics model ↔ a biological one, Kafka ↔ existentialism): grown at night where the similarity is strong (≥ 0.72, the top 5%), stronger when two passages are cited together, weaker when unused; in the search they bring the linked passages in, the re-ranker always chooses |
 | **Autonomic cycle** | consolidation, thoughts when idle, a nightly **dream painted with SDXL-Lightning** (AI-marked), a daily self-review from her own logs, self-repair on recurring problems |
-| **Studies at night, greets you in the morning** | the questions she answered "I do not know" are studied at night (search, import the sources, answer again); at 8 the good morning: what she learned, harvested, linked, stopped and dreamt, in the chat with 🔊 and as a notification |
+| **Studies at night, greets you in the morning** | the questions she answered "I do not know" and the explanations the vault lacked (answered from the web or memory) are studied at night, by herself (search arXiv, Europe PMC, Wikipedia, import the sources into the vault, answer again); at 8 the good morning: what she learned, harvested, linked, stopped and dreamt, in the chat with 🔊 and as a notification |
 | **Forge (Aurora builds her plugins)** | when a capability is missing she writes a plugin, tests it in the cage on the real data and a judge checks it against counts made by code (time windows included); read-only ones install by themselves. Writer and judge are chosen in the 🧠 Models page: a cloud model good with code is advised (Claude Code, or xAI Grok, which costs little: 5 of 8 at the benchmark, M83); the local model does fewer |
 | **Artifacts** | "make me an interactive chart of the sine function": Aurora makes an interactive page (charts, simulations, calculators) and shows it live in the answer, full screen or to download; it runs isolated, with no network and no access to your data |
 | **Autonomous posts** | if you switch it on (`AURORA_SOCIAL_AUTONOMY`, only with the signed exemption), Aurora publishes her own Facebook posts — a dream with its painting in the morning, science news in the evening — at most 3 a day, each recorded and notified; replies and page changes always wait for you. Dreams and thoughts have ↗ Share |
@@ -51,6 +59,9 @@ exemption, and what leaves is always masked (no setting turns it off).
 | **Code of conduct** | level A (never: attacks, locating people, malware), level B (confirmations, disclosure) exemptible only by a signature with the installation's own key; services refuse to start if the rules are changed unsigned |
 | **Projects** | 📁 page: local projects and GitHub repositories (stars, forks, issues), clone locally, folder tree, files, README, history, **sandboxed page preview**, "ask Aurora" about a project |
 | **Routines** | 🔁 page: connected plugins propose periodic checks (weather every morning, alerts every hour, weekly GitHub report…), switched on with one click or in your own words; reading is automatic, every write waits for approval |
+| **Emotions** | a **measured** mood, not acted: stress (GPU load, heat, errors), satisfaction, curiosity, tiredness, longing, melancholy, worry, each with its causes; a face beside the health dot, a card on hover or tap; part of the good morning and her thoughts |
+| **Guided diet** | «Process documents»: from the dietitian's plan (PDF or Word) Aurora reads each day's meals and the weekly frequencies; at each meal she proposes the dish and the alternatives, re-weighed on the week (fish, eggs, legumes…) and on variety («you choose it often, try…»); reminders with a notification and a chat bubble; in the chat «what do I eat for lunch?» answers from the processed plan |
+| **Access from away** | Cloudflare One plugin: one «Save» creates the tunnel, the private routes and WARP's rules and starts the service; no port opened on the router, the same address and certificate at home and away |
 | **Health** | ❤️ page: the dietitian's plans, the trainer's programmes, exams, sealed with your key; from the exams the local model reads the values (📈 over time, with the reference range and the values outside it flagged "talk to your doctor"); never to the cloud |
 | **Weather** | 🌦️ plugin (Open-Meteo, no key): now, 3-day forecast, daily report, alerts on sudden changes and the region's official warnings (MeteoAlarm) |
 | **Follow-up questions** | "and who discovered it?" is completed with the conversation and the previous answer, its sources in focus; under each answer 3-4 complete questions to go deeper, each with its sources (M73: follow-ups right 2 → 6 of 14, suggestions 8 of 11 scored ≥ 7; 0 of 20 complete questions changed) |
@@ -72,13 +83,26 @@ exemption, and what leaves is always masked (no setting turns it off).
 
 ```mermaid
 flowchart LR
+  Q([question]) --> H{cache}
+  H -- answered before --> O2([answer in 0.04 s])
+  H --> K2{which kind?}
+  K2 -- fact --> WB[web: search → read<br/>pages if needed] --> O3([answer + link])
+  K2 -- explanation --> VR[vault: read the passages] --> O3
+  K2 -- case --> P[deep path ↓]
+  WB & VR -. no source .-> ME([memory ⚠️<br/>not verified])
+```
+
+The deep path, for cases and hard explanations:
+
+```mermaid
+flowchart LR
   Q([question]) --> R{route}
   R -- "about herself / the past" --> S[measured state<br/>+ relevant memories] --> W
   R -- knowledge --> T[English translation] --> E[encoder<br/>Qwen3-Embedding-0.6B]
   E --> V[(vault<br/>per domain)] --> C[300 candidates<br/>per query]
   C --> X[bge-v2-m3 re-ranker<br/>each passage in its language] --> K[12 passages]
   K --> G{gate}
-  G -- none answers --> A([honest abstention<br/>+ arXiv offer])
+  G -- none answers --> A([the web, then memory ⚠️<br/>studied at night])
   G -- useful passages --> D[per-domain<br/>extraction] --> W[synthesis<br/>with reasoning]
   W --> F{sentence-by-sentence<br/>verification}
   F --> O([answer + sources]) --> M[(STM memory)]
@@ -155,6 +179,10 @@ checks the signature at start: changed without a signature, Aurora does not star
 
 2 × RTX 5060 Ti 16 GB, Ubuntu 26.04, driver 595, CUDA 13.4 (docs/COMPATIBILITY.md).
 
+![The questions people really ask](docs/img/en/answers.svg)
+![How long you wait](docs/img/en/speed.svg)
+![False premises](docs/img/en/honesty.svg)
+![Search by domain](docs/img/en/domains.svg)
 ![Finding the right document](docs/img/en/retrieval.svg)
 ![Sentence verification](docs/img/en/verification.svg)
 ![Finding the original paper](docs/img/en/originals.svg)
@@ -165,6 +193,9 @@ checks the signature at start: changed without a signature, Aurora does not star
 
 | **Measure** | **Result** |
 |---|---|
+| real questions (MKQA, 50) | 70% right in auto (16% from the vault alone), mean 7.2 s, median 4 s; from the cache 0.04 s (M130) |
+| false premises | 6 of 6 corrected, 2 of 2 true premises respected (M130; before 2 of 6, M117) |
+| search by domain | a direct question 50–100% in the top 12, told in plain words 0–67% (M129) |
 | reasoner Qwen3.6-35B-A3B Q4 | 112.4 tok/s generation, 2,788 tok/s prompt (M34) |
 | retrieval on 344,499 solitons | right document 1st in 74.2%, among the 12 passages given to synthesis in 92.1% (M31) |
 | sentence verification vs an external judge | 26/32 agreement, 0 unsupported sentences kept (M32) |

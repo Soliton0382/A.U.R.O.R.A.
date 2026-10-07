@@ -26,6 +26,16 @@ problems it holds (short questions, each searched) and by the provisions a lawye
 only as pointers and fetched by number from the vault (kno_split, kno_cites). The answer is still made only of the
 vault's text: each sentence cited and verified, one paragraph per problem, and a note that it is not legal advice (M128).
 
+## The way of each question (7 October 2026, M130)
+
+Before the pipeline above, the question's kind chooses the source (kno_think, kno_read; AURORA_ANSWER_MODE, auto by
+default): the cache of verified answers first (kno_shadow); a FACT is searched on the web and read (kno_web: ddgs,
+only a masked query on the subject leaves), an EXPLANATION is read in the vault, a CASE takes the pipeline above with
+its problems split and its provisions fetched by number. One reading, with its sources; no source → the model's memory,
+marked ⚠️. Measured on 50 real questions (MKQA): 70% right, the vault pipeline alone 16%; median 3.95 s. The sentence-by-
+sentence check of a model's draft was measured and dropped (5/25, a right draft failing every check); the draft as an
+extra recall changed nothing (M129), as HyDE did not in M13-M14.
+
 ## Measured recipe for stages 1-2 (2026-09-29, pool of 100k, MEASUREMENTS M11-M15)
 
 | step | choice | why |
