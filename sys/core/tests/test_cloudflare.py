@@ -54,6 +54,9 @@ class Fake:
             return ok({"exclude": self.exclude})
         if p.endswith("/devices/policy/exclude"):
             if m == "PUT":
+                if any(x.get("description", "") not in ("", "LAN") for x in body):      # C182: Cloudflare's 400
+                    return httpx.Response(400, json={"success": False, "errors": [
+                        {"code": 2049, "message": "cannot update split tunnels: invalid description length"}]})
                 self.exclude = body
             return ok(self.exclude)
         if p.endswith("/fallback_domains"):
@@ -70,6 +73,7 @@ def account(monkeypatch, cfg):
     def use(fake, service="inactive"):
         monkeypatch.setattr(CF.httpx, "Client", lambda **kw: real(transport=httpx.MockTransport(fake), **kw))
         monkeypatch.setattr(CF, "service_state", lambda: service)
+        monkeypatch.setattr(CF, "public_answer", lambda host: [])
         for k, v in VALUES.items():
             cfg.values[k] = v
         return cfg
@@ -84,6 +88,7 @@ def test_the_lan_exclusion_is_carved_around_aurora_only():
     covered = [ipaddress.ip_network(n) for n in nets if n != "10.0.0.0/8"]
     assert sum(n.num_addresses for n in covered) == 2 ** 16 - 1                # the whole LAN but Aurora's address
     assert all(ipaddress.ip_address("192.0.2.10") not in n for n in covered)
+    assert {o.get("description") for o in out} == {"LAN", None}               # C182: the entry's own description
 
 
 def test_check_lists_what_is_missing_and_never_a_token(account):
@@ -125,3 +130,11 @@ def test_a_hostname_published_on_the_internet_is_said(account):
 def test_without_the_service_installed_save_says_the_one_command(account):
     r = CF.apply(account(Fake(), service="missing"), systemctl=lambda verb: pytest.fail("no systemctl"))
     assert not r["ok"] and "servizio aurora-tunnel non installato: sudo bash sys/deploy/cloudflared/install.sh" in r["text"]
+
+
+def test_a_public_record_left_for_aurora_s_name_is_said(account, monkeypatch):
+    cfg = account(Fake(), service="active")
+    cfg.values["AURORA_DOMAIN"] = "aurora.home.example"
+    monkeypatch.setattr(CF, "public_answer", lambda host: ["198.51.100.20"])   # C182: the 1033 page
+    out = CF.check(cfg)
+    assert "cancellare il record di aurora.home.example in Cloudflare → DNS → Records della zona home.example" in out

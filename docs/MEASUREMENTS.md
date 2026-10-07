@@ -942,7 +942,9 @@ DNS resolves Aurora's name to the LAN address (dig).
 Then on the owner's account (read only, 7 October): API token active; tunnel «aurora» made by hand, inactive; the
 /32 route present on it; the home DNS's /32 covered by the LAN route of another tunnel of the owner; both excluded from
 WARP by 192.168.0.0/16; no fallback for the domain; aurora-tunnel not installed — what «Salva» and the installer do
-(C181). The tunnel's first start, its HEALTHY state and the phone in 4G: not measured yet.
+(C181). After the installer and «Salva»: the tunnel healthy, 4 connections (3 Cloudflare sites); the split tunnel
+refused (C182), fixed: both /32 carried by WARP, the fallback present. The phone in 4G: 1033 before the fix (C182); after: not
+measured yet (the public record left for Aurora's name is to be deleted by the owner).
 
 ## M126 — The diet plan, processed (7 October 2026, roadmap 55, C178)
 

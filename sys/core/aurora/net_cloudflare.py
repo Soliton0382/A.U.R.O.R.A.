@@ -54,7 +54,8 @@ def conf(cfg: sys_config.Config) -> dict:
     v = lambda k: str(cfg.values.get(k) or "").strip()            # noqa: E731
     return {"acc": v("AURORA_CLOUDFLARE_ACCOUNT_ID"), "tok": v("AURORA_CLOUDFLARE_API_TOKEN"),
             "name": v("AURORA_CLOUDFLARE_TUNNEL") or "aurora", "net": v("AURORA_CLOUDFLARE_NETWORK") or local_net(),
-            "dom": v("AURORA_CLOUDFLARE_DOMAIN").lstrip("."), "dns": v("AURORA_CLOUDFLARE_DNS")}
+            "dom": v("AURORA_CLOUDFLARE_DOMAIN").lstrip("."), "dns": v("AURORA_CLOUDFLARE_DNS"),
+            "host": v("AURORA_DOMAIN")}
 
 
 def missing(c: dict) -> str:
@@ -113,7 +114,19 @@ def collect(c: dict) -> dict:
         d["split_err"], d["split"] = err, s or []
         f, err = _call(cl, "GET", f"/accounts/{a}/devices/policy/fallback_domains")
         d["fb_err"], d["fallback"] = err, f or []
+    d["public"] = public_answer(c["host"]) if c["host"] and c["dom"] and c["host"].endswith(c["dom"]) else []
     return d
+
+
+def public_answer(host: str) -> list[str]:
+    """What the public DNS says for Aurora's name (Cloudflare's DNS over HTTPS): a record left there — the CNAME of a
+    deleted public route — sends a phone whose WARP misses the home DNS to Cloudflare's 1033 page (C182)."""
+    try:
+        r = httpx.get("https://cloudflare-dns.com/dns-query", params={"name": host, "type": "A"},
+                      headers={"accept": "application/dns-json"}, timeout=8)
+        return [a["data"] for a in r.json().get("Answer") or [] if a.get("type") in (1, 5)]
+    except (httpx.HTTPError, ValueError, KeyError):
+        return []
 
 
 def net_in(net: str, entries: list) -> list:
@@ -144,8 +157,9 @@ def without(entries: list[dict], net: str) -> list[dict]:
             out.append(x)
             continue
         if big.version == n.version and n.subnet_of(big):
-            desc = x.get("description") or ""
-            out += [{"address": str(p), "description": (desc + " — " if desc else "") + f"tranne {net} ({NOTE})"}
+            # each piece keeps the entry's own description: Cloudflare refuses a longer one (C182: «invalid
+            # description length» — the split tunnel was never changed and the phone stayed outside)
+            out += [{"address": str(p), **({"description": x["description"]} if x.get("description") else {})}
                     for p in big.address_exclude(n)]
         else:
             out.append(x)
@@ -183,6 +197,10 @@ def analyse(c: dict, d: dict, service: str) -> tuple[list, list]:
         lines.append(f"Tunnel «{c['name']}»: stato {t.get('status')}, {len(conns)} connessioni ({colos})")
         if t.get("status") != "healthy" and service == "active":
             todo.append("il servizio aurora-tunnel gira ma il tunnel non è healthy: attendi un minuto, poi «Salva» di nuovo")
+    if d.get("public"):
+        lines.append(f"⚠️ {c['host']}: il DNS pubblico risponde ({', '.join(d['public'][:2])}) — un record rimasto")
+        todo.append(f"cancellare il record di {c['host']} in Cloudflare → DNS → Records della zona {c['dom']} "
+                    "(serve solo il DNS di casa: senza, fuori casa si vede l'errore 1033)")
     for h in d.get("published") or []:
         lines.append(f"⚠️ {h}: PUBBLICATO su Internet da questo tunnel (chiunque arriva al login)")
         todo.append(f"togliere {h} dalle «Published application routes» del tunnel (la rete privata non ne ha bisogno)")
@@ -304,7 +322,7 @@ def apply(cfg: sys_config.Config, systemctl=None) -> dict:
                 if d["mode"] == "exclude" and net_in(net, split):
                     split = without(split, net)
                 elif d["mode"] == "include" and not net_in(net, split):
-                    split.append({"address": net, "description": NOTE})
+                    split.append({"address": net, "description": "Aurora"})
             if split != d["split"]:
                 _, err = _call(cl, "PUT", f"/accounts/{a}/devices/policy/{d['mode']}", json=split)
                 (failed if err else done).append(f"split tunnel ({d['mode']}) " + (f"non aggiornato: {err}" if err else
