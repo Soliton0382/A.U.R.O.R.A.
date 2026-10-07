@@ -926,6 +926,24 @@ person) —, the shadow trained 20/20 in 22.3 min, reflections at 01:11, 02:55, 
 with 2 sources in 66.2 s, «cos'è l'entropia» with 2 in 56.5 s — both declined before the night (N77, the machine's
 part). Facebook: the owner's first video published (approval executed, 5.9 s). Security (C174/C175): see BUGS. The face beside the health dot (owner, same morning): /v1/aurora/mood 0.02 s from the REM's last measure (53 s old); headless at 1280×850 a mouse over it opens the card (7 rows, 124–544 px), away closes it; at 390×844 a tap opens it inside the screen (8–382 px, no sideways scroll), a tap elsewhere closes it.
 
+## M128 — A case told as a story (7 October 2026, C183)
+
+The owner's real case (a super-condominium of villas, water sub-meters, a builder's lawyers, connections made by an
+architect; 437 characters), asked four times: four abstentions, 13-16 s each. Searched whole, the re-ranker's best law
+passage scored 0.18 (0.24 on the 4th try), with the owner's own earlier copies of the message at 1.0 above it. The
+vault holds the civil code's condominium articles (1117, 1117-bis, 1120, 1122, 1102: each found by its number in 5 ms);
+short questions reach them: «uso delle parti comuni da parte del condomino» 0.994 (art. 1118), «modifiche agli impianti
+comuni del condominio: maggioranza dell'assemblea» 0.979 (1122-bis), 0.974 (1120). Split by the local model into 4
+natural questions: best 0.51, 0.968, 0.218, 0.873. Named by the model: art. 1117, 1123, 1136, 1122, 2043 c.c., 624 c.p. —
+6 of 6 in the vault. The gate refused even the named provisions (it looks for a stated fact; the extraction from them
+was the case's legal frame: 1117-bis, 1117, 1117-quater, 1123, 1122, 1136, 2043, the sub-meter obligation). Candidates
+per sub-search: 150 → 26.2 s, 80 → 18.7 s with the same best scores and top three, 40 → 15.5 s with one problem's best
+lost (0.218 → 0.021): 80. Stages of a run: provisions and translation 3.4 s, sub-searches 27.7 s (150 candidates),
+gate and extraction 6.4 s, synthesis with thinking 46.8 s (text from 38 s), verification of 9 sentences 3.0 s. Live
+through the API: 96.9 s, 5 sources, a paragraph for each of the 4 problems, a public housing act among them; with the
+extraction told to leave out acts that do not apply: 74.5 s, 2 sources, the housing act gone, a shorter answer (what the
+synthesis writes changes between runs; the verification keeps only what the provisions say).
+
 ## M127 — Aurora builds her own Cloudflare plugin (7 October 2026, roadmap 56)
 
 Asked in the chat from the owner's account (the API key, as the owner asked: the turn is in the owner's conversation):

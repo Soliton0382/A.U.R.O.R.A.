@@ -21,6 +21,11 @@ question
                pertinent, say so
 ```
 
+A case told as a story (a message of AURORA_PIPELINE_SPLIT_CHARS or more, C183) is recalled differently: by the
+problems it holds (short questions, each searched) and by the provisions a lawyer would read, named by the local model
+only as pointers and fetched by number from the vault (kno_split, kno_cites). The answer is still made only of the
+vault's text: each sentence cited and verified, one paragraph per problem, and a note that it is not legal advice (M128).
+
 ## Measured recipe for stages 1-2 (2026-09-29, pool of 100k, MEASUREMENTS M11-M15)
 
 | step | choice | why |

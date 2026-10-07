@@ -2009,6 +2009,20 @@
    ]
   },
   {
+   "key": "AURORA_PIPELINE_SPLIT_CHARS",
+   "type": "int",
+   "min": 0,
+   "max": 5000,
+   "category": "pipeline",
+   "recommended": "220",
+   "evidence": "C183, M128",
+   "en": "A message at least this long (a case told as a story) is split by the local model into at most 4 short searches, one per problem, each searched and merged: the owner's real case found the civil code's condominium articles at 0.97-0.99 this way, 0.18 searched whole. 0 = never split.",
+   "it": "Un messaggio lungo almeno così (un caso raccontato) viene diviso dal modello locale in al massimo 4 ricerche brevi, una per problema, cercate e unite: il caso reale del proprietario ha trovato così gli articoli del codice civile sul condominio a 0,97-0,99, cercato intero 0,18. 0 = mai.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_PIPELINE_THINKING",
    "type": "bool",
    "category": "pipeline",
