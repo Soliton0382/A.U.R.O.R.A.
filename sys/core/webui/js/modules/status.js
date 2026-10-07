@@ -5,26 +5,10 @@ import { call } from "../api.js";
 import { backupRow } from "../backup.js";
 import { clock, el } from "../dom.js";
 import { apply, lang, t } from "../i18n.js";
+import { moodRows, moodTitle } from "../mood.js";
 
 const pill = (ok, text) => el("span", `pill ${ok ? "ok" : "bad"}`, text);
 
-// 💗 how she feels (kno_mood, roadmap 52): each emotion a measured number with its causes, never a simulated hormone
-const MOOD_ICON = { stress: "😣", satisfaction: "😊", curiosity: "🧐", tiredness: "😴", longing: "💬", melancholy: "🌧️", worry: "😟", serenity: "😌" };
-function moodRows(m) {
-  const rows = [el("h3", "setting-cat", `💗 ${t("mood.title", { d: `${MOOD_ICON[m.dominant] || ""} ${t(`mood.${m.dominant}`)}` })}`)];
-  for (const [k, v] of Object.entries(m.emotions)) {
-    const row = el("div", "ev mood-row");
-    const bar = el("span", "mood-bar");
-    const fill = el("span", "");
-    fill.style.width = `${Math.round(100 * (v.value || 0))}%`;
-    bar.append(fill);
-    row.append(el("span", "", MOOD_ICON[k] || "•"), el("strong", "", t(`mood.${k}`)), bar,
-      el("span", "", v.value === null ? "—" : v.value.toFixed(2)), el("span", "muted", v.causes.join(" · ")));
-    rows.push(row);
-  }
-  rows.push(el("div", "muted", t("mood.hint")));
-  return rows;
-}
 
 export default {
   id: "status",
@@ -51,7 +35,8 @@ export default {
       box.append(row);
     }
     if (health) box.append(el("div", "muted", t("status.checked", { at: clock(health.checked) })));
-    if (rem?.mood?.on) box.append(...moodRows(rem.mood));
+    if (rem?.mood?.on) box.append(el("h3", "setting-cat", `💗 ${moodTitle(rem.mood)}`), ...moodRows(rem.mood),
+      el("div", "muted", t("mood.hint")));
     // answered and declined questions on knowledge, 7 days (owner, 2026-10-05: honesty measured, not claimed)
     const ans = await call("/v1/aurora/answers/stats?days=7").catch(() => null);
     if (ans && ans.questions) box.append(el("p", "", t("status.answers", { q: ans.questions, a: ans.answered, d: ans.declined, p: ans.declined_pct })));

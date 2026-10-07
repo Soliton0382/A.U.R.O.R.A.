@@ -924,7 +924,7 @@ Musonius Rufus and Hierocles for the second user; two skipped (a question about 
 person) —, the shadow trained 20/20 in 22.3 min, reflections at 01:11, 02:55, 05:11 (silent), reviews 20:38 and 20:43;
 0 errors in the API log from 23:05 to 07:00. Asked again without remembering: «Come funziona un laser?» answered
 with 2 sources in 66.2 s, «cos'è l'entropia» with 2 in 56.5 s — both declined before the night (N77, the machine's
-part). Facebook: the owner's first video published (approval executed, 5.9 s). Security (C174/C175): see BUGS.
+part). Facebook: the owner's first video published (approval executed, 5.9 s). Security (C174/C175): see BUGS. The face beside the health dot (owner, same morning): /v1/aurora/mood 0.02 s from the REM's last measure (53 s old); headless at 1280×850 a mouse over it opens the card (7 rows, 124–544 px), away closes it; at 390×844 a tap opens it inside the screen (8–382 px, no sideways scroll), a tap elsewhere closes it.
 
 ## M123 — The videos on the Social page, ready to approve (6 October 2026)
 

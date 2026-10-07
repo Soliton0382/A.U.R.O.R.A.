@@ -8,6 +8,7 @@ import { el, useCss } from "../dom.js";
 import { t } from "../i18n.js";
 import { pushState } from "../push.js";
 import { bus } from "../bus.js";
+import { moodFace, moodLine, moodRows, moodTitle } from "../mood.js";
 
 export default {
   id: "alerts",
@@ -23,7 +24,10 @@ export default {
     shield.type = "button";
     const notif = el("button", "notif-toggle");
     notif.type = "button";
-    (document.getElementById("slot-health") || root).append(dot);    // the state beside the name
+    const face = el("button", "mood-face hidden");                    // 💗 how she feels (owner, 2026-10-07)
+    face.type = "button";
+    (document.getElementById("slot-health") || root).append(dot, face);    // the state beside the name
+    this.mood(face, ctx);
     root.append(bell, shield, notif);                                // the rest under it
     notif.addEventListener("click", () => ctx.show("notifications"));
     this.showPush = async () => {
@@ -61,11 +65,58 @@ export default {
       } catch { shield.classList.add("hidden"); }          // logged out, or a user: incidents are the admin's
     };
     let timer = 0;
-    this.start = () => { if (!timer) { tick(); timer = setInterval(tick, 10000); } };
+    this.start = () => { if (!timer) { tick(); timer = setInterval(tick, 10000); this.moodTick(); setInterval(this.moodTick, 60000); } };
     document.addEventListener("visibilitychange", () => { if (!document.hidden) tick(); });
   },
 
   enter() { this.start(); },
+
+  // 💗 the face changes with the emotion that prevails; hover (mouse) or tap (phone) opens its card: each emotion,
+  // its value and its measured causes; "more" goes to Health. The REM measures once a minute: polled each minute.
+  mood(face, ctx) {
+    let m = null, pinned = false;
+    const card = el("div", "mood-pop hidden");
+    card.setAttribute("role", "dialog");
+    document.body.append(card);
+    const place = () => {
+      const r = face.getBoundingClientRect();
+      card.style.top = `${Math.round(r.bottom + 8)}px`;
+      card.style.left = `${Math.round(Math.max(8, Math.min(r.left - 12, window.innerWidth - card.offsetWidth - 8)))}px`;
+    };
+    const open = () => {
+      if (!m) return;
+      const more = el("button", "link", t("mood.more"));
+      more.type = "button";
+      more.addEventListener("click", () => { close(true); ctx.show("status"); });
+      card.replaceChildren(el("strong", "mood-pop-title", `💗 ${moodTitle(m)}`), ...moodRows(m), more);
+      card.classList.remove("hidden");
+      place();
+    };
+    const close = (force = false) => { if (force || !pinned) { pinned = false; card.classList.add("hidden"); } };
+    face.addEventListener("pointerenter", (e) => { if (e.pointerType !== "touch") open(); });
+    face.addEventListener("pointerleave", () => setTimeout(() => { if (!card.matches(":hover")) close(); }, 150));
+    card.addEventListener("mouseleave", () => close());
+    face.addEventListener("click", () => {                           // tap: pinned open until tapped elsewhere
+      if (pinned) { close(true); return; }
+      pinned = true;
+      open();
+    });
+    document.addEventListener("click", (e) => { if (pinned && !card.contains(e.target) && e.target !== face) close(true); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(true); });
+    window.addEventListener("resize", () => { if (!card.classList.contains("hidden")) place(); });
+    this.moodTick = async () => {
+      try {
+        m = await call("/v1/aurora/mood");
+        face.classList.toggle("hidden", !m.on);
+        if (!m.on) return;
+        face.textContent = moodFace(m);
+        face.dataset.mood = m.dominant;
+        face.title = moodLine(m);
+        face.setAttribute("aria-label", face.title);
+        if (!card.classList.contains("hidden")) open();
+      } catch { face.classList.add("hidden"); }
+    };
+  },
 
   // ---- toasts: the events chosen for the WebUI (Notifications page), from the activity feed ----
   toasts(ctx) {

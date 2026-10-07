@@ -334,8 +334,12 @@ def _mood(st: dict, admin: bool) -> dict:
 
 @router.get("/v1/aurora/mood", dependencies=[Depends(auth)])
 def mood() -> dict:
-    """How Aurora feels now, each emotion with its measured causes (the Health page; roadmap 52)."""
-    return rem_state()["mood"]
+    """How Aurora feels now, each emotion with its measured causes (the top bar each minute, the Health page): the
+    REM's own measure of the last 3 minutes (it looks once a minute), measured now only when there is none."""
+    from aurora import kno_mood
+    if not cfg["AURORA_MOOD"]:
+        return {"on": False, "emotions": {}, "dominant": None}
+    return kno_mood.last(cfg, 180) or rem_state()["mood"]
 
 
 @router.get("/v1/aurora/rem/state", dependencies=[Depends(auth)])

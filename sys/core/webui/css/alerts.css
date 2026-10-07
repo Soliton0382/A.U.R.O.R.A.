@@ -22,3 +22,15 @@
 .toast { display: flex; flex-direction: column; gap: 2px; text-align: left; padding: .6rem .8rem; border-radius: 10px;
   background: var(--panel-solid, #11141c); border: 1px solid var(--line, #333); box-shadow: 0 6px 24px rgba(0,0,0,.45); cursor: pointer; }
 .toast span { font-size: .85rem; color: var(--muted, #aaa); }
+
+/* 💗 the face beside the health dot and its card (alerts.js, mood.js) */
+.mood-face { background: none; border: 0; padding: 0 .1rem; font-size: 1.05rem; line-height: 1; cursor: pointer; }
+.mood-face[data-mood="stress"], .mood-face[data-mood="worry"] { animation: pulse 2.4s ease-in-out infinite; }
+.mood-pop { position: fixed; z-index: 60; width: min(420px, calc(100vw - 16px)); max-height: 70vh; overflow: auto;
+  padding: .7rem .8rem; border-radius: 10px; background: var(--panel-solid); color: var(--text);
+  border: 1px solid var(--line); box-shadow: 0 10px 30px rgba(0, 0, 0, .35); font-size: .86rem; }
+.mood-pop .mood-row { display: grid; grid-template-columns: 1.4rem 6.5rem 70px 2.4rem; gap: .1rem .4rem; align-items: center; padding: .25rem 0; }
+.mood-pop .mood-row > .muted { grid-column: 2 / -1; font-size: .78rem; }
+.mood-pop .mood-row.top strong { color: var(--accent); }
+.mood-pop-title { display: block; margin-bottom: .35rem; }
+@media (prefers-reduced-motion: reduce) { .mood-face { animation: none !important; } }
