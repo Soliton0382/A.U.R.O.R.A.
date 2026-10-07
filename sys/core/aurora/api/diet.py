@@ -41,7 +41,10 @@ def diet(day: str | None = None) -> dict:
     out = {"plan": p, "documents": len(docs), "reminders": bool(cfg["AURORA_DIET_REMINDERS"]), "times": _times()}
     if not p:
         return out
-    d = date.fromisoformat(day) if day else _today()
+    try:                                              # oggi, domani, a weekday, YYYY-MM-DD (the chat's tool's words)
+        d = hlt_diet.when(day, _today()) if day else _today()
+    except ValueError:
+        raise HTTPException(status_code=422, detail="day: oggi, domani, ieri, a weekday or YYYY-MM-DD") from None
     out["stale"] = sorted(docs) != sorted(p.get("documents", []))
     out["day"] = d.isoformat()
     out["meals"] = _day_view(p, d)

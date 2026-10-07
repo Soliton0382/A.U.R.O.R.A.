@@ -938,6 +938,10 @@ most 1 a week», the plan says to get there gradually from 7 through 3–4 — t
 and the document rules. Reminder dry run, nothing saved: at 19:32 dinner (the day's option, its reason, an
 alternative, the legume hint), at 13:00 nothing. Headless with synthetic data (the tests' plan): 3 meals, 7 chips, no
 sideways scroll at 390 px, «scelgo questo» posts the option, the chat bubble answered in place; 0 JavaScript errors.
+In the chat, before C179: «cosa avrei oggi a pranzo?» 110.3 s, 8 steps (health_read three times: 12 000 characters
+each, the plan cut after Tuesday), and Tuesday's lunch on a Wednesday. After: health_diet answers from the processed
+plan in under 1 ms with 1 124 characters (the date the code's: mercoledì 7 ottobre 2026); health_read gives the whole
+processed week in 3 431 characters. The chat's total time with it: not measured (the user's session).
 
 ## M125 — The good morning aloud (7 October 2026, C177)
 

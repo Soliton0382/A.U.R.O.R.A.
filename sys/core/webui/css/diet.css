@@ -24,3 +24,5 @@
 .diet-rem label { display: flex; gap: .5rem; align-items: center; margin: .3rem 0; }
 .diet-time span { min-width: 8rem; }
 .diet-bubble .diet-meal { border: 0; padding: 0; }
+.diet-under { display: grid; gap: .6rem; margin-top: .5rem; }
+.diet-under .diet-meal { background: var(--panel-solid); }

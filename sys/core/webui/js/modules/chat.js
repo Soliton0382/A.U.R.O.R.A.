@@ -9,7 +9,7 @@ import { auroraBubble, follow, renderPast } from "./trace.js";
 import { shareButton } from "../share.js";
 import { view, viewLink } from "../viewer.js";
 import * as voice from "../voice.js";
-import { dietBubbles } from "../diet.js";
+import { dietBubbles, dietCards } from "../diet.js";
 
 const HISTORY_TURNS = 8;          // 4 exchanges: the same memory Aurora keeps in context
 
@@ -386,6 +386,7 @@ export default {
         mine.add(run_id);
         const final = await follow(run_id, b, messages);
         if (aloud && final?.text) sayAloud(final.text);
+        if (final?.diet) await dietCards(b, final.diet);
         if (final?.abstained && final.mode !== "self") offerAcquire(b, question);
         else if (final?.suggestions?.length) { const stick = messages.scrollHeight - messages.scrollTop - messages.clientHeight < 120; offerDeeper(b, final.suggestions); if (stick) scrollEnd(messages); }
       } catch (e) {
@@ -469,6 +470,7 @@ export default {
       if (a.payload.origin !== "webui") b.root.classList.add("elsewhere");
       if (stick) scrollEnd(messages);
       const final = await follow(id, b, messages);
+      if (final?.diet) await dietCards(b, final.diet);
       if (final?.suggestions?.length) offerDeeper(b, final.suggestions);   // asked on another device: go deeper here too
     };
     let lastSeq = 0;

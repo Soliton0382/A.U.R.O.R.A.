@@ -80,6 +80,22 @@ export function mealCard(s, done, { compact = false } = {}) {
   return card;
 }
 
+// the chat: under an answer that used the diet tool (health_diet), the meals it spoke of, to choose with a tap — the
+// proposals are the plan's, computed by the code, not the model's words (owner, 2026-10-07: «non produce proposte»)
+export async function dietCards(b, ask) {
+  let v;
+  try { v = await call(`/v1/aurora/diet?day=${encodeURIComponent(ask.day || "oggi")}`); } catch { return; }
+  const meal = String(ask.meal || "").toLowerCase();
+  const box = el("div", "diet-under");
+  const draw = async () => {
+    try { v = await call(`/v1/aurora/diet?day=${encodeURIComponent(ask.day || "oggi")}`); } catch { return; }
+    fill();
+  };
+  const fill = () => box.replaceChildren(...(v.meals || []).filter((s) => !meal || s.meal === meal).map((s) => mealCard(s, draw, { compact: true })));
+  fill();
+  if (box.childElementCount) b.root.append(box);
+}
+
 // the chat: the meals reminded and not answered yet, one bubble each (owner, 2026-10-07: «messaggi automatici in chat»)
 export async function dietBubbles(messages) {
   let pend;

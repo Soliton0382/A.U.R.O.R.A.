@@ -438,3 +438,72 @@ def reminder_text(s: dict) -> str:
     if s["hints"]:
         lines.append(s["hints"][0])
     return "\n".join(lines)
+
+
+# ---- what the chat's model reads (the health plugin): the processed plan, not the raw documents --------------------
+_REL = {"oggi": 0, "today": 0, "domani": 1, "tomorrow": 1, "dopodomani": 2, "ieri": -1, "yesterday": -1}
+
+
+def when(text: str, today: date) -> date:
+    """«oggi», «domani», «ieri», a weekday («giovedì»: the next one, today included) or YYYY-MM-DD: the date is the
+    code's, never the model's guess (7 Oct: the model counted from the visit's date and said Tuesday on a Wednesday)."""
+    k = _key(text or "oggi")
+    if k in _REL:
+        return today + timedelta(days=_REL[k])
+    d = _day(k)
+    if d:
+        return today + timedelta(days=(DAYS.index(d) - today.weekday()) % 7)
+    return date.fromisoformat(k)
+
+
+def _date_it(d: date) -> str:
+    months = ("gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre",
+              "novembre", "dicembre")
+    return f"{DAYS[d.weekday()]} {d.day} {months[d.month - 1]} {d.year}"
+
+
+def meal_text(p: dict, rows: list[dict], day: date, meals: list[str], today: date) -> str:
+    """The meals of a day for the chat: proposed, why, alternatives, what was chosen, the week against the frequencies."""
+    out = [f"Oggi è {_date_it(today)}." + ("" if day == today else f" Il giorno chiesto è {_date_it(day)}."),
+           f"Piano elaborato da «{p.get('source', '')}»: le proposte tengono conto di quanto mangiato questa settimana."]
+    for meal in meals:
+        s = suggest(p, rows, day, meal)
+        if s["chosen"]:
+            c = s["chosen"]
+            out.append(f"\n{meal.upper()}: già scelto — " + ("pasto libero" if c["free"] else
+                       next((o["label"] for o in [s["suggested"], *s["alternatives"]] if o and o["id"] == c["option"]),
+                            c["text"] or c["option"] or "")))
+            continue
+        if not s["suggested"]:
+            out.append(f"\n{meal.upper()}: il piano non ha proposte per questo pasto.")
+            continue
+        o = s["suggested"]
+        out.append(f"\n{meal.upper()} — PROPOSTO: " + "; ".join(o["items"]) + (f" (nota: {o['note']})" if o["note"] else "")
+                   + (f"\n  perché: {', '.join(o['why'])}" if o["why"] else ""))
+        for i, a in enumerate(s["alternatives"], 1):
+            out.append(f"  alternativa {i}: " + "; ".join(a["items"]) + (f" ({', '.join(a['why'])})" if a["why"] else ""))
+        out += [f"  consiglio: {h}" for h in s["hints"]]
+        if s.get("free_left"):
+            out.append(f"  pasti liberi rimasti questa settimana: {s['free_left']}")
+    freq = p.get("frequencies") or {}
+    if freq:
+        wk = week_counts(rows, day)
+        out.append("\nSettimana (mangiato / frequenza del piano): " + ", ".join(
+            f"{NAMES[g]} {wk.get(g, 0)}/{f['min']}" + (f"–{f['max']}" if f["max"] != f["min"] else "") for g, f in freq.items()))
+    out.append("\nL'utente può segnare cosa sceglie toccando la scheda del pasto sotto la risposta.")
+    return "\n".join(out)
+
+
+def plan_text(p: dict) -> str:
+    """The whole processed plan, compact: the week, the frequencies, the limits and the rules (~3k characters)."""
+    out = [f"Piano elaborato da «{p.get('source', '')}» (per i pasti di un giorno usa health_diet)."]
+    for o in p["options"]:
+        out.append(f"{(o['day'] or '').upper()} {o['meal']}: " + "; ".join(o["items"]))
+    if p.get("frequencies"):
+        out.append("FREQUENZE a settimana: " + ", ".join(
+            f"{NAMES[g]} {f['min']}" + (f"–{f['max']}" if f["max"] != f["min"] else "") for g, f in p["frequencies"].items()))
+    if p.get("free_meals_per_week"):
+        out.append(f"Pasti liberi a settimana: {p['free_meals_per_week']}")
+    out += [f"Limite: {x['what']} al massimo {x['max']} a {'settimana' if x['per'] == 'week' else 'giorno'}" for x in p.get("limits") or []]
+    out += [f"Regola: {r}" for r in p.get("rules") or []]
+    return "\n".join(out)

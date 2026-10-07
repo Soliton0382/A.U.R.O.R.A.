@@ -33,10 +33,39 @@ def health_list(area: str) -> str:
 
 
 @server.tool()
-def health_read(area: str) -> str:
+def health_diet(meal: str = "", day: str = "oggi") -> str:
+    """The diet's meals of a day, from the plan the user processed («Elabora documenti»): today's date, the dish
+    proposed with why, the alternatives, what was already chosen, the week against the frequencies. USE THIS for any
+    question about what to eat («cosa mangio a pranzo?», «cosa prevede la dieta domani a cena?»). `meal`: colazione,
+    spuntino, pranzo, merenda, cena, or empty for the whole day; `day`: oggi, domani, ieri, a weekday or YYYY-MM-DD."""
+    from datetime import datetime
+    from aurora import hlt_diet
+    p = hlt_diet.plan(cfg)
+    if not p:
+        return "Il piano non è ancora elaborato: nella pagina ❤️ Salute → Dieta premi «Elabora documenti»."
+    today = datetime.now().astimezone().date()
+    try:
+        d = hlt_diet.when(day, today)
+    except ValueError:
+        raise ToolError("day: oggi, domani, ieri, a weekday or YYYY-MM-DD") from None
+    have = [m for m in hlt_diet.MEALS if any(o["meal"] == m for o in p["options"])]
+    m = hlt_diet._key(meal) if meal else ""
+    if m and m not in have:
+        raise ToolError(f"meal: one of {', '.join(have)}")
+    return hlt_diet.meal_text(p, hlt_diet.choices(cfg), d, [m] if m else have, today)
+
+
+@server.tool()
+def health_read(area: str, raw: bool = False) -> str:
     """The texts of an area (diet, training, exams), newest first: to answer about the plan, the programme, the values.
+    For the diet, once processed, the plan itself (the week, frequencies, rules) — raw=true for the documents' text.
     Not medical advice: for any doubt the reference is the user's doctor."""
     a = _area(area)
+    if a == "diet" and not raw:
+        from aurora import hlt_diet
+        p = hlt_diet.plan(cfg)
+        if p:
+            return hlt_diet.plan_text(p)
     return hlt_store.everything(cfg, a) or f"Nessun documento in {NAMES[a]}."
 
 

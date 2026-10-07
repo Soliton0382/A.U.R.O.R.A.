@@ -233,7 +233,7 @@ export function renderPast(b, turn) {
 
 // Follow a run's events into a bubble. Returns the final answer payload (or null).
 export async function follow(runId, b, scroller) {
-  let thought = null, draft = null, final = null;
+  let thought = null, draft = null, final = null, diet = null;
   const seen = [];                                  // the run's events, for the answer's check line
   b.iter.open = true;
   b.head.classList.add("running");
@@ -274,6 +274,9 @@ export async function follow(runId, b, scroller) {
         return;
       }
       if (name === "run.start") { thought = null; draft = null; }
+      if (name === "tool.call" && /health_diet$/.test(p.name || "")) {   // 🍽️ the meal's card goes under the answer
+        try { diet = JSON.parse(p.arguments || "{}"); } catch { diet = {}; }
+      }
       seen.push([name]);
       if (name === "answer.final") { final = p; renderAnswer(b, { ...p, checked: checks(seen) }); }
       else if (name === "answer.suggestions" && final) final.suggestions = p.items;
@@ -304,5 +307,6 @@ export async function follow(runId, b, scroller) {
     status(`🧭 ${t("chat.iter", { n: b.count, s: ((Date.now() - b.t0) / 1000).toFixed(1) })}`);
     b.iter.open = false;
   }
+  if (final && diet) final.diet = diet;
   return final;
 }

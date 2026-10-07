@@ -159,3 +159,18 @@ def test_reminder_times_and_the_meal_of_now():
     assert times == {"colazione": "07:30", "pranzo": "12:30"}
     assert hlt_diet.meal_now(times, datetime(2026, 10, 7, 12, 34)) == "pranzo"
     assert hlt_diet.meal_now(times, datetime(2026, 10, 7, 12, 41)) is None
+
+
+def test_the_chat_reads_the_processed_plan_with_the_codes_date(cfg):
+    hlt_store.add_document(cfg, "diet", "piano.txt", PLAN.encode())
+    p = hlt_diet.process(cfg)
+    wed = date(2026, 10, 7)
+    assert hlt_diet.when("oggi", wed) == wed and hlt_diet.when("domani", wed) == date(2026, 10, 8)
+    assert hlt_diet.when("Martedì", wed) == date(2026, 10, 13) and hlt_diet.when("mercoledi", wed) == wed
+    txt = hlt_diet.meal_text(p, [], wed, ["pranzo"], wed)
+    assert txt.startswith("Oggi è mercoledì 7 ottobre 2026.") and "PRANZO — PROPOSTO: farro 70 g; mozzarella 100 g" in txt
+    assert "alternativa 1:" in txt and "Settimana (mangiato / frequenza del piano): carne rossa 0/1" in txt
+    other = hlt_diet.meal_text(p, [], hlt_diet.when("domani", wed), ["cena"], wed)
+    assert "Il giorno chiesto è giovedì 8 ottobre 2026." in other
+    full = hlt_diet.plan_text(p)
+    assert "MARTEDÌ pranzo: pasta 70 g al pomodoro; Parmigiano 10 g; lenticchie 150 g" in full and "uova strapazzate" not in full

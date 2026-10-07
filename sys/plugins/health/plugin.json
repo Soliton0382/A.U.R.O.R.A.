@@ -16,8 +16,10 @@
  "effects": {
   "health_list": "read",
   "health_read": "read",
-  "health_values": "read", "health_doctors": "read",
-  "*": "write_local"
+  "health_values": "read",
+  "health_doctors": "read",
+  "*": "write_local",
+  "health_diet": "read"
  },
  "welcome": {
   "it": "❤️ Salute collegata. Carica i documenti del dietologo, del trainer e i tuoi esami nella pagina ❤️ Salute: restano cifrati con la tua chiave e li vede solo il modello locale. Poi chiedimi «cosa prevede la dieta per pranzo?» o «segna: oggi 40 minuti di corsa». Non sono un medico: per ogni dubbio sulla salute il riferimento resta il tuo medico.",
