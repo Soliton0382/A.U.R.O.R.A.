@@ -214,10 +214,28 @@ async function persona() {
     document.title = m.assistant || "Aurora";
     voice.setGender(m.gender);
     isAdmin = m.admin !== false;
+    whoIs(m);
     adminNav();
     if (!isAdmin && adminOnly.has(current)) show("chat");
     firstSetup(m);
   } catch { /* the defaults stay */ }
+}
+
+// who is logged in, at the menu's foot beside the language and the logout (owner, 2026-10-07): their name for Aurora,
+// the login and the role; a single-user install has no login, only the name
+function whoIs(m) {
+  const box = $("who");
+  const login = m.mode === "multi" ? m.name : null;
+  const person = m.person && m.person !== "Owner" ? m.person : null;
+  if (!login && !person) { box.classList.add("hidden"); return; }
+  const role = i18n.t(m.admin ? "nav.role_admin" : "nav.role_user");
+  box.replaceChildren(
+    Object.assign(document.createElement("span"), { className: "who-icon", textContent: m.admin ? "🛡️" : "👤" }),
+    Object.assign(document.createElement("strong"), { textContent: person || login }),
+    Object.assign(document.createElement("span"), { className: "muted",
+      textContent: [login && login !== person ? login : null, login ? role : null].filter(Boolean).join(" · ") }));
+  box.title = i18n.t("nav.who", { n: person || login });
+  box.classList.remove("hidden");
 }
 
 // multi-user, the admin's first login (owner, 2026-10-05): in with the installer's API key, then a password and Google

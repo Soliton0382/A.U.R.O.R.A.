@@ -56,6 +56,11 @@ body.drawer-open .scrim { opacity: 1; pointer-events: auto; }
 .drawer-foot { padding-top: .6rem; border-top: 1px solid var(--line); }
 .drawer-foot { display: flex; gap: .5rem; align-items: center; justify-content: space-between; }
 .drawer-foot .logout { font-size: .85rem; }
+.who { display: flex; gap: .45rem; align-items: baseline; padding: .55rem .2rem .2rem; border-top: 1px solid var(--line);
+  font-size: .9rem; overflow: hidden; white-space: nowrap; }
+.who strong { overflow: hidden; text-overflow: ellipsis; }
+.who .muted { font-size: .78rem; overflow: hidden; text-overflow: ellipsis; }
+.who + .drawer-foot { border-top: 0; }
 
 #views { flex: 1; min-height: 0; position: relative; }
 .view { position: absolute; inset: 0; overflow: auto; }
