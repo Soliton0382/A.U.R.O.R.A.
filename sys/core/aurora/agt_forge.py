@@ -56,8 +56,16 @@ SYS_LOOK = ("You are Aurora's forge. A capability is missing; before writing a p
             "Reply ONLY with a JSON list of at most 3 paths relative to Aurora's folder (files or folders) to look at, "
             "e.g. [\"sys/logs/firewall\", \"sys/status/incidents.json\"]. Use the DATA PLACES given.")
 SYS_WRITE = ("You are Aurora's forge: you write a small MCP plugin, in Python, that gives Aurora the missing capability. "
-             "Rules: read only (it never writes files, never changes anything, never contacts the network unless the "
-             "capability is impossible without it); standard library, httpx and aurora.sys_config only; tools return "
+             "Rules: tools read by default (never write files, never contact the network unless the capability is "
+             "impossible without it). When the NEED asks to change something on a service (create, send, configure, "
+             "activate), write that tool too and give it the effect \"external\" in plugin.json: each of its calls "
+             "waits for the owner's approval. A plugin that needs an account id, an address or a token declares them in "
+             "\"settings_spec\": [{\"key\": \"AURORA_<NAME>_<WHAT>\" (NAME = the plugin's name in capitals), "
+             "\"type\": \"str\", \"secret\": true for a token or password, \"it\": \"what it is\", \"en\": \"…\"}], "
+             "lists those keys in \"env\" and the mandatory ones in \"requires\", and gives a step-by-step \"setup\": "
+             "{\"it\": \"…\", \"en\": \"…\"} telling a non-expert where to get each value; its tools read them INSIDE "
+             "the tool with sys_config.get().values.get(KEY, \"\") — never at import — and, when one is missing, return "
+             "\"Non configurato: manca KEY (Plugin → <name>)\". Standard library, httpx and aurora.sys_config only; tools return "
              "plain text in Italian, short, never raise for 'no data'; wrap each tool body in try/except returning "
              "'ERRORE: ' and the traceback (as in the template); timestamps like 2026-10-01T23:42:53.023+02:00 parse with "
              "datetime.fromisoformat; no secrets in the code. Aurora's logs: one folder per component under sys/logs, the "
@@ -67,9 +75,11 @@ SYS_WRITE = ("You are Aurora's forge: you write a small MCP plugin, in Python, t
              "message. Reply with exactly two "
              "fenced blocks: ```json with plugin.json and ```python with server.py. plugin.json: {\"name\", \"version\": "
              "\"1.0\", \"kind\": \"tool\", \"description\": {\"en\", \"it\"}, \"command\": [\"{python}\", \"server.py\"], "
-             "\"env\": [], \"requires\": [], \"effects\": {\"*\": \"read\"}, \"sandbox\": {\"network\": false}, \"tests\": "
-             "[{\"tool\": \"<a tool name>\", \"args\": {...}}]} — set \"network\": true only if the data is on the "
-             "internet. The tests run inside the cage on the real data and must return text.\n\nTEMPLATE:\n" + TEMPLATE)
+             "\"env\": [], \"requires\": [], \"effects\": {\"<tool>\": \"read\" or \"external\", \"*\": \"read\"}, "
+             "\"sandbox\": {\"network\": false}, \"tests\": [{\"tool\": \"<a READ tool>\", \"args\": {...}}]} — set "
+             "\"network\": true only if the data is on the internet; never a test on an external tool. The tests run inside "
+             "the cage on the real data (the settings may still be empty: then the tool says it is not configured) and "
+             "must return text.\n\nTEMPLATE:\n" + TEMPLATE)
 
 
 def _dir(cfg: sys_config.Config) -> Path:
@@ -190,13 +200,32 @@ def check(manifest: dict, code: str, existing: set[str]) -> list[str]:
     if not NAME.match(name):
         errs.append("name: lowercase letters, digits, _ (3-31), starting with a letter")
     elif name in existing:
-        errs.append(f"a plugin named {name} exists already: choose another name")
+        errs.append(f"a plugin named {name} exists already: choose another name (e.g. {name}_2 or a more precise one)")
     if manifest.get("command") != ["{python}", "server.py"]:
         errs.append('command must be ["{python}", "server.py"]')
     if not manifest.get("tests"):
         errs.append("tests: at least one {tool, args}")
-    if manifest.get("requires"):
-        errs.append("requires must be empty (a forged plugin uses no secret)")
+    name_up = name.upper()
+    specs = manifest.get("settings_spec") or []
+    declared = set()
+    for s in specs if isinstance(specs, list) else []:
+        key = str((s or {}).get("key", ""))
+        if not key.startswith(f"AURORA_{name_up}_") or not key.replace("_", "").isalnum() or not key.isupper():
+            errs.append(f"settings_spec: {key or '?'} must be AURORA_{name_up}_<WHAT> in capitals")
+        elif not (s.get("it") or s.get("en")):
+            errs.append(f"settings_spec: {key} needs a description (it, en)")
+        declared.add(key)
+    if bad := [k for k in manifest.get("requires", []) + manifest.get("env", []) if k not in declared]:
+        errs.append(f"env/requires: {', '.join(bad)} not declared in settings_spec (a forged plugin reads only its own settings)")
+    if specs and not (manifest.get("setup") or {}).get("it"):
+        errs.append("setup: a step-by-step guide (it, en) to get each setting")
+    effects = manifest.get("effects") or {}
+    if bad := [f"{t}={e}" for t, e in effects.items() if e not in ("read", "external")]:
+        errs.append(f"effects: only read or external ({', '.join(bad)})")
+    if any(e == "external" for e in effects.values()) and (manifest.get("sandbox") or {}).get("network") is not True:
+        errs.append("an external tool talks to a service: sandbox network must be true")
+    if bad := [t["tool"] for t in manifest.get("tests") or [] if effects.get(t.get("tool"), effects.get("*", "read")) != "read"]:
+        errs.append(f"tests: never an external tool ({', '.join(bad)}): it would act without the owner")
     if bad := sys_ethics.forbidden_capabilities(manifest):
         errs.append(f"refused by the ethics code (level A): {', '.join(bad)}")
     try:
@@ -237,7 +266,8 @@ def build(cfg: sys_config.Config, llm, host, req: dict, emit, masker=None, judge
     emit("forge.look", {"paths": looked[:3], "masked": bool(masker)})
     errors: list[str] = []
     for attempt in range(1, 4):
-        prompt = (f"{ask}\n\nPLUGINS ALREADY THERE (do not duplicate):\n{tools}\n\nWHAT THE DATA LOOKS LIKE:\n{seen}"
+        prompt = (f"{ask}\n\nPLUGINS ALREADY THERE (do not duplicate):\n{tools}\n\nNAMES TAKEN — the new plugin's name "
+                  f"must be none of these: {', '.join(sorted(existing))}\n\nWHAT THE DATA LOOKS LIKE:\n{seen}"
                   + (f"\n\nYOUR LAST ATTEMPT FAILED:\n" + "\n".join(errors) if errors else ""))
         reply = llm.complete(SYS_WRITE, prompt, 3500).answer
         try:
@@ -310,8 +340,12 @@ def test(host, manifest: dict, stage: Path, llm=None, sample: str = "", masker=N
         try:
             res = host._run(host._session(p, call))
             text = "\n".join(c.text for c in getattr(res, "content", []) if getattr(c, "type", "") == "text")
+            unset = [s["key"] for s in manifest.get("settings_spec") or [] if s.get("key") in manifest.get("requires", [])
+                     and not str(host.cfg.values.get(s["key"]) or "").strip()]
             if getattr(res, "is_error", False) or not text.strip() or text.lstrip().startswith("ERRORE:"):
                 errs.append(f"{name}({args}) failed or returned nothing: {text[:400]}")
+            elif unset and text.lstrip().lower().startswith("non configurato") and any(k in text for k in unset):
+                continue                                     # its settings are empty and it says so: nothing to judge
             elif llm is not None and sample:
                 shown = masker(text) if masker else text
                 window = f"window: {hours:g} h" if hours else "no time window asked: judge the whole data"

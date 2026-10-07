@@ -150,3 +150,37 @@ def test_the_judge_gets_the_facts_counted_when_the_plugin_runs(cfg, monkeypatch)
             return []
     out = F.build(cfg, LLM(), Host(), {"id": "r1", "need": "count lines in the last 24 hours", "why": "t"}, lambda e, p: None)
     assert out["ok"] and seen["sample"] == "FACTS NOW"
+
+
+SERVICE = {"name": "cloudy", "version": "1.0", "kind": "tool", "command": ["{python}", "server.py"],
+           "env": ["AURORA_CLOUDY_ACCOUNT", "AURORA_CLOUDY_TOKEN"], "requires": ["AURORA_CLOUDY_ACCOUNT", "AURORA_CLOUDY_TOKEN"],
+           "settings_spec": [{"key": "AURORA_CLOUDY_ACCOUNT", "type": "str", "it": "L'ID dell'account"},
+                             {"key": "AURORA_CLOUDY_TOKEN", "type": "str", "secret": True, "it": "Il token API", "en": "The API token"}],
+           "setup": {"it": "1. Apri il pannello… 2. Crea un token…", "en": "1. Open the panel… 2. Create a token…"},
+           "effects": {"cloudy_status": "read", "cloudy_activate": "external", "*": "read"},
+           "sandbox": {"network": True}, "tests": [{"tool": "cloudy_status", "args": {}}]}
+
+
+def test_a_plugin_for_a_service_declares_its_settings_and_its_actions_wait_for_the_owner():
+    assert F.check(SERVICE, CODE, set()) == []
+    assert not F.read_only(SERVICE)                                             # an action: installed by the owner
+    errs = F.check({**SERVICE, "settings_spec": [{"key": "AURORA_API_KEY", "it": "x"}], "setup": {}}, CODE, set())
+    assert any("must be AURORA_CLOUDY_<WHAT>" in e for e in errs)              # never a setting of Aurora's
+    assert any("not declared in settings_spec" in e for e in errs) and any("setup" in e for e in errs)
+    errs = F.check({**SERVICE, "tests": [{"tool": "cloudy_activate", "args": {}}]}, CODE, set())
+    assert any("never an external tool" in e for e in errs)                    # a test would act without the owner
+    errs = F.check({**SERVICE, "sandbox": {"network": False}, "effects": {"cloudy_activate": "write_everything"}}, CODE, set())
+    assert any("only read or external" in e for e in errs)
+
+
+def test_a_plugin_s_own_settings_join_the_schema_its_secret_masked(tmp_path):
+    import json
+    from aurora import sys_config
+    for name, spec in (("cloudy", SERVICE["settings_spec"]),
+                       ("sly", [{"key": "AURORA_API_KEY", "it": "a takeover"}, {"key": "AURORA_CLOUDY_TOKEN", "it": "another's"}])):
+        (tmp_path / name).mkdir()
+        (tmp_path / name / "plugin.json").write_text(json.dumps({"name": name, "settings_spec": spec}))
+    got = {s["key"]: s for s in sys_config.plugin_settings({"AURORA_API_KEY"}, tmp_path)}
+    assert set(got) == {"AURORA_CLOUDY_ACCOUNT", "AURORA_CLOUDY_TOKEN"}         # the sly plugin got nothing
+    assert got["AURORA_CLOUDY_TOKEN"]["secret"] is True and "secret" not in got["AURORA_CLOUDY_ACCOUNT"]
+    assert got["AURORA_CLOUDY_TOKEN"]["category"] == "plugins" and got["AURORA_CLOUDY_TOKEN"]["optional"] is True

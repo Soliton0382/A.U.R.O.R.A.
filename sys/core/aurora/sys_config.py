@@ -42,7 +42,37 @@ def load_schema(path: Path = SCHEMA_FILE) -> dict:
     duplicates = sorted({k for k in keys if keys.count(k) > 1})
     if duplicates:
         raise ConfigError(f"settings schema {path}: duplicated keys {duplicates}")
+    if path == SCHEMA_FILE:                          # the plugins' own settings (a forged plugin's account, token…)
+        schema["settings"] += plugin_settings(set(keys))
     return schema
+
+
+PLUGIN_TYPES = {"str", "bool", "int", "float"}
+
+
+def plugin_settings(taken: set[str], plugins_dir: Path | None = None) -> list[dict]:
+    """The settings a plugin declares in its plugin.json («settings_spec»), as schema entries: each named
+    AURORA_<PLUGIN>_…, so a plugin can never redefine a setting of Aurora's or another plugin's; a secret is marked
+    and so masked in the pages and never passed to another plugin (owner, 2026-10-07: the forged cloudflare plugin's
+    token and account were not configurable)."""
+    out = []
+    for f in sorted((plugins_dir or CODE_ROOT / "sys" / "plugins").glob("*/plugin.json")):
+        try:
+            m = json.loads(f.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        prefix = f"AURORA_{str(m.get('name', f.parent.name)).upper()}_"
+        for s in m.get("settings_spec") or []:
+            key = str(s.get("key", ""))
+            if not key.startswith(prefix) or key in taken or not key.replace("_", "").isalnum() or not key.isupper():
+                continue
+            taken.add(key)
+            out.append({"key": key, "type": s.get("type") if s.get("type") in PLUGIN_TYPES else "str",
+                        "category": "plugins", "recommended": str(s.get("recommended", "")),
+                        "evidence": f"plugin {m.get('name', f.parent.name)}",
+                        "en": str(s.get("en") or s.get("it") or key), "it": str(s.get("it") or s.get("en") or key),
+                        "services": ["aurora-api"], "optional": True, **({"secret": True} if s.get("secret") else {})})
+    return out
 
 
 def parse_env(text: str, origin: str = ".env") -> dict[str, str]:

@@ -926,6 +926,18 @@ person) —, the shadow trained 20/20 in 22.3 min, reflections at 01:11, 02:55, 
 with 2 sources in 66.2 s, «cos'è l'entropia» with 2 in 56.5 s — both declined before the night (N77, the machine's
 part). Facebook: the owner's first video published (approval executed, 5.9 s). Security (C174/C175): see BUGS. The face beside the health dot (owner, same morning): /v1/aurora/mood 0.02 s from the REM's last measure (53 s old); headless at 1280×850 a mouse over it opens the card (7 rows, 124–544 px), away closes it; at 390×844 a tap opens it inside the screen (8–382 px, no sideways scroll), a tap elsewhere closes it.
 
+## M131 — The forge, for a plugin of a service (7 October 2026, C184)
+
+The Cloudflare need of the morning (request 328397d269) given again to the local forge (Qwen, offline, not installed).
+Before the fix (the morning): one attempt, a read-only plugin, CLOUDFLARE_* keys outside the schema, no action — it had
+to be completed by hand. First rerun with the new rules (settings_spec, external actions): attempt 2 wrote the right
+plugin but the judge failed its «Non configurato: manca AURORA_ZEROTRUST_TOKEN» (no account to judge), attempts 1 and 3
+reused the taken name «cloudflare»: failed, 207 s. With the names taken in the prompt and «not configured» not judged:
+**passed at the first attempt, about 1 minute** — plugin «zerotrust»: 4 settings (account, token secret, tunnel name,
+the /32 network), zerotrust_status (read) and zerotrust_activate (external: tunnel created if missing, the /32 route, the
+split tunnel; idempotent, each step said), a 5-step guide for a non-expert, the test on the read tool only, network on.
+Its weak point, for the owner's review: it removes the whole LAN exclusion from WARP instead of carving around the /32.
+
 ## M130 — The questions people really ask: search, read, answer (7 October 2026)
 
 script/bench_common.py: MKQA (Apple, CC BY-SA 3.0 — 10,000 real queries to Google from Natural Questions, translated
