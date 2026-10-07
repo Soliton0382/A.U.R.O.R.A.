@@ -56,6 +56,7 @@ TEXTS = {   # event -> (kind the owner chooses, view to open, {lang: title})
     "project.update": ("project", "projects", {"it": "📁 Lavoro su un progetto concluso", "en": "📁 Work on a project done"}),
     "dj.done": ("creation", "dj", {"it": "🎧 Il tuo mix è pronto", "en": "🎧 Your mix is ready"}),
     "dj.failed": ("creation", "dj", {"it": "🎧 Il mix non è riuscito", "en": "🎧 The mix failed"}),
+    "diet.meal": ("diet", "chat", {"it": "🍽️ È ora di mangiare", "en": "🍽️ Time to eat"}),
     "video.done": ("creation", "chat", {"it": "🎬 Il tuo video è pronto", "en": "🎬 Your video is ready"}),
     "video.failed": ("creation", "chat", {"it": "🎬 Il video non è riuscito", "en": "🎬 The video failed"}),
     "backup.failed": ("backup", "status", {"it": "💾 Il backup non è riuscito", "en": "💾 The backup failed"}),
@@ -95,11 +96,13 @@ KINDS = {   # what the owner chooses from, in the Notifications page
     "access": {"it": "Nuovi accessi e dispositivi sul tuo account", "en": "New sign-ins and devices on your account"},
     "social": {"it": "Post pubblicati da Aurora", "en": "Posts Aurora published"},
     "project": {"it": "Progetti (avanzamento e resoconti)", "en": "Projects (progress and reports)"},
+    "diet": {"it": "Pasti (il piatto consigliato dal piano alimentare, se i promemoria sono accesi)",
+             "en": "Meals (the dish the diet plan proposes, when the reminders are on)"},
 }
 # the machine's: only the admin chooses them (a user is not told of the backup or the firewall)
 MACHINE = {"incident", "update", "self_review", "harvest", "plugin", "backup", "backup_ok", "cloud", "health"}
 PRESETS = {"suggested": ["incident", "approval", "update", "dream", "review", "self_review", "routine", "weather", "plugin", "creation", "backup",
-                         "cloud", "health", "access", "social", "project"],
+                         "cloud", "health", "access", "social", "project", "diet"],
            "all": list(KINDS), "none": []}
 KNOWN_BEFORE = ["incident", "approval", "update", "dream", "self_review", "thought", "harvest"]   # prefs saved without "known"
 CHANNELS = ("push", "webui")

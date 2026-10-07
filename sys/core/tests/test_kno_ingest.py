@@ -44,7 +44,7 @@ def test_read_markdown_title_and_html_text(cfg):
 
 def test_unsupported_format(cfg):
     with pytest.raises(ValueError, match="unsupported"):
-        read_text("a.docx", b"x", cfg)
+        read_text("a.xlsx", b"x", cfg)                     # .docx is read since C178
 
 
 @pytest.mark.skipif(not shutil.which("pdftotext"), reason="pdftotext not installed")

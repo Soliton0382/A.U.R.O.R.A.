@@ -8,6 +8,7 @@ import { apply, t } from "../i18n.js";
 import { renderMarkdown } from "../md.js";
 import { renderValues } from "./care_values.js";
 import { renderDoctors } from "./care_doctor.js";
+import { renderDiet } from "./care_diet.js";
 
 const AREAS = ["diet", "training", "exams"];
 
@@ -22,7 +23,7 @@ export default {
     root.innerHTML = `<h2 data-i18n="care.title"></h2><p class="muted" data-i18n="care.hint"></p>
       <div class="prj-tabs">${AREAS.map((a, i) => `<button type="button" class="cat-chip${i ? "" : " on"}" data-tab="${a}" data-i18n="care.${a}"></button>`).join("")}<button type="button" class="cat-chip" data-tab="doctor" data-i18n="care.doc.tab"></button></div>
       ${AREAS.map((a, i) => `<div class="care-tab" data-tab="${a}"${i ? " hidden" : ""}>
-        <p class="muted" data-i18n="care.${a}_hint"></p>
+        <p class="muted" data-i18n="care.${a}_hint"></p>${a === "diet" ? '<div class="care-diet"></div>' : ""}
         <label class="dj-upload"><span data-i18n="care.upload"></span><input type="file" accept=".pdf,.txt,.md,.docx,image/*" multiple hidden></label>
         <span class="muted care-out"></span>
         <form class="import care-note"><input name="title" data-i18n-placeholder="care.note_title"><input name="text" required data-i18n-placeholder="care.note_text">
@@ -37,6 +38,7 @@ export default {
     this.tabs = {};
     this.values = root.querySelector(".care-values");
     this.doctors = root.querySelector(".care-doctors");
+    this.diet = root.querySelector(".care-diet");
     root.querySelectorAll(".care-tab:not([data-tab=doctor])").forEach((tab) => {
       const area = tab.dataset.tab, out = tab.querySelector(".care-out");
       this.tabs[area] = tab.querySelector(".care-items");
@@ -104,5 +106,6 @@ export default {
     }
     renderValues(this.values);
     renderDoctors(this.doctors);
+    renderDiet(this.diet);
   },
 };

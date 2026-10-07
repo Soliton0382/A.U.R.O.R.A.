@@ -1,0 +1,26 @@
+/* 🍽️ the diet plan followed day by day (diet.js, care_diet.js) */
+.diet-head { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; margin: .4rem 0; }
+.diet-nav { display: flex; gap: .5rem; align-items: center; margin: .6rem 0; flex-wrap: wrap; }
+.diet-nav strong { text-transform: capitalize; }
+.diet-meals { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: .7rem; }
+.diet-meal { border: 1px solid var(--line); border-radius: var(--radius); padding: .6rem .7rem; display: flex; flex-direction: column; gap: .4rem; min-width: 0; }
+.diet-meal h4 { margin: 0; }
+.diet-label { font-size: .78rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.diet-opt { border-left: 3px solid var(--line); padding: .2rem 0 .3rem .55rem; display: flex; flex-direction: column; gap: .3rem; align-items: flex-start; }
+.diet-opt.top { border-left-color: var(--accent); }
+.diet-items { margin: 0; padding-left: 1.1rem; }
+.diet-why { font-size: .8rem; }
+.diet-hint { font-size: .85rem; }
+.diet-more summary { cursor: pointer; font-size: .88rem; }
+.diet-more .diet-opt { margin-top: .5rem; }
+.diet-other { display: flex; gap: .4rem; }
+.diet-other input { flex: 1; min-width: 0; }
+.diet-chosen { font-weight: 600; }
+.diet-week { margin: .9rem 0 .4rem; display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
+.diet-week h4 { width: 100%; margin: 0 0 .2rem; }
+.diet-chip { border: 1px solid var(--line); border-radius: 999px; padding: .15rem .55rem; font-size: .85rem; white-space: nowrap; }
+.diet-chip.ok { border-color: var(--ok); }
+.diet-chip.over { border-color: var(--warn); }
+.diet-rem label { display: flex; gap: .5rem; align-items: center; margin: .3rem 0; }
+.diet-time span { min-width: 8rem; }
+.diet-bubble .diet-meal { border: 0; padding: 0; }

@@ -169,4 +169,7 @@ if __name__ == "__main__":
     from aurora.api.activity import watch_health      # a service down or the disk full becomes an alert
     app.router.add_event_handler("startup", lambda: threading.Thread(target=watch_health, name="watch-health",
                                                                       daemon=True).start())
+    from aurora.api.diet import watch_diet           # the meal of this minute, for each user with reminders on
+    app.router.add_event_handler("startup", lambda: threading.Thread(target=watch_diet, name="watch-diet",
+                                                                      daemon=True).start())
     uvicorn.run(app, host=cfg["AURORA_API_HOST"], port=cfg["AURORA_API_PORT"], log_level="warning", timeout_graceful_shutdown=5)

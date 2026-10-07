@@ -9,6 +9,7 @@ import { auroraBubble, follow, renderPast } from "./trace.js";
 import { shareButton } from "../share.js";
 import { view, viewLink } from "../viewer.js";
 import * as voice from "../voice.js";
+import { dietBubbles } from "../diet.js";
 
 const HISTORY_TURNS = 8;          // 4 exchanges: the same memory Aurora keeps in context
 
@@ -420,6 +421,7 @@ export default {
       const fresh = turns.filter((x) => !shown.has(x.sid) && !(x.run_id && mine.has(x.run_id) && x.role !== "user"));
       const live = new Set(turns.filter((x) => x.run_id && mine.has(x.run_id)).map((x) => x.run_id));
       const add = fresh.filter((x) => !(x.role === "user" && live.has(x.run_id)));     // a question followed live: shown
+      dietBubbles(messages);
       if (!add.length) return;
       const stick = messages.scrollHeight - messages.scrollTop - messages.clientHeight < 80;
       add.forEach(renderTurn);
@@ -442,6 +444,7 @@ export default {
       }
       const n = turns.filter((x) => !["dream", "morning", "review"].includes(x.role)).length;
       if (n) messages.append(el("div", "divider", t("chat.history", { n })));
+      await dietBubbles(messages);                    // a meal reminded and not answered yet
       scrollEnd(messages);
     };
     this.replay = async (run) => {
@@ -454,6 +457,7 @@ export default {
     // Repairs, Diary and Activity, and the bell in the top bar says when something waits for the owner.
     const onActivity = async (a) => {
       if (["rem.review", "rem.morning", "rem.dream"].includes(a.event)) { this.catchUp(); return; }   // written while the page is open
+      if (a.event === "diet.meal") { await dietBubbles(messages); scrollEnd(messages); return; }       // 🍽️ the meal of now
       if (a.event !== "run.begin" || !["webui", "openai", "acquire"].includes(a.payload.origin)) return;
       const id = a.payload.run_id;
       if (asking) await new Promise((ok) => setTimeout(ok, 800));      // maybe it is ours: its id is on the way

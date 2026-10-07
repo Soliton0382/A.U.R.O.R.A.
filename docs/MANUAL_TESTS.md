@@ -7,7 +7,7 @@ end, duplicates and tests of pages that no longer exist removed (each with its r
 | session | tests |
 |---|---|
 | 🌙 they come by themselves (look in the morning) | N19, N63, N77, N78 |
-| 🔁 again after a change | I5, N25, N93–N100, N102–N105 |
+| 🔁 again after a change | I5, N25, N93–N100, N102–N106 |
 | 📱 phone, ~10 min | N31 |
 | 🖥️ chat on the PC, ~15 min | I4 |
 | 🧭 pages, ~25 min | K1, N32, N35, N37, N40, N43, N46, N53, N62, N64, N66, N68, N73, N74, R1, R10 |
@@ -52,6 +52,7 @@ end, duplicates and tests of pages that no longer exist removed (each with its r
 | N95 | «anima questa foto» with the video given to Google (Models → 🎨) | the video from Veo; while it is made, the bar «🎬 … in corso · circa N%» over the chat |
 | N97 | The chat on the phone: a question, then the network cut for a few seconds (airplane mode) while she answers | «🔌 connessione persa: riprendo…», then the whole answer — no «network error» (C170) |
 | N98 | Tomorrow between 9 and 22, silent for a while: the chat | at most 2 bubbles «🔁 Aurora ci ha ripensato» on an old answer, with its sources; tell whether they were worth it (M120) |
+| N106 | 🍽️ As the user with the diet: Health → Diet → «Elabora documenti»; then «Scelgo questo» on a meal; turn the reminders on | the plan from the dietitian's document (28 meals, the frequencies' chips); a meal chosen shows ✅ and the week's chips move; at the next meal time a notification «🍽️ È ora di mangiare» and a bubble in the chat, answered there |
 | N105 | 👤 Open the menu ☰ (PC and phone), then log in as another user | above the language and «Esci»: 🛡️ your name, «il tuo login · amministratore»; as the other user: 👤 their name and «utente» |
 | N104 | 🛡️ Security: on an incident from outside, ⛔ Blocca | the card says it is blocked and closed; reload: it is among the closed ones, no new alert for that address; 🤝 Autonomy → statistics: security counts it as approved |
 | N103 | Beside the green/yellow/red dot: the face (🥺 longing, 🧐 curiosity, 😣 stress…); mouse over it on the PC, tap it on the phone; then 📊 Health, in the morning and while she answers | «💗 Come si sente: prevale …» with seven rows, each with its causes; ask «come ti senti?» in the chat: she says it with the causes; the good morning ends with «💗 Stamattina prevale …» |

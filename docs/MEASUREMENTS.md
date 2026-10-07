@@ -926,6 +926,19 @@ person) —, the shadow trained 20/20 in 22.3 min, reflections at 01:11, 02:55, 
 with 2 sources in 66.2 s, «cos'è l'entropia» with 2 in 56.5 s — both declined before the night (N77, the machine's
 part). Facebook: the owner's first video published (approval executed, 5.9 s). Security (C174/C175): see BUGS. The face beside the health dot (owner, same morning): /v1/aurora/mood 0.02 s from the REM's last measure (53 s old); headless at 1280×850 a mouse over it opens the card (7 rows, 124–544 px), away closes it; at 390×844 a tap opens it inside the screen (8–382 px, no sideways scroll), a tap elsewhere closes it.
 
+## M126 — The diet plan, processed (7 October 2026, roadmap 55, C178)
+
+A user's real plan (a dietitian's .docx, 15 316 characters once C178 let it be read): «Elabora documenti» found 28
+meals (7 days × breakfast, lunch, snack, dinner), the 7 frequencies of its «FREQUENZE» (fish 3–4, white meat 3, red 1,
+eggs 4–5, cheese 1–2, cold cuts 1, legumes 2–3) and 1 free meal a week, all from the text; the local model's summary
+gave 8 rules and 2 limits (a drink, Coca Zero) — 5.4 s in all on the idle GPU. The plan's own week, counted by the
+food groups: fish 4, white meat 3, red 1, eggs 5 — inside its frequencies; cheese 3 (one of them at a dinner the plan
+marks «oppure pasto libero»), legumes 0 (said as a hint). One misread to keep in mind: the model gave Coca Zero «at
+most 1 a week», the plan says to get there gradually from 7 through 3–4 — the page says the summary is the model's
+and the document rules. Reminder dry run, nothing saved: at 19:32 dinner (the day's option, its reason, an
+alternative, the legume hint), at 13:00 nothing. Headless with synthetic data (the tests' plan): 3 meals, 7 chips, no
+sideways scroll at 390 px, «scelgo questo» posts the option, the chat bubble answered in place; 0 JavaScript errors.
+
 ## M125 — The good morning aloud (7 October 2026, C177)
 
 Today's good morning, 521 characters, 34.2 s of speech: Piper 1.36 s on the CPU (cached: 0.003 s), WAV 1.5 MB; as a

@@ -25,7 +25,8 @@ from .sol_index import Indexer
 from .sol_schema import Soliton
 from .sol_writer import VaultWriter
 
-FORMATS = {".txt": "text", ".md": "text", ".markdown": "text", ".html": "html", ".htm": "html", ".pdf": "pdf"}
+FORMATS = {".txt": "text", ".md": "text", ".markdown": "text", ".html": "html", ".htm": "html", ".pdf": "pdf",
+           ".docx": "docx", ".odt": "odt"}
 SENTENCE_END = re.compile(r"(?<=[.!?;:])\s+")
 
 
@@ -92,6 +93,8 @@ def read_text(name: str, data: bytes, cfg: sys_config.Config) -> tuple[str, str]
         if found and not re.match(r"(?i)(untitled|microsoft word|document\d*$)", found):
             title = found
         return text, title
+    if kind in ("docx", "odt"):
+        return _office_text(name, data, kind), title
     text = data.decode("utf-8", errors="replace")
     if kind == "html":
         p = _TextOfHtml()
@@ -101,6 +104,60 @@ def read_text(name: str, data: bytes, cfg: sys_config.Config) -> tuple[str, str]
     if first.startswith("# "):
         title = first[2:].strip()
     return text, title
+
+
+_W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+_ODT_TEXT = "{urn:oasis:names:tc:opendocument:xmlns:text:1.0}"
+_ODT_TABLE = "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}"
+
+
+def _office_text(name: str, data: bytes, kind: str) -> str:
+    """The text of a Word (.docx) or OpenDocument (.odt) file, read with the standard library: paragraphs in order, a
+    table row as its cells joined by " | " (a dietitian's plan is often a table — C178: .docx accepted, never read)."""
+    import io
+    import zipfile
+    from xml.etree import ElementTree as ET
+    try:
+        with zipfile.ZipFile(io.BytesIO(data)) as z:
+            root = ET.fromstring(z.read("word/document.xml" if kind == "docx" else "content.xml"))
+    except (zipfile.BadZipFile, KeyError, ET.ParseError) as e:
+        raise ValueError(f"{name}: not a readable {kind} file ({type(e).__name__})") from None
+    if kind == "docx":
+        par, tbl, row, cell = f"{_W}p", f"{_W}tbl", f"{_W}tr", f"{_W}tc"
+
+        def runs(p) -> str:
+            out = []
+            for e in p.iter():
+                if e.tag == f"{_W}t":
+                    out.append(e.text or "")
+                elif e.tag in (f"{_W}tab",):
+                    out.append("\t")
+                elif e.tag in (f"{_W}br", f"{_W}cr"):
+                    out.append("\n")
+            return "".join(out)
+    else:
+        par, tbl, row, cell = f"{_ODT_TEXT}p", f"{_ODT_TABLE}table", f"{_ODT_TABLE}table-row", f"{_ODT_TABLE}table-cell"
+
+        def runs(p) -> str:
+            return "".join(p.itertext())
+    heading = f"{_ODT_TEXT}h"
+    lines: list[str] = []
+
+    def walk(node) -> None:
+        for e in node:
+            if e.tag == tbl:
+                for r in e.iter(row):
+                    cells = [" / ".join(t for t in (" ".join(runs(p).split()) for p in c.iter(par)) if t)
+                             for c in r if c.tag == cell]
+                    if any(cells):
+                        lines.append(" | ".join(cells))
+                lines.append("")
+            elif e.tag in (par, heading):
+                lines.append(runs(e).strip())
+            else:
+                walk(e)
+    walk(root)
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip()
 
 
 SYS_TITLE = ("Return the title of this document exactly as it is written at its beginning (the paper or "

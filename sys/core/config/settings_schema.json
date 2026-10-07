@@ -4266,6 +4266,28 @@
    "services": [
     "aurora-api"
    ]
+  },
+  {
+   "key": "AURORA_DIET_REMINDERS",
+   "type": "bool",
+   "category": "plugins",
+   "recommended": "false",
+   "evidence": "owner, 2026-10-07: «messaggi automatici in chat e alert (attivabili)» (roadmap 55)",
+   "en": "Meal reminders from the diet plan (Health → Diet, after «Process documents»): at each meal's time a notification and a chat message with the dish proposed and an alternative. Off by default.",
+   "it": "Promemoria dei pasti dal piano alimentare (Salute → Dieta, dopo «Elabora documenti»): all'ora di ogni pasto una notifica e un messaggio in chat con il piatto proposto e un'alternativa. Spento finché non lo accendi.",
+   "services": [],
+   "scope": "user"
+  },
+  {
+   "key": "AURORA_DIET_TIMES",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "colazione=07:30,pranzo=12:30,merenda=16:30,cena=19:30",
+   "evidence": "owner, 2026-10-07 (roadmap 55): usual Italian meal times, each user changes theirs",
+   "en": "The meals' times for the reminders: meal=HH:MM separated by commas (colazione, spuntino, pranzo, merenda, cena). A meal left out has no reminder.",
+   "it": "Gli orari dei pasti per i promemoria: pasto=HH:MM separati da virgole (colazione, spuntino, pranzo, merenda, cena). Un pasto non elencato non ha promemoria.",
+   "services": [],
+   "scope": "user"
   }
  ]
 }
