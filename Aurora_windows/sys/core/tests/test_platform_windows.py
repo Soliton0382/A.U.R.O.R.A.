@@ -240,3 +240,17 @@ def test_a_private_file_is_read_by_its_owner_and_the_administrators_only(tmp_pat
         assert w.is_private(tmp_path) is private, extra
     monkeypatch.setattr(w, "_acl", lambda p: None)
     assert w.is_private(tmp_path) is False                                                  # not readable: not trusted
+
+
+def test_make_private_removes_every_other_entry_not_only_the_inherited(tmp_path, monkeypatch):
+    """A real Windows (8 Oct): icacls left an explicit «Everyone may read» in place. The script now drops every rule."""
+    seen = []
+    w = win([])
+    monkeypatch.setattr(w, "_me", lambda: "S-1-5-21-1-2-3-1001")
+    monkeypatch.setattr(w, "_ps", lambda script, timeout=60: seen.append(script) or Result(0, ""))
+    w.make_private(tmp_path)
+    s = seen[0]
+    assert "SetAccessRuleProtection($true, $false)" in s and "RemoveAccessRuleAll" in s
+    assert s.index("RemoveAccessRuleAll") < s.index("AddAccessRule(")
+    assert [x in s for x in ("S-1-5-21-1-2-3-1001", "S-1-5-18", "S-1-5-32-544")] == [True] * 3
+    assert "ContainerInherit,ObjectInherit" in s and "S-1-1-0" not in s

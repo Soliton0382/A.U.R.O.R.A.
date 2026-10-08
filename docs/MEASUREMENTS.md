@@ -926,6 +926,17 @@ person) —, the shadow trained 20/20 in 22.3 min, reflections at 01:11, 02:55, 
 with 2 sources in 66.2 s, «cos'è l'entropia» with 2 in 56.5 s — both declined before the night (N77, the machine's
 part). Facebook: the owner's first video published (approval executed, 5.9 s). Security (C174/C175): see BUGS. The face beside the health dot (owner, same morning): /v1/aurora/mood 0.02 s from the REM's last measure (53 s old); headless at 1280×850 a mouse over it opens the card (7 rows, 124–544 px), away closes it; at 390×844 a tap opens it inside the screen (8–382 px, no sideways scroll), a tap elsewhere closes it.
 
+## M150 — Phase 3's first fixes on real machines: two of the probe's own checks were wrong (8 October 2026)
+
+Ports on 17cd87e. Both stopped at the probe, so neither suite ran. Windows: «privacy: open file seen, then made
+private» — after make_private the file was still readable by Everyone: icacls /inheritance:r drops only inherited
+entries and /grant:r replaces only the named ones, the explicit «Everyone may read» the probe had added stayed. A real
+fault of make_private (a file someone had shared would have stayed shared): now Get-Acl, protection on, every rule
+removed, exactly this user, SYSTEM and the Administrators added (Set-Acl); a test checks the script's order. The Mac:
+«cpu_times grow» — the two reads 0.1 s apart did not differ on the VM (it had passed four times): the probe now works
+until the counters move, up to 3 s, and says after how long (here 0.005 s). Also: test_backup's systemd-text test said
+skipped elsewhere (it fed systemctl's own text; launchd's and the tasks' have their test_platform_*).
+
 ## M149 — The whole Linux suite on a real Mac and a real Windows: phase 3's list (8 October 2026)
 
 Ports on 8140f96, both jobs green (probe 0 failed on both). The Linux suite on the built trees, to the end on both for

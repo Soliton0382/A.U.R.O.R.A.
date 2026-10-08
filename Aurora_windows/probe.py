@@ -165,10 +165,15 @@ def main() -> int:
     check("memory", p.memory, lambda v: 0 < v.get("used_mib", -1) <= v.get("total_mib", 0) or str(v))
 
     def cpu_twice():
-        a = p.cpu_times()
-        sum(i * i for i in range(2_000_000))
-        return a, p.cpu_times()
-    check("cpu_times grow", cpu_twice, lambda v: v[1][1] > v[0][1] or "total did not grow")
+        """Busy until the counters move (a Mac VM's host_statistics moved later than 0.1 s once): how long it took."""
+        a, t0 = p.cpu_times(), time.time()
+        while time.time() - t0 < 3:
+            sum(i * i for i in range(200_000))
+            b = p.cpu_times()
+            if b[1] > a[1]:
+                return {"grew_after_s": round(time.time() - t0, 3), "first": a, "then": b}
+        return {"grew_after_s": None}
+    check("cpu_times grow", cpu_twice, lambda v: v["grew_after_s"] is not None or "total did not grow in 3 s")
     check("gpus", p.gpus, lambda v: isinstance(v, list) or "not a list")
     check("accelerator", p.accelerator, lambda v: v in ("cuda", "metal", "cpu") or f"unknown {v}")
     check("gpu_free_mib(0)", lambda: p.gpu_free_mib(0), lambda v: v is None or v >= 0 or "negative")

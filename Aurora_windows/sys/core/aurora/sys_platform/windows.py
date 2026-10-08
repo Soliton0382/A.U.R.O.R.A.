@@ -240,16 +240,26 @@ class Windows(Platform):
                        for sid, mask, kind, propagation in rules)
 
     def make_private(self, path: Path) -> None:
-        """No inherited entry, full control to this user, SYSTEM and the Administrators only (inherited by what a
-        folder holds): Aurora's folder made so by the installer — C:\\ grants Users read by default."""
+        """Exactly three entries — this user, SYSTEM, the Administrators, full control (inherited by what a folder
+        holds) — and nothing else: no inherited entry, and every explicit one removed (a real Windows, 8 Oct: icacls's
+        /inheritance:r and /grant:r left an explicit «Everyone may read» in place). Aurora's folder is made so by the
+        installer: C:\\ lets Users read by default."""
         me = self._me()
         if not me:
             raise RuntimeError("the current user's SID is not readable")
-        inherit = "(OI)(CI)" if Path(path).is_dir() else ""
-        r = self.run(["icacls", str(path), "/inheritance:r", "/grant:r", f"*{me}:{inherit}(F)", f"*S-1-5-18:{inherit}(F)",
-                      f"*S-1-5-32-544:{inherit}(F)", "/C", "/Q"], 600)
+        folder = Path(path).is_dir()
+        flags = ("'ContainerInherit,ObjectInherit'", "'None'") if folder else ("'None'", "'None'")
+        rule = ("New-Object System.Security.AccessControl.FileSystemAccessRule("
+                "(New-Object System.Security.Principal.SecurityIdentifier('{sid}')), 'FullControl', "
+                f"{flags[0]}, {flags[1]}, 'Allow')")
+        script = (f"$p = {_ps_quote(str(path))}; $a = Get-Acl -LiteralPath $p; "
+                  "$a.SetAccessRuleProtection($true, $false); "
+                  "foreach ($r in @($a.Access)) { [void]$a.RemoveAccessRuleAll($r) }; "
+                  + "".join(f"$a.AddAccessRule({rule.format(sid=sid)}); " for sid in (me, "S-1-5-18", "S-1-5-32-544"))
+                  + "Set-Acl -LiteralPath $p -AclObject $a")
+        r = self._ps(script, 600)
         if r.code != 0:
-            raise RuntimeError(f"icacls {path}: {(r.out + r.err).strip()[-300:]}")
+            raise RuntimeError(f"Set-Acl {path}: {(r.out + r.err).strip()[-300:]}")
 
     def lock(self, fh, exclusive: bool = True, wait: bool = True) -> bool:
         """msvcrt locks one byte, far past the content (LOCK_AT): Windows's locks are mandatory, a locked byte

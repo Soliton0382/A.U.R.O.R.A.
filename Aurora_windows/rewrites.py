@@ -529,6 +529,15 @@ pytest.importorskip("pwd", reason="sys_nas_mount is Linux's /etc/fstab; Windows 
     return sys_platform.current().is_private(Path(path))
 """,
      "conftest.private: who may read a file, asked of this system (its ACL on Windows)"),
+    ("sys/core/tests/test_backup.py",
+     """    \"\"\"A18: the NAS asleep at 03:30 → the unit failed before Aurora's code ran (226/NAMESPACE): no log, no push.\"\"\"
+""",
+     """    \"\"\"A18: the NAS asleep at 03:30 → the unit failed before Aurora's code ran (226/NAMESPACE): no log, no push.\"\"\"
+    import sys
+    if sys.platform != "linux":   # it feeds systemctl's own text; launchd's and the tasks' have their test_platform_*
+        pytest.skip("systemctl show's text: this system's service_info is checked in test_platform_*")
+""",
+     "test_backup: systemd's text said skipped elsewhere (each system's service_info has its own test)"),
 ]
 
 # the protected files (sys_ethics.PROTECTED): changed in the port's code, signed by each installation at its setup
