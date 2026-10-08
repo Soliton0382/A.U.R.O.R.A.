@@ -6,9 +6,9 @@ devices()   what is connected, for the owner to choose (AURORA_SENSES_CAMERA / A
 photo()     one JPEG from the chosen camera (ffmpeg)
 record()    N seconds of 16 kHz mono audio from the chosen microphone (ffmpeg)
 decode()    audio recorded by the owner's browser (phone or PC) to 16 kHz mono (ffmpeg)
-transcribe() speech to text with the local Whisper model (AURORA_STT_MODEL_DIR), on the CPU: the GPUs belong
-            to the reasoner and the encoder. Whisper invents text on silence ("Grazie.", repetitions): those
-            outputs are reported as no clear speech.
+transcribe() speech to text with the local Whisper model (AURORA_STT_MODEL_DIR), on the CPU, asked of aurora-models
+            (mdl_stt: torch never in this process, M145). Whisper invents text on silence ("Grazie.",
+            repetitions): those outputs are reported as no clear speech.
 
 Services run without the desktop session, so PipeWire is reached through XDG_RUNTIME_DIR of the same user.
 Nothing leaves the machine.
@@ -28,7 +28,6 @@ from . import sys_config, sys_log
 HALLUCINATIONS = {"grazie", "grazie a tutti", "grazie per la visione", "grazie per l'attenzione",
                   "sottotitoli creati dalla comunità amara.org", "sottotitoli a cura di qtss",
                   "thank you", "thanks for watching", "thank you for watching", "you"}
-_asr = None
 
 
 def _env() -> dict:
@@ -134,42 +133,26 @@ def clear_speech(text: str) -> bool:
     return not (len(t) > 20 and len(set(t.replace(" ", ""))) < 4)
 
 
+def _models(path: str, audio: np.ndarray, lang: str, timeout: float, cfg: sys_config.Config | None) -> dict | list:
+    """Whisper runs in aurora-models (mdl_stt), never in this process: the API holds faiss, and torch beside it put
+    two OpenMP runtimes in one process — fatal on a Mac (M145). The audio goes as raw 16 kHz float32."""
+    import httpx
+    cfg = cfg or sys_config.get()
+    url = f"http://{cfg['AURORA_MODELS_HOST']}:{cfg['AURORA_MODELS_PORT']}{path}"
+    try:
+        r = httpx.post(url, params={"lang": lang}, content=np.ascontiguousarray(audio, dtype="<f4").tobytes(),
+                       headers={"Content-Type": "application/octet-stream"}, timeout=timeout)
+        r.raise_for_status()
+    except httpx.HTTPError as e:                     # said as the service not ready (503), not as Aurora's own error
+        raise RuntimeError(f"aurora-models could not transcribe: {type(e).__name__}") from None
+    return r.json()
+
+
 def transcribe_segments(audio: np.ndarray, lang: str, cfg: sys_config.Config | None = None) -> list[tuple[float, float, str]]:
     """Long audio (a video's track) in 30 s windows, with timestamps; segments Whisper invents on silence are dropped."""
-    _load(cfg or sys_config.get())
-    sec = len(audio) / 16000
-    t0 = time.time()
-    out = _asr({"raw": audio, "sampling_rate": 16000}, chunk_length_s=30, return_timestamps=True,
-               generate_kwargs={"task": "transcribe", "language": lang})
-    segs = []
-    for c in out.get("chunks", []):
-        start, end = c.get("timestamp") or (0.0, None)
-        text = (c.get("text") or "").strip()
-        if text and clear_speech(text):
-            segs.append((float(start or 0.0), float(end if end is not None else sec), text))
-    sys_log.get_logger("senses").info("transcribed %.1f s of audio in %d segments in %.1f s", sec, len(segs), time.time() - t0)
-    return segs
-
-
-def _load(cfg: sys_config.Config) -> None:
-    global _asr
-    if _asr is None:
-        import torch
-        from transformers import pipeline
-        torch.set_num_threads(min(8, os.cpu_count() or 4))
-        _asr = pipeline("automatic-speech-recognition", model=str(cfg.path("AURORA_STT_MODEL_DIR")), device="cpu",
-                        dtype=torch.float32)
+    return [tuple(x) for x in _models("/transcribe/segments", audio, lang, 3600, cfg)]
 
 
 def transcribe(audio: np.ndarray, lang: str, cfg: sys_config.Config | None = None) -> dict:
-    """{"text", "clear", "seconds", "audio_s"} — the model is loaded once per process, on the CPU."""
-    cfg = cfg or sys_config.get()
-    _load(cfg)
-    sec = len(audio) / 16000
-    t0 = time.time()
-    out = _asr({"raw": audio, "sampling_rate": 16000},
-               generate_kwargs={"task": "transcribe", "language": lang, "max_new_tokens": int(8 + sec * 6)})
-    text = out["text"].strip()
-    res = {"text": text, "clear": clear_speech(text), "seconds": round(time.time() - t0, 1), "audio_s": round(sec, 1)}
-    sys_log.get_logger("senses").info("transcribed %.1f s of audio in %.1f s (clear: %s)", sec, res["seconds"], res["clear"])
-    return res
+    """{"text", "clear", "seconds", "audio_s"} — by aurora-models, where the model is loaded once."""
+    return _models("/transcribe", audio, lang, 600, cfg)

@@ -926,6 +926,21 @@ person) —, the shadow trained 20/20 in 22.3 min, reflections at 01:11, 02:55, 
 with 2 sources in 66.2 s, «cos'è l'entropia» with 2 in 56.5 s — both declined before the night (N77, the machine's
 part). Facebook: the owner's first video published (approval executed, 5.9 s). Security (C174/C175): see BUGS. The face beside the health dot (owner, same morning): /v1/aurora/mood 0.02 s from the REM's last measure (53 s old); headless at 1280×850 a mouse over it opens the card (7 rows, 124–544 px), away closes it; at 390×844 a tap opens it inside the screen (8–382 px, no sideways scroll), a tap elsewhere closes it.
 
+## M146 — Speech to text out of the API's process; Windows's factory paths (8 October 2026)
+
+The Mac's crash (M145) confirmed by the next run: SIGABRT at torch's import, in libomp's omp_set_num_threads; 6 tests
+failed before it (their names on the next run: -vv, build.py's -q had cancelled -v). The fix, no workaround (the owner:
+«non facciamo accrocchi»): Whisper moved into aurora-models (mdl_stt, loaded at the first request, on the CPU as
+before), the API asks it over HTTP as it asks for embeddings (sns_av.transcribe keeps its signature; an unreachable
+service is a 503 as before). Live: a sentence in Aurora's Piper voice sent as the phone sends a dictation → «Aurora,
+ricordami domani alle 9 di chiamare il dentista.», clear, 5.0 s and 5.5 s for 3.3 s of audio; the processes' maps:
+svc_api libtorch 0, svc_models libtorch 35 and faiss 0 — no process holds both. A test keeps torch out of sns_av.
+Windows's platform tests on the real machine (first time they ran there): the configuration refused to load with the
+factory settings — «/usr/bin/caddy», «/usr/bin/pdftotext», «/usr/bin/google-chrome» are not absolute on Windows. Each
+port now has its own defaults.json (applied by build.py like an anchor: the Linux value must be the expected one):
+the Mac's Homebrew and Chrome places, Windows's C:/ProgramData/Aurora/bin and Chrome's; a test asks every factory
+path to be absolute on the port's system; the tests' installation gets paths of the machine running them.
+
 ## M145 — Both cages hold on real machines; the Mac's OpenMP clash (8 October 2026)
 
 Ports on 98410cd. Windows (x64): probe 39 checks, 30 ok, 0 failed — the AppContainer with grants only: .env and the

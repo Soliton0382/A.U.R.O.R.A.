@@ -1,0 +1,22 @@
+{
+ "AURORA_ROOT": {
+  "linux": "/opt/aurora",
+  "value": "C:/Aurora",
+  "why": "found on a real Windows (8 Oct): the Linux defaults are not absolute there, the configuration refused to load"
+ },
+ "AURORA_PDFTOTEXT_BIN": {
+  "linux": "/usr/bin/pdftotext",
+  "value": "C:/ProgramData/Aurora/bin/pdftotext.exe",
+  "why": "Aurora's tools in %ProgramData%\\Aurora\\bin, where the installer puts them (phase 3)"
+ },
+ "AURORA_CADDY_BIN": {
+  "linux": "/usr/bin/caddy",
+  "value": "C:/ProgramData/Aurora/bin/caddy.exe",
+  "why": "the same folder as the host firewall's helper"
+ },
+ "AURORA_CHROME_BIN": {
+  "linux": "/usr/bin/google-chrome",
+  "value": "C:/Program Files/Google/Chrome/Application/chrome.exe",
+  "why": "Chrome's own place on Windows"
+ }
+}

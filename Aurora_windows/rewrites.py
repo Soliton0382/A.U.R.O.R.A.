@@ -502,6 +502,19 @@ DICTS = tuple(str(p) for p in sys_platform.current().dictionaries())      # none
      "svc_llm: the reasoner's program"),
 ]
 
+TESTS = [
+    ("sys/core/tests/conftest.py",
+     """    values["AURORA_ROOT"] = str(root)
+""",
+     """    values["AURORA_ROOT"] = str(root)
+    import os
+    for s in schema["settings"]:   # a port tested on another system (Windows's tree on Linux): its factory paths are
+        if s["type"] == "path_abs" and s["key"] != "AURORA_ROOT" and not os.path.isabs(values[s["key"]]):
+            values[s["key"]] = str(root / "bin" / values[s["key"]].replace("\\\\", "/").rsplit("/", 1)[-1])   # tests only
+""",
+     "conftest: the test installation's program paths valid on the machine that runs the tests"),
+]
+
 # the protected files (sys_ethics.PROTECTED): changed in the port's code, signed by each installation at its setup
 GUARDS = [
     ("sys/core/aurora/plg_host.py",
@@ -713,4 +726,4 @@ REQUIREMENTS = [
      "requirements: psutil named, not only pulled in by accelerate"),
 ]
 
-REWRITES = SERVICES + LOCKS + METRICS + DEVICES + FILES + GUARDS + HINTS + MORE + NETWORK + WORDS + PATHS + REQUIREMENTS
+REWRITES = SERVICES + LOCKS + METRICS + DEVICES + FILES + GUARDS + HINTS + MORE + NETWORK + WORDS + PATHS + REQUIREMENTS + TESTS

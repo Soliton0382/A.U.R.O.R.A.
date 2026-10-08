@@ -72,7 +72,7 @@ jobs:
         env:
           PYTHONUNBUFFERED: "1"       # a crash must not take the lines before it (v0.2.0's Mac: SIGABRT, nothing printed)
           PYTHONFAULTHANDLER: "1"     # the Python stack of a native crash
-          PYTEST_ADDOPTS: "-v"        # one line per test: the last one is where it stopped
+          PYTEST_ADDOPTS: "-vv"       # one line per test (build.py passes -q: -vv nets -v): the last one is where it stopped
         run: |
           set +e +o pipefail          # the exit code is kept for the notice, not lost to the shell's -e
           python ${{ matrix.port }}/build.py --suite 2>&1 | tee suite-${{ matrix.port }}.txt

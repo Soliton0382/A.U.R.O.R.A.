@@ -4,6 +4,7 @@
 
     POST /embed   {"texts": [...], "kind": "documents" | "queries"}  -> {"vectors": [[...]], "dim", "encoder"}
     POST /rerank  {"pairs": [[question, passage], ...]}              -> {"scores": [...]}
+    POST /transcribe[/segments]?lang=it   raw 16 kHz float32 audio   -> mdl_stt's answer (Whisper on the CPU, M145)
     GET  /health                                                       -> {"status": "ok", "encoder", "reranker"}
 
 Listens on AURORA_MODELS_HOST:AURORA_MODELS_PORT (local only). Separate from the
@@ -20,7 +21,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import uvicorn  # noqa: E402
-from fastapi import FastAPI  # noqa: E402
+from fastapi import FastAPI, Request  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 
 from aurora import sys_config, sys_log  # noqa: E402
@@ -120,6 +121,27 @@ def rerank(body: RerankIn) -> dict:
     give_back()
     log.debug("rerank: %d pairs in %.2f s", len(body.pairs), time.time() - t0)
     return {"scores": scores.tolist()}
+
+
+def _audio(body: bytes):
+    import numpy as np
+    return np.frombuffer(body, dtype="<f4")
+
+
+@app.post("/transcribe")
+async def transcribe(request: Request, lang: str = "it") -> dict:
+    """A voice message to text (sns_av.transcribe asks here: torch never in the API's process beside faiss)."""
+    from starlette.concurrency import run_in_threadpool
+    from aurora import mdl_stt
+    return await run_in_threadpool(mdl_stt.transcribe, _audio(await request.body()), lang, cfg)
+
+
+@app.post("/transcribe/segments")
+async def transcribe_segments(request: Request, lang: str = "it") -> list:
+    """A video's track to timed segments."""
+    from starlette.concurrency import run_in_threadpool
+    from aurora import mdl_stt
+    return await run_in_threadpool(mdl_stt.segments, _audio(await request.body()), lang, cfg)
 
 
 if __name__ == "__main__":

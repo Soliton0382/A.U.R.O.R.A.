@@ -113,3 +113,17 @@ def test_the_plugins_code_has_no_linux_only_word_or_program_but_the_listed_ones(
     assert not words - set(PLUGIN_WORDS_ALLOWED), f"Linux-only words in plugins: {sorted(words - set(PLUGIN_WORDS_ALLOWED))}"
     assert not progs - PLUGIN_PROGRAMS_ALLOWED, f"programs started by plugins: {sorted(progs - PLUGIN_PROGRAMS_ALLOWED)}"
     assert cmds == PLUGIN_COMMANDS, f"plugins started by their own program: {cmds}"
+
+
+def test_every_absolute_path_by_default_is_absolute_on_this_port_s_system():
+    """Found on a real Windows (8 Oct): «/usr/bin/caddy» is no absolute path there, the configuration refused to load
+    with the factory settings. Each port's defaults.json gives its own (build.py applies it)."""
+    import json
+    import ntpath
+    import posixpath
+    port = json.loads((CORE.parents[1] / "BUILD.json").read_text(encoding="utf-8"))["port"]
+    isabs = ntpath.isabs if port == "Aurora_windows" else posixpath.isabs
+    schema = json.loads((CORE / "config" / "settings_schema.json").read_text(encoding="utf-8"))
+    bad = [(x["key"], x["recommended"]) for x in schema["settings"] if x["type"] == "path_abs"
+           and not (isabs(x["recommended"]) and (port != "Aurora_windows" or ntpath.splitdrive(x["recommended"])[0]))]
+    assert not bad, f"factory paths not absolute on {port}: {bad}"

@@ -1,0 +1,17 @@
+{
+ "AURORA_PDFTOTEXT_BIN": {
+  "linux": "/usr/bin/pdftotext",
+  "value": "/opt/homebrew/bin/pdftotext",
+  "why": "Homebrew's poppler on Apple Silicon"
+ },
+ "AURORA_CADDY_BIN": {
+  "linux": "/usr/bin/caddy",
+  "value": "/opt/homebrew/bin/caddy",
+  "why": "Homebrew's caddy"
+ },
+ "AURORA_CHROME_BIN": {
+  "linux": "/usr/bin/google-chrome",
+  "value": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+  "why": "Chrome's own place on a Mac"
+ }
+}

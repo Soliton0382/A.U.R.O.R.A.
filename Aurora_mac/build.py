@@ -101,6 +101,18 @@ def main() -> None:
             fail(f"{path}: the anchor of «{why}» is there {n} times, not once — the Linux code moved: look at it")
         p.write_text(text.replace(anchor, new), encoding="utf-8")
         print(f"  {path}: {why}")
+    defaults = json.loads((HERE / "defaults.json").read_text(encoding="utf-8")) if (HERE / "defaults.json").is_file() else {}
+    print(f"== this system's defaults ({len(defaults)})")
+    schema_file = out / "sys" / "core" / "config" / "settings_schema.json"
+    schema = json.loads(schema_file.read_text(encoding="utf-8"))
+    specs = {x["key"]: x for x in schema["settings"]}
+    for key, d in defaults.items():                  # like an anchor: the Linux value must be the one expected
+        if key not in specs or specs[key]["recommended"] != d["linux"]:
+            fail(f"settings_schema.json: {key} is not {d['linux']!r} on Linux any more — look at defaults.json")
+        specs[key]["recommended"] = d["value"]
+        print(f"  {key}: {d['value']}")
+    if defaults:
+        schema_file.write_text(json.dumps(schema, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     (out / MARK).write_text(json.dumps({"port": PORT, "built": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
                                         "files": len(files), "overlay": [str(f.relative_to(HERE)) for f in overlay],
                                         "rewrites": [r[3] for r in REWRITES]}, indent=1), encoding="utf-8")

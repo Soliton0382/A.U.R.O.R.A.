@@ -16,6 +16,7 @@ call downward (ECOSYSTEM §1).
 | `sol_index.py` | memory | per-domain vectors (exact → HNSW), incremental update, crash cut, encoder guard; `IndexSet` search | sol_reader, faiss, sys_log | sol_search, harvester; bench |
 | `sol_search.py` | knowledge | recall + re-ranking, passage read in its own language, group by domain | sol_index, sol_reader, an embedder, a re-ranker | API (planned); bench |
 | `mdl_embedder.py` | models | the encoder (Qwen3-Embedding-0.6B), query prompt, L2-normalized fp16 vectors | sentence-transformers | sol_index, sol_search |
+| `mdl_stt.py` | speech to text (Whisper, CPU) inside aurora-models: transcribe (a voice message), segments (a video's track); loaded at the first request — never in the API's process, where faiss is (M146) | sns_av.clear_speech, transformers | svc_models /transcribe, /transcribe/segments ← sns_av |
 | `mdl_reranker.py` | models | the cross-encoder re-ranker (bge-reranker-v2-m3) | sentence-transformers | sol_search |
 | `mdl_remote.py` | models | encoder and re-ranker over HTTP (aurora-models), same interface as the local ones | httpx | svc_api |
 | `mdl_llm.py` | models | client of llama-server: ChatML, thinking on/off, complete and stream | httpx | kno_answer, kno_acquire |

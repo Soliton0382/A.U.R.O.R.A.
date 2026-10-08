@@ -130,4 +130,4 @@ abort it (SIGABRT in `omp_set_num_threads`, M145). On Linux they bring `libgomp`
 loads faiss (the vault's index) and torch (Whisper in `sns_av`) in the same process. The fix must not be
 `KMP_DUPLICATE_LIB_OK` (Intel's own words: unsafe, may give wrong results — the owner: «non facciamo accrocchi»):
 the speech to text moves to a process of its own, as the models' service and the voice's worker already are — then no
-process of Aurora holds both. To do after the next run shows the exact pair.
+process of Aurora holds both. **Done 8 Oct (M146):** Whisper lives in aurora-models (mdl_stt); the API's process has no torch (measured: 0 libtorch maps), aurora-models has no faiss.
