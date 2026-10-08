@@ -926,6 +926,15 @@ person) —, the shadow trained 20/20 in 22.3 min, reflections at 01:11, 02:55, 
 with 2 sources in 66.2 s, «cos'è l'entropia» with 2 in 56.5 s — both declined before the night (N77, the machine's
 part). Facebook: the owner's first video published (approval executed, 5.9 s). Security (C174/C175): see BUGS. The face beside the health dot (owner, same morning): /v1/aurora/mood 0.02 s from the REM's last measure (53 s old); headless at 1280×850 a mouse over it opens the card (7 rows, 124–544 px), away closes it; at 390×844 a tap opens it inside the screen (8–382 px, no sideways scroll), a tap elsewhere closes it.
 
+## M148 — Both ports green on real machines; the Mac's suite to the end (8 October 2026)
+
+Ports on 3661fb6: both jobs green — the Mac's probe 41 checks, 0 failed; Windows's 40, 0 failed; both platform tests
+pass on the real machines. The Mac's Linux suite ran to the end for the first time (no more OpenMP abort, M146–M147):
+563 passed, 6 failed, 6 skipped in 288 s — failures in test_backup, test_cloudflare, test_reader_release,
+test_security_plus, test_users_crossing: phase 3's real list (their reasons are a public notice from the next run).
+Windows's suite: tzdata made calendar, ical and routines load; test_nas stopped the collection (sys_nas_mount imports
+pwd: Linux's /etc/fstab) — said skipped on Windows now, with its reason (the NAS there is \\host\share, phase 3).
+
 ## M147 — Windows green on a real machine; time zones; torch out of the tests' process (8 October 2026)
 
 Ports on c67aaa4. Windows (x64): the job green for the first time — probe 39 checks, 0 failed, the platform tests

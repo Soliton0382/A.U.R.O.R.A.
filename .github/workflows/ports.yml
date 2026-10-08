@@ -129,8 +129,10 @@ jobs:
               rc = pathlib.Path("suite-rc.txt").read_text().strip() if pathlib.Path("suite-rc.txt").exists() else "?"
               tail = [l for l in text.splitlines() if re.search(r"\d+ (passed|failed|error)", l) and " in " in l]
               failed = sorted({l.split(" ")[1].split("::")[0] for l in text.splitlines() if l.startswith(("FAILED ", "ERROR "))})
+              why = [l[:260] for l in text.splitlines() if l.startswith(("FAILED ", "ERROR "))]
               print(f"::notice title={port} Linux suite::exit {rc}; {tail[-1] if tail else 'no summary'}"
                     + (f"%0Afiles with failures: {', '.join(failed)}"[:3000] if failed else "")
+                    + ("%0A" + "%0A".join(why)[:6000] if why else "")
                     + ("%0Alast lines:%0A" + "%0A".join(text.splitlines()[-25:])[:3500] if not tail else ""))
               lines = text.splitlines()
               crash = next((i for i, l in enumerate(lines) if "Fatal Python error" in l or "OMP: Error" in l), None)

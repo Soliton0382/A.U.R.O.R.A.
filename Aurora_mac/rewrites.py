@@ -513,6 +513,14 @@ TESTS = [
             values[s["key"]] = str(root / "bin" / values[s["key"]].replace("\\\\", "/").rsplit("/", 1)[-1])   # tests only
 """,
      "conftest: the test installation's program paths valid on the machine that runs the tests"),
+    ("sys/core/tests/test_nas.py",
+     """from aurora import sys_backup as B
+""",
+     """from aurora import sys_backup as B
+
+pytest.importorskip("pwd", reason="sys_nas_mount is Linux's /etc/fstab; Windows reaches the NAS as \\\\\\\\host\\\\share (phase 3)")
+""",
+     "test_nas: Linux's NAS mount said skipped where there is no such mount (Windows, a real run)"),
 ]
 
 # the protected files (sys_ethics.PROTECTED): changed in the port's code, signed by each installation at its setup
