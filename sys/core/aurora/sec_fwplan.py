@@ -269,8 +269,10 @@ def plan(cfg: sys_config.Config, request: str, model=None, conf: dict | None = N
         raise sec_fwwrite.WriteError("scrivi cosa vuoi che venga fatto sul firewall")
     if model is None:
         from . import mdl_router
-        # local: the configuration never leaves the machine — except on a cloud-only one, masked (addresses too)
-        model = mdl_router.base(cfg)
+        model = mdl_router.private_model(mdl_router.base(cfg), cfg)   # local: the configuration never leaves the machine
+        if model is None:                                  # C213: a machine without a local model plans nothing
+            raise sec_fwwrite.WriteError("questa installazione non ha un modello locale, e la configurazione del "
+                                         "firewall non va a un modello cloud: le modifiche si fanno a mano")
     conf = conf if conf is not None else sec_fwconf.read(cfg)
     fw = re.sub(r"^https?://|[:/].*$", "", str(cfg["AURORA_FIREWALL_API_URL"]))
     own = ", ".join(sorted(a for a in sec_fwapi._own_addresses() if "." in a and not a.startswith("127.")))

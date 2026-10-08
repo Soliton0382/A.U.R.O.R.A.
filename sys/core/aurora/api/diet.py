@@ -59,7 +59,8 @@ async def diet_process() -> dict:
     from .core import pipeline
     t0 = time.time()
     try:
-        p = await in_thread(hlt_diet.process, cfg, pipeline().llm)
+        from aurora import mdl_router                     # no local model: the plan without its summary (C213)
+        p = await in_thread(hlt_diet.process, cfg, mdl_router.private_model(pipeline().llm, cfg))
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from None
     log.info("audit: %s processed the diet plan (%d options, %d frequencies, %.1f s)", me(), len(p["options"]),

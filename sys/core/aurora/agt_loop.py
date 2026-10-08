@@ -267,6 +267,10 @@ class Agent(AgentReport):
             # health data never reaches a cloud model (owner, 2026-10-05) — but the question is answered (2026-10-06:
             # "a che ora ho il medico?" was refused): from here the run goes on with the local model only
             from . import mdl_router
+            if mdl_router.private_model(self.p.llm, self.cfg) is None:     # no local model here: not even read (C213)
+                emit("agent.private_refused", {"plugin": plugin, "tool": tool})
+                return (f"ERROR: {plugin} holds private data that never reaches a cloud model, and this installation "
+                        "has no local model: the owner reads it in its own page")
             if not mdl_router.is_local(self.p._for("agent"), self.p.llm):
                 self.local_only = True
                 emit("agent.local", {"plugin": plugin, "why": "private data: the local model reads it"})

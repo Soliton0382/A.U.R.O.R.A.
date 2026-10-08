@@ -32,8 +32,13 @@ def read_values(doc_id: str) -> None:
     _reading[doc_id] = "reading"
 
     def work():
+        from aurora import mdl_router
+        llm = mdl_router.private_model(pipeline().llm, cfg)
+        if llm is None:                                   # C213: health never to a cloud model, and there is no other
+            _reading[doc_id] = "error: no local model on this installation: the values are entered by hand"
+            return
         try:
-            _reading[doc_id] = f"{len(hlt_labs.extract(cfg, doc_id, pipeline().llm))} values"
+            _reading[doc_id] = f"{len(hlt_labs.extract(cfg, doc_id, llm))} values"
         except Exception as e:                            # noqa: BLE001 — told on the page, the document stays
             _reading[doc_id] = f"error: {type(e).__name__}"
             log.warning("exam values not read: %s", type(e).__name__)

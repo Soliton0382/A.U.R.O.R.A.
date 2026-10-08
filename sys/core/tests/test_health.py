@@ -68,3 +68,32 @@ def test_private_data_moves_the_agent_to_the_local_model(cfg):
     out = a._call("health__health_read", {"area": "diet"}, index, lambda e, d: events.append(e), "r1")
     assert out == "dati" and len(called) == 1 and "agent.local" in events
     assert a.local_only and a._model() is local                     # every next step: the local model
+
+
+def test_without_a_local_model_private_data_is_not_even_read(tmp_path, monkeypatch):
+    """C213: on a cloud-only installation the «local» model is the cloud's: the health plugin is not called at all, the
+    exam values are not read by a model, the diet plan comes without the model's summary, the firewall plans nothing."""
+    from types import SimpleNamespace
+    from aurora import mdl_router, sec_fwplan, sec_fwwrite, sys_config
+    from aurora.agt_loop import Agent
+    from conftest import write_env
+    cloud_cfg = sys_config.load(write_env(tmp_path, AURORA_LLM_BACKEND="cloud"), check_root=False)
+    base = mdl_router.base(cloud_cfg)
+    assert mdl_router.private_model(base, cloud_cfg) is None
+    assert mdl_router.private_model(mdl_router.model_for("agent", base, cloud_cfg), cloud_cfg) is None
+    called, events = [], []
+    host = SimpleNamespace(get=lambda name: SimpleNamespace(manifest={"private": True, "effects": {"*": "read"}}),
+                           call=lambda *a, **k: called.append(a) or {"ok": True, "text": "dati"})
+    p = SimpleNamespace(llm=base, _for=lambda role: base)
+    a = Agent(p, cloud_cfg, host=host)
+    out = a._call("health__health_read", {"area": "diet"}, {"health__health_read": ("health", "health_read", "read")},
+                  lambda e, d: events.append(e), "r1")
+    assert out.startswith("ERROR") and called == [] and "agent.private_refused" in events
+    with pytest.raises(sec_fwwrite.WriteError, match="modello locale"):
+        sec_fwplan.plan(cloud_cfg, "blocca il traffico verso 10.0.0.9", conf={})
+
+
+def test_a_local_model_is_still_the_private_one(cfg):
+    from aurora import mdl_router
+    local = object()
+    assert mdl_router.private_model(local, cfg) is local

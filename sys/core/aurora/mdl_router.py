@@ -404,6 +404,14 @@ def cloud_only(cfg: sys_config.Config) -> bool:
     return str(cfg["AURORA_LLM_BACKEND"]) == "cloud"
 
 
+def private_model(llm, cfg: sys_config.Config | None = None):
+    """The model for data that never reaches a cloud model (health, the firewall's configuration: owner, 2026-10-05):
+    the local one, or None on a machine without a local reasoner, where the «local» model is the cloud's (C213). The
+    caller says what it does without it; it never falls back to the cloud."""
+    cfg = cfg or sys_config.get()
+    return None if cloud_only(cfg) or isinstance(getattr(llm, "_inner", llm), CloudBase) else llm
+
+
 def label(provider: str, cfg: sys_config.Config) -> str:
     """A provider's name on the Models page: "local" says what it is on a machine without a local reasoner."""
     if provider == "local" and cloud_only(cfg):
