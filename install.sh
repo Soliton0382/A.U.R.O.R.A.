@@ -8,13 +8,17 @@
 #   ./install.sh --yes               # takes every default
 #   options: --no-services (stop before systemd/HTTPS: for a second copy on a machine that already runs Aurora)
 #   unattended: each answer from AURORA_INSTALL_<NAME> (NAME, ASSISTANT, PERSONALITY 1-4, VOICE f/m, LANG, DOMAIN, PORT,
-#            EXEMPT y/n, MODE single/multi), e.g. AURORA_INSTALL_MODE=multi ./install.sh --yes
+#            EXEMPT y/n, MODE single/multi, BACKEND local/cloud, CLOUD y/n, PROVIDER 1-7, MODEL), e.g.
+#            AURORA_INSTALL_MODE=multi ./install.sh --yes; the cloud key from AURORA_INSTALL_CLOUD_KEY (never asked twice)
+#   without an NVIDIA GPU of 16 GB (or AURORA_INSTALL_BACKEND=cloud): a cloud reasoner (Anthropic, OpenAI, Gemini,
+#            Mistral, OpenRouter, xAI or Claude Code), every call masked; the encoder and re-ranker on the CPU
 #            --no-optional-models (only the required models; add others later with sys_models_fetch.py)
 #            --with-video (also the video model under --yes, 34 GB)   --reset-venv   --skip-build
 #
-# Steps: system check → packages → NVIDIA (driver present, CUDA toolkit 13) → your answers → venv → hardware
-# profile → .env → models from Hugging Face → llama.cpp for your GPUs → tests → code of conduct key → systemd
-# units + HTTPS → health check. Every step can be run again: what is done is not done twice.
+# Steps: system check → packages → NVIDIA (driver present, CUDA toolkit 13) or cloud → your answers → venv → cloud
+# key and model checked → hardware profile → .env → models from Hugging Face → llama.cpp for your GPUs (not in the
+# cloud) → tests → code of conduct key → systemd units + HTTPS → health check → the address to open.
+# Every step can be run again: what is done is not done twice.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -62,7 +66,8 @@ case "$ID:$VERSION_ID" in ubuntu:26.04*) ;; ubuntu:24.04*) warn "$(t 'Ubuntu 24.
 command -v sudo >/dev/null || die "sudo"
 FREE=$(df -BG --output=avail "$ROOT" | tail -1 | tr -dc 0-9)
 ok "$(t 'spazio libero' 'free space'): ${FREE} GB"
-[ "$FREE" -ge 45 ] || die "$(t 'servono almeno 45 GB liberi (modelli obbligatori 24,7 GB + ambiente e build)' 'at least 45 GB free needed (required models 24.7 GB + environment and build)')"
+# measured on the reference machine: .venv 6.1 GB, encoder + re-ranker 3.4 GB (cloud); + reasoner 21.5 GB and build (local)
+[ "$FREE" -ge 15 ] || die "$(t 'servono almeno 15 GB liberi (45 con il ragionatore locale)' 'at least 15 GB free needed (45 with the local reasoner)')"
 
 # ---------------------------------------------------------------------------------------------------
 step "2. $(t 'Pacchetti di sistema' 'System packages')"
@@ -79,14 +84,31 @@ BROWSER=$(command -v google-chrome || command -v chromium || command -v chromium
 [ -n "$BROWSER" ] && ok "$(t 'browser per i PDF' 'browser for PDFs'): $BROWSER" || warn "$(t 'nessun Chrome/Chromium: i PDF non saranno disponibili' 'no Chrome/Chromium: PDFs will not be available')"
 
 # ---------------------------------------------------------------------------------------------------
-step "3. NVIDIA"
-if ! nvidia-smi >/dev/null 2>&1; then
-  warn "$(t 'nessun driver NVIDIA attivo.' 'no NVIDIA driver running.')"
-  echo "  $(t 'Installa il driver consigliato da Ubuntu, riavvia e rilancia ./install.sh:' 'Install Ubuntu'"'"'s recommended driver, reboot and run ./install.sh again:')"
-  echo "    sys/core/script/sys_nvidia.sh driver --driver \$(ubuntu-drivers devices 2>/dev/null | awk '/recommended/{print \$3}' | sed 's/nvidia-driver-//')"
-  die "$(t 'driver mancante' 'driver missing')"
+step "3. $(t 'GPU o cloud' 'GPU or cloud')"
+BACKEND="${AURORA_INSTALL_BACKEND:-}"
+VRAM=0
+if nvidia-smi >/dev/null 2>&1; then
+  nvidia-smi --query-gpu=index,name,driver_version,memory.total --format=csv,noheader | sed 's/^/  /'
+  VRAM=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits | sort -n | tail -1 | tr -dc 0-9)
 fi
-nvidia-smi --query-gpu=index,name,driver_version,memory.total --format=csv,noheader | sed 's/^/  /'
+if [ -z "$BACKEND" ] && [ "${VRAM:-0}" -ge 15000 ]; then BACKEND=local; fi
+if [ -z "$BACKEND" ]; then
+  if [ "${VRAM:-0}" = 0 ]; then warn "$(t 'nessuna GPU NVIDIA attiva' 'no NVIDIA GPU running')"
+  else warn "$(t 'GPU troppo piccola per il ragionatore locale (servono 16 GB)' 'GPU too small for the local reasoner (16 GB needed)')"; fi
+  echo "  $(t 'Aurora può funzionare senza GPU: ragiona con un modello cloud a tua scelta; ricerca, memoria e documenti restano su questo computer.' 'Aurora can run without a GPU: she reasons with a cloud model of your choice; search, memory and documents stay on this computer.')"
+  if lspci 2>/dev/null | grep -qi 'vga.*nvidia\|3d.*nvidia' && [ "${VRAM:-0}" = 0 ]; then
+    echo "  $(t 'C è una scheda NVIDIA senza driver: per usarla installa il driver, riavvia e rilancia ./install.sh:' 'There is an NVIDIA card without a driver: to use it install the driver, reboot and run ./install.sh again:')"
+    echo "    sys/core/script/sys_nvidia.sh driver --driver \$(ubuntu-drivers devices 2>/dev/null | awk '/recommended/{print \$3}' | sed 's/nvidia-driver-//')"
+  fi
+  yesno "$(t 'Installare Aurora con il ragionatore cloud?' 'Install Aurora with the cloud reasoner?')" y CLOUD || die "$(t 'serve una GPU NVIDIA da 16 GB o il cloud' 'an NVIDIA GPU of 16 GB or the cloud is needed')"
+  BACKEND=cloud
+fi
+case "$BACKEND" in local|cloud) ;; *) die "AURORA_INSTALL_BACKEND: local o cloud" ;; esac
+if [ "$BACKEND" = cloud ]; then
+  ok "$(t 'ragionatore cloud: niente CUDA, niente llama.cpp' 'cloud reasoner: no CUDA, no llama.cpp')"
+else
+[ "${VRAM:-0}" -gt 0 ] || die "$(t 'il ragionatore locale richiede una GPU NVIDIA con il driver attivo' 'the local reasoner needs an NVIDIA GPU with its driver running')"
+[ "$FREE" -ge 45 ] || die "$(t 'servono almeno 45 GB liberi (modelli obbligatori 24,7 GB + ambiente e build)' 'at least 45 GB free needed (required models 24.7 GB + environment and build)')"
 NVCC_OK=0
 if [ -x /usr/local/cuda/bin/nvcc ]; then
   v=$(/usr/local/cuda/bin/nvcc --version | grep -o 'release [0-9.]*' | cut -d' ' -f2)
@@ -96,6 +118,7 @@ if [ "$NVCC_OK" = 0 ]; then
   echo "  $(t 'serve il CUDA toolkit ≥ 12.8 (solo il toolkit: il driver resta quello di Ubuntu)' 'the CUDA toolkit ≥ 12.8 is needed (toolkit only: the driver stays Ubuntu'"'"'s)')"
   sudo sys/core/script/sys_nvidia.sh toolkit --yes
   [ -x /usr/local/cuda/bin/nvcc ] || die "CUDA toolkit"
+fi
 fi
 
 # ---------------------------------------------------------------------------------------------------
@@ -123,8 +146,39 @@ if [ "$DOMAIN" != localhost ] && yesno "$(t 'Hai un tuo certificato per' 'Do you
 fi
 PORT=$(ask "$(t 'Porta HTTPS' 'HTTPS port')" "443" PORT)
 EXEMPT=0
+PROVIDER=""; CKEYNAME=""; CMODEL=""
+if [ "$BACKEND" = cloud ]; then
+  echo
+  echo "  $(t 'Ragionatore cloud. Cosa esce da questo computer: le domande, i passaggi dei documenti che servono alla risposta, la conversazione recente.' 'Cloud reasoner. What leaves this computer: the questions, the passages of the documents an answer needs, the recent conversation.')"
+  echo "  $(t 'Prima di uscire ogni testo è mascherato: email, telefoni, IBAN, carte, codice fiscale, partita IVA, targhe, indirizzi, IP, chiavi e password, il tuo nome e le parole che indicherai sono sostituiti da segnaposto e rimessi nella risposta.' 'Before leaving every text is masked: e-mails, phones, IBANs, cards, tax codes, VAT numbers, plates, addresses, IPs, keys and passwords, your name and the words you list are replaced by placeholders and put back in the answer.')"
+  echo "  $(t 'NON si maschera il contenuto in sé (di cosa parla un documento) né le foto. Il provider lo tratta secondo i suoi termini.' 'NOT masked: the content itself (what a document is about) and photos. The provider handles it under its own terms.')"
+  echo "  $(t 'Per questo serve l esenzione dal livello B del codice di condotta (regola 9), che firmi alla fine con sudo.' 'This is why the exemption from level B of the code of conduct (rule 9) is needed: you sign it at the end with sudo.')"
+  yesno "$(t 'Va bene così?' 'Is that all right?')" y CLOUD_OK || die "$(t 'senza il cloud serve una GPU NVIDIA da 16 GB' 'without the cloud an NVIDIA GPU of 16 GB is needed')"
+  EXEMPT=1
+  echo "  $(t 'Provider:' 'Provider:') 1) Anthropic (Claude)  2) OpenAI  3) Google Gemini  4) Mistral  5) OpenRouter  6) xAI Grok  7) Claude Code ($(t 'abbonamento' 'subscription'))"
+  case "$(ask "$(t 'Scegli 1-7' 'Choose 1-7')" "1" PROVIDER)" in
+    2) PROVIDER=openai; CKEYNAME=AURORA_OPENAI_API_KEY ;;
+    3) PROVIDER=google; CKEYNAME=AURORA_GOOGLE_API_KEY ;;
+    4) PROVIDER=mistral; CKEYNAME=AURORA_MISTRAL_API_KEY ;;
+    5) PROVIDER=openrouter; CKEYNAME=AURORA_OPENROUTER_API_KEY ;;
+    6) PROVIDER=xai; CKEYNAME=AURORA_XAI_API_KEY ;;
+    7) PROVIDER=claude_code ;;
+    *) PROVIDER=anthropic; CKEYNAME=AURORA_ANTHROPIC_API_KEY ;;
+  esac
+  CKEY="${AURORA_INSTALL_CLOUD_KEY:-}"
+  if [ "$PROVIDER" = claude_code ]; then
+    CLAUDE_BIN=$(command -v claude || true)
+    [ -n "$CLAUDE_BIN" ] || die "$(t 'Claude Code non trovato: installalo, collega il tuo account (comando claude) e rilancia ./install.sh' 'Claude Code not found: install it, sign in (the claude command) and run ./install.sh again')"
+    ok "Claude Code: $CLAUDE_BIN"
+  elif [ -z "$CKEY" ]; then
+    [ "$YES" = 1 ] && die "AURORA_INSTALL_CLOUD_KEY"
+    read -r -s -p "  $(t 'Chiave API (non viene mostrata)' 'API key (not shown)'): " CKEY </dev/tty; echo
+    [ -n "$CKEY" ] || die "$(t 'chiave vuota' 'empty key')"
+  fi
+else
 echo "  $(t 'Livello B del codice di condotta: conferma delle azioni esterne, approvazione delle modifiche al codice, dichiarazione IA.' 'Level B of the code of conduct: confirmation of external actions, approval of code changes, AI disclosure.')"
 yesno "$(t 'Esentare questa installazione dal livello B? (sconsigliato all inizio)' 'Exempt this installation from level B? (not advised at first)')" n EXEMPT && EXEMPT=1
+fi
 echo "  $(t 'Tipo di installazione:' 'Installation type:')"
 echo "    single — $(t 'una persona: tu, amministratore' 'one person: you, the admin')"
 echo "    multi  — $(t 'più persone: ognuna con la sua cartella usr/<nome>, le sue impostazioni e la sua memoria privata; accesso con password e codice Authenticator' 'several people: each with their folder usr/<name>, their settings and private memory; login with password and Authenticator code')"
@@ -145,10 +199,26 @@ if [ "$RESET_VENV" = 1 ] && [ -d .venv ]; then mv .venv ".venv.old-$(date +%s)";
 .venv/bin/pip install -q --require-hashes -r requirements.lock || die "pip install --require-hashes -r requirements.lock"
 ok "$(.venv/bin/python --version), torch $(.venv/bin/python -c 'import torch; print(torch.__version__, "cuda", torch.cuda.is_available())')"
 
+if [ "$BACKEND" = cloud ]; then
+  step "5b. $(t 'Modello cloud' 'Cloud model')"
+  # the key goes by the environment, never on a command line (visible to every user of this computer)
+  LIST=$(AURORA_INSTALL_CLOUD_KEY="$CKEY" .venv/bin/python sys/core/script/sys_cloud_setup.py models "$PROVIDER") \
+    || die "$(t 'il provider rifiuta la chiave' 'the provider refuses the key'): $(echo "$LIST" | tail -1)"
+  echo "$LIST" | head -12 | nl -w4 -s') '
+  CDEF=$(echo "$LIST" | head -1)
+  CMODEL=$(ask "$(t 'Modello (numero o nome; il primo è consigliato)' 'Model (number or name; the first is advised)')" "$CDEF" MODEL)
+  case "$CMODEL" in *[!0-9]*|"") ;; *) CMODEL=$(echo "$LIST" | sed -n "${CMODEL}p") ;; esac
+  [ -n "$CMODEL" ] || die "$(t 'modello non valido' 'invalid model')"
+  out=$(AURORA_INSTALL_CLOUD_KEY="$CKEY" timeout 300 .venv/bin/python sys/core/script/sys_cloud_setup.py try "$PROVIDER" "$CMODEL") \
+    || die "$PROVIDER $CMODEL: $(echo "$out" | tail -1)"
+  ok "$PROVIDER $CMODEL $(t 'risponde' 'answers')"
+fi
+
 # ---------------------------------------------------------------------------------------------------
 step "6. $(t 'Profilo hardware' 'Hardware profile')"
-PROFILE=$(.venv/bin/python sys/core/script/sys_profile.py --json) || { .venv/bin/python sys/core/script/sys_profile.py || true; die "$(t 'hardware non supportato' 'hardware not supported')"; }
-.venv/bin/python sys/core/script/sys_profile.py | sed 's/^/  /' || true
+PFLAG=$([ "$BACKEND" = cloud ] && echo --cloud || true)
+PROFILE=$(.venv/bin/python sys/core/script/sys_profile.py --json $PFLAG) || { .venv/bin/python sys/core/script/sys_profile.py || true; die "$(t 'hardware non supportato' 'hardware not supported')"; }
+.venv/bin/python sys/core/script/sys_profile.py $PFLAG | sed 's/^/  /' || true
 
 # ---------------------------------------------------------------------------------------------------
 step "6b. $(t 'Funzioni facoltative (modelli da scaricare)' 'Optional features (models to download)')"
@@ -166,7 +236,7 @@ while IFS='|' read -r g size fits def why lit len mods todo; do
   fi
 done < <(.venv/bin/python sys/core/script/sys_doctor.py --groups "$PROFILE_FILE")
 PICK="${PICK#,}"; MODELS="${MODELS#,}"
-NEED=$(.venv/bin/python -c "print(int(45 + $EXTRA + 0.999))")
+NEED=$(.venv/bin/python -c "print(int($([ "$BACKEND" = cloud ] && echo 15 || echo 45) + $EXTRA + 0.999))")
 [ "$FREE" -ge "$NEED" ] || die "$(t "servono ${NEED} GB liberi per le scelte fatte, ce ne sono ${FREE}" "${NEED} GB free needed for these choices, ${FREE} available")"
 ok "$(t 'scelte' 'chosen'): ${PICK:-$(t 'nessuna' 'none')} ($(t 'da scaricare' 'to download'): ${EXTRA} GB)"
 
@@ -181,10 +251,16 @@ else
         --set "AURORA_HTTPS_PORT=$PORT" --set "AURORA_TLS_MODE=$TLS" --set "AURORA_UPDATE_MODE=notify"
         --set "AURORA_SERVICE_USER=$USER" --set "AURORA_USER_MODE=$UMODE")
   [ -n "$BROWSER" ] && SETS+=(--set "AURORA_CHROME_BIN=$BROWSER")
+  if [ "$BACKEND" = cloud ]; then
+    SETS+=(--set "AURORA_CLOUD_PROVIDER=$PROVIDER" --set "AURORA_CLOUD_MODEL=$CMODEL")
+    [ "$PROVIDER" = claude_code ] && SETS+=(--set "AURORA_CLAUDE_CODE_BIN=$CLAUDE_BIN" --set "AURORA_CLAUDE_CODE_MODEL=$CMODEL")
+    if [ -n "$CKEYNAME" ]; then export "$CKEYNAME=$CKEY"; SETS+=(--set-env "$CKEYNAME"); fi
+  fi
   while IFS='=' read -r k v; do [ -n "$k" ] && SETS+=(--set "$k=$v"); done < <(echo "$PROFILE" | .venv/bin/python -c 'import json,sys; [print(f"{k}={v}") for k, v in json.load(sys.stdin)["env"].items()]')
   case ",$PICK," in *,dreams,*) ;; *) SETS+=(--set "AURORA_IMAGE_ENABLED=0") ;; esac   # no dream model, no dream painting
   .venv/bin/python sys/core/script/sys_env_sync.py "${SETS[@]}" | grep -E '^\s+[=*]' || true
   mv .env.proposed .env
+  [ -n "$CKEYNAME" ] && unset "$CKEYNAME"
 fi
 chmod 600 .env
 if [ "$TLS" = files ]; then mkdir -p sys/https/cert && install -m 600 "$CERT" sys/https/cert/fullchain.pem && install -m 600 "$KEY" sys/https/cert/privkey.pem; fi
@@ -202,18 +278,24 @@ fi
 
 # ---------------------------------------------------------------------------------------------------
 step "8. $(t 'Modelli (Hugging Face, revisioni fissate, SHA-256 verificati)' 'Models (Hugging Face, pinned revisions, SHA-256 checked)')"
-.venv/bin/python sys/core/script/sys_models_fetch.py --required --yes || die "$(t 'download dei modelli' 'model download')"
+if [ "$BACKEND" = cloud ]; then                # the reasoner is the provider's: encoder and re-ranker only
+  .venv/bin/python sys/core/script/sys_models_fetch.py --models embedder,reranker --yes || die "$(t 'download dei modelli' 'model download')"
+else
+  .venv/bin/python sys/core/script/sys_models_fetch.py --required --yes || die "$(t 'download dei modelli' 'model download')"
+fi
 if [ -n "$MODELS" ]; then
   .venv/bin/python sys/core/script/sys_models_fetch.py --models "$MODELS" --yes || die "$(t 'download dei modelli facoltativi' 'optional model download')"
   case ",$PICK," in *,voice,*) bash sys/core/script/sys_tts_install.sh || warn "$(t 'voce di Aurora non installata' "Aurora's voice not installed")" ;; esac
 fi
 
 # ---------------------------------------------------------------------------------------------------
-step "9. llama.cpp $(t 'per le tue GPU' 'for your GPUs')"
-if [ "$BUILD" = 1 ] || [ ! -x sys/runtime/llama.cpp/bin/llama-server ]; then
-  sys/core/script/sys_nvidia.sh llama --yes | tail -3 || die "llama.cpp"
+step "9. $(t 'Programmi' 'Programs')"
+if [ "$BACKEND" = local ]; then
+  if [ "$BUILD" = 1 ] || [ ! -x sys/runtime/llama.cpp/bin/llama-server ]; then
+    sys/core/script/sys_nvidia.sh llama --yes | tail -3 || die "llama.cpp"
+  fi
+  ok "$(sys/runtime/llama.cpp/bin/llama-server --version 2>&1 | head -1)"
 fi
-ok "$(sys/runtime/llama.cpp/bin/llama-server --version 2>&1 | head -1)"
 # the GitHub plugin's own program (pinned, SHA-256 checked): nothing installed it before 8 Oct 2026
 if out="$(bash sys/core/script/sys_github_mcp_install.sh 2>&1)"; then ok "GitHub MCP: $(echo "$out" | tail -1)"
 else warn "$(t 'programma del plugin GitHub non installato' 'the GitHub plugin program not installed'): $(echo "$out" | tail -1)"; fi

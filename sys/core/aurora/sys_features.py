@@ -58,7 +58,7 @@ GROUPS = {
                            "en": "Photos: creative edits in words (FLUX.2 klein)"}},
     "voice": {"models": ["tts"], "features": ["voice_out"], "default": True,
               "label": {"it": "Voce di Aurora (lettura ad alta voce, sulla CPU)", "en": "Aurora's voice (reading aloud, on the CPU)"}},
-    "voice_natural": {"models": ["tts_qwen"], "features": [], "default": True,
+    "voice_natural": {"models": ["tts_qwen"], "features": [], "default": True, "gpu": True,
                       "label": {"it": "Voce naturale di Aurora (Qwen3-TTS, sulla GPU, ~2,5 GB)",
                                 "en": "Aurora's natural voice (Qwen3-TTS, on the GPU, ~2.5 GB)"}},
     "video": {"models": ["video"], "features": ["video_make"], "default": False,
@@ -73,6 +73,8 @@ def fits(profile: dict, group: str) -> tuple[bool, str]:
     """Whether this machine (sys_profile.py --json) can run a group, and why not."""
     vram = max((g.get("vram_gb", 0) for g in profile.get("gpus", [])), default=0)
     ram = profile.get("ram_gb", 0)
+    if GROUPS[group].get("gpu") and not profile.get("gpus"):
+        return False, "needs an NVIDIA GPU"
     for f in GROUPS[group]["features"]:
         need_vram, need_ram, why = HARDWARE.get(f, (0, 0, ""))
         if vram < need_vram:
@@ -122,6 +124,13 @@ def check(cfg: sys_config.Config, name: str) -> dict:
         if lost:
             missing.append(f"{mname} ({len(lost)} file)")
             fix.append(SCRIPTS.get(mname) or FETCH.format(m=mname))
+    if name in ("reasoner", "vision") and str(cfg["AURORA_LLM_BACKEND"]) == "cloud":
+        from . import mdl_router                     # no local model files: the cloud default does it
+        why = mdl_router.CloudBase(cfg).problem()
+        if not why and name == "vision" and mdl_router.PROVIDERS[str(cfg["AURORA_CLOUD_PROVIDER"])]["kind"] == "claude_code":
+            why = "claude_code does not see pictures: another provider in the Models page"
+        return {"ok": not why, "required": required, "label": label, "missing": [why] if why else [],
+                "fix": ["🧠 Modelli / Models"] if why else []}
     for key in paths:
         if not cfg.path(key).is_file():
             missing.append(f"{key} = {cfg[key]}")

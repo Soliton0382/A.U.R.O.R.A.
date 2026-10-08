@@ -97,6 +97,12 @@ def check(cfg: sys_config.Config | None = None) -> dict:
     web = [("aurora-api", f"http://{cfg['AURORA_API_HOST']}:{cfg['AURORA_API_PORT']}/health"),
            ("aurora-models", f"http://{cfg['AURORA_MODELS_HOST']}:{cfg['AURORA_MODELS_PORT']}/health"),
            ("aurora-llm", f"http://{cfg['AURORA_LLM_HOST']}:{cfg['AURORA_LLM_PORT']}/health")]
+    if str(cfg["AURORA_LLM_BACKEND"]) == "cloud":      # no local reasoner: the cloud default, checked without a call
+        from . import mdl_router
+        web = web[:2]
+        why = mdl_router.CloudBase(cfg).problem()
+        add("cloud", "down" if why else "ok", why or f"ragionatore cloud: {cfg['AURORA_CLOUD_PROVIDER']} "
+            f"{cfg['AURORA_CLOUD_MODEL'] or ''}".strip(), "AURORA_LLM_BACKEND=cloud")
     for unit, url in web:
         state = _unit(unit)
         ok, how = _http(url)

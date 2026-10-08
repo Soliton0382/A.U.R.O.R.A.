@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import secrets
 import sys
 from pathlib import Path
@@ -59,6 +60,8 @@ def main() -> int:
     ap.add_argument("--adopt", default="", help="comma-separated keys to set to their recommended value")
     ap.add_argument("--set", action="append", default=[], metavar="KEY=VALUE",
                     help="a value for the proposal (installer: the owner's answers, the hardware profile); checked by the schema")
+    ap.add_argument("--set-env", action="append", default=[], metavar="KEY",
+                    help="a value taken from the environment variable of the same name (a key: never on a command line)")
     ap.add_argument("--example", action="store_true",
                     help="write only .env.example from the schema (for publishing; an installation never rewrites it)")
     args = ap.parse_args()
@@ -100,7 +103,7 @@ def main() -> int:
         proposed["AURORA_ROOT"] = str(C.CODE_ROOT)
         print(f"  * AURORA_ROOT={C.CODE_ROOT} (this folder)")
     specs = {sp["key"]: sp for sp in schema["settings"]}
-    for item in args.set:
+    for item in args.set + [f"{k}={os.environ.get(k, '')}" for k in args.set_env]:
         key, _, value = item.partition("=")
         if key not in specs:
             print(f"--set: {key} is not in the schema")

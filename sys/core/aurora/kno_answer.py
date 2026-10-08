@@ -27,7 +27,7 @@ import time
 import uuid
 from typing import Callable
 
-from . import kno_followup, kno_split, kno_think, sys_config, sys_log, txt_lang
+from . import kno_followup, kno_split, kno_think, mdl_router, sys_config, sys_log, txt_lang
 from .kno_self import SelfTalk
 from .kno_stages import SYS_TRANSLATE, Emit, Stages
 from .kno_trail import Answer, Trail, hebb  # noqa: F401 — imported from here by the API, the agents, the tests
@@ -44,7 +44,7 @@ class Pipeline(Stages, SelfTalk):
                  state_fn: Callable[[], dict] | None = None, user: str | None = None, index=None):
         self.cfg = cfg or sys_config.get()
         self.state_fn = state_fn                   # facts about Aurora measured by the caller (services, uptime)
-        self.llm = llm or LLM(self.cfg)
+        self.llm = llm or mdl_router.base(self.cfg)    # llama.cpp, or the cloud default where there is none
         self.cloud_roles = {r.strip() for r in self.cfg["AURORA_CLOUD_ROLES"].split(",") if r.strip()}
         # whose conversations and memories (multi-user, U3; None: today's single owner); the knowledge index is
         # shared between the users' pipelines (`index`): loaded once

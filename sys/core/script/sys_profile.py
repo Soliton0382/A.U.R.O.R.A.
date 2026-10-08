@@ -35,6 +35,32 @@ def ram_gb() -> float:
     return round(os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") / 2**30, 1)
 
 
+def cpu_bf16() -> bool:
+    """The processor computes in bfloat16 natively (AVX-512 BF16 or AMX): 2.8x faster re-ranking than float32 (M151)."""
+    try:
+        flags = next((l for l in open("/proc/cpuinfo", encoding="utf-8") if l.startswith("flags")), "").split()
+    except OSError:
+        return False
+    return "avx512_bf16" in flags or "amx_bf16" in flags
+
+
+def cloud(ram: float, why: str) -> dict:
+    """No local reasoner: the reasoning goes to a cloud provider (masked, with the owner's exemption); the encoder and
+    the re-ranker stay here, on the CPU (the vault is never sent away to be indexed). Fewer candidates, shorter
+    passages: 30 at 512 tokens re-ranked in 3.5 s (bfloat16) or 9.8 s (float32) on 4 cores of the reference CPU (M151)."""
+    dtype = "bfloat16" if cpu_bf16() else "float32"
+    notes = [why, f"re-ranking on the CPU in {dtype}, not measured on this CPU (M151: 30 passages in "
+                  f"{'3.5' if dtype == 'bfloat16' else '9.8'} s on 4 cores of a Ryzen 7 7700X)"]
+    if ram < 12:                                       # M151: models 5.0 GB at peak + API 2.0 + harvester 0.5
+        notes.append(f"RAM {ram} GB: 12 GB or more advised (measured: the models' service 5.0 GB at its peak, "
+                     "the API 2.0 GB, the harvester 0.5 GB)")
+    return {"profile": "cloud: no local reasoner", "measured": False, "cloud": True, "env": {
+        "AURORA_LLM_BACKEND": "cloud", "AURORA_EMBEDDER_DEVICE": "cpu", "AURORA_EMBEDDER_DTYPE": dtype,
+        "AURORA_EMBEDDER_BATCH": "8", "AURORA_RERANKER_DEVICE": "cpu", "AURORA_RERANKER_DTYPE": dtype,
+        "AURORA_RERANKER_BATCH": "8", "AURORA_RERANKER_MAX_TOKENS": "512", "AURORA_SEARCH_CANDIDATES": "30",
+        "AURORA_IMAGE_ENABLED": "0"}, "notes": notes}
+
+
 def choose(g: list[dict], ram: float) -> dict:
     big = [x for x in g if x["vram_gb"] >= 15]
     if len(big) >= 2:
@@ -60,16 +86,17 @@ def choose(g: list[dict], ram: float) -> dict:
             "AURORA_LLM_GPUS": str(a), "AURORA_LLM_TENSOR_SPLIT": "1", "AURORA_LLM_CPU_MOE_LAYERS": "28",
             "AURORA_LLM_CTX": "16384", "AURORA_EMBEDDER_DEVICE": f"cuda:{a}", "AURORA_RERANKER_DEVICE": f"cuda:{a}",
             "AURORA_IMAGE_GPU": str(a)}, "notes": notes}
-    return {"profile": "unsupported", "measured": False, "env": {},
-            "notes": ["an NVIDIA GPU with 16 GB or more is needed (none found, or smaller)"]}
+    return cloud(ram, "no NVIDIA GPU with 16 GB or more: the reasoning goes to a cloud provider")
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--cloud", action="store_true", help="the cloud profile even where a GPU could run the reasoner")
     args = ap.parse_args()
     g, ram = gpus(), ram_gb()
-    p = {**choose(g, ram), "gpus": g, "ram_gb": ram}
+    p = {**(cloud(ram, "chosen: the reasoning goes to a cloud provider") if args.cloud else choose(g, ram)),
+         "gpus": g, "ram_gb": ram}
     if args.json:
         print(json.dumps(p))
     else:

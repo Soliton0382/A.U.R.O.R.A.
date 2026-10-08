@@ -230,3 +230,12 @@ class AnthropicLLM:
             {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": base64.b64encode(jpeg).decode()}},
             {"type": "text", "text": instruction}]}]
         return self._complete("", msg, max_tokens, False).answer
+
+    def see_many(self, frames: list[tuple[str, bytes]], instruction: str, max_tokens: int = 1600) -> str:
+        """Several images in order, each with its label (a video's frames with their time), in one call."""
+        parts: list[dict] = [{"type": "text", "text": instruction}]
+        for label, jpeg in frames:
+            parts += [{"type": "text", "text": f"Frame at {label}:"},
+                      {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg",
+                                                   "data": base64.b64encode(jpeg).decode()}}]
+        return self._complete("", [{"role": "user", "content": parts}], max_tokens, False).answer

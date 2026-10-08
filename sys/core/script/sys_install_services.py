@@ -296,10 +296,11 @@ def main() -> int:
         return 1
 
     low_ports = min(cfg["AURORA_HTTPS_PORT"], cfg["AURORA_HTTP_PORT"]) < 1024
+    cloud = str(cfg["AURORA_LLM_BACKEND"]) == "cloud"      # no local reasoner: no aurora-llm (the installer chose it)
     units = {
         "aurora-llm": ("reasoner (llama.cpp)", "", f"{py} {script / 'svc_llm.py'}", ""),
         "aurora-models": ("encoder and re-ranker", "", f"{py} {script / 'svc_models.py'}", ""),
-        "aurora-api": ("API, events and WebUI", "aurora-models.service aurora-llm.service",
+        "aurora-api": ("API, events and WebUI", "aurora-models.service" + ("" if cloud else " aurora-llm.service"),
                        f"{py} {script / 'svc_api.py'}", ""),
         "aurora-rem": ("autonomic cycle (consolidation, reflections, dreams)", "aurora-api.service",
                        f"{py} {script / 'svc_rem.py'}", ""),
@@ -312,8 +313,13 @@ def main() -> int:
                          f"ExecReload={cfg['AURORA_CADDY_BIN']} reload --config {caddyfile} --adapter caddyfile --force\n"
                          + ("AmbientCapabilities=CAP_NET_BIND_SERVICE\n" if low_ports else "")),
     }
+    if cloud:
+        del units["aurora-llm"]
     out = root / "sys" / "deploy" / "systemd"
     out.mkdir(parents=True, exist_ok=True)
+    stale = out / "aurora-llm.service"
+    if cloud and stale.exists():                       # written when this machine had a local reasoner
+        stale.unlink()
     for name, (desc, after, exec_, extra) in units.items():
         if cfg["AURORA_SERVICE_HARDENING"]:
             extra += hardening(root, sys_config.service_user(cfg), name == "aurora-https" and low_ports,
@@ -360,7 +366,7 @@ def main() -> int:
     # loaded in memory, so on a fresh install it silently does nothing.
     names = [f"{n}.service" for n in units] + ["aurora.target"]
     checks = {"aurora-models": f"http://{cfg['AURORA_MODELS_HOST']}:{cfg['AURORA_MODELS_PORT']}/health",
-              "aurora-llm": f"http://{cfg['AURORA_LLM_HOST']}:{cfg['AURORA_LLM_PORT']}/health",
+              **({} if cloud else {"aurora-llm": f"http://{cfg['AURORA_LLM_HOST']}:{cfg['AURORA_LLM_PORT']}/health"}),
               "aurora-api": f"http://{cfg['AURORA_API_HOST']}:{cfg['AURORA_API_PORT']}/health",
               "aurora-https": f"https://{cfg['AURORA_DOMAIN']}:{cfg['AURORA_HTTPS_PORT']}/"}
     script_sh = out / "install.sh"

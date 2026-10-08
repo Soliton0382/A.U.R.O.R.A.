@@ -269,6 +269,16 @@ con quale comando aggiungerla (la pagina ⚙️ Stato mostra lo stesso elenco).
 | 2 GPU da 16 GB o più (es. 2 × RTX 5060 Ti) | **consigliato e misurato** |
 | 1 GPU da 24 GB o più | proposto, non misurato |
 | 1 GPU da 16 GB (esperti MoE in RAM, 48 GB consigliati) | proposto, non misurato |
+| **senza GPU** (o GPU più piccola): ragionatore cloud | proposto; encoder e re-ranker su CPU misurati (M151) |
+
+**Senza GPU.** Se non trova una GPU NVIDIA da 16 GB, l'installer propone il **ragionatore cloud**. Prima spiega cosa
+esce dal computer e cosa viene mascherato. Poi chiede il provider (Anthropic, OpenAI, Google Gemini, Mistral,
+OpenRouter, xAI o Claude Code) e la chiave, che non viene mostrata. Legge dal provider l'elenco dei modelli, prova chiave
+e modello con una chiamata e installa il resto senza CUDA, senza llama.cpp e senza il ragionatore da 21,5 GB: bastano
+15 GB di disco. Ricerca, memoria e documenti restano sul computer; encoder e re-ranker girano sulla CPU. Ogni testo che
+esce passa dal mascheramento: email, telefoni, IBAN, carte, codice fiscale, indirizzi, chiavi, il tuo nome e le parole che
+indichi. Non si mascherano il contenuto in sé e le foto. Per questo serve l'esenzione dal livello B, firmata alla fine.
+Si forza con `AURORA_INSTALL_BACKEND=cloud ./install.sh`.
 
 Modelli: 24,7 GB obbligatori (ragionatore 21,5 GB, encoder, re-ranker), fino a 57,6 GB facoltativi. Un'installazione
 pulita con tutti i modelli ha richiesto 10 min 55 s sulla macchina di riferimento (M59); da GitHub, multi-utente e

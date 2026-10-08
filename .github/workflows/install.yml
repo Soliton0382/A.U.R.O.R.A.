@@ -1,0 +1,90 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 A.U.R.O.R.A. Project
+#
+# install.sh on a clean Ubuntu machine WITHOUT a GPU (owner, 2026-10-08: «un collega senza GPU vuole provarla»): the
+# installer must choose the cloud reasoner by itself, install everything unattended, start the services and print the
+# address. Then a real question goes through HTTPS, the API, the encoder and re-ranker on the CPU, and the cloud step.
+# No cloud account here: a stand-in for the Claude Code CLI answers and keeps what reached it, so the run also proves
+# that the masking happened on the way out (an e-mail in the question must never reach it). Run by hand (Actions →
+# Install → Run workflow) and on every release tag.
+name: Install
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  cloud:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: bash
+        working-directory: /home/runner/aurora
+    steps:
+      - name: Room on the disk (the runner's toolchains Aurora does not use)
+        working-directory: /home/runner
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h /
+      - name: The code of this commit (public repository, no token)
+        working-directory: /home/runner
+        run: |
+          git init -q aurora && cd aurora
+          git fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q FETCH_HEAD && git log -1 --format='%h %s'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: A stand-in for Claude Code (no account here) that keeps what reached it
+        working-directory: /home/runner
+        run: |
+          mkdir -p .local/bin
+          cat > .local/bin/claude <<'EOF'
+          #!/usr/bin/env python3
+          import json, os, sys
+          args = sys.argv[1:]
+          system = args[args.index("--system-prompt") + 1] if "--system-prompt" in args else ""
+          user = sys.stdin.read()
+          with open(os.path.expanduser("~/aurora/claude-stub.log"), "a", encoding="utf-8") as f:
+              f.write(json.dumps({"system": system, "user": user}, ensure_ascii=False) + "\n")
+          answer = "Risposta di prova del sostituto di Claude Code."
+          usage = {"input_tokens": len(system + user) // 4, "output_tokens": 9}
+          if "stream-json" in args:
+              for w in answer.split(" "):
+                  print(json.dumps({"type": "stream_event", "event": {"type": "content_block_delta",
+                                    "delta": {"type": "text_delta", "text": w + " "}}}), flush=True)
+              print(json.dumps({"type": "result", "result": answer, "usage": usage, "total_cost_usd": 0}))
+          else:
+              print(json.dumps({"result": answer, "usage": usage, "total_cost_usd": 0, "is_error": False}))
+          EOF
+          chmod +x .local/bin/claude
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: install.sh, unattended, no GPU
+        env:
+          AURORA_INSTALL_PROVIDER: "7"          # Claude Code: the stand-in above
+          AURORA_INSTALL_NAME: Tester
+        run: ./install.sh --yes --no-optional-models
+      - name: A question through HTTPS; what reached the cloud was masked
+        run: |
+          KEY=$(.venv/bin/python -c 'import sys; sys.path.insert(0, "sys/core"); from aurora import sys_config; print(sys_config.get()["AURORA_API_KEY"])')
+          echo "::add-mask::$KEY"
+          curl -fsS --max-time 900 -k https://localhost/v1/chat/completions -H "Authorization: Bearer $KEY" \
+            -H 'Content-Type: application/json' \
+            -d '{"messages": [{"role": "user", "content": "La mia mail è mario.rossi@example.com. Che cos è un solitone?"}]}' \
+            -o answer.json
+          python3 -c 'import json; d = json.load(open("answer.json")); a = d["choices"][0]["message"]["content"]; print(a); assert a.strip()'
+          echo "calls that reached the cloud: $(wc -l < claude-stub.log)"
+          if grep -qF "mario.rossi@example.com" claude-stub.log; then echo "::error::the e-mail reached the cloud unmasked"; exit 1; fi
+          if ! grep -qF "[EMAIL_" claude-stub.log; then echo "::error::the question never reached the cloud step"; exit 1; fi
+          echo "masked: the e-mail left as a placeholder"
+      - name: What the doctor says, and the services' logs on a failure
+        if: always()
+        run: |
+          .venv/bin/python sys/core/script/sys_doctor.py || true
+          for u in aurora-api aurora-models aurora-https; do echo "== $u"; journalctl -u "$u" -n 40 --no-pager || true; done
+          tail -n 60 install.log || true

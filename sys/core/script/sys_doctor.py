@@ -108,6 +108,10 @@ def report(lang: str) -> int:
 
     print("== servizi" if lang == "it" else "== services")
     for u in UNITS:
+        if u == "aurora-llm" and str(cfg["AURORA_LLM_BACKEND"]) == "cloud":
+            line("☁️", f"aurora-llm: {'nessuno, ragionatore cloud' if lang == 'it' else 'none, cloud reasoner'} "
+                 f"({cfg['AURORA_CLOUD_PROVIDER']} {cfg['AURORA_CLOUD_MODEL'] or ''})".rstrip())
+            continue
         st = subprocess.run(["systemctl", "is-active", u], capture_output=True, text=True).stdout.strip() or "?"
         cmd = subprocess.run(["systemctl", "show", "-p", "ExecStart", u], capture_output=True, text=True).stdout
         if st == "active" and str(ROOT) + "/" not in cmd:  # the unit names are the machine's: another folder may own it

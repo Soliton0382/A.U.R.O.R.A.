@@ -266,6 +266,16 @@ models, services. A feature not installed never breaks: Aurora says it is missin
 | 2 GPUs of 16 GB or more (e.g. 2 × RTX 5060 Ti) | **recommended and measured** |
 | 1 GPU of 24 GB or more | proposed, not measured |
 | 1 GPU of 16 GB (MoE experts in RAM, 48 GB advised) | proposed, not measured |
+| **no GPU** (or a smaller one): cloud reasoner | proposed; encoder and re-ranker on the CPU measured (M151) |
+
+**Without a GPU.** If there is no NVIDIA GPU of 16 GB, the installer offers the **cloud reasoner**. First it says what
+leaves the computer and what is masked. Then it asks for the provider (Anthropic, OpenAI, Google Gemini, Mistral,
+OpenRouter, xAI or Claude Code) and the key, which is not shown. It reads the provider's list of models, tries key and
+model with one call, and installs the rest without CUDA, llama.cpp or the 21.5 GB reasoner: 15 GB of disk is enough.
+Search, memory and documents stay on the computer; the encoder and the re-ranker run on the CPU. Every text that leaves
+goes through the masking: e-mails, phones, IBANs, cards, tax codes, addresses, keys, your name and the words you list.
+The content itself and photos are not masked. This is why the exemption from level B is needed, signed at the end.
+Force it with `AURORA_INSTALL_BACKEND=cloud ./install.sh`.
 
 Models: 24.7 GB required (reasoner 21.5 GB, encoder, re-ranker), up to 57.6 GB optional. A clean install with every
 model took 10 min 55 s on the reference machine (M59); from GitHub, multi-user, required models only, 6 min 39 s

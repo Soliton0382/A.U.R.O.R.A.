@@ -13,7 +13,7 @@ end, duplicates and tests of pages that no longer exist removed (each with its r
 | 🛡️ security, with real approvals, ~30 min | N104, N108–N112, N116, N117 |
 | 📣 social and videos | N99, N102 |
 | 🔁 again after a change | N25, N93–N98 |
-| 🔑 a setup first (keys, devices, a second user, an account) | N13–N15, N18, N22, N30, N49–N51, N61, N67, N69, N106, N107, N130, R2, R11 |
+| 🔑 a setup first (keys, devices, a second user, an account) | N13–N15, N18, N22, N30, N49–N51, N61, N67, N69, N106, N107, N130, N131, R2, R11 |
 
 ## Pages added on 2 October
 
@@ -60,6 +60,7 @@ end, duplicates and tests of pages that no longer exist removed (each with its r
 | N127 | Under an old answer of Aurora: ↩️ → «spiegamelo in due righe»; then ↩️ → a new question on its subject. Also 📋 on a message, paste it | the first answer works on that message; the second searches with it as context; the quote stays in your bubble after a reload; the text pasted is the message's |
 | N128 | 📅 Calendario: ➕ an appointment in 20 minutes with «Avvisami 15 minuti prima»; on the phone too | at its time a notification «📅 Promemoria» and a bubble in the chat; «⏰ Tra 10 minuti» tells it again 10 minutes later; ✅ Fatto closes it |
 | N129 | In the chat: «ricordami domani alle 9 di chiamare Marco», then «cosa ho in agenda domani?», then «spostalo alle 10» | the reminder in the page at 9:00 of tomorrow; the agenda lists it; moved to 10:00 |
+| N131 | On a computer without an NVIDIA GPU (the colleague's): `git clone …` and `./install.sh`, answering the cloud questions with a real key | the installer offers the cloud by itself, lists the provider's models, says «risponde», ends with the address; on that address a question with an e-mail in it is answered, and 🧠 Modelli → statistics show the e-mail masked |
 | N130 | 📅 → 📁 Esporta .ics, import it in Google Calendar (or Outlook); export one from there and import it here | the same events there; here «Importati N», none doubled the second time |
 | N123 | 🎨 at the foot of the menu → each theme; Chiaro and Contrasto on the phone too | the colours change at once and stay after a reload; the chat, the cards and the menu stay readable (tell me a page that does not) |
 | N122 | 🤖 Agenti e routine → 🧰 Profili pronti → open «Casa e giornata» → «Applica» | only the missing routines are added (agenda, spese); then 📸 «Salva la mia configurazione»: as a user (not admin) the saved set shows no security or video routine |

@@ -222,7 +222,8 @@ call downward (ECOSYSTEM §1).
 | `dev_privacy_scan.py` | before a publish: the masker's terms and the firewall's devices must not be in the published folder (file:line, kind) | dev_publish.sh |
 | `sys_doctor.py` | read-only check of the installation: .env and schema, code signature, features, contradicting settings, services; `--groups` for the installer | install.sh (end), the owner |
 | `sys_models_fetch.py` | models from Hugging Face per `config/models.json`: pinned revisions, sizes before, SHA-256 after, resumable | install.sh |
-| `sys_profile.py` | hardware profile (GPUs, VRAM, RAM) → .env values; only the reference profile is measured | install.sh |
+| `sys_profile.py` | hardware profile (GPUs, VRAM, RAM) → .env values; no NVIDIA GPU of 16 GB (or `--cloud`): the cloud profile, encoder and re-ranker on the CPU (M151); only the reference profile is measured | install.sh |
+| `sys_cloud_setup.py` | the installer's cloud questions: a provider's own list of models (suggested first), one call through Aurora's client to prove key and model; the key by the environment only | install.sh |
 | `bench_image.py` | image model benchmark (load, time per image, peak VRAM at 1:1 and 16:9 ≥ 1024 px) | before choosing the image model |
 | `vid_ai.py` | makes one video with Wan 2.2 TI2V 5B (from words or a picture; fp8 weights, CPU offload, VAE tiling), labels the frames, encodes H.264 with metadata, exits | mdl_video, never by hand during another GPU job |
 | `img_paint.py` | paints one image with SDXL-Lightning and exits (all GPU memory given back) | mdl_image, never by hand during another GPU job |

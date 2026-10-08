@@ -926,6 +926,34 @@ person) —, the shadow trained 20/20 in 22.3 min, reflections at 01:11, 02:55, 
 with 2 sources in 66.2 s, «cos'è l'entropia» with 2 in 56.5 s — both declined before the night (N77, the machine's
 part). Facebook: the owner's first video published (approval executed, 5.9 s). Security (C174/C175): see BUGS. The face beside the health dot (owner, same morning): /v1/aurora/mood 0.02 s from the REM's last measure (53 s old); headless at 1280×850 a mouse over it opens the card (7 rows, 124–544 px), away closes it; at 390×844 a tap opens it inside the screen (8–382 px, no sideways scroll), a tap elsewhere closes it.
 
+## M151 — Aurora without a GPU: the encoder and re-ranker on a CPU, the cloud reasoner end to end (8 October 2026)
+
+For an installation without a suitable GPU (roadmap 70). On this machine's CPU (AMD Ryzen 7 7700X) with no GPU visible
+(CUDA_VISIBLE_DEVICES empty) and torch limited to 4 threads, to stand for a small machine; passages of ~170 words,
+inputs cut at 512 tokens.
+
+| model | precision | load | one question | 32 passages | 10 pairs | 30 pairs |
+|---|---|---|---|---|---|---|
+| encoder Qwen3-Embedding-0.6B | float32 | 0.7 s | 94 ms | 20.1 s (1.6/s) | | |
+| encoder | bfloat16 | 0.2 s | 44 ms | 7.5 s (4.3/s) | | |
+| re-ranker bge-reranker-v2-m3 | float32 | 0.8 s | | | 3.5 s | 9.8 s |
+| re-ranker | bfloat16 | 1.0 s | | | 1.2 s | 3.5 s |
+
+bfloat16 is fast here because Zen 4 computes it natively (AVX-512 BF16): the profile chooses it only where /proc/cpuinfo
+says avx512_bf16 or amx_bf16, float32 elsewhere. With the GPU's 300 candidates at 1,024 tokens a CPU would re-rank for
+minutes: the cloud profile hands 30 candidates at 512 tokens (3.5 s or 9.8 s on these 4 cores). Memory: torch alone
+843 MiB, + the encoder 1,813 MiB, + the re-ranker after 30 pairs 3,282 MiB, peak 5,064 MiB (one process, bfloat16);
+this machine's live services: aurora-api 2,019 MiB, aurora-harvester 455, aurora-rem 58, aurora-sentinel 71 — so 12 GB
+of RAM advised (the profile says it under 12). **Not measured**: the
+retrieval quality with 30 candidates instead of 300, and any CPU slower than this one.
+
+End to end, here: a pipeline with AURORA_LLM_BACKEND=cloud and a stand-in for the Claude Code CLI that keeps what it
+receives — «La mia mail è mario.rossi@example.com. Che cos'è un solitone?»: 9 calls reached the stand-in, none with the
+address, the placeholder [EMAIL_1] in them, the answer came back. The installer's check of a provider (one call through
+Aurora's own client, «Say: ok», 16 tokens) on the owner's keys: claude_code sonnet ok, grok-4.7 ok, gemini-pro-latest
+**empty** — its thinking spent the 16 tokens (C209); ok after the fix. The models a provider offers are read from its
+own list: Google returned 30 names, of which pictures, music, robotics and video models are not offered as reasoners.
+
 ## M150 — Phase 3's first fixes on real machines: two of the probe's own checks were wrong (8 October 2026)
 
 Ports on 17cd87e. Both stopped at the probe, so neither suite ran. Windows: «privacy: open file seen, then made

@@ -37,7 +37,7 @@ What Aurora was measured on (**recommended**: the owner's machine), and what is 
 | 2 GPUs ≥ 16 GB | split 4.5,3.5, experts on GPU, ctx 32k, encoder + re-ranker on the second GPU | **measured** (this page) |
 | 1 GPU ≥ 24 GB | split 1, 8 MoE layers' experts in RAM, ctx 32k, everything on one GPU | not measured |
 | 1 GPU of 16 GB | 28 MoE layers' experts in RAM, ctx 16k, everything on one GPU (48 GB RAM advised) | not measured |
-| less, or no NVIDIA GPU | — | not supported |
+| less, or no NVIDIA GPU | **cloud**: no local reasoner (AURORA_LLM_BACKEND=cloud, no aurora-llm), every step to the chosen provider (Anthropic, OpenAI, Gemini, Mistral, OpenRouter, xAI or Claude Code), always masked, with the owner's exemption (rule 9); encoder + re-ranker on the CPU (bfloat16 where the CPU has it, else float32), 30 candidates at 512 tokens; no dreams, edits or videos; 15 GB of disk | encoder/re-ranker speed **measured** on 4 cores (M151); the whole installation on a clean machine: the Install workflow |
 
 ## Expected to work, not measured
 

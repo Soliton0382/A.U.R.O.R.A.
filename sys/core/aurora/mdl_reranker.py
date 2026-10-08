@@ -28,7 +28,8 @@ class Reranker:
         t0 = time.time()
         self.model = CrossEncoder(str(path), device=self.cfg["AURORA_RERANKER_DEVICE"],
                                   max_length=self.cfg["AURORA_RERANKER_MAX_TOKENS"],
-                                  model_kwargs={"torch_dtype": torch.float16}, local_files_only=True)
+                                  model_kwargs={"torch_dtype": getattr(torch, self.cfg["AURORA_RERANKER_DTYPE"])},
+                                  local_files_only=True)
         self.batch = self.cfg["AURORA_RERANKER_BATCH"]
         self.name = path.name
         self.log.info("reranker %s loaded on %s in %.1f s", self.name,

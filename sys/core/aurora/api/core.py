@@ -281,6 +281,9 @@ def self_facts() -> dict:
         facts["health"] = f"not measured ({type(e).__name__})"
     for name, url in (("models_service", f"http://{cfg['AURORA_MODELS_HOST']}:{cfg['AURORA_MODELS_PORT']}/health"),
                       ("reasoner_service", f"http://{cfg['AURORA_LLM_HOST']}:{cfg['AURORA_LLM_PORT']}/health")):
+        if name == "reasoner_service" and str(cfg["AURORA_LLM_BACKEND"]) == "cloud":
+            facts[name] = f"none: cloud reasoner {cfg['AURORA_CLOUD_PROVIDER']} {cfg['AURORA_CLOUD_MODEL'] or ''}".strip()
+            continue
         try:
             facts[name] = httpx.get(url, timeout=2).json().get("status", "?")
         except httpx.HTTPError:

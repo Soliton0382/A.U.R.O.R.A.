@@ -119,13 +119,48 @@ class OpenAICompatLLM:
         from . import mdl_budget
         mdl_budget.record(self.cfg, self.name, usage)
 
-    def _chat(self, messages: list[dict], max_tokens: int) -> Completion:
-        t0 = time.time()
-        r = httpx.post(f"{self.base}/chat/completions", headers=self._headers(), timeout=self.cfg["AURORA_LLM_TIMEOUT_S"],
-                       json={"model": self.model, "messages": messages, "max_tokens": max_tokens})
+    # (provider, model) that refused a parameter: not sent to them again in this process
+    _refused: set[tuple[str, str, str]] = set()
+    THINK_ROOM = 4096                                  # C209: added once when the thinking took the whole budget
+
+    def _post(self, body: dict) -> dict:
+        """One chat call. A parameter the model refuses (reasoning_effort on a model that does not think, max_tokens
+        where only max_completion_tokens is accepted) is dropped or renamed once, and remembered."""
+        body = dict(body)
+        if (self.name, self.model, "reasoning_effort") in self._refused:
+            body.pop("reasoning_effort", None)
+        if (self.name, self.model, "max_tokens") in self._refused and "max_tokens" in body:
+            body["max_completion_tokens"] = body.pop("max_tokens")
+        for _ in range(3):
+            r = httpx.post(f"{self.base}/chat/completions", headers=self._headers(),
+                           timeout=self.cfg["AURORA_LLM_TIMEOUT_S"], json=body)
+            low = r.text.lower() if r.status_code in (400, 422) else ""
+            if "reasoning_effort" in body and "reasoning" in low:
+                self._refused.add((self.name, self.model, "reasoning_effort"))
+                body.pop("reasoning_effort")
+            elif "max_tokens" in body and "max_completion_tokens" in low:
+                self._refused.add((self.name, self.model, "max_tokens"))
+                body["max_completion_tokens"] = body.pop("max_tokens")
+            else:
+                break
         r.raise_for_status()
-        d = r.json()
+        return r.json()
+
+    def _chat(self, messages: list[dict], max_tokens: int, think: bool = False) -> Completion:
+        t0 = time.time()
+        body = {"model": self.model, "messages": messages, "max_tokens": max_tokens}
+        if not think:                                  # a short step: as little thinking as the model allows
+            body["reasoning_effort"] = "low"
+        d = self._post(body)
         text = (d["choices"][0]["message"].get("content") or "").strip()
+        if not text and d["choices"][0].get("finish_reason") == "length":
+            # C209: a model that cannot stop thinking (Gemini pro) counts its thinking in max_tokens: with the 16-32
+            # tokens of a short step it answered nothing (measured 8 Oct 2026, gemini-pro-latest: 0 tokens of answer)
+            self.log.info("%s %s: the thinking took all %d tokens, asked again with %d more", self.name, self.model,
+                          max_tokens, self.THINK_ROOM)
+            self._account(d.get("usage") or {}, time.time() - t0)
+            d = self._post({**body, "max_tokens": max_tokens + self.THINK_ROOM})
+            text = (d["choices"][0]["message"].get("content") or "").strip()
         self._account(d.get("usage") or {}, time.time() - t0)
         u = d.get("usage") or {}
         return Completion(text, "", int(u.get("completion_tokens") or 0), time.time() - t0,
@@ -133,14 +168,14 @@ class OpenAICompatLLM:
 
     def complete(self, system: str, user: str, max_tokens: int, think: bool = False) -> Completion:
         return self._chat([{"role": "system", "content": sys_config.personal(system, self.cfg)},
-                           {"role": "user", "content": user}], max_tokens)
+                           {"role": "user", "content": user}], max_tokens, think)
 
     def complete_turns(self, messages: list[dict], max_tokens: int, think: bool = False) -> Completion:
         msgs = [{"role": "user" if m["role"] == "tool" else m["role"],
                  "content": (f"TOOL RESULT:\n{m['content']}" if m["role"] == "tool" else
                              sys_config.personal(m["content"], self.cfg) if m["role"] == "system" else m["content"])}
                 for m in messages]
-        return self._chat(msgs, max_tokens)
+        return self._chat(msgs, max_tokens, think)
 
     def stream(self, system: str, user: str, max_tokens: int, think: bool = False) -> Iterator[tuple[str, str]]:
         c = self.complete(system, user, max_tokens, think)             # one piece: simple and measured
@@ -151,6 +186,13 @@ class OpenAICompatLLM:
         uri = "data:image/jpeg;base64," + base64.b64encode(jpeg).decode("ascii")
         return self._chat([{"role": "user", "content": [{"type": "text", "text": instruction},
                                                           {"type": "image_url", "image_url": {"url": uri}}]}], max_tokens).answer
+
+    def see_many(self, frames: list[tuple[str, bytes]], instruction: str, max_tokens: int = 1600) -> str:
+        parts: list[dict] = [{"type": "text", "text": instruction}]
+        for label, jpeg in frames:
+            parts += [{"type": "text", "text": f"Frame at {label}:"},
+                      {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," + base64.b64encode(jpeg).decode("ascii")}}]
+        return self._chat([{"role": "user", "content": parts}], max_tokens).answer
 
     def count_tokens(self, text: str) -> int:
         return len(text) // 3                                          # an estimate: these APIs have no counter
@@ -238,6 +280,12 @@ class MaskedLLM:
         self._note(p, images=1)
         return p.unmask(out)
 
+    def see_many(self, frames: list[tuple[str, bytes]], instruction: str, max_tokens: int = 1600) -> str:
+        p = self._p()
+        out = self.inner.see_many(frames, p.mask(instruction), max_tokens)
+        self._note(p, images=len(frames))
+        return p.unmask(out)
+
     def count_tokens(self, text: str) -> int:
         return self.inner.count_tokens(text)
 
@@ -272,6 +320,9 @@ class Fallback:
     def see(self, *a, **k):
         return self._try("see", *a, **k)
 
+    def see_many(self, *a, **k):
+        return self._try("see_many", *a, **k)
+
     def count_tokens(self, text: str) -> int:
         return self._try("count_tokens", text)
 
@@ -302,18 +353,110 @@ def model_for(role: str, local, cfg: sys_config.Config | None = None):
         return metered
     if not sys_ethics.exempt(cfg):                       # rule 9: no private data to cloud models without the exemption
         return metered
+    inner = cloud_client(provider, a["model"], cfg)
+    if inner is None:
+        return metered
+    model = MaskedLLM(inner, role, cfg)                 # always: no setting turns the masking off (owner, 2026-10-05)
+    return Fallback(model, metered, role, cfg, provider)
+
+
+def cloud_client(provider: str, model: str, cfg: sys_config.Config):
+    """A cloud provider's client, not masked yet (model_for and CloudBase wrap it); None when an OpenAI-compatible
+    provider has no model chosen."""
     from . import mdl_cloud
     kind = PROVIDERS[provider]["kind"]
     if kind == "claude_code":
-        inner = mdl_cloud.ClaudeCodeLLM(cfg, a["model"] or None)
-    elif kind == "anthropic":
-        inner = mdl_cloud.AnthropicLLM(cfg, a["model"] or None)
-    else:
-        if not a["model"]:
-            return metered
-        inner = OpenAICompatLLM(provider, a["model"], cfg)
-    model = MaskedLLM(inner, role, cfg)                 # always: no setting turns the masking off (owner, 2026-10-05)
-    return Fallback(model, metered, role, cfg, provider)
+        return mdl_cloud.ClaudeCodeLLM(cfg, model or None)
+    if kind == "anthropic":
+        return mdl_cloud.AnthropicLLM(cfg, model or None)
+    if kind == "openai" and model:
+        return OpenAICompatLLM(provider, model, cfg)
+    return None
+
+
+# ---- a machine without a local reasoner --------------------------------------------------------------------------
+
+def cloud_only(cfg: sys_config.Config) -> bool:
+    """No local reasoner on this machine (AURORA_LLM_BACKEND=cloud: the installer found no suitable GPU)."""
+    return str(cfg["AURORA_LLM_BACKEND"]) == "cloud"
+
+
+def label(provider: str, cfg: sys_config.Config) -> str:
+    """A provider's name on the Models page: "local" says what it is on a machine without a local reasoner."""
+    if provider == "local" and cloud_only(cfg):
+        return f"Predefinito: {cfg['AURORA_CLOUD_PROVIDER']} {cfg['AURORA_CLOUD_MODEL'] or ''}".rstrip() + " (nessun modello locale)"
+    return PROVIDERS[provider]["label"]
+
+
+def base(cfg: sys_config.Config | None = None):
+    """The model of the steps assigned "local": llama.cpp (aurora-llm), or on a cloud-only machine the default cloud
+    model (CloudBase)."""
+    cfg = cfg or sys_config.get()
+    if cloud_only(cfg):
+        return CloudBase(cfg)
+    from .mdl_llm import LLM
+    return LLM(cfg)
+
+
+class CloudBase:
+    """What "local" means where there is no local reasoner: AURORA_CLOUD_PROVIDER / AURORA_CLOUD_MODEL, masked as every
+    cloud call. Nothing is asked of the provider when it is made (a page that only reads works without it); a call
+    without the owner's exemption (rule 9), without a key or past today's ceiling fails saying why: there is no local
+    model to fall back to."""
+
+    def __init__(self, cfg: sys_config.Config):
+        self.cfg = cfg
+        self.provider, self.model = str(cfg["AURORA_CLOUD_PROVIDER"]), str(cfg["AURORA_CLOUD_MODEL"] or "")
+        self.name = self.provider
+        self.context_tokens = 128_000 if PROVIDERS.get(self.provider, {}).get("kind") == "openai" else 200_000
+        self.last_speed = None
+
+    def problem(self) -> str:
+        """Why a call cannot go now ("" when it can), without asking the provider."""
+        spec = PROVIDERS.get(self.provider)
+        if spec is None or spec["kind"] == "local":
+            return f"AURORA_CLOUD_PROVIDER {self.provider!r} is not a cloud provider"
+        if not sys_ethics.exempt(self.cfg):
+            return ("no local reasoner and no exemption from level B (rule 9): "
+                    "sudo .venv/bin/python sys/core/script/sys_ethics_sign.py setup --exempt")
+        if spec.get("key") and not self.cfg.values.get(spec["key"]):
+            return f"{spec['key']} is empty"
+        if spec["kind"] == "openai" and not self.model:
+            return "AURORA_CLOUD_MODEL is empty"
+        return ""
+
+    def _m(self) -> MaskedLLM:
+        from . import mdl_budget
+        why = self.problem()
+        if why:
+            raise RuntimeError(why)
+        if mdl_budget.over(self.cfg, self.provider):
+            raise RuntimeError(f"{self.provider}: today's ceiling is reached (AURORA_CLOUD_DAILY_TOKENS) and this "
+                               "machine has no local model")
+        return MaskedLLM(cloud_client(self.provider, self.model, self.cfg), "base", self.cfg)
+
+    def health(self) -> bool:
+        return not self.problem()
+
+    def complete(self, system: str, user: str, max_tokens: int, think: bool = False) -> Completion:
+        return self._m().complete(system, user, max_tokens, think)
+
+    def complete_turns(self, messages: list[dict], max_tokens: int, think: bool = False) -> Completion:
+        return self._m().complete_turns(messages, max_tokens, think)
+
+    def stream(self, system: str, user: str, max_tokens: int, think: bool = False) -> Iterator[tuple[str, str]]:
+        m = self._m()
+        yield from m.stream(system, user, max_tokens, think)
+        self.last_speed = m.last_speed
+
+    def see(self, jpeg: bytes, instruction: str, max_tokens: int = 700) -> str:
+        return self._m().see(jpeg, instruction, max_tokens)
+
+    def see_many(self, frames: list[tuple[str, bytes]], instruction: str, max_tokens: int = 1600) -> str:
+        return self._m().see_many(frames, instruction, max_tokens)
+
+    def count_tokens(self, text: str) -> int:
+        return len(text) // 3                          # an estimate, no call: the conservative ratio of OpenAICompatLLM
 
 
 # ---- statistics (the 🧠 Models page) ---------------------------------------------------------------------------

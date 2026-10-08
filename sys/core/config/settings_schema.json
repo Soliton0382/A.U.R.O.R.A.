@@ -1117,6 +1117,23 @@
    ]
   },
   {
+   "key": "AURORA_RERANKER_DTYPE",
+   "type": "enum",
+   "choices": [
+    "float16",
+    "bfloat16",
+    "float32"
+   ],
+   "category": "search",
+   "recommended": "float16",
+   "evidence": "M15, M151",
+   "en": "Numeric precision of the re-ranker. float16 on a GPU; on a CPU bfloat16 where the processor has it (3.5 s for 30 passages against 9.8 s in float32, M151), else float32.",
+   "it": "Precisione numerica del riordinatore. float16 su GPU; su CPU bfloat16 se il processore lo ha (3,5 s per 30 passaggi contro 9,8 s in float32, M151), altrimenti float32.",
+   "services": [
+    "aurora-models"
+   ]
+  },
+  {
    "key": "AURORA_MEMORY_RECENT_TURNS",
    "type": "int",
    "min": 0,
@@ -1810,6 +1827,62 @@
     "aurora-api",
     "aurora-rem"
    ]
+  },
+  {
+   "key": "AURORA_LLM_BACKEND",
+   "type": "enum",
+   "choices": [
+    "local",
+    "cloud"
+   ],
+   "category": "llm",
+   "recommended": "local",
+   "evidence": "owner",
+   "en": "Where the steps assigned 'local' reason. local: the reasoner on this machine's GPU (aurora-llm). cloud: a machine without a suitable GPU: no aurora-llm, every step goes to AURORA_CLOUD_PROVIDER, always masked (sec_mask), and needs the owner's exemption (rule 9). The installer chooses it.",
+   "it": "Dove ragionano i passi assegnati a 'locale'. local: il ragionatore sulla GPU di questa macchina (aurora-llm). cloud: una macchina senza GPU adatta: niente aurora-llm, ogni passo va ad AURORA_CLOUD_PROVIDER, sempre mascherato (sec_mask), e serve l'esenzione del proprietario (regola 9). Lo sceglie l'installer.",
+   "services": [
+    "aurora-api",
+    "aurora-rem",
+    "aurora-harvester"
+   ]
+  },
+  {
+   "key": "AURORA_CLOUD_PROVIDER",
+   "type": "enum",
+   "choices": [
+    "anthropic",
+    "claude_code",
+    "openai",
+    "google",
+    "xai",
+    "mistral",
+    "openrouter"
+   ],
+   "category": "llm",
+   "recommended": "anthropic",
+   "evidence": "owner",
+   "en": "With AURORA_LLM_BACKEND=cloud: the provider that does the steps assigned 'local' (its key in the .env).",
+   "it": "Con AURORA_LLM_BACKEND=cloud: il provider che fa i passi assegnati a 'locale' (la sua chiave nel .env).",
+   "services": [
+    "aurora-api",
+    "aurora-rem",
+    "aurora-harvester"
+   ]
+  },
+  {
+   "key": "AURORA_CLOUD_MODEL",
+   "type": "str",
+   "category": "llm",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "With AURORA_LLM_BACKEND=cloud: the model of AURORA_CLOUD_PROVIDER, as named in the provider's own list (the installer reads it from there). Empty with anthropic or claude_code: their default.",
+   "it": "Con AURORA_LLM_BACKEND=cloud: il modello di AURORA_CLOUD_PROVIDER, col nome della lista del provider (l'installer la legge da lì). Vuoto con anthropic o claude_code: il loro predefinito.",
+   "services": [
+    "aurora-api",
+    "aurora-rem",
+    "aurora-harvester"
+   ],
+   "optional": true
   },
   {
    "key": "AURORA_ANTHROPIC_API_KEY",

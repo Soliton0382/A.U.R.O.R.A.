@@ -22,6 +22,12 @@ def status() -> dict:
     out = {"vault": VaultReader(cfg).count()}
     for name, url in (("models", f"http://{cfg['AURORA_MODELS_HOST']}:{cfg['AURORA_MODELS_PORT']}/health"),
                       ("llm", f"http://{cfg['AURORA_LLM_HOST']}:{cfg['AURORA_LLM_PORT']}/health")):
+        if name == "llm" and str(cfg["AURORA_LLM_BACKEND"]) == "cloud":
+            from aurora import mdl_router
+            why = mdl_router.CloudBase(cfg).problem()
+            out[name] = {"status": "down" if why else "cloud", "provider": cfg["AURORA_CLOUD_PROVIDER"],
+                         "model": cfg["AURORA_CLOUD_MODEL"], **({"error": why} if why else {})}
+            continue
         try:
             out[name] = httpx.get(url, timeout=3).json()
         except httpx.HTTPError as e:
