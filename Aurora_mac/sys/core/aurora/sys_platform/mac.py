@@ -26,7 +26,10 @@ from typing import Sequence
 from .base import Device, Gpu, Platform, Result, host_port
 
 LABEL = "com.aurora.{}"
-BREW = {"ffmpeg": "ffmpeg", "ffprobe": "ffmpeg", "pdftoppm": "poppler", "pdftotext": "poppler"}
+# ffmpeg-full (homebrew/core, the owner: «plugin suoi ufficiali»): Homebrew's plain ffmpeg has no drawtext, subtitles
+# or rubberband (measured on a real Mac, 8 Oct; its formula lists x264 only); keg-only, so the installer puts
+# $(brew --prefix ffmpeg-full)/bin first in the services' PATH
+BREW = {"ffmpeg": "ffmpeg-full", "ffprobe": "ffmpeg-full", "pdftoppm": "poppler", "pdftotext": "poppler"}
 # "[0] FaceTime HD Camera" (older ffmpeg) or "[0] FaceTime HD Camera  [uid:...] [serial:...]" (libavdevice/
 # avfoundation.m, avf_log_device_entry, checked 2026-10-08): the name stops before the uid
 DEVICE_LINE = re.compile(r"\[(\d+)\]\s+(.+?)(?:\s{2}\[uid:.*)?\s*$")

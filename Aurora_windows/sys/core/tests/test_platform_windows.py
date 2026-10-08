@@ -204,3 +204,20 @@ def test_a_plugin_s_cage_is_an_appcontainer_with_its_secrets_denied(cfg, tmp_pat
     assert real(cfg.path("AURORA_NOTES_DIR")) in spec["write"] and real(cfg.root) in spec["read"]
     assert env == {"AURORA_ENV_FILE": real(filtered), "AURORA_IN_SANDBOX": "1"}
     assert w.cage(["x"], folder, {}, filtered, cfg)[0] and json.loads(Path(cmd[3]).read_text())["name"]   # made again
+
+
+def test_the_appcontainer_is_given_only_grants_and_never_the_secrets(tmp_path):
+    """v0.2.0's Windows run: a whole folder granted and its secrets denied — the AppContainer still read .env and the
+    push key. Now only grants: around each secret, folder by folder; the secret itself gets nothing."""
+    from aurora.sys_platform import win_cage as W
+    for d in ("sys/core", "sys/status/push", "sys/status/plugins/env", "usr/boss/notes", "usr/guest"):
+        (tmp_path / d).mkdir(parents=True)
+    for f in (".env", "README.md", "sys/core/a.py", "sys/status/push/v.pem", "sys/status/plugins/env/x.env"):
+        (tmp_path / f).write_text("x")
+    t = lambda p: str(tmp_path / p) if p else str(tmp_path)                           # noqa: E731
+    g = W.plan_grants([t("")], [t(".env"), t("sys/status/push"), t("sys/status/plugins/env"), t("usr/guest")],
+                      [t("usr/boss/notes")])
+    assert g == {t(""): W.ONLY, t("README.md"): W.FILE, t("sys"): W.ONLY, t("sys/core"): W.TREE,
+                 t("sys/status"): W.ONLY, t("sys/status/plugins"): W.ONLY, t("usr"): W.ONLY, t("usr/boss"): W.TREE,
+                 t("usr/boss/notes"): W.WRITE}
+    assert not any(k.endswith((".env", "push", "env", "guest", "v.pem")) for k in g)

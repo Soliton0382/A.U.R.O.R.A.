@@ -7,15 +7,14 @@ bubblewrap, made of what Windows has:
 
 SPEC is windows.Windows.cage's cage_plan plus the container's name. An AppContainer process reads and writes only
 what its SID is granted (and what Windows gives every app container: the system's own folders), so:
-  read    Aurora's folder, the plugin's, the Python      granted read (inherited by what is created later)
-  hide    the secrets inside them                         denied to the SID (a deny wins over the inherited grant)
-  allow   its own filtered .env                           granted on the file itself (an explicit grant wins over the
-                                                          inherited deny); made again at each start, as the file is
+  read    Aurora's folder, the plugin's, the Python      granted read, branch by branch around the secrets
+  hide    the secrets inside them                         never granted (no denial: v0.2.0's run showed a granted
+                                                          folder's deny did not stop the AppContainer)
+  allow   its own filtered .env                           granted on the file itself, at each start (written again)
   write   its folders and temp                            granted modify
   network internetClient + privateNetworkClientServer     capabilities; none when the manifest says no network
-The grants on folders are kept (a marker remembers them: a grant on Aurora's folder walks thousands of files once);
-the denials and the .env's grant are made at every start, cheap, because a file written again (os.replace, the
-settings saved) loses the explicit entries. The plugin runs in a Job object that kills it when this launcher goes
+The grants are kept in a marker (a grant on a big folder walks its files once); one whose right changed is removed
+first; the .env's grant is made at every start, as the file is written again (os.replace). The plugin runs in a Job object that kills it when this launcher goes
 (the launcher dies with Aurora's pipe), with this launcher's stdin/stdout/stderr (the MCP pipe) and exit code.
 """
 from __future__ import annotations
@@ -150,22 +149,56 @@ def icacls(path: str, *args: str) -> None:
         raise OSError(f"win_cage: icacls {path} {' '.join(args)}: {(r.stdout + r.stderr).strip()[-300:]}")
 
 
+TREE, ONLY, WRITE, FILE = "(OI)(CI)(RX)", "(RX)", "(OI)(CI)(M)", "(R)"
+
+
+def _under(p: Path, top: Path) -> bool:
+    return p == top or top in p.parents
+
+
+def plan_grants(read: list[str], hide: list[str], write: list[str]) -> dict[str, str]:
+    """{path: right}: only grants, never a denial (v0.2.0's Windows run: with the whole folder granted and the secrets
+    denied, the AppContainer still read .env and the push key). A branch with no secret in it is granted whole; a
+    folder holding a secret somewhere below is granted for itself only (listed, crossed) and its children are looked
+    at one by one; a secret gets nothing — an AppContainer reads only what it is given, so nothing reaches it."""
+    hidden = [Path(h) for h in hide]
+    out: dict[str, str] = {}
+
+    def walk(p: Path) -> None:
+        if any(_under(p, h) for h in hidden) or not p.exists():
+            return
+        if p.is_dir() and any(h != p and p in h.parents for h in hidden):
+            out[str(p)] = ONLY
+            for child in sorted(p.iterdir()):
+                walk(child)
+        else:
+            out[str(p)] = TREE if p.is_dir() else FILE
+    for r in read:
+        walk(Path(r))
+    for w in write:
+        if Path(w).exists() and not any(_under(Path(w), h) for h in hidden):
+            out[str(w)] = WRITE
+    return out
+
+
 def grant(spec: dict, sid: str) -> None:
+    """The plan's grants, kept in a marker: a path whose right changed (a folder that now holds another user's data)
+    has its old entry removed first — the removal of an inherited grant reaches what is below it."""
     marker = Path(spec["marker"])
-    done = set(json.loads(marker.read_text(encoding="utf-8"))) if marker.is_file() else set()
-    want = [(p, "(OI)(CI)(RX)") for p in spec["read"]] + [(p, "(OI)(CI)(M)") for p in spec["write"]]
-    for path, right in want:
-        if f"{path}|{right}" in done or not Path(path).exists():
-            continue
-        icacls(path, "/grant", f"*{sid}:{right}")
-        done.add(f"{path}|{right}")
+    before = json.loads(marker.read_text(encoding="utf-8")) if marker.is_file() else {}
+    if not isinstance(before, dict):                  # the first marker (a list): start again
+        before = {}
+    want = plan_grants(spec["read"], spec["hide"], spec["write"])
+    for path, right in before.items():
+        if want.get(path) != right and Path(path).exists():
+            icacls(path, "/remove:g", f"*{sid}")
+    for path, right in want.items():
+        if before.get(path) != right:
+            icacls(path, "/grant", f"*{sid}:{right}")
     marker.parent.mkdir(parents=True, exist_ok=True)
-    marker.write_text(json.dumps(sorted(done)), encoding="utf-8")
-    for h in spec["hide"]:                            # every start: a file written again lost its entry
-        if Path(h).exists():
-            icacls(h, "/deny", f"*{sid}:(OI)(CI)(F)" if Path(h).is_dir() else f"*{sid}:(F)")
-    for a in spec["allow"]:
-        icacls(a, "/grant", f"*{sid}:(R)")
+    marker.write_text(json.dumps(want, indent=0), encoding="utf-8")
+    for a in spec["allow"]:                           # every start: the file is written again (os.replace)
+        icacls(a, "/grant", f"*{sid}:{FILE}")
 
 
 def run(spec: dict, cmd: list[str]) -> int:

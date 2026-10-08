@@ -926,6 +926,20 @@ person) —, the shadow trained 20/20 in 22.3 min, reflections at 01:11, 02:55, 
 with 2 sources in 66.2 s, «cos'è l'entropia» with 2 in 56.5 s — both declined before the night (N77, the machine's
 part). Facebook: the owner's first video published (approval executed, 5.9 s). Security (C174/C175): see BUGS. The face beside the health dot (owner, same morning): /v1/aurora/mood 0.02 s from the REM's last measure (53 s old); headless at 1280×850 a mouse over it opens the card (7 rows, 124–544 px), away closes it; at 390×844 a tap opens it inside the screen (8–382 px, no sideways scroll), a tap elsewhere closes it.
 
+## M144 — The cages on a real Mac and a real Windows (8 October 2026)
+
+Ports on d9a558d. The Mac (Apple Silicon): 40 checks, 29 ok, 2 failed — both ffmpeg's: Homebrew's plain ffmpeg 9.0.1
+lacks drawtext, subtitles and rubberband (its formula lists x264 only); every cage check passed — a real process in
+sandbox-exec read the code and its own filtered .env, never the real .env, the push key or the home, wrote only in its
+folder, reached the network only when allowed. The owner: «per ffmpeg di mac usiamo pacchetti suoi ufficiali»: Homebrew's
+own ffmpeg-full (homebrew/core 9.0.2, bottles for arm64; freetype, libass, rubberband, x264 — formulae.brew.sh),
+keg-only: its bin first in the PATH (the workflow now; the installer for the services). Windows (x64): 39 checks, 28
+ok, 2 failed — in the AppContainer the code and its own .env read, the home and the code's folder refused to it, its
+folder written, the network open and closed as asked; but .env and the push key READ: the folder granted whole with
+the secrets denied did not stop it. Changed to grants only (win_cage.plan_grants: around each secret folder by folder,
+the secret itself never granted; a grant whose right changes removed first), tested on a tree here; the next run
+proves it.
+
 ## M143 — The cages for the Mac and Windows, and what the real machines found (8 October 2026, C204, C205)
 
 The owner chose the cages first («A»). One contract for every system, cage_plan (sys_platform/base.py): what a plugin

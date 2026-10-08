@@ -52,7 +52,10 @@ jobs:
       - name: System tools (ffmpeg, poppler) — the installer's job in phase 3
         working-directory: ${{ matrix.home }}
         run: |
-          if [ "$RUNNER_OS" = "macOS" ]; then brew install ffmpeg poppler; else choco install -y --no-progress ffmpeg poppler; fi
+          # the Mac: Homebrew's official ffmpeg-full (the plain ffmpeg lacks drawtext, subtitles, rubberband), keg-only:
+          # its bin first in the PATH, as the installer will do for the services
+          if [ "$RUNNER_OS" = "macOS" ]; then brew install ffmpeg-full poppler && echo "$(brew --prefix ffmpeg-full)/bin" >> "$GITHUB_PATH"
+          else choco install -y --no-progress ffmpeg poppler; fi
       - name: Build the port
         run: python ${{ matrix.port }}/build.py
       - name: Requirements from PyPI (the built tree's)

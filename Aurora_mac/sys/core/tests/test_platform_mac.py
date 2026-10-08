@@ -130,6 +130,7 @@ def test_files_keys_fonts_and_hints(tmp_path):
     m = mac([], tmp_path)
     assert str(m.key_dir()) == "/Library/Application Support/Aurora/keys"
     assert m.install_hint("pdftoppm") == "brew install poppler" and m.as_admin("x") == "sudo x"
+    assert m.install_hint("ffmpeg") == "brew install ffmpeg-full"                 # drawtext, subtitles, rubberband
     assert m.ffmpeg_path(m.fonts()[0]) == "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
     assert m.process_env() == {}
     ok, why = m.trusted_by_admin_only(tmp_path / "k.pub")                  # the owner's folder: not root's
