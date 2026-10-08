@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import ipaddress
 import json
+import re
 import shutil
 import subprocess
 import threading
@@ -25,14 +26,40 @@ from pathlib import Path
 from . import sys_config
 
 HELPER = Path("/usr/local/sbin/aurora-nft")
+SOCKET = Path("/run/aurora-nftd.sock")
 _lock = threading.Lock()
 
 
-def available() -> bool:
+def call(*args: str, timeout: float = 15) -> tuple[int, str]:
+    """(exit code, output) of aurora-nft. Through its socket (aurora-nftd.socket): Aurora's services are hardened
+    (NoNewPrivileges) and sudo cannot work inside them — it never did, until C194; sudo -n is kept for the shell."""
+    if SOCKET.exists():
+        import socket
+        try:
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+                s.settimeout(timeout)
+                s.connect(str(SOCKET))
+                s.sendall((" ".join(args) + "\n").encode())
+                s.shutdown(socket.SHUT_WR)
+                data = b""
+                while chunk := s.recv(65536):
+                    data += chunk
+        except OSError as e:
+            return 1, f"the socket of Aurora's firewall does not answer: {e}"
+        text = data.decode(errors="replace")
+        m = re.search(r"#rc (\d+)\s*$", text)
+        return (int(m.group(1)) if m else 1), text[:m.start()].strip() if m else text.strip()
     if not HELPER.is_file() or not shutil.which("sudo"):
-        return False
-    r = subprocess.run(["sudo", "-n", str(HELPER), "list"], capture_output=True, timeout=20)
-    return r.returncode == 0
+        return 1, "aurora-nft not installed: sudo bash sys/deploy/nft/install.sh"
+    try:
+        r = subprocess.run(["sudo", "-n", str(HELPER), *args], capture_output=True, text=True, timeout=timeout)
+    except (OSError, subprocess.SubprocessError) as e:
+        return 1, str(e)
+    return r.returncode, (r.stdout or r.stderr).strip()
+
+
+def available() -> bool:
+    return call("list")[0] == 0
 
 
 def _file(cfg: sys_config.Config) -> Path:
@@ -75,9 +102,9 @@ def block(cfg: sys_config.Config, ip: str, why: str, hours: float | None = None)
         return {"ok": False, "why": reason}
     hours = float(hours or cfg["AURORA_HOSTFW_HOURS"])
     secs = int(max(60, min(hours * 3600, 604800)))
-    r = subprocess.run(["sudo", "-n", str(HELPER), "block", ip, str(secs)], capture_output=True, text=True, timeout=20)
-    if r.returncode != 0:
-        return {"ok": False, "why": (r.stderr or "aurora-nft not installed: sudo bash sys/deploy/nft/install.sh").strip()[:200]}
+    rc, out = call("block", ip, str(secs))
+    if rc != 0:
+        return {"ok": False, "why": (out or "aurora-nft not installed: sudo bash sys/deploy/nft/install.sh")[:200]}
     with _lock:
         items = _load(cfg)
         items.append({"ip": ip, "why": why, "at": time.time(), "until": time.time() + secs})
@@ -86,7 +113,7 @@ def block(cfg: sys_config.Config, ip: str, why: str, hours: float | None = None)
 
 
 def unblock(cfg: sys_config.Config, ip: str) -> dict:
-    r = subprocess.run(["sudo", "-n", str(HELPER), "unblock", ip], capture_output=True, text=True, timeout=20)
+    rc, _out = call("unblock", ip)
     with _lock:
         items = _load(cfg)
         for b in items:
@@ -94,7 +121,7 @@ def unblock(cfg: sys_config.Config, ip: str) -> dict:
                 b["until"] = time.time()
                 b["lifted"] = True
         _file(cfg).write_text(json.dumps(items[-500:]))
-    return {"ok": r.returncode == 0}
+    return {"ok": rc == 0}
 
 
 def active(cfg: sys_config.Config) -> list[dict]:

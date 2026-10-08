@@ -59,3 +59,27 @@ def test_the_week_has_a_score_and_campaigns(cfg):
     r = sec_report.week(cfg)
     assert r["incidents"] == 2 and r["campaigns"][0]["network"] == "8.8.4.0/24" and r["score"] < 100
     assert "punteggio" in sec_report.text(r)
+
+
+def test_aurora_s_services_reach_their_firewall_through_its_socket_not_sudo(tmp_path, monkeypatch):
+    """C194: NoNewPrivileges forbids sudo inside the services; aurora-nftd.socket answers one request, «#rc N» last."""
+    import socket
+    import threading
+    path = tmp_path / "nftd.sock"
+    srv = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    srv.bind(str(path))
+    srv.listen(2)
+    asked = []
+
+    def serve():
+        for answer in ("[]\n#rc 0\n", "not a blockable IPv4: 127.0.0.1\n#rc 2\n"):
+            c, _ = srv.accept()
+            asked.append(c.makefile().readline().strip())
+            c.sendall(answer.encode())
+            c.close()
+    threading.Thread(target=serve, daemon=True).start()
+    monkeypatch.setattr(sec_hostfw, "SOCKET", path)
+    assert sec_hostfw.available() is True
+    assert sec_hostfw.call("block", "127.0.0.1", "600") == (2, "not a blockable IPv4: 127.0.0.1")
+    assert asked == ["list", "block 127.0.0.1 600"]
+    srv.close()

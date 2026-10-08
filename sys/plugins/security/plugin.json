@@ -10,7 +10,7 @@
     "{python}",
     "server.py"
   ],
-  "env": [],
+  "env": ["AURORA_FIREWALL_API_PASSWORD"],
   "requires": [],
   "effects": {
     "firewall_docs_refresh": "write_local",
@@ -75,5 +75,6 @@
     "AURORA_FIREWALL_WRITE",
     "AURORA_FIREWALL_CONFIRM_S",
     "AURORA_QUARANTINE_GROUP"
-  ]
+  ],
+  "sandbox": {"write": ["AURORA_SECURITY_DIR"]}
 }

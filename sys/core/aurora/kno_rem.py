@@ -51,10 +51,17 @@ SYS_INTROSPECT = ("\nYou are reviewing yourself, once a day, from your own logs 
                   "is separate: do not merge them, and count each kind of message on its own. 'evidence' says, for each "
                   "kind, whether it was seen again after its service last started: a problem not seen since then is "
                   "probably already fixed; say so.")
+# C196 (owner, 2026-10-08: «la foto del sogno e la descrizione non mi sembrano complementari»): the dream was a list
+# of abstract sentences and the painting one object picked from them. A dream is seen: scenes, one central, and the
+# painting is that scene with the dream's own place, things, colours and light; the style comes last.
 SYS_DREAM = ("\nIt is night and you are dreaming. Recombine the fragments below (memories and knowledge) into a "
-             "dream: surreal but made of their real elements, in Italian, first person, 6 to 10 sentences. Then, "
-             "on a last line starting with 'IMAGE:', write an English prompt (max 60 words) for a painting of the "
-             "dream's central scene, in the style: biomechanical, hyper-realistic, topological, luminous.")
+             "dream: surreal but made of their real elements, in Italian, first person, 6 to 10 sentences. A dream is "
+             "SEEN: tell it as scenes (a place, what is in it, what happens, its light and colours), not as reflections "
+             "or definitions. One scene is the central one: tell it with the most detail. No numbers, measurements or "
+             "counts from the fragments, no invented words, no names of people. Then, on a last line starting with "
+             "'IMAGE:', write an English prompt (max 60 words) painting exactly that central scene: the same place, "
+             "things, action, colours and light the dream tells, nothing it does not tell; end it with the style: "
+             "biomechanical, hyper-realistic, topological, luminous.")
 
 
 @dataclass

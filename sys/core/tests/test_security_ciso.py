@@ -346,3 +346,21 @@ def test_aurora_s_machine_doors_judged_from_what_listens(cfg):
     assert kinds == {"9700": "local", "443": "expected", "2222": "expected", "5514": "expected", "22": "exposed",
                      "41689": "client", "6379": "exposed", "67": "local"}
     assert [(f["severity"], f["port"]) for f in found] == [("medium", "6379"), ("low", "22")]
+
+
+def test_the_security_plugin_gets_its_password_and_its_folder_inside_the_sandbox():
+    """C195: inside the sandbox the firewall's password was the word "redacted" (a secret passes only when the manifest
+    lists it in env) and the plugin's folder read-only: every firewall tool from the chat and the routines failed."""
+    import json
+    from pathlib import Path
+    m = json.loads((Path(__file__).resolve().parents[2] / "plugins" / "security" / "plugin.json").read_text())
+    assert "AURORA_FIREWALL_API_PASSWORD" in m["env"]
+    assert m["sandbox"]["write"] == ["AURORA_SECURITY_DIR"]
+
+
+def test_aurora_s_own_objects_on_the_firewall_are_not_new_devices():
+    from aurora import sec_netmap
+    old = {"hosts": [{"name": "nas", "type": "IP", "address": "10.0.0.2"}], "dhcp": []}
+    new = {"hosts": old["hosts"] + [{"name": "aurora-block-203.0.113.9", "type": "IP", "address": "203.0.113.9"},
+                                    {"name": "printer", "type": "IP", "address": "10.0.0.9"}], "dhcp": []}
+    assert sec_netmap.diff(old, new)["new"] == ["printer (10.0.0.9)"]

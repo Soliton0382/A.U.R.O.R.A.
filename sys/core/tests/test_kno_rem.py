@@ -118,3 +118,12 @@ def test_dates_are_labelled_relative_to_today(cfg):
     assert sns_clock.when((now - timedelta(days=1)).isoformat(), cfg).endswith("(ieri)")
     assert sns_clock.when((now - timedelta(days=5)).isoformat(), cfg).endswith("(5 giorni fa)")
     assert sns_clock.DAYS_IT[(now - timedelta(days=1)).weekday()] in sns_clock.when((now - timedelta(days=1)).isoformat(), cfg)
+
+
+def test_the_dream_s_painting_is_the_scene_the_dream_tells():
+    """C196: the dream was abstract sentences and its painting one object picked from them; now the dream is told as
+    scenes and the painting is its central scene, with the dream's own place, things, colours and light."""
+    from aurora.kno_rem import SYS_DREAM
+    assert "SEEN" in SYS_DREAM and "central" in SYS_DREAM
+    assert "exactly that central scene" in SYS_DREAM and "nothing it does not tell" in SYS_DREAM
+    assert "no names of people" in SYS_DREAM

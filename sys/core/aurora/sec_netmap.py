@@ -76,7 +76,9 @@ def load(cfg: sys_config.Config, which: str = "netmap") -> dict | None:
 def diff(old: dict | None, new: dict) -> dict:
     """What changed: devices (hosts and reserved addresses) new, gone, or with another address."""
     def devices(m):
-        out = {h["name"]: h["address"] for h in (m or {}).get("hosts", []) if h["type"] == "IP"}
+        # Aurora's own objects (aurora-block-<ip>, Aurora-<name>) are addresses kept off or published, not devices
+        out = {h["name"]: h["address"] for h in (m or {}).get("hosts", [])
+               if h["type"] == "IP" and not h["name"].lower().startswith("aurora-")}
         out.update({f"{l['host'] or l['mac']} (DHCP)": l["ip"] for s in (m or {}).get("dhcp", []) for l in s["static"]})
         return out
     if old is None:

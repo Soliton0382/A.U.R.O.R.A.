@@ -205,6 +205,18 @@
    ]
   },
   {
+   "key": "AURORA_SECURITY_DIR",
+   "type": "path",
+   "category": "layout",
+   "recommended": "sys/status/security",
+   "evidence": "C195, 2026-10-08",
+   "en": "The security plugin's working folder (the firewall's lock, Aurora's changes, the threat hunt's memory, the manual's index): the folder security inside AURORA_STATUS_DIR. The plugin's sandbox may write here only.",
+   "it": "La cartella di lavoro del plugin sicurezza (il turno con il firewall, le modifiche di Aurora, la memoria della caccia, l'indice del manuale): la cartella security dentro AURORA_STATUS_DIR. La sandbox del plugin può scrivere solo qui.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_SANDBOX_DIR",
    "type": "path",
    "category": "layout",
