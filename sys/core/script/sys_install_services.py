@@ -14,7 +14,6 @@ ports, domain or certificates, run this again and reinstall the units.
 """
 from __future__ import annotations
 
-import subprocess
 import sys
 from pathlib import Path
 from string import Template
@@ -22,57 +21,6 @@ from string import Template
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from aurora import sys_config  # noqa: E402
 
-CADDYFILE = Template("""# Generated from .env by sys/core/script/sys_install_services.py — edit .env, not this file.
-{
-	admin $admin
-	grace_period 5s
-	auto_https disable_redirects
-	http_port $http_port
-	https_port $https_port
-	log {
-		output file $log_dir/caddy.log {
-			roll_size ${max_mb}MiB
-			roll_keep_for ${keep_hours}h
-		}
-		level INFO
-	}
-}
-
-$domain:$https_port {
-	$tls
-	encode gzip zstd
-	reverse_proxy $api {
-		transport http {
-			dial_timeout 10s
-			read_timeout 900s
-			write_timeout 900s
-			response_header_timeout 900s
-		}
-		flush_interval -1
-	}
-	# project previews (/v1/preview/*): framed by the WebUI only, sandboxed by the API's own CSP (opaque origin)
-	@app not path /v1/preview/*
-	header /v1/preview/* {
-		Strict-Transport-Security "max-age=31536000; includeSubDomains"
-		X-Content-Type-Options nosniff
-		Referrer-Policy no-referrer
-		X-Frame-Options SAMEORIGIN
-		-Server
-	}
-	header @app {
-		Strict-Transport-Security "max-age=31536000; includeSubDomains"
-		X-Content-Type-Options nosniff
-		Referrer-Policy strict-origin-when-cross-origin
-		X-Frame-Options DENY
-		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
-		-Server
-	}
-}
-
-http://$domain:$http_port {
-	redir https://{host}$https_suffix{uri} permanent
-}
-""")
 
 UNIT = Template("""# Generated from .env by sys/core/script/sys_install_services.py
 [Unit]
@@ -225,9 +173,10 @@ case " $backup " in *" aurora-mount.service "*)
 esac
 systemctl restart $services aurora.target
 
-check() {  # name url: wait up to 180 s for a healthy answer
+check() {  # name url: wait up to 180 s for a healthy answer (alive: whether the browser trusts the certificate is
+  # another matter, and a new machine trusts Caddy's local authority only after this script, with caddy trust: C212)
   for i in $$(seq 1 90); do
-    if curl -fs --max-time 3 --resolve "$domain:$https_port:127.0.0.1" -o /dev/null "$$2"; then echo "  ok    $$1  $$2"; return 0; fi
+    if curl -fsk --max-time 3 --resolve "$domain:$https_port:127.0.0.1" -o /dev/null "$$2"; then echo "  ok    $$1  $$2"; return 0; fi
     sleep 2
   done
   echo "  FAIL  $$1  $$2"; journalctl -u "$$1" -n 25 --no-pager; return 1
@@ -275,26 +224,13 @@ def main() -> int:
     root = cfg.root
     py = root / cfg["AURORA_VENV_DIR"] / "bin" / "python"
     script = cfg.path("AURORA_CORE_DIR") / "script"
-    https_dir = cfg.path("AURORA_HTTPS_DIR")
-    log_dir = cfg.path("AURORA_LOG_DIR") / "https"
-    log_dir.mkdir(parents=True, exist_ok=True)
-    https_dir.mkdir(parents=True, exist_ok=True)       # not in a fresh clone (C211: the first install from git stopped)
-
-    caddyfile = https_dir / "Caddyfile"
-    caddyfile.write_text(CADDYFILE.substitute(
-        admin=cfg["AURORA_CADDY_ADMIN"], http_port=cfg["AURORA_HTTP_PORT"], https_port=cfg["AURORA_HTTPS_PORT"],
-        https_suffix="" if cfg["AURORA_HTTPS_PORT"] == 443 else f":{cfg['AURORA_HTTPS_PORT']}",
-        log_dir=log_dir, max_mb=cfg["AURORA_LOG_MAX_MB"], keep_hours=cfg["AURORA_LOG_RETENTION_DAYS"] * 24,
-        domain=cfg["AURORA_DOMAIN"],
-        tls=(f"tls {cfg.path('AURORA_TLS_CERT')} {cfg.path('AURORA_TLS_KEY')}" if cfg["AURORA_TLS_MODE"] == "files"
-             else "tls internal"),
-        api=f"{cfg['AURORA_API_HOST']}:{cfg['AURORA_API_PORT']}"), encoding="utf-8")
-    check = subprocess.run([cfg["AURORA_CADDY_BIN"], "validate", "--config", str(caddyfile), "--adapter", "caddyfile"],
-                           capture_output=True, text=True)
-    print(f"{caddyfile}: {'valid' if check.returncode == 0 else 'INVALID'}")
-    if check.returncode != 0:
-        print(check.stderr[-2000:])
+    from aurora import net_https                       # the Caddyfile is the HTTPS page's too (one writer)
+    try:
+        caddyfile = net_https.write(cfg)
+    except net_https.HttpsError as e:
+        print(f"{net_https.caddyfile(cfg)}: INVALID\n{e}")
         return 1
+    print(f"{caddyfile}: valid")
 
     low_ports = min(cfg["AURORA_HTTPS_PORT"], cfg["AURORA_HTTP_PORT"]) < 1024
     cloud = str(cfg["AURORA_LLM_BACKEND"]) == "cloud"      # no local reasoner: no aurora-llm (the installer chose it)

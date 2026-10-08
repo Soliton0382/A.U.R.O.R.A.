@@ -247,6 +247,12 @@ async def restart_services(request: Request) -> dict:
     if not wanted:
         raise HTTPException(status_code=400, detail="no known service")
     others = [u for u in wanted if u != "aurora-api"]
+    if "aurora-https" in others:                     # a changed name, port or certificate mode: Caddy reads the Caddyfile
+        from aurora import net_https
+        try:
+            await asyncio.to_thread(lambda: net_https.write(net_https.fresh(cfg)))
+        except net_https.HttpsError as e:
+            raise HTTPException(status_code=422, detail=str(e)) from None
     if others:
         r = await asyncio.to_thread(subprocess.run, ["systemctl", "restart", "--no-block", *others],
                                     capture_output=True, text=True, timeout=30)

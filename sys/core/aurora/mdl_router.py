@@ -40,7 +40,26 @@ PROVIDERS = {
     "mistral": {"label": "Mistral", "kind": "openai", "key": "AURORA_MISTRAL_API_KEY", "base": "https://api.mistral.ai/v1"},
     "openrouter": {"label": "OpenRouter", "kind": "openai", "key": "AURORA_OPENROUTER_API_KEY",
                    "base": "https://openrouter.ai/api/v1"},
+    # any other OpenAI-compatible service: its address is a setting, its key may be empty (a server that asks none)
+    "custom": {"label": "Altro servizio (compatibile OpenAI)", "kind": "openai", "key": "AURORA_CUSTOM_API_KEY",
+               "base_key": "AURORA_CUSTOM_BASE_URL", "key_optional": True},
 }
+
+
+def base_url(provider: str, cfg: sys_config.Config) -> str:
+    """A provider's address: fixed, or the owner's setting (custom)."""
+    spec = PROVIDERS[provider]
+    return str(spec.get("base") or cfg.values.get(spec.get("base_key", "")) or "").rstrip("/")
+
+
+def configured(provider: str, cfg: sys_config.Config) -> bool:
+    """Whether a provider can be asked: its key (and, for custom, its address) set."""
+    spec = PROVIDERS[provider]
+    if spec["kind"] in ("local", "claude_code"):
+        return True
+    if spec.get("base_key") and not base_url(provider, cfg):
+        return False
+    return bool(spec.get("key_optional") or cfg.values.get(spec.get("key", "")))
 ROLES = {   # role: (Italian label, English label, what it sees)
     "route": ("Smistamento delle domande", "Routing the questions", "your message, the last turns"),
     "translate": ("Traduzione", "Translation", "your question"),
@@ -82,8 +101,8 @@ def set_assignments(cfg: sys_config.Config, changes: dict[str, dict]) -> dict[st
         if role not in ROLES or a.get("provider") not in PROVIDERS:
             raise ValueError(f"unknown role or provider: {role} {a.get('provider')}")
         key = PROVIDERS[a["provider"]].get("key")
-        if key and not cfg.values.get(key) and a["provider"] != cur[role]["provider"]:
-            raise ValueError(f"{a['provider']} has no key yet ({key}): add it in the cloud plugin's card first")
+        if not configured(a["provider"], cfg) and a["provider"] != cur[role]["provider"]:
+            raise ValueError(f"{a['provider']} has no key or address yet ({key}): add it in the cloud plugin's card first")
         cur[role] = {"provider": a["provider"], "model": str(a.get("model", ""))[:200]}
     f = _dir(cfg) / "roles.json"
     tmp = f.with_suffix(".tmp")
@@ -102,14 +121,17 @@ class OpenAICompatLLM:
         self.cfg = cfg or sys_config.get()
         self.name, self.model = provider, model
         spec = PROVIDERS[provider]
-        self.base, self.key = spec["base"], str(self.cfg.values.get(spec["key"]) or "")
+        self.base, self.key = base_url(provider, self.cfg), str(self.cfg.values.get(spec["key"]) or "")
+        self.key_optional = bool(spec.get("key_optional"))
         self.log = sys_log.get_logger("llm_client")
         self.last_speed = None
 
     def _headers(self) -> dict:
-        if not self.key:
+        if not self.base:
+            raise RuntimeError(f"{PROVIDERS[self.name].get('base_key')} is empty")
+        if not self.key and not self.key_optional:
             raise RuntimeError(f"{PROVIDERS[self.name]['key']} is empty")
-        return {"Authorization": f"Bearer {self.key}", "Content-Type": "application/json"}
+        return {**({"Authorization": f"Bearer {self.key}"} if self.key else {}), "Content-Type": "application/json"}
 
     def _account(self, usage: dict, seconds: float) -> None:
         self.log.info("%s %s: in %s out %s, %.1f s", self.name, self.model, usage.get("prompt_tokens"),
@@ -207,11 +229,12 @@ def list_models(provider: str, cfg: sys_config.Config | None = None) -> list[str
     if spec["kind"] == "claude_code":
         return ["opus", "sonnet", "haiku"]                             # the CLI's own aliases
     key = str(cfg.values.get(spec["key"]) or "")
-    if not key:
-        raise RuntimeError(f"{spec['key']} is empty: add the key in the plugin's settings")
+    if not configured(provider, cfg):
+        raise RuntimeError(f"{spec.get('base_key') if spec.get('base_key') and not base_url(provider, cfg) else spec['key']}"
+                           " is empty: add it in the plugin's settings")
     headers = ({"x-api-key": key, "anthropic-version": "2023-06-01"} if spec["kind"] == "anthropic"
-               else {"Authorization": f"Bearer {key}"})
-    r = httpx.get(f"{spec['base']}/models", headers=headers, timeout=30)
+               else {"Authorization": f"Bearer {key}"} if key else {})
+    r = httpx.get(f"{base_url(provider, cfg)}/models", headers=headers, timeout=30)
     r.raise_for_status()
     data = r.json().get("data") or r.json().get("models") or []
     return sorted({(m.get("id") or m.get("name") or "").removeprefix("models/") for m in data} - {""})
@@ -419,7 +442,9 @@ class CloudBase:
         if not sys_ethics.exempt(self.cfg):
             return ("no local reasoner and no exemption from level B (rule 9): "
                     "sudo .venv/bin/python sys/core/script/sys_ethics_sign.py setup --exempt")
-        if spec.get("key") and not self.cfg.values.get(spec["key"]):
+        if spec.get("base_key") and not base_url(self.provider, self.cfg):
+            return f"{spec['base_key']} is empty"
+        if spec.get("key") and not spec.get("key_optional") and not self.cfg.values.get(spec["key"]):
             return f"{spec['key']} is empty"
         if spec["kind"] == "openai" and not self.model:
             return "AURORA_CLOUD_MODEL is empty"

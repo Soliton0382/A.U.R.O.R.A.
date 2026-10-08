@@ -23,7 +23,7 @@ def models_overview() -> dict:
     return {"exempt": sys_ethics.exempt(cfg), "mask": True, "backend": "cloud" if mdl_router.cloud_only(cfg) else "local",
             "mask_words": cfg["AURORA_CLOUD_MASK_WORDS"],
             "providers": [{"id": k, "label": mdl_router.label(k, cfg), "kind": v["kind"], "key": v.get("key"),
-                           "configured": v["kind"] in ("local", "claude_code") or bool(cfg.values.get(v.get("key", "")))}
+                           "configured": mdl_router.configured(k, cfg)}
                           for k, v in mdl_router.PROVIDERS.items()],
             "roles": [{"id": r, "it": it, "en": en, "sees": sees, **a[r]} for r, (it, en, sees) in mdl_router.ROLES.items()]}
 
@@ -51,7 +51,7 @@ def models_limits() -> dict:
     """Per provider: the free tier to stay in (on/off and its numbers) and today's use."""
     from aurora import mdl_budget, mdl_router
     d = mdl_budget.today(cfg)
-    keys = {p: bool(cfg.values.get(spec.get("key", ""))) for p, spec in mdl_router.PROVIDERS.items()}
+    keys = {p: mdl_router.configured(p, cfg) for p in mdl_router.PROVIDERS}
     return {"limits": mdl_budget.limits(cfg), "configured": keys,
             "today": {p: {"calls": d.get("calls", {}).get(p, 0), "tokens": d.get("tokens", {}).get(p, 0),
                           "stopped": mdl_budget.free_reason(cfg, p, d)} for p in mdl_budget.FREE_PRESETS}}

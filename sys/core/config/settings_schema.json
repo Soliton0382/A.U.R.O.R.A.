@@ -1590,6 +1590,19 @@
    ]
   },
   {
+   "key": "AURORA_DOMAIN_ALIASES",
+   "type": "str",
+   "category": "https",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Other names of this machine Aurora answers to, comma-separated: its address on the home network (192.168.1.20), name.local. With Caddy's local authority each gets a certificate; the phone installs the root once, from http://<name>/aurora-ca.crt. Changed from the 🔒 HTTPS page.",
+   "it": "Altri nomi di questa macchina a cui Aurora risponde, separati da virgola: il suo indirizzo nella rete di casa (192.168.1.20), nome.local. Con l'autorità locale di Caddy ognuno ha il suo certificato; il telefono installa la radice una volta, da http://<nome>/aurora-ca.crt. Si cambia dalla pagina 🔒 HTTPS.",
+   "services": [
+    "aurora-https"
+   ],
+   "optional": true
+  },
+  {
    "key": "AURORA_HTTPS_PORT",
    "type": "int",
    "category": "https",
@@ -1856,7 +1869,8 @@
     "google",
     "xai",
     "mistral",
-    "openrouter"
+    "openrouter",
+    "custom"
    ],
    "category": "llm",
    "recommended": "anthropic",
@@ -2067,6 +2081,35 @@
     "aurora-api",
     "aurora-rem"
    ],
+   "optional": true
+  },
+  {
+   "key": "AURORA_CUSTOM_BASE_URL",
+   "type": "str",
+   "category": "llm",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Another OpenAI-compatible service (a company server, vLLM, LM Studio, Ollama's /v1, a provider not listed): its base address, ending in /v1. Provider 'custom' in the Models page; masked like every cloud call.",
+   "it": "Un altro servizio compatibile OpenAI (un server aziendale, vLLM, LM Studio, /v1 di Ollama, un provider non in elenco): il suo indirizzo base, che finisce con /v1. Provider 'custom' nella pagina Modelli; mascherato come ogni chiamata cloud.",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ],
+   "optional": true
+  },
+  {
+   "key": "AURORA_CUSTOM_API_KEY",
+   "type": "str",
+   "category": "llm",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Key of AURORA_CUSTOM_BASE_URL (empty if the service asks none).",
+   "it": "Chiave di AURORA_CUSTOM_BASE_URL (vuota se il servizio non la chiede).",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ],
+   "secret": true,
    "optional": true
   },
   {

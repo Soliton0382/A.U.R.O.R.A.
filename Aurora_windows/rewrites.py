@@ -171,6 +171,15 @@ SERVICES = [
      f'''                {P}
                 threading.Timer(4.0, lambda: sys_platform.current().service_action("restart", ["aurora-api"], False)).start()''',
      "api/knowledge: aurora-api restarted last after an update"),
+    ("sys/core/aurora/net_https.py",
+     '''    r = subprocess.run(["systemctl", "reload", "aurora-https"], capture_output=True, text=True, timeout=60)
+    if r.returncode != 0:
+        raise HttpsError(f"systemctl reload aurora-https: {(r.stderr or r.stdout).strip()[-300:]}")''',
+     f'''    {P}
+    r = sys_platform.current().service_action("restart", ["aurora-https"], timeout=60)     # reload is Linux's verb
+    if r.code != 0:
+        raise HttpsError(f"aurora-https restart: {{(r.err or r.out).strip()[-300:]}}")''',
+     "net_https: Caddy takes the new Caddyfile"),
 ]
 
 LOCKS = [
@@ -500,6 +509,19 @@ DICTS = tuple(str(p) for p in sys_platform.current().dictionaries())      # none
      """    from aurora import sys_platform
     cmd = [str(sys_platform.current().executable(bin_dir, "llama-server")),          # .exe on Windows""",
      "svc_llm: the reasoner's program"),
+    ("sys/core/aurora/net_https.py", "import os\nimport pwd\nimport subprocess\n", "import os\nimport subprocess\nimport sys\n",
+     "net_https: no pwd on Windows"),
+    ("sys/core/aurora/net_https.py",
+     '''    """Where Caddy (run as the service user, no XDG_DATA_HOME) keeps its local authority."""
+    home = Path(pwd.getpwnam(sys_config.service_user(cfg)).pw_dir)
+    return home / ".local" / "share" / "caddy" / "pki" / "authorities" / "local"''',
+     '''    """Where Caddy keeps its local authority: its data folder on this system (the installing user runs it)."""
+    if sys.platform == "win32":
+        base = Path(os.environ.get("APPDATA") or Path.home() / "AppData" / "Roaming") / "Caddy"
+    else:                                                # the Mac
+        base = Path.home() / "Library" / "Application Support" / "Caddy"
+    return base / "pki" / "authorities" / "local"''',
+     "net_https: Caddy's data folder on the Mac and Windows"),
 ]
 
 TESTS = [

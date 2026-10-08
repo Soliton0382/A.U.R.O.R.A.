@@ -278,7 +278,14 @@ e modello con una chiamata e installa il resto senza CUDA, senza llama.cpp e sen
 15 GB di disco. Ricerca, memoria e documenti restano sul computer; encoder e re-ranker girano sulla CPU. Ogni testo che
 esce passa dal mascheramento: email, telefoni, IBAN, carte, codice fiscale, indirizzi, chiavi, il tuo nome e le parole che
 indichi. Non si mascherano il contenuto in sé e le foto. Per questo serve l'esenzione dal livello B, firmata alla fine.
-Si forza con `AURORA_INSTALL_BACKEND=cloud ./install.sh`.
+Anche con una GPU adatta l'installer chiede dove ragiona Aurora: locale (consigliato) o cloud. L'8ª scelta è qualsiasi
+servizio compatibile OpenAI (un server aziendale, vLLM, LM Studio, Ollama): indirizzo e, se serve, chiave.
+
+**Dal telefono.** L'installer chiede da dove userai Aurora. Con «anche dal telefono» risponde all'indirizzo del
+computer nella rete di casa e a `nome.local`. Alla fine stampa i due passi: installare sul telefono il certificato
+radice da `http://<indirizzo>/aurora-ca.crt`, poi aprire Aurora e incollare la chiave. La pagina ⚙️ → 🔒 **HTTPS e
+dispositivi** mostra gli indirizzi con il QR, il certificato in uso e la sua scadenza. Permette anche di passare a un
+tuo certificato: viene controllato prima e, se Caddy lo rifiuta, torna tutto com'era. Non serve sudo.
 
 Modelli: 24,7 GB obbligatori (ragionatore 21,5 GB, encoder, re-ranker), fino a 57,6 GB facoltativi. Un'installazione
 pulita con tutti i modelli ha richiesto 10 min 55 s sulla macchina di riferimento (M59); da GitHub, multi-utente e

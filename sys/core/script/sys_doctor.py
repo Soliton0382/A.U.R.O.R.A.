@@ -91,7 +91,7 @@ def report(lang: str) -> int:
     print("== provider cloud" if lang == "it" else "== cloud providers")
     from aurora import mdl_router
     for name, spec in mdl_router.PROVIDERS.items():
-        if not spec.get("key") or not str(cfg.values.get(spec["key"]) or "").strip():
+        if not spec.get("key") or not mdl_router.configured(name, cfg):
             continue                                    # not configured: nothing to check
         try:
             n = len(mdl_router.list_models(name, cfg))

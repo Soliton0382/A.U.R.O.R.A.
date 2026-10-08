@@ -961,6 +961,16 @@ Install run on GitHub; then C210 and C211. After the fixes: rc 0, the provider �
 of models, 572 tests passed, «schema ↔ .env ✅»; the only stops left are the two that need sudo (signature,
 exemption). Units without aurora-llm; the Caddyfile valid for Caddy 2.6.2 and 2.11.7.
 
+The phone's way in, with a real Caddy (user space, high ports, its own authority) on net_https's Caddyfile, names
+this machine's address on the home network, its name.local and localhost — the same on Caddy 2.6.2 and 2.11.7:
+http://<address>/aurora-ca.crt answers 200 application/x-x509-ca-cert, byte for byte the authority's root; every other
+plain-HTTP path is sent to HTTPS with its port; HTTPS on the address (no SNI), on name.local and on localhost completes
+its handshake verified **only** with the root just downloaded (HTTP 502 behind it: no API was running, as meant). The
+first Install run to reach the services (GitHub): models, API, rem, harvester, sentinel, HTTPS active, 569 tests passed
+and 3 skipped on the runner; stopped by its own HTTPS check (C212). The clean copy with the new questions (reasoner asked
+on a machine with a GPU → 2, «from the phone too» → 2): DOMAIN the LAN address, aliases name.local and localhost, 579
+tests passed, the end printing the three addresses, the key and the phone's two steps, also without services.
+
 ## M150 — Phase 3's first fixes on real machines: two of the probe's own checks were wrong (8 October 2026)
 
 Ports on 17cd87e. Both stopped at the probe, so neither suite ran. Windows: «privacy: open file seen, then made

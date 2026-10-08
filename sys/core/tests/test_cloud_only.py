@@ -82,7 +82,8 @@ def test_no_aurora_llm_unit_on_a_cloud_machine(cloud_cfg, monkeypatch, tmp_path)
     sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "script"))
     import sys_install_services as inst
     monkeypatch.setattr(sys_config, "get", lambda: cloud_cfg)
-    monkeypatch.setattr(inst.subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(a, 0, "", ""))
+    from aurora import net_https
+    monkeypatch.setattr(net_https.subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(a, 0, "", ""))
     stale = cloud_cfg.root / "sys/deploy/systemd/aurora-llm.service"
     stale.parent.mkdir(parents=True, exist_ok=True)
     stale.write_text("old", encoding="utf-8")
@@ -164,3 +165,30 @@ def test_the_installers_trial_call_needs_no_env_file(tmp_path):
     r = subprocess.run([sys.executable, str(script), "try", "claude_code", "sonnet"], env=env, cwd=tmp_path,
                        capture_output=True, text=True, timeout=120)
     assert r.stdout.strip() == "ok", r.stdout + r.stderr
+
+
+def test_any_openai_compatible_service_with_or_without_a_key(cfg, monkeypatch):
+    """Provider 'custom': its address is a setting, its key may be empty (a company server, vLLM, LM Studio)."""
+    import httpx
+    cfg.values.update(AURORA_CUSTOM_BASE_URL="", AURORA_CUSTOM_API_KEY="")
+    assert not mdl_router.configured("custom", cfg)
+    cfg.values["AURORA_CUSTOM_BASE_URL"] = "http://server.lan:8000/v1/"
+    assert mdl_router.configured("custom", cfg) and mdl_router.base_url("custom", cfg) == "http://server.lan:8000/v1"
+    seen = []
+
+    def post(url, headers, timeout, json):
+        seen.append((url, dict(headers)))
+        return httpx.Response(200, json={"choices": [{"message": {"content": "ok"}, "finish_reason": "stop"}], "usage": {}},
+                              request=httpx.Request("POST", url))
+    monkeypatch.setattr(httpx, "post", post)
+    assert mdl_router.OpenAICompatLLM("custom", "m", cfg).complete("s", "u", 50).answer == "ok"
+    assert seen[0][0] == "http://server.lan:8000/v1/chat/completions" and "Authorization" not in seen[0][1]
+    cfg.values["AURORA_CUSTOM_API_KEY"] = "k"
+    mdl_router.OpenAICompatLLM("custom", "m", cfg).complete("s", "u", 50)
+    assert seen[1][1]["Authorization"] == "Bearer k"
+    cfg.values.update(AURORA_LLM_BACKEND="cloud", AURORA_CLOUD_PROVIDER="custom", AURORA_CLOUD_MODEL="m",
+                      AURORA_CUSTOM_BASE_URL="")
+    monkeypatch.setattr(mdl_router.sys_ethics, "exempt", lambda c: True)
+    assert mdl_router.CloudBase(cfg).problem() == "AURORA_CUSTOM_BASE_URL is empty"
+    assert set(mdl_router.PROVIDERS) - {"local"} <= set(sys_config.load_schema()["settings"][
+        [s["key"] for s in sys_config.load_schema()["settings"]].index("AURORA_CLOUD_PROVIDER")]["choices"])

@@ -17,8 +17,9 @@ def cloud_providers() -> str:
     """The cloud providers and whether each has its key (no key is ever shown)."""
     rows = []
     for k, v in mdl_router.PROVIDERS.items():
-        ready = v["kind"] in ("local", "claude_code") or bool(cfg.values.get(v.get("key", "")))
-        rows.append(f"{'✅' if ready else '⚪'} {v['label']} ({k})" + ("" if ready else f": manca {v['key']}"))
+        ready = mdl_router.configured(k, cfg)
+        missing = v.get("base_key") if v.get("base_key") and not mdl_router.base_url(k, cfg) else v.get("key")
+        rows.append(f"{'✅' if ready else '⚪'} {v['label']} ({k})" + ("" if ready else f": manca {missing}"))
     return "\n".join(rows)
 
 

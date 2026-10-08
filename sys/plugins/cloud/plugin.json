@@ -3,8 +3,8 @@
   "version": "1.0",
   "kind": "connector",
   "description": {
-    "en": "Cloud AI providers (Anthropic, Claude Code, Google Gemini, xAI Grok, OpenAI, Mistral, OpenRouter): their keys, and each one's list of models. Which model does each step is chosen in the Models page; everything sent is masked by default.",
-    "it": "Provider di IA cloud (Anthropic, Claude Code, Google Gemini, xAI Grok, OpenAI, Mistral, OpenRouter): le loro chiavi e l'elenco dei modelli di ciascuno. Quale modello fa ogni passaggio si sceglie nella pagina Modelli; tutto ciò che parte è mascherato per default."
+    "en": "Cloud AI providers (Anthropic, Claude Code, Google Gemini, xAI Grok, OpenAI, Mistral, OpenRouter, any OpenAI-compatible service): their keys, and each one's list of models. Which model does each step is chosen in the Models page; everything sent is masked by default.",
+    "it": "Provider di IA cloud (Anthropic, Claude Code, Google Gemini, xAI Grok, OpenAI, Mistral, OpenRouter, qualsiasi servizio compatibile OpenAI): le loro chiavi e l'elenco dei modelli di ciascuno. Quale modello fa ogni passaggio si sceglie nella pagina Modelli; tutto ciò che parte è mascherato per default."
   },
   "command": [
     "{python}",
@@ -17,6 +17,8 @@
     "AURORA_XAI_API_KEY",
     "AURORA_MISTRAL_API_KEY",
     "AURORA_OPENROUTER_API_KEY",
+    "AURORA_CUSTOM_BASE_URL",
+    "AURORA_CUSTOM_API_KEY",
     "AURORA_LLM_MODEL"
   ],
   "requires": [],
@@ -28,8 +30,8 @@
     "en": "☁️ Cloud providers ready. In the 🧠 Models page choose which model does each step; everything sent to the cloud is masked."
   },
   "setup": {
-    "it": "Incolla qui sotto le chiavi dei provider che vuoi usare (servono solo quelli che assegnerai nella pagina 🧠 Modelli). Claude Code usa il tuo abbonamento, senza chiave. Le chiavi restano nel `.env` (permessi 0600) e le vede solo questo plugin. **Mascheramento** (sempre acceso, nessuna impostazione lo spegne): IP, email, telefoni, IBAN, carte, chiavi, codice fiscale, partita IVA, targhe, indirizzi, documenti, date di nascita, password, i tuoi dati e le parole di `AURORA_CLOUD_MASK_WORDS` diventano segnaposto prima di partire e tornano veri nella risposta. Le **immagini** non si possono mascherare: se assegni la visione a un provider cloud, le tue foto (volti, documenti) arrivano a lui così come sono.",
-    "en": "Paste the keys of the providers you want (only those you assign in the 🧠 Models page). Claude Code uses your subscription. Masking is always on (no setting turns it off): addresses, e-mails, phones, IBANs, cards, keys, tax codes, VAT numbers, car plates, street addresses, documents, dates of birth, passwords become placeholders and come back in the answer; pictures cannot be masked.",
+    "it": "Incolla qui sotto le chiavi dei provider che vuoi usare (servono solo quelli che assegnerai nella pagina 🧠 Modelli). Claude Code usa il tuo abbonamento, senza chiave. Le chiavi restano nel `.env` (permessi 0600) e le vede solo questo plugin. **Mascheramento** (sempre acceso, nessuna impostazione lo spegne): IP, email, telefoni, IBAN, carte, chiavi, codice fiscale, partita IVA, targhe, indirizzi, documenti, date di nascita, password, i tuoi dati e le parole di `AURORA_CLOUD_MASK_WORDS` diventano segnaposto prima di partire e tornano veri nella risposta. Le **immagini** non si possono mascherare: se assegni la visione a un provider cloud, le tue foto (volti, documenti) arrivano a lui così come sono. Qualsiasi altro servizio compatibile OpenAI (un server aziendale, vLLM, LM Studio, Ollama) come «custom»: il suo indirizzo che finisce con /v1 e, se la chiede, la sua chiave.",
+    "en": "Paste the keys of the providers you want (only those you assign in the 🧠 Models page). Claude Code uses your subscription. Masking is always on (no setting turns it off): addresses, e-mails, phones, IBANs, cards, keys, tax codes, VAT numbers, car plates, street addresses, documents, dates of birth, passwords become placeholders and come back in the answer; pictures cannot be masked. Any other OpenAI-compatible service (a company server, vLLM, LM Studio, Ollama) as «custom»: its address ending in /v1 and, if it asks one, its key.",
     "links": [
       {
         "label": "Anthropic API keys",
@@ -64,6 +66,8 @@
     "AURORA_XAI_API_KEY",
     "AURORA_MISTRAL_API_KEY",
     "AURORA_OPENROUTER_API_KEY",
+    "AURORA_CUSTOM_BASE_URL",
+    "AURORA_CUSTOM_API_KEY",
     "AURORA_CLOUD_MASK_WORDS",
     "AURORA_CLOUD_COMPRESSION",
     "AURORA_CLOUD_KEEP_PCT",

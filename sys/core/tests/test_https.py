@@ -1,0 +1,131 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 A.U.R.O.R.A. Project
+"""🔒 HTTPS (net_https): the Caddyfile from the settings with the other names of this machine, the root certificate for
+the phones, the owner's own certificate checked before use and put back when anything fails, the way back to Caddy's
+authority; the end of an installation saying where to open Aurora, with the key, every time."""
+import datetime as dt
+import subprocess
+
+import pytest
+
+from aurora import net_https, sys_config
+
+from conftest import write_env
+
+
+def pem_pair(names, days=30, start_days=-1):
+    """A self-signed certificate naming `names` (DNS or IP), and its key, as PEM."""
+    import ipaddress
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from cryptography.x509.oid import NameOID
+    key = ec.generate_private_key(ec.SECP256R1())
+    sans = []
+    for n in names:
+        try:
+            sans.append(x509.IPAddress(ipaddress.ip_address(n)))
+        except ValueError:
+            sans.append(x509.DNSName(n))
+    now = dt.datetime.now(dt.UTC)
+    subject = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, names[0])])
+    cert = (x509.CertificateBuilder().subject_name(subject).issuer_name(subject).public_key(key.public_key())
+            .serial_number(x509.random_serial_number()).not_valid_before(now + dt.timedelta(days=start_days))
+            .not_valid_after(now + dt.timedelta(days=days)).add_extension(x509.SubjectAlternativeName(sans), False)
+            .sign(key, hashes.SHA256()))
+    return (cert.public_bytes(serialization.Encoding.PEM),
+            key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()))
+
+
+@pytest.fixture
+def https(tmp_path, monkeypatch):
+    """An installation answering at aurora.example.com, with caddy and systemctl answered by the test."""
+    cfg = sys_config.load(write_env(tmp_path, AURORA_DOMAIN="aurora.example.com"), check_root=False)
+    calls = []
+
+    def run(cmd, **k):
+        calls.append(cmd)
+        bad = getattr(run, "fail", None)
+        return subprocess.CompletedProcess(cmd, 1 if bad and bad in cmd else 0, "", "refused" if bad in cmd else "")
+    monkeypatch.setattr(net_https.subprocess, "run", run)
+    monkeypatch.setattr(net_https, "ca_dir", lambda c: tmp_path / "ca")
+    return cfg, calls, run
+
+
+def test_one_site_for_every_name_and_the_root_for_the_phones(https):
+    cfg, _, _ = https
+    text = net_https.render(cfg, AURORA_DOMAIN="192.168.1.20", AURORA_DOMAIN_ALIASES="casa.local, localhost,casa.local")
+    assert "192.168.1.20:443, casa.local:443, localhost:443 {" in text
+    assert "http://192.168.1.20:80, http://casa.local:80, http://localhost:80 {" in text
+    assert f"handle {net_https.CA_PATH}" in text and "rewrite * /root.crt" in text and "tls internal" in text
+    own = net_https.render(cfg, AURORA_TLS_MODE="files")
+    assert net_https.CA_PATH not in own and "tls internal" not in own            # an own certificate: no local root
+    assert "[fd00::5]:443" in net_https.render(cfg, AURORA_DOMAIN_ALIASES="fd00::5")
+
+
+def test_a_certificate_is_refused_with_its_reason(https):
+    cfg, _, _ = https
+    cert, key = pem_pair(["aurora.example.com"])
+    other_cert, other_key = pem_pair(["aurora.example.com"])
+    for c, k, why in [(b"nonsense", key, "PEM"), (cert, b"nonsense", "private key"), (cert, other_key, "not this"),
+                      (*pem_pair(["altro.example.com"]), "not aurora.example.com"),
+                      (*pem_pair(["aurora.example.com"], days=-1, start_days=-10), "expired"),
+                      (*pem_pair(["aurora.example.com"], start_days=2), "valid only from")]:
+        with pytest.raises(net_https.HttpsError, match=why):
+            net_https.check_pair(c, k, "aurora.example.com")
+    assert net_https.check_pair(*pem_pair(["*.example.com"]), "aurora.example.com")["days_left"] >= 29
+
+
+def test_the_owners_certificate_goes_in_and_the_names_set_before_stay(https):
+    cfg, calls, _ = https
+    net_https.set_aliases(cfg, ["192.168.1.20", "Casa.local"])
+    cert, key = pem_pair(["aurora.example.com", "casa.local"])
+    out = net_https.install_cert(cfg, cert, key)       # cfg is the one loaded before: the .env is read again
+    assert out["mode"] == "files" and out["not_covered"] == ["192.168.1.20"]
+    now = net_https.fresh(cfg)
+    assert now["AURORA_TLS_MODE"] == "files" and now["AURORA_DOMAIN_ALIASES"] == "192.168.1.20,casa.local"
+    assert now.path("AURORA_TLS_CERT").read_bytes() == cert and oct(now.path("AURORA_TLS_KEY").stat().st_mode)[-3:] == "600"
+    text = net_https.caddyfile(cfg).read_text()
+    assert "casa.local:443" in text and f"tls {now.path('AURORA_TLS_CERT')}" in text
+    assert ["systemctl", "reload", "aurora-https"] in calls
+    assert net_https.use_internal(cfg)["mode"] == "internal" and "tls internal" in net_https.caddyfile(cfg).read_text()
+
+
+def test_a_reload_that_fails_puts_everything_back(https):
+    cfg, _, run = https
+    old_cert, old_key = pem_pair(["aurora.example.com"])
+    net_https.install_cert(cfg, old_cert, old_key)
+    before = net_https.caddyfile(cfg).read_text()
+    run.fail = "reload"
+    with pytest.raises(net_https.HttpsError, match="refused"):
+        net_https.install_cert(cfg, *pem_pair(["aurora.example.com"]))
+    now = net_https.fresh(cfg)
+    assert now.path("AURORA_TLS_CERT").read_bytes() == old_cert and now.path("AURORA_TLS_KEY").read_bytes() == old_key
+    assert net_https.caddyfile(cfg).read_text() == before and now["AURORA_TLS_MODE"] == "files"
+    with pytest.raises(net_https.HttpsError, match="not a name"):
+        net_https.set_aliases(cfg, ["bad name;rm"])
+
+
+def test_an_invalid_caddyfile_is_not_left_in_place(https):
+    cfg, _, run = https
+    good = net_https.write(cfg).read_text()
+    run.fail = "validate"
+    with pytest.raises(net_https.HttpsError, match="caddy validate"):
+        net_https.write(cfg, AURORA_DOMAIN_ALIASES="casa.local")
+    assert net_https.caddyfile(cfg).read_text() == good
+
+
+def test_the_end_of_an_installation_says_where_and_how_also_for_the_phone(https):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "script"))
+    import sys_ready
+    cfg, _, _ = https
+    sys_config.write_env(cfg.env_file, {"AURORA_DOMAIN": "192.168.1.20", "AURORA_DOMAIN_ALIASES": "casa.local,localhost"})
+    cfg = net_https.fresh(cfg)
+    text = "\n".join(sys_ready.lines(cfg, True, pending=True))
+    assert "https://192.168.1.20/" in text and cfg["AURORA_API_KEY"] in text and "Dopo i comandi" in text
+    assert "http://192.168.1.20/aurora-ca.crt" in text and "telefono" in text
+    sys_config.write_env(cfg.env_file, {"AURORA_DOMAIN": "localhost", "AURORA_DOMAIN_ALIASES": ""})
+    alone = "\n".join(sys_ready.lines(net_https.fresh(cfg), False, pending=False))
+    assert "https://localhost/" in alone and "phone" not in alone

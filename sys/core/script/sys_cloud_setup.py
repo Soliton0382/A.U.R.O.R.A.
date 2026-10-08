@@ -5,6 +5,7 @@ and one small call through Aurora's own client to prove that key and model work 
 
     AURORA_INSTALL_CLOUD_KEY=... python sys/core/script/sys_cloud_setup.py models anthropic        # one per line, suggested first
     AURORA_INSTALL_CLOUD_KEY=... python sys/core/script/sys_cloud_setup.py try anthropic <model>   # "ok", or the provider's error
+    AURORA_INSTALL_CLOUD_URL=http://server:8000/v1 ... models custom    # any OpenAI-compatible service
 
 The key is read from the environment, never from the command line (a command line is visible to every user). Model
 names come from the provider's own list (GET /models), never typed from memory; the suggestion is only an order.
@@ -40,6 +41,8 @@ def _cfg(provider: str, key: str):
     values["AURORA_ROOT"] = str(root)
     if spec.get("key"):
         values[spec["key"]] = key
+    if spec.get("base_key"):                             # custom: its address, by the environment too
+        values[spec["base_key"]] = os.environ.get("AURORA_INSTALL_CLOUD_URL", "").strip().rstrip("/")
     env = root / ".env"
     env.write_text("".join(f"{k}={v}\n" for k, v in values.items()), encoding="utf-8")
     env.chmod(0o600)                                     # it holds the key

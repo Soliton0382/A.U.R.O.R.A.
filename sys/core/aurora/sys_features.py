@@ -162,8 +162,8 @@ def config_problems(cfg: sys_config.Config) -> list[str]:
     out = []
     for role, a in mdl_router.assignments(cfg).items():
         p = mdl_router.PROVIDERS.get(a["provider"], {})
-        if p.get("kind") not in ("local", "claude_code", None) and not cfg.values.get(p.get("key", "")):
-            out.append(f"{role} → {a['provider']}: {p.get('key')} vuota (ricade sul locale)")
+        if p.get("kind") not in ("local", "claude_code", None) and not mdl_router.configured(a["provider"], cfg):
+            out.append(f"{role} → {a['provider']}: {p.get('base_key') or p.get('key')} vuota (ricade sul locale)")
         if p.get("kind") == "openai" and not a.get("model"):
             out.append(f"{role} → {a['provider']}: nessun modello scelto (ricade sul locale)")
     for name, (_, _, _, _, switch, _) in FEATURES.items():

@@ -40,8 +40,9 @@ def connections(cfg: sys_config.Config) -> list[dict]:
     out = []
     for name, spec in mdl_router.PROVIDERS.items():
         if spec.get("key"):
-            out.append(_line(f"cloud:{name}", bool(cfg.values.get(spec["key"])), spec["label"], spec["label"],
-                             "chiave presente" if cfg.values.get(spec["key"]) else "nessuna chiave", f"{spec['key']} (🧠 Modelli)"))
+            ready = mdl_router.configured(name, cfg)
+            out.append(_line(f"cloud:{name}", ready, spec["label"], spec["label"],
+                             "pronto" if ready else "nessuna chiave o indirizzo", f"{spec.get('base_key') or spec['key']} (🧠 Modelli)"))
     out.append(_line("cloud:claude_code", bool(shutil.which("claude")), "Claude Code (abbonamento)", "Claude Code (subscription)",
                      "programma trovato" if shutil.which("claude") else "programma non trovato"))
 

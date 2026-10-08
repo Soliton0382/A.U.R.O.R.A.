@@ -275,7 +275,15 @@ model with one call, and installs the rest without CUDA, llama.cpp or the 21.5 G
 Search, memory and documents stay on the computer; the encoder and the re-ranker run on the CPU. Every text that leaves
 goes through the masking: e-mails, phones, IBANs, cards, tax codes, addresses, keys, your name and the words you list.
 The content itself and photos are not masked. This is why the exemption from level B is needed, signed at the end.
-Force it with `AURORA_INSTALL_BACKEND=cloud ./install.sh`.
+Also with a suitable GPU the installer asks where Aurora reasons: locally (advised) or in the cloud. The 8th choice is
+any OpenAI-compatible service (a company server, vLLM, LM Studio, Ollama): its address and, if it asks one, its key.
+
+**From the phone.** The installer asks where you will use Aurora from. With «also from the phone» she answers at the
+computer's address on the home network and at `name.local`. At the end it prints the two steps: install the root
+certificate on the phone from `http://<address>/aurora-ca.crt`, then open Aurora and paste the key. The ⚙️ → 🔒
+**HTTPS and devices** page shows the addresses with a QR code, the certificate in use and its expiry. It also lets you
+switch to your own certificate: it is checked first and, if Caddy refuses it, everything goes back as it was. No sudo
+is needed.
 
 Models: 24.7 GB required (reasoner 21.5 GB, encoder, re-ranker), up to 57.6 GB optional. A clean install with every
 model took 10 min 55 s on the reference machine (M59); from GitHub, multi-user, required models only, 6 min 39 s

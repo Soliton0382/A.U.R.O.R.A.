@@ -8,7 +8,8 @@
 #   ./install.sh --yes               # takes every default
 #   options: --no-services (stop before systemd/HTTPS: for a second copy on a machine that already runs Aurora)
 #   unattended: each answer from AURORA_INSTALL_<NAME> (NAME, ASSISTANT, PERSONALITY 1-4, VOICE f/m, LANG, DOMAIN, PORT,
-#            EXEMPT y/n, MODE single/multi, BACKEND local/cloud, CLOUD y/n, PROVIDER 1-7, MODEL), e.g.
+#            REACH 1-3 (this computer, also the home network, a name of yours), EXEMPT y/n, MODE single/multi,
+#            REASONER 1-2 or BACKEND local/cloud, CLOUD y/n, PROVIDER 1-8, CLOUD_URL (provider 8), MODEL), e.g.
 #            AURORA_INSTALL_MODE=multi ./install.sh --yes; the cloud key from AURORA_INSTALL_CLOUD_KEY (never asked twice)
 #   without an NVIDIA GPU of 16 GB (or AURORA_INSTALL_BACKEND=cloud): a cloud reasoner (Anthropic, OpenAI, Gemini,
 #            Mistral, OpenRouter, xAI or Claude Code), every call masked; the encoder and re-ranker on the CPU
@@ -91,7 +92,12 @@ if nvidia-smi >/dev/null 2>&1; then
   nvidia-smi --query-gpu=index,name,driver_version,memory.total --format=csv,noheader | sed 's/^/  /'
   VRAM=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits | sort -n | tail -1 | tr -dc 0-9)
 fi
-if [ -z "$BACKEND" ] && [ "${VRAM:-0}" -ge 15000 ]; then BACKEND=local; fi
+if [ -z "$BACKEND" ] && [ "${VRAM:-0}" -ge 15000 ]; then
+  echo "  $(t 'Dove ragiona Aurora?' 'Where does Aurora reason?')"
+  echo "    1) $(t 'sulla tua GPU: niente esce dal computer (consigliato)' 'on your GPU: nothing leaves the computer (advised)')"
+  echo "    2) $(t 'con un modello cloud a tua scelta: ogni testo mascherato, la GPU resta libera' 'with a cloud model of your choice: every text masked, the GPU stays free')"
+  case "$(ask "$(t 'Scegli 1-2' 'Choose 1-2')" "1" REASONER)" in 2) BACKEND=cloud ;; *) BACKEND=local ;; esac
+fi
 if [ -z "$BACKEND" ]; then
   if [ "${VRAM:-0}" = 0 ]; then warn "$(t 'nessuna GPU NVIDIA attiva' 'no NVIDIA GPU running')"
   else warn "$(t 'GPU troppo piccola per il ragionatore locale (servono 16 GB)' 'GPU too small for the local reasoner (16 GB needed)')"; fi
@@ -136,9 +142,27 @@ case "$(ask "$(t 'Voce femminile o maschile (f/m)' 'Female or male voice (f/m)')
 esac
 LANGDEF=$([ "$IT" = 1 ] && echo it_IT || echo en_US)
 ULANG=$(ask "$(t 'Lingua (it_IT / en_US)' 'Language (it_IT / en_US)')" "$LANGDEF" LANG)
-DOMAIN=$(ask "$(t 'Nome per la WebUI (localhost = solo questo computer)' 'Name for the WebUI (localhost = this computer only)')" "localhost" DOMAIN)
+# where Aurora is used from: the phone needs an address it can reach (this computer's on the home network)
+LANIP=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for (i = 1; i <= NF; i++) if ($i == "src") { print $(i + 1); exit }}')
+ALIASES=""; REACH=1
+if [ -n "${AURORA_INSTALL_DOMAIN:-}" ]; then
+  DOMAIN="$AURORA_INSTALL_DOMAIN"; REACH=3
+else
+  echo "  $(t 'Da dove userai Aurora?' 'Where will you use Aurora from?')"
+  echo "    1) $(t 'solo da questo computer' 'this computer only') (https://localhost)"
+  [ -n "$LANIP" ] && echo "    2) $(t 'anche dal telefono e dagli altri dispositivi di casa' 'also from the phone and the other devices at home') (https://$LANIP)"
+  echo "    3) $(t 'da un mio nome di dominio' 'from a domain name of mine') ($(t 'con il mio certificato, o con il tunnel Cloudflare dopo' 'with my certificate, or with the Cloudflare tunnel later'))"
+  REACH=$(ask "$(t 'Scegli 1-3' 'Choose 1-3')" "1" REACH)
+  case "$REACH" in
+    2) [ -n "$LANIP" ] || die "$(t 'nessun indirizzo di rete trovato' 'no network address found')"
+       DOMAIN="$LANIP"; ALIASES="$(hostname -s 2>/dev/null || hostname).local,localhost" ;;
+    3) DOMAIN=$(ask "$(t 'Il tuo nome (es. aurora.example.com)' 'Your name (e.g. aurora.example.com)')" "" DOMAIN_NAME)
+       [ -n "$DOMAIN" ] || die "$(t 'nome vuoto' 'empty name')" ;;
+    *) REACH=1; DOMAIN=localhost ;;
+  esac
+fi
 TLS=internal; CERT=""; KEY=""
-if [ "$DOMAIN" != localhost ] && yesno "$(t 'Hai un tuo certificato per' 'Do you have your own certificate for') $DOMAIN?" n; then
+if [ "$REACH" = 3 ] && [ "$DOMAIN" != localhost ] && yesno "$(t 'Hai un tuo certificato per' 'Do you have your own certificate for') $DOMAIN?" n; then
   CERT=$(ask "$(t 'file del certificato (fullchain)' 'certificate file (fullchain)')" "")
   KEY=$(ask "$(t 'file della chiave privata' 'private key file')" "")
   [ -r "$CERT" ] && [ -r "$KEY" ] || die "$(t 'certificato o chiave non leggibili' 'certificate or key not readable')"
@@ -156,13 +180,18 @@ if [ "$BACKEND" = cloud ]; then
   yesno "$(t 'Va bene così?' 'Is that all right?')" y CLOUD_OK || die "$(t 'senza il cloud serve una GPU NVIDIA da 16 GB' 'without the cloud an NVIDIA GPU of 16 GB is needed')"
   EXEMPT=1
   echo "  $(t 'Provider:' 'Provider:') 1) Anthropic (Claude)  2) OpenAI  3) Google Gemini  4) Mistral  5) OpenRouter  6) xAI Grok  7) Claude Code ($(t 'abbonamento' 'subscription'))"
-  case "$(ask "$(t 'Scegli 1-7' 'Choose 1-7')" "1" PROVIDER)" in
+  echo "            8) $(t 'altro servizio compatibile OpenAI (server aziendale, vLLM, LM Studio, Ollama...)' 'another OpenAI-compatible service (company server, vLLM, LM Studio, Ollama...)')"
+  CURL_BASE=""
+  case "$(ask "$(t 'Scegli 1-8' 'Choose 1-8')" "1" PROVIDER)" in
     2) PROVIDER=openai; CKEYNAME=AURORA_OPENAI_API_KEY ;;
     3) PROVIDER=google; CKEYNAME=AURORA_GOOGLE_API_KEY ;;
     4) PROVIDER=mistral; CKEYNAME=AURORA_MISTRAL_API_KEY ;;
     5) PROVIDER=openrouter; CKEYNAME=AURORA_OPENROUTER_API_KEY ;;
     6) PROVIDER=xai; CKEYNAME=AURORA_XAI_API_KEY ;;
     7) PROVIDER=claude_code ;;
+    8) PROVIDER=custom; CKEYNAME=AURORA_CUSTOM_API_KEY
+       CURL_BASE=$(ask "$(t 'Indirizzo del servizio (finisce con /v1)' 'The service'"'"'s address (ending in /v1)')" "" CLOUD_URL)
+       case "$CURL_BASE" in http://*|https://*) ;; *) die "$(t 'indirizzo non valido' 'invalid address'): $CURL_BASE" ;; esac ;;
     *) PROVIDER=anthropic; CKEYNAME=AURORA_ANTHROPIC_API_KEY ;;
   esac
   CKEY="${AURORA_INSTALL_CLOUD_KEY:-}"
@@ -170,6 +199,10 @@ if [ "$BACKEND" = cloud ]; then
     CLAUDE_BIN=$(command -v claude || true)
     [ -n "$CLAUDE_BIN" ] || die "$(t 'Claude Code non trovato: installalo, collega il tuo account (comando claude) e rilancia ./install.sh' 'Claude Code not found: install it, sign in (the claude command) and run ./install.sh again')"
     ok "Claude Code: $CLAUDE_BIN"
+  elif [ -z "$CKEY" ] && [ "$PROVIDER" = custom ]; then          # a service of one's own may ask no key
+    if [ "$YES" = 0 ]; then
+      read -r -s -p "  $(t 'Chiave API (non viene mostrata; vuota se il servizio non la chiede)' 'API key (not shown; empty if the service asks none)'): " CKEY </dev/tty; echo
+    fi
   elif [ -z "$CKEY" ]; then
     [ "$YES" = 1 ] && die "AURORA_INSTALL_CLOUD_KEY"
     read -r -s -p "  $(t 'Chiave API (non viene mostrata)' 'API key (not shown)'): " CKEY </dev/tty; echo
@@ -202,6 +235,7 @@ ok "$(.venv/bin/python --version), torch $(.venv/bin/python -c 'import torch; pr
 if [ "$BACKEND" = cloud ]; then
   step "5b. $(t 'Modello cloud' 'Cloud model')"
   # the key goes by the environment, never on a command line (visible to every user of this computer)
+  export AURORA_INSTALL_CLOUD_URL="$CURL_BASE"            # provider 8 only; not secret
   LIST=$(AURORA_INSTALL_CLOUD_KEY="$CKEY" .venv/bin/python sys/core/script/sys_cloud_setup.py models "$PROVIDER") \
     || die "$(t 'il provider rifiuta la chiave' 'the provider refuses the key'): $(echo "$LIST" | tail -1)"
   echo "$LIST" | head -12 | nl -w4 -s') '
@@ -249,11 +283,12 @@ else
   SETS=(--set "AURORA_OWNER_NAME=$OWNER" --set "AURORA_ASSISTANT_NAME=$ANAME" --set "AURORA_PERSONALITY=$PERSONA"
         --set "AURORA_ASSISTANT_GENDER=$AGENDER" --set "AURORA_LANG_DEFAULT=$ULANG" --set "AURORA_DOMAIN=$DOMAIN"
         --set "AURORA_HTTPS_PORT=$PORT" --set "AURORA_TLS_MODE=$TLS" --set "AURORA_UPDATE_MODE=notify"
-        --set "AURORA_SERVICE_USER=$USER" --set "AURORA_USER_MODE=$UMODE")
+        --set "AURORA_SERVICE_USER=$USER" --set "AURORA_USER_MODE=$UMODE" --set "AURORA_DOMAIN_ALIASES=$ALIASES")
   [ -n "$BROWSER" ] && SETS+=(--set "AURORA_CHROME_BIN=$BROWSER")
   if [ "$BACKEND" = cloud ]; then
     SETS+=(--set "AURORA_CLOUD_PROVIDER=$PROVIDER" --set "AURORA_CLOUD_MODEL=$CMODEL")
     [ "$PROVIDER" = claude_code ] && SETS+=(--set "AURORA_CLAUDE_CODE_BIN=$CLAUDE_BIN" --set "AURORA_CLAUDE_CODE_MODEL=$CMODEL")
+    [ "$PROVIDER" = custom ] && SETS+=(--set "AURORA_CUSTOM_BASE_URL=$CURL_BASE")
     if [ -n "$CKEYNAME" ]; then export "$CKEYNAME=$CKEY"; SETS+=(--set-env "$CKEYNAME"); fi
   fi
   while IFS='=' read -r k v; do [ -n "$k" ] && SETS+=(--set "$k=$v"); done < <(echo "$PROFILE" | .venv/bin/python -c 'import json,sys; [print(f"{k}={v}") for k, v in json.load(sys.stdin)["env"].items()]')
@@ -325,6 +360,8 @@ if [ "$SERVICES" = 0 ] || [ "$SUDO_LATER" = 1 ]; then
   step "$(t 'Servizi non installati' 'Services not installed') ($([ "$SERVICES" = 0 ] && echo --no-services || echo sudo))"
   echo "  .venv/bin/python sys/core/script/sys_install_services.py && sudo bash sys/deploy/systemd/install.sh"
   .venv/bin/python sys/core/script/sys_doctor.py || true          # what works already, and what is left to do
+  echo
+  .venv/bin/python sys/core/script/sys_ready.py --pending          # where to open it, and the key: always said
   exit 0
 fi
 step "12. $(t 'Servizi (systemd) e HTTPS' 'Services (systemd) and HTTPS')"
@@ -333,23 +370,15 @@ sudo bash sys/deploy/systemd/install.sh || die "$(t 'servizi' 'services')"
 if [ "$TLS" = internal ]; then
   ADMIN=$(.venv/bin/python -c 'import sys; sys.path.insert(0, "sys/core"); from aurora import sys_config; print(sys_config.get()["AURORA_CADDY_ADMIN"])')
   sudo caddy trust --address "$ADMIN" && ok "$(t 'certificato locale di Caddy riconosciuto da questo computer' 'Caddy local certificate trusted on this computer')"
-  echo "  $(t 'Per altri dispositivi importa' 'For other devices import'): ~/.local/share/caddy/pki/authorities/local/root.crt"
 fi
 if command -v ufw >/dev/null && sudo ufw status 2>/dev/null | grep -q "Status: active"; then
-  warn "$(t 'firewall attivo: per usare Aurora da altri dispositivi' 'firewall active: to use Aurora from other devices'): sudo ufw allow $PORT/tcp"
+  HTTPP=$(.venv/bin/python -c 'import sys; sys.path.insert(0, "sys/core"); from aurora import sys_config; print(sys_config.get()["AURORA_HTTP_PORT"])')
+  warn "$(t 'firewall attivo: per usare Aurora da altri dispositivi' 'firewall active: to use Aurora from other devices'): sudo ufw allow $PORT/tcp && sudo ufw allow $HTTPP/tcp"
 fi
 
 # ---------------------------------------------------------------------------------------------------
 step "13. $(t 'Pronta' 'Ready')"
-.venv/bin/python - <<'EOF'
-import sys
-sys.path.insert(0, "sys/core")
-from aurora import sys_config as C
-c = C.get()
-port = "" if c["AURORA_HTTPS_PORT"] == 443 else f":{c['AURORA_HTTPS_PORT']}"
-print(f"  WebUI:   https://{c['AURORA_DOMAIN']}{port}/")
-print(f"  API key: {c['AURORA_API_KEY']}   (once, to register each browser or app)")
-EOF
+.venv/bin/python sys/core/script/sys_ready.py
 [ "$UMODE" = multi ] && echo "  $(t 'Multi-utente: al primo accesso entra con la chiave API, poi crea la tua password e collega Google Authenticator; da lì entrerai con nome, password e codice.' 'Multi-user: at the first login enter with the API key, then create your password and link Google Authenticator; from then on you enter with name, password and code.')"
 echo
 .venv/bin/python sys/core/script/sys_doctor.py || warn "$(t 'qualcosa di obbligatorio non va: vedi sopra' 'something required is wrong: see above')"
