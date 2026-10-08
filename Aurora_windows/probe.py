@@ -151,6 +151,14 @@ def main() -> int:
     print(f"== {p.name} backend on {sys.platform}, Python {sys.version.split()[0]}, {tree}")
 
     # ---- the machine
+    def zone():
+        """Aurora's clock, calendar and .ics read their time zone by name (AURORA_TIMEZONE): it must exist here."""
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        rome = datetime(2026, 7, 1, 12, tzinfo=ZoneInfo("Europe/Rome")).utcoffset().total_seconds() / 3600
+        winter = datetime(2026, 12, 1, 12, tzinfo=ZoneInfo("Europe/Rome")).utcoffset().total_seconds() / 3600
+        return {"summer": rome, "winter": winter}
+    check("time zone Europe/Rome", zone, lambda v: v == {"summer": 2.0, "winter": 1.0} or str(v))
     check("os_info", p.os_info, lambda v: isinstance(v, dict) and bool(v) or "empty")
     check("machine_id stable", lambda: (p.machine_id(), p.machine_id()), lambda v: v[0] == v[1] and len(v[0]) >= 8 or "unstable or short")
     check("is_admin", p.is_admin, lambda v: isinstance(v, bool) or "not a bool")

@@ -724,6 +724,9 @@ REQUIREMENTS = [
     ("requirements.txt", "accelerate==1.15.0\n",
      "accelerate==1.15.0\npsutil==7.2.2            # sys_platform: CPU, memory, sockets, addresses on every system (the version in requirements.lock)\n",
      "requirements: psutil named, not only pulled in by accelerate"),
+    ("requirements.txt", "accelerate==1.15.0\n",
+     "accelerate==1.15.0\ntzdata==2026.5 ; sys_platform == \"win32\"   # the time zones (the PSF's own): Windows has no IANA database (a real Windows, 8 Oct)\n",
+     "requirements: tzdata on Windows, where Python finds no time zone without it"),
 ]
 
 REWRITES = SERVICES + LOCKS + METRICS + DEVICES + FILES + GUARDS + HINTS + MORE + NETWORK + WORDS + PATHS + REQUIREMENTS + TESTS

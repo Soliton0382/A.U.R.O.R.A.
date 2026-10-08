@@ -926,6 +926,19 @@ person) —, the shadow trained 20/20 in 22.3 min, reflections at 01:11, 02:55, 
 with 2 sources in 66.2 s, «cos'è l'entropia» with 2 in 56.5 s — both declined before the night (N77, the machine's
 part). Facebook: the owner's first video published (approval executed, 5.9 s). Security (C174/C175): see BUGS. The face beside the health dot (owner, same morning): /v1/aurora/mood 0.02 s from the REM's last measure (53 s old); headless at 1280×850 a mouse over it opens the card (7 rows, 124–544 px), away closes it; at 390×844 a tap opens it inside the screen (8–382 px, no sideways scroll), a tap elsewhere closes it.
 
+## M147 — Windows green on a real machine; time zones; torch out of the tests' process (8 October 2026)
+
+Ports on c67aaa4. Windows (x64): the job green for the first time — probe 39 checks, 0 failed, the platform tests
+passed on the real machine (the factory paths of defaults.json). Its Linux suite ran for the first time and stopped at
+collection, 4 files (calendar, ical, nas, routines): ZoneInfo("Europe/Rome") — Windows has no IANA time zone database,
+Python needs the tzdata package (the PSF's own, 2026.5 on PyPI). Not only the tests: Aurora's clock (sns_clock, the time
+in every prompt), the calendar and the .ics reader name their zone. tzdata added to the Windows requirements
+(a rewrite with the marker sys_platform == "win32"); the probe now checks Europe/Rome (+2 in July, +1 in December):
+Linux 41 checks, 0 failed. The Mac: probe 40 checks, 0 failed; its suite went from 75% to 81% and showed where it
+aborts: test_story_auto imported svc_models (torch) in pytest's process after test_sol_index had loaded faiss — the
+same pair, now only inside the tests (Aurora's own processes are apart since M146). That test runs in a process of
+its own now; after the whole suite on this machine pytest's process holds faiss and not torch (measured).
+
 ## M146 — Speech to text out of the API's process; Windows's factory paths (8 October 2026)
 
 The Mac's crash (M145) confirmed by the next run: SIGABRT at torch's import, in libomp's omp_set_num_threads; 6 tests

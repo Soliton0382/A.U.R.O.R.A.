@@ -120,31 +120,38 @@ def test_make_checks_the_sources_before_painting(monkeypatch, cfg):
     assert painted == []
 
 
-def test_the_models_service_halves_its_batch_when_the_gpu_is_full(cfg, monkeypatch):
-    """C197: an out-of-memory batch is retried smaller instead of answering 500, and the batch size is restored."""
-    import importlib
+def test_the_models_service_halves_its_batch_when_the_gpu_is_full(cfg):
+    """C197: an out-of-memory batch is retried smaller instead of answering 500, and the batch size is restored. In a
+    process of its own, as aurora-models is: torch never beside faiss (M145 — on a Mac two OpenMP runtimes in one
+    process abort it, and the tests before this one loaded faiss)."""
+    import subprocess
     import sys
     from pathlib import Path
-    import torch
-    monkeypatch.setattr("aurora.sys_config.get", lambda: cfg)
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "script"))
-    svc = importlib.import_module("svc_models")
-    monkeypatch.setattr(svc, "give_back", lambda: None)
-    seen = []
-
-    class Model:
-        batch = 8
-
-        def encode(self, items):
-            seen.append(self.batch)
-            if self.batch > 2:
-                raise torch.OutOfMemoryError("full")
-            return len(items)
-
-    m = Model()
-    assert svc.shrinking(m, m.encode, ["a"] * 5) == 5
-    assert seen == [8, 4, 2] and m.batch == 8
-    m.encode = lambda items: (_ for _ in ()).throw(torch.OutOfMemoryError("always"))
-    with pytest.raises(torch.OutOfMemoryError):
-        svc.shrinking(m, m.encode, ["a"])
-    assert m.batch == 8
+    code = f"""
+import sys
+from pathlib import Path
+sys.path.insert(0, "."); sys.path.insert(0, "script")
+from aurora import sys_config
+sys_config._cached = sys_config.load(Path({str(cfg.env_file)!r}), check_root=False)
+import pytest, torch, svc_models as svc
+svc.give_back = lambda: None
+seen = []
+class Model:
+    batch = 8
+    def encode(self, items):
+        seen.append(self.batch)
+        if self.batch > 2:
+            raise torch.OutOfMemoryError("full")
+        return len(items)
+m = Model()
+assert svc.shrinking(m, m.encode, ["a"] * 5) == 5
+assert seen == [8, 4, 2] and m.batch == 8
+m.encode = lambda items: (_ for _ in ()).throw(torch.OutOfMemoryError("always"))
+with pytest.raises(torch.OutOfMemoryError):
+    svc.shrinking(m, m.encode, ["a"])
+assert m.batch == 8
+print("ok")
+"""
+    r = subprocess.run([sys.executable, "-c", code], cwd=Path(__file__).resolve().parents[1], capture_output=True,
+                       text=True, timeout=300)
+    assert r.returncode == 0 and r.stdout.strip().endswith("ok"), r.stderr[-2000:]
