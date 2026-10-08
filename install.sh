@@ -214,6 +214,9 @@ if [ "$BUILD" = 1 ] || [ ! -x sys/runtime/llama.cpp/bin/llama-server ]; then
   sys/core/script/sys_nvidia.sh llama --yes | tail -3 || die "llama.cpp"
 fi
 ok "$(sys/runtime/llama.cpp/bin/llama-server --version 2>&1 | head -1)"
+# the GitHub plugin's own program (pinned, SHA-256 checked): nothing installed it before 8 Oct 2026
+if out="$(bash sys/core/script/sys_github_mcp_install.sh 2>&1)"; then ok "GitHub MCP: $(echo "$out" | tail -1)"
+else warn "$(t 'programma del plugin GitHub non installato' 'the GitHub plugin program not installed'): $(echo "$out" | tail -1)"; fi
 
 # ---------------------------------------------------------------------------------------------------
 step "10. Test"

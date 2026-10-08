@@ -63,7 +63,12 @@ jobs:
         run: python ${{ matrix.port }}/build.py --test --probe --json probe-${{ matrix.port }}.json
       - name: The whole Linux suite on the built tree (information for phase 3)
         continue-on-error: true
+        env:
+          PYTHONUNBUFFERED: "1"       # a crash must not take the lines before it (v0.2.0's Mac: SIGABRT, nothing printed)
+          PYTHONFAULTHANDLER: "1"     # the Python stack of a native crash
+          PYTEST_ADDOPTS: "-v"        # one line per test: the last one is where it stopped
         run: |
+          set +e +o pipefail          # the exit code is kept for the notice, not lost to the shell's -e
           python ${{ matrix.port }}/build.py --suite 2>&1 | tee suite-${{ matrix.port }}.txt
           rc=${PIPESTATUS[0]}; echo "$rc" > suite-rc.txt; exit "$rc"
       - name: Summary
@@ -108,11 +113,11 @@ jobs:
           if s.exists():
               text = s.read_text(encoding="utf-8", errors="replace")
               rc = pathlib.Path("suite-rc.txt").read_text().strip() if pathlib.Path("suite-rc.txt").exists() else "?"
-              tail = [l for l in text.splitlines() if re.search(r"\d+ (passed|failed|error)", l)]
+              tail = [l for l in text.splitlines() if re.search(r"\d+ (passed|failed|error)", l) and " in " in l]
               failed = sorted({l.split(" ")[1].split("::")[0] for l in text.splitlines() if l.startswith(("FAILED ", "ERROR "))})
               print(f"::notice title={port} Linux suite::exit {rc}; {tail[-1] if tail else 'no summary'}"
                     + (f"%0Afiles with failures: {', '.join(failed)}"[:3000] if failed else "")
-                    + ("%0Alast lines:%0A" + "%0A".join(text.splitlines()[-12:])[:2500] if not tail else ""))
+                    + ("%0Alast lines:%0A" + "%0A".join(text.splitlines()[-25:])[:3500] if not tail else ""))
           PY
       - uses: actions/upload-artifact@v4
         if: always()

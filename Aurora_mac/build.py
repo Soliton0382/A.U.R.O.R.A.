@@ -115,6 +115,10 @@ def main() -> None:
                  sorted(str(p.relative_to(out / "sys" / "core")) for p in (out / "sys" / "core" / "tests").glob("test_platform_*.py")))
         r = subprocess.run([sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", "-p", "no:warnings", *tests],
                            cwd=out / "sys" / "core", env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
+        if r.returncode < 0:                   # killed by a signal: said, not hidden as exit 250 (-6, SIGABRT: v0.2.0's Mac)
+            import signal
+            print(f"ABORT: pytest killed by signal {-r.returncode} ({signal.Signals(-r.returncode).name})", file=sys.stderr)
+            sys.exit(128 - r.returncode)
         sys.exit(r.returncode)
 
 

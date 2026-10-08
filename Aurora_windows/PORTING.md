@@ -107,3 +107,21 @@ Intended differences on Linux, none in behaviour the suite checks: a service tha
 - Never a silent fall back to Linux commands (`for_system` raises for a system without a backend).
 - Never a plugin or a project uncaged because the cage is missing.
 - Never a number not measured: the Apple/Windows GPU use, the winget ids, the wheels are «to check» until a run shows them.
+
+## The plugins on Windows (checked 8 October 2026)
+
+Read from each plugin's code (a test now fails on any Linux-only word or program in sys/plugins: test_platform_residue)
+and from what each needs around it. **The one that decides everything: the cage.** On Linux every plugin runs in
+bubblewrap; Windows has no bwrap, and the port refuses to start a plugin without a cage while AURORA_PLUGIN_SANDBOX
+is on (GUARDS) — so until phase 4, no plugin runs on Windows unless the owner turns the cage off knowingly.
+
+| Plugins | What they need | On Windows |
+|---|---|---|
+| calendar, weather, news, cinema, notes, expenses, health, diary, documents, email, email_diag, telegram, discord, mastodon, nextcloud, whatsapp, twitch, instagram, homeassistant, netintel, web, pyenv, logs, self, cloud | Python and the network only | ✅ the same code (pure Python, httpx, the MCP library) — after the cage |
+| facebook (videos: ffprobe), dj (ffmpeg), projects (git) | ffmpeg, git | ✅ code portable; the installer installs ffmpeg and git (winget: Gyan.FFmpeg, Git.Git) |
+| senses | camera and microphone | ✅ through sys_platform (dshow, phase 2) |
+| backup | the NAS (smb://) mounted on /mnt/aurora-nas by aurora-mount | 🔨 phase 3: no mount: the backup writes to \\host\share\folder directly (is_mount is False by design, measured on a real Windows), target() must take that path instead of /mnt/aurora-nas; its card's text shows Linux commands |
+| cloudflare | cloudflared installed and run as the service aurora-tunnel (sys/deploy/cloudflared/install.sh: apt + systemd) | 🔨 phase 3: winget install Cloudflare.cloudflared, a scheduled task \Aurora\tunnel; its card says `sudo bash …install.sh` |
+| github | its own program, sys/runtime/github-mcp-server (Go) — **no script installs it, not even on Linux** (found 8 Oct) | 🔨 phase 3: the installer downloads the release asset of the system (github-mcp-server_Windows_x86_64.zip) — on Linux too |
+| dropbox, tiktok | authorize.py, told as `.venv/bin/python …` | 🔨 phase 3: the command written per system (.venv\Scripts\python.exe) |
+| security (host firewall part) | nftables | ⏸️ phase 4 (Windows Defender Firewall (New-NetFirewallRule): to decide); the firewall's API part (Sophos) is portable |

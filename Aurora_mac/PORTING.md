@@ -104,3 +104,21 @@ Intended differences on Linux, none in behaviour the suite checks: a service tha
 - Never a silent fall back to Linux commands (`for_system` raises for a system without a backend).
 - Never a plugin or a project uncaged because the cage is missing.
 - Never a number not measured: the Apple GPU's use, the wheels are «to check» until a run shows them.
+
+## The plugins on the Mac (checked 8 October 2026)
+
+Read from each plugin's code (a test now fails on any Linux-only word or program in sys/plugins: test_platform_residue)
+and from what each needs around it. **The one that decides everything: the cage.** On Linux every plugin runs in
+bubblewrap; the Mac has no bwrap, and the port refuses to start a plugin without a cage while AURORA_PLUGIN_SANDBOX
+is on (GUARDS) — so until phase 4, no plugin runs on the Mac unless the owner turns the cage off knowingly.
+
+| Plugins | What they need | On the Mac |
+|---|---|---|
+| calendar, weather, news, cinema, notes, expenses, health, diary, documents, email, email_diag, telegram, discord, mastodon, nextcloud, whatsapp, twitch, instagram, homeassistant, netintel, web, pyenv, logs, self, cloud | Python and the network only | ✅ the same code (pure Python, httpx, the MCP library) — after the cage |
+| facebook (videos: ffprobe), dj (ffmpeg), projects (git) | ffmpeg, git | ✅ code portable; the installer installs ffmpeg and git (brew install ffmpeg git) |
+| senses | camera and microphone | ✅ through sys_platform (avfoundation, phase 2) |
+| backup | the NAS (smb://) mounted on /mnt/aurora-nas by aurora-mount | 🔨 phase 3: mount_smbfs into ~/aurora-nas (no root), the same mount check through the mount table; its card's text shows Linux commands |
+| cloudflare | cloudflared installed and run as the service aurora-tunnel (sys/deploy/cloudflared/install.sh: apt + systemd) | 🔨 phase 3: brew install cloudflared, a launchd agent com.aurora.tunnel; its card says `sudo bash …install.sh` |
+| github | its own program, sys/runtime/github-mcp-server (Go) — **no script installs it, not even on Linux** (found 8 Oct) | 🔨 phase 3: the installer downloads the release asset of the system (github-mcp-server_Darwin_arm64.tar.gz) — on Linux too |
+| dropbox, tiktok | authorize.py, told as `.venv/bin/python …` | 🔨 phase 3: the command written per system (.venv/bin/python, as today) |
+| security (host firewall part) | nftables | ⏸️ phase 4 (pf, or the Mac's application firewall: to decide); the firewall's API part (Sophos) is portable |

@@ -926,6 +926,24 @@ person) —, the shadow trained 20/20 in 22.3 min, reflections at 01:11, 02:55, 
 with 2 sources in 66.2 s, «cos'è l'entropia» with 2 in 56.5 s — both declined before the night (N77, the machine's
 part). Facebook: the owner's first video published (approval executed, 5.9 s). Security (C174/C175): see BUGS. The face beside the health dot (owner, same morning): /v1/aurora/mood 0.02 s from the REM's last measure (53 s old); headless at 1280×850 a mouse over it opens the card (7 rows, 124–544 px), away closes it; at 390×844 a tap opens it inside the screen (8–382 px, no sideways scroll), a tap elsewhere closes it.
 
+## M142 — Aurora on a real Mac and a real Windows, the plugins for both (8 October 2026, C202, C203)
+
+GitHub's runners, Ports by hand on de6a8a7. Mac (macos-latest, Apple Silicon): the 22 requirements installed from
+PyPI, the platform tests, probe.py **37 checks: 27 ok, 0 failed, 10 info** — our socket seen by netstat, a lock held by
+another process refused then granted, /usr/bin admin-only and a temp folder not, a file replaced while read, accents
+through run(), a real venv; fonts found (Arial Bold), /usr/share/dict/words, a cage there (sandbox-exec, for phase 4).
+Its Linux suite: exit 250 with nothing printed after the build = pytest killed by SIGABRT (-6 → sys.exit → 250), a native
+crash whose lines stayed in the pipe's buffer; the next run says where (unbuffered, faulthandler, -v, build.py names the
+signal). Windows (windows-latest, x64), after C202: requirements from PyPI ✅, build ✅, probe **36 of 37** — the one
+failed was the probe's own expectation (is_mount of C:\ true: Windows has no mounts by design, the NAS is \\host\share);
+also its «a:b.png» input was a drive-relative path on Windows, not an escape test. Both checks rewritten: is_mount
+(False, False) on Windows, and ffmpeg really drawing a letter with the system's bold font through ffmpeg_path (Linux:
+28 ok, 0 failed). The plugins: their code had never been scanned for the ports (the residue test read sys/core only):
+now it is — 2 words (dropbox's and tiktok's `.venv/bin` in a docstring), 2 programs (ffprobe, git), 1 own program
+(github); every plugin's place on each system in PORTING.md («The plugins on …»): 25 pure Python, 3 need ffmpeg/git,
+senses through the backend, backup (the NAS), cloudflare (cloudflared + its service), github (C203), dropbox/tiktok's
+command, the host firewall — and the cage: no plugin runs on the Mac or Windows until phase 4 or the owner's choice.
+
 ## M141 — The whole ecosystem checked empirically, and the first runs on GitHub (8 October 2026, C202)
 
 GitHub, tag v0.2.0: Release ✅ (the tag verified against allowed_signers, notes from CHANGELOG.md); Ports on

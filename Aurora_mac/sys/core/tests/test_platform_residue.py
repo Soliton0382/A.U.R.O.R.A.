@@ -14,6 +14,7 @@ from pathlib import Path
 
 CORE = Path(__file__).resolve().parents[1]
 AURORA, SCRIPT = CORE / "aurora", CORE / "script"
+PLUGINS = CORE.parent / "plugins"
 LINUX_ONLY = re.compile(r'"systemctl"|\bfcntl\b|/proc/|"nvidia-smi"|import pwd|os\.getuid|os\.geteuid|"bwrap"|"pactl"|'
                         r'v4l2|/dev/video|\.venv/bin|journalctl|"sudo"|/usr/share/dict|/dev/null')
 WORDS_ALLOWED = {
@@ -52,6 +53,17 @@ def _programs(f: Path) -> set[str]:
     return out
 
 
+# the plugins (owner, 2026-10-08: «verifica che anche i vari plugin funzionino… vedi cloudflare»): their own code, beside
+# the core's — (plugin, word or program): why it may stay
+PLUGIN_WORDS_ALLOWED = {
+    ("dropbox", ".venv/bin"): "the docstring of authorize.py, a command the owner reads (phase 3: per system)",
+    ("tiktok", ".venv/bin"): "the docstring of authorize.py, a command the owner reads (phase 3: per system)",
+}
+PLUGIN_PROGRAMS_ALLOWED = {("facebook", "ffprobe"), ("projects", "git")}       # both in EVERYWHERE's installers
+# a plugin started by a program of its own (not Python): it must exist for each system (phase 3, PORTING.md)
+PLUGIN_COMMANDS = {"github": "{root}/sys/runtime/github-mcp-server/github-mcp-server"}
+
+
 def _modules():
     return [f for f in sorted(AURORA.rglob("*.py")) if "sys_platform" not in f.parts]
 
@@ -84,3 +96,20 @@ def test_every_program_the_scripts_start_is_known_and_left_to_phase_3():
                 continue
             unexpected.add((f.name, prog))
     assert not unexpected, f"programs of the scripts not in PORTING.md: {sorted(unexpected)}"
+
+
+def test_the_plugins_code_has_no_linux_only_word_or_program_but_the_listed_ones():
+    import json
+    words, progs, cmds = set(), set(), {}
+    for d in sorted(x for x in PLUGINS.iterdir() if (x / "plugin.json").is_file()):
+        m = json.loads((d / "plugin.json").read_text(encoding="utf-8"))
+        if (m.get("command") or ["{python}"])[0] != "{python}":
+            cmds[d.name] = m["command"][0]
+        for f in d.rglob("*.py"):
+            for line in f.read_text(encoding="utf-8").splitlines():
+                if (w := LINUX_ONLY.search(line.split("#", 1)[0])):
+                    words.add((d.name, w.group(0)))
+            progs |= {(d.name, prog) for prog in _programs(f)}
+    assert not words - set(PLUGIN_WORDS_ALLOWED), f"Linux-only words in plugins: {sorted(words - set(PLUGIN_WORDS_ALLOWED))}"
+    assert not progs - PLUGIN_PROGRAMS_ALLOWED, f"programs started by plugins: {sorted(progs - PLUGIN_PROGRAMS_ALLOWED)}"
+    assert cmds == PLUGIN_COMMANDS, f"plugins started by their own program: {cmds}"

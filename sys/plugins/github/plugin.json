@@ -1,93 +1,93 @@
 {
-  "name": "github",
-  "version": "1.12.2",
-  "kind": "connector",
-  "description": {
-    "en": "GitHub through the official GitHub MCP server: repositories, issues, pull requests, code search. Reading is automatic; every write (issue, comment, commit, push, merge) waits for the owner.",
-    "it": "GitHub tramite il server MCP ufficiale di GitHub: repository, issue, pull request, ricerca nel codice. Leggere è automatico; ogni scrittura (issue, commento, commit, push, merge) aspetta il proprietario."
-  },
-  "command": [
-    "{root}/sys/runtime/github-mcp-server/github-mcp-server",
-    "stdio"
-  ],
-  "env_as": {
-    "AURORA_GITHUB_TOKEN": "GITHUB_PERSONAL_ACCESS_TOKEN"
-  },
-  "requires": [
-    "AURORA_GITHUB_TOKEN"
-  ],
-  "effect_prefixes": {
-    "get_": "read",
-    "list_": "read",
-    "search_": "read"
-  },
-  "effects": {
-    "*": "external"
-  },
-  "publishes": {
-    "add_issue_comment": "body",
-    "create_issue": "body",
-    "create_pull_request": "body"
-  },
-  "setup": {
-    "it": "1. Su GitHub → **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**.\n2. Scadenza (ad esempio 90 giorni); *Repository access*: tutti i repository o solo quelli scelti.\n3. Permessi *Repository*: **Contents**, **Issues**, **Pull requests** in *Read and write*; **Administration** in *Read and write* solo se vuoi che Aurora crei repository nuovi.\n4. Genera e copia il token → Aurora **Impostazioni → Plugin**: `AURORA_GITHUB_TOKEN`. Facoltativi: `AURORA_GITHUB_OWNER` (utente od organizzazione dei nuovi repository), `AURORA_GIT_AUTHOR_NAME`/`EMAIL`.\n5. **▶ Prova** su `get_me`: vedi il tuo utente GitHub.\n\nTutto ciò che scrive su GitHub (commit, issue, pull request, push) passa da **Riparazioni** per la tua approvazione.",
-    "en": "Fine-grained personal access token with Contents, Issues, Pull requests (read and write), Administration only to create repositories → `AURORA_GITHUB_TOKEN`. **▶ Try** `get_me`.",
-    "links": [
-      {
-        "label": "Token fine-grained",
-        "url": "https://github.com/settings/personal-access-tokens"
-      },
-      {
-        "label": "Guida ufficiale ai token",
-        "url": "https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens"
-      },
-      {
-        "label": "GitHub MCP server (ufficiale)",
-        "url": "https://github.com/github/github-mcp-server"
-      }
-    ]
-  },
-  "welcome": {
-    "it": "🐙 GitHub collegato. Posso leggere i tuoi repository (codice, issue, pull request, commit, release), dirti stelle e fork, revisionare un progetto e proporti correzioni; ogni scrittura (issue, commenti, commit, push) aspetta il tuo ok.",
-    "en": "🐙 GitHub connected. I can read your repositories (code, issues, pull requests, commits, releases), tell you stars and forks, review a project and propose fixes; every write (issues, comments, commits, pushes) waits for your approval."
-  },
-  "routines": [
-    {
-      "id": "weekly",
-      "title": {
-        "it": "Report settimanale dei repository",
-        "en": "Weekly report of the repositories"
-      },
-      "kind": "agent",
-      "goal": {
-        "it": "Fai un report dei miei repository GitHub (get_me, poi search_repositories con user:<login>): per ognuno stelle, fork, issue aperte, pull request aperte e la data dell'ultimo commit. Una tabella e due righe di commento su cosa merita attenzione. Solo lettura.",
-        "en": "Report on my GitHub repositories (get_me, then search_repositories with user:<login>): for each one stars, forks, open issues, open pull requests and the date of the last commit. A table and two lines on what needs attention. Read only."
-      },
-      "schedule": {
-        "every": "week",
-        "weekday": 0,
-        "at": "09:00"
-      },
-      "notify": "always",
-      "event": "routine.done"
-    },
-    {
-      "id": "news",
-      "title": {
-        "it": "Nuove issue e pull request (ogni giorno)",
-        "en": "New issues and pull requests (daily)"
-      },
-      "kind": "agent",
-      "goal": {
-        "it": "Controlla i miei repository GitHub: ci sono issue o pull request aperte o aggiornate nelle ultime 24 ore? Elencale con titolo, autore e link. Se non ce ne sono rispondi solo: NIENTE. Solo lettura.",
-        "en": "Check my GitHub repositories: are there issues or pull requests opened or updated in the last 24 hours? List them with title, author and link. If there are none reply only: NOTHING. Read only."
-      },
-      "schedule": {
-        "every": "day",
-        "at": "18:00"
-      },
-      "notify": "if_any",
-      "event": "routine.done"
-    }
+ "name": "github",
+ "version": "1.12.2",
+ "kind": "connector",
+ "description": {
+  "en": "GitHub through the official GitHub MCP server: repositories, issues, pull requests, code search. Reading is automatic; every write (issue, comment, commit, push, merge) waits for the owner.",
+  "it": "GitHub tramite il server MCP ufficiale di GitHub: repository, issue, pull request, ricerca nel codice. Leggere è automatico; ogni scrittura (issue, commento, commit, push, merge) aspetta il proprietario."
+ },
+ "command": [
+  "{root}/sys/runtime/github-mcp-server/github-mcp-server",
+  "stdio"
+ ],
+ "env_as": {
+  "AURORA_GITHUB_TOKEN": "GITHUB_PERSONAL_ACCESS_TOKEN"
+ },
+ "requires": [
+  "AURORA_GITHUB_TOKEN"
+ ],
+ "effect_prefixes": {
+  "get_": "read",
+  "list_": "read",
+  "search_": "read"
+ },
+ "effects": {
+  "*": "external"
+ },
+ "publishes": {
+  "add_issue_comment": "body",
+  "create_issue": "body",
+  "create_pull_request": "body"
+ },
+ "setup": {
+  "it": "1. Su GitHub → **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**.\n2. Scadenza (ad esempio 90 giorni); *Repository access*: tutti i repository o solo quelli scelti.\n3. Permessi *Repository*: **Contents**, **Issues**, **Pull requests** in *Read and write*; **Administration** in *Read and write* solo se vuoi che Aurora crei repository nuovi.\n4. Genera e copia il token → Aurora **Impostazioni → Plugin**: `AURORA_GITHUB_TOKEN`. Facoltativi: `AURORA_GITHUB_OWNER` (utente od organizzazione dei nuovi repository), `AURORA_GIT_AUTHOR_NAME`/`EMAIL`.\n5. **▶ Prova** su `get_me`: vedi il tuo utente GitHub.\n\nTutto ciò che scrive su GitHub (commit, issue, pull request, push) passa da **Riparazioni** per la tua approvazione.\n\nIl suo programma (il server MCP di GitHub, versione fissata e verificata) arriva con l'installatore; se la scheda dice «cannot list tools», ripara con `bash sys/core/script/sys_github_mcp_install.sh`.",
+  "en": "Fine-grained personal access token with Contents, Issues, Pull requests (read and write), Administration only to create repositories → `AURORA_GITHUB_TOKEN`. **▶ Try** `get_me`.\n\nIts program (GitHub's MCP server, pinned and checked) comes with the installer; if the card says «cannot list tools», repair it: `bash sys/core/script/sys_github_mcp_install.sh`.",
+  "links": [
+   {
+    "label": "Token fine-grained",
+    "url": "https://github.com/settings/personal-access-tokens"
+   },
+   {
+    "label": "Guida ufficiale ai token",
+    "url": "https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens"
+   },
+   {
+    "label": "GitHub MCP server (ufficiale)",
+    "url": "https://github.com/github/github-mcp-server"
+   }
   ]
+ },
+ "welcome": {
+  "it": "🐙 GitHub collegato. Posso leggere i tuoi repository (codice, issue, pull request, commit, release), dirti stelle e fork, revisionare un progetto e proporti correzioni; ogni scrittura (issue, commenti, commit, push) aspetta il tuo ok.",
+  "en": "🐙 GitHub connected. I can read your repositories (code, issues, pull requests, commits, releases), tell you stars and forks, review a project and propose fixes; every write (issues, comments, commits, pushes) waits for your approval."
+ },
+ "routines": [
+  {
+   "id": "weekly",
+   "title": {
+    "it": "Report settimanale dei repository",
+    "en": "Weekly report of the repositories"
+   },
+   "kind": "agent",
+   "goal": {
+    "it": "Fai un report dei miei repository GitHub (get_me, poi search_repositories con user:<login>): per ognuno stelle, fork, issue aperte, pull request aperte e la data dell'ultimo commit. Una tabella e due righe di commento su cosa merita attenzione. Solo lettura.",
+    "en": "Report on my GitHub repositories (get_me, then search_repositories with user:<login>): for each one stars, forks, open issues, open pull requests and the date of the last commit. A table and two lines on what needs attention. Read only."
+   },
+   "schedule": {
+    "every": "week",
+    "weekday": 0,
+    "at": "09:00"
+   },
+   "notify": "always",
+   "event": "routine.done"
+  },
+  {
+   "id": "news",
+   "title": {
+    "it": "Nuove issue e pull request (ogni giorno)",
+    "en": "New issues and pull requests (daily)"
+   },
+   "kind": "agent",
+   "goal": {
+    "it": "Controlla i miei repository GitHub: ci sono issue o pull request aperte o aggiornate nelle ultime 24 ore? Elencale con titolo, autore e link. Se non ce ne sono rispondi solo: NIENTE. Solo lettura.",
+    "en": "Check my GitHub repositories: are there issues or pull requests opened or updated in the last 24 hours? List them with title, author and link. If there are none reply only: NOTHING. Read only."
+   },
+   "schedule": {
+    "every": "day",
+    "at": "18:00"
+   },
+   "notify": "if_any",
+   "event": "routine.done"
+  }
+ ]
 }

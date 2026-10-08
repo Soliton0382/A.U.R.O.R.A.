@@ -379,6 +379,8 @@ GitHub through the official GitHub MCP server: repositories, issues, pull reques
 
 Fine-grained personal access token with Contents, Issues, Pull requests (read and write), Administration only to create repositories → `AURORA_GITHUB_TOKEN`. **▶ Try** `get_me`.
 
+Its program (GitHub's MCP server, pinned and checked) comes with the installer; if the card says «cannot list tools», repair it: `bash sys/core/script/sys_github_mcp_install.sh`.
+
 ### Configurazione (IT)
 
 1. Su GitHub → **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**.
@@ -388,6 +390,8 @@ Fine-grained personal access token with Contents, Issues, Pull requests (read an
 5. **▶ Prova** su `get_me`: vedi il tuo utente GitHub.
 
 Tutto ciò che scrive su GitHub (commit, issue, pull request, push) passa da **Riparazioni** per la tua approvazione.
+
+Il suo programma (il server MCP di GitHub, versione fissata e verificata) arriva con l'installatore; se la scheda dice «cannot list tools», ripara con `bash sys/core/script/sys_github_mcp_install.sh`.
 
 ### Official guides
 

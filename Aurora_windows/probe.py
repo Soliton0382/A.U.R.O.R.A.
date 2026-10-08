@@ -93,9 +93,12 @@ def main() -> int:
           lambda v: any(str(x.get("port")) == str(port) and x.get("proto") == "tcp" for x in v) or f"port {port} not among {len(v)}")
     srv.close()
     check("own_addresses", p.own_addresses, lambda v: bool(v) and all(isinstance(a, str) for a in v) or "empty")
-    root = Path(os.environ.get("SystemDrive", "C:") + "\\") if sys.platform == "win32" else Path("/")
-    check("is_mount(root)", lambda: p.is_mount(root), lambda v: v is True or "root not a mount")
-    check("is_mount(temp folder)", lambda: p.is_mount(tmp), lambda v: v is False or "a temp folder seen as a mount")
+    if sys.platform == "win32":                     # no mounts on Windows by design: the NAS is \\host\share (PORTING.md)
+        check("is_mount (none on Windows)", lambda: (p.is_mount(Path("C:/")), p.is_mount(tmp)),
+              lambda v: v == (False, False) or str(v))
+    else:
+        check("is_mount(root)", lambda: p.is_mount(Path("/")), lambda v: v is True or "root not a mount")
+        check("is_mount(temp folder)", lambda: p.is_mount(tmp), lambda v: v is False or "a temp folder seen as a mount")
 
     # ---- files: trust, locks, replace, text
     check("key_dir absolute", p.key_dir, lambda v: Path(v).is_absolute() or "relative")
@@ -144,7 +147,21 @@ def main() -> int:
     check("runtime_dir", p.runtime_dir, None)
     check("bold_font", p.bold_font, lambda v: v is None or Path(v).exists() or f"{v} missing")
     check("fonts", p.fonts, None)
-    check("ffmpeg_path with ':'", lambda: p.ffmpeg_path(tmp / "a:b.png"), None)
+    def drawtext():
+        """ffmpeg draws a letter with the system's bold font, its path written by ffmpeg_path: a wrong escape (C:,
+        backslashes, a quote) makes ffmpeg fail — the real test of what videos and pictures do with fonts."""
+        import shutil as sh
+        font = p.bold_font()
+        if not sh.which("ffmpeg") or not font:
+            return "skipped: no ffmpeg or no bold font"
+        out = tmp / "drawtext.png"
+        r = p.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "color=c=black:s=64x32",
+                   "-vf", f"drawtext=fontfile={p.ffmpeg_path(Path(font))}:text=A:fontcolor=white", "-frames:v", "1",
+                   str(out)], 60)
+        return {"code": r.code, "png": out.exists() and out.stat().st_size > 0, "err": r.err.strip()[-200:],
+                "path": p.ffmpeg_path(Path(font))}
+    check("ffmpeg drawtext with ffmpeg_path", drawtext,
+          lambda v: (isinstance(v, str) and v.startswith("skipped")) or (v["code"] == 0 and v["png"]) or str(v))
     check("dictionaries", p.dictionaries, None)
 
     # ---- devices (a runner has none: no error is the check)
