@@ -926,6 +926,27 @@ person) —, the shadow trained 20/20 in 22.3 min, reflections at 01:11, 02:55, 
 with 2 sources in 66.2 s, «cos'è l'entropia» with 2 in 56.5 s — both declined before the night (N77, the machine's
 part). Facebook: the owner's first video published (approval executed, 5.9 s). Security (C174/C175): see BUGS. The face beside the health dot (owner, same morning): /v1/aurora/mood 0.02 s from the REM's last measure (53 s old); headless at 1280×850 a mouse over it opens the card (7 rows, 124–544 px), away closes it; at 390×844 a tap opens it inside the screen (8–382 px, no sideways scroll), a tap elsewhere closes it.
 
+## M141 — The whole ecosystem checked empirically, and the first runs on GitHub (8 October 2026, C202)
+
+GitHub, tag v0.2.0: Release ✅ (the tag verified against allowed_signers, notes from CHANGELOG.md); Ports on
+macos-latest (Apple Silicon) ✅ — requirements from PyPI 84 s, platform tests and probe.py passed (the step fails on a
+single failed check), the Linux suite on the built tree 279 s, exit 250 (information only; its detail needs the logs,
+which GitHub gives only logged in: from the next run the results are public notices); Windows ❌ at the checkout,
+before any step of ours (C202: the repository's name ends with a dot). Plugins, live, through ▶ Prova (the same
+host, cage and settings): 35 plugins, 24 available, 10 waiting for the owner's accounts, 1 off by the owner; every
+read tool called — 97 calls without an argument and 26 with a real one: 0 crashes, 26 of 26 right with arguments
+(GitHub on Aurora's own repository saw the release and the tag; Cloudflare: token active, tunnel healthy with 4
+connections, «Tutto pronto»; firewall, network map, audit 11.2 s, hunt, posture 15.4 s; weather, news, cinema,
+Facebook, Home Assistant, backup «NAS montato», calendar). Two answer «no key» honestly (web.search: Brave;
+ip_reputation: AbuseIPDB). External programs present: cloudflared 2026.10.0, Caddy 2.11.7, bubblewrap 0.11.1,
+nftables 1.1.6, ffmpeg 8.0.1, poppler, git 2.53, llama.cpp build 11272, github-mcp-server, piper, qwen-tts; every
+plugin's launch command exists. Services: api, llm, models, rem, harvester, sentinel, https, tunnel, nft active,
+the backup timer at 23:00. API: 89 GET routes, 82 of 82 callable ones 200 (3 ask a parameter: 422, right); slowest
+backup/snapshots 16.4 s (the NAS), security/audit 10.8 s. Logs of 24 h: Caddy's 145 errors are the API's restarts
+of the day, its 234 warnings streams closed by the browser; the 45 «/embed 500» of 07:28–07:35 are C197 (0 GPU
+out-of-memory since its fix, the models service at 2.4 GB); harvester and weather: the services' own limits. The
+suite run while the real logs were watched: 552 passed, no line written into Aurora's logs.
+
 ## M140 — Releases, one command, the ports in the repository (8 October 2026, roadmap 69)
 
 Before: the public repository had 100 signed commits, 0 tags, 0 releases (GitHub API), pyproject 0.1.0 since 1 Oct.

@@ -23,10 +23,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # the code in a folder of our own: the repository's name ends with a dot (A.U.R.O.R.A.), which Windows takes
+          # off folder names, so the runner's workspace D:\a\A.U.R.O.R.A.\A.U.R.O.R.A. «does not exist» (v0.2.0's run)
           - os: macos-latest          # Apple Silicon
             port: Aurora_mac
+            home: /Users/runner/
           - os: windows-latest        # x64
             port: Aurora_windows
+            home: "C:/"
     runs-on: ${{ matrix.os }}
     timeout-minutes: 90
     env:
@@ -34,12 +38,19 @@ jobs:
     defaults:
       run:
         shell: bash
+        working-directory: ${{ matrix.home }}aurora
     steps:
-      - uses: actions/checkout@v4
+      - name: The code of this commit (public repository, no token)
+        working-directory: ${{ matrix.home }}
+        run: |
+          git init -q aurora && cd aurora
+          git fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q FETCH_HEAD && git log -1 --format='%h %s'
       - uses: actions/setup-python@v5
         with:
           python-version: "3.14"
       - name: System tools (ffmpeg, poppler) — the installer's job in phase 3
+        working-directory: ${{ matrix.home }}
         run: |
           if [ "$RUNNER_OS" = "macOS" ]; then brew install ffmpeg poppler; else choco install -y --no-progress ffmpeg poppler; fi
       - name: Build the port
@@ -53,8 +64,8 @@ jobs:
       - name: The whole Linux suite on the built tree (information for phase 3)
         continue-on-error: true
         run: |
-          set -o pipefail
           python ${{ matrix.port }}/build.py --suite 2>&1 | tee suite-${{ matrix.port }}.txt
+          rc=${PIPESTATUS[0]}; echo "$rc" > suite-rc.txt; exit "$rc"
       - name: Summary
         if: always()
         run: |
@@ -78,11 +89,36 @@ jobs:
               if failed:
                   print("\nFiles with failures (phase 3's list): " + ", ".join(f"`{x}`" for x in failed))
           PY
+      - name: Results as public notices (readable without logging in, through the API's annotations)
+        if: always()
+        run: |
+          python - <<'PY'
+          import json, pathlib, re
+          port = "${{ matrix.port }}"
+          f = pathlib.Path(f"probe-{port}.json")
+          if f.exists():
+              rows = json.loads(f.read_text(encoding="utf-8"))["rows"]
+              bad = [f"{r['check']}: {r.get('why') or r.get('error')}" for r in rows if r["status"] == "FAIL"]
+              n = {k: sum(r["status"] == k for r in rows) for k in ("ok", "FAIL", "info")}
+              print(f"::notice title={port} probe::{len(rows)} checks, {n['ok']} ok, {n['FAIL']} failed, {n['info']} info"
+                    + ("%0A" + "%0A".join(bad)[:3000] if bad else ""))
+              info = [f"{r['check']} = {r.get('value')}"[:160] for r in rows if r["status"] == "info"]
+              print(f"::notice title={port} probe values::" + "%0A".join(info)[:4000])
+          s = pathlib.Path(f"suite-{port}.txt")
+          if s.exists():
+              text = s.read_text(encoding="utf-8", errors="replace")
+              rc = pathlib.Path("suite-rc.txt").read_text().strip() if pathlib.Path("suite-rc.txt").exists() else "?"
+              tail = [l for l in text.splitlines() if re.search(r"\d+ (passed|failed|error)", l)]
+              failed = sorted({l.split(" ")[1].split("::")[0] for l in text.splitlines() if l.startswith(("FAILED ", "ERROR "))})
+              print(f"::notice title={port} Linux suite::exit {rc}; {tail[-1] if tail else 'no summary'}"
+                    + (f"%0Afiles with failures: {', '.join(failed)}"[:3000] if failed else "")
+                    + ("%0Alast lines:%0A" + "%0A".join(text.splitlines()[-12:])[:2500] if not tail else ""))
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: ${{ matrix.port }}-results
           path: |
-            probe-${{ matrix.port }}.json
-            suite-${{ matrix.port }}.txt
+            ${{ matrix.home }}aurora/probe-${{ matrix.port }}.json
+            ${{ matrix.home }}aurora/suite-${{ matrix.port }}.txt
           if-no-files-found: ignore
