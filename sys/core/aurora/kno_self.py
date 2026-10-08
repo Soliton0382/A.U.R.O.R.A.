@@ -24,6 +24,13 @@ SYS_ROUTE = ("Classify the owner's last message to the assistant Aurora. Reply S
              "vault?' SELF; 'cosa sai fare?' SELF; 'grazie!' SELF; 'cos'è l'entanglement?' KNOWLEDGE; 'cosa dice "
              "l'articolo 1571?' KNOWLEDGE; 'e nel caso di un affitto breve?' KNOWLEDGE. "
              "Reply with exactly one word.")
+# a reply to a quoted message (↩️): working on the message itself is hers to do, with the message in front of her
+SYS_ROUTE_QUOTE = ("The owner replies to a MESSAGE of the assistant Aurora, quoted below. Reply ON if the reply asks her "
+                   "to work on that message itself: explain it, summarise or shorten it, translate it, say it in other "
+                   "words, comment on it, doubt it, say what she meant, go through a part of it. Reply NEW if it asks "
+                   "for facts the message does not contain (more about its subject, a related question). "
+                   "Examples: 'spiegamelo in due righe' ON; 'traducilo in inglese' ON; 'perché dici così?' ON; "
+                   "'chi l'ha scoperto?' NEW; 'e come si misura?' NEW. Reply with exactly one word.")
 
 
 class SelfTalk:
@@ -32,8 +39,14 @@ class SelfTalk:
         return "\n".join(f"[{sns_clock.when(s.created_at, self.cfg)}] {'Owner' if s.extra.get('role') == 'user' else 'Aurora'}: "
                          f"{s.text[:cut] if cut else s.text}" for s in recent[-n:])
 
-    def _route(self, question: str, recent: list[Soliton]) -> str:
-        """'self' for small talk and questions about Aurora, 'knowledge' for everything else."""
+    def _route(self, question: str, recent: list[Soliton], quote: Soliton | None = None) -> str:
+        """'self' for small talk and questions about Aurora, 'knowledge' for everything else; a reply that works on
+        the quoted message itself is hers too (it is answered with the message in front of her)."""
+        if quote is not None:
+            out = self._for("route").complete(SYS_ROUTE_QUOTE, f"MESSAGE: {quote.text[:1500]}\n\nREPLY: {question}",
+                                              4).answer.strip().upper()
+            if out.startswith("ON"):
+                return "self"
         user = (f"PREVIOUS TURNS:\n{self._turns(recent, 2)}\n\n" if recent else "") + f"LAST MESSAGE: {question}"
         out = self._for("route").complete(SYS_ROUTE, user, 4).answer.strip().upper()
         return "self" if out.startswith("SELF") else "knowledge"
@@ -103,7 +116,7 @@ class SelfTalk:
             used += len(line)
         return "\n".join(reversed(lines))
 
-    def _self_answer(self, question: str, recent: list[Soliton], ev: Emit) -> str:
+    def _self_answer(self, question: str, recent: list[Soliton], ev: Emit, quote: Soliton | None = None) -> str:
         state = self.self_state()
         ev("self.state", state)
         mems = self._memories(question, recent, ev)
@@ -116,7 +129,9 @@ class SelfTalk:
                   + (f"\n\nYOUR MEMORIES RELEVANT TO THE QUESTION (oldest first; each with its date and how long ago). "
                      f"If what is asked is not here, say you do not remember it, do not invent:\n{self._memory_block(mems)}"
                      if mems else "\n\nYOUR MEMORIES: none found for this question; do not invent any.")
-                  + (f"\n\nRECENT CONVERSATION:\n{self._turns(recent, len(recent))}" if recent else ""))
+                  + (f"\n\nRECENT CONVERSATION:\n{self._turns(recent, len(recent))}" if recent else "")
+                  + (f"\n\nTHE OWNER REPLIES TO THIS MESSAGE OF YOURS (work on it as asked, adding no facts it does "
+                     f"not contain):\n{quote.text}" if quote is not None else ""))
         model, parts = self._for("self"), []
         # who speaks is said in the message itself: "Come mi chiamo?" alone made her answer as the owner
         # the prefix must not pull the language: the Italian identity made English questions get Italian answers

@@ -130,6 +130,7 @@ def history(n: int = 8) -> list[dict]:
              "mode": t.extra.get("mode"), "seconds": t.extra.get("seconds"), "speed": t.extra.get("speed"),
              "sources": t.extra.get("source_list", []), "trace": t.extra.get("trace", []),
              "thought": t.extra.get("thought", ""), "suggestions": t.extra.get("suggestions", []),
+             "reply_to": t.extra.get("reply_to"),
              "long_term": t.consolidated} for t in turns]
     from aurora import sys_uploads
     files = sys_uploads.by_run(cfg, {i["run_id"] for i in items if i["run_id"]})

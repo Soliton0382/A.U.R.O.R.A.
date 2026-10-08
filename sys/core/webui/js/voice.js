@@ -11,6 +11,10 @@ export function mode() {
   return "voice";
 }
 
+export function setMode(m) {
+  try { localStorage.setItem(KEY, MODES.includes(m) ? m : "voice"); } catch { /* storage unavailable */ }
+}
+
 export function nextMode() {
   const m = MODES[(MODES.indexOf(mode()) + 1) % MODES.length];
   try { localStorage.setItem(KEY, m); } catch { /* storage unavailable */ }
@@ -107,31 +111,65 @@ export function unlock() {
 // One player for the page, unlocked during the owner's tap (prime): browsers let a tap start sound only for a few
 // seconds, and the voice may come later than that on a phone (C177: «solo voci online» said for a refused play).
 const SILENCE = "data:audio/wav;base64,UklGRrQBAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YZABAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA";
-let audio = null, player = null, ready = null;
+let audio = null, player = null;
+// Clips made by Aurora's machine, by text (C200): a tap plays one at once, with no wait before play() — the strictest
+// browsers (Safari on the iPhone) allow sound only from inside the tap itself, and «tap again» used to make the clip
+// again, wait for it, and be refused again, for ever. A message that is likely to be heard (the good morning) is
+// prepared before the tap.
+const clips = new Map();                             // speakable text -> object URL
+const KEEP_CLIPS = 4;
 export function prime() {
   if (!player) player = new Audio();
   if (player.src && !player.paused) return;
   player.src = SILENCE;
   player.play().catch(() => { /* not a tap: nothing unlocked, the real play says so */ });
 }
-async function serverSpeak(text, lang) {
-  const say = speakable(text);
-  if (!say) return "ok";
+
+async function fetchClip(say, lang) {
+  if (clips.has(say)) return { url: clips.get(say) };
   let res;
   try {
     res = await fetch("/v1/aurora/tts", { method: "POST", credentials: "same-origin",
       headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: say, lang, format: "mp3" }) });
-  } catch { return "offline"; }
-  if (!res.ok) return res.status === 503 ? "novoice" : "server";
+  } catch { return { err: "offline" }; }
+  if (!res.ok) return { err: res.status === 503 ? "novoice" : "server" };
+  const url = URL.createObjectURL(await res.blob());
+  clips.set(say, url);
+  while (clips.size > KEEP_CLIPS) {
+    const [old, u] = clips.entries().next().value;
+    clips.delete(old);
+    URL.revokeObjectURL(u);
+  }
+  return { url };
+}
+
+// play() called at once, so a tap's permission is still there; the browser's refusal said by its name
+function playClip(url) {
   stop();
-  if (ready) URL.revokeObjectURL(ready);
-  ready = URL.createObjectURL(await res.blob());
-  audio = player || new Audio();
-  audio.src = ready;
-  try {
-    await audio.play();
-    return "ok";
-  } catch { return "blocked"; }                  // the browser refused: a second tap plays it at once (it is here)
+  if (!player) player = new Audio();
+  audio = player;
+  audio.src = url;
+  return audio.play().then(() => "ok", (e) => {
+    if (e?.name === "NotAllowedError") return "blocked";      // the clip stays: the next tap plays it inside the tap
+    console.warn("voice: the browser could not play the clip", e);
+    unplayable = e?.name || "error";
+    return "unplayable";
+  });
+}
+export let unplayable = "";                          // the name of the last refusal that was not about permission
+
+async function serverSpeak(text, lang) {
+  const say = speakable(text);
+  if (!say) return "ok";
+  const c = await fetchClip(say, lang);
+  return c.err || playClip(c.url);
+}
+
+// Aurora's voice for this text made before the owner taps (only when her voice is the one this device uses)
+export async function prepare(text, lang) {
+  const say = speakable(text);
+  if (!say || clips.has(say) || (supported() && await localVoice(lang))) return;
+  await fetchClip(say, lang);
 }
 
 export function stop() {
@@ -143,6 +181,8 @@ export const speaking = () => Boolean(audio && !audio.paused) || (supported() &&
 
 // Long texts in sentences: some engines stop a single long utterance after ~15 s.
 export async function speak(text, lang, only = null) {
+  const ready = !only && clips.get(speakable(text));        // made already: played inside the tap, nothing before it
+  if (ready) return playClip(ready);
   prime();
   const voice = only || (supported() ? await localVoice(lang) : null);
   if (!voice) return serverSpeak(text, lang);              // none here: Aurora's own voice from her machine

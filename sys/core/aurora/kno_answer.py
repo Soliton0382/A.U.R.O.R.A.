@@ -57,11 +57,12 @@ class Pipeline(Stages, SelfTalk):
 
     def run(self, question: str, emit: Emit | None = None, run_id: str | None = None,
             remember: bool = True, attached: list | None = None, focus: list[dict] | None = None,
-            suggest: bool = False, think: str | None = None) -> Answer:
+            suggest: bool = False, think: str | None = None, quote: Soliton | None = None) -> Answer:
         """`remember=False` leaves the memory untouched (a caller that retries remembers only the outcome).
         `attached`: kno_attach.Attached items; their passages come first for this question.
         `focus`: sources ({"source", "domain"}) whose passages compete with the search's (a suggested follow-up).
-        `suggest`: follow-up questions after a knowledge answer (the WebUI asks for them)."""
+        `suggest`: follow-up questions after a knowledge answer (the WebUI asks for them).
+        `quote`: the message the owner replies to (kno_followup.quoted): the last turn, read with its sources."""
         attached = attached or []
         run_id = run_id or uuid.uuid4().hex[:12]
         t0 = time.time()
@@ -78,21 +79,23 @@ class Pipeline(Stages, SelfTalk):
         asked_at = now_iso()                        # the question's own time, not the answer's
         ev("run.start", {"question": question})
         lang = txt_lang.detect(question)
-        recent = self.reader.recent(self.cfg["AURORA_MEMORY_RECENT_TURNS"])
-        if not attached and self._route(question, recent) == "self":
+        recent = kno_followup.with_quote(self.reader.recent(self.cfg["AURORA_MEMORY_RECENT_TURNS"]), quote)
+        if quote is not None:
+            ev("question.reply", {"to": quote.text[:200]})
+        if not attached and self._route(question, recent, quote) == "self":
             ev("route", {"mode": "self"})
-            result = Answer(run_id, question, self._self_answer(question, recent, ev), False, mode="self")
+            result = Answer(run_id, question, self._self_answer(question, recent, ev, quote), False, mode="self")
             result.seconds = time.time() - t0
             result.speed = self.speed
             ev("answer.final", {"text": result.text, "abstained": False, "sources": [], "dropped": [],
                                 "seconds": round(result.seconds, 1), "mode": "self", "speed": result.speed})
             if remember:
-                self.remember(question, result, run_id, ev, trail, asked_at)
+                self.remember(question, result, run_id, ev, trail, asked_at, quote)
             ev("run.end", {"seconds": round(result.seconds, 1)})
             return result
         ev("route", {"mode": "attachments" if attached else "knowledge"})
         asked = question                            # the owner's words, kept for the answer and the memory
-        question, auto_focus = kno_followup.standalone(self, question, recent, ev)
+        question, auto_focus = kno_followup.standalone(self, question, recent, ev, quote)
         focus = (focus or []) + [f for f in auto_focus if f not in (focus or [])]
         lang = txt_lang.detect(question)
         translation = None
@@ -157,7 +160,7 @@ class Pipeline(Stages, SelfTalk):
                 self.log.warning("suggestions failed: %s", e)
         if remember:                                # with the suggestions: another window shows them too (C110)
             names = f" [{', '.join(a.name for a in attached)}]" if attached else ""
-            self.remember(asked + names, result, run_id, ev, trail, asked_at)
+            self.remember(asked + names, result, run_id, ev, trail, asked_at, quote)
         ev("run.end", {"seconds": round(result.seconds, 1)})
         return result
 
@@ -202,12 +205,14 @@ class Pipeline(Stages, SelfTalk):
 
     # ---- stage 8 ------------------------------------------------------------------
     def remember(self, question: str, result: Answer, run_id: str, ev: Emit, trail: "Trail | None" = None,
-                 asked_at: str | None = None) -> None:
+                 asked_at: str | None = None, quote: Soliton | None = None) -> None:
         """The question and the answer become STM turns; the answer keeps the path that produced it
         (steps and reasoning, in `extra`), so that Aurora and the owner can look back at what she did."""
         lang = txt_lang.detect(question)
         turns = [Soliton.new(question, "conversation", "conversation", lang, f"run:{run_id}",
-                             extra={"role": "user", "run_id": run_id}, created_at=asked_at),
+                             extra={"role": "user", "run_id": run_id,
+                                    **({"reply_to": {"run_id": quote.extra.get("run_id"), "text": quote.text[:300]}}
+                                       if quote is not None else {})}, created_at=asked_at),
                  Soliton.new(result.text, "conversation", "conversation", txt_lang.detect(result.text), f"run:{run_id}",
                              extra={"role": "assistant", "run_id": run_id, "abstained": result.abstained,
                                     **({"came_from": result.came_from} if result.came_from else {}),

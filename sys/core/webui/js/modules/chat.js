@@ -10,7 +10,9 @@ import { viewLink } from "../viewer.js";
 import * as voice from "../voice.js";
 import { dietBubbles, dietCards } from "../diet.js";
 import { dreamOf, makeRecorder, morningOf, shrink } from "./chat_media.js";
-import { thinkButton } from "./chat_think.js";
+import { thinkMode } from "./chat_think.js";
+import { attachMenu, settingsMenu, showGear, source } from "./chat_menu.js";
+import { actions, quoteBox, quoted } from "./chat_actions.js";
 
 const HISTORY_TURNS = 8;          // 4 exchanges: the same memory Aurora keeps in context
 
@@ -42,13 +44,12 @@ export default {
       <div class="conversation">
         <div class="messages"></div>
         <div class="chips pending"></div>
+        <div class="quote-box hidden"></div>
         <form class="ask">
           <button type="button" class="icon attach" data-i18n-title="chat.attach">📎</button>
-          <button type="button" class="icon cam" data-i18n-title="chat.camera">📷</button>
           <button type="button" class="icon mic" data-i18n-title="chat.mic">🎙️</button>
-          <button type="button" class="icon src"></button>
-          <button type="button" class="icon voice"></button>
-          <button type="button" class="icon think"></button>
+          <button type="button" class="icon gear">⚙️</button>
+          <button type="button" class="icon hush hidden" data-i18n-title="chat.hush">⏹️</button>
           <input type="file" multiple hidden accept="image/*,video/*,.txt,.md,.markdown,.html,.htm,.pdf">
           <input type="file" class="shoot" hidden accept="image/*" capture="environment">
           <textarea rows="2" data-i18n-placeholder="chat.placeholder"></textarea>
@@ -63,7 +64,15 @@ export default {
     const fileInput = root.querySelector("input[type=file]:not(.shoot)");
     const send = root.querySelector(".send");
     const chipsBox = root.querySelector(".chips.pending");
-    const thinking = thinkButton(root.querySelector(".think"));      // how much to think (chat_think.js)
+    const thinking = thinkMode;                                    // how much to think (chat_think.js, in ⚙️)
+    const gear = root.querySelector(".gear");
+    showGear(gear);
+    gear.addEventListener("click", () => {
+      if (conv.querySelector(".compose-menu")) { conv.querySelector(".compose-menu").remove(); return; }
+      settingsMenu(conv, gear);
+    });
+    const quote = quoteBox(root.querySelector(".quote-box"), input);       // ↩️ the message replied to
+    const replyTo = (text, runId) => () => quote.set({ text, run_id: runId });
     let pending = [];
     const mine = new Set();          // runs started from this page: the activity feed must not show them twice
     let asking = 0;                  // requests in flight whose run id is not known yet
@@ -78,100 +87,55 @@ export default {
     }));
     const addFiles = (list) => { pending.push(...Array.from(list)); renderChips(); };
 
-    root.querySelector(".attach").addEventListener("click", () => fileInput.click());
     // Camera and microphone: of this device (the phone's, through the browser) or of Aurora's machine (plugin
-    // "senses"). A touch screen starts on this device, a PC on the machine; the owner's choice is remembered.
+    // "senses"), chosen in ⚙️ (chat_menu.js). A touch screen starts on this device, a PC on the machine.
     // The owner's click is the consent; the browser asks its own permission the first time.
-    const cam = root.querySelector(".cam");
     const mic = root.querySelector(".mic");
-    const srcBtn = root.querySelector(".src");
     const shoot = root.querySelector(".shoot");
     const canRecord = !!(window.isSecureContext && navigator.mediaDevices?.getUserMedia && window.MediaRecorder);
-    let source = "pc";
-    try { source = localStorage.getItem("aurora.senses.source") || ""; } catch { /* storage unavailable */ }
-    if (source !== "device" && source !== "pc") source = matchMedia("(pointer: coarse)").matches ? "device" : "pc";
-    const showSource = () => {
-      srcBtn.textContent = source === "device" ? "📱" : "🖥️";
-      srcBtn.title = t(source === "device" ? "chat.src.device" : "chat.src.pc");
-    };
-    showSource();
-    srcBtn.addEventListener("click", () => {
-      source = source === "device" ? "pc" : "device";
-      try { localStorage.setItem("aurora.senses.source", source); } catch { /* storage unavailable */ }
-      showSource();
-    });
 
     shoot.addEventListener("change", async () => {
       const f = shoot.files?.[0];
       shoot.value = "";
       if (f) addFiles([await shrink(f)]);
     });
-    cam.addEventListener("click", async () => {
-      if (source === "device") { shoot.click(); return; }
-      cam.disabled = true;
+    const takePhoto = async () => {
+      if (source() === "device") { shoot.click(); return; }
       try {
         const r = await call("/v1/aurora/senses/photo", { method: "POST", body: "{}" });
         const bytes = Uint8Array.from(atob(r.data), (c) => c.charCodeAt(0));
         addFiles([new File([bytes], r.name, { type: r.mime })]);
       } catch (e) { input.placeholder = t("ev.error", { m: e.message }); }
-      cam.disabled = false;
+    };
+    root.querySelector(".attach").addEventListener("click", () => {
+      if (conv.querySelector(".compose-menu")) { conv.querySelector(".compose-menu").remove(); return; }
+      attachMenu(conv, { file: () => fileInput.click(), shoot: takePhoto });
     });
 
-    // Answers aloud (voice.js): off, when the owner spoke (the default), always; the device's own voices only.
-    const voiceBtn = root.querySelector(".voice");
+    // Answers aloud (voice.js; when the owner spoke, always or off, chosen in ⚙️): ⏹️ shows while she speaks
     let spoken = false;                              // the message in the box was dictated
-    const showVoice = () => {
-      const m = voice.mode();
-      voiceBtn.textContent = m === "off" ? "🔇" : m === "always" ? "🔊" : "🗣️";
-      voiceBtn.title = t(`chat.voice.${m}`);
+    const hush = root.querySelector(".hush");
+    let hushTimer = null;
+    const watchVoice = () => {
+      clearInterval(hushTimer);
+      hush.classList.remove("hidden");
+      let quiet = 0;                                 // a few checks before hiding: the voice may still be on its way
+      hushTimer = setInterval(() => {
+        quiet = voice.speaking() ? 0 : quiet + 1;
+        if (quiet >= 6) { clearInterval(hushTimer); hush.classList.add("hidden"); }
+      }, 500);
     };
-    if (voice.supported()) showVoice(); else voiceBtn.hidden = true;
-    // a long press on the button: the device's own voices, each with ▶ to hear it; the choice stays on this device
-    let pressTimer = null, longPress = false;
-    const pickVoice = async () => {
-      const code = lang.replace("_", "-");
-      const [list, server] = await Promise.all([voice.localVoices(code), voice.serverAvailable(code)]);
-      const box = el("div", "voice-pick");
-      box.append(el("div", "meta", list.length || server ? t("chat.voice.pick") : t(`chat.voice.novoice.${await voice.why(code)}`)));
-      if (server) {                                   // Aurora's own voice (Piper on her machine): on every device
-        const row = el("div", "voice-row");
-        const pick = el("button", voice.chosen() === voice.SERVER || !voice.chosen() ? "on" : "", `🌸 ${t("chat.voice.server")}`);
-        const play = el("button", "", "▶");
-        pick.type = play.type = "button";
-        pick.addEventListener("click", () => { voice.choose(voice.SERVER); box.remove(); });
-        play.addEventListener("click", () => voice.speakServer(t("chat.voice.sample"), code));
-        row.append(play, pick);
-        box.append(row);
-      }
-      for (const vo of list) {
-        const row = el("div", "voice-row");
-        const pick = el("button", vo.name === voice.chosen() || (!voice.chosen() && !server && vo === list[0]) ? "on" : "", vo.name);
-        const play = el("button", "", "▶");
-        pick.type = play.type = "button";
-        pick.addEventListener("click", () => { voice.choose(vo.name); box.remove(); });
-        play.addEventListener("click", () => voice.speak(t("chat.voice.sample"), vo.lang, vo));
-        row.append(play, pick);
-        box.append(row);
-      }
-      const close = el("button", "", "✕");
-      close.type = "button";
-      close.addEventListener("click", () => box.remove());
-      box.append(close);
-      root.querySelector(".conversation").append(box);
-    };
-    voiceBtn.addEventListener("pointerdown", () => { longPress = false; pressTimer = setTimeout(() => { longPress = true; pickVoice(); }, 600); });
-    for (const evName of ["pointerup", "pointerleave", "pointercancel"]) voiceBtn.addEventListener(evName, () => clearTimeout(pressTimer));
-    voiceBtn.addEventListener("contextmenu", (ev) => ev.preventDefault());
-    voiceBtn.addEventListener("click", () => {
-      if (longPress) { longPress = false; return; }
-      if (voice.speaking()) { voice.stop(); return; }            // a tap while she speaks: silence
-      voice.nextMode();
-      showVoice();
-    });
+    hush.addEventListener("click", () => { voice.stop(); clearInterval(hushTimer); hush.classList.add("hidden"); });
     const sayAloud = async (text) => {
+      watchVoice();
       const r = await voice.speak(text, lang.replace("_", "-"));
+      if (r === "unplayable") {                     // not a permission: the browser's own reason, by its name
+        const msg = t("chat.voice.unplayable", { e: voice.unplayable });
+        input.placeholder = msg;
+        return msg;
+      }
       if (r === "blocked" || r === "server" || r === "offline") {   // the true reason (C177), not «only online voices»
-        const msg = t(`chat.voice.${r}`);
+        const msg = t(r === "server" ? "chat.voice.server_error" : `chat.voice.${r}`);
         input.placeholder = msg;
         return msg;
       }
@@ -192,7 +156,7 @@ export default {
     };
     const recordHere = makeRecorder({ mic, input, heard, canRecord });     // chat_media.js
     mic.addEventListener("click", async () => {
-      if (source === "device") { recordHere(); return; }
+      if (source() === "device") { recordHere(); return; }
       const seconds = 8;
       mic.disabled = true;
       mic.classList.add("recording");
@@ -219,16 +183,18 @@ export default {
       if (ev.key === "Enter" && !ev.shiftKey) { ev.preventDefault(); form.requestSubmit(); }
     });
 
-    const userBubble = (text, files = [], when) => {
+    const userBubble = (text, files = [], when, reply = null) => {
       const m = el("div", "msg user");
+      if (reply?.text) m.append(quoted(reply));
       if (files.length) { const row = el("div", "chips"); row.append(...files.map(chip)); m.append(row); }
       if (text) m.append(el("div", "", text));
       m.append(el("div", "meta", clock(when || new Date().toISOString())));
+      actions(m, text);
       messages.append(m);
     };
 
-    const dreamBubble = (d) => dreamOf(messages, d);                     // chat_media.js
-    const morningBubble = (d) => morningOf(messages, d, sayAloud);       // chat_media.js
+    const dreamBubble = (d) => { dreamOf(messages, d); actions(messages.lastElementChild, d.text, replyTo(d.text)); };    // chat_media.js
+    const morningBubble = (d) => { morningOf(messages, d, sayAloud); actions(messages.lastElementChild, d.text, replyTo(d.text)); };   // chat_media.js
 
     // Questions to go deeper, under a knowledge answer: complete on their own, each with the answer's sources
     // in focus (kno_followup), so a click searches the right way; the owner sees the whole question sent.
@@ -285,7 +251,8 @@ export default {
       input.value = "";
       pending = [];
       renderChips();
-      userBubble(question, files);
+      const reply = quote.take();
+      userBubble(question, files, undefined, reply);
       const b = auroraBubble(messages);
       scrollEnd(messages);
       try {
@@ -295,10 +262,11 @@ export default {
         const goal = question.match(/^\/agen(?:te|t)\s+(.+)/s)?.[1];
         const { run_id } = await (goal
           ? call("/v1/aurora/agent", { method: "POST", body: JSON.stringify({ goal }) })
-          : call("/v1/aurora/ask", { method: "POST", body: JSON.stringify({ question, attachments, suggest: true, ...(focus ? { focus } : {}), ...(thinking() ? { think: thinking() } : {}) }) })
+          : call("/v1/aurora/ask", { method: "POST", body: JSON.stringify({ question, attachments, suggest: true, ...(focus ? { focus } : {}), ...(reply ? { reply_to: reply } : {}), ...(thinking() ? { think: thinking() } : {}) }) })
         ).finally(() => asking--);
         mine.add(run_id);
         const final = await follow(run_id, b, messages);
+        if (final?.text) actions(b.root, final.text, replyTo(final.text, run_id));
         if (aloud && final?.text) sayAloud(final.text);
         if (final?.diet) await dietCards(b, final.diet);
         if (final?.abstained && final.mode !== "self") offerAcquire(b, question);
@@ -320,11 +288,12 @@ export default {
     const shown = new Set();                           // the turns on screen (their sid): a catch-up adds only the others
     const renderTurn = (turn) => {
       shown.add(turn.sid);
-      if (turn.role === "user") { userBubble(turn.text, turn.attachments || [], turn.created_at); return; }
+      if (turn.role === "user") { userBubble(turn.text, turn.attachments || [], turn.created_at, turn.reply_to); return; }
       if (turn.role === "dream") { dreamBubble(turn); return; }
       if (turn.role === "morning" || turn.role === "review") { morningBubble(turn); return; }
       const b = auroraBubble(messages);
       renderPast(b, turn);
+      actions(b.root, turn.text, replyTo(turn.text, turn.run_id));
       if (turn.suggestions?.length) offerDeeper(b, turn.suggestions);
       b.root.classList.add("past");
       if (turn.run_id) mine.add(turn.run_id);
@@ -348,11 +317,12 @@ export default {
       shown.clear();
       for (const turn of turns) {
         shown.add(turn.sid);
-        if (turn.role === "user") { userBubble(turn.text, turn.attachments || [], turn.created_at); continue; }
+        if (turn.role === "user") { userBubble(turn.text, turn.attachments || [], turn.created_at, turn.reply_to); continue; }
         if (turn.role === "dream") { dreamBubble(turn); continue; }
         if (turn.role === "morning" || turn.role === "review") { morningBubble(turn); continue; }
         const b = auroraBubble(messages);
         renderPast(b, turn);
+        actions(b.root, turn.text, replyTo(turn.text, turn.run_id));
         if (turn.suggestions?.length) offerDeeper(b, turn.suggestions);   // under every answer that has them (owner, 2026-10-05)
         b.root.classList.add("past");
         if (turn.run_id) mine.add(turn.run_id);
@@ -384,6 +354,7 @@ export default {
       if (a.payload.origin !== "webui") b.root.classList.add("elsewhere");
       if (stick) scrollEnd(messages);
       const final = await follow(id, b, messages);
+      if (final?.text) actions(b.root, final.text, replyTo(final.text, id));
       if (final?.diet) await dietCards(b, final.diet);
       if (final?.suggestions?.length) offerDeeper(b, final.suggestions);   // asked on another device: go deeper here too
     };

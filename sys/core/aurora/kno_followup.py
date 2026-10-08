@@ -39,6 +39,7 @@ SYS_SUGGEST = ("You get the owner's QUESTION, Aurora's ANSWER and numbered PASSA
 MAX_FOCUS = 4                 # sources in focus
 PER_SOURCE = 120              # passages of one source scored at most (a paper is 20-60)
 ANSWER_CUT = 3000             # characters of the previous answer given to the rewrite
+QUOTE_CUT = 3000              # characters of a quoted message taken from the page
 
 
 def _last_answer(recent: list[Soliton]) -> Soliton | None:
@@ -57,17 +58,41 @@ def focus_of(turn: Soliton | None) -> list[dict]:
     return out[:MAX_FOCUS]
 
 
-def standalone(p: "Pipeline", question: str, recent: list[Soliton], ev) -> tuple[str, list[dict]]:
-    """(the question to search, the sources to put in focus)."""
+def quoted(reader, raw) -> Soliton | None:
+    """The message the owner replies to (↩️ in the chat, owner 2026-10-08: «si può saltare direttamente la ricerca sulla
+    STM»): Aurora's answer of that run as she kept it, with its sources; a message that is not a run (a good morning, a
+    dream) or no longer kept, as the page quoted it. None when nothing usable came."""
+    if not isinstance(raw, dict):
+        return None
+    run_id = str(raw.get("run_id") or "")
+    if re.fullmatch(r"[0-9a-f]{6,32}", run_id):
+        kept = [t for t in reader.by_source("conversation", f"run:{run_id}", 8) if t.extra.get("role") == "assistant"]
+        if kept:
+            return kept[-1]
+    text = str(raw.get("text") or "").strip()[:QUOTE_CUT]
+    if not text:
+        return None
+    return Soliton.new(text, "conversation", "conversation", "", "quote", extra={"role": "assistant", "quoted": True})
+
+
+def with_quote(recent: list[Soliton], quote: Soliton | None) -> list[Soliton]:
+    """The turns with the quoted message last: what the owner answers is the last thing said, however old."""
+    if quote is None:
+        return recent
+    return [t for t in recent if t.sid != quote.sid] + [quote]
+
+
+def standalone(p: "Pipeline", question: str, recent: list[Soliton], ev, quote: Soliton | None = None) -> tuple[str, list[dict]]:
+    """(the question to search, the sources to put in focus). A reply to a quoted message is read against it, at any age."""
     if not p.cfg["AURORA_PIPELINE_STANDALONE"] or not recent:
         return question, []
     try:
         last = datetime.fromisoformat(recent[-1].created_at)
     except ValueError:
         return question, []
-    if (sns_clock.now(p.cfg) - last).total_seconds() > p.cfg["AURORA_REM_SESSION_GAP_MIN"] * 60:
+    if quote is None and (sns_clock.now(p.cfg) - last).total_seconds() > p.cfg["AURORA_REM_SESSION_GAP_MIN"] * 60:
         return question, []                                     # an old conversation: a new topic
-    prev = _last_answer(recent)
+    prev = quote or _last_answer(recent)
     focus = focus_of(prev)
     context = f"TURNS:\n{p._turns(recent, 4, 400)}"
     if prev is not None:

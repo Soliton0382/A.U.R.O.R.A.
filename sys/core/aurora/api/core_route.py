@@ -261,7 +261,8 @@ def answer_or_acquire(question: str, emit, run_id: str, **kw):
     if busy:
         return busy
     p = pipeline()
-    recent = p.reader.recent(6)
+    from aurora import kno_followup
+    recent = kno_followup.with_quote(p.reader.recent(6), kw.get("quote"))      # a reply: the quoted message is the last
     pic = None if kw.get("attached") else last_picture(recent)
     from aurora import mdl_video
     vp = None if kw.get("attached") else mdl_video.plan(p._for("route"), question, pic is not None)
@@ -294,7 +295,7 @@ def answer_or_acquire(question: str, emit, run_id: str, **kw):
             prev = asked.text.split(" [")[0]
             emit("acquire.confirmed", {"question": prev})
             return ArxivAgent(p, cfg).run(prev, emit, run_id)
-    if cfg["AURORA_SHADOW"] and not kw.get("attached") and not kw.get("focus"):
+    if cfg["AURORA_SHADOW"] and not kw.get("attached") and not kw.get("focus") and not kw.get("quote"):
         hit = shadow_answer(p, question, emit, run_id)
         if hit is not None:
             return hit

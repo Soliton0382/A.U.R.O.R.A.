@@ -4,7 +4,7 @@
 // made light before it leaves, this device's microphone recorded, a dream and a good morning among the turns.
 import { call } from "../api.js";
 import { clock, el, toBase64 } from "../dom.js";
-import { t } from "../i18n.js";
+import { lang, t } from "../i18n.js";
 import { shareButton } from "../share.js";
 import { view } from "../viewer.js";
 import * as voice from "../voice.js";
@@ -99,9 +99,12 @@ export function morningOf(messages, d, sayAloud) {
   for (const para of d.text.split(/\n\s*\n/)) if (para.trim()) m.append(el("p", "", para.trim()));
   const listen = el("button", "", `🔊 ${t("chat.listen")}`);
   listen.type = "button";
+  const said = d.text.replace(/^[^\p{L}]+/gmu, "");
+  // the voice made before the tap, so the tap plays it at once (C200: the strictest browsers allow nothing later)
+  if (Date.now() - Date.parse(d.created_at) < 86400e3) voice.prepare(said, lang.replace("_", "-")).catch(() => {});
   listen.addEventListener("click", async () => {
     if (voice.speaking()) { voice.stop(); return; }
-    const msg = await sayAloud(d.text.replace(/^[^\p{L}]+/gmu, ""));
+    const msg = await sayAloud(said);
     if (msg) listen.after(el("div", "meta", msg));          // said under the button pressed, not only in the composer
   });
   m.append(listen, el("div", "meta", clock(d.created_at)));
