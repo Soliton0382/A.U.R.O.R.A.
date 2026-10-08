@@ -190,6 +190,19 @@ def main() -> int:
         check("is_mount(temp folder)", lambda: p.is_mount(tmp), lambda v: v is False or "a temp folder seen as a mount")
 
     # ---- files: trust, locks, replace, text
+    def privacy():
+        """A file others may read is seen as not private; made private, it is (Windows: its ACL, the Mac/Linux: mode)."""
+        f = tmp / "secret.txt"
+        f.write_text("x", encoding="utf-8")
+        if sys.platform == "win32":
+            p.run(["icacls", str(f), "/grant", "*S-1-1-0:(R)"], 60)           # Everyone may read it
+        else:
+            f.chmod(0o644)
+        before = p.is_private(f)
+        p.make_private(f)
+        return {"open_seen_private": before, "after": p.is_private(f), "content": f.read_text(encoding="utf-8")}
+    check("privacy: open file seen, then made private", privacy,
+          lambda v: (v["open_seen_private"] is False and v["after"] is True and v["content"] == "x") or str(v))
     check("key_dir absolute", p.key_dir, lambda v: Path(v).is_absolute() or "relative")
     check("temp folder NOT admin-only", lambda: p.trusted_by_admin_only(tmp), lambda v: v[0] is False or f"trusted: {v[1]}")
     sysdir = Path(os.environ.get("SystemRoot", r"C:\Windows")) / "System32" if sys.platform == "win32" else Path("/usr/bin")

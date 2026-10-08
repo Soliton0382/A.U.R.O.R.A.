@@ -32,6 +32,23 @@ def test_guest_never_sees_boss_s_things(cfg):
     assert guest["revoke_boss_device"] == 404
 
 
+def test_the_same_holds_when_aurora_lives_behind_a_symlink(tmp_path):
+    """Found on a real Mac (8 Oct: /var is a symlink there): a root behind a symlink put boss's folders elsewhere — he
+    lost his own history, and his documents went to usr/documents/users/boss. Same check, the root a symlink."""
+    import os
+    from conftest import write_env
+    (tmp_path / "real").mkdir()
+    root = tmp_path / "link"
+    os.symlink(tmp_path / "real", root)
+    env = write_env(root, AURORA_ROOT=str(root))
+    r = subprocess.run([sys.executable, str(HERE / "api_crossing.py"), str(root)], capture_output=True, text=True,
+                       timeout=180, env={"PATH": "/usr/bin:/bin", "AURORA_ENV_FILE": str(env)})
+    assert r.returncode == 0, r.stderr[-3000:]
+    out = json.loads(r.stdout.strip().splitlines()[-1])
+    for k in ("activity", "routines", "approvals", "history", "documents", "runs", "calendar"):
+        assert out["boss"][k] is True and out["guest"][k] is False, k
+
+
 def test_only_the_public_routes_go_without_authentication(cfg):
     code = f"""
 import sys; sys.path.insert(0, "."); sys.path.insert(0, "script")

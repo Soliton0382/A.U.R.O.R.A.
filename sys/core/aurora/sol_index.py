@@ -23,6 +23,7 @@ from __future__ import annotations
 import json
 import os
 import time
+import weakref
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Protocol
@@ -230,6 +231,22 @@ class Indexer:
         return self.update(domain)
 
 
+_sets: "weakref.WeakSet[IndexSet]" = weakref.WeakSet()
+
+
+def forget(folder: Path) -> int:
+    """Drop every loaded index of a domain under `folder` (its vectors are mapped in memory, its HNSW read): before the
+    folder is deleted — Windows does not delete a mapped file (C207). The next search loads it again if it is back."""
+    folder, n = Path(folder).resolve(), 0
+    for s in list(_sets):
+        for f in [f for f in list(s._loaded) if Path(f).resolve().is_relative_to(folder)]:
+            s._loaded.pop(f, None)
+            n += 1
+    import gc
+    gc.collect()                                     # a mapping is unmapped when its last view is gone
+    return n
+
+
 class IndexSet:
     """Reader side: searches every domain index of both sections; reloads a domain when it changes."""
 
@@ -237,6 +254,7 @@ class IndexSet:
         self.cfg = cfg or sys_config.get()
         self.log = sys_log.get_logger("index")
         self._loaded: dict[Path, dict] = {}
+        _sets.add(self)
 
     def _load(self, f: DomainFiles) -> dict | None:
         mtime = f.manifest.stat().st_mtime_ns

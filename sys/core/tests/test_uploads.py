@@ -1,10 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2026 A.U.R.O.R.A. Project
-import os
-import stat
 import time
 
 from aurora import sys_uploads as U
+from conftest import private  # noqa: E402 — who may read a file, asked of this system
 
 
 def test_files_are_kept_privately_and_found_by_their_turn(cfg):
@@ -13,7 +12,7 @@ def test_files_are_kept_privately_and_found_by_their_turn(cfg):
     c = U.save(cfg, "run2", "video.mp4", "video/mp4", b"mp4")
     path, item = U.get(cfg, a["id"])
     assert path.read_bytes() == b"\xff\xd8 jpeg" and item["name"] == "passwd" and "etc" not in str(path.relative_to(cfg.path("AURORA_UPLOADS_DIR")))
-    assert stat.S_IMODE(os.stat(path).st_mode) == 0o600
+    assert private(path)
     runs = U.by_run(cfg, {"run1"})
     assert [f["name"] for f in runs["run1"]] == ["passwd", "pagina.html"] and "run2" not in runs
     public = {f["name"]: f for f in U.all_uploads(cfg)}

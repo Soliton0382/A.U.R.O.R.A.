@@ -155,3 +155,22 @@ def test_a_backup_unit_that_could_not_start_is_reported(monkeypatch):
     assert sys_backup.unit_failure() is None
     monkeypatch.setattr(subprocess, "run", show("Result=success\nExecMainStatus=0\nLoadState=not-found\n"))
     assert sys_backup.unit_failure() is None
+
+
+def test_the_copy_of_a_database_leaves_no_descriptor_open(tmp_path):
+    """C207: mkstemp's descriptor was never closed — on Windows the copy could not be deleted (a real run), on Linux
+    one descriptor stayed open for each database of each backup."""
+    import os
+    import sqlite3
+    if not os.path.isdir("/proc/self/fd"):
+        pytest.skip("counts this process's descriptors through /proc")
+    db = tmp_path / "a.db"
+    con = sqlite3.connect(db)
+    con.execute("CREATE TABLE t (x)")
+    con.commit()
+    con.close()
+    (tmp_path / "copies").mkdir()
+    before = len(os.listdir("/proc/self/fd"))
+    for _ in range(20):
+        B._sqlite_copy(db, tmp_path / "copies").unlink()
+    assert len(os.listdir("/proc/self/fd")) == before

@@ -125,3 +125,8 @@ was on (GUARDS). **Done 8 Oct (the owner's «A»):** an AppContainer per plugin 
 | github | its own program, sys/runtime/github-mcp-server (Go) — **no script installs it, not even on Linux** (found 8 Oct) | 🔨 phase 3: the installer downloads the release asset of the system (github-mcp-server_Windows_x86_64.zip) — on Linux too |
 | dropbox, tiktok | authorize.py, told as `.venv/bin/python …` | 🔨 phase 3: the command written per system (.venv\Scripts\python.exe) |
 | security (host firewall part) | nftables | ⏸️ phase 4 (Windows Defender Firewall (New-NetFirewallRule): to decide); the firewall's API part (Sophos) is portable |
+
+## Phase 3's list, from the Linux suite on a real machine (8 Oct, M149)
+
+The whole Linux suite runs on the built tree in the Ports workflow; what fails there is the work, read from the
+machine and not guessed. The run's public notices name each failed test and its reason.

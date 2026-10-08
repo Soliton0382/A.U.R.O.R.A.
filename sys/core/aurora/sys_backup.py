@@ -136,7 +136,9 @@ def _is_sqlite(p: Path) -> bool:
 
 def _sqlite_copy(p: Path, tmpdir: Path) -> Path:
     """A consistent copy while Aurora writes (WAL included), with SQLite's own backup."""
-    out = Path(tempfile.mkstemp(dir=tmpdir, suffix=".db")[1])
+    fd, name = tempfile.mkstemp(dir=tmpdir, suffix=".db")
+    os.close(fd)                                     # the name only: an open descriptor per database copied (C207)
+    out = Path(name)
     src = sqlite3.connect(f"file:{p}?mode=ro", uri=True, timeout=30)
     dst = sqlite3.connect(out)
     try:

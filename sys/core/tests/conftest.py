@@ -21,6 +21,13 @@ def write_env(root: Path, **overrides: str) -> Path:
     return env
 
 
+def private(path) -> bool:
+    """Only its owner may read it: mode 600 here. The Mac and Windows ports ask their system (sys_platform.is_private:
+    an ACL on Windows, where a file's mode says nothing of who may read it — a real Windows, 8 Oct 2026)."""
+    import stat
+    return stat.S_IMODE(Path(path).stat().st_mode) == 0o600
+
+
 @pytest.fixture
 def cfg(tmp_path: Path) -> sys_config.Config:
     config = sys_config.load(write_env(tmp_path), check_root=False)

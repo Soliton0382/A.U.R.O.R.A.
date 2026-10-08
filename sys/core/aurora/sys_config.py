@@ -150,7 +150,9 @@ class Config:
 
     @property
     def root(self) -> Path:
-        return Path(self.values["AURORA_ROOT"])
+        # resolved, as path() resolves: under a symlink (the Mac's /var → /private/var, a /home on another disk) one side
+        # resolved and the other not put a user's folders elsewhere — boss lost his own history (a real Mac, 8 Oct)
+        return Path(self.values["AURORA_ROOT"]).resolve()
 
     def __getitem__(self, key: str) -> Any:
         if key not in self.specs:

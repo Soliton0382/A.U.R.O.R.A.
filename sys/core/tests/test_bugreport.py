@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 import pytest
 
 from aurora import sys_bugreport as R
+from conftest import private  # noqa: E402 — who may read a file, asked of this system
 
 
 def stamp(hours_ago: float) -> str:
@@ -48,7 +49,7 @@ def test_a_report_carries_the_logs_needed_and_nothing_private(cfg):
     assert "AURORA_API_KEY=(set)" in settings
     assert out["masked"]["IP"] >= 2 and "Mario" not in out["issue_url"]
     assert out["issue_url"].startswith("https://github.com/someone/A.U.R.O.R.A./issues/new?title=")
-    assert (cfg.path("AURORA_BUGREPORT_DIR") / out["name"]).stat().st_mode & 0o777 == 0o600
+    assert private(cfg.path("AURORA_BUGREPORT_DIR") / out["name"])
     assert R.listing(cfg)[0]["name"] == out["name"]
 
 

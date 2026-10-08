@@ -132,8 +132,10 @@ jobs:
               why = [l[:260] for l in text.splitlines() if l.startswith(("FAILED ", "ERROR "))]
               print(f"::notice title={port} Linux suite::exit {rc}; {tail[-1] if tail else 'no summary'}"
                     + (f"%0Afiles with failures: {', '.join(failed)}"[:3000] if failed else "")
-                    + ("%0A" + "%0A".join(why)[:6000] if why else "")
+                    + ("%0A" + "%0A".join(why[:12]) if why else "")
                     + ("%0Alast lines:%0A" + "%0A".join(text.splitlines()[-25:])[:3500] if not tail else ""))
+              for i in range(12, len(why), 12):           # the rest in more notices: none cut (10 notices a step)
+                  print(f"::notice title={port} Linux suite, failures {i + 1}-{min(i + 12, len(why))}::" + "%0A".join(why[i:i + 12]))
               lines = text.splitlines()
               crash = next((i for i, l in enumerate(lines) if "Fatal Python error" in l or "OMP: Error" in l), None)
               if crash is not None:                   # a native crash: the test it hit and the library's own words

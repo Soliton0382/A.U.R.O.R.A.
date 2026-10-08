@@ -6,6 +6,7 @@ from types import SimpleNamespace
 import pytest
 
 from aurora import sys_push
+from conftest import private  # noqa: E402 — who may read a file, asked of this system
 
 SUB = {"endpoint": "https://push.example/abc", "keys": {"p256dh": "k", "auth": "a"}}
 
@@ -14,7 +15,7 @@ def test_vapid_key_is_made_once_private_and_well_formed(cfg):
     k1, k2 = sys_push.public_key(cfg), sys_push.public_key(cfg)
     raw = base64.urlsafe_b64decode(k1 + "=" * (-len(k1) % 4))
     assert k1 == k2 and len(raw) == 65 and raw[0] == 4                # uncompressed P-256 point
-    assert (cfg.path("AURORA_STATUS_DIR") / "push" / "vapid_private.pem").stat().st_mode & 0o777 == 0o600
+    assert private(cfg.path("AURORA_STATUS_DIR") / "push" / "vapid_private.pem")
 
 
 def test_subscriptions_are_validated_and_deduplicated(cfg):

@@ -5,6 +5,7 @@ import pytest
 
 from aurora import sys_users
 from aurora.sys_users import Users
+from conftest import private  # noqa: E402 — who may read a file, asked of this system
 
 RFC_SECRET = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"         # base32 of "12345678901234567890"
 
@@ -45,7 +46,7 @@ def test_one_admin_and_never_removed(tmp_path):
     with pytest.raises(ValueError):
         u.add("GUEST", "user")                                                    # names ignore case
     assert u.remove(b["id"]) and [x["name"] for x in u.list()] == ["owner"]
-    assert (tmp_path / "users.db").stat().st_mode & 0o777 == 0o600
+    assert private(tmp_path / "users.db")
 
 
 def test_login_needs_totp_and_refuses_replay(tmp_path):

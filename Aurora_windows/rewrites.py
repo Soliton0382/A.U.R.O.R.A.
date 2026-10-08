@@ -521,6 +521,14 @@ TESTS = [
 pytest.importorskip("pwd", reason="sys_nas_mount is Linux's /etc/fstab; Windows reaches the NAS as \\\\\\\\host\\\\share (phase 3)")
 """,
      "test_nas: Linux's NAS mount said skipped where there is no such mount (Windows, a real run)"),
+    ("sys/core/tests/conftest.py",
+     """    import stat
+    return stat.S_IMODE(Path(path).stat().st_mode) == 0o600
+""",
+     """    from aurora import sys_platform
+    return sys_platform.current().is_private(Path(path))
+""",
+     "conftest.private: who may read a file, asked of this system (its ACL on Windows)"),
 ]
 
 # the protected files (sys_ethics.PROTECTED): changed in the port's code, signed by each installation at its setup

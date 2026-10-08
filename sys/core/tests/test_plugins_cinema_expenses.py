@@ -6,6 +6,7 @@ from datetime import date
 from pathlib import Path
 
 import pytest
+from conftest import private  # noqa: E402 — who may read a file, asked of this system
 
 PLUGINS = Path(__file__).resolve().parents[2] / "plugins"
 
@@ -40,7 +41,7 @@ def test_expenses_in_cents_by_month_with_budgets(cfg, monkeypatch, tmp_path):
         ex.expense_add("tre", "x")
     first = ex.expense_list(m).splitlines()[-1].split()[0][1:]
     assert ex.expense_delete(int(first)).startswith("removed")
-    assert (tmp_path / "exp" / "expenses.db").stat().st_mode & 0o777 == 0o600
+    assert private(tmp_path / "exp" / "expenses.db")
 
 
 def test_cinema_lines_providers_and_refs(monkeypatch):

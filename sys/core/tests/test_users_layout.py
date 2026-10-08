@@ -10,6 +10,7 @@ import pytest
 from aurora import sys_users_layout as L
 from aurora.sys_devices import Devices
 from aurora.sys_users import Users
+from conftest import private  # noqa: E402 — who may read a file, asked of this system
 
 
 def tree(cfg) -> dict:
@@ -140,7 +141,7 @@ def test_personal_settings_follow_the_admin_and_come_back(cfg):
     raw = cfg.env_file.read_text()
     assert "AURORA_TMDB_TOKEN" not in raw and "AURORA_LLM_MODEL" in raw  # personal out, the machine's stay
     own = U.env_path(cfg, "boss")
-    assert own.stat().st_mode & 0o777 == 0o600 and "AURORA_TMDB_TOKEN=tok-123" in own.read_text()
+    assert private(own) and "AURORA_TMDB_TOKEN=tok-123" in own.read_text()
     cfg = sys_config.load(cfg.env_file, check_root=False)                 # the system's .env still loads
     assert cfg["AURORA_TMDB_TOKEN"] == ""
     mine = U.for_user(cfg, "boss")

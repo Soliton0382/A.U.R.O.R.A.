@@ -33,6 +33,28 @@ def release() -> None:
         r.close()
 
 
+def forget(folder: Path) -> int:
+    """Close every reader's connections to files under `folder`, in every thread, before it is deleted: Windows does
+    not delete an open file (a real run, 8 Oct, C207), and on Linux a connection to a deleted file reads nothing true.
+    The threads open them again at their next read. Returns how many were closed."""
+    folder, n = Path(folder).resolve(), 0
+    for r in list(_readers):
+        for cache in list(r._caches):
+            for path in [p for p in list(cache) if Path(p).resolve().is_relative_to(folder)]:
+                con = cache.pop(path, None)
+                if con is not None:
+                    con.close()
+                    n += 1
+    return n
+
+
+class _Cache(dict):
+    """One thread's connections (a dict a WeakSet can hold: gone with its thread). Equal only to itself: two empty
+    caches of two threads are two caches."""
+    __hash__ = object.__hash__
+    __eq__ = object.__eq__
+
+
 _SELECT = f"SELECT rowid, {', '.join(sol_vault.COLUMNS)} FROM solitons"
 
 
@@ -42,10 +64,14 @@ class VaultReader:
         self.user = user                                   # whose memory (multi-user, U3); None: today's
         self.layout = sol_vault.Layout.from_config(self.cfg, user)
         self._local = threading.local()
+        self._caches: "weakref.WeakSet[_Cache]" = weakref.WeakSet()       # every thread's, for forget()
         _readers.add(self)
 
     def _con(self, path: Path) -> sqlite3.Connection | None:
-        cache = self._local.__dict__.setdefault("cons", {})
+        cache = self._local.__dict__.get("cons")
+        if cache is None:
+            cache = self._local.cons = _Cache()
+            self._caches.add(cache)
         if path not in cache:
             if not path.exists():
                 return None
@@ -53,9 +79,11 @@ class VaultReader:
         return cache[path]
 
     def close(self) -> None:
-        for con in getattr(self._local, "cons", {}).values():
+        cache = getattr(self._local, "cons", None)
+        for con in list((cache or {}).values()):
             con.close()
-        self._local.cons = {}
+        if cache is not None:
+            cache.clear()
 
     # ---- by sid ------------------------------------------------------------------
     def locate(self, sids: Iterable[str]) -> dict[str, tuple[str, str, int]]:

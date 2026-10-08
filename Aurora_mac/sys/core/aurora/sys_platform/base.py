@@ -209,6 +209,15 @@ class Platform:
         ethics code makes on the public key before trusting it."""
         raise NotImplementedError
 
+    def is_private(self, path: Path) -> bool:
+        """Only its owner (and the system's administrators) may read it: the guarantee mode 600/700 gives on Linux."""
+        import stat
+        return stat.S_IMODE(Path(path).stat().st_mode) & 0o077 == 0
+
+    def make_private(self, path: Path) -> None:
+        """Only its owner may read it, what is inside a folder too (the installer, on Aurora's folder)."""
+        Path(path).chmod(0o700 if Path(path).is_dir() else 0o600)
+
     def lock(self, fh, exclusive: bool = True, wait: bool = True) -> bool:
         """A lock on an open file between processes; False when `wait` is False and someone else holds it."""
         raise NotImplementedError

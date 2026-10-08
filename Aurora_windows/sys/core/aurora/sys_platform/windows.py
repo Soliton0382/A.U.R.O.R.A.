@@ -42,6 +42,7 @@ ADMIN_SIDS = {"S-1-5-18", "S-1-5-32-544", "S-1-5-80-956008885-3418522649-1831038
 # rights that change a file or its permissions (FILE_WRITE_DATA, APPEND, WRITE_EA, WRITE_ATTRIBUTES, DELETE,
 # WRITE_DAC, WRITE_OWNER, GENERIC_ALL, GENERIC_WRITE)
 WRITE_BITS = 0x2 | 0x4 | 0x10 | 0x100 | 0x10000 | 0x40000 | 0x80000 | 0x10000000 | 0x40000000
+READ_BITS = 0x1 | 0x10000000 | 0x80000000              # ReadData, GENERIC_ALL, GENERIC_READ
 # '"Name" (video)', '"Name" (video, audio)' or '"Name" (none)' (libavdevice/dshow.c, ffmpeg 5 and later, checked
 # 2026-10-08): a device of both kinds is a camera and a microphone
 DSHOW_TYPED = re.compile(r'\]\s+"(.+)"\s+\(([a-z, ]+)\)\s*$')
@@ -222,6 +223,33 @@ class Windows(Platform):
                 if mask & WRITE_BITS and sid not in ADMIN_SIDS:
                     return False, f"{x} may be changed by {sid}: only SYSTEM and the Administrators may"
         return True, ""
+
+    def _me(self) -> str:
+        r = self._ps("[System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value", 30)
+        return r.out.strip().splitlines()[-1].strip() if r.code == 0 and r.out.strip() else ""
+
+    def is_private(self, path: Path) -> bool:
+        """A file's mode says nothing on Windows (a real run, 8 Oct): who may read it is its ACL — readable only by its
+        owner, this user, SYSTEM and the Administrators (Everyone, Users, Authenticated Users never)."""
+        acl = self._acl(Path(path))
+        if acl is None:
+            return False
+        owner, rules = acl
+        allowed = ADMIN_SIDS | {owner, self._me()}
+        return not any(kind == "Allow" and mask & READ_BITS and sid not in allowed and "InheritOnly" not in propagation
+                       for sid, mask, kind, propagation in rules)
+
+    def make_private(self, path: Path) -> None:
+        """No inherited entry, full control to this user, SYSTEM and the Administrators only (inherited by what a
+        folder holds): Aurora's folder made so by the installer — C:\\ grants Users read by default."""
+        me = self._me()
+        if not me:
+            raise RuntimeError("the current user's SID is not readable")
+        inherit = "(OI)(CI)" if Path(path).is_dir() else ""
+        r = self.run(["icacls", str(path), "/inheritance:r", "/grant:r", f"*{me}:{inherit}(F)", f"*S-1-5-18:{inherit}(F)",
+                      f"*S-1-5-32-544:{inherit}(F)", "/C", "/Q"], 600)
+        if r.code != 0:
+            raise RuntimeError(f"icacls {path}: {(r.out + r.err).strip()[-300:]}")
 
     def lock(self, fh, exclusive: bool = True, wait: bool = True) -> bool:
         """msvcrt locks one byte, far past the content (LOCK_AT): Windows's locks are mandatory, a locked byte

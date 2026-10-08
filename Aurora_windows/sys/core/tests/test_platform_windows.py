@@ -221,3 +221,22 @@ def test_the_appcontainer_is_given_only_grants_and_never_the_secrets(tmp_path):
                  t("sys/status"): W.ONLY, t("sys/status/plugins"): W.ONLY, t("usr"): W.ONLY, t("usr/boss"): W.TREE,
                  t("usr/boss/notes"): W.WRITE}
     assert not any(k.endswith((".env", "push", "env", "guest", "v.pem")) for k in g)
+
+
+def test_a_private_file_is_read_by_its_owner_and_the_administrators_only(tmp_path, monkeypatch):
+    """A file's mode says nothing on Windows (a real run, 8 Oct): its ACL does."""
+    w = win([])
+    me, other = "S-1-5-21-1-2-3-1001", "S-1-5-21-1-2-3-1002"
+    monkeypatch.setattr(w, "_me", lambda: me)
+    rules = lambda *extra: (me, [(me, 0x1F01FF, "Allow", "None"), ("S-1-5-18", 0x1F01FF, "Allow", "None"),  # noqa: E731
+                                 ("S-1-5-32-544", 0x1F01FF, "Allow", "None"), *extra])
+    for extra, private in ((None, True), (("S-1-1-0", 0x120089, "Allow", "None"), False),            # Everyone reads
+                           (("S-1-5-32-545", 0x120089, "Allow", "None"), False),                     # Users read
+                           ((other, 0x120089, "Allow", "None"), False),
+                           ((other, 0x120089, "Deny", "None"), True),                               # a denial
+                           (("S-1-1-0", 0x120089, "Allow", "InheritOnly"), True),                   # not on the file
+                           (("S-1-1-0", 0x100000, "Allow", "None"), True)):                         # Synchronize only
+        monkeypatch.setattr(w, "_acl", lambda p, e=extra: rules(*([e] if e else [])))
+        assert w.is_private(tmp_path) is private, extra
+    monkeypatch.setattr(w, "_acl", lambda p: None)
+    assert w.is_private(tmp_path) is False                                                  # not readable: not trusted

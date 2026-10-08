@@ -7,6 +7,7 @@ import json
 import pytest
 
 from aurora import hlt_store, sys_seal
+from conftest import private  # noqa: E402 — who may read a file, asked of this system
 
 
 def test_documents_and_notes_are_sealed_on_the_disk(cfg):
@@ -19,7 +20,7 @@ def test_documents_and_notes_are_sealed_on_the_disk(cfg):
     assert hlt_store.original(cfg, "diet", it["id"])[1].startswith(b"Pranzo")
     assert "6 km" in hlt_store.everything(cfg, "training")
     key = sys_seal._key(cfg, cfg.user, "health")
-    assert len(key) == 32 and (oct((sys_seal.L.place(cfg, "state", cfg.user) / "keys" / "health.key").stat().st_mode)[-3:] == "600")
+    assert len(key) == 32 and private(sys_seal.L.place(cfg, "state", cfg.user) / "keys" / "health.key")
 
 
 def test_a_changed_or_swapped_file_or_another_key_does_not_open(cfg):

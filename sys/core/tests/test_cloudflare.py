@@ -3,13 +3,13 @@
 """Aurora reachable from away (net_cloudflare, the cloudflare plugin, roadmap 56): the state read, what is missing,
 «Salva» on a fake Cloudflare account. Documentation addresses only (RFC 5737); no real account."""
 import json
-import stat
 from types import SimpleNamespace
 
 import httpx
 import pytest
 
 from aurora import net_cloudflare as CF
+from conftest import private  # noqa: E402 — who may read a file, asked of this system
 
 VALUES = {"AURORA_CLOUDFLARE_ACCOUNT_ID": "acc1", "AURORA_CLOUDFLARE_API_TOKEN": "api-t0ken-never-shown",
           "AURORA_CLOUDFLARE_TUNNEL": "aurora", "AURORA_CLOUDFLARE_NETWORK": "192.0.2.10/32",
@@ -113,7 +113,7 @@ def test_save_does_every_step_once_and_keeps_the_token_private(account):
     assert not CF.net_in("192.0.2.10/32", fake.exclude) and CF.net_in("192.0.3.5/32", fake.exclude)
     assert fake.fallback == [{"suffix": "home.example", "dns_server": ["192.0.2.1"], "description": CF.NOTE}]
     f = CF.token_file(cfg)                                                     # fetched by Aurora: nothing to paste
-    assert f.read_text() == TUNNEL_TOKEN and stat.S_IMODE(f.stat().st_mode) == 0o600
+    assert f.read_text() == TUNNEL_TOKEN and private(f)
     assert verbs == ["restart"] and "eyJ" not in r["text"] and "t0ken" not in r["text"]
     n = len(fake.writes)
     again = CF.apply(account(fake, service="active"), systemctl=lambda verb: verbs.append(verb) or SimpleNamespace(returncode=0, stderr=""))

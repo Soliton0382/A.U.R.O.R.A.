@@ -131,3 +131,8 @@ loads faiss (the vault's index) and torch (Whisper in `sns_av`) in the same proc
 `KMP_DUPLICATE_LIB_OK` (Intel's own words: unsafe, may give wrong results — the owner: «non facciamo accrocchi»):
 the speech to text moves to a process of its own, as the models' service and the voice's worker already are — then no
 process of Aurora holds both. **Done 8 Oct (M146):** Whisper lives in aurora-models (mdl_stt); the API's process has no torch (measured: 0 libtorch maps), aurora-models has no faiss.
+
+## Phase 3's list, from the Linux suite on a real machine (8 Oct, M149)
+
+The whole Linux suite runs on the built tree in the Ports workflow; what fails there is the work, read from the
+machine and not guessed. The run's public notices name each failed test and its reason.

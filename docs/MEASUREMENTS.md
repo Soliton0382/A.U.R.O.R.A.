@@ -926,6 +926,19 @@ person) —, the shadow trained 20/20 in 22.3 min, reflections at 01:11, 02:55, 
 with 2 sources in 66.2 s, «cos'è l'entropia» with 2 in 56.5 s — both declined before the night (N77, the machine's
 part). Facebook: the owner's first video published (approval executed, 5.9 s). Security (C174/C175): see BUGS. The face beside the health dot (owner, same morning): /v1/aurora/mood 0.02 s from the REM's last measure (53 s old); headless at 1280×850 a mouse over it opens the card (7 rows, 124–544 px), away closes it; at 390×844 a tap opens it inside the screen (8–382 px, no sideways scroll), a tap elsewhere closes it.
 
+## M149 — The whole Linux suite on a real Mac and a real Windows: phase 3's list (8 October 2026)
+
+Ports on 8140f96, both jobs green (probe 0 failed on both). The Linux suite on the built trees, to the end on both for
+the first time. The Mac: 563 passed, 6 failed, 6 skipped (320 s) — a backup unit's state (systemd's shape, phase 3),
+two Cloudflare texts that expect Linux's install command, a test reading /proc/self/fd, the host firewall's unix socket
+(«AF_UNIX path too long»: macOS's 104-byte limit under /var/folders — phase 4), and test_users_crossing: «boss does not
+see their own history» (not understood yet: to look at). Windows: 533 passed, 34 failed, 7 skipped (137 s) — files
+replaced or deleted while still open (WinError 32: the backup, the memory index's reset), POSIX modes asserted (0600:
+push keys, health, expenses, bug reports — on Windows the privacy of a file is its ACL), paths shown with '\\' where
+'/' is expected, a backup unit (systemd), Cloudflare's Linux command, the key's trust said with «root», a test reading
+/proc/self/fd, AF_UNIX missing, pdftotext absent (the installer's), and more files (sys_config, devices, tts, uploads,
+users, users_layout, sources, reset) whose reasons the notice cut. Phase 3 starts from these lists.
+
 ## M148 — Both ports green on real machines; the Mac's suite to the end (8 October 2026)
 
 Ports on 3661fb6: both jobs green — the Mac's probe 41 checks, 0 failed; Windows's 40, 0 failed; both platform tests

@@ -188,8 +188,11 @@ class VaultWriter:
             raise PermissionError("reset_memory needs confirm=True")
         files = 0
         # the index goes too: stale vectors would point to conversations that no longer exist
+        from . import sol_index, sol_reader
         from .sol_index import memory_index
         for target in (self.layout.base("memory"), memory_index(self.cfg, self.user)):
+            sol_reader.forget(target)                # open connections and mapped vectors let go first (C207)
+            sol_index.forget(target)
             if target.exists():
                 files += sum(1 for p in target.rglob("*") if p.is_file())
                 shutil.rmtree(target)

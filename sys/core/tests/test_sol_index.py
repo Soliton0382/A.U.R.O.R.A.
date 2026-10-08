@@ -178,3 +178,45 @@ def test_remove_source_drops_vault_rows_and_vectors_without_encoding(cfg, exact_
     assert json.loads(ix.files("physics").manifest.read_text())["count"] == 40
     w.add(doc(99))
     assert ix.update("physics") == 1                                 # incremental updates still work after a drop
+
+
+def test_a_memory_reset_lets_go_of_every_thread_s_connections_and_the_loaded_index(cfg):
+    """C207: Windows does not delete an open or mapped file (a real run): before the memory goes, every reader's
+    connections — in every thread — and every loaded index of it are let go; the threads open them again later."""
+    import sqlite3
+    import threading
+    from pathlib import Path
+    from aurora import sol_index
+    from aurora.sol_reader import VaultReader
+    w, enc = VaultWriter(cfg), FakeEncoder()
+    turn = S.Soliton.new("Ricordami la riunione di giovedì sul brevetto.", "conversation", "conversation", "it", "s:1")
+    w.add_many([doc(1), turn])
+    Indexer(enc, cfg).update_all()
+    reader, held = VaultReader(cfg), {}
+    opened, done = threading.Event(), threading.Event()
+
+    def other_thread():                               # a pool's thread: alive, its connections cached
+        reader.locate([turn.sid])
+        held.update(reader._local.cons)
+        opened.set()
+        done.wait(30)
+    t = threading.Thread(target=other_thread)
+    t.start()
+    opened.wait(30)
+    s = IndexSet(cfg)
+    s.search(enc.encode_queries(["riunione giovedì brevetto"]), 5)
+    mem_vault = w.layout.base("memory").resolve()
+    mem_index = (cfg.path("AURORA_INDEX_DIR") / "memory").resolve()
+    in_memory = lambda p, top: Path(p).resolve().is_relative_to(top)                  # noqa: E731
+    assert any(in_memory(f, mem_index) for f in s._loaded) and any(in_memory(p, mem_vault) for p in held)
+    knowledge = [c for p, c in held.items() if not in_memory(p, mem_vault)]
+    w.reset_memory(confirm=True)
+    for path, con in held.items():
+        if in_memory(path, mem_vault):
+            with pytest.raises(sqlite3.ProgrammingError):    # closed
+                con.execute("SELECT 1")
+    assert all(c.execute("SELECT 1").fetchone() for c in knowledge)             # the knowledge's stay open
+    done.set()
+    t.join()
+    assert not any(in_memory(f, mem_index) for f in s._loaded)
+    assert sol_index.forget(cfg.path("AURORA_INDEX_DIR") / "memory") == 0
