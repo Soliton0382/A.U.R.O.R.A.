@@ -71,16 +71,51 @@ async def agent(request: Request) -> dict:
     return {"run_id": start_run(goal, origin="agent", job=job)["id"]}
 
 
+_signed: dict = {}
+
+
+def _unsigned_plugins() -> dict[str, int]:
+    """{plugin: files not signed by the owner} (sys_ethics.code_drift), read again after a minute: a plugin Aurora forged
+    works at once but is official only once the owner signs (owner, 2026-10-08: «un controllo nella WebUI che
+    ufficializza gli agenti creati da Aurora… o un suggerimento che dice di lanciare il comando da shell»)."""
+    import time as _time
+    from aurora import sys_ethics
+    if _signed.get("at", 0) > _time.time() - 60:
+        return _signed["value"]
+    d = sys_ethics.code_drift()
+    out: dict[str, int] = {}
+    for f in [] if "unsigned" in d else d["changed"] + d["added"]:
+        parts = f.split("/")
+        if len(parts) >= 3 and parts[:2] == ["sys", "plugins"]:
+            out[parts[2]] = out.get(parts[2], 0) + 1
+    _signed.update(at=_time.time(), value=out)
+    return out
+
+
+SIGN = "cd {root} && sudo .venv/bin/python sys/core/script/sys_ethics_sign.py sign"
+
+
+@router.get("/v1/aurora/plugins/signature", dependencies=[Depends(admin_only)])
+def plugins_signature() -> dict:
+    """The plugins whose files are not signed (forged by Aurora, or changed) and the command the admin runs in a shell
+    with root's rights to sign the code as it is now — never done from the web: the signing key is root's."""
+    _signed.clear()
+    return {"unsigned": _unsigned_plugins(), "command": SIGN.format(root=cfg.root)}
+
+
 @router.get("/v1/aurora/plugins", dependencies=[Depends(auth)])
 def plugins() -> list[dict]:
     from aurora import plg_access
     admin = me() == _admin()
+    unsigned = _unsigned_plugins() if admin else {}
     return [{"name": p.name, "users": plg_access.for_users(cfg, p.name), "version": p.manifest.get("version"), "kind": p.manifest.get("kind"),
              "description": p.manifest.get("description", {}), "enabled": p.enabled, "available": p.available,
              "social": bool(p.manifest.get("social")), "missing": p.missing, "error": p.error, "setup": p.manifest.get("setup", {}),
              "settings": [k for k in dict.fromkeys(p.manifest.get("env", []) + p.manifest.get("requires", [])
                                                    + list(p.manifest.get("env_as", {})) + p.manifest.get("settings", []))],
              "icon": f"/v1/aurora/plugins/{p.name}/icon?v={_icon_version(p)}",
+             **({"forged": bool(p.manifest.get("forged")), "forged_need": (p.manifest.get("forged") or {}).get("need", ""),
+                 "unsigned": unsigned.get(p.name, 0)} if admin else {}),
              "tools": [{"name": t["name"], "effect": t["effect"], "description": t["description"],
                         "required": (t.get("input_schema") or {}).get("required", [])} for t in p.tools]}
             for p in plugin_host().plugins() if admin or not getattr(p, "admin_only", False)]

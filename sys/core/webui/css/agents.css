@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /* Copyright 2026 A.U.R.O.R.A. Project */
 /* Approvals and plugins pages. */
-.appr-card, .plug-card { background: rgba(20, 24, 33, .85); border: 1px solid var(--line); border-radius: var(--radius); padding: .8rem 1rem; margin: .7rem 0; }
+.appr-card, .plug-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: .8rem 1rem; margin: .7rem 0; }
 .appr-card.external { border-color: rgba(240, 179, 90, .55); }
 .appr-card.code_change { border-color: rgba(122, 162, 255, .55); }
 .plug-card.off { opacity: .75; }
@@ -20,13 +20,13 @@ pre.diff { color: #cfd6e6; }
 .appr-actions .big { font-size: 1.05rem; padding: .55rem 1.2rem; font-weight: 700; }
 .appr-actions .approve.big { background: rgba(91, 208, 138, .18); color: #9ff0c0; }
 .appr-actions .reject.big { background: rgba(239, 107, 107, .18); color: #ffb0b0; }
-details.report { background: rgba(20, 24, 33, .8); border: 1px solid var(--line); border-radius: 8px; padding: .4rem .7rem; margin: .4rem 0; }
+details.report { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: .4rem .7rem; margin: .4rem 0; }
 details.report summary { cursor: pointer; }
 .report-text { white-space: pre-wrap; margin: .5rem 0; line-height: 1.5; }
 
 .plug-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: .8rem; margin-top: 1rem; }
 .plug-tile { display: flex; flex-direction: column; align-items: center; gap: .35rem; padding: .9rem .5rem; border-radius: 14px;
-  border-width: 2px; background: rgba(20, 24, 33, .85); }
+  border-width: 2px; background: var(--surface); }
 .plug-tile img { width: 48px; height: 48px; border-radius: 10px; }
 .plug-tile .name { font-weight: 600; font-size: .9rem; }
 .plug-tile .state { font-size: .72rem; }
@@ -34,7 +34,7 @@ details.report summary { cursor: pointer; }
 .plug-tile.on .state { color: var(--ok); }
 .plug-tile.off { border-color: rgba(239, 107, 107, .65); opacity: .9; }
 .plug-tile.off .state { color: var(--bad); }
-dialog.modal { background: #10141d; color: var(--text); border: 1px solid var(--line); border-radius: 14px; padding: 1rem 1.2rem;
+dialog.modal { background: var(--modal-bg); color: var(--text); border: 1px solid var(--line); border-radius: 14px; padding: 1rem 1.2rem;
   width: min(760px, 94vw); max-height: 88vh; overflow: auto; }
 dialog.modal::backdrop { background: rgba(0, 0, 0, .6); }
 .plug-head { display: flex; align-items: center; gap: .8rem; }
@@ -81,7 +81,7 @@ pre.try-out { white-space: pre-wrap; font: .76rem/1.4 var(--mono); background: r
 .settings-tools .settings-filter { flex: 1 1 12rem; min-width: 0; }
 .settings-nav { position: relative; }
 .settings-menu { position: absolute; z-index: 4; left: 0; top: 2.4rem; width: min(92vw, 26rem); max-height: 70vh; overflow: auto;
-  background: rgba(20, 24, 33, .98); border: 1px solid var(--line); border-radius: 10px; padding: .5rem; }
+  background: var(--modal-bg); border: 1px solid var(--line); border-radius: 10px; padding: .5rem; }
 .settings-menu.hidden { display: none; }
 .settings-area summary { cursor: pointer; padding: .35rem .2rem; font-weight: 600; }
 .settings-area .cat-chip { margin: .2rem; }

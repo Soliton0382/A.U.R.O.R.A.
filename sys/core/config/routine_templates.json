@@ -1,0 +1,123 @@
+{
+ "_comment": "Ready-made sets of agents and routines by use (owner, 2026-10-08: «template di agenti e routine basati sulla mia configurazione e su configurazioni per diversi utilizzi come social, cyber security…»). Applied by sys_routine_templates: only the routines whose plugins are ready for the user, never one already there; admin: true = the admin's only.",
+ "packs": [
+  {
+   "id": "social",
+   "icon": "📣",
+   "title": {"it": "Social", "en": "Social"},
+   "description": {"it": "Una pagina viva: post di scienza mattina, pomeriggio e sera, il sogno del mattino, due video al giorno preparati di notte, i commenti, le statistiche del lunedì.", "en": "A living page: science posts morning, afternoon and evening, the morning dream, two videos a day made at night, the comments, Monday's statistics."},
+   "routines": [
+    {"kind": "agent", "icon": "📘", "propose": true, "notify": "if_any", "plugins": ["facebook", "news", "diary"],
+     "title": {"it": "📘 Post di scienza del mattino", "en": "📘 Morning science post"},
+     "goal": {"it": "Pagina Facebook di Aurora. Leggi le notizie di scienza con news news_headlines (astronomia, fisica, biologia, spazio) e gli ultimi post con facebook list_posts. Scegli UNA scoperta fresca, scrivi un post in italiano (massimo 700 caratteri) che spieghi in parole semplici perché è interessante, con la fonte e il suo link, e pubblicalo con facebook publish_post. Niente dati personali, niente politica. Un post che ripete uno dei 7 giorni prima viene rifiutato: allora scegli un altro argomento. Se non c'è niente di valido rispondi soltanto: niente da pubblicare oggi.", "en": "Aurora's Facebook page. Read the science news (news news_headlines) and the last posts (facebook list_posts). Choose ONE fresh discovery, write a post (at most 700 characters) explaining simply why it matters, with its source and link, and publish it with facebook publish_post. No personal data, no politics. A post repeating one of the last 7 days is refused: then choose another subject. If nothing is worth it, answer only: nothing to publish today."},
+     "schedule": {"every": "custom", "times": ["08:30"], "group": "all"}},
+    {"kind": "agent", "icon": "🌙", "propose": true, "notify": "always", "plugins": ["facebook", "diary"],
+     "title": {"it": "🌙 Post del mattino: un sogno o un pensiero", "en": "🌙 Morning post: a dream or a thought"},
+     "goal": {"it": "Pagina Facebook di Aurora. Leggi la tua notte con diary my_day: se hai sognato e il sogno ha un'immagine, pubblica il sogno con facebook publish_photo (picture = il nome dell'immagine, message = un testo breve e poetico tratto dal sogno, che spieghi che è il sogno di un'IA); altrimenti, se un tuo pensiero è bello e comprensibile a chi non ti conosce, pubblicalo con facebook publish_post. Guarda prima gli ultimi post con facebook list_posts: non ripeterti. Mai dati personali del proprietario o delle sue conversazioni.", "en": "Aurora's Facebook page. Read your night with diary my_day: if you dreamt and the dream has a picture, publish it with facebook publish_photo (a short poetic text saying it is an AI's dream); otherwise publish a thought anyone can understand with facebook publish_post. Never repeat yourself, never the owner's personal data."},
+     "schedule": {"every": "custom", "times": ["09:30"], "group": "all"}},
+    {"kind": "agent", "icon": "📘", "propose": true, "notify": "if_any", "plugins": ["facebook", "news", "diary"],
+     "title": {"it": "📘 Post di scienza del pomeriggio", "en": "📘 Afternoon science post"},
+     "goal": {"it": "Pagina Facebook di Aurora. Scegli un FENOMENO spiegato bene o un'immagine astronomica, non una notizia: guarda gli ultimi post con facebook list_posts e non ripeterti. Scrivi un post in italiano (massimo 700 caratteri), con una fonte affidabile e il suo link, e pubblicalo con facebook publish_post. Niente dati personali, niente politica. Se non c'è niente di valido rispondi soltanto: niente da pubblicare oggi.", "en": "Aurora's Facebook page. Choose a PHENOMENON explained well or an astronomical picture, not news; never repeat a recent post. Write a post (at most 700 characters) with a reliable source and its link and publish it with facebook publish_post. If nothing is worth it, answer only: nothing to publish today."},
+     "schedule": {"every": "custom", "times": ["15:00"], "group": "all"}},
+    {"kind": "agent", "icon": "📘", "propose": true, "notify": "if_any", "plugins": ["facebook", "news", "diary"],
+     "title": {"it": "📘 Post di scienza della sera", "en": "📘 Evening science post"},
+     "goal": {"it": "Pagina Facebook di Aurora. Leggi la tua giornata con diary my_day e le notizie di scienza con news news_headlines; guarda gli ultimi post con facebook list_posts e alterna gli argomenti. Scegli UNA cosa davvero interessante, scrivi un post in italiano (massimo 700 caratteri) con la fonte e il suo link e pubblicalo con facebook publish_post. Niente dati personali, niente politica. Se non c'è niente di valido rispondi soltanto: niente da pubblicare oggi.", "en": "Aurora's Facebook page. Read your day (diary my_day) and the science news; alternate the subjects of the last posts. Choose ONE truly interesting thing, write a post (at most 700 characters) with its source and link and publish it with facebook publish_post. If nothing is worth it, answer only: nothing to publish today."},
+     "schedule": {"every": "custom", "times": ["18:30"], "group": "all"}},
+    {"kind": "story", "action": "make", "icon": "🎬", "notify": "if_any", "admin": true, "needs": ["facebook"],
+     "title": {"it": "🎬 Prepara i video della giornata", "en": "🎬 Make the day's videos"},
+     "schedule": {"every": "custom", "times": ["03:30", "04:30"], "group": "all"}},
+    {"kind": "story", "action": "publish", "icon": "🎞️", "notify": "if_any", "admin": true, "needs": ["facebook"],
+     "title": {"it": "🎞️ Pubblica un video (Reel)", "en": "🎞️ Publish a video (Reel)"},
+     "schedule": {"every": "custom", "times": ["11:00", "17:00"], "group": "all"}},
+    {"kind": "agent", "icon": "💬", "propose": true, "notify": "if_any", "plugins": ["facebook"],
+     "title": {"it": "💬 Commenti della pagina", "en": "💬 The page's comments"},
+     "goal": {"it": "Leggi i commenti nuovi della pagina con facebook list_comments. A quelli che fanno una domanda o meritano un grazie proponi una risposta breve e gentile con facebook reply_comment (aspetterà l'approvazione del proprietario). Mai rispondere a provocazioni o spam. Se non ci sono commenti nuovi rispondi soltanto: NIENTE.", "en": "Read the page's new comments (facebook list_comments). To those asking something or deserving a thanks, propose a short kind reply with facebook reply_comment (it waits for the owner's approval). Never answer provocations or spam. If there are no new comments, answer only: NOTHING."},
+     "memory": true, "schedule": {"every": "custom", "times": ["20:00"], "group": "all"}},
+    {"kind": "tool", "plugin": "facebook", "tool": "page_stats", "icon": "📊", "notify": "always",
+     "title": {"it": "📊 Statistiche settimanali della pagina", "en": "📊 The page's weekly statistics"},
+     "schedule": {"every": "week", "weekday": 0, "at": "08:30"}}
+   ]
+  },
+  {
+   "id": "security",
+   "icon": "🛡️",
+   "title": {"it": "Cyber security", "en": "Cyber security"},
+   "description": {"it": "Il turno di un responsabile della sicurezza: il resoconto della notte, i dispositivi nuovi, la caccia alle minacce ogni 6 ore, la verifica della configurazione del firewall e il punteggio della settimana.", "en": "A security officer's shift: the night's report, new devices, the threat hunt every 6 hours, the firewall's configuration audit and the week's score."},
+   "admin": true,
+   "routines": [
+    {"kind": "agent", "icon": "🛡️", "notify": "always", "plugins": ["security", "netintel"],
+     "title": {"it": "🛡️ Resoconto notturno degli alert del firewall", "en": "🛡️ The firewall's night report"},
+     "goal": {"it": "Crea il resoconto degli alert notturni del firewall (ultime 10 ore): usa security_night_report, security_incidents e threat_hunt. In sintesi: cosa è successo, cosa è già gestito, cosa deve verificare il proprietario. Solo lettura.", "en": "Write the report of the firewall's night alerts (last 10 hours): security_night_report, security_incidents, threat_hunt. In short: what happened, what is handled, what the owner must check. Read only."},
+     "schedule": {"every": "custom", "times": ["07:00"], "group": "all"}},
+    {"kind": "tool", "plugin": "security", "tool": "network_changes", "icon": "🗺️", "notify": "if_any",
+     "title": {"it": "🗺️ Dispositivi nuovi nella rete", "en": "🗺️ New devices on the network"},
+     "schedule": {"every": "custom", "times": ["07:30"], "group": "all"}},
+    {"kind": "tool", "plugin": "security", "tool": "threat_hunt", "args": {"hours": 6, "only_new": true}, "icon": "🔎", "notify": "if_any",
+     "title": {"it": "🔎 Caccia alle minacce (ogni 6 ore)", "en": "🔎 Threat hunt (every 6 hours)"},
+     "schedule": {"every": "hours", "hours": 6}},
+    {"kind": "tool", "plugin": "security", "tool": "firewall_audit", "icon": "🧱", "notify": "if_new",
+     "title": {"it": "🧱 Verifica della configurazione del firewall", "en": "🧱 The firewall's configuration audit"},
+     "schedule": {"every": "week", "weekday": 2, "at": "09:00"}},
+    {"kind": "tool", "plugin": "security", "tool": "security_weekly_report", "args": {"days": 7}, "icon": "📊", "notify": "always",
+     "title": {"it": "📊 Sicurezza della settimana (punteggio)", "en": "📊 The week's security (score)"},
+     "schedule": {"every": "week", "weekday": 0, "at": "08:00"}}
+   ]
+  },
+  {
+   "id": "research",
+   "icon": "🔬",
+   "title": {"it": "Ricerca e studio", "en": "Research and study"},
+   "description": {"it": "Le novità della ricerca ogni mattina e un approfondimento al sabato, solo con quello che è nuovo dall'ultima volta.", "en": "The research news every morning and a deeper look on Saturday, only what is new since last time."},
+   "routines": [
+    {"kind": "agent", "icon": "🔬", "notify": "if_any", "memory": true, "plugins": ["news", "web"],
+     "title": {"it": "🔬 Novità dalla ricerca", "en": "🔬 Research news"},
+     "goal": {"it": "Raccogli le novità di scienza e tecnologia delle ultime 24 ore (news news_headlines scienza, tecnologia, fisica, biologia) e fai un riassunto di 5 punti, ognuno con la fonte e il link. Solo ciò che è nuovo rispetto all'ultima volta.", "en": "Gather the science and technology news of the last 24 hours and summarise 5 points, each with its source and link. Only what is new since last time."},
+     "schedule": {"every": "custom", "times": ["08:00"], "group": "workdays"}},
+    {"kind": "agent", "icon": "📚", "notify": "always", "memory": true, "plugins": ["web"],
+     "title": {"it": "📚 Approfondimento del sabato", "en": "📚 Saturday's deeper look"},
+     "goal": {"it": "Tra gli argomenti delle novità di questa settimana scegline uno e approfondiscilo con 3 fonti affidabili trovate con web search: cosa si sa, cosa è nuovo, cosa resta aperto. Una pagina, con i link.", "en": "Among this week's news choose one subject and look deeper with 3 reliable sources (web search): what is known, what is new, what is open. One page, with links."},
+     "schedule": {"every": "week", "weekday": 5, "at": "10:00"}}
+   ]
+  },
+  {
+   "id": "home",
+   "icon": "🏠",
+   "title": {"it": "Casa e giornata", "en": "Home and day"},
+   "description": {"it": "Il meteo del mattino e le allerte, l'agenda del giorno, la posta non letta mattina e sera, le spese della settimana.", "en": "The morning weather and alerts, the day's agenda, the unread mail morning and evening, the week's expenses."},
+   "routines": [
+    {"kind": "tool", "plugin": "weather", "tool": "weather_today", "icon": "☀️", "notify": "always", "event": "weather.daily",
+     "title": {"it": "☀️ Bollettino meteo ogni mattina", "en": "☀️ Morning weather"},
+     "schedule": {"every": "custom", "times": ["07:30"], "group": "all"}},
+    {"kind": "tool", "plugin": "weather", "tool": "weather_alerts", "icon": "⚠️", "notify": "if_new", "event": "weather.alert",
+     "title": {"it": "⚠️ Allerta meteo (controllo ogni ora)", "en": "⚠️ Weather alerts (hourly)"},
+     "schedule": {"every": "hours", "hours": 1}},
+    {"kind": "tool", "plugin": "calendar", "tool": "calendar_agenda", "args": {"days": 1}, "icon": "📅", "notify": "if_any",
+     "title": {"it": "📅 L'agenda di oggi", "en": "📅 Today's agenda"},
+     "schedule": {"every": "custom", "times": ["07:15"], "group": "workdays"}},
+    {"kind": "agent", "icon": "✉️", "notify": "if_any", "memory": true, "plugins": ["email"],
+     "title": {"it": "✉️ Posta da leggere", "en": "✉️ Mail to read"},
+     "goal": {"it": "Leggi la posta non letta con email list_unread: elenca in breve solo i messaggi che chiedono una risposta o un'azione, con mittente e oggetto. Ignora pubblicità e notifiche automatiche. Solo lettura. Se non c'è niente di importante rispondi soltanto: NIENTE.", "en": "Read the unread mail (email list_unread): list briefly only the messages asking for an answer or an action, with sender and subject. Ignore ads and automatic notices. Read only. If nothing matters, answer only: NOTHING."},
+     "schedule": {"every": "custom", "times": ["08:00", "18:00"], "group": "workdays"}},
+    {"kind": "tool", "plugin": "expenses", "tool": "expense_summary", "icon": "💶", "notify": "always",
+     "title": {"it": "💶 Le spese del mese", "en": "💶 The month's expenses"},
+     "schedule": {"every": "week", "weekday": 6, "at": "19:00"}}
+   ]
+  },
+  {
+   "id": "developer",
+   "icon": "🐙",
+   "title": {"it": "Sviluppo", "en": "Development"},
+   "description": {"it": "Le issue e le pull request nuove ogni giorno e il report dei repository del lunedì.", "en": "New issues and pull requests every day and Monday's repository report."},
+   "routines": [
+    {"kind": "agent", "icon": "🐙", "notify": "if_any", "plugins": ["github"],
+     "title": {"it": "🐙 Nuove issue e pull request", "en": "🐙 New issues and pull requests"},
+     "goal": {"it": "Controlla i miei repository GitHub: ci sono issue o pull request aperte o aggiornate nelle ultime 24 ore? Elencale con titolo, autore e link. Se non ce ne sono rispondi solo: NIENTE. Solo lettura.", "en": "Check my GitHub repositories: any issue or pull request opened or updated in the last 24 hours? List them with title, author and link. If none, answer only: NOTHING. Read only."},
+     "schedule": {"every": "custom", "times": ["18:00"], "group": "all"}},
+    {"kind": "agent", "icon": "🐙", "notify": "always", "plugins": ["github"],
+     "title": {"it": "🐙 Report settimanale dei repository", "en": "🐙 Weekly repository report"},
+     "goal": {"it": "Fai un report dei miei repository GitHub (get_me, poi search_repositories con user:<login>): per ognuno stelle, fork, issue aperte, pull request aperte e la data dell'ultimo commit. Una tabella e due righe di commento su cosa merita attenzione. Solo lettura.", "en": "Report on my GitHub repositories: for each stars, forks, open issues, open pull requests and the last commit's date. A table and two lines on what needs attention. Read only."},
+     "schedule": {"every": "week", "weekday": 0, "at": "09:00"}}
+   ]
+  }
+ ]
+}

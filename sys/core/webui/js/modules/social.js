@@ -11,6 +11,19 @@ import { approvalCard, isPost, socialPlugins } from "./approvals.js";
 import { videoSection } from "./social_video.js";
 import { autonomySlot } from "./autonomy_box.js";
 
+// every "Publish" of this page (owner, 2026-10-08: his name went out unchecked): the server checks the text first —
+// private data it is sure of, a repeat of the last 7 days — and the owner confirms what it found, or goes back to edit
+export async function publishPost(body) {
+  const r = await call("/v1/aurora/social/publish", { method: "POST", body: JSON.stringify(body) });
+  if (!r.confirm) return r;
+  const lines = [];
+  for (const f of r.confirm.privacy || []) lines.push(`• ${f.value} → ${f.replacement || "?"}`);
+  if (r.confirm.privacy?.length) lines.unshift(t("social.confirm_privacy"));
+  if (r.confirm.repeat) lines.push(t("social.confirm_repeat", { what: r.confirm.repeat }));
+  if (!confirm(`${lines.join("\n")}\n\n${t("social.confirm_q")}`)) return null;
+  return call("/v1/aurora/social/publish", { method: "POST", body: JSON.stringify({ ...body, confirmed: true }) });
+}
+
 // what a post would give away (owner, 2026-10-05): the names of private people, places, contacts, ids — read by the
 // local model; each finding with its replacement, the sure ones ticked; "apply" rewrites the text, then onApply
 export function privacyBox(getText, setText, onApply) {
@@ -109,7 +122,8 @@ export default {
     pub.addEventListener("click", async () => {
       pub.disabled = true;
       try {
-        await call("/v1/aurora/social/publish", { method: "POST", body: JSON.stringify({ plugin: d.plugin, text: area.value, ...(picture ? { picture } : {}) }) });
+        const r = await publishPost({ plugin: d.plugin, text: area.value, ...(picture ? { picture } : {}) });
+        if (!r) { pub.disabled = false; return; }
         out.textContent = t("social.sent");
       } catch (e) { out.textContent = t("ev.error", { m: e.message }); pub.disabled = false; }
     });
@@ -138,8 +152,8 @@ export default {
     fix.addEventListener("click", async () => {
       fix.disabled = true;
       try {
-        await call("/v1/aurora/social/publish", { method: "POST", body: JSON.stringify({ plugin: act.plugin, text: fixed,
-          ...(args.picture ? { picture: args.picture } : {}) }) });
+        const r = await publishPost({ plugin: act.plugin, text: fixed, ...(args.picture ? { picture: args.picture } : {}) });
+        if (!r) { fix.disabled = false; return; }
         await call(`/v1/aurora/approvals/${a.id}/reject`, { method: "POST" });
         setTimeout(() => this.loadPosts(), 1000);
       } catch (e) { fix.disabled = false; fix.textContent = t("ev.error", { m: e.message }); }

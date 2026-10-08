@@ -54,6 +54,19 @@ async def social_check(request: Request) -> dict:
     return {"findings": found, "proposed": sec_privacy.propose(text, [f for f in found if f["sure"]])}
 
 
+def _before_publishing(text: str) -> dict:
+    """What the owner should see before a post goes out (owner, 2026-10-08): the private data the check is sure of
+    (sec_privacy, the local model) and a repeat of a post of the last 7 days (sys_social_guard). Empty: publish."""
+    from aurora import sec_privacy, sys_social_guard, txt_lang
+    private = [f for f in sec_privacy.findings(text, cfg, txt_lang.detect(text), pipeline().llm) if f["sure"]]
+    out = {}
+    if private:
+        out["privacy"] = [{"value": f["value"], "kind": f["kind"], "replacement": f.get("replacement", "")} for f in private]
+    if (again := sys_social_guard.check(cfg, text)):
+        out["repeat"] = again.removeprefix("REFUSED: ").split(". Choose")[0]
+    return out
+
+
 @router.post("/v1/aurora/social/publish", dependencies=[Depends(auth)])
 async def social_publish(request: Request) -> dict:
     """The owner clicked "Publish" on a draft he read: that click is the confirmation (recorded as an
@@ -89,6 +102,10 @@ async def social_publish(request: Request) -> dict:
         if not how:
             raise HTTPException(status_code=409, detail=f"{plugin} publishes only pictures or videos")
         args = {how["field"]: text, **({how["picture"]: picture} if how is target.get("photo") else {})}
+    if not body.get("confirmed"):                         # 8 Oct: the owner's name went out from here, unchecked
+        warn = await asyncio.to_thread(_before_publishing, text)
+        if warn:
+            return {"confirm": warn}
     req = Approvals(cfg).request("tool_call", "external", f"{plugin}.{how['tool']}",
                                  "post shared by the owner from the chat", {"plugin": plugin, "tool": how["tool"],
                                                                             "arguments": args},

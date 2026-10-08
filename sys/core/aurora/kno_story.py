@@ -186,14 +186,17 @@ def stories(cfg: sys_config.Config, n: int = 12) -> list[dict]:
     return out
 
 
-def make(pipeline, cfg: sys_config.Config, topic: str, emit, out_root: Path | None = None) -> dict:
-    """The whole video for `topic`. Raises ValueError when the vault does not answer it (no video without sources)."""
+def make(pipeline, cfg: sys_config.Config, topic: str, emit, out_root: Path | None = None, accept=None) -> dict:
+    """The whole video for `topic`. Raises ValueError when the vault does not answer it (no video without sources),
+    or when `accept(answer)` says why not (the scheduled videos: public sources only) — before any picture is made."""
     from . import mdl_image, mdl_tts
     log = sys_log.get_logger("image")
     t0, took = time.time(), {}
     ans = pipeline.run(topic, emit, None, remember=False)
     if ans.abstained or ans.mode != "knowledge" or not ans.sources:
         raise ValueError("il vault non risponde a questo argomento: nessun video senza fonti")
+    if accept and (why := accept(ans)):
+        raise ValueError(why)
     took["answer"] = round(time.time() - t0, 1)
     t = time.time()
     items = scenes(pipeline.llm, ans.text)

@@ -11,8 +11,10 @@ API so that a crash of a model cannot take the API down.
 """
 from __future__ import annotations
 
+import gc
 import os
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -46,6 +48,40 @@ def give_back() -> None:
                 torch.cuda.empty_cache()
 
 
+_gpu = threading.Lock()
+
+
+def shrinking(owner, fn, items):
+    """fn(items) with the model's batch halved on CUDA out of memory, down to 1 (C197, 8 Oct: the harvester's batches
+    of 8 long chunks ran out of memory beside the reasoner, the service answered 500 every 5 s and the failed batch's
+    tensors stayed held by the exception — 5.7 GB allocated while idle). One request on the GPU at a time: two batches
+    together were twice the peak."""
+    import torch
+    with _gpu:
+        batch = owner.batch
+        try:
+            while True:
+                try:
+                    return fn(items)
+                except torch.OutOfMemoryError:
+                    if owner.batch <= 1:
+                        raise
+                    owner.batch = max(1, owner.batch // 2)
+                    failed = True
+                else:
+                    failed = False
+                if failed:                           # outside the except: the failed batch's frames are gone
+                    gc.collect()
+                    give_back()
+                    log.warning("out of GPU memory: %s again with batch %d (%d items)", type(owner).__name__, owner.batch,
+                                len(items))
+        finally:
+            owner.batch = batch
+            if sys.exc_info()[0] is not None:        # it failed even with batch 1: give the memory back anyway
+                gc.collect()
+                give_back()
+
+
 class EmbedIn(BaseModel):
     texts: list[str]
     kind: str = "documents"
@@ -71,7 +107,7 @@ def health() -> dict:
 def embed(body: EmbedIn) -> dict:
     t0 = time.time()
     e = state["embedder"]
-    v = e.encode_queries(body.texts) if body.kind == "queries" else e.encode_documents(body.texts)
+    v = shrinking(e, e.encode_queries if body.kind == "queries" else e.encode_documents, body.texts)
     give_back()
     log.debug("embed %s: %d texts in %.2f s", body.kind, len(body.texts), time.time() - t0)
     return {"vectors": v.astype("float32").tolist(), "dim": e.dim, "encoder": e.name}
@@ -80,7 +116,7 @@ def embed(body: EmbedIn) -> dict:
 @app.post("/rerank")
 def rerank(body: RerankIn) -> dict:
     t0 = time.time()
-    scores = state["reranker"].score(body.pairs)
+    scores = shrinking(state["reranker"], state["reranker"].score, body.pairs)
     give_back()
     log.debug("rerank: %d pairs in %.2f s", len(body.pairs), time.time() - t0)
     return {"scores": scores.tolist()}

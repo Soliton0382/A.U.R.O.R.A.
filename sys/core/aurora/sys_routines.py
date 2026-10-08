@@ -5,6 +5,7 @@
 A routine is either
     tool   one read-only tool of a plugin, called directly (no model: fast, deterministic), e.g. weather alerts
     agent  a goal for the agent with the plugins' tools, e.g. a weekly report of the GitHub repositories
+    story  Aurora's narrated videos on a schedule (kno_story_auto): "action" make (at night) or publish (by day)
 and has a schedule: {"every": "hours", "hours": n} | {"every": "day", "at": "HH:MM"} |
 {"every": "week", "weekday": 0-6 (Monday 0), "at": "HH:MM"} |
 {"every": "custom", "times": ["HH:MM", ...], "days": [0-6, ...] or "group": all | weekdays | weekend | workdays |
@@ -69,8 +70,12 @@ def get(cfg: sys_config.Config, rid: str) -> dict | None:
 def validate(spec: dict) -> dict:
     """The fields a routine may have, checked; raises ValueError with the reason."""
     kind = spec.get("kind")
-    if kind not in ("tool", "agent"):
-        raise ValueError("kind must be tool or agent")
+    if kind not in ("tool", "agent", "story"):
+        raise ValueError("kind must be tool, agent or story")
+    if kind == "story" and spec.get("action", "make") not in ("make", "publish"):
+        raise ValueError("a story routine makes a video or publishes the one ready (action: make or publish)")
+    if "format" in spec and spec["format"] not in ("", "reel", "post", "story"):
+        raise ValueError("format: reel, post or story")
     if kind == "tool" and not (spec.get("plugin") and spec.get("tool")):
         raise ValueError("a tool routine needs plugin and tool")
     if kind == "agent" and not str(spec.get("goal", "")).strip():
@@ -114,9 +119,11 @@ def validate(spec: dict) -> dict:
         raise ValueError("steps between 3 and 60")
     if "minutes" in spec and not (isinstance(spec["minutes"], int) and 1 <= spec["minutes"] <= 60):
         raise ValueError("minutes between 1 and 60")
+    if "by" in spec and not (isinstance(spec["by"], str) and re.fullmatch(r"(aurora|template:[a-z0-9_-]{1,30})", spec["by"])):
+        raise ValueError("by: aurora or template:<name>")      # who proposed it (the owner's click made it)
     # propose: an agent routine may propose actions that write or publish; each still waits for the owner's approval
     keep = ("title", "plugin", "kind", "tool", "args", "goal", "schedule", "notify", "event", "suggestion", "enabled",
-            "propose", "icon", "plugins", "memory", "steps", "minutes")
+            "propose", "icon", "plugins", "memory", "steps", "minutes", "action", "format", "by")
     return {k: spec[k] for k in keep if k in spec}
 
 
@@ -136,11 +143,12 @@ def update(cfg: sys_config.Config, rid: str, changes: dict) -> dict:
     if r is None:
         raise KeyError(rid)
     allowed = {k: v for k, v in changes.items() if k in ("enabled", "schedule", "notify", "title", "propose", "icon",
-                                                          "plugins", "memory", "steps", "minutes")
+                                                          "plugins", "memory", "steps", "minutes", "format")
                or k == "goal" and r.get("kind") == "agent"}
     merged = {**r, **allowed}
     validate(merged)
     r.update(allowed)
+    r["changed"] = time.time()                           # the owner's fresh choice: Aurora's advice leaves it alone
     _save(cfg, "routines.json", rs)
     return r
 
@@ -151,7 +159,8 @@ def clone(cfg: sys_config.Config, rid: str) -> dict:
     if r is None:
         raise KeyError(rid)
     spec = {k: v for k, v in r.items() if k in ("title", "plugin", "kind", "tool", "args", "goal", "schedule", "notify",
-                                                "event", "propose", "icon", "plugins", "memory", "steps", "minutes")}
+                                                "event", "propose", "icon", "plugins", "memory", "steps", "minutes", "action",
+                                                "format")}
     spec["title"] = f"{r.get('title', '')[:70]} (copia)"
     return create(cfg, {**spec, "enabled": False})
 

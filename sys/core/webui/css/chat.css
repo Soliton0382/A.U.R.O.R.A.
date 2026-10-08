@@ -10,9 +10,9 @@
 .messages::-webkit-scrollbar-thumb { background: rgba(122,162,255,.25); border-radius: 3px; }
 .messages::-webkit-scrollbar-track { background: transparent; }
 .conversation > .chips, .conversation > .ask { padding: 0 clamp(.8rem, 4vw, 3rem); }
-.msg { max-width: min(92%, 1100px); padding: .7rem .9rem; border-radius: var(--radius); background: rgba(14, 18, 28, .80);
+.msg { max-width: min(92%, 1100px); padding: .7rem .9rem; border-radius: var(--radius); background: var(--msg-bg);
   border: 1px solid var(--line); overflow-wrap: anywhere; backdrop-filter: blur(10px); }
-.msg.user { align-self: flex-end; background: rgba(35, 50, 88, .85); border-color: rgba(120, 150, 230, .35); }
+.msg.user { align-self: flex-end; background: var(--msg-user); border-color: var(--accent-line); }
 .msg.aurora { align-self: flex-start; min-width: min(520px, 92%); }
 .msg.aurora.abstained { border-color: rgba(240, 179, 90, .6); }
 .msg.aurora.past { opacity: .9; }
@@ -36,14 +36,14 @@ details.iter[open] > .iter-head::before { transform: rotate(90deg); }
 @keyframes spin { to { transform: rotate(360deg); } }
 .steps { font-size: .83rem; display: flex; flex-direction: column; gap: .3rem; margin-top: .5rem; max-height: 50vh; overflow-y: auto; }
 .steps hr { border: 0; border-top: 1px dashed var(--line); width: 100%; }
-details.thought { background: rgba(30, 34, 43, .7); border-radius: 8px; padding: .3rem .6rem; }
+details.thought { background: var(--chip-bg); border-radius: 8px; padding: .3rem .6rem; }
 details.thought pre, pre.facts { white-space: pre-wrap; font: .78rem/1.4 var(--mono); color: var(--muted); max-height: 40vh; overflow: auto; margin: .4rem 0 0; }
 
 .ask { display: flex; gap: .5rem; align-items: flex-end; }
-.ask textarea { resize: none; min-height: 2.8rem; max-height: 30vh; background: rgba(14, 18, 28, .88); backdrop-filter: blur(10px); }
+.ask textarea { resize: none; min-height: 2.8rem; max-height: 30vh; background: var(--msg-bg); backdrop-filter: blur(10px); }
 .chips { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .4rem; }
 .chips:empty { display: none; }
-.chip { display: inline-flex; align-items: center; gap: .35rem; background: rgba(30, 34, 43, .9); border: 1px solid var(--line);
+.chip { display: inline-flex; align-items: center; gap: .35rem; background: var(--chip-bg); border: 1px solid var(--line);
   border-radius: 8px; padding: .2rem .45rem; font-size: .82rem; max-width: 100%; }
 .chip img { width: 2.2rem; height: 2.2rem; object-fit: cover; border-radius: 5px; }
 .msg.user .chip img { width: 7rem; height: auto; max-height: 9rem; }

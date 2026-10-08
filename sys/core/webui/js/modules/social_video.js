@@ -6,7 +6,7 @@
 import { call, stream } from "../api.js";
 import { el } from "../dom.js";
 import { t } from "../i18n.js";
-import { privacyBox } from "./social.js";
+import { privacyBox, publishPost } from "./social.js";
 
 const STEPS = { "run.start": "social.video.st_answer", "story.script": "social.video.st_script", "image.batch": "social.video.st_pictures",
   "image.swap": "social.video.st_pictures", "story.done": "social.video.st_done" };
@@ -60,8 +60,8 @@ export function videoSection(box) {
           pub.disabled = true;
           out.textContent = t("social.video.sending", { p: p.label });
           try {
-            const r = await call("/v1/aurora/social/publish", { method: "POST",
-              body: JSON.stringify({ plugin: p.plugin, text: area.value.slice(0, p.max_chars), video: s.video, ...(shape ? { format: shape.value } : {}) }) });
+            const r = await publishPost({ plugin: p.plugin, text: area.value.slice(0, p.max_chars), video: s.video, ...(shape ? { format: shape.value } : {}) });
+            if (!r) { out.textContent = ""; pub.disabled = false; return; }
             out.textContent = `${p.label}: ${r.result?.text || r.status || t("social.sent")}`;
           } catch (e) { out.textContent = t("ev.error", { m: e.message }); pub.disabled = false; }
         });

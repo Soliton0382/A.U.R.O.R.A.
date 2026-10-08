@@ -8,6 +8,7 @@ import { $, el } from "./dom.js";
 import * as i18n from "./i18n.js";
 import * as voice from "./voice.js";
 import { adminOnly, groups, views, widgets } from "./modules.js";
+import { applyTheme, current as currentTheme, themePicker } from "./theme.js";
 
 const byId = Object.fromEntries(views.map((v) => [v.id, v]));
 let current = null;
@@ -262,6 +263,8 @@ function start() {
 }
 
 // ---- boot --------------------------------------------------------------------------------
+applyTheme(currentTheme());                          // the colours first: no flash of another theme
+$("theme").addEventListener("click", () => themePicker());
 const lang = i18n.saved();
 $("lang").value = lang;
 await i18n.load(lang);

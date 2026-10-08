@@ -26,7 +26,21 @@ def _routine_job(r: dict):
 
     def job(q, emit, run_id):
         ok, text, files = True, "", []
-        if r["kind"] == "tool":
+        if r["kind"] == "story":                             # Aurora's videos on a schedule (kno_story_auto)
+            from aurora import kno_story_auto
+            try:
+                if r.get("action") == "publish":
+                    text = kno_story_auto.publish(cfg, plugin_host(), emit, run_id, str(r.get("format") or ""), pipeline().llm)
+                    ok = not text.startswith("Video «")
+                else:
+                    out = kno_story_auto.make(pipeline(), cfg, plugin_host(), emit)
+                    text = f"🎬 Video pronto: «{out['topic']}» ({out['length_s']:.0f} s, {out['video']})" + (
+                        "\nScartati: " + " · ".join(out["tried"]) if out["tried"] else "")
+            except Exception as e:                       # noqa: BLE001 - a failed video is recorded and said
+                log.exception("routine %s (video) failed", r["id"])
+                ok, text = False, f"{type(e).__name__}: {str(e)[:300]}"
+            ans = Answer(run_id, q, text, False, mode="agent")
+        elif r["kind"] == "tool":
             host = plugin_host()
             p = host.get(r["plugin"])
             if p is None or not p.available:
@@ -115,6 +129,11 @@ async def routine_create(request: Request) -> dict:
     body = await request.json()
     lang = "it" if str(cfg["AURORA_LANG_DEFAULT"]).startswith("it") else "en"
     try:
+        if body.get("kind") == "story" and me() != _admin():
+            raise HTTPException(status_code=403, detail="the videos on a schedule are the admin's (GPU and the page)")
+        if body.get("kind") == "tool" and me() != _admin() and body.get("plugin") not in \
+                {p.name for p in plugin_host().plugins(with_tools=False) if p.available}:
+            raise HTTPException(status_code=403, detail="a routine of a plugin that is not yours")
         if body.get("suggestion"):
             r = sys_routines.from_suggestion(cfg, plugin_host().plugins(with_tools=False), str(body["suggestion"]), lang)
         else:

@@ -10,6 +10,24 @@ import { renderMarkdown } from "../md.js";
 import { restartPrompt } from "../restart.js";
 import { autonomySlot } from "./autonomy_box.js";
 
+// a plugin Aurora forged works at once; it becomes official when the admin signs the code from a shell with root's
+// rights (owner, 2026-10-08) — the signing key is root's: never from the web
+async function signBox(names) {
+  const box = el("div", "report plug-sign");
+  let cmd = "";
+  try { cmd = (await call("/v1/aurora/plugins/signature")).command; } catch { /* not the admin */ }
+  box.append(el("p", "warn", `✍️ ${t("plug.unsigned", { names: names.join(", ") })}`));
+  if (!cmd) return box;
+  const row = el("div", "appr-actions");
+  const copy = el("button", "", `📋 ${t("plug.copy")}`);
+  copy.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(cmd); copy.textContent = `✅ ${t("plug.copied")}`; } catch { /* no clipboard: select it */ }
+  });
+  row.append(el("code", "", cmd), copy);
+  box.append(row, el("p", "muted", t("plug.sign_hint")));
+  return box;
+}
+
 export default {
   id: "plugins",
   icon: "🧩",
@@ -35,13 +53,17 @@ export default {
       const img = el("img");
       img.src = p.icon;
       img.alt = "";
-      b.append(img, el("span", "name", p.name), el("span", "state", p.available ? t("plug.on") : t("plug.off")));
+      b.append(img, el("span", "name", `${p.forged ? "🔨 " : ""}${p.name}`),
+        el("span", "state", `${p.available ? t("plug.on") : t("plug.off")}${p.unsigned ? " · ✍️" : ""}`));
       b.title = p.description?.[code] || p.description?.en || "";
       b.addEventListener("click", () => this.open(p, code));
       return b;
     }));
     this.root?.querySelector(".plug-trash")?.remove();
+    this.root?.querySelector(".plug-sign")?.remove();
     if (!this.me.admin) return;                      // the trash is the admin's, like deleting
+    const unsigned = plugins.filter((p) => p.unsigned).map((p) => p.name);
+    if (unsigned.length) this.grid.before(await signBox(unsigned));
     const items = await call("/v1/aurora/plugins-trash").catch(() => []);
     if (!items.length) return;
     const box = el("details", "plug-trash");
@@ -102,6 +124,8 @@ export default {
       }
     }
     dlg.append(stRow);
+    if (this.me.admin && p.forged) dlg.append(el("p", "muted", t("plug.forged", { need: p.forged_need || "" })));
+    if (this.me.admin && p.unsigned) dlg.append(await signBox([p.name]));
     if (p.name === "backup") {                      // the backup itself: last copy, next one, 💾 Run now
       const { backupRow, restoreBox } = await import("../backup.js");
       const row = await backupRow();

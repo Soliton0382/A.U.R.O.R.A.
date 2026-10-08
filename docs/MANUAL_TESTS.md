@@ -52,6 +52,11 @@ end, duplicates and tests of pages that no longer exist removed (each with its r
 | N95 | «anima questa foto» with the video given to Google (Models → 🎨) | the video from Veo; while it is made, the bar «🎬 … in corso · circa N%» over the chat |
 | N97 | The chat on the phone: a question, then the network cut for a few seconds (airplane mode) while she answers | «🔌 connessione persa: riprendo…», then the whole answer — no «network error» (C170) |
 | N98 | Tomorrow between 9 and 22, silent for a while: the chat | at most 2 bubbles «🔁 Aurora ci ha ripensato» on an old answer, with its sources; tell whether they were worth it (M120) |
+| N123 | 🎨 at the foot of the menu → each theme; Chiaro and Contrasto on the phone too | the colours change at once and stay after a reload; the chat, the cards and the menu stay readable (tell me a page that does not) |
+| N122 | 🤖 Agenti e routine → 🧰 Profili pronti → open «Casa e giornata» → «Applica» | only the missing routines are added (agenda, spese); then 📸 «Salva la mia configurazione»: as a user (not admin) the saved set shows no security or video routine |
+| N121 | 🧩 Plugin, after Aurora forges a plugin | 🔨 on its icon, ✍️ «non ancora ufficiale» with the command; run it in a shell: the ✍️ goes away |
+| N120 | 🤖 Agenti e routine → 💡 Suggerimenti di Aurora | the proposals with «Applica»/«Scarta» and the badge on the menu; «Scarta» the one about the morning post (a misreading), «Applica» one you like |
+| N119 | Tomorrow: 🤖 Agenti e routine → 🎬 and 🎞️ | at 03:30/04:30 «Video pronto: …»; at 11:00 and 17:00 the Reel on the page (or in Approvals beyond 6 posts or with private data) |
 | N118 | 🔥 Sicurezza → Firewall di Aurora | the state (install `sudo bash sys/deploy/nft/install.sh` if it says so: N93), the doors (SSH, KDE Connect said low), «Tieni fuori» an address for 1 h, then ↩️ |
 | N117 | 🧱 Firewall → a finding → ✨ Chiedi ad Aurora | the request field filled with the finding, a plan in 10-70 s; 🗑️ Scarta it if you do not want it |
 | N116 | 🧱 Firewall → «✨ Cosa vuoi sul firewall?»: a change you really want (e.g. «accendi il log della regola di Plex»); read the plan; ✔ Applica | applied and read back; the audit no longer says it; ↩️ Annulla puts it back |

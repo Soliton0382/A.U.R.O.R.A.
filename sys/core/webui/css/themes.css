@@ -1,0 +1,86 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright 2026 A.U.R.O.R.A. Project */
+/* Colour themes (owner, 2026-10-08: «i template di visualizzazione che cambiano le combinazioni colori»): each one
+   changes only the tokens of app.css (:root), chosen on the Settings page and kept by this browser (theme.js).
+   "aurora" is app.css itself. The status colours (ok, warn, bad) stay recognisable in every theme. */
+
+#slot-background { opacity: var(--bg-face); transition: opacity .3s; }
+
+/* 🌌 Notte: true black for OLED screens, a violet accent */
+:root[data-theme="notte"] {
+  --bg: #000; --panel: rgba(10, 10, 14, .82); --panel-solid: #0a0a0e; --panel2: rgba(22, 20, 30, .9);
+  --line: rgba(170, 140, 255, .22); --text: #ece8f6; --muted: #948ca8; --accent: #b18cff;
+  --surface: rgba(14, 12, 20, .9); --input: rgba(16, 14, 22, .95); --bar: rgba(0, 0, 0, .7);
+  --drawer-bg: rgba(6, 5, 10, .96); --page-bg: rgba(0, 0, 0, .8); --modal-bg: #0b0a10;
+  --msg-bg: rgba(12, 10, 18, .86); --msg-user: rgba(48, 32, 84, .85); --chip-bg: rgba(26, 22, 36, .9);
+  --accent-soft: rgba(177, 140, 255, .08); --accent-mid: rgba(177, 140, 255, .16); --accent-line: rgba(177, 140, 255, .4);
+  --accent-text: #e2d4ff; --bg-face: .55;
+}
+
+/* 🌊 Oceano: deep teal */
+:root[data-theme="oceano"] {
+  --bg: #021a1f; --panel: rgba(8, 30, 36, .8); --panel-solid: #08222a; --panel2: rgba(16, 42, 50, .9);
+  --line: rgba(80, 200, 200, .22); --text: #e2f4f4; --muted: #86a8ab; --accent: #3fd0c9;
+  --surface: rgba(10, 34, 40, .86); --input: rgba(10, 34, 40, .94); --bar: rgba(2, 20, 25, .6);
+  --drawer-bg: rgba(4, 24, 30, .95); --page-bg: rgba(2, 22, 27, .74); --modal-bg: #062026;
+  --msg-bg: rgba(6, 30, 36, .82); --msg-user: rgba(14, 70, 78, .85); --chip-bg: rgba(16, 44, 52, .9);
+  --accent-soft: rgba(63, 208, 201, .08); --accent-mid: rgba(63, 208, 201, .15); --accent-line: rgba(63, 208, 201, .38);
+  --accent-text: #c4f5f2; --bg-face: .7;
+}
+
+/* 🌲 Foresta: dark greens */
+:root[data-theme="foresta"] {
+  --bg: #04140b; --panel: rgba(12, 28, 18, .8); --panel-solid: #0c1d13; --panel2: rgba(22, 40, 28, .9);
+  --line: rgba(120, 200, 140, .22); --text: #e4f2e8; --muted: #8aa592; --accent: #6fd08c;
+  --surface: rgba(14, 32, 20, .86); --input: rgba(14, 32, 20, .94); --bar: rgba(4, 18, 10, .6);
+  --drawer-bg: rgba(6, 22, 12, .95); --page-bg: rgba(4, 20, 11, .74); --modal-bg: #0a1c11;
+  --msg-bg: rgba(10, 28, 16, .82); --msg-user: rgba(30, 70, 44, .85); --chip-bg: rgba(22, 42, 28, .9);
+  --accent-soft: rgba(111, 208, 140, .08); --accent-mid: rgba(111, 208, 140, .15); --accent-line: rgba(111, 208, 140, .38);
+  --accent-text: #cdf3d7; --bg-face: .6;
+}
+
+/* 🌅 Tramonto: warm plum and amber */
+:root[data-theme="tramonto"] {
+  --bg: #1a0b10; --panel: rgba(36, 16, 22, .8); --panel-solid: #24111a; --panel2: rgba(50, 24, 32, .9);
+  --line: rgba(255, 160, 120, .22); --text: #f7e8e2; --muted: #b3948c; --accent: #ff9a6a;
+  --surface: rgba(40, 18, 26, .86); --input: rgba(40, 18, 26, .94); --bar: rgba(26, 10, 16, .6);
+  --drawer-bg: rgba(30, 12, 18, .95); --page-bg: rgba(26, 11, 16, .74); --modal-bg: #26111a;
+  --msg-bg: rgba(36, 15, 22, .82); --msg-user: rgba(90, 40, 46, .85); --chip-bg: rgba(52, 24, 32, .9);
+  --accent-soft: rgba(255, 154, 106, .08); --accent-mid: rgba(255, 154, 106, .15); --accent-line: rgba(255, 154, 106, .38);
+  --accent-text: #ffdcca; --bg-face: .6;
+}
+
+/* ☀️ Chiaro: a light theme for the day; the dark face in the background almost hidden */
+:root[data-theme="chiaro"] {
+  --bg: #eef2f8; --panel: rgba(255, 255, 255, .85); --panel-solid: #fff; --panel2: rgba(240, 244, 250, .95);
+  --line: rgba(40, 60, 100, .18); --text: #1a2233; --muted: #5b6475; --accent: #2f5fd0;
+  --ok: #1f9d55; --warn: #b7791f; --bad: #c53030;
+  --surface: rgba(255, 255, 255, .9); --input: #fff; --bar: rgba(255, 255, 255, .8);
+  --drawer-bg: rgba(248, 250, 253, .97); --page-bg: rgba(244, 247, 252, .9); --modal-bg: #fff;
+  --msg-bg: rgba(255, 255, 255, .92); --msg-user: rgba(214, 226, 252, .95); --chip-bg: rgba(232, 238, 248, .95);
+  --accent-soft: rgba(47, 95, 208, .07); --accent-mid: rgba(47, 95, 208, .13); --accent-line: rgba(47, 95, 208, .35);
+  --accent-text: #1d3f96; --bg-face: .12;
+  color-scheme: light;
+}
+:root[data-theme="chiaro"] .md pre.code, :root[data-theme="chiaro"] .preview pre, :root[data-theme="chiaro"] pre.try-out {
+  background: rgba(20, 30, 50, .06); }
+
+/* 🔆 Contrasto: high contrast for reading — black, white, yellow */
+:root[data-theme="contrasto"] {
+  --bg: #000; --panel: #000; --panel-solid: #000; --panel2: #111;
+  --line: rgba(255, 255, 255, .65); --text: #fff; --muted: #d0d0d0; --accent: #ffd400;
+  --ok: #4dff88; --warn: #ffb000; --bad: #ff5a5a;
+  --surface: #0a0a0a; --input: #000; --bar: #000; --drawer-bg: #000; --page-bg: #000; --modal-bg: #000;
+  --msg-bg: #0a0a0a; --msg-user: #1c1c00; --chip-bg: #111;
+  --accent-soft: rgba(255, 212, 0, .12); --accent-mid: rgba(255, 212, 0, .22); --accent-line: #ffd400;
+  --accent-text: #ffd400; --bg-face: 0;
+}
+:root[data-theme="contrasto"] * { backdrop-filter: none !important; }
+
+/* the swatches on the Settings page */
+.theme-row { display: flex; flex-wrap: wrap; gap: .6rem; margin: .4rem 0 1rem; }
+.theme-swatch { display: flex; flex-direction: column; align-items: center; gap: .3rem; padding: .5rem; min-width: 92px;
+  border-radius: 10px; border: 2px solid var(--line); cursor: pointer; }
+.theme-swatch.on { border-color: var(--accent); }
+.theme-swatch .dots { display: flex; gap: 3px; }
+.theme-swatch .dots span { width: 16px; height: 16px; border-radius: 50%; border: 1px solid rgba(128, 128, 128, .4); }

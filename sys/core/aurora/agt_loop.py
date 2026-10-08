@@ -274,6 +274,11 @@ class Agent(AgentReport):
         if field and isinstance(args.get(field), str):       # EU AI Act art. 50: what is published says it is AI
             from . import sys_disclosure, txt_lang
             args[field] = sys_disclosure.mark_text(args[field], txt_lang.detect(args[field]), self.cfg)
+        if field and tool.startswith("publish") and isinstance(args.get(field), str):
+            from . import sys_social_guard                   # a post repeating one of the last 7 days: not published
+            if (again := sys_social_guard.check(self.cfg, args[field])):
+                emit("agent.repeat", {"plugin": plugin, "tool": tool})
+                return again
         private = []                                         # a post naming private people waits for the owner
         if field and isinstance(args.get(field), str):
             from . import sec_privacy

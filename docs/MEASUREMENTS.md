@@ -926,6 +926,20 @@ person) —, the shadow trained 20/20 in 22.3 min, reflections at 01:11, 02:55, 
 with 2 sources in 66.2 s, «cos'è l'entropia» with 2 in 56.5 s — both declined before the night (N77, the machine's
 part). Facebook: the owner's first video published (approval executed, 5.9 s). Security (C174/C175): see BUGS. The face beside the health dot (owner, same morning): /v1/aurora/mood 0.02 s from the REM's last measure (53 s old); headless at 1280×850 a mouse over it opens the card (7 rows, 124–544 px), away closes it; at 390×844 a tap opens it inside the screen (8–382 px, no sideways scroll), a tap elsewhere closes it.
 
+## M136 — Routines reviewed, videos on a schedule (8 October 2026, roadmap 62-65)
+
+| what | measured |
+|---|---|
+| the guard against repeats on the real history | 8 posts of 30 days (approvals, auto or executed): 0 taken for a repeat |
+| the videos' topics (local model, no thinking) | 0.5–1.0 s for 3 topics; the science news as hints 15.7 s (4 topics, 4,806 characters); none repeats the 4 videos made |
+| a topic's sources | «Come si formano i pianeti rocciosi?»: 4 sources, all web pages (the vault step had failed: C197) — accepted as public once the web is counted public |
+| Aurora's review of the routines | 26 s and 23 s, 5–6 proposals; before the fixes 3 of 5 wrong (a paused routine, the backup the system does, tools invented), after: 5 sensible, 1 from a misreading (a dream the owner published by hand) |
+| the code's checks on the owner's 16 routines | 0 findings after this morning's changes |
+| the sets on this machine (admin) | social 1 new of 8, cyber security 1 of 5, research 2 of 2, home 2 of 5 (email not ready), development 0 of 2 |
+| aurora-models on GPU 1 | 6.2 GB held after the out-of-memory errors → 2.4 GB after the restart |
+
+Not measured: a video made and published by the routine (the first night), the themes on a phone, a user's view of the sets.
+
 ## M135 — Any firewall change asked in words (8 October 2026, roadmap 61)
 
 sec_fwplan: the local model (Qwen3.6-35B-A3B, the configuration never leaves the machine) with the configuration in short
