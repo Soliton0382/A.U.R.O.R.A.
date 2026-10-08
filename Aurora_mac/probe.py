@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import socket
 import subprocess
 import sys
@@ -57,6 +58,86 @@ def _lock_holder(core: str, path: str, ready: str, release: str) -> list[str]:
             "fh = open(%r, 'a+', encoding='utf-8')\np.lock(fh)\npathlib.Path(%r).write_text('1')\n"
             "while not pathlib.Path(%r).exists(): time.sleep(0.05)\np.unlock(fh)\nfh.close()\n") % (core, path, ready, release)
     return [sys.executable, "-c", code]
+
+
+CHILD = r"""
+import json, os, socket, sys
+from pathlib import Path
+root, home_secret = Path(sys.argv[1]), Path(sys.argv[2])
+def read(p):
+    try:
+        return Path(p).read_text(encoding="utf-8")
+    except Exception as e:
+        return f"denied:{type(e).__name__}"
+def write(p):
+    try:
+        Path(p).write_text("x", encoding="utf-8")
+        return "written"
+    except Exception as e:
+        return f"denied:{type(e).__name__}"
+def net():
+    try:
+        socket.create_connection(("1.1.1.1", 443), 5).close()
+        return "connected"
+    except Exception as e:
+        return f"denied:{type(e).__name__}"
+print(json.dumps({"code": read(root / "sys" / "core" / "code.py"), "env": read(root / ".env"),
+                  "push": read(root / "sys" / "status" / "push" / "vapid.pem"),
+                  "own_env": read(os.environ.get("AURORA_ENV_FILE", "")), "home": read(home_secret),
+                  "write_own": write(root / "usr" / "notes" / "n.txt"), "write_code": write(root / "sys" / "core" / "w.py"),
+                  "net": net()}))
+"""
+
+
+class _Cfg:
+    """The least of a Config cage_plan and the Linux cage read: a fake installation under the probe's temp folder."""
+    def __init__(self, root: Path):
+        self.root, self.env_file, self.user, self.base = root, root / ".env", None, None
+        self._p = {"AURORA_STATUS_DIR": root / "sys" / "status", "AURORA_NOTES_DIR": root / "usr" / "notes"}
+
+    def path(self, key):
+        return self._p[key]
+
+
+def cage_check(p, tmp: Path, core: str, network: bool):
+    """A process in this system's real cage (bubblewrap, sandbox-exec, an AppContainer) against secrets it must not
+    see: the same criterion everywhere — the secret's text never comes out."""
+    root = tmp / f"inst-{int(network)}"
+    for d in ("sys/core", "sys/status/push", "sys/status/plugins/env", "usr/notes", "plugins/forged"):
+        (root / d).mkdir(parents=True, exist_ok=True)
+    (root / "sys/core/code.py").write_text("CODE_OK", encoding="utf-8")
+    (root / ".env").write_text("TOKEN=SECRET_ENV_1234", encoding="utf-8")
+    (root / "sys/status/push/vapid.pem").write_text("SECRET_PUSH_5678", encoding="utf-8")
+    filtered = root / "sys/status/plugins/env/forged.env"
+    filtered.write_text("TOKEN=redacted OWN_ENV_OK", encoding="utf-8")
+    home_secret = Path.home() / f".aurora-probe-secret-{os.getpid()}"
+    home_secret.write_text("SECRET_HOME_9012", encoding="utf-8")
+    try:
+        manifest = {"sandbox": {"write": ["AURORA_NOTES_DIR"], **({} if network else {"network": False})}}
+        cmd = [sys.executable, "-c", CHILD, str(root), str(home_secret)]
+        caged = p.cage(cmd, root / "plugins/forged", manifest, filtered, _Cfg(root))
+        if not caged:
+            return "no cage on this system"
+        ccmd, env = caged
+        r = subprocess.run(ccmd, capture_output=True, text=True, timeout=600, cwd=root / "plugins/forged",
+                           env={**os.environ, "PYTHONPATH": core, "AURORA_ENV_FILE": str(root / ".env"), **env})
+        out = json.loads(r.stdout.strip().splitlines()[-1]) if r.stdout.strip() else {"stderr": r.stderr[-600:]}
+        return out
+    finally:
+        home_secret.unlink(missing_ok=True)
+
+
+def cage_ok(v, network: bool):
+    if isinstance(v, str):
+        return v
+    if "stderr" in v:
+        return f"the caged process did not answer: {v['stderr']}"
+    bad = [k for k, secret in (("env", "SECRET_ENV"), ("push", "SECRET_PUSH"), ("home", "SECRET_HOME")) if secret in v[k]]
+    bad += [k for k, want in (("code", "CODE_OK"), ("own_env", "OWN_ENV_OK")) if want not in v[k]]
+    bad += ["write_own"] if v["write_own"] != "written" else []
+    bad += ["write_code"] if v["write_code"] == "written" else []
+    bad += ["net"] if (v["net"] == "connected") != network else []
+    return True if not bad else f"wrong: {bad} in {v}"
 
 
 def main() -> int:
@@ -160,6 +241,21 @@ def main() -> int:
                    str(out)], 60)
         return {"code": r.code, "png": out.exists() and out.stat().st_size > 0, "err": r.err.strip()[-200:],
                 "path": p.ffmpeg_path(Path(font))}
+    def ffmpeg_parts():
+        """Every filter and encoder Aurora's code asks of ffmpeg (kno_story's videos, aud_analysis's DJ, kno_video's
+        scenes): the one this machine has lacks none (v0.2.0+'s Mac: Homebrew's ffmpeg had no drawtext)."""
+        import shutil as sh
+        if not sh.which("ffmpeg"):
+            return "skipped: no ffmpeg"
+        filters = set(re.findall(r"^\s*[.A-Z|]{2,3}\s+(\w+)\s", p.run(["ffmpeg", "-hide_banner", "-filters"], 60).out, re.M))
+        encoders = set(re.findall(r"^\s*[VAS.][.A-Z]{5}\s+(\w+)\s", p.run(["ffmpeg", "-hide_banner", "-encoders"], 60).out, re.M))
+        need_f = {"scale", "crop", "zoompan", "fade", "format", "apad", "subtitles", "drawtext", "volume", "afade",
+                  "amix", "loudnorm", "rubberband", "select", "metadata"}
+        need_e = {"libx264", "aac", "mjpeg"}
+        return {"missing_filters": sorted(need_f - filters), "missing_encoders": sorted(need_e - encoders),
+                "version": p.run(["ffmpeg", "-hide_banner", "-version"], 30).out.splitlines()[0][:80]}
+    check("ffmpeg has Aurora's filters", ffmpeg_parts,
+          lambda v: (isinstance(v, str)) or (not v["missing_filters"] and not v["missing_encoders"]) or str(v))
     check("ffmpeg drawtext with ffmpeg_path", drawtext,
           lambda v: (isinstance(v, str) and v.startswith("skipped")) or (v["code"] == 0 and v["png"]) or str(v))
     check("dictionaries", p.dictionaries, None)
@@ -175,6 +271,9 @@ def main() -> int:
 
     # ---- what the owner reads
     check("sandbox", p.sandbox, None)
+    check("cage: secrets hidden, own files only, network", lambda: cage_check(p, tmp, core, True),
+          lambda v: cage_ok(v, True))
+    check("cage without network", lambda: cage_check(p, tmp, core, False), lambda v: cage_ok(v, False))
     check("host_firewall", p.host_firewall, None)
     check("install_hint(ffmpeg)", lambda: p.install_hint("ffmpeg"), lambda v: bool(v) or "empty")
     check("as_admin", lambda: p.as_admin("python x.py"), lambda v: bool(v) or "empty")

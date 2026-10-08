@@ -110,7 +110,7 @@ Intended differences on Linux, none in behaviour the suite checks: a service tha
 Read from each plugin's code (a test now fails on any Linux-only word or program in sys/plugins: test_platform_residue)
 and from what each needs around it. **The one that decides everything: the cage.** On Linux every plugin runs in
 bubblewrap; the Mac has no bwrap, and the port refuses to start a plugin without a cage while AURORA_PLUGIN_SANDBOX
-is on (GUARDS) — so until phase 4, no plugin runs on the Mac unless the owner turns the cage off knowingly.
+was on (GUARDS). **Done 8 Oct (the owner's «A»):** sandbox-exec, a profile from cage_plan (`mac.profile`); the same contract as bubblewrap (`cage_plan`), checked by `probe.py` with a real process in the real cage on the Mac (the Ports run).
 
 | Plugins | What they need | On the Mac |
 |---|---|---|

@@ -320,7 +320,25 @@ class Windows(Platform):
 
     # ---- cages and walls --------------------------------------------------------------------------------------
     def sandbox(self) -> str | None:
-        return None
+        return "appcontainer"                             # every Windows Aurora runs on (10, 11) has them
+
+    def cage(self, cmd, folder, manifest, filtered_env, cfg):
+        """The plugin inside an AppContainer (win_cage.py), started by a launcher of Aurora's own: the cage_plan
+        written as its spec, the launcher run uncaged with the same Python, the plugin's command after «--»."""
+        import json
+        import re
+        import sys
+        from .base import cage_plan
+        user = getattr(cfg, "user", None)
+        name = re.sub(r"[^A-Za-z0-9.-]", "-", f"aurora.{folder.name}" + (f".{user}" if user else ""))[:64]
+        cages = Path(cfg.root) / "sys" / "tmp" / "cages"
+        plan = cage_plan(folder, manifest, filtered_env, cfg, cages / name)
+        spec = {"name": name, "marker": str(cages / f"{name}.granted.json"),
+                **{k: [str(x) for x in plan[k]] for k in ("read", "hide", "allow", "write")}, "network": plan["network"]}
+        f = cages / f"{name}.json"
+        f.write_text(json.dumps(spec, indent=1), encoding="utf-8")
+        return ([sys.executable, "-m", "aurora.sys_platform.win_cage", str(f), "--", *cmd],
+                {"AURORA_ENV_FILE": str(plan["allow"][0]), "AURORA_IN_SANDBOX": "1"})
 
     def host_firewall(self) -> str | None:
         helper = Path(self.env.get("ProgramData") or r"C:\ProgramData") / "Aurora" / "bin" / "aurora-wfw.ps1"

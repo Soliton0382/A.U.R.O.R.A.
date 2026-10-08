@@ -113,7 +113,7 @@ Intended differences on Linux, none in behaviour the suite checks: a service tha
 Read from each plugin's code (a test now fails on any Linux-only word or program in sys/plugins: test_platform_residue)
 and from what each needs around it. **The one that decides everything: the cage.** On Linux every plugin runs in
 bubblewrap; Windows has no bwrap, and the port refuses to start a plugin without a cage while AURORA_PLUGIN_SANDBOX
-is on (GUARDS) — so until phase 4, no plugin runs on Windows unless the owner turns the cage off knowingly.
+was on (GUARDS). **Done 8 Oct (the owner's «A»):** an AppContainer per plugin (`win_cage.py`: ACLs from cage_plan, a Job object, the capabilities); the same contract as bubblewrap (`cage_plan`), checked by `probe.py` with a real process in the real cage on Windows (the Ports run).
 
 | Plugins | What they need | On Windows |
 |---|---|---|

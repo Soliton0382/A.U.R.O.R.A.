@@ -4,6 +4,7 @@
 ioreg, ffmpeg's avfoundation). The formats were written from the tools' documented output; a real Mac checks them
 again in phase 5 (tests/README: «Non misurato»)."""
 import json
+from pathlib import Path
 
 import pytest
 
@@ -164,3 +165,30 @@ def test_the_nas_is_found_in_the_mount_table_without_touching_its_folder(tmp_pat
     m = mac([("mount", Result(0, table))], tmp_path)
     assert m.is_mount("/Users/owner1/aurora-nas") and not m.is_mount("/Users/owner1/aurora")
     assert m.in_folder("/Users/owner1/Aurora", "x") == "cd /Users/owner1/Aurora && x"
+
+
+def test_a_plugin_s_cage_is_a_sandbox_profile_where_the_last_rule_decides(cfg, tmp_path, monkeypatch):
+    """The profile of sandbox-exec, from the same cage_plan as Windows's: home hidden, Aurora's folder reopened for
+    reading, the secrets hidden again, the plugin's own .env reopened, writes only in its folders, no network."""
+    import shutil
+    monkeypatch.setattr(shutil, "which", lambda name: "/usr/bin/sandbox-exec")
+    mac = for_system("darwin", run=lambda cmd, timeout=30: Result(0, "arm64"))
+    folder = tmp_path / "plugins" / "forged"
+    folder.mkdir(parents=True)
+    filtered = cfg.path("AURORA_STATUS_DIR") / "plugins" / "env" / "forged.env"
+    filtered.parent.mkdir(parents=True)
+    filtered.write_text("X=1")
+    cmd, env = mac.cage(["python", "server.py"], folder, {"sandbox": {"network": False}}, filtered, cfg)
+    assert cmd[:2] == ["/usr/bin/sandbox-exec", "-p"] and cmd[3:] == ["python", "server.py"]
+    prof = cmd[2].splitlines()
+    real = lambda p: str(Path(p).resolve())                                           # noqa: E731
+    starts = ["(version 1)", "(allow default)", f'(deny file-read* file-write* (subpath "{Path.home().resolve()}"))',
+              "(allow file-read* (subpath", "(deny file-read* file-write* (", "(allow file-read* (literal",
+              "(deny file-write*)", "(allow file-write*", "(deny network*)"]
+    assert len(prof) == len(starts) and all(r.startswith(x) for r, x in zip(prof, starts)), prof   # the last rule decides
+    order = [0, 3, 0, 5]
+    assert f'(literal "{real(cfg.env_file)}")' in cmd[2] and f'(subpath "{real(filtered.parent)}")' in cmd[2]
+    assert f'(literal "{real(filtered)}")' in prof[order[3]] and f'(subpath "{real(cfg.root)}")' in prof[order[1]]
+    assert env["AURORA_ENV_FILE"] == real(filtered) and env["AURORA_IN_SANDBOX"] == "1"
+    open_net = mac.cage(["x"], folder, {}, filtered, cfg)[0][2]
+    assert "(deny network*)" not in open_net

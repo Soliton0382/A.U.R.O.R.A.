@@ -245,8 +245,14 @@ class Platform:
         raise NotImplementedError
 
     def ffmpeg_path(self, p: Path) -> str:
-        """A path written inside an ffmpeg filter (drawtext fontfile=, subtitles=): ':' and '\\' are special there."""
-        return str(p).replace("\\", "/").replace(":", "\\:").replace("'", "\\'")
+        """A path written as a filter's value (drawtext fontfile=, subtitles=), escaped twice as ffmpeg reads it
+        twice: for the option (':' and "'") then for the filtergraph ('\\', "'", '[', ']', ',', ';'). Measured on a
+        real Windows (v0.2.0's run): «C\\:/Windows/…» escaped once broke the graph; this form passed drawtext and
+        subtitles with ':', a space, "'", ',', '[1]' and ';' in the path."""
+        s = str(p).replace("\\", "/").replace(":", "\\:").replace("'", "\\'")
+        for c in "\\'[],;":
+            s = s.replace(c, "\\" + c)
+        return s
 
     def dictionaries(self) -> list[Path]:
         """Word lists the privacy checks read (sec_privacy); [] where the system has none."""
@@ -271,6 +277,11 @@ class Platform:
         """The cage plugins and projects run in: "bwrap", "sandbox-exec"; None = no cage here, so nothing runs."""
         raise NotImplementedError
 
+    def cage(self, cmd: list[str], folder: Path, manifest: dict, filtered_env: Path, cfg) -> tuple[list[str], dict] | None:
+        """A plugin's command inside this system's cage and the environment it needs there; None when this system has
+        no cage now — then plg_host does not start the plugin (the owner chose the cages, 2026-10-08: «A»)."""
+        raise NotImplementedError
+
     def host_firewall(self) -> str | None:
         """What blocks an address on this machine: "nft", "pf", "windows-firewall"; None when nothing can."""
         raise NotImplementedError
@@ -290,3 +301,48 @@ class Platform:
     def in_folder(self, folder, command: str) -> str:
         """A command the owner pastes in a terminal, run in `folder` (Linux and the Mac: cd && ...)."""
         return f"cd {folder} && {command}"
+
+
+def cage_plan(folder: Path, manifest: dict, filtered_env: Path, cfg, tmp: Path) -> dict:
+    """What any cage must give a plugin, the same contract as Linux's bubblewrap (plg_sandbox.wrap), as lists of real
+    paths a system's own cage turns into its rules (the Mac: a sandbox profile; Windows: an AppContainer's ACLs):
+
+      read   what it may read: Aurora's folder (code, venv), its own folder, the Python it runs on
+      hide   never readable, even inside `read`: the real .env, the push keys, the other plugins' env files, the
+             registered devices, the users' store, the other users' folders and state, its user's own .env
+      allow  readable although inside `hide`: its own filtered .env (only its own secrets)
+      write  writable: the folders the manifest names ("sandbox": {"write": [settings]}) and its private temp
+      home   the user's home: hidden but for `read`
+      network  False when the manifest says "sandbox": {"network": false} (forged plugins)
+    """
+    import sys
+    from aurora import sys_users_layout as L
+
+    def real(x) -> Path:
+        return Path(os.path.realpath(x))
+    base = cfg.base or cfg
+    status = cfg.path("AURORA_STATUS_DIR")
+    hide = [cfg.env_file, status / "push", status / "plugins" / "env", status / "devices.json", status / "users.db",
+            base.path("AURORA_STATUS_DIR") / "users.db"]
+    m = L.migrated(base)
+    if m:
+        me, admin = cfg.user or m["admin"], m["admin"]
+        usr = L.usr(base)
+        registered = L._registered(base) | {admin}
+        for d in (x for x in usr.iterdir() if x.is_dir()) if usr.is_dir() else []:
+            if d.name != me and not (me == admin and d.name not in registered):
+                hide.append(d)
+        for area in L.SYS_AREAS:
+            users = L.root(base, area) / L.USERS
+            hide += [d for d in (users.iterdir() if users.is_dir() else []) if d.is_dir() and d.name != me]
+        hide.append(usr / me / ".env")
+    write = []
+    for key in manifest.get("sandbox", {}).get("write", []):
+        w = cfg.path(key)
+        w.mkdir(parents=True, exist_ok=True)
+        write.append(w)
+    tmp.mkdir(parents=True, exist_ok=True)
+    reads = {real(cfg.root), real(folder), real(sys.base_prefix), real(sys.prefix), real(Path(sys.executable).parent)}
+    return {"read": sorted(reads), "hide": sorted({real(h) for h in hide}), "allow": [real(filtered_env)],
+            "write": sorted({real(w) for w in write} | {real(tmp)}), "home": real(Path.home()),
+            "network": manifest.get("sandbox", {}).get("network") is not False, "tmp": real(tmp)}

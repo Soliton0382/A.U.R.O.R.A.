@@ -185,6 +185,10 @@ class Linux(Platform):
     def sandbox(self) -> str | None:                                   # plg_sandbox.available, prj_run
         return "bwrap" if shutil.which("bwrap") else None
 
+    def cage(self, cmd, folder, manifest, filtered_env, cfg):              # plg_host: bubblewrap, as before
+        from aurora import plg_sandbox
+        return (plg_sandbox.wrap(cmd, folder, manifest, filtered_env, cfg), {}) if plg_sandbox.available() else None
+
     def host_firewall(self) -> str | None:                             # sec_hostfw
         return "nft" if Path("/usr/local/sbin/aurora-nft").is_file() else None
 

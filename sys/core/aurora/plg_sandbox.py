@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import sys
 import threading
 from pathlib import Path
 
@@ -89,10 +90,16 @@ def wrap(cmd: list[str], folder: Path, manifest: dict, filtered_env: Path, cfg: 
     args = ["bwrap", "--die-with-parent", "--new-session", "--unshare-pid", "--unshare-ipc", "--unshare-uts",
             "--unshare-cgroup-try", "--ro-bind", "/", "/", "--dev-bind", "/dev", "/dev", "--proc", "/proc",
             "--tmpfs", "/tmp"]
-    if home != Path("/") and root.is_relative_to(home):
-        args += ["--tmpfs", str(home), "--ro-bind", str(root), str(root)]
-    elif root.is_relative_to("/tmp"):                         # an installation under /tmp (the tests): visible again
+    # the home hidden wherever Aurora is (C204, 8 Oct 2026: with Aurora outside the home — /opt, /srv — a plugin read
+    # the whole home, ~/.ssh included; the ports' probe found it); Aurora's folder visible again when it is inside
+    # the home or under /tmp (the tests), and the Python the venv runs on when it lives in the home (pyenv, uv)
+    if home != Path("/"):
+        args += ["--tmpfs", str(home)]
+    if (home != Path("/") and root.is_relative_to(home)) or root.is_relative_to("/tmp"):
         args += ["--ro-bind", str(root), str(root)]
+    for python in sorted({Path(sys.base_prefix).resolve(), Path(sys.prefix).resolve()}):
+        if home != Path("/") and python.is_relative_to(home) and not python.is_relative_to(root):
+            args += ["--ro-bind", str(python), str(python)]
     args += ["--ro-bind", str(filtered_env), str(cfg.env_file)]
     for hidden in (status / "push", status / "plugins" / "env"):
         if hidden.is_dir():

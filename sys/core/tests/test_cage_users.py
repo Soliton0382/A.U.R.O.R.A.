@@ -61,3 +61,26 @@ def test_each_user_s_plugins_see_only_their_own_things(cfg, tmp_path):
     assert g["usr/documents/papers/patent.pdf"] is None                                          # not a user's
     for s in (b, g):
         assert not s["sys/status/users.db"] and not s["usr/boss/.env"] and not s["usr/guest/.env"]
+
+
+@pytest.mark.skipif(not _cage_works(), reason="bubblewrap missing, or inside a cage (no nested namespaces)")
+def test_the_home_is_hidden_even_when_aurora_is_not_inside_it(cfg, tmp_path, monkeypatch):
+    """C204: Aurora installed outside the home (here under /tmp, the home under /var/tmp): a plugin read the home."""
+    import tempfile
+    from pathlib import Path
+    home = Path(tempfile.mkdtemp(dir="/var/tmp", prefix="aurora-home-"))
+    try:
+        (home / ".ssh").mkdir()
+        (home / ".ssh" / "id_ed25519").write_text("SECRET_KEY")
+        monkeypatch.setenv("HOME", str(home))
+        filtered = plg_sandbox.env_file("p", {"env": []}, cfg)
+        plugin = tmp_path / "plugin"
+        plugin.mkdir()
+        cmd = plg_sandbox.wrap(["cat", str(home / ".ssh" / "id_ed25519")], plugin, {}, filtered, cfg)
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        assert "SECRET_KEY" not in r.stdout and r.returncode != 0
+        code = subprocess.run(plg_sandbox.wrap(["cat", str(cfg.env_file)], plugin, {}, filtered, cfg),
+                              capture_output=True, text=True, timeout=60)
+        assert code.returncode == 0                       # Aurora's folder (under /tmp here) still readable
+    finally:
+        shutil.rmtree(home)

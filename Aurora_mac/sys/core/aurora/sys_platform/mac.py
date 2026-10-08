@@ -239,6 +239,21 @@ class Mac(Platform):
     def sandbox(self) -> str | None:
         return "sandbox-exec" if shutil.which("sandbox-exec") else None
 
+    def cage(self, cmd, folder, manifest, filtered_env, cfg):
+        """The plugin inside sandbox-exec with a profile made from cage_plan (the owner, 2026-10-08: «A»): everything
+        the system allows by default, then the home hidden but Aurora's folder and the Python, the secrets hidden even
+        there but the plugin's own filtered .env, writes only in its folders and its temp, no network when its manifest
+        says so. In a profile the LAST rule that matches decides, so each line narrows or reopens the one above it."""
+        if not self.sandbox():
+            return None
+        from .base import cage_plan
+        user = getattr(cfg, "user", None)
+        plan = cage_plan(folder, manifest, filtered_env, cfg,
+                         Path(cfg.root) / "sys" / "tmp" / "cages" / (f"{folder.name}.{user}" if user else folder.name))
+        prof = profile(plan)
+        return (["/usr/bin/sandbox-exec", "-p", prof, *cmd],
+                {"AURORA_ENV_FILE": str(plan["allow"][0]), "AURORA_IN_SANDBOX": "1", "TMPDIR": str(plan["tmp"])})
+
     def host_firewall(self) -> str | None:
         return "pf" if Path("/usr/local/sbin/aurora-pf").is_file() else None
 
@@ -247,3 +262,29 @@ class Mac(Platform):
 
     def as_admin(self, command: str) -> str:
         return f"sudo {command}"
+
+
+def _q(path) -> str:
+    return '"' + str(path).replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def _where(path: Path) -> str:
+    """A folder and all under it, or one file (a path not there yet: as a folder, the wider of the two)."""
+    return f"(literal {_q(path)})" if path.is_file() else f"(subpath {_q(path)})"
+
+
+def profile(plan: dict) -> str:
+    """The sandbox profile (SBPL) of a cage_plan."""
+    rules = ["(version 1)", "(allow default)"]
+    if str(plan["home"]) != "/":
+        rules.append(f"(deny file-read* file-write* (subpath {_q(plan['home'])}))")
+    rules.append("(allow file-read* " + " ".join(f"(subpath {_q(r)})" for r in plan["read"]) + ")")
+    if plan["hide"]:
+        rules.append("(deny file-read* file-write* " + " ".join(_where(h) for h in plan["hide"]) + ")")
+    rules.append("(allow file-read* " + " ".join(f"(literal {_q(a)})" for a in plan["allow"]) + ")")
+    rules.append("(deny file-write*)")
+    rules.append("(allow file-write* " + " ".join(f"(subpath {_q(w)})" for w in plan["write"])
+                 + ' (literal "/dev/null") (literal "/dev/tty") (regex #"^/dev/fd/"))')
+    if not plan["network"]:
+        rules.append("(deny network*)")
+    return "\n".join(rules) + "\n"

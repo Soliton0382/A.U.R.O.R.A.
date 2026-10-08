@@ -926,6 +926,23 @@ person) —, the shadow trained 20/20 in 22.3 min, reflections at 01:11, 02:55, 
 with 2 sources in 66.2 s, «cos'è l'entropia» with 2 in 56.5 s — both declined before the night (N77, the machine's
 part). Facebook: the owner's first video published (approval executed, 5.9 s). Security (C174/C175): see BUGS. The face beside the health dot (owner, same morning): /v1/aurora/mood 0.02 s from the REM's last measure (53 s old); headless at 1280×850 a mouse over it opens the card (7 rows, 124–544 px), away closes it; at 390×844 a tap opens it inside the screen (8–382 px, no sideways scroll), a tap elsewhere closes it.
 
+## M143 — The cages for the Mac and Windows, and what the real machines found (8 October 2026, C204, C205)
+
+The owner chose the cages first («A»). One contract for every system, cage_plan (sys_platform/base.py): what a plugin
+reads (Aurora's folder, its own, its Python), what is hidden even there (the real .env, the push keys, the other
+plugins' env files, the devices, the users' store, the other users' folders), what is reopened (its own filtered
+.env), where it writes (its manifest's folders and its temp), the network. The Mac: a sandbox-exec profile from the plan
+(the last matching rule decides); Windows: win_cage.py — an AppContainer per plugin (CreateAppContainerProfile,
+SECURITY_CAPABILITIES with internetClient + privateNetworkClientServer only when the network is allowed), the plan as
+ACLs (grants kept with a marker, denials and the own .env's grant made at each start), a Job object that kills the
+plugin with Aurora, the MCP pipe as its stdio; plg_host asks the system's cage (Linux: bubblewrap as before) and starts
+nothing uncaged. The probe now puts a real process in the real cage against an installation with known secrets: on
+Linux it found C204 (the home readable when Aurora is outside it) — fixed: 40 checks, 31 ok, 0 failed. The real runs:
+Windows's ffmpeg rejected «C\\:/Windows/Fonts/arialbd.ttf» (C205: two levels of escaping; 8 of 8 hostile paths pass
+now, subtitles included); the Mac's Homebrew ffmpeg has no drawtext filter (the videos' label) — the next run lists
+every filter and encoder Aurora uses that it lacks. Suites: Linux, the Mac's and Windows's built trees all green;
+platform tests Mac 19, Windows 20. Not measured yet: the cages on a real Mac and Windows (the next Ports run).
+
 ## M142 — Aurora on a real Mac and a real Windows, the plugins for both (8 October 2026, C202, C203)
 
 GitHub's runners, Ports by hand on de6a8a7. Mac (macos-latest, Apple Silicon): the 22 requirements installed from

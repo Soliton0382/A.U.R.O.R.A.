@@ -470,6 +470,10 @@ FILES = [
 # a bold sans of this system, written for an ffmpeg filter (Windows's "C:" escaped)
 FONT = sys_platform.current().ffmpeg_path(sys_platform.current().bold_font() or "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")""",
      "kno_story: the font of the videos' label"),
+    ("sys/core/aurora/kno_story.py",
+     """    vf = (f"subtitles={folder / 'subs.srt'}:force_style=""",
+     """    vf = (f"subtitles={sys_platform.current().ffmpeg_path(folder / 'subs.srt')}:force_style=""",
+     "kno_story: the subtitles' file written for the filter (C:\\ on Windows)"),
     ("sys/core/aurora/sec_privacy.py",
      """DICTS = ("/usr/share/dict/words", "/usr/share/dict/italian", "/usr/share/dict/american-english",
          "/usr/share/dict/british-english")""",
@@ -504,14 +508,17 @@ GUARDS = [
      """        if self.cfg["AURORA_PLUGIN_SANDBOX"] and plg_sandbox.available():
             cmd = plg_sandbox.wrap(cmd, p.folder, p.manifest, filtered, self.cfg)   # inside, .env is the filtered one
         else:""",
-     """        if self.cfg["AURORA_PLUGIN_SANDBOX"] and plg_sandbox.available():
-            cmd = plg_sandbox.wrap(cmd, p.folder, p.manifest, filtered, self.cfg)   # inside, .env is the filtered one
-        else:
-            from aurora import sys_platform
-            if self.cfg["AURORA_PLUGIN_SANDBOX"] and sys_platform.current().name != "linux":
-                # no cage on this system yet (PORTING.md, phase 4): a plugin never runs uncaged because of that
-                raise RuntimeError(f"{p.name}: no cage for plugins on this system yet, so it does not run")""",
-     "plg_host: no cage, no plugin (never uncaged on the Mac or Windows)"),
+     """        from aurora import sys_platform
+        caged = (sys_platform.current().cage(cmd, p.folder, p.manifest, filtered, self.cfg)
+                 if self.cfg["AURORA_PLUGIN_SANDBOX"] else None)
+        if caged:              # Linux: bubblewrap (inside, .env is the filtered one); the Mac, Windows: their own cage
+            cmd, inside = caged
+            env.update(inside)
+        elif self.cfg["AURORA_PLUGIN_SANDBOX"] and sys_platform.current().name != "linux":
+            # no cage here (sandbox-exec missing, an AppContainer refused): a plugin never runs uncaged because of that
+            raise RuntimeError(f"{p.name}: no cage for plugins on this system, so it does not run")
+        else:""",
+     "plg_host: each system's cage (bubblewrap, sandbox-exec, an AppContainer); no cage, no plugin"),
     ("sys/core/aurora/sys_ethics.py",
      """KEY_DIR = Path("/etc/aurora")                       # one key pair per installation, made by the installer as root""",
      """from . import sys_platform

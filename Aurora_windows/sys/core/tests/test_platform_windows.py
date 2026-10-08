@@ -127,8 +127,8 @@ def test_paths_text_and_programs_the_windows_way():
     assert w.venv_python(Path("C:/A/.venv")).parts[-2:] == ("Scripts", "python.exe")
     assert w.executable(Path("bin"), "llama-server").name == "llama-server.exe"
     assert w.executable(Path("bin"), "caddy.exe").name == "caddy.exe"
-    assert w.ffmpeg_path(r"C:\Windows\Fonts\arialbd.ttf") == "C\\:/Windows/Fonts/arialbd.ttf"   # ':' escaped for filters
-    assert w.sandbox() is None                                      # no cage: nothing runs uncaged
+    assert w.ffmpeg_path(r"C:\Windows\Fonts\arialbd.ttf") == "C\\\\:/Windows/Fonts/arialbd.ttf"   # twice: option, graph
+    assert w.sandbox() == "appcontainer"                            # the owner's «A»: plugins run caged (win_cage)
     assert w.install_hint("ffmpeg") == "winget install --id Gyan.FFmpeg -e"
 
 
@@ -182,3 +182,25 @@ def test_commands_for_powershell_and_no_mount_table():
     assert w.in_folder(r"C:\Users\o'neil\Aurora", "x") == "Set-Location -LiteralPath 'C:\\Users\\o''neil\\Aurora'; x"
     assert w.is_mount(Path(r"C:\Aurora")) is False
     assert win([("memory.free", Result(0, "15872\r\n"))]).gpu_free_mib(0) == 15872.0
+
+
+def test_a_plugin_s_cage_is_an_appcontainer_with_its_secrets_denied(cfg, tmp_path):
+    """The spec win_cage reads: the same contract as bubblewrap — what to read, hide, allow, write, the network."""
+    import json
+    import sys
+    w = win([])
+    folder = tmp_path / "plugins" / "forged one"
+    folder.mkdir(parents=True)
+    filtered = cfg.path("AURORA_STATUS_DIR") / "plugins" / "env" / "forged.env"
+    filtered.parent.mkdir(parents=True)
+    filtered.write_text("X=1")
+    cmd, env = w.cage(["python", "server.py"], folder, {"sandbox": {"network": False, "write": ["AURORA_NOTES_DIR"]}},
+                      filtered, cfg)
+    assert cmd[:4] == [sys.executable, "-m", "aurora.sys_platform.win_cage", cmd[3]] and cmd[4:] == ["--", "python", "server.py"]
+    spec = json.loads(Path(cmd[3]).read_text(encoding="utf-8"))
+    assert spec["name"] == "aurora.forged-one" and spec["network"] is False
+    real = lambda p: str(Path(p).resolve())                                           # noqa: E731
+    assert real(cfg.env_file) in spec["hide"] and real(filtered.parent) in spec["hide"] and spec["allow"] == [real(filtered)]
+    assert real(cfg.path("AURORA_NOTES_DIR")) in spec["write"] and real(cfg.root) in spec["read"]
+    assert env == {"AURORA_ENV_FILE": real(filtered), "AURORA_IN_SANDBOX": "1"}
+    assert w.cage(["x"], folder, {}, filtered, cfg)[0] and json.loads(Path(cmd[3]).read_text())["name"]   # made again
