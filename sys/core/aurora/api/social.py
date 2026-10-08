@@ -38,7 +38,7 @@ async def social_draft(request: Request) -> dict:
                and (not body.get("plugins") or t["plugin"] in body["plugins"])]
     if not targets:
         raise HTTPException(status_code=409, detail="no social platform connected (tokens in Settings)")
-    drafts = await asyncio.to_thread(draft, pipeline().llm, text, targets, cfg)
+    drafts = await asyncio.to_thread(draft, pipeline()._for("service"), text, targets, cfg)
     return {"drafts": [{"plugin": t["plugin"], "label": t["label"], "max_chars": t["max_chars"], "text": drafts[t["plugin"]],
                         "photo": bool(t.get("photo"))} for t in targets]}
 
@@ -50,7 +50,7 @@ async def social_check(request: Request) -> dict:
     from aurora import sec_privacy, txt_lang
     text = str((await request.json()).get("text", ""))[:8000]
     lang = txt_lang.detect(text) if text.strip() else "it"
-    found = await asyncio.to_thread(sec_privacy.findings, text, cfg, lang, pipeline().llm)
+    found = await asyncio.to_thread(sec_privacy.findings, text, cfg, lang, pipeline()._for("service"))
     return {"findings": found, "proposed": sec_privacy.propose(text, [f for f in found if f["sure"]])}
 
 
@@ -58,7 +58,7 @@ def _before_publishing(text: str) -> dict:
     """What the owner should see before a post goes out (owner, 2026-10-08): the private data the check is sure of
     (sec_privacy, the local model) and a repeat of a post of the last 7 days (sys_social_guard). Empty: publish."""
     from aurora import sec_privacy, sys_social_guard, txt_lang
-    private = [f for f in sec_privacy.findings(text, cfg, txt_lang.detect(text), pipeline().llm) if f["sure"]]
+    private = [f for f in sec_privacy.findings(text, cfg, txt_lang.detect(text), pipeline()._for("service")) if f["sure"]]
     out = {}
     if private:
         out["privacy"] = [{"value": f["value"], "kind": f["kind"], "replacement": f.get("replacement", "")} for f in private]

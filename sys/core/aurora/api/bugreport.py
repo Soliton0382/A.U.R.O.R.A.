@@ -24,7 +24,7 @@ async def bugreport_make(request: Request) -> dict:
         feats = {"features": sys_features.report(cfg), "config": sys_features.config_problems(cfg)}
         out = await asyncio.to_thread(sys_bugreport.build, cfg, str(body.get("description", "")), str(body.get("steps", "")),
                                       str(body.get("expected", "")), runs, float(body.get("hours", 6)), health, feats,
-                                      pipeline().llm)
+                                      pipeline()._for("service"))
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
     log.info("audit: bug report %s written (%d files, %d bytes, masked %s)", out["name"], len(out["files"]), out["bytes"],

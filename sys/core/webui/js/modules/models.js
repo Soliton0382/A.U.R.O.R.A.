@@ -5,6 +5,7 @@
 import { call } from "../api.js";
 import { el, info } from "../dom.js";
 import { apply, lang, t } from "../i18n.js";
+import { renderModes } from "./models_mode.js";
 
 export default {
   id: "models",
@@ -15,6 +16,7 @@ export default {
     root.classList.add("page");
     root.innerHTML = `
       <h2 data-i18n="md.title"></h2><p class="muted" data-i18n="md.hint"></p>
+      <div class="md-mode"></div>
       <div class="md-state"></div>
       <h3 class="setting-cat" data-i18n="md.roles"></h3><div class="md-roles"></div>
       <div><button class="md-save" data-i18n="md.save"></button> <span class="muted md-out"></span></div>
@@ -25,6 +27,7 @@ export default {
       <div class="md-stats"></div>`;
     apply(root);
     this.state = root.querySelector(".md-state");
+    this.modeBox = root.querySelector(".md-mode");
     this.roles = root.querySelector(".md-roles");
     this.stats = root.querySelector(".md-stats");
     this.out = root.querySelector(".md-out");
@@ -48,6 +51,7 @@ export default {
     line(m.mask ? "muted" : "error", t(m.mask ? "md.mask_on" : "md.mask_off"));
     line("muted", t("md.pictures"));
     this.providers = m.providers;
+    renderModes(this.modeBox, m.providers, () => this.enter());      // 🧭 the whole: local, mixed, cloud, all cloud
     this.roles.replaceChildren(...m.roles.map((r) => this.row(r)));
     this.loadMedia();
     this.loadLimits();

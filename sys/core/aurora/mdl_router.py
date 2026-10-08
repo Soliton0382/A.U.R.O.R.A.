@@ -73,6 +73,9 @@ ROLES = {   # role: (Italian label, English label, what it sees)
     "forge_write": ("Forgia: scrittura plugin", "Forge: writing plugins", "samples of the data the plugin reads"),
     "forge_judge": ("Forgia: giudice", "Forge: judge", "samples and the plugin's output"),
     "vision": ("Visione (immagini)", "Vision (pictures)", "your photos and video frames — NOT maskable"),
+    "service": ("Chiamate di servizio (titoli, classificazione, ricerca di fonti, bozze)",
+                "Service calls (titles, classification, finding sources, drafts)",
+                "titles and pieces of documents, your question, the drafts"),
 }
 
 
@@ -409,7 +412,25 @@ def private_model(llm, cfg: sys_config.Config | None = None):
     the local one, or None on a machine without a local reasoner, where the «local» model is the cloud's (C213). The
     caller says what it does without it; it never falls back to the cloud."""
     cfg = cfg or sys_config.get()
-    return None if cloud_only(cfg) or isinstance(getattr(llm, "_inner", llm), CloudBase) else llm
+    if not (cloud_only(cfg) or isinstance(getattr(llm, "_inner", llm), CloudBase)):
+        return llm                                    # a local model: private data stays here, in every mode
+    from . import sys_cloud_consent                   # «Tutto cloud»: the owner's signed consent, from a shell
+    return llm if sys_ethics.exempt(cfg) and sys_cloud_consent.signed(cfg) else None
+
+
+def forge_cloud(cfg: sys_config.Config):
+    """The model the forge asks when the local one failed and the owner allowed the cloud for that plugin: the forge's
+    own assignment if it is a cloud one, else the cloud default, else Claude Code. Not masked here: the forge masks its
+    samples itself (agt_forge.Masker)."""
+    a = assignments(cfg).get("forge_write", {})
+    for provider, model in ((a.get("provider", "local"), a.get("model", "")),
+                            (str(cfg["AURORA_CLOUD_PROVIDER"]), str(cfg["AURORA_CLOUD_MODEL"] or ""))):
+        if provider in PROVIDERS and PROVIDERS[provider]["kind"] != "local" and configured(provider, cfg):
+            client = cloud_client(provider, model, cfg)
+            if client is not None:
+                return client
+    from . import mdl_cloud
+    return mdl_cloud.ClaudeCodeLLM(cfg)
 
 
 def label(provider: str, cfg: sys_config.Config) -> str:

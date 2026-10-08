@@ -286,7 +286,7 @@ class Agent(AgentReport):
         private = []                                         # a post naming private people waits for the owner
         if field and isinstance(args.get(field), str):
             from . import sec_privacy
-            private = [f["value"] for f in sec_privacy.findings(args[field], self.cfg, llm=self.p.llm) if f["sure"]]
+            private = [f["value"] for f in sec_privacy.findings(args[field], self.cfg, llm=self.p._for("service")) if f["sure"]]
         if private or needs_owner(effect, self.cfg, f"{plugin}.{tool}"):
             if private:
                 args["_purpose"] = (args.get("_purpose", "") + f" — privacy: {len(private)} sensitive "

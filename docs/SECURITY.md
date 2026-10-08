@@ -106,6 +106,7 @@ in `/etc/aurora`:
 | `/etc/aurora/owner_ed25519` (private) | root, 0600 | only `sudo`, that is only the owner |
 | `/etc/aurora/owner_ed25519.pub` (public) | root, 0644 | read by the services; trusted only while root owns it and its folder and nobody else can write them |
 | `sys/core/ethics/MANIFEST.json`, `exemption.sig` | installation user | signed with this installation's key; not committed |
+| `sys/core/ethics/private_to_cloud.sig` («Tutto cloud») | installation user | the owner's consent that private data (health, the firewall's configuration) may go, masked, to the cloud where no local reasoner runs: signed with `sudo … sys_ethics_sign.py private-cloud`, never from the web; taken back from the Models page with no shell (going back to privacy is always easy); not committed |
 
 Why: the services run as the owner's user. A key that user could read or replace would let a
 process of Aurora sign changes to her own rules. Level A has no exemption, whatever the key.

@@ -97,7 +97,7 @@ class AttachmentHandler:
             if kno_video.is_video(name, mime):
                 sys_features.need(self.cfg, "video_watch", lang)
                 sys_features.need(self.cfg, "vision", lang)
-                w = kno_video.watch(data, name, lang, self.p.llm, self.cfg, emit)
+                w = kno_video.watch(data, name, lang, self.p._for("vision"), self.cfg, emit)
                 sols = [Soliton.new(t, "attachment", "knowledge", txt_lang.detect(t), f"attachment:{run_id}:{name}",
                                     title=name, chunk_index=i, chunk_count=len(texts), extra={"attachment": "video"})
                         for texts in [kno_video.passages(w, name)] for i, t in enumerate(texts)]
@@ -116,7 +116,7 @@ class AttachmentHandler:
             else:
                 from .kno_ingest import read_text
                 text, _ = read_text(name, data, self.cfg)
-                domain = classify(self.p.llm, name, text)
+                domain = classify(self.p._for("service"), name, text)
                 rep = self.importer.add(name, data, domain, origin="chat", run_id=run_id)
                 found = self.p.reader.get_many(rep.sids)
                 sols = [found[sid] for sid in rep.sids if sid in found]

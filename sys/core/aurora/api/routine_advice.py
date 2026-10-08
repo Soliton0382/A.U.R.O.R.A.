@@ -32,7 +32,7 @@ def _review(who: str | None) -> None:
     try:
         plugins = [{"name": p.name, "description": (p.manifest.get("description") or {}).get("it", ""),
                     "tools": [t["name"] for t in p.tools]} for p in plugin_host().plugins() if p.available]
-        fresh = sys_routine_advice.review(pipeline().llm, sys_routines.all_routines(cfg), plugins, _system())
+        fresh = sys_routine_advice.review(pipeline()._for("service"), sys_routines.all_routines(cfg), plugins, _system())
         added = sys_routine_advice.remember(cfg, fresh)
         log.info("routine advice: Aurora reviewed the routines: %d proposals, %d new", len(fresh), added)
         if added:

@@ -58,7 +58,7 @@ def _level2_if_due(force: bool = False) -> bool:
     def work():
         _level2.set()
         try:
-            out = kno_synapse2.round_(cfg, p.search.reader, p.search.embedder, p.llm)
+            out = kno_synapse2.round_(cfg, p.search.reader, p.search.embedder, p._for("rem"))
             log.info("synapses level 2: %d triads looked at, %d links of level 2, %d concepts in %.0f s",
                      out["candidates"], out["made"], out["concepts"], out["seconds"])
         except Exception as e:                            # noqa: BLE001

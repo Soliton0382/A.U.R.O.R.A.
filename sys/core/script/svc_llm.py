@@ -39,6 +39,9 @@ def command(cfg: sys_config.Config) -> list[str]:
 def main() -> int:
     cfg = sys_config.get()
     log = sys_log.get_logger("llm")
+    if str(cfg["AURORA_LLM_BACKEND"]) == "cloud":      # the owner switched the local reasoner off: the GPU stays free
+        log.info("AURORA_LLM_BACKEND=cloud: the local reasoner is off (🧠 Modelli → Ragionatore locale)")
+        return 0
     from aurora import sys_ethics
     sys_ethics.require_intact(log)
     env = dict(os.environ, CUDA_VISIBLE_DEVICES=cfg["AURORA_LLM_GPUS"])

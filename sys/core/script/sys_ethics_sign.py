@@ -9,6 +9,8 @@ Every installation has its own key pair in /etc/aurora, made here as root: the p
     sudo .venv/bin/python sys/core/script/sys_ethics_sign.py setup [--exempt]  # installer: key pair + sign (+ exempt)
     sudo .venv/bin/python sys/core/script/sys_ethics_sign.py sign             # after changing a protected file
     sudo .venv/bin/python sys/core/script/sys_ethics_sign.py exempt           # exempt THIS installation from level B
+    sudo .venv/bin/python sys/core/script/sys_ethics_sign.py private-cloud    # «Tutto cloud»: private data masked to the
+                                                                             # cloud where no local reasoner runs
     sudo .venv/bin/python sys/core/script/sys_ethics_sign.py keygen --rotate  # new key pair (the old one is kept aside)
     sudo .venv/bin/python sys/core/script/sys_ethics_sign.py verify-key       # is the private key the trusted one?
     .venv/bin/python sys/core/script/sys_ethics_sign.py check                 # what the services check at start
@@ -75,7 +77,7 @@ def keygen(private: Path, rotate: bool) -> None:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("action", choices=["setup", "keygen", "sign", "exempt", "check", "verify-key"])
+    ap.add_argument("action", choices=["setup", "keygen", "sign", "exempt", "private-cloud", "check", "verify-key"])
     ap.add_argument("--key", type=Path, default=sys_ethics.PRIVATE_KEY, help="the private key (PEM)")
     ap.add_argument("--rotate", action="store_true", help="keygen: replace an existing key pair (kept aside)")
     ap.add_argument("--exempt", action="store_true", help="setup: also exempt this installation from level B")
@@ -118,6 +120,17 @@ def main() -> int:
             f.write(key.sign(sys_ethics.exemption_message(cfg.root)).hex())
         give_back(target)
         print(f"level B exemption for this machine written to {target}")
+    if args.action == "private-cloud":
+        from aurora import sys_cloud_consent
+        cfg = sys_config.get()
+        target = sys_cloud_consent.path(cfg)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w") as f:
+            f.write(key.sign(sys_cloud_consent.message(cfg.root)).hex())
+        give_back(target)
+        print(f"«Tutto cloud»: private data may go, masked, to the cloud model where no local reasoner runs ({target}).")
+        print("To take it back: «Cloud con privacy» or «Tutto locale» in the Models page, or delete that file.")
     return 0
 
 

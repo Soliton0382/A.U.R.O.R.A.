@@ -132,7 +132,7 @@ def edit_pictures(question: str, pictures: list[tuple[str, bytes]], emit, run_id
     p, lines, images = pipeline(), [], []
     for name, data in pictures:
         w, h = Image.open(io.BytesIO(data)).size
-        ops = img_edit.plan(p.llm, question, w, h)
+        ops = img_edit.plan(p._for("service"), question, w, h)
         emit("image.plan", {"name": name, "ops": ops})
         for o in ops:
             if o["op"] in AI_FEATURE:

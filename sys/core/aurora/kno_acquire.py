@@ -125,7 +125,7 @@ class ArxivAgent:
     def _original(self, english: str, emit) -> Entry | None:
         """Ask the reasoner for the title of the paper that introduced the method asked about, and keep it only
         if arXiv has a paper with that same title. M33: originals among the candidates 4/12 → 8/12."""
-        title = self.p.llm.complete(SYS_ORIGIN, english, 40).answer.strip().splitlines()[0].strip().strip('"')
+        title = self.p._for("service").complete(SYS_ORIGIN, english, 40).answer.strip().splitlines()[0].strip().strip('"')
         if title.upper().startswith("NONE") or len(title.split()) > 20 or "*" in title or len(title) < 8:
             return None
         try:
@@ -147,7 +147,7 @@ class ArxivAgent:
             user += "QUERIES ALREADY TRIED:\n" + "\n".join(tried) + "\n"
         if titles:
             user += "PAPERS ALREADY READ (they did not answer):\n" + "\n".join(titles[-30:]) + "\n"
-        out = self.p.llm.complete(SYS_QUERIES.format(n=n), user, 200).answer
+        out = self.p._for("service").complete(SYS_QUERIES.format(n=n), user, 200).answer
         qs = [re.sub(r"^[\s\-*\d.)]+", "", l).strip().strip('"') for l in out.splitlines()]
         return [q for q in qs if q and q.lower() not in {t.lower() for t in tried}][:n]
 
@@ -162,7 +162,7 @@ class ArxivAgent:
             trail.add(event, payload)
             outer(event, payload)
         lang = txt_lang.detect(question)
-        english = question if lang == "en" else self.p.llm.complete(
+        english = question if lang == "en" else self.p._for("service").complete(
             "Translate the user's text to English. Reply with the translation only.", question, 200).answer
         tried, seen, read_titles, last = [], set(), [], None
         origin = self._original(english, emit)            # the paper that introduced a named method, if any
@@ -212,7 +212,7 @@ class ArxivAgent:
                                                 origin=f"arxiv:{e.arxiv_id}", run_id=run_id)
                     else:                                 # chosen among all the sources: its domain, its licence
                         name, data, lic, url = e.fetch()
-                        domain = more.choose_domain(self.p.llm, e.source, english, e.title)
+                        domain = more.choose_domain(self.p._for("service"), e.source, english, e.title)
                         rep = self.importer.add(name, data, domain, title=e.title, origin=e.arxiv_id, run_id=run_id,
                                                 meta={"licence": lic, "url": url})
                 except (httpx.HTTPError, ValueError) as err:

@@ -35,8 +35,8 @@ def _forge_job(req: dict, cloud: bool = False):
         emit("forge.start", {"id": req["id"], "need": req["need"], "cloud": cloud})
         host = plugin_host()
         if cloud:                                       # the owner allowed it for this request: masked samples only
-            from aurora.mdl_cloud import ClaudeCodeLLM
-            res = agt_forge.build(cfg, ClaudeCodeLLM(cfg), host, req, emit, masker=agt_forge.Masker(cfg))
+            from aurora import mdl_router                 # the forge's cloud model, else the default, else Claude Code
+            res = agt_forge.build(cfg, mdl_router.forge_cloud(cfg), host, req, emit, masker=agt_forge.Masker(cfg))
         else:
             res = agt_forge.build(cfg, pipeline()._for("forge_write"), host, req, emit,     # as assigned (local by default)
                                   judge=pipeline()._for("forge_judge"))

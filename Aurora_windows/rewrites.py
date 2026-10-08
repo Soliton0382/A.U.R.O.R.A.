@@ -180,6 +180,13 @@ SERVICES = [
     if r.code != 0:
         raise HttpsError(f"aurora-https restart: {{(r.err or r.out).strip()[-300:]}}")''',
      "net_https: Caddy takes the new Caddyfile"),
+    ("sys/core/aurora/mdl_modes.py",
+     '''    r = run(["systemctl", verb, "aurora-llm"], capture_output=True, text=True, timeout=120)
+    return r.returncode, (r.stderr or r.stdout).strip()''',
+     f'''    {P}
+    r = sys_platform.current().service_action(verb, ["aurora-llm"], timeout=120)
+    return r.code, (r.err or r.out).strip()''',
+     "mdl_modes: the local reasoner started or stopped"),
 ]
 
 LOCKS = [
@@ -631,6 +638,16 @@ SIGN = sys_platform.current().in_folder("{{root}}", sys_platform.current().as_ad
      f"""{P}
 FETCH = f"{{{_VENV}}} sys/core/script/sys_models_fetch.py --models {{{{m}}}} --yes\"""",
      "sys_features: the command that downloads a missing model"),
+    ("sys/core/aurora/mdl_modes.py",
+     """EXEMPT_COMMAND = "sudo .venv/bin/python sys/core/script/sys_ethics_sign.py exempt\"""",
+     f"""{P}
+EXEMPT_COMMAND = sys_platform.current().as_admin(f"{{{_VENV}}} sys/core/script/sys_ethics_sign.py exempt")""",
+     "mdl_modes: the exemption's command, this system's way"),
+    ("sys/core/aurora/sys_cloud_consent.py",
+     """COMMAND = "sudo .venv/bin/python sys/core/script/sys_ethics_sign.py private-cloud\"""",
+     f"""{P}
+COMMAND = sys_platform.current().as_admin(f"{{{_VENV}}} sys/core/script/sys_ethics_sign.py private-cloud")""",
+     "sys_cloud_consent: the consent's command, this system's way"),
 ]
 
 MORE = [

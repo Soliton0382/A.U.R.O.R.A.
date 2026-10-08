@@ -80,6 +80,47 @@ async def models_roles(request: Request) -> dict:
     return out
 
 
+# ---- the whole: local, mixed, cloud with privacy, all cloud (mdl_modes) ---------------------------------------------
+
+def _mode_error(e) -> HTTPException:
+    return HTTPException(status_code=409, detail={"message": str(e), "need": e.need, "command": e.command})
+
+
+@router.get("/v1/aurora/models/modes", dependencies=[Depends(admin_only)])
+async def models_modes() -> dict:
+    from aurora import mdl_modes
+    return await asyncio.to_thread(mdl_modes.check, cfg)
+
+
+@router.post("/v1/aurora/models/mode", dependencies=[Depends(admin_only)])
+async def models_mode(request: Request) -> dict:
+    """{"mode", "provider", "model"}: every role to the mode; 409 with the shell command when the owner must act."""
+    from aurora import mdl_modes
+    body = await request.json()
+    try:
+        out = await asyncio.to_thread(mdl_modes.apply, cfg, str(body.get("mode", "")), str(body.get("provider") or ""),
+                                      str(body.get("model") or ""))
+    except mdl_modes.ModeError as e:
+        raise _mode_error(e) from None
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
+    log.info("audit: models mode %s (%s %s)", out["mode"], body.get("provider") or "", body.get("model") or "")
+    return out
+
+
+@router.post("/v1/aurora/models/reasoner", dependencies=[Depends(admin_only)])
+async def models_reasoner(request: Request) -> dict:
+    """{"on": bool}: the local reasoner switched on (rule 6: not during a GPU job) or off (the GPU free)."""
+    from aurora import mdl_modes
+    on = (await request.json()).get("on") is True
+    try:
+        out = await asyncio.to_thread(mdl_modes.reasoner, cfg, on)
+    except mdl_modes.ModeError as e:
+        raise _mode_error(e) from None
+    log.info("audit: local reasoner switched %s", "on" if on else "off")
+    return out
+
+
 @router.get("/v1/aurora/models/{provider}/list", dependencies=[Depends(admin_only)])
 async def models_list(provider: str) -> dict:
     from aurora import mdl_router

@@ -285,6 +285,8 @@ certificate on the phone from `http://<address>/aurora-ca.crt`, then open Aurora
 switch to your own certificate: it is checked first and, if Caddy refuses it, everything goes back as it was. No sudo
 is needed.
 
+**Local, mixed or cloud.** In 🧠 Models → 🧭 **Mode** you choose for the whole of Aurora: 🏠 all local, 🔀 mixed (step by step), ☁️🔒 cloud with privacy (private data, search and voice stay on the computer) or ☁️⚠️ all cloud. A table says, for every aspect, what happens in each mode. The risky choices carry the yellow triangle and a popup with the command to run in a shell. «All cloud» is unlocked only from there; you go back from the page.
+
 Models: 24.7 GB required (reasoner 21.5 GB, encoder, re-ranker), up to 57.6 GB optional. A clean install with every
 model took 10 min 55 s on the reference machine (M59); from GitHub, multi-user, required models only, 6 min 39 s
 with 303 tests passed (M103).

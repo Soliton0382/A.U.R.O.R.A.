@@ -1,0 +1,24 @@
+/* 🧭 Models → Modalità (models_mode.js): four modes, the check of every aspect, the shell commands in a popup */
+.mm-modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: .6rem; margin: .5rem 0; }
+.mm-mode { display: flex; flex-direction: column; gap: .25rem; text-align: left; padding: .65rem .75rem; min-width: 0;
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--text); font: inherit;
+  cursor: pointer; }
+.mm-mode strong { font-size: .98rem; }
+.mm-mode span { font-size: .8rem; color: var(--muted); }
+.mm-mode.now { border-color: var(--accent); background: var(--accent-soft); }
+.mm-mode.risky strong::after { content: " ⚠️"; }
+.mm-pick { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center; margin: .4rem 0; }
+.mm-pick input { min-width: 0; flex: 1 1 12rem; }
+.mm-table-wrap { overflow-x: auto; margin: .5rem 0; }
+.mm-table { border-collapse: collapse; width: 100%; font-size: .86rem; }
+.mm-table th, .mm-table td { border-bottom: 1px solid var(--line); padding: .35rem .45rem; text-align: left; vertical-align: top; }
+.mm-table th { color: var(--muted); font-weight: 600; white-space: nowrap; }
+.mm-table td.mm-cell { min-width: 9rem; }
+.mm-st { display: inline-block; margin-right: .25rem; }
+.mm-st.warn + small, .mm-warn { color: var(--warn); }
+.mm-st.no + small { color: var(--bad); }
+.mm-needs { display: flex; flex-direction: column; gap: .35rem; margin: .4rem 0; }
+.mm-cmd { display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; }
+.mm-cmd code { font-family: var(--mono); font-size: .82rem; background: var(--input); border: 1px solid var(--line);
+  border-radius: 6px; padding: .2rem .4rem; overflow-wrap: anywhere; min-width: 0; }
+.mm-reasoner { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: .5rem 0; }

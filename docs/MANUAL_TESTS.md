@@ -13,7 +13,7 @@ end, duplicates and tests of pages that no longer exist removed (each with its r
 | 🛡️ security, with real approvals, ~30 min | N104, N108–N112, N116, N117 |
 | 📣 social and videos | N99, N102 |
 | 🔁 again after a change | N25, N93–N98 |
-| 🔑 a setup first (keys, devices, a second user, an account) | N13–N15, N18, N22, N30, N49–N51, N61, N67, N69, N106, N107, N130, N131, N132, R2, R11 |
+| 🔑 a setup first (keys, devices, a second user, an account) | N13–N15, N18, N22, N30, N49–N51, N61, N67, N69, N106, N107, N130, N131, N132, N133, R2, R11 |
 
 ## Pages added on 2 October
 
@@ -60,6 +60,7 @@ end, duplicates and tests of pages that no longer exist removed (each with its r
 | N127 | Under an old answer of Aurora: ↩️ → «spiegamelo in due righe»; then ↩️ → a new question on its subject. Also 📋 on a message, paste it | the first answer works on that message; the second searches with it as context; the quote stays in your bubble after a reload; the text pasted is the message's |
 | N128 | 📅 Calendario: ➕ an appointment in 20 minutes with «Avvisami 15 minuti prima»; on the phone too | at its time a notification «📅 Promemoria» and a bubble in the chat; «⏰ Tra 10 minuti» tells it again 10 minutes later; ✅ Fatto closes it |
 | N129 | In the chat: «ricordami domani alle 9 di chiamare Marco», then «cosa ho in agenda domani?», then «spostalo alle 10» | the reminder in the page at 9:00 of tomorrow; the agenda lists it; moved to 10:00 |
+| N133 | 🧠 Modelli → 🧭 Modalità: read the table; «☁️🔒 Cloud con privacy» with a provider that has its key; then «☁️ Tutto cloud» (the popup with the command; run it; choose again); then «🏠 Tutto locale» | each choice moves every row below; «Tutto cloud» warns, asks the shell, works after it; «Tutto locale» puts everything back and takes the consent away |
 | N132 | `./install.sh` → «Da dove userai Aurora?» 2; on the phone, on the same Wi-Fi: the address printed for aurora-ca.crt, install it as a CA certificate, then the WebUI address; then ⚙️ → 🔒 HTTPS e dispositivi: the QR codes, ➕ on a suggested address | the phone opens Aurora with no warning; «Aggiungi a schermata Home» works; the page shows the certificate's expiry |
 | N131 | On a computer without an NVIDIA GPU (the colleague's): `git clone …` and `./install.sh`, answering the cloud questions with a real key | the installer offers the cloud by itself, lists the provider's models, says «risponde», ends with the address; on that address a question with an e-mail in it is answered, and 🧠 Modelli → statistics show the e-mail masked |
 | N130 | 📅 → 📁 Esporta .ics, import it in Google Calendar (or Outlook); export one from there and import it here | the same events there; here «Importati N», none doubled the second time |
