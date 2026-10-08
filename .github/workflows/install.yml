@@ -88,3 +88,10 @@ jobs:
           .venv/bin/python sys/core/script/sys_doctor.py || true
           for u in aurora-api aurora-models aurora-https; do echo "== $u"; journalctl -u "$u" -n 40 --no-pager || true; done
           tail -n 60 install.log || true
+      - name: The end of install.log as public notices (the run's logs need a login, its notices do not)
+        if: failure()
+        run: |
+          # the last 60 lines, 12 to a notice: the step that stopped and its reason
+          tail -n 60 install.log 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | split -l 12 - part.
+          for f in part.*; do [ -f "$f" ] && echo "::notice title=install.log ($f)::$(sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g' "$f")"; done
+          [ -f install.log ] || echo "::notice title=install.log::missing: install.sh stopped before writing it"
