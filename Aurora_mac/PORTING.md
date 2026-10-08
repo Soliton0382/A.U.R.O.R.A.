@@ -122,3 +122,12 @@ was on (GUARDS). **Done 8 Oct (the owner's «A»):** sandbox-exec, a profile fro
 | github | its own program, sys/runtime/github-mcp-server (Go) — **no script installs it, not even on Linux** (found 8 Oct) | 🔨 phase 3: the installer downloads the release asset of the system (github-mcp-server_Darwin_arm64.tar.gz) — on Linux too |
 | dropbox, tiktok | authorize.py, told as `.venv/bin/python …` | 🔨 phase 3: the command written per system (.venv/bin/python, as today) |
 | security (host firewall part) | nftables | ⏸️ phase 4 (pf, or the Mac's application firewall: to decide); the firewall's API part (Sophos) is portable |
+
+## OpenMP: one runtime per process (found 8 Oct on a real Mac)
+
+torch, faiss-cpu and scikit-learn each bring their own `libomp.dylib` on macOS; two of them initialised in one process
+abort it (SIGABRT in `omp_set_num_threads`, M145). On Linux they bring `libgomp`, which does not clash. Aurora's API
+loads faiss (the vault's index) and torch (Whisper in `sns_av`) in the same process. The fix must not be
+`KMP_DUPLICATE_LIB_OK` (Intel's own words: unsafe, may give wrong results — the owner: «non facciamo accrocchi»):
+the speech to text moves to a process of its own, as the models' service and the voice's worker already are — then no
+process of Aurora holds both. To do after the next run shows the exact pair.

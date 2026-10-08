@@ -63,7 +63,10 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r ../Aurora_build/${{ matrix.port }}/requirements.txt
       - name: Platform tests and the probe on this machine
-        run: python ${{ matrix.port }}/build.py --test --probe --json probe-${{ matrix.port }}.json
+        run: |
+          set +e +o pipefail          # the output kept for the public notice, the exit code kept for the job
+          python ${{ matrix.port }}/build.py --test --probe --json probe-${{ matrix.port }}.json 2>&1 | tee platform-${{ matrix.port }}.txt
+          exit "${PIPESTATUS[0]}"
       - name: The whole Linux suite on the built tree (information for phase 3)
         continue-on-error: true
         env:
@@ -112,6 +115,14 @@ jobs:
                     + ("%0A" + "%0A".join(bad)[:3000] if bad else ""))
               info = [f"{r['check']} = {r.get('value')}"[:160] for r in rows if r["status"] == "info"]
               print(f"::notice title={port} probe values::" + "%0A".join(info)[:4000])
+          t = pathlib.Path(f"platform-{port}.txt")
+          if t.exists():
+              lines = t.read_text(encoding="utf-8", errors="replace").splitlines()
+              bad = [l for l in lines if l.startswith(("FAILED ", "ERROR ", "E   ", "ABORT"))]
+              summary = [l for l in lines if re.search(r"\d+ (passed|failed|error)", l) and " in " in l]
+              if bad or summary:
+                  print(f"::notice title={port} platform tests::{summary[-1] if summary else ''}"
+                        + ("%0A" + "%0A".join(bad)[:6000] if bad else ""))
           s = pathlib.Path(f"suite-{port}.txt")
           if s.exists():
               text = s.read_text(encoding="utf-8", errors="replace")
@@ -121,12 +132,18 @@ jobs:
               print(f"::notice title={port} Linux suite::exit {rc}; {tail[-1] if tail else 'no summary'}"
                     + (f"%0Afiles with failures: {', '.join(failed)}"[:3000] if failed else "")
                     + ("%0Alast lines:%0A" + "%0A".join(text.splitlines()[-25:])[:3500] if not tail else ""))
+              lines = text.splitlines()
+              crash = next((i for i, l in enumerate(lines) if "Fatal Python error" in l or "OMP: Error" in l), None)
+              if crash is not None:                   # a native crash: the test it hit and the library's own words
+                  near = [l for l in lines[max(0, crash - 15):crash + 12] if not l.lstrip().startswith("Binary file")]
+                  print(f"::notice title={port} crash::" + "%0A".join(near)[:5000])
           PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: ${{ matrix.port }}-results
           path: |
+            ${{ matrix.home }}aurora/platform-${{ matrix.port }}.txt
             ${{ matrix.home }}aurora/probe-${{ matrix.port }}.json
             ${{ matrix.home }}aurora/suite-${{ matrix.port }}.txt
           if-no-files-found: ignore
