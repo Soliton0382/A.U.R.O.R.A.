@@ -926,6 +926,20 @@ person) —, the shadow trained 20/20 in 22.3 min, reflections at 01:11, 02:55, 
 with 2 sources in 66.2 s, «cos'è l'entropia» with 2 in 56.5 s — both declined before the night (N77, the machine's
 part). Facebook: the owner's first video published (approval executed, 5.9 s). Security (C174/C175): see BUGS. The face beside the health dot (owner, same morning): /v1/aurora/mood 0.02 s from the REM's last measure (53 s old); headless at 1280×850 a mouse over it opens the card (7 rows, 124–544 px), away closes it; at 390×844 a tap opens it inside the screen (8–382 px, no sideways scroll), a tap elsewhere closes it.
 
+## M138 — The voice in the real page, the reply, the ports' first measures (8 October 2026, C200)
+
+Voice: the real page through Caddy (its CSP), headless Chrome with the autoplay policy that needs a tap, a trusted tap
+on 🔊 Ascolta of the good morning: before, the CSP had no media-src and refused every blob: and data: audio (the
+reason the owner heard nothing on the PC and in the app, whatever the voice); after media-src 'self' data: blob:
+play() ok, speaking. voice.js loaded outside the page (no CSP): 1.7 s from the tap, 8.0 s with 4 s of added latency.
+Reply (↩️) live on the night's network report, remember off: «spiegamelo in due righe» answered on the quoted message
+(route self, 15.7 s, two lines); «chi ha inventato il primo firewall?» to the sources (7.7 s). Ports (phase 1): 27,280
+file and folder names of the installation (sys, usr; .venv, models' sources and .git left out) checked for Windows —
+the longest path 239 characters as C:\Users\utente\Aurora\… (limit 260), no names differing only by case, 5 with ':'
+(PDFs of usr/documents/papers, not touched); 70 text reads and writes without an encoding (38 read_text, 24
+write_text, 8 open); 2 temporary files read by ffmpeg while open. Built trees: Mac 11 platform tests, Windows 12, the
+whole suite on the Windows tree 548 passed, 1 skipped. Not measured: anything on a real Mac or Windows.
+
 ## M137 — The Einstein-Cartan video and the lost connection (8 October 2026, C199)
 
 Asked from the Social page at 08:38:33: answer 14.1 s (vault), script 4.3 s, 6 pictures 40.8 s (the reasoner swapped out 40 s), voice and clips 190.8 s (natural voice on the CPU), montage 8.9 s; ready at 08:42:52, 48.7 s of video. The page had shown «network error» meanwhile. After the fix, live: the same POST twice with one key → the second answered from the kept one (x-aurora-replayed: 1). Not measured: the phone's own sleep and wake (N124).

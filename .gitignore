@@ -43,3 +43,7 @@ sys/core/ethics/exemption.sig
 
 # The installer's log (it shows the API key at the end)
 install.log
+
+# the Mac and Windows ports, made in the mirror until they are ready (dev_publish leaves them there)
+/Aurora_mac/
+/Aurora_windows/

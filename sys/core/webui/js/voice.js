@@ -181,7 +181,8 @@ export const speaking = () => Boolean(audio && !audio.paused) || (supported() &&
 
 // Long texts in sentences: some engines stop a single long utterance after ~15 s.
 export async function speak(text, lang, only = null) {
-  const ready = !only && clips.get(speakable(text));        // made already: played inside the tap, nothing before it
+  // made already: played inside the tap, nothing before it — unless this device chose one of its own voices since
+  const ready = !only && (!chosen() || chosen() === SERVER) && clips.get(speakable(text));
   if (ready) return playClip(ready);
   prime();
   const voice = only || (supported() ? await localVoice(lang) : null);

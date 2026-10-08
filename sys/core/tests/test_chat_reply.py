@@ -117,3 +117,12 @@ def test_a_reply_that_works_on_the_quote_is_hers_with_the_quote_in_front_of_her(
     assert me._route("spiegamelo in due righe", [quote], quote) == "self"
     assert me._route("chi ha inventato il firewall?", [quote], quote) == "knowledge"
     assert me._route("spiegamelo in due righe", [quote]) == "knowledge"       # no quote: the usual router
+
+
+def test_the_page_may_play_the_voice_it_makes():
+    # C200: the CSP had no media-src, so default-src 'self' refused every blob: and data: audio — Aurora's voice and the
+    # silence that unlocks the player; every play() failed, on every device, and was said as «the browser blocked it»
+    src = (ROOT / "script" / "sys_install_services.py").read_text()
+    csp = re.search(r'Content-Security-Policy "([^"]+)"', src).group(1)
+    media = next(d for d in csp.split("; ") if d.startswith("media-src"))
+    assert "blob:" in media and "data:" in media

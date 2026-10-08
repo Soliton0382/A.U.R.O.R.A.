@@ -65,10 +65,11 @@ fi
 
 say "== copy to $DST"
 rsync -a --files-from="$LIST" "$SRC/" "$DST/"
-(cd "$DST" && find . -type f -not -path './.git/*' | sed 's#^\./##' | sort) | comm -23 - "$LIST" | while read -r gone; do
+# the ports being made (Aurora_mac, Aurora_windows: ignored by git until they are ready) live only in the mirror
+(cd "$DST" && find . -type f -not -path './.git/*' -not -path './Aurora_mac/*' -not -path './Aurora_windows/*' | sed 's#^\./##' | sort) | comm -23 - "$LIST" | while read -r gone; do
   echo "  removed from the mirror: $gone"; rm -f -- "$DST/$gone"
 done
-find "$DST" -type d -empty -not -path "$DST/.git*" -delete
+find "$DST" -type d -empty -not -path "$DST/.git*" -not -path "$DST/Aurora_mac*" -not -path "$DST/Aurora_windows*" -delete
 
 say "== size"
 big=$(cd "$DST" && find . -type f -not -path './.git/*' -size +5M)
