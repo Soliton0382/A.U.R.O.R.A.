@@ -13,19 +13,31 @@ from . import sys_config
 
 
 class _Client:
+    """aurora-models is asked at the first use, not when the client is made: a page that only reads (the chat's
+    history, the calendar) does not need the models, and with aurora-models restarting it showed nothing (C208)."""
     def __init__(self, cfg: sys_config.Config | None = None):
         self.cfg = cfg or sys_config.get()
         self.url = f"http://{self.cfg['AURORA_MODELS_HOST']}:{self.cfg['AURORA_MODELS_PORT']}"
-        info = httpx.get(self.url + "/health", timeout=10).json()
-        if info.get("status") != "ok":
-            raise RuntimeError(f"aurora-models is not ready: {info}")
-        self.info = info
+        self._info: dict | None = None
+
+    @property
+    def info(self) -> dict:
+        if self._info is None:
+            info = httpx.get(self.url + "/health", timeout=10).json()
+            if info.get("status") != "ok":
+                raise RuntimeError(f"aurora-models is not ready: {info}")
+            self._info = info
+        return self._info
 
 
 class RemoteEmbedder(_Client):
-    def __init__(self, cfg: sys_config.Config | None = None):
-        super().__init__(cfg)
-        self.name, self.dim = self.info["encoder"], self.info["dim"]
+    @property
+    def name(self) -> str:
+        return self.info["encoder"]
+
+    @property
+    def dim(self) -> int:
+        return self.info["dim"]
 
     def _embed(self, texts: Sequence[str], kind: str) -> np.ndarray:
         if not texts:

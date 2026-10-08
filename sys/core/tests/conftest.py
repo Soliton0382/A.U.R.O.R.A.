@@ -8,10 +8,22 @@ import pytest
 from aurora import sys_config, sys_log
 
 
+def _free_port() -> int:
+    import socket
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
+
 def write_env(root: Path, **overrides: str) -> Path:
     schema = sys_config.load_schema()
     values = {s["key"]: s["recommended"] for s in schema["settings"]}
     values["AURORA_ROOT"] = str(root)
+    # the test installation's services on ports nothing listens on: never this machine's own Aurora (C208 — the
+    # suite reached the live aurora-models on 9710, so a test passed here and failed on a fresh machine, and its
+    # embeddings ran on the owner's GPU)
+    for key in ("AURORA_API_PORT", "AURORA_MODELS_PORT", "AURORA_LLM_PORT"):
+        values[key] = str(_free_port())
     for s in schema["settings"]:
         if s.get("secret"):
             values[s["key"]] = "test-secret-" + s["key"].lower()

@@ -254,3 +254,4 @@ def test_make_private_removes_every_other_entry_not_only_the_inherited(tmp_path,
     assert s.index("RemoveAccessRuleAll") < s.index("AddAccessRule(")
     assert [x in s for x in ("S-1-5-21-1-2-3-1001", "S-1-5-18", "S-1-5-32-544")] == [True] * 3
     assert "ContainerInherit,ObjectInherit" in s and "S-1-1-0" not in s
+    assert s.count("AddAccessRule((New-Object ") == 3          # PowerShell: a command in a call has its own ()

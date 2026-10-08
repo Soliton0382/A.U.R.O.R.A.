@@ -255,7 +255,8 @@ class Windows(Platform):
         script = (f"$p = {_ps_quote(str(path))}; $a = Get-Acl -LiteralPath $p; "
                   "$a.SetAccessRuleProtection($true, $false); "
                   "foreach ($r in @($a.Access)) { [void]$a.RemoveAccessRuleAll($r) }; "
-                  + "".join(f"$a.AddAccessRule({rule.format(sid=sid)}); " for sid in (me, "S-1-5-18", "S-1-5-32-544"))
+                  # a command inside a method call needs its own parentheses (a real Windows, 8 Oct: a parse error)
+                  + "".join(f"$a.AddAccessRule(({rule.format(sid=sid)})); " for sid in (me, "S-1-5-18", "S-1-5-32-544"))
                   + "Set-Acl -LiteralPath $p -AclObject $a")
         r = self._ps(script, 600)
         if r.code != 0:
