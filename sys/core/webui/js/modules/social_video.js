@@ -3,7 +3,7 @@
 // 🎬 Aurora's narrated videos on the Social page (owner, 2026-10-06: "we let her make one and approve it"): a topic →
 // the video made on her machine (kno_story: vault, checked script, pictures, her voice, music), each step shown; then
 // every video with its post, editable, and one "Publish" per platform that takes videos — that click is the approval.
-import { call, stream } from "../api.js";
+import { call, followRun } from "../api.js";
 import { el } from "../dom.js";
 import { t } from "../i18n.js";
 import { privacyBox, publishPost } from "./social.js";
@@ -82,18 +82,39 @@ export function videoSection(box) {
     status.textContent = `⏳ ${t("social.video.st_answer")}`;
     try {
       const { run_id } = await call("/v1/aurora/social/story", { method: "POST", body: JSON.stringify({ topic: q }) });
-      let failed = "";
-      await stream(`/v1/aurora/runs/${run_id}/events`, (e) => {
-        if (STEPS[e.event]) status.textContent = `⏳ ${t(STEPS[e.event])}`;
-        if (e.event === "error") failed = e.payload?.message || "error";
-        if (e.event === "story.ready") status.textContent = `✅ ${t("social.video.ready", { s: Math.round(e.payload.length_s) })}`;
-      });
-      if (failed) status.textContent = `⚠️ ${failed}`;
       topic.value = "";
-      await load();
-      list.querySelector("details")?.setAttribute("open", "");
+      await follow(run_id);
     } catch (e) { status.textContent = t("ev.error", { m: e.message }); }
     make.disabled = false;
   });
-  return { load };
+
+  // the video is made on the server whatever the page does: followed across lost connections (the app in the
+  // background, C199), and taken up again when the page opens while one is being made — also one started elsewhere
+  let following = null;
+  async function follow(runId) {
+    if (following === runId) return;
+    following = runId;
+    make.disabled = true;
+    let failed = "";
+    try {
+      await followRun(runId, (e) => {
+        if (STEPS[e.event]) status.textContent = `⏳ ${t(STEPS[e.event])}`;
+        if (e.event === "error") failed = e.payload?.message || "error";
+        if (e.event === "story.ready") status.textContent = `✅ ${t("social.video.ready", { s: Math.round(e.payload.length_s) })}`;
+      }, () => { status.textContent = `🔌 ${t("chat.reconnecting")}`; });
+      if (failed) status.textContent = `⚠️ ${failed}`;
+      await load();
+      list.querySelector("details")?.setAttribute("open", "");
+    } catch (e) { status.textContent = t("ev.error", { m: e.message }); }
+    following = null;
+    make.disabled = false;
+  }
+
+  async function resume() {
+    const runs = await call("/v1/aurora/runs").catch(() => []);
+    const live = runs.find((r) => r.origin === "story" && !r.done);
+    if (live) { status.textContent = `⏳ ${t("social.video.resumed", { q: live.question })}`; follow(live.id); }
+  }
+  resume();
+  return { load, resume };
 }

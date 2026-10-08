@@ -52,6 +52,7 @@ end, duplicates and tests of pages that no longer exist removed (each with its r
 | N95 | «anima questa foto» with the video given to Google (Models → 🎨) | the video from Veo; while it is made, the bar «🎬 … in corso · circa N%» over the chat |
 | N97 | The chat on the phone: a question, then the network cut for a few seconds (airplane mode) while she answers | «🔌 connessione persa: riprendo…», then the whole answer — no «network error» (C170) |
 | N98 | Tomorrow between 9 and 22, silent for a while: the chat | at most 2 bubbles «🔁 Aurora ci ha ripensato» on an old answer, with its sources; tell whether they were worth it (M120) |
+| N124 | On the phone (the app): Social → 🎬 a video; leave the app for a minute, come back. Also: 🧱 Firewall → «Chiedi», leave at once, come back | «🔌 connessione persa: riprendo…» then the steps go on and the video is ready; the firewall's plan appears without asking again (one plan, not two) |
 | N123 | 🎨 at the foot of the menu → each theme; Chiaro and Contrasto on the phone too | the colours change at once and stay after a reload; the chat, the cards and the menu stay readable (tell me a page that does not) |
 | N122 | 🤖 Agenti e routine → 🧰 Profili pronti → open «Casa e giornata» → «Applica» | only the missing routines are added (agenda, spese); then 📸 «Salva la mia configurazione»: as a user (not admin) the saved set shows no security or video routine |
 | N121 | 🧩 Plugin, after Aurora forges a plugin | 🔨 on its icon, ✍️ «non ancora ufficiale» with the command; run it in a shell: the ✍️ goes away |

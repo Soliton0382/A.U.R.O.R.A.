@@ -93,6 +93,10 @@ async def upstream_down(request: Request, exc: httpx.HTTPError) -> JSONResponse:
     return JSONResponse(status_code=503, content={"detail": f"a service is not reachable: {exc}"})
 
 
+from aurora.sys_replay import Replay  # noqa: E402
+
+app.add_middleware(Replay)                          # a request repeated after a lost connection: answered once (C199)
+
 for _name in MODULES:                               # each area of the API is its own module (aurora/api)
     app.include_router(__import__(f"aurora.api.{_name}", fromlist=["router"]).router)
 

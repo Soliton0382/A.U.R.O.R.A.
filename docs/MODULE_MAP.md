@@ -46,6 +46,7 @@ call downward (ECOSYSTEM §1).
 | `sys_push.py` | system | Web Push (VAPID) to the owner's browsers: key pair made locally, subscriptions, which events notify (AURORA_PUSH_EVENTS), gone subscriptions dropped | pywebpush | svc_api |
 | `sys_update.py` | system | updates from the git repository: check (commits, files, protected files), changelog, apply fast-forward with pip, tests and rollback | git, sys_tests, sys_ethics | svc_api, svc_rem |
 | `sns_av.py` | senses | cameras and microphones of the machine: list, photo (ffmpeg/V4L2), recording (PipeWire), Whisper transcription on CPU with a filter for inventions on silence | ffmpeg, transformers | plugin senses, svc_api |
+| `sys_replay.py` | system | a request repeated after a lost connection is answered once: kept by its key (X-Aurora-Request) bound to the caller, the work never stopped by a caller going away | — | svc_api (middleware) |
 | `sys_routine_advice.py` | system | Aurora's advice on the agents and routines: code checks (doubles, crowded minutes, failures, plugins not ready) and her daily review, each validated; apply/dismiss | sys_routines | api/routine_advice |
 | `sys_routine_templates.py` | system | sets of agents and routines by use (config/routine_templates.json) and a user's own saved as a set; applied only where missing and possible | sys_routines | api/routine_advice |
 | `sys_social_guard.py` | system | a post repeating one of the last 7 days is not published (same link, same opening, mostly the same words) | sys_approvals | agt_loop, api/social, kno_story_auto |

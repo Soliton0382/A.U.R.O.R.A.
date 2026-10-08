@@ -1327,5 +1327,6 @@
   "theme.foresta": "Foresta",
   "theme.tramonto": "Tramonto",
   "theme.chiaro": "Chiaro",
-  "theme.contrasto": "Contrasto"
+  "theme.contrasto": "Contrasto",
+  "social.video.resumed": "Riprendo il video in corso: «{q}»"
 }

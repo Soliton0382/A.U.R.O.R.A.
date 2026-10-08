@@ -2,7 +2,7 @@
 // Copyright 2026 A.U.R.O.R.A. Project
 // How a run's events become words and a collapsible path inside Aurora's message.
 // Used by the chat module; knows nothing about the page around it.
-import { call, stream } from "../api.js";
+import { call, followRun } from "../api.js";
 import { bus, runEnded, runStarted } from "../bus.js";
 import { clock, el, external, scrollEnd } from "../dom.js";
 import { t } from "../i18n.js";
@@ -253,12 +253,7 @@ export async function follow(runId, b, scroller) {
   runStarted();
   // a connection lost while following (the phone asleep, a change of network): taken up again from the last event seen,
   // a few times — 6 October, «network error» 15 s before the answer, which was complete and saved
-  let lastSeq = 0, ended = false;
-  const onEvent = (e) => {
-    lastSeq = e.seq || lastSeq;
-    if (e.event === "run.end" || e.event === "error") ended = true;
-    handle(e);
-  };
+  const onEvent = (e) => handle(e);
   const handle = ({ event: name, payload: p }) => {
       const stick = nearEnd();
       if (name === "synthesis.delta") {
@@ -300,18 +295,9 @@ export async function follow(runId, b, scroller) {
       if (stick) scrollEnd(scroller);
   };
   try {
-    for (let attempt = 0; ; attempt++) {
-      try {
-        await stream(`/v1/aurora/runs/${runId}/events${lastSeq ? `?after=${lastSeq}` : ""}`, onEvent);
-        if (ended) break;
-      } catch (err) {
-        if (err.status === 404 || err.status === 401 || attempt >= 30) throw err;      // gone, or not ours
-        status(`🔌 ${t("chat.reconnecting")}`);
-        await new Promise((ok) => setTimeout(ok, Math.min(2000 * (attempt + 1), 10000)));
-        continue;
-      }
-      if (ended || attempt >= 30) break;
-    }
+    // followed again from the last event, waiting while the page is away (C199: 30 tries in 5 minutes gave up on a
+    // phone left in the pocket)
+    await followRun(runId, onEvent, () => status(`🔌 ${t("chat.reconnecting")}`));
   } finally {
     runEnded();
     b.head.classList.remove("running");

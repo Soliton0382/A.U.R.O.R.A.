@@ -195,6 +195,7 @@ export default {
   async enter() {
     this.loadPosts().catch(() => {});
     this.videos.load();
+    this.videos.resume();                            // a video being made: its steps again (C199)
     const s = await call("/v1/aurora/social");
     const on = s.platforms.filter((p) => p.available);       // only the platforms switched on and connected
     this.platforms.replaceChildren(...(on.length ? on.map((p) => {
