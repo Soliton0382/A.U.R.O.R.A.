@@ -954,6 +954,13 @@ Aurora's own client, «Say: ok», 16 tokens) on the owner's keys: claude_code so
 **empty** — its thinking spent the 16 tokens (C209); ok after the fix. The models a provider offers are read from its
 own list: Google returned 30 names, of which pictures, music, robotics and video models are not offered as reasoners.
 
+The installer itself, from a clean `git clone` of the published code into another folder of this machine, unattended
+(AURORA_INSTALL_BACKEND=cloud, provider 7 with the stand-in, --no-services, no GPU visible): the first run stopped at
+5b — the trial call read a .env that does not exist yet (the log's configuration), the same 4 minutes as the first
+Install run on GitHub; then C210 and C211. After the fixes: rc 0, the provider «risponde», the cloud profile, 3.26 GB
+of models, 572 tests passed, «schema ↔ .env ✅»; the only stops left are the two that need sudo (signature,
+exemption). Units without aurora-llm; the Caddyfile valid for Caddy 2.6.2 and 2.11.7.
+
 ## M150 — Phase 3's first fixes on real machines: two of the probe's own checks were wrong (8 October 2026)
 
 Ports on 17cd87e. Both stopped at the probe, so neither suite ran. Windows: «privacy: open file seen, then made

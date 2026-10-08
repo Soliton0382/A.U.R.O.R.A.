@@ -258,6 +258,7 @@ else
   fi
   while IFS='=' read -r k v; do [ -n "$k" ] && SETS+=(--set "$k=$v"); done < <(echo "$PROFILE" | .venv/bin/python -c 'import json,sys; [print(f"{k}={v}") for k, v in json.load(sys.stdin)["env"].items()]')
   case ",$PICK," in *,dreams,*) ;; *) SETS+=(--set "AURORA_IMAGE_ENABLED=0") ;; esac   # no dream model, no dream painting
+  case ",$PICK," in *,voice,*) ;; *) SETS+=(--set "AURORA_TTS=0") ;; esac              # no Piper, no voice switched on
   .venv/bin/python sys/core/script/sys_env_sync.py "${SETS[@]}" | grep -E '^\s+[=*]' || true
   mv .env.proposed .env
   [ -n "$CKEYNAME" ] && unset "$CKEYNAME"

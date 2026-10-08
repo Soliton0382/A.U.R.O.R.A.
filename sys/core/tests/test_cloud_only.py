@@ -83,7 +83,6 @@ def test_no_aurora_llm_unit_on_a_cloud_machine(cloud_cfg, monkeypatch, tmp_path)
     import sys_install_services as inst
     monkeypatch.setattr(sys_config, "get", lambda: cloud_cfg)
     monkeypatch.setattr(inst.subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(a, 0, "", ""))
-    cloud_cfg.path("AURORA_HTTPS_DIR").mkdir(parents=True, exist_ok=True)
     stale = cloud_cfg.root / "sys/deploy/systemd/aurora-llm.service"
     stale.parent.mkdir(parents=True, exist_ok=True)
     stale.write_text("old", encoding="utf-8")
@@ -149,3 +148,19 @@ def test_a_thinking_model_that_spent_the_budget_is_asked_again(cfg, monkeypatch)
     sent.clear()
     m.complete("s", "x", 500)
     assert len(sent) == 1 and "reasoning_effort" not in sent[0]       # remembered: not tried again
+
+
+def test_the_installers_trial_call_needs_no_env_file(tmp_path):
+    """The installer proves the provider before any .env exists: the trial read the missing .env through the log and
+    stopped every installation without a GPU (a clean clone, 8 Oct 2026)."""
+    stub = tmp_path / "claude"
+    stub.write_text('#!/usr/bin/env python3\nimport json, sys\nsys.stdin.read()\n'
+                    'print(json.dumps({"result": "ok", "usage": {}, "is_error": False}))\n', encoding="utf-8")
+    stub.chmod(0o755)
+    import os
+    env = {**os.environ, "AURORA_ENV_FILE": str(tmp_path / "missing.env"), "AURORA_INSTALL_CLOUD_KEY": "",
+           "PATH": f"{tmp_path}{os.pathsep}{os.environ.get('PATH', '')}"}
+    script = Path(__file__).resolve().parents[1] / "script" / "sys_cloud_setup.py"
+    r = subprocess.run([sys.executable, str(script), "try", "claude_code", "sonnet"], env=env, cwd=tmp_path,
+                       capture_output=True, text=True, timeout=120)
+    assert r.stdout.strip() == "ok", r.stdout + r.stderr

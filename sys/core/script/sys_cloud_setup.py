@@ -43,7 +43,12 @@ def _cfg(provider: str, key: str):
     env = root / ".env"
     env.write_text("".join(f"{k}={v}\n" for k, v in values.items()), encoding="utf-8")
     env.chmod(0o600)                                     # it holds the key
-    return sys_config.load(env, check_root=False)
+    cfg = sys_config.load(env, check_root=False)
+    # the installer asks before any .env exists: whatever reads the configuration (the log first) reads this one
+    from aurora import sys_log
+    sys_config._cached = cfg
+    sys_log.configure(cfg)
+    return cfg
 
 
 def _natural(s: str) -> list:

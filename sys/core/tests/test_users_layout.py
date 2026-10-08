@@ -196,3 +196,18 @@ def test_a_setting_that_becomes_personal_moves_into_the_admin_s_env(cfg):
     assert "AURORA_TMDB_TOKEN" not in cfg.env_file.read_text()
     assert U.for_user(sys_config.load(cfg.env_file, check_root=False), "boss")["AURORA_TMDB_TOKEN"] == "left-in-system"
     assert U.adopt(sys_config.load(cfg.env_file, check_root=False), "boss") == []                # nothing twice
+
+
+def test_a_new_installation_puts_its_personal_settings_in_the_admins_env(cfg):
+    """C210: with nothing to move (a new installation) migrate returned before the personal settings: the owner's and
+    the assistant's names stayed in the system's .env, and the doctor's hint (env_sync, then mv) would have dropped them."""
+    from aurora import sys_config, sys_user_config
+    assert not L.migration_plan(cfg, "boss")
+    cfg.path("AURORA_STATUS_DIR").mkdir(parents=True, exist_ok=True)
+    root_before = sys_config.parse_env(cfg.env_file.read_text(encoding="utf-8"))
+    assert "AURORA_OWNER_NAME" in root_before
+    out = L.migrate(cfg, "boss")
+    assert out["settings"] > 0 and L.migrated(cfg)
+    root_after = sys_config.parse_env(cfg.env_file.read_text(encoding="utf-8"))
+    own = sys_config.parse_env(sys_user_config.env_path(cfg, "boss").read_text(encoding="utf-8"))
+    assert "AURORA_OWNER_NAME" not in root_after and own["AURORA_OWNER_NAME"] == root_before["AURORA_OWNER_NAME"]

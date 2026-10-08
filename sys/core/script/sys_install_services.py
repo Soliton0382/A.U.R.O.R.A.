@@ -278,6 +278,7 @@ def main() -> int:
     https_dir = cfg.path("AURORA_HTTPS_DIR")
     log_dir = cfg.path("AURORA_LOG_DIR") / "https"
     log_dir.mkdir(parents=True, exist_ok=True)
+    https_dir.mkdir(parents=True, exist_ok=True)       # not in a fresh clone (C211: the first install from git stopped)
 
     caddyfile = https_dir / "Caddyfile"
     caddyfile.write_text(CADDYFILE.substitute(

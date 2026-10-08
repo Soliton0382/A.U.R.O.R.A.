@@ -194,8 +194,11 @@ def migrate(cfg: sys_config.Config, admin: str) -> dict:
     plan = migration_plan(cfg, admin)
     state = {"layout": 1, "admin": admin, "at": time.strftime("%Y-%m-%dT%H:%M:%S%z")}
     if not plan:                                                # done already, or nothing to move: nothing happens
-        if not migrated(cfg):
+        if not migrated(cfg):                                   # a new installation: its personal settings still go
+            from . import sys_user_config                      # to the admin's own .env (C210)
+            settings = sys_user_config.split(cfg, admin)
             _mark(cfg, state)
+            return {"moved": 0, "files": 0, "settings": settings}
         return {"moved": 0, "files": 0}
     for step in plan:
         if Path(step["to"]).exists():
