@@ -9,6 +9,7 @@ import { auroraBubble, follow, renderPast } from "./trace.js";
 import { viewLink } from "../viewer.js";
 import * as voice from "../voice.js";
 import { dietBubbles, dietCards } from "../diet.js";
+import { calendarBubbles } from "../calendar_alerts.js";
 import { dreamOf, makeRecorder, morningOf, shrink } from "./chat_media.js";
 import { thinkMode } from "./chat_think.js";
 import { attachMenu, settingsMenu, showGear, source } from "./chat_menu.js";
@@ -306,6 +307,7 @@ export default {
       const live = new Set(turns.filter((x) => x.run_id && mine.has(x.run_id)).map((x) => x.run_id));
       const add = fresh.filter((x) => !(x.role === "user" && live.has(x.run_id)));     // a question followed live: shown
       dietBubbles(messages);
+      calendarBubbles(messages);
       if (!add.length) return;
       const stick = messages.scrollHeight - messages.scrollTop - messages.clientHeight < 80;
       add.forEach(renderTurn);
@@ -330,6 +332,7 @@ export default {
       const n = turns.filter((x) => !["dream", "morning", "review"].includes(x.role)).length;
       if (n) messages.append(el("div", "divider", t("chat.history", { n })));
       await dietBubbles(messages);                    // a meal reminded and not answered yet
+      await calendarBubbles(messages);                // an appointment or a reminder told and not answered yet
       scrollEnd(messages);
     };
     this.replay = async (run) => {
@@ -343,6 +346,7 @@ export default {
     const onActivity = async (a) => {
       if (["rem.review", "rem.morning", "rem.dream"].includes(a.event)) { this.catchUp(); return; }   // written while the page is open
       if (a.event === "diet.meal") { await dietBubbles(messages); scrollEnd(messages); return; }       // 🍽️ the meal of now
+      if (a.event === "calendar.alert") { await calendarBubbles(messages); scrollEnd(messages); return; }   // 📅 its time came
       if (a.event !== "run.begin" || !["webui", "openai", "acquire"].includes(a.payload.origin)) return;
       const id = a.payload.run_id;
       if (asking) await new Promise((ok) => setTimeout(ok, 800));      // maybe it is ours: its id is on the way

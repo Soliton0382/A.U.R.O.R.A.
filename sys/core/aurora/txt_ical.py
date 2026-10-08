@@ -59,11 +59,17 @@ def _when(value: str, params: dict, local) -> tuple[datetime, bool]:
 
 def parse(text: str, local=None) -> list[dict]:
     local = local or datetime.now().astimezone().tzinfo
-    events, cur = [], None
+    events, cur, inner = [], None, 0
     for line in _unfold(text):
         name, params, value = _split(line)
         if name == "BEGIN" and value.upper() == "VEVENT":
-            cur = {"exdates": set()}
+            cur, inner = {"exdates": set()}, 0
+        elif cur is not None and name in ("BEGIN", "END") and value.upper() != "VEVENT":
+            # a component inside the event (VALARM): its DESCRIPTION, TRIGGER… are not the event's (Google writes
+            # «This is an event reminder» there)
+            inner = max(0, inner + (1 if name == "BEGIN" else -1))
+        elif inner:
+            continue
         elif name == "END" and value.upper() == "VEVENT" and cur is not None:
             if "start" in cur:
                 if "end" not in cur:

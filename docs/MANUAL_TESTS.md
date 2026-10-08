@@ -6,12 +6,14 @@ end, duplicates and tests of pages that no longer exist removed (each with its r
 
 | session | tests |
 |---|---|
-| 🌙 they come by themselves (look in the morning) | N19, N63, N77, N78 |
-| 🔁 again after a change | I5, N25, N93–N100, N102–N107 |
-| 📱 phone, ~10 min | N31 |
-| 🖥️ chat on the PC, ~15 min | I4 |
-| 🧭 pages, ~25 min | K1, N32, N35, N37, N40, N43, N46, N53, N62, N64, N66, N68, N73, N74, R1, R10 |
-| 🔑 a setup first (keys, devices, a second user) | N13–N15, N18, N22, N30, N49–N51, N61, N67, N69, R2, R11 |
+| 🌙 they come by themselves (look in the morning) | N19, N63, N77, N78, N119 |
+| 📱 phone, ~15 min | N31, N103, N105, N113, N123, N124, N125, N128 |
+| 💬 chat on the PC, ~20 min | I4, N100, N126, N127, N129 |
+| 🧭 pages, ~35 min | I5, K1, N32, N35, N37, N40, N43, N46, N53, N62, N64, N66, N68, N73, N74, N114, N115, N118, N120–N122, R1, R10 |
+| 🛡️ security, with real approvals, ~30 min | N104, N108–N112, N116, N117 |
+| 📣 social and videos | N99, N102 |
+| 🔁 again after a change | N25, N93–N98 |
+| 🔑 a setup first (keys, devices, a second user, an account) | N13–N15, N18, N22, N30, N49–N51, N61, N67, N69, N106, N107, N130, R2, R11 |
 
 ## Pages added on 2 October
 
@@ -56,6 +58,9 @@ end, duplicates and tests of pages that no longer exist removed (each with its r
 | N125 | On the phone and on the PC: the chat → 🔊 Ascolta on today's good morning | the voice starts at the first tap; if not, the message now names the browser's reason: tell it to Claude |
 | N126 | The chat: 📎 (file or photo), ⚙️ (🧠 thinking, 📱/🖥️ camera and microphone, 🔊 voice, Scegli la voce) | every choice is written; the gear shows the thinking chosen; the choices stay after a reload |
 | N127 | Under an old answer of Aurora: ↩️ → «spiegamelo in due righe»; then ↩️ → a new question on its subject. Also 📋 on a message, paste it | the first answer works on that message; the second searches with it as context; the quote stays in your bubble after a reload; the text pasted is the message's |
+| N128 | 📅 Calendario: ➕ an appointment in 20 minutes with «Avvisami 15 minuti prima»; on the phone too | at its time a notification «📅 Promemoria» and a bubble in the chat; «⏰ Tra 10 minuti» tells it again 10 minutes later; ✅ Fatto closes it |
+| N129 | In the chat: «ricordami domani alle 9 di chiamare Marco», then «cosa ho in agenda domani?», then «spostalo alle 10» | the reminder in the page at 9:00 of tomorrow; the agenda lists it; moved to 10:00 |
+| N130 | 📅 → 📁 Esporta .ics, import it in Google Calendar (or Outlook); export one from there and import it here | the same events there; here «Importati N», none doubled the second time |
 | N123 | 🎨 at the foot of the menu → each theme; Chiaro and Contrasto on the phone too | the colours change at once and stay after a reload; the chat, the cards and the menu stay readable (tell me a page that does not) |
 | N122 | 🤖 Agenti e routine → 🧰 Profili pronti → open «Casa e giornata» → «Applica» | only the missing routines are added (agenda, spese); then 📸 «Salva la mia configurazione»: as a user (not admin) the saved set shows no security or video routine |
 | N121 | 🧩 Plugin, after Aurora forges a plugin | 🔨 on its icon, ✍️ «non ancora ufficiale» with the command; run it in a shell: the ✍️ goes away |
@@ -78,7 +83,6 @@ end, duplicates and tests of pages that no longer exist removed (each with its r
 | N104 | 🛡️ Security: on an incident from outside, ⛔ Blocca | the card says it is blocked and closed; reload: it is among the closed ones, no new alert for that address; 🤝 Autonomy → statistics: security counts it as approved |
 | N103 | Beside the green/yellow/red dot: the face (🥺 longing, 🧐 curiosity, 😣 stress…); mouse over it on the PC, tap it on the phone; then 📊 Health, in the morning and while she answers | «💗 Come si sente: prevale …» with seven rows, each with its causes; ask «come ti senti?» in the chat: she says it with the causes; the good morning ends with «💗 Stamattina prevale …» |
 | N102 | 📣 Social → 🎬 a video → «come Reel» → ✔ Pubblica su Facebook | a Reel on the page (Reels tab); «come storia»: 24 h, no text; a video over 60 s as a story: refused with its length |
-| N101 | ✅ owner, 7 Oct: published on Facebook. 📣 Social → 🎬 Video di Aurora: open «Perché il cielo è blu?», watch it, fix the post if needed, ✔ Pubblica su Facebook | the video on the page, with its text and «🤖 Contenuto generato…»; the post in the history below; then Instagram on (Plugins) and TikTok authorized: their buttons appear |
 | N100 | The third video (black hole: natural voice, music); then 🔊 on an answer in the chat | the chat's voice is sample 3 (steadier, slower); in the video sample 5, the music low under it and fitting, the credit in the post |
 | N99 | Watch the two pilot videos (laser, free will: usr/<you>/images/stories/) | the pictures fit the words, the voice is clear, subtitles readable, the label «Generato con IA» visible; tell what to change |
 | N96 | 🛡️ → 📊 La settimana della sicurezza; and on Monday 08:30 the routine (switch it on in Agenti e routine) | the score, campaigns, what is missing |
@@ -119,6 +123,7 @@ end, duplicates and tests of pages that no longer exist removed (each with its r
 | P7 | Push on the phone for a routine (Routines → ▶ Run now on the weather report) | owner, 6 Oct (the errors found: C155-C157, fixed) |
 | P8 | Chat on 📱: «fammi un video di un gatto che gioca con la neve», then leave the app | owner, 6 Oct (the errors found: C155-C157, fixed) |
 | P9 | While the video is being made, write anything | owner, 6 Oct (the errors found: C155-C157, fixed) |
+| N101 | ✅ owner, 7 Oct: published on Facebook. 📣 Social → 🎬 Video di Aurora: open «Perché il cielo è blu?», watch it, fix the post if needed, ✔ Pubblica su Facebook | the video on the page, with its text and «🤖 Contenuto generato…»; the post in the history below; then Instagram on (Plugins) and TikTok authorized: their buttons appear |
 | N1 | 🧠 Models: assign «sintesi» to Claude Code · sonnet, Save, ask a question | owner + machine, 5 Oct |
 | N7 | ⚙️ Status → Backup → 💾 Run now (after the owner's setup) | owner, 6 Oct |
 | N10 | 🛠️ Repairs after the 18:30 Facebook routine (on a day with news) | owner, 6 Oct |

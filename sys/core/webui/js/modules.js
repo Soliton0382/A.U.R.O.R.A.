@@ -12,6 +12,7 @@ import diary from "./modules/diary.js";
 import dj from "./modules/dj.js";
 import memory from "./modules/memory.js";
 import care from "./modules/care.js";
+import calendar from "./modules/calendar.js";
 import harvester from "./modules/harvester.js";
 import notifications from "./modules/notifications.js";
 import importDocs from "./modules/import.js";
@@ -40,7 +41,7 @@ import updates from "./modules/updates.js";
 import users from "./modules/users.js";
 import ideas from "./modules/ideas_page.js";
 
-export const views = [chat, approvals, reports, security, ciso, firewall, aurorafw, secDefence, secWatch, secOut, autonomy, diary, memory, social, dj, care, projects, routines, models, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, settings, guide, bugreport, ideas];
+export const views = [chat, approvals, reports, security, ciso, firewall, aurorafw, secDefence, secWatch, secOut, autonomy, diary, memory, social, dj, care, calendar, projects, routines, models, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, settings, guide, bugreport, ideas];
 export const widgets = [sky, alerts, metrics];
 
 // the side menu in areas (owner, 2026-10-05): an area of one page is a plain entry; the others open on a tap
@@ -48,7 +49,7 @@ export const widgets = [sky, alerts, metrics];
 export const groups = [
   { id: "chat", views: ["chat"] },
   { id: "activity", icon: "🛎️", title: "nav.g.activity", views: ["approvals", "notifications", "reports", "runs"] },
-  { id: "life", icon: "✨", title: "nav.g.life", views: ["diary", "memory", "social", "dj", "care"] },
+  { id: "life", icon: "✨", title: "nav.g.life", views: ["calendar", "diary", "memory", "social", "dj", "care"] },
   { id: "work", icon: "🛠️", title: "nav.g.work", views: ["projects", "routines", "uploads"] },
   { id: "knowledge", icon: "📚", title: "nav.g.knowledge", views: ["import", "harvester", "synapses"] },
   // the security area (owner, 2026-10-08: «sotto menù specifici CISO, etc… separate e pulite»)

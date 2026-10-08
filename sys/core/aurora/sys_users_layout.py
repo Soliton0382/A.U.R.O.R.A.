@@ -55,7 +55,7 @@ BY_NAME = {a.name: a for a in SYS_AREAS}
 USR_SETTINGS = {"uploads": "AURORA_UPLOADS_DIR", "documents": "AURORA_DOCUMENTS_DIR", "projects": "AURORA_PROJECTS_DIR",
                 "notes": "AURORA_NOTES_DIR", "pictures": "AURORA_IMAGE_DIR", "expenses": "AURORA_EXPENSES_DIR",
                 "bugreports": "AURORA_BUGREPORT_DIR", "music": "AURORA_MUSIC_DIR",
-                "health": "AURORA_HEALTH_DIR"}
+                "health": "AURORA_HEALTH_DIR", "calendar": "AURORA_CALENDAR_DIR"}
 
 
 def usr(cfg: sys_config.Config) -> Path:

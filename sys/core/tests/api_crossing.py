@@ -44,6 +44,9 @@ FILLER = " The measurement was repeated several times under controlled laborator
 # boss's private things, through the API where it can, else as boss's work
 r = client.post("/v1/aurora/activity", headers=H["boss"], json={"source": "t", "event": "boss.note", "payload": {"text": SECRET}})
 assert r.status_code == 200, r.text
+r = client.post("/v1/aurora/calendar/items", headers=H["boss"], json={"title": SECRET, "start": "2030-01-10T10:00"})
+assert r.status_code == 200, r.text
+cal_id = r.json()["item"]["id"]
 r = client.put("/v1/aurora/settings", headers=H["boss"], json={"AURORA_TMDB_TOKEN": "boss-tmdb-token"})
 assert r.status_code == 200, r.text
 r = client.post("/v1/aurora/routines", headers=H["boss"], json={"kind": "agent", "goal": SECRET, "title": SECRET,
@@ -80,6 +83,9 @@ for who in ("boss", "guest"):
     seen["document_file"] = get(who, "/v1/aurora/documents/boss-secret.pdf").status_code
     seen["runs"] = any(x["id"] == run["id"] for x in get(who, "/v1/aurora/runs").json())
     seen["run_events"] = client.get(f"/v1/aurora/runs/{run['id']}/events", headers=H[who]).status_code
+    seen["calendar"] = SECRET in get(who, "/v1/aurora/calendar?start=2030-01-08&end=2030-01-15").text
+    seen["calendar_export"] = SECRET in get(who, "/v1/aurora/calendar/export.ics").text
+    seen["calendar_item"] = get(who, f"/v1/aurora/calendar/items/{cal_id}").status_code
     seen["devices"] = sorted(d["name"] for d in get(who, "/v1/aurora/devices").json())
     seen["users_page"] = get(who, "/v1/aurora/users").status_code
     seen["machine_setting"] = client.put("/v1/aurora/settings", headers=H[who], json={"AURORA_LOG_MAX_MB": "50"}).status_code

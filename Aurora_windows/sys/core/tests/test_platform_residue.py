@@ -1,0 +1,86 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 A.U.R.O.R.A. Project
+"""Nothing left behind (owner, 2026-10-08: «cerchiamo di non lasciare niente alle spalle»). Two nets over the built
+tree, outside sys_platform:
+
+ words      Linux-only names in the modules Aurora runs (systemctl, fcntl, /proc, pwd, bwrap...)
+ programs   EVERY external program started (subprocess, read from the code's syntax tree), in the modules and in the
+            scripts: each one listed here, cross-platform or with its phase in PORTING.md
+
+A new call in the Linux code fails here as soon as the port is built. The same file in both ports."""
+import ast
+import re
+from pathlib import Path
+
+CORE = Path(__file__).resolve().parents[1]
+AURORA, SCRIPT = CORE / "aurora", CORE / "script"
+LINUX_ONLY = re.compile(r'"systemctl"|\bfcntl\b|/proc/|"nvidia-smi"|import pwd|os\.getuid|os\.geteuid|"bwrap"|"pactl"|'
+                        r'v4l2|/dev/video|\.venv/bin|journalctl|"sudo"|/usr/share/dict|/dev/null')
+WORDS_ALLOWED = {
+    ("sys_config.py", "import pwd"): "guarded: Windows takes getpass (FILES)",
+    ("sys_bugreport.py", '"nvidia-smi"'): "the driver's version in a bug report; not found = «not measured» everywhere",
+    ("prj_run.py", '"bwrap"'): "phase 4: without bwrap a project does not run («no cage, nothing is run»)",
+    ("plg_sandbox.py", '"bwrap"'): "phase 4: without a cage plugins do not run on the Mac or Windows (GUARDS)",
+    ("plg_sandbox.py", "/dev/null"): "phase 4: bwrap's own arguments, Linux only",
+    ("sec_hostfw.py", '"sudo"'): "phase 4: the host firewall (nft) — not installed elsewhere, it says so",
+}
+# programs every system has, or that Aurora installs everywhere (phase 3 installs them on the Mac and Windows)
+EVERYWHERE = {"ffmpeg", "ffprobe", "git", "curl", "pdfinfo", "pdftoppm", "sys.executable"}
+# (file, program): why it may stay — the modules
+PROGRAMS_ALLOWED = {
+    ("sec_hostaudit.py", "ss"): "the Linux branch only; netstat (Mac) and psutil (Windows) otherwise (NETWORK)",
+    ("sys_bugreport.py", "nvidia-smi"): "a bug report's driver version: «not measured» where missing",
+    ("sec_hostfw.py", "sudo"): "phase 4: the host firewall",
+}
+# the scripts the owner or the installer runs: all of phase 3 (installers and admin scripts per system)
+SCRIPTS_PHASE_3 = {"systemctl", "journalctl", "runuser", "systemd-escape", "systemd-mount", "systemd-umount",
+                   "nvidia-smi", "cfg['AURORA_CADDY_BIN']"}
+
+
+def _programs(f: Path) -> set[str]:
+    out = set()
+    for n in ast.walk(ast.parse(f.read_text(encoding="utf-8"))):
+        if not (isinstance(n, ast.Call) and n.args and isinstance(n.func, ast.Attribute)):
+            continue
+        if not (getattr(n.func.value, "id", "") == "subprocess" and n.func.attr in ("run", "Popen", "check_output", "call", "check_call")):
+            continue
+        a = n.args[0]
+        if isinstance(a, ast.List) and a.elts and isinstance(a.elts[0], ast.Constant):
+            out.add(str(a.elts[0].value))
+        elif isinstance(a, ast.List) and a.elts:
+            out.add(ast.unparse(a.elts[0]))
+    return out
+
+
+def _modules():
+    return [f for f in sorted(AURORA.rglob("*.py")) if "sys_platform" not in f.parts]
+
+
+def test_no_linux_only_word_left_in_the_modules_but_the_listed_ones():
+    found = set()
+    for f in _modules():
+        for line in f.read_text(encoding="utf-8").splitlines():
+            code = line.split("#", 1)[0]
+            if (m := LINUX_ONLY.search(code)) and not code.strip().startswith(('"', "'")):
+                found.add((f.name, m.group(0)))
+    assert not found - set(WORDS_ALLOWED), f"Linux-only words not in PORTING.md: {sorted(found - set(WORDS_ALLOWED))}"
+
+
+def test_every_program_the_modules_start_is_cross_platform_or_listed():
+    unexpected = set()
+    for f in _modules():
+        for prog in _programs(f):
+            if prog in EVERYWHERE or (f.name, prog) in PROGRAMS_ALLOWED or prog.startswith(("str(", "cfg[", "self.", "*")):
+                continue                                   # a path from the settings: written by the installer (phase 3)
+            unexpected.add((f.name, prog))
+    assert not unexpected, f"programs not cross-platform and not in PORTING.md: {sorted(unexpected)}"
+
+
+def test_every_program_the_scripts_start_is_known_and_left_to_phase_3():
+    unexpected = set()
+    for f in sorted(SCRIPT.glob("*.py")):
+        for prog in _programs(f):
+            if prog in EVERYWHERE or prog in SCRIPTS_PHASE_3 or prog.startswith(("str(", "self.", "*")):
+                continue
+            unexpected.add((f.name, prog))
+    assert not unexpected, f"programs of the scripts not in PORTING.md: {sorted(unexpected)}"

@@ -178,4 +178,7 @@ if __name__ == "__main__":
     from aurora.api.diet import watch_diet           # the meal of this minute, for each user with reminders on
     app.router.add_event_handler("startup", lambda: threading.Thread(target=watch_diet, name="watch-diet",
                                                                       daemon=True).start())
+    from aurora.api.calendar import watch_calendar   # the calendar's alerts, for each user
+    app.router.add_event_handler("startup", lambda: threading.Thread(target=watch_calendar, name="watch-calendar",
+                                                                      daemon=True).start())
     uvicorn.run(app, host=cfg["AURORA_API_HOST"], port=cfg["AURORA_API_PORT"], log_level="warning", timeout_graceful_shutdown=5)

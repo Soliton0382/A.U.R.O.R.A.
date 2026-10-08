@@ -32,7 +32,9 @@ SYS_TOOLS = ("Decide whether the owner's last message asks Aurora to use one of 
              "'fammi un grafico interattivo della funzione seno' TOOLS; 'crea una foto di un gatto astronauta' TOOLS; "
              "'cos'è la funzione seno?' NO; 'che tempo farà domani a Lodi?' TOOLS; 'previsioni per il weekend a "
              "Milano' TOOLS; 'ci sono allerte meteo?' TOOLS (a weather service forecasts; the weather NOW at Aurora's "
-             "home is hers: 'piove lì da te?' NO). "
+             "home is hers: 'piove lì da te?' NO); "
+             "'ricordami domani alle 9 di chiamare Marco' TOOLS; 'cosa ho in agenda venerdì?' TOOLS; 'fissa il "
+             "dentista giovedì alle 15' TOOLS; 'sposta la riunione a lunedì' TOOLS (her calendar). "
              "Reply with exactly one word.\n\nCONNECTED SERVICES:\n{services}")
 ROUTER_SKIP = {"web", "self"}          # web search is the knowledge path's job; "self" is Aurora's own maintenance
 

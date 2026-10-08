@@ -1,0 +1,109 @@
+# Changelog
+
+Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
+
+## v0.2.0 — 2026-10-08
+
+The first tagged version: 101 publications since the first public one (0.1.0, untagged).
+
+- 2026-10-08 Aurora's own calendar (roadmap 68, C201); releases, one-command publish, Mac and Windows ports in the repository (roadmap 69)
+- 2026-10-08 C200 voice: CSP media-src; local voice chosen wins; ports kept in the mirror
+- 2026-10-08 C200 voice played inside the tap; composer as a menu; copy and reply under messages
+- 2026-10-08 C199: lost connections taken up everywhere (requests answered once by key, runs followed again)
+- 2026-10-08 Routines reviewed: videos on a schedule, Aurora's advice with Apply, sets by use, colour themes; C197 models OOM, C198 social publish checked
+- 2026-10-08 C195 security plugin sandbox (password, folder), C196 dream told as scenes, painted as its scene
+- 2026-10-08 Any firewall change asked in words, planned locally and checked by the code; Aurora's own firewall as a page; plans discarded (C193, M135)
+- 2026-10-08 The security officer: audit, threat hunt, posture with playbooks, firewall changes planned and approved, the SFOS manual indexed; the security area in pages, autonomy in each section, plugins deleted into a trash (C190-C192, M134)
+- 2026-10-07 Web answers are remembered without a vault id; a case reads the provisions that govern it (C188-C189, M133)
+- 2026-10-07 A day of use: follow-ups take auto, weather routed to its plugin, routines wait while a person uses Aurora (C185-C187, M132)
+- 2026-10-07 The forge builds plugins for services: declared settings (secrets masked), actions approved each time, a setup guide; the judge skips an unconfigured tool (C184, M131)
+- 2026-10-07 README, GitHub page and charts for the new Aurora: answers by the question's kind, thinking modes, emotions, diet, access from away (M129, M130)
+- 2026-10-07 Answers by the question's kind: web for facts (ddgs), vault for explanations, deep for cases; read once with sources; cache and night study; thinking modes, auto by default; modules under 500 lines; MKQA battery (M129, M130)
+- 2026-10-07 A case told as a story: searched by its problems and its provisions, answered problem by problem; the answer pipeline in modules (C183)
+- 2026-10-07 Cloudflare: split tunnel accepted (descriptions), a public record left for Aurora's name warned of (C182)
+- 2026-10-07 Cloudflare access with one Save: tunnel token fetched by Aurora, aurora-tunnel service, step-by-step guide (roadmap 56, C181)
+- 2026-10-07 Diet in the chat: the processed plan recalled with the code's date, the meal's card under the answer (C179)
+- 2026-10-07 Diet plan followed day by day: process documents, meals proposed and re-weighed on the week, reminders; Word documents read (roadmap 55, C178)
+- 2026-10-07 Who is logged in, at the menu's foot beside the language and the logout (roadmap 54)
+- 2026-10-07 Good morning aloud: the player unlocked by the tap, MP3 voice, true error messages (C177)
+- 2026-10-07 Aurora's mood beside the health dot: a face per emotion, its card on hover or tap
+- 2026-10-07 Emotions from measurements; Facebook videos as Reel, post or story; Security: a block closes its incident, the owner's blocks counted (C174-C176)
+- 2026-10-06 Social: Aurora's videos made, previewed and published from the Social page; Facebook video, Instagram Reels, TikTok
+- 2026-10-06 Two voices: Piper tuned for the chat, the natural voice for the videos; free classical music; the voice clip stays private (C172, C173)
+- 2026-10-06 Second thoughts: past answers reviewed, a better one told in the chat; chat resumes after a dropped connection (C170, C171)
+- 2026-10-06 Chat resumes the answer after a dropped connection (C170)
+- 2026-10-06 Security: threat lists, device baseline, decoys, weekly report, Aurora's own firewall; Veo 3.1, server voice in the picker, PDF thumbnails, chat sync, video progress; C165-C169 (M119)
+- 2026-10-06 Multi-user health for every user, Aurora's documents to the trash, push urgency high, 30 manual tests run by machine; C162-C164 (M118)
+- 2026-10-06 Multi-user done right, known devices, free-tier limits, uninstall/reset/restore with data formats, night shadow training; C158-C161 (M116-M117)
+- 2026-10-06 Security in tabs with the network drawn, settings menu in 3 levels, live capabilities, ideas, cloud media providers; C155-C157 (M115)
+- 2026-10-06 Doctors' cards, Aurora's own voice, agents and routines as icons, network map; roadmap 19/33-36 (M114)
+- 2026-10-06 Shadow in two bands, answers written again and verified, overlapping shadows chosen; seed 116 answers; C152-C154 (M113)
+- 2026-10-05 Shadow seed script and export, per-plugin caches, follow-ups kept with the shadow; roadmap: agents, routine icons, network map (M112)
+- 2026-10-05 Shadow seed script and export, per-plugin caches, follow-ups kept with the shadow (M112)
+- 2026-10-05 Answer shadow: paraphrases answered at once and rechecked in the background (M111)
+- 2026-10-05 Studies at night what she could not answer, good morning; fixes C151; answer timing measured
+- 2026-10-05 Synapses page and level 2, vault deduplicated (C149, C150): one document, one copy
+- 2026-10-05 Synapses page, synapses of synapses and named concepts, noise links removed (C149)
+- 2026-10-05 Synapses between domains, psychology, firewall undo and setup names, autonomy panel fixed (C148), PWA chat layout, GitHub Pages
+- 2026-10-05 Firewall unblock fixed (C146), tighter masking (C147), what left the machine, what Aurora remembers, verification line, honesty and repair benchmarks
+- 2026-10-05 Autonomy panel, autonomous defence, post privacy check, exam values, Wikipedia by language and programming docs, self-repair fixed (C139-C145), first admin login
+- 2026-10-05 Side menu panel, arXiv HTML first (C137), two LLM slots (M102), push delivery confirmed by devices (M101), clean install measured (M103)
+- 2026-10-05 Zero open bugs: A19 re-import from arXiv HTML, A18 measured; project reports, daily soak, push history, U4 and local forge measured
+- 2026-10-05 Agent on Claude Code works with Aurora's tools (C133, C134); projects as briefs with progress alerts; notification history; side menu in areas; two-row top bar
+- 2026-10-05 Masking stronger and mandatory (C132); the assistant's name, character and gender per user; Health sealed per user, local model only
+- 2026-10-05 DJ: remix and mix in 8 styles, all local (M93); login with password and code in single-user; security checks with batch actions; roadmap: autonomy panel, system accounts, autonomous defence
+- 2026-10-05 Log out; Social posts to approve and history; Approvals apart from Reports; firewall API generic and working (C131); autonomy panel proposal
+- 2026-10-04 Harvester page back (C130: import circle); forge 8/8 (C129); gate threshold measured and kept off (M90-M92); roadmap status and DJ proposal
+- 2026-10-04 Forge 8/8 (C129: one clock for truth and judge); gate threshold measured and kept off (M90-M92); A19 traced to garbled PDF formulas
+- 2026-10-04 Search beyond arXiv (Europe PMC, Wikipedia, GitHub); configurable security: checks from the syslog documentation tried on real traffic, XG API blocking on the owner's click; forge 6/8 with Claude Code (C127, C128)
+- 2026-10-04 Notifications: Aurora's health, new sign-ins, her posts as kinds of their own (C126)
+- 2026-10-04 Status page no longer hangs on a sleeping NAS: SMB check before touching its folder (C125)
+- 2026-10-04 Owner's list of 4 October: plugins of the admin or of everyone, settings in plugin cards, alerts per user, trash, routines with several times and day groups, projects in two tabs with a run cage; dictation and backup fixes (C121-C124)
+- 2026-10-04 Forge: time windows (A20), Grok; per-user API keys, Facebook per user, plugin cage per user; benchmark ids (A21)
+- 2026-10-03 Backup: Run now in the plugin's card, admin only; docs aligned
+- 2026-10-03 Multi-user complete: per-request user, login with Authenticator, Users page, REM and routines per user
+- 2026-10-03 User mode in Settings, installer asks single or multi, doctor aware of per-user settings
+- 2026-10-03 Multi-user layout migrated and verified, diary and sandbox fixes
+- 2026-10-03 Voice picker, per-user settings and plugins (U3)
+- 2026-10-03 Dictation diagnostics, per-user memory (U3)
+- 2026-10-03 Answers aloud, the owner's per-user tree, papers locked
+- 2026-10-03 Cinema and expenses plugins, multi-user U2 (layout, migration, purge)
+- 2026-10-03 Artifacts, formulas fix (service worker), suggestions kept with the answer
+- 2026-10-03 Formulas and tables in the chat, WebUI no-cache, dream share fix
+- 2026-10-03 Share dreams and thoughts, autonomous posts, morning routine
+- 2026-10-03 Suggested follow-ups, previous answer and sources in focus
+- 2026-10-03 Follow-up questions, open-files leak, nightly backup retries, multi-user U1
+- 2026-10-02 PDF preview as page pictures, every file link opens inside the page, roadmap updated
+- 2026-10-02 PDF preview as page pictures (works on phones), every file link of the WebUI opens inside the page
+- 2026-10-02 Files open inside the app (pictures, PDF preview), immediate repair of failed owner requests
+- 2026-10-02 Pictures on request, Facebook photo posts, honest reports on pending actions, failed approvals notified
+- 2026-10-02 Close of 2 October: status, next roadmap
+- 2026-10-02 Answer quality 6.0 -> 6.9 (whole passages to verification), science news and posts, calendar, notes, Nextcloud, Dropbox, Discord, WhatsApp, Twitch, READMEs aligned
+- 2026-10-02 News and diary plugins, Instagram and TikTok, live answer-quality benchmark, models service gives GPU memory back
+- 2026-10-02 Archive closed incidents, docs aligned
+- 2026-10-02 Forge on Claude, benchmark truths fixed, Facebook greeting guidance
+- 2026-10-02 NAS mount button, backup memory cap, Facebook page setup
+- 2026-10-02 Facebook management, NAS mount fix, service user fix, scrollable menu
+- 2026-10-02 NAS backup plugin, cloud daily ceiling, placeholder fix, harvester waits for the API, SSH keys hidden from services
+- 2026-10-02 Backup, bug reports, routine PDFs, privacy scan in the publish check
+- 2026-10-02 Modular API (aurora/api), faster plugins page, no public API map, loose log rotation, installer fixes from a clean install
+- 2026-10-02 Consolidation: feature gates, sys_doctor, installer per-group models, caged plugin logs, structure tests
+- 2026-10-02 V2: videos from words or a photo (Wan 2.2 TI2V 5B), GPU lock across processes
+- 2026-10-02 Models per step, cloud providers plugin, default masking, guide page
+- 2026-10-02 I2: picture edits with FLUX.2 klein, Swin2SR upscale, SAM 2.1 cut-out; forge with cloud on consent (M54, M55)
+- 2026-10-02 Aurora notices missing capabilities by code, forge benchmark (M54), cloud forge only with consent and masked samples, firewall settings in the security plugin
+- 2026-10-01 Capability forge (caged, no network, judged), push for new kinds, downloadable documents (C69, C70)
+- 2026-10-01 Security plugin; routines never fail silently, agent fits its context (C68); manual test list
+- 2026-10-01 Picture edits in words, look again at the latest picture; vision gets 32-px tiles (C67, M50, M51)
+- 2026-10-01 Attached files kept with the conversation, Files page (C66); video watching (M48)
+- 2026-10-01 Aurora watches videos: scene changes, frames in one vision call, timestamped local transcript (M48)
+- 2026-10-01 PWA: the phone's camera and microphone (Android and iOS), voice transcribed by the local Whisper
+- 2026-10-01 Projects page, routines with plugins' suggestions, weather plugin with alerts; chat uses connected services; weather errors never log coordinates (C64, C65)
+- 2026-10-01 Chat routes requests about connected services to the agent (C64); certificate chains and network errors in the harvester (C63)
+- 2026-10-01 Harvester: complete certificate chains (AIA), network errors retried not taken for missing collections (C63), faster until-exhausted
+- 2026-10-01 Harvester: open sources per domain (Normattiva, Europe PMC, bioRxiv/medRxiv, Wikipedia, GitHub) with licence per text, domain choice in the WebUI; plugin cage under confined units (C58-C62)
+- 2026-10-01 Security: plugin cage, secret guard, confined services, login lockout, signed updates, hash-locked dependencies; SSCC 60% (M41)
+- 2026-10-01 install.sh: plug & play installer (models from Hugging Face, profiles, .env, services); A17 closed; M37-M40
+- 2026-10-01 Clean-install fixes from the clone test (C52-C56): env, llama build, .env.example, gitignore, Caddy stop
+- 2026-10-01 README: architecture, formulas and SSCC; fresh .env uses the installation folder (C52)
+- 2026-10-01 A.U.R.O.R.A.: first public version

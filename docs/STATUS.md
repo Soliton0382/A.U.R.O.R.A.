@@ -1,6 +1,6 @@
 # Status — work in progress
 
-Updated at every validated change (last: 2026-10-08). Details: BUGS.md (issues, 0 open / 200 closed),
+Updated at every validated change (last: 2026-10-08). Details: BUGS.md (issues, 0 open / 201 closed),
 MANUAL_TESTS.md (what the owner checks by hand),
 TESTS.md (tests and live checks), MEASUREMENTS.md (numbers), MODULE_MAP.md (who does what),
 SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSYSTEM.md (design and decisions).
@@ -18,6 +18,7 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | cache and night study | a web answer cached 30 days (AURORA_SHADOW_WEB_DAYS), a vault answer kept, a memory answer never; the explanations the vault lacked (from the web or memory) studied at night with the declined questions — no «sì, cerca» | tests |
 | emotions | stress, satisfaction, curiosity, tiredness, longing, melancholy, worry from measures with their causes; a face beside the health dot and its card; in the good morning, her thoughts, her words about herself; the cycle waits from stress 0.8 | M124, tests, headless |
 | guided diet | «Elabora documenti» (PDF, Word: C178) → the week, the frequencies, the rules (local model); each meal proposed and re-weighed on the week and on variety; reminders (notification + chat bubble); the chat's «cosa mangio?» from the processed plan with the code's date (C179) | M126, tests, a user's real plan |
+| Aurora's calendar | appointments and reminders of each user, sealed; repeats, one time skipped, summer time; alerts by notification and chat bubble (done / snooze), late up to 12 h; page 📅 Calendario (agenda, month); in the chat (calendar plugin: add, remind, agenda, change, delete — the dates the code's); .ics export and import; Google/Outlook/CalDAV beside, read only | M139, `test_calendar.py`, the crossing test (another user sees nothing) |
 | access from away | plugin cloudflare (state written by Aurora's forge): «Salva» creates the tunnel, the /32 routes, WARP's split tunnel and fallback, fetches the tunnel's token, starts aurora-tunnel; own LAN address never blocked (C180) | M127, the owner's account: tunnel healthy |
 | arXiv text | papers come from arXiv's HTML (or ar5iv's), formulas in LaTeX; the PDF only when neither has it — acquisition, sources and harvester (C137); 116 garbled papers re-imported | M97, 4 tests |
 | concurrent users | 2 slots of the reasoner (AURORA_LLM_PARALLEL), 8 users at once all answered | M99, M102 |
@@ -151,6 +152,9 @@ the NAS backup after the mount (C123).
 | move the owner's key to root-only custody (USB) | owner (SECURITY.md) |
 | firewall actions (block an address) and abuse reports as approvals | Sophos API plugin |
 | full-disk encryption | owner |
+| the calendar synced both ways: CalDAV write-back; Google and Microsoft through their APIs | the owner registers an app with Google / Microsoft (OAuth) |
+| Mac and Windows, phases 3–5: installers, per-system locks, models on Metal/CPU, services, the cages | the Ports workflow's first run (the real list) |
+| updates by release (a channel «only versions») | the owner's choice; today the updater follows the branch |
 
 ## Open bugs (0)
 

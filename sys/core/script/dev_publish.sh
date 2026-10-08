@@ -17,7 +17,9 @@
 #   - no secret-looking string (private keys, API tokens);
 #   - none of the owner's personal patterns, listed one regex per line in ~/.config/aurora/publish_deny.txt
 #     (kept outside the repository on purpose: the list itself is personal);
-#   - every Python file compiles; the test suite passes on the mirror's code.
+#   - every Python file compiles; the test suite passes on the mirror's code;
+#   - each port (Aurora_mac, Aurora_windows: they live in the mirror only) builds from this code, its anchors found
+#     once, and its platform tests pass (a moved line of the Linux code is caught here, not on a user's Mac).
 set -euo pipefail
 export LC_ALL=C                       # one byte order for sort and comm
 
@@ -65,7 +67,7 @@ fi
 
 say "== copy to $DST"
 rsync -a --files-from="$LIST" "$SRC/" "$DST/"
-# the ports being made (Aurora_mac, Aurora_windows: ignored by git until they are ready) live only in the mirror
+# the ports (Aurora_mac, Aurora_windows) are made in the mirror only: never removed from it here
 (cd "$DST" && find . -type f -not -path './.git/*' -not -path './Aurora_mac/*' -not -path './Aurora_windows/*' | sed 's#^\./##' | sort) | comm -23 - "$LIST" | while read -r gone; do
   echo "  removed from the mirror: $gone"; rm -f -- "$DST/$gone"
 done
@@ -98,6 +100,18 @@ PY="$SRC/.venv/bin/python"
 find "$DST" -name __pycache__ -type d -prune -exec rm -rf {} +
 (cd "$DST/sys/core" && PYTHONDONTWRITEBYTECODE=1 timeout 1800 "$PY" -m pytest -q -p no:cacheprovider tests --ignore=tests/test_models_gpu.py) | tail -2 \
   || fail "tests failed on the mirror"
+find "$DST" -name __pycache__ -type d -prune -exec rm -rf {} +
+
+say "== ports (built from this code, platform tests)"
+PORTS="$(mktemp -d)"
+for port in Aurora_mac Aurora_windows; do
+  [ -f "$DST/$port/build.py" ] || { echo "  $port: not in the mirror"; continue; }
+  (cd "$DST" && PYTHONDONTWRITEBYTECODE=1 "$PY" "$port/build.py" --test --out "$PORTS/$port" > "$PORTS/$port.log" 2>&1) \
+    || { tail -20 "$PORTS/$port.log"; fail "$port does not build or its platform tests fail (log above)"; }
+  echo "  $port: $(grep -o '^== rewrites ([0-9]*)' "$PORTS/$port.log" | tr -cd '0-9') rewrites applied," \
+       "$(grep -E '^[.sF]+ +\[' "$PORTS/$port.log" | tr -cd '.' | wc -c) platform tests passed"
+done
+rm -r -- "$PORTS"
 find "$DST" -name __pycache__ -type d -prune -exec rm -rf {} +
 
 cd "$DST"

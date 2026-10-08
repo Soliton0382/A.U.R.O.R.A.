@@ -17,13 +17,15 @@ def test_guest_never_sees_boss_s_things(cfg):
     out = json.loads(r.stdout.strip().splitlines()[-1])
     boss, guest = out["boss"], out["guest"]
     assert boss["me"] == "boss" and guest["me"] == "guest"
-    for k in ("activity", "settings_tmdb", "routines", "approvals", "history", "documents", "runs"):
+    for k in ("activity", "settings_tmdb", "routines", "approvals", "history", "documents", "runs", "calendar",
+              "calendar_export"):
         assert boss[k] is True, f"boss does not see their own {k}"
         assert guest[k] is False, f"guest sees boss's {k}"
     assert boss["uploads"] == 1 and guest["uploads"] == 0
     assert boss["upload_file"] == 200 and guest["upload_file"] == 404
     assert boss["document_file"] == 200 and guest["document_file"] == 404
     assert boss["run_events"] == 200 and guest["run_events"] == 404
+    assert boss["calendar_item"] == 200 and guest["calendar_item"] == 404
     assert boss["devices"] == ["boss phone", "guest phone"] and guest["devices"] == ["guest phone"]
     assert boss["users_page"] == 200 and guest["users_page"] == 403
     assert boss["machine_setting"] == 200 and guest["machine_setting"] == 403

@@ -213,6 +213,12 @@ approvi; `auto` — le applica da sola se sono sicure (nessun file protetto del 
 verdi; altrimenti chiede); `off`. Un aggiornamento è solo fast-forward, installa i requisiti se
 cambiano, esegue i test e torna alla versione precedente se qualcosa fallisce.
 
+**Versioni.** Ogni versione è un tag firmato (`vX.Y.Z`) con la sua pagina tra le *Releases* di GitHub: le note
+sono la sezione di [CHANGELOG.md](CHANGELOG.md), il tag è verificato con le chiavi di `sys/core/config/allowed_signers`
+come ogni commit che l'aggiornamento accetta. **Mac e Windows** sono in preparazione (`Aurora_mac/`,
+`Aurora_windows/`, sperimentali, ancora senza installatore): a ogni versione GitHub li costruisce e li prova su un
+Mac e un Windows veri (workflow *Ports*).
+
 ## Utenti: single o multi
 
 Ogni persona che usa Aurora ha la sua cartella `usr/<nome>/`, con lo stesso albero per tutti (upload, documenti,

@@ -1,0 +1,52 @@
+/* 📅 Aurora's calendar (calendar.js, calendar_form.js) and its alerts in the chat (calendar_alerts.js) */
+.cal-bar { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center; margin: .6rem 0; }
+.cal-range { text-transform: capitalize; min-width: 0; }
+.cal-views { display: inline-flex; gap: .3rem; }
+.cal-new { margin-left: auto; }
+.cal-edit { border: 1px solid var(--accent-line, var(--line)); border-radius: var(--radius); padding: .7rem .8rem; margin: .5rem 0 .8rem; }
+.cal-edit h3 { margin: 0 0 .5rem; overflow-wrap: anywhere; }
+.cal-form { display: flex; flex-direction: column; gap: .55rem; }
+.cal-row { display: flex; flex-wrap: wrap; gap: .6rem; align-items: flex-end; }
+.cal-field { display: flex; flex-direction: column; gap: .2rem; min-width: 0; }
+.cal-field > span { font-size: .78rem; color: var(--muted); }
+.cal-field input[type=text], .cal-field textarea { width: 100%; box-sizing: border-box; }
+.cal-check { display: flex; gap: .4rem; align-items: center; padding-bottom: .35rem; }
+.cal-agenda { display: flex; flex-direction: column; gap: .7rem; }
+.cal-group h4 { margin: 0 0 .3rem; text-transform: capitalize; }
+.cal-group.today h4 { color: var(--accent); }
+.cal-item { display: grid; grid-template-columns: 6.6rem 1fr; gap: .1rem .6rem; width: 100%; text-align: left; align-items: baseline;
+  border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: var(--radius); padding: .4rem .6rem; margin: .25rem 0;
+  background: transparent; color: var(--text); font: inherit; }
+button.cal-item { cursor: pointer; }
+.cal-item.rem { border-left-color: var(--warn); }
+.cal-item.ext { border-left-color: var(--muted); border-style: dashed; border-left-style: solid; }
+.cal-when { font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
+.cal-what { font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
+.cal-tags { grid-column: 2; font-size: .82rem; overflow-wrap: anywhere; }
+.cal-month { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+.cal-wd { text-align: center; font-size: .78rem; text-transform: capitalize; padding: .2rem 0; }
+.cal-cell { display: flex; flex-direction: column; align-items: stretch; gap: 2px; min-height: 5.2rem; min-width: 0; padding: .25rem;
+  border: 1px solid var(--line); border-radius: 6px; background: transparent; color: var(--text); font: inherit; text-align: left; cursor: pointer; overflow: hidden; }
+.cal-cell.out { opacity: .45; }
+.cal-cell.today .cal-num { color: var(--accent); font-weight: 700; }
+.cal-cell.picked { border-color: var(--accent); }
+.cal-num { font-size: .82rem; }
+.cal-chip { font-size: .72rem; line-height: 1.25; padding: 1px 4px; border-radius: 4px; background: var(--accent-soft, var(--chip-bg)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-chip.rem { background: transparent; border: 1px solid var(--warn); }
+.cal-chip.ext { background: transparent; border: 1px dashed var(--muted); }
+.cal-more { font-size: .72rem; }
+.cal-day { margin-top: .7rem; }
+.cal-day h4 { text-transform: capitalize; margin: 0 0 .3rem; }
+.cal-files { margin-top: 1.2rem; }
+.cal-files summary { cursor: pointer; }
+.cal-files a { display: inline-block; border: 1px solid var(--line); border-radius: var(--radius); padding: .3rem .7rem; text-decoration: none; color: var(--text); }
+.cal-bubble p { margin: .2rem 0 .5rem; overflow-wrap: anywhere; }
+/* a phone: the month's cells show dots, the day's list below says the rest */
+@media (max-width: 640px) {
+  .cal-new { margin-left: 0; }
+  .cal-cell { min-height: 3.2rem; padding: .15rem; }
+  .cal-chip { font-size: 0; height: 6px; padding: 0; border-radius: 3px; }
+  .cal-more { font-size: .65rem; }
+  .cal-item { grid-template-columns: 1fr; }
+  .cal-tags { grid-column: 1; }
+}

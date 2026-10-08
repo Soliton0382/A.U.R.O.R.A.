@@ -59,6 +59,7 @@ TEXTS = {   # event -> (kind the owner chooses, view to open, {lang: title})
     "dj.done": ("creation", "dj", {"it": "🎧 Il tuo mix è pronto", "en": "🎧 Your mix is ready"}),
     "dj.failed": ("creation", "dj", {"it": "🎧 Il mix non è riuscito", "en": "🎧 The mix failed"}),
     "diet.meal": ("diet", "chat", {"it": "🍽️ È ora di mangiare", "en": "🍽️ Time to eat"}),
+    "calendar.alert": ("calendar", "chat", {"it": "📅 Promemoria", "en": "📅 Reminder"}),
     "video.done": ("creation", "chat", {"it": "🎬 Il tuo video è pronto", "en": "🎬 Your video is ready"}),
     "video.failed": ("creation", "chat", {"it": "🎬 Il video non è riuscito", "en": "🎬 The video failed"}),
     "backup.failed": ("backup", "status", {"it": "💾 Il backup non è riuscito", "en": "💾 The backup failed"}),
@@ -100,11 +101,12 @@ KINDS = {   # what the owner chooses from, in the Notifications page
     "project": {"it": "Progetti (avanzamento e resoconti)", "en": "Projects (progress and reports)"},
     "diet": {"it": "Pasti (il piatto consigliato dal piano alimentare, se i promemoria sono accesi)",
              "en": "Meals (the dish the diet plan proposes, when the reminders are on)"},
+    "calendar": {"it": "Calendario (appuntamenti e promemoria di Aurora)", "en": "Calendar (Aurora's appointments and reminders)"},
 }
 # the machine's: only the admin chooses them (a user is not told of the backup or the firewall)
 MACHINE = {"incident", "update", "self_review", "harvest", "plugin", "backup", "backup_ok", "cloud", "health"}
 PRESETS = {"suggested": ["incident", "approval", "update", "dream", "review", "self_review", "routine", "weather", "plugin", "creation", "backup",
-                         "cloud", "health", "access", "social", "project", "diet"],
+                         "cloud", "health", "access", "social", "project", "diet", "calendar"],
            "all": list(KINDS), "none": []}
 KNOWN_BEFORE = ["incident", "approval", "update", "dream", "self_review", "thought", "harvest"]   # prefs saved without "known"
 CHANNELS = ("push", "webui")
@@ -214,7 +216,9 @@ def message(event: str, payload: dict, cfg: sys_config.Config, channel: str = "p
     lang = "it" if str(cfg["AURORA_LANG_DEFAULT"]).startswith("it") else "en"
     body = str(payload.get("text") or payload.get("title") or "").strip()
     body = body if len(body) <= 180 else body[:177].rsplit(" ", 1)[0] + "…"
-    return {"title": titles[lang], "body": body, "view": view, "tag": f"aurora-{kind}"}
+    # two alerts of the calendar at the same minute: each its own notification, not the second over the first
+    tag = f"aurora-{kind}" + (f"-{payload['key']}" if kind == "calendar" and payload.get("key") else "")
+    return {"title": titles[lang], "body": body, "view": view, "tag": tag}
 
 
 HISTORY_MAX = 500

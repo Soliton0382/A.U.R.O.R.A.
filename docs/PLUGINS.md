@@ -5,27 +5,32 @@ Generated from `sys/plugins/*/plugin.json` by `sys/core/script/doc_plugins.py`: 
 | plugin | kind | tools (effect) | needs |
 |---|---|---|---|
 | `backup` | service | — | — |
-| `calendar` | connector | calendar_agenda (read), calendar_add_event (external) | — |
+| `calendar` | tool | calendar_agenda (read), calendar_add (write_local), calendar_remind (write_local), calendar_change (write_local), calendar_delete (write_local), calendar_add_event (external) | — |
 | `cinema` | tool | — | AURORA_TMDB_TOKEN |
 | `cloud` | connector | — | — |
+| `cloudflare` | connector | cloudflare_status (read), cloudflare_check (read), cloudflare_activate (external) | AURORA_CLOUDFLARE_ACCOUNT_ID, AURORA_CLOUDFLARE_API_TOKEN |
 | `diary` | tool | — | — |
 | `discord` | connector | discord_read (read), discord_send (external) | AURORA_DISCORD_BOT_TOKEN, AURORA_DISCORD_CHANNEL_ID |
+| `dj` | tool | dj_styles (read), dj_tracks (read) | — |
 | `documents` | tool | create_pdf (write_local), list_documents (read) | — |
 | `dropbox` | connector | dropbox_list (read), dropbox_search (read), dropbox_read (read), dropbox_upload (external) | AURORA_DROPBOX_APP_KEY, AURORA_DROPBOX_APP_SECRET, AURORA_DROPBOX_REFRESH_TOKEN |
 | `email` | connector | list_unread (read), read_message (read), send_email (external) | AURORA_EMAIL_IMAP_HOST, AURORA_EMAIL_USER, AURORA_EMAIL_PASSWORD |
+| `email_diag` | tool | — | — |
 | `expenses` | tool | expense_list (read), expense_summary (read) | — |
-| `cloudflare` | connector | cloudflare_status (read), cloudflare_check (read), cloudflare_activate (external) | AURORA_CLOUDFLARE_ACCOUNT_ID, AURORA_CLOUDFLARE_API_TOKEN |
 | `facebook` | connector | publish_post (external), page_info (read), list_posts (read), page_stats (read), list_comments (read), reply_comment (external), update_page_info (external), set_welcome_message (external), publish_photo (external) | AURORA_FACEBOOK_PAGE_ID, AURORA_FACEBOOK_PAGE_TOKEN |
 | `github` | connector | get_* (read), list_* (read), search_* (read), everything else (external) | AURORA_GITHUB_TOKEN |
+| `health` | tool | health_list (read), health_read (read), health_values (read), health_doctors (read), health_diet (read) | — |
 | `homeassistant` | connector | states (read), call_service (external) | AURORA_HA_URL, AURORA_HA_TOKEN |
 | `instagram` | connector | ig_account (read), ig_recent (read), ig_publish_photo (external) | AURORA_FACEBOOK_PAGE_ID, AURORA_FACEBOOK_PAGE_TOKEN |
+| `logs` | tool | — | — |
 | `mastodon` | connector | account_stats (read), post_status (external) | AURORA_MASTODON_URL, AURORA_MASTODON_TOKEN |
 | `netintel` | tool | rdap_ip (read), reverse_dns (read), ip_reputation (read) | — |
 | `news` | tool | — | — |
 | `nextcloud` | connector | files_list (read), files_read (read), files_upload (external) | AURORA_WEBDAV_URL, AURORA_WEBDAV_USER, AURORA_WEBDAV_PASSWORD |
 | `notes` | tool | notes_list (read), notes_search (read), notes_read (read), notes_write (write_local) | — |
 | `projects` | tool | project_list (read), project_tree (read), project_read_file (read), project_status (read), project_create (write_local), project_write_file (write_local), project_commit (write_local), project_publish (external), project_push (external) | — |
-| `security` | tool | — | — |
+| `pyenv` | tool | — | — |
+| `security` | tool | firewall_docs_refresh (write_local), firewall_plan_request (write_local), firewall_plan_publish (write_local), firewall_plan_unpublish (write_local), firewall_plan_quarantine (write_local), firewall_plan_release (write_local), firewall_plan_harden (write_local), firewall_apply (external), firewall_revert (external) | — |
 | `self` | tool | list_files (read), read_file (read), search_code (read), logs_inventory (read), read_log (read), sandbox_read (read), sandbox_diff (read), sandbox_create (write_local), sandbox_replace (write_local), sandbox_write (write_local), run_tests (write_local) | — |
 | `senses` | tool | devices (read), look (external), listen (external) | — |
 | `telegram` | connector | send_message (external), get_me (read), get_updates (read) | AURORA_TELEGRAM_BOT_TOKEN |
@@ -61,9 +66,13 @@ Nightly backup of your data to another disk or the NAS: encrypted, deduplicated,
 
 ## calendar
 
-Your calendars: ICS links read only (Google, Outlook, any .ics) and one CalDAV calendar read and written (Nextcloud, iCloud, Fastmail). Adding an event waits for your approval.
+Aurora's own calendar, always there: appointments and reminders (repeated too), told with a notification and in the chat; your agenda (what you have today, tomorrow, this week). Beside it, if you want, your calendars: ICS links read only (Google, Outlook, any .ics) and one CalDAV calendar (Nextcloud, iCloud, Fastmail), where adding waits for your approval.
 
 ### Setup (EN)
+
+**Aurora's calendar needs nothing:** it is already on (the 📅 Calendar page, or in the chat "remind me tomorrow at 9 to…"). It is kept in `usr/<user>/calendar`, sealed with a key of yours.
+
+**Your other calendars, if you want them beside it:**
 
 **Read only (simplest):** Google Calendar → calendar settings → *Secret address in iCal format*; Outlook → Calendar → Share → *ICS*. Paste one or more links in `AURORA_CALENDAR_ICS_URLS`, comma separated. They are secret links: Aurora never shows them.
 
@@ -75,6 +84,10 @@ Your calendars: ICS links read only (Google, Outlook, any .ics) and one CalDAV c
 Press **▶ Try** on `calendar_agenda`.
 
 ### Configurazione (IT)
+
+**Il calendario di Aurora non chiede niente:** è già attivo (pagina 📅 Calendario, o in chat «ricordami domani alle 9 di…»). Sta in `usr/<utente>/calendar`, cifrato con una chiave tua.
+
+**I tuoi altri calendari, se vuoi vederli accanto:**
 
 **Solo lettura (il più semplice):** Google Calendar → Impostazioni del calendario → *Indirizzo segreto in formato iCal*; Outlook → Calendario → Condividi → *ICS*. Incolla uno o più link in `AURORA_CALENDAR_ICS_URLS`, separati da virgole. Sono link segreti: Aurora non li mostra mai.
 
@@ -120,11 +133,11 @@ Cloud AI providers (Anthropic, Claude Code, Google Gemini, xAI Grok, OpenAI, Mis
 
 ### Setup (EN)
 
-Paste the keys of the providers you want (only those you assign in the 🧠 Models page). Claude Code uses your subscription. Masking is on by default; pictures cannot be masked.
+Paste the keys of the providers you want (only those you assign in the 🧠 Models page). Claude Code uses your subscription. Masking is always on (no setting turns it off): addresses, e-mails, phones, IBANs, cards, keys, tax codes, VAT numbers, car plates, street addresses, documents, dates of birth, passwords become placeholders and come back in the answer; pictures cannot be masked.
 
 ### Configurazione (IT)
 
-Incolla qui sotto le chiavi dei provider che vuoi usare (servono solo quelli che assegnerai nella pagina 🧠 Modelli). Claude Code usa il tuo abbonamento, senza chiave. Le chiavi restano nel `.env` (permessi 0600) e le vede solo questo plugin. **Mascheramento** (`AURORA_CLOUD_MASK`, acceso per default): IP, email, telefoni, IBAN, carte, chiavi, i tuoi dati e le parole di `AURORA_CLOUD_MASK_WORDS` diventano segnaposto prima di partire e tornano veri nella risposta. Le **immagini** non si possono mascherare: se assegni la visione a un provider cloud, le tue foto (volti, documenti) arrivano a lui così come sono.
+Incolla qui sotto le chiavi dei provider che vuoi usare (servono solo quelli che assegnerai nella pagina 🧠 Modelli). Claude Code usa il tuo abbonamento, senza chiave. Le chiavi restano nel `.env` (permessi 0600) e le vede solo questo plugin. **Mascheramento** (sempre acceso, nessuna impostazione lo spegne): IP, email, telefoni, IBAN, carte, chiavi, codice fiscale, partita IVA, targhe, indirizzi, documenti, date di nascita, password, i tuoi dati e le parole di `AURORA_CLOUD_MASK_WORDS` diventano segnaposto prima di partire e tornano veri nella risposta. Le **immagini** non si possono mascherare: se assegni la visione a un provider cloud, le tue foto (volti, documenti) arrivano a lui così come sono.
 
 ### Official guides
 
@@ -134,6 +147,64 @@ Incolla qui sotto le chiavi dei provider che vuoi usare (servono solo quelli che
 - [OpenAI API keys](https://platform.openai.com/api-keys)
 - [Mistral console](https://console.mistral.ai/api-keys)
 - [OpenRouter keys](https://openrouter.ai/settings/keys)
+
+## cloudflare
+
+Aurora reachable everywhere with Cloudflare One (WARP), with no port opened: «Save» creates the tunnel, the private routes, WARP's rules and starts the service; the state and what is missing are read by Aurora (written by herself through the forge, 7 October 2026).
+
+### Setup (EN)
+
+**Aurora reachable everywhere, at home and away, with no port opened on the router.** The phone uses the free *Cloudflare One* app; Aurora does the rest by herself when you press **Save**. About 15 minutes, once.
+
+**A. A Cloudflare Zero Trust account (free)**
+1. Go to **dash.cloudflare.com** and sign up (or log in).
+2. In the left menu open **Zero Trust**. The first time it asks for a **team name** (e.g. *smith-home*): note it, the phone needs it. Choose the **Free** plan (up to 50 users).
+3. Who may connect a device: Zero Trust → **Settings → WARP Client → Device enrollment permissions → Manage → Add a rule**: *Include* → *Emails* → your e-mail (and your family's). Save.
+
+**B. Aurora's key (API token)**
+4. Top right: profile icon → **My Profile → API Tokens → Create Token → Create Custom Token**.
+5. Name *Aurora*; permissions: **Account · Cloudflare Tunnel · Edit** and **Account · Zero Trust · Edit**; *Account Resources*: your account. **Continue to summary → Create Token**, copy it (shown once).
+6. The **Account ID**: dashboard home, on your account's name → **⋯ → Copy account ID**.
+
+**C. Once on Aurora's computer**
+7. In a terminal in Aurora's folder: `sudo bash sys/deploy/cloudflared/install.sh` — installs *cloudflared* and the *aurora-tunnel* service. It asks nothing.
+
+**D. In Aurora: Save**
+8. Here, the plugin's **⚙️ Settings**: paste the **Account ID** and the **API token**. If you open Aurora by a name (e.g. *aurora.home.example*) set the **domain** and the **home DNS** that resolves it (usually the router).
+9. **Save** (plugin on): Aurora creates the tunnel, the routes, WARP's rules, fetches the tunnel's token and starts the service; a 🌐 notification says how it went; **▶ Try** *cloudflare_status*: the tunnel **healthy**.
+
+**E. On the phone**
+10. Install **Cloudflare One** → *Log in with Cloudflare Zero Trust* → the **team name** → your e-mail → the code. Switch it on.
+11. Wi-Fi off, open Aurora at the same address as at home: it answers in 4G too, with a valid padlock.
+
+**Don't**: add *Published application routes* (public hostnames) to the tunnel — they put Aurora on the Internet; Aurora warns you if there are any.
+
+### Configurazione (IT)
+
+**Aurora raggiungibile ovunque, a casa e fuori, senza aprire porte sul router.** Il telefono usa l'app gratuita *Cloudflare One*; Aurora fa tutto il resto da sola quando premi **Salva**. Tempo: circa 15 minuti, una volta.
+
+**A. Un account Cloudflare Zero Trust (gratis)**
+1. Vai su **dash.cloudflare.com** e crea un account (o accedi).
+2. Nel menu a sinistra apri **Zero Trust**. La prima volta chiede un **nome del team** (es. *casa-rossi*): scegline uno e annotalo, servirà sul telefono. Scegli il piano **Free** (fino a 50 utenti).
+3. Chi può collegare un dispositivo: in Zero Trust → **Settings → WARP Client → Device enrollment permissions → Manage → Add a rule**: *Include* → *Emails* → la tua e-mail (e quella di chi in famiglia usa Aurora). Salva.
+
+**B. La chiave per Aurora (token API)**
+4. In alto a destra: icona del profilo → **My Profile → API Tokens → Create Token → Create Custom Token** (in fondo alla pagina).
+5. Nome: *Aurora*. Permessi, due righe: **Account · Cloudflare Tunnel · Edit** e **Account · Zero Trust · Edit**. *Account Resources*: il tuo account. **Continue to summary → Create Token** e copia il token (si vede una volta sola).
+6. L'**Account ID**: nella home della dashboard, sul nome del tuo account → menu **⋯ → Copy account ID**.
+
+**C. Una volta sul computer di Aurora**
+7. In un terminale nella cartella di Aurora: `sudo bash sys/deploy/cloudflared/install.sh` — installa *cloudflared* e il servizio *aurora-tunnel*. Non chiede nulla.
+
+**D. In Aurora: Salva**
+8. Qui, **⚙️ Impostazioni** del plugin: incolla **Account ID** e **token API**. Se apri Aurora con un nome (es. *aurora.casa.it*) metti il **dominio** (*casa.it*) e il **DNS di casa** che lo risolve (di solito il router, es. 192.168.1.1). L'indirizzo del computer Aurora lo trova da sola.
+9. **Salva** (il plugin acceso): Aurora crea il tunnel, le rotte, le regole di WARP, scarica il token del tunnel e avvia il servizio. Arriva una notifica 🌐 con l'esito; **▶ Prova** su *cloudflare_status*: il tunnel **healthy**.
+
+**E. Sul telefono**
+10. Installa **Cloudflare One** (Android / iOS) → *Accedi con Cloudflare Zero Trust* → il **nome del team** del passo 2 → la tua e-mail → il codice che ti arriva. Attiva l'interruttore.
+11. Spegni il Wi-Fi e apri Aurora con lo stesso indirizzo di casa: risponde anche in 4G, con il lucchetto valido.
+
+**Da non fare**: non aggiungere *Published application routes* (hostname pubblici) al tunnel — metterebbero Aurora su Internet; Aurora te lo segnala se ce ne sono.
 
 ## diary
 
@@ -170,6 +241,18 @@ One channel of your Discord server through a bot: read the latest messages and w
 ### Official guides
 
 - [Discord Developer Portal](https://discord.com/developers/applications)
+
+## dj
+
+Aurora's DJ: a remix of a track of yours in a style (techno, trance, vocal trance, techno-trance, house, rock, chill) or a mix of several tracks at one tempo. All local, sounds made by Aurora.
+
+### Setup (EN)
+
+Nothing to set up: tracks in `usr/<user>/music`, mixes in `music/mixes` (`AURORA_MUSIC_DIR`). The DJ reads tempo and key, brings the track to the style's BPM when it has a steady beat (else it keeps its own time) and adds drums, bass and pads made by Aurora, in the track's key.
+
+### Configurazione (IT)
+
+Niente da configurare: i brani stanno in `usr/<utente>/music`, i mix in `music/mixes` (`AURORA_MUSIC_DIR`). Il DJ analizza tempo e tonalità, porta il brano al BPM dello stile quando ha un battito regolare (altrimenti lo lascia nel suo tempo) e aggiunge batteria, basso e pad creati da Aurora, nella tonalità del brano.
 
 ## documents
 
@@ -232,6 +315,10 @@ Inviare una mail è un'azione esterna: passa sempre dalla tua approvazione e por
 - [Gmail – password per le app](https://support.google.com/accounts/answer/185833)
 - [Crea password per le app](https://myaccount.google.com/apppasswords)
 - [Gmail – impostazioni IMAP](https://support.google.com/mail/answer/7126229)
+
+## email_diag
+
+Read only diagnosis of the email plugin: whether it is installed and configured (variable names only, never values), how its recent calls went in Aurora's traces and logs, and the latest errors. It explains why reading the mailbox failed.
 
 ## expenses
 
@@ -308,6 +395,18 @@ Tutto ciò che scrive su GitHub (commit, issue, pull request, push) passa da **R
 - [Guida ufficiale ai token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)
 - [GitHub MCP server (ufficiale)](https://github.com/github/github-mcp-server)
 
+## health
+
+Your health, sealed: the dietitian's plans, the trainer's programmes, medical exams. Aurora reads them to answer you ("what do I eat tonight?", "how was my cholesterol?") and records your notes. Only the local model sees them, never the cloud.
+
+### Setup (EN)
+
+Nothing to set up. Documents are in `usr/<user>/health`, sealed (AES-256-GCM) with a key of yours kept apart; both are in the encrypted backup. The plugin has no network and answers only to the local model: if the Models page sends the "agent" step to the cloud, it refuses. It protects the data at rest (other users, a copy of the folder), not against root on this machine.
+
+### Configurazione (IT)
+
+Niente da configurare. I documenti stanno in `usr/<utente>/health` cifrati (AES-256-GCM) con una chiave tua, tenuta a parte; entrambi finiscono nel backup cifrato. Il plugin non ha rete e risponde solo al modello locale: se nella pagina 🧠 Modelli il passaggio «agent» va al cloud, si rifiuta. Protegge i dati a riposo (altri utenti, una copia della cartella), non da root su questa macchina.
+
 ## homeassistant
 
 The owner's Home Assistant: read the state of devices and sensors; commands to devices act on the physical world and wait for the owner.
@@ -359,6 +458,10 @@ Le foto: Instagram accetta solo JPEG da un indirizzo pubblico. Aurora converte l
 ### Official guides
 
 - [Instagram Graph API — Content publishing](https://developers.facebook.com/docs/instagram-platform/content-publishing)
+
+## logs
+
+Aurora's logs, read only: for each component, how many lines per level (WARNING, ERROR, CRITICAL…) over a time window, and the latest warnings and errors. Rotated .gz copies included.
 
 ## mastodon
 
@@ -450,9 +553,13 @@ Funziona subito in locale (`usr/projects`). Per **pubblicare** su GitHub serve i
 
 - [Token GitHub (serve per pubblicare)](https://github.com/settings/personal-access-tokens)
 
+## pyenv
+
+Aurora's Python environment, read only: Python and installed library versions, the dependencies a project declares compared with what is installed, and whether the cryptography library offers ML-KEM-768, X25519 and HKDF-SHA256. It runs a short self-test in memory and does not change anything.
+
 ## security
 
-What the firewall saw, read only: the incidents raised by the sentinel and a summary of the firewall's traffic over a window (allowed and denied, IPS events, busiest denied sources and ports), and a morning report of the night.
+The house's security officer on the firewall: incidents and traffic, an audit of the configuration (published services, IPS, administration, blocking rule), threat hunting in the logs (beaconing, lateral movement, threat-protection matches judged, dubious domains, admin logins and changes), the security posture with playbooks, the firewall's manual and API searched on this machine, and changes — publish a server, quarantine a device, harden a rule — planned by Aurora and applied only with the owner's approval, undone by themselves if anything fails.
 
 ### Setup (EN)
 

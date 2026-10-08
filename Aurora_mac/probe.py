@@ -1,0 +1,184 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 A.U.R.O.R.A. Project
+"""The port on a REAL machine (owner, 2026-10-08: «non ho né un Mac né un Windows»): every read of the platform backend
+called for real and, where a right answer is known, checked against the machine itself — a socket opened here must be
+in listening(), a lock held by one process must stop another, a system folder is the administrators' and a temporary
+one is not, a file replaced while another reads it, text with accents through run().
+
+    python probe.py BUILT_TREE [--json FILE]        (build.py --probe calls it on the tree it built)
+
+Prints one line per check (ok / FAIL / info) and exits 1 when a check fails. Services are not started here: the
+installer (phase 3) registers them. The same file in both ports."""
+from __future__ import annotations
+
+import json
+import os
+import socket
+import subprocess
+import sys
+import tempfile
+import threading
+import time
+import traceback
+from pathlib import Path
+
+ROWS: list[dict] = []
+
+
+def check(name: str, fn, expect=None):
+    """fn() -> value; expect(value) -> True | str (why not). No expectation: recorded as info."""
+    t0 = time.time()
+    try:
+        v = fn()
+        why = True if expect is None else expect(v)
+        status = "info" if expect is None else ("ok" if why is True else "FAIL")
+        row = {"check": name, "status": status, "value": _short(v), "seconds": round(time.time() - t0, 3)}
+        if why is not True and expect is not None:
+            row["why"] = str(why)
+    except Exception as e:  # noqa: BLE001 — a probe records, never stops
+        row = {"check": name, "status": "FAIL", "error": f"{type(e).__name__}: {e}"[:400],
+               "trace": traceback.format_exc()[-800:], "seconds": round(time.time() - t0, 3)}
+    ROWS.append(row)
+    print(f"{row['status']:4} {name:34} {row.get('why') or row.get('error') or row['value']}"[:220], flush=True)
+    return row
+
+
+def _short(v):
+    try:
+        s = json.dumps(v, default=str, ensure_ascii=False)
+    except (TypeError, ValueError):
+        s = repr(v)
+    return s if len(s) <= 300 else s[:297] + "..."
+
+
+def _lock_holder(core: str, path: str, ready: str, release: str) -> list[str]:
+    code = ("import sys,time,pathlib; sys.path.insert(0, %r)\nfrom aurora import sys_platform\np = sys_platform.current()\n"
+            "fh = open(%r, 'a+', encoding='utf-8')\np.lock(fh)\npathlib.Path(%r).write_text('1')\n"
+            "while not pathlib.Path(%r).exists(): time.sleep(0.05)\np.unlock(fh)\nfh.close()\n") % (core, path, ready, release)
+    return [sys.executable, "-c", code]
+
+
+def main() -> int:
+    tree = Path(sys.argv[1]).resolve()
+    out_json = Path(sys.argv[sys.argv.index("--json") + 1]) if "--json" in sys.argv else None
+    core = str(tree / "sys" / "core")
+    sys.path.insert(0, core)
+    from aurora import sys_platform
+    p = sys_platform.current()
+    tmp = Path(tempfile.mkdtemp(prefix="aurora-probe-"))
+    print(f"== {p.name} backend on {sys.platform}, Python {sys.version.split()[0]}, {tree}")
+
+    # ---- the machine
+    check("os_info", p.os_info, lambda v: isinstance(v, dict) and bool(v) or "empty")
+    check("machine_id stable", lambda: (p.machine_id(), p.machine_id()), lambda v: v[0] == v[1] and len(v[0]) >= 8 or "unstable or short")
+    check("is_admin", p.is_admin, lambda v: isinstance(v, bool) or "not a bool")
+    check("memory", p.memory, lambda v: 0 < v.get("used_mib", -1) <= v.get("total_mib", 0) or str(v))
+
+    def cpu_twice():
+        a = p.cpu_times()
+        sum(i * i for i in range(2_000_000))
+        return a, p.cpu_times()
+    check("cpu_times grow", cpu_twice, lambda v: v[1][1] > v[0][1] or "total did not grow")
+    check("gpus", p.gpus, lambda v: isinstance(v, list) or "not a list")
+    check("accelerator", p.accelerator, lambda v: v in ("cuda", "metal", "cpu") or f"unknown {v}")
+    check("gpu_free_mib(0)", lambda: p.gpu_free_mib(0), lambda v: v is None or v >= 0 or "negative")
+
+    # ---- the network: a socket of ours must be seen listening
+    srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    srv.bind(("127.0.0.1", 0))
+    srv.listen()
+    port = srv.getsockname()[1]
+    check("listening sees our socket", p.listening,
+          lambda v: any(str(x.get("port")) == str(port) and x.get("proto") == "tcp" for x in v) or f"port {port} not among {len(v)}")
+    srv.close()
+    check("own_addresses", p.own_addresses, lambda v: bool(v) and all(isinstance(a, str) for a in v) or "empty")
+    root = Path(os.environ.get("SystemDrive", "C:") + "\\") if sys.platform == "win32" else Path("/")
+    check("is_mount(root)", lambda: p.is_mount(root), lambda v: v is True or "root not a mount")
+    check("is_mount(temp folder)", lambda: p.is_mount(tmp), lambda v: v is False or "a temp folder seen as a mount")
+
+    # ---- files: trust, locks, replace, text
+    check("key_dir absolute", p.key_dir, lambda v: Path(v).is_absolute() or "relative")
+    check("temp folder NOT admin-only", lambda: p.trusted_by_admin_only(tmp), lambda v: v[0] is False or f"trusted: {v[1]}")
+    sysdir = Path(os.environ.get("SystemRoot", r"C:\Windows")) / "System32" if sys.platform == "win32" else Path("/usr/bin")
+    check("system folder admin-only", lambda: p.trusted_by_admin_only(sysdir), lambda v: v[0] is True or f"not trusted: {v[1]}")
+
+    lockf, ready, release = tmp / "budget.json", tmp / "ready", tmp / "release"
+    lockf.write_text("{}", encoding="utf-8")
+
+    def contention():
+        holder = subprocess.Popen(_lock_holder(core, str(lockf), str(ready), str(release)))
+        for _ in range(200):
+            if ready.exists():
+                break
+            time.sleep(0.05)
+        with open(lockf, "a+", encoding="utf-8") as fh:
+            while_held = p.lock(fh, wait=False)
+            release.write_text("1")
+            holder.wait(timeout=30)
+            after = p.lock(fh, wait=False)
+            if after:
+                p.unlock(fh)
+        return {"while_held": while_held, "after_release": after, "content": lockf.read_text(encoding="utf-8")}
+    check("lock stops another process", contention,
+          lambda v: (v["while_held"] is False and v["after_release"] is True and v["content"] == "{}") or str(v))
+
+    def replace_while_read():
+        dst, src = tmp / "state.json", tmp / "state.json.tmp"
+        dst.write_text("old", encoding="utf-8")
+        src.write_text("new è", encoding="utf-8")
+        reader = open(dst, encoding="utf-8")
+        threading.Timer(0.3, reader.close).start()          # a reader that lets go a moment later (Windows: busy)
+        p.replace(src, dst)
+        return dst.read_text(encoding="utf-8")
+    check("replace while read", replace_while_read, lambda v: v == "new è" or repr(v))
+    check("run: text with accents", lambda: p.run([sys.executable, "-c", "print('àèìòù €')"], 30).out.strip(),
+          lambda v: v == "àèìòù €" or repr(v))
+    check("process_env", p.process_env, lambda v: (sys.platform != "win32" or v.get("PYTHONUTF8") == "1") or "no PYTHONUTF8")
+
+    def venv():
+        v = tmp / "venv"
+        subprocess.run([sys.executable, "-m", "venv", "--without-pip", str(v)], check=True, timeout=120)
+        return str(p.venv_python(v)), p.venv_python(v).exists()
+    check("venv_python of a real venv", venv, lambda v: v[1] or f"{v[0]} missing")
+    check("runtime_dir", p.runtime_dir, None)
+    check("bold_font", p.bold_font, lambda v: v is None or Path(v).exists() or f"{v} missing")
+    check("fonts", p.fonts, None)
+    check("ffmpeg_path with ':'", lambda: p.ffmpeg_path(tmp / "a:b.png"), None)
+    check("dictionaries", p.dictionaries, None)
+
+    # ---- devices (a runner has none: no error is the check)
+    check("cameras", p.cameras, lambda v: isinstance(v, list) or "not a list")
+    check("microphones", p.microphones, lambda v: isinstance(v, list) or "not a list")
+
+    # ---- services: read only (none is installed on a fresh machine)
+    for name in ("service_state", "service_info", "service_next_run", "service_command"):
+        check(f"{name}(not installed)", lambda n=name: getattr(p, n)("aurora-api"), None)
+    check("service_action refuses others'", lambda: _refused(p), lambda v: v is True or "a foreign unit was accepted")
+
+    # ---- what the owner reads
+    check("sandbox", p.sandbox, None)
+    check("host_firewall", p.host_firewall, None)
+    check("install_hint(ffmpeg)", lambda: p.install_hint("ffmpeg"), lambda v: bool(v) or "empty")
+    check("as_admin", lambda: p.as_admin("python x.py"), lambda v: bool(v) or "empty")
+    check("in_folder", lambda: p.in_folder(tmp, "python x.py"), lambda v: str(tmp) in v or "folder missing")
+
+    failed = [r for r in ROWS if r["status"] == "FAIL"]
+    print(f"== {len(ROWS)} checks: {sum(r['status'] == 'ok' for r in ROWS)} ok, {len(failed)} failed, "
+          f"{sum(r['status'] == 'info' for r in ROWS)} info")
+    if out_json:
+        out_json.write_text(json.dumps({"platform": sys.platform, "python": sys.version, "backend": p.name, "rows": ROWS},
+                                       ensure_ascii=False, indent=1), encoding="utf-8")
+    return 1 if failed else 0
+
+
+def _refused(p) -> bool:
+    try:
+        p.service_action("restart", ["sshd"])
+    except (ValueError, PermissionError, RuntimeError):
+        return True
+    return False
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -212,6 +212,11 @@ approve; `auto` — applied by itself when safe (no protected file of the code o
 green, otherwise it asks); `off`. An update is fast-forward only, installs the requirements when they
 change, runs the tests and goes back to the previous version if anything fails.
 
+**Versions.** Each version is a signed tag (`vX.Y.Z`) with its page among GitHub's *Releases*: the notes are its
+section of [CHANGELOG.md](CHANGELOG.md), the tag verified with the keys of `sys/core/config/allowed_signers` like every
+commit the updater accepts. **Mac and Windows** are being made (`Aurora_mac/`, `Aurora_windows/`, experimental, no
+installer yet): at each version GitHub builds them and tries them on a real Mac and Windows (the *Ports* workflow).
+
 ## Users: single or multi
 
 Each person who uses Aurora has their folder `usr/<name>/`, with the same tree for everyone (uploads, documents,

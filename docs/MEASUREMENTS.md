@@ -926,6 +926,38 @@ person) —, the shadow trained 20/20 in 22.3 min, reflections at 01:11, 02:55, 
 with 2 sources in 66.2 s, «cos'è l'entropia» with 2 in 56.5 s — both declined before the night (N77, the machine's
 part). Facebook: the owner's first video published (approval executed, 5.9 s). Security (C174/C175): see BUGS. The face beside the health dot (owner, same morning): /v1/aurora/mood 0.02 s from the REM's last measure (53 s old); headless at 1280×850 a mouse over it opens the card (7 rows, 124–544 px), away closes it; at 390×844 a tap opens it inside the screen (8–382 px, no sideways scroll), a tap elsewhere closes it.
 
+## M140 — Releases, one command, the ports in the repository (8 October 2026, roadmap 69)
+
+Before: the public repository had 100 signed commits, 0 tags, 0 releases (GitHub API), pyproject 0.1.0 since 1 Oct.
+A port built with its platform tests in 0.86 s (Windows, 18 tests): now a check of every publication. probe.py on
+this Linux machine (the reference backend): 37 checks, 27 ok, 0 failed, 10 info — our socket seen listening, a lock
+held by another process refused then granted, /usr/bin admin-only and a temp folder not, a file replaced while read,
+«àèìòù €» through run(), a real venv's python found. The release's delicate steps on a throw-away clone: the notes
+extracted by release.yml's own expression (103 lines for v0.2.0: 101 publications since 0.1.0), a tag signed with the
+owner's key verified against allowed_signers («Good "git" signature», ED25519); the signing config is the mirror's
+own (gpg.format ssh): a plain clone does not have it. publish.sh --check on the real mirror: every check green, the
+suite on the mirror, both ports built (77 rewrites each, the platform tests), 66 files to commit. Found on the way:
+AURORA_MIRROR read by a script but not a setting (test_structure: renamed AURORA_PUBLISH_MIRROR, listed as a
+process variable). Not measured: the workflows on GitHub (they run on the first tag), anything on a real Mac or
+Windows.
+
+## M139 — Aurora's own calendar (8 October 2026, roadmap 68, C201)
+
+Live, on the running service (items made for the test deleted after): the week read in 0.28 s (with the owner's one ICS
+link tried: outlook.live.com answers HTTP 500 with its «Error Page» to Aurora's, a browser's and Outlook's own user
+agent alike — the link, not Aurora: to publish again in Outlook); a reminder for the next minute told by the watcher at
+14:25:11 for 14:25 (it looks every 30 s), in the activity as calendar.alert, in /pending until answered, gone after
+«fatto». The chat's tools router, the same prompt and route model: 8 of 8 right (5 calendar phrases TOOLS, «cos'è un
+calendario gregoriano?», «come stai?», «quando è nato Einstein?» NO), 0.3–0.6 s each. The agent in the plugin's cage,
+remember off: «ricordami dopodomani alle 18:30 di portare la torta» → calendar_remind(when «2026-10-10 18:30»), a
+reminder at 18:30 of Saturday 10 (10.5 s); «cosa ho in agenda dopodomani?» → calendar_agenda, the reminder listed with
+its id (9.3 s). The calendar plugin was off in this installation (saved off, from when it was only the other
+calendars' reader): turned on through the plugins API (audited). Tests: test_calendar.py 14 (with test_ical), the
+whole suite 549 passed; the crossing test (another user): the calendar, its .ics and an item by id not seen (404).
+Ports, built from the mirror with this code: Mac 565 passed 1 skipped, Windows 566 passed 1 skipped, no Linux-only
+word or program left. Found by the test: C201 (a VALARM's description taken as the event's). Not measured: a
+notification on the owner's phone (N128), an .ics through Google's or Outlook's import (N130), the page on a phone.
+
 ## M138 — The voice in the real page, the reply, the ports' first measures (8 October 2026, C200)
 
 Voice: the real page through Caddy (its CSP), headless Chrome with the autoplay policy that needs a tap, a trusted tap

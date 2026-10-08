@@ -1,0 +1,46 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 A.U.R.O.R.A. Project
+#
+# A release from a tag pushed by sys/core/script/publish.sh --release X.Y.Z: the tag must be signed by a key of
+# sys/core/config/allowed_signers (the same check the updater makes on every commit), its notes are that version's
+# section of CHANGELOG.md. Nothing is built here: Aurora is installed from the source (install.sh); the Ports
+# workflow runs on the same tag.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: The tag is signed by an allowed key
+        run: |
+          git fetch --force origin "refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}"
+          git -c gpg.ssh.allowedSignersFile=sys/core/config/allowed_signers verify-tag "$GITHUB_REF_NAME"
+      - name: The version matches pyproject.toml
+        run: |
+          v=$(python3 -c "import tomllib;print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          [ "v$v" = "$GITHUB_REF_NAME" ] || { echo "tag $GITHUB_REF_NAME but pyproject.toml says $v"; exit 1; }
+      - name: Notes from CHANGELOG.md
+        run: |
+          python3 - <<'PY'
+          import os, pathlib, re
+          tag = os.environ["GITHUB_REF_NAME"]
+          text = pathlib.Path("CHANGELOG.md").read_text(encoding="utf-8")
+          m = re.search(rf"^## {re.escape(tag)}\b.*?$(.*?)(?=^## v|\Z)", text, re.S | re.M)
+          if not m:
+              raise SystemExit(f"CHANGELOG.md has no section for {tag}")
+          pathlib.Path("notes.md").write_text(m.group(1).strip() + "\n", encoding="utf-8")
+          PY
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" --verify-tag --title "Aurora $GITHUB_REF_NAME" --notes-file notes.md

@@ -561,6 +561,18 @@
    ]
   },
   {
+   "key": "AURORA_CALENDAR_DIR",
+   "type": "path",
+   "category": "attachments",
+   "recommended": "usr/calendar",
+   "evidence": "owner",
+   "en": "Aurora's own calendar (appointments and reminders), sealed with your own key.",
+   "it": "Il calendario di Aurora (appuntamenti e promemoria), cifrato con la tua chiave.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_EDIT_MODEL_DIR",
    "type": "path",
    "category": "attachments",
