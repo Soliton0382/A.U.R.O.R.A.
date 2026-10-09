@@ -1,0 +1,16 @@
+# Aurora's image (docker/Dockerfile): only the code. Never the owner's data, keys, models or environment.
+*
+!sys/core
+!sys/plugins
+!docker
+!requirements.txt
+!pyproject.toml
+!install.sh
+!LICENSE
+!NOTICE
+**/__pycache__
+**/*.pyc
+docker/.env
+sys/core/ethics/MANIFEST.json
+sys/core/ethics/exemption.sig
+sys/core/ethics/private_to_cloud.sig

@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 A.U.R.O.R.A. Project
+#
+# Aurora in Docker (cloud reasoner, no GPU). From the repository's root:
+#   cp docker/.env.example docker/.env     # then edit it: provider, key, address, ports
+#   docker compose -f docker/compose.yaml up -d --build
+#   docker compose -f docker/compose.yaml logs -f      # the address and the API key are printed when ready
+# Guide: docs/DOCKER.md
+services:
+  aurora:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: aurora:cloud
+    container_name: aurora
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      # the same port outside and inside: the addresses Caddy writes (redirects, the phones' certificate) stay right
+      - "${AURORA_HTTPS_PORT:-443}:${AURORA_HTTPS_PORT:-443}"
+      - "${AURORA_HTTP_PORT:-80}:${AURORA_HTTP_PORT:-80}"
+    volumes:
+      - aurora-data:/data
+    # a small machine: the encoder and re-ranker take ~5 GB while they work (M151, M152)
+    mem_limit: ${AURORA_MEMORY_LIMIT:-10g}
+
+volumes:
+  aurora-data:

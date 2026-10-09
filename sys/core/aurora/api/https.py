@@ -56,3 +56,17 @@ async def https_names(request: Request) -> dict:
         raise HTTPException(status_code=422, detail=str(e)) from None
     log.info("audit: HTTPS names now %s", ", ".join(out["names"]))
     return out
+
+
+@router.put("/v1/aurora/https/ports", dependencies=[Depends(admin_only)])
+async def https_ports(request: Request) -> dict:
+    """{"https": 8443, "http": 8080}: Aurora's ports; checked, then in use (the API restarts a moment after)."""
+    from aurora import net_https
+    body = await request.json()
+    try:
+        out = await asyncio.to_thread(net_https.set_ports, cfg, int(body.get("https", 0)), int(body.get("http", 0)))
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=422, detail="https and http: port numbers") from None
+    except net_https.HttpsError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
+    return out

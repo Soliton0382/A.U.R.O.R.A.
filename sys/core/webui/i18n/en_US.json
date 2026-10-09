@@ -1473,5 +1473,14 @@
   "mm.turn_off": "Switch the local reasoner off",
   "mm.turn_on": "Switch the local reasoner on",
   "bug.not_sent": "It has not been sent to anyone yet: it stays on this computer. To get it there, download the zip (⬇️) and send it to whoever looks after your Aurora, or open a GitHub issue (🐙) and attach it.",
-  "bug.past_hint": "They stay on this computer until you send them: tap a report to download it."
+  "bug.past_hint": "They stay on this computer until you send them: tap a report to download it.",
+  "https.ports": "Ports",
+  "https.ports_hint": "The HTTPS port is the one of the addresses above (443 = no number in the address); the HTTP port only serves the phones' certificate and the redirect to HTTPS. If another service on this computer already uses 443, choose another (e.g. 8443 and 8080).",
+  "https.port_https": "HTTPS",
+  "https.port_http": "HTTP",
+  "https.ports_save": "Change the ports",
+  "https.ports_q": "Aurora will move to port {p}: this page will stop answering and must be opened again from the new address, where the browser asks for the key or the login again. Phones and installed apps must be opened from the new address too. Go on?",
+  "https.ports_moved": "✅ Aurora now answers here:",
+  "https.ports_after": "This address no longer works. If the computer has a firewall, open the new ports (Linux: sudo ufw allow <port>/tcp; Windows: run install.ps1 again).",
+  "https.ports_docker": "Aurora runs in Docker: the ports are changed in docker/.env (AURORA_HTTPS_PORT, AURORA_HTTP_PORT), then «docker compose -f docker/compose.yaml up -d»."
 }

@@ -129,3 +129,43 @@ def test_the_end_of_an_installation_says_where_and_how_also_for_the_phone(https)
     sys_config.write_env(cfg.env_file, {"AURORA_DOMAIN": "localhost", "AURORA_DOMAIN_ALIASES": ""})
     alone = "\n".join(sys_ready.lines(net_https.fresh(cfg), False, pending=False))
     assert "https://localhost/" in alone and "phone" not in alone
+
+
+def test_other_ports_are_checked_then_used_and_a_failure_puts_everything_back(https, monkeypatch):
+    """Owner, 9 Oct: «voglio far usare ad aurora un'altra porta perchè sulla 443 ho altri servizi»."""
+    import socket
+    cfg, calls, run = https
+    restarts = []
+    monkeypatch.setattr(net_https, "restart_api_later", lambda: restarts.append(1))
+    with pytest.raises(net_https.HttpsError, match="different"):
+        net_https.set_ports(cfg, 8443, 8443)
+    with pytest.raises(net_https.HttpsError, match="Aurora's own"):
+        net_https.set_ports(cfg, int(cfg["AURORA_API_PORT"]), 8080)
+    with socket.socket() as busy:                                     # another program already there
+        busy.bind(("0.0.0.0", 0))
+        busy.listen()
+        with pytest.raises(net_https.HttpsError, match="already used"):
+            net_https.set_ports(cfg, busy.getsockname()[1], 8080)
+    out = net_https.set_ports(cfg, 8443, 8080)
+    assert out["changed"] and out["urls"] == ["https://aurora.example.com:8443/"] and restarts == [1]
+    assert (net_https.fresh(cfg)["AURORA_HTTPS_PORT"], net_https.fresh(cfg)["AURORA_HTTP_PORT"]) == (8443, 8080)
+    assert "aurora.example.com:8443 {" in net_https.caddyfile(cfg).read_text(encoding="utf-8")
+    assert ["systemctl", "restart", "aurora-https"] in calls        # new listeners: a restart, not a reload
+    # below 1024 only when Caddy's unit has the right to it (written so by the installer when it saw a low port)
+    unit = cfg.root / "sys" / "deploy" / "systemd" / "aurora-https.service"
+    unit.parent.mkdir(parents=True, exist_ok=True)
+    unit.write_text("[Service]\nExecStart=caddy run\n", encoding="utf-8")
+    with pytest.raises(net_https.HttpsError, match="install.sh"):
+        net_https.set_ports(cfg, 443, 80)
+    unit.write_text("[Service]\nAmbientCapabilities=CAP_NET_BIND_SERVICE\n", encoding="utf-8")
+    monkeypatch.setattr(net_https, "_in_use", lambda p: False)       # 80 may be taken on the machine running the suite
+    assert net_https.set_ports(cfg, 8444, 80)["changed"]               # allowed now
+    assert net_https.set_ports(cfg, 8443, 8080)["changed"]
+    # Caddy refuses the new ports: settings and Caddyfile as they were
+    run.fail = "restart"
+    n = len(calls)
+    with pytest.raises(net_https.HttpsError):
+        net_https.set_ports(cfg, 9443, 9080)
+    assert calls[n:].count(["systemctl", "restart", "aurora-https"]) == 2      # started again on the old file
+    assert net_https.fresh(cfg)["AURORA_HTTPS_PORT"] == 8443 and restarts == [1, 1, 1]   # no restart for the refused one
+    assert "aurora.example.com:8443 {" in net_https.caddyfile(cfg).read_text(encoding="utf-8")

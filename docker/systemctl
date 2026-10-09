@@ -1,0 +1,117 @@
+#!/opt/aurora/.venv/bin/python
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 A.U.R.O.R.A. Project
+"""systemctl inside Aurora's container: there is no systemd, the services are run by docker/entrypoint.py. The verbs
+Aurora uses (is-active, show, start, stop, restart, reload, daemon-reload, on her units and aurora.target) are answered
+from the supervisor's state (/run/aurora/state.json) and its command folder, so the Linux code runs unchanged: the
+Status page, the restarts after a change of settings, Caddy's reload. A unit that is not in the container (the backup,
+the tunnel, the NAS, the firewall) is «not found», as on a machine without it."""
+import json
+import os
+import sys
+import time
+import uuid
+from pathlib import Path
+
+RUN = Path("/run/aurora")
+
+
+def state() -> dict:
+    try:
+        return json.loads((RUN / "state.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def names(args: list[str], known: dict) -> list[str]:
+    out = []
+    for a in args:
+        u = a.removesuffix(".service")
+        out += list(known) if u == "aurora.target" or u == "aurora" else [u]
+    return out
+
+
+def memory(pid: int) -> str:
+    try:
+        import psutil
+        p = psutil.Process(pid)
+        return str(sum(c.memory_info().rss for c in [p, *p.children(recursive=True)]))
+    except Exception:                                  # noqa: BLE001 - gone, or psutil missing
+        return "[not set]"
+
+
+def main() -> int:
+    argv = sys.argv[1:]
+    props, value, block, rest = [], False, True, []
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a in ("-p", "--property"):
+            props += argv[i + 1].split(","); i += 2; continue
+        if a.startswith("--property="):
+            props += a.split("=", 1)[1].split(",")
+        elif a == "--value":
+            value = True
+        elif a == "--no-block":
+            block = False
+        elif not a.startswith("-"):
+            rest.append(a)
+        i += 1
+    if not rest:
+        return 0
+    verb, units = rest[0], rest[1:]
+    known = state()
+    if verb in ("daemon-reload", "enable", "disable", "reset-failed"):
+        return 0
+    if verb == "is-enabled":
+        print("\n".join("enabled" if n in known else "not-found" for n in names(units, known)))
+        return 0
+    if verb == "is-active":
+        states = [known.get(n, {}).get("active", "inactive") for n in names(units, known)]
+        if "--quiet" not in argv and "-q" not in argv:
+            print("\n".join(states))
+        return 0 if states and all(s == "active" for s in states) else 3
+    if verb in ("show", "status"):
+        for n in names(units, known):
+            s = known.get(n)
+            fields = {"LoadState": "loaded" if s else "not-found", "ActiveState": s["active"] if s else "inactive",
+                      "SubState": ("running" if s["active"] == "active" else "dead") if s else "dead",
+                      "MainPID": str(s["pid"]) if s else "0", "NRestarts": str(s["restarts"]) if s else "0",
+                      "MemoryCurrent": memory(s["pid"]) if s and s["pid"] else "[not set]",
+                      "Result": "success", "ExecMainStatus": str(s["status"]) if s else "0",
+                      "ExecStart": f"{{ path={s['command'].split()[0]} ; argv[]={s['command']} }}" if s else "",
+                      "InvocationID": ""}
+            for p in props or list(fields):
+                print(fields.get(p, "") if value else f"{p}={fields.get(p, '')}")
+        return 0
+    if verb in ("start", "stop", "restart", "reload", "try-restart", "reload-or-restart"):
+        wanted = names(units, known)
+        missing = [n for n in wanted if n not in known]
+        if missing:
+            print(f"Failed to {verb} {missing[0]}.service: Unit {missing[0]}.service not found.", file=sys.stderr)
+            return 5
+        cid = uuid.uuid4().hex
+        verb = {"try-restart": "restart", "reload-or-restart": "restart"}.get(verb, verb)
+        tmp = RUN / "cmd" / f"{cid}.tmp"
+        tmp.write_text(json.dumps({"id": cid, "verb": verb, "units": wanted, "reply": block}), encoding="utf-8")
+        os.replace(tmp, RUN / "cmd" / f"{cid}.json")
+        if not block:
+            return 0
+        result = RUN / "cmd" / f"{cid}.result"
+        end = time.time() + 90
+        while time.time() < end:
+            if result.exists():
+                r = json.loads(result.read_text(encoding="utf-8"))
+                result.unlink(missing_ok=True)
+                if r["code"]:
+                    print(r["message"], file=sys.stderr)
+                return 1 if r["code"] else 0
+            time.sleep(0.3)
+        print(f"Job for {wanted[0]}.service timed out.", file=sys.stderr)
+        return 1
+    print(f"systemctl (Aurora's container): {verb} is not available here", file=sys.stderr)
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

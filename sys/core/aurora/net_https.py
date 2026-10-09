@@ -30,6 +30,7 @@ CADDYFILE = Template("""# Generated from .env by sys/core/aurora/net_https.py �
 	admin $admin
 	grace_period 5s
 	auto_https disable_redirects
+	default_sni $default_sni
 	http_port $http_port
 	https_port $https_port
 	log {
@@ -112,6 +113,9 @@ def render(cfg: sys_config.Config, **over) -> str:
               "\t\theader Content-Type application/x-x509-ca-cert\n\t\tfile_server\n\t}\n")
     return CADDYFILE.substitute(
         admin=cfg["AURORA_CADDY_ADMIN"], http_port=http_port, https_port=https_port,
+        # a client that opens an address sends no name (SNI): this certificate then, not the one Caddy would pick by
+        # the address it was reached at — behind Docker that address is the container's own (C221, «internal error»)
+        default_sni=hosts[0] if hosts else "localhost",
         https_suffix="" if https_port == 443 else f":{https_port}",
         log_dir=cfg.path("AURORA_LOG_DIR") / "https", max_mb=cfg["AURORA_LOG_MAX_MB"],
         keep_hours=cfg["AURORA_LOG_RETENTION_DAYS"] * 24,
@@ -150,10 +154,12 @@ def write(cfg: sys_config.Config, **over) -> Path:
     return f
 
 
-def reload() -> None:
-    r = subprocess.run(["systemctl", "reload", "aurora-https"], capture_output=True, text=True, timeout=60)
+def reload(verb: str = "reload") -> None:
+    """Caddy takes the new Caddyfile: reload (no interruption), or restart when the ports change — Ubuntu's Caddy 2.6
+    panicked on the reload after a refused one (the test VM, 9 Oct: «missing cancel error»)."""
+    r = subprocess.run(["systemctl", verb, "aurora-https"], capture_output=True, text=True, timeout=60)
     if r.returncode != 0:
-        raise HttpsError(f"systemctl reload aurora-https: {(r.stderr or r.stdout).strip()[-300:]}")
+        raise HttpsError(f"systemctl {verb} aurora-https: {(r.stderr or r.stdout).strip()[-300:]}")
 
 
 # ---- certificates -----------------------------------------------------------------------------------------------
@@ -234,18 +240,21 @@ def _settings(cfg: sys_config.Config, changes: dict) -> None:
     sys_config.write_env(cfg.env_file, {k: str(v) for k, v in changes.items()})
 
 
-def _apply(cfg: sys_config.Config, changes: dict, undo) -> None:
-    """Settings, Caddyfile, reload; any failure undoes all three."""
+def _apply(cfg: sys_config.Config, changes: dict, undo, verb: str = "reload") -> None:
+    """Settings, Caddyfile, reload; any failure undoes all three. A refused reload leaves Caddy on the old file; a
+    refused restart has stopped it, so it is started again on the old one."""
     before = {k: str(cfg[k]) for k in changes}
     try:
         write(cfg, **changes)
         _settings(cfg, changes)
-        reload()
+        reload(verb)
     except Exception:
         undo()
         _settings(cfg, before)
         try:
             write(cfg, **before)
+            if verb == "restart":
+                reload("restart")
         except HttpsError:
             pass
         raise
@@ -299,6 +308,67 @@ def set_aliases(cfg: sys_config.Config, aliases: list[str]) -> dict:
     return {"names": names(cfg, AURORA_DOMAIN_ALIASES=",".join(clean))}
 
 
+def _in_use(port: int) -> bool:
+    """Something already listens on `port` (another web server, another service). A port below 1024 that this
+    process may not bind is still found when something answers on it (sshd on 22: the test VM, 9 Oct)."""
+    import socket
+    with socket.socket() as probe:                     # anything that answers here (any port, no privilege needed)
+        probe.settimeout(1)
+        if probe.connect_ex(("127.0.0.1", port)) == 0:
+            return True
+    for family, host in ((socket.AF_INET, "0.0.0.0"), (socket.AF_INET6, "::")):
+        try:
+            with socket.socket(family, socket.SOCK_STREAM) as s:
+                s.bind((host, port))
+        except PermissionError:
+            return False
+        except OSError as e:
+            if family == socket.AF_INET6 and e.errno in (47, 97, 10047):  # no IPv6 here (macOS, Linux, Windows)
+                continue
+            return True
+    return False
+
+
+def set_ports(cfg: sys_config.Config, https_port: int, http_port: int) -> dict:
+    """Aurora on other ports (owner, 9 Oct: «magari io voglio far usare ad aurora un'altra porta perchè sulla 443 ho altri
+    servizi»). Checked first — numbers, Aurora's own ports, a port already taken, the right to a port below 1024 — then
+    the Caddyfile, the settings and Caddy's reload, all put back on a failure. The API restarts afterwards (the health
+    check and the users' links read the port when they start)."""
+    if os.environ.get("AURORA_DOCKER"):             # the ports are Docker's mapping: chosen outside the container
+        raise HttpsError("in Docker the ports are chosen in docker/.env (AURORA_HTTPS_PORT, AURORA_HTTP_PORT), then: "
+                         "docker compose -f docker/compose.yaml up -d")
+    cfg = fresh(cfg)
+    old = (int(cfg["AURORA_HTTPS_PORT"]), int(cfg["AURORA_HTTP_PORT"]))
+    new = (int(https_port), int(http_port))
+    if any(not 1 <= p <= 65535 for p in new) or new[0] == new[1]:
+        raise HttpsError("two different ports between 1 and 65535")
+    own = {int(cfg[k]) for k in ("AURORA_API_PORT", "AURORA_MODELS_PORT", "AURORA_LLM_PORT")}
+    own.add(int(str(cfg["AURORA_CADDY_ADMIN"]).rsplit(":", 1)[-1]))
+    if taken := sorted(set(new) & own):
+        raise HttpsError(f"port {taken[0]} is one of Aurora's own services")
+    unit = cfg.root / "sys" / "deploy" / "systemd" / "aurora-https.service"
+    if min(new) < 1024 and unit.exists() and "CAP_NET_BIND_SERVICE" not in unit.read_text(encoding="utf-8"):
+        # Caddy's unit grants the low ports only when the installer saw one (sys_install_services: low_ports)
+        raise HttpsError("a port below 1024 needs the services written again: run ./install.sh (or choose 1024 or more)")
+    if busy := [p for p in new if p not in old and _in_use(p)]:
+        raise HttpsError(f"port {busy[0]} is already used by another program on this machine")
+    if new == old:
+        return {"https_port": new[0], "http_port": new[1], "urls": status(cfg)["urls"], "changed": False}
+    _apply(cfg, {"AURORA_HTTPS_PORT": new[0], "AURORA_HTTP_PORT": new[1]}, lambda: None, verb="restart")
+    sys_log.get_logger("api").info("audit: HTTPS on port %d (HTTP %d), was %d (%d)", *new, *old)
+    restart_api_later()
+    suffix = "" if new[0] == 443 else f":{new[0]}"
+    return {"https_port": new[0], "http_port": new[1], "changed": True,
+            "urls": [f"https://{_host(n)}{suffix}/" for n in names(cfg)]}
+
+
+def restart_api_later(seconds: float = 2.0) -> None:
+    """After the answer has left: the page reads the new address first."""
+    import threading
+    threading.Timer(seconds, lambda: subprocess.run(["systemctl", "restart", "--no-block", "aurora-api"],
+                                                    capture_output=True, timeout=30)).start()
+
+
 def local_addresses() -> list[str]:
     """This machine's address on its network and its name.local: what a phone at home can reach (a UDP «connect» sends
     nothing, it only picks the interface that leads out)."""
@@ -323,6 +393,7 @@ def status(cfg: sys_config.Config) -> dict:
     suffix = "" if port == 443 else f":{port}"
     http = int(cfg["AURORA_HTTP_PORT"])
     out = {"mode": mode, "names": names(cfg), "urls": [f"https://{_host(n)}{suffix}/" for n in names(cfg)],
+           "https_port": port, "http_port": http, "docker": bool(os.environ.get("AURORA_DOCKER")),
            "certificate": None, "ca": None, "suggest": [a for a in local_addresses() if a not in names(cfg)]}
     try:
         if mode == "files":

@@ -1473,5 +1473,14 @@
   "mm.turn_off": "Spegni il ragionatore locale",
   "mm.turn_on": "Riaccendi il ragionatore locale",
   "bug.not_sent": "Non è ancora stato inviato a nessuno: resta su questo computer. Per farlo arrivare scarica lo zip (⬇️) e mandalo a chi segue la tua Aurora, oppure apri una issue su GitHub (🐙) e allegalo.",
-  "bug.past_hint": "Restano su questo computer finché non li mandi tu: tocca un report per scaricarlo."
+  "bug.past_hint": "Restano su questo computer finché non li mandi tu: tocca un report per scaricarlo.",
+  "https.ports": "Porte",
+  "https.ports_hint": "La porta HTTPS è quella degli indirizzi qui sopra (443 = nessun numero nell'indirizzo); la porta HTTP serve solo al certificato per i telefoni e a rimandare all'HTTPS. Se su questo computer un altro servizio usa già la 443, scegline un'altra (es. 8443 e 8080).",
+  "https.port_https": "HTTPS",
+  "https.port_http": "HTTP",
+  "https.ports_save": "Cambia le porte",
+  "https.ports_q": "Aurora passerà alla porta {p}: questa pagina smetterà di rispondere e andrà riaperta dal nuovo indirizzo, dove il browser chiederà di nuovo la chiave o l'accesso. Anche i telefoni e le app installate vanno riaperti dal nuovo indirizzo. Procedo?",
+  "https.ports_moved": "✅ Aurora risponde ora qui:",
+  "https.ports_after": "Questo indirizzo non funziona più. Se il computer ha un firewall, apri le nuove porte (Linux: sudo ufw allow <porta>/tcp; Windows: rilancia install.ps1).",
+  "https.ports_docker": "Aurora gira in Docker: le porte si cambiano in docker/.env (AURORA_HTTPS_PORT, AURORA_HTTP_PORT), poi «docker compose -f docker/compose.yaml up -d»."
 }

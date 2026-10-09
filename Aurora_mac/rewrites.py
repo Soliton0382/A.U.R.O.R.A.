@@ -172,9 +172,9 @@ SERVICES = [
                 threading.Timer(4.0, lambda: sys_platform.current().service_action("restart", ["aurora-api"], False)).start()''',
      "api/knowledge: aurora-api restarted last after an update"),
     ("sys/core/aurora/net_https.py",
-     '''    r = subprocess.run(["systemctl", "reload", "aurora-https"], capture_output=True, text=True, timeout=60)
+     '''    r = subprocess.run(["systemctl", verb, "aurora-https"], capture_output=True, text=True, timeout=60)
     if r.returncode != 0:
-        raise HttpsError(f"systemctl reload aurora-https: {(r.stderr or r.stdout).strip()[-300:]}")''',
+        raise HttpsError(f"systemctl {verb} aurora-https: {(r.stderr or r.stdout).strip()[-300:]}")''',
      f'''    {P}
     r = sys_platform.current().service_action("restart", ["aurora-https"], timeout=60)     # reload is Linux's verb
     if r.code != 0:
@@ -847,6 +847,12 @@ PLAT = sys_platform.current()""",
      """    import psutil                                         # Windows has no sysconf (a real Windows, 9 Oct)
     return round(psutil.virtual_memory().total / 2**30, 1)""",
      "sys_profile: the RAM, this system's way"),
+    ("sys/core/aurora/net_https.py",
+     """    threading.Timer(seconds, lambda: subprocess.run(["systemctl", "restart", "--no-block", "aurora-api"],
+                                                    capture_output=True, timeout=30)).start()""",
+     f"""    {P}
+    threading.Timer(seconds, lambda: sys_platform.current().service_action("restart", ["aurora-api"], wait=False)).start()""",
+     "net_https.restart_api_later: the API restarted after a change of ports"),
 ]
 
 REWRITES = SERVICES + LOCKS + METRICS + DEVICES + FILES + GUARDS + HINTS + MORE + NETWORK + WORDS + PATHS + REQUIREMENTS + INSTALLER + TESTS

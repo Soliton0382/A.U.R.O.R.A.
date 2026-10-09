@@ -2,7 +2,8 @@
 // Copyright 2026 A.U.R.O.R.A. Project
 // 🔒 HTTPS and devices (owner, 2026-10-08: the certificate chosen from the WebUI; Aurora opened from the phone): the
 // addresses Aurora answers to, with a QR code for the phone; the certificate in use; the owner's own certificate
-// (checked by the server before use, everything put back if Caddy refuses it); back to Caddy's local authority.
+// (checked by the server before use, everything put back if Caddy refuses it); back to Caddy's local authority; the
+// ports (owner, 2026-10-09: «sulla 443 ho altri servizi»): checked, then Aurora moves and the page says where.
 import { call } from "../api.js";
 import { el } from "../dom.js";
 import { apply, t } from "../i18n.js";
@@ -18,7 +19,8 @@ export default {
   mount(root) {
     root.classList.add("page");
     root.innerHTML = `<h2 data-i18n="https.title"></h2><p class="muted" data-i18n="https.hint"></p>
-      <section class="https-names"></section><section class="https-cert"></section><section class="https-own"></section>
+      <section class="https-names"></section><section class="https-ports"></section><section class="https-cert"></section>
+      <section class="https-own"></section>
       <p class="muted https-msg" role="status"></p>`;
     apply(root);
     this.root = root;
@@ -31,6 +33,7 @@ export default {
     let s;
     try { s = await call("/v1/aurora/https"); } catch (e) { this.say(t("ev.error", { m: e.message })); return; }
     this.names(s);
+    this.ports(s);
     this.cert(s);
     this.own(s);
   },
@@ -61,6 +64,46 @@ export default {
     }
     box.replaceChildren(el("h3", "", t("https.names")), list, el("p", "muted", t("https.names_hint")), row);
     if (phone) box.append(el("p", "", t("https.phone_qr")), qrSvg(phone, 180));
+  },
+
+  ports(s) {
+    const box = this.root.querySelector(".https-ports");
+    if (s.docker) {                                   // Docker maps the ports: chosen in docker/.env
+      box.replaceChildren(el("h3", "", t("https.ports")),
+        el("p", "", `HTTPS ${s.https_port} · HTTP ${s.http_port}`), el("p", "muted", t("https.ports_docker")));
+      return;
+    }
+    const field = (id, value, label) => {
+      const input = el("input");
+      input.id = id;
+      input.type = "number";
+      input.min = "1"; input.max = "65535";
+      input.value = value;
+      const l = el("label", "", label);
+      l.htmlFor = id;
+      return [l, input];
+    };
+    const [lh, https] = field("https-port", s.https_port, t("https.port_https"));
+    const [lp, http] = field("http-port", s.http_port, t("https.port_http"));
+    const go = el("button", "approve", t("https.ports_save"));
+    go.addEventListener("click", async () => {
+      const body = { https: Number(https.value), http: Number(http.value) };
+      if (body.https === s.https_port && body.http === s.http_port) return;
+      if (!confirm(t("https.ports_q", { p: body.https }))) return;
+      this.say(t("https.applying"));
+      try {
+        const r = await call("/v1/aurora/https/ports", { method: "PUT", body: JSON.stringify(body) });
+        // this page's address stops answering: the new one, to open (the key is asked again there)
+        const list = el("ul");
+        for (const u of r.urls) { const li = el("li"); const a = el("a", "", u); a.href = u; li.append(a); list.append(li); }
+        box.replaceChildren(el("h3", "", t("https.ports")), el("p", "", t("https.ports_moved")), list,
+          el("p", "muted", t("https.ports_after")));
+        this.say("");
+      } catch (e) { this.say(t("ev.error", { m: e.message })); }
+    });
+    const row = el("div", "appr-actions");
+    row.append(lh, https, lp, http, go);
+    box.replaceChildren(el("h3", "", t("https.ports")), el("p", "muted", t("https.ports_hint")), row);
   },
 
   cert(s) {

@@ -287,6 +287,8 @@ radice da `http://<indirizzo>/aurora-ca.crt`, poi aprire Aurora e incollare la c
 dispositivi** mostra gli indirizzi con il QR, il certificato in uso e la sua scadenza. Permette anche di passare a un
 tuo certificato: viene controllato prima e, se Caddy lo rifiuta, torna tutto com'era. Non serve sudo.
 
+**In Docker.** Su un computer senza GPU Aurora gira anche in un container, con il ragionatore in cloud: `cp docker/.env.example docker/.env`, scegli provider, chiave, indirizzo e porte, poi `docker compose -f docker/compose.yaml up -d --build`. Guida: [docs/DOCKER.md](docs/DOCKER.md).
+
 **Locale, mista o cloud.** In 🧠 Modelli → 🧭 **Modalità** si sceglie per tutta Aurora: 🏠 tutto locale, 🔀 mista (fase per fase), ☁️🔒 cloud con privacy (dati privati, ricerca e voce restano sul computer) o ☁️⚠️ tutto cloud. Una tabella dice, per ogni aspetto, cosa succede in ogni modalità. Le scelte con un rischio hanno il triangolo giallo e un popup con il comando da lanciare in shell. «Tutto cloud» si sblocca solo da lì; si torna indietro dalla pagina.
 
 Modelli: 24,7 GB obbligatori (ragionatore 21,5 GB, encoder, re-ranker), fino a 57,6 GB facoltativi. Un'installazione

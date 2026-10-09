@@ -2231,3 +2231,22 @@ A KVM virtual machine on the owner's computer: Ubuntu 26.04 LTS server, 6 virtua
 
 So 12 GB of RAM stays right (M151's advice), 8 GB would be tight while harvesting. **Not measured**: a full round's
 length on this CPU (at ~1.4 papers a minute, hours), 8 GB of RAM, a CPU without bf16.
+
+## M153 — Aurora in Docker, cloud reasoner (9 October 2026)
+
+On the test VM of M152 (6 cores of a Ryzen 7 7700X, 14.7 GB, Docker 29.1.3, Compose 2.40.3), `docker/compose.yaml`
+with a stand-in OpenAI-compatible service on the host as provider («custom») and the ports 8443/8080 (443 taken by
+the Aurora installed there):
+
+| what | measured |
+|---|---|
+| `docker compose build` (python:3.14-slim, torch 2.14 CPU, requirements.txt, caddy:2) | 116 s; image 3.1 GB on disk, 713 MB compressed |
+| first start (settings, 3.26 GB of models, key and signature, services) | the address and the key printed; six services active; health all ok but the backup (none set) |
+| a question through HTTPS by the address, with an e-mail | answered in 46.7 s; 12 calls reached the provider, none with the address, 11 with `[EMAIL_` |
+| memory, right after the question | 4.08 GiB of the 8 GiB limit |
+| `down` then `up` (a new container, the same volume) | the same key (sha256 99612dfff238…), no new signature, the memory and the settings found |
+| a new image | signed again at its first start (its code's fingerprint changed) |
+| a restart from Settings (aurora-harvester, aurora-https) through the container's systemctl | done, a few seconds later (each service ends on its own) |
+
+**Not measured**: a machine with 8 GB or less, a CPU without AVX-512 BF16, Docker Desktop (Mac, Windows), a real
+cloud provider from the container.
