@@ -162,9 +162,9 @@ def prepare() -> None:
     extra = os.environ.get("AURORA_DOCKER_MODELS", "").strip()
     run(PY, str(SCRIPT / "sys_models_fetch.py"), "--models", "embedder,reranker" + (f",{extra}" if extra else ""), "--yes")
     tuned = DATA / "status" / "calibrated"
-    if not tuned.exists():                           # how many passages this CPU re-ranks in 15 s (C229)
-        say("search: tuned to this CPU")
-        out = run(PY, str(SCRIPT / "sys_calibrate.py"), "--write", check=False)
+    if not tuned.exists():                           # the machine's audit: search and harvest fit this CPU (C229)
+        say("machine audit: measuring the encoder and the re-ranker")
+        out = run(PY, str(SCRIPT / "sys_calibrate.py"), "--write", "--say", "en", check=False)
         if out.returncode == 0:
             tuned.write_text(out.stdout, encoding="utf-8")
             say(out.stdout.strip())

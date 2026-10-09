@@ -322,8 +322,8 @@ Step "8. $(T 'Modelli (Hugging Face, revisioni fissate, SHA-256 verificati)' 'Mo
 Py sys\core\script\sys_models_fetch.py --models "embedder,reranker" --yes        # quoted: a bare a,b is an array here | Select-Object -Last 1 | ForEach-Object { "  $_" }
 if ($Models) { Py sys\core\script\sys_models_fetch.py --models ($Models -join ",") --yes | Select-Object -Last 1 | ForEach-Object { "  $_" } }
 # how many passages this CPU re-ranks in 15 s (C229: the fixed 30 took minutes on 2 cores)
-$cal = & $VPy -X utf8 sys\core\script\sys_calibrate.py --write 2>$null | Select-Object -Last 1
-if ($LASTEXITCODE -eq 0) { Ok "$(T 'ricerca tarata su questa CPU' 'search tuned to this CPU'): $cal" } else { Warn (T "taratura della ricerca non riuscita: restano 30 candidati" "search not tuned: 30 candidates kept") }
+$cal = & $VPy -X utf8 sys\core\script\sys_calibrate.py --write --say (T "it" "en") 2>$null | Select-Object -Last 1
+if ($LASTEXITCODE -eq 0) { Ok "$(T 'audit della macchina' 'machine audit'): $cal" } else { Warn (T "audit della macchina non riuscito: restano i valori del profilo cloud" "machine audit failed: the cloud profile values stay") }
 
 # ---------------------------------------------------------------------------------------------------
 Step "9. $(T 'Codice di condotta: la chiave di questa installazione' "Code of conduct: this installation's key")"

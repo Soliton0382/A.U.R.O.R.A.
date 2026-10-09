@@ -2312,3 +2312,17 @@ again for 10 minutes) and with the OpenAI-compatible endpoint answering at answe
 Retrieval with the harvest on stays 59-72 s on 2 cores; masking 8 of 8 calls, the e-mail and number never in the
 trace. Not measured: the same question with the API warm (the 50 s include its start).
 
+## M158 — The Windows VM with its 10 cores, the machine's audit, the plugins (9 October 2026)
+
+The VM had 10 vCPU given as 10 sockets of one core: Windows 11 uses 2 sockets, so it ran on 2 (all of M156-M157).
+Topology set to 1 socket × 10 cores (the owner's VM; old definition kept outside the repo). Then the audit
+(sys_calibrate.py, harvest on): «profilo standard: 10 core, 15.6 GB; ricerca 25 candidati (0.593 s/passaggio),
+raccolta 10 per fonte a giro (0.958 s/passaggio)» — the re-ranker 1.48 → 0.593 s a passage.
+
+| | 2 cores (M156-M157) | 10 cores |
+|---|---|---|
+| a new question, end to end, harvest on | 187.5 s (10 candidates) | **71.7 s** (25 candidates) |
+
+Plugins (C231): 0 tools before, then 20 plugins and 92 tools listed in 19.2 s; notes_list 0.9 s, web.fetch_url 1.0 s
+from inside the AppContainer. Not measured: the breakdown of the 71.7 s; the owner's real plugins with keys.
+

@@ -13,6 +13,10 @@ what its SID is granted (and what Windows gives every app container: the system'
   allow   its own filtered .env                           granted on the file itself, at each start (written again)
   write   its folders and temp                            granted modify
   network internetClient + privateNetworkClientServer     capabilities; none when the manifest says no network
+  window  the window station and the desktop of the session   read only: without them user32.dll does not start, and
+                                                          every DLL that needs it fails «DLL initialization routine
+                                                          failed» — _ssl, _hashlib, _ctypes, cryptography: the MCP
+                                                          library, so every plugin (C231, the test VM, 9 Oct)
 The grants are kept in a marker (a grant on a big folder walks its files once); one whose right changed is removed
 first; the .env's grant is made at every start, as the file is written again (os.replace). The plugin runs in a Job object that kills it when this launcher goes
 (the launcher dies with Aurora's pipe), with this launcher's stdin/stdout/stderr (the MCP pipe) and exit code.
@@ -37,6 +41,10 @@ JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE, JOB_OBJECT_EXTENDED_LIMIT_INFORMATION = 0x20
 HANDLE_FLAG_INHERIT = 0x1
 ALREADY_EXISTS = -2147024713                          # HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS) as a signed long
 INFINITE = 0xFFFFFFFF
+SE_WINDOW_OBJECT, DACL_SECURITY_INFORMATION, GRANT_ACCESS = 7, 0x4, 1
+READ_CONTROL = 0x00020000
+WINSTA_READ = READ_CONTROL | 0x0002 | 0x0020 | 0x0100   # READATTRIBUTES, ACCESSGLOBALATOMS, ENUMERATE
+DESKTOP_READ = READ_CONTROL | 0x0001 | 0x0040           # READOBJECTS, ENUMERATE
 
 
 class SID_AND_ATTRIBUTES(ctypes.Structure):
@@ -46,6 +54,16 @@ class SID_AND_ATTRIBUTES(ctypes.Structure):
 class SECURITY_CAPABILITIES(ctypes.Structure):
     _fields_ = [("AppContainerSid", ctypes.c_void_p), ("Capabilities", ctypes.POINTER(SID_AND_ATTRIBUTES)),
                 ("CapabilityCount", wintypes.DWORD), ("Reserved", wintypes.DWORD)]
+
+
+class TRUSTEE_W(ctypes.Structure):
+    _fields_ = [("pMultipleTrustee", ctypes.c_void_p), ("MultipleTrusteeOperation", ctypes.c_int),
+                ("TrusteeForm", ctypes.c_int), ("TrusteeType", ctypes.c_int), ("ptstrName", ctypes.c_void_p)]
+
+
+class EXPLICIT_ACCESS_W(ctypes.Structure):
+    _fields_ = [("grfAccessPermissions", wintypes.DWORD), ("grfAccessMode", ctypes.c_int),
+                ("grfInheritance", wintypes.DWORD), ("Trustee", TRUSTEE_W)]
 
 
 class STARTUPINFOW(ctypes.Structure):
@@ -143,6 +161,35 @@ def container(name: str):
     return sid, s, path
 
 
+def window_access(sid) -> None:
+    """The container may read the session's window station and desktop: user32.dll needs them to start (C231). The
+    plugins' services run in session 0 (S4U tasks), whose desktop shows no one's windows; read only, never input."""
+    adv = ctypes.WinDLL("advapi32", use_last_error=True)
+    u32 = ctypes.WinDLL("user32", use_last_error=True)
+    k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    u32.GetProcessWindowStation.restype = u32.GetThreadDesktop.restype = ctypes.c_void_p
+    u32.GetThreadDesktop.argtypes = [wintypes.DWORD]
+    adv.GetSecurityInfo.argtypes = [ctypes.c_void_p, ctypes.c_int, wintypes.DWORD, ctypes.c_void_p, ctypes.c_void_p,
+                                    ctypes.POINTER(ctypes.c_void_p), ctypes.c_void_p, ctypes.POINTER(ctypes.c_void_p)]
+    adv.SetEntriesInAclW.argtypes = [wintypes.ULONG, ctypes.POINTER(EXPLICIT_ACCESS_W), ctypes.c_void_p,
+                                     ctypes.POINTER(ctypes.c_void_p)]
+    adv.SetSecurityInfo.argtypes = [ctypes.c_void_p, ctypes.c_int, wintypes.DWORD, ctypes.c_void_p, ctypes.c_void_p,
+                                    ctypes.c_void_p, ctypes.c_void_p]
+    for handle, rights in ((u32.GetProcessWindowStation(), WINSTA_READ),
+                           (u32.GetThreadDesktop(k32.GetCurrentThreadId()), DESKTOP_READ)):
+        dacl, sd, new = ctypes.c_void_p(), ctypes.c_void_p(), ctypes.c_void_p()
+        if adv.GetSecurityInfo(handle, SE_WINDOW_OBJECT, DACL_SECURITY_INFORMATION, None, None, ctypes.byref(dacl),
+                               None, ctypes.byref(sd)) != 0:
+            _fail("GetSecurityInfo (window station / desktop)")
+        ea = EXPLICIT_ACCESS_W(rights, GRANT_ACCESS, 0, TRUSTEE_W(None, 0, 0, 0, sid))   # TRUSTEE_IS_SID
+        if adv.SetEntriesInAclW(1, ctypes.byref(ea), dacl, ctypes.byref(new)) != 0:
+            _fail("SetEntriesInAcl (window station / desktop)")
+        if adv.SetSecurityInfo(handle, SE_WINDOW_OBJECT, DACL_SECURITY_INFORMATION, None, None, new, None) != 0:
+            _fail("SetSecurityInfo (window station / desktop)")
+        k32.LocalFree(ctypes.c_void_p(new.value))
+        k32.LocalFree(ctypes.c_void_p(sd.value))
+
+
 def icacls(path: str, *args: str) -> None:
     r = subprocess.run(["icacls", path, *args, "/C", "/Q"], capture_output=True, text=True, timeout=1800)
     if r.returncode != 0:
@@ -205,6 +252,7 @@ def run(spec: dict, cmd: list[str]) -> int:
     k32, adv, env, ole = _dlls()
     sid, sid_text, home = container(spec["name"])
     grant(spec, sid_text)
+    window_access(sid)
     caps, keep = [], []
     for s in ([INTERNET_CLIENT, PRIVATE_NETWORK] if spec["network"] else []):
         p = ctypes.c_void_p()
