@@ -48,16 +48,71 @@ def _param(v: str):
         return v.strip()
 
 
+# the other formats models write their calls in (owner, 9 Oct: «compatibile con ogni formato utilizzato dai vari
+# provider e modelli»): Llama 3.1's <function=name>{…}</function> and <|python_tag|>{…}, Mistral's [TOOL_CALLS] […],
+# and a reply that is nothing but the call's JSON (bare or in a ```json block)
+FUNCTION = re.compile(r"<function=([\w.\-]+)>\s*(\{.*?\})\s*</function>", re.S)
+PYTAG = re.compile(r"<\|python_tag\|>\s*(\{.*\})", re.S)
+MISTRAL = re.compile(r"\[TOOL_CALLS\]\s*(\[.*\])", re.S)
+FENCED = re.compile(r"```(?:json)?\s*(\{.*?\})\s*```", re.S)
+BARE = re.compile(r"^\s*(?:```(?:json)?\s*)?(\{.*\}|\[.*\])\s*(?:```)?\s*$", re.S)
+
+
+def _call(obj) -> str | None:
+    """One call in the loop's own JSON, from any provider's shape: name + arguments / parameters / input, the
+    arguments as an object or as a JSON string (OpenAI's), or nested under «function»."""
+    if not isinstance(obj, dict):
+        return None
+    obj = obj.get("function", obj) if isinstance(obj.get("function"), dict) else obj
+    name = obj.get("name")
+    args = next((obj[k] for k in ("arguments", "parameters", "input", "args") if k in obj), {})
+    if isinstance(args, str):
+        try:
+            args = json.loads(args) if args.strip() else {}
+        except ValueError:
+            return None
+    if not isinstance(name, str) or not name or not isinstance(args, dict):
+        return None
+    return json.dumps({"name": name, "arguments": args}, ensure_ascii=False)
+
+
+def _calls_in(raw: str) -> list[str]:
+    try:
+        obj = json.loads(raw)
+    except ValueError:
+        return []
+    items = obj.get("tool_calls", [obj]) if isinstance(obj, dict) else obj if isinstance(obj, list) else []
+    out = [_call(x) for x in items]
+    return [x for x in out if x] if all(out) else []
+
+
 def parse(text: str) -> tuple[str, list[str], str]:
-    """(the reply as kept, its tool calls as JSON, what it said around them). The reply is cut where the model began
-    to write a tool's result itself; <invoke> calls become the JSON ones."""
+    """(the reply as kept, its tool calls as the loop's JSON, what it said around them). The reply is cut where the
+    model began to write a tool's result itself; every known call format becomes the loop's own."""
     m = INVENTED.search(text)
     if m:
         text = text[:m.start()].rstrip()
-    calls = CALL.findall(text) + [json.dumps({"name": n, "arguments": {k: _param(v) for k, v in PARAM.findall(body)}},
-                                             ensure_ascii=False) for n, body in INVOKE.findall(text)]
-    said = INVOKE.sub("", CALL.sub("", text))
+    calls = [c for raw in CALL.findall(text) for c in (_calls_in(raw) or [raw])]
+    calls += [json.dumps({"name": n, "arguments": {k: _param(v) for k, v in PARAM.findall(body)}}, ensure_ascii=False)
+              for n, body in INVOKE.findall(text)]
+    calls += [c for n, body in FUNCTION.findall(text) for c in _calls_in(json.dumps({"name": n, "arguments": _param(body)}))]
+    for rx in (PYTAG, MISTRAL):
+        calls += [c for raw in rx.findall(text) for c in _calls_in(raw)]
+    said = text
+    for rx in (CALL, INVOKE, FUNCTION, PYTAG, MISTRAL):
+        said = rx.sub("", said)
     said = re.sub(r"</?(function_calls|antml:function_calls)>", "", said).strip()
+    if not calls:                                       # a reply that is only a call's JSON
+        b = BARE.match(text)
+        if b and re.search(r'"(arguments|parameters|input|tool_calls)"', b.group(1)) and (found := _calls_in(b.group(1))):
+            calls, said = found, ""
+    if not calls:                                       # a ```json block among words: a call only to one of Aurora's tools
+        for raw in FENCED.findall(text):
+            found = [c for c in _calls_in(raw) if (n := json.loads(c)["name"]) == "finish" or "__" in n]
+            if found and re.search(r'"(arguments|parameters|input)"', raw):
+                calls += found
+                said = said.replace(raw, "")
+        said = re.sub(r"```(?:json)?\s*```", "", said).strip() if calls else said
     return text, calls, said
 
 

@@ -224,3 +224,36 @@ def test_a_call_written_in_claudes_own_format_is_made_and_its_invented_result_is
     assert agent.host.calls == [("demo", "read_log", {"limit": 20})]                 # made, with its typed argument
     assert "Metodo non disponibile" not in ans.text and "Letto: log line 1." in ans.text
     assert llm.seen[1]["role"] == "tool" and "log line 1" in llm.seen[1]["content"]   # the real result went back
+
+
+import pytest  # noqa: E402
+
+FORMATS = {
+    "hermes / qwen": '<tool_call>\n{"name": "demo__read_log", "arguments": {"limit": 5}}\n</tool_call>',
+    "hermes with parameters": '<tool_call>{"name": "demo__read_log", "parameters": {"limit": 5}}</tool_call>',
+    "claude": '<invoke name="demo__read_log"><parameter name="limit">5</parameter></invoke>',
+    "claude in function_calls": ('<function_calls>\n<invoke name="demo__read_log">\n<parameter name="limit">5</parameter>'
+                                 '\n</invoke>\n</function_calls>'),
+    "llama 3.1 function": '<function=demo__read_log>{"limit": 5}</function>',
+    "llama 3.1 python_tag": '<|python_tag|>{"name": "demo__read_log", "parameters": {"limit": 5}}',
+    "mistral": '[TOOL_CALLS] [{"name": "demo__read_log", "arguments": {"limit": 5}}]',
+    "openai as text": '{"tool_calls": [{"function": {"name": "demo__read_log", "arguments": "{\\"limit\\": 5}"}}]}',
+    "bare json": '{"name": "demo__read_log", "arguments": {"limit": 5}}',
+    "json block": 'Leggo il log.\n```json\n{"name": "demo__read_log", "arguments": {"limit": 5}}\n```',
+}
+
+
+@pytest.mark.parametrize("fmt", sorted(FORMATS))
+def test_every_providers_call_format_is_read(fmt):
+    """Owner, 9 Oct: «compatibile con ogni formato utilizzato dai vari provider e modelli» — each becomes the loop's
+    own call, with its arguments typed."""
+    from aurora.agt_loop import parse
+    _, calls, _ = parse(FORMATS[fmt])
+    assert [json.loads(c) for c in calls] == [{"name": "demo__read_log", "arguments": {"limit": 5}}], fmt
+
+
+def test_a_report_with_json_in_it_is_not_a_call():
+    from aurora.agt_loop import parse
+    assert parse('{"name": "Mario", "eta": 40}')[1] == []
+    assert parse("Fatto. Il file contiene {\"a\": 1}.")[1] == []
+    assert parse('Esempio:\n```json\n{"name": "Mario", "arguments": {}}\n```')[1] == []     # not one of Aurora's tools
