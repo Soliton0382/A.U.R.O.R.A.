@@ -102,6 +102,9 @@ BROWSER=$(command -v google-chrome || command -v chromium || command -v chromium
 step "3. $(t 'GPU o cloud' 'GPU or cloud')"
 BACKEND="${AURORA_INSTALL_BACKEND:-}"
 [ "$UPDATE" = 1 ] && [ -z "$BACKEND" ] && BACKEND=$(sed -n 's/^AURORA_LLM_BACKEND=//p' .env | tail -1)
+# a cloud reasoner needs the exemption (rule 9) — an installation that stopped before step 11 never got it (the owner's
+# colleague, 9 Oct: «no local reasoner and no exemption from level B»); signed again here, as a new one would be
+[ "$UPDATE" = 1 ] && [ "$BACKEND" = cloud ] && EXEMPT=1
 VRAM=0
 if nvidia-smi >/dev/null 2>&1; then
   nvidia-smi --query-gpu=index,name,driver_version,memory.total --format=csv,noheader | sed 's/^/  /'

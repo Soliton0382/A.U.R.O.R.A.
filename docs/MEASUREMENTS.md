@@ -2333,3 +2333,10 @@ firewall sends every allowed connection by syslog), trace 58 MB (60 files), api 
 ingest 1.8, plugins 1.6. Rotation at AURORA_LOG_MAX_MB=10 working (gzip, timestamped); deletion after
 AURORA_LOG_RETENTION_DAYS=365, so nothing deleted yet. Growth since 1 Oct: ~16 MB a day. Not measured: a full year.
 
+## M160 — The night's shadow seed (9 October 2026, 22:00-23:17)
+
+224 new questions (3 more Italian and 4 English a domain) asked on the reference machine through the API, then the
+seed exported with domain, language and arXiv links: config/shadow_seed.json 380 answers (was 175) — 266 Italian,
+114 English — over 32 domains; sources with an address 1,063 of 1,411 (75 %; 426 of 701 had none before --links).
+Questions took 14-41 s each (the log). Not measured: how many of the 224 were declined (no sources), per domain.
+
