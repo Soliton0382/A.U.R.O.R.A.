@@ -28,6 +28,36 @@ async function signBox(names) {
   return box;
 }
 
+// The weather's place by the town's name (the owner's colleague, 9 Oct: coordinates — «ma che ne so»): Open-Meteo's
+// geocoding fills latitude, longitude, the place's name and the region (MeteoAlarm's warnings); typing them stays possible.
+function placeSearch(form) {
+  const row = el("div", "plug-field");
+  const q = el("input");
+  q.placeholder = t("place.hint");
+  const go = el("button", "", `🔎 ${t("place.search")}`);
+  const list = el("div");
+  row.append(el("strong", "", `📍 ${t("place.title")}`), q, go, list);
+  const set = (key, v) => { const i = form.querySelector(`[data-key="${key}"]`); if (i) i.value = v; };
+  const find = async () => {
+    list.replaceChildren(el("span", "muted", "…"));
+    try {
+      const r = await call(`/v1/aurora/places?q=${encodeURIComponent(q.value.trim())}`);
+      list.replaceChildren(...(r.places.length ? r.places.map((pl) => {
+        const b = el("button", "", pl.label);
+        b.addEventListener("click", () => {
+          set("AURORA_WEATHER_LAT", pl.lat); set("AURORA_WEATHER_LON", pl.lon);
+          set("AURORA_WEATHER_PLACE", pl.name); if (pl.region) set("AURORA_WEATHER_REGION", pl.region);
+          list.replaceChildren(el("span", "muted", t("place.chosen", { p: pl.label })));
+        });
+        return b;
+      }) : [el("span", "muted", t("place.none"))]));
+    } catch (e) { list.replaceChildren(el("span", "error", e.message)); }
+  };
+  go.addEventListener("click", find);
+  q.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); find(); } });
+  form.querySelector("h4").after(row);
+}
+
 export default {
   id: "plugins",
   icon: "🧩",
@@ -54,7 +84,7 @@ export default {
       img.src = p.icon;
       img.alt = "";
       b.append(img, el("span", "name", `${p.forged ? "🔨 " : ""}${p.name}`),
-        el("span", "state", `${p.available ? t("plug.on") : t("plug.off")}${p.unsigned ? " · ✍️" : ""}`));
+        el("span", "state", `${p.available ? t("plug.on") : (p.enabled && !p.missing.length ? t("plug.stuck") : t("plug.off"))}${p.unsigned ? " · ✍️" : ""}`));
       b.title = p.description?.[code] || p.description?.en || "";
       b.addEventListener("click", () => this.open(p, code));
       return b;
@@ -90,8 +120,11 @@ export default {
     img.src = p.icon;
     head.append(img, el("h3", "", `${p.name} · v${p.version || "?"}`), close);
     dlg.append(head, el("p", "", p.description?.[code] || p.description?.en || ""));
+    // switched on but not running: said as such, with the reason from its stderr (the owner's colleague, 9 Oct: «me li
+    // da tutti spenti ma quando clicco su uno c'è solo il pulsante spegni»)
+    const stuck = p.enabled && !p.available && !p.missing.length;
     const state = !p.enabled ? t("plug.state.disabled") : p.missing.length ? t("plug.state.missing", { keys: p.missing.join(", ") })
-      : p.error ? t("plug.state.error", { e: p.error }) : t("plug.state.ok", { n: p.tools.length });
+      : stuck ? t("plug.state.stuck", { e: p.why || p.error || "?" }) : p.error ? t("plug.state.error", { e: p.error }) : t("plug.state.ok", { n: p.tools.length });
     const sw = el("button", "", p.enabled ? t("plug.disable") : t("plug.enable"));
     sw.addEventListener("click", async () => {
       await call(`/v1/aurora/plugins/${p.name}/${p.enabled ? "disable" : "enable"}`, { method: "POST" });
@@ -99,7 +132,16 @@ export default {
       bus.emit("plugins", {});                       // the menu follows: a plugin's page appears or goes
     });
     const stRow = el("div", "appr-actions");
-    stRow.append(el("span", `pill ${p.available ? "ok" : "bad"}`, p.available ? t("plug.on") : t("plug.off")), el("span", "", state));
+    stRow.append(el("span", `pill ${p.available ? "ok" : "bad"}`, p.available ? t("plug.on") : stuck ? t("plug.stuck") : t("plug.off")), el("span", "", state));
+    if (stuck && this.me.admin) {
+      const again = el("button", "approve", `🔄 ${t("plug.retry")}`);
+      again.addEventListener("click", async () => {
+        again.disabled = true;
+        await call(`/v1/aurora/plugins/${p.name}/retry`, { method: "POST" });
+        dlg.close(); dlg.remove(); this.enter();
+      });
+      stRow.append(again);
+    }
     if (this.me.admin) {                            // switching on/off and sharing are the admin's (multi-user)
       const share = el("label", "plug-share");
       const box = el("input");
@@ -196,6 +238,7 @@ export default {
         row.append(el("code", "", s.key), input, el("span", "muted", s[code] || s.en));
         form.append(row);
       }
+      if (p.settings.includes("AURORA_WEATHER_LAT")) placeSearch(form);   // the town by its name, not coordinates
       const save = el("button", "approve", `💾 ${t("settings.save")}`);
       const out = el("span", "muted");
       save.addEventListener("click", async () => {

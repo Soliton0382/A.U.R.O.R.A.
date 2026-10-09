@@ -103,6 +103,29 @@ def plugins_signature() -> dict:
     return {"unsigned": _unsigned_plugins(), "command": SIGN.format(root=cfg.root)}
 
 
+def _forget_failure(name: str) -> None:
+    """A plugin that could not start is not tried again for a while (plg_host._FAILED, C229): switching it on again or
+    «Riprova» means now (the owner's colleague, 9 Oct: off, then on, and still the old failure)."""
+    from aurora import plg_host
+    for k in [k for k in plg_host._FAILED if k[0] == name]:
+        plg_host._FAILED.pop(k, None)
+
+
+def _why(p) -> str:
+    """Why a plugin switched on does not run, in words: «Connection closed» says only that it died; the reason is the
+    last line it wrote on its stderr (sys/logs/plugins/<name>.stderr.log)."""
+    if not p.enabled or p.available or p.missing:
+        return ""
+    reason = ""
+    try:
+        lines = (cfg.path("AURORA_LOG_DIR") / "plugins" / f"{p.name}.stderr.log").read_text(
+            encoding="utf-8", errors="replace").splitlines()[-40:]
+        reason = next((l.strip() for l in reversed(lines) if l.strip() and not l.startswith((" ", "\t", "Traceback"))), "")
+    except OSError:
+        pass
+    return " — ".join(x for x in (str(p.error or "").strip(), reason[:300]) if x) or "non parte (nessun dettaglio)"
+
+
 @router.get("/v1/aurora/plugins", dependencies=[Depends(auth)])
 def plugins() -> list[dict]:
     from aurora import plg_access
@@ -111,6 +134,7 @@ def plugins() -> list[dict]:
     return [{"name": p.name, "users": plg_access.for_users(cfg, p.name), "version": p.manifest.get("version"), "kind": p.manifest.get("kind"),
              "description": p.manifest.get("description", {}), "enabled": p.enabled, "available": p.available,
              "social": bool(p.manifest.get("social")), "missing": p.missing, "error": p.error, "setup": p.manifest.get("setup", {}),
+             **({"why": _why(p)} if admin else {}),
              "settings": [k for k in dict.fromkeys(p.manifest.get("env", []) + p.manifest.get("requires", [])
                                                    + list(p.manifest.get("env_as", {})) + p.manifest.get("settings", []))],
              "icon": f"/v1/aurora/plugins/{p.name}/icon?v={_icon_version(p)}",
@@ -126,7 +150,7 @@ def plugin_switch(name: str, action: str) -> dict:
     """enable / disable (for everyone), share / unshare (the users may use it, or only the admin), delete (into the
     trash, plg_trash): the admin's."""
     from aurora import plg_access
-    if action not in ("enable", "disable", "share", "unshare", "delete"):
+    if action not in ("enable", "disable", "share", "unshare", "delete", "retry"):
         raise HTTPException(status_code=404, detail="unknown action")
     if me() != _admin():
         raise HTTPException(status_code=403, detail="only the admin switches plugins")
@@ -146,6 +170,10 @@ def plugin_switch(name: str, action: str) -> dict:
         plg_access.set_for_users(cfg, name, action == "share")
         log.info("audit: plugin %s %s", name, "shared with the users" if action == "share" else "kept for the admin")
         return {"name": name, "users": action == "share"}
+    _forget_failure(name)
+    if action == "retry":                             # started again at the next listing (the page lists at once)
+        log.info("audit: plugin %s: start tried again", name)
+        return {"name": name, "retry": True}
     host.set_enabled(name, action == "enable")
     if name == "cloudflare":                          # on: the tunnel set up and started; off: stopped (roadmap 56)
         from .tunnel import start_tunnel, stop_tunnel

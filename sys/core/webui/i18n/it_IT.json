@@ -1532,5 +1532,13 @@
   "mc.use": "Usa {m}",
   "mc.revert": "Torna a {m}",
   "mc.switching": "Riavvio il ragionatore e faccio una domanda di prova (fino a 10 minuti)…",
-  "mc.switched": "✅ Ora ragiona con {m}: alla prova ha risposto «{a}» in {s} s."
+  "mc.switched": "✅ Ora ragiona con {m}: alla prova ha risposto «{a}» in {s} s.",
+  "plug.state.stuck": "acceso, ma non parte: {e}",
+  "plug.stuck": "⚠️ non parte",
+  "plug.retry": "Riprova",
+  "place.title": "Il tuo paese",
+  "place.hint": "es. Bergamo, o Treviglio",
+  "place.search": "Cerca",
+  "place.none": "Nessun luogo con questo nome",
+  "place.chosen": "Scelto: {p} — premi 💾 Salva"
 }

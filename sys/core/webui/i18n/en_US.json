@@ -1532,5 +1532,13 @@
   "mc.use": "Use {m}",
   "mc.revert": "Back to {m}",
   "mc.switching": "Restarting the reasoner and asking a trial question (up to 10 minutes)…",
-  "mc.switched": "✅ Reasoning now with {m}: the trial answered «{a}» in {s} s."
+  "mc.switched": "✅ Reasoning now with {m}: the trial answered «{a}» in {s} s.",
+  "plug.state.stuck": "switched on, but it does not start: {e}",
+  "plug.stuck": "⚠️ not starting",
+  "plug.retry": "Try again",
+  "place.title": "Your town",
+  "place.hint": "e.g. Bergamo",
+  "place.search": "Search",
+  "place.none": "No place with this name",
+  "place.chosen": "Chosen: {p} — press 💾 Save"
 }
