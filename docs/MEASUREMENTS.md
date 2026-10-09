@@ -2299,3 +2299,16 @@ for the owner's signature, C229) and, for a client that does not stream, the mem
 (69 s at 18:15-18:17, behind the harvest's slices). Masking: 8 of 8 cloud calls with EMAIL 1, PHONE 1; the e-mail
 and the number never in the trace.
 
+## M157 — The same VM after the signature and the early answer (9 October 2026)
+
+The Windows VM of M156, harvest on. After the owner's signature (plg_host: a plugin that cannot start is not tried
+again for 10 minutes) and with the OpenAI-compatible endpoint answering at answer.final:
+
+| When | Question | End to end | Before the run | Retrieval | Answer → client |
+|---|---|---|---|---|---|
+| 18:57 | solitone (from the shadow) | 125.2 s | 8 s (was 55-80 s) | 59 s (shadow lookup) | 61 s (memory, before the change) |
+| 19:19 | attrattore strano (new) | 187.5 s | 50 s (API restarted at 19:18) | 72 s | 0 s (answer.final) |
+
+Retrieval with the harvest on stays 59-72 s on 2 cores; masking 8 of 8 calls, the e-mail and number never in the
+trace. Not measured: the same question with the API warm (the 50 s include its start).
+

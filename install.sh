@@ -226,6 +226,14 @@ fi
 echo "  $(t 'Aurora parte con il vault vuoto: la raccolta lo riempie con articoli e voci aperte (arXiv, Wikipedia, Europe PMC…); si cambia nella pagina Harvester.' 'Aurora starts with an empty vault: harvesting fills it with open papers and articles (arXiv, Wikipedia, Europe PMC…); changed on the Harvester page.')"
 HARVEST=0
 yesno "$(t 'Accendere la raccolta automatica di conoscenza?' 'Switch automatic knowledge harvesting on?')" y HARVEST && HARVEST=1
+# the areas: what the harvest collects and the seed's answers (shadows) this installation starts with (owner, 9 Oct)
+echo "  $(t 'Argomenti che ti interessano: la raccolta parte da questi e Aurora arriva già con le risposte pronte (ombre) su questi temi, nella tua lingua. Si cambia nella pagina Conoscenza.' 'Topics you care about: harvesting starts from these and Aurora comes with ready answers (shadows) on them, in your language. Changed on the Knowledge page.')"
+python3 -I sys/core/script/sys_domains.py --list "$(t it en)"
+while :; do
+  DOMAINS=$(ask "$(t 'Numeri separati da virgola, oppure tutte' 'Numbers separated by commas, or all')" "$(t tutte all)" DOMAINS)
+  python3 -I sys/core/script/sys_domains.py --check "$DOMAINS" && break
+  [ "$YES" = 1 ] && die "AURORA_INSTALL_DOMAINS=$DOMAINS"
+done
 echo "  $(t 'Tipo di installazione:' 'Installation type:')"
 echo "    single — $(t 'una persona: tu, amministratore' 'one person: you, the admin')"
 echo "    multi  — $(t 'più persone: ognuna con la sua cartella usr/<nome>, le sue impostazioni e la sua memoria privata; accesso con password e codice Authenticator' 'several people: each with their folder usr/<name>, their settings and private memory; login with password and Authenticator code')"
@@ -294,6 +302,7 @@ if [ -f .env ]; then
   ok "$(t '.env esistente: lo tengo (le chiavi nuove prendono il valore consigliato)' 'existing .env kept (new keys take their recommended value)')"
   .venv/bin/python sys/core/script/sys_env_sync.py >/dev/null && mv .env.proposed .env
 else
+  FRESH_ENV=1
   SETS=(--set "AURORA_OWNER_NAME=$OWNER" --set "AURORA_ASSISTANT_NAME=$ANAME" --set "AURORA_PERSONALITY=$PERSONA"
         --set "AURORA_ASSISTANT_GENDER=$AGENDER" --set "AURORA_LANG_DEFAULT=$ULANG" --set "AURORA_DOMAIN=$DOMAIN"
         --set "AURORA_HTTPS_PORT=$PORT" --set "AURORA_HTTP_PORT=$HPORT" --set "AURORA_TLS_MODE=$TLS" --set "AURORA_UPDATE_MODE=notify"
@@ -324,6 +333,11 @@ if [ ! -f "$(.venv/bin/python -c 'import sys; sys.path.insert(0, "sys/core"); fr
     warn "$(t 'ci sono già dati: la struttura per utente si crea con la migrazione, dopo un backup:' 'there is data already: the per-user layout comes with the migration, after a backup:')"
     echo "    .venv/bin/python sys/core/script/sys_users_migrate.py plan"
   fi
+fi
+
+# the areas only on a new installation: run again on an Aurora in use, the Knowledge page's choices stay
+if [ "${FRESH_ENV:-0}" = 1 ]; then
+  .venv/bin/python sys/core/script/sys_domains.py --set "$DOMAINS" | sed 's/^/  ✓ /' || die "sys_domains.py --set $DOMAINS"
 fi
 
 # ---------------------------------------------------------------------------------------------------

@@ -164,6 +164,14 @@ else
   fi
   echo "  $(t 'Aurora parte con il vault vuoto: la raccolta lo riempie con articoli e voci aperte (arXiv, Wikipedia, Europe PMC…); si cambia nella pagina Harvester.' 'Aurora starts with an empty vault: harvesting fills it with open papers and articles (arXiv, Wikipedia, Europe PMC…); changed on the Harvester page.')"
   HARVEST=0; yesno "$(t 'Accendere la raccolta automatica di conoscenza?' 'Switch automatic knowledge harvesting on?')" y HARVEST && HARVEST=1
+  # the areas: what the harvest collects and the seed's answers (shadows) this installation starts with (owner, 9 Oct)
+  echo "  $(t 'Argomenti che ti interessano: la raccolta parte da questi e Aurora arriva già con le risposte pronte (ombre) su questi temi, nella tua lingua. Si cambia nella pagina Conoscenza.' 'Topics you care about: harvesting starts from these and Aurora comes with ready answers (shadows) on them, in your language. Changed on the Knowledge page.')"
+  "$PY314" -I "$REPO/sys/core/script/sys_domains.py" --list "$(t it en)"
+  while :; do
+    DOMAINS=$(ask "$(t 'Numeri separati da virgola, oppure tutte' 'Numbers separated by commas, or all')" "$(t tutte all)" DOMAINS)
+    "$PY314" -I "$REPO/sys/core/script/sys_domains.py" --check "$DOMAINS" && break
+    [ "$YES" = 1 ] && die "AURORA_INSTALL_DOMAINS=$DOMAINS"
+  done
   echo "  $(t 'Tipo di installazione: single (una persona: tu) o multi (più persone, ognuna con la sua cartella e la sua memoria privata)' 'Installation type: single (one person: you) or multi (several people, each with their folder and private memory)')"
   UMODE=$(ask "$(t 'single o multi' 'single or multi')" "single" MODE); [ "$UMODE" = multi ] || UMODE=single
 fi
@@ -248,6 +256,7 @@ if [ ! -f "$STATUS/users_layout.json" ]; then
   .venv/bin/python sys/core/script/sys_users_migrate.py migrate --yes --fresh >/dev/null && ok "$(t 'struttura per utente' 'per-user layout'): usr/$USER/" \
     || warn "$(t 'struttura per utente non creata' 'per-user layout not made'): sys_users_migrate.py plan"
 fi
+[ -n "${DOMAINS:-}" ] && { .venv/bin/python sys/core/script/sys_domains.py --set "$DOMAINS" | sed 's/^/  ✓ /' || die "sys_domains.py --set $DOMAINS"; }
 
 # ---------------------------------------------------------------------------------------------------
 step "8. $(t 'Modelli (Hugging Face, revisioni fissate, SHA-256 verificati)' 'Models (Hugging Face, pinned revisions, SHA-256 checked)')"

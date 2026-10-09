@@ -98,7 +98,8 @@ def shadow_import() -> dict:
     f = cfg.root / "sys" / "core" / "config" / "shadow_seed.json"
     if not f.exists():
         raise HTTPException(status_code=404, detail="no seed published yet (config/shadow_seed.json)")
-    return {**kno_shadow.import_seed(cfg, pipeline().search.embedder, json.loads(f.read_text(encoding="utf-8"))),
+    rows = kno_shadow.seed_for(cfg, json.loads(f.read_text(encoding="utf-8")))     # its domains and language
+    return {**kno_shadow.import_seed(cfg, pipeline().search.embedder, rows),
             **kno_shadow.stats(cfg)}
 
 

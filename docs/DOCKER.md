@@ -32,6 +32,7 @@ Le voci da guardare:
 | la chiave di quel provider | es. `AURORA_ANTHROPIC_API_KEY=...` (le altre restano vuote) |
 | `AURORA_CLOUD_MODEL` | vuoto = il primo modello dell'elenco del provider (viene provato con una chiamata) |
 | `AURORA_OWNER_NAME`, `AURORA_LANG_DEFAULT` | il tuo nome, `it_IT` o `en_US` |
+| `AURORA_DOMAINS` | le aree che ti interessano, numeri separati da virgola o `all`: 1 IA e informatica, 2 sicurezza e reti, 3 matematica e statistica, 4 fisica, 5 chimica-materiali-Terra-ingegneria-robotica, 6 biologia e medicina, 7 persone e società, 8 diritto italiano. La raccolta parte da queste e Aurora arriva con le risposte pronte (ombre) su questi temi nella tua lingua; solo al primo avvio, poi dalla pagina Conoscenza |
 | `AURORA_HARVEST_ENABLED` | `1` riempie il vault vuoto con articoli aperti; su un PC piccolo tiene la CPU occupata: `0` per spegnerla |
 | `AURORA_MEMORY_LIMIT` | il massimo di RAM per il container (default `10g`) |
 

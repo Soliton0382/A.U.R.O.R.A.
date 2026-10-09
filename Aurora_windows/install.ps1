@@ -201,6 +201,16 @@ else {
     # a new Aurora starts with an empty vault: the harvester fills it (owner, 2026-10-09: on unless the owner says no)
     Write-Host "  $(T 'Aurora parte con il vault vuoto: la raccolta lo riempie con articoli e voci aperte (arXiv, Wikipedia, Europe PMC…); si cambia nella pagina Harvester.' 'Aurora starts with an empty vault: harvesting fills it with open papers and articles (arXiv, Wikipedia, Europe PMC…); changed on the Harvester page.')"
     $Harvest = 0; if (YesNo (T "Accendere la raccolta automatica di conoscenza?" "Switch automatic knowledge harvesting on?") "y" "HARVEST") { $Harvest = 1 }
+    # the areas: what the harvest collects and the seed's answers (shadows) this installation starts with (owner, 9 Oct)
+    Write-Host "  $(T 'Argomenti che ti interessano: la raccolta parte da questi e Aurora arriva già con le risposte pronte (ombre) su questi temi, nella tua lingua. Si cambia nella pagina Conoscenza.' 'Topics you care about: harvesting starts from these and Aurora comes with ready answers (shadows) on them, in your language. Changed on the Knowledge page.')"
+    $DomainsPy = Join-Path $Repo "sys\core\script\sys_domains.py"
+    & $SysPy -X utf8 -I $DomainsPy --list (T "it" "en")
+    while ($true) {
+        $Domains = Ask (T "Numeri separati da virgola, oppure tutte" "Numbers separated by commas, or all") (T "tutte" "all") "DOMAINS"
+        & $SysPy -X utf8 -I $DomainsPy --check $Domains
+        if ($LASTEXITCODE -eq 0) { break }
+        if ($Yes) { Die "AURORA_INSTALL_DOMAINS=$Domains" }
+    }
     Write-Host "  $(T 'Tipo di installazione: single (una persona: tu) o multi (più persone, ognuna con la sua cartella e la sua memoria privata)' 'Installation type: single (one person: you) or multi (several people, each with their folder and private memory)')"
     $UMode = Ask (T "single o multi" "single or multi") "single" "MODE"
     if ($UMode -ne "multi") { $UMode = "single" }
@@ -301,6 +311,10 @@ if (-not (Test-Path (Join-Path $status "users_layout.json"))) {
     & $VPy -X utf8 sys\core\script\sys_users_migrate.py migrate --yes --fresh | Out-Null
     if ($LASTEXITCODE -eq 0) { Ok (T "struttura per utente: usr\$svcUser\" "per-user layout: usr\$svcUser\") }
     else { Warn (T "struttura per utente non creata: sys_users_migrate.py plan" "per-user layout not made: sys_users_migrate.py plan") }
+}
+if ($Domains) {                                   # asked on a new installation only: the Knowledge page's choices stay
+    & $VPy -X utf8 sys\core\script\sys_domains.py --set $Domains | ForEach-Object { Ok $_ }
+    if ($LASTEXITCODE -ne 0) { Die "sys_domains.py --set $Domains" }
 }
 
 # ---------------------------------------------------------------------------------------------------

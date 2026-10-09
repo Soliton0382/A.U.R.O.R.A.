@@ -176,9 +176,40 @@ def public(sources: list[dict]) -> bool:
                                  for s in sources)
 
 
-def export_seed(cfg: sys_config.Config, reader=None) -> list[dict]:
+IT_WORDS = {"il", "lo", "la", "gli", "le", "di", "che", "cos", "come", "perché", "quali", "qual", "è", "un", "una", "del",
+            "della", "nel", "nei", "sono", "funziona", "cosa", "si"}
+EN_WORDS = {"the", "what", "how", "why", "is", "are", "of", "a", "an", "does", "do", "which", "in", "and", "to"}
+
+
+def lang_of(text: str) -> str:
+    """«it» or «en», by the commonest words (a seed question is one short sentence)."""
+    import re
+    words = re.findall(r"[a-zàèéìòù]+", text.lower().replace("'", " "))
+    return "en" if sum(w in EN_WORDS for w in words) > sum(w in IT_WORDS for w in words) else "it"
+
+
+def domain_of(sources: list[dict]) -> str:
+    """The domain most of an answer's sources come from (the first on a tie)."""
+    from collections import Counter
+    doms = [s.get("domain") for s in sources if s.get("domain")]
+    return Counter(doms).most_common(1)[0][0] if doms else "general"
+
+
+def seed_for(cfg: sys_config.Config, rows: list[dict]) -> list[dict]:
+    """The seed's answers for this installation (owner, 9 Oct: «chi scarica ha qualcosa in più per ciò che sceglie»):
+    the domains it harvests (Knowledge page, the installer's question) and its language; «general» always."""
+    from . import kno_sources
+    chosen = {d for d, m in kno_sources.modes(cfg).items() if m != "off"} | {"general"}
+    lang = str(cfg["AURORA_LANG_DEFAULT"])[:2].lower()
+    return [r for r in rows if (r.get("domain") or domain_of(r.get("sources") or [])) in chosen
+            and (r.get("lang") or lang_of(r.get("question", ""))) == lang]
+
+
+def export_seed(cfg: sys_config.Config, reader=None, asked: dict | None = None) -> list[dict]:
     """The seed's answers that may leave this machine: asked by the seed script, every source public. With the vault's
-    reader each source carries the origin, address and licence its passage was imported with (the attribution)."""
+    reader each source carries the origin, address and licence its passage was imported with (the attribution).
+    Each answer says its domain (the one it was asked for, `asked`: question → domain; else its sources') and its
+    language, so an installation takes the ones it chose (seed_for)."""
     with closing(_db(cfg)) as con:
         rows = con.execute("SELECT question, answer, sources, made, follow FROM shadows WHERE origin IN ('seed', 'train') "
                            "ORDER BY id").fetchall()
@@ -191,8 +222,8 @@ def export_seed(cfg: sys_config.Config, reader=None) -> list[dict]:
             src.append({**{k: s.get(k) for k in ("n", "sid", "title", "source", "domain")},
                         **{k: extra[k] for k in ("origin", "url", "licence") if extra.get(k)}})
         if public(src):
-            out.append({"question": q, "answer": text, "made": round(made), "sources": src,
-                        "follow": json.loads(follow or "[]")})
+            out.append({"question": q, "domain": (asked or {}).get(q) or domain_of(src), "lang": lang_of(q),
+                        "answer": text, "made": round(made), "sources": src, "follow": json.loads(follow or "[]")})
     return out
 
 

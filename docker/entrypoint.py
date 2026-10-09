@@ -149,6 +149,15 @@ def prepare() -> None:
                                 "print(sys_config.get().path('AURORA_STATUS_DIR'))").stdout.strip())
     if not (status / "users_layout.json").exists():
         run(PY, str(SCRIPT / "sys_users_migrate.py"), "migrate", "--yes", "--fresh", check=False)
+    chosen = status / "domains_set"
+    if not chosen.exists():                          # the areas (docker/.env AURORA_DOMAINS), at the first start only
+        areas = os.environ.get("AURORA_DOMAINS", "all").strip() or "all"
+        out = run(PY, str(SCRIPT / "sys_domains.py"), "--set", areas, check=False)
+        if out.returncode != 0:
+            say(f"AURORA_DOMAINS={areas}: {(out.stdout + out.stderr).strip()[-200:]} (numbers 1-8 or all)")
+            sys.exit(1)
+        chosen.write_text(areas + "\n", encoding="utf-8")
+        say(f"areas {areas}: {out.stdout.strip()}")
     say("models: encoder and re-ranker (3.3 GB the first time)")
     extra = os.environ.get("AURORA_DOCKER_MODELS", "").strip()
     run(PY, str(SCRIPT / "sys_models_fetch.py"), "--models", "embedder,reranker" + (f",{extra}" if extra else ""), "--yes")

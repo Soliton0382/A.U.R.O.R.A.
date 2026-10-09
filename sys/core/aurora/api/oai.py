@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio
 import json
 import time
+from types import SimpleNamespace
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -13,6 +14,16 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from .core import answer_or_acquire, auth, cfg, final_text, quiet, start_run, text_of, trace_line, wait_events
 
 router = APIRouter()
+
+
+def answered(events: list[dict]):
+    """The answer as soon as the run gives it (answer.final), not at its end: the memory's indexing after it took 60-69 s
+    on the 2-core Windows VM, behind the harvest, and a client without streaming waited for it (C229, 9 Oct)."""
+    for e in events:
+        if e.get("event") == "answer.final":
+            p = e.get("payload") or {}
+            return SimpleNamespace(text=p.get("text", ""), sources=p.get("sources") or [])
+    return None
 
 
 # ---- OpenAI-compatible -------------------------------------------------------------------
@@ -45,21 +56,22 @@ async def chat_completions(request: Request):
                                      ensure_ascii=False) + "\n\n"
 
     if not body.get("stream"):
-        after, reasoning = 0, []
+        after, reasoning, early = 0, [], None
         while True:
             events, done = await asyncio.to_thread(wait_events, run, after)
             after += len(events)
             reasoning += [line for e in events if (line := trace_line(e))]
-            if done and after >= len(run["events"]):
+            early = early or answered(events)
+            if early or done and after >= len(run["events"]):
                 break
         return JSONResponse({"id": cid, "object": "chat.completion", "created": created, "model": "aurora",
                              "choices": [{"index": 0, "finish_reason": "stop",
-                                          "message": {"role": "assistant", "content": final_text(run["answer"]),
+                                          "message": {"role": "assistant", "content": final_text(early or run["answer"]),
                                                       "reasoning_content": "".join(reasoning)}}]})
 
     async def gen():
         yield chunk({"role": "assistant"})
-        after = 0
+        after, early = 0, None
         while True:
             events, done = await asyncio.to_thread(wait_events, run, after)
             after += len(events)
@@ -67,9 +79,10 @@ async def chat_completions(request: Request):
                 line = trace_line(e)
                 if line:
                     yield chunk({"reasoning_content": line})
-            if done and after >= len(run["events"]):
+            early = early or answered(events)
+            if early or done and after >= len(run["events"]):
                 break
-        yield chunk({"content": final_text(run["answer"])})
+        yield chunk({"content": final_text(early or run["answer"])})
         yield chunk({}, "stop")
         yield "data: [DONE]\n\n"
 

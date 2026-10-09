@@ -4,7 +4,8 @@
 from aurora import kno_shadow as K
 
 VEC = {"Cos'è la decoerenza quantistica?": [1, 0, 0], "Che cos'è la decoerenza quantistica?": [0.97, 0.24, 0],
-       "Chi ha scoperto la decoerenza?": [0.8, 0.6, 0], "Che ore sono?": [0, 0, 1]}
+       "Chi ha scoperto la decoerenza?": [0.8, 0.6, 0], "Che ore sono?": [0, 0, 1],
+       "What is quantum decoherence?": [0.9, 0, 0.43]}
 
 
 class Emb:
@@ -111,3 +112,22 @@ def test_a_web_answer_is_cached_until_it_expires(cfg, monkeypatch):
     now = K.time.time()
     monkeypatch.setattr(K.time, "time", lambda: now + 31 * 86400)                            # a month later: facts change
     assert K.find(cfg, Emb(), RR(0.99), "Che cos'è la decoerenza quantistica?") is None      # the web again
+
+
+def test_an_installation_takes_the_seed_of_its_domains_and_language(cfg):
+    """Owner, 9 Oct: «chi scarica ha qualcosa in più per ciò che sceglie» — each seed answer says its domain and
+    language; an installation takes the domains it harvests (and «general») in its own language."""
+    from aurora import kno_sources
+    pub = [{"source": "arxiv:2401.1", "n": 1, "sid": "a", "title": "T", "domain": "quantum_physics"}]
+    K.add(cfg, Emb(), "Cos'è la decoerenza quantistica?", "La decoerenza è… [1]", pub, origin="seed")
+    K.add(cfg, Emb(), "What is quantum decoherence?", "Decoherence is… [1]", pub, origin="seed")
+    out = K.export_seed(cfg, asked={"Cos'è la decoerenza quantistica?": "physics"})
+    assert [(r["domain"], r["lang"]) for r in out] == [("physics", "it"), ("quantum_physics", "en")]
+    rows = out + [{"question": "Cos'è un contratto?", "answer": "x [1]", "sources": pub, "domain": "law_it", "lang": "it"},
+                  {"question": "Che cos'è Aurora?", "answer": "x [1]", "sources": pub, "domain": "general", "lang": "it"}]
+    kno_sources.set_modes(cfg, {d: "off" for d in kno_sources.modes(cfg)} | {"physics": "round"})
+    cfg.values["AURORA_LANG_DEFAULT"] = "it_IT"
+    assert [r["question"] for r in K.seed_for(cfg, rows)] == ["Cos'è la decoerenza quantistica?", "Che cos'è Aurora?"]
+    cfg.values["AURORA_LANG_DEFAULT"] = "en_US"
+    assert K.seed_for(cfg, rows) == []                                  # quantum_physics is not harvested here
+    assert K.lang_of("Come funziona una tabella hash?") == "it" and K.lang_of("How does a hash table work?") == "en"
