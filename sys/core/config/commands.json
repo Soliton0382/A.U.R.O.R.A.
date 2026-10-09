@@ -1,0 +1,6 @@
+{
+ "about": "The commands Aurora shows on its command cards (roadmap 74), Linux's. Each port's installer writes its own in <STATUS>/commands.json (PowerShell on Windows, the Mac's, Docker's), which wins. {root}: Aurora's folder; {source}: the clone the update comes from.",
+ "update": "cd {source} && git pull --ff-only && bash install.sh",
+ "sign": "cd {root} && sudo .venv/bin/python sys/core/script/sys_ethics_sign.py sign",
+ "restart": "systemctl restart aurora-api"
+}

@@ -60,7 +60,8 @@ def dirty(root: Path) -> list[str]:
 
 
 def check(cfg: sys_config.Config, root: Path | None = None, fetch: bool = True) -> dict:
-    root = root or cfg.root
+    from . import sys_commands
+    root = root or sys_commands.source(cfg)          # the ports: the clone their installer built Aurora from
     remote, branch = cfg["AURORA_UPDATE_REMOTE"], cfg["AURORA_UPDATE_BRANCH"]
     out = {"checked": time.time(), "remote": remote, "branch": branch}
     try:
@@ -112,6 +113,10 @@ def changelog(info: dict, lang: str = "it") -> str:
 
 def apply(cfg: sys_config.Config, emit=None, root: Path | None = None, run_tests=None) -> dict:
     """Fast-forward to the remote, install, test; back to the previous commit on any failure."""
+    from . import sys_commands
+    if root is None and sys_commands.by_hand(cfg):   # built by an installer (Windows, the Mac, Docker): its command card
+        return {"applied": False, "reason": "on this system an update goes through the installer: "
+                                            + sys_commands.command(cfg, "update")}
     root = root or cfg.root
     ev = emit or (lambda e, d: None)
     log = sys_log.get_logger("update")

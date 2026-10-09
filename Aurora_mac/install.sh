@@ -256,6 +256,8 @@ if [ ! -f "$STATUS/users_layout.json" ]; then
   .venv/bin/python sys/core/script/sys_users_migrate.py migrate --yes --fresh >/dev/null && ok "$(t 'struttura per utente' 'per-user layout'): usr/$USER/" \
     || warn "$(t 'struttura per utente non creata' 'per-user layout not made'): sys_users_migrate.py plan"
 fi
+# the command cards' commands, and the clone updates are checked in (Aurora's folder is built, not a clone)
+.venv/bin/python sys/core/script/sys_commands_write.py --from "$HERE/commands.json" --source "$REPO" | sed 's/^/  ✓ /'
 [ -n "${DOMAINS:-}" ] && { .venv/bin/python sys/core/script/sys_domains.py --set "$DOMAINS" | sed 's/^/  ✓ /' || die "sys_domains.py --set $DOMAINS"; }
 
 # ---------------------------------------------------------------------------------------------------

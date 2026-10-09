@@ -231,3 +231,8 @@ button.danger { border-color: #c0392b; color: #ff8a80; }
 .mood-row { align-items: center; }
 .mood-bar { display: inline-block; width: 90px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; flex: none; }
 .mood-bar > span { display: block; height: 100%; border-radius: 3px; background: var(--accent); }
+
+/* command cards (roadmap 74): what only the owner can do from a shell, the command for this system */
+.cmd-card { border: 1px solid var(--accent-line); background: var(--accent-soft); border-radius: 10px; padding: .8rem; margin: .6rem 0; }
+.cmd-card p { margin: .4rem 0; }
+.cmd-line { font: .8rem/1.4 var(--mono); background: rgba(0, 0, 0, .35); padding: .6rem; border-radius: 6px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; user-select: all; }

@@ -7,6 +7,7 @@ import { clock, el } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { restartPrompt } from "../restart.js";
 import { autonomySlot } from "./autonomy_box.js";
+import { commandCards } from "../cards.js";
 
 export default {
   id: "updates",
@@ -18,6 +19,7 @@ export default {
     root.innerHTML = `
       <h2 data-i18n="update.title"></h2>
       <p class="muted" data-i18n="update.hint"></p>
+      <div class="upd-cards"></div>
       <div class="upd-mode"></div>
       <div class="upd-state"></div>`;
     root.querySelector("h2").after(autonomySlot("updates"));   // how free Aurora is, here (owner, 2026-10-08)
@@ -25,9 +27,13 @@ export default {
     this.ctx = ctx;
     this.modeBox = root.querySelector(".upd-mode");
     this.box = root.querySelector(".upd-state");
+    this.cards = root.querySelector(".upd-cards");
   },
 
-  async enter() { await this.show(await call("/v1/aurora/update")); },
+  async enter() {
+    await this.show(await call("/v1/aurora/update"));
+    await commandCards(this.cards, () => this.enter());          // what only the owner can do, from a shell
+  },
 
   async show(u) {
     const mb = this.modeBox;
@@ -76,7 +82,7 @@ export default {
       catch (e) { box.append(el("div", "ev error", e.message)); check.disabled = false; }
     });
     actions.append(check);
-    if (u.behind && !u.protected?.length) {
+    if (u.behind && !u.protected?.length && !u.by_hand) {
       const go = el("button", "approve", t("update.now"));
       go.addEventListener("click", async () => {
         go.disabled = true;

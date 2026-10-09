@@ -312,6 +312,8 @@ if (-not (Test-Path (Join-Path $status "users_layout.json"))) {
     if ($LASTEXITCODE -eq 0) { Ok (T "struttura per utente: usr\$svcUser\" "per-user layout: usr\$svcUser\") }
     else { Warn (T "struttura per utente non creata: sys_users_migrate.py plan" "per-user layout not made: sys_users_migrate.py plan") }
 }
+# the command cards' commands in PowerShell, and the clone updates are checked in (C:\Aurora is built, not a clone)
+& $VPy -X utf8 sys\core\script\sys_commands_write.py --from (Join-Path $Here "commands.json") --source $Repo | ForEach-Object { Ok $_ }
 if ($Domains) {                                   # asked on a new installation only: the Knowledge page's choices stay
     & $VPy -X utf8 sys\core\script\sys_domains.py --set $Domains | ForEach-Object { Ok $_ }
     if ($LASTEXITCODE -ne 0) { Die "sys_domains.py --set $Domains" }

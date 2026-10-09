@@ -1,0 +1,6 @@
+{
+ "about": "The command cards' commands on the Mac (sys_commands, roadmap 74). {root}: Aurora's folder; {source}: the clone install.sh was run from.",
+ "update": "cd '{source}' && git pull --ff-only && bash Aurora_mac/install.sh",
+ "sign": "cd '{root}' && sudo .venv/bin/python sys/core/script/sys_ethics_sign.py sign",
+ "restart": "launchctl kickstart -k gui/$(id -u)/com.aurora.api"
+}

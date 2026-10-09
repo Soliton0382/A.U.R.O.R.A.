@@ -1505,5 +1505,13 @@
   "md.media_local.speech": "Local (Whisper, if installed) — else off",
   "md.media_speech_exempt": "a voice cannot be masked: it goes to the cloud only with the level B exemption",
   "md.media_voice_masked": "the text leaves masked: private data is spoken as «an e-mail address», «a phone number»…",
-  "settings.moving": "✅ Ports changed: Aurora now answers on {url} — this page moves there in a few seconds (the browser may ask for the key again)."
+  "settings.moving": "✅ Ports changed: Aurora now answers on {url} — this page moves there in a few seconds (the browser may ask for the key again).",
+  "cmd.admin": "From a terminal with administrator rights (sudo / PowerShell as administrator).",
+  "cmd.copy": "Copy the command",
+  "cmd.copied": "Copied",
+  "cmd.select": "Select it and copy it by hand",
+  "cmd.verify": "Done: check",
+  "cmd.checking": "Checking…",
+  "cmd.done": "Done, checked.",
+  "cmd.notyet": "Not done yet"
 }

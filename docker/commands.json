@@ -1,0 +1,6 @@
+{
+ "about": "The command cards' commands in Docker (sys_commands, roadmap 74): run on the host, in the folder the repository was cloned into. The code of conduct is signed again by the container at its first start after a new image.",
+ "update": "git pull --ff-only && docker compose -f docker/compose.yaml up -d --build",
+ "sign": "docker compose -f docker/compose.yaml restart aurora",
+ "restart": "docker compose -f docker/compose.yaml restart aurora"
+}

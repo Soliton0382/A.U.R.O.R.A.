@@ -149,6 +149,8 @@ def prepare() -> None:
                                 "print(sys_config.get().path('AURORA_STATUS_DIR'))").stdout.strip())
     if not (status / "users_layout.json").exists():
         run(PY, str(SCRIPT / "sys_users_migrate.py"), "migrate", "--yes", "--fresh", check=False)
+    # the command cards' commands: run on the host (an update is a new image, never applied from the WebUI)
+    run(PY, str(SCRIPT / "sys_commands_write.py"), "--from", str(ROOT / "docker" / "commands.json"), check=False)
     chosen = status / "domains_set"
     if not chosen.exists():                          # the areas (docker/.env AURORA_DOMAINS), at the first start only
         areas = os.environ.get("AURORA_DOMAINS", "all").strip() or "all"

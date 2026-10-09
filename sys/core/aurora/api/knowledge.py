@@ -296,8 +296,26 @@ def features() -> dict:
 
 @router.get("/v1/aurora/update", dependencies=[Depends(auth)])
 def update_info() -> dict:
-    from aurora import sys_update
-    return {**sys_update.last(cfg), "mode": cfg["AURORA_UPDATE_MODE"]}
+    from aurora import sys_commands, sys_update
+    return {**sys_update.last(cfg), "mode": cfg["AURORA_UPDATE_MODE"], "by_hand": sys_commands.by_hand(cfg)}
+
+
+@router.get("/v1/aurora/commands", dependencies=[Depends(admin_only)])
+def command_cards(request: Request) -> dict:
+    """What only the owner can do from a shell, with the command for this system (roadmap 74)."""
+    from aurora import sys_commands
+    return {"cards": sys_commands.cards(cfg, request.headers.get("accept-language", "it")),
+            "by_hand": sys_commands.by_hand(cfg)}
+
+
+@router.post("/v1/aurora/commands/{card}/verify", dependencies=[Depends(admin_only)])
+async def command_verify(card: str) -> dict:
+    """The owner says it is done: Aurora checks."""
+    from aurora import sys_commands
+    try:
+        return await asyncio.to_thread(sys_commands.verify, cfg, card)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from None
 
 
 @router.post("/v1/aurora/update/check", dependencies=[Depends(admin_only)])

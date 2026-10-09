@@ -1505,5 +1505,13 @@
   "md.media_local.speech": "Locale (Whisper, se installato) — altrimenti spenta",
   "md.media_speech_exempt": "la voce non si può mascherare: va al cloud solo con l'esenzione dal livello B",
   "md.media_voice_masked": "il testo esce mascherato: i dati sensibili vengono pronunciati come «un indirizzo email», «un numero di telefono»…",
-  "settings.moving": "✅ Porte cambiate: Aurora risponde ora su {url} — la pagina si sposta lì tra pochi secondi (il browser potrebbe chiedere di nuovo la chiave)."
+  "settings.moving": "✅ Porte cambiate: Aurora risponde ora su {url} — la pagina si sposta lì tra pochi secondi (il browser potrebbe chiedere di nuovo la chiave).",
+  "cmd.admin": "Da un terminale con i permessi di amministratore (sudo / PowerShell come amministratore).",
+  "cmd.copy": "Copia il comando",
+  "cmd.copied": "Copiato",
+  "cmd.select": "Selezionalo e copialo a mano",
+  "cmd.verify": "Fatto: verifica",
+  "cmd.checking": "Controllo…",
+  "cmd.done": "Fatto, verificato.",
+  "cmd.notyet": "Non ancora fatto"
 }

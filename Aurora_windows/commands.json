@@ -1,0 +1,6 @@
+{
+ "about": "The command cards' commands on Windows (sys_commands, roadmap 74), in PowerShell as administrator. {root}: C:\\Aurora; {source}: the clone install.ps1 was run from.",
+ "update": "Set-Location '{source}'; git pull --ff-only; powershell -NoProfile -ExecutionPolicy Bypass -File .\\Aurora_windows\\install.ps1",
+ "sign": "Set-Location '{root}'; .\\.venv\\Scripts\\python.exe -X utf8 sys\\core\\script\\sys_ethics_sign.py sign",
+ "restart": "Stop-ScheduledTask -TaskPath '\\Aurora\\' -TaskName api; Start-ScheduledTask -TaskPath '\\Aurora\\' -TaskName api"
+}
