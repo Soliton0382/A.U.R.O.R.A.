@@ -150,9 +150,17 @@ def _models(path: str, audio: np.ndarray, lang: str, timeout: float, cfg: sys_co
 
 def transcribe_segments(audio: np.ndarray, lang: str, cfg: sys_config.Config | None = None) -> list[tuple[float, float, str]]:
     """Long audio (a video's track) in 30 s windows, with timestamps; segments Whisper invents on silence are dropped."""
+    from . import mdl_media
+    cfg = cfg or sys_config.get()
+    if mdl_media.provider(cfg, "speech")[0] != "local":            # the Models page gave it to a cloud provider
+        return mdl_media.heard_segments(cfg, audio, lang)
     return [tuple(x) for x in _models("/transcribe/segments", audio, lang, 3600, cfg)]
 
 
 def transcribe(audio: np.ndarray, lang: str, cfg: sys_config.Config | None = None) -> dict:
     """{"text", "clear", "seconds", "audio_s"} — by aurora-models, where the model is loaded once."""
+    from . import mdl_media
+    cfg = cfg or sys_config.get()
+    if mdl_media.provider(cfg, "speech")[0] != "local":
+        return mdl_media.heard(cfg, audio, lang)
     return _models("/transcribe", audio, lang, 600, cfg)

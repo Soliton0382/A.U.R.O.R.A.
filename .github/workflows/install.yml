@@ -95,3 +95,76 @@ jobs:
           tail -n 60 install.log 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | split -l 12 - part.
           for f in part.*; do [ -f "$f" ] && echo "::notice title=install.log ($f)::$(sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g' "$f")"; done
           [ -f install.log ] || echo "::notice title=install.log::missing: install.sh stopped before writing it"
+
+  # The Mac (owner, 2026-10-09: «gli installer dei 3 os devono essere allineati»; no Mac to try it on): the same run on
+  # a real macOS, Aurora_mac/install.sh with Homebrew, launchd agents and the same stand-in for Claude Code.
+  mac:
+    runs-on: macos-latest
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: bash
+        working-directory: /Users/runner/aurora-src
+    steps:
+      - name: The code of this commit (public repository, no token)
+        working-directory: /Users/runner
+        run: |
+          git init -q aurora-src && cd aurora-src   # not ~/aurora: on a Mac it is ~/Aurora, the installation
+          git fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q FETCH_HEAD && git log -1 --format='%h %s'
+      - name: A stand-in for Claude Code (no account here) that keeps what reached it
+        working-directory: /Users/runner
+        run: |
+          mkdir -p bin
+          cat > bin/claude <<'STUB'
+          #!/usr/bin/env python3
+          import json, os, sys
+          args = sys.argv[1:]
+          system = args[args.index("--system-prompt") + 1] if "--system-prompt" in args else ""
+          user = sys.stdin.read()
+          with open(os.path.expanduser("~/aurora-src/claude-stub.log"), "a", encoding="utf-8") as f:
+              f.write(json.dumps({"system": system, "user": user}, ensure_ascii=False) + "\n")
+          answer = "Risposta di prova del sostituto di Claude Code."
+          usage = {"input_tokens": len(system + user) // 4, "output_tokens": 9}
+          if "stream-json" in args:
+              for w in answer.split(" "):
+                  print(json.dumps({"type": "stream_event", "event": {"type": "content_block_delta",
+                                    "delta": {"type": "text_delta", "text": w + " "}}}), flush=True)
+              print(json.dumps({"type": "result", "result": answer, "usage": usage, "total_cost_usd": 0}))
+          else:
+              print(json.dumps({"result": answer, "usage": usage, "total_cost_usd": 0, "is_error": False}))
+          STUB
+          chmod +x bin/claude
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+      - name: Aurora_mac/install.sh, unattended
+        env:
+          AURORA_INSTALL_PROVIDER: "7"
+          AURORA_INSTALL_NAME: Tester
+        run: bash Aurora_mac/install.sh --yes --no-optional-models
+      - name: A question through HTTPS; what reached the cloud was masked
+        run: |
+          cd ~/Aurora
+          KEY=$(.venv/bin/python -c 'import sys; sys.path.insert(0, "sys/core"); from aurora import sys_config; print(sys_config.get()["AURORA_API_KEY"])')
+          echo "::add-mask::$KEY"
+          curl -fsS --max-time 900 -k https://localhost/v1/chat/completions -H "Authorization: Bearer $KEY" \
+            -H 'Content-Type: application/json' \
+            -d '{"messages": [{"role": "user", "content": "La mia mail è mario.rossi@example.com. Che cos è un solitone?"}]}' \
+            -o answer.json
+          python3 -c 'import json; d = json.load(open("answer.json")); a = d["choices"][0]["message"]["content"]; print(a); assert a.strip()'
+          LOG=~/aurora-src/claude-stub.log
+          echo "calls that reached the cloud: $(wc -l < $LOG)"
+          if grep -qF "mario.rossi@example.com" $LOG; then echo "::error::the e-mail reached the cloud unmasked"; exit 1; fi
+          if ! grep -qF "[EMAIL_" $LOG; then echo "::error::the question never reached the cloud step"; exit 1; fi
+          echo "masked: the e-mail left as a placeholder"
+      - name: What the doctor says, and the agents' logs on a failure
+        if: always()
+        run: |
+          cd ~/Aurora 2>/dev/null && .venv/bin/python sys/core/script/sys_doctor.py || true
+          for f in ~/Aurora/sys/logs/*/launchd.err.log; do [ -f "$f" ] && { echo "== $f"; tail -n 30 "$f"; }; done
+          tail -n 60 install-mac.log || true
+      - name: The end of install-mac.log as public notices
+        if: failure()
+        run: |
+          tail -n 60 install-mac.log 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | split -l 12 - part.
+          for f in part.*; do [ -f "$f" ] && echo "::notice title=install-mac.log ($f)::$(sed -e ':a' -e 'N' -e '$!ba' -e 's/%/%25/g' -e 's/\n/%0A/g' "$f")"; done
+          [ -f install-mac.log ] || echo "::notice title=install-mac.log::missing: install.sh stopped before writing it"

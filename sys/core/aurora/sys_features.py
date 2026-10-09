@@ -44,6 +44,8 @@ FEATURES = {
     "voice_out": (False, {"it": "Voce di Aurora sui dispositivi senza voce (Piper)", "en": "Aurora's voice on devices without one (Piper)"},
                   ["tts"], ["AURORA_TTS_BIN"], "AURORA_TTS", []),
 }
+# the features a media task of the Models page can give to a cloud provider (mdl_media)
+MEDIA_TASK = {"dreams": "image", "edit_ai": "edit", "video_make": "video", "voice_out": "voice", "speech": "speech"}
 # what the installer offers, one question each: the models of a group and the features they open
 GROUPS = {
     "dreams": {"models": ["image_base", "image_lora"], "features": ["dreams"], "default": True,
@@ -131,6 +133,16 @@ def check(cfg: sys_config.Config, name: str) -> dict:
             why = "claude_code does not see pictures: another provider in the Models page"
         return {"ok": not why, "required": required, "label": label, "missing": [why] if why else [],
                 "fix": ["🧠 Modelli / Models"] if why else []}
+    task = MEDIA_TASK.get(name)
+    if task:
+        from . import mdl_media, mdl_router, sys_ethics
+        p, _ = mdl_media.provider(cfg, task)
+        if p != "local":                             # the Models page gave it to a cloud provider
+            why = "" if mdl_router.configured(p, cfg) else f"{mdl_router.PROVIDERS[p]['key']} empty"
+            if not why and task in ("edit", "speech") and not sys_ethics.exempt(cfg):
+                why = "a picture or a voice goes to the cloud only on an exempted installation"
+            return {"ok": not why, "required": required, "label": label, "missing": [why] if why else [],
+                    "fix": ["🧠 Modelli / Models"] if why else []}
     for key in paths:
         if not cfg.path(key).is_file():
             missing.append(f"{key} = {cfg[key]}")

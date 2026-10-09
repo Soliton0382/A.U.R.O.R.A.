@@ -339,6 +339,32 @@ def set_ports(cfg: sys_config.Config, https_port: int, http_port: int) -> dict:
                          "docker compose -f docker/compose.yaml up -d")
     cfg = fresh(cfg)
     old = (int(cfg["AURORA_HTTPS_PORT"]), int(cfg["AURORA_HTTP_PORT"]))
+    new = check_ports(cfg, int(https_port), int(http_port))
+    if new == old:
+        f = caddyfile(cfg)
+        if f.exists() and f.read_text(encoding="utf-8") == render(cfg):
+            return {"https_port": new[0], "http_port": new[1], "urls": status(cfg)["urls"], "changed": False}
+        # the .env already says it (written by hand, or by a page that never reached Caddy) but Caddy still listens on
+        # the old port: written and restarted now (C228, owner 9 Oct: «.env 8443, Caddy still on 32443»)
+        write(cfg)
+        reload("restart")
+        restart_api_later()
+        suffix = "" if new[0] == 443 else f":{new[0]}"
+        return {"https_port": new[0], "http_port": new[1], "changed": True,
+                "urls": [f"https://{_host(n)}{suffix}/" for n in names(cfg)]}
+    _apply(cfg, {"AURORA_HTTPS_PORT": new[0], "AURORA_HTTP_PORT": new[1]}, lambda: None, verb="restart")
+    sys_log.get_logger("api").info("audit: HTTPS on port %d (HTTP %d), was %d (%d)", *new, *old)
+    restart_api_later()
+    suffix = "" if new[0] == 443 else f":{new[0]}"
+    return {"https_port": new[0], "http_port": new[1], "changed": True,
+            "urls": [f"https://{_host(n)}{suffix}/" for n in names(cfg)]}
+
+
+def check_ports(cfg: sys_config.Config, https_port: int, http_port: int) -> tuple[int, int]:
+    """The checks every way of changing Aurora's ports goes through (the 🔒 page, Settings): C227, owner 9 Oct — 9700,
+    the API's own port, set as the HTTPS port from Settings, and Aurora was unreachable."""
+    cfg = fresh(cfg)
+    old = (int(cfg["AURORA_HTTPS_PORT"]), int(cfg["AURORA_HTTP_PORT"]))
     new = (int(https_port), int(http_port))
     if any(not 1 <= p <= 65535 for p in new) or new[0] == new[1]:
         raise HttpsError("two different ports between 1 and 65535")
@@ -352,14 +378,7 @@ def set_ports(cfg: sys_config.Config, https_port: int, http_port: int) -> dict:
         raise HttpsError("a port below 1024 needs the services written again: run ./install.sh (or choose 1024 or more)")
     if busy := [p for p in new if p not in old and _in_use(p)]:
         raise HttpsError(f"port {busy[0]} is already used by another program on this machine")
-    if new == old:
-        return {"https_port": new[0], "http_port": new[1], "urls": status(cfg)["urls"], "changed": False}
-    _apply(cfg, {"AURORA_HTTPS_PORT": new[0], "AURORA_HTTP_PORT": new[1]}, lambda: None, verb="restart")
-    sys_log.get_logger("api").info("audit: HTTPS on port %d (HTTP %d), was %d (%d)", *new, *old)
-    restart_api_later()
-    suffix = "" if new[0] == 443 else f":{new[0]}"
-    return {"https_port": new[0], "http_port": new[1], "changed": True,
-            "urls": [f"https://{_host(n)}{suffix}/" for n in names(cfg)]}
+    return new
 
 
 def restart_api_later(seconds: float = 2.0) -> None:

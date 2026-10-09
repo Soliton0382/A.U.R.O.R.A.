@@ -75,6 +75,17 @@ def speak(cfg: sys_config.Config, text: str, lang: str, use: str = "chat") -> by
     text = " ".join(str(text or "").split())[:MAX_CHARS]
     if not text:
         raise ValueError("nothing to say")
+    from . import mdl_media
+    p, model = mdl_media.provider(cfg, "voice")
+    if p != "local":                                   # a cloud voice (the Models page): masked, spoken by kind
+        key = hashlib.sha256(f"{p}:{model}\n{cfg['AURORA_ASSISTANT_GENDER']}\n{text}".encode()).hexdigest()[:32]
+        cached = _cache_dir(cfg) / f"{key}.wav"
+        if cached.is_file():
+            cached.touch()
+            return cached.read_bytes()
+        data = mdl_media.spoken(cfg, text, lang)
+        cached.write_bytes(data)
+        return data
     v = voice(cfg, lang)
     if not (cfg["AURORA_TTS"] and _bin(cfg).is_file() and v):
         raise RuntimeError("no voice on this machine: run script/sys_tts_install.sh")

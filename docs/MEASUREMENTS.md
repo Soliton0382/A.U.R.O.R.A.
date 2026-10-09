@@ -2266,3 +2266,14 @@ The owner's vault, read only (sqlite in read-only mode, du): the knowledge secti
 So 100,000 passages ≈ 0.7 GB; a harvest round of ~300 documents (M152's rounds: 157–362) ≈ 16 MB. The average hides
 the kinds: an arXiv paper is 14–22 passages (M152's log), an act of law often one or two. **Not measured**: the memory
 section (conversations), the HNSW graphs of the large domains as they grow.
+
+## M155 — The plugins in a container of their own (9 October 2026)
+
+The test VM of M153, `docker/compose.yaml` with two containers on Docker's internal network: `aurora` (no plugin
+runs there) and `aurora-plugins` (docker/plugins_gateway.py, the same image). Bubblewrap inside a container: as root it
+could not create its namespaces («Creating new namespace failed: Operation not permitted») until the plugins'
+container — only it — had SYS_ADMIN and relaxed seccomp/AppArmor profiles; the plugins without network then failed on
+their loopback («RTM_NEWADDR») until NET_ADMIN. With both: **36 plugins, 20 with their tools (92 tools), 16 waiting
+for their key, 0 errors**; `netintel.reverse_dns 8.8.8.8` through API → gateway → cage: «dns.google» in 8.8 s (the
+first call starts the plugin). **Not measured**: a plugin that writes (its folder bound read-write in the cage), the
+cage's isolation checked from inside a plugin in the container (it is Linux's, tested by test_cage_users on Linux).

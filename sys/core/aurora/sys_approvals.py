@@ -55,6 +55,67 @@ def social_auto(cfg: sys_config.Config, action: str) -> bool:
     return Approvals(cfg).auto_today(auto_tools(cfg)) < int(cfg["AURORA_SOCIAL_POSTS_PER_DAY"])
 
 
+# where an approval is decided, and its icon (owner, 9 Oct: «un alert che lampeggia nella barra in alto che mi porta
+# nella pagina corretta (è un post, icona specifica che mi manda sui social)»)
+SECURITY_PLUGINS = {"security"}
+
+
+def social_plugins(cfg: sys_config.Config, folder: Path | None = None) -> set[str]:
+    """The plugins whose manifest says «social» (their posts are approved in the Social page)."""
+    out = set()
+    for f in (folder or cfg.path("AURORA_PLUGINS_DIR")).glob("*/plugin.json"):
+        try:
+            if json.loads(f.read_text(encoding="utf-8")).get("social"):
+                out.add(f.parent.name)
+        except (OSError, ValueError):
+            continue
+    return out
+
+
+def destination(item: dict, social: set[str]) -> dict:
+    """{"view", "icon"}: the page where this request is read and decided."""
+    kind = item.get("kind")
+    target = item.get("action") or item.get("preview") or {}
+    plugin, tool = str(target.get("plugin") or ""), str(target.get("tool") or "")
+    if kind == "update":
+        return {"view": "updates", "icon": "🔄"}
+    if kind in ("forge_cloud", "plugin_install"):
+        return {"view": "plugins", "icon": "🔨"}
+    if kind == "code_change":
+        return {"view": "approvals", "icon": "🧬"}
+    if plugin in social:
+        return {"view": "social", "icon": "🎬" if "video" in tool or "reel" in tool else "📣"}
+    if plugin in SECURITY_PLUGINS:
+        return {"view": "security", "icon": "🛡️"}
+    return {"view": "approvals", "icon": "📤"}
+
+
+def stats(items: list[dict]) -> dict:
+    """The approvals page's numbers: each kind's requests, approved, rejected, waiting, and the time to decide."""
+    from datetime import datetime
+    out: dict[str, dict] = {}
+    for a in items:
+        k = out.setdefault(a.get("kind", "?"), {"requested": 0, "approved": 0, "rejected": 0, "pending": 0, "minutes": []})
+        k["requested"] += 1
+        st = a.get("status")
+        if st == "pending":
+            k["pending"] += 1
+        elif st == "rejected":
+            k["rejected"] += 1
+        else:                                           # approved, executed, failed: the owner said yes
+            k["approved"] += 1
+        if a.get("decided") and a.get("created"):
+            try:
+                dt = datetime.fromisoformat(a["decided"]) - datetime.fromisoformat(a["created"])
+                k["minutes"].append(dt.total_seconds() / 60)
+            except (TypeError, ValueError):
+                pass
+    for k in out.values():
+        m = sorted(k.pop("minutes"))
+        k["median_minutes"] = round(m[len(m) // 2], 1) if m else None
+    return out
+
+
 class Approvals:
     def __init__(self, cfg: sys_config.Config | None = None):
         self.cfg = cfg or sys_config.get()

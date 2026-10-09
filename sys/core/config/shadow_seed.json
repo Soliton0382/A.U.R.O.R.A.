@@ -9318,5 +9318,4066 @@
     ]
    }
   ]
+ },
+ {
+  "question": "Cos'è l'esfiltrazione covert attraverso il web fetching degli LLM?",
+  "answer": "L'esfiltrazione covert attraverso il web fetching degli LLM è un attacco, noto come LLMLeak, che sfrutta il comportamento legittimo di fetching web dei chatbot basati su LLM per esfiltrare informazioni confidenziali a una parte esterna [2]. L'attacco viene utilizzato da software malevolo che gira localmente ma non può comunicare direttamente con internet, abusando degli LLM per stabilire un canale covert [1]. L'attacco si basa solo sulla funzione di fetching di siti web degli LLM, evitando l'uso di librerie di rete o codice generato per l'invio diretto dei dati, che sono più facili da rilevare [1]. Un componente malevolo sul lato client incorpora un segreto in un URL [1]. Il componente malevolo presenta il sito web referenziato come fonte di informazioni necessarie per un compito benigno, come la migrazione di una libreria software [1]. Quando l'LLM accede all'URL, l'attaccante riceve il segreto codificato attraverso un server DNS o web controllato dall'attaccante [1]. L'LLM identifica il sito web referenziato come una potenziale fonte di informazioni aggiuntive e invoca il suo strumento di fetching [4]. La richiesta DNS o HTTP risultante rivela il segreto codificato, permettendo al malware di aggirare le restrizioni sulla comunicazione di rete diretta [2]. L'attacco non si basa su caratteri nascosti o sulla manipolazione dell'LLM in un comportamento malevolo, ma sfrutta la sua funzionalità intenzionale di recuperare informazioni esterne per assistere l'utente [3]. Poiché le informazioni sono rappresentate come caratteri regolari all'interno dell'URL, l'attacco rimane robusto attraverso diversi mezzi di input, inclusi testo copiato e screenshot che collegano sistemi air-gapped [3]. L'attacco non è direttamente affrontato dalle difese contro il prompt injection [2]. L'attacco dimostra come i chatbot basati su LLM possano essere abusati come intermediari innocenti per stabilire un canale covert per l'esfiltrazione di informazioni confidenziali da sistemi compromessi [3].",
+  "made": 1791331911,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "20e79026b3979bf6ec771596615b9170",
+    "title": "The Innocent Courier: Covert Exfiltration Through Legitimate LLM Web Fetching",
+    "source": "doc:bfb78530cdbdc093009901caa5207167",
+    "domain": "cyber_security",
+    "origin": "arxiv:2610.01768",
+    "url": "https://arxiv.org/abs/2610.01768",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   },
+   {
+    "n": 2,
+    "sid": "af8afc85c40594b616927c06d8f1ae41",
+    "title": "The Innocent Courier: Covert Exfiltration Through Legitimate LLM Web Fetching",
+    "source": "doc:bfb78530cdbdc093009901caa5207167",
+    "domain": "cyber_security",
+    "origin": "arxiv:2610.01768",
+    "url": "https://arxiv.org/abs/2610.01768",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   },
+   {
+    "n": 3,
+    "sid": "389e3ead895aee2cbcea3d22343c71c3",
+    "title": "The Innocent Courier: Covert Exfiltration Through Legitimate LLM Web Fetching",
+    "source": "doc:bfb78530cdbdc093009901caa5207167",
+    "domain": "cyber_security",
+    "origin": "arxiv:2610.01768",
+    "url": "https://arxiv.org/abs/2610.01768",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   },
+   {
+    "n": 4,
+    "sid": "e5e588c6ebf783e757150129efb0be22",
+    "title": "The Innocent Courier: Covert Exfiltration Through Legitimate LLM Web Fetching",
+    "source": "doc:bfb78530cdbdc093009901caa5207167",
+    "domain": "cyber_security",
+    "origin": "arxiv:2610.01768",
+    "url": "https://arxiv.org/abs/2610.01768",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Quali sono le limitazioni di rete che impediscono al malware di comunicare direttamente con il server dell'attaccante?",
+    "focus": [
+     {
+      "source": "doc:bfb78530cdbdc093009901caa5207167",
+      "domain": "cyber_security"
+     }
+    ]
+   },
+   {
+    "question": "Perché le difese contro il prompt injection non possono rilevare o prevenire l'attacco LLMLeak?",
+    "focus": [
+     {
+      "source": "doc:bfb78530cdbdc093009901caa5207167",
+      "domain": "cyber_security"
+     }
+    ]
+   },
+   {
+    "question": "In che modo LLMLeak differisce dai rischi di divulgazione di informazioni sensibili agli operatori degli LLM?",
+    "focus": [
+     {
+      "source": "doc:bfb78530cdbdc093009901caa5207167",
+      "domain": "cyber_security"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è il problema del viaggiatore ladro?",
+  "answer": "Il Traveling Thief Problem (TTP), o problema del viaggiatore ladro, è una combinazione del Knapsack Problem (KP) e del Traveling Salesperson Problem (TSP) [1]. In questo scenario, un agente (il ladro) deve visitare un insieme di località in un tour ciclico e decidere quali oggetti raccogliere [1]. Ogni oggetto è posizionato in una località e possiede un determinato profitto e peso [2]. Il problema coinvolge due obiettivi competitivi: massimizzare il profitto totale degli oggetti raccolti e minimizzare il tempo di viaggio del tour [2]. Mentre la raccolta di un oggetto produce profitto, la velocità dell'agente diminuisce man mano che viene raccolto più peso [2]. La velocità inversa è modellata come una funzione crescente, e il tempo necessario per attraversare un bordo si ottiene moltiplicando il valore corrente della funzione per la lunghezza del bordo [1]. Esiste una soglia di peso che limita il carico totale che l'agente può raccogliere [1]. Una soluzione del TTP consiste in un tour e in un piano di imballaggio che determina quali oggetti vengono raccolti in quale città [1]. Il problema viene spesso formulato come un'ottimizzazione bi-obiettivo per trovare l'insieme di soluzioni Pareto-ottimali [1]. Poiché sia massimizzare il profitto che minimizzare il tempo di viaggio sono NP-hard, è già NP-hard decidere se esista una soluzione in cui la differenza tra profitto e tempo di viaggio sia non negativa [1].",
+  "made": 1791331976,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "6d38f5c44300da46fae4087b50f3daab",
+    "title": "Approximation Algorithms for the Traveling Thief Problem",
+    "source": "legacy:arxiv_Approximation_Algorithms_for_the_Traveling_Thief_P_txt_done",
+    "domain": "computer_science",
+    "origin": "arxiv"
+   },
+   {
+    "n": 2,
+    "sid": "2adc701a8e14698eab1c9801e258953b",
+    "title": "Approximation Algorithms for the Traveling Thief Problem",
+    "source": "legacy:arxiv_Approximation_Algorithms_for_the_Traveling_Thief_P_txt_done",
+    "domain": "computer_science",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Qual è il valore dell'approssimazione per Wtsp secondo il Teorema 1?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Approximation_Algorithms_for_the_Traveling_Thief_P_txt_done",
+      "domain": "computer_science"
+     }
+    ]
+   },
+   {
+    "question": "Quali varianti del modello Cttp possono essere approssimate con l'algoritmo proposto?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Approximation_Algorithms_for_the_Traveling_Thief_P_txt_done",
+      "domain": "computer_science"
+     }
+    ]
+   },
+   {
+    "question": "Come viene calcolato il peso totale raccolto dopo aver visitato la i-esima località?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Approximation_Algorithms_for_the_Traveling_Thief_P_txt_done",
+      "domain": "computer_science"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Perché l'esclusione di Pauli è necessaria per l'esistenza della barriera di trasferimento atomico?",
+  "answer": "L'esclusione di Pauli è una condizione necessaria per l'esistenza della barriera di energia nel trasferimento atomico H$_2$ + H$^{\\bullet}$ [1]. Un'interpretazione basata sull'energia cinetica elettronica della barriera dello stato di transizione rivela che l'esclusione di Pauli è necessaria per l'esistenza di tale barriera [1]. Gli effetti della localizzazione elettronica indotta dall'esclusione di Pauli si manifestano nel termine di interazione congelata ($\\Delta E_{FRZ}$) attraverso la mancata sovrapposizione degli orbitali occupati tra i frammenti [2]. All'interno di questa interazione congelata, $\\Delta E_{Pauli}$ rappresenta l'unico termine repulsivo quando i frammenti iniziano ad interagire a distanze maggiori di 1,5 Å [2]. Nel sistema H$_2$ + H$^{\\bullet}$, la coppia di elettroni con lo stesso spin provoca effetti aggiuntivi dovuti all'esclusione di Pauli [4]. Se tale principio è necessario per la barriera di transizione, essa dovrebbe scomparire nello stato singoletto 1[H$_3$]$^+$ (dove resta solo una coppia di elettroni con spin opposto) ma persistere nello stato tripletto 3[H$_3$]$^+$ (dove resta solo una coppia di elettroni con lo stesso spin) [4]. In sintesi, l'esclusione di Pauli è una condizione necessaria per lo stato di transizione nel sistema H$_2$ + H$^{\\bullet}$ [2].",
+  "made": 1791332046,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "27837b0ce393f68bc851bb617300f10a",
+    "title": "Pauli exclusion as a necessary condition for the existence of the H$_2$ + H$^{\\bullet}$ atom transfer barrier",
+    "source": "legacy:arxiv_Pauli_exclusion_as_a_necessary_condition_for_the_e_txt_done",
+    "domain": "chemistry",
+    "origin": "arxiv"
+   },
+   {
+    "n": 2,
+    "sid": "fb7a8bd436a397b42b9e1c2d53b60f12",
+    "title": "Pauli exclusion as a necessary condition for the existence of the H$_2$ + H$^{\\bullet}$ atom transfer barrier",
+    "source": "legacy:arxiv_Pauli_exclusion_as_a_necessary_condition_for_the_e_txt_done",
+    "domain": "chemistry",
+    "origin": "arxiv"
+   },
+   {
+    "n": 4,
+    "sid": "2b61993c3d55b16655485ce192273034",
+    "title": "Pauli exclusion as a necessary condition for the existence of the H$_2$ + H$^{\\bullet}$ atom transfer barrier",
+    "source": "legacy:arxiv_Pauli_exclusion_as_a_necessary_condition_for_the_e_txt_done",
+    "domain": "chemistry",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Qual è il ruolo dell'energia cinetica elettronica nell'interpretazione della barriera di transizione per H2 + H•?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Pauli_exclusion_as_a_necessary_condition_for_the_e_txt_done",
+      "domain": "chemistry"
+     }
+    ]
+   },
+   {
+    "question": "Come si comportano gli stati singoletto e tripletto di [H3]+ rispetto alla barriera di Pauli?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Pauli_exclusion_as_a_necessary_condition_for_the_e_txt_done",
+      "domain": "chemistry"
+     }
+    ]
+   },
+   {
+    "question": "Quali effetti fisici competono con l'esclusione di Pauli nella formazione della barriera di transizione?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Pauli_exclusion_as_a_necessary_condition_for_the_e_txt_done",
+      "domain": "chemistry"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Come funziona un amplificatore di tensione analogico basato su una giunzione tunnel magnetica straintronica?",
+  "answer": "Le giunzioni tunnel magnetica straintroniche (s-MTJ) sono dispositivi la cui conduttanza può essere variata continuamente con la deformazione meccanica generata da una tensione di gate [1]. La loro caratteristica di trasferimento presenta sempre una regione lineare che può essere sfruttata per applicazioni analogiche come l'amplificazione di tensione [1]. Per amplificare una tensione alternata senza distorsioni, la tensione di gate deve essere fissata intorno al punto medio della regione lineare e a essa deve essere sovrapposta una piccola tensione alternata, purché la sua ampiezza sia sufficientemente ridotta da evitare che il sistema esca da tale regione [1]. A differenza degli amplificatori a transistor, la cui amplificazione è determinata solo da parametri interni, in questo dispositivo il guadagno può essere variato da una tensione di alimentazione esterna [1]. L'amplificazione è proporzionale alla tensione di alimentazione $V_s$ e può quindi essere aumentata a piacere aumentando tale tensione [2]. Circuitualmente, l'amplificatore è realizzato con un'alimentazione continua $V_s$ e una resistenza $R'$, per cui la tensione sul resistore è data da $V = V_s \\frac{R'}{R' + R_{s-MTJ}} \\approx V_s G_{s-MTJ} R'$ se $R_{s-MTJ} \\gg R'$ [3]. Un condensatore di blocco filtra l'offset continuo, quindi la tensione sul resistore $R$ è data da $\\tilde{V} = \\tilde{G}_{s-MTJ} (R \\parallel R') V_s$ [3]. Poiché nella regione lineare la pendenza $\\partial G_{s-MTJ} / \\partial V_G = \\kappa$ è costante, la tensione di uscita diventa $\\tilde{V} = \\kappa v_g \\sin(2\\pi f t) (R \\parallel R') V_s$, ottenendo un'amplificazione lineare $A = \\kappa (R' \\parallel R) V_s$ [3]. La frequenza di taglio è limitata dalla dinamica della magnetizzazione, e la distorsione appare quando la frequenza del segnale si avvicina alla frequenza di risonanza ferromagnetica (tipicamente qualche GHz), causando distorsioni della forma d'onda già sopra i 100 MHz in alcuni casi [3].",
+  "made": 1791332114,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "d1ec566310dde88c3e5370448a0c2b5d",
+    "title": "An analog ac voltage amplifier based on a single straintronic magnetic tunnel junction",
+    "source": "legacy:arxiv_An_analog_ac_voltage_amplifier_based_on_a_single_s_txt_done",
+    "domain": "condensed_matter",
+    "origin": "arxiv"
+   },
+   {
+    "n": 2,
+    "sid": "a736b2f266ccd8aaa4873cdf1c8e8900",
+    "title": "An analog ac voltage amplifier based on a single straintronic magnetic tunnel junction",
+    "source": "legacy:arxiv_An_analog_ac_voltage_amplifier_based_on_a_single_s_txt_done",
+    "domain": "condensed_matter",
+    "origin": "arxiv"
+   },
+   {
+    "n": 3,
+    "sid": "e8adc8305d3090b2d30363e650fc5ceb",
+    "title": "An analog ac voltage amplifier based on a single straintronic magnetic tunnel junction",
+    "source": "legacy:arxiv_An_analog_ac_voltage_amplifier_based_on_a_single_s_txt_done",
+    "domain": "condensed_matter",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Come varia la resistenza dell's-MTJ in funzione dell'angolo di rotazione della magnetizzazione?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_An_analog_ac_voltage_amplifier_based_on_a_single_s_txt_done",
+      "domain": "condensed_matter"
+     }
+    ]
+   },
+   {
+    "question": "Qual è il modello circuituale equivalente implementato in LTspice per simulare le dinamiche di magnetizzazione delle MTJ?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_A_Physics_Based_Circuit_Model_for_Magnetic_Tunnel_txt_done",
+      "domain": "condensed_matter"
+     }
+    ]
+   },
+   {
+    "question": "Quali fenomeni spintronici essenziali vengono catturati dal modello circuituale basato sulle equazioni LLGS?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_A_Physics_Based_Circuit_Model_for_Magnetic_Tunnel_txt_done",
+      "domain": "condensed_matter"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è la spiritualità aborigena australiana?",
+  "answer": "La spiritualità aborigena australiana è la spiritualità sacra rappresentata nelle storie eseguite dagli Aborigeni australiani all'interno di ciascun gruppo linguistico in Australia durante le loro cerimonie [1]. È basata sulla venerazione della terra e sulla fede nel \"sogno\", inteso contemporaneamente come l'antica epoca della creazione del mondo (il cosiddetto Tempo del Sogno) e l'effettiva realtà del sognare [3]. Include il Dreamtime (il Dreaming), le songlines e la letteratura orale aborigena [1]. Tramite la storia orale raccontata dagli antenati, trasmette spesso descrizioni del paesaggio culturale locale di ciascun gruppo, aggiungendo significato all'intera topografia del paese [1]. La maggior parte di queste spiritualità appartiene a gruppi specifici, ma alcune si estendono in tutto il continente in una forma o nell'altra [1].",
+  "made": 1791332174,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "238d98fac00bce369eff70b806ea0870",
+    "title": "Australian Aboriginal religion and mythology",
+    "source": "doc:07ed4ef90b57d0263afc281d3c4b910e",
+    "domain": "religion",
+    "origin": "wikipedia:Australian Aboriginal religion and mythology",
+    "url": "https://en.wikipedia.org/wiki/Australian_Aboriginal_religion_and_mythology",
+    "licence": "CC BY-SA 4.0 (Wikipedia contributors)"
+   },
+   {
+    "n": 3,
+    "sid": "2cf2ed231879956d809c3f3e203aadb3",
+    "title": "Aborigeni australiani",
+    "source": "doc:81bbb01c8ac18711986df7481b896d60",
+    "domain": "society",
+    "origin": "wikipedia:it:Aborigeni australiani",
+    "url": "https://it.wikipedia.org/wiki/Aborigeni_australiani",
+    "licence": "CC BY-SA 4.0 (Wikipedia contributors)"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Qual è la percentuale di aborigeni australiani affiliati a una religione tradizionale nel 2021?",
+    "focus": [
+     {
+      "source": "doc:ff5da14806de707fa5cf0ad643c6fa1d",
+      "domain": "society"
+     }
+    ]
+   },
+   {
+    "question": "Chi è considerato il creatore dell'universo nelle culture del sud-est dell'Australia?",
+    "focus": [
+     {
+      "source": "doc:13280046d0a466333c90e1d10e0bb92f",
+      "domain": "philosophy"
+     }
+    ]
+   },
+   {
+    "question": "Quanti gruppi aborigeni distinti esistono in Australia secondo il testo?",
+    "focus": [
+     {
+      "source": "doc:b61975c8fcb867dcca8a417558cde01a",
+      "domain": "religion"
+     }
+    ]
+   },
+   {
+    "question": "Qual è la datazione più recente per la presenza di popolazioni aborigene nel Kakadu National Park?",
+    "focus": [
+     {
+      "source": "doc:8d77e13a5f8c1f3f30b404b5070e6d62",
+      "domain": "general"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è la manipolazione prensile?",
+  "answer": "La manipolazione prensile implica mantenere l'oggetto afferrato mentre l'intero robot esegue la manipolazione utilizzando il suo sistema di controllo [2]. Richiede di trovare un insieme di controlli robotici adatti per cambiare lo stato di un oggetto da una configurazione iniziale a una desiderata [2]. È spesso descritta come un problema open-world o open-ended [2] ed è intrinsecamente difficile a causa della natura sparsa del problema di presa, in cui lo spazio delle soluzioni è estremamente grande ma il feedback di successo è raro [2]. Un esempio di manipolazione prensile è l'apertura di un frigorifero, che consiste nel cambiare lo stato dell'oggetto da chiuso a aperto afferrando la maniglia del frigorifero durante l'intero movimento del robot [2].",
+  "made": 1791332218,
+  "sources": [
+   {
+    "n": 2,
+    "sid": "a8494f7a1d9545a914309f5c27b98315",
+    "title": "Towards Robust Prehensile Manipulation in Open-Ended Environments",
+    "source": "doc:b981942b8b519d6c4e84475fca455fbd",
+    "domain": "robotics",
+    "origin": "arxiv:2610.06376",
+    "url": "https://arxiv.org/abs/2610.06376",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Quali sono le quattro abilità canoniche della manipolazione prensile secondo UniCross?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_UniCross_Unified_Cross_Skill_Dexterous_Manipulatio_txt_done",
+      "domain": "computer_science"
+     }
+    ]
+   },
+   {
+    "question": "Come funziona il modulo QDG-6DoF per generare pose di presa?",
+    "focus": [
+     {
+      "source": "doc:b981942b8b519d6c4e84475fca455fbd",
+      "domain": "robotics"
+     }
+    ]
+   },
+   {
+    "question": "Quali sono i quattro compiti di manipolazione dinamica presentati in DynamicManip?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_DynamicManip_Enabling_Dynamic_Manipulation_from_a_txt_done",
+      "domain": "computer_science"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Come si costruisce la superficie di Kummer?",
+  "answer": "La costruzione classica della superficie di Kummer inizia con un 4-toro $T^4$ (o una superficie abeliana $A$) e lo si quozienta mediante un'involutione naturale definita da $\\sigma(z_1, z_2) = (-z_1, -z_2)$ [1]. Questo processo genera uno spazio quoziente che presenta esattamente 16 punti singolari di tipo $A_1$ [3]. Per completare la costruzione, si procede alla risoluzione minima di tali singolarità, sostituendo le 16 regioni disgiunte contenenti i punti singolari con il blow-up centrato in ciascun punto [1]. In alternativa, le singolarità possono essere risolte sostituendole con copie dello spazio di Eguchi-Hanson [4]. Il luogo eccezionale della risoluzione consiste in 16 curve razionali lisce e disgiunte con auto-intersezione $-2$ [3]. La superficie risultante è una superficie K3 [3].",
+  "made": 1791332279,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "239cb1fc58648fabe732de4794e53b2c",
+    "title": "A Calabi-Yau Metric on the Kummer Surface",
+    "source": "legacy:arxiv_A_Calabi_Yau_Metric_on_the_Kummer_Surface_txt_done",
+    "domain": "mathematics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 3,
+    "sid": "fbf75127604c318f5e8a3f72dd60caa8",
+    "title": "Bianchi groups and automorphisms of rank-four $K3$ surfaces",
+    "source": "legacy:arxiv_Bianchi_groups_and_automorphisms_of_rank_four_K3_s_txt_done",
+    "domain": "mathematics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 4,
+    "sid": "6ff40563bda8d6c1756d58b1be084d47",
+    "title": "A Calabi-Yau Metric on the Kummer Surface",
+    "source": "legacy:arxiv_A_Calabi_Yau_Metric_on_the_Kummer_Surface_txt_done",
+    "domain": "mathematics",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Qual è la definizione precisa dell'involutione σ usata per quozientare il 4-toro T4?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_A_Calabi_Yau_Metric_on_the_Kummer_Surface_txt_done",
+      "domain": "mathematics"
+     }
+    ]
+   },
+   {
+    "question": "Come viene descritta localmente la regione sostituita durante il blow-up della singolarità?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_A_Calabi_Yau_Metric_on_the_Kummer_Surface_txt_done",
+      "domain": "mathematics"
+     }
+    ]
+   },
+   {
+    "question": "Qual è il ruolo dello spazio di Eguchi-Hanson nella risoluzione delle singolarità?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_A_Calabi_Yau_Metric_on_the_Kummer_Surface_txt_done",
+      "domain": "mathematics"
+     }
+    ]
+   },
+   {
+    "question": "Qual è la strategia di prova per l'esistenza della metrica Ricci piatta sulla superficie?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_A_Calabi_Yau_Metric_on_the_Kummer_Surface_txt_done",
+      "domain": "mathematics"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Come si stabilizzano e commutano sequenze di solitoni collidenti?",
+  "answer": "La stabilizzazione e la commutazione di sequenze di solitoni collidenti sono ottenute in array di guide d'onda ottiche non lineari [1]. Questo processo sfrutta un guadagno-perdita di Ginzburg-Landau (GL) generico a banda larga e l'interazione tra vicini più prossimi (NN) [1]. La proprietà di interazione NN porta all'eliminazione completa degli effetti di interazione a tre impulsi durante le collisioni, superando le limitazioni precedenti che impedivano la stabilizzazione stabile per più di due sequenze [1]. Il guadagno-perdita GL con guadagno cubico, perdita quintica e perdita lineare con coefficienti appropriatamente scelti abilita la stabilizzazione della propagazione contro i cambiamenti indotti dalle collisioni nelle ampiezze dei solitoni e contro l'emissione di radiazione [3]. La dinamica delle ampiezze dei solitoni in sistemi di trasmissione a J sequenze può essere descritta da un modello generalizzato di Lotka-Volterra (LV) di dimensione J con interazione NN [1]. L'analisi di stabilità lineare e di biforcazione per i punti di equilibrio del modello LV viene utilizzata per determinare le regioni nello spazio dei parametri adatte alla stabilizzazione e alla commutazione della trasmissione [1]. Viene inoltre utilizzato il metodo della funzione di Lyapunov per il modello LV completo per determinare le regioni nello spazio delle fasi in cui la commutazione della trasmissione può essere realizzata [1]. L'analisi della funzione di Lyapunov ha dimostrato che la stabilità dei punti di equilibrio del modello LV è più forte della stabilità lineare [4]. Le previsioni del modello LV sono confermate da estese simulazioni numeriche e la stabilità dei solitoni è indipendente dal numero di sequenze J [1]. Questo permette la stabilizzazione e la commutazione robuste con un numero arbitrario di sequenze [1]. La progettazione degli array di guide d'onda può essere basata sull'analisi di stabilità e di biforcazione per i punti di equilibrio del modello LV [1].",
+  "made": 1791332357,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "3abdd191a993fc34ab4f942cd9879b7f",
+    "title": "Highly controllable stabilization and switching of multiple colliding soliton sequences with generic Ginzburg-Landau gain-loss",
+    "source": "legacy:arxiv_Highly_controllable_stabilization_and_switching_of_txt_done",
+    "domain": "nonlinear_science",
+    "origin": "arxiv"
+   },
+   {
+    "n": 3,
+    "sid": "77f38bf977f4bc5f6537eff1faa3a71b",
+    "title": "Highly controllable stabilization and switching of multiple colliding soliton sequences with generic Ginzburg-Landau gain-loss",
+    "source": "legacy:arxiv_Highly_controllable_stabilization_and_switching_of_txt_done",
+    "domain": "nonlinear_science",
+    "origin": "arxiv"
+   },
+   {
+    "n": 4,
+    "sid": "c40e40648b8727f0add5fb6cf4f2c811",
+    "title": "Highly controllable stabilization and switching of multiple colliding soliton sequences with generic Ginzburg-Landau gain-loss",
+    "source": "legacy:arxiv_Highly_controllable_stabilization_and_switching_of_txt_done",
+    "domain": "nonlinear_science",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Quali sono i valori specifici dei parametri κi e κf usati per la commutazione on-off delle sequenze?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Highly_controllable_stabilization_and_switching_of_txt_done",
+      "domain": "nonlinear_science"
+     }
+    ]
+   },
+   {
+    "question": "Come si confrontano i risultati delle simulazioni NLS accoppiate con le previsioni del modello LV?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Highly_controllable_stabilization_and_switching_of_txt_done",
+      "domain": "nonlinear_science"
+     }
+    ]
+   },
+   {
+    "question": "Quali parametri principali sono stati utilizzati per la stabilizzazione di quattro sequenze di solitoni?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Highly_controllable_stabilization_and_switching_of_txt_done",
+      "domain": "nonlinear_science"
+     }
+    ]
+   },
+   {
+    "question": "In che modo il guadagno cubico e la perdita quintica influenzano le ampiezze in questo lavoro rispetto a Ref. [24]?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Highly_controllable_stabilization_and_switching_of_txt_done",
+      "domain": "nonlinear_science"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è la mancata specificazione della ricompensa nel reinforcement learning?",
+  "answer": "Nel reinforcement learning, la ricompensa scalare raramente specifica completamente le sequenze ottimali di azioni su un episodio [9]. Questa underspecification può ammettere molte politiche comportamentalmente distinte con livelli di ricompensa simili, incluse strategie non intenzionali che sfruttano la funzione di ricompensa invece di completare il compito inteso [9]. Il fenomeno può portare a situazioni in cui il sistema, a causa di divergenze tra ambienti di test e nuovi ambienti, hackea o ottimizza perversamente la ricompensa [5]. Viene spesso associata al problema del \"Sorcerer's Apprentice\" e può far sì che un agente adotti politiche perverse, come nel caso di un robot pulitore che riempie, svuota e riempie nuovamente lo stesso sporco invece di pulire [5]. In particolare, è un problema noto in cui gli agenti cercano di massimizzare la ricompensa, trattando i valori e gli obiettivi umani solo come strumentali a questo obiettivo finale [5]. Tradizionalmente, la mancata specificazione è stata considerata un problema limitato alla sola ricompensa, che funge da proxy per il comportamento inteso [2]. Tuttavia, la divergenza del proxy non è limitata alla ricompensa, ma può verificarsi in quattro strati: ricompensa, curriculum, statistica di valutazione e movimento di riferimento [2]. In ambito statistico, il termine può anche riferirsi al fatto che le ricompense immediate nei dati batch sono spesso non osservate a causa di registrazioni sparse o censorate [11]. Questo scenario, noto come missing not at random (MNAR), rompe l'ignorabilità e induce bias di selezione anche dopo il condizionamento su stati e azioni [11].",
+  "made": 1791332432,
+  "sources": [
+   {
+    "n": 2,
+    "sid": "3e216546b107f9c1d1d085278fd51f37",
+    "title": "Beyond Reward Hacking: Proxy Divergence Across Four Layers of a Staged Humanoid Learning Pipeline",
+    "source": "doc:eb0467c903c3977efb5b0a01bac0a70a",
+    "domain": "robotics",
+    "origin": "arxiv:2610.03196",
+    "url": "https://arxiv.org/abs/2610.03196",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   },
+   {
+    "n": 5,
+    "sid": "cbc49f85d8b3e8b61e3ce5714de10c85",
+    "title": "Dynamic Cognition Applied to Value Learning in Artificial Intelligence",
+    "source": "legacy:arxiv_Dynamic_Cognition_Applied_to_Value_Learning_in_Art_txt_done",
+    "domain": "artificial_intelligence",
+    "origin": "arxiv"
+   },
+   {
+    "n": 9,
+    "sid": "5f0469bbd0ecb8f7744ffe1d2976e2e0",
+    "title": "Traversing the solution space of neural networks with Hessian Null Space Continuation",
+    "source": "doc:27e0ee36a595aa1b22f2ff8b63932af8",
+    "domain": "biomedicine",
+    "origin": "arxiv:2609.38081",
+    "url": "https://arxiv.org/abs/2609.38081",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   },
+   {
+    "n": 11,
+    "sid": "e16b2469eae0caab21718db33a41da1f",
+    "title": "Off-Policy Evaluation for Missingness-Aware Policies in MDPs with Rewards Missing Not at Random",
+    "source": "legacy:arxiv_Off_Policy_Evaluation_for_Missingness_Aware_Polici_txt_done",
+    "domain": "statistics",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Come funziona Q-Learning Lab per visualizzare gli aggiornamenti della funzione Q?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Q_Learning_Lab_Teaching_Reinforcement_Learning_Thr_txt_done",
+      "domain": "society"
+     }
+    ]
+   },
+   {
+    "question": "Quali sono i quattro strati di divergenza del proxy oltre alla ricompensa?",
+    "focus": [
+     {
+      "source": "doc:eb0467c903c3977efb5b0a01bac0a70a",
+      "domain": "robotics"
+     }
+    ]
+   },
+   {
+    "question": "Come gestisce l'inferenza attiva il dilemma esplorazione-sfruttamento senza funzioni di ricompensa?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Prior_preferences_in_active_inference_agents_soft_txt_done",
+      "domain": "artificial_intelligence"
+     }
+    ]
+   },
+   {
+    "question": "Quali garanzie asintotiche offre l'algoritmo Quasar per la raggiungibilità?",
+    "focus": [
+     {
+      "source": "doc:49ab02458cc718cdfb17b19cabfec46c",
+      "domain": "computer_science"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Chi era Anubi nella religione dell'antico Egitto?",
+  "answer": "Anubi (noto anche come Anubis, dalla versione greca del nome egizio originale) era una divinità egizia appartenente alla religione dell'antico Egitto [1]. Era il dio della mummificazione e dei cimiteri, protettore delle necropoli e del mondo dei morti [1]. Era rappresentato con il corpo da uomo con la testa di sciacallo [1]. Durante la I dinastia egizia fu adorato come protettore delle tombe e assunse le funzioni di imbalsamatore e inventore della mummificazione [1]. Una delle sue mansioni principali era accompagnare le anime dei defunti nell'oltretomba e compiere la pesatura del cuore decisiva per l'ammissione delle anime nel regno dei morti [1]. Durante il Medio Regno fu sostituito da Osiride come signore dell'aldilà [1]. In seguito alla crescita del culto di Osiride, Anubi divenne il guardiano di Osiride [12]. Durante il giudizio dell'anima, se il cuore del defunto era leggero come la piuma di Maat, Anubi lasciava il defunto nelle mani di Osiride [12]. Possedeva diversi titoli ed epiteti, tra cui \"Signore degli Occidentali\", \"Colui che presiede l'imbalsamazione\", \"Quello della necropoli\" e \"Colui che è sulla sua montagna\" [1].",
+  "made": 1791332533,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "4c7ee1c6c1c6e684fde9be5f9db2b5f5",
+    "title": "Anubi",
+    "source": "doc:43f13d110058be017a887c9d6765f895",
+    "domain": "philosophy",
+    "origin": "wikipedia:it:Anubi",
+    "url": "https://it.wikipedia.org/wiki/Anubi",
+    "licence": "CC BY-SA 4.0 (Wikipedia contributors)"
+   },
+   {
+    "n": 12,
+    "sid": "b770d6abbd272a23ce97e024e9ffc879",
+    "title": "Religione egizia",
+    "source": "doc:97f2529b7a5efafc1d8e8a885ab18466",
+    "domain": "religion",
+    "origin": "wikipedia:it:Religione egizia",
+    "url": "https://it.wikipedia.org/wiki/Religione_egizia",
+    "licence": "CC BY-SA 4.0 (Wikipedia contributors)"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Quali sono le diverse versioni mitologiche riguardo ai genitori di Anubi?",
+    "focus": [
+     {
+      "source": "doc:43f13d110058be017a887c9d6765f895",
+      "domain": "philosophy"
+     }
+    ]
+   },
+   {
+    "question": "Perché gli Egizi scelsero lo sciacallo come simbolo protettore dei morti?",
+    "focus": [
+     {
+      "source": "doc:086009f91ef7b6279281379d676e15a3",
+      "domain": "philosophy"
+     }
+    ]
+   },
+   {
+    "question": "Qual è il significato simbolico del colore nero nelle raffigurazioni di Anubi?",
+    "focus": [
+     {
+      "source": "doc:086009f91ef7b6279281379d676e15a3",
+      "domain": "philosophy"
+     }
+    ]
+   },
+   {
+    "question": "Quali prove zoologiche mettono in discussione l'identificazione di Anubi con lo sciacallo?",
+    "focus": [
+     {
+      "source": "doc:43f13d110058be017a887c9d6765f895",
+      "domain": "philosophy"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è la compressione ottimale con recupero quantistico?",
+  "answer": "La compressione ottimale con recupero quantistico è un problema di compressione dei dati in cui una stringa $x \\in \\{0, 1\\}^m$ di peso di Hamming al più $n$ viene compressa in una stringa più corta $y \\in \\{0, 1\\}^s$ [1]. Tale configurazione garantisce che qualsiasi bit $x_i$ della stringa originale possa essere recuperato senza errori utilizzando al massimo $t$ query quantistiche a un oracolo standard che codifica la stringa compressa $y$ [1]. La lunghezza minima della stringa compressa varia a seconda che le query siano adattive o non adattive [1]. Inoltre, gli schemi quantistici offrono vantaggi significativi rispetto agli schemi classici, poiché garantiscono una compressione efficace anche in contesti dove i metodi classici non forniscono miglioramenti [11].",
+  "made": 1791332598,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "f5fb115db206b72dd5960bbb545d879a",
+    "title": "Optimal compression with quantum retrieval",
+    "source": "doc:3ad3cc5c5793f10da64c2d24eeb429b8",
+    "domain": "information_theory",
+    "origin": "arxiv:2610.06702",
+    "url": "https://arxiv.org/abs/2610.06702",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   },
+   {
+    "n": 11,
+    "sid": "8dec125da397b7f02a1c4586e0839a56",
+    "title": "Optimal compression with quantum retrieval",
+    "source": "doc:3ad3cc5c5793f10da64c2d24eeb429b8",
+    "domain": "information_theory",
+    "origin": "arxiv:2610.06702",
+    "url": "https://arxiv.org/abs/2610.06702",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Qual è il vantaggio della compressione quantistica rispetto a quella classica per il recupero di bit?",
+    "focus": [
+     {
+      "source": "doc:3ad3cc5c5793f10da64c2d24eeb429b8",
+      "domain": "information_theory"
+     }
+    ]
+   },
+   {
+    "question": "Come viene simulata la spettroscopia del magnete quantistico Cs2CoCl4?",
+    "focus": [
+     {
+      "source": "doc:8488096283c2a8973ec8f06a40daaec6",
+      "domain": "quantum_physics"
+     }
+    ]
+   },
+   {
+    "question": "Qual è il costo di memoria ottimale per la descrizione minima delle matrici di densità?",
+    "focus": [
+     {
+      "source": "doc:c25b7420830a44781dd578dae4d80021",
+      "domain": "information_theory"
+     }
+    ]
+   },
+   {
+    "question": "Come viene preservato l'estremo globale nella compressione per la ricerca quantistica?",
+    "focus": [
+     {
+      "source": "doc:74707af3e0683dee0f4434806857e423",
+      "domain": "physics"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è la quantizzazione assistita dall'informazione mutua?",
+  "answer": "La quantizzazione assistita dall'informazione mutua è una strategia di allocazione dei bit che mira direttamente a massimizzare l'informazione mutua tra la rappresentazione latente quantizzata e la variabile target ($I(z_q, y)$) [2]. Questo metodo supera i limiti della formulazione GIB originale, che non considera esplicitamente un budget di rate finito e governa la selezione delle feature tramite un parametro di trade-off $\\beta$ [2]. Il numero di componenti quantizzate non è fissato a priori, poiché la formulazione seleziona automaticamente il numero ottimale assegnando rate zero alle dimensioni meno rilevanti [10]. L'obiettivo può essere interpretato come la massimizzazione di un limite inferiore variazionale sull'informazione mutua, con il termine di compressione garantito implicitamente dal budget di rate disponibile [3]. Per i task di regressione gaussiana multivariata, la trasformazione che massimizza l'informazione mutua rimane lineare ed è rappresentata dalla matrice degli autovettori normalizzati a sinistra della CCA [10]. Sono state sviluppate due varianti principali: la Gaussian Mutual Information VQ (GMI-VQ), che utilizza una mappatura GIB chiusa, e la Variational Mutual Information VQ (VMI-VQ), che impiega un encoder neurale addestrato per massimizzare l'informazione rilevante per il task [2]. La VMI-VQ risulta particolarmente efficace nei regimi non-Gaussiani, poiché apprende embedding non lineari che si adattano meglio alla struttura dell'inferenza [7].",
+  "made": 1791332664,
+  "sources": [
+   {
+    "n": 2,
+    "sid": "f3c4fad8083d764e56583034dc58c511",
+    "title": "Information Bottleneck Meets Quantization: Finite Rate Analysis and Optimal Designs",
+    "source": "legacy:arxiv_Information_Bottleneck_Meets_Quantization_Finite_R_txt_done",
+    "domain": "engineering",
+    "origin": "arxiv"
+   },
+   {
+    "n": 3,
+    "sid": "841ec8a54bf894eea0a27d6cd8812b9b",
+    "title": "Information Bottleneck Meets Quantization: Finite Rate Analysis and Optimal Designs",
+    "source": "legacy:arxiv_Information_Bottleneck_Meets_Quantization_Finite_R_txt_done",
+    "domain": "engineering",
+    "origin": "arxiv"
+   },
+   {
+    "n": 7,
+    "sid": "1c9e028e71c6cb81295b9311d7728114",
+    "title": "Information Bottleneck Meets Quantization: Finite Rate Analysis and Optimal Designs",
+    "source": "legacy:arxiv_Information_Bottleneck_Meets_Quantization_Finite_R_txt_done",
+    "domain": "engineering",
+    "origin": "arxiv"
+   },
+   {
+    "n": 10,
+    "sid": "215eb34d557cef360b20e88a4237c426",
+    "title": "Information Bottleneck Meets Quantization: Finite Rate Analysis and Optimal Designs",
+    "source": "legacy:arxiv_Information_Bottleneck_Meets_Quantization_Finite_R_txt_done",
+    "domain": "engineering",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Qual è la relazione tra la distorsione ottimale e il budget di rate totale nella quantizzazione GIB?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Information_Bottleneck_Meets_Quantization_Finite_R_txt_done",
+      "domain": "engineering"
+     }
+    ]
+   },
+   {
+    "question": "Come viene strutturato l'algoritmo per il recupero dell'assegnazione dei codici nella quantizzazione vettoriale?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Information_Bottleneck_Meets_Quantization_Finite_R_txt_done",
+      "domain": "engineering"
+     }
+    ]
+   },
+   {
+    "question": "Quali sono i principali contributi teorici presentati nell'estensione dei risultati preliminari sulla quantizzazione?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Information_Bottleneck_Meets_Quantization_Finite_R_txt_done",
+      "domain": "engineering"
+     }
+    ]
+   },
+   {
+    "question": "In che modo la quantizzazione vettoriale differisce dalla quantizzazione scalare separata nell'allocazione dei bit?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Information_Bottleneck_Meets_Quantization_Finite_R_txt_done",
+      "domain": "engineering"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Come si confrontano gli algoritmi di intelligenza artificiale per la diagnosi assistita nella mammografia?",
+  "answer": "In uno studio su 786.124 esami, l'algoritmo D ha ottenuto l'AUROC più alta (0,849), seguito da B (0,818), Mirai (0,817) e A (0,815) [3]. L'algoritmo D ha mostrato la sensibilità più alta a ogni tasso di positività, variando dal 55,3% al 5% al 77,9% al 25%, con intervalli di confidenza che non si sovrapponevano a quelli degli altri algoritmi [4]. Nessun algoritmo ha raggiunto la sensibilità dei radiologi ai tassi di positività del 10% o inferiori [5]. La specificità è stata quasi identica tra tutti gli algoritmi a ogni punto operativo, variando dal 95,3% al 95,4% al 5% e dal 75,3% al 75,4% al 25% [9]. Il valore predittivo positivo (PPV) è variato dal 6,0% (algoritmo A) al 7,9% (algoritmo D) al 5% e si è ridotto a 2,1%-2,2% al 25% [10]. Gli algoritmi commerciali hanno mostrato differenze significative nelle prestazioni, mentre il modello accademico open-source ha ottenuto risultati comparabili a due dei tre prodotti commerciali [7]. Parallelamente, i confronti valutano anche le prestazioni, l'efficienza computazionale e il costo, ad esempio mettendo a fronte modelli foundation preaddestrati (RAD-DINO e MammoCLIP) e reti neurali convoluzionali (ResNet18 e ResNetLite) per il rilevamento di protesi mammarie [12]. I modelli foundation vengono valutati per la loro capacità di apprendere rappresentazioni trasferibili tramite preaddestramento su larga scala, offrendo un approccio scalabile che si adatta a diversi protocolli di acquisizione senza richiedere architetture specifiche o riaddestramenti estensivi [12]. Si nota inoltre che molti modelli non riportano le prestazioni nei pazienti con protesi mammarie, il che può portare a cali di affidabilità a causa di spostamenti nella distribuzione dei dati e dell'uso di \"scorciatoie\" da parte di caratteristiche di imaging confondenti [12].",
+  "made": 1791332745,
+  "sources": [
+   {
+    "n": 3,
+    "sid": "0aad356800870ab015073fee1046f04e",
+    "title": "Kaiser Permanente National Cross-Vendor Validation of Mammography Artificial Intelligence Computer-Aided Diagnosis Algorithms in a US-Representative Population",
+    "source": "doc:0805afcd45c892d84992ca1841d7c7d9",
+    "domain": "medicine",
+    "origin": "medrxiv:10.64898/2026.09.22.26363619",
+    "url": "https://doi.org/10.64898/2026.09.22.26363619",
+    "licence": "cc_no"
+   },
+   {
+    "n": 4,
+    "sid": "18cfa25c9faf0fb0f27e0828924a196e",
+    "title": "Kaiser Permanente National Cross-Vendor Validation of Mammography Artificial Intelligence Computer-Aided Diagnosis Algorithms in a US-Representative Population",
+    "source": "doc:0805afcd45c892d84992ca1841d7c7d9",
+    "domain": "medicine",
+    "origin": "medrxiv:10.64898/2026.09.22.26363619",
+    "url": "https://doi.org/10.64898/2026.09.22.26363619",
+    "licence": "cc_no"
+   },
+   {
+    "n": 5,
+    "sid": "29985460ef4ccb22b4f7913ac36f2c80",
+    "title": "Kaiser Permanente National Cross-Vendor Validation of Mammography Artificial Intelligence Computer-Aided Diagnosis Algorithms in a US-Representative Population",
+    "source": "doc:0805afcd45c892d84992ca1841d7c7d9",
+    "domain": "medicine",
+    "origin": "medrxiv:10.64898/2026.09.22.26363619",
+    "url": "https://doi.org/10.64898/2026.09.22.26363619",
+    "licence": "cc_no"
+   },
+   {
+    "n": 7,
+    "sid": "a55f891472556871cad58c8f42a625e3",
+    "title": "Free Lunch in Medical Image Foundation Model Pre-training via Randomized Synthesis and Disentanglement",
+    "source": "legacy:arxiv_Free_Lunch_in_Medical_Image_Foundation_Model_Pre_t_txt_done",
+    "domain": "biomedicine",
+    "origin": "arxiv"
+   },
+   {
+    "n": 9,
+    "sid": "b2ee591d2b02fb35f84367fd531400a2",
+    "title": "txt done",
+    "source": "legacy:pmc_txt_done",
+    "domain": "medicine",
+    "origin": "pmc"
+   },
+   {
+    "n": 10,
+    "sid": "6b5433d5f3c3fecc8076c0af3f6404af",
+    "title": "Mammography Foundation Models for Opportunistic Prediction of Major Adverse Cardiovascular Events",
+    "source": "legacy:arxiv_Mammography_Foundation_Models_for_Opportunistic_Pr_txt_done",
+    "domain": "engineering",
+    "origin": "arxiv"
+   },
+   {
+    "n": 12,
+    "sid": "288c0719e6f8e47d0a8a94b846fddd99",
+    "title": "Image-Based Breast Implant Detection for Mammography Dataset Curation and Near-Real-Time Deployment: Comparing Foundation Models and Task-Specific Convolutional Models",
+    "source": "doc:ddc483138e69434a06bdfb5e3ed1bcb4",
+    "domain": "engineering",
+    "origin": "arxiv:2610.03817",
+    "url": "https://arxiv.org/abs/2610.03817",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Quali sono le limitazioni dello studio relative all'uso della tomosintesi digitale della mammella?",
+    "focus": [
+     {
+      "source": "doc:0805afcd45c892d84992ca1841d7c7d9",
+      "domain": "medicine"
+     }
+    ]
+   },
+   {
+    "question": "Come differisce la popolazione dello studio rispetto alla popolazione femminile generale degli Stati Uniti?",
+    "focus": [
+     {
+      "source": "doc:0805afcd45c892d84992ca1841d7c7d9",
+      "domain": "medicine"
+     }
+    ]
+   },
+   {
+    "question": "Quali sono le principali lacune nella traduzione delle prove attuali alla pratica clinica negli Stati Uniti?",
+    "focus": [
+     {
+      "source": "doc:0805afcd45c892d84992ca1841d7c7d9",
+      "domain": "medicine"
+     }
+    ]
+   },
+   {
+    "question": "Quali metodi statistici sono stati utilizzati per calcolare gli intervalli di confidenza per sensibilità e AUROC?",
+    "focus": [
+     {
+      "source": "doc:0805afcd45c892d84992ca1841d7c7d9",
+      "domain": "medicine"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Come si determina la rilevabilità dei segnali gravitazionali per LISA?",
+  "answer": "La rilevabilità dei segnali gravitazionali per LISA si determina confrontando la strain caratteristica delle onde gravitazionali con le curve di sensibilità dei rivelatori [10]. A livello di popolazione di sorgenti, la rilevabilità è valutata combinando le previsioni della matrice di Fisher con un'analisi di campionamento annidato gerarchico (hierarchical nested-sampling) applicata a cataloghi sintetici derivati da modelli di popolazione astrofisicamente motivati [5]. Inoltre, la capacità del rivelatore di ricostruire i segnali dipende dalla posizione del picco spettrale rispetto alla banda di sensibilità di LISA e dal rapporto segnale-rumore (SNR) [3]. Per una ricostruzione favorevole con bassa degenerazione e bassa incertezza, sono tipicamente richiesti segnali con SNR ≳ 50 [3].",
+  "made": 1791332800,
+  "sources": [
+   {
+    "n": 3,
+    "sid": "eac0c875c8fc6acf66c3252920a6f019",
+    "title": "Mapping Domain-Wall Bayesian Reconstruction with LISA",
+    "source": "legacy:arxiv_Mapping_Domain_Wall_Bayesian_Reconstruction_with_L_txt_done",
+    "domain": "astrophysics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 5,
+    "sid": "a7c0b39f8244d456704317b41007a750",
+    "title": "Environmental effects vs. modified gravity in the LISA massive black hole binary population",
+    "source": "legacy:arxiv_Environmental_effects_vs_modified_gravity_in_the_L_txt_done",
+    "domain": "relativity",
+    "origin": "arxiv"
+   },
+   {
+    "n": 10,
+    "sid": "b3f440e46d09af7a98e749a5971488cb",
+    "title": "Chaotic Imprints in Gravitational Waves from Conformal-Anomaly-Corrected Extreme-Mass-Ratio Inspirals",
+    "source": "legacy:arxiv_Chaotic_Imprints_in_Gravitational_Waves_from_Confo_txt_done",
+    "domain": "relativity",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Come si identificano i modelli di battimento gravitazionali lensati da LISA?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Identification_of_Lensed_Gravitational_Wave_Beat_P_txt_done",
+      "domain": "astrophysics"
+     }
+    ]
+   },
+   {
+    "question": "Come si ricostruiscono i segnali delle stringhe cosmiche sui fondi astrofisici?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Cosmic_string_gravitational_wave_backgrounds_at_LI_txt_done",
+      "domain": "astrophysics"
+     }
+    ]
+   },
+   {
+    "question": "Come si stimano i posteriori dei segnali binari galattici con le reti neurali?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Neural_posterior_estimation_of_Galactic_Binary_sig_txt_done",
+      "domain": "astrophysics"
+     }
+    ]
+   },
+   {
+    "question": "Come si ricostruiscono le pareti di dominio con LISA e Taiji?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_PTA_Compatible_Domain_Walls_at_LISA_and_Taiji_Baye_txt_done",
+      "domain": "particle_physics"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è la realizzabilità multipla?",
+  "answer": "La realizzabilità multipla è l'obiezione secondo cui esiste più di un realizzatore per un dato ruolo o definiendum [1]. Essa comporta una plenitudine del definiendum ma non del definiens [1]. Significa che ci sono molti modi per realizzare un predicato del discorso ridotto (teoria), dove ogni modo è sufficiente ma non necessario [1]. La realizzabilità multipla fa sì che manchi una definizione, ovvero porti alla Scarsità [1]. È la struttura comune dei casi orizzontali in cui la proiezione di livello superiore partiziona lo spazio degli stati in modo che la descrizione più fine di livello inferiore non possa riprodurlo sotto alcun limite ammissibile [2]. Un genere è multiplo-realizzabile quando la stessa proprietà di livello superiore è istanziata da stati fisici eterogenei sottostanti che non condividono proprietà fisiche rilevanti [2]. Putnam ha introdotto la realizzabilità multipla nella filosofia della mente per sostenere che gli stati mentali non possono essere identificati con stati fisici specifici [2]. Fodor ha esteso l'argomento alle scienze speciali, sostenendo che i tipi economici, psicologici e biologici sono multiplo-realizzabili e le loro leggi non possono essere ridotte alla legge fisica perché nessun predicato fisico copre tutte le loro istanze [2]. La realizzabilità multipla è il segno distintivo di una proiezione ben scelta la cui omissione della variazione fisica è costitutivamente appropriata al livello in cui vive l'invariante [2]. Le istanze fisicamente eterogenee sono multiplo-realizzatori dello stesso genere di livello superiore perché la proiezione ha correttamente identificato le loro differenze fisiche come irrilevanti [2]. La molteplicità dei realizzatori fisici non è un problema per leggi come quella di Gresham; è il segno di una classe di equivalenza ben scelta [2]. Nella fisica teorica, è l'idea che teorie dissimili possano avere comportamenti infrarossi simili, in particolare lo stesso punto fisso infrarosso [4]. Avere un valore di un esponente critico è una proprietà multiplo-realizzabile, come illustrato da esempi quali una miscela acqua-vapore e una miscela di due fasi di elio liquido [4]. La realizzabilità multipla rende indubbiamente le teorie di livello superiore autonome rispetto a quelle di livello inferiore [5]. Essa implica che il definiens di un concetto multiplo-realizzabile dato dalla teoria riducente sia molto disgiuntivo o che la riduzione sia locale [5]. Nella visione biomedica e della filosofia della mente, è la tesi secondo cui lo stesso macrostato (mentale) può essere realizzato in vari modi da diverse configurazioni di microstati (fisici), purché implementino le appropriate relazioni funzionali [7].",
+  "made": 1791332886,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "dedf80f83e4df14fcaeeafe376e6f8e2",
+    "title": "Functionalism as a Species of Reduction",
+    "source": "legacy:arxiv_Functionalism_as_a_Species_of_Reduction_txt_done",
+    "domain": "physics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 2,
+    "sid": "0f17affc9c13649b7da8708a2e1d52a1",
+    "title": "Projection and Invariance in Scientific Explanation",
+    "source": "legacy:arxiv_Projection_and_Invariance_in_Scientific_Explanatio_txt_done",
+    "domain": "physics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 4,
+    "sid": "9d89d954613a5ea44fc3d1176efff848",
+    "title": "Renormalization for Philosophers",
+    "source": "legacy:arxiv_Renormalization_for_Philosophers_txt_done",
+    "domain": "physics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 5,
+    "sid": "957efc95459ecd2299b886e5cb0d490a",
+    "title": "Functionalism as a Species of Reduction",
+    "source": "legacy:arxiv_Functionalism_as_a_Species_of_Reduction_txt_done",
+    "domain": "physics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 7,
+    "sid": "8e31e39fa013c22c07ba29a8aab8cbf7",
+    "title": "Is the free-energy principle a formal theory of semantics? From variational density dynamics to neural and phenotypic representations",
+    "source": "legacy:arxiv_Is_the_free_energy_principle_a_formal_theory_of_se_txt_done",
+    "domain": "biomedicine",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Come si collega la realizzabilità multipla al problema della Scarsità secondo il passaggio 1?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Functionalism_as_a_Species_of_Reduction_txt_done",
+      "domain": "physics"
+     }
+    ]
+   },
+   {
+    "question": "Qual è l'esempio fornito dal passaggio 3 per illustrare la formalizzazione di geometrie apparentemente contraddittorie?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Functionalism_as_a_Species_of_Reduction_txt_done",
+      "domain": "physics"
+     }
+    ]
+   },
+   {
+    "question": "In che modo la realizzabilità multipla influenza l'autonomia delle teorie di livello superiore rispetto a quelle di livello inferiore?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Functionalism_as_a_Species_of_Reduction_txt_done",
+      "domain": "physics"
+     }
+    ]
+   },
+   {
+    "question": "Qual è la critica di Kim alla riduzione nageliana basata sulla realizzabilità multipla?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Renormalization_for_Philosophers_txt_done",
+      "domain": "physics"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'era il Gulag nell'Unione Sovietica?",
+  "answer": "Il Gulag era un sistema di campi di lavoro forzato nell'Unione Sovietica [1]. Il termine Gulag si riferiva originariamente alla divisione della polizia segreta sovietica incaricata di gestire i campi di lavoro forzato dagli anni '30 all'inizio degli anni '50 durante il regime di Joseph Stalin [1]. L'abbreviazione GULAG (ГУЛАГ) sta per \"Glávnoye upravléniye ispravítel'no-trudovýkh lageréy\" (Main Directorate of Correctional Labour Camps) [1]. Era un importante strumento di repressione politica che ospitava sia criminali comuni che prigionieri politici [1]. Col tempo, il nome fu usato retrospettivamente per indicare i campi stessi, che erano sorvegliati da un organo amministrativo e svolgevano funzioni sia punitive che economiche [4].",
+  "made": 1791332939,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "bbf50a4da92863f2eb3172734a4ea6e3",
+    "title": "Gulag",
+    "source": "doc:6ebf59ec2bd6e374f56339c53ce89759",
+    "domain": "history",
+    "origin": "wikipedia:Gulag",
+    "url": "https://en.wikipedia.org/wiki/Gulag",
+    "licence": "CC BY-SA 4.0 (Wikipedia contributors)"
+   },
+   {
+    "n": 4,
+    "sid": "ff01f043b260211e6dcb91d6a2e7eac3",
+    "title": "Gulag",
+    "source": "doc:6ebf59ec2bd6e374f56339c53ce89759",
+    "domain": "history",
+    "origin": "wikipedia:Gulag",
+    "url": "https://en.wikipedia.org/wiki/Gulag",
+    "licence": "CC BY-SA 4.0 (Wikipedia contributors)"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Qual era il significato originale dell'acronimo GULAG?",
+    "focus": [
+     {
+      "source": "doc:6ebf59ec2bd6e374f56339c53ce89759",
+      "domain": "history"
+     }
+    ]
+   },
+   {
+    "question": "Quando fu ufficialmente istituito il Gulag?",
+    "focus": [
+     {
+      "source": "doc:6ebf59ec2bd6e374f56339c53ce89759",
+      "domain": "history"
+     }
+    ]
+   },
+   {
+    "question": "Quali erano i due principali approcci per spiegare le origini del Gulag?",
+    "focus": [
+     {
+      "source": "doc:6ebf59ec2bd6e374f56339c53ce89759",
+      "domain": "history"
+     }
+    ]
+   },
+   {
+    "question": "Dove si trovava uno dei primi campi del Gulag?",
+    "focus": [
+     {
+      "source": "doc:6ebf59ec2bd6e374f56339c53ce89759",
+      "domain": "history"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Come la plasticità sinaptica durante il sonno migliora l'efficienza energetica e la classificazione?",
+  "answer": "La plasticità sinaptica durante il sonno migliora l'efficienza energetica e la classificazione attraverso una riorganizzazione strutturale e funzionale della rete [1]. Per quanto riguarda l'efficienza energetica, la plasticità completa e inter-layer induce una depressione sinaptica globale e down-regola l'eccitabilità corticale durante la veglia post-sonno [2][3]. Questo processo riduce i tassi di scarica, la forza e l'attività sinaptica, corrispondendo a una sostanziale diminuzione del consumo di potenza [2]. Nello specifico, la conduttanza pre-sinaptica totale si riduce di circa il 25% dalla corteccia e dell'1,5% dal talamo [5]. Di conseguenza, la potenza metabolica stimata dopo il sonno diminuisce del 18%, superando la riduzione del 10% osservata nei modelli con plasticità limitata [7]. La plasticità supporta quindi un \"downshift energetico\" riorganizzando la connettività sinaptica [2]. Per quanto riguarda la classificazione, la plasticità completa ottimizza le rappresentazioni talamo-corticali in modo non supervisionato [1]. Il sonno induce una depressione sinaptica globale (LTD) per le sinapsi specifiche per esempio e un potenziamento sinaptico (LTP) specifico per classe, permettendo la generalizzazione dagli esempi specifici alle classi astratte [7]. Questo meccanismo produce una maggiore accuratezza nella classificazione visiva post-sonno e favorisce l'emergere di associazioni più specifiche per classe [2]. In modelli di rete, l'abilitazione della plasticità thalamo-corticale e cortico-talamica fa aumentare l'accuratezza di classificazione sul dataset MNIST da circa il 59% a circa il 70% [5]. Nel complesso, questi adattamenti garantiscono miglioramenti nell'efficienza di classificazione e un'ottimizzazione complessiva orientata al compito [1][3].",
+  "made": 1791333008,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "154284d8fdee40db912995ef50c1c4ae",
+    "title": "Unsupervised sleep-like intra- and inter-layer plasticity categorizes and improves energy efficiency in a multilayer spiking network",
+    "source": "legacy:arxiv_Unsupervised_sleep_like_intra_and_inter_layer_plas_txt_done",
+    "domain": "biomedicine",
+    "origin": "arxiv"
+   },
+   {
+    "n": 2,
+    "sid": "b6ee55d6db18bdc0d262534b1e394749",
+    "title": "Unsupervised sleep-like intra- and inter-layer plasticity categorizes and improves energy efficiency in a multilayer spiking network",
+    "source": "legacy:arxiv_Unsupervised_sleep_like_intra_and_inter_layer_plas_txt_done",
+    "domain": "biomedicine",
+    "origin": "arxiv"
+   },
+   {
+    "n": 3,
+    "sid": "92bb25fd8b2a7d49e4c28c5e02d57668",
+    "title": "Unsupervised sleep-like intra- and inter-layer plasticity categorizes and improves energy efficiency in a multilayer spiking network",
+    "source": "legacy:arxiv_Unsupervised_sleep_like_intra_and_inter_layer_plas_txt_done",
+    "domain": "biomedicine",
+    "origin": "arxiv"
+   },
+   {
+    "n": 5,
+    "sid": "f35119cbc086383209b97c009fcdc926",
+    "title": "Unsupervised sleep-like intra- and inter-layer plasticity categorizes and improves energy efficiency in a multilayer spiking network",
+    "source": "legacy:arxiv_Unsupervised_sleep_like_intra_and_inter_layer_plas_txt_done",
+    "domain": "biomedicine",
+    "origin": "arxiv"
+   },
+   {
+    "n": 7,
+    "sid": "c06894825e9da6e84a5ad2e5c81cb795",
+    "title": "Unsupervised sleep-like intra- and inter-layer plasticity categorizes and improves energy efficiency in a multilayer spiking network",
+    "source": "legacy:arxiv_Unsupervised_sleep_like_intra_and_inter_layer_plas_txt_done",
+    "domain": "biomedicine",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Qual è l'impatto della plasticità completa sulla classificazione CIFAR-10 rispetto al modello con plasticità limitata?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Unsupervised_sleep_like_intra_and_inter_layer_plas_txt_done",
+      "domain": "biomedicine"
+     }
+    ]
+   },
+   {
+    "question": "Come la plasticità inter-layer ricorrente influisce sui livelli di categorizzazione nel dataset CIFAR-10?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Unsupervised_sleep_like_intra_and_inter_layer_plas_txt_done",
+      "domain": "biomedicine"
+     }
+    ]
+   },
+   {
+    "question": "Quali firme canoniche del sonno il modello ThaCo preserva durante la fase di sonno NREM?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Unsupervised_sleep_like_intra_and_inter_layer_plas_txt_done",
+      "domain": "biomedicine"
+     }
+    ]
+   },
+   {
+    "question": "Come varia l'accuratezza di classificazione post-sonno con la durata del sonno incrementale nel modello full-plasticity?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Unsupervised_sleep_like_intra_and_inter_layer_plas_txt_done",
+      "domain": "biomedicine"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Quali fattori influenzano l'affidabilità delle previsioni ENSO a lungo termine?",
+  "answer": "La affidabilità delle previsioni ENSO a lungo termine dipende dalla dimensione dell'ensemble e dallo stato ENSO [1].",
+  "made": 1791333053,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "6281c393b9d8dc34c78b2cde65a0cac1",
+    "title": "Precursors, Pathways, and State-Dependent Reliability of Long-range ENSO Prediction in the CESM2 Seasonal-to-Multiyear Large Ensemble",
+    "source": "legacy:arxiv_Precursors_Pathways_and_State_Dependent_Reliabilit_txt_done",
+    "domain": "earth_science",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Quali sono i precursori ENSO esaminati nelle simulazioni CESM2 SMYLE?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Precursors_Pathways_and_State_Dependent_Reliabilit_txt_done",
+      "domain": "earth_science"
+     }
+    ]
+   },
+   {
+    "question": "Come viene valutata l'affidabilità delle previsioni tramite l'analisi di sensibilità dell'ensemble?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Precursors_Pathways_and_State_Dependent_Reliabilit_txt_done",
+      "domain": "earth_science"
+     }
+    ]
+   },
+   {
+    "question": "Quali sono i precursori oceanici specifici per le previsioni inizializzate ad agosto?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Precursors_Pathways_and_State_Dependent_Reliabilit_txt_done",
+      "domain": "earth_science"
+     }
+    ]
+   },
+   {
+    "question": "Quali metriche statistiche vengono utilizzate per valutare le previsioni ENSO?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Precursors_Pathways_and_State_Dependent_Reliabilit_txt_done",
+      "domain": "earth_science"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Come si decompone esattamente la corrente di spostamento?",
+  "answer": "La suddivisione di riferimento è la decomposizione di Helmholtz, che divide il campo di densità di corrente $\\mathbf{J}$ in una componente longitudinale a curl-zero $\\mathbf{J}_L$ e una componente trasversale a divergenza-zero $\\mathbf{J}_T$, secondo la relazione $\\mathbf{J} = \\mathbf{J}_T + \\mathbf{J}_L$ [4]. Di conseguenza, la corrente di spostamento è espressa come $\\mathbf{J}_{disp} = -\\mathbf{J}_L = \\partial_t \\mathbf{D}$ [4].",
+  "made": 1791333113,
+  "sources": [
+   {
+    "n": 4,
+    "sid": "c7509b5d9167e56dab35464219557790",
+    "title": "Why the controversy over displacement currents never ends?",
+    "source": "legacy:arxiv_Why_the_controversy_over_displacement_currents_nev_txt_done",
+    "domain": "physics",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Qual è la relazione tra la corrente di spostamento e la propagazione delle onde elettromagnetiche?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Why_the_controversy_over_displacement_currents_nev_txt_done",
+      "domain": "physics"
+     }
+    ]
+   },
+   {
+    "question": "Come si applica la decomposizione di Helmholtz alla corrente in un condensatore in carica?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Why_the_controversy_over_displacement_currents_nev_txt_done",
+      "domain": "physics"
+     }
+    ]
+   },
+   {
+    "question": "Perché la corrente di spostamento non produce un campo magnetico definibile in alcuni casi?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Why_the_controversy_over_displacement_currents_nev_txt_done",
+      "domain": "physics"
+     }
+    ]
+   },
+   {
+    "question": "Come interpreta Maxwell il termine di corrente di spostamento nelle sue equazioni originali?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Learning_difficulties_among_students_when_applying_txt_done",
+      "domain": "physics"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è un attore?",
+  "answer": "Nel contesto delle arti dello spettacolo, un attore è una persona che interpreta un personaggio in una produzione [2]. Rappresenta o recita una parte in spettacoli teatrali, cinematografici, televisivi, radiofonici o di strada [1]. Il termine deriva dal latino *actor*, che significa colui che agisce [4]. Attraverso l'acting, l'attore adotta un personaggio per raccontare una storia [6]. La sua capacità di collegare azione, parola, gestualità e mimica gli permette di comunicare le emozioni e le caratteristiche del ruolo [10]. Se interpreta ruoli fortemente tipicizzati, viene classificato come caratterista [4]. In informatica, nel modello ad attori, un attore è un'entità che comunica esclusivamente inviando messaggi ad altri attori [5]. Viene descritto come una piccola unità regolare di codice, come una classe con stato privato e un gestore per ogni tipo di messaggio [3]. Un programma basato su questo modello è una collezione di attori isolati, ciascuno dotato di stato privato, gestore di messaggi e cassetta postale [11].",
+  "made": 1791333176,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "dabcfb5ade183e9954c5df9a73957995",
+    "title": "Attore",
+    "source": "doc:9e85fb9ecf47a10b74cc74a81b26a7f9",
+    "domain": "literature",
+    "origin": "wikipedia:it:Attore",
+    "url": "https://it.wikipedia.org/wiki/Attore",
+    "licence": "CC BY-SA 4.0 (Wikipedia contributors)"
+   },
+   {
+    "n": 2,
+    "sid": "66d47e4c21ce7f4346d42641df620869",
+    "title": "Actor",
+    "source": "doc:17d1545db1da8cdb2556e5e42c14dc40",
+    "domain": "literature",
+    "origin": "wikipedia:Actor",
+    "url": "https://en.wikipedia.org/wiki/Actor",
+    "licence": "CC BY-SA 4.0 (Wikipedia contributors)"
+   },
+   {
+    "n": 3,
+    "sid": "23d0394e264ebe4d4694ac756cbca2fa",
+    "title": "Adapting the Actor Model of Concurrency for High-Frequency Trading: Synchronous Message Delivery (fast_send) and a Tick-to-Book Latency Study",
+    "source": "doc:6263890f4fd8b9708fd219ffc097ad4d",
+    "domain": "economics",
+    "origin": "arxiv:2609.21173",
+    "url": "https://arxiv.org/abs/2609.21173",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   },
+   {
+    "n": 4,
+    "sid": "689e7ffacb5f11befddf8a749c1405df",
+    "title": "Attore",
+    "source": "doc:9e85fb9ecf47a10b74cc74a81b26a7f9",
+    "domain": "literature",
+    "origin": "wikipedia:it:Attore",
+    "url": "https://it.wikipedia.org/wiki/Attore",
+    "licence": "CC BY-SA 4.0 (Wikipedia contributors)"
+   },
+   {
+    "n": 5,
+    "sid": "af07d7d99506dd7a1227d62839565888",
+    "title": "Adapting the Actor Model of Concurrency for High-Frequency Trading: Synchronous Message Delivery (fast_send) and a Tick-to-Book Latency Study",
+    "source": "doc:6263890f4fd8b9708fd219ffc097ad4d",
+    "domain": "economics",
+    "origin": "arxiv:2609.21173",
+    "url": "https://arxiv.org/abs/2609.21173",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   },
+   {
+    "n": 6,
+    "sid": "b62de3e981ee7a9929a6081b23ca46d1",
+    "title": "Acting",
+    "source": "doc:c2dc6a7d515c17147a3313cbcc42edc1",
+    "domain": "literature",
+    "origin": "wikipedia:Acting",
+    "url": "https://en.wikipedia.org/wiki/Acting",
+    "licence": "CC BY-SA 4.0 (Wikipedia contributors)"
+   },
+   {
+    "n": 10,
+    "sid": "9abec78e1b5b905932b3c57380550d86",
+    "title": "Arte drammatica",
+    "source": "doc:f66967e380fc7296e1f59883efae7253",
+    "domain": "literature",
+    "origin": "wikipedia:it:Arte drammatica",
+    "url": "https://it.wikipedia.org/wiki/Arte_drammatica",
+    "licence": "CC BY-SA 4.0 (Wikipedia contributors)"
+   },
+   {
+    "n": 11,
+    "sid": "74fafa234026331c2cae137f44deeee3",
+    "title": "Adapting the Actor Model of Concurrency for High-Frequency Trading: Synchronous Message Delivery (fast_send) and a Tick-to-Book Latency Study",
+    "source": "doc:6263890f4fd8b9708fd219ffc097ad4d",
+    "domain": "economics",
+    "origin": "arxiv:2609.21173",
+    "url": "https://arxiv.org/abs/2609.21173",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Chi è considerato il primo attore documentato nella storia occidentale?",
+    "focus": [
+     {
+      "source": "doc:9e85fb9ecf47a10b74cc74a81b26a7f9",
+      "domain": "literature"
+     },
+     {
+      "source": "doc:f66967e380fc7296e1f59883efae7253",
+      "domain": "literature"
+     }
+    ]
+   },
+   {
+    "question": "Quali sono le origini storiche più antiche dell'attore?",
+    "focus": [
+     {
+      "source": "doc:9e85fb9ecf47a10b74cc74a81b26a7f9",
+      "domain": "literature"
+     }
+    ]
+   },
+   {
+    "question": "Chi ha introdotto il modello ad attori nel 1973?",
+    "focus": [
+     {
+      "source": "doc:6263890f4fd8b9708fd219ffc097ad4d",
+      "domain": "economics"
+     }
+    ]
+   },
+   {
+    "question": "Come è rappresentato formalmente un attore nel modello di programmazione sicura?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Speak_Now_Safe_Actor_Programming_with_Multiparty_S_txt_done",
+      "domain": "computer_science"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è un attacco avversario universale?",
+  "answer": "Un attacco avversario universale è una perturbazione visiva progettata per indurre il fallimento di un compito senza modificare i parametri del modello, le istruzioni linguistiche o gli stati del robot [3]. Nello specifico contesto dei modelli Vision-Language-Action (VLA), questo attacco si realizza attraverso un \"oggetto avversario universale\" (UAO), che è una sfera con una texture ottimizzata [1]. Quando questo oggetto viene posizionato nel campo visivo del robot, degrana significativamente il tasso di successo delle attività [1]. L'attacco utilizza un framework multi-livello che interrompe congiuntamente la pianificazione della traiettoria, l'esecuzione del compito e il controllo delle azioni [1]. Questo approccio mira a deviare la traiettoria prevista e a causare errori di esecuzione, sfruttando le vulnerabilità dei modelli VLA [3]. La ricerca dimostra che tali attacchi possono ridurre drasticamente le prestazioni dei modelli, anche in scenari reali [6].",
+  "made": 1791418292,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "ccee4d0a5922303b6521df7ce343f252",
+    "title": "Exploiting Vulnerabilities: Universal Adversarial Attacks on Vision-Language-Action Models in Robotics",
+    "source": "doc:3bb7d475a56a8bffeda0280132658a1b",
+    "domain": "cyber_security",
+    "origin": "arxiv:2609.39178",
+    "url": "https://arxiv.org/abs/2609.39178",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   },
+   {
+    "n": 3,
+    "sid": "4ea3f30b7c9258d19504c13595ea88fa",
+    "title": "Exploiting Vulnerabilities: Universal Adversarial Attacks on Vision-Language-Action Models in Robotics",
+    "source": "doc:3bb7d475a56a8bffeda0280132658a1b",
+    "domain": "cyber_security",
+    "origin": "arxiv:2609.39178",
+    "url": "https://arxiv.org/abs/2609.39178",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   },
+   {
+    "n": 6,
+    "sid": "f7cfd4b0d575932e40f0e6bfb42ab5bc",
+    "title": "Exploiting Vulnerabilities: Universal Adversarial Attacks on Vision-Language-Action Models in Robotics",
+    "source": "doc:3bb7d475a56a8bffeda0280132658a1b",
+    "domain": "cyber_security",
+    "origin": "arxiv:2609.39178",
+    "url": "https://arxiv.org/abs/2609.39178",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Quali sono le vulnerabilità specifiche dei modelli VLA che rendono possibile l'attacco avversario universale?",
+    "focus": [
+     {
+      "source": "doc:3bb7d475a56a8bffeda0280132658a1b",
+      "domain": "cyber_security"
+     }
+    ]
+   },
+   {
+    "question": "Come viene generata la patch avversaria universale utilizzando l'ottimizzazione black-box?",
+    "focus": [
+     {
+      "source": "doc:3bb7d475a56a8bffeda0280132658a1b",
+      "domain": "cyber_security"
+     }
+    ]
+   },
+   {
+    "question": "Quali sono i risultati della trasferibilità sim-to-real per i modelli RDT e Pi0?",
+    "focus": [
+     {
+      "source": "doc:3bb7d475a56a8bffeda0280132658a1b",
+      "domain": "cyber_security"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è il canale del flow?",
+  "answer": "Il \"canale del flow\" è una regione specifica all'interno di un modello a otto canali che descrive l'engagement degli studenti, definita come la zona di equilibrio ottimale tra sfida e abilità [2]. Rappresenta lo stato di apprendimento più produttivo, caratterizzato da una grande sfida affrontata con un'abilità commisurata [2]. In questo canale, gli studenti sperimentano un coinvolgimento attivo e concentrato nell'attività di apprendimento [2]. I canali adiacenti, come Control e Arousal, sono considerati produttivi ma meno efficaci del Flow [2]. Al contrario, stati come Boredom o Anxiety indicano uno squilibrio tra sfida e abilità e sono meno produttivi [2]. L'obiettivo didattico è spesso guidare gli studenti verso questo canale per massimizzare l'efficacia dell'apprendimento [1].",
+  "made": 1791418310,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "bfdccf004e0f166f388f8d547e7f807c",
+    "title": "Modeling novel physics in virtual reality labs: An affective analysis of student learning",
+    "source": "legacy:arxiv_Modeling_novel_physics_in_virtual_reality_labs_An_txt_done",
+    "domain": "physics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 2,
+    "sid": "c849582452615dc3ad115e605b1c7e31",
+    "title": "Modeling novel physics in virtual reality labs: An affective analysis of student learning",
+    "source": "legacy:arxiv_Modeling_novel_physics_in_virtual_reality_labs_An_txt_done",
+    "domain": "physics",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Quali sono le condizioni specifiche per entrare nel canale del flow secondo il modello a otto canali?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Modeling_novel_physics_in_virtual_reality_labs_An_txt_done",
+      "domain": "physics"
+     }
+    ]
+   },
+   {
+    "question": "Come viene visualizzato il canale del flow nei grafici aggregati degli studenti di livello 200?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Modeling_novel_physics_in_virtual_reality_labs_An_txt_done",
+      "domain": "physics"
+     }
+    ]
+   },
+   {
+    "question": "Quali sono le caratteristiche principali di un canale artificiale descritto nel testo?",
+    "focus": [
+     {
+      "source": "doc:285b3fcdf0050c6ecea888f09a2f5c1d",
+      "domain": "general"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Come vincolano i fattori idrologici la sensibilità della temperatura alla frequenza e all'intensità delle precipitazioni?",
+  "answer": "I fattori idrologici vincolano la sensibilità della temperatura alla frequenza e all'intensità delle precipitazioni attraverso il bilancio idrico accoppiato terra-atmosfera. La relazione tra le sensibilità frazionali della frequenza ($\\lambda'/\\lambda$) e dell'intensità ($\\alpha'/\\alpha$) è governata da una pendenza determinata dalla sensibilità idrologica $\\beta_h$ e da un'intercetta legata al forzante atmosferico $\\beta_a$ [2]. La sensibilità idrologica $\\beta_h$ dipende specificamente dall'indice di aridità ($DI$) e dall'indice di stoccaggio ($\\gamma$) [2]. In particolare, la pendenza della relazione tra frequenza e intensità è più ripida nei regimi idrologici secchi rispetto a quelli umidi [2]. Questo vincolo deriva dal fatto che la partizione idrologica dell'acqua limita come le variazioni di temperatura influenzano l'esportazione idrologica [4]. La sensibilità idrologica rappresenta il rapporto tra le risposte dell'esportazione idrologica all'intensità e alla frequenza delle precipitazioni [4]. Pertanto, lo stato idrologico del bacino determina sistematicamente la struttura del compromesso tra frequenza e intensità delle precipitazioni al variare della temperatura [2].",
+  "made": 1791418329,
+  "sources": [
+   {
+    "n": 2,
+    "sid": "fb6ff316795ae294b79ea7c16e94021b",
+    "title": "Hydrological Constraints on Temperature Sensitivities of Precipitation Frequency and Intensity",
+    "source": "legacy:arxiv_Hydrological_Constraints_on_Temperature_Sensitivit_txt_done",
+    "domain": "earth_science",
+    "origin": "arxiv"
+   },
+   {
+    "n": 4,
+    "sid": "9ce848af233ca6832de3a8a9cdbbbc4a",
+    "title": "Hydrological Constraints on Temperature Sensitivities of Precipitation Frequency and Intensity",
+    "source": "legacy:arxiv_Hydrological_Constraints_on_Temperature_Sensitivit_txt_done",
+    "domain": "earth_science",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Qual è la definizione matematica dell'indice di aridità (DI) nei passaggi?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Hydrological_Constraints_on_Temperature_Sensitivit_txt_done",
+      "domain": "earth_science"
+     }
+    ]
+   },
+   {
+    "question": "Come viene definito l'indice di stoccaggio (γ) in relazione alla profondità dell'evento piovoso?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Hydrological_Constraints_on_Temperature_Sensitivit_txt_done",
+      "domain": "earth_science"
+     }
+    ]
+   },
+   {
+    "question": "Quali fattori determinano l'intercetta βa nella relazione tra frequenza e intensità delle precipitazioni?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Hydrological_Constraints_on_Temperature_Sensitivit_txt_done",
+      "domain": "earth_science"
+     }
+    ]
+   },
+   {
+    "question": "Come varia la sensibilità idrologica βh con l'aumentare dell'aridità secondo i passaggi?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Hydrological_Constraints_on_Temperature_Sensitivit_txt_done",
+      "domain": "earth_science"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è la teoria della misurazione quantistica?",
+  "answer": "La teoria della misurazione quantistica, o linguaggio quantistico, è una teoria scientifica formulata in un'algebra $C^*$, derivata da una \"svolta linguistica\" della meccanica quantistica [2]. Essa non è fisica, ma un tipo di linguaggio basato sulla \"visione del mondo quantistica\" per descrivere fenomeni, inclusi quelli ordinari [4]. La teoria è composta da due assiomi fondamentali: l'Assioma 1 (misurazione) e l'Assioma 2 (causalità) [3]. L'Assioma 1 riguarda la misurazione, coinvolgendo osservatore, oggetto, stato e valore misurato [3]. L'Assioma 2 riguarda la causalità, utilizzando concetti come operatori causali [3]. Quando l'algebra è non commutativa, si parla di teoria della misurazione quantistica, considerata l'aspetto linguistico della meccanica quantistica [2]. Questa teoria è considerata più fondamentale della meccanica quantistica stessa e fornisce le basi per la statistica [2]. Essa mira a chiarire problemi filosofici e scientifici attraverso questa struttura linguistica rigorosa [3].",
+  "made": 1791418348,
+  "sources": [
+   {
+    "n": 2,
+    "sid": "9dba7d14a6e8146f0a76b5b2b0968d8d",
+    "title": "The Final Solutions of Monty Hall Problem and Three Prisoners Problem",
+    "source": "legacy:arxiv_The_Final_Solutions_of_Monty_Hall_Problem_and_Thre_txt_done",
+    "domain": "statistics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 3,
+    "sid": "e6520187538b0e3088a6e0d9d4084b11",
+    "title": "Measurement Theory in the Philosophy of Science",
+    "source": "doc:45fa86958430cd3b51155d1760827761",
+    "domain": "physics",
+    "origin": "arxiv:1209.3483",
+    "url": "https://arxiv.org/abs/1209.3483",
+    "licence": "arXiv (see the abstract page)"
+   },
+   {
+    "n": 4,
+    "sid": "ee66b635fc9f7d10466153896a75b4b0",
+    "title": "Zeno's Paradoxes in the Mechanical World View",
+    "source": "doc:9446aadac0cd75620dcad0b0e00e37e3",
+    "domain": "physics",
+    "origin": "arxiv:1205.1290",
+    "url": "https://arxiv.org/abs/1205.1290",
+    "licence": "arXiv (see the abstract page)"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Quali sono i quattro problemi fondamentali della misurazione quantistica menzionati nel testo?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Unraveling_the_Mystery_of_Quantum_Measurement_with_txt_done",
+      "domain": "physics"
+     }
+    ]
+   },
+   {
+    "question": "Come viene classificata la teoria della misurazione quando l'algebra è commutativa?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_The_double_slit_quantum_eraser_experiments_and_Har_txt_done",
+      "domain": "quantum_physics"
+     }
+    ]
+   },
+   {
+    "question": "Quali due assiomi fondamentali compongono la teoria della misurazione secondo il testo?",
+    "focus": [
+     {
+      "source": "doc:45fa86958430cd3b51155d1760827761",
+      "domain": "physics"
+     }
+    ]
+   },
+   {
+    "question": "Quali filosofi sono citati nella figura che illustra le tradizioni filosofiche dal punto di vista quantistico?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_The_Linguistic_Interpretation_of_Quantum_Mechanics_txt_done",
+      "domain": "physics"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Come funziona il campionamento di importanza analitico per benchmark gaussiani?",
+  "answer": "Il budget analitico del campionamento di importanza (IS) per i benchmark gaussiani deriva dal teorema del limite centrale, che stabilisce la convergenza normale dell'errore [1]. La stima del budget $Q_{IS}^\\star$ dipende dalla deviazione standard asintotica $\\sigma_{IS}$, dalla soglia di errore relativo $\\epsilon$ e dalla probabilità di successo $p$ [1]. Per una surrogata gaussiana diagonale, il fattore di varianza normalizzato ha una forma chiusa in termini di spostamenti relativi e rapporti di larghezza [1]. La varianza è finita se e solo se il parametro di larghezza $\\tau_i^2$ è maggiore di $1/2$ in ogni dimensione [1]. Nel caso di una famiglia di spostamenti con $\\tau_i = 1$, la varianza cresce esponenzialmente con lo spostamento al quadrato, causando un degrado catastrofico dell'IS [1]. Per la famiglia di anisotropia con $\\Delta_i = 0$, la varianza è finita solo quando $\\tau_i^2 > 1/2$, il che impone un vincolo sul parametro di anisotropia $a < \\sqrt{2}$ [1]. A $a = 2$, la varianza normalizzata diverge e il budget richiesto diventa infinito [1].",
+  "made": 1791418370,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "b0a5372f3cc87f65f0985b95e24dd23d",
+    "title": "Slice Monte Carlo Integration",
+    "source": "legacy:arxiv_Slice_Monte_Carlo_Integration_txt_done",
+    "domain": "statistics",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Qual è la formula esatta per la deviazione standard asintotica σ_IS nei benchmark gaussiani?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Slice_Monte_Carlo_Integration_txt_done",
+      "domain": "statistics"
+     }
+    ]
+   },
+   {
+    "question": "Come viene calcolata la stima del budget Q_IS^* in funzione della soglia di errore ε?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Slice_Monte_Carlo_Integration_txt_done",
+      "domain": "statistics"
+     }
+    ]
+   },
+   {
+    "question": "Qual è il ruolo della quantile z_(1+p)/2 nella determinazione del budget analitico IS?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Slice_Monte_Carlo_Integration_txt_done",
+      "domain": "statistics"
+     }
+    ]
+   },
+   {
+    "question": "Perché la varianza normalizzata diverge quando il parametro di anisotropia a raggiunge il valore 2?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Slice_Monte_Carlo_Integration_txt_done",
+      "domain": "statistics"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è l'altermagnetismo?",
+  "answer": "L'altermagnetismo è una nuova fase di magnetismo collinare che integra attributi dei ferromagneti e degli antiferromagneti convenzionali [1]. Questa fase presenta una forte rottura della simmetria di inversione temporale e una configurazione magnetica sfalsata, mantenendo però una magnetizzazione netta nulla [1]. L'altermagnetismo è una fase elettronica conseguenza dell'ordine antiferromagnetico collinare e delle simmetrie di spin e cristalline [2]. I materiali altermagnetici mostrano una rottura della simmetria parità-tempo e una magnetizzazione netta nulla nello spazio reale, portando a una sostanziale separazione delle bande nello spazio dei momenti [5]. Questa separazione delle bande avviene anche in assenza di accoppiamento spin-orbita [5]. La simmetria cristallina forza una polarizzazione di spin contrastante a diverse valli o momenti, formando un blocco spin-valle [4]. Questa disposizione magnetica è definita \"altermagnetismo\" [4]. L'altermagnetismo porta a una struttura elettronica complessa che rompe la simmetria del reticolo, simile a quanto osservato negli stati superfluidi non convenzionali [6].",
+  "made": 1791418388,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "2b3269dafbf0a9bd1e1960235a79cc8a",
+    "title": "Electrical Control of the Exchange Bias Effect at Model Ferromagnet-Altermagnet Junctions",
+    "source": "legacy:arxiv_Electrical_Control_of_the_Exchange_Bias_Effect_at_txt_done",
+    "domain": "condensed_matter",
+    "origin": "arxiv"
+   },
+   {
+    "n": 2,
+    "sid": "c84056e9b28b3f023db89182b9f8d779",
+    "title": "Stoichiometry-induced ferromagnetism in altermagnetic candidate MnTe",
+    "source": "legacy:arxiv_Stoichiometry_induced_ferromagnetism_in_altermagne_txt_done",
+    "domain": "materials",
+    "origin": "arxiv"
+   },
+   {
+    "n": 4,
+    "sid": "a29669e132b12451d95f8f653b51f182",
+    "title": "Observation of surface Fermi arcs in altermagnetic Weyl semimetal CrSb",
+    "source": "legacy:arxiv_Observation_of_surface_Fermi_arcs_in_altermagnetic_txt_done",
+    "domain": "condensed_matter",
+    "origin": "arxiv"
+   },
+   {
+    "n": 5,
+    "sid": "f66ac5718fadec0519607e40a78739f5",
+    "title": "Observation of surface Fermi arcs in altermagnetic Weyl semimetal CrSb",
+    "source": "legacy:arxiv_Observation_of_surface_Fermi_arcs_in_altermagnetic_txt_done",
+    "domain": "condensed_matter",
+    "origin": "arxiv"
+   },
+   {
+    "n": 6,
+    "sid": "0832c2cf29c8c2e6204285c018f0894f",
+    "title": "Strain controlled g- to d-wave transition in altermagnetic CrSb",
+    "source": "legacy:arxiv_Strain_controlled_g_to_d_wave_transition_in_alterm_txt_done",
+    "domain": "condensed_matter",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Quali fenomeni esotici indotti dal campo elettrico sono previsti nelle giunzioni ferromagnete-altermagnete?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Electrical_Control_of_the_Exchange_Bias_Effect_at_txt_done",
+      "domain": "condensed_matter"
+     }
+    ]
+   },
+   {
+    "question": "Come viene calcolato direttamente lo spettro dei magnoni negli altermagneti complessi come MnTe?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Direct_ab_initio_calculation_of_magnons_in_alterma_txt_done",
+      "domain": "condensed_matter"
+     }
+    ]
+   },
+   {
+    "question": "Quali effetti elettronici emergenti sono associati all'ordine altermagnetico nei dicalcogenuri di metalli di transizione?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Itinerant_A_type_Antiferromagnetic_Order_in_Co_0_2_txt_done",
+      "domain": "condensed_matter"
+     }
+    ]
+   },
+   {
+    "question": "Come influisce la deformazione meccanica sulla transizione tra simmetrie d-wave e g-wave in CrSb?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Strain_controlled_g_to_d_wave_transition_in_alterm_txt_done",
+      "domain": "condensed_matter"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è l'inferenza variazionale?",
+  "answer": "L'inferenza variazionale è un metodo approssimato di inferenza che trasforma il problema dell'inferenza del posterior in un compito di ottimizzazione [3]. Poiché il posterior bayesiano esatto è spesso intrattabile a causa della distribuzione marginale nel denominatore, si introduce una densità variazionale $q$ che approssima il vero posterior [4]. L'obiettivo è minimizzare la divergenza di Kullback-Leibler (KL) tra la distribuzione approssimata $q$ e il vero posterior [3]. Questa ottimizzazione porta alla massimizzazione del limite inferiore dell'evidenza (ELBO) o, equivalentemente, alla minimizzazione dell'energia libera variazionale [4]. In pratica, la distribuzione approssimante $q$ è scelta da una famiglia ristretta e i suoi parametri sono regolati per minimizzare l'energia libera [2]. Questo approccio rende l'inferenza computazionalmente trattabile in modelli probabilistici altrimenti intrattabili [1].",
+  "made": 1791418410,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "8ca5a7432eb44efa6c2ae6dbc1caabc2",
+    "title": "Stable Global Weighting of Flow Mixtures using Simplex Exponential Moving Average",
+    "source": "legacy:arxiv_Stable_Global_Weighting_of_Flow_Mixtures_using_Sim_txt_done",
+    "domain": "artificial_intelligence",
+    "origin": "arxiv"
+   },
+   {
+    "n": 2,
+    "sid": "db528484b92d8ae0220e71d955a953d8",
+    "title": "Polyphonic Intelligence: Constraint-Based Emergence, Pluralistic Inference, and Non-Dominating Integration",
+    "source": "legacy:arxiv_Polyphonic_Intelligence_Constraint_Based_Emergence_txt_done",
+    "domain": "biomedicine",
+    "origin": "arxiv"
+   },
+   {
+    "n": 3,
+    "sid": "1ac5209f66be3084e92114f2e0642bf2",
+    "title": "Metabolic cost of information processing in Poisson variational autoencoders",
+    "source": "legacy:arxiv_Metabolic_cost_of_information_processing_in_Poisso_txt_done",
+    "domain": "statistics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 4,
+    "sid": "df517d6448268fde46fc65a5a9e446e7",
+    "title": "Metabolic cost of information processing in Poisson variational autoencoders",
+    "source": "legacy:arxiv_Metabolic_cost_of_information_processing_in_Poisso_txt_done",
+    "domain": "statistics",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Qual è il motivo principale dell'intrattabilità dell'inferenza bayesiana esatta negli spazi continui?",
+    "focus": [
+     {
+      "source": "doc:70858a51f98651ccf6baec31ef5289ac",
+      "domain": "biomedicine"
+     }
+    ]
+   },
+   {
+    "question": "Come si relaziona l'inferenza variazionale al principio dell'energia libera nella neuroscienza?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Lessons_from_Neuroscience_for_AI_How_integrating_A_txt_done",
+      "domain": "artificial_intelligence"
+     }
+    ]
+   },
+   {
+    "question": "Qual è la differenza tra inferenza variazionale gaussiana e quella con costo metabolico?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Metabolic_cost_of_information_processing_in_Poisso_txt_done",
+      "domain": "statistics"
+     }
+    ]
+   },
+   {
+    "question": "Quali sfide presenta l'inferenza variazionale per i dati temporali strutturati?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Stochastic_Deep_Learning_A_Probabilistic_Framework_txt_done",
+      "domain": "statistics"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è il CTA-pipelining?",
+  "answer": "Il CTA-pipelining è un paradigma di esecuzione progettato per sfruttare i sistemi multi-GPU a memoria condivisa, orientato specificamente alla riduzione della latenza [1]. Si tratta di una tecnica di scalabilità spaziale che opera a livello di Cooperative Thread Array (CTA) [1]. Questo metodo permette l'esecuzione concorrente di kernel dipendenti tra diverse GPU [1]. A differenza dei metodi tradizionali che trattano le interconnessioni come semplici reti, il CTA-pipelining utilizza il dominio di memoria unificato NVLink [2]. L'approccio è minimamente invasivo, richiedendo solo l'aggiunta di frammenti di codice prologo ed epilogo ai kernel esistenti [2]. I risultati dimostrano che il CTA-pipelining riduce la latenza fino al 31,8% rispetto al micro-batching e del 29,6% rispetto alla Tensor Parallelism (TP) [1]. Inoltre, può essere combinato con la TP come dimensione di scalabilità ortogonale per spingere ulteriormente i limiti di latenza [1].",
+  "made": 1791418427,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "9a3e996e9921273051726227a00a6fc4",
+    "title": "CTA-Pipelining: A Latency-Oriented Spatial Scaling Method for Multi-GPU Systems",
+    "source": "legacy:arxiv_CTA_Pipelining_A_Latency_Oriented_Spatial_Scaling_txt_done",
+    "domain": "computer_science",
+    "origin": "arxiv"
+   },
+   {
+    "n": 2,
+    "sid": "1f7c56e1660d4fc68ce17172956937a7",
+    "title": "CTA-Pipelining: A Latency-Oriented Spatial Scaling Method for Multi-GPU Systems",
+    "source": "legacy:arxiv_CTA_Pipelining_A_Latency_Oriented_Spatial_Scaling_txt_done",
+    "domain": "computer_science",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Come viene utilizzato l'astrazione tile per semplificare l'analisi delle dipendenze nei kernel?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_CTA_Pipelining_A_Latency_Oriented_Spatial_Scaling_txt_done",
+      "domain": "computer_science"
+     }
+    ]
+   },
+   {
+    "question": "Quali metodi sono disponibili per derivare le dipendenze tra i Cooperative Thread Array?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_CTA_Pipelining_A_Latency_Oriented_Spatial_Scaling_txt_done",
+      "domain": "computer_science"
+     }
+    ]
+   },
+   {
+    "question": "Come viene nascosto l'overhead del protocollo CTA-pipelining nei kernel warp-specializzati?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_CTA_Pipelining_A_Latency_Oriented_Spatial_Scaling_txt_done",
+      "domain": "computer_science"
+     }
+    ]
+   },
+   {
+    "question": "Qual è la configurazione hardware del testbed utilizzato per valutare il CTA-pipelining?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_CTA_Pipelining_A_Latency_Oriented_Spatial_Scaling_txt_done",
+      "domain": "computer_science"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Come si prevedono gli effetti dei perturbazioni sulla composizione cellulare?",
+  "answer": "Gli effetti delle perturbazioni sulla composizione cellulare possono essere previsti direttamente utilizzando metodi come Pop-Corn, che predice come una perturbazione rimodella la composizione dei tipi cellulari senza ricostruire l'espressione genica [1]. Questo approccio aggira il problema per cui i modelli che ottimizzano la ricostruzione dell'espressione genica spesso falliscono nel prevedere gli spostamenti composizionali [1]. Pop-Corn aggrega gli stati cellulari di controllo con le rappresentazioni della perturbazione per prevedere la composizione della popolazione sotto perturbazioni non viste [2]. Il modello considera le cellule congiuntamente e predice direttamente le proporzioni attese dei tipi cellulari, allineando l'output con l'esito fenotipico di interesse [5]. Per le perturbazioni non osservate, Pop-Corn ha dimostrato di recuperare la composizione dei tipi cellulari con maggiore accuratezza rispetto alle pipeline basate sull'espressione [3]. Inoltre, l'approccio può essere esteso ai tessuti intatti (Pop-Corn-Spatial) per prevedere i cambiamenti nelle proporzioni dei tipi cellulari nei vicinati cellulari locali [1]. Un altro framework, SHERLOCK, rappresenta gli effetti delle perturbazioni come interventi strutturati su uno stato cellulare basale latente per analizzare causalmente gli effetti a valle [4]. Infine, approcci come C3TL sfruttano bias induttivi e dati bulk per prevedere gli effetti delle perturbazioni in contesti nuovi in modo efficiente [6].",
+  "made": 1791418445,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "2e50ba06bea9a0a30a836758dd0fa5d7",
+    "title": "Pop-Corn: Predicting Perturbation Phenotype Effects Across Single-Cell and Spatial Contexts",
+    "source": "doc:4616fea43c17c6af695bafaaf505e322",
+    "domain": "genomics",
+    "origin": "biorxiv:10.64898/2026.09.25.754560",
+    "url": "https://doi.org/10.64898/2026.09.25.754560",
+    "licence": "cc_by"
+   },
+   {
+    "n": 2,
+    "sid": "2167cdfb48de824554677622248dedef",
+    "title": "Pop-Corn: Predicting Perturbation Phenotype Effects Across Single-Cell and Spatial Contexts",
+    "source": "doc:4616fea43c17c6af695bafaaf505e322",
+    "domain": "genomics",
+    "origin": "biorxiv:10.64898/2026.09.25.754560",
+    "url": "https://doi.org/10.64898/2026.09.25.754560",
+    "licence": "cc_by"
+   },
+   {
+    "n": 3,
+    "sid": "c1ecbee63f7ae6a887873f5390f09ad2",
+    "title": "Pop-Corn: Predicting Perturbation Phenotype Effects Across Single-Cell and Spatial Contexts",
+    "source": "doc:4616fea43c17c6af695bafaaf505e322",
+    "domain": "genomics",
+    "origin": "biorxiv:10.64898/2026.09.25.754560",
+    "url": "https://doi.org/10.64898/2026.09.25.754560",
+    "licence": "cc_by"
+   },
+   {
+    "n": 4,
+    "sid": "f4a854528f40481091cd69ee8c9e229e",
+    "title": "SHERLOCK: Structured representation learning and causal inference of downstream perturbation effects",
+    "source": "doc:a6b9b03f8d09e7d5ba52ac839c4e6cb5",
+    "domain": "genomics",
+    "origin": "biorxiv:10.64898/2026.09.25.754573",
+    "url": "https://doi.org/10.64898/2026.09.25.754573",
+    "licence": "cc_by_nc_nd"
+   },
+   {
+    "n": 5,
+    "sid": "26ed0786fa624d0db5b8f08d947ce402",
+    "title": "Pop-Corn: Predicting Perturbation Phenotype Effects Across Single-Cell and Spatial Contexts",
+    "source": "doc:4616fea43c17c6af695bafaaf505e322",
+    "domain": "genomics",
+    "origin": "biorxiv:10.64898/2026.09.25.754560",
+    "url": "https://doi.org/10.64898/2026.09.25.754560",
+    "licence": "cc_by"
+   },
+   {
+    "n": 6,
+    "sid": "f709198ed1818e42c6cb587e94ecc73c",
+    "title": "Causal Cellular Context Transfer Learning (C3TL): An Efficient Architecture for Prediction of Unseen Perturbation Effects",
+    "source": "legacy:arxiv_Causal_Cellular_Context_Transfer_Learning_C3TL_An_txt_done",
+    "domain": "artificial_intelligence",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Come utilizza Pop-Corn-Spatial l'encoding posizionale rotazionale 2D per prevedere la composizione delle nicchie?",
+    "focus": [
+     {
+      "source": "doc:4616fea43c17c6af695bafaaf505e322",
+      "domain": "genomics"
+     }
+    ]
+   },
+   {
+    "question": "Quali metriche statistiche vengono impiegate per valutare l'accuratezza delle proporzioni cellulari predette da Pop-Corn?",
+    "focus": [
+     {
+      "source": "doc:4616fea43c17c6af695bafaaf505e322",
+      "domain": "genomics"
+     }
+    ]
+   },
+   {
+    "question": "Come viene costruita la pseudo-controllo per ogni cellula sotto perturbazione nel dataset Perturb-Multimodal?",
+    "focus": [
+     {
+      "source": "doc:4616fea43c17c6af695bafaaf505e322",
+      "domain": "genomics"
+     }
+    ]
+   },
+   {
+    "question": "Quale metodo viene utilizzato per stabilire le corrispondenze cellulari tra fette di tessuto diverse nel dataset Perturb-Multimodal?",
+    "focus": [
+     {
+      "source": "doc:4616fea43c17c6af695bafaaf505e322",
+      "domain": "genomics"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è la proprietà di continuazione unica L2?",
+  "answer": "La proprietà di continuazione unica $L^2$ afferma che se una soluzione si annulla su un sottoinsieme non vuoto di un componente connesso, allora si annulla identicamente su tutto il dominio [1]. In particolare, per l'operatore $\\nabla(\\tau b)$ con $\\tau \\neq 0$, questa proprietà è soddisfatta perché l'operatore è iniettivo su $L^2(\\Omega')$ [1]. Analogamente, l'operatore di deformazione $Def_d(\\tau)$ soddisfa la proprietà di continuazione unica $L^2$ su $\\Omega'$ per ogni $\\tau \\in \\mathbb{R}$ [1]. Per le soluzioni dell'equazione $\\bar\\partial u = Vu$, la proprietà di continuazione unica debole vale se il potenziale $V$ appartiene a $L^2_{loc}(\\Omega)$ [6]. In tal caso, se la soluzione $u$ si annulla in un sottoinsieme aperto di $\\Omega$, essa si annulla identicamente [6]. La proprietà di continuazione unica forte richiede invece condizioni più restrittive sulla regolarità di $V$ o sul comportamento della soluzione in un punto [6]. Ad esempio, per $n=1$, la continuazione unica forte vale se $V \\in L^2_{loc}(\\Omega)$ e la soluzione si annulla a ordine infinito in senso $L^2$ in un punto [6]. Per $n \\ge 2$, è necessario che $V \\in L^p_{loc}(\\Omega)$ per qualche $p > 2n$ affinché la continuazione unica forte sia garantita [6].",
+  "made": 1791418478,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "4f48428a7e207e06e6f8899e8356bf70",
+    "title": "Well-posedness of a generalized Stokes operator on domains with cylindrical ends via layer-potentials",
+    "source": "legacy:arxiv_Well_posedness_of_a_generalized_Stokes_operator_on_txt_done",
+    "domain": "mathematics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 6,
+    "sid": "9ad228028e812d73e1b056a5961b5014",
+    "title": "Unique continuation for $\\bar\\partial u = Vu$ at infinity",
+    "source": "legacy:arxiv_Unique_continuation_for_bar_partial_u_Vu_at_infini_txt_done",
+    "domain": "mathematics",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Qual è la condizione di decadimento esponenziale per la soluzione u nell'equazione ∂̄u = Vu?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Unique_continuation_for_bar_partial_u_Vu_at_infini_txt_done",
+      "domain": "mathematics"
+     }
+    ]
+   },
+   {
+    "question": "Qual è il ruolo del teorema di Fubini nella dimostrazione della continuazione unica per ∂̄u = Vu?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Unique_continuation_for_bar_partial_u_Vu_at_infini_txt_done",
+      "domain": "mathematics"
+     }
+    ]
+   },
+   {
+    "question": "Qual è la stima quantitativa inferiore per |u(z)| fornita nel teorema 1.1?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Unique_continuation_for_bar_partial_u_Vu_at_infini_txt_done",
+      "domain": "mathematics"
+     }
+    ]
+   },
+   {
+    "question": "Qual è la proprietà di continuazione unica al bordo per domini C1,1?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Boundary_Spectral_Inequalities_from_Measurable_Set_txt_done",
+      "domain": "mathematics"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è la pretermalizzazione di Floquet?",
+  "answer": "La pretermalizzazione di Floquet è un fenomeno in cui i sistemi fuori equilibrio subiscono un'approssimata termalizzazione rispetto a un Hamiltoniano efficace statico prima della loro termalizzazione finale [2]. Durante il regime di pretermalizzazione di Floquet, le osservabili misurate stroboscopicamente raggiungono un plateau sotto una guida periodica prima della termalizzazione finale [2]. Questo stato metastabile è caratterizzato da un tempo di termalizzazione che cresce esponenzialmente all'aumentare della frequenza di guida [2]. La pretermalizzazione è considerata un tipo di violazione debole dell'ipotesi di termalizzazione degli stati propri (ETH) [2]. Essa risulta in un plateau di dinamica fuori equilibrio per la densità di energia [2]. A differenza della localizzazione many-body (MBL), la pretermalizzazione non richiede disordine forte per stabilizzare l'ordine [1].",
+  "made": 1791418509,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "41ebae8618b8f4ddcc2559d588ecd993",
+    "title": "Discrete time crystals in one-dimensional classical Floquet systems with nearest-neighbor interactions",
+    "source": "legacy:arxiv_Discrete_time_crystals_in_one_dimensional_classica_txt_done",
+    "domain": "quantum_physics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 2,
+    "sid": "f7c1ad35ae2626bccb13ad307117fcf4",
+    "title": "Discrete time crystals in one-dimensional classical Floquet systems with nearest-neighbor interactions",
+    "source": "legacy:arxiv_Discrete_time_crystals_in_one_dimensional_classica_txt_done",
+    "domain": "quantum_physics",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Qual è l'Hamiltoniana del sistema di spin classici 1D con interazioni NN considerato?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Discrete_time_crystals_in_one_dimensional_classica_txt_done",
+      "domain": "quantum_physics"
+     }
+    ]
+   },
+   {
+    "question": "Come viene definito il tempo di termalizzazione τ* nel contesto della pretermalizzazione?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Discrete_time_crystals_in_one_dimensional_classica_txt_done",
+      "domain": "quantum_physics"
+     }
+    ]
+   },
+   {
+    "question": "Quali sono le caratteristiche distintive degli stati di Floquet spontanei rispetto ai sistemi guidati convenzionali?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Simultaneous_symmetry_breaking_in_spontaneous_Floq_txt_done",
+      "domain": "quantum_physics"
+     }
+    ]
+   },
+   {
+    "question": "Quali sistemi fisici mostrano pretermalizzazione secondo la teoria rigorosa di Abanin et al.?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Observable_and_state_selective_prethermalization_a_txt_done",
+      "domain": "quantum_physics"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è l'analisi variazionale funzionale?",
+  "answer": "L'analisi variazionale funzionale, o calcolo delle variazioni, studia i funzionali in analogia a come il calcolo elementare studia le funzioni [4]. Mentre il calcolo elementare considera cambiamenti infinitesimamente piccoli nei valori di input e output delle funzioni, il calcolo delle variazioni considera cambiamenti infinitesimamente piccoli nelle funzioni stesse [4]. Un funzionale è una mappatura da un insieme di funzioni ai numeri reali [4]. Il calcolo delle variazioni studia come cambia l'output di un funzionale quando la funzione di input viene perturbata infinitesimamente [4]. Questo approccio è necessario quando l'ottimizzazione viene eseguita su uno spazio di funzioni a dimensione infinita, piuttosto che su uno spazio vettoriale a dimensione finita [1]. Per derivare la struttura del ricevitore ottimale in tali contesti, è necessario l'uso di strumenti del calcolo variazionale [1]. La condizione di stazionarietà del primo ordine porta alla derivazione di condizioni di stazionarietà che permettono di risolvere problemi di ottimizzazione [1]. In meccanica, principi come quello del lavoro virtuale minimo utilizzano metodi variazionali per trovare soluzioni esatte che minimizzano il lavoro virtuale totale [2].",
+  "made": 1791418538,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "b1524ea4d20437f679638ffb428b290c",
+    "title": "Asymptotically Optimal Local Receiver in Uplink CF-mMIMO: A Functional-Variational Analysis",
+    "source": "legacy:arxiv_Asymptotically_Optimal_Local_Receiver_in_Uplink_CF_txt_done",
+    "domain": "engineering",
+    "origin": "arxiv"
+   },
+   {
+    "n": 2,
+    "sid": "39785d6323aee39a9b3ca8c773207005",
+    "title": "The principle of minimum virtual work and its application in bridge engineering",
+    "source": "legacy:arxiv_The_principle_of_minimum_virtual_work_and_its_appl_txt_done",
+    "domain": "physics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 4,
+    "sid": "1a7b981e44b2fdc1dba2f5298e80e3fc",
+    "title": "Calculus",
+    "source": "doc:518ea1c36772d75ceb8772a9c50b33d0",
+    "domain": "general",
+    "origin": "wikipedia:Calculus",
+    "url": "https://en.wikipedia.org/wiki/Calculus",
+    "licence": "CC BY-SA 4.0 (Wikipedia contributors)"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Quali strumenti matematici, come l'analisi tensoriale, sono usati per derivare il principio energetico?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_The_principle_of_minimum_virtual_work_and_its_appl_txt_done",
+      "domain": "physics"
+     }
+    ]
+   },
+   {
+    "question": "Quali sfere non sono punti critici per i funzionali geometrici variazionali nel gruppo di Heisenberg?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Unexpected_phenomena_for_mean_curvature_functional_txt_done",
+      "domain": "mathematics"
+     }
+    ]
+   },
+   {
+    "question": "Quali metodi numerici sono proposti per risolvere i problemi variazionali convessi?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_A_operatorname_prox_Based_Semi_Smooth_Newton_Metho_txt_done",
+      "domain": "mathematics"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è la famiglia linguistica afroasiatica?",
+  "answer": "La famiglia linguistica afroasiatica, nota anche come afro-asiatica, hamito-semitica o semito-hamitica, è un gruppo di circa 400 lingue parlate prevalentemente nell'Asia occidentale, nel Nord Africa, nel Corno d'Africa e in parti del Sahara e del Sahel [1]. Con oltre 500 milioni di parlanti nativi, essa costituisce la quarta famiglia linguistica più grande al mondo dopo l'indo-europeo, il sino-tibetano e il niger-kongo [1]. La maggior parte degli studiosi divide questa famiglia in sei rami principali: berbero, ciadico, cuscitico, egizio, omotico e semitico [1]. Sebbene la maggior parte delle lingue afroasiatiche siano indigene del continente africano, il ramo semitico ha avuto origine in Asia occidentale [1]. L'arabo è la lingua più diffusa all'interno di questa famiglia, con stime che vanno da 300 a 411 milioni di parlanti nativi [1]. La patria originaria della lingua proto-afroasiatica è generalmente collocata nell'Africa nord-orientale o nel Corno d'Africa, sebbene esista un minoranza di studiosi che propone un'origine nel Levante [1]. Attualmente non esiste un consenso tra i linguisti storici sulla data precisa in cui fu parlata la lingua comune antenata, con stime che variano ampiamente [1]. Il termine \"hamito-semitico\" è stato criticato per le sue connotazioni razziali e per suggerire erroneamente l'esistenza di un ramo \"hamitico\" monofiletico, portando molti studiosi a preferire il termine \"afroasiatico\" [6].",
+  "made": 1791418556,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "47a11e53991b356ed487d01e5b623009",
+    "title": "Afroasiatic languages",
+    "source": "doc:e42f316ca1803cdd25c4df87d83634aa",
+    "domain": "society",
+    "origin": "wikipedia:Afroasiatic languages",
+    "url": "https://en.wikipedia.org/wiki/Afroasiatic_languages",
+    "licence": "CC BY-SA 4.0 (Wikipedia contributors)"
+   },
+   {
+    "n": 6,
+    "sid": "52f1cd41b537d610f492a2517170f614",
+    "title": "Afroasiatic languages",
+    "source": "doc:e42f316ca1803cdd25c4df87d83634aa",
+    "domain": "society",
+    "origin": "wikipedia:Afroasiatic languages",
+    "url": "https://en.wikipedia.org/wiki/Afroasiatic_languages",
+    "licence": "CC BY-SA 4.0 (Wikipedia contributors)"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Quali sono le altre denominazioni proposte per la famiglia afroasiatica oltre a quelle comunemente usate?",
+    "focus": [
+     {
+      "source": "doc:e42f316ca1803cdd25c4df87d83634aa",
+      "domain": "society"
+     }
+    ]
+   },
+   {
+    "question": "Quali sono i cinque rami della famiglia afroasiatica universalmente riconosciuti dagli studiosi?",
+    "focus": [
+     {
+      "source": "doc:e42f316ca1803cdd25c4df87d83634aa",
+      "domain": "society"
+     }
+    ]
+   },
+   {
+    "question": "Perché molti studiosi preferiscono il termine 'phylum' linguistico invece di 'famiglia' per l'afroasiatico?",
+    "focus": [
+     {
+      "source": "doc:e42f316ca1803cdd25c4df87d83634aa",
+      "domain": "society"
+     }
+    ]
+   },
+   {
+    "question": "Quali lingue afroasiatiche sono parlate a Malta e in Asia centrale?",
+    "focus": [
+     {
+      "source": "doc:70352b8a9ac8ac3cd8bd2b5e641a0894",
+      "domain": "society"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è una barriera di trasporto efficace?",
+  "answer": "Una barriera di trasporto efficace è una struttura nello spazio delle fasi che riduce i coefficienti di trasporto, anche dopo la rottura delle curve invarianti [1]. I resti delle curve invarianti, inclusa quella shearless, possono formare barriere parziali o efficaci [1]. L'efficacia di queste barriere è strettamente correlata al crossing delle manifolds delle isole isocrone [1]. Queste barriere riducono i coefficienti di trasporto nella regione interessata [2]. La loro efficacia è caratterizzata dalla trasmissività della barriera e dal tempo di fuga delle orbite [2]. La trasmissività misura la frazione di orbite che superano la barriera [2]. Il tempo di fuga considera il tempo necessario per ogni orbita per uscire dalla regione della barriera [2]. I resti delle curve invarianti portano a una riduzione dei coefficienti di trasporto grazie a funzioni di correlazione a lungo termine [3].",
+  "made": 1791418577,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "865fa8916744e7121bfe3a7e61d267b9",
+    "title": "Effective transport barriers in the biquadratic nontwist map",
+    "source": "legacy:arxiv_Effective_transport_barriers_in_the_biquadratic_no_txt_done",
+    "domain": "nonlinear_science",
+    "origin": "arxiv"
+   },
+   {
+    "n": 2,
+    "sid": "8bd39fc70c93387b050e4500551f2b61",
+    "title": "Effective transport barriers in the biquadratic nontwist map",
+    "source": "legacy:arxiv_Effective_transport_barriers_in_the_biquadratic_no_txt_done",
+    "domain": "nonlinear_science",
+    "origin": "arxiv"
+   },
+   {
+    "n": 3,
+    "sid": "01daa8b00f4277d7b9d377c559f0698d",
+    "title": "Effective transport barriers in the biquadratic nontwist map",
+    "source": "legacy:arxiv_Effective_transport_barriers_in_the_biquadratic_no_txt_done",
+    "domain": "nonlinear_science",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Qual è il ruolo delle curve isocrone nella formazione delle barriere di trasporto efficaci?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Effective_transport_barriers_in_the_biquadratic_no_txt_done",
+      "domain": "nonlinear_science"
+     }
+    ]
+   },
+   {
+    "question": "Come influenzano le catene di isole pari la dinamica del trasporto rispetto a quelle dispari?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Effective_transport_barriers_in_the_biquadratic_no_txt_done",
+      "domain": "nonlinear_science"
+     }
+    ]
+   },
+   {
+    "question": "Quali parametri determinano la transmissività della barriera nel Mappa Nontwist Biquadratica?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Effective_transport_barriers_in_the_biquadratic_no_txt_done",
+      "domain": "nonlinear_science"
+     }
+    ]
+   },
+   {
+    "question": "Come si distinguono le intersezioni omeocliniche ed eterocliniche nei regimi di trasporto alto e basso?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Effective_transport_barriers_in_the_biquadratic_no_txt_done",
+      "domain": "nonlinear_science"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Qual è la condizione vettoriale per gli assi acustici?",
+  "answer": "La condizione vettoriale per gli assi acustici stabilisce che il tensore acustico ridotto $Y(n)$ ha un asse acustico nella direzione $n$ se e solo se esiste un vettore $q$ e uno scalare $\\sigma$ tali che l'equazione $Y(n) = \\sigma(I - 3q \\otimes q)$ sia soddisfatta [3]. In questa relazione, $\\sigma$ rappresenta il parametro di velocità, mentre il vettore $q$ corrisponde al vettore di polarizzazione associato all'autovalore singolo [3]. Questa formulazione costituisce un sistema ben posto di cinque equazioni algebriche indipendenti di secondo ordine per cinque variabili indipendenti [3]. Le variabili includono le due componenti del vettore unitario $n$, le due componenti del vettore unitario $q$ e il parametro scalare $\\sigma$ [3]. Il vettore $q$ è l'autovettore della matrice $Y_{ij}$ corrispondente al suo singolo autovalore $\\rho = -2\\sigma$ [3]. Questa condizione è equivalente ad altre forme, come quella basata sul polinomio minimo, che richiede la riduzione del polinomio minimo di terzo ordine a quello di secondo ordine [2]. Tale approccio fornisce una forma compatta e invariante per le condizioni necessarie e sufficienti di esistenza degli assi acustici [4].",
+  "made": 1791418596,
+  "sources": [
+   {
+    "n": 2,
+    "sid": "70f063db4ead02ccd65ce29332762e68",
+    "title": "Acoustic axes conditions revised",
+    "source": "legacy:arxiv_Acoustic_axes_conditions_revised_txt_done",
+    "domain": "mathematical_physics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 3,
+    "sid": "2d0a2d5e31fd6b3ef40a757976783ee7",
+    "title": "Acoustic axes conditions revised",
+    "source": "legacy:arxiv_Acoustic_axes_conditions_revised_txt_done",
+    "domain": "mathematical_physics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 4,
+    "sid": "931969976d4ae7e7421b08968b81a818",
+    "title": "Reduced Cristoffel's tensor and acoustic axes: Necessary and sufficient condition",
+    "source": "legacy:arxiv_Reduced_Cristoffel_s_tensor_and_acoustic_axes_Nece_txt_done",
+    "domain": "physics",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Qual è la condizione discriminante per l'esistenza di un asse acustico nel tensore ridotto Y(n)?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Acoustic_axes_conditions_revised_txt_done",
+      "domain": "mathematical_physics"
+     }
+    ]
+   },
+   {
+    "question": "Quali relazioni soddisfano i parametri RTHC nei cristalli esagonali?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Acoustic_axes_conditions_revised_txt_done",
+      "domain": "mathematical_physics"
+     }
+    ]
+   },
+   {
+    "question": "Quali sono le quattro forme possibili della matrice Z quando è simmetrica?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Acoustic_axes_conditions_revised_txt_done",
+      "domain": "mathematical_physics"
+     }
+    ]
+   },
+   {
+    "question": "Qual è la relazione tra direzioni pure di taglio e assi acustici?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Acoustic_axes_conditions_revised_txt_done",
+      "domain": "mathematical_physics"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è l'apprendimento ricorsivo video in-context?",
+  "answer": "L'apprendimento ricorsivo video in-context (RV-ICL) è un metodo senza addestramento che trasforma una dimostrazione video in una gerarchia navigabile dall'agente robotico [1]. Questa struttura permette all'agente di consultare la dimostrazione solo quando necessario, caricando clip specifiche per il sotto-obiettivo corrente invece di elaborare l'intero video [1]. La gerarchia è costruita a partire dai sotto-eventi della dimostrazione, come afferramenti e rilasci, e cresce in dettaglio dai fotogrammi chiave ai momenti e alle clip brevi [1]. L'agente legge i livelli grossolani prima di pianificare e rientra nella gerarchia durante l'esecuzione per ottenere più dettagli [1]. Questo approccio risolve i problemi di lunghezza, risoluzione e tempistica associati all'uso di video interi o di pochi fotogrammi fissi [2]. RV-ICL richiede una sola dimostrazione per compito e non modifica la politica del robot [3]. I risultati mostrano un aumento del tasso di successo su benchmark come LIBERO-PRO e LIBERO-Plus [1]. Il metodo tratta le dimostrazioni come un ambiente interrogabile piuttosto che come un prefisso fisso del contesto [3].",
+  "made": 1791418614,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "9c721739829d83d68136199874122fa3",
+    "title": "Recursive Video In-Context Learning for Agentic Robot",
+    "source": "doc:9c029739fc9e654ba39d149342d267f7",
+    "domain": "robotics",
+    "origin": "arxiv:2610.06843",
+    "url": "https://arxiv.org/abs/2610.06843",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   },
+   {
+    "n": 2,
+    "sid": "07596354c7a8ca759e4bb18034b06151",
+    "title": "Recursive Video In-Context Learning for Agentic Robot",
+    "source": "doc:9c029739fc9e654ba39d149342d267f7",
+    "domain": "robotics",
+    "origin": "arxiv:2610.06843",
+    "url": "https://arxiv.org/abs/2610.06843",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   },
+   {
+    "n": 3,
+    "sid": "a0bc32f9712c0ba76ed1e872f772c9ea",
+    "title": "Recursive Video In-Context Learning for Agentic Robot",
+    "source": "doc:9c029739fc9e654ba39d149342d267f7",
+    "domain": "robotics",
+    "origin": "arxiv:2610.06843",
+    "url": "https://arxiv.org/abs/2610.06843",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Come viene segmentata offline la dimostrazione video nella gerarchia a quattro livelli di RV-ICL?",
+    "focus": [
+     {
+      "source": "doc:9c029739fc9e654ba39d149342d267f7",
+      "domain": "robotics"
+     }
+    ]
+   },
+   {
+    "question": "Qual è il tasso di successo complessivo di RV-ICL con Claude Opus 5.5 su LIBERO-PRO?",
+    "focus": [
+     {
+      "source": "doc:9c029739fc9e654ba39d149342d267f7",
+      "domain": "robotics"
+     }
+    ]
+   },
+   {
+    "question": "Quali sono le tre ragioni principali per cui le forme ovvie di video falliscono nella memoria dell'agente?",
+    "focus": [
+     {
+      "source": "doc:9c029739fc9e654ba39d149342d267f7",
+      "domain": "robotics"
+     }
+    ]
+   },
+   {
+    "question": "Quali sfide uniche presenta l'apprendimento da video per gli agenti multimodali negli ambienti interattivi?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_V_ICAL_Bench_Evaluating_Video_In_Context_Learning_txt_done",
+      "domain": "artificial_intelligence"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Come interagiscono gli assioni con la gravità EGB 4D nelle stelle di quark?",
+  "answer": "Gli assioni interagiscono con la gravità EGB 4D nelle stelle di quark modificando congiuntamente l'equazione di stato e la struttura stellare [1]. L'inclusione delle interazioni assioniche indurisce l'equazione di stato della materia di quark, aumentando la velocità del suono e la massa massima delle stelle [1]. Parallelamente, la correzione EGB 4D indebolisce efficacemente la compressione gravitazionale, modificando la struttura stellare [1]. Questa combinazione permette raggi stellari più grandi e masse massime più elevate, riducendo al contempo la compattezza [1]. Di conseguenza, le sequenze massa-raggio risultanti sono più compatibili con i vincoli osservazionali attuali rispetto alla relatività generale standard [1]. In particolare, per valori sufficientemente alti del parametro assionico, la massa massima può soddisfare i vincoli di stelle di neutroni massive come PSR J0740+6620 [2]. L'interazione tra la dinamica degli assioni e la gravità EGB 4D fornisce quindi un quadro fenomenologico valido per descrivere stelle di quark massive [1].",
+  "made": 1791418636,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "df707442b8abc09084d501aa4d0348cd",
+    "title": "Effects of Axion Interactions on Quark Stars in 4D Einstein-Gauss-Bonnet Gravity",
+    "source": "legacy:arxiv_Effects_of_Axion_Interactions_on_Quark_Stars_in_4D_txt_done",
+    "domain": "particle_physics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 2,
+    "sid": "4ef1c16b049c0a510f659ca1b0a2a0e6",
+    "title": "Effects of Axion Interactions on Quark Stars in 4D Einstein-Gauss-Bonnet Gravity",
+    "source": "legacy:arxiv_Effects_of_Axion_Interactions_on_Quark_Stars_in_4D_txt_done",
+    "domain": "particle_physics",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Come varia la velocità del suono al variare del parametro assionico θ?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Effects_of_Axion_Interactions_on_Quark_Stars_in_4D_txt_done",
+      "domain": "particle_physics"
+     }
+    ]
+   },
+   {
+    "question": "Qual è l'effetto dell'aumento di θ sulla densità energetica centrale delle configurazioni di massa massima?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Effects_of_Axion_Interactions_on_Quark_Stars_in_4D_txt_done",
+      "domain": "particle_physics"
+     }
+    ]
+   },
+   {
+    "question": "Quali vincoli osservazionali su raggi e masse soddisfano le sequenze massa-raggio risultanti?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Effects_of_Axion_Interactions_on_Quark_Stars_in_4D_txt_done",
+      "domain": "particle_physics"
+     }
+    ]
+   },
+   {
+    "question": "Come si confronta la compattezza delle stelle di quark in gravità EGB 4D rispetto alla relatività generale standard?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Effects_of_Axion_Interactions_on_Quark_Stars_in_4D_txt_done",
+      "domain": "particle_physics"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è l'Impero Bizantino?",
+  "answer": "L'Impero Bizantino, noto ai suoi cittadini come Impero Romano, fu la continuazione dell'Impero Romano centrata su Costantinopoli, sopravvissuta alla caduta dell'Impero d'Occidente nel V secolo [1]. Il termine \"bizantino\" è una denominazione moderna, coniata dopo la caduta dell'Impero nel 1453, e fu inizialmente usato in modo dispregiativo dagli storici illuministi [4]. Gli abitanti dell'Impero si consideravano Romani e il loro stato era di cultura prevalentemente greca, sebbene mantenesse le tradizioni politiche romane [1]. L'Impero raggiunse la sua massima estensione sotto Giustiniano I, che riconquistò temporaneamente parti dell'Italia e del Nord Africa [1]. Dopo una crisi e la conquista crociata del 1204, l'Impero fu restaurato nel 1261 ma perse progressivamente territori fino alla definitiva caduta nel 1453 [2]. Esso svolse un ruolo cruciale nella preservazione della civiltà europea, fungendo da scudo contro invasioni e trasmettendo il sapere classico [5]. La Chiesa ortodossa e le culture orientali rifiutano il termine \"bizantino\", preferendo i nomi storici originali come \"Impero dei Romani\" [6].",
+  "made": 1791418653,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "3378f9d3a3ed5dd8554fea5c17033a79",
+    "title": "Byzantine Empire",
+    "source": "doc:11816862e2348d0ad3e448f2be45b358",
+    "domain": "history",
+    "origin": "wikipedia:Byzantine Empire",
+    "url": "https://en.wikipedia.org/wiki/Byzantine_Empire",
+    "licence": "CC BY-SA 4.0 (Wikipedia contributors)"
+   },
+   {
+    "n": 2,
+    "sid": "8064dd7dd27382938b4e9df9b2d2d14d",
+    "title": "Impero bizantino",
+    "source": "doc:ba5228ecf9aa507c036d5f470ea3ee92",
+    "domain": "history",
+    "origin": "wikipedia:it:Impero bizantino",
+    "url": "https://it.wikipedia.org/wiki/Impero_bizantino",
+    "licence": "CC BY-SA 4.0 (Wikipedia contributors)"
+   },
+   {
+    "n": 4,
+    "sid": "bbeb2e13b232dcae1605d81e4e7e720e",
+    "title": "Civiltà romana",
+    "source": "doc:cc31d394b9d61ccbd9aa6fd2ac2ad000",
+    "domain": "history",
+    "origin": "wikipedia:it:Antica Roma",
+    "url": "https://it.wikipedia.org/wiki/Civiltà_romana",
+    "licence": "CC BY-SA 4.0 (Wikipedia contributors)"
+   },
+   {
+    "n": 5,
+    "sid": "9835a3114e3f5ea9d48512b54926b095",
+    "title": "Byzantine Empire",
+    "source": "doc:11816862e2348d0ad3e448f2be45b358",
+    "domain": "history",
+    "origin": "wikipedia:Byzantine Empire",
+    "url": "https://en.wikipedia.org/wiki/Byzantine_Empire",
+    "licence": "CC BY-SA 4.0 (Wikipedia contributors)"
+   },
+   {
+    "n": 6,
+    "sid": "050c5a30d2152a1d7ef2777edd33353d",
+    "title": "Impero bizantino",
+    "source": "doc:ba5228ecf9aa507c036d5f470ea3ee92",
+    "domain": "history",
+    "origin": "wikipedia:it:Impero bizantino",
+    "url": "https://it.wikipedia.org/wiki/Impero_bizantino",
+    "licence": "CC BY-SA 4.0 (Wikipedia contributors)"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Qual era la struttura di governo dell'Impero Bizantino e qual era il ruolo dell'imperatore?",
+    "focus": [
+     {
+      "source": "doc:242458d45c282779fdd125502026c49a",
+      "domain": "history"
+     }
+    ]
+   },
+   {
+    "question": "Come cambiò l'uso della lingua latina rispetto al greco nell'Impero Bizantino nel corso del VII secolo?",
+    "focus": [
+     {
+      "source": "doc:832be2518e4d1e78e0acb4a6037e781d",
+      "domain": "history"
+     }
+    ]
+   },
+   {
+    "question": "Quali popoli dell'Asia centrale l'Impero Bizantino schermò dall'Europa agendo come scudo?",
+    "focus": [
+     {
+      "source": "doc:11816862e2348d0ad3e448f2be45b358",
+      "domain": "history"
+     }
+    ]
+   },
+   {
+    "question": "Come influenzò la divisione dell'Impero Romano la posizione della Grecia e il ruolo di Costantinopoli?",
+    "focus": [
+     {
+      "source": "doc:84b11f7509a8259e73ed15f0ddb9976e",
+      "domain": "history"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Quali sono le caratteristiche stilistiche e tematiche di 2001: Odissea nello spazio?",
+  "answer": "Il film è un capolavoro di fantascienza che tocca temi come l'identità, il destino della specie umana e il ruolo della conoscenza [1]. Viene descritto come una favola apocalittica sul destino dell'umanità e sullo sviluppo della tecnologia [3]. Le sue caratteristiche stilistiche includono una rappresentazione scientificamente accurata del volo spaziale e effetti speciali pionieristici [2]. Kubrick evita le tecniche narrative convenzionali, utilizzando i dialoghi in modo spoglio e lasciando lunghe sequenze dominate dalla musica [2]. La colonna sonora è composta da opere di musica classica piuttosto che da brani originali [2]. Il film è noto per i suoi temi ambigui e per le numerose interpretazioni possibili, che vanno da letture apocalittiche a quelle ottimistiche [2]. Viene considerata una meditazione poetica sull'ingegno e sulla follia dell'umanità [3]. La narrazione copre un arco temporale dalla preistoria al 2001, esplorando l'evoluzione umana attraverso l'intervento di un monolito misterioso [1].",
+  "made": 1791418672,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "a92ffde5a0467d5e4385641f81c8320a",
+    "title": "2001: Odissea nello spazio",
+    "source": "doc:e7233dac1542c9bba267c5c8b1297595",
+    "domain": "literature",
+    "origin": "wikipedia:it:2001: Odissea nello spazio",
+    "url": "https://it.wikipedia.org/wiki/2001:_Odissea_nello_spazio",
+    "licence": "CC BY-SA 4.0 (Wikipedia contributors)"
+   },
+   {
+    "n": 2,
+    "sid": "a6a7be7d45be6c422fe5bff477f40a70",
+    "title": "2001: A Space Odyssey",
+    "source": "doc:79bcfe86a5c615d29f2acb46c49b6e61",
+    "domain": "literature",
+    "origin": "wikipedia:2001: A Space Odyssey",
+    "url": "https://en.wikipedia.org/wiki/2001:_A_Space_Odyssey",
+    "licence": "CC BY-SA 4.0 (Wikipedia contributors)"
+   },
+   {
+    "n": 3,
+    "sid": "fc00ce0cf0d788b58d3582d7b16bfeed",
+    "title": "2001: Odissea nello spazio",
+    "source": "doc:e7233dac1542c9bba267c5c8b1297595",
+    "domain": "literature",
+    "origin": "wikipedia:it:2001: Odissea nello spazio",
+    "url": "https://it.wikipedia.org/wiki/2001:_Odissea_nello_spazio",
+    "licence": "CC BY-SA 4.0 (Wikipedia contributors)"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Quali sono le date di uscita e le location della prima mondiale di 2001: Odissea nello spazio?",
+    "focus": [
+     {
+      "source": "doc:79bcfe86a5c615d29f2acb46c49b6e61",
+      "domain": "literature"
+     }
+    ]
+   },
+   {
+    "question": "Chi ha diretto il sequel 2010 - L'anno del contatto e qual è il suo rapporto con Kubrick?",
+    "focus": [
+     {
+      "source": "doc:e7233dac1542c9bba267c5c8b1297595",
+      "domain": "literature"
+     }
+    ]
+   },
+   {
+    "question": "Come ha reagito la critica iniziale di 2001: Odissea nello spazio rispetto alla narrazione tradizionale?",
+    "focus": [
+     {
+      "source": "doc:79bcfe86a5c615d29f2acb46c49b6e61",
+      "domain": "literature"
+     }
+    ]
+   },
+   {
+    "question": "Perché Kubrick ha rimosso la voce narrante sulle armi nucleari alla fine del film?",
+    "focus": [
+     {
+      "source": "doc:79bcfe86a5c615d29f2acb46c49b6e61",
+      "domain": "literature"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è la dinamica molecolare generativa trasferibile?",
+  "answer": "La dinamica molecolare generativa trasferibile è un approccio che apprende modelli probabilistici delle transizioni molecolari in grado di generalizzare a sistemi non visti durante l'addestramento [2]. Questo metodo permette di ammortizzare i costi delle simulazioni di riferimento e dell'addestramento su più obiettivi diversi [2]. I modelli dinamici apprendono le transizioni dipendenti dal tempo tra le configurazioni molecolari [2]. In particolare, l'apprendimento dell'operatore di trasferimento implicito (ITO) modella le densità di transizione a lag finito utilizzando modelli generativi condizionali [2]. Questi modelli possono generalizzare a sistemi non rappresentati durante l'addestramento quando vengono addestrati su sistemi correlati [2]. SupraTITO è un esempio di framework di dinamica molecolare generativa trasferibile per sistemi supramolecolari [1]. Tale framework apprende operatori impliciti trasferibili condizionati sulla sequenza del peptide e sulla topologia molecolare [1]. I risultati mostrano che la dinamica appresa può generalizzare attraverso diverse concentrazioni di peptide [1].",
+  "made": 1791418692,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "56cd74f4218950952c5f147711e9f5f8",
+    "title": "SupraTITO: Transferable Generative Molecular Dynamics for Supramolecular Systems",
+    "source": "doc:421faf4607b6393cdde5900091d6adec",
+    "domain": "chemistry",
+    "origin": "arxiv:2610.01381",
+    "url": "https://arxiv.org/abs/2610.01381",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   },
+   {
+    "n": 2,
+    "sid": "ae60246b3c25ba72f8cfa7331f717897",
+    "title": "SupraTITO: Transferable Generative Molecular Dynamics for Supramolecular Systems",
+    "source": "doc:421faf4607b6393cdde5900091d6adec",
+    "domain": "chemistry",
+    "origin": "arxiv:2610.01381",
+    "url": "https://arxiv.org/abs/2610.01381",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Come vengono rappresentate le sequenze di peptide nell'architettura di SupraTITO?",
+    "focus": [
+     {
+      "source": "doc:421faf4607b6393cdde5900091d6adec",
+      "domain": "chemistry"
+     }
+    ]
+   },
+   {
+    "question": "Qual è l'obiettivo di addestramento basato sul flow matching utilizzato in SupraTITO?",
+    "focus": [
+     {
+      "source": "doc:421faf4607b6393cdde5900091d6adec",
+      "domain": "chemistry"
+     }
+    ]
+   },
+   {
+    "question": "Come si comportano le previsioni di SupraTITO all'aumentare della diversità delle sequenze di addestramento?",
+    "focus": [
+     {
+      "source": "doc:421faf4607b6393cdde5900091d6adec",
+      "domain": "chemistry"
+     }
+    ]
+   },
+   {
+    "question": "Quali metriche di valutazione sono mostrate nella figura 1 del benchmark RNADyn?",
+    "focus": [
+     {
+      "source": "doc:a01f9b9db3c035b57bff89b117977f97",
+      "domain": "artificial_intelligence"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Quali sono le componenti temporali della scintillazione nel vicino infrarosso dello xenon gassoso?",
+  "answer": "La scintillazione nel vicino infrarosso dello xenon gassoso presenta due componenti temporali distinte: una veloce, su scala dei nanosecondi, e una dominante lenta, su scala dei microsecondi [1]. La componente veloce coincide con forti righe di emissione atomica, prevalentemente transizioni 6p → 6s [1]. Al contrario, la componente lenta segue il continuum ampio centrato intorno a 1,3 µm [1]. La componente lenta è descritta da un modello cinetico a due stadi che include termini indipendenti dalla densità [1]. L'interpretazione del termine più lento come decadimento radiativo fornisce una vita intrinseca di circa 3 µs [3]. Studi precedenti avevano già notato che la parte dominante dell'emissione ha una costante di tempo lenta di ordine µs [2]. La componente veloce contribuisce solo per una frazione inferiore all'1% del segnale totale [2].",
+  "made": 1791504288,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "15b536204cc099017f75663aad859049",
+    "title": "Wavelength-Resolved Timing of Near-Infrared Scintillation in Gaseous Xenon",
+    "source": "doc:9628e80984183aa1b19122f4265be2cd",
+    "domain": "chemistry",
+    "origin": "arxiv:2610.10161",
+    "url": "https://arxiv.org/abs/2610.10161",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   },
+   {
+    "n": 2,
+    "sid": "ff022c330abb599733a79f9b9fd19de3",
+    "title": "Wavelength-Resolved Timing of Near-Infrared Scintillation in Gaseous Xenon",
+    "source": "doc:9628e80984183aa1b19122f4265be2cd",
+    "domain": "chemistry",
+    "origin": "arxiv:2610.10161",
+    "url": "https://arxiv.org/abs/2610.10161",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   },
+   {
+    "n": 3,
+    "sid": "0b361f995fc31866da8fb84c010bdbc7",
+    "title": "Wavelength-Resolved Timing of Near-Infrared Scintillation in Gaseous Xenon",
+    "source": "doc:9628e80984183aa1b19122f4265be2cd",
+    "domain": "chemistry",
+    "origin": "arxiv:2610.10161",
+    "url": "https://arxiv.org/abs/2610.10161",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Quali miglioramenti sperimentali sono necessari per vincolare meglio la microfisica dell'emissione continua nello xenon gassoso?",
+    "focus": [
+     {
+      "source": "doc:9628e80984183aa1b19122f4265be2cd",
+      "domain": "chemistry"
+     }
+    ]
+   },
+   {
+    "question": "Come viene generata l'emissione VUV negli atomi di xenon eccitati durante la deriva degli elettroni?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Towards_high_pressure_noble_gaseous_detectors_for_txt_done",
+      "domain": "physics"
+     }
+    ]
+   },
+   {
+    "question": "Quali vantaggi offre la ricostruzione tridimensionale completa nei rivelatori a doppio segnale come XENON o LZ?",
+    "focus": [
+     {
+      "source": "doc:a0909c865907fbb7c0012c442ddde6b1",
+      "domain": "astrophysics"
+     }
+    ]
+   },
+   {
+    "question": "Qual è il coefficiente di quenching di Birks utilizzato per gli scintillatori a base di polistirene nel framework HybridMC?",
+    "focus": [
+     {
+      "source": "doc:06760de1b6a84788ab647c6f370f251e",
+      "domain": "particle_physics"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è la cancellazione delle divergenze infrarosse nelle correzioni radiative?",
+  "answer": "La cancellazione delle divergenze infrarosse (IR) è un fenomeno per cui le divergenze che sorgono dai contributi radiativi si annullano quando si combinano i fotoni virtuali e le emissioni reali di fotoni [1]. Questo meccanismo, noto come Bloch-Nordsieck, garantisce che le divergenze si cancellino ordine per ordine perché appaiono con segno opposto nei due contributi [1]. In particolare, le divergenze IR possono cancellarsi termine per termine nel rapporto di due tassi di decadimento, sia nelle correzioni virtuali che in quelle reali [2]. Un modo trasparente per comprendere questa cancellazione è fornito dalle identità di Ward-Takahashi [1]. In alcuni contesti, come nella teoria effettiva del mondo, ci si aspetta che le divergenze IR si cancellino nelle osservabili fisiche una volta incluse le dissipazioni e le appropriate prescrizioni causali [3]. Tuttavia, la cancellazione può essere delicata e dipendere da input specifici della teoria, non essendo sempre universale [4]. Per ottenere sezioni d'urto finite nella teoria quantistica dei campi, è necessario includere le radiazioni di fotoni finali o iniziali a bassa energia [5].",
+  "made": 1791504311,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "834f5ba2601a0be13b9caaad412cea04",
+    "title": "Looking at radiative corrections to the $Σ^\\pm\\toΛe^\\pm \\barν$ semileptonic decay-rate ratio",
+    "source": "doc:527c9b14364b798acf8cee49156d4ec5",
+    "domain": "particle_physics",
+    "origin": "arxiv:2610.03183",
+    "url": "https://arxiv.org/abs/2610.03183",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   },
+   {
+    "n": 2,
+    "sid": "a754b9e226c037248c4ff193271f1a8e",
+    "title": "Looking at radiative corrections to the $Σ^\\pm\\toΛe^\\pm \\barν$ semileptonic decay-rate ratio",
+    "source": "doc:527c9b14364b798acf8cee49156d4ec5",
+    "domain": "particle_physics",
+    "origin": "arxiv:2610.03183",
+    "url": "https://arxiv.org/abs/2610.03183",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   },
+   {
+    "n": 3,
+    "sid": "d427ad05928a602e86c8400369a0f2fd",
+    "title": "Classical Black Hole Scattering to Celestial Amplitudes in Effective Theories of Gravity",
+    "source": "legacy:arxiv_Classical_Black_Hole_Scattering_to_Celestial_Ampli_txt_done",
+    "domain": "particle_physics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 4,
+    "sid": "a94b4c6829ce674a459ec36bd0d3763e",
+    "title": "Classical Black Hole Scattering to Celestial Amplitudes in Effective Theories of Gravity",
+    "source": "legacy:arxiv_Classical_Black_Hole_Scattering_to_Celestial_Ampli_txt_done",
+    "domain": "particle_physics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 5,
+    "sid": "3862bb801517eb722a75597b5e902e1d",
+    "title": "UV and IR divergence-free calculation of the vertex function at arbitrary values of its arguments",
+    "source": "legacy:arxiv_UV_and_IR_divergence_free_calculation_of_the_verte_txt_done",
+    "domain": "physics",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Qual è il ruolo delle identità di Ward-Takahashi nella cancellazione delle divergenze IR?",
+    "focus": [
+     {
+      "source": "doc:527c9b14364b798acf8cee49156d4ec5",
+      "domain": "particle_physics"
+     }
+    ]
+   },
+   {
+    "question": "Come si comportano le divergenze IR nel limite di massa del leptonico nulla?",
+    "focus": [
+     {
+      "source": "doc:fe68d8155639cbcc6709eed47da2dc2f",
+      "domain": "particle_physics"
+     }
+    ]
+   },
+   {
+    "question": "Qual è la nuova tecnica computazionale IR-sicuro proposta per la QED?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Infrared_Problem_in_Quantum_Electrodynamics_txt_done",
+      "domain": "particle_physics"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è un'elezione?",
+  "answer": "Un'elezione è un processo decisionale di gruppo in cui una parte o tutta la popolazione vota per scegliere uno o più individui da assumere per una carica pubblica o un'altra posizione di responsabilità [1]. In una democrazia, i membri del governo sono eletti da una porzione del popolo che vota in un'elezione [2]. Le elezioni sono un modo per un elettorato di eleggere, cioè scegliere, tra due o più candidati diversi [2]. In una democrazia indiretta o rappresentativa, il voto e le elezioni sono il metodo mediante il quale le persone scelgono coloro che li rappresenteranno [2]. Le elezioni possono riempire uffici nel legislatore, talvolta nell'esecutivo e nella magistratura, e per i governi regionali e locali [1]. Questo processo è utilizzato anche in molte altre associazioni standardizzate, imprese pubbliche e organizzazioni [1].",
+  "made": 1791504327,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "1d4b3fb647b202c98951293d0f0f9936",
+    "title": "Election",
+    "source": "doc:a28ca2fd655fca3b975c48de89bde19a",
+    "domain": "society",
+    "origin": "wikipedia:Election",
+    "url": "https://en.wikipedia.org/wiki/Election",
+    "licence": "CC BY-SA 4.0 (Wikipedia contributors)"
+   },
+   {
+    "n": 2,
+    "sid": "60ee7102f6ac11f42f2db71ac3797a93",
+    "title": "Election",
+    "source": "doc:a28ca2fd655fca3b975c48de89bde19a",
+    "domain": "society",
+    "origin": "wikipedia:Election",
+    "url": "https://en.wikipedia.org/wiki/Election",
+    "licence": "CC BY-SA 4.0 (Wikipedia contributors)"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Quali sono le principali differenze tra un sistema a due partiti e un sistema multipartitico?",
+    "focus": [
+     {
+      "source": "doc:a28ca2fd655fca3b975c48de89bde19a",
+      "domain": "society"
+     }
+    ]
+   },
+   {
+    "question": "Come si è evoluta la storia del suffragio, in particolare per le minoranze e le donne?",
+    "focus": [
+     {
+      "source": "doc:a28ca2fd655fca3b975c48de89bde19a",
+      "domain": "society"
+     }
+    ]
+   },
+   {
+    "question": "Qual è lo scopo del voto segreto nelle elezioni moderne?",
+    "focus": [
+     {
+      "source": "doc:a28ca2fd655fca3b975c48de89bde19a",
+      "domain": "society"
+     }
+    ]
+   },
+   {
+    "question": "Come vengono utilizzate le elezioni nei regimi dittatoriali?",
+    "focus": [
+     {
+      "source": "doc:3902768b2c3bf9b657c9af7b8b0b3716",
+      "domain": "general"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è l'equazione di Klimontovich?",
+  "answer": "L'equazione di Klimontovich è un'equazione differenziale alle derivate parziali non lineare che descrive il moto di $N$ particelle in un singolo spazio delle fasi a sei dimensioni [1]. Essa rappresenta la descrizione microscopica esatta della densità di distribuzione delle particelle di plasma, definita come una somma di funzioni delta di Dirac [3]. L'equazione tiene conto dell'evoluzione temporale della distribuzione dovuta al campo elettromagnetico e alle forze di Lorentz [1]. Viene spesso derivata prendendo la derivata temporale totale della distribuzione microscopica delle particelle [1]. Sebbene sia esatta, l'equazione è considerata troppo dettagliata per l'uso pratico diretto a causa della sua natura spigolosa e microscopica [6]. Per ottenere quantità macroscopiche osservabili, si procede solitamente a una media d'insieme della distribuzione di Klimontovich [2]. Questa media porta all'equazione di Boltzmann o di Vlasov, a seconda che si includano o meno gli effetti delle collisioni [6]. L'equazione è quindi fondamentale per collegare la dinamica microscopica delle particelle alla fluidodinamica del plasma [1].",
+  "made": 1791504347,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "97bc215e48db224a0697163f59db38b6",
+    "title": "Quaternionic approach on the Dirac-Maxwell, Bernoulli and Navier-Stokes equations for dyonic fluid plasma",
+    "source": "legacy:arxiv_Quaternionic_approach_on_the_Dirac_Maxwell_Bernoul_txt_done",
+    "domain": "physics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 2,
+    "sid": "d493c3666ebde34470ca5262adee278b",
+    "title": "Lectures on Statistical Mechanics",
+    "source": "legacy:arxiv_Lectures_on_Statistical_Mechanics_txt_done",
+    "domain": "condensed_matter",
+    "origin": "arxiv"
+   },
+   {
+    "n": 3,
+    "sid": "ea107094fa93b45084dc7054ab7a6446",
+    "title": "Magnetic Compression of Compact Tori Experiment and Simulation",
+    "source": "legacy:arxiv_Magnetic_Compression_of_Compact_Tori_Experiment_an_txt_done",
+    "domain": "physics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 6,
+    "sid": "62d20777580d89ae0939fe7c904865b1",
+    "title": "Magnetic Compression of Compact Tori Experiment and Simulation",
+    "source": "legacy:arxiv_Magnetic_Compression_of_Compact_Tori_Experiment_an_txt_done",
+    "domain": "physics",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Qual è la relazione tra l'equazione di Klimontovich e l'equazione di Liouville?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Lectures_on_Statistical_Mechanics_txt_done",
+      "domain": "condensed_matter"
+     }
+    ]
+   },
+   {
+    "question": "Come si ottengono le quantità macroscopiche dalla distribuzione di Klimontovich?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Magnetic_Compression_of_Compact_Tori_Experiment_an_txt_done",
+      "domain": "physics"
+     }
+    ]
+   },
+   {
+    "question": "Qual è il nome del corso universitario da cui provengono le note sull'equazione di Klimontovich?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Lectures_on_Statistical_Mechanics_txt_done",
+      "domain": "condensed_matter"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è l'imaging funzionale a risonanza magnetica a riposo?",
+  "answer": "La risonanza magnetica funzionale a riposo (rs-fMRI) è una tecnica di neuroimaging che misura l'attività cerebrale spontanea rilevando le differenze regionali nel flusso sanguigno cerebrale mentre una persona non esegue compiti espliciti [4]. Il segnale acquisito, noto come BOLD (blood-oxygen-level-dependent), viene utilizzato come proxy per l'attività neurale che impatta l'ematodinamica a livello dei voxel [2]. Questa modalità rivela modelli di connettività funzionale tra le regioni cerebrali, fornendo informazioni sull'organizzazione cerebrale e su varie condizioni neurologiche o psichiatriche [4]. A differenza delle scansioni strutturali, l'rs-fMRI si concentra sull'attività funzionale intrinseca del cervello in uno stato di riposo [3].",
+  "made": 1791504367,
+  "sources": [
+   {
+    "n": 2,
+    "sid": "747e7b99d06cde559f88d53175cfb152",
+    "title": "Behavior Score Prediction in Resting-State Functional MRI by Deep State Space Modeling",
+    "source": "legacy:arxiv_Behavior_Score_Prediction_in_Resting_State_Functio_txt_done",
+    "domain": "engineering",
+    "origin": "arxiv"
+   },
+   {
+    "n": 3,
+    "sid": "f35aeff923eb69f591dc8ed3513aceea",
+    "title": "Graph Neural Networks with Transformer Fusion of Brain Connectivity Dynamics and Tabular Data for Forecasting Future Tobacco Use",
+    "source": "legacy:arxiv_Graph_Neural_Networks_with_Transformer_Fusion_of_B_txt_done",
+    "domain": "artificial_intelligence",
+    "origin": "arxiv"
+   },
+   {
+    "n": 4,
+    "sid": "86c4afda1976822a1e3d1b64a85a835e",
+    "title": "Behavior Score Prediction in Resting-State Functional MRI by Deep State Space Modeling",
+    "source": "legacy:arxiv_Behavior_Score_Prediction_in_Resting_State_Functio_txt_done",
+    "domain": "engineering",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Come viene utilizzato l'EEG a riposo per studiare le trasformazioni topologiche legate all'invecchiamento?",
+    "focus": [
+     {
+      "source": "legacy:pmc_txt_done",
+      "domain": "medicine"
+     }
+    ]
+   },
+   {
+    "question": "Quali sono i vantaggi dell'fMRI basata su compiti rispetto all'fMRI a riposo per l'identificazione delle regioni cerebrali?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Estimating_measures_of_information_processing_duri_txt_done",
+      "domain": "biomedicine"
+     }
+    ]
+   },
+   {
+    "question": "Come affronta il modello proposto le dinamiche temporali nei dati di connettività funzionale per la previsione dei punteggi comportamentali?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Behavior_Score_Prediction_in_Resting_State_Functio_txt_done",
+      "domain": "engineering"
+     }
+    ]
+   },
+   {
+    "question": "Quali sfide presenta l'identificazione trasito del disturbo depressivo maggiore utilizzando dati rs-fMRI multi-sito?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Multi_Source_Multi_View_Graph_Domain_Adaptation_wi_txt_done",
+      "domain": "artificial_intelligence"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è il Virtual Institute of Astroparticle physics?",
+  "answer": "Il Virtual Institute of Astroparticle Physics (VIA) è un complesso scientifico-educativo multifunzionale che opera come piattaforma online per lo studio della fisica oltre il Modello Standard e della cosmologia [2]. Esso fornisce uno spazio per riunioni virtuali, presentazioni di risultati teorici ed sperimentali, e varie forme di lavoro collaborativo scientifico [2]. Il VIA supporta anche programmi educativi a distanza, combinando videoconferenze con una vasta libreria di registrazioni e discussioni su un forum [2]. Dal 2014, le lezioni online del VIA, combinate con il lavoro individuale sul forum, hanno assunto la forma di Corsi Online Aperti [3]. Sebbene non sia un corso \"Massivo\", il numero di visite al sito lo converte in uno strumento specifico per l'attività MOOC [2]. La piattaforma facilita la comunicazione regolare tra gruppi scientifici e ricercatori di diversi campi e parti del mondo [2]. Essa offre informazioni di prima mano sui risultati scientifici più recenti e supporta programmi educativi a distanza [2]. Inoltre, il VIA aiuta nell'elaborazione di strategie per studi sperimentali e nell'analisi dei dati, oltre a fornire istruzione di alto livello ai giovani ricercatori [2].",
+  "made": 1791504383,
+  "sources": [
+   {
+    "n": 2,
+    "sid": "d398f9a9eaf19f02eaa3efb8c8e69257",
+    "title": "Proceedings to the 25th International Workshop \"What Comes Beyond the Standard Models\", July 4 -- July 10, 2022, Bled, Slovenia",
+    "source": "legacy:arxiv_Proceedings_to_the_25th_International_Workshop_Wha_txt_done",
+    "domain": "physics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 3,
+    "sid": "6b862febbbba0118741a4bb620aa8622",
+    "title": "Proceedings to the 24rd International Workshop \"What Comes Beyond the Standard Models\", July 5 -- July 11, 2021, Bled, Slovenia, [Virtual Workshop -- July 5.--11. 2021]",
+    "source": "legacy:arxiv_Proceedings_to_the_24rd_International_Workshop_Wha_txt_done",
+    "domain": "physics",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Quali sono i riferimenti bibliografici principali per il progetto del Virtual Institute of Astroparticle Physics?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Proceedings_to_the_25th_International_Workshop_Wha_txt_done",
+      "domain": "physics"
+     }
+    ]
+   },
+   {
+    "question": "Come è stato utilizzato il VIA per supportare i corsi di fisica cosmoparticellare per gli studenti di MEPHI?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Proceedings_to_the_25th_International_Workshop_Wha_txt_done",
+      "domain": "physics"
+     }
+    ]
+   },
+   {
+    "question": "Quali statistiche di utilizzo del VIA sono state presentate per il periodo 2008-2022?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Proceedings_to_the_25th_International_Workshop_Wha_txt_done",
+      "domain": "physics"
+     }
+    ]
+   },
+   {
+    "question": "Come è stata dimostrata la semplicità d'uso del VIA durante il XIV Bled Workshop nel 2011?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Proceedings_to_the_25th_International_Workshop_Wha_txt_done",
+      "domain": "physics"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Come si spiega la diffusione della turbolenza tramite interazioni risonanti onda-onda?",
+  "answer": "La diffusione della turbolenza tramite interazioni risonanti onda-onda si spiega attraverso una teoria basata sulla cinetica frazionaria, che deriva le leggi di scala dal Hamiltoniano delle interazioni risonanti [1]. Questo approccio generale si concentra sui fondamenti del processo di diffusione indipendentemente dal tipo specifico di instabilità [1]. Per le interazioni a tre onde, la diffusione è subdiffusiva con una legge di scala $\\Delta x \\propto t^{1/3}$, caratterizzata da voli di Cauchy-Lévy con coda grassa [6]. Per le interazioni a quattro onde, la diffusione è anch'essa subdiffusiva ma con una legge di scala $\\Delta x \\propto t^{1/4}$ e varianza finita [6]. La non ergodicità e la presenza di isole di dinamica regolare introducono memoria e non-Markovianità nella dinamica di diffusione [1]. Inoltre, la diffusione può avvenire attraverso localizzazione esponenziale o algebrica nelle regioni di gap, a seconda del tipo di interazione [1]. In regimi con inversione di popolazione, il processo può evolvere verso una propagazione a valanga [1].",
+  "made": 1791504409,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "aac5d3df4a513ff7fbc4a0c0219203fe",
+    "title": "Turbulence spreading by the resonant wave-wave interactions: A fractional kinetics approach",
+    "source": "legacy:arxiv_Turbulence_spreading_by_the_resonant_wave_wave_int_txt_done",
+    "domain": "nonlinear_science",
+    "origin": "arxiv"
+   },
+   {
+    "n": 6,
+    "sid": "c939cca5e8174fe3bdbb205cd49a1a8b",
+    "title": "Turbulence spreading by the resonant wave-wave interactions: A fractional kinetics approach",
+    "source": "legacy:arxiv_Turbulence_spreading_by_the_resonant_wave_wave_int_txt_done",
+    "domain": "nonlinear_science",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Qual è la condizione di risonanza per le interazioni a tre onde nel sistema dinamico?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Turbulence_spreading_by_the_resonant_wave_wave_int_txt_done",
+      "domain": "nonlinear_science"
+     }
+    ]
+   },
+   {
+    "question": "Come varia il coefficiente di diffusione rispetto al parametro della sezione d'urto nel modello proposto?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Turbulence_spreading_by_the_resonant_wave_wave_int_txt_done",
+      "domain": "nonlinear_science"
+     }
+    ]
+   },
+   {
+    "question": "Qual è la natura della distribuzione delle dimensioni dei passi per le interazioni a tre onde?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Turbulence_spreading_by_the_resonant_wave_wave_int_txt_done",
+      "domain": "nonlinear_science"
+     }
+    ]
+   },
+   {
+    "question": "Quali fenomeni di fusione possono essere caratterizzati combinando l'equazione di trasporto con quelle di temperatura?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Turbulence_spreading_by_the_resonant_wave_wave_int_txt_done",
+      "domain": "nonlinear_science"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è la materia oscura cognitiva?",
+  "answer": "La materia oscura cognitiva (CDM) è definita come l'insieme delle funzioni cerebrali che modellano significativamente il comportamento ma sono difficili da inferire esclusivamente dall'osservazione del comportamento stesso [1]. Questo concetto include domini chiave come la metacognizione, la flessibilità cognitiva, l'apprendimento permanente, il ragionamento abductivo, il ragionamento sociale e del senso comune, nonché l'intelligenza emotiva [1]. La CDM è considerata \"oscura\" perché, sebbene sia abbondante e necessaria per la sopravvivenza umana, è spesso sottorappresentata nei benchmark attuali e nei dati di addestramento delle IA [1]. Le funzioni cariche di CDM sono scarsamente misurate nei benchmark di intelligenza artificiale attuali e mancano dataset neuroscientifici su larga scala per istillare queste capacità [1]. La presenza di questa materia oscura è inferita dal fatto che gli esseri umani possiedono competenze essenziali per sopravvivere e prosperare, anche se tali competenze si sono rivelate difficili da elicitarre e valutare attraverso il comportamento [2]. I dati utilizzati per addestrare i modelli di IA attuali riflettono principalmente il comportamento umano, lasciando inaccessibili le variabili latenti sottostanti come pensieri e sentimenti [2]. L'accesso a questi processi causali sottostanti potrebbe consentire di addestrare modelli più simili agli umani, interpretabili e generalizzabili [2].",
+  "made": 1791504456,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "0b4dcbadbe9f3f19e99912d9d46cab94",
+    "title": "Cognitive Dark Matter: Measuring What AI Misses",
+    "source": "legacy:arxiv_Cognitive_Dark_Matter_Measuring_What_AI_Misses_txt_done",
+    "domain": "biomedicine",
+    "origin": "arxiv"
+   },
+   {
+    "n": 2,
+    "sid": "efcf32fc982f95620e517264b5915ef5",
+    "title": "Cognitive Dark Matter: Measuring What AI Misses",
+    "source": "legacy:arxiv_Cognitive_Dark_Matter_Measuring_What_AI_Misses_txt_done",
+    "domain": "biomedicine",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Quali sono i domini chiave della materia oscura cognitiva identificati nel testo?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Cognitive_Dark_Matter_Measuring_What_AI_Misses_txt_done",
+      "domain": "biomedicine"
+     }
+    ]
+   },
+   {
+    "question": "Perché la materia oscura cognitiva è considerata scarsamente misurata nei benchmark attuali?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Cognitive_Dark_Matter_Measuring_What_AI_Misses_txt_done",
+      "domain": "biomedicine"
+     }
+    ]
+   },
+   {
+    "question": "Quali meccanismi permettono agli umani di mostrare tassi di rischio migliori fino alla noia?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Cognitive_Dark_Matter_Measuring_What_AI_Misses_txt_done",
+      "domain": "biomedicine"
+     }
+    ]
+   },
+   {
+    "question": "Quali approcci classici hanno cercato di replicare la cognizione umana prima della CDM?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Cognitive_Dark_Matter_Measuring_What_AI_Misses_txt_done",
+      "domain": "biomedicine"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è la rilassazione SDP per il recupero delle comunità?",
+  "answer": "La rilassazione SDP (Semidefinite Programming) per il recupero delle comunità è un approccio che ottimizza su matrici che rappresentano l'appartenenza di coppia alle comunità [1]. Quando questa rilassazione è stretta (tight), la sua soluzione ottima unica recupera la matrice delle comunità piantata, permettendo di derivare immediatamente le etichette [1]. In modelli come il blocco stocastico, si considera un regime in cui il numero di comunità cresce logaritmicamente rispetto al numero di vertici [1]. In tali contesti, la rilassazione può fallire nel essere stretta sopra la soglia di recupero esatto teorica se il rapporto logaritmico è sufficientemente grande [3]. Tuttavia, anche quando la strettezza fallisce, l'errore normalizzato della matrice di ogni soluzione quasi ottima può ancora svanire [1]. Questo permette di raggiungere un recupero esatto delle comunità sopra la soglia informativa tramite una singola risoluzione SDP seguita da arrotondamento esplicito e raffinamento [1].",
+  "made": 1791504483,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "301025be873f73ea1279e23bdb933bf3",
+    "title": "Tightness and Error Exponents of SDP with Logarithmically Many Communities",
+    "source": "doc:806af8433f1d1ed6dddf601658337459",
+    "domain": "information_theory",
+    "origin": "arxiv:2610.09303",
+    "url": "https://arxiv.org/abs/2610.09303",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   },
+   {
+    "n": 3,
+    "sid": "a9883fe34212b34636b1f7b531c53c12",
+    "title": "Tightness and Error Exponents of SDP with Logarithmically Many Communities",
+    "source": "doc:806af8433f1d1ed6dddf601658337459",
+    "domain": "information_theory",
+    "origin": "arxiv:2610.09303",
+    "url": "https://arxiv.org/abs/2610.09303",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Qual è il ruolo del rapporto logaritmico gamma nella perdita di strettezza della rilassazione SDP?",
+    "focus": [
+     {
+      "source": "doc:806af8433f1d1ed6dddf601658337459",
+      "domain": "information_theory"
+     }
+    ]
+   },
+   {
+    "question": "Come viene definito il margine di grado di un vertice rispetto a una comunità competitiva?",
+    "focus": [
+     {
+      "source": "doc:806af8433f1d1ed6dddf601658337459",
+      "domain": "information_theory"
+     }
+    ]
+   },
+   {
+    "question": "Qual è la condizione sufficiente per la strettezza dell'SDP in termini di tasso di coda I(tau)?",
+    "focus": [
+     {
+      "source": "doc:806af8433f1d1ed6dddf601658337459",
+      "domain": "information_theory"
+     }
+    ]
+   },
+   {
+    "question": "Quali esperimenti a campione finito non vengono riportati nello studio?",
+    "focus": [
+     {
+      "source": "doc:806af8433f1d1ed6dddf601658337459",
+      "domain": "information_theory"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è il trasferimento sim-to-real nella robotica?",
+  "answer": "Il trasferimento sim-to-real nella robotica è il processo di adattamento di politiche o protocolli appresi in un ambiente simulato per funzionare in un ambiente fisico reale [1]. Questo trasferimento mira a colmare il divario tra la simulazione e la realtà, spesso affrontando sfide come la traduzione di segnali e vincoli fisici diversi [1]. Esistono diverse strategie per raggiungere questo obiettivo, tra cui la randomizzazione del dominio, che rende i modelli più generalizzabili variando i parametri di addestramento [2]. Un'altra approccio è l'adattamento del dominio, che utilizza modelli generativi per apprendere spazi latenti comuni tra simulazione e realtà [6]. Alcuni metodi si basano su modelli pre-addestrati su grandi dataset reali per ottenere capacità di generalizzazione zero-shot [5]. Tuttavia, il trasferimento diretto senza riaddestramento può risultare parziale o asimmetrico a causa delle differenze fisiche tra i due ambienti [1]. La scelta del metodo dipende spesso dai vincoli computazionali e dalla necessità di adattamento fine [5]. In sintesi, il sim-to-real è cruciale per deployare robot in scenari reali partendo da addestramenti simulati [2].",
+  "made": 1791504499,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "db3d54026c07d67b194741e861925619",
+    "title": "Behavioral Persistence and Incomplete Functional Transfer of Co-evolved Communication in Evolutionary Robotics",
+    "source": "doc:b99910ff252da7c47195294a1fad5cf1",
+    "domain": "artificial_intelligence",
+    "origin": "arxiv:2609.38527",
+    "url": "https://arxiv.org/abs/2609.38527",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   },
+   {
+    "n": 2,
+    "sid": "31345eac193b27a7831b7a2be9106fe5",
+    "title": "Dual Variational Autoencoders for Efficient Sim-to-Real Transfer in Low-Cost Robotic Navigation",
+    "source": "doc:d0201e78cc462ad338d95559a23a399b",
+    "domain": "robotics",
+    "origin": "arxiv:2610.06327",
+    "url": "https://arxiv.org/abs/2610.06327",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   },
+   {
+    "n": 5,
+    "sid": "8133b63efc8ada04ad61e89415e3ed78",
+    "title": "Dual Variational Autoencoders for Efficient Sim-to-Real Transfer in Low-Cost Robotic Navigation",
+    "source": "doc:d0201e78cc462ad338d95559a23a399b",
+    "domain": "robotics",
+    "origin": "arxiv:2610.06327",
+    "url": "https://arxiv.org/abs/2610.06327",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   },
+   {
+    "n": 6,
+    "sid": "b6879c4a6af57a7a2416782903fdece3",
+    "title": "Dual Variational Autoencoders for Efficient Sim-to-Real Transfer in Low-Cost Robotic Navigation",
+    "source": "doc:d0201e78cc462ad338d95559a23a399b",
+    "domain": "robotics",
+    "origin": "arxiv:2610.06327",
+    "url": "https://arxiv.org/abs/2610.06327",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   }
+  ],
+  "follow": []
+ },
+ {
+  "question": "Cos'è Manim?",
+  "answer": "Manim è un motore di animazione per la creazione precisa di animazioni programmatiche, progettato specificamente per realizzare video esplicativi di matematica [1]. Esistono due versioni principali: la ManimGL, creata originariamente da Grant Sanderson (3Blue1Brown) per i suoi video, e la Manim Community, un fork del 2020 sviluppato da un gruppo di programmatori per essere più stabile e facile da usare [1]. La versione ManimGL richiede l'installazione tramite il pacchetto `manimgl` su Python 3.10 o superiore [1]. Per funzionare, il software dipende da FFmpeg, OpenGL e, opzionalmente, da LaTeX [1]. La Manim Community è considerata l'ecosistema più attivo per i contributi della comunità, con test e integrazione continua [3]. Il progetto è rilasciato sotto licenza MIT [3].",
+  "made": 1791504512,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "ea03a7b445fcd97bc7c0fbbe4f6fc259",
+    "title": "3b1b/manim: Animation engine for explanatory math videos",
+    "source": "doc:06758f48587e066b4c8dc201f23f898b",
+    "domain": "programming",
+    "origin": "github:3b1b/manim",
+    "url": "https://github.com/3b1b/manim",
+    "licence": "MIT"
+   },
+   {
+    "n": 3,
+    "sid": "88f438d11c3e03a48cb5f2e15205d503",
+    "title": "3b1b/manim: Animation engine for explanatory math videos",
+    "source": "doc:06758f48587e066b4c8dc201f23f898b",
+    "domain": "programming",
+    "origin": "github:3b1b/manim",
+    "url": "https://github.com/3b1b/manim",
+    "licence": "MIT"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Quali sono i passaggi per installare Manim su Windows?",
+    "focus": [
+     {
+      "source": "doc:06758f48587e066b4c8dc201f23f898b",
+      "domain": "programming"
+     }
+    ]
+   },
+   {
+    "question": "Come si installa Manim su Mac OSX tramite Homebrew?",
+    "focus": [
+     {
+      "source": "doc:06758f48587e066b4c8dc201f23f898b",
+      "domain": "programming"
+     }
+    ]
+   },
+   {
+    "question": "Quali pacchetti Python sono necessari per installare Manim?",
+    "focus": [
+     {
+      "source": "doc:06758f48587e066b4c8dc201f23f898b",
+      "domain": "programming"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è la rianalisi criosferica informata sul clima?",
+  "answer": "La rianalisi criosferica informata sul clima è un nuovo approccio basato sull'assimilazione di dati bayesiana gerarchica che utilizza il \"partial pooling\" (pooling parziale) [1]. Questo metodo inferisce congiuntamente la traiettoria storica delle variabili di stato, i parametri annuali e gli iperparametri climatologici locali [1]. A differenza delle rianalisi esistenti che trattano ogni anno idrologico in modo indipendente, questo approccio condivide informazioni tra gli anni [1]. In questo modo, i parametri di un anno specifico sono influenzati sia dai dati locali che dall'intera climatologia inferita [4]. La tecnica permette di adattarsi alle peculiarità degli anni osservati, recuperando una climatologia ben calibrata negli anni privi di osservazioni [2]. Questo processo è noto come \"shrinkage\" e aiuta a gestire dati sparsi o rumorosi [4]. L'approccio supera le metodologie annuali indipendenti e la calibrazione con parametri statici in termini di accuratezza [1]. Viene definito \"informato sul clima\" perché inferisce una climatologia di riferimento invece di assumere parametri fissi a priori [2].",
+  "made": 1791504532,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "07eb3207ddd03bd2ef046e032e855c4f",
+    "title": "Climate-informed cryospheric reanalysis via hierarchical Bayesian data assimilation",
+    "source": "doc:bc4afc2b038e70c00c4c1e654ae74568",
+    "domain": "earth_science",
+    "origin": "arxiv:2609.36077",
+    "url": "https://arxiv.org/abs/2609.36077",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   },
+   {
+    "n": 2,
+    "sid": "48fb061799e212520192741e5ba1430b",
+    "title": "Climate-informed cryospheric reanalysis via hierarchical Bayesian data assimilation",
+    "source": "doc:bc4afc2b038e70c00c4c1e654ae74568",
+    "domain": "earth_science",
+    "origin": "arxiv:2609.36077",
+    "url": "https://arxiv.org/abs/2609.36077",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   },
+   {
+    "n": 4,
+    "sid": "b1294f16883b5d1e3582834edc549d6f",
+    "title": "Climate-informed cryospheric reanalysis via hierarchical Bayesian data assimilation",
+    "source": "doc:bc4afc2b038e70c00c4c1e654ae74568",
+    "domain": "earth_science",
+    "origin": "arxiv:2609.36077",
+    "url": "https://arxiv.org/abs/2609.36077",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Quali sono le sfide rimanenti dell'approccio di pooling parziale rispetto alle baseline non gerarchiche?",
+    "focus": [
+     {
+      "source": "doc:bc4afc2b038e70c00c4c1e654ae74568",
+      "domain": "earth_science"
+     }
+    ]
+   },
+   {
+    "question": "Come si potrebbe rilassare l'assunzione di iperparametri statici nel modello gerarchico?",
+    "focus": [
+     {
+      "source": "doc:bc4afc2b038e70c00c4c1e654ae74568",
+      "domain": "earth_science"
+     }
+    ]
+   },
+   {
+    "question": "Quali metriche vengono utilizzate per valutare le prestazioni delle diverse rianalisi criosferiche?",
+    "focus": [
+     {
+      "source": "doc:bc4afc2b038e70c00c4c1e654ae74568",
+      "domain": "earth_science"
+     }
+    ]
+   },
+   {
+    "question": "Quali dati sono stati assimilati per dimostrare i meriti del pooling parziale?",
+    "focus": [
+     {
+      "source": "doc:bc4afc2b038e70c00c4c1e654ae74568",
+      "domain": "earth_science"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è il computing al bordo abilitato da fotovoltaica interna e ferroelettrici?",
+  "answer": "Il computing al bordo abilitato da fotovoltaica interna e ferroelettrici è una soluzione che permette di eseguire calcoli di intelligenza artificiale localmente, su una rete di nodi autonomi, anziché in data center centralizzati [1]. Questa architettura mira a superare i limiti infrastrutturali e a migliorare la sostenibilità riducendo il consumo di energia e acqua [1]. La tecnologia combina celle fotovoltaiche interne (IPV) per raccogliere energia dalla luce ambientale e memorie ferroelettriche per il calcolo in memoria [2]. L'uso di materiali ferroelettrici per il calcolo in memoria (IMC) riduce drasticamente i costi energetici associati all'accesso alla memoria [2]. Questo approccio supera il collo di bottiglia di von Neumann, co-localizzando memoria e logica [3]. Le IPV moderne, come quelle a base di perovskite o organiche, possono fornire la potenza necessaria (0,1–1 mW) per alimentare questi sistemi in ambienti interni [2]. L'efficienza computazionale è aumentata passando dalle GPU convenzionali alle architetture IMC, raggiungendo prestazioni elevate con consumi minimi [2]. L'obiettivo è abilitare funzionalità avanzate di AI in modo sostenibile, senza richiedere frequenti sostituzioni di batterie [3].",
+  "made": 1791504554,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "1ddbb03cdacf3c0d31649b3266974601",
+    "title": "Computing at the Edge Enabled by Indoor Photovoltaics and Ferroelectrics",
+    "source": "doc:0f99683fbeabb0d77de502c4014a0b62",
+    "domain": "materials",
+    "origin": "arxiv:2610.05133",
+    "url": "https://arxiv.org/abs/2610.05133",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   },
+   {
+    "n": 2,
+    "sid": "9df906b5af7d7bcd60656c3d3379093f",
+    "title": "Computing at the Edge Enabled by Indoor Photovoltaics and Ferroelectrics",
+    "source": "doc:0f99683fbeabb0d77de502c4014a0b62",
+    "domain": "materials",
+    "origin": "arxiv:2610.05133",
+    "url": "https://arxiv.org/abs/2610.05133",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   },
+   {
+    "n": 3,
+    "sid": "02601c8e7742c5d7a6bdf3921ca4c381",
+    "title": "Computing at the Edge Enabled by Indoor Photovoltaics and Ferroelectrics",
+    "source": "doc:0f99683fbeabb0d77de502c4014a0b62",
+    "domain": "materials",
+    "origin": "arxiv:2610.05133",
+    "url": "https://arxiv.org/abs/2610.05133",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Quali sono le sfide pratiche e di sostenibilità legate alla proliferazione di nodi edge?",
+    "focus": [
+     {
+      "source": "doc:0f99683fbeabb0d77de502c4014a0b62",
+      "domain": "materials"
+     }
+    ]
+   },
+   {
+    "question": "Quali materiali ferroelettrici offrono vantaggi rispetto ai polimeri per lo stoccio energetico?",
+    "focus": [
+     {
+      "source": "doc:0f99683fbeabb0d77de502c4014a0b62",
+      "domain": "materials"
+     }
+    ]
+   },
+   {
+    "question": "Come influisce l'assenza di comunicazione costante sui consumi energetici del computing edge?",
+    "focus": [
+     {
+      "source": "doc:0f99683fbeabb0d77de502c4014a0b62",
+      "domain": "materials"
+     }
+    ]
+   },
+   {
+    "question": "Qual è la potenza minima di uscita richiesta per le applicazioni commerciali di computing edge?",
+    "focus": [
+     {
+      "source": "doc:0f99683fbeabb0d77de502c4014a0b62",
+      "domain": "materials"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è la quantizzazione affine?",
+  "answer": "La quantizzazione affine è una procedura parallela alla quantizzazione canonica, introdotta per risolvere problemi specifici che i metodi convenzionali non riescono a gestire [1]. A differenza dell'approccio canonico, che promuove le variabili classiche $p$ e $q$ in operatori, la quantizzazione affine utilizza variabili diverse, come la dilatazione $d = pq$ e la posizione $q$, promuovendole in operatori quantistici [1]. Questa scelta è particolarmente utile quando le variabili di configurazione sono vincolate, ad esempio a valori positivi ($q > 0$), poiché preserva automaticamente tale positività [3]. Mentre la quantizzazione canonica richiede che le variabili coprano l'intera retta reale, la quantizzazione affine permette di limitare le variabili, eliminando difficoltà tipiche come la non autoaggiuntezza degli operatori in certi contesti [5]. Questo metodo ha dimostrato di fornire risultati validi per sistemi come l'oscillatore armonico a mezzo spazio, dove la quantizzazione canonica fallisce producendo soluzioni multiple e non accettabili [2]. Inoltre, la quantizzazione affine è stata applicata con successo a campi scalari non rinormalizzabili e alla gravità quantistica, offrendo descrizioni consistenti dove l'approccio standard non è sufficiente [4]. In sintesi, si tratta di una riformulazione basata sulla scelta appropriata delle variabili classiche da promuovere a operatori, garantendo procedure fisicamente corrette [4].",
+  "made": 1791504573,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "a13e43c9bcfc1ce600e90826a63bac7b",
+    "title": "Solving Major Problems Using Vector Affine Quantization",
+    "source": "legacy:arxiv_Solving_Major_Problems_Using_Vector_Affine_Quantiz_txt_done",
+    "domain": "physics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 2,
+    "sid": "51aeee54c9821c8f2a4d74ed8891c9d7",
+    "title": "The Magnificent Realm of Affine Quantization: valid results for particles, fields, and gravity",
+    "source": "legacy:arxiv_The_Magnificent_Realm_of_Affine_Quantization_valid_txt_done",
+    "domain": "physics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 3,
+    "sid": "dd1d36da8192e326ef987c31d2bd6a2e",
+    "title": "Affine quantization of the dynamical Reissner--Nordström region",
+    "source": "legacy:arxiv_Affine_quantization_of_the_dynamical_Reissner_Nord_txt_done",
+    "domain": "relativity",
+    "origin": "arxiv"
+   },
+   {
+    "n": 4,
+    "sid": "10af17f67266a37bcf0796044793387b",
+    "title": "Using Coherent States to Make Physically Correct Classical-to-Quantum Procedures that Help Resolve Nonrenomalizable Fields Including Einstein's Gravity",
+    "source": "legacy:arxiv_Using_Coherent_States_to_Make_Physically_Correct_C_txt_done",
+    "domain": "physics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 5,
+    "sid": "57a9986c38323711c6cea43704ab2a0e",
+    "title": "The Benefits of Affine Quantization",
+    "source": "legacy:arxiv_The_Benefits_of_Affine_Quantization_txt_done",
+    "domain": "physics",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Come viene costruita la quantizzazione affine vettoriale per introdurre nuovi gradi di libertà?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Solving_Major_Problems_Using_Vector_Affine_Quantiz_txt_done",
+      "domain": "physics"
+     }
+    ]
+   },
+   {
+    "question": "Qual è il risultato non libero ottenuto dalla quantizzazione affine per il modello φ⁴₄?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Quantum_Field_Theory_Deserves_Extra_Help_txt_done",
+      "domain": "physics"
+     }
+    ]
+   },
+   {
+    "question": "Quali correzioni di ordine ℏ² introducono gli stati coerenti affini nella rappresentazione semi-classica?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Affine_quantization_of_the_dynamical_Reissner_Nord_txt_done",
+      "domain": "relativity"
+     }
+    ]
+   },
+   {
+    "question": "Come modifica la quantizzazione affine il comportamento della funzione d'onda a piccolo raggio nella geometria di Reissner-Nordström?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Affine_quantization_of_the_dynamical_Reissner_Nord_txt_done",
+      "domain": "relativity"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è il sistema del Congresso di Vienna?",
+  "answer": "Il sistema del Congresso di Vienna non era una sessione plenaria formale, ma un quadro organizzativo diplomatico creato per facilitare la discussione tra tutte le parti interessate [1]. Fu sviluppato dal ministro degli esteri austriaco Klemens von Metternich e rappresentò la prima volta in cui rappresentanti nazionali si riunirono nella stessa città per formulare trattati [1]. Le decisioni principali furono prese attraverso trattative a porte chiuse tra le cinque Grandi Potenze: Austria, Gran Bretagna, Russia, Prussia e Francia [1]. Questo approccio mirava a mantenere i confini politici, l'equilibrio delle potenze e a rispettare le sfere di influenza [1]. Il sistema diede vita al Concerto d'Europa, una dottrina che guidò la politica estera europea fino allo scoppio della Prima Guerra Mondiale [1]. I lavori diplomatici si basavano su sessioni deliberative informali e faccia a faccia per raggiungere un consenso amichevole [1]. Le potenze minori ebbero poche opportunità di far valere i propri interessi, partecipando raramente alle riunioni tra le grandi potenze [1]. Tuttavia, la presenza di tutti i rappresentanti nella stessa città facilitò la comunicazione e la creazione di reti diplomatiche [1].",
+  "made": 1791504590,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "d3ebee4c873847c743e76b0db2365f03",
+    "title": "Congress of Vienna",
+    "source": "doc:5bdb04646b1cfa0063fcea175ef595a0",
+    "domain": "history",
+    "origin": "wikipedia:Congress of Vienna",
+    "url": "https://en.wikipedia.org/wiki/Congress_of_Vienna",
+    "licence": "CC BY-SA 4.0 (Wikipedia contributors)"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Quali furono le principali critiche storiche rivolte al Congresso di Vienna?",
+    "focus": [
+     {
+      "source": "doc:5bdb04646b1cfa0063fcea175ef595a0",
+      "domain": "history"
+     }
+    ]
+   },
+   {
+    "question": "Quali erano i principi fondamentali dell'equilibrio e della legittimità?",
+    "focus": [
+     {
+      "source": "doc:2f9de1c5d37c25c0579b042c18efc097",
+      "domain": "history"
+     }
+    ]
+   },
+   {
+    "question": "Quali furono le conseguenze del Congresso per la Polonia nel XIX secolo?",
+    "focus": [
+     {
+      "source": "doc:4648332d04a16b3edd3f0ce32937a8c2",
+      "domain": "history"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è un processo ondelet localmente stazionario?",
+  "answer": "Un processo ondelet localmente stazionario (LSW) è un modello per serie temporali non stazionarie le cui proprietà statistiche cambiano dolcemente nel tempo, permettendo di approssimarle localmente come processi stazionari [1]. Questo framework, introdotto da Nason et al. (2000) per serie univariate, utilizza le ondelette per estrarre caratteristiche localizzate simultaneamente nel tempo e nella frequenza [1]. La struttura di secondo ordine del processo è caratterizzata da uno spettro ondelet evolutivo che varia nel tempo e nella scala [2]. Per le serie multivariate, il framework MvLSW generalizza questo approccio modellando le dipendenze lineari localizzate tra più segnali non stazionari [2]. In questo contesto, la matrice spettrale ondelet locale cattura la struttura di dipendenza che evolve nel tempo ma rimane dipendente dalla scala [3]. A differenza dei modelli classici nel dominio di Fourier, le ondelette permettono di analizzare le proprietà locali delle serie temporali in modo più efficace [1]. Il modello LSW è quindi fondamentale per analizzare sistemi dinamici con proprietà spettrali variabili nel tempo [1].",
+  "made": 1791504611,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "688e886311bac38e8df38943eeb44990",
+    "title": "Multiscale Dynamic Dependence Estimation over Networks",
+    "source": "legacy:arxiv_Multiscale_Dynamic_Dependence_Estimation_over_Netw_txt_done",
+    "domain": "statistics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 2,
+    "sid": "bed476799ffdfe73801ee0403f7a24f5",
+    "title": "Multiscale Dynamic Dependence Estimation over Networks",
+    "source": "legacy:arxiv_Multiscale_Dynamic_Dependence_Estimation_over_Netw_txt_done",
+    "domain": "statistics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 3,
+    "sid": "36cec934f26ebe54f8d51cc3501187d2",
+    "title": "Partial Wavelet Canonical Coherence for Nonstationary Signals with High Dimensional Confounders",
+    "source": "legacy:arxiv_Partial_Wavelet_Canonical_Coherence_for_Nonstation_txt_done",
+    "domain": "statistics",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Come si differenzia il framework MvLSW da quello bivariate di Sanderson et al. (2010)?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Multiscale_Dynamic_Dependence_Estimation_over_Netw_txt_done",
+      "domain": "statistics"
+     }
+    ]
+   },
+   {
+    "question": "Qual è il principale vantaggio del modello Net-LSW rispetto ai framework tradizionali non vincolati?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Multiscale_Dynamic_Dependence_Estimation_over_Netw_txt_done",
+      "domain": "statistics"
+     }
+    ]
+   },
+   {
+    "question": "Chi ha introdotto il framework per la coerenza variabile nel tempo tra due collezioni di serie temporali?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Partial_Wavelet_Canonical_Coherence_for_Nonstation_txt_done",
+      "domain": "statistics"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è il Locational Marginal Pricing?",
+  "answer": "Il Locational Marginal Pricing (LMP) è il prezzo unitario dell'elettricità in un nodo specifico della rete elettrica [2]. Questo prezzo differisce tra i vari nodi principalmente a causa dei limiti di capacità delle linee di trasmissione [2]. In un mercato deregolamentato, l'Operatore Indipendente di Sistema (ISO) imposta i prezzi in base all'offerta e alla domanda [2]. Il LMP è composto dal costo marginale dell'energia, dal costo marginale di congestione e dal costo marginale delle perdite [5]. L'introduzione di questo sistema mira a creare un mercato più libero ed efficiente [1]. Esso riduce le perdite di trasmissione e incentiva gli investimenti nelle infrastrutture locali [1]. Inoltre, il LMP è utilizzato nei mercati all'ingrosso per bilanciare domanda e offerta in tempo reale [2].",
+  "made": 1791504628,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "0ecc321fd3678513a123b48031b63dc9",
+    "title": "Locational Marginal Pricing: Towards a Free Market in Power",
+    "source": "legacy:arxiv_Locational_Marginal_Pricing_Towards_a_Free_Market_txt_done",
+    "domain": "economics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 2,
+    "sid": "3e5410bc8acfdded2ac1e8385a1348ae",
+    "title": "Electricity Virtual Bidding Strategy Via Entropy-Regularized Stochastic Control Method",
+    "source": "legacy:arxiv_Electricity_Virtual_Bidding_Strategy_Via_Entropy_R_txt_done",
+    "domain": "economics",
+    "origin": "arxiv"
+   },
+   {
+    "n": 5,
+    "sid": "12fb84be666f459634dfebd09cd5f458",
+    "title": "Role of Variable Renewable Energy Penetration on Electricity Price and its Volatility Across Independent System Operators in the United States",
+    "source": "legacy:arxiv_Role_of_Variable_Renewable_Energy_Penetration_on_E_txt_done",
+    "domain": "economics",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Come viene modellata la differenza di prezzo tra mercato day-ahead e real-time nello studio di Fang?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Electricity_Virtual_Bidding_Strategy_Via_Entropy_R_txt_done",
+      "domain": "economics"
+     }
+    ]
+   },
+   {
+    "question": "Qual è l'impatto della concentrazione locale delle batterie domestiche sui prezzi all'ingrosso?",
+    "focus": [
+     {
+      "source": "doc:af1a30b495adac462fc15705d8324797",
+      "domain": "economics"
+     }
+    ]
+   },
+   {
+    "question": "Quali dati specifici raccoglievano gli ISO per analizzare il ruolo delle energie rinnovabili variabili?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Role_of_Variable_Renewable_Energy_Penetration_on_E_txt_done",
+      "domain": "economics"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Perché scenari evolutivi diversi producono distribuzioni identiche di stati?",
+  "answer": "Secondo i testi, scenari evolutivi diversi possono produrre distribuzioni identiche di stati a causa delle regole matematiche che governano i processi. Nello specifico, i modelli di speciazione-ed estinzione dipendenti dallo stato (SSE) mostrano che più scenari possono generare le stesse distribuzioni stazionarie delle frequenze degli stati [1]. Questo avviene perché le relazioni funzionali tra i parametri di tasso definiscono regole che mappano scenari diversi su risultati osservativi simili [1]. Inoltre, la preferenza per certi scenari nei dati empirici è influenzata da bias legati al tempo trascorso e alla struttura degli alberi filogenetici [1]. In altri contesti, come nei modelli di evoluzione basati su esperimenti, meccanismi paralleli possono far evolvere distribuzioni distinte secondo regole matematiche identiche [2]. Tuttavia, la ragione principale per cui scenari diversi producono distribuzioni identiche nei modelli SSE è la loro capacità di generare la stessa distribuzione stazionaria a lungo termine [1].",
+  "made": 1791504648,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "08f6491bf6c980a748ceec84c8f22ef4",
+    "title": "On the mapping between evolutionary scenarios and governing rules in state-dependent speciation-extinction models",
+    "source": "doc:08f6491bf6c980a748ceec84c8f22ef4",
+    "domain": "genomics",
+    "origin": "biorxiv:10.64898/2026.09.24.754193",
+    "url": "https://doi.org/10.64898/2026.09.24.754193",
+    "licence": "cc_by"
+   },
+   {
+    "n": 2,
+    "sid": "460b28251fc5ca53819b63c0acb5351e",
+    "title": "On Evolution-Based Models for Experimentation Under Interference",
+    "source": "legacy:arxiv_On_Evolution_Based_Models_for_Experimentation_Unde_txt_done",
+    "domain": "statistics",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Quali sono le regole funzionali tra i parametri di tasso che mappano scenari diversi su risultati simili?",
+    "focus": [
+     {
+      "source": "doc:08f6491bf6c980a748ceec84c8f22ef4",
+      "domain": "genomics"
+     }
+    ]
+   },
+   {
+    "question": "Come influenzano il tempo trascorso e la struttura degli alberi filogenetici la preferenza per certi scenari?",
+    "focus": [
+     {
+      "source": "doc:08f6491bf6c980a748ceec84c8f22ef4",
+      "domain": "genomics"
+     }
+    ]
+   },
+   {
+    "question": "In che modo i modelli ESE caratterizzano i pattern di evoluzione parallela tra scenari di trattamento?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_On_Evolution_Based_Models_for_Experimentation_Unde_txt_done",
+      "domain": "statistics"
+     }
+    ]
+   },
+   {
+    "question": "Quali sono le implicazioni della distribuzione identica delle variabili casuali nella teoria della misurazione?",
+    "focus": [
+     {
+      "source": "doc:45fa86958430cd3b51155d1760827761",
+      "domain": "physics"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è il watermarking radioattivo per i modelli generativi di proteine?",
+  "answer": "Il watermarking radioattivo è un framework di protezione per i modelli generativi di proteine (PGM) in cui il marchio digitale si trasferisce automaticamente agli output di eventuali modelli pirata addestrati sui dati protetti [1]. Questo meccanismo crea una \"radioattività\" che permette di identificare i modelli rubati e convalidare la proprietà intellettuale, contrastando gli attacchi di estrazione del modello [2]. A differenza dei metodi tradizionali che applicano il marchio a una struttura statica, MARCO interviene durante la diffusione inversa, modificando la distribuzione di output del modello originale [4]. Di conseguenza, un modello derivato addestrato su questi campioni apprende la distribuzione distorta e eredita il segnale di watermarking [4]. Questa caratteristica garantisce una catena di custodia persistente e tracciabile per la proprietà intellettuale e la sicurezza biologica [2]. Il framework è progettato per essere compatibile con i PGM esistenti senza richiedere la modifica dei loro pesi pre-addestrati [7]. In questo modo, si bilanciano la fedeltà biologica della struttura e la robustezza del marchio contro manipolazioni o attacchi [2].",
+  "made": 1791504665,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "be747a43502dc345deebccde7ab85037",
+    "title": "MARCO: The Radioactive Watermark for Protein Generative Models",
+    "source": "doc:5e01d81a9b9b79192f1795f3c46a6c48",
+    "domain": "cyber_security",
+    "origin": "arxiv:2610.08316",
+    "url": "https://arxiv.org/abs/2610.08316",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   },
+   {
+    "n": 2,
+    "sid": "9ed2813f5eff04cf220a90bb016873b6",
+    "title": "MARCO: The Radioactive Watermark for Protein Generative Models",
+    "source": "doc:5e01d81a9b9b79192f1795f3c46a6c48",
+    "domain": "cyber_security",
+    "origin": "arxiv:2610.08316",
+    "url": "https://arxiv.org/abs/2610.08316",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   },
+   {
+    "n": 4,
+    "sid": "ec4ad3f96dab603509969902425c90d2",
+    "title": "MARCO: The Radioactive Watermark for Protein Generative Models",
+    "source": "doc:5e01d81a9b9b79192f1795f3c46a6c48",
+    "domain": "cyber_security",
+    "origin": "arxiv:2610.08316",
+    "url": "https://arxiv.org/abs/2610.08316",
+    "licence": "per paper (arXiv licence or Creative Commons; see the abstract page)"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Quali sono i due principali rischi che FoldMark mira a mitigare nei modelli generativi di proteine?",
+    "focus": [
+     {
+      "source": "doc:cfe6f0e0a21f570bcd6ec9024eb28cb2",
+      "domain": "genomics"
+     }
+    ]
+   },
+   {
+    "question": "Come viene addestrato il modello FoldMark per generare strutture con watermark ad alta fedeltà?",
+    "focus": [
+     {
+      "source": "doc:cfe6f0e0a21f570bcd6ec9024eb28cb2",
+      "domain": "genomics"
+     }
+    ]
+   },
+   {
+    "question": "Quali sono le due fasi principali del processo di watermarking proposto da FoldMark?",
+    "focus": [
+     {
+      "source": "doc:cfe6f0e0a21f570bcd6ec9024eb28cb2",
+      "domain": "genomics"
+     }
+    ]
+   }
+  ]
  }
 ]

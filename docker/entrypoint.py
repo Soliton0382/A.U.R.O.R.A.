@@ -39,7 +39,7 @@ ELSEWHERE = {Path("/etc/aurora"): "keys", Path("/root/.local/share/caddy"): "cad
 ALWAYS = ("AURORA_HTTPS_PORT", "AURORA_HTTP_PORT", "AURORA_DOMAIN")      # the aliases: first start, then the 🔒 page
 # never from the environment: the container's own layout
 # the services run as root inside the container (its only user: Caddy's authority lives in its home, /root)
-FIXED = {"AURORA_ROOT": str(ROOT), "AURORA_LLM_BACKEND": "cloud", "AURORA_TTS": "0", "AURORA_IMAGE_ENABLED": "0",
+FIXED = {"AURORA_ROOT": str(ROOT), "AURORA_LLM_BACKEND": "cloud",
          "AURORA_SERVICE_USER": "root", "AURORA_UPDATE_MODE": "off",      # updates come with the image (no git here)
          "AURORA_CADDY_BIN": "/usr/bin/caddy", "AURORA_PDFTOTEXT_BIN": "/usr/bin/pdftotext"}
 UNITS = {
@@ -104,7 +104,8 @@ def settings() -> None:
     if first:
         say("first start: settings from docker/.env")
         prof = json.loads(run(PY, str(SCRIPT / "sys_profile.py"), "--json", "--cloud").stdout)["env"]
-        values = {**prof, **FIXED}
+        # no local voice or painting in the image: off at first, a cloud provider in the Models page switches them on
+        values = {**prof, "AURORA_TTS": "0", "AURORA_IMAGE_ENABLED": "0", **FIXED}
         for k, v in os.environ.items():
             if k in keys and k not in FIXED and v != "":
                 if keys[k].get("secret"):

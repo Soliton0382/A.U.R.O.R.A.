@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 A.U.R.O.R.A. Project
 // Next to Aurora's name: a health dot (green / yellow / red, the reasons on hover, click → Status),
-// a pulsing bell when something waits for the owner (click → Repairs), the notifications state of this
+// a pulsing alert for each place where something waits for the owner — its own icon, a click opens that place: a post
+// the Social page, an update Updates (owner, 2026-10-09) —, the notifications state of this
 // device (click → Notifications), and the toasts of the events the owner chose for the WebUI.
 import { call, stream } from "../api.js";
 import { el, useCss } from "../dom.js";
@@ -18,8 +19,7 @@ export default {
     useCss("/static/css/alerts.css");
     const dot = el("button", "health-dot unknown");
     dot.type = "button";
-    const bell = el("button", "bell hidden");
-    bell.type = "button";
+    const bells = el("span", "bells");                              // one per page where a decision waits
     const shield = el("button", "bell shield hidden");
     shield.type = "button";
     const notif = el("button", "notif-toggle");
@@ -28,7 +28,7 @@ export default {
     face.type = "button";
     (document.getElementById("slot-health") || root).append(dot, face);    // the state beside the name
     this.mood(face, ctx);
-    root.append(bell, shield, notif);                                // the rest under it
+    root.append(bells, shield, notif);                               // the rest under it
     notif.addEventListener("click", () => ctx.show("notifications"));
     this.showPush = async () => {
       const st = await pushState();
@@ -43,7 +43,6 @@ export default {
     this.toasts(ctx);
     shield.addEventListener("click", () => ctx.show("security"));
     dot.addEventListener("click", () => ctx.show("status"));
-    bell.addEventListener("click", () => ctx.show("approvals"));
 
     const tick = async () => {
       try {
@@ -53,9 +52,22 @@ export default {
         dot.setAttribute("aria-label", dot.title);
       } catch { dot.className = "health-dot unknown"; dot.title = t("alerts.unknown"); }
       try {
-        const n = (await call("/v1/aurora/approvals?status=pending")).length;
-        bell.classList.toggle("hidden", n === 0);
-        bell.textContent = `🛎️ ${t("alerts.pending", { n })}`;
+        const waiting = await call("/v1/aurora/approvals?status=pending");
+        const places = new Map();                        // view -> {icon, n, title}: the server says where each is decided
+        for (const a of waiting) {
+          const p = places.get(a.view) || { icon: a.icon, n: 0, titles: [] };
+          p.n += 1;
+          p.titles.push(a.title);
+          places.set(a.view, p);
+        }
+        bells.replaceChildren(...[...places].map(([view, p]) => {
+          const b = el("button", "bell", `${p.icon} ${p.n}`);
+          b.type = "button";
+          b.title = `${t("alerts.pending", { n: p.n })}: ${t(`nav.${view}`)}\n• ${p.titles.slice(0, 5).join("\n• ")}`;
+          b.setAttribute("aria-label", b.title);
+          b.addEventListener("click", () => ctx.show(view));
+          return b;
+        }));
       } catch { /* logged out */ }
       try {
         const open = await call("/v1/aurora/incidents?status=open");

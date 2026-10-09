@@ -9,6 +9,11 @@ really does that task, with its key in the settings:
   edit   OpenAI gpt-image-1 · Google gemini-2.5-flash-image
   video  Google veo-3.1-fast-generate-preview (a long-running job, polled; on a 404 the key's own Veo models are
          listed and the closest one taken — 6 October: veo-3.0 was not offered to the owner's key)
+  voice  Aurora's voice (owner, 2026-10-09: «aurora full cloud può usare modelli on line … per la voce»): OpenAI
+         gpt-4o-mini-tts · Google gemini-2.5-flash-preview-tts. The text leaves masked, and each placeholder is spoken
+         as its kind («un indirizzo email»): nothing private leaves, and nothing like «[EMAIL_1]» is read aloud
+  speech dictation and the speech of videos: OpenAI gpt-4o-mini-transcribe · Google gemini-2.5-flash. A voice cannot
+         be masked: only on an exempted installation, as pictures; the text it becomes goes on masked as usual
 The words of a request are masked like any cloud call (sec_mask); a picture cannot be masked, so an edit, or a video
 from a picture, goes to the cloud only on an installation the owner exempted (as for vision), else it is refused and
 the local model is used. Every call is counted in "What went out" (cloud.call, cloud.mask with the pictures sent).
@@ -25,10 +30,20 @@ import httpx
 
 from . import sys_config, sys_log
 
-TASKS = ("image", "edit", "video")
-CAN = {"openai": {"image": "gpt-image-1", "edit": "gpt-image-1"},
-       "google": {"image": "gemini-2.5-flash-image", "edit": "gemini-2.5-flash-image", "video": "veo-3.1-fast-generate-preview"},
+TASKS = ("image", "edit", "video", "voice", "speech")
+CAN = {"openai": {"image": "gpt-image-1", "edit": "gpt-image-1", "voice": "gpt-4o-mini-tts", "speech": "gpt-4o-mini-transcribe"},
+       "google": {"image": "gemini-2.5-flash-image", "edit": "gemini-2.5-flash-image", "video": "veo-3.1-fast-generate-preview",
+                  "voice": "gemini-2.5-flash-preview-tts", "speech": "gemini-2.5-flash"},
        "xai": {"image": "grok-2-image"}}
+# a placeholder said aloud as what it stands for (sec_mask's kinds), in the answer's language
+SPOKEN = {"it": {"EMAIL": "un indirizzo email", "PHONE": "un numero di telefono", "IBAN": "un IBAN", "CARD": "una carta",
+                 "CF": "un codice fiscale", "VAT": "una partita IVA", "PLATE": "una targa", "ADDRESS": "un indirizzo",
+                 "IP": "un indirizzo di rete", "MAC": "un indirizzo di rete", "TOKEN": "un codice", "SECRET": "un codice",
+                 "PRIVATE": "un dato privato", "NAME": "una persona", "ID": "un codice", "FIELD": "un valore"},
+          "en": {"EMAIL": "an e-mail address", "PHONE": "a phone number", "IBAN": "an IBAN", "CARD": "a card",
+                 "CF": "a tax code", "VAT": "a VAT number", "PLATE": "a number plate", "ADDRESS": "an address",
+                 "IP": "a network address", "MAC": "a network address", "TOKEN": "a code", "SECRET": "a code",
+                 "PRIVATE": "something private", "NAME": "a person", "ID": "a code", "FIELD": "a value"}}
 GOOGLE = "https://generativelanguage.googleapis.com/v1beta"
 
 
@@ -206,3 +221,100 @@ def video(cfg: sys_config.Config, prompt: str, image: bytes | None = None, limit
     data = httpx.get(uri, headers=head, timeout=300, follow_redirects=True).content
     _account(p, model, t0, "video", cfg)
     return data, {"provider": p, "model": model, "seconds_total": round(time.time() - t0, 1), "bytes": len(data)}
+
+
+# ---- voice and speech ---------------------------------------------------------------------------------------------
+def say_masked(cfg: sys_config.Config, text: str, lang: str, p: str, model: str) -> str:
+    """The text a cloud voice reads: masked, each placeholder replaced by the words for its kind."""
+    from .sec_mask import PLACEHOLDER
+    said = _masked(cfg, text, "voice", p, model, 0)
+    words = SPOKEN["it" if lang.startswith("it") else "en"]
+    return PLACEHOLDER.sub(lambda m: words.get(m.group(1), words["PRIVATE"]), said)
+
+
+def _wav(pcm: bytes, rate: int, channels: int = 1, width: int = 2) -> bytes:
+    import io
+    import wave
+    out = io.BytesIO()
+    with wave.open(out, "wb") as w:
+        w.setnchannels(channels)
+        w.setsampwidth(width)
+        w.setframerate(rate)
+        w.writeframes(pcm)
+    return out.getvalue()
+
+
+def spoken(cfg: sys_config.Config, text: str, lang: str) -> bytes:
+    """Aurora's voice from the assigned cloud provider: WAV bytes."""
+    p, model = provider(cfg, "voice")
+    _allowed(cfg, p)
+    t0 = time.time()
+    said = say_masked(cfg, text, lang, p, model)
+    female = str(cfg["AURORA_ASSISTANT_GENDER"]) != "male"
+    if p == "openai":
+        r = httpx.post("https://api.openai.com/v1/audio/speech", headers={"Authorization": f"Bearer {_key(cfg, p)}"},
+                       json={"model": model, "input": said, "voice": "nova" if female else "onyx", "response_format": "wav"},
+                       timeout=180)
+        r.raise_for_status()
+        data = r.content
+    elif p == "google":
+        body = {"contents": [{"parts": [{"text": said}]}],
+                "generationConfig": {"responseModalities": ["AUDIO"], "speechConfig": {"voiceConfig": {
+                    "prebuiltVoiceConfig": {"voiceName": "Kore" if female else "Puck"}}}}}
+        r = httpx.post(f"{GOOGLE}/models/{model}:generateContent", headers={"x-goog-api-key": _key(cfg, p)}, json=body,
+                       timeout=180)
+        r.raise_for_status()
+        part = r.json()["candidates"][0]["content"]["parts"][0]
+        pcm = base64.b64decode((part.get("inlineData") or part.get("inline_data"))["data"])
+        data = _wav(pcm, 24000)                           # Gemini's speech: 16-bit PCM, 24 kHz, mono
+    else:
+        raise RuntimeError(f"{p} has no voice")
+    _account(p, model, t0, "voice", cfg)
+    return data
+
+
+def heard(cfg: sys_config.Config, audio, lang: str) -> dict:
+    """A recording (16 kHz float32, as mdl_stt takes it) written as text by the assigned cloud provider:
+    {"text", "clear", "seconds", "audio_s"}, the same answer as the local Whisper's."""
+    import numpy as np
+    p, model = provider(cfg, "speech")
+    from . import sys_ethics
+    if not sys_ethics.exempt(cfg):
+        raise PermissionError("speech: a voice cannot be masked and goes to the cloud only on an exempted installation")
+    _allowed(cfg, p)
+    t0 = time.time()
+    a = np.clip(np.asarray(audio, dtype=np.float32), -1, 1)
+    wav = _wav((a * 32767).astype("<i2").tobytes(), 16000)
+    sys_log.trace("llm_client", "cloud.mask", {"role": "speech", "provider": p, "model": model, "masked": {},
+                                               "audio_s": round(len(a) / 16000, 1)})
+    if p == "openai":
+        r = httpx.post("https://api.openai.com/v1/audio/transcriptions", headers={"Authorization": f"Bearer {_key(cfg, p)}"},
+                       data={"model": model, "language": lang[:2]}, files={"file": ("audio.wav", wav, "audio/wav")},
+                       timeout=300)
+        r.raise_for_status()
+        text = r.json().get("text", "")
+    elif p == "google":
+        ask = ("Trascrivi esattamente il parlato, senza aggiungere nulla." if lang.startswith("it")
+               else "Transcribe the speech exactly, adding nothing.")
+        body = {"contents": [{"parts": [{"text": ask}, {"inline_data": {"mime_type": "audio/wav",
+                                                                        "data": base64.b64encode(wav).decode()}}]}]}
+        r = httpx.post(f"{GOOGLE}/models/{model}:generateContent", headers={"x-goog-api-key": _key(cfg, p)}, json=body,
+                       timeout=300)
+        r.raise_for_status()
+        text = "".join(x.get("text", "") for x in r.json()["candidates"][0]["content"]["parts"])
+    else:
+        raise RuntimeError(f"{p} cannot transcribe")
+    _account(p, model, t0, "speech", cfg)
+    text = " ".join(text.split())
+    return {"text": text, "clear": bool(text), "seconds": round(time.time() - t0, 1), "audio_s": round(len(a) / 16000, 1)}
+
+
+def heard_segments(cfg: sys_config.Config, audio, lang: str, window_s: int = 30) -> list[tuple[float, float, str]]:
+    """A long track (a video's) in windows, each written by the cloud: (start, end, text) like the local segments."""
+    out, n = [], 16000 * window_s
+    for i in range(0, len(audio), n):
+        piece = audio[i:i + n]
+        t = heard(cfg, piece, lang)["text"]
+        if t:
+            out.append((i / 16000, (i + len(piece)) / 16000, t))
+    return out

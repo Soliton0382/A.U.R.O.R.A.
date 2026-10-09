@@ -144,6 +144,53 @@ $$\text{tieni}(f) \iff \mathrm{cit}(f) \neq \varnothing \ \wedge\ V(f, P) = \tex
 
 Contro un giudice esterno (Claude): 26/32 in accordo, **0 frasi non supportate tenute** (M32).
 
+### L'ombra di una risposta
+
+Una domanda e la sua risposta verificata **proiettano un'ombra**: una domanda nuova che ci cade dentro riceve subito
+quella risposta, riscritta per lei dagli stessi passaggi, mentre in background tutta la pipeline la ricontrolla.
+
+**La matematica.** Ogni domanda diventa un vettore unitario $q \in \mathbb{R}^{1024}$ (l'encoder, normalizzato).
+Per ogni ombra $i$ — domanda $v_i$, risposta $a_i$ — si calcolano
+
+$$c_i = q \cdot v_i = \cos\theta_i \qquad\qquad r_i = \mathrm{rerank}(q, a_i)$$
+
+cioè quanto la nuova domanda somiglia alla vecchia ($c$) e quanto la vecchia **risposta** risponde alla nuova domanda
+($r$, il re-ranker). Si serve dall'ombra solo se valgono **entrambe**:
+
+$$c_i \ge \theta_c = 0{,}90 \qquad \land \qquad r_i \ge \theta_r = 0{,}5$$
+
+Una sola non basta: due domande sullo **stesso argomento** ma che chiedono cose diverse hanno coseno 0,72–0,86 e il
+re-ranker, da solo, ne lasciava passare 7 su 9 sbagliate (un argomento in comune non è una risposta). Sopra
+$\theta_{\text{sure}} = 0{,}97$ la risposta non viene nemmeno ricontrollata: la domanda diversa più vicina misurata
+era a 0,958.
+
+```mermaid
+flowchart LR
+    Q[domanda nuova q] --> C{"c = q · v ≥ 0,90 ?"}
+    C -- no --> P[pipeline completa ~50 s]
+    C -- sì --> R{"rerank(q, a) ≥ 0,5 ?"}
+    R -- no --> P
+    R -- sì --> S{"c ≥ 0,97 ?"}
+    S -- sì --> A[risposta dall'ombra, riscritta per q]
+    S -- no --> B[risposta dall'ombra + ricontrollo in background]
+    B -. risposta diversa .-> U[l'ombra si aggiorna e la chat lo dice]
+```
+
+**Le misure (M111, M113)** su 23 domande con risposta e le loro parafrasi:
+
+| | coseno | servite dall'ombra |
+|---|---|---|
+| parafrasi della stessa domanda | 0,78–1,00 (mediana 0,945) | **18 su 23** |
+| domande non collegate | ≤ 0,555 | 0 |
+| stesso argomento, altra domanda (il caso difficile) | 0,72–0,86 | **0 su 46** |
+| tempo: pipeline completa / dall'ombra | 51,2 s / **0,6 s** | |
+
+**Il seme.** Insieme al codice arrivano **175 risposte già pronte** (`sys/core/config/shadow_seed.json`), con fonti
+solo pubbliche (arXiv, Wikipedia, Normattiva, Europe PMC…), attribuzione e licenza. Al primo avvio ogni utente le
+riceve nella sua ombra: le prime domande comuni trovano risposta subito, e ognuna viene ricontrollata la prima volta
+che serve. Di notte Aurora allena l'ombra da sola (`AURORA_SHADOW_TRAIN_PER_NIGHT`: documenti del vault trasformati in
+domande e risposte).
+
 ### SSCC — compressione per il ragionatore cloud
 
 Quando si usa un ragionatore cloud, il testo inviato viene compresso con il **Soliton-Salience Context
@@ -294,6 +341,22 @@ tuo certificato: viene controllato prima e, se Caddy lo rifiuta, torna tutto com
 Modelli: 24,7 GB obbligatori (ragionatore 21,5 GB, encoder, re-ranker), fino a 57,6 GB facoltativi. Un'installazione
 pulita con tutti i modelli ha richiesto 10 min 55 s sulla macchina di riferimento (M59); da GitHub, multi-utente e
 solo i modelli obbligatori, 6 min 39 s con 303 test passati (M103).
+
+### Senza GPU, su Windows, sul Mac, in Docker
+
+Le stesse domande su ogni sistema (ragionatore, nome, voce, lingua, da dove la userai, porte HTTPS e HTTP, provider e
+chiave, raccolta, single o multi, funzioni facoltative); senza una GPU NVIDIA da 16 GB Aurora ragiona con un modello
+cloud a tua scelta e ogni testo esce mascherato.
+
+| Sistema | Come |
+|---|---|
+| Linux senza GPU | lo stesso `./install.sh`: propone il cloud da solo |
+| Windows 10/11 | PowerShell **come amministratore**, nella cartella scaricata: `powershell -ExecutionPolicy Bypass -File Aurora_windows\install.ps1` — Aurora va in `C:\Aurora` (non nella cartella del download) |
+| macOS 13+ | serve [Homebrew](https://brew.sh); nel Terminale: `bash Aurora_mac/install.sh` — Aurora va in `~/Aurora` (scarica in un'altra cartella, es. `~/Downloads`) |
+| Docker | guida in [docs/DOCKER.md](docs/DOCKER.md) |
+
+Su Windows e Mac, per ora: niente ragionatore locale, voce di Aurora e plugin (la loro gabbia è in arrivo). Il Mac è
+provato su un Mac vero di GitHub Actions (workflow Install), non ancora a mano.
 
 ## 📚 Aurora parte vuota: la conoscenza va raccolta
 

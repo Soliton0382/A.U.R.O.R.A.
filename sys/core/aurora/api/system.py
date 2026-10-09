@@ -3,6 +3,7 @@
 """Status, features, services, settings (.env through the schema)."""
 from __future__ import annotations
 
+import asyncio
 import httpx
 
 from aurora import sys_config, sys_log
@@ -91,8 +92,30 @@ async def update_settings(request: Request) -> dict:
             sys_config.convert(specs[key], str(value))
         except ValueError as e:
             problems.append(f"{key}: {e}")
+    if not problems and {"AURORA_HTTPS_PORT", "AURORA_HTTP_PORT"} & set(changes):
+        from aurora import net_https                 # the 🔒 page's checks (C227: 9700, the API's port, was accepted)
+        now = net_https.fresh(cfg)
+        try:
+            net_https.check_ports(cfg, int(changes.get("AURORA_HTTPS_PORT", now["AURORA_HTTPS_PORT"])),
+                                  int(changes.get("AURORA_HTTP_PORT", now["AURORA_HTTP_PORT"])))
+        except net_https.HttpsError as e:
+            problems.append(f"AURORA_HTTPS_PORT / AURORA_HTTP_PORT: {e}")
     if problems:
         raise HTTPException(status_code=422, detail=problems)
+    moved = None
+    if {"AURORA_HTTPS_PORT", "AURORA_HTTP_PORT"} & set(changes):
+        # the ports: never only written — Caddy moved with them at once (C228: the .env changed, Caddy did not)
+        from aurora import net_https
+        now = net_https.fresh(cfg)
+        try:
+            moved = await asyncio.to_thread(net_https.set_ports, cfg,
+                                            int(changes.pop("AURORA_HTTPS_PORT", now["AURORA_HTTPS_PORT"])),
+                                            int(changes.pop("AURORA_HTTP_PORT", now["AURORA_HTTP_PORT"])))
+        except net_https.HttpsError as e:
+            raise HTTPException(status_code=422, detail=[f"AURORA_HTTPS_PORT / AURORA_HTTP_PORT: {e}"]) from None
+        if not changes:
+            return {"changed": ["AURORA_HTTPS_PORT", "AURORA_HTTP_PORT"], "restart": [], "mounting": False,
+                    "retimed": False, "tunnel": False, **({"moved": moved["urls"]} if moved.get("changed") else {})}
     from aurora import sys_user_config, sys_users_layout, sys_users_mode
     user, admin = user_of(request), _admin()
     if user and admin and user != admin and any(specs[k].get("scope") != "user" for k in changes):
@@ -123,4 +146,5 @@ async def update_settings(request: Request) -> dict:
     tunnel = bool(TUNNEL_KEYS & set(changes)) and start_tunnel()
     from .backup import start_retime                        # a new backup time: the timer follows it
     retimed = "AURORA_BACKUP_TIME" in changes and start_retime()
-    return {"changed": sorted(changes), "restart": restart, "mounting": mounting, "retimed": retimed, "tunnel": tunnel}
+    return {"changed": sorted(changes), "restart": restart, "mounting": mounting, "retimed": retimed, "tunnel": tunnel,
+            **({"moved": moved["urls"]} if moved and moved.get("changed") else {})}

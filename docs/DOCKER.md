@@ -54,6 +54,20 @@ Aurora usa un certificato suo (di Caddy). La prima volta il browser avvisa: puoi
 installare il certificato radice — da ogni dispositivo apri `http://<AURORA_DOMAIN>:<AURORA_HTTP_PORT>/aurora-ca.crt`
 e segui la pagina 🔒 HTTPS di Aurora (passi per Android e iPhone).
 
+## I plugin: un container a parte
+
+`docker compose` avvia **due container** sulla stessa rete interna:
+
+| Container | Cosa fa | Porte |
+|---|---|---|
+| `aurora` | API, WebUI, encoder, cicli notturni, raccolta, Caddy | quelle di `docker/.env` |
+| `aurora-plugins` | i plugin, ognuno nella sua gabbia (bubblewrap, come su Linux): solo i suoi segreti, la cartella di Aurora in sola lettura, le cartelle degli altri utenti nascoste, niente rete se il plugin non la chiede | nessuna: lo raggiunge solo Aurora, con la sua chiave |
+
+Per costruire le gabbie il container dei plugin ha bisogno di capacità che Docker normalmente nega (`SYS_ADMIN`,
+`NET_ADMIN`, profili seccomp/AppArmor rilassati): le ha **solo lui**, mai il container di Aurora; ogni plugin dentro
+la sua gabbia gira senza nessuna capacità. I controlli restano in Aurora: un segreto negli argomenti di uno strumento
+è rifiutato prima di partire, le azioni verso l'esterno chiedono la tua approvazione.
+
 ## Cambiare qualcosa dopo
 
 | Cosa | Dove |
@@ -86,8 +100,15 @@ docker exec -it aurora systemctl is-active aurora-api aurora-models aurora-https
 
 - il ragionatore locale (serve una GPU: installazione con `./install.sh`);
 - Claude Code come provider (è un programma da installare e collegare al tuo account: usa una chiave API);
-- i plugin (girano solo dentro la loro gabbia, che in un container normale non è disponibile);
-- voce di Aurora, sogni dipinti, video (modelli pesanti o GPU).
+- i modelli locali di immagini, video e voce (troppo pesanti senza GPU).
+
+**Immagini, video e voce dal cloud.** Nella pagina 🧠 Modelli → 🎨 *Immagini, video e voce* ogni compito si può dare a
+un provider che lo fa davvero, con la tua chiave: immagini e modifiche (OpenAI, Google, xAI), video (Google Veo), la
+voce di Aurora (OpenAI, Google) e la dettatura (OpenAI, Google). Predefinito: spenti. Ogni testo esce mascherato (la
+voce dice i dati sensibili per tipo: «un indirizzo email»); foto e voce registrata non si possono mascherare e vanno al
+cloud solo con l'esenzione, come la visione.
+
+**I plugin** girano in un container a parte, sulla stessa rete interna di Aurora: vedi più sotto.
 
 Tecnicamente: un solo container; `docker/entrypoint.py` prepara dati e impostazioni e tiene vivi i servizi (API,
 encoder, cicli notturni, raccolta, sentinella, Caddy), riavviandoli se si fermano; `systemctl` nel container è un

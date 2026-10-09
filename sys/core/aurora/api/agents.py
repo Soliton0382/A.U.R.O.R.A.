@@ -283,8 +283,15 @@ async def plugin_try(name: str, tool: str, request: Request) -> dict:
 
 @router.get("/v1/aurora/approvals", dependencies=[Depends(auth)])
 def approvals(status: str | None = None) -> list[dict]:
-    from aurora.sys_approvals import Approvals
-    return Approvals(cfg).list(status)
+    from aurora.sys_approvals import Approvals, destination, social_plugins
+    social = social_plugins(cfg)
+    return [{**a, **destination(a, social)} for a in Approvals(cfg).list(status)]
+
+
+@router.get("/v1/aurora/approvals/stats", dependencies=[Depends(auth)])
+def approvals_stats() -> dict:
+    from aurora.sys_approvals import Approvals, stats
+    return stats(Approvals(cfg).list())
 
 
 @router.post("/v1/aurora/approvals/{approval_id}/{decision}", dependencies=[Depends(auth)])

@@ -144,6 +144,53 @@ $$\text{keep}(f) \iff \mathrm{cit}(f) \neq \varnothing \ \wedge\ V(f, P) = \text
 
 Against an external judge (Claude): 26/32 agreement, **0 unsupported sentences kept** (M32).
 
+### The shadow of an answer
+
+A question and its verified answer **cast a shadow**: a new question falling in it gets that answer at once, written
+again for it from the same passages, while the whole pipeline checks it again in the background.
+
+**The maths.** Each question becomes a unit vector $q \in \mathbb{R}^{1024}$ (the encoder, normalised). For each
+shadow $i$ — question $v_i$, answer $a_i$:
+
+$$c_i = q \cdot v_i = \cos\theta_i \qquad\qquad r_i = \mathrm{rerank}(q, a_i)$$
+
+how close the new question is to the old one ($c$), and how well the old **answer** answers the new question ($r$,
+the re-ranker). The shadow serves only when **both** hold:
+
+$$c_i \ge \theta_c = 0.90 \qquad \land \qquad r_i \ge \theta_r = 0.5$$
+
+One is not enough: two questions on the **same subject** asking different things sit at cosine 0.72–0.86, and the
+re-ranker alone let 7 of 9 wrong ones through (a subject in common is not an answer). Above
+$\theta_{\text{sure}} = 0.97$ the answer is not even checked again: the closest different question measured was at
+0.958.
+
+```mermaid
+flowchart LR
+    Q[new question q] --> C{"c = q · v ≥ 0.90 ?"}
+    C -- no --> P[whole pipeline ~50 s]
+    C -- yes --> R{"rerank(q, a) ≥ 0.5 ?"}
+    R -- no --> P
+    R -- yes --> S{"c ≥ 0.97 ?"}
+    S -- yes --> A[answer from the shadow, written again for q]
+    S -- no --> B[answer from the shadow + check in the background]
+    B -. a different answer .-> U[the shadow is updated and the chat says so]
+```
+
+**Measured (M111, M113)** on 23 answered questions and their paraphrases:
+
+| | cosine | served by the shadow |
+|---|---|---|
+| paraphrases of the same question | 0.78–1.00 (median 0.945) | **18 of 23** |
+| unrelated questions | ≤ 0.555 | 0 |
+| same subject, another question (the hard case) | 0.72–0.86 | **0 of 46** |
+| time: whole pipeline / from the shadow | 51.2 s / **0.6 s** | |
+
+**The seed.** **175 ready answers** come with the code (`sys/core/config/shadow_seed.json`), citing public sources only
+(arXiv, Wikipedia, Normattiva, Europe PMC…) with attribution and licence. At the first start each user gets them in
+their shadow: the first common questions are answered at once, each checked again the first time it serves. At night
+Aurora trains the shadow by herself (`AURORA_SHADOW_TRAIN_PER_NIGHT`: documents of the vault turned into questions and
+answers).
+
 ### SSCC — compression for the cloud reasoner
 
 With a cloud reasoner, the text sent is compressed by the **Soliton-Salience Context Compressor**: each
@@ -292,6 +339,22 @@ is needed.
 Models: 24.7 GB required (reasoner 21.5 GB, encoder, re-ranker), up to 57.6 GB optional. A clean install with every
 model took 10 min 55 s on the reference machine (M59); from GitHub, multi-user, required models only, 6 min 39 s
 with 303 tests passed (M103).
+
+### Without a GPU, on Windows, on the Mac, in Docker
+
+The same questions on every system (reasoner, name, voice, language, where you use it from, HTTPS and HTTP ports,
+provider and key, harvesting, single or multi, optional features); without an NVIDIA GPU of 16 GB Aurora reasons with a
+cloud model of your choice and every text leaves masked.
+
+| System | How |
+|---|---|
+| Linux without a GPU | the same `./install.sh`: it offers the cloud by itself |
+| Windows 10/11 | PowerShell **as administrator**, in the downloaded folder: `powershell -ExecutionPolicy Bypass -File Aurora_windows\install.ps1` — Aurora goes to `C:\Aurora` (not the download's folder) |
+| macOS 13+ | [Homebrew](https://brew.sh) is needed; in the Terminal: `bash Aurora_mac/install.sh` — Aurora goes to `~/Aurora` (download it elsewhere, e.g. `~/Downloads`) |
+| Docker | guide in [docs/DOCKER.md](docs/DOCKER.md) |
+
+On Windows and the Mac, for now: no local reasoner, no Aurora's voice, no plugins (their cage is coming). The Mac is
+tried on a real Mac of GitHub Actions (Install workflow), not by hand yet.
 
 ## 📚 Aurora starts empty: knowledge is harvested
 

@@ -212,3 +212,32 @@ def test_a_new_installation_puts_its_personal_settings_in_the_admins_env(cfg):
     root_after = sys_config.parse_env(cfg.env_file.read_text(encoding="utf-8"))
     own = sys_config.parse_env(sys_user_config.env_path(cfg, "boss").read_text(encoding="utf-8"))
     assert "AURORA_OWNER_NAME" not in root_after and own["AURORA_OWNER_NAME"] == root_before["AURORA_OWNER_NAME"]
+
+
+def test_every_setting_is_written_where_it_lives_and_no_value_changes(cfg):
+    """C224 (owner, 9 Oct: AbuseIPDB's key «non trovo da nessuna parte … neanche nel file .env»): the system's .env
+    holds every setting not a user's (optional ones too), a setting that became a user's moves to the admin, each user's
+    .env holds every personal setting — what was written stays as it was."""
+    from aurora import sys_config, sys_user_config as U
+    users = Users(cfg)
+    users.add("boss", "admin", "a long password")
+    users.add("guest", "user")
+    today_layout(cfg)
+    L.migrate(cfg, "boss")
+    cfg = sys_config.load(cfg.env_file, check_root=False)
+    personal = U.user_keys(cfg)
+    sys_config.write_env(cfg.env_file, {personal[0]: "left-in-the-system"},       # a setting that became personal
+                         drop={"AURORA_ABUSEIPDB_KEY", "AURORA_DOMAIN_ALIASES"})  # optional: never written so far
+    sys_config.write_env(U.env_path(cfg, "boss"), {}, drop={personal[0]})     # the admin has not got it yet
+    U.write(cfg, "guest", {personal[1]: "guest's own"})
+    out = U.reconcile(cfg)
+    main = sys_config.parse_env(cfg.env_file.read_text(encoding="utf-8"))
+    assert "AURORA_ABUSEIPDB_KEY" in main and "AURORA_DOMAIN_ALIASES" in main and not set(personal) & set(main)
+    assert set(cfg.specs) - set(personal) <= set(main)
+    for name in ("boss", "guest"):
+        own = sys_config.parse_env(U.env_path(cfg, name).read_text(encoding="utf-8"))
+        assert set(personal) <= set(own), name
+    assert sys_config.parse_env(U.env_path(cfg, "boss").read_text(encoding="utf-8"))[personal[0]] == "left-in-the-system"
+    assert sys_config.parse_env(U.env_path(cfg, "guest").read_text(encoding="utf-8"))[personal[1]] == "guest's own"
+    assert out["moved to the admin"] == [personal[0]] and "AURORA_ABUSEIPDB_KEY" in out["system"]
+    assert U.reconcile(cfg) == {}                                                # a second run writes nothing

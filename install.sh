@@ -175,6 +175,9 @@ if [ "$REACH" = 3 ] && [ "$DOMAIN" != localhost ] && yesno "$(t 'Hai un tuo cert
   TLS=files
 fi
 PORT=$(ask "$(t 'Porta HTTPS' 'HTTPS port')" "443" PORT)
+# the HTTP port: the phones' certificate and the redirect to HTTPS; another web server on 443 likely has 80 too
+HPORT=$(ask "$(t 'Porta HTTP (certificato per i telefoni, rimando all HTTPS)' 'HTTP port (the phones'"'"' certificate, redirect to HTTPS)')" "$([ "$PORT" = 443 ] && echo 80 || echo 8080)" HTTP_PORT)
+[ "$HPORT" != "$PORT" ] || die "$(t 'le due porte devono essere diverse' 'the two ports must differ')"
 EXEMPT=0
 PROVIDER=""; CKEYNAME=""; CMODEL=""
 if [ "$BACKEND" = cloud ]; then
@@ -293,7 +296,7 @@ if [ -f .env ]; then
 else
   SETS=(--set "AURORA_OWNER_NAME=$OWNER" --set "AURORA_ASSISTANT_NAME=$ANAME" --set "AURORA_PERSONALITY=$PERSONA"
         --set "AURORA_ASSISTANT_GENDER=$AGENDER" --set "AURORA_LANG_DEFAULT=$ULANG" --set "AURORA_DOMAIN=$DOMAIN"
-        --set "AURORA_HTTPS_PORT=$PORT" --set "AURORA_TLS_MODE=$TLS" --set "AURORA_UPDATE_MODE=notify"
+        --set "AURORA_HTTPS_PORT=$PORT" --set "AURORA_HTTP_PORT=$HPORT" --set "AURORA_TLS_MODE=$TLS" --set "AURORA_UPDATE_MODE=notify"
         --set "AURORA_SERVICE_USER=$USER" --set "AURORA_USER_MODE=$UMODE" --set "AURORA_DOMAIN_ALIASES=$ALIASES" --set "AURORA_HARVEST_ENABLED=$HARVEST")
   [ -n "$BROWSER" ] && SETS+=(--set "AURORA_CHROME_BIN=$BROWSER")
   if [ "$BACKEND" = cloud ]; then

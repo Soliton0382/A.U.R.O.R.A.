@@ -46,7 +46,10 @@ PATTERNS = [   # (kind, regex): order matters, the most specific first
     ("MAC", re.compile(r"\b[0-9a-fA-F]{2}(?::[0-9a-fA-F]{2}){5}\b")),
     ("IP", re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")),
     ("IP6", re.compile(r"\b(?:[0-9a-fA-F]{1,4}:){4,7}[0-9a-fA-F]{1,4}\b")),
-    ("PHONE", re.compile(r"(?<![\w.+])(?:\+\d{1,3}[ .-]?\d{2,4}(?:[ .-]?\d{2,4}){1,4}|\d{2,4}(?:[ .]\d{2,4}){2,4})(?!\w|\.\d)")),
+    # Italian numbers as people write them too (C225, found 9 Oct: «333 1234567», «3331234567», «333-123-4567», «06
+    # 12345678» left unmasked): a mobile from 3, a landline from 0, any separators; at least 9 digits (checked below)
+    ("PHONE", re.compile(r"(?<![\w.+])(?:\+\d{1,3}[ .-]?\d{2,4}(?:[ .-]?\d{2,4}){1,4}|\d{2,4}(?:[ .]\d{2,4}){2,4}"
+                         r"|(?:3\d{2}|0\d{1,3})(?:[ .-]?\d){6,8})(?!\w|\.\d)")),
     ("TOKEN", re.compile(r"\b(?=[A-Za-z0-9_\-]*\d)(?=[A-Za-z0-9_\-]*[A-Za-z])[A-Za-z0-9_\-]{32,}\b|\b[0-9a-fA-F]{24,}\b")),
 ]
 FIELD = re.compile(r'\b(\w*(?:serial|user|username|login|account|host|hostname|mac|email|domain|device_name)\w*)='

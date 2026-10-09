@@ -114,6 +114,39 @@ def adopt(cfg: sys_config.Config, admin: str) -> list[str]:
     return sorted(moving)
 
 
+def reconcile(cfg: sys_config.Config) -> dict:
+    """Every setting written where it lives (owner, 9 Oct: «verificare che il file .env sia allineato … che le
+    impostazioni utenti siano correttamente inserite nel .env degli utenti/admin e che l'env principale riporti il
+    restante»; C224: AURORA_ABUSEIPDB_KEY was nowhere to be seen). The system's .env holds every setting that is not a
+    user's, the optional ones too, with its recommended value when missing; a setting that became a user's moves to
+    the admin's .env (adopt); each user's .env holds every personal setting. A value already written never changes.
+    Returns what was added where."""
+    base = cfg.base or cfg
+    out: dict[str, list[str]] = {}
+    personal = set(user_keys(base))
+    m = L.migrated(base)
+    if m:
+        moved = adopt(base, m["admin"])
+        if moved:
+            out["moved to the admin"] = moved
+    raw = sys_config.parse_env(base.env_file.read_text(encoding="utf-8"), str(base.env_file))
+    system = {k: s["recommended"] for k, s in base.specs.items()
+              if k not in raw and (k not in personal or not m)}           # before the migration: all in one file
+    if system:
+        sys_config.write_env(base.env_file, system)
+        out["system"] = sorted(system)
+    if m:
+        for name in sorted(L._registered(base)):
+            own = _own(base, name)
+            add = {k: base.specs[k]["recommended"] for k in personal if k not in own}
+            if add:
+                sys_config.write_env(env_path(base, name), add)
+                out[name] = sorted(add)
+                with _lock:
+                    _cache.pop(name, None)
+    return out
+
+
 def merge(cfg: sys_config.Config, admin: str) -> int:
     """Back: the admin's own settings into the system's .env, and the admin's .env removed."""
     f = env_path(cfg, admin)

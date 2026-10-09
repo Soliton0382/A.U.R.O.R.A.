@@ -7,7 +7,8 @@
 FROM caddy:2 AS caddy
 
 FROM python:3.14-slim
-RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg poppler-utils curl ca-certificates \
+# bubblewrap: the plugins' cage, used by the aurora-plugins container (docker/plugins_gateway.py)
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg poppler-utils curl ca-certificates bubblewrap \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 COPY --from=caddy /usr/bin/caddy /usr/bin/caddy
 WORKDIR /opt/aurora
@@ -22,7 +23,7 @@ COPY . .
 RUN find sys/core sys/plugins install.sh -type f -not -path '*/__pycache__/*' | sort | xargs sha256sum | sha256sum \
       | cut -c1-16 > docker/BUILD \
     && install -m 755 docker/systemctl /usr/local/bin/systemctl \
-    && chmod 755 docker/entrypoint.py
+    && chmod 755 docker/entrypoint.py docker/plugins_gateway.py
 ENV AURORA_ENV_FILE=/data/.env AURORA_DOCKER=1 PYTHONUNBUFFERED=1 PATH=/opt/aurora/.venv/bin:$PATH
 VOLUME /data
 HEALTHCHECK --interval=60s --timeout=10s --start-period=600s CMD curl -fs http://127.0.0.1:9700/health || exit 1

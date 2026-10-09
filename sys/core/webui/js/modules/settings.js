@@ -81,6 +81,15 @@ export default {
         }
         out.textContent = t("settings.saved", { keys: r.changed.join(", "), services: r.restart.join(", ") || "—" });
         out.className = "result";
+        if (r.moved?.length) {
+          // the ports changed: Caddy already listens on the new one; this page follows it (owner, 2026-10-09: «un numero,
+          // un click e si ricarica la pagina sulla porta nuova») — the same name it is opened with, on the new port
+          const here = r.moved.find((u) => new URL(u).hostname === location.hostname) || r.moved[0];
+          const go = new URL(location.pathname + location.hash, here).href;
+          out.textContent = t("settings.moving", { url: here });
+          setTimeout(() => { location.href = go; }, 8000);   // the API restarts meanwhile (a few seconds)
+          return;
+        }
         await restartPrompt(r.restart);
         await this.loadSettings();
       } catch (e) {
@@ -157,7 +166,8 @@ export default {
       } else {
         input = el("input");
         if (s.type === "int") { input.type = "number"; if (s.min !== undefined) input.min = s.min; if (s.max !== undefined) input.max = s.max; }
-        if (s.secret) { input.type = "password"; input.placeholder = t("settings.secret"); }
+        // set or empty, said (owner, 9 Oct: AbuseIPDB's key looked missing — a secret's field is always blank here)
+        if (s.secret) { input.type = "password"; input.placeholder = s.value ? t("plug.secret.set") : t("plug.secret.empty"); }
       }
       input.value = s.secret ? "" : s.value;
       input.dataset.key = s.key;

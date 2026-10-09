@@ -15,6 +15,9 @@ services:
     container_name: aurora
     restart: unless-stopped
     env_file: .env
+    environment:
+      # the plugins run in the container below, in their cage, asked over the internal network
+      AURORA_PLUGIN_GATEWAY: http://aurora-plugins:9790
     ports:
       # the same port outside and inside: the addresses Caddy writes (redirects, the phones' certificate) stay right
       - "${AURORA_HTTPS_PORT:-443}:${AURORA_HTTPS_PORT:-443}"
@@ -23,6 +26,25 @@ services:
       - aurora-data:/data
     # a small machine: the encoder and re-ranker take ~5 GB while they work (M151, M152)
     mem_limit: ${AURORA_MEMORY_LIMIT:-10g}
+
+  # Aurora's plugins, apart (owner, 2026-10-09): the same image, its own process (docker/plugins_gateway.py), each plugin
+  # inside bubblewrap as on Linux. To build its cages bubblewrap (as root here) needs SYS_ADMIN, NET_ADMIN and the namespaces
+  # Docker's default profiles forbid: given to this container only (the test VM, 9 Oct: «Creating new namespace
+  # failed» without them); each plugin inside its cage runs with no capability at all (bubblewrap drops them).
+  # No port published: only Aurora reaches it, with her API key.
+  aurora-plugins:
+    image: aurora:cloud
+    container_name: aurora-plugins
+    restart: unless-stopped
+    entrypoint: ["/opt/aurora/docker/plugins_gateway.py"]
+    depends_on: [aurora]
+    volumes:
+      - aurora-data:/data
+    security_opt:
+      - seccomp=unconfined
+      - apparmor=unconfined
+    cap_add: [SYS_ADMIN, NET_ADMIN]                # NET_ADMIN: the loopback of a plugin without network (--unshare-net)
+    mem_limit: ${AURORA_PLUGINS_MEMORY_LIMIT:-2g}
 
 volumes:
   aurora-data:

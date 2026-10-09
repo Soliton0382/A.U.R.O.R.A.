@@ -572,7 +572,11 @@ pytest.importorskip("pwd", reason="sys_nas_mount is Linux's /etc/fstab; Windows 
 # the protected files (sys_ethics.PROTECTED): changed in the port's code, signed by each installation at its setup
 GUARDS = [
     ("sys/core/aurora/plg_host.py",
-     """        if self.cfg["AURORA_PLUGIN_SANDBOX"] and plg_sandbox.available():
+     """        if self.cfg["AURORA_PLUGIN_SANDBOX"]:
+            if not plg_sandbox.available():
+                # never uncaged because the cage is missing (C226: a container without bubblewrap ran them bare, as
+                # the ports already refuse): the owner may switch the cage off on purpose, never by accident
+                raise RuntimeError("no cage here (bubblewrap is missing): the plugin is not run")
             cmd = plg_sandbox.wrap(cmd, p.folder, p.manifest, filtered, self.cfg)   # inside, .env is the filtered one
         else:""",
      """        from aurora import sys_platform
@@ -581,8 +585,8 @@ GUARDS = [
         if caged:              # Linux: bubblewrap (inside, .env is the filtered one); the Mac, Windows: their own cage
             cmd, inside = caged
             env.update(inside)
-        elif self.cfg["AURORA_PLUGIN_SANDBOX"] and sys_platform.current().name != "linux":
-            # no cage here (sandbox-exec missing, an AppContainer refused): a plugin never runs uncaged because of that
+        elif self.cfg["AURORA_PLUGIN_SANDBOX"]:
+            # no cage here (bubblewrap or sandbox-exec missing, an AppContainer refused): never uncaged because of that
             raise RuntimeError(f"{p.name}: no cage for plugins on this system, so it does not run")
         else:""",
      "plg_host: each system's cage (bubblewrap, sandbox-exec, an AppContainer); no cage, no plugin"),

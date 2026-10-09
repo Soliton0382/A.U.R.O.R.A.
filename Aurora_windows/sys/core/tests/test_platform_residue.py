@@ -36,6 +36,8 @@ PROGRAMS_ALLOWED = {
 # the scripts the owner or the installer runs: all of phase 3 (installers and admin scripts per system)
 SCRIPTS_PHASE_3 = {"systemctl", "journalctl", "runuser", "systemd-escape", "systemd-mount", "systemd-umount",
                    "nvidia-smi", "cfg['AURORA_CADDY_BIN']"}
+# each port's own installer scripts start their system's own programs (phase 3, 9 Oct): the Mac's launchd agents
+PORT_SCRIPTS = {("sys_install_agents.py", "launchctl"), ("sys_install_agents.py", "brew")}
 
 
 def _programs(f: Path) -> set[str]:
@@ -92,7 +94,8 @@ def test_every_program_the_scripts_start_is_known_and_left_to_phase_3():
     unexpected = set()
     for f in sorted(SCRIPT.glob("*.py")):
         for prog in _programs(f):
-            if prog in EVERYWHERE or prog in SCRIPTS_PHASE_3 or prog.startswith(("str(", "self.", "*")):
+            if prog in EVERYWHERE or prog in SCRIPTS_PHASE_3 or (f.name, prog) in PORT_SCRIPTS \
+                    or prog.startswith(("str(", "self.", "*")):
                 continue
             unexpected.add((f.name, prog))
     assert not unexpected, f"programs of the scripts not in PORTING.md: {sorted(unexpected)}"

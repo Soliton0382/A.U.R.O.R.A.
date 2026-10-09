@@ -19,13 +19,14 @@ export default {
     root.classList.add("page");
     root.innerHTML = `
       <h2 data-i18n="notif.title"></h2>
-      <h3 class="setting-cat" data-i18n="notif.history"></h3><p class="muted notif-delivery"></p><div class="notif-history"></div>
       <p class="muted" data-i18n="notif.hint"></p>
       <h3 class="setting-cat" data-i18n="notif.device"></h3>
       <div class="notif-device"></div>
       <h3 class="setting-cat" data-i18n="notif.which"></h3>
       <div class="notif-grid"></div>
-      <div class="settings-actions"><button class="save" data-i18n="settings.save"></button> <span class="result muted"></span></div>`;
+      <div class="settings-actions"><button class="save" data-i18n="settings.save"></button> <span class="result muted"></span></div>
+      <!-- the history last (owner, 2026-10-09: a week of notifications scrolled past before every tick) -->
+      <h3 class="setting-cat" data-i18n="notif.history"></h3><p class="muted notif-delivery"></p><div class="notif-history"></div>`;
     apply(root);
     this.device = root.querySelector(".notif-device");
     this.history = root.querySelector(".notif-history");

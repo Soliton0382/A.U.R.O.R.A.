@@ -155,6 +155,51 @@ if __name__ == "__main__":
     # written: the clean stop is logged by the application's shutdown hook instead.
     app.router.add_event_handler("shutdown", lambda: log.info("stopped cleanly: pid %d", os.getpid()))
 
+    def _settings_in_place() -> None:
+        """Every setting written where it lives, before the first page asks for them (C224)."""
+        from aurora import sys_user_config
+        try:
+            added = sys_user_config.reconcile(cfg)
+        except (OSError, RuntimeError, ValueError) as e:        # a start never fails on it: said, and left as it was
+            log.warning("settings not put in place: %s", e)
+            return
+        for where, keys in added.items():
+            log.info("audit: settings written (%s): %s", where, ", ".join(keys))
+
+    def _seed_shadows() -> None:
+        """Every user starts with the published seed of answers (owner, 9 Oct: «i git clone partano già con un set di
+        ombre già presenti»): config/shadow_seed.json into the shadow of each user who has none of it yet, once the
+        encoder answers. Each seed answer is checked again like any other when it is first served."""
+        import json as _json
+        from aurora import kno_shadow, sys_user_config, sys_users_layout as L
+        f = Path(__file__).resolve().parents[1] / "config" / "shadow_seed.json"
+        if not cfg["AURORA_SHADOW"] or not f.is_file():
+            return
+        rows = _json.loads(f.read_text(encoding="utf-8"))
+        base = cfg.base or cfg
+        users = sorted(L._registered(base)) if L.migrated(base) else [None]
+        for _ in range(60):                                  # the encoder may still be loading (aurora-models)
+            try:
+                from aurora.api.core import pipeline
+                embedder = pipeline().search.embedder
+                embedder.dim
+                break
+            except Exception:                                # noqa: BLE001 - not ready yet: wait, never fail the start
+                time.sleep(10)
+        else:
+            log.warning("shadow seed not loaded: the encoder did not answer")
+            return
+        for name in users:
+            mine = sys_user_config.for_user(base, name)
+            try:
+                if kno_shadow.stats(mine)["seed"]:
+                    continue
+                out = kno_shadow.import_seed(mine, embedder, rows)
+                log.info("audit: shadow seed for %s: %d answers added, %d skipped", name or "the owner", out["added"],
+                         out["skipped"])
+            except Exception as e:                           # noqa: BLE001 - a user without it, said
+                log.warning("shadow seed for %s not loaded: %s", name, e)
+
     def _warm_plugins() -> None:
         """List the plugins' tools once in the background: the first Plugins page or agent run does not wait ~4 s."""
         from aurora.api.core import plugin_host
@@ -165,6 +210,9 @@ if __name__ == "__main__":
         except Exception as e:                        # a slow page later, never a failed start
             log.warning("plugin tools not listed at start: %s", e)
     import threading
+    app.router.add_event_handler("startup", _settings_in_place)
+    app.router.add_event_handler("startup", lambda: threading.Thread(target=_seed_shadows, name="seed-shadows",
+                                                                      daemon=True).start())
     app.router.add_event_handler("startup", lambda: threading.Thread(target=_warm_plugins, name="warm-plugins",
                                                                       daemon=True).start())
     from aurora.api.security import watch_defence     # automatic blocks lifted when their time is over

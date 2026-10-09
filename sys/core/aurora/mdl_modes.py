@@ -9,8 +9,10 @@ possono essere i rischi… basta che l'utente lo sappia»): four modes, and ever
                  private data (health, the firewall) stays on a local model — or is off where there is none
   cloud_full     also the private data, masked, where no local reasoner runs: the owner's consent signed from a shell
                  (sys_cloud_consent), never from the web
-The search over the vault, dictation and the voice have no cloud version: they stay here in every mode (on a CPU,
-M151). Every cloud mode needs the level B exemption (rule 9), which is signed from a shell too.
+The search over the vault has no cloud version: it stays here in every mode (on a CPU, M151). Aurora's voice goes to
+the cloud in both cloud modes (its text masked, spoken by kind: mdl_media); dictation only in «all cloud» — the
+owner's own voice cannot be masked (owner, 2026-10-09). Every cloud mode needs the level B exemption (rule 9), which is
+signed from a shell too.
 """
 from __future__ import annotations
 
@@ -97,19 +99,30 @@ def check(cfg: sys_config.Config) -> dict:
              cloud_full=(_s("no", "Claude Code non vede le immagini", "Claude Code sees no pictures") if kind == "claude_code"
                          else _s("warn", "le foto non si possono mascherare", "photos cannot be masked"))),
         _row("media", "Creare immagini, modifiche, video", "Making pictures, edits, videos",
-             ", ".join(f"{t}: {a['provider']}" for t, a in media.items()),
+             ", ".join(f"{t}: {a['provider']}" for t, a in media.items() if t in ("image", "edit", "video")),
              local=_s("ok" if sys_features.check(cfg, "dreams")["ok"] else "warn", "" if sys_features.check(cfg, "dreams")["ok"]
                       else "modelli non scaricati (o niente GPU)", "" if sys_features.check(cfg, "dreams")["ok"]
                       else "models not downloaded (or no GPU)"),
-             cloud_private=_media_state(provider, can), cloud_full=_media_state(provider, can)),
+             cloud_private=_media_state(provider, {t: m for t, m in can.items() if t in ("image", "edit", "video")}),
+             cloud_full=_media_state(provider, {t: m for t, m in can.items() if t in ("image", "edit", "video")})),
         _row("search", "Ricerca nel vault (encoder e riordinatore)", "Vault search (encoder and re-ranker)",
              str(cfg["AURORA_EMBEDDER_DEVICE"]), local=_s("ok"),
              cloud_private=_s("stay", "resta qui: in cloud andrebbe tutto il vault", "stays here: the whole vault would leave"),
              cloud_full=_s("stay", "resta qui (nessuna versione cloud); su CPU bastano 12 GB di RAM",
                            "stays here (no cloud version); on a CPU 12 GB of RAM are enough")),
-        _row("speech", "Dettatura e voce di Aurora", "Dictation and Aurora's voice", "local", local=_s("ok"),
-             cloud_private=_s("stay", "resta qui, sulla CPU", "stays here, on the CPU"),
-             cloud_full=_s("stay", "resta qui (nessuna versione cloud)", "stays here (no cloud version)")),
+        _row("voice", "Voce di Aurora", "Aurora's voice", media["voice"]["provider"],
+             local=_s("ok") if sys_features.check(cfg, "voice_out")["ok"] else _s("warn", "Piper non installata: spenta",
+                                                                                   "Piper not installed: off"),
+             cloud_private=(_s("ok", "testo mascherato, i dati sensibili detti per tipo", "text masked, private data said by kind")
+                            if "voice" in can else _s("no", f"{provider} non ha una voce", f"{provider} has no voice")),
+             cloud_full=(_s("ok", "testo mascherato", "text masked") if "voice" in can
+                         else _s("no", f"{provider} non ha una voce", f"{provider} has no voice"))),
+        _row("speech", "Dettatura e parlato dei video", "Dictation and the speech of videos", media["speech"]["provider"],
+             local=_s("ok") if sys_features.check(cfg, "speech")["ok"] else _s("warn", "Whisper non installato: spenta",
+                                                                                 "Whisper not installed: off"),
+             cloud_private=_s("stay", "resta qui: la tua voce non si può mascherare", "stays here: your voice cannot be masked"),
+             cloud_full=(_s("warn", "la tua voce esce, non mascherata", "your voice leaves, not masked") if "speech" in can
+                         else _s("no", f"{provider} non trascrive", f"{provider} does not transcribe"))),
         _row("private", "Dati privati (salute, configurazione del firewall)", "Private data (health, the firewall's configuration)",
              "local" if local else ("cloud" if consent else "off"),
              local=_s("ok") if local else _s("warn", "nessun modello locale: le funzioni private sono spente",
@@ -180,7 +193,9 @@ def apply(cfg: sys_config.Config, mode: str, provider: str = "", model: str = ""
     if spec["kind"] == "claude_code":
         roles["vision"] = {"provider": "local", "model": ""}       # the CLI sees no pictures
     mdl_router.set_assignments(cfg, roles)
-    can = mdl_media.CAN.get(provider, {})
+    can = dict(mdl_media.CAN.get(provider, {}))
+    if mode == "cloud_private":
+        can.pop("speech", None)                       # the owner's voice cannot be masked: dictation stays here
     mdl_media.set_assignments(cfg, {t: ({"provider": provider, "model": ""} if t in can else {"provider": "local", "model": ""})
                                     for t in mdl_media.TASKS})
     changed = (provider, model) != (str(cfg["AURORA_CLOUD_PROVIDER"]), str(cfg["AURORA_CLOUD_MODEL"] or ""))

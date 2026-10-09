@@ -137,7 +137,11 @@ class PluginHost:
             env[v] = str(self.cfg.values.get(k, "") or "")
         from . import plg_sandbox
         filtered = plg_sandbox.env_file(p.name, p.manifest, self.cfg)    # only this plugin's own secrets
-        if self.cfg["AURORA_PLUGIN_SANDBOX"] and plg_sandbox.available():
+        if self.cfg["AURORA_PLUGIN_SANDBOX"]:
+            if not plg_sandbox.available():
+                # never uncaged because the cage is missing (C226: a container without bubblewrap ran them bare, as
+                # the ports already refuse): the owner may switch the cage off on purpose, never by accident
+                raise RuntimeError("no cage here (bubblewrap is missing): the plugin is not run")
             cmd = plg_sandbox.wrap(cmd, p.folder, p.manifest, filtered, self.cfg)   # inside, .env is the filtered one
         else:
             env["AURORA_ENV_FILE"] = str(filtered)
@@ -155,6 +159,19 @@ class PluginHost:
         finally:
             errlog.close()
 
+    def _gateway(self) -> str:
+        """Aurora in Docker: the plugins run in a container of their own, in their cage (docker/plugins_gateway.py),
+        asked over the internal network (owner, 9 Oct: «per i plugin si crea un docker apposito che farà parte della
+        stessa rete del docker aurora»). The checks stay here: the secrets in the arguments, the approvals."""
+        return os.environ.get("AURORA_PLUGIN_GATEWAY", "").rstrip("/")
+
+    def _remote(self, path: str, body: dict) -> dict:
+        import httpx
+        r = httpx.post(self._gateway() + path, json=body, headers={"Authorization": f"Bearer {self.cfg['AURORA_API_KEY']}"},
+                       timeout=float(self.cfg["AURORA_PLUGIN_TIMEOUT_S"]) + 15)
+        r.raise_for_status()
+        return r.json()
+
     def _run(self, coro):
         return asyncio.run(asyncio.wait_for(coro, self.cfg["AURORA_PLUGIN_TIMEOUT_S"]))
 
@@ -162,6 +179,10 @@ class PluginHost:
         cached = self._cache.get(p.name)
         if cached and cached[0] == mtime:
             return cached[1]
+        if self._gateway():
+            tools = self._remote("/tools", {"plugin": p.name, "user": self.cfg.user})["tools"]
+            self._cache[p.name] = (mtime, tools)
+            return tools
 
         async def work(session):
             res = await session.list_tools()
@@ -199,10 +220,15 @@ class PluginHost:
         async def work(session):
             return await session.call_tool(tool, args or {})
         try:
-            res = self._run(self._session(p, work))
-            parts = [c.text for c in getattr(res, "content", []) if getattr(c, "type", "") == "text"]
-            ok = not getattr(res, "is_error", False)
-            text = "\n".join(parts)
+            if self._gateway():
+                out = self._remote("/call", {"plugin": plugin, "user": self.cfg.user, "tool": tool, "args": args or {},
+                                             "run_id": run_id})
+                ok, text = bool(out.get("ok")), str(out.get("text", ""))
+            else:
+                res = self._run(self._session(p, work))
+                parts = [c.text for c in getattr(res, "content", []) if getattr(c, "type", "") == "text"]
+                ok = not getattr(res, "is_error", False)
+                text = "\n".join(parts)
         except Exception as e:
             ok, text = False, _explain(e)
         secs = round(time.time() - t0, 2)

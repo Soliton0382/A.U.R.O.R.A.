@@ -121,7 +121,9 @@ export default {
         sel.append(op);
       }
       row.append(el("strong", "", t(`md.media.${task}`)), sel);
-      if (task !== "image" && !m.exempt) row.append(el("span", "muted", t("md.media_photo")));
+      if (["edit", "video"].includes(task) && !m.exempt) row.append(el("span", "muted", t("md.media_photo")));
+      if (task === "speech" && !m.exempt) row.append(el("span", "muted", t("md.media_speech_exempt")));
+      if (task === "voice") row.append(el("span", "muted", t("md.media_voice_masked")));
       return row;
     });
     const save = el("button", "", t("md.save"));

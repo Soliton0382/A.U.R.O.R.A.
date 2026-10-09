@@ -90,3 +90,16 @@ def test_the_owner_s_name_is_put_in_before_masking_so_it_never_leaves(cfg):
     out = MaskedLLM(Inner(), "agent", cfg).complete("You speak with %OWNER%.", "Sono Giacomino", 50)
     assert "Giacomino" not in sent["system"] and "Giacomino" not in sent["user"] and "%OWNER%" not in sent["system"]
     assert out.answer == "Ciao Giacomino"
+
+
+def test_italian_phone_numbers_as_people_write_them():
+    """C225 (9 Oct): «333 1234567», «3331234567», «333-123-4567», «06 12345678» left unmasked toward every cloud call;
+    numbers that are not phones stay as they are."""
+    from aurora.sec_mask import Pseudonymizer
+    m = Pseudonymizer.__new__(Pseudonymizer)
+    m.__dict__.update(to_ph={}, to_val={}, counts=__import__("collections").Counter(), private=[], secrets=[])
+    for phone in ("333 1234567", "3331234567", "333-123-4567", "06 12345678", "0612345678", "+39 333 1234567"):
+        assert phone not in m.mask(f"chiamami al {phone} grazie"), phone
+    for keep in ("nel 2026 erano 350000 persone", "costa 3.500.000 euro", "ore 10:30 del 09/10/2026", "versione 3.14.4",
+                 "pid 2026196", "arXiv 2104.09864"):
+        assert m.mask(keep) == keep, keep

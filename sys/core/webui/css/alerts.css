@@ -13,6 +13,7 @@
   background: rgba(240, 179, 90, .15); animation: pulse 1.6s ease-in-out infinite; white-space: nowrap; }
 @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .55; transform: scale(1.06); } }
 @media (prefers-reduced-motion: reduce) { .bell, .health-dot.down { animation: none; } }
+.bells { display: inline-flex; gap: .3rem; flex-wrap: wrap; }
 .bell.shield { border-color: var(--warn); }
 .bell.shield.high { border-color: var(--bad); color: #ffb0b0; background: rgba(239, 107, 107, .18); }
 .notif-toggle { font-size: 1rem; padding: .1rem .35rem; border-radius: 999px; background: transparent; border-color: transparent; opacity: .6; cursor: pointer; }

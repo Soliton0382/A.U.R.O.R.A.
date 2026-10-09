@@ -168,6 +168,7 @@ def test_other_ports_are_checked_then_used_and_a_failure_puts_everything_back(ht
         busy.listen()
         with pytest.raises(net_https.HttpsError, match="already used"):
             net_https.set_ports(cfg, busy.getsockname()[1], 8080)
+    monkeypatch.setattr(net_https, "_in_use", lambda port: False)   # the next ports may be taken on the suite's machine
     out = net_https.set_ports(cfg, 8443, 8080)
     assert out["changed"] and out["urls"] == ["https://aurora.example.com:8443/"] and restarts == [1]
     assert (net_https.fresh(cfg)["AURORA_HTTPS_PORT"], net_https.fresh(cfg)["AURORA_HTTP_PORT"]) == (8443, 8080)
@@ -180,7 +181,6 @@ def test_other_ports_are_checked_then_used_and_a_failure_puts_everything_back(ht
     with pytest.raises(net_https.HttpsError, match="install.sh"):
         net_https.set_ports(cfg, 443, 80)
     unit.write_text("[Service]\nAmbientCapabilities=CAP_NET_BIND_SERVICE\n", encoding="utf-8")
-    monkeypatch.setattr(net_https, "_in_use", lambda p: False)       # 80 may be taken on the machine running the suite
     assert net_https.set_ports(cfg, 8444, 80)["changed"]               # allowed now
     assert net_https.set_ports(cfg, 8443, 8080)["changed"]
     # Caddy refuses the new ports: settings and Caddyfile as they were
@@ -191,3 +191,30 @@ def test_other_ports_are_checked_then_used_and_a_failure_puts_everything_back(ht
     assert calls[n:].count(["systemctl", "restart", "aurora-https"]) == 2      # started again on the old file
     assert net_https.fresh(cfg)["AURORA_HTTPS_PORT"] == 8443 and restarts == [1, 1, 1]   # no restart for the refused one
     assert "aurora.example.com:8443 {" in net_https.caddyfile(cfg).read_text(encoding="utf-8")
+
+
+def test_settings_refuse_an_api_port_as_the_https_port(https):
+    """C227 (owner, 9 Oct): «dalla pagina web ho messo come porta caddy la 9700 … non raggiungo aurora». Settings now
+    go through the 🔒 page's checks."""
+    cfg, _, _ = https
+    with pytest.raises(net_https.HttpsError, match="Aurora's own"):
+        net_https.check_ports(cfg, int(cfg["AURORA_API_PORT"]), 80)
+    with pytest.raises(net_https.HttpsError, match="different"):
+        net_https.check_ports(cfg, 443, 443)
+
+
+def test_caddy_follows_the_env_even_when_the_number_did_not_change(https, monkeypatch):
+    """C228 (owner, 9 Oct): the .env said 8443 (written by hand) and Caddy still listened on 32443; asking 8443 again
+    answered «no change» and left Caddy there. Now Caddy is written and restarted whenever its file is not the .env's."""
+    cfg, calls, _ = https
+    monkeypatch.setattr(net_https, "restart_api_later", lambda: None)
+    monkeypatch.setattr(net_https, "_in_use", lambda port: False)
+    from aurora import sys_config
+    sys_config.write_env(cfg.env_file, {"AURORA_HTTPS_PORT": "8443"})             # by hand: Caddy never told
+    net_https.caddyfile(cfg).parent.mkdir(parents=True, exist_ok=True)
+    net_https.caddyfile(cfg).write_text("old file on 32443", encoding="utf-8")
+    out = net_https.set_ports(cfg, 8443, 80)
+    assert out["changed"] and "aurora.example.com:8443 {" in net_https.caddyfile(cfg).read_text(encoding="utf-8")
+    assert ["systemctl", "restart", "aurora-https"] in calls
+    n = len(calls)
+    assert net_https.set_ports(cfg, 8443, 80)["changed"] is False and len(calls) == n          # aligned: nothing to do

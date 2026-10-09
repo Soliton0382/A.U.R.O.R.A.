@@ -67,6 +67,10 @@ $os = Get-CimInstance Win32_OperatingSystem
 if (-not [Environment]::Is64BitOperatingSystem -or [int]$os.BuildNumber -lt 19041) { Die "Windows 10 2004+ / 11 x64" }
 Ok "$($os.Caption) $($os.Version)"
 if (-not (Test-Path (Join-Path $Here "build.py"))) { Die (T "lancia install.ps1 dalla cartella Aurora_windows del download" "run install.ps1 from the Aurora_windows folder of the download") }
+# Windows does not tell C:\aurora from C:\Aurora: the download and the installation must be two folders
+if ([IO.Path]::GetFullPath($Root).TrimEnd('\') -ieq [IO.Path]::GetFullPath($Repo).TrimEnd('\')) {
+    Die "$(T 'il download è già in' 'the download is already in') ${Root}: $(T 'spostalo (es. in Download) o usa -Root' 'move it (e.g. to Downloads) or use -Root')"
+}
 $drive = Get-PSDrive ($Root.Substring(0, 1))
 $Free = [int][math]::Floor($drive.Free / 1GB)
 Ok "$(T 'spazio libero' 'free space'): $Free GB"
@@ -150,7 +154,16 @@ else {
               if (-not $Domain) { Die (T "nome vuoto" "empty name") } }
         default { $Reach = "1" }
     }
+    $CertFile = ""; $KeyFile = ""
+    if ($Reach -eq "3" -and (YesNo "$(T 'Hai un tuo certificato per' 'Do you have your own certificate for') ${Domain}?" "n")) {
+        $CertFile = Ask (T "file del certificato (fullchain)" "certificate file (fullchain)") ""
+        $KeyFile = Ask (T "file della chiave privata" "private key file") ""
+        if (-not (Test-Path $CertFile) -or -not (Test-Path $KeyFile)) { Die (T "certificato o chiave non leggibili" "certificate or key not readable") }
+    }
     $Port = Ask (T "Porta HTTPS" "HTTPS port") "443" "PORT"
+    # the HTTP port: the phones' certificate and the redirect to HTTPS; another web server on 443 likely has 80 too
+    $HPort = Ask (T "Porta HTTP (certificato per i telefoni, rimando all'HTTPS)" "HTTP port (the phones' certificate, redirect to HTTPS)") $(if ($Port -eq "443") { "80" } else { "8080" }) "HTTP_PORT"
+    if ($HPort -eq $Port) { Die (T "le due porte devono essere diverse" "the two ports must differ") }
     Write-Host ""
     Write-Host "  $(T 'Ragionatore cloud. Cosa esce da questo computer: le domande, i passaggi dei documenti che servono alla risposta, la conversazione recente.' 'Cloud reasoner. What leaves this computer: the questions, the passages of the documents an answer needs, the recent conversation.')"
     Write-Host "  $(T 'Prima di uscire ogni testo è mascherato: email, telefoni, IBAN, carte, codice fiscale, partita IVA, targhe, indirizzi, IP, chiavi e password, il tuo nome e le parole che indicherai sono sostituiti da segnaposto e rimessi nella risposta.' 'Before leaving every text is masked: e-mails, phones, IBANs, cards, tax codes, VAT numbers, plates, addresses, IPs, keys and passwords, your name and the words you list are replaced by placeholders and put back in the answer.')"
@@ -256,7 +269,7 @@ if (-not $Fresh) {
     $svcUser = ($env:USERNAME.ToLower() -replace '[^a-z0-9._-]', '-').Trim('.')        # a folder name: usr\<name>
     $sets = @("AURORA_ROOT=$($Root -replace '\\', '/')", "AURORA_OWNER_NAME=$OwnerName", "AURORA_ASSISTANT_NAME=$AName",
               "AURORA_PERSONALITY=$Persona", "AURORA_ASSISTANT_GENDER=$AGender", "AURORA_LANG_DEFAULT=$ULang",
-              "AURORA_DOMAIN=$Domain", "AURORA_HTTPS_PORT=$Port", "AURORA_TLS_MODE=internal", "AURORA_UPDATE_MODE=notify",
+              "AURORA_DOMAIN=$Domain", "AURORA_HTTPS_PORT=$Port", "AURORA_HTTP_PORT=$HPort", "AURORA_TLS_MODE=internal", "AURORA_UPDATE_MODE=notify",
               "AURORA_SERVICE_USER=$svcUser", "AURORA_USER_MODE=$UMode", "AURORA_DOMAIN_ALIASES=$Aliases",
               "AURORA_HARVEST_ENABLED=$Harvest", "AURORA_LLM_BACKEND=cloud", "AURORA_CLOUD_PROVIDER=$Provider",
               "AURORA_CLOUD_MODEL=$CModel", "AURORA_CADDY_BIN=$($Caddy -replace '\\', '/')", "AURORA_TTS=0")
@@ -278,6 +291,11 @@ Py -c "import sys; sys.path.insert(0, 'sys/core'); from aurora import sys_config
 # Aurora's folder: its owner, SYSTEM and the Administrators only (C:\ lets every user read by default)
 Py -c "import sys; sys.path.insert(0, 'sys/core'); from pathlib import Path; from aurora import sys_platform; sys_platform.current().make_private(Path(r'$Root'))"
 Ok (T ".env valido; la cartella è leggibile solo da te e dagli amministratori" ".env valid; the folder is readable by you and the administrators only")
+if ($Fresh -and $CertFile) {
+    $env:AURORA_INSTALL_CERT = $CertFile; $env:AURORA_INSTALL_KEY = $KeyFile
+    Py -c "import os, sys; sys.path.insert(0, 'sys/core'); from pathlib import Path; from aurora import net_https, sys_config; c = sys_config.get(); info = net_https.check_pair(Path(os.environ['AURORA_INSTALL_CERT']).read_bytes(), Path(os.environ['AURORA_INSTALL_KEY']).read_bytes(), str(c['AURORA_DOMAIN'])); [net_https._write_private(c.path(k), Path(os.environ[e]).read_bytes()) for k, e in (('AURORA_TLS_CERT', 'AURORA_INSTALL_CERT'), ('AURORA_TLS_KEY', 'AURORA_INSTALL_KEY'))]; sys_config.write_env(c.env_file, {'AURORA_TLS_MODE': 'files'}); print(info['names'])"
+    Ok (T "il tuo certificato è in uso" "your certificate is in use")
+}
 $status = (PyOut -c "import sys; sys.path.insert(0, 'sys/core'); from aurora import sys_config; print(sys_config.get().path('AURORA_STATUS_DIR'))") | Select-Object -Last 1
 if (-not (Test-Path (Join-Path $status "users_layout.json"))) {
     & $VPy -X utf8 sys\core\script\sys_users_migrate.py migrate --yes --fresh | Out-Null
