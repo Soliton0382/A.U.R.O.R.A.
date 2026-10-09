@@ -1471,5 +1471,7 @@
   "mm.reasoner_on": "Local reasoner on (GPU in use)",
   "mm.reasoner_off": "Local reasoner off (GPU free)",
   "mm.turn_off": "Switch the local reasoner off",
-  "mm.turn_on": "Switch the local reasoner on"
+  "mm.turn_on": "Switch the local reasoner on",
+  "bug.not_sent": "It has not been sent to anyone yet: it stays on this computer. To get it there, download the zip (⬇️) and send it to whoever looks after your Aurora, or open a GitHub issue (🐙) and attach it.",
+  "bug.past_hint": "They stay on this computer until you send them: tap a report to download it."
 }

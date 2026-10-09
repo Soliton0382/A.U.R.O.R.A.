@@ -1471,5 +1471,7 @@
   "mm.reasoner_on": "Ragionatore locale acceso (GPU in uso)",
   "mm.reasoner_off": "Ragionatore locale spento (GPU libera)",
   "mm.turn_off": "Spegni il ragionatore locale",
-  "mm.turn_on": "Riaccendi il ragionatore locale"
+  "mm.turn_on": "Riaccendi il ragionatore locale",
+  "bug.not_sent": "Non è ancora stato inviato a nessuno: resta su questo computer. Per farlo arrivare scarica lo zip (⬇️) e mandalo a chi segue la tua Aurora, oppure apri una issue su GitHub (🐙) e allegalo.",
+  "bug.past_hint": "Restano su questo computer finché non li mandi tu: tocca un report per scaricarlo."
 }

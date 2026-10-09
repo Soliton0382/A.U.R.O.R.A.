@@ -252,6 +252,12 @@ def main() -> int:
     }
     if cloud:
         del units["aurora-llm"]
+        # no GPU: the encoder and the harvest run on the CPU, which is also the owner's desktop (a colleague's
+        # aurora-models at 187 %, 9 Oct; 189 CPU-minutes in one hour of harvest, M152) — they take what is idle and
+        # give way at once to whatever the owner is doing; a question still gets the cores when the machine is free
+        for name in ("aurora-models", "aurora-harvester"):
+            desc, after, exec_, extra = units[name]
+            units[name] = (desc, after, exec_, extra + "Nice=10\nCPUWeight=20\nIOSchedulingClass=idle\n")
     out = root / "sys" / "deploy" / "systemd"
     out.mkdir(parents=True, exist_ok=True)
     stale = out / "aurora-llm.service"

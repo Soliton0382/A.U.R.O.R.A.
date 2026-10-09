@@ -15,7 +15,7 @@ tools). The Linux code stays the only truth: `build.py` applies the 77 rewrites 
 | 1 ✅ | Interface + Linux reference + Windows backend; build.py | Linux tests against the real machine; Windows tests with recorded outputs |
 | 2 ✅ | REWRITES: each Linux call site below goes through `sys_platform.current()`, one area at a time | The Linux suite unchanged on the built tree; the Windows tests |
 | 2b ✅ | On a real Windows (8 Oct): the Ports workflow (windows-latest, x64) — build, requirements from PyPI, platform tests, `probe.py` (37 checks: each read of the backend called; a socket of ours listening, a lock stopping another process, a system folder the administrators', a file replaced while read, accents through run()), the Linux suite for information | Linux reference: 37 checks, 27 ok, 0 failed, 10 info; on Windows: the workflow's first run |
-| 3 | Installer (PowerShell): Python, venv, llama.cpp CUDA build, Caddy, ffmpeg, the tasks, the ACLs, the key | A Windows runner on GitHub Actions (windows-latest): install, start, health, tests |
+| 3 🔨 | Installer (PowerShell): Python, venv, Caddy, ffmpeg, the tasks, the ACLs, the key — **cloud reasoner done** (9 Oct, `install.ps1` + `sys_install_tasks.py`, on a real Windows 11 VM: fresh install and update); llama.cpp CUDA build left | The owner's Windows 11 VM (2 vCPU, 15.6 GB): unattended install, six tasks, HTTPS trusted by the system, a masked question through a stand-in provider |
 | 4 | Cage for plugins and projects; the host firewall | Research first (AppContainer / Job objects); until then neither runs |
 | 5 | The owner's real machine (if one appears) or the runner only | — |
 
@@ -130,3 +130,33 @@ was on (GUARDS). **Done 8 Oct (the owner's «A»):** an AppContainer per plugin 
 
 The whole Linux suite runs on the built tree in the Ports workflow; what fails there is the work, read from the
 machine and not guessed. The run's public notices name each failed test and its reason.
+
+## Phase 3 — the cloud installer on a real Windows 11 (2026-10-09)
+
+`Aurora_windows\install.ps1` (run as administrator from the download): winget (Python 3.14, VC++ runtime, FFmpeg,
+Poppler, Caddy), build.py into %TEMP% and the code copied over C:\Aurora (robocopy without /PURGE: .env and the data
+never touched), venv from requirements.txt, the cloud model listed and tried, the profile, .env, the folder's ACL
+(owner, SYSTEM, Administrators), the models, the key in %ProgramData%\Aurora\keys and the signature, six scheduled
+tasks (`sys_install_tasks.py`), Caddy's root in LocalMachine\Root, the firewall rule for the home network.
+
+What a real Windows taught, each fixed:
+
+| Found | Fix |
+|---|---|
+| winget absent for a user never signed in on the desktop; then «Data required by the source is missing» | Add-AppxPackage -RegisterByFamilyName; the catalogue source2.msix added |
+| torch: WinError 1114 loading c10.dll | Microsoft.VCRedist.2015+.x64 installed first |
+| 49 tests failing, 12 of them cp1252 reading Aurora's UTF-8 texts | every service and script run with `python -X utf8` (37 left: listed for the next step) |
+| `claude` (npm's claude.cmd) not found: WinError 2 | C218: mdl_cloud resolves it with shutil.which |
+| sys_profile: os.sysconf missing | rewrite: psutil |
+| sys_ethics_sign: geteuid, chown, /etc/aurora | rewrites: is_admin, guard_key_folder / guard_key_files (ACLs by SID) |
+| the encoder refused to start: «permissions not readable» — PowerShell past 30 s with six services starting on 2 cores | the ACL read waits 90 s and tries twice |
+| Task Scheduler restarts a task only when it fails to start, never when its program ends | a trigger every minute (IgnoreNew): a fallen service is back within 60 s; stop = Stop + Disable, start = Enable + Start |
+| an update left the old code running (a running task ignores a start) | the installer restarts the tasks |
+| `caddy trust`: «Richiesta non supportata» (the user's store wants a confirmation window) | the root read from Caddy's admin API and imported into LocalMachine\Root |
+| `a,b` unquoted is an array in PowerShell | quoted |
+| Refresh-Path dropped this window's own path | appended, not replaced |
+| curl (schannel) refuses Caddy's root: no revocation list | not Aurora's: browsers accept it; `curl --ssl-no-revoke` |
+| a question waited 10+ minutes behind a harvested document | C219 (all systems): the owner's requests first in aurora-models |
+
+Not yet: the local reasoner (llama.cpp CUDA), Piper's voice, the GitHub plugin's program, a Windows lock file with
+hashes (requirements.txt today), plugins (the AppContainer cage is written, not tried here), the 37 tests.

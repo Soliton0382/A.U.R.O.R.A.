@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import base64
 import json
+import shutil
 import subprocess
 import time
 from typing import Iterator
@@ -48,7 +49,9 @@ class ClaudeCodeLLM:
 
     def __init__(self, cfg: sys_config.Config | None = None, model: str | None = None):
         self.cfg = cfg or sys_config.get()
-        self.bin = str(self.cfg["AURORA_CLAUDE_CODE_BIN"])
+        # resolved here: on Windows a bare «claude» is only looked for as claude.exe, and npm installs claude.cmd
+        # (found on a real Windows, 9 Oct: WinError 2); shutil.which follows PATHEXT there, and is the same path on Linux
+        self.bin = shutil.which(str(self.cfg["AURORA_CLAUDE_CODE_BIN"])) or str(self.cfg["AURORA_CLAUDE_CODE_BIN"])
         self.model = model or self.cfg["AURORA_CLAUDE_CODE_MODEL"]
         self.cwd = self.cfg.path("AURORA_STATUS_DIR") / "claude_code"      # empty: no project instructions
         self.cwd.mkdir(parents=True, exist_ok=True)

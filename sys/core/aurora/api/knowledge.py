@@ -17,7 +17,7 @@ from aurora import sys_config, sys_features
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse
 
-from .core import _run_lock, _state, auth, cfg, log, note, pipeline, start_run
+from .core import _run_lock, _state, _write_lock, auth, cfg, log, note, pipeline, start_run
 
 from .users import admin_only  # noqa: E402
 
@@ -34,7 +34,7 @@ def domains() -> list[dict]:
 def _import(name: str, data: bytes, domain: str, title: str, origin: str = "upload", meta: dict | None = None) -> dict:
     from aurora.kno_ingest import Importer
     p = pipeline()
-    with _run_lock:                                   # vault and index have one writer: this process
+    with _write_lock:                                 # one import at a time; the answers go on (C219)
         rep = Importer(p.writer, p.indexer, cfg, llm=p.llm).add(name, data, domain, title, origin=origin, meta=meta)
     return {"name": rep.name, "source_id": rep.source_id, "domain": rep.domain, "chunks": rep.chunks,
             "written": rep.written, "duplicates": rep.duplicates, "rejected": rep.rejected, "indexed": rep.indexed}
@@ -68,7 +68,7 @@ def _add_solitons(items: list[dict]) -> dict:
     sols = [Soliton.new(x["text"], x["domain"], "knowledge", x.get("lang") or "en", x["source_id"], x.get("title", ""),
                         chunk_index=int(x.get("chunk_index", 0)), chunk_count=int(x.get("chunk_count", 1)),
                         extra=x.get("extra") or {}) for x in items]
-    with _run_lock:                                   # vault and index have one writer: this process
+    with _write_lock:                                 # one import at a time; the answers go on (C219)
         rep = p.writer.add_many(sols)
         indexed = {d: p.indexer.update(d) for d in sorted({s.domain for s in sols})} if rep.written else {}
     return {"received": len(items), "written": len(rep.written), "duplicates": len(rep.duplicates),

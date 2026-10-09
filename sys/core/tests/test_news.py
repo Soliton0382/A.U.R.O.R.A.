@@ -1,18 +1,22 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2026 A.U.R.O.R.A. Project
 import importlib.util
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 spec = importlib.util.spec_from_file_location("news", Path(__file__).resolve().parents[2] / "plugins" / "news" / "server.py")
 N = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(N)
 
+# the stories are a day old whenever the suite runs (written with 2 Oct 2026, they fell out of «the last 168 hours» on
+# 9 Oct at 10:00 GMT and the test failed with nothing changed)
+DAY = (datetime.now(timezone.utc) - timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
 RSS = b"""<?xml version="1.0"?><rss><channel>
-<item><title>Nuova cometa &amp; altro</title><link>https://example.org/a</link><description>&lt;p&gt;Vista da &lt;b&gt;ESA&lt;/b&gt;&lt;/p&gt;</description><pubDate>Fri, 02 Oct 2026 10:00:00 GMT</pubDate></item>
+<item><title>Nuova cometa &amp; altro</title><link>https://example.org/a</link><description>&lt;p&gt;Vista da &lt;b&gt;ESA&lt;/b&gt;&lt;/p&gt;</description><pubDate>%s</pubDate></item>
 <item><title>Senza link valido</title><link>javascript:alert(1)</link></item>
-</channel></rss>"""
+</channel></rss>""" % DAY.strftime("%a, %d %b %Y %H:%M:%S GMT").encode()
 ATOM = b"""<feed xmlns="http://www.w3.org/2005/Atom"><entry><title>Nuova cometa &amp; altro</title>
-<link href="https://example.org/b"/><updated>2026-10-02T11:00:00Z</updated><summary>stessa notizia</summary></entry></feed>"""
+<link href="https://example.org/b"/><updated>%s</updated><summary>stessa notizia</summary></entry></feed>""" % (DAY + timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ").encode()
 
 
 class R:

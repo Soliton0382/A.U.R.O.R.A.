@@ -13,6 +13,7 @@ API so that a crash of a model cannot take the API down.
 from __future__ import annotations
 
 import gc
+import heapq
 import os
 import sys
 import threading
@@ -49,16 +50,57 @@ def give_back() -> None:
                 torch.cuda.empty_cache()
 
 
-_gpu = threading.Lock()
+class Turns:
+    """One request on the device at a time, the owner's first: a question waiting (its encoding, its re-ranking) goes
+    before the next slice of a harvested document (C219, 9 Oct: on a CPU a 43-passage import held the only lock for
+    minutes and a question waited behind it until its 10-minute timeout)."""
+
+    def __init__(self):
+        self._cond = threading.Condition()
+        self._busy = False
+        self._waiting: list[tuple[int, int]] = []     # heap of (0 a question | 1 the rest, ticket)
+        self._ticket = 0
+
+    def take(self, urgent: bool) -> None:
+        """In order of arrival, questions first: the next slice of a long batch takes a new ticket, so whoever came
+        meanwhile goes before it (the same Windows: the conversation's memory, 2 passages, waited behind a 300-passage
+        import until its timeout — the import's thread took the turn back the instant it gave it)."""
+        with self._cond:
+            me = (0 if urgent else 1, self._ticket)
+            self._ticket += 1
+            heapq.heappush(self._waiting, me)
+            while self._busy or self._waiting[0] != me:
+                self._cond.wait()
+            heapq.heappop(self._waiting)
+            self._busy = True
+
+    def give(self) -> None:
+        with self._cond:
+            self._busy = False
+            self._cond.notify_all()
 
 
-def shrinking(owner, fn, items):
+_gpu = Turns()
+
+
+def shrinking(owner, fn, items, urgent: bool = True):
+    """fn(items), the owner's question first (Turns). A document batch goes slice by slice (the model's batch): between
+    two slices a waiting question takes the device."""
+    if urgent or len(items) <= max(1, owner.batch):
+        return _one(owner, fn, items, urgent)
+    import numpy as np
+    step = max(1, owner.batch)
+    return np.concatenate([_one(owner, fn, items[i:i + step], False) for i in range(0, len(items), step)])
+
+
+def _one(owner, fn, items, urgent: bool):
     """fn(items) with the model's batch halved on CUDA out of memory, down to 1 (C197, 8 Oct: the harvester's batches
     of 8 long chunks ran out of memory beside the reasoner, the service answered 500 every 5 s and the failed batch's
     tensors stayed held by the exception — 5.7 GB allocated while idle). One request on the GPU at a time: two batches
     together were twice the peak."""
     import torch
-    with _gpu:
+    _gpu.take(urgent)
+    try:
         batch = owner.batch
         try:
             while True:
@@ -81,6 +123,8 @@ def shrinking(owner, fn, items):
             if sys.exc_info()[0] is not None:        # it failed even with batch 1: give the memory back anyway
                 gc.collect()
                 give_back()
+    finally:
+        _gpu.give()
 
 
 class EmbedIn(BaseModel):
@@ -108,7 +152,8 @@ def health() -> dict:
 def embed(body: EmbedIn) -> dict:
     t0 = time.time()
     e = state["embedder"]
-    v = shrinking(e, e.encode_queries if body.kind == "queries" else e.encode_documents, body.texts)
+    queries = body.kind == "queries"
+    v = shrinking(e, e.encode_queries if queries else e.encode_documents, body.texts, urgent=queries)
     give_back()
     log.debug("embed %s: %d texts in %.2f s", body.kind, len(body.texts), time.time() - t0)
     return {"vectors": v.astype("float32").tolist(), "dim": e.dim, "encoder": e.name}

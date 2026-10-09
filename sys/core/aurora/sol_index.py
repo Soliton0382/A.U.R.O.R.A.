@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import json
 import os
+import threading
 import time
 import weakref
 from dataclasses import dataclass
@@ -35,6 +36,15 @@ from .sol_reader import VaultReader
 
 SID_BYTES = 32
 BATCH = 256
+# one writer per domain's index in this process: an import of the harvest and a run that acquires sources may index
+# the same domain at once (C219: imports no longer wait for the answers' lock); two appends would interleave
+_folder_locks: dict[Path, threading.Lock] = {}
+_folder_locks_guard = threading.Lock()
+
+
+def _writing(folder: Path) -> threading.Lock:
+    with _folder_locks_guard:
+        return _folder_locks.setdefault(folder, threading.Lock())
 
 
 class Encoder(Protocol):
@@ -106,6 +116,10 @@ class Indexer:
 
     def update(self, domain: str, extend_hnsw: bool = True, run_id: str | None = None) -> int:
         """Index the solitons of `domain` not indexed yet. Returns how many were added."""
+        with _writing(self.files(domain).folder):
+            return self._update(domain, extend_hnsw, run_id)
+
+    def _update(self, domain: str, extend_hnsw: bool, run_id: str | None) -> int:
         f = self.files(domain)
         f.folder.mkdir(parents=True, exist_ok=True)
         dim = self.encoder.dim
@@ -189,6 +203,10 @@ class Indexer:
 
         Vectors and sids are rewritten without those rows; the HNSW graph (which cannot delete)
         is built again from the kept vectors. Returns how many rows were removed."""
+        with _writing(self.files(domain).folder):
+            return self._drop(domain, sids)
+
+    def _drop(self, domain: str, sids: Iterable[str]) -> int:
         f = self.files(domain)
         m = f.read_manifest()
         drop = set(sids)

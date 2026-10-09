@@ -793,4 +793,60 @@ REQUIREMENTS = [
      "requirements: tzdata on Windows, where Python finds no time zone without it"),
 ]
 
-REWRITES = SERVICES + LOCKS + METRICS + DEVICES + FILES + GUARDS + HINTS + MORE + NETWORK + WORDS + PATHS + REQUIREMENTS + TESTS
+# phase 3: the scripts the installers run (sys_ethics_sign makes and uses the key, sys_doctor reads the services)
+INSTALLER = [
+    ("sys/core/script/sys_ethics_sign.py",
+     """    if os.geteuid() == 0:
+        st = sys_ethics.CODE_ROOT.stat()""",
+     """    if hasattr(os, "geteuid") and os.geteuid() == 0:   # Windows: the folder's ACL already lets the owner read
+        st = sys_ethics.CODE_ROOT.stat()""",
+     "sys_ethics_sign.give_back: files handed back to the owner where there is a root"),
+    ("sys/core/script/sys_ethics_sign.py",
+     """    os.chown(private.parent, 0, 0)
+    os.chmod(private.parent, 0o755)""",
+     f"""    {P}
+    sys_platform.current().guard_key_folder(private.parent)""",
+     "sys_ethics_sign.keygen: the key's folder the administrator's"),
+    ("sys/core/script/sys_ethics_sign.py",
+     """    for f in (private, public):
+        os.chown(f, 0, 0)
+    os.chmod(public, 0o644)""",
+     """    sys_platform.current().guard_key_files(private, public)""",
+     "sys_ethics_sign.keygen: the private half the administrator's only, the public half readable"),
+    ("sys/core/script/sys_ethics_sign.py",
+     """    if os.geteuid() != 0:
+        ap.error("run with sudo: the key lives in /etc/aurora and only root may use it")""",
+     f"""    {P}
+    if not sys_platform.current().is_admin():
+        ap.error(f"run as the administrator: the key lives in {{sys_ethics.KEY_DIR}} and only the administrator may use it")""",
+     "sys_ethics_sign: the administrator, this system's way"),
+    ("sys/core/script/sys_doctor.py",
+     """ROOT = Path(__file__).resolve().parents[3]""",
+     """ROOT = Path(__file__).resolve().parents[3]
+from aurora import sys_platform  # noqa: E402
+PLAT = sys_platform.current()""",
+     "sys_doctor: this system's commands"),
+    ("sys/core/script/sys_doctor.py",
+     """         f"sudo .venv/bin/python sys/core/script/sys_ethics_sign.py {'setup' if first else 'sign'}\"""",
+     """         PLAT.as_admin(f"{PLAT.venv_python(Path('.venv'))} sys/core/script/sys_ethics_sign.py {'setup' if first else 'sign'}")""",
+     "sys_doctor: the signing command, this system's way"),
+    ("sys/core/script/sys_doctor.py",
+     """        st = subprocess.run(["systemctl", "is-active", u], capture_output=True, text=True).stdout.strip() or "?"
+        cmd = subprocess.run(["systemctl", "show", "-p", "ExecStart", u], capture_output=True, text=True).stdout
+        if st == "active" and str(ROOT) + "/" not in cmd:""",
+     """        st = PLAT.service_state(u)
+        cmd = PLAT.service_command(u)
+        if st == "active" and str(ROOT) not in cmd:""",
+     "sys_doctor: each service's state and command (systemd units, scheduled tasks)"),
+    ("sys/core/script/sys_doctor.py",
+     """        line("✅" if st == "active" else "⚪" if st in ("inactive", "unknown") else "⛔", f"{u}: {st}")""",
+     """        line("✅" if st == "active" else "⚪" if st in ("inactive", "unknown", "missing") else "⛔", f"{u}: {st}")""",
+     "sys_doctor: a service not installed is not a failure"),
+    ("sys/core/script/sys_profile.py",
+     """    return round(os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") / 2**30, 1)""",
+     """    import psutil                                         # Windows has no sysconf (a real Windows, 9 Oct)
+    return round(psutil.virtual_memory().total / 2**30, 1)""",
+     "sys_profile: the RAM, this system's way"),
+]
+
+REWRITES = SERVICES + LOCKS + METRICS + DEVICES + FILES + GUARDS + HINTS + MORE + NETWORK + WORDS + PATHS + REQUIREMENTS + INSTALLER + TESTS

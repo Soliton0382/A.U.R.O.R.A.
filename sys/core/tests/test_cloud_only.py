@@ -93,6 +93,10 @@ def test_no_aurora_llm_unit_on_a_cloud_machine(cloud_cfg, monkeypatch, tmp_path)
     assert "aurora-llm" not in (out / "aurora-api.service").read_text(encoding="utf-8")
     assert "aurora-llm" not in (out / "aurora.target").read_text(encoding="utf-8")
     assert "aurora-llm" not in (out / "install.sh").read_text(encoding="utf-8")
+    # the CPU is the owner's desktop too: encoder and harvest give way (a colleague's aurora-models at 187 %)
+    for unit in ("aurora-models", "aurora-harvester"):
+        assert "Nice=10" in (out / f"{unit}.service").read_text(encoding="utf-8")
+    assert "Nice=" not in (out / "aurora-api.service").read_text(encoding="utf-8")
 
 
 def test_the_profile_without_a_gpu_is_the_cloud_one(monkeypatch):

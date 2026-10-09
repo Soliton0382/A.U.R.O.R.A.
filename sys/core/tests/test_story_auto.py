@@ -155,3 +155,40 @@ print("ok")
     r = subprocess.run([sys.executable, "-c", code], cwd=Path(__file__).resolve().parents[1], capture_output=True,
                        text=True, timeout=300)
     assert r.returncode == 0 and r.stdout.strip().endswith("ok"), r.stderr[-2000:]
+
+
+def test_a_question_goes_before_the_rest_of_a_harvested_batch(cfg):
+    """C219: on a CPU a harvested document held the models' only lock for minutes and the owner's question waited
+    behind it; now the batch goes slice by slice and a waiting question takes the next turn."""
+    import subprocess
+    import sys
+    from pathlib import Path
+    code = f"""
+import sys, threading, time
+from pathlib import Path
+sys.path.insert(0, "."); sys.path.insert(0, "script")
+from aurora import sys_config
+sys_config._cached = sys_config.load(Path({str(cfg.env_file)!r}), check_root=False)
+import numpy as np, svc_models as svc
+order, first_slice = [], threading.Event()
+class Model:
+    batch = 8
+    def encode(self, items):
+        order.append(("docs" if items[0].startswith("d") else "question", len(items)))
+        if items[0] == "d" and len(order) == 1:
+            first_slice.set(); time.sleep(0.5)       # the question arrives while the first slice runs
+        return np.zeros((len(items), 2))
+m = Model()
+docs = threading.Thread(target=lambda: order.append(("done", len(svc.shrinking(m, m.encode, ["d"] * 20, urgent=False)))))
+docs.start(); first_slice.wait()
+small = threading.Thread(target=lambda: svc.shrinking(m, m.encode, ["dm", "dm"], urgent=False))  # a memory to index
+small.start(); time.sleep(0.1)
+assert len(svc.shrinking(m, m.encode, ["q"])) == 1
+docs.join(); small.join()
+# the question first, then the small batch that came before the import's next slice, then the rest of the import
+assert order == [("docs", 8), ("question", 1), ("docs", 2), ("docs", 8), ("docs", 4), ("done", 20)], order
+print("ok")
+"""
+    r = subprocess.run([sys.executable, "-c", code], cwd=Path(__file__).resolve().parents[1], capture_output=True,
+                       text=True, timeout=300)
+    assert r.returncode == 0 and r.stdout.strip().endswith("ok"), r.stderr[-2000:]

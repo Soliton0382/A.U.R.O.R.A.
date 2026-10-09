@@ -11,6 +11,8 @@ import numpy as np
 
 from . import sys_config
 
+DOC_PART = 32
+
 
 class _Client:
     """aurora-models is asked at the first use, not when the client is made: a page that only reads (the chat's
@@ -47,7 +49,12 @@ class RemoteEmbedder(_Client):
         return np.asarray(r.json()["vectors"], dtype=np.float16)
 
     def encode_documents(self, texts: Sequence[str]) -> np.ndarray:
-        return self._embed(texts, "documents")
+        # in parts: on a small CPU one request of the index's 256 passages ran past the 600 s timeout (a real Windows,
+        # 2 cores, 9 Oct) and the whole import was lost; 32 at M151's 1.6 passages/s on 4 cores is 20 s, at a third
+        # of that speed about a minute — and each part is a turn in aurora-models' queue (C219)
+        if len(texts) <= DOC_PART:
+            return self._embed(texts, "documents")
+        return np.concatenate([self._embed(texts[i:i + DOC_PART], "documents") for i in range(0, len(texts), DOC_PART)])
 
     def encode_queries(self, texts: Sequence[str]) -> np.ndarray:
         return self._embed(texts, "queries")

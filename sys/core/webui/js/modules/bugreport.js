@@ -23,7 +23,7 @@ export default {
         <select class="bug-hours"><option value="2">2 h</option><option value="6" selected>6 h</option><option value="24">24 h</option><option value="72">72 h</option></select>
         <button class="bug-make" data-i18n="bug.make"></button></div>
       <div class="bug-out"></div>
-      <h3 class="setting-cat" data-i18n="bug.past"></h3><div class="bug-past"></div>`;
+      <h3 class="setting-cat" data-i18n="bug.past"></h3><p class="muted" data-i18n="bug.past_hint"></p><div class="bug-past"></div>`;
     apply(root);
     this.q = (s) => root.querySelector(s);
     this.q(".bug-make").addEventListener("click", () => this.make());
@@ -68,6 +68,11 @@ export default {
       dl.setAttribute("download", r.name);
       out.replaceChildren(el("p", "", t("bug.done", { n: r.files.length })), el("p", "muted", r.files.join(" · ")),
         el("p", "", t("bug.masked", { what: masked })), el("p", "muted", t("bug.check")), dl);
+      // nothing leaves by itself (the logs are inside): say so, and the two ways to send it (a colleague's report,
+      // 9 Oct 2026, never reached anyone — he thought «Segnala» had sent it)
+      const unsent = el("p", "", `⚠️ ${t("bug.not_sent")}`);
+      unsent.style.color = "var(--warn)";
+      out.append(unsent);
       if (r.issue_url) {
         const gh = el("a", "chip", t("bug.issue"));
         gh.href = r.issue_url;

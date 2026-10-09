@@ -119,8 +119,11 @@ class Windows(Platform):
         last = Result(0)
         for u in units:
             t = _ps_quote(self.task(u))
-            steps = {"start": ["Start"], "stop": ["Stop"], "restart": ["Stop", "Start"]}[verb]
-            script = "; ".join(f"{s}-ScheduledTask -TaskPath '{TASKS}' -TaskName {t} -ErrorAction Stop" for s in steps)
+            # every task is started again each minute (sys_install_tasks: Task Scheduler does not restart a program
+            # that ended): a stop disables it too, so that it stays stopped; a start enables it again
+            steps = {"start": ["Enable", "Start"], "stop": ["Stop", "Disable"], "restart": ["Stop", "Start"]}[verb]
+            script = "; ".join(f"{s}-ScheduledTask -TaskPath '{TASKS}' -TaskName {t} -ErrorAction Stop"
+                               + (" | Out-Null" if s in ("Enable", "Disable") else "") for s in steps)
             last = self._ps(script, timeout)
             if last.code != 0:
                 return last
@@ -194,7 +197,11 @@ class Windows(Platform):
                   "'OWNER|' + $a.GetOwner([System.Security.Principal.SecurityIdentifier]).Value; "
                   "foreach ($r in $a.GetAccessRules($true, $true, [System.Security.Principal.SecurityIdentifier])) "
                   "{ $r.IdentityReference.Value + '|' + [int64][int]$r.FileSystemRights + '|' + $r.AccessControlType + '|' + $r.PropagationFlags }")
-        r = self._ps(script, 30)
+        # PowerShell takes long to start when every service starts at once (a real Windows, 9 Oct: on 2 cores the
+        # encoder's check of the key ran past 30 s and Aurora refused to start it): longer, and once more
+        r = self._ps(script, 90)
+        if r.code != 0:
+            r = self._ps(script, 90)
         if r.code != 0:
             return None
         owner, rules = "", []
@@ -223,6 +230,32 @@ class Windows(Platform):
                 if mask & WRITE_BITS and sid not in ADMIN_SIDS:
                     return False, f"{x} may be changed by {sid}: only SYSTEM and the Administrators may"
         return True, ""
+
+    def _set_acl(self, path: Path, rules: list[tuple[str, str]], inherit: bool) -> None:
+        """Owner the Administrators, no inherited entry, exactly `rules` [(SID, FileSystemRights)] — read as SIDs, never
+        as names (translated in every Windows)."""
+        flags = ("'ContainerInherit,ObjectInherit'", "'None'") if inherit else ("'None'", "'None'")
+        script = (f"$p = {_ps_quote(str(path))}; $a = Get-Acl -LiteralPath $p; "
+                  "$a.SetOwner((New-Object System.Security.Principal.SecurityIdentifier('S-1-5-32-544'))); "
+                  "$a.SetAccessRuleProtection($true, $false); "
+                  "foreach ($r in @($a.Access)) { [void]$a.RemoveAccessRuleAll($r) }; "
+                  + "".join("$a.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule("
+                            f"(New-Object System.Security.Principal.SecurityIdentifier('{sid}')), '{rights}', "
+                            f"{flags[0]}, {flags[1]}, 'Allow'))); " for sid, rights in rules)
+                  + "Set-Acl -LiteralPath $p -AclObject $a")
+        r = self._ps(script, 60)
+        if r.code != 0:
+            raise RuntimeError(f"Set-Acl {path}: {(r.out + r.err).strip()[-300:]}")
+
+    def guard_key_folder(self, folder: Path) -> None:
+        # SYSTEM and the Administrators change it; Users (S-1-5-32-545) only read: the services trust the public half
+        self._set_acl(folder, [("S-1-5-18", "FullControl"), ("S-1-5-32-544", "FullControl"),
+                               ("S-1-5-32-545", "ReadAndExecute")], inherit=True)
+
+    def guard_key_files(self, private: Path, public: Path) -> None:
+        admin = [("S-1-5-18", "FullControl"), ("S-1-5-32-544", "FullControl")]
+        self._set_acl(private, admin, inherit=False)                           # never readable by the services
+        self._set_acl(public, admin + [("S-1-5-32-545", "Read")], inherit=False)
 
     def _me(self) -> str:
         r = self._ps("[System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value", 30)

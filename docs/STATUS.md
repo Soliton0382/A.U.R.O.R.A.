@@ -1,6 +1,6 @@
 # Status — work in progress
 
-Updated at every validated change (last: 2026-10-09). Details: BUGS.md (issues, 0 open / 215 closed),
+Updated at every validated change (last: 2026-10-09). Details: BUGS.md (issues, 0 open / 220 closed),
 MANUAL_TESTS.md (what the owner checks by hand),
 TESTS.md (tests and live checks), MEASUREMENTS.md (numbers), MODULE_MAP.md (who does what),
 SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSYSTEM.md (design and decisions).

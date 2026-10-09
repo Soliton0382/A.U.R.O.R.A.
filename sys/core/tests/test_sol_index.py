@@ -76,6 +76,29 @@ def test_update_is_incremental(cfg):
     assert ix.update("physics") == 0
 
 
+def test_two_updates_of_one_domain_at_once_index_each_passage_once(cfg):
+    """C219: an import no longer waits for the answers' lock, so a run that acquires sources and the harvest may index
+    the same domain together; the domain's own lock keeps them in turn (each passage once, the manifest right)."""
+    import threading
+    import time
+    VaultWriter(cfg).add_many([doc(i) for i in range(12)])
+
+    class Slow(FakeEncoder):
+        def encode_documents(self, texts):
+            time.sleep(0.2)                              # both threads inside update at the same moment
+            return super().encode_documents(texts)
+    enc = Slow()
+    added = []
+    threads = [threading.Thread(target=lambda: added.append(Indexer(enc, cfg).update("physics"))) for _ in range(2)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert sorted(added) == [0, 12] and enc.encoded == 12
+    m = Indexer(enc, cfg).files("physics").read_manifest()
+    assert m["count"] == 12
+
+
 def test_leftovers_of_an_interrupted_update_are_cut(cfg):
     VaultWriter(cfg).add_many([doc(i) for i in range(4)])
     ix = Indexer(FakeEncoder(), cfg)

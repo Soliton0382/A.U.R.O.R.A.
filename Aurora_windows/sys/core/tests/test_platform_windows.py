@@ -72,6 +72,12 @@ def test_restart_stops_and_starts_the_task_and_only_aurora_s():
     assert w.run.calls[-1][0] == "powershell.exe" and "-NoProfile" in w.run.calls[-1]
     assert script == ("Stop-ScheduledTask -TaskPath '\\Aurora\\' -TaskName 'models' -ErrorAction Stop; "
                       "Start-ScheduledTask -TaskPath '\\Aurora\\' -TaskName 'models' -ErrorAction Stop")
+    # each task is started again every minute: a stop also disables it (else it would be back), a start enables it
+    assert w.service_action("stop", ["aurora-harvester"]).code == 0
+    assert w.run.calls[-1][-1] == ("Stop-ScheduledTask -TaskPath '\\Aurora\\' -TaskName 'harvester' -ErrorAction Stop; "
+                                   "Disable-ScheduledTask -TaskPath '\\Aurora\\' -TaskName 'harvester' -ErrorAction Stop | Out-Null")
+    assert w.service_action("start", ["aurora-harvester"]).code == 0
+    assert w.run.calls[-1][-1].startswith("Enable-ScheduledTask -TaskPath '\\Aurora\\' -TaskName 'harvester'")
     for units, verb in ((["wuauserv"], "stop"), (["aurora-api'; Remove-Item C:\\ -Recurse; '"], "restart")):
         with pytest.raises(ValueError):
             w.service_action(verb, units)

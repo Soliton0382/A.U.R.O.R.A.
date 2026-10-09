@@ -44,6 +44,9 @@ devices = Devices(BASE)
 log = sys_log.get_logger("api")
 WEBUI = Path(__file__).resolve().parents[2] / "webui"     # sys/core/webui
 _run_lock = threading.Lock()                    # one run at a time: one reasoner slot
+# one import at a time (the harvest, uploads): never the answers' lock — on a CPU an import encodes for minutes and the
+# owner's question waited behind it (C219); the vault queues its writers itself, the index locks each domain
+_write_lock = threading.Lock()
 _runs: "OrderedDict[str, dict]" = OrderedDict()
 _state: dict = {}
 MAX_RUNS = 200

@@ -2212,3 +2212,22 @@ smoothed alpha; 0.907 and a cut border before); upscale x4 of 320 px 23.6 s CPU;
 (peak 9.23 GB). Planner 24/25 (the miss was right: width 2400 = double), intent 30/30. From the chat: snow 30 s, cut-out
 6 s, upscale 24 s — the upscale dropped the transparency (fixed: alpha enlarged apart).
 
+
+## M152 — The cloud installation on a clean virtual machine (9 October 2026)
+
+A KVM virtual machine on the owner's computer: Ubuntu 26.04 LTS server, 6 virtual cores of the host's Ryzen 7 7700X
+(avx512_bf16 passed through), 14.7 GB of RAM, 39 GB disk, no GPU; snapshot «pulito» taken before. The published code
+(d8a4319, C214/C215) by `git clone`, a stand-in for the Claude Code CLI (the Install workflow's), then
+`AURORA_INSTALL_PROVIDER=7 ./install.sh --yes --no-optional-models`:
+
+| what | measured |
+|---|---|
+| install.sh, start to «Ready» | 3 min 09 s, exit 0, peak 2.0 GB of RAM (apt, venv, 3.26 GB of models, 590 tests passed in the VM) |
+| on disk | .venv 6.1 GB, models 3.3 GB |
+| services | api, models, https, rem, harvester, sentinel active; no aurora-llm; harvesting on (the new default) |
+| a question through HTTPS with an e-mail | answered in 40.5 s; 13 calls reached the stand-in (the installer's included), none with the address, `[EMAIL_` in them |
+| harvesting from an empty vault | first paper 53 s after start; 8 papers, 220 passages in the first 5 min 48 s (arXiv only, no refusal), load 5.9 on 6 cores: the encoder on the CPU is the limit |
+| memory with the harvest running | aurora-models 6.60 GB (more than M151's 5.06 GB: the harvest's long batches), api 0.20, harvester 0.10, rem 0.07, sentinel 0.05; the machine 6.1 GB used of 14.7 |
+
+So 12 GB of RAM stays right (M151's advice), 8 GB would be tight while harvesting. **Not measured**: a full round's
+length on this CPU (at ~1.4 papers a minute, hours), 8 GB of RAM, a CPU without bf16.

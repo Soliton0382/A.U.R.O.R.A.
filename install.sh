@@ -48,8 +48,13 @@ ask() {  # ask "question" default [NAME] -> echo answer; AURORA_INSTALL_<NAME> a
   local q="$1" d="$2" a v="AURORA_INSTALL_${3:-}"
   if [ -n "${3:-}" ] && [ -n "${!v:-}" ]; then echo "${!v}"; return; fi
   if [ "$YES" = 1 ]; then echo "$d"; return; fi
+  drain
   read -r -p "  $q [$d]: " a </dev/tty
   echo "${a:-$d}"
+}
+drain() {  # what was typed before a question is not its answer (owner's colleague, 9 Oct: «Where will you use Aurora
+  # from» and the provider were skipped — an Enter arriving twice, as some terminals send CR+LF, answered the next one)
+  while read -r -t 0 </dev/tty 2>/dev/null; do read -r -t 1 _ </dev/tty || break; done
 }
 yesno() {  # yesno "question" y|n [NAME] -> exit status
   local a; a=$(ask "$1 (y/n)" "$2" "${3:-}")
@@ -160,6 +165,7 @@ else
        [ -n "$DOMAIN" ] || die "$(t 'nome vuoto' 'empty name')" ;;
     *) REACH=1; DOMAIN=localhost ;;
   esac
+  ok "$(t 'Aurora sarà su' 'Aurora will be at') https://$DOMAIN"
 fi
 TLS=internal; CERT=""; KEY=""
 if [ "$REACH" = 3 ] && [ "$DOMAIN" != localhost ] && yesno "$(t 'Hai un tuo certificato per' 'Do you have your own certificate for') $DOMAIN?" n; then
@@ -194,6 +200,7 @@ if [ "$BACKEND" = cloud ]; then
        case "$CURL_BASE" in http://*|https://*) ;; *) die "$(t 'indirizzo non valido' 'invalid address'): $CURL_BASE" ;; esac ;;
     *) PROVIDER=anthropic; CKEYNAME=AURORA_ANTHROPIC_API_KEY ;;
   esac
+  ok "Provider: $PROVIDER"
   CKEY="${AURORA_INSTALL_CLOUD_KEY:-}"
   if [ "$PROVIDER" = claude_code ]; then
     CLAUDE_BIN=$(command -v claude || true)
@@ -201,11 +208,11 @@ if [ "$BACKEND" = cloud ]; then
     ok "Claude Code: $CLAUDE_BIN"
   elif [ -z "$CKEY" ] && [ "$PROVIDER" = custom ]; then          # a service of one's own may ask no key
     if [ "$YES" = 0 ]; then
-      read -r -s -p "  $(t 'Chiave API (non viene mostrata; vuota se il servizio non la chiede)' 'API key (not shown; empty if the service asks none)'): " CKEY </dev/tty; echo
+      drain; read -r -s -p "  $(t 'Chiave API del servizio' 'API key of the service') $CURL_BASE ($(t 'non viene mostrata; vuota se non la chiede' 'not shown; empty if it asks none')): " CKEY </dev/tty; echo
     fi
   elif [ -z "$CKEY" ]; then
     [ "$YES" = 1 ] && die "AURORA_INSTALL_CLOUD_KEY"
-    read -r -s -p "  $(t 'Chiave API (non viene mostrata)' 'API key (not shown)'): " CKEY </dev/tty; echo
+    drain; read -r -s -p "  $(t 'Chiave API di' 'API key of') $PROVIDER ($(t 'non viene mostrata' 'not shown')): " CKEY </dev/tty; echo
     [ -n "$CKEY" ] || die "$(t 'chiave vuota' 'empty key')"
   fi
 else

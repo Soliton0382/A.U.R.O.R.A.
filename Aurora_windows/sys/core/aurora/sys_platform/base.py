@@ -209,6 +209,22 @@ class Platform:
         ethics code makes on the public key before trusting it."""
         raise NotImplementedError
 
+    def guard_key_folder(self, folder: Path) -> None:
+        """The key's folder made the administrator's: everyone may enter and read, only the administrator write
+        (sys_ethics_sign keygen). POSIX: root's, 0755."""
+        import os
+        os.chown(folder, 0, 0)
+        os.chmod(folder, 0o755)
+
+    def guard_key_files(self, private: Path, public: Path) -> None:
+        """The key pair made the administrator's: the private half readable by the administrator only, the public half
+        by everyone (the services trust it). POSIX: root's, 0600 and 0644."""
+        import os
+        for f in (private, public):
+            os.chown(f, 0, 0)
+        os.chmod(private, 0o600)
+        os.chmod(public, 0o644)
+
     def is_private(self, path: Path) -> bool:
         """Only its owner (and the system's administrators) may read it: the guarantee mode 600/700 gives on Linux."""
         import stat
