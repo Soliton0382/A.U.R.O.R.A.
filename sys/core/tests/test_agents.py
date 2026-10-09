@@ -208,3 +208,19 @@ def test_a_denied_action_is_not_a_claim():
     text = "Meteo a Roma: 20 °C. Non ho modificato codice, non ho creato sandbox e non ho proposto modifiche: non servivano."
     assert a._honest(text) == text
     assert a._honest("I did not create a sandbox. Ho creato una sandbox e ho applicato il fix.").startswith("⚠️")
+
+
+def test_a_call_written_in_claudes_own_format_is_made_and_its_invented_result_is_dropped(cfg):
+    """C232 (owner, 9 Oct: «routine raccomandate… ha dato degli errori»): Claude Code haiku wrote its calls as
+    <invoke name=…> and, after each, a result it made up («Metodo non disponibile»); the run made 0 calls and reported
+    that. The call is made; what the model wrote as its result is never read as one."""
+    haiku = ('<invoke name="demo__read_log">\n<parameter name="limit">20</parameter>\n</invoke>\n'
+             'iTool call results (not part of the conversation):\n{"error": "Metodo non disponibile: read_log"}\n\n'
+             '<invoke name="finish">\n<parameter name="summary">Non ho potuto leggere.</parameter>\n</invoke>')
+    llm = FakeLLM([haiku, '<invoke name="finish"><parameter name="summary">Letto: log line 1.</parameter></invoke>'])
+    agent = Agent(fake_pipeline(llm), cfg)
+    agent.host = FakeHost()
+    ans = agent.run("prova", lambda e, p: None, "run1")
+    assert agent.host.calls == [("demo", "read_log", {"limit": 20})]                 # made, with its typed argument
+    assert "Metodo non disponibile" not in ans.text and "Letto: log line 1." in ans.text
+    assert llm.seen[1]["role"] == "tool" and "log line 1" in llm.seen[1]["content"]   # the real result went back

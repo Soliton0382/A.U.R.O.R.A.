@@ -32,6 +32,33 @@ from .sys_approvals import Approvals, needs_owner
 # (a whole HTML page for create_artifact) was written with the wrong closing tag and taken for the report (C111)
 CALL = re.compile(r"<tool_call>\s*(\{.*?\})\s*(?:</tool_call>|</tool_response>|\Z)", re.S)
 SUMMARY = re.compile(r'"summary"\s*:\s*"((?:[^"\\]|\\.)*)', re.S)
+# a model used to Claude's own format writes its calls as <invoke name="plugin__tool"><parameter name="k">v</parameter>
+# (C232, 9 Oct: Claude Code haiku, the 20:00 Facebook routine — 0 calls made, and the run reported the results it
+# had written itself after each call: «Metodo non disponibile»)
+INVOKE = re.compile(r'<invoke name="([^"]+)">(.*?)</invoke>', re.S)
+PARAM = re.compile(r'<parameter name="([^"]+)">(.*?)</parameter>', re.S)
+# what only Aurora may write: a tool's result. A model that writes one invented it; the text stops there
+INVENTED = re.compile(r"<tool_response>|<function_results>|Tool call results|TOOL RESULT:", re.I)
+
+
+def _param(v: str):
+    try:
+        return json.loads(v)
+    except ValueError:
+        return v.strip()
+
+
+def parse(text: str) -> tuple[str, list[str], str]:
+    """(the reply as kept, its tool calls as JSON, what it said around them). The reply is cut where the model began
+    to write a tool's result itself; <invoke> calls become the JSON ones."""
+    m = INVENTED.search(text)
+    if m:
+        text = text[:m.start()].rstrip()
+    calls = CALL.findall(text) + [json.dumps({"name": n, "arguments": {k: _param(v) for k, v in PARAM.findall(body)}},
+                                             ensure_ascii=False) for n, body in INVOKE.findall(text)]
+    said = INVOKE.sub("", CALL.sub("", text))
+    said = re.sub(r"</?(function_calls|antml:function_calls)>", "", said).strip()
+    return text, calls, said
 
 
 def unwrap(report: str) -> str:
@@ -356,9 +383,7 @@ class Agent(AgentReport):
         while steps < self.max_steps and time.time() - t0 < limit_s:
             room = self._fit(messages, budget, emit)
             c = self._model().complete_turns(messages, min(budget, room), think=True)
-            text = c.answer
-            calls = CALL.findall(text)
-            said = CALL.sub("", text).strip()
+            text, calls, said = parse(c.answer)
             if c.thought:
                 emit("agent.thought", {"text": c.thought[-4000:]})
                 self.trail.thought += c.thought[-2000:] + "\n\n"
@@ -406,7 +431,9 @@ class Agent(AgentReport):
             except httpx.HTTPError as e:                    # never a run without a report (C68)
                 self.log.warning("agent run %s: final report failed: %s", run_id, e)
                 report = "Non sono riuscita a scrivere il resoconto finale (" + type(e).__name__ + ")."
-            report = unwrap(CALL.sub("", report).strip())
+            _, rcalls, rsaid = parse(report)
+            ends = [json.loads(x)["arguments"].get("summary") for x in rcalls if '"finish"' in x]
+            report = unwrap(str(ends[0]).strip() if ends and ends[0] else (rsaid or CALL.sub("", report).strip()))
             limit = time.time() - t0 >= limit_s or steps >= self.max_steps
             summary = ((f"(Limite raggiunto: {steps} passi, {round((time.time() - t0) / 60, 1)} min.) " if limit else "")
                        + (report or "Nessun resoconto prodotto."))
