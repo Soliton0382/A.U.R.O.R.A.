@@ -2250,3 +2250,19 @@ the Aurora installed there):
 
 **Not measured**: a machine with 8 GB or less, a CPU without AVX-512 BF16, Docker Desktop (Mac, Windows), a real
 cloud provider from the container.
+
+## M154 — What the harvest costs on the disk (9 October 2026)
+
+The owner's vault, read only (sqlite in read-only mode, du): the knowledge section after ten days of harvest.
+
+| what | measured |
+|---|---|
+| passages | 743,536 |
+| documents (distinct sources: papers, articles, acts) | 91,134 — 8.2 passages each on average |
+| the passages' text and metadata (`sys/vault/knowledge`) | 3.49 GB — 4.7 KB a passage (3,380 characters of text on average) |
+| the index (`sys/vault/index/knowledge`: 1,024-d float16 + the sid) | 1.55 GB — 2.1 KB a passage (2,048 + 32 bytes, as computed) |
+| together | 5.04 GB — **6.8 KB a passage, about 55 KB a document** |
+
+So 100,000 passages ≈ 0.7 GB; a harvest round of ~300 documents (M152's rounds: 157–362) ≈ 16 MB. The average hides
+the kinds: an arXiv paper is 14–22 passages (M152's log), an act of law often one or two. **Not measured**: the memory
+section (conversations), the HNSW graphs of the large domains as they grow.

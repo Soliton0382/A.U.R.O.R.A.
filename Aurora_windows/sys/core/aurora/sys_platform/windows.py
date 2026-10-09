@@ -39,6 +39,9 @@ WINGET = {"ffmpeg": "Gyan.FFmpeg", "ffprobe": "Gyan.FFmpeg", "pdftoppm": "oschwa
 NOT_FAILED = {0, 0x41300, 0x41301, 0x41303, 0x41306, 0x41325}
 # who may change the signing key: SYSTEM, Administrators, TrustedInstaller
 ADMIN_SIDS = {"S-1-5-18", "S-1-5-32-544", "S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464"}
+# OWNER RIGHTS: «whoever owns this» — Python 3.14's mkdir(mode=0o700) writes SYSTEM, Administrators and it (a real
+# Windows, 9 Oct: every file made private was judged not private, the SID being unknown here)
+OWNER_RIGHTS = "S-1-3-4"
 # rights that change a file or its permissions (FILE_WRITE_DATA, APPEND, WRITE_EA, WRITE_ATTRIBUTES, DELETE,
 # WRITE_DAC, WRITE_OWNER, GENERIC_ALL, GENERIC_WRITE)
 WRITE_BITS = 0x2 | 0x4 | 0x10 | 0x100 | 0x10000 | 0x40000 | 0x80000 | 0x10000000 | 0x40000000
@@ -227,7 +230,7 @@ class Windows(Platform):
             for sid, mask, kind, propagation in rules:
                 if kind != "Allow" or "InheritOnly" in propagation:   # an inherit-only rule is not on x itself
                     continue
-                if mask & WRITE_BITS and sid not in ADMIN_SIDS:
+                if mask & WRITE_BITS and sid not in ADMIN_SIDS and sid != OWNER_RIGHTS:   # the owner: checked above
                     return False, f"{x} may be changed by {sid}: only SYSTEM and the Administrators may"
         return True, ""
 
@@ -268,7 +271,7 @@ class Windows(Platform):
         if acl is None:
             return False
         owner, rules = acl
-        allowed = ADMIN_SIDS | {owner, self._me()}
+        allowed = ADMIN_SIDS | {owner, self._me(), OWNER_RIGHTS}
         return not any(kind == "Allow" and mask & READ_BITS and sid not in allowed and "InheritOnly" not in propagation
                        for sid, mask, kind, propagation in rules)
 

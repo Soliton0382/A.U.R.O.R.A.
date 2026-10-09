@@ -159,4 +159,4 @@ What a real Windows taught, each fixed:
 | a question waited 10+ minutes behind a harvested document | C219 (all systems): the owner's requests first in aurora-models |
 
 Not yet: the local reasoner (llama.cpp CUDA), Piper's voice, the GitHub plugin's program, a Windows lock file with
-hashes (requirements.txt today), plugins (the AppContainer cage is written, not tried here), the 37 tests.
+hashes (requirements.txt today), plugins (the AppContainer cage is written, not tried here). The whole suite on this Windows: 0 failed, 21 skipped each with its reason (C223: 37 failures fixed — 9 of them real bugs on every system).

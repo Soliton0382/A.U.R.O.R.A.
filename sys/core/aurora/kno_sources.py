@@ -289,22 +289,22 @@ def normattiva(fetch: Fetch, cfg, domain: str, spec: dict, st: dict, want: int, 
                 st.setdefault("missing", []).append(name)
                 continue
             path.write_bytes(data)
-        z = zipfile.ZipFile(path)
-        members = sorted(n for n in z.namelist() if n.endswith(".xml"))
-        mi = st.get("member", 0)
-        while mi < len(members) and len(out) < want:
-            try:
-                title, urn, arts = akn_articles(z.read(members[mi]))
-            except ET.ParseError:
-                arts, urn, title = [], "", ""
-            mi += 1
-            key = f"normattiva:{urn or members[mi - 1]}"
-            if not arts or key in seen:
-                continue
-            out.append(Doc(key, domain, title, key, catalogue()["licences"]["normattiva"],
-                           f"https://www.normattiva.it/uri-res/N2Ls?{urn}" if urn else "https://www.normattiva.it",
-                           passages=pack(title, arts, cfg["AURORA_CHUNK_CHARS"], cfg["AURORA_CHUNK_MIN_CHARS"]),
-                           lang="it"))
+        with zipfile.ZipFile(path) as z:          # closed before it is deleted (C223: Windows refuses an open file)
+            members = sorted(n for n in z.namelist() if n.endswith(".xml"))
+            mi = st.get("member", 0)
+            while mi < len(members) and len(out) < want:
+                try:
+                    title, urn, arts = akn_articles(z.read(members[mi]))
+                except ET.ParseError:
+                    arts, urn, title = [], "", ""
+                mi += 1
+                key = f"normattiva:{urn or members[mi - 1]}"
+                if not arts or key in seen:
+                    continue
+                out.append(Doc(key, domain, title, key, catalogue()["licences"]["normattiva"],
+                               f"https://www.normattiva.it/uri-res/N2Ls?{urn}" if urn else "https://www.normattiva.it",
+                               passages=pack(title, arts, cfg["AURORA_CHUNK_CHARS"], cfg["AURORA_CHUNK_MIN_CHARS"]),
+                               lang="it"))
         st["member"] = mi
         if mi >= len(members):
             st["collection"], st["member"] = ci + 1, 0

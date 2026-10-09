@@ -78,8 +78,11 @@ def read_text(name: str, data: bytes, cfg: sys_config.Config) -> tuple[str, str]
     if kind is None:
         raise ValueError(f"{name}: unsupported format (supported: {', '.join(sorted(FORMATS))})")
     if kind == "pdf":
-        out = subprocess.run([str(cfg["AURORA_PDFTOTEXT_BIN"]), "-enc", "UTF-8", "-", "-"], input=data,
-                             capture_output=True, timeout=300)
+        try:
+            out = subprocess.run([str(cfg["AURORA_PDFTOTEXT_BIN"]), "-enc", "UTF-8", "-", "-"], input=data,
+                                 capture_output=True, timeout=300)
+        except OSError as e:                          # not installed where the setting says (C223, a real Windows)
+            raise ValueError(f"{name}: pdftotext not found ({cfg['AURORA_PDFTOTEXT_BIN']}): {e.strerror}") from None
         if out.returncode != 0:
             raise ValueError(f"{name}: pdftotext failed: {out.stderr.decode(errors='replace').strip()}")
         text = out.stdout.decode("utf-8", errors="replace").replace("\f", "\n\n")

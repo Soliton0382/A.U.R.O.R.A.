@@ -62,6 +62,18 @@ async def idea_update(iid: str, request: Request) -> dict:
         raise HTTPException(status_code=422, detail=str(e)) from None
 
 
+@router.post("/v1/aurora/ideas/{iid}/issue", dependencies=[Depends(auth)])
+def idea_issue(iid: str) -> dict:
+    """The idea as a prefilled GitHub issue, masked (C222): the owner reads it on GitHub before sending."""
+    from aurora import sys_bugreport, sys_ideas
+    it = next((i for i in sys_ideas.listing(cfg) if i["id"] == iid), None)
+    if it is None:
+        raise HTTPException(status_code=404, detail="no such idea")
+    out = sys_bugreport.idea_issue(cfg, it)
+    log.info("audit: idea %s as a GitHub issue (masked %s)", iid, out["masked"])
+    return out
+
+
 @router.get("/v1/aurora/bugreports", dependencies=[Depends(auth)])
 def bugreports() -> list[dict]:
     from aurora import sys_bugreport

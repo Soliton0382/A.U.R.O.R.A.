@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import json
+import ntpath
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -110,7 +111,8 @@ def convert(spec: dict, raw: str) -> Any:
     if kind in ("str", "path", "path_abs"):
         if kind == "path_abs" and not os.path.isabs(raw):
             raise ValueError("must be an absolute path")
-        if kind == "path" and os.path.isabs(raw):
+        # on Windows "/x" is not absolute but rooted: joined to AURORA_ROOT it leaves it (C223); a drive too (C:x)
+        if kind == "path" and (os.path.isabs(raw) or raw[:1] in ("/", "\\") or ntpath.splitdrive(raw)[0]):
             raise ValueError("must be relative to AURORA_ROOT")
         # only the two escapes a one-line .env value needs; unicode_escape would break accents
         return raw.replace("\\n", "\n").replace("\\t", "\t") if kind == "str" else raw

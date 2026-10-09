@@ -3,6 +3,7 @@
 """The whole of Aurora as one choice (mdl_modes): local, mixed, cloud with privacy, all cloud. Every cloud mode needs
 the exemption; «all cloud» needs the owner's consent signed from a shell and is taken back from the web; private data
 stays on a local model in every mode where there is one; the local reasoner switched off and on."""
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -99,6 +100,7 @@ def test_private_data_follows_the_consent_only_where_no_local_model_runs(tmp_pat
     assert mdl_router.private_model(local, local_cfg) is local          # a local model: always it, consent or not
 
 
+@pytest.mark.skipif(os.name == "nt", reason="no local reasoner on Windows yet (no aurora-llm task)")
 def test_the_local_reasoner_off_and_on(machine, monkeypatch):
     cfg, state = machine
     calls = []

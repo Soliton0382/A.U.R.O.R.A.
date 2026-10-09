@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2026 A.U.R.O.R.A. Project
 import json
+import os
 
 import pytest
 from cryptography.hazmat.primitives import serialization
@@ -63,6 +64,7 @@ def test_level_a_capabilities_are_refused():
     assert sys_ethics.forbidden_capabilities({"capabilities": ["ip_reputation"]}) == []
 
 
+@pytest.mark.skipif(os.name == "nt", reason="chmod and root: Windows's ACL test is test_platform_windows (recorded ACLs)")
 def test_a_key_the_user_can_write_is_not_trusted(tmp_path):
     pub = Ed25519PrivateKey.generate().public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw).hex()
     f = tmp_path / "owner_ed25519.pub"

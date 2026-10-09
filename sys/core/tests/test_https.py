@@ -4,13 +4,17 @@
 the phones, the owner's own certificate checked before use and put back when anything fails, the way back to Caddy's
 authority; the end of an installation saying where to open Aurora, with the key, every time."""
 import datetime as dt
+import importlib.util
 import subprocess
 
 import pytest
 
 from aurora import net_https, sys_config
 
-from conftest import write_env
+from conftest import private, write_env
+
+# Caddy takes a new Caddyfile by a reload here; the ports (Mac, Windows) restart their service (rewrites.py)
+RELOAD = "restart" if importlib.util.find_spec("aurora.sys_platform") else "reload"
 
 
 def pem_pair(names, days=30, start_days=-1):
@@ -42,6 +46,11 @@ def https(tmp_path, monkeypatch):
     """An installation answering at aurora.example.com, with caddy and systemctl answered by the test."""
     cfg = sys_config.load(write_env(tmp_path, AURORA_DOMAIN="aurora.example.com"), check_root=False)
     calls = []
+    try:                    # the ports keep secrets by the folder's ACL, which the installer sets (Windows: no 0600);
+        from aurora import sys_platform               # before subprocess.run is answered by the test below
+        sys_platform.current().make_private(tmp_path)
+    except ImportError:
+        pass
 
     def run(cmd, **k):
         calls.append(cmd)
@@ -49,6 +58,17 @@ def https(tmp_path, monkeypatch):
         return subprocess.CompletedProcess(cmd, 1 if bad and bad in cmd else 0, "", "refused" if bad in cmd else "")
     monkeypatch.setattr(net_https.subprocess, "run", run)
     monkeypatch.setattr(net_https, "ca_dir", lambda c: tmp_path / "ca")
+    try:                                              # the ports: Caddy's service through the platform, answered here too
+        from aurora import sys_platform               # (a Windows run of this test restarted the real task, 9 Oct)
+        from aurora.sys_platform.base import Result
+        plat = sys_platform.current()
+
+        def action(verb, units, wait=True, timeout=120):
+            r = run(["systemctl", verb, *[u.removesuffix(".service") for u in units]])
+            return Result(r.returncode, "", r.stderr)
+        monkeypatch.setattr(plat, "service_action", action)
+    except ImportError:                               # the Linux tree: systemctl itself, answered by run()
+        pass
     return cfg, calls, run
 
 
@@ -76,7 +96,7 @@ def test_a_certificate_is_refused_with_its_reason(https):
     assert net_https.check_pair(*pem_pair(["*.example.com"]), "aurora.example.com")["days_left"] >= 29
 
 
-def test_the_owners_certificate_goes_in_and_the_names_set_before_stay(https):
+def test_the_owners_certificate_goes_in_and_the_names_set_before_stay(https, monkeypatch):
     cfg, calls, _ = https
     net_https.set_aliases(cfg, ["192.168.1.20", "Casa.local"])
     cert, key = pem_pair(["aurora.example.com", "casa.local"])
@@ -84,11 +104,13 @@ def test_the_owners_certificate_goes_in_and_the_names_set_before_stay(https):
     assert out["mode"] == "files" and out["not_covered"] == ["192.168.1.20"]
     now = net_https.fresh(cfg)
     assert now["AURORA_TLS_MODE"] == "files" and now["AURORA_DOMAIN_ALIASES"] == "192.168.1.20,casa.local"
-    assert now.path("AURORA_TLS_CERT").read_bytes() == cert and oct(now.path("AURORA_TLS_KEY").stat().st_mode)[-3:] == "600"
+    assert now.path("AURORA_TLS_CERT").read_bytes() == cert
     text = net_https.caddyfile(cfg).read_text()
     assert "casa.local:443" in text and f"tls {now.path('AURORA_TLS_CERT')}" in text
-    assert ["systemctl", "reload", "aurora-https"] in calls
+    assert ["systemctl", RELOAD, "aurora-https"] in calls
     assert net_https.use_internal(cfg)["mode"] == "internal" and "tls internal" in net_https.caddyfile(cfg).read_text()
+    monkeypatch.undo()                                # the ports ask their system who may read it (not answered here)
+    assert private(now.path("AURORA_TLS_KEY"))
 
 
 def test_a_reload_that_fails_puts_everything_back(https):
@@ -96,7 +118,7 @@ def test_a_reload_that_fails_puts_everything_back(https):
     old_cert, old_key = pem_pair(["aurora.example.com"])
     net_https.install_cert(cfg, old_cert, old_key)
     before = net_https.caddyfile(cfg).read_text()
-    run.fail = "reload"
+    run.fail = RELOAD
     with pytest.raises(net_https.HttpsError, match="refused"):
         net_https.install_cert(cfg, *pem_pair(["aurora.example.com"]))
     now = net_https.fresh(cfg)

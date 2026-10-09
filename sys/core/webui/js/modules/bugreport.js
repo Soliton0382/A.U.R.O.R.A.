@@ -73,6 +73,17 @@ export default {
       const unsent = el("p", "", `⚠️ ${t("bug.not_sent")}`);
       unsent.style.color = "var(--warn)";
       out.append(unsent);
+      // what GitHub will receive, word for word (masked); nothing leaves until the owner presses «Submit» there
+      if (r.issue_text) {
+        const what = el("details", "report");
+        what.append(el("summary", "", t("bug.preview")), el("pre", "report-text", r.issue_text));
+        out.append(what);
+      }
+      if (!r.issue_url && (r.leaks || []).length) {
+        const stop = el("p", "", `⚠️ ${t("bug.leaks", { k: r.leaks.join(", ") })}`);
+        stop.style.color = "var(--warn)";
+        out.append(stop);
+      }
       if (r.issue_url) {
         const gh = el("a", "chip", t("bug.issue"));
         gh.href = r.issue_url;

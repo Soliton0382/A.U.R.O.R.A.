@@ -4,6 +4,7 @@
 the purge of a user, and the owner's papers never touched (a fake installation in tmp)."""
 import gzip
 import json
+from pathlib import Path
 
 import pytest
 
@@ -50,7 +51,7 @@ def test_migrate_moves_today_s_tree_under_the_admin_and_rollback_gives_it_back(c
     today_layout(cfg)
     before = tree(cfg)
     plan = L.migration_plan(cfg, "boss")
-    froms = {s["from"].replace(str(cfg.root) + "/", "") for s in plan}
+    froms = {Path(s["from"]).relative_to(cfg.root).as_posix() for s in plan}           # the same on every system
     assert "usr/uploads" in froms and "usr/test_area" in froms and "usr/documents/report.pdf" in froms
     assert not any("papers" in f or "knowledge" in f or "plugins.json" in f for f in froms)
     L.migrate(cfg, "boss")

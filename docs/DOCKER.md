@@ -10,7 +10,7 @@ ogni testo che esce è mascherato (email, telefoni, IBAN, nomi… diventano segn
 |---|---|
 | Sistema | Linux con Docker e Docker Compose (`docker compose version`) |
 | RAM | 12 GB consigliati; con 8 GB spegni la raccolta (vedi sotto) — misurato: encoder e re-ranker ~5–7 GB mentre lavorano (M151, M152) |
-| Disco | ~10 GB: immagine + 3,3 GB di modelli scaricati al primo avvio |
+| Disco | ~10 GB: immagine + 3,3 GB di modelli scaricati al primo avvio; poi cresce con la raccolta: **~6,8 KB a passaggio, ~55 KB a documento** (M154: 743.536 passaggi = 5 GB) |
 | Rete | la chiave API del provider scelto |
 
 ## 1. Configura

@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2026 A.U.R.O.R.A. Project
 import json
+import os
 
 import pytest
 
@@ -26,7 +27,8 @@ def root(tmp_path, monkeypatch, cfg):
 def test_a_missing_or_empty_model_file_closes_the_feature_with_the_command(root, cfg):
     c = F.check(cfg, "cutout")
     assert not c["ok"] and c["missing"] == ["segment (1 file)"]
-    assert c["fix"] == [".venv/bin/python sys/core/script/sys_models_fetch.py --models segment --yes"]
+    py = r".venv\Scripts\python.exe" if os.name == "nt" else ".venv/bin/python"       # the ports name it their way
+    assert c["fix"] == [f"{py} sys/core/script/sys_models_fetch.py --models segment --yes"]
     (root / "m/sam/b.json").write_text("{}")
     assert F.ok(cfg, "cutout")
 

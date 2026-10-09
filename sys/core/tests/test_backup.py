@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2026 A.U.R.O.R.A. Project
 import io
+import os
 import sqlite3
 
 import pytest
@@ -109,6 +110,7 @@ def test_retention_keeps_days_weeks_months_and_always_the_newest():
     assert B.key_from_code(B.recovery_code(b"\x07" * 32)) == b"\x07" * 32
 
 
+@pytest.mark.skipif(os.name == "nt", reason="systemd unit and timer: the Windows backup task is not written yet")
 def test_the_backup_unit_and_timer_are_made_only_with_a_folder_and_may_write_only_there(setup, monkeypatch):
     import getpass
     import importlib.util

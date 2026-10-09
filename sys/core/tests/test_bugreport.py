@@ -48,6 +48,7 @@ def test_a_report_carries_the_logs_needed_and_nothing_private(cfg):
     settings = z.read("settings.txt").decode()
     assert "AURORA_API_KEY=(set)" in settings
     assert out["masked"]["IP"] >= 2 and "Mario" not in out["issue_url"]
+    assert out["leaks"] == [], out["leaks"]
     assert out["issue_url"].startswith("https://github.com/someone/A.U.R.O.R.A./issues/new?title=")
     assert private(cfg.path("AURORA_BUGREPORT_DIR") / out["name"])
     assert R.listing(cfg)[0]["name"] == out["name"]
@@ -74,3 +75,43 @@ def test_a_private_name_in_the_description_is_masked_everywhere(cfg):
     out = R.build(cfg, "Il caricamento di Giulia si blocca", hours=6, llm=Reader())
     z = zipfile.ZipFile(cfg.path("AURORA_BUGREPORT_DIR") / out["name"])
     assert not any("Giulia" in z.read(n).decode() for n in z.namelist()) and "Giulia" not in out["issue_url"]
+
+
+def test_a_public_report_carries_no_computer_name_account_or_profile_and_is_checked_before_it_leaves(cfg, monkeypatch):
+    """C222 (owner, 9 Oct: «che non sia inviato mezzo dato personale sulla issue e il log raccolto»)."""
+    import socket
+    from pathlib import Path
+    from urllib.parse import unquote
+    from aurora.sec_mask import Pseudonymizer
+    monkeypatch.setattr(socket, "gethostname", lambda: "studio-rossi")
+    monkeypatch.setattr(Path, "home", staticmethod(lambda: Path("/home/mrossi")))
+    cfg.values.update(AURORA_OWNER_NAME="Mario Rossi", AURORA_DOMAIN_ALIASES="studio-rossi.local,localhost",
+                      AURORA_UPDATE_REMOTE="git@github.com:someone/A.U.R.O.R.A..git")
+    logs = cfg.path("AURORA_LOG_DIR")
+    (logs / "api").mkdir(parents=True)
+    lines = [f"{stamp(1)} ERROR aurora.api è fallito: STUDIO-ROSSI.local, usr/mrossi/notes, C:\\Users\\mrossi\\x, "
+             f"mario rossi n.{i}" for i in range(400)]
+    (logs / "api" / "api.log").write_text("\n".join(lines) + "\n")
+    out = R.build(cfg, "La pagina note di mario rossi non si apre", health={"level": "warn", "problems": []})
+    z = zipfile.ZipFile(cfg.path("AURORA_BUGREPORT_DIR") / out["name"])
+    everything = ("\n".join(z.read(n).decode() for n in z.namelist()) + unquote(out["issue_url"])).lower()
+    for leak in ("studio-rossi", "mrossi", "mario", "rossi"):
+        assert leak not in everything, leak
+    assert out["leaks"] == [] and "Latest errors" in out["issue_text"]
+    assert len(out["issue_url"]) <= R.URL_MAX and "[Bug]" in unquote(out["issue_url"])
+    # the final check finds what a masker missed
+    mask = Pseudonymizer(cfg)
+    mask.private = ["studio-rossi"]
+    assert R.leaks("errore su studio-rossi, mail mario@example.com", mask) == ["EMAIL", "PRIVATE"]
+
+
+def test_an_idea_goes_to_github_masked_with_its_own_label(cfg):
+    from urllib.parse import unquote
+    from aurora import sys_ideas
+    cfg.values.update(AURORA_OWNER_NAME="Mario Rossi", AURORA_UPDATE_REMOTE="git@github.com:someone/A.U.R.O.R.A..git")
+    it = sys_ideas.add(cfg, {"title": "Calendario condiviso con Mario Rossi", "text": "scrivimi a mario@example.com",
+                             "areas": ["phone"]})
+    out = R.idea_issue(cfg, it)
+    url = unquote(out["issue_url"])
+    assert out["leaks"] == [] and "[Idea]" in url and "labels=enhancement" in url
+    assert "Mario" not in url and "mario@example.com" not in url and "[EMAIL_" in url

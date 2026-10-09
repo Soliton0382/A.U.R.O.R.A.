@@ -49,8 +49,15 @@ def test_unsupported_format(cfg):
 
 @pytest.mark.skipif(not shutil.which("pdftotext"), reason="pdftotext not installed")
 def test_pdf_failure_is_reported(cfg):
-    with pytest.raises(ValueError, match="pdftotext failed"):
+    with pytest.raises(ValueError, match="pdftotext (failed|not found)"):      # not found: a Windows without Poppler
         read_text("broken.pdf", b"not a pdf", cfg)
+
+
+def test_a_missing_pdftotext_is_said_not_a_crash(cfg):
+    """C223: on a real Windows the program was not where the setting said and the import died of FileNotFoundError."""
+    cfg.values["AURORA_PDFTOTEXT_BIN"] = str(cfg.root / "no" / "pdftotext")
+    with pytest.raises(ValueError, match="pdftotext not found"):
+        read_text("doc.pdf", b"%PDF-1.4", cfg)
 
 
 def test_import_writes_indexes_and_is_idempotent(cfg):

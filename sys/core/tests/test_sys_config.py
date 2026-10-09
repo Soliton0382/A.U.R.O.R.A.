@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2026 A.U.R.O.R.A. Project
+import os
 from pathlib import Path
 
 import pytest
@@ -82,6 +83,7 @@ def test_prompts_name_the_owner_from_the_settings(cfg):
     assert sys_config.personal("nessun segnaposto {label}", cfg) == "nessun segnaposto {label}"
 
 
+@pytest.mark.skipif(os.name == "nt", reason="the folder's owner through pwd: Windows takes the installing user (rewrites.py)")
 def test_the_service_user_is_the_setting_else_the_owner_of_the_folder(cfg):
     import pwd
     cfg.values["AURORA_SERVICE_USER"] = ""
@@ -101,3 +103,12 @@ def test_a_plugin_process_takes_the_recommended_value_of_a_setting_just_added(cf
         sys_config.load(cfg.env_file, check_root=False)                  # a service still stops: it must be seen
     monkeypatch.setenv("AURORA_PLUGIN", "weather")
     assert key in sys_config.load(cfg.env_file, check_root=False).values
+
+
+def test_a_rooted_path_is_never_relative():
+    """C223: on Windows «/x» is not absolute (Python 3.13+) but rooted — joined to AURORA_ROOT it leaves it."""
+    spec = {"type": "path"}
+    for raw in ("/etc/x", "\\x", "C:x", "C:/x"):
+        with pytest.raises(ValueError, match="relative"):
+            sys_config.convert(spec, raw)
+    assert sys_config.convert(spec, "sys/vault") == "sys/vault"

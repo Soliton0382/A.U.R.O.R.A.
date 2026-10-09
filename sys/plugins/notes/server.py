@@ -53,7 +53,7 @@ def notes_list(limit: int = 30) -> str:
     """The most recently changed notes (folder/name, date)."""
     root, rows = _root(), []
     for p in _notes()[:max(1, min(limit, 200))]:
-        rows.append(f"{time.strftime('%Y-%m-%d', time.localtime(p.stat().st_mtime))}  {p.relative_to(root).with_suffix('')}")
+        rows.append(f"{time.strftime('%Y-%m-%d', time.localtime(p.stat().st_mtime))}  {p.relative_to(root).with_suffix('').as_posix()}")
     return "\n".join(rows) or "no notes"
 
 
@@ -69,7 +69,7 @@ def notes_search(words: str, limit: int = 10) -> str:
         low = (p.stem + "\n" + text).lower()
         if all(t in low for t in terms):
             line = next((ln.strip() for ln in text.splitlines() if terms[0] in ln.lower()), "")
-            rows.append(f"{p.relative_to(root).with_suffix('')}: {line[:160]}")
+            rows.append(f"{p.relative_to(root).with_suffix('').as_posix()}: {line[:160]}")
             if len(rows) >= max(1, min(limit, 50)):
                 break
     return "\n".join(rows) or "nothing found"
@@ -90,7 +90,7 @@ def notes_write(name: str, text: str) -> str:
     existed = p.exists()
     with open(p, "a", encoding="utf-8") as f:
         f.write(("\n\n" if existed else "") + text.rstrip() + "\n")
-    return f"{'added to' if existed else 'created'}: {p.relative_to(_root()).with_suffix('')}"
+    return f"{'added to' if existed else 'created'}: {p.relative_to(_root()).with_suffix('').as_posix()}"
 
 
 if __name__ == "__main__":

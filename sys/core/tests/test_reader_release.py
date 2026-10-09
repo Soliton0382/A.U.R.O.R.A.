@@ -5,6 +5,8 @@ import gc
 import os
 import threading
 
+import pytest
+
 from aurora import sol_reader, sol_vault
 
 
@@ -18,6 +20,7 @@ def fds() -> int:
     return len(os.listdir("/proc/self/fd"))
 
 
+@pytest.mark.skipif(os.name == "nt", reason="counts /proc/self/fd: C207's own tests cover Windows")
 def test_release_closes_thread_connections(tmp_path):
     p = tmp_path / "x.db"
     con = sol_vault.connect(p)

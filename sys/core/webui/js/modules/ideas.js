@@ -54,8 +54,17 @@ export async function renderIdeas(root) {
     copy.addEventListener("click", async () => {
       try { await navigator.clipboard.writeText(it.markdown); copy.textContent = `✅ ${t("idea.copied")}`; } catch { copy.textContent = "—"; }
     });
+    // to the developers as a GitHub issue, masked; GitHub shows it before it is sent (a GitHub account is needed)
+    const gh = el("button", "", `🐙 ${t("idea.github")}`);
+    gh.addEventListener("click", async () => {
+      try {
+        const r = await call(`/v1/aurora/ideas/${it.id}/issue`, { method: "POST" });
+        if (!r.issue_url) { gh.textContent = `⚠️ ${t("bug.leaks", { k: (r.leaks || []).join(", ") })}`; return; }
+        window.open(r.issue_url, "_blank", "noopener");
+      } catch (e) { gh.textContent = `⚠️ ${e.message.slice(0, 80)}`; }
+    });
     const b = el("div", "appr-actions");
-    b.append(state, copy);
+    b.append(state, copy, gh);
     d.append(b);
     return d;
   });

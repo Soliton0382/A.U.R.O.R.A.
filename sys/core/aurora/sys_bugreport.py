@@ -135,13 +135,58 @@ def repository(cfg: sys_config.Config) -> str:
         return ""
 
 
-def issue_url(cfg: sys_config.Config, title: str, body: str) -> str:
-    """A prefilled GitHub issue on the project's repository, or "" if it is not on GitHub."""
+URL_MAX = 7500          # GitHub's new-issue page refuses longer addresses (about 8 KB with the title)
+
+
+def issue_url(cfg: sys_config.Config, title: str, body: str, label: str = "bug") -> str:
+    """A prefilled GitHub issue on the project's repository, or "" if it is not on GitHub. The body is cut so that the
+    address stays under URL_MAX once encoded (an accented letter takes 6 characters there, not 1)."""
     m = re.search(r"github\.com[:/]([\w.-]+)/([\w.-]+?)(?:\.git)?/?$", repository(cfg))
     if not m:
         return ""
-    return (f"https://github.com/{m.group(1)}/{m.group(2)}/issues/new?title={quote(title[:120])}"
-            f"&body={quote(body[:6000])}&labels=bug")
+    head = f"https://github.com/{m.group(1)}/{m.group(2)}/issues/new?title={quote(title[:120])}&labels={label}&body="
+    while len(head) + len(quote(body)) > URL_MAX and len(body) > 200:
+        body = body[: int(len(body) * 0.85)].rsplit("\n", 1)[0] + "\n…"
+    return head + quote(body)
+
+
+def private_words(cfg: sys_config.Config) -> list[str]:
+    """What a public report must never carry beyond the masker's own list (C222, owner 9 Oct: «fare in modo che non sia
+    inviato mezzo dato personale sulla issue e il log raccolto»): this computer's name (and name.local), the system
+    account alone (usr/<name>/, not only /home/<name>), the Windows profile folder, the other names of the address."""
+    import socket
+    words = {socket.gethostname().split(".")[0], Path.home().name, str(Path.home())}
+    words |= {a.strip() for a in str(cfg.values.get("AURORA_DOMAIN_ALIASES") or "").split(",")}
+    words |= {str(cfg.values.get("AURORA_SERVICE_USER") or "")}
+    return sorted({w for w in words if len(w) >= 3 and w.lower() not in ("localhost", "root", "auto")},
+                  key=len, reverse=True)
+
+
+def strict(mask: Pseudonymizer, text: str) -> str:
+    """The masker, then its private words again whatever their case: a public report is never unmasked, so «tester»
+    and the computer's name in lower case in a log go too (the cloud's masking keeps the case to give values back)."""
+    text = mask.mask(text)
+    for w in mask.private:
+        if w.lower() in text.lower():
+            text = re.sub(re.escape(w), lambda m, w=w: mask._ph("PRIVATE", w), text, flags=re.IGNORECASE)
+    return text
+
+
+def leaks(text: str, mask: Pseudonymizer) -> list[str]:
+    """The kinds of private data still in an outgoing text: masking it again changes it, or a private word is there."""
+    from .sec_mask import PLACEHOLDER
+    found = set()
+    again = Pseudonymizer.__new__(Pseudonymizer)
+    again.__dict__.update({**mask.__dict__, "counts": type(mask.counts)(), "to_ph": dict(mask.to_ph),
+                           "to_val": dict(mask.to_val)})
+    again.mask(text)
+    # a value masked now that is a real value, not one of our placeholders taken again (key=[FIELD_1] is not a leak)
+    found |= {ph.strip("[]").rsplit("_", 1)[0] for ph, v in again.to_val.items()
+              if ph not in mask.to_val and not PLACEHOLDER.fullmatch(v) and not PLACEHOLDER.search(v)}
+    low = text.lower()
+    found |= {"PRIVATE" for w in mask.private if w.lower() in low}
+    found |= {"SECRET" for v in mask.secrets if v in text}
+    return sorted(found)
 
 
 def build(cfg: sys_config.Config, description: str, steps: str = "", expected: str = "", run_ids: list[str] | None = None,
@@ -159,7 +204,8 @@ def build(cfg: sys_config.Config, description: str, steps: str = "", expected: s
     if llm is not None:
         written = "\n".join((description, steps, expected))
         names |= {f["value"] for f in sec_privacy.findings(written, cfg, llm=llm) if f["kind"] == "PERSON"}
-    mask.private = sorted(set(mask.private) | {n for n in names if len(n) >= 3}, key=len, reverse=True)
+    mask.private = sorted(set(mask.private) | {n for n in names if len(n) >= 3} | set(private_words(cfg)), key=len,
+                          reverse=True)
     since = datetime.now().astimezone() - timedelta(hours=hours)
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     out_dir = cfg.path("AURORA_BUGREPORT_DIR")
@@ -199,19 +245,38 @@ def build(cfg: sys_config.Config, description: str, steps: str = "", expected: s
               + f"## Attached\nLogs of the last {hours:g} h, warnings and errors of 7 days, plugin errors"
               + (f", the runs {', '.join(run_ids)}" if run_ids else "") + ". Private data replaced by placeholders.\n")
     entries = {"report.md": report, **entries}
-    masked = {name: mask.mask(text) for name, text in entries.items()}   # one masker: the same value, the same name
+    masked = {name: strict(mask, text) for name, text in entries.items()}   # one masker: the same value, the same name
     zpath = out_dir / f"aurora-bug-{stamp}.zip"
     fd = os.open(zpath, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(fd, "wb") as fh, zipfile.ZipFile(fh, "w", zipfile.ZIP_DEFLATED) as z:
         for name, text in masked.items():
             z.writestr(name, text)
-    title = description.splitlines()[0][:100]
+    title = strict(mask, "[Bug] " + description.splitlines()[0][:100])
+    # the issue carries the report and the latest errors (masked); the whole logs stay in the zip, attached by hand
+    errors = "\n".join(masked["logs/problems.log"].splitlines()[-40:])
+    body = (masked["report.md"] + f"\n## Latest errors (masked)\n```\n{errors}\n```\n\n"
+            f"_The full logs, masked: {zpath.name} — attach it here (drag it into this box)._")
+    left = leaks(title + "\n" + body, mask) + sorted({k for t in masked.values() for k in leaks(t, mask)})
     return {"name": zpath.name, "bytes": zpath.stat().st_size, "files": sorted(masked), "masked": dict(mask.counts),
-            "issue_url": issue_url(cfg, mask.mask(title), masked["report.md"] + "\n\n_(attach the zip: "
-                                                         f"{zpath.name})_"), "created": time.time()}
+            "leaks": sorted(set(left)), "issue_text": body,
+            "issue_url": "" if left else issue_url(cfg, title, body), "created": time.time()}
 
 
 def listing(cfg: sys_config.Config) -> list[dict]:
     d = cfg.path("AURORA_BUGREPORT_DIR")
     return [{"name": f.name, "bytes": f.stat().st_size, "created": f.stat().st_mtime}
             for f in sorted(d.glob("aurora-bug-*.zip"), reverse=True)] if d.is_dir() else []
+
+
+def idea_issue(cfg: sys_config.Config, idea: dict) -> dict:
+    """An idea as a GitHub issue, masked like a report (the people, the computer, the account; C222); no URL when the
+    final check still finds something private."""
+    from . import sec_privacy, sys_ideas
+    mask = Pseudonymizer(cfg)
+    mask.private = sorted(set(mask.private) | {n for n in sec_privacy._people(cfg) if len(n) >= 3} |
+                          set(private_words(cfg)), key=len, reverse=True)
+    title = strict(mask, f"[Idea] {idea['title']}")
+    body = strict(mask, sys_ideas.as_markdown(idea)) + "\n\n_Sent from Aurora's 💡 Ideas page._"
+    left = leaks(title + "\n" + body, mask)
+    return {"issue_text": body, "masked": dict(mask.counts), "leaks": left,
+            "issue_url": "" if left else issue_url(cfg, title, body, label="enhancement")}

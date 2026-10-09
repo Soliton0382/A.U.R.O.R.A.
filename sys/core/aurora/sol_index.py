@@ -226,6 +226,7 @@ class Indexer:
                 fv.write(np.ascontiguousarray(vecs[i:i + 65536][keep[i:i + 65536]]).tobytes())
         tmp_s.write_bytes("".join(x for x, k in zip(all_sids, keep) if k).encode("ascii"))
         del vecs
+        forget(f.folder)                              # the readers' maps of these files: Windows replaces no mapped file
         os.replace(tmp_v, f.vectors)
         os.replace(tmp_s, f.sids)
         m["count"], m["hnsw_count"] = n - removed, 0

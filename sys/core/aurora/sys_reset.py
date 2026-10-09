@@ -70,7 +70,7 @@ def mind_plan(cfg: sys_config.Config, with_knowledge: bool = False) -> dict:
     places = [p for p in places if p.exists()]
     usr = (root / "usr").resolve()
     assert not any(usr == p.resolve() or usr in p.resolve().parents for p in places), "never usr/"
-    return {"places": [str(p.resolve().relative_to(root)) for p in places],
+    return {"places": [p.resolve().relative_to(root).as_posix() for p in places],       # the same on every system
             "aside": str(root.parent / f"{root.name}-before-reset-{time.strftime('%Y%m%d-%H%M%S')}")}
 
 

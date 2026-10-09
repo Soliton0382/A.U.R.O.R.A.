@@ -2,6 +2,7 @@
 # Copyright 2026 A.U.R.O.R.A. Project
 """A machine without a local reasoner (AURORA_LLM_BACKEND=cloud): every step goes to the cloud default, masked; without
 the owner's exemption nothing leaves; no aurora-llm unit; the encoder and re-ranker stay on this machine's CPU."""
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -78,6 +79,7 @@ def test_the_reasoner_feature_needs_no_model_file_in_the_cloud(cloud_cfg, monkey
     assert not sys_features.check(cloud_cfg, "vision")["ok"]           # the CLI sees no pictures
 
 
+@pytest.mark.skipif(os.name == "nt", reason="systemd units: Windows writes scheduled tasks (sys_install_tasks.py)")
 def test_no_aurora_llm_unit_on_a_cloud_machine(cloud_cfg, monkeypatch, tmp_path):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "script"))
     import sys_install_services as inst
@@ -163,11 +165,13 @@ def test_the_installers_trial_call_needs_no_env_file(tmp_path):
                     'print(json.dumps({"result": "ok", "usage": {}, "is_error": False}))\n', encoding="utf-8")
     stub.chmod(0o755)
     import os
+    if os.name == "nt":                               # Windows runs no script without an extension: claude.cmd, as npm's
+        (tmp_path / "claude.cmd").write_text(f'@"{sys.executable}" "{stub}" %*\r\n', encoding="utf-8")
     env = {**os.environ, "AURORA_ENV_FILE": str(tmp_path / "missing.env"), "AURORA_INSTALL_CLOUD_KEY": "",
            "PATH": f"{tmp_path}{os.pathsep}{os.environ.get('PATH', '')}"}
     script = Path(__file__).resolve().parents[1] / "script" / "sys_cloud_setup.py"
     r = subprocess.run([sys.executable, str(script), "try", "claude_code", "sonnet"], env=env, cwd=tmp_path,
-                       capture_output=True, text=True, timeout=120)
+                       capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
     assert r.stdout.strip() == "ok", r.stdout + r.stderr
 
 

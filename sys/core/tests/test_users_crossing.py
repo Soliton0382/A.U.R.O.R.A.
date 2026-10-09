@@ -4,6 +4,10 @@
 own process); and every route but the public few asks who is calling."""
 import json
 import subprocess
+
+import os
+# Windows starts no socket without SYSTEMROOT (WinError 10106 on a real Windows, 9 Oct); nothing elsewhere
+WINDOWS = {k: os.environ[k] for k in ("SYSTEMROOT",) if k in os.environ}
 import sys
 from pathlib import Path
 
@@ -12,7 +16,7 @@ HERE = Path(__file__).resolve().parent
 
 def test_guest_never_sees_boss_s_things(cfg):
     r = subprocess.run([sys.executable, str(HERE / "api_crossing.py"), str(cfg.root)], capture_output=True, text=True,
-                       timeout=180, env={"PATH": "/usr/bin:/bin", "AURORA_ENV_FILE": str(cfg.env_file)})
+                       timeout=180, env={**WINDOWS, "PATH": "/usr/bin:/bin", "AURORA_ENV_FILE": str(cfg.env_file)})
     assert r.returncode == 0, r.stderr[-3000:]
     out = json.loads(r.stdout.strip().splitlines()[-1])
     boss, guest = out["boss"], out["guest"]
@@ -42,7 +46,7 @@ def test_the_same_holds_when_aurora_lives_behind_a_symlink(tmp_path):
     os.symlink(tmp_path / "real", root)
     env = write_env(root, AURORA_ROOT=str(root))
     r = subprocess.run([sys.executable, str(HERE / "api_crossing.py"), str(root)], capture_output=True, text=True,
-                       timeout=180, env={"PATH": "/usr/bin:/bin", "AURORA_ENV_FILE": str(env)})
+                       timeout=180, env={**WINDOWS, "PATH": "/usr/bin:/bin", "AURORA_ENV_FILE": str(env)})
     assert r.returncode == 0, r.stderr[-3000:]
     out = json.loads(r.stdout.strip().splitlines()[-1])
     for k in ("activity", "routines", "approvals", "history", "documents", "runs", "calendar"):
@@ -70,7 +74,7 @@ def deps(d):
 print("\\n".join(sorted(f"{{min(r.methods)}} {{r.path}}" for r in walk(svc_api.app.routes) if not set(deps(r.dependant)) & {{"auth", "admin_only"}})))
 """
     r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=120, cwd=HERE.parent,
-                       env={"PATH": "/usr/bin:/bin", "AURORA_ENV_FILE": str(cfg.env_file)})
+                       env={**WINDOWS, "PATH": "/usr/bin:/bin", "AURORA_ENV_FILE": str(cfg.env_file)})
     assert r.returncode == 0, r.stderr[-2000:]
     assert r.stdout.split("\n")[:-1] == ["GET /", "GET /health", "GET /manifest.webmanifest", "GET /sw.js",
                                          "GET /v1/preview/{token}/{path:path}", "POST /v1/aurora/devices",

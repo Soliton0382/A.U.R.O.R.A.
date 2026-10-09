@@ -3,6 +3,7 @@
 """Aurora reachable from away (net_cloudflare, the cloudflare plugin, roadmap 56): the state read, what is missing,
 «Salva» on a fake Cloudflare account. Documentation addresses only (RFC 5737); no real account."""
 import json
+import os
 from types import SimpleNamespace
 
 import httpx
@@ -91,6 +92,7 @@ def test_the_lan_exclusion_is_carved_around_aurora_only():
     assert {o.get("description") for o in out} == {"LAN", None}               # C182: the entry's own description
 
 
+@pytest.mark.skipif(os.name == "nt", reason="the tunnel's service is installed by a Linux script (sudo bash …): not on Windows yet")
 def test_check_lists_what_is_missing_and_never_a_token(account):
     fake = Fake()
     cfg = account(fake, service="missing")
@@ -127,6 +129,7 @@ def test_a_hostname_published_on_the_internet_is_said(account):
     assert "aurora.home.example è pubblicato su Internet" in r["text"]
 
 
+@pytest.mark.skipif(os.name == "nt", reason="the tunnel's service is installed by a Linux script (sudo bash …): not on Windows yet")
 def test_without_the_service_installed_save_says_the_one_command(account):
     r = CF.apply(account(Fake(), service="missing"), systemctl=lambda verb: pytest.fail("no systemctl"))
     assert not r["ok"] and "servizio aurora-tunnel non installato: sudo bash sys/deploy/cloudflared/install.sh" in r["text"]

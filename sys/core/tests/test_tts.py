@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2026 A.U.R.O.R.A. Project
 """Aurora's own voice (owner, 2026-10-06): Piper as a program of its own, the voice by language, a sentence spoken once."""
+import os
+
 import pytest
 
 from aurora import mdl_tts
@@ -19,6 +21,7 @@ def fake(tmp_path, cfg):
     return calls
 
 
+@pytest.mark.skipif(os.name == "nt", reason="a stand-in voice program without an extension: Aurora's voice is not on Windows yet")
 def test_spoken_by_the_program_and_kept(cfg, tmp_path):
     calls = fake(tmp_path, cfg)
     assert mdl_tts.available(cfg) == {"enabled": True, "languages": ["it"]}
@@ -33,6 +36,7 @@ def test_spoken_by_the_program_and_kept(cfg, tmp_path):
     assert mdl_tts.available(cfg)["enabled"] is False
 
 
+@pytest.mark.skipif(os.name == "nt", reason="a stand-in voice program without an extension: Aurora's voice is not on Windows yet")
 def test_the_natural_voice_first_piper_when_it_fails_or_the_gpu_is_busy(cfg, tmp_path, monkeypatch):
     """Owner, 2026-10-06: «la 5! è la voce di Aurora» — Qwen3-TTS, and the voice never goes missing."""
     calls = fake(tmp_path, cfg)

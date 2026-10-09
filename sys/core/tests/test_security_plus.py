@@ -3,6 +3,9 @@
 """Security beyond blocking an address (owner, 2026-10-06): threat lists, each device's normal, decoys, Aurora's own
 firewall, the week's report."""
 import json
+import os
+
+import pytest
 
 from aurora import sec_baseline, sec_hostfw, sec_incidents, sec_intel, sec_report
 
@@ -61,6 +64,7 @@ def test_the_week_has_a_score_and_campaigns(cfg):
     assert "punteggio" in sec_report.text(r)
 
 
+@pytest.mark.skipif(os.name == "nt", reason="a Unix socket to nftables: Windows's firewall helper is phase 4")
 def test_aurora_s_services_reach_their_firewall_through_its_socket_not_sudo(tmp_path, monkeypatch):
     """C194: NoNewPrivileges forbids sudo inside the services; aurora-nftd.socket answers one request, «#rc N» last."""
     import socket

@@ -62,7 +62,8 @@ def for_user(cfg: sys_config.Config, name: str | None) -> sys_config.Config:
         if spec["type"] == "path" and k != "AURORA_ROOT":
             p = (cfg.root / str(values[k])).resolve()
             if (p == usr or usr in p.parents) and not str(p.relative_to(usr)).startswith(tuple(L.UNTOUCHED)):
-                values[k] = raw[k] = str((L.usr_home(cfg, name) / p.relative_to(usr)).relative_to(cfg.root))
+                # with «/» on every system: a .env written on Windows read the same (C223)
+                values[k] = raw[k] = (L.usr_home(cfg, name) / p.relative_to(usr)).relative_to(cfg.root).as_posix()
     user_cfg = replace(cfg, values=values, raw=raw, base=cfg, user=name)
     with _lock:
         _cache[name] = (stamp, user_cfg)
