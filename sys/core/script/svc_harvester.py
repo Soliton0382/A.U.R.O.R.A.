@@ -41,7 +41,18 @@ log = sys_log.get_logger("harvester")
 BASE = f"http://{cfg['AURORA_API_HOST']}:{cfg['AURORA_API_PORT']}"
 STATE = cfg.path("AURORA_STATUS_DIR") / "harvest"
 MIGRATE = cfg.path("AURORA_STATUS_DIR") / "migrate"
+RETRY_STATUS = (429, 503)
+# arXiv refused every call from 06:03 to 06:13 on 2026-10-09 (23 domains lost for that round): the waits add up to
+# 11 min, longer than that; a host that still refuses is skipped for COOL_S
+BACKOFF_S = (60, 180, 420)
+COOL_S = 1800
 _stop = False
+
+
+def retry_after(r: httpx.Response) -> int:
+    """The seconds a 429/503 asks for (Retry-After), at most 15 min; 0 when it gives none or a date."""
+    v = r.headers.get("Retry-After", "")
+    return min(int(v), 900) if v.isdigit() else 0
 
 
 def migration_running() -> bool:
@@ -59,6 +70,7 @@ class Harvester:
         self.seen: set[str] = set(json.loads(self.seen_file.read_text())) if self.seen_file.exists() else set()
         self._last: dict[str, float] = {}
         self._tls: dict[str, httpx.Client] = {}            # hosts whose certificate chain had to be completed
+        self._cool: dict[str, float] = {}                   # host -> until when it is left alone (C214)
 
     def tell(self, event: str, payload: dict) -> None:
         """Report to aurora-api's activity feed (shown in the WebUI); never blocks harvesting."""
@@ -74,21 +86,46 @@ class Harvester:
         tmp.replace(self.seen_file)
 
     def _get(self, url: str, **params) -> httpx.Response:
-        """One host at a time, politely: arXiv every AURORA_ARXIV_DELAY_S, the others every AURORA_HARVEST_DELAY_S."""
+        """One host at a time, politely: arXiv every AURORA_ARXIV_DELAY_S, the others every AURORA_HARVEST_DELAY_S.
+        A host that says "slow down" (429) or "briefly down" (503) is asked again after BACKOFF_S (or its
+        Retry-After); when it still refuses, it is left alone for COOL_S: the next domains skip it instead of
+        knocking every few seconds (C214)."""
         host = httpx.URL(url).host
+        if time.time() < self._cool.get(host, 0.0):
+            raise httpx.HTTPError(f"{host} asked us to slow down: left alone until "
+                                  f"{time.strftime('%H:%M', time.localtime(self._cool[host]))}")
         gap = cfg["AURORA_ARXIV_DELAY_S"] if "arxiv.org" in host else cfg["AURORA_HARVEST_DELAY_S"]
         wait = self._last.get(host, 0.0) + gap - time.time()
         if wait > 0:
             time.sleep(wait)
         try:
-            try:
-                return self._tls.get(host, self.web).get(url, params=params or None).raise_for_status()
-            except httpx.ConnectError as e:
-                if "CERTIFICATE_VERIFY_FAILED" not in str(e) or host in self._tls or not self._complete_chain(host):
-                    raise
-                return self._tls[host].get(url, params=params or None).raise_for_status()
+            for pause in (*BACKOFF_S, None):
+                r = self._fetch(host, url, params)
+                if r.status_code not in RETRY_STATUS:
+                    return r.raise_for_status()
+                if pause is None or _stop:
+                    self._cool[host] = time.time() + COOL_S
+                    return r.raise_for_status()
+                pause = retry_after(r) or pause
+                log.info("%s answered %d: asking again in %d s", host, r.status_code, pause)
+                self._pause(pause)
         finally:
             self._last[host] = time.time()
+
+    def _fetch(self, host: str, url: str, params: dict) -> httpx.Response:
+        try:
+            return self._tls.get(host, self.web).get(url, params=params or None)
+        except httpx.ConnectError as e:
+            if "CERTIFICATE_VERIFY_FAILED" not in str(e) or host in self._tls or not self._complete_chain(host):
+                raise
+            return self._tls[host].get(url, params=params or None)
+
+    def _pause(self, seconds: float) -> None:
+        """Wait inside a round, beating so that the health check knows the harvester is alive."""
+        end = time.time() + seconds
+        while not _stop and time.time() < end:
+            sys_health.heartbeat(cfg, "harvester")
+            time.sleep(max(0.0, min(5, end - time.time())))
 
     def _complete_chain(self, host: str) -> bool:
         """A server that sends its certificate without the intermediate (as api.normattiva.it did on 2026-10-01):

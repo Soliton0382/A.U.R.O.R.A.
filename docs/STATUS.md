@@ -1,6 +1,6 @@
 # Status — work in progress
 
-Updated at every validated change (last: 2026-10-08). Details: BUGS.md (issues, 0 open / 213 closed),
+Updated at every validated change (last: 2026-10-09). Details: BUGS.md (issues, 0 open / 215 closed),
 MANUAL_TESTS.md (what the owner checks by hand),
 TESTS.md (tests and live checks), MEASUREMENTS.md (numbers), MODULE_MAP.md (who does what),
 SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSYSTEM.md (design and decisions).
@@ -55,7 +55,7 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | compliance | EU AI Act art. 50 disclosure on published text, images and documents | tests |
 | senses | clock, weather (open-meteo), machine metrics, service health (green/yellow/red) | live |
 | services | api, models, llm, https (443), rem, harvester, sentinel; one install.sh; polkit for restarts; clean stop in 5 s | install checks |
-| harvester | arXiv rounds by category (off by default), "harvest now" and batches of papers from the 🌾 page, each paper in its category's domain | live batch test |
+| harvester | rounds by domain (on by default since 9 Oct: a new Aurora starts empty; the installer asks; a host that says «slow down» is asked again and then left alone, C214), "harvest now" and batches of papers from the 🌾 page, each paper in its category's domain | live batch test |
 | updates | Updates page: mode (notify / auto / off), what a new version changes, update now; daily check by the REM, approval in Repairs, fast-forward + tests + rollback | tests with real git repositories; live once the remote exists |
 | notifications | Notifications page: push on each device and toasts in the WebUI, which events on each channel (suggested / all / none / custom), effective at once | tests; live delivery depends on the browser |
 | senses | plugin `senses`: camera photo described by Aurora's vision, microphone transcribed locally (Whisper on CPU); 📷 photo and 🎙️ dictation in the chat; devices chosen from a list | live (M35) |

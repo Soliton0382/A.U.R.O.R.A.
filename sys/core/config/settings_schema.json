@@ -2760,8 +2760,8 @@
    "key": "AURORA_HARVEST_ENABLED",
    "type": "bool",
    "category": "harvest",
-   "recommended": "0",
-   "evidence": "owner (2026-09-30: off by default)",
+   "recommended": "1",
+   "evidence": "owner (2026-10-09: a new Aurora starts with an empty vault, so the harvester starts on; the installer asks, and 0 switches it off)",
    "en": "The harvester brings new papers into the vault. It waits for a running migration to finish.",
    "it": "L'harvester porta nuovi articoli nel vault. Aspetta che una migrazione in corso finisca.",
    "services": [

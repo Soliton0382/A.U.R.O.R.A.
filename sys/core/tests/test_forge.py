@@ -135,7 +135,7 @@ def test_the_judge_gets_the_facts_counted_when_the_plugin_runs(cfg, monkeypatch)
     import json as _json
     counts = iter(["FACTS BEFORE", "FACTS NOW"])
     monkeypatch.setattr(F, "peek", lambda cfg, paths, hours: next(counts))
-    monkeypatch.setattr(F, "check", lambda manifest, code, existing: [])
+    monkeypatch.setattr(F, "check", lambda manifest, code, existing, people=(): [])
     seen = {}
     monkeypatch.setattr(F, "test", lambda host, m, stage, llm, sample, masker, need, hours: seen.setdefault("sample", sample) and [])
 
@@ -184,3 +184,12 @@ def test_a_plugin_s_own_settings_join_the_schema_its_secret_masked(tmp_path):
     assert set(got) == {"AURORA_CLOUDY_ACCOUNT", "AURORA_CLOUDY_TOKEN"}         # the sly plugin got nothing
     assert got["AURORA_CLOUDY_TOKEN"]["secret"] is True and "secret" not in got["AURORA_CLOUDY_ACCOUNT"]
     assert got["AURORA_CLOUDY_TOKEN"]["category"] == "plugins" and got["AURORA_CLOUDY_TOKEN"]["optional"] is True
+
+
+def test_a_forged_plugin_never_names_a_person():
+    """C215: the forge wrote the owner's account as a default user; such code goes back to the model."""
+    bad = CODE.replace("server.run(", 'USER = "mario"\nserver.run(', 1)
+    errs = F.check(GOOD, bad, set(), {"mario", "ada"})
+    assert any("names a person (mario)" in e for e in errs)
+    assert F.check(GOOD, CODE.replace("server.run(", 'X = "mariology"\nserver.run(', 1), set(), {"mario"}) == []
+    assert F.check(GOOD, CODE, set(), {"mario"}) == []

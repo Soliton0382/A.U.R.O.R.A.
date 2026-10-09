@@ -212,6 +212,10 @@ else
 echo "  $(t 'Livello B del codice di condotta: conferma delle azioni esterne, approvazione delle modifiche al codice, dichiarazione IA.' 'Level B of the code of conduct: confirmation of external actions, approval of code changes, AI disclosure.')"
 yesno "$(t 'Esentare questa installazione dal livello B? (sconsigliato all inizio)' 'Exempt this installation from level B? (not advised at first)')" n EXEMPT && EXEMPT=1
 fi
+# a new Aurora starts with an empty vault: the harvester fills it (owner, 2026-10-09: on unless the owner says no)
+echo "  $(t 'Aurora parte con il vault vuoto: la raccolta lo riempie con articoli e voci aperte (arXiv, Wikipedia, Europe PMC…); si cambia nella pagina Harvester.' 'Aurora starts with an empty vault: harvesting fills it with open papers and articles (arXiv, Wikipedia, Europe PMC…); changed on the Harvester page.')"
+HARVEST=0
+yesno "$(t 'Accendere la raccolta automatica di conoscenza?' 'Switch automatic knowledge harvesting on?')" y HARVEST && HARVEST=1
 echo "  $(t 'Tipo di installazione:' 'Installation type:')"
 echo "    single — $(t 'una persona: tu, amministratore' 'one person: you, the admin')"
 echo "    multi  — $(t 'più persone: ognuna con la sua cartella usr/<nome>, le sue impostazioni e la sua memoria privata; accesso con password e codice Authenticator' 'several people: each with their folder usr/<name>, their settings and private memory; login with password and Authenticator code')"
@@ -283,7 +287,7 @@ else
   SETS=(--set "AURORA_OWNER_NAME=$OWNER" --set "AURORA_ASSISTANT_NAME=$ANAME" --set "AURORA_PERSONALITY=$PERSONA"
         --set "AURORA_ASSISTANT_GENDER=$AGENDER" --set "AURORA_LANG_DEFAULT=$ULANG" --set "AURORA_DOMAIN=$DOMAIN"
         --set "AURORA_HTTPS_PORT=$PORT" --set "AURORA_TLS_MODE=$TLS" --set "AURORA_UPDATE_MODE=notify"
-        --set "AURORA_SERVICE_USER=$USER" --set "AURORA_USER_MODE=$UMODE" --set "AURORA_DOMAIN_ALIASES=$ALIASES")
+        --set "AURORA_SERVICE_USER=$USER" --set "AURORA_USER_MODE=$UMODE" --set "AURORA_DOMAIN_ALIASES=$ALIASES" --set "AURORA_HARVEST_ENABLED=$HARVEST")
   [ -n "$BROWSER" ] && SETS+=(--set "AURORA_CHROME_BIN=$BROWSER")
   if [ "$BACKEND" = cloud ]; then
     SETS+=(--set "AURORA_CLOUD_PROVIDER=$PROVIDER" --set "AURORA_CLOUD_MODEL=$CMODEL")

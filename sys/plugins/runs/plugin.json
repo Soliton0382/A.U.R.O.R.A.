@@ -1,0 +1,51 @@
+{
+  "name": "runs",
+  "version": "1.0",
+  "kind": "tool",
+  "description": {
+    "en": "Aurora's previous routine reports, read only: the last report on a topic (e.g. the science news), the list of past runs, and the links already given, so a new run can report only what is new.",
+    "it": "I resoconti precedenti delle routine di Aurora, sola lettura: l'ultimo resoconto su un tema (es. le novità di scienza), l'elenco delle esecuzioni passate e i link già dati, così un nuovo run riporta solo ciò che è nuovo."
+  },
+  "command": [
+    "{python}",
+    "server.py"
+  ],
+  "env": [],
+  "requires": [],
+  "effects": {
+    "runs_previous": "read",
+    "runs_list": "read",
+    "runs_links": "read",
+    "*": "read"
+  },
+  "sandbox": {
+    "network": false
+  },
+  "tests": [
+    {
+      "tool": "runs_previous",
+      "args": {
+        "query": "ricerca",
+        "n": 1
+      }
+    },
+    {
+      "tool": "runs_list",
+      "args": {
+        "hours": 168
+      }
+    },
+    {
+      "tool": "runs_links",
+      "args": {
+        "query": "ricerca",
+        "hours": 72
+      }
+    }
+  ],
+  "forged": {
+    "request": "547ae24124",
+    "at": "2026-10-09T08:01:50+0200",
+    "need": "Missing capability: tool to read the previous execution report or summary to compare with current data"
+  }
+}

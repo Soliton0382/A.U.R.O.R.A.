@@ -192,8 +192,10 @@ def parse_reply(text: str) -> tuple[dict, str]:
     return json.loads(j.group(1)), p.group(1).strip() + "\n"
 
 
-def check(manifest: dict, code: str, existing: set[str]) -> list[str]:
-    """What is wrong with a forged plugin (empty: fine)."""
+def check(manifest: dict, code: str, existing: set[str], people: set[str] = frozenset()) -> list[str]:
+    """What is wrong with a forged plugin (empty: fine). `people`: the users' names and the machine's account, never
+    written in the code (C215: a forged plugin read `user: str = "<the owner's account>"` — every other user got the
+    owner's folder, and the name went into the public repo's copy)."""
     from . import sys_ethics
     errs = []
     name = str(manifest.get("name", ""))
@@ -234,7 +236,16 @@ def check(manifest: dict, code: str, existing: set[str]) -> list[str]:
         errs.append(f"server.py does not compile: {e}")
     if "server.run(" not in code:
         errs.append('server.py must end with server.run("stdio")')
+    if bad := sorted(n for n in people if len(n) > 2 and re.search(rf"(?<![\w-]){re.escape(n)}(?![\w-])", code)):
+        errs.append(f"server.py names a person ({', '.join(bad)}): never a user's name; the plugin works for "
+                    "cfg.user, its folders come from sys_users_layout.place(cfg, area, cfg.user)")
     return errs
+
+
+def people(cfg: sys_config.Config) -> set[str]:
+    """The names a forged plugin must never write: the users and the system account Aurora runs as."""
+    from . import sys_users_layout
+    return sys_users_layout._registered(cfg.base or cfg) | {Path.home().name}
 
 
 def read_only(manifest: dict) -> bool:
@@ -278,7 +289,7 @@ def build(cfg: sys_config.Config, llm, host, req: dict, emit, masker=None, judge
             continue
         manifest.setdefault("sandbox", {}).setdefault("network", False)
         manifest["forged"] = {"request": req["id"], "at": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "need": req["need"][:200]}
-        errors = check(manifest, code, existing)
+        errors = check(manifest, code, existing, people(cfg))
         stage = _dir(cfg) / "stage" / str(manifest.get("name", "x"))
         if not errors:
             if stage.exists():
