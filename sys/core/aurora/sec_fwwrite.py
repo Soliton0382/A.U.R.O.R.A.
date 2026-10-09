@@ -339,7 +339,11 @@ def _status_of(text: str, entity: str) -> tuple[str, str]:
 def _run(cfg: sys_config.Config, xml: str, entity: str) -> str:
     code, msg = _status_of(sec_fwapi.request(cfg, xml), entity)
     if code != "200":
-        raise WriteError(f"{entity}: il firewall ha risposto {code or '?'} {msg[:200]}")
+        hint = ("" if str(code) != "599" and "privilege" not in msg.lower() else
+                " — l'utente API di Aurora sul firewall ha solo la lettura: nel Sophos, Amministrazione → Profili di "
+                "dispositivo, dagli lettura e scrittura su Regole e policy e su Oggetti di sistema; poi riprova "
+                "(il 9 ottobre: due modifiche annullate così)")
+        raise WriteError(f"{entity}: il firewall ha risposto {code or '?'} {msg[:200]}{hint}")
     return msg
 
 

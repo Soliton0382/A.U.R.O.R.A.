@@ -1540,5 +1540,11 @@
   "place.hint": "es. Bergamo, o Treviglio",
   "place.search": "Cerca",
   "place.none": "Nessun luogo con questo nome",
-  "place.chosen": "Scelto: {p} — premi 💾 Salva"
+  "place.chosen": "Scelto: {p} — premi 💾 Salva",
+  "fw.origin_go": "Prepara con questi",
+  "fw.origin_given": "Consenti solo da",
+  "fw.field": "Campo",
+  "fw.before": "Prima",
+  "fw.after": "Dopo",
+  "fw.kept": "Lasciati come li avevi: {f} (Aurora non sposta né rinomina le tue regole)"
 }

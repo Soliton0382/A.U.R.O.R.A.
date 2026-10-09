@@ -62,7 +62,11 @@ Rules:
   above every such rule.
 - Blocking needs no Accept rule. Never add an Accept rule from WAN unless the request asks to open something, and then
   only for named services and destinations, with an IPS policy.
-- Prefer the smallest change that does what is asked. Log the new rules (<LogTraffic>Enable</LogTraffic>)."""
+- Prefer the smallest change that does what is asked. Log the new rules (<LogTraffic>Enable</LogTraffic>).
+- When the request says «Consenti solo da: …» (the owner's own list of countries or addresses), use exactly that list
+  as the origin, never another one and never a list of your own; to limit a published service, add it to the
+  SourceNetworks of the existing Accept rule (an update that keeps every other field as it is).
+- An update changes only the fields the request needs: keep the rule's name, description, position and section."""
 
 
 def _short(conf: dict) -> str:
@@ -192,6 +196,55 @@ def shadowed(root: ET.Element, conf: dict) -> list[str]:
             and not r["services"] and meet(src, set(r["src_zones"])) and meet(dst, set(r["dst_zones"]))]
 
 
+# an update keeps where the owner's object is and what it is called (the owner, 9 Oct: «DNAT to ubnt-plex» rewritten:
+# moved to the top, another section, its description replaced — to add one country)
+KEEP = ("Position", "After", "Before", "Section", "Description")
+# a request from the audit that limits the origin, answered only with the owner's own list (C241: «paesi ad alto
+# rischio» chosen by the model — China, Russia, Iran, North Korea — when nobody asked which)
+ORIGIN_ASK = re.compile(r"limitare l'origine|limit the origin", re.I)
+ORIGIN_GIVEN = re.compile(r"(?:Consenti solo da|Allow only from)\s*:\s*\S", re.I)
+
+
+def _leaves(el: ET.Element, path: str = "") -> dict[str, str]:
+    """{path: text} of an element's leaves, repeated tags joined (a rule's networks, zones, services)."""
+    out: dict[str, list[str]] = {}
+    for child in el:
+        p = f"{path}/{child.tag}" if path else child.tag
+        if len(child):
+            for k, v in _leaves(child, p).items():
+                out.setdefault(k, []).append(v)
+        else:
+            out.setdefault(p, []).append((child.text or "").strip())
+    return {k: ", ".join(v) for k, v in out.items()}
+
+
+def _content(el: ET.Element | None):
+    """An element's content, whatever the spaces between its tags."""
+    return None if el is None else ((el.text or "").strip(), tuple(sorted(_leaves(el).items())))
+
+
+def keep_placement(new: ET.Element, old: ET.Element) -> list[str]:
+    """The fields of KEEP put back as the owner had them; returns those the model had changed."""
+    changed = []
+    for tag in KEEP:
+        a, b = new.find(tag), old.find(tag)
+        if _content(a) != _content(b):
+            changed.append(tag)
+            at = list(new).index(a) if a is not None else min(list(old).index(b), len(new))
+            if a is not None:
+                new.remove(a)
+            if b is not None:
+                new.insert(at, b)
+    return changed
+
+
+def diff(new: ET.Element, old: ET.Element) -> list[dict]:
+    """What an update changes, field by field, for the owner to read (not the XML)."""
+    a, b = _leaves(old), _leaves(new)
+    return [{"field": k, "before": a.get(k, ""), "after": b.get(k, "")}
+            for k in sorted(set(a) | set(b)) if a.get(k, "") != b.get(k, "")]
+
+
 def check(cfg: sys_config.Config, steps: list[dict], conf: dict, reader=raw_item) -> tuple[list[dict], list[str]]:
     """The model's steps → sec_fwwrite steps, and the problems found (empty: all good)."""
     out, problems = [], []
@@ -245,8 +298,23 @@ def check(cfg: sys_config.Config, steps: list[dict], conf: dict, reader=raw_item
             if not before:
                 problems.append(f"{where}: no «{name}» on the firewall to update")
                 continue
-            out.append(sec_fwwrite.step(entity, name, f'<Set operation="update">{xml}</Set>',
-                                        f'<Set operation="update">{before}</Set>', why, owner_object=not aurora))
+            try:
+                new, old = ET.fromstring(xml), ET.fromstring(before)
+            except ET.ParseError as e:
+                problems.append(f"{where}: {e}")
+                continue
+            kept = keep_placement(new, old)
+            changes = diff(new, old)
+            if not changes:
+                problems.append(f"{where}: the update changes nothing on «{name}»")
+                continue
+            xml = ET.tostring(new, encoding="unicode")
+            st_out = sec_fwwrite.step(entity, name, f'<Set operation="update">{xml}</Set>',
+                                      f'<Set operation="update">{before}</Set>', why, owner_object=not aurora)
+            st_out["changes"] = changes
+            if kept:
+                st_out["kept"] = kept
+            out.append(st_out)
             made.add((entity, name))
         else:
             if not aurora:
@@ -273,6 +341,11 @@ def plan(cfg: sys_config.Config, request: str, model=None, conf: dict | None = N
         if model is None:                                  # C213: a machine without a local model plans nothing
             raise sec_fwwrite.WriteError("questa installazione non ha un modello locale, e la configurazione del "
                                          "firewall non va a un modello cloud: le modifiche si fanno a mano")
+    if ORIGIN_ASK.search(request) and not ORIGIN_GIVEN.search(request):
+        return {"need": "origin", "request": request,
+                "questions": ["Da quali paesi o indirizzi deve poter arrivare? Scrivili tu (es. Italy, oppure un IP o una "
+                              "rete): Aurora non sceglie al posto tuo."],
+                "notes": ["Se il servizio deve restare raggiungibile da tutti, non serve cambiare niente."]}
     conf = conf if conf is not None else sec_fwconf.read(cfg)
     fw = re.sub(r"^https?://|[:/].*$", "", str(cfg["AURORA_FIREWALL_API_URL"]))
     own = ", ".join(sorted(a for a in sec_fwapi._own_addresses() if "." in a and not a.startswith("127.")))

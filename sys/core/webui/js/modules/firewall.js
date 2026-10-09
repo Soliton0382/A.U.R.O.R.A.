@@ -63,10 +63,23 @@ export default {
     try {
       const r = await call("/v1/aurora/security/changes/ask", { method: "POST", body: JSON.stringify({ text }) });
       const s = Math.round((Date.now() - t0) / 1000);
-      if (r.questions) out.textContent = `❓ ${r.questions.join(" · ")}`;
+      if (r.need === "origin") this.askOrigin(out, r);           // the owner's own countries, never Aurora's choice
+      else if (r.questions) out.textContent = `❓ ${r.questions.join(" · ")}`;
       else { out.textContent = t("fw.ask_done", { s }); await this.loadChanges(); }
     } catch (e) { out.textContent = t("ev.error", { m: e.message }); }
     go.disabled = false;
+  },
+
+  // «limit the origin»: which countries or addresses is the owner's answer (C241: a list was invented)
+  askOrigin(out, r) {
+    const box = el("input");
+    box.placeholder = "Italy";
+    const go = el("button", "approve", t("fw.origin_go"));
+    go.addEventListener("click", () => {
+      const v = box.value.trim();
+      if (v) this.ask(`${r.request}\n${t("fw.origin_given")}: ${v}`);
+    });
+    out.replaceChildren(el("p", "", `❓ ${r.questions.join(" ")}`), box, go, ...(r.notes || []).map((n) => el("p", "muted", n)));
   },
 
   // a finding of the audit handed to the request field (owner, 2026-10-08: «si troverebbe ad ogni suggerimento?»)
@@ -114,7 +127,22 @@ export default {
     d.append(el("summary", "", `${STATE[ch.status] || "•"} ${ch.title} · ${t(`fw.state.${ch.status}`)}`));
     d.append(el("p", "muted", ch.why || ""));
     const steps = el("ol");
-    for (const s of ch.steps) steps.append(el("li", "", s.why));
+    for (const s of ch.steps) {
+      const li = el("li", "", s.why);
+      if (s.changes?.length) {                       // what an update changes, field by field — not the XML (C241)
+        const tb = el("table", "fw-diff");
+        tb.append(el("tr", "", ""));
+        tb.lastChild.append(el("th", "", t("fw.field")), el("th", "", t("fw.before")), el("th", "", t("fw.after")));
+        for (const c of s.changes) {
+          const tr = el("tr");
+          tr.append(el("td", "", c.field.split("/").pop()), el("td", "", c.before || "—"), el("td", "", c.after || "—"));
+          tb.append(tr);
+        }
+        li.append(tb);
+      }
+      if (s.kept?.length) li.append(el("p", "muted", t("fw.kept", { f: s.kept.join(", ") })));
+      steps.append(li);
+    }
     d.append(steps);
     for (const n of ch.notes || []) d.append(el("p", "warn", `⚠️ ${n}`));
     for (const p of ch.problems || []) d.append(el("p", "bad", p));

@@ -239,3 +239,7 @@ button.danger { border-color: #c0392b; color: #ff8a80; }
 
 /* the page while Aurora starts (main.js boot): never only the background */
 .boot-wait { position: fixed; left: 50%; top: 40%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: .9rem 1.2rem; max-width: 90vw; text-align: center; z-index: 50; }
+
+/* a firewall change, field by field (C241) */
+.fw-diff { border-collapse: collapse; margin: .3rem 0; font-size: .85rem; }
+.fw-diff th, .fw-diff td { border: 1px solid var(--line); padding: .2rem .5rem; text-align: left; }

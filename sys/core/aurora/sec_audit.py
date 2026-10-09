@@ -48,8 +48,15 @@ def exposed(conf: dict) -> list[dict]:
         if r["dst_zones"] and set(r["dst_zones"]) <= {"WAN"}:
             continue
         ports = [p for s in r["services"] for p in sec_fwconf.ports(conf, s)] or (["ogni servizio"] if not r["services"] else r["services"])
-        nat = [n.get("Name") for n in conf.get("NATRule", []) if n.get("Status") == "Enable"
-               and set(sec_fwconf.listed(n.get("OriginalServices"), "Service")) & set(r["services"])]
+        nats = [n for n in conf.get("NATRule", []) if n.get("Status") == "Enable"
+                and set(sec_fwconf.listed(n.get("OriginalServices"), "Service")) & set(r["services"])]
+        nat = [n.get("Name") for n in nats]
+        # the origin may be limited on the NAT rule instead (the owner, 9 Oct: Plex «Italy» on the DNAT — the audit
+        # kept saying «open to the whole Internet»): the DNATs from outside (not the firewall's loopback/reflexive
+        # copies), all with an original source, limit who reaches the service
+        outside = [n for n in nats if not str(n.get("Name", "")).startswith(("Loopback_", "Reflexive_"))]
+        nat_src = sorted({x for n in outside for x in sec_fwconf.listed(n.get("OriginalSourceNetworks"), "Network")})
+        limited_by_nat = bool(outside) and all(sec_fwconf.listed(n.get("OriginalSourceNetworks"), "Network") for n in outside)
         policy = _ips_for(conf, r)
         problems, fixes = [], []
         if r["ips"] in ("None", ""):
@@ -59,16 +66,20 @@ def exposed(conf: dict) -> list[dict]:
         if not r["log"]:
             problems.append("il traffico non è registrato")
             fixes.append("attivare il log della regola, così Aurora vede chi entra")
-        if not r["src_nets"]:
+        origin = r["src_nets"] or (nat_src if limited_by_nat else [])
+        if not origin:
             problems.append("aperta a tutta Internet")
             fixes.append("limitare l'origine (paesi o indirizzi) se il servizio serve solo ad alcuni")
-        sev = "high" if r["ips"] in ("None", "") and not r["src_nets"] else ("medium" if problems else "low")
+        sev = "high" if r["ips"] in ("None", "") and not origin else ("medium" if problems else "low")
         out.append(_f(f"exposed:{r['name']}", sev, f"Servizio pubblicato su Internet: {', '.join(ports)}",
                       f"La regola «{r['name']}» lascia entrare da Internet verso {', '.join(r['dst_zones']) or 'ogni zona'}"
                       + (f" (NAT: {', '.join(nat)})" if nat else "") + (": " + "; ".join(problems) if problems else
-                                                                          ": con IPS e log attivi"),
+                                                                          ": con IPS e log attivi")
+                      + (f"; origine limitata a {', '.join(origin)}" + (" dal NAT" if not r["src_nets"] else "")
+                         if origin else ""),
                       "; ".join(fixes) or "nulla: va bene così se il servizio deve essere pubblico", r["name"],
-                      rule=r["name"], ports=ports, ips_policy=policy, ips=r["ips"], log=r["log"]))
+                      rule=r["name"], ports=ports, ips_policy=policy, ips=r["ips"], log=r["log"], origin=origin,
+                      origin_from="rule" if r["src_nets"] else ("nat" if limited_by_nat else "")))
     return out
 
 

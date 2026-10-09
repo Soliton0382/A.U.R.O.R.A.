@@ -81,9 +81,10 @@ def test_what_the_code_never_lets_through(step, why):
 
 def test_the_owner_s_rule_named_aurora_underscore_is_never_taken_for_aurora_s():
     steps = [{"op": "update", "entity": "FirewallRule", "name": "Aurora_Block_List",
-              "xml": "<FirewallRule><Name>Aurora_Block_List</Name></FirewallRule>"}]
+              "xml": "<FirewallRule><Name>Aurora_Block_List</Name><Status>Enable</Status></FirewallRule>"}]
     assert sec_fwplan.renamed(steps, CONF)[0]["name"] == "Aurora_Block_List"
-    out, problems = sec_fwplan.check(None, steps, CONF, reader=lambda cfg, e, n: "<FirewallRule><Name>Aurora_Block_List</Name></FirewallRule>")
+    out, problems = sec_fwplan.check(None, steps, CONF, reader=lambda cfg, e, n:
+                                     "<FirewallRule><Name>Aurora_Block_List</Name><Status>Disable</Status></FirewallRule>")
     assert problems == [] and out[0]["owner_object"] and out[0]["undo"].startswith('<Set operation="update">')
 
 

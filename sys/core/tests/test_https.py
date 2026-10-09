@@ -241,3 +241,19 @@ def test_an_untrusted_certificate_is_said_not_http_000(monkeypatch):
         monkeypatch.setattr(subprocess, "run", lambda *a, **k: SimpleNamespace(returncode=code, stdout="000"))
         ok, how = sys_health._https("casa.local", 443)
         assert not ok and said in how
+
+
+def test_a_firewall_that_stopped_speaking_is_said(cfg):
+    """The owner, 10 Oct: the UDP port removed from ufw, no syslog for 8 hours and Aurora said nothing."""
+    import os
+    import time
+    from aurora import sys_health
+    cfg.values.update(AURORA_SENTINEL_ALLOW=["10.0.0.1"], AURORA_SENTINEL_BIND="10.0.0.2:5514")
+    assert sys_health.syslog_silence(cfg) is None                       # never spoke here: nothing to say
+    f = cfg.path("AURORA_LOG_DIR") / "firewall" / "firewall.log"
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text("x\n")
+    assert sys_health.syslog_silence(cfg) is None                       # fresh
+    os.utime(f, (time.time() - 8 * 3600, time.time() - 8 * 3600))
+    text, fix = sys_health.syslog_silence(cfg)
+    assert "480 min" in text and "sudo ufw allow from 10.0.0.1 to any port 5514 proto udp" in fix

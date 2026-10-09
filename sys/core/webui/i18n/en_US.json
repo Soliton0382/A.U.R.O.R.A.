@@ -1540,5 +1540,11 @@
   "place.hint": "e.g. Bergamo",
   "place.search": "Search",
   "place.none": "No place with this name",
-  "place.chosen": "Chosen: {p} — press 💾 Save"
+  "place.chosen": "Chosen: {p} — press 💾 Save",
+  "fw.origin_go": "Plan with these",
+  "fw.origin_given": "Allow only from",
+  "fw.field": "Field",
+  "fw.before": "Before",
+  "fw.after": "After",
+  "fw.kept": "Kept as you had them: {f} (Aurora does not move or rename your rules)"
 }

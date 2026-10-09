@@ -54,6 +54,27 @@ def _https(domain: str, port: int) -> tuple[bool, str]:
         return False, type(e).__name__
 
 
+SYSLOG_SILENT_MIN = 30
+
+
+def syslog_silence(cfg, now: float | None = None) -> tuple[str, str] | None:
+    """The sentinel alive but nothing from the firewall for SYSLOG_SILENT_MIN: Aurora is blind and must say so (the
+    owner, 10 Oct: a rule removed from this machine's firewall, no line for 8 hours, and not a word). Only where the
+    firewall has spoken before (its log exists)."""
+    import time
+    f = cfg.path("AURORA_LOG_DIR") / "firewall" / "firewall.log"
+    if not f.exists() or not cfg["AURORA_SENTINEL_ALLOW"]:
+        return None
+    age = ((now or time.time()) - f.stat().st_mtime) / 60
+    if age < SYSLOG_SILENT_MIN:
+        return None
+    port = str(cfg["AURORA_SENTINEL_BIND"]).rsplit(":", 1)[-1]
+    who = ", ".join(cfg["AURORA_SENTINEL_ALLOW"])
+    return (f"nessuna riga dal firewall da {age:.0f} min: Aurora non vede la rete",
+            f"controlla il firewall di questa macchina (ufw: sudo ufw allow from {who} to any port {port} proto udp) "
+            f"e il server syslog sul firewall")
+
+
 def heartbeat(cfg, name: str) -> None:
     """Daemons without a port say they are alive by touching this file (checked by check())."""
     f = cfg.path("AURORA_STATUS_DIR") / "heartbeat" / name
@@ -135,6 +156,9 @@ def check(cfg: sys_config.Config | None = None) -> dict:
                 f"atteso ogni {limit_min:.0f} min")
         else:
             add(unit, "ok", "attivo", f"battito {age * 60:.0f} s fa")
+    silent = syslog_silence(cfg)
+    if silent:
+        add("syslog firewall", "down", silent[0], silent[1])          # blind: an alert, as a service down is
 
     du = shutil.disk_usage(cfg.root)
     free = du.free / du.total

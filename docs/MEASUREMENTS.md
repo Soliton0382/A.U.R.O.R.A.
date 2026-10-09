@@ -2340,3 +2340,21 @@ seed exported with domain, language and arXiv links: config/shadow_seed.json 380
 114 English — over 32 domains; sources with an address 1,063 of 1,411 (75 %; 426 of 701 had none before --links).
 Questions took 14-41 s each (the log). Not measured: how many of the 224 were declined (no sources), per domain.
 
+## M161 — Does Aurora read the firewall well? (10 October 2026, the owner's Sophos, syslog at Information)
+
+The 24 h before the syslog stopped (9 Oct, 00:15-16:41): 147,176 lines — Firewall Allowed 82,032, Denied 58,045,
+Content Filtering 3,835, System Health 2,940, Events 316, ATP 6, IPS 0. Denied from Internet sources: 1,768 addresses
+(the most: Cloudflare's 172.64-71.x); 3 sources tried ≥ 10 ports (Google's 142.251/172.217/192.178: QUIC answers,
+not scanners). Denied from the LAN: six devices between 1,596 and 17,424 lines each (the published host the most).
+
+Incidents Aurora opened in the last 7 days: 128 — rule:scanning_firewall_rules 104 (all from LAN devices: the
+appliance's own services refused, «Appliance Access Denied»), ips_alert 16, rule:atp_threat_match 7, honeypot 1;
+106 internal, 22 external; all closed. Read against the lines:
+- **seen, right**: 9 Internet addresses on the GreyNoise feed reaching the published host through the published service
+  (ATP «remote source match», logged and not dropped) → 9 ips_alert «high»;
+- **counted twice**: each ATP match is both an ips_alert and a rule:atp_threat_match (7 pairs);
+- **noise**: 104 of 128 incidents (81 %) are LAN devices hitting the firewall's own services — not port scans;
+- **to look at**: two LAN devices reaching one address (on the GreyNoise feed): said, not investigated;
+- **blind**: from 16:41 on 9 Oct to 00:19 on 10 Oct no line arrived (C242) and nothing was said.
+Not measured: how many of the GreyNoise matches are real threats; the incidents' reports' quality.
+
