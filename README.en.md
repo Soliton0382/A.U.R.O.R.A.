@@ -352,6 +352,7 @@ cloud model of your choice and every text leaves masked.
 | Windows 10/11 | PowerShell **as administrator**, in the downloaded folder: `powershell -ExecutionPolicy Bypass -File Aurora_windows\install.ps1` — Aurora goes to `C:\Aurora` (not the download's folder) |
 | macOS 13+ | [Homebrew](https://brew.sh) is needed; in the Terminal: `bash Aurora_mac/install.sh` — Aurora goes to `~/Aurora` (download it elsewhere, e.g. `~/Downloads`) |
 | Docker | guide in [docs/DOCKER.md](docs/DOCKER.md) |
+| NVIDIA GPU (driver, CUDA, local reasoner) | guide (Italian) in [docs/GPU.md](docs/GPU.md) |
 
 On Windows and the Mac, for now: no local reasoner, no Aurora's voice, no plugins (their cage is coming). The Mac is
 tried on a real Mac of GitHub Actions (Install workflow), not by hand yet.
