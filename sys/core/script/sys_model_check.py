@@ -19,21 +19,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from aurora import mdl_formats, mdl_gguf  # noqa: E402
+from aurora import mdl_custom, mdl_formats, mdl_gguf  # noqa: E402
 
-ROOM_GB = 2.0      # left on the GPUs besides the weights: the context's cache and the compute buffers (an assumption)
-
-
-def fit(meta: dict, vram_gb: float, ram_gb: float) -> dict:
-    """whole / experts_in_ram / no, with the numbers it was decided on."""
-    size, moe = float(meta["size_gb"]), int(meta.get("experts") or 0) > 0
-    if vram_gb and size + ROOM_GB <= vram_gb:
-        return {"verdict": "whole", "why": f"{size} GB of weights + {ROOM_GB} GB of room ≤ {vram_gb} GB of GPU memory"}
-    if moe and vram_gb and size <= vram_gb + ram_gb * 0.5:
-        return {"verdict": "experts_in_ram", "why": f"{size} GB > {vram_gb} GB of GPU memory: some experts in RAM "
-                f"({ram_gb} GB), slower answers (M23 measured the transfer)"}
-    return {"verdict": "no", "why": f"{size} GB of weights; GPU {vram_gb} GB, RAM {ram_gb} GB"
-            + ("" if moe else " (a dense model cannot keep part of itself in RAM here)")}
+fit = mdl_custom.fit       # one rule, shared with the Models page (mdl_custom)
 
 
 def check(path: Path) -> dict:

@@ -27,7 +27,7 @@ def _read(f, fmt: str):
     size = struct.calcsize(fmt)
     data = f.read(size)
     if len(data) != size:
-        raise NotGGUF("the header ends early")
+        raise Short("the header ends early")
     return struct.unpack(fmt, data)[0]
 
 
@@ -35,7 +35,10 @@ def _string(f) -> str:
     n = _read(f, "<Q")
     if n > 1 << 24:
         raise NotGGUF(f"a string of {n} bytes in the header")
-    return f.read(n).decode("utf-8", errors="replace")
+    data = f.read(n)
+    if len(data) != n:
+        raise Short("the header ends early")
+    return data.decode("utf-8", errors="replace")
 
 
 def _value(f, kind: int):
@@ -56,33 +59,45 @@ def _value(f, kind: int):
     raise NotGGUF(f"unknown value type {kind}")
 
 
+class Short(NotGGUF):
+    """The bytes end before the header does (a remote file read in part: ask for more)."""
+
+
+def read_header(f, name: str = "the file") -> dict:
+    """Every key of the header (the long arrays as None), from an open binary stream."""
+    if f.read(4) != MAGIC:
+        raise NotGGUF(f"{name} is not a GGUF file")
+    version = _read(f, "<I")
+    if version < 2:
+        raise NotGGUF(f"GGUF version {version} is too old")
+    _read(f, "<Q")                                                 # tensors
+    kv = {}
+    for _ in range(_read(f, "<Q")):
+        key = _string(f)
+        kv[key] = _value(f, _read(f, "<I"))
+    return kv
+
+
 def header(path: Path) -> dict:
-    """Every key of the header (the long arrays as None)."""
     with open(path, "rb") as f:
-        if f.read(4) != MAGIC:
-            raise NotGGUF(f"{Path(path).name} is not a GGUF file")
-        version = _read(f, "<I")
-        if version < 2:
-            raise NotGGUF(f"GGUF version {version} is too old")
-        _read(f, "<Q")                                             # tensors
-        kv = {}
-        for _ in range(_read(f, "<Q")):
-            key = _string(f)
-            kv[key] = _value(f, _read(f, "<I"))
-        return kv
+        return read_header(f, Path(path).name)
 
 
 def meta(path: Path) -> dict:
     """The facts Aurora decides on. A split model (…-00001-of-00003.gguf) is read from its first part."""
     path = Path(path)
-    kv = header(path)
+    parts = sorted(path.parent.glob(path.name.replace("00001-of", "*-of"))) if "-00001-of-" in path.name else [path]
+    return facts(header(path), path.stem, sum(p.stat().st_size for p in parts))
+
+
+def facts(kv: dict, name: str, size: int) -> dict:
+    """The facts from a header's keys (a local file, or the first megabytes of a remote one: mdl_custom)."""
     arch = str(kv.get("general.architecture", ""))
 
     def a(key: str):
         return kv.get(f"{arch}.{key}")
-    parts = sorted(path.parent.glob(path.name.replace("00001-of", "*-of"))) if "-00001-of-" in path.name else [path]
-    return {"architecture": arch, "name": kv.get("general.name") or path.stem,
+    return {"architecture": arch, "name": kv.get("general.name") or name,
             "experts": a("expert_count") or 0, "experts_used": a("expert_used_count") or 0,
             "context": a("context_length") or 0, "layers": a("block_count") or 0,
             "chat_template": kv.get("tokenizer.chat_template") or "",
-            "size_gb": round(sum(p.stat().st_size for p in parts) / 2**30, 2)}
+            "size_gb": round(size / 2**30, 2)}

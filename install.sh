@@ -85,7 +85,8 @@ ok "$(t 'spazio libero' 'free space'): ${FREE} GB"
 
 # ---------------------------------------------------------------------------------------------------
 step "2. $(t 'Pacchetti di sistema' 'System packages')"
-PKGS="python3-venv python3-dev build-essential cmake git curl ffmpeg poppler-utils caddy libnss3-tools openssl"
+# bubblewrap: the plugins' cage — without it no plugin runs (C226); it was missing here (C237, the Install run, 9 Oct)
+PKGS="python3-venv python3-dev build-essential cmake git curl ffmpeg poppler-utils caddy libnss3-tools openssl bubblewrap"
 MISSING=$(for p in $PKGS; do dpkg -s "$p" >/dev/null 2>&1 || echo "$p"; done | tr '\n' ' ')
 if [ -n "${MISSING// /}" ]; then
   echo "  $(t 'da installare' 'to install'): $MISSING"

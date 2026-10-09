@@ -29,7 +29,7 @@ def command(cfg: sys_config.Config) -> list[str]:
            "-c", str(cfg["AURORA_LLM_CTX"]), "-ngl", "999", "-fa", "on", "--no-webui",
            "--tensor-split", cfg["AURORA_LLM_TENSOR_SPLIT"], "--parallel", str(cfg["AURORA_LLM_PARALLEL"])]
     mmproj = cfg.path("AURORA_LLM_MMPROJ")
-    if mmproj.exists():
+    if str(cfg["AURORA_LLM_MMPROJ"]).strip() and mmproj.is_file():      # a model without a projector: no vision
         cmd += ["--mmproj", str(mmproj)]
     if cfg["AURORA_LLM_CPU_MOE_LAYERS"] > 0:
         cmd += ["--n-cpu-moe", str(cfg["AURORA_LLM_CPU_MOE_LAYERS"])]

@@ -6,6 +6,7 @@ import { call } from "../api.js";
 import { el, info } from "../dom.js";
 import { apply, lang, t } from "../i18n.js";
 import { renderModes } from "./models_mode.js";
+import { renderCustom } from "./models_custom.js";
 
 export default {
   id: "models",
@@ -13,6 +14,7 @@ export default {
   title: "nav.models",
 
   mount(root) {
+    this.root = root;
     root.classList.add("page");
     root.innerHTML = `
       <h2 data-i18n="md.title"></h2><p class="muted" data-i18n="md.hint"></p>
@@ -20,6 +22,7 @@ export default {
       <div class="md-state"></div>
       <h3 class="setting-cat" data-i18n="md.roles"></h3><div class="md-roles"></div>
       <div><button class="md-save" data-i18n="md.save"></button> <span class="muted md-out"></span></div>
+      <h3 class="setting-cat" data-i18n="mc.title"></h3><div class="md-custom"></div>
       <h3 class="setting-cat" data-i18n="md.media"></h3><p class="muted" data-i18n="md.media_hint"></p><div class="md-media"></div>
       <h3 class="setting-cat" data-i18n="md.limits"></h3><p class="muted" data-i18n="md.limits_hint"></p><div class="md-limits"></div>
       <h3 class="setting-cat" data-i18n="md.stats"></h3>
@@ -53,6 +56,7 @@ export default {
     this.providers = m.providers;
     renderModes(this.modeBox, m.providers, () => this.enter());      // 🧭 the whole: local, mixed, cloud, all cloud
     this.roles.replaceChildren(...m.roles.map((r) => this.row(r)));
+    renderCustom(this.root.querySelector(".md-custom"));          // 🧩 a local model of one's own (roadmap 73)
     this.loadMedia();
     this.loadLimits();
     this.loadStats(7);
