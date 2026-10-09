@@ -1546,5 +1546,18 @@
   "fw.field": "Campo",
   "fw.before": "Prima",
   "fw.after": "Dopo",
-  "fw.kept": "Lasciati come li avevi: {f} (Aurora non sposta né rinomina le tue regole)"
+  "fw.kept": "Lasciati come li avevi: {f} (Aurora non sposta né rinomina le tue regole)",
+  "sec.score": "📊 Pagella del pilota automatico",
+  "sec.ready": "✅ Pronta: due settimane sopra la soglia. Il pilota automatico si può accendere (Difesa).",
+  "sec.not_ready": "⏳ Non ancora: due settimane di fila sopra la soglia (giudicato ≥ 80%, precisione ≥ 90%, cieca ≤ 30 min).",
+  "sec.week": "{k}: {n} incidenti, giudicati {r} ({share}) · precisione {prec} ({right} giusti, {fa} falsi allarmi) · cieca {blind} min",
+  "sec.this_week": "Ultimi 7 giorni",
+  "sec.last_week": "I 7 prima",
+  "sec.verdict_q": "Il tuo giudizio:",
+  "sec.v.right": "giusto",
+  "sec.v.false_alarm": "falso allarme",
+  "sec.v.unsure": "da capire",
+  "sec.dest": "🌐 Destinazione {ip} ({name}) · rete: {who} · segnalata da: {feed} · liste pubbliche: {lists}",
+  "sec.dest_none": "nessuna",
+  "sec.kind.recon_then_out": "Ricognizione, poi uscita"
 }

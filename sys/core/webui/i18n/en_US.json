@@ -1546,5 +1546,18 @@
   "fw.field": "Field",
   "fw.before": "Before",
   "fw.after": "After",
-  "fw.kept": "Kept as you had them: {f} (Aurora does not move or rename your rules)"
+  "fw.kept": "Kept as you had them: {f} (Aurora does not move or rename your rules)",
+  "sec.score": "📊 The autopilot's scorecard",
+  "sec.ready": "✅ Ready: two weeks above the bar. The autopilot can be switched on (Defence).",
+  "sec.not_ready": "⏳ Not yet: two weeks in a row above the bar (≥ 80 % judged, ≥ 90 % precision, ≤ 30 min blind).",
+  "sec.week": "{k}: {n} incidents, {r} judged ({share}) · precision {prec} ({right} right, {fa} false alarms) · blind {blind} min",
+  "sec.this_week": "Last 7 days",
+  "sec.last_week": "The 7 before",
+  "sec.verdict_q": "Your verdict:",
+  "sec.v.right": "right",
+  "sec.v.false_alarm": "false alarm",
+  "sec.v.unsure": "not sure",
+  "sec.dest": "🌐 Destination {ip} ({name}) · network: {who} · flagged by: {feed} · public lists: {lists}",
+  "sec.dest_none": "none",
+  "sec.kind.recon_then_out": "Looked around, then went out"
 }

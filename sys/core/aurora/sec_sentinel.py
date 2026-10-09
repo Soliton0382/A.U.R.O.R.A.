@@ -43,6 +43,76 @@ def is_ips(f: dict) -> bool:
         or (f.get("log_component") or "").lower() == "ips"
 
 
+# the house's own chatter the firewall refuses (M161: 98 % of 585,591 «Appliance Access Denied» lines from the LAN went
+# to broadcast or multicast addresses — device discovery: Tuya 6667, Plex 32412/32414, NetBIOS 137/138, Spotify
+# 57621, NAT-PMP 5351, DHCP 67 — and the rest asked the firewall's own DNS, HTTP, DNS over TLS; no LAN device ever
+# touched more than 9 ports): logged and learned by the baseline, never a «port scan» (81 % of the incidents were these)
+HOUSE_PORTS = {"53", "67", "68", "80", "123", "137", "138", "139", "443", "853", "1900", "3702", "5351", "5353", "5355"}
+
+
+def _broadcast(ip: str) -> bool:
+    try:
+        a = ipaddress.ip_address(ip)
+    except ValueError:
+        return False
+    return a.is_multicast or ip.endswith(".255") or ip == "255.255.255.255"
+
+
+def household(f: dict) -> bool:
+    """A LAN device's discovery broadcast, or its question to the firewall's own house services, refused by the
+    firewall: noise for the detectors (still logged, still in the baseline)."""
+    if (f.get("log_subtype") or "").lower() != "denied" or not str(f.get("log_id", "")).startswith("010302"):
+        return False
+    src = src_of(f)
+    if not src or not is_private(src):
+        return False
+    return _broadcast(f.get("dst_ip", "")) or str(f.get("dst_port", "")) in HOUSE_PORTS
+
+
+class Recon:
+    """A device that looks around the house, then reaches out to a flagged address: the owner, 10 Oct — «una minaccia è
+    se prova ad uscire esternamente, non limitarsi a mandare messaggi broadcast interni; un'accoppiata delle due in
+    rapida successione può determinare un problema di security». The house's chatter alone is noise (M161); the same
+    device's chatter followed within WINDOW_S by a threat match going out is one high incident: «ricognizione, poi
+    uscita» — what a compromised device does (look for neighbours, call its server).
+    «Looking around» is not the steady chatter (a smart plug broadcasts every few seconds, all day): it is many
+    services asked at once — MIN_PORTS distinct ports in WINDOW_S. Measured on 10 days of the owner's network: the most
+    any device reached was 6 (a phone), the others 5 or fewer; with lines alone (20 a window) the check fired 20 times
+    in 10 days on chatty devices, i.e. at every threat match they made."""
+    WINDOW_S = 600
+    MIN_PORTS = 8
+
+    def __init__(self):
+        self.seen: dict[str, deque] = {}
+
+    def chatter(self, src: str, now: float, port: str = "") -> None:
+        q = self.seen.setdefault(src, deque())
+        q.append((now, port))
+        while q and now - q[0][0] > self.WINDOW_S:
+            q.popleft()
+
+    def out(self, f: dict, now: float) -> dict | None:
+        """The correlated incident when this threat line goes out from a device that was looking around."""
+        src, dst = src_of(f), f.get("dst_ip", "")
+        if not src or not is_private(src) or not dst or is_private(dst):
+            return None
+        q = self.seen.get(src) or deque()
+        while q and now - q[0][0] > self.WINDOW_S:
+            q.popleft()
+        ports = sorted({p for _, p in q if p})
+        if len(ports) < self.MIN_PORTS:
+            return None
+        stamp = time.strftime("%Y-%m-%dT%H:%M:%S%z")
+        return {"kind": "recon_then_out", "source": src, "count": len(q), "internal": True, "first": stamp,
+                "last": stamp, "samples": [f.get("_raw", "")[:600]],
+                "detail": {"title": "Ricognizione, poi uscita", "destination": dst, "ports": ports[:30],
+                           "why": f"{len(ports)} servizi diversi cercati nella rete di casa negli ultimi "
+                                  f"{self.WINDOW_S // 60} minuti (di solito un dispositivo ne usa 1-6), poi un contatto "
+                                  f"verso {dst}, segnalato come minaccia",
+                           "action": "Isola il dispositivo (Wi-Fi ospiti o blocco sul firewall) e controlla cosa ha "
+                                     "installato: è lo schema di un dispositivo compromesso"}}
+
+
 LOCAL_NETS = [ipaddress.ip_network(n) for n in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.0/8",
                                                   "169.254.0.0/16", "::1/128", "fc00::/7", "fe80::/10")]
 

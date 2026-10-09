@@ -24,10 +24,12 @@ export function page(tab, meta) { const { title } = meta; return {
   plugin: "security",                 // in the menu only when that plugin is on (social: any platform connected)
 
   mount(root) {
+    this.root = root;
     root.classList.add("page");
     root.innerHTML = `<h2 data-i18n="sec.title"></h2><p class="muted" data-i18n="sec.hint"></p>
       <div class="prj-tabs">${TABS.map((x, i) => `<button type="button" class="cat-chip${i ? "" : " on"}" data-tab="${x}" data-i18n="sec.tab.${x}"></button>`).join("")}</div>
       <div class="sec-tab" data-tab="incidents">
+        <details class="report sec-score-box"><summary data-i18n="sec.score"></summary><div class="sec-score"></div></details>
         <h3 class="setting-cat" data-i18n="sec.open"></h3><div class="open"></div>
         <h3 class="setting-cat"><span data-i18n="sec.closed"></span> <button class="sec-show-closed" data-i18n="sec.show_closed"></button> <button class="sec-archive" hidden></button></h3>
         <div class="closed"></div></div>
@@ -127,12 +129,49 @@ export function page(tab, meta) { const { title } = meta; return {
       });
       c.append(block);
     }
+    if (i.destination) {                              // a device at home reaching a threat feed's address (M161)
+      c.append(el("p", "warn", t("sec.dest", { ip: i.destination, name: i.destination_name || "—",
+        who: i.destination_provider || "—", feed: i.destination_feed || "—",
+        lists: (i.destination_lists || []).map((x) => x.list || x.name || "").join(", ") || t("sec.dest_none") })));
+    }
+    c.append(this.verdict(i));                       // the owner's judgement: the scorecard counts it (roadmap 81)
     if (i.status === "open") {
       const b = el("button", "sec-close", `✔ ${t("sec.close")}`);
       b.addEventListener("click", async () => { await call(`/v1/aurora/incidents/${i.id}/close`, { method: "POST" }); this.enter(); });
       c.append(b);
     }
     return c;
+  },
+
+  verdict(i) {
+    const row = el("div", "appr-actions");
+    row.append(el("span", "muted", t("sec.verdict_q")));
+    for (const [v, icon] of [["right", "👍"], ["false_alarm", "👎"], ["unsure", "🤔"]]) {
+      const b = el("button", i.verdict === v ? "approve" : "", `${icon} ${t(`sec.v.${v}`)}`);
+      b.addEventListener("click", async () => {
+        await call(`/v1/aurora/incidents/${i.id}/verdict`, { method: "POST", body: JSON.stringify({ verdict: v }) });
+        i.verdict = v;
+        row.replaceWith(this.verdict(i));
+        this.loadScore();
+      });
+      row.append(b);
+    }
+    return row;
+  },
+
+  async loadScore() {
+    const box = this.root.querySelector(".sec-score");
+    let s;
+    try { s = await call("/v1/aurora/security/scorecard"); } catch { return; }
+    const pct = (x) => (x === null || x === undefined ? "—" : `${Math.round(x * 100)}%`);
+    box.replaceChildren(el("p", s.ready ? "ok" : "warn", s.ready ? t("sec.ready") : t("sec.not_ready")));
+    s.weeks.forEach((w, k) => {
+      const p = el("p", "");
+      p.textContent = t("sec.week", { k: k === 0 ? t("sec.this_week") : t("sec.last_week"), n: w.incidents, r: w.reviewed,
+        share: pct(w.reviewed_share), prec: pct(w.precision), right: w.right, fa: w.false_alarm, blind: w.blind_min });
+      box.append(p);
+      for (const why of w.short) box.append(el("div", "muted", `• ${why}`));
+    });
   },
 
   // "NAS (192.0.2.10)" when the firewall knows the address (sec_netmap, owner 2026-10-06)
@@ -145,7 +184,7 @@ export function page(tab, meta) { const { title } = meta; return {
   async show(tab, again = false) {
     if (this.loaded.has(tab) && !again) return;
     this.loaded.add(tab);
-    if (tab === "incidents") await this.loadOpen();
+    if (tab === "incidents") { await this.loadOpen(); this.loadScore(); }
     if (tab === "defence") { await this.loadDefence(); await this.loadMap(); }   // Aurora's own machine: 🔥 its page
     if (tab === "watch") { this.rules.replaceChildren(el("p", "muted", "…")); await this.loadProfile(); }
     if (tab === "out") { this.outbound.replaceChildren(el("p", "muted", "…")); await this.loadOutbound(); }

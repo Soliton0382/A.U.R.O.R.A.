@@ -2358,3 +2358,23 @@ appliance's own services refused, «Appliance Access Denied»), ips_alert 16, ru
 - **blind**: from 16:41 on 9 Oct to 00:19 on 10 Oct no line arrived (C242) and nothing was said.
 Not measured: how many of the GreyNoise matches are real threats; the incidents' reports' quality.
 
+## M162 — The sentinel replayed on its own syslog, before and after roadmap 81 (10 October 2026)
+
+The owner's firewall syslog of 1-9 Oct (1,967,077 lines) fed again through the sentinel's detectors and the owner's
+checks, as they run (sec_sentinel.Detector, sec_rules.RuleSet). Incidents raised (before the merge of repeats):
+
+| | before | after |
+|---|---|---|
+| «port scan» from LAN devices (rule:scanning_firewall_rules) | 686 | 0 |
+| ATP threat twice (rule:atp_threat_match beside ips_alert) | 62 | 0 |
+| ips_alert from inside / from outside | 64 / 9 | 64 / 9 |
+| scanning from outside, port scan from outside | 19 + 1 | 19 + 1 |
+| **total** | **841** | **93** |
+
+The LAN's «Appliance Access Denied» lines: 98 % to broadcast/multicast (device discovery), the rest to the firewall's
+own DNS, HTTP, DNS over TLS; the most distinct ports any LAN device reached in 10 minutes: 6 (the others ≤ 5).
+«Looked around, then went out» (the owner's idea): with 20 chatter lines as the bar it fired 20 times in 10 days on
+chatty devices — every threat match they made; with ≥ 8 distinct ports in 10 minutes (above the house's 6): 0 on
+normal traffic. Live scorecard (10 Oct, 00:40): 130 incidents in 7 days, 0 judged, blind 708 min (two silences:
+251 min on 6 Oct, 457 min on 9 Oct). Not measured: a real compromised device (no such event in the 10 days).
+

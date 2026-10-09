@@ -20,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import httpx  # noqa: E402
 
 from aurora import sys_config, sys_health, sys_log  # noqa: E402
-from aurora.sec_sentinel import Detector, is_private, parse, src_of  # noqa: E402
+from aurora.sec_sentinel import Detector, Recon, household, is_ips, is_private, parse, src_of  # noqa: E402
 
 cfg = sys_config.get()
 log = sys_log.get_logger("sentinel")
@@ -87,6 +87,7 @@ def main() -> int:
     from aurora import sec_baseline                    # what each device of the house normally does
     base = sec_baseline.Baseline(cfg)
     log.info("aurora-sentinel started: syslog on %s:%s, allowed %s", host, port, ", ".join(sorted(allow)))
+    recon = Recon()                                    # chatter, then a threat going out: one high incident
     received = dropped = 0
     beat = 0.0
     while not _stop:
@@ -111,12 +112,20 @@ def main() -> int:
         line = data.decode("utf-8", errors="replace").strip()
         fw.info("%s %s", addr, line)
         f = parse(line)
-        found = [i.as_dict() for i in det.feed(f)]
+        quiet = household(f)                           # the house's chatter: logged and learned, never an incident
+        if quiet:
+            recon.chatter(src_of(f), time.time(), str(f.get("dst_port", "")))
+        found = [] if quiet else [i.as_dict() for i in det.feed(f)]
+        if is_ips(f):
+            linked = recon.out(f, time.time())
+            if linked:
+                found.append(linked)
         try:
             found += base.feed(f)
         except Exception as e:  # noqa: BLE001 — the baseline never stops the sentinel
             log.warning("baseline: %s", e)
-        for r, who, n, samples in rules.feed(f, src_of(f)):
+        # a threat line (IPS/ATP) is the detector's: the owner's checks would make a second incident of it (M161)
+        for r, who, n, samples in ([] if quiet or is_ips(f) else rules.feed(f, src_of(f))):
             now = time.strftime("%Y-%m-%dT%H:%M:%S%z")
             found.append({"kind": f"rule:{r['id']}", "source": who, "count": n, "internal": who != "*" and is_private(who),
                           "first": now, "last": now, "samples": samples,

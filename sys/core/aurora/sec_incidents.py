@@ -36,6 +36,8 @@ MERGE_HOURS = 24
 
 def severity(incident: dict) -> str:
     s = SEVERITY.get(incident["kind"], "low")
+    if incident["kind"] == "recon_then_out":
+        return "high"                                   # a device of the house, known or not: see sec_sentinel.Recon
     if incident.get("intel_lists") or incident["kind"] == "honeypot":
         return "high"                                   # a known attacker, or someone touching a decoy: always
     if incident["kind"] == "deny_burst" and incident.get("count", 0) >= 500:
