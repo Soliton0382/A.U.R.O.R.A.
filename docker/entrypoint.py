@@ -152,6 +152,13 @@ def prepare() -> None:
     say("models: encoder and re-ranker (3.3 GB the first time)")
     extra = os.environ.get("AURORA_DOCKER_MODELS", "").strip()
     run(PY, str(SCRIPT / "sys_models_fetch.py"), "--models", "embedder,reranker" + (f",{extra}" if extra else ""), "--yes")
+    tuned = DATA / "status" / "calibrated"
+    if not tuned.exists():                           # how many passages this CPU re-ranks in 15 s (C229)
+        say("search: tuned to this CPU")
+        out = run(PY, str(SCRIPT / "sys_calibrate.py"), "--write", check=False)
+        if out.returncode == 0:
+            tuned.write_text(out.stdout, encoding="utf-8")
+            say(out.stdout.strip())
     build = (ROOT / "docker" / "BUILD").read_text(encoding="utf-8").strip() if (ROOT / "docker" / "BUILD").exists() else "?"
     signed = DATA / "ethics" / "build"
     if not (DATA / "keys" / "owner_ed25519").exists() or not signed.exists() or signed.read_text().strip() != build:

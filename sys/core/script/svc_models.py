@@ -60,6 +60,7 @@ class Turns:
         self._busy = False
         self._waiting: list[tuple[int, int]] = []     # heap of (0 a question | 1 the rest, ticket)
         self._ticket = 0
+        self._urgent_at = 0.0                         # the last question's request (monotonic)
 
     def take(self, urgent: bool) -> None:
         """In order of arrival, questions first: the next slice of a long batch takes a new ticket, so whoever came
@@ -69,8 +70,16 @@ class Turns:
             me = (0 if urgent else 1, self._ticket)
             self._ticket += 1
             heapq.heappush(self._waiting, me)
-            while self._busy or self._waiting[0] != me:
-                self._cond.wait()
+            if urgent:
+                self._urgent_at = time.monotonic()
+            while True:
+                if self._busy or self._waiting[0] != me:
+                    self._cond.wait()
+                    continue
+                quiet = QUIET_S - (time.monotonic() - self._urgent_at)
+                if urgent or quiet <= 0:
+                    break
+                self._cond.wait(quiet)                # a question is going on: its next request comes in a moment
             heapq.heappop(self._waiting)
             self._busy = True
 
@@ -80,17 +89,30 @@ class Turns:
             self._cond.notify_all()
 
 
+# a question asks the models several times, seconds apart (its words, the translation, each page read): between two of
+# its requests a document slice took the device and the next request waited behind it (C229, the Windows VM: 141 s of
+# retrieval for one question with the harvester on). The documents wait QUIET_S after a question's last request.
+QUIET_S = 10.0
+CPU_SLICE = 4
 _gpu = Turns()
 
 
 def shrinking(owner, fn, items, urgent: bool = True):
     """fn(items), the owner's question first (Turns). A document batch goes slice by slice (the model's batch): between
     two slices a waiting question takes the device."""
-    if urgent or len(items) <= max(1, owner.batch):
+    step = _slice(owner)
+    if urgent or len(items) <= step:
         return _one(owner, fn, items, urgent)
     import numpy as np
-    step = max(1, owner.batch)
     return np.concatenate([_one(owner, fn, items[i:i + step], False) for i in range(0, len(items), step)])
+
+
+def _slice(owner) -> int:
+    """The documents' slice: the model's batch, on a CPU at most CPU_SLICE (C229, the Windows VM with 2 cores: 8 long
+    passages held the device 16-35 s, 4 of them 8-10 s at about the same seconds a passage — a question waits one slice)."""
+    step = max(1, owner.batch)
+    device = str(getattr(getattr(owner, "model", None), "device", ""))
+    return min(step, CPU_SLICE) if device.startswith("cpu") else step
 
 
 def _one(owner, fn, items, urgent: bool):

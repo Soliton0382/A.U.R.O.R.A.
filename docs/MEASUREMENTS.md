@@ -2277,3 +2277,25 @@ their loopback («RTM_NEWADDR») until NET_ADMIN. With both: **36 plugins, 20 wi
 for their key, 0 errors**; `netintel.reverse_dns 8.8.8.8` through API → gateway → cage: «dns.google» in 8.8 s (the
 first call starts the plugin). **Not measured**: a plugin that writes (its folder bound read-write in the cage), the
 cage's isolation checked from inside a plugin in the container (it is Linux's, tested by test_cage_users on Linux).
+
+## M156 — A question on 2 cores with the harvest running (9 October 2026)
+
+The Windows 11 test VM (2 vCPU, 16 GB, no GPU), Google gemini-pro-latest, harvest on. The same question each time:
+«La mia mail è mario.rossi@example.com e il mio numero è 333 1234567. Che cos'è un solitone, in due frasi?»
+
+| When | Change | End to end | Run | Answer |
+|---|---|---|---|---|
+| 17:21 | 30 → 10 candidates (sys_calibrate: 1.48 s a passage) | 392 s | 219 s | solitons |
+| 17:34 | + quiet window (documents wait 10 s after a question) | 617 s | 341 s | about e-mail (C230) |
+| 18:09 | + 4 passages a slice on the CPU | 166.6 s | 47.1 s | about e-mail (C230) |
+| 18:13 | + C230 (truncated thinking asked again); API just restarted | 221.5 s | 65.6 s | solitons, Wikipedia |
+
+The encoder on that VM, idle, Qwen3-Embedding-0.6B, passages of ~2,100 characters: a query 0.3-0.5 s; 4 passages
+7.9-10.5 s, 8 passages 16.4-35.2 s (noisy: the VM shares the host). With the harvest stopped the queue it had
+already sent kept both cores at 100 % for 16 minutes (17:46 → 18:02).
+
+Still in the end-to-end time: ~55-80 s before the run (36 plugins started again at every question — the fix waits
+for the owner's signature, C229) and, for a client that does not stream, the memory's indexing after the answer
+(69 s at 18:15-18:17, behind the harvest's slices). Masking: 8 of 8 cloud calls with EMAIL 1, PHONE 1; the e-mail
+and the number never in the trace.
+

@@ -253,6 +253,9 @@ fi
 step "8. $(t 'Modelli (Hugging Face, revisioni fissate, SHA-256 verificati)' 'Models (Hugging Face, pinned revisions, SHA-256 checked)')"
 .venv/bin/python sys/core/script/sys_models_fetch.py --models embedder,reranker --yes | tail -1 | sed 's/^/  /' || die "$(t 'download dei modelli' 'model download')"
 [ -n "$MODELS" ] && { .venv/bin/python sys/core/script/sys_models_fetch.py --models "$MODELS" --yes | tail -1 | sed 's/^/  /' || die "$(t 'download dei modelli facoltativi' 'optional model download')"; }
+# how many passages this CPU re-ranks in 15 s (C229: the fixed 30 took minutes on 2 cores)
+CAL=$(.venv/bin/python sys/core/script/sys_calibrate.py --write 2>/dev/null | tail -1) \
+  && ok "$(t 'ricerca tarata su questa CPU' 'search tuned to this CPU'): $CAL" || warn "$(t 'taratura della ricerca non riuscita: restano 30 candidati' 'search not tuned: 30 candidates kept')"
 
 # ---------------------------------------------------------------------------------------------------
 step "9. $(t 'Codice di condotta: la chiave di questa installazione' 'Code of conduct: this installation'"'"'s key')"

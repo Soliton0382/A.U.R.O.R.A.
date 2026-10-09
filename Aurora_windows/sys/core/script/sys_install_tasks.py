@@ -56,7 +56,10 @@ def register(cfg: sys_config.Config, user: str, name: str, program: str, args: s
         "-RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit ([TimeSpan]::Zero) "
         f"-MultipleInstances IgnoreNew -Priority {priority}; "
         f"Register-ScheduledTask -TaskPath '{TASKS}' -TaskName {_ps_quote(name)} -Action $a -Trigger $t -Principal $p "
-        f"-Settings $s -Description {_ps_quote(f'Aurora — {name} (written by sys_install_tasks.py)')} -Force | Out-Null")
+        f"-Settings $s -Description {_ps_quote(f'Aurora — {name} (written by sys_install_tasks.py)')} -Force | Out-Null; "
+        # installing enables it again: a service stopped from Aurora is disabled (windows.py), and an update would
+        # otherwise leave it off (the VM, 9 Oct: the harvester stayed «Disabled» after install.ps1)
+        f"Enable-ScheduledTask -TaskPath '{TASKS}' -TaskName {_ps_quote(name)} | Out-Null")
     r = sys_platform.current()._ps(script, 120)
     if r.code != 0:
         raise SystemExit(f"task {name}: {(r.out + r.err).strip()[-400:]}")

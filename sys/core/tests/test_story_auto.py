@@ -170,6 +170,7 @@ sys.path.insert(0, "."); sys.path.insert(0, "script")
 from aurora import sys_config
 sys_config._cached = sys_config.load(Path({str(cfg.env_file)!r}), check_root=False)
 import numpy as np, svc_models as svc
+svc.QUIET_S = 0.3                                    # the documents' wait after a question, short here
 order, first_slice = [], threading.Event()
 class Model:
     batch = 8
@@ -192,3 +193,50 @@ print("ok")
     r = subprocess.run([sys.executable, "-c", code], cwd=Path(__file__).resolve().parents[1], capture_output=True,
                        text=True, timeout=300)
     assert r.returncode == 0 and r.stdout.strip().endswith("ok"), r.stderr[-2000:]
+
+
+@pytest.fixture
+def svc(cfg, monkeypatch):
+    """svc_models imported against the tests' installation (it reads the settings at import: a clone has no .env)."""
+    import importlib
+    import sys
+    from pathlib import Path
+    from aurora import sys_config
+    monkeypatch.setattr(sys_config, "_cached", cfg)
+    monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[1] / "script"))
+    sys.modules.pop("svc_models", None)
+    yield importlib.import_module("svc_models")
+    sys.modules.pop("svc_models", None)
+
+
+def test_documents_wait_while_a_question_is_still_asking(svc):
+    """C229: between two requests of the same question a document slice no longer takes the device."""
+    import threading
+    import time
+    turns, quiet = svc.Turns(), svc.QUIET_S
+    svc.QUIET_S = 0.5
+    try:
+        turns.take(True)
+        turns.give()
+        t0 = time.monotonic()
+        took = []
+        t = threading.Thread(target=lambda: (turns.take(False), took.append(time.monotonic() - t0), turns.give()))
+        t.start()
+        time.sleep(0.2)
+        turns.take(True)                                   # the question's next request: straight in
+        assert not took
+        turns.give()
+        t.join(5)
+        assert took and took[0] >= 0.6                     # the documents waited the quiet after the last request
+    finally:
+        svc.QUIET_S = quiet
+
+
+def test_on_a_cpu_the_documents_go_in_short_slices(svc):
+    """C229: on a CPU a question waits one slice of CPU_SLICE passages, not the model's whole batch."""
+
+    class Model:
+        def __init__(self, device):
+            self.batch, self.model = 8, type("M", (), {"device": device})()
+    assert svc._slice(Model("cpu")) == svc.CPU_SLICE
+    assert svc._slice(Model("cuda:0")) == 8

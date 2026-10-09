@@ -66,6 +66,13 @@ class Plugin:
         return m.get("effects", {}).get("*", "external")      # unknown: the careful default
 
 
+# a plugin that could not list its tools, remembered (C229: on Windows, where the plugins' cage is not finished, all
+# 36 were started again before every question — about a minute each time on 2 cores); a changed manifest, or
+# FAILED_S later, and it is tried again
+FAILED_S = 600
+_FAILED: dict[tuple[str, float], tuple[float, str]] = {}
+
+
 class PluginHost:
     def __init__(self, cfg: sys_config.Config | None = None):
         self.cfg = cfg or sys_config.get()
@@ -179,6 +186,9 @@ class PluginHost:
         cached = self._cache.get(p.name)
         if cached and cached[0] == mtime:
             return cached[1]
+        failed = _FAILED.get((p.name, mtime))
+        if failed and time.time() < failed[0]:            # it could not start a moment ago: not tried at every question
+            raise RuntimeError(failed[1])
         if self._gateway():
             tools = self._remote("/tools", {"plugin": p.name, "user": self.cfg.user})["tools"]
             self._cache[p.name] = (mtime, tools)
@@ -189,7 +199,11 @@ class PluginHost:
             return [{"name": t.name, "description": t.description or "", "input_schema": t.input_schema or {},
                      "effect": p.effect(t.name)} for t in res.tools]
         (self.cfg.path("AURORA_LOG_DIR") / "plugins").mkdir(parents=True, exist_ok=True)
-        tools = self._run(self._session(p, work))
+        try:
+            tools = self._run(self._session(p, work))
+        except Exception as e:
+            _FAILED[(p.name, mtime)] = (time.time() + FAILED_S, _explain(e))
+            raise
         self._cache[p.name] = (mtime, tools)
         return tools
 

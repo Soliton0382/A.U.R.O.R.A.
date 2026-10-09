@@ -157,6 +157,35 @@ def test_a_thinking_model_that_spent_the_budget_is_asked_again(cfg, monkeypatch)
     assert len(sent) == 1 and "reasoning_effort" not in sent[0]       # remembered: not tried again
 
 
+def test_a_few_words_left_by_the_thinking_are_asked_again(cfg, monkeypatch):
+    """C230 (the Windows VM, 9 Oct): gemini-pro-latest thought 190 of 200 tokens and the standalone question came back
+    «La mia mail è [EMAIL» — cut, not empty. A truncation that is mostly thinking is asked again; a long answer cut
+    at its own length is not."""
+    import httpx
+    sent = []
+
+    def post(url, headers, timeout, json):
+        sent.append(dict(json))
+        small = json["max_tokens"] <= 200
+        text, visible = ("La mia mail è [EMAIL", 6) if small else ("La mia mail è [EMAIL_1]. Che cos'è un solitone?", 14)
+        thought = 190 if small else 300
+        if json.get("model") == "long":
+            text, visible, thought = "x " * 200, 200, 0
+        return httpx.Response(200, json={"choices": [{"message": {"content": text},
+                                                      "finish_reason": "length" if small else "stop"}],
+                                         "usage": {"prompt_tokens": 490, "completion_tokens": visible,
+                                                   "total_tokens": 490 + visible + thought}},
+                              request=httpx.Request("POST", url))
+
+    monkeypatch.setattr(httpx, "post", post)
+    cfg.values["AURORA_GOOGLE_API_KEY"] = "k"
+    out = mdl_router.OpenAICompatLLM("google", "pro", cfg).complete("s", "q", 200)
+    assert out.answer.endswith("solitone?") and [x["max_tokens"] for x in sent] == [200, 200 + 4096]
+    sent.clear()
+    out = mdl_router.OpenAICompatLLM("google", "long", cfg).complete("s", "q", 200)
+    assert len(sent) == 1 and out.truncated
+
+
 def test_the_installers_trial_call_needs_no_env_file(tmp_path):
     """The installer proves the provider before any .env exists: the trial read the missing .env through the log and
     stopped every installation without a GPU (a clean clone, 8 Oct 2026)."""

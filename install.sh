@@ -333,6 +333,10 @@ if [ "$BACKEND" = cloud ]; then                # the reasoner is the provider's:
 else
   .venv/bin/python sys/core/script/sys_models_fetch.py --required --yes || die "$(t 'download dei modelli' 'model download')"
 fi
+if [ "$BACKEND" = cloud ]; then          # how many passages this CPU re-ranks in 15 s (C229: 30 fixed took minutes on 2 cores)
+  CAL=$(.venv/bin/python sys/core/script/sys_calibrate.py --write 2>/dev/null | tail -1) \
+    && ok "$(t 'ricerca tarata su questa CPU' 'search tuned to this CPU'): $CAL" || warn "$(t 'taratura della ricerca non riuscita: restano 30 candidati' 'search not tuned: 30 candidates kept')"
+fi
 if [ -n "$MODELS" ]; then
   .venv/bin/python sys/core/script/sys_models_fetch.py --models "$MODELS" --yes || die "$(t 'download dei modelli facoltativi' 'optional model download')"
   case ",$PICK," in *,voice,*) bash sys/core/script/sys_tts_install.sh || warn "$(t 'voce di Aurora non installata' "Aurora's voice not installed")" ;; esac

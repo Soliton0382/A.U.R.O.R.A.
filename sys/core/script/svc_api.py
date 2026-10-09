@@ -192,7 +192,7 @@ if __name__ == "__main__":
         for name in users:
             mine = sys_user_config.for_user(base, name)
             try:
-                if kno_shadow.stats(mine)["seed"]:
+                if kno_shadow.stats(mine)["seed"] >= len(rows):     # complete (an interrupted import goes on)
                     continue
                 out = kno_shadow.import_seed(mine, embedder, rows)
                 log.info("audit: shadow seed for %s: %d answers added, %d skipped", name or "the owner", out["added"],

@@ -116,6 +116,16 @@ def set_assignments(cfg: sys_config.Config, changes: dict[str, dict]) -> dict[st
 
 # ---- OpenAI-compatible providers ---------------------------------------------------------------------------
 
+def _thought(d: dict, max_tokens: int) -> bool:
+    """The thinking took at least half the budget (usage: total - prompt - visible, the Gemini way; or the
+    reasoning_tokens OpenAI reports)."""
+    u = d.get("usage") or {}
+    spent = (u.get("completion_tokens_details") or {}).get("reasoning_tokens")
+    if spent is None and u.get("total_tokens") is not None:
+        spent = int(u["total_tokens"]) - int(u.get("prompt_tokens") or 0) - int(u.get("completion_tokens") or 0)
+    return bool(spent) and spent >= max_tokens / 2
+
+
 class OpenAICompatLLM:
     """Chat completions of OpenAI, Google Gemini, xAI, Mistral, OpenRouter (same protocol)."""
     context_tokens = 128_000
@@ -178,9 +188,10 @@ class OpenAICompatLLM:
             body["reasoning_effort"] = "low"
         d = self._post(body)
         text = (d["choices"][0]["message"].get("content") or "").strip()
-        if not text and d["choices"][0].get("finish_reason") == "length":
+        if d["choices"][0].get("finish_reason") == "length" and (not text or _thought(d, max_tokens)):
             # C209: a model that cannot stop thinking (Gemini pro) counts its thinking in max_tokens: with the 16-32
-            # tokens of a short step it answered nothing (measured 8 Oct 2026, gemini-pro-latest: 0 tokens of answer)
+            # tokens of a short step it answered nothing (measured 8 Oct 2026, gemini-pro-latest: 0 tokens of answer).
+            # C230: or a few words of it — 6 visible of 200, 190 thought: the question cut to «La mia mail è [EMAIL»
             self.log.info("%s %s: the thinking took all %d tokens, asked again with %d more", self.name, self.model,
                           max_tokens, self.THINK_ROOM)
             self._account(d.get("usage") or {}, time.time() - t0)
