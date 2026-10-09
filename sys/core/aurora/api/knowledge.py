@@ -318,12 +318,33 @@ async def command_verify(card: str) -> dict:
         raise HTTPException(status_code=404, detail=str(e)) from None
 
 
+def settle_updates(info: dict | None = None) -> int:
+    """Up to date (by the WebUI, or by hand: git pull and the installer): the update approvals still open are closed —
+    the owner's colleague, 9 Oct: «ho completato l'update ma continua a dirmi che c'è un update da fare». Called at
+    every check that finds nothing new and at the API's start (the state checked again without fetching)."""
+    from aurora import sys_update
+    from aurora.sys_approvals import Approvals
+    if info is None:
+        info = sys_update.check(cfg, fetch=False)
+    if info.get("error") or info.get("commits"):
+        return 0
+    a = Approvals(cfg)
+    open_ = [x for x in a.list("pending") if x["kind"] == "update"]
+    for x in open_:
+        a.update(x["id"], status="closed", decided=time.time(), note=f"already up to date ({info.get('here', '')})")
+    if open_:
+        log.info("audit: %d update approvals closed: Aurora is up to date (%s)", len(open_), info.get("here", ""))
+    return len(open_)
+
+
 @router.post("/v1/aurora/update/check", dependencies=[Depends(admin_only)])
 async def update_check() -> dict:
     """Fetch and compare; new commits become a notification and an approval (notify), or are applied (auto, when safe)."""
     from aurora import sys_update
     from aurora.sys_approvals import Approvals
     info = await asyncio.to_thread(sys_update.check, cfg)
+    if not info.get("error") and not info.get("commits"):
+        settle_updates(info)
     if info.get("error") or not info.get("commits"):
         return info
     pending = [a for a in Approvals(cfg).list("pending") if a["kind"] == "update"]

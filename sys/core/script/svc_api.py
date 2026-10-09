@@ -214,6 +214,16 @@ if __name__ == "__main__":
     app.router.add_event_handler("startup", _settings_in_place)
     app.router.add_event_handler("startup", lambda: threading.Thread(target=_seed_shadows, name="seed-shadows",
                                                                       daemon=True).start())
+    def _update_state() -> None:
+        """The update's state checked again at start, without fetching: an update made by hand is seen at once."""
+        try:
+            from aurora.api.knowledge import settle_updates
+            settle_updates()
+        except Exception as e:                          # noqa: BLE001 - never fail the start
+            log.warning("update state not checked: %s", e)
+
+    app.router.add_event_handler("startup", lambda: threading.Thread(target=_update_state, name="update-state",
+                                                                      daemon=True).start())
     app.router.add_event_handler("startup", lambda: threading.Thread(target=_warm_plugins, name="warm-plugins",
                                                                       daemon=True).start())
     from aurora.api.security import watch_defence     # automatic blocks lifted when their time is over

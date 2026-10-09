@@ -147,9 +147,11 @@ fi
 
 # ---------------------------------------------------------------------------------------------------
 step "4. $(t 'Le tue scelte' 'Your choices')"
-TLS=""
+TLS=""; TRUST=""
 if [ "$UPDATE" = 1 ]; then
   ok "$(t 'scelte del .env tenute' 'choices of .env kept')"
+  # Caddy's local authority trusted again (an installation that stopped early never was: the colleague's «HTTP 000»)
+  TRUST=$(sed -n 's/^AURORA_TLS_MODE=//p' .env | tail -1)
 else
 DEF_NAME="$(getent passwd "$USER" | cut -d: -f5 | cut -d, -f1)"; DEF_NAME="${DEF_NAME:-$USER}"
 OWNER=$(ask "$(t 'Il tuo nome (come ti chiamerà Aurora)' 'Your name (what Aurora will call you)')" "$DEF_NAME" NAME)
@@ -419,7 +421,7 @@ fi
 step "12. $(t 'Servizi (systemd) e HTTPS' 'Services (systemd) and HTTPS')"
 .venv/bin/python sys/core/script/sys_install_services.py | tail -3
 sudo bash sys/deploy/systemd/install.sh || die "$(t 'servizi' 'services')"
-if [ "$TLS" = internal ]; then
+if [ "$TLS" = internal ] || [ "$TRUST" = internal ]; then
   ADMIN=$(.venv/bin/python -c 'import sys; sys.path.insert(0, "sys/core"); from aurora import sys_config; print(sys_config.get()["AURORA_CADDY_ADMIN"])')
   sudo caddy trust --address "$ADMIN" && ok "$(t 'certificato locale di Caddy riconosciuto da questo computer' 'Caddy local certificate trusted on this computer')"
 fi

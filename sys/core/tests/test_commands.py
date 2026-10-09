@@ -67,3 +67,22 @@ def test_a_port_checks_its_updates_in_the_clone_it_was_built_from(cfg, tmp_path)
     cfg.values.update(AURORA_UPDATE_REMOTE="origin", AURORA_UPDATE_BRANCH="main")
     info = sys_update.check(cfg)
     assert info.get("behind") == 1 and info["commits"][0]["subject"] == "two", info
+
+
+def test_an_update_made_by_hand_closes_the_approval_left_open(cfg, monkeypatch):
+    """The owner's colleague, 9 Oct: «ho completato l'update ma continua a dirmi che c'è un update da fare»."""
+    import sys
+    from aurora import sys_config as SC
+    from aurora.sys_approvals import Approvals
+    monkeypatch.setattr(SC, "_cached", cfg)
+    for m in [m for m in sys.modules if m.startswith("aurora.api")]:
+        monkeypatch.delitem(sys.modules, m)
+    import importlib
+    for name in ('oai', 'runs'):                                   # the app's own order (svc_api)
+        importlib.import_module(f'aurora.api.{name}')
+    from aurora.api import knowledge
+    a = Approvals(cfg)
+    r = a.request("update", "code_change", "Aggiornamento: 3 commit", "update", {}, {"to": "abc"})
+    assert knowledge.settle_updates({"behind": 2, "commits": [1, 2]}) == 0          # still behind: left open
+    assert knowledge.settle_updates({"behind": 0, "commits": [], "here": "abc"}) == 1
+    assert a.get(r["id"])["status"] == "closed" and a.list("pending") == []

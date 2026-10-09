@@ -229,3 +229,15 @@ def test_a_path_with_spaces_is_one_caddyfile_token(cfg, monkeypatch):
     text = net_https.render(cfg, AURORA_TLS_MODE="internal")
     assert 'root * "/Users/r/Library/Application Support/Caddy/pki"' in text
     assert 'output file "' in text and net_https._q("C:\\Aurora\\x") == '"C:/Aurora/x"'
+
+
+def test_an_untrusted_certificate_is_said_not_http_000(monkeypatch):
+    """The owner's colleague, 9 Oct: «aurora-https: HTTPS non risponde (HTTP 000)» — curl refused Caddy's certificate
+    (caddy trust never ran): the health says what is wrong and the command."""
+    import subprocess
+    from types import SimpleNamespace
+    from aurora import sys_health
+    for code, said in ((60, "sudo caddy trust"), (7, "nessuno ascolta")):
+        monkeypatch.setattr(subprocess, "run", lambda *a, **k: SimpleNamespace(returncode=code, stdout="000"))
+        ok, how = sys_health._https("casa.local", 443)
+        assert not ok and said in how

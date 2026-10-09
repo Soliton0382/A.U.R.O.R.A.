@@ -707,8 +707,8 @@ NETWORK = [
     ("sys/core/aurora/sys_health.py", "import shutil\nimport subprocess\n", "import os\nimport shutil\nimport subprocess\n",
      "sys_health: os for os.devnull"),
     ("sys/core/aurora/sys_health.py",
-     """        out = subprocess.run(["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", "--max-time", "5",""",
-     """        out = subprocess.run(["curl", "-s", "-o", os.devnull, "-w", "%{http_code}", "--max-time", "5",   # NUL on Windows""",
+     """        r = subprocess.run(["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", "--max-time", "5",""",
+     """        r = subprocess.run(["curl", "-s", "-o", os.devnull, "-w", "%{http_code}", "--max-time", "5",   # NUL on Windows""",
      "sys_health: the HTTPS check's empty output"),
 ]
 

@@ -41,9 +41,14 @@ def _http(url: str) -> tuple[bool, str]:
 def _https(domain: str, port: int) -> tuple[bool, str]:
     """A real HTTPS request to the public name, answered by this machine (SNI and certificate checked)."""
     try:
-        out = subprocess.run(["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", "--max-time", "5",
-                              "--resolve", f"{domain}:{port}:127.0.0.1", f"https://{domain}:{port}/health"],
-                             capture_output=True, text=True, timeout=10).stdout.strip()
+        r = subprocess.run(["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", "--max-time", "5",
+                            "--resolve", f"{domain}:{port}:127.0.0.1", f"https://{domain}:{port}/health"],
+                           capture_output=True, text=True, timeout=10)
+        out = r.stdout.strip()
+        if r.returncode in (60, 35, 77):              # the certificate, not the service (the colleague's «HTTP 000», 9 Oct)
+            return False, "certificato non riconosciuto da questo computer: sudo caddy trust"
+        if r.returncode == 7:
+            return False, f"nessuno ascolta sulla porta {port}"
         return out.isdigit() and 0 < int(out) < 500, f"HTTP {out or '-'}"
     except (OSError, subprocess.SubprocessError) as e:
         return False, type(e).__name__
