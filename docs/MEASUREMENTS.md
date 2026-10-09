@@ -2326,3 +2326,10 @@ raccolta 10 per fonte a giro (0.958 s/passaggio)» — the re-ranker 1.48 → 0.
 Plugins (C231): 0 tools before, then 20 plugins and 92 tools listed in 19.2 s; notes_list 0.9 s, web.fetch_url 1.0 s
 from inside the AppContainer. Not measured: the breakdown of the 71.7 s; the owner's real plugins with keys.
 
+## M159 — Logs on the reference machine (9 October 2026)
+
+sys/logs: 150 MB (du, 22:10). firewall 66 MB (187 files: ~15 rotated a day, ~0.38 MB each gzipped — the owner's
+firewall sends every allowed connection by syslog), trace 58 MB (60 files), api 7.5, llm 6.8, harvester 3.3, https 3.2,
+ingest 1.8, plugins 1.6. Rotation at AURORA_LOG_MAX_MB=10 working (gzip, timestamped); deletion after
+AURORA_LOG_RETENTION_DAYS=365, so nothing deleted yet. Growth since 1 Oct: ~16 MB a day. Not measured: a full year.
+

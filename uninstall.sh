@@ -77,7 +77,7 @@ fi
 if [ "$CHOICE" = 1 ]; then
   step "$(t 'Tenuti' 'Kept')"
   for d in .env sys/vault sys/status sys/plugins usr; do [ -e "$d" ] && ok "$d"; done
-  echo "  $(t 'Per tornare: bash install.sh in questa cartella.' 'To come back: bash install.sh in this folder.')"
+  echo "  $(t 'Per tornare: bash install.sh in questa cartella — è un aggiornamento: nessuna domanda, le scelte del .env restano.' 'To come back: bash install.sh in this folder — an update: no question asked, the choices in .env stay.')"
 else
   step "$(t 'Dati e chiavi' 'Data and keys')"
   if [ -d /etc/aurora ]; then run sudo rm -rf /etc/aurora; ok "/etc/aurora"; fi
@@ -92,9 +92,14 @@ else
   fi
   cd /
   run rm -rf "$ROOT"; ok "$ROOT"
+  # the folder was the git clone: a clean installation starts from a new one (the owner's colleague, 9 Oct)
+  echo "  $(t 'Per una installazione pulita:' 'For a clean installation:') git clone https://github.com/Soliton0382/A.U.R.O.R.A..git aurora && cd aurora && bash install.sh"
 fi
 
 step "$(t 'Lasciati al loro posto' 'Left in place')"
 echo "  $(t 'i backup sul NAS; il driver NVIDIA e CUDA; i pacchetti apt installati per Aurora (ffmpeg, poppler-utils, caddy…): togli quelli che non usi con' 'the backups on the NAS; the NVIDIA driver and CUDA; the apt packages installed for Aurora (ffmpeg, poppler-utils, caddy…): remove those you do not use with') sudo apt remove …"
+# the browsers keep the old key and the old WebUI (its service worker): after a new installation they must forget
+# them (the owner's colleague, 9 Oct: only the background and the stars)
+echo "  $(t 'nei browser e sul telefono: la vecchia chiave e la WebUI in cache. Dopo una nuova installazione, nel browser: impostazioni del sito → Cancella dati (o Ctrl+Shift+R), poi la nuova chiave API; sul telefono togli e rimetti l app.' 'in the browsers and on the phone: the old key and the cached WebUI. After a new installation, in the browser: site settings → Clear data (or Ctrl+Shift+R), then the new API key; on the phone remove and add the app again.')"
 if [ "$DRY" = 1 ]; then echo; warn "$(t 'dry-run: niente è stato cambiato' 'dry-run: nothing was changed')"; fi
 exit 0

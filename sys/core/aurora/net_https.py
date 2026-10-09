@@ -34,7 +34,7 @@ CADDYFILE = Template("""# Generated from .env by sys/core/aurora/net_https.py �
 	http_port $http_port
 	https_port $https_port
 	log {
-		output file $log_dir/caddy.log {
+		output file $log_file {
 			roll_size ${max_mb}MiB
 			roll_keep_for ${keep_hours}h
 		}
@@ -109,7 +109,7 @@ def render(cfg: sys_config.Config, **over) -> str:
     hosts = names(cfg, **over)
     ca = ""
     if mode == "internal":                           # the phone's first step: the root certificate, over plain HTTP
-        ca = (f"\thandle {CA_PATH} {{\n\t\troot * {ca_dir(cfg)}\n\t\trewrite * /root.crt\n"
+        ca = (f"\thandle {CA_PATH} {{\n\t\troot * {_q(ca_dir(cfg))}\n\t\trewrite * /root.crt\n"
               "\t\theader Content-Type application/x-x509-ca-cert\n\t\tfile_server\n\t}\n")
     return CADDYFILE.substitute(
         admin=cfg["AURORA_CADDY_ADMIN"], http_port=http_port, https_port=https_port,
@@ -117,13 +117,19 @@ def render(cfg: sys_config.Config, **over) -> str:
         # the address it was reached at — behind Docker that address is the container's own (C221, «internal error»)
         default_sni=hosts[0] if hosts else "localhost",
         https_suffix="" if https_port == 443 else f":{https_port}",
-        log_dir=cfg.path("AURORA_LOG_DIR") / "https", max_mb=cfg["AURORA_LOG_MAX_MB"],
+        log_file=_q(cfg.path("AURORA_LOG_DIR") / "https" / "caddy.log"), max_mb=cfg["AURORA_LOG_MAX_MB"],
         keep_hours=cfg["AURORA_LOG_RETENTION_DAYS"] * 24,
         sites=", ".join(f"{_host(h)}:{https_port}" for h in hosts),
         http_sites=", ".join(f"http://{_host(h)}:{http_port}" for h in hosts),
         ca=ca,
-        tls=(f"tls {cfg.path('AURORA_TLS_CERT')} {cfg.path('AURORA_TLS_KEY')}" if mode == "files" else "tls internal"),
+        tls=(f"tls {_q(cfg.path('AURORA_TLS_CERT'))} {_q(cfg.path('AURORA_TLS_KEY'))}" if mode == "files" else "tls internal"),
         api=f"{cfg['AURORA_API_HOST']}:{cfg['AURORA_API_PORT']}")
+
+
+def _q(path) -> str:
+    """A path as one Caddyfile token, whatever it holds: the Mac's Caddy keeps its authority in «Application Support»,
+    and the space split it in two («root: too many arguments» — the Install run on a real Mac, 9 Oct)."""
+    return '"' + str(path).replace("\\", "/").replace('"', '\\"') + '"'
 
 
 def _host(name: str) -> str:

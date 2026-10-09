@@ -1513,5 +1513,6 @@
   "cmd.verify": "Fatto: verifica",
   "cmd.checking": "Controllo…",
   "cmd.done": "Fatto, verificato.",
-  "cmd.notyet": "Non ancora fatto"
+  "cmd.notyet": "Non ancora fatto",
+  "boot.waiting": "⏳ Aurora si sta avviando, riprovo da sola… (tentativo {n}: {m})"
 }

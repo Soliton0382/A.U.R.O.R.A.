@@ -64,6 +64,14 @@ echo -e "\e[1mA.U.R.O.R.A.\e[0m — $(t 'installazione' 'installation') $(date '
 
 # ---------------------------------------------------------------------------------------------------
 step "1. $(t 'Controllo del sistema' 'System check')"
+# an Aurora already installed here (its .env): an update — every choice kept, nothing asked again (owner, 9 Oct:
+# «allineiamo l'installer Linux», as install.ps1 does; C234)
+UPDATE=0
+if [ -f .env ]; then
+  UPDATE=1; OPTIONAL=0; EXEMPT=0                    # EXEMPT=0: setup leaves an existing exemption as it is
+  PORT=$(sed -n 's/^AURORA_HTTPS_PORT=//p' .env | tail -1); UMODE=$(sed -n 's/^AURORA_USER_MODE=//p' .env | tail -1)
+  ok "$(t 'Aurora è già installata qui: aggiorno codice, ambiente e servizi; le tue scelte restano quelle del .env' 'Aurora is already installed here: code, environment and services are updated; your choices stay as in .env')"
+fi
 [ "$(id -u)" != 0 ] || die "$(t 'Lancialo come utente normale: sudo verrà chiesto quando serve.' 'Run it as a normal user: sudo is asked when needed.')"
 . /etc/os-release
 ok "$PRETTY_NAME, kernel $(uname -r)"
@@ -73,7 +81,7 @@ command -v sudo >/dev/null || die "sudo"
 FREE=$(df -BG --output=avail "$ROOT" | tail -1 | tr -dc 0-9)
 ok "$(t 'spazio libero' 'free space'): ${FREE} GB"
 # measured on the reference machine: .venv 6.1 GB, encoder + re-ranker 3.4 GB (cloud); + reasoner 21.5 GB and build (local)
-[ "$FREE" -ge 15 ] || die "$(t 'servono almeno 15 GB liberi (45 con il ragionatore locale)' 'at least 15 GB free needed (45 with the local reasoner)')"
+[ "$UPDATE" = 1 ] || [ "$FREE" -ge 15 ] || die "$(t 'servono almeno 15 GB liberi (45 con il ragionatore locale)' 'at least 15 GB free needed (45 with the local reasoner)')"
 
 # ---------------------------------------------------------------------------------------------------
 step "2. $(t 'Pacchetti di sistema' 'System packages')"
@@ -92,6 +100,7 @@ BROWSER=$(command -v google-chrome || command -v chromium || command -v chromium
 # ---------------------------------------------------------------------------------------------------
 step "3. $(t 'GPU o cloud' 'GPU or cloud')"
 BACKEND="${AURORA_INSTALL_BACKEND:-}"
+[ "$UPDATE" = 1 ] && [ -z "$BACKEND" ] && BACKEND=$(sed -n 's/^AURORA_LLM_BACKEND=//p' .env | tail -1)
 VRAM=0
 if nvidia-smi >/dev/null 2>&1; then
   nvidia-smi --query-gpu=index,name,driver_version,memory.total --format=csv,noheader | sed 's/^/  /'
@@ -119,7 +128,7 @@ if [ "$BACKEND" = cloud ]; then
   ok "$(t 'ragionatore cloud: niente CUDA, niente llama.cpp' 'cloud reasoner: no CUDA, no llama.cpp')"
 else
 [ "${VRAM:-0}" -gt 0 ] || die "$(t 'il ragionatore locale richiede una GPU NVIDIA con il driver attivo' 'the local reasoner needs an NVIDIA GPU with its driver running')"
-[ "$FREE" -ge 45 ] || die "$(t 'servono almeno 45 GB liberi (modelli obbligatori 24,7 GB + ambiente e build)' 'at least 45 GB free needed (required models 24.7 GB + environment and build)')"
+[ "$UPDATE" = 1 ] || [ "$FREE" -ge 45 ] || die "$(t 'servono almeno 45 GB liberi (modelli obbligatori 24,7 GB + ambiente e build)' 'at least 45 GB free needed (required models 24.7 GB + environment and build)')"
 NVCC_OK=0
 if [ -x /usr/local/cuda/bin/nvcc ]; then
   v=$(/usr/local/cuda/bin/nvcc --version | grep -o 'release [0-9.]*' | cut -d' ' -f2)
@@ -134,6 +143,10 @@ fi
 
 # ---------------------------------------------------------------------------------------------------
 step "4. $(t 'Le tue scelte' 'Your choices')"
+TLS=""
+if [ "$UPDATE" = 1 ]; then
+  ok "$(t 'scelte del .env tenute' 'choices of .env kept')"
+else
 DEF_NAME="$(getent passwd "$USER" | cut -d: -f5 | cut -d, -f1)"; DEF_NAME="${DEF_NAME:-$USER}"
 OWNER=$(ask "$(t 'Il tuo nome (come ti chiamerà Aurora)' 'Your name (what Aurora will call you)')" "$DEF_NAME" NAME)
 # who the assistant is (each user changes it later in their settings): her name, her character, her voice
@@ -244,6 +257,7 @@ case "$UMODE" in
   multi) echo "  $(t 'Multi-utente: alla fine entra con la chiave che ti mostro, poi in 👥 Utenti imposta la tua password e collega l app Authenticator, e crea gli utenti.' 'Multi-user: at the end log in with the key shown, then in 👥 Users set your password, link the Authenticator app and create the users.')" ;;
   *) UMODE=single ;;
 esac
+fi
 
 # ---------------------------------------------------------------------------------------------------
 step "5. Python (venv)"
@@ -254,7 +268,7 @@ if [ "$RESET_VENV" = 1 ] && [ -d .venv ]; then mv .venv ".venv.old-$(date +%s)";
 .venv/bin/pip install -q --require-hashes -r requirements.lock || die "pip install --require-hashes -r requirements.lock"
 ok "$(.venv/bin/python --version), torch $(.venv/bin/python -c 'import torch; print(torch.__version__, "cuda", torch.cuda.is_available())')"
 
-if [ "$BACKEND" = cloud ]; then
+if [ "$BACKEND" = cloud ] && [ "$UPDATE" = 0 ]; then
   step "5b. $(t 'Modello cloud' 'Cloud model')"
   # the key goes by the environment, never on a command line (visible to every user of this computer)
   export AURORA_INSTALL_CLOUD_URL="$CURL_BASE"            # provider 8 only; not secret
@@ -293,7 +307,7 @@ while IFS='|' read -r g size fits def why lit len mods todo; do
 done < <(.venv/bin/python sys/core/script/sys_doctor.py --groups "$PROFILE_FILE")
 PICK="${PICK#,}"; MODELS="${MODELS#,}"
 NEED=$(.venv/bin/python -c "print(int($([ "$BACKEND" = cloud ] && echo 15 || echo 45) + $EXTRA + 0.999))")
-[ "$FREE" -ge "$NEED" ] || die "$(t "servono ${NEED} GB liberi per le scelte fatte, ce ne sono ${FREE}" "${NEED} GB free needed for these choices, ${FREE} available")"
+[ "$UPDATE" = 1 ] || [ "$FREE" -ge "$NEED" ] || die "$(t "servono ${NEED} GB liberi per le scelte fatte, ce ne sono ${FREE}" "${NEED} GB free needed for these choices, ${FREE} available")"
 ok "$(t 'scelte' 'chosen'): ${PICK:-$(t 'nessuna' 'none')} ($(t 'da scaricare' 'to download'): ${EXTRA} GB)"
 
 # ---------------------------------------------------------------------------------------------------
@@ -347,7 +361,7 @@ if [ "$BACKEND" = cloud ]; then                # the reasoner is the provider's:
 else
   .venv/bin/python sys/core/script/sys_models_fetch.py --required --yes || die "$(t 'download dei modelli' 'model download')"
 fi
-if [ "$BACKEND" = cloud ]; then          # how many passages this CPU re-ranks in 15 s (C229: 30 fixed took minutes on 2 cores)
+if [ "$BACKEND" = cloud ] && [ "$UPDATE" = 0 ]; then          # how many passages this CPU re-ranks in 15 s (C229: 30 fixed took minutes on 2 cores)
   CAL=$(.venv/bin/python sys/core/script/sys_calibrate.py --write --say "$(t it en)" 2>/dev/null | tail -1) \
     && ok "$(t 'audit della macchina' 'machine audit'): $CAL" || warn "$(t 'audit della macchina non riuscito: restano i valori del profilo cloud' 'machine audit failed: the cloud profile values stay')"
 fi
@@ -370,7 +384,9 @@ else warn "$(t 'programma del plugin GitHub non installato' 'the GitHub plugin p
 
 # ---------------------------------------------------------------------------------------------------
 step "10. Test"
-(cd sys/core && ../../.venv/bin/python -m pytest -p no:cacheprovider tests --ignore=tests/test_models_gpu.py 2>&1 | tail -1) || die "test"
+# the failed tests by name, not only the count (the Install run, 9 Oct: «1 failed, 632 passed» and nothing to go on)
+(cd sys/core && ../../.venv/bin/python -m pytest -p no:cacheprovider -rfE tests --ignore=tests/test_models_gpu.py 2>&1 \
+  | grep -E '^(FAILED|ERROR) |passed|failed' | tail -12) || die "test"
 
 # ---------------------------------------------------------------------------------------------------
 step "11. $(t 'Codice di condotta: la chiave di questa installazione' 'Code of conduct: this installation'"'"'s key')"

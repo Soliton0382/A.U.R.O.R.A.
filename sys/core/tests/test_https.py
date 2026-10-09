@@ -106,7 +106,7 @@ def test_the_owners_certificate_goes_in_and_the_names_set_before_stay(https, mon
     assert now["AURORA_TLS_MODE"] == "files" and now["AURORA_DOMAIN_ALIASES"] == "192.168.1.20,casa.local"
     assert now.path("AURORA_TLS_CERT").read_bytes() == cert
     text = net_https.caddyfile(cfg).read_text()
-    assert "casa.local:443" in text and f"tls {now.path('AURORA_TLS_CERT')}" in text
+    assert "casa.local:443" in text and f"tls {net_https._q(now.path('AURORA_TLS_CERT'))}" in text
     assert ["systemctl", RELOAD, "aurora-https"] in calls
     assert net_https.use_internal(cfg)["mode"] == "internal" and "tls internal" in net_https.caddyfile(cfg).read_text()
     monkeypatch.undo()                                # the ports ask their system who may read it (not answered here)
@@ -218,3 +218,14 @@ def test_caddy_follows_the_env_even_when_the_number_did_not_change(https, monkey
     assert ["systemctl", "restart", "aurora-https"] in calls
     n = len(calls)
     assert net_https.set_ports(cfg, 8443, 80)["changed"] is False and len(calls) == n          # aligned: nothing to do
+
+
+def test_a_path_with_spaces_is_one_caddyfile_token(cfg, monkeypatch):
+    """The Install run on a real Mac (9 Oct): Caddy's authority lives in «~/Library/Application Support/Caddy»; unquoted,
+    «root * …/Application Support/…» was two arguments and the Caddyfile invalid."""
+    from pathlib import Path
+    from aurora import net_https
+    monkeypatch.setattr(net_https, "ca_dir", lambda c: Path("/Users/r/Library/Application Support/Caddy/pki"))
+    text = net_https.render(cfg, AURORA_TLS_MODE="internal")
+    assert 'root * "/Users/r/Library/Application Support/Caddy/pki"' in text
+    assert 'output file "' in text and net_https._q("C:\\Aurora\\x") == '"C:/Aurora/x"'

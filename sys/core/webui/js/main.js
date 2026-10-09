@@ -270,7 +270,24 @@ $("lang").value = lang;
 await i18n.load(lang);
 buildNav();
 mountAll();
-if (await authorized()) start(); else showLogin(true);
+// Aurora may still be starting (a new installation loads its models; Caddy answers 502 meanwhile): say it and try
+// again, never a page with only its background (the owner's colleague, 9 Oct: «resta ferma la foto… solo le stelle»)
+async function boot() {
+  let note = null;
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const ok = await authorized();
+      note?.remove();
+      if (ok) start(); else showLogin(true);
+      return;
+    } catch (e) {
+      if (!note) { note = el("div", "boot-wait"); document.body.append(note); }
+      note.textContent = i18n.t("boot.waiting", { n: attempt, m: e.status ? `HTTP ${e.status}` : e.message });
+      await new Promise((r) => setTimeout(r, Math.min(2000 * attempt, 10000)));
+    }
+  }
+}
+await boot();
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/sw.js").catch(() => { /* no offline shell */ });
   // a new version of the WebUI took over this page: load it once, so the page runs the new modules (C109)

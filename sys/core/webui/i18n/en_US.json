@@ -1513,5 +1513,6 @@
   "cmd.verify": "Done: check",
   "cmd.checking": "Checking…",
   "cmd.done": "Done, checked.",
-  "cmd.notyet": "Not done yet"
+  "cmd.notyet": "Not done yet",
+  "boot.waiting": "⏳ Aurora is starting, trying again by herself… (attempt {n}: {m})"
 }

@@ -236,3 +236,6 @@ button.danger { border-color: #c0392b; color: #ff8a80; }
 .cmd-card { border: 1px solid var(--accent-line); background: var(--accent-soft); border-radius: 10px; padding: .8rem; margin: .6rem 0; }
 .cmd-card p { margin: .4rem 0; }
 .cmd-line { font: .8rem/1.4 var(--mono); background: rgba(0, 0, 0, .35); padding: .6rem; border-radius: 6px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; user-select: all; }
+
+/* the page while Aurora starts (main.js boot): never only the background */
+.boot-wait { position: fixed; left: 50%; top: 40%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: .9rem 1.2rem; max-width: 90vw; text-align: center; z-index: 50; }
