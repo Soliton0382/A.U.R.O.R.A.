@@ -33,6 +33,9 @@ def command(cfg: sys_config.Config) -> list[str]:
         cmd += ["--mmproj", str(mmproj)]
     if cfg["AURORA_LLM_CPU_MOE_LAYERS"] > 0:
         cmd += ["--n-cpu-moe", str(cfg["AURORA_LLM_CPU_MOE_LAYERS"])]
+    from aurora import mdl_formats
+    if mdl_formats.needs_jinja(cfg):                   # another family: its own chat template (Qwen: ChatML, measured)
+        cmd += ["--jinja"]
     return cmd
 
 

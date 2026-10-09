@@ -1695,6 +1695,21 @@
    ]
   },
   {
+   "key": "AURORA_FORMATS_CACHE_H",
+   "type": "float",
+   "min": 1,
+   "max": 720,
+   "category": "llm",
+   "recommended": "24",
+   "evidence": "owner, 2026-10-09: «un modulo apposito … con cache che si aggiorna ogni tot per rimanere sempre aggiornata evitando chiamate continue ad ogni turno»",
+   "en": "How many hours the list of what each cloud model can do (tools, formats) is kept before the provider is asked again (mdl_formats). Local models are read from their own file.",
+   "it": "Quante ore resta valido l'elenco di cosa sa fare ogni modello cloud (strumenti, formati) prima di richiederlo al provider (mdl_formats). I modelli locali si leggono dal loro file.",
+   "services": [
+    "aurora-api"
+   ],
+   "optional": true
+  },
+  {
    "key": "AURORA_LLAMACPP_DIR",
    "type": "path",
    "category": "llm",

@@ -10,6 +10,10 @@ Prompts are built in ChatML, as in the measurements (M20-M24):
 `complete` returns the answer and the reasoning separately; `stream` yields
 ("thought", text) and ("answer", text) pieces as they arrive, splitting on the
 closing tag even when it is cut across two pieces.
+
+Another family (owner, 9 Oct: «se uno lo vuole cambiare con un modello suo»): its profile (mdl_formats, read from the
+GGUF) says «native» — the prompt goes through llama-server's chat endpoint with the model's own template (--jinja),
+the reasoning switched as the template understands it and given back apart (reasoning_content).
 """
 from __future__ import annotations
 
@@ -21,7 +25,7 @@ from typing import Iterator
 
 import httpx
 
-from . import sys_config, sys_log
+from . import mdl_formats, sys_config, sys_log
 
 END_THINK = "</think>"
 STOPS = ["<|im_end|>", "<|im_start|>", "<|endoftext|>"]
@@ -61,6 +65,39 @@ class LLM:
         self.url = f"http://{self.cfg['AURORA_LLM_HOST']}:{self.cfg['AURORA_LLM_PORT']}"
         self.timeout = self.cfg["AURORA_LLM_TIMEOUT_S"]
         self.log = sys_log.get_logger("llm_client")
+        self.fmt = mdl_formats.local(self.cfg)
+
+    def _native(self, messages: list[dict], max_tokens: int, think: bool, stream: bool = False) -> dict:
+        """The chat endpoint's body for a model with its own template (a tool's result as a user turn: not every
+        template takes a «tool» role without a call id)."""
+        msgs = []
+        for m in messages:
+            role, content = m["role"], m["content"]
+            if role == "system":
+                content = self.fmt.system(sys_config.personal(content, self.cfg), think)
+            elif role == "tool":
+                role, content = "user", f"TOOL RESULT:\n{content}"
+            msgs.append({"role": role, "content": content})
+        if not msgs or msgs[0]["role"] != "system":
+            line = self.fmt.system("", think).strip()
+            if line:
+                msgs.insert(0, {"role": "system", "content": line})
+        return {"messages": msgs, "max_tokens": max_tokens, "stream": stream, "temperature": 0.6 if think else 0.0,
+                "top_p": 0.95, "chat_template_kwargs": self.fmt.kwargs(think), "cache_prompt": True}
+
+    def _chat(self, messages: list[dict], max_tokens: int, think: bool) -> Completion:
+        t0 = time.time()
+        r = httpx.post(self.url + "/v1/chat/completions", json=self._native(messages, max_tokens, think),
+                       timeout=self.timeout)
+        r.raise_for_status()
+        d = r.json()
+        msg = d["choices"][0]["message"]
+        answer, thought = msg.get("content") or "", msg.get("reasoning_content") or ""
+        if END_THINK in answer:                    # a template that leaves the reasoning in the text
+            thought, _, answer = answer.partition(END_THINK)
+            thought = thought.replace("<think>", "")
+        return Completion(answer.strip(), thought.strip(), int((d.get("usage") or {}).get("completion_tokens") or 0),
+                          time.time() - t0, d["choices"][0].get("finish_reason") == "length")
 
     def health(self) -> bool:
         try:
@@ -73,6 +110,10 @@ class LLM:
                 "temperature": 0.6 if think else 0.0, "top_p": 0.95, "top_k": 20,
                 "stop": STOPS, "cache_prompt": True}
 
+    def _off(self) -> dict:
+        """No reasoning, in the model's own words (Qwen's: enable_thinking, as measured)."""
+        return {"enable_thinking": False} if self.fmt.template == "chatml" else self.fmt.kwargs(False)
+
     def see(self, jpeg: bytes, instruction: str, max_tokens: int = 700) -> str:
         """Look at an image (JPEG bytes) and answer the instruction, without thinking.
 
@@ -83,7 +124,7 @@ class LLM:
         r = httpx.post(self.url + "/v1/chat/completions", timeout=self.timeout, json={
             "messages": [{"role": "user", "content": [{"type": "text", "text": instruction},
                                                         {"type": "image_url", "image_url": {"url": uri}}]}],
-            "max_tokens": max_tokens, "temperature": 0.0, "chat_template_kwargs": {"enable_thinking": False}})
+            "max_tokens": max_tokens, "temperature": 0.0, "chat_template_kwargs": self._off()})
         r.raise_for_status()
         text = r.json()["choices"][0]["message"].get("content") or ""
         self.log.info("see: %d bytes image, %d chars in %.1f s", len(jpeg), len(text), time.time() - t0)
@@ -98,13 +139,15 @@ class LLM:
                       {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," + base64.b64encode(jpeg).decode("ascii")}}]
         r = httpx.post(self.url + "/v1/chat/completions", timeout=self.timeout, json={
             "messages": [{"role": "user", "content": parts}], "max_tokens": max_tokens, "temperature": 0.0,
-            "chat_template_kwargs": {"enable_thinking": False}})
+            "chat_template_kwargs": self._off()})
         r.raise_for_status()
         text = r.json()["choices"][0]["message"].get("content") or ""
         self.log.info("see_many: %d images, %d chars in %.1f s", len(frames), len(text), time.time() - t0)
         return text.strip()
 
     def complete(self, system: str, user: str, max_tokens: int, think: bool = False) -> Completion:
+        if self.fmt.template == "native":
+            return self._chat([{"role": "system", "content": system}, {"role": "user", "content": user}], max_tokens, think)
         t0 = time.time()
         r = httpx.post(self.url + "/completion", json=self._body(system, user, max_tokens, think, False),
                        timeout=self.timeout)
@@ -131,6 +174,8 @@ class LLM:
 
     def complete_turns(self, messages: list[dict], max_tokens: int, think: bool = False) -> Completion:
         """Like complete(), for a conversation of several turns (agents)."""
+        if self.fmt.template == "native":
+            return self._chat(messages, max_tokens, think)
         t0 = time.time()
         messages = [{**m, "content": sys_config.personal(m["content"], self.cfg)} if m["role"] == "system" else m for m in messages]
         body = {"prompt": chatml_turns(messages, think), "n_predict": max_tokens, "stream": False,
@@ -149,7 +194,25 @@ class LLM:
         return Completion(answer.strip(), thought.strip(), int(data.get("tokens_predicted", 0)), time.time() - t0,
                           bool(data.get("stopped_limit")) or (think and not found))
 
+    def _stream_native(self, system: str, user: str, max_tokens: int, think: bool) -> Iterator[tuple[str, str]]:
+        body = self._native([{"role": "system", "content": system}, {"role": "user", "content": user}], max_tokens,
+                            think, stream=True)
+        self.last_speed = None
+        with httpx.stream("POST", self.url + "/v1/chat/completions", json=body, timeout=self.timeout) as r:
+            r.raise_for_status()
+            for line in r.iter_lines():
+                if not line.startswith("data: ") or line.strip() == "data: [DONE]":
+                    continue
+                delta = (json.loads(line[6:]).get("choices") or [{}])[0].get("delta") or {}
+                if delta.get("reasoning_content"):
+                    yield "thought", delta["reasoning_content"]
+                if delta.get("content"):
+                    yield "answer", delta["content"]
+
     def stream(self, system: str, user: str, max_tokens: int, think: bool = False) -> Iterator[tuple[str, str]]:
+        if self.fmt.template == "native":
+            yield from self._stream_native(system, user, max_tokens, think)
+            return
         phase = "thought" if think else "answer"
         pending = ""
         self.last_speed = None
