@@ -2712,3 +2712,15 @@ programming on the onsets with the kick band twice as heavy; steadiness from the
 0.009-0.030, choirs 0.070-0.086 → IRREGULAR 0.05); the tempo as the mean over the song (90/124/140 → 89.97/124.03/
 139.95); the autocorrelation by FFT (analysis of 3 min: 37 s → 0.3 s). Drums, bass, pads and the sidechain sit on the
 followed beats. Not measured: real songs (the owner's ear), a song that changes metre.
+
+## M181 — The visual traceroute and the two decks (10 October 2026)
+
+Geolocation offline (DB-IP lite city 121 MB + ASN 9 MB, read by net_geo's own MaxMind DB reader): 0.1-0.6 ms an
+address; 8.8.8.8 → Mountain View, Google; 1.1.1.1 → Sydney, Cloudflare; a Fastweb address → Milan; IPv6 too; private
+addresses → none. Live traces from the owner's line: dns.google 10 hops in 8.1 s, one.one.one.one 7 hops; each hop
+streamed ~0.1 s after the one before. Plausibility (light in fibre ~200 km/ms one way, +300 km): Google's routers «in
+Mountain View» at 3.6-4.4 ms and Cloudflare «in Sydney» at 3.9-4.5 ms marked as registered seats — anycast networks
+answering from Europe; the Italian hops plausible. The globe in Chrome headless: no error, 73 % of the canvas drawn.
+Two decks on synthetic tracks (124 BPM A minor, 128 BPM C/D major, 90 s each): every transition and the mashup give one
+steady beat at 124 (variation 0.012-0.013), the worst beat gap near the transition 8-19 ms (< 30 ms), B shifted 0 or +3
+semitones as its key asked; ~2 s a blend. Not measured: real songs, a true mashup (no stems), a trace that crosses a VPN.

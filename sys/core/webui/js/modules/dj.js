@@ -3,8 +3,9 @@
 // 🎧 DJ: your tracks (uploaded here, kept in your music folder), a style, "Create": one track becomes a remix, several
 // become a mix at one tempo. Made in the background; a notification when ready; the mixes play here (owner, 2026-10-05).
 import { call } from "../api.js";
-import { clock, el, toBase64 } from "../dom.js";
+import { clock, el, toBase64, useCss } from "../dom.js";
 import { apply, t } from "../i18n.js";
+import { deckPanel } from "./dj_deck.js";
 
 const size = (n) => (n < 1048576 ? `${(n / 1024).toFixed(0)} KB` : `${(n / 1048576).toFixed(1)} MB`);
 
@@ -16,11 +17,13 @@ export default {
 
   mount(root) {
     root.classList.add("page");
+    useCss("/static/css/dj_deck.css");
     root.innerHTML = `<h2 data-i18n="dj.title"></h2><p class="muted" data-i18n="dj.hint"></p>
       <h3 class="setting-cat" data-i18n="dj.tracks"></h3>
       <label class="dj-upload"><span data-i18n="dj.upload"></span><input type="file" accept="audio/*" multiple hidden></label>
       <span class="muted dj-up-out"></span><div class="dj-tracks"></div>
       <h3 class="setting-cat" data-i18n="dj.make"></h3>
+      <div class="dj-deck-slot"></div>
       <div class="appr-actions"><select class="dj-style"></select><button class="approve dj-go" data-i18n="dj.go"></button>
         <span class="muted dj-out"></span></div>
       <h3 class="setting-cat" data-i18n="dj.mixes"></h3><div class="dj-mixes"></div>`;
@@ -28,6 +31,9 @@ export default {
     this.tracks = root.querySelector(".dj-tracks");
     this.mixes = root.querySelector(".dj-mixes");
     this.style = root.querySelector(".dj-style");
+    this.order = [];                                  // the tracks in the order they were ticked: A, then B
+    this.deck = deckPanel(() => { this.order.reverse(); this.deck.show(...this.order); });
+    root.querySelector(".dj-deck-slot").append(this.deck);
     this.out = root.querySelector(".dj-out");
     const upOut = root.querySelector(".dj-up-out");
     root.querySelector(".dj-upload input").addEventListener("change", async (ev) => {
@@ -41,10 +47,12 @@ export default {
       this.enter();
     });
     root.querySelector(".dj-go").addEventListener("click", async () => {
-      const chosen = [...this.tracks.querySelectorAll("input:checked")].map((b) => b.value);
+      const ticked = [...this.tracks.querySelectorAll("input:checked")].map((b) => b.value);
+      const chosen = ticked.length === 2 ? this.order : ticked;
       if (!chosen.length) { this.out.textContent = t("dj.pick"); return; }
+      const body = { tracks: chosen, style: this.style.value, ...(chosen.length === 2 ? { deck: this.deck.options() } : {}) };
       try {
-        const r = await call("/v1/aurora/dj/make", { method: "POST", body: JSON.stringify({ tracks: chosen, style: this.style.value }) });
+        const r = await call("/v1/aurora/dj/make", { method: "POST", body: JSON.stringify(body) });
         this.out.textContent = t("dj.started", { title: r.title });
       } catch (e) { this.out.textContent = t("ev.error", { m: e.message }); }
       this.enter();
@@ -80,6 +88,12 @@ export default {
       const box = el("input");
       box.type = "checkbox";
       box.value = f.name;
+      box.checked = this.order.includes(f.name);
+      box.addEventListener("change", () => {           // A and B: the order of the ticks
+        this.order = this.order.filter((n) => n !== f.name);
+        if (box.checked) this.order.push(f.name);
+        this.deck.show(...(this.order.length === 2 ? this.order : []));
+      });
       row.prepend(box);
       return row;
     }) : [el("p", "muted", t("dj.no_tracks"))]));

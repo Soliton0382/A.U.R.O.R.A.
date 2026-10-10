@@ -6,6 +6,7 @@
 // longer hold the incidents; the closed incidents (most of the 344 KB) only on request. Defence and map:
 // security_defence.js; checks and outbound: security_watch.js.
 import { call } from "../api.js";
+import { bus } from "../bus.js";
 import { clock, el } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { renderMarkdown } from "../md.js";
@@ -128,6 +129,12 @@ export function page(tab, meta) { const { title } = meta; return {
         catch (e) { alert(e.message); }
       });
       c.append(block);
+    }
+    for (const ip of [i.internal ? null : i.source, i.destination]) {   // 🌍 the visual traceroute (security_trace.js)
+      if (!ip || !/^[0-9a-f.:]+$/i.test(ip) || /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|127\.)/.test(ip)) continue;
+      const geo = el("button", "", t("sec.geolocate", { ip }));
+      geo.addEventListener("click", () => { bus.emit("trace", { ip }); bus.emit("show", { id: "sectrace" }); });
+      c.append(geo);
     }
     if (i.destination) {                              // a device at home reaching a threat feed's address (M161)
       c.append(el("p", "warn", t("sec.dest", { ip: i.destination, name: i.destination_name || "—",

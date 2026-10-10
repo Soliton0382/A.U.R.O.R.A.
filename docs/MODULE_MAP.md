@@ -331,3 +331,8 @@ Server data is always inserted as text, never as HTML.
 | `sys/models/{embedder,reranker,llm,diffusion}/` | owner | mdl_* |
 
 | `webui/js/modules/project_term.js` | interface | 🖥️ the project's terminal on the Projects page (EventSource + POST keys, Ctrl-C, close) |
+| `net_geo.py` | network | where an IP is, offline: DB-IP lite city + ASN (monthly into <STATUS>/geo), a MaxMind DB reader of its own (no library) |
+| `net_trace.py` | network | the visual traceroute: mtr raw mode read line by line, each hop placed (net_geo), plausibility by the speed of light in fibre |
+| `aud_deck.py` | audio | the DJ's two decks: one tempo, B tuned to A, mix with a transition (bass swap, crossfade, filter, echo) at A's bar, or EQ mashup |
+| `webui/js/modules/security_trace.js` | interface | 🌍 Traceroute: a canvas globe (orthographic, Natural Earth via world-atlas), hops fly in as they answer |
+| `webui/js/modules/dj_deck.js` | interface | 🎚️ the two decks' choices on the DJ page |

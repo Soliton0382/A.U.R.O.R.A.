@@ -83,9 +83,11 @@ def _pump(n: int, kicks: list[float], beat: float, depth: float) -> np.ndarray:
     return (1 - depth * np.exp(-since / beat * 7)).astype(np.float32)
 
 
-def remix(x: np.ndarray, style: str, seconds: float | None = None, emit=None) -> tuple[np.ndarray, dict]:
-    """One track in a style; returns the audio and what was done (tempo, key, sections)."""
-    st = STYLES[style]
+def remix(x: np.ndarray, style: str, seconds: float | None = None, emit=None, bpm: float | None = None,
+          drums_level: float = 1.0) -> tuple[np.ndarray, dict]:
+    """One track in a style; returns the audio and what was done (tempo, key, sections). `bpm`: a tempo of the
+    user's instead of the style's (the two-deck mixer, aud_deck); `drums_level`: how loud the added beat is."""
+    st = {**STYLES[style], **({"bpm": float(bpm)} if bpm else {})}
     say = emit or (lambda e, p: None)
     info = A.analyze(x)
     say("dj.analysis", info.as_dict())
@@ -172,7 +174,7 @@ def remix(x: np.ndarray, style: str, seconds: float | None = None, emit=None) ->
         g = 1 - (1 - g) * mask
         song, music = song * g, music * g
     fade = int(min(8, bars) * bar * SR * 0.5)
-    out = song + music + drums
+    out = song + (music + drums) * drums_level
     if fade:
         out[-fade:] *= np.linspace(1, 0, fade)[:, None]
     peak = float(np.max(np.abs(out))) or 1.0
@@ -201,13 +203,23 @@ def mix(tracks: list[np.ndarray], style: str, emit=None) -> tuple[np.ndarray, li
     return out, notes
 
 
-def make(paths: list[Path], style: str, out: Path, seconds: float | None = None, emit=None) -> dict:
-    """The DJ's one call: files in, an MP3 out (loudness levelled, tagged as an AI remix)."""
+def make(paths: list[Path], style: str, out: Path, seconds: float | None = None, emit=None,
+         deck: dict | None = None) -> dict:
+    """The DJ's one call: files in, an MP3 out (loudness levelled, tagged as an AI remix). `deck`: two tracks on the
+    two-deck mixer with the user's choices (aud_deck)."""
     if style not in STYLES:
         raise ValueError(f"style: one of {', '.join(STYLES)}")
     if not paths:
         raise ValueError("no track")
     tracks = [A.load(p, seconds) for p in paths]
+    if deck is not None:
+        from . import aud_deck
+        if len(tracks) != 2:
+            raise ValueError("the two decks take two tracks")
+        y, note = aud_deck.blend(tracks[0], tracks[1], {**deck, "style": deck.get("style") or style}, emit=emit)
+        A.save(y, out, title=f"{out.stem} (two decks)")
+        return {"file": out.name, "seconds": round(len(y) / SR, 1), "style": style, "deck": note,
+                "tracks": [{"bpm": note["bpm"], "key": note["key_a"]}]}
     y, notes = (remix(tracks[0], style, emit=emit) if len(tracks) == 1 else mix(tracks, style, emit=emit))
     notes = notes if isinstance(notes, list) else [notes]
     A.save(y, out, title=f"{out.stem} ({STYLES[style]['en']})")

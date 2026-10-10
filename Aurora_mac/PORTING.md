@@ -136,3 +136,5 @@ process of Aurora holds both. **Done 8 Oct (M146):** Whisper lives in aurora-mod
 
 The whole Linux suite runs on the built tree in the Ports workflow; what fails there is the work, read from the
 machine and not guessed. The run's public notices name each failed test and its reason.
+
+| Visual traceroute | mtr in raw mode (net_trace; mtr-packet with CAP_NET_RAW on Linux) | — | Mac: `brew install mtr` (its mtr-packet needs root there: not measured); Windows: no mtr — the page says so (WinMTR or tracert would be phase 4) | ❌ |

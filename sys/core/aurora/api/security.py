@@ -202,3 +202,59 @@ async def firewall_block(request: Request) -> dict:
     note("security", "security.action", {"title": f"🛡️ {ip} {'sbloccato' if what == 'unblocked' else 'bloccato'} sul firewall",
                                   "text": reason})
     return out
+
+
+# ---- 🌍 the visual traceroute (net_trace, net_geo): hops streamed as Server-Sent Events --------------------------------
+@router.get("/v1/aurora/security/trace", dependencies=[Depends(admin_only)])
+async def trace_stream(target: str):
+    """Each hop as soon as it answers, with its place (offline databases), then the summary. The trace sends packets
+    towards the address: the admin's, on purpose (a button, an address typed)."""
+    import asyncio
+    import json
+    import queue
+    import threading
+    from fastapi.responses import StreamingResponse
+    from aurora import net_trace
+    from .core import quiet
+    try:
+        net_trace.target_ip(target)
+    except net_trace.TraceError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
+    q: queue.Queue = queue.Queue()
+
+    def work():
+        try:
+            net_trace.trace(cfg, target, lambda e, d: q.put((e, d)))
+        except net_trace.TraceError as e:
+            q.put(("error", {"message": str(e)}))
+        except Exception as e:  # noqa: BLE001 — said on the page, never a crash
+            q.put(("error", {"message": f"{type(e).__name__}: {e}"[:200]}))
+        q.put(None)
+    threading.Thread(target=work, daemon=True, name="trace").start()
+    log.info("audit: traceroute towards %s", target)
+    from aurora import net_geo
+    if net_geo.due(cfg) and not any(t.name == "geo-update" for t in threading.enumerate()):
+        threading.Thread(target=lambda: net_geo.update(cfg), daemon=True, name="geo-update").start()  # monthly
+
+    async def gen():
+        while True:
+            item = await asyncio.to_thread(q.get)
+            if item is None:
+                return
+            yield f"event: {item[0]}\ndata: {json.dumps(item[1], ensure_ascii=False)}\n\n"
+    return StreamingResponse(quiet(gen()), media_type="text/event-stream")
+
+
+@router.get("/v1/aurora/security/geo", dependencies=[Depends(admin_only)])
+def geo_status() -> dict:
+    from aurora import net_geo
+    return {**net_geo.status(cfg), "due": net_geo.due(cfg)}
+
+
+@router.post("/v1/aurora/security/geo/update", dependencies=[Depends(admin_only)])
+def geo_update() -> dict:
+    """This month's DB-IP lite databases (city, ASN), downloaded and swapped in."""
+    from aurora import net_geo
+    out = net_geo.update(cfg)
+    log.info("audit: geolocation databases updated: %s", out["updated"])
+    return out

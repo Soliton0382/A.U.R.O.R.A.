@@ -160,3 +160,5 @@ What a real Windows taught, each fixed:
 
 Not yet: the local reasoner (llama.cpp CUDA), Piper's voice, the GitHub plugin's program, a Windows lock file with
 hashes (requirements.txt today), plugins: the AppContainer cage runs them (C231, 9 Oct: user32.dll needs the session's window station and desktop, now granted read — 20 plugins, 92 tools on the test VM, as in Docker). The whole suite on this Windows: 0 failed, 21 skipped each with its reason (C223: 37 failures fixed — 9 of them real bugs on every system).
+
+| Visual traceroute | mtr in raw mode (net_trace; mtr-packet with CAP_NET_RAW on Linux) | — | Mac: `brew install mtr` (its mtr-packet needs root there: not measured); Windows: no mtr — the page says so (WinMTR or tracert would be phase 4) | ❌ |

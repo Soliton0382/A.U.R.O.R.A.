@@ -1,6 +1,6 @@
 # Status — work in progress
 
-Updated at every validated change (last: 2026-10-10). Details: BUGS.md (issues, 0 open / 260 closed),
+Updated at every validated change (last: 2026-10-10). Details: BUGS.md (issues, 0 open / 262 closed),
 MANUAL_TESTS.md (what the owner checks by hand),
 TESTS.md (tests and live checks), MEASUREMENTS.md (numbers), MODULE_MAP.md (who does what),
 SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSYSTEM.md (design and decisions).
@@ -42,6 +42,8 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | uninstall, reset, restore | uninstall.sh (keep the data / everything), factory settings in Settings, sys_factory_reset.py, sys_restore.py from the backup card with the formats checked | dry-runs, tests |
 | synapses | links between domains grown at night (99 from 990 passages, 18 min), spread in the search, Hebbian, fading | M107, tests |
 | deductions | 🧠 Synapses → 💡 Deductions: a passage's principle searched in distant fields and the strongest cross-field synapses; five tests (not one subject, a bridge, each fact in its passage, the step follows, not already in the vault); a night round after the training and «Look now»; 💡 flash / ✗ no / 📄 PDF | M178; tests (deduce); first 3 live, waiting for the owner's judgement |
+| visual traceroute | 🛡️ → 🌍 Traceroute and «📍 Geolocalizza» on an incident: mtr hop by hop as SSE, each hop placed offline (DB-IP lite city + ASN, monthly, read by Aurora's own MaxMind DB reader), a seat the round trip makes impossible dashed (light in fibre 200 km/ms), a canvas globe that turns to each hop | tests (net_trace); live: 8.8.8.8, 1.1.1.1 |
+| DJ, two decks | two tracks: one tempo (A, B, style or a number), B tuned to A, mix (B in on A's beat at the bar chosen, 4-32 bars: bass swap, crossfade, filter sweep, echo out) or EQ mashup, a beat added or not, each deck's volume; the beat followed one by one (C261) | tests (deck, dj); M180 |
 | firewall undo | every block (the owner's or Aurora's) undone with one click; group and rule names shown once the API is set | live (N44), tests |
 | self-update | the clean clone updated itself from GitHub: 332 tests, 19.7 s | M103 bis |
 | memory | STM turns with their path; recent turns in context and in the chat after a refresh; session memories (LTM) written by the REM and recalled by meaning when Aurora answers about herself or the past, dates labelled by the clock | tests, live |

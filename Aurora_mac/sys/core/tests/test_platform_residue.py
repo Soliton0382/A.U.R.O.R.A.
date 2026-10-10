@@ -34,6 +34,7 @@ PROGRAMS_ALLOWED = {
     ("sec_hostaudit.py", "ss"): "the Linux branch only; netstat (Mac) and psutil (Windows) otherwise (NETWORK)",
     ("sys_bugreport.py", "nvidia-smi"): "a bug report's driver version: «not measured» where missing",
     ("mdl_custom.py", "nvidia-smi"): "the GPU memory others hold (C252): 0 where missing, llama.cpp's --fit decides",
+    ("net_trace.py", "mtr"): "the visual traceroute: mtr (brew on a Mac; none on Windows, where the page says «mtr is not installed»)",
     ("sec_hostfw.py", "sudo"): "phase 4: the host firewall",
 }
 # the scripts the owner or the installer runs: all of phase 3 (installers and admin scripts per system)

@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.7 — 2026-10-10
+
+1 publications since v0.2.6.
+
+- 2026-10-10 C262 C263; roadmap 85 visual traceroute (net_geo, net_trace, globe); roadmap 86 DJ two decks (aud_deck); M181
+
 ## v0.2.6 — 2026-10-10
 
 1 publications since v0.2.5.

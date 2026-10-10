@@ -90,9 +90,16 @@ def dj_file(kind: str, name: str):
 
 @router.post("/v1/aurora/dj/make", dependencies=[Depends(auth)])
 async def dj_make(request: Request) -> dict:
-    """{"tracks": [names], "style", "title"?}: one track → a remix, several → a mix; made in the background."""
-    from aurora import aud_dj
+    """{"tracks": [names], "style", "title"?, "deck"?}: one track → a remix, several → a mix; two with "deck" (the
+    user's choices: aud_deck.options) → the two-deck mixer. Made in the background."""
+    from aurora import aud_deck, aud_dj
     body = await request.json()
+    deck = body.get("deck")
+    if deck is not None:
+        try:
+            aud_deck.options(deck if isinstance(deck, dict) else {})
+        except (ValueError, TypeError) as e:
+            raise HTTPException(status_code=422, detail=f"deck: {e}") from None
     who = me() or ""
     if who in _busy:
         raise HTTPException(status_code=409, detail=f"already mixing: {_busy[who]['title']}")
@@ -105,13 +112,16 @@ async def dj_make(request: Request) -> dict:
         raise HTTPException(status_code=422, detail="choose at least one track")
     stem = re.sub(r"[^\w-]+", "-", str(body.get("title") or f"{paths[0].stem}-{style}").lower()).strip("-")[:60] or "mix"
     out = _dir() / "mixes" / f"{stem}-{time.strftime('%Y%m%d-%H%M')}.mp3"
-    title = f"{', '.join(p.stem for p in paths)[:80]} → {aud_dj.STYLES[style]['it']}"
+    if deck is not None and len(paths) != 2:
+        raise HTTPException(status_code=422, detail="the two decks take two tracks")
+    title = (f"{paths[0].stem[:38]} × {paths[1].stem[:38]} (🎚️)" if deck is not None
+             else f"{', '.join(p.stem for p in paths)[:80]} → {aud_dj.STYLES[style]['it']}")
     _busy[who] = {"title": title, "since": time.time()}
     minutes = float(cfg["AURORA_DJ_MAX_MINUTES"])
 
     def work():
         try:
-            r = aud_dj.make(paths, style, out, seconds=minutes * 60)
+            r = aud_dj.make(paths, style, out, seconds=minutes * 60, deck=deck)
             note("dj", "dj.done", {"text": f"{title}: {r['seconds']:.0f} s, {r['tracks'][0]['bpm']} BPM", "file": r["file"]})
             log.info("dj: %s made %s in %s (%.0f s)", who, r["file"], style, r["seconds"])
         except Exception as e:  # noqa: BLE001 — the owner is told, never silence
