@@ -36,3 +36,10 @@
 .doc-hours input { width: 100%; min-width: 0; box-sizing: border-box; }
 .doc-hours tr.today th, .doc-hours tr.today td { background: rgba(75, 107, 255, .18); }
 .doc-notes { width: 100%; min-height: 4rem; box-sizing: border-box; }
+/* 🖥️ the project's terminal (project_term.js) */
+.prj-term { display: grid; gap: .4rem; }
+.prj-term-screen { height: 55vh; overflow: auto; margin: 0; padding: .6rem .7rem; border-radius: 8px; border: 1px solid var(--line);
+  background: #05070c; color: #d6e2ff; font: .82rem/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre-wrap; word-break: break-word; }
+.prj-term-line { display: flex; gap: .4rem; flex-wrap: wrap; }
+.prj-term-line input { flex: 1 1 14rem; min-width: 0; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }

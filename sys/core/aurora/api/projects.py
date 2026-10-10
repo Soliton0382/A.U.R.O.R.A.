@@ -150,3 +150,69 @@ async def project_clone(request: Request) -> dict:
     if r.returncode != 0:
         raise HTTPException(status_code=502, detail=(r.stderr or "git clone failed").replace(token, "***")[-400:])
     return {"name": dest.name}
+
+
+# ---- a terminal in a project's cage (prj_term, roadmap 75): output as SSE, input as POST -----------------------------
+def _term(fn, *a):
+    from aurora import prj_term
+    try:
+        return fn(*a)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="no such terminal (closed?)")
+    except (prj_term.TermError, ValueError) as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+
+@router.post("/v1/aurora/projects/{name}/terminal", dependencies=[Depends(auth)])
+def terminal_open(name: str) -> dict:
+    from aurora import prj_term
+    from .core import me
+    out = _term(prj_term.start, cfg, name, me())
+    log.info("audit: terminal opened in project %s (cage, no network)", name)
+    return out
+
+
+@router.get("/v1/aurora/projects/{name}/terminal/{sid}/stream", dependencies=[Depends(auth)])
+async def terminal_stream(name: str, sid: str, after: int = 0):
+    """The terminal's output as Server-Sent Events: {"n", "text"} chunks, then {"ended": true}."""
+    import asyncio
+    from fastapi.responses import StreamingResponse
+    from aurora import prj_term
+    from .core import me, quiet
+    who = me()
+    _term(prj_term.get, sid, who)
+
+    async def gen():
+        seen = after
+        while True:
+            try:
+                items, ended = await asyncio.to_thread(prj_term.chunks, sid, who, seen, 15)
+            except KeyError:
+                yield f"data: {json.dumps({'ended': True})}\n\n"
+                return
+            for n, text in items:
+                seen = n
+                yield f"data: {json.dumps({'n': n, 'text': text}, ensure_ascii=False)}\n\n"
+            if ended and not items:
+                yield f"data: {json.dumps({'ended': True})}\n\n"
+                return
+            if not items:
+                yield ": keep-alive\n\n"
+    return StreamingResponse(quiet(gen()), media_type="text/event-stream")
+
+
+@router.post("/v1/aurora/projects/{name}/terminal/{sid}/input", dependencies=[Depends(auth)])
+async def terminal_input(name: str, sid: str, request: Request) -> dict:
+    from aurora import prj_term
+    from .core import me
+    body = await request.json()
+    _term(prj_term.write, sid, me(), str(body.get("data", "")))
+    return {"ok": True}
+
+
+@router.delete("/v1/aurora/projects/{name}/terminal/{sid}", dependencies=[Depends(auth)])
+def terminal_close(name: str, sid: str) -> dict:
+    from aurora import prj_term
+    from .core import me
+    _term(prj_term.stop, sid, me())
+    return {"closed": True}

@@ -2188,6 +2188,22 @@
    ]
   },
   {
+   "key": "AURORA_DEDUCE_PER_NIGHT",
+   "type": "int",
+   "category": "rem",
+   "recommended": "6",
+   "evidence": "roadmap 77",
+   "en": "Synapses between two fields Aurora examines each night for a deduction (a bridge between them, both sides verified on their passages, the step between them checked, not already in the vault). 0 = none.",
+   "it": "Sinapsi fra due campi che Aurora esamina ogni notte cercando una deduzione (un ponte fra i due, entrambi i lati verificati sulle loro fonti, il passaggio fra loro controllato, non già nel vault). 0 = nessuna.",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ],
+   "min": 0,
+   "max": 50,
+   "optional": true
+  },
+  {
    "key": "AURORA_PIPELINE_PIVOT_EN",
    "type": "bool",
    "category": "pipeline",
@@ -3553,6 +3569,51 @@
    "services": [
     "aurora-api"
    ]
+  },
+  {
+   "key": "AURORA_PROJECT_TERM_MAX",
+   "type": "int",
+   "min": 1,
+   "max": 8,
+   "category": "projects",
+   "recommended": "2",
+   "evidence": "roadmap 75",
+   "en": "Terminals a user may keep open at once in their projects' cages (the Projects page).",
+   "it": "Terminali che un utente può tenere aperti insieme nelle gabbie dei suoi progetti (pagina Progetti).",
+   "services": [
+    "aurora-api"
+   ],
+   "optional": true
+  },
+  {
+   "key": "AURORA_PROJECT_TERM_IDLE_MIN",
+   "type": "int",
+   "min": 1,
+   "max": 240,
+   "category": "projects",
+   "recommended": "15",
+   "evidence": "roadmap 75",
+   "en": "A project's terminal with no input for this many minutes is closed.",
+   "it": "Un terminale di progetto senza input per questi minuti viene chiuso.",
+   "services": [
+    "aurora-api"
+   ],
+   "optional": true
+  },
+  {
+   "key": "AURORA_PROJECT_TERM_MAX_MIN",
+   "type": "int",
+   "min": 5,
+   "max": 720,
+   "category": "projects",
+   "recommended": "60",
+   "evidence": "roadmap 75",
+   "en": "A project's terminal is closed after this many minutes in all.",
+   "it": "Un terminale di progetto viene chiuso dopo questi minuti in tutto.",
+   "services": [
+    "aurora-api"
+   ],
+   "optional": true
   },
   {
    "key": "AURORA_GIT_AUTHOR_NAME",

@@ -2654,3 +2654,23 @@ With their own format the empty replies are gone (C256 was C257) and gpt-oss wri
 The Nemotrons and gpt-oss mostly fall to the memory step («dalla mia memoria, non verificato») instead of reading
 the passages: the reading steps' prompts were tuned on Qwen. Qwen3-Next beats the present 35B by 1.1 (outside the
 ±0.7 noise) at twice the time, without vision. Not measured: more questions; the Nemotrons with prompts of theirs.
+
+## M178 — Deductions: where the flashes are (10 October 2026, Qwen3.6-35B, the owner's vault)
+
+kno_deduce.examine on real pairs; outcomes in the order of the tests (same subject → service text → bridge → fact A
+in its passage → fact B → the step follows → not already stated). Seconds: the whole batch.
+
+| pairs from | looked | same subject (titles · cosine ≥ 0.70 · judged) | service text | no bridge | a fact not in its passage | does not follow | deductions | s |
+|---|---|---|---|---|---|---|---|---|
+| strongest synapses between two fields | 300 | 52 + 131 | 28 | 21 | 2 | 15 | 4 (3 already in the vault) | 192 |
+| a passage's principle searched in other fields (far_pairs), 40 passages | 30 | 1 | 0 | 0 | 1 | 20 | **8** | 126 + ~150 |
+| the night's round as built (12 passages + 120 synapses) | 130 | 15 + 58 | 24 | 10 | 2 | 18 | 3 | 197 |
+
+The synapses join SIMILAR passages: their strongest cross-field links are one subject under two labels (Euclid's
+Elements ↔ Euclid, «Aztec religion» ↔ «Religione azteca», Guru Granth Sahib ↔ Sikhism) or the conferences'
+checklists of two papers. Title cosine (multilingual embedder) on 40 pairs: same subject 0.72-0.87, different
+≤ 0.67 → TITLE_SAME 0.70; the rest by a YES/NO judge. Novelty by the re-ranker's score alone measured topicality
+(Cubism ↔ «statistical dark matter» 0.909 though no passage says it): a judge reads the three nearest passages of other
+works instead. Examples kept: church architecture ↔ Chavín culture (the building as an instrument that induces states),
+ancient Greek religion ↔ distributed systems (local rules instead of a coordinator), Cubism ↔ synergy in statistics
+(many perspectives at once see what one misses). Not measured: how many are a real flash — the owner's judgement.

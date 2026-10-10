@@ -108,3 +108,56 @@ def synapses_concepts() -> list[dict]:
     return [{**c, "passages": [{"title": sols[s].title, "domain": sols[s].domain} for s in c["members"] if s in sols]}
             for c in items]
 
+
+
+# ---- deductions (kno_deduce, roadmap 77): bridges between distant fields, the owner's judgement --------------------
+@router.get("/v1/aurora/deductions", dependencies=[Depends(auth)])
+def deductions(limit: int = 50) -> list[dict]:
+    from aurora import kno_deduce
+    items = kno_deduce.listing(cfg, max(1, min(limit, 200)))
+    sols = pipeline().search.reader.get_many({x: 0 for d in items for x in (d["a"], d["b"])})
+    for d in items:
+        for side in ("a", "b"):
+            s = sols.get(d[side])
+            d[f"{side}_title"] = (s.title or s.source_id) if s else ""
+    return items
+
+
+@router.put("/v1/aurora/deductions/{did}", dependencies=[Depends(admin_only)])
+async def deduction_judge(did: int, request: Request) -> dict:
+    """The owner's judgement: {"verdict": "flash" | "no" | "", "note": "…"} — the measure of roadmap 77."""
+    from aurora import kno_deduce
+    body = await request.json()
+    try:
+        out = kno_deduce.judge(cfg, did, str(body.get("verdict", "")), str(body.get("note", "")))
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
+    except KeyError:
+        raise HTTPException(status_code=404, detail="no such deduction") from None
+    log.info("audit: deduction %d judged %s", did, out["verdict"] or "(cleared)")
+    return out
+
+
+@router.post("/v1/aurora/deductions/{did}/pdf", dependencies=[Depends(auth)])
+def deduction_pdf(did: int) -> dict:
+    """The deduction as a PDF among the user's documents (doc_pdf): the bridge, both sides and their sources."""
+    from aurora import doc_pdf, kno_deduce
+    d = next((x for x in kno_deduce.listing(cfg, 500) if x["id"] == did), None)
+    if d is None:
+        raise HTTPException(status_code=404, detail="no such deduction")
+    p = pipeline()
+    path = doc_pdf.create(f"Deduzione {did}", kno_deduce.as_markdown(p, d), "it", p.cfg)
+    return {"name": path.name}
+
+
+@router.post("/v1/aurora/deductions/round", dependencies=[Depends(admin_only)])
+def deduction_round(n: int = 6) -> dict:
+    """Look for deductions now (the night does it by itself: AURORA_DEDUCE_PER_NIGHT), as a run of its own."""
+    from .core import start_run
+
+    def job(q, emit, run_id):
+        from aurora import kno_deduce
+        out = kno_deduce.round_(pipeline(), cfg, emit, max(1, min(n, 30)))
+        emit("rem.end", {"task": "deduce", **out})
+        return None
+    return {"run_id": start_run("[deduce]", origin="rem", job=job)["id"]}

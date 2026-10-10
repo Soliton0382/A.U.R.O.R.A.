@@ -46,7 +46,7 @@ Left for phase 3 (the installer and the admin's scripts): install.sh, sys_nvidia
 task XML), sys_ethics_sign, sys_nas_mount, sys_backup_retime, sys_relocate, sys_restore,
 sys_factory_reset, sys_users_migrate, sys_doctor, the voice install scripts; the models' device («cuda» written in
 mdl_tts, img_paint, img_ai, tts_qwen_worker and the settings' cuda:N); the pages' words «systemd» in the health card.
-Phase 4: the cage (plg_sandbox, prj_run) and the host firewall (sec_hostfw).
+Phase 4: the cage (plg_sandbox, prj_run, prj_term) and the host firewall (sec_hostfw).
 
 ## Checked against the sources (2026-10-08) — and what that changed
 
@@ -93,7 +93,7 @@ Intended differences on Linux, none in behaviour the suite checks: a service tha
 | venv, programs | .venv/bin/python in hints and scripts; llama.cpp bin/llama-server (svc_llm) | `venv_python`, `executable` | .venv\Scripts\python.exe, llama-server.exe | 1 ✅ / 2 |
 | Tools missing | «sudo apt install ffmpeg / poppler-utils» (sys_features) | `install_hint` | winget install Gyan.FFmpeg; poppler: oschwartz10612.Poppler — **the winget ids are to be checked on Windows** | 1 ✅ / 3 |
 | Administrator commands | «sudo …» in hints (sign, nft, cloudflared, restore) | `as_admin` | PowerShell as administrator | 1 ✅ / 2 |
-| Plugin cage | bwrap (plg_sandbox, prj_run) | `sandbox` | None yet. **plg_host (protected) today runs a plugin uncaged when bwrap is missing** (only its own secrets filtered, plg_host.py:140): on Windows that would be every plugin. Phase 2 must make plg_host refuse instead (the owner signs it) | 2 (refuse) / 4 (cage) |
+| Plugin cage | bwrap (plg_sandbox, prj_run, prj_term) | `sandbox` | None yet. **plg_host (protected) today runs a plugin uncaged when bwrap is missing** (only its own secrets filtered, plg_host.py:140): on Windows that would be every plugin. Phase 2 must make plg_host refuse instead (the owner signs it) | 2 (refuse) / 4 (cage) |
 | Host firewall | nft through /usr/local/sbin/aurora-nft and an AF_UNIX socket (sec_hostfw) | `host_firewall` | Windows Firewall rules through a helper as SYSTEM; no AF_UNIX in Windows's Python: a named pipe or localhost | 4 |
 | Cloudflare tunnel | systemctl on cloudflared's unit (net_cloudflare) | `service_state`, `service_action` | cloudflared installs itself as a Windows service: `sc.exe` (not a task) | 3 |
 | HTTPS | Caddy (cross-platform), the Caddyfile generator | — | caddy.exe; the same Caddyfile (CSP included) | 3 |

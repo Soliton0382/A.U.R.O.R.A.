@@ -132,6 +132,7 @@ call downward (ECOSYSTEM §1).
 | `kno_synapse2.py` | knowledge | synapses of synapses: level-2 links from triads A↔B↔C whose ends are similar (≥ 0.60, M108), concepts (strong groups across domains) named by the local model, run every N new links | kno_synapse, numpy | api/synapses |
 | `kno_dedup.py` | knowledge | one document, one copy: same title, language and words (bottom-k signature) = already in the vault, not imported again; two official ids are two documents (C150, M109) | sys_config | kno_ingest |
 | `kno_study.py` | knowledge | the questions she declined, studied at night (the search agent, not remembered as a conversation), each outcome a "study" reflection, once per question | kno_acquire, kno_rem | api/routines (rem study) |
+| `kno_deduce.py` | knowledge | deductions (roadmap 77): far pairs by a principle searched in other fields, cross-field synapses; same subject / service text filtered; bridge, both facts verified, the step checked, novelty judged on the 3 nearest; night round, owner's judgement, PDF |
 | `kno_shadow.py` | knowledge | the shadow of a verified answer: a question close enough (cosine ≥ 0.90) whose answer the old one is (re-rank ≥ 0.5) gets it at once; rechecked in the background | sys_users_layout | api/core (answer_or_acquire) |
 | `script/shadow_seed.py` | knowledge | the shadow seed published with the code: questions (every config/shadow_seed_questions*.json) asked alone through the API, export of those answered alone with public sources and nothing personal, arXiv links, import, the owner's daily timer (systemd --user) |
 | `plg_shadow.py` | plugins | each plugin's small cache: a read tool it declares (manifest "cache") called again with the same arguments gets the result already obtained | sys_users_layout | agt_loop |
@@ -182,6 +183,7 @@ call downward (ECOSYSTEM §1).
 | `plg_access.py` | plugins | which plugins the other users may use, and which stay the admin's | sys_config | api/agents, api/core |
 | `plg_sandbox.py` | plugins | what a plugin process can see (protected): its own secrets only, a bubblewrap cage over the filesystem | sys_config | plg_host |
 | `prj_run.py` | projects | a command in one of the user's local projects (tests, the program) in a cage of its own, no network | sys_config | agt_loop |
+| `prj_term.py` | projects | a terminal in a project's cage (roadmap 75): bwrap like prj_run + a pty, output as SSE, input as POST, per user, idle and age limits, a reaper thread |
 | `prj_reports.py` | projects | Aurora's reports on a project, one per work done on it, for the Projects page | sys_config | agt_loop, api/projects |
 | `sec_privacy.py` | security | what a public text (a post, a bug report) would give away — private names read by the local model, places, contacts, ids — and the safer text proposed | sec_mask, sys_users | agt_loop, api/social, sys_bugreport |
 | `sec_profile.py` | security | what the firewall really sends, read with its official documentation, and the checks Aurora proposes from it | sec_rules | api/security |
@@ -327,3 +329,5 @@ Server data is always inserted as text, never as HTML.
 | `sys/logs/<component>/`, `sys/logs/trace/` | sys_log | owner, WebUI (planned) |
 | `sys/status/bench/<suite>/` | bench_retrieval | owner |
 | `sys/models/{embedder,reranker,llm,diffusion}/` | owner | mdl_* |
+
+| `webui/js/modules/project_term.js` | interface | 🖥️ the project's terminal on the Projects page (EventSource + POST keys, Ctrl-C, close) |

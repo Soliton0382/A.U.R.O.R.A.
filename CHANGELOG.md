@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.5 — 2026-10-10
+
+1 publications since v0.2.4.
+
+- 2026-10-10 C260 PWA top bar; roadmap 77 deductions (kno_deduce, M178); roadmap 75 phase 1 project terminal (prj_term)
+
 ## v0.2.4 — 2026-10-10
 
 1 publications since v0.2.3.

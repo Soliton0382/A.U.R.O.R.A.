@@ -398,6 +398,8 @@ def rem_state(user: str | None = None) -> dict:
                 "review_due": kno_review.due(p, cfg),
                 "social_platforms": social,
                 "studied_tonight": kno_study.studied_tonight(p, cfg),
+                "deduce_due": int(cfg["AURORA_DEDUCE_PER_NIGHT"]) > 0 and who == _admin()
+                and not __import__("aurora.kno_deduce", fromlist=["x"]).deduced_tonight(cfg),
                 "train_due": int(cfg["AURORA_SHADOW_TRAIN_PER_NIGHT"]) > 0 and bool(cfg["AURORA_SHADOW"])
                 and who == _admin() and not __import__("aurora.kno_train", fromlist=["x"]).trained_tonight(cfg),
                 "morning_due": bool(hour) and hour <= datetime.now().hour < hour + 4    # a good morning, not at 9 p.m.
@@ -412,7 +414,8 @@ def rem_task(task: str, user: str | None = None) -> dict:
         raise HTTPException(status_code=403, detail="Aurora's own diagnosis is the admin's")
     if task == "repair":                              # registered earlier than /rem/repair: hand over
         return rem_repair()
-    if task not in ("consolidate", "reflect", "dream", "introspect", "social", "study", "morning", "train", "review"):
+    if task not in ("consolidate", "reflect", "dream", "introspect", "social", "study", "morning", "train", "review",
+                    "deduce"):
         raise HTTPException(status_code=404, detail="unknown task")
     with sys_context.acting_as(who):                  # the run works on this user's memory and is theirs
         return _rem_run(task)
@@ -434,6 +437,9 @@ def _rem_run(task: str) -> dict:
         elif task == "train":                             # the shadow trained on the vault's documents (kno_train)
             from aurora import kno_train
             out = kno_train.train(pipeline(), cfg, tell, int(cfg["AURORA_SHADOW_TRAIN_PER_NIGHT"]))
+        elif task == "deduce":                            # bridges between distant fields, verified (kno_deduce)
+            from aurora import kno_deduce
+            out = kno_deduce.round_(pipeline(), cfg, tell, int(cfg["AURORA_DEDUCE_PER_NIGHT"]))
         elif task == "review":                            # past answers answered again (kno_review)
             from aurora import kno_review
             out = kno_review.review(pipeline(), cfg, tell, kno_review.due(pipeline(), cfg))
