@@ -30,7 +30,8 @@ def query(model, question: str, cfg) -> str:
     then masked (sec_mask), its placeholders removed, and every run of digits longer than a year dropped (the masker
     missed «333 1234567» and plain names: a query of the subject alone is the real protection)."""
     from .sec_mask import BARE, PLACEHOLDER, Pseudonymizer
-    q = model.complete(SYS_QUERY, question[:600], 40).answer.strip().splitlines()[0] if question else ""
+    lines = model.complete(SYS_QUERY, question[:600], 40).answer.strip().splitlines() if question else []
+    q = lines[0] if lines else ""                    # an empty reply: no query, never the question (C256)
     q = Pseudonymizer(cfg).mask(q)
     q = BARE.sub(" ", PLACEHOLDER.sub(" ", q))
     q = re.sub(r"\d[\d\s./-]{4,}\d|\d{5,}", " ", q)

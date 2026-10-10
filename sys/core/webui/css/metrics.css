@@ -16,3 +16,5 @@
 .gauge .load.hot { color: #d9ff8a; }
 .metrics.busy .gauge .label { color: #d9ff8a; }
 @media (max-width: 820px) { .gauge .bar { width: 26px; } .gauge .value { display: none; } }
+/* the narrowest phones (≤ 380 px): numbers without their bars, so the gauges stay on the name's row */
+@media (max-width: 380px) { .gauge .bar { display: none; } }

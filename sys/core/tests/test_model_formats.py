@@ -59,7 +59,7 @@ def test_each_family_gets_its_profile():
 
 def test_a_native_model_goes_through_the_chat_endpoint(cfg, monkeypatch):
     from aurora import mdl_llm
-    monkeypatch.setattr(F, "local", lambda c=None: F.from_gguf({"architecture": "llama", "name": "mistral",
+    monkeypatch.setattr(F, "local", lambda c=None, model="": F.from_gguf({"architecture": "llama", "name": "mistral",
                                                                  "chat_template": "{% if enable_thinking %}{% endif %}"}))
     sent = []
 
@@ -79,7 +79,7 @@ def test_a_native_model_goes_through_the_chat_endpoint(cfg, monkeypatch):
 
 def test_qwen_keeps_the_measured_chatml_prompt(cfg, monkeypatch):
     from aurora import mdl_llm
-    monkeypatch.setattr(F, "local", lambda c=None: F.from_gguf({"architecture": "qwen35moe", "chat_template": QWEN}))
+    monkeypatch.setattr(F, "local", lambda c=None, model="": F.from_gguf({"architecture": "qwen35moe", "chat_template": QWEN}))
     sent = []
 
     def post(url, json, timeout):
@@ -124,3 +124,20 @@ def test_the_fit_says_whole_experts_in_ram_or_no():
     assert M.fit(moe, 16.0, 64)["verdict"] == "experts_in_ram"
     assert M.fit({"size_gb": 20.6, "experts": 0}, 16.0, 64)["verdict"] == "no"   # dense: all of it on the GPU
     assert M.fit(moe, 0.0, 16)["verdict"] == "no"
+
+
+def test_after_a_switch_the_client_speaks_the_new_models_format(cfg, tmp_path):
+    """C257: the API's pipelines keep their client; after a switch from the Models page it went on with the format of
+    the model of the API's start (Qwen's ChatML for Nemotron, Qwen3-Next…). The format now follows the .env."""
+    from aurora import mdl_llm, sys_config
+    for name, arch, tpl in (("qwen.gguf", "qwen35moe", QWEN), ("mistral.gguf", "llama", MISTRAL)):
+        gguf(cfg.root / name, {"general.architecture": arch, "general.name": name, "tokenizer.chat_template": tpl})
+    sys_config.write_env(cfg.env_file, {"AURORA_LLM_MODEL": "qwen.gguf"})
+    cfg.values["AURORA_LLM_MODEL"] = "qwen.gguf"
+    llm = mdl_llm.LLM(cfg)                                            # built once, as the API's pipeline is
+    first = llm.fmt.family
+    import os
+    import time
+    sys_config.write_env(cfg.env_file, {"AURORA_LLM_MODEL": "mistral.gguf"})      # the Models page switched
+    os.utime(cfg.env_file, (time.time() + 5, time.time() + 5))
+    assert (first, llm.fmt.family) == ("qwen", "mistral")

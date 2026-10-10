@@ -49,11 +49,13 @@ def questions(path: Path) -> list[str]:
     return qs
 
 
-def pool(n: int) -> list[str]:
+def pool(n: int, english: bool = False) -> list[str]:
+    """The same sample (seed 7) in Italian, or in English (the pool's own translation of each question)."""
     import random
     f = cfg.path("AURORA_STATUS_DIR") / "bench" / "retrieval_pool108" / "questions.jsonl"
-    qs = [json.loads(line)["question"] for line in f.read_text(encoding="utf-8").splitlines() if line.strip()]
-    return random.Random(7).sample(qs, min(n, len(qs)))
+    rows = [json.loads(line) for line in f.read_text(encoding="utf-8").splitlines() if line.strip()]
+    pick = random.Random(7).sample(range(len(rows)), min(n, len(rows)))
+    return [rows[i]["translation" if english else "question"] for i in pick]
 
 
 def stage(events: list[dict]) -> str:
@@ -104,26 +106,37 @@ def main() -> int:
     ap.add_argument("--pool", type=int, default=0, help="N questions of retrieval_pool108 instead of the 8 of M40")
     ap.add_argument("--only", default="", help="only these positions of the pool sample, e.g. 4,6,12")
     ap.add_argument("--tag", default="", help="a word in the result's file name (before, after…)")
+    ap.add_argument("--english", action="store_true", help="the pool's questions in their English translation")
     a = ap.parse_args()
     from aurora.mdl_cloud import ClaudeCodeLLM
     judge = ClaudeCodeLLM(cfg, a.judge)
+    backup = ClaudeCodeLLM(cfg, "sonnet" if a.judge != "sonnet" else "opus")
     bench = cfg.path("AURORA_STATUS_DIR") / "bench"
     rows = []
-    qs = pool(a.pool) if a.pool else questions(bench / "quality_questions.json")
+    qs = pool(a.pool, a.english) if a.pool else questions(bench / "quality_questions.json")
+    from aurora import txt_lang
     keep = {int(x) for x in a.only.split(",") if x.strip().isdigit()}
     for i, q in enumerate(qs, 1):
         if keep and i not in keep:
             continue
         res = ask(q)
         ctx = passages(res["hits"])
-        out = judge.complete(JUDGE, f"QUESTION: {q}\n\nPASSAGES:\n{ctx}\n\nANSWER:\n{res['answer']}", 400).answer
+        prompt = f"QUESTION: {q}\n\nPASSAGES:\n{ctx}\n\nANSWER:\n{res['answer']}"
+        out = ""
+        for j in (judge, backup):                    # a judge that refuses one answer (a safeguard's false flag on a
+            try:                                     # model's leaked reasoning, 10 Oct) does not stop the bench
+                out = j.complete(JUDGE, prompt, 400).answer
+                break
+            except RuntimeError as e:
+                out = f"judge failed: {str(e)[:160]}"
         m = re.search(r"\{.*\}", out, re.S)
         try:
             verdict = json.loads(m.group(0)) if m else {}
         except ValueError:
             verdict = {}
         score = verdict.get("score")
-        rows.append({**res, "q": q, "score": score, "why": verdict.get("why", out[:300])})
+        same = res["abstained"] or txt_lang.detect(res["answer"]) == txt_lang.detect(q)    # answered in the asked language
+        rows.append({**res, "q": q, "score": score, "why": verdict.get("why", out[:300]), "same_lang": same})
         print(f"{i}. {score}/10 in {res['seconds']} s{' [abstained: ' + res['stage'] + ']' if res['abstained'] else ''} — "
               f"{q[:60]}… | {str(verdict.get('why', ''))[:110]}", flush=True)
     scored = [r["score"] for r in rows if isinstance(r["score"], (int, float))]
@@ -131,9 +144,11 @@ def main() -> int:
     from collections import Counter
     wrong = Counter(r["stage"] for r in rows if r["abstained"] and (r["score"] or 0) < 5)
     print(f"MEAN {mean} on {len(scored)} questions (M40: local 5.25, local+SSCC 6.00, Claude 5.38; noise ±0.75); "
-          f"answered {sum(not r['abstained'] for r in rows)}, wrong abstentions by stage {dict(wrong)}")
+          f"answered {sum(not r['abstained'] for r in rows)}, wrong abstentions by stage {dict(wrong)}, "
+          f"in another language {sum(not r['same_lang'] for r in rows)}")
     (bench / f"quality_{datetime.now():%Y%m%d-%H%M}{'_' + a.tag if a.tag else ''}.json").write_text(
-        json.dumps({"at": datetime.now().isoformat(), "judge": a.judge, "mean": mean, "rows": rows}, ensure_ascii=False,
+        json.dumps({"at": datetime.now().isoformat(), "judge": a.judge, "mean": mean, "english": a.english,
+                    "model": str(cfg["AURORA_LLM_MODEL"]).rsplit("/", 1)[-1], "rows": rows}, ensure_ascii=False,
                    indent=1), encoding="utf-8")
     return 0
 

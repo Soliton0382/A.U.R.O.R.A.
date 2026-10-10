@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import io
 import json
+import math
 import re
 import subprocess
 import sys
@@ -114,6 +115,30 @@ def fit(meta: dict, vram_gb: float, ram_gb: float) -> dict:
             + ("" if moe else " (a dense model cannot keep part of itself in RAM here)")}
 
 
+def _others_gb() -> float:
+    """GPU memory held by other processes than the reasoner (the embedder and the re-ranker), in GB."""
+    try:
+        out = subprocess.run(["nvidia-smi", "--query-compute-apps=process_name,used_memory",
+                              "--format=csv,noheader,nounits"], capture_output=True, text=True, timeout=20).stdout
+    except (OSError, subprocess.SubprocessError):
+        return 0.0
+    return round(sum(float(x.rsplit(",", 1)[1]) for x in out.splitlines()
+                     if "," in x and "llama-server" not in x) / 1024, 1)
+
+
+def cpu_moe(meta: dict, vram_gb: float) -> int:
+    """How many layers keep their experts in RAM (llama-server --n-cpu-moe) for the model to fit the GPUs: 0 when
+    it fits whole; else the layers whose share of the weights is over (experts are nearly all of a MoE's weights),
+    two more for the context cache. Before this the Models page said «experts in RAM» and the switch loaded the whole
+    model on the GPUs (C252). Said on the page; the placing itself is llama.cpp's --fit (C254: n-cpu-moe frees the
+    first layers, the split by layer count then gave the second card the whole last ones — 18.4 GB, out of memory)."""
+    size, layers = float(meta["size_gb"]), int(meta.get("layers") or 0)
+    if not meta.get("experts") or not layers or size + ROOM_GB <= vram_gb:
+        return 0
+    over = size + ROOM_GB - vram_gb
+    return min(layers, math.ceil(over / (size / layers)) + 2)
+
+
 def check(repo: str, revision: str, file: str, size_gb: float, machine=None, get=None) -> dict:
     meta = remote_meta(repo, revision, file, size_gb, get)
     vram, ram = machine or _machine()
@@ -192,7 +217,8 @@ def _restart_and_try(cfg: sys_config.Config, run, wait_s: float) -> dict:
     return {"answer": out.answer.strip()[:200], "seconds": round(time.time() - t0, 1)}
 
 
-def switch(cfg: sys_config.Config, model: str, mmproj: str = "", run=subprocess.run, wait_s: float = 600) -> dict:
+def switch(cfg: sys_config.Config, model: str, mmproj: str = "", run=subprocess.run, wait_s: float = 600,
+           machine=None) -> dict:
     """The local reasoner on another model; the one before kept to go back to. Undone at once if it does not answer."""
     from . import sys_health
     job = sys_health.gpu_job(cfg)
@@ -203,8 +229,17 @@ def switch(cfg: sys_config.Config, model: str, mmproj: str = "", run=subprocess.
         raise CustomError(f"{model}: not downloaded here")
     from . import mdl_modes
     env = mdl_modes._env(cfg)                             # the machine's .env (the admin's, in multi-user)
-    before = {"AURORA_LLM_MODEL": str(cfg["AURORA_LLM_MODEL"]), "AURORA_LLM_MMPROJ": str(cfg["AURORA_LLM_MMPROJ"])}
-    sys_config.write_env(env, {"AURORA_LLM_MODEL": model, "AURORA_LLM_MMPROJ": mmproj})
+    now = sys_config.parse_env(env.read_text(encoding="utf-8")) if env.is_file() else {}
+    before = {k: str(now.get(k, cfg[k])) for k in ("AURORA_LLM_MODEL", "AURORA_LLM_MMPROJ", "AURORA_LLM_CPU_MOE_LAYERS")}
+    # ↑ from the .env as it is now, not the API's configuration of its start (C255: a failed switch put back the
+    #   model the API started with, not the one before it)
+    try:
+        facts = mdl_gguf.meta(path)
+    except (mdl_gguf.NotGGUF, OSError):
+        facts = {}
+    moe = cpu_moe(facts, (machine or _machine())[0] - (0 if machine else _others_gb())) if facts else 0
+    sys_config.write_env(env, {"AURORA_LLM_MODEL": model, "AURORA_LLM_MMPROJ": mmproj,     # -1: llama.cpp's --fit
+                               "AURORA_LLM_CPU_MOE_LAYERS": "-1" if moe else "0"})          # places it (C254)
     try:
         trial = _restart_and_try(cfg, run, wait_s)
     except CustomError:
@@ -215,7 +250,7 @@ def switch(cfg: sys_config.Config, model: str, mmproj: str = "", run=subprocess.
     _previous_file(cfg).parent.mkdir(parents=True, exist_ok=True)
     _previous_file(cfg).write_text(json.dumps(before), encoding="utf-8")
     vision = bool(mmproj)
-    return {**trial, "model": model, "vision": vision,
+    return {**trial, "model": model, "vision": vision, "experts_in_ram_layers": moe,
             "note": "" if vision else "senza proiettore visivo il modello locale non vede le immagini: "
                                       "nella pagina Modelli dai il ruolo Visione a un provider cloud, o resta spento"}
 

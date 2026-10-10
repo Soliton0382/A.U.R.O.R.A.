@@ -34,6 +34,11 @@ SYS_SYNTH = ("You are Aurora. You answer ONLY from the extractions below, which 
              "owner attached a file (the 'attachment' extraction), a question about 'this video', 'this image' or 'this "
              "document' is about that file: answer from it, with everything it says was seen and heard; the other "
              "domains are background knowledge and never describe the file.")
+SYS_BACK = ("Translate the answer below into {lang}. Keep every citation [n] after the same sentence, and numbers, "
+            "names, formulas, code and markdown as they are. Output only the translation.")
+LANGS = {"it": "Italian", "en": "English", "fr": "French", "de": "German", "es": "Spanish", "pt": "Portuguese",
+         "nl": "Dutch", "ro": "Romanian", "pl": "Polish", "ru": "Russian", "uk": "Ukrainian", "ar": "Arabic",
+         "zh": "Chinese", "ja": "Japanese", "ko": "Korean", "tr": "Turkish", "el": "Greek", "sv": "Swedish"}
 SYS_VERIFY = ("You verify one sentence against passages. Reply with exactly one word: YES if every factual claim of "
               "the sentence is stated in the passages, NO otherwise.")
 
@@ -124,7 +129,7 @@ class Stages:
         for kind, piece in model.stream(system, user, self.cfg["AURORA_PIPELINE_THINK_TOKENS"], think=think):
             if kind == "answer":
                 draft.append(piece)
-            if self.cfg["AURORA_CHAT_STREAMING"]:
+            if self.cfg["AURORA_CHAT_STREAMING"] and not getattr(self, "_pivot", False):   # English: not shown
                 ev("synthesis.delta", {"kind": kind, "text": piece})
         self.speed = getattr(model, "last_speed", None)
         text = "".join(draft).strip()

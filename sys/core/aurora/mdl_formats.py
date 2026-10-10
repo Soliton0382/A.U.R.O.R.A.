@@ -88,10 +88,11 @@ def _local_cached(path: str, mtime: float) -> Profile:
     return from_gguf(mdl_gguf.meta(Path(path)))
 
 
-def local(cfg: sys_config.Config | None = None) -> Profile:
-    """The profile of the local reasoner (AURORA_LLM_MODEL); Qwen's when the file cannot be read (the measured one)."""
+def local(cfg: sys_config.Config | None = None, model: str = "") -> Profile:
+    """The profile of the local reasoner (AURORA_LLM_MODEL, or `model`: a path as the .env writes it); Qwen's when
+    the file cannot be read (the measured one)."""
     cfg = cfg or sys_config.get()
-    p = cfg.path("AURORA_LLM_MODEL")
+    p = (Path(model) if Path(model).is_absolute() else cfg.root / model) if model else cfg.path("AURORA_LLM_MODEL")
     try:
         return _local_cached(str(p), p.stat().st_mtime)
     except (OSError, ValueError):

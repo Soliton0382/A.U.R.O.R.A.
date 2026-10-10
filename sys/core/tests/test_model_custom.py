@@ -79,3 +79,43 @@ def test_never_during_a_gpu_job(cfg, monkeypatch):
     monkeypatch.setattr(sys_health, "gpu_job", lambda c: "a painting")
     with pytest.raises(C.CustomError, match="GPU"):
         C.switch(cfg, "sys/models/llm/custom/x/new.gguf")
+
+
+def test_a_model_larger_than_the_gpus_keeps_some_layers_experts_in_ram(cfg, monkeypatch):
+    """C252: the Models page said «experts in RAM» for Qwen3-Next-80B (42.9 GB on 31.8) and the switch loaded it whole
+    on the GPUs; now the layers over are given to --n-cpu-moe, and a model that fits keeps 0."""
+    big = {"size_gb": 42.9, "layers": 48, "experts": 512}
+    assert C.cpu_moe(big, 29.4) == 20                       # (42.9 + 2 - 29.4) / (42.9 / 48) = 17.3 → 18, + 2
+    assert C.cpu_moe({"size_gb": 18.2, "layers": 64, "experts": 0}, 29.4) == 0      # dense, fits
+    assert C.cpu_moe({"size_gb": 23.8, "layers": 52, "experts": 128}, 29.4) == 0    # MoE that fits
+    assert C.cpu_moe({**big, "size_gb": 4000.0}, 29.4) == 48                           # never more than the layers
+    from aurora import mdl_gguf, mdl_llm, mdl_modes, sys_health
+    p = "sys/models/llm/custom/x/big.gguf"
+    (cfg.root / p).parent.mkdir(parents=True, exist_ok=True)
+    (cfg.root / p).write_bytes(b"x")
+    monkeypatch.setattr(mdl_gguf, "meta", lambda path: big)
+    monkeypatch.setattr(sys_health, "gpu_job", lambda c: "")
+    monkeypatch.setattr(mdl_modes, "_service", lambda verb, run=None: (0, ""))
+    monkeypatch.setattr(mdl_llm, "LLM", lambda c: SimpleNamespace(health=lambda: True,
+                                                                  complete=lambda *a: SimpleNamespace(answer="Roma")))
+    out = C.switch(cfg, p, wait_s=1, machine=(29.4, 58.0))
+    assert out["experts_in_ram_layers"] == 20
+    assert sys_config.parse_env(cfg.env_file.read_text())["AURORA_LLM_CPU_MOE_LAYERS"] == "-1"       # --fit (C254)
+
+
+def test_a_failed_switch_puts_back_the_model_of_now_not_the_one_of_the_start(cfg, monkeypatch):
+    """C255: the API started on Qwen 35B, the contest switched to Nemotron, then Qwen3-Next failed: Qwen 35B came
+    back (the API's configuration of its start), not Nemotron (the .env of then)."""
+    from aurora import mdl_llm, mdl_modes, sys_health
+    for p in ("sys/models/llm/a.gguf", "sys/models/llm/b.gguf", "sys/models/llm/c.gguf"):
+        (cfg.root / p).parent.mkdir(parents=True, exist_ok=True)
+        (cfg.root / p).write_bytes(b"x")
+    cfg.values["AURORA_LLM_MODEL"] = "sys/models/llm/a.gguf"                 # what the API started with
+    sys_config.write_env(cfg.env_file, {"AURORA_LLM_MODEL": "sys/models/llm/b.gguf"})   # switched since
+    monkeypatch.setattr(sys_health, "gpu_job", lambda c: "")
+    monkeypatch.setattr(mdl_modes, "_service", lambda verb, run=None: (0, ""))
+    monkeypatch.setattr(mdl_llm, "LLM", lambda c: SimpleNamespace(health=lambda: True,
+                                                                  complete=lambda *a: SimpleNamespace(answer="")))
+    with pytest.raises(C.CustomError):
+        C.switch(cfg, "sys/models/llm/c.gguf", wait_s=1, machine=(29.4, 58.0))
+    assert sys_config.parse_env(cfg.env_file.read_text())["AURORA_LLM_MODEL"] == "sys/models/llm/b.gguf"

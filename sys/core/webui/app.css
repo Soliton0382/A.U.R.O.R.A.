@@ -41,9 +41,17 @@ input, select, textarea { background: var(--input); border: 1px solid var(--line
 .topbar { display: flex; align-items: center; gap: .8rem; padding: .5rem .8rem; padding-top: max(.5rem, env(safe-area-inset-top));
   background: var(--bar); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); z-index: 2; }
 .brand { font-weight: 700; letter-spacing: .08em; }
-.brand-box { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
+.brand-box { display: flex; flex-direction: column; gap: .15rem; min-width: 0; flex: 0 1 auto; }
 .brand-row { display: flex; align-items: center; gap: .45rem; }
-.slot-topbar { flex: 1; min-width: 0; display: flex; justify-content: flex-end; }
+/* the gauges keep their width; the alerts under the name wrap instead (owner, 10 Oct: with alerts the percentages
+   went out of the screen — 21 of their 206 px left at 500 px wide) */
+.slot-topbar { flex: 1 0 auto; min-width: 0; display: flex; justify-content: flex-end; }
+@media (max-width: 820px) {                 /* a phone: the alerts get a row of their own under the bar */
+  .topbar { flex-wrap: wrap; row-gap: .3rem; column-gap: .5rem; padding-left: .5rem; padding-right: .5rem; }
+  .slot-topbar .metrics { column-gap: .55rem; }
+  .brand-box { display: contents; }
+  #slot-alerts { order: 10; flex-basis: 100%; }
+}
 
 /* Side drawer: hidden on the left, slides in over the content. */
 .drawer { position: fixed; top: 0; bottom: 0; left: 0; width: var(--drawer); z-index: 4; transform: translateX(-102%);

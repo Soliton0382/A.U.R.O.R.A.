@@ -154,3 +154,24 @@ def test_a_few_steps_in_the_cloud_is_mixed(machine):
     mdl_router.set_assignments(cfg, {"agent": {"provider": "claude_code", "model": ""},
                                      "forge_write": {"provider": "claude_code", "model": "opus"}})
     assert mdl_modes.current(cfg) == "mixed"
+
+
+def test_the_context_cache_in_less_memory_when_chosen(tmp_path, monkeypatch):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "script"))
+    import svc_llm
+    cmd = svc_llm.command(sys_config.load(write_env(tmp_path), check_root=False))
+    assert "-ctk" not in cmd                                                   # f16: as before
+    cmd = svc_llm.command(sys_config.load(write_env(tmp_path, AURORA_LLM_KV_TYPE="q8_0"), check_root=False))
+    assert cmd[cmd.index("-ctk") + 1] == cmd[cmd.index("-ctv") + 1] == "q8_0"
+
+
+
+def test_a_model_larger_than_the_gpus_is_placed_by_llamacpp(tmp_path):
+    """C254: --n-cpu-moe 20 with the split 4.5,3.5 gave the second card the last 21 layers whole (18.4 GB): out of
+    memory. -1 lets llama.cpp's --fit place layers, cards and RAM from the memory free."""
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "script"))
+    import svc_llm
+    cmd = svc_llm.command(sys_config.load(write_env(tmp_path, AURORA_LLM_CPU_MOE_LAYERS="-1"), check_root=False))
+    assert "--fit" in cmd and "-ngl" not in cmd and "--tensor-split" not in cmd and "--n-cpu-moe" not in cmd
+    cmd = svc_llm.command(sys_config.load(write_env(tmp_path, AURORA_LLM_CPU_MOE_LAYERS="0"), check_root=False))
+    assert "-ngl" in cmd and "--tensor-split" in cmd and "--fit" not in cmd

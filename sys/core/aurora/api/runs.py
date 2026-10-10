@@ -80,7 +80,7 @@ async def ask(request: Request) -> dict:
             attached = AttachmentHandler(pipeline(), cfg).prepare(files, q, emit, run_id)
         if attached or not remember or focus:          # a suggested follow-up is a question for the vault
             ans = pipeline().run(q, emit=emit, run_id=run_id, attached=attached, remember=remember, focus=focus,
-                                 suggest=suggest, think=think, quote=quote)
+                                 suggest=suggest, think=think, quote=quote, alone=seed)
             if seed and cfg["AURORA_SHADOW"] and not attached and not ans.abstained and ans.mode == "knowledge" and ans.sources:
                 from aurora import kno_shadow
                 kno_shadow.add(cfg, pipeline().search.embedder, q, ans.text, ans.sources, origin="seed",

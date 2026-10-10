@@ -205,17 +205,21 @@ def seed_for(cfg: sys_config.Config, rows: list[dict]) -> list[dict]:
             and (r.get("lang") or lang_of(r.get("question", ""))) == lang]
 
 
-def export_seed(cfg: sys_config.Config, reader=None, asked: dict | None = None) -> list[dict]:
-    """The seed's answers that may leave this machine: asked by the seed script, every source public. With the vault's
+def export_seed(cfg: sys_config.Config, reader=None, asked: dict | None = None, only: set | None = None) -> list[dict]:
+    """The seed's answers that may leave this machine: asked by the seed script (never the night's training: those
+    questions are Aurora's thoughts, answered with the owner's chat in context, C251), every source public; `only`:
+    the questions the script asked alone (no conversation read), when given. With the vault's
     reader each source carries the origin, address and licence its passage was imported with (the attribution).
     Each answer says its domain (the one it was asked for, `asked`: question → domain; else its sources') and its
     language, so an installation takes the ones it chose (seed_for)."""
     with closing(_db(cfg)) as con:
-        rows = con.execute("SELECT question, answer, sources, made, follow FROM shadows WHERE origin IN ('seed', 'train') "
+        rows = con.execute("SELECT question, answer, sources, made, follow FROM shadows WHERE origin = 'seed' "
                            "ORDER BY id").fetchall()
     found = reader.get_many([s.get("sid") for r in rows for s in json.loads(r[2]) if s.get("sid")]) if reader else {}
     out = []
     for q, text, sources, made, follow in rows:
+        if only is not None and q not in only:
+            continue
         src = []
         for s in json.loads(sources):
             extra = (found[s["sid"]].extra or {}) if s.get("sid") in found else {}

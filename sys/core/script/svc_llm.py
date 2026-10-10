@@ -26,12 +26,17 @@ def command(cfg: sys_config.Config) -> list[str]:
     cmd = [str(bin_dir / "llama-server"),
            "-m", str(cfg.path("AURORA_LLM_MODEL")),
            "--host", cfg["AURORA_LLM_HOST"], "--port", str(cfg["AURORA_LLM_PORT"]),
-           "-c", str(cfg["AURORA_LLM_CTX"]), "-ngl", "999", "-fa", "on", "--no-webui",
-           "--tensor-split", cfg["AURORA_LLM_TENSOR_SPLIT"], "--parallel", str(cfg["AURORA_LLM_PARALLEL"])]
+           "-c", str(cfg["AURORA_LLM_CTX"]), "-fa", "on", "--no-webui", "--parallel", str(cfg["AURORA_LLM_PARALLEL"])]
+    if cfg["AURORA_LLM_CPU_MOE_LAYERS"] < 0:           # larger than the GPUs: llama.cpp places layers, cards and RAM
+        cmd += ["--fit", "on", "--fit-target", "1024"]  # from the memory free now (C254: a split by layers overflowed)
+    else:
+        cmd += ["-ngl", "999", "--tensor-split", cfg["AURORA_LLM_TENSOR_SPLIT"]]
     mmproj = cfg.path("AURORA_LLM_MMPROJ")
     if str(cfg["AURORA_LLM_MMPROJ"]).strip() and mmproj.is_file():      # a model without a projector: no vision
         cmd += ["--mmproj", str(mmproj)]
-    if cfg["AURORA_LLM_CPU_MOE_LAYERS"] > 0:
+    if str(cfg["AURORA_LLM_KV_TYPE"]) != "f16":           # the context cache in less memory (flash attention is on)
+        cmd += ["-ctk", str(cfg["AURORA_LLM_KV_TYPE"]), "-ctv", str(cfg["AURORA_LLM_KV_TYPE"])]
+    if cfg["AURORA_LLM_CPU_MOE_LAYERS"] > 0:             # chosen by hand (M23)
         cmd += ["--n-cpu-moe", str(cfg["AURORA_LLM_CPU_MOE_LAYERS"])]
     from aurora import mdl_formats
     if mdl_formats.needs_jinja(cfg):                   # another family: its own chat template (Qwen: ChatML, measured)

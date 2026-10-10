@@ -20,6 +20,7 @@ LINUX_ONLY = re.compile(r'"systemctl"|\bfcntl\b|/proc/|"nvidia-smi"|import pwd|o
 WORDS_ALLOWED = {
     ("sys_config.py", "import pwd"): "guarded: Windows takes getpass (FILES)",
     ("sys_bugreport.py", '"nvidia-smi"'): "the driver's version in a bug report; not found = «not measured» everywhere",
+    ("mdl_custom.py", '"nvidia-smi"'): "the GPU memory others hold, for the Models page's fit; not found = 0 (C252)",
     ("prj_run.py", '"bwrap"'): "phase 4: without bwrap a project does not run («no cage, nothing is run»)",
     ("plg_sandbox.py", '"bwrap"'): "phase 4: without a cage plugins do not run on the Mac or Windows (GUARDS)",
     ("plg_sandbox.py", "/dev/null"): "phase 4: bwrap's own arguments, Linux only",
@@ -31,6 +32,7 @@ EVERYWHERE = {"ffmpeg", "ffprobe", "git", "curl", "pdfinfo", "pdftoppm", "sys.ex
 PROGRAMS_ALLOWED = {
     ("sec_hostaudit.py", "ss"): "the Linux branch only; netstat (Mac) and psutil (Windows) otherwise (NETWORK)",
     ("sys_bugreport.py", "nvidia-smi"): "a bug report's driver version: «not measured» where missing",
+    ("mdl_custom.py", "nvidia-smi"): "the GPU memory others hold (C252): 0 where missing, llama.cpp's --fit decides",
     ("sec_hostfw.py", "sudo"): "phase 4: the host firewall",
 }
 # the scripts the owner or the installer runs: all of phase 3 (installers and admin scripts per system)

@@ -1805,12 +1805,12 @@
    "category": "llm",
    "recommended": "0",
    "evidence": "M23",
-   "en": "Layers whose experts stay in RAM. 0 = all in VRAM (answering: 2,752 prompt tok/s); 99 = all in RAM (standby: 2.95 GB of VRAM, 519 tok/s).",
-   "it": "Strati i cui esperti restano in RAM. 0 = tutto in VRAM (risposta: 2.752 tok/s di lettura); 99 = tutto in RAM (attesa: 2,95 GB di VRAM, 519 tok/s).",
+   "en": "Layers whose experts stay in RAM. 0 = all in VRAM (answering: 2,752 prompt tok/s); 99 = all in RAM (standby: 2.95 GB of VRAM, 519 tok/s); -1 = a model larger than the GPUs: llama.cpp places the layers on the cards and in RAM from the memory free (--fit; the Models page sets it, C254).",
+   "it": "Strati i cui esperti restano in RAM. 0 = tutto in VRAM (risposta: 2.752 tok/s di lettura); 99 = tutto in RAM (attesa: 2,95 GB di VRAM, 519 tok/s); -1 = un modello più grande delle GPU: llama.cpp mette gli strati sulle schede e in RAM secondo la memoria libera (--fit; lo imposta la pagina Modelli, C254).",
    "services": [
     "aurora-llm"
    ],
-   "min": 0,
+   "min": -1,
    "max": 999
   },
   {
@@ -1840,6 +1840,24 @@
    ],
    "min": 1,
    "max": 4
+  },
+  {
+   "key": "AURORA_LLM_KV_TYPE",
+   "type": "enum",
+   "choices": [
+    "f16",
+    "q8_0",
+    "q4_0"
+   ],
+   "category": "llm",
+   "recommended": "f16",
+   "evidence": "M174 (the models' contest)",
+   "en": "How the reasoner keeps its context cache (llama.cpp -ctk/-ctv): f16 as the model computes it; q8_0 in half the memory (more room for a larger model, fewer layers in RAM); q4_0 in a quarter, with some loss.",
+   "it": "Come il ragionatore tiene la cache del contesto (llama.cpp -ctk/-ctv): f16 com'è calcolata; q8_0 in metà memoria (più spazio per un modello più grande, meno strati in RAM); q4_0 in un quarto, con qualche perdita.",
+   "services": [
+    "aurora-llm"
+   ],
+   "optional": true
   },
   {
    "key": "AURORA_LLM_TIMEOUT_S",
@@ -2168,6 +2186,19 @@
    "services": [
     "aurora-api"
    ]
+  },
+  {
+   "key": "AURORA_PIPELINE_PIVOT_EN",
+   "type": "bool",
+   "category": "pipeline",
+   "recommended": "false",
+   "evidence": "M174 (the models' contest)",
+   "en": "A question in another language is worked out in English — extraction, synthesis and verification on its English translation — and the answer is translated back into the language of the question, citations where they were. The answer appears when translated (no word-by-word streaming).",
+   "it": "Una domanda in un'altra lingua viene elaborata in inglese — estrazione, sintesi e verifica sulla sua traduzione — e la risposta è ritradotta nella lingua della domanda, con le citazioni al loro posto. La risposta compare quando è tradotta (senza scrittura parola per parola).",
+   "services": [
+    "aurora-api"
+   ],
+   "optional": true
   },
   {
    "key": "AURORA_PIPELINE_SUGGEST",

@@ -2538,3 +2538,119 @@ Live: aurora-rem's tick asked for the bundle at the first round and wrote «HTTP
 nothing else. Not measured: a bundle received by another installation, how many of the links find their passages
 there (depends on what it harvested).
 
+## M172 — The published shadow seed, looked at for the owner's traces (10 October 2026, read only)
+
+`config/shadow_seed.json` as published with 0.2.x, every answer through the masking (sec_mask) and the owner's
+patterns (publish_deny.txt), and a look for an answer speaking to the owner (tu/tuo/abiti/mi hai detto/you live…):
+
+| | answers |
+|---|---|
+| in the seed | 380 |
+| not asked by the script (the night's training, origin train) | 59 |
+| found by the masking | 1 — an ADDRESS that is «via a two-component Higgs field» (neutrinos), a false one |
+| with one of the owner's patterns | 0 |
+| speaking to the owner | 0 |
+
+Nothing personal found; not provable that the chat left no trace (the answers were written with it in context):
+the seed is asked again alone (C251) and only those answers are exported.
+
+
+## M173 — KV-cache compression: TurboQuant's core against the owner's Chronos-Phi formulas (10 October 2026, CPU)
+
+Real attention tensors: Qwen3-Embedding-0.6B (a Qwen3 transformer, the embedder's own files read only), eager attention,
+the README in Italian and in English, 512 tokens each: 56 attention calls, 16 heads, head_dim 128. Keys and values
+compressed, then the attention recomputed with the true queries; scored on the attention OUTPUT (relative error, mean)
+and on the attention distribution (KL). Script: the session's scratchpad (kv_golden.py, kv_seeds.py).
+
+| method | 3 bit out err | 3 bit KL | 4 bit out err | 4 bit KL |
+|---|---|---|---|---|
+| uniform per 32 (llama.cpp-like) | 0.697 | 0.361 | 0.412 | 0.157 |
+| TurboQuant core: random Hadamard + Lloyd-Max (6 seeds) | 0.631 ± 0.006 | 0.743 ± 0.016 | 0.334 ± 0.004 | 0.231 ± 0.008 |
+| F2, golden Weyl signs (sign cos 2π·frac(i/Φ)) + Hadamard + Lloyd-Max | **0.619** | 0.728 | 0.330 | **0.220** |
+| F2 as written, phases ·(Φ⁻¹)^i (they decay to 0: signs collapse) | 0.635 | 0.748 | 0.332 | 0.226 |
+| no rotation + Lloyd-Max | 1.790 | 2.677 | 1.633 | 1.797 |
+| F1, levels a·Φ^-2n (best a) | 0.952 | 1.479 | 0.951 | 1.478 |
+| levels a·Φ^-n (best a) | 0.669 | 0.672 | 0.513 | 0.454 |
+| F3, logistic compander (σ 8, centre Φ^-2) | 1.128 | 1.280 | 0.624 | 0.512 |
+
+Read: the rotation is what matters (×3-5 against none). The golden signs are as good as random ones — at 3 bits
+below all six random seeds (0.619 against 0.621-0.640), at 4 bits within them; a deterministic rotation, nothing to
+store or seed. The golden levels and the logistic compander lose to Lloyd-Max (they put too many levels near zero).
+The two metrics disagree on llama.cpp's uniform quantizer (lower KL, higher output error). Not measured: a larger
+model, keys after a QJL residual (TurboQuant's second stage), the quality of answers with a compressed cache.
+
+## M175 — Does the golden rotation hold? (10 October 2026, CPU, after M173)
+
+Three models of two families (Qwen3-Embedding-0.6B read only; Qwen3-1.7B; SmolLM2-1.7B, Llama architecture, head_dim
+64), four texts of the project's docs (Italian and English, 384 tokens each). Null distribution: 30 random-sign
+Hadamard rotations. Controls: the same Weyl construction with √2 and e instead of Φ. Second stage of TurboQuant (1-bit
+QJL on the keys' residual) with 10 paired seeds. Cell: the share of the 30 random rotations that do better on the
+attention output (lower = better; 50% = an ordinary random draw).
+
+| model, bits | golden (Φ) | √2 | e | QJL: golden − random (paired) |
+|---|---|---|---|---|
+| Qwen3-0.6B, 3 | 3% | 67% | 27% | −0.006 ± 0.026 |
+| Qwen3-0.6B, 4 | 20% | 83% | 13% | +0.002 ± 0.011 |
+| Qwen3-1.7B, 3 | 43% | 57% | 0% | −0.005 ± 0.013 |
+| Qwen3-1.7B, 4 | 20% | 100% | 43% | +0.000 ± 0.007 |
+| SmolLM2-1.7B, 3 | 17% | 53% | 73% | −0.001 ± 0.003 |
+| SmolLM2-1.7B, 4 | 30% | 23% | 90% | +0.000 ± 0.001 |
+
+Verdict: **it does not hold as an improvement.** Φ lands in the better half every time (3-43%), but within the spread
+of random rotations, and e does as well or better twice (0%, 13%); the six cells are not independent (same rotation,
+same data per model), so roughly three draws, 1 in 8 by chance. With QJL no difference at all. The golden signs are
+a good deterministic choice (no seed to keep), not a better one. Found on the way: in this setting the QJL stage
+made the attention output worse than the MSE stage alone at the same bits (Qwen3-1.7B, 4 bit: 0.638 against 0.293) —
+the unbiased score estimate has a variance the softmax amplifies.
+
+## M174 — The local reasoners' contest (10 October 2026, the owner's 2 × 16 GB + 58 GB RAM)
+
+Each model switched in from the Models API, then bench_quality on 15 questions of retrieval_pool108 (fixed sample,
+seed 7) asked in Italian and the same 15 in their English translation — blind judge Claude Opus (Sonnet when Opus
+refused, C254), 0-10 against the retrieved passages — and the agent goal ×3 (netintel, as M170). Embedder and
+re-ranker the same for all; noise of a 15-question mean about ±0.7 (M40's ±0.75 on 8).
+
+| model | size, where | it | en | median s/answer it · en | answered it · en | agent | answers in another language (it) |
+|---|---|---|---|---|---|---|---|
+| Qwen3.6-35B-A3B (Q4_K_M) — the present one | 21 GB, GPUs | 3.87 | 4.93 | 16 · 12 | 12 · 15 | 3/3 | 0 |
+| **Qwen3.6-27B dense (Q5_K_M)** | 18.2 GB, GPUs | **4.93** | **5.33** | 29 · 22 | 14 · 14 | 3/3 | 0 |
+| Nemotron-3.5-Lightning-30B-A3B (Q4_K_XL) | 23.8 GB, GPUs | 2.27 | 3.87 | 10 · 8 | 15 · 15 | 3/3 | **13 of 15** |
+| Nemotron-3-Super-120B-A12B (Q2_K_XL) | 50.9 GB, --fit (GPUs + RAM) | 3.73 | 4.93 | 93 · 37 | 13 · 15 | 3/3 | 1 |
+| Qwen3-Next-80B-A3B (Q4_K_XL) | 42.9 GB, --fit | (2.53) | (2.07) | 23 · 21 | **0 · 0** | 3/3 | — |
+
+**Invalid for every family but Qwen's (C257, found the same day):** after a switch the API's pipeline kept speaking
+Qwen 3.6's ChatML to the new model; Nemotron's and Qwen3-Next's rows measure that, not them. Qwen3-Next is not scored: every short call of the pipeline (web query, reading) got an empty reply from it (C256),
+so all 30 answers were abstentions; the agent, through another path, did 3/3. Nemotron-Super's speed with half of it
+in RAM: ~20 tok/s (llama-server's eval lines). Every model scores higher in English than in Italian (+0.4 to +1.6).
+Not measured: Qwen3-Next with the short calls fixed; tokens per second of the models whole on the GPUs.
+
+## M176 — The English pivot (10 October 2026, after M174; Qwen 3.6, the format right for both)
+
+The same 15 Italian questions as M174, AURORA_PIPELINE_PIVOT_EN on: extraction, synthesis and verification on the
+English translation, the answer translated back (kno_answer._back), the same blind judge.
+
+| model | it without pivot (M174) | it with pivot | answered | median s/answer |
+|---|---|---|---|---|
+| Qwen3.6-35B-A3B | 3.87 | **4.27** | 12 → **14** | 16 → 15 |
+| Qwen3.6-27B dense | 4.93 | 4.87 | 14 → 14 | 29 → 34 |
+
+The pivot gives the 35B two answers it refused before and costs it no time; for the 27B it changes nothing. Both
+differences are inside the noise (±0.7 on 15 questions). The owner's choice: the 35B with the pivot (speed: 15 s
+against 34 s). One Italian probe: «Cos'è il teorema di Noether?» answered in Italian, citations in place, 12.7 s.
+
+## M177 — The other families again, in their own format (10 October 2026, after C257; pivot on)
+
+The same 15 Italian questions, AURORA_PIPELINE_PIVOT_EN on (the owner's setting), the same blind judge; the agent ×3.
+Compare: Qwen3.6-35B with pivot 4.27 (15 s), 27B with pivot 4.87 (34 s) — M176.
+
+| model | it, pivot | median s/answer | answered | agent | note |
+|---|---|---|---|---|---|
+| **Qwen3-Next-80B-A3B** (Q4_K_XL, --fit) | **5.40** | 30 | 14 | 3/3 | the best of the day; no vision projector |
+| gpt-oss-20b (MXFP4) | 2.87 | 12 | 14 | 3/3 | no reasoning leaked in 15 (C248) |
+| Nemotron-3-Super-120B-A12B (Q2_K_XL, --fit) | 2.67 | 100 | 15 | 3/3 | often «from my memory, not verified» |
+| Nemotron-3.5-Lightning-30B-A3B | 1.60 | 15 | 15 | 3/3 | same; one answer left in English |
+
+With their own format the empty replies are gone (C256 was C257) and gpt-oss writes no reasoning into the answers.
+The Nemotrons and gpt-oss mostly fall to the memory step («dalla mia memoria, non verificato») instead of reading
+the passages: the reading steps' prompts were tuned on Qwen. Qwen3-Next beats the present 35B by 1.1 (outside the
+±0.7 noise) at twice the time, without vision. Not measured: more questions; the Nemotrons with prompts of theirs.

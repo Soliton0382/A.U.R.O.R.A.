@@ -59,13 +59,38 @@ def chatml_turns(messages: list[dict], think: bool) -> str:
     return "".join(parts) + f"<|im_start|>assistant\n{tail}"
 
 
+_SEEN: dict[str, tuple[float, str]] = {}
+
+
+def model_now(cfg: sys_config.Config) -> str:
+    """AURORA_LLM_MODEL as the machine's .env holds it now (cached on the file's mtime); the configuration's own
+    value when the .env cannot be read."""
+    env = (getattr(cfg, "base", None) or cfg).env_file
+    try:
+        mtime = env.stat().st_mtime
+        seen = _SEEN.get(str(env))
+        if not seen or seen[0] != mtime:
+            seen = (mtime, sys_config.parse_env(env.read_text(encoding="utf-8")).get("AURORA_LLM_MODEL", ""))
+            _SEEN[str(env)] = seen
+        return seen[1] or str(cfg["AURORA_LLM_MODEL"])
+    except (OSError, AttributeError, TypeError):
+        return str(cfg["AURORA_LLM_MODEL"])
+
+
 class LLM:
     def __init__(self, cfg: sys_config.Config | None = None):
         self.cfg = cfg or sys_config.get()
         self.url = f"http://{self.cfg['AURORA_LLM_HOST']}:{self.cfg['AURORA_LLM_PORT']}"
         self.timeout = self.cfg["AURORA_LLM_TIMEOUT_S"]
         self.log = sys_log.get_logger("llm_client")
-        self.fmt = mdl_formats.local(self.cfg)
+
+    @property
+    def fmt(self):
+        """The format of the model aurora-llm runs NOW: the .env's AURORA_LLM_MODEL, read again when the .env
+        changes. C257: the API's pipelines kept the client built at the API's start, so after a switch from the
+        Models page Aurora spoke to Nemotron, Qwen3-Next… in Qwen 3.6's ChatML with its empty think block (empty
+        replies, answers in English) — the contest's numbers of every other family were not theirs."""
+        return mdl_formats.local(self.cfg, model_now(self.cfg))
 
     # a template that refused the tools as a list (llama-server's error): the text form for this process
     _no_tools = False

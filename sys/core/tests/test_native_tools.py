@@ -91,7 +91,7 @@ def test_what_the_api_attached_to_a_call_goes_back_with_it(cfg, monkeypatch):
 def test_a_local_model_with_its_own_template_gets_the_tools_as_a_list(cfg, monkeypatch):
     """M169: Mistral Small 3.2 on llama-server --jinja — the tools as a list, its calls read back by the server."""
     from aurora import mdl_formats as F, mdl_llm
-    monkeypatch.setattr(F, "local", lambda c=None: F.from_gguf({"architecture": "llama", "name": "mistral",
+    monkeypatch.setattr(F, "local", lambda c=None, model="": F.from_gguf({"architecture": "llama", "name": "mistral",
                                                                  "chat_template": "{{ tools }}"}))
     reply = {"choices": [{"finish_reason": "tool_calls", "message": {"content": "", "tool_calls": [
         {"id": "x", "type": "function", "function": {"name": "finish", "arguments": '{"summary": "sole"}'}}]}}],
@@ -125,7 +125,7 @@ def test_an_output_the_server_cannot_read_is_asked_again_not_sent_to_the_text_fo
     """M170: gpt-oss now and then — «does not match the expected … format» — was taken for a template without
     tools, and every later turn lost them (1 of 8 runs right; asked again: 8 of 8)."""
     from aurora import mdl_formats as F, mdl_llm
-    monkeypatch.setattr(F, "local", lambda c=None: F.from_gguf({"architecture": "gpt-oss", "chat_template": "{{ tools }}"}))
+    monkeypatch.setattr(F, "local", lambda c=None, model="": F.from_gguf({"architecture": "gpt-oss", "chat_template": "{{ tools }}"}))
     ok = {"choices": [{"finish_reason": "stop", "message": {"content": "fatto"}}], "usage": {}}
     bad = {"error": {"code": 500, "message": "The model produced output that does not match the expected peg-native format"}}
     replies = [(500, bad), (200, ok)]

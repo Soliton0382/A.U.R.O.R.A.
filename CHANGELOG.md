@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.4 — 2026-10-10
+
+1 publications since v0.2.3.
+
+- 2026-10-10 C246-C259; English pivot; local models contest M174-M177 (35B + pivot, Qwen3-Next ready); --fit for large models; seed asked alone, 318 answers; KV q8_0 option; M173/M175 golden rotation (did not hold)
+
 ## v0.2.3 — 2026-10-10
 
 1 publications since v0.2.2.

@@ -57,12 +57,15 @@ class Pipeline(Stages, SelfTalk):
 
     def run(self, question: str, emit: Emit | None = None, run_id: str | None = None,
             remember: bool = True, attached: list | None = None, focus: list[dict] | None = None,
-            suggest: bool = False, think: str | None = None, quote: Soliton | None = None) -> Answer:
+            suggest: bool = False, think: str | None = None, quote: Soliton | None = None,
+            alone: bool = False) -> Answer:
         """`remember=False` leaves the memory untouched (a caller that retries remembers only the outcome).
         `attached`: kno_attach.Attached items; their passages come first for this question.
         `focus`: sources ({"source", "domain"}) whose passages compete with the search's (a suggested follow-up).
         `suggest`: follow-up questions after a knowledge answer (the WebUI asks for them).
-        `quote`: the message the owner replies to (kno_followup.quoted): the last turn, read with its sources."""
+        `quote`: the message the owner replies to (kno_followup.quoted): the last turn, read with its sources.
+        `alone`: a question of the seed script (shadow_seed.py), whose answers are published with the code: no
+        conversation read — not to complete the question, not in the answer's prompt, not as a source (C251)."""
         attached = attached or []
         run_id = run_id or uuid.uuid4().hex[:12]
         t0 = time.time()
@@ -79,7 +82,9 @@ class Pipeline(Stages, SelfTalk):
         asked_at = now_iso()                        # the question's own time, not the answer's
         ev("run.start", {"question": question})
         lang = txt_lang.detect(question)
-        recent = kno_followup.with_quote(self.reader.recent(self.cfg["AURORA_MEMORY_RECENT_TURNS"]), quote)
+        recent = [] if alone else kno_followup.with_quote(self.reader.recent(self.cfg["AURORA_MEMORY_RECENT_TURNS"]), quote)
+        if alone:
+            ev("run.alone", {})
         if quote is not None:
             ev("question.reply", {"to": quote.text[:200]})
         if not attached and self._route(question, recent, quote) == "self":
@@ -102,6 +107,12 @@ class Pipeline(Stages, SelfTalk):
         if lang != "en":
             translation = self._for("translate").complete(SYS_TRANSLATE, question, 200).answer
             ev("translate", {"from": lang, "translation": translation})
+        # the English pivot (owner, 10 Oct: «la traduzione in inglese… migliora velocità e qualità, poi si traduce nella
+        # lingua di chi ha scritto»): extraction, synthesis and verification in English, the answer translated back
+        self._pivot = bool(self.cfg["AURORA_PIPELINE_PIVOT_EN"] and translation and not attached)
+        native, question = question, (translation.strip() if self._pivot else question)
+        if self._pivot:
+            ev("pivot", {"lang": lang})
 
         def retrieve(recall: list[str] | None = None):
             # a case told as a story is searched by its problems and the provisions they need (C183); the story whole
@@ -116,8 +127,8 @@ class Pipeline(Stages, SelfTalk):
             # letting them cite each other is how the previous installation turned its diary into "philosophy".
             # The owner's messages stay citable: they are facts about the owner.
             # Aurora's reflections and dreams are hers, not facts about the world: never sources either.
-            own = [h for h in hits if (h.soliton.kind == "conversation" and h.soliton.extra.get("role") == "assistant")
-                   or h.soliton.kind == "reflection"]
+            own = [h for h in hits if h.soliton.kind == "reflection" or h.soliton.kind == "conversation"
+                   and (alone or h.soliton.extra.get("role") == "assistant")]
             if own:
                 hits = [h for h in hits if h not in own]
                 ev("retrieval.filter", {"dropped_own_answers": len(own)})
@@ -145,9 +156,12 @@ class Pipeline(Stages, SelfTalk):
             result = Answer(run_id, asked, verified["text"], False, verified["sources"], verified["dropped"],
                             came_from=verified.get("came_from", ""), learn=verified.get("learn", False))
         elif answer is None:
-            result = Answer(run_id, asked, self._abstention(question, lang, mode), True)
+            result = Answer(run_id, asked, self._abstention(native, lang, mode), True)
         else:
             result = Answer(run_id, asked, answer[0], False, answer[1], answer[2])
+        if self._pivot and not result.abstained:
+            result.text = self._back(result.text, lang, ev)
+        self._pivot = False
         result.seconds = time.time() - t0
         result.speed = None if result.abstained else self.speed
         ev("answer.final", {"text": result.text, "abstained": result.abstained, "sources": result.sources,
@@ -155,7 +169,7 @@ class Pipeline(Stages, SelfTalk):
                             "speed": result.speed})
         if suggest and not result.abstained and self.cfg["AURORA_PIPELINE_SUGGEST"]:
             try:                                    # after the answer is shown: never a reason to fail it
-                result.suggestions = kno_followup.suggest(self, question, result.text, result.sources, hits, ev)
+                result.suggestions = kno_followup.suggest(self, native, result.text, result.sources, hits, ev)
             except Exception as e:
                 self.log.warning("suggestions failed: %s", e)
         if remember:                                # with the suggestions: another window shows them too (C110)
@@ -163,6 +177,20 @@ class Pipeline(Stages, SelfTalk):
             self.remember(asked + names, result, run_id, ev, trail, asked_at, quote)
         ev("run.end", {"seconds": round(result.seconds, 1)})
         return result
+
+    def _back(self, text: str, lang: str, ev: Emit) -> str:
+        """The English answer in the language of the question, citations where they were; the English one if the
+        translation loses a citation or comes back empty."""
+        import re
+        from .kno_stages import LANGS, SYS_BACK
+        out = self._for("translate").complete(SYS_BACK.format(lang=LANGS.get(lang, lang)), text,
+                                              max(400, len(text) // 2)).answer.strip()
+        cites = lambda t: sorted(re.findall(r"\[\d+\]", t))                     # noqa: E731
+        if not out or cites(out) != cites(text):
+            ev("pivot.back", {"kept": "english", "why": "empty" if not out else "citations changed"})
+            return text
+        ev("pivot.back", {"lang": lang, "chars": len(out)})
+        return out
 
     def _with_attached(self, question: str, translation: str | None, hits: list[Hit], attached: list) -> list[Hit]:
         """Attached passages first: images and videos whole, documents their best chunks for this question."""
