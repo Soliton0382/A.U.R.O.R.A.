@@ -59,6 +59,30 @@ def _sections(bars: int, long_break: bool) -> dict[str, tuple[int, int]]:
     return {"intro": (0, 8), "main": (8, mid - brk), "break": (mid - brk, mid), "drop": (mid, bars - 8), "outro": (bars - 8, bars)}
 
 
+def _clock(beats: np.ndarray, first_bar: int, beat: float):
+    """Where step s (0-15) of bar b falls: on the song's own beats, followed one by one (aud_analysis.track), the
+    sixteenths between two of them; before the first and after the last one, the mean beat. Owner, 10 Oct: «ogni
+    tanto esce fuori ritmo» — a fixed grid drifted away from a song that moves (M180: 131-216 ms off, now 3 ms)."""
+    def at(b: int, s: int) -> float:
+        k, frac = 4 * (b - first_bar) + s // 4, (s % 4) / 4
+        if len(beats) < 2 or k < 0:
+            return (beats[0] if len(beats) else first_bar * 4 * beat) + (k + frac) * beat
+        if k >= len(beats) - 1:
+            return beats[-1] + (k - len(beats) + 1 + frac) * beat
+        return beats[k] + frac * (beats[k + 1] - beats[k])
+    return at
+
+
+def _pump(n: int, kicks: list[float], beat: float, depth: float) -> np.ndarray:
+    """The sidechain on the kicks really placed: the music ducks under each one and swells back before the next."""
+    if not kicks:
+        return np.ones(n, np.float32)
+    at = np.sort(np.array([int(k * SR) for k in kicks]))
+    idx = np.searchsorted(at, np.arange(n), side="right") - 1
+    since = np.where(idx >= 0, (np.arange(n) - at[np.clip(idx, 0, None)]) / SR, 10 * beat)
+    return (1 - depth * np.exp(-since / beat * 7)).astype(np.float32)
+
+
 def remix(x: np.ndarray, style: str, seconds: float | None = None, emit=None) -> tuple[np.ndarray, dict]:
     """One track in a style; returns the audio and what was done (tempo, key, sections)."""
     st = STYLES[style]
@@ -67,6 +91,7 @@ def remix(x: np.ndarray, style: str, seconds: float | None = None, emit=None) ->
     say("dj.analysis", info.as_dict())
     steady = info.steady
     bpm = st["bpm"] or (info.bpm if steady else 120.0)
+    ratio = 1.0
     if st["bpm"] and steady:
         ratio = bpm / info.bpm
         if ratio > 1.45 or ratio < 0.7:                            # half or double time: the nearer one
@@ -89,6 +114,12 @@ def remix(x: np.ndarray, style: str, seconds: float | None = None, emit=None) ->
     n = int(bars * bar * SR)
     song = np.zeros((n, 2), np.float32)
     song[lead: lead + len(x)] = x[: n - lead]
+    followed = info.beats / ratio + shift if steady and len(info.beats) >= 8 else np.zeros(0)
+    if seconds is not None:
+        followed = followed[followed < seconds + shift]
+    first_bar = int(round(((first + shift) if steady else 0.0) / bar))
+    at = _clock(followed, first_bar, beat) if len(followed) else (lambda b_, s_: b_ * bar + s_ * beat / 4)
+    kicks: list[float] = []
     if st["kick"] or st["bass"]:
         song = S.highpass(song, 120).astype(np.float32)             # room for the kick and the bass
     if st.get("lowpass"):
@@ -104,38 +135,37 @@ def remix(x: np.ndarray, style: str, seconds: float | None = None, emit=None) ->
     bass_hz = S.note_hz(root, 1 if root >= 5 else 2)
     third = 3 if info.minor else 4
     chord = [S.note_hz(root, 3), S.note_hz((root + third) % 12, 3 if root + third < 12 else 4), S.note_hz((root + 7) % 12, 3 if root + 7 < 12 else 4)]
-    step = beat / 4
 
     def part(b: int) -> str:
         return next((k for k, (a, z) in secs.items() if a <= b < z), "main")
     for b in range(bars):
         p = part(b)
-        t0 = b * bar
         full = p in ("main", "drop")
         intro_or_out = p in ("intro", "outro")
         if p != "break":
             for s in st["kick"]:
-                S.place(drums, kick, t0 + s * step, 0.8 if intro_or_out else 1.0)
+                S.place(drums, kick, at(b, s), 0.8 if intro_or_out else 1.0)
+                kicks.append(at(b, s))
             for s in st.get("clap", ()):
                 if full:
-                    S.place(drums, clap, t0 + s * step)
+                    S.place(drums, clap, at(b, s))
             for s in st.get("snare", ()):
                 if full or p == "outro":
-                    S.place(drums, snr, t0 + s * step)
+                    S.place(drums, snr, at(b, s))
             for s in st["hat"]:
-                S.place(drums, hat_o, t0 + s * step, 1.0 if full else 0.5)
+                S.place(drums, hat_o, at(b, s), 1.0 if full else 0.5)
             for s in st["closed"]:
-                S.place(drums, hat_c, t0 + s * step, 0.9 if s % 4 == 2 else 0.6)
+                S.place(drums, hat_c, at(b, s), 0.9 if s % 4 == 2 else 0.6)
             if full or p == "outro":
                 for s in st["bass"]:
-                    S.place(music, S.bass_note(bass_hz, st["bass_len"] * beat, 0.45), t0 + s * step)   # bass_len: in beats
+                    S.place(music, S.bass_note(bass_hz, st["bass_len"] * beat, 0.45), at(b, s))   # bass_len: in beats
         if st["pad"] and (b % 4 == 0) and p in ("break", "drop", "main"):
-            S.place(music, S.pad(chord, 4 * bar, st.get("pad_level", 0.15) * (1.4 if p == "break" else 1.0)), t0)
+            S.place(music, S.pad(chord, 4 * bar, st.get("pad_level", 0.15) * (1.4 if p == "break" else 1.0)), at(b, 0))
     if "break" in secs:                                            # the build: noise rising into the drop
         a, z = secs["break"]
         S.place(music, S.riser(min(4, z - a) * bar), (z - min(4, z - a)) * bar)
     if st["pump"]:
-        g = S.pump(n, beat, 0.0, st["pump"])[:, None]
+        g = _pump(n, kicks, beat, st["pump"])[:, None]
         mask = np.ones((n, 1), np.float32)
         a, z = secs.get("break", (0, 0))
         mask[int(a * bar * SR): int(z * bar * SR)] = 0.0             # no kick in the break: no pump

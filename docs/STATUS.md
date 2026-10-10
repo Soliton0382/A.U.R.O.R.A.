@@ -41,6 +41,7 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | multi-user | a user sees and changes only what is theirs (menu and API); chats private, vault and the seed's shadow shared | M116 |
 | uninstall, reset, restore | uninstall.sh (keep the data / everything), factory settings in Settings, sys_factory_reset.py, sys_restore.py from the backup card with the formats checked | dry-runs, tests |
 | synapses | links between domains grown at night (99 from 990 passages, 18 min), spread in the search, Hebbian, fading | M107, tests |
+| deductions | 🧠 Synapses → 💡 Deductions: a passage's principle searched in distant fields and the strongest cross-field synapses; five tests (not one subject, a bridge, each fact in its passage, the step follows, not already in the vault); a night round after the training and «Look now»; 💡 flash / ✗ no / 📄 PDF | M178; tests (deduce); first 3 live, waiting for the owner's judgement |
 | firewall undo | every block (the owner's or Aurora's) undone with one click; group and rule names shown once the API is set | live (N44), tests |
 | self-update | the clean clone updated itself from GitHub: 332 tests, 19.7 s | M103 bis |
 | memory | STM turns with their path; recent turns in context and in the chat after a refresh; session memories (LTM) written by the REM and recalled by meaning when Aurora answers about herself or the past, dates labelled by the clock | tests, live |
@@ -63,6 +64,7 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | chat → services | a third route "tools": requests about connected services go to the agent with the plugins | M45 |
 | routines | 🔁 page: plugins' suggestions, tool or agent routines by aurora-rem, notify always / if any / if new, failures recorded and notified, documents linked | M46, M52, tests |
 | projects | 📁 page: local projects and GitHub repositories, clone, tree, files, history, sandboxed page preview, ask Aurora | M46 |
+| project terminal | 🖥️ a terminal in the project's cage (no network, only its folder, a pty: input() works), SSE + POST, 2 a user, idle/age limits | tests (project_term); live on prova-meteo through the API |
 | weather | plugin: now, forecast, morning report, alerts on sudden changes, MeteoAlarm warnings; coordinates never logged | M46, C65 |
 | security plugin | firewall incidents, traffic summary, night report (read only); the sentinel's settings from its card | M52 |
 | phone | the PWA uses the phone's camera and microphone (Android, iOS formats), transcribed by the local Whisper | M47 |
@@ -87,6 +89,7 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | log rotation | handler logs rotate and compress by size; loose logs (plugins' stderr) too, in the daily purge; 12-month retention | M59 |
 | features and gates | 10 features, each with what it needs; a missing model or a contradicting setting becomes an answer with the command, never a crash mid-job (live: cut-out and dictation with the model pointed away); ⚙️ Status lists them; sys_doctor checks the whole installation; the installer offers optional groups by measured hardware | M58, C75–C77 |
 | models per step | 🧠 Models page: each of 12 steps on local or a cloud provider (keys in the ☁️ cloud plugin), masked by default (C72), fallback to local, statistics of calls, cost, masked items, pictures sent, SSCC | M56 |
+| local reasoner | Qwen3.6-35B-A3B with the English pivot (4.27, 15 s, vision) in use; Qwen3-Next-80B ready on the Models page (5.40, 30 s, no vision); a model larger than the GPUs placed by llama.cpp --fit; the client follows the running model's format | M174-M177; C254, C257 |
 | guide | 📖 Guide page: first steps, cloud, phone, plugins, safety, and every page of the menu with a button | — |
 | logs | one file per component, rotation, gzip, 12-month retention, traces, lifecycle lines; Aurora reads them | sys_logread |
 | encryption | TLS 1.3 to clients, HTTPS everywhere outwards, secrets 0600; storage not encrypted (no LUKS) | SECURITY.md |

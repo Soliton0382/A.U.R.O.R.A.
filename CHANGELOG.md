@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.6 — 2026-10-10
+
+1 publications since v0.2.5.
+
+- 2026-10-10 C261 DJ follows the beat (M180); model formats re-read every 8 h; M179 pivot and KV measured; roadmap 80 AMD withdrawn
+
 ## v0.2.5 — 2026-10-10
 
 1 publications since v0.2.4.

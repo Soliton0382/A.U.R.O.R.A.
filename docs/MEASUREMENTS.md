@@ -2477,7 +2477,7 @@ volume, `AURORA_LANG_DEFAULT=en_US`, `AURORA_DOMAINS=1,4` (AI and computing, phy
 | «How does the attention mechanism in transformers work?» | served by its shadow in 2.2 s, with its sources (the stand-in reasoner was not asked) |
 
 Not measured: the English answers' quality beyond that one; an installation in a third language (no seed answers
-in it: it would start with none). The VM's disk is at 93 % after this (two Docker volumes of tests).
+in it: it would start with none). The VM's disk is at 93 % after this (two Docker volumes of tests). (10 Oct evening: the VM's volume group had 39 GB never allotted — lvextend; the old m153 containers and their volume removable; in the owner's hands.)
 
 ## M169 — Another family on the reference machine: Mistral Small 3.2 (10 October 2026, the owner's 2 × 16 GB)
 
@@ -2500,7 +2500,7 @@ answer, a two-tool agent turn, a picture, a question through Aurora's OpenAI end
 | a question through Aurora | 21.3 s (cold), 6.1 s | 12.9 s, 9.5 s |
 
 Not measured: a whole agent run on Mistral (the owner's agent is on Claude Code), the answers' quality on many
-questions, Nemotron or gpt-oss. The Mistral files stay in sys/models/llm/custom (15.2 GB): the Models page lists them.
+questions, Nemotron or gpt-oss. (In part M174-M177: the other families' quality once spoken to in their format, C257.) The Mistral files stay in sys/models/llm/custom (15.2 GB): the Models page lists them.
 
 ## M170 — Four local families through the same agent (10 October 2026, the owner's 2 × 16 GB)
 
@@ -2519,7 +2519,7 @@ dell'indirizzo 1.1.1.1 e qual è il suo nome DNS inverso?» (right = APNIC/Cloud
 
 Found on the way: C246 (an output llama-server could not read sent every later turn to the text form), C247 (a
 plugin waiting for its settings unknown to the agent: it asked the forge for a duplicate — request withdrawn), C248
-(open). Not measured: the answers' quality over many questions; gpt-oss with a reasoning effort above «low».
+(open). Not measured: the answers' quality over many questions; gpt-oss with a reasoning effort above «low». (M174-M177: 15 questions each in their format; gpt-oss no longer leaks its reasoning.) (Answered by M174-M177: 15 questions each, own format; gpt-oss no longer leaks its reasoning.)
 
 ## M171 — What Aurora's shared studies would carry (10 October 2026, the owner's installation, read only)
 
@@ -2536,7 +2536,7 @@ The bundle: 429 KB compressed. The answers to the owner's own chat questions (17
 come from the owner's reading; the sharing was removed and nothing was ever published.
 Live: aurora-rem's tick asked for the bundle at the first round and wrote «HTTP 404» (the repository not made yet),
 nothing else. Not measured: a bundle received by another installation, how many of the links find their passages
-there (depends on what it harvested).
+there (depends on what it harvested). (Moot: the sharing was withdrawn, C250.)
 
 ## M172 — The published shadow seed, looked at for the owner's traces (10 October 2026, read only)
 
@@ -2577,7 +2577,7 @@ Read: the rotation is what matters (×3-5 against none). The golden signs are as
 below all six random seeds (0.619 against 0.621-0.640), at 4 bits within them; a deterministic rotation, nothing to
 store or seed. The golden levels and the logistic compander lose to Lloyd-Max (they put too many levels near zero).
 The two metrics disagree on llama.cpp's uniform quantizer (lower KL, higher output error). Not measured: a larger
-model, keys after a QJL residual (TurboQuant's second stage), the quality of answers with a compressed cache.
+model, keys after a QJL residual (TurboQuant's second stage), the quality of answers with a compressed cache. (QJL and two more models: M175.)
 
 ## M175 — Does the golden rotation hold? (10 October 2026, CPU, after M173)
 
@@ -2622,7 +2622,7 @@ re-ranker the same for all; noise of a 15-question mean about ±0.7 (M40's ±0.7
 Qwen 3.6's ChatML to the new model; Nemotron's and Qwen3-Next's rows measure that, not them. Qwen3-Next is not scored: every short call of the pipeline (web query, reading) got an empty reply from it (C256),
 so all 30 answers were abstentions; the agent, through another path, did 3/3. Nemotron-Super's speed with half of it
 in RAM: ~20 tok/s (llama-server's eval lines). Every model scores higher in English than in Italian (+0.4 to +1.6).
-Not measured: Qwen3-Next with the short calls fixed; tokens per second of the models whole on the GPUs.
+Not measured: Qwen3-Next with the short calls fixed; tokens per second of the models whole on the GPUs. (Qwen3-Next in its format: M177, 5.40.) (Qwen3-Next fixed: M177, 5.40.)
 
 ## M176 — The English pivot (10 October 2026, after M174; Qwen 3.6, the format right for both)
 
@@ -2674,3 +2674,41 @@ checklists of two papers. Title cosine (multilingual embedder) on 40 pairs: same
 works instead. Examples kept: church architecture ↔ Chavín culture (the building as an instrument that induces states),
 ancient Greek religion ↔ distributed systems (local rules instead of a coordinator), Cubism ↔ synergy in statistics
 (many perspectives at once see what one misses). Not measured: how many are a real flash — the owner's judgement.
+
+## M179 — The English pivot on 30 more questions; the KV cache q8_0; the 35B's speed (10 October 2026)
+
+Qwen3.6-35B-A3B. bench_quality on 30 new Italian questions of retrieval_pool108 (positions 16-45 of the seed-7
+sample), the same blind judge, pivot on then off; then the 15 of M174 with the KV cache in q8_0.
+
+| | mean | median s | answered |
+|---|---|---|---|
+| 30 questions, pivot on | 5.60 | 15 | 29 |
+| 30 questions, pivot off | 6.00 | 20 | 29 |
+| 45 questions in all (M176 + these), on · off | 5.16 · 5.29 | 14.7 · 19.3 | 43 · 41 |
+| 15 questions, pivot on, KV f16 (M176) · q8_0 | 4.27 · 4.27 | 15 · 16 | 14 · 14 |
+
+The pivot does not make the answers better — 0.13 lower over 45, well inside the noise — and it makes them faster
+(median 14.7 s against 19.3 s over 45: extraction and synthesis read English). Kept on for the speed; the owner's «migliora qualità» is
+not measured true. The KV cache in q8_0 saves 0.66 GB on the 35B (14520→14132 and 12153→11883 MiB: its hybrid
+attention keeps a small cache) at the same quality and time: not worth it here; kept f16 (it is an option for a large
+model). Decode speed of the 35B in service (llama-server eval lines 18:35-20:59, 153 replies ≥ 100 tokens): median
+112 tok/s, p10 101, p90 113.
+
+## M180 — The DJ's beat: a fixed grid against a song that moves (10 October 2026, CPU)
+
+Synthetic songs with known beats (kick on the beat, hats on the off-beat, a chord and noise under them, 3 minutes):
+constant 123.37 BPM; drifting 120→124; a «human» 118±3 with ±8 ms per beat. Error = distance of each placed beat to
+the nearest true one.
+
+| song | before: one tempo, one phase, a fixed grid | after: every beat followed (track, kick band) | remix kicks vs the song's beats |
+|---|---|---|---|
+| constant 123.37 | median 216 ms, 100 % over 30 ms, «not steady» (pulse 4.1) | 3.0 ms, 0 %, max 12 ms | 3.1 ms, 0 %, max 12 |
+| drift 120→124 | 164 ms, 92 % | 2.6 ms, 0 %, max 12 | 2.5 ms, 0 %, max 11 |
+| human | 131 ms, 93 % | 3.5 ms, 0 %, max 15 | 3.2 ms, 0 %, max 14 |
+
+Two faults: the phase locked on the hats (the off-beat), and the pulse measured on a drifting grid called every
+moving song «not steady» — the remix then ran its own 120 grid, unrelated to the song. Now: Ellis's dynamic
+programming on the onsets with the kick band twice as heavy; steadiness from the beats' intervals (variation: songs
+0.009-0.030, choirs 0.070-0.086 → IRREGULAR 0.05); the tempo as the mean over the song (90/124/140 → 89.97/124.03/
+139.95); the autocorrelation by FFT (analysis of 3 min: 37 s → 0.3 s). Drums, bass, pads and the sidechain sit on the
+followed beats. Not measured: real songs (the owner's ear), a song that changes metre.

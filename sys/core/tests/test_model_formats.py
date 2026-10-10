@@ -141,3 +141,24 @@ def test_after_a_switch_the_client_speaks_the_new_models_format(cfg, tmp_path):
     sys_config.write_env(cfg.env_file, {"AURORA_LLM_MODEL": "mistral.gguf"})      # the Models page switched
     os.utime(cfg.env_file, (time.time() + 5, time.time() + 5))
     assert (first, llm.fmt.family) == ("qwen", "mistral")
+
+
+def test_how_each_model_is_spoken_to_is_read_again_three_times_a_day(cfg, monkeypatch):
+    """Owner, 10 Oct: «forziamo un refresh della cache di come parlano… 3 volte al giorno»: even with no change seen,
+    the running model's format is read again every AURORA_FORMATS_CACHE_H (8) hours."""
+    from aurora import mdl_llm, sys_config
+    gguf(cfg.root / "m.gguf", {"general.architecture": "qwen35moe", "general.name": "m", "tokenizer.chat_template": QWEN})
+    sys_config.write_env(cfg.env_file, {"AURORA_LLM_MODEL": "m.gguf"})
+    cfg.values.update(AURORA_LLM_MODEL="m.gguf", AURORA_FORMATS_CACHE_H=8)
+    reads = []
+    real = sys_config.parse_env
+    monkeypatch.setattr(sys_config, "parse_env", lambda t, *a: reads.append(1) or real(t, *a))
+    now = [1_000_000.0]
+    monkeypatch.setattr(mdl_llm.time, "time", lambda: now[0])
+    mdl_llm._SEEN.clear()
+    llm = mdl_llm.LLM(cfg)
+    llm.fmt, llm.fmt
+    assert len(reads) == 1                                            # kept between calls
+    now[0] += 9 * 3600
+    llm.fmt
+    assert len(reads) == 2                                            # 9 hours later: read again

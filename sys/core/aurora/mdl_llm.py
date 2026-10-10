@@ -59,7 +59,7 @@ def chatml_turns(messages: list[dict], think: bool) -> str:
     return "".join(parts) + f"<|im_start|>assistant\n{tail}"
 
 
-_SEEN: dict[str, tuple[float, str]] = {}
+_SEEN: dict[str, tuple[float, str, float]] = {}
 
 
 def model_now(cfg: sys_config.Config) -> str:
@@ -69,8 +69,12 @@ def model_now(cfg: sys_config.Config) -> str:
     try:
         mtime = env.stat().st_mtime
         seen = _SEEN.get(str(env))
-        if not seen or seen[0] != mtime:
-            seen = (mtime, sys_config.parse_env(env.read_text(encoding="utf-8")).get("AURORA_LLM_MODEL", ""))
+        every = max(1.0, float(cfg["AURORA_FORMATS_CACHE_H"])) * 3600
+        if not seen or seen[0] != mtime or time.time() - seen[2] > every:   # changed, or 3 times a day all the same
+            model = sys_config.parse_env(env.read_text(encoding="utf-8")).get("AURORA_LLM_MODEL", "")
+            if seen and seen[1] != model:
+                LLM._no_tools = False                     # a new model: its template is asked for tools again
+            seen = (mtime, model, time.time())
             _SEEN[str(env)] = seen
         return seen[1] or str(cfg["AURORA_LLM_MODEL"])
     except (OSError, AttributeError, TypeError):

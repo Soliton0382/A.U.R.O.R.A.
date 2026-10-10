@@ -83,7 +83,7 @@ def from_gguf(meta: dict) -> Profile:
 
 
 @lru_cache(maxsize=8)
-def _local_cached(path: str, mtime: float) -> Profile:
+def _local_cached(path: str, mtime: float, period: int = 0) -> Profile:      # period: the refresh's (local())
     from . import mdl_gguf
     return from_gguf(mdl_gguf.meta(Path(path)))
 
@@ -94,7 +94,8 @@ def local(cfg: sys_config.Config | None = None, model: str = "") -> Profile:
     cfg = cfg or sys_config.get()
     p = (Path(model) if Path(model).is_absolute() else cfg.root / model) if model else cfg.path("AURORA_LLM_MODEL")
     try:
-        return _local_cached(str(p), p.stat().st_mtime)
+        every = max(1.0, float(cfg["AURORA_FORMATS_CACHE_H"])) * 3600   # read again 3 times a day (owner, 10 Oct)
+        return _local_cached(str(p), p.stat().st_mtime, int(time.time() // every))
     except (OSError, ValueError):
         return Profile("qwen", "chatml", "hermes", stops=tuple(CHATML_STOPS))
 

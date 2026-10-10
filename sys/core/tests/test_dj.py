@@ -69,3 +69,25 @@ def test_a_mix_joins_tracks_at_one_tempo(tmp_path):
     assert [t["bpm"] for t in out["tracks"]] == [124, 124]
     with pytest.raises(ValueError):
         D.make([tmp_path / "a.mp3"], "polka", tmp_path / "x.mp3")
+
+
+def test_the_drums_follow_a_song_that_moves():
+    """Owner, 10 Oct: «ogni tanto esce fuori ritmo». A drummer who drifts 118→121 BPM with ±8 ms of his own: the beats
+    are followed one by one (M180: the fixed grid sat 131-216 ms off, on the off-beat; followed: 3 ms)."""
+    rng = np.random.default_rng(4)
+    t, truth = 0.6, []
+    while t < 59:
+        truth.append(t + rng.normal(0, 0.008))
+        t += 60 / (118 + 3 * t / 60)
+    truth = np.array(truth)
+    x = np.zeros(int(60 * A.SR), np.float32)
+    k = np.arange(int(0.1 * A.SR)) / A.SR
+    kick = (np.sin(2 * np.pi * (55 + 90 * np.exp(-k * 30)) * k) * np.exp(-k * 18)).astype(np.float32)
+    hat = (rng.standard_normal(1300) * np.exp(-np.arange(1300) / 300)).astype(np.float32) * 0.25
+    for a, b in zip(truth[:-1], truth[1:]):
+        x[int(a * A.SR):int(a * A.SR) + len(kick)] += kick
+        x[int((a + b) / 2 * A.SR):int((a + b) / 2 * A.SR) + len(hat)] += hat          # hats on the off-beat
+    info = A.analyze(np.stack([x, x], axis=1))
+    assert info.steady and abs(info.bpm - 60 * (len(truth) - 1) / (truth[-1] - truth[0])) < 0.5
+    off = np.abs(info.beats[:, None] - truth[None, :]).min(axis=1)
+    assert np.median(off) < 0.010 and (off > 0.030).mean() < 0.02

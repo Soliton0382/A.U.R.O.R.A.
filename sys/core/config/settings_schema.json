@@ -1730,10 +1730,10 @@
    "min": 1,
    "max": 720,
    "category": "llm",
-   "recommended": "24",
+   "recommended": "8",
    "evidence": "owner, 2026-10-09: «un modulo apposito … con cache che si aggiorna ogni tot per rimanere sempre aggiornata evitando chiamate continue ad ogni turno»",
-   "en": "How many hours the list of what each cloud model can do (tools, formats) is kept before the provider is asked again (mdl_formats). Local models are read from their own file.",
-   "it": "Quante ore resta valido l'elenco di cosa sa fare ogni modello cloud (strumenti, formati) prima di richiederlo al provider (mdl_formats). I modelli locali si leggono dal loro file.",
+   "en": "How many hours what each model can do and how it is spoken to (format, tools, thinking) is kept before it is read again: the cloud models' list from the provider, the local model from its own file. 8 = three times a day (owner, 10 Oct: always aligned); a change of model is followed at once anyway.",
+   "it": "Ore per cui Aurora tiene a mente cosa sa fare ogni modello e come parlargli (formato, strumenti, ragionamento) prima di rileggerlo: la lista dei modelli cloud dal provider, il modello locale dal suo file. 8 = tre volte al giorno (proprietario, 10 ott: sempre allineati); un cambio di modello è seguito comunque subito.",
    "services": [
     "aurora-api"
    ],
