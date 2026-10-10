@@ -22,6 +22,8 @@ def until(sid, user, text, after=0, limit=15):
 def test_the_cage_has_no_network_and_a_program_can_ask(cfg):
     if not shutil.which("bwrap"):
         pytest.skip("bubblewrap not here")
+    if T.cage_works():                                     # GitHub's runners forbid the namespaces (C264)
+        pytest.skip(f"no cage here: {T.cage_works()}")
     proj = cfg.path("AURORA_PROJECTS_DIR") / "demo"
     proj.mkdir(parents=True)
     (proj / "ask.py").write_text("n = input('nome? ')\nprint('ciao', n)\n")
@@ -45,9 +47,19 @@ def test_the_cage_has_no_network_and_a_program_can_ask(cfg):
 def test_limits_and_idle_terminals_are_closed(cfg, monkeypatch):
     if not shutil.which("bwrap"):
         pytest.skip("bubblewrap not here")
+    if T.cage_works():                                     # GitHub's runners forbid the namespaces (C264)
+        pytest.skip(f"no cage here: {T.cage_works()}")
     (cfg.path("AURORA_PROJECTS_DIR") / "demo").mkdir(parents=True)
     cfg.values["AURORA_PROJECT_TERM_MAX"] = 1
     sid = T.start(cfg, "demo", "u2")["id"]
     with pytest.raises(T.TermError):
         T.start(cfg, "demo", "u2")
     assert T.reap(time.time() + 16 * 60) == 1 and sid not in T._sessions
+
+
+def test_a_system_where_the_cage_cannot_start_says_why(cfg, monkeypatch):
+    (cfg.path("AURORA_PROJECTS_DIR") / "demo").mkdir(parents=True)
+    monkeypatch.setattr(T.shutil, "which", lambda b: "/usr/bin/bwrap")
+    monkeypatch.setattr(T, "cage_works", lambda: "bwrap: loopback: failed rtm_newaddr: operation not permitted")
+    with pytest.raises(T.TermError, match="cannot start on this system"):
+        T.start(cfg, "demo", "u3")

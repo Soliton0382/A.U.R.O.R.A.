@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.9 — 2026-10-10
+
+1 publications since v0.2.8.
+
+- 2026-10-10 C264 Install workflow: the project terminal's cage checked before use, tests skip where no cage can start
+
 ## v0.2.8 — 2026-10-10
 
 1 publications since v0.2.7.

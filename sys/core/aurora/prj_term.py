@@ -33,6 +33,23 @@ class TermError(Exception):
     pass
 
 
+_cage_ok: dict[str, str] = {}
+
+
+def cage_works() -> str:
+    """'' when a bubblewrap cage can start here, else why not. Some systems forbid the user namespaces it needs —
+    GitHub's runners: «bwrap: loopback: failed rtm_newaddr: operation not permitted» (the Install workflow failed on
+    it from 0.2.5 to 0.2.8, C264). Asked once a process."""
+    if "why" not in _cage_ok:
+        try:
+            r = subprocess.run(["bwrap", "--unshare-all", "--ro-bind", "/", "/", "--dev", "/dev", "--proc", "/proc",
+                                "--", "true"], capture_output=True, text=True, timeout=20)
+            _cage_ok["why"] = "" if r.returncode == 0 else (r.stderr.strip() or f"exit {r.returncode}")[-200:]
+        except (OSError, subprocess.SubprocessError) as e:
+            _cage_ok["why"] = str(e)[:200]
+    return _cage_ok["why"]
+
+
 def _cage(cfg: sys_config.Config, project) -> list[str]:
     from . import prj_run
     args = prj_run.cage(cfg, project, "x")[:-4]               # the cage without its «-- bash -c command»
@@ -49,6 +66,8 @@ def start(cfg: sys_config.Config, name: str, user: str | None) -> dict:
     from . import prj_run
     if not shutil.which("bwrap"):
         raise TermError("bubblewrap (bwrap) is not installed: no cage, no terminal")
+    if why := cage_works():
+        raise TermError(f"the cage cannot start on this system ({why}): no terminal without it")
     project = prj_run.project_dir(cfg, name)
     reap()
     with _lock:
