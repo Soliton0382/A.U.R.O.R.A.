@@ -67,9 +67,22 @@ class LLM:
         self.log = sys_log.get_logger("llm_client")
         self.fmt = mdl_formats.local(self.cfg)
 
+    # a template that refused the tools as a list (llama-server's error): the text form for this process
+    _no_tools = False
+
     def _native(self, messages: list[dict], max_tokens: int, think: bool, stream: bool = False) -> dict:
         """The chat endpoint's body for a model with its own template (a tool's result as a user turn: not every
-        template takes a «tool» role without a call id)."""
+        template takes a «tool» role without a call id). An agent's turns go with the tools as the API's own list:
+        llama-server writes them in the model's own format and reads its calls back (M169: Mistral Small 3.2 mixed
+        its [TOOL_CALLS]…[ARGS] with the <tool_call> of the prompt, and no call was read)."""
+        from .mdl_router import native_turns                # here: mdl_router imports this module
+        native = None if self._no_tools or stream else native_turns(messages)
+        if native:
+            msgs = [{**m, "content": self.fmt.system(sys_config.personal(m["content"], self.cfg), think)}
+                    if m["role"] == "system" else m for m in native[0]]
+            return {"messages": msgs, "tools": native[1], "max_tokens": max_tokens, "stream": False,
+                    "temperature": 0.6 if think else 0.0, "top_p": 0.95,
+                    "chat_template_kwargs": self.fmt.kwargs(think), "cache_prompt": True}
         msgs = []
         for m in messages:
             role, content = m["role"], m["content"]
@@ -86,13 +99,19 @@ class LLM:
                 "top_p": 0.95, "chat_template_kwargs": self.fmt.kwargs(think), "cache_prompt": True}
 
     def _chat(self, messages: list[dict], max_tokens: int, think: bool) -> Completion:
+        from .mdl_router import as_text
         t0 = time.time()
-        r = httpx.post(self.url + "/v1/chat/completions", json=self._native(messages, max_tokens, think),
-                       timeout=self.timeout)
+        body = self._native(messages, max_tokens, think)
+        r = httpx.post(self.url + "/v1/chat/completions", json=body, timeout=self.timeout)
+        if r.status_code >= 400 and "tools" in body:       # the model's template takes no tools: the text form
+            LLM._no_tools = True
+            self.log.info("local model refused the tools as a list (%s): the text form", r.text[:160])
+            r = httpx.post(self.url + "/v1/chat/completions", json=self._native(messages, max_tokens, think),
+                           timeout=self.timeout)
         r.raise_for_status()
         d = r.json()
         msg = d["choices"][0]["message"]
-        answer, thought = msg.get("content") or "", msg.get("reasoning_content") or ""
+        answer, thought = as_text(msg), msg.get("reasoning_content") or ""
         if END_THINK in answer:                    # a template that leaves the reasoning in the text
             thought, _, answer = answer.partition(END_THINK)
             thought = thought.replace("<think>", "")

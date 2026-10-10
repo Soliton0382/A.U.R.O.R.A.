@@ -19,7 +19,7 @@ call downward (ECOSYSTEM §1).
 | `mdl_stt.py` | speech to text (Whisper, CPU) inside aurora-models: transcribe (a voice message), segments (a video's track); loaded at the first request — never in the API's process, where faiss is (M146) | sns_av.clear_speech, transformers | svc_models /transcribe, /transcribe/segments ← sns_av |
 | `mdl_reranker.py` | models | the cross-encoder re-ranker (bge-reranker-v2-m3) | sentence-transformers | sol_search |
 | `mdl_remote.py` | models | encoder and re-ranker over HTTP (aurora-models), same interface as the local ones | httpx | svc_api |
-| `mdl_llm.py` | models | client of llama-server: ChatML, thinking on/off, complete and stream | httpx | kno_answer, kno_acquire |
+| `mdl_llm.py` | models | client of llama-server: ChatML (Qwen) or the model's own template, the agent's tools as a list there (C245), thinking on/off, complete and stream | httpx | kno_answer, kno_acquire |
 | `txt_lang.py` | text | Italian/English detection by stop words | — | kno_answer, kno_ingest |
 | `mdl_router.py` | models | which model does each step: providers (local, Claude Code, Anthropic, OpenAI-compatible, custom: any OpenAI-compatible address), roles.json, native tool calling (native_turns, as_text), MaskedLLM, Fallback to local, CloudBase ("local" on a machine without a local reasoner, AURORA_LLM_BACKEND=cloud), list of a provider's models, cloud statistics from the traces | mdl_cloud, sec_mask, httpx | kno_answer, kno_attach, svc_api |
 | `mdl_gguf.py` | models | a GGUF's header read without loading the model (a file, or the first megabytes of a remote one): architecture, experts, context, chat template, size | struct | mdl_formats, mdl_custom, sys_model_check |

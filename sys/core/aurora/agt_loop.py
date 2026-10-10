@@ -54,6 +54,26 @@ def _param(v: str):
 FUNCTION = re.compile(r"<function=([\w.\-]+)>\s*(\{.*?\})\s*</function>", re.S)
 PYTAG = re.compile(r"<\|python_tag\|>\s*(\{.*\})", re.S)
 MISTRAL = re.compile(r"\[TOOL_CALLS\]\s*(\[.*\])", re.S)
+# Mistral's newer form, one call each: [TOOL_CALLS]name[ARGS]{…} (M169: Mistral Small 3.2 wrote
+# «[TOOL_CALLS]tool_call[ARGS]{"name": …, "arguments": …}</tool_call[TOOL_CALLS]», its form around the prompt's)
+MISTRAL_ARGS = re.compile(r"\[TOOL_CALLS\]\s*([\w.\-]+)\s*\[ARGS\]\s*", re.S)
+
+
+def _mistral_args(text: str) -> tuple[list[str], str]:
+    """The calls in Mistral's [TOOL_CALLS]name[ARGS]{…} form, and the text without them."""
+    calls, cut, dec = [], [], json.JSONDecoder()
+    for m in MISTRAL_ARGS.finditer(text):
+        try:
+            obj, end = dec.raw_decode(text, m.end())
+        except ValueError:
+            continue
+        found = _call(obj) if isinstance(obj, dict) and "name" in obj else _call({"name": m.group(1), "arguments": obj})
+        if found:
+            calls.append(found)
+            cut.append((m.start(), end))
+    for a, b in reversed(cut):
+        text = text[:a] + text[b:]
+    return calls, re.sub(r"</?tool_call>?|\[TOOL_CALLS\]", "", text) if calls else text
 FENCED = re.compile(r"```(?:json)?\s*(\{.*?\})\s*```", re.S)
 BARE = re.compile(r"^\s*(?:```(?:json)?\s*)?(\{.*\}|\[.*\])\s*(?:```)?\s*$", re.S)
 
@@ -98,7 +118,9 @@ def parse(text: str) -> tuple[str, list[str], str]:
     calls += [c for n, body in FUNCTION.findall(text) for c in _calls_in(json.dumps({"name": n, "arguments": _param(body)}))]
     for rx in (PYTAG, MISTRAL):
         calls += [c for raw in rx.findall(text) for c in _calls_in(raw)]
-    said = text
+    found, rest = _mistral_args(text)
+    said = rest
+    calls += found
     for rx in (CALL, INVOKE, FUNCTION, PYTAG, MISTRAL):
         said = rx.sub("", said)
     said = re.sub(r"</?(function_calls|antml:function_calls)>", "", said).strip()

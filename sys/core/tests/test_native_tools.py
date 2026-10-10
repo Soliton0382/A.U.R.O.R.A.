@@ -86,3 +86,36 @@ def test_what_the_api_attached_to_a_call_goes_back_with_it(cfg, monkeypatch):
     t.append({"role": "tool", "content": "sole"})
     llm.complete_turns(t, 500)
     assert sent[1]["messages"][2]["tool_calls"] == [given] and sent[1]["messages"][3]["tool_call_id"] == "g1"
+
+
+def test_a_local_model_with_its_own_template_gets_the_tools_as_a_list(cfg, monkeypatch):
+    """M169: Mistral Small 3.2 on llama-server --jinja — the tools as a list, its calls read back by the server."""
+    from aurora import mdl_formats as F, mdl_llm
+    monkeypatch.setattr(F, "local", lambda c=None: F.from_gguf({"architecture": "llama", "name": "mistral",
+                                                                 "chat_template": "{{ tools }}"}))
+    reply = {"choices": [{"finish_reason": "tool_calls", "message": {"content": "", "tool_calls": [
+        {"id": "x", "type": "function", "function": {"name": "finish", "arguments": '{"summary": "sole"}'}}]}}],
+        "usage": {"completion_tokens": 5}}
+    sent = []
+
+    def post(url, json, timeout):
+        sent.append(json)
+        if "tools" in json and len(sent) >= 2:              # the second model refuses them
+            return httpx.Response(500, json={"error": "template"}, request=httpx.Request("POST", url))
+        return httpx.Response(200, json=reply, request=httpx.Request("POST", url))
+    monkeypatch.setattr(httpx, "post", post)
+    mdl_llm.LLM._no_tools = False
+    c = mdl_llm.LLM(cfg).complete_turns(turns(cfg), 300)
+    assert sent[0]["tools"] == SPECS and sent[0]["messages"][3]["tool_call_id"]
+    assert [json.loads(x)["name"] for x in parse(c.answer)[1]] == ["finish"]
+    mdl_llm.LLM(cfg).complete_turns(turns(cfg)[:2], 300)                 # a template that refuses them: the text
+    assert "tools" not in sent[-1] and mdl_llm.LLM._no_tools
+    mdl_llm.LLM._no_tools = False
+
+
+def test_mistrals_newer_call_form_is_read():
+    raw = '[TOOL_CALLS]tool_call[ARGS]\n{"name": "weather__forecast", "arguments": {"place": "Trento"}}\n</tool_call[TOOL_CALLS]'
+    assert parse(raw)[1:] == (['{"name": "weather__forecast", "arguments": {"place": "Trento"}}'], "")
+    two = 'Guardo. [TOOL_CALLS]weather__forecast[ARGS]{"place": "Trento"}[TOOL_CALLS]finish[ARGS]{"summary": "ok"}'
+    calls, said = parse(two)[1:]
+    assert [json.loads(x)["name"] for x in calls] == ["weather__forecast", "finish"] and said == "Guardo."

@@ -2464,3 +2464,41 @@ The two code fixes it proposed were never applied, both because the same fix was
 had changed since its sandbox: refused, as it should). The daily self-repair runs (Autoriparazione, 30 Sep-10 Oct)
 are separate. Not measured: a repair whose proposal the owner approved and that went live.
 
+## M168 — A fresh installation in English gets English shadows (10 October 2026, Docker on the Ubuntu VM)
+
+A clean clone of the public repository (a04a98e, release 0.2.1), `docker compose` with its own project and a new
+volume, `AURORA_LANG_DEFAULT=en_US`, `AURORA_DOMAINS=1,4` (AI and computing, physics), a stand-in provider:
+
+| | measured |
+|---|---|
+| first start to the address and key | 52 s (the image's dependencies from the cache; only the code layer rebuilt) |
+| areas | «areas 1,4: 13 domains harvested» (12 of them plus «general») |
+| the seed (380 answers: 266 it, 114 en) | **47 imported, 0 skipped**: 4 a domain for 11 domains, 3 for quantum physics — every one English, every one of a chosen domain, 0 Italian |
+| «How does the attention mechanism in transformers work?» | served by its shadow in 2.2 s, with its sources (the stand-in reasoner was not asked) |
+
+Not measured: the English answers' quality beyond that one; an installation in a third language (no seed answers
+in it: it would start with none). The VM's disk is at 93 % after this (two Docker volumes of tests).
+
+## M169 — Another family on the reference machine: Mistral Small 3.2 (10 October 2026, the owner's 2 × 16 GB)
+
+From the 🧠 Models page's own calls (mdl_custom), GPU idle before each step, the same probe on both models (a direct
+answer, a two-tool agent turn, a picture, a question through Aurora's OpenAI endpoint):
+
+| step | measured |
+|---|---|
+| check from the first megabytes | 1.1 s: llama, dense, 131,072 context, 13.35 GB, «whole» (13.35 + 2.0 ≤ 31.8 GB) |
+| download (Q4_K_M + mmproj-F16, SHA-256 checked) | 15.2 GB in 65 s |
+| switch, with its trial question | 5.7 s, «Roma»; vision on (projector) |
+| revert to Qwen | 5.5 s, «Roma» |
+
+| | Qwen3.6-35B-A3B (MoE) | Mistral-Small-3.2-24B (dense) |
+|---|---|---|
+| speed, a direct answer | 91-93 tok/s | 28-29 tok/s |
+| the agent's tool call (prompt form) | ✅ `<tool_call>` | ❌ «[TOOL_CALLS]tool_call[ARGS]{…}</tool_call[TOOL_CALLS]»: 0 calls read (C245) |
+| the same with the tools as a list (after C245) | — (ChatML path, unchanged) | ✅ call in 0.6 s, then the answer |
+| a picture (red circle, blue square) | ✅ 0.4 s | ✅ 1.1 s |
+| a question through Aurora | 21.3 s (cold), 6.1 s | 12.9 s, 9.5 s |
+
+Not measured: a whole agent run on Mistral (the owner's agent is on Claude Code), the answers' quality on many
+questions, Nemotron or gpt-oss. The Mistral files stay in sys/models/llm/custom (15.2 GB): the Models page lists them.
+

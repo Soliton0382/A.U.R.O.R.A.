@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.2 — 2026-10-10
+
+1 publications since v0.2.1.
+
+- 2026-10-10 C245 local models with their own template get the tools as a list, Mistral call form; M168 English shadows; M169 Mistral switch
+
 ## v0.2.1 — 2026-10-10
 
 39 publications since v0.2.0.
