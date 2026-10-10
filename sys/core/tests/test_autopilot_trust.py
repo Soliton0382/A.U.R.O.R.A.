@@ -87,3 +87,33 @@ def test_looking_around_then_going_out_is_one_high_incident():
     for k, port in enumerate(["22", "23", "80", "139", "445", "554", "3389", "8080", "9000"]):
         other.chatter("10.0.0.30", now + k, port)                         # another device looked around
     assert other.out(out, now + 30) is None
+
+
+def test_a_scanner_knocking_on_an_open_port_is_a_look_not_an_intruder():
+    from aurora.sec_incidents import severity, scanner_knock
+    knock = {"kind": "ips_alert", "source": "198.51.100.7", "internal": False,
+             "samples": ['log_type="ATP" log_subtype="Log remote source match" dst_port=32400 '
+                         'malware="GreyNoise" threatfeed="GreyNoise"']}
+    assert scanner_knock(knock) and severity(knock) == "medium"                  # M163: not «high», no auto-block
+    assert severity({**knock, "intel_lists": [{"list": "firehol_l1"}]}) == "high"  # on a list of attackers: still high
+    assert severity({**knock, "samples": ['log_type="IDP" signature_msg="exploit"']}) == "high"
+
+
+def test_too_serious_counts_against_precision_and_low_ones_need_no_verdict():
+    now = 1_800_000_000.0
+    loud = [{"received_ts": now - 3600 * (k + 1), "severity": "high", "verdict": v}
+            for k, v in enumerate(["right"] * 8 + ["overrated", "false_alarm"])]
+    quiet = [{"received_ts": now - 60 * (k + 1), "severity": "low"} for k in range(100)]
+    w = SC.week(loud + quiet, now - SC.WEEK, now, [])
+    assert (w["incidents"], w["loud"], w["quiet"], w["reviewed_share"], w["precision"]) == (110, 10, 100, 1.0, 0.8)
+
+
+def test_the_time_before_the_first_line_is_not_blind(tmp_path):
+    import gzip
+    t0 = float(int(time.time()) - 3600)
+    stamp = lambda s: time.strftime("%Y-%m-%dT%H:%M:%S.000+00:00", time.gmtime(t0 + s)) + " INFO aurora.firewall x\n"
+    with gzip.open(tmp_path / "firewall.20260101-000000.log.gz", "wt") as fh:
+        fh.write(stamp(0) + stamp(60))
+    (tmp_path / "firewall.log").write_text(stamp(120) + stamp(3000))
+    g = SC.gaps(tmp_path, t0 - 7 * 86400, t0 + 3000)           # a week asked, the sentinel there for the last hour
+    assert [(round(a - t0), round(b - t0)) for a, b in g] == [(120, 3000)]   # only the real 48-minute hole

@@ -18,6 +18,7 @@ from __future__ import annotations
 import base64
 import json
 import os
+import re
 import time
 from pathlib import Path
 from typing import Iterator
@@ -126,6 +127,94 @@ def _thought(d: dict, max_tokens: int) -> bool:
     return bool(spent) and spent >= max_tokens / 2
 
 
+# the agent's tools in its system prompt (agt_loop.Agent._system): one JSON spec per line, then the call format
+TOOLS_LIST = re.compile(r"<tools>\n(.*?)\n</tools>", re.S)
+TOOLS_BLOCK = re.compile(r"# Tools\n.*?</tool_call>", re.S)
+NATIVE_NOTE = "# Tools\n\nCall the functions you are given through the API's tool calls, one or more per turn."
+# a reply's tool_calls as the API gave them, by (name, arguments): sent back as they were — Gemini 3 refuses a call
+# without the thought_signature it attached (measured 10 Oct: 400 «Function call is missing a thought_signature»)
+_GIVEN: dict[tuple[str, str], dict] = {}
+_GIVEN_MAX = 256
+
+
+def _key(name: str, args) -> tuple[str, str]:
+    if isinstance(args, str):
+        try:
+            args = json.loads(args or "{}")
+        except ValueError:
+            return name, args
+    return name, json.dumps(args, ensure_ascii=False, sort_keys=True)
+
+
+def native_turns(messages: list[dict]) -> tuple[list[dict], list[dict]] | None:
+    """(messages, tools) in the chat API's own tool form (roadmap 73: «ricordati delle API tool calling»), from the
+    agent's text form: the specs leave the system prompt for the request's `tools`, an assistant turn's calls become
+    its tool_calls, each tool result answers its call by id. None when the turns carry no tool list (a plain chat) or
+    a spec is not JSON: the text form then goes as it is."""
+    from .agt_loop import parse                         # here: agt_loop reaches this module through the pipeline
+    system = next((m for m in messages if m["role"] == "system" and isinstance(m["content"], str)
+                   and TOOLS_LIST.search(m["content"])), None)
+    if system is None:
+        return None
+    try:
+        tools = [json.loads(x) for x in TOOLS_LIST.search(system["content"]).group(1).splitlines() if x.strip()]
+    except ValueError:
+        return None
+    out: list[dict] = []
+    waiting: list[str] = []                             # ids of the last calls not answered yet
+
+    def settle():                                       # every call needs its answer, or the API refuses the turn
+        while waiting:
+            out.append({"role": "tool", "tool_call_id": waiting.pop(0), "content": "(no result)"})
+    for n, m in enumerate(messages):
+        if m is system:
+            out.append({"role": "system", "content": TOOLS_BLOCK.sub(NATIVE_NOTE, m["content"])})
+        elif m["role"] == "assistant":
+            settle()
+            _, calls, said = parse(m["content"] or "")
+            native = []
+            for k, raw in enumerate(calls):
+                try:
+                    c = json.loads(raw)
+                    name, args = str(c["name"]), c.get("arguments") or {}
+                except (ValueError, KeyError, TypeError):
+                    continue
+                given = _GIVEN.get(_key(name, args))
+                native.append(given or {"id": f"call_{n}_{k}", "type": "function", "function": {
+                    "name": name, "arguments": args if isinstance(args, str) else json.dumps(args, ensure_ascii=False)}})
+            if native:
+                out.append({"role": "assistant", "content": said or None, "tool_calls": native})
+                waiting = [c["id"] for c in native]
+            else:
+                out.append({"role": "assistant", "content": m["content"]})
+        elif m["role"] == "tool" and waiting:
+            out.append({"role": "tool", "tool_call_id": waiting.pop(0), "content": m["content"]})
+        elif m["role"] == "tool":                       # a result with no call left to answer: said as text
+            out.append({"role": "user", "content": f"TOOL RESULT:\n{m['content']}"})
+        else:
+            settle()
+            out.append({"role": m["role"], "content": m["content"]})
+    settle()
+    return out, tools
+
+
+def as_text(message: dict) -> str:
+    """A reply's native tool_calls written in the agent's own <tool_call> form, after its words."""
+    text = (message.get("content") or "").strip()
+    for c in message.get("tool_calls") or []:
+        fn = c.get("function") or {}
+        try:
+            args = json.loads(fn.get("arguments") or "{}")
+        except ValueError:
+            args = fn.get("arguments")
+        _GIVEN[_key(fn.get("name", ""), args)] = c
+        while len(_GIVEN) > _GIVEN_MAX:
+            _GIVEN.pop(next(iter(_GIVEN)))
+        text += "\n<tool_call>\n" + json.dumps({"name": fn.get("name", ""), "arguments": args}, ensure_ascii=False) \
+                + "\n</tool_call>"
+    return text.strip()
+
+
 class OpenAICompatLLM:
     """Chat completions of OpenAI, Google Gemini, xAI, Mistral, OpenRouter (same protocol)."""
     context_tokens = 128_000
@@ -181,13 +270,15 @@ class OpenAICompatLLM:
         r.raise_for_status()
         return r.json()
 
-    def _chat(self, messages: list[dict], max_tokens: int, think: bool = False) -> Completion:
+    def _chat(self, messages: list[dict], max_tokens: int, think: bool = False, tools: list | None = None) -> Completion:
         t0 = time.time()
         body = {"model": self.model, "messages": messages, "max_tokens": max_tokens}
+        if tools:
+            body["tools"] = tools
         if not think:                                  # a short step: as little thinking as the model allows
             body["reasoning_effort"] = "low"
         d = self._post(body)
-        text = (d["choices"][0]["message"].get("content") or "").strip()
+        text = as_text(d["choices"][0]["message"])
         if d["choices"][0].get("finish_reason") == "length" and (not text or _thought(d, max_tokens)):
             # C209: a model that cannot stop thinking (Gemini pro) counts its thinking in max_tokens: with the 16-32
             # tokens of a short step it answered nothing (measured 8 Oct 2026, gemini-pro-latest: 0 tokens of answer).
@@ -196,7 +287,7 @@ class OpenAICompatLLM:
                           max_tokens, self.THINK_ROOM)
             self._account(d.get("usage") or {}, time.time() - t0)
             d = self._post({**body, "max_tokens": max_tokens + self.THINK_ROOM})
-            text = (d["choices"][0]["message"].get("content") or "").strip()
+            text = as_text(d["choices"][0]["message"])
         self._account(d.get("usage") or {}, time.time() - t0)
         u = d.get("usage") or {}
         return Completion(text, "", int(u.get("completion_tokens") or 0), time.time() - t0,
@@ -207,6 +298,20 @@ class OpenAICompatLLM:
                            {"role": "user", "content": user}], max_tokens, think)
 
     def complete_turns(self, messages: list[dict], max_tokens: int, think: bool = False) -> Completion:
+        from . import mdl_formats
+        native = native_turns(messages) if (self.name, self.model, "tools") not in self._refused else None
+        if native and mdl_formats.cloud(self.cfg, self.name, self.model).native_tools:
+            msgs, tools = native
+            msgs = [{**m, "content": sys_config.personal(m["content"], self.cfg)} if m["role"] == "system" else m
+                    for m in msgs]
+            try:
+                return self._chat(msgs, max_tokens, think, tools)
+            except httpx.HTTPStatusError as e:          # a model that refuses tools after all: the text form, from now on
+                if e.response.status_code not in (400, 404, 422) or "tool" not in e.response.text.lower():
+                    raise
+                self._refused.add((self.name, self.model, "tools"))
+                self.log.info("%s %s refused native tools (%s): the text form", self.name, self.model,
+                              e.response.text[:160])
         msgs = [{"role": "user" if m["role"] == "tool" else m["role"],
                  "content": (f"TOOL RESULT:\n{m['content']}" if m["role"] == "tool" else
                              sys_config.personal(m["content"], self.cfg) if m["role"] == "system" else m["content"])}

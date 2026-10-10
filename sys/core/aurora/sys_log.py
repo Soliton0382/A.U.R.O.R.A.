@@ -6,9 +6,11 @@
     <AURORA_LOG_DIR>/trace/<component>.jsonl             structured events of that component
 
 Every file rotates at AURORA_LOG_MAX_MB into <name>.<YYYYmmdd-HHMMSS>.<ext>.gz and
-rotated files older than AURORA_LOG_RETENTION_DAYS are deleted, at each rotation
-and by `python -m aurora.sys_log purge` (for a daily timer, so idle components
-are cleaned too).
+rotated files older than their retention are deleted, at each rotation and once a
+day by aurora-rem (`python -m aurora.sys_log purge`), so idle components are cleaned
+too. The retention is by kind (roadmap 78: the firewall's syslog and the trace were
+124 of 150 MB in 9 days): firewall/ AURORA_LOG_RETENTION_FIREWALL_DAYS, trace/
+AURORA_LOG_RETENTION_TRACE_DAYS, everything else AURORA_LOG_RETENTION_DAYS.
 
 The trace is one file per component instead of one shared file: each component
 runs in its own process, and rotating a file shared by several processes is not
@@ -61,6 +63,16 @@ def configure(cfg: sys_config.Config) -> None:
 
 def _config() -> sys_config.Config:
     return _cfg or sys_config.get()
+
+
+# folder of AURORA_LOG_DIR -> its own retention (roadmap 78)
+BY_KIND = {"firewall": "AURORA_LOG_RETENTION_FIREWALL_DAYS", "trace": "AURORA_LOG_RETENTION_TRACE_DAYS"}
+
+
+def retention(cfg: sys_config.Config, folder: Path) -> int:
+    """How many days the rotated files of this folder are kept."""
+    key = BY_KIND.get(Path(folder).name)
+    return int(cfg[key] if key else cfg["AURORA_LOG_RETENTION_DAYS"])
 
 
 def purge(folder: Path, retention_days: int, now: float | None = None) -> list[Path]:
@@ -118,7 +130,7 @@ def _handler(path: Path, fmt: str) -> logging.Handler:
         h.setFormatter(_Formatter(fmt))
         return h
     cfg = _config()
-    h = GzipRotatingFileHandler(path, cfg["AURORA_LOG_MAX_MB"] * MIB, cfg["AURORA_LOG_RETENTION_DAYS"])
+    h = GzipRotatingFileHandler(path, cfg["AURORA_LOG_MAX_MB"] * MIB, retention(cfg, Path(path).parent))
     h.setFormatter(_Formatter(fmt))
     return h
 
@@ -225,7 +237,7 @@ def purge_all(cfg: sys_config.Config | None = None) -> list[Path]:
     removed = []
     root = cfg.path("AURORA_LOG_DIR")
     for folder in [root] + [p for p in root.rglob("*") if p.is_dir()]:
-        removed += purge(folder, cfg["AURORA_LOG_RETENTION_DAYS"])
+        removed += purge(folder, retention(cfg, folder))
     return removed
 
 
@@ -234,8 +246,10 @@ def main(argv: list[str]) -> int:
         print("usage: python -m aurora.sys_log purge", file=sys.stderr)
         return 2
     removed = purge_all()
-    get_logger("sys_log").info("purge: %d rotated files older than %d days removed",
-                               len(removed), _config()["AURORA_LOG_RETENTION_DAYS"])
+    cfg = _config()
+    get_logger("sys_log").info("purge: %d rotated files removed (kept: %d days, firewall %d, trace %d)", len(removed),
+                               cfg["AURORA_LOG_RETENTION_DAYS"], cfg["AURORA_LOG_RETENTION_FIREWALL_DAYS"],
+                               cfg["AURORA_LOG_RETENTION_TRACE_DAYS"])
     return 0
 
 

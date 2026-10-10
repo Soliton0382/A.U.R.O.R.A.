@@ -146,7 +146,7 @@ export function page(tab, meta) { const { title } = meta; return {
   verdict(i) {
     const row = el("div", "appr-actions");
     row.append(el("span", "muted", t("sec.verdict_q")));
-    for (const [v, icon] of [["right", "👍"], ["false_alarm", "👎"], ["unsure", "🤔"]]) {
+    for (const [v, icon] of [["right", "👍"], ["overrated", "📉"], ["false_alarm", "👎"], ["unsure", "🤔"]]) {
       const b = el("button", i.verdict === v ? "approve" : "", `${icon} ${t(`sec.v.${v}`)}`);
       b.addEventListener("click", async () => {
         await call(`/v1/aurora/incidents/${i.id}/verdict`, { method: "POST", body: JSON.stringify({ verdict: v }) });
@@ -168,7 +168,7 @@ export function page(tab, meta) { const { title } = meta; return {
     s.weeks.forEach((w, k) => {
       const p = el("p", "");
       p.textContent = t("sec.week", { k: k === 0 ? t("sec.this_week") : t("sec.last_week"), n: w.incidents, r: w.reviewed,
-        share: pct(w.reviewed_share), prec: pct(w.precision), right: w.right, fa: w.false_alarm, blind: w.blind_min });
+        share: pct(w.reviewed_share), prec: pct(w.precision), right: w.right, over: w.overrated, fa: w.false_alarm, blind: w.blind_min, loud: w.loud, quiet: w.quiet });
       box.append(p);
       for (const why of w.short) box.append(el("div", "muted", `• ${why}`));
     });

@@ -34,12 +34,28 @@ SYS_REPORT = ("You are Aurora, defending %OWNER%'s network. Write, in Italian, a
 MERGE_HOURS = 24
 
 
+SCANNER_NOTE = ("GreyNoise lists whoever scans the whole Internet, research and security services included (Palo Alto "
+                "Cortex Xpanse, Censys, Shodan…): one knock on a port the owner opened on purpose is usually cataloguing, "
+                "not an attack aimed at them — unless the public registry shows a hoster known for abuse. Blocking is "
+                "optional: these scanners rotate addresses.")
+
+
+def scanner_knock(incident: dict) -> bool:
+    """A threat feed's «remote source match» from GreyNoise alone: someone scanning the whole Internet knocked on a
+    service the house exposes (M163: all 11 «high» IPS alerts from outside in 10 days were these, 10 on Plex 32400;
+    5 from Palo Alto Networks, 3 from Microsoft's cloud, 3 from small hosters — not all research, hence medium)."""
+    text = " ".join(incident.get("samples") or []).lower()
+    return 'threatfeed="greynoise"' in text and "remote source match" in text
+
+
 def severity(incident: dict) -> str:
     s = SEVERITY.get(incident["kind"], "low")
     if incident["kind"] == "recon_then_out":
         return "high"                                   # a device of the house, known or not: see sec_sentinel.Recon
     if incident.get("intel_lists") or incident["kind"] == "honeypot":
         return "high"                                   # a known attacker, or someone touching a decoy: always
+    if incident["kind"] == "ips_alert" and not incident.get("internal") and scanner_knock(incident):
+        return "medium"                                 # an Internet-wide scanner on an open port: a look, no block (M163)
     if incident["kind"] == "deny_burst" and incident.get("count", 0) >= 500:
         s = "medium"
     if incident.get("known"):
@@ -130,6 +146,8 @@ def investigate(pipeline, host, incident: dict, emit, cfg: sys_config.Config | N
             emit("sentinel.intel", {"tool": tool, "text": intel[tool][:600]})
     facts = {k: incident.get(k) for k in ("kind", "source", "count", "first", "last", "internal", "severity", "detail",
                                           "samples")}
+    if incident.get("kind") == "ips_alert" and scanner_knock(incident):
+        facts["context"] = SCANNER_NOTE                 # the report weighs it so (M163: «block immediately» for a census)
     report = pipeline.llm.complete(SYS_REPORT, json.dumps({"incident": facts, "public_registry": intel},
                                                           ensure_ascii=False), 900).answer.strip()
     store.update(incident["id"], intel=intel, report=report, investigated=time.strftime("%Y-%m-%dT%H:%M:%S%z"))

@@ -2378,3 +2378,50 @@ chatty devices — every threat match they made; with ≥ 8 distinct ports in 10
 normal traffic. Live scorecard (10 Oct, 00:40): 130 incidents in 7 days, 0 judged, blind 708 min (two silences:
 251 min on 6 Oct, 457 min on 9 Oct). Not measured: a real compromised device (no such event in the 10 days).
 
+## M163 — The night after roadmap 81: what the alerts were (10 October 2026, 07:20)
+
+The syslog flowed all night (no silence after the 00:19 restart). From 00:40 to 07:20: 4 incidents — 2 ips_alert
+from outside (GreyNoise, Plex 32400, Palo Alto Networks), 2 «invalid traffic» checks of the owner on two phones
+(«Could not associate packet to any connection» towards Google on 443: a phone waking up after the firewall forgot
+its connection). No port scan, no «looked around, then went out», no baseline alert.
+
+All the IPS alerts kept (79): 68 from inside (GreyNoise «destination match», 39 on port 53, 29 on 443: medium, known
+devices) and 11 from outside, every one a GreyNoise-only «remote source match» (10 on 32400, 1 on 443):
+
+| source network (RDAP) | alerts | on a public list |
+|---|---|---|
+| Palo Alto Networks | 5 | 3 (firehol_l1) |
+| Microsoft (cloud) | 3 | 0 |
+| small hosters (US, AD, BG) | 3 | 1 (firehol_l1 + spamhaus_drop) |
+
+Before C244 all 11 were «high»; after: 4 high (on a list), 7 medium. The week's scorecard (C243): 134 incidents,
+19 medium or high, 115 low; 3 judged, all «giusto». Not measured: whether GreyNoise tagged each one benign or
+malicious (Sophos' feed does not say), and a real attack among them.
+
+## M164 — How fast each kind of log grows (10 October 2026, the owner's machine)
+
+From the firewall's first line (30 Sep, 14:54) to 10 Oct, 07:50 — 9.7 days, compressed files and live ones:
+
+| folder | size | per day | kept (roadmap 78) | at steady state |
+|---|---|---|---|---|
+| firewall/ (the Sophos syslog) | 72 MB | 7.4 MB | 90 days | ~670 MB |
+| trace/ | 60 MB | 6.2 MB | 30 days | ~190 MB |
+| everything else | 30 MB | 3.1 MB | 365 days | ~1.1 GB |
+| **total** | **162 MB** | **16.7 MB** | | **~2 GB** (365 days for all: ~6 GB) |
+
+The steady state is these rates times the days kept. Not measured: whether the rates hold (a firewall with more
+devices, more logging rules, sends more), and how big the files are on a colleague's machine.
+
+## M165 — Native tool calling on a real provider (10 October 2026, Gemini through its OpenAI-compatible API)
+
+`gemini-flash-latest`, a two-tool agent turn (a forecast, finish), a new client at each step as the agent gets one:
+
+| try | step 1 (the call) | step 2 (the result sent back) |
+|---|---|---|
+| tool_calls rebuilt from the text | native ✅ 1.7 s | ❌ 400 «Function call is missing a thought_signature» → the text form ✅ |
+| the API's own call kept and sent back | native ✅ 1.7 s | native ✅ 1.5 s |
+| the same, through the masking (an email address) | native ✅, the address unmasked in the call | native ✅ |
+
+Not measured: OpenAI, Mistral, xAI and OpenRouter's models live (no key on this machine for the first three and
+OpenRouter); whether native calls make the agent's choices better than the text form on a long run.
+

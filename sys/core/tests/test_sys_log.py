@@ -78,3 +78,17 @@ def test_a_loose_plugin_log_is_rotated_and_keeps_being_written(cfg):
     writer.write("after\n")
     writer.close()
     assert live.read_text() == "after\n"                   # no hole of zeros: append mode writes at the new end
+
+
+def test_each_kind_of_log_keeps_its_own_days(cfg):
+    """Roadmap 78: the firewall's syslog 90 days, the trace 30, everything else AURORA_LOG_RETENTION_DAYS (365)."""
+    root = cfg.path("AURORA_LOG_DIR")
+    past = time.time() - 60 * 86400                        # two months old: gone from trace/ only
+    files = {k: root / k / f"{k}.20260101-000000.log.gz" for k in ("firewall", "trace", "api")}
+    for f in files.values():
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_bytes(b"data")
+        os.utime(f, (past, past))
+    assert [sys_log.retention(cfg, root / k) for k in ("firewall", "trace", "api")] == [90, 30, 365]
+    removed = sys_log.purge_all(cfg)
+    assert removed == [files["trace"]] and files["firewall"].exists() and files["api"].exists()

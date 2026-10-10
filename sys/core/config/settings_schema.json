@@ -1320,6 +1320,36 @@
    ]
   },
   {
+   "key": "AURORA_LOG_RETENTION_FIREWALL_DAYS",
+   "type": "int",
+   "min": 14,
+   "max": 36500,
+   "category": "logging",
+   "recommended": "90",
+   "evidence": "owner, 2026-10-09 (roadmap 78): «150 MB in 9 giorni»; M164",
+   "en": "Rotated files of the firewall's syslog (sys/logs/firewall: every connection the firewall reports) older than this are deleted. At least 14: the autopilot's scorecard reads two weeks.",
+   "it": "I file ruotati del syslog del firewall (sys/logs/firewall: ogni connessione che il firewall riporta) più vecchi di così vengono eliminati. Almeno 14: la pagella del pilota automatico legge due settimane.",
+   "services": [
+    "all"
+   ],
+   "optional": true
+  },
+  {
+   "key": "AURORA_LOG_RETENTION_TRACE_DAYS",
+   "type": "int",
+   "min": 1,
+   "max": 36500,
+   "category": "logging",
+   "recommended": "30",
+   "evidence": "owner, 2026-10-09 (roadmap 78): «150 MB in 9 giorni»; M164",
+   "en": "Rotated files of the structured trace (sys/logs/trace: the events behind the Activity page) older than this are deleted.",
+   "it": "I file ruotati della traccia strutturata (sys/logs/trace: gli eventi dietro la pagina Attività) più vecchi di così vengono eliminati.",
+   "services": [
+    "all"
+   ],
+   "optional": true
+  },
+  {
    "key": "AURORA_OWNER_NAME",
    "type": "str",
    "category": "interface",

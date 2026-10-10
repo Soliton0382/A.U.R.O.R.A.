@@ -8,7 +8,7 @@ call downward (ECOSYSTEM §1).
 | module | layer | does | uses | used by |
 |---|---|---|---|---|
 | `sys_config.py` | system | reads `.env`, validates it against `config/settings_schema.json`, resolves paths | — | everything |
-| `sys_log.py` | system | per-component logs, trace events, rotation + gzip + retention, `purge` | sys_config | everything |
+| `sys_log.py` | system | per-component logs, trace events, rotation + gzip + retention by kind (firewall, trace, the rest), `purge` | sys_config | everything |
 | `sol_schema.py` | memory | the soliton: normalization, `sid`, validation, taxonomy | `config/taxonomy.json` | sol_vault, sol_writer, sol_reader, harvester |
 | `sol_vault.py` | memory | shard layout on disk, connections, `check` / `repair` | sol_schema, sys_config | sol_writer, sol_reader |
 | `sol_writer.py` | memory | add (validate, dedup, rollover), consolidate STM→LTM, reset memory | sol_vault, sys_log | harvester, REM cycle, API; bench |
@@ -21,7 +21,7 @@ call downward (ECOSYSTEM §1).
 | `mdl_remote.py` | models | encoder and re-ranker over HTTP (aurora-models), same interface as the local ones | httpx | svc_api |
 | `mdl_llm.py` | models | client of llama-server: ChatML, thinking on/off, complete and stream | httpx | kno_answer, kno_acquire |
 | `txt_lang.py` | text | Italian/English detection by stop words | — | kno_answer, kno_ingest |
-| `mdl_router.py` | models | which model does each step: providers (local, Claude Code, Anthropic, OpenAI-compatible, custom: any OpenAI-compatible address), roles.json, MaskedLLM, Fallback to local, CloudBase ("local" on a machine without a local reasoner, AURORA_LLM_BACKEND=cloud), list of a provider's models, cloud statistics from the traces | mdl_cloud, sec_mask, httpx | kno_answer, kno_attach, svc_api |
+| `mdl_router.py` | models | which model does each step: providers (local, Claude Code, Anthropic, OpenAI-compatible, custom: any OpenAI-compatible address), roles.json, native tool calling (native_turns, as_text), MaskedLLM, Fallback to local, CloudBase ("local" on a machine without a local reasoner, AURORA_LLM_BACKEND=cloud), list of a provider's models, cloud statistics from the traces | mdl_cloud, sec_mask, httpx | kno_answer, kno_attach, svc_api |
 | `mdl_gguf.py` | models | a GGUF's header read without loading the model (a file, or the first megabytes of a remote one): architecture, experts, context, chat template, size | struct | mdl_formats, mdl_custom, sys_model_check |
 | `mdl_formats.py` | models | each model's profile: prompt (Qwen's measured ChatML or the model's own template, --jinja), how its reasoning is switched, its tool-call format, native tools; cloud abilities kept AURORA_FORMATS_CACHE_H | mdl_gguf, httpx | mdl_llm, svc_llm |
 | `mdl_custom.py` | models | a local reasoner of one's own (roadmap 73): a Hugging Face repository inspected, a file checked before download (fit, profile), downloaded with SHA-256, switched to with a trial question, the one before kept | mdl_gguf, mdl_formats, mdl_modes, huggingface_hub | api/models_custom, Models page |

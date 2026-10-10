@@ -156,7 +156,8 @@ async def security_scorecard(again: bool = False) -> dict:
 
 @router.post("/v1/aurora/incidents/{incident_id}/verdict", dependencies=[Depends(admin_only)])
 async def incident_verdict(incident_id: str, request: Request) -> dict:
-    """The owner's judgement of an incident: right, false_alarm or unsure (and a note) — the scorecard counts them."""
+    """The owner's judgement of an incident: right, overrated (true, but less serious than said), false_alarm or
+    unsure (and a note) — the scorecard counts them."""
     from aurora import sec_scorecard
     from aurora.sec_incidents import Incidents
     body = await request.json()

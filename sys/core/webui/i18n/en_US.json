@@ -1549,15 +1549,16 @@
   "fw.kept": "Kept as you had them: {f} (Aurora does not move or rename your rules)",
   "sec.score": "📊 The autopilot's scorecard",
   "sec.ready": "✅ Ready: two weeks above the bar. The autopilot can be switched on (Defence).",
-  "sec.not_ready": "⏳ Not yet: two weeks in a row above the bar (≥ 80 % judged, ≥ 90 % precision, ≤ 30 min blind).",
-  "sec.week": "{k}: {n} incidents, {r} judged ({share}) · precision {prec} ({right} right, {fa} false alarms) · blind {blind} min",
+  "sec.not_ready": "⏳ Not yet: two weeks in a row above the bar (≥ 80% of medium and high judged, precision ≥ 90%, blind ≤ 30 min).",
+  "sec.week": "{k}: {n} incidents ({loud} medium or high, {quiet} low), judged {r} ({share}) · precision {prec} ({right} right, {over} too serious, {fa} false alarms) · blind {blind} min",
   "sec.this_week": "Last 7 days",
   "sec.last_week": "The 7 before",
-  "sec.verdict_q": "Your verdict:",
+  "sec.verdict_q": "Your verdict (the fact, its severity and the action proposed):",
   "sec.v.right": "right",
   "sec.v.false_alarm": "false alarm",
   "sec.v.unsure": "not sure",
   "sec.dest": "🌐 Destination {ip} ({name}) · network: {who} · flagged by: {feed} · public lists: {lists}",
   "sec.dest_none": "none",
-  "sec.kind.recon_then_out": "Looked around, then went out"
+  "sec.kind.recon_then_out": "Looked around, then went out",
+  "sec.v.overrated": "right but too serious"
 }
