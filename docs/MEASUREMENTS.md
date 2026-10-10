@@ -2425,3 +2425,42 @@ devices, more logging rules, sends more), and how big the files are on a colleag
 Not measured: OpenAI, Mistral, xAI and OpenRouter's models live (no key on this machine for the first three and
 OpenRouter); whether native calls make the agent's choices better than the text form on a long run.
 
+## M166 — The light profile on a 6 GB machine (10 October 2026, the Ubuntu VM at 4 vCPU, 6 GB)
+
+The test VM brought down to 4 vCPU and 6 GB (5.3 GB seen by the system, 4 GB of swap), Aurora cloud-only as
+installed there, `sys_calibrate.py --write`: «profilo leggero: 4 core, 5.3 GB; ricerca 15 candidati (0.961 s/passaggio),
+raccolta 10 per fonte a giro (2.567 s/passaggio), batch 4». All services restarted, the harvester on and importing
+papers during the questions.
+
+| | measured |
+|---|---|
+| memory used, 60 s after the start | 3,677 MB (encoder and re-ranker 3.9 GB of resident pages, shared ones included; API 140 MB) |
+| peak during two questions, sampled every 0.5 s | 3,990 MB of 5,408 — no out-of-memory, 1 GB of swap in use |
+| a question end to end, the reasoner a stand-in that answers at once | 20.9 s and 34.7 s: the local part (retrieval, re-ranking, memory) |
+
+With a real cloud reasoner its own time adds to these (Gemini flash: 1.5-1.7 s a step, M165). The VM was put back as
+it was (6 vCPU, 16 GB). Not measured: a real provider on this machine (the key was not copied to the VM), the answers'
+quality (its vault is almost empty: «dalla mia memoria»), days of running with 1 GB in swap.
+
+## M167 — Do the immediate repairs work? (10 October 2026, the owner's Aurora, 6-10 October)
+
+Every «Riparazione immediata» run (agt_react: a request of the owner failed → an agent run at once), read from
+the agent's trace:
+
+| when | the failure | outcome |
+|---|---|---|
+| 6 Oct 12:20 | a routine removed while it ran | ❌ one call (request_capability), no diagnosis |
+| 6 Oct 13:10 | its proposal not applied | ✅ «already fixed in the live code», tests run |
+| 6 Oct 16:35 | a run failed | ❌ the calls written as `<invoke>` text, none executed (before C232's parser, 9 Oct) |
+| 7 Oct 07:30 | «Dispositivi nuovi nella rete» | ✅ not the code: the firewall refused the login (credentials) |
+| 7 Oct 12:37 | «Allerta meteo» | ✅ not the code: Open-Meteo 503, tried again, back to 200 |
+| 7 Oct 21:22 | KeyError 'sid' (web sources) | ✅ a defect: fixed in a sandbox, tested, proposed |
+| 7 Oct 22:51 | that proposal not applied | ✅ «the same fix is already live» (made by hand meanwhile) |
+| 8 Oct 00:32 | threat_hunt: read-only file system | ✅ the cause (the plugin's cage without its write folder), fix not proposed: a test already failing |
+| 8 Oct 10:53 | calendar_add_event | ✅ not the code: no CalDAV calendar set (ICS is read-only) |
+
+7 of 9 right diagnoses; the 2 failures both on 6 Oct, before the parser of the 10 call formats; from 7 Oct, 7 of 7.
+The two code fixes it proposed were never applied, both because the same fix was already made by hand (the live file
+had changed since its sandbox: refused, as it should). The daily self-repair runs (Autoriparazione, 30 Sep-10 Oct)
+are separate. Not measured: a repair whose proposal the owner approved and that went live.
+

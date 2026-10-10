@@ -2,6 +2,50 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.1 — 2026-10-10
+
+39 publications since v0.2.0.
+
+- 2026-10-10 C229 closed (M158); M166 light profile on 6 GB; M167 immediate repairs; roadmap 70-71 measured
+- 2026-10-10 C243 C244 scanner knocks medium, verdict too serious, scorecard on medium/high; roadmap 78 log retention by kind; native tool calling for OpenAI-compatible APIs (Gemini thought_signature kept)
+- 2026-10-10 Roadmap 81: house chatter never an incident, one incident per threat, outbound threats explained and investigated, recon-then-out correlation, autopilot scorecard
+- 2026-10-10 C241 firewall plans ask the origin, keep the owner's rule, show field diffs, explain 599, audit reads NAT origin; C242 syslog silence alert
+- 2026-10-10 C240 plugin card says why a plugin does not start, Retry; weather place by town name (geocoding)
+- 2026-10-09 docs/GPU.md: NVIDIA drivers and CUDA on Ubuntu and Debian, GPU tiers, AMD status (roadmap 80)
+- 2026-10-09 C239 update approvals closed when up to date, Caddy trusted on update, HTTPS health says why
+- 2026-10-09 C238 cloud update signs the exemption; shadow seed 380 answers (it/en), 75% sources linked
+- 2026-10-09 C237 bubblewrap installed (plugins' cage); roadmap 73: another local model from Hugging Face (inspect, check by range, download with SHA-256, try, revert)
+- 2026-10-09 C235 Caddyfile paths quoted (Mac); C236 WebUI boot waits for the API; install.sh updates without questions; uninstall says the clean way back
+- 2026-10-09 C233 tests never send real notifications; C234 updates on Windows/Mac/Docker via command cards (roadmap 74)
+- 2026-10-09 Model formats: GGUF reader, per-family profiles (Qwen ChatML unchanged, others native --jinja), cloud abilities cached; sys_model_check
+- 2026-10-09 Agent reads tool calls in every provider's format (Hermes, Claude, Llama, Mistral, OpenAI, JSON)
+- 2026-10-09 C232: agent reads Claude-format tool calls and drops invented tool results
+- 2026-10-09 Machine audit picks light/standard/strong settings; C231 Windows plugins run in the AppContainer (window station and desktop read); Windows VM on 10 cores
+- 2026-10-09 Shadows by chosen areas and language (installers ask 8 areas, Docker AURORA_DOMAINS), seed with domain/lang and arXiv links; OpenAI endpoint answers at answer.final (C229)
+- 2026-10-09 C229: questions first on a CPU with the harvest running (quiet window, 4-passage slices, failed plugins remembered); C230: an answer cut by Gemini's thinking is asked again
+- 2026-10-09 C224 settings reconciled; C225 Italian phones masked; C226 no cage no plugin + Docker plugins container; C227-C228 ports: checked everywhere, Caddy follows, page moves; cloud voice and dictation; approvals alerts; shadow seed for every user; Mac installer; notifications history last
+- 2026-10-09 C222 bug reports and ideas as masked GitHub issues with a final privacy check; C223 Windows suite green (9 real bugs fixed everywhere); M154 harvest disk cost; Docker guide
+- 2026-10-09 Docker image (cloud, one volume, supervisor, guide docs/DOCKER.md); HTTPS ports from the 🔒 page, checked and put back on failure; C221 default_sni; Windows tasks restart and Caddy root
+- 2026-10-09 Windows installer (install.ps1, scheduled tasks, ACL keys, Caddy root) tried on a real Windows 11; C216 CPU priority; C217 installer CR+LF; C218 claude.cmd; C219 the owner's question first in models and API; C220 test date
+- 2026-10-09 C214: harvester backs off on 429/503; C215: forge refuses code naming a person, runs plugin reads its own user; harvesting on by default, asked by the installer
+- 2026-10-08 Models: four modes (local, mixed, cloud with privacy, all cloud) with every aspect checked, shell popups, consent signed with sudo; service role; forge with the chosen cloud; local reasoner on/off; C213 private data never follows the cloud default
+- 2026-10-08 C213: private data (health, firewall) never follows the cloud default on a machine without a local model
+- 2026-10-08 Installer: reasoner asked also with a GPU, any OpenAI-compatible service, address and key at every end, the phone (home address, name.local, root certificate over HTTP); 🔒 HTTPS page with own certificate; C212 HTTPS check before caddy trust
+- 2026-10-08 Cloud install from a clean clone: the trial call without a .env, C210 personal settings on a new installation, C211 sys/https made by the service generator
+- 2026-10-08 Install workflow: the end of install.log as public notices on a failure
+- 2026-10-08 Aurora without a GPU: cloud reasoner chosen by the installer, masked, encoder and re-ranker on the CPU (M151); C209 thinking models answered nothing on short steps; Install workflow
+- 2026-10-08 C208: the models' clients ask at first use (history without aurora-models); tests never reach this machine's services; make_private's PowerShell
+- 2026-10-08 Phase 3: make_private removes every entry on Windows; the probe waits for the Mac's CPU counters (M150)
+- 2026-10-08 Phase 3: C206 symlinked root, C207 open files (backup descriptor, memory reset), file privacy by ACL on Windows
+- 2026-10-08 Ports: both green on real machines; NAS test skipped on Windows; failure reasons public (M148)
+- 2026-10-08 Ports: tzdata on Windows (time zones); the models-service test in its own process (M147)
+- 2026-10-08 Speech to text in aurora-models (no torch beside faiss); ports: native factory paths per system (M146)
+- 2026-10-08 Ports: platform tests and native crashes as public notices; the Mac's OpenMP clash recorded (M145)
+- 2026-10-08 Windows cage: grants only, never denials; Mac: Homebrew's official ffmpeg-full (M144)
+- 2026-10-08 C204: plugins' cage hides the home wherever Aurora is; C205 ffmpeg paths; cages for Mac (sandbox-exec) and Windows (AppContainer) (M143)
+- 2026-10-08 C203: GitHub plugin program installed and pinned; ports: probe on real Windows, plugins scanned, crash diagnostics (M142)
+- 2026-10-08 C202: Ports on Windows (repository name ending with a dot); results as public notices; the ecosystem checked (M141)
+
 ## v0.2.0 — 2026-10-08
 
 The first tagged version: 101 publications since the first public one (0.1.0, untagged).
