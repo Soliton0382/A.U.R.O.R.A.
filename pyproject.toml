@@ -1,6 +1,6 @@
 [project]
 name = "aurora"
-version = "0.2.2"
+version = "0.2.3"
 description = "A.U.R.O.R.A.: a local AI that answers only from knowledge it can show, remembers, dreams and repairs herself under her owner's approval."
 requires-python = ">=3.14"
 license = "Apache-2.0"

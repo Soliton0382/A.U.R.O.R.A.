@@ -172,6 +172,22 @@ def forget(source_id: str) -> dict:
     return {"forgotten": len(sids)}
 
 
+@router.delete("/v1/aurora/memory/conversation", dependencies=[Depends(auth)])
+def forget_exchange(source_id: str) -> dict:
+    """Forget one exchange of the user's conversation for good — the question and the answer of one run
+    (source_id «run:…»), with their index rows (10 Oct: probe questions had landed in the owner's memory)."""
+    if not source_id.startswith("run:"):
+        raise HTTPException(status_code=422, detail="source_id: run:<id>")
+    p = pipeline()
+    with _run_lock:
+        sids = p.writer.remove_source("conversation", source_id)
+        if not sids:
+            raise HTTPException(status_code=404, detail="no such exchange")
+        p.indexer.drop("conversation", sids)
+    log.info("audit: an exchange forgotten at the user's request (%s, %d solitons)", source_id, len(sids))
+    return {"forgotten": len(sids)}
+
+
 @router.get("/v1/aurora/reflections", dependencies=[Depends(auth)])
 def reflections(type: str | None = None, n: int = 30) -> list[dict]:
     p = pipeline()

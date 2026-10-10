@@ -107,3 +107,4 @@ def synapses_concepts() -> list[dict]:
     sols = pipeline().search.reader.get_many({x: 0 for c in items for x in c["members"]})
     return [{**c, "passages": [{"title": sols[s].title, "domain": sols[s].domain} for s in c["members"] if s in sols]}
             for c in items]
+

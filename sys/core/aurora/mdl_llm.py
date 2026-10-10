@@ -103,8 +103,16 @@ class LLM:
         t0 = time.time()
         body = self._native(messages, max_tokens, think)
         r = httpx.post(self.url + "/v1/chat/completions", json=body, timeout=self.timeout)
-        if r.status_code >= 400 and "tools" in body:       # the model's template takes no tools: the text form
-            LLM._no_tools = True
+        for _ in range(2):
+            # M170: gpt-oss now and then writes what llama-server cannot read back («does not match the expected …
+            # format», 7 of 8 agent runs lost once the first one sent everything to the text form): the same request
+            # again — a new sample — not the text form
+            if r.status_code != 500 or "does not match" not in r.text:
+                break
+            self.log.info("local model's output not read by the server (%s): asked again", r.text[:120])
+            r = httpx.post(self.url + "/v1/chat/completions", json=body, timeout=self.timeout)
+        if r.status_code >= 400 and "tools" in body and "tool" in r.text.lower() and "does not match" not in r.text:
+            LLM._no_tools = True                            # the model's template takes no tools: the text form
             self.log.info("local model refused the tools as a list (%s): the text form", r.text[:160])
             r = httpx.post(self.url + "/v1/chat/completions", json=self._native(messages, max_tokens, think),
                            timeout=self.timeout)

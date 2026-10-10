@@ -2502,3 +2502,39 @@ answer, a two-tool agent turn, a picture, a question through Aurora's OpenAI end
 Not measured: a whole agent run on Mistral (the owner's agent is on Claude Code), the answers' quality on many
 questions, Nemotron or gpt-oss. The Mistral files stay in sys/models/llm/custom (15.2 GB): the Models page lists them.
 
+## M170 — Four local families through the same agent (10 October 2026, the owner's 2 × 16 GB)
+
+Each model switched in from the Models page (5.7-10.7 s each way, the trial «Roma»), the same probe as M169, then the
+same agent goal five or eight times — Aurora's own loop, netintel's tools through the cage: «Di chi è la rete
+dell'indirizzo 1.1.1.1 e qual è il suo nome DNS inverso?» (right = APNIC/Cloudflare and one.one.one.one).
+
+| | Qwen3.6-35B-A3B | Mistral-Small-3.2-24B | gpt-oss-20b (MXFP4) | Nemotron-3-Nano-30B-A3B |
+|---|---|---|---|---|
+| download (from Hugging Face, SHA-256) | (installed) | 15.2 GB, 65 s | 12.1 GB | 24.6 GB |
+| speed | 91-93 tok/s | 28-29 tok/s | 118 tok/s | 98 tok/s |
+| «cos'è un solitone» (no thinking) | ✅ | ✅ | ❌ «uno strumento musicale a fiato» | ✅ |
+| picture | ✅ | ✅ (projector) | — no projector | — no projector |
+| agent goal | 5/5 (13-16 s) | ✅ after C245 (M169) | 1/8 → **8/8** after C246 (5 requests asked again) | **5/5** (17-19 s) |
+| a question through Aurora | ✅ | ✅ | ❌ its reasoning in the answer (C248, open) | ⚠️ answered in English |
+
+Found on the way: C246 (an output llama-server could not read sent every later turn to the text form), C247 (a
+plugin waiting for its settings unknown to the agent: it asked the forge for a duplicate — request withdrawn), C248
+(open). Not measured: the answers' quality over many questions; gpt-oss with a reasoning effort above «low».
+
+## M171 — What Aurora's shared studies would carry (10 October 2026, the owner's installation, read only)
+
+`kno_share.build` on the owner's vault and synapses (1.4 s):
+
+| | kept for the bundle | of | stays home because |
+|---|---|---|---|
+| answers (origin seed/train: questions Aurora asked herself) | 397 (284 it, 113 en) | 398 exportable (public sources) | 1 masked (an address); 0 with the owner's 10 personal patterns |
+| synapses | 2,168 | 2,354 | 186 touch a passage without a public identity |
+| concepts | 279 | 299 | 20 have such a member |
+
+The bundle: 429 KB compressed. The answers to the owner's own chat questions (17) and web answers (4) are never in it.
+**Withdrawn (C250, the same day):** the answers above were made with the owner's chat in context and the synapses
+come from the owner's reading; the sharing was removed and nothing was ever published.
+Live: aurora-rem's tick asked for the bundle at the first round and wrote «HTTP 404» (the repository not made yet),
+nothing else. Not measured: a bundle received by another installation, how many of the links find their passages
+there (depends on what it harvested).
+

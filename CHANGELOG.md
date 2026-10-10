@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.3 — 2026-10-10
+
+1 publications since v0.2.2.
+
+- 2026-10-10 C246 C247 C249 C250, agt_calls split, native tools for local models, M168-M171; hourly sharing removed
+
 ## v0.2.2 — 2026-10-10
 
 1 publications since v0.2.1.

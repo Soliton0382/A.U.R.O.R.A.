@@ -101,7 +101,7 @@ def test_a_local_model_with_its_own_template_gets_the_tools_as_a_list(cfg, monke
     def post(url, json, timeout):
         sent.append(json)
         if "tools" in json and len(sent) >= 2:              # the second model refuses them
-            return httpx.Response(500, json={"error": "template"}, request=httpx.Request("POST", url))
+            return httpx.Response(500, json={"error": "this template does not support tools"}, request=httpx.Request("POST", url))
         return httpx.Response(200, json=reply, request=httpx.Request("POST", url))
     monkeypatch.setattr(httpx, "post", post)
     mdl_llm.LLM._no_tools = False
@@ -119,3 +119,34 @@ def test_mistrals_newer_call_form_is_read():
     two = 'Guardo. [TOOL_CALLS]weather__forecast[ARGS]{"place": "Trento"}[TOOL_CALLS]finish[ARGS]{"summary": "ok"}'
     calls, said = parse(two)[1:]
     assert [json.loads(x)["name"] for x in calls] == ["weather__forecast", "finish"] and said == "Guardo."
+
+
+def test_an_output_the_server_cannot_read_is_asked_again_not_sent_to_the_text_form(cfg, monkeypatch):
+    """M170: gpt-oss now and then — «does not match the expected … format» — was taken for a template without
+    tools, and every later turn lost them (1 of 8 runs right; asked again: 8 of 8)."""
+    from aurora import mdl_formats as F, mdl_llm
+    monkeypatch.setattr(F, "local", lambda c=None: F.from_gguf({"architecture": "gpt-oss", "chat_template": "{{ tools }}"}))
+    ok = {"choices": [{"finish_reason": "stop", "message": {"content": "fatto"}}], "usage": {}}
+    bad = {"error": {"code": 500, "message": "The model produced output that does not match the expected peg-native format"}}
+    replies = [(500, bad), (200, ok)]
+    sent = []
+
+    def post(url, json, timeout):
+        sent.append(json)
+        status, body = replies.pop(0)
+        return httpx.Response(status, json=body, request=httpx.Request("POST", url))
+    monkeypatch.setattr(httpx, "post", post)
+    mdl_llm.LLM._no_tools = False
+    assert mdl_llm.LLM(cfg).complete_turns(turns(cfg), 300).answer == "fatto"
+    assert len(sent) == 2 and "tools" in sent[1] and not mdl_llm.LLM._no_tools
+
+
+def test_the_agent_is_told_which_plugins_wait_for_settings(cfg):
+    from aurora.plg_host import Plugin
+    host = SimpleNamespace(plugins=lambda: [
+        Plugin("weather", None, {"description": {"en": "Forecasts", "it": "Previsioni"}}, missing=["AURORA_WEATHER_LAT"]),
+        Plugin("web", None, {"description": "Search"})])
+    a = SimpleNamespace(host=host, allow=None)
+    text = Agent._waiting(a)
+    assert "weather: Forecasts (needs AURORA_WEATHER_LAT)" in text and "web" not in text
+    assert Agent._waiting(SimpleNamespace(host=host, allow={"web"})) == ""

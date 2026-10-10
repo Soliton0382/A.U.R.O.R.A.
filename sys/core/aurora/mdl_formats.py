@@ -13,7 +13,7 @@ the format it writes tool calls in, and whether its API takes tools natively.
 - a cloud model: from the provider and the model's name, and — where the provider lists its models' abilities
   (OpenRouter) — from that list, kept AURORA_FORMATS_CACHE_H hours in <STATUS>/model_formats.json: no call at
   every turn.
-The agent's parser (agt_loop.parse) reads every format anyway: the profile is what Aurora tells and sends first.
+The agent's parser (agt_calls.parse) reads every format anyway: the profile is what Aurora tells and sends first.
 """
 from __future__ import annotations
 

@@ -151,7 +151,7 @@ def native_turns(messages: list[dict]) -> tuple[list[dict], list[dict]] | None:
     agent's text form: the specs leave the system prompt for the request's `tools`, an assistant turn's calls become
     its tool_calls, each tool result answers its call by id. None when the turns carry no tool list (a plain chat) or
     a spec is not JSON: the text form then goes as it is."""
-    from .agt_loop import parse                         # here: agt_loop reaches this module through the pipeline
+    from .agt_calls import parse
     system = next((m for m in messages if m["role"] == "system" and isinstance(m["content"], str)
                    and TOOLS_LIST.search(m["content"])), None)
     if system is None:
