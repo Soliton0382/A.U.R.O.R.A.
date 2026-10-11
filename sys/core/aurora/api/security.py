@@ -206,7 +206,7 @@ async def firewall_block(request: Request) -> dict:
 
 # ---- 🌍 the visual traceroute (net_trace, net_geo): hops streamed as Server-Sent Events --------------------------------
 @router.get("/v1/aurora/security/trace", dependencies=[Depends(admin_only)])
-async def trace_stream(target: str):
+async def trace_stream(target: str, incident: str = ""):
     """Each hop as soon as it answers, with its place (offline databases), then the summary. The trace sends packets
     towards the address: the admin's, on purpose (a button, an address typed)."""
     import asyncio
@@ -224,14 +224,14 @@ async def trace_stream(target: str):
 
     def work():
         try:
-            net_trace.trace(cfg, target, lambda e, d: q.put((e, d)))
+            net_trace.trace(cfg, target, lambda e, d: q.put((e, d)), incident=incident[:40] or None)
         except net_trace.TraceError as e:
             q.put(("error", {"message": str(e)}))
         except Exception as e:  # noqa: BLE001 — said on the page, never a crash
             q.put(("error", {"message": f"{type(e).__name__}: {e}"[:200]}))
         q.put(None)
     threading.Thread(target=work, daemon=True, name="trace").start()
-    log.info("audit: traceroute towards %s", target)
+    log.info("audit: traceroute towards %s%s", target, f" (from incident {incident})" if incident else "")
     from aurora import net_geo
     if net_geo.due(cfg) and not any(t.name == "geo-update" for t in threading.enumerate()):
         threading.Thread(target=lambda: net_geo.update(cfg), daemon=True, name="geo-update").start()  # monthly

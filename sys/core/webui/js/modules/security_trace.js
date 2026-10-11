@@ -10,7 +10,7 @@ import { el, useCss } from "../dom.js";
 import { apply, t } from "../i18n.js";
 
 let pending = null;                                            // an address sent here from an incident
-bus.on("trace", ({ ip }) => { pending = ip; });
+bus.on("trace", ({ ip, incident }) => { pending = { ip, incident }; });
 
 const RAD = Math.PI / 180;
 let world = null;
@@ -90,10 +90,15 @@ export default {
   },
 
   enter() {
-    if (pending) { this.q(".trace-ip").value = pending; const ip = pending; pending = null; this.start(ip); }
+    if (pending) {                                              // from an incident's 📍: its alerts are not a new one
+      const { ip, incident } = pending;
+      pending = null;
+      this.q(".trace-ip").value = ip;
+      this.start(ip, incident);
+    }
   },
 
-  start(target) {
+  start(target, incident = "") {
     target = String(target || "").trim();
     if (!target) return;
     this.es?.close();
@@ -102,7 +107,7 @@ export default {
     this.born = performance.now();
     this.q(".trace-list").replaceChildren();
     this.q(".trace-out").textContent = t("trace.running");
-    this.es = new EventSource(`/v1/aurora/security/trace?target=${encodeURIComponent(target)}`);
+    this.es = new EventSource(`/v1/aurora/security/trace?target=${encodeURIComponent(target)}${incident ? `&incident=${encodeURIComponent(incident)}` : ""}`);
     this.es.addEventListener("start", (m) => { this.target = JSON.parse(m.data); this.row(null); });
     this.es.addEventListener("hop", (m) => {
       const h = JSON.parse(m.data);

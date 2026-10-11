@@ -1579,7 +1579,7 @@
   "prj.term_close": "Close",
   "prj.term_ended": "terminal closed",
   "prj.term_note": "The project in its cage: no network, only this folder, no key. The project's own .venv comes first when it has one. Closed after 15 minutes without input.",
-  "nav.sec.trace": "🌍 Traceroute",
+  "nav.sec.trace": "Traceroute",
   "trace.hint": "The packets' way to an address, hop by hop on the globe. Places come from an offline database (no address leaves to be placed) and are the network's estimate, often its city, never a street. Dashed: registered seats the round trip makes impossible (light in fibre goes ~200 km/ms). A traceroute sends packets towards the address: the target sees your public IP.",
   "trace.ph": "an IP address or a name (e.g. 8.8.8.8)",
   "trace.go": "Trace",

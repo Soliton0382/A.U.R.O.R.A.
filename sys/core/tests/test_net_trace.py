@@ -115,3 +115,16 @@ def test_only_public_addresses_and_names_are_traced():
     with pytest.raises(T.TraceError):
         T.target_ip("8.8.8.8;ls")
     assert T.target_ip("8.8.8.8") == "8.8.8.8"
+
+
+def test_a_trace_from_an_incident_opens_no_new_incident(cfg, monkeypatch):
+    """C265: the 📍 button of an incident traced from this machine to the listed address; the firewall's alert came
+    back as a new incident (three on 11 Oct). From the button: none. Typed by hand: an incident, the owner's choice."""
+    import time
+    monkeypatch.setattr(T, "local_addresses", lambda: {"192.0.2.10"})
+    now = time.time()
+    T.remember(cfg, "203.0.113.7", "incident-1", now - 30, now - 20)
+    assert T.own_trace(cfg, "192.0.2.10", "203.0.113.7", now) == "incident-1"
+    assert T.own_trace(cfg, "192.0.2.50", "203.0.113.7", now) is None            # another device of the house
+    assert T.own_trace(cfg, "192.0.2.10", "9.9.9.9", now) is None                  # another address
+    assert T.own_trace(cfg, "192.0.2.10", "203.0.113.7", now + 3600) is None    # long after

@@ -133,7 +133,7 @@ export function page(tab, meta) { const { title } = meta; return {
     for (const ip of [i.internal ? null : i.source, i.destination]) {   // 🌍 the visual traceroute (security_trace.js)
       if (!ip || !/^[0-9a-f.:]+$/i.test(ip) || /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|127\.)/.test(ip)) continue;
       const geo = el("button", "", t("sec.geolocate", { ip }));
-      geo.addEventListener("click", () => { bus.emit("trace", { ip }); bus.emit("show", { id: "sectrace" }); });
+      geo.addEventListener("click", () => { bus.emit("trace", { ip, incident: i.id }); bus.emit("show", { id: "sectrace" }); });
       c.append(geo);
     }
     if (i.destination) {                              // a device at home reaching a threat feed's address (M161)

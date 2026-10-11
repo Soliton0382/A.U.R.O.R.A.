@@ -27,6 +27,12 @@ async def sentinel_incident(request: Request) -> dict:
         incident["known"] = name
     outbound = destination_of(incident)
     if outbound:                                          # a device at home reaching an address on a threat feed (M161)
+        from aurora import net_trace
+        mine = net_trace.own_trace(cfg, incident.get("source", ""), outbound["destination"])
+        if mine:                                          # Aurora's own traceroute, asked from that incident (C265)
+            log.info("audit: no incident for %s → %s: the traceroute asked from incident %s", incident.get("source"),
+                     outbound["destination"], mine)
+            return {"skipped": "own traceroute", "from_incident": mine}
         incident.update(outbound)
     if not incident.get("internal"):                      # an address on a public list of attackers (sec_intel)
         from aurora import sec_intel

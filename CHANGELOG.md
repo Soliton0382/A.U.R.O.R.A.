@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.11 — 2026-10-11
+
+1 publications since v0.2.10.
+
+- 2026-10-11 C265 an incident's traceroute opens no new incident; the trace page's title
+
 ## v0.2.10 — 2026-10-11
 
 1 publications since v0.2.9.

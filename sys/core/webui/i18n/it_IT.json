@@ -1579,7 +1579,7 @@
   "prj.term_close": "Chiudi",
   "prj.term_ended": "terminale chiuso",
   "prj.term_note": "Il progetto nella sua gabbia: niente rete, solo questa cartella, nessuna chiave. Se il progetto ha un suo .venv viene usato per primo. Si chiude dopo 15 minuti senza input.",
-  "nav.sec.trace": "🌍 Traceroute",
+  "nav.sec.trace": "Traceroute",
   "trace.hint": "Il percorso dei pacchetti fino a un indirizzo, hop per hop sul globo. Le posizioni vengono da un database offline (nessun indirizzo esce per essere localizzato) e sono la stima della rete, spesso la città, mai la via. Tratteggiate: sedi registrate che il tempo di risposta rende impossibili (la luce in fibra fa ~200 km/ms). Il traceroute invia pacchetti verso l'indirizzo: il bersaglio vede il tuo IP pubblico.",
   "trace.ph": "un indirizzo IP o un nome (es. 8.8.8.8)",
   "trace.go": "Traccia",

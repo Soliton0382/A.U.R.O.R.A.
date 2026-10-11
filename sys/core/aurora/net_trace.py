@@ -44,6 +44,56 @@ class TraceError(Exception):
     pass
 
 
+# the traces started from an incident's 📍 button: the firewall sees this machine reach a listed address and would open
+# a new incident on the owner's own click (C265: three on 11 Oct, the dog chasing its tail)
+OWN_WINDOW_S = 900            # after a trace ends, its alerts may still arrive (the firewall's log is minutes late)
+
+
+def _own_file(cfg: sys_config.Config):
+    return (cfg.base or cfg).path("AURORA_STATUS_DIR") / "traces_from_incidents.json"
+
+
+def _own(cfg: sys_config.Config) -> list[dict]:
+    import json
+    try:
+        return json.loads(_own_file(cfg).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+
+
+def remember(cfg: sys_config.Config, ip: str, incident: str, start: float, end: float | None = None) -> None:
+    import json
+    now = time.time()
+    items = [t for t in _own(cfg) if (t.get("end") or t["start"]) > now - 86400 and not (t["ip"] == ip and t["start"] == start)]
+    items.append({"ip": ip, "incident": incident, "start": start, "end": end})
+    f = _own_file(cfg)
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text(json.dumps(items), encoding="utf-8")
+
+
+def own_trace(cfg: sys_config.Config, source: str, destination: str, at: float | None = None) -> str | None:
+    """The incident whose 📍 button made this machine reach `destination` around now, when `source` is this machine;
+    None otherwise (a trace typed by hand stays an incident: the owner's choice)."""
+    if not destination or source not in local_addresses():
+        return None
+    at = at or time.time()
+    for t in _own(cfg):
+        if t["ip"] == destination and t["start"] - 60 <= at <= (t.get("end") or t["start"] + 120) + OWN_WINDOW_S:
+            return t["incident"]
+    return None
+
+
+def local_addresses() -> set[str]:
+    """This machine's own addresses (every interface)."""
+    import psutil
+    out = set()
+    for addrs in psutil.net_if_addrs().values():
+        for a in addrs:
+            if a.family in (socket.AF_INET, socket.AF_INET6):
+                out.add(a.address.split("%")[0])
+    return out
+
+
 def target_ip(target: str) -> str:
     """A public address, or the first public address of a host name."""
     t = (target or "").strip()
@@ -65,7 +115,8 @@ def target_ip(target: str) -> str:
     return str(a)
 
 
-def trace(cfg: sys_config.Config, target: str, emit, cycles: int = 3, max_hops: int = 30, limit_s: float = 90):
+def trace(cfg: sys_config.Config, target: str, emit, cycles: int = 3, max_hops: int = 30, limit_s: float = 90,
+          incident: str | None = None):
     """emit("start", {target, ip, geo}), emit("hop", {n, ip, geo}) at each new hop, emit("rtt", {n, ms}) and at the
     end emit("done", {hops: [...], reached, seconds}). One trace at a time on the machine."""
     if not shutil.which("mtr"):
@@ -75,6 +126,8 @@ def trace(cfg: sys_config.Config, target: str, emit, cycles: int = 3, max_hops: 
         raise TraceError("a trace is already running: wait for it")
     t0 = time.time()
     hops: dict[int, dict] = {}
+    if incident:                                               # from an incident's button: its alerts are ours
+        remember(cfg, ip, incident, t0)
     try:
         emit("start", {"target": target, "ip": ip, "geo": net_geo.locate(cfg, ip)})
         p = subprocess.Popen(["mtr", "--raw", "-n", "-c", str(cycles), "-m", str(max_hops), ip],
@@ -111,6 +164,8 @@ def trace(cfg: sys_config.Config, target: str, emit, cycles: int = 3, max_hops: 
             out.append({"n": n, "ips": h["ips"], "geo": h.get("geo"), "ms": ms, "lost": not r,
                         "plausible": plausible(origin, h.get("geo"), ms)})
         reached = any(ip in h["ips"] for h in out)
+        if incident:
+            remember(cfg, ip, incident, t0, time.time())
         emit("done", {"hops": out, "reached": reached, "seconds": round(time.time() - t0, 1),
                       "credit": net_geo.CREDIT})
         return out
