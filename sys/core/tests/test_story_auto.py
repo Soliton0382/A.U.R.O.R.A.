@@ -240,3 +240,13 @@ def test_on_a_cpu_the_documents_go_in_short_slices(svc):
             self.batch, self.model = 8, type("M", (), {"device": device})()
     assert svc._slice(Model("cpu")) == svc.CPU_SLICE
     assert svc._slice(Model("cuda:0")) == 8
+
+
+def test_the_animated_hello_and_goodbye_are_used_when_made(cfg):
+    """Owner, 2026-10-11: «il ciao e il saluto fossero animati… fatte una volta»: script/story_intro_make.py makes
+    them once; without them the still face, as before."""
+    from aurora import kno_story as K
+    assert K.opening(cfg, "intro") == K.FACE and K.opening(cfg, "outro") == K.FACE
+    K.intro_dir(cfg).mkdir(parents=True, exist_ok=True)
+    (K.intro_dir(cfg) / "intro.mp4").write_bytes(b"x")
+    assert K.opening(cfg, "intro").name == "intro.mp4" and K.opening(cfg, "outro") == K.FACE

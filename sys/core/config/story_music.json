@@ -1,5 +1,5 @@
 {
- "about": "Background music for Aurora's narrated videos (kno_story). Only recordings released free by their performers (CC0) or in the public domain by origin (Musopen, the US Air Force Band) — checked on Wikimedia Commons on 2026-10-06; old transfers from records (\"European Archive\", 78 rpm) are left out: their freedom depends on the country. Downloaded once by script/story_music_fetch.py; the credit goes in each post.",
+ "about": "Background music for Aurora's narrated videos (kno_story). Only recordings released free by their performers (CC0) or in the public domain by origin (Musopen, the US Air Force Band) — checked on Wikimedia Commons on 2026-10-06 and 2026-10-11 (25 more, owner's request); old transfers from records (\"European Archive\", 78 rpm) are left out: their freedom depends on the country. Downloaded once by script/story_music_fetch.py; the credit goes in each post.",
  "moods": {
   "calm": "reflective, philosophy, the mind, everyday wonders told gently",
   "wonder": "the cosmos, nature at large, discoveries, light and space",
@@ -8,16 +8,221 @@
   "mystery": "the unknown, paradoxes, quantum physics, open questions"
  },
  "tracks": [
-  {"mood": "calm", "file": "Bach, Goldberg Variations, Aria (Musopen version).ogg", "credit": "J. S. Bach, Variazioni Goldberg: Aria — Kimiko Ishizaka (Musopen)", "license": "CC0"},
-  {"mood": "calm", "file": "Satie Gymnopedie No 2 performed by Michael Laucke.flac", "credit": "E. Satie, Gymnopédie n. 2 — Michael Laucke", "license": "Public domain"},
-  {"mood": "calm", "file": "Chopin - Nocturne-op-55-no-1.ogg", "credit": "F. Chopin, Notturno op. 55 n. 1 (Musopen)", "license": "CC0"},
-  {"mood": "wonder", "file": "Antonin Dvorak - symphony no. 9 in e minor 'from the new world', op. 95 - ii. largo.ogg", "credit": "A. Dvořák, Sinfonia n. 9 «Dal Nuovo Mondo»: Largo (Musopen)", "license": "Public domain"},
-  {"mood": "wonder", "file": "Alexander Borodin - In The Steppes Of Central Asia.ogg", "credit": "A. Borodin, Nelle steppe dell'Asia centrale — Musopen Symphony Orchestra", "license": "CC0"},
-  {"mood": "wonder", "file": "Holst The Planets Mercury.ogg", "credit": "G. Holst, I pianeti: Mercurio — United States Air Force Band", "license": "Public domain"},
-  {"mood": "melancholy", "file": "Albinoni, Concerto for Oboe and Strings No. 2 in D minor, Op. 9, II. Adagio.ogg", "credit": "T. Albinoni, Concerto per oboe op. 9 n. 2: Adagio (Musopen)", "license": "CC0"},
-  {"mood": "melancholy", "file": "Ludwig van Beethoven - sonata no. 14 in c sharp minor 'moonlight', op. 27 no. 2 - i. adagio sostenuto.ogg", "credit": "L. van Beethoven, Sonata «Al chiaro di luna»: Adagio sostenuto (Musopen)", "license": "Public domain"},
-  {"mood": "lively", "file": "Antonio Vivaldi, Mandolin Concerto in C major, RV 425.ogg", "credit": "A. Vivaldi, Concerto per mandolino RV 425 — The Milan Baroque Soloists", "license": "Public domain (mark by the performers)"},
-  {"mood": "lively", "file": "Grieg - Peer Gynt Suite No. 1, Op. 46 - I. Morning Mood (Musopen Symphony).flac", "credit": "E. Grieg, Peer Gynt: Il mattino — Musopen Symphony", "license": "Public domain"},
-  {"mood": "mystery", "file": "Alexander Scriabin - prelude no. 1, op. 67.ogg", "credit": "A. Skrjabin, Preludio op. 67 n. 1 (Musopen)", "license": "Public domain"}
+  {
+   "mood": "calm",
+   "file": "Bach, Goldberg Variations, Aria (Musopen version).ogg",
+   "credit": "J. S. Bach, Variazioni Goldberg: Aria — Kimiko Ishizaka (Musopen)",
+   "license": "CC0"
+  },
+  {
+   "mood": "calm",
+   "file": "Satie Gymnopedie No 2 performed by Michael Laucke.flac",
+   "credit": "E. Satie, Gymnopédie n. 2 — Michael Laucke",
+   "license": "Public domain"
+  },
+  {
+   "mood": "calm",
+   "file": "Chopin - Nocturne-op-55-no-1.ogg",
+   "credit": "F. Chopin, Notturno op. 55 n. 1 (Musopen)",
+   "license": "CC0"
+  },
+  {
+   "mood": "wonder",
+   "file": "Antonin Dvorak - symphony no. 9 in e minor 'from the new world', op. 95 - ii. largo.ogg",
+   "credit": "A. Dvořák, Sinfonia n. 9 «Dal Nuovo Mondo»: Largo (Musopen)",
+   "license": "Public domain"
+  },
+  {
+   "mood": "wonder",
+   "file": "Alexander Borodin - In The Steppes Of Central Asia.ogg",
+   "credit": "A. Borodin, Nelle steppe dell'Asia centrale — Musopen Symphony Orchestra",
+   "license": "CC0"
+  },
+  {
+   "mood": "wonder",
+   "file": "Holst The Planets Mercury.ogg",
+   "credit": "G. Holst, I pianeti: Mercurio — United States Air Force Band",
+   "license": "Public domain"
+  },
+  {
+   "mood": "melancholy",
+   "file": "Albinoni, Concerto for Oboe and Strings No. 2 in D minor, Op. 9, II. Adagio.ogg",
+   "credit": "T. Albinoni, Concerto per oboe op. 9 n. 2: Adagio (Musopen)",
+   "license": "CC0"
+  },
+  {
+   "mood": "melancholy",
+   "file": "Ludwig van Beethoven - sonata no. 14 in c sharp minor 'moonlight', op. 27 no. 2 - i. adagio sostenuto.ogg",
+   "credit": "L. van Beethoven, Sonata «Al chiaro di luna»: Adagio sostenuto (Musopen)",
+   "license": "Public domain"
+  },
+  {
+   "mood": "lively",
+   "file": "Antonio Vivaldi, Mandolin Concerto in C major, RV 425.ogg",
+   "credit": "A. Vivaldi, Concerto per mandolino RV 425 — The Milan Baroque Soloists",
+   "license": "Public domain (mark by the performers)"
+  },
+  {
+   "mood": "lively",
+   "file": "Grieg - Peer Gynt Suite No. 1, Op. 46 - I. Morning Mood (Musopen Symphony).flac",
+   "credit": "E. Grieg, Peer Gynt: Il mattino — Musopen Symphony",
+   "license": "Public domain"
+  },
+  {
+   "mood": "mystery",
+   "file": "Alexander Scriabin - prelude no. 1, op. 67.ogg",
+   "credit": "A. Skrjabin, Preludio op. 67 n. 1 (Musopen)",
+   "license": "Public domain"
+  },
+  {
+   "mood": "calm",
+   "file": "Chopin Nocturne No. 2 in E Flat Major, Op. 9.ogg",
+   "credit": "Chopin Nocturne No. 2 in E Flat Major, Op. 9 — Peter Johnston",
+   "license": "CC0"
+  },
+  {
+   "mood": "calm",
+   "file": "JS Bach - Well Tempered Clavier - Prelude in Fugue No.1 in C major.ogg",
+   "credit": "JS Bach - Well Tempered Clavier - Prelude in Fugue No.1 in C major",
+   "license": "CC0"
+  },
+  {
+   "mood": "calm",
+   "file": "Robert Schumann - scenes from childhood, op. 15 - vii. dreaming.ogg",
+   "credit": "Robert Schumann - scenes from childhood, op. 15 - vii. dreaming",
+   "license": "Public domain"
+  },
+  {
+   "mood": "calm",
+   "file": "Handel - Suites for Harpsichord - No.5 in E major - The Harmonious Blacksmith.ogg",
+   "credit": "Handel - Suites for Harpsichord - No.5 in E major - The Harmonious Blacksmith — Musopen",
+   "license": "CC0"
+  },
+  {
+   "mood": "calm",
+   "file": "Bach, BWV 147, 10. Jesus bleibet meine Freude.ogg",
+   "credit": "Bach, BWV 147, 10. Jesus bleibet meine Freude — Orchestra Gli Armonici",
+   "license": "CC0"
+  },
+  {
+   "mood": "calm",
+   "file": "Mozart - Concerto No.17 in G - II. Andante.ogg",
+   "credit": "Mozart - Concerto No.17 in G - II. Andante",
+   "license": "CC0"
+  },
+  {
+   "mood": "wonder",
+   "file": "Smetana - Má Vlast - Vltava (Musopen Symphony).flac",
+   "credit": "Smetana - Má Vlast - Vltava (Musopen Symphony)",
+   "license": "Public domain"
+  },
+  {
+   "mood": "wonder",
+   "file": "Edvard Grieg - piano concerto in a minor, op. 16 - ii. adagio.ogg",
+   "credit": "Edvard Grieg - piano concerto in a minor, op. 16 - ii. adagio",
+   "license": "Public domain"
+  },
+  {
+   "mood": "wonder",
+   "file": "Sergei Rachmaninoff - piano concerto no. 2 in c minor, op. 18 - ii. adagio sostenuto.ogg",
+   "credit": "Sergei Rachmaninoff - piano concerto no. 2 in c minor, op. 18 - ii. adagio sostenuto",
+   "license": "Public domain"
+  },
+  {
+   "mood": "wonder",
+   "file": "Antonin Dvorak - symphony no. 9 in e minor 'from the new world', op. 95 - iv. allegro con fuoco.ogg",
+   "credit": "Antonin Dvorak - symphony no. 9 in e minor 'from the new world', op. 95 - iv. allegro con fuoco",
+   "license": "Public domain"
+  },
+  {
+   "mood": "wonder",
+   "file": "Brahms - Symphony No. 2 in D major, Op. 73 - II. Adagio non troppo - L'istesso tempo, ma grazioso (Musopen Symphony).flac",
+   "credit": "Brahms - Symphony No. 2 in D major, Op. 73 - II. Adagio non troppo - L'istesso tempo, ma grazioso (Musopen Symphony)",
+   "license": "Public domain"
+  },
+  {
+   "mood": "melancholy",
+   "file": "Beethoven, Sonata No. 8 in C Minor Pathetique, Op. 13 - II. Adagio cantabile.ogg",
+   "credit": "Beethoven, Sonata No. 8 in C Minor Pathetique, Op. 13 - II. Adagio cantabile",
+   "license": "CC0"
+  },
+  {
+   "mood": "melancholy",
+   "file": "Grieg - Peer Gynt Suite No. 1, Op. 46 - II. The Death of Aase (Musopen Symphony).flac",
+   "credit": "Grieg - Peer Gynt Suite No. 1, Op. 46 - II. The Death of Aase (Musopen Symphony)",
+   "license": "Public domain"
+  },
+  {
+   "mood": "melancholy",
+   "file": "Brahms - Symphony No. 3 in F major, Op. 90 - III. Poco allegretto (Musopen Symphony).flac",
+   "credit": "Brahms - Symphony No. 3 in F major, Op. 90 - III. Poco allegretto (Musopen Symphony)",
+   "license": "Public domain"
+  },
+  {
+   "mood": "melancholy",
+   "file": "Beethoven - Symphony No. 3 in E flat major, Op. 55 'Eroica' - II. Marcia funebre. Adagio assai (Musopen Symphony).flac",
+   "credit": "Beethoven - Symphony No. 3 in E flat major, Op. 55 'Eroica' - II. Marcia funebre. Adagio assai (Musopen Symphony)",
+   "license": "Public domain"
+  },
+  {
+   "mood": "lively",
+   "file": "The Modena Chamber Orchestra - Vivaldi's Autumn, RV 293 - I. Allegro.ogg",
+   "credit": "The Modena Chamber Orchestra - Vivaldi's Autumn, RV 293 - I. Allegro — The Modena Chamber Orchestra",
+   "license": "Public domain"
+  },
+  {
+   "mood": "lively",
+   "file": "Felix Mendelssohn - symphony no. 4 in a major 'italian', op. 90 - i. allegro vivace.ogg",
+   "credit": "Felix Mendelssohn - symphony no. 4 in a major 'italian', op. 90 - i. allegro vivace",
+   "license": "Public domain"
+  },
+  {
+   "mood": "lively",
+   "file": "Beethoven - Egmont Overture, Op. 84 (Musopen Symphony).flac",
+   "credit": "Beethoven - Egmont Overture, Op. 84 (Musopen Symphony)",
+   "license": "Public domain"
+  },
+  {
+   "mood": "lively",
+   "file": "Haydn - String Quartet, Op. 64 No. 5 in D major 'The Lark' - IV. Finale. Vivace (Musopen String Quartet).flac",
+   "credit": "Haydn - String Quartet, Op. 64 No. 5 in D major 'The Lark' - IV. Finale. Vivace (Musopen String Quartet)",
+   "license": "Public domain"
+  },
+  {
+   "mood": "lively",
+   "file": "Antonin Dvorak - carnival overture, op. 92.ogg",
+   "credit": "Antonin Dvorak - carnival overture, op. 92",
+   "license": "Public domain"
+  },
+  {
+   "mood": "mystery",
+   "file": "Modest Mussorgsky - night on bald mountain.ogg",
+   "credit": "Modest Mussorgsky - night on bald mountain",
+   "license": "Public domain"
+  },
+  {
+   "mood": "mystery",
+   "file": "Grieg - Peer Gynt Suite No. 1, Op. 46 - IV. In the Hall of the Mountain King (Musopen Symphony).flac",
+   "credit": "Grieg - Peer Gynt Suite No. 1, Op. 46 - IV. In the Hall of the Mountain King (Musopen Symphony)",
+   "license": "Public domain"
+  },
+  {
+   "mood": "mystery",
+   "file": "Modest Mussorgsky - pictures at an exhibition - ii. il vecchio castello - andante.ogg",
+   "credit": "Modest Mussorgsky - pictures at an exhibition - ii. il vecchio castello - andante",
+   "license": "Public domain"
+  },
+  {
+   "mood": "mystery",
+   "file": "Sergei Rachmaninoff - Etudes-Tableaux, Op. 39, No. 5.oga",
+   "credit": "Sergei Rachmaninoff - Etudes-Tableaux, Op. 39, No. 5 — Karine Gilanyan",
+   "license": "Public domain"
+  },
+  {
+   "mood": "mystery",
+   "file": "Brahms - Tragic Overture, Op. 81 (Musopen Symphony).flac",
+   "credit": "Brahms - Tragic Overture, Op. 81 (Musopen Symphony)",
+   "license": "Public domain"
+  }
  ]
 }

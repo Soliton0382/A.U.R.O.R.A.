@@ -93,6 +93,17 @@ def catalog() -> dict:
     return json.loads(CATALOG.read_text(encoding="utf-8"))
 
 
+def intro_dir(cfg: sys_config.Config) -> Path:
+    """Aurora's animated hello and goodbye (script/story_intro_make.py, made once): intro.mp4, outro.mp4."""
+    return (cfg.base or cfg).path("AURORA_STATUS_DIR") / "story"
+
+
+def opening(cfg: sys_config.Config, kind: str) -> Path:
+    """The animated clip when it was made, else the still face (owner, 2026-10-11: «il ciao e il saluto animati»)."""
+    clip = intro_dir(cfg) / f"{kind}.mp4"
+    return clip if clip.is_file() else FACE
+
+
 def music_dir(cfg: sys_config.Config) -> Path:
     from . import sys_users_layout
     return sys_users_layout.place(cfg, "music", None) / "story"         # the admin's: one set for every user
@@ -138,6 +149,26 @@ def _clip(picture: Path, wav: Path, seconds: float, out: Path) -> None:
     _ff(["-loop", "1", "-t", f"{seconds:.2f}", "-i", str(picture), "-i", str(wav), "-filter_complex", v,
          "-map", "[v]", "-map", "[a]", "-t", f"{seconds:.2f}", "-r", str(FPS), "-c:v", "libx264", "-preset", "veryfast",
          "-crf", "20", "-c:a", "aac", "-ar", "44100", "-ac", "1", str(out)])
+
+
+def _length(video: Path) -> float:
+    r = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(video)],
+                       capture_output=True, text=True, timeout=60)
+    try:
+        return float(r.stdout.strip())
+    except ValueError:
+        return 0.0
+
+
+def _clip_video(video: Path, wav: Path, seconds: float, out: Path) -> None:
+    """One scene from a clip: brought to the montage's size and frame rate, held on its last frame if the words are
+    longer, fading in and out, the voice over it."""
+    v = (f"[0:v]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},fps={FPS},"
+         f"tpad=stop_mode=clone:stop_duration={max(0.0, seconds):.2f},"
+         f"fade=t=in:st=0:d=0.4,fade=t=out:st={seconds - 0.4:.2f}:d=0.4,format=yuv420p[v];[1:a]apad[a]")
+    _ff(["-i", str(video), "-i", str(wav), "-filter_complex", v, "-map", "[v]", "-map", "[a]", "-t", f"{seconds:.2f}",
+         "-r", str(FPS), "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-c:a", "aac", "-ar", "44100", "-ac", "1",
+         str(out)])
 
 
 def _ts(t: float) -> str:
@@ -212,14 +243,19 @@ def make(pipeline, cfg: sys_config.Config, topic: str, emit, out_root: Path | No
     painted = mdl_image.paint_many([it["image"] for it in items], folder, cfg, emit, size=PAINT_SIZE, title=topic[:80])
     took["pictures"] = round(time.time() - t, 1)
     t = time.time()
-    shots = [(FACE, OPEN)] + [(f, it["say"]) for f, it in zip(painted["files"], items)] + [(FACE, CLOSE)]
+    shots = ([(opening(cfg, "intro"), OPEN)] + [(f, it["say"]) for f, it in zip(painted["files"], items)]
+             + [(opening(cfg, "outro"), CLOSE)])
     clips, parts = [], []
     for n, (picture, say) in enumerate(shots, 1):
         wav = mdl_tts.speak(cfg, say, "it", use="video")      # on the CPU: the GPU stays the answers' (C173)
         (folder / f"voice-{n}.wav").write_bytes(wav)
         seconds = _seconds(wav) + 0.6
         clip = folder / f"clip-{n}.mp4"
-        _clip(picture, folder / f"voice-{n}.wav", seconds, clip)
+        if picture.suffix == ".mp4":                      # the animated hello or goodbye: the wave seen to its end
+            seconds = max(seconds, min(_length(picture), 6.0))
+            _clip_video(picture, folder / f"voice-{n}.wav", seconds, clip)
+        else:
+            _clip(picture, folder / f"voice-{n}.wav", seconds, clip)
         clips.append(clip)
         parts.append((say, seconds))
     took["voice_and_clips"] = round(time.time() - t, 1)

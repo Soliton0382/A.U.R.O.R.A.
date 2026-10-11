@@ -2724,3 +2724,15 @@ answering from Europe; the Italian hops plausible. The globe in Chrome headless:
 Two decks on synthetic tracks (124 BPM A minor, 128 BPM C/D major, 90 s each): every transition and the mashup give one
 steady beat at 124 (variation 0.012-0.013), the worst beat gap near the transition 8-19 ms (< 30 ms), B shifted 0 or +3
 semitones as its key asked; ~2 s a blend. Not measured: real songs, a true mashup (no stems), a trace that crosses a VPN.
+
+## M182 — Aurora's animated hello and goodbye; more music for the videos (11 October 2026)
+
+script/story_intro_make.py, once: the face (webui/assets/aurora_face.png) cut to 9:16, 720×1280, first frame of Wan 2.2
+TI2V 5B (mdl_video, 30 steps, fp8, the reasoner stopped and started again): intro 1090.6 s, outro 1088.3 s (M57's
+estimate ~18 min each held); 5.04 s at 704×1280, 24 fps, 3.1 and 3.5 MB, into <STATUS>/story/. Motion (mean absolute
+difference between frames, 0-255 grey, at 176×320): intro 13.1 a frame, mostly in the lower third (23.5 against
+4.2 at the top: the hand raised); outro 10.9, spread (10.3 / 10.0 / 12.2: the nod and the wave). The model does not
+move lips to words: asked to smile and wave, the voice over it. The montage takes them when present (kno_story.opening),
+the still face otherwise. Music: 25 more recordings checked on Commons (CC0, public domain, PDM; 3 refused: two CC BY,
+one European Archive), the catalogue 11 → 36 (calm 9, wonder 8, lively 7, melancholy 6, mystery 6); 33 downloaded at
+the first run, 3 stopped by Commons' rate limit (429) and asked again. Not measured: how the owner finds the clips.

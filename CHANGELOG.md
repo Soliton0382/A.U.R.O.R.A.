@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.10 — 2026-10-11
+
+1 publications since v0.2.9.
+
+- 2026-10-11 roadmap 87: Aurora's animated hello and goodbye (story_intro_make), 36 free classical recordings for the videos (M182)
+
 ## v0.2.9 — 2026-10-10
 
 1 publications since v0.2.8.

@@ -336,3 +336,4 @@ Server data is always inserted as text, never as HTML.
 | `aud_deck.py` | audio | the DJ's two decks: one tempo, B tuned to A, mix with a transition (bass swap, crossfade, filter, echo) at A's bar, or EQ mashup |
 | `webui/js/modules/security_trace.js` | interface | 🌍 Traceroute: a canvas globe (orthographic, Natural Earth via world-atlas), hops fly in as they answer |
 | `webui/js/modules/dj_deck.js` | interface | 🎚️ the two decks' choices on the DJ page |
+| `script/story_intro_make.py` | media | Aurora's face animated once for the videos' hello and goodbye (Wan 2.2 from the portrait cut to 9:16) |
