@@ -24,6 +24,11 @@ import time
 from . import sys_config
 
 FILE = "ha_devices.json"
+# what the 🏠 page may do with a click (api/home): simple services of one entity; scripts, automations… stay in the chat
+ALLOWED = {"switch": {"turn_on", "turn_off", "toggle"}, "light": {"turn_on", "turn_off", "toggle"},
+           "fan": {"turn_on", "turn_off", "toggle"}, "input_boolean": {"turn_on", "turn_off", "toggle"},
+           "button": {"press"}, "number": {"set_value"}, "cover": {"open_cover", "close_cover", "stop_cover"},
+           "lock": {"lock", "unlock"}, "media_player": {"media_play", "media_pause", "turn_on", "turn_off"}}
 SYS = """You set up a home assistant's watches for ONE device just connected to Home Assistant. You get the device (name,
 maker, model) and its entities (id, domain, device class, unit, state). Propose at most {n} agents that are really useful
 FOR THIS DEVICE, in Italian, as a JSON list only:
@@ -125,3 +130,16 @@ def message(report: dict) -> str:
         return (f"🏠 Nuovo dispositivo in Home Assistant: {names}. Ti propongo {report['proposed']} agenti su misura "
                 "nella pagina 🤖 Agenti e routine, con «Applica».")
     return f"🏠 Nuovo dispositivo in Home Assistant: {names}. Lo vedo; per ora non serve un controllo periodico."
+
+
+def watching(devices: list[dict], routines: list[dict], advice: list[dict]) -> list[dict]:
+    """Each device with the agents that name one of its entities and Aurora's open proposals made for it."""
+    out = []
+    for d in devices:
+        ids = {e["entity_id"] for e in d.get("entities", [])}
+        mine = [{"id": r["id"], "title": r.get("title", ""), "enabled": r.get("enabled", True)} for r in routines
+                if any(i in json.dumps(r, ensure_ascii=False) for i in ids)]
+        props = [{"id": a["id"], "title": a.get("title", "")} for a in advice
+                 if a.get("action") == "new" and str(a.get("why", "")).startswith(f"{d.get('name', '')}:")]
+        out.append({**d, "agents": mine, "proposals": props})
+    return out

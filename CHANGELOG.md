@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.13 — 2026-10-12
+
+1 publications since v0.2.12.
+
+- 2026-10-12 Home page for Home Assistant devices
+
 ## v0.2.12 — 2026-10-12
 
 1 publications since v0.2.11.

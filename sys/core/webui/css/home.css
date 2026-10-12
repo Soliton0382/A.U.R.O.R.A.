@@ -1,0 +1,17 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright 2026 A.U.R.O.R.A. Project */
+/* 🏠 Casa (home.js) */
+.home-devices { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr)); gap: .8rem; }
+.home-card { border: 1px solid var(--line); border-radius: 10px; padding: .6rem .8rem; background: rgba(255, 255, 255, .02); min-width: 0; }
+.home-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem .6rem; }
+.home-head h3 { margin: 0; }
+.home-entities { display: grid; gap: .25rem; margin: .5rem 0; }
+.home-entity { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .5rem; font-size: .9rem; }
+.home-name { flex: 1 1 10rem; min-width: 0; overflow-wrap: anywhere; }
+.home-state { font-variant-numeric: tabular-nums; opacity: .85; }
+.home-number { width: 5rem; }
+.home-camera { margin: .5rem 0; }
+.home-shot { display: block; max-width: 100%; border-radius: 8px; margin-top: .3rem; }
+.home-shot:not([src]) { display: none; }
+.home-agents h4 { margin: .4rem 0 .2rem; font-size: .9rem; }
+.home-agent { font-size: .88rem; }

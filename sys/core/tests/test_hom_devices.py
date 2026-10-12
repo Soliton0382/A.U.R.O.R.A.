@@ -79,3 +79,15 @@ def test_the_plugin_groups_entities_by_device_and_leaves_services_out():
     assert devs[1]["entities"][0] == {"entity_id": "sensor.t", "domain": "sensor", "device_class": "temperature",
                                       "unit": "°C", "name": "Temp", "state": "21.5"}
     assert "entry_type" in mod.DEVICES                                      # the sun, the backup… are not devices
+
+
+def test_the_home_page_shows_each_device_with_its_agents_and_allows_only_simple_commands():
+    routines = [{"id": "r1", "title": "📷 Rilevamento", "goal": "controlla switch.camera_person_detection", "enabled": True},
+                {"id": "r2", "title": "☀️ Meteo", "goal": "il meteo"}]
+    advice = [{"id": "a1", "action": "new", "title": "📶 Segnale", "why": "Camera: un segnale debole…"},
+              {"id": "a2", "action": "new", "title": "🖨️ Toner", "why": "Printer: …"}]
+    out = {d["name"]: d for d in H.watching([CAMERA, PRINTER], routines, advice)}
+    assert [a["id"] for a in out["Camera"]["agents"]] == ["r1"] and [p["id"] for p in out["Camera"]["proposals"]] == ["a1"]
+    assert out["Printer"]["agents"] == [] and [p["id"] for p in out["Printer"]["proposals"]] == ["a2"]
+    assert "press" in H.ALLOWED["button"] and "toggle" in H.ALLOWED["switch"]
+    assert "camera" not in H.ALLOWED and "script" not in H.ALLOWED and "automation" not in H.ALLOWED
