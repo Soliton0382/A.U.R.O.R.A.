@@ -59,6 +59,7 @@ call downward (ECOSYSTEM §1).
 | `sys_update.py` | system | updates from the git repository: check (commits, files, protected files), changelog, apply fast-forward with pip, tests and rollback | git, sys_tests, sys_ethics | svc_api, svc_rem |
 | `sns_av.py` | senses | cameras and microphones of the machine: list, photo (ffmpeg/V4L2), recording (PipeWire), Whisper transcription on CPU with a filter for inventions on silence | ffmpeg, transformers | plugin senses, svc_api |
 | `sys_replay.py` | system | a request repeated after a lost connection is answered once: kept by its key (X-Aurora-Request) bound to the caller, the work never stopped by a caller going away | — | svc_api (middleware) |
+| `hom_devices.py` | system | a new device in Home Assistant gets its agents (owner, 12 Oct): the devices read every 15 min, the new ones (per user) described to the local model, up to 3 read-only agents for each, checked as Aurora's advice; proposed (level 1) or created (level 2, autonomy area «devices»); never a command | sys_routines, sys_routine_advice, sys_autonomy | api/routines (tick) |
 | `sys_routine_advice.py` | system | Aurora's advice on the agents and routines: code checks (doubles, crowded minutes, failures, plugins not ready) and her daily review, each validated; apply/dismiss | sys_routines | api/routine_advice |
 | `sys_routine_templates.py` | system | sets of agents and routines by use (config/routine_templates.json) and a user's own saved as a set; applied only where missing and possible | sys_routines | api/routine_advice |
 | `sys_social_guard.py` | system | a post repeating one of the last 7 days is not published (same link, same opening, mostly the same words) | sys_approvals | agt_loop, api/social, kno_story_auto |
@@ -203,6 +204,7 @@ call downward (ECOSYSTEM §1).
 |---|---|---|
 | `sys_env_sync.py` | compares `.env` with the schema; writes `.env.proposed` and `.env.example` | after the schema changes |
 | `bench_forge.py` | the forge's benchmark: 8 needs on Aurora's own data, each with its answer computed by code (M89, M100) | after a change to the forge |
+| `bench_agi.py` | the AGI battery (roadmap 18): reasoning, planning, honesty (false premises + invented things), over-refusal, context of a quoted answer, and the last self-repair and forge results (`--full` runs them); judged by Claude opus; one score | after a change to the model, the prompts or the pipeline |
 | `bench_honesty.py` | honesty: questions on a false premise must be corrected, controls left alone; judged by Claude (M106) | after a change to the answer prompts |
 | `bench_repair.py` | the self-repair benchmark: a realistic bug in a sandbox, the symptom to the agent, fixed if the tests turn green and the change is proposed (M104) | after a change to the repair path |
 | `bench_followup.py` | follow-up questions: typed and suggested, against their sources (M72, M73) | after a change to follow-ups |
@@ -262,7 +264,7 @@ call downward (ECOSYSTEM §1).
 | `netintel` | tool | public network data about an IP: RDAP registry, reverse DNS, AbuseIPDB reputation (read); refuses local addresses | AbuseIPDB key (optional) |
 | `web` | tool | read a public page as text, search (read); refuses local and private addresses | Brave key for search |
 | `email` | connector | unread messages, read (IMAPS); send (external, TLS only) | IMAP/SMTP settings |
-| `homeassistant` | connector | device states (read); services on devices (external) | URL, token |
+| `homeassistant` | connector | devices with maker, model and entities, states, history (read); a camera's picture described by Aurora's own vision (external: approval); services on devices (external) | URL, token |
 | `mastodon` | connector | account statistics (read); post (external) | URL, token |
 | `github` | connector | official GitHub MCP server v1.12.2 (`sys/runtime/github-mcp-server`, SHA-256 verified): get_/list_/search_ read, everything else external | AURORA_GITHUB_TOKEN |
 | `telegram` | connector | get_me, get_updates (read); send_message (external) | AURORA_TELEGRAM_BOT_TOKEN, owner chat id |

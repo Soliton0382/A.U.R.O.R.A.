@@ -43,15 +43,18 @@ AREAS: dict[str, tuple[str, dict[int, dict[str, str]]]] = {
     "study": ("machine", {0: {"AURORA_STUDY_PER_NIGHT": "0"}, 1: {"AURORA_STUDY_PER_NIGHT": "2"}, 2: {"AURORA_STUDY_PER_NIGHT": "5"}}),
     "shadow": ("machine", {0: {"AURORA_SHADOW": "0"}, 2: {"AURORA_SHADOW": "1"}}),
     "morning": ("machine", {0: {"AURORA_MORNING_HOUR": "0"}, 2: {"AURORA_MORNING_HOUR": "8"}}),
-    "train": ("machine", {0: {"AURORA_SHADOW_TRAIN_PER_NIGHT": "0"}, 2: {"AURORA_SHADOW_TRAIN_PER_NIGHT": "20"}}),
+    "train": ("machine", {0: {"AURORA_SHADOW_TRAIN_PER_NIGHT": "0"}, 2: {"AURORA_SHADOW_TRAIN_PER_NIGHT": "150"}}),
+    # owner, 2026-10-12: a new device of Home Assistant gets its agents (hom_devices)
+    "devices": ("user", {0: {"AURORA_HA_DEVICE_AGENTS": "0"}, 1: {"AURORA_HA_DEVICE_AGENTS": "1"},
+                         2: {"AURORA_HA_DEVICE_AGENTS": "2"}}),
 }
 PROFILES = {
     "careful": {"social": 0, "forge": 0, "repairs": 0, "security": 1, "updates": 1, "knowledge": 0, "inner": 2,
-                "study": 1, "shadow": 2, "morning": 2, "train": 0},
+                "study": 1, "shadow": 2, "morning": 2, "train": 0, "devices": 1},
     "balanced": {"social": 0, "forge": 0, "repairs": 1, "security": 1, "updates": 1, "knowledge": 2, "inner": 2,
-                 "study": 2, "shadow": 2, "morning": 2, "train": 2},
+                 "study": 2, "shadow": 2, "morning": 2, "train": 2, "devices": 1},
     "free": {"social": 2, "forge": 2, "repairs": 1, "security": 2, "updates": 2, "knowledge": 2, "inner": 2,
-             "study": 2, "shadow": 2, "morning": 2, "train": 2},
+             "study": 2, "shadow": 2, "morning": 2, "train": 2, "devices": 2},
 }
 EXTERNAL = {"social", "security"}       # their 🚀 acts outside the machine: level B decides
 PROVED = {"days": 30, "decided": 10, "approved": 0.9}   # what "proved good" means; shown, never acted on alone

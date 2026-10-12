@@ -905,12 +905,12 @@
    "key": "AURORA_SHADOW_TRAIN_PER_NIGHT",
    "type": "int",
    "category": "rem",
-   "recommended": "20",
-   "evidence": "owner, 2026-10-06",
+   "recommended": "150",
+   "evidence": "owner, 2026-10-06; M183",
    "min": 0,
    "max": 200,
-   "en": "Night training of the shadow: documents of the vault turned into questions and answered each night (≈75 s each), so that a question asked in other words is answered at once. 0 = off.",
-   "it": "Allenamento notturno dell'ombra: documenti del vault trasformati in domande e risolti ogni notte (≈75 s l'uno), così una domanda fatta con altre parole ha subito la risposta. 0 = spento.",
+   "en": "Night training of the shadow: documents of the vault turned into questions and answered each night (about 20 s each, M183), so that a question asked in other words is answered at once. 0 = off.",
+   "it": "Allenamento notturno dell'ombra: documenti del vault trasformati in domande e risolti ogni notte (circa 20 s l'uno), così una domanda fatta con altre parole ha subito la risposta. 0 = spento.",
    "services": [
     "aurora-api",
     "aurora-rem"
@@ -1026,10 +1026,10 @@
    "key": "AURORA_SYNAPSE_PER_NIGHT",
    "type": "int",
    "category": "search",
-   "recommended": "400",
-   "evidence": "M107",
-   "en": "Passages Aurora looks at each night to grow new links (about 1 s each).",
-   "it": "Passaggi che Aurora guarda ogni notte per far crescere nuovi collegamenti (circa 1 s ciascuno).",
+   "recommended": "2000",
+   "evidence": "M107; M183",
+   "en": "Passages Aurora looks at each night to grow new links (1-1.4 s each, M183).",
+   "it": "Passaggi che Aurora guarda ogni notte per far crescere nuovi collegamenti (1-1,4 s ciascuno, M183).",
    "services": [
     "aurora-rem"
    ],
@@ -3005,6 +3005,36 @@
    "services": [
     "aurora-api"
    ]
+  },
+  {
+   "key": "AURORA_HA_DEVICE_AGENTS",
+   "type": "int",
+   "min": 0,
+   "max": 2,
+   "category": "agents",
+   "recommended": "1",
+   "evidence": "owner, 2026-10-12: «rendiamola indipendente nel generarsi gli agenti… quando si collega un device nuovo»",
+   "en": "A new device in Home Assistant: 0 nothing; 1 Aurora proposes agents made for it (Agents and routines, «Apply»); 2 she creates them herself. Always read only: a command to a device waits for the owner.",
+   "it": "Un dispositivo nuovo in Home Assistant: 0 niente; 1 Aurora propone agenti fatti per lui (Agenti e routine, «Applica»); 2 li crea da sola. Sempre in sola lettura: un comando a un dispositivo aspetta il proprietario.",
+   "services": [
+    "aurora-api"
+   ],
+   "scope": "user"
+  },
+  {
+   "key": "AURORA_HA_DEVICE_CHECK_MIN",
+   "type": "int",
+   "min": 5,
+   "max": 1440,
+   "category": "agents",
+   "recommended": "15",
+   "evidence": "owner, 2026-10-12",
+   "en": "Minutes between two looks at the devices of Home Assistant, for new ones.",
+   "it": "Minuti tra due controlli dei dispositivi di Home Assistant, in cerca di quelli nuovi.",
+   "services": [
+    "aurora-api"
+   ],
+   "optional": true
   },
   {
    "key": "AURORA_GITHUB_TOKEN",

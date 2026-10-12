@@ -200,7 +200,37 @@ def routine_tick() -> dict:
         with sys_context.acting_as(who):
             started += [_start_routine(r) for r in sys_routines.due(cfg)]
             welcomed |= set(_welcome(sys_routines))
+            _devices_if_due(who)
     return {"started": started, "welcomed": sorted(welcomed)}
+
+
+_looking: set[str] = set()
+
+
+def _devices_if_due(who: str | None) -> None:
+    """A new device in this user's Home Assistant gets its agents (hom_devices), in the background."""
+    from aurora import hom_devices, sys_context
+    p = plugin_host().get("homeassistant")
+    if (who or "") in _looking or p is None or not p.available or not hom_devices.due(cfg):
+        return
+
+    def work(_who):
+        try:
+            out = plugin_host().call("homeassistant", "devices", {})
+            if not out.get("ok"):
+                log.warning("devices: Home Assistant not read: %s", str(out.get("text", ""))[:200])
+                return
+            report = hom_devices.welcome(cfg, pipeline()._for("service"), json.loads(out["text"]))
+            if report["new"]:
+                log.info("devices: new in Home Assistant %s; %d agents proposed, %d created", report["new"],
+                         report["proposed"], len(report["created"]))
+                note("routines", "devices.new", {"text": hom_devices.message(report)})
+        except Exception:                                # noqa: BLE001 — the next look tries again
+            log.exception("devices: the look at Home Assistant failed")
+        finally:
+            _looking.discard(_who or "")
+    _looking.add(who or "")
+    sys_context.start(work, who, name="ha-devices")
 
 
 PEOPLE = ("webui", "openai", "acquire")               # a person's runs; routines, REM, forge… are Aurora's own

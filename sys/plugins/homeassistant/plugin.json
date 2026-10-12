@@ -1,10 +1,10 @@
 {
   "name": "homeassistant",
-  "version": "1.0",
+  "version": "1.1",
   "kind": "connector",
   "description": {
-    "en": "The owner's Home Assistant: read the state of devices and sensors; commands to devices act on the physical world and wait for the owner.",
-    "it": "L'Home Assistant del proprietario: leggere lo stato di dispositivi e sensori; i comandi ai dispositivi agiscono sul mondo fisico e aspettano il proprietario."
+    "en": "The owner's Home Assistant: the devices connected, their state and history, what a camera sees (described locally); commands to devices act on the physical world and wait for the owner. A new device gets its agents proposed by Aurora.",
+    "it": "L'Home Assistant del proprietario: i dispositivi collegati, il loro stato e lo storico, cosa vede una telecamera (descritto in locale); i comandi ai dispositivi agiscono sul mondo fisico e aspettano il proprietario. A un dispositivo nuovo Aurora propone i suoi agenti."
   },
   "command": [
     "{python}",
@@ -23,6 +23,9 @@
   ],
   "effects": {
     "states": "read",
+    "devices": "read",
+    "history": "read",
+    "camera_look": "external",
     "call_service": "external",
     "*": "external"
   },

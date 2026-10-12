@@ -201,8 +201,9 @@ def due(cfg: sys_config.Config, now: float | None = None) -> bool:
     return (now or time.time()) - _load(cfg).get("reviewed", 0) >= DAY_S
 
 
-def remember(cfg: sys_config.Config, fresh: list[dict]) -> int:
-    """Aurora's new proposals kept (not those already open, applied or dismissed); how many are new."""
+def remember(cfg: sys_config.Config, fresh: list[dict], reviewed: bool = True) -> int:
+    """Aurora's new proposals kept (not those already open, applied or dismissed); how many are new. reviewed=False:
+    proposals from elsewhere (a new device, hom_devices) that leave the daily review's clock alone."""
     data = _load(cfg)
     known = {a["key"] for a in data["items"]}
     added = 0
@@ -211,7 +212,8 @@ def remember(cfg: sys_config.Config, fresh: list[dict]) -> int:
         if k not in known:
             data["items"].append({**a, "by": "aurora", "key": k, "id": k, "status": "open", "at": time.time()})
             added += 1
-    data["reviewed"] = time.time()
+    if reviewed:
+        data["reviewed"] = time.time()
     data["items"] = data["items"][-200:]
     _save(cfg, data)
     return added
