@@ -3,11 +3,12 @@
 // Interface language: it_IT / en_US. Code and comments stay in English.
 const STORE = "aurora.lang";
 let table = {};
+const extra = {};                    // the strings of this installation's own pages (js/local), by language
 export let lang = "it_IT";
 
 export async function load(code) {
   lang = code;
-  table = await (await fetch(`/static/i18n/${code}.json`)).json();
+  table = { ...(await (await fetch(`/static/i18n/${code}.json`)).json()), ...(extra[code] || {}) };
   try { localStorage.setItem(STORE, code); } catch { /* ignore */ }
   document.documentElement.lang = code.slice(0, 2);
   apply(document);
@@ -18,6 +19,11 @@ export function apply(root) {
   root.querySelectorAll("[data-i18n]").forEach((e) => { e.textContent = t(e.dataset.i18n); });
   root.querySelectorAll("[data-i18n-placeholder]").forEach((e) => { e.placeholder = t(e.dataset.i18nPlaceholder); });
   root.querySelectorAll("[data-i18n-title]").forEach((e) => { e.title = t(e.dataset.i18nTitle); });
+}
+
+export function extend(strings) {
+  for (const [code, s] of Object.entries(strings)) extra[code] = { ...(extra[code] || {}), ...s };
+  Object.assign(table, extra[lang] || {});
 }
 
 export function saved() {

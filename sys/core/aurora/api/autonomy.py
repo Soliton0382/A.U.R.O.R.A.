@@ -8,10 +8,18 @@ import asyncio
 from aurora import sys_config, sys_log
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from .core import BASE, _admin, auth, cfg, log, user_of
+from .core import BASE, _admin, auth, cfg, log, plugin_host, user_of
 from .users import admin_only
 
 router = APIRouter()
+
+
+def shown(user: str | None) -> set[str]:
+    """The areas whose feature is there and working for this user (sys_autonomy.available)."""
+    from aurora import sys_autonomy
+    plugins = [p for p in plugin_host(user or _admin()).plugins(with_tools=False) if p.available]
+    ready, social = {p.name for p in plugins}, any(p.manifest.get("social") for p in plugins)
+    return {a for a in sys_autonomy.AREAS if sys_autonomy.available(a, ready, social)}
 
 
 def _view(user: str | None) -> dict:
@@ -20,10 +28,11 @@ def _view(user: str | None) -> dict:
     lv = sys_autonomy.levels(ucfg)
     admin = user is None or user == _admin()
     may = admin or sys_autonomy.policy(cfg).get("may_choose", {}).get(user, False)
+    on = shown(user)
     areas = [{"id": a, "scope": scope, "levels": sorted(lvl), "level": lv[a],
               "mine": admin if scope == "machine" else may, "external": a in sys_autonomy.EXTERNAL}
-             for a, (scope, lvl) in sys_autonomy.AREAS.items()]
-    return {"user": user, "admin": admin, "may_choose": may, "areas": areas, "profile": sys_autonomy.profile_of(lv),
+             for a, (scope, lvl) in sys_autonomy.AREAS.items() if a in on]
+    return {"user": user, "admin": admin, "may_choose": may, "areas": areas, "profile": sys_autonomy.profile_of(lv, on),
             "profiles": sys_autonomy.PROFILES, "exempt": sys_ethics.exempt(cfg)}
 
 
@@ -58,6 +67,8 @@ async def autonomy_set(request: Request) -> dict:
         raise HTTPException(status_code=403, detail="only the admin chooses for another user")
     choice = dict(sys_autonomy.PROFILES.get(str(body.get("profile")), {})) if body.get("profile") else {}
     choice.update({str(k): int(v) for k, v in (body.get("levels") or {}).items()})
+    on = shown(target if target != admin else None)
+    choice = {a: n for a, n in choice.items() if a in on}       # a profile leaves alone what is not there
     if not choice:
         raise HTTPException(status_code=422, detail="a profile or levels")
     if target and target != admin:                       # a user: only their own areas

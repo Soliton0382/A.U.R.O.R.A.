@@ -75,6 +75,7 @@ TEXTS = {   # event -> (kind the owner chooses, view to open, {lang: title})
     "health.up": ("health", "status", {"it": "✅ Aurora è tornata a posto", "en": "✅ Aurora is fine again"}),
     "device.new": ("access", "settings", {"it": "🔐 Nuovo accesso al tuo account", "en": "🔐 A new sign-in to your account"}),
     "forge.request": ("plugin", "plugins", {"it": "🔨 Aurora chiede una nuova capacità", "en": "🔨 Aurora asks for a new capability"}),
+    "devices.new": ("home", "home", {"it": "🏠 Nuovo dispositivo in casa", "en": "🏠 A new device at home"}),
     "test": ("test", "chat", {"it": "🔔 Notifiche attive", "en": "🔔 Notifications on"}),
 }
 KINDS = {   # what the owner chooses from, in the Notifications page
@@ -102,11 +103,12 @@ KINDS = {   # what the owner chooses from, in the Notifications page
     "diet": {"it": "Pasti (il piatto consigliato dal piano alimentare, se i promemoria sono accesi)",
              "en": "Meals (the dish the diet plan proposes, when the reminders are on)"},
     "calendar": {"it": "Calendario (appuntamenti e promemoria di Aurora)", "en": "Calendar (Aurora's appointments and reminders)"},
+    "home": {"it": "Casa (dispositivi nuovi e i loro eventi)", "en": "Home (new devices and their events)"},
 }
 # the machine's: only the admin chooses them (a user is not told of the backup or the firewall)
 MACHINE = {"incident", "update", "self_review", "harvest", "plugin", "backup", "backup_ok", "cloud", "health"}
 PRESETS = {"suggested": ["incident", "approval", "update", "dream", "review", "self_review", "routine", "weather", "plugin", "creation", "backup",
-                         "cloud", "health", "access", "social", "project", "diet", "calendar"],
+                         "cloud", "health", "access", "social", "project", "diet", "calendar", "home"],
            "all": list(KINDS), "none": []}
 KNOWN_BEFORE = ["incident", "approval", "update", "dream", "self_review", "thought", "harvest"]   # prefs saved without "known"
 CHANNELS = ("push", "webui")

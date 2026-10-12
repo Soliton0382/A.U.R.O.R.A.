@@ -50,3 +50,17 @@ def test_an_area_proved_good_is_suggested_never_raised(cfg):
     assert st["social"]["approved"] == 10 and st["social"]["rate"] == 1.0 and st["social"]["proved"]
     assert st["repairs"]["refused"] == 1 and not st["repairs"]["proved"]
     assert A.levels(cfg)["social"] == 0                  # proved, and still where the owner left it
+
+
+def test_an_area_is_shown_only_while_what_it_governs_is_there():
+    """Owner, 12 Oct: «deve mostrare solo ciò che è attivo e funzionante»; and the areas that were missing."""
+    from aurora import sys_autonomy as A
+    assert {"deduce", "synapses", "review", "harvest"} <= set(A.AREAS)
+    assert not A.available("social", set(), False) and A.available("social", {"facebook"}, True)
+    assert not A.available("devices", {"weather"}, False) and A.available("devices", {"homeassistant"}, False)
+    assert A.available("synapses", set(), False)
+    for p in A.PROFILES.values():                                     # every profile says every area
+        assert set(p) == set(A.AREAS)
+    lv = {a: n for a, n in A.PROFILES["balanced"].items()}
+    lv["social"] = 2                                                   # a hidden area does not make it «custom»
+    assert A.profile_of(lv) == "custom" and A.profile_of(lv, set(A.AREAS) - {"social"}) == "balanced"

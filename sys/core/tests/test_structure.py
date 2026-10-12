@@ -50,6 +50,8 @@ def test_both_languages_have_every_text_the_interface_uses():
     assert set(it) == set(en)
     used = set()
     for f in list(WEB.rglob("*.js")) + list(WEB.glob("*.html")):
+        if "local" in f.relative_to(WEB).parts:           # an installation's own pages bring their own strings
+            continue
         s = f.read_text(encoding="utf-8")
         used |= set(re.findall(r'\bt\(\s*"([a-z][\w.]+)"', s)) | set(re.findall(r'data-i18n(?:-[a-z]+)?="([\w.]+)"', s))
         used |= set(re.findall(r'title: "(nav\.\w+)"', s))

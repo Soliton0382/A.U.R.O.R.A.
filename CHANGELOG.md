@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.14 — 2026-10-12
+
+1 publications since v0.2.13.
+
+- 2026-10-12 Casa area with tabs; Autonomy panel complete; public benchmarks (local/mixed/cloud); forge and pivot fixes
+
 ## v0.2.13 — 2026-10-12
 
 1 publications since v0.2.12.

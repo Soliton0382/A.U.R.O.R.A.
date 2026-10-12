@@ -1646,5 +1646,19 @@
   "home.propose": "💡 Propose agents",
   "home.open_routines": "Open Agents and routines",
   "home.thinking": "Aurora is thinking…",
-  "home.proposals": "{n} new proposals in Agents and routines."
+  "home.proposals": "{n} new proposals in Agents and routines.",
+  "nav.g.home": "Home",
+  "auto.area.deduce": "Night deductions",
+  "auto.what.deduce.0": "She looks for no deductions at night.",
+  "auto.what.deduce.2": "Each night she examines 6 bridges between distant fields and proposes the verified flashes of insight (💡 in Synapses).",
+  "auto.area.synapses": "Synapses growing",
+  "auto.what.synapses.0": "The synapses grow only while you use her.",
+  "auto.what.synapses.2": "Each day she looks at 2000 passages of her knowledge and links the similar ones across fields.",
+  "auto.area.review": "Second thoughts",
+  "auto.what.review.0": "She does not take up past answers again.",
+  "auto.what.review.1": "Each day she takes up one past answer and writes to you if she now knows more.",
+  "auto.what.review.2": "Each day she takes up to 3 past answers and writes to you if she now knows more.",
+  "auto.area.harvest": "Paper harvesting",
+  "auto.what.harvest.0": "The harvester is stopped: her knowledge grows only with what you import.",
+  "auto.what.harvest.2": "The harvester brings new papers into the vault from the sources and fields you chose."
 }

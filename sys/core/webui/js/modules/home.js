@@ -6,6 +6,7 @@
 import { call } from "../api.js";
 import { el, useCss } from "../dom.js";
 import { apply, t } from "../i18n.js";
+import { autonomySlot } from "./autonomy_box.js";
 
 const TOGGLE = new Set(["switch", "light", "fan", "input_boolean"]);
 const ON = new Set(["on", "open", "playing", "unlocked"]);
@@ -26,6 +27,7 @@ export default {
     apply(root);
     this.list = root.querySelector(".home-devices");
     this.out = root.querySelector(".home-out");
+    root.querySelector("h2").after(autonomySlot("devices"));      // how free Aurora is with a new device, here
     root.querySelector(".home-reload").addEventListener("click", () => this.enter());
   },
 

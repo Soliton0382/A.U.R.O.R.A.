@@ -200,20 +200,27 @@ def kinds_of(lines: list[str], most: int = 20, hours: float = 24) -> list[str]:
 
 
 def data_places(cfg: sys_config.Config) -> str:
-    """The folders the forge can mention, from the settings schema (paths only, with what they hold)."""
+    """The folders the forge can mention, from the settings schema: each with the code that finds it and what it
+    holds. A user's folder is shown as usr/<user>/…, never with the name (C268: the writer copied «usr/<name>/images»
+    into the plugin, and the forge's own check refused it three times)."""
+    from . import sys_users_layout
+    names = {n for n in (cfg.user, (sys_users_layout.migrated(cfg) or {}).get("admin")) if n}
+
+    def shown(path) -> str:
+        rel = path.resolve().relative_to(cfg.root.resolve())
+        return "/".join("<user>" if part in names else part for part in rel.parts)
     rows = []
     for s in sys_config.load_schema()["settings"]:
         if s.get("type") == "path" and not s.get("secret"):
             try:
-                rel = cfg.path(s["key"]).resolve().relative_to(cfg.root.resolve())
+                rel = shown(cfg.path(s["key"]))
             except (ValueError, KeyError):                  # outside Aurora's folder, or a key this config predates
                 continue
-            if not any(str(rel).startswith(n) for n in NEVER):
-                rows.append(f"- {rel}: {s.get('en', '')[:140]}")
-    from . import sys_users_layout                       # this user's own state (routines, approvals): its real place
-    state = sys_users_layout.place(cfg, "state", cfg.user)
-    try:
-        rows.append(f"- {state.relative_to(cfg.root.resolve())}: this user's routines.json, approvals.json, react.json")
+            if not any(rel.startswith(n) for n in NEVER):
+                rows.append(f"- {rel} — in code cfg.path(\"{s['key']}\"): {s.get('en', '')[:140]}")
+    try:                                                 # this user's own state (routines, approvals): its real place
+        rows.append(f"- {shown(sys_users_layout.place(cfg, 'state', cfg.user))} — in code "
+                    "sys_users_layout.place(cfg, \"state\", cfg.user): this user's routines.json, approvals.json, react.json")
     except ValueError:
         pass
     return "\n".join(rows[:41])

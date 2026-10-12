@@ -201,10 +201,24 @@ def routine_tick() -> dict:
             started += [_start_routine(r) for r in sys_routines.due(cfg)]
             welcomed |= set(_welcome(sys_routines))
             _devices_if_due(who)
+            _local_ticks(who)
     return {"started": started, "welcomed": sorted(welcomed)}
 
 
 _looking: set[str] = set()
+
+
+def _local_ticks(who: str | None) -> None:
+    """This installation's own extensions (aurora/local), each user's tick; nothing when there are none."""
+    import importlib.util
+    if not importlib.util.find_spec("aurora.local"):
+        return
+    from aurora import local
+    for tick in local.ticks():
+        try:
+            tick(who)
+        except Exception:                                # noqa: BLE001 — the next tick tries again
+            log.exception("local extension: tick failed")
 
 
 def _devices_if_due(who: str | None) -> None:
@@ -224,7 +238,7 @@ def _devices_if_due(who: str | None) -> None:
             if report["new"]:
                 log.info("devices: new in Home Assistant %s; %d agents proposed, %d created", report["new"],
                          report["proposed"], len(report["created"]))
-                note("routines", "devices.new", {"text": hom_devices.message(report)})
+                note("home", "devices.new", {"text": hom_devices.message(report)})
         except Exception:                                # noqa: BLE001 — the next look tries again
             log.exception("devices: the look at Home Assistant failed")
         finally:

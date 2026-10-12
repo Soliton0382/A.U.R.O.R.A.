@@ -39,6 +39,17 @@ from .sol_search import Hit, Searcher
 from .sol_writer import VaultWriter
 
 
+
+def translate_budget(question: str) -> int:
+    """Tokens for the question's English translation: room for all of it (C269), within reason."""
+    return max(200, min(4000, len(question) // 2))
+
+
+def whole(question: str, translation: str | None) -> bool:
+    """The translation can stand for the question (the pivot): not empty, and a long question not cut short."""
+    t = (translation or "").strip()
+    return bool(t) and (len(question) < 300 or len(t) >= 0.6 * len(question))
+
 class Pipeline(Stages, SelfTalk):
     def __init__(self, embedder, reranker, cfg: sys_config.Config | None = None, llm: LLM | None = None,
                  state_fn: Callable[[], dict] | None = None, user: str | None = None, index=None):
@@ -105,11 +116,13 @@ class Pipeline(Stages, SelfTalk):
         lang = txt_lang.detect(question)
         translation = None
         if lang != "en":
-            translation = self._for("translate").complete(SYS_TRANSLATE, question, 200).answer
+            # room for the whole question (C269: 200 tokens cut a long one, and with the pivot the cut translation
+            # became the question — an ARC grid of 2,187 characters lost its test)
+            translation = self._for("translate").complete(SYS_TRANSLATE, question, translate_budget(question)).answer
             ev("translate", {"from": lang, "translation": translation})
         # the English pivot (owner, 10 Oct: «la traduzione in inglese… migliora velocità e qualità, poi si traduce nella
         # lingua di chi ha scritto»): extraction, synthesis and verification in English, the answer translated back
-        self._pivot = bool(self.cfg["AURORA_PIPELINE_PIVOT_EN"] and translation and not attached)
+        self._pivot = bool(self.cfg["AURORA_PIPELINE_PIVOT_EN"] and whole(question, translation) and not attached)
         native, question = question, (translation.strip() if self._pivot else question)
         if self._pivot:
             ev("pivot", {"lang": lang})

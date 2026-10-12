@@ -33,7 +33,7 @@ export default {
       <textarea class="batch-items" rows="6"></textarea>
       <div><button class="send" data-i18n="harvest.send"></button></div>
       <div class="batch-progress"></div>`;
-    root.querySelector("h2").after(autonomySlot("knowledge", "study"));   // how free Aurora is, here (owner, 2026-10-08)
+    root.querySelector("h2").after(autonomySlot("harvest", "knowledge", "study"));   // how free Aurora is, here (owner, 2026-10-08)
     apply(root);
     this.stateBox = root.querySelector(".harvest-state");
     this.domainsBox = root.querySelector(".harvest-domains");

@@ -27,7 +27,7 @@ export default {
         <button class="syn-go" data-i18n="syn.show"></button>
       </div>
       <div class="syn-list"></div><div class="syn-more"></div>`;
-    root.querySelector("h2").after(autonomySlot("shadow", "train"));   // how free Aurora is, here (owner, 2026-10-08)
+    root.querySelector("h2").after(autonomySlot("shadow", "train", "synapses", "deduce"));   // how free Aurora is, here (owner, 2026-10-08)
     this.ded = deductionsBox();                                        // 💡 the deductions first (roadmap 77)
     root.querySelector(".syn-stats").after(this.ded);
     apply(root);

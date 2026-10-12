@@ -19,7 +19,7 @@ export default {
   mount(root) {
     root.classList.add("page");
     root.innerHTML = `<h2 data-i18n="diary.title"></h2><p class="muted" data-i18n="diary.hint"></p><div class="entries"></div>`;
-    root.querySelector("h2").after(autonomySlot("inner", "morning"));   // how free Aurora is, here (owner, 2026-10-08)
+    root.querySelector("h2").after(autonomySlot("inner", "morning", "review"));   // how free Aurora is, here (owner, 2026-10-08)
     apply(root);
     this.box = root.querySelector(".entries");
   },

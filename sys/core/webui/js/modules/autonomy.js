@@ -11,7 +11,8 @@ import { apiBack } from "../restart.js";
 
 const ICON = { 0: "🔒", 1: "🤝", 2: "🚀" };
 const AREA_ICON = { social: "📣", forge: "🧰", repairs: "🔧", security: "🛡️", updates: "⬆️", knowledge: "📚", inner: "💭",
-  study: "🌙", shadow: "🌗", morning: "☀️", train: "🏋️", devices: "🏠" };
+  study: "🌙", shadow: "🌗", morning: "☀️", train: "🏋️", devices: "🏠",
+  deduce: "💡", synapses: "🧠", review: "🔁", harvest: "🌾" };
 
 async function restart(services) {
   if (services?.length) await call("/v1/aurora/services/restart", { method: "POST", body: JSON.stringify({ services }) }).catch(() => null);

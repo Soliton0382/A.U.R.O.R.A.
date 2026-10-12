@@ -99,6 +99,12 @@ app.add_middleware(Replay)                          # a request repeated after a
 
 for _name in MODULES:                               # each area of the API is its own module (aurora/api)
     app.include_router(__import__(f"aurora.api.{_name}", fromlist=["router"]).router)
+import importlib.util  # noqa: E402
+
+if importlib.util.find_spec("aurora.local"):      # this installation's own extensions (aurora/local), if any
+    from aurora import local as _local
+    for _router in _local.routers():
+        app.include_router(_router)
 
 
 # ---- WebUI -------------------------------------------------------------------------------------

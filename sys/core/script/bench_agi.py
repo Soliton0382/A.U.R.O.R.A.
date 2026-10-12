@@ -141,11 +141,13 @@ def cases(section: str) -> list[tuple[str, str, str]]:
 
 
 def last(name: str, full: bool) -> dict:
-    """repair / autonomy: bench_repair / bench_forge, run again with --full, else their last result."""
-    script, file = {"repair": ("bench_repair.py", "repair.json"), "autonomy": ("bench_forge.py", "forge.json")}[name]
+    """repair / autonomy: bench_repair / bench_forge, run again with --full, else their last result. The forge as
+    Aurora runs it (--roles: writer and judge of the Models page), not the local model alone (forge.json, C266)."""
+    script, args, file = {"repair": ("bench_repair.py", [], "repair.json"),
+                          "autonomy": ("bench_forge.py", ["--roles"], "forge_roles.json")}[name]
     path = cfg.path("AURORA_STATUS_DIR") / "bench" / file
     if full:
-        subprocess.run([sys.executable, str(Path(__file__).with_name(script))], check=False)
+        subprocess.run([sys.executable, str(Path(__file__).with_name(script)), *args], check=False)
     try:
         d = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):

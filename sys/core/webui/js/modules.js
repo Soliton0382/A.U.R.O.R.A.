@@ -44,7 +44,12 @@ import ideas from "./modules/ideas_page.js";
 import https from "./modules/https.js";
 import home from "./modules/home.js";
 
+// this installation's own pages (js/local, never published): added when present
+let local = { views: [] };
+try { local = await import("./local/index.js"); } catch { /* none on this installation */ }
+
 export const views = [chat, approvals, reports, security, ciso, firewall, aurorafw, secDefence, secWatch, secOut, secTrace, autonomy, diary, memory, social, dj, care, home, calendar, projects, routines, models, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, settings, https, guide, bugreport, ideas];
+views.push(...local.views);
 export const widgets = [sky, alerts, metrics];
 
 // the side menu in areas (owner, 2026-10-05): an area of one page is a plain entry; the others open on a tap
@@ -52,7 +57,9 @@ export const widgets = [sky, alerts, metrics];
 export const groups = [
   { id: "chat", views: ["chat"] },
   { id: "activity", icon: "🛎️", title: "nav.g.activity", views: ["approvals", "notifications", "reports", "runs"] },
-  { id: "life", icon: "✨", title: "nav.g.life", views: ["calendar", "diary", "memory", "social", "dj", "care", "home"] },
+  { id: "life", icon: "✨", title: "nav.g.life", views: ["calendar", "diary", "memory", "social", "dj", "care"] },
+  // 🏠 the house (owner, 2026-10-12: «sotto casa avremmo tab casa e poi…»): Home Assistant's pages
+  { id: "home", icon: "🏠", title: "nav.g.home", views: ["home", ...local.views.filter((v) => v.group === "home").map((v) => v.id)] },
   { id: "work", icon: "🛠️", title: "nav.g.work", views: ["projects", "routines", "uploads"] },
   { id: "knowledge", icon: "📚", title: "nav.g.knowledge", views: ["import", "harvester", "synapses"] },
   // the security area (owner, 2026-10-08: «sotto menù specifici CISO, etc… separate e pulite»)

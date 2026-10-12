@@ -47,14 +47,27 @@ AREAS: dict[str, tuple[str, dict[int, dict[str, str]]]] = {
     # owner, 2026-10-12: a new device of Home Assistant gets its agents (hom_devices)
     "devices": ("user", {0: {"AURORA_HA_DEVICE_AGENTS": "0"}, 1: {"AURORA_HA_DEVICE_AGENTS": "1"},
                          2: {"AURORA_HA_DEVICE_AGENTS": "2"}}),
+    # owner, 2026-10-12: «rivedi la sezione autonomia perché credo che manchino delle voci»: what she did by herself
+    # with no place in the panel — the night's deductions, the synapses' growth, her second thoughts, the harvester
+    "deduce": ("machine", {0: {"AURORA_DEDUCE_PER_NIGHT": "0"}, 2: {"AURORA_DEDUCE_PER_NIGHT": "6"}}),
+    "synapses": ("machine", {0: {"AURORA_SYNAPSE_PER_NIGHT": "0"}, 2: {"AURORA_SYNAPSE_PER_NIGHT": "2000"}}),
+    "review": ("machine", {0: {"AURORA_REVIEW_PER_DAY": "0"}, 1: {"AURORA_REVIEW_PER_DAY": "1"},
+                           2: {"AURORA_REVIEW_PER_DAY": "3"}}),
+    "harvest": ("machine", {0: {"AURORA_HARVEST_ENABLED": "0"}, 2: {"AURORA_HARVEST_ENABLED": "1"}}),
 }
+# an area shown only while what it governs is there and working (owner, 2026-10-12: «deve mostrare solo ciò che è
+# attivo e funzionante»): its plugin on; the others are Aurora's own and always there
+NEEDS_PLUGIN = {"devices": "homeassistant"}
 PROFILES = {
     "careful": {"social": 0, "forge": 0, "repairs": 0, "security": 1, "updates": 1, "knowledge": 0, "inner": 2,
-                "study": 1, "shadow": 2, "morning": 2, "train": 0, "devices": 1},
+                "study": 1, "shadow": 2, "morning": 2, "train": 0, "devices": 1,
+                "deduce": 2, "synapses": 2, "review": 1, "harvest": 2},
     "balanced": {"social": 0, "forge": 0, "repairs": 1, "security": 1, "updates": 1, "knowledge": 2, "inner": 2,
-                 "study": 2, "shadow": 2, "morning": 2, "train": 2, "devices": 1},
+                 "study": 2, "shadow": 2, "morning": 2, "train": 2, "devices": 1,
+                 "deduce": 2, "synapses": 2, "review": 2, "harvest": 2},
     "free": {"social": 2, "forge": 2, "repairs": 1, "security": 2, "updates": 2, "knowledge": 2, "inner": 2,
-             "study": 2, "shadow": 2, "morning": 2, "train": 2, "devices": 2},
+             "study": 2, "shadow": 2, "morning": 2, "train": 2, "devices": 2,
+             "deduce": 2, "synapses": 2, "review": 2, "harvest": 2},
 }
 EXTERNAL = {"social", "security"}       # their 🚀 acts outside the machine: level B decides
 PROVED = {"days": 30, "decided": 10, "approved": 0.9}   # what "proved good" means; shown, never acted on alone
@@ -76,8 +89,17 @@ def levels(cfg: sys_config.Config) -> dict[str, int | None]:
     return out
 
 
-def profile_of(lv: dict[str, int | None]) -> str:
-    return next((name for name, p in PROFILES.items() if all(lv.get(a) == n for a, n in p.items())), "custom")
+def available(area: str, ready: set[str], social: bool) -> bool:
+    """Whether the area is shown: a social plugin on for «social», its plugin on for one that needs it."""
+    if area == "social":
+        return social
+    return NEEDS_PLUGIN.get(area) in ready if area in NEEDS_PLUGIN else True
+
+
+def profile_of(lv: dict[str, int | None], shown: set[str] | None = None) -> str:
+    """The profile the levels match, on the areas shown (an area hidden does not make it «custom»)."""
+    return next((name for name, p in PROFILES.items()
+                 if all(lv.get(a) == n for a, n in p.items() if shown is None or a in shown)), "custom")
 
 
 def changes(choice: dict[str, int]) -> tuple[dict[str, str], dict[str, str]]:

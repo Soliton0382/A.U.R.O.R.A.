@@ -43,3 +43,11 @@ sys/core/ethics/exemption.sig
 
 # The installer's log (it shows the API key at the end)
 install.log
+
+# This installation's own extensions (the owner's, loaded when present): never published
+sys/core/aurora/local/
+sys/core/webui/js/local/
+sys/core/webui/css/local/
+sys/core/tests/local/
+docs/local/
+sys/plugins/local_*/

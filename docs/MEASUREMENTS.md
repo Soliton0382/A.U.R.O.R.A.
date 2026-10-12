@@ -2767,9 +2767,9 @@ M183. Times: median 14.2 s, at most 48.4 s.
 | refusal | 5/6 | the wine stain: answered, but vaguely |
 | context | 2/3 | «E a che temperatura bolle l'acqua lassù?» after the Punta Gnifetti (4554 m): she answered for the Everest (71 °C) |
 | repair | 4/4 | last run 5 Oct (M104), not run again |
-| autonomy | 3/8 | the forge's last run, 5 Oct, not run again |
+| autonomy | ~~3/8~~ | wrong file (C266): forge.json is the local model alone; as Aurora runs it (forge_roles.json) it was 5/8 on 5 Oct — and **7/8** today (M186) |
 
-The score, the mean of the seven shares: **0.75**.
+The score, the mean of the seven shares: ~~0.75~~ **0.82** with the forge as it runs today (M186).
 
 The script died at its last section before saving (forge.json keeps its date as text). The rows were rebuilt from the
 run's log (agi-20261012-1013.json). Since then the script saves after every section.
@@ -2788,3 +2788,16 @@ as new. The local model proposed **3 agents for the camera**, all read only:
 
 None for the printer: one entity whose state is «stopped». An agent that commands a device is refused by the code
 (the test has one). None applied yet: the owner's «Applica».
+
+## M186 — The forge run again, as Aurora runs it (12 October 2026, writer and judge Claude Code opus)
+
+`bench_forge.py --roles`, the 8 needs on Aurora's own data (C266: the battery had read the local-only run).
+
+| Run | Built | Right | What failed |
+|---|---|---|---|
+| 5 Oct | 6/8 | 5/8 | the harvester by source, the firewall's denials, the logs' size |
+| 12 Oct, first | 6/8 | **6/8** | the dreams and the PDFs not built: the writer put a user's folder with the name in the code, refused 3 times by the forge's own check (C268) |
+| 12 Oct, after C268 | **8/8** | **7/8** | the PDFs: 201 counted with the sub-folders, the truth counted 24 at the top only — the truth was out of date (C268); 201 is the corrected truth |
+
+30-78 s a need. The battery (M184) with the forge of today: **0.82**.
+

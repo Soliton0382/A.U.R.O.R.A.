@@ -1646,5 +1646,19 @@
   "home.propose": "💡 Proponi agenti",
   "home.open_routines": "Apri Agenti e routine",
   "home.thinking": "Aurora ci pensa…",
-  "home.proposals": "{n} proposte nuove in Agenti e routine."
+  "home.proposals": "{n} proposte nuove in Agenti e routine.",
+  "nav.g.home": "Casa",
+  "auto.area.deduce": "Deduzioni notturne",
+  "auto.what.deduce.0": "Di notte non cerca deduzioni.",
+  "auto.what.deduce.2": "Ogni notte esamina 6 ponti tra campi lontani e ti propone i lampi di genio verificati (💡 in Sinapsi).",
+  "auto.area.synapses": "Crescita delle sinapsi",
+  "auto.what.synapses.0": "Le sinapsi crescono solo mentre la usi.",
+  "auto.what.synapses.2": "Ogni giorno guarda 2000 passaggi del suo sapere e collega quelli simili tra campi diversi.",
+  "auto.area.review": "Ripensamenti",
+  "auto.what.review.0": "Non riprende le risposte passate.",
+  "auto.what.review.1": "Ogni giorno riprende una risposta passata e ti scrive se ora sa di più.",
+  "auto.what.review.2": "Ogni giorno riprende fino a 3 risposte passate e ti scrive se ora sa di più.",
+  "auto.area.harvest": "Raccolta di paper (harvester)",
+  "auto.what.harvest.0": "L'harvester è fermo: il sapere cresce solo con ciò che importi tu.",
+  "auto.what.harvest.2": "L'harvester porta nel vault nuovi paper dalle fonti e dai domini che hai scelto."
 }

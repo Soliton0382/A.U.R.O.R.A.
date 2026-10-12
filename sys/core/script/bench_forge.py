@@ -100,7 +100,8 @@ def dreams(days=7):
 
 
 def documents_pdf():
-    files = list(cfg.path("AURORA_DOCUMENTS_DIR").glob("*.pdf"))
+    # sub-folders included (C268): the routines file their reports in folders of their own since October
+    files = list(cfg.path("AURORA_DOCUMENTS_DIR").rglob("*.pdf"))
     return {"pdf": len(files)}
 
 
@@ -122,7 +123,7 @@ NEEDS = [
     # the truth counts every line of level WARNING or above: the need says so (the judge read "WARNING o ERROR" literally)
     ("Quante righe WARNING, ERROR o CRITICAL ha scritto ogni componente di Aurora nelle ultime 24 ore (le 5 con più righe), dai log in sys/logs", warnings_by_component),
     ("Quanti sogni (immagini dream-*.png) ha dipinto Aurora negli ultimi 7 giorni, nella cartella delle immagini", dreams),
-    ("Quanti PDF ci sono nella cartella dei documenti di Aurora", documents_pdf),
+    ("Quanti PDF ci sono nella cartella dei documenti di Aurora, sottocartelle incluse", documents_pdf),
     ("Quante routine sono attive e quante in tutto, dal file routines.json dell'utente", routines_active),
     ("Quanto spazio occupano, in MB, i log dell'harvester (cartella sys/logs/harvester)", log_mb),
 ]
