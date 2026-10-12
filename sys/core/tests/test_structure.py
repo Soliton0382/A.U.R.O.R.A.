@@ -64,7 +64,8 @@ def test_every_page_of_the_menu_has_its_line_in_the_guide():
     ids = []
     for name in (v.strip() for v in views.split(",")):
         src = re.search(rf'import {name} from "\./modules/(\w+)\.js"', (WEB / "js/modules.js").read_text(encoding="utf-8"))
-        ids.append(re.search(r'id: "(\w+)"', (WEB / f"js/modules/{src.group(1)}.js").read_text(encoding="utf-8")).group(1))
+        js = (WEB / f"js/modules/{src.group(1)}.js").read_text(encoding="utf-8")
+        ids.append((re.search(r'id: "(\w+)"', js) or re.search(r'export default page\("(\w+)"', js)).group(1))
     assert sorted(i for i in ids if i != "guide" and f"gd.p.{i}" not in it) == []
 
 

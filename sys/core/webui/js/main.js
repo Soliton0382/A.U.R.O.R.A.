@@ -192,14 +192,16 @@ $("lang").addEventListener("change", async (ev) => {
 });
 
 // a page that belongs to a plugin shows in the menu only while the plugin is on (and connected: "social" means
-// any social platform); a failure leaves the menu whole
+// any social platform); a page may also say whether it has something to show (visible(): the house's kinds of device);
+// a failure leaves the menu whole
 async function pluginNav() {
   let list;
   try { list = await call("/v1/aurora/plugins"); } catch { return; }
   const on = (p) => p.enabled && p.available;
   for (const v of views) {
     if (!v.plugin) continue;
-    const shown = v.plugin === "social" ? list.some((p) => p.social && on(p)) : list.some((p) => p.name === v.plugin && on(p));
+    let shown = v.plugin === "social" ? list.some((p) => p.social && on(p)) : list.some((p) => p.name === v.plugin && on(p));
+    if (shown && v.visible) shown = await v.visible().catch(() => false);   // a page with nothing to show stays out
     document.querySelector(`#nav button[data-view="${v.id}"]`)?.classList.toggle("hidden", !shown || (!isAdmin && adminOnly.has(v.id)));
   }
   tidyNav();

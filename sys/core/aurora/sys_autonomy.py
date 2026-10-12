@@ -47,6 +47,8 @@ AREAS: dict[str, tuple[str, dict[int, dict[str, str]]]] = {
     # owner, 2026-10-12: a new device of Home Assistant gets its agents (hom_devices)
     "devices": ("user", {0: {"AURORA_HA_DEVICE_AGENTS": "0"}, 1: {"AURORA_HA_DEVICE_AGENTS": "1"},
                          2: {"AURORA_HA_DEVICE_AGENTS": "2"}}),
+    # owner, 2026-10-12: «se io le chiedo di farlo deve farlo automaticamente»: commands to the home's devices
+    "home": ("user", {0: {"AURORA_HA_COMMANDS": "0"}, 1: {"AURORA_HA_COMMANDS": "1"}, 2: {"AURORA_HA_COMMANDS": "2"}}),
     # owner, 2026-10-12: «rivedi la sezione autonomia perché credo che manchino delle voci»: what she did by herself
     # with no place in the panel — the night's deductions, the synapses' growth, her second thoughts, the harvester
     "deduce": ("machine", {0: {"AURORA_DEDUCE_PER_NIGHT": "0"}, 2: {"AURORA_DEDUCE_PER_NIGHT": "6"}}),
@@ -57,19 +59,19 @@ AREAS: dict[str, tuple[str, dict[int, dict[str, str]]]] = {
 }
 # an area shown only while what it governs is there and working (owner, 2026-10-12: «deve mostrare solo ciò che è
 # attivo e funzionante»): its plugin on; the others are Aurora's own and always there
-NEEDS_PLUGIN = {"devices": "homeassistant"}
+NEEDS_PLUGIN = {"devices": "homeassistant", "home": "homeassistant"}
 PROFILES = {
     "careful": {"social": 0, "forge": 0, "repairs": 0, "security": 1, "updates": 1, "knowledge": 0, "inner": 2,
-                "study": 1, "shadow": 2, "morning": 2, "train": 0, "devices": 1,
+                "study": 1, "shadow": 2, "morning": 2, "train": 0, "devices": 1, "home": 1,
                 "deduce": 2, "synapses": 2, "review": 1, "harvest": 2},
     "balanced": {"social": 0, "forge": 0, "repairs": 1, "security": 1, "updates": 1, "knowledge": 2, "inner": 2,
-                 "study": 2, "shadow": 2, "morning": 2, "train": 2, "devices": 1,
+                 "study": 2, "shadow": 2, "morning": 2, "train": 2, "devices": 1, "home": 1,
                  "deduce": 2, "synapses": 2, "review": 2, "harvest": 2},
     "free": {"social": 2, "forge": 2, "repairs": 1, "security": 2, "updates": 2, "knowledge": 2, "inner": 2,
-             "study": 2, "shadow": 2, "morning": 2, "train": 2, "devices": 2,
+             "study": 2, "shadow": 2, "morning": 2, "train": 2, "devices": 2, "home": 2,
              "deduce": 2, "synapses": 2, "review": 2, "harvest": 2},
 }
-EXTERNAL = {"social", "security"}       # their 🚀 acts outside the machine: level B decides
+EXTERNAL = {"social", "security", "home"}       # their 🚀 acts outside the machine: level B decides
 PROVED = {"days": 30, "decided": 10, "approved": 0.9}   # what "proved good" means; shown, never acted on alone
 
 

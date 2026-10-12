@@ -72,7 +72,9 @@ def plugin_settings(taken: set[str], plugins_dir: Path | None = None) -> list[di
                         "category": "plugins", "recommended": str(s.get("recommended", "")),
                         "evidence": f"plugin {m.get('name', f.parent.name)}",
                         "en": str(s.get("en") or s.get("it") or key), "it": str(s.get("it") or s.get("en") or key),
-                        "services": ["aurora-api"], "optional": True, **({"secret": True} if s.get("secret") else {})})
+                        "services": ["aurora-api"], "optional": True, **({"secret": True} if s.get("secret") else {}),
+                        # an installation's own plugin (sys/plugins/local_*, ignored by git): never in .env.example
+                        **({"private": True} if f.parent.name.startswith("local_") else {})})
     return out
 
 

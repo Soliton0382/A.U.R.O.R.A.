@@ -43,3 +43,15 @@ def test_the_sample_is_the_same_every_run_and_options_are_shuffled_with_the_righ
     assert D.sample(items, 10) == D.sample(items, 10) and len(D.sample(items, 10)) == 10 and D.sample(items, 0) == items
     opts, letter = D._shuffled("right", ["w1", "w2", "w3"], random.Random(3))
     assert opts[D.LETTERS.index(letter)] == "right" and sorted(opts) == ["right", "w1", "w2", "w3"]
+
+
+def test_what_only_aurora_has_is_scored_on_the_truth_of_now(cfg, monkeypatch):
+    from aurora import sys_config
+    monkeypatch.setattr(sys_config, "get", lambda: cfg)                # bench_forge reads the settings when imported
+    import bench_edge as E
+    nums = {"kind": "numbers", "answer": {"active": 30, "total": 31}}
+    assert E.score(nums, "Hai 30 routine attive su 31.", None)["right"]
+    assert not E.score(nums, "Non posso saperlo: non ho accesso alle tue routine.", None)["right"]
+    sw = {"kind": "onoff", "answer": {"state": "on"}}
+    assert E.score(sw, "In questo momento è acceso.", None)["right"]
+    assert not E.score(sw, "È spento.", None)["right"] and not E.score(sw, "Non lo so.", None)["right"]

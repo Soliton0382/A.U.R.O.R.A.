@@ -1,7 +1,9 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /* Copyright 2026 A.U.R.O.R.A. Project */
 /* 🏠 Casa (home.js) */
-.home-devices { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr)); gap: .8rem; }
+.home-devices { display: block; }
+.home-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr)); gap: .8rem; align-items: start; }
+.home-group { margin-bottom: 1.2rem; }
 .home-card { border: 1px solid var(--line); border-radius: 10px; padding: .6rem .8rem; background: rgba(255, 255, 255, .02); min-width: 0; }
 .home-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem .6rem; }
 .home-head h3 { margin: 0; }
@@ -15,3 +17,17 @@
 .home-shot:not([src]) { display: none; }
 .home-agents h4 { margin: .4rem 0 .2rem; font-size: .9rem; }
 .home-agent { font-size: .88rem; }
+.home-kind { margin: 1rem 0 .5rem; }
+.home-dim { flex: 1 1 8rem; min-width: 6rem; }
+/* 🎨 scenes (home_scenes.js) */
+.scene-editor { margin-bottom: .8rem; }
+.scene-form { display: flex; flex-direction: column; gap: .5rem; }
+.scene-form h4 { margin: .6rem 0 0; }
+.scene-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr)); gap: .3rem .8rem; }
+.scene-opt { display: flex; align-items: center; gap: .4rem; }
+.scene-dots { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem; }
+.scene-dot { width: .8rem; height: .8rem; border-radius: 50%; border: 1px solid var(--line); display: inline-block; padding: 0; }
+.scene-big { width: 1.6rem; height: 1.6rem; cursor: pointer; }
+.scene-chip { border-left-width: .6rem; }
+.scene-num { display: flex; align-items: center; gap: .5rem; }
+.scene-order { min-height: 1.8rem; }

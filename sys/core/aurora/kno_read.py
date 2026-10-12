@@ -23,7 +23,12 @@ from . import kno_web
 SYS_KIND = ("Classify the user's message. FACT: a fact to look up — who, when, where, how many, which one, a name, a "
             "date, a number, a cast, a song, a title, news. EXPLAIN: asks to explain a concept, how something works, "
             "why, a definition, a comparison, a method. CASE: tells a personal situation with one or more problems and "
-            "asks what to do. Reply with exactly one word: FACT, EXPLAIN or CASE.")
+            "asks what to do. SOLVE: a problem to work out by reasoning — a calculation, mathematics, logic, a puzzle, "
+            "an exercise or quiz with options to choose, code. Reply with exactly one word: FACT, EXPLAIN, CASE or SOLVE.")
+SYS_SOLVE = ("Work out the problem the user gives — mathematics, logic, a puzzle, an exercise with options, code — by "
+             "reasoning carefully, in the question's language. Follow every instruction of the question on the form of "
+             "the answer (a letter, a number, a grid, a last line «Risposta: …»). If the problem rests on a false premise, "
+             "say so. Give the reasoning in brief and the result clearly.")
 SYS_READ = ("Answer the question using ONLY the numbered texts below, in the question's language. Cite the text of "
             "every sentence like [2]. {size} If the question takes for granted something FALSE — the texts contradict "
             "it, or it is a well-known misconception — that IS the answer: say first, plainly, that the premise is "
@@ -37,11 +42,16 @@ SYS_MEMORY = ("Answer the question from what you know, in the question's languag
               "the question rests on a false premise or a common myth, say so first and correct it. If you do not know, "
               "reply exactly: NON LO SO.")
 NOT_FOUND = re.compile(r"(?i)\bNON TROVATO\b|\bNOT FOUND\b")
+# options on their own lines («A) …») or an instruction on the answer's form («Risposta: …»)
+TASK = re.compile(r"\n\s*[A-P]\)\s|(?i:\b(?:risposta|answer)\s*:)")
 
 
 def kind(p, question: str) -> str:
+    if TASK.search(question):                         # options to choose, or the answer's form asked: an exercise (C274)
+        return "solve"
     out = p._for("route").complete(SYS_KIND, question[:1500], 4).answer.strip().upper()
-    return "case" if out.startswith("CASE") else "explain" if out.startswith("EXPLAIN") else "fact"
+    return ("case" if out.startswith("CASE") else "explain" if out.startswith("EXPLAIN")
+            else "solve" if out.startswith("SOLVE") else "fact")
 
 
 def read(p, question: str, texts: list[dict], size: str) -> dict | None:
@@ -97,6 +107,20 @@ def from_vault(p, question: str, hits: list, size: str = "explain", n: int = 6) 
                                                          "source": h.soliton.source_id, "domain": h.soliton.domain}}
              for h in hits[:n]]
     return read(p, question, texts, size)
+
+
+def from_reasoning(p, question: str, ev) -> dict | None:
+    """A problem worked out by the model's own reasoning (C272: the vault and the web have no source for an exercise,
+    and the memory step — 300 tokens, no thinking — said «I don't know»): thinking on, AURORA_SOLVE_TOKENS of room."""
+    out = p._for("synthesis").complete(SYS_SOLVE, question, int(p.cfg["AURORA_SOLVE_TOKENS"]), think=True)
+    ans = (out.answer or "").strip()
+    if not ans:                                          # the room ended inside the reasoning
+        return None
+    from . import txt_lang
+    note = "🧮 Worked out by me (no source needed):" if txt_lang.detect(question) == "en" else \
+        "🧮 Ragionato da me (non serve una fonte):"
+    ev("read.reasoning", {"tokens": getattr(out, "tokens", None)})
+    return {"text": f"{note}\n\n{ans}", "sources": [], "dropped": []}
 
 
 def from_memory(p, question: str, ev) -> dict | None:

@@ -38,14 +38,17 @@ def _gap_check(agent, goal: str, report: str, emit, run_id: str, routine: str | 
         log.info("gap found after run %s: forge request %s (%s)", run_id, req["id"], need[:120])
 
 
-def _agent_job(goal: str, context: str = "", after=None, remember: bool = False, label: str | None = None):
+def _agent_job(goal: str, context: str = "", after=None, remember: bool = False, label: str | None = None,
+               asked: bool = False):
     """An agent run. `remember`: the owner asked for it, so goal and report become conversation turns
-    (with the whole path), like any other answer; the autonomic ones become reflections (`after`)."""
+    (with the whole path), like any other answer; the autonomic ones become reflections (`after`). `asked`: the goal
+    is the owner's own words (the chat, the agent page), so a home command it asks for is done (C281)."""
     def job(q, emit, run_id):
         from aurora.agt_loop import Agent
         from aurora.sol_schema import now_iso
         asked_at = now_iso()
         agent = Agent(pipeline(), cfg, notify=lambda e, p: note("agent", e, p), host=plugin_host())
+        agent.asked = asked
         ans = agent.run(goal, emit, run_id, context)
         _gap_check(agent, goal, ans.text, emit, run_id)
         if agent.produced:                             # the documents it wrote stay with its turn (downloadable)
@@ -67,7 +70,7 @@ async def agent(request: Request) -> dict:
     goal = str(body.get("goal", "")).strip()
     if not goal:
         raise HTTPException(status_code=400, detail="empty goal")
-    job = _agent_job(goal, str(body.get("context", "")), remember=body.get("remember", True) is not False)
+    job = _agent_job(goal, str(body.get("context", "")), remember=body.get("remember", True) is not False, asked=True)
     return {"run_id": start_run(goal, origin="agent", job=job)["id"]}
 
 

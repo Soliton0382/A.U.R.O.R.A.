@@ -17,6 +17,11 @@ SUMMARY = re.compile(r'"summary"\s*:\s*"((?:[^"\\]|\\.)*)', re.S)
 # had written itself after each call: «Metodo non disponibile»)
 INVOKE = re.compile(r'<invoke name="([^"]+)">(.*?)</invoke>', re.S)
 PARAM = re.compile(r'<parameter name="([^"]+)">(.*?)</parameter>', re.S)
+# and as <invoke_tool><parameter name="name">plugin__tool</parameter><parameter name="arguments">{…}</parameter>
+# (C275, 12 Oct: Claude Code haiku, a new device agent — its calls kept as the report, none made)
+INVOKE_TOOL = re.compile(r"<invoke_tool>(.*?)</invoke_tool>", re.S)
+# the start of a call in any known format: left in a reply without a call parsed, the call was cut (C278)
+OPENED = re.compile(r"<tool_call>|<invoke[ _>]|<function=|\[TOOL_CALLS\]|<\|python_tag\|>")
 # what only Aurora may write: a tool's result. A model that writes one invented it; the text stops there
 INVENTED = re.compile(r"<tool_response>|<function_results>|Tool call results|TOOL RESULT:", re.I)
 
@@ -95,13 +100,19 @@ def parse(text: str) -> tuple[str, list[str], str]:
     calls = [c for raw in CALL.findall(text) for c in (_calls_in(raw) or [raw])]
     calls += [json.dumps({"name": n, "arguments": {k: _param(v) for k, v in PARAM.findall(body)}}, ensure_ascii=False)
               for n, body in INVOKE.findall(text)]
+    for body in INVOKE_TOOL.findall(text):
+        p = dict(PARAM.findall(body))
+        if p.get("name"):
+            args = _param(p.get("arguments", "{}"))
+            calls.append(json.dumps({"name": p["name"].strip(), "arguments": args if isinstance(args, dict) else {}},
+                                    ensure_ascii=False))
     calls += [c for n, body in FUNCTION.findall(text) for c in _calls_in(json.dumps({"name": n, "arguments": _param(body)}))]
     for rx in (PYTAG, MISTRAL):
         calls += [c for raw in rx.findall(text) for c in _calls_in(raw)]
     found, rest = _mistral_args(text)
     said = rest
     calls += found
-    for rx in (CALL, INVOKE, FUNCTION, PYTAG, MISTRAL):
+    for rx in (CALL, INVOKE, INVOKE_TOOL, FUNCTION, PYTAG, MISTRAL):
         said = rx.sub("", said)
     said = re.sub(r"</?(function_calls|antml:function_calls)>", "", said).strip()
     if not calls:                                       # a reply that is only a call's JSON

@@ -3007,6 +3007,21 @@
    ]
   },
   {
+   "key": "AURORA_SOLVE_TOKENS",
+   "type": "int",
+   "min": 2000,
+   "max": 30000,
+   "category": "pipeline",
+   "recommended": "24000",
+   "evidence": "C272: AIME problems need far more than the 300 tokens of the memory step",
+   "en": "Room to reason (tokens, thinking included) for a problem to work out — a calculation, logic, an exercise with options, code. Within the local model's context per slot.",
+   "it": "Spazio per ragionare (token, pensiero compreso) su un problema da risolvere — un calcolo, la logica, un esercizio a scelta multipla, codice. Entro il contesto del modello locale per richiesta.",
+   "services": [
+    "aurora-api"
+   ],
+   "optional": true
+  },
+  {
    "key": "AURORA_HA_DEVICE_AGENTS",
    "type": "int",
    "min": 0,
@@ -3016,6 +3031,21 @@
    "evidence": "owner, 2026-10-12: «rendiamola indipendente nel generarsi gli agenti… quando si collega un device nuovo»",
    "en": "A new device in Home Assistant: 0 nothing; 1 Aurora proposes agents made for it (Agents and routines, «Apply»); 2 she creates them herself. Always read only: a command to a device waits for the owner.",
    "it": "Un dispositivo nuovo in Home Assistant: 0 niente; 1 Aurora propone agenti fatti per lui (Agenti e routine, «Applica»); 2 li crea da sola. Sempre in sola lettura: un comando a un dispositivo aspetta il proprietario.",
+   "services": [
+    "aurora-api"
+   ],
+   "scope": "user"
+  },
+  {
+   "key": "AURORA_HA_COMMANDS",
+   "type": "int",
+   "min": 0,
+   "max": 2,
+   "category": "agents",
+   "recommended": "1",
+   "evidence": "owner, 2026-10-12: «se io le chiedo di farlo deve farlo automaticamente»",
+   "en": "Commands to the home's devices (lights, plugs, scenes): 0 each waits for the owner's approval; 1 done at once when the owner asks for it in the chat, approval for those an agent or a routine decides; 2 done also when an agent or a routine decides (an installation exempted from level B only). Every command is in the activity feed.",
+   "it": "Comandi ai dispositivi di casa (luci, prese, scene): 0 ognuno aspetta la tua approvazione; 1 eseguiti subito quando li chiedi tu in chat, approvazione per quelli che decide un agente o una routine; 2 eseguiti anche quando li decide un agente o una routine (solo con l'esenzione dal livello B). Ogni comando compare nelle attività.",
    "services": [
     "aurora-api"
    ],

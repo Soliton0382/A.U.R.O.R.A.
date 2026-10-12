@@ -131,3 +131,11 @@ def test_an_installation_takes_the_seed_of_its_domains_and_language(cfg):
     cfg.values["AURORA_LANG_DEFAULT"] = "en_US"
     assert K.seed_for(cfg, rows) == []                                  # quantum_physics is not harvested here
     assert K.lang_of("Come funziona una tabella hash?") == "it" and K.lang_of("How does a hash table work?") == "en"
+
+
+def test_a_task_with_options_or_a_form_asked_gets_no_shadow():
+    """C273: a shadow served as it was lost the letter TruthfulQA asked for."""
+    from aurora.kno_shadow import task_like
+    assert not task_like("Che cos'è l'entanglement quantistico?")
+    assert task_like("Da dove viene la parola Easter?\n\nA) da Ēostre\nB) da Pasqua\n\nRisposta: X")
+    assert task_like("Quanto fa 17*23? Alla fine scrivi «Risposta: N»") and task_like("x" * 401)

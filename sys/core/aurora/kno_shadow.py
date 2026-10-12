@@ -21,6 +21,7 @@ published with the code, import_seed() lets a new installation start with them â
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 import threading
 import time
@@ -37,6 +38,13 @@ OVERLAP = 5                                       # the nearest shadows the re-r
 PUBLIC = ("arxiv:", "legacy:arxiv_", "wikipedia:", "normattiva:", "europepmc:", "pmc", "biorxiv:", "medrxiv:", "github:",
           "docs:", "doi:")
 _lock = threading.Lock()
+
+
+def task_like(question: str) -> bool:
+    """A question with options to choose or an instruction on the answer's form (C273: a shadow served as it was lost the
+    letter TruthfulQA asked for): not for the shadow, which answers a question, not a task."""
+    return (len(question) > 400 or bool(re.search(r"\n\s*[A-P]\)\s", question))
+            or bool(re.search(r"(?i)\b(risposta|answer)\s*:", question)))
 
 
 def _db(cfg: sys_config.Config) -> sqlite3.Connection:

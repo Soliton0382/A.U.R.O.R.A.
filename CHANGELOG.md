@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.16 — 2026-10-12
+
+1 publications since v0.2.15.
+
+- 2026-10-12 Agent: context per slot, compact tool catalog, cut calls asked again; home commands done when asked (Comandi di casa); scenes for any home with a guided editor; private plugins' settings out of .env.example
+
 ## v0.2.15 — 2026-10-12
 
 2 publications since v0.2.13.

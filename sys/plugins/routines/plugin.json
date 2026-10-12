@@ -1,0 +1,40 @@
+{
+  "name": "routines",
+  "version": "1.0",
+  "kind": "tool",
+  "description": {
+    "en": "Aurora's configured routines, read only: how many there are, how many are active or disabled, with name, schedule and last run of each.",
+    "it": "Le routine configurate di Aurora, sola lettura: quante sono, quante attive o disattivate, con nome, pianificazione e ultima esecuzione di ciascuna."
+  },
+  "command": [
+    "{python}",
+    "server.py"
+  ],
+  "env": [],
+  "requires": [],
+  "effects": {
+    "routines_summary": "read",
+    "routines_list": "read",
+    "*": "read"
+  },
+  "sandbox": {
+    "network": false
+  },
+  "tests": [
+    {
+      "tool": "routines_summary",
+      "args": {}
+    },
+    {
+      "tool": "routines_list",
+      "args": {
+        "only_active": false
+      }
+    }
+  ],
+  "forged": {
+    "request": "e3e1ba2d38",
+    "at": "2026-10-12T14:40:07+0200",
+    "need": "Missing capability: tool to read the list of configured routines (including their active/disabled status) from the Aurora service."
+  }
+}

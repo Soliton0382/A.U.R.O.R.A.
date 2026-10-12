@@ -80,9 +80,15 @@ class AgentReport:
         except Exception:                               # no tokenizer at hand: a safe estimate
             return len(prompt) // 3
 
+    def _ctx(self) -> int:
+        """The context of one answer: a cloud model's own; the local server's divided among its slots (C279: 65536 in
+        2 slots is 32768 each — the agent counted 65536, and its call to switch a light on was cut at 32768)."""
+        own = getattr(self._model(), "context_tokens", 0)
+        return own or int(self.cfg["AURORA_LLM_CTX"]) // max(1, int(self.cfg["AURORA_LLM_PARALLEL"] or 1))
+
     def _fit(self, messages: list[dict], want: int, emit) -> int:
         """Shorten the oldest tool results until `want` tokens fit; returns the tokens left for the answer."""
-        ctx = getattr(self._model(), "context_tokens", 0) or self.cfg["AURORA_LLM_CTX"]
+        ctx = self._ctx()
         used = self._tokens(messages)
         tools = [i for i, m in enumerate(messages) if m["role"] == "tool"]
         cut = 0

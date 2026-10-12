@@ -264,7 +264,10 @@ def answer_or_acquire(question: str, emit, run_id: str, **kw):
         return busy
     p = pipeline()
     from aurora import kno_followup
-    recent = kno_followup.with_quote(p.reader.recent(6), kw.get("quote"))      # a reply: the quoted message is the last
+    # remember=False (a test asked with everything on, C270): a question alone — no recent turn read as its context,
+    # nothing written to the memory, no shadow cast
+    remember = kw.pop("remember", True)
+    recent = kno_followup.with_quote(p.reader.recent(6) if remember else [], kw.get("quote"))   # a reply: the quoted last
     pic = None if kw.get("attached") else last_picture(recent)
     from aurora import mdl_video
     vp = None if kw.get("attached") else mdl_video.plan(p._for("route"), question, pic is not None)
@@ -276,14 +279,14 @@ def answer_or_acquire(question: str, emit, run_id: str, **kw):
     if intent == "look":                              # "cosa mostra?": the latest picture, looked at again
         from aurora.kno_attach import AttachmentHandler
         attached = AttachmentHandler(p, cfg).prepare([(pic[0], pic[1], "image/jpeg")], question, emit, run_id)
-        return p.run(question, emit=emit, run_id=run_id, attached=attached)
+        return p.run(question, emit=emit, run_id=run_id, attached=attached, remember=remember, alone=not remember)
     recent = recent[-4:]
     # a request about a connected service (GitHub, e-mail, the house...) goes to the agent, before anything else:
     # also right after an abstention, where "check my repositories" is not a "yes, search arXiv"
     if not kw.get("attached") and wants_tools(question, recent, emit):     # a connected service, not the vault
         emit("route", {"mode": "tools"})
         context = "\n".join(f"{'Owner' if t.extra.get('role') == 'user' else 'Aurora'}: {t.text[:500]}" for t in recent[-4:])
-        return _agent_job(question, context, remember=True, label=question)(question, emit, run_id)
+        return _agent_job(question, context, remember=remember, label=question, asked=True)(question, emit, run_id)
     last = recent[-1] if recent else None
     if (last is not None and last.extra.get("role") == "assistant" and last.extra.get("abstained")
             and last.extra.get("mode", "knowledge") == "knowledge" and len(question) < 200
@@ -297,12 +300,15 @@ def answer_or_acquire(question: str, emit, run_id: str, **kw):
             prev = asked.text.split(" [")[0]
             emit("acquire.confirmed", {"question": prev})
             return ArxivAgent(p, cfg).run(prev, emit, run_id)
-    if cfg["AURORA_SHADOW"] and not kw.get("attached") and not kw.get("focus") and not kw.get("quote"):
+    from aurora import kno_shadow
+    if (cfg["AURORA_SHADOW"] and not kw.get("attached") and not kw.get("focus") and not kw.get("quote")
+            and not kno_shadow.task_like(question)):          # a task with options: no shadow (C273)
         hit = shadow_answer(p, question, emit, run_id)
         if hit is not None:
             return hit
-    ans = p.run(question, emit=emit, run_id=run_id, **kw)
-    if cfg["AURORA_SHADOW"] and not ans.abstained and ans.mode == "knowledge" and ans.sources:
+    # remember=False: a question alone inside the pipeline too — no recent turn completes or rewrites it (C276)
+    ans = p.run(question, emit=emit, run_id=run_id, remember=remember, alone=not remember, **kw)
+    if remember and cfg["AURORA_SHADOW"] and not ans.abstained and ans.mode == "knowledge" and ans.sources:
         from aurora import kno_shadow                     # a verified answer casts its shadow
         kno_shadow.add(cfg, p.search.embedder, question, ans.text, ans.sources, follow=ans.suggestions)
     if (cfg["AURORA_ACQUIRE_AUTO"] and ans.abstained and ans.mode == "knowledge" and not kw.get("attached")

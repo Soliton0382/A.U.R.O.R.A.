@@ -4,13 +4,14 @@
 
 Every device Home Assistant knows is a set of entities and services, whatever its brand: the tools here are the same
 for all of them — what devices there are (devices), their state (states), what they did (history), what a camera
-sees (camera_look, described by Aurora's own vision, nothing leaves the machine) and a command (call_service, which
-waits for the owner). A new device gets its agents from Aurora (hom_devices), not new code.
+sees (camera_look, described by Aurora's own vision, nothing leaves the machine) and a command (call_service: done when
+the owner asks for it, waiting for the owner when a run decides it — AURORA_HA_COMMANDS). A new device gets its agents from Aurora (hom_devices), not new code.
 """
 from __future__ import annotations
 
 import json
 import os
+import re
 from datetime import datetime, timedelta, timezone
 
 import httpx
@@ -19,7 +20,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 
 URL = os.environ.get("AURORA_HA_URL", "").rstrip("/")
 TOKEN = os.environ.get("AURORA_HA_TOKEN", "")
-server = MCPServer("homeassistant", version="1.1")
+server = MCPServer("homeassistant", version="1.2")
 
 
 # one line per entity of a real device (Home Assistant's own services — the sun, the backup, the forecast — left out)
@@ -28,7 +29,8 @@ DEVICES = ("{%- for s in states -%}{%- set d = device_id(s.entity_id) -%}"
            "{{ s.entity_id }}\t{{ d }}\t{{ device_attr(d, 'name_by_user') or device_attr(d, 'name') or '' }}\t"
            "{{ device_attr(d, 'manufacturer') or '' }}\t{{ device_attr(d, 'model') or '' }}\t"
            "{{ s.attributes.device_class or '' }}\t{{ s.attributes.unit_of_measurement or '' }}\t"
-           "{{ s.attributes.friendly_name or '' }}\t{{ s.state }}\n{% endif -%}{%- endfor -%}")
+           "{{ s.attributes.friendly_name or '' }}\t{{ s.state }}\t{{ s.attributes.brightness or '' }}\n"
+           "{% endif -%}{%- endfor -%}")
 
 
 def _call(method: str, path: str, **kw) -> httpx.Response:
@@ -53,8 +55,11 @@ def grouped(text: str) -> list[dict]:
             continue
         eid, did, name, maker, model, dclass, unit, friendly, state = (x.strip() for x in f[:9])
         d = out.setdefault(did, {"id": did, "name": name, "manufacturer": maker, "model": model, "entities": []})
-        d["entities"].append({"entity_id": eid, "domain": eid.split(".", 1)[0], "device_class": dclass, "unit": unit,
-                              "name": friendly, "state": state})
+        e = {"entity_id": eid, "domain": eid.split(".", 1)[0], "device_class": dclass, "unit": unit, "name": friendly,
+             "state": state}
+        if len(f) > 9 and f[9].strip().isdigit():          # a light's brightness, 0-255
+            e["brightness"] = int(f[9].strip())
+        d["entities"].append(e)
     return list(out.values())
 
 
@@ -88,13 +93,20 @@ def camera_look(entity_id: str, instruction: str = "Descrivi in italiano cosa ve
     return LLM(sys_config.get()).see(jpeg, instruction)
 
 
+def words(filter: str) -> list[str]:
+    """The filter's words: one, or several separated by commas or spaces — a list written as text too (C275: an agent
+    asked «entity_id in [a, b, c]» and got «no entity»)."""
+    return [w for w in re.split(r"[\s,;\[\]()'\"]+", filter.lower()) if w and w not in ("in", "entity_id", "or", "and")]
+
+
 @server.tool()
 def states(filter: str = "", limit: int = 60) -> str:
-    """Devices and sensors with their state; `filter` keeps entity ids or names containing it."""
-    rows = []
+    """Devices and sensors with their state; `filter`: one word or several separated by commas — the entities whose id
+    or name contains any of them."""
+    rows, want = [], words(filter)
     for s in _api("GET", "/states"):
         name = s.get("attributes", {}).get("friendly_name", "")
-        if filter and filter.lower() not in s["entity_id"].lower() and filter.lower() not in name.lower():
+        if want and not any(w in s["entity_id"].lower() or w in name.lower() for w in want):
             continue
         unit = s.get("attributes", {}).get("unit_of_measurement", "")
         rows.append(f"{s['entity_id']} ({name}): {s['state']} {unit}".strip())
@@ -103,7 +115,10 @@ def states(filter: str = "", limit: int = 60) -> str:
 
 @server.tool()
 def call_service(domain: str, service: str, entity_id: str, data: dict | None = None) -> str:
-    """Run a service on a device (e.g. light.turn_off on light.kitchen): an external action, confirmed by the owner."""
+    """Run a service: light.turn_on on light.kitchen (data e.g. {"brightness_pct": 60, "hs_color": [0, 100]}),
+    switch.turn_off, scene.turn_on on scene.x, script.turn_on on script.x. Scenes and scripts belong to no device: find
+    them with states(filter="scene") or states(filter="script"). Done at once when the owner asked for it in the chat;
+    decided by an agent or a routine, it waits for the owner (AURORA_HA_COMMANDS)."""
     out = _api("POST", f"/services/{domain}/{service}", json={"entity_id": entity_id, **(data or {})})
     return f"{domain}.{service} on {entity_id}: {len(out)} states changed"
 

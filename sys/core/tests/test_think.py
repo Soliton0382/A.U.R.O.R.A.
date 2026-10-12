@@ -117,3 +117,25 @@ def test_a_web_answer_is_remembered_with_its_links(monkeypatch):
     Pipeline.remember(fake, "chi decide?", ans, "r1", lambda *a: None)
     reply = written[1].extra
     assert reply["sources"] == [] and reply["source_list"] == [web] and reply["came_from"] == "web"
+
+
+def test_a_problem_is_reasoned_first_and_never_searched_in_the_vault(run, monkeypatch):
+    """C272: an AIME problem has no source; the memory step (300 tokens, no thinking) said «I don't know»."""
+    monkeypatch.setattr(T.kno_read, "from_reasoning", lambda p, q, ev: dict(READ, text="🧮 … Risposta: 211"))
+    (r, a, _, _), calls, ev = run("auto", "solve", web=READ)
+    assert r["text"].endswith("211") and r["came_from"] == "reason" and not r["learn"] and calls == []
+    monkeypatch.setattr(T.kno_read, "from_reasoning", lambda p, q, ev: None)      # the room ended in the thought
+    (r, a, _, _), calls, ev = run("auto", "solve", web=READ)
+    assert r["came_from"] == "web" and calls == ["web(explain,pages)"]
+
+
+def test_the_reasoning_keeps_the_form_asked_and_gives_up_when_it_has_no_answer():
+    from aurora import kno_read as R
+    asked = []
+    out = SimpleNamespace(answer="Ragionando… Risposta: C", thought="…", tokens=900)
+    p = SimpleNamespace(cfg={"AURORA_SOLVE_TOKENS": 24000},
+                        _for=lambda role: SimpleNamespace(complete=lambda s, q, n, think=False: asked.append((n, think)) or out))
+    r = R.from_reasoning(p, "Quale? A) x B) y C) z. Risposta: lettera", lambda e, d: None)
+    assert r["text"].startswith("🧮") and r["text"].endswith("Risposta: C") and asked == [(24000, True)]
+    out.answer = ""
+    assert R.from_reasoning(p, "Quanto fa 2+2?", lambda e, d: None) is None

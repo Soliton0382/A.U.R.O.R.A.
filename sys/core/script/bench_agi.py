@@ -98,7 +98,8 @@ SECTIONS = ("reasoning", "planning", "honesty", "refusal", "context", "repair", 
 
 
 def ask(q: str, quote: str = "") -> dict:
-    body = {"question": q, "remember": False, **({"reply_to": {"text": quote}} if quote else {})}
+    # everything on (the tools' router, the agent, the shadow, the searches), nothing remembered (C270)
+    body = {"question": q, "remember": False, "tools": True, **({"reply_to": {"text": quote}} if quote else {})}
     run = httpx.post(f"{BASE}/v1/aurora/ask", headers=HEAD, timeout=60, json=body).json()["run_id"]
     t0, final = time.time(), None
     with httpx.stream("GET", f"{BASE}/v1/aurora/runs/{run}/events", headers=HEAD, timeout=900) as r:
@@ -108,6 +109,8 @@ def ask(q: str, quote: str = "") -> dict:
             e = json.loads(line[6:])
             if e["event"] == "answer.final":
                 final = e["payload"]
+            elif e["event"] == "agent.finish" and final is None:     # the tools' path ends with the agent's report
+                final = {"text": e["payload"].get("summary", ""), "abstained": False}
             if e["event"] == "error" or e["event"] == "run.end" and final is not None:
                 break
     return {"answer": (final or {}).get("text", ""), "abstained": bool((final or {}).get("abstained")),

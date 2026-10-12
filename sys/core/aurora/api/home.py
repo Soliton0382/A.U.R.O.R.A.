@@ -106,3 +106,57 @@ async def home_agents(device_id: str) -> dict:
         props = hom_devices.proposals(pipeline()._for("service"), d)
         return {"proposed": sys_routine_advice.remember(cfg, props, reviewed=False), "seen": len(props)}
     return await in_thread(work)
+
+
+@router.get("/v1/aurora/home/scenes", dependencies=[Depends(auth)])
+def home_scenes() -> dict:
+    """Aurora's own light scenes (hom_scenes): saved, and which are running."""
+    from aurora import hom_scenes
+    _host()
+    return {"scenes": hom_scenes.load(cfg)["scenes"], "running": hom_scenes.running(me() or "")}
+
+
+@router.post("/v1/aurora/home/scenes", dependencies=[Depends(auth)])
+async def home_scene_save(request: Request) -> dict:
+    """The guided editor of the 🏠 page: {"name", "lights", "switches", "colours", "every_s", "mode", "brightness",
+    "minutes", "was"?} — any user's own scene on their own devices; `was` renames one."""
+    from aurora import hom_scenes
+    _host()
+    b = await request.json()
+    try:
+        out = hom_scenes.save(cfg, str(b.get("name", "")), b.get("lights") or [], b.get("colours") or [],
+                              b.get("every_s", 5), str(b.get("mode", "chase")), b.get("brightness", 80),
+                              b.get("minutes", 0), b.get("switches") or [])
+    except (hom_scenes.SceneError, TypeError, ValueError) as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
+    was = hom_scenes.key(str(b.get("was", "")))
+    if was and was != hom_scenes.key(out["name"]):
+        hom_scenes.stop_scene(cfg, was, me() or "")
+        data = hom_scenes.load(cfg)
+        data["scenes"].pop(was, None)
+        hom_scenes._save(cfg, data)
+    log.info("home scene %s saved by %s", out["name"], me())
+    return out
+
+
+@router.post("/v1/aurora/home/scenes/{name}/{action}", dependencies=[Depends(auth)])
+async def home_scene(name: str, action: str) -> dict:
+    """▶ / ⏹ from the page: the user's own click (like a switch), written in the log."""
+    from aurora import hom_scenes
+    _host()
+    try:
+        if action == "start":
+            out = hom_scenes.start(cfg, name, me() or "", log=log)
+        elif action in ("stop", "off"):
+            out = {"stopped": await in_thread(lambda: hom_scenes.stop_scene(cfg, name, me() or "", action == "off"))}
+        elif action == "delete":
+            hom_scenes.stop_scene(cfg, name, me() or "")
+            data = hom_scenes.load(cfg)
+            out = {"deleted": data["scenes"].pop(hom_scenes.key(name), None) is not None}
+            hom_scenes._save(cfg, data)
+        else:
+            raise HTTPException(status_code=404, detail="start, stop, off or delete")
+    except hom_scenes.SceneError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from None
+    log.info("home scene %s: %s by %s", name, action, me())
+    return out

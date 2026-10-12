@@ -234,6 +234,8 @@ FORMATS = {
     "claude": '<invoke name="demo__read_log"><parameter name="limit">5</parameter></invoke>',
     "claude in function_calls": ('<function_calls>\n<invoke name="demo__read_log">\n<parameter name="limit">5</parameter>'
                                  '\n</invoke>\n</function_calls>'),
+    "claude invoke_tool (C275)": ('<invoke_tool>\n<parameter name="name">demo__read_log</parameter>\n'
+                                  '<parameter name="arguments">{"limit": 5}</parameter>\n</invoke_tool>'),
     "llama 3.1 function": '<function=demo__read_log>{"limit": 5}</function>',
     "llama 3.1 python_tag": '<|python_tag|>{"name": "demo__read_log", "parameters": {"limit": 5}}',
     "mistral": '[TOOL_CALLS] [{"name": "demo__read_log", "arguments": {"limit": 5}}]',
@@ -257,3 +259,85 @@ def test_a_report_with_json_in_it_is_not_a_call():
     assert parse('{"name": "Mario", "eta": 40}')[1] == []
     assert parse("Fatto. Il file contiene {\"a\": 1}.")[1] == []
     assert parse('Esempio:\n```json\n{"name": "Mario", "arguments": {}}\n```')[1] == []     # not one of Aurora's tools
+
+
+def test_a_call_cut_mid_way_is_asked_again_not_shown_as_the_answer(cfg):
+    # C278: «accendi la luce» → '<tool_call>{"name": …, "entity_id": "light.gard' (the reply cut): it was the answer
+    cut = '<tool_call>\n{"name": "demo__read_log", "arguments": {"component": "ap'
+    llm = FakeLLM([cut, call("demo__read_log", component="api"), call("finish", summary="Fatto.")])
+    agent = Agent(fake_pipeline(llm), cfg)
+    agent.host = FakeHost()
+    events = []
+    ans = agent.run("prova", lambda e, p: events.append((e, p)), "run1")
+    assert agent.host.calls == [("demo", "read_log", {"component": "api"})] and "Fatto." in ans.text
+    assert ("agent.nudge", {"reason": "cut call"}) in events and "tool_call" not in ans.text
+    assert not [p for e, p in events if e == "agent.say"]
+
+
+def test_a_catalog_too_big_for_the_context_becomes_one_line_signatures(cfg):
+    # C279: 176 tools ≈ the 32k context of the local model; the room for the answer fell to its 256-token floor
+    llm = FakeLLM([call("finish", summary="ok")])
+    llm.context_tokens = 400
+    llm.count_tokens = lambda prompt: len(prompt) // 3
+    agent = Agent(fake_pipeline(llm), cfg)
+    host = FakeHost()
+    big = {"type": "object", "required": ["domain"], "properties": {
+        "domain": {"type": "string", "description": "x" * 300}, "mode": {"enum": ["on", "off"]}}}
+    host.plugins = lambda: [SimpleNamespace(name="demo", available=True, tools=[
+        {"name": f"t{i}", "description": "does a thing " * 5, "input_schema": big, "effect": "read"} for i in range(6)])]
+    agent.host = host
+    events = []
+    agent.run("prova", lambda e, p: events.append((e, p)), "run1")
+    short = [p for e, p in events if e == "agent.compact" and "tools" in p]
+    assert short and short[0]["short_tokens"] < short[0]["prompt_tokens"]
+    from aurora.agt_loop import signature
+    line = signature({"function": {"name": "demo__t0", "description": "Turn on.", "parameters": big}})
+    assert line == "demo__t0(domain*: string, mode: on|off) Turn on."
+
+
+def test_the_local_context_is_the_servers_divided_among_its_slots(cfg):
+    cfg.values["AURORA_LLM_CTX"], cfg.values["AURORA_LLM_PARALLEL"] = 65536, 2
+    agent = Agent(fake_pipeline(SimpleNamespace()), cfg)
+    assert agent._ctx() == 32768                                  # C279: it counted 65536
+    agent.p = fake_pipeline(SimpleNamespace(context_tokens=200_000))
+    assert agent._ctx() == 200_000
+
+
+def test_a_home_command_the_owner_asked_for_is_done_one_a_run_decided_waits(cfg, monkeypatch):
+    # C281, owner 2026-10-12: «se io le chiedo di farlo deve farlo automaticamente»
+    class Home(FakeHost):
+        def plugins(self):
+            tools = [{"name": "call_service", "description": "", "input_schema": {}, "effect": "external"}]
+            return [SimpleNamespace(name="homeassistant", available=True, tools=tools)]
+
+        def get(self, plugin):
+            return SimpleNamespace(manifest={"home_commands": ["call_service"]})
+
+    def run(asked, level, exempt=False):
+        cfg.values["AURORA_CONFIRM_EXTERNAL_ACTIONS"], cfg.values["AURORA_HA_COMMANDS"] = True, level
+        monkeypatch.setattr("aurora.sys_ethics.exempt", lambda c=None: exempt)
+        llm = FakeLLM([call("homeassistant__call_service", domain="light", service="turn_on", entity_id="light.a"),
+                       call("finish", summary="ok")])
+        agent = Agent(fake_pipeline(llm), cfg)
+        agent.host, agent.asked = Home(), asked
+        agent.run("accendi la luce", lambda e, p: None, "run1")
+        return len(agent.host.calls), len(agent.approvals.list("pending"))
+
+    assert run(True, 1) == (1, 0)                       # asked in the chat: done
+    assert run(True, 0) == (0, 1)                       # 0: every command waits
+    assert run(False, 1) == (0, 2)                      # a routine's own decision waits
+    assert run(False, 2) == (0, 3)                      # 2 without the exemption from level B: still waits
+    assert run(False, 2, exempt=True) == (1, 3)
+
+
+
+def test_an_owner_only_command_never_runs_by_a_runs_own_decision(cfg, monkeypatch):
+    # disarming an alarm: done when the owner asks, never by a routine — not even at level 2 with the exemption
+    monkeypatch.setattr("aurora.sys_ethics.exempt", lambda c=None: True)
+    cfg.values["AURORA_HA_COMMANDS"] = 2
+    agent = Agent(fake_pipeline(FakeLLM([])), cfg)
+    agent.host = SimpleNamespace(get=lambda p: SimpleNamespace(manifest={"home_commands": ["arm", "disarm"],
+                                                                         "owner_only": ["disarm"]}))
+    assert agent._home_free("alarm", "arm") and not agent._home_free("alarm", "disarm")
+    agent.asked = True
+    assert agent._home_free("alarm", "disarm")

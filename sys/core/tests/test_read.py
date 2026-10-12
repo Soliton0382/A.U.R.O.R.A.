@@ -96,3 +96,14 @@ def test_not_found_in_italian_then_in_english(monkeypatch):
     out = R.from_web(_p(m), "Chi ha cantato Quando posso rivederti", lambda *a: None, "fact", True,
                      "Who sang When Can I See You Again")
     assert out["text"] == "La cantano gli Owl City [1]." and regions == ["it-it", "wt-wt"]
+
+
+def test_a_question_with_options_or_a_form_asked_is_an_exercise_without_asking_the_model():
+    """C274: MMLU questions classified FACT or EXPLAIN were answered in substance, without the letter asked."""
+    from types import SimpleNamespace
+    from aurora import kno_read as R
+    never = SimpleNamespace(_for=lambda role: (_ for _ in ()).throw(AssertionError("the model was asked")))
+    assert R.kind(never, "Quale?\n\nA) uno\nB) due\n\nAlla fine scrivi «Risposta: X»") == "solve"
+    assert R.kind(never, "Quanto fa 17*23? Risposta: N") == "solve"
+    asked = SimpleNamespace(_for=lambda role: SimpleNamespace(complete=lambda s, q, n: SimpleNamespace(answer="FACT")))
+    assert R.kind(asked, "Chi ha scritto I promessi sposi?") == "fact"

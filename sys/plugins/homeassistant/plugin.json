@@ -1,10 +1,10 @@
 {
   "name": "homeassistant",
-  "version": "1.1",
+  "version": "1.2",
   "kind": "connector",
   "description": {
-    "en": "The owner's Home Assistant: the devices connected, their state and history, what a camera sees (described locally); commands to devices act on the physical world and wait for the owner. A new device gets its agents proposed by Aurora.",
-    "it": "L'Home Assistant del proprietario: i dispositivi collegati, il loro stato e lo storico, cosa vede una telecamera (descritto in locale); i comandi ai dispositivi agiscono sul mondo fisico e aspettano il proprietario. A un dispositivo nuovo Aurora propone i suoi agenti."
+    "en": "The owner's Home Assistant: the devices connected, their state and history, what a camera sees (described locally); commands to devices and scenes: done when the owner asks for them, waiting for the owner when a run decides them. A new device gets its agents proposed by Aurora.",
+    "it": "L'Home Assistant del proprietario: i dispositivi collegati, il loro stato e lo storico, cosa vede una telecamera (descritto in locale); comandi a dispositivi e scene: eseguiti quando li chiede il proprietario, in attesa di lui quando li decide un'esecuzione automatica. A un dispositivo nuovo Aurora propone i suoi agenti."
   },
   "command": [
     "{python}",
@@ -30,7 +30,7 @@
     "*": "external"
   },
   "setup": {
-    "it": "1. In Home Assistant apri il tuo **profilo** (in basso a sinistra) → scheda **Sicurezza** → **Token di accesso a lunga durata** → *Crea token*.\n2. Aurora → **Impostazioni → Plugin**: `AURORA_HA_URL` (es. `https://homeassistant.local:8123`, meglio in HTTPS) e `AURORA_HA_TOKEN`.\n3. **▶ Prova** su `states`.\n\nI comandi ai dispositivi agiscono sul mondo fisico: passano sempre dalla tua approvazione.",
+    "it": "1. In Home Assistant apri il tuo **profilo** (in basso a sinistra) → scheda **Sicurezza** → **Token di accesso a lunga durata** → *Crea token*.\n2. Aurora → **Impostazioni → Plugin**: `AURORA_HA_URL` (es. `https://homeassistant.local:8123`, meglio in HTTPS) e `AURORA_HA_TOKEN`.\n3. **▶ Prova** su `states`.\n\nI comandi ai dispositivi agiscono sul mondo fisico: quelli che chiedi tu in chat partono subito, quelli decisi da un agente o da una routine aspettano la tua approvazione (🎚️ Autonomia → Comandi di casa).",
     "en": "Profile → Security → Long-lived access tokens → `AURORA_HA_URL`, `AURORA_HA_TOKEN`. **▶ Try** `states`.",
     "links": [
       {
@@ -46,5 +46,8 @@
         "url": "https://developers.home-assistant.io/docs/api/rest/"
       }
     ]
-  }
+  },
+  "home_commands": [
+    "call_service"
+  ]
 }

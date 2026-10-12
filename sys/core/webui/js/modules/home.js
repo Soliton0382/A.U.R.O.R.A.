@@ -3,41 +3,74 @@
 // 🏠 Casa: the devices of Home Assistant (owner, 2026-10-12: «una pagina dedicata nel menù per home assistant quando
 // risulta attivo… si possono gestire i device che espone»). Each device with its entities and their state, the simple
 // commands (a switch, a button, a number), a camera's picture and what Aurora sees in it, the agents that watch it.
+// And a page per kind of device the house really has (owner, 2026-10-12: «se crea la pagina specifica sotto casa»):
+// 💡 lights, 🔌 plugs, 📹 cameras, 🌡️ sensors — each in the menu only while a device of that kind is there.
 import { call } from "../api.js";
 import { el, useCss } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { autonomySlot } from "./autonomy_box.js";
+import { scenesBlock } from "./home_scenes.js";
 
 const TOGGLE = new Set(["switch", "light", "fan", "input_boolean"]);
 const ON = new Set(["on", "open", "playing", "unlocked"]);
+const KINDS = ["lights", "plugs", "cameras", "sensors", "other"];
 
-export default {
-  id: "home",
-  icon: "🏠",
-  title: "nav.home",
-  plugin: "homeassistant",            // in the menu only when that plugin is on
+// what a device is, from its entities: a camera, a light, a plug (it switches), sensors only, or something else
+export function kindOf(d) {
+  const has = new Set(d.entities.map((e) => e.domain));
+  if (has.has("camera")) return "cameras";
+  if (has.has("light")) return "lights";
+  if (has.has("switch") || has.has("fan")) return "plugs";
+  if ([...has].every((x) => x === "sensor" || x === "binary_sensor")) return "sensors";
+  return "other";
+}
 
+let cached = null;                    // one reading of the devices for the menu's pages (10 s)
+function devices(again = false) {
+  if (again || !cached || Date.now() - cached.at > 10_000) {
+    cached = { at: Date.now(), p: call("/v1/aurora/home/devices") };
+    cached.p.catch(() => { cached = null; });
+  }
+  return cached.p;
+}
+
+const base = {
   mount(root, ctx) {
     this.ctx = ctx;
     root.classList.add("page");
     useCss("/static/css/home.css");
-    root.innerHTML = `<h2 data-i18n="home.title"></h2><p class="muted" data-i18n="home.hint"></p>
+    root.innerHTML = `<h2 data-i18n="${this.kind ? `home.title.${this.kind}` : "home.title"}"></h2>
+      <p class="muted" data-i18n="home.hint"></p>
       <div class="appr-actions"><button class="home-reload" data-i18n="home.reload"></button>
         <span class="muted home-out"></span></div><div class="home-devices"></div>`;
     apply(root);
     this.list = root.querySelector(".home-devices");
     this.out = root.querySelector(".home-out");
-    root.querySelector("h2").after(autonomySlot("devices"));      // how free Aurora is with a new device, here
+    // how free Aurora is with a new device, and with the commands
+    if (!this.kind) root.querySelector("h2").after(autonomySlot("devices", "home"));
     root.querySelector(".home-reload").addEventListener("click", () => this.enter());
   },
 
   async enter() {
     this.out.textContent = t("home.loading");
     let r;
-    try { r = await call("/v1/aurora/home/devices"); } catch (e) { this.out.textContent = t("ev.error", { m: e.message }); return; }
+    try { r = await devices(true); } catch (e) { this.out.textContent = t("ev.error", { m: e.message }); return; }
     this.allowed = r.allowed || {};
     this.out.textContent = t(`home.level.${r.level}`);
-    this.list.replaceChildren(...(r.devices.length ? r.devices.map((d) => this.device(d)) : [el("p", "muted", t("home.none"))]));
+    const mine = this.kind ? r.devices.filter((d) => kindOf(d) === this.kind) : r.devices;
+    if (!mine.length) { this.list.replaceChildren(el("p", "muted", t("home.none"))); return; }
+    const grid = (ds) => { const g = el("div", "home-grid"); g.append(...ds.map((d) => this.device(d))); return g; };
+    const scenes = !this.kind || this.kind === "lights" ? await scenesBlock(r.devices, () => this.enter()) : null;   // 🎨
+    if (this.kind) { this.list.replaceChildren(...[scenes, grid(mine)].filter(Boolean)); return; }
+    const parts = scenes ? [scenes] : [];              // the overview: a block a kind — its title, then its own grid
+    for (const k of KINDS) {
+      const of = mine.filter((d) => kindOf(d) === k);
+      if (!of.length) continue;
+      const block = el("section", "home-group");
+      block.append(el("h3", "setting-cat home-kind", `${t(`home.kind.${k}`)} · ${of.length}`), grid(of));
+      parts.push(block);
+    }
+    this.list.replaceChildren(...parts);
   },
 
   device(d) {
@@ -58,7 +91,7 @@ export default {
     const row = el("div", "home-entity");
     const state = el("span", "home-state", `${e.state}${e.unit ? ` ${e.unit}` : ""}`);
     row.append(el("span", "home-name", e.name || e.entity_id), state);
-    const can = this.allowed[e.domain] || [];
+    const can = ["unavailable", "unknown"].includes(e.state) ? [] : (this.allowed[e.domain] || []);   // offline: no command
     const run = async (service, data, btn) => {
       btn.disabled = true;
       try {
@@ -70,6 +103,14 @@ export default {
       const b = el("button", ON.has(e.state) ? "approve" : "", ON.has(e.state) ? t("home.off") : t("home.on"));
       b.addEventListener("click", () => run(ON.has(e.state) ? "turn_off" : "turn_on", {}, b));
       row.append(b);
+      if (e.domain === "light" && ON.has(e.state)) {     // a light on: how bright, 1-100 %
+        const dim = el("input", "home-dim");
+        dim.type = "range"; dim.min = 1; dim.max = 100;
+        dim.value = e.brightness ? Math.round(Number(e.brightness) / 2.55) : 100;
+        dim.title = t("home.brightness");
+        dim.addEventListener("change", () => run("turn_on", { brightness_pct: Number(dim.value) }, dim));
+        row.append(dim);
+      }
     } else if (e.domain === "button" && can.includes("press")) {
       const b = el("button", "", t("home.press"));
       b.addEventListener("click", () => run("press", {}, b));
@@ -135,3 +176,13 @@ export default {
     return box;
   },
 };
+
+function page(id, icon, title, kind = "") {
+  return { ...base, id, icon, title, kind, plugin: "homeassistant",        // in the menu only when that plugin is on
+           ...(kind ? { group: "home", visible: async () => (await devices()).devices.some((d) => kindOf(d) === kind) } : {}) };
+}
+
+export default page("home", "🏠", "nav.home");
+// a page per kind, shown only while the house has one (main.js asks visible())
+export const kinds = [page("homelights", "💡", "nav.homelights", "lights"), page("homeplugs", "🔌", "nav.homeplugs", "plugs"),
+  page("homecameras", "📹", "nav.homecameras", "cameras"), page("homesensors", "🌡️", "nav.homesensors", "sensors")];

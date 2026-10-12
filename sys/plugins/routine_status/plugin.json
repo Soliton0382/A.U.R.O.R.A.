@@ -1,0 +1,40 @@
+{
+  "name": "routine_status",
+  "version": "1.0",
+  "kind": "tool",
+  "description": {
+    "en": "Aurora's routines per user, read only: how many there are in total, how many are active and how many suspended, with name, schedule and last run of each, read from routines.json.",
+    "it": "Le routine di Aurora per utente, sola lettura: quante sono in tutto, quante attive e quante sospese, con nome, pianificazione e ultima esecuzione di ciascuna, lette da routines.json."
+  },
+  "command": [
+    "{python}",
+    "server.py"
+  ],
+  "env": [],
+  "requires": [],
+  "effects": {
+    "routine_status_summary": "read",
+    "routine_status_list": "read",
+    "*": "read"
+  },
+  "sandbox": {
+    "network": false
+  },
+  "tests": [
+    {
+      "tool": "routine_status_summary",
+      "args": {}
+    },
+    {
+      "tool": "routine_status_list",
+      "args": {
+        "only_active": false
+      }
+    }
+  ],
+  "forged": {
+    "request": "2cb11024e1",
+    "at": "2026-10-12T14:41:16+0200",
+    "need": "Missing capability: tool to read the list of configured routines and their active/suspended status from Aurora's settings or API."
+  }
+}

@@ -18,7 +18,7 @@ from __future__ import annotations
 from . import kno_read
 
 MODES = ("vault", "light", "medium", "deep", "auto")
-KIND_IT = {"fact": "un fatto da cercare", "explain": "una spiegazione", "case": "un caso"}
+KIND_IT = {"fact": "un fatto da cercare", "explain": "una spiegazione", "case": "un caso", "solve": "un problema da risolvere"}
 
 
 def mode_of(cfg, asked: str | None) -> str:
@@ -50,9 +50,10 @@ def answer(p, question: str, translation: str | None, mode: str, retrieve, class
     deep = mode == "deep" or (mode == "auto" and kind == "case")
     open_pages = mode != "light"
     steps = []
-    if deep:
-        steps.append(("deep", lambda: ("classic", classic(*hits()))))
-    if focused and not deep:                          # a follow-up: the sources of the answer before come first
+    if kind == "solve":                               # an exercise: reasoned first, then the web, then memory (C272)
+        steps.append(("reason", lambda: ("read", kno_read.from_reasoning(p, question, ev))))
+        steps.append(("web", lambda: ("read", kno_read.from_web(p, question, ev, "explain", open_pages, translation))))
+    elif focused and not deep:                        # a follow-up: the sources of the answer before come first
         steps.append(("vault", lambda: ("read", kno_read.from_vault(p, question, hits()[0], "fact" if kind == "fact" else "explain"))))
         steps.append(("web", lambda: ("read", kno_read.from_web(p, question, ev, "fact" if kind == "fact" else "explain",
                                                                  open_pages, translation))))
@@ -60,7 +61,9 @@ def answer(p, question: str, translation: str | None, mode: str, retrieve, class
         steps.append(("web", lambda: ("read", kno_read.from_web(p, question, ev, "fact", open_pages, translation))))
         steps.append(("vault", lambda: ("read", kno_read.from_vault(p, question, hits()[0], "fact"))))
     else:
-        if not deep:
+        if deep:
+            steps.append(("deep", lambda: ("classic", classic(*hits()))))
+        else:
             steps.append(("vault", lambda: ("read", kno_read.from_vault(p, question, hits()[0], "explain"))))
         steps.append(("web", lambda: ("read", kno_read.from_web(p, question, ev, "explain" if kind != "fact" else "fact",
                                                                  open_pages, translation))))
@@ -78,7 +81,7 @@ def answer(p, question: str, translation: str | None, mode: str, retrieve, class
             say(mode, f"{KIND_IT[kind]} → {where}")
             if what == "classic":
                 return None, out, *hits()
-            out = {**out, "came_from": where, "learn": kind != "fact" and where in ("web", "memory")}
+            out = {**out, "came_from": where, "learn": kind not in ("fact", "solve") and where in ("web", "memory")}
             return out, None, *(got.get("hits", []), got.get("subs", []))
     say(mode, f"{KIND_IT[kind]} → nessuna fonte")
     return None, None, *(got.get("hits", []), got.get("subs", []))

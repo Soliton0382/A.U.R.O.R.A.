@@ -29,7 +29,7 @@ from .plg_host import PluginHost
 from .sys_approvals import Approvals, needs_owner
 
 # the parser lives in agt_calls (split 10 Oct, no monoliths); its names stay importable from here
-from .agt_calls import (BARE, CALL, FENCED, FUNCTION, INVENTED, INVOKE, MISTRAL, MISTRAL_ARGS,  # noqa: F401
+from .agt_calls import (BARE, CALL, FENCED, FUNCTION, INVENTED, INVOKE, MISTRAL, MISTRAL_ARGS, OPENED,  # noqa: F401
                         PARAM, PYTAG, SUMMARY, _call, _calls_in, _mistral_args, _param, parse, unwrap)
 
 
@@ -108,6 +108,20 @@ def plugin_cause(cfg, plugin: str, lines: int = 4) -> str:
     return ("\nThe plugin's process ended while starting; the end of its error log:\n" + "\n".join(tail)) if tail else ""
 
 
+def signature(spec: dict) -> str:
+    """A tool in one line, «name(arg*: type, …) [effect] what it does»: the catalog when the full JSON schemas would
+    fill the model's context (C279: 176 tools ≈ the whole 32k of the local model, a light switched on cut mid-call)."""
+    f = spec["function"]
+    params = f.get("parameters") or {}
+    need = set(params.get("required") or [])
+    args = []
+    for k, v in (params.get("properties") or {}).items():
+        v = v if isinstance(v, dict) else {}
+        kind = "|".join(map(str, v["enum"]))[:80] if v.get("enum") else str(v.get("type", "any"))
+        args.append(f"{k}{'*' if k in need else ''}: {kind}")
+    return f"{f['name']}({', '.join(args)}) {' '.join(str(f.get('description', '')).split())[:220]}"
+
+
 class Agent(AgentReport):
     def __init__(self, pipeline, cfg: sys_config.Config | None = None, notify=None, host: PluginHost | None = None):
         self.cfg = cfg or sys_config.get()
@@ -119,6 +133,7 @@ class Agent(AgentReport):
         # a personal agent (sys_routines, owner 2026-10-06) may be given only some plugins and its own budget
         self.allow: set[str] | None = None
         self.local_only = False                               # a private plugin was read: the local model only
+        self.asked = False                                    # the owner's own words in the chat: their consent (C281)
         self.max_steps = int(self.cfg["AURORA_AGENT_MAX_STEPS"])
         self.max_min = float(self.cfg["AURORA_AGENT_MAX_MIN"])
 
@@ -139,18 +154,48 @@ class Agent(AgentReport):
                 specs.append({"type": "function", "function": {
                     "name": name, "description": f"[{t['effect']}] {t['description']}",
                     "parameters": t["input_schema"] or {"type": "object", "properties": {}}}})
-        for t in LOOP_TOOLS:
+        from . import hom_scenes
+        for t in LOOP_TOOLS + ([hom_scenes.TOOL] if any(v[0] == "homeassistant" for v in index.values()) else []):
             specs.append({"type": "function", "function": {"name": t["name"], "description": t["description"],
                                                            "parameters": t["input_schema"]}})
         return specs, index
 
-    def _system(self, specs: list[dict]) -> str:
-        tools = "\n".join(json.dumps(s, ensure_ascii=False) for s in specs)
+    def _system(self, specs: list[dict], short: bool = False) -> str:
+        tools = "\n".join(signature(s) if short else json.dumps(s, ensure_ascii=False) for s in specs)
         return (f"{SYS_AGENT}\nNOW: {sns_clock.now_text(self.cfg)}.\n\n# Tools\n\nYou may call one or more functions "
                 f"to assist with the goal.\n\nYou are provided with function signatures within <tools></tools> XML "
                 f"tags:\n<tools>\n{tools}\n</tools>\n\nFor each function call, return a json object with function "
                 f"name and arguments within <tool_call></tool_call> XML tags:\n<tool_call>\n"
                 f'{{"name": <function-name>, "arguments": <args-json-object>}}\n</tool_call>')
+
+    def _home_free(self, plugin: str, tool: str) -> bool:
+        """A command to the home's devices (a tool the plugin lists as `home_commands`) done without asking: when the
+        owner asked for it in the chat (AURORA_HA_COMMANDS 1), or also when the run decided it (2, only with the
+        exemption from level B). Owner, 2026-10-12: «se io le chiedo di farlo deve farlo automaticamente» (C281)."""
+        m = self.host.get(plugin).manifest
+        if tool in (m.get("owner_only") or []) and not self.asked:    # e.g. disarming an alarm: never a run's own idea
+            return False
+        return tool in (m.get("home_commands") or []) and self._may_command()
+
+    def _may_command(self) -> bool:
+        level = int(self.cfg["AURORA_HA_COMMANDS"] or 0)
+        if self.asked:
+            return level >= 1
+        from . import sys_ethics
+        return level >= 2 and sys_ethics.exempt(self.cfg)
+
+    def _prompt(self, specs: list[dict], emit) -> str:
+        """The system prompt for the model of this step: the tools as one-line signatures when their full schemas
+        would take more than a third of its context (C279)."""
+        full = self._system(specs) + self._waiting()
+        ctx = self._ctx()
+        used = self._tokens([{"role": "system", "content": full}])
+        if used <= ctx // 3:
+            return full
+        short = self._system(specs, short=True) + self._waiting()
+        emit("agent.compact", {"tools": len(specs), "prompt_tokens": used, "short_tokens":
+                               self._tokens([{"role": "system", "content": short}]), "context": ctx})
+        return short
 
     def _waiting(self) -> str:
         """The plugins installed but waiting for the owner's settings: said, so a need they cover is not asked of the
@@ -232,6 +277,12 @@ class Agent(AgentReport):
         return f"PAINTED: {out['file']} ({out.get('seconds', '?')} s), shown to the owner in the conversation"
 
     def _call(self, name: str, args: dict, index: dict, emit, run_id: str) -> str:
+        if name == "home_scene":                              # Aurora's own light scenes (hom_scenes, owner 2026-10-12)
+            from . import hom_scenes
+            out = hom_scenes.tool(self.cfg, args, self._may_command(), self.log)
+            if out.startswith(("STARTED", "STOPPED")):
+                self.notify("home.command", {"title": f"home_scene.{args.get('action')}", "arguments": args})
+            return out
         if name == "create_artifact":
             return self._artifact(args, emit, run_id)
         if name == "create_picture":
@@ -291,7 +342,12 @@ class Agent(AgentReport):
         if field and isinstance(args.get(field), str):
             from . import sec_privacy
             private = [f["value"] for f in sec_privacy.findings(args[field], self.cfg, llm=self.p._for("service")) if f["sure"]]
-        if private or needs_owner(effect, self.cfg, f"{plugin}.{tool}"):
+        home = not private and self._home_free(plugin, tool)
+        if home:
+            emit("agent.home", {"plugin": plugin, "tool": tool, "asked": self.asked})
+            self.notify("home.command", {"title": f"{plugin}.{tool}", "arguments": {k: v for k, v in args.items()
+                                                                                 if k != "_purpose"}})
+        if not home and (private or needs_owner(effect, self.cfg, f"{plugin}.{tool}")):
             if private:
                 args["_purpose"] = (args.get("_purpose", "") + f" — privacy: {len(private)} sensitive "
                                     f"item(s) found, check before publishing").strip(" —")
@@ -345,8 +401,9 @@ class Agent(AgentReport):
             outer(event, payload)
         specs, index = self._catalog()
         emit("agent.start", {"goal": goal, "tools": len(specs)})
-        messages = [{"role": "system", "content": self._system(specs) + self._waiting()},
+        messages = [{"role": "system", "content": ""},
                     {"role": "user", "content": f"GOAL: {goal}" + (f"\n\nCONTEXT:\n{context}" if context else "")}]
+        model = None
         summary, steps, nudged = None, 0, 0
         self.produced: list[dict] = []                      # files made by the tools: links in the answer
         self.pending: list[str] = []                        # actions waiting for the owner: said in the report
@@ -358,24 +415,29 @@ class Agent(AgentReport):
         budget = self.cfg["AURORA_PIPELINE_THINK_TOKENS"]
         limit_s = self.max_min * 60
         while steps < self.max_steps and time.time() - t0 < limit_s:
+            if model is not self._model():                  # the first step, or the local model after private data
+                model = self._model()
+                messages[0]["content"] = self._prompt(specs, emit)
             room = self._fit(messages, budget, emit)
             c = self._model().complete_turns(messages, min(budget, room), think=True)
             text, calls, said = parse(c.answer)
+            cut = not calls and bool(OPENED.search(said))      # a call begun and never ended: not an answer (C278)
             if c.thought:
                 emit("agent.thought", {"text": c.thought[-4000:]})
                 self.trail.thought += c.thought[-2000:] + "\n\n"
-            if said:
+            if said and not cut:
                 emit("agent.say", {"text": said[:4000]})
-            if not calls and not said and nudged < 2:
+            if not calls and (not said or cut) and nudged < 2:
                 # the reasoning used the whole budget (or produced nothing): that is not the end of the work
                 nudged += 1
-                emit("agent.nudge", {"reason": "truncated" if c.truncated else "empty"})
-                messages.append({"role": "user", "content": "Your reasoning ran out of budget or produced no output. "
-                                 "Think less: call the next tool, or call finish with your report."})
+                emit("agent.nudge", {"reason": "cut call" if cut else "truncated" if c.truncated else "empty"})
+                messages.append({"role": "user", "content": "Your tool call was cut before it ended. Write it again, "
+                                 "complete and short." if cut else "Your reasoning ran out of budget or produced no "
+                                 "output. Think less: call the next tool, or call finish with your report."})
                 continue
             messages.append({"role": "assistant", "content": text})
             if not calls:
-                summary = said or None
+                summary = None if cut else said or None       # still cut: the report is written from what was found
                 break
             for raw in calls:
                 steps += 1

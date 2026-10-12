@@ -67,7 +67,7 @@ def main() -> int:
     args = ap.parse_args()
     schema = C.load_schema()
     if args.example:
-        recommended = {s["key"]: s["recommended"] for s in schema["settings"]}
+        recommended = {s["key"]: s["recommended"] for s in schema["settings"] if not s.get("private")}
         (C.CODE_ROOT / ".env.example").write_text(render(schema, recommended), encoding="utf-8")
         print(f"written {C.CODE_ROOT / '.env.example'}")
         return 0

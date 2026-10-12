@@ -201,11 +201,25 @@ def routine_tick() -> dict:
             started += [_start_routine(r) for r in sys_routines.due(cfg)]
             welcomed |= set(_welcome(sys_routines))
             _devices_if_due(who)
+            _scenes_again(who)
             _local_ticks(who)
     return {"started": started, "welcomed": sorted(welcomed)}
 
 
 _looking: set[str] = set()
+
+
+def _scenes_again(who: str | None) -> None:
+    """A light scene that was running when the API stopped starts again, with the time it had left (hom_scenes)."""
+    from aurora import hom_scenes
+    p = plugin_host().get("homeassistant")
+    if p is None or not p.available:
+        return
+    try:
+        if again := hom_scenes.resume(cfg, who or "", log):
+            log.info("scenes started again: %s", again)
+    except Exception:                                    # noqa: BLE001 — the next tick tries again
+        log.exception("scenes: not started again")
 
 
 def _local_ticks(who: str | None) -> None:
@@ -235,10 +249,13 @@ def _devices_if_due(who: str | None) -> None:
                 log.warning("devices: Home Assistant not read: %s", str(out.get("text", ""))[:200])
                 return
             report = hom_devices.welcome(cfg, pipeline()._for("service"), json.loads(out["text"]))
-            if report["new"]:
-                log.info("devices: new in Home Assistant %s; %d agents proposed, %d created", report["new"],
-                         report["proposed"], len(report["created"]))
+            if report["new"] or report.get("followed"):
+                log.info("devices: new in Home Assistant %s; %d agents proposed, %d created; renamed %s; agents "
+                         "following a new entity id: %s", report["new"], report["proposed"], len(report["created"]),
+                         report.get("renamed"), report.get("followed"))
                 note("home", "devices.new", {"text": hom_devices.message(report)})
+            elif report.get("renamed"):
+                log.info("devices: renamed in Home Assistant %s (the page and the proposals follow by id)", report["renamed"])
         except Exception:                                # noqa: BLE001 — the next look tries again
             log.exception("devices: the look at Home Assistant failed")
         finally:
