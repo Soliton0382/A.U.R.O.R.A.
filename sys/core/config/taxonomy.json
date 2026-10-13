@@ -8,172 +8,206 @@
     {
       "id": "artificial_intelligence",
       "it": "Intelligenza artificiale",
-      "en": "Artificial intelligence"
+      "en": "Artificial intelligence",
+      "about": "machine learning, neural networks, language models, AI methods and their study"
     },
     {
       "id": "computer_science",
       "it": "Informatica",
-      "en": "Computer science"
+      "en": "Computer science",
+      "about": "algorithms, data structures, theory of computation, systems, databases, hardware architecture"
     },
     {
       "id": "network_security",
       "it": "Sicurezza informatica e reti",
-      "en": "Network security"
+      "en": "Network security",
+      "about": "networks and their protocols, routing, firewalls, network defence and monitoring"
     },
     {
       "id": "cyber_security",
       "it": "Cybersicurezza",
-      "en": "Cyber security"
+      "en": "Cyber security",
+      "about": "cryptography, attacks and vulnerabilities, malware, privacy and security of software"
     },
     {
       "id": "programming",
       "it": "Programmazione",
-      "en": "Programming"
+      "en": "Programming",
+      "about": "programming languages, software engineering, libraries, their documentation and code"
     },
     {
       "id": "information_theory",
       "it": "Teoria dell'informazione",
-      "en": "Information theory"
+      "en": "Information theory",
+      "about": "information, entropy, coding and channel theory, signal compression"
     },
     {
       "id": "mathematics",
       "it": "Matematica",
-      "en": "Mathematics"
+      "en": "Mathematics",
+      "about": "pure and applied mathematics: algebra, analysis, geometry, number theory, combinatorics, logic"
     },
     {
       "id": "statistics",
       "it": "Statistica",
-      "en": "Statistics"
+      "en": "Statistics",
+      "about": "statistical methods, inference, probability applied to data"
     },
     {
       "id": "physics",
       "it": "Fisica",
-      "en": "Physics"
+      "en": "Physics",
+      "about": "general, classical, optical, fluid and atomic physics not in a narrower physics domain"
     },
     {
       "id": "quantum_physics",
       "it": "Fisica quantistica",
-      "en": "Quantum physics"
+      "en": "Quantum physics",
+      "about": "quantum mechanics, quantum information and computing"
     },
     {
       "id": "particle_physics",
       "it": "Fisica delle particelle",
-      "en": "Particle physics"
+      "en": "Particle physics",
+      "about": "high-energy, particle and nuclear physics"
     },
     {
       "id": "condensed_matter",
       "it": "Materia condensata",
-      "en": "Condensed matter"
+      "en": "Condensed matter",
+      "about": "solids, superconductivity, soft matter, statistical mechanics of materials"
     },
     {
       "id": "astrophysics",
       "it": "Astrofisica",
-      "en": "Astrophysics"
+      "en": "Astrophysics",
+      "about": "stars, galaxies, planets, cosmology and astronomical observation"
     },
     {
       "id": "relativity",
       "it": "Relatività e gravitazione",
-      "en": "Relativity and gravitation"
+      "en": "Relativity and gravitation",
+      "about": "general relativity, gravitation, black holes, gravitational waves"
     },
     {
       "id": "mathematical_physics",
       "it": "Fisica matematica",
-      "en": "Mathematical physics"
+      "en": "Mathematical physics",
+      "about": "the mathematical structures of physical theories"
     },
     {
       "id": "nonlinear_science",
       "it": "Scienza non lineare",
-      "en": "Nonlinear science"
+      "en": "Nonlinear science",
+      "about": "chaos, solitons, pattern formation, complex and dynamical systems"
     },
     {
       "id": "chemistry",
       "it": "Chimica",
-      "en": "Chemistry"
+      "en": "Chemistry",
+      "about": "chemistry and chemical physics, molecules, reactions"
     },
     {
       "id": "materials",
       "it": "Scienza dei materiali",
-      "en": "Materials science"
+      "en": "Materials science",
+      "about": "materials science: properties and making of materials"
     },
     {
       "id": "earth_science",
       "it": "Scienze della Terra",
-      "en": "Earth science"
+      "en": "Earth science",
+      "about": "geology, climate, atmosphere, oceans, geophysics"
     },
     {
       "id": "engineering",
       "it": "Ingegneria",
-      "en": "Engineering"
+      "en": "Engineering",
+      "about": "electrical, signal, control, audio and image engineering"
     },
     {
       "id": "robotics",
       "it": "Robotica",
-      "en": "Robotics"
+      "en": "Robotics",
+      "about": "robots, their control, perception and planning"
     },
     {
       "id": "biomedicine",
       "it": "Biomedicina",
-      "en": "Biomedicine"
+      "en": "Biomedicine",
+      "about": "cell and molecular biology, immunology, neuroscience, microbiology, pharmacology research"
     },
     {
       "id": "genomics",
       "it": "Genomica",
-      "en": "Genomics"
+      "en": "Genomics",
+      "about": "genomes, genetics, bioinformatics, evolutionary biology"
     },
     {
       "id": "medicine",
       "it": "Medicina",
-      "en": "Medicine"
+      "en": "Medicine",
+      "about": "clinical medicine, diseases, the human body, health care, treatments"
     },
     {
       "id": "psychology",
       "it": "Psicologia",
-      "en": "Psychology"
+      "en": "Psychology",
+      "about": "mind, behaviour, cognition, mental health"
     },
     {
       "id": "economics",
       "it": "Economia",
-      "en": "Economics"
+      "en": "Economics",
+      "about": "economics, finance, markets, business"
     },
     {
       "id": "society",
       "it": "Società",
-      "en": "Society"
+      "en": "Society",
+      "about": "politics, sociology, anthropology, education, languages, communication, sport, everyday social life"
     },
     {
       "id": "history",
       "it": "Storia",
-      "en": "History"
+      "en": "History",
+      "about": "past events, civilisations, wars, empires, historical figures, archaeology, mythologies as history of cultures"
     },
     {
       "id": "philosophy",
       "it": "Filosofia",
-      "en": "Philosophy"
+      "en": "Philosophy",
+      "about": "philosophers, schools of thought, ethics, metaphysics, epistemology, logic as philosophy"
     },
     {
       "id": "religion",
       "it": "Religione",
-      "en": "Religion"
+      "en": "Religion",
+      "about": "religions, their beliefs, scriptures, practices, gods and religious figures"
     },
     {
       "id": "literature",
       "it": "Letteratura",
-      "en": "Literature"
+      "en": "Literature",
+      "about": "literary works, writers, poetry, the arts and music and their works and artists"
     },
     {
       "id": "law_it",
       "it": "Diritto italiano",
-      "en": "Italian law"
+      "en": "Italian law",
+      "about": "Italian law only: acts, decrees and regulations of the Italian State (Normattiva) — never law in general"
     },
     {
       "id": "patents",
       "it": "Brevetti",
-      "en": "Patents"
+      "en": "Patents",
+      "about": "patents and patent applications"
     },
     {
       "id": "general",
       "it": "Generale",
-      "en": "General"
+      "en": "General",
+      "about": "geography, places, everyday objects and subjects no other domain covers"
     },
     {
       "id": "conversation",

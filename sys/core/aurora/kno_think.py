@@ -18,6 +18,7 @@ from __future__ import annotations
 from . import kno_read
 
 MODES = ("vault", "light", "medium", "deep", "auto")
+VAULT_FIRST = 0.6       # the best vault passage's re-rank that sends a FACT to the vault before the web (M194)
 KIND_IT = {"fact": "un fatto da cercare", "explain": "una spiegazione", "case": "un caso", "solve": "un problema da risolvere"}
 
 
@@ -58,8 +59,21 @@ def answer(p, question: str, translation: str | None, mode: str, retrieve, class
         steps.append(("web", lambda: ("read", kno_read.from_web(p, question, ev, "fact" if kind == "fact" else "explain",
                                                                  open_pages, translation))))
     elif kind == "fact" and not deep:
-        steps.append(("web", lambda: ("read", kno_read.from_web(p, question, ev, "fact", open_pages, translation))))
-        steps.append(("vault", lambda: ("read", kno_read.from_vault(p, question, hits()[0], "fact"))))
+        # the vault first when it is sure (the CRAG way): its best passage's re-rank ≥ VAULT_FIRST. Measured (M194):
+        # at 0.6 61 of 64 questions whose source is first in the vault read it first; 7 of 60 SimpleQA facts (not in
+        # the vault) pay one vault reading before the web. Otherwise the web first, as before (owner, 13 Oct: «prima
+        # vault e poi ricerca web… in base al contesto, se no le query diventano lunghe minuti»)
+        try:
+            best = hits()[0]
+            score = float(getattr(best[0], "rerank", 0.0)) if best else None
+        except Exception as e:  # noqa: BLE001 — the search down: the web first, as before
+            ev("read.failed", {"where": "vault_first", "error": f"{type(e).__name__}: {e}"[:200]})
+            score = None
+        sure = score is not None and score >= VAULT_FIRST
+        ev("think.vault_first", {"rerank": None if score is None else round(score, 3), "vault_first": sure})
+        web = ("web", lambda: ("read", kno_read.from_web(p, question, ev, "fact", open_pages, translation)))
+        vault = ("vault", lambda: ("read", kno_read.from_vault(p, question, hits()[0], "fact")))
+        steps += [vault, web] if sure else [web, vault]
     else:
         if deep:
             steps.append(("deep", lambda: ("classic", classic(*hits()))))

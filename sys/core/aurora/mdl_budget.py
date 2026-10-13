@@ -173,6 +173,15 @@ class Metered:
         self._trace(t0, len(system) + len(user), c.tokens)
         return c
 
+    def decide(self, system: str, user: str, options: list[str]):
+        inner = getattr(self._inner, "decide", None)       # a model without it: the caller asks in words
+        if inner is None:
+            return None
+        t0 = time.time()
+        out = inner(system, user, options)
+        self._trace(t0, len(system) + len(user), 1)
+        return out
+
     def complete_turns(self, messages: list[dict], max_tokens: int, think: bool = False):
         t0 = time.time()
         c = self._inner.complete_turns(messages, max_tokens, think)

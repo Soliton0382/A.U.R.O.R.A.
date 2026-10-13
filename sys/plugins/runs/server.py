@@ -104,7 +104,7 @@ def runs_previous(query: str = "", n: int = 1, skip: int = 0, event: str = "rout
 
 @server.tool()
 def runs_list(hours: float = 168, query: str = "", event: str = "routine") -> str:
-    """Elenco delle esecuzioni di routine nelle ultime ore: data, titolo e prima riga del resoconto."""
+    """The routine runs of the last hours: date, title and the report's first line."""
     try:
         since = time.time() - float(hours) * 3600
         evs = [e for e in _events() if _ts(e) >= since and _match(e, query, event)]
@@ -123,7 +123,7 @@ def runs_list(hours: float = 168, query: str = "", event: str = "routine") -> st
 
 @server.tool()
 def runs_links(query: str = "", hours: float = 72, event: str = "routine") -> str:
-    """I link (URL) già citati nei resoconti precedenti delle ultime ore, per riportare solo notizie nuove."""
+    """The links (URLs) already cited in the reports of the last hours, to report only new news."""
     try:
         since = time.time() - float(hours) * 3600
         evs = [e for e in _events() if _ts(e) >= since and _match(e, query, event)]

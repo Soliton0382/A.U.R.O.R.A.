@@ -8,9 +8,10 @@ that — written by the model that reviews it, never its answer: a lesson that h
 answer that the question itself did not hold is refused (_leaks). The lessons live apart from the vault and from the
 shadow (which keep facts and answers): <STATUS>/lessons.jsonl, each with the situation it is for («when»), what to do
 («do»), where it came from and how many times it was learned again.
-At an answer, the two lessons whose situation is closest to the question (cosine ≥ MIN_COS on the encoder) are added
-to the reading prompts (kno_read) as her experience; a run asked with "lessons": false reads none, so a benchmark
-can measure them: the same questions with and without, and new questions (another sample) for whether they generalise.
+At an answer, the lessons that fit the question (at most two, picked by the route model reading them) are added
+to the reading prompts (kno_read) as her experience — only for a run asked with "lessons": true: the trial of 13 Oct
+(M191: the same questions 82 → 83 of 98, new ones 92 → 91 of 108, the questions that got a lesson 27 → 27) measured
+no effect, so they are off by default; the code stays for a better idea of how to use them.
 """
 from __future__ import annotations
 

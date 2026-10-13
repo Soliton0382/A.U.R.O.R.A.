@@ -207,7 +207,7 @@ class ArxivAgent:
                 try:
                     if e.source == "arxiv":
                         domain = domain_of(e.category, self.table)
-                        name, data = kno_arxiv.paper(e.arxiv_id, e.pdf, self._polite_get)   # HTML first (C137)
+                        name, data = kno_arxiv.paper(e.arxiv_id, e.pdf, self._polite_get)   # HTML only (C137): NoHTML is a ValueError
                         rep = self.importer.add(name, data, domain, title=e.title,
                                                 origin=f"arxiv:{e.arxiv_id}", run_id=run_id)
                     else:                                 # chosen among all the sources: its domain, its licence

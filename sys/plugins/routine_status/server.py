@@ -92,7 +92,7 @@ def _load(user_filter: str) -> tuple[list[tuple[str, list[dict]]], list[str]]:
 
 @server.tool()
 def routine_status_summary(user: str = "") -> str:
-    """Quante routine ci sono in tutto, quante attive e quante sospese, per utente (user vuoto = tutti)."""
+    """How many routines there are in all, how many active and how many suspended, per user (empty user = everyone)."""
     try:
         found, problems = _load(user.strip())
         if not found:
@@ -122,7 +122,7 @@ def routine_status_summary(user: str = "") -> str:
 
 @server.tool()
 def routine_status_list(user: str = "", only_active: bool = False) -> str:
-    """Elenco delle routine (nome, stato, pianificazione, ultima esecuzione); user vuoto = tutti, only_active per le sole attive."""
+    """The list of routines (name, state, schedule, last run); empty user = everyone, only_active for the active ones only."""
     try:
         found, problems = _load(user.strip())
         if not found:

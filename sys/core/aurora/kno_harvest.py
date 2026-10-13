@@ -20,16 +20,43 @@ from . import sys_config
 
 _NEW = re.compile(r"(?<![\d.])(\d{4}\.\d{4,5})(?:v\d+)?(?![\d])")
 _OLD = re.compile(r"\b([a-z][a-z\-]+(?:\.[A-Z]{2})?/\d{7})(?:v\d+)?\b")
+_WIKI = re.compile(r"https?://([a-z]{2,3})\.(?:m\.)?wikipedia\.org/wiki/([^\s#?]+)(?:\s+([a-z_]+))?")
 MAX_BATCH = 200
 
 
+def possible(arxiv_id: str, now: float | None = None) -> bool:
+    """A new-style id that could exist: its YYMM a month from April 2007 (the scheme's start) to this one (13 Oct:
+    «9999.99999» was asked, «not found on arXiv», and stayed on the page as if it were a count)."""
+    if "/" in arxiv_id:
+        return True                                   # the old scheme (hep-th/9901001): its own checks at arXiv
+    yy, mm = int(arxiv_id[:2]), int(arxiv_id[2:4])
+    t = time.gmtime(now or time.time())
+    return 1 <= mm <= 12 and (7, 4) <= (yy, mm) <= (t.tm_year % 100, t.tm_mon)
+
+
 def parse_items(text: str) -> tuple[list[str], list[str]]:
-    """(arXiv ids, lines that are not arXiv) from free text: ids, arXiv:ids, abs/pdf links, one per line."""
+    """(items, lines not taken) from free text, one per line: arXiv ids, arXiv:ids, abs/pdf links — an id that cannot
+    exist (a month 13, a date to come) is said among the lines not taken — and Wikipedia links, optionally followed by
+    the domain to put the article in («https://en.wikipedia.org/wiki/Cold_fusion physics»; otherwise the harvester
+    chooses it by reading the article: kno_domain)."""
     ids, unsupported = [], []
     for line in (x.strip() for x in text.splitlines()):
         if not line:
             continue
+        w = _WIKI.search(line)
+        if w:                                         # a Wikipedia article, in the domain written after it (general)
+            from urllib.parse import unquote
+            item = f"wikipedia:{w.group(1)}:{unquote(w.group(2)).replace('_', ' ')}@{w.group(3) or ''}"   # "": read
+            if item not in ids:
+                ids.append(item)
+            continue
         found = _NEW.findall(line) or _OLD.findall(line)
+        bad = [f for f in found if not possible(f)]
+        if bad:
+            unsupported.append(f"{line[:180]} — id impossibile: {', '.join(bad)}")
+            found = [f for f in found if possible(f)]
+            if not found:
+                continue
         if found and ("arxiv" in line.lower() or re.fullmatch(r"[\w:./\-\s,;]+", line)):
             ids += [f for f in found if f not in ids]
         else:

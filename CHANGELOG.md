@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.18 — 2026-10-13
+
+1 publications since v0.2.17.
+
+- 2026-10-13 Vault realigned (one copy, right domain, arXiv as HTML), one-token router 2x faster, nightly vault audit, device known by MAC, bioRxiv latest version
+
 ## v0.2.17 — 2026-10-13
 
 1 publications since v0.2.16.

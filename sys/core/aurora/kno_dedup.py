@@ -22,22 +22,41 @@ import threading
 
 from . import sys_config
 
-K, SAME = 32, 0.5
+K, SAME, SAME_SHORT = 32, 0.5, 0.7
 # an official identity: two documents that both have one, different, are two documents — Normattiva has hundreds of
 # acts with one title and nearly one text ("Modificazioni allo statuto dell'Università di Roma", 226 acts): without
 # this rule 38,625 pairs of distinct acts looked like copies (measured before switching the check on)
 OFFICIAL = ("normattiva:", "arxiv:", "europepmc:", "pmc", "biorxiv:", "medrxiv:", "github:", "wikipedia:", "docs:", "doi:")
 
 
+_LEGACY_WIKI = re.compile(r"^legacy:wiki_(.+?)(?:_txt_done|_done)?$")
+
+
 def official(origin: str) -> str:
-    return origin if (origin or "").lower().startswith(OFFICIAL) else ""
+    """The document's official identity, or "": the v1 Wikipedia articles («legacy:wiki_Karl_Marx_txt_done») are
+    «wikipedia:Karl Marx», as the v2 harvester names them (13 Oct: 8 such articles were in the vault twice)."""
+    o = origin or ""
+    m = _LEGACY_WIKI.match(o)
+    if m:
+        return "wikipedia:" + m.group(1).replace("_", " ").strip()
+    return o if o.lower().startswith(OFFICIAL) else ""
+
+
+def scheme(identity: str) -> str:
+    """The archive of an identity: «arxiv», «biorxiv», «normattiva», «wikipedia»… — a preprint posted on two archives
+    (13 Oct: one paper on bioRxiv and on arXiv, in two domains) is one document, two acts of Normattiva are two."""
+    return identity.split(":", 1)[0].lower()
+
+
+def same_identity(a: str, b: str) -> bool:
+    return bool(a) and a.lower() == b.lower()
 _lock = threading.Lock()
 _index: dict[str, dict[str, list]] = {}          # root -> title key -> [(domain, source_id, lang, signature)]
 
 
 def title_key(title: str) -> str:
     t = re.sub(r"\W+", " ", (title or "").lower()).strip()
-    return t if len(t) >= 12 else ""
+    return t if len(t) >= 4 else ""
 
 
 def signature(text: str) -> list[int]:
@@ -58,8 +77,8 @@ def _build(cfg: sys_config.Config, reader) -> dict[str, list]:
     meta: dict[tuple, tuple] = {}
     for dom in reader.layout.domains("knowledge"):
         for _k, _r, s in reader.iter_domain(dom):
-            key = title_key(s.title)
-            if key and s.chunk_index < 3:                 # the first passages carry the document's words
+            key = title_key(s.title)                      # "" too: a document without a title has its identity
+            if s.chunk_index < 3:                         # the first passages carry the document's words
                 first.setdefault((dom, s.source_id), []).append(s.text)
                 meta[(dom, s.source_id)] = (key, s.lang, official(str((s.extra or {}).get("origin") or s.source_id)))
     out: dict[str, list] = {}
@@ -70,20 +89,28 @@ def _build(cfg: sys_config.Config, reader) -> dict[str, list]:
 
 
 def find(cfg: sys_config.Config, reader, title: str, lang: str, first_text: str, origin: str = "") -> tuple[str, str] | None:
-    """(domain, source_id) of the document already in the vault that this one copies, or None."""
-    key = title_key(title)
-    if not key:
-        return None
+    """(domain, source_id) of the document already in the vault that this one copies, or None. The same official
+    identity (an arXiv id, a Wikipedia article, a PMC id…) is the same document whatever its title, text or domain:
+    an arXiv paper taken once as HTML and once as PDF shared under half its words and went in twice, in two domains
+    (13 Oct); a short title («Karl Marx», 9 characters) was not looked at."""
     root = str(cfg.root)
+    mine = official(origin)
     with _lock:
         if root not in _index:
             _index[root] = _build(cfg, reader)
-        known = list(_index[root].get(key, []))
-    sig, mine = signature(first_text), official(origin)
+        if mine:
+            for entries in _index[root].values():
+                for dom, src, _lg, _sig, theirs in entries:
+                    if same_identity(mine, theirs) or same_identity(mine, official(src)):
+                        return dom, src
+        key = title_key(title)
+        known = list(_index[root].get(key, [])) if key else []
+    sig = signature(first_text)
+    need = SAME if len(key) >= 12 else SAME_SHORT      # a short title is often a generic one: more words in common
     for dom, src, lg, other, theirs in known:
-        if mine and theirs and mine != theirs:
-            continue                                  # two official identities: two documents
-        if lg == lang and similarity(sig, other) >= SAME:
+        if mine and theirs and mine != theirs and scheme(mine) == scheme(theirs):
+            continue                                  # two identities of one archive (two Normattiva acts): two documents
+        if lg == lang and similarity(sig, other) >= need:     # across archives (bioRxiv and arXiv) the text decides
             return dom, src
     return None
 
@@ -95,3 +122,22 @@ def remember(cfg: sys_config.Config, title: str, domain: str, source_id: str, la
     with _lock:
         if key and root in _index:
             _index[root].setdefault(key, []).append((domain, source_id, lang, signature(first_text), official(origin)))
+
+
+def known(cfg: sys_config.Config, reader, origin: str) -> tuple[str, str] | None:
+    """(domain, source_id) of a document already in the vault with this official identity, or None: the check of a
+    document sent as ready passages (POST /v1/aurora/solitons: Normattiva's articles, the migration) — one ingest
+    rule for every way in."""
+    mine = official(origin)
+    if not mine:
+        return None
+    root = str(cfg.root)
+    with _lock:
+        if root not in _index:
+            _index[root] = _build(cfg, reader)
+        for entries in _index[root].values():
+            for dom, src, _lg, _sig, theirs in entries:
+                if same_identity(mine, theirs) or same_identity(mine, official(src)):
+                    return dom, src
+    return None
+

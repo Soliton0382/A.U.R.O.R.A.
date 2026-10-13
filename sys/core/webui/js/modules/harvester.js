@@ -7,6 +7,7 @@ import { clock, el } from "../dom.js";
 import { apply, lang, t } from "../i18n.js";
 import { restartPrompt } from "../restart.js";
 import { autonomySlot } from "./autonomy_box.js";
+import { planBlock } from "./harvest_plan.js";
 
 const when = (s) => (s ? clock(new Date(s * 1000).toISOString()) : "—");
 
@@ -28,6 +29,9 @@ export default {
       <h3 class="setting-cat" data-i18n="harvest.domains"></h3>
       <p class="muted" data-i18n="harvest.domains_hint"></p>
       <div class="harvest-domains"></div>
+      <h3 class="setting-cat" data-i18n="hplan.title"></h3>
+      <p class="muted" data-i18n="hplan.hint"></p>
+      <div class="harvest-plan-box"></div>
       <h3 class="setting-cat" data-i18n="harvest.batch"></h3>
       <p class="muted" data-i18n="harvest.batch_hint"></p>
       <textarea class="batch-items" rows="6"></textarea>
@@ -37,6 +41,7 @@ export default {
     apply(root);
     this.stateBox = root.querySelector(".harvest-state");
     this.domainsBox = root.querySelector(".harvest-domains");
+    this.planBox = root.querySelector(".harvest-plan-box");
     this.langsBox = root.querySelector(".harvest-langs");
     this.progress = root.querySelector(".batch-progress");
     this.out = root.querySelector(".result");
@@ -78,18 +83,29 @@ export default {
     if (s.next_round && s.enabled_setting) row(t("harvest.next"), when(s.next_round));
     row(t("harvest.seen"), String(s.papers_seen));
     this.renderDomains(s.domains || []);
+    const names = Object.fromEntries((s.domains || []).map((d) => [d.id, lang.startsWith("it") ? d.it : d.en]));
+    this.planBox.replaceChildren(planBlock(s.plan, names, () => this.refresh()));
     const b = s.batch;
     this.progress.replaceChildren();
     if (b) {
       const done = b.items.filter((i) => i.state === "done").length;
-      this.progress.append(el("div", "muted", t("harvest.batch_line", { done, total: b.total, at: when(b.started) })
-        + (b.finished ? ` · ${t("harvest.finished", { at: when(b.finished) })}` : "")));
+      const line = t("harvest.batch_line", { done, total: b.total, at: when(b.started) })
+        + (b.finished ? ` · ${t("harvest.finished", { at: when(b.finished) })}` : "");
+      // a batch finished more than a day ago: one closed line (13 Oct: «9999.99999 · not found» read as a count)
+      const old = b.finished && Date.now() / 1000 - b.finished > 86400;
+      let box = this.progress;
+      if (old) {
+        const det = el("details", "report");
+        det.append(el("summary", "muted", line));
+        this.progress.append(det);
+        box = det;
+      } else this.progress.append(el("div", "muted", line));
       for (const i of b.items) {
         const r = el("div", "ev");
         r.append(el("span", `pill ${i.state === "done" ? "ok" : /failed|not found/.test(i.state) ? "bad" : "warn"}`, i.state),
           el("code", "", i.id), el("span", "", i.title || ""), el("span", "muted", i.domain ? `→ ${i.domain}` : ""));
         if (i.state === "done") r.append(el("span", "muted", t("harvest.chunks", { n: i.written })));
-        this.progress.append(r);
+        box.append(r);
       }
     }
   },

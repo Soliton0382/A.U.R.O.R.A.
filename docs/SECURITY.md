@@ -174,3 +174,8 @@ live on a USB stick, so that not even root on this machine can sign:
 | services run as the owner's user | confined by systemd, plugins caged by bubblewrap | a dedicated system user for new installations (the owner's own installation keeps its user) |
 | storage not encrypted | ext4 without LUKS | full-disk encryption (owner) or SQLCipher for the vault (cost not measured) |
 | secrets in memory and logs | logs never print secrets (checked by grep) | an automated test that scans the logs for every secret of .env |
+
+## Links Aurora opens (13 Oct 2026, roadmap 96)
+
+Every page the answers open and every agent's tool call that carries a link pass the plugin linkcheck (on by default): the link's own form (hidden credentials, punycode look-alikes) and the reputation services the owner ticks (VirusTotal, URLhaus, AbuseIPDB), each with the owner's key. A malicious link is not opened and the refusal carries the services' reasons; a service without key or down counts as not checked, never as clean. Verdicts are kept a day in <STATUS>/linkcheck.json (the link, not the page).
+

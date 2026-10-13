@@ -130,6 +130,23 @@ def names(cfg: sys_config.Config) -> dict[str, str]:
     return out
 
 
+def by_mac(cfg: sys_config.Config, mac: str) -> tuple[str, str] | None:
+    """(name, usual address) of a device reserved by its MAC on the firewall's DHCP, or None: a phone of the house seen
+    with another address (its mobile network's, through the VPN) is still the same device (owner, 2026-10-13)."""
+    mac = (mac or "").upper().replace("-", ":")
+    if not mac:
+        return None
+    try:
+        m = load(cfg)
+    except (ValueError, OSError):
+        return None
+    for s in (m or {}).get("dhcp", []):
+        for l in s["static"]:
+            if l["mac"].upper().replace("-", ":") == mac:
+                return l["host"] or names(cfg).get(l["ip"]) or l["mac"], l["ip"]
+    return None
+
+
 def label(cfg: sys_config.Config, ip: str) -> str:
     """ "NAS (192.0.2.10)" when the firewall knows the address, else the address."""
     n = names(cfg).get(ip)

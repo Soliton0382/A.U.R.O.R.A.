@@ -33,9 +33,15 @@ def clean_text(page: str) -> str:
 HTML = ("https://arxiv.org/html/{}", "https://ar5iv.labs.arxiv.org/html/{}")
 
 
+class NoHTML(ValueError):
+    """arXiv has no HTML version of the paper: not taken (owner, 2026-10-13: «si era scelto HTML per le formule in
+    LaTeX che in PDF non venivano correttamente riconosciute… arxiv solo in html»)."""
+
+
 def paper(arxiv_id: str, pdf_url: str, get: Callable) -> tuple[str, bytes]:
-    """(file name, data) to import: the HTML's text as .txt when arXiv has it, else the PDF. `get(url)` returns a
-    response (the caller's own client: its pace, its user agent); an error on the HTML falls back to the PDF."""
+    """(file name, data) to import: the HTML's text as .txt (arXiv's own, else ar5iv). No HTML: NoHTML — the PDF is
+    not taken any more: its formulas came out garbled (C137; 287 of 3,791 papers since 6 Oct came as PDF). `get(url)`
+    returns a response (the caller's own client: its pace, its user agent)."""
     base = arxiv_id.replace("/", "_")
     for url in HTML:
         try:
@@ -47,4 +53,4 @@ def paper(arxiv_id: str, pdf_url: str, get: Callable) -> tuple[str, bytes]:
         text = clean_text(r.text)
         if len(text) >= MIN_CHARS:
             return f"{base}.txt", text.encode("utf-8")
-    return f"{base}.pdf", get(pdf_url).content
+    raise NoHTML(f"{arxiv_id}: no HTML version on arXiv or ar5iv (the PDF is not taken: formulas)")

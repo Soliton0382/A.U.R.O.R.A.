@@ -17,10 +17,10 @@ Emit = Callable[[str, dict], None]
 
 SYS_ROUTE = ("Classify the owner's last message to the assistant Aurora. Reply SELF if it is a greeting, small talk, "
              "thanks, a comment, or a question about Aurora herself (how she is, who or what she is, what she can do, "
-             "her state, her memory, her knowledge base, the time now, the weather or anything around her home) or "
+             "her state, her memory, her knowledge base, the time now, the weather or anything around HER HOME) or "
              "about the conversation itself. Reply KNOWLEDGE if it asks "
              "for facts about the world: a subject, a document, a law, a person, an event, a definition, a procedure. "
-             "Examples: 'come stai?' SELF; 'che ore sono?' SELF; 'piove lì da te?' SELF; 'quanti solitoni hai nel "
+             "Examples: 'come stai?' SELF; 'che ore sono?' SELF; 'piove lì da te?' SELF; 'che tempo fa a Tokyo?' KNOWLEDGE (another place: not hers); 'quanti solitoni hai nel "
              "vault?' SELF; 'cosa sai fare?' SELF; 'grazie!' SELF; 'cos'è l'entanglement?' KNOWLEDGE; 'cosa dice "
              "l'articolo 1571?' KNOWLEDGE; 'e nel caso di un affitto breve?' KNOWLEDGE. "
              "Reply with exactly one word.")
@@ -48,7 +48,11 @@ class SelfTalk:
             if out.startswith("ON"):
                 return "self"
         user = (f"PREVIOUS TURNS:\n{self._turns(recent, 2)}\n\n" if recent else "") + f"LAST MESSAGE: {question}"
-        out = self._for("route").complete(SYS_ROUTE, user, 4).answer.strip().upper()
+        model = self._for("route")
+        sure = getattr(model, "decide", lambda *a: None)(SYS_ROUTE, user, ["SELF", "KNOWLEDGE"])   # one token (M199)
+        if sure:
+            return "self" if sure["SELF"] > 0.5 else "knowledge"
+        out = model.complete(SYS_ROUTE, user, 4).answer.strip().upper()
         return "self" if out.startswith("SELF") else "knowledge"
 
     def self_state(self) -> dict:

@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import base64
 import json
+import re
 import signal
 import sys
 import time
@@ -32,9 +33,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import httpx  # noqa: E402
 
-from aurora import kno_arxiv, kno_harvest, kno_sources, sys_config, sys_health, sys_log  # noqa: E402
+from aurora import kno_arxiv, kno_domain, kno_harvest, kno_harvest_plan, kno_sources, sys_config, sys_health, sys_log  # noqa: E402
 from aurora.kno_acquire import MAP_FILE, domain_of, parse_atom  # noqa: E402
 from aurora.kno_ingest import chunk  # noqa: E402
+from aurora.sol_schema import load_taxonomy  # noqa: E402
 
 cfg = sys_config.get()
 log = sys_log.get_logger("harvester")
@@ -90,14 +92,19 @@ class Harvester:
         A host that says "slow down" (429) or "briefly down" (503) is asked again after BACKOFF_S (or its
         Retry-After); when it still refuses, it is left alone for COOL_S: the next domains skip it instead of
         knocking every few seconds (C214)."""
+        if _stop:                                       # asked to stop: no more requests (13 Oct: a long Wikipedia
+            raise httpx.HTTPError("the harvester is stopping")   # list ignored SIGTERM for 90 s and was killed)
         host = httpx.URL(url).host
         if time.time() < self._cool.get(host, 0.0):
             raise httpx.HTTPError(f"{host} asked us to slow down: left alone until "
                                   f"{time.strftime('%H:%M', time.localtime(self._cool[host]))}")
         gap = cfg["AURORA_ARXIV_DELAY_S"] if "arxiv.org" in host else cfg["AURORA_HARVEST_DELAY_S"]
         wait = self._last.get(host, 0.0) + gap - time.time()
-        if wait > 0:
-            time.sleep(wait)
+        while wait > 0 and not _stop:                   # the polite pause, still listening for a stop
+            time.sleep(min(wait, 0.5))
+            wait = self._last.get(host, 0.0) + gap - time.time()
+        if _stop:
+            raise httpx.HTTPError("the harvester is stopping")
         try:
             for pause in (*BACKOFF_S, None):
                 r = self._fetch(host, url, params)
@@ -168,8 +175,21 @@ class Harvester:
                 time.sleep(5)
         raise httpx.ConnectError("aurora-api did not come back")
 
+    def reader(self):
+        """The model that chooses a Wikipedia article's domain by reading it (the route role's: local)."""
+        if getattr(self, "_reader", None) is None:
+            from aurora import mdl_router
+            from aurora.mdl_llm import LLM
+            self._reader = mdl_router.model_for("route", LLM(cfg), cfg)
+        return self._reader
+
     def take(self, doc: kno_sources.Doc) -> int | None:
         """Send one harvested document to aurora-api; the passages written, or None when it failed (logged)."""
+        if doc.origin.startswith("wikipedia:") and doc.data:     # the domain by what it says, not by its list (M195)
+            chosen = kno_domain.choose(self.reader(), doc.title, doc.data[:2000].decode("utf-8", "replace"), doc.domain)
+            if chosen != doc.domain:
+                log.info("%s: %s, not %s (read)", doc.key, chosen, doc.domain)
+                doc.domain = chosen
         try:
             if doc.passages:
                 parts = [c for p in doc.passages for c in chunk(p, cfg["AURORA_CHUNK_CHARS"], cfg["AURORA_CHUNK_MIN_CHARS"])]
@@ -231,10 +251,15 @@ class Harvester:
     def ingest(self, e, domain: str) -> dict | None:
         """Download one paper and import it into `domain`; None when it failed (logged)."""
         try:
-            name, data = kno_arxiv.paper(e.arxiv_id, e.pdf, self._get)        # HTML first: formulas readable (C137)
+            name, data = kno_arxiv.paper(e.arxiv_id, e.pdf, self._get)        # HTML only (C137): NoHTML said below
             r = self.api.post(f"{BASE}/v1/aurora/import", json={
                 "name": name, "domain": domain, "title": e.title,
                 "origin": f"arxiv:{e.arxiv_id}", "data": base64.b64encode(data).decode("ascii")}).raise_for_status().json()
+        except kno_arxiv.NoHTML as err:                  # no HTML: not taken, not asked again (owner, 13 Oct)
+            log.info("%s", err)
+            self.seen.add(e.arxiv_id)
+            self._save()
+            return None
         except (httpx.HTTPError, ValueError) as err:
             log.warning("%s (%s): %s", e.arxiv_id, e.title[:60], err)
             return None
@@ -244,6 +269,38 @@ class Harvester:
         self.tell("harvest.paper", {"id": e.arxiv_id, "title": e.title, "domain": domain, "chunks": r["chunks"],
                                     "written": r["written"]})
         return r
+
+    def wiki_item(self, it: dict, show) -> None:
+        """One Wikipedia article of a batch: «wikipedia:<lang>:<title>@<domain>», imported like the rounds' ones."""
+        _, lang, rest = it["id"].split(":", 2)
+        title, _, domain = rest.rpartition("@")
+        tax = load_taxonomy()
+        given = domain in tax and not tax[domain].get("memory")
+        it.update(title=title, domain=domain if given else "", state="downloading")
+        show()
+        try:
+            name, text = kno_sources.wiki_page(self._get, lang, title)
+            if len(text) < 500:
+                it["state"] = "not found on Wikipedia"
+                show()
+                return
+            if not given:                                 # no domain written: read from the article (kno_domain)
+                domain = kno_domain.choose(self.reader(), name, text, "general")
+                it["domain"] = domain
+            key = f"wikipedia:{name}" if lang == "en" else f"wikipedia:{lang}:{name}"
+            r = self.api.post(f"{BASE}/v1/aurora/import", json={
+                "name": re.sub(r"\W+", "_", name)[:80] + ".txt", "domain": domain, "title": name, "origin": key,
+                "data": base64.b64encode(text.encode()).decode("ascii")}).raise_for_status().json()
+        except (httpx.HTTPError, ValueError) as err:
+            log.warning("wikipedia %s: %s", title, err)
+            it["state"] = "failed"
+            show()
+            return
+        self.seen.add(key)
+        self._save()
+        log.info("%s -> %s: %d chunks, %d new", key, domain, r["chunks"], r["written"])
+        it.update(state="done", chunks=r["chunks"], written=r["written"])
+        show()
 
     def batch(self, ids: list[str], cmd_id: str) -> None:
         """The owner's list of papers: looked up on arXiv, each imported in its category's domain."""
@@ -255,15 +312,19 @@ class Harvester:
         show()
         self.tell("harvest.batch", {"papers": len(ids)})
         found = {}
-        for i in range(0, len(ids), 50):
+        papers = [i for i in ids if not i.startswith("wikipedia:")]
+        for i in range(0, len(papers), 50):
             try:
-                xml = self._get(cfg["AURORA_ARXIV_API"], id_list=",".join(ids[i:i + 50]), max_results=50).text
+                xml = self._get(cfg["AURORA_ARXIV_API"], id_list=",".join(papers[i:i + 50]), max_results=50).text
                 found.update({e.arxiv_id: e for e in parse_atom(xml)})
             except httpx.HTTPError as err:
                 log.warning("batch lookup failed: %s", err)
         for it in items:
             if _stop:
                 break
+            if it["id"].startswith("wikipedia:"):           # a Wikipedia article (kno_harvest.parse_items)
+                self.wiki_item(it, show)
+                continue
             e = found.get(it["id"])
             if e is None:
                 it["state"] = "not found on arXiv"
@@ -347,6 +408,14 @@ def main() -> int:
                 h.batch(c.get("ids", []), c["id"])
             elif c["cmd"] == "wake":                      # the owner changed the domains: look again now
                 next_round = time.time()
+            elif c["cmd"] == "plan":                      # the owner asked the projection again now
+                kno_harvest.set_status(cfg, plan_at=0)
+        if not _stop and kno_harvest_plan.due(cfg) and cfg["AURORA_HARVEST_ENABLED"]:
+            try:                                        # once a day: what is left, the room it takes (roadmap 95)
+                kno_harvest.set_status(cfg, state="planning")
+                kno_harvest.set_status(cfg, plan=kno_harvest_plan.build(h._get, cfg))
+            except Exception as e:                      # noqa: BLE001 — a projection never stops the harvest
+                log.warning("harvest plan not made: %s", e)
         if not cfg["AURORA_HARVEST_ENABLED"]:
             if not said_off:
                 log.info("harvesting is off (AURORA_HARVEST_ENABLED=0): idle, alive for the health check")

@@ -25,7 +25,7 @@ async def ask(request: Request) -> dict:
     "remember": false leaves the memory untouched (checks and tests must not become memories); it asks the vault alone,
     unless "tools": true — then the whole path (the tools' router, the agent and plugins, the shadow, the searches) with
     nothing remembered and no earlier turn read as context (the benchmarks, C270).
-    "lessons": false answers without her lessons of method (kno_lessons): a benchmark's control run.
+    "lessons": true answers with her lessons of method (kno_lessons): off by default since M191 (no effect measured).
     "roles": {role: {"provider", "model"}} (the admin only) — the models of this run alone, the installation's
     untouched (the benchmarks, C280).
     "think": vault, light, medium, deep or auto — how much to think for this message (kno_think; default the setting).
@@ -53,7 +53,7 @@ async def ask(request: Request) -> dict:
         except ValueError as e:
             raise HTTPException(status_code=422, detail=str(e))
     full = body.get("tools") is True                 # with remember: false, the whole path (tools, agent, search)
-    lessons = body.get("lessons", True) is not False # her experience (kno_lessons); false: a benchmark's control run
+    lessons = body.get("lessons") is True            # her lessons of method (kno_lessons): only when asked (M191)
     from aurora import kno_followup, sol_schema
     focus = kno_followup.clean_focus(body.get("focus"), sol_schema.load_taxonomy())
     quote = kno_followup.quoted(pipeline().reader, body.get("reply_to"))      # ↩️ the message replied to

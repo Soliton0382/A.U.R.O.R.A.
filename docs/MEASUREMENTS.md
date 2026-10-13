@@ -2896,3 +2896,164 @@ Rescored (C291, 13 Oct): the Edge set's on/off grader failed right answers that 
 saved run rescored: M188's totals become Aurora local 60, Aurora mixed 58, Aurora cloud 71, Qwen bare 47, Claude bare 69;
 M190's cloud 12 Oct 71 → 13 Oct 72 on the same 88 (still «pari»: +1).
 
+## M191 — lessons from her own mistakes: the trial (13 October 2026; Aurora cloud, question by question)
+
+33 lessons of method (kno_lessons, picked per question by the route model) against none, on the sample they came
+from (seed 7) and on a new one (seed 8); home questions graded by C291's rule in every file.
+
+| sample | without | with | questions that got a lesson: right without → with |
+|---|---|---|---|
+| seed 7 (the lessons' own questions), 98 in common | 82 | 83 | 27 → 27 (of 35) |
+| **seed 8 (new questions)**, 108 | **92** | **91** | **27 → 27** (of 32) |
+
+Reading: no effect, not even on the questions the lessons came from; the lessons are off by default (a request asks
+for them: «lessons»: true). What the trial measured instead is the noise: the same configuration, the same 108
+questions, 9 change outcome from one run to the next (seed 8: +4 −5) — a difference under ~5 of 108 is chance. Why no
+effect, as read: the remaining errors are of knowledge and retrieval (a fact not found, the vault's passage not
+retrieved), not of method; a strong reasoner already follows the method a lesson states. Not measured: the lessons on
+the local model (weaker, where method may matter more).
+HLE (text only, 10 questions): cloud 3 and 4 of 10 on seed 7, 4 and 4 on seed 8.
+
+## M192 — the whole comparison on 108 questions (13 October 2026; GPQA Diamond and HLE added)
+
+| set | Aurora local | Aurora mixed | **Aurora cloud** | Aurora cloud + lessons | Qwen bare | Claude sonnet bare |
+|---|---|---|---|---|---|---|
+| Edge (vault, live, honesty) /28 | 20 | 21 | 21 | 23 | 13 | 17 |
+| MMLU-Pro | 7 | 8 | 7 | 7 | 9 | 8 |
+| GPQA Diamond | 7 | 7 | 10 | 10 | 8 | 9 |
+| HLE (text only) | 1 | 1 | 3 | 4 | 1 | 3 |
+| AIME | 7 | 6 | 10 | 10 | 5 | 10 |
+| MATH-500 | 10 | 10 | 10 | 10 | 9 | 10 |
+| SimpleQA | 7 | 5 | 7 | 7 | 1 | 5 |
+| TruthfulQA | 6 | 6 | 8 | 8 | 7 | 10 |
+| ARC-AGI-1 | 3 | 2 | 9 | 8 | 3 | 9 |
+| **total /108** | **68** | **66** | **85** | 87 | **56** | **81** |
+
+Files: Aurora local 12 Oct 18:23 + 13 Oct 13:08; mixed 12 Oct 17:06 + 13 Oct 13:33; cloud 13 Oct 09:33 + 11:30 (HLE);
++ lessons 13 Oct 10:38; Qwen 12 Oct 19:44 + 13 Oct 13:55; Claude 12 Oct 13:15 + 13 Oct 14:26 (home graded by C291).
+Reading, against the noise of M191 (9 of 108 change between two runs of one configuration): Aurora over the same model
++12 (Qwen 56 → 68) and +4 (Claude 81 → 85, within the noise as a total — but Edge +4 and SimpleQA +2 are what a bare
+model cannot do: the vault, the live data, the web); the cloud reasoner over the local one +17 (68 → 85: AIME, ARC,
+GPQA). The mixed configuration reasons locally (AIME 6, ARC 2): to reason like the cloud, the reasoning roles must be
+the cloud's. Aurora loses to the bare Claude on TruthfulQA (8 vs 10; two of the misses are a key written for a bare
+model: C284) and MMLU-Pro (7 vs 8, noise). HLE: 1–4 of 10 for everyone, as its makers mean it.
+
+## M193 — where the vault's points are lost (13 October 2026; roadmap T2, script/bench_vault_diag.py)
+
+The 108 questions of retrieval_pool108 (paraphrases, each with its gold source) on the REAL vault (793,806 passages),
+the production search (top 12, as the chat) and the reading (kno_read.from_vault, the owner's roles: local). A v1
+source harvested again by v2 counts as gold by its title (12 of 108: the first run's «25 missing» held 7 Wikipedia
+pages under their new ids — a mistake of the measure, corrected).
+
+| stage | outcome | lost |
+|---|---|---|
+| the gold source in the vault | 95 of 108 | 13 (6 Wikipedia pages, 2 arXiv papers of v1 never harvested again; 3 chats and 2 reflections: memory, not knowledge) |
+| found among the 12 passages read | 83 of 95 (first: 64) | 12 (3 at ranks 13–30, 9 not even in 30: fine details — an e-mail address, a numerical scheme) |
+| read: the answer cites it | 71 of 83 | 12 (7 «not found», 5 another source) |
+| **end to end** | **71 of 108 (66%)** | |
+
+The reading depends on the rank: gold first 61 of 64 read; ranks 2–6 10 of 16; ranks 7–12 **0 of 3 — never shown**:
+kno_read.from_vault gives the reader the first 6 passages of the 12 found. The way: 34 of 108 questions are FACT for
+kno_read.kind, and «auto» sends a FACT to the web before the vault; read from the vault, facts 21 of 27 found, the
+explanations 50 of 56.
+
+## M194 — the vault first for a fact, when it is sure: the threshold (13 October 2026)
+
+The best passage's re-rank (bge, 0–1) on the 108 pool questions and on 60 SimpleQA facts the vault has no answer for:
+
+| set | p10 | p25 | p50 | p75 | p90 |
+|---|---|---|---|---|---|
+| pool, the first passage is the gold source (64) | 0.707 | 0.905 | 0.956 | 0.986 | 0.996 |
+| pool, the first passage is not (44) | 0.306 | 0.613 | 0.804 | 0.944 | 0.968 |
+| SimpleQA, not in the vault (60) | 0.031 | 0.050 | 0.152 | 0.445 | 0.650 |
+
+At 0.6: 61 of 64 vault-answerable facts read the vault first; 7 of 60 SimpleQA facts pay one vault reading before the
+web (at 0.7: 57 and 5; at 0.5: 62 and 11). Chosen 0.6 (kno_think.VAULT_FIRST): the vault first when sure, the web
+first otherwise, the vault searched (one re-rank, no reading) before either.
+
+## M195 — a document's domain: three ways against a reference (13 October 2026; script/bench_domain_assign.py)
+
+150 documents (25 each from general, history, philosophy, religion, literature, society: title and first passage),
+the reference Claude sonnet choosing among the 34 knowledge domains; a disagreement judged «defensible» or not by it.
+
+| way | without descriptions: same as the reference | with descriptions: same | right or defensible |
+|---|---|---|---|
+| the list it came from (today's harvester) | 42% | 50% | 77% |
+| nearest domain centroid (the encoder) | 39% | 43% | — |
+| **the local model reading it** | **76%** | **81%** | **97%** |
+
+The local model's true mistakes: 4 of 150 («Geneva Conventions» → law_it, «Convergence of stationary distributions» →
+economics…); the rest of the disagreements are documents between two domains (mythologies: religion or history). The
+list's way fails most on philosophy ↔ religion (24 of 150) and literature → history. Chosen: the local model with the
+descriptions (kno_domain), for Wikipedia and batch links; arXiv keeps its primary category.
+
+## M196 — the router's decisions, one by one (13 October 2026; script/bench_router.py)
+
+168 messages: 118 of the owner's real ones (the conversation memory, each with the two turns before it) and 50 benchmark
+questions (Edge, SimpleQA, MATH-500, TruthfulQA, MMLU-Pro); the reference Claude sonnet through the masking. The
+router's local models only.
+
+| decision | same as the reference |
+|---|---|
+| route (tools / self / knowledge) | 162 / 168 = 96.4% (chat 113/118, benchmark 49/50) |
+| kind (fact / explain / case / solve), where both say knowledge | 72 / 76 = 94.7% |
+
+The 10 disagreements read one by one: 1 a real mistake, the same in 3 tries of 3 — «What is the weather in San
+Francisco?» answered as hers (her weather is only home's): the route prompt now sends another place's weather to
+knowledge (the web); the replay (`--replay`, the same messages and references, no cloud) gives no other change.
+The others are between two answers («Di che colore è la figura?» needs the picture, not in the replay; a TruthfulQA
+quiz on how she answers taken as about herself; «a statute… which is correct?» case or solve; a premise question
+explain or solve). Not measured: whether a second judge would call them defensible, as in M195. The router is not
+the chain's weak link: the vault's 71/108 (M193) loses mostly to documents absent or not found.
+
+## M197 — how sure the router is: one token's probability against its mistakes (13 October 2026)
+
+The idea of rizzo-flow (github.com/Rizzo-AI-Academy/rizzo-flow: a decision read from the probabilities of one answer
+token, no text generated): the same two route prompts (tools, then self/knowledge) on the local model with one token,
+thinking off, `logprobs` from llama-server; the confidence is the chosen answer's probability (the lower of the two
+calls). The 168 messages and references of M196.
+
+| escalated when the confidence is below | messages escalated | M196's 6 disagreements among them |
+|---|---|---|
+| 0.99 | 73 (43%) | 6 |
+| 0.95 | 41 (24%) | 5 |
+| 0.90 | 33 (20%) | 4 |
+| 0.80 | 20 (12%) | 3 |
+
+Same decisions as today's router (162 of 168), 0.67 s a message for both calls. The confidence separates: the
+disagreements sit low (0.50–0.91; one at 0.987). A cascade — below a threshold, the decision to a stronger model —
+could reach 99% only if that model is right on those; not measured.
+
+## M198 — the vault after the realignment, the same questions as M193 (13 October 2026, 23:11; script/bench_vault_diag.py)
+
+The 99 knowledge questions of M193 (the 9 memory questions left out, as by default), read on the realigned vault
+(arXiv as HTML, one copy each, Wikipedia in the domain its text says, C296–C300); local models only. Compared on the
+97 questions whose source was not removed on purpose (2 about the owner's withdrawn patents, deleted at their request):
+
+| | before (M193, 16:01) | after (23:11) |
+|---|---|---|
+| answered from the right source | 66 / 97 | **72 / 97** |
+| the source not in the vault | 8 | 4 (2 of them the owner's papers, re-imported under a new identity the diagnosis does not match: a floor, not a loss) |
+| the right source first among 30 | 64 / 95 | 62 / 93 |
+| seconds for the run | 2078 | 2624 (+26%: more passages, the papers' HTML is longer — not measured apart) |
+
+What is still lost, as before: 11 sources present but not among the 30 found (a search problem: the hybrid search
+of ROADMAP 98's family), 7 read as «nothing» with the source in front of the reader, 7 + 5 not found.
+
+## M199 — the router: a written word, one token, a cascade to reasoning (13 October 2026, 23:35)
+
+The 168 messages and references of M196, on the realigned machine; each message timed (route decisions only).
+
+| router | same as the reference | seconds a message |
+|---|---|---|
+| today's (a word written, up to 4 tokens) | 162 / 168 | 0.62 |
+| **one token, read from its probabilities** | **162 / 168** | **0.32** |
+| the local model reasoning, every time | 154 / 168 | 7.88 (the reasoned step) |
+| cascade: reasoning below a confidence of 0.8 / 0.9 / 0.95 / 0.99 | 158 / 157 / 157 / 154 | 2.17 / 2.95 / 3.35 / 5.25 |
+
+Reasoning makes the local router WORSE and 10–25 times slower: no cascade to the local model. Adopted: the one-token
+decision (mdl_llm.LLM.decide; a model without it — a cloud one — is asked in words as before). Checked on the code
+the chat runs (bench_router --replay): the same 162/168 and the same 6 disagreements, the whole replay (route and
+kind) 4.9 → 2.2 minutes. The confidence it gives is for ROADMAP 98's index of hard cases; a cascade to a cloud model
+is not measurable against a cloud reference (it would agree by construction).
+

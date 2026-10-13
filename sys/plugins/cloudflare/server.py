@@ -35,7 +35,7 @@ def cloudflare_status() -> str:
 
 @server.tool()
 def cloudflare_check() -> str:
-    """Cosa manca per raggiungere Aurora via WARP, passo per passo (sola lettura: non crea né modifica nulla)."""
+    """What is missing to reach Aurora through WARP, step by step (read only: creates or changes nothing)."""
     return _guard(net_cloudflare.check)
 
 
@@ -43,7 +43,7 @@ def cloudflare_check() -> str:
 def cloudflare_activate() -> str:
     """Attiva l'accesso via WARP (serve l'approvazione): crea il tunnel se manca, aggiunge le rotte private di questo
     computer e del DNS di casa, li fa passare in WARP, risolve il dominio interno anche fuori casa, avvia il tunnel.
-    Lo stesso che «Salva» nella scheda del plugin. Ciò che c'è già resta com'è."""
+    The same as «Salva» on the plugin's card. What is already there stays as it is."""
     return _guard(lambda cfg: net_cloudflare.apply(cfg)["text"])
 
 

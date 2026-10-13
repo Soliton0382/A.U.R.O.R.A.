@@ -65,7 +65,7 @@ def restore() -> bool:
     return True
 
 
-def prepare(target: str, cloud_model: str, bare_tokens: int = 28000, lessons: bool = True):
+def prepare(target: str, cloud_model: str, bare_tokens: int = 28000, lessons: bool = False):
     """(who answers: a function question → {"answer", "abstained", "seconds"}, what the run says about itself)."""
     local = Path(str(cfg["AURORA_LLM_MODEL"])).name
     if target.startswith("aurora-"):
@@ -112,10 +112,10 @@ def grade(it: dict, answer: str, judge) -> dict:
 
 
 def run(target: str, sets: list[str], n: int, cloud_model: str, judge, bare_tokens: int = 28000,
-        lessons: bool = True, seed: int = 7) -> Path:
+        lessons: bool = False, seed: int = 7) -> Path:
     answer, info = prepare(target, cloud_model, bare_tokens, lessons)
     info["seed"] = seed
-    path = OUT / f"{datetime.now():%Y%m%d-%H%M}-{target}{'' if lessons else '-nolessons'}{'' if seed == 7 else f'-s{seed}'}.json"
+    path = OUT / f"{datetime.now():%Y%m%d-%H%M}-{target}{'-lessons' if lessons else ''}{'' if seed == 7 else f'-s{seed}'}.json"
     report = {"at": time.time(), **info, "n": n, "sets": {}}
     print(f"\n=== {target}: {', '.join(info['uses'])}", flush=True)
     for s in sets:
@@ -194,7 +194,7 @@ def main() -> int:
     ap.add_argument("--n", type=int, default=10, help="questions a set (a fixed sample; 0 = all)")
     ap.add_argument("--cloud-model", default="sonnet", help="Claude Code's model for aurora-cloud and bare-claude")
     ap.add_argument("--judge", default="sonnet", help="Claude Code's model that judges")
-    ap.add_argument("--no-lessons", action="store_true", help="Aurora without her lessons of method (the control run)")
+    ap.add_argument("--lessons", action="store_true", help="Aurora with her lessons of method (off by default since M191)")
     ap.add_argument("--seed", type=int, default=7, help="another sample of questions (7 = the usual one): do lessons generalise?")
     ap.add_argument("--bare-tokens", type=int, default=28000,
                     help="a bare model's room to think and answer (8000 cut the local model's AIME inside its reasoning)")
@@ -225,7 +225,7 @@ def main() -> int:
     judge = ClaudeCodeLLM(cfg, a.judge)
     try:
         for t in targets:
-            print("→", run(t, sets, a.n, a.cloud_model, judge, a.bare_tokens, not a.no_lessons, a.seed), flush=True)
+            print("→", run(t, sets, a.n, a.cloud_model, judge, a.bare_tokens, a.lessons, a.seed), flush=True)
             restore()                                    # between targets too: the owner's Aurora as it was
     finally:
         restore()

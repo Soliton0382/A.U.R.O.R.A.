@@ -75,7 +75,7 @@ class Pipeline(Stages, SelfTalk):
     def run(self, question: str, emit: Emit | None = None, run_id: str | None = None,
             remember: bool = True, attached: list | None = None, focus: list[dict] | None = None,
             suggest: bool = False, think: str | None = None, quote: Soliton | None = None,
-            alone: bool = False, lessons: bool = True) -> Answer:
+            alone: bool = False, lessons: bool = False) -> Answer:
         """`remember=False` leaves the memory untouched (a caller that retries remembers only the outcome).
         `attached`: kno_attach.Attached items; their passages come first for this question.
         `focus`: sources ({"source", "domain"}) whose passages compete with the search's (a suggested follow-up).
@@ -174,7 +174,8 @@ class Pipeline(Stages, SelfTalk):
         # (kno_read); an attached file keeps the vault pipeline; a follow-up reads its sources in focus first
         mode = "vault" if attached else kno_think.mode_of(self.cfg, think)
         classic = lambda h, sb: self._answer(kno_split.with_searches(question, sb), h, recent_block, ev) if h else None  # noqa: E731
-        # her experience (kno_lessons): the lessons of method closest to this question, read by every reading prompt
+        # her experience (kno_lessons): the lessons of method that fit this question, read by every reading prompt —
+        # off unless asked: the trial of 13 Oct (M191) measured no effect (new questions 92 → 91 of 108), at ~1 s each
         self._lessons = ""
         if lessons:
             try:

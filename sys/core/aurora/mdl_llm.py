@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import base64
 import json
+import math
 import time
 from dataclasses import dataclass
 from typing import Iterator
@@ -169,6 +170,31 @@ class LLM:
     def _off(self) -> dict:
         """No reasoning, in the model's own words (Qwen's: enable_thinking, as measured)."""
         return {"enable_thinking": False} if self.fmt.template == "chatml" else self.fmt.kwargs(False)
+
+    def decide(self, system: str, user: str, options: list[str]) -> dict[str, float] | None:
+        """A choice read from the probabilities of ONE answer token, nothing generated (M197, M199: the same decisions
+        as a written word, in half the time, with how sure it is). {option: probability}, summing to 1; None when the
+        answer is not one of the options (the caller asks in words, as before)."""
+        system = sys_config.personal(system, self.cfg)
+        if self.fmt.template == "native":
+            system = self.fmt.system(system, False)
+        try:
+            r = httpx.post(self.url + "/v1/chat/completions", timeout=self.timeout, json={
+                "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
+                "max_tokens": 1, "temperature": 0.0, "logprobs": True, "top_logprobs": 10, "cache_prompt": True,
+                "chat_template_kwargs": self._off()})
+            r.raise_for_status()
+            top = r.json()["choices"][0]["logprobs"]["content"][0]["top_logprobs"]
+        except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError):
+            return None
+        mass = dict.fromkeys(options, 0.0)
+        for t in top:                                 # «KN» is the first token of «KNOWLEDGE»
+            tok = t["token"].strip().upper()
+            hit = [o for o in options if tok and (o.startswith(tok) or tok.startswith(o))]
+            if len(hit) == 1:
+                mass[hit[0]] += math.exp(t["logprob"])
+        total = sum(mass.values())
+        return {o: p / total for o, p in mass.items()} if total >= 0.5 else None
 
     def see(self, jpeg: bytes, instruction: str, max_tokens: int = 700) -> str:
         """Look at an image (JPEG bytes) and answer the instruction, without thinking.

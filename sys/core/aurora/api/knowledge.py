@@ -57,22 +57,40 @@ async def import_document(request: Request) -> dict:
     try:
         return await asyncio.to_thread(_import, os.path.basename(body.get("name", "document.txt")), data, domain,
                                        body.get("title", "").strip(), body.get("origin", "upload"),
-                                       {"licence": body.get("licence", ""), "url": body.get("url", "")})
+                                       {"licence": body.get("licence", ""), "url": body.get("url", ""),
+                                        # a deliberate replacement (the vault's realignment: the HTML of a paper that
+                                        # came as PDF): written although the same identity is there, removed after
+                                        **({"replace": "yes"} if body.get("replace") is True else {})})
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
 
 
 def _add_solitons(items: list[dict]) -> dict:
+    from aurora import kno_dedup
     from aurora.sol_schema import Soliton
     p = pipeline()
+    # one document, one copy (C293): a document whose first passage comes with an official identity already in the
+    # vault is not written again — its later batches (no first passage) go on as they come
+    skip = {}
+    for x in items:
+        if int(x.get("chunk_index", 0)) == 0 and x["source_id"] not in skip:
+            hit = kno_dedup.known(cfg, p.reader, str((x.get("extra") or {}).get("origin") or x["source_id"]))
+            if hit:
+                skip[x["source_id"]] = f"{hit[0]}/{hit[1]}"
+    received = len(items)
+    items = [x for x in items if x["source_id"] not in skip]
     sols = [Soliton.new(x["text"], x["domain"], "knowledge", x.get("lang") or "en", x["source_id"], x.get("title", ""),
                         chunk_index=int(x.get("chunk_index", 0)), chunk_count=int(x.get("chunk_count", 1)),
                         extra=x.get("extra") or {}) for x in items]
     with _write_lock:                                 # one import at a time; the answers go on (C219)
         rep = p.writer.add_many(sols)
         indexed = {d: p.indexer.update(d) for d in sorted({s.domain for s in sols})} if rep.written else {}
-    return {"received": len(items), "written": len(rep.written), "duplicates": len(rep.duplicates),
-            "rejected": rep.rejected, "indexed": indexed}
+    for x in items:                                   # the identities written now: known to the next import
+        if int(x.get("chunk_index", 0)) == 0:
+            kno_dedup.remember(cfg, x.get("title", ""), x["domain"], x["source_id"], x.get("lang") or "en", x["text"],
+                               str((x.get("extra") or {}).get("origin") or x["source_id"]))
+    return {"received": received, "written": len(rep.written), "duplicates": len(rep.duplicates),
+            "rejected": rep.rejected, "indexed": indexed, "copies_of": skip}
 
 
 @router.post("/v1/aurora/solitons", dependencies=[Depends(admin_only)])
@@ -451,6 +469,10 @@ async def harvester_action(action: str, request: Request) -> dict:
         item = kno_harvest.send(cfg, "batch", ids=ids)
         log.info("audit: owner sent the harvester a batch of %d papers", len(ids))
         return {"queued": item["id"], "ids": ids, "unsupported": unsupported}
+    if action == "plan":                                # the projection again now (kno_harvest_plan)
+        item = kno_harvest.send(cfg, "plan")
+        log.info("audit: owner asked the harvester's projection now")
+        return {"queued": item["id"]}
     raise HTTPException(status_code=404, detail="unknown action")
 
 

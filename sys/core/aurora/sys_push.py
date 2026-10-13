@@ -36,6 +36,8 @@ TEXTS = {   # event -> (kind the owner chooses, view to open, {lang: title})
     "rem.review": ("review", "chat", {"it": "🔁 Aurora ci ha ripensato", "en": "🔁 Aurora thought it over"}),
     "rem.thought": ("thought", "diary", {"it": "💭 Un pensiero di Aurora", "en": "💭 A thought from Aurora"}),
     "rem.self_review": ("self_review", "diary", {"it": "🩺 Autodiagnosi di Aurora", "en": "🩺 Aurora's self-review"}),
+    "vault.audit": ("self_review", "harvester", {"it": "🧹 Il vault ha bisogno di una sistemata",
+                                                 "en": "🧹 The vault needs tidying"}),
     "react.done": ("self_review", "approvals", {"it": "🛠️ Aurora ha analizzato subito un errore",
                                                 "en": "🛠️ Aurora looked into an error at once"}),
     "social.auto": ("social", "social", {"it": "📣 Aurora ha pubblicato un post", "en": "📣 Aurora published a post"}),

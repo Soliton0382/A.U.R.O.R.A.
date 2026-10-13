@@ -1,0 +1,88 @@
+{
+  "name": "linkcheck",
+  "version": "1.0",
+  "kind": "tool",
+  "description": {
+    "it": "Reputazione dei link prima che Aurora li apra: VirusTotal, URLhaus, AbuseIPDB — scegli con le spunte quali usare. Un link malevolo viene rifiutato con il motivo che danno i servizi; attivo di default.",
+    "en": "Link reputation before Aurora opens one: VirusTotal, URLhaus, AbuseIPDB — tick which to use. A malicious link is refused with the services' reasons; on by default."
+  },
+  "command": [
+    "{python}",
+    "server.py"
+  ],
+  "env": [],
+  "requires": [],
+  "capabilities": [
+    "link_reputation"
+  ],
+  "cache": {
+    "check_link": 3600
+  },
+  "settings_spec": [
+    {
+      "key": "AURORA_LINKCHECK_VIRUSTOTAL",
+      "type": "bool",
+      "recommended": "true",
+      "it": "☑️ Usa VirusTotal (circa 90 motori antivirus sull'indirizzo). Serve la chiave qui sotto.",
+      "en": "☑️ Use VirusTotal (about 90 engines on the address). Needs the key below."
+    },
+    {
+      "key": "AURORA_LINKCHECK_VIRUSTOTAL_KEY",
+      "type": "str",
+      "secret": true,
+      "it": "Chiave API di VirusTotal (gratuita: 4 richieste al minuto, 500 al giorno).",
+      "en": "VirusTotal API key (free: 4 a minute, 500 a day)."
+    },
+    {
+      "key": "AURORA_LINKCHECK_URLHAUS",
+      "type": "bool",
+      "recommended": "true",
+      "it": "☑️ Usa URLhaus di abuse.ch (link di malware noti). Serve la chiave gratuita qui sotto.",
+      "en": "☑️ Use abuse.ch URLhaus (known malware links). Needs the free key below."
+    },
+    {
+      "key": "AURORA_LINKCHECK_URLHAUS_KEY",
+      "type": "str",
+      "secret": true,
+      "it": "Auth-Key di abuse.ch (gratuita, dal tuo account abuse.ch).",
+      "en": "abuse.ch Auth-Key (free, from your abuse.ch account)."
+    },
+    {
+      "key": "AURORA_LINKCHECK_ABUSEIPDB",
+      "type": "bool",
+      "recommended": "true",
+      "it": "☑️ Usa AbuseIPDB sull'indirizzo IP del sito (con la chiave del plugin netintel).",
+      "en": "☑️ Use AbuseIPDB on the site's IP address (with the netintel plugin's key)."
+    },
+    {
+      "key": "AURORA_LINKCHECK_STRICT",
+      "type": "bool",
+      "recommended": "false",
+      "it": "Severo: rifiuta anche i link solo «sospetti» (altrimenti solo i «malevoli», o sospetti per due servizi).",
+      "en": "Strict: refuse also links only «suspicious» (otherwise only «malicious», or suspicious for two services)."
+    }
+  ],
+  "effects": {
+    "check_link": "read",
+    "*": "external"
+  },
+  "setup": {
+    "it": "Funziona subito con i controlli del link stesso (credenziali nascoste, nomi in punycode). Per la reputazione spunta i servizi e metti le chiavi:\n- **VirusTotal**: registrati, *Profilo → API key* → `AURORA_LINKCHECK_VIRUSTOTAL_KEY`.\n- **URLhaus** (abuse.ch): accedi su auth.abuse.ch, crea una *Auth-Key* → `AURORA_LINKCHECK_URLHAUS_KEY`.\n- **AbuseIPDB**: usa la chiave già messa nel plugin netintel.\nUn servizio senza chiave o che non risponde vale «non controllato», mai «pulito». I verdetti restano in memoria un giorno.",
+    "en": "Works at once with the link's own checks. For reputation tick the services and set their keys (VirusTotal, abuse.ch URLhaus; AbuseIPDB uses the netintel key).",
+    "links": [
+      {
+        "label": "VirusTotal API",
+        "url": "https://www.virustotal.com/gui/my-apikey"
+      },
+      {
+        "label": "abuse.ch Auth-Key",
+        "url": "https://auth.abuse.ch/"
+      }
+    ]
+  },
+  "tests": {
+    "check_link": {
+      "url": "https://www.wikipedia.org/"
+    }
+  }
+}

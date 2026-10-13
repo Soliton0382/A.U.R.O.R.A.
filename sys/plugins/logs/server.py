@@ -104,7 +104,7 @@ def _components(component: str = ""):
 
 @server.tool()
 def logs_summary(hours: float = 24) -> str:
-    """Per ogni componente di Aurora, quante righe di log per livello nelle ultime N ore (copie ruotate incluse)."""
+    """For each component of Aurora, how many log lines per level in the last N hours (rotated copies included)."""
     try:
         since = datetime.now().astimezone() - timedelta(hours=float(hours))
         base, dirs = _components()

@@ -9,7 +9,7 @@ lesson of method — never its answer — kept in <STATUS>/lessons.jsonl and rea
     python script/bench_learn.py --calibrate <result.json> # the cosine of each lesson's question vs the others (MIN_COS)
 
 The lessons are written by the model of the «rem» role (her autonomic cycle: her own reflections). Measure them with
-bench_public.py: the same set with and without (--no-lessons), and another sample (--seed) for whether they generalise.
+bench_public.py: the same set with (--lessons) and without, and another sample (--seed) for whether they generalise.
 """
 from __future__ import annotations
 

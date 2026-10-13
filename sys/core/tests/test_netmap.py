@@ -50,3 +50,11 @@ def test_the_drawing_puts_each_device_on_its_interface():
     assert [(d["name"], d["ip"], d["kind"]) for d in lan["devices"]] == [("NAS", "192.0.2.10", "host"), ("TV_SALA", "192.0.2.20", "dhcp")]
     assert g["other"] == []                                     # Aurora's blocks are not devices
     assert N.graph(None)["interfaces"] == []
+
+
+def test_a_device_of_the_house_is_known_by_its_mac_with_another_address(cfg, monkeypatch):
+    # owner, 2026-10-13: the phone, reserved on the DHCP, came through the VPN with its mobile network's address
+    monkeypatch.setattr(N, "_get", lambda cfg, e: raw()[e])
+    N.refresh(cfg)
+    assert N.by_mac(cfg, "00-00-5E-00-53-01") == ("TV_SALA", "192.0.2.20")
+    assert N.by_mac(cfg, "00:00:5e:00:53:99") is None and N.by_mac(cfg, "") is None

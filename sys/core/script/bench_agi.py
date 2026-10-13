@@ -97,11 +97,11 @@ JUDGE = ("You are a strict examiner. You get a QUESTION, what a right answer mus
 SECTIONS = ("reasoning", "planning", "honesty", "refusal", "context", "repair", "autonomy")
 
 
-def ask(q: str, quote: str = "", roles: dict | None = None, lessons: bool = True) -> dict:
+def ask(q: str, quote: str = "", roles: dict | None = None, lessons: bool = False) -> dict:
     # everything on (the tools' router, the agent, the shadow, the searches), nothing remembered (C270);
     # `roles`: the models of this run only, the owner's untouched (C280)
     body = {"question": q, "remember": False, "tools": True, **({"reply_to": {"text": quote}} if quote else {}),
-            **({"roles": roles} if roles else {}), **({} if lessons else {"lessons": False})}
+            **({"roles": roles} if roles else {}), "lessons": lessons}
     run = httpx.post(f"{BASE}/v1/aurora/ask", headers=HEAD, timeout=60, json=body).json()["run_id"]
     t0, final = time.time(), None
     with httpx.stream("GET", f"{BASE}/v1/aurora/runs/{run}/events", headers=HEAD, timeout=900) as r:

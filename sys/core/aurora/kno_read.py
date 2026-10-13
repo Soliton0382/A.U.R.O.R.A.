@@ -63,10 +63,34 @@ def kind(p, question: str) -> str:
             else "solve" if out.startswith("SOLVE") else "fact")
 
 
+def _for_cloud(p, question: str, texts: list[dict]) -> list[dict]:
+    """The texts as the cloud reasoner gets them: SSCC (txt_compress) keeps the sentences most salient to the question,
+    AURORA_CLOUD_KEEP_PCT of each text, when the reading model is a cloud one and the owner left the compression on —
+    the same switch as the vault pipeline's synthesis (owner, 13 Oct: «sscc deve funzionare per aiutare a risparmiare
+    token… uno può decidere se averlo attivo oppure no»). Logged as «cloud.compress»: the Models page counts it."""
+    from . import mdl_router, sys_log, txt_compress
+    try:
+        on, keep = bool(p.cfg["AURORA_CLOUD_COMPRESSION"]), int(p.cfg["AURORA_CLOUD_KEEP_PCT"])
+    except KeyError:                                  # a configuration without the setting: nothing compressed
+        return texts
+    if not on or mdl_router.is_local(p._for("synthesis"), p.llm):
+        return texts
+    out, tot = [], {"chars_in": 0, "chars_out": 0, "sentences_in": 0, "sentences_out": 0}
+    for t in texts:
+        text, st = txt_compress.compress(question, t["text"], keep)
+        out.append({**t, "text": text})
+        for k in tot:
+            tot[k] += st[k]
+    if tot["chars_out"] < tot["chars_in"]:
+        sys_log.trace("llm_client", "cloud.compress", {**tot, "where": "read"})
+    return out
+
+
 def read(p, question: str, texts: list[dict], size: str) -> dict | None:
     """One call over the texts [{"text", "source": {...}}]: {"text", "sources"} with only the texts cited, or None."""
     if not texts:
         return None
+    texts = _for_cloud(p, question, texts)
     ctx = "\n\n".join(f"[{i}] {t['source'].get('title') or ''}\n{t['text']}" for i, t in enumerate(texts, 1))
     ans = p._for("synthesis").complete(SYS_READ.format(size=SIZE[size]) + _exp(p), f"TEXTS:\n{ctx}\n\nQUESTION: {question}",
                                        500 if size == "explain" else 200, think=False).answer.strip()
@@ -111,7 +135,14 @@ def _web(p, question: str, asked: str, ev, size: str, open_pages: bool, region: 
     return read(p, question, pages, size)
 
 
-def from_vault(p, question: str, hits: list, size: str = "explain", n: int = 6) -> dict | None:
+def from_vault(p, question: str, hits: list, size: str = "explain", n: int | None = None) -> dict | None:
+    """The reading of the passages the search found — all of them (AURORA_SEARCH_TOPK): it read only the first 6 of
+    the 12, and a source found 7th–12th was never read (M193: 0 of 3; ranks 2–6 read 10 of 16)."""
+    if n is None:
+        try:
+            n = int(p.cfg["AURORA_SEARCH_TOPK"])
+        except KeyError:                              # a configuration without the setting (the tests): the old 12
+            n = 12
     texts = [{"text": h.soliton.text[:3000], "source": {"sid": h.sid, "title": h.soliton.title,
                                                          "source": h.soliton.source_id, "domain": h.soliton.domain}}
              for h in hits[:n]]

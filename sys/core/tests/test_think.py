@@ -42,14 +42,15 @@ def test_vault_is_the_pipeline_of_before(run):
     assert r is None and a == ("x", [], []) and calls == ["search", "deep"] and ev["used"] == "vault"
 
 
-def test_a_fact_goes_to_the_web_without_searching_the_vault(run):
+def test_a_fact_the_vault_is_not_sure_of_goes_to_the_web(run):
+    """The vault is searched (a re-rank, no reading); not sure of it, the web answers (M194)."""
     (r, a, _, _), calls, ev = run("auto", "fact", web=READ)
-    assert _same(r) and calls == ["web(fact,pages)"] and ev["why"] == "un fatto da cercare → web"
+    assert _same(r) and calls == ["search", "web(fact,pages)"] and ev["why"] == "un fatto da cercare → web"
 
 
 def test_light_reads_only_the_snippets(run):
     _, calls, _ = run("light", "fact", web=READ)
-    assert calls == ["web(fact,snippets)"]
+    assert calls == ["search", "web(fact,snippets)"]
 
 
 def test_an_explanation_reads_the_vault_then_the_web(run):
@@ -66,7 +67,8 @@ def test_a_case_goes_deep_in_auto_but_not_in_medium(run):
 
 def test_no_source_then_memory_marked_never_silence(run):
     (r, a, _, _), calls, ev = run("auto", "fact", memory=READ)
-    assert _same(r) and calls == ["web(fact,pages)", "search", "vault(fact)", "memory"] and ev["why"].endswith("→ memory")
+    # the vault is searched first (one re-rank): not sure of it (a passage without a score) → the web, then the vault
+    assert _same(r) and calls == ["search", "web(fact,pages)", "vault(fact)", "memory"] and ev["why"].endswith("→ memory")
     (r, a, _, _), _, ev = run("auto", "fact")
     assert r is None and a is None and ev["why"].endswith("nessuna fonte")
 
@@ -139,3 +141,16 @@ def test_the_reasoning_keeps_the_form_asked_and_gives_up_when_it_has_no_answer()
     assert r["text"].startswith("🧮") and r["text"].endswith("Risposta: C") and asked == [(24000, True)]
     out.answer = ""
     assert R.from_reasoning(p, "Quanto fa 2+2?", lambda e, d: None) is None
+
+
+def test_a_fact_goes_to_the_vault_first_when_the_vault_is_sure(monkeypatch):
+    """M194: the best passage's re-rank ≥ VAULT_FIRST (0.6) sends a FACT to the vault before the web."""
+    from types import SimpleNamespace as NS
+    calls = []
+    monkeypatch.setattr(T.kno_read, "kind", lambda p, q: "fact")
+    monkeypatch.setattr(T.kno_read, "from_web", lambda *a, **k: calls.append("web") or None)
+    monkeypatch.setattr(T.kno_read, "from_vault", lambda p, q, h, size: calls.append("vault") or READ)
+    for score, first in ((0.95, "vault"), (0.2, "web")):
+        calls.clear()
+        T.answer(NS(cfg={}), "q", None, "auto", lambda recall: ([NS(rerank=score)], []), lambda h, s: None, lambda e, p: None)
+        assert calls[0] == first, (score, calls)

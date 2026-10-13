@@ -53,11 +53,13 @@ def wants_tools(question: str, recent: list, emit=None) -> bool:
     if not services:
         return False
     prev = "\n".join(f"{'Owner' if t.extra.get('role') == 'user' else 'Aurora'}: {t.text[:300]}" for t in recent[-2:])
-    out = pipeline()._for("route").complete(SYS_TOOLS.replace("{services}", "\n".join(services)),
-                                  (f"PREVIOUS TURNS:\n{prev}\n\n" if prev else "") + f"LAST MESSAGE: {question}", 4)
+    model, system = pipeline()._for("route"), SYS_TOOLS.replace("{services}", "\n".join(services))
+    user = (f"PREVIOUS TURNS:\n{prev}\n\n" if prev else "") + f"LAST MESSAGE: {question}"
+    sure = getattr(model, "decide", lambda *a: None)(system, user, ["TOOLS", "NO"])   # one token (M199), else words
+    reply = f"TOOLS {sure['TOOLS']:.2f}" if sure else model.complete(system, user, 4).answer.strip()
     if emit:
-        emit("route.tools", {"services": [x[2:].split(":")[0] for x in services], "reply": out.answer.strip()[:20]})
-    return out.answer.strip().upper().startswith("TOOLS")
+        emit("route.tools", {"services": [x[2:].split(":")[0] for x in services], "reply": reply[:20]})
+    return sure["TOOLS"] > 0.5 if sure else reply.upper().startswith("TOOLS")
 
 
 def picture_intent(question: str) -> str:

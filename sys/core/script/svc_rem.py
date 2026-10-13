@@ -84,6 +84,8 @@ def choose(st: dict, system: bool = True) -> tuple[str | None, str]:
         return "train", "night window, the shadow not trained tonight"
     if in_dream_window(now) and st.get("deduce_due"):
         return "deduce", "night window, no deductions looked for tonight"
+    if in_dream_window(now) and st.get("audit_due"):         # the vault watched (kno_vault_audit, owner 13 Oct)
+        return "audit", "night window, the vault not checked tonight"
     if system and _minutes_since(st["last"].get("self_review")) >= 24 * 60:
         return "introspect", "no self-review in the last 24 hours"
     if st.get("social_platforms") and _minutes_since(st["last"].get("social_report")) >= 24 * 60:   # each user's pages

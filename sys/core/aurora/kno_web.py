@@ -95,10 +95,17 @@ class _Text(html.parser.HTMLParser):
 
 
 def page(url: str, chars: int = 12000) -> str:
-    """A public page as plain text (its first `chars`); "" when it cannot be read."""
+    """A public page as plain text (its first `chars`); "" when it cannot be read, or when its reputation says not to
+    open it (the plugin linkcheck: sec_linkcheck)."""
     addr = _public(url)
     if not addr:
         return ""
+    from . import sec_linkcheck
+    try:
+        if sec_linkcheck.check(url)["blocked"]:
+            return ""                                    # a bad page is never opened: the next result is read instead
+    except Exception:                                    # noqa: BLE001 — the check failing is «not checked», not «clean»:
+        pass                                             # the page is a search result, read as text, never run
     u = urlparse(url)
     host = f"[{addr}]" if ":" in addr else addr
     target = u._replace(netloc=host + (f":{u.port}" if u.port else "")).geturl()

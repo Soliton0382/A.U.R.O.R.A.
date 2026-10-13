@@ -121,7 +121,10 @@ say "== changes"
 git status --short | head -40; echo "$(git status --short | wc -l) changed"
 if [ -n "$MSG" ]; then
   git diff --cached --quiet && { echo "nothing to commit"; exit 0; }
-  git commit -q -m "$MSG" && git log --oneline -1
+  # «a && b» does not stop a «set -e» script: a refused commit (its signature) went on to push nothing and tag the
+  # commit before (v0.2.18 on 13 Oct) — now it stops here
+  git commit -q -m "$MSG" || fail "the commit was refused (its signature? the output above): nothing pushed, no tag"
+  git log --oneline -1
   if [ "$PUSH" = 1 ]; then git push -u origin main; fi
 else
   echo "(no commit: add --commit \"message\")"

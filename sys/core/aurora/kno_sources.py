@@ -250,7 +250,11 @@ def arxiv(fetch: Fetch, cfg, domain: str, spec: dict, st: dict, want: int, deep:
     for e in entries:
         if e.arxiv_id in seen or len(out) >= want:
             continue
-        name, data = kno_arxiv.paper(e.arxiv_id, e.pdf, fetch)           # HTML first: formulas readable (C137)
+        try:
+            name, data = kno_arxiv.paper(e.arxiv_id, e.pdf, fetch)       # HTML only: formulas readable (C137)
+        except kno_arxiv.NoHTML:
+            seen.add(e.arxiv_id)                                        # not asked again at every round
+            continue
         out.append(Doc(e.arxiv_id, domain, e.title, f"arxiv:{e.arxiv_id}", catalogue()["licences"]["arxiv"],
                        f"https://arxiv.org/abs/{e.arxiv_id}", name=name, data=data))
     return out
@@ -356,7 +360,10 @@ def rxiv(server: str):
         col = r.get("collection", [])
         total = int((r.get("messages") or [{}])[0].get("total") or 0)
         out = []
-        for d in col:
+        # one record per VERSION of a preprint: the latest of each DOI only (v1 and v2 of one preprint, retitled,
+        # were imported 6 s apart as two documents)
+        latest = {d["doi"]: d for d in sorted(col, key=lambda d: int(d.get("version") or 1))}
+        for d in latest.values():
             key = f"{server}:{d['doi']}"
             if key in seen or len(out) >= want or not d.get("jatsxml"):
                 continue
@@ -380,6 +387,15 @@ def rxiv(server: str):
             st["i"] = i + 1
         return out
     return source
+
+
+def wiki_page(fetch: Fetch, lang: str, title: str) -> tuple[str, str]:
+    """(title, plain text without the tail sections) of one Wikipedia article; ("", "") when it has none."""
+    api = WIKI.replace("//en.", f"//{lang}.")
+    r = fetch(api, action="query", prop="extracts", explaintext=1, titles=title, redirects=1, format="json").json()
+    page = next(iter(r.get("query", {}).get("pages", {}).values()), {})
+    text = page.get("extract", "")
+    return page.get("title", title), WIKI_TAIL.split(text)[0] if text else ""
 
 
 def wikipedia(fetch: Fetch, cfg, domain: str, spec: dict, st: dict, want: int, deep: bool, seen: set) -> list[Doc]:

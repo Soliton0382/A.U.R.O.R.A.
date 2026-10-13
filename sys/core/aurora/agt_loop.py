@@ -316,6 +316,10 @@ class Agent(AgentReport):
         if name not in index:
             return f"ERROR: unknown tool {name}"
         plugin, tool, effect = index[name]
+        from . import sec_linkcheck                         # a link of bad reputation is never opened (linkcheck)
+        refused = sec_linkcheck.tool_call(self.cfg, plugin, args, emit, self.log)
+        if refused:
+            return refused
         if plugin == "projects" and args.get("name"):
             self.projects.add(str(args["name"]))
         if self.host.get(plugin).manifest.get("private") and not self.local_only:

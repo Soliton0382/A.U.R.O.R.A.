@@ -23,6 +23,13 @@ async def sentinel_incident(request: Request) -> dict:
     from aurora.sec_incidents import Incidents
     incident = await request.json()
     name = sec_netmap.names(cfg).get(incident.get("source", "")) if incident.get("internal") else None
+    if not name and incident.get("internal"):             # the same device by its MAC, with an address not its own
+        dev = sec_netmap.by_mac(cfg, (incident.get("detail") or {}).get("mac", ""))
+        if dev:
+            name = f"{dev[0]} (di solito {dev[1]})"
+            d = incident.setdefault("detail", {})
+            d["why"] = (d.get("why", "") + f" È un tuo dispositivo, «{dev[0]}» (di solito {dev[1]}), con un altro "
+                        f"indirizzo: {incident.get('source', '')}.").strip()
     if name:                                              # one of the owner's devices (the firewall knows its name)
         incident["known"] = name
     outbound = destination_of(incident)
