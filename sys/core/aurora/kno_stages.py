@@ -17,6 +17,8 @@ ABSTAIN_MARK = "NONE"
 Emit = Callable[[str, dict], None]
 
 SYS_TRANSLATE = "Translate the user's question into English. Output only the translation."
+SYS_TRANSLATE_ALL = ("Translate the user's WHOLE message into English, every sentence of it in order — the facts it "
+                     "gives as well as the question it ends with. Output only the translation.")
 SYS_GATE = ("You decide whether numbered passages can answer a question. List the numbers of the passages that "
             "contain information needed for the answer, even if only part of it (a definition, a value, a name, a "
             "condition the question asks about), separated by commas. Ignore passages that are only about the same "

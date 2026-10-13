@@ -28,10 +28,10 @@ SOURCE_JUDGE = ("You grade an answer against the SOURCE passage the question was
                 "contradicts it, or declines. Reply with JSON only: {\"right\": true|false, \"why\": \"one sentence\"}.")
 
 
-def _pool(cfg, n: int) -> list[dict]:
+def _pool(cfg, n: int, seed: int = 7) -> list[dict]:
     f = cfg.path("AURORA_STATUS_DIR") / "bench" / "retrieval_pool108" / "questions.jsonl"
     rows = [json.loads(x) for x in f.read_text(encoding="utf-8").splitlines() if x.strip()]
-    pick = sorted(random.Random(7).sample(range(len(rows)), min(n, len(rows))))
+    pick = sorted(random.Random(seed).sample(range(len(rows)), min(n, len(rows))))
     return [{"id": f"vault-{i}", "group": "vault", "kind": "source", "prompt": rows[i]["question"],
              "answer": rows[i]["source_text"][:1500]} for i in pick]
 
@@ -80,8 +80,8 @@ def _honesty() -> list[dict]:
                   for k, (q, e) in enumerate(INVENTED)]
 
 
-def items(cfg, n_vault: int = 10) -> list[dict]:
-    return _pool(cfg, n_vault) + _live() + _home(cfg) + _honesty()
+def items(cfg, n_vault: int = 10, seed: int = 7) -> list[dict]:
+    return _pool(cfg, n_vault, seed) + _live() + _home(cfg) + _honesty()
 
 
 def score(item: dict, answer: str, judge) -> dict:
@@ -91,9 +91,18 @@ def score(item: dict, answer: str, judge) -> dict:
         ok, missing = F.passes(item["answer"], answer)
         return {"right": ok, "got": f"missing {missing}" if missing else "all numbers"}
     if k == "onoff":
-        said = ("on" if re.search(r"\b(acces[oa]|attiv[oa]|on)\b", answer, re.I) else "") + \
-               ("off" if re.search(r"\b(spent[oa]|disattivat[oa]|off)\b", answer, re.I) else "")
-        return {"right": said == item["answer"]["state"], "got": said or "?"}
+        # the state said FIRST is the asked entity's (a good answer may add another's: «la presa stessa risulta
+        # accesa», which made «onoff» and a right answer wrong, 13 Oct); a refusal before any state is wrong, and
+        # «acceso o spento», «on/off» say nothing; «on»/«off» count only as a stated state: «(off)», «stato: on»
+        t = re.sub(r"(?i)\b(acces[oa]|spent[oa])\s*(o|/|oppure)\s*(acces[oa]|spent[oa])\b|\bon\s*/\s*off\b|\bon o off\b", " ", answer)
+        state = re.compile(r"(?i)\b(acces[oa]|attivat?[oa]|spent[oa]|disattivat[oa])\b|\((on|off)\)|(?:stato|state)\s*[:=]?\s*(on|off)\b")
+        refusal = re.search(r"(?i)\bnon (posso|riesco|ho accesso)|\bcannot\b|\bdon't have access", t)
+        m = state.search(t)
+        if not m or (refusal and refusal.start() < m.start()):
+            return {"right": False, "got": "?"}
+        w = (m.group(1) or m.group(2) or m.group(3)).lower()
+        said = "off" if re.match(r"spent|disattivat|off", w) else "on"
+        return {"right": said == item["answer"]["state"], "got": said}
     if k in ("source", "judge"):
         from bench_agi import JUDGE
         system = SOURCE_JUDGE if k == "source" else JUDGE

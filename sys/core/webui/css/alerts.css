@@ -23,7 +23,7 @@
 .toasts { position: fixed; right: 16px; bottom: 16px; z-index: 900; display: flex; flex-direction: column; gap: 8px; max-width: min(380px, calc(100vw - 32px)); }
 .toast { display: flex; flex-direction: column; gap: 2px; text-align: left; padding: .6rem .8rem; border-radius: 10px;
   background: var(--panel-solid, #11141c); border: 1px solid var(--line, #333); box-shadow: 0 6px 24px rgba(0,0,0,.45); cursor: pointer; }
-.toast span { font-size: .85rem; color: var(--muted, #aaa); }
+.toast span { font-size: .85rem; color: var(--muted, #aaa); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* 💗 the face beside the health dot and its card (alerts.js, mood.js) */
 .mood-face { background: none; border: 0; padding: 0 .1rem; font-size: 1.05rem; line-height: 1; cursor: pointer; }
@@ -36,3 +36,8 @@
 .mood-pop .mood-row.top strong { color: var(--accent); }
 .mood-pop-title { display: block; margin-bottom: .35rem; }
 @media (prefers-reduced-motion: reduce) { .mood-face { animation: none !important; } }
+
+/* a phone: under the bar, not over the page's last buttons (owner, 13 Oct: «le visualizzazioni in pwa») */
+@media (max-width: 640px) {
+  .toasts { top: calc(env(safe-area-inset-top, 0px) + 4.2rem); bottom: auto; left: 16px; right: 16px; max-width: none; }
+}

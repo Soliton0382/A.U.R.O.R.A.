@@ -20,7 +20,7 @@ from pathlib import Path
 
 import re
 
-from . import sys_config
+from . import kno_abstain, sys_config
 
 # the night imports only what the re-ranker found clearly relevant: in the first study run (2026-10-05, 12 imports) the
 # relevant ones scored 0.75-0.97, the useless ones ("Red", "GIMP" for a question about a picture) 0.11-0.32 —
@@ -67,7 +67,9 @@ def pending(pipeline, cfg: sys_config.Config, days: float = 7) -> list[dict]:
     for t in turns:
         rid = t.extra.get("run_id")
         # declined, or answered from the web or from memory where the vault had nothing (kno_think: «learn»)
+        # not what nobody can know yet, nor what has no trace anywhere (kno_abstain)
         if (t.extra.get("role") == "assistant" and (t.extra.get("abstained") or t.extra.get("learn"))
+                and t.extra.get("why") not in kno_abstain.NOT_STUDIED
                 and t.extra.get("mode", "knowledge") == "knowledge"
                 and t.created_at >= since and rid in asked and rid not in done):
             q = asked[rid].text.split(" [")[0].strip()

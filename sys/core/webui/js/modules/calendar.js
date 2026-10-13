@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 A.U.R.O.R.A. Project
 // 📅 Aurora's own calendar (owner, 2026-10-08: «un calendario tutto suo… appuntamenti, reminder»): the next two weeks
-// as a list or the month as a grid, an item added or changed with a tap, the .ics out and in. The user's other
+// as a list, the day or the week as a time grid (calendar_grid.js), or the month as a grid, an item added or changed with a tap, the .ics out and in. The user's other
 // calendars (Google, Outlook, CalDAV: the calendar plugin's card) are shown beside, read only.
 import { call } from "../api.js";
 import { el, useCss } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { itemForm, ymd } from "./calendar_form.js";
+import { timeGrid } from "./calendar_grid.js";
 
 useCss("/static/css/calendar.css");
 
@@ -38,7 +39,7 @@ export default {
         <button type="button" data-go="0" data-i18n="cal.today"></button>
         <button type="button" data-go="1" aria-label="▶">▶</button>
         <strong class="cal-range"></strong>
-        <span class="cal-views"><button type="button" class="cat-chip on" data-view="agenda" data-i18n="cal.agenda"></button><button type="button" class="cat-chip" data-view="month" data-i18n="cal.month"></button></span>
+        <span class="cal-views"><button type="button" class="cat-chip on" data-view="agenda" data-i18n="cal.agenda"></button><button type="button" class="cat-chip" data-view="day" data-i18n="cal.day"></button><button type="button" class="cat-chip" data-view="week" data-i18n="cal.week"></button><button type="button" class="cat-chip" data-view="month" data-i18n="cal.month"></button></span>
         <button type="button" class="primary cal-new">➕ <span data-i18n="cal.new"></span></button>
       </div>
       <div class="cal-edit" hidden></div>
@@ -80,13 +81,16 @@ export default {
   go(step) {
     if (!step) this.anchor = new Date();
     else if (this.view === "month") this.anchor = new Date(this.anchor.getFullYear(), this.anchor.getMonth() + step, 1);
-    else this.anchor = addDays(this.anchor, step * AGENDA_DAYS);
+    else this.anchor = addDays(this.anchor, step * ({ day: 1, week: 7 }[this.view] || AGENDA_DAYS));
     this.picked = null;
     this.enter();
   },
 
   range() {
-    if (this.view === "agenda") { const a = new Date(this.anchor.getFullYear(), this.anchor.getMonth(), this.anchor.getDate()); return [a, addDays(a, AGENDA_DAYS)]; }
+    const a0 = new Date(this.anchor.getFullYear(), this.anchor.getMonth(), this.anchor.getDate());
+    if (this.view === "agenda") return [a0, addDays(a0, AGENDA_DAYS)];
+    if (this.view === "day") return [a0, addDays(a0, 1)];
+    if (this.view === "week") { const mon = addDays(a0, -((a0.getDay() + 6) % 7)); return [mon, addDays(mon, 7)]; }
     const first = new Date(this.anchor.getFullYear(), this.anchor.getMonth(), 1);
     const a = addDays(first, -((first.getDay() + 6) % 7));                     // the Monday before the 1st
     return [a, addDays(a, 42)];
@@ -109,9 +113,11 @@ export default {
     const fmt = { day: "numeric", month: "long", year: "numeric" };
     this.root.querySelector(".cal-range").textContent = this.view === "month"
       ? this.anchor.toLocaleDateString([], { month: "long", year: "numeric" })
-      : `${a.toLocaleDateString([], fmt)} – ${addDays(b, -1).toLocaleDateString([], fmt)}`;
+      : this.view === "day" ? a.toLocaleDateString([], { weekday: "long", ...fmt })
+        : `${a.toLocaleDateString([], fmt)} – ${addDays(b, -1).toLocaleDateString([], fmt)}`;
     const body = this.root.querySelector(".cal-body");
-    body.replaceChildren(this.view === "month" ? this.month(a) : this.agenda(a));
+    const grid = (n) => timeGrid(a, n, byDay, this.today, { open: (o) => this.open(o), add: (d, h) => this.open(null, d, h), hm });
+    body.replaceChildren(this.view === "month" ? this.month(a) : this.view === "day" ? grid(1) : this.view === "week" ? grid(7) : this.agenda(a));
     this.showDay();
   },
 
@@ -188,7 +194,7 @@ export default {
     box.replaceChildren(h, ...(list.length ? list.map((o) => this.row(o)) : [el("p", "muted", t("cal.free"))]));
   },
 
-  async open(o, day) {
+  async open(o, day, hour) {
     let item = null;
     if (o) {                                         // the stored item (its first start, its rule), and this occurrence
       try { item = { ...(await call(`/v1/aurora/calendar/items/${o.id}`)).item, at: o.at }; } catch (e) { return; }
@@ -197,7 +203,7 @@ export default {
       this.edit.hidden = true;
       this.edit.replaceChildren();
       if (changed) this.enter();
-    }));
+    }, hour));
     this.edit.hidden = false;
     this.edit.scrollIntoView({ behavior: "smooth", block: "start" });
   },

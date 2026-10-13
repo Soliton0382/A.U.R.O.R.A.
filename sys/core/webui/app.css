@@ -25,6 +25,9 @@ button:hover { border-color: var(--accent); }
 button:disabled { opacity: .5; cursor: default; }
 button.icon { padding: .35rem .6rem; font-size: 1.1rem; line-height: 1; }
 input, select, textarea { background: var(--input); border: 1px solid var(--line); border-radius: 8px; padding: .45rem .6rem; width: 100%; }
+/* a box or a dot keeps its own size: «width: 100%» made every checkbox take half a flexible row (the family page,
+   the ideas' areas); «body» outweighs a page's «.form input» rule */
+body input[type=checkbox], body input[type=radio] { width: auto; flex: none; padding: 0; margin: 0; accent-color: var(--accent); }
 .hidden { display: none !important; }
 .muted { color: var(--muted); }
 .error { color: var(--bad); }
@@ -90,12 +93,25 @@ body.drawer-open .scrim { opacity: 1; pointer-events: auto; }
 .table td, .table th { border-bottom: 1px solid var(--line); padding: .45rem .4rem; text-align: left; vertical-align: top; }
 .table td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .table tr.total td { font-weight: 600; }
+/* a phone: a data table is a pile of cards, each cell named by its column (js/stack.js) */
+@media (max-width: 640px) {
+  table.stackable, table.stackable tbody, table.stackable tr, table.stackable td { display: block; width: 100%; box-sizing: border-box; }
+  table.stackable thead, table.stackable tr.stack-head { display: none; }
+  table.stackable tr { border: 1px solid var(--line); border-radius: 10px; padding: .45rem .7rem; margin: .5rem 0; background: var(--panel); }
+  table.stackable td { display: flex; justify-content: space-between; align-items: baseline; gap: .8rem; border: 0; padding: .18rem 0;
+    text-align: right; overflow-wrap: anywhere; }
+  table.stackable td::before { content: attr(data-label); color: var(--muted); text-align: left; flex: 0 0 auto; max-width: 45%; }
+  table.stackable td[data-label=""]::before { content: none; }
+  table.stackable td[data-label=""] { justify-content: flex-end; }
+}
 .setting-cat { margin: 1.2rem 0 .4rem; color: var(--accent); }
 .setting { display: grid; grid-template-columns: minmax(180px, 300px) minmax(0, 1fr); gap: .3rem 1rem; padding: .6rem 0; border-bottom: 1px solid var(--line); }
 .setting code { font: .8rem var(--mono); }
 .setting .help { grid-column: 2; font-size: .82rem; color: var(--muted); }
 .setting .ev-tag { font-size: .75rem; color: var(--muted); }
-.settings-actions { position: sticky; bottom: 0; background: var(--drawer-bg); padding: .8rem 0; display: flex; gap: 1rem; align-items: center; }
+/* above what scrolls under it (a list's blurred rows painted over the button: notifications, devices) */
+.settings-actions { position: sticky; bottom: 0; z-index: 3; background: var(--drawer-bg); backdrop-filter: blur(10px);
+  border-top: 1px solid var(--line); padding: .8rem 0; display: flex; flex-wrap: wrap; gap: .6rem 1rem; align-items: center; }
 .pill { display: inline-block; padding: .05rem .5rem; border-radius: 999px; font-size: .8rem; border: 1px solid var(--line); }
 .pill.ok { color: var(--ok); border-color: var(--ok); }
 .pill.bad { color: var(--bad); border-color: var(--bad); }

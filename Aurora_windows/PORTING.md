@@ -76,7 +76,7 @@ Intended differences on Linux, none in behaviour the suite checks: a service tha
 | Backup timer | aurora-backup.timer, sys_backup_retime (drop-in in /etc/systemd) | — | A daily trigger on the task `\Aurora\backup`; a new time = Set-ScheduledTask | 3 |
 | NAS mount | sys_nas_mount: fstab, cifs, /etc/aurora/nas.cred | `is_mount` | No mount: Windows writes to `\\nas\share` directly; the credential in Windows's Credential Manager (cmdkey) | 3 |
 | GPU | nvidia-smi in sys_metrics, kno_mood, mdl_image, mdl_custom, api/core, sys_profile, sys_bugreport, bench_image (10 files) | `gpus`, `accelerator` | The same nvidia-smi and CSV (System32) | 1 ✅ |
-| CPU, memory | /proc/stat, /proc/meminfo (sys_metrics) | `cpu_percent`, `memory` | psutil (already installed with Aurora: 7.2.2) | 1 ✅ / 2 |
+| CPU, memory, network | /proc/stat, /proc/meminfo, /proc/net/dev and /sys/class/net (sys_metrics) | `cpu_percent`, `memory` | psutil (already installed with Aurora: 7.2.2) | 1 ✅ / 2 |
 | Disk, mounts | /proc/self/mounts (sys_backup), shutil.disk_usage | `is_mount` | os.path.ismount; disk_usage works | 1 ✅ |
 | File locks | fcntl in mdl_image, mdl_budget, sys_backup, sys_health, sec_fwapi (5 files) | `lock`, `unlock` | msvcrt.locking on byte 0, our own wait (msvcrt gives up after 10 s); no shared lock: shared = exclusive | 1 ✅ |
 | Atomic replace | os.replace after a tmp file, everywhere (stores, settings, uploads) | `replace` | A reader holding the file open makes os.replace fail (sharing violation): retried for up to 1 s | 1 ✅ / 2 |

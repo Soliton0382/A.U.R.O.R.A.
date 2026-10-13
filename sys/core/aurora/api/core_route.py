@@ -311,8 +311,10 @@ def answer_or_acquire(question: str, emit, run_id: str, **kw):
     if remember and cfg["AURORA_SHADOW"] and not ans.abstained and ans.mode == "knowledge" and ans.sources:
         from aurora import kno_shadow                     # a verified answer casts its shadow
         kno_shadow.add(cfg, p.search.embedder, question, ans.text, ans.sources, follow=ans.suggestions)
-    if (cfg["AURORA_ACQUIRE_AUTO"] and ans.abstained and ans.mode == "knowledge" and not kw.get("attached")
-            and len(question) < 400):                 # Autonomy panel, knowledge at 🚀: she searches by herself
+    # Autonomy panel, knowledge at 🚀: she searches by herself — never for a question asked with remember: false
+    # (C287: a benchmark's question wrote pages to the vault and was asked again with the memory on)
+    if (cfg["AURORA_ACQUIRE_AUTO"] and remember and ans.abstained and ans.mode == "knowledge" and not kw.get("attached")
+            and len(question) < 400):
         from aurora.kno_acquire import ArxivAgent
         emit("acquire.confirmed", {"question": question, "auto": True})
         from aurora import sys_autonomy

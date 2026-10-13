@@ -73,6 +73,22 @@ def _pair(a: str, b: str) -> tuple[str, str]:
     return (a, b) if a < b else (b, a)
 
 
+def forget(cfg: sys_config.Config, sids: list[str]) -> int:
+    """The links of passages removed from the vault (a source removed, C287): none left pointing to nothing; the
+    concepts are rebuilt from the links at the next cycle (kno_synapse2.concepts)."""
+    gone = list(dict.fromkeys(sids))
+    if not gone:
+        return 0
+    with _db(cfg) as con:
+        n = 0
+        for i in range(0, len(gone), 500):
+            part = gone[i:i + 500]
+            marks = ",".join("?" * len(part))
+            n += con.execute(f"DELETE FROM links WHERE a IN ({marks}) OR b IN ({marks})", part + part).rowcount
+            con.execute(f"DELETE FROM looked WHERE sid IN ({marks})", part)
+    return n
+
+
 def link(cfg: sys_config.Config, a: tuple[str, str], b: tuple[str, str], w: float, kind: str = "grow") -> None:
     """(sid, domain) a and b linked with weight w (the stronger of the old and the new)."""
     (x, dx), (y, dy) = sorted([a, b])

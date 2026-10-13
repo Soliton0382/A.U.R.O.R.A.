@@ -1091,6 +1091,7 @@
   "cal.hint": "Aurora's calendar: appointments and reminders, sealed with your key. She tells you with a notification and in the chat. You can also tell her in the chat: \"remind me tomorrow at 9 to call Marco\", \"book the dentist on Friday at 3 pm\".",
   "cal.today": "Today",
   "cal.agenda": "Agenda",
+  "cal.week": "Week",
   "cal.month": "Month",
   "cal.new": "New",
   "cal.free": "Nothing planned.",

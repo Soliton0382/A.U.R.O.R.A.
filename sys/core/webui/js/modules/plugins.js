@@ -251,7 +251,8 @@ export default {
         try {
           const r = await call("/v1/aurora/settings", { method: "PUT", body: JSON.stringify(changes) });
           out.textContent = t("settings.saved", { keys: r.changed.join(", "), services: r.restart.join(", ") || "—" });
-          if (await restartPrompt(r.restart)) { dlg.close(); dlg.remove(); this.enter(); }
+          bus.emit("plugins", {});                        // its account filled: its page may appear now
+          if (await restartPrompt(r.restart)) { dlg.close(); dlg.remove(); this.enter(); bus.emit("plugins", {}); }
         } catch (e) { out.textContent = t("ev.error", { m: e.message }); }
       });
       const actions = el("div", "appr-actions");

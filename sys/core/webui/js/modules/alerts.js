@@ -137,7 +137,9 @@ export default {
     const show = (n) => {
       const card = el("button", "toast");
       card.type = "button";
-      card.append(el("strong", "", n.title), el("span", "", n.body || ""));
+      // a routine's report is markdown: the toast shows its words, not its asterisks (the full report is a tap away)
+      const plain = String(n.body || "").replace(/[*_`#>]+/g, "").replace(/\s+/g, " ").trim();
+      card.append(el("strong", "", n.title), el("span", "", plain));
       card.addEventListener("click", () => { card.remove(); if (n.view) ctx.show(n.view); });
       box.append(card);
       setTimeout(() => card.remove(), 9000);

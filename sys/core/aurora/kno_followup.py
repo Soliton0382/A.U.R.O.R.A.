@@ -27,10 +27,17 @@ if TYPE_CHECKING:
 
 SYS_STANDALONE = ("You get the last turns of a conversation, Aurora's LAST ANSWER with its sources, and the owner's "
                   "LAST MESSAGE. If the last message can be understood only with what came before (it points to "
-                  "something said there: 'it', 'he', 'that one', 'the author', 'and what about…', 'why?'), rewrite it "
+                  "something said there: 'it', 'he', 'that one', 'the author', 'and what about…', 'why?', or a place or "
+                  "a time said before: 'there', 'up there', 'lì', 'lassù', 'then', 'allora'), rewrite it "
                   "as ONE complete question that names what it points to (the subject, and the work or source when "
-                  "the conversation was about one), in the language of the last message, adding nothing else. If it "
+                  "the conversation was about one), and keeps any figure stated there that the answer depends on (a "
+                  "height, a date, a quantity: «a N metri», «nel N»), in the language of the last message, "
+                  "adding nothing else. If it "
                   "is already complete on its own, copy it EXACTLY as it is. Output only the question.")
+SYS_REPLY = ("The owner's LAST MESSAGE replies to the QUOTED message (↩️): it is about what the quoted message says. "
+             "Rewrite it as ONE complete question that names what it refers to there — the subject, the place, the "
+             "work — and keeps any figure stated there that the answer depends on (a height, a date, a quantity), in "
+             "the language of the last message, adding nothing else. Output only the question.")
 SYS_SUGGEST = ("You get the owner's QUESTION, Aurora's ANSWER and numbered PASSAGES of the library. Write 3 or 4 "
                "questions the owner may want to ask next to go deeper. Each one: answerable from the PASSAGES (prefer "
                "those marked 'not used'), COMPLETE on its own (it names its subject and, when it matters, the work: "
@@ -98,8 +105,12 @@ def standalone(p: "Pipeline", question: str, recent: list[Soliton], ev, quote: S
     if prev is not None:
         titles = "; ".join(s.get("title") or s.get("source", "") for s in prev.extra.get("source_list") or [])
         context += f"\n\nLAST ANSWER (whole):\n{prev.text[:ANSWER_CUT]}" + (f"\nITS SOURCES: {titles}" if titles else "")
-    out = p._for("translate").complete(SYS_STANDALONE, f"{context}\n\nLAST MESSAGE: {question}",
-                                       200).answer.strip().strip('"«»').strip()
+    if quote is not None:                       # a reply (↩️) is about the quoted message: always read against it
+        out = p._for("translate").complete(SYS_REPLY, f"QUOTED: {quote.text[:ANSWER_CUT]}\n\nLAST MESSAGE: {question}",
+                                           200).answer.strip().strip('"«»').strip()
+    else:
+        out = p._for("translate").complete(SYS_STANDALONE, f"{context}\n\nLAST MESSAGE: {question}",
+                                           200).answer.strip().strip('"«»').strip()
     if not out or len(out) > 3 * len(question) + 200 or "\n" in out:          # not a question: keep the owner's
         return question, []
     if out == question:

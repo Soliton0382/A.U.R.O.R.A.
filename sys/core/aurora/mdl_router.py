@@ -16,10 +16,13 @@
 from __future__ import annotations
 
 import base64
+import contextvars
 import json
 import os
 import re
+import threading
 import time
+from collections import deque
 from pathlib import Path
 from typing import Iterator
 
@@ -86,8 +89,28 @@ def _dir(cfg: sys_config.Config) -> Path:
     return d
 
 
+# C280: the roles of one request (a benchmark's target), never written to roles.json — the owner's chat keeps hers
+RUN_ROLES: contextvars.ContextVar[dict | None] = contextvars.ContextVar("aurora_run_roles", default=None)
+
+
+def check_roles(roles: dict) -> dict[str, dict]:
+    """A request's roles, validated: known roles and providers only."""
+    out = {}
+    for role, a in (roles or {}).items():
+        if role not in ROLES or not isinstance(a, dict) or a.get("provider") not in PROVIDERS:
+            raise ValueError(f"unknown role or provider: {role} {a.get('provider') if isinstance(a, dict) else a}")
+        out[role] = {"provider": a["provider"], "model": str(a.get("model", ""))[:200]}
+    return out
+
+
 def assignments(cfg: sys_config.Config) -> dict[str, dict]:
-    """{role: {"provider", "model"}} — the owner's choice, else the old two settings."""
+    """{role: {"provider", "model"}} — the owner's choice, else the old two settings; within a request that brought
+    its own roles (RUN_ROLES), those."""
+    cur = _stored(cfg)
+    return {**cur, **(RUN_ROLES.get() or {})}
+
+
+def _stored(cfg: sys_config.Config) -> dict[str, dict]:
     try:
         saved = json.loads((_dir(cfg) / "roles.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -100,7 +123,7 @@ def assignments(cfg: sys_config.Config) -> dict[str, dict]:
 
 
 def set_assignments(cfg: sys_config.Config, changes: dict[str, dict]) -> dict[str, dict]:
-    cur = assignments(cfg)
+    cur = _stored(cfg)                                  # never a request's own roles (C280)
     for role, a in changes.items():
         if role not in ROLES or a.get("provider") not in PROVIDERS:
             raise ValueError(f"unknown role or provider: {role} {a.get('provider')}")
@@ -361,6 +384,39 @@ def list_models(provider: str, cfg: sys_config.Config | None = None) -> list[str
 
 # ---- masking around every cloud call ------------------------------------------------------------------------
 
+# ☁️ the cloud calls of this process, live (the top bar: owner, 2026-10-13 «manca qualcosa che indica le connessioni
+# verso il cloud così si capisce quando il sistema sta comunicando»): calls under way, and the last minute's calls with
+# the characters sent and received — what leaves is already masked
+_CLOUD = {"active": 0, "recent": deque(maxlen=2000)}
+_CLOUD_LOCK = threading.Lock()
+
+
+class _cloud_call:
+    def __init__(self, provider: str, sent: int):
+        self.provider, self.sent, self.got = provider, sent, 0
+
+    def __enter__(self):
+        with _CLOUD_LOCK:
+            _CLOUD["active"] += 1
+        return self
+
+    def __exit__(self, *exc):
+        with _CLOUD_LOCK:
+            _CLOUD["active"] -= 1
+            _CLOUD["recent"].append((time.time(), self.provider, self.sent, self.got))
+        return False
+
+
+def cloud_live(window: float = 60.0) -> dict:
+    """{"active", "calls", "sent", "received", "providers"} of the last `window` seconds (characters, masked text)."""
+    now = time.time()
+    with _CLOUD_LOCK:
+        last = [r for r in _CLOUD["recent"] if now - r[0] <= window]
+        active = _CLOUD["active"]
+    return {"active": active, "calls": len(last), "sent": sum(r[2] for r in last), "received": sum(r[3] for r in last),
+            "providers": sorted({r[1] for r in last})}
+
+
 class MaskedLLM:
     """A cloud model seen through the Pseudonymizer: what leaves is masked, what comes back unmasked."""
 
@@ -391,7 +447,9 @@ class MaskedLLM:
     def complete(self, system: str, user: str, max_tokens: int, think: bool = False) -> Completion:
         p = self._p()
         ms, mu = p.mask(self._named(system)), p.mask(user)
-        c = self.inner.complete(self._keep(p, ms), mu, max_tokens, think)
+        with _cloud_call(self.name, len(ms) + len(mu)) as cc:
+            c = self.inner.complete(self._keep(p, ms), mu, max_tokens, think)
+            cc.got = len(c.answer or "") + len(c.thought or "")
         self._note(p)
         return Completion(p.unmask(c.answer), p.unmask(c.thought), c.tokens, c.seconds, c.truncated)
 
@@ -405,26 +463,35 @@ class MaskedLLM:
                 masked.insert(0, {"role": "system", "content": self._keep(p, "").strip()})
             else:
                 masked[i] = {**masked[i], "content": self._keep(p, masked[i]["content"])}
-        c = self.inner.complete_turns(masked, max_tokens, think)
+        with _cloud_call(self.name, sum(len(str(m.get("content", ""))) for m in masked)) as cc:
+            c = self.inner.complete_turns(masked, max_tokens, think)
+            cc.got = len(c.answer or "") + len(c.thought or "")
         self._note(p)
         return Completion(p.unmask(c.answer), p.unmask(c.thought), c.tokens, c.seconds, c.truncated)
 
     def stream(self, system: str, user: str, max_tokens: int, think: bool = False) -> Iterator[tuple[str, str]]:
         p = self._p()
         ms, mu = p.mask(self._named(system)), p.mask(user)
-        yield from p.unmask_stream(self.inner.stream(self._keep(p, ms), mu, max_tokens, think))
+        with _cloud_call(self.name, len(ms) + len(mu)) as cc:
+            for piece in p.unmask_stream(self.inner.stream(self._keep(p, ms), mu, max_tokens, think)):
+                cc.got += len(piece[1] if isinstance(piece, tuple) else piece)
+                yield piece
         self.last_speed = getattr(self.inner, "last_speed", None)
         self._note(p)
 
     def see(self, jpeg: bytes, instruction: str, max_tokens: int = 700) -> str:
         p = self._p()
-        out = self.inner.see(jpeg, p.mask(instruction), max_tokens)    # the picture itself cannot be masked
+        with _cloud_call(self.name, len(jpeg) + len(instruction)) as cc:
+            out = self.inner.see(jpeg, p.mask(instruction), max_tokens)    # the picture itself cannot be masked
+            cc.got = len(out or "")
         self._note(p, images=1)
         return p.unmask(out)
 
     def see_many(self, frames: list[tuple[str, bytes]], instruction: str, max_tokens: int = 1600) -> str:
         p = self._p()
-        out = self.inner.see_many(frames, p.mask(instruction), max_tokens)
+        with _cloud_call(self.name, sum(len(f[1]) for f in frames) + len(instruction)) as cc:
+            out = self.inner.see_many(frames, p.mask(instruction), max_tokens)
+            cc.got = len(out or "")
         self._note(p, images=len(frames))
         return p.unmask(out)
 

@@ -53,7 +53,7 @@ def test_a_reply_is_read_against_the_quote_however_old():
                         _turns=lambda rs, n, cut: "\n".join(t.text for t in rs), _for=lambda role: SimpleNamespace(complete=complete))
     q, focus = F.standalone(p, "quanto è potente?", turns, lambda *a: None, quote)
     assert q.startswith("Quanto è potente un laser") and focus == [{"source": "wiki:laser", "domain": "physics"}]
-    assert "LAST ANSWER (whole):\nUn laser amplifica" in seen["user"]
+    assert seen["user"].startswith("QUOTED: Un laser amplifica")            # a reply: read against the quote (SYS_REPLY)
     assert F.standalone(p, "quanto è potente?", recent, lambda *a: None) == ("quanto è potente?", [])   # no quote: too old
 
 

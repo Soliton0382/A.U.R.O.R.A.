@@ -62,3 +62,4 @@ class Answer:
     suggestions: list = field(default_factory=list)  # follow-up questions with their sources (kno_followup.suggest)
     came_from: str = ""                            # kno_think: vault | web | memory | deep ("" for the vault pipeline)
     learn: bool = False                            # an explanation the vault lacked: studied at night (kno_study)
+    why: str = ""                                  # a declined answer: future | no_trace | open (kno_abstain)

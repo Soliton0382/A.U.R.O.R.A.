@@ -38,6 +38,10 @@ def test_a_seed_question_reads_no_conversation_the_owners_do(monkeypatch):
     with pytest.raises(Stop) as e:
         p.run("e dove abito?")                                       # the owner's Aurora: her chat, as before
     assert e.value.args[0] == ["the owner's turn"]
+    quote = SimpleNamespace(sid="q1", text="Il libro che cercavi è «Il nome della rosa».")
+    with pytest.raises(Stop) as e:                                   # C283: alone, a reply keeps what it replies to
+        p.run("In che anno è uscito?", emit=lambda ev, d: None, alone=True, quote=quote)
+    assert e.value.args[0] == [quote]
 
 
 def test_only_the_scripts_questions_asked_alone_leave_never_the_nights_thoughts(cfg):

@@ -39,3 +39,21 @@ def test_a_long_question_is_translated_whole_or_not_pivoted():
     assert whole(grid, grid.replace("Puzzle", "Puzzle (en)"))
     assert not whole(grid, "Puzzle: 0 1 2 3")                                  # cut: stay on the question as asked
     assert whole("Che ore sono?", "What time is it?") and not whole("Che ore sono?", "  ")
+
+
+def test_a_translation_that_keeps_only_the_last_sentence_is_not_the_question():
+    """C286: the facts of a puzzle lost in the translation made it a fact to look up on the web."""
+    from aurora.kno_answer import whole
+    q = ("Anna è più alta di Bruno, Bruno è più alto di Carla e Dario è più basso di Carla. "
+         "Chi è il secondo più basso?")
+    assert not whole(q, "Who is the second shortest?")
+    assert whole(q, "Anna is taller than Bruno, Bruno is taller than Carla and Dario is shorter than Carla. "
+                    "Who is the second shortest?")
+    assert whole("Chi ha scritto il Decameron?", "Who wrote it?")                 # a short question: not judged
+
+
+def test_no_search_of_her_own_for_a_question_asked_without_memory():
+    """C287: a benchmark's question (remember: false) never starts the autonomous acquisition."""
+    from pathlib import Path                                  # the route itself needs the whole app to import
+    src = (Path(__file__).resolve().parents[1] / "aurora" / "api" / "core_route.py").read_text(encoding="utf-8")
+    assert 'cfg["AURORA_ACQUIRE_AUTO"] and remember and ans.abstained' in src

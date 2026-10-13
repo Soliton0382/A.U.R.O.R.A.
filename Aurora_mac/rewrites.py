@@ -354,6 +354,11 @@ def _gpus() -> list[dict]:
              "total_mib": _int(g.mem_total), "temp_c": _int(g.temp)}} for g in sys_platform.current().gpus()]""",
      "sys_metrics: CPU, memory, GPUs"),
 
+    ("sys/core/aurora/sys_metrics.py",
+     'def _net_bytes() -> tuple[int, int, int]:\n    """(received, sent, link Mbit/s) of the physical interfaces (those with a device: not lo, docker, bridges, VMs)."""\n    rx = tx = link = 0\n    try:\n        lines = Path("/proc/net/dev").read_text().splitlines()[2:]\n    except OSError:\n        return 0, 0, 0\n    for line in lines:\n        name, data = line.split(":", 1)\n        name = name.strip()\n        if not (Path("/sys/class/net") / name / "device").exists():\n            continue\n        v = data.split()\n        rx, tx = rx + int(v[0]), tx + int(v[8])\n        try:\n            link = max(link, int((Path("/sys/class/net") / name / "speed").read_text()))\n        except (OSError, ValueError):                 # a Wi-Fi card says no speed: the wired one sets it\n            pass\n    return rx, tx, link',
+     'def _net_bytes() -> tuple[int, int, int]:\n    """(received, sent, link Mbit/s) of the interfaces that are up, loopback left out (psutil: this system\'s own)."""\n    import psutil\n    rx = tx = link = 0\n    stats = psutil.net_if_stats()\n    for name, c in psutil.net_io_counters(pernic=True).items():\n        st = stats.get(name)\n        if not st or not st.isup or name.lower().startswith(("lo", "loopback")):\n            continue\n        rx, tx, link = rx + c.bytes_recv, tx + c.bytes_sent, max(link, st.speed or 0)\n    return rx, tx, link',
+     "sys_metrics: the network's traffic (13 Oct: the top bar's 🌐)"),
+
     ("sys/core/aurora/kno_mood.py",
      """    try:
         out = subprocess.run(["nvidia-smi", "--query-gpu=index,utilization.gpu,temperature.gpu,temperature.gpu.tlimit",

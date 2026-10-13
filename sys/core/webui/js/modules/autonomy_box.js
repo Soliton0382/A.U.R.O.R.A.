@@ -29,7 +29,7 @@ async function fill(slot, ids, again = false) {
   if (!areas.length) { slot.replaceChildren(); slot.hidden = true; return; }
   slot.hidden = false;
   const box = el("details", "report auto-box");
-  box.open = true;
+  box.open = !matchMedia("(max-width: 640px)").matches;   // a phone: closed, the page first (owner, 13 Oct)
   const head = el("summary", "", `🧭 ${t("auto.here")}`);
   box.append(head);
   for (const a of areas) {

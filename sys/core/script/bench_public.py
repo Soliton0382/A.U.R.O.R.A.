@@ -46,20 +46,14 @@ from aurora.mdl_llm import LLM  # noqa: E402
 
 OUT = cfg.path("AURORA_STATUS_DIR") / "bench" / "public"
 CACHE = OUT / "cache"
-SAVED = OUT / "owner_roles.json"            # the owner's choice while a run changes it
+SAVED = OUT / "owner_roles.json"            # the owner's choice saved by a run of before C280 (roles per request now)
 TARGETS = ("aurora-local", "aurora-mixed", "aurora-cloud", "bare-local", "bare-claude")
-DEFAULT_SETS = ["aurora_edge", "mmlu_pro", "gpqa_diamond", "aime", "math500", "simpleqa", "truthfulqa", "arc_agi_1"]
+DEFAULT_SETS = ["aurora_edge", "mmlu_pro", "gpqa_diamond", "hle", "aime", "math500", "simpleqa", "truthfulqa", "arc_agi_1"]
 BARE_SYSTEM = "You are a helpful assistant. Answer in the language of the question."
 
 
 def roles_file() -> Path:
     return cfg.path("AURORA_STATUS_DIR") / "models" / "roles.json"
-
-
-def save_owner() -> None:
-    if not SAVED.exists():                  # a run stopped before: the owner's choice is the one saved then
-        OUT.mkdir(parents=True, exist_ok=True)
-        SAVED.write_text(json.dumps(mdl_router.assignments(cfg), indent=1), encoding="utf-8")
 
 
 def restore() -> bool:
@@ -71,12 +65,12 @@ def restore() -> bool:
     return True
 
 
-def prepare(target: str, cloud_model: str, bare_tokens: int = 28000):
+def prepare(target: str, cloud_model: str, bare_tokens: int = 28000, lessons: bool = True):
     """(who answers: a function question → {"answer", "abstained", "seconds"}, what the run says about itself)."""
     local = Path(str(cfg["AURORA_LLM_MODEL"])).name
     if target.startswith("aurora-"):
-        save_owner()
-        owner = json.loads(SAVED.read_text(encoding="utf-8"))
+        restore()                           # a run of before C280 left the owner's choice aside: back first
+        owner = mdl_router.assignments(cfg)
         name = target.split("-", 1)[1]
         if name == "local":
             roles = {r: {"provider": "local", "model": ""} for r in mdl_router.ROLES}
@@ -85,10 +79,10 @@ def prepare(target: str, cloud_model: str, bare_tokens: int = 28000):
             roles["vision"] = {"provider": "local", "model": ""}
         else:
             roles = owner
-        mdl_router.set_assignments(cfg, roles)
+        # C280: the target's roles travel with each question; the installation's (the owner's chat) never change
         used = sorted({f"{a['provider']}{':' + a['model'] if a['model'] else ''}" for a in roles.values()})
-        return ask, {"target": target, "uses": used, "roles": roles, "local_model": local,
-                     "pivot_en": bool(cfg["AURORA_PIPELINE_PIVOT_EN"]),
+        return (lambda q: ask(q, roles=roles, lessons=lessons)), {"target": target, "uses": used, "roles": roles, "local_model": local,
+                     "pivot_en": bool(cfg["AURORA_PIPELINE_PIVOT_EN"]), "lessons": lessons,
                      "thinking": f"{cfg['AURORA_PIPELINE_THINKING']}, up to {cfg['AURORA_PIPELINE_THINK_TOKENS']} tokens"}
     llm = LLM(cfg) if target == "bare-local" else ClaudeCodeLLM(cfg, cloud_model)
 
@@ -103,10 +97,10 @@ def prepare(target: str, cloud_model: str, bare_tokens: int = 28000):
                   "thinking": f"on, up to {bare_tokens} tokens", "tools": "none"}
 
 
-def questions(s: str, n: int) -> list[dict]:
+def questions(s: str, n: int, seed: int = 7) -> list[dict]:
     if s == "aurora_edge":
-        return E.items(cfg, n or 10)
-    return D.sample(D.SETS[s](CACHE), n)
+        return E.items(cfg, n or 10, seed)
+    return D.sample(D.SETS[s](CACHE), n, seed)
 
 
 def grade(it: dict, answer: str, judge) -> dict:
@@ -117,14 +111,16 @@ def grade(it: dict, answer: str, judge) -> dict:
     return D.score(it, answer, judge)
 
 
-def run(target: str, sets: list[str], n: int, cloud_model: str, judge, bare_tokens: int = 28000) -> Path:
-    answer, info = prepare(target, cloud_model, bare_tokens)
-    path = OUT / f"{datetime.now():%Y%m%d-%H%M}-{target}.json"
+def run(target: str, sets: list[str], n: int, cloud_model: str, judge, bare_tokens: int = 28000,
+        lessons: bool = True, seed: int = 7) -> Path:
+    answer, info = prepare(target, cloud_model, bare_tokens, lessons)
+    info["seed"] = seed
+    path = OUT / f"{datetime.now():%Y%m%d-%H%M}-{target}{'' if lessons else '-nolessons'}{'' if seed == 7 else f'-s{seed}'}.json"
     report = {"at": time.time(), **info, "n": n, "sets": {}}
     print(f"\n=== {target}: {', '.join(info['uses'])}", flush=True)
     for s in sets:
         try:
-            items = questions(s, n)
+            items = questions(s, n, seed)
         except Exception as e:                           # noqa: BLE001 — a set that cannot be read is said, not fatal
             why = "gated: HF_TOKEN needed" if s in D.GATED else str(e)[:200]
             report["sets"][s] = {"skipped": why}
@@ -134,7 +130,8 @@ def run(target: str, sets: list[str], n: int, cloud_model: str, judge, bare_toke
         for it in items:
             res = answer(it["prompt"])
             sc = grade(it, res["answer"], judge)
-            rows.append({"id": it["id"], "group": it.get("group", ""), "expected": str(it.get("answer"))[:200], **sc,
+            rows.append({"id": it["id"], "group": it.get("group", ""), "question": it["prompt"][:2000],
+                         "expected": str(it.get("answer"))[:200], **sc,
                          "declined": res["abstained"], "seconds": res["seconds"], "answer": res["answer"][-1500:]})
             print(f"{'✓' if sc['right'] else '✗'} {s} {it['id']} {res['seconds']} s {str(sc['got'])[:50]!r}"
                   f"{' (declined)' if res['abstained'] else ''}", flush=True)
@@ -197,6 +194,8 @@ def main() -> int:
     ap.add_argument("--n", type=int, default=10, help="questions a set (a fixed sample; 0 = all)")
     ap.add_argument("--cloud-model", default="sonnet", help="Claude Code's model for aurora-cloud and bare-claude")
     ap.add_argument("--judge", default="sonnet", help="Claude Code's model that judges")
+    ap.add_argument("--no-lessons", action="store_true", help="Aurora without her lessons of method (the control run)")
+    ap.add_argument("--seed", type=int, default=7, help="another sample of questions (7 = the usual one): do lessons generalise?")
     ap.add_argument("--bare-tokens", type=int, default=28000,
                     help="a bare model's room to think and answer (8000 cut the local model's AIME inside its reasoning)")
     ap.add_argument("--fetch", action="store_true", help="download the public sets and stop")
@@ -226,7 +225,7 @@ def main() -> int:
     judge = ClaudeCodeLLM(cfg, a.judge)
     try:
         for t in targets:
-            print("→", run(t, sets, a.n, a.cloud_model, judge, a.bare_tokens), flush=True)
+            print("→", run(t, sets, a.n, a.cloud_model, judge, a.bare_tokens, not a.no_lessons, a.seed), flush=True)
             restore()                                    # between targets too: the owner's Aurora as it was
     finally:
         restore()

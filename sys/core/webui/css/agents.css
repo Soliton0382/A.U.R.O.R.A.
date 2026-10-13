@@ -6,7 +6,9 @@
 .appr-card.code_change { border-color: rgba(122, 162, 255, .55); }
 .plug-card.off { opacity: .75; }
 .appr-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; font-weight: 600; }
-.appr-actions { display: flex; gap: .6rem; align-items: center; margin-top: .6rem; }
+.appr-actions { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin-top: .6rem; }
+/* a field in a row of buttons keeps a usable width and the buttons wrap under it (the HTTPS names on a phone) */
+.appr-actions > input:not([type=checkbox]):not([type=radio]), .appr-actions > select { flex: 1 1 12rem; min-width: 0; width: auto; }
 .appr-actions .approve { border-color: var(--ok); }
 .appr-actions .reject { border-color: var(--bad); }
 .preview pre, .history pre { white-space: pre-wrap; font: .78rem/1.4 var(--mono); max-height: 50vh; overflow: auto; background: rgba(0, 0, 0, .3); padding: .5rem; border-radius: 6px; }

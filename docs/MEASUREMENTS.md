@@ -2801,3 +2801,98 @@ None for the printer: one entity whose state is «stopped». An agent that comma
 
 30-78 s a need. The battery (M184) with the forge of today: **0.82**.
 
+
+
+## M187 — The AGI battery after the evening's fixes (12 October 2026, 21:39, 18.4 min; agent on Claude Code haiku)
+
+| section | result | the misses |
+|---|---|---|
+| reasoning | 7/8 | the order of four heights: declined after 331 s instead of deducing it |
+| planning | 3/3 | |
+| honesty | 11/12 | the 2031 Nobel prize: not said to be in the future |
+| refusal | 5/6 | virus vs bacterium: right, but judged imprecise |
+| context | 1/3 | «lassù» after the Monte Rosa answered for the Everest (as in M184); «In che anno è uscito?» lost what it replied to — C283, fixed after this run |
+| repair | 4/4 | last run 5 Oct |
+| autonomy | 7/8 | the forge, M186 |
+
+The score: **0.833** (0.82 in M184 with today's forge). The context section run again at 22:42 with C283 live: **2/3** — «In che anno è uscito?» 1980 ✓; «lassù» now read as the Punta Gnifetti, but at a wrong 3,645 m (87–88 °C instead of 84–85). With it the battery is **0.881**.
+
+
+## M188 — Aurora against bare models on public sets (12 October 2026; 10 questions a set, 28 edge questions)
+
+| set | Aurora local | Aurora mixed | Aurora cloud | Qwen bare | Claude sonnet bare |
+|---|---|---|---|---|---|
+| edge (vault / live / honesty) | 20 (7/3/10) | 20 (6/4/10) | 19 (7/4/8) | 13 (3/0/10) | 17 (5/0/12) |
+| MMLU-Pro | 7 | 8 | 8 | 9 | 8 |
+| AIME | 7 | 6 | 10 | 5 | 10 |
+| MATH-500 | 10 | 10 | 9 | 9 | 10 |
+| SimpleQA | 7 | 5 | 7 | 1 | 5 |
+| TruthfulQA | 6 | 6 | 8 | 7 | 10 |
+| ARC-AGI-1 | 3 | 2 | 9 | 3 | 9 |
+| **total /88** | **60** | **57** | **70** | **47** | **69** |
+
+Configurations: local = Qwen3.6-35B-A3B on this machine for every role; mixed = the owner's (agent Claude Code haiku,
+some roles opus, the rest local); cloud = Claude Code sonnet for every role but vision and private data (local).
+Reading: with the same model Aurora adds +13 (Qwen 47 → 60), from what a bare model cannot have (vault, live data, the
+web: SimpleQA 1 → 7). With Claude the totals meet (69 vs 70): Aurora wins the vault, live data and SimpleQA, and **loses
+honesty (8/12 vs 12/12) and TruthfulQA (8 vs 10)** — the pipeline makes a careful model less careful: the next work.
+In the mixed configuration the reasoning is the local model's (AIME 6, ARC 2): to reason like Claude, the reasoning
+roles must be Claude's. With n = 10 a cell moves by ±1–2 by chance: only the large gaps are findings.
+
+Follow-up, 13 Oct (C284): the honesty misses were 3 invented questions answered with «la studio stanotte» and premise-4; the TruthfulQA misses 74 and 96 are a key for a bare model (Aurora reads a vault, knows the time). After kno_abstain, the 3 invented questions asked again live (current roles, remember:false): **3/3 honest** — n = 3, the edge set not run again yet.
+
+## M189 — the AGI battery after C284–C288 (13 October 2026; the owner's roles, remember: false, tools: true)
+
+| section | 12 Oct 21:38 | 13 Oct 08:34 | 13 Oct 09:04 | **13 Oct 09:24** |
+|---|---|---|---|---|
+| reasoning | 7/8 | 7/8 | 8/8 | **8/8** |
+| planning | 3/3 | 3/3 | 2/3 | **3/3** |
+| honesty | 11/12 | 11/12 | 12/12 | **12/12** |
+| refusal | 5/6 | 5/6 | 6/6 | **5/6** |
+| context | 1/3 | 2/3 | 2/3 | **3/3** |
+| repair (5 Oct) | 4/4 | 4/4 | 4/4 | 4/4 |
+| autonomy (12 Oct) | 7/8 | 7/8 | 7/8 | 7/8 |
+| **score** | 0.833 | 0.881 | 0.887 | **0.958** |
+
+What moved it: C284 (a decline says why: the future, no trace), C286 (a translation that kept only the last sentence:
+the puzzle's facts lost), C285 (a true premise no longer called «fuorviante»), C288 (a reply ↩️ rewritten against the
+quote: «a 4554 metri»). Left: refusal (virus and bacterium: «adds nonsensical» details, a different item each run —
+the wine stain at 08:34) and autonomy 7/8 (bench_forge, not run again). With 3–12 questions a section, one item is
+8–33 points of a section: planning 3/3 → 2/3 → 3/3 is the same code, the model's own variance. Repair and autonomy are
+the last runs of their own scripts (not run again here).
+
+## M190 — Aurora cloud after C284–C288, and the first lessons (13 October 2026)
+
+Aurora cloud (Claude Code sonnet for every role but vision; the same 98 questions, seed 7), without lessons:
+
+| set | 12 Oct 21:57 | 13 Oct 09:33 |
+|---|---|---|
+| Edge: vault / live+home / honesty | 7 / 4 / 8 (19) | 5 / 3 / **12** (20) |
+| MMLU-Pro | 8 | 7 |
+| GPQA Diamond (new: the HF token) | — | **10** |
+| AIME | 10 | 10 |
+| MATH-500 | 9 | 10 |
+| SimpleQA | 7 | 7 |
+| TruthfulQA | 8 | 8 |
+| ARC-AGI-1 | 9 | 9 |
+| **total on the same 88** | **70** | **71** |
+
+Reading: what was broken is fixed (honesty 8 → 12: C284 and the premises), and the total does not move — the rest
+moved by chance: vault-46, wrong in the run, was right 2 of 2 asked again on the local roles; vault-50 changes answer
+every time. With n = 10 a cell moves ±1–2: one run says «pari», not «better». HLE was skipped in that run (the
+dataset's terms not yet in force): 2,158 text questions now cached (1,645 exact, 513 multiple choice).
+
+Lessons (kno_lessons, roadmap 94), first build: 56 lessons from the 12–13 Oct failures — rejected: some taught a bare
+model's key as truth («you cannot know the time», «pick training on a dataset, regardless of any persona»), some held
+the question's own words as examples («'Nucleo di Torsione'», «'crown' vs 'ring'»). Writer told what Aurora is,
+examples refused → 33 lessons. Matching: on the encoder an abstract «when» and a concrete question stay apart (the
+right lesson at cosine 0.32; p50 of the best cosine 0.33 on 98 questions, p90 0.51–0.55; what passed 0.45 did by
+topic, the way to memorising) → the route model reads the lessons and picks (≤ 2, or none). On 10 probes: right on the
+future (2 lessons), the relations puzzle, «lassù»; none on entropy, an integral, the weather, a match's date; one
+harmless extra (Decameron: «check the work exists»); one missed (an invented novel). Cost ≈ 1 s a question.
+The trial (running): seed 7 with lessons against the 09:33 run; seed 8 (new questions) with and without.
+
+Rescored (C291, 13 Oct): the Edge set's on/off grader failed right answers that named a second entity's state. Every
+saved run rescored: M188's totals become Aurora local 60, Aurora mixed 58, Aurora cloud 71, Qwen bare 47, Claude bare 69;
+M190's cloud 12 Oct 71 → 13 Oct 72 on the same 88 (still «pari»: +1).
+

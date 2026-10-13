@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.17 — 2026-10-13
+
+1 publications since v0.2.16.
+
+- 2026-10-13 Honest declines (future, no trace), translation and reply fixes, per-request roles for benchmarks, vault cleanup safety, WebUI on phones (stacked tables, checkboxes, sticky bars), calendar day/week grid, top bar icons with network and cloud traffic, lessons from benchmarks
+
 ## v0.2.16 — 2026-10-12
 
 1 publications since v0.2.15.

@@ -9,6 +9,7 @@ import * as i18n from "./i18n.js";
 import * as voice from "./voice.js";
 import { adminOnly, groups, views, widgets } from "./modules.js";
 import { applyTheme, current as currentTheme, themePicker } from "./theme.js";
+import { stackTables } from "./stack.js";
 
 const byId = Object.fromEntries(views.map((v) => [v.id, v]));
 let current = null;
@@ -148,6 +149,7 @@ function mountAll() {
     v.mount(section, ctx);
   }
   for (const w of widgets) w.mount($(`slot-${w.slot}`), ctx);
+  stackTables($("views"));                          // tables become cards on a phone
   i18n.apply(document);
 }
 
@@ -207,6 +209,11 @@ async function pluginNav() {
   tidyNav();
 }
 bus.on("plugins", pluginNav);
+// a plugin switched on elsewhere (another device, its settings, a restart) shows its page without reopening the app
+// (owner, 2026-10-12: «ho dovuto chiudere e riaprire la pwa per vedere la scheda»): when the app comes back to the
+// front, and every 2 minutes while it is open
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") pluginNav(); });
+setInterval(() => { if (document.visibilityState === "visible") pluginNav(); }, 120_000);
 bus.on("show", ({ id }) => { if (byId[id]) show(id); });              // a page asked from inside another one
 
 // who the assistant is for this user (name in the top bar, the voice's gender): their own settings

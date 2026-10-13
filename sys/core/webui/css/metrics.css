@@ -15,6 +15,21 @@
 .gauge .load.warm { color: var(--warn); }
 .gauge .load.hot { color: #d9ff8a; }
 .metrics.busy .gauge .label { color: #d9ff8a; }
-@media (max-width: 820px) { .gauge .bar { width: 26px; } .gauge .value { display: none; } }
-/* the narrowest phones (≤ 380 px): numbers without their bars, so the gauges stay on the name's row */
-@media (max-width: 380px) { .gauge .bar { display: none; } }
+.gauge .icon, .gauge .short { display: none; }
+.gauge .icon { font-size: .82rem; line-height: 1; }
+.gauge .short { font-variant-numeric: tabular-nums; color: #cfdcff; }
+.gauge.net .bar, .gauge.cloud .bar { display: none; }        /* a speed and a count: no bar of a capacity */
+.gauge.cloud.live .label, .gauge.cloud.live .icon { animation: cloudpulse 1.2s ease-in-out infinite; }
+.gauge.cloud.live .value, .gauge.cloud.live .short { color: #d9ff8a; }
+.gauge.net.live .value, .gauge.net.live .short { color: #d9ff8a; }
+@keyframes cloudpulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .gauge.cloud.live .label, .gauge.cloud.live .icon { animation: none; } }
+/* a phone (owner, 13 Oct): an icon and a number each, three columns in two rows; the figures in the tooltip */
+@media (max-width: 820px) {
+  .metrics { gap: .1rem .6rem; }
+  .gauge { gap: .2rem; }
+  .gauge .label, .gauge .bar, .gauge .value { display: none; }
+  .gauge .icon, .gauge .short { display: inline; }
+  .gauge .load { min-width: 0; }
+  .gauge .load::before { content: "·"; margin-right: .15rem; color: var(--muted); }
+}

@@ -47,15 +47,15 @@ function input(name, type, value = "") {
 }
 
 // item: a stored item to change (with `at`: the occurrence opened), or null for a new one on `day` (YYYY-MM-DD)
-export function itemForm(item, day, done) {
+export function itemForm(item, day, done, hour = 9) {        // hour: where the day or week grid was tapped
   const f = el("form", "cal-form");
   const kind = select("kind", ["event", "reminder"], (k) => t(`cal.kind.${k}`), item?.kind || "event");
   const title = input("title", "text", item?.title || "");
   title.required = true;
   title.maxLength = 200;
   title.placeholder = t("cal.title_ph");
-  const [d0, h0] = (item?.start || `${day}T09:00`).split("T");
-  const [d1, h1] = (item?.end || `${day}T10:00`).split("T");
+  const [d0, h0] = (item?.start || `${day}T${pad(hour)}:00`).split("T");
+  const [d1, h1] = (item?.end || `${day}T${pad(Math.min(hour + 1, 23))}:${hour >= 23 ? "59" : "00"}`).split("T");
   const date = input("date", "date", d0);
   date.required = true;
   const start = input("start", "time", h0);

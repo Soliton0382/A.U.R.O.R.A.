@@ -55,3 +55,35 @@ def test_what_only_aurora_has_is_scored_on_the_truth_of_now(cfg, monkeypatch):
     sw = {"kind": "onoff", "answer": {"state": "on"}}
     assert E.score(sw, "In questo momento è acceso.", None)["right"]
     assert not E.score(sw, "È spento.", None)["right"] and not E.score(sw, "Non lo so.", None)["right"]
+
+
+def test_hle_keeps_text_questions_reads_letters_and_judges_exact_answers(tmp_path, monkeypatch):
+    rows = [{"id": "a", "question": "Q1?\nA) x\nB) y", "answer": "B", "answer_type": "multipleChoice", "category": "Math", "image": ""},
+            {"id": "b", "question": "Q2?", "answer": "42 K", "answer_type": "exactMatch", "category": "Physics", "image": ""},
+            {"id": "c", "question": "What is shown?", "answer": "cat", "answer_type": "exactMatch", "image": "https://x/1.png"}]
+    monkeypatch.setattr(D, "_hf", lambda *a, **k: rows)
+    items = {i["id"]: i for i in D.hle(tmp_path)}
+    assert set(items) == {"a", "b"}                                   # the picture's question is left out
+    assert D.score(items["a"], "Risposta: B")["right"]
+
+    class Judge:
+        def __init__(self, word): self.word, self.seen = word, []
+        def complete(self, system, user, n):
+            self.seen.append(user)
+            return SimpleNamespace(answer=self.word)
+    yes = Judge("YES")
+    assert D.score(items["b"], "ragiono…\nRisposta: 42 kelvin", yes)["right"] and "GOLD: 42 K" in yes.seen[0]
+    assert not D.score(items["b"], "Risposta: 40 K", Judge("NO"))["right"]
+    assert D.score(items["b"], "", yes) == {"right": False, "got": ""}       # an empty answer is never judged
+    assert "hle" in D.GATED and "hle" in D.SETS
+
+
+def test_the_on_off_grader_reads_the_state_said_first_and_a_refusal_is_wrong():
+    """C291: a right answer naming another entity's state was «onoff» and wrong; a refusal must stay wrong."""
+    import bench_edge as E
+    g = lambda a, st: E.score({"kind": "onoff", "answer": {"state": st}}, a, None)["right"]   # noqa: E731
+    assert g("Blocco bambini: SPENTO (off). Per completezza: la presa stessa risulta accesa (on)", "off")
+    assert g("«Socket 1» è ACCESA (stato: on). Il blocco bambini è disattivato", "on")
+    assert not g("Non posso dirtelo: non ho accesso a Home Assistant; per vedere se è acceso o spento apri l'app", "on")
+    assert not g("Non ho accesso diretto. Per controllare se è **acceso** o **spento**: accedi", "on")
+    assert not g("Risulta spento.", "on")

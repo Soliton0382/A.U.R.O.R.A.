@@ -27,9 +27,9 @@ import time
 import uuid
 from typing import Callable
 
-from . import kno_followup, kno_split, kno_think, mdl_router, sys_config, sys_log, txt_lang
+from . import kno_abstain, kno_followup, kno_split, kno_think, mdl_router, sys_config, sys_log, txt_lang
 from .kno_self import SelfTalk
-from .kno_stages import SYS_TRANSLATE, Emit, Stages
+from .kno_stages import SYS_TRANSLATE, SYS_TRANSLATE_ALL, Emit, Stages
 from .kno_trail import Answer, Trail, hebb  # noqa: F401 — imported from here by the API, the agents, the tests
 from .mdl_llm import LLM
 from .sol_index import Indexer
@@ -46,9 +46,15 @@ def translate_budget(question: str) -> int:
 
 
 def whole(question: str, translation: str | None) -> bool:
-    """The translation can stand for the question (the pivot): not empty, and a long question not cut short."""
+    """The translation can stand for the question (the pivot): not empty, and not cut short — a long question kept
+    to 60% of its length, one of 80 characters or more to half (C286: «Anna è più alta di Bruno, … Chi è il
+    secondo più basso?» came back as «Who is the second shortest?», its facts gone)."""
     t = (translation or "").strip()
-    return bool(t) and (len(question) < 300 or len(t) >= 0.6 * len(question))
+    if not t:
+        return False
+    if len(question) >= 300:
+        return len(t) >= 0.6 * len(question)
+    return len(question) < 80 or len(t) >= 0.5 * len(question)
 
 class Pipeline(Stages, SelfTalk):
     def __init__(self, embedder, reranker, cfg: sys_config.Config | None = None, llm: LLM | None = None,
@@ -69,7 +75,7 @@ class Pipeline(Stages, SelfTalk):
     def run(self, question: str, emit: Emit | None = None, run_id: str | None = None,
             remember: bool = True, attached: list | None = None, focus: list[dict] | None = None,
             suggest: bool = False, think: str | None = None, quote: Soliton | None = None,
-            alone: bool = False) -> Answer:
+            alone: bool = False, lessons: bool = True) -> Answer:
         """`remember=False` leaves the memory untouched (a caller that retries remembers only the outcome).
         `attached`: kno_attach.Attached items; their passages come first for this question.
         `focus`: sources ({"source", "domain"}) whose passages compete with the search's (a suggested follow-up).
@@ -93,7 +99,9 @@ class Pipeline(Stages, SelfTalk):
         asked_at = now_iso()                        # the question's own time, not the answer's
         ev("run.start", {"question": question})
         lang = txt_lang.detect(question)
-        recent = [] if alone else kno_followup.with_quote(self.reader.recent(self.cfg["AURORA_MEMORY_RECENT_TURNS"]), quote)
+        # alone: none of the owner's turns — but a message replied to (↩️) is part of the question (C283: the battery's
+        # follow-ups lost it with C276: «In che anno è uscito?» after «Il nome della rosa» was answered 1987)
+        recent = kno_followup.with_quote([] if alone else self.reader.recent(self.cfg["AURORA_MEMORY_RECENT_TURNS"]), quote)
         if alone:
             ev("run.alone", {})
         if quote is not None:
@@ -119,6 +127,10 @@ class Pipeline(Stages, SelfTalk):
             # room for the whole question (C269: 200 tokens cut a long one, and with the pivot the cut translation
             # became the question — an ARC grid of 2,187 characters lost its test)
             translation = self._for("translate").complete(SYS_TRANSLATE, question, translate_budget(question)).answer
+            if not whole(question, translation):     # cut short (C286): once more, every sentence asked for
+                again = self._for("translate").complete(SYS_TRANSLATE_ALL, question, translate_budget(question)).answer
+                ev("translate.again", {"cut": translation, "again": again})
+                translation = again if whole(question, again) else None
             ev("translate", {"from": lang, "translation": translation})
         # the English pivot (owner, 10 Oct: «la traduzione in inglese… migliora velocità e qualità, poi si traduce nella
         # lingua di chi ha scritto»): extraction, synthesis and verification in English, the answer translated back
@@ -162,19 +174,39 @@ class Pipeline(Stages, SelfTalk):
         # (kno_read); an attached file keeps the vault pipeline; a follow-up reads its sources in focus first
         mode = "vault" if attached else kno_think.mode_of(self.cfg, think)
         classic = lambda h, sb: self._answer(kno_split.with_searches(question, sb), h, recent_block, ev) if h else None  # noqa: E731
-        verified, answer, hits, subs = kno_think.answer(self, question, translation, mode, retrieve, classic, ev,
-                                                        focused=bool(focus))
+        # her experience (kno_lessons): the lessons of method closest to this question, read by every reading prompt
+        self._lessons = ""
+        if lessons:
+            try:
+                from . import kno_lessons
+                found = kno_lessons.for_question(self.cfg, self.search.embedder, native, self._for("route"))
+                if found:
+                    self._lessons = kno_lessons.block(found)
+                    ev("lessons", {"used": [{"id": x["id"], "when": x["when"], "cos": x["cos"]} for x in found]})
+            except Exception as e:                       # noqa: BLE001 — experience is a help, never a reason to fail
+                self.log.warning("lessons not read: %s", e)
+        # a later year named: the future is said at once, without searching for it (C284)
+        early = ("future" if mode != "vault" and kno_abstain.later_year(native)
+                 and kno_abstain.kind(self._for("synthesis"), native) == "future" else "")
+        if early:
+            verified, answer, hits, subs = None, None, [], []
+        else:
+            verified, answer, hits, subs = kno_think.answer(self, question, translation, mode, retrieve, classic, ev,
+                                                            focused=bool(focus))
         if verified:
             hebb(self.cfg, [x for x in verified["sources"] if x.get("sid")])
             result = Answer(run_id, asked, verified["text"], False, verified["sources"], verified["dropped"],
                             came_from=verified.get("came_from", ""), learn=verified.get("learn", False))
         elif answer is None:
-            result = Answer(run_id, asked, self._abstention(native, lang, mode), True)
+            why = early or ("" if mode == "vault" else kno_abstain.kind(self._for("synthesis"), native))
+            ev("abstain", {"why": why or "vault", **({"early": True} if early else {})})
+            result = Answer(run_id, asked, self._abstention(native, lang, mode, why), True, why=why)
         else:
             result = Answer(run_id, asked, answer[0], False, answer[1], answer[2])
         if self._pivot and not result.abstained:
             result.text = self._back(result.text, lang, ev)
         self._pivot = False
+        self._lessons = ""
         result.seconds = time.time() - t0
         result.speed = None if result.abstained else self.speed
         ev("answer.final", {"text": result.text, "abstained": result.abstained, "sources": result.sources,
@@ -232,12 +264,9 @@ class Pipeline(Stages, SelfTalk):
         from . import mdl_router
         return mdl_router.model_for(role, self.llm, self.cfg)
 
-    def _abstention(self, question: str, lang: str, mode: str = "vault") -> str:
-        if mode != "vault":                          # the web was searched already: the night studies it (kno_study)
-            if lang == "it":
-                return ("Non ho trovato una risposta né nel vault né sul web, e non voglio inventarla. La studio stanotte: "
-                        "domani ne saprò di più.")
-            return "I found no answer in my vault nor on the web, and I will not make one up. I will study it tonight."
+    def _abstention(self, question: str, lang: str, mode: str = "vault", why: str = "open") -> str:
+        if mode != "vault":                          # the web was searched already: why there is no answer (kno_abstain)
+            return kno_abstain.text(why or "open", lang)
         if lang == "it":
             return ("Nel mio vault non ho trovato conoscenza verificata che risponda a questa domanda, quindi non "
                     "rispondo di mio. Posso cercare fonti esterne e acquisirle: rispondimi «sì, cerca».")
@@ -256,6 +285,7 @@ class Pipeline(Stages, SelfTalk):
                                        if quote is not None else {})}, created_at=asked_at),
                  Soliton.new(result.text, "conversation", "conversation", txt_lang.detect(result.text), f"run:{run_id}",
                              extra={"role": "assistant", "run_id": run_id, "abstained": result.abstained,
+                                    **({"why": result.why} if result.why else {}),
                                     **({"came_from": result.came_from} if result.came_from else {}),
                                     **({"learn": True} if result.learn else {}),
                                     "mode": result.mode, "seconds": round(result.seconds, 1), "speed": result.speed,

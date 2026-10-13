@@ -99,8 +99,10 @@ async def remove_source(domain: str, source_id: str) -> dict:
         p = pipeline()
         with _run_lock:
             sids = p.writer.remove_source(domain, source_id)
+            from aurora import kno_synapse
             return {"domain": domain, "source_id": source_id, "removed": len(sids),
-                    "index_rows_removed": p.indexer.drop(domain, sids)}
+                    "index_rows_removed": p.indexer.drop(domain, sids),
+                    "links_removed": kno_synapse.forget(cfg, sids)}      # no synapse left pointing to nothing
     out = await asyncio.to_thread(work)
     if not out["removed"]:
         raise HTTPException(status_code=404, detail="no solitons of that source in that domain")

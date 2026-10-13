@@ -50,3 +50,29 @@ button.cal-item { cursor: pointer; }
   .cal-item { grid-template-columns: 1fr; }
   .cal-tags { grid-column: 1; }
 }
+
+/* 🗓️ the day and the week as a time grid (calendar_grid.js): an hour = 44 px, opened at 7:00 or near now */
+.cal-grid-wrap { max-height: 70vh; overflow: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.cal-grid { display: grid; grid-template-columns: 3.2rem repeat(var(--days), minmax(0, 1fr)); position: relative; }
+.cal-grid-wrap.week .cal-grid { min-width: 640px; }        /* a week on a phone scrolls sideways inside its box */
+.cal-g-corner, .cal-g-head { position: sticky; top: 0; z-index: 2; background: var(--panel-solid); padding: .35rem .3rem;
+  border-bottom: 1px solid var(--line); font-size: .82rem; }
+.cal-g-head { text-align: center; font-weight: 600; text-transform: capitalize; }
+.cal-g-head.today { color: var(--accent); }
+.cal-g-corner.muted { position: static; font-size: .7rem; border-bottom: 1px solid var(--line); }
+.cal-g-allday { border-bottom: 1px solid var(--line); border-left: 1px solid var(--line); padding: 2px; display: flex; flex-direction: column; gap: 2px; min-height: 1.6rem; }
+.cal-g-hours { grid-column: 1; }
+.cal-g-hour { height: 44px; box-sizing: border-box; font-size: .7rem; text-align: right; padding: 0 .35rem; transform: translateY(-.45rem); }
+.cal-g-col { position: relative; border-left: 1px solid var(--line); cursor: copy;
+  background-image: repeating-linear-gradient(to bottom, transparent 0 43px, var(--line) 43px 44px); }
+.cal-g-col.today { background-color: var(--accent-soft); }
+.cal-g-item { display: flex; flex-direction: column; gap: 1px; text-align: left; overflow: hidden; padding: .15rem .3rem; border-radius: 6px;
+  font-size: .75rem; line-height: 1.2; background: var(--accent-mid); border: 1px solid var(--accent-line); color: var(--text); cursor: pointer; width: 100%; }
+.cal-g-item.timed { position: absolute; box-sizing: border-box; }
+.cal-g-item.ext { background: rgba(160, 160, 180, .14); border-color: var(--line); cursor: default; }
+.cal-g-item.rem { border-style: dashed; }
+.cal-g-time { font-variant-numeric: tabular-nums; opacity: .8; font-size: .68rem; }
+.cal-g-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+.cal-g-place { font-size: .68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-g-now { position: absolute; left: 0; right: 0; height: 2px; background: #ef4444; z-index: 1; pointer-events: none; }
+.cal-g-now::before { content: ""; position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: #ef4444; }

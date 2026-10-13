@@ -139,3 +139,13 @@ def test_an_answer_citing_sources_wires_them_and_never_fails(cfg):
     two = one + [{"sid": "b1", "domain": "biomedicine", "source": "arxiv:2"},
                  {"sid": "m1", "domain": "conversation", "source": "chat"}]
     assert hebb(cfg, two) == 1 and S.stats(cfg)["kinds"] == {"hebb": 1}
+
+
+def test_a_removed_source_leaves_no_link_pointing_to_nothing(cfg):
+    S.link(cfg, ("a1", "physics"), ("b1", "history"), 0.8)
+    S.link(cfg, ("a2", "physics"), ("b1", "history"), 0.7)
+    S.link(cfg, ("c1", "law"), ("d1", "medicine"), 0.9)
+    assert S.forget(cfg, ["b1", "b1"]) == 2                          # both links of the removed passage, once
+    with S._db(cfg) as con:
+        left = {(a, b) for a, b in con.execute("SELECT a, b FROM links")}
+    assert left == {S._pair("c1", "d1")} and S.forget(cfg, []) == 0

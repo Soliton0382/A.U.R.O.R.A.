@@ -88,6 +88,23 @@ def gpqa_diamond(cache: Path) -> list[dict]:
     return out
 
 
+def hle(cache: Path) -> list[dict]:
+    """Humanity's Last Exam (cais/hle, gated): the questions of text alone (about 14% need a picture: left out, said
+    in the report as the set's own size). Multiple choice read by the letter; an exact answer judged equivalent or not
+    by the judge against the gold one, as the set's own evaluation does."""
+    rows = _cached(cache, "hle", lambda: [{k: r.get(k) for k in ("id", "question", "answer", "answer_type", "category")}
+                                          for r in _hf("cais/hle", "default", "test") if not r.get("image")])
+    out = []
+    for r in rows:
+        if r["answer_type"] == "multipleChoice":
+            out.append({"id": r["id"], "prompt": r["question"].strip() + MC_TAIL, "answer": r["answer"].strip().strip("()."),
+                        "kind": "letter", "topic": r.get("category", "")})
+        else:
+            out.append({"id": r["id"], "prompt": r["question"].strip() + MATH_TAIL, "answer": r["answer"].strip(),
+                        "kind": "exact", "topic": r.get("category", "")})
+    return out
+
+
 def aime(cache: Path) -> list[dict]:
     a24 = _cached(cache, "aime_2024", lambda: _hf("Maxwell-Jia/AIME_2024", "default", "train"))
     a25 = _cached(cache, "aime_2025", lambda: _hf("MathArena/aime_2025", "default", "train"))
@@ -146,9 +163,9 @@ def arc_agi(cache: Path, version: int = 1) -> list[dict]:
     return out
 
 
-SETS = {"mmlu_pro": mmlu_pro, "gpqa_diamond": gpqa_diamond, "aime": aime, "math500": math500, "simpleqa": simpleqa,
+SETS = {"mmlu_pro": mmlu_pro, "gpqa_diamond": gpqa_diamond, "hle": hle, "aime": aime, "math500": math500, "simpleqa": simpleqa,
         "truthfulqa": truthfulqa, "arc_agi_1": lambda c: arc_agi(c, 1), "arc_agi_2": lambda c: arc_agi(c, 2)}
-GATED = {"gpqa_diamond"}
+GATED = {"gpqa_diamond", "hle"}
 
 
 # ---- scoring ------------------------------------------------------------------------------------------------
@@ -201,6 +218,10 @@ SIMPLEQA_GRADER = ("You grade one answer of the SimpleQA benchmark, with its own
 MATH_JUDGE = ("Are these two final answers of a math problem mathematically equivalent (the same value or set, in "
               "any form)? Reply with one word: YES or NO.")
 
+EXACT_JUDGE = ("A question's GOLD answer and a candidate's FINAL answer. Do they say the same thing — the same value, "
+               "name, expression or statement, in any wording or equivalent form, within a small rounding for numbers? "
+               "Reply with one word: YES or NO.")
+
 
 def score(item: dict, answer: str, judge=None) -> dict:
     """{"right": bool, "got": what was read, "grade"?: SimpleQA's}."""
@@ -222,6 +243,12 @@ def score(item: dict, answer: str, judge=None) -> dict:
             return {"right": False, "got": got}
         v = str(getattr(judge.complete(MATH_JUDGE, f"A: {item['answer']}\nB: {got}", 10), "answer", "")).upper()
         return {"right": v.startswith("YES"), "got": got, "judged": True}
+    if k == "exact":                                       # HLE's exact answers: the judge, as the set's own evaluation
+        got = final(answer)
+        if not got or judge is None:
+            return {"right": False, "got": got[:200]}
+        v = str(getattr(judge.complete(EXACT_JUDGE, f"GOLD: {item['answer']}\nFINAL: {got[:1500]}", 10), "answer", "")).upper()
+        return {"right": v.startswith("YES"), "got": got[:200], "judged": True}
     if k == "simpleqa":
         v = str(getattr(judge.complete(SIMPLEQA_GRADER, f"QUESTION: {item['prompt']}\nGOLD: {item['answer']}\n\n"
                                                          f"ANSWER:\n{answer or '(empty)'}", 10), "answer", "")).upper()
