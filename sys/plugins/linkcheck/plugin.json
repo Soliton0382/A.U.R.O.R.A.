@@ -64,6 +64,9 @@
   ],
   "effects": {
     "check_link": "read",
+    "honeypot_sites": "read",
+    "honeypot_unlist": "write_local",
+    "report_malicious": "external",
     "*": "external"
   },
   "setup": {

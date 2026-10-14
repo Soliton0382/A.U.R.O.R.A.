@@ -20,7 +20,7 @@ class Model:
 
 
 def _p(model, web=True):
-    return SimpleNamespace(cfg={"AURORA_VERIFY_WEB": web}, _for=lambda role: model)
+    return SimpleNamespace(cfg={"AURORA_VERIFY_WEB": web}, _for=lambda role: model, llm=model)   # llm: the local decoy
 
 
 def test_the_kind_of_question():

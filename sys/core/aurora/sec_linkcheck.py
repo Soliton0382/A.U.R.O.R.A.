@@ -166,6 +166,11 @@ CHECKS = {"virustotal": virustotal, "urlhaus": urlhaus, "abuseipdb": abuseipdb}
 def check(url: str, cfg: sys_config.Config | None = None, client: httpx.Client | None = None) -> dict:
     """{"url", "blocked", "level", "reasons": [...], "checked": [services that answered], "at"}."""
     cfg = cfg or sys_config.get()
+    from . import sec_detonate                       # a site caught by Aurora's own honeypot: refused, switch or not
+    caught = sec_detonate.listed(cfg, url)
+    if caught:
+        return {"url": url, "blocked": True, "level": "malicious", "checked": ["honeypot"], "at": time.time(),
+                "reasons": [f"l'honeypot di Aurora: questo sito ha tentato una prompt injection ({caught['why'][:200]})"]}
     if not enabled(cfg):
         return {"url": url, "blocked": False, "level": "unknown", "reasons": ["controllo dei link spento"], "checked": []}
     hit = _cached(cfg, url)
@@ -223,4 +228,28 @@ def tool_call(cfg, plugin: str, args: dict, emit, log) -> str:
             emit("link.refused", {"url": url[:300], "level": v["level"], "reasons": v["reasons"][:6]})
             return "REFUSED: " + refusal(v)
     return ""
+
+
+def report_virustotal(cfg, url: str, why: str, client: httpx.Client | None = None) -> str:
+    """The owner approved it: the URL sent for analysis, a «malicious» vote and a comment with the reason. A vote
+    weighs in VirusTotal's community score; the engines decide what is blocked — said, not promised."""
+    key = _val(cfg, "AURORA_LINKCHECK_VIRUSTOTAL_KEY")
+    if not key:
+        raise ValueError("VirusTotal: nessuna chiave (scheda del plugin linkcheck)")
+    vid = base64.urlsafe_b64encode(url.encode()).decode().strip("=")
+    head = {"x-apikey": key}
+    c = client or httpx.Client(timeout=15, headers={"User-Agent": "Aurora/1.0 (link reputation)"})
+    try:
+        c.post("https://www.virustotal.com/api/v3/urls", headers=head, data={"url": url}).raise_for_status()
+        c.post(f"https://www.virustotal.com/api/v3/urls/{vid}/votes", headers=head,
+               json={"data": {"type": "vote", "attributes": {"verdict": "malicious"}}}).raise_for_status()
+        c.post(f"https://www.virustotal.com/api/v3/urls/{vid}/comments", headers=head,
+               json={"data": {"type": "comment", "attributes": {"text": (
+                   "#prompt-injection Page carrying a prompt injection: an LLM assistant handed this content as a "
+                   f"decoy tried to act on it ({why[:400]}). Detected by A.U.R.O.R.A.'s honeypot.")}}}).raise_for_status()
+    finally:
+        if client is None:
+            c.close()
+    sys_log.get_logger("security").info("audit: %s reported to VirusTotal as malicious (%s)", url[:200], why[:120])
+    return f"Segnalato a VirusTotal: analisi chiesta, voto «malicious» e commento con il motivo ({url[:120]})."
 

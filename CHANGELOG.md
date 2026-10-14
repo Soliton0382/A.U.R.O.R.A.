@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.26 — 2026-10-14
+
+1 publications since v0.2.25.
+
+- 2026-10-14 Aurora contro i modelli nudi (M214, grafici), honeypot misurato con esca locale (M215, C317), difesa Cloudflare (103), niente orari nei documenti, passphrase chiesta una volta
+
 ## v0.2.25 — 2026-10-14
 
 1 publications since v0.2.24.

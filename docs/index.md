@@ -8,14 +8,18 @@ description: A local AI joining a verified archive and the web — every answer 
 **🇮🇹 Un'intelligenza artificiale locale** che unisce un archivio verificato (il vault, che cresce da solo di notte) e la
 vastità del web: per ogni domanda sceglie la fonte giusta, la legge e dice da dove viene ogni cosa; ciò che ricorda senza
 fonte lo segna come non verificato. Ricorda, sogna, ha uno stato d'animo misurato, si ripara con l'approvazione del
-proprietario, difende la rete entro limiti che scegli tu. Tutto gira sulla tua macchina; fuori va solo testo mascherato.
+proprietario, porta avanti progetti da sola (fino ai disegni CAD e alle domande di brevetto), difende la rete su tre
+livelli (Cloudflare, il firewall di casa, la sua macchina) entro limiti che scegli tu e prova su un'esca ciò che arriva
+dalla rete prima di leggerlo. Tutto gira sulla tua macchina; fuori va solo testo mascherato.
 [Leggi il README completo](https://github.com/Soliton0382/A.U.R.O.R.A.#readme) ·
 [il codice](https://github.com/Soliton0382/A.U.R.O.R.A.)
 
 **🇬🇧 A local AI** joining a verified archive (the vault, which grows by itself at night) and the breadth of the web: for
 each question it picks the right source, reads it and says where each thing comes from; what it remembers without a
 source is marked as not verified. It remembers, dreams, has a measured mood, repairs itself with the owner's approval,
-defends the network within limits you choose. Everything runs on your machine; only masked text leaves it.
+carries projects by herself (down to CAD drawings and patent filings), defends the network on three levels (Cloudflare,
+the home firewall, her own machine) within limits you choose and tries on a decoy what comes from the network before
+reading it. Everything runs on your machine; only masked text leaves it.
 [Read the full README](https://github.com/Soliton0382/A.U.R.O.R.A./blob/main/README.en.md) ·
 [the code](https://github.com/Soliton0382/A.U.R.O.R.A.)
 
@@ -24,6 +28,8 @@ defends the network within limits you choose. Everything runs on your machine; o
 Every number below comes from a numbered measurement in [MEASUREMENTS.md](MEASUREMENTS.md); every bug has a number in
 [BUGS.md](BUGS.md). Ogni numero qui sotto viene da una misura numerata; ogni errore ha un numero.
 
+![Aurora against the bare model, with Claude](img/en/vs_bare_cloud.svg)
+![Aurora against the bare model, local](img/en/vs_bare_local.svg)
 ![The questions people really ask](img/en/answers.svg)
 ![The vault realigned](img/en/vault.svg)
 ![Hybrid search](img/en/hybrid.svg)

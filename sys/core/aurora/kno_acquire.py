@@ -89,7 +89,7 @@ class ArxivAgent:
     def __init__(self, pipeline, cfg: sys_config.Config | None = None):
         self.cfg = cfg or sys_config.get()
         self.p = pipeline
-        self.importer = Importer(pipeline.writer, pipeline.indexer, self.cfg)
+        self.importer = Importer(pipeline.writer, pipeline.indexer, self.cfg, decoy=pipeline.llm)
         self.table = json.loads(MAP_FILE.read_text(encoding="utf-8"))["map"]
         self.http = httpx.Client(timeout=120, follow_redirects=True,
                                  headers={"User-Agent": "Aurora/1.0 (https://github.com/Soliton0382/A.U.R.O.R.A.; personal knowledge agent)"})

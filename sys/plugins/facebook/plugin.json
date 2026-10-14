@@ -111,5 +111,8 @@
     "url": "https://developers.facebook.com/docs/permissions"
    }
   ]
- }
+ },
+ "from_network": [
+  "list_comments"
+ ]
 }

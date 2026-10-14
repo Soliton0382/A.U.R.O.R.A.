@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" width="720" height="380" role="img" aria-labelledby="t d">
 <title id="t">The vault realigned: one copy, in the right domain</title>
-<desc id="d">97 questions, right source read · M193, M198. before (13 Oct, 16:01): answer from the
+<desc id="d">97 questions, right source read · M193, M198. before (13 Oct): answer from the
 right source 66, source missing
 from the vault 8; after the realignment: answer from the
 right source 72, source missing
@@ -15,8 +15,8 @@ text{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 <rect class="bg" width="720" height="380" rx="8"/>
 <text class="t1" x="56" y="30" font-size="17" font-weight="600">The vault realigned: one copy, in the right domain</text>
 <text class="t2" x="56" y="52" font-size="12.5">97 questions, right source read · M193, M198</text>
-<rect class="s1" x="56" y="68" width="12" height="12" rx="3"/><text class="t2" x="74" y="78.5" font-size="12.5">before (13 Oct, 16:01)</text>
-<rect class="s2" x="240.0" y="68" width="12" height="12" rx="3"/><text class="t2" x="258.0" y="78.5" font-size="12.5">after the realignment</text>
+<rect class="s1" x="56" y="68" width="12" height="12" rx="3"/><text class="t2" x="74" y="78.5" font-size="12.5">before (13 Oct)</text>
+<rect class="s2" x="191.0" y="68" width="12" height="12" rx="3"/><text class="t2" x="209.0" y="78.5" font-size="12.5">after the realignment</text>
 <line class="grid" x1="56" x2="696" y1="316.0" y2="316.0" stroke-width="1"/><text class="t2" x="48" y="320.0" font-size="11" text-anchor="end">0</text>
 <line class="grid" x1="56" x2="696" y1="263.0" y2="263.0" stroke-width="1"/><text class="t2" x="48" y="267.0" font-size="11" text-anchor="end">24</text>
 <line class="grid" x1="56" x2="696" y1="210.0" y2="210.0" stroke-width="1"/><text class="t2" x="48" y="214.0" font-size="11" text-anchor="end">48</text>

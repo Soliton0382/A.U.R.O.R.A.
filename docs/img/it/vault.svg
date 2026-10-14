@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" width="720" height="380" role="img" aria-labelledby="t d">
 <title id="t">Il vault riallineato: una copia, nel dominio giusto</title>
-<desc id="d">97 domande, fonte giusta letta · M193, M198. prima (13 ott, 16:01): risposta dalla
+<desc id="d">97 domande, fonte giusta letta · M193, M198. prima (13 ott): risposta dalla
 fonte giusta 66, fonte assente
 dal vault 8; dopo il riallineamento: risposta dalla
 fonte giusta 72, fonte assente
@@ -15,8 +15,8 @@ text{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 <rect class="bg" width="720" height="380" rx="8"/>
 <text class="t1" x="56" y="30" font-size="17" font-weight="600">Il vault riallineato: una copia, nel dominio giusto</text>
 <text class="t2" x="56" y="52" font-size="12.5">97 domande, fonte giusta letta · M193, M198</text>
-<rect class="s1" x="56" y="68" width="12" height="12" rx="3"/><text class="t2" x="74" y="78.5" font-size="12.5">prima (13 ott, 16:01)</text>
-<rect class="s2" x="233.0" y="68" width="12" height="12" rx="3"/><text class="t2" x="251.0" y="78.5" font-size="12.5">dopo il riallineamento</text>
+<rect class="s1" x="56" y="68" width="12" height="12" rx="3"/><text class="t2" x="74" y="78.5" font-size="12.5">prima (13 ott)</text>
+<rect class="s2" x="184.0" y="68" width="12" height="12" rx="3"/><text class="t2" x="202.0" y="78.5" font-size="12.5">dopo il riallineamento</text>
 <line class="grid" x1="56" x2="696" y1="316.0" y2="316.0" stroke-width="1"/><text class="t2" x="48" y="320.0" font-size="11" text-anchor="end">0</text>
 <line class="grid" x1="56" x2="696" y1="263.0" y2="263.0" stroke-width="1"/><text class="t2" x="48" y="267.0" font-size="11" text-anchor="end">24</text>
 <line class="grid" x1="56" x2="696" y1="210.0" y2="210.0" stroke-width="1"/><text class="t2" x="48" y="214.0" font-size="11" text-anchor="end">48</text>

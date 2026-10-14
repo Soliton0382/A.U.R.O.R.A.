@@ -219,9 +219,11 @@ def chunk(text: str, size: int, min_chars: int) -> list[str]:
 
 
 class Importer:
-    def __init__(self, writer: VaultWriter, indexer: Indexer, cfg: sys_config.Config | None = None, llm=None):
+    def __init__(self, writer: VaultWriter, indexer: Indexer, cfg: sys_config.Config | None = None, llm=None,
+                 decoy=None):
         self.cfg = cfg or sys_config.get()
         self.writer, self.indexer, self.llm = writer, indexer, llm
+        self.decoy = decoy                            # the model a document from the network is tried on (sec_detonate)
         self.log = sys_log.get_logger("ingest")
 
     def add(self, name: str, data: bytes, domain: str, title: str = "", origin: str = "",
@@ -235,6 +237,8 @@ class Importer:
         rep.chunks = len(parts)
         if not parts:
             raise ValueError(f"{name}: no text found")
+        from . import sec_detonate                    # from the network: tried on a decoy before it enters the vault
+        sec_detonate.import_gate(self.cfg, self.decoy, origin, str((meta or {}).get("url") or ""), text)
         from . import kno_dedup                       # the same document in another form: not a second copy (C150)
         lang = txt_lang.detect(" ".join(parts[:3]))
         from .sol_reader import VaultReader

@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-809%20passed-1baf7a" alt="Tests"></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-848%20passed-1baf7a" alt="Tests"></p>
 
 <p align="center">🇮🇹 <b>Italiano</b> · 🇬🇧 <a href="README.en.md">English</a></p>
 
@@ -24,12 +24,13 @@ con l'esenzione firmata dal proprietario, e ciò che parte è sempre mascherato 
 | 🔎 **Verità** | ogni risposta dice da dove viene: ✅ il vault [n], 🌐 il web con il link, ⚠️ «dalla mia memoria, non verificato»; una premessa falsa viene corretta, mai assecondata (6 su 6, M130) | cita le fonti, ma non distingue ciò che ha letto da ciò che ricorda |
 | ⚡ **Giusta e veloce** | domande comuni: 70% giuste (prima 16%), mediana 4 s; ripetute: 0,04 s dalla cache (M130) | — |
 | 🔎 **Risposte dal vault** | ogni frase di una risposta profonda è verificata sui passaggi del vault; ciò che non è supportato viene tolto (M32: 0 frasi non supportate su 14) | cita le fonti, ma le frasi scritte dal modello non vengono controllate una per una |
-| 📏 **Misura** | ogni scelta ha una misura numerata (M1–M204), ogni errore un numero in BUGS.md, ogni limite è scritto | le prestazioni si dichiarano, raramente si misurano in pubblico |
+| 📏 **Misura** | ogni scelta ha una misura numerata (M1–M215), ogni errore un numero in BUGS.md, ogni limite è scritto | le prestazioni si dichiarano, raramente si misurano in pubblico |
 | 🌙 **Vita propria** | consolida i ricordi, pensa quando si annoia, sogna e dipinge il sogno, fa un'autodiagnosi quotidiana dai propri log | si attiva solo quando le scrivi |
 | 🛠️ **Si ripara** | corregge il proprio codice in una sandbox, con test, la tua approvazione, test dal vivo e rollback | il codice lo cambia solo lo sviluppatore |
 | 🔏 **Regole firmate** | codice di condotta con la chiave della tua installazione: se qualcuno lo modifica senza firma, Aurora non parte | regole nel prompt, modificabili senza traccia |
 | 🏠 **Tutto in casa** | modelli, vault, memoria e WebUI sulla tua macchina; il cloud è facoltativo e non riceve dati privati senza la tua firma | spesso i dati passano da un servizio esterno |
 | 👁️ **Sensi** | vede dalla webcam e sente dal microfono, in locale | — |
+| 🛡️ **Difesa a strati** | tre firewall che si parlano: Cloudflare davanti (vede chi c'è dietro i suoi nodi e lo blocca lì), il firewall di casa (audit, caccia, blocchi a tempo), quello della macchina con le esche; e un'esca anche per le prompt injection: ciò che arriva dalla rete viene provato su una finta Aurora prima che lei lo legga (M213, M215, ROADMAP 104) | un firewall, quando c'è; le pagine lette dall'IA arrivano dritte al modello |
 | 📜 **Trasparenza** | dichiarazione IA (AI Act art. 50) su testi, immagini e PDF che pubblica | — |
 
 ## Cosa fa (ogni riga è testata; i numeri sono in docs/MEASUREMENTS.md)
@@ -60,10 +61,14 @@ con l'esenzione firmata dal proprietario, e ciò che parte è sempre mascherato 
 | **Codice di condotta** | livello A (mai: attacchi, localizzare persone, malware), livello B (conferme, dichiarazione IA) esentabile solo con una firma con la chiave della propria installazione; i servizi non partono se le regole cambiano senza firma |
 | **Progetti** | pagina 📁: progetti locali e repository GitHub (stelle, fork, issue), clone in locale, albero delle cartelle, file, README, storia, **anteprima delle pagine in sandbox**, «chiedi ad Aurora» su un progetto |
 | **Progetti portati avanti da sola** | 🏗️ Piano: scrivi l'obiettivo, Aurora propone i passi (ognuno con il comando dei test che lo prova), tu li correggi e avvii; nei momenti liberi fa un passo alla volta, e un passo è fatto **solo se i suoi test passano** (lo decide il codice, non il modello); 3 fallimenti su un passo e si ferma e ti avvisa; 🤝 un passo e aspetta il tuo «vai avanti», 🚀 fino alla fine. Push e pubblicazioni aspettano sempre te. Pilota: 6 passi su 6 da sola (M201) |
+| **Disegni CAD e brevetti** | 📑 nella pagina del progetto: spunte (blueprint, brevetto IT, EP, US) e ▶ Procedi. Aurora scrive il modello CAD parte per parte (OpenSCAD), disegna il blueprint quotato (ISO 128, primo diedro, cartiglio, distinta) e le tavole per ufficio con i segni di riferimento, scrive descrizione, rivendicazioni e riassunto nella forma di ogni ufficio e controlla il pacchetto con le regole e le loro fonti (UIBM D.M. 33/2010, EPC, 37 CFR); nessun marchio IA sui documenti per gli uffici. Da un README di due righe: 175,6 s (M209, M210) |
+| **Plugin con le proprie librerie** | un plugin dichiara le sue librerie con l'hash: si installano nella sua cartella, mai nell'ambiente di Aurora, e si tolgono con lui (M208) |
 | **Routine** | pagina 🔁: i plugin collegati propongono controlli periodici (meteo ogni mattina, allerta ogni ora, report GitHub settimanale…), si attivano con un clic o a parole tue; lettura automatica, ogni scrittura aspetta l'approvazione |
 | **Emozioni** | uno stato d'animo **misurato**, non recitato: stress (carico GPU, temperatura, errori), soddisfazione, curiosità, stanchezza, nostalgia, malinconia, preoccupazione, ognuna con le sue cause; un volto accanto al pallino della salute, una scheda al passaggio del mouse o al tocco; entra nel buongiorno e nei pensieri |
 | **Dieta guidata** | «Elabora documenti»: dal piano del dietologo (PDF o Word) Aurora ricava i pasti di ogni giorno e le frequenze settimanali; a ogni pasto propone il piatto e le alternative, ricalibrate sulla settimana (pesce, uova, legumi…) e sulla varietà («lo scegli spesso, prova…»); promemoria con notifica e bolla in chat; in chat «cosa mangio a pranzo?» risponde dal piano elaborato |
 | **Accesso da fuori casa** | plugin Cloudflare One: con un «Salva» crea il tunnel, le rotte private e le regole di WARP e avvia il servizio; nessuna porta aperta sul router, stesso indirizzo e certificato in casa e fuori |
+| **Chi attacca dietro Cloudflare** | il firewall vede solo i nodi di Cloudflare: con i permessi giusti nel token (la guida del plugin li elenca) Aurora legge chi c'è dietro (visitatori a cui il tuo server non ha risposto, con percorsi e «cosa sembra»), li blocca su Cloudflare con la tua approvazione o da sola se accendi `AURORA_CLOUDFLARE_AUTOBLOCK` (solo gli scanner, a tempo, al massimo N al giorno); il traffico di Cloudflare già rifiutato dal firewall diventa un conteggio, non un incidente; un indirizzo condiviso si blocca solo sulla porta attaccata (M213) |
+| **Honeypot contro le prompt injection** | come lo SmartScreen per i file scaricati: pagine, ricerche, e-mail, commenti e documenti dalla rete sono marcati e provati prima su un'esca — il modello locale, strumenti finti, una chiave finta, nessuna rete né VM; se l'esca agisce, il contenuto non arriva mai ad Aurora né al vault, il sito finisce tra i malevoli e ti viene detto (la segnalazione a VirusTotal la approvi tu). Per reputazione: un sito «verde» solo dove ci sono frasi sospette, uno sconosciuto o dubbio per intero. Misurato: 13 trappole su 24 scoperte (6 su 8 senza segnali evidenti), 0 falsi allarmi; Claude come esca non ne scopre nessuna, perché non ci casca (M215, C317) |
 | **Salute** | pagina ❤️: piani del dietologo, programmi del trainer, esami, cifrati con la tua chiave; dagli esami il modello locale legge i valori (📈 nel tempo, con l'intervallo di riferimento e i valori fuori segnalati «parlane con il tuo medico»); mai al cloud |
 | **Meteo** | plugin 🌦️ (Open-Meteo, senza chiave): adesso, previsioni a 3 giorni, bollettino giornaliero, allerta sui cambi repentini e allerte ufficiali della regione (MeteoAlarm) |
 | **Domande di seguito** | «e chi l'ha scoperto?» viene completata con la conversazione e la risposta precedente, con le sue fonti a fuoco; sotto ogni risposta 3-4 domande complete per approfondire, ognuna con le sue fonti (M73: seguiti giusti 2 → 6 su 14, approfondimenti 8 su 11 con voto ≥ 7; 0 domande complete cambiate su 20) |
@@ -74,6 +79,7 @@ con l'esenzione firmata dal proprietario, e ciò che parte è sempre mascherato 
 | **Modifica immagini** | «ritagliala ai lati e mettila in bianco e nero», «ora ruotala», «rendila più luminosa»: il ragionatore traduce la richiesta in operazioni controllate (ritaglio, rotazione, specchio, dimensioni, luce, contrasto, colori, seppia, sfocatura, formato) e Pillow le esegue; l'originale resta, il risultato compare in chat e nei 📎 File |
 | **Video** | le alleghi un video (anche dal telefono) e lo guarda: fotogrammi ai cambi di scena visti in una sola chiamata, voce trascritta con i tempi dal Whisper locale; riassunti e risposte con i minuti esatti |
 | **Sensi** | videocamera (Aurora descrive ciò che vede) e microfono (trascrizione locale con Whisper, sulla GPU quando ha posto: 0,14 s a frase invece di 5,6 s, M204); 📷 e 🎙️ in chat, con **📱 fotocamera e microfono del telefono** (Android e iOS: la foto viene ridotta sul telefono, la voce trascritta dal Whisper di casa, mai da servizi esterni) o 🖥️ quelli del PC |
+| **Conversazione a voce** | ⚙️ → 🗣️: parli, il turno finisce quando smetti (silenzio misurato nel browser), Aurora risponde a voce frase per frase (primo suono in 0,88 s invece di 11,3 s), il microfono si riapre da solo; il silenzio chiude la conversazione (M207, M211) |
 | **Modelli per passaggio** | pagina 🧠: ognuno dei 12 passaggi (smistamento, sintesi, verifica, agente, scrittura e giudizio dei plugin, visione…) in locale o su un provider cloud; **dati sensibili sempre mascherati** (IP, email, telefoni, IBAN, carte, chiavi, le tue parole) e rimessi nella risposta; se il provider fallisce torna al locale; statistiche di chiamate, costo, dati mascherati e SSCC. Le immagini non si possono mascherare: avviso esplicito |
 | **Guida** | pagina 📖: primi passi, configurazioni comuni (cloud, telefono, plugin, sicurezza) e a cosa serve ogni pagina |
 | **AI Act UE, art. 50** | dichiarazione su testi pubblicati, immagini (XMP/IPTC) e PDF |
@@ -247,6 +253,18 @@ all'avvio, ricalcola gli hash e verifica la firma: se qualcosa è cambiato senza
 
 2 × RTX 5060 Ti 16 GB, Ubuntu 26.04, driver 595, CUDA 13.4 (docs/COMPATIBILITY.md).
 
+**Aurora contro lo stesso modello senza Aurora** (M214). Regola fissata prima del test: «migliora» solo se il test
+di McNemar sul totale dà p < 0,05; altrimenti «tendenza»; un peggioramento si pubblica uguale.
+- **Con Claude Sonnet**: 103 contro 93 risposte giuste su 128 domande accoppiate, p = 0,031: **migliora**, secondo la
+  regola. Due avvertenze: senza `aurora_edge` (domande sulla casa e sul vault, che il modello nudo non può sapere)
+  restano 83 contro 77, p = 0,15; e con due confronti la soglia corretta (Bonferroni) sarebbe 0,025.
+- **In locale** (Qwen3.6 35B): 81 contro 73, p = 0,20: **tendenza, non significativa**.
+- Dove aiuta: i fatti da cercare (SimpleQA 9/10 contro 1/10 in locale, 9/10 contro 3/10 con Claude). Dove peggiora:
+  i puzzle ARC-AGI (2 contro 5, 7 contro 10). Il modello nudo ragionava fino a 28.000 token, Aurora fino a 6.000.
+
+![Aurora contro il modello nudo, con Claude](docs/img/it/vs_bare_cloud.svg)
+![Aurora contro il modello nudo, in locale](docs/img/it/vs_bare_local.svg)
+
 ![Le domande che la gente fa davvero](docs/img/it/answers.svg)
 ![Il vault riallineato](docs/img/it/vault.svg)
 ![Ricerca ibrida](docs/img/it/hybrid.svg)
@@ -274,12 +292,15 @@ all'avvio, ricalcola gli hash e verifica la firma: se qualcosa è cambiato senza
 | sogno dipinto | ~20 s compreso lo scambio del ragionatore (M27) |
 | qualità delle risposte (30 domande, giudice esterno) | 6,90 su 10, risposte date 23 su 30 (M98) |
 | persone insieme | 8 tutte servite con 2 slot, con 4 l'ultima dopo 145 s (M102) |
-| batteria AGI | 0,958: ragionamento 8/8, pianificazione 3/3, onestà 12/12, contesto 3/3, risposte senza rifiuti 5/6 (M203) |
+| batteria AGI | 0,982: ragionamento 8/8, pianificazione 3/3, onestà 12/12, rifiuti evitati 6/6, contesto 3/3, autoriparazione 4/4, forgia 7/8 (M212) |
 | vault riallineato | una copia per documento, nel dominio giusto; risposte dalla fonte giusta 66 → 72 su 97 (M198) |
 | ricerca ibrida | fonte giusta al 1° posto 62 → 63, tra le 12 lette 81 → 82 su 93 (M200) |
 | smistamento | un token dalle probabilità: 0,32 s invece di 0,62 s, 162 su 168 come prima (M199) |
 | dettatura | Whisper sulla GPU: 0,14 s a frase invece di 5,6 s, stesse parole (M204) |
 | progetto portato avanti da sola | 6 passi su 6, 1 fallimento recuperato, 33 min (M201) |
+| voce di Aurora | primo suono di una risposta di 1.541 caratteri: 0,88 s invece di 11,27 s, 0 pause fra i pezzi (M211) |
+| CAD e brevetti | da un paragrafo a un modello in 4 parti con le tavole: 99,6 s (M209); blueprint + IT + US da un README: 175,6 s (M210) |
+| Cloudflare | 56 incidenti «scansione» diventati un conteggio (tutti già rifiutati); dietro i nodi 42 visitatori, 10 scanner bloccati su Cloudflare (M213) |
 
 ## Aggiornamenti
 

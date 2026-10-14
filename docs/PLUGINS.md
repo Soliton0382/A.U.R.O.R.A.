@@ -25,7 +25,7 @@ A plugin may bring its own program (`"install"`: Python libraries pinned with `-
 | `health` | tool | health_list (read), health_read (read), health_values (read), health_doctors (read), health_diet (read) | — |
 | `homeassistant` | connector | states (read), devices (read), history (read), camera_look (external), call_service (external) | AURORA_HA_URL, AURORA_HA_TOKEN |
 | `instagram` | connector | ig_account (read), ig_recent (read), ig_publish_photo (external) | AURORA_FACEBOOK_PAGE_ID, AURORA_FACEBOOK_PAGE_TOKEN |
-| `linkcheck` | tool | check_link (read) | — |
+| `linkcheck` | tool | check_link (read), honeypot_sites (read), honeypot_unlist (write_local), report_malicious (external) | — |
 | `logs` | tool | — | — |
 | `mastodon` | connector | account_stats (read), post_status (external) | AURORA_MASTODON_URL, AURORA_MASTODON_TOKEN |
 | `netintel` | tool | rdap_ip (read), reverse_dns (read), ip_reputation (read) | — |

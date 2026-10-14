@@ -36,6 +36,15 @@ say() { echo -e "\e[1m$*\e[0m"; }
 if [ "$CHECK" = 1 ]; then exec bash "$SRC/sys/core/script/dev_publish.sh" "$MIRROR"; fi
 [ -n "$MSG" ] || { echo 'a message: publish.sh "what changed"'; exit 2; }
 
+# The commit, the tag and the two pushes all use the git SSH key: its passphrase asked once here (kept in the agent
+# for an hour), not four times (owner, 2026-10-14: «almeno 4/5 volte quando lancio il comando»).
+KEY="$(git -C "$MIRROR" config user.signingkey || true)"
+KEY="${KEY%.pub}"
+if [ -n "$KEY" ] && [ -f "$KEY" ]; then
+  if [ -z "${SSH_AUTH_SOCK:-}" ]; then eval "$(ssh-agent -s)" >/dev/null; trap 'ssh-agent -k >/dev/null' EXIT; fi
+  ssh-add -l >/dev/null 2>&1 || ssh-add -t 3600 "$KEY" || { echo "the SSH key was not unlocked"; exit 2; }
+fi
+
 say "== the code of conduct"
 STATE="$("$PY" "$SRC/sys/core/script/sys_ethics_sign.py" check 2>/dev/null || true)"
 echo "$STATE" | sed 's/^/  /'
@@ -62,6 +71,9 @@ if [ -n "$RELEASE" ]; then
 fi
 
 say "== publish"
+# one time for the commit and the tag: the last 19:00 not in the future, never the hour of work (owner, 2026-10-14)
+if [ "$(date +%H)" -ge 19 ]; then AT="$(date +%Y-%m-%d)"; else AT="$(date -d yesterday +%Y-%m-%d)"; fi
+export GIT_AUTHOR_DATE="${AT}T19:00:00" GIT_COMMITTER_DATE="${AT}T19:00:00"
 ARGS=(--commit "$MSG")
 [ "$PUSH" = 0 ] || ARGS+=(--push)
 bash "$SRC/sys/core/script/dev_publish.sh" "$MIRROR" "${ARGS[@]}"

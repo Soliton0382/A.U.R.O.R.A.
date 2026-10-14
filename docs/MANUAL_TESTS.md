@@ -129,7 +129,7 @@ end, duplicates and tests of pages that no longer exist removed (each with its r
 | N101 | ✅ owner, 7 Oct: published on Facebook. 📣 Social → 🎬 Video di Aurora: open «Perché il cielo è blu?», watch it, fix the post if needed, ✔ Pubblica su Facebook | the video on the page, with its text and «🤖 Contenuto generato…»; the post in the history below; then Instagram on (Plugins) and TikTok authorized: their buttons appear |
 | N1 | 🧠 Models: assign «sintesi» to Claude Code · sonnet, Save, ask a question | owner + machine, 5 Oct |
 | N7 | ⚙️ Status → Backup → 💾 Run now (after the owner's setup) | owner, 6 Oct |
-| N10 | 🛠️ Repairs after the 18:30 Facebook routine (on a day with news) | owner, 6 Oct |
+| N10 | 🛠️ Repairs after the 18:30 Facebook routine (on a day with news) | owner, 6 Oct <!-- schedule --> |
 | N24 | 🗣️ next to the microphone (default): dictate a question with 🎙️ and send it; then type one; tap 🗣️ to 🔊 (alway… | owner, 6 Oct |
 | N44 | On the firewall: Backup & firmware → API on, Aurora's address allowed, a user; in the security card its addres… | owner, 5 Oct |
 | N75 | Phone, the installed app: the chat | owner, 5 Oct |

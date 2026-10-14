@@ -99,6 +99,9 @@ fi
 say "== private data Aurora knows (masker terms, firewall devices)"
 "$SRC/.venv/bin/python" "$SRC/sys/core/script/dev_privacy_scan.py" "$DST" || fail "private data above (file:line, kind)"
 
+say "== times of day in the documents (owner, 2026-10-14: «non ci sono orari nei documenti vero?»)"
+"$SRC/.venv/bin/python" "$DST/sys/core/script/doc_times.py" --check || fail "times of day above: doc_times.py --fix, or <!-- schedule --> for a time Aurora is set to"
+
 say "== code"
 PY="$SRC/.venv/bin/python"
 (cd "$DST" && "$PY" -m compileall -q sys/core sys/plugins >/dev/null) || fail "Python files that do not compile"
@@ -128,6 +131,12 @@ if [ -n "$MSG" ]; then
   git diff --cached --quiet && { echo "nothing to commit"; exit 0; }
   # «a && b» does not stop a «set -e» script: a refused commit (its signature) went on to push nothing and tag the
   # commit before (v0.2.18 on 13 Oct) — now it stops here
+  # the commit's time is not the hour it was made (owner, 2026-10-14): the last 19:00 that is not in the future,
+  # for the author and the committer (and the tag, made with the same variables by publish.sh)
+  if [ -z "${GIT_COMMITTER_DATE:-}" ]; then
+    if [ "$(date +%H)" -ge 19 ]; then AT="$(date +%Y-%m-%d)"; else AT="$(date -d yesterday +%Y-%m-%d)"; fi
+    export GIT_AUTHOR_DATE="${AT}T19:00:00" GIT_COMMITTER_DATE="${AT}T19:00:00"
+  fi
   git commit -q -m "$MSG" || fail "the commit was refused (its signature? the output above): nothing pushed, no tag"
   git log --oneline -1
   if [ "$PUSH" = 1 ]; then git push -u origin main; fi

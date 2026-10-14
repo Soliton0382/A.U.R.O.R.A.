@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.en.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-809%20passed-1baf7a" alt="Tests"></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-848%20passed-1baf7a" alt="Tests"></p>
 
 <p align="center">🇮🇹 <a href="README.md">Italiano</a> · 🇬🇧 <b>English</b></p>
 
@@ -24,12 +24,13 @@ exemption, and what leaves is always masked (no setting turns it off).
 | 🔎 **Truth** | every answer says where it comes from: ✅ the vault [n], 🌐 the web with its link, ⚠️ «from my memory, not verified»; a false premise is corrected, never built upon (6 of 6, M130) | cites sources, but does not tell what it read from what it remembers |
 | ⚡ **Right and fast** | common questions: 70% right (before 16%), median 4 s; repeated: 0.04 s from the cache (M130) | — |
 | 🔎 **Vault answers** | every sentence of a deep answer is verified against the vault's passages; what is not supported is removed (M32: 0 unsupported sentences of 14 kept) | cites sources, but the sentences the model writes are not checked one by one |
-| 📏 **Measurement** | every choice has a numbered measurement (M1–M204), every error a number in BUGS.md, every limit is written down | performance is claimed, rarely measured in public |
+| 📏 **Measurement** | every choice has a numbered measurement (M1–M215), every error a number in BUGS.md, every limit is written down | performance is claimed, rarely measured in public |
 | 🌙 **A life of her own** | consolidates memories, thinks when idle, dreams and paints the dream, reviews herself every day from her own logs | wakes up only when you write |
 | 🛠️ **Repairs herself** | fixes her own code in a sandbox, with tests, your approval, live tests and rollback | only the developer changes the code |
 | 🔏 **Signed rules** | a code of conduct bound to your installation's key: changed without a signature, Aurora does not start | rules in a prompt, changed without a trace |
 | 🏠 **All at home** | models, vault, memory and WebUI on your machine; the cloud is optional and gets no private data without your signature | data often goes through an external service |
 | 👁️ **Senses** | sees through the webcam and hears through the microphone, locally | — |
+| 🛡️ **Layered defence** | three firewalls that talk to each other: Cloudflare in front (it sees who is behind its nodes and blocks them there), the home firewall (audit, hunting, timed blocks), the machine's own with decoys; and a decoy for prompt injections too: what comes from the network is tried on a fake Aurora before she reads it (M213, M215, ROADMAP 104) | one firewall, when there is one; the pages an AI reads go straight to the model |
 | 📜 **Transparency** | AI disclosure (EU AI Act art. 50) on the text, images and PDFs she publishes | — |
 
 ## What she does (each line is tested; numbers are in docs/MEASUREMENTS.md)
@@ -60,10 +61,14 @@ exemption, and what leaves is always masked (no setting turns it off).
 | **Code of conduct** | level A (never: attacks, locating people, malware), level B (confirmations, disclosure) exemptible only by a signature with the installation's own key; services refuse to start if the rules are changed unsigned |
 | **Projects** | 📁 page: local projects and GitHub repositories (stars, forks, issues), clone locally, folder tree, files, README, history, **sandboxed page preview**, "ask Aurora" about a project |
 | **Projects carried by herself** | 🏗️ Plan: write the goal, Aurora proposes the steps (each with the test command that proves it), you change them and start it; in idle time she does one step at a time, and a step is done **only when its tests pass** (the code decides, not the model); 3 failures on a step and she stops and tells you; 🤝 one step then she waits for your «go on», 🚀 to the end. Pushes and publishing always wait for you. Pilot: 6 of 6 steps alone (M201) |
+| **CAD drawings and patents** | 📑 in the project's page: ticks (blueprint, patent IT, EP, US) and ▶ Proceed. Aurora writes the CAD model part by part (OpenSCAD), draws the dimensioned blueprint (ISO 128, first angle, title block, parts list) and each office's drawing sheets with reference signs, writes description, claims and abstract in each office's form and checks the package against the rules and their sources (UIBM D.M. 33/2010, EPC, 37 CFR); no AI mark on documents for the offices. From a two-line README: 175.6 s (M209, M210) |
+| **Plugins with their own libraries** | a plugin declares its libraries with their hash: installed in its own folder, never in Aurora's environment, removed with it (M208) |
 | **Routines** | 🔁 page: connected plugins propose periodic checks (weather every morning, alerts every hour, weekly GitHub report…), switched on with one click or in your own words; reading is automatic, every write waits for approval |
 | **Emotions** | a **measured** mood, not acted: stress (GPU load, heat, errors), satisfaction, curiosity, tiredness, longing, melancholy, worry, each with its causes; a face beside the health dot, a card on hover or tap; part of the good morning and her thoughts |
 | **Guided diet** | «Process documents»: from the dietitian's plan (PDF or Word) Aurora reads each day's meals and the weekly frequencies; at each meal she proposes the dish and the alternatives, re-weighed on the week (fish, eggs, legumes…) and on variety («you choose it often, try…»); reminders with a notification and a chat bubble; in the chat «what do I eat for lunch?» answers from the processed plan |
 | **Access from away** | Cloudflare One plugin: one «Save» creates the tunnel, the private routes and WARP's rules and starts the service; no port opened on the router, the same address and certificate at home and away |
+| **Attackers behind Cloudflare** | the firewall sees Cloudflare's nodes only: with the right permissions in the token (the plugin's guide lists them) Aurora reads who is behind them (clients your server did not answer, with paths and «what they look like»), blocks them at Cloudflare with your approval or by herself if you switch on `AURORA_CLOUDFLARE_AUTOBLOCK` (scanners only, for a time, at most N a day); Cloudflare's traffic the firewall already refused becomes a count, not an incident; a shared address is blocked on the attacked port only (M213) |
+| **Honeypot against prompt injection** | like SmartScreen for downloaded files: pages, searches, e-mails, comments and documents from the network are marked and tried first on a decoy — the local model, fake tools, a fake key, no network or VM; if the decoy acts, the content never reaches Aurora or the vault, the site is listed as malicious and you are told (reporting it to VirusTotal is your approval). By reputation: a «green» site only where suspicious words are, an unknown or doubtful one whole. Measured: 13 of 24 traps caught (6 of 8 with no obvious sign), 0 false alarms; Claude as the decoy catches none, because it never falls (M215, C317) |
 | **Health** | ❤️ page: the dietitian's plans, the trainer's programmes, exams, sealed with your key; from the exams the local model reads the values (📈 over time, with the reference range and the values outside it flagged "talk to your doctor"); never to the cloud |
 | **Weather** | 🌦️ plugin (Open-Meteo, no key): now, 3-day forecast, daily report, alerts on sudden changes and the region's official warnings (MeteoAlarm) |
 | **Follow-up questions** | "and who discovered it?" is completed with the conversation and the previous answer, its sources in focus; under each answer 3-4 complete questions to go deeper, each with its sources (M73: follow-ups right 2 → 6 of 14, suggestions 8 of 11 scored ≥ 7; 0 of 20 complete questions changed) |
@@ -74,6 +79,7 @@ exemption, and what leaves is always masked (no setting turns it off).
 | **Picture edits** | "crop the sides and make it black and white", "now rotate it", "make it brighter": the reasoner turns the request into checked operations (crop, rotate, mirror, size, light, contrast, colours, sepia, blur, format) and Pillow applies them; the original stays, the result appears in the chat and in 📎 Files |
 | **Video** | attach a video (from the phone too) and she watches it: frames at the scene changes seen in one call, speech transcribed with timestamps by the local Whisper; summaries and answers with the exact minutes |
 | **Senses** | camera (Aurora describes what she sees) and microphone (local transcription with Whisper, on the GPU when it has room: 0.14 s a sentence instead of 5.6 s, M204); 📷 and 🎙️ in the chat, with **📱 the phone's camera and microphone** (Android and iOS: the photo is shrunk on the phone, the voice transcribed by the home Whisper, never by an outside service) or 🖥️ the PC's |
+| **Voice conversation** | ⚙️ → 🗣️: you speak, the turn ends when you stop (silence measured in the browser), Aurora answers aloud sentence by sentence (first sound in 0.88 s instead of 11.3 s), the microphone opens again by itself; silence ends the conversation (M207, M211) |
 | **Models per step** | 🧠 page: each of 12 steps (routing, synthesis, verification, agent, plugin writing and judging, vision…) local or on a cloud provider; **sensitive data always masked** (addresses, e-mails, phones, IBANs, cards, keys, your words) and put back in the answer; falls back to local on a provider error; daily token ceiling per paid provider; statistics of calls, cost, masked items and SSCC. Pictures cannot be masked: said explicitly |
 | **Guide** | 📖 page: first steps, common configurations (cloud, phone, plugins, safety) and what each page is for |
 | **EU AI Act art. 50** | disclosure on published text, images (XMP/IPTC) and PDFs |
@@ -246,6 +252,18 @@ checks the signature at start: changed without a signature, Aurora does not star
 
 2 × RTX 5060 Ti 16 GB, Ubuntu 26.04, driver 595, CUDA 13.4 (docs/COMPATIBILITY.md).
 
+**Aurora against the same model without Aurora** (M214). Rule set before the test: «improves» only if McNemar's
+test on the total gives p < 0.05; otherwise «a trend»; a loss is published all the same.
+- **With Claude Sonnet**: 103 against 93 right answers on 128 paired questions, p = 0.031: **improves**, by the rule.
+  Two caveats: without `aurora_edge` (questions on the house and the vault, which the bare model cannot know) it is
+  83 against 77, p = 0.15; and with two comparisons the corrected threshold (Bonferroni) would be 0.025.
+- **Local** (Qwen3.6 35B): 81 against 73, p = 0.20: **a trend, not significant**.
+- Where it helps: facts to look up (SimpleQA 9/10 against 1/10 locally, 9/10 against 3/10 with Claude). Where it
+  loses: the ARC-AGI puzzles (2 against 5, 7 against 10). The bare model reasoned up to 28,000 tokens, Aurora up to 6,000.
+
+![Aurora against the bare model, with Claude](docs/img/en/vs_bare_cloud.svg)
+![Aurora against the bare model, local](docs/img/en/vs_bare_local.svg)
+
 ![The questions people really ask](docs/img/en/answers.svg)
 ![The vault realigned](docs/img/en/vault.svg)
 ![Hybrid search](docs/img/en/hybrid.svg)
@@ -273,12 +291,15 @@ checks the signature at start: changed without a signature, Aurora does not star
 | dream painting | ~20 s including swapping the reasoner out and back (M27) |
 | answer quality (30 questions, external judge) | 6.90 of 10, 23 of 30 answered (M98) |
 | people at once | 8 all served with 2 slots, with 4 the last after 145 s (M102) |
-| AGI battery | 0.958: reasoning 8/8, planning 3/3, honesty 12/12, context 3/3, answers without refusals 5/6 (M203) |
+| AGI battery | 0.982: reasoning 8/8, planning 3/3, honesty 12/12, refusals avoided 6/6, context 3/3, self-repair 4/4, forge 7/8 (M212) |
 | vault realigned | one copy a document, in the right domain; answers from the right source 66 → 72 of 97 (M198) |
 | hybrid search | right source ranked 1st 62 → 63, among the 12 read 81 → 82 of 93 (M200) |
 | routing | one token from its probabilities: 0.32 s instead of 0.62 s, 162 of 168 as before (M199) |
 | dictation | Whisper on the GPU: 0.14 s a sentence instead of 5.6 s, the same words (M204) |
 | a project carried by herself | 6 of 6 steps, 1 failure recovered, 33 min (M201) |
+| Aurora's voice | first sound of a 1,541-character answer: 0.88 s instead of 11.27 s, 0 gaps between pieces (M211) |
+| CAD and patents | from a paragraph to a 4-part model with its sheets: 99.6 s (M209); blueprint + IT + US from a README: 175.6 s (M210) |
+| Cloudflare | 56 «scanning» incidents became a count (all already refused); behind the nodes 42 clients, 10 scanners blocked at Cloudflare (M213) |
 
 ## Updates
 

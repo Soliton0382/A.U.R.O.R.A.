@@ -43,5 +43,8 @@
         "url": "https://core.telegram.org/bots/api#getupdates"
       }
     ]
-  }
+  },
+  "from_network": [
+    "get_updates"
+  ]
 }

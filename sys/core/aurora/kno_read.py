@@ -129,24 +129,33 @@ def _web(p, question: str, asked: str, ev, size: str, open_pages: bool, region: 
     ev("read.web", {"query": q, "region": region, "results": [r["title"] for r in found][:6]})
     if not found:
         return None
+    from . import sec_detonate                           # a snippet is a few lines: to the decoy only with a cue in it
+    found = [r for r in found if not (sec_detonate.cues(r["text"]) and sec_detonate.guard(
+        p.cfg, p.llm, r["url"], r["text"], mode="suspicious")["exploded"])]               # local decoy (C317)
     snippets = [{"text": r["text"], "source": _web_source(r)} for r in found]
     if size == "explain" and open_pages:
         # how a thing is done is in the page, not in its snippet (C307, 14 Oct: the wine stain answered from snippets
         # with «detergenti appropriati» and no method): the best 2 pages read at once, the snippets beside them
-        pages = _pages(found, ev)
+        pages = _pages(found, ev, p)
         return read(p, question, pages + [x for x in snippets if x["source"]["url"] not in
                                           {y["source"]["url"] for y in pages}], size) if pages else read(p, question, snippets, size)
     out = read(p, question, snippets, size)
     if out or not open_pages:
         return out
-    pages = _pages(found, ev)                            # the snippets were too short: the best pages, read whole
+    pages = _pages(found, ev, p)                            # the snippets were too short: the best pages, read whole
     return read(p, question, pages, size)
 
 
-def _pages(found: list[dict], ev) -> list[dict]:
+def _pages(found: list[dict], ev, p=None) -> list[dict]:
     pages = []
     for r in found[:2]:
         text = kno_web.page(r["url"])
+        if text and p is not None:                       # tried on a decoy first, by its reputation (sec_detonate)
+            from . import sec_detonate
+            v = sec_detonate.guard(p.cfg, p.llm, r["url"], text)                              # local decoy (C317)
+            if v["exploded"]:
+                ev("honeypot.exploded", {"source": r["url"][:300], "why": v["why"]})
+                continue
         if text:
             pages.append({"text": text, "source": _web_source(r)})
     ev("read.pages", {"opened": [x["source"]["title"] for x in pages]})

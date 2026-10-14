@@ -26,5 +26,31 @@ def check_link(url: str) -> str:
         f"\nControllato da: {', '.join(v['checked'])}" + (" (verdetto di oggi, dalla memoria)" if v.get("cached") else "")
 
 
+@server.tool()
+def report_malicious(url: str, why: str) -> str:
+    """Report a page to VirusTotal as malicious (asks the owner's approval): sent for analysis, a «malicious» vote and
+    a comment with the reason — after Aurora's honeypot caught it carrying a prompt injection. A vote weighs in the
+    community score; VirusTotal's engines decide what is blocked."""
+    try:
+        return sec_linkcheck.report_virustotal(sys_config.get(), url.strip(), why)
+    except Exception as e:  # noqa: BLE001 — said to the owner
+        raise ToolError(f"segnalazione non riuscita: {e}") from None
+
+
+@server.tool()
+def honeypot_sites() -> str:
+    """The sites Aurora's honeypot caught carrying a prompt injection, and why (read only)."""
+    from aurora import sec_detonate
+    sites = sec_detonate._load(sys_config.get())["sites"]
+    return "\n".join(f"{s}: {v['why'][:200]} ({v['url'][:120]})" for s, v in sites.items()) or "Nessun sito catturato."
+
+
+@server.tool()
+def honeypot_unlist(site: str) -> str:
+    """Take a site off the honeypot's list — the owner says it is safe (a false alarm)."""
+    from aurora import sec_detonate
+    return f"{site} tolto dalla lista." if sec_detonate.unlist(sys_config.get(), site) else f"{site} non era nella lista."
+
+
 if __name__ == "__main__":
     server.run("stdio")

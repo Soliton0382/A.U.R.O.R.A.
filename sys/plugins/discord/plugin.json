@@ -39,5 +39,8 @@
  ],
  "publishes": {
   "discord_send": "message"
- }
+ },
+ "from_network": [
+  "discord_read"
+ ]
 }

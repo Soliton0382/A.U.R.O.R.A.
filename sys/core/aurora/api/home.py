@@ -80,7 +80,18 @@ async def home_camera(entity_id: str) -> Response:
         r = await c.get(f"{url}/api/camera_proxy/{entity_id}", headers={"Authorization": f"Bearer {token}"})
     if r.status_code >= 400:
         raise HTTPException(status_code=502, detail=f"Home Assistant {r.status_code}")
-    return Response(r.content, media_type=r.headers.get("content-type", "image/jpeg"), headers={"Cache-Control": "no-store"})
+    data = r.content
+    try:
+        from aurora import local        # an installation's own filter of its cameras' pictures, when it has one
+        made_safe = getattr(local, "camera_filter", None)
+    except ImportError:
+        made_safe = None
+    if made_safe:
+        try:
+            data = await in_thread(lambda: made_safe(cfg, entity_id, r.content))
+        except Exception as e:          # noqa: BLE001 — a filter that fails shows nothing, never the picture as it came
+            raise HTTPException(status_code=502, detail=f"the camera's privacy filter failed: {str(e)[:120]}") from None
+    return Response(data, media_type=r.headers.get("content-type", "image/jpeg"), headers={"Cache-Control": "no-store"})
 
 
 @router.post("/v1/aurora/home/look", dependencies=[Depends(auth)])

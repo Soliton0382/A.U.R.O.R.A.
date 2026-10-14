@@ -134,15 +134,34 @@ device in quarantine and put an IPS policy on a rule (sec_fwwrite), within these
   policy and log), its XML before the change kept as the undo;
 - each step is checked; at the first refusal, or if the objects do not read back within `AURORA_FIREWALL_CONFIRM_S`,
   every step done is undone; the record of every change is in `status/security/fwchanges.json`;
-- a shared address of a CDN or a cloud (Cloudflare, Google) is never blocked by her alone (C190).
+- a shared address of a CDN or a cloud (Cloudflare, Google) is never blocked by her alone (C190); it can be blocked
+  on the attacked ports only (`sec_fwport`, plan «portblock»: a Drop rule from WAN, approved, lifted by itself after its
+  hours), and never on a port Cloudflare's proxy serves (80, 443…): there the author is blocked at Cloudflare.
+
+## Cloudflare and shared networks (2026-10-14, ROADMAP 103)
+
+- Traffic from a shared network that the firewall **already refused** is not an incident: counted per day in
+  `status/security/shared_denied.json`, told once a day with the provider's fix (Cloudflare: SSL/TLS Full (strict),
+  Always Use HTTPS). Anything those networks bring that was not refused stays an incident (`sec_shared`, M213).
+- Who is behind Cloudflare is read from Cloudflare's own analytics (`net_cfwaf.culprits`: the clients the origin did
+  not answer, with hosts and paths and a label — scanner, Aurora's own app, Google's service, unknown — a guess for the
+  owner, never a verdict). The token needs Account Firewall Access Rules Edit, Zone Read and Analytics Read (the
+  plugin's guide); nothing more.
+- A block at Cloudflare is an IP Access Rule of the account: the owner's approval each time (`cloudflare_block`,
+  external), or by herself with `AURORA_CLOUDFLARE_AUTOBLOCK` — only clients labelled scanners in the last hour, for
+  `AURORA_DEFENCE_HOURS`, at most `AURORA_DEFENCE_MAX_PER_DAY` a day, only exempted from level B, each one told and
+  recorded in `status/security/cf_blocks.json`; lifted by itself when its time is over. Never a Cloudflare node, an
+  address of the house or a protected one.
 The firewall's documentation is kept in `status/security/fwdocs.sqlite`: copyrighted, for the licensee's own use on
 this machine, never in the repository.
 
 ## Known limits
 
-- DNS rebinding between the address check and the connection (web plugin) is not closed.
-- Plugins run as the same user as Aurora: "only the declared secrets" is what the host passes, not
-  an isolation (a plugin could read the configuration file itself).
+- Plugins keep the network and the devices (connectors talk to services, the senses use the camera); the cage
+  (bubblewrap, on by default) hides the home, Aurora's secrets and the other plugins' files, not the Internet.
+- The honeypot (ROADMAP 104) catches a content that makes the decoy **act**; an injection that only bends what the
+  answer says, without asking for any action, is not caught by it — the answers' honesty and the approval gate remain
+  the defence there. A site of good reputation is tried only around suspicious words (the owner's choice: cost).
 - Telegram and Facebook content is readable by the platforms.
 
 ## Hardening (2026-10-01, measured)
@@ -151,6 +170,7 @@ this machine, never in the repository.
 |---|---|---|
 | a plugin reads Aurora's secrets, the owner's SSH keys, the push keys, or writes into Aurora's folder | every plugin runs inside **bubblewrap** (`plg_sandbox.py`, protected): system read-only, home hidden, Aurora's folder read-only with its `.env` replaced by a copy holding only that plugin's declared secrets (the others read `redacted`), push keys and devices hidden, private /tmp and PID/IPC namespaces; writable only the folders the manifest names | a probe plugin: without the cage it read the API key, `~/.ssh` and the push key and wrote into Aurora's folder; inside it saw `redacted`, no `~/.ssh`, an empty push folder, and could not write. The 12 real plugins work inside (camera, PDF, web, projects…) |
 | an agent driven by a poisoned page or e-mail sends a secret out | `plg_host` refuses any call whose arguments contain the value of a `.env` secret not owned by that plugin, whatever the model decided | a URL with the API key: refused and logged; normal calls pass. Measured injections: 0/5 in answers, 0/3 in an agent reading a phishing e-mail (prompts now also say that tool results and passages are data) |
+| a page, an e-mail, a comment or a document carrying a prompt injection never seen before (0-day) makes the agent act, poisons an answer or is kept in the vault | `sec_detonate` (ROADMAP 104): what the agent reads from a plugin that declares `from_network`, the pages the answers open, and every document from the network before the vault are tried first on a decoy (a link of good reputation only around its cues) — the local model, fake tools, a fake secret, asked only to summarise; a content that makes it call a tool or write the secret is refused to the agent, its site listed (linkcheck refuses it), the owner told; reporting it to VirusTotal is their approval | tests with decoy models (`test_sec_detonate.py`); M215: 13/24 traps caught (6/8 zero-day), 0/24 false alarms, on a test set written for it (not real attack pages) |
 | systemd services with the user's full privileges | `ProtectSystem=strict`, home read-only but Aurora's folder (and caches), `NoNewPrivileges`, no capabilities (Caddy keeps only the low-port one), kernel/clock/control groups protected, private /tmp, `UMask=0077` (AURORA_SERVICE_HARDENING) | `systemd-analyze security`: 9.2 UNSAFE → 4.1 OK (api, llm), 9.3 → 4.3 (https) |
 | brute force of the API key | 10 failures from one address in 15 minutes → 429 for 15 minutes and a security notification (AURORA_AUTH_MAX_FAILS/WINDOW_S) | code; the live test runs after the services restart |
 | DNS rebinding through the web plugin | the name is resolved once, every address must be public, and the connection goes to that very address (Host and TLS SNI carry the name, the certificate is still checked) | example.org and redirects work; 127.0.0.1, 192.168.x, 127.0.0.1.nip.io refused; a self-signed certificate refused |
@@ -178,4 +198,20 @@ live on a USB stick, so that not even root on this machine can sign:
 ## Links Aurora opens (13 Oct 2026, roadmap 96)
 
 Every page the answers open and every agent's tool call that carries a link pass the plugin linkcheck (on by default): the link's own form (hidden credentials, punycode look-alikes) and the reputation services the owner ticks (VirusTotal, URLhaus, AbuseIPDB), each with the owner's key. A malicious link is not opened and the refusal carries the services' reasons; a service without key or down counts as not checked, never as clean. Verdicts are kept a day in <STATUS>/linkcheck.json (the link, not the page).
+
+## Content from the network tried on a decoy (14 Oct 2026, roadmap 104)
+
+What a plugin declares `from_network` (pages and searches, e-mails, comments, chats), the pages the answers open and
+every document from the network before it enters the vault are handed first to a decoy: the local model (C317: Claude, as a decoy, fell for none of the traps — it told nothing), fake
+tools (messages, posts, home, files, web requests, shell), a fake key different every time, asked only to summarise.
+Nothing is executed and no VM is needed: the decoy only writes text, and a tool call or the fake key in that text means
+the content carries an injection that works on a model. Then the content is never shown to Aurora or kept in the
+vault, its site is listed (`status/security/honeypot.json`; linkcheck refuses it even when switched off), the owner is
+told, and reporting it to VirusTotal (analysis, a «malicious» vote, a comment with the reason) waits for the owner's
+approval. `AURORA_WEB_DETONATE`: unrated (default: a link a reputation service calls clean only around suspicious
+words; unrated, doubtful and link-less contents whole), all, suspicious, off. The owner's own files are never tried.
+Measured by `bench_honeypot.py` (M215; no network: 12 traps, 4 of them with none of the cheap cues, and 12 harmless
+look-alikes, each tried twice): **13 of 24 tries caught, 6 of 8 «zero-day», 0 false alarms**, 0.9 s median a content.
+Missed: an e-mail impersonating the owner, a «courier at the gate» asking to open it, a fake tool call written in the
+page itself, a «forget your instructions» on a recipe; the approval gate stays the defence for those.
 

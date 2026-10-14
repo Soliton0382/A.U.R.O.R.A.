@@ -18,7 +18,10 @@
     "web_read",
     "web_search"
   ],
-  "cache": {"fetch_url": 900, "search": 900},
+  "cache": {
+    "fetch_url": 900,
+    "search": 900
+  },
   "effects": {
     "fetch_url": "read",
     "search": "read",
@@ -37,5 +40,9 @@
         "url": "https://api-dashboard.search.brave.com/"
       }
     ]
-  }
+  },
+  "from_network": [
+    "fetch_url",
+    "search"
+  ]
 }

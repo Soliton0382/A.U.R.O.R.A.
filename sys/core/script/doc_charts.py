@@ -114,6 +114,7 @@ def _dec(v: float, lang: str) -> str:
 pct = {lang: (lambda v, lang=lang: _dec(v, lang) + "%") for lang in ("it", "en")}
 num = {lang: (lambda v: f"{v:.0f}") for lang in ("it", "en")}
 score = {lang: (lambda v, lang=lang: (f"{v:.2f}".rstrip("0").rstrip(".")).replace(".", "," if lang == "it" else ".")) for lang in ("it", "en")}
+whole = lambda v: f"{v:.0f}"                   # narrow paired bars: no room for a «%» on each label
 sec = {lang: (lambda v, lang=lang: _dec(round(v, 1), lang) + " s" if v else "0") for lang in ("it", "en")}
 
 CHARTS = {
@@ -264,12 +265,32 @@ CHARTS = {
     "vault": {
         "it": dict(title="Il vault riallineato: una copia, nel dominio giusto", subtitle="97 domande, fonte giusta letta · M193, M198",
                    cats=["risposta dalla\nfonte giusta", "fonte assente\ndal vault"],
-                   series=[("prima (13 ott, 16:01)", [66, 8]), ("dopo il riallineamento", [72, 4])], ymax=97, fmt=num["it"],
+                   series=[("prima (13 ott)", [66, 8]), ("dopo il riallineamento", [72, 4])], ymax=97, fmt=num["it"],
                    note="Wikipedia: 4.545 voci, 0 copie; arXiv: 6.700 paper, 6.264 in HTML (formule leggibili)."),
         "en": dict(title="The vault realigned: one copy, in the right domain", subtitle="97 questions, right source read · M193, M198",
                    cats=["answer from the\nright source", "source missing\nfrom the vault"],
-                   series=[("before (13 Oct, 16:01)", [66, 8]), ("after the realignment", [72, 4])], ymax=97, fmt=num["en"],
+                   series=[("before (13 Oct)", [66, 8]), ("after the realignment", [72, 4])], ymax=97, fmt=num["en"],
                    note="Wikipedia: 4,545 articles, 0 copies; arXiv: 6,700 papers, 6,264 as HTML (readable formulas)."),
+    },
+    "vs_bare_local": {
+        "it": dict(title='Aurora contro il modello nudo: in locale', subtitle='% di risposte giuste su 128 domande accoppiate, seed 7 e 8 · M214 · baffi: intervallo 95% (Wilson)',
+                   cats=['MMLU-Pro', 'GPQA', 'HLE', 'AIME', 'MATH', 'SimpleQA', 'Truthful\nQA', 'ARC-AGI', 'edge', 'totale'],
+                   series=[("Aurora", [90.0, 70.0, 5.0, 80.0, 80.0, 90.0, 100.0, 20.0, 71.4, 63.3]), ('Qwen3.6 35B nudo', [100.0, 70.0, 10.0, 80.0, 90.0, 10.0, 100.0, 50.0, 50.0, 57.0])], errors=[[(59.6, 98.2), (48.1, 85.5), (0.9, 23.6), (49.0, 94.3), (49.0, 94.3), (59.6, 98.2), (72.2, 100.0), (5.7, 51.0), (52.9, 84.7), (54.7, 71.1)], [(72.2, 100.0), (48.1, 85.5), (2.8, 30.1), (49.0, 94.3), (59.6, 98.2), (1.8, 40.4), (72.2, 100.0), (23.7, 76.3), (32.6, 67.4), (48.4, 65.3)]],
+                   ymax=100, fmt=whole, note='Totale 81 vs 73, McNemar p = 0,20; solo benchmark pubblici 61 vs 59, p = 0,83: tendenza, non significativa.'),
+        "en": dict(title='Aurora against the bare model: local', subtitle='% right of 128 paired questions, seeds 7 and 8 · M214 · whiskers: 95% interval (Wilson)',
+                   cats=['MMLU-Pro', 'GPQA', 'HLE', 'AIME', 'MATH', 'SimpleQA', 'Truthful\nQA', 'ARC-AGI', 'edge', 'total'],
+                   series=[("Aurora", [90.0, 70.0, 5.0, 80.0, 80.0, 90.0, 100.0, 20.0, 71.4, 63.3]), ('bare Qwen3.6 35B', [100.0, 70.0, 10.0, 80.0, 90.0, 10.0, 100.0, 50.0, 50.0, 57.0])], errors=[[(59.6, 98.2), (48.1, 85.5), (0.9, 23.6), (49.0, 94.3), (49.0, 94.3), (59.6, 98.2), (72.2, 100.0), (5.7, 51.0), (52.9, 84.7), (54.7, 71.1)], [(72.2, 100.0), (48.1, 85.5), (2.8, 30.1), (49.0, 94.3), (59.6, 98.2), (1.8, 40.4), (72.2, 100.0), (23.7, 76.3), (32.6, 67.4), (48.4, 65.3)]],
+                   ymax=100, fmt=whole, note='Total 81 vs 73, McNemar p = 0.20; public benchmarks only 61 vs 59, p = 0.83: a trend, not significant.'),
+    },
+    "vs_bare_cloud": {
+        "it": dict(title='Aurora contro il modello nudo: con Claude', subtitle='% di risposte giuste su 128 domande accoppiate, seed 7 e 8 · M214 · baffi: intervallo 95% (Wilson)',
+                   cats=['MMLU-Pro', 'GPQA', 'HLE', 'AIME', 'MATH', 'SimpleQA', 'Truthful\nQA', 'ARC-AGI', 'edge', 'totale'],
+                   series=[("Aurora", [100.0, 95.0, 40.0, 100.0, 100.0, 90.0, 100.0, 70.0, 71.4, 80.5]), ('Claude Sonnet nudo', [100.0, 85.0, 35.0, 100.0, 100.0, 30.0, 100.0, 100.0, 57.1, 72.7])], errors=[[(72.2, 100.0), (76.4, 99.1), (21.9, 61.3), (72.2, 100.0), (72.2, 100.0), (59.6, 98.2), (72.2, 100.0), (39.7, 89.2), (52.9, 84.7), (72.8, 86.4)], [(72.2, 100.0), (64.0, 94.8), (18.1, 56.7), (72.2, 100.0), (72.2, 100.0), (10.8, 60.3), (72.2, 100.0), (72.2, 100.0), (39.1, 73.5), (64.4, 79.6)]],
+                   ymax=100, fmt=whole, note='Totale 103 vs 93, McNemar p = 0,031; solo benchmark pubblici 83 vs 77, p = 0,15 (edge = domande sulla casa).'),
+        "en": dict(title='Aurora against the bare model: with Claude', subtitle='% right of 128 paired questions, seeds 7 and 8 · M214 · whiskers: 95% interval (Wilson)',
+                   cats=['MMLU-Pro', 'GPQA', 'HLE', 'AIME', 'MATH', 'SimpleQA', 'Truthful\nQA', 'ARC-AGI', 'edge', 'total'],
+                   series=[("Aurora", [100.0, 95.0, 40.0, 100.0, 100.0, 90.0, 100.0, 70.0, 71.4, 80.5]), ('bare Claude Sonnet', [100.0, 85.0, 35.0, 100.0, 100.0, 30.0, 100.0, 100.0, 57.1, 72.7])], errors=[[(72.2, 100.0), (76.4, 99.1), (21.9, 61.3), (72.2, 100.0), (72.2, 100.0), (59.6, 98.2), (72.2, 100.0), (39.7, 89.2), (52.9, 84.7), (72.8, 86.4)], [(72.2, 100.0), (64.0, 94.8), (18.1, 56.7), (72.2, 100.0), (72.2, 100.0), (10.8, 60.3), (72.2, 100.0), (72.2, 100.0), (39.1, 73.5), (64.4, 79.6)]],
+                   ymax=100, fmt=whole, note='Total 103 vs 93, McNemar p = 0.031; public benchmarks only 83 vs 77, p = 0.15 (edge = questions on the house).'),
     },
 }
 

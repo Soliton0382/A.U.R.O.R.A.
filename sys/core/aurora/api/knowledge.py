@@ -35,7 +35,8 @@ def _import(name: str, data: bytes, domain: str, title: str, origin: str = "uplo
     from aurora.kno_ingest import Importer
     p = pipeline()
     with _write_lock:                                 # one import at a time; the answers go on (C219)
-        rep = Importer(p.writer, p.indexer, cfg, llm=p.llm).add(name, data, domain, title, origin=origin, meta=meta)
+        rep = Importer(p.writer, p.indexer, cfg, llm=p.llm, decoy=p.llm).add(name, data, domain, title,
+                                                                                     origin=origin, meta=meta)
     return {"name": rep.name, "source_id": rep.source_id, "domain": rep.domain, "chunks": rep.chunks,
             "written": rep.written, "duplicates": rep.duplicates, "rejected": rep.rejected, "indexed": rep.indexed}
 
@@ -79,6 +80,17 @@ def _add_solitons(items: list[dict]) -> dict:
                 skip[x["source_id"]] = f"{hit[0]}/{hit[1]}"
     received = len(items)
     items = [x for x in items if x["source_id"] not in skip]
+    poisoned = {}                                     # passages from the network (the harvester's: a url) tried on a
+    from aurora import sec_detonate                   # decoy first, per document (sec_detonate, ROADMAP 104)
+    for sid in sorted({x["source_id"] for x in items if (x.get("extra") or {}).get("url")}):
+        group = [x for x in items if x["source_id"] == sid]
+        extra = group[0].get("extra") or {}
+        try:
+            sec_detonate.import_gate(cfg, p.llm, str(extra.get("origin") or sid), str(extra["url"]),
+                                     "\n\n".join(x["text"] for x in group))
+        except ValueError as e:
+            poisoned[sid] = str(e)
+    items = [x for x in items if x["source_id"] not in poisoned]
     sols = [Soliton.new(x["text"], x["domain"], "knowledge", x.get("lang") or "en", x["source_id"], x.get("title", ""),
                         chunk_index=int(x.get("chunk_index", 0)), chunk_count=int(x.get("chunk_count", 1)),
                         extra=x.get("extra") or {}) for x in items]
@@ -90,7 +102,7 @@ def _add_solitons(items: list[dict]) -> dict:
             kno_dedup.remember(cfg, x.get("title", ""), x["domain"], x["source_id"], x.get("lang") or "en", x["text"],
                                str((x.get("extra") or {}).get("origin") or x["source_id"]))
     return {"received": received, "written": len(rep.written), "duplicates": len(rep.duplicates),
-            "rejected": rep.rejected, "indexed": indexed, "copies_of": skip}
+            "rejected": rep.rejected, "indexed": indexed, "copies_of": skip, "poisoned": poisoned}
 
 
 @router.post("/v1/aurora/solitons", dependencies=[Depends(admin_only)])

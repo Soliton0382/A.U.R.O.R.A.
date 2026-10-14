@@ -50,5 +50,9 @@
         "url": "https://support.google.com/mail/answer/7126229"
       }
     ]
-  }
+  },
+  "from_network": [
+    "list_unread",
+    "read_message"
+  ]
 }

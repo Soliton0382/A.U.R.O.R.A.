@@ -323,6 +323,10 @@ class Agent(AgentMakers, AgentReport):
                 plg_shadow.put(self.cfg, plugin, tool, args, r["text"])
         if not r["ok"] and "Connection closed" in r["text"]:   # the plugin died starting: its own last words say why
             r = {**r, "text": r["text"] + plugin_cause(self.cfg, plugin)}
+        if r["ok"]:                                          # from the network: tried on a decoy first (sec_detonate)
+            from . import sec_detonate
+            if (blocked := sec_detonate.agent_gate(self, plugin, tool, args, r["text"], emit, run_id)):
+                return blocked
         if effect == "external":                             # done without the owner: recorded and told, never silent
             self.approvals.record_auto(f"{plugin}.{tool}", purpose, {"plugin": plugin, "tool": tool, "arguments": args},
                                        r["text"], run_id)

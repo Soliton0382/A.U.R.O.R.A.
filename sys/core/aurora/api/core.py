@@ -71,7 +71,8 @@ def note(source: str, event: str, payload: dict | None = None) -> dict:
     return item
 
 
-_TOLD = {"cloud.budget": "provider", "cloud.fallback": "provider", "plugin.refused": "plugin"}
+_TOLD = {"cloud.budget": "provider", "cloud.fallback": "provider", "plugin.refused": "plugin",
+         "security.honeypot": "site"}      # the honeypot (sec_detonate): from the agent, the answers, the imports
 _told_at: dict = {}
 
 
@@ -86,7 +87,8 @@ def _from_trace(component: str, event: str, payload: dict) -> None:
     _told_at[key] = time.time()
     text = {"cloud.budget": lambda p: f"{p.get('provider')}: {p.get('spent')} / {p.get('cap')} token",
             "cloud.fallback": lambda p: f"{p.get('provider')} ({p.get('role')}): {str(p.get('error', ''))[:120]}",
-            "plugin.refused": lambda p: f"{p.get('plugin')}.{p.get('tool')}"}[event](payload)
+            "plugin.refused": lambda p: f"{p.get('plugin')}.{p.get('tool')}",
+            "security.honeypot": lambda p: f"🍯 {p.get('site')}: {str(p.get('why', ''))[:160]}"}[event](payload)
     with sys_context.acting_as(_admin()):            # the machine's news: the admin's, whoever's call it was
         note(component, event, {**payload, "text": text})
 
