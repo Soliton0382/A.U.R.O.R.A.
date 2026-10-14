@@ -103,3 +103,14 @@ def test_italian_phone_numbers_as_people_write_them():
     for keep in ("nel 2026 erano 350000 persone", "costa 3.500.000 euro", "ore 10:30 del 09/10/2026", "versione 3.14.4",
                  "pid 2026196", "arXiv 2104.09864"):
         assert m.mask(keep) == keep, keep
+
+
+def test_a_reference_sign_after_pin_is_not_a_pin(cfg):
+    # C310: «the pin (20)» masked as a PIN; the patent agent read its own text back as «[ID_1]» and wrote it 30 times
+    from aurora import sec_mask
+    p = sec_mask.Pseudonymizer(cfg)
+    assert p.mask("The pin (20) is inserted in the base (10).") == "The pin (20) is inserted in the base (10)."
+    assert p.mask("along the axis of the pin 20. FIG. 3 is a front view") == "along the axis of the pin 20. FIG. 3 is a front view"
+    raw = '{"text": "the pin 20.\\n\\nThe cap (30) on the pin (20)."}'           # inside a tool call's JSON
+    assert p.mask(raw) == raw
+    assert "1234" not in p.mask("PIN 1234") and "4521" not in p.mask("pin: 4521") and "9876" not in p.mask("pin (9876)")

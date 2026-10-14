@@ -63,12 +63,20 @@ def label(img: np.ndarray, anchors: list[tuple[int, int] | None], signs: list[in
     return canvas
 
 
-def sheet(figures: list[tuple[Image.Image, str]], number: int, total: int) -> Image.Image:
-    """One A4 page: the figures stacked, each scaled to fit with its «Fig. N» under it; «n/total» at the top."""
-    page = Image.new("L", A4, 255)
+# each office's drawing sheets (patent/rules.py has the sources): margins in mm, the paper
+OFFICES = {"EP": ({"top": 25, "left": 25, "right": 15, "bottom": 10}, (210.0, 297.0)),
+           "IT": ({"top": 25, "left": 25, "right": 25, "bottom": 25}, (210.0, 297.0)),
+           "US": ({"top": 25, "left": 25, "right": 15, "bottom": 10}, (215.9, 279.4))}
+
+
+def sheet(figures: list[tuple[Image.Image, str]], number: int, total: int, office: str = "EP") -> Image.Image:
+    """One page: the figures stacked, each scaled to fit with its «Fig. N» under it; «n/total» at the top."""
+    mm, paper = OFFICES[office]
+    size = (round(paper[0] * MM), round(paper[1] * MM))
+    page = Image.new("L", size, 255)
     d = ImageDraw.Draw(page)
-    top, left = MARGIN["top"], MARGIN["left"]
-    width, height = A4[0] - left - MARGIN["right"], A4[1] - top - MARGIN["bottom"]
+    top, left = round(mm["top"] * MM), round(mm["left"] * MM)
+    width, height = size[0] - left - round(mm["right"] * MM), size[1] - top - round(mm["bottom"] * MM)
     mark = f"{number}/{total}"
     fm = font(FIG_H)
     d.text((left + width / 2 - d.textlength(mark, font=fm) / 2, top), mark, font=fm, fill=0)

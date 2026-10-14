@@ -64,7 +64,8 @@ def test_the_libraries_go_with_their_hashes_into_the_plugin_folder(tmp_path, mon
     assert st["installed"] and (tmp_path / ".deps" / "demo_lib").is_dir()
     monkeypatch.undo()                                 # the real subprocess again, for the launcher
     # the launcher puts them first, in the plugin's process only
-    (tmp_path / "server.py").write_text("import demo_lib, sys\nprint(demo_lib.VALUE)\n")
+    (tmp_path / "helper.py").write_text("PLUS = 1\n")                 # a sibling module of the plugin (C309)
+    (tmp_path / "server.py").write_text("import demo_lib, helper\nprint(demo_lib.VALUE + helper.PLUS - 1)\n")
     out = subprocess.run([sys.executable, str(RUN), "server.py"], cwd=tmp_path, capture_output=True, text=True)
     assert out.stdout.strip() == "42"
     with pytest.raises(ImportError):

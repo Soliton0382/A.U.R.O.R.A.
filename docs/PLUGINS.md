@@ -7,7 +7,7 @@ A plugin may bring its own program (`"install"`: Python libraries pinned with `-
 | plugin | kind | tools (effect) | needs |
 |---|---|---|---|
 | `backup` | service | — | — |
-| `cad` | tool | cad_build (write_local), cad_drawings (write_local) | — |
+| `cad` | tool | cad_build (write_local), cad_drawings (write_local), cad_blueprint (write_local) | — |
 | `calendar` | tool | calendar_agenda (read), calendar_add (write_local), calendar_remind (write_local), calendar_change (write_local), calendar_delete (write_local), calendar_add_event (external) | — |
 | `cinema` | tool | — | AURORA_TMDB_TOKEN |
 | `cloud` | connector | — | — |
@@ -32,6 +32,7 @@ A plugin may bring its own program (`"install"`: Python libraries pinned with `-
 | `news` | tool | — | — |
 | `nextcloud` | connector | files_list (read), files_read (read), files_upload (external) | AURORA_WEBDAV_URL, AURORA_WEBDAV_USER, AURORA_WEBDAV_PASSWORD |
 | `notes` | tool | notes_list (read), notes_search (read), notes_read (read), notes_write (write_local) | — |
+| `patent` | tool | patent_offices (read), patent_check (read), patent_document (write_local) | — |
 | `projects` | tool | project_list (read), project_tree (read), project_read_file (read), project_status (read), project_create (write_local), project_write_file (write_local), project_commit (write_local), project_publish (external), project_push (external) | — |
 | `pyenv` | tool | — | — |
 | `qr` | tool | — | — |
@@ -75,7 +76,7 @@ Nightly backup of your data to another disk or the NAS: encrypted, deduplicated,
 
 ## cad
 
-CAD for projects: Aurora writes a model part by part (OpenSCAD), and the plugin makes its 3D geometry (STL), its line drawings — assembly, exploded view with reference signs, front, top and side views — and the patent drawing sheets as a PDF (A4, EPO Rule 46: margins, «Fig. N», sheets «1/3», black lines only), with the list of reference signs for the description. Everything goes into the project's folder (cad/<name>/). Needs OpenSCAD on the machine.
+CAD for projects: Aurora writes a model part by part (OpenSCAD), and the plugin makes its 3D geometry (STL), its line drawings — assembly, exploded view with reference signs, front, top and side views — and the patent drawing sheets as a PDF (A4, EPO Rule 46: margins, «Fig. N», sheets «1/3», black lines only), with the list of reference signs for the description; for Italy, Europe or the USA (each office's margins and paper); and a dimensioned technical drawing (blueprint: three views in one scale, overall dimensions, title block, parts list). Everything goes into the project's folder (cad/<name>/). Needs OpenSCAD on the machine.
 
 ## calendar
 
@@ -574,6 +575,10 @@ Set `AURORA_NOTES_DIR` to the notes folder (e.g. your Obsidian vault, `/home/<us
 ### Configurazione (IT)
 
 Imposta `AURORA_NOTES_DIR` sulla cartella delle note (per esempio il tuo vault Obsidian, `/home/<utente>/Documenti/Obsidian`). Di default è `usr/notes` dentro Aurora. Il plugin non ha rete e può scrivere solo in quella cartella.
+
+## patent
+
+Patent filings for projects: the description, claims and abstract laid out in the form each office asks (Italy: D.M. 33/2010 art. 22; Europe: EPC Rules 43, 46, 47, 49; USA: 37 CFR 1.52, 1.72, 1.75, 1.84, provisional included), the CAD drawings added, and the whole package checked — page size, margins, black-only drawings, abstract words, claims numbering, every reference sign recalled in the description, no AI notice printed or in the metadata, dates to verify. Also checks a package already in the documents (read only). It brings its PDF library (fpdf2) into its own folder.
 
 ## projects
 

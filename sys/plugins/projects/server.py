@@ -125,8 +125,14 @@ def project_tree(name: str) -> str:
 
 @tool
 def project_read_file(name: str, path: str) -> str:
-    """Read a file of a project."""
-    return _inside(_project(name), path).read_text(encoding="utf-8", errors="replace")[:20000]
+    """Read a file of a project (a PDF: its text, page by page)."""
+    f = _inside(_project(name), path)
+    if f.suffix.lower() == ".pdf":                      # its raw bytes say nothing and look like data to mask (C310)
+        from pypdf import PdfReader
+        pages = PdfReader(str(f)).pages
+        return "\n\n".join(f"--- page {i}/{len(pages)} ---\n{p.extract_text() or '(no text: a drawing)'}"
+                             for i, p in enumerate(pages, 1))[:20000]
+    return f.read_text(encoding="utf-8", errors="replace")[:20000]
 
 
 @tool

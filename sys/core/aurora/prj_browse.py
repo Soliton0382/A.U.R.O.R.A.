@@ -104,6 +104,12 @@ def read_file(cfg: sys_config.Config, name: str, path: str) -> dict:
     mime = mimetypes.guess_type(p.name)[0] or "application/octet-stream"
     if mime.startswith("image/") and len(data) <= 3_000_000:
         return {"path": path, "size": len(data), "mime": mime, "image": base64.b64encode(data).decode("ascii")}
+    if mime == "application/pdf":                       # its pages as pictures (doc_preview), on the project page
+        from . import doc_preview
+        try:
+            return {"path": path, "size": len(data), "mime": mime, "pdf": True, "pages": doc_preview.pages(p)}
+        except Exception:                                # noqa: BLE001 — a PDF it cannot read: shown as binary
+            pass
     try:
         text = data[:MAX_TEXT].decode("utf-8")
     except UnicodeDecodeError:

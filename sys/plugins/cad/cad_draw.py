@@ -15,7 +15,8 @@ import numpy as np
 
 CREASE = 30.0                    # degrees: a turn of the surface beyond this is an edge
 VIEWS = {                        # where the viewer stands, looking at the object; z is up on the sheet
-    "iso": (1.0, -1.0, 1.0), "front": (0.0, -1.0, 0.0), "top": (0.0, 0.0, 1.0), "side": (1.0, 0.0, 0.0)}
+    "iso": (1.0, -1.0, 1.0), "front": (0.0, -1.0, 0.0), "top": (0.0, 0.0, 1.0), "side": (1.0, 0.0, 0.0),
+    "left": (-1.0, 0.0, 0.0)}                            # the view from the left: on the right of the front (first angle)
 
 
 def load_stl(path: Path) -> np.ndarray:

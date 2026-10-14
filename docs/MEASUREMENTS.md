@@ -3270,3 +3270,20 @@ picture export was refused without a display («Can't create OpenGL OffscreenVie
 
 Not measured: a model of many parts (signs crowding), curved assemblies (gears, threads), dimensioned technical
 drawings (a blueprint with measures is not a patent drawing: next), a patent office's own check of a sheet.
+
+## M210 — «Procedi»: blueprints and patent filings by Aurora, checked by the rules (14 October 2026; ROADMAP 100)
+
+The «patent» plugin (texts in each office's form with fpdf2, brought into its own folder: plg_deps; the check), the
+«cad» plugin's blueprint (A4 landscape, first-angle views in one standard scale, overall dimensions, title block,
+parts list) and drawings per office; the project page's 📑 Documenti: ticks and ▶ Procedi (prj_docs).
+
+| run | result |
+|---|---|
+| the owner's US provisional (July 2026, read only), patent_check US | 3 real problems: drawings in colour (pages 1–3; 37 CFR 1.84(a)), the ADS running to the right edge, a «Word count» line inside the abstract; to verify: a running footer «Filed 23 July 2026» in the bottom margin, the dates. Abstract 127–136 words: within 150 (an earlier count of 154, mine, took the heading and the footer: withdrawn) |
+| a new project with a two-line README and nothing else; ticked blueprint + IT + US; ▶ Procedi | **175.6 s**, 33 steps: Aurora designed the CAD model (4 parts, signs 10–40), the blueprint (scale 1:5), drawings IT and US, both filings — **0 problems** in both checks; she said the dimensions were her own assumptions to confirm |
+| the same before C310 | the US filing written again 30 times: «the pin (20)» masked as a PIN, read back as «[ID_1]» |
+
+Rules and their sources in plugins/patent/rules.py (IT: D.M. 33/2010 art. 22, read from the vault; EP: EPC Rules 43,
+46, 47, 49; US: 37 CFR 1.52, 1.72, 1.75, 1.84). No AI notice in any filing, printed or in the metadata (checked).
+Not measured: an examiner's view of the content (claims' scope, novelty: the owner's or an attorney's), a filing
+with formulas or flowcharts instead of a CAD model, the EP package end to end.

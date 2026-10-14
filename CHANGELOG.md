@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.23 — 2026-10-14
+
+1 publications since v0.2.22.
+
+- 2026-10-14 Patent filings (IT/EP/US) and dimensioned blueprints from a project: ticks and Proceed, rules with their sources, a check of every package (no AI notice on filings); PDF pages on the project page; reference signs no longer masked as PINs
+
 ## v0.2.22 — 2026-10-14
 
 1 publications since v0.2.21.

@@ -43,3 +43,7 @@
   white-space: pre-wrap; word-break: break-word; }
 .prj-term-line { display: flex; gap: .4rem; flex-wrap: wrap; }
 .prj-term-line input { flex: 1 1 14rem; min-width: 0; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.prj-pdf { display: flex; flex-direction: column; gap: .6rem; }
+.prj-pdf-page { width: 100%; max-width: 900px; background: #fff; border: 1px solid var(--line); }
+.prj-docs-ticks { display: flex; flex-direction: column; gap: .3rem; margin: .5rem 0; }
+.prj-docs-file { display: block; margin: .2rem 0; text-align: left; }

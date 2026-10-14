@@ -78,6 +78,46 @@ async def plan_change(name: str, request: Request) -> dict:
     return prj_plan.save(cfg, name, plan)
 
 
+@router.get("/v1/aurora/projects/{name}/docs", dependencies=[Depends(auth)])
+def docs_get(name: str) -> dict:
+    """The documentation ticked for this project (prj_docs) and the choices there are."""
+    from aurora import prj_docs
+    _project(name)
+    return {**prj_docs.load(cfg, name), "choices": {k: v[0] for k, v in prj_docs.TARGETS.items()}}
+
+
+@router.post("/v1/aurora/projects/{name}/docs", dependencies=[Depends(auth)])
+async def docs_go(name: str, request: Request) -> dict:
+    """{"targets": [...], "go": true}: the ticks kept; with go, Aurora prepares them now (an agent run: «Procedi»)."""
+    from aurora import prj_docs
+    from .agents import _agent_job
+    _project(name)
+    body = await request.json()
+    targets = [str(t) for t in body.get("targets", [])]
+    if not body.get("go"):
+        return prj_docs.save(cfg, name, targets)
+    if not targets:
+        raise HTTPException(status_code=400, detail="tick at least one document")
+    job = _agent_job(prj_docs.goal(name, targets), label=f"[documenti] {name}",
+                     quiet=("project.update", "project.progress"))
+    run = start_run(f"[docs] {name}", origin="webui", job=job)
+    prj_docs.save(cfg, name, targets, run["id"])
+    log.info("audit: project %s: documentation asked (%s), run %s", name, ", ".join(targets), run["id"])
+    return {"run_id": run["id"], "targets": targets}
+
+
+@router.get("/v1/aurora/projects/{name}/pdf", dependencies=[Depends(auth)])
+def project_pdf_page(name: str, path: str, page: int = 1):
+    """One page of a PDF in the project, as a picture (doc_preview): the drawings and the filings seen on the page."""
+    from fastapi.responses import FileResponse
+    from aurora import doc_preview, prj_browse
+    try:
+        f = prj_browse.inside(prj_browse.project(cfg, name), path)
+        return FileResponse(doc_preview.page_png(cfg, f, max(1, int(page))), media_type="image/png")
+    except (ValueError, FileNotFoundError) as e:
+        raise HTTPException(status_code=404, detail=str(e)) from None
+
+
 def due() -> str | None:
     """The project the idle task works on now (aurora-rem's state), or None."""
     from aurora import prj_browse, prj_plan
@@ -120,6 +160,7 @@ def rem_project() -> dict:
             note("agent", "project.daily", {"project": name, "text": line})
         log.info("project %s step %d: exit %s %s", name, i + 1, run["exit"], out["event"])
 
-    goal = prj_plan.goal_for(plan, name, i)
+    from aurora import prj_docs
+    goal = prj_plan.goal_for(plan, name, i, prj_docs.plan_note(cfg, name))
     job = _agent_job(goal, after=after, quiet=("project.update", "project.progress"))
     return {"run_id": start_run(f"[project] {name} {i + 1}", origin="rem", job=job)["id"]}

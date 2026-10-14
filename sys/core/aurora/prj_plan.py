@@ -113,7 +113,8 @@ def due(cfg: sys_config.Config, projects: list[str], now: float | None = None) -
     return None
 
 
-def goal_for(plan: dict, project: str, i: int) -> str:
+def goal_for(plan: dict, project: str, i: int, docs: str = "") -> str:
+    """The agent's goal for step i; `docs`: the documentation the owner ticked (prj_docs.plan_note)."""
     s, n = plan["steps"][i], len(plan["steps"])
     done = "\n".join(f"- ✓ {x['title']}" for x in plan["steps"][:i] if x["status"] == "done") or "- (none yet)"
     tried = "\n".join(f"- attempt at {time.strftime('%d/%m %H:%M', time.localtime(r['at']))}: exit {r['exit']}; "
@@ -124,7 +125,7 @@ def goal_for(plan: dict, project: str, i: int) -> str:
             "do not exist yet, write them first, then the code. Work only inside the project's folder (the projects "
             "tools); run the command with run_in_project to check, and fix until it passes. Nothing that leaves the "
             "machine. Finish with a short report in Italian: what you changed and the command's last result."
-            + (f"\n\nPREVIOUS ATTEMPTS AT THIS STEP (they failed):\n{tried}" if tried else ""))
+            + (f"\n\nPREVIOUS ATTEMPTS AT THIS STEP (they failed):\n{tried}" if tried else "") + docs)
 
 
 def record(cfg: sys_config.Config, project: str, i: int, run: dict, run_id: str, report: str) -> dict:

@@ -198,6 +198,7 @@ call downward (ECOSYSTEM §1).
 | `prj_term.py` | projects | a terminal in a project's cage (roadmap 75): bwrap like prj_run + a pty, output as SSE, input as POST, per user, idle and age limits, a reaper thread |
 | `prj_reports.py` | projects | Aurora's reports on a project, one per work done on it, for the Projects page | sys_config | agt_loop, api/projects |
 | `prj_plan.py` | projects | a project carried by Aurora (ROADMAP 97): its plan (goal, steps each with the command that proves it), the next step, the step decided by its command in the cage, 3 failures block, 🤝 waits, the daily line | prj_run (via api), sys_users_layout | api/projects_plan, svc_rem |
+| `prj_docs.py` | projects | a project's documentation ticked by the owner (blueprint, patents IT/EP/US): kept with the project, the goal of ▶ Procedi, a note in the project agent's steps | sys_users_layout | api/projects_plan, api (agent run) |
 | `sec_privacy.py` | security | what a public text (a post, a bug report) would give away — private names read by the local model, places, contacts, ids — and the safer text proposed | sec_mask, sys_users | agt_loop, api/social, sys_bugreport |
 | `sec_profile.py` | security | what the firewall really sends, read with its official documentation, and the checks Aurora proposes from it | sec_rules | api/security |
 | `sec_rules.py` | security | the owner's own checks on the firewall's syslog, proposed by Aurora, switched on in Security | sys_config | api/security, sec_profile, svc_sentinel |

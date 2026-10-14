@@ -31,7 +31,10 @@ CONTEXT = re.compile(
     r"(?i)\b(password|passwd|pwd|passphrase|pin|puk|otp|codice fiscale|c\.f\.|partita iva|p\.\s?iva|vat(?: number)?|"
     r"passaporto|passport(?: number)?|carta d'identit[aà]|identity card|patente|driving licen[cs]e|tessera sanitaria|"
     r"nato il|nata il|data di nascita|date of birth|born on|born)(?![A-Za-z])\s*(:|=|n\.|nr\.?|is|è)?\s*"
-    r"(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}|\d{1,2} \w+ \d{4}|[^\s,;]{3,64})")
+    r"(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}|\d{1,2} \w+ \d{4}|(?!\(?\d{1,3}\)?[.,;:)]*(?:[\s\x22\x27\\]|$))[^\s,;]{3,64})")
+# «pin (20)», «pin 20.» are a drawing's reference sign (1–3 digits; a PIN has 4 or more), also inside a tool call's
+# JSON (\n, a quote after it) — C310, 14 Oct: «the pin (20)» masked, the patent agent read its own text back as
+# «the pin [ID_1]» and wrote it again 30 times
 # the word ends there ("pinned" is not a PIN) and, without a separator, the value has a digit: "password hashes" is
 # prose, "password: x7" and "PIN 1234" are values (2026-10-05, 299 ID items masked in a day)
 PATTERNS = [   # (kind, regex): order matters, the most specific first

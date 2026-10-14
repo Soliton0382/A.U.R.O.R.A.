@@ -5,6 +5,7 @@
 A plugin's manifest may declare what it needs beyond Aurora:
 
     "install": {"python": ["segno==1.6.6 --hash=sha256:28c7…"],                  # pinned, with their hashes
+                "no_deps": false,                                                   # true: what Aurora has is not fetched
                 "programs": [{"name": "tool", "url": "https://…", "sha256": "…"}]}   # a program and its checksum
 
 On the owner's «install» Aurora fetches them into the plugin's OWN folder — the libraries in <plugin>/.deps
@@ -31,7 +32,8 @@ STATE = "installed.json"
 
 def needs(manifest: dict) -> dict:
     inst = manifest.get("install") or {}
-    return {"python": [str(x) for x in inst.get("python", [])], "programs": list(inst.get("programs", []))}
+    return {"python": [str(x) for x in inst.get("python", [])], "programs": list(inst.get("programs", [])),
+            "no_deps": bool(inst.get("no_deps"))}
 
 
 def _size(p: Path) -> int:
@@ -68,6 +70,8 @@ def install(folder: Path, manifest: dict, log=print, timeout: int = 900) -> dict
                    "--disable-pip-version-check", "--no-warn-script-location", "-r", f.name]
             if hashed:
                 cmd.insert(4, "--require-hashes")
+            if n["no_deps"]:                                 # the rest is Aurora's already (e.g. Pillow): listed, not fetched
+                cmd.insert(4, "--no-deps")
             r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
             os.unlink(f.name)
             if r.returncode:

@@ -87,10 +87,15 @@ def cad_build(project: str, name: str, parts: list[dict], library: str = "") -> 
 
 
 @server.tool()
-def cad_drawings(project: str, name: str) -> str:
-    """The patent drawing sheets of a model built with cad_build: Fig. 1 the assembly (isometric), Fig. 2 the exploded
-    view with the reference signs, Fig. 3–5 front, top and side views; drawings.pdf (A4, EPO Rule 46: margins, «Fig.
-    N», sheets «1/3», black lines only) and reference_signs.md (the list for the description), with the figures."""
+def cad_drawings(project: str, name: str, office: str = "EP") -> str:
+    """The patent drawing sheets of a model built with cad_build, for an office (EP, IT or US): Fig. 1 the assembly
+    (isometric), Fig. 2 the exploded view with the reference signs, Fig. 3–5 front, top and side views;
+    drawings_<office>.pdf in that office's form (its margins and paper, «Fig. N» — «FIG. N» for the US —, sheets
+    «1/3», black lines only) and reference_signs.md (the list for the description), with the figures."""
+    office = (office or "EP").upper()
+    if office not in cad_sheets.OFFICES:
+        raise ToolError(f"office: one of {', '.join(cad_sheets.OFFICES)}")
+    fig = "FIG." if office == "US" else "Fig."
     out = _folder(project, name)
     meta = out / "parts.json"
     if not meta.is_file():
@@ -115,15 +120,33 @@ def cad_drawings(project: str, name: str) -> str:
     f3, f4, f5 = (drawing(assembled, v) for v in ("front", "top", "side"))
     for i, f in enumerate((f1, f2, f3, f4, f5), 1):
         f.save(figs / f"fig{i}.png")
-    sheets = [[(f1, "Fig. 1")], [(f2, "Fig. 2")], [(f3, "Fig. 3"), (f4, "Fig. 4"), (f5, "Fig. 5")]]
-    pages = [cad_sheets.sheet(s, n, len(sheets)) for n, s in enumerate(sheets, 1)]
-    cad_sheets.pdf(pages, out / "drawings.pdf")
+    sheets = [[(f1, f"{fig} 1")], [(f2, f"{fig} 2")], [(f3, f"{fig} 3"), (f4, f"{fig} 4"), (f5, f"{fig} 5")]]
+    pages = [cad_sheets.sheet(s, n, len(sheets), office) for n, s in enumerate(sheets, 1)]
+    cad_sheets.pdf(pages, out / f"drawings_{office}.pdf")
     signs_md = "\n".join(f"{p['sign']}  {p['name']}" for p in parts)
     (out / "reference_signs.md").write_text(
         "Reference signs (for the description)\n\n" + signs_md + "\n\nFig. 1 isometric view of the assembly; Fig. 2 "
         "exploded isometric view; Fig. 3 front view; Fig. 4 top view; Fig. 5 side view.\n", encoding="utf-8")
-    return (f"drawings.pdf: {len(pages)} A4 sheets, 5 figures, {len(parts)} reference signs, in {time.time() - t0:.1f} s "
-            f"({out / 'drawings.pdf'}). Reference signs:\n{signs_md}")
+    return (f"drawings_{office}.pdf: {len(pages)} sheets, 5 figures, {len(parts)} reference signs, in "
+            f"{time.time() - t0:.1f} s ({out / f'drawings_{office}.pdf'}). Reference signs:\n{signs_md}")
+
+
+@server.tool()
+def cad_blueprint(project: str, name: str, title: str = "") -> str:
+    """A dimensioned technical drawing of a model built with cad_build (not a patent sheet): A4 landscape, front, top
+    and side views in one standard scale (first-angle projection, ISO 128-30), overall dimensions in mm (ISO 129-1),
+    an isometric view, the title block and the parts list with their sizes; blueprint.pdf in <project>/cad/<name>/."""
+    import cad_blueprint
+    out = _folder(project, name)
+    meta = out / "parts.json"
+    if not meta.is_file():
+        raise ToolError(f"no model {name}: build it first with cad_build")
+    parts = json.loads(meta.read_text(encoding="utf-8"))["parts"]
+    t0 = time.time()
+    assembled = [cad_draw.load_stl(out / f"part_{k}.stl") for k in range(len(parts))]
+    page = cad_blueprint.sheet(assembled, parts, title or name, project)
+    cad_sheets.pdf([page], out / "blueprint.pdf")
+    return f"blueprint.pdf: A4 landscape, 3 dimensioned views, {len(parts)} parts listed, in {time.time() - t0:.1f} s ({out / 'blueprint.pdf'})"
 
 
 if __name__ == "__main__":
