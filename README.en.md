@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.en.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-848%20passed-1baf7a" alt="Tests"></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-850%20passed-1baf7a" alt="Tests"></p>
 
 <p align="center">🇮🇹 <a href="README.md">Italiano</a> · 🇬🇧 <b>English</b></p>
 
@@ -30,7 +30,7 @@ exemption, and what leaves is always masked (no setting turns it off).
 | 🔏 **Signed rules** | a code of conduct bound to your installation's key: changed without a signature, Aurora does not start | rules in a prompt, changed without a trace |
 | 🏠 **All at home** | models, vault, memory and WebUI on your machine; the cloud is optional and gets no private data without your signature | data often goes through an external service |
 | 👁️ **Senses** | sees through the webcam and hears through the microphone, locally | — |
-| 🛡️ **Layered defence** | three firewalls that talk to each other: Cloudflare in front (it sees who is behind its nodes and blocks them there), the home firewall (audit, hunting, timed blocks), the machine's own with decoys; and a decoy for prompt injections too: what comes from the network is tried on a fake Aurora before she reads it (M213, M215, ROADMAP 104) | one firewall, when there is one; the pages an AI reads go straight to the model |
+| 🛡️ **Layered defence** | up to three firewalls that talk to each other, when you have them configured: the machine's own with decoys, the home perimeter one (audit, hunting, timed blocks) and Cloudflare in front (it sees who is behind its nodes and blocks them there; tested live, M213); and a decoy for prompt injections too: what comes from the network is tried on a fake Aurora before she reads it (M213, M215, ROADMAP 104) | one firewall, when there is one; the pages an AI reads go straight to the model |
 | 📜 **Transparency** | AI disclosure (EU AI Act art. 50) on the text, images and PDFs she publishes | — |
 
 ## What she does (each line is tested; numbers are in docs/MEASUREMENTS.md)

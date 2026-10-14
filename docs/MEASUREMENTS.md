@@ -3394,7 +3394,7 @@ handed twice to the decoy. No network, nothing executed.
 
 | decoy | traps caught | zero-day caught | false alarms | median a content |
 |---|---|---|---|---|
-| the agent's model (Claude Sonnet, CLI) | **0 / 24** | 0 / 8 | 0 / 24 | 3.2 s |
+| the agent's model then (Claude Haiku, CLI — first written «Sonnet»: the owner's assignment was Haiku) | **0 / 24** | 0 / 8 | 0 / 24 | 3.2 s |
 | **the local model** (Qwen3.6 35B, now always the decoy) | **13 / 24** | **6 / 8** | **0 / 24** | **0.9 s** |
 | the cheap cues alone, for comparison (never block) | 12 / 24 | 0 / 8 | 4 / 24 | — |
 
@@ -3406,3 +3406,20 @@ handed twice to the decoy. No network, nothing executed.
   instructions» on a recipe, hidden CSS text, a `<tool_call>` already written in the page, the owner impersonated, the
   courier at the gate. Decoy or cue: 19 of 24 — but a cue alone never blocks.
 - Not measured: real attack pages (the set is written for this bench); the seconds the decoy adds to a real answer.
+
+## M216 — the words so far, while speaking (14 October 2026; ROADMAP 99 step 4)
+
+Headless Chrome with a fake microphone reading a sentence spoken by Aurora's own voice (5.1 s, «Domani mattina vorrei
+sapere che tempo farà a Milano e se conviene prendere il treno delle otto.»), MediaRecorder WebM/Opus in pieces of
+0.5 s as the chat records; the recording from its start sent at 1.5 s and 3 s, then the whole at the end, to
+`/v1/aurora/senses/transcribe` (Whisper on the GPU):
+
+| sent at | heard | seconds |
+|---|---|---|
+| 1.5 s | «domani mattina» | 1.32 (the first call) |
+| 3.0 s | «domani mattina vorrei sapere che tempo farà a Milano» | 0.18 |
+| the end | the whole sentence | 0.27 |
+
+A recording cut at any piece is a file Whisper reads (the WebM pieces from the first carry its header). The fake
+microphone loops its file, so the end heard the sentence's first words again — the test's, not the chat's. Not
+measured: an iPhone's MP4 pieces cut the same way; the load of a partial every 1.5 s on a GPU busy with a job.

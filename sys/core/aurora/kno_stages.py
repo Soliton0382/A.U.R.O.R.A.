@@ -91,6 +91,9 @@ class Stages:
             # a provision named for the case and fetched by its number (kno_cites, C183) goes on to the extraction,
             # which may still find nothing in it: the gate looks for a stated fact, a law answers a case by applying
             sure += [n for n, h in enumerate(hits, 1) if h.query_used == "cited" and n not in sure]
+            # a file the owner attached to this very question is never «only the same topic» (C318: «descrivi la foto
+            # che ti allego», the picture's description closed by the gate, the answer an abstention)
+            sure += [n for n, h in enumerate(hits, 1) if h.query_used == "attachment" and n not in sure]
             ev("gate", {"open": not closed or bool(sure), "passages": opened if not closed else sure,
                         **({"kept_by_reranker": sure} if closed and sure else {})})
             if closed and not sure:      # A18: a passage the re-ranker is sure of goes on to the extraction (M90)

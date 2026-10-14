@@ -94,3 +94,21 @@ def test_a_case_whose_provisions_were_refused_is_read_again_as_the_story():
         Stages._answer(me, question, [hit], "", lambda e, p: events.append((e, p)))
     assert kno_split.MARK in asked[0] and asked[1].startswith(f"QUESTION: {CASE}\n\nPASSAGES")
     assert [p["kept"] for e, p in events if e == "synthesis.domain"] == [True]
+
+
+def test_a_picture_attached_to_the_question_is_never_closed_by_the_gate():
+    """C318: «Descrivi la foto che ti allego» — the gate said NONE to the picture's description, Aurora abstained."""
+    import pytest
+    from aurora.kno_stages import Stages
+
+    answers = iter(["NONE", "- Una persona in armatura sotto la pioggia [1]."])
+    me = SimpleNamespace(cfg={"AURORA_PIPELINE_GATE": True, "AURORA_PIPELINE_GATE_KEEP": 0},
+                         _for=lambda role: SimpleNamespace(complete=lambda s, u, n, think=False: SimpleNamespace(answer=next(answers))))
+    hit = SimpleNamespace(sid="p", rerank=0.003, query_used="attachment",
+                          soliton=SimpleNamespace(domain="attachment", title="foto.png", source_id="attachment:r:foto.png",
+                                                  text="A person in futuristic armour, standing in the rain."))
+    events = []
+    with pytest.raises(KeyError):                  # it gets past the gate to the extraction; synthesis settings missing
+        Stages._answer(me, "Describe the photo I attach", [hit], "", lambda e, p: events.append((e, p)))
+    gate = [p for e, p in events if e == "gate"][0]
+    assert gate["open"] and gate["passages"] == [1]

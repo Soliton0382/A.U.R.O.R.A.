@@ -309,8 +309,9 @@ async def senses_action(action: str, request: Request) -> dict:
             except ValueError as e:
                 raise HTTPException(status_code=422, detail=str(e))
             out = await asyncio.to_thread(sns_av.transcribe, audio, str(cfg["AURORA_LANG_DEFAULT"])[:2], cfg)
-            log.info("audit: owner dictated %.1f s from a device (%s, %d bytes; clear: %s)", out["audio_s"],
-                     str(body.get("mime", "?"))[:40], len(data), out["clear"])
+            if not body.get("partial"):                  # the words so far while speaking (ROADMAP 99): not a dictation
+                log.info("audit: owner dictated %.1f s from a device (%s, %d bytes; clear: %s)", out["audio_s"],
+                         str(body.get("mime", "?"))[:40], len(data), out["clear"])
             return out
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e))

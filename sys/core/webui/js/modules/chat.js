@@ -14,6 +14,7 @@ import { dreamOf, makeRecorder, morningOf, shrink } from "./chat_media.js";
 import { thinkMode } from "./chat_think.js";
 import { attachMenu, settingsMenu, showGear, source } from "./chat_menu.js";
 import { actions, quoteBox, quoted } from "./chat_actions.js";
+import { bargeIn } from "../vad.js";
 
 const HISTORY_TURNS = 8;          // 4 exchanges: the same memory Aurora keeps in context
 
@@ -151,12 +152,23 @@ export default {
     // 🗣️ a conversation (ROADMAP 99): the microphone opens again when her answer has been said; silence ends it
     let talking = false;
     const setTalking = (on) => { talking = on; conv.classList.toggle("talking", on); mic.title = t(on ? "chat.talk_on" : "chat.mic"); };
-    const listenAgain = () => {                      // when she has finished speaking (polled: speak() only queues)
-      let quiet = 0;
+    const listenAgain = async () => {                // when she has finished speaking (polled: speak() only queues)
+      let quiet = 0, over = () => {}, ear = null;
+      const done = () => { over(); ear?.getTracks().forEach((tr) => tr.stop()); ear = null; };
+      // barge-in (vad.js): the owner speaking over her stops her and opens the microphone, as with a person
+      try {
+        ear = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+        over = bargeIn(ear, () => {
+          clearInterval(poll);
+          done();
+          voice.stop();
+          if (talking && !mic.classList.contains("recording")) recordHere();
+        });
+      } catch { /* no microphone now: she finishes, then listens, as before */ }
       const poll = setInterval(() => {
-        if (!talking) { clearInterval(poll); return; }
+        if (!talking) { clearInterval(poll); done(); return; }
         quiet = voice.speaking() ? 0 : quiet + 1;
-        if (quiet >= 2) { clearInterval(poll); recordHere(); }
+        if (quiet >= 2) { clearInterval(poll); done(); recordHere(); }
       }, 300);
     };
     const heard = (r) => {
@@ -174,7 +186,21 @@ export default {
       voice.unlock();                                // during the tap: some phones speak only after one
       if (!mic.classList.contains("recording")) recordHere();
     };
-    mic.addEventListener("click", async () => {
+    // 🎙️ asks which: a dictation, or a conversation hands-free (owner, 2026-10-14: «se ci clicco sopra scelgo microfono
+    // o hands-free»); while one is on, the same tap stops it
+    const micMenu = el("div", "mic-menu hidden");
+    const pick = (label, fn) => { const b = el("button", "", label); b.type = "button"; b.addEventListener("click", (ev) => { ev.stopPropagation(); micMenu.classList.add("hidden"); fn(); }); return b; };
+    micMenu.append(pick(t("chat.mic.dictate"), () => dictate()), pick(t("chat.mic.talk"), () => toggleTalk()));
+    mic.after(micMenu);
+    document.addEventListener("click", (ev) => { if (ev.target !== mic) micMenu.classList.add("hidden"); });
+    mic.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      if (talking) { toggleTalk(); return; }
+      if (mic.classList.contains("recording")) { recordHere(); return; }
+      if (source() !== "device") { dictate(); return; }           // the machine's own microphone: a dictation only
+      micMenu.classList.toggle("hidden");
+    });
+    const dictate = async () => {
       if (source() === "device") { recordHere(); return; }
       const seconds = 8;
       mic.disabled = true;
@@ -189,7 +215,7 @@ export default {
       mic.textContent = "🎙️";
       mic.classList.remove("recording");
       mic.disabled = false;
-    });
+    };
     fileInput.addEventListener("change", () => { addFiles(fileInput.files); fileInput.value = ""; });
     input.addEventListener("paste", (ev) => {
       const files = Array.from(ev.clipboardData?.files || []);

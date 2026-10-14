@@ -27,7 +27,7 @@ export async function shrink(file) {
 export function makeRecorder({ mic, input, heard, canRecord }) {
   // this device's microphone: tap to start; it stops by itself when the owner stops speaking (vad.js), or with a tap
   // (at most MAX s); WebM/Opus on Android, MP4/AAC on iOS. Nothing said in 8 s: nothing sent, heard({nothing: true})
-  const MAX = 30;
+  const MAX = 30, PART = 1500;
   let rec = null;
   const recordHere = async () => {
     if (rec) { rec.stop(); return; }
@@ -49,7 +49,23 @@ export function makeRecorder({ mic, input, heard, canRecord }) {
     const tick = setInterval(() => { mic.textContent = `⏹️ ${++secs}`; if (secs >= MAX) rec?.stop(); }, 1000);
     let nothing = false;
     const unwatch = watch(stream, (state) => { nothing = state === "nothing"; rec?.stop(); });
+    // ROADMAP 99: what was said so far, written while the owner speaks — the recording from its start again every
+    // PART ms (its pieces from the first are a whole file), one request at a time; shown in the composer's
+    // placeholder, never as the text: the final transcript, at the silence, is the one sent
+    let live = true, busy = false;
+    const sofar = setInterval(async () => {
+      if (!live || busy || !chunks.length) return;
+      busy = true;
+      try {
+        const data = await toBase64(new Blob(chunks, { type: type || "audio/webm" }));
+        const r = await call("/v1/aurora/senses/transcribe", { method: "POST", body: JSON.stringify({ data, mime: type, partial: true }) });
+        if (live && r.clear && r.text) input.placeholder = `🎙️ ${r.text}`;
+      } catch { /* a partial that fails says nothing: the final transcript is the one that counts */ }
+      busy = false;
+    }, PART);
     rec.onstop = async () => {
+      live = false;
+      clearInterval(sofar);
       clearInterval(tick);
       unwatch();
       stream.getTracks().forEach((tr) => tr.stop());          // the phone's microphone is released at once

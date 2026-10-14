@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-848%20passed-1baf7a" alt="Tests"></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-850%20passed-1baf7a" alt="Tests"></p>
 
 <p align="center">🇮🇹 <b>Italiano</b> · 🇬🇧 <a href="README.en.md">English</a></p>
 
@@ -30,7 +30,7 @@ con l'esenzione firmata dal proprietario, e ciò che parte è sempre mascherato 
 | 🔏 **Regole firmate** | codice di condotta con la chiave della tua installazione: se qualcuno lo modifica senza firma, Aurora non parte | regole nel prompt, modificabili senza traccia |
 | 🏠 **Tutto in casa** | modelli, vault, memoria e WebUI sulla tua macchina; il cloud è facoltativo e non riceve dati privati senza la tua firma | spesso i dati passano da un servizio esterno |
 | 👁️ **Sensi** | vede dalla webcam e sente dal microfono, in locale | — |
-| 🛡️ **Difesa a strati** | tre firewall che si parlano: Cloudflare davanti (vede chi c'è dietro i suoi nodi e lo blocca lì), il firewall di casa (audit, caccia, blocchi a tempo), quello della macchina con le esche; e un'esca anche per le prompt injection: ciò che arriva dalla rete viene provato su una finta Aurora prima che lei lo legga (M213, M215, ROADMAP 104) | un firewall, quando c'è; le pagine lette dall'IA arrivano dritte al modello |
+| 🛡️ **Difesa a strati** | fino a tre firewall che si parlano, se li hai configurati: quello della macchina con le esche, quello perimetrale di casa (audit, caccia, blocchi a tempo) e Cloudflare davanti (vede chi c'è dietro i suoi nodi e lo blocca lì; provato dal vivo, M213); e un'esca anche per le prompt injection: ciò che arriva dalla rete viene provato su una finta Aurora prima che lei lo legga (M213, M215, ROADMAP 104) | un firewall, quando c'è; le pagine lette dall'IA arrivano dritte al modello |
 | 📜 **Trasparenza** | dichiarazione IA (AI Act art. 50) su testi, immagini e PDF che pubblica | — |
 
 ## Cosa fa (ogni riga è testata; i numeri sono in docs/MEASUREMENTS.md)
