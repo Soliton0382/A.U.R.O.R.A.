@@ -22,3 +22,33 @@
 .mm-cmd code { font-family: var(--mono); font-size: .82rem; background: var(--input); border: 1px solid var(--line);
   border-radius: 6px; padding: .2rem .4rem; overflow-wrap: anywhere; min-width: 0; }
 .mm-reasoner { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: .5rem 0; }
+
+/* 🧠 Models → Come ragiona (models_choice.js, ROADMAP 109): four cards, what stays and leaves, the button to use one */
+.mch-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: .7rem; margin: .6rem 0; }
+.mch-card { display: flex; flex-direction: column; gap: .55rem; text-align: left; padding: .9rem 1rem; min-width: 0; min-height: 15rem;
+  border: 2px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--text); font: inherit; cursor: pointer; }
+.mch-card.on { border-color: var(--accent); background: var(--accent-soft); }
+.mch-head { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
+.mch-head strong { font-size: 1.05rem; margin-right: auto; }
+.mch-tag { font-size: .72rem; font-weight: 600; color: var(--bg); background: var(--accent); padding: .1rem .5rem; border-radius: 999px; }
+.mch-now { font-size: .75rem; color: var(--ok); }
+.mch-line { font-size: .86rem; color: var(--muted); min-height: 2.5rem; }
+.mch-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+.mch-stat { display: flex; flex-direction: column; gap: .05rem; }
+.mch-stat small { font-size: .72rem; color: var(--muted); }
+.mch-stat strong { font-size: 1.25rem; }
+.mch-price { font-size: .8rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: .5rem; margin-top: auto; }
+.mch-detail { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: .7rem; margin: .6rem 0; }
+.mch-panel { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: .8rem 1rem; min-width: 0; }
+.mch-panel h4 { margin: 0 0 .5rem; font-size: .92rem; }
+.mch-panel ul { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: .3rem; font-size: .86rem; }
+.mch-panel p { margin: .3rem 0; font-size: .84rem; }
+.mch-apply { display: flex; flex-wrap: wrap; gap: .7rem; align-items: center; justify-content: space-between; padding: .8rem 1rem;
+  border: 1px solid var(--accent-line); border-radius: var(--radius); background: var(--accent-soft); }
+.mch-apply > span:first-child { flex: 1 1 22rem; font-size: .88rem; color: var(--accent-text); }
+.mch-apply button { min-height: 44px; }
+.mch-note { font-size: .8rem; }
+.md-group { display: flex; flex-wrap: wrap; gap: .2rem .7rem; align-items: baseline; margin-top: .8rem; }
+.md-group h3 { margin: 0; }
+.md-why { display: block; }
+.md-tab { margin-top: .4rem; }

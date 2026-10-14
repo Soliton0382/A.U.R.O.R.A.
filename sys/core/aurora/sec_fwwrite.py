@@ -12,7 +12,7 @@ A change is a list of steps, planned first (plan_*), shown to the owner, applied
   the steps done; after applying, the firewall must still answer within AURORA_FIREWALL_CONFIRM_S and every object
   must read back as written, or the change is undone ("commit confirmed");
 - every change is recorded in <STATUS>/security/fwchanges.json (what, why, steps, result, undo).
-XML as in the API reference of SFOS 22.0 (sec_fwdocs.sample) and as the owner's own rules read back (sec_fwconf).
+The objects' XML is the driver's (aurora/fw_drivers, ROADMAP 108): this module plans, checks and undoes.
 """
 from __future__ import annotations
 
@@ -24,9 +24,11 @@ import threading
 import time
 import uuid
 from pathlib import Path
-from xml.sax.saxutils import escape
 
 from . import sec_fwapi, sec_fwconf, sys_config, sys_log
+from .fw_drivers import driver
+
+D = driver()                                    # the objects of a plan, in the default dialect (step 1 of ROADMAP 108)
 
 _lock = threading.Lock()
 PREFIX = "Aurora-"
@@ -66,19 +68,8 @@ def get_change(cfg: sys_config.Config, change_id: str) -> dict:
     raise WriteError(f"no change {change_id!r}")
 
 
-# ---- XML of one step ----------------------------------------------------------------------------------------------
-def _x(tag: str, value) -> str:
-    if isinstance(value, list):
-        return "".join(_x(tag, v) for v in value)
-    return f"<{tag}>{escape(str(value))}</{tag}>"
-
-
-def _set(entity: str, body: str, op: str = "add") -> str:
-    return f'<Set operation="{op}"><{entity}>{body}</{entity}></Set>'
-
-
-def _remove(entity: str, name: str) -> str:
-    return f"<Remove><{entity}><Name>{escape(name)}</Name></{entity}></Remove>"
+# ---- one step -------------------------------------------------------------------------------------------------------
+_x, _set, _remove = D.x, D.set_, D.remove
 
 
 def step(entity: str, name: str, xml: str, undo: str, why: str, owner_object: bool = False) -> dict:
@@ -86,43 +77,22 @@ def step(entity: str, name: str, xml: str, undo: str, why: str, owner_object: bo
 
 
 def host_step(name: str, ip: str, groups: list[str] | None = None) -> dict:
-    body = (_x("Name", name) + "<IPFamily>IPv4</IPFamily><HostType>IP</HostType>" + _x("IPAddress", ip)
-            + ("<HostGroupList>" + _x("HostGroup", groups) + "</HostGroupList>" if groups else ""))
-    return step("IPHost", name, _set("IPHost", body), _remove("IPHost", name), f"l'host {name} = {ip}")
+    return step("IPHost", name, _set("IPHost", D.host(name, ip, groups)), _remove("IPHost", name), f"l'host {name} = {ip}")
 
 
 def service_step(name: str, ports: list[tuple[str, str]]) -> dict:
-    details = "".join(f"<ServiceDetail><SourcePort>1:65535</SourcePort>{_x('DestinationPort', p)}{_x('Protocol', proto)}"
-                      "</ServiceDetail>" for proto, p in ports)
-    body = _x("Name", name) + "<Type>TCPorUDP</Type><ServiceDetails>" + details + "</ServiceDetails>"
-    return step("Services", name, _set("Services", body), _remove("Services", name),
+    return step("Services", name, _set("Services", D.service(name, ports)), _remove("Services", name),
                 f"il servizio {name}: " + ", ".join(f"{proto} {p}" for proto, p in ports))
 
 
 def rule_step(name: str, desc: str, src_zones: list[str], dst_zones: list[str], services: list[str],
               src_nets: list[str], dst_nets: list[str], action: str, ips: str, after: str | None) -> dict:
-    pos = f"<Position>After</Position><After>{_x('Name', after)}</After>" if after else "<Position>Top</Position>"
-    pol = (_x("Action", action) + "<LogTraffic>Enable</LogTraffic><SkipLocalDestined>Disable</SkipLocalDestined>"
-           + ("<SourceZones>" + _x("Zone", src_zones) + "</SourceZones>" if src_zones else "")
-           + ("<DestinationZones>" + _x("Zone", dst_zones) + "</DestinationZones>" if dst_zones else "")
-           + "<Schedule>All The Time</Schedule>"
-           + ("<SourceNetworks>" + _x("Network", src_nets) + "</SourceNetworks>" if src_nets else "")
-           + ("<Services>" + _x("Service", services) + "</Services>" if services else "")
-           + ("<DestinationNetworks>" + _x("Network", dst_nets) + "</DestinationNetworks>" if dst_nets else "")
-           + _x("IntrusionPrevention", ips or "None"))
-    body = (_x("Name", name) + _x("Description", desc[:250]) + "<IPFamily>IPv4</IPFamily><Status>Enable</Status>" + pos
-            + "<PolicyType>Network</PolicyType><NetworkPolicy>" + pol + "</NetworkPolicy>")
+    body = D.rule(name, desc, src_zones, dst_zones, services, src_nets, dst_nets, action, ips, after)
     return step("FirewallRule", name, _set("FirewallRule", body), _remove("FirewallRule", name), f"la regola {name}: {desc}")
 
 
 def dnat_step(name: str, desc: str, wan: str, host: str, service: str, sources: list[str]) -> dict:
-    body = (_x("Name", name) + _x("Description", desc[:250]) + "<IPFamily>IPv4</IPFamily><Status>Enable</Status>"
-            "<Position>Top</Position><LinkedFirewallrule>None</LinkedFirewallrule>"
-            + ("<OriginalSourceNetworks>" + _x("Network", sources) + "</OriginalSourceNetworks>" if sources else "")
-            + "<OriginalDestinationNetworks>" + _x("Network", wan) + "</OriginalDestinationNetworks>"
-            + _x("TranslatedDestination", host) + "<OriginalServices>" + _x("Service", service) + "</OriginalServices>"
-            "<TranslatedService>Original</TranslatedService><OverrideInterfaceNATPolicy>Disable</OverrideInterfaceNATPolicy>"
-            "<TranslatedSource>Original</TranslatedSource>")
+    body = D.dnat(name, desc, wan, host, service, sources)
     return step("NATRule", name, _set("NATRule", body), _remove("NATRule", name), f"il NAT {name}: {desc}")
 
 
@@ -265,7 +235,7 @@ def plan_quarantine(cfg: sys_config.Config, ip: str, reason: str, conf: dict | N
     rule = PREFIX + "Quarantine"
     steps = []
     if not _taken(conf, "IPHostGroup", group):
-        body = _x("Name", group) + "<Description>Aurora: dispositivi in quarantena</Description><IPFamily>IPv4</IPFamily>"
+        body = D.group(group, "Aurora: dispositivi in quarantena")
         steps.append(step("IPHostGroup", group, _set("IPHostGroup", body), _remove("IPHostGroup", group), f"il gruppo {group}"))
     host = f"aurora-quarantine-{ip}"
     if _taken(conf, "IPHost", host):
@@ -285,36 +255,29 @@ def plan_release(cfg: sys_config.Config, ip: str, conf: dict | None = None) -> d
     host = f"aurora-quarantine-{ip.strip()}"
     if not _taken(conf, "IPHost", host):
         raise WriteError(f"{ip} non è in quarantena")
-    body = (_x("Name", host) + "<IPFamily>IPv4</IPFamily><HostType>IP</HostType>" + _x("IPAddress", ip.strip())
-            + "<HostGroupList></HostGroupList>")
+    body = D.release(host, ip.strip())
     return {"kind": "release", "title": f"Fine della quarantena di {ip}", "why": "richiesta del proprietario",
             "steps": [step("IPHost", host, _set("IPHost", body, "update"), "", "fuori dal gruppo"),
                       step("IPHost", host, _remove("IPHost", host), "", "host rimosso")], "notes": [], "check": []}
 
 
 def raw_rule(cfg: sys_config.Config, name: str) -> str:
-    text = sec_fwapi.request(cfg, "<Get><FirewallRule/></Get>")
-    m = re.search(rf"<FirewallRule[^>]*>(?:(?!</FirewallRule>).)*?<Name>{re.escape(escape(name))}</Name>.*?</FirewallRule>", text, re.S)
-    if not m:
+    found = D.find_rule(sec_fwapi.request(cfg, D.get_rules()), name)
+    if not found:
         raise WriteError(f"nessuna regola «{name}»")
-    return re.sub(r"<FirewallRule[^>]*>", "<FirewallRule>", m.group(0), count=1)
+    return found
 
 
 def plan_harden(cfg: sys_config.Config, rule: str, ips: str, log: bool = True) -> dict:
     """An IPS policy (and the log) on one of the owner's rules — the fix the audit proposes for a published service.
     The rule's XML before is the undo."""
     before = raw_rule(cfg, rule)
-    if "<NetworkPolicy>" not in before:
+    if not D.network_rule(before):
         raise WriteError("solo regole di rete")
-    after = re.sub(r"<IntrusionPrevention>[^<]*</IntrusionPrevention>", f"<IntrusionPrevention>{escape(ips)}</IntrusionPrevention>", before)
-    if "<IntrusionPrevention>" not in after:
-        after = after.replace("</NetworkPolicy>", f"<IntrusionPrevention>{escape(ips)}</IntrusionPrevention></NetworkPolicy>")
-    if log:
-        after = re.sub(r"<LogTraffic>[^<]*</LogTraffic>", "<LogTraffic>Enable</LogTraffic>", after)
+    after = D.harden(before, ips, log)
     if after == before:
         raise WriteError("la regola ha già questa protezione")
-    inner_after = after[len("<FirewallRule>"):-len("</FirewallRule>")]
-    inner_before = before[len("<FirewallRule>"):-len("</FirewallRule>")]
+    inner_after, inner_before = D.inner(after), D.inner(before)
     return {"kind": "harden", "title": f"Proteggere la regola «{rule}»: IPS «{ips}»" + (" e log" if log else ""),
             "why": "rilievo dell'audit: servizio pubblicato senza IPS",
             "steps": [step("FirewallRule", rule, _set("FirewallRule", inner_after, "update"),
@@ -331,18 +294,13 @@ def propose(cfg: sys_config.Config, plan: dict) -> dict:
     return change
 
 
-def _status_of(text: str, entity: str) -> tuple[str, str]:
-    m = re.search(rf"<{entity}[^>]*>\s*<Status code=\"(\d+)\">(.*?)</Status>", text, re.S)
-    return (m.group(1), m.group(2).strip()) if m else ("", "")
+_status_of = D.step_status
 
 
 def _run(cfg: sys_config.Config, xml: str, entity: str) -> str:
     code, msg = _status_of(sec_fwapi.request(cfg, xml), entity)
     if code != "200":
-        hint = ("" if str(code) != "599" and "privilege" not in msg.lower() else
-                " — l'utente API di Aurora sul firewall ha solo la lettura: nel Sophos, Amministrazione → Profili di "
-                "dispositivo, dagli lettura e scrittura su Regole e policy e su Oggetti di sistema; poi riprova "
-                "(il 9 ottobre: due modifiche annullate così)")
+        hint = D.READ_ONLY_HINT if D.read_only(code, msg) else ""
         raise WriteError(f"{entity}: il firewall ha risposto {code or '?'} {msg[:200]}{hint}")
     return msg
 

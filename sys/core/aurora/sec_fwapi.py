@@ -2,14 +2,11 @@
 # Copyright 2026 A.U.R.O.R.A. Project
 """Defence on the firewall through its API (owner, 2026-10-04) — only on the owner's click.
 
-Any firewall in principle; one dialect today, AURORA_FIREWALL_API_KIND = sophos (docs.sophos.com, Sophos Firewall
-21.0, "API" and "Post an API request"): an HTTPS POST to <AURORA_FIREWALL_API_URL>/webconsole/APIController with the
-form field "reqxml" holding <Request><Login><Username/><Password/></Login> ... </Request>. No APIVersion: the
-firewall then answers with its own (an example's "1905.2" was refused with 529 "There is no API Version", C131).
-API access is off by default on the firewall: the owner turns it on and allows Aurora's address.
+Any firewall: the device's dialect is a driver of aurora/fw_drivers, chosen by AURORA_FIREWALL_API_KIND (ROADMAP 108);
+this module keeps what every device shares — the address, the addresses never blocked, one call at a time.
 
-What Aurora does, and nothing else: an IP host "aurora-block-<address>" (IPHost: Name, IPFamily, HostType IP,
-IPAddress, HostGroupList/HostGroup) in the group AURORA_FIREWALL_BLOCK_GROUP (IPHostGroup), and its removal. The group
+What Aurora does, and nothing else: an IP host "aurora-block-<address>" in the group AURORA_FIREWALL_BLOCK_GROUP, and
+its removal. The group
 must be used by a firewall rule that drops, made once by the owner on the firewall: Aurora never writes rules.
 Never blocked: loopback, link-local, multicast, the firewall itself, this machine's own addresses.
 """
@@ -17,16 +14,11 @@ from __future__ import annotations
 
 import contextlib
 import ipaddress
-import re
 import socket
 from urllib.parse import urlparse
-from xml.sax.saxutils import escape
-
-import httpx
 
 from . import sys_config
-
-KINDS = ("sophos",)
+from .fw_drivers import KINDS, driver  # noqa: F401 — KINDS read from here by the settings' page
 
 
 class FirewallAPIError(Exception):
@@ -102,52 +94,31 @@ def request(cfg: sys_config.Config, body: str) -> str:
     """One API call; returns the firewall's XML answer. FirewallAPIError when the login or the call is refused."""
     if not configured(cfg):
         raise FirewallAPIError("the firewall's API is not set: address, user and password in the security plugin's card")
-    if str(cfg["AURORA_FIREWALL_API_KIND"]) not in KINDS:
-        raise FirewallAPIError(f"firewall API kind {cfg['AURORA_FIREWALL_API_KIND']!r}: one of {KINDS}")
-    xml = (f'<Request><Login><Username>{escape(str(cfg["AURORA_FIREWALL_API_USER"]))}</Username>'
-           f'<Password>{escape(str(cfg["AURORA_FIREWALL_API_PASSWORD"]))}</Password></Login>{body}</Request>')
-    url = base_url(cfg) + "/webconsole/APIController"
+    return _driver(cfg).request(cfg, body)
+
+
+def _driver(cfg: sys_config.Config):
     try:
-        with _one_at_a_time(cfg):
-            r = httpx.post(url, files={"reqxml": (None, xml)}, timeout=30, verify=bool(cfg["AURORA_FIREWALL_VERIFY_TLS"]))
-    except httpx.HTTPError as e:
-        raise FirewallAPIError(f"the firewall does not answer: {e}") from None
-    text = r.text
-    if re.search(r"<Login>\s*<status>\s*Authentication Failure", text, re.I) or "Authentication Failure" in text:
-        raise FirewallAPIError("the firewall refused the login (user, password, or Aurora's address not allowed for the API)")
-    if r.status_code != 200:
-        raise FirewallAPIError(f"HTTP {r.status_code}: {text[:200]}")
-    top = re.search(r"<Response[^>]*>\s*<Status code=\"(\d+)\">(.*?)</Status>", text, re.S)
-    if top and top.group(1) != "200":                     # the firewall refused the whole request (C131)
-        raise FirewallAPIError(f"the firewall answered {top.group(1)}: {top.group(2).strip()[:200]}")
-    if "Authentication Successful" not in text:
-        raise FirewallAPIError(f"no login in the firewall's answer: {re.sub(chr(10), ' ', text)[:200]}")
-    return text
-
-
-def _status(text: str, tag: str) -> tuple[str, str]:
-    m = re.search(rf"<{tag}[^>]*>.*?<Status code=\"(\d+)\">(.*?)</Status>", text, re.S)
-    return (m.group(1), m.group(2).strip()) if m else ("", text[:200])
+        return driver(cfg)
+    except ValueError as e:
+        raise FirewallAPIError(str(e)) from None
 
 
 def test(cfg: sys_config.Config) -> dict:
     """Log in and read the blocking group: the card's "Try the connection"."""
-    text = request(cfg, f"<Get><IPHostGroup><Name>{escape(str(cfg['AURORA_FIREWALL_BLOCK_GROUP']))}</Name></IPHostGroup></Get>")
+    text = request(cfg, _driver(cfg).get_group(str(cfg["AURORA_FIREWALL_BLOCK_GROUP"])))
     return {"ok": True, "group_exists": f"<Name>{cfg['AURORA_FIREWALL_BLOCK_GROUP']}</Name>" in text}
 
 
 def block(cfg: sys_config.Config, ip: str, reason: str = "") -> dict:
     """The address into the blocking group (the group is made first when missing)."""
     ip = blockable(cfg, ip)
-    group = escape(str(cfg["AURORA_FIREWALL_BLOCK_GROUP"]))
-    request(cfg, f'<Set operation="add"><IPHostGroup><Name>{group}</Name><IPFamily>IPv4</IPFamily>'
-                 f"<Description>Aurora: addresses the owner blocked</Description></IPHostGroup></Set>")   # 502: exists
-    text = request(cfg, f'<Set operation="add"><IPHost><Name>aurora-block-{ip}</Name><IPFamily>IPv4</IPFamily>'
-                        f"<Description>{escape(reason[:200])}</Description><HostType>IP</HostType>"
-                        f"<IPAddress>{ip}</IPAddress><HostGroupList><HostGroup>{group}</HostGroup></HostGroupList>"
-                        "</IPHost></Set>")
-    code, msg = _status(text, "IPHost")
-    if code not in ("200", "502", "503"):          # 502/503: the host is there already
+    d = _driver(cfg)
+    group = str(cfg["AURORA_FIREWALL_BLOCK_GROUP"])
+    request(cfg, d.add_group(group))                                                    # made once; then: exists
+    text = request(cfg, d.add_host(f"aurora-block-{ip}", ip, reason[:200], group))
+    code, msg = d.status(text, "IPHost")
+    if code not in d.ok_codes("add_host"):
         raise FirewallAPIError(f"the firewall did not add {ip}: {code} {msg}")
     return {"blocked": ip, "group": cfg["AURORA_FIREWALL_BLOCK_GROUP"], "status": code, "message": msg}
 
@@ -155,13 +126,13 @@ def block(cfg: sys_config.Config, ip: str, reason: str = "") -> dict:
 def unblock(cfg: sys_config.Config, ip: str) -> dict:
     """Out of the group first, then removed: the firewall refuses to delete a host a group still refers to (509, C146)."""
     ip = blockable(cfg, ip)
-    text = request(cfg, f'<Set operation="update"><IPHost><Name>aurora-block-{ip}</Name><IPFamily>IPv4</IPFamily>'
-                        f"<HostType>IP</HostType><IPAddress>{ip}</IPAddress><HostGroupList></HostGroupList></IPHost></Set>")
-    code, msg = _status(text, "IPHost")
+    d = _driver(cfg)
+    text = request(cfg, d.ungroup_host(f"aurora-block-{ip}", ip))
+    code, msg = d.status(text, "IPHost")
     if code != "200":
         raise FirewallAPIError(f"the firewall did not take {ip} out of the group: {code} {msg}")
-    text = request(cfg, f"<Remove><IPHost><Name>aurora-block-{ip}</Name></IPHost></Remove>")
-    code, msg = _status(text, "IPHost")
+    text = request(cfg, d.remove_host(f"aurora-block-{ip}"))
+    code, msg = d.status(text, "IPHost")
     if code != "200":
         raise FirewallAPIError(f"the firewall did not remove {ip}: {code} {msg}")
     return {"unblocked": ip, "status": code, "message": msg}

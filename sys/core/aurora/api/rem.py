@@ -150,3 +150,19 @@ def _rem_run(task: str) -> dict:
 
 # looked up only when called: imported last, so that modules that use each other load in any order
 from .agents import rem_repair  # noqa: E402
+
+
+@router.get("/v1/aurora/dreams", dependencies=[Depends(auth)])
+def dreams(n: int = 24, before: str | None = None, q: str = "") -> dict:
+    """Every dream of hers, newest first, with its painting (the Dreams page, owner 15 Oct: «dopo un po' si perdono
+    nelle chat»); `before` the created_at of the last one shown, for the next ones; `q` words in the dream."""
+    p = pipeline()
+    if not p.reader.layout.shards("memory", "reflection"):
+        return {"dreams": [], "more": False}
+    n = max(1, min(int(n), 60))
+    found = p.reader.of_type("reflection", "dream", n + 1, before, q.strip()[:100])
+    return {"more": len(found) > n, "dreams": [
+        {"sid": s.sid, "text": s.text, "created_at": s.created_at,
+         "image": f"/v1/aurora/images/{s.extra['image']}" if s.extra.get("image") else None,
+         "image_prompt": s.extra.get("image_prompt", ""), "painting_problem": s.extra.get("painting_problem")}
+        for s in found[:n]]}

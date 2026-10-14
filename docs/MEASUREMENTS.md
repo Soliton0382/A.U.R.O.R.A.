@@ -3423,3 +3423,105 @@ sapere che tempo farà a Milano e se conviene prendere il treno delle otto.»), 
 A recording cut at any piece is a file Whisper reads (the WebM pieces from the first carry its header). The fake
 microphone loops its file, so the end heard the sentence's first words again — the test's, not the chat's. Not
 measured: an iPhone's MP4 pieces cut the same way; the load of a partial every 1.5 s on a GPU busy with a job.
+
+## M217 — memory over days, the first night (15 October 2026; ROADMAP D1, roadmap 18)
+
+`bench_memory_days.py` on the user «test»: seven facts told on 14 Oct (one corrected: the car sold, another bought),
+under the all-local assignment; asked 0.45 days later under the granular one (local route, gate, verify; Claude
+Sonnet extraction and synthesis), `remember: false`:
+
+| question | answer | |
+|---|---|---|
+| the cat's name | Bricco, a Chartreux | ✅ |
+| the job and where | organ restorer, a workshop in Cremona | ✅ |
+| a Nutella dessert for tonight | brownies with Nutella — the hazelnut allergy told was not applied | ❌ |
+| the shoe size | 44 | ✅ |
+| the sister's wedding | Ilaria, 21 March 2027 | ✅ |
+| the car now | the grey hybrid Yaris (the correction kept) | ✅ |
+| the brother (never told) | «I don't know» | ✅ |
+| the favourite colour (never told) | «I don't know» | ✅ |
+
+7 of 8. The miss is the one that asks to *use* a fact not named in the question; the allergy is handled by the
+medical section (owner's decision, 15 Oct). Not measured: the same probe under the all-local assignment (which part
+the miss belongs to), the repeat variance (one probe of 8 questions has no significance); the next probes at 3 and
+7 nights.
+
+## M218 — a picture to describe, straight to its description (15 October 2026; ROADMAP D3)
+
+A synthetic picture (a house, the sun, a sign «APERTO 9-18»), `/v1/aurora/ask` with the file and `remember: false`,
+granular assignment (vision local, route local, extraction and synthesis on Claude Sonnet):
+
+| question | before (vault searched, gate) | after (D3) |
+|---|---|---|
+| «Descrivi per favore la foto che ti allego» | 32.1 s — and the answer «[1] [1] [1]» (C319) | 12.7, 13.1, 13.5, 13.8 s ✅ |
+| «Cosa c'è scritto nel cartello?» | — | 9.4, 9.6, 10.1 s («APERTO 9-18») ✅ |
+| «Quanti edifici ci sono nella foto?» | — | 11.1 s («un solo edificio») ✅ |
+| shop hours + the law on shop hours (needs the vault) | 41.5 s | 34.3 s, the vault searched as it should |
+
+The local route model tells «only about the file» from «needs more»: 10 of 10 on questions I wrote (5 about the
+picture, 5 needing knowledge: a plant's care, a law, a building's year, a painter, an edible mushroom), and the 6 live
+ones above. Saved per question: the vault search (~11 s) and the gate (~1.4 s). Left: the vision (~2.7 s), the
+extraction, the synthesis and the verification on the cloud (~7–10 s). Not measured: a real photo, a video, the
+classifier on questions written by someone else.
+
+## M219 — the best of both, measured (15 October 2026; ROADMAP D2)
+
+`bench_public.py --targets aurora-mixed --n 10`, seeds 7 and 8, the owner's granular assignment: route, translate,
+gate, verify, rem, vision, service local (Qwen3.6 35B); extract, synthesis, self, agent on Claude Sonnet (Claude
+Code); the forge on Opus. Then `bench_compare.py` against M214's runs, question by question:
+
+| against | n | best of both | other | only best | only other | p | verdict (rule of M214) |
+|---|---|---|---|---|---|---|---|
+| all on Claude (aurora-cloud) | 197 | 158 | 161 | 8 | 11 | 0.65 | no measurable difference |
+| bare Claude Sonnet | 128 | 100 | 93 | 15 | 8 | 0.21 | a trend, not significant |
+| all local (aurora-local) | 197 | 158 | 125 | 39 | 6 | < 0.001 | improves |
+
+Per set against all on Claude: MATH 18 vs 20, MMLU-Pro 16 vs 17, GPQA 18 vs 19, SimpleQA 17 vs 16, the rest equal
+(AIME 19/19, HLE 8/8, TruthfulQA 18/18, ARC-AGI 16/16, aurora_edge 28/28). Time, the median per answer over the same
+216 answers: local 23.2 s, **best of both 11.2 s**, all on Claude 19.9 s (minutes for the run: 203, 61, 90).
+
+Read: the short calls taken off the cloud cost no measurable accuracy and halve the wait. Against bare Claude the
+best of both keeps the direction of M214 (SimpleQA 9 vs 3, ARC-AGI 7 vs 10) but 100 vs 93 does not reach p < 0.05,
+where all on Claude's 103 vs 93 did; the difference between the two Aurora runs is itself not significant (first
+row). Charts: `granular.svg`, `granular_time.svg`. Not measured: the runs on Claude are on different days (the
+network and the service's load change the seconds); 197 questions cannot see a difference of 2–3 points; the
+group ablations (which local step costs what).
+
+## M220 — the translator that answered (15 October 2026; C320, the fine tuning after M219)
+
+M219's losses read question by question (`status/bench/public`, the best of both against all on Claude): 3 of the 60
+exercises of MATH, MMLU-Pro and GPQA came back empty or with the header alone, 0 with all on Claude, 4 all local. The
+cause was the local translation (C320). Measured on the local model alone (Qwen3.6 35B), the same questions of M219,
+no cloud call:
+
+| step | measure | before | after |
+|---|---|---|---|
+| question → English | exercises answered instead of translated (options lost, or 1.5× longer) | 26 / 60 | **0 / 60** |
+| question → English | the same on aurora_edge and ARC-AGI (76) | 0 / 76 | 0 / 76 |
+| question → English | ARC-AGI grids translated whole (digits of the question) | 0 / 20 (≈ 60%) | **20 / 20** |
+| question → English | the 8 false premises translated as they are | 8 / 8 | 8 / 8 (the role without «never correct it»: 7 / 8) |
+| question → English | time on aurora_edge + ARC-AGI (76 questions), a token a character | 197 s | 346 s; ARC (0 / 20 made of words) left untranslated, as the cut grids already were in M219 (not pivoted) |
+| answer → Italian | solutions with «Answer: …» that lose it (59 of all on Claude's) | 2 / 59 | **0 / 59** |
+| end to end | the three broken questions (MMLU-Pro 8968, 11771; MATH 1454) | empty, empty, header | **G, F, 70√2** (right), 7.9 / 5.8 / 14.3 s |
+
+The fix: the translator's role in both directions, the text between `<text>` tags (the role alone left 2 of 60),
+«never correct it», a token a character, and two guards (`whole()` refuses a translation without the question's
+options or 1.5× longer; the way back keeps the English when the «Answer:» line or 40% of the text is lost). Not
+measured: M219 again with the fix (the owner, 15 Oct: «per ora vanno bene queste misurazioni» — the subscription's
+limit); how many of M219's other misses (ARC-AGI, GPQA) the cut grids and the half solutions caused; the time the
+whole translation costs on long questions (a token a character: up to twice the room, used only if needed).
+
+## M221 — a grid puzzle as a verified program, on the local model (15 October 2026; ROADMAP 105 step 3)
+
+`kno_grid.solve` alone on ARC-AGI-1 seed 7, the synthesis on the local model (Qwen3.6 35B, thinking, 16,000 tokens a
+try, two tries), stopped after 6 of 10 puzzles: the method did not pay there.
+
+| puzzles | a rule reproducing every example | right | without a rule | seconds |
+|---|---|---|---|---|
+| 6 | 1 (4 of 4 examples, first try) | 1 | 5: no code at all, both tries (the room ended in the thinking) | 88 for the one; 299–313 each for the five |
+
+Read: on the local model the step costs about 5 minutes a puzzle for 1 answer in 6, so it runs only when the synthesis
+is a cloud model (`kno_grid.worth`); an empty answer now ends the step at the first try (half the time lost). Not
+measured: the cloud model writing the rule (step 4, seeds 9 and 10: the subscription's cost, when the owner says);
+the 4 unrun puzzles; whether the five «no code» were the room or the model.
+

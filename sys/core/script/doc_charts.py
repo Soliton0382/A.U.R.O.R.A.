@@ -292,6 +292,26 @@ CHARTS = {
                    series=[("Aurora", [100.0, 95.0, 40.0, 100.0, 100.0, 90.0, 100.0, 70.0, 71.4, 80.5]), ('bare Claude Sonnet', [100.0, 85.0, 35.0, 100.0, 100.0, 30.0, 100.0, 100.0, 57.1, 72.7])], errors=[[(72.2, 100.0), (76.4, 99.1), (21.9, 61.3), (72.2, 100.0), (72.2, 100.0), (59.6, 98.2), (72.2, 100.0), (39.7, 89.2), (52.9, 84.7), (72.8, 86.4)], [(72.2, 100.0), (64.0, 94.8), (18.1, 56.7), (72.2, 100.0), (72.2, 100.0), (10.8, 60.3), (72.2, 100.0), (72.2, 100.0), (39.1, 73.5), (64.4, 79.6)]],
                    ymax=100, fmt=whole, note='Total 103 vs 93, McNemar p = 0.031; public benchmarks only 83 vs 77, p = 0.15 (edge = questions on the house).'),
     },
+    "granular": {
+        "it": dict(title='Il meglio dei due contro tutto su Claude', subtitle='% di risposte giuste su 197 domande accoppiate, seed 7 e 8 · M219 · baffi: intervallo 95% (Wilson)',
+                   cats=['MMLU-Pro', 'GPQA', 'HLE', 'AIME', 'MATH', 'SimpleQA', 'Truthful\nQA', 'ARC-AGI', 'edge', 'totale'],
+                   series=[("il meglio dei due", [80.0, 90.0, 40.0, 100.0, 90.0, 85.0, 90.0, 80.0, 73.7, 80.2]), ('tutto su Claude', [85.0, 95.0, 40.0, 100.0, 100.0, 80.0, 90.0, 80.0, 73.7, 81.7])], errors=[[(58.4, 91.9), (69.9, 97.2), (21.9, 61.3), (83.2, 100.0), (69.9, 97.2), (64.0, 94.8), (69.9, 97.2), (58.4, 91.9), (58.0, 85.0), (74.1, 85.2)], [(64.0, 94.8), (76.4, 99.1), (21.9, 61.3), (83.2, 100.0), (83.9, 100.0), (58.4, 91.9), (69.9, 97.2), (58.4, 91.9), (58.0, 85.0), (75.7, 86.5)]],
+                   ymax=100, fmt=whole, note='Totale 158 vs 161, McNemar p = 0,65: nessuna differenza misurabile (8 domande solo all\'una, 11 solo all\'altra).'),
+        "en": dict(title='The best of both against all on Claude', subtitle='% right of 197 paired questions, seeds 7 and 8 · M219 · whiskers: 95% interval (Wilson)',
+                   cats=['MMLU-Pro', 'GPQA', 'HLE', 'AIME', 'MATH', 'SimpleQA', 'Truthful\nQA', 'ARC-AGI', 'edge', 'total'],
+                   series=[("the best of both", [80.0, 90.0, 40.0, 100.0, 90.0, 85.0, 90.0, 80.0, 73.7, 80.2]), ('all on Claude', [85.0, 95.0, 40.0, 100.0, 100.0, 80.0, 90.0, 80.0, 73.7, 81.7])], errors=[[(58.4, 91.9), (69.9, 97.2), (21.9, 61.3), (83.2, 100.0), (69.9, 97.2), (64.0, 94.8), (69.9, 97.2), (58.4, 91.9), (58.0, 85.0), (74.1, 85.2)], [(64.0, 94.8), (76.4, 99.1), (21.9, 61.3), (83.2, 100.0), (83.9, 100.0), (58.4, 91.9), (69.9, 97.2), (58.4, 91.9), (58.0, 85.0), (75.7, 86.5)]],
+                   ymax=100, fmt=whole, note='Total 158 vs 161, McNemar p = 0.65: no measurable difference (8 questions right only for one, 11 only for the other).'),
+    },
+    "granular_time": {
+        "it": dict(title='Quanto aspetti una risposta', subtitle='mediana dei secondi per risposta sulle stesse domande (216 risposte per configurazione) · M214, M219',
+                   cats=['solo locale', 'il meglio dei due', 'tutto su Claude'],
+                   series=[("secondi a risposta (mediana)", [23.2, 11.2, 19.9])], ymax=30, fmt=sec["it"],
+                   note='Minuti per le 216 risposte: 203, 61, 90. Le prove su Claude in giorni diversi: la rete e il carico del servizio cambiano.'),
+        "en": dict(title='How long an answer takes', subtitle='median seconds per answer on the same questions (216 answers per configuration) · M214, M219',
+                   cats=['local only', 'the best of both', 'all on Claude'],
+                   series=[("seconds per answer (median)", [23.2, 11.2, 19.9])], ymax=30, fmt=sec["en"],
+                   note='Minutes for the 216 answers: 203, 61, 90. The runs on Claude on different days: the network and the service load change.'),
+    },
 }
 
 

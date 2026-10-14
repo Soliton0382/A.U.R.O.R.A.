@@ -98,7 +98,7 @@ export function page(tab, meta) { const { title } = meta; return {
     c.append(i.report ? renderMarkdown(i.report) : el("p", "muted", t("sec.pending")));
     if (i.samples?.length) {
       const d = el("details");
-      d.append(el("summary", "", t("sec.samples")), el("pre", "", i.samples.join("\n")));
+      d.append(el("summary", "", t("sec.samples")), el("pre", "sec-samples", i.samples.join("\n")));
       c.append(d);
     }
     if (i.detail?.action) c.append(el("p", "", `💡 ${i.detail.action}`));

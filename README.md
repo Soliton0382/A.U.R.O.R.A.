@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-850%20passed-1baf7a" alt="Tests"></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-873%20passed-1baf7a" alt="Tests"></p>
 
 <p align="center">🇮🇹 <b>Italiano</b> · 🇬🇧 <a href="README.en.md">English</a></p>
 
@@ -24,7 +24,7 @@ con l'esenzione firmata dal proprietario, e ciò che parte è sempre mascherato 
 | 🔎 **Verità** | ogni risposta dice da dove viene: ✅ il vault [n], 🌐 il web con il link, ⚠️ «dalla mia memoria, non verificato»; una premessa falsa viene corretta, mai assecondata (6 su 6, M130) | cita le fonti, ma non distingue ciò che ha letto da ciò che ricorda |
 | ⚡ **Giusta e veloce** | domande comuni: 70% giuste (prima 16%), mediana 4 s; ripetute: 0,04 s dalla cache (M130) | — |
 | 🔎 **Risposte dal vault** | ogni frase di una risposta profonda è verificata sui passaggi del vault; ciò che non è supportato viene tolto (M32: 0 frasi non supportate su 14) | cita le fonti, ma le frasi scritte dal modello non vengono controllate una per una |
-| 📏 **Misura** | ogni scelta ha una misura numerata (M1–M215), ogni errore un numero in BUGS.md, ogni limite è scritto | le prestazioni si dichiarano, raramente si misurano in pubblico |
+| 📏 **Misura** | ogni scelta ha una misura numerata (M1–M221), ogni errore un numero in BUGS.md, ogni limite è scritto | le prestazioni si dichiarano, raramente si misurano in pubblico |
 | 🌙 **Vita propria** | consolida i ricordi, pensa quando si annoia, sogna e dipinge il sogno, fa un'autodiagnosi quotidiana dai propri log | si attiva solo quando le scrivi |
 | 🛠️ **Si ripara** | corregge il proprio codice in una sandbox, con test, la tua approvazione, test dal vivo e rollback | il codice lo cambia solo lo sviluppatore |
 | 🔏 **Regole firmate** | codice di condotta con la chiave della tua installazione: se qualcuno lo modifica senza firma, Aurora non parte | regole nel prompt, modificabili senza traccia |
@@ -264,6 +264,14 @@ di McNemar sul totale dà p < 0,05; altrimenti «tendenza»; un peggioramento si
 
 ![Aurora contro il modello nudo, con Claude](docs/img/it/vs_bare_cloud.svg)
 ![Aurora contro il modello nudo, in locale](docs/img/it/vs_bare_local.svg)
+
+**Il meglio dei due** (M219): il locale fa le chiamate brevi (smistamento, traduzione, cancello, verifica), Claude legge
+le fonti e scrive la risposta. Sulle stesse 197 domande: 158 risposte giuste contro 161 di «tutto su Claude», p = 0,65
+— **nessuna differenza misurabile** — in metà del tempo (11,2 s a risposta contro 19,9, mediana). Contro Claude nudo:
+100 contro 93 su 128, p = 0,21: **tendenza, non significativa** (tutto su Claude dava p = 0,031).
+
+![Il meglio dei due contro tutto su Claude](docs/img/it/granular.svg)
+![Quanto aspetti una risposta](docs/img/it/granular_time.svg)
 
 ![Le domande che la gente fa davvero](docs/img/it/answers.svg)
 ![Il vault riallineato](docs/img/it/vault.svg)

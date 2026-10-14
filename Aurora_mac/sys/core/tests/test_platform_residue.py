@@ -21,6 +21,7 @@ WORDS_ALLOWED = {
     ("sys_config.py", "import pwd"): "guarded: Windows takes getpass (FILES)",
     ("sys_bugreport.py", '"nvidia-smi"'): "the driver's version in a bug report; not found = «not measured» everywhere",
     ("mdl_custom.py", '"nvidia-smi"'): "the GPU memory others hold, for the Models page's fit; not found = 0 (C252)",
+    ("kno_grid.py", '"bwrap"'): "ROADMAP 105: without bwrap a grid puzzle goes to the reasoning, as before (no cage, nothing is run)",
     ("prj_run.py", '"bwrap"'): "phase 4: without bwrap a project does not run («no cage, nothing is run»)",
     ("prj_term.py", '"bwrap"'): "phase 4: without bwrap no project terminal («no cage, no terminal»), said on the page",
     ("plg_sandbox.py", '"bwrap"'): "phase 4: without a cage plugins do not run on the Mac or Windows (GUARDS)",
@@ -31,6 +32,7 @@ WORDS_ALLOWED = {
 EVERYWHERE = {"ffmpeg", "ffprobe", "git", "curl", "pdfinfo", "pdftoppm", "sys.executable"}
 # (file, program): why it may stay — the modules
 PROGRAMS_ALLOWED = {
+    ("mdl_accounts.py", "_bin(cfg)"): "ROADMAP 106: the claude CLI of AURORA_CLAUDE_CODE_BIN, found with shutil.which as in mdl_cloud",
     ("sec_hostaudit.py", "ss"): "the Linux branch only; netstat (Mac) and psutil (Windows) otherwise (NETWORK)",
     ("sys_bugreport.py", "nvidia-smi"): "a bug report's driver version: «not measured» where missing",
     ("mdl_custom.py", "nvidia-smi"): "the GPU memory others hold (C252): 0 where missing, llama.cpp's --fit decides",

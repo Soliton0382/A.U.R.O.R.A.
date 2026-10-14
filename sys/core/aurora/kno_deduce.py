@@ -184,8 +184,8 @@ def examine(p, cfg: sys_config.Config, cand: dict, emit=lambda e, d: None) -> di
 
 
 def _italian(p, text: str) -> str:
-    from .kno_stages import SYS_BACK
-    out = p._for("translate").complete(SYS_BACK.format(lang="Italian"), text, max(300, len(text))).answer.strip()
+    from .kno_stages import SYS_BACK, as_text, untag
+    out = untag(p._for("translate").complete(SYS_BACK.format(lang="Italian"), as_text(text), max(300, len(text))).answer)
     return out or text
 
 

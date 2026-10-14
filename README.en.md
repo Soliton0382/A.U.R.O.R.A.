@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.en.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-850%20passed-1baf7a" alt="Tests"></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-873%20passed-1baf7a" alt="Tests"></p>
 
 <p align="center">🇮🇹 <a href="README.md">Italiano</a> · 🇬🇧 <b>English</b></p>
 
@@ -24,7 +24,7 @@ exemption, and what leaves is always masked (no setting turns it off).
 | 🔎 **Truth** | every answer says where it comes from: ✅ the vault [n], 🌐 the web with its link, ⚠️ «from my memory, not verified»; a false premise is corrected, never built upon (6 of 6, M130) | cites sources, but does not tell what it read from what it remembers |
 | ⚡ **Right and fast** | common questions: 70% right (before 16%), median 4 s; repeated: 0.04 s from the cache (M130) | — |
 | 🔎 **Vault answers** | every sentence of a deep answer is verified against the vault's passages; what is not supported is removed (M32: 0 unsupported sentences of 14 kept) | cites sources, but the sentences the model writes are not checked one by one |
-| 📏 **Measurement** | every choice has a numbered measurement (M1–M215), every error a number in BUGS.md, every limit is written down | performance is claimed, rarely measured in public |
+| 📏 **Measurement** | every choice has a numbered measurement (M1–M221), every error a number in BUGS.md, every limit is written down | performance is claimed, rarely measured in public |
 | 🌙 **A life of her own** | consolidates memories, thinks when idle, dreams and paints the dream, reviews herself every day from her own logs | wakes up only when you write |
 | 🛠️ **Repairs herself** | fixes her own code in a sandbox, with tests, your approval, live tests and rollback | only the developer changes the code |
 | 🔏 **Signed rules** | a code of conduct bound to your installation's key: changed without a signature, Aurora does not start | rules in a prompt, changed without a trace |
@@ -263,6 +263,14 @@ test on the total gives p < 0.05; otherwise «a trend»; a loss is published all
 
 ![Aurora against the bare model, with Claude](docs/img/en/vs_bare_cloud.svg)
 ![Aurora against the bare model, local](docs/img/en/vs_bare_local.svg)
+
+**The best of both** (M219): the local model makes the short calls (routing, translation, gate, checks), Claude reads
+the sources and writes the answer. On the same 197 questions: 158 right against 161 for «all on Claude», p = 0.65 —
+**no measurable difference** — in half the time (11.2 s per answer against 19.9, median). Against bare Claude: 100
+against 93 of 128, p = 0.21: **a trend, not significant** (all on Claude gave p = 0.031).
+
+![The best of both against all on Claude](docs/img/en/granular.svg)
+![How long an answer takes](docs/img/en/granular_time.svg)
 
 ![The questions people really ask](docs/img/en/answers.svg)
 ![The vault realigned](docs/img/en/vault.svg)

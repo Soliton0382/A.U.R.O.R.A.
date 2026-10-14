@@ -7,6 +7,13 @@ import { el, info } from "../dom.js";
 import { apply, lang, t } from "../i18n.js";
 import { renderModes } from "./models_mode.js";
 import { renderCustom } from "./models_custom.js";
+import { renderChoice } from "./models_choice.js";
+
+// the tabs (ROADMAP 109): the choice first; the rows only under «Su misura»; «Panoramica» keeps the whole of before
+const TABS = ["choose", "custom", "media", "limits", "stats", "local", "overview"];
+// the 13 roles by what they do (mdl_router.ROLES)
+const GROUPS = { understand: ["route", "translate"], read: ["gate", "extract"], write: ["synthesis", "verify", "self"],
+  act: ["agent", "forge_write", "forge_judge"], background: ["vision", "rem", "service"] };
 
 export default {
   id: "models",
@@ -17,18 +24,21 @@ export default {
     this.root = root;
     root.classList.add("page");
     root.innerHTML = `
-      <h2 data-i18n="md.title"></h2><p class="muted" data-i18n="md.hint"></p>
-      <div class="md-mode"></div>
-      <div class="md-state"></div>
-      <h3 class="setting-cat" data-i18n="md.roles"></h3><div class="md-roles"></div>
-      <div><button class="md-save" data-i18n="md.save"></button> <span class="muted md-out"></span></div>
-      <h3 class="setting-cat" data-i18n="mc.title"></h3><div class="md-custom"></div>
-      <h3 class="setting-cat" data-i18n="md.media"></h3><p class="muted" data-i18n="md.media_hint"></p><div class="md-media"></div>
-      <h3 class="setting-cat" data-i18n="md.limits"></h3><p class="muted" data-i18n="md.limits_hint"></p><div class="md-limits"></div>
-      <h3 class="setting-cat" data-i18n="md.stats"></h3>
-      <div class="ev"><select class="md-days"><option value="1">24 h</option><option value="7" selected>7 gg</option><option value="30">30 gg</option></select></div>
-      <div class="md-stats"></div>`;
+      <h2 data-i18n="md.title"></h2><p class="muted" data-i18n="mch.hint"></p>
+      <div class="prj-tabs md-tabs">${TABS.map((x, i) => `<button type="button" class="cat-chip${i ? "" : " on"}" data-tab="${x}" data-i18n="mch.tab.${x}"></button>`).join("")}</div>
+      <div class="md-tab" data-tab="choose"><div class="md-choice"></div></div>
+      <div class="md-tab" data-tab="custom" hidden><p class="muted" data-i18n="mch.custom_hint"></p><div class="md-roles"></div>
+        <div><button class="md-save" data-i18n="md.save"></button> <span class="muted md-out"></span></div></div>
+      <div class="md-tab" data-tab="media" hidden><p class="muted" data-i18n="md.media_hint"></p><div class="md-media"></div></div>
+      <div class="md-tab" data-tab="limits" hidden><p class="muted" data-i18n="md.limits_hint"></p><div class="md-limits"></div></div>
+      <div class="md-tab" data-tab="stats" hidden>
+        <div class="ev"><select class="md-days"><option value="1">24 h</option><option value="7" selected>7 gg</option><option value="30">30 gg</option></select></div>
+        <div class="md-stats"></div></div>
+      <div class="md-tab" data-tab="local" hidden><div class="md-custom"></div></div>
+      <div class="md-tab" data-tab="overview" hidden><p class="muted" data-i18n="md.hint"></p><div class="md-state"></div>
+        <div class="md-mode"></div><h3 class="setting-cat" data-i18n="mch.now_roles"></h3><div class="md-now"></div></div>`;
     apply(root);
+    root.querySelectorAll(".md-tabs button").forEach((b) => b.addEventListener("click", () => this.show(b.dataset.tab)));
     this.state = root.querySelector(".md-state");
     this.modeBox = root.querySelector(".md-mode");
     this.roles = root.querySelector(".md-roles");
@@ -40,8 +50,37 @@ export default {
       for (const row of this.roles.querySelectorAll(".md-role")) {
         changes[row.dataset.role] = { provider: row.querySelector("select:not(.md-pick)").value, model: row.querySelector("input").value.trim() };
       }
-      try { await call("/v1/aurora/models/roles", { method: "PUT", body: JSON.stringify(changes) }); this.out.textContent = t("md.saved"); }
+      try { await call("/v1/aurora/models/roles", { method: "PUT", body: JSON.stringify(changes) }); this.out.textContent = t("md.saved"); this.enter(); }
       catch (e) { this.out.textContent = t("ev.error", { m: e.message }); }
+    });
+  },
+
+  show(tab) {
+    this.root.querySelectorAll(".md-tabs button").forEach((x) => x.classList.toggle("on", x.dataset.tab === tab));
+    this.root.querySelectorAll(".md-tab").forEach((p) => { p.hidden = p.dataset.tab !== tab; });
+  },
+
+  // «Su misura»: the rows in five groups, a line each on why local or cloud
+  grouped(roles) {
+    const by = Object.fromEntries(roles.map((r) => [r.id, r]));
+    const out = [];
+    for (const [g, ids] of Object.entries(GROUPS)) {
+      const head = el("div", "md-group");
+      head.append(el("h3", "setting-cat", t(`mch.g.${g}`)), el("span", "muted", t(`mch.g.${g}.line`)));
+      out.push(head, ...ids.filter((id) => by[id]).map((id) => this.row(by[id])));
+    }
+    out.push(...roles.filter((r) => !Object.values(GROUPS).flat().includes(r.id)).map((r) => this.row(r)));   // a role added later
+    return out;
+  },
+
+  // «Panoramica»: what each step uses now, read only
+  nowList(roles) {
+    const label = Object.fromEntries((this.providers || []).map((p) => [p.id, p.label]));
+    return roles.map((r) => {
+      const row = el("div", "ev");
+      row.append(el("strong", "", lang.startsWith("it") ? r.it : r.en),
+        el("span", r.provider === "local" ? "muted" : "", r.provider === "local" ? t("mch.local_short") : `${label[r.provider] || r.provider}${r.model ? ` · ${r.model}` : ""}`));
+      return row;
     });
   },
 
@@ -55,7 +94,9 @@ export default {
     line("muted", t("md.pictures"));
     this.providers = m.providers;
     renderModes(this.modeBox, m.providers, () => this.enter());      // 🧭 the whole: local, mixed, cloud, all cloud
-    this.roles.replaceChildren(...m.roles.map((r) => this.row(r)));
+    renderChoice(this.root.querySelector(".md-choice"), m, () => this.enter(), () => this.show("custom"));
+    this.roles.replaceChildren(...this.grouped(m.roles));
+    this.root.querySelector(".md-now").replaceChildren(...this.nowList(m.roles));
     renderCustom(this.root.querySelector(".md-custom"));          // 🧩 a local model of one's own (roadmap 73)
     this.loadMedia();
     this.loadLimits();
@@ -185,7 +226,8 @@ export default {
     if (r.provider !== "local") fill();
     warn.hidden = !(r.id === "vision" && r.provider !== "local");
     const name = el("div", "md-name");
-    name.append(el("strong", "", lang.startsWith("it") ? r.it : r.en), info(t("md.sees", { what: r.sees })));
+    name.append(el("strong", "", lang.startsWith("it") ? r.it : r.en), info(t("md.sees", { what: r.sees })),
+      el("small", "muted md-why", t(`mch.why.${r.id}`)));
     row.append(name, sel, pick, model, warn);
     return row;
   },

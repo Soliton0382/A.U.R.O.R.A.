@@ -25,6 +25,12 @@ IMAGE_EXT = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tif", ".tiff"}
 SEE = ("Describe this image precisely and completely: what it shows, the people, objects, places and "
        "their relations, and transcribe exactly any text, number, formula, table or chart values that are "
        "visible. Write in {lang}. Describe only what is visible; do not guess who people are.")
+SYS_ONLY = ("You classify a question. You do not see any file and you never answer the question. The owner attached "
+            "a picture or a video and wrote the question below about it. Reply with exactly one word:\n"
+            "ONLY — it can be answered entirely from what is seen or heard in the file: describe it, what is in it, "
+            "read its text, count, colours, where things are.\n"
+            "MORE — it also needs knowledge from elsewhere: facts about what is shown, history, laws, how to do "
+            "something, advice, a comparison, anything not visible.")
 SYS_DOMAIN = ("You classify a document into exactly one domain of a list. Reply with the domain id only, "
               "copied exactly from the list.")
 
@@ -71,6 +77,17 @@ def classify(llm, name: str, text: str) -> str:
     out = llm.complete(SYS_DOMAIN, f"DOMAINS:\n{listing}\n\nDOCUMENT: {name}\n{text[:2000]}", 12).answer.strip()
     out = out.split()[0].strip(".,:;`'\"") if out else ""
     return out if out in domains else "general"
+
+
+def only_about(model, question: str, attached: list[Attached]) -> bool:
+    """True when every file is a picture or a video and the question asks only about what is in them: the vault is
+    not searched and the gate not asked (ROADMAP D3: «descrivi la foto», 38 s of which 10.5 s searching the vault)."""
+    if not attached or any(a.kind == "document" for a in attached) or not question.strip():
+        return False
+    sure = getattr(model, "decide", lambda *a: None)(SYS_ONLY, f"QUESTION: {question}", ["ONLY", "MORE"])
+    if sure:
+        return sure["ONLY"] > 0.5
+    return model.complete(SYS_ONLY, f"QUESTION: {question}", 4).answer.strip().upper().startswith("ONLY")
 
 
 class AttachmentHandler:

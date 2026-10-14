@@ -23,13 +23,14 @@ shown cannot be taken back.
 """
 from __future__ import annotations
 
+import re
 import time
 import uuid
 from typing import Callable
 
-from . import kno_abstain, kno_followup, kno_split, kno_think, mdl_router, sys_config, sys_log, txt_lang
+from . import kno_abstain, kno_attach, kno_followup, kno_split, kno_think, mdl_router, sys_config, sys_log, txt_lang
 from .kno_self import SelfTalk
-from .kno_stages import SYS_TRANSLATE, SYS_TRANSLATE_ALL, Emit, Stages
+from .kno_stages import SYS_TRANSLATE, SYS_TRANSLATE_ALL, Emit, Stages, as_text, untag
 from .kno_trail import Answer, Trail, hebb  # noqa: F401 — imported from here by the API, the agents, the tests
 from .mdl_llm import LLM
 from .sol_index import Indexer
@@ -40,9 +41,31 @@ from .sol_writer import VaultWriter
 
 
 
+OPTION = re.compile(r"(?m)^\s*[A-J]\)")              # the options of a question with choices, «A) …»
+FINAL = re.compile(r"(?im)^\W*answer\s*:\s*(.+?)\W*$")
+
+
+def cites(text: str) -> list[str]:
+    return sorted(re.findall(r"\[\d+\]", text))
+
+
+def final(text: str) -> str:
+    """The result of a last line «Answer: …» (the form a benchmark asks for), without its markdown; or nothing."""
+    m = FINAL.search(text.strip().splitlines()[-1]) if text.strip() else None
+    return m.group(1).replace("*", "").strip() if m else ""
+
+
+def wordy(question: str) -> bool:
+    """A question made mostly of words, worth a translation: an ARC grid is digits — translated whole it cost 7.5 s
+    more a puzzle, and the solution reads the grid as it is (C320)."""
+    chars = [c for c in question if not c.isspace()]
+    return not chars or sum(c.isalpha() for c in chars) >= 0.4 * len(chars)
+
+
 def translate_budget(question: str) -> int:
-    """Tokens for the question's English translation: room for all of it (C269), within reason."""
-    return max(200, min(4000, len(question) // 2))
+    """Tokens for the question's English translation: room for all of it (C269), within reason — a character a token,
+    since a grid's «0 0 0» is one (C320: half of that cut every ARC grid at 419 digits of 701)."""
+    return max(200, min(4000, len(question)))
 
 
 def whole(question: str, translation: str | None) -> bool:
@@ -52,6 +75,8 @@ def whole(question: str, translation: str | None) -> bool:
     t = (translation or "").strip()
     if not t:
         return False
+    if len(t) > 1.5 * len(question) + 100 or len(OPTION.findall(t)) != len(OPTION.findall(question)):
+        return False                                 # the problem worked out, not translated (C320)
     if len(question) >= 300:
         return len(t) >= 0.6 * len(question)
     return len(question) < 80 or len(t) >= 0.5 * len(question)
@@ -123,12 +148,14 @@ class Pipeline(Stages, SelfTalk):
         focus = (focus or []) + [f for f in auto_focus if f not in (focus or [])]
         lang = txt_lang.detect(question)
         translation = None
-        if lang != "en":
+        if lang != "en" and wordy(question):
             # room for the whole question (C269: 200 tokens cut a long one, and with the pivot the cut translation
             # became the question — an ARC grid of 2,187 characters lost its test)
-            translation = self._for("translate").complete(SYS_TRANSLATE, question, translate_budget(question)).answer
+            translation = untag(self._for("translate").complete(SYS_TRANSLATE, as_text(question),
+                                                                translate_budget(question)).answer)
             if not whole(question, translation):     # cut short (C286): once more, every sentence asked for
-                again = self._for("translate").complete(SYS_TRANSLATE_ALL, question, translate_budget(question)).answer
+                again = untag(self._for("translate").complete(SYS_TRANSLATE_ALL, as_text(question),
+                                                          translate_budget(question)).answer)
                 ev("translate.again", {"cut": translation, "again": again})
                 translation = again if whole(question, again) else None
             ev("translate", {"from": lang, "translation": translation})
@@ -139,7 +166,18 @@ class Pipeline(Stages, SelfTalk):
         if self._pivot:
             ev("pivot", {"lang": lang})
 
+        # a question about the attached picture only: its description is the one passage (D3)
+        alone_file = bool(attached) and kno_attach.only_about(self._for("route"), native, attached)
+        if alone_file:
+            ev("attach.only", {"files": [a.name for a in attached]})
+
         def retrieve(recall: list[str] | None = None):
+            if alone_file:
+                hits = self._with_attached(question, translation, [], attached)
+                ev("retrieval.hits", {"hits": [{"n": i, "sid": h.sid, "domain": h.soliton.domain, "title": h.soliton.title,
+                                                "source": h.soliton.source_id, "rerank": round(h.rerank, 3)}
+                                               for i, h in enumerate(hits, 1)]})
+                return hits, []
             # a case told as a story is searched by its problems and the provisions they need (C183); the story whole
             # only when those find nothing
             hits, subs = kno_split.search(self, question, lambda: self.search.search(question, translation, run_id=run_id,
@@ -186,6 +224,14 @@ class Pipeline(Stages, SelfTalk):
                     ev("lessons", {"used": [{"id": x["id"], "when": x["when"], "cos": x["cos"]} for x in found]})
             except Exception as e:                       # noqa: BLE001 — experience is a help, never a reason to fail
                 self.log.warning("lessons not read: %s", e)
+        # what she knows of the person asking (C321: a Nutella dessert advised a day after «allergico alle nocciole»)
+        self._about = ""
+        if mode != "vault" and wordy(native):
+            try:
+                from . import kno_about
+                self._about = kno_about.facts(self, native, ev)
+            except Exception as e:                       # noqa: BLE001 — a help, never a reason to fail
+                self.log.warning("the person's facts not read: %s", e)
         # a later year named: the future is said at once, without searching for it (C284)
         early = ("future" if mode != "vault" and kno_abstain.later_year(native)
                  and kno_abstain.kind(self._for("synthesis"), native) == "future" else "")
@@ -207,7 +253,7 @@ class Pipeline(Stages, SelfTalk):
         if self._pivot and not result.abstained:
             result.text = self._back(result.text, lang, ev)
         self._pivot = False
-        self._lessons = ""
+        self._lessons = self._about = ""
         result.seconds = time.time() - t0
         result.speed = None if result.abstained else self.speed
         ev("answer.final", {"text": result.text, "abstained": result.abstained, "sources": result.sources,
@@ -226,14 +272,16 @@ class Pipeline(Stages, SelfTalk):
 
     def _back(self, text: str, lang: str, ev: Emit) -> str:
         """The English answer in the language of the question, citations where they were; the English one if the
-        translation loses a citation or comes back empty."""
-        import re
+        translation loses a citation, its last line «Answer: …», most of its length, or comes back empty (C320: the
+        local translator cut a solution at «Verifica: f(20, 30) =»)."""
         from .kno_stages import LANGS, SYS_BACK
-        out = self._for("translate").complete(SYS_BACK.format(lang=LANGS.get(lang, lang)), text,
-                                              max(400, len(text) // 2)).answer.strip()
-        cites = lambda t: sorted(re.findall(r"\[\d+\]", t))                     # noqa: E731
-        if not out or cites(out) != cites(text):
-            ev("pivot.back", {"kept": "english", "why": "empty" if not out else "citations changed"})
+        out = untag(self._for("translate").complete(SYS_BACK.format(lang=LANGS.get(lang, lang)), as_text(text),
+                                                    max(400, len(text))).answer)
+        why = "empty" if not out else "citations changed" if cites(out) != cites(text) else \
+            "cut short" if len(text) >= 300 and len(out) < 0.6 * len(text) else \
+            "answer line lost" if final(text) and final(text) not in out[-300:].replace("*", "") else ""
+        if why:
+            ev("pivot.back", {"kept": "english", "why": why})
             return text
         ev("pivot.back", {"lang": lang, "chars": len(out)})
         return out

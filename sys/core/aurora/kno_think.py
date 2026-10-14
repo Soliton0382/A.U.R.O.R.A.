@@ -15,7 +15,7 @@ The way taken is said in the chat (event «think»: asked, used, why). The memor
 """
 from __future__ import annotations
 
-from . import kno_read
+from . import kno_grid, kno_read
 
 MODES = ("vault", "light", "medium", "deep", "auto")
 VAULT_FIRST = 0.6       # the best vault passage's re-rank that sends a FACT to the vault before the web (M194)
@@ -52,6 +52,8 @@ def answer(p, question: str, translation: str | None, mode: str, retrieve, class
     open_pages = mode != "light"
     steps = []
     if kind == "solve":                               # an exercise: reasoned first, then the web, then memory (C272)
+        if kno_grid.puzzle(question) and kno_grid.worth(p):   # a grid puzzle: its rule as a program (ROADMAP 105)
+            steps.append(("grid", lambda: ("read", kno_grid.solve(p, question, ev))))
         steps.append(("reason", lambda: ("read", kno_read.from_reasoning(p, question, ev))))
         steps.append(("web", lambda: ("read", kno_read.from_web(p, question, ev, "explain", open_pages, translation))))
     elif focused and not deep:                        # a follow-up: the sources of the answer before come first

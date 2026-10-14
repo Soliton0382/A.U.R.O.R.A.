@@ -56,15 +56,16 @@ EMPTY = re.compile(r"(?i)^\W*(?:i |questi |le |gli )?(?:testi|passaggi|documenti
 TASK = re.compile(r"\n\s*[A-P]\)\s|(?i:\b(?:risposta|answer)\s*:)")
 
 
-def _exp(p) -> str:
-    """Her lessons for this question (kno_lessons, set by the pipeline for the run), or nothing."""
-    return getattr(p, "_lessons", "") or ""
+def _exp(p, about: bool = True) -> str:
+    """Her lessons for this question (kno_lessons) and what she knows of the person asking (kno_about, C321), set by
+    the pipeline for the run; or nothing."""
+    return (getattr(p, "_lessons", "") or "") + ((getattr(p, "_about", "") or "") if about else "")
 
 
 def kind(p, question: str) -> str:
     if TASK.search(question):                         # options to choose, or the answer's form asked: an exercise (C274)
         return "solve"
-    out = p._for("route").complete(SYS_KIND + _exp(p), question[:1500], 4).answer.strip().upper()
+    out = p._for("route").complete(SYS_KIND + _exp(p, about=False), question[:1500], 4).answer.strip().upper()
     return ("case" if out.startswith("CASE") else "explain" if out.startswith("EXPLAIN")
             else "solve" if out.startswith("SOLVE") else "fact")
 

@@ -176,3 +176,23 @@ class VaultReader:
                 break
         rows.sort(key=lambda r: r["created_at"], reverse=True)
         return [Soliton.from_row(r) for r in reversed(rows[:n])]
+
+    def of_type(self, domain: str, kind: str, n: int, before: str | None = None, text: str = "") -> list[Soliton]:
+        """The n most recent memory solitons of one type (extra.type: «dream»…), newest first, older than `before`,
+        holding `text` — every shard read, not the last few hundred (the Dreams page: they got lost in the chat)."""
+        if n <= 0:
+            return []
+        sql = f"{_SELECT} WHERE json_extract(extra, '$.type') = ?"
+        args: list = [kind]
+        if before:
+            sql, args = sql + " AND created_at < ?", args + [before]
+        if text:
+            sql, args = sql + " AND text LIKE ? ESCAPE '\\'", args + ["%" + text.replace("\\", "\\\\")
+                                                                         .replace("%", "\\%").replace("_", "\\_") + "%"]
+        rows = []
+        for shard in reversed(self.layout.shards("memory", domain)):   # newest shards first
+            rows += [dict(r) for r in self._con(shard).execute(sql + " ORDER BY created_at DESC LIMIT ?", (*args, n))]
+            if len(rows) >= n:
+                break
+        rows.sort(key=lambda r: r["created_at"], reverse=True)
+        return [Soliton.from_row(r) for r in rows[:n]]

@@ -9,6 +9,8 @@ import reports from "./modules/reports.js";
 import alerts from "./modules/alerts.js";
 import chat from "./modules/chat.js";
 import diary from "./modules/diary.js";
+import dreams from "./modules/dreams.js";
+import accounts from "./modules/accounts.js";
 import dj from "./modules/dj.js";
 import memory from "./modules/memory.js";
 import care from "./modules/care.js";
@@ -49,7 +51,7 @@ import { kinds as homeKinds } from "./modules/home.js";
 let local = { views: [] };
 try { local = await import("./local/index.js"); } catch { /* none on this installation */ }
 
-export const views = [chat, approvals, reports, security, ciso, firewall, aurorafw, secDefence, secWatch, secOut, secTrace, autonomy, diary, memory, social, dj, care, home, calendar, projects, routines, models, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, settings, https, guide, bugreport, ideas];
+export const views = [chat, approvals, reports, security, ciso, firewall, aurorafw, secDefence, secWatch, secOut, secTrace, autonomy, diary, dreams, memory, social, dj, care, home, calendar, projects, routines, models, accounts, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, settings, https, guide, bugreport, ideas];
 views.push(...homeKinds, ...local.views);
 export const widgets = [sky, alerts, metrics];
 
@@ -58,7 +60,7 @@ export const widgets = [sky, alerts, metrics];
 export const groups = [
   { id: "chat", views: ["chat"] },
   { id: "activity", icon: "🛎️", title: "nav.g.activity", views: ["approvals", "notifications", "reports", "runs"] },
-  { id: "life", icon: "✨", title: "nav.g.life", views: ["calendar", "diary", "memory", "social", "dj", "care"] },
+  { id: "life", icon: "✨", title: "nav.g.life", views: ["calendar", "diary", "dreams", "memory", "social", "dj", "care"] },
   // 🏠 the house (owner, 2026-10-12: «sotto casa avremmo tab casa e poi…»): Home Assistant's pages
   { id: "home", icon: "🏠", title: "nav.g.home", views: ["home", ...homeKinds.map((v) => v.id),
   ...local.views.filter((v) => v.group === "home").map((v) => v.id)] },
@@ -67,7 +69,7 @@ export const groups = [
   // the security area (owner, 2026-10-08: «sotto menù specifici CISO, etc… separate e pulite»)
   { id: "security", icon: "🛡️", title: "nav.g.security", views: ["security", "ciso", "firewall", "aurorafw", "secdefence", "secwatch", "secout", "sectrace"] },
   { id: "autonomy", views: ["autonomy"] },
-  { id: "system", icon: "⚙️", title: "nav.g.system", views: ["status", "models", "plugins", "users", "settings", "https", "updates"] },
+  { id: "system", icon: "⚙️", title: "nav.g.system", views: ["status", "models", "accounts", "plugins", "users", "settings", "https", "updates"] },
   { id: "help", icon: "❓", title: "nav.g.help", views: ["guide", "bugreport", "ideas"] },
 ];
 // the machine's pages (owner, 2026-10-06, multi-user): a user sees neither them in the menu nor their data (the API

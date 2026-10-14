@@ -30,6 +30,8 @@ Every number below comes from a numbered measurement in [MEASUREMENTS.md](MEASUR
 
 ![Aurora against the bare model, with Claude](img/en/vs_bare_cloud.svg)
 ![Aurora against the bare model, local](img/en/vs_bare_local.svg)
+![The best of both against all on Claude](img/en/granular.svg)
+![How long an answer takes](img/en/granular_time.svg)
 ![The questions people really ask](img/en/answers.svg)
 ![The vault realigned](img/en/vault.svg)
 ![Hybrid search](img/en/hybrid.svg)

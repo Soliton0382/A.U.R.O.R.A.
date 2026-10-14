@@ -92,10 +92,11 @@ class SelfTalk:
         (past turns, session memories, thoughts, dreams) plus every session memory of the last days.
         The recent turns are already in context and are not repeated."""
         seen = {t.sid for t in recent}
-        horizon = sns_clock.now(self.cfg) - timedelta(days=self.cfg["AURORA_MEMORY_RECALL_DAYS"])
+        days = int(self.cfg["AURORA_MEMORY_RECALL_DAYS"] or 0)      # 0: no limit (owner, 15 Oct)
+        horizon = sns_clock.now(self.cfg) - timedelta(days=days) if days > 0 else None
         hits = self.search.search(question, None, top_k=self.cfg["AURORA_MEMORY_RECALL_K"], sections={"memory"})
         found = {h.sid: h.soliton for h in hits
-                 if h.sid not in seen and datetime.fromisoformat(h.soliton.created_at) >= horizon}
+                 if h.sid not in seen and (horizon is None or datetime.fromisoformat(h.soliton.created_at) >= horizon)}
         days = self.cfg["AURORA_MEMORY_SELF_DAYS"]
         if days and self.reader.layout.shards("memory", "reflection"):
             since = sns_clock.now(self.cfg) - timedelta(days=days)

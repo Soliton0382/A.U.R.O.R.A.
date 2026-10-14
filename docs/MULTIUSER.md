@@ -54,6 +54,19 @@ purge listing, not hidden.
   (`AURORA_USERS_MFA=true`); a code is never accepted twice; the failed-login lock already in the API applies.
 - The API key stays the admin's, for third-party clients. Personal keys for users: a later phase.
 
+## Cloud accounts (ROADMAP 106, 15 Oct 2026)
+
+- An account is a provider's key or a Claude subscription signed in from the ☁️ Cloud accounts page (Aurora runs
+  `claude auth login` in the account's own CLAUDE_CONFIG_DIR, shows the link, takes the pasted code: no terminal).
+- «Shared» accounts are the installation's (the admin adds them); each user may add their own.
+- The admin's policy: **one for all** (the default, as before), **each their own** (without one: the local model),
+  **their own, else the shared one**. The admin's own work always uses the shared accounts.
+- Without a shared account, the installation's setup of before (the .env's keys, the service user's claude login)
+  is the shared one.
+- Stored in `<STATUS>/cloud_accounts.json` (0600) and `<STATUS>/cloud_accounts/<id>/` (0700): only Aurora's service
+  reads them — and the machine's administrator, who can read anything; keys are never shown whole on the page.
+- The sign-in from the page needs a terminal of its own (pty): Linux and macOS; on Windows, `claude auth login` once.
+
 ## Ceiling of users
 
 From a measurement, not a guess (law 2): concurrent questions the LLM serves with an acceptable time to the

@@ -1209,14 +1209,14 @@
    "key": "AURORA_MEMORY_RECALL_DAYS",
    "type": "int",
    "category": "memory",
-   "recommended": "365",
-   "evidence": "owner (2026-10-01: at least 12 months)",
-   "en": "How far back the recall by meaning reaches in long-term memory.",
-   "it": "Fin dove arriva nel passato il richiamo per significato nella memoria a lungo termine.",
+   "recommended": "0",
+   "evidence": "owner (2026-10-01: at least 12 months; 2026-10-15: «senza limite di retention di tempo»)",
+   "en": "How far back, in days, the recall by meaning reaches in long-term memory; 0 = no limit (what was said years ago, an allergy, is still found).",
+   "it": "Fin dove arriva nel passato, in giorni, il richiamo per significato nella memoria a lungo termine; 0 = nessun limite (anche ciò che hai detto anni fa, un'allergia, si ritrova).",
    "services": [
     "aurora-api"
    ],
-   "min": 1,
+   "min": 0,
    "max": 36500
   },
   {

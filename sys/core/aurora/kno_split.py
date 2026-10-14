@@ -24,7 +24,6 @@ SYS_SPLIT = ("The user tells a situation with one or more problems. Write the qu
              "decide la sostituzione dei contatori dell'acqua in un condominio?», «Un condomino può allacciarsi alle "
              "parti comuni?». No people's names, no feelings, no story. Same language as the message. One per line, "
              "nothing else.")
-SYS_TRANSLATE = "Translate the user's question into English. Output only the translation."
 MARK = "THE PROBLEMS IT HOLDS"
 SYS_CASE = ("\nTHIS QUESTION IS A CASE told by the owner, with the problems it holds listed after it. For EACH problem, "
             "in its own short paragraph, say what the extracted provisions establish that applies to it (the rule, who "
@@ -101,11 +100,12 @@ def search(pipeline, question: str, whole, ev, run_id: str | None = None) -> tup
     if not wanted(question, int(cfg["AURORA_PIPELINE_SPLIT_CHARS"] or 0)):
         return whole(), []
     from . import kno_cites
+    from .kno_stages import SYS_TRANSLATE, as_text, untag       # here: kno_stages imports this module (C320)
     cited = kno_cites.hits(pipeline, question, ev)       # the provisions a lawyer would read, from the vault
     subs = split(pipeline._for("translate"), question)
     found = []
     for s in (subs if len(subs) >= 2 else []):
-        tr = pipeline._for("translate").complete(SYS_TRANSLATE, s, 120).answer
+        tr = untag(pipeline._for("translate").complete(SYS_TRANSLATE, as_text(s), 120).answer)
         found.append(pipeline.search.search(s, tr, candidates=80, run_id=run_id))   # M128: same best as 150, 4.7 s each
     if not cited and not found:
         return whole(), []

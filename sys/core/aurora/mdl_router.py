@@ -59,10 +59,21 @@ def base_url(provider: str, cfg: sys_config.Config) -> str:
 def configured(provider: str, cfg: sys_config.Config) -> bool:
     """Whether a provider can be asked: its key (and, for custom, its address) set."""
     spec = PROVIDERS[provider]
-    if spec["kind"] in ("local", "claude_code"):
+    if spec["kind"] == "local":
+        return True
+    from . import mdl_accounts
+    try:                                                 # the user's account, as the admin's policy gives it (106)
+        account = mdl_accounts.pick(cfg, provider)
+    except Exception:                                    # noqa: BLE001 — no accounts readable: the setup of before
+        account = mdl_accounts.LEGACY
+    if account is None:
+        return False
+    if spec["kind"] == "claude_code":
         return True
     if spec.get("base_key") and not base_url(provider, cfg):
         return False
+    if account is not mdl_accounts.LEGACY:
+        return bool(spec.get("key_optional") or account.get("key"))
     return bool(spec.get("key_optional") or cfg.values.get(spec.get("key", "")))
 ROLES = {   # role: (Italian label, English label, what it sees)
     "route": ("Smistamento delle domande", "Routing the questions", "your message, the last turns"),
@@ -246,7 +257,8 @@ class OpenAICompatLLM:
         self.cfg = cfg or sys_config.get()
         self.name, self.model = provider, model
         spec = PROVIDERS[provider]
-        self.base, self.key = base_url(provider, self.cfg), str(self.cfg.values.get(spec["key"]) or "")
+        from . import mdl_accounts
+        self.base, self.key = base_url(provider, self.cfg), mdl_accounts.key_for(self.cfg, provider, spec["key"])
         self.key_optional = bool(spec.get("key_optional"))
         self.log = sys_log.get_logger("llm_client")
         self.last_speed = None
@@ -571,8 +583,13 @@ def model_for(role: str, local, cfg: sys_config.Config | None = None):
 
 def cloud_client(provider: str, model: str, cfg: sys_config.Config):
     """A cloud provider's client, not masked yet (model_for and CloudBase wrap it); None when an OpenAI-compatible
-    provider has no model chosen."""
-    from . import mdl_cloud
+    provider has no model chosen, or when the admin's policy leaves this user without an account for it (106)."""
+    from . import mdl_accounts, mdl_cloud
+    try:
+        if mdl_accounts.pick(cfg, provider) is None:
+            return None
+    except Exception:                                    # noqa: BLE001 — no accounts readable: the setup of before
+        pass
     kind = PROVIDERS[provider]["kind"]
     if kind == "claude_code":
         return mdl_cloud.ClaudeCodeLLM(cfg, model or None)

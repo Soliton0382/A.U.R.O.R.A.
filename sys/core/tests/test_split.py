@@ -101,14 +101,79 @@ def test_a_picture_attached_to_the_question_is_never_closed_by_the_gate():
     import pytest
     from aurora.kno_stages import Stages
 
-    answers = iter(["NONE", "- Una persona in armatura sotto la pioggia [1]."])
+    answers = iter(["NONE", "- Una persona in armatura sotto la pioggia [1].", "NONE"])   # gate, two domains
     me = SimpleNamespace(cfg={"AURORA_PIPELINE_GATE": True, "AURORA_PIPELINE_GATE_KEEP": 0},
                          _for=lambda role: SimpleNamespace(complete=lambda s, u, n, think=False: SimpleNamespace(answer=next(answers))))
     hit = SimpleNamespace(sid="p", rerank=0.003, query_used="attachment",
                           soliton=SimpleNamespace(domain="attachment", title="foto.png", source_id="attachment:r:foto.png",
                                                   text="A person in futuristic armour, standing in the rain."))
+    other = SimpleNamespace(sid="v", rerank=0.001, query_used="describe the photo",
+                            soliton=SimpleNamespace(domain="general", title="x", source_id="x", text="Photography basics."))
     events = []
     with pytest.raises(KeyError):                  # it gets past the gate to the extraction; synthesis settings missing
-        Stages._answer(me, "Describe the photo I attach", [hit], "", lambda e, p: events.append((e, p)))
+        Stages._answer(me, "Describe the photo I attach", [hit, other], "", lambda e, p: events.append((e, p)))
     gate = [p for e, p in events if e == "gate"][0]
     assert gate["open"] and gate["passages"] == [1]
+
+
+def test_only_the_attached_picture_skips_the_gate():
+    """D3: the passages are all the attached file's — the gate would keep them anyway, it is not asked."""
+    import pytest
+    from aurora.kno_stages import Stages
+
+    asked = []
+    me = SimpleNamespace(cfg={"AURORA_PIPELINE_GATE": True, "AURORA_PIPELINE_GATE_KEEP": 0},
+                         _for=lambda role: SimpleNamespace(complete=lambda s, u, n, think=False: asked.append(role)
+                                                           or SimpleNamespace(answer="- A dog [1].")))
+    hit = SimpleNamespace(sid="p", rerank=0.003, query_used="attachment",
+                          soliton=SimpleNamespace(domain="attachment", title="foto.png", source_id="attachment:r:foto.png",
+                                                  text="A dog on a sofa."))
+    events = []
+    with pytest.raises(KeyError):
+        Stages._answer(me, "Describe the photo", [hit], "", lambda e, p: events.append((e, p)))
+    assert "gate" not in asked and not [e for e, _ in events if e == "gate"]
+    assert asked == ["extract"]
+
+
+def test_a_question_only_about_the_picture_is_told_apart():
+    """D3: «descrivi la foto» → ONLY (no vault); a document attached, or no file, never."""
+    from aurora.kno_attach import Attached, only_about
+
+    def model(out):
+        return SimpleNamespace(complete=lambda s, u, n: SimpleNamespace(answer=out))
+    pic, doc = Attached("f.jpg", "image", []), Attached("a.pdf", "document", [])
+    assert only_about(model("ONLY"), "Descrivi la foto", [pic])
+    assert not only_about(model("MORE"), "Che pianta è? Come si cura?", [pic])
+    assert not only_about(model("ONLY"), "Riassumi", [pic, doc])
+    assert not only_about(model("ONLY"), "Descrivi", [])
+    sure = SimpleNamespace(decide=lambda s, u, opts: {"ONLY": 0.9, "MORE": 0.1})
+    assert only_about(sure, "Cosa c'è scritto?", [pic])
+
+
+def test_a_citation_after_the_full_stop_stays_with_its_sentence():
+    """C319: «Il cielo è azzurro.\n[1]» — the sentence was dropped for «no citation» and the lone «[1]» kept (too short
+    to verify): the answer came out as «[1] [1] [1]»."""
+    from aurora.kno_stages import Stages
+
+    me = SimpleNamespace(cfg={"AURORA_VERIFY_MODE": "all"},
+                         _for=lambda role: SimpleNamespace(complete=lambda s, u, n: SimpleNamespace(answer="YES")))
+    hit = SimpleNamespace(soliton=SimpleNamespace(text="A blue sky over a red house."))
+    events = []
+    text, dropped = Stages._verify(me, "Il cielo in alto è di un azzurro uniforme.\n[1]\n\nLa casa a sinistra è rossa scura. [1]",
+                                   [hit], lambda e, p: events.append((e, p)))
+    assert not dropped
+    assert text == "Il cielo in alto è di un azzurro uniforme [1].\n\nLa casa a sinistra è rossa scura [1]."
+    # the live run: the citation opening the next sentence, a list item's first sentence without one
+    text, dropped = Stages._verify(me, "Nel cartello c'è scritto **APERTO 9-18**, in nero.\n[1] Il cartello è bianco e "
+                                   "rettangolare. [1]\n\n- **Edificio**: si trova sulla sinistra. È un rettangolo rosso [1].",
+                                   [hit], lambda e, p: events.append((e, p)))
+    assert not dropped
+    assert text == ("Nel cartello c'è scritto **APERTO 9-18**, in nero [1]. Il cartello è bianco e rettangolare [1].\n\n"
+                    "- **Edificio**: si trova sulla sinistra. È un rettangolo rosso [1].")
+
+
+def test_a_verified_list_keeps_one_item_a_line():
+    from aurora.kno_stages import PARA, _layout
+
+    kept = ["Gli elementi:", "- **Cielo**: azzurro chiaro uniforme [1].", "- **Sole**: un cerchio giallo [1].", PARA]
+    assert _layout(kept) == "Gli elementi:\n- **Cielo**: azzurro chiaro uniforme [1].\n- **Sole**: un cerchio giallo [1]."

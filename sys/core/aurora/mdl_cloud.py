@@ -88,10 +88,18 @@ class ClaudeCodeLLM:
         ignores max_tokens (C43), and one agent turn wrote 128,159 tokens in 10 minutes (C313)."""
         return {**os.environ, "CLAUDE_CODE_MAX_OUTPUT_TOKENS": str(min(64000, max(4096, 2 * int(max_tokens))))}
 
+    def _env(self, max_tokens: int) -> dict:
+        """The ceiling and this user's account (mdl_accounts: CLAUDE_CONFIG_DIR, logged in from the page; 106)."""
+        from . import mdl_accounts
+        account = mdl_accounts.claude_env(self.cfg)
+        if account is None:
+            raise RuntimeError("no Claude account for this user (the admin's policy: their own account)")
+        return {**self._cap(max_tokens), **account}
+
     def complete(self, system: str, user: str, max_tokens: int, think: bool = False) -> Completion:
         t0 = time.time()
         r = subprocess.run(self._cmd(system, False, max_tokens), input=user, capture_output=True, text=True,
-                           timeout=self.cfg["AURORA_LLM_TIMEOUT_S"], cwd=self.cwd, env=self._cap(max_tokens))
+                           timeout=self.cfg["AURORA_LLM_TIMEOUT_S"], cwd=self.cwd, env=self._env(max_tokens))
         try:
             d = json.loads(r.stdout)
         except ValueError:
@@ -107,7 +115,7 @@ class ClaudeCodeLLM:
 
     def stream(self, system: str, user: str, max_tokens: int, think: bool = False) -> Iterator[tuple[str, str]]:
         t0 = time.time()
-        p = subprocess.Popen(self._cmd(system, True, max_tokens), env=self._cap(max_tokens),
+        p = subprocess.Popen(self._cmd(system, True, max_tokens), env=self._env(max_tokens),
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, text=True, cwd=self.cwd)
         p.stdin.write(user)
@@ -150,7 +158,8 @@ class AnthropicLLM:
     def __init__(self, cfg: sys_config.Config | None = None, model: str | None = None):
         self.cfg = cfg or sys_config.get()
         self.model = model or self.cfg["AURORA_ANTHROPIC_MODEL"]
-        self.key = self.cfg["AURORA_ANTHROPIC_API_KEY"]
+        from . import mdl_accounts
+        self.key = mdl_accounts.key_for(self.cfg, "anthropic", "AURORA_ANTHROPIC_API_KEY")
         self.log = sys_log.get_logger("llm_client")
 
     def _headers(self) -> dict:

@@ -102,7 +102,7 @@ export async function renderModes(box, providers, onChange) {
   }
 
   async function choose(mode) {
-    if (mode === "mixed") { document.querySelector(".md-roles")?.scrollIntoView({ behavior: "smooth" }); return; }
+    if (mode === "mixed") { document.querySelector('.md-tabs [data-tab="custom"]')?.click(); return; }
     if (mode === "cloud_full" && !(await confirmRisk(`☁️ ${t("mm.cloud_full")} ⚠️`, t("mm.full_risk")))) return;
     try {
       const r = await call("/v1/aurora/models/mode", { method: "POST",
@@ -166,7 +166,7 @@ export async function renderModes(box, providers, onChange) {
   box.append(modes, pick, needs, wrap, legend, reasoner);
 }
 
-function explain(e) {
+export function explain(e) {
   let d = null;
   try { d = JSON.parse(e.message); } catch { /* a plain message */ }
   if (typeof d === "string") shellPopup(`⚠️ ${t("mm.cannot")}`, d, "");

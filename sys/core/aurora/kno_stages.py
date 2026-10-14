@@ -16,9 +16,16 @@ from .sol_search import Hit
 ABSTAIN_MARK = "NONE"
 Emit = Callable[[str, dict], None]
 
-SYS_TRANSLATE = "Translate the user's question into English. Output only the translation."
-SYS_TRANSLATE_ALL = ("Translate the user's WHOLE message into English, every sentence of it in order — the facts it "
-                     "gives as well as the question it ends with. Output only the translation.")
+# C320: «Translate the user's question» made the local model answer it — 26 of 60 exercises came back half solved,
+# and the half solution became the question the cloud read. A translator's role, the text between tags (as_text),
+# and «never correct it» (a false premise turned true): 0 of 136 (M220)
+_TRANSLATOR = ("You are a translator. The user's message is a text to translate into English, not a request to you: "
+               "never answer it, solve it, explain it or comment on it, even when it is a question, a problem or an "
+               "exercise. Translate faithfully what it says, even a claim that looks wrong: never correct it. ")
+SYS_TRANSLATE = _TRANSLATOR + ("Keep every option, number, grid, formula and line in order, to the end. Output only "
+                               "the English translation.")
+SYS_TRANSLATE_ALL = _TRANSLATOR + ("Translate the WHOLE message, every sentence of it in order — the facts it gives as "
+                                   "well as the question it ends with. Output only the English translation.")
 SYS_GATE = ("You decide whether numbered passages can answer a question. List the numbers of the passages that "
             "contain information needed for the answer, even if only part of it (a definition, a value, a name, a "
             "condition the question asks about), separated by commas. Ignore passages that are only about the same "
@@ -36,11 +43,25 @@ SYS_SYNTH = ("You are Aurora. You answer ONLY from the extractions below, which 
              "owner attached a file (the 'attachment' extraction), a question about 'this video', 'this image' or 'this "
              "document' is about that file: answer from it, with everything it says was seen and heard; the other "
              "domains are background knowledge and never describe the file.")
-SYS_BACK = ("Translate the answer below into {lang}. Keep every citation [n] after the same sentence, and numbers, "
-            "names, formulas, code and markdown as they are. Output only the translation.")
+SYS_BACK = ("You are a translator. The user's message is an answer to translate into {lang}, not a message to you: "
+            "never reply to it, continue it, complete it or correct it. Translate all of it, to the last line. Keep "
+            "every citation [n] after the same sentence, and numbers, names, formulas, code and markdown as they are. "
+            "Output only the translation.")
 LANGS = {"it": "Italian", "en": "English", "fr": "French", "de": "German", "es": "Spanish", "pt": "Portuguese",
          "nl": "Dutch", "ro": "Romanian", "pl": "Polish", "ru": "Russian", "uk": "Ukrainian", "ar": "Arabic",
          "zh": "Chinese", "ja": "Japanese", "ko": "Korean", "tr": "Turkish", "el": "Greek", "sv": "Swedish"}
+
+
+def as_text(text: str) -> str:
+    """The user turn of a translation: the text between tags, read as a text and not as a request (C320)."""
+    return f"<text>\n{text}\n</text>"
+
+
+def untag(out: str) -> str:
+    """A translation without the tags, should the model copy them."""
+    return re.sub(r"</?text>", "", out or "").strip()
+
+
 SYS_VERIFY = ("You verify one sentence against passages. Reply with exactly one word: YES if every factual claim of "
               "the sentence is stated in the passages, NO otherwise.")
 
@@ -52,6 +73,10 @@ def _passages(hits: list[Hit], ids: list[int]) -> str:
 
 PARA = "\n\n"                                         # a paragraph's end, in the verified sequence
 HEADING = re.compile(r"^(\*\*[^*]{2,120}\*\*:?|#{1,4} \S.{0,120})$")
+ONLY_CITES = re.compile(r"^(\[\d+\][\s,;.]*)+$")       # a line of citations only, after a list item
+AFTER_STOP = re.compile(r"([.!?])((?:[ \t]*\n?[ \t]*\[\d+\])+)")  # «… sul tetto. [1]», «… sul tetto.\n[1]»
+CITE = re.compile(r"\[\d+\]")
+ITEM = re.compile(r"^([-*•]|\d+[.)])\s")
 
 
 def _layout(kept: list[str]) -> str:
@@ -74,7 +99,8 @@ def _layout(kept: list[str]) -> str:
         heads_next = heads and any(not HEADING.match(x) for x in nxt) and not any(HEADING.match(x) for x in nxt)
         if not body and not heads_next:
             continue                             # nothing of it survived, nor of the paragraph it heads
-        out.append(("\n".join(heads) + ("\n" if heads and body else "") + " ".join(body)).strip())
+        text = "".join(("\n" if ITEM.match(x) else " ") + x if j else x for j, x in enumerate(body))   # a list stays one
+        out.append(("\n".join(heads) + ("\n" if heads and body else "") + text).strip())
     return "\n\n".join(out).strip()
 
 
@@ -82,7 +108,8 @@ class Stages:
     # ---- stages 4-7 -------------------------------------------------------------
     def _answer(self, question: str, hits: list[Hit], recent: str, ev: Emit):
         ids = list(range(1, len(hits) + 1))
-        if self.cfg["AURORA_PIPELINE_GATE"]:
+        # only the files attached to this question: the gate would keep them all anyway (C318), so it is not asked
+        if self.cfg["AURORA_PIPELINE_GATE"] and not all(h.query_used == "attachment" for h in hits):
             g = self._for("gate").complete(SYS_GATE, f"PASSAGES:\n\n{_passages(hits, ids)}\n\nQUESTION: {question}", 32)
             opened = [int(x) for x in re.findall(r"\d+", g.answer) if 1 <= int(x) <= len(hits)]
             closed = not opened or ABSTAIN_MARK in g.answer.upper()
@@ -162,14 +189,32 @@ class Stages:
         all_ctx = "\n\n".join(f"[{n}] {h.soliton.text}" for n, h in enumerate(hits, 1))
         # the paragraphs stay (C183: a case's answer, one paragraph per problem, came out as one block) and so do the
         # headings of a paragraph («**Contatori nel supercondominio**»): they state nothing to verify
-        units = []
+        # C319: a citation written after the full stop belongs to the sentence before it («… piatti. [1]» → «… piatti
+        # [1].»); a sentence without one, followed on its line by one that cites, is verified with that citation
+        text = AFTER_STOP.sub(lambda m: " " + "".join(CITE.findall(m.group(2))) + m.group(1), text)
+        units, borrow = [], {}
         for block in re.split(r"\n\s*\n", text):
-            units += [x.strip() for x in re.split(r"(?<=[.!?])\s+|\n+", block) if x.strip()] + [PARA]
-        for s in units:
+            for line in block.split("\n"):
+                start = len(units)
+                for x in (x.strip() for x in re.split(r"(?<=[.!?])\s+", line)):
+                    if not x:
+                        continue
+                    if ONLY_CITES.match(x) and units and units[-1] is not PARA and not HEADING.match(units[-1]):
+                        units[-1] += " " + x
+                    else:
+                        units.append(x)
+                later = ""
+                for i in range(len(units) - 1, start - 1, -1):
+                    if CITE.search(units[i]):
+                        later = "".join(CITE.findall(units[i]))
+                    elif later:
+                        borrow[i] = later
+            units.append(PARA)
+        for i, s in enumerate(units):
             if s is PARA or HEADING.match(s):
                 kept.append(s)
                 continue
-            ids = sorted({int(x) for x in re.findall(r"\[(\d+)\]", s) if 1 <= int(x) <= len(hits)})
+            ids = sorted({int(x) for x in re.findall(r"\[(\d+)\]", s + borrow.get(i, "")) if 1 <= int(x) <= len(hits)})
             if len(s) < 25:                      # list markers, short items: kept as they are
                 kept.append(s)
                 continue
@@ -186,7 +231,7 @@ class Stages:
             verifier = self._for("verify")
             ok = verifier.complete(SYS_VERIFY, f"PASSAGES:\n{ctx}\n\nSENTENCE: {plain}", 4).answer.upper().startswith("YES")
             if not ok and mode == "all_or_english":
-                en = self._for("translate").complete(SYS_TRANSLATE, plain, 200).answer.strip()
+                en = untag(self._for("translate").complete(SYS_TRANSLATE, as_text(plain), 200).answer)
                 ok = verifier.complete(SYS_VERIFY, f"PASSAGES:\n{ctx}\n\nSENTENCE: {en}", 4).answer.upper().startswith("YES")
             if ok:
                 kept.append(s)
