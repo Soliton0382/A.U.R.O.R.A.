@@ -3324,3 +3324,34 @@ while it is written — the verification may still take sentences out of it.
 What the whole run found: self-repair could propose nothing since two tests read the repository's root (C312); a
 routine held the run queue with a 128,159-token turn and the same read 8 times (C313). Not measured: memory over days
 (a test user and a night in between: the roadmap's last part of 18).
+
+## M213 — Cloudflare's refused traffic: counted, not incidents (14 October 2026; ROADMAP 103 step 1)
+
+`sec_shared.classify` replayed on every incident kept (`incidents.json`, 352 items, 223 from the owner's checks):
+
+| | incidents | sources | lines |
+|---|---|---|---|
+| from a shared network, every sample line denied → **grouped** | **56** (6–14 Oct) | 46 Cloudflare addresses | 2,800, all on port 80 |
+| still incidents: scanning from inside the house (5–10 Oct) | 144 | home addresses | — |
+| still incidents: scanning from an address of no shared network | 1 | 45.132.x | — |
+| still incidents: ATP match, invalid-traffic spikes | 22 | — | — |
+
+From the next start of aurora-api those 56 would have been one line a day in `security/shared_denied.json` and one
+notice a day («Cloudflare: N tentativi già rifiutati… SSL/TLS Full (strict) e Always Use HTTPS»). Traffic from a
+shared network that the firewall let through stays an incident. Test: `test_sec_shared.py` (3).
+
+Steps 2 and 3 (same day): the owner's Cloudflare token, asked read-only — zones visible **0**, account access rules
+**403**, so `cloudflare_culprits` answers with the three permissions to add, not an empty list. Nothing blocked live:
+the IP Access Rule calls and the GraphQL query are checked against a fake Cloudflare (`test_sec_fwport.py`, 7 with
+the address+port plans), not yet against the real API.
+
+Live, once the token had them (Zone Read and Analytics Read on the owner's zone, Account Firewall Access Rules Edit;
+measured 14 Oct ≈ 17:00, last 24 h): **42 clients, 1,316 requests** the origin did not answer (all HTTP 522: the
+firewall drops). By `looks()`: 10 scanners (secrets, admin pages) — one Google Cloud machine alone 1,262 requests for
+/.aws/credentials, /.netrc, keyfile.json…; 29 unknown with few requests (mostly «/»); 2 Google's app-links service;
+1 Aurora's own app (push-ack on :8443, away from home). Account access rules: 0. The account's own analytics answer
+«not authorized» for per-client data: the zone is the way. Then, on the owner's yes (the 1 «Aurora's app» client is
+the owner on a VPN: left alone), the **10 scanners blocked at Cloudflare for 7 days** — 10 created, 10 read back from
+the account (9 `ip`, 1 `ip6`: an IPv6 client needs target ip6, fixed before the call). From the next start of
+aurora-api, with AURORA_CLOUDFLARE_AUTOBLOCK on, she does the same by herself every 30 minutes (the last hour's
+scanners, AURORA_DEFENCE_HOURS, at most AURORA_DEFENCE_MAX_PER_DAY a day; `test_sec_fwport.py`, 10).

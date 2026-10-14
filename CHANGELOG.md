@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.25 — 2026-10-14
+
+1 publications since v0.2.24.
+
+- 2026-10-14 Cloudflare: refused traffic grouped, culprits and blocks at Cloudflare (auto optional), address+port blocks on the firewall; memory-over-days bench; plugin guide with the token's permissions
+
 ## v0.2.24 — 2026-10-14
 
 1 publications since v0.2.23.

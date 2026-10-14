@@ -71,7 +71,12 @@ async def agent(request: Request) -> dict:
     goal = str(body.get("goal", "")).strip()
     if not goal:
         raise HTTPException(status_code=400, detail="empty goal")
-    job = _agent_job(goal, str(body.get("context", "")), remember=body.get("remember", True) is not False, asked=True)
+    # «quiet»: a benchmark's run (bench_repair): its proposals are rejected by the bench itself, so the owner is not
+    # notified of them (C314: four «Aurora aspetta la tua approvazione» for seeded bugs); the admin's only
+    quiet = ("approval.pending", "forge.request", "project.update", "project.progress") \
+        if body.get("quiet") and me() == _admin() else ()
+    job = _agent_job(goal, str(body.get("context", "")), remember=body.get("remember", True) is not False, asked=True,
+                     quiet=quiet)
     return {"run_id": start_run(goal, origin="agent", job=job)["id"]}
 
 

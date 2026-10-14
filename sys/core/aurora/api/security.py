@@ -163,14 +163,26 @@ async def defence_release(request: Request) -> dict:
 
 
 def watch_defence() -> None:
-    """Every 5 minutes: the automatic blocks whose time is over are lifted (a thread of the API)."""
+    """Every 5 minutes: the blocks whose time is over are lifted — automatic, address+port, Cloudflare (a thread of
+    the API); every 30, the scanners behind Cloudflare blocked there when AURORA_CLOUDFLARE_AUTOBLOCK is on."""
     import time as _t
     from aurora import sec_defence
+    rounds = 0
     while True:
         _t.sleep(300)
+        rounds += 1
         try:
             for ip in sec_defence.release_due(cfg):
                 note("security", "defence.release", {"title": f"🛡️ {ip}: blocco scaduto, tolto", "text": ""})
+            from aurora import net_cfwaf, sec_fwport                  # ROADMAP 103: address+port, and at Cloudflare
+            for title in sec_fwport.due(cfg):
+                note("security", "defence.release", {"title": f"🛡️ scaduto e tolto: {title}", "text": ""})
+            for ip in net_cfwaf.release_due(cfg):
+                note("security", "defence.release", {"title": f"☁️ {ip}: blocco su Cloudflare scaduto, tolto", "text": ""})
+            for b in (net_cfwaf.autoblock(cfg) if rounds % 6 == 0 else []):
+                until = _t.strftime("%d/%m %H:%M", _t.localtime(b["until"]))
+                note("security", "defence.block", {"title": f"☁️ {b['ip']} bloccato su Cloudflare fino al {until}",
+                                                   "text": b["reason"]})
         except Exception as e:                        # noqa: BLE001 — a bad round never stops the next
             log.warning("defence: release round failed: %s", e)
 

@@ -4093,6 +4093,19 @@
    "max": 500
   },
   {
+   "key": "AURORA_CLOUDFLARE_AUTOBLOCK",
+   "type": "bool",
+   "category": "security",
+   "recommended": "0",
+   "evidence": "owner, 2026-10-14: «dai queste capacità ad aurora così quando ci riproviamo li blocco su cloudflare»",
+   "en": "Scanners behind Cloudflare (clients reading secrets or admin pages your server did not answer) blocked at Cloudflare by Aurora herself, checked every 30 minutes, for AURORA_DEFENCE_HOURS, at most AURORA_DEFENCE_MAX_PER_DAY a day, each one told; only an installation exempted from level B, and the cloudflare plugin's token with its permissions (guide, section F). Off: she lists them, you decide.",
+   "it": "Gli scanner dietro Cloudflare (chi cerca segreti o pagine di amministrazione a cui il tuo server non ha risposto) bloccati su Cloudflare da Aurora da sola, controllo ogni 30 minuti, per AURORA_DEFENCE_HOURS, al massimo AURORA_DEFENCE_MAX_PER_DAY al giorno, ognuno notificato; solo con l'esenzione dal livello B e il token del plugin cloudflare con i suoi permessi (guida, sezione F). Spento: li elenca, decidi tu.",
+   "services": [
+    "aurora-api"
+   ],
+   "optional": true
+  },
+  {
    "key": "AURORA_INTEL_ENABLED",
    "type": "bool",
    "category": "security",

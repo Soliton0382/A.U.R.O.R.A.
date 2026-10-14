@@ -86,8 +86,9 @@ def changes() -> dict:
 
 @router.post("/v1/aurora/security/changes/plan", dependencies=[Depends(admin_only)])
 async def plan(request: Request) -> dict:
-    """{"kind": harden | publish | unpublish | quarantine | release, ...its fields}: a change planned, not applied."""
-    from aurora import sec_fwapi, sec_fwwrite
+    """{"kind": harden | publish | unpublish | quarantine | release | portblock, ...its fields}: a change planned,
+    not applied."""
+    from aurora import sec_fwapi, sec_fwport, sec_fwwrite
     body = await request.json()
     kind = str(body.get("kind", ""))
     makers = {
@@ -97,6 +98,9 @@ async def plan(request: Request) -> dict:
         "unpublish": lambda: sec_fwwrite.plan_unpublish(cfg, str(body["name"])),
         "quarantine": lambda: sec_fwwrite.plan_quarantine(cfg, str(body["ip"]), str(body.get("reason", "") or "dalla pagina Firewall")),
         "release": lambda: sec_fwwrite.plan_release(cfg, str(body["ip"])),
+        "portblock": lambda: sec_fwport.plan_port_block(cfg, str(body["ip"]), str(body["ports"]),
+                                                        str(body.get("reason", "") or "dalla pagina Firewall"),
+                                                        float(body.get("hours", 24))),
     }
     if kind not in makers:
         raise HTTPException(status_code=400, detail=f"kind: one of {sorted(makers)}")

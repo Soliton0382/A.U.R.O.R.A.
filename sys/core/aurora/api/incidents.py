@@ -49,6 +49,13 @@ async def sentinel_incident(request: Request) -> dict:
         provider = sec_intel.shared(cfg, incident.get("source", ""))
         if provider:                                      # a CDN's or a cloud's: blocking it cuts off sites (C190)
             incident["shared"] = provider
+        from aurora import sec_shared
+        g = sec_shared.classify(cfg, incident)
+        if g:                                             # refused already, from a proxy's node: counted (ROADMAP 103)
+            told = sec_shared.group(cfg, g)
+            if told:
+                note("sentinel", "shared.denied", {"title": f"☁️ {provider}: traffico già rifiutato", "text": told})
+            return {"skipped": "shared network, denied", "provider": provider}
     item = Incidents(cfg).add(incident)
     if item.get("merged"):                                # a repeat of an open incident: counted, not said again
         return {"id": item["id"], "severity": item["severity"], "merged": True}

@@ -86,7 +86,7 @@ def main(which: list[int]) -> int:
         broken = sys_tests.run_suite(box)
         t0 = time.time()
         run = api.post("/v1/aurora/agent", json={"goal": GOAL.format(symptom=case["symptom"], sid=sid),
-                                                  "remember": False}).json()["run_id"]
+                                                  "remember": False, "quiet": True}).json()["run_id"]
         while True:
             r = next((x for x in api.get("/v1/aurora/runs").json() if x["id"] == run), None)
             if r and r["done"]:

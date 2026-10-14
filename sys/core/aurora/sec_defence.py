@@ -87,7 +87,8 @@ def decide(cfg: sys_config.Config, incident: dict) -> tuple[bool, str]:
     from . import sec_intel
     provider = sec_intel.shared(cfg, str(ip))
     if provider:                         # a CDN or cloud address serves many sites, the owner's tunnel too (C190)
-        return False, f"a shared address of {provider}: blocking it may cut off sites and services — the owner decides"
+        return False, (f"a shared address of {provider}: blocking it may cut off sites and services — the owner decides "
+                       "(only its port: firewall_plan_port_block; the author behind it: cloudflare_block)")
     try:
         sec_fwapi.blockable(cfg, str(ip))
     except sec_fwapi.FirewallAPIError as e:

@@ -12,9 +12,10 @@ Sections, each a share of right answers:
   context     a follow-up to a quoted answer («↩️ reply_to») understood without repeating the subject
   repair      self-repair on seeded bugs (bench_repair) — its last result, run again with --full
   autonomy    the forge building plugins for needs (bench_forge) — its last result, run again with --full
+  memory      a test user's facts asked again nights later (bench_memory_days) — its latest probe a day old or more,
+              probed again with --full
 Asked through the real API (remember: false), judged by Claude Code (opus) against the expected answer or the
-constraints, one criterion per question. Memory over days is not here yet: it needs a user whose memory can be
-written and a night in between. Results: <STATUS>/bench/agi-<date>.json.
+constraints, one criterion per question. Results: <STATUS>/bench/agi-<date>.json.
 
     python sys/core/script/bench_agi.py                      # every section, repair and autonomy from their last run
     python sys/core/script/bench_agi.py --only reasoning,honesty
@@ -94,7 +95,7 @@ JUDGE = ("You are a strict examiner. You get a QUESTION, what a right answer mus
          "Judge only whether the answer meets EXPECTED; ignore style and length; a declined answer is wrong unless "
          "EXPECTED asks to decline or to say that something is false or does not exist. Reply with JSON only: "
          "{\"right\": true|false, \"why\": \"one sentence\"}.")
-SECTIONS = ("reasoning", "planning", "honesty", "refusal", "context", "repair", "autonomy")
+SECTIONS = ("reasoning", "planning", "honesty", "refusal", "context", "repair", "autonomy", "memory")
 
 
 def ask(q: str, quote: str = "", roles: dict | None = None, lessons: bool = False) -> dict:
@@ -145,6 +146,21 @@ def cases(section: str) -> list[tuple[str, str, str]]:
     return []
 
 
+def memory(full: bool) -> dict:
+    """Memory over days: the latest probe of bench_memory_days at least a day after the plant (a night between)."""
+    if full:
+        subprocess.run([sys.executable, str(Path(__file__).with_name("bench_memory_days.py")), "probe"], check=False)
+    try:
+        d = json.loads((cfg.path("AURORA_STATUS_DIR") / "bench" / "memory_days.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {"right": 0, "total": 0, "note": "never run"}
+    days = [p for p in d.get("probes", []) if p["days"] >= 1]
+    if not days:
+        return {"right": 0, "total": 0, "note": "no probe a day after the plant yet"}
+    p = days[-1]
+    return {"right": p["right"], "total": p["total"], "ran": full, "date": p["at"][:10], "days": p["days"]}
+
+
 def last(name: str, full: bool) -> dict:
     """repair / autonomy: bench_repair / bench_forge, run again with --full, else their last result. The forge as
     Aurora runs it (--roles: writer and judge of the Models page), not the local model alone (forge.json, C266)."""
@@ -183,8 +199,8 @@ def main() -> int:
         path.write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
         return out
     for section in chosen:
-        if section in ("repair", "autonomy"):
-            report[section] = last(section, a.full)
+        if section in ("repair", "autonomy", "memory"):
+            report[section] = memory(a.full) if section == "memory" else last(section, a.full)
             r = report[section]
             print(f"== {section}: {r['right']}/{r['total']} ({'run now' if r.get('ran') else 'last run ' + r.get('date', '-')})",
                   flush=True)

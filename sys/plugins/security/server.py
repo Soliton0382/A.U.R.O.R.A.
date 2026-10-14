@@ -330,6 +330,16 @@ def firewall_plan_harden(rule: str, ips_policy: str, log: bool = True) -> str:
 
 
 @tool
+def firewall_plan_port_block(ip: str, ports: str, reason: str, hours: float = 24) -> str:
+    """Plan blocking an Internet address on some ports only, for `hours` (not applied; lifted by itself when the time
+    is over): for an address of a shared network (Cloudflare, Google…) whose other traffic must keep flowing. `ports`:
+    "22", "3389/tcp", "32400/tcp,32400/udp". A Cloudflare address on a port its proxy serves (80, 443…) is refused:
+    that is visitors' traffic — block the author at Cloudflare (cloudflare_block). firewall_apply applies it."""
+    from aurora import sec_fwport
+    return _plan(lambda: sec_fwport.plan_port_block(cfg, ip, ports, reason, hours))
+
+
+@tool
 def firewall_apply(change_id: str) -> str:
     """Apply a planned firewall change (asks the owner's approval). Every step is checked; at the first failure, or
     if the firewall does not read the objects back within the confirmation time, everything done is undone."""

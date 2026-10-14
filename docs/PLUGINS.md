@@ -11,7 +11,7 @@ A plugin may bring its own program (`"install"`: Python libraries pinned with `-
 | `calendar` | tool | calendar_agenda (read), calendar_add (write_local), calendar_remind (write_local), calendar_change (write_local), calendar_delete (write_local), calendar_add_event (external) | — |
 | `cinema` | tool | — | AURORA_TMDB_TOKEN |
 | `cloud` | connector | — | — |
-| `cloudflare` | connector | cloudflare_status (read), cloudflare_check (read), cloudflare_activate (external) | AURORA_CLOUDFLARE_ACCOUNT_ID, AURORA_CLOUDFLARE_API_TOKEN |
+| `cloudflare` | connector | cloudflare_status (read), cloudflare_check (read), cloudflare_activate (external), cloudflare_culprits (read), cloudflare_blocks (read), cloudflare_block (external), cloudflare_unblock (external) | AURORA_CLOUDFLARE_ACCOUNT_ID, AURORA_CLOUDFLARE_API_TOKEN |
 | `diary` | tool | — | — |
 | `discord` | connector | discord_read (read), discord_send (external) | AURORA_DISCORD_BOT_TOKEN, AURORA_DISCORD_CHANNEL_ID |
 | `dj` | tool | dj_styles (read), dj_tracks (read) | — |
@@ -39,7 +39,7 @@ A plugin may bring its own program (`"install"`: Python libraries pinned with `-
 | `routine_status` | tool | routine_status_summary (read), routine_status_list (read) | — |
 | `routines` | tool | routines_summary (read), routines_list (read) | — |
 | `runs` | tool | runs_previous (read), runs_list (read), runs_links (read) | — |
-| `security` | tool | firewall_docs_refresh (write_local), firewall_plan_request (write_local), firewall_plan_publish (write_local), firewall_plan_unpublish (write_local), firewall_plan_quarantine (write_local), firewall_plan_release (write_local), firewall_plan_harden (write_local), firewall_apply (external), firewall_revert (external) | — |
+| `security` | tool | firewall_docs_refresh (write_local), firewall_plan_request (write_local), firewall_plan_publish (write_local), firewall_plan_unpublish (write_local), firewall_plan_quarantine (write_local), firewall_plan_release (write_local), firewall_plan_harden (write_local), firewall_plan_port_block (write_local), firewall_apply (external), firewall_revert (external) | — |
 | `self` | tool | list_files (read), read_file (read), search_code (read), logs_inventory (read), read_log (read), sandbox_read (read), sandbox_diff (read), sandbox_create (write_local), sandbox_replace (write_local), sandbox_write (write_local), run_tests (write_local) | — |
 | `senses` | tool | devices (read), look (external), listen (external) | — |
 | `telegram` | connector | send_message (external), get_me (read), get_updates (read) | AURORA_TELEGRAM_BOT_TOKEN |
@@ -177,7 +177,17 @@ Aurora reachable everywhere with Cloudflare One (WARP), with no port opened: «S
 
 **B. Aurora's key (API token)**
 4. Top right: profile icon → **My Profile → API Tokens → Create Token → Create Custom Token**.
-5. Name *Aurora*; permissions: **Account · Cloudflare Tunnel · Edit** and **Account · Zero Trust · Edit**; *Account Resources*: your account. **Continue to summary → Create Token**, copy it (shown once).
+5. Name *Aurora*. **Permissions** (one row each; the row's **first** menu says *Account* or *Zone*):
+
+| first menu | second | third | what for |
+|---|---|---|---|
+| Account | Cloudflare Tunnel | Edit | the tunnel (required) |
+| Account | Zero Trust | Edit | WARP and the private routes (required) |
+| Account | Account Firewall Access Rules | Edit | blocking attackers at Cloudflare (section F) |
+| Zone | Zone | Read | seeing your domains (section F) |
+| Zone | Analytics | Read | seeing who is behind Cloudflare (section F) |
+
+*Account Resources*: your account. *Zone Resources*: **Include → All zones from an account →** your account (without it the *Zone* rows see nothing). *Account Analytics* and *Logs* are not needed. **Continue to summary → Create Token**, copy it (shown once). A token already made is changed with **Edit**, then **Update token**: it stays the same, nothing to paste again.
 6. The **Account ID**: dashboard home, on your account's name → **⋯ → Copy account ID**.
 
 **C. Once on Aurora's computer**
@@ -193,6 +203,12 @@ Aurora reachable everywhere with Cloudflare One (WARP), with no port opened: «S
 
 **Don't**: add *Published application routes* (public hostnames) to the tunnel — they put Aurora on the Internet; Aurora warns you if there are any.
 
+**F. (Recommended) Stopping attackers behind Cloudflare**
+12. If your domains go through Cloudflare's proxy (orange cloud), the home firewall sees Cloudflare's nodes only, never who is behind them. With the three extra rows of step 5 Aurora sees them: ask «who is behind Cloudflare?» (*cloudflare_culprits*) for the clients your server answered with errors, with sites, paths and what they look like (scanner, her own app, a Google service…).
+13. A block at Cloudflare (*cloudflare_block*) asks your approval and is lifted by itself after the hours chosen; *cloudflare_unblock* lifts it at once.
+14. By herself: **⚙️ Settings → Security → AURORA_CLOUDFLARE_AUTOBLOCK** on. Every 30 minutes she blocks at Cloudflare the last hour's scanners (clients after secrets or admin pages), for AURORA_DEFENCE_HOURS, at most AURORA_DEFENCE_MAX_PER_DAY a day, each one told. Her own app, Google's services and the unknown are never blocked by herself.
+15. The advice in the notifications: in Cloudflare **SSL/TLS → Full (strict)** and **Always Use HTTPS**, so Cloudflare reaches your server on 443 only.
+
 ### Configurazione (IT)
 
 **Aurora raggiungibile ovunque, a casa e fuori, senza aprire porte sul router.** Il telefono usa l'app gratuita *Cloudflare One*; Aurora fa tutto il resto da sola quando premi **Salva**. Tempo: circa 15 minuti, una volta.
@@ -204,7 +220,17 @@ Aurora reachable everywhere with Cloudflare One (WARP), with no port opened: «S
 
 **B. La chiave per Aurora (token API)**
 4. In alto a destra: icona del profilo → **My Profile → API Tokens → Create Token → Create Custom Token** (in fondo alla pagina).
-5. Nome: *Aurora*. Permessi, due righe: **Account · Cloudflare Tunnel · Edit** e **Account · Zero Trust · Edit**. *Account Resources*: il tuo account. **Continue to summary → Create Token** e copia il token (si vede una volta sola).
+5. Nome: *Aurora*. **Permessi** (una riga ciascuno; il **primo** menu della riga dice se è di *Account* o di *Zone*):
+
+| primo menu | secondo | terzo | a cosa serve |
+|---|---|---|---|
+| Account | Cloudflare Tunnel | Edit | il tunnel (obbligatorio) |
+| Account | Zero Trust | Edit | WARP e le rotte private (obbligatorio) |
+| Account | Account Firewall Access Rules | Edit | bloccare su Cloudflare chi attacca (sezione F) |
+| Zone | Zone | Read | vedere i tuoi domini (sezione F) |
+| Zone | Analytics | Read | vedere chi c'è dietro Cloudflare (sezione F) |
+
+*Account Resources*: il tuo account. *Zone Resources*: **Include → All zones from an account →** il tuo account (senza, le righe *Zone* non vedono nulla). Non servono *Account Analytics* né *Logs*. **Continue to summary → Create Token** e copia il token (si vede una volta sola). Un token già creato si cambia con **Edit** e poi **Update token**: resta lo stesso, non va reincollato.
 6. L'**Account ID**: nella home della dashboard, sul nome del tuo account → menu **⋯ → Copy account ID**.
 
 **C. Una volta sul computer di Aurora**
@@ -219,6 +245,12 @@ Aurora reachable everywhere with Cloudflare One (WARP), with no port opened: «S
 11. Spegni il Wi-Fi e apri Aurora con lo stesso indirizzo di casa: risponde anche in 4G, con il lucchetto valido.
 
 **Da non fare**: non aggiungere *Published application routes* (hostname pubblici) al tunnel — metterebbero Aurora su Internet; Aurora te lo segnala se ce ne sono.
+
+**F. (Consigliato) Fermare chi attacca dietro Cloudflare**
+12. Se i tuoi domini passano dal proxy di Cloudflare (nuvola arancione), il firewall di casa vede solo i nodi di Cloudflare, mai chi c'è dietro. Con le tre righe in più del passo 5 Aurora lo vede: chiedile «chi c'è dietro Cloudflare?» (*cloudflare_culprits*) e ti elenca chi ha ricevuto errori dal tuo server, con siti, percorsi e cosa sembra (scanner, la sua app, un servizio di Google…).
+13. Un blocco su Cloudflare (*cloudflare_block*) chiede la tua approvazione e si toglie da solo dopo le ore scelte; *cloudflare_unblock* lo toglie subito.
+14. Da sola: **⚙️ Impostazioni → Sicurezza → AURORA_CLOUDFLARE_AUTOBLOCK** acceso. Ogni 30 minuti blocca su Cloudflare gli scanner dell'ultima ora (chi cerca segreti o pagine di amministrazione), per AURORA_DEFENCE_HOURS, al massimo AURORA_DEFENCE_MAX_PER_DAY al giorno, con una notifica per ognuno. La sua app, i servizi di Google e gli sconosciuti non li blocca mai da sola.
+15. Il consiglio che arriva nelle notifiche: in Cloudflare **SSL/TLS → Full (strict)** e **Always Use HTTPS**, così Cloudflare raggiunge il tuo server solo dalla 443.
 
 ## diary
 

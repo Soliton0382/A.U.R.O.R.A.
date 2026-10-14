@@ -20,6 +20,7 @@
     "firewall_plan_quarantine": "write_local",
     "firewall_plan_release": "write_local",
     "firewall_plan_harden": "write_local",
+    "firewall_plan_port_block": "write_local",
     "firewall_apply": "external",
     "firewall_revert": "external",
     "*": "read"
