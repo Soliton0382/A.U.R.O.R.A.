@@ -21,7 +21,11 @@ PARAM = re.compile(r'<parameter name="([^"]+)">(.*?)</parameter>', re.S)
 # (C275, 12 Oct: Claude Code haiku, a new device agent — its calls kept as the report, none made)
 INVOKE_TOOL = re.compile(r"<invoke_tool>(.*?)</invoke_tool>", re.S)
 # the start of a call in any known format: left in a reply without a call parsed, the call was cut (C278)
-OPENED = re.compile(r"<tool_call>|<invoke[ _>]|<function=|\[TOOL_CALLS\]|<\|python_tag\|>")
+# and its broken pieces (C302, 14 Oct: Home Assistant down, the periodic checks failed call after call and the local
+# model's last reply was «<invoke-name>…<parameter name="name">homeassistant__states</parameter></invoke>» or
+# «_tool_call_placeholder»: kept as the owner's report)
+OPENED = re.compile(r"<tool_call>|<invoke[ _>\-]|</invoke>|<parameter[ =>]|<function=|\[TOOL_CALLS\]|<\|python_tag\|>"
+                    r"|_tool_call_placeholder|_placeholder_removed")
 # what only Aurora may write: a tool's result. A model that writes one invented it; the text stops there
 INVENTED = re.compile(r"<tool_response>|<function_results>|Tool call results|TOOL RESULT:", re.I)
 

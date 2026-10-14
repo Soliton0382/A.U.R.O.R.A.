@@ -50,19 +50,29 @@ def private_sources(reader, sources: list[dict]) -> list[str]:
     return list(dict.fromkeys(out))
 
 
-def topics(llm, news: str, done: list[str], n: int = 3) -> list[str]:
+def topics(llm, news: str, done: list[str], n: int = 3, emit=None) -> list[str]:
+    """Up to n new topics; asked twice when the first reply gives none (C303: one night's reply, 35 tokens, gave
+    none and was not kept — the routine failed and nobody could tell why). A reply that gives none is traced."""
     user = (f"ALREADY MADE (never again, nor close to them):\n" + "\n".join(f"- {d}" for d in done[:40])
             + f"\n\nTODAY'S SCIENCE NEWS (hints only):\n{news[:4000] or '(none)'}")
-    raw = llm.complete(SYS_TOPIC.format(n=n), user, 400, think=False)
-    raw = getattr(raw, "answer", raw)
-    m = re.search(r"\[.*\]", str(raw), re.S)
-    try:
-        items = json.loads(m.group(0)) if m else []
-    except ValueError:
-        items = []
     seen = {d.strip().lower() for d in done}
-    return [str(x).strip() for x in items if isinstance(x, str) and 3 <= len(x.strip()) <= 200
-            and x.strip().lower() not in seen][:n]
+    for _ in range(2):
+        raw = llm.complete(SYS_TOPIC.format(n=n), user, 400, think=False)
+        raw = str(getattr(raw, "answer", raw))
+        m = re.search(r"\[.*\]", raw, re.S)
+        try:
+            items = json.loads(m.group(0)) if m else []
+        except ValueError:
+            items = []
+        # a topic written as {"topic": "…"} / {"question": "…"}: its text
+        items = [x if isinstance(x, str) else next((v for v in x.values() if isinstance(v, str)), "")
+                 for x in items if isinstance(x, (str, dict))] if isinstance(items, list) else []
+        out = [x.strip() for x in items if 3 <= len(x.strip()) <= 200 and x.strip().lower() not in seen][:n]
+        if out:
+            return out
+        if emit:
+            emit("story.no_topic", {"reply": raw[:600]})
+    return []
 
 
 def _news(host) -> str:
@@ -81,7 +91,7 @@ def make(pipeline, cfg: sys_config.Config, host, emit) -> dict:
     """A video ready for the next "publish": {"topic", "video", "length_s", "tried"}. ValueError when no topic works."""
     done = [s["topic"] for s in kno_story.stories(cfg, 60) if s.get("topic")]
     tried = []
-    for topic in topics(pipeline.llm, _news(host), done):
+    for topic in topics(pipeline.llm, _news(host), done, emit=emit):
         def accept(ans, topic=topic):
             private = private_sources(pipeline.reader, ans.sources)
             return f"fonti non pubbliche ({', '.join(private[:3])}): nessun video" if private else ""

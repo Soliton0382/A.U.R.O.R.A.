@@ -1,6 +1,6 @@
 # Status — work in progress
 
-Updated at every validated change (last: 2026-10-10). Details: BUGS.md (issues, 0 open / 300 closed),
+Updated at every validated change (last: 2026-10-14). Details: BUGS.md (issues, 0 open / 303 closed),
 MANUAL_TESTS.md (what the owner checks by hand),
 TESTS.md (tests and live checks), MEASUREMENTS.md (numbers), MODULE_MAP.md (who does what),
 SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSYSTEM.md (design and decisions).
@@ -12,6 +12,7 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | vault | solitons in SQLite shards, knowledge and memory apart, dedup by content, rowids never reused, source removal, check and repair at every start, safe with concurrent writers | tests (vault, index, concurrency 20/20) |
 | index | per-domain vectors, HNSW over the exact tail, incremental, drop without re-encoding | tests |
 | retrieval | Qwen3-Embedding + bge re-ranker, bilingual, grouped by domain | M25: doc r@1 94.4% |
+| hybrid search | the question's words too (BM25, SQLite FTS5 beside the vectors, aurora/sol_lexical.py): 30 candidates for the question and 30 for its translation join the vector ones, a words-only passage ranked 0.2 below its re-ranker score; built and dropped with the vectors | M200: right source first 62→63, among the 12 read 81→82, among 30 84→85 of 93 |
 | answers by the question's kind | the cache (shadow) first; then FACT → the web (ddgs: DuckDuckGo and other engines, no key; a masked query on the subject; snippets, the pages when needed; Italian then English), EXPLAIN → the vault's passages, CASE → the deep path (split, provisions by number, verification); one reading with its sources; no source → memory marked ⚠️; a false premise is the answer, a myth's page no evidence; a broken source never breaks the answer | M130: 35-36/50 real questions right (vault 8/50), 7.2 s mean, 3.95 s median; false premises 6/6, true 2/2; tests |
 | thinking modes | vault (the pipeline before), light, medium, deep, auto (the default: starts light, the web only for the unconfirmed, deep for a case); the chat's 🧠 button for one message; the trace says the way and why | M130, tests, headless |
 | answers (deep path) | route (self/knowledge), gate, per-domain extraction, thinking, sentence verification, sources; a case told as a story split in its problems and its provisions fetched by number (kno_split, kno_cites); a fixed «not legal advice» note; exact time | M128, live |
@@ -25,6 +26,7 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | clean install | from GitHub over HTTPS, multi-user, unattended answers, 303 tests in the clone, first login with Authenticator | M103 |
 | push delivery | the devices confirm each push; the rate on the Notifications page | M101 |
 | autonomy | 🧭 page: 7 areas, levels read from the settings, profiles, daily line, statistics, users | tests |
+| projects carried by Aurora | 🏗️ a project's plan (goal, steps each with the command that proves it; Aurora drafts them, the owner changes and starts it); aurora-rem's task «project» does the next step in idle time, the step's command run in the cage decides; 3 failures block a step and tell the owner; 🤝 waits for «go on»; Autonomy area «projects» (prj_plan.py) | tests; pilot: see M201 |
 | autonomous defence | auto blocks within the owner's limits, lifted by themselves, never the home network | tests (fake firewall) |
 | post privacy | 🔍 private names (local model), places, contacts; 🗑️ discard; an autonomous post naming someone waits | M105, tests |
 | exam values | read by the local model from the exams, sealed, a chart over time with the range | tests |

@@ -39,15 +39,16 @@ def _gap_check(agent, goal: str, report: str, emit, run_id: str, routine: str | 
 
 
 def _agent_job(goal: str, context: str = "", after=None, remember: bool = False, label: str | None = None,
-               asked: bool = False):
+               asked: bool = False, quiet: tuple[str, ...] = ()):
     """An agent run. `remember`: the owner asked for it, so goal and report become conversation turns
     (with the whole path), like any other answer; the autonomic ones become reflections (`after`). `asked`: the goal
-    is the owner's own words (the chat, the agent page), so a home command it asks for is done (C281)."""
+    is the owner's own words (the chat, the agent page), so a home command it asks for is done (C281). `quiet`: the
+    agent's notifications not sent (a project's plan tells its own)."""
     def job(q, emit, run_id):
         from aurora.agt_loop import Agent
         from aurora.sol_schema import now_iso
         asked_at = now_iso()
-        agent = Agent(pipeline(), cfg, notify=lambda e, p: note("agent", e, p), host=plugin_host())
+        agent = Agent(pipeline(), cfg, notify=lambda e, p: None if e in quiet else note("agent", e, p), host=plugin_host())
         agent.asked = asked
         ans = agent.run(goal, emit, run_id, context)
         _gap_check(agent, goal, ans.text, emit, run_id)

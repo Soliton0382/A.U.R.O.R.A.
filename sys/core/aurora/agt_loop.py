@@ -443,6 +443,7 @@ class Agent(AgentReport):
             if not calls:
                 summary = None if cut else said or None       # still cut: the report is written from what was found
                 break
+            ran = False                                     # a call of this turn already done
             for raw in calls:
                 steps += 1
                 try:
@@ -451,9 +452,17 @@ class Agent(AgentReport):
                 except (ValueError, KeyError, TypeError) as e:
                     messages.append({"role": "tool", "content": f"ERROR: bad tool call ({e}): {raw[:300]}"})
                     continue
+                if name == "finish" and ran:
+                    # a report written in the same turn as the calls above, before their results (C304: haiku wrote
+                    # a whole imagined run, its results and the report, in one turn): not a report of what happened
+                    emit("agent.nudge", {"reason": "finish before results"})
+                    messages.append({"role": "user", "content": "Your finish was written before the results of the "
+                                     "calls above: it is ignored. Read the results, then call finish with what they say."})
+                    break
                 if name == "finish":
                     summary = str(args.get("summary", "")).strip() or said
                     break
+                ran = True
                 emit("tool.call", {"name": name, "arguments": json.dumps(args, ensure_ascii=False)[:1500],
                                    "effect": index.get(name, ("", "", "loop"))[2]})
                 result = self._call(name, args, index, emit, run_id)
@@ -477,6 +486,8 @@ class Agent(AgentReport):
             _, rcalls, rsaid = parse(report)
             ends = [json.loads(x)["arguments"].get("summary") for x in rcalls if '"finish"' in x]
             report = unwrap(str(ends[0]).strip() if ends and ends[0] else (rsaid or CALL.sub("", report).strip()))
+            if (m := OPENED.search(report)):                 # a broken call is not a report: what came before it (C302)
+                report = report[:m.start()].strip()
             limit = time.time() - t0 >= limit_s or steps >= self.max_steps
             summary = ((f"(Limite raggiunto: {steps} passi, {round((time.time() - t0) / 60, 1)} min.) " if limit else "")
                        + (report or "Nessun resoconto prodotto."))

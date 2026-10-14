@@ -3057,3 +3057,77 @@ the chat runs (bench_router --replay): the same 162/168 and the same 6 disagreem
 kind) 4.9 → 2.2 minutes. The confidence it gives is for ROADMAP 98's index of hard cases; a cascade to a cloud model
 is not measurable against a cloud reference (it would agree by construction).
 
+
+## M200 — the hybrid search: the question's words (BM25) beside the vectors (14 October 2026)
+
+The 93 knowledge questions of M198 whose source is in the vault; local models only. The words' index: SQLite FTS5
+(porter, contentless), every knowledge passage — 803,487 built in 98 s, 1.53 GB (aurora/sol_lexical.py).
+
+The ceiling first (BM25 alone, the English translation, a throwaway index in the scratchpad): the right source in its
+first 10 for 72 of 93; of the 11 sources the vectors did not find among 30 (M198), 3 in BM25's first 30, 5 in its
+first 100. The two searches miss different questions.
+
+Then in the search: BM25's best 30 for the question and for its translation join the vector candidates (300 each),
+the re-ranker judges them all. The first 60 of each question, re-ranked, kept and the ranking simulated:
+
+| | right source first | among the 12 the chat reads | among 30 |
+|---|---|---|---|
+| vectors only (the 60 without the words-only passages: M198's numbers again, 62 · 81) | 62 | 81 | 84 |
+| hybrid, the re-ranker's score as it is | 60 | 82 | 85 |
+| hybrid, a words-only passage 0.05 · 0.1 lower | 62 · 62 | 82 · 82 | 85 · 85 |
+| **hybrid, 0.15 · 0.2 · 0.3 lower** | **63** | **82** | **85** |
+
+The re-ranker overrates some passages found by their words only (another paper's, with the question's words): 2 right
+sources lost the first place to them. Kept: 0.2 (AURORA_SEARCH_LEXICAL_PENALTY, the middle of the plateau; one set of
+93 questions, so a choice to look at again on another set). The whole run (bench_vault_diag --no-read, without the
+penalty): 1941 s; the search's medians, vectors and words 3.2 s (4.9 s yesterday's runs, without the words), re-ranking
+4.7 s (4.2 s); the words' query 0.2–0.7 s. Not measured: the answers read from the 12 with the hybrid search (the
+reading, M198's 72/97), the time of a chat answer.
+
+## M201 — a project carried by Aurora alone: the pilot (14 October 2026, 07:43–08:16; prj_plan, ROADMAP 97)
+
+A new project «romani» (integers ↔ Roman numerals on the command line), its 3 test files written first by Claude (25
+tests: conversion both ways, 1–3999, malformed numerals, `python -m romani`, exit 2 on bad input), no code. The goal
+given in one sentence; the plan drafted by the local model in 6.4 s: 6 steps, each with its command. One draft error
+corrected as the owner would on reading it: step 5 selected `-k invalid`, a name no test has (pytest exits 5: a step
+that could never pass). Level 🚀, aurora-rem's idle task; the agent's model Claude Code haiku (the agent role).
+
+| step | runs | from start to its command's result |
+|---|---|---|
+| 1 to_roman (13 tests) | 1 ✓ | 41 s |
+| 2 from_roman | 1 ✓ | 56 s |
+| 3 range and malformed numerals | 1 ✓ | 30 s |
+| 4 `python -m romani` | 1 ✗ · 1 ✓ | 34 s (failed: C304) · then 20 min of pause · 56 s |
+| 5 exit 2 and a message | 1 ✓ | 18 s |
+| 6 README and CHANGELOG | 1 ✓ | 6 min 31 s |
+
+6 of 6 steps closed alone, 0 blocked, 1 failure; 33 minutes from the first step to the end, about 12 of them work (the
+rest the pause after the failure). Checked after by Claude: the 25 tests pass, the test files unchanged (diff: none);
+Aurora wrote src/romani/__init__.py, __main__.py, a tests/conftest.py (src/ importable by the tests' subprocesses — an
+environment fix, no test weakened), README and CHANGELOG. Found: the failure of step 4 was the model writing a whole
+imagined run in one turn, its finish taken as the report (C304, fixed); the step's command decided right. A gap the
+tests written first did not cover: from the project's folder `python -m romani` needs `pip install -e .` (no build
+system in pyproject.toml) — the README says otherwise. Each step sent 2 notifications (the plan's and the agent's):
+now only a step waiting for the owner (🤝), a block, the end, and one line a day. Not measured: a project with a
+step that needs judgement (not covered by tests), a longer project, the local model as the agent.
+
+## M202 — the router with the nearest cases already decided as examples (14 October 2026; ROADMAP 98 step 2, its ceiling first)
+
+M199's 168 messages (150 of the owner's, with the two turns before each, and 18 benchmark questions) and their
+references. Leave-one-out: each message decided with the 3 nearest OTHER messages (Qwen3-Embedding, cosine), with
+their reference's decision, shown to the router as examples («SIMILAR MESSAGES ALREADY DECIDED (examples, not rules)»);
+the one-token decisions of M199, local model. Nothing written: the experiment ran from the scratchpad.
+
+| examples | right | messages that got examples | seconds a message |
+|---|---|---|---|
+| none (today) | 164 / 168 | — | 0.41 |
+| the 3 nearest, any similarity | 163 / 168 | 168 | 0.49 |
+| the 3 nearest above 0.6 | 163 / 168 | 68 | 0.43 |
+| the 3 nearest above 0.75 | 164 / 168 | 33 | 0.41 |
+
+No gain: the 4 messages left wrong are the same with or without examples, and at least 2 of their references are
+debatable (a benchmark question about a fictional person's taste → self; a greeting of the owner's → tools); the
+ceiling of what an index of resolved cases could recover here is 4 of 168. (164, not M199's 162: the route alone,
+decided again the same day; M199's 162 counted the run's whole path.) Not built, so: the runtime index, the
+reinforcing score and the trainer of route_seed.json (ROADMAP 98 steps 2–3) — to be measured again when the owner's
+messages show more errors, or with a smaller local model.

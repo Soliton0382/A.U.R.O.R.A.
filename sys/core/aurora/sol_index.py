@@ -117,7 +117,13 @@ class Indexer:
     def update(self, domain: str, extend_hnsw: bool = True, run_id: str | None = None) -> int:
         """Index the solitons of `domain` not indexed yet. Returns how many were added."""
         with _writing(self.files(domain).folder):
-            return self._update(domain, extend_hnsw, run_id)
+            added = self._update(domain, extend_hnsw, run_id)
+        try:                                              # the words' index follows the vectors (hybrid search, M200)
+            from . import sol_lexical
+            sol_lexical.update(self.cfg, self.reader, domain)
+        except Exception as e:                            # noqa: BLE001 — never a cost to the vectors
+            self.log.warning("lexical index %s: update failed: %s", domain, e)
+        return added
 
     def _update(self, domain: str, extend_hnsw: bool, run_id: str | None) -> int:
         f = self.files(domain)
@@ -203,6 +209,13 @@ class Indexer:
 
         Vectors and sids are rewritten without those rows; the HNSW graph (which cannot delete)
         is built again from the kept vectors. Returns how many rows were removed."""
+        sids = list(sids)
+        if self.reader.layout.section_of(domain) == "knowledge":
+            try:
+                from . import sol_lexical
+                sol_lexical.drop(self.cfg, sids)
+            except Exception as e:                        # noqa: BLE001
+                self.log.warning("lexical index %s: drop failed: %s", domain, e)
         with _writing(self.files(domain).folder):
             return self._drop(domain, sids)
 
@@ -247,6 +260,8 @@ class Indexer:
             if p.exists():
                 p.unlink()
         self.log.warning("index %s dropped for rebuild with %s", domain, self.encoder.name)
+        from . import sol_lexical
+        sol_lexical.reset(self.cfg, domain)
         return self.update(domain)
 
 

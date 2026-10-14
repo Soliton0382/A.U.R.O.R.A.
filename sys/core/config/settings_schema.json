@@ -876,6 +876,36 @@
    ]
   },
   {
+   "key": "AURORA_SEARCH_LEXICAL",
+   "type": "int",
+   "min": 0,
+   "max": 500,
+   "category": "search",
+   "recommended": "30",
+   "evidence": "M200",
+   "en": "Candidates found by the words of the question (BM25) added to the vector ones, for the question and for its translation; the re-ranker judges them all. 0 = vector search only.",
+   "it": "Candidati trovati dalle parole della domanda (BM25) aggiunti a quelli vettoriali, per la domanda e per la sua traduzione; il riordinatore li giudica tutti. 0 = solo ricerca vettoriale.",
+   "services": [
+    "aurora-api"
+   ],
+   "optional": true
+  },
+  {
+   "key": "AURORA_SEARCH_LEXICAL_PENALTY",
+   "type": "float",
+   "min": 0,
+   "max": 1,
+   "category": "search",
+   "recommended": "0.2",
+   "evidence": "M200",
+   "en": "How much lower a passage found only by the question's words is ranked than its re-ranker score (the re-ranker overrates some of them).",
+   "it": "Di quanto un passaggio trovato solo dalle parole della domanda viene messo più in basso del punteggio del riordinatore (il riordinatore ne sopravvaluta alcuni).",
+   "services": [
+    "aurora-api"
+   ],
+   "optional": true
+  },
+  {
    "key": "AURORA_SEARCH_TOPK",
    "type": "int",
    "min": 1,
@@ -1231,6 +1261,24 @@
     "aurora-api",
     "aurora-plugins"
    ]
+  },
+  {
+   "key": "AURORA_PROJECT_AUTONOMY",
+   "type": "enum",
+   "choices": [
+    "0",
+    "1",
+    "2"
+   ],
+   "category": "autonomy",
+   "recommended": "0",
+   "evidence": "owner",
+   "en": "Projects carried by Aurora herself in the machine's idle time, step by step, each step proved by its tests (a project's plan): 0 never by herself; 1 one step, then she waits for your «go on»; 2 step after step until done, or blocked after 3 failures on one step. Whatever leaves the machine still waits for you.",
+   "it": "Progetti portati avanti da Aurora nei momenti liberi della macchina, passo per passo, ogni passo provato dai suoi test (il piano del progetto): 0 mai da sola; 1 un passo, poi aspetta il tuo «vai avanti»; 2 un passo dopo l'altro fino alla fine, o fermandosi dopo 3 fallimenti su un passo. Ciò che esce dalla macchina aspetta sempre te.",
+   "services": [
+    "aurora-api"
+   ],
+   "scope": "user"
   },
   {
    "key": "AURORA_SOCIAL_AUTONOMY",

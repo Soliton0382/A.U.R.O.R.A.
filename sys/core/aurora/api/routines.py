@@ -461,6 +461,7 @@ def rem_state(user: str | None = None) -> dict:
                 "studied_tonight": kno_study.studied_tonight(p, cfg),
                 "deduce_due": int(cfg["AURORA_DEDUCE_PER_NIGHT"]) > 0 and who == _admin()
                 and not __import__("aurora.kno_deduce", fromlist=["x"]).deduced_tonight(cfg),
+                "project_due": __import__("aurora.api.projects_plan", fromlist=["x"]).due(),
                 "audit_due": who == _admin() and not __import__("aurora.kno_vault_audit", fromlist=["x"]).done_tonight(cfg),
                 "train_due": int(cfg["AURORA_SHADOW_TRAIN_PER_NIGHT"]) > 0 and bool(cfg["AURORA_SHADOW"])
                 and who == _admin() and not __import__("aurora.kno_train", fromlist=["x"]).trained_tonight(cfg),
@@ -477,9 +478,12 @@ def rem_task(task: str, user: str | None = None) -> dict:
     if task == "repair":                              # registered earlier than /rem/repair: hand over
         return rem_repair()
     if task not in ("consolidate", "reflect", "dream", "introspect", "social", "study", "morning", "train", "review",
-                    "deduce", "audit"):
+                    "deduce", "audit", "project"):
         raise HTTPException(status_code=404, detail="unknown task")
     with sys_context.acting_as(who):                  # the run works on this user's memory and is theirs
+        if task == "project":                         # a step of a project carried by Aurora (prj_plan, ROADMAP 97)
+            from .projects_plan import rem_project
+            return rem_project()
         return _rem_run(task)
 
 

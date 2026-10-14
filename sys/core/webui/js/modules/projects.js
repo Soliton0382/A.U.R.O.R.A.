@@ -8,6 +8,7 @@ import { bus } from "../bus.js";
 import { clock, el, useCss } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { renderMarkdown } from "../md.js";
+import { planView } from "./project_plan.js";
 import { terminalView } from "./project_term.js";
 
 const kb = (n) => (n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1048576).toFixed(1)} MB`);
@@ -155,7 +156,7 @@ export default {
     const d = this.detail;
     d.innerHTML = `
       <div class="ev prj-bar"><button class="back"></button><h3></h3>
-        <button class="preview"></button><button class="term"></button><button class="history"></button><button class="reports"></button></div>
+        <button class="preview"></button><button class="term"></button><button class="history"></button><button class="reports"></button><button class="plan"></button></div>
       <form class="prj-ask"><input data-i18n-placeholder="prj.ask_ph"><button type="submit" data-i18n="prj.ask"></button></form>
       <div class="prj-body"><div class="prj-tree"></div><div class="prj-view"></div></div>`;
     apply(d);
@@ -180,6 +181,10 @@ export default {
     const term = d.querySelector(".term");
     term.textContent = t("prj.term");
     term.addEventListener("click", () => view.replaceChildren(terminalView(name)));
+    // 🏗️ the project carried by Aurora herself, step by step (ROADMAP 97)
+    const plan = d.querySelector(".plan");
+    plan.textContent = t("plan.button");
+    plan.addEventListener("click", () => view.replaceChildren(planView(name)));
     // Aurora's reports on this project (owner, 2026-10-05): her considerations, beside the alerts and the chat
     const reportsBtn = d.querySelector(".reports");
     reportsBtn.textContent = t("prj.reports");

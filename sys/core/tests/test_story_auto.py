@@ -50,6 +50,15 @@ def test_topics_never_repeat_a_video_already_made():
     assert kno_story_auto.topics(llm, "", ["Perché il cielo è blu?"]) == ["Cosa sono i neutrini?", "Come nasce una stella?"]
 
 
+def test_a_reply_without_topics_is_asked_again_and_traced():
+    # C303: one night the reply gave no topic and was lost; the routine failed with no clue
+    replies = iter(["Ecco alcune idee interessanti.", '[{"topic": "Cosa sono le aurore?"}]'])
+    llm = SimpleNamespace(complete=lambda *a, **k: SimpleNamespace(answer=next(replies)))
+    events = []
+    assert kno_story_auto.topics(llm, "", [], emit=lambda e, p: events.append((e, p))) == ["Cosa sono le aurore?"]
+    assert events == [("story.no_topic", {"reply": "Ecco alcune idee interessanti."})]
+
+
 def _story(cfg, stamp, topic, auto=True):
     d = cfg.path("AURORA_IMAGE_DIR") / "stories" / stamp
     d.mkdir(parents=True)

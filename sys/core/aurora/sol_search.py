@@ -63,6 +63,17 @@ class Searcher:
         for per_query in self.index.search(np.asarray(qv), candidates, sections, self.user):
             for sid, score, _, _ in per_query:
                 dense[sid] = max(score, dense.get(sid, -1.0))
+        lexical = int(self.cfg["AURORA_SEARCH_LEXICAL"])
+        if lexical > 0 and (sections is None or "knowledge" in sections):
+            from . import sol_lexical                      # the words' candidates join the re-ranker's (M200)
+            words_only = [sid for sid in sol_lexical.search(self.cfg, [question] + ([translation] if translation else []),
+                                                            lexical) if sid not in dense]
+            dense.update(dict.fromkeys(words_only, 0.0))
+        else:
+            words_only = []
+        # a passage found by its words only is ranked a little below its re-ranker score: the re-ranker overrates some
+        # of them (M200: without it 2 right sources lost the first place; 0.15-0.3 the same plateau, 0.2 its middle)
+        penalty = dict.fromkeys(words_only, float(self.cfg["AURORA_SEARCH_LEXICAL_PENALTY"]))
         t2 = time.time()
         sols = self.reader.get_many(dense)
         order = [sid for sid in dense if sid in sols]
@@ -72,7 +83,7 @@ class Searcher:
         pairs = [((translation if tr else question), sols[sid].text) for sid, tr in zip(order, use_translation)]
         scores = self.reranker.score(pairs)
         t3 = time.time()
-        ranked = sorted(zip(order, scores, use_translation), key=lambda x: -x[1])[:top_k]
+        ranked = sorted(zip(order, scores, use_translation), key=lambda x: -(x[1] - penalty.get(x[0], 0.0)))[:top_k]
         hits = [Hit(sid, sols[sid], dense[sid], float(s), "translation" if tr else "original") for sid, s, tr in ranked]
         spread: set[str] = set()
         if int(self.cfg["AURORA_SYNAPSE_EXPAND"]) > 0 and (sections is None or "knowledge" in sections):

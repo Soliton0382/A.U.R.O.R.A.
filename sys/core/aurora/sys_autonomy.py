@@ -56,6 +56,9 @@ AREAS: dict[str, tuple[str, dict[int, dict[str, str]]]] = {
     "review": ("machine", {0: {"AURORA_REVIEW_PER_DAY": "0"}, 1: {"AURORA_REVIEW_PER_DAY": "1"},
                            2: {"AURORA_REVIEW_PER_DAY": "3"}}),
     "harvest": ("machine", {0: {"AURORA_HARVEST_ENABLED": "0"}, 2: {"AURORA_HARVEST_ENABLED": "1"}}),
+    # owner, 2026-10-13: «agenti che lo facciano senza interazioni da parte mia» — projects carried step by step (prj_plan)
+    "projects": ("user", {0: {"AURORA_PROJECT_AUTONOMY": "0"}, 1: {"AURORA_PROJECT_AUTONOMY": "1"},
+                          2: {"AURORA_PROJECT_AUTONOMY": "2"}}),
 }
 # an area shown only while what it governs is there and working (owner, 2026-10-12: «deve mostrare solo ciò che è
 # attivo e funzionante»): its plugin on; the others are Aurora's own and always there
@@ -63,13 +66,13 @@ NEEDS_PLUGIN = {"devices": "homeassistant", "home": "homeassistant"}
 PROFILES = {
     "careful": {"social": 0, "forge": 0, "repairs": 0, "security": 1, "updates": 1, "knowledge": 0, "inner": 2,
                 "study": 1, "shadow": 2, "morning": 2, "train": 0, "devices": 1, "home": 1,
-                "deduce": 2, "synapses": 2, "review": 1, "harvest": 2},
+                "deduce": 2, "synapses": 2, "review": 1, "harvest": 2, "projects": 0},
     "balanced": {"social": 0, "forge": 0, "repairs": 1, "security": 1, "updates": 1, "knowledge": 2, "inner": 2,
                  "study": 2, "shadow": 2, "morning": 2, "train": 2, "devices": 1, "home": 1,
-                 "deduce": 2, "synapses": 2, "review": 2, "harvest": 2},
+                 "deduce": 2, "synapses": 2, "review": 2, "harvest": 2, "projects": 1},
     "free": {"social": 2, "forge": 2, "repairs": 1, "security": 2, "updates": 2, "knowledge": 2, "inner": 2,
              "study": 2, "shadow": 2, "morning": 2, "train": 2, "devices": 2, "home": 2,
-             "deduce": 2, "synapses": 2, "review": 2, "harvest": 2},
+             "deduce": 2, "synapses": 2, "review": 2, "harvest": 2, "projects": 2},
 }
 EXTERNAL = {"social", "security", "home"}       # their 🚀 acts outside the machine: level B decides
 PROVED = {"days": 30, "decided": 10, "approved": 0.9}   # what "proved good" means; shown, never acted on alone

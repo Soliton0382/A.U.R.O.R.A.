@@ -274,6 +274,32 @@ def test_a_call_cut_mid_way_is_asked_again_not_shown_as_the_answer(cfg):
     assert not [p for e, p in events if e == "agent.say"]
 
 
+def test_broken_pieces_of_a_call_are_never_the_report(cfg):
+    # C302: Home Assistant down, the local model's last words were the pieces of a call: they were the owner's report
+    junk = '<invoke-name>\n<parameter name="name">homeassistant__states</parameter>\n</invoke>'
+    llm = FakeLLM([junk, "_tool_call_placeholder", "_tool_call_placeholder", "Prese non lette: <parameter name=\"x\">"])
+    agent = Agent(fake_pipeline(llm), cfg)
+    agent.host = FakeHost()
+    events = []
+    ans = agent.run("prova", lambda e, p: events.append((e, p)), "run1")
+    assert "parameter" not in ans.text and "placeholder" not in ans.text and "Prese non lette:" in ans.text
+    assert [p["reason"] for e, p in events if e == "agent.nudge"] == ["cut call", "cut call"]
+    assert not [p for e, p in events if e == "agent.say"]
+
+
+def test_a_finish_written_with_the_calls_before_their_results_is_not_the_report(cfg):
+    # C304: one turn held the calls and a finish whose report had invented their results
+    turn = call("demo__read_log", component="api") + "\n" + call("finish", summary="Tutto ok: i test passano.")
+    llm = FakeLLM([turn, call("finish", summary="Il log dice: ok.")])
+    agent = Agent(fake_pipeline(llm), cfg)
+    agent.host = FakeHost()
+    events = []
+    ans = agent.run("prova", lambda e, p: events.append((e, p)), "run1")
+    assert agent.host.calls == [("demo", "read_log", {"component": "api"})]
+    assert "Il log dice: ok." in ans.text and "Tutto ok" not in ans.text
+    assert ("agent.nudge", {"reason": "finish before results"}) in events
+
+
 def test_a_catalog_too_big_for_the_context_becomes_one_line_signatures(cfg):
     # C279: 176 tools ≈ the 32k context of the local model; the room for the answer fell to its 256-token floor
     llm = FakeLLM([call("finish", summary="ok")])
