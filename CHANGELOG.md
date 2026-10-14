@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.20 — 2026-10-14
+
+1 publications since v0.2.19.
+
+- 2026-10-14 Hybrid search (BM25 beside the vectors), projects carried step by step in idle time with their tests deciding, agent reports never from broken calls or written before the results, night video topics asked again
+
 ## v0.2.19 — 2026-10-14
 
 1 publications since v0.2.18.
