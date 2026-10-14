@@ -29,7 +29,7 @@ if not (key and secret and redirect):
 state = secrets.token_urlsafe(16)
 print("\n1) Open this address, logged in to the TikTok account Aurora will use, and accept:\n")
 print("https://www.tiktok.com/v2/auth/authorize/?" + urllib.parse.urlencode({
-    "client_key": key, "scope": "user.info.basic,video.publish,video.upload", "response_type": "code",
+    "client_key": key, "scope": "user.info.basic,video.publish", "response_type": "code",
     "redirect_uri": redirect, "state": state}))
 back = input("\n2) Paste here the whole address the browser shows after accepting:\n> ").strip()
 q = urllib.parse.parse_qs(urllib.parse.urlparse(back).query)

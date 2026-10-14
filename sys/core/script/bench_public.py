@@ -47,7 +47,12 @@ from aurora.mdl_llm import LLM  # noqa: E402
 OUT = cfg.path("AURORA_STATUS_DIR") / "bench" / "public"
 CACHE = OUT / "cache"
 SAVED = OUT / "owner_roles.json"            # the owner's choice saved by a run of before C280 (roles per request now)
-TARGETS = ("aurora-local", "aurora-mixed", "aurora-cloud", "bare-local", "bare-claude")
+TARGETS = ("aurora-local", "aurora-mixed", "aurora-cloud", "bare-local", "bare-claude",
+           "aurora-classifiers-cloud", "aurora-readers-local")
+# ROADMAP D2's ablations, each one group moved from the owner's granular choice (aurora-mixed): the classifiers to the
+# cloud, the readers to the local model — what each local step costs, against a mixed run of the same day
+GROUPS = {"classifiers-cloud": (("route", "translate", "gate", "verify"), "cloud"),
+          "readers-local": (("extract", "synthesis"), "local")}
 DEFAULT_SETS = ["aurora_edge", "mmlu_pro", "gpqa_diamond", "hle", "aime", "math500", "simpleqa", "truthfulqa", "arc_agi_1"]
 BARE_SYSTEM = "You are a helpful assistant. Answer in the language of the question."
 
@@ -77,6 +82,10 @@ def prepare(target: str, cloud_model: str, bare_tokens: int = 28000, lessons: bo
         elif name == "cloud":
             roles = {r: {"provider": "claude_code", "model": cloud_model} for r in mdl_router.ROLES}
             roles["vision"] = {"provider": "local", "model": ""}
+        elif name in GROUPS:
+            group, where = GROUPS[name]
+            roles = {**owner, **{r: ({"provider": "claude_code", "model": cloud_model} if where == "cloud" else
+                                     {"provider": "local", "model": ""}) for r in group}}
         else:
             roles = owner
         # C280: the target's roles travel with each question; the installation's (the owner's chat) never change
@@ -132,7 +141,8 @@ def run(target: str, sets: list[str], n: int, cloud_model: str, judge, bare_toke
             sc = grade(it, res["answer"], judge)
             rows.append({"id": it["id"], "group": it.get("group", ""), "question": it["prompt"][:2000],
                          "expected": str(it.get("answer"))[:200], **sc,
-                         "declined": res["abstained"], "seconds": res["seconds"], "answer": res["answer"][-1500:]})
+                         "declined": res["abstained"], "seconds": res["seconds"], "answer": res["answer"][-1500:],
+                         **({"steps": res["steps"]} if res.get("steps") else {})})
             print(f"{'✓' if sc['right'] else '✗'} {s} {it['id']} {res['seconds']} s {str(sc['got'])[:50]!r}"
                   f"{' (declined)' if res['abstained'] else ''}", flush=True)
         right, secs = sum(r["right"] for r in rows), sorted(r["seconds"] for r in rows)

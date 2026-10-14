@@ -80,7 +80,7 @@ def test_an_update_made_by_hand_closes_the_approval_left_open(cfg, monkeypatch):
     import importlib
     for name in ('oai', 'runs'):                                   # the app's own order (svc_api)
         importlib.import_module(f'aurora.api.{name}')
-    from aurora.api import knowledge
+    from aurora.api import updates as knowledge   # split from api/knowledge (D10)
     a = Approvals(cfg)
     r = a.request("update", "code_change", "Aggiornamento: 3 commit", "update", {}, {"to": "abc"})
     assert knowledge.settle_updates({"behind": 2, "commits": [1, 2]}) == 0          # still behind: left open

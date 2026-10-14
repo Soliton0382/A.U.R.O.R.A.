@@ -101,6 +101,7 @@ say "== private data Aurora knows (masker terms, firewall devices)"
 
 say "== times of day in the documents (owner, 2026-10-14: «non ci sono orari nei documenti vero?»)"
 "$SRC/.venv/bin/python" "$DST/sys/core/script/doc_times.py" --check || fail "times of day above: doc_times.py --fix, or <!-- schedule --> for a time Aurora is set to"
+"$SRC/.venv/bin/python" "$DST/sys/core/script/doc_callmap.py" --check || fail "the call map above: python sys/core/script/doc_callmap.py, and every new file in docs/MODULE_MAP.md"
 
 say "== code"
 PY="$SRC/.venv/bin/python"

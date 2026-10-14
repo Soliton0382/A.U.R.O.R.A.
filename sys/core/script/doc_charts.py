@@ -115,6 +115,17 @@ pct = {lang: (lambda v, lang=lang: _dec(v, lang) + "%") for lang in ("it", "en")
 num = {lang: (lambda v: f"{v:.0f}") for lang in ("it", "en")}
 score = {lang: (lambda v, lang=lang: (f"{v:.2f}".rstrip("0").rstrip(".")).replace(".", "," if lang == "it" else ".")) for lang in ("it", "en")}
 whole = lambda v: f"{v:.0f}"                   # narrow paired bars: no room for a «%» on each label
+# the questions behind each bar of the paired runs (sets of 10 a seed; edge and the total as measured): each 95%
+# interval is computed from them, never written by hand
+N_BARE = [10, 20, 20, 10, 10, 10, 10, 10, 28, 128]                      # M214
+N_GRANULAR = [20, 20, 20, 19, 20, 20, 20, 20, 38, 197]                  # M219
+
+
+def paired(series: list[tuple[str, list[float]]], ns: list[int]) -> dict:
+    """The series and their Wilson intervals: right answers = the share × the questions of each bar."""
+    return {"series": series, "errors": [[wilson(round(v * n / 100), n) for v, n in zip(vals, ns)] for _, vals in series]}
+
+
 sec = {lang: (lambda v, lang=lang: _dec(round(v, 1), lang) + " s" if v else "0") for lang in ("it", "en")}
 
 CHARTS = {
@@ -275,31 +286,31 @@ CHARTS = {
     "vs_bare_local": {
         "it": dict(title='Aurora contro il modello nudo: in locale', subtitle='% di risposte giuste su 128 domande accoppiate, seed 7 e 8 · M214 · baffi: intervallo 95% (Wilson)',
                    cats=['MMLU-Pro', 'GPQA', 'HLE', 'AIME', 'MATH', 'SimpleQA', 'Truthful\nQA', 'ARC-AGI', 'edge', 'totale'],
-                   series=[("Aurora", [90.0, 70.0, 5.0, 80.0, 80.0, 90.0, 100.0, 20.0, 71.4, 63.3]), ('Qwen3.6 35B nudo', [100.0, 70.0, 10.0, 80.0, 90.0, 10.0, 100.0, 50.0, 50.0, 57.0])], errors=[[(59.6, 98.2), (48.1, 85.5), (0.9, 23.6), (49.0, 94.3), (49.0, 94.3), (59.6, 98.2), (72.2, 100.0), (5.7, 51.0), (52.9, 84.7), (54.7, 71.1)], [(72.2, 100.0), (48.1, 85.5), (2.8, 30.1), (49.0, 94.3), (59.6, 98.2), (1.8, 40.4), (72.2, 100.0), (23.7, 76.3), (32.6, 67.4), (48.4, 65.3)]],
+                   **paired([("Aurora", [90.0, 70.0, 5.0, 80.0, 80.0, 90.0, 100.0, 20.0, 71.4, 63.3]), ('Qwen3.6 35B nudo', [100.0, 70.0, 10.0, 80.0, 90.0, 10.0, 100.0, 50.0, 50.0, 57.0])], N_BARE),
                    ymax=100, fmt=whole, note='Totale 81 vs 73, McNemar p = 0,20; solo benchmark pubblici 61 vs 59, p = 0,83: tendenza, non significativa.'),
         "en": dict(title='Aurora against the bare model: local', subtitle='% right of 128 paired questions, seeds 7 and 8 · M214 · whiskers: 95% interval (Wilson)',
                    cats=['MMLU-Pro', 'GPQA', 'HLE', 'AIME', 'MATH', 'SimpleQA', 'Truthful\nQA', 'ARC-AGI', 'edge', 'total'],
-                   series=[("Aurora", [90.0, 70.0, 5.0, 80.0, 80.0, 90.0, 100.0, 20.0, 71.4, 63.3]), ('bare Qwen3.6 35B', [100.0, 70.0, 10.0, 80.0, 90.0, 10.0, 100.0, 50.0, 50.0, 57.0])], errors=[[(59.6, 98.2), (48.1, 85.5), (0.9, 23.6), (49.0, 94.3), (49.0, 94.3), (59.6, 98.2), (72.2, 100.0), (5.7, 51.0), (52.9, 84.7), (54.7, 71.1)], [(72.2, 100.0), (48.1, 85.5), (2.8, 30.1), (49.0, 94.3), (59.6, 98.2), (1.8, 40.4), (72.2, 100.0), (23.7, 76.3), (32.6, 67.4), (48.4, 65.3)]],
+                   **paired([("Aurora", [90.0, 70.0, 5.0, 80.0, 80.0, 90.0, 100.0, 20.0, 71.4, 63.3]), ('bare Qwen3.6 35B', [100.0, 70.0, 10.0, 80.0, 90.0, 10.0, 100.0, 50.0, 50.0, 57.0])], N_BARE),
                    ymax=100, fmt=whole, note='Total 81 vs 73, McNemar p = 0.20; public benchmarks only 61 vs 59, p = 0.83: a trend, not significant.'),
     },
     "vs_bare_cloud": {
         "it": dict(title='Aurora contro il modello nudo: con Claude', subtitle='% di risposte giuste su 128 domande accoppiate, seed 7 e 8 · M214 · baffi: intervallo 95% (Wilson)',
                    cats=['MMLU-Pro', 'GPQA', 'HLE', 'AIME', 'MATH', 'SimpleQA', 'Truthful\nQA', 'ARC-AGI', 'edge', 'totale'],
-                   series=[("Aurora", [100.0, 95.0, 40.0, 100.0, 100.0, 90.0, 100.0, 70.0, 71.4, 80.5]), ('Claude Sonnet nudo', [100.0, 85.0, 35.0, 100.0, 100.0, 30.0, 100.0, 100.0, 57.1, 72.7])], errors=[[(72.2, 100.0), (76.4, 99.1), (21.9, 61.3), (72.2, 100.0), (72.2, 100.0), (59.6, 98.2), (72.2, 100.0), (39.7, 89.2), (52.9, 84.7), (72.8, 86.4)], [(72.2, 100.0), (64.0, 94.8), (18.1, 56.7), (72.2, 100.0), (72.2, 100.0), (10.8, 60.3), (72.2, 100.0), (72.2, 100.0), (39.1, 73.5), (64.4, 79.6)]],
+                   **paired([("Aurora", [100.0, 95.0, 40.0, 100.0, 100.0, 90.0, 100.0, 70.0, 71.4, 80.5]), ('Claude Sonnet nudo', [100.0, 85.0, 35.0, 100.0, 100.0, 30.0, 100.0, 100.0, 57.1, 72.7])], N_BARE),
                    ymax=100, fmt=whole, note='Totale 103 vs 93, McNemar p = 0,031; solo benchmark pubblici 83 vs 77, p = 0,15 (edge = domande sulla casa).'),
         "en": dict(title='Aurora against the bare model: with Claude', subtitle='% right of 128 paired questions, seeds 7 and 8 · M214 · whiskers: 95% interval (Wilson)',
                    cats=['MMLU-Pro', 'GPQA', 'HLE', 'AIME', 'MATH', 'SimpleQA', 'Truthful\nQA', 'ARC-AGI', 'edge', 'total'],
-                   series=[("Aurora", [100.0, 95.0, 40.0, 100.0, 100.0, 90.0, 100.0, 70.0, 71.4, 80.5]), ('bare Claude Sonnet', [100.0, 85.0, 35.0, 100.0, 100.0, 30.0, 100.0, 100.0, 57.1, 72.7])], errors=[[(72.2, 100.0), (76.4, 99.1), (21.9, 61.3), (72.2, 100.0), (72.2, 100.0), (59.6, 98.2), (72.2, 100.0), (39.7, 89.2), (52.9, 84.7), (72.8, 86.4)], [(72.2, 100.0), (64.0, 94.8), (18.1, 56.7), (72.2, 100.0), (72.2, 100.0), (10.8, 60.3), (72.2, 100.0), (72.2, 100.0), (39.1, 73.5), (64.4, 79.6)]],
+                   **paired([("Aurora", [100.0, 95.0, 40.0, 100.0, 100.0, 90.0, 100.0, 70.0, 71.4, 80.5]), ('bare Claude Sonnet', [100.0, 85.0, 35.0, 100.0, 100.0, 30.0, 100.0, 100.0, 57.1, 72.7])], N_BARE),
                    ymax=100, fmt=whole, note='Total 103 vs 93, McNemar p = 0.031; public benchmarks only 83 vs 77, p = 0.15 (edge = questions on the house).'),
     },
     "granular": {
         "it": dict(title='Il meglio dei due contro tutto su Claude', subtitle='% di risposte giuste su 197 domande accoppiate, seed 7 e 8 · M219 · baffi: intervallo 95% (Wilson)',
                    cats=['MMLU-Pro', 'GPQA', 'HLE', 'AIME', 'MATH', 'SimpleQA', 'Truthful\nQA', 'ARC-AGI', 'edge', 'totale'],
-                   series=[("il meglio dei due", [80.0, 90.0, 40.0, 100.0, 90.0, 85.0, 90.0, 80.0, 73.7, 80.2]), ('tutto su Claude', [85.0, 95.0, 40.0, 100.0, 100.0, 80.0, 90.0, 80.0, 73.7, 81.7])], errors=[[(58.4, 91.9), (69.9, 97.2), (21.9, 61.3), (83.2, 100.0), (69.9, 97.2), (64.0, 94.8), (69.9, 97.2), (58.4, 91.9), (58.0, 85.0), (74.1, 85.2)], [(64.0, 94.8), (76.4, 99.1), (21.9, 61.3), (83.2, 100.0), (83.9, 100.0), (58.4, 91.9), (69.9, 97.2), (58.4, 91.9), (58.0, 85.0), (75.7, 86.5)]],
+                   **paired([("il meglio dei due", [80.0, 90.0, 40.0, 100.0, 90.0, 85.0, 90.0, 80.0, 73.7, 80.2]), ('tutto su Claude', [85.0, 95.0, 40.0, 100.0, 100.0, 80.0, 90.0, 80.0, 73.7, 81.7])], N_GRANULAR),
                    ymax=100, fmt=whole, note='Totale 158 vs 161, McNemar p = 0,65: nessuna differenza misurabile (8 domande solo all\'una, 11 solo all\'altra).'),
         "en": dict(title='The best of both against all on Claude', subtitle='% right of 197 paired questions, seeds 7 and 8 · M219 · whiskers: 95% interval (Wilson)',
                    cats=['MMLU-Pro', 'GPQA', 'HLE', 'AIME', 'MATH', 'SimpleQA', 'Truthful\nQA', 'ARC-AGI', 'edge', 'total'],
-                   series=[("the best of both", [80.0, 90.0, 40.0, 100.0, 90.0, 85.0, 90.0, 80.0, 73.7, 80.2]), ('all on Claude', [85.0, 95.0, 40.0, 100.0, 100.0, 80.0, 90.0, 80.0, 73.7, 81.7])], errors=[[(58.4, 91.9), (69.9, 97.2), (21.9, 61.3), (83.2, 100.0), (69.9, 97.2), (64.0, 94.8), (69.9, 97.2), (58.4, 91.9), (58.0, 85.0), (74.1, 85.2)], [(64.0, 94.8), (76.4, 99.1), (21.9, 61.3), (83.2, 100.0), (83.9, 100.0), (58.4, 91.9), (69.9, 97.2), (58.4, 91.9), (58.0, 85.0), (75.7, 86.5)]],
+                   **paired([("the best of both", [80.0, 90.0, 40.0, 100.0, 90.0, 85.0, 90.0, 80.0, 73.7, 80.2]), ('all on Claude', [85.0, 95.0, 40.0, 100.0, 100.0, 80.0, 90.0, 80.0, 73.7, 81.7])], N_GRANULAR),
                    ymax=100, fmt=whole, note='Total 158 vs 161, McNemar p = 0.65: no measurable difference (8 questions right only for one, 11 only for the other).'),
     },
     "granular_time": {

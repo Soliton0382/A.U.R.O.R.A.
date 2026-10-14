@@ -177,6 +177,12 @@ def export(file: Path) -> int:
                 asked.setdefault(e["question"], e["domain"])
     alone = {q for q, e in last.items() if e.get("alone") and not e.get("abstained")}
     rows = kno_shadow.export_seed(cfg, VaultReader(cfg), asked, only=alone)
+    # an answer exported before stays in the seed when its row left this shadow (C323: the same question asked in the
+    # chat replaces the seed's row there, kno_shadow.add): checked again below like the others
+    out = CONFIG / "shadow_seed.json"
+    have = {r["question"] for r in rows}
+    before = json.loads(out.read_text(encoding="utf-8")) if out.exists() else []
+    rows += [r for r in before if r.get("question") in alone and r["question"] not in have]
     deny = deny_patterns()
     # the whole row: question, answer, the suggested follow-ups, the sources' titles (C259: a follow-up named the owner
     # and the owner's theory, from the owner's own papers in the vault; only question and answer were looked at)
@@ -190,7 +196,6 @@ def export(file: Path) -> int:
             str(x.get("source", "")).startswith("legacy:paper_") for x in f.get("focus") or [])]
     f = links_file()
     kept = with_links(kept, json.loads(f.read_text(encoding="utf-8")) if f.exists() else {})
-    out = CONFIG / "shadow_seed.json"
     out.write_text(json.dumps(kept, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     print(f"{len(kept)} seed answers asked alone, public sources, nothing personal -> {out} "
           f"({out.stat().st_size // 1024} KB); {len(rows) - len(kept)} held back as personal; "

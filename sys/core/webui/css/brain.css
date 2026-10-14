@@ -1,0 +1,32 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright 2026 A.U.R.O.R.A. Project */
+/* 🧠 the brain widget: a floating panel over the page, full screen for a presentation */
+.brain-toggle { opacity: .75; }
+.brain-pop { position: fixed; right: 16px; bottom: 16px; z-index: 60; width: min(440px, calc(100vw - 32px));
+  background: var(--modal-bg); border: 1px solid var(--line); border-radius: var(--radius); padding: .6rem .7rem .7rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .45); color: var(--text); }
+.brain-head { display: flex; align-items: center; gap: .35rem; font-size: .9rem; cursor: grab; touch-action: none;
+  user-select: none; }
+.brain-pop.moving { opacity: .92; }
+.brain-pop.moving .brain-head { cursor: grabbing; }
+.brain-pop:fullscreen .brain-head { cursor: default; }
+.brain-head .grow { flex: 1; }
+.brain-head button { padding: .1rem .45rem; border-radius: 8px; background: transparent; border-color: var(--line); cursor: pointer; }
+.brain-canvas { display: block; width: 100%; margin-top: .4rem; }
+.brain-now { margin: .3rem 0 .4rem; font-size: .85rem; min-height: 1.3em; }
+.brain-legend { display: flex; flex-wrap: wrap; gap: .25rem .5rem; font-size: .72rem; color: var(--muted); }
+.brain-chip { display: inline-flex; align-items: center; gap: .3rem; transition: color .3s; }
+.brain-chip i { width: .55rem; height: .55rem; border-radius: 50%; opacity: .55; }
+.brain-chip.on { color: var(--text); }
+.brain-chip.on i { opacity: 1; box-shadow: 0 0 6px currentColor; }
+.brain-pop:fullscreen { inset: 0 !important; width: 100vw; height: 100vh; border-radius: 0; display: flex; flex-direction: column;
+  justify-content: center; padding: 2rem 8vw; background: #02040c; }
+.brain-pop:fullscreen .brain-canvas { width: min(84vw, calc((100vh - 11rem) / 0.715)); margin: 0 auto; }   /* the line below stays on the screen */
+.brain-pop:fullscreen .brain-now { font-size: 1.3rem; text-align: center; }
+.brain-pop:fullscreen .brain-legend { justify-content: center; font-size: .95rem; }
+@media (max-width: 640px) { .brain-pop { right: 8px; bottom: 8px; width: calc(100vw - 16px); } }
+.brain-info { max-height: 60vh; overflow-y: auto; font-size: .82rem; line-height: 1.4; margin-top: .4rem; }
+.brain-info dl { margin: .4rem 0; }
+.brain-info dt { font-weight: 600; margin-top: .45rem; }
+.brain-info dd { margin: .1rem 0 0 1.4rem; color: var(--muted); }
+.brain-pop:fullscreen .brain-info { max-width: 60rem; margin: 0 auto; font-size: 1rem; max-height: 75vh; }

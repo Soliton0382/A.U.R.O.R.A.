@@ -1,23 +1,19 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2026 A.U.R.O.R.A. Project
-"""Knowledge and memory: import, solitons, sources, domains, uploads, harvester, update, senses, REM tasks."""
+"""Knowledge and memory: import, solitons, sources, domains, the history, senses, features (uploads, updates and the
+harvester in their own modules since ROADMAP D10)."""
 from __future__ import annotations
 
 import asyncio
 import base64
 import binascii
-import json
 import os
-import re
-import subprocess
-import threading
 import time
 
-from aurora import sys_config, sys_features
+from aurora import sys_features
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import FileResponse
 
-from .core import _run_lock, _state, _write_lock, auth, cfg, log, note, pipeline, start_run
+from .core import _run_lock, _state, _write_lock, auth, cfg, log, pipeline
 
 from .users import admin_only  # noqa: E402
 
@@ -171,84 +167,6 @@ def history(n: int = 8) -> list[dict]:
     return sorted(items + recent_dreams(), key=lambda x: x["created_at"])          # same UTC ISO format
 
 
-@router.get("/v1/aurora/uploads", dependencies=[Depends(auth)])
-def uploads_list() -> dict:
-    from aurora import sys_uploads
-    return {"files": sys_uploads.all_uploads(cfg), "total_bytes": sys_uploads.total_bytes(cfg),
-            "keep_days": cfg["AURORA_UPLOADS_KEEP_DAYS"]}
-
-
-@router.get("/v1/aurora/uploads/{uid}", dependencies=[Depends(auth)])
-def upload_get(uid: str):
-    """Images, videos and audio inline; anything else only as a download (an HTML or SVG never runs here)."""
-    from fastapi.responses import FileResponse
-    from aurora import sys_uploads
-    found = sys_uploads.get(cfg, uid) if re.fullmatch(r"[0-9a-f]{16}", uid) else None
-    if found is None:
-        raise HTTPException(status_code=404, detail="no such file")
-    path, item = found
-    inline = bool(sys_uploads.INLINE.match(item["mime"]))
-    return FileResponse(path, media_type=item["mime"] if inline else "application/octet-stream",
-                        filename=item["name"], content_disposition_type="inline" if inline else "attachment",
-                        headers={"X-Content-Type-Options": "nosniff", "Content-Security-Policy": "sandbox",
-                                 "Cache-Control": "private, max-age=86400"})
-
-
-@router.delete("/v1/aurora/uploads/{uid}", dependencies=[Depends(auth)])
-def upload_delete(uid: str) -> dict:
-    from aurora import sys_uploads
-    if not sys_uploads.delete(cfg, uid):
-        raise HTTPException(status_code=404, detail="no such file")
-    log.info("audit: owner deleted an attached file (%s)", uid)
-    return {"deleted": uid}
-
-
-@router.get("/v1/aurora/trash", dependencies=[Depends(auth)])
-def trash_list() -> dict:
-    from aurora import sys_trash
-    return {"items": sys_trash.items(cfg), "enabled": bool(cfg["AURORA_TRASH_ENABLED"]), "days": cfg["AURORA_TRASH_DAYS"]}
-
-
-@router.post("/v1/aurora/trash/{tid}/restore", dependencies=[Depends(auth)])
-def trash_restore(tid: str) -> dict:
-    from aurora import sys_trash, sys_uploads
-    back = sys_trash.restore(cfg, tid)
-    if back is None:
-        raise HTTPException(status_code=404, detail="not in the trash")
-    path, meta = back
-    if meta["kind"] == "upload" and meta.get("record"):
-        sys_uploads.reindex(cfg, meta["record"], path)
-    log.info("audit: %s restored from the trash", meta["name"])
-    return {"restored": meta["name"]}
-
-
-@router.delete("/v1/aurora/trash/{tid}", dependencies=[Depends(auth)])
-def trash_remove(tid: str) -> dict:
-    """One item removed for good; "all" empties the trash."""
-    from aurora import sys_trash
-    ids = [i["id"] for i in sys_trash.items(cfg)] if tid == "all" else [tid]
-    gone = sum(sys_trash.remove(cfg, i) for i in ids)
-    if not gone and tid != "all":
-        raise HTTPException(status_code=404, detail="not in the trash")
-    log.info("audit: %d items removed from the trash", gone)
-    return {"removed": gone}
-
-
-@router.post("/v1/aurora/uploads/purge", dependencies=[Depends(auth)])
-def uploads_purge() -> dict:
-    """aurora-rem, daily: files whose conversation turn is gone, and those older than AURORA_UPLOADS_KEEP_DAYS."""
-    from aurora import sys_uploads
-    live = {t.extra.get("run_id") for t in pipeline().reader.recent(1_000_000)} - {None}
-    removed = sys_uploads.purge(cfg, live)
-    if removed:
-        log.info("uploads purge: %d files removed", len(removed))
-    from aurora import sys_trash                       # the same daily round empties every user's expired trash
-    expired = sys_trash.expire(cfg)
-    if expired:
-        log.info("trash: %d expired items removed", expired)
-    return {"removed": len(removed), "trash_expired": expired}
-
-
 def recent_dreams() -> list[dict]:
     """Last nights' dreams, shown in the chat among the turns (AURORA_CHAT_DREAM_HOURS; 0 = never)."""
     from datetime import datetime, timedelta, timezone
@@ -325,170 +243,3 @@ def features() -> dict:
     from .core import plugin_host
     return {"features": sys_features.report(cfg), "config": sys_features.config_problems(cfg),
             "live": sys_capabilities.report(cfg, plugin_host())}
-
-
-@router.get("/v1/aurora/update", dependencies=[Depends(auth)])
-def update_info() -> dict:
-    from aurora import sys_commands, sys_update
-    return {**sys_update.last(cfg), "mode": cfg["AURORA_UPDATE_MODE"], "by_hand": sys_commands.by_hand(cfg)}
-
-
-@router.get("/v1/aurora/commands", dependencies=[Depends(admin_only)])
-def command_cards(request: Request) -> dict:
-    """What only the owner can do from a shell, with the command for this system (roadmap 74)."""
-    from aurora import sys_commands
-    return {"cards": sys_commands.cards(cfg, request.headers.get("accept-language", "it")),
-            "by_hand": sys_commands.by_hand(cfg)}
-
-
-@router.post("/v1/aurora/commands/{card}/verify", dependencies=[Depends(admin_only)])
-async def command_verify(card: str) -> dict:
-    """The owner says it is done: Aurora checks."""
-    from aurora import sys_commands
-    try:
-        return await asyncio.to_thread(sys_commands.verify, cfg, card)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from None
-
-
-def settle_updates(info: dict | None = None) -> int:
-    """Up to date (by the WebUI, or by hand: git pull and the installer): the update approvals still open are closed —
-    the owner's colleague, 9 Oct: «ho completato l'update ma continua a dirmi che c'è un update da fare». Called at
-    every check that finds nothing new and at the API's start (the state checked again without fetching)."""
-    from aurora import sys_update
-    from aurora.sys_approvals import Approvals
-    if info is None:
-        info = sys_update.check(cfg, fetch=False)
-    if info.get("error") or info.get("commits"):
-        return 0
-    a = Approvals(cfg)
-    open_ = [x for x in a.list("pending") if x["kind"] == "update"]
-    for x in open_:
-        a.update(x["id"], status="closed", decided=time.time(), note=f"already up to date ({info.get('here', '')})")
-    if open_:
-        log.info("audit: %d update approvals closed: Aurora is up to date (%s)", len(open_), info.get("here", ""))
-    return len(open_)
-
-
-@router.post("/v1/aurora/update/check", dependencies=[Depends(admin_only)])
-async def update_check() -> dict:
-    """Fetch and compare; new commits become a notification and an approval (notify), or are applied (auto, when safe)."""
-    from aurora import sys_update
-    from aurora.sys_approvals import Approvals
-    info = await asyncio.to_thread(sys_update.check, cfg)
-    if not info.get("error") and not info.get("commits"):
-        settle_updates(info)
-    if info.get("error") or not info.get("commits"):
-        return info
-    pending = [a for a in Approvals(cfg).list("pending") if a["kind"] == "update"]
-    if pending and pending[-1]["action"].get("to") == info["there"]:
-        return {**info, "approval": pending[-1]["id"]}           # already asked for this version
-    text = sys_update.changelog(info, "it")
-    note("update", "update.available", {"text": f"{info['behind']} novità: " + "; ".join(c["subject"] for c in info["commits"])[:300],
-                                         "to": info["there"]})
-    if cfg["AURORA_UPDATE_MODE"] == "auto" and info["safe"]:
-        from aurora import sys_autonomy
-        sys_autonomy.log(cfg, "updates", f"update to {info['there']} ({info['behind']} commits) started by herself")
-        return {**info, "run_id": _start_update(info["there"])}
-    item = Approvals(cfg).request("update", "code_change", f"Aggiornamento: {info['behind']} commit fino a {info['there']}",
-                                  text, {"commits": info["commits"], "files": info["files"], "protected": info["protected"]},
-                                  {"to": info["there"]})
-    return {**info, "approval": item["id"]}
-
-
-def _env_add_missing() -> list[str]:
-    """Keys a new schema declares and .env lacks get their recommended value (an update must not stop Aurora)."""
-    added = sys_config.add_missing()
-    if added:
-        log.info("audit: update added settings with their recommended value: %s", ", ".join(added))
-    return added
-
-
-def _runs_here(unit: str) -> bool:
-    """The unit runs this folder's code (its ExecStart names cfg.root): units of the same name may be another copy's."""
-    try:
-        out = subprocess.run(["systemctl", "show", unit, "-p", "ExecStart"], capture_output=True, text=True, timeout=10).stdout
-    except (OSError, subprocess.SubprocessError):
-        return False
-    return f"{cfg.root}/" in out
-
-
-def _start_update(to: str) -> str:
-    def job(q, emit, run_id):
-        from aurora import sys_update
-        from aurora.kno_answer import Answer
-        out = sys_update.apply(cfg, emit)
-        if out.get("applied"):
-            out["settings_added"] = _env_add_missing()
-            mine = [u for u in UNITS if _runs_here(u)]          # a second copy never restarts another's services (C140)
-            out["restarted"] = mine
-            if [u for u in mine if u != "aurora-api"]:
-                threading.Timer(2.0, lambda: subprocess.run(["systemctl", "restart", "--no-block",
-                                                             *[u for u in mine if u != "aurora-api"]], capture_output=True)).start()
-            if "aurora-api" in mine:
-                threading.Timer(4.0, lambda: subprocess.run(["systemctl", "restart", "--no-block", "aurora-api"],
-                                                            capture_output=True)).start()
-        note("update", "update.done", {"ok": out.get("applied", False), "text": out.get("reason", f"aggiornata a {to}")})
-        return Answer(run_id, q, json.dumps(out, ensure_ascii=False), False, mode="agent")
-    return start_run(f"[update] {to}", origin="update", job=job)["id"]
-
-
-def _harvest_domains() -> list[dict]:
-    from aurora import kno_sources
-    from aurora.sol_schema import load_taxonomy
-    tax = load_taxonomy()
-    return [{"id": d, "it": tax.get(d, {}).get("it", d), "en": tax.get(d, {}).get("en", d), "mode": m,
-             **kno_sources.progress(cfg, d)} for d, m in kno_sources.modes(cfg).items()]
-
-
-@router.put("/v1/aurora/harvester/domains", dependencies=[Depends(admin_only)])
-async def harvester_domains(request: Request) -> dict:
-    from aurora import kno_harvest, kno_sources
-    changes = {str(k): str(v) for k, v in (await request.json()).items()}
-    try:
-        kno_sources.set_modes(cfg, changes)
-    except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
-    if any(v != "off" for v in changes.values()):
-        kno_harvest.send(cfg, "wake")                   # the harvester re-reads the choice within seconds
-    log.info("audit: harvester domains: %s", ", ".join(f"{k}={v}" for k, v in sorted(changes.items())))
-    return {"domains": _harvest_domains()}
-
-
-@router.get("/v1/aurora/harvester", dependencies=[Depends(auth)])
-def harvester() -> dict:
-    from aurora import kno_harvest
-    env = sys_config.parse_env(sys_config.env_file_path().read_text(encoding="utf-8"))
-    seen = cfg.path("AURORA_STATUS_DIR") / "harvest" / "seen.json"
-    return {**kno_harvest.status(cfg), "pending": kno_harvest.pending(cfg),
-            "enabled_setting": env.get("AURORA_HARVEST_ENABLED", "0").lower() in sys_config.TRUE_WORDS,
-            "categories": cfg["AURORA_HARVEST_CATEGORIES"], "per_category": cfg["AURORA_HARVEST_PER_CATEGORY"],
-            "interval_h": cfg["AURORA_HARVEST_INTERVAL_H"],
-            "papers_seen": len(json.loads(seen.read_text())) if seen.exists() else 0,
-            "domains": _harvest_domains()}
-
-
-@router.post("/v1/aurora/harvester/{action}", dependencies=[Depends(admin_only)])
-async def harvester_action(action: str, request: Request) -> dict:
-    from aurora import kno_harvest
-    if action == "now":
-        item = kno_harvest.send(cfg, "now")
-        log.info("audit: owner asked the harvester for a round now")
-        return {"queued": item["id"]}
-    if action == "batch":
-        ids, unsupported = kno_harvest.parse_items(str((await request.json()).get("items", ""))[:50000])
-        if not ids:
-            raise HTTPException(status_code=422, detail={"message": "no arXiv id or link found", "unsupported": unsupported})
-        item = kno_harvest.send(cfg, "batch", ids=ids)
-        log.info("audit: owner sent the harvester a batch of %d papers", len(ids))
-        return {"queued": item["id"], "ids": ids, "unsupported": unsupported}
-    if action == "plan":                                # the projection again now (kno_harvest_plan)
-        item = kno_harvest.send(cfg, "plan")
-        log.info("audit: owner asked the harvester's projection now")
-        return {"queued": item["id"]}
-    raise HTTPException(status_code=404, detail="unknown action")
-
-
-# names of sibling modules, looked up only when called: imported last, so that modules that use each
-# other (routines, forge, agents) load in any order
-from .agents import UNITS  # noqa: E402

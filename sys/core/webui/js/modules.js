@@ -11,6 +11,8 @@ import chat from "./modules/chat.js";
 import diary from "./modules/diary.js";
 import dreams from "./modules/dreams.js";
 import accounts from "./modules/accounts.js";
+import today from "./modules/today.js";
+import advanced from "./modules/advanced.js";
 import dj from "./modules/dj.js";
 import memory from "./modules/memory.js";
 import care from "./modules/care.js";
@@ -37,6 +39,7 @@ import ciso from "./modules/ciso.js";
 import firewall from "./modules/firewall.js";
 import aurorafw from "./modules/aurorafw.js";
 import sky from "./modules/sky.js";
+import brain from "./modules/brain.js";
 import synapses from "./modules/synapses.js";
 import social from "./modules/social.js";
 import status from "./modules/status.js";
@@ -51,13 +54,14 @@ import { kinds as homeKinds } from "./modules/home.js";
 let local = { views: [] };
 try { local = await import("./local/index.js"); } catch { /* none on this installation */ }
 
-export const views = [chat, approvals, reports, security, ciso, firewall, aurorafw, secDefence, secWatch, secOut, secTrace, autonomy, diary, dreams, memory, social, dj, care, home, calendar, projects, routines, models, accounts, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, settings, https, guide, bugreport, ideas];
+export const views = [today, advanced, chat, approvals, reports, security, ciso, firewall, aurorafw, secDefence, secWatch, secOut, secTrace, autonomy, diary, dreams, memory, social, dj, care, home, calendar, projects, routines, models, accounts, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, settings, https, guide, bugreport, ideas];
 views.push(...homeKinds, ...local.views);
-export const widgets = [sky, alerts, metrics];
+export const widgets = [sky, alerts, metrics, brain];
 
 // the side menu in areas (owner, 2026-10-05): an area of one page is a plain entry; the others open on a tap
 // (phone) or on hover (PC); the area of the page shown stays open
 export const groups = [
+  { id: "today", views: ["today"] },
   { id: "chat", views: ["chat"] },
   { id: "activity", icon: "🛎️", title: "nav.g.activity", views: ["approvals", "notifications", "reports", "runs"] },
   { id: "life", icon: "✨", title: "nav.g.life", views: ["calendar", "diary", "dreams", "memory", "social", "dj", "care"] },

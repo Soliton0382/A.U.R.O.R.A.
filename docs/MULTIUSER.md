@@ -65,6 +65,8 @@ purge listing, not hidden.
   is the shared one.
 - Stored in `<STATUS>/cloud_accounts.json` (0600) and `<STATUS>/cloud_accounts/<id>/` (0700): only Aurora's service
   reads them — and the machine's administrator, who can read anything; keys are never shown whole on the page.
+- Services of one's own (any OpenAI-compatible address: Ollama, Kimi…) are added by the admin with a name; a user
+  can add their own key for one. The built-in providers are never removed.
 - The sign-in from the page needs a terminal of its own (pty): Linux and macOS; on Windows, `claude auth login` once.
 
 ## Ceiling of users

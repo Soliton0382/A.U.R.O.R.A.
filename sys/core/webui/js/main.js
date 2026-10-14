@@ -9,6 +9,8 @@ import * as i18n from "./i18n.js";
 import * as voice from "./voice.js";
 import { adminOnly, groups, views, widgets } from "./modules.js";
 import { applyTheme, current as currentTheme, themePicker } from "./theme.js";
+import { welcome } from "./welcome.js";
+import { SHORT, adopt, applyStyle, current as currentStyle, home as styleHome, pins, setStyle } from "./style.js";
 import { stackTables } from "./stack.js";
 
 const byId = Object.fromEntries(views.map((v) => [v.id, v]));
@@ -96,10 +98,13 @@ function navButton(v) {
   return b;
 }
 
+// two menus, one shown by the style (style.js, ROADMAP 107): the full one (every area) and the short one (six pages,
+// the pinned ones, Avanzate)
 function buildNav() {
-  const nav = $("nav");
+  const nav = el("div", "nav-full");
+  $("nav").replaceChildren(nav, el("div", "nav-short"));
   const byView = Object.fromEntries(views.map((v) => [v.id, v]));
-  const placed = new Set();
+  const placed = new Set(["advanced"]);
   for (const g of groups) {
     const members = g.views.map((id) => byView[id]).filter(Boolean);
     members.forEach((v) => placed.add(v.id));
@@ -119,7 +124,22 @@ function buildNav() {
     nav.append(box);
   }
   views.filter((v) => !placed.has(v.id)).forEach((v) => nav.append(navButton(v)));   // a page not in an area yet
+  shortNav();
 }
+
+function shortNav() {
+  const box = document.querySelector("#nav .nav-short");
+  const ids = [...SHORT, ...pins().filter((id) => !SHORT.includes(id))].filter((id) => byId[id]);
+  box.replaceChildren(...ids.map((id) => navButton(byId[id])), el("div", "nav-gap"), navButton(byId.advanced));
+  box.lastChild.classList.add("nav-adv");
+  i18n.apply(box);
+  for (const b of box.querySelectorAll("button[data-view]")) {     // hidden as in the full menu (a user's, a plugin's)
+    const twin = document.querySelector(`#nav .nav-full button[data-view="${b.dataset.view}"]`);
+    if (twin?.classList.contains("hidden")) b.classList.add("hidden");
+    b.classList.toggle("active", b.dataset.view === current);
+  }
+}
+bus.on("pins", shortNav);
 
 // with a mouse an area's pages open in a panel beside the menu, at the height of its head; leaving it closes after
 // 250 ms, so the pointer can cross the gap
@@ -160,7 +180,7 @@ function drawer(open) {
 
 // the machine's pages hidden from a user (their API refuses them anyway)
 function adminNav() {
-  for (const id of adminOnly) if (!isAdmin) document.querySelector(`#nav button[data-view="${id}"]`)?.classList.add("hidden");
+  for (const id of adminOnly) if (!isAdmin) document.querySelectorAll(`#nav button[data-view="${id}"]`).forEach((b) => b.classList.add("hidden"));
   tidyNav();
 }
 
@@ -204,7 +224,7 @@ async function pluginNav() {
     if (!v.plugin) continue;
     let shown = v.plugin === "social" ? list.some((p) => p.social && on(p)) : list.some((p) => p.name === v.plugin && on(p));
     if (shown && v.visible) shown = await v.visible().catch(() => false);   // a page with nothing to show stays out
-    document.querySelector(`#nav button[data-view="${v.id}"]`)?.classList.toggle("hidden", !shown || (!isAdmin && adminOnly.has(v.id)));
+    document.querySelectorAll(`#nav button[data-view="${v.id}"]`).forEach((b) => b.classList.toggle("hidden", !shown || (!isAdmin && adminOnly.has(v.id))));
   }
   tidyNav();
 }
@@ -224,11 +244,15 @@ async function persona() {
     document.title = m.assistant || "Aurora";
     voice.setGender(m.gender);
     isAdmin = m.admin !== false;
+    adopt(m.prefs, m.name);                            // this person's style and pins, from any device
+    applyStyle(currentStyle(isAdmin));                 // until chosen: Completo for the admin, Essenziale for a user
+    shortNav();
     whoIs(m);
     adminNav();
     if (!isAdmin && adminOnly.has(current)) show("chat");
     firstSetup(m);
-  } catch { /* the defaults stay */ }
+    return m;
+  } catch { return null; /* the defaults stay */ }
 }
 
 // who is logged in, at the menu's foot beside the language and the logout (owner, 2026-10-07): their name for Aurora,
@@ -261,19 +285,41 @@ function firstSetup(m) {
 }
 bus.on("me-changed", persona);
 
+// back from a provider's sign-in (api/oauth): its code and state handed to the API, the address cleaned, the plugins
+// page shown with the outcome
+async function oauthBack() {
+  const q = new URLSearchParams(location.search);
+  const state = q.get("state") || "";
+  if (!/^[a-z]+\.[\w-]+$/.test(state) || !(q.get("code") || q.get("error"))) return false;
+  history.replaceState(null, "", location.pathname);
+  let text;
+  try {
+    if (q.get("error")) throw new Error(q.get("error_description") || q.get("error"));
+    const r = await call("/v1/aurora/oauth/finish", { method: "POST", body: JSON.stringify({ code: q.get("code"), state }) });
+    text = i18n.t("oauth.done", { name: r.provider, days: r.days });
+  } catch (e) { text = i18n.t("oauth.failed", { m: e.message }); }
+  await show("plugins");
+  alert(text);
+  return true;
+}
+
 let started = false;
-function start() {
+async function start() {
   showLogin(false);
-  persona();
+  const m = await persona();
   pluginNav();
   if (!started) { for (const w of widgets) w.enter?.(); started = true; }
   const asked = new URLSearchParams(location.search).get("view");
-  show(current || (asked && byId[asked] ? asked : "chat"));
+  if (await oauthBack()) return;
+  show(current || (asked && byId[asked] ? asked : styleHome(isAdmin)));
+  if (m && !m.welcomed) welcome(m, show);              // the first run's five screens, once per person (107)
 }
 
 // ---- boot --------------------------------------------------------------------------------
 applyTheme(currentTheme());                          // the colours first: no flash of another theme
-$("theme").addEventListener("click", () => themePicker());
+applyStyle(currentStyle(true));
+$("theme").addEventListener("click", () => themePicker({ style: currentStyle(isAdmin), onStyle: setStyle,
+  onWelcome: async () => { const m = await call("/v1/aurora/me"); welcome(m, show); } }));
 const lang = i18n.saved();
 $("lang").value = lang;
 await i18n.load(lang);

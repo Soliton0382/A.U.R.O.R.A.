@@ -50,14 +50,22 @@ PROVIDERS = {
 }
 
 
+def _services(cfg: sys_config.Config | None = None) -> None:
+    """The services of one's own in PROVIDERS as they are now (mdl_services: one stat a call)."""
+    from . import mdl_services
+    mdl_services.refresh(cfg)
+
+
 def base_url(provider: str, cfg: sys_config.Config) -> str:
-    """A provider's address: fixed, or the owner's setting (custom)."""
+    """A provider's address: fixed, or the owner's setting (custom), or a service of one's own (mdl_services)."""
+    _services(cfg)
     spec = PROVIDERS[provider]
     return str(spec.get("base") or cfg.values.get(spec.get("base_key", "")) or "").rstrip("/")
 
 
 def configured(provider: str, cfg: sys_config.Config) -> bool:
     """Whether a provider can be asked: its key (and, for custom, its address) set."""
+    _services(cfg)
     spec = PROVIDERS[provider]
     if spec["kind"] == "local":
         return True
@@ -117,6 +125,7 @@ def check_roles(roles: dict) -> dict[str, dict]:
 def assignments(cfg: sys_config.Config) -> dict[str, dict]:
     """{role: {"provider", "model"}} — the owner's choice, else the old two settings; within a request that brought
     its own roles (RUN_ROLES), those."""
+    _services(cfg)
     cur = _stored(cfg)
     return {**cur, **(RUN_ROLES.get() or {})}
 
@@ -377,12 +386,14 @@ class OpenAICompatLLM:
 def list_models(provider: str, cfg: sys_config.Config | None = None) -> list[str]:
     """The provider's own list of models (GET /models)."""
     cfg = cfg or sys_config.get()
+    _services(cfg)
     spec = PROVIDERS[provider]
     if spec["kind"] == "local":
         return [Path(str(cfg["AURORA_LLM_MODEL"])).name]
     if spec["kind"] == "claude_code":
         return ["opus", "sonnet", "haiku"]                             # the CLI's own aliases
-    key = str(cfg.values.get(spec["key"]) or "")
+    from . import mdl_accounts
+    key = mdl_accounts.key_for(cfg, provider, spec.get("key") or "")
     if not configured(provider, cfg):
         raise RuntimeError(f"{spec.get('base_key') if spec.get('base_key') and not base_url(provider, cfg) else spec['key']}"
                            " is empty: add it in the plugin's settings")

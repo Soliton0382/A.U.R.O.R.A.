@@ -62,8 +62,8 @@ export function register(apiKey, name) {
 
 // Server-sent events over fetch (same authentication as every other call). True when the server said the end;
 // false when the connection closed before it (the caller follows again: followRun).
-export async function stream(path, onEvent) {
-  const res = await fetch(path, { credentials: "same-origin" });
+export async function stream(path, onEvent, signal) {
+  const res = await fetch(path, { credentials: "same-origin", signal });
   if (!res.ok) throw Object.assign(new Error(`stream ${res.status}`), { status: res.status });
   const reader = res.body.getReader();
   const decoder = new TextDecoder();

@@ -12,3 +12,7 @@ Included: KaTeX 0.19.0 (MIT, Copyright (c) 2013-2020 Khan Academy and other cont
 sys/core/webui/vendor/katex with its LICENSE, to draw formulas in the chat; qrcode-generator 2.0.4 (MIT,
 Copyright (c) 2009 Kazuhiko Arase, the license in the file's header), in sys/core/webui/vendor/qrcode, for the
 Authenticator's QR code.
+
+Traced: the brain of the 🧠 widget (sys/core/webui/js/modules/brain_gray.js) from Gray's Anatomy (H. Gray, Anatomy
+of the Human Body, 1918), Fig. 728, in the vector redrawing on Wikimedia Commons (File:Gray728.svg), public domain;
+the labels removed.

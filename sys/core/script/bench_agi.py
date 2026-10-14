@@ -98,18 +98,24 @@ JUDGE = ("You are a strict examiner. You get a QUESTION, what a right answer mus
 SECTIONS = ("reasoning", "planning", "honesty", "refusal", "context", "repair", "autonomy", "memory")
 
 
+STEPS = ("grid.rule", "think")
+
+
 def ask(q: str, quote: str = "", roles: dict | None = None, lessons: bool = False) -> dict:
     # everything on (the tools' router, the agent, the shadow, the searches), nothing remembered (C270);
     # `roles`: the models of this run only, the owner's untouched (C280)
     body = {"question": q, "remember": False, "tools": True, **({"reply_to": {"text": quote}} if quote else {}),
             **({"roles": roles} if roles else {}), "lessons": lessons}
     run = httpx.post(f"{BASE}/v1/aurora/ask", headers=HEAD, timeout=60, json=body).json()["run_id"]
-    t0, final = time.time(), None
+    t0, final, steps = time.time(), None, []
     with httpx.stream("GET", f"{BASE}/v1/aurora/runs/{run}/events", headers=HEAD, timeout=900) as r:
         for line in r.iter_lines():
             if not line.startswith("data: "):
                 continue
             e = json.loads(line[6:])
+            if e["event"] in STEPS:                      # the steps a benchmark reads back (D4: the grid's rule)
+                steps.append({"event": e["event"], **{k: e["payload"].get(k) for k in ("ok", "attempt", "why", "used")
+                                                      if k in (e.get("payload") or {})}})
             if e["event"] == "answer.final":
                 final = e["payload"]
             elif e["event"] == "agent.finish" and final is None:     # the tools' path ends with the agent's report
@@ -117,7 +123,7 @@ def ask(q: str, quote: str = "", roles: dict | None = None, lessons: bool = Fals
             if e["event"] == "error" or e["event"] == "run.end" and final is not None:
                 break
     return {"answer": (final or {}).get("text", ""), "abstained": bool((final or {}).get("abstained")),
-            "seconds": round(time.time() - t0, 1)}
+            "seconds": round(time.time() - t0, 1), "steps": steps, "run": run}
 
 
 def judged(judge, q: str, expected: str, answer: str) -> dict:

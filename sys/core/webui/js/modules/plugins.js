@@ -210,6 +210,19 @@ export default {
       dlg.append(g);
     }
 
+    // 🔗 an account connected from here (api/oauth): the provider's sign-in, back to this WebUI, the token kept
+    if (p.oauth) {                                   // each person's own account (the settings are scope user)
+      const box = el("div", "report oauth-box");
+      const go = el("button", "approve", `🔗 ${t(p.available ? "oauth.again" : "oauth.connect", { name: p.social_label || p.name })}`);
+      go.addEventListener("click", async () => {
+        go.disabled = true;
+        try { location.href = (await call(`/v1/aurora/oauth/${p.oauth}/start`, { method: "POST" })).url; }
+        catch (e) { go.disabled = false; box.append(el("p", "error", e.message)); }
+      });
+      box.append(el("p", p.available ? "ok" : "muted", t(p.available ? "oauth.connected" : "oauth.hint")), go);
+      dlg.append(box);
+    }
+
     // the plugin's own settings (the same .env values as in Settings)
     if (p.settings?.length) {
       const all = (await call("/v1/aurora/settings")).settings;

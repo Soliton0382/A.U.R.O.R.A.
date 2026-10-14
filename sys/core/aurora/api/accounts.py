@@ -31,13 +31,16 @@ def _owned(account_id: str) -> dict:
 
 @router.get("/v1/aurora/accounts", dependencies=[Depends(auth)])
 def accounts() -> dict:
-    from aurora.mdl_router import PROVIDERS, configured
+    from aurora import mdl_services
+    from aurora.mdl_router import PROVIDERS, _services, configured
     c = cfg.now()
+    _services(c)
     d = mdl_accounts.load(c)
     return {"policy": d["policy"], "policies": list(mdl_accounts.POLICIES), "admin": _is_admin(), "me": me(),
-            "accounts": mdl_accounts.visible(c, me(), _is_admin()),
+            "accounts": mdl_accounts.visible(c, me(), _is_admin()), "presets": mdl_services.PRESETS,
             "providers": [{"id": p, "key": p != "claude_code", "key_optional": bool(s.get("key_optional")),
-                           "ready": configured(p, c)}
+                           "ready": configured(p, c), "label": s["label"], "custom": bool(s.get("custom")),
+                           "base": s.get("base", "") if s.get("custom") else ""}
                           for p, s in PROVIDERS.items() if s["kind"] != "local"],
             # what this user's calls use now, per provider: an account, the installation's setup, or nothing
             "using": {p: ("installation" if (a := mdl_accounts.pick(c, p)) is mdl_accounts.LEGACY else
@@ -120,3 +123,63 @@ async def policy(request: Request) -> dict:
         raise HTTPException(status_code=400, detail=str(e)) from None
     log.info("audit: cloud accounts policy → %s", p)
     return {"policy": p}
+
+
+# ---- services of one's own (mdl_services): OpenAI-compatible, named, added and removed by the admin ----------------
+def _admin_needed() -> None:
+    if not _is_admin():
+        raise HTTPException(status_code=403, detail="only the admin adds or removes a service")
+
+
+@router.post("/v1/aurora/accounts/services/try", dependencies=[Depends(auth)])
+async def try_service(request: Request) -> dict:
+    """The service's own list of models (GET <address>/models), before it is saved: the address proved, not trusted."""
+    import httpx
+
+    from aurora import mdl_services
+    _admin_needed()
+    body = await request.json()
+    try:
+        base = mdl_services.clean_base(str(body.get("base", "")))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    key = str(body.get("key", "")).strip()
+    try:
+        r = httpx.get(f"{base}/models", headers={"Authorization": f"Bearer {key}"} if key else {}, timeout=10)
+        r.raise_for_status()
+        data = r.json().get("data") or r.json().get("models") or []
+    except (httpx.HTTPError, ValueError) as e:
+        raise HTTPException(status_code=502, detail=f"{base}: {str(e)[:200]}") from None
+    models = sorted({str(m.get("id") or m.get("name") or "") for m in data if isinstance(m, dict)} - {""})
+    return {"ok": True, "models": models[:200], "count": len(models)}
+
+
+@router.post("/v1/aurora/accounts/services", dependencies=[Depends(auth)])
+async def add_service(request: Request) -> dict:
+    """A named service; with a key, its shared account too (the key travels like every other)."""
+    from aurora import mdl_services
+    _admin_needed()
+    body = await request.json()
+    try:
+        row = mdl_services.add(cfg.now(), str(body.get("name", "")), str(body.get("base", "")))
+        key = str(body.get("key", "")).strip()
+        if key:
+            mdl_accounts.add(cfg.now(), row["id"], "shared", me(), row["name"], key)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    log.info("audit: cloud service %s added (%s) by %s", row["id"], row["base"], me())
+    return row
+
+
+@router.delete("/v1/aurora/accounts/services/{sid}", dependencies=[Depends(auth)])
+def remove_service(sid: str) -> dict:
+    from aurora import mdl_services
+    _admin_needed()
+    try:
+        mdl_services.remove(cfg.now(), sid)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    except KeyError:
+        raise HTTPException(status_code=404, detail="no such service") from None
+    log.info("audit: cloud service %s removed by %s", sid, me())
+    return {"removed": sid}

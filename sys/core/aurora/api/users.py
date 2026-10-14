@@ -87,7 +87,75 @@ def whoami() -> dict:
             "assistant": sys_persona.name(cfg), "personality": str(cfg["AURORA_PERSONALITY"]),
             "gender": str(cfg["AURORA_ASSISTANT_GENDER"]), "person": str(cfg["AURORA_OWNER_NAME"]),
             "mode": str(cfg["AURORA_USER_MODE"]), "mfa": bool(cfg["AURORA_USERS_MFA"]),
-            "has_password": bool(u and u["has_password"]), "totp_on": bool(u and u["totp_on"])}
+            "has_password": bool(u and u["has_password"]), "totp_on": bool(u and u["totp_on"]),
+            "welcomed": (name or "") in _welcomed(), "prefs": _prefs().get(name or "", {})}
+
+
+# each person's look of the WebUI, on any device (ROADMAP 107; owner, 15 Oct: «salva lo stile per utente sul server»):
+# the menu's style, the pinned pages and the colours (owner, 15 Oct: «leghiamo le configurazioni agli utenti e non ai
+# device»)
+PREFS = {"style": ("completo", "essenziale", "misto"),
+         "theme": ("aurora", "notte", "oceano", "foresta", "tramonto", "chiaro", "contrasto")}
+
+
+def _prefs_file():
+    return (BASE.base or BASE).path("AURORA_STATUS_DIR") / "ui_prefs.json"
+
+
+def _prefs() -> dict:
+    import json
+    try:
+        return json.loads(_prefs_file().read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+@router.put("/v1/aurora/me/prefs", dependencies=[Depends(auth)])
+async def my_prefs(request: Request) -> dict:
+    """{"style"?, "theme"?, "pins"?}: only what is sent changes; a value out of its list is refused."""
+    import json
+    import re
+    body = await request.json()
+    mine = dict(_prefs().get(me() or "", {}))
+    for key, allowed in PREFS.items():
+        if key in body:
+            if body[key] not in allowed:
+                raise HTTPException(status_code=422, detail=f"{key}: one of {allowed}")
+            mine[key] = body[key]
+    if "pins" in body:
+        pins = body["pins"] if isinstance(body["pins"], list) else []
+        if not all(isinstance(x, str) and re.fullmatch(r"[a-z][a-z0-9_-]{0,40}", x) for x in pins):
+            raise HTTPException(status_code=422, detail="pins: page ids")
+        mine["pins"] = list(dict.fromkeys(pins))[-8:]
+    allp = {**_prefs(), me() or "": mine}
+    f = _prefs_file()
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text(json.dumps(allp), encoding="utf-8")
+    return mine
+
+
+# the first run's five screens (ROADMAP 107): seen once per person, on any device; the Appearance dialog opens them again
+def _welcome_file():
+    return (BASE.base or BASE).path("AURORA_STATUS_DIR") / "welcomed.json"
+
+
+def _welcomed() -> dict:
+    import json
+    try:
+        return json.loads(_welcome_file().read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+@router.post("/v1/aurora/me/welcomed", dependencies=[Depends(auth)])
+def welcomed() -> dict:
+    import json
+    import time
+    seen = {**_welcomed(), me() or "": time.time()}
+    f = _welcome_file()
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text(json.dumps(seen), encoding="utf-8")
+    return {"welcomed": True}
 
 
 @router.post("/v1/aurora/me/password", dependencies=[Depends(auth)])

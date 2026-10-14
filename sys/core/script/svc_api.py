@@ -223,7 +223,7 @@ if __name__ == "__main__":
     def _update_state() -> None:
         """The update's state checked again at start, without fetching: an update made by hand is seen at once."""
         try:
-            from aurora.api.knowledge import settle_updates
+            from aurora.api.updates import settle_updates
             settle_updates()
         except Exception as e:                          # noqa: BLE001 - never fail the start
             log.warning("update state not checked: %s", e)

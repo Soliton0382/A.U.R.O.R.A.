@@ -92,7 +92,9 @@ call downward (ECOSYSTEM §1).
 | `kno_grid.py` | knowledge | a grid puzzle (ARC-like: examples INPUT → OUTPUT, a test) solved as a verified program: the synthesis model writes `transform(grid)`, run in prj_run's cage (no network, no home, 10 s) on the examples; only a rule that reproduces them all answers the test, else the reasoning as before — ROADMAP 105 step 3 | prj_run, txt_lang | kno_think |
 | `kno_about.py` | knowledge | what she knows of the person asking, for a question about the world: the memory searched with the question (their own words, the sessions' summaries), the local route model keeps the facts that change the answer (an allergy, a diet, a size) or NONE; read by every reading prompt — C321 | sol_search, mdl_router | kno_answer |
 | `mdl_accounts.py` | models | cloud accounts per installation or per user (106): the policy, which account a user's call spends (`pick`, `key_for`, `claude_env`), the Claude sign-in run in a pty for the page (`login_start`, `login_finish`, `status`) | sys_config, sys_users | mdl_cloud, mdl_router, api/accounts |
-| `api/accounts.py` | api | /v1/aurora/accounts: list, add (shared: admin), sign in, code, status, remove, policy (admin) | mdl_accounts | webui accounts.js |
+| `api/accounts.py` | api | /v1/aurora/accounts: list, add (shared: admin), sign in, code, status, remove, policy (admin); services of one's own: try, add, remove (admin) | mdl_accounts | webui accounts.js |
+| `api/oauth.py` | api | a social account connected from the plugin's card: /oauth/{provider}/start (the sign-in address with a one-time state), /oauth/finish (the code → the refresh token, in the person's own settings); TikTok today | sys_config, sys_user_config | webui plugins.js, main.js (the way back) |
+| `mdl_services.py` | models | services of one's own, OpenAI-compatible: named, several, added and removed by the admin; joined to PROVIDERS as svc_<name> (reread when the file changes, every process); suggestions with their address | sys_config, mdl_accounts | mdl_router, api/accounts |
 | `kno_followup.py` | knowledge | after an answer: a typed follow-up rewritten with the whole previous answer and its sources' titles, the previous sources in focus (their passages compete on the same re-ranker score); 3-4 suggested complete questions under a knowledge answer, each with its sources (C104, A22); the message the owner replies to (↩️) read as the last turn, at any age (quoted, with_quote) | kno_answer, sol_reader, sol_search | kno_answer, api/runs |
 | `kno_ingest.py` | knowledge | documents (txt, md, html, pdf) → chunks → solitons, written and indexed | sol_writer, sol_index, pdftotext | svc_api, kno_acquire |
 | `kno_attach.py` | knowledge | chat attachments: images described by the reasoner (vision) as citable passages; documents imported in the domain the reasoner picks; `only_about`: a question only about the attached picture or video (the route model), answered without the vault (D3) | mdl_llm, kno_ingest, Pillow | svc_api |
@@ -109,6 +111,10 @@ call downward (ECOSYSTEM §1).
 | `api/core.py` | api | what every part of aurora-api shares: config, activity feed and notifications, authentication (key, devices, lockout), the pipeline, one plugin host (cached tool lists), runs (one at a time), the chat's routing (in core_route, re-exported) | aurora modules | every api module |
 | `api/core_route.py` | api | the chat's routing, a part of core without routes (api/core_*): a connected service to the agent, pictures edited or looked at again, a video made or the GPU's job said, the search outside offered after an abstention, a shadow's answer, else the pipeline | api/core, api/agents | api/runs, api/oai (through core) |
 | `api/*.py` | api | one module per area, each with its router: oai, runs, knowledge, projects, projects_plan (a project's plan, ROADMAP 97), models, forge, routines, rem (aurora-rem's state and tasks, split from routines), activity, documents, incidents, social, agents, access, system, backup, bugreport, preview, users, security, dj, care, diet, autonomy, synapses (order in `api/__init__.py`) | api/core | svc_api |
+| `api/knowledge.py` | api | knowledge and memory: import, solitons, sources, domains, the history (with the night's dreams), senses, features | core | — |
+| `api/uploads.py` | api | the person's files (uploads) and their trash — split from api/knowledge (D10) | sys_uploads, sys_trash | — |
+| `api/updates.py` | api | Aurora's updates (what is new, the check, the update started) and the command cards — split from api/knowledge (D10) | sys_update, sys_commands | routines, agents, svc_api |
+| `api/harvester.py` | api | the harvester's domains, state and actions — split from api/knowledge (D10) | kno_sources | — |
 | `mdl_budget.py` | models | the day's tokens per cloud provider (shared file, locked), the daily ceiling for providers paid by the token, `Metered`: every local call traced with its step | sys_config, sys_log | mdl_router, mdl_cloud, api/models, sys_health |
 | `sys_backup.py` | system | the owner's data to another disk: AES-256-GCM frames, blobs named by HMAC (dedup), SQLite backup API, snapshots, retention, verify, restore into an empty folder | sys_config | svc_backup, api/backup, sys_health, sys_doctor |
 | `sys_backup_crypto.py` | system | the backup's key and recovery code, sub-keys, AES-256-GCM frames with the last marked (moved from sys_backup) | cryptography | sys_backup, sys_restore |
@@ -219,6 +225,9 @@ call downward (ECOSYSTEM §1).
 | `sys_seal.py` | system | sealed files for a user's most private data (AES-256-GCM, a key per user and purpose) | cryptography | hlt_store, hlt_labs, api/care |
 | `sys_soak.py` | system | the daily soak line: memory and restarts per service, logs, GPU swaps, failed routines, free disk | sys_config | svc_rem, api/activity |
 | `sys_trash.py` | system | the trash: a deleted file waits AURORA_TRASH_DAYS before going for good | sys_config | api/dj, api/documents, api/knowledge, sys_uploads |
+| `sys_runs.py` | system | a run's events kept apart from api/core so they test without a configuration: only the run's own end ends it (C166), the inner pipelines' «run.end» held | — | api/core |
+| `kno_domain.py` | knowledge | a document's domain chosen by what it says (title and start, each domain's «about»), not by the list it came from (M195: the list was right 42%); arXiv keeps its own | the route model | svc_harvester, kno_vault_audit, vault_realign |
+| `kno_vault_audit.py` | knowledge | the vault watched every night, read only (aurora-rem's task «audit»): duplicates by official identity, arXiv papers still as PDF, a sample of Wikipedia articles whose domain the chooser would change | kno_dedup, kno_domain | api/rem |
 
 ## Scripts: `sys/core/script/`
 
@@ -273,6 +282,23 @@ call downward (ECOSYSTEM §1).
 | `vid_ai.py` | makes one video with Wan 2.2 TI2V 5B (from words or a picture; fp8 weights, CPU offload, VAE tiling), labels the frames, encodes H.264 with metadata, exits | mdl_video, never by hand during another GPU job |
 | `img_paint.py` | paints one image with SDXL-Lightning and exits (all GPU memory given back) | mdl_image, never by hand during another GPU job |
 | `kno_migrate_legacy.py` | one-time migration of the previous installation's chunk store (knowledge only, owner's exclusions), resumable, through the API | once |
+| `bench_common.py` | the questions people really ask (MKQA, CC BY-SA 3.0, Italian included): only answers a program can check, through the pipeline without memory | by hand, for the shadow and the router |
+| `bench_compare.py` | Aurora against the same model bare, question by question, from two bench_public runs: right answers of each, the ones only one got, McNemar's exact test | by hand, after bench_public |
+| `bench_domain_assign.py` | which way of choosing a document's domain is right: a stratified sample labelled by a reference model (Claude), each method scored (M195) | by hand, before changing kno_domain |
+| `bench_domains.py` | retrieval by domain on the real vault (read only): a direct question and a story per passage, written by the local model | by hand |
+| `bench_preflight.py` | GO only when the machine is idle (GPU, runs, other benchmarks), the code is as signed and the cloud's weekly tokens leave room | before every large benchmark |
+| `bench_router.py` | where the router errs, decision by decision (tools, self, kind…), on the owner's real messages and on benchmark questions | by hand, after a router change |
+| `bench_vault_diag.py` | where the vault's points are lost on the real vault: present, found (rank), read, used | by hand (roadmap T2) |
+| `story_intro_make.py` | Aurora's face animated once for the start and end of her videos (Wan 2.2 from the portrait; the reasoner stopped for each clip) | once, by hand |
+| `story_music_fetch.py` | the videos' background music from Wikimedia Commons (config/story_music.json), each licence read again: CC0 and public domain only | once, by hand |
+| `sys_calibrate.py` | the machine's audit: its CPU measured, the settings that fit it (`--write`) | install.sh, Docker's first start; again when the machine changes |
+| `sys_commands_write.py` | writes <STATUS>/commands.json for the command cards from a port's commands file and its clone | the Mac and Windows installers |
+| `sys_domains.py` | the eight areas an installation cares about (list, set): the harvester's domains and the seed's shadows | install.sh; later the Knowledge page |
+| `sys_tts_install.sh` | Piper (GPL-3, a separate program in its own environment) and the voices of config/models.json | install.sh; the Voice feature |
+| `sys_tts_qwen_install.sh` | the natural voice (Qwen3-TTS 0.6B) in sys/runtime/qwen-tts, apart from Aurora's environment; an installation's own reference clip | the Voice feature, by hand |
+| `tts_qwen_worker.py` | the natural voice kept loaded: one JSON request a line on stdin, one answer on stdout; exits when stdin closes, giving the GPU back | mdl_tts |
+| `vault_realign.py` | every arXiv paper once, as HTML, in its own domain: dry run by default, `--apply` paper by paper through aurora-api | by hand, when kno_vault_audit reports |
+| `doc_callmap.py` | docs/CALL_MAP.md from the code: what starts each script, who imports each module, who calls each route; `--check` (also every file named here); `--live` this machine's units and timers, printed only | publish.sh, after adding a file |
 
 ## Configuration: `sys/core/config/`
 
@@ -329,7 +355,12 @@ Static files served by aurora-api; no build step. The page is a showcase that co
 | `js/qr.js` | a QR code as SVG elements (vendor/qrcode, MIT) for the Authenticator |
 | `js/modules/users.js` | 👥 Users: my account (password, Authenticator) and the admin's users |
 | `js/modules/accounts.js` | ☁️ Cloud accounts: the policy in plain words, what each provider uses now, the accounts, the Claude sign-in (link, code), add a key or a subscription | /v1/aurora/accounts |
+| `js/modules/accounts_services.js` | ➕ services of one's own on the Cloud accounts page: suggestions, name, address, key, «Prova», remove | /v1/aurora/accounts/services |
 | `js/modules/dreams.js` | 🌙 Dreams: every dream with its painting, a gallery 24 at a time, search, one opened above the gallery | /v1/aurora/dreams |
+| `js/style.js` | the menu's style (Completo, Essenziale, Misto), its default by role, the first page, the 📌 pins; at login it takes this person's style, pins and colours from the server (/v1/aurora/me/prefs), this browser a copy tagged with whose it is | api/users | main.js, theme.js, advanced.js |
+| `js/welcome.js` | 🧭 the first run: five screens, each from what is set now, saving only a change (the name, the language, the reasoning through models_choice.useChoice, the style, the colours); /v1/aurora/me/welcomed | api/users, models_choice, style.js, theme.js |
+| `js/modules/today.js` | ☀️ Oggi: ask, agenda, house switches, approvals waiting, last dream, health — each tile from its own API, out when empty | calendar, home, approvals, dreams, health |
+| `js/modules/advanced.js` | ⋯ Avanzate: every page of the full menu by area (read from it: hidden the same way), 📌 pin to the short menu | style.js |
 | `js/voice.js` | answers read aloud by the device (speech synthesis, local voices only; modes per device) |
 | `js/vad.js` | when the owner starts and stops speaking, from the microphone's level in the browser (SilenceGate: the end of a turn); BargeGate: the owner speaking over Aurora's voice (5× her echo, 0.4 s) — nothing recorded or sent |
 | `js/artifact.js` | an artifact live in the answer (sandboxed frame, full screen, download) |
@@ -337,7 +368,22 @@ Static files served by aurora-api; no build step. The page is a showcase that co
 | `js/restart.js` | after a settings change: popup "restart the services now?", restart and wait for the API |
 | `js/modules/{import,runs,settings,status}.js` | the other views |
 | `js/modules/metrics.js` (+ `css/metrics.css`) | top-bar widget: CPU, RAM, GPU VRAM live |
+| `js/modules/brain.js` (+ `brain_gray.js`, `css/brain.css`) | 🧠 the brain widget (ROADMAP 110): beside the bell, a floating panel moved by its title bar; the brain traced from Gray's Anatomy Fig. 728 (public domain, brain_gray.js: lobes, gyri, fissures), each neuron's area from the lobe it lies in (the frontal lobe split into deciding, Broca's area, the motor strip); ℹ️ what each area means and where the analogy stops; the activity feed's run.begin, each run followed (followRun), its events' names to eight areas of a drawn brain; ▶ a typical question, ⛶ full screen; only while open |
 | `js/modules/sky.js` | background widget: Aurora's face in a circle, twinkling stars; fireflies while she thinks (`thinking` on the bus) |
+| `js/backup.js` | the backup's row (Status page, backup plugin's card): last copy, next one, 💾 run now, 🔌 mount the NAS |
+| `js/cards.js` | command cards (roadmap 74): what only the owner can do from a shell, the command to copy |
+| `js/push.js` | Web Push on this device: state, subscribe, unsubscribe |
+| `sw.js` | the service worker: the app shell offline for the first paint (SHELL version), the API never cached |
+| `js/modules/{memory,reports,notifications,updates,uploads,guide}.js` | 🧠 what Aurora remembers of you; her self-reviews and repairs; push and channels per event; GitHub updates; files attached in the chat; the guide read from the menu |
+| `js/modules/{autonomy,autonomy_box}.js` | 🧭 how free Aurora is, area by area (profiles, three levels), and the same inside each section |
+| `js/modules/{bugreport,ideas,ideas_page}.js` | report a bug (conversations and hours of logs packed); 💡 suggest an idea, a page of its own |
+| `js/modules/{care_doctor,care_values}.js` | ⚕️ the doctors' cards; 📈 exam values over time |
+| `js/modules/{deductions_box,synapses}.js` | 💡 deductions (roadmap 77); 🧠 links between domains |
+| `js/modules/{dj,harvester,home_scenes}.js` | 🎧 DJ remixes; the harvester steered (on/off, a round, domains); 🎨 scenes on the 🏠 page |
+| `js/modules/{projects,project_plan,project_docs}.js` | projects (local tree, GitHub), the plan Aurora carries (ROADMAP 97), the documentation ticked (ROADMAP 100) |
+| `js/modules/{routines,routines_templates}.js` | agents and routines as a grid of cards; 🧰 ready-made sets |
+| `js/modules/{aurorafw,security_map,security_defence,security_watch}.js` | 🔥 Aurora's own firewall; 🗺️ the network drawn; 🛡️ defence; 🔎 checks and 📤 outbound |
+| `js/modules/{security_defence_page,security_out_page,security_watch_page}.js` | one tab of security.js as a page of its own |
 
 Server data is always inserted as text, never as HTML.
 

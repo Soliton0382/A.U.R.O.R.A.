@@ -7,6 +7,7 @@
 import { call } from "../api.js";
 import { clock, el } from "../dom.js";
 import { apply, t } from "../i18n.js";
+import { renderServices } from "./accounts_services.js";
 
 export default {
   id: "accounts",
@@ -16,18 +17,21 @@ export default {
   mount(root) {
     root.classList.add("page");
     root.innerHTML = `<h2 data-i18n="acc.title"></h2><p class="muted" data-i18n="acc.hint"></p>
-      <div class="acc-policy"></div><div class="acc-list"></div><div class="acc-add"></div>`;
+      <div class="acc-policy"></div><div class="acc-list"></div><div class="acc-svc"></div><div class="acc-add"></div>`;
     apply(root);
     this.policyBox = root.querySelector(".acc-policy");
     this.list = root.querySelector(".acc-list");
     this.addBox = root.querySelector(".acc-add");
+    this.svcBox = root.querySelector(".acc-svc");
   },
 
   async enter() {
     try { this.d = await call("/v1/aurora/accounts"); }
     catch (e) { this.list.replaceChildren(el("p", "error", t("ev.error", { m: e.message }))); return; }
+    LABELS = Object.fromEntries(this.d.providers.map((p) => [p.id, p.label]));
     this.drawPolicy();
     this.drawList();
+    this.svcBox.replaceChildren(renderServices(this.d, () => this.enter()));
     this.drawAdd();
   },
 
@@ -175,4 +179,5 @@ export default {
 
 const NAMES = { anthropic: "Anthropic API", openai: "OpenAI", google: "Google",
   xai: "xAI", mistral: "Mistral", openrouter: "OpenRouter", custom: "Custom" };
-const name = (id) => (id === "claude_code" ? t("acc.claude_sub") : NAMES[id] || id);
+let LABELS = {};                                 // the services of one's own: their names, from the page's data
+const name = (id) => (id === "claude_code" ? t("acc.claude_sub") : NAMES[id] || LABELS[id] || id);

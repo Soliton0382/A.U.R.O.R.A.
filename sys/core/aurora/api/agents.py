@@ -143,6 +143,7 @@ def plugins() -> list[dict]:
     return [{"name": p.name, "users": plg_access.for_users(cfg, p.name), "version": p.manifest.get("version"), "kind": p.manifest.get("kind"),
              "description": p.manifest.get("description", {}), "enabled": p.enabled, "available": p.available,
              "social": bool(p.manifest.get("social")), "missing": p.missing, "error": p.error, "setup": p.manifest.get("setup", {}),
+             "oauth": p.manifest.get("oauth"),
              **({"install": plg_deps.state(p.folder, p.manifest)} if admin and p.manifest.get("install") else {}),
              **({"why": _why(p)} if admin else {}),
              "settings": [k for k in dict.fromkeys(p.manifest.get("env", []) + p.manifest.get("requires", [])
@@ -490,5 +491,5 @@ def rem_repair() -> dict:
 # names of sibling modules, looked up only when called: imported last, so that modules that use each
 # other (routines, forge, agents) load in any order
 from .forge import _forge_done, _forge_job  # noqa: E402
-from .knowledge import _env_add_missing  # noqa: E402
+from .updates import _env_add_missing  # noqa: E402
 from .system import status  # noqa: E402

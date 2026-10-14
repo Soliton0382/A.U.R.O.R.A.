@@ -15,14 +15,29 @@ const CHOICES = ["local", "best", "cloud", "custom"];
 
 const list = (key) => t(key).split("|").filter(Boolean);
 
+// the cloud the roles already use (claude_code · sonnet here), else the default of the modes: a default without its
+// key would send the four steps to a provider that cannot answer
+export function cloudOf(m, s) {
+  const used = m.roles.find((r) => r.provider !== "local" && !r.id.startsWith("forge_"));
+  return used ? { provider: used.provider, model: used.model || "" } : { provider: s.provider, model: s.model || "" };
+}
+
+// one of the three choices applied (the Models page, the first run's screen 3); the restart asked when one is needed
+export async function useChoice(id, m, s) {
+  const cloud = cloudOf(m, s);
+  if (id === "best") {
+    await call("/v1/aurora/models/roles", { method: "PUT", body: JSON.stringify(bestRoles(m.roles, cloud.provider, cloud.model)) });
+    return;
+  }
+  const r = await call("/v1/aurora/models/mode", { method: "POST",
+    body: JSON.stringify({ mode: id === "cloud" ? "cloud_private" : "local", provider: cloud.provider, model: cloud.model }) });
+  if (r.restart && r.restart.length) await restartPrompt(r.restart);
+}
+
 export async function renderChoice(box, m, onChange, openCustom) {
   let s;
   try { s = await call("/v1/aurora/models/modes"); } catch (e) { box.replaceChildren(el("p", "error", t("ev.error", { m: e.message }))); return; }
   const now = choiceOf(m.roles, s.mode);
-  // the cloud the roles already use (claude_code · sonnet here), else the default of the modes: a default without its
-  // key would send the four steps to a provider that cannot answer
-  const used = m.roles.find((r) => r.provider !== "local" && !r.id.startsWith("forge_"));
-  const cloud = used ? { provider: used.provider, model: used.model || "" } : { provider: s.provider, model: s.model || "" };
   let picked = now;
   const cards = el("div", "mch-cards");
   const detail = el("div", "mch-detail");
@@ -70,13 +85,7 @@ export async function renderChoice(box, m, onChange, openCustom) {
   async function use(id) {
     if (id === "custom") { openCustom(); return; }
     try {
-      if (id === "best") {
-        await call("/v1/aurora/models/roles", { method: "PUT", body: JSON.stringify(bestRoles(m.roles, cloud.provider, cloud.model)) });
-      } else {
-        const r = await call("/v1/aurora/models/mode", { method: "POST",
-          body: JSON.stringify({ mode: id === "cloud" ? "cloud_private" : "local", provider: cloud.provider, model: cloud.model }) });
-        if (r.restart && r.restart.length) await restartPrompt(r.restart);
-      }
+      await useChoice(id, m, s);
       onChange();
     } catch (e) { explain(e); }
   }

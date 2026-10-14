@@ -86,3 +86,34 @@ def test_the_whole_row_is_read_but_only_its_texts_are_masked(cfg, monkeypatch):
         "follow": [{"question": "Chi ha scritto di Pinco Pallino?", "focus": [{"source": "legacy:paper_x"}]}]}
     text = S.words(row)
     assert "Pinco Pallino" in text and "9f8e7d6c" not in text and "legacy:paper_x" not in text
+
+
+def test_an_answer_exported_before_stays_when_the_chat_replaced_its_row(cfg, monkeypatch, tmp_path):
+    """C323: «Cos'è la decoerenza quantistica?» asked in the chat replaced the seed's row in the shadow
+    (kno_shadow.add, same question), and the daily export dropped it: 266 published, 265 the next day."""
+    import importlib.util
+    import json
+    from pathlib import Path
+
+    from aurora import sol_reader, sys_config
+    monkeypatch.setattr(sys_config, "get", lambda: cfg)
+    f = Path(__file__).resolve().parents[1] / "script" / "shadow_seed.py"
+    spec = importlib.util.spec_from_file_location("shadow_seed_script3", f)
+    S = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(S)
+    row = lambda q: {"question": q, "domain": "physics", "lang": "it", "answer": "Una risposta [1].", "made": 1,
+                     "sources": PUB, "follow": []}
+    monkeypatch.setattr(S, "CONFIG", tmp_path)
+    monkeypatch.setattr(S, "cfg", cfg)
+    monkeypatch.setattr(S, "deny_patterns", lambda: [])
+    monkeypatch.setattr(S, "links_file", lambda: tmp_path / "links.json")
+    monkeypatch.setattr(sol_reader, "VaultReader", lambda c: None)
+    monkeypatch.setattr(K, "export_seed", lambda *a, **k: [row("Cos'è un solitone?")])
+    log = cfg.path("AURORA_STATUS_DIR") / "bench" / "shadow_seed.jsonl"
+    log.parent.mkdir(parents=True, exist_ok=True)
+    log.write_text("".join(json.dumps({"question": q, "alone": True}) + "\n" for q in
+                           ("Cos'è un solitone?", "Cos'è la decoerenza?")), encoding="utf-8")
+    (tmp_path / "shadow_seed.json").write_text(json.dumps([row("Cos'è la decoerenza?"), row("Una domanda tolta")]))
+    S.export(tmp_path / "none.json")
+    got = {r["question"] for r in json.loads((tmp_path / "shadow_seed.json").read_text())}
+    assert got == {"Cos'è un solitone?", "Cos'è la decoerenza?"}        # not one no longer asked alone

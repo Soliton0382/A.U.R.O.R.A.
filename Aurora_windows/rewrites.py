@@ -148,7 +148,7 @@ SERVICES = [
     r = sys_platform.current().service_action("start", ["aurora-backup.service"], wait=False)''',
      "api/backup: a backup now"),
 
-    ("sys/core/aurora/api/knowledge.py",
+    ("sys/core/aurora/api/updates.py",
      '''    try:
         out = subprocess.run(["systemctl", "show", unit, "-p", "ExecStart"], capture_output=True, text=True, timeout=10).stdout
     except (OSError, subprocess.SubprocessError):
@@ -157,20 +157,20 @@ SERVICES = [
      f'''    {P}
     cmd = sys_platform.current().service_command(unit)
     return any(f"{{cfg.root}}{{sep}}" in cmd for sep in ("/", "\\\\"))      # Windows writes C:\\...\\Aurora\\''',
-     "api/knowledge: a service runs this folder's code (C140)"),
-    ("sys/core/aurora/api/knowledge.py",
+     "api/updates: a service runs this folder's code (C140)"),
+    ("sys/core/aurora/api/updates.py",
      '''                threading.Timer(2.0, lambda: subprocess.run(["systemctl", "restart", "--no-block",
                                                              *[u for u in mine if u != "aurora-api"]], capture_output=True)).start()''',
      f'''                {P}
                 threading.Timer(2.0, lambda: sys_platform.current().service_action(
                     "restart", [u for u in mine if u != "aurora-api"], False)).start()''',
-     "api/knowledge: this copy's services restarted after an update"),
-    ("sys/core/aurora/api/knowledge.py",
+     "api/updates: this copy's services restarted after an update"),
+    ("sys/core/aurora/api/updates.py",
      '''                threading.Timer(4.0, lambda: subprocess.run(["systemctl", "restart", "--no-block", "aurora-api"],
                                                             capture_output=True)).start()''',
      f'''                {P}
                 threading.Timer(4.0, lambda: sys_platform.current().service_action("restart", ["aurora-api"], False)).start()''',
-     "api/knowledge: aurora-api restarted last after an update"),
+     "api/updates: aurora-api restarted last after an update"),
     ("sys/core/aurora/net_https.py",
      '''    r = subprocess.run(["systemctl", verb, "aurora-https"], capture_output=True, text=True, timeout=60)
     if r.returncode != 0:

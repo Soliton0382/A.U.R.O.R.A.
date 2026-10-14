@@ -34,6 +34,17 @@ def test_guest_never_sees_boss_s_things(cfg):
     assert boss["users_page"] == 200 and guest["users_page"] == 403
     assert boss["machine_setting"] == 200 and guest["machine_setting"] == 403
     assert guest["revoke_boss_device"] == 404
+    assert boss["accounts_list"] is True and guest["accounts_list"] is False           # 106: a user's key is theirs
+    assert guest["account_remove"] == 403 and guest["account_shared"] == 403
+    assert guest["account_policy"] == 403 and guest["service_add"] == 403
+    assert boss["welcomed"] is True and guest["welcomed"] is False                     # 107: once per person
+    assert boss["prefs"] == {"style": "essenziale", "theme": "foresta", "pins": ["dreams", "models"]} and guest["prefs"] == {}
+    assert guest["prefs_bad"] == 422 and guest["theme_bad"] == 422
+    assert guest["oauth_start"] == 409 and guest["oauth_finish"] == 403 and boss["oauth_no_keys"] == 409   # his own keys; not boss's sign-in
+    assert boss["oauth_scope"] == "user.info.basic,video.publish"                       # no scope the plugin does not use
+    assert boss["oauth_forged"] == 409 and boss["oauth_again"] == 409                   # a state Aurora gave, once
+    assert boss["oauth_finish"]["days"] == 365 and boss["oauth_saved"] is True
+    assert guest["oauth_saved"] is False and guest["oauth_machine"] is False           # boss's token stays boss's
 
 
 def test_the_same_holds_when_aurora_lives_behind_a_symlink(tmp_path):

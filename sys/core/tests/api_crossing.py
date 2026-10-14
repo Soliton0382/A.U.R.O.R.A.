@@ -92,4 +92,43 @@ for who in ("boss", "guest"):
     out[who] = seen
 boss_dev = next(d["id"] for d in get("boss", "/v1/aurora/devices").json() if d["name"] == "boss phone")
 out["guest"]["revoke_boss_device"] = client.delete(f"/v1/aurora/devices/{boss_dev}", headers=H["guest"]).status_code
+# cloud accounts (106): boss's own key never reaches guest; the shared ones and the policy are the admin's
+acc = client.post("/v1/aurora/accounts", headers=H["boss"], json={"provider": "openai", "scope": "user", "key": "sk-" + SECRET}).json()
+out["guest"]["accounts_list"] = SECRET[-4:] in get("guest", "/v1/aurora/accounts").text or acc["id"] in get("guest", "/v1/aurora/accounts").text
+out["guest"]["account_remove"] = client.delete(f"/v1/aurora/accounts/{acc['id']}", headers=H["guest"]).status_code
+out["guest"]["account_shared"] = client.post("/v1/aurora/accounts", headers=H["guest"], json={"provider": "openai", "scope": "shared", "key": "sk-guest-123456"}).status_code
+out["guest"]["account_policy"] = client.put("/v1/aurora/accounts/policy", headers=H["guest"], json={"policy": "own"}).status_code
+out["guest"]["service_add"] = client.post("/v1/aurora/accounts/services", headers=H["guest"], json={"name": "x", "base": "http://localhost:1/v1"}).status_code
+out["boss"]["accounts_list"] = acc["id"] in get("boss", "/v1/aurora/accounts").text
+# the first run (107): seen once per person
+client.post("/v1/aurora/me/welcomed", headers=H["boss"])
+out["boss"]["welcomed"] = get("boss", "/v1/aurora/me").json()["welcomed"]
+out["guest"]["welcomed"] = get("guest", "/v1/aurora/me").json()["welcomed"]
+# the menu's style and pins (107): each person's, on any device
+client.put("/v1/aurora/me/prefs", headers=H["boss"], json={"style": "essenziale", "theme": "foresta", "pins": ["dreams", "models"]})
+out["boss"]["prefs"] = get("boss", "/v1/aurora/me").json()["prefs"]
+out["guest"]["prefs"] = get("guest", "/v1/aurora/me").json()["prefs"]
+out["guest"]["prefs_bad"] = client.put("/v1/aurora/me/prefs", headers=H["guest"], json={"style": "<script>"}).status_code
+# a social account connected from the card (api/oauth): the admin's, with a state Aurora gave, once
+import httpx as _httpx  # noqa: E402
+out["guest"]["oauth_start"] = client.post("/v1/aurora/oauth/tiktok/start", headers=H["guest"]).status_code
+out["boss"]["oauth_no_keys"] = client.post("/v1/aurora/oauth/tiktok/start", headers=H["boss"]).status_code
+client.put("/v1/aurora/settings", headers=H["boss"], json={"AURORA_TIKTOK_CLIENT_KEY": "ck123", "AURORA_TIKTOK_CLIENT_SECRET": "cs456",
+                                                          "AURORA_TIKTOK_REDIRECT_URI": "https://aurora.example.org/"})
+url = client.post("/v1/aurora/oauth/tiktok/start", headers=H["boss"]).json()["url"]
+import urllib.parse as _up  # noqa: E402
+q = dict(_up.parse_qsl(_up.urlparse(url).query))
+out["boss"]["oauth_scope"] = q["scope"]
+out["boss"]["oauth_forged"] = client.post("/v1/aurora/oauth/finish", headers=H["boss"], json={"code": "c", "state": "tiktok.forged"}).status_code
+out["guest"]["oauth_finish"] = client.post("/v1/aurora/oauth/finish", headers=H["guest"], json={"code": "c", "state": q["state"]}).status_code
+_real = _httpx.post
+_httpx.post = lambda u, timeout, data: type("R", (), {"json": lambda self: {"refresh_token": "rt-" + data["code"], "scope": "user.info.basic,video.publish", "refresh_expires_in": 31536000}})()
+out["boss"]["oauth_finish"] = client.post("/v1/aurora/oauth/finish", headers=H["boss"], json={"code": "good", "state": q["state"]}).json()
+out["boss"]["oauth_again"] = client.post("/v1/aurora/oauth/finish", headers=H["boss"], json={"code": "good", "state": q["state"]}).status_code
+_httpx.post = _real
+from aurora import sys_user_config as _uc  # noqa: E402
+out["boss"]["oauth_saved"] = "AURORA_TIKTOK_REFRESH_TOKEN=rt-good" in _uc.env_path(base, "boss").read_text()
+out["guest"]["oauth_saved"] = _uc.env_path(base, "guest").exists() and "rt-good" in _uc.env_path(base, "guest").read_text()
+out["guest"]["oauth_machine"] = "rt-good" in (root / ".env").read_text()
+out["guest"]["theme_bad"] = client.put("/v1/aurora/me/prefs", headers=H["guest"], json={"theme": "x;}body{"}).status_code
 print(json.dumps(out))

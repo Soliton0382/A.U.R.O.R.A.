@@ -2146,52 +2146,6 @@
   ]
  },
  {
-  "question": "Cos'è la decoerenza quantistica?",
-  "domain": "quantum_physics",
-  "lang": "it",
-  "answer": "La decoerenza quantistica è un fenomeno centrale nella scienza e nelle tecnologie quantistiche, che rappresenta principalmente un ostacolo ma è anche considerato una possibile risorsa [1]. Essa spiega la graduale perdita delle caratteristiche di interferenza quando un oggetto quantistico precedentemente isolato inizia a interagire con il suo ambiente [1]. Questo processo contribuisce a riconciliare l'esperienza quotidiana con le leggi della meccanica quantistica [1]. La decoerenza colpisce tutti i sistemi quantistici, naturali o artificiali, ed è l'ostacolo primario che impedisce lo sviluppo delle tecnologie quantistiche [1].",
-  "made": 1791633459,
-  "sources": [
-   {
-    "n": 1,
-    "sid": "0e419a282acb07bde49dd819ab6841a6",
-    "title": "Imaging the interface of a qubit and its quantum-many-body environment",
-    "source": "legacy:arxiv_Imaging_the_interface_of_a_qubit_and_its_quantum_m_txt_done",
-    "domain": "quantum_physics",
-    "origin": "arxiv"
-   }
-  ],
-  "follow": [
-   {
-    "question": "Come si può visualizzare l'interfaccia tra un qubit e il suo ambiente quantistico?",
-    "focus": [
-     {
-      "source": "legacy:arxiv_Imaging_the_interface_of_a_qubit_and_its_quantum_m_txt_done",
-      "domain": "quantum_physics"
-     }
-    ]
-   },
-   {
-    "question": "Quali tecniche sperimentali permettono di catturare i segnali transienti dell'ambiente condensato?",
-    "focus": [
-     {
-      "source": "legacy:arxiv_Imaging_the_interface_of_a_qubit_and_its_quantum_m_txt_done",
-      "domain": "quantum_physics"
-     }
-    ]
-   },
-   {
-    "question": "In che modo i tempi di decoerenza del qubit possono essere regolati?",
-    "focus": [
-     {
-      "source": "legacy:arxiv_Imaging_the_interface_of_a_qubit_and_its_quantum_m_txt_done",
-      "domain": "quantum_physics"
-     }
-    ]
-   }
-  ]
- },
- {
   "question": "Cosa afferma il principio di indeterminazione di Heisenberg?",
   "domain": "quantum_physics",
   "lang": "it",
@@ -19746,6 +19700,52 @@
      {
       "source": "normattiva:urn:nir:stato:decreto.legislativo:2025-12-31;209",
       "domain": "law_it"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "question": "Cos'è la decoerenza quantistica?",
+  "domain": "quantum_physics",
+  "lang": "it",
+  "answer": "La decoerenza quantistica è un fenomeno centrale nella scienza e nelle tecnologie quantistiche, che rappresenta principalmente un ostacolo ma è anche considerato una possibile risorsa [1]. Essa spiega la graduale perdita delle caratteristiche di interferenza quando un oggetto quantistico precedentemente isolato inizia a interagire con il suo ambiente [1]. Questo processo contribuisce a riconciliare l'esperienza quotidiana con le leggi della meccanica quantistica [1]. La decoerenza colpisce tutti i sistemi quantistici, naturali o artificiali, ed è l'ostacolo primario che impedisce lo sviluppo delle tecnologie quantistiche [1].",
+  "made": 1791633459,
+  "sources": [
+   {
+    "n": 1,
+    "sid": "0e419a282acb07bde49dd819ab6841a6",
+    "title": "Imaging the interface of a qubit and its quantum-many-body environment",
+    "source": "legacy:arxiv_Imaging_the_interface_of_a_qubit_and_its_quantum_m_txt_done",
+    "domain": "quantum_physics",
+    "origin": "arxiv"
+   }
+  ],
+  "follow": [
+   {
+    "question": "Come si può visualizzare l'interfaccia tra un qubit e il suo ambiente quantistico?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Imaging_the_interface_of_a_qubit_and_its_quantum_m_txt_done",
+      "domain": "quantum_physics"
+     }
+    ]
+   },
+   {
+    "question": "Quali tecniche sperimentali permettono di catturare i segnali transienti dell'ambiente condensato?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Imaging_the_interface_of_a_qubit_and_its_quantum_m_txt_done",
+      "domain": "quantum_physics"
+     }
+    ]
+   },
+   {
+    "question": "In che modo i tempi di decoerenza del qubit possono essere regolati?",
+    "focus": [
+     {
+      "source": "legacy:arxiv_Imaging_the_interface_of_a_qubit_and_its_quantum_m_txt_done",
+      "domain": "quantum_physics"
      }
     ]
    }

@@ -121,7 +121,8 @@ def visible(cfg: sys_config.Config, user: str | None, admin: bool) -> list[dict]
 
 
 def add(cfg: sys_config.Config, provider: str, scope: str, user: str | None, label: str = "", key: str = "") -> dict:
-    from .mdl_router import PROVIDERS
+    from .mdl_router import PROVIDERS, _services
+    _services(cfg)
     if provider not in PROVIDERS or provider == "local":
         raise ValueError(f"no cloud provider {provider!r}")
     if scope not in ("shared", "user"):

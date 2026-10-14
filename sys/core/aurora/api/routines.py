@@ -392,5 +392,5 @@ def metrics() -> dict:
 
 
 from .agents import _gap_check, agent, plugins, react  # noqa: E402
-from .knowledge import _start_update  # noqa: E402
+from .updates import _start_update  # noqa: E402
 from .social import social  # noqa: E402
