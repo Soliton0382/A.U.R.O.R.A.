@@ -25,6 +25,11 @@ Every number below comes from a numbered measurement in [MEASUREMENTS.md](MEASUR
 [BUGS.md](BUGS.md). Ogni numero qui sotto viene da una misura numerata; ogni errore ha un numero.
 
 ![The questions people really ask](img/en/answers.svg)
+![The vault realigned](img/en/vault.svg)
+![Hybrid search](img/en/hybrid.svg)
+![Routing in one token](img/en/router.svg)
+![Dictation on the GPU](img/en/whisper.svg)
+![The shadow of an answer](img/en/shadow.svg)
 ![How long you wait](img/en/speed.svg)
 ![False premises](img/en/honesty.svg)
 ![Search by domain](img/en/domains.svg)

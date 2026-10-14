@@ -1,6 +1,6 @@
 # Status — work in progress
 
-Updated at every validated change (last: 2026-10-14). Details: BUGS.md (issues, 0 open / 303 closed),
+Updated at every validated change (last: 2026-10-14). Details: BUGS.md (issues, 0 open / 306 closed),
 MANUAL_TESTS.md (what the owner checks by hand),
 TESTS.md (tests and live checks), MEASUREMENTS.md (numbers), MODULE_MAP.md (who does what),
 SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSYSTEM.md (design and decisions).
@@ -63,7 +63,7 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | harvester | rounds by domain (on by default since 9 Oct: a new Aurora starts empty; the installer asks; a host that says «slow down» is asked again and then left alone, C214), "harvest now" and batches of papers from the 🌾 page, each paper in its category's domain | live batch test |
 | updates | Updates page: mode (notify / auto / off), what a new version changes, update now; daily check by the REM, approval in Repairs, fast-forward + tests + rollback | tests with real git repositories; live once the remote exists |
 | notifications | Notifications page: push on each device and toasts in the WebUI, which events on each channel (suggested / all / none / custom), effective at once | tests; live delivery depends on the browser |
-| senses | plugin `senses`: camera photo described by Aurora's vision, microphone transcribed locally (Whisper on CPU); 📷 photo and 🎙️ dictation in the chat; devices chosen from a list | live (M35) |
+| senses | plugin `senses`: camera photo described by Aurora's vision, microphone transcribed locally (Whisper on a GPU with room, else the CPU: M204, 0.14 s a sentence); 📷 photo and 🎙️ dictation in the chat; devices chosen from a list | live (M35) |
 | knowledge sources | harvester per domain (off / a round / until exhausted) from arXiv, Normattiva (Akoma Ntoso, one passage per group of articles), Europe PMC, bioRxiv/medRxiv, Wikipedia, GitHub; licence kept with every text; certificate chains completed (AIA) | M43–M44, tests |
 | chat → services | a third route "tools": requests about connected services go to the agent with the plugins | M45 |
 | routines | 🔁 page: plugins' suggestions, tool or agent routines by aurora-rem, notify always / if any / if new, failures recorded and notified, documents linked | M46, M52, tests |

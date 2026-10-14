@@ -4443,11 +4443,28 @@
    "category": "plugins",
    "recommended": "sys/models/stt/whisper-large-v3-turbo",
    "evidence": "measured on CPU: 13 s of English speech in 5.2 s, exact",
-   "en": "Speech-to-text model (Whisper), run on the CPU.",
-   "it": "Modello di trascrizione vocale (Whisper), eseguito sulla CPU.",
+   "en": "Speech-to-text model (Whisper), run where AURORA_STT_DEVICE says.",
+   "it": "Modello di trascrizione vocale (Whisper), eseguito dove dice AURORA_STT_DEVICE.",
    "services": [
     "aurora-api"
    ]
+  },
+  {
+   "key": "AURORA_STT_DEVICE",
+   "type": "enum",
+   "choices": [
+    "auto",
+    "cpu"
+   ],
+   "category": "plugins",
+   "recommended": "auto",
+   "evidence": "M204",
+   "en": "Where Whisper transcribes: auto = the GPU with the most free memory when it has 3 GB at load (0.14 s a sentence against 5.6 s on the CPU, the same words), else the CPU; cpu = always the CPU.",
+   "it": "Dove Whisper trascrive: auto = la GPU con più memoria libera se al caricamento ha 3 GB (0,14 s a frase contro 5,6 s sulla CPU, le stesse parole), altrimenti la CPU; cpu = sempre la CPU.",
+   "services": [
+    "aurora-models"
+   ],
+   "optional": true
   },
   {
    "key": "AURORA_TTS",

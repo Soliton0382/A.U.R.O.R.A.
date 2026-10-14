@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-501%20passed-1baf7a" alt="Tests"></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-809%20passed-1baf7a" alt="Tests"></p>
 
 <p align="center">🇮🇹 <b>Italiano</b> · 🇬🇧 <a href="README.en.md">English</a></p>
 
@@ -24,7 +24,7 @@ con l'esenzione firmata dal proprietario, e ciò che parte è sempre mascherato 
 | 🔎 **Verità** | ogni risposta dice da dove viene: ✅ il vault [n], 🌐 il web con il link, ⚠️ «dalla mia memoria, non verificato»; una premessa falsa viene corretta, mai assecondata (6 su 6, M130) | cita le fonti, ma non distingue ciò che ha letto da ciò che ricorda |
 | ⚡ **Giusta e veloce** | domande comuni: 70% giuste (prima 16%), mediana 4 s; ripetute: 0,04 s dalla cache (M130) | — |
 | 🔎 **Risposte dal vault** | ogni frase di una risposta profonda è verificata sui passaggi del vault; ciò che non è supportato viene tolto (M32: 0 frasi non supportate su 14) | cita le fonti, ma le frasi scritte dal modello non vengono controllate una per una |
-| 📏 **Misura** | ogni scelta ha una misura numerata (M1–M130), ogni errore un numero in BUGS.md, ogni limite è scritto | le prestazioni si dichiarano, raramente si misurano in pubblico |
+| 📏 **Misura** | ogni scelta ha una misura numerata (M1–M204), ogni errore un numero in BUGS.md, ogni limite è scritto | le prestazioni si dichiarano, raramente si misurano in pubblico |
 | 🌙 **Vita propria** | consolida i ricordi, pensa quando si annoia, sogna e dipinge il sogno, fa un'autodiagnosi quotidiana dai propri log | si attiva solo quando le scrivi |
 | 🛠️ **Si ripara** | corregge il proprio codice in una sandbox, con test, la tua approvazione, test dal vivo e rollback | il codice lo cambia solo lo sviluppatore |
 | 🔏 **Regole firmate** | codice di condotta con la chiave della tua installazione: se qualcuno lo modifica senza firma, Aurora non parte | regole nel prompt, modificabili senza traccia |
@@ -38,7 +38,7 @@ con l'esenzione firmata dal proprietario, e ciò che parte è sempre mascherato 
 |---|---|
 | **Risponde scegliendo la fonte** | prima la **cache** delle risposte verificate (domanda simile: 0,04 s); poi il **tipo** di domanda decide: un **fatto** (chi, quando, quanto) si cerca sul **web** (DuckDuckGo e altri motori, senza chiave: esce solo una query sull'argomento, mascherata), una **spiegazione** si legge nel **vault**, un **caso** con più problemi va nel **percorso profondo** (diviso nei suoi problemi, norme cercate per numero, ogni frase verificata). Una lettura sola, con le fonti; nessuna fonte → la sua memoria segnata ⚠️. Su 50 domande reali (MKQA): 70% giuste, prima 16% (M130) |
 | **Modalità di pensiero** | 🧠 in chat: ⚡ leggera, ⚖️ media, 🔬 profonda, 🤖 auto (predefinita: parte leggera e approfondisce solo quando serve); la traccia dice quale strada ha preso e perché |
-| **Risponde dal vault** | il percorso completo per le spiegazioni e i casi: smistamento → traduzione → ricerca (encoder + re-ranker su tutti i domini) → estrazione per dominio → sintesi → **ogni frase verificata sui passaggi** → fonti (M32: 0 frasi non supportate su 14 passano) |
+| **Risponde dal vault** | il percorso completo per le spiegazioni e i casi: smistamento (un solo token: 0,32 s, M199) → traduzione → ricerca **ibrida** (vettori + parole della domanda, BM25, poi il re-ranker su tutti i domini: M200) → estrazione per dominio → sintesi → **ogni frase verificata sui passaggi** → fonti (M32: 0 frasi non supportate su 14 passano) |
 | **Vault di solitoni** | shard SQLite, conoscenza e memoria separate, deduplica per hash del contenuto, ricerca vettoriale esatta sotto i 250k vettori per dominio, HNSW sopra (M30) |
 | **Memoria** | turni a breve termine, memorie di sessione a lungo termine scritte di notte, richiamo per significato su 12 mesi, date etichettate dall'orologio |
 | **Sinapsi** | collegamenti fra conoscenze di domini diversi (un modello fisico ↔ uno biologico, Kafka ↔ l'esistenzialismo): crescono di notte dove la somiglianza è forte (≥ 0,72, il 5% più alto), si rafforzano quando due passaggi vengono citati insieme, si indeboliscono se non usati; nella ricerca portano in gara i passaggi collegati, sceglie sempre il re-ranker |
@@ -56,9 +56,10 @@ con l'esenzione firmata dal proprietario, e ciò che parte è sempre mascherato 
 | **Sicurezza** | sentinella del syslog del firewall con rapporti difensivi sugli incidenti; TLS 1.3, CSP, cookie per dispositivo, segreti 0600 (docs/SECURITY.md) |
 | **Responsabile della sicurezza** | sul firewall Sophos: **audit** della configurazione (servizi pubblicati senza IPS né log, amministrazione da Internet, ATP, regola dei blocchi), **caccia alle minacce** nei log (chiamate regolari verso l'esterno, movimento laterale, allarmi ATP giudicati, domini dubbi, login e modifiche al firewall), **quadro con playbook** e registro dei rischi; **pubblica un server** (NAT e regola con IPS), **mette in quarantena** un dispositivo, **protegge una regola**: ogni modifica pianificata, approvata da te, riletta, annullata da sola se qualcosa va storto; il manuale e l'API del firewall consultati in locale; **qualsiasi modifica chiesta a parole** («nega Internet tranne la 443»): Aurora la pianifica, il codice la controlla, tu approvi (M134-M135); il **firewall di Aurora** ha la sua pagina |
 | **Difesa automatica** | se la accendi (🧭 Autonomia → sicurezza 🚀, solo con l'esenzione firmata): Aurora blocca da sola sul firewall l'origine di un attacco grave, per un tempo (24 h), mai la rete di casa né gli indirizzi che proteggi, al massimo N al giorno; ogni blocco è registrato, notificato e si toglie con un clic |
-| **Autonomia** | pagina 🧭: quanto è libera Aurora area per area (social, forgia, riparazioni, sicurezza, aggiornamenti, conoscenza, vita interiore), profili pronti (prudente, equilibrata, libera), cosa ha fatto da sola ogni giorno e le statistiche delle sue proposte; per ogni utente lo decide l'amministratore |
+| **Autonomia** | pagina 🧭: quanto è libera Aurora area per area (social, forgia, riparazioni, sicurezza, aggiornamenti, conoscenza, vita interiore, progetti, casa…), profili pronti (prudente, equilibrata, libera), cosa ha fatto da sola ogni giorno e le statistiche delle sue proposte; per ogni utente lo decide l'amministratore |
 | **Codice di condotta** | livello A (mai: attacchi, localizzare persone, malware), livello B (conferme, dichiarazione IA) esentabile solo con una firma con la chiave della propria installazione; i servizi non partono se le regole cambiano senza firma |
 | **Progetti** | pagina 📁: progetti locali e repository GitHub (stelle, fork, issue), clone in locale, albero delle cartelle, file, README, storia, **anteprima delle pagine in sandbox**, «chiedi ad Aurora» su un progetto |
+| **Progetti portati avanti da sola** | 🏗️ Piano: scrivi l'obiettivo, Aurora propone i passi (ognuno con il comando dei test che lo prova), tu li correggi e avvii; nei momenti liberi fa un passo alla volta, e un passo è fatto **solo se i suoi test passano** (lo decide il codice, non il modello); 3 fallimenti su un passo e si ferma e ti avvisa; 🤝 un passo e aspetta il tuo «vai avanti», 🚀 fino alla fine. Push e pubblicazioni aspettano sempre te. Pilota: 6 passi su 6 da sola (M201) |
 | **Routine** | pagina 🔁: i plugin collegati propongono controlli periodici (meteo ogni mattina, allerta ogni ora, report GitHub settimanale…), si attivano con un clic o a parole tue; lettura automatica, ogni scrittura aspetta l'approvazione |
 | **Emozioni** | uno stato d'animo **misurato**, non recitato: stress (carico GPU, temperatura, errori), soddisfazione, curiosità, stanchezza, nostalgia, malinconia, preoccupazione, ognuna con le sue cause; un volto accanto al pallino della salute, una scheda al passaggio del mouse o al tocco; entra nel buongiorno e nei pensieri |
 | **Dieta guidata** | «Elabora documenti»: dal piano del dietologo (PDF o Word) Aurora ricava i pasti di ogni giorno e le frequenze settimanali; a ogni pasto propone il piatto e le alternative, ricalibrate sulla settimana (pesce, uova, legumi…) e sulla varietà («lo scegli spesso, prova…»); promemoria con notifica e bolla in chat; in chat «cosa mangio a pranzo?» risponde dal piano elaborato |
@@ -72,7 +73,7 @@ con l'esenzione firmata dal proprietario, e ciò che parte è sempre mascherato 
 | **Crea video** | «fammi un video di una volpe nella neve», «anima questa foto»: Wan 2.2 TI2V 5B (Apache-2.0) in locale, 5 s a 1280×704, da parole o da una foto; Aurora risponde subito con la stima dei minuti, spegne il ragionatore per il lavoro, ti avvisa quando è pronto; etichetta e metadati IA (art. 50) |
 | **Modifica immagini** | «ritagliala ai lati e mettila in bianco e nero», «ora ruotala», «rendila più luminosa»: il ragionatore traduce la richiesta in operazioni controllate (ritaglio, rotazione, specchio, dimensioni, luce, contrasto, colori, seppia, sfocatura, formato) e Pillow le esegue; l'originale resta, il risultato compare in chat e nei 📎 File |
 | **Video** | le alleghi un video (anche dal telefono) e lo guarda: fotogrammi ai cambi di scena visti in una sola chiamata, voce trascritta con i tempi dal Whisper locale; riassunti e risposte con i minuti esatti |
-| **Sensi** | videocamera (Aurora descrive ciò che vede) e microfono (trascrizione locale con Whisper); 📷 e 🎙️ in chat, con **📱 fotocamera e microfono del telefono** (Android e iOS: la foto viene ridotta sul telefono, la voce trascritta dal Whisper di casa, mai da servizi esterni) o 🖥️ quelli del PC |
+| **Sensi** | videocamera (Aurora descrive ciò che vede) e microfono (trascrizione locale con Whisper, sulla GPU quando ha posto: 0,14 s a frase invece di 5,6 s, M204); 📷 e 🎙️ in chat, con **📱 fotocamera e microfono del telefono** (Android e iOS: la foto viene ridotta sul telefono, la voce trascritta dal Whisper di casa, mai da servizi esterni) o 🖥️ quelli del PC |
 | **Modelli per passaggio** | pagina 🧠: ognuno dei 12 passaggi (smistamento, sintesi, verifica, agente, scrittura e giudizio dei plugin, visione…) in locale o su un provider cloud; **dati sensibili sempre mascherati** (IP, email, telefoni, IBAN, carte, chiavi, le tue parole) e rimessi nella risposta; se il provider fallisce torna al locale; statistiche di chiamate, costo, dati mascherati e SSCC. Le immagini non si possono mascherare: avviso esplicito |
 | **Guida** | pagina 📖: primi passi, configurazioni comuni (cloud, telefono, plugin, sicurezza) e a cosa serve ogni pagina |
 | **AI Act UE, art. 50** | dichiarazione su testi pubblicati, immagini (XMP/IPTC) e PDF |
@@ -97,10 +98,11 @@ Il percorso profondo, per i casi e le spiegazioni difficili:
 
 ```mermaid
 flowchart LR
-  Q([domanda]) --> R{smistamento}
+  Q([domanda]) --> R{smistamento<br/>un token}
   R -- "su di sé / sul passato" --> S[stato misurato<br/>+ ricordi pertinenti] --> W
   R -- conoscenza --> T[traduzione EN] --> E[encoder<br/>Qwen3-Embedding-0.6B]
   E --> V[(vault<br/>per dominio)] --> C[300 candidati<br/>per query]
+  T --> B[parole della domanda<br/>BM25, 30 + 30] --> C
   C --> X[re-ranker bge-v2-m3<br/>ogni passaggio nella sua lingua] --> K[12 passaggi]
   K --> G{cancello}
   G -- nessuno risponde --> A([web, poi memoria ⚠️<br/>studiata di notte])
@@ -135,6 +137,19 @@ $$s(d) = \sigma\big(f_{\text{bge}}(q_{\text{lingua}(d)},\ d)\big) \in [0,1], \qq
 
 Sul vault intero (344.499 solitoni) il documento giusto è tra i 12 nel 92,1% dei casi (M31).
 
+**Le parole della domanda (ricerca ibrida, M200).** I vettori sbagliano quando la domanda nomina una cosa precisa
+(uno strumento, una tecnica numerica, una condizione al contorno). Accanto a loro, un indice delle parole di tutti gli
+803.487 passaggi (SQLite FTS5) dà a ogni passaggio il punteggio BM25 per la domanda e per la sua traduzione:
+
+$$\mathrm{BM25}(d, q) = \sum_{t \in q} \mathrm{IDF}(t)\,\frac{f(t,d)\,(k_1+1)}{f(t,d) + k_1\big(1 - b + b\,\frac{|d|}{\overline{|d|}}\big)}$$
+
+I 30 migliori per ciascuna entrano tra i candidati, e il re-ranker li giudica tutti; un passaggio trovato **solo** dalle
+parole parte un po' più in basso, perché il re-ranker ne sopravvaluta alcuni:
+
+$$s'(d) = s(d) - \lambda\,[\,d \notin \text{vettori}\,], \qquad \lambda = 0{,}2$$
+
+Fonte giusta al 1° posto 62 → 63, tra le 12 lette 81 → 82, tra le prime 30 84 → 85 (su 93 domande).
+
 ### La verifica
 
 Una frase $f$ della risposta resta solo se cita almeno un passaggio **e** il verificatore conferma che
@@ -158,6 +173,8 @@ cioè quanto la nuova domanda somiglia alla vecchia ($c$) e quanto la vecchia **
 ($r$, il re-ranker). Si serve dall'ombra solo se valgono **entrambe**:
 
 $$c_i \ge \theta_c = 0{,}90 \qquad \land \qquad r_i \ge \theta_r = 0{,}5$$
+
+<p align="center"><img src="docs/img/it/shadow.svg" alt="L'ombra di una risposta: il cono delle domande servite" width="100%"></p>
 
 Una sola non basta: due domande sullo **stesso argomento** ma che chiedono cose diverse hanno coseno 0,72–0,86 e il
 re-ranker, da solo, ne lasciava passare 7 su 9 sbagliate (un argomento in comune non è una risposta). Sopra
@@ -215,6 +232,8 @@ flowchart LR
   C -- notte 2-6 --> D[sogno + dipinto SDXL<br/>LLM fermato ~20 s]
   C -- ogni 24 h --> R[autodiagnosi dai log]
   R -- problemi ricorrenti --> P[riparazione: sandbox → test<br/>→ approvazione → test dal vivo]
+  C -- notte --> N[studio, ombre, deduzioni,<br/>controllo del vault]
+  C -- un progetto con un passo aperto --> J[agente di progetto → i test<br/>del passo decidono]
   C -- noia --> T[pensiero]
 ```
 
@@ -229,6 +248,10 @@ all'avvio, ricalcola gli hash e verifica la firma: se qualcosa è cambiato senza
 2 × RTX 5060 Ti 16 GB, Ubuntu 26.04, driver 595, CUDA 13.4 (docs/COMPATIBILITY.md).
 
 ![Le domande che la gente fa davvero](docs/img/it/answers.svg)
+![Il vault riallineato](docs/img/it/vault.svg)
+![Ricerca ibrida](docs/img/it/hybrid.svg)
+![Lo smistamento in un token](docs/img/it/router.svg)
+![Dettatura sulla GPU](docs/img/it/whisper.svg)
 ![Quanto aspetti una risposta](docs/img/it/speed.svg)
 ![Premesse false](docs/img/it/honesty.svg)
 ![Ricerca per dominio](docs/img/it/domains.svg)
@@ -251,6 +274,12 @@ all'avvio, ricalcola gli hash e verifica la firma: se qualcosa è cambiato senza
 | sogno dipinto | ~20 s compreso lo scambio del ragionatore (M27) |
 | qualità delle risposte (30 domande, giudice esterno) | 6,90 su 10, risposte date 23 su 30 (M98) |
 | persone insieme | 8 tutte servite con 2 slot, con 4 l'ultima dopo 145 s (M102) |
+| batteria AGI | 0,958: ragionamento 8/8, pianificazione 3/3, onestà 12/12, contesto 3/3, risposte senza rifiuti 5/6 (M203) |
+| vault riallineato | una copia per documento, nel dominio giusto; risposte dalla fonte giusta 66 → 72 su 97 (M198) |
+| ricerca ibrida | fonte giusta al 1° posto 62 → 63, tra le 12 lette 81 → 82 su 93 (M200) |
+| smistamento | un token dalle probabilità: 0,32 s invece di 0,62 s, 162 su 168 come prima (M199) |
+| dettatura | Whisper sulla GPU: 0,14 s a frase invece di 5,6 s, stesse parole (M204) |
+| progetto portato avanti da sola | 6 passi su 6, 1 fallimento recuperato, 33 min (M201) |
 
 ## Aggiornamenti
 

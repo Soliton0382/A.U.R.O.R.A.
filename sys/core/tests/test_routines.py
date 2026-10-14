@@ -155,7 +155,7 @@ def test_the_rem_state_of_a_user_is_readable_by_the_admin():
     but the admin, so aurora-rem could not consolidate their memory. The caller is asked once, before."""
     import re
     from pathlib import Path
-    src = (Path(__file__).resolve().parents[1] / "aurora" / "api" / "routines.py").read_text()
+    src = (Path(__file__).resolve().parents[1] / "aurora" / "api" / "rem.py").read_text()     # split from routines.py
     body = src[src.index("def rem_state"):src.index("@router.post(\"/v1/aurora/rem/{task}\"")]
     inside = body[body.index("with sys_context.acting_as"):]
     assert "_rem_user(" not in inside

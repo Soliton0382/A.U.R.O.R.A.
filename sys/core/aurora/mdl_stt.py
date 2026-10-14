@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2026 A.U.R.O.R.A. Project
-"""Speech to text with the local Whisper model (AURORA_STT_MODEL_DIR), on the CPU — run inside aurora-models.
+"""Speech to text with the local Whisper model (AURORA_STT_MODEL_DIR), on a GPU with room or the CPU — run inside
+aurora-models.
 
 Moved out of the API's process on 8 Oct 2026 (M145): the API holds faiss (the vault's index) and loading torch beside it
 put two OpenMP runtimes in one process — on a Mac the wheels of faiss and torch each carry a libomp, and the second
@@ -25,14 +26,35 @@ _asr = None
 _lock = threading.Lock()
 
 
+FREE_GB = 3.0                  # free memory a GPU needs at load: the model takes 1.9 GB (M204), the embedder its batches
+
+
+def place(cfg: sys_config.Config) -> str:
+    """Where Whisper runs: «cpu», or with AURORA_STT_DEVICE=auto the GPU with the most free memory if it has FREE_GB
+    (M204: 0.14 s a sentence against 5.6 s on the CPU, the same words); the CPU when no GPU has room."""
+    if str(cfg["AURORA_STT_DEVICE"]) != "auto":
+        return "cpu"
+    try:
+        import torch
+        if not torch.cuda.is_available():
+            return "cpu"
+        free = [(torch.cuda.mem_get_info(i)[0], i) for i in range(torch.cuda.device_count())]
+    except Exception:                                 # noqa: BLE001 — a GPU that cannot be asked: the CPU, as before
+        return "cpu"
+    room, best = max(free, default=(0, 0))
+    return f"cuda:{best}" if room >= FREE_GB * 1e9 else "cpu"
+
+
 def _load(cfg: sys_config.Config) -> None:
     global _asr
     if _asr is None:
         import torch
         from transformers import pipeline
         torch.set_num_threads(min(8, os.cpu_count() or 4))
-        _asr = pipeline("automatic-speech-recognition", model=str(cfg.path("AURORA_STT_MODEL_DIR")), device="cpu",
-                        dtype=torch.float32)
+        where = place(cfg)
+        _asr = pipeline("automatic-speech-recognition", model=str(cfg.path("AURORA_STT_MODEL_DIR")), device=where,
+                        dtype=torch.float32 if where == "cpu" else torch.float16)
+        sys_log.get_logger("senses").info("whisper loaded on %s", where)
 
 
 def transcribe(audio: np.ndarray, lang: str, cfg: sys_config.Config) -> dict:

@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.21 — 2026-10-14
+
+1 publications since v0.2.20.
+
+- 2026-10-14 AGI 0.958: web explanations read their pages, a not-found in other words is a not-found; Whisper on the GPU when it has room (40x faster); reasoner split 4.7/3.3; hybrid search measured end to end; README: shadow figure, hybrid search, new charts; no stray files at the root
+
 ## v0.2.20 — 2026-10-14
 
 1 publications since v0.2.19.

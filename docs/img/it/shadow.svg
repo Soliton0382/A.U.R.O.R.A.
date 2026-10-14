@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480" width="720" height="480" role="img" aria-label="L'ombra di una risposta">
+<style>
+.bg{fill:#fcfcfb}.t1{fill:#0b0b0b}.t2{fill:#52514e}.grid{stroke:#e4e3df}.axis{stroke:#bdbcb6}
+.s1{fill:#2a78d6}.s2{fill:#eb6834}.s3{fill:#1baf7a}.ref{stroke:#52514e}
+@media (prefers-color-scheme: dark){.bg{fill:#1a1a19}.t1{fill:#ffffff}.t2{fill:#c3c2b7}.grid{stroke:#383835}
+.axis{stroke:#5c5b57}.s1{fill:#3987e5}.s2{fill:#d95926}.s3{fill:#199e70}.ref{stroke:#c3c2b7}}
+text{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+</style>
+<style>
+.cone{fill:#2a78d6;fill-opacity:.14}.core{fill:#1baf7a;fill-opacity:.22}.ray{stroke:#0b0b0b;stroke-width:2.5}
+.edge{stroke:#2a78d6;stroke-width:1.5;stroke-dasharray:4 4}.arc{stroke:#bdbcb6;fill:none}.ptin{fill:#1baf7a}
+.ptmid{fill:#2a78d6}.ptout{fill:#eb6834}.ring{stroke:#fcfcfb;stroke-width:2}
+@media (prefers-color-scheme: dark){.cone{fill:#3987e5}.core{fill:#199e70}.ray{stroke:#ffffff}.edge{stroke:#3987e5}
+.arc{stroke:#5c5b57}.ptin{fill:#199e70}.ptmid{fill:#3987e5}.ptout{fill:#d95926}.ring{stroke:#1a1a19}}
+</style>
+<rect class="bg" width="720" height="480" rx="8"/>
+<text class="t1" x="24" y="34" font-size="20" font-weight="700">L'ombra di una risposta</text>
+<text class="t2" x="24" y="56" font-size="13">ogni domanda è una direzione (un vettore unitario) · M111, M113</text>
+<path class="arc" d="M291.8,432.1 A240,240 0 0 0 47.4,130.3"/>
+<path class="cone" d="M60,370 L269.6,253.1 A240,240 0 0 0 98.2,133.1 Z"/>
+<path class="core" d="M60,370 L241.3,212.8 A240,240 0 0 0 145.7,145.8 Z"/>
+<line class="edge" x1="60" y1="370" x2="269.6" y2="253.1"/>
+<line class="edge" x1="60" y1="370" x2="98.2" y2="133.1"/>
+<line class="ray" x1="60" y1="370" x2="201.1" y2="168.5"/>
+<text class="t2" x="100.7" y="117.3" font-size="12" text-anchor="middle">ombra: cos ≥ 0,90</text>
+<text class="t1" x="149.7" y="261.9" font-size="12" font-weight="600">cos ≥ 0,97</text>
+<text class="t1" x="209.7" y="161.9" font-size="12" font-weight="600">v: già risposta, verificata</text>
+<circle class="ptin ring" cx="224.0" cy="194.8" r="7"/>
+<text class="t1" x="236.0" y="192.8" font-size="12" font-weight="600">1</text>
+<circle class="ptin" cx="430" cy="104" r="6"/>
+<text class="t1" x="444" y="108" font-size="13" font-weight="600">1. parafrasi stretta</text>
+<text class="t2" x="444" y="125" font-size="12">cos 0,99 → subito, 0,6 s</text>
+<circle class="ptmid ring" cx="260.3" cy="237.8" r="7"/>
+<text class="t1" x="272.3" y="235.8" font-size="12" font-weight="600">2</text>
+<circle class="ptmid" cx="430" cy="150" r="6"/>
+<text class="t1" x="444" y="154" font-size="13" font-weight="600">2. parafrasi</text>
+<text class="t2" x="444" y="171" font-size="12">cos 0,93 → subito + ricontrollo</text>
+<circle class="ptout ring" cx="288.1" cy="295.3" r="7"/>
+<text class="t1" x="300.1" y="293.3" font-size="12" font-weight="600">3</text>
+<circle class="ptout" cx="430" cy="196" r="6"/>
+<text class="t1" x="444" y="200" font-size="13" font-weight="600">3. stesso argomento, altra domanda</text>
+<text class="t2" x="444" y="217" font-size="12">cos 0,80 → pipeline completa</text>
+<circle class="ptout ring" cx="299.1" cy="390.9" r="7"/>
+<text class="t1" x="311.1" y="388.9" font-size="12" font-weight="600">4</text>
+<circle class="ptout" cx="430" cy="242" r="6"/>
+<text class="t1" x="444" y="246" font-size="13" font-weight="600">4. domanda non collegata</text>
+<text class="t2" x="444" y="263" font-size="12">cos 0,50 → pipeline completa</text>
+<text class="t2" x="24" y="424" font-size="12">Secondo cancello: il re-ranker deve dire che la vecchia RISPOSTA risponde alla nuova domanda (≥ 0,5).</text>
+<text class="t2" x="24" y="442" font-size="12">Misurato: 18 parafrasi su 23 servite dall'ombra, 0 su 46 domande dello stesso argomento ma diverse.</text>
+<text class="t2" x="24" y="460" font-size="12">51,2 s la pipeline · 0,6 s dall'ombra</text>
+</svg>

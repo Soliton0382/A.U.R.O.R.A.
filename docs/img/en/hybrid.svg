@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" width="720" height="380" role="img" aria-labelledby="t d">
+<title id="t">Hybrid search: the question's words beside the vectors</title>
+<desc id="d">93 questions with their source in the vault · M200. vectors only: right source
+ranked 1st 62, among the 12
+the chat reads 81, in the top 30 84; hybrid (BM25 + vectors): right source
+ranked 1st 63, among the 12
+the chat reads 82, in the top 30 85</desc>
+<style>
+.bg{fill:#fcfcfb}.t1{fill:#0b0b0b}.t2{fill:#52514e}.grid{stroke:#e4e3df}.axis{stroke:#bdbcb6}
+.s1{fill:#2a78d6}.s2{fill:#eb6834}.s3{fill:#1baf7a}.ref{stroke:#52514e}
+@media (prefers-color-scheme: dark){.bg{fill:#1a1a19}.t1{fill:#ffffff}.t2{fill:#c3c2b7}.grid{stroke:#383835}
+.axis{stroke:#5c5b57}.s1{fill:#3987e5}.s2{fill:#d95926}.s3{fill:#199e70}.ref{stroke:#c3c2b7}}
+text{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+</style>
+<rect class="bg" width="720" height="380" rx="8"/>
+<text class="t1" x="56" y="30" font-size="17" font-weight="600">Hybrid search: the question's words beside the vectors</text>
+<text class="t2" x="56" y="52" font-size="12.5">93 questions with their source in the vault · M200</text>
+<rect class="s1" x="56" y="68" width="12" height="12" rx="3"/><text class="t2" x="74" y="78.5" font-size="12.5">vectors only</text>
+<rect class="s2" x="170.0" y="68" width="12" height="12" rx="3"/><text class="t2" x="188.0" y="78.5" font-size="12.5">hybrid (BM25 + vectors)</text>
+<line class="grid" x1="56" x2="696" y1="316.0" y2="316.0" stroke-width="1"/><text class="t2" x="48" y="320.0" font-size="11" text-anchor="end">0</text>
+<line class="grid" x1="56" x2="696" y1="263.0" y2="263.0" stroke-width="1"/><text class="t2" x="48" y="267.0" font-size="11" text-anchor="end">23</text>
+<line class="grid" x1="56" x2="696" y1="210.0" y2="210.0" stroke-width="1"/><text class="t2" x="48" y="214.0" font-size="11" text-anchor="end">46</text>
+<line class="grid" x1="56" x2="696" y1="157.0" y2="157.0" stroke-width="1"/><text class="t2" x="48" y="161.0" font-size="11" text-anchor="end">70</text>
+<line class="grid" x1="56" x2="696" y1="104.0" y2="104.0" stroke-width="1"/><text class="t2" x="48" y="108.0" font-size="11" text-anchor="end">93</text>
+<path class="s1" d="M97.7,316.0 V178.7 Q97.7,174.7 101.7,174.7 H157.7 Q161.7,174.7 161.7,178.7 V316.0 Z"/>
+<text class="t1" x="129.7" y="168.7" font-size="12" text-anchor="middle" font-weight="600">62</text>
+<path class="s2" d="M163.7,316.0 V176.4 Q163.7,172.4 167.7,172.4 H223.7 Q227.7,172.4 227.7,176.4 V316.0 Z"/>
+<text class="t1" x="195.7" y="166.4" font-size="12" text-anchor="middle" font-weight="600">63</text>
+<text class="t2" x="162.7" y="334.0" font-size="12" text-anchor="middle">right source</text>
+<text class="t2" x="162.7" y="348.0" font-size="12" text-anchor="middle">ranked 1st</text>
+<path class="s1" d="M311.0,316.0 V135.4 Q311.0,131.4 315.0,131.4 H371.0 Q375.0,131.4 375.0,135.4 V316.0 Z"/>
+<text class="t1" x="343.0" y="125.4" font-size="12" text-anchor="middle" font-weight="600">81</text>
+<path class="s2" d="M377.0,316.0 V133.1 Q377.0,129.1 381.0,129.1 H437.0 Q441.0,129.1 441.0,133.1 V316.0 Z"/>
+<text class="t1" x="409.0" y="123.1" font-size="12" text-anchor="middle" font-weight="600">82</text>
+<text class="t2" x="376.0" y="334.0" font-size="12" text-anchor="middle">among the 12</text>
+<text class="t2" x="376.0" y="348.0" font-size="12" text-anchor="middle">the chat reads</text>
+<path class="s1" d="M524.3,316.0 V128.5 Q524.3,124.5 528.3,124.5 H584.3 Q588.3,124.5 588.3,128.5 V316.0 Z"/>
+<text class="t1" x="556.3" y="118.5" font-size="12" text-anchor="middle" font-weight="600">84</text>
+<path class="s2" d="M590.3,316.0 V126.2 Q590.3,122.2 594.3,122.2 H650.3 Q654.3,122.2 654.3,126.2 V316.0 Z"/>
+<text class="t1" x="622.3" y="116.2" font-size="12" text-anchor="middle" font-weight="600">85</text>
+<text class="t2" x="589.3" y="334.0" font-size="12" text-anchor="middle">in the top 30</text>
+<line class="axis" x1="56" x2="696" y1="316" y2="316" stroke-width="1"/>
+<text class="t2" x="56" y="368" font-size="11">Answers from the right source stay 72 of 93: the search gains, the reading not yet.</text>
+</svg>

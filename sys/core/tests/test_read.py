@@ -51,6 +51,22 @@ def test_the_snippets_first_then_the_pages(monkeypatch):
     assert R.from_web(_p(m, web=False), "x", lambda *a: None) is None                         # the web switched off
 
 
+def test_an_explanation_from_the_web_reads_the_pages_at_once(monkeypatch):
+    # C307: the wine stain answered from the snippets («detergenti appropriati») — the method is in the page
+    found = [{"title": "Red wine stains", "url": "https://x/wine", "text": "simple steps and tips"},
+             {"title": "Stains", "url": "https://x/stains", "text": "tips for fresh and dry stains"}]
+    monkeypatch.setattr(W, "query", lambda m, q, cfg: "remove red wine stain")
+    monkeypatch.setattr(W, "search", lambda q, region="it-it": found)
+    monkeypatch.setattr(W, "page", lambda url: "Rinse with cold water, cover with salt, then wash with dish soap.")
+    m = Model({"cover with salt": "Acqua fredda, sale, poi sapone per i piatti [1]."})
+    events = []
+    out = R.from_web(_p(m), "come si toglie una macchia di vino?", lambda e, pl: events.append(e), "explain")
+    assert out["text"].startswith("Acqua fredda") and events == ["read.web", "read.pages"] and len(m.asked) == 1
+    events.clear()                                     # a fact: the snippets first, as before
+    R.from_web(_p(Model({"tips": "Sale [1]."})), "chi?", lambda e, pl: events.append(e), "fact")
+    assert events == ["read.web"]
+
+
 def test_memory_is_said_as_memory_and_never_silence():
     out = R.from_memory(_p(Model({"from what you know": "La M sta per metastasi."})), "nel TNM cosa vuol dire M?", lambda *a: None)
     assert out["text"] == "⚠️ Dalla mia memoria, non verificato da una fonte: La M sta per metastasi." and out["sources"] == []
@@ -107,3 +123,13 @@ def test_a_question_with_options_or_a_form_asked_is_an_exercise_without_asking_t
     assert R.kind(never, "Quanto fa 17*23? Risposta: N") == "solve"
     asked = SimpleNamespace(_for=lambda role: SimpleNamespace(complete=lambda s, q, n: SimpleNamespace(answer="FACT")))
     assert R.kind(asked, "Chi ha scritto I promessi sposi?") == "fact"
+
+
+def test_an_answer_saying_the_texts_lack_it_is_not_an_answer():
+    # C305: «I testi non specificano le attrazioni esatte…» was kept as the answer and the pages never opened
+    from aurora.kno_read import EMPTY
+    assert EMPTY.search("I testi non specificano le attrazioni esatte da visitare, ma indicano [2].")
+    assert EMPTY.search("The texts do not mention the year.")
+    assert EMPTY.search("Le fonti fornite non riportano il dato.")
+    assert not EMPTY.search("Il Duomo e gli Uffizi sono le tappe principali [1]; i testi non specificano gli orari.")
+    assert not EMPTY.search("Non è vero che i testi antichi non citano Firenze [2].")

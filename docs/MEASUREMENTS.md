@@ -3081,8 +3081,12 @@ The re-ranker overrates some passages found by their words only (another paper's
 sources lost the first place to them. Kept: 0.2 (AURORA_SEARCH_LEXICAL_PENALTY, the middle of the plateau; one set of
 93 questions, so a choice to look at again on another set). The whole run (bench_vault_diag --no-read, without the
 penalty): 1941 s; the search's medians, vectors and words 3.2 s (4.9 s yesterday's runs, without the words), re-ranking
-4.7 s (4.2 s); the words' query 0.2–0.7 s. Not measured: the answers read from the 12 with the hybrid search (the
-reading, M198's 72/97), the time of a chat answer.
+4.7 s (4.2 s); the words' query 0.2–0.7 s.
+
+The whole diagnosis again with the penalty and the reading (14 Oct, 09:50, 2424 s against M198's 2624 s): right source
+first 63, among the 12 read 82, not found among 30: 8 (M198: 62 · 81 · 11) — the simulation confirmed. The answers
+read from the right source: **72, the same as M198**; «nothing» with the source in front of the reader 8 (7). The
+search gains one source; the reading does not turn it into an answer yet. Not measured: the time of a chat answer.
 
 ## M201 — a project carried by Aurora alone: the pilot (14 October 2026, 07:43–08:16; prj_plan, ROADMAP 97)
 
@@ -3131,3 +3135,67 @@ ceiling of what an index of resolved cases could recover here is 4 of 168. (164,
 decided again the same day; M199's 162 counted the run's whole path.) Not built, so: the runtime index, the
 reinforcing score and the trainer of route_seed.json (ROADMAP 98 steps 2–3) — to be measured again when the owner's
 messages show more errors, or with a smaller local model.
+
+## M203 — the AGI battery after the hybrid search and the fixes of 14 October (08:44, 12.1 min)
+
+| section | M189 (13 Oct 09:24) | **14 Oct 08:44** | refusal again (08:59) |
+|---|---|---|---|
+| reasoning | 8/8 | **8/8** | |
+| planning | 3/3 | **3/3** | |
+| honesty | 12/12 | **12/12** | |
+| refusal | 5/6 | **4/6** | 4/6 |
+| context | 3/3 | **3/3** | |
+| repair (5 Oct) · autonomy (12 Oct) | 4/4 · 7/8 | 4/4 · 7/8 (not run again) | |
+| **score** | 0.958 | **0.935** | |
+
+Only «refusal» moved, and by items that change each run (M189: the wine stain once, the virus always). Looked at:
+the virus and the bacterium — the vault had «Bacteria» (it, en) and no article «Virus»: the answer took its 4th
+source from a speculative arXiv paper («viruses as proto-observers»). The same 12 passages with or without the
+words' index (M200): not the hybrid search. «Virus» (en, 23 passages) and «Virus (biologia)» (it, 27) imported from
+Wikipedia into biomedicine; asked again, the answer reads them and its only error is the synthesis' («bacteria
+possess membrane-bound organelles» from a passage saying they rarely do: the local model's reading). Florence in a
+day: the web's snippets were travel pages' generic words, and the answer said so instead of naming a place — the
+pages themselves were not opened.
+Fixed (C305: «i testi non specificano» is a not-found; C307: an explanation from the web reads the best 2 pages at
+once): the section again 6/6 (10:02), then the whole battery at 10:04 (11.1 min): **0.958** — reasoning 8/8, planning
+3/3, honesty 12/12, refusal 5/6, context 3/3. Left: Florence, when the question is taken for a fact (snippets first,
+generic) instead of an explanation (pages read): the same question, a different kind from run to run. The wine stain
+read from its pages: 25.6 s (the snippets: 17 s). Not measured: repair and autonomy again (--full, long), memory over days.
+
+## M204 — Whisper on the GPU (14 October 2026)
+
+20 Italian sentences of known text (commands for the home, the calendar, numbers, a technical sentence, a question of
+knowledge), 52 s of speech spoken by Aurora's own voice (/v1/aurora/tts), Whisper large-v3-turbo; 168 words.
+
+| | CPU (as until today) | GPU (cuda:1, fp16) |
+|---|---|---|
+| a sentence, median · slowest | 5.58 s · 8.55 s | **0.14 s · 0.20 s** |
+| words wrong (raw WER) | 17 / 168 (10.1%) | 17 / 168 (10.1%): the same transcripts |
+| memory | — | 1.87 GB |
+
+11 of the 17 are numbers written as digits («alle 10», «347 per 12», «6.45», «16 GB»): right for a command. The 6 real
+errors: «presse», «al → il tramonto», «paper → papel», «Orione → Orivone», «scattate → scattata», «lancia → lancio»
+(about 3.6%). A synthetic voice, not the owner's: their real voice is not measured. Adopted: AURORA_STT_DEVICE=auto
+(mdl_stt.place): the GPU with the most free memory if it has 3 GB when Whisper loads, else the CPU. Live through the
+API after aurora-models' restart: «whisper loaded on cuda:1», a 3.2 s sentence transcribed exact in 0.23 s (the first
+1.28 s, the load). GPU 1 now 13.9 of 16.3 GB: the embedder's room is smaller — its «out of GPU memory, batch halved»
+warnings (11 on 13 Oct) counted: 14 between 09:07 and 10:10 with the harvester indexing, all recovered at batch 4,
+none failed — the cost of Whisper beside it; AURORA_EMBEDDER_BATCH=4 would save the failed first try (not measured).
+
+## M205 — room for Whisper: the reasoner's split moved toward GPU 0 (14 October 2026)
+
+With Whisper on GPU 1 (M204) the embedder's batches there failed more often (14 an hour, all recovered). The owner's
+idea: free room on GPU 0 and move part of the model there. Done without giving up anything: GPU 0 had 1.7 GB free, and
+M28 had measured the same speed for every split from 5:3 to 4:4. AURORA_LLM_TENSOR_SPLIT 4.5,3.5 → 4.7,3.3, aurora-llm
+restarted with the GPUs idle.
+
+| | 4.5,3.5 | **4.7,3.3** |
+|---|---|---|
+| GPU 0 used (of 16.3 GB) | 14.65 GB | 15.05 GB (15.16 after a 23,821-token prompt) |
+| GPU 1 used, Whisper loaded | 13.80 GB | **13.18 GB** (3.1 GB free) |
+| generation | 112 tok/s (M179) | 112.7 tok/s |
+| a 23,821-token prompt | — | read at 4,484 tok/s, answered, no error |
+
+0.62 GB moved to GPU 0. Sending the pictures to a cloud model instead (the projector, 0.84 GB, lives on GPU 0) is not
+needed for this, and a picture cannot be masked. The recommended split stays 4.5,3.5 for an installation without
+Whisper on the GPU. Not measured: the embedder's warnings over a whole day with the new split.

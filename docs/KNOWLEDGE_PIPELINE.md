@@ -44,7 +44,8 @@ extra recall changed nothing (M129), as HyDE did not in M13-M14.
 | recall | bge-m3 dense, top-100 / top-300 candidates | ceiling 86.1% / 89.8% (M15) |
 | selection | bge-reranker-v2-m3, 1,024 tokens, English query | rank-1 76.9% in 2.0 s / 79.6% in 6.0 s (M15) |
 | domains | label carried by each soliton, used to group results | as a search filter they hurt (M13) |
-| not adopted | HyDE, lexical channel, z-score within domain, hierarchical mean vectors | all measured worse (M9, M13, M14) |
+| lexical channel (since 14 Oct) | BM25 (SQLite FTS5) top 30 for the question and its translation, beside the dense top 300; a words-only passage ranked 0.2 below its re-ranker score | on the 803k-passage vault: right source 1st 62 → 63, among the 12 81 → 82 of 93 (M200). M13 measured it worse on the 100k pool without the penalty |
+| not adopted | HyDE, z-score within domain, hierarchical mean vectors | all measured worse (M9, M13, M14) |
 
 Known limit: dense recall loses ~8.5 points of document recall@48 per tenfold
 growth of the vault (M11). More candidates raise the ceiling at a linear

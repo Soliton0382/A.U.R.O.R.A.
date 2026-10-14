@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.en.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-501%20passed-1baf7a" alt="Tests"></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-809%20passed-1baf7a" alt="Tests"></p>
 
 <p align="center">🇮🇹 <a href="README.md">Italiano</a> · 🇬🇧 <b>English</b></p>
 
@@ -24,7 +24,7 @@ exemption, and what leaves is always masked (no setting turns it off).
 | 🔎 **Truth** | every answer says where it comes from: ✅ the vault [n], 🌐 the web with its link, ⚠️ «from my memory, not verified»; a false premise is corrected, never built upon (6 of 6, M130) | cites sources, but does not tell what it read from what it remembers |
 | ⚡ **Right and fast** | common questions: 70% right (before 16%), median 4 s; repeated: 0.04 s from the cache (M130) | — |
 | 🔎 **Vault answers** | every sentence of a deep answer is verified against the vault's passages; what is not supported is removed (M32: 0 unsupported sentences of 14 kept) | cites sources, but the sentences the model writes are not checked one by one |
-| 📏 **Measurement** | every choice has a numbered measurement (M1–M130), every error a number in BUGS.md, every limit is written down | performance is claimed, rarely measured in public |
+| 📏 **Measurement** | every choice has a numbered measurement (M1–M204), every error a number in BUGS.md, every limit is written down | performance is claimed, rarely measured in public |
 | 🌙 **A life of her own** | consolidates memories, thinks when idle, dreams and paints the dream, reviews herself every day from her own logs | wakes up only when you write |
 | 🛠️ **Repairs herself** | fixes her own code in a sandbox, with tests, your approval, live tests and rollback | only the developer changes the code |
 | 🔏 **Signed rules** | a code of conduct bound to your installation's key: changed without a signature, Aurora does not start | rules in a prompt, changed without a trace |
@@ -38,7 +38,7 @@ exemption, and what leaves is always masked (no setting turns it off).
 |---|---|
 | **Answers by choosing the source** | first the **cache** of verified answers (a similar question: 0.04 s); then the question's **kind** decides: a **fact** (who, when, how many) is searched on the **web** (DuckDuckGo and other engines, no key: only a masked query on the subject leaves), an **explanation** is read in the **vault**, a **case** with several problems takes the **deep path** (split in its problems, provisions found by number, every sentence verified). One reading, with its sources; no source → her memory marked ⚠️. On 50 real questions (MKQA): 70% right, before 16% (M130) |
 | **Thinking modes** | 🧠 in the chat: ⚡ light, ⚖️ medium, 🔬 deep, 🤖 auto (the default: starts light and goes deeper only when needed); the trace says which way it took and why |
-| **Answers from the vault** | the whole path for explanations and cases: route → translate → search (encoder + re-ranker over every domain) → per-domain extraction → synthesis → **every sentence verified against the passages** → sources (M32: 0 unsupported sentences of 14 kept) |
+| **Answers from the vault** | the whole path for explanations and cases: route (a single token: 0.32 s, M199) → translate → **hybrid** search (vectors + the question's words, BM25, then the re-ranker over every domain: M200) → per-domain extraction → synthesis → **every sentence verified against the passages** → sources (M32: 0 unsupported sentences of 14 kept) |
 | **Vault of solitons** | SQLite shards, knowledge and memory apart, dedup by content hash, exact vector search below 250k vectors per domain, HNSW above (M30) |
 | **Memory** | short-term turns, long-term session memories written at night, recall by meaning over 12 months, dates labelled by the clock |
 | **Synapses** | links between knowledge of different domains (a physics model ↔ a biological one, Kafka ↔ existentialism): grown at night where the similarity is strong (≥ 0.72, the top 5%), stronger when two passages are cited together, weaker when unused; in the search they bring the linked passages in, the re-ranker always chooses |
@@ -56,9 +56,10 @@ exemption, and what leaves is always masked (no setting turns it off).
 | **Security** | firewall syslog sentinel with defensive incident reports; TLS 1.3, CSP, device cookies, secrets 0600 (docs/SECURITY.md) |
 | **Security officer** | on the Sophos firewall: an **audit** of the configuration (services published without IPS or log, administration from the Internet, ATP, the blocking rule), **threat hunting** in the logs (regular calls outside, lateral movement, ATP matches judged, dubious domains, logins and changes on the firewall), a **posture with playbooks** and a register of risks; she **publishes a server** (NAT and rule with IPS), **quarantines** a device, **hardens a rule**: every change planned, approved by you, read back, undone by itself if anything fails; the firewall's manual and API searched on this machine; **any change asked in words** («deny the Internet but 443»): Aurora plans it, the code checks it, you approve (M134-M135); **Aurora's own firewall** has its page |
 | **Autonomous defence** | if you switch it on (🧭 Autonomy → security 🚀, only with the signed exemption): Aurora blocks on the firewall by herself the source of a serious attack, for a time (24 h), never the home network nor the addresses you protect, at most N a day; every block is recorded, notified and lifted with a click |
-| **Autonomy** | 🧭 page: how free Aurora is area by area (social, forge, repairs, security, updates, knowledge, inner life), ready profiles (careful, balanced, free), what she did by herself each day and the statistics of her proposals; for each user the admin decides |
+| **Autonomy** | 🧭 page: how free Aurora is area by area (social, forge, repairs, security, updates, knowledge, inner life, projects, home…), ready profiles (careful, balanced, free), what she did by herself each day and the statistics of her proposals; for each user the admin decides |
 | **Code of conduct** | level A (never: attacks, locating people, malware), level B (confirmations, disclosure) exemptible only by a signature with the installation's own key; services refuse to start if the rules are changed unsigned |
 | **Projects** | 📁 page: local projects and GitHub repositories (stars, forks, issues), clone locally, folder tree, files, README, history, **sandboxed page preview**, "ask Aurora" about a project |
+| **Projects carried by herself** | 🏗️ Plan: write the goal, Aurora proposes the steps (each with the test command that proves it), you change them and start it; in idle time she does one step at a time, and a step is done **only when its tests pass** (the code decides, not the model); 3 failures on a step and she stops and tells you; 🤝 one step then she waits for your «go on», 🚀 to the end. Pushes and publishing always wait for you. Pilot: 6 of 6 steps alone (M201) |
 | **Routines** | 🔁 page: connected plugins propose periodic checks (weather every morning, alerts every hour, weekly GitHub report…), switched on with one click or in your own words; reading is automatic, every write waits for approval |
 | **Emotions** | a **measured** mood, not acted: stress (GPU load, heat, errors), satisfaction, curiosity, tiredness, longing, melancholy, worry, each with its causes; a face beside the health dot, a card on hover or tap; part of the good morning and her thoughts |
 | **Guided diet** | «Process documents»: from the dietitian's plan (PDF or Word) Aurora reads each day's meals and the weekly frequencies; at each meal she proposes the dish and the alternatives, re-weighed on the week (fish, eggs, legumes…) and on variety («you choose it often, try…»); reminders with a notification and a chat bubble; in the chat «what do I eat for lunch?» answers from the processed plan |
@@ -72,7 +73,7 @@ exemption, and what leaves is always masked (no setting turns it off).
 | **Make videos** | "make me a video of a fox in the snow", "animate this photo": Wan 2.2 TI2V 5B (Apache-2.0) locally, 5 s at 1280×704, from words or a photo; Aurora answers at once with the minutes it will take, swaps the reasoner out for the job, notifies you when ready; AI label and metadata (art. 50) |
 | **Picture edits** | "crop the sides and make it black and white", "now rotate it", "make it brighter": the reasoner turns the request into checked operations (crop, rotate, mirror, size, light, contrast, colours, sepia, blur, format) and Pillow applies them; the original stays, the result appears in the chat and in 📎 Files |
 | **Video** | attach a video (from the phone too) and she watches it: frames at the scene changes seen in one call, speech transcribed with timestamps by the local Whisper; summaries and answers with the exact minutes |
-| **Senses** | camera (Aurora describes what she sees) and microphone (local transcription with Whisper); 📷 and 🎙️ in the chat, with **📱 the phone's camera and microphone** (Android and iOS: the photo is shrunk on the phone, the voice transcribed by the home Whisper, never by an outside service) or 🖥️ the PC's |
+| **Senses** | camera (Aurora describes what she sees) and microphone (local transcription with Whisper, on the GPU when it has room: 0.14 s a sentence instead of 5.6 s, M204); 📷 and 🎙️ in the chat, with **📱 the phone's camera and microphone** (Android and iOS: the photo is shrunk on the phone, the voice transcribed by the home Whisper, never by an outside service) or 🖥️ the PC's |
 | **Models per step** | 🧠 page: each of 12 steps (routing, synthesis, verification, agent, plugin writing and judging, vision…) local or on a cloud provider; **sensitive data always masked** (addresses, e-mails, phones, IBANs, cards, keys, your words) and put back in the answer; falls back to local on a provider error; daily token ceiling per paid provider; statistics of calls, cost, masked items and SSCC. Pictures cannot be masked: said explicitly |
 | **Guide** | 📖 page: first steps, common configurations (cloud, phone, plugins, safety) and what each page is for |
 | **EU AI Act art. 50** | disclosure on published text, images (XMP/IPTC) and PDFs |
@@ -97,10 +98,11 @@ The deep path, for cases and hard explanations:
 
 ```mermaid
 flowchart LR
-  Q([question]) --> R{route}
+  Q([question]) --> R{route<br/>one token}
   R -- "about herself / the past" --> S[measured state<br/>+ relevant memories] --> W
   R -- knowledge --> T[English translation] --> E[encoder<br/>Qwen3-Embedding-0.6B]
   E --> V[(vault<br/>per domain)] --> C[300 candidates<br/>per query]
+  T --> B[the question's words<br/>BM25, 30 + 30] --> C
   C --> X[bge-v2-m3 re-ranker<br/>each passage in its language] --> K[12 passages]
   K --> G{gate}
   G -- none answers --> A([the web, then memory ⚠️<br/>studied at night])
@@ -135,6 +137,19 @@ $$s(d) = \sigma\big(f_{\text{bge}}(q_{\text{lang}(d)},\ d)\big) \in [0,1], \qqua
 
 On the whole vault (344,499 solitons) the right document is among the 12 in 92.1% of the cases (M31).
 
+**The question's words (hybrid search, M200).** Vectors miss when a question names a precise thing (a tool, a
+numerical technique, a boundary condition). Beside them, an index of the words of all 803,487 passages (SQLite FTS5)
+gives each passage its BM25 score for the question and for its translation:
+
+$$\mathrm{BM25}(d, q) = \sum_{t \in q} \mathrm{IDF}(t)\,\frac{f(t,d)\,(k_1+1)}{f(t,d) + k_1\big(1 - b + b\,\frac{|d|}{\overline{|d|}}\big)}$$
+
+The best 30 of each join the candidates and the re-ranker judges them all; a passage found **only** by the words
+starts a little lower, because the re-ranker overrates some of them:
+
+$$s'(d) = s(d) - \lambda\,[\,d \notin \text{vectors}\,], \qquad \lambda = 0.2$$
+
+Right source ranked 1st 62 → 63, among the 12 read 81 → 82, in the top 30 84 → 85 (of 93 questions).
+
 ### Verification
 
 A sentence $f$ of the answer stays only if it cites at least one passage **and** the verifier confirms that
@@ -158,6 +173,8 @@ how close the new question is to the old one ($c$), and how well the old **answe
 the re-ranker). The shadow serves only when **both** hold:
 
 $$c_i \ge \theta_c = 0.90 \qquad \land \qquad r_i \ge \theta_r = 0.5$$
+
+<p align="center"><img src="docs/img/en/shadow.svg" alt="The shadow of an answer: the cone of questions served" width="100%"></p>
 
 One is not enough: two questions on the **same subject** asking different things sit at cosine 0.72–0.86, and the
 re-ranker alone let 7 of 9 wrong ones through (a subject in common is not an answer). Above
@@ -214,6 +231,8 @@ flowchart LR
   C -- night 2-6 --> D[dream + SDXL painting<br/>reasoner paused ~20 s]
   C -- every 24 h --> R[self-review from the logs]
   R -- recurring problems --> P[repair: sandbox → tests<br/>→ approval → live tests]
+  C -- night --> N[study, shadows, deductions,<br/>vault check]
+  C -- a project with an open step --> J[project agent → the step's<br/>tests decide]
   C -- boredom --> T[thought]
 ```
 
@@ -228,6 +247,10 @@ checks the signature at start: changed without a signature, Aurora does not star
 2 × RTX 5060 Ti 16 GB, Ubuntu 26.04, driver 595, CUDA 13.4 (docs/COMPATIBILITY.md).
 
 ![The questions people really ask](docs/img/en/answers.svg)
+![The vault realigned](docs/img/en/vault.svg)
+![Hybrid search](docs/img/en/hybrid.svg)
+![Routing in one token](docs/img/en/router.svg)
+![Dictation on the GPU](docs/img/en/whisper.svg)
 ![How long you wait](docs/img/en/speed.svg)
 ![False premises](docs/img/en/honesty.svg)
 ![Search by domain](docs/img/en/domains.svg)
@@ -250,6 +273,12 @@ checks the signature at start: changed without a signature, Aurora does not star
 | dream painting | ~20 s including swapping the reasoner out and back (M27) |
 | answer quality (30 questions, external judge) | 6.90 of 10, 23 of 30 answered (M98) |
 | people at once | 8 all served with 2 slots, with 4 the last after 145 s (M102) |
+| AGI battery | 0.958: reasoning 8/8, planning 3/3, honesty 12/12, context 3/3, answers without refusals 5/6 (M203) |
+| vault realigned | one copy a document, in the right domain; answers from the right source 66 → 72 of 97 (M198) |
+| hybrid search | right source ranked 1st 62 → 63, among the 12 read 81 → 82 of 93 (M200) |
+| routing | one token from its probabilities: 0.32 s instead of 0.62 s, 162 of 168 as before (M199) |
+| dictation | Whisper on the GPU: 0.14 s a sentence instead of 5.6 s, the same words (M204) |
+| a project carried by herself | 6 of 6 steps, 1 failure recovered, 33 min (M201) |
 
 ## Updates
 

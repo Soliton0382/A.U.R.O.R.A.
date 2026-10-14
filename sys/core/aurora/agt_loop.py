@@ -22,8 +22,9 @@ import time
 
 import httpx
 
-from . import agt_change, sns_clock, sys_config, sys_log, sys_tests
+from . import sns_clock, sys_config, sys_log
 from .kno_answer import Answer, Trail
+from .agt_loop_make import AgentMakers
 from .agt_loop_report import SEP, AgentReport
 from .plg_host import PluginHost
 from .sys_approvals import Approvals, needs_owner
@@ -122,7 +123,7 @@ def signature(spec: dict) -> str:
     return f"{f['name']}({', '.join(args)}) {' '.join(str(f.get('description', '')).split())[:220]}"
 
 
-class Agent(AgentReport):
+class Agent(AgentMakers, AgentReport):
     def __init__(self, pipeline, cfg: sys_config.Config | None = None, notify=None, host: PluginHost | None = None):
         self.cfg = cfg or sys_config.get()
         self.p = pipeline
@@ -213,68 +214,6 @@ class Agent(AgentReport):
         return ("\n\n# Installed, waiting for the owner's settings\nThese plugins exist but cannot run until the owner "
                 "fills their settings (Plugins page). For a need they cover, do not request a new capability: say "
                 "which plugin and which settings are missing.\n" + "\n".join(out[:20]))
-
-    def _propose(self, args: dict, emit, run_id: str) -> str:
-        sid = str(args.get("sandbox_id", ""))
-        box = self.cfg.path("AURORA_SANDBOX_DIR") / sid
-        if not sid or not box.is_dir():
-            return f"ERROR: no sandbox {sid!r}"
-        files = agt_change.changed_files(box, self.cfg.root)
-        if not files:
-            return "ERROR: the sandbox has no differences from the live code"
-        from . import sys_ethics
-        if (protected := [f for f in files if f in sys_ethics.PROTECTED]):
-            return ("REFUSED: these files belong to the code of conduct and change only with the owner's own "
-                    f"signature: {', '.join(protected)}. Report the need instead.")
-        t = sys_tests.run_suite(box)
-        emit("change.tests.sandbox", {"ok": t["ok"], "summary": t["summary"]})
-        if not t["ok"]:
-            return f"REFUSED: the sandbox tests fail ({t['summary']}). Fix them first.\n{t['output'][-3000:]}"
-        diff = self.host.call("self", "sandbox_diff", {"sandbox_id": sid}, run_id)["text"]
-        preview = {"sandbox_id": sid, "files": files, "diff": diff[:60000], "tests": t["summary"],
-                   "services": agt_change.services_for(files)}
-        if needs_owner("code_change", self.cfg):
-            req = self.approvals.request("code_change", "code_change", args.get("title", "change"),
-                                         args.get("purpose", ""), preview, {"sandbox_id": sid}, run_id)
-            emit("approval.request", {"id": req["id"], "kind": "code_change", "title": req["title"], "files": files})
-            self.notify("approval.pending", {"id": req["id"], "kind": "code_change", "title": req["title"]})
-            return f"PROPOSED: waiting for the owner's approval (request {req['id']}). Tests: {t['summary']}."
-        out = agt_change.apply(sid, emit, self.cfg)
-        return f"APPLIED (forging is automatic): {json.dumps(out, ensure_ascii=False)[:2000]}"
-
-    def _artifact(self, args: dict, emit, run_id: str) -> str:
-        """An interactive page (doc_artifact), kept with this turn and shown live in the conversation."""
-        from . import doc_artifact
-        try:
-            f = doc_artifact.create(self.cfg, run_id, str(args.get("title", "")), str(args.get("html", "")))
-        except ValueError as e:
-            return f"ERROR: {e}"
-        self.produced.append(f)
-        emit("agent.file", f)
-        return f"MADE: {f['name']}, shown live to the owner in the conversation (it has no network: data must be inline)"
-
-    def _picture(self, args: dict, emit, run_id: str) -> str:
-        """A new picture (mdl_image.paint, the dream painter), kept with this turn of the conversation."""
-        from . import mdl_image, sys_features, sys_uploads
-        try:
-            sys_features.need(self.cfg, "dreams", "it")
-        except sys_features.Missing as e:
-            return f"ERROR: {e}"
-        prompt, title = str(args.get("prompt", "")).strip()[:900], str(args.get("title", "immagine")).strip()[:80]
-        if len(prompt) < 10:
-            return "ERROR: describe the picture in English (subject, style, light)"
-        name = f"aurora-{time.strftime('%Y%m%d-%H%M%S')}"
-        try:
-            out = mdl_image.paint(prompt, name, self.cfg, emit, title=title)
-        except Exception as e:                           # a failed painting is said, never hidden
-            return f"ERROR: the picture was not painted: {type(e).__name__}: {str(e)[:300]}"
-        path = self.cfg.path("AURORA_IMAGE_DIR") / out["file"]
-        item = sys_uploads.public(sys_uploads.save(self.cfg, run_id, out["file"], "image/png", path.read_bytes(),
-                                                   role="assistant"))
-        f = {"name": out["file"], "url": item["url"], "mime": "image/png"}
-        self.produced.append(f)
-        emit("agent.file", f)
-        return f"PAINTED: {out['file']} ({out.get('seconds', '?')} s), shown to the owner in the conversation"
 
     def _call(self, name: str, args: dict, index: dict, emit, run_id: str) -> str:
         if name == "home_scene":                              # Aurora's own light scenes (hom_scenes, owner 2026-10-12)

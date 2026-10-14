@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" width="720" height="380" role="img" aria-labelledby="t d">
+<title id="t">Il vault riallineato: una copia, nel dominio giusto</title>
+<desc id="d">97 domande, fonte giusta letta · M193, M198. prima (13 ott, 16:01): risposta dalla
+fonte giusta 66, fonte assente
+dal vault 8; dopo il riallineamento: risposta dalla
+fonte giusta 72, fonte assente
+dal vault 4</desc>
+<style>
+.bg{fill:#fcfcfb}.t1{fill:#0b0b0b}.t2{fill:#52514e}.grid{stroke:#e4e3df}.axis{stroke:#bdbcb6}
+.s1{fill:#2a78d6}.s2{fill:#eb6834}.s3{fill:#1baf7a}.ref{stroke:#52514e}
+@media (prefers-color-scheme: dark){.bg{fill:#1a1a19}.t1{fill:#ffffff}.t2{fill:#c3c2b7}.grid{stroke:#383835}
+.axis{stroke:#5c5b57}.s1{fill:#3987e5}.s2{fill:#d95926}.s3{fill:#199e70}.ref{stroke:#c3c2b7}}
+text{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+</style>
+<rect class="bg" width="720" height="380" rx="8"/>
+<text class="t1" x="56" y="30" font-size="17" font-weight="600">Il vault riallineato: una copia, nel dominio giusto</text>
+<text class="t2" x="56" y="52" font-size="12.5">97 domande, fonte giusta letta · M193, M198</text>
+<rect class="s1" x="56" y="68" width="12" height="12" rx="3"/><text class="t2" x="74" y="78.5" font-size="12.5">prima (13 ott, 16:01)</text>
+<rect class="s2" x="233.0" y="68" width="12" height="12" rx="3"/><text class="t2" x="251.0" y="78.5" font-size="12.5">dopo il riallineamento</text>
+<line class="grid" x1="56" x2="696" y1="316.0" y2="316.0" stroke-width="1"/><text class="t2" x="48" y="320.0" font-size="11" text-anchor="end">0</text>
+<line class="grid" x1="56" x2="696" y1="263.0" y2="263.0" stroke-width="1"/><text class="t2" x="48" y="267.0" font-size="11" text-anchor="end">24</text>
+<line class="grid" x1="56" x2="696" y1="210.0" y2="210.0" stroke-width="1"/><text class="t2" x="48" y="214.0" font-size="11" text-anchor="end">48</text>
+<line class="grid" x1="56" x2="696" y1="157.0" y2="157.0" stroke-width="1"/><text class="t2" x="48" y="161.0" font-size="11" text-anchor="end">73</text>
+<line class="grid" x1="56" x2="696" y1="104.0" y2="104.0" stroke-width="1"/><text class="t2" x="48" y="108.0" font-size="11" text-anchor="end">97</text>
+<path class="s1" d="M151.0,316.0 V175.8 Q151.0,171.8 155.0,171.8 H211.0 Q215.0,171.8 215.0,175.8 V316.0 Z"/>
+<text class="t1" x="183.0" y="165.8" font-size="12" text-anchor="middle" font-weight="600">66</text>
+<path class="s2" d="M217.0,316.0 V162.6 Q217.0,158.6 221.0,158.6 H277.0 Q281.0,158.6 281.0,162.6 V316.0 Z"/>
+<text class="t1" x="249.0" y="152.6" font-size="12" text-anchor="middle" font-weight="600">72</text>
+<text class="t2" x="216.0" y="334.0" font-size="12" text-anchor="middle">risposta dalla</text>
+<text class="t2" x="216.0" y="348.0" font-size="12" text-anchor="middle">fonte giusta</text>
+<path class="s1" d="M471.0,316.0 V302.5 Q471.0,298.5 475.0,298.5 H531.0 Q535.0,298.5 535.0,302.5 V316.0 Z"/>
+<text class="t1" x="503.0" y="292.5" font-size="12" text-anchor="middle" font-weight="600">8</text>
+<path class="s2" d="M537.0,316.0 V311.3 Q537.0,307.3 541.0,307.3 H597.0 Q601.0,307.3 601.0,311.3 V316.0 Z"/>
+<text class="t1" x="569.0" y="301.3" font-size="12" text-anchor="middle" font-weight="600">4</text>
+<text class="t2" x="536.0" y="334.0" font-size="12" text-anchor="middle">fonte assente</text>
+<text class="t2" x="536.0" y="348.0" font-size="12" text-anchor="middle">dal vault</text>
+<line class="axis" x1="56" x2="696" y1="316" y2="316" stroke-width="1"/>
+<text class="t2" x="56" y="368" font-size="11">Wikipedia: 4.545 voci, 0 copie; arXiv: 6.700 paper, 6.264 in HTML (formule leggibili).</text>
+</svg>

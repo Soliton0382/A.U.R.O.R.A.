@@ -46,6 +46,12 @@ SYS_MEMORY = ("Answer the question from what you know, in the question's languag
               "the question rests on a false premise or a common myth, say so first and correct it. If you do not know, "
               "reply exactly: NON LO SO.")
 NOT_FOUND = re.compile(r"(?i)\bNON TROVATO\b|\bNOT FOUND\b")
+# an answer that opens by saying the texts do not have it is a «not found» in other words (C305, 14 Oct: «I testi non
+# specificano le attrazioni esatte…» for Florence: kept as the answer, the pages never opened)
+EMPTY = re.compile(r"(?i)^\W*(?:i |questi |le |gli )?(?:testi|passaggi|documenti|fonti|risultati)\s+(?:fornit[ie]\s+)?non\s+"
+                   r"(?:specificano|indicano|riportano|contengono|menzionano|elencano|nominano|dicono)"
+                   r"|^\W*the\s+(?:texts|passages|sources|results)\s+(?:provided\s+)?(?:do|does)\s+not\s+"
+                   r"(?:specify|say|mention|contain|list|name|give)")
 # options on their own lines («A) …») or an instruction on the answer's form («Risposta: …»)
 TASK = re.compile(r"\n\s*[A-P]\)\s|(?i:\b(?:risposta|answer)\s*:)")
 
@@ -94,7 +100,7 @@ def read(p, question: str, texts: list[dict], size: str) -> dict | None:
     ctx = "\n\n".join(f"[{i}] {t['source'].get('title') or ''}\n{t['text']}" for i, t in enumerate(texts, 1))
     ans = p._for("synthesis").complete(SYS_READ.format(size=SIZE[size]) + _exp(p), f"TEXTS:\n{ctx}\n\nQUESTION: {question}",
                                        500 if size == "explain" else 200, think=False).answer.strip()
-    if not ans or NOT_FOUND.search(ans):
+    if not ans or NOT_FOUND.search(ans) or EMPTY.search(ans):
         return None
     cited = sorted({int(n) for n in re.findall(r"\[(\d+)\]", ans) if 1 <= int(n) <= len(texts)})
     if not cited:                                        # an answer that cites nothing was not read from the texts
@@ -123,16 +129,28 @@ def _web(p, question: str, asked: str, ev, size: str, open_pages: bool, region: 
     ev("read.web", {"query": q, "region": region, "results": [r["title"] for r in found][:6]})
     if not found:
         return None
-    out = read(p, question, [{"text": r["text"], "source": _web_source(r)} for r in found], size)
+    snippets = [{"text": r["text"], "source": _web_source(r)} for r in found]
+    if size == "explain" and open_pages:
+        # how a thing is done is in the page, not in its snippet (C307, 14 Oct: the wine stain answered from snippets
+        # with «detergenti appropriati» and no method): the best 2 pages read at once, the snippets beside them
+        pages = _pages(found, ev)
+        return read(p, question, pages + [x for x in snippets if x["source"]["url"] not in
+                                          {y["source"]["url"] for y in pages}], size) if pages else read(p, question, snippets, size)
+    out = read(p, question, snippets, size)
     if out or not open_pages:
         return out
-    pages = []                                           # the snippets were too short: the best pages, read whole
+    pages = _pages(found, ev)                            # the snippets were too short: the best pages, read whole
+    return read(p, question, pages, size)
+
+
+def _pages(found: list[dict], ev) -> list[dict]:
+    pages = []
     for r in found[:2]:
         text = kno_web.page(r["url"])
         if text:
             pages.append({"text": text, "source": _web_source(r)})
     ev("read.pages", {"opened": [x["source"]["title"] for x in pages]})
-    return read(p, question, pages, size)
+    return pages
 
 
 def from_vault(p, question: str, hits: list, size: str = "explain", n: int | None = None) -> dict | None:

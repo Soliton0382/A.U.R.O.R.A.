@@ -65,6 +65,11 @@ if grep -nE '^(sys/(vault|status|logs|models|runtime|sandbox|https|deploy|tmp)/|
   fail "forbidden paths above: fix .gitignore"
 fi
 
+say "== the root holds only what belongs there"
+# a stray file at the top (C306: «0.2.7», a command's error output, public for 4 days) stops the publish
+stray=$(grep -v '/' "$LIST" | grep -vxE '\.dockerignore|\.env\.example|\.gitignore|CHANGELOG\.md|LICENSE|NOTICE|README(\.en)?\.md|SECURITY\.md|install\.sh|uninstall\.sh|pyproject\.toml|requirements\.(txt|lock)' || true)
+[ -z "$stray" ] || fail "unexpected files at the root (take them away or add them to this list): $stray"
+
 say "== copy to $DST"
 rsync -a --files-from="$LIST" "$SRC/" "$DST/"
 # the ports (Aurora_mac, Aurora_windows) are made in the mirror only: never removed from it here
