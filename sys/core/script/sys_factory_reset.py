@@ -6,6 +6,11 @@
     python sys/core/script/sys_factory_reset.py --apply            # asks to type AZZERA
     python sys/core/script/sys_factory_reset.py --apply --with-knowledge   # the knowledge vault too
     python sys/core/script/sys_factory_reset.py --apply --reset-keys       # keys and tokens to empty too
+    python sys/core/script/sys_factory_reset.py --apply --recommended      # the recommended settings, not the installation's
+    python sys/core/script/sys_factory_reset.py --from-request             # asked from the WebUI (aurora-reset.service)
+
+The settings go back to the installation's (env-backups/.env.installed: the owner's choices when Aurora was installed),
+or to the recommended values when there is no copy of it (an installation older than 14 Oct 2026). ROADMAP 102.
 
 Never touched: usr/ (documents, papers, projects, health), the users and their keys. Nothing is deleted: what is
 moved goes into <root>-before-reset-<time>; to go back, stop Aurora and move it back. See aurora/sys_reset.py.
@@ -13,7 +18,9 @@ moved goes into <root>-before-reset-<time>; to go back, stop Aurora and move it 
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
+import time
 import sys
 from pathlib import Path
 
@@ -26,21 +33,34 @@ def main() -> int:
     ap.add_argument("--apply", action="store_true")
     ap.add_argument("--with-knowledge", action="store_true")
     ap.add_argument("--reset-keys", action="store_true")
+    ap.add_argument("--recommended", action="store_true")
+    ap.add_argument("--from-request", action="store_true", help="the WebUI's request (aurora-reset.service), no question")
     a = ap.parse_args()
     cfg = sys_config.get()
+    if a.from_request:                                  # the owner confirmed in the WebUI; a stale request does nothing
+        req = sys_reset.take(cfg)
+        if req is None:
+            print("nessuna richiesta recente: niente da fare")
+            return 1
+        a.apply, a.with_knowledge, a.reset_keys = True, req["with_knowledge"], not req["keep_keys"]
     plan = sys_reset.mind_plan(cfg, a.with_knowledge)
     print("Messi da parte (non cancellati):\n  " + "\n  ".join(plan["places"]) + f"\n→ {plan['aside']}")
-    print("Impostazioni: ai valori consigliati" + (", chiavi e token compresi" if a.reset_keys else " (chiavi e token restano)"))
+    copy = sys_reset.installed_file(cfg).exists() and not a.recommended
+    print(("Impostazioni: come appena installata" if copy else "Impostazioni: ai valori consigliati")
+          + (", chiavi e token compresi" if a.reset_keys else " (chiavi e token restano)"))
     print("Non toccati: usr/ (documenti, papers, progetti, salute), utenti e chiavi" + ("" if a.with_knowledge else ", il vault della conoscenza"))
     if not a.apply:
         return 0
-    if input("Riportare Aurora come appena installata? Scrivi AZZERA: ").strip() != "AZZERA":
+    if not a.from_request and input("Riportare Aurora come appena installata? Scrivi AZZERA: ").strip() != "AZZERA":
         print("annullato")
         return 1
     subprocess.run(["systemctl", "stop", "aurora.target"], check=False, timeout=300)
     sys_reset.mind(cfg, plan)
-    out = sys_reset.settings(cfg, keep_keys=not a.reset_keys)
-    print(f"impostazioni cambiate: {len(out['changed'])} (la .env di prima: {out['backup']})")
+    out = sys_reset.settings(cfg, keep_keys=not a.reset_keys, base="recommended" if a.recommended else "installed")
+    print(f"impostazioni cambiate: {len(out['changed'])}, come {'installata' if out['base'] == 'installed' else 'consigliato'} "
+          f"(la .env di prima: {out['backup']})")
+    sys_reset.result_file(cfg).write_text(json.dumps({"at": time.time(), "aside": plan["aside"], "moved": plan["places"],
+                                                      "changed": out["changed"], "base": out["base"]}), encoding="utf-8")
     subprocess.run(["systemctl", "start", "aurora.target"], check=False, timeout=300)
     print(f"✅ fatto. Quello che c'era è in {plan['aside']}.")
     return 0

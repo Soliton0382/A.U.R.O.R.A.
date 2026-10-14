@@ -70,7 +70,7 @@ export default {
     showGear(gear);
     gear.addEventListener("click", () => {
       if (conv.querySelector(".compose-menu")) { conv.querySelector(".compose-menu").remove(); return; }
-      settingsMenu(conv, gear);
+      settingsMenu(conv, gear, canRecord ? { on: () => talking, toggle: toggleTalk } : null);
     });
     const quote = quoteBox(root.querySelector(".quote-box"), input);       // ↩️ the message replied to
     const replyTo = (text, runId) => () => quote.set({ text, run_id: runId });
@@ -148,14 +148,32 @@ export default {
       return "";
     };
 
+    // 🗣️ a conversation (ROADMAP 99): the microphone opens again when her answer has been said; silence ends it
+    let talking = false;
+    const setTalking = (on) => { talking = on; conv.classList.toggle("talking", on); mic.title = t(on ? "chat.talk_on" : "chat.mic"); };
+    const listenAgain = () => {                      // when she has finished speaking (polled: speak() only queues)
+      let quiet = 0;
+      const poll = setInterval(() => {
+        if (!talking) { clearInterval(poll); return; }
+        quiet = voice.speaking() ? 0 : quiet + 1;
+        if (quiet >= 2) { clearInterval(poll); recordHere(); }
+      }, 300);
+    };
     const heard = (r) => {
       if (r.clear) spoken = true;
       if (r.clear) input.value = (input.value ? input.value + " " : "") + r.text;
-      else input.placeholder = t("chat.mic.none");
+      else input.placeholder = t(r.nothing && talking ? "chat.talk_end" : r.nothing ? "chat.mic.nothing" : "chat.mic.none");
+      if (!r.clear && talking) setTalking(false);
       if (r.clear) { form.requestSubmit(); return; }   // hands-free: what was dictated goes, the answer comes aloud
       input.focus();
     };
     const recordHere = makeRecorder({ mic, input, heard, canRecord });     // chat_media.js
+    const toggleTalk = () => {                       // from the ⚙️ menu (the composer keeps its three buttons)
+      if (talking) { setTalking(false); voice.stop(); return; }
+      setTalking(true);
+      voice.unlock();                                // during the tap: some phones speak only after one
+      if (!mic.classList.contains("recording")) recordHere();
+    };
     mic.addEventListener("click", async () => {
       if (source() === "device") { recordHere(); return; }
       const seconds = 8;
@@ -269,6 +287,7 @@ export default {
         const final = await follow(run_id, b, messages);
         if (final?.text) actions(b.root, final.text, replyTo(final.text, run_id));
         if (aloud && final?.text) sayAloud(final.text);
+        if (talking) listenAgain();
         if (final?.diet) await dietCards(b, final.diet);
         if (final?.abstained && final.mode !== "self") offerAcquire(b, question);
         else if (final?.suggestions?.length) { const stick = messages.scrollHeight - messages.scrollTop - messages.clientHeight < 120; offerDeeper(b, final.suggestions); if (stick) scrollEnd(messages); }

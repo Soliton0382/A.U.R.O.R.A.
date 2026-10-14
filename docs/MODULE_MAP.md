@@ -94,6 +94,7 @@ call downward (ECOSYSTEM §1).
 | `sns_clock.py` | senses | exact local time (AURORA_TIMEZONE) for every prompt; local rendering of stored timestamps | zoneinfo | kno_answer, kno_rem, svc_rem |
 | `sns_weather.py` | senses | weather at home (open-meteo or openweathermap), cached, with a `condition` word | httpx | kno_answer (self state), kno_rem, svc_rem |
 | `plg_host.py` | plugins | MCP client: discovers `sys/plugins/*/plugin.json`, runs each plugin as a stdio child, lists and calls tools, effect per tool, only the declared secrets | mcp | agt_loop, svc_api |
+| `plg_deps.py` | plugins | a plugin's own libraries and programs (ROADMAP 101): the manifest's «install» fetched into <plugin>/.deps and .bin, hashes checked, removed whole; script/plg_run.py runs the plugin with them first | pip, httpx | api/agents (install, uninstall, enable) |
 | `sys_approvals.py` | system | the approval gate: effect → automatic or owner; pending requests with preview and action (`<status>/approvals.json`) | — | agt_loop, svc_api |
 | `agt_loop.py` | agents | the agent loop: Qwen tool calls, budgets, context compaction, propose_change, honest report with the record of calls | plg_host, sys_approvals, agt_change, mdl_llm | svc_api |
 | `agt_loop_report.py` | agents | a mixin of Agent (moved from agt_loop): the honest record — what a report may claim only if the log of calls holds it — and the context fitted to the model's window | mdl_llm | agt_loop |

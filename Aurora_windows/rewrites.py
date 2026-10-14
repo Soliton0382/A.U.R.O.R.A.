@@ -862,6 +862,18 @@ PLAT = sys_platform.current()""",
      f"""    {P}
     threading.Timer(seconds, lambda: sys_platform.current().service_action("restart", ["aurora-api"], wait=False)).start()""",
      "net_https.restart_api_later: the API restarted after a change of ports"),
+    ("sys/core/aurora/api/system.py",
+     '''    r = subprocess.run(["systemctl", "start", "--no-block", "aurora-reset.service"], capture_output=True, text=True,
+                       timeout=30)
+    if r.returncode:
+        sys_reset.take(cfg)                               # not started: the request must not wait for a later start
+        raise HTTPException(status_code=409, detail="aurora-reset.service is not installed yet: "
+                            f"cd {cfg.root} && .venv/bin/python sys/core/script/sys_install_services.py && "
+                            f"sudo bash sys/deploy/systemd/install.sh ({r.stderr.strip()[:200]})")''',
+     '''    sys_reset.take(cfg)                                   # no service for it on this system yet: the request dropped
+    raise HTTPException(status_code=409, detail="from the WebUI on Linux only for now: stop Aurora and run "
+                        "sys/core/script/sys_factory_reset.py --apply from a terminal in Aurora's folder")''',
+     "api/system: Aurora as just installed from the WebUI (ROADMAP 102) — on Linux a oneshot service; here the terminal's script"),
 ]
 
 REWRITES = SERVICES + LOCKS + METRICS + DEVICES + FILES + GUARDS + HINTS + MORE + NETWORK + WORDS + PATHS + REQUIREMENTS + INSTALLER + TESTS

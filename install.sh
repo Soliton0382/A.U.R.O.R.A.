@@ -345,6 +345,9 @@ chmod 600 .env
 if [ "$TLS" = files ]; then mkdir -p sys/https/cert && install -m 600 "$CERT" sys/https/cert/fullchain.pem && install -m 600 "$KEY" sys/https/cert/privkey.pem; fi
 .venv/bin/python -c 'import sys; sys.path.insert(0, "sys/core"); from aurora import sys_config; sys_config.get()' || die ".env"
 ok "$(t '.env valido (permessi 600)' '.env valid (mode 600)')"
+# the .env as installed, kept once: «back to the factory» returns to these choices, not to the recommended values (102)
+[ "${FRESH_ENV:-0}" = 1 ] && .venv/bin/python -c 'import sys; sys.path.insert(0, "sys/core"); from aurora import sys_config, sys_reset; sys_reset.remember_installed(sys_config.get())' \
+  && ok "$(t 'copia delle scelte d'"'"'installazione tenuta (ritorno alla fabbrica)' 'copy of the installation'"'"'s choices kept (back to the factory)')"
 # the per-user layout (usr/<you>/, your own .env, your memory): a new installation starts on it, nothing to move
 if [ ! -f "$(.venv/bin/python -c 'import sys; sys.path.insert(0, "sys/core"); from aurora import sys_config; print(sys_config.get().path("AURORA_STATUS_DIR"))')/users_layout.json" ]; then
   if .venv/bin/python sys/core/script/sys_users_migrate.py migrate --yes --fresh >/dev/null; then

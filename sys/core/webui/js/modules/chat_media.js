@@ -8,6 +8,7 @@ import { lang, t } from "../i18n.js";
 import { shareButton } from "../share.js";
 import { view } from "../viewer.js";
 import * as voice from "../voice.js";
+import { watch } from "../vad.js";
 
 // a phone photo, made light before it leaves: at most 2048 px, upright, JPEG (also from HEIC when the browser reads it)
 export async function shrink(file) {
@@ -24,7 +25,8 @@ export async function shrink(file) {
 
 // the recorder of this device's microphone, bound to the chat's button and composer (heard: the transcription)
 export function makeRecorder({ mic, input, heard, canRecord }) {
-  // this device's microphone: tap to start, tap to stop (at most MAX s); WebM/Opus on Android, MP4/AAC on iOS
+  // this device's microphone: tap to start; it stops by itself when the owner stops speaking (vad.js), or with a tap
+  // (at most MAX s); WebM/Opus on Android, MP4/AAC on iOS. Nothing said in 8 s: nothing sent, heard({nothing: true})
   const MAX = 30;
   let rec = null;
   const recordHere = async () => {
@@ -45,16 +47,20 @@ export function makeRecorder({ mic, input, heard, canRecord }) {
     mic.classList.add("recording");
     mic.textContent = "⏹️ 0";
     const tick = setInterval(() => { mic.textContent = `⏹️ ${++secs}`; if (secs >= MAX) rec?.stop(); }, 1000);
+    let nothing = false;
+    const unwatch = watch(stream, (state) => { nothing = state === "nothing"; rec?.stop(); });
     rec.onstop = async () => {
       clearInterval(tick);
+      unwatch();
       stream.getTracks().forEach((tr) => tr.stop());          // the phone's microphone is released at once
       const mime = rec.mimeType || type || "audio/webm";
       rec = null;
       const took = (performance.now() - t0) / 1000;
-      if (closed || took < 0.8) {
-        input.placeholder = closed ? t("chat.mic.closed") : t("chat.mic.short", { s: took.toFixed(1) });
+      if (closed || took < 0.8 || nothing) {
+        input.placeholder = closed ? t("chat.mic.closed") : nothing ? t("chat.mic.nothing") : t("chat.mic.short", { s: took.toFixed(1) });
         mic.textContent = "🎙️";
         mic.classList.remove("recording");
+        if (nothing) heard({ clear: false, nothing: true });
         return;
       }
       mic.textContent = "…";

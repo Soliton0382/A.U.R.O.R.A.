@@ -26,6 +26,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -37,6 +38,8 @@ from . import sys_config, sys_log
 
 VOICES = {"it": "it/it_IT/paola/medium/it_IT-paola-medium.onnx", "en": "en/en_US/ljspeech/medium/en_US-ljspeech-medium.onnx"}
 MAX_CHARS = 6000
+# emoji are not read aloud (owner, 14 Oct: «sentire "stelline" fa ridere»): pictographs, flags, keycaps, joiners
+EMOJI = re.compile("[\U0001F000-\U0001FAFF\u2600-\u27BF\u2B00-\u2BFF\u2300-\u23FF\uFE0F\u200D\u20E3]")
 CACHE = 60
 ROOT = Path(__file__).resolve().parents[1]
 WORKER = ROOT / "script" / "tts_qwen_worker.py"
@@ -72,7 +75,7 @@ def speak(cfg: sys_config.Config, text: str, lang: str, use: str = "chat") -> by
     """The text as WAV audio. `use`: "chat" (AURORA_TTS_ENGINE; the natural voice on the GPU when it has room) or
     "video" (AURORA_VIDEO_VOICE; the natural voice on the CPU: a video may wait).
     ValueError: nothing to say; RuntimeError: no engine or voice here."""
-    text = " ".join(str(text or "").split())[:MAX_CHARS]
+    text = " ".join(EMOJI.sub(" ", str(text or "")).split())[:MAX_CHARS]
     if not text:
         raise ValueError("nothing to say")
     from . import mdl_media

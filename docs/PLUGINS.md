@@ -2,9 +2,12 @@
 
 Generated from `sys/plugins/*/plugin.json` by `sys/core/script/doc_plugins.py`: the WebUI (Plugins page) shows the same guides. Effects: **read** automatic, **write_local** automatic and logged, **external** waits for the owner (Repairs page).
 
+A plugin may bring its own program (`"install"`: Python libraries pinned with `--hash=sha256:`, programs with their `sha256`): installed into the plugin's own folder when it is switched on or with 📦 on its card, never into Aurora's environment, removed whole with 🧹; its command is `["{python}", "{root}/sys/core/script/plg_run.py", "server.py"]` (aurora/plg_deps.py; the `qr` plugin).
+
 | plugin | kind | tools (effect) | needs |
 |---|---|---|---|
 | `backup` | service | — | — |
+| `cad` | tool | cad_build (write_local), cad_drawings (write_local) | — |
 | `calendar` | tool | calendar_agenda (read), calendar_add (write_local), calendar_remind (write_local), calendar_change (write_local), calendar_delete (write_local), calendar_add_event (external) | — |
 | `cinema` | tool | — | AURORA_TMDB_TOKEN |
 | `cloud` | connector | — | — |
@@ -20,8 +23,9 @@ Generated from `sys/plugins/*/plugin.json` by `sys/core/script/doc_plugins.py`: 
 | `facebook` | connector | publish_post (external), page_info (read), list_posts (read), page_stats (read), list_comments (read), reply_comment (external), update_page_info (external), set_welcome_message (external), publish_photo (external) | AURORA_FACEBOOK_PAGE_ID, AURORA_FACEBOOK_PAGE_TOKEN |
 | `github` | connector | get_* (read), list_* (read), search_* (read), everything else (external) | AURORA_GITHUB_TOKEN |
 | `health` | tool | health_list (read), health_read (read), health_values (read), health_doctors (read), health_diet (read) | — |
-| `homeassistant` | connector | states (read), call_service (external) | AURORA_HA_URL, AURORA_HA_TOKEN |
+| `homeassistant` | connector | states (read), devices (read), history (read), camera_look (external), call_service (external) | AURORA_HA_URL, AURORA_HA_TOKEN |
 | `instagram` | connector | ig_account (read), ig_recent (read), ig_publish_photo (external) | AURORA_FACEBOOK_PAGE_ID, AURORA_FACEBOOK_PAGE_TOKEN |
+| `linkcheck` | tool | check_link (read) | — |
 | `logs` | tool | — | — |
 | `mastodon` | connector | account_stats (read), post_status (external) | AURORA_MASTODON_URL, AURORA_MASTODON_TOKEN |
 | `netintel` | tool | rdap_ip (read), reverse_dns (read), ip_reputation (read) | — |
@@ -30,12 +34,17 @@ Generated from `sys/plugins/*/plugin.json` by `sys/core/script/doc_plugins.py`: 
 | `notes` | tool | notes_list (read), notes_search (read), notes_read (read), notes_write (write_local) | — |
 | `projects` | tool | project_list (read), project_tree (read), project_read_file (read), project_status (read), project_create (write_local), project_write_file (write_local), project_commit (write_local), project_publish (external), project_push (external) | — |
 | `pyenv` | tool | — | — |
+| `qr` | tool | — | — |
+| `routine_status` | tool | routine_status_summary (read), routine_status_list (read) | — |
+| `routines` | tool | routines_summary (read), routines_list (read) | — |
+| `runs` | tool | runs_previous (read), runs_list (read), runs_links (read) | — |
 | `security` | tool | firewall_docs_refresh (write_local), firewall_plan_request (write_local), firewall_plan_publish (write_local), firewall_plan_unpublish (write_local), firewall_plan_quarantine (write_local), firewall_plan_release (write_local), firewall_plan_harden (write_local), firewall_apply (external), firewall_revert (external) | — |
 | `self` | tool | list_files (read), read_file (read), search_code (read), logs_inventory (read), read_log (read), sandbox_read (read), sandbox_diff (read), sandbox_create (write_local), sandbox_replace (write_local), sandbox_write (write_local), run_tests (write_local) | — |
 | `senses` | tool | devices (read), look (external), listen (external) | — |
 | `telegram` | connector | send_message (external), get_me (read), get_updates (read) | AURORA_TELEGRAM_BOT_TOKEN |
 | `tiktok` | connector | tiktok_account (read), tiktok_post_video (external) | AURORA_TIKTOK_CLIENT_KEY, AURORA_TIKTOK_CLIENT_SECRET, AURORA_TIKTOK_REFRESH_TOKEN |
 | `twitch` | connector | — | AURORA_TWITCH_CLIENT_ID, AURORA_TWITCH_CLIENT_SECRET |
+| `userpdfs` | tool | userpdfs_count (read), userpdfs_list (read) | — |
 | `weather` | tool | — | AURORA_WEATHER_LAT, AURORA_WEATHER_LON |
 | `web` | tool | fetch_url (read), search (read) | — |
 | `whatsapp` | connector | whatsapp_send (external), whatsapp_send_template (external) | AURORA_WHATSAPP_TOKEN, AURORA_WHATSAPP_PHONE_ID, AURORA_WHATSAPP_TO |
@@ -63,6 +72,10 @@ Nightly backup of your data to another disk or the NAS: encrypted, deduplicated,
 **La chiave**: una volta sola, `.venv/bin/python sys/core/script/svc_backup.py init`, e scrivi il *codice di recupero* fuori da questo computer: senza, un backup non si legge.
 
 **Quando**: ogni notte all'ora scelta; se il PC era spento, al primo avvio. Lo stato e *Esegui ora* sono in ⚙️ Stato.
+
+## cad
+
+CAD for projects: Aurora writes a model part by part (OpenSCAD), and the plugin makes its 3D geometry (STL), its line drawings — assembly, exploded view with reference signs, front, top and side views — and the patent drawing sheets as a PDF (A4, EPO Rule 46: margins, «Fig. N», sheets «1/3», black lines only), with the list of reference signs for the description. Everything goes into the project's folder (cad/<name>/). Needs OpenSCAD on the machine.
 
 ## calendar
 
@@ -129,15 +142,15 @@ Questo prodotto usa l'API di TMDB ma non è approvato né certificato da TMDB. I
 
 ## cloud
 
-Cloud AI providers (Anthropic, Claude Code, Google Gemini, xAI Grok, OpenAI, Mistral, OpenRouter): their keys, and each one's list of models. Which model does each step is chosen in the Models page; everything sent is masked by default.
+Cloud AI providers (Anthropic, Claude Code, Google Gemini, xAI Grok, OpenAI, Mistral, OpenRouter, any OpenAI-compatible service): their keys, and each one's list of models. Which model does each step is chosen in the Models page; everything sent is masked by default.
 
 ### Setup (EN)
 
-Paste the keys of the providers you want (only those you assign in the 🧠 Models page). Claude Code uses your subscription. Masking is always on (no setting turns it off): addresses, e-mails, phones, IBANs, cards, keys, tax codes, VAT numbers, car plates, street addresses, documents, dates of birth, passwords become placeholders and come back in the answer; pictures cannot be masked.
+Paste the keys of the providers you want (only those you assign in the 🧠 Models page). Claude Code uses your subscription. Masking is always on (no setting turns it off): addresses, e-mails, phones, IBANs, cards, keys, tax codes, VAT numbers, car plates, street addresses, documents, dates of birth, passwords become placeholders and come back in the answer; pictures cannot be masked. Any other OpenAI-compatible service (a company server, vLLM, LM Studio, Ollama) as «custom»: its address ending in /v1 and, if it asks one, its key.
 
 ### Configurazione (IT)
 
-Incolla qui sotto le chiavi dei provider che vuoi usare (servono solo quelli che assegnerai nella pagina 🧠 Modelli). Claude Code usa il tuo abbonamento, senza chiave. Le chiavi restano nel `.env` (permessi 0600) e le vede solo questo plugin. **Mascheramento** (sempre acceso, nessuna impostazione lo spegne): IP, email, telefoni, IBAN, carte, chiavi, codice fiscale, partita IVA, targhe, indirizzi, documenti, date di nascita, password, i tuoi dati e le parole di `AURORA_CLOUD_MASK_WORDS` diventano segnaposto prima di partire e tornano veri nella risposta. Le **immagini** non si possono mascherare: se assegni la visione a un provider cloud, le tue foto (volti, documenti) arrivano a lui così come sono.
+Incolla qui sotto le chiavi dei provider che vuoi usare (servono solo quelli che assegnerai nella pagina 🧠 Modelli). Claude Code usa il tuo abbonamento, senza chiave. Le chiavi restano nel `.env` (permessi 0600) e le vede solo questo plugin. **Mascheramento** (sempre acceso, nessuna impostazione lo spegne): IP, email, telefoni, IBAN, carte, chiavi, codice fiscale, partita IVA, targhe, indirizzi, documenti, date di nascita, password, i tuoi dati e le parole di `AURORA_CLOUD_MASK_WORDS` diventano segnaposto prima di partire e tornano veri nella risposta. Le **immagini** non si possono mascherare: se assegni la visione a un provider cloud, le tue foto (volti, documenti) arrivano a lui così come sono. Qualsiasi altro servizio compatibile OpenAI (un server aziendale, vLLM, LM Studio, Ollama) come «custom»: il suo indirizzo che finisce con /v1 e, se la chiede, la sua chiave.
 
 ### Official guides
 
@@ -413,7 +426,7 @@ Niente da configurare. I documenti stanno in `usr/<utente>/health` cifrati (AES-
 
 ## homeassistant
 
-The owner's Home Assistant: read the state of devices and sensors; commands to devices act on the physical world and wait for the owner.
+The owner's Home Assistant: the devices connected, their state and history, what a camera sees (described locally); commands to devices and scenes: done when the owner asks for them, waiting for the owner when a run decides them. A new device gets its agents proposed by Aurora.
 
 ### Setup (EN)
 
@@ -425,7 +438,7 @@ Profile → Security → Long-lived access tokens → `AURORA_HA_URL`, `AURORA_H
 2. Aurora → **Impostazioni → Plugin**: `AURORA_HA_URL` (es. `https://homeassistant.local:8123`, meglio in HTTPS) e `AURORA_HA_TOKEN`.
 3. **▶ Prova** su `states`.
 
-I comandi ai dispositivi agiscono sul mondo fisico: passano sempre dalla tua approvazione.
+I comandi ai dispositivi agiscono sul mondo fisico: quelli che chiedi tu in chat partono subito, quelli decisi da un agente o da una routine aspettano la tua approvazione (🎚️ Autonomia → Comandi di casa).
 
 ### Official guides
 
@@ -462,6 +475,27 @@ Le foto: Instagram accetta solo JPEG da un indirizzo pubblico. Aurora converte l
 ### Official guides
 
 - [Instagram Graph API — Content publishing](https://developers.facebook.com/docs/instagram-platform/content-publishing)
+
+## linkcheck
+
+Link reputation before Aurora opens one: VirusTotal, URLhaus, AbuseIPDB — tick which to use. A malicious link is refused with the services' reasons; on by default.
+
+### Setup (EN)
+
+Works at once with the link's own checks. For reputation tick the services and set their keys (VirusTotal, abuse.ch URLhaus; AbuseIPDB uses the netintel key).
+
+### Configurazione (IT)
+
+Funziona subito con i controlli del link stesso (credenziali nascoste, nomi in punycode). Per la reputazione spunta i servizi e metti le chiavi:
+- **VirusTotal**: registrati, *Profilo → API key* → `AURORA_LINKCHECK_VIRUSTOTAL_KEY`.
+- **URLhaus** (abuse.ch): accedi su auth.abuse.ch, crea una *Auth-Key* → `AURORA_LINKCHECK_URLHAUS_KEY`.
+- **AbuseIPDB**: usa la chiave già messa nel plugin netintel.
+Un servizio senza chiave o che non risponde vale «non controllato», mai «pulito». I verdetti restano in memoria un giorno.
+
+### Official guides
+
+- [VirusTotal API](https://www.virustotal.com/gui/my-apikey)
+- [abuse.ch Auth-Key](https://auth.abuse.ch/)
 
 ## logs
 
@@ -560,6 +594,22 @@ Funziona subito in locale (`usr/projects`). Per **pubblicare** su GitHub serve i
 ## pyenv
 
 Aurora's Python environment, read only: Python and installed library versions, the dependencies a project declares compared with what is installed, and whether the cryptography library offers ML-KEM-768, X25519 and HKDF-SHA256. It runs a short self-test in memory and does not change anything.
+
+## qr
+
+QR codes: a text, a link or the home Wi-Fi (network name and password) as a QR code to frame with a phone — as SVG and as characters. It brings its own library (segno 1.6.6, 75 KB, checked by its hash), installed in the plugin's folder.
+
+## routine_status
+
+Aurora's routines per user, read only: how many there are in total, how many are active and how many suspended, with name, schedule and last run of each, read from routines.json.
+
+## routines
+
+Aurora's configured routines, read only: how many there are, how many are active or disabled, with name, schedule and last run of each.
+
+## runs
+
+Aurora's previous routine reports, read only: the last report on a topic (e.g. the science news), the list of past runs, and the links already given, so a new run can report only what is new.
 
 ## security
 
@@ -670,6 +720,18 @@ Twitch, read only: which of your favourite channels are live and what they strea
 ### Official guides
 
 - [Twitch Developer Console](https://dev.twitch.tv/console)
+
+## userpdfs
+
+The PDF files in your Documents folder on this computer, subfolders included, read only: path, size, modification date and the total count. It never opens a file's content and never changes anything.
+
+### Setup (EN)
+
+Nothing to configure: the plugin finds your Documents folder by itself (Documenti or Documents in your home folder). If your PDFs are elsewhere: 1) open the file manager and go to that folder; 2) press Ctrl+L to see the full path (for example /home/mario/Archive) and copy it; 3) in Aurora open Plugin → userpdfs and paste it into AURORA_USERPDFS_DIR; 4) save.
+
+### Configurazione (IT)
+
+Non serve configurare nulla: il plugin trova da solo la tua cartella Documenti (Documenti o Documents nella tua cartella personale). Se i tuoi PDF sono altrove: 1) apri il gestore file e vai nella cartella che vuoi; 2) premi Ctrl+L per vedere il percorso completo (per esempio /home/mario/Archivio) e copialo; 3) in Aurora apri Plugin → userpdfs e incollalo in AURORA_USERPDFS_DIR; 4) salva.
 
 ## weather
 

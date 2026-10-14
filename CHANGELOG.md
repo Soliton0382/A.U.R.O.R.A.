@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.22 — 2026-10-14
+
+1 publications since v0.2.21.
+
+- 2026-10-14 Back to the factory as installed; hands-free voice conversation; plugins that bring their own program; CAD plugin: patent drawing sheets from Aurora's own models (EPO Rule 46)
+
 ## v0.2.21 — 2026-10-14
 
 1 publications since v0.2.20.

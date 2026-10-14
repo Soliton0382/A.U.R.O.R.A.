@@ -16,9 +16,15 @@ ROOT = Path(__file__).resolve().parents[3]
 def main() -> int:
     out = ["# Plugins", "", "Generated from `sys/plugins/*/plugin.json` by `sys/core/script/doc_plugins.py`: the WebUI "
            "(Plugins page) shows the same guides. Effects: **read** automatic, **write_local** automatic and logged, "
-           "**external** waits for the owner (Repairs page).", ""]
+           "**external** waits for the owner (Repairs page).", "",
+           "A plugin may bring its own program (`\"install\"`: Python libraries pinned with `--hash=sha256:`, programs with "
+           "their `sha256`): installed into the plugin's own folder when it is switched on or with 📦 on its card, never into "
+           "Aurora's environment, removed whole with 🧹; its command is "
+           "`[\"{python}\", \"{root}/sys/core/script/plg_run.py\", \"server.py\"]` (aurora/plg_deps.py; the `qr` plugin).", ""]
     rows = ["| plugin | kind | tools (effect) | needs |", "|---|---|---|---|"]
-    manifests = [json.loads(p.read_text()) for p in sorted((ROOT / "sys/plugins").glob("*/plugin.json"))]
+    # the owner's private plugins (local_*, never published: .gitignore) are never in a public page (C308)
+    manifests = [json.loads(p.read_text()) for p in sorted((ROOT / "sys/plugins").glob("*/plugin.json"))
+                 if not p.parent.name.startswith("local_")]
     for m in manifests:
         eff = m.get("effects", {})
         tools = ", ".join([f"{k} ({v})" for k, v in eff.items() if k != "*"]

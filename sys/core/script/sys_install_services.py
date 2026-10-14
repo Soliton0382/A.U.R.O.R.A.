@@ -116,6 +116,20 @@ ReadWritePaths=-$status
 PrivateTmp=yes
 """)
 
+# Aurora back to the factory (ROADMAP 102), asked from the WebUI: it stops aurora.target, so it cannot run inside
+# aurora-api — a oneshot of its own, not part of the target, started by the API (polkit: aurora units)
+RESET_UNIT = Template("""# Generated from .env by sys/core/script/sys_install_services.py
+[Unit]
+Description=Aurora — back to the factory (as just installed, with the owner's choices)
+
+[Service]
+Type=oneshot
+User=$user
+WorkingDirectory=$root
+ExecStart=$exec
+TimeoutStartSec=30min
+""")
+
 # Root, on purpose and for one job: move the backup timer to AURORA_BACKUP_TIME (sys_backup_retime.py checks HH:MM
 # and writes one drop-in). Started by the API when the backup time is saved (polkit: aurora units).
 RETIME_UNIT = Template("""# Generated from .env by sys/core/script/sys_install_services.py
@@ -161,7 +175,7 @@ INSTALL = Template("""#!/usr/bin/env bash
 set -u
 [ "$$(id -u)" -eq 0 ] || { echo "run as root: sudo bash $$0"; exit 1; }
 cd /
-for u in $units $backup; do install -m 0644 "$src/$$u" "/etc/systemd/system/$$u"; done
+for u in $units $backup $oneshots; do install -m 0644 "$src/$$u" "/etc/systemd/system/$$u"; done
 # polkit: the service user may start/stop/restart aurora units only (read again by polkit at once)
 install -m 0644 "$src/50-aurora.rules" /etc/polkit-1/rules.d/50-aurora.rules
 systemctl daemon-reload
@@ -299,6 +313,9 @@ def main() -> int:
                 root=root, exec=f"{py} {script / 'sys_nas_mount.py'}",
                 status=cfg.path("AURORA_STATUS_DIR") / "backup"), encoding="utf-8")
             backup.append("aurora-mount.service")
+    (out / "aurora-reset.service").write_text(RESET_UNIT.substitute(
+        user=sys_config.service_user(cfg), root=root, exec=f"{py} {script / 'sys_factory_reset.py'} --from-request"),
+        encoding="utf-8")
     (out / "aurora.target").write_text(TARGET.substitute(wants=" ".join(f"{n}.service" for n in units)),
                                        encoding="utf-8")
     (out / "50-aurora.rules").write_text(POLKIT.substitute(user=sys_config.service_user(cfg)), encoding="utf-8")
@@ -315,6 +332,7 @@ def main() -> int:
     script_sh = out / "install.sh"
     script_sh.write_text(INSTALL.substitute(
         src=out, units=" ".join(names), services=" ".join(f"{n}.service" for n in units), backup=" ".join(backup),
+        oneshots="aurora-reset.service",
         checks="\n".join(f"check {n} {u} || fail=1" for n, u in checks.items()),
         https_port=cfg["AURORA_HTTPS_PORT"], domain=cfg["AURORA_DOMAIN"]), encoding="utf-8")
     script_sh.chmod(0o755)

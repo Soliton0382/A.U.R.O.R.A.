@@ -74,9 +74,49 @@ async def settings_factory(request: Request) -> dict:
     if user and admin and user != admin:
         raise HTTPException(status_code=403, detail="only the admin")
     body = await request.json()
-    out = sys_reset.settings(cfg, keep_keys=body.get("keep_keys", True) is not False)
-    log.info("audit: factory settings: %d changed, .env kept in %s", len(out["changed"]), out["backup"])
+    out = sys_reset.settings(cfg, keep_keys=body.get("keep_keys", True) is not False,
+                             base="recommended" if body.get("base") == "recommended" else "installed")
+    log.info("audit: factory settings (%s): %d changed, .env kept in %s", out["base"], len(out["changed"]), out["backup"])
     return {**out, "command_mind": f"cd {cfg.root} && .venv/bin/python sys/core/script/sys_factory_reset.py --apply"}
+
+
+@router.get("/v1/aurora/factory", dependencies=[Depends(auth)])
+def factory_state() -> dict:
+    """What «back to the factory» means here (ROADMAP 102): a copy of the installation's settings or not, what the
+    mind's reset would move aside, and the last reset's result."""
+    import json
+    from aurora import sys_reset
+    f, last = sys_reset.installed_file(cfg), None
+    try:
+        last = json.loads(sys_reset.result_file(cfg).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        pass
+    return {"installed": f.exists(), "installed_at": f.stat().st_mtime if f.exists() else None,
+            "mind": sys_reset.mind_plan(cfg)["places"], "last": last}
+
+
+@router.post("/v1/aurora/factory/mind", dependencies=[Depends(auth)])
+async def factory_mind(request: Request) -> dict:
+    """{"confirm": "AZZERA", "with_knowledge": false, "keep_keys": true}: Aurora as just installed, from the WebUI. It
+    stops Aurora, so it runs in aurora-reset.service (outside the API); nothing is deleted (moved aside)."""
+    import subprocess
+    from aurora import sys_reset
+    user, admin = user_of(request), _admin()
+    if user and admin and user != admin:
+        raise HTTPException(status_code=403, detail="only the admin")
+    body = await request.json()
+    if str(body.get("confirm", "")).strip() != "AZZERA":
+        raise HTTPException(status_code=400, detail="type AZZERA to confirm")
+    sys_reset.ask(cfg, bool(body.get("with_knowledge")), body.get("keep_keys", True) is not False, user or admin or "")
+    r = subprocess.run(["systemctl", "start", "--no-block", "aurora-reset.service"], capture_output=True, text=True,
+                       timeout=30)
+    if r.returncode:
+        sys_reset.take(cfg)                               # not started: the request must not wait for a later start
+        raise HTTPException(status_code=409, detail="aurora-reset.service is not installed yet: "
+                            f"cd {cfg.root} && .venv/bin/python sys/core/script/sys_install_services.py && "
+                            f"sudo bash sys/deploy/systemd/install.sh ({r.stderr.strip()[:200]})")
+    log.info("audit: factory reset of the mind asked from the WebUI (knowledge: %s)", bool(body.get("with_knowledge")))
+    return {"started": True}
 
 
 @router.put("/v1/aurora/settings", dependencies=[Depends(auth)])

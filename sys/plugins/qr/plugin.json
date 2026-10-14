@@ -1,0 +1,35 @@
+{
+  "name": "qr",
+  "version": "1.0",
+  "kind": "tool",
+  "description": {
+    "en": "QR codes: a text, a link or the home Wi-Fi (network name and password) as a QR code to frame with a phone — as SVG and as characters. It brings its own library (segno 1.6.6, 75 KB, checked by its hash), installed in the plugin's folder.",
+    "it": "Codici QR: un testo, un link o il Wi-Fi di casa (nome della rete e password) come codice QR da inquadrare col telefono — in SVG e a caratteri. Porta con sé la sua libreria (segno 1.6.6, 75 KB, controllata dal suo hash), installata nella cartella del plugin."
+  },
+  "command": [
+    "{python}",
+    "{root}/sys/core/script/plg_run.py",
+    "server.py"
+  ],
+  "env": [],
+  "requires": [],
+  "install": {
+    "python": [
+      "segno==1.6.6 --hash=sha256:28c7d081ed0cf935e0411293a465efd4d500704072cdb039778a2ab8736190c7"
+    ]
+  },
+  "effects": {
+    "*": "read"
+  },
+  "sandbox": {
+    "network": false
+  },
+  "tests": [
+    {
+      "tool": "qr_text",
+      "args": {
+        "text": "https://github.com/Soliton0382/A.U.R.O.R.A."
+      }
+    }
+  ]
+}

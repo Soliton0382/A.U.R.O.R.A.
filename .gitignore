@@ -51,3 +51,9 @@ sys/core/webui/css/local/
 sys/core/tests/local/
 docs/local/
 sys/plugins/local_*/
+
+# a plugin's own libraries and programs (plg_deps, ROADMAP 101): fetched on install, never published
+sys/plugins/*/.deps/
+sys/plugins/*/.bin/
+sys/plugins/*/.deps.tmp/
+sys/plugins/*/.bin.tmp/

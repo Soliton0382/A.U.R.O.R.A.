@@ -132,12 +132,13 @@ def _why(p) -> str:
 
 @router.get("/v1/aurora/plugins", dependencies=[Depends(auth)])
 def plugins() -> list[dict]:
-    from aurora import plg_access
+    from aurora import plg_access, plg_deps
     admin = me() == _admin()
     unsigned = _unsigned_plugins() if admin else {}
     return [{"name": p.name, "users": plg_access.for_users(cfg, p.name), "version": p.manifest.get("version"), "kind": p.manifest.get("kind"),
              "description": p.manifest.get("description", {}), "enabled": p.enabled, "available": p.available,
              "social": bool(p.manifest.get("social")), "missing": p.missing, "error": p.error, "setup": p.manifest.get("setup", {}),
+             **({"install": plg_deps.state(p.folder, p.manifest)} if admin and p.manifest.get("install") else {}),
              **({"why": _why(p)} if admin else {}),
              "settings": [k for k in dict.fromkeys(p.manifest.get("env", []) + p.manifest.get("requires", [])
                                                    + list(p.manifest.get("env_as", {})) + p.manifest.get("settings", []))],
@@ -154,7 +155,7 @@ def plugin_switch(name: str, action: str) -> dict:
     """enable / disable (for everyone), share / unshare (the users may use it, or only the admin), delete (into the
     trash, plg_trash): the admin's."""
     from aurora import plg_access
-    if action not in ("enable", "disable", "share", "unshare", "delete", "retry"):
+    if action not in ("enable", "disable", "share", "unshare", "delete", "retry", "install", "uninstall"):
         raise HTTPException(status_code=404, detail="unknown action")
     if me() != _admin():
         raise HTTPException(status_code=403, detail="only the admin switches plugins")
@@ -174,6 +175,23 @@ def plugin_switch(name: str, action: str) -> dict:
         plg_access.set_for_users(cfg, name, action == "share")
         log.info("audit: plugin %s %s", name, "shared with the users" if action == "share" else "kept for the admin")
         return {"name": name, "users": action == "share"}
+    if action in ("install", "uninstall") or action == "enable":     # a plugin that brings its program (plg_deps, 101)
+        from aurora import plg_deps
+        p = host.get(name)
+        st = plg_deps.state(p.folder, p.manifest)
+        if action == "uninstall":
+            freed = plg_deps.uninstall(p.folder)
+            log.info("audit: plugin %s: its libraries and programs removed (%d bytes)", name, freed)
+            return {"name": name, "freed": freed, **plg_deps.state(p.folder, p.manifest)}
+        if action == "install" or (st["wanted"] and not st["installed"]):  # «attivo il plugin e lei scarica e installa»
+            try:
+                st = plg_deps.install(p.folder, p.manifest, log=lambda m: log.info("plugin %s: %s", name, m))
+            except (RuntimeError, OSError, subprocess.SubprocessError) as e:
+                raise HTTPException(status_code=409, detail=f"not installed: {e}") from None
+            log.info("audit: plugin %s: installed in its own folder (%d bytes)", name, st["bytes"])
+            _forget_failure(name)
+            if action == "install":
+                return {"name": name, **st}
     _forget_failure(name)
     if action == "retry":                             # started again at the next listing (the page lists at once)
         log.info("audit: plugin %s: start tried again", name)

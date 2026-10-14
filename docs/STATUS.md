@@ -1,6 +1,6 @@
 # Status — work in progress
 
-Updated at every validated change (last: 2026-10-14). Details: BUGS.md (issues, 0 open / 306 closed),
+Updated at every validated change (last: 2026-10-14). Details: BUGS.md (issues, 0 open / 307 closed),
 MANUAL_TESTS.md (what the owner checks by hand),
 TESTS.md (tests and live checks), MEASUREMENTS.md (numbers), MODULE_MAP.md (who does what),
 SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSYSTEM.md (design and decisions).
@@ -27,6 +27,10 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | push delivery | the devices confirm each push; the rate on the Notifications page | M101 |
 | autonomy | 🧭 page: 7 areas, levels read from the settings, profiles, daily line, statistics, users | tests |
 | projects carried by Aurora | 🏗️ a project's plan (goal, steps each with the command that proves it; Aurora drafts them, the owner changes and starts it); aurora-rem's task «project» does the next step in idle time, the step's command run in the cage decides; 3 failures block a step and tell the owner; 🤝 waits for «go on»; Autonomy area «projects» (prj_plan.py) | tests; pilot: see M201 |
+| back to the factory | Settings: the behaviour settings as installed (the installer's copy of .env) or to the recommended values; Aurora as just installed from the WebUI (AZZERA), memory and state moved aside, never deleted (aurora-reset.service) | M206 (aurora-lab), tests |
+| plugins that bring their program | a manifest's «install» (pinned, hashed libraries; programs with SHA-256) fetched into the plugin's own folder, never Aurora's environment; 📦 on its card, installed when switched on, removed whole; first: the QR plugin | M208, tests |
+| CAD and patent drawings | plugin «cad»: a model written part by part in OpenSCAD, its 3D geometry, line drawings without a display (assembly, exploded with reference signs, three views) and drawings.pdf by EPO Rule 46, in the project's folder; the project agent uses it by itself | M209, tests |
+| voice conversation | the dictation stops when the owner stops speaking (vad.js); ⚙️ → 🗣️ a conversation that listens again after each answer; emoji never read aloud | M207, tests |
 | autonomous defence | auto blocks within the owner's limits, lifted by themselves, never the home network | tests (fake firewall) |
 | post privacy | 🔍 private names (local model), places, contacts; 🗑️ discard; an autonomous post naming someone waits | M105, tests |
 | exam values | read by the local model from the exams, sealed, a chart over time with the range | tests |

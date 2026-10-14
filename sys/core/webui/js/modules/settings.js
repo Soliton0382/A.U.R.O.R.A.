@@ -36,10 +36,16 @@ export default {
       <div class="settings-actions"><button class="save" data-i18n="settings.save"></button><span class="result muted"></span></div>
       <details class="report settings-danger"><summary data-i18n="settings.factory"></summary>
         <p class="muted" data-i18n="settings.factory_hint"></p>
+        <label class="rt-opt"><input type="radio" name="factory-base" value="installed" checked><span data-i18n="settings.factory_installed"></span></label>
+        <label class="rt-opt"><input type="radio" name="factory-base" value="recommended"><span data-i18n="settings.factory_recommended"></span></label>
         <label class="rt-opt"><input type="checkbox" class="keep-keys" checked><span data-i18n="settings.factory_keep"></span></label>
         <div class="appr-actions"><button class="danger factory-go" data-i18n="settings.factory_go"></button><span class="muted factory-out"></span></div>
+        <h4 data-i18n="settings.mind_title"></h4>
         <p class="muted" data-i18n="settings.factory_mind"></p>
-        <code class="factory-cmd">.venv/bin/python sys/core/script/sys_factory_reset.py --apply</code></details>`;
+        <label class="rt-opt"><input type="checkbox" class="with-knowledge"><span data-i18n="settings.mind_knowledge"></span></label>
+        <div class="appr-actions"><input class="mind-confirm" autocomplete="off" data-i18n-placeholder="settings.mind_confirm">
+          <button class="danger mind-go" data-i18n="settings.mind_go"></button></div>
+        <p class="muted mind-out"></p></details>`;
     apply(root);
     this.devices = root.querySelector(".devices");
     this.box = root.querySelector(".settings");
@@ -53,11 +59,32 @@ export default {
     root.querySelector(".factory-go").addEventListener("click", async () => {      // back to the factory's settings
       if (!confirm(t("settings.factory_q"))) return;
       try {
-        const r = await call("/v1/aurora/settings/factory", { method: "POST", body: JSON.stringify({ keep_keys: root.querySelector(".keep-keys").checked }) });
-        fout.textContent = t("settings.factory_done", { n: r.changed.length, file: r.backup });
+        const base = root.querySelector("[name=factory-base]:checked").value;
+        const r = await call("/v1/aurora/settings/factory", { method: "POST", body: JSON.stringify({ keep_keys: root.querySelector(".keep-keys").checked, base }) });
+        fout.textContent = t(r.base === "installed" ? "settings.factory_done_installed" : "settings.factory_done", { n: r.changed.length, file: r.backup });
         await restartPrompt(r.restart);
         await this.loadSettings();
       } catch (e) { fout.textContent = t("ev.error", { m: e.message }); }
+    });
+    // Aurora as just installed, from here (ROADMAP 102): aurora-reset.service stops her, moves her mind aside, restarts
+    const mout = root.querySelector(".mind-out");
+    call("/v1/aurora/factory").then((f) => {
+      if (!f.installed) {
+        const inst = root.querySelector("[name=factory-base][value=installed]");
+        inst.disabled = true;
+        root.querySelector("[name=factory-base][value=recommended]").checked = true;
+        inst.nextElementSibling.textContent += ` — ${t("settings.factory_no_copy")}`;
+      }
+      if (f.last) mout.textContent = t("settings.mind_last", { when: new Date(f.last.at * 1000).toLocaleString(), aside: f.last.aside });
+    }).catch(() => {});
+    root.querySelector(".mind-go").addEventListener("click", async () => {
+      const word = root.querySelector(".mind-confirm").value.trim();
+      if (word !== "AZZERA") { mout.textContent = t("settings.mind_word"); return; }
+      try {
+        await call("/v1/aurora/factory/mind", { method: "POST", body: JSON.stringify({ confirm: word,
+          with_knowledge: root.querySelector(".with-knowledge").checked, keep_keys: root.querySelector(".keep-keys").checked }) });
+        mout.textContent = t("settings.mind_started");
+      } catch (e) { mout.textContent = t("ev.error", { m: e.message }); }
     });
     const out = root.querySelector(".result");
     root.querySelector(".save").addEventListener("click", async () => {

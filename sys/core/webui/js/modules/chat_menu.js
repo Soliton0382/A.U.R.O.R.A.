@@ -59,7 +59,7 @@ export function attachMenu(host, { file, shoot }) {
 }
 
 // ⚙️: the three choices of the chat, each a section of rows
-export function settingsMenu(host, gear) {
+export function settingsMenu(host, gear, talk = null) {
   const box = panel(host, `⚙️ ${t("chat.menu.title")}`);
   const body = el("div", "compose-body");
   box.append(body);
@@ -79,6 +79,10 @@ export function settingsMenu(host, gear) {
         ...["voice", "always", "off"].map((m) => row(VOICE_ICON[m], t(`chat.menu.voice.${m}`), "", voice.mode() === m,
           () => { voice.setMode(m); if (m === "off") voice.stop(); draw(); })),
         row("🎚️", t("chat.menu.voice.pick"), "", false, () => { box.remove(); pickVoice(host); }));
+    }
+    if (talk) {                                      // 🗣️ a voice conversation (ROADMAP 99): started from here, ended by silence
+      body.append(el("div", "compose-section", `🗣️ ${t("chat.menu.talk")}`),
+        row("🗣️", t(talk.on() ? "chat.talk_on" : "chat.talk"), "", talk.on(), () => { box.remove(); talk.toggle(); }));
     }
   };
   draw();

@@ -166,6 +166,24 @@ export default {
       }
     }
     dlg.append(stRow);
+    if (this.me.admin && p.install) {               // 📦 what it brings (plg_deps, ROADMAP 101): in its own folder, never Aurora's
+      const st = p.install;
+      const what = [...st.needs.python.map((r) => r.split(" ")[0]), ...st.needs.programs.map((x) => x.name)].join(", ");
+      const row = el("div", "appr-actions");
+      const kb = (n) => (n < 1048576 ? `${Math.round(n / 1024)} KB` : `${(n / 1048576).toFixed(1)} MB`);
+      row.append(el("span", `pill ${st.installed ? "ok" : "bad"}`, st.installed ? `📦 ${kb(st.bytes)}` : "📦"),
+        el("span", "", t(st.installed ? "plug.deps_in" : "plug.deps_out", { what })));
+      const go = el("button", st.installed ? "" : "approve", st.installed ? t("plug.deps_remove") : t("plug.deps_install"));
+      go.addEventListener("click", async () => {
+        go.disabled = true;
+        go.textContent = "…";
+        try { await call(`/v1/aurora/plugins/${p.name}/${st.installed ? "uninstall" : "install"}`, { method: "POST" }); }
+        catch (e) { alert(e.message); }
+        dlg.close(); dlg.remove(); this.enter();
+      });
+      row.append(go);
+      dlg.append(row);
+    }
     if (this.me.admin && p.forged) dlg.append(el("p", "muted", t("plug.forged", { need: p.forged_need || "" })));
     if (this.me.admin && p.unsigned) dlg.append(await signBox([p.name]));
     if (p.name === "backup") {                      // the backup itself: last copy, next one, 💾 Run now

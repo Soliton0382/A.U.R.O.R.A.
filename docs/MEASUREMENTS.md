@@ -3199,3 +3199,74 @@ restarted with the GPUs idle.
 0.62 GB moved to GPU 0. Sending the pictures to a cloud model instead (the projector, 0.84 GB, lives on GPU 0) is not
 needed for this, and a picture cannot be masked. The recommended split stays 4.5,3.5 for an installation without
 Whisper on the GPU. Not measured: the embedder's warnings over a whole day with the new split.
+
+## M206 — back to the factory, as installed: measured on aurora-lab (14 October 2026; ROADMAP 102)
+
+The VM (Ubuntu 26.04, no GPU, Claude Code's stand-in) with today's code in a new folder, install.sh unattended
+(--yes --no-optional-models): «copy of the installation's choices kept», sys/status/env-backups/.env.installed (0600),
+aurora-reset.service installed beside the services (not part of aurora.target). Then used: 3 behaviour settings
+changed through the API (shadow cosine 0.8, top-k 20, boredom 15 min), one remembered conversation. Then
+POST /v1/aurora/factory/mind {"confirm": "AZZERA"} — what the WebUI's button sends:
+
+| | result |
+|---|---|
+| from the request to Aurora answering again | 21.1 s (aurora-reset.service: stop, move aside, settings, start) |
+| the 3 changed settings | back as installed (base «installed»), not to the recommended values |
+| moved aside, not deleted | memory (vault/memory and its index), shadow, synapses, forge, security, soak → aurora102-before-reset-<time> |
+| kept | the knowledge vault, usr/, users and keys; all services active after |
+
+Left as a limit: each user's own settings (scope «user»: their autonomy levels for social, home, devices,
+projects) live in usr/<name>/.env after the installation and are not brought back by this reset. An installation
+older than 14 Oct has no copy of its .env: there the reset gives the recommended values, as before (said in the page).
+
+## M207 — the turn ends when the owner stops speaking; the conversation without taps (14 October 2026; ROADMAP 99 step 2)
+
+webui/js/vad.js: the microphone's level read in the browser every 100 ms (Web Audio), the room's noise learnt in the
+first 0.3 s; above 3× that floor (at least 0.012) is speech; after speech, 1.2 s of quiet ends the turn; no speech in
+8 s is «nothing said». The dictation stops by itself (no ⏹️ tap); ⚙️ → 🗣️ «Conversazione a voce» opens a conversation (the composer keeps its three buttons): the turn goes, the answer
+is said aloud, the microphone opens again when she has finished; silence ends the conversation.
+
+| test | result |
+|---|---|
+| the gate under node: speech then quiet · a short pause · nobody · a fan at 0.05 | ends at 3.0 s · the pause does not end it · «nothing» at 8.0 s · «nothing» (a fan is not a voice) |
+| a real Chrome (headless), its microphone fed with a file: 1 s silence, Aurora's voice («Ciao Aurora, che tempo farà domani a Milano?»), 4 s silence | the turn ended at 4.4 s (the voice ends ≈ 3.3 s) |
+| the same with pink room noise only, 11 s | «nothing» at 8.1 s |
+
+With Whisper on the GPU (M204, 0.14 s a sentence) the turn's cost is now the answer itself. Not measured: the owner's
+own voice and room, a phone (Android, iOS), the whole conversation loop in the WebUI with a real answer.
+
+## M208 — a plugin that brings its own library: install, use, uninstall (14 October 2026; ROADMAP 101)
+
+aurora/plg_deps.py and script/plg_run.py; the first plugin that uses them: «qr» (QR codes of a text, a link or the
+home Wi-Fi), its library segno 1.6.6 declared pinned with its SHA-256, not in Aurora's environment.
+
+| step | result |
+|---|---|
+| install (pip --target into sys/plugins/qr/.deps, --require-hashes) | 0.6 s the first time, 584 KB (0.3 s again: pip's cache) |
+| switched on from the API («enable»): installed by itself | yes — «attivo il plugin e lei scarica e installa» |
+| used through Aurora, in the plugin's cage: a Wi-Fi QR | 0.56 s; decoded by OpenCV as `WIFI:T:WPA;S:CasaTest;P:prova-1234;;` (what a phone reads) |
+| uninstall | 584 KB freed; the folder back to plugin.json and server.py, nothing else |
+| Aurora's own environment | never had segno (an import from Aurora fails) |
+| used after uninstall | a clear refusal: «the QR library is not installed: Plugins → QR → 📦 Install» |
+
+A wrong checksum installs nothing and leaves nothing (test). Not measured: a large program (Blender, an MCP server of
+a creative tool), a library with native parts and many dependencies (every hash needed with --require-hashes).
+
+## M209 — CAD for projects: from Aurora's words to patent drawing sheets (14 October 2026; ROADMAP 100)
+
+The «cad» plugin: Aurora writes the model part by part in OpenSCAD (each part its reference sign, name, place in
+the assembly and way in the exploded view); OpenSCAD makes the geometry (STL, no screen needed); the plugin's own
+renderer (cad_draw: orthographic z-buffer in numpy — no display, no GPU) draws the lines where the depth jumps, the
+part changes or the surface turns beyond 30°; cad_sheets lays out the sheets by EPO Rule 46 (A4 at 300 dpi; margins
+25/25/15/10 mm; «Fig. N»; «1/3» at the top; reference signs 4 mm, joined by a thin line; black only). OpenSCAD's own
+picture export was refused without a display («Can't create OpenGL OffscreenView»): the reason for the renderer.
+
+| test | result |
+|---|---|
+| a paperweight in 3 parts, written by Claude, tools called directly | built in 7.4 s, 3 sheets / 5 figures in 3.9 s; PDF A4 210 × 297 mm |
+| **Aurora alone, from one paragraph** (a phone stand in 4 parts: base, backrest at 70°, front lip, foot), the agent through the plugin's cage | 99.6 s, 5 steps: her own OpenSCAD for the 4 parts, cad_build, cad_drawings — 3 sheets, signs 10–40; the drawing right (backrest at 70°, lip at the front, foot under the base, hidden but for its rim) |
+| a cylinder of 64 facets | its two outlines only, no facet lines (test) |
+| from above, a 60 × 40 plate | drawn 60:40 within 5% (test) |
+
+Not measured: a model of many parts (signs crowding), curved assemblies (gears, threads), dimensioned technical
+drawings (a blueprint with measures is not a patent drawing: next), a patent office's own check of a sheet.

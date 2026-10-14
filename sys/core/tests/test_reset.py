@@ -28,3 +28,24 @@ def test_the_mind_moves_aside_never_usr(cfg):
     sys_reset.mind(cfg, plan)
     assert not (status / "users" / "ada" / "routines.json").exists() and (status / "users" / "ada" / "keys").exists()
     assert (cfg.root / "usr" / "ada" / "documents").exists()
+
+
+def test_back_to_the_installation_s_choices_not_the_recommended(cfg):
+    # ROADMAP 102: «come appena installata con le configurazioni scelte»
+    env = cfg.env_file
+    sys_config.write_env(env, {"AURORA_SHADOW_COS": "0.95", "AURORA_TTS": "0"})       # the owner's choices at install
+    assert sys_reset.remember_installed(cfg) and not sys_reset.remember_installed(cfg)   # kept once, never rewritten
+    sys_config.write_env(env, {"AURORA_SHADOW_COS": "0.5", "AURORA_TTS": "1"})        # changed since
+    out = sys_reset.settings(cfg)
+    now = sys_config.parse_env(env.read_text())
+    assert out["base"] == "installed" and now["AURORA_SHADOW_COS"] == "0.95" and now["AURORA_TTS"] == "0"
+    out = sys_reset.settings(cfg, base="recommended")
+    assert out["base"] == "recommended" and sys_config.parse_env(env.read_text())["AURORA_SHADOW_COS"] == "0.9"
+
+
+def test_a_request_from_the_webui_is_taken_once_and_only_fresh(cfg):
+    sys_reset.ask(cfg, with_knowledge=False, keep_keys=True, by="ada")
+    req = sys_reset.take(cfg)
+    assert req["by"] == "ada" and not req["with_knowledge"] and sys_reset.take(cfg) is None
+    sys_reset.ask(cfg, True, True, "ada")
+    assert sys_reset.take(cfg, max_age_s=-1) is None and not sys_reset.request_file(cfg).exists()   # stale: dropped

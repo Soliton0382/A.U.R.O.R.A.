@@ -93,6 +93,7 @@ export function speakable(text) {
     .replace(/```[\s\S]*?```/g, " ")
     .replace(/\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\\\(.+?\\\)|\$[^$\n]+\$/g, " ")
     .replace(/https?:\/\/\S+/g, " ")
+    .replace(/[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}\u{FE0F}\u{200D}\u{20E3}]/gu, " ")   // emoji are not read aloud («stelline»)
     .replace(/\[\d+(?:\s*[,–-]\s*\d+)*\]/g, "")
     .replace(/^\s*\|.*\|\s*$/gm, " ")
     .replace(/[#*_`>|]+/g, " ")
