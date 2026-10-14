@@ -201,19 +201,28 @@ class Agent(AgentMakers, AgentReport):
     def _waiting(self) -> str:
         """The plugins installed but waiting for the owner's settings: said, so a need they cover is not asked of the
         forge again (M170: the weather plugin without its place → a forge request for «a weather forecast tool»)."""
-        out = []
+        out, broken = [], []
         for p in self.host.plugins():
+            if not getattr(p, "enabled", True) or (self.allow is not None and p.name not in self.allow):
+                continue
             missing = getattr(p, "missing", None)
-            if getattr(p, "enabled", True) and missing and not getattr(p, "error", "") \
-                    and (self.allow is None or p.name in self.allow):
-                d = (getattr(p, "manifest", None) or {}).get("description")
-                d = (d.get("en") or next(iter(d.values()), "")) if isinstance(d, dict) else str(d or "")
+            d = (getattr(p, "manifest", None) or {}).get("description")
+            d = (d.get("en") or next(iter(d.values()), "")) if isinstance(d, dict) else str(d or "")
+            if missing and not getattr(p, "error", ""):
                 out.append(f"- {p.name}: {d[:120]} (needs {', '.join(missing)})")
-        if not out:
-            return ""
-        return ("\n\n# Installed, waiting for the owner's settings\nThese plugins exist but cannot run until the owner "
-                "fills their settings (Plugins page). For a need they cover, do not request a new capability: say "
-                "which plugin and which settings are missing.\n" + "\n".join(out[:20]))
+            elif not getattr(p, "available", True) and getattr(p, "error", ""):
+                # installed and switched on, but it does not start (C311: the patent plugin down for C309, and the
+                # agent asked the forge to build it again)
+                broken.append(f"- {p.name}: {d[:120]} (does not start: {str(p.error)[:100]})")
+        text = ""
+        if out:
+            text += ("\n\n# Installed, waiting for the owner's settings\nThese plugins exist but cannot run until the "
+                     "owner fills their settings (Plugins page). For a need they cover, do not request a new capability: "
+                     "say which plugin and which settings are missing.\n" + "\n".join(out[:20]))
+        if broken:
+            text += ("\n\n# Installed, not starting\nThese plugins exist but fail to start now. For a need they cover, do "
+                     "not request a new capability: say which plugin is down and its error.\n" + "\n".join(broken[:20]))
+        return text
 
     def _call(self, name: str, args: dict, index: dict, emit, run_id: str) -> str:
         if name == "home_scene":                              # Aurora's own light scenes (hom_scenes, owner 2026-10-12)
@@ -348,6 +357,7 @@ class Agent(AgentMakers, AgentReport):
                     {"role": "user", "content": f"GOAL: {goal}" + (f"\n\nCONTEXT:\n{context}" if context else "")}]
         model = None
         summary, steps, nudged = None, 0, 0
+        asked: dict[str, int] = {}                          # each read call and how often it was made
         self.produced: list[dict] = []                      # files made by the tools: links in the answer
         self.pending: list[str] = []                        # actions waiting for the owner: said in the report
         self.requested = False                              # it asked the forge itself (request_capability)
@@ -404,6 +414,15 @@ class Agent(AgentMakers, AgentReport):
                 ran = True
                 emit("tool.call", {"name": name, "arguments": json.dumps(args, ensure_ascii=False)[:1500],
                                    "effect": index.get(name, ("", "", "loop"))[2]})
+                same = json.dumps([name, args], sort_keys=True, ensure_ascii=False)
+                asked[same] = asked.get(same, 0) + 1
+                if asked[same] > 2 and index.get(name, ("", "", ""))[2] == "read":
+                    # the same read a third time (C313: a routine read the same sockets 8 times): its result is above
+                    result = (f"REPEATED: you called {name} with these same arguments {asked[same] - 1} times already; "
+                              "its result is above. Use it, or call finish with your report.")
+                    messages.append({"role": "tool", "content": result})
+                    emit("tool.result", {"name": name, "ok": False, "text": result})
+                    continue
                 result = self._call(name, args, index, emit, run_id)
                 self.ledger.append((name, not result.startswith(("ERROR", "REFUSED"))))
                 self.effects[name] = index[name][2] if name in index else ""

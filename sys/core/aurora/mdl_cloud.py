@@ -82,14 +82,23 @@ class ClaudeCodeLLM:
         from . import mdl_budget
         mdl_budget.record(self.cfg, self.name, u)
 
+    @staticmethod
+    def _cap(max_tokens: int) -> dict:
+        """The CLI's own output ceiling (CLAUDE_CODE_MAX_OUTPUT_TOKENS): twice what was asked, 4,096 to 64,000 — it
+        ignores max_tokens (C43), and one agent turn wrote 128,159 tokens in 10 minutes (C313)."""
+        return {**os.environ, "CLAUDE_CODE_MAX_OUTPUT_TOKENS": str(min(64000, max(4096, 2 * int(max_tokens))))}
+
     def complete(self, system: str, user: str, max_tokens: int, think: bool = False) -> Completion:
         t0 = time.time()
         r = subprocess.run(self._cmd(system, False, max_tokens), input=user, capture_output=True, text=True,
-                           timeout=self.cfg["AURORA_LLM_TIMEOUT_S"], cwd=self.cwd)
+                           timeout=self.cfg["AURORA_LLM_TIMEOUT_S"], cwd=self.cwd, env=self._cap(max_tokens))
         try:
             d = json.loads(r.stdout)
         except ValueError:
             raise RuntimeError(f"claude -p failed: {(r.stderr or r.stdout)[-400:]}")
+        if d.get("is_error") and "output token maximum" in str(d.get("result", "")):
+            self._account(d, time.time() - t0)            # over the ceiling: a truncated turn, said as such
+            return Completion("", "", int(d.get("usage", {}).get("output_tokens", 0)), time.time() - t0, True)
         if d.get("is_error"):
             raise RuntimeError(f"claude -p: {d.get('result') or d.get('api_error_status')}")
         self._account(d, time.time() - t0)
@@ -98,7 +107,8 @@ class ClaudeCodeLLM:
 
     def stream(self, system: str, user: str, max_tokens: int, think: bool = False) -> Iterator[tuple[str, str]]:
         t0 = time.time()
-        p = subprocess.Popen(self._cmd(system, True, max_tokens), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+        p = subprocess.Popen(self._cmd(system, True, max_tokens), env=self._cap(max_tokens),
+                             stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, text=True, cwd=self.cwd)
         p.stdin.write(user)
         p.stdin.close()

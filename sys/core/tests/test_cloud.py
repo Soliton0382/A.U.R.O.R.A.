@@ -52,3 +52,24 @@ def test_claude_code_runs_with_no_tool_and_no_mcp_server(cfg):
     cmd = mdl_cloud.ClaudeCodeLLM(cfg, "opus")._cmd("sys", False, 100)
     assert "--strict-mcp-config" in cmd and "--mcp-config" not in cmd
     assert cmd[cmd.index("--tools") + 1] == "" and cmd[cmd.index("--setting-sources") + 1] == ""
+
+
+def test_claude_code_gets_an_output_ceiling_and_a_runaway_turn_comes_back_truncated(cfg, monkeypatch):
+    # C313: the CLI ignores max_tokens; one agent turn wrote 128,159 tokens in 10 minutes
+    import json as _json
+    import subprocess as _sp
+    from aurora import mdl_cloud
+    seen = {}
+
+    def run(cmd, **k):
+        seen["env"] = k.get("env") or {}
+        return _sp.CompletedProcess(cmd, 1, _json.dumps({"is_error": True, "usage": {"output_tokens": 4096},
+                                                         "result": "Claude's response exceeded the 4096 output token maximum."}), "")
+    monkeypatch.setattr(mdl_cloud.subprocess, "run", run)
+    monkeypatch.setattr(mdl_cloud.ClaudeCodeLLM, "_account", lambda self, d, s: None)
+    llm = mdl_cloud.ClaudeCodeLLM.__new__(mdl_cloud.ClaudeCodeLLM)
+    llm.cfg, llm.bin, llm.model, llm.cwd = cfg, "claude", "haiku", None
+    out = llm.complete("system", "user", 1500)
+    assert seen["env"]["CLAUDE_CODE_MAX_OUTPUT_TOKENS"] == "4096" and out.truncated and out.answer == ""
+    assert mdl_cloud.ClaudeCodeLLM._cap(28000)["CLAUDE_CODE_MAX_OUTPUT_TOKENS"] == "56000"
+    assert mdl_cloud.ClaudeCodeLLM._cap(10 ** 6)["CLAUDE_CODE_MAX_OUTPUT_TOKENS"] == "64000"

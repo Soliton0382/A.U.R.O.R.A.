@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.24 — 2026-10-14
+
+1 publications since v0.2.23.
+
+- 2026-10-14 Aurora's voice sentence by sentence (first sound 11.3 → 0.9 s); self-repair works again (sandbox had no root files, C312); Claude Code output ceiling and no repeated reads (C313); no forge requests for installed plugins that are down (C311); AGI 0.982
+
 ## v0.2.23 — 2026-10-14
 
 1 publications since v0.2.22.

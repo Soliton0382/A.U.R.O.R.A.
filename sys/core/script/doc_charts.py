@@ -34,8 +34,21 @@ def bar(x: float, y: float, w: float, h: float, cls: str) -> str:
             f'H{x + w - r:.1f} Q{x + w:.1f},{y:.1f} {x + w:.1f},{y + r:.1f} V{y + h:.1f} Z"/>')
 
 
+def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
+    """The 95% interval of a share k/n (Wilson), in percent: what one run of n questions can tell."""
+    if not n:
+        return 0.0, 0.0
+    p = k / n
+    d = 1 + z * z / n
+    c = (p + z * z / (2 * n)) / d
+    h = z * ((p * (1 - p) / n + z * z / (4 * n * n)) ** 0.5) / d
+    return round(100 * max(0.0, c - h), 1), round(100 * min(1.0, c + h), 1)
+
+
 def chart(name: str, title: str, subtitle: str, cats: list[str], series: list[tuple[str, list[float]]],
-          ymax: float, fmt, note: str = "", ref: tuple[float, str] | None = None) -> str:
+          ymax: float, fmt, note: str = "", ref: tuple[float, str] | None = None,
+          errors: list[list[tuple[float, float]]] | None = None) -> str:
+    """errors: per series, per category, (low, high) — a 95% interval drawn as a whisker over the bar."""
     pw, ph = W - PAD_L - PAD_R, H - PAD_T - PAD_B
     y0 = PAD_T + ph
     sy = lambda v: y0 - v / ymax * ph
@@ -66,8 +79,16 @@ def chart(name: str, title: str, subtitle: str, cats: list[str], series: list[tu
             x = gx + (si - 1) * (bw + 2)
             if v > 0:
                 parts.append(bar(x, sy(v), bw, y0 - sy(v), f"s{si}"))
+            top = v
+            if errors:                                    # the 95% interval: a whisker with caps
+                lo, hi = errors[si - 1][ci]
+                cx, cap = x + bw / 2, min(6.0, bw / 3)
+                parts.append(f'<line class="ref" x1="{cx:.1f}" x2="{cx:.1f}" y1="{sy(lo):.1f}" y2="{sy(hi):.1f}" stroke-width="1.5"/>'
+                             f'<line class="ref" x1="{cx - cap:.1f}" x2="{cx + cap:.1f}" y1="{sy(hi):.1f}" y2="{sy(hi):.1f}" stroke-width="1.5"/>'
+                             f'<line class="ref" x1="{cx - cap:.1f}" x2="{cx + cap:.1f}" y1="{sy(lo):.1f}" y2="{sy(lo):.1f}" stroke-width="1.5"/>')
+                top = max(v, hi)
             fs = 12 if bw >= 30 else 9.5                  # narrow bars (8 groups × 2): the labels must not touch
-            parts.append(f'<text class="t1" x="{x + bw / 2:.1f}" y="{sy(v) - 6:.1f}" font-size="{fs}" '
+            parts.append(f'<text class="t1" x="{x + bw / 2:.1f}" y="{sy(top) - 6:.1f}" font-size="{fs}" '
                          f'text-anchor="middle" font-weight="600">{fmt(v)}</text>')
         for li, line in enumerate(c.split("\n")):
             parts.append(f'<text class="t2" x="{PAD_L + ci * group + group / 2:.1f}" y="{y0 + 18 + 14 * li:.1f}" '

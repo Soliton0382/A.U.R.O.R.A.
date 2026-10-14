@@ -59,6 +59,12 @@ def make_sandbox(case: dict) -> tuple[str, Path]:
     shutil.copytree(cfg.root / "sys" / "core", box / "sys" / "core", ignore=ignore)
     shutil.copytree(cfg.root / "sys" / "plugins", box / "sys" / "plugins", ignore=ignore)   # as the self plugin (C143)
     shutil.copy2(cfg.root / "pyproject.toml", box / "pyproject.toml")
+    for name in ("install.sh", "uninstall.sh", ".env.example", "CHANGELOG.md", "README.md", "README.en.md", ".github"):
+        src = cfg.root / name                          # the root's files the tests read, as the self plugin (C312)
+        if src.is_dir():
+            shutil.copytree(src, box / name, ignore=ignore)
+        elif src.is_file():
+            shutil.copy2(src, box / name)
     (box / "SANDBOX.txt").write_text(f"bench_repair {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
     f = box / case["file"]
     text = f.read_text(encoding="utf-8")

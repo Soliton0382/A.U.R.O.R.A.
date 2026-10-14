@@ -138,6 +138,9 @@ def read_log(component: str, lines: int = 100, level: str = "") -> str:
     return "\n".join(sys_logread.tail(component, lines, level or None, cfg)) or "empty"
 
 
+ROOT_FILES = ("install.sh", "uninstall.sh", ".env.example", "CHANGELOG.md", "README.md", "README.en.md", ".github")
+
+
 @tool
 def sandbox_create(label: str = "change") -> str:
     """Create a sandbox: a copy of sys/core (and pyproject.toml) where code can be changed and tested safely."""
@@ -151,6 +154,14 @@ def sandbox_create(label: str = "change") -> str:
     # the starting copy: the diff and the change applied are what was done HERE, not what moved in the live code (C145)
     shutil.copytree(box / "sys" / "core", box / ".base" / "sys" / "core")
     shutil.copy2(ROOT / "pyproject.toml", box / "pyproject.toml")
+    # the root's files the tests read (the installer, the workflows…): without them two tests failed in every sandbox
+    # and no repair could be proposed (C312, as C143); only sys/core is ever applied
+    for name in ROOT_FILES:
+        src = ROOT / name
+        if src.is_dir():
+            shutil.copytree(src, box / name, ignore=ignore)
+        elif src.is_file():
+            shutil.copy2(src, box / name)
     (box / "SANDBOX.txt").write_text(f"created {time.strftime('%Y-%m-%d %H:%M:%S')} from {ROOT}/sys/core\n")
     return f"sandbox {sid} created: edit files as sys/core/..."
 

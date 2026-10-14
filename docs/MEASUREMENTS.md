@@ -3287,3 +3287,40 @@ Rules and their sources in plugins/patent/rules.py (IT: D.M. 33/2010 art. 22, re
 46, 47, 49; US: 37 CFR 1.52, 1.72, 1.75, 1.84). No AI notice in any filing, printed or in the metadata (checked).
 Not measured: an examiner's view of the content (claims' scope, novelty: the owner's or an attorney's), a filing
 with formulas or flowcharts instead of a CAD model, the EP package end to end.
+
+## M211 — Aurora's own voice, sentence by sentence (14 October 2026; ROADMAP 99 step 3)
+
+The WebUI asked Aurora's machine for the whole answer's audio (MP3, light for a phone) before the first sound. Now
+(webui/js/voice.js: pieces, serverSpeak) the first sentence alone is made and played, the next piece (whole sentences,
+≤ 400 characters) is made while it plays, on the same unlocked player; ⏹️ ends the queue; «speaking» lasts to the last
+piece, so a conversation (M207) does not open the microphone between two pieces. Measured on this machine:
+
+| a 1,541-character answer | whole (before) | sentence by sentence |
+|---|---|---|
+| MP3: until the first sound | 11.27 s | **0.88 s** |
+| WAV: until the first sound | 2.64 s | 1.07 s |
+| gaps between pieces (6 pieces, 83.6 s of speech) | — | **0** — each made in 0.8–1.2 s while the one before plays 5–19 s |
+| a 430-character answer, WAV | 1.21 s | 0.72 s |
+
+The device's own voices already spoke sentence by sentence. Not measured: a phone's network (the pieces travel one by
+one), the whole conversation loop timed end to end on a phone. Not done, on purpose: speaking the deep path's draft
+while it is written — the verification may still take sentences out of it.
+
+## M212 — the AGI battery whole, repair and autonomy run again (14 October 2026)
+
+`bench_agi.py --full` (12:44, 41.7 min), then bench_repair again after C312 (13:48–14:13).
+
+| section | M189 (13 Oct) | M203 (14 Oct 08:44) | **14 Oct, everything run again** |
+|---|---|---|---|
+| reasoning | 8/8 | 8/8 | 8/8 |
+| planning | 3/3 | 3/3 | 3/3 |
+| honesty | 12/12 | 12/12 | 12/12 |
+| refusal | 5/6 | 4/6 (→ 6/6 after C305, C307) | **6/6** |
+| context | 3/3 | 3/3 | 3/3 |
+| repair | 4/4 (5 Oct) | 4/4 (5 Oct) | 0/4 in the battery — **4/4 after C312** (each 180–380 s: found, fixed in the sandbox, tests green, proposed) |
+| autonomy (the forge) | 7/8 (12 Oct) | 7/8 (12 Oct) | 7/8 (run again: 7 built and right; the harvester's 24-hour counts per source failed three times — the writer gave one source's last documents, the judge refused it) |
+| **score** | 0.958 | 0.935 | **0.982** |
+
+What the whole run found: self-repair could propose nothing since two tests read the repository's root (C312); a
+routine held the run queue with a 128,159-token turn and the same read 8 times (C313). Not measured: memory over days
+(a test user and a night in between: the roadmap's last part of 18).

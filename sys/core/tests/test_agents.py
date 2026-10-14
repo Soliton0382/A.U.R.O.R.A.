@@ -367,3 +367,27 @@ def test_an_owner_only_command_never_runs_by_a_runs_own_decision(cfg, monkeypatc
     assert agent._home_free("alarm", "arm") and not agent._home_free("alarm", "disarm")
     agent.asked = True
     assert agent._home_free("alarm", "disarm")
+
+
+def test_a_plugin_that_does_not_start_is_said_not_forged_again(cfg):
+    # C311: the patent plugin down (C309) and the agent asked the forge for «a tool patent_document»
+    agent = Agent(fake_pipeline(FakeLLM([])), cfg)
+    down = SimpleNamespace(name="patent", enabled=True, available=False, missing=[], tools=[],
+                           error="ModuleNotFoundError: No module named 'check'",
+                           manifest={"description": {"en": "Patent filings for projects"}})
+    waiting = SimpleNamespace(name="weather", enabled=True, available=False, missing=["AURORA_WEATHER_LAT"], tools=[],
+                              error="", manifest={"description": {"en": "The weather"}})
+    agent.host = SimpleNamespace(plugins=lambda **k: [down, waiting])
+    text = agent._waiting()
+    assert "Installed, not starting" in text and "- patent: Patent filings" in text and "No module named" in text
+    assert "waiting for the owner's settings" in text and "AURORA_WEATHER_LAT" in text
+
+
+def test_the_same_read_a_third_time_is_not_made_again(cfg):
+    # C313: a routine read the same sockets 8 times
+    same = call("demo__read_log", component="api")
+    llm = FakeLLM([same, same, same, same, call("finish", summary="Fatto.")])
+    agent = Agent(fake_pipeline(llm), cfg)
+    agent.host = FakeHost()
+    ans = agent.run("prova", lambda e, p: None, "run1")
+    assert len(agent.host.calls) == 2 and "Fatto." in ans.text

@@ -145,8 +145,8 @@ async function fetchClip(say, lang) {
 }
 
 // play() called at once, so a tap's permission is still there; the browser's refusal said by its name
-function playClip(url) {
-  stop();
+function playClip(url, keep = false) {
+  if (!keep) stop();
   if (!player) player = new Audio();
   audio = player;
   audio.src = url;
@@ -159,11 +159,40 @@ function playClip(url) {
 }
 export let unplayable = "";                          // the name of the last refusal that was not about permission
 
+// The answer in pieces of whole sentences (ROADMAP 99 step 3): the first one, a sentence alone, is made and heard at
+// once while the next is made — a long answer's MP3 whole took 11.3 s before the first sound, its first sentence 0.8 s
+// (M211). A made clip of the whole text (the good morning, prepared before the tap) is played as it is.
+export function pieces(say, rest = 400) {
+  const out = [];
+  for (const s of say.match(/[^.!?;:]+[.!?;:]*\s*/g) || [say]) {
+    const last = out.length - 1;                    // the first piece stays one sentence: heard at once
+    if (last >= 1 && out[last].length + s.length <= rest) out[last] += s;
+    else out.push(s);
+  }
+  return out.map((x) => x.trim()).filter(Boolean);
+}
+
+let queued = 0;                                       // pieces still to be heard: «speaking» until the last one
+let turn = 0;                                         // a new answer or ⏹️ ends the queue of the one before
 async function serverSpeak(text, lang) {
   const say = speakable(text);
   if (!say) return "ok";
-  const c = await fetchClip(say, lang);
-  return c.err || playClip(c.url);
+  if (clips.has(say)) return playClip(clips.get(say));
+  const parts = pieces(say);
+  const mine = ++turn;
+  queued = parts.length;
+  let next = fetchClip(parts[0], lang);
+  for (let i = 0; i < parts.length; i++) {
+    const c = await next;
+    if (mine !== turn) return "ok";                  // stopped, or another answer began
+    if (c.err) { queued = 0; return c.err; }
+    next = i + 1 < parts.length ? fetchClip(parts[i + 1], lang) : null;     // made while this one is heard
+    const r = await playClip(c.url, true);
+    if (r !== "ok") { queued = 0; return r; }
+    await new Promise((done) => { audio.onended = done; audio.onpause = done; });
+    queued -= 1;
+  }
+  return "ok";
 }
 
 // Aurora's voice for this text made before the owner taps (only when her voice is the one this device uses)
@@ -175,10 +204,12 @@ export async function prepare(text, lang) {
 
 export function stop() {
   if (supported()) speechSynthesis.cancel();
+  turn += 1;
+  queued = 0;
   if (audio) { audio.pause(); audio = null; }
 }
 
-export const speaking = () => Boolean(audio && !audio.paused) || (supported() && (speechSynthesis.speaking || speechSynthesis.pending));
+export const speaking = () => queued > 0 || Boolean(audio && !audio.paused) || (supported() && (speechSynthesis.speaking || speechSynthesis.pending));
 
 // Long texts in sentences: some engines stop a single long utterance after ~15 s.
 export async function speak(text, lang, only = null) {
