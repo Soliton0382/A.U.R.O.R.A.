@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 A.U.R.O.R.A. Project
-// The first run, five screens (ROADMAP 107): one question a screen in plain words — the name and the language, the
-// access, how she reasons (the admin), the house, the look. Each screen starts from what is set NOW (the recommended
+// The first run, six screens (ROADMAP 107): one question a screen in plain words — the name and the language, her
+// character with you (owner, 16 Oct: «si sceglie la personalità al momento dell'installazione, rendiamola modificabile a
+// livello utente»), the access, how she reasons (the admin), the house, the look. Each screen starts from what is set NOW (the recommended
 // answer only where nothing is), and saves only what was changed: going through it never undoes a setup. Once a person
 // has seen it (any device), it does not open by itself again; the Appearance dialog opens it.
 import { call } from "./api.js";
@@ -12,9 +13,10 @@ import { applyTheme, current as currentTheme, THEMES } from "./theme.js";
 import { current as currentStyle, setStyle, STYLES } from "./style.js";
 
 const t = i18n.t;
+const PERSONAS = ["aurora", "philosopher", "empathic", "practical"];   // the schema's AURORA_PERSONALITY choices
 
 export async function welcome(me, show) {
-  const was = { name: me.person && me.person !== "Owner" ? me.person : "", lang: i18n.saved() };
+  const was = { name: me.person && me.person !== "Owner" ? me.person : "", lang: i18n.saved(), persona: me.personality || "aurora" };
   const want = { ...was, style: currentStyle(me.admin), theme: currentTheme(), house: "later" };
   const dlg = el("dialog", "modal welcome");
   dlg.setAttribute("aria-labelledby", "wl-q");
@@ -42,7 +44,7 @@ export async function welcome(me, show) {
   };
 
   const screens = [
-    () => {                                              // 1 · name and language
+    ["name", () => {                                     // name and language
       const name = el("input");
       name.value = want.name;
       name.placeholder = t("wl.name_ph");
@@ -51,27 +53,34 @@ export async function welcome(me, show) {
       const label = el("label", "wl-label", t("wl.name"));
       label.append(name);
       return [label, choice([{ id: "it_IT", label: "Italiano" }, { id: "en_US", label: "English" }], want.lang, (id) => { want.lang = id; })];
-    },
-    () => {                                              // 2 · the access
+    }],
+    ["persona", () => {                                  // her character, for this person only
+      const items = PERSONAS.map((id) => {
+        const [label, note] = t(`choice.AURORA_PERSONALITY.${id}`).split(" — ");
+        return { id, label, note, tag: id === was.persona ? t("mm.now") : "" };
+      });
+      return [choice(items, want.persona, (id) => { want.persona = id; })];
+    }],
+    ["access", () => {                                   // the access
       if (me.mode !== "multi") return [el("p", "", t("wl.access_single"))];
       const done = me.has_password && (!me.mfa || me.totp_on);
       return [el("p", done ? "ok" : "", t(done ? "wl.access_done" : "wl.access_todo"))];
-    },
-    () => {                                              // 3 · how she reasons
+    }],
+    ["reason", () => {                                   // how she reasons
       if (!me.admin) return [el("p", "", t("wl.reason_user"))];
       if (!models) return [el("p", "muted", t("acc.checking"))];
       const items = ["local", "best", "cloud"].map((id) => ({ id, label: t(`mch.${id}`), tag: id === "best" ? t("mch.advised") : "",
         note: t(`wl.reason.${id}`) }));
       if (reason.now === "custom") items.push({ id: "custom", label: t("mch.custom"), tag: t("mm.now"), note: t("wl.reason.custom") });
       return [choice(items, reason.picked, (id) => { reason.picked = id; })];
-    },
-    () => {                                              // 4 · the house
+    }],
+    ["house", () => {                                    // the house
       if (house === null) return [el("p", "muted", t("acc.checking"))];
       if (house > 0) return [el("p", "ok", t("wl.house_done", { n: house }))];
       return [choice([{ id: "now", label: t("wl.house_now"), tag: t("mch.advised"), note: t("wl.house_now_note") },
         { id: "later", label: t("wl.house_later"), note: t("wl.house_later_note") }], want.house, (id) => { want.house = id; })];
-    },
-    () => {                                              // 5 · the look: the style, then the colours
+    }],
+    ["look", () => {                                     // the look: the style, then the colours
       const styles = choice(STYLES.map((id) => ({ id, label: t(`style.${id}`), note: t(`style.${id}.hint`) })), want.style,
         (id) => { want.style = id; setStyle(id); });
       const row = el("div", "theme-row");
@@ -85,25 +94,28 @@ export async function welcome(me, show) {
         row.append(b);
       }
       return [styles, el("h4", "", t("theme.colours")), row];
-    },
+    }],
   ];
+  const last = screens.length - 1;
+  const at = (key) => screens[i][0] === key;
 
   const out = el("p", "error wl-out");
   function draw() {
     const dots = el("div", "wl-dots");
     dots.setAttribute("aria-hidden", "true");
-    for (let n = 0; n < 5; n++) dots.append(el("span", n <= i ? "on" : ""));
+    for (let n = 0; n <= last; n++) dots.append(el("span", n <= i ? "on" : ""));
     const back = el("button", "", t("wl.back"));
     back.type = "button";
     back.disabled = i === 0;
     back.addEventListener("click", () => { i -= 1; out.textContent = ""; draw(); });
-    const next = el("button", "approve", t(i === 4 ? "wl.start" : "wl.next"));
+    const next = el("button", "approve", t(i === last ? "wl.start" : "wl.next"));
     next.type = "button";
     next.addEventListener("click", () => step(next));
     const bar = el("div", "wl-bar");
     bar.append(back, next);
-    dlg.replaceChildren(dots, el("small", "muted", t("wl.count", { n: i + 1 })), el("h2", "", t(`wl.q${i + 1}`)),
-      el("p", "muted", t(`wl.h${i + 1}`)), ...screens[i](), out, bar, el("small", "muted", t("wl.later")));
+    const key = screens[i][0];
+    dlg.replaceChildren(dots, el("small", "muted", t("wl.count", { n: i + 1, m: last + 1 })), el("h2", "", t(`wl.q.${key}`)),
+      el("p", "muted", t(`wl.h.${key}`)), ...screens[i][1](), out, bar, el("small", "muted", t("wl.later")));
     dlg.querySelector("h2").id = "wl-q";
   }
 
@@ -111,19 +123,24 @@ export async function welcome(me, show) {
     btn.disabled = true;
     out.textContent = "";
     try {
-      if (i === 0) {                                     // saved only when changed
+      if (at("persona") && want.persona !== was.persona) {   // a person's own, whatever the admin keeps
+        await call("/v1/aurora/settings", { method: "PUT", body: JSON.stringify({ AURORA_PERSONALITY: want.persona }) });
+        was.persona = want.persona;
+        bus.emit("me-changed");
+      }
+      if (at("name")) {                                  // saved only when changed
         if (want.name.trim() && want.name.trim() !== was.name) {
           await call("/v1/aurora/settings", { method: "PUT", body: JSON.stringify({ AURORA_OWNER_NAME: want.name.trim() }) });
           bus.emit("me-changed");
         }
         if (want.lang !== was.lang) { await i18n.load(want.lang); bus.emit("lang", { code: want.lang }); }
       }
-      if (i === 2 && me.admin && models && reason.picked !== reason.now && reason.picked !== "custom") {
+      if (at("reason") && me.admin && models && reason.picked !== reason.now && reason.picked !== "custom") {
         const { useChoice } = await import("./modules/models_choice.js");
         await useChoice(reason.picked, models.m, models.s);
         reason.now = reason.picked;
       }
-      if (i === 4) { await finish(); return; }
+      if (i === last) { await finish(); return; }
       i += 1;
       draw();
     } catch (e) { out.textContent = e.message; btn.disabled = false; }
@@ -151,5 +168,5 @@ export async function welcome(me, show) {
     reason.picked = reason.now;
   })().catch(() => { models = null; }) : Promise.resolve();
   const readHouse = call("/v1/aurora/home/devices").then((d) => { house = d.devices.length; }).catch(() => { house = 0; });
-  for (const p of [readModels, readHouse]) p.then(() => { if (dlg.open && (i === 2 || i === 3)) draw(); });
+  for (const p of [readModels, readHouse]) p.then(() => { if (dlg.open && (at("reason") || at("house"))) draw(); });
 }

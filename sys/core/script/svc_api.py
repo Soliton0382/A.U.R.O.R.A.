@@ -171,6 +171,14 @@ if __name__ == "__main__":
             return
         for where, keys in added.items():
             log.info("audit: settings written (%s): %s", where, ", ".join(keys))
+        if added.get("moved to the admin"):
+            # the admin's view was read before they moved (C335: the alarm's account read as empty until the next
+            # start): read again, into the same object every module already holds
+            from aurora import sys_config
+            from aurora.api import core
+            fresh = sys_config.reload()
+            core.BASE.values.update(fresh.values)
+            core.BASE.raw.update(fresh.raw)
 
     def _seed_shadows() -> None:
         """Every user starts with the published seed of answers (owner, 9 Oct: «i git clone partano già con un set di

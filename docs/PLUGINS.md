@@ -19,7 +19,7 @@ Every plugin.json follows it (aurora/plg_contract.py: the tests check every plug
 | `effects` | yes | tool → read | write_local | external; "*" for the rest |
 | `env` | — | settings passed to its program |
 | `settings` | — | settings shown in its card |
-| `settings_spec` | — | its own settings: {key AURORA_<NAME>_…, type, secret, it, en} |
+| `settings_spec` | — | its own settings: {key AURORA_<NAME>_…, type, secret, scope, it, en}; scope "user": a person's account, kept in their own .env |
 | `setup` | — | {it, en, links}: how to set it up |
 | `sandbox` | — | {network: bool, write: [setting names of folders]}: the cage |
 | `tests` | — | read tools called by «Prova»: [{tool, args}] or {tool: args} |

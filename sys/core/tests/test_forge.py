@@ -186,6 +186,22 @@ def test_a_plugin_s_own_settings_join_the_schema_its_secret_masked(tmp_path):
     assert set(got) == {"AURORA_CLOUDY_ACCOUNT", "AURORA_CLOUDY_TOKEN"}         # the sly plugin got nothing
     assert got["AURORA_CLOUDY_TOKEN"]["secret"] is True and "secret" not in got["AURORA_CLOUDY_ACCOUNT"]
     assert got["AURORA_CLOUDY_TOKEN"]["category"] == "plugins" and got["AURORA_CLOUDY_TOKEN"]["optional"] is True
+    assert "scope" not in got["AURORA_CLOUDY_TOKEN"]                          # the machine's unless it says so
+
+
+def test_a_plugin_s_personal_account_lives_in_the_user_s_env(tmp_path):
+    """Owner, 16 Oct: an alarm's and a camera's accounts sat in the machine's .env; «scope: user» puts them in the
+    admin's own (sys_user_config.adopt), and another user never sees them."""
+    import json
+    from aurora import plg_contract, sys_config
+    spec = [{"key": "AURORA_ALARMY_PIN", "secret": True, "scope": "user", "it": "pin", "en": "pin"},
+            {"key": "AURORA_ALARMY_HOST", "it": "host", "en": "host"}]
+    (tmp_path / "alarmy").mkdir()
+    (tmp_path / "alarmy" / "plugin.json").write_text(json.dumps({"name": "alarmy", "settings_spec": spec}))
+    got = {s["key"]: s for s in sys_config.plugin_settings(set(), tmp_path)}
+    assert got["AURORA_ALARMY_PIN"]["scope"] == "user" and "scope" not in got["AURORA_ALARMY_HOST"]
+    bad = {"name": "alarmy", "settings_spec": [{"key": "AURORA_ALARMY_PIN", "scope": "everyone"}]}
+    assert any("scope machine or user" in e for e in plg_contract.check(bad))
 
 
 def test_a_forged_plugin_never_names_a_person():

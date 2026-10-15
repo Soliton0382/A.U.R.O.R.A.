@@ -21,6 +21,9 @@ from pathlib import Path
 from . import sys_config
 
 AREAS = {"routines": True, "settings": True, "autonomy": False}
+# who the person is and how she talks to them: always their own, even when the admin keeps their settings (owner,
+# 16 Oct: the personality «modificabile a livello utente», also on the first run)
+PERSONAL = ("AURORA_OWNER_NAME", "AURORA_PERSONALITY")
 ADMIN = ("security", "firewalls", "models", "harvester", "updates", "settings_machine", "users", "https", "status")
 _lock = threading.Lock()
 

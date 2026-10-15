@@ -172,7 +172,7 @@ async def update_settings(request: Request) -> dict:
         if machine and user != admin:
             raise HTTPException(status_code=403, detail="only the admin changes the machine's settings")
         from aurora import sys_users_perm                  # a user's own settings: when the admin lets them
-        if mine and not sys_users_perm.may(cfg, user, "settings", admin):
+        if set(mine) - set(sys_users_perm.PERSONAL) and not sys_users_perm.may(cfg, user, "settings", admin):
             raise HTTPException(status_code=403, detail="the admin keeps your settings for themselves (👥 Users → permissions)")
         if mine:
             sys_user_config.write(cfg, user, mine)

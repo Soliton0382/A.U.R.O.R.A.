@@ -2,6 +2,19 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.38 — 2026-10-16
+
+8 publications since v0.2.30.
+
+- 2026-10-16 Personal accounts out of the machine's .env (plugin settings with scope user, the Cloudflare account the admin's, C335), her character chosen per user also on the first run, the roadmap's older open items gathered in one place, doc fixes (C264 row, M160 title)
+- 2026-10-15 Cloudflare as a Security page (blocks, lifts, autonomy), masked words in Accounts, Plugins page buttons to each plugin's page, a faster headline strip
+- 2026-10-15 Security with many firewalls (Sophos, pfSense, OPNsense: drivers, guides, connections, sentinel), plugins configured in their own pages under one contract, users' permissions, Today with headlines and research, Expenses page, plugins on request and agent prompt cache (C332), dreams no longer retold (C330), local fallback fitted (C331), C333-C334, N4 measured (M223, M224)
+- 2026-10-15 Forge keeps no drafts, an unused function removed (T1)
+- 2026-10-15 Dreams no longer retold, local fallback fitted to its window (C330, C331)
+- 2026-10-15 Dreams no longer retold, local fallback fitted to its window (C330, C331)
+- 2026-10-15 Memory review tools, plan for 16 October
+- 2026-10-15 Memory recall order, empty report PDFs, Autonomy page in tabs
+
 ## v0.2.37 — 2026-10-16
 
 7 publications since v0.2.30.

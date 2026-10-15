@@ -28,3 +28,15 @@ def test_the_routes_ask_for_it():
     routines = (API / "routines.py").read_text(encoding="utf-8")
     assert routines.count('Depends(may_manage("routines"))') == 5
     assert 'sys_users_perm.may(cfg, user, "settings", admin)' in (API / "system.py").read_text(encoding="utf-8")
+
+
+def test_her_character_and_the_name_are_always_the_person_s_own():
+    """Owner, 16 Oct: the personality chosen at installation, made each user's — also on the first run."""
+    import json
+    schema = {s["key"]: s for s in json.loads((API.parents[1] / "config" / "settings_schema.json").read_text(encoding="utf-8"))["settings"]}
+    assert all(schema[k].get("scope") == "user" for k in P.PERSONAL)
+    assert "set(mine) - set(sys_users_perm.PERSONAL)" in (API / "system.py").read_text(encoding="utf-8")
+    welcome = (API.parents[1] / "webui" / "js" / "welcome.js").read_text(encoding="utf-8")
+    assert '["persona",' in welcome and "AURORA_PERSONALITY" in welcome
+    choices = schema["AURORA_PERSONALITY"]["choices"]
+    assert all(f'"{c}"' in welcome for c in choices)                 # the screen offers every character there is

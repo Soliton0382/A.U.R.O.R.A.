@@ -21,7 +21,7 @@ its sandbox (C328), the blocks at Cloudflare counted (C329). Published: v0.2.30,
 | N6 | 📷 D8 — home security (private) | owner + measure | the owner's own measure on the cameras |
 | N7 | 🗂️ Decisions of the owner | owner | ✅ the 50 PDFs of «NOTHING» deleted (to the trash, 15 Oct); the personal case in the public repository's history: left as it is (16 Oct: no names, and a rewrite changes every commit and tag); the publish deny list now holds its words; the 3 points for the company slides (from README.en.md) |
 | N8 | 🔌 D5 step 2 — a second firewall driver on an aurora-lab VM | build | ✅ 16 Oct: `fw_drivers/pfsense.py` and `fw_drivers/opnsense.py` on two aurora-lab VMs (pfSense CE 2.9.0 with the REST API package 2.10.2, OPNsense 26.7): block, unblock and the connection test through the core unchanged, open connections closed; each firewall's own official guides (pasted links still win). Left for the three: plans, audit and network map in a neutral object model; the sentinel's syslog (pfSense and OPNsense write filterlog as CSV) |
-| N9 | 🔐 D9 — publishing with a deploy key | owner | the deploy key and the signed-commits rule |
+| N9 | 🔐 D9 — publishing with a deploy key | owner | ➖ dropped 16 Oct by the owner: they publish outside working hours themselves |
 | N10 | 🧹 T1 — cleanup | upkeep | ✅ sys/sandbox 586 → 32 MB (15 Oct): 29 removed, none with a pending change or an undo backup; fallback-ctx-10c9d2 kept for N2. ✅ 16 Oct: the forge keeps no draft any more (one that fails its tests goes, an installed one becomes the plugin; 58 were left, 880 KB, none awaiting an approval: emptied by the owner); the functions nothing calls: one in Aurora's own Python (`txt_ical.as_date`), removed — the rest are the plugins' bundled libraries |
 | N11 | 🪙 Tokens: plugins on request | build + measure | ✅ 16 Oct: `agt_tools` — GitHub's 45 tools (17,750 of the catalog's ~39,700 tokens) only when the goal names it, `more_tools` otherwise; the agent's prompt 42,215 → 24,664 tokens for any other goal |
 | N12 | 🧩 The plugins checked | upkeep | ✅ 16 Oct: userpdfs merged into documents (C333: the PDFs counted where they are), routine_status (the same as routines) and email_diag (a diagnosis of an email never set) in the plugins' trash: 45 → 42 |
@@ -35,9 +35,33 @@ its sandbox (C328), the blocks at Cloudflare counted (C329). Published: v0.2.30,
 | N20 | 📜 The plugin contract | build | ✅ 16 Oct: plg_contract — one definition of plugin.json for the hand-made, the forged and the private plugins; 42 of 42 follow it; a field outside it is refused; in PLUGINS.md. The routines (agents) already had theirs: sys_routines.validate |
 | N21 | 🧭 A plugin with a page is configured in its page | build | ✅ 16 Oct: the contract's «page»: 23 plugins in their pages (security and netintel in 🔌 Firewall, health in Care, the socials in Social, calendar, diary, dj, projects with cad, patent and pyenv, routines with runs, backup and logs in Status, cloudflare in HTTPS); the Plugins grid keeps the 19 general ones (Home Assistant, link check, news, web…); the same settings box everywhere (settings_form.js). The «cloud» plugin went to the trash: its keys are in ☁️ Accounts, the masking and compression in its box «Cosa esce verso il cloud». A 💶 Spese page in ✨ Vita |
 | N22 | ☁️ Cloudflare in the Security area | build | ✅ 16 Oct: its own page — what Aurora may block by herself (🤖 «edge»), the tunnel, the blocks active with «Sblocca», the ones lifted and by whom, who hit Aurora through Cloudflare with «Blocca»; the Plugins page's paged plugins as buttons to their pages; ☁️ Accounts shows the masked words (the owner's, added and removed there; Aurora's own, shown) |
+| N23 | 🎭 Her character per user | build | ✅ 16 Oct: chosen at installation, now each person's own — a screen of the first run («Che carattere vuoi che abbia con te?», 6 screens), and Settings → Interface; the name and the character stay the person's even when the admin keeps their settings (sys_users_perm.PERSONAL) |
 
 Proposed order: N1 and N2 (small, open bugs) → N3 runs by itself → N7 (the owner's answers) → N4 (a long run: the GPU and
 the cloud busy, nothing else meanwhile) → N5 → N10 → N8, N9.
+
+## Still open from the earlier lists (checked 16 Oct)
+
+The owner, 16 Oct: «dalla roadmap sono sparite delle cose, vedi l'attrezzatura astronomica». Nothing was deleted (the
+history of this file in git: every section is still below, the astro one unchanged since 5 Oct); the lists of each day
+(N1–N22) took only that day's work, so the older open items fell out of sight. All of them, read again one by one, the
+done ones left out; the number is the row's in the older tables below.
+
+| area | open | rows |
+|---|---|---|
+| 🔭 Astro (nothing built yet) | watch the equipment read-only (N.I.N.A., PHD2, ASCOM Alpaca) and a morning night report; plan the night; tune the guiding with an A/B on the RMS; «sviluppa le foto di stanotte» (WBPP headless, the calibration library, the owner's recipe); plate solving and Flickr; the 🔭 tab with the equipment profile from the manuals. Needs the owner's data (OS, versions, focal length, sensor) and the mini PC | 23, 79, Phase 3b, plan of 1 Oct #8 |
+| 📚 Knowledge | the vault on/off on vault-only questions (T2's rest); laws of other countries; programming docs harvested and a coding question from them; patents; synapses with a meaning (same method, applies, contradicts); a shadow gone stale when its sources change; LoRA measured before any choice; the owner's own sources by wildcard and crawl; owner-defined domains from the WebUI; a math-aware PDF reader for 13 papers | T2, 2, 15, 16, 20, 20b, 21, 26, 28, 29, 77 |
+| 🛡️ Security | plans, audit and network map in a neutral model (N8's rest; sec_fwplan still writes for the first dialect); a dialect from pasted manual pages for any brand; exfiltration (hourly volumes, slow leaks, new destinations); the missed traps of 104; abuse reports as approvals; the owner's signing key off this machine; a dedicated system user for new installations; storage encryption; a test that scans the logs for every secret | 82, 83, 104, 108, SECURITY.md |
+| 🗣️ Presence and pages | calendar two-way sync; updates «only releases»; command cards for the other shell steps; the phone app (76); camera events as triggers; a project's web app in the cage; a third language; emotion causes in English; drinks counted; the trainer's plan; menu styles timed by a newcomer (107); each user's own models (106) and reset of their settings (102); users as system accounts (U6); real stems for the DJ (a GPU job, the owner's choice) | 7, 17, 22, 52, 55, 68, 69, 74, 75, 76, 88, 97–102, 106, 107, U6 |
+| 🐙 Publishing | a smoke test of every HTTP route; the schema's descriptions without this machine's numbers; the Mac and Windows installers' last phases | Depth 3, Phase 5, 67, 70 |
+
+Measurements promised and not made yet: a week of soak (6); the lessons on the local model with and without (T4, 94);
+IFEval, HumanEval and a tool-use set (18b); refusals going down week by week (24); the deep path step by step (27); the
+seed's share on a fresh install (30, 84); shadow hits for tools and the tokens they save (31, 32); the same picture asked
+again (33); steps and minutes of an agent's real goal (34); a week of incidents and the scorecard with the owner's verdicts
+(43, 81); the providers' real free tiers (45); the night-trained questions' quality (46); the judge on good answers (49);
+the barge-in on a phone (99); the two other hardware profiles; another team's install on other hardware; the forge over
+weeks; astro on one real night.
 
 ## 15 October 2026 — the plan of that day, kept for the record
 

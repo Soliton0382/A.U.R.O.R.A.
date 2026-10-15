@@ -4872,6 +4872,7 @@
   },
   {
    "key": "AURORA_CLOUDFLARE_ACCOUNT_ID",
+   "scope": "user",
    "type": "str",
    "category": "plugins",
    "recommended": "",
@@ -4884,6 +4885,7 @@
   },
   {
    "key": "AURORA_CLOUDFLARE_API_TOKEN",
+   "scope": "user",
    "type": "str",
    "category": "plugins",
    "recommended": "",
@@ -4898,6 +4900,7 @@
   },
   {
    "key": "AURORA_CLOUDFLARE_TUNNEL",
+   "scope": "user",
    "type": "str",
    "category": "plugins",
    "recommended": "aurora",
@@ -4923,6 +4926,7 @@
   },
   {
    "key": "AURORA_CLOUDFLARE_DOMAIN",
+   "scope": "user",
    "type": "str",
    "category": "plugins",
    "recommended": "",
@@ -4936,6 +4940,7 @@
   },
   {
    "key": "AURORA_CLOUDFLARE_DNS",
+   "scope": "user",
    "type": "str",
    "category": "plugins",
    "recommended": "",

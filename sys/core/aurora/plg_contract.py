@@ -30,7 +30,8 @@ FIELDS = {
     "effects": (dict, True, "tool → read | write_local | external; \"*\" for the rest"),
     "env": (list, False, "settings passed to its program"),
     "settings": (list, False, "settings shown in its card"),
-    "settings_spec": (list, False, "its own settings: {key AURORA_<NAME>_…, type, secret, it, en}"),
+    "settings_spec": (list, False, "its own settings: {key AURORA_<NAME>_…, type, secret, scope, it, en}; scope "
+                                   "\"user\": a person's account, kept in their own .env"),
     "setup": (dict, False, "{it, en, links}: how to set it up"),
     "sandbox": (dict, False, "{network: bool, write: [setting names of folders]}: the cage"),
     "tests": ((list, dict), False, "read tools called by «Prova»: [{tool, args}] or {tool: args}"),
@@ -102,4 +103,6 @@ def check(m: dict, folder: str = "") -> list[str]:
         key = str((s or {}).get("key", ""))
         if not key.startswith(prefix):
             out.append(f"settings_spec {key}: its own settings start with {prefix}")
+        if (s or {}).get("scope", "machine") not in ("machine", "user"):
+            out.append(f"settings_spec {key}: scope machine or user")
     return out
