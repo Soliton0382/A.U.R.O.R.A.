@@ -37,6 +37,7 @@ import secOut from "./modules/security_out_page.js";
 import secTrace from "./modules/security_trace.js";
 import secFirewalls from "./modules/security_firewalls.js";
 import expenses from "./modules/expenses.js";
+import secEdge from "./modules/security_edge.js";
 import ciso from "./modules/ciso.js";
 import firewall from "./modules/firewall.js";
 import aurorafw from "./modules/aurorafw.js";
@@ -56,7 +57,7 @@ import { kinds as homeKinds } from "./modules/home.js";
 let local = { views: [] };
 try { local = await import("./local/index.js"); } catch { /* none on this installation */ }
 
-export const views = [today, advanced, chat, approvals, reports, secFirewalls, security, ciso, firewall, aurorafw, secDefence, secWatch, secOut, secTrace, autonomy, diary, dreams, memory, social, dj, care, expenses, home, calendar, projects, routines, models, accounts, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, settings, https, guide, bugreport, ideas];
+export const views = [today, advanced, chat, approvals, reports, secFirewalls, secEdge, security, ciso, firewall, aurorafw, secDefence, secWatch, secOut, secTrace, autonomy, diary, dreams, memory, social, dj, care, expenses, home, calendar, projects, routines, models, accounts, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, settings, https, guide, bugreport, ideas];
 views.push(...homeKinds, ...local.views);
 export const widgets = [sky, alerts, metrics, brain];
 
@@ -73,11 +74,11 @@ export const groups = [
   { id: "work", icon: "🛠️", title: "nav.g.work", views: ["projects", "routines", "uploads"] },
   { id: "knowledge", icon: "📚", title: "nav.g.knowledge", views: ["import", "harvester", "synapses"] },
   // the security area (owner, 2026-10-08: «sotto menù specifici CISO, etc… separate e pulite»)
-  { id: "security", icon: "🛡️", title: "nav.g.security", views: ["firewalls", "security", "ciso", "firewall", "aurorafw", "secdefence", "secwatch", "secout", "sectrace"] },
+  { id: "security", icon: "🛡️", title: "nav.g.security", views: ["firewalls", "edge", "security", "ciso", "firewall", "aurorafw", "secdefence", "secwatch", "secout", "sectrace"] },
   { id: "autonomy", views: ["autonomy"] },
   { id: "system", icon: "⚙️", title: "nav.g.system", views: ["status", "models", "accounts", "plugins", "users", "settings", "https", "updates"] },
   { id: "help", icon: "❓", title: "nav.g.help", views: ["guide", "bugreport", "ideas"] },
 ];
 // the machine's pages (owner, 2026-10-06, multi-user): a user sees neither them in the menu nor their data (the API
 // answers 403); their own preferences are in 👥 Users → My account, their plugins' settings in the plugins' cards
-export const adminOnly = new Set(["firewalls", "security", "ciso", "firewall", "aurorafw", "secdefence", "secwatch", "secout", "sectrace", "models", "harvester", "synapses", "status", "updates", "settings", "import", "https"]);
+export const adminOnly = new Set(["firewalls", "edge", "security", "ciso", "firewall", "aurorafw", "secdefence", "secwatch", "secout", "sectrace", "models", "harvester", "synapses", "status", "updates", "settings", "import", "https"]);

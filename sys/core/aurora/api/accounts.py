@@ -183,3 +183,16 @@ def remove_service(sid: str) -> dict:
         raise HTTPException(status_code=404, detail="no such service") from None
     log.info("audit: cloud service %s removed by %s", sid, me())
     return {"removed": sid}
+
+
+# ---- 🔒 what is masked toward the cloud (owner, 16 Oct: «oltre a vedere il set delle parole mascherate, avere la
+# possibilità di aggiungerle»): the owner's own words (AURORA_CLOUD_MASK_WORDS, changed here), and the ones Aurora masks
+# by herself (the owner's name, domain, place, coordinates, home folder) shown, not changed here
+@router.get("/v1/aurora/accounts/mask", dependencies=[Depends(auth)])
+def mask_words() -> dict:
+    from aurora.sec_mask import Pseudonymizer
+    if me() != _admin():
+        raise HTTPException(status_code=403, detail="only the admin")
+    mine = [w.strip() for w in str(cfg["AURORA_CLOUD_MASK_WORDS"] or "").split(",") if w.strip()]
+    auto = [w for w in Pseudonymizer(cfg).private if w not in mine]
+    return {"mine": mine, "automatic": auto, "secrets": len(Pseudonymizer(cfg).secrets)}

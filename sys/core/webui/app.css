@@ -138,6 +138,18 @@ body.drawer-open .scrim { opacity: 1; pointer-events: auto; }
 .settings-filter { width: 100%; max-width: 420px; margin-bottom: .4rem; }
 .settings-nav { display: flex; flex-wrap: wrap; gap: .35rem; }
 .cat-chip { font-size: .78rem; padding: .15rem .55rem; border-radius: 999px; }
+/* ⚙️ a page's own plugins (plugin_slot.js) and the Plugins page's buttons to them */
+.plug-slot { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin: .2rem 0 .8rem; }
+.plug-chip { display: inline-flex; align-items: center; gap: .3rem; padding: .3rem .75rem; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--surface); color: inherit; cursor: pointer; min-height: 36px; }
+.plug-chip.off { opacity: .7; }
+.plug-chip:hover { border-color: var(--accent); }
+.plug-paged { margin-top: 1rem; }
+/* 🔒 the masked words (accounts.js) */
+.mask-words { display: flex; flex-wrap: wrap; gap: .4rem; margin: .4rem 0; }
+.mask-word { display: inline-flex; align-items: center; gap: .3rem; padding: .2rem .3rem .2rem .7rem; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--surface); }
+.mask-word button { background: none; border: none; color: inherit; cursor: pointer; min-width: 28px; min-height: 28px; }
 .setting.hidden, .setting-cat.hidden { display: none; }
 .notif-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.2rem; }
 .notif-col select { margin: .3rem 0 .6rem; }

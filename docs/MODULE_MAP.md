@@ -366,6 +366,7 @@ Static files served by aurora-api; no build step. The page is a showcase that co
 | `js/modules/plugin_slot.js` | ⚙️ the plugins of a page («page» in their manifest), one chip each with its state, opening the same window as the Plugins page (plugins.js openPlugin) |
 | `js/modules/settings_form.js` | ⚙️ a few settings in a box (checkbox, menu, number, secret never shown), saved through PUT /v1/aurora/settings with the restart asked: a plugin's window and a page's own box (Accounts) |
 | `js/modules/expenses.js` | 💶 Spese in ✨ Vita: the month by category and the latest spendings from the expenses plugin's read tools; its settings at the top |
+| `js/modules/security_edge.js` | ☁️ Cloudflare in the security area: the «edge» autonomy, the plugin's settings, the tunnel, the blocks active (Sblocca) and lifted (by whom), who hit Aurora through Cloudflare (Blocca) — api/edge on net_cfwaf |
 | `js/modules/accounts.js` | ☁️ Cloud accounts: the policy in plain words, what each provider uses now, the accounts, the Claude sign-in (link, code), add a key or a subscription | /v1/aurora/accounts |
 | `js/modules/accounts_services.js` | ➕ services of one's own on the Cloud accounts page: suggestions, name, address, key, «Prova», remove | /v1/aurora/accounts/services |
 | `js/modules/dreams.js` | 🌙 Dreams: every dream with its painting, a gallery 24 at a time, search, one opened above the gallery | /v1/aurora/dreams |

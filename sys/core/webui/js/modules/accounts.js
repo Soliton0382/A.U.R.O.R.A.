@@ -28,6 +28,42 @@ export default {
     this.privacyBox = root.querySelector(".acc-cloud-out");
   },
 
+  // 🔒 the masked words: the owner's own, added and removed here; Aurora's own (the owner's name, domain, place…) shown
+  async maskBox() {
+    const box = el("div", "plug-settings");
+    box.append(el("h4", "", `🔒 ${t("acc.cloud_out")}`), el("p", "muted", t("acc.mask_hint")));
+    let m;
+    try { m = await call("/v1/aurora/accounts/mask"); } catch (e) { box.append(el("p", "error", e.message)); return box; }
+    const save = async (words) => {
+      await call("/v1/aurora/settings", { method: "PUT", body: JSON.stringify({ AURORA_CLOUD_MASK_WORDS: words.join(", ") }) });
+      this.privacyBox.firstChild.replaceWith(await this.maskBox());
+    };
+    const mine = el("div", "mask-words");
+    for (const w of m.mine) {
+      const chip = el("span", "mask-word", w);
+      const x = el("button", "", "✕");
+      x.title = t("acc.mask_remove");
+      x.addEventListener("click", () => save(m.mine.filter((y) => y !== w)).catch((e) => alert(e.message)));
+      chip.append(x);
+      mine.append(chip);
+    }
+    if (!m.mine.length) mine.append(el("span", "muted", t("acc.mask_none")));
+    const add = el("form", "appr-actions");
+    const input = el("input");
+    input.placeholder = t("acc.mask_add_ph");
+    const go = el("button", "approve", `➕ ${t("acc.mask_add")}`);
+    add.append(input, go);
+    add.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const fresh = input.value.split(",").map((w) => w.trim()).filter((w) => w.length >= 3 && !m.mine.includes(w));
+      if (fresh.length) save([...m.mine, ...fresh]).catch((err) => alert(err.message));
+    });
+    const auto = el("div", "mask-words");
+    auto.append(...m.automatic.map((w) => el("span", "mask-word muted", w)));
+    box.append(mine, add, el("p", "muted", t("acc.mask_auto", { n: m.secrets })), auto);
+    return box;
+  },
+
   async enter() {
     try { this.d = await call("/v1/aurora/accounts"); }
     catch (e) { this.list.replaceChildren(el("p", "error", t("ev.error", { m: e.message }))); return; }
@@ -39,8 +75,8 @@ export default {
     // what leaves for the cloud, kept here since the «cloud» plugin went (owner, 2026-10-16: the page «è più completa»):
     // the words masked, the compression (SSCC, M41 and M223: no loss measured) and how much of each text it keeps
     if (this.d.admin) {
-      this.privacyBox.replaceChildren(await settingsForm(["AURORA_CLOUD_MASK_WORDS", "AURORA_CLOUD_COMPRESSION", "AURORA_CLOUD_KEEP_PCT"],
-        { title: `🔒 ${t("acc.cloud_out")}` }));
+      this.privacyBox.replaceChildren(await this.maskBox(),
+        await settingsForm(["AURORA_CLOUD_COMPRESSION", "AURORA_CLOUD_KEEP_PCT"], { title: `🗜️ ${t("acc.compression")}` }));
     }
   },
 

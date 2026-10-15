@@ -65,8 +65,8 @@ export default {
     view.append(track);
     box.replaceChildren(el("span", "td-news-label", `📰 ${t("today.news")}`), view);
     box.hidden = false;
-    // a steady speed whatever the number of headlines (owner, 2026-10-16: 16 in 112 s «sembrano ferme», then «leggermente più veloci»): ~120 px a second
-    requestAnimationFrame(() => track.style.setProperty("--td-news-s", `${Math.max(20, Math.round(track.scrollWidth / 2 / 120))}s`));
+    // a steady speed whatever the number of headlines (owner, 2026-10-16: 16 in 112 s «sembrano ferme», then «leggermente più veloci», «ancora un pochino»): ~170 px a second
+    requestAnimationFrame(() => track.style.setProperty("--td-news-s", `${Math.max(20, Math.round(track.scrollWidth / 2 / 170))}s`));
   },
 
   // the last report of the research routines, with its PDF (owner, 2026-10-16: «le novità della ricerca… in Oggi»)

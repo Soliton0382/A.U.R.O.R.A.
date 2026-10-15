@@ -65,7 +65,8 @@ const view = {
   icon: "🧩",
   title: "nav.plugins",
 
-  mount(root) {
+  mount(root, ctx) {
+    this.ctx = ctx;
     useCss("/static/css/agents.css");
     root.classList.add("page");
     root.innerHTML = `<h2 data-i18n="plug.title"></h2><p class="muted" data-i18n="plug.hint"></p><div class="plug-grid"></div>`;
@@ -83,9 +84,19 @@ const view = {
     const plugins = all.filter((p) => !p.page);
     const paged = all.filter((p) => p.page);
     this.root.querySelector(".plug-paged")?.remove();
-    if (paged.length) {
-      const note = el("p", "muted plug-paged", t("plug.paged", { list: paged.map((p) => `${p.name} → ${document.querySelector(`#nav button[data-view="${p.page}"]`)?.textContent.trim() || p.page}`).join(" · ") }));
-      this.grid.after(note);
+    if (paged.length) {                              // one button each, to the page where it is set (owner, 2026-10-16)
+      const box = el("div", "plug-paged");
+      box.append(el("p", "muted", t("plug.paged_hint")));
+      const row = el("div", "chips");
+      for (const p of paged) {
+        const label = document.querySelector(`#nav button[data-view="${p.page}"]`)?.textContent.trim() || p.page;
+        const b = el("button", `plug-chip ${p.available ? "on" : "off"}`, `${p.available ? "✅" : p.missing?.length ? "⚠️" : "⏸️"} ${p.name} → ${label}`);
+        b.type = "button";
+        b.addEventListener("click", () => this.ctx?.show(p.page));
+        row.append(b);
+      }
+      box.append(row);
+      this.grid.after(box);
     }
     this.grid.replaceChildren(...plugins.map((p) => {
       const b = el("button", `plug-tile ${p.available ? "on" : "off"}`);
