@@ -7,15 +7,29 @@ import { call } from "../api.js";
 import { el } from "../dom.js";
 import { lang, t } from "../i18n.js";
 import { restartPrompt } from "../restart.js";
+import { openWizard } from "./wizard.js";
 
 // keys: the settings; title: the box's heading; choices: {key: [{id, name}]} for a key chosen from a list;
-// after(form): more inside the box (the weather's town); onSaved(r, restarted): after a save
-export async function settingsForm(keys, { title = "", choices = {}, after = null, onSaved = null } = {}) {
+// after(form): more inside the box (the weather's town); onSaved(r, restarted): after a save; guide: {title, intro,
+// links} — the plugin's own guide, the first step of its 🧙 guided window
+export async function settingsForm(keys, { title = "", choices = {}, after = null, onSaved = null, guide = null } = {}) {
   const code = lang.slice(0, 2);
   const all = (await call("/v1/aurora/settings")).settings;
   const specs = all.filter((s) => keys.includes(s.key));
   const form = el("div", "plug-settings");
-  form.append(el("h4", "", title || `⚙️ ${t("plug.settings")}`));
+  const head = el("div", "plug-settings-head");
+  head.append(el("h4", "", title || `⚙️ ${t("plug.settings")}`));
+  if (specs.length) {                                    // the same settings, one a step, with their explanation
+    const wz = el("button", "wz-open", `🧙 ${t("wz.open")}`);
+    wz.type = "button";
+    wz.addEventListener("click", () => openWizard(specs, { guide: guide || { title }, choices,
+      onSaved: async (r, restarted) => {
+        form.replaceWith(await settingsForm(keys, { title, choices, after, onSaved, guide }));
+        if (onSaved) onSaved(r, restarted);
+      } }));
+    head.append(wz);
+  }
+  form.append(head);
   for (const s of specs) {
     const row = el("label", "plug-field");
     const list = choices[s.key];

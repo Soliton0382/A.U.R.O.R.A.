@@ -90,22 +90,26 @@ def security_weekly() -> dict:
 
 
 @router.get("/v1/aurora/security/netmap", dependencies=[Depends(admin_only)])
-def netmap() -> dict:
-    """The network seen from the firewall (sec_netmap): counts, what the last look changed, address -> name."""
-    from aurora import sec_fwapi, sec_netmap
+def netmap(fw: str = "main") -> dict:
+    """The network seen from one firewall (sec_netmap; «main» the settings' one): counts, what the last look changed,
+    address -> name (from every firewall's map), and the firewalls that can be read."""
+    from aurora import sec_firewalls, sec_fwapi, sec_netmap
     try:
-        m = sec_netmap.load(cfg)
+        m = sec_netmap.load(cfg, "netmap", fw)
     except ValueError as e:
         raise HTTPException(status_code=500, detail=str(e)) from None
+    firewalls = [{"id": x["id"], "name": x.get("name") or x["id"], "kind": x.get("kind")} for x in sec_firewalls.items(cfg)
+                 if x.get("confirmed") or x["id"] == "main"]
     return {**sec_netmap.summary(m), "changes": (m or {}).get("changes"), "names": sec_netmap.names(cfg),
-            "configured": sec_fwapi.configured(cfg)}
+            "configured": sec_fwapi.configured(cfg) or len(firewalls) > 0, "fw": fw, "firewalls": firewalls,
+            "seen": len((m or {}).get("seen") or [])}
 
 
 @router.post("/v1/aurora/security/netmap/refresh", dependencies=[Depends(admin_only)])
-async def netmap_refresh() -> dict:
+async def netmap_refresh(fw: str = "main") -> dict:
     from aurora import sec_fwapi, sec_netmap
     try:
-        r = await asyncio.to_thread(sec_netmap.refresh, cfg)
+        r = await asyncio.to_thread(sec_netmap.refresh, cfg, fw)
     except sec_fwapi.FirewallAPIError as e:
         raise HTTPException(status_code=502, detail=str(e)) from None
     log.info("audit: network map refreshed (%d hosts, %d new, %d gone)", r["hosts"], len(r["changes"]["new"]),
@@ -114,15 +118,15 @@ async def netmap_refresh() -> dict:
 
 
 @router.get("/v1/aurora/security/netmap/graph", dependencies=[Depends(admin_only)])
-def netmap_graph() -> dict:
+def netmap_graph(fw: str = "main") -> dict:
     from aurora import sec_netmap
-    return sec_netmap.graph(sec_netmap.load(cfg))
+    return sec_netmap.graph(sec_netmap.load(cfg, "netmap", fw))
 
 
 @router.get("/v1/aurora/security/netmap/find", dependencies=[Depends(admin_only)])
-def netmap_find(q: str) -> dict:
+def netmap_find(q: str, fw: str = "main") -> dict:
     from aurora import sec_netmap
-    m = sec_netmap.load(cfg)
+    m = sec_netmap.load(cfg, "netmap", fw)
     return {"lines": sec_netmap.find(m, q) if m and q.strip() else []}
 
 

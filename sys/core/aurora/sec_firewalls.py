@@ -222,6 +222,5 @@ def kinds() -> list[dict]:
     out = []
     for k in KINDS:                                       # the modules alone: no configuration needed
         d = importlib.import_module(f"{__package__}.fw_drivers.{k}")
-        out.append({"kind": k, "docs": getattr(d, "DOCS", {}), "full": k == "sophos",
-                    "user_is_key": k == "opnsense"})
+        out.append({"kind": k, "docs": getattr(d, "DOCS", {}), "user_is_key": k == "opnsense"})   # all: audit, map, plans (N8)
     return out

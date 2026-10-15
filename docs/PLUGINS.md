@@ -44,6 +44,7 @@ Every plugin.json follows it (aurora/plg_contract.py: the tests check every plug
 
 | plugin | kind | tools (effect) | needs |
 |---|---|---|---|
+| `astro` | tool | astro_profile (read), astro_darks (read), astro_files (read) | — |
 | `backup` | service | — | — |
 | `cad` | tool | cad_build (write_local), cad_drawings (write_local), cad_blueprint (write_local) | — |
 | `calendar` | tool | calendar_agenda (read), calendar_add (write_local), calendar_remind (write_local), calendar_change (write_local), calendar_delete (write_local), calendar_add_event (external) | — |
@@ -83,6 +84,18 @@ Every plugin.json follows it (aurora/plg_contract.py: the tests check every plug
 | `weather` | tool | — | AURORA_WEATHER_LAT, AURORA_WEATHER_LON |
 | `web` | tool | fetch_url (read), search (read) | — |
 | `whatsapp` | connector | whatsapp_send (external), whatsapp_send_template (external) | AURORA_WHATSAPP_TOKEN, AURORA_WHATSAPP_PHONE_ID, AURORA_WHATSAPP_TO |
+
+## astro
+
+Your astrophotography equipment, read from the inventory of the PC that drives it (N.I.N.A., PHD2, ASCOM, ASTAP) and from the integrated darks' library: telescope, mount, cameras and scales, guiding, darks available, what to check.
+
+### Setup (EN)
+
+In the 🔭 Astro page: download the script, run it on the telescope's PC with the command shown and upload here the astro_inventory.txt it writes. If your integrated darks are on this machine, give their folder (AURORA_ASTRO_DARKS_DIR): read only. The plugin has no network.
+
+### Configurazione (IT)
+
+Nella pagina 🔭 Astro: scarica lo script, lancialo sul PC del telescopio con il comando indicato e carica qui il file astro_inventory.txt che scrive. Se i tuoi dark integrati sono su questa macchina, indica la loro cartella (AURORA_ASTRO_DARKS_DIR): solo letta. Il plugin non ha rete.
 
 ## backup
 

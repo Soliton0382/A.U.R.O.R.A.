@@ -35,21 +35,25 @@ def plan_port_block(cfg: sys_config.Config, ip: str, ports: str, reason: str, ho
             "blocca su Cloudflare (cloudflare_block).")
     if not 1 <= float(hours) <= 24 * 30:
         raise sec_fwwrite.WriteError("durata: da 1 ora a 30 giorni")
-    conf = conf if conf is not None else sec_fwconf.read(cfg)
     tag = "_".join(q.replace(":", "-") for _, q in plist)[:12]
     name = f"{sec_fwwrite.PREFIX}PB-{ip}-{tag}"
-    if sec_fwwrite._taken(conf, "FirewallRule", name):
-        raise sec_fwwrite.WriteError(f"{ip} è già bloccato su {tag} («{name}»)")
-    host = name.lower()
     said = ", ".join(f"{p} {q}" for p, q in plist)
     desc = f"Aurora: {ip} bloccato su {said} per {hours:g} h — {reason}"
-    steps = [sec_fwwrite.host_step(host, ip), sec_fwwrite.service_step(name, plist),
-             sec_fwwrite.rule_step(name, desc, ["WAN"], [], [name], [host], [], "Drop", "None", None)]
+    if sec_fwwrite._neutral(cfg):                     # the dialects of the neutral operations (sec_fwops)
+        steps, check = sec_fwwrite._ops(lambda o: o.port_block_steps(cfg, ip, plist, name, desc))
+    else:
+        conf = conf if conf is not None else sec_fwconf.read(cfg)
+        if sec_fwwrite._taken(conf, "FirewallRule", name):
+            raise sec_fwwrite.WriteError(f"{ip} è già bloccato su {tag} («{name}»)")
+        host = name.lower()
+        steps = [sec_fwwrite.host_step(host, ip), sec_fwwrite.service_step(name, plist),
+                 sec_fwwrite.rule_step(name, desc, ["WAN"], [], [name], [host], [], "Drop", "None", None)]
+        check = [("FirewallRule", name)]
     notes = [f"Tolto da solo dopo {hours:g} ore (o subito con «annulla»)."]
     if provider:
         notes.append(f"{ip} è di {provider}: il blocco vale solo per {said}, il resto del suo traffico passa.")
     return {"kind": "portblock", "title": f"Bloccare {ip} su {said}", "why": reason[:300], "steps": steps,
-            "notes": notes, "check": [("FirewallRule", name)], "hours": float(hours), "ip": ip}
+            "notes": notes, "check": check, "hours": float(hours), "ip": ip}
 
 
 def due(cfg: sys_config.Config, now: float | None = None) -> list[str]:

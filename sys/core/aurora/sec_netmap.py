@@ -68,8 +68,13 @@ def parse(raw: dict[str, list[ET.Element]]) -> dict:
             "routes": routes}
 
 
-def load(cfg: sys_config.Config, which: str = "netmap") -> dict | None:
-    f = _dir(cfg) / f"{which}.sealed"
+def _stem(which: str, fid: str) -> str:
+    """The settings' firewall keeps the files it always had; each other firewall its own (netmap-<id>)."""
+    return which if fid in ("", "main") else which.replace("netmap", f"netmap-{fid}", 1)
+
+
+def load(cfg: sys_config.Config, which: str = "netmap", fid: str = "main") -> dict | None:
+    f = _dir(cfg) / f"{_stem(which, fid)}.sealed"
     return json.loads(sys_seal.read(cfg, f, None, "network")) if f.exists() else None
 
 
@@ -89,15 +94,31 @@ def diff(old: dict | None, new: dict) -> dict:
             "moved": sorted(f"{n}: {a[n]} → {b[n]}" for n in a.keys() & b.keys() if a[n] != b[n])}
 
 
-def refresh(cfg: sys_config.Config) -> dict:
+def read(fw: sys_config.Config) -> dict:
+    """The network of one firewall (its configuration: sec_firewalls.view), in this module's form, any dialect: the
+    first dialect's objects parsed here, the others' read by their driver (read_network)."""
+    if str(fw["AURORA_FIREWALL_API_KIND"]) == "sophos":
+        return parse({e: _get(fw, e) for e in ENTITIES})
+    from .fw_drivers import driver
+    return driver(fw).read_network(fw)
+
+
+def refresh(cfg: sys_config.Config, fid: str = "main") -> dict:
     """Read the firewall now, seal the map, keep the one before; returns the summary and what changed."""
-    new = parse({e: _get(cfg, e) for e in ENTITIES})
-    old = load(cfg)
+    from . import sec_firewalls
+    item = next((x for x in sec_firewalls.items(cfg) if x["id"] == fid), None)
+    if item is None and fid != "main":
+        raise sec_fwapi.FirewallAPIError(f"no firewall {fid!r} (🛡️ Security → Firewall)")
+    # the settings' firewall is read as it always was, also when the list has not seen it yet
+    item = item or {"id": "main", "kind": str(cfg["AURORA_FIREWALL_API_KIND"])}
+    new = read(sec_firewalls.view(cfg, item) if item.get("url") else (cfg.base or cfg))
+    new["firewall"] = {"id": fid, "name": item.get("name") or fid, "kind": item.get("kind")}
+    old = load(cfg, "netmap", fid)
     new["changes"] = diff(old, new)                     # kept with the map: the page says what the last look found
     d = _dir(cfg)
     if old is not None:
-        sys_seal.write(cfg, d / "netmap.prev.sealed", json.dumps(old, ensure_ascii=False).encode(), None, "network")
-    sys_seal.write(cfg, d / "netmap.sealed", json.dumps(new, ensure_ascii=False).encode(), None, "network")
+        sys_seal.write(cfg, d / f"{_stem('netmap', fid)}.prev.sealed", json.dumps(old, ensure_ascii=False).encode(), None, "network")
+    sys_seal.write(cfg, d / f"{_stem('netmap', fid)}.sealed", json.dumps(new, ensure_ascii=False).encode(), None, "network")
     _names["at"] = 0.0
     return {**summary(new), "changes": new["changes"]}
 
@@ -114,20 +135,29 @@ def names(cfg: sys_config.Config) -> dict[str, str]:
     """address -> name, from the hosts of one address and the reserved DHCP addresses (the map unsealed once a minute)."""
     if time.time() - _names["at"] < 60:
         return _names["map"]
-    m, out = None, {}
-    try:
-        m = load(cfg)
-    except (ValueError, OSError):
-        pass
-    for s in (m or {}).get("dhcp", []):
-        for l in s["static"]:
-            if l["host"]:
-                out[l["ip"]] = l["host"]
-    for h in (m or {}).get("hosts", []):                # a name given on the firewall wins over the DHCP host name
-        if h["type"] == "IP" and h["address"] and not h["name"].startswith("aurora-block-"):
-            out[h["address"]] = h["name"]
+    out: dict[str, str] = {}
+    for fid in reversed(stored(cfg)):                   # every firewall's map; the settings' one last, so it wins
+        try:
+            m = load(cfg, "netmap", fid)
+        except (ValueError, OSError):
+            continue
+        for s in (m or {}).get("dhcp", []):
+            for l in s["static"]:
+                if l["host"]:
+                    out[l["ip"]] = l["host"]
+        for h in (m or {}).get("hosts", []):            # a name given on the firewall wins over the DHCP host name
+            if h["type"] == "IP" and h["address"] and not h["name"].startswith("aurora-block-"):
+                out[h["address"]] = h["name"]
     _names.update(at=time.time(), map=out)
     return out
+
+
+def stored(cfg: sys_config.Config) -> list[str]:
+    """The firewalls with a map saved: «main» (the settings' one) first."""
+    d = _dir(cfg)
+    others = sorted(f.name[len("netmap-"):-len(".sealed")] for f in d.glob("netmap-*.sealed") if not f.name.endswith(".prev.sealed")) \
+        if d.is_dir() else []
+    return (["main"] if (d / "netmap.sealed").exists() else []) + others
 
 
 def by_mac(cfg: sys_config.Config, mac: str) -> tuple[str, str] | None:

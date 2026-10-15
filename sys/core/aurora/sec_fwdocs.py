@@ -22,6 +22,7 @@ from __future__ import annotations
 import html
 import re
 import sqlite3
+import threading
 import time
 from pathlib import Path
 from urllib.parse import quote, urljoin
@@ -57,10 +58,14 @@ def url(cfg: sys_config.Config, source: str) -> str:
     return own if (not value or value == spec.get("recommended")) and own else value
 
 
+_refreshing: dict[str, threading.Lock] = {}          # one index refreshed by one thread at a time (C338)
+_guard = threading.Lock()
+
+
 def _db(cfg: sys_config.Config) -> sqlite3.Connection:
     p = path(cfg)
     p.parent.mkdir(parents=True, exist_ok=True)
-    con = sqlite3.connect(p)
+    con = sqlite3.connect(p, timeout=30)               # a reader's moment never fails a writer
     con.execute("CREATE TABLE IF NOT EXISTS pages (url TEXT PRIMARY KEY, kind TEXT, title TEXT, fetched REAL)")
     con.execute("CREATE VIRTUAL TABLE IF NOT EXISTS passages USING fts5(kind, title, url UNINDEXED, text, "
                 "tokenize='porter unicode61')")
@@ -216,7 +221,11 @@ def refresh(cfg: sys_config.Config, kinds: tuple[str, ...] = ("syslog", "api", "
     is counted, not fatal. Returns {kind: {"pages", "passages", "failed"}}."""
     log = sys_log.get_logger("security")
     out = {}
-    with httpx.Client(timeout=60, follow_redirects=True, headers=UA) as client:
+    with _guard:
+        lock = _refreshing.setdefault(str(path(cfg)), threading.Lock())
+    # C338, 16 Oct: a firewall saved and then connected started two refreshes of the same index; the second's writes
+    # failed «database is locked» page after page (70 in a morning): now the second waits for the first
+    with lock, httpx.Client(timeout=60, follow_redirects=True, headers=UA) as client:
         for kind in kinds:
             if kind == "syslog":
                 urls = [url(cfg, "syslog")]
@@ -237,7 +246,9 @@ def refresh(cfg: sys_config.Config, kinds: tuple[str, ...] = ("syslog", "api", "
                         done["pages"] += 1
                     except (httpx.HTTPError, sqlite3.Error, ValueError) as e:
                         done["failed"] += 1
-                        log.warning("fwdocs: %s not indexed: %s", link, e)
+                        gone = isinstance(e, httpx.HTTPStatusError) and e.response.status_code in (404, 410)
+                        # a page the guide's own index still lists but its site took away: counted, not a warning
+                        (log.info if gone else log.warning)("fwdocs: %s not indexed: %s", link, e)
                     if n % 50 == 0:
                         con.commit()
                         if progress:

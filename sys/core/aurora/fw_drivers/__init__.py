@@ -15,8 +15,10 @@ A driver is a module with:
                                           the body of one object of a plan
   get_rules() -> str / find_rule(text, name) -> str | None / harden(before, ips, log) -> str
                                           an owner's rule read, found and changed (IPS and log)
-The second and third drivers (pfsense and opnsense, step 2) have the call, the answers and the blocking group; a request for a plan's objects
-or an owner's rule is refused by it with the reason, never sent.
+The second and third drivers (pfsense, opnsense) have the call, the answers and the blocking group, and instead of the
+objects above: read_model(cfg, group) and read_network(cfg) (the audit's and the map's neutral form, sec_fwmodel and
+sec_netmap) and the neutral operations of a plan (put_alias, put_rule, put_nat, their drops; sec_fwops); a request for
+the first dialect's objects is refused by them with the reason, never sent.
 """
 from __future__ import annotations
 

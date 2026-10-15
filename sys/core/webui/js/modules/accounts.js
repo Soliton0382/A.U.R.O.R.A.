@@ -8,6 +8,7 @@ import { call } from "../api.js";
 import { clock, el } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { renderServices } from "./accounts_services.js";
+import { rulesList, wordsEditor } from "./mask_view.js";
 import { settingsForm } from "./settings_form.js";
 
 export default {
@@ -28,39 +29,22 @@ export default {
     this.privacyBox = root.querySelector(".acc-cloud-out");
   },
 
-  // 🔒 the masked words: the owner's own, added and removed here; Aurora's own (the owner's name, domain, place…) shown
+  // what leaves for the cloud (owner, 2026-10-16): the rules always on, your own words, the installation's (the
+  // admin's, edited by them), and what comes from the settings — for every user, each seeing their own
   async maskBox() {
     const box = el("div", "plug-settings");
     box.append(el("h4", "", `🔒 ${t("acc.cloud_out")}`), el("p", "muted", t("acc.mask_hint")));
     let m;
     try { m = await call("/v1/aurora/accounts/mask"); } catch (e) { box.append(el("p", "error", e.message)); return box; }
-    const save = async (words) => {
-      await call("/v1/aurora/settings", { method: "PUT", body: JSON.stringify({ AURORA_CLOUD_MASK_WORDS: words.join(", ") }) });
-      this.privacyBox.firstChild.replaceWith(await this.maskBox());
-    };
-    const mine = el("div", "mask-words");
-    for (const w of m.mine) {
-      const chip = el("span", "mask-word", w);
-      const x = el("button", "", "✕");
-      x.title = t("acc.mask_remove");
-      x.addEventListener("click", () => save(m.mine.filter((y) => y !== w)).catch((e) => alert(e.message)));
-      chip.append(x);
-      mine.append(chip);
-    }
-    if (!m.mine.length) mine.append(el("span", "muted", t("acc.mask_none")));
-    const add = el("form", "appr-actions");
-    const input = el("input");
-    input.placeholder = t("acc.mask_add_ph");
-    const go = el("button", "approve", `➕ ${t("acc.mask_add")}`);
-    add.append(input, go);
-    add.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const fresh = input.value.split(",").map((w) => w.trim()).filter((w) => w.length >= 3 && !m.mine.includes(w));
-      if (fresh.length) save([...m.mine, ...fresh]).catch((err) => alert(err.message));
-    });
+    const again = async () => { this.privacyBox.firstChild.replaceWith(await this.maskBox()); };
+    box.append(rulesList(m.rules, t("acc.mask_rules")),
+      el("h5", "", `👤 ${t("acc.mask_mine")}`), wordsEditor("AURORA_CLOUD_MASK_MINE", m.mine, { onSaved: again }));
+    box.append(el("h5", "", `🏠 ${t("acc.mask_house")}`));
+    if (m.admin) box.append(wordsEditor("AURORA_CLOUD_MASK_WORDS", m.installation, { onSaved: again, empty: t("acc.mask_house_none") }));
+    else box.append(el("p", "muted", t("acc.mask_house_n", { n: m.installation_n })));
     const auto = el("div", "mask-words");
     auto.append(...m.automatic.map((w) => el("span", "mask-word muted", w)));
-    box.append(mine, add, el("p", "muted", t("acc.mask_auto", { n: m.secrets })), auto);
+    box.append(el("h5", "", `⚙️ ${t("acc.mask_from_settings")}`), el("p", "muted", t("acc.mask_auto", { n: m.secrets })), auto);
     return box;
   },
 
@@ -74,10 +58,8 @@ export default {
     this.drawAdd();
     // what leaves for the cloud, kept here since the «cloud» plugin went (owner, 2026-10-16: the page «è più completa»):
     // the words masked, the compression (SSCC, M41 and M223: no loss measured) and how much of each text it keeps
-    if (this.d.admin) {
-      this.privacyBox.replaceChildren(await this.maskBox(),
-        await settingsForm(["AURORA_CLOUD_COMPRESSION", "AURORA_CLOUD_KEEP_PCT"], { title: `🗜️ ${t("acc.compression")}` }));
-    }
+    this.privacyBox.replaceChildren(await this.maskBox(), ...(this.d.admin ? [await settingsForm(
+      ["AURORA_CLOUD_COMPRESSION", "AURORA_CLOUD_KEEP_PCT"], { title: `🗜️ ${t("acc.compression")}` })] : []));
   },
 
   drawPolicy() {

@@ -6,13 +6,15 @@ import { call } from "../api.js";
 import { bus } from "../bus.js";
 import { el } from "../dom.js";
 import { t } from "../i18n.js";
+import { fwPick } from "./fw_pick.js";
 import { openMap } from "./security_map.js";
 
 export const defence = {
   // the network as the firewall sees it: counts, what the last look changed, a search, "look again"
   async loadMap() {
     let m;
-    try { m = await call("/v1/aurora/security/netmap"); } catch { this.map.replaceChildren(); return; }
+    const fw = encodeURIComponent(this.mapFw || "main");          // which firewall's map (more than one connected)
+    try { m = await call(`/v1/aurora/security/netmap?fw=${fw}`); } catch { this.map.replaceChildren(); return; }
     this.names = m.names || {};
     if (!m.configured) { this.map.replaceChildren(el("p", "warn", t("sec.def_no_api"))); return; }
     const line = el("p", "", m.at ? t("sec.map_counts", { when: new Date(m.at * 1000).toLocaleString(), d: m.devices, h: m.hosts,
@@ -25,20 +27,22 @@ export const defence = {
     const look = el("button", "", `🔄 ${t("sec.map_refresh")}`), out = el("span", "muted");
     look.addEventListener("click", async () => {
       look.disabled = true; out.textContent = "…";
-      try { await call("/v1/aurora/security/netmap/refresh", { method: "POST" }); this.loadMap(); }
+      try { await call(`/v1/aurora/security/netmap/refresh?fw=${fw}`, { method: "POST" }); this.loadMap(); }
       catch (e) { out.textContent = t("ev.error", { m: e.message }); look.disabled = false; }
     });
     const q = el("input"); q.placeholder = t("sec.map_find"); const found = el("div");
     q.addEventListener("change", async () => {
-      const r = await call(`/v1/aurora/security/netmap/find?q=${encodeURIComponent(q.value)}`).catch(() => ({ lines: [] }));
+      const r = await call(`/v1/aurora/security/netmap/find?q=${encodeURIComponent(q.value)}&fw=${fw}`).catch(() => ({ lines: [] }));
       found.replaceChildren(...(r.lines.length ? r.lines.map((x) => el("div", "", x)) : [el("p", "muted", t("sec.map_nothing"))]));
     });
     const draw = el("button", "primary", `🗺️ ${t("sec.map_show")}`);
     draw.disabled = !m.at;
-    draw.addEventListener("click", () => openMap());
+    draw.addEventListener("click", () => openMap(m.fw));
     const bar = el("div", "appr-actions");
     bar.append(draw, look, q, out);
-    this.map.replaceChildren(line, ...said, bar, found);
+    const pick = fwPick(m.firewalls, m.fw, (id) => { this.mapFw = id; this.loadMap(); });
+    const seen = m.seen ? [el("p", "muted", t("sec.map_seen", { n: m.seen }))] : [];   // leases and ARP, where the API gives them
+    this.map.replaceChildren(...(pick ? [pick] : []), line, ...seen, ...said, bar, found);
   },
 
   // 🧱 Aurora's own firewall, the threat lists, the devices learning their normal, the decoys, the week (owner, 2026-10-06)

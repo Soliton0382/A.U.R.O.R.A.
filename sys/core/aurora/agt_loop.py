@@ -178,6 +178,10 @@ class Agent(AgentMakers, AgentReport):
                 f"tags:\n<tools>\n{tools}\n</tools>\n\nFor each function call, return a json object with function "
                 f"name and arguments within <tool_call></tool_call> XML tags:\n<tool_call>\n"
                 f'{{"name": <function-name>, "arguments": <args-json-object>}}\n</tool_call>'
+                # C337: Claude wrote its own <invoke> form; through claude -p (no native tools) that form is sometimes
+                # taken as a native call and refused («tool call could not be parsed»): the step went to the local model
+                + "\n\nWrite every call as plain text in that <tool_call> JSON form only. You have no native tools here: "
+                  "never use <invoke>, <function_calls> or <parameter> tags — they are refused before Aurora can read them."
                 + agt_tools.section(getattr(self, "deferred", [])))
 
     def _home_free(self, plugin: str, tool: str) -> bool:

@@ -64,6 +64,32 @@ KEEP = ("\n\nSome private data in this text was replaced by placeholders in squa
         "write them back exactly as they are, brackets included; never explain, translate or change them.")
 
 
+# what is always masked, in words, for the pages (owner, 16 Oct: «far vedere i mascheramenti di default e quelli impostati
+# per utente»): (kind, it, en, an example made up) — the order of the code above
+RULES = [
+    ("KEY", "Chiavi private (PEM)", "Private keys (PEM)", "il blocco «BEGIN … KEY» intero"),
+    ("JWT", "Token firmati (JWT)", "Signed tokens (JWT)", "eyJhbGciOi…"),
+    ("CRED", "Password dentro un link", "A password inside a link", "https://utente:segreto@…"),
+    ("ID", "Valori detti per nome: password, PIN, codice fiscale, passaporto, carta d'identità, patente, tessera sanitaria, data di nascita",
+     "Values said by their name: password, PIN, tax code, passport, identity card, driving licence, health card, date of birth",
+     "password: x7Kq…, PIN 1234, nato il 3/4/1980"),
+    ("EMAIL", "Indirizzi e-mail", "E-mail addresses", "nome@esempio.it"),
+    ("CF", "Codice fiscale", "Italian tax code", "RSSMRA80A01H501U"),
+    ("VAT", "Partita IVA", "VAT number", "IT01234567890"),
+    ("ADDRESS", "Indirizzi di casa (via, piazza… e numero)", "Street addresses (street name and number)", "via Roma 12"),
+    ("PLATE", "Targhe", "Car plates", "AB 123 CD"),
+    ("IBAN", "IBAN", "IBANs", "IT60 X054 2811 1010 0000 0123 456"),
+    ("CARD", "Carte di credito e debito (controllo di Luhn)", "Credit and debit cards (Luhn check)", "4111 1111 1111 1111"),
+    ("MAC", "Indirizzi MAC", "MAC addresses", "02:00:00:aa:bb:cc"),
+    ("IP", "Indirizzi IP (v4 e v6)", "IP addresses (v4 and v6)", "192.0.2.10"),
+    ("PHONE", "Numeri di telefono (anche scritti con spazi o trattini)", "Phone numbers (with spaces or dashes too)", "333 123 4567"),
+    ("TOKEN", "Chiavi e token lunghi", "Long keys and tokens", "sk-abc123…(32+ caratteri)"),
+    ("FIELD", "Campi che nominano un utente, un host, un dispositivo (user=, host=, email=…)",
+     "Fields naming a user, a host, a device (user=, host=, email=…)", "user=mario"),
+    ("SECRET", "Il valore di ogni impostazione segreta di Aurora", "The value of every secret setting of Aurora", "la chiave di un provider"),
+]
+
+
 def luhn(number: str) -> bool:
     d = [int(c) for c in number if c.isdigit()]
     if not 13 <= len(d) <= 19:
@@ -85,7 +111,8 @@ class Pseudonymizer:
         dom = str(cfg.values.get("AURORA_DOMAIN") or "")
         if dom.count(".") >= 1:
             own.append(".".join(dom.split(".")[-2:]))
-        own += [w.strip() for w in str(cfg.values.get("AURORA_CLOUD_MASK_WORDS") or "").split(",")]
+        for k in ("AURORA_CLOUD_MASK_WORDS", "AURORA_CLOUD_MASK_MINE"):   # the installation's, then the person's own
+            own += [w.strip() for w in str(cfg.values.get(k) or "").split(",")]
         user = Path.home().name
         if len(user) >= 3:
             own.append(f"/home/{user}")

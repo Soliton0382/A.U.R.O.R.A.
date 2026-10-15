@@ -43,6 +43,16 @@ async def social_draft(request: Request) -> dict:
                         "photo": bool(t.get("photo"))} for t in targets]}
 
 
+@router.get("/v1/aurora/social/privacy", dependencies=[Depends(auth)])
+def social_privacy() -> dict:
+    """What the check before a post looks for (owner, 16 Oct: the cloud masking's view «anche per la parte social»):
+    the masking's rules, the people known, the person's own words never to publish, the names read locally."""
+    from aurora import sec_mask, sec_privacy
+    return {"rules": [{"kind": k, "it": i, "en": e, "example": x} for k, i, e, x in sec_mask.RULES],
+            "checks": [{"kind": k, "it": i, "en": e} for k, i, e in sec_privacy.CHECKS],
+            "words": sec_privacy.private_words(cfg), "people": len(sec_privacy._people(cfg))}
+
+
 @router.post("/v1/aurora/social/check", dependencies=[Depends(auth)])
 async def social_check(request: Request) -> dict:
     """{"text"} -> what a post would give away (names of private people, places, contacts, ids) and the text with the

@@ -8,6 +8,7 @@ import { el, external } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { apiBack } from "../restart.js";
 import { autonomySlot } from "./autonomy_box.js";
+import { fwPick } from "./fw_pick.js";
 
 const ICON = { high: "🔴", medium: "🟠", low: "🟡" };
 const STATE = { planned: "📝", applied: "✅", undone: "↩️", reverted: "↩️", failed: "❌", discarded: "🗑️" };
@@ -61,7 +62,7 @@ export default {
     out.textContent = t("fw.ask_wait");
     const t0 = Date.now();
     try {
-      const r = await call("/v1/aurora/security/changes/ask", { method: "POST", body: JSON.stringify({ text }) });
+      const r = await call("/v1/aurora/security/changes/ask", { method: "POST", body: JSON.stringify({ text, fw: this.auditFw || "main" }) });
       const s = Math.round((Date.now() - t0) / 1000);
       if (r.need === "origin") this.askOrigin(out, r);           // the owner's own countries, never Aurora's choice
       else if (r.questions) out.textContent = `❓ ${r.questions.join(" · ")}`;
@@ -93,7 +94,8 @@ export default {
   async enter() { await Promise.all([this.loadChanges(), this.loadAudit(false), this.docs("")]); },
 
   async plan(body) {
-    try { await call("/v1/aurora/security/changes/plan", { method: "POST", body: JSON.stringify(body) }); await this.loadChanges(); }
+    // the firewall chosen above the audit (more than one connected): the change is for that one
+    try { await call("/v1/aurora/security/changes/plan", { method: "POST", body: JSON.stringify({ fw: this.auditFw || "main", ...body }) }); await this.loadChanges(); }
     catch (e) { alert(e.message); }
   },
 
@@ -124,7 +126,8 @@ export default {
   change(ch, write) {
     const d = el("details", "report");
     d.open = ch.status === "planned";
-    d.append(el("summary", "", `${STATE[ch.status] || "•"} ${ch.title} · ${t(`fw.state.${ch.status}`)}`));
+    const where = ch.fw && ch.fw !== "main" ? ` · 🔌 ${ch.fw}` : "";        // a change for another connected firewall
+    d.append(el("summary", "", `${STATE[ch.status] || "•"} ${ch.title} · ${t(`fw.state.${ch.status}`)}${where}`));
     d.append(el("p", "muted", ch.why || ""));
     const steps = el("ol");
     for (const s of ch.steps) {
@@ -177,8 +180,9 @@ export default {
     const box = this.q(".fw-audit");
     box.replaceChildren(el("p", "muted", t("ciso.reading")));
     try {
-      const a = await call(`/v1/aurora/security/audit?again=${again}`);
-      box.replaceChildren(...a.findings.map((f) => {
+      const a = await call(`/v1/aurora/security/audit?again=${again}&fw=${encodeURIComponent(this.auditFw || "main")}`);
+      const pick = fwPick(a.firewalls, a.fw, (id) => { this.auditFw = id; this.loadAudit(false); });
+      box.replaceChildren(...(pick ? [pick] : []), ...a.findings.map((f) => {
         const d = el("details", "report");
         d.open = f.severity !== "low";                                 // what needs doing is shown, its buttons too
         d.append(el("summary", "", `${ICON[f.severity]} ${f.title}`), el("p", "", f.why), el("p", "muted", `➜ ${f.fix}`));

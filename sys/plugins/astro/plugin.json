@@ -1,0 +1,47 @@
+{
+ "name": "astro",
+ "version": "1.0",
+ "kind": "tool",
+ "page": "astro",
+ "description": {
+  "it": "La tua attrezzatura per l'astrofotografia, letta dall'inventario del PC che la comanda (N.I.N.A., PHD2, ASCOM, ASTAP) e dalla libreria dei dark integrati: telescopio, montatura, camere e scale, guida, dark disponibili, cosa controllare.",
+  "en": "Your astrophotography equipment, read from the inventory of the PC that drives it (N.I.N.A., PHD2, ASCOM, ASTAP) and from the integrated darks' library: telescope, mount, cameras and scales, guiding, darks available, what to check."
+ },
+ "command": [
+  "{python}",
+  "server.py"
+ ],
+ "env": [
+  "AURORA_ASTRO_DIR",
+  "AURORA_ASTRO_DARKS_DIR",
+  "AURORA_ASTRO_DARKS_TEMP"
+ ],
+ "requires": [],
+ "effects": {
+  "astro_profile": "read",
+  "astro_darks": "read",
+  "astro_files": "read"
+ },
+ "on_demand": {
+  "words": ["astro", "telescopio", "telescope", "montatura", "mount", "guida", "guiding", "phd2", "n.i.n.a", "nina",
+            "dark", "flat", "esposizione", "exposure", "camera di ripresa", "astrofotografia", "astrophotography", "pixinsight"]
+ },
+ "welcome": {
+  "it": "🔭 Astro collegato. Nella pagina 🔭 Astro scarichi lo script per il PC del telescopio e carichi l'inventario: poi chiedimi dell'attrezzatura, delle scale o dei dark che hai.",
+  "en": "🔭 Astro connected. In the 🔭 Astro page download the script for the telescope's PC and upload the inventory: then ask me about the equipment, the scales or the darks you have."
+ },
+ "setup": {
+  "it": "Nella pagina 🔭 Astro: scarica lo script, lancialo sul PC del telescopio con il comando indicato e carica qui il file astro_inventory.txt che scrive. Se i tuoi dark integrati sono su questa macchina, indica la loro cartella (AURORA_ASTRO_DARKS_DIR): solo letta. Il plugin non ha rete.",
+  "en": "In the 🔭 Astro page: download the script, run it on the telescope's PC with the command shown and upload here the astro_inventory.txt it writes. If your integrated darks are on this machine, give their folder (AURORA_ASTRO_DARKS_DIR): read only. The plugin has no network.",
+  "links": []
+ },
+ "settings": [
+  "AURORA_ASTRO_DIR",
+  "AURORA_ASTRO_DARKS_DIR",
+  "AURORA_ASTRO_DARKS_TEMP"
+ ],
+ "sandbox": {
+  "network": false,
+  "write": []
+ }
+}

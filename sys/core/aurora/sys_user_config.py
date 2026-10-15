@@ -104,7 +104,9 @@ def adopt(cfg: sys_config.Config, admin: str) -> list[str]:
     if not moving:
         return []
     own = _own(cfg, admin)
-    sys_config.write_env(env_path(cfg, admin), {k: v for k, v in moving.items() if k not in own})
+    # a value of the system's file wins over the admin's empty one (C340: reconcile had written the key empty first,
+    # and the value set was dropped from the system's file without reaching the admin's)
+    sys_config.write_env(env_path(cfg, admin), {k: v for k, v in moving.items() if not str(own.get(k, "")).strip()})
     back = _own(cfg, admin)
     if any(k not in back for k in moving):
         raise RuntimeError("the admin's .env does not hold the settings: the system's .env is left as it was")

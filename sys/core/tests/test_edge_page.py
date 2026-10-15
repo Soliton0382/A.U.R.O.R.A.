@@ -19,8 +19,20 @@ def test_the_cloudflare_page_is_the_admin_s_and_reads_aurora_s_own_records():
     assert 'autonomySlot("edge")' in page and 'pluginSlot("edge")' in page
 
 
-def test_the_owner_s_masked_words_are_the_setting_aurora_s_own_are_shown_apart():
+def test_what_is_masked_is_shown_built_in_rules_apart_from_each_person_s_words(cfg):
+    """Owner, 16 Oct: «far vedere i mascheramenti di default e quelli impostati per utente», and the same for posts."""
+    from aurora import sec_mask, sec_privacy
+    described = {k for k, *_ in sec_mask.RULES}
+    assert {k for k, _ in sec_mask.PATTERNS + sec_mask.BLOCKS} - {"IP6"} <= described      # IPv6 told with IP
+    assert {"ID", "FIELD", "SECRET"} <= described
+    cfg.values["AURORA_CLOUD_MASK_MINE"] = "Progetto Orsa"
+    assert "Progetto Orsa" in sec_mask.Pseudonymizer(cfg).private                       # a person's own words count
+    cfg.values["AURORA_SOCIAL_PRIVATE_WORDS"] = "Lilla, Monte Basso"
+    found = {f["value"]: f for f in sec_privacy.findings("Oggi con lilla al monte basso.", cfg)}
+    assert found["lilla"]["kind"] == "PRIVATE" and "monte basso" in found
     src = (CORE / "aurora" / "api" / "accounts.py").read_text(encoding="utf-8")
-    assert '"/v1/aurora/accounts/mask", dependencies=[Depends(auth)]' in src and 'me() != _admin()' in src
+    assert '"installation": house if admin else []' in src                                 # a user sees how many
     js = (CORE / "webui" / "js" / "modules" / "accounts.js").read_text(encoding="utf-8")
-    assert "AURORA_CLOUD_MASK_WORDS: words.join" in js
+    assert 'wordsEditor("AURORA_CLOUD_MASK_MINE"' in js and 'rulesList(m.rules' in js
+    social = (CORE / "webui" / "js" / "modules" / "social.js").read_text(encoding="utf-8")
+    assert 'wordsEditor("AURORA_SOCIAL_PRIVATE_WORDS"' in social

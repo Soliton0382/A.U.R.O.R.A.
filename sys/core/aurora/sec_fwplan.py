@@ -346,6 +346,9 @@ def plan(cfg: sys_config.Config, request: str, model=None, conf: dict | None = N
                 "questions": ["Da quali paesi o indirizzi deve poter arrivare? Scrivili tu (es. Italy, oppure un IP o una "
                               "rete): Aurora non sceglie al posto tuo."],
                 "notes": ["Se il servizio deve restare raggiungibile da tutti, non serve cambiare niente."]}
+    if sec_fwwrite._neutral(cfg):                      # the dialects of the neutral operations (ROADMAP N8)
+        from . import sec_fwplan_ops
+        return sec_fwplan_ops.plan(cfg, request, model)
     conf = conf if conf is not None else sec_fwconf.read(cfg)
     fw = re.sub(r"^https?://|[:/].*$", "", str(cfg["AURORA_FIREWALL_API_URL"]))
     own = ", ".join(sorted(a for a in sec_fwapi._own_addresses() if "." in a and not a.startswith("127.")))

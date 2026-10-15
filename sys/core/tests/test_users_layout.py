@@ -197,6 +197,11 @@ def test_a_setting_that_becomes_personal_moves_into_the_admin_s_env(cfg):
     assert "AURORA_TMDB_TOKEN" not in cfg.env_file.read_text()
     assert U.for_user(sys_config.load(cfg.env_file, check_root=False), "boss")["AURORA_TMDB_TOKEN"] == "left-in-system"
     assert U.adopt(sys_config.load(cfg.env_file, check_root=False), "boss") == []                # nothing twice
+    # C340: the admin's file already had the key, empty (reconcile writes it so): the value set still reaches it
+    sys_config.write_env(U.env_path(cfg, "boss"), {"AURORA_TMDB_TOKEN": ""})
+    sys_config.write_env(cfg.env_file, {"AURORA_TMDB_TOKEN": "set-later"})
+    assert U.adopt(sys_config.load(cfg.env_file, check_root=False), "boss") == ["AURORA_TMDB_TOKEN"]
+    assert U.for_user(sys_config.load(cfg.env_file, check_root=False), "boss")["AURORA_TMDB_TOKEN"] == "set-later"
 
 
 def test_a_new_installation_puts_its_personal_settings_in_the_admins_env(cfg):

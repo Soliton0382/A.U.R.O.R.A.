@@ -6,7 +6,7 @@ import { el } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { renderMarkdown } from "../md.js";
 
-const HOWTO = ["first", "cloud", "phone", "plugins", "safety"];
+const HOWTO = ["first", "cloud", "phone", "plugins", "firewall", "safety"];
 
 export default {
   id: "guide",

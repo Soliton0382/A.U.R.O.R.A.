@@ -90,6 +90,23 @@ def _llm_names(text: str, llm) -> list[dict] | None:
         return None
 
 
+def private_words(cfg: sys_config.Config) -> list[str]:
+    """AURORA_SOCIAL_PRIVATE_WORDS: what this person never wants in a post (owner, 16 Oct: the same view as the cloud's
+    masking «anche per la parte social»)."""
+    return [w.strip() for w in str(cfg.values.get("AURORA_SOCIAL_PRIVATE_WORDS") or "").split(",") if len(w.strip()) >= 2]
+
+
+# what the check before a post looks for, in words, for the Social page: sec_mask.RULES, then these
+CHECKS = [
+    ("PERSON", "Le persone che questa installazione conosce (gli utenti e i nomi con cui Aurora li chiama)",
+     "The people this installation knows (the users and the names Aurora calls them)"),
+    ("PRIVATE", "Le tue parole da non pubblicare mai", "Your words never to publish"),
+    ("NAMES", "Altri nomi propri, letti dal modello locale: una persona privata si sostituisce, un luogo si propone, un "
+     "personaggio pubblico resta", "Other proper names, read by the local model: a private person is replaced, a place "
+     "proposed, a public figure left"),
+]
+
+
 def findings(text: str, cfg: sys_config.Config | None = None, lang: str = "it", llm=None) -> list[dict]:
     """[{"kind", "value", "replacement", "sure"}] in the order they appear, each value once. `llm`: the LOCAL model
     (the text may hold private data: it never goes to a cloud model for this)."""
@@ -108,6 +125,9 @@ def findings(text: str, cfg: sys_config.Config | None = None, lang: str = "it", 
     for n in _people(cfg):
         for m in re.finditer(rf"\b{re.escape(n)}\b", text, re.I):
             add("PERSON", m.group(0))
+    for w in private_words(cfg):                        # the person's own «never publish» words, found in any case
+        for m in re.finditer(rf"\b{re.escape(w)}\b", text, re.I):
+            add("PRIVATE", m.group(0))
     p = sec_mask.Pseudonymizer(cfg)
     p.mask(text)
     for value, ph in p.to_ph.items():

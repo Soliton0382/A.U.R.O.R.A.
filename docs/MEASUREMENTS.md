@@ -3617,3 +3617,39 @@ aurora_edge/vault`):
 Read: fewer flips, as expected, but the sample is small — 60 answers, a difference of two and of one: not a proven
 improvement, only one that goes the right way. It costs up to three judge calls on these questions (two when the first
 two agree). Not measured: the same on more answers; whether a stricter prompt for the source judge does better than votes.
+
+## M225 — the blocks on pfSense and OPNsense with real traffic (16 October 2026; ROADMAP N8)
+
+Two lab VMs (pfSense CE 2.9.0 with the REST API package, OPNsense 26.7), their WAN on the lab's NAT network; «block
+private networks» off on both and one rule letting a lab VM's ping in. The lab VM pings the WAN; Aurora's own path
+(`sec_fwapi.block` / `unblock` through each driver) blocks and lifts that VM's address. Three rounds each.
+
+| firewall | the block's call | ping lost after | the unblock's call | ping back after |
+|---|---|---|---|---|
+| pfSense | 0.43–0.52 s | ≤ 1.2 s (the first ping after the call) | 0.15–0.18 s | 1.3 s |
+| OPNsense | 0.92–1.41 s | ≤ 1.2 s (the first ping after the call) | 0.55–0.74 s | 0.2 s |
+
+Read: on both, the first ping after the block's call is already lost (1.2 s is the ping's own 1 s wait), and it passes
+again after the unblock; the open connections of that address are closed by the block (1 to 3 each round). This
+machine's own address is refused by Aurora before any call (`blockable`), so the source was another VM. Not measured:
+TCP traffic; the sentinel's syslog from these firewalls (the VMs cannot reach this machine's syslog port).
+
+## M226 — audit, network map and changes on pfSense and OPNsense, live (16 October 2026; ROADMAP N8)
+
+The two aurora-lab firewalls of M225, read and changed through Aurora's own code (sec_fwmodel, sec_netmap, sec_fwops,
+sec_fwplan_ops), the changes recorded in a separate record (not the owner's).
+
+| what | pfSense CE 2.9.0 | OPNsense 26.7 |
+|---|---|---|
+| the audit (neutral form) | 2 🔴 (no IDS/IPS package, no syslog to Aurora) · 1 🟡 (the lab's ping rule to the firewall) | 2 🔴 (Suricata off, no syslog) · 1 🟠 (the ping rule, open, no log); the login lockout read as on |
+| the network map | 2 interfaces, 1 DHCP range, 5 devices seen now (ARP) | 3 interfaces (loopback included), 5 seen (ARP) |
+| publish a server (alias of the origin, port forward, its rule with log) | applied in 0.6 s, read back, the audit sees it (🟠, origin limited); reverted: nothing left | applied in 1.2 s, the same; reverted |
+| quarantine, release, the quarantine taken back | applied, the address in the alias; released; reverted: rule and alias gone | the same |
+| an address blocked on one port | applied, reverted | applied, reverted |
+| a change in words, local model («blocca il traffico in entrata dalla rete 45.33.32.0/24») | planned in 3–4 s (one floating block rule), applied, reverted | planned in 4 s, the same |
+
+Read: the three changes and the words go through the same plan → approval → read back → undo as on the first dialect.
+Found on the way (before any publication, in this test): pfSense refuses «any» as a rule's protocol (it wants none
+given) — the first word-plan was refused by the firewall and undone by itself, as designed; fixed. Not measured: the
+published server reached from outside (no server at the lab address); a change in words that opens something; Snort or
+Suricata installed on pfSense (only «not installed» seen).

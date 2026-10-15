@@ -115,6 +115,15 @@ def new_devices(cfg: sys_config.Config, devices: list[dict], now: float | None =
     return fresh
 
 
+def tried(cfg: sys_config.Config, now: float | None = None) -> None:
+    """A look that could not read Home Assistant counts as a look: the next is at the usual interval, not the next
+    minute (C339: 247 warnings in one night, one a minute, while Home Assistant's machine was down)."""
+    from . import sys_routines
+    data = seen(cfg)
+    data["checked"] = now or time.time()
+    sys_routines._save(cfg, FILE, data)
+
+
 def kind_of(d: dict) -> str:
     """The kind of a device, from its entities (the same as the 🏠 page's kinds: webui home.js kindOf)."""
     has = {e.get("domain") for e in d.get("entities", [])}

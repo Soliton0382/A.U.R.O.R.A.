@@ -37,6 +37,7 @@ import secOut from "./modules/security_out_page.js";
 import secTrace from "./modules/security_trace.js";
 import secFirewalls from "./modules/security_firewalls.js";
 import expenses from "./modules/expenses.js";
+import astro from "./modules/astro.js";
 import secEdge from "./modules/security_edge.js";
 import ciso from "./modules/ciso.js";
 import firewall from "./modules/firewall.js";
@@ -57,7 +58,7 @@ import { kinds as homeKinds } from "./modules/home.js";
 let local = { views: [] };
 try { local = await import("./local/index.js"); } catch { /* none on this installation */ }
 
-export const views = [today, advanced, chat, approvals, reports, secFirewalls, secEdge, security, ciso, firewall, aurorafw, secDefence, secWatch, secOut, secTrace, autonomy, diary, dreams, memory, social, dj, care, expenses, home, calendar, projects, routines, models, accounts, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, settings, https, guide, bugreport, ideas];
+export const views = [today, advanced, chat, approvals, reports, secFirewalls, secEdge, security, ciso, firewall, aurorafw, secDefence, secWatch, secOut, secTrace, autonomy, diary, dreams, memory, social, dj, care, expenses, astro, home, calendar, projects, routines, models, accounts, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, settings, https, guide, bugreport, ideas];
 views.push(...homeKinds, ...local.views);
 export const widgets = [sky, alerts, metrics, brain];
 
@@ -67,7 +68,7 @@ export const groups = [
   { id: "today", views: ["today"] },
   { id: "chat", views: ["chat"] },
   { id: "activity", icon: "🛎️", title: "nav.g.activity", views: ["approvals", "notifications", "reports", "runs"] },
-  { id: "life", icon: "✨", title: "nav.g.life", views: ["calendar", "diary", "dreams", "memory", "social", "dj", "care", "expenses"] },
+  { id: "life", icon: "✨", title: "nav.g.life", views: ["calendar", "diary", "dreams", "memory", "social", "dj", "care", "expenses", "astro"] },
   // 🏠 the house (owner, 2026-10-12: «sotto casa avremmo tab casa e poi…»): Home Assistant's pages
   { id: "home", icon: "🏠", title: "nav.g.home", views: ["home", ...homeKinds.map((v) => v.id),
   ...local.views.filter((v) => v.group === "home").map((v) => v.id)] },

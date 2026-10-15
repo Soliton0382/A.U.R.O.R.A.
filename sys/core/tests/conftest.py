@@ -49,13 +49,16 @@ def cfg(tmp_path: Path) -> sys_config.Config:
 
 @pytest.fixture(autouse=True)
 def nothing_leaves_the_tests(monkeypatch, request):
-    """No test reaches the owner's devices, and no test's trace listener outlives it (owner, 9 Oct: «continuo a
+    """No test reaches the owner's devices nor their notifications' history, and no test's trace listener outlives it (owner, 9 Oct: «continuo a
     ricevere errori fake (gate) provider giù» — a test imported the API in-process, its trace listener stayed, and
     the later tests' simulated provider failures went out as real push notifications to 6 devices)."""
     from aurora import sys_push
     sent = []
     if request.module.__name__.rsplit(".", 1)[-1] != "test_push":     # the sending itself, on the tests' own devices
         monkeypatch.setattr(sys_push, "send", lambda msg, cfg: sent.append(msg) or {"sent": 0, "failed": 0})
+    # nor the owner's Notifications page (C336, 16 Oct: «fake (gate): provider down», a decoy's tool call and a cloud
+    # ceiling of a test were in the owner's history: the API imported in-process kept them with its own configuration)
+    monkeypatch.setattr(sys_push, "remember", lambda msg, event, channels, cfg: sent.append({"event": event, **msg}))
     listeners = list(sys_log._listeners)
     yield sent
     sys_log._listeners[:] = listeners

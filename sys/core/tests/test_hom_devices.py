@@ -138,3 +138,11 @@ def test_a_device_renamed_is_followed_and_an_entity_id_renamed_is_followed_by_it
     assert H.seen(cfg)["devices"]["l1"]["name"] == "Lampada grande"
     shown = H.watching([moved], [], [{"id": "a", "action": "new", "title": "x", "why": "Lampada: …", "devices": ["l1"]}])
     assert shown[0]["proposals"] == [{"id": "a", "title": "x"}]       # found by id under the new name
+
+
+def test_a_look_that_failed_waits_its_interval(cfg):
+    """C339: Home Assistant down overnight, the look was tried — and warned — every minute for four hours."""
+    cfg.values["AURORA_HA_DEVICE_AGENTS"], cfg.values["AURORA_HA_DEVICE_CHECK_MIN"] = 1, 60
+    assert H.due(cfg, now=10_000.0)
+    H.tried(cfg, now=10_000.0)
+    assert not H.due(cfg, now=10_000.0 + 59 * 60) and H.due(cfg, now=10_000.0 + 60 * 60)

@@ -190,9 +190,15 @@ def remove_service(sid: str) -> dict:
 # by herself (the owner's name, domain, place, coordinates, home folder) shown, not changed here
 @router.get("/v1/aurora/accounts/mask", dependencies=[Depends(auth)])
 def mask_words() -> dict:
-    from aurora.sec_mask import Pseudonymizer
-    if me() != _admin():
-        raise HTTPException(status_code=403, detail="only the admin")
-    mine = [w.strip() for w in str(cfg["AURORA_CLOUD_MASK_WORDS"] or "").split(",") if w.strip()]
-    auto = [w for w in Pseudonymizer(cfg).private if w not in mine]
-    return {"mine": mine, "automatic": auto, "secrets": len(Pseudonymizer(cfg).secrets)}
+    """What is masked towards the cloud for the asking person (owner, 16 Oct: «far vedere i mascheramenti di default e
+    quelli impostati per utente»): the rules always on, the person's own words, the installation's (their words to
+    the admin; how many, to a user), and those taken from the settings."""
+    from aurora import sec_mask
+    words = lambda k: [w.strip() for w in str(cfg[k] or "").split(",") if w.strip()]   # noqa: E731
+    admin = me() == _admin()
+    mine, house = words("AURORA_CLOUD_MASK_MINE"), words("AURORA_CLOUD_MASK_WORDS")
+    p = sec_mask.Pseudonymizer(cfg)
+    auto = [w for w in p.private if w not in mine and w not in house]
+    return {"rules": [{"kind": k, "it": i, "en": e, "example": x} for k, i, e, x in sec_mask.RULES],
+            "mine": mine, "installation": house if admin else [], "installation_n": len(house), "admin": admin,
+            "automatic": auto, "secrets": len(p.secrets)}

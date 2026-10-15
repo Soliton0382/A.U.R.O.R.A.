@@ -13,9 +13,15 @@ import { pluginSlot } from "./plugin_slot.js";
 
 const GUIDES = ["manual", "api", "syslog"];
 
-function field(label, input) {
-  const row = el("label", "acc-row");
+function field(label, input, wide = false) {
+  const row = el("label", `fwl-field${wide ? " wide" : ""}`);
   row.append(el("span", "", label), input);
+  return row;
+}
+
+function check(label, input) {                         // a checkbox beside its words
+  const row = el("label", "fwl-check");
+  row.append(input, el("span", "", label));
   return row;
 }
 
@@ -53,18 +59,25 @@ export default {
   },
 
   card(it, open) {
-    const box = el("section", "report acc-section");
+    const box = el("section", "report fwl-card");
     const state = it.confirmed ? `✅ ${t("fwl.connected")}` : it.error ? `❌ ${it.error}` : `⚪ ${t("fwl.not_connected")}`;
-    const head = el("div", "acc-row");
-    head.append(el("strong", "", `${it.name || t("fwl.new")} · ${it.kind}`), el("span", it.confirmed ? "ok" : "muted", state));
+    const head = el("div", "fwl-head");
+    head.append(el("strong", "", it.name || t("fwl.new")), el("span", "fwl-kind", it.kind),
+      el("span", it.confirmed ? "ok" : it.error ? "bad" : "muted", state));
     box.append(head);
-    if (it.indexed && it.indexed.passages) box.append(el("p", "muted", t("fwl.indexed", { n: it.indexed.passages })));
-    const form = el("div", "acc-form");
+    if (it.id !== "new") {                              // what it is, in one line, before any form
+      const facts = [it.url, `${t("fwl.group")}: ${it.block_group || "—"}`,
+        it.blocks !== false ? `⛔ ${t("fwl.blocks")}` : `⏸️ ${t("fwl.no_blocks")}`];
+      if (it.indexed && it.indexed.passages) facts.push(t("fwl.indexed", { n: it.indexed.passages }));
+      box.append(el("p", "muted fwl-facts", facts.filter(Boolean).join(" · ")));
+    }
+    const form = el("div", "fwl-form");
     form.hidden = !open;
     const kind = el("select");
     for (const k of this.kinds || []) kind.append(new Option(k.kind, k.kind));
     kind.value = it.kind;
     const name = input(it.name), url = input(it.url), user = input(it.user), pass = input("", "password");
+    url.placeholder = "https://192.0.2.1:443";
     pass.placeholder = it.has_password ? t("fwl.pass_kept") : "";
     const group = input(it.block_group), tls = input("", "checkbox"), blocks = input("", "checkbox");
     tls.checked = !!it.verify_tls;
@@ -74,14 +87,19 @@ export default {
       const k = (this.kinds || []).find((x) => x.kind === kind.value) || {};
       userRow.firstChild.textContent = t(k.user_is_key ? "fwl.key" : "fwl.user");
       passRow.firstChild.textContent = t(k.user_is_key ? "fwl.secret" : "fwl.password");
-      note.textContent = k.full ? "" : t("fwl.partial");
+      note.textContent = t(`fwl.need.${kind.value}`);
       for (const g of GUIDES) if (!guides[g].value || it.id === "new") guides[g].value = (k.docs || {})[g] || guides[g].value;
     };
-    const userRow = field("", user), passRow = field("", pass), note = el("p", "muted");
-    form.append(field(t("fwl.name"), name), field(t("fwl.kind"), kind), note, field(t("fwl.url"), url), userRow, passRow,
-      field(t("fwl.group"), group), field(t("fwl.tls"), tls), field(t("fwl.blocks"), blocks),
-      el("h4", "", t("fwl.guides")), el("p", "muted", t("fwl.guides_hint")),
-      ...GUIDES.map((g) => field(t(`fwl.guide.${g}`), guides[g])));
+    const userRow = field("", user), passRow = field("", pass), note = el("p", "muted fwl-need");
+    const grid = el("div", "fwl-grid");
+    grid.append(field(t("fwl.name"), name), field(t("fwl.kind"), kind), field(t("fwl.url"), url, true), userRow, passRow,
+      field(t("fwl.group"), group));
+    const checks = el("div", "fwl-checks");
+    checks.append(check(t("fwl.tls"), tls), check(t("fwl.blocks"), blocks));
+    const docs = el("fieldset", "fwl-guides");
+    docs.append(el("legend", "", t("fwl.guides")), el("p", "muted", t("fwl.guides_hint")),
+      ...GUIDES.map((g) => field(t(`fwl.guide.${g}`), guides[g], true)));
+    form.append(note, grid, checks, docs);
     kind.addEventListener("change", userLabel);
     userLabel();
     const out = el("span", "muted");
@@ -110,8 +128,9 @@ export default {
         this.enter();
       } catch (e) { out.textContent = e.message; }
     });
-    const actions = el("div", "appr-actions");
-    actions.append(edit, ...(it.id === "new" ? [] : [connect]));
+    edit.addEventListener("click", () => { edit.classList.toggle("on", !form.hidden); });
+    const actions = el("div", "appr-actions fwl-actions");
+    actions.append(...(it.id === "new" ? [] : [edit, connect]));
     if (it.id !== "main" && it.id !== "new") {
       const del = el("button", "danger", `🗑️ ${t("fwl.remove")}`);
       del.addEventListener("click", async () => {
@@ -123,7 +142,7 @@ export default {
     const saveRow = el("div", "appr-actions");
     saveRow.append(save);
     form.append(saveRow);
-    box.append(form, actions, out);
+    box.append(actions, form, out);
     this.root.querySelector(".fwl-list").append(box);
   },
 };

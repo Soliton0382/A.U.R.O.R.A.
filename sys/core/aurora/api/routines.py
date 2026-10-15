@@ -249,6 +249,7 @@ def _devices_if_due(who: str | None) -> None:
             out = plugin_host().call("homeassistant", "devices", {})
             if not out.get("ok"):
                 log.warning("devices: Home Assistant not read: %s", str(out.get("text", ""))[:200])
+                hom_devices.tried(cfg)                  # again at the usual interval, not the next minute (C339)
                 return
             report = hom_devices.welcome(cfg, pipeline()._for("service"), json.loads(out["text"]))
             if report["new"] or report.get("followed"):

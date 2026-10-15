@@ -256,6 +256,7 @@ const view = {
       const found = p.name === "senses" ? await call("/v1/aurora/senses/devices").catch(() => null) : null;
       const choices = found ? { AURORA_SENSES_CAMERA: found.cameras, AURORA_SENSES_MIC: found.microphones } : {};
       dlg.append(await settingsForm(p.settings, { choices,
+        guide: { title: p.name, intro: setup[code] || setup.en || "", links: setup.links || [] },
         after: p.settings.includes("AURORA_WEATHER_LAT") ? placeSearch : null,     // the town by its name, not coordinates
         onSaved: (r, restarted) => {
           bus.emit("plugins", {});                        // its account filled: its page may appear now

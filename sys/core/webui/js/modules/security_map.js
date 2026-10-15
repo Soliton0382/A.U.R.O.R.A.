@@ -90,7 +90,7 @@ function interact(root) {
   return zoom;
 }
 
-export async function openMap() {
+export async function openMap(fw = "main") {
   const dlg = el("dialog", "modal plug-modal net-modal");
   const close = el("button", "icon close", "✕");
   close.addEventListener("click", () => { dlg.close(); dlg.remove(); });
@@ -100,7 +100,7 @@ export async function openMap() {
   document.body.append(dlg);
   dlg.showModal();
   let g;
-  try { g = await call("/v1/aurora/security/netmap/graph"); } catch (e) { dlg.lastChild.textContent = t("ev.error", { m: e.message }); return; }
+  try { g = await call(`/v1/aurora/security/netmap/graph?fw=${encodeURIComponent(fw)}`); } catch (e) { dlg.lastChild.textContent = t("ev.error", { m: e.message }); return; }
   if (!g.at) { dlg.lastChild.textContent = t("sec.map_none"); return; }
   const pic = draw(g);
   const zoom = interact(pic);

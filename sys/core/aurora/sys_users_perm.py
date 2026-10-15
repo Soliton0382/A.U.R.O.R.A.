@@ -23,7 +23,7 @@ from . import sys_config
 AREAS = {"routines": True, "settings": True, "autonomy": False}
 # who the person is and how she talks to them: always their own, even when the admin keeps their settings (owner,
 # 16 Oct: the personality «modificabile a livello utente», also on the first run)
-PERSONAL = ("AURORA_OWNER_NAME", "AURORA_PERSONALITY")
+PERSONAL = ("AURORA_OWNER_NAME", "AURORA_PERSONALITY", "AURORA_CLOUD_MASK_MINE", "AURORA_SOCIAL_PRIVATE_WORDS")
 ADMIN = ("security", "firewalls", "models", "harvester", "updates", "settings_machine", "users", "https", "status")
 _lock = threading.Lock()
 

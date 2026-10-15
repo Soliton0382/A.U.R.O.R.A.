@@ -39,6 +39,30 @@ class WriteError(Exception):
     pass
 
 
+def target(cfg: sys_config.Config, fid: str = "main") -> sys_config.Config:
+    """The configuration of the firewall a change is for: «main» the settings' one, else one of 🔌 Firewall."""
+    if fid in ("", "main"):
+        return cfg
+    from . import sec_firewalls
+    item = next((x for x in sec_firewalls.items(cfg) if x["id"] == fid), None)
+    if item is None:
+        raise WriteError(f"nessun firewall «{fid}»")
+    return sec_firewalls.view(cfg, item)
+
+
+def _neutral(cfg: sys_config.Config) -> bool:
+    """A dialect whose plans are the neutral operations (sec_fwops), not the first dialect's XML."""
+    return str(cfg["AURORA_FIREWALL_API_KIND"]) != "sophos"
+
+
+def _ops(make):
+    from . import sec_fwops
+    try:
+        return make(sec_fwops)
+    except sec_fwops.OpsError as e:
+        raise WriteError(str(e)) from None
+
+
 # ---- the record ---------------------------------------------------------------------------------------------------
 def _file(cfg: sys_config.Config) -> Path:
     return cfg.path("AURORA_STATUS_DIR") / "security" / "fwchanges.json"
@@ -158,10 +182,12 @@ def plan_publish(cfg: sys_config.Config, label: str, host: str, ports: str, sour
     the firewall's objects, comma separated: "Italy, 203.0.113.7"); empty = everyone."""
     if not NAME.match(label):
         raise WriteError("nome: lettere, cifre, - _ . (max 40)")
-    conf = conf if conf is not None else sec_fwconf.read(cfg)
     ip = str(ipaddress.ip_address(host.strip()))
     if not ipaddress.ip_address(ip).is_private:
         raise WriteError("si pubblica un server della casa: serve un indirizzo privato")
+    if _neutral(cfg):
+        return _ops(lambda o: o.plan_publish(cfg, label, ip, _ports(ports), [s.strip() for s in sources.split(",") if s.strip()]))
+    conf = conf if conf is not None else sec_fwconf.read(cfg)
     zone = _zone_of(conf, ip)
     if zone == "WAN":
         raise WriteError(f"{ip} è nella rete WAN")
@@ -213,6 +239,8 @@ def plan_publish(cfg: sys_config.Config, label: str, host: str, ports: str, sour
 
 
 def plan_unpublish(cfg: sys_config.Config, label: str, conf: dict | None = None) -> dict:
+    if _neutral(cfg):
+        return _ops(lambda o: o.plan_unpublish(cfg, label))
     conf = conf if conf is not None else sec_fwconf.read(cfg)
     n = PREFIX + label if not label.startswith(PREFIX) else label
     steps = [step(e, n, _remove(e, n), "", f"togliere {e} {n}") for e in ("NATRule", "FirewallRule", "Services")
@@ -227,10 +255,12 @@ def plan_quarantine(cfg: sys_config.Config, ip: str, reason: str, conf: dict | N
     """Isolate a device of the house: its host in the quarantine group; the group's Drop rule at the top is made the
     first time. The firewall stops what crosses it (Internet, other networks); two devices on the same switch still
     talk to each other — said in the plan."""
-    conf = conf if conf is not None else sec_fwconf.read(cfg)
     ip = sec_fwapi.blockable(cfg, ip)
     if not ipaddress.ip_address(ip).is_private:
         raise WriteError("la quarantena è per i dispositivi della casa; un indirizzo di Internet si blocca")
+    if _neutral(cfg):
+        return _ops(lambda o: o.plan_quarantine(cfg, ip, reason))
+    conf = conf if conf is not None else sec_fwconf.read(cfg)
     group = str(cfg["AURORA_QUARANTINE_GROUP"])
     rule = PREFIX + "Quarantine"
     steps = []
@@ -251,6 +281,8 @@ def plan_quarantine(cfg: sys_config.Config, ip: str, reason: str, conf: dict | N
 
 
 def plan_release(cfg: sys_config.Config, ip: str, conf: dict | None = None) -> dict:
+    if _neutral(cfg):
+        return _ops(lambda o: o.plan_release(cfg, ip.strip()))
     conf = conf if conf is not None else sec_fwconf.read(cfg)
     host = f"aurora-quarantine-{ip.strip()}"
     if not _taken(conf, "IPHost", host):
@@ -271,6 +303,9 @@ def raw_rule(cfg: sys_config.Config, name: str) -> str:
 def plan_harden(cfg: sys_config.Config, rule: str, ips: str, log: bool = True) -> dict:
     """An IPS policy (and the log) on one of the owner's rules — the fix the audit proposes for a published service.
     The rule's XML before is the undo."""
+    if _neutral(cfg):
+        raise WriteError("su questo firewall una regola non ha una sua policy IPS: si accende l'IPS del firewall "
+                         "(Suricata), e il log della regola dalla sua pagina")
     before = raw_rule(cfg, rule)
     if not D.network_rule(before):
         raise WriteError("solo regole di rete")
@@ -286,21 +321,19 @@ def plan_harden(cfg: sys_config.Config, rule: str, ips: str, log: bool = True) -
 
 
 # ---- apply, confirm, undo -----------------------------------------------------------------------------------------
-def propose(cfg: sys_config.Config, plan: dict) -> dict:
-    """A planned change recorded, not applied: the id the owner approves."""
-    change = {"id": uuid.uuid4().hex[:8], "status": "planned", "created": time.time(), **plan}
+def propose(cfg: sys_config.Config, plan: dict, fw: str = "main") -> dict:
+    """A planned change recorded, not applied: the id the owner approves; `fw` the firewall it is for."""
+    change = {"id": uuid.uuid4().hex[:8], "status": "planned", "created": time.time(), "fw": fw, **plan}
     change["check"] = [list(c) for c in plan.get("check", [])]
     _keep(cfg, change)
     return change
 
 
-_status_of = D.step_status
-
-
 def _run(cfg: sys_config.Config, xml: str, entity: str) -> str:
-    code, msg = _status_of(sec_fwapi.request(cfg, xml), entity)
+    d = driver(cfg)                                    # the dialect of the firewall the change is for
+    code, msg = d.step_status(sec_fwapi.request(cfg, xml), entity)
     if code != "200":
-        hint = D.READ_ONLY_HINT if D.read_only(code, msg) else ""
+        hint = d.READ_ONLY_HINT if d.read_only(code, msg) else ""
         raise WriteError(f"{entity}: il firewall ha risposto {code or '?'} {msg[:200]}{hint}")
     return msg
 
@@ -309,7 +342,7 @@ def _allowed(st: dict) -> None:
     """Only Aurora's own objects are added or removed; an owner's object only through harden (with its undo)."""
     if st["owner_object"]:
         return
-    if not (st["name"].startswith(PREFIX) or st["name"].lower().startswith("aurora-")):
+    if not (st["name"].startswith(PREFIX) or st["name"].lower().startswith(("aurora-", "aurora_"))):
         raise WriteError(f"«{st['name']}» non è un oggetto di Aurora: non lo tocco")
 
 
@@ -333,6 +366,11 @@ def confirm(cfg: sys_config.Config, change: dict, wait: float | None = None) -> 
         problems = []
         try:
             for entity, name in change.get("check", []):
+                if _neutral(cfg):
+                    from . import sec_fwops
+                    if not sec_fwops.exists(cfg, entity, name):
+                        problems.append(f"{entity} {name} non si rilegge")
+                    continue
                 items = [x for x in sec_fwconf.get(cfg, entity) if x.get("Name") == name]
                 if not items:
                     problems.append(f"{entity} {name} non si rilegge")
@@ -355,6 +393,7 @@ def apply(cfg: sys_config.Config, change_id: str) -> dict:
     change = get_change(cfg, change_id)
     if change["status"] != "planned":
         raise WriteError(f"la modifica {change_id} è già {change['status']}")
+    record, cfg = cfg, target(cfg, change.get("fw", "main"))   # the record stays here; the steps go to that firewall
     log = sys_log.get_logger("security")
     for st in change["steps"]:
         _allowed(st)
@@ -376,7 +415,7 @@ def apply(cfg: sys_config.Config, change_id: str) -> dict:
         change.update(status="applied", applied=time.time(), problems=[])
         log.info("audit: firewall change %s applied: %s", change_id, change["title"])
     sys_log.trace("security", "firewall.change", {"id": change_id, "status": change["status"], "title": change["title"]})
-    _keep(cfg, change)
+    _keep(record, change)
     return change
 
 
@@ -389,7 +428,7 @@ def revert(cfg: sys_config.Config, change_id: str) -> dict:
         raise WriteError(f"la modifica {change_id} è {change['status']}: non c'è nulla da annullare")
     if not any(st.get("undo") for st in change["steps"]):
         raise WriteError("questa modifica non ha un annullamento (è già un ritiro)")
-    errors = _undo(cfg, change["steps"])
+    errors = _undo(target(cfg, change.get("fw", "main")), change["steps"])
     change.update(status="reverted" if not errors else "failed", reverted=time.time(), undo_errors=errors)
     _keep(cfg, change)
     sys_log.get_logger("security").info("audit: firewall change %s reverted %s", change_id, errors or "")

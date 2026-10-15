@@ -2120,6 +2120,32 @@
    ]
   },
   {
+   "key": "AURORA_CLOUD_MASK_MINE",
+   "type": "str",
+   "category": "llm",
+   "recommended": "",
+   "evidence": "owner",
+   "scope": "user",
+   "en": "Each person's own sensitive words, comma separated: masked towards the cloud in their own conversations (the installation's words are AURORA_CLOUD_MASK_WORDS).",
+   "it": "Le parole sensibili di ogni persona, separate da virgole: mascherate verso il cloud nelle sue conversazioni (quelle dell'installazione sono AURORA_CLOUD_MASK_WORDS).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_SOCIAL_PRIVATE_WORDS",
+   "type": "str",
+   "category": "interface",
+   "recommended": "",
+   "evidence": "owner",
+   "scope": "user",
+   "en": "Words never to be published in a post (names of people dear to you, places, a project), comma separated: the check before a post always finds them.",
+   "it": "Parole da non pubblicare mai in un post (nomi di persone care, luoghi, un progetto), separate da virgole: il controllo prima di un post le trova sempre.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_OPENAI_API_KEY",
    "type": "str",
    "category": "llm",
@@ -3358,6 +3384,45 @@
     "aurora-api"
    ],
    "scope": "user"
+  },
+  {
+   "key": "AURORA_ASTRO_DIR",
+   "type": "path",
+   "category": "plugins",
+   "recommended": "usr/astro",
+   "optional": true,
+   "evidence": "owner",
+   "en": "Folder of the 🔭 Astro page: the inventories of the astrophotography PC and the manuals and notes of the equipment (each person's own).",
+   "it": "Cartella della pagina 🔭 Astro: gli inventari del PC per l'astrofotografia e i manuali e le note dell'attrezzatura (di ogni persona).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_ASTRO_DARKS_DIR",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "scope": "user",
+   "en": "A folder of this machine with your integrated darks (e.g. PixInsight's): read only, the file names and headers say exposure, gain, offset. Empty: none.",
+   "it": "Una cartella di questa macchina con i tuoi dark integrati (per esempio quella di PixInsight): solo letta, nomi e intestazioni dicono esposizione, gain, offset. Vuota: nessuna.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_ASTRO_DARKS_TEMP",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "scope": "user",
+   "en": "The sensor temperature (°C) your integrated darks were taken at, when their names and headers do not say it (e.g. -10). Empty: unknown.",
+   "it": "La temperatura del sensore (°C) a cui hai registrato i dark integrati, quando nomi e intestazioni non la dicono (per esempio -10). Vuota: non nota.",
+   "services": [
+    "aurora-api"
+   ]
   },
   {
    "key": "AURORA_EXPENSES_DIR",

@@ -6,10 +6,11 @@
 import { call } from "../api.js";
 import { bus } from "../bus.js";
 import { clock, el } from "../dom.js";
-import { apply, t } from "../i18n.js";
+import { apply, lang, t } from "../i18n.js";
 import { approvalCard, isPost, socialPlugins } from "./approvals.js";
 import { videoSection } from "./social_video.js";
 import { autonomySlot } from "./autonomy_box.js";
+import { rulesList, wordsEditor } from "./mask_view.js";
 import { pluginSlot } from "./plugin_slot.js";
 
 // every "Publish" of this page (owner, 2026-10-08: his name went out unchecked): the server checks the text first —
@@ -76,6 +77,7 @@ export default {
     root.innerHTML = `<h2 data-i18n="social.title"></h2><p class="muted" data-i18n="social.hint"></p>
       <div class="platforms"></div>
       <h3 class="setting-cat" data-i18n="social.to_approve"></h3><div class="soc-pending"></div>
+      <details class="soc-privacy"><summary data-i18n="social.checks"></summary><div></div></details>
       <h3 class="setting-cat" data-i18n="social.compose"></h3>
       <form class="import compose"><textarea rows="4" data-i18n-placeholder="social.topic"></textarea>
         <button type="submit" data-i18n="social.draft"></button></form>
@@ -92,6 +94,19 @@ export default {
     this.socPending = root.querySelector(".soc-pending");
     this.socHistory = root.querySelector(".soc-history");
     this.videos = videoSection(root.querySelector(".soc-video"));
+    // what the check before a post looks for, and the person's own «never publish» words (owner, 2026-10-16)
+    const priv = root.querySelector(".soc-privacy");
+    const fill = async () => {
+      let p;
+      try { p = await call("/v1/aurora/social/privacy"); } catch (e) { priv.lastChild.replaceChildren(el("p", "error", e.message)); return; }
+      const checks = el("ul", "mask-rule-list");
+      for (const c of p.checks) checks.append(el("li", "", c[lang.startsWith("it") ? "it" : "en"]));
+      priv.lastChild.replaceChildren(el("p", "muted", t("social.checks_hint", { n: p.people })), checks,
+        el("h5", "", `👤 ${t("social.private_words")}`),
+        wordsEditor("AURORA_SOCIAL_PRIVATE_WORDS", p.words, { placeholder: t("social.private_ph"), onSaved: fill }),
+        rulesList(p.rules, t("social.checks_rules")));
+    };
+    priv.addEventListener("toggle", () => { if (priv.open) fill(); });
     const input = root.querySelector("textarea");
     const go = root.querySelector(".compose button");
     const make = async (text) => {

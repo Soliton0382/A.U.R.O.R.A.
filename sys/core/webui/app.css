@@ -286,3 +286,21 @@ button.danger { border-color: #c0392b; color: #ff8a80; }
 /* a firewall change, field by field (C241) */
 .fw-diff { border-collapse: collapse; margin: .3rem 0; font-size: .85rem; }
 .fw-diff th, .fw-diff td { border: 1px solid var(--line); padding: .2rem .5rem; text-align: left; }
+
+/* what is masked or never published: the built-in rules (read only) and a person's words (mask_view.js) */
+.mask-rules { margin: .4rem 0 .6rem; }
+.mask-rules summary { cursor: pointer; font-weight: 600; }
+.mask-rule-list { margin: .5rem 0 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: .35rem; }
+.mask-rule-list code { margin-left: .5rem; font-size: .8rem; overflow-wrap: anywhere; }
+.mask-edit { display: flex; flex-direction: column; gap: .4rem; margin-bottom: .6rem; }
+.plug-settings h5, .soc-privacy h5 { margin: .8rem 0 .3rem; }
+.soc-privacy { border: 1px solid var(--line); border-radius: .6rem; padding: .5rem .8rem; margin: .6rem 0; }
+.soc-privacy > summary { cursor: pointer; font-weight: 600; }
+
+/* 🧙 the guided window of a settings box */
+.plug-settings-head { display: flex; align-items: center; justify-content: space-between; gap: .6rem; flex-wrap: wrap; }
+.plug-settings-head h4 { margin: 0; }
+.modal.wizard { max-width: 34rem; width: calc(100% - 2rem); }
+.modal.wizard input:not([type=checkbox]), .modal.wizard select { width: 100%; }
+.modal.wizard .close { float: right; }
+.wz-check { display: inline-flex; gap: .5rem; align-items: center; }

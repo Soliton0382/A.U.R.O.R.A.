@@ -11,8 +11,8 @@ next reload (measured). A blocked address's open connections are closed one by o
 destination is the address itself — kill_states' «filter» matches by substring, so 1.2.3.4 would also end
 1.2.3.45's.
 
-Like pfsense.py, what a plan, the audit and the network map ask in the first dialect's XML is refused with the
-reason, never sent."""
+Like pfsense.py: the audit and the map read it in the neutral form (opnsense_read), a plan is the neutral operations
+(opnsense_write); the first dialect's XML is refused with the reason, never sent."""
 from __future__ import annotations
 
 import json
@@ -89,14 +89,20 @@ def request(cfg, body: str) -> str:
     except ValueError:
         b = None
     if not isinstance(b, dict) or "op" not in b:
-        raise FirewallAPIError("this request has no OPNsense form yet (plans, audit and network map read the XML "
-                               "dialect's objects): only blocking and unblocking addresses work on OPNsense")
+        raise FirewallAPIError("this request is the first dialect's XML: on OPNsense a plan is the neutral operations "
+                               "(sec_fwops), the audit and the map its own reading")
     api = _API(cfg)
     with _one_at_a_time(cfg):
         return json.dumps(_do(api, b))
 
 
+WRITES = ("put_alias", "drop_alias", "alias_add", "alias_del", "put_rule", "drop_rule", "put_nat", "drop_nat", "exists")
+
+
 def _do(api: _API, b: dict) -> dict:
+    if b["op"] in WRITES:                                # a plan's neutral operations (sec_fwops)
+        from .opnsense_write import do
+        return do(api, b)
     name = alias_name(b.get("group") or "")
     if b["op"] == "get_group":
         a = api.alias(name)
@@ -199,3 +205,6 @@ def ungroup_host(name: str, ip: str, group: str = "") -> str:
 
 def remove_host(name: str) -> str:
     return _op("remove_host", host=name)
+
+
+from .opnsense_read import read_model, read_network  # noqa: E402,F401 — the audit's and the map's reading

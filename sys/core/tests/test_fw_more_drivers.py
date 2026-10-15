@@ -81,7 +81,7 @@ def test_an_unblock_takes_the_address_out_and_twice_is_no_error(lab):
 
 
 def test_what_has_no_pfsense_form_is_refused_never_sent(lab):
-    with pytest.raises(sec_fwapi.FirewallAPIError, match="no pfSense form yet"):
+    with pytest.raises(sec_fwapi.FirewallAPIError, match="first dialect.s XML: on pfSense"):
         sec_fwapi.request(CFG, "<Get><FirewallRule/></Get>")
     assert lab.calls == []
 
@@ -140,7 +140,7 @@ def test_opnsense_blocks_in_the_configuration_and_ends_only_the_address_own_conn
     assert lab.rules[0]["source_net"] == "Aurora_Block_List" and lab.rules[0]["quick"] == "1"
     sec_fwapi.unblock(cfg, "203.0.113.9")
     assert lab.aliases["u0"]["content"] == "203.0.113.10"
-    with pytest.raises(sec_fwapi.FirewallAPIError, match="no OPNsense form yet"):
+    with pytest.raises(sec_fwapi.FirewallAPIError, match="first dialect.s XML: on OPNsense"):
         sec_fwapi.request(cfg, "<Get><IPHost/></Get>")
     assert opnsense.alias_name("1-blocked") == "A1_blocked"
 

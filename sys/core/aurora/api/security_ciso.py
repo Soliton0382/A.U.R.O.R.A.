@@ -30,9 +30,15 @@ def _cached(key: str, make, seconds: float = 120, again: bool = False):
     return value
 
 
-def _audit(again: bool = False) -> dict:
-    from aurora import sec_audit
-    return _cached("audit", lambda: sec_audit.run(cfg), again=again)
+def _audit(again: bool = False, fw: str = "main") -> dict:
+    """One firewall's audit (any dialect, sec_fwmodel); «main» the settings' one, as before."""
+    from aurora import sec_audit, sec_firewalls, sec_fwapi
+    if fw == "main":
+        return _cached("audit", lambda: sec_audit.run(cfg), again=again)
+    item = next((x for x in sec_firewalls.items(cfg) if x["id"] == fw), None)
+    if item is None:
+        raise sec_fwapi.FirewallAPIError(f"no firewall {fw!r}")
+    return _cached(f"audit:{fw}", lambda: sec_audit.run(sec_firewalls.view(cfg, item)), again=again)
 
 
 def _hunt(hours: float, again: bool = False) -> dict:
@@ -41,10 +47,14 @@ def _hunt(hours: float, again: bool = False) -> dict:
 
 
 @router.get("/v1/aurora/security/audit", dependencies=[Depends(admin_only)])
-async def audit(again: bool = False) -> dict:
+async def audit(again: bool = False, fw: str = "main") -> dict:
     from aurora import sec_fwapi
+    from aurora import sec_firewalls
     try:
-        return await asyncio.to_thread(_audit, again)
+        out = await asyncio.to_thread(_audit, again, fw)
+        firewalls = [{"id": x["id"], "name": x.get("name") or x["id"], "kind": x.get("kind")}
+                     for x in await asyncio.to_thread(sec_firewalls.items, cfg) if x.get("confirmed") or x["id"] == "main"]
+        return {**out, "fw": fw, "firewalls": firewalls}
     except sec_fwapi.FirewallAPIError as e:
         raise HTTPException(status_code=502, detail=str(e)) from None
 
@@ -86,26 +96,31 @@ def changes() -> dict:
 
 @router.post("/v1/aurora/security/changes/plan", dependencies=[Depends(admin_only)])
 async def plan(request: Request) -> dict:
-    """{"kind": harden | publish | unpublish | quarantine | release | portblock, ...its fields}: a change planned,
-    not applied."""
+    """{"kind": harden | publish | unpublish | quarantine | release | portblock, ...its fields, "fw": the firewall (its
+    id in 🔌 Firewall; «main» the settings' one)}: a change planned, not applied."""
     from aurora import sec_fwapi, sec_fwport, sec_fwwrite
     body = await request.json()
     kind = str(body.get("kind", ""))
+    fw = str(body.get("fw") or "main")
+    try:
+        fwc = await asyncio.to_thread(sec_fwwrite.target, cfg, fw)       # the firewall's configuration
+    except sec_fwwrite.WriteError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from None
     makers = {
-        "harden": lambda: sec_fwwrite.plan_harden(cfg, str(body["rule"]), str(body["ips"]), bool(body.get("log", True))),
-        "publish": lambda: sec_fwwrite.plan_publish(cfg, str(body["name"]), str(body["host"]), str(body["ports"]),
+        "harden": lambda: sec_fwwrite.plan_harden(fwc, str(body["rule"]), str(body["ips"]), bool(body.get("log", True))),
+        "publish": lambda: sec_fwwrite.plan_publish(fwc, str(body["name"]), str(body["host"]), str(body["ports"]),
                                                     str(body.get("sources", ""))),
-        "unpublish": lambda: sec_fwwrite.plan_unpublish(cfg, str(body["name"])),
-        "quarantine": lambda: sec_fwwrite.plan_quarantine(cfg, str(body["ip"]), str(body.get("reason", "") or "dalla pagina Firewall")),
-        "release": lambda: sec_fwwrite.plan_release(cfg, str(body["ip"])),
-        "portblock": lambda: sec_fwport.plan_port_block(cfg, str(body["ip"]), str(body["ports"]),
+        "unpublish": lambda: sec_fwwrite.plan_unpublish(fwc, str(body["name"])),
+        "quarantine": lambda: sec_fwwrite.plan_quarantine(fwc, str(body["ip"]), str(body.get("reason", "") or "dalla pagina Firewall")),
+        "release": lambda: sec_fwwrite.plan_release(fwc, str(body["ip"])),
+        "portblock": lambda: sec_fwport.plan_port_block(fwc, str(body["ip"]), str(body["ports"]),
                                                         str(body.get("reason", "") or "dalla pagina Firewall"),
                                                         float(body.get("hours", 24))),
     }
     if kind not in makers:
         raise HTTPException(status_code=400, detail=f"kind: one of {sorted(makers)}")
     try:
-        return await asyncio.to_thread(lambda: sec_fwwrite.propose(cfg, makers[kind]()))
+        return await asyncio.to_thread(lambda: sec_fwwrite.propose(cfg, makers[kind](), fw))
     except KeyError as e:
         raise HTTPException(status_code=400, detail=f"missing field {e}") from None
     except (sec_fwwrite.WriteError, sec_fwapi.FirewallAPIError, ValueError) as e:
@@ -117,14 +132,16 @@ async def ask(request: Request) -> dict:
     """{"text": what the owner wants on the firewall}: the local model plans it (sec_fwplan), the code checks every
     step; a planned change, or {"questions"} when the request needs an answer first."""
     from aurora import sec_fwapi, sec_fwplan, sec_fwwrite
-    text = str((await request.json()).get("text", ""))
+    body = await request.json()
+    text, fw = str(body.get("text", "")), str(body.get("fw") or "main")      # fw: the firewall it is for
     try:
-        out = await asyncio.to_thread(sec_fwplan.plan, cfg, text)
+        fwc = await asyncio.to_thread(sec_fwwrite.target, cfg, fw)
+        out = await asyncio.to_thread(sec_fwplan.plan, fwc, text)
     except (sec_fwwrite.WriteError, sec_fwapi.FirewallAPIError) as e:
         raise HTTPException(status_code=409, detail=str(e)) from None
     if "questions" in out:
         return out
-    change = sec_fwwrite.propose(cfg, out)
+    change = sec_fwwrite.propose(cfg, out, fw)
     log.info("audit: owner asked a firewall change in words → %s planned (%d steps)", change["id"], len(change["steps"]))
     return change
 

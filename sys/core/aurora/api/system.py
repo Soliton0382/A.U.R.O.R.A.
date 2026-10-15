@@ -166,7 +166,9 @@ async def update_settings(request: Request) -> dict:
                                   confirm=request.query_params.get("confirm") == "purge")
         except sys_users_mode.ModeError as e:
             raise HTTPException(status_code=409, detail={"message": str(e), "plan": e.plan}) from None
-    if user and sys_users_layout.migrated(cfg):              # U3: a user's own settings go to their usr/<name>/.env
+    who = user or admin                                    # the API's own key (no user): the admin's (C340)
+    if who and sys_users_layout.migrated(cfg):               # U3: a user's own settings go to their usr/<name>/.env
+        user = who
         mine = {k: str(v) for k, v in changes.items() if specs[k].get("scope") == "user"}
         machine = {k: str(v) for k, v in changes.items() if k not in mine}
         if machine and user != admin:

@@ -1,6 +1,6 @@
 # Status — work in progress
 
-Updated at every validated change (last: 2026-10-16). Details: BUGS.md (issues, 0 open / 334 closed),
+Updated at every validated change (last: 2026-10-16). Details: BUGS.md (issues, 0 open / 339 closed),
 MANUAL_TESTS.md (what the owner checks by hand),
 TESTS.md (tests and live checks), MEASUREMENTS.md (numbers), MODULE_MAP.md (who does what),
 SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSYSTEM.md (design and decisions).
@@ -54,7 +54,10 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | visual traceroute | 🛡️ → 🌍 Traceroute and «📍 Geolocalizza» on an incident: mtr hop by hop as SSE, each hop placed offline (DB-IP lite city + ASN, monthly, read by Aurora's own MaxMind DB reader), a seat the round trip makes impossible dashed (light in fibre 200 km/ms), a canvas globe that turns to each hop | tests (net_trace); live: 8.8.8.8, 1.1.1.1 |
 | DJ, two decks | two tracks: one tempo (A, B, style or a number), B tuned to A, mix (B in on A's beat at the bar chosen, 4-32 bars: bass swap, crossfade, filter sweep, echo out) or EQ mashup, a beat added or not, each deck's volume; the beat followed one by one (C261) | tests (deck, dj); M180 |
 | firewall undo | every block (the owner's or Aurora's) undone with one click; group and rule names shown once the API is set | live (N44), tests |
-| firewall drivers | the device's dialect behind one interface (aurora/fw_drivers, by AURORA_FIREWALL_API_KIND); two: the first everything, its XML byte for byte as before; pfSense (REST API package) and OPNsense (its own API) blocking and unblocking, tried on two aurora-lab VMs (pfSense CE 2.9.0: in the filter 0.4-0.5 s after the call; OPNsense 26.7: the call 1.2-2.3 s); each firewall's official guides indexed apart (manual, API reference — OpenAPI or a page of links — and log format) | test_fw_drivers, test_fw_more_drivers |
+| firewall drivers | the device's dialect behind one interface (aurora/fw_drivers, by AURORA_FIREWALL_API_KIND): Sophos, pfSense (REST API package), OPNsense (its own API); blocks (also on one port), audit, network map (with ARP and leases where the API gives them) and changes (publish, quarantine, release, a request in words) for all three, through a neutral form (sec_fwmodel, sec_fwops, sec_fwplan_ops); measured on two aurora-lab VMs (M225: a block holds from the first ping after the call; M226: every change applied, read back, undone); each firewall's official guides indexed apart | test_fw_drivers, test_fw_more_drivers, test_fw_neutral |
+| 🔭 astro (79 step 0) | a script for the telescope's PC (read only; v3 lists the programs' own servers) → the equipment read by rules (optics, cameras and scales, PHD2 guiding, solving, site rounded, software, what to check); the integrated darks of this machine from names and headers; the «astro» plugin for the chat | test_astro |
+| what is masked, seen | ☁️ Accounts: the built-in rules (17), each person's words, the installation's, those from the settings; 📣 Social: the post check's rules and each person's «never publish» words | test_edge_page |
+| guided setup | 🧙 in every settings box, made from the plugin's guide and the schema: a step per setting, one save | test_astro |
 | firewall connections | 🛡️ Security → 🔌: many firewalls, each connected and confirmed, passwords sealed, a block to every confirmed one that receives blocks | test_sec_firewalls |
 | plugins on request | a plugin's tools in the agent's catalog only when the goal names it (GitHub), `more_tools` otherwise | test_agt_tools |
 | users' permissions | the admin decides per user: their routines, settings, autonomy; the machine's pages the admin's | test_users_perm |
@@ -181,7 +184,7 @@ the NAS backup after the mount (C123).
 | what | depends on |
 |---|---|
 | move the owner's key to root-only custody (USB) | owner (SECURITY.md) |
-| firewall actions (block an address) and abuse reports as approvals | Sophos API plugin |
+| abuse reports as approvals | the e-mail plugin set up |
 | full-disk encryption | owner |
 | the calendar synced both ways: CalDAV write-back; Google and Microsoft through their APIs | the owner registers an app with Google / Microsoft (OAuth) |
 | Mac and Windows, phases 3–5: installers, per-system locks, models on Metal/CPU, services, the cages | the Ports workflow's first run (the real list) |
