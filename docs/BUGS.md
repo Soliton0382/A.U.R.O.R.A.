@@ -6,6 +6,8 @@ Numbered, never deleted: a fixed issue moves to "Closed" with the proof.
 
 | # | issue | impact | plan |
 |---|---|---|---|
+| C331 | Found by Aurora's own self-repair, 15 Oct (report in 🩺): when the cloud agent fails (a tool call it cannot parse, twice), the fallback hands the same conversation to the local model — 34,204 tokens against its 32,768 a slot — and llama-server answers 400; Fallback.context_tokens takes the cloud model's context, so the agent's trimming never trims. | A long agent run whose cloud call fails ends in an error instead of the local answer | her fix is ready in the sandbox fallback-ctx-10c9d2 (trim for the local context before the fallback, 2 tests); refused only by C328, now closed: propose it again, read it, approve it |
+| C330 | Found in the owner's memory review, 15 Oct: the dream of 10 Oct is the dream of 9 Oct word for word (1,032 characters), though its fragments are drawn at random each night; 13 and 14 Oct are different. Not yet known whether the model was given the same input or an answer was reused. | One night's dream told twice; the duplicate removed in the review | read the rem log and the trace of the night of 10 Oct; a test that two nights never keep the same text |
 
 ## Closed
 

@@ -136,7 +136,7 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `api.tunnel` | `api (MODULES)`, `api.agents`, `api.system`, `script/svc_api.py` | 0 |
 | `api.updates` | `api (MODULES)`, `api.agents`, `api.routines`, `script/svc_api.py` | 1 |
 | `api.uploads` | `api (MODULES)` | 0 |
-| `api.users` | `api (MODULES)`, `api.agents`, `api.autonomy`, `api.backup`, `api.calendar`, `api.diet`, `api.harvester`, `api.https`, `api.incidents`, `api.knowledge`, `api.models`, `api.models_custom`, `api.oai`, `api.rem`, `api.routines`, `api.security`, `api.security_ciso`, `api.synapses`, `api.updates` | 0 |
+| `api.users` | `api (MODULES)`, `api.activity`, `api.agents`, `api.autonomy`, `api.backup`, `api.calendar`, `api.diet`, `api.harvester`, `api.https`, `api.incidents`, `api.knowledge`, `api.models`, `api.models_custom`, `api.oai`, `api.rem`, `api.routines`, `api.security`, `api.security_ciso`, `api.synapses`, `api.updates` | 0 |
 | `api.voice` | `api (MODULES)` | 0 |
 | `aud_analysis` | `aud_deck`, `aud_dj`, `aud_synth` | 2 |
 | `aud_deck` | `api.dj`, `aud_dj` | 1 |
@@ -311,7 +311,7 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `sys_users_mode` | `api.system` | 1 |
 | `txt_compress` | `kno_read`, `kno_stages` | 1 |
 | `txt_ical` | `cal_external`, `cal_store`, `cal_text`, `sys/plugins/calendar/server.py` | 1 |
-| `txt_lang` | `agt_loop`, `api.documents`, `api.social`, `kno_acquire`, `kno_answer`, `kno_attach`, `kno_grid`, `kno_ingest`, `kno_read`, `kno_rem`, `kno_self`, `kno_social`, `kno_stages`, `kno_story_auto`, `script/bench_quality.py`, `script/kno_migrate_legacy.py`, `sys/plugins/documents/server.py` | 1 |
+| `txt_lang` | `agt_loop`, `api.documents`, `api.social`, `kno_acquire`, `kno_answer`, `kno_attach`, `kno_grid`, `kno_ingest`, `kno_read`, `kno_rem`, `kno_self`, `kno_social`, `kno_stages`, `kno_story_auto`, `script/bench_quality.py`, `script/kno_migrate_legacy.py`, `script/mem_prune.py`, `sys/plugins/documents/server.py` | 1 |
 
 ## WebUI modules: who imports them
 
@@ -451,6 +451,7 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | GET `/v1/aurora/memory/about-me` | `api/activity.py` | `script/mem_prune.py`, `webui/js/modules/memory.js` |
 | DELETE `/v1/aurora/memory/about-me` | `api/activity.py` | `script/mem_prune.py`, `webui/js/modules/memory.js` |
 | DELETE `/v1/aurora/memory/conversation` | `api/activity.py` | `script/mem_prune.py` |
+| DELETE `/v1/aurora/memory/reflection` | `api/activity.py` | `script/mem_prune.py` |
 | GET `/v1/aurora/reflections` | `api/activity.py` | `script/svc_api.py`, `webui/js/modules/diary.js`, `webui/js/modules/reports.js` |
 | POST `/v1/aurora/agent` | `api/agents.py` | `script/bench_repair.py`, `script/svc_api.py`, `webui/js/modules/chat.js` |
 | GET `/v1/aurora/plugins/signature` | `api/agents.py` | `webui/js/modules/plugins.js` |
@@ -707,4 +708,4 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | GET `/v1/aurora/tts` | `api/voice.py` | `webui/js/voice.js` |
 | POST `/v1/aurora/tts` | `api/voice.py` | `webui/js/voice.js` |
 
-Modules nobody in the code imports: 0; routes nobody in the repository names: 4 of 282.
+Modules nobody in the code imports: 0; routes nobody in the repository names: 4 of 283.

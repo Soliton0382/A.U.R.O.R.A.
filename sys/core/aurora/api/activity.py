@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from .core import MAX_ACTIVITY, _activity, _activity_cond, _run_lock, auth, cfg, log, me, mine, note, pipeline, quiet
+from .users import admin_only  # noqa: E402
 
 router = APIRouter()
 
@@ -185,6 +186,20 @@ def forget_exchange(source_id: str) -> dict:
             raise HTTPException(status_code=404, detail="no such exchange")
         p.indexer.drop("conversation", sids)
     log.info("audit: an exchange forgotten at the user's request (%s, %d solitons)", source_id, len(sids))
+    return {"forgotten": len(sids)}
+
+
+@router.delete("/v1/aurora/memory/reflection", dependencies=[Depends(admin_only)])
+def forget_reflection(source_id: str) -> dict:
+    """Forget one of her reflections for good — a dream, a study, a repair, a thought told twice (owner, 15 Oct: «una
+    cernita precisa… lasciamo solo quanto risulta essere valido»); the admin only, the session memories have their own."""
+    p = pipeline()
+    with _run_lock:
+        sids = p.writer.remove_source("reflection", source_id)
+        if not sids:
+            raise HTTPException(status_code=404, detail="no such reflection")
+        p.indexer.drop("reflection", sids)
+    log.info("audit: a reflection forgotten by the admin (%s, %d solitons)", source_id, len(sids))
     return {"forgotten": len(sids)}
 
 

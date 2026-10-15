@@ -3,7 +3,31 @@
 Every request of the owner is recorded here as soon as it is made, so that nothing is lost between
 sessions. Each item moves to STATUS.md ("Working") when it is validated. Updated 2026-09-30.
 
-## For 15 October 2026 — to decide with the owner (written the night before)
+## For 16 October 2026 — what is left (written the night before)
+
+Done on 15 October: M222 (who does what, measured: the best of both 172 of 197), D2 decided, D4 done, the brain widget
+(110), the Models page (109) and the Autonomy page (111) in tabs, the call map (CALL_MAP.md), the memory's recall order
+(C326) and the owner's memory reviewed by hand (156 → 98 exchanges, 268 → 252 reflections: repetitions, refusals answered
+later, probes and broken answers out — mem_prune.py), the reports' empty PDFs (C327), the tests that blocked self-repair in
+its sandbox (C328), the blocks at Cloudflare counted (C329). Published: v0.2.30, v0.2.31.
+
+| # | what | kind | first step |
+|---|---|---|---|
+| N1 | 🌙 C330 — one night's dream told twice word for word (9 and 10 Oct) | bug | the rem log and the trace of the night of 10 Oct: the same fragments, or an answer reused? (owner: «nel giro di domani verifica il sogno») |
+| N2 | 🔧 C331 — the local fallback given a conversation over its context | bug | Aurora's own fix (sandbox fallback-ctx-10c9d2) proposed again now that C328 is closed; read, approve |
+| N3 | 🧠 D1 — memory over days | measure, runs by itself | probes at 3 and 7 nights: aurora-memprobe-3 (17 Oct), aurora-memprobe-7 (21 Oct); a reboot cancels them (`bench_memory_days.py probe` by hand). Then: does C326 change the score? |
+| N4 | ⚖️ D2's open parts | measure | (a) the cloud's tokens per configuration; (b) the judge's own drift: the same ~99 answers judged again by Sonnet (waiting for the owner's yes); (c) SSCC on and off (AURORA_CLOUD_KEEP_PCT 100 vs 60, the same seeds) — offered for the slides: today SSCC took 26.5 % of the characters of the compressed calls (207 calls), and M41 measured no loss of quality, but no run had it off |
+| N5 | 👀 The new pages read by someone who never saw them | measure | Models (109) and Autonomy (111): find a level and change it, say what the best of both does |
+| N6 | 📷 D8 — home security (private) | owner + measure | the owner's own measure on the cameras |
+| N7 | 🗂️ Decisions of the owner | owner | the 50 PDFs of «NOTHING» already in the documents (delete?); the personal case still in the public repository's history (rewrite it, as for the firewall's serial?); the 3 points for the company slides (from README.en.md) |
+| N8 | 🔌 D5 step 2 — a second firewall driver on an aurora-lab VM | build | — |
+| N9 | 🔐 D9 — publishing with a deploy key | owner | the deploy key and the signed-commits rule |
+| N10 | 🧹 T1 — cleanup | upkeep | sys/sandbox is 586 MB now (192 MB on 13 Oct): keep fallback-ctx-10c9d2 until N2, remove the rest; then the forge's drafts and the functions nothing calls |
+
+Proposed order: N1 and N2 (small, open bugs) → N3 runs by itself → N7 (the owner's answers) → N4 (a long run: the GPU and
+the cloud busy, nothing else meanwhile) → N5 → N10 → N8, N9.
+
+## 15 October 2026 — the plan of that day, kept for the record
 
 Published: v0.2.26 and v0.2.27 (main = v0.2.27, CI: Push on main, Release, Pages green; Install and Ports were
 running). Live since that night: the granular assignment (route, translate, gate, verify, service, rem, vision local;
