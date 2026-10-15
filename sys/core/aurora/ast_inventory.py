@@ -188,13 +188,17 @@ def _phd2(lines: list[str]) -> dict:
 def _links(lines: list[str]) -> dict:
     """The programs' own servers as the PC saw them (script 3): addresses, network profile, what runs, what listens and
     to whom, the firewall's rules, each server tried from the PC itself."""
-    out: dict = {"addresses": [], "profiles": [], "running": [], "listening": [], "firewall": [], "servers": [], "nina_api": ""}
+    out: dict = {"addresses": [], "profiles": [], "running": [], "listening": [], "firewall": [], "servers": [], "nina_api": "",
+                 "windows_firewall": {}}
     for line in lines:
         kind, _, rest = line.partition(": ")
         if kind == "address":
             out["addresses"].append(rest.split(" on ")[0])
         elif kind == "network profile":
             out["profiles"].append(rest)
+        elif kind == "windows firewall":
+            name, _, state = rest.partition(" = ")
+            out["windows_firewall"][name.strip()] = state.strip() == "on"
         elif kind == "running":
             out["running"].append(rest.split(" (pid")[0])
         elif kind == "listening":
@@ -206,7 +210,9 @@ def _links(lines: list[str]) -> dict:
             out["firewall"].append(rest)
         elif kind == "server":
             label, said = (rest.split(" answers", 1) + [""])[:2] if " answers" in rest else (rest.split(" does not answer")[0], "")
-            out["servers"].append({"name": label.strip(), "ok": " answers" in rest, "text": said.lstrip(": 0123456789").strip()[:160]})
+            # of what a server said only its version: script 3 copied Stellarium's status, the site's exact place
+            m = re.search(r"(?:version\D{0,4}|\"(?:PHD)?[Vv]ersion\":\s*\")([0-9][0-9A-Za-z.\-]{0,20})", said)
+            out["servers"].append({"name": label.strip(), "ok": " answers" in rest, "text": f"versione {m.group(1)}" if m else ""})
         elif kind.startswith("N.I.N.A. Advanced API plugin"):
             out["nina_api"] = rest
     return out
@@ -272,7 +278,9 @@ def _checks(p: dict) -> list[dict]:
                 out.append({"what": f"{s['name']}: non risponde", "why": "per seguire la guida e la sequenza dal vivo Aurora ne ha bisogno: "
                             + ("in PHD2, Strumenti → Abilita server" if s["name"].startswith("PHD2")
                                else "installa il plugin Advanced API di N.I.N.A. (Plugins → Available) e attivalo")})
-        if any("Public" in x for x in links.get("profiles", [])):
+        wf = links.get("windows_firewall") or {}
+        # a «Public» network blocks what comes in only while Windows' firewall is on for it (unknown before script 4)
+        if any("Public" in x for x in links.get("profiles", [])) and wf.get("Public", True):
             out.append({"what": "La rete del PC è «Pubblica» per Windows",
                         "why": "Windows blocca le connessioni in entrata: per Aurora va messa su «Privata»"})
         if links.get("listening") and not any(x["network"] for x in links["listening"]):

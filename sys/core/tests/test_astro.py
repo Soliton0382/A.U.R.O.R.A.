@@ -121,3 +121,16 @@ def test_every_settings_box_has_its_guided_window_made_from_what_is_written():
     assert "guide: { title: p.name, intro: setup[code]" in plugins                   # a plugin's own guide first
     wz = (core / "wizard.js").read_text(encoding="utf-8")
     assert 's.type === "bool"' in wz and "s.secret" in wz and '"/v1/aurora/settings"' in wz
+
+
+def test_of_a_server_only_its_version_is_kept_and_a_public_network_warns_only_with_the_firewall_on():
+    """Script 3 copied Stellarium's status into the inventory — the exact site and its name (16 Oct): never kept."""
+    links = INV.replace("== ASTAP", "== connections\nnetwork profile: Wi-Fi = Public\n"
+                        'server: Stellarium remote control answers 200: {"location":{"latitude":41.90123,"name":"Somewhere"}}\n'
+                        'server: PHD2 event server answers: {"Event":"Version","PHDVersion":"2.6.14","Host":"PC"}\n\n== ASTAP')
+    p = A.parse(links.replace("(script 2)", "(script 3)"))
+    assert "41.90123" not in json.dumps(p) and "Somewhere" not in json.dumps(p)          # the rounded site stays
+    assert [s["text"] for s in p["links"]["servers"]] == ["", "versione 2.6.14"]
+    assert any("Pubblica" in c["what"] for c in p["checks"])
+    off = A.parse(links.replace("(script 2)", "(script 4)").replace("Public\n", "Public\nwindows firewall: Public = off\n", 1))
+    assert not any("Pubblica" in c["what"] for c in off["checks"])

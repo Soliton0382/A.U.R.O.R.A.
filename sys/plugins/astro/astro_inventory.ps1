@@ -5,10 +5,11 @@
 # copied. Version 2 (ROADMAP 79): the darks are also looked for in N.I.N.A.'s image folders, PHD2's profile by its
 # name and its guide logs where PHD2 writes them. Version 3: run it with the programs open - the servers they offer
 # (PHD2's event server, N.I.N.A.'s Advanced API, ASCOM Remote / Alpaca) are listed and tried from this PC, read only.
+# Version 4: of a server only whether it answers and its version (Stellarium's status held the exact site).
 $ErrorActionPreference = "SilentlyContinue"
 $out = Join-Path $PSScriptRoot "astro_inventory.txt"
 function W($s) { Add-Content -Path $out -Value $s -Encoding UTF8 }
-Set-Content -Path $out -Value "# astro inventory $(Get-Date -Format 'yyyy-MM-dd HH:mm') (script 3)" -Encoding UTF8
+Set-Content -Path $out -Value "# astro inventory $(Get-Date -Format 'yyyy-MM-dd HH:mm') (script 4)" -Encoding UTF8
 
 W "`n== system"
 $os = Get-CimInstance Win32_OperatingSystem; $cpu = Get-CimInstance Win32_Processor
@@ -96,6 +97,7 @@ W "`n== connections (the programs' own servers: run this with N.I.N.A., PHD2 and
 foreach ($a in Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notmatch '^(127\.|169\.254\.)' }) {
   W "address: $($a.IPAddress)/$($a.PrefixLength) on $($a.InterfaceAlias)" }
 Get-NetConnectionProfile | ForEach-Object { W "network profile: $($_.InterfaceAlias) = $($_.NetworkCategory)" }
+Get-NetFirewallProfile | ForEach-Object { W "windows firewall: $($_.Name) = $(if ($_.Enabled) { 'on' } else { 'off' })" }
 $names = "NINA", "phd2", "ASCOM.RemoteServer", "ASCOM.Remote", "RemoteServer", "SharpCap", "astap", "stellarium", "OnStep", "ASCOM.DeviceHub", "GSServer", "EQMOD", "APCC", "TheSkyX", "Cartes", "SkyChart"
 $procs = Get-Process | Where-Object { $n = $_.ProcessName; $names | Where-Object { $n -like "*$_*" } }
 foreach ($p in $procs) { W "running: $($p.ProcessName) (pid $($p.Id))" }
@@ -108,8 +110,11 @@ Get-NetUDPEndpoint | Where-Object { $_.LocalPort -eq 32227 } | ForEach-Object { 
 Get-NetFirewallRule -Enabled True -Direction Inbound | Where-Object { $_.DisplayName -match "N\.?I\.?N\.?A|PHD|ASCOM|Alpaca|Stellarium|SharpCap|OnStep" } | ForEach-Object {
   $port = ($_ | Get-NetFirewallPortFilter).LocalPort; $app = ($_ | Get-NetFirewallApplicationFilter).Program
   W "firewall: $($_.DisplayName) | $($_.Action) | profiles $($_.Profile) | port $port | $app" }
-function Probe($label, $url) {                    # one GET on this PC, its first words; nothing is changed
-  try { $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 4 $url; W "server: $label answers $($r.StatusCode): $($r.Content.Substring(0, [Math]::Min(160, $r.Content.Length)) -replace '\s+', ' ')" }
+function Probe($label, $url) {                    # one GET on this PC: does it answer, and its version; nothing is changed
+  # never what it says beyond that: Stellarium's status, for one, holds the site's exact coordinates and its name
+  try { $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 4 $url
+        $v = [regex]::Match($r.Content, '"(?:version|Version|PHDVersion)"\s*:\s*"?([0-9][0-9A-Za-z.\-]{0,20})').Groups[1].Value
+        W "server: $label answers $($r.StatusCode)$(if ($v) { ": version $v" })" }
   catch { W "server: $label does not answer at $url" } }
 Probe "N.I.N.A. Advanced API" "http://localhost:1888/v2/api/version"
 Probe "ASCOM Remote / Alpaca" "http://localhost:11111/management/apiversions"
@@ -117,7 +122,7 @@ Probe "Stellarium remote control" "http://localhost:8090/api/main/status"
 try {                                              # PHD2's event server says who it is as soon as one connects
   $c = New-Object System.Net.Sockets.TcpClient; $c.ReceiveTimeout = 3000; $c.Connect("127.0.0.1", 4400)
   $line = (New-Object System.IO.StreamReader($c.GetStream())).ReadLine(); $c.Close()
-  W "server: PHD2 event server answers: $($line.Substring(0, [Math]::Min(160, $line.Length)))" }
+  W "server: PHD2 event server answers: version $([regex]::Match($line, '"PHDVersion":"([^"]*)"').Groups[1].Value)" }
 catch { W "server: PHD2 event server does not answer on port 4400 (PHD2 closed, or Tools > Enable Server off)" }
 W "N.I.N.A. Advanced API plugin: $(if (Get-ChildItem (Join-Path $nina 'Plugins') -Recurse -Depth 2 -Filter '*Advanced*API*') { 'installed' } else { 'not found' })"
 
