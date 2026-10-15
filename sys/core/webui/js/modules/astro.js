@@ -7,6 +7,7 @@
 import { call } from "../api.js";
 import { el } from "../dom.js";
 import { apply, t } from "../i18n.js";
+import { liveTab } from "./astro_live.js";
 import { pluginSlot } from "./plugin_slot.js";
 import { settingsForm } from "./settings_form.js";
 
@@ -30,12 +31,26 @@ export default {
   mount(root) {
     root.classList.add("page");
     root.innerHTML = `<h2 data-i18n="nav.astro"></h2><p class="muted" data-i18n="astro.hint"></p>
-      <h3 class="setting-cat" data-i18n="astro.step1"></h3><div class="astro-script"></div>
-      <h3 class="setting-cat" data-i18n="astro.step2"></h3><div class="astro-files"></div>
-      <h3 class="setting-cat" data-i18n="astro.step3"></h3><div class="astro-profile"></div>`;
+      <div class="prj-tabs astro-tabs"><button type="button" class="cat-chip on" data-tab="gear" data-i18n="astro.tab.gear"></button><button type="button" class="cat-chip" data-tab="live" data-i18n="astro.tab.live"></button></div>
+      <div class="astro-tab" data-tab="gear">
+        <h3 class="setting-cat" data-i18n="astro.step1"></h3><div class="astro-script"></div>
+        <h3 class="setting-cat" data-i18n="astro.step2"></h3><div class="astro-files"></div>
+        <h3 class="setting-cat" data-i18n="astro.step3"></h3><div class="astro-profile"></div></div>
+      <div class="astro-tab" data-tab="live" hidden><div class="astro-live"></div></div>`;
     root.querySelector("h2").after(pluginSlot("astro"));
     apply(root);
     this.root = root;
+    // the tabs (owner, 2026-10-16: «una nuova tab per la pianificazione e il monitoraggio in tempo reale»)
+    root.querySelectorAll(".astro-tabs button").forEach((b) => b.addEventListener("click", () => this.tab(b.dataset.tab)));
+  },
+
+  tab(id) {
+    this.root.querySelectorAll(".astro-tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === id));
+    this.root.querySelectorAll(".astro-tab").forEach((d) => { d.hidden = d.dataset.tab !== id; });
+    if (id === "live") {
+      this.live ||= liveTab(this.root.querySelector(".astro-live"), this.scale);
+      this.live.start();
+    } else this.live?.stop();
   },
 
   async enter() {
@@ -44,6 +59,7 @@ export default {
     this.drawScript(d);
     this.drawFiles(d);
     this.drawProfile(d);
+    this.scale = d.profile?.rig?.scale_arcsec_px || null;    // the imaging scale: what the guiding is judged against
   },
 
   drawScript(d) {

@@ -72,3 +72,18 @@ def astro_remove(name: str) -> dict:
     f.unlink()
     log.info("audit: %s removed %s from the astro folder", me(), f.name)
     return {"removed": f.name}
+
+
+@router.get("/v1/aurora/astro/live", dependencies=[Depends(auth)])
+def astro_live() -> dict:
+    """The guiding now (ROADMAP N28): PHD2's events on the telescope's PC, read only — the watcher starts on the first
+    ask and stops by itself when nobody asks (ast_phd2.IDLE_S)."""
+    from aurora import ast_inventory as A, ast_phd2
+    host = str(cfg["AURORA_ASTRO_PC"] or "").strip()
+    if not host:                                            # the address the PC itself gave in its inventory
+        p = A.profile(cfg)
+        host = next((a.split("/")[0] for a in ((p or {}).get("links") or {}).get("addresses", [])), "")
+    if not host:
+        return {"connected": False, "error": "no address: run the inventory script, or set AURORA_ASTRO_PC", "steps": []}
+    name, _, port = host.partition(":")
+    return ast_phd2.watch(name, int(port) if port.isdigit() else ast_phd2.PORT)

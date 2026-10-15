@@ -3412,6 +3412,19 @@
    ]
   },
   {
+   "key": "AURORA_ASTRO_PC",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "scope": "user",
+   "en": "The address of the PC that drives your telescope (e.g. 192.168.0.50), where Aurora reads PHD2's event server (port 4400). Empty: the address in the latest inventory.",
+   "it": "L'indirizzo del PC che comanda il telescopio (per esempio 192.168.0.50), dove Aurora legge il server degli eventi di PHD2 (porta 4400). Vuoto: l'indirizzo dell'ultimo inventario.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_ASTRO_DARKS_TEMP",
    "type": "str",
    "category": "plugins",
