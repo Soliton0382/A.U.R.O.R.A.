@@ -127,3 +127,19 @@ def test_the_dream_s_painting_is_the_scene_the_dream_tells():
     assert "SEEN" in SYS_DREAM and "central" in SYS_DREAM
     assert "exactly that central scene" in SYS_DREAM and "nothing it does not tell" in SYS_DREAM
     assert "no names of people" in SYS_DREAM
+
+
+def test_an_earlier_dream_is_no_fragment_and_a_copied_dream_is_dreamt_again(cfg, monkeypatch):
+    """C330: an earlier dream drawn as a memory was told again word for word (0.98-1.00; other nights 0.02-0.19)."""
+    p = pipeline(cfg)
+    old = "Ero in una biblioteca di vetro e i libri cadevano come neve sulle mie mani, lenti e luminosi."
+    p.writer.add_many([turn("user", "Parlami dei solitoni", 30), turn("assistant", "Onde che non si disperdono.", 29),
+                       Soliton.new(old, "reflection", "reflection", "it", "dream:1", extra={"type": "dream"})])
+    monkeypatch.setattr(Rem, "_random_knowledge", lambda self, n: [])
+    assert all(s.extra.get("type") != "dream" for s in Rem(p, cfg)._fragments())
+    told = iter(["Onde che non si disperdono.", "Sogno onde di luce sopra un mare fermo.\nIMAGE: a wave"])
+    p.llm.complete = lambda system, user, max_tokens, think=False: SimpleNamespace(answer=next(told))
+    cfg.values["AURORA_IMAGE_ENABLED"] = False
+    Rem(p, cfg).dream(lambda e, x: None)
+    dreams = [s.text for s in p.reader.recent(10, domain="reflection") if s.extra.get("type") == "dream"]
+    assert dreams[-1] == "Sogno onde di luce sopra un mare fermo."

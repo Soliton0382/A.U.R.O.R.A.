@@ -116,6 +116,7 @@ call downward (ECOSYSTEM §1).
 | `api/updates.py` | api | Aurora's updates (what is new, the check, the update started) and the command cards — split from api/knowledge (D10) | sys_update, sys_commands | routines, agents, svc_api |
 | `api/harvester.py` | api | the harvester's domains, state and actions — split from api/knowledge (D10) | kno_sources | — |
 | `mdl_budget.py` | models | the day's tokens per cloud provider (shared file, locked), the daily ceiling for providers paid by the token, `Metered`: every local call traced with its step | sys_config, sys_log | mdl_router, mdl_cloud, api/models, sys_health |
+| `mdl_fit.py` | models | an agent's conversation shortened to the local model's window when the cloud fails or the day's budget is spent (C331): oldest tool results first, then whole old steps; system, goal and the last turns stay | — | mdl_router (Fallback) |
 | `sys_backup.py` | system | the owner's data to another disk: AES-256-GCM frames, blobs named by HMAC (dedup), SQLite backup API, snapshots, retention, verify, restore into an empty folder | sys_config | svc_backup, api/backup, sys_health, sys_doctor |
 | `sys_backup_crypto.py` | system | the backup's key and recovery code, sub-keys, AES-256-GCM frames with the last marked (moved from sys_backup) | cryptography | sys_backup, sys_restore |
 | `sys_bugreport.py` | system | a bug report zip: description, environment, health, settings (secrets as set/empty), logs of N hours, problems of 7 days, plugin stderr, chosen runs; one masker for all | sec_mask, sys_logread | api/bugreport |

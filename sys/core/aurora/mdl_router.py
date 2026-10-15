@@ -534,14 +534,22 @@ class Fallback:
     def _try(self, method: str, *a, **k):
         from . import mdl_budget
         if self.cfg is not None and mdl_budget.over(self.cfg, self.provider):    # today's ceiling: the local model
-            return getattr(self.local, method)(*a, **k)
+            return self._local(method, *a, **k)
         try:
             return getattr(self.primary, method)(*a, **k)
         except Exception as e:                           # noqa: BLE001 - a provider down must not stop Aurora
             sys_log.get_logger("llm_client").warning("%s on %s failed (%s): the local model does it", self.role,
                                                      self.name, str(e)[:200])
             sys_log.trace("llm_client", "cloud.fallback", {"role": self.role, "provider": self.name, "error": str(e)[:300]})
-            return getattr(self.local, method)(*a, **k)
+            return self._local(method, *a, **k)
+
+    def _local(self, method: str, *a, **k):
+        if method == "complete_turns" and self.cfg is not None and a:      # C331: fitted to the cloud's window
+            from . import mdl_fit
+            messages, max_tokens = mdl_fit.fit(a[0], k.pop("max_tokens", a[1] if len(a) > 1 else 1500),
+                                               mdl_fit.window(self.cfg))
+            a = (messages, max_tokens) + tuple(a[2:])
+        return getattr(self.local, method)(*a, **k)
 
     def complete(self, *a, **k):
         return self._try("complete", *a, **k)

@@ -13,16 +13,16 @@ its sandbox (C328), the blocks at Cloudflare counted (C329). Published: v0.2.30,
 
 | # | what | kind | first step |
 |---|---|---|---|
-| N1 | 🌙 C330 — one night's dream told twice word for word (9 and 10 Oct) | bug | the rem log and the trace of the night of 10 Oct: the same fragments, or an answer reused? (owner: «nel giro di domani verifica il sogno») |
-| N2 | 🔧 C331 — the local fallback given a conversation over its context | bug | Aurora's own fix (sandbox fallback-ctx-10c9d2) proposed again now that C328 is closed; read, approve |
+| N1 | 🌙 C330 — one night's dream told twice word for word (9 and 10 Oct) | bug | ✅ 16 Oct: an earlier dream drawn as a fragment was told again (1.00 and 0.98 on the two such nights); her dreams are no fragments now, a copy is dreamt again |
+| N2 | 🔧 C331 — the local fallback given a conversation over its context | bug | ✅ 16 Oct: her fix taken from the sandbox fallback-ctx-10c9d2 into `mdl_fit.py`, with the budget path and whole steps added (5 tests) |
 | N3 | 🧠 D1 — memory over days | measure, runs by itself | probes at 3 and 7 nights: aurora-memprobe-3 (17 Oct), aurora-memprobe-7 (21 Oct); a reboot cancels them (`bench_memory_days.py probe` by hand). Then: does C326 change the score? |
 | N4 | ⚖️ D2's open parts | measure | (a) the cloud's tokens per configuration; (b) the judge's own drift: the same ~99 answers judged again by Sonnet (waiting for the owner's yes); (c) SSCC on and off (AURORA_CLOUD_KEEP_PCT 100 vs 60, the same seeds) — offered for the slides: today SSCC took 26.5 % of the characters of the compressed calls (207 calls), and M41 measured no loss of quality, but no run had it off |
 | N5 | 👀 The new pages read by someone who never saw them | measure | Models (109) and Autonomy (111): find a level and change it, say what the best of both does |
 | N6 | 📷 D8 — home security (private) | owner + measure | the owner's own measure on the cameras |
-| N7 | 🗂️ Decisions of the owner | owner | the 50 PDFs of «NOTHING» already in the documents (delete?); the personal case still in the public repository's history (rewrite it, as for the firewall's serial?); the 3 points for the company slides (from README.en.md) |
+| N7 | 🗂️ Decisions of the owner | owner | ✅ the 50 PDFs of «NOTHING» deleted (to the trash, 15 Oct); the personal case in the public repository's history: the owner chose to rewrite it — the rules are ready, the rewrite and the forced push are the owner's; the 3 points for the company slides (from README.en.md) |
 | N8 | 🔌 D5 step 2 — a second firewall driver on an aurora-lab VM | build | — |
 | N9 | 🔐 D9 — publishing with a deploy key | owner | the deploy key and the signed-commits rule |
-| N10 | 🧹 T1 — cleanup | upkeep | sys/sandbox is 586 MB now (192 MB on 13 Oct): keep fallback-ctx-10c9d2 until N2, remove the rest; then the forge's drafts and the functions nothing calls |
+| N10 | 🧹 T1 — cleanup | upkeep | ✅ sys/sandbox 586 → 32 MB (15 Oct): 29 removed, none with a pending change or an undo backup; fallback-ctx-10c9d2 kept for N2. Left: the forge's drafts and the functions nothing calls |
 
 Proposed order: N1 and N2 (small, open bugs) → N3 runs by itself → N7 (the owner's answers) → N4 (a long run: the GPU and
 the cloud busy, nothing else meanwhile) → N5 → N10 → N8, N9.

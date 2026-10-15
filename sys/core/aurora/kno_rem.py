@@ -17,6 +17,7 @@ section, domain `reflection`, and is never a source for answers about the world.
 """
 from __future__ import annotations
 
+import difflib
 import json
 import random
 import time
@@ -51,6 +52,9 @@ SYS_INTROSPECT = ("\nYou are reviewing yourself, once a day, from your own logs 
                   "is separate: do not merge them, and count each kind of message on its own. 'evidence' says, for each "
                   "kind, whether it was seen again after its service last started: a problem not seen since then is "
                   "probably already fixed; say so.")
+
+COPIED = 0.6                                             # a dream this similar to a fragment is that fragment
+
 # C196 (owner, 2026-10-08: «la foto del sogno e la descrizione non mi sembrano complementari»): the dream was a list
 # of abstract sentences and the painting one object picked from them. A dream is seen: scenes, one central, and the
 # painting is that scene with the dream's own place, things, colours and light; the style comes last.
@@ -221,17 +225,28 @@ class Rem:
         sol = self._write(out["text"], "social_report", f"social:{int(time.time())}", {"platforms": sorted(out["stats"])}, emit)
         return {"sid": sol.sid, "platforms": sorted(out["stats"])}
 
-    def dream(self, emit) -> dict:
-        memories = self.p.reader.recent(30, domain="reflection") if self._has("reflection") else []
+    def _fragments(self) -> list[Soliton]:
+        # C330: an earlier dream drawn as a memory was told again word for word (similarity 0.98-1.00, the other
+        # nights 0.02-0.19): her own dreams are no fragments
+        memories = [s for s in (self.p.reader.recent(30, domain="reflection") if self._has("reflection") else [])
+                    if s.extra.get("type") != "dream"]
         turns = self.p.reader.recent(30)
-        frags = self._random_knowledge(2) + random.sample(memories, min(2, len(memories))) \
+        return self._random_knowledge(2) + random.sample(memories, min(2, len(memories))) \
             + random.sample(turns, min(2, len(turns)))
-        if not frags:
-            return {"skipped": "nothing to dream of"}
-        user = "\n\n".join(f"FRAMMENTO {i} ({s.kind}, {s.title or s.domain}):\n{s.text[:1200]}"
-                           for i, s in enumerate(frags, 1))
-        out = self.p._for("rem").complete(self._identity() + SYS_DREAM, user, 900).answer.strip()
-        text, _, image = out.partition("IMAGE:")
+
+    def dream(self, emit) -> dict:
+        for attempt in range(2):                         # a dream that copies a fragment is dreamt once more
+            frags = self._fragments()
+            if not frags:
+                return {"skipped": "nothing to dream of"}
+            user = "\n\n".join(f"FRAMMENTO {i} ({s.kind}, {s.title or s.domain}):\n{s.text[:1200]}"
+                               for i, s in enumerate(frags, 1))
+            out = self.p._for("rem").complete(self._identity() + SYS_DREAM, user, 900).answer.strip()
+            text, _, image = out.partition("IMAGE:")
+            copied = max((difflib.SequenceMatcher(None, text, s.text[:1200]).ratio() for s in frags), default=0)
+            if copied < COPIED:
+                break
+            self.log.warning("the dream copies a fragment (similarity %.2f): dreamt again", copied)
         painted, problem = None, None
         if image.strip() and self.cfg["AURORA_IMAGE_ENABLED"] and not sys_features.ok(self.cfg, "dreams"):
             problem = "; ".join(sys_features.check(self.cfg, "dreams")["missing"])   # dreamt, not painted: no model
