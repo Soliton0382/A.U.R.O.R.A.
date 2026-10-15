@@ -87,16 +87,18 @@ class SelfTalk:
             state.update(self.state_fn())
         return state
 
-    def _memories(self, question: str, recent: list[Soliton], ev: Emit) -> list[Soliton]:
+    def _memories(self, question: str, recent: list[Soliton], ev: Emit) -> tuple[list[Soliton], list[str]]:
         """What she remembers that bears on the question: semantic recall over the memory section
         (past turns, session memories, thoughts, dreams) plus every session memory of the last days.
-        The recent turns are already in context and are not repeated."""
+        The recent turns are already in context and are not repeated. Also the sids found for the question,
+        most relevant first: they go in the prompt before the last days' (C326)."""
         seen = {t.sid for t in recent}
         days = int(self.cfg["AURORA_MEMORY_RECALL_DAYS"] or 0)      # 0: no limit (owner, 15 Oct)
         horizon = sns_clock.now(self.cfg) - timedelta(days=days) if days > 0 else None
         hits = self.search.search(question, None, top_k=self.cfg["AURORA_MEMORY_RECALL_K"], sections={"memory"})
         found = {h.sid: h.soliton for h in hits
                  if h.sid not in seen and (horizon is None or datetime.fromisoformat(h.soliton.created_at) >= horizon)}
+        asked = list(found)
         days = self.cfg["AURORA_MEMORY_SELF_DAYS"]
         if days and self.reader.layout.shards("memory", "reflection"):
             since = sns_clock.now(self.cfg) - timedelta(days=days)
@@ -106,25 +108,31 @@ class SelfTalk:
         out = sorted(found.values(), key=lambda s: s.created_at)
         ev("memory.recall", {"semantic": len(hits), "kept": len(out),
                              "items": [{"sid": s.sid, "when": sns_clock.when(s.created_at, self.cfg),
-                                        "kind": s.extra.get("type") or s.extra.get("role")} for s in out]})
-        return out
+                                        "kind": s.extra.get("type") or s.extra.get("role"),
+                                        "why": "asked" if s.sid in asked else "days"} for s in out]})
+        return out, asked
 
-    def _memory_block(self, mems: list[Soliton]) -> str:
-        """Newest memories win when the block is over AURORA_MEMORY_RECALL_CHARS (the context is finite)."""
-        lines, used = [], 0
-        for s in reversed(mems):
+    def _memory_block(self, mems: list[Soliton], asked: list[str] = ()) -> str:
+        """The block is held to AURORA_MEMORY_RECALL_CHARS (the context is finite): what was found for the question
+        goes in first, most relevant first, then the last days' session memories, newest first; shown oldest first.
+        C326: the newest won outright, and a week of session memories pushed out the conversation asked about."""
+        def line(s: Soliton) -> str:
             kind = s.extra.get("type") or (self.cfg["AURORA_OWNER_NAME"] if s.extra.get("role") == "user" else f"tu ({sys_persona.name(self.cfg)})")
-            line = f"- [{sns_clock.when(s.created_at, self.cfg)} · {kind}] {s.text[:700]}"
-            if used + len(line) > self.cfg["AURORA_MEMORY_RECALL_CHARS"]:
-                break
-            lines.append(line)
-            used += len(line)
-        return "\n".join(reversed(lines))
+            return f"- [{sns_clock.when(s.created_at, self.cfg)} · {kind}] {s.text[:700]}"
+        by_sid = {s.sid: s for s in mems}
+        order = [by_sid[i] for i in asked if i in by_sid] + [s for s in reversed(mems) if s.sid not in set(asked)]
+        keep, used = set(), 0
+        for s in order:
+            n = len(line(s))
+            if used + n <= self.cfg["AURORA_MEMORY_RECALL_CHARS"]:      # a shorter one may still fit
+                keep.add(s.sid)
+                used += n
+        return "\n".join(line(s) for s in mems if s.sid in keep)
 
     def _self_answer(self, question: str, recent: list[Soliton], ev: Emit, quote: Soliton | None = None) -> str:
         state = self.self_state()
         ev("self.state", state)
-        mems = self._memories(question, recent, ev)
+        mems, asked = self._memories(question, recent, ev)
         today = sns_clock.now(self.cfg)
         days = "; ".join(f"{label} = {sns_clock.DAYS_IT[d.weekday()]} {d:%Y-%m-%d}" for label, d in
                          (("oggi", today), ("ieri", today - timedelta(days=1)), ("l'altro ieri", today - timedelta(days=2))))
@@ -132,7 +140,7 @@ class SelfTalk:
                   + "\nFACTS ABOUT YOURSELF, MEASURED NOW:\n" + json.dumps(state, ensure_ascii=False, indent=1)
                   + f"\n\nCALENDAR: {days}. Use these dates for 'oggi', 'ieri', 'stamattina'; never compute them yourself."
                   + (f"\n\nYOUR MEMORIES RELEVANT TO THE QUESTION (oldest first; each with its date and how long ago). "
-                     f"If what is asked is not here, say you do not remember it, do not invent:\n{self._memory_block(mems)}"
+                     f"If what is asked is not here, say you do not remember it, do not invent:\n{self._memory_block(mems, asked)}"
                      if mems else "\n\nYOUR MEMORIES: none found for this question; do not invent any.")
                   + (f"\n\nRECENT CONVERSATION:\n{self._turns(recent, len(recent))}" if recent else "")
                   + (f"\n\nTHE OWNER REPLIES TO THIS MESSAGE OF YOURS (work on it as asked, adding no facts it does "

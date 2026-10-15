@@ -2,9 +2,9 @@
 # Copyright 2026 A.U.R.O.R.A. Project
 """The provisions a lawyer would read, fetched by their number (C183).
 
-A case told in everyday words («allacci ai box», «contalitri») does not sound like the law that governs it, and the
-search never brought the civil code's condominium articles to the owner's real case. The local model knows which
-provisions to read (it named art. 1117, 1123, 1136, 1138 c.c.); it is used only as a pointer: each provision is
+A case told in everyday words («il muro comune», «la cauzione») does not sound like the law that governs it, and the
+search never brought the civil code's articles on the matter to the owner's real case. The local model knows which
+provisions to read (it named four articles of the civil code); it is used only as a pointer: each provision is
 looked up by its number in the vault's Normattiva passages (an indexed lookup, ~5 ms) and its TEXT is what the gate,
 the extraction and the verification read — never the model's memory of it. A provision not in the vault is dropped.
 """
@@ -36,7 +36,7 @@ _ART = re.compile(r"(?i)^\s*art(?:icolo|\.)?\s*(\d+(?:\s*-?\s*(?:bis|ter|quater|
 
 
 def parse(line: str) -> tuple[str, str] | None:
-    """«art. 1117-bis c.c.» → ("1117-bis", source pattern); None when the act is not recognised."""
+    """«art. 1590-bis c.c.» → ("1590-bis", source pattern); None when the act is not recognised."""
     m = _ART.match(line.strip(" -•*«»\"'"))
     if not m:
         return None

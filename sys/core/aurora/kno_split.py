@@ -2,11 +2,11 @@
 # Copyright 2026 A.U.R.O.R.A. Project
 """A case told as a story, searched as the questions it holds (C183).
 
-7 October: the owner told a real case — a super-condominium, water meters to replace, a builder sending lawyers'
-letters, an accusation of illegal connections the architect made — and Aurora abstained four times. Searched whole,
+7 October: the owner told a real case — a private legal matter with four problems — and Aurora abstained four
+times. Searched whole,
 the story found nearby laws with low scores (the re-ranker's best 0.18) and the gate closed; the civil code's
-articles on the condominium never came up. The same vault, asked short questions on each subject («modifiche agli
-impianti comuni del condominio: maggioranza dell'assemblea»), gives them at 0.97-0.99.
+articles on the matter never came up. The same vault, asked short questions on each subject, gives them at
+0.97-0.99.
 
 So a long message gets two helps: the provisions a lawyer would read, named by the local model and fetched by
 their number (kno_cites), first; and a split by the local model into at most 4 short searches, one per problem, worded like the heading
@@ -21,8 +21,8 @@ import re
 SYS_SPLIT = ("The user tells a situation with one or more problems. Write the questions a lawyer or an expert would "
              "look up to help: one for EACH distinct problem, at most 4. Each is a short, plain question in natural "
              "language (at most 15 words) about the general rule, as a reference book would answer it — e.g. «Chi "
-             "decide la sostituzione dei contatori dell'acqua in un condominio?», «Un condomino può allacciarsi alle "
-             "parti comuni?». No people's names, no feelings, no story. Same language as the message. One per line, "
+             "paga la riparazione della caldaia in un appartamento in affitto?», «Il proprietario può trattenere la "
+             "cauzione?». No people's names, no feelings, no story. Same language as the message. One per line, "
              "nothing else.")
 MARK = "THE PROBLEMS IT HOLDS"
 SYS_CASE = ("\nTHIS QUESTION IS A CASE told by the owner, with the problems it holds listed after it. For EACH problem, "

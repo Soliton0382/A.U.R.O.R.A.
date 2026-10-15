@@ -1,6 +1,6 @@
 # Status — work in progress
 
-Updated at every validated change (last: 2026-10-15). Details: BUGS.md (issues, 0 open / 324 closed),
+Updated at every validated change (last: 2026-10-15). Details: BUGS.md (issues, 0 open / 328 closed),
 MANUAL_TESTS.md (what the owner checks by hand),
 TESTS.md (tests and live checks), MEASUREMENTS.md (numbers), MODULE_MAP.md (who does what),
 SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSYSTEM.md (design and decisions).
@@ -27,7 +27,7 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | concurrent users | 2 slots of the reasoner (AURORA_LLM_PARALLEL), 8 users at once all answered | M99, M102 |
 | clean install | from GitHub over HTTPS, multi-user, unattended answers, 303 tests in the clone, first login with Authenticator | M103 |
 | push delivery | the devices confirm each push; the rate on the Notifications page | M101 |
-| autonomy | 🧭 page: 7 areas, levels read from the settings, profiles, daily line, statistics, users | tests |
+| autonomy | 🧭 page in tabs as the Models page (15 Oct): four cards (careful, balanced, free, custom: what she does alone, proposes, always asks), 19 areas in 6 groups under «Su misura», what she always does read-only, daily line, statistics, users; the blocks at Cloudflare an area of their own (C329) | tests, the page seen at 1280 and 390 px |
 | projects carried by Aurora | 🏗️ a project's plan (goal, steps each with the command that proves it; Aurora drafts them, the owner changes and starts it); aurora-rem's task «project» does the next step in idle time, the step's command run in the cage decides; 3 failures block a step and tell the owner; 🤝 waits for «go on»; Autonomy area «projects» (prj_plan.py) | tests; pilot: see M201 |
 | back to the factory | Settings: the behaviour settings as installed (the installer's copy of .env) or to the recommended values; Aurora as just installed from the WebUI (AZZERA), memory and state moved aside, never deleted (aurora-reset.service) | M206 (aurora-lab), tests |
 | plugins that bring their program | a manifest's «install» (pinned, hashed libraries; programs with SHA-256) fetched into the plugin's own folder, never Aurora's environment; 📦 on its card, installed when switched on, removed whole; first: the QR plugin | M208, tests |

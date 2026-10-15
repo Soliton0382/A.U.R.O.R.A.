@@ -33,7 +33,8 @@ def _view(user: str | None) -> dict:
               "mine": admin if scope == "machine" else may, "external": a in sys_autonomy.EXTERNAL}
              for a, (scope, lvl) in sys_autonomy.AREAS.items() if a in on]
     return {"user": user, "admin": admin, "may_choose": may, "areas": areas, "profile": sys_autonomy.profile_of(lv, on),
-            "profiles": sys_autonomy.PROFILES, "exempt": sys_ethics.exempt(cfg)}
+            "profiles": sys_autonomy.PROFILES, "exempt": sys_ethics.exempt(cfg),
+            "groups": sys_autonomy.GROUPS, "always": sys_autonomy.ALWAYS}
 
 
 @router.get("/v1/aurora/autonomy", dependencies=[Depends(auth)])

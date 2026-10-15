@@ -241,6 +241,13 @@ button.danger { border-color: #c0392b; color: #ff8a80; }
 .auto-table { border-collapse: collapse; width: 100%; font-size: .9rem; }
 .auto-table th, .auto-table td { padding: .3rem .5rem; border-bottom: 1px solid var(--line); text-align: left; }
 @media (max-width: 640px) { .auto-area { grid-template-columns: 1fr; } }
+/* the Autonomy page in tabs (owner, 2026-10-15): the areas in groups, each a panel */
+.auto-group { margin: .7rem 0; }
+.auto-group > p { margin: 0 0 .3rem; }
+.auto-group .auto-area:last-child { border-bottom: 0; }
+.auto-levels button.approve { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-text); font-weight: 650; }
+.mch-apply .approve { background: var(--accent); color: var(--bg); border: none; font-weight: 650; padding-inline: 1.2rem; }
+.auto-group ul { margin: .3rem 0 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: .35rem; font-size: .88rem; }
 /* exam values over time (owner, 2026-10-05): one line, the reference range as a band, the last value labelled */
 .care-chart { width: 100%; max-width: 560px; height: auto; display: block; margin: .4rem 0; }
 .care-band { fill: var(--ok); opacity: .12; }

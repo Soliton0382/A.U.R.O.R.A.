@@ -235,6 +235,6 @@ def autoblock(cfg: sys_config.Config) -> list[dict]:
             log.warning("Cloudflare autoblock of %s: %s", r["ip"], e)
     if done:
         from . import sys_autonomy
-        sys_autonomy.log(cfg, "security", f"blocked {len(done)} scanners at Cloudflare: "
+        sys_autonomy.log(cfg, "edge", f"blocked {len(done)} scanners at Cloudflare: "
                                           + ", ".join(b["ip"] for b in done))
     return done

@@ -1217,13 +1217,13 @@ Not measured: a write on the firewall (the first one is the owner's: N110-N112),
 | step | time | way | outcome |
 |---|---|---|---|
 | the case in the chat (before) | — | case → web | error in the chat: KeyError 'sid' while remembering a web answer (C188) |
-| «Chi decide l'installazione di contatori individuali…?» with memory, after C188 | 5.0 s | fact → web | answered and remembered |
+| a short question on one of its problems, with memory, after C188 | 5.0 s | fact → web | answered and remembered |
 | the case with memory, after C188 | 73.2 s | case → deep → (law_it NONE) → web | answered from one web page; deep found nothing to extract (C189) |
 | the same, again | 35.9 s | case → web | the web answer says «imposed by law» and «optional» in the same text |
 | replay of the law_it extraction (15 passages, 51,023 characters) | — | — | problems listed «answers»: NONE 4 of 4 · story alone: extracted 1 of 1 · «answers or governs»: extracted 2 of 3 |
-| the case after C189, twice | 79.6 s, 75.7 s | case → deep | law_it kept; problem by problem on arts. 1117, 1122, 1122-bis, 1136, 1118 c.c., 4 sources; the builder's opposition: «no provision in my vault», said by dropping, not by silence |
+| the case after C189, twice | 79.6 s, 75.7 s | case → deep | law_it kept; problem by problem on five articles of the civil code, 4 sources; one problem: «no provision in my vault», said by dropping, not by silence |
 
-D.Lgs. 102/2014 (individual meters in condominiums) was among the passages and is not in the final answer: not
+A decree on the subject was among the passages and is not in the final answer: not
 investigated.
 
 ## M132 — A day of use, through the API as in the chat (7 October 2026)
@@ -1308,20 +1308,19 @@ battery (M130) measures. Limits: 6 passages a domain (one question moves a cell 
 written by the model from the passage it read. Search 9-14 s a question, the draft +4-7 s, the split 15-33 s.
 A simple question through the API in the vault mode, while a bench ran: «Chi ha scritto la Divina Commedia e quando?»
 61.5 s, 2 sources; offline in the verify mode (light): 26.0 s, the draft after 1.2 s, 2 of 2 sentences confirmed. The
-owner's case (C183) in the verify mode: 53.3 s, 1 sentence confirmed (art. 1117, 1123 c.c.), 5 said as unverified,
-Wikipedia found no article for «rimozione contalitri condominio villette».
+owner's case (C183) in the verify mode: 53.3 s, 1 sentence confirmed (two articles of the civil code), 5 said as unverified,
+Wikipedia found no article for the case's words.
 
 ## M128 — A case told as a story (7 October 2026, C183)
 
-The owner's real case (a super-condominium of villas, water sub-meters, a builder's lawyers, connections made by an
-architect; 437 characters), asked four times: four abstentions, 13-16 s each. Searched whole, the re-ranker's best law
+The owner's real case (a private legal matter with four problems;
+437 characters), asked four times: four abstentions, 13-16 s each. Searched whole, the re-ranker's best law
 passage scored 0.18 (0.24 on the 4th try), with the owner's own earlier copies of the message at 1.0 above it. The
-vault holds the civil code's condominium articles (1117, 1117-bis, 1120, 1122, 1102: each found by its number in 5 ms);
-short questions reach them: «uso delle parti comuni da parte del condomino» 0.994 (art. 1118), «modifiche agli impianti
-comuni del condominio: maggioranza dell'assemblea» 0.979 (1122-bis), 0.974 (1120). Split by the local model into 4
-natural questions: best 0.51, 0.968, 0.218, 0.873. Named by the model: art. 1117, 1123, 1136, 1122, 2043 c.c., 624 c.p. —
+vault holds the civil code's articles on the matter (five, each found by its number in 5 ms);
+short questions reach them: 0.994, 0.979, 0.974. Split by the local model into 4
+natural questions: best 0.51, 0.968, 0.218, 0.873. Named by the model: six provisions of the civil and criminal codes —
 6 of 6 in the vault. The gate refused even the named provisions (it looks for a stated fact; the extraction from them
-was the case's legal frame: 1117-bis, 1117, 1117-quater, 1123, 1122, 1136, 2043, the sub-meter obligation). Candidates
+was the case's legal frame: seven articles of the civil code and a decree's obligation). Candidates
 per sub-search: 150 → 26.2 s, 80 → 18.7 s with the same best scores and top three, 40 → 15.5 s with one problem's best
 lost (0.218 → 0.021): 80. Stages of a run: provisions and translation 3.4 s, sub-searches 27.7 s (150 candidates),
 gate and extraction 6.4 s, synthesis with thinking 46.8 s (text from 38 s), verification of 9 sentences 3.0 s. Live

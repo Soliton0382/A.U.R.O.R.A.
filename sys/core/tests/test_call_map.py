@@ -6,12 +6,16 @@ own extensions never in the public map."""
 import importlib.util
 from pathlib import Path
 
+import pytest
+
 F = Path(__file__).resolve().parents[1] / "script" / "doc_callmap.py"
 spec = importlib.util.spec_from_file_location("doc_callmap", F)
 M = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(M)
 
 
+# the self-repair sandbox copies sys/core only: there the map is not there to read (C328)
+@pytest.mark.skipif(not (F.parents[3] / "docs" / "MODULE_MAP.md").is_file(), reason="docs/ not in this copy")
 def test_every_file_is_in_the_module_map():
     assert M.unmapped() == []
 

@@ -59,22 +59,34 @@ AREAS: dict[str, tuple[str, dict[int, dict[str, str]]]] = {
     # owner, 2026-10-13: «agenti che lo facciano senza interazioni da parte mia» — projects carried step by step (prj_plan)
     "projects": ("user", {0: {"AURORA_PROJECT_AUTONOMY": "0"}, 1: {"AURORA_PROJECT_AUTONOMY": "1"},
                           2: {"AURORA_PROJECT_AUTONOMY": "2"}}),
+    # owner, 2026-10-15: «verificherei che lì ci sia davvero tutto»: the scanners blocked at Cloudflare (net_cfwaf) were
+    # done by herself with no place in the panel, and counted nowhere
+    "edge": ("machine", {0: {"AURORA_CLOUDFLARE_AUTOBLOCK": "0"}, 2: {"AURORA_CLOUDFLARE_AUTOBLOCK": "1"}}),
 }
+# the page's groups (owner, 2026-10-15: «nel medesimo stile» of the Models page): every area in exactly one
+GROUPS = {"learn": ["knowledge", "study", "harvest", "train", "shadow"],
+          "mind": ["inner", "deduce", "synapses", "review", "morning"],
+          "code": ["forge", "repairs", "updates"],
+          "outside": ["social", "security", "edge"],
+          "home": ["devices", "home"],
+          "projects": ["projects"]}
+# what she always does by herself and that changes nothing: said on the page, no level to choose
+ALWAYS = ["introspect", "react", "audit"]
 # an area shown only while what it governs is there and working (owner, 2026-10-12: «deve mostrare solo ciò che è
 # attivo e funzionante»): its plugin on; the others are Aurora's own and always there
-NEEDS_PLUGIN = {"devices": "homeassistant", "home": "homeassistant"}
+NEEDS_PLUGIN = {"devices": "homeassistant", "home": "homeassistant", "edge": "cloudflare"}
 PROFILES = {
     "careful": {"social": 0, "forge": 0, "repairs": 0, "security": 1, "updates": 1, "knowledge": 0, "inner": 2,
                 "study": 1, "shadow": 2, "morning": 2, "train": 0, "devices": 1, "home": 1,
-                "deduce": 2, "synapses": 2, "review": 1, "harvest": 2, "projects": 0},
+                "deduce": 2, "synapses": 2, "review": 1, "harvest": 2, "projects": 0, "edge": 0},
     "balanced": {"social": 0, "forge": 0, "repairs": 1, "security": 1, "updates": 1, "knowledge": 2, "inner": 2,
                  "study": 2, "shadow": 2, "morning": 2, "train": 2, "devices": 1, "home": 1,
-                 "deduce": 2, "synapses": 2, "review": 2, "harvest": 2, "projects": 1},
+                 "deduce": 2, "synapses": 2, "review": 2, "harvest": 2, "projects": 1, "edge": 0},
     "free": {"social": 2, "forge": 2, "repairs": 1, "security": 2, "updates": 2, "knowledge": 2, "inner": 2,
              "study": 2, "shadow": 2, "morning": 2, "train": 2, "devices": 2, "home": 2,
-             "deduce": 2, "synapses": 2, "review": 2, "harvest": 2, "projects": 2},
+             "deduce": 2, "synapses": 2, "review": 2, "harvest": 2, "projects": 2, "edge": 2},
 }
-EXTERNAL = {"social", "security", "home"}       # their 🚀 acts outside the machine: level B decides
+EXTERNAL = {"social", "security", "home", "edge"}       # their 🚀 acts outside the machine: level B decides
 PROVED = {"days": 30, "decided": 10, "approved": 0.9}   # what "proved good" means; shown, never acted on alone
 
 
@@ -236,9 +248,11 @@ def statistics(cfg: sys_config.Config, approvals: list[dict], social_tools: set[
             r = json.loads(line)
         except ValueError:
             continue
-        # social: her own posts are the approvals' "auto" rows; security: the blocks themselves (above)
-        if r.get("at", 0) >= since and r.get("area") in out and r["area"] not in ("social", "security"):
-            out[r["area"]]["alone"] += 1
+        # social: her own posts are the approvals' "auto" rows; security: the blocks themselves (above); the
+        # Cloudflare blocks were written as «security» before their area (15 Oct) and counted nowhere
+        area = "edge" if r.get("area") == "security" and "at Cloudflare" in r.get("text", "") else r.get("area")
+        if r.get("at", 0) >= since and area in out and area not in ("social", "security"):
+            out[area]["alone"] += 1
     res = {}
     for a, c in out.items():
         decided = c["approved"] + c["refused"]

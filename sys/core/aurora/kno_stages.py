@@ -188,7 +188,7 @@ class Stages:
         # whole passages: a cut at 1,500 characters dropped right sentences about the rest of a passage (M67)
         all_ctx = "\n\n".join(f"[{n}] {h.soliton.text}" for n, h in enumerate(hits, 1))
         # the paragraphs stay (C183: a case's answer, one paragraph per problem, came out as one block) and so do the
-        # headings of a paragraph («**Contatori nel supercondominio**»): they state nothing to verify
+        # headings of a paragraph («**La cauzione**»): they state nothing to verify
         # C319: a citation written after the full stop belongs to the sentence before it («… piatti. [1]» → «… piatti
         # [1].»); a sentence without one, followed on its line by one that cites, is verified with that citation
         text = AFTER_STOP.sub(lambda m: " " + "".join(CITE.findall(m.group(2))) + m.group(1), text)

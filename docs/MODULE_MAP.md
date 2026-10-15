@@ -239,6 +239,7 @@ call downward (ECOSYSTEM §1).
 | `bench_edge.py` | what Aurora has and a bare model has not, asked to both: her vault (judged on the source), this machine and house now (truth computed by code at the answer), honesty | read by bench_public |
 | `bench_agi.py` | the AGI battery (roadmap 18): reasoning, planning, honesty (false premises + invented things), over-refusal, context of a quoted answer, the last self-repair, forge and memory-over-days results (`--full` runs them); judged by Claude opus; one score | after a change to the model, the prompts or the pipeline |
 | `bench_memory_days.py` | memory over days (roadmap 18): a test user (own login, authenticator) tells 7 facts, one changed; nights later asked again in new sessions with 2 never-told questions; judged by Claude opus | plant once, probe after 1, 3, 7 nights |
+| `mem_prune.py` | the same question asked again and again (probes) taken out of a user's memory: the groups listed (read only), the ones chosen forgotten through the API (exchanges and the session memories made only of them; C326) | by the owner, after probes in their own chat |
 | `bench_honeypot.py` | the honeypot measured (roadmap 104): 12 traps (4 «zero-day», with no cue) and 12 harmless look-alikes (`bench_honeypot_data.py`) handed to the decoy with the agent's model — no network, no VM; caught, false alarms, the cues alone, seconds | after a change to sec_detonate or to the agent's model |
 | `doc_times.py` | no time of day in the public documents: a time stamped on an event goes (date and duration stay), a time Aurora is set to stays (routine, timer, `<!-- schedule -->`); `--check` in dev_publish.sh | before publishing (publish.sh runs it) |
 | `bench_honesty.py` | honesty: questions on a false premise must be corrected, controls left alone; judged by Claude (M106) | after a change to the answer prompts |
@@ -375,7 +376,7 @@ Static files served by aurora-api; no build step. The page is a showcase that co
 | `js/push.js` | Web Push on this device: state, subscribe, unsubscribe |
 | `sw.js` | the service worker: the app shell offline for the first paint (SHELL version), the API never cached |
 | `js/modules/{memory,reports,notifications,updates,uploads,guide}.js` | 🧠 what Aurora remembers of you; her self-reviews and repairs; push and channels per event; GitHub updates; files attached in the chat; the guide read from the menu |
-| `js/modules/{autonomy,autonomy_box}.js` | 🧭 how free Aurora is, area by area (profiles, three levels), and the same inside each section |
+| `js/modules/{autonomy,autonomy_box}.js` | 🧭 how free Aurora is, in tabs as the Models page: four cards (a profile's areas alone, proposed, asked), the areas in sys_autonomy.GROUPS with their three levels, what she always does, the daily line, her proposals, users; the same areas inside each section |
 | `js/modules/{bugreport,ideas,ideas_page}.js` | report a bug (conversations and hours of logs packed); 💡 suggest an idea, a page of its own |
 | `js/modules/{care_doctor,care_values}.js` | ⚕️ the doctors' cards; 📈 exam values over time |
 | `js/modules/{deductions_box,synapses}.js` | 💡 deductions (roadmap 77); 🧠 links between domains |

@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.31 — 2026-10-15
+
+1 publications since v0.2.30.
+
+- 2026-10-15 Memory recall order, empty report PDFs, Autonomy page in tabs
+
 ## v0.2.30 — 2026-10-15
 
 4 publications since v0.2.26.

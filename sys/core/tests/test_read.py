@@ -26,7 +26,7 @@ def _p(model, web=True):
 def test_the_kind_of_question():
     assert R.kind(_p(Model({"Classify": "FACT"})), "chi ha cantato let's go all the way") == "fact"
     assert R.kind(_p(Model({"Classify": "explain."})), "come funziona un laser") == "explain"
-    assert R.kind(_p(Model({"Classify": "CASE"})), "viviamo in un supercondominio…") == "case"
+    assert R.kind(_p(Model({"Classify": "CASE"})), "abitiamo in affitto e il proprietario…") == "case"
     assert R.kind(_p(Model({"Classify": "boh"})), "?") == "fact"
 
 

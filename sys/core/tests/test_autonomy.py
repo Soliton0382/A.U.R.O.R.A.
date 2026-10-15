@@ -64,3 +64,24 @@ def test_an_area_is_shown_only_while_what_it_governs_is_there():
     lv = {a: n for a, n in A.PROFILES["balanced"].items()}
     lv["social"] = 2                                                   # a hidden area does not make it «custom»
     assert A.profile_of(lv) == "custom" and A.profile_of(lv, set(A.AREAS) - {"social"}) == "balanced"
+
+
+def test_every_area_is_in_one_group_and_cloudflare_blocks_have_their_own(cfg):
+    """Owner, 15 Oct: the page in the Models' style, and «verificherei che lì ci sia davvero tutto»: the blocks at
+    Cloudflare were done alone with no area and counted nowhere."""
+    import json
+    from pathlib import Path
+    grouped = [a for ids in A.GROUPS.values() for a in ids]
+    assert sorted(grouped) == sorted(A.AREAS) and len(grouped) == len(set(grouped))
+    assert A.AREAS["edge"][1][2] == {"AURORA_CLOUDFLARE_AUTOBLOCK": "1"} and "edge" in A.EXTERNAL
+    assert A.NEEDS_PLUGIN["edge"] == "cloudflare"
+    A.log(cfg, "security", "blocked 1 scanners at Cloudflare: 192.0.2.1", user="admin")     # written before the area
+    A.log(cfg, "edge", "blocked 1 scanners at Cloudflare: 192.0.2.2", user="admin")
+    assert A.statistics(cfg, [], set())["edge"]["alone"] == 2
+    web = Path(__file__).resolve().parents[1] / "webui"
+    for lang in ("it_IT", "en_US"):
+        s = json.loads((web / "i18n" / f"{lang}.json").read_text(encoding="utf-8"))
+        for a, (_, lv) in A.AREAS.items():
+            assert f"auto.area.{a}" in s and all(f"auto.what.{a}.{n}" in s for n in lv)
+        assert all(f"auto.group.{g}" in s and f"auto.group_hint.{g}" in s for g in A.GROUPS)
+        assert all(f"auto.always.{k}" in s for k in A.ALWAYS)
