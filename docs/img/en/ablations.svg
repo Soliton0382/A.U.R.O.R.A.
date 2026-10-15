@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" width="720" height="380" role="img" aria-labelledby="t d">
+<title id="t">Who does what: the group ablations</title>
+<desc id="d">% right, 197 paired questions, seeds 7 and 8, same day and code · M222 · whiskers: 95% (Wilson). the best of both: total 87, ARC-AGI 95, HLE 55, edge 84; classifiers on Claude: total 83, ARC-AGI 95, HLE 45, edge 76; readers local: total 70, ARC-AGI 45, HLE 15, edge 68</desc>
+<style>
+.bg{fill:#fcfcfb}.t1{fill:#0b0b0b}.t2{fill:#52514e}.grid{stroke:#e4e3df}.axis{stroke:#bdbcb6}
+.s1{fill:#2a78d6}.s2{fill:#eb6834}.s3{fill:#1baf7a}.ref{stroke:#52514e}
+@media (prefers-color-scheme: dark){.bg{fill:#1a1a19}.t1{fill:#ffffff}.t2{fill:#c3c2b7}.grid{stroke:#383835}
+.axis{stroke:#5c5b57}.s1{fill:#3987e5}.s2{fill:#d95926}.s3{fill:#199e70}.ref{stroke:#c3c2b7}}
+text{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+</style>
+<rect class="bg" width="720" height="380" rx="8"/>
+<text class="t1" x="56" y="30" font-size="17" font-weight="600">Who does what: the group ablations</text>
+<text class="t2" x="56" y="52" font-size="12.5">% right, 197 paired questions, seeds 7 and 8, same day and code · M222 · whiskers: 95% (Wilson)</text>
+<rect class="s1" x="56" y="68" width="12" height="12" rx="3"/><text class="t2" x="74" y="78.5" font-size="12.5">the best of both</text>
+<rect class="s2" x="198.0" y="68" width="12" height="12" rx="3"/><text class="t2" x="216.0" y="78.5" font-size="12.5">classifiers on Claude</text>
+<rect class="s3" x="375.0" y="68" width="12" height="12" rx="3"/><text class="t2" x="393.0" y="78.5" font-size="12.5">readers local</text>
+<line class="grid" x1="56" x2="696" y1="316.0" y2="316.0" stroke-width="1"/><text class="t2" x="48" y="320.0" font-size="11" text-anchor="end">0</text>
+<line class="grid" x1="56" x2="696" y1="263.0" y2="263.0" stroke-width="1"/><text class="t2" x="48" y="267.0" font-size="11" text-anchor="end">25</text>
+<line class="grid" x1="56" x2="696" y1="210.0" y2="210.0" stroke-width="1"/><text class="t2" x="48" y="214.0" font-size="11" text-anchor="end">50</text>
+<line class="grid" x1="56" x2="696" y1="157.0" y2="157.0" stroke-width="1"/><text class="t2" x="48" y="161.0" font-size="11" text-anchor="end">75</text>
+<line class="grid" x1="56" x2="696" y1="104.0" y2="104.0" stroke-width="1"/><text class="t2" x="48" y="108.0" font-size="11" text-anchor="end">100</text>
+<path class="s1" d="M86.4,316.0 V134.9 Q86.4,130.9 90.4,130.9 H114.1 Q118.1,130.9 118.1,134.9 V316.0 Z"/>
+<line class="ref" x1="102.3" x2="102.3" y1="142.4" y2="122.4" stroke-width="1.5"/><line class="ref" x1="96.3" x2="108.3" y1="122.4" y2="122.4" stroke-width="1.5"/><line class="ref" x1="96.3" x2="108.3" y1="142.4" y2="142.4" stroke-width="1.5"/>
+<text class="t1" x="102.3" y="116.4" font-size="12" text-anchor="middle" font-weight="600">87</text>
+<path class="s2" d="M120.1,316.0 V143.6 Q120.1,139.6 124.1,139.6 H147.9 Q151.9,139.6 151.9,143.6 V316.0 Z"/>
+<line class="ref" x1="136.0" x2="136.0" y1="151.9" y2="129.9" stroke-width="1.5"/><line class="ref" x1="130.0" x2="142.0" y1="129.9" y2="129.9" stroke-width="1.5"/><line class="ref" x1="130.0" x2="142.0" y1="151.9" y2="151.9" stroke-width="1.5"/>
+<text class="t1" x="136.0" y="123.9" font-size="12" text-anchor="middle" font-weight="600">83</text>
+<path class="s3" d="M153.9,316.0 V171.4 Q153.9,167.4 157.9,167.4 H181.6 Q185.6,167.4 185.6,171.4 V316.0 Z"/>
+<line class="ref" x1="169.7" x2="169.7" y1="181.8" y2="154.9" stroke-width="1.5"/><line class="ref" x1="163.7" x2="175.7" y1="154.9" y2="154.9" stroke-width="1.5"/><line class="ref" x1="163.7" x2="175.7" y1="181.8" y2="181.8" stroke-width="1.5"/>
+<text class="t1" x="169.7" y="148.9" font-size="12" text-anchor="middle" font-weight="600">70</text>
+<text class="t2" x="136.0" y="334.0" font-size="12" text-anchor="middle">total</text>
+<path class="s1" d="M246.4,316.0 V118.6 Q246.4,114.6 250.4,114.6 H274.1 Q278.1,114.6 278.1,118.6 V316.0 Z"/>
+<line class="ref" x1="262.3" x2="262.3" y1="154.0" y2="105.9" stroke-width="1.5"/><line class="ref" x1="256.3" x2="268.3" y1="105.9" y2="105.9" stroke-width="1.5"/><line class="ref" x1="256.3" x2="268.3" y1="154.0" y2="154.0" stroke-width="1.5"/>
+<text class="t1" x="262.3" y="99.9" font-size="12" text-anchor="middle" font-weight="600">95</text>
+<path class="s2" d="M280.1,316.0 V118.6 Q280.1,114.6 284.1,114.6 H307.9 Q311.9,114.6 311.9,118.6 V316.0 Z"/>
+<line class="ref" x1="296.0" x2="296.0" y1="154.0" y2="105.9" stroke-width="1.5"/><line class="ref" x1="290.0" x2="302.0" y1="105.9" y2="105.9" stroke-width="1.5"/><line class="ref" x1="290.0" x2="302.0" y1="154.0" y2="154.0" stroke-width="1.5"/>
+<text class="t1" x="296.0" y="99.9" font-size="12" text-anchor="middle" font-weight="600">95</text>
+<path class="s3" d="M313.9,316.0 V224.6 Q313.9,220.6 317.9,220.6 H341.6 Q345.6,220.6 345.6,224.6 V316.0 Z"/>
+<line class="ref" x1="329.7" x2="329.7" y1="261.3" y2="176.5" stroke-width="1.5"/><line class="ref" x1="323.7" x2="335.7" y1="176.5" y2="176.5" stroke-width="1.5"/><line class="ref" x1="323.7" x2="335.7" y1="261.3" y2="261.3" stroke-width="1.5"/>
+<text class="t1" x="329.7" y="170.5" font-size="12" text-anchor="middle" font-weight="600">45</text>
+<text class="t2" x="296.0" y="334.0" font-size="12" text-anchor="middle">ARC-AGI</text>
+<path class="s1" d="M406.4,316.0 V203.4 Q406.4,199.4 410.4,199.4 H434.1 Q438.1,199.4 438.1,203.4 V316.0 Z"/>
+<line class="ref" x1="422.3" x2="422.3" y1="243.5" y2="158.7" stroke-width="1.5"/><line class="ref" x1="416.3" x2="428.3" y1="158.7" y2="158.7" stroke-width="1.5"/><line class="ref" x1="416.3" x2="428.3" y1="243.5" y2="243.5" stroke-width="1.5"/>
+<text class="t1" x="422.3" y="152.7" font-size="12" text-anchor="middle" font-weight="600">55</text>
+<path class="s2" d="M440.1,316.0 V224.6 Q440.1,220.6 444.1,220.6 H467.9 Q471.9,220.6 471.9,224.6 V316.0 Z"/>
+<line class="ref" x1="456.0" x2="456.0" y1="261.3" y2="176.5" stroke-width="1.5"/><line class="ref" x1="450.0" x2="462.0" y1="176.5" y2="176.5" stroke-width="1.5"/><line class="ref" x1="450.0" x2="462.0" y1="261.3" y2="261.3" stroke-width="1.5"/>
+<text class="t1" x="456.0" y="170.5" font-size="12" text-anchor="middle" font-weight="600">45</text>
+<path class="s3" d="M473.9,316.0 V288.2 Q473.9,284.2 477.9,284.2 H501.6 Q505.6,284.2 505.6,288.2 V316.0 Z"/>
+<line class="ref" x1="489.7" x2="489.7" y1="305.0" y2="239.7" stroke-width="1.5"/><line class="ref" x1="483.7" x2="495.7" y1="239.7" y2="239.7" stroke-width="1.5"/><line class="ref" x1="483.7" x2="495.7" y1="305.0" y2="305.0" stroke-width="1.5"/>
+<text class="t1" x="489.7" y="233.7" font-size="12" text-anchor="middle" font-weight="600">15</text>
+<text class="t2" x="456.0" y="334.0" font-size="12" text-anchor="middle">HLE</text>
+<path class="s1" d="M566.4,316.0 V141.5 Q566.4,137.5 570.4,137.5 H594.1 Q598.1,137.5 598.1,141.5 V316.0 Z"/>
+<line class="ref" x1="582.3" x2="582.3" y1="168.4" y2="119.7" stroke-width="1.5"/><line class="ref" x1="576.3" x2="588.3" y1="119.7" y2="119.7" stroke-width="1.5"/><line class="ref" x1="576.3" x2="588.3" y1="168.4" y2="168.4" stroke-width="1.5"/>
+<text class="t1" x="582.3" y="113.7" font-size="12" text-anchor="middle" font-weight="600">84</text>
+<path class="s2" d="M600.1,316.0 V158.2 Q600.1,154.2 604.1,154.2 H627.9 Q631.9,154.2 631.9,158.2 V316.0 Z"/>
+<line class="ref" x1="616.0" x2="616.0" y1="187.1" y2="131.6" stroke-width="1.5"/><line class="ref" x1="610.0" x2="622.0" y1="131.6" y2="131.6" stroke-width="1.5"/><line class="ref" x1="610.0" x2="622.0" y1="187.1" y2="187.1" stroke-width="1.5"/>
+<text class="t1" x="616.0" y="125.6" font-size="12" text-anchor="middle" font-weight="600">76</text>
+<path class="s3" d="M633.9,316.0 V175.0 Q633.9,171.0 637.9,171.0 H661.6 Q665.6,171.0 665.6,175.0 V316.0 Z"/>
+<line class="ref" x1="649.7" x2="649.7" y1="204.7" y2="144.5" stroke-width="1.5"/><line class="ref" x1="643.7" x2="655.7" y1="144.5" y2="144.5" stroke-width="1.5"/><line class="ref" x1="643.7" x2="655.7" y1="204.7" y2="204.7" stroke-width="1.5"/>
+<text class="t1" x="649.7" y="138.5" font-size="12" text-anchor="middle" font-weight="600">68</text>
+<text class="t2" x="616.0" y="334.0" font-size="12" text-anchor="middle">edge</text>
+<line class="axis" x1="56" x2="696" y1="316" y2="316" stroke-width="1"/>
+<text class="t2" x="56" y="368" font-size="11">Total 172 vs 164 (p = 0.039) and vs 138 (p &lt; 0.0001): the classifiers stay local, the readers on Claude.</text>
+</svg>

@@ -119,6 +119,7 @@ whole = lambda v: f"{v:.0f}"                   # narrow paired bars: no room for
 # interval is computed from them, never written by hand
 N_BARE = [10, 20, 20, 10, 10, 10, 10, 10, 28, 128]                      # M214
 N_GRANULAR = [20, 20, 20, 19, 20, 20, 20, 20, 38, 197]                  # M219
+N_ABLATIONS = [197, 20, 20, 38]                                         # M222: total, ARC, HLE, edge
 
 
 def paired(series: list[tuple[str, list[float]]], ns: list[int]) -> dict:
@@ -322,6 +323,38 @@ CHARTS = {
                    cats=['local only', 'the best of both', 'all on Claude'],
                    series=[("seconds per answer (median)", [23.2, 11.2, 19.9])], ymax=30, fmt=sec["en"],
                    note='Minutes for the 216 answers: 203, 61, 90. The runs on Claude on different days: the network and the service load change.'),
+    },
+    "ablations": {
+        "it": dict(title='Chi fa cosa: le esclusioni per gruppo', subtitle='% giuste, 197 domande accoppiate, seed 7 e 8, stesso giorno e codice · M222 · baffi: 95% (Wilson)',
+                   cats=['totale', 'ARC-AGI', 'HLE', 'edge'],
+                   **paired([("il meglio dei due", [87.3, 95.0, 55.0, 84.2]), ('classificatori su Claude', [83.2, 95.0, 45.0, 76.3]),
+                             ('lettori in locale', [70.1, 45.0, 15.0, 68.4])], N_ABLATIONS),
+                   ymax=100, fmt=whole, note='Totale 172 vs 164 (p = 0,039) e vs 138 (p < 0,0001): i classificatori restano in locale, i lettori su Claude.'),
+        "en": dict(title='Who does what: the group ablations', subtitle='% right, 197 paired questions, seeds 7 and 8, same day and code · M222 · whiskers: 95% (Wilson)',
+                   cats=['total', 'ARC-AGI', 'HLE', 'edge'],
+                   **paired([("the best of both", [87.3, 95.0, 55.0, 84.2]), ('classifiers on Claude', [83.2, 95.0, 45.0, 76.3]),
+                             ('readers local', [70.1, 45.0, 15.0, 68.4])], N_ABLATIONS),
+                   ymax=100, fmt=whole, note='Total 172 vs 164 (p = 0.039) and vs 138 (p < 0.0001): the classifiers stay local, the readers on Claude.'),
+    },
+    "ablations_time": {
+        "it": dict(title='Quanto aspetti una risposta, per configurazione', subtitle='mediana dei secondi per risposta, 216 risposte per configurazione · M222',
+                   cats=['il meglio dei due', 'classificatori\nsu Claude', 'lettori\nin locale'],
+                   series=[("secondi a risposta (mediana)", [14.3, 23.6, 23.2])], ymax=30, fmt=sec["it"],
+                   note='Ogni chiamata breve sul cloud costa secondi; un problema difficile letto in locale ragiona a lungo.'),
+        "en": dict(title='How long an answer takes, by configuration', subtitle='median seconds per answer, 216 answers per configuration · M222',
+                   cats=['the best of both', 'classifiers\non Claude', 'readers\nlocal'],
+                   series=[("seconds per answer (median)", [14.3, 23.6, 23.2])], ymax=30, fmt=sec["en"],
+                   note='Each short call on the cloud costs seconds; a hard problem read locally reasons at length.'),
+    },
+    "arc_rule": {
+        "it": dict(title='ARC-AGI: la regola scritta come programma', subtitle='40 puzzle, seed 7-10, il meglio dei due · M222 · baffi: intervallo 95% (Wilson)',
+                   cats=['regola verificata\nsu ogni esempio (31)', 'nessuna regola\nverificata (9)'],
+                   **paired([("% giusti", [100.0, 66.7])], [31, 9]), ymax=100, fmt=pct["it"],
+                   note='38 su 40 in tutto; seed 9 e 10 contro Claude Sonnet nudo: 19 vs 16, p = 0,25.'),
+        "en": dict(title='ARC-AGI: the rule written as a program', subtitle='40 puzzles, seeds 7-10, the best of both · M222 · whiskers: 95% interval (Wilson)',
+                   cats=['rule verified\non every example (31)', 'no rule\nverified (9)'],
+                   **paired([("% right", [100.0, 66.7])], [31, 9]), ymax=100, fmt=pct["en"],
+                   note='38 of 40 in all; seeds 9 and 10 against bare Claude Sonnet: 19 vs 16, p = 0.25.'),
     },
 }
 

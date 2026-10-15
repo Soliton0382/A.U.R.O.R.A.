@@ -2,6 +2,15 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.30 — 2026-10-15
+
+4 publications since v0.2.26.
+
+- 2026-10-15 M222: chi fa cosa misurato (classificatori in locale, lettori su Claude), ARC con la regola scritta come programma; grafici con intervalli di Wilson; pagina Modelli con le cifre nuove; test della gabbia che salta dove bubblewrap non può partire
+- 2026-10-14 Stile, pagine fissate e colori per persona; stili Completo, Essenziale e Misto; Oggi e Avanzate; prima accensione in 5 schermate; servizi personalizzati compatibili OpenAI; collegamento social dalla scheda; api/knowledge diviso in quattro moduli; mappa delle chiamate generata dal codice; widget del cervello; intervalli di Wilson calcolati nei grafici; il seed esportato non perde più risposte
+- 2026-10-14 Pagina Sogni, account cloud per utente o condivisi (login Claude dalla pagina), memoria senza limite di tempo, traduzione locale fedele (C320), fatti della persona nelle risposte (C321), log degli incidenti nella scheda (C322), puzzle come programma, driver firewall, pagina Modelli
+- 2026-10-14 Aurora contro i modelli nudi (M214, grafici), honeypot misurato con esca locale (M215, C317), difesa Cloudflare (103), niente orari nei documenti, passphrase chiesta una volta
+
 ## v0.2.29 — 2026-10-15
 
 3 publications since v0.2.26.

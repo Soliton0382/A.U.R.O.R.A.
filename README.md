@@ -24,7 +24,7 @@ con l'esenzione firmata dal proprietario, e ciò che parte è sempre mascherato 
 | 🔎 **Verità** | ogni risposta dice da dove viene: ✅ il vault [n], 🌐 il web con il link, ⚠️ «dalla mia memoria, non verificato»; una premessa falsa viene corretta, mai assecondata (6 su 6, M130) | cita le fonti, ma non distingue ciò che ha letto da ciò che ricorda |
 | ⚡ **Giusta e veloce** | domande comuni: 70% giuste (prima 16%), mediana 4 s; ripetute: 0,04 s dalla cache (M130) | — |
 | 🔎 **Risposte dal vault** | ogni frase di una risposta profonda è verificata sui passaggi del vault; ciò che non è supportato viene tolto (M32: 0 frasi non supportate su 14) | cita le fonti, ma le frasi scritte dal modello non vengono controllate una per una |
-| 📏 **Misura** | ogni scelta ha una misura numerata (M1–M221), ogni errore un numero in BUGS.md, ogni limite è scritto | le prestazioni si dichiarano, raramente si misurano in pubblico |
+| 📏 **Misura** | ogni scelta ha una misura numerata (M1–M222), ogni errore un numero in BUGS.md, ogni limite è scritto | le prestazioni si dichiarano, raramente si misurano in pubblico |
 | 🌙 **Vita propria** | consolida i ricordi, pensa quando si annoia, sogna e dipinge il sogno, fa un'autodiagnosi quotidiana dai propri log | si attiva solo quando le scrivi |
 | 🛠️ **Si ripara** | corregge il proprio codice in una sandbox, con test, la tua approvazione, test dal vivo e rollback | il codice lo cambia solo lo sviluppatore |
 | 🔏 **Regole firmate** | codice di condotta con la chiave della tua installazione: se qualcuno lo modifica senza firma, Aurora non parte | regole nel prompt, modificabili senza traccia |
@@ -272,6 +272,18 @@ le fonti e scrive la risposta. Sulle stesse 197 domande: 158 risposte giuste con
 
 ![Il meglio dei due contro tutto su Claude](docs/img/it/granular.svg)
 ![Quanto aspetti una risposta](docs/img/it/granular_time.svg)
+
+**Chi fa cosa, misurato** (M222, stesso giorno e stesso codice): con le correzioni venute dopo M219, il meglio dei due
+ha dato **172 risposte giuste su 197**. Spostando un gruppo alla volta: i classificatori su Claude, 164 (p = 0,039) e 9 s
+in più a risposta; i lettori sul modello locale, 138 (p < 0,0001: ARC-AGI 9 contro 19, HLE 3 contro 11). Quindi le
+decisioni brevi restano in locale, la lettura e la scrittura vanno a Claude: la più precisa delle tre configurazioni,
+nel tempo più breve (14,3 s a risposta). Contro Claude nudo: **112 contro 93 su 128, p < 0,001**. Sui puzzle a griglia
+di ARC-AGI, una regola scritta come programma e controllata su ogni esempio è stata trovata per 31 su 40 — tutti e 31
+giusti.
+
+![Chi fa cosa: le esclusioni per gruppo](docs/img/it/ablations.svg)
+![Quanto aspetti una risposta, per configurazione](docs/img/it/ablations_time.svg)
+![ARC-AGI: la regola scritta come programma](docs/img/it/arc_rule.svg)
 
 ![Le domande che la gente fa davvero](docs/img/it/answers.svg)
 ![Il vault riallineato](docs/img/it/vault.svg)

@@ -3525,3 +3525,37 @@ is a cloud model (`kno_grid.worth`); an empty answer now ends the step at the fi
 measured: the cloud model writing the rule (step 4, seeds 9 and 10: the subscription's cost, when the owner says);
 the 4 unrun puzzles; whether the five «no code» were the room or the model.
 
+## M222 — who does what: the group ablations, and the grid puzzles on Claude (15 October 2026; ROADMAP D2, D4)
+
+`bench_public.py --n 10`, seeds 7 and 8, all on the same day and the same code (after M220 and M221), then
+`bench_compare.py` question by question (McNemar's exact test). The best of both (`aurora-mixed`, the owner's
+granular choice) run again as the day's base, then one group moved at a time (new targets
+`aurora-classifiers-cloud`, `aurora-readers-local`). Judge: Claude Sonnet; MMLU-Pro, GPQA, AIME, ARC-AGI and most of
+MATH are scored by code. Each answer now keeps its steps (`grid.rule`, `think`), so the puzzles can be read back.
+
+| configuration | right of 197 | against the best of both | median per answer | minutes for the 216 answers |
+|---|---|---|---|---|
+| **the best of both**: route, translate, gate, verify local; extract, synthesis on Claude | **172** | — | **14.3 s** | 58 |
+| the classifiers (route, translate, gate, verify) on Claude | 164 | 10 only best, 2 only other, **p = 0.039** | 23.6 s | 99 |
+| the readers (extract, synthesis) local | 138 | 37 only best, 3 only other, **p < 0.0001** | 23.2 s | 189 |
+
+Where the readers matter, best of both against readers local: ARC-AGI 19 vs 9 (p = 0.006), HLE 11 vs 3 (p = 0.008),
+edge 32 vs 26 (p = 0.031); the rest within one or two answers. The classifiers on Claude lose nowhere by much
+(edge 32 vs 29, HLE 11 vs 9) but wait 9 s more an answer: each short decision becomes a cloud call.
+
+The day's base against the runs before, the same seeds: 172 against M219's best of both (158, the morning of the same
+day, before C320's translator and kno_grid: 16 only new, 2 only old, p = 0.0013) and against M214's all on Claude
+(161, 14 October: 13 and 2, p = 0.0074). The time went from 11.2 s (M219) to 14.3 s: the grid step and the second
+attempts cost seconds.
+
+D4, the grid puzzles with the rule written by Claude (kno_grid, M221): on 40 ARC-AGI puzzles (seeds 7 to 10) 38
+right; a rule reproducing every example was found for 31, and all 31 were right; of the 9 without one, 6 right
+(the reasoner alone). Seeds 9 and 10 against bare Claude Sonnet: 19 vs 16, p = 0.25.
+
+Read: the split the owner chose is the one measured best — the short decisions local (as good, and 9 s faster an
+answer), the reading and the writing on Claude (34 more right of 197, and faster too: a hard problem read locally
+reasons at length). A verified program answers a grid puzzle right whenever one is found. Charts: `ablations.svg`,
+`ablations_time.svg`, `arc_rule.svg` (the intervals computed by `doc_charts.wilson`). Not measured: the cloud's tokens
+for each configuration (only the seconds); the roles outside the benchmark (agent, self, rem); the judge's own
+variation between days (M214's run is from another day and other code, so its +11 holds today's fixes too); which
+of M220's and M221's fixes weighs most; the agent ablation (the public sets almost never reach it).

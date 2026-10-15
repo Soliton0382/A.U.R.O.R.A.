@@ -78,7 +78,20 @@ def test_a_rule_that_never_fits_leaves_the_puzzle_to_the_reasoning(monkeypatch):
     assert kno_grid.solve(p, PUZZLE, lambda e, d: None) is None
 
 
-@pytest.mark.skipif(not shutil.which("bwrap"), reason="no bubblewrap: no cage")
+def _cage_opens() -> bool:
+    """bubblewrap there AND allowed to make its namespaces: Ubuntu 24's AppArmor stops it for unprivileged users (the
+    GitHub runner, 0.2.29's Install job) — then kno_grid has no cage and leaves the puzzle to the reasoner."""
+    import subprocess
+    if not shutil.which("bwrap"):
+        return False
+    try:
+        return subprocess.run(["bwrap", "--unshare-all", "--ro-bind", "/", "/", "true"], capture_output=True,
+                              timeout=10).returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
+@pytest.mark.skipif(not _cage_opens(), reason="no cage here: bubblewrap missing or not allowed")
 def test_the_rule_runs_in_a_cage_without_network_or_home():
     assert kno_grid.run("def transform(g):\n    return [r[::-1] for r in g]\n", [[[1, 2]]]) == [[[2, 1]]]
     out = kno_grid.run("import urllib.request\ndef transform(g):\n    urllib.request.urlopen('http://1.1.1.1', "
