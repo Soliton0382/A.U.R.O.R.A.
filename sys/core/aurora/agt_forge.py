@@ -303,6 +303,8 @@ def build(cfg: sys_config.Config, llm, host, req: dict, emit, masker=None, judge
             now_seen = peek(cfg, [str(x) for x in looked if isinstance(x, str)], hours or 24)
             errors = test(host, manifest, stage, judge or llm, masker(now_seen) if masker else now_seen, masker,
                           need=req["need"], hours=hours)
+            if errors:                                  # a draft that failed its tests is not kept (T1: 58 left)
+                shutil.rmtree(stage, ignore_errors=True)
         emit("forge.attempt", {"attempt": attempt, "ok": not errors, "errors": errors[:5], "name": manifest.get("name")})
         log.info("forge %s attempt %d: %s", req["id"], attempt, "ok" if not errors else "; ".join(errors)[:300])
         if not errors:
@@ -380,6 +382,8 @@ def install(cfg: sys_config.Config, stage: str) -> Path:
     icon = cfg.path("AURORA_PLUGINS_DIR") / "self" / "icon.png"
     if icon.exists() and not (dest / "icon.png").exists():
         shutil.copy(icon, dest / "icon.png")
+    if src.parent == _dir(cfg) / "stage":               # installed: the draft is the plugin now
+        shutil.rmtree(src, ignore_errors=True)
     return dest
 
 

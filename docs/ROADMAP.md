@@ -19,10 +19,10 @@ its sandbox (C328), the blocks at Cloudflare counted (C329). Published: v0.2.30,
 | N4 | ⚖️ D2's open parts | measure | (a) the cloud's tokens per configuration; (b) the judge's own drift: the same ~99 answers judged again by Sonnet (waiting for the owner's yes); (c) SSCC on and off (AURORA_CLOUD_KEEP_PCT 100 vs 60, the same seeds) — offered for the slides: today SSCC took 26.5 % of the characters of the compressed calls (207 calls), and M41 measured no loss of quality, but no run had it off |
 | N5 | 👀 The new pages read by someone who never saw them | measure | Models (109) and Autonomy (111): find a level and change it, say what the best of both does |
 | N6 | 📷 D8 — home security (private) | owner + measure | the owner's own measure on the cameras |
-| N7 | 🗂️ Decisions of the owner | owner | ✅ the 50 PDFs of «NOTHING» deleted (to the trash, 15 Oct); the personal case in the public repository's history: the owner chose to rewrite it — the rules are ready, the rewrite and the forced push are the owner's; the 3 points for the company slides (from README.en.md) |
+| N7 | 🗂️ Decisions of the owner | owner | ✅ the 50 PDFs of «NOTHING» deleted (to the trash, 15 Oct); the personal case in the public repository's history: left as it is (16 Oct: no names, and a rewrite changes every commit and tag); the publish deny list now holds its words; the 3 points for the company slides (from README.en.md) |
 | N8 | 🔌 D5 step 2 — a second firewall driver on an aurora-lab VM | build | — |
 | N9 | 🔐 D9 — publishing with a deploy key | owner | the deploy key and the signed-commits rule |
-| N10 | 🧹 T1 — cleanup | upkeep | ✅ sys/sandbox 586 → 32 MB (15 Oct): 29 removed, none with a pending change or an undo backup; fallback-ctx-10c9d2 kept for N2. Left: the forge's drafts and the functions nothing calls |
+| N10 | 🧹 T1 — cleanup | upkeep | ✅ sys/sandbox 586 → 32 MB (15 Oct): 29 removed, none with a pending change or an undo backup; fallback-ctx-10c9d2 kept for N2. ✅ 16 Oct: the forge keeps no draft any more (one that fails its tests goes, an installed one becomes the plugin; 58 were left, 880 KB, none awaiting an approval: emptied by the owner); the functions nothing calls: one in Aurora's own Python (`txt_ical.as_date`), removed — the rest are the plugins' bundled libraries |
 
 Proposed order: N1 and N2 (small, open bugs) → N3 runs by itself → N7 (the owner's answers) → N4 (a long run: the GPU and
 the cloud busy, nothing else meanwhile) → N5 → N10 → N8, N9.

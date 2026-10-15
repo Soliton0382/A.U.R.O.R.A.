@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import re
 import uuid
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 DAYS = {"MO": 0, "TU": 1, "WE": 2, "TH": 3, "FR": 4, "SA": 5, "SU": 6}
@@ -173,7 +173,3 @@ def make_event(summary: str, start: datetime, end: datetime, location: str = "",
     lines += [f"DESCRIPTION:{_esc(description)}"] if description else []
     lines += ["END:VEVENT", "END:VCALENDAR"]
     return uid, "\r\n".join(lines) + "\r\n"
-
-
-def as_date(value: date | datetime) -> datetime:
-    return value if isinstance(value, datetime) else datetime.combine(value, time()).astimezone()

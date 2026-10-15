@@ -193,3 +193,12 @@ def test_a_forged_plugin_never_names_a_person():
     assert any("names a person (mario)" in e for e in errs)
     assert F.check(GOOD, CODE.replace("server.run(", 'X = "mariology"\nserver.run(', 1), set(), {"mario"}) == []
     assert F.check(GOOD, CODE, set(), {"mario"}) == []
+
+
+def test_an_installed_draft_leaves_the_stage(cfg):
+    """T1 cleanup, 16 Oct: 58 drafts were left in status/forge/stage, 8 of them installed plugins already."""
+    stage = F._dir(cfg) / "stage" / "harvest_stats"
+    stage.mkdir()
+    (stage / "server.py").write_text(CODE, encoding="utf-8")
+    dest = F.install(cfg, str(stage))
+    assert (dest / "server.py").read_text(encoding="utf-8") == CODE and not stage.exists()
