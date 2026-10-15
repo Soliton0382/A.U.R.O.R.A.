@@ -35,6 +35,8 @@ import secDefence from "./modules/security_defence_page.js";
 import secWatch from "./modules/security_watch_page.js";
 import secOut from "./modules/security_out_page.js";
 import secTrace from "./modules/security_trace.js";
+import secFirewalls from "./modules/security_firewalls.js";
+import expenses from "./modules/expenses.js";
 import ciso from "./modules/ciso.js";
 import firewall from "./modules/firewall.js";
 import aurorafw from "./modules/aurorafw.js";
@@ -54,7 +56,7 @@ import { kinds as homeKinds } from "./modules/home.js";
 let local = { views: [] };
 try { local = await import("./local/index.js"); } catch { /* none on this installation */ }
 
-export const views = [today, advanced, chat, approvals, reports, security, ciso, firewall, aurorafw, secDefence, secWatch, secOut, secTrace, autonomy, diary, dreams, memory, social, dj, care, home, calendar, projects, routines, models, accounts, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, settings, https, guide, bugreport, ideas];
+export const views = [today, advanced, chat, approvals, reports, secFirewalls, security, ciso, firewall, aurorafw, secDefence, secWatch, secOut, secTrace, autonomy, diary, dreams, memory, social, dj, care, expenses, home, calendar, projects, routines, models, accounts, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, settings, https, guide, bugreport, ideas];
 views.push(...homeKinds, ...local.views);
 export const widgets = [sky, alerts, metrics, brain];
 
@@ -64,18 +66,18 @@ export const groups = [
   { id: "today", views: ["today"] },
   { id: "chat", views: ["chat"] },
   { id: "activity", icon: "🛎️", title: "nav.g.activity", views: ["approvals", "notifications", "reports", "runs"] },
-  { id: "life", icon: "✨", title: "nav.g.life", views: ["calendar", "diary", "dreams", "memory", "social", "dj", "care"] },
+  { id: "life", icon: "✨", title: "nav.g.life", views: ["calendar", "diary", "dreams", "memory", "social", "dj", "care", "expenses"] },
   // 🏠 the house (owner, 2026-10-12: «sotto casa avremmo tab casa e poi…»): Home Assistant's pages
   { id: "home", icon: "🏠", title: "nav.g.home", views: ["home", ...homeKinds.map((v) => v.id),
   ...local.views.filter((v) => v.group === "home").map((v) => v.id)] },
   { id: "work", icon: "🛠️", title: "nav.g.work", views: ["projects", "routines", "uploads"] },
   { id: "knowledge", icon: "📚", title: "nav.g.knowledge", views: ["import", "harvester", "synapses"] },
   // the security area (owner, 2026-10-08: «sotto menù specifici CISO, etc… separate e pulite»)
-  { id: "security", icon: "🛡️", title: "nav.g.security", views: ["security", "ciso", "firewall", "aurorafw", "secdefence", "secwatch", "secout", "sectrace"] },
+  { id: "security", icon: "🛡️", title: "nav.g.security", views: ["firewalls", "security", "ciso", "firewall", "aurorafw", "secdefence", "secwatch", "secout", "sectrace"] },
   { id: "autonomy", views: ["autonomy"] },
   { id: "system", icon: "⚙️", title: "nav.g.system", views: ["status", "models", "accounts", "plugins", "users", "settings", "https", "updates"] },
   { id: "help", icon: "❓", title: "nav.g.help", views: ["guide", "bugreport", "ideas"] },
 ];
 // the machine's pages (owner, 2026-10-06, multi-user): a user sees neither them in the menu nor their data (the API
 // answers 403); their own preferences are in 👥 Users → My account, their plugins' settings in the plugins' cards
-export const adminOnly = new Set(["security", "ciso", "firewall", "aurorafw", "secdefence", "secwatch", "secout", "sectrace", "models", "harvester", "synapses", "status", "updates", "settings", "import", "https"]);
+export const adminOnly = new Set(["firewalls", "security", "ciso", "firewall", "aurorafw", "secdefence", "secwatch", "secout", "sectrace", "models", "harvester", "synapses", "status", "updates", "settings", "import", "https"]);

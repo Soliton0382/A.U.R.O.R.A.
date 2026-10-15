@@ -2,6 +2,7 @@
  "name": "instagram",
  "version": "1.0",
  "kind": "connector",
+ "page": "social",
  "description": {
   "it": "L'account Instagram professionale collegato alla pagina Facebook: profilo, ultimi post, e pubblicazione delle immagini di Aurora (con la tua approvazione).",
   "en": "The Instagram professional account linked to the Facebook page: profile, latest posts, and publishing Aurora's pictures (with your approval)."

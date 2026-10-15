@@ -2,6 +2,7 @@
   "name": "security",
   "version": "1.0",
   "kind": "tool",
+  "page": "firewalls",
   "description": {
     "en": "The house's security officer on the firewall: incidents and traffic, an audit of the configuration (published services, IPS, administration, blocking rule), threat hunting in the logs (beaconing, lateral movement, threat-protection matches judged, dubious domains, admin logins and changes), the security posture with playbooks, the firewall's manual and API searched on this machine, and changes — publish a server, quarantine a device, harden a rule — planned by Aurora and applied only with the owner's approval, undone by themselves if anything fails.",
     "it": "La responsabile della sicurezza di casa sul firewall: incidenti e traffico, audit della configurazione (servizi pubblicati, IPS, amministrazione, regola dei blocchi), caccia alle minacce nei log (chiamate regolari verso l'esterno, movimento laterale, allarmi ATP giudicati, domini dubbi, login e modifiche al firewall), il quadro della sicurezza con i playbook, il manuale e l'API del firewall consultati in locale, e modifiche — pubblicare un server, mettere in quarantena un dispositivo, proteggere una regola — preparate da Aurora e applicate solo con la tua approvazione, annullate da sole se qualcosa va storto."
@@ -53,8 +54,8 @@
     {"id": "weekly", "title": {"it": "Sicurezza della settimana (punteggio)", "en": "The week's security (score)"}, "kind": "tool", "tool": "security_weekly_report", "args": {"days": 7}, "schedule": {"every": "week", "weekday": 0, "at": "08:30"}, "notify": "always", "event": "routine.done"}
   ],
   "setup": {
-    "it": "Il firewall manda il suo syslog alla sentinella (aurora-sentinel). Qui sotto: l'indirizzo su cui ascolta (`AURORA_SENTINEL_BIND`), i firewall ammessi (`AURORA_SENTINEL_ALLOW`), la finestra e le soglie degli incidenti, e se Aurora indaga da sola. Salvando, la sentinella riparte. Se il riassunto dice «nessuna riga», controlla che il firewall mandi il syslog all'indirizzo di `AURORA_SENTINEL_BIND`.",
-    "en": "The firewall sends its syslog to the sentinel (aurora-sentinel). Below: the address it listens on, the firewalls allowed, the window and thresholds of incidents, and whether Aurora investigates by herself. Saving restarts the sentinel."
+    "it": "Il firewall manda il suo syslog alla sentinella (aurora-sentinel). Qui sotto: l'indirizzo su cui ascolta (`AURORA_SENTINEL_BIND`), i firewall ammessi (`AURORA_SENTINEL_ALLOW`), la finestra e le soglie degli incidenti, e se Aurora indaga da sola. Salvando, la sentinella riparte. Se il riassunto dice «nessuna riga», controlla che il firewall mandi il syslog all'indirizzo di `AURORA_SENTINEL_BIND`. I firewall (tipo, indirizzo, credenziali, gruppo di blocco, guide) si impostano in 🛡️ Sicurezza → 🔌 Collegamenti firewall: lì si collegano, uno o più.",
+    "en": "The firewall sends its syslog to the sentinel (aurora-sentinel). Below: the address it listens on, the firewalls allowed, the window and thresholds of incidents, and whether Aurora investigates by herself. Saving restarts the sentinel. The firewalls (kind, address, credentials, blocking group, guides) are set in 🛡️ Security → 🔌 Firewall connections: connected there, one or more."
   },
   "settings": [
     "AURORA_SENTINEL_BIND",
@@ -63,15 +64,6 @@
     "AURORA_SENTINEL_DENY_THRESHOLD",
     "AURORA_SENTINEL_SCAN_PORTS",
     "AURORA_SENTINEL_INVESTIGATE",
-    "AURORA_SECURITY_SYSLOG_DOC",
-    "AURORA_FIREWALL_API_KIND",
-    "AURORA_FIREWALL_API_URL",
-    "AURORA_FIREWALL_API_USER",
-    "AURORA_FIREWALL_API_PASSWORD",
-    "AURORA_FIREWALL_VERIFY_TLS",
-    "AURORA_FIREWALL_BLOCK_GROUP",
-    "AURORA_FIREWALL_MANUAL_URL",
-    "AURORA_FIREWALL_API_DOC_URL",
     "AURORA_HUNT_IGNORE",
     "AURORA_FIREWALL_WRITE",
     "AURORA_FIREWALL_CONFIRM_S",

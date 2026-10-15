@@ -175,9 +175,10 @@ def security_weekly_report(days: float = 7) -> str:
 # ---- the firewall's documentation, audit, hunt, the security officer's view (owner, 2026-10-07) ----------------------
 @tool
 def firewall_docs(query: str, kind: str = "") -> str:
-    """Search the firewall's official documentation kept on this machine (Sophos Firewall 22.0: the administrator's
-    manual, the XML API reference with its sample requests, the syslog reference). Use it before explaining a feature
-    or planning a change. `kind`: "manual", "api", "syslog" or "" for all."""
+    """Search the firewall's official documentation kept on this machine, the one of the firewall set
+    (AURORA_FIREWALL_API_KIND: Sophos, pfSense or OPNsense): the administrator's manual, the API reference with its
+    sample requests, the log's format. Use it before explaining a feature or planning a change. `kind`: "manual",
+    "api", "syslog" or "" for all."""
     from aurora import sec_fwdocs
     hits = sec_fwdocs.search(cfg, query, 5, kind or None)
     if not hits:

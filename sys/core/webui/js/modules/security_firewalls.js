@@ -1,0 +1,129 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 A.U.R.O.R.A. Project
+// 🔌 The house's firewalls (owner, 2026-10-16: «uno imposta lì i firewall, può scegliere tutti quelli che vuole…
+// impostare quello che serve, le guide… e una volta confermato il collegamento la suite security comincia a
+// funzionare»): one card each — kind, address, user and password (on OPNsense the API key and its secret), the
+// blocking group, the official guides (filled in, a pasted link wins), whether it receives the blocks; «Collega» logs
+// in, makes the group, indexes the guides, and only then the firewall counts. The admin's.
+import { call } from "../api.js";
+import { bus } from "../bus.js";
+import { el } from "../dom.js";
+import { apply, t } from "../i18n.js";
+import { pluginSlot } from "./plugin_slot.js";
+
+const GUIDES = ["manual", "api", "syslog"];
+
+function field(label, input) {
+  const row = el("label", "acc-row");
+  row.append(el("span", "", label), input);
+  return row;
+}
+
+function input(value, type = "text") {
+  const i = el("input");
+  i.type = type;
+  i.value = value ?? "";
+  return i;
+}
+
+export default {
+  id: "firewalls",
+  icon: "🔌",
+  title: "nav.sec.firewalls",
+
+  mount(root) {
+    root.classList.add("page");
+    root.innerHTML = `<h2 data-i18n="nav.sec.firewalls"></h2><p class="muted" data-i18n="fwl.hint"></p>
+      <div class="fwl-list"></div><div class="appr-actions"><button class="fwl-add" data-i18n="fwl.add"></button></div>`;
+    root.querySelector("h2")?.after(pluginSlot("firewalls"));   // its plugins, configured here
+    apply(root);
+    this.root = root;
+    root.querySelector(".fwl-add").addEventListener("click", () => this.card({ id: "new", kind: "pfsense", name: "",
+      url: "", user: "", verify_tls: true, block_group: "Aurora-Blocked", blocks: true, guides: {} }, true));
+  },
+
+  async enter() {
+    let d;
+    try { d = await call("/v1/aurora/security/firewalls"); } catch (e) { this.root.querySelector(".fwl-list").textContent = e.message; return; }
+    this.kinds = d.kinds;
+    const list = this.root.querySelector(".fwl-list");
+    list.replaceChildren();
+    if (!d.items.length) list.append(el("p", "muted", t("fwl.empty")));
+    for (const it of d.items) this.card(it, false);
+  },
+
+  card(it, open) {
+    const box = el("section", "report acc-section");
+    const state = it.confirmed ? `✅ ${t("fwl.connected")}` : it.error ? `❌ ${it.error}` : `⚪ ${t("fwl.not_connected")}`;
+    const head = el("div", "acc-row");
+    head.append(el("strong", "", `${it.name || t("fwl.new")} · ${it.kind}`), el("span", it.confirmed ? "ok" : "muted", state));
+    box.append(head);
+    if (it.indexed && it.indexed.passages) box.append(el("p", "muted", t("fwl.indexed", { n: it.indexed.passages })));
+    const form = el("div", "acc-form");
+    form.hidden = !open;
+    const kind = el("select");
+    for (const k of this.kinds || []) kind.append(new Option(k.kind, k.kind));
+    kind.value = it.kind;
+    const name = input(it.name), url = input(it.url), user = input(it.user), pass = input("", "password");
+    pass.placeholder = it.has_password ? t("fwl.pass_kept") : "";
+    const group = input(it.block_group), tls = input("", "checkbox"), blocks = input("", "checkbox");
+    tls.checked = !!it.verify_tls;
+    blocks.checked = it.blocks !== false;
+    const guides = Object.fromEntries(GUIDES.map((g) => [g, input((it.guides || {})[g])]));
+    const userLabel = () => {
+      const k = (this.kinds || []).find((x) => x.kind === kind.value) || {};
+      userRow.firstChild.textContent = t(k.user_is_key ? "fwl.key" : "fwl.user");
+      passRow.firstChild.textContent = t(k.user_is_key ? "fwl.secret" : "fwl.password");
+      note.textContent = k.full ? "" : t("fwl.partial");
+      for (const g of GUIDES) if (!guides[g].value || it.id === "new") guides[g].value = (k.docs || {})[g] || guides[g].value;
+    };
+    const userRow = field("", user), passRow = field("", pass), note = el("p", "muted");
+    form.append(field(t("fwl.name"), name), field(t("fwl.kind"), kind), note, field(t("fwl.url"), url), userRow, passRow,
+      field(t("fwl.group"), group), field(t("fwl.tls"), tls), field(t("fwl.blocks"), blocks),
+      el("h4", "", t("fwl.guides")), el("p", "muted", t("fwl.guides_hint")),
+      ...GUIDES.map((g) => field(t(`fwl.guide.${g}`), guides[g])));
+    kind.addEventListener("change", userLabel);
+    userLabel();
+    const out = el("span", "muted");
+    const save = el("button", "approve", `💾 ${t("fwl.save")}`);
+    const connect = el("button", "", `🔌 ${t("fwl.connect")}`);
+    const edit = el("button", "", `✏️ ${t("fwl.edit")}`);
+    edit.addEventListener("click", () => { form.hidden = !form.hidden; });
+    const body = () => ({ name: name.value, kind: kind.value, url: url.value, user: user.value, block_group: group.value,
+      verify_tls: tls.checked, blocks: blocks.checked, password: pass.value,
+      ...Object.fromEntries(GUIDES.map((g) => [g, guides[g].value])) });
+    save.addEventListener("click", async () => {
+      out.textContent = "…";
+      try {
+        const r = await call(`/v1/aurora/security/firewalls/${it.id}`, { method: "PUT", body: JSON.stringify(body()) });
+        out.textContent = r.restart ? t("fwl.saved_restart") : t("fwl.saved");
+        it.id = r.id;
+        this.enter();
+      } catch (e) { out.textContent = e.message; }
+    });
+    connect.addEventListener("click", async () => {
+      out.textContent = t("fwl.connecting");
+      try {
+        const r = await call(`/v1/aurora/security/firewalls/${it.id}/connect`, { method: "POST" });
+        out.textContent = r.ok ? t("fwl.connected_ok") : `❌ ${r.error}`;
+        bus.emit("plugins");                            // the security pages show once a firewall is connected
+        this.enter();
+      } catch (e) { out.textContent = e.message; }
+    });
+    const actions = el("div", "appr-actions");
+    actions.append(edit, ...(it.id === "new" ? [] : [connect]));
+    if (it.id !== "main" && it.id !== "new") {
+      const del = el("button", "danger", `🗑️ ${t("fwl.remove")}`);
+      del.addEventListener("click", async () => {
+        if (!confirm(t("fwl.remove_q", { name: it.name || it.kind }))) return;
+        try { await call(`/v1/aurora/security/firewalls/${it.id}`, { method: "DELETE" }); this.enter(); } catch (e) { alert(e.message); }
+      });
+      actions.append(del);
+    }
+    const saveRow = el("div", "appr-actions");
+    saveRow.append(save);
+    form.append(saveRow);
+    box.append(form, actions, out);
+    this.root.querySelector(".fwl-list").append(box);
+  },
+};

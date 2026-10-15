@@ -62,7 +62,6 @@ export default {
   id: "sectrace",
   icon: "🌍",
   title: "nav.sec.trace",
-  plugin: "security",
 
   mount(root) {
     useCss("/static/css/trace.css");

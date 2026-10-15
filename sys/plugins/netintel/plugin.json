@@ -2,6 +2,7 @@
   "name": "netintel",
   "version": "1.0",
   "kind": "tool",
+  "page": "firewalls",
   "description": {
     "en": "Defensive network intelligence on an IP address, from public sources only: registry (RDAP: network, organisation, country of registration, abuse contact), reverse DNS, reputation (AbuseIPDB, with a key). Never about persons.",
     "it": "Informazioni difensive su un indirizzo IP, solo da fonti pubbliche: registro (RDAP: rete, organizzazione, paese di registrazione, contatto abuse), DNS inverso, reputazione (AbuseIPDB, con una chiave). Mai sulle persone."

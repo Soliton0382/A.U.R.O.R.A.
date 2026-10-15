@@ -6,6 +6,7 @@ import { backupRow } from "../backup.js";
 import { clock, el } from "../dom.js";
 import { apply, lang, t } from "../i18n.js";
 import { moodRows, moodTitle } from "../mood.js";
+import { pluginSlot } from "./plugin_slot.js";
 
 const pill = (ok, text) => el("span", `pill ${ok ? "ok" : "bad"}`, text);
 
@@ -18,6 +19,7 @@ export default {
   mount(root) {
     root.classList.add("page");
     root.innerHTML = `<h2 data-i18n="status.title"></h2><div class="status"></div>`;
+    root.querySelector("h2")?.after(pluginSlot("status"));   // its plugins, configured here
     apply(root);
     this.box = root.querySelector(".status");
   },

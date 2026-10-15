@@ -2,6 +2,7 @@
   "name": "patent",
   "version": "1.0",
   "kind": "tool",
+  "page": "projects",
   "description": {
     "en": "Patent filings for projects: the description, claims and abstract laid out in the form each office asks (Italy: D.M. 33/2010 art. 22; Europe: EPC Rules 43, 46, 47, 49; USA: 37 CFR 1.52, 1.72, 1.75, 1.84, provisional included), the CAD drawings added, and the whole package checked — page size, margins, black-only drawings, abstract words, claims numbering, every reference sign recalled in the description, no AI notice printed or in the metadata, dates to verify. Also checks a package already in the documents (read only). It brings its PDF library (fpdf2) into its own folder.",
     "it": "Domande di brevetto per i progetti: descrizione, rivendicazioni e riassunto impaginati come chiede ogni ufficio (Italia: D.M. 33/2010 art. 22; Europa: Regole EPC 43, 46, 47, 49; USA: 37 CFR 1.52, 1.72, 1.75, 1.84, provisional compresa), con le tavole CAD, e tutto il pacchetto verificato — formato, margini, disegni solo in nero, parole del riassunto, numerazione delle rivendicazioni, ogni segno di riferimento richiamato nella descrizione, nessuna dicitura IA stampata o nei metadati, date da controllare. Verifica anche un pacchetto già presente tra i documenti (sola lettura). Porta con sé la sua libreria PDF (fpdf2) nella sua cartella."

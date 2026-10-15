@@ -18,7 +18,7 @@ from pathlib import Path
 
 from . import sys_config, sys_log
 
-KEEP = {"self"}                                       # her repairs go through it: deleting it would leave her unable to fix
+KEEP = {"self", "security"}                           # her repairs go through self; the security suite's tools are security's
 
 
 class TrashError(Exception):
@@ -33,7 +33,8 @@ def delete(cfg: sys_config.Config, name: str) -> dict:
     if not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,40}", name):
         raise TrashError("nome di plugin non valido")
     if name in KEEP:
-        raise TrashError(f"«{name}» non si elimina: Aurora lo usa per ripararsi")
+        raise TrashError(f"«{name}» non si elimina: " + ("Aurora lo usa per ripararsi" if name == "self" else
+                                                         "sono gli strumenti della suite di sicurezza"))
     src = cfg.path("AURORA_PLUGINS_DIR") / name
     if not (src / "plugin.json").is_file():
         raise TrashError(f"nessun plugin «{name}»")
@@ -55,6 +56,18 @@ def trashed(cfg: sys_config.Config) -> list[dict]:
             continue
         out.append({"id": f.parent.name, "name": info.get("name", ""), "at": info.get("at")})
     return out
+
+
+def purge(cfg: sys_config.Config, item: str) -> dict:
+    """Out of the trash for good (owner, 16 Oct: «vorrei avere la possibilità di eliminare i plugin»)."""
+    if not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,40}-\d{8}-\d{6}", item):
+        raise TrashError("elemento del cestino non valido")
+    src = _trash(cfg) / item
+    if not (src / ".deleted.json").is_file():
+        raise TrashError(f"nel cestino non c'è «{item}»")
+    shutil.rmtree(src)
+    sys_log.get_logger("plugins").info("audit: plugin %s deleted for good from the trash", item)
+    return {"purged": item}
 
 
 def restore(cfg: sys_config.Config, item: str) -> dict:

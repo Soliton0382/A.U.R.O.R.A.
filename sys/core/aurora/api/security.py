@@ -194,7 +194,8 @@ async def firewall_block(request: Request) -> dict:
     body = await request.json()
     ip, reason = str(body.get("ip", "")), str(body.get("reason", ""))[:200]
     try:
-        out = await asyncio.to_thread(sec_fwapi.unblock if body.get("unblock") else sec_fwapi.block, cfg, ip,
+        from aurora import sec_firewalls                 # every connected firewall that receives blocks
+        out = await asyncio.to_thread(sec_firewalls.unblock if body.get("unblock") else sec_firewalls.block, cfg, ip,
                                       *(() if body.get("unblock") else (reason,)))
     except sec_fwapi.FirewallAPIError as e:
         raise HTTPException(status_code=502, detail=str(e)) from None

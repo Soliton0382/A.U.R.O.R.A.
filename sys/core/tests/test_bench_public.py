@@ -87,3 +87,15 @@ def test_the_on_off_grader_reads_the_state_said_first_and_a_refusal_is_wrong():
     assert not g("Non posso dirtelo: non ho accesso a Home Assistant; per vedere se è acceso o spento apri l'app", "on")
     assert not g("Non ho accesso diretto. Per controllare se è **acceso** o **spento**: accedi", "on")
     assert not g("Risulta spento.", "on")
+
+
+def test_a_source_question_is_the_majority_of_up_to_three_verdicts():
+    """M223: the vault's source questions changed verdict 8 % of the time between days; now the majority of three."""
+    from types import SimpleNamespace
+    import bench_edge as E
+    said = iter(['{"right": true, "why": "a"}', '{"right": false, "why": "b"}', '{"right": true, "why": "c"}'])
+    judge = SimpleNamespace(complete=lambda s, p, n: SimpleNamespace(answer=next(said)))
+    out = E.score({"kind": "source", "prompt": "q", "answer": "src"}, "ans", judge)
+    assert out["right"] and out["votes"] == 3
+    same = SimpleNamespace(complete=lambda s, p, n: SimpleNamespace(answer='{"right": false, "why": "no"}'))
+    assert E.score({"kind": "source", "prompt": "q", "answer": "src"}, "ans", same) == {"right": False, "got": "no", "votes": 2}

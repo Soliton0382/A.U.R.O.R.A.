@@ -2,6 +2,7 @@
   "name": "routines",
   "version": "1.0",
   "kind": "tool",
+  "page": "routines",
   "description": {
     "en": "Aurora's configured routines, read only: how many there are, how many are active or disabled, with name, schedule and last run of each.",
     "it": "Le routine configurate di Aurora, sola lettura: quante sono, quante attive o disattivate, con nome, pianificazione e ultima esecuzione di ciascuna."

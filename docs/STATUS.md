@@ -1,6 +1,6 @@
 # Status — work in progress
 
-Updated at every validated change (last: 2026-10-16). Details: BUGS.md (issues, 0 open / 330 closed),
+Updated at every validated change (last: 2026-10-16). Details: BUGS.md (issues, 0 open / 333 closed),
 MANUAL_TESTS.md (what the owner checks by hand),
 TESTS.md (tests and live checks), MEASUREMENTS.md (numbers), MODULE_MAP.md (who does what),
 SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSYSTEM.md (design and decisions).
@@ -54,7 +54,12 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | visual traceroute | 🛡️ → 🌍 Traceroute and «📍 Geolocalizza» on an incident: mtr hop by hop as SSE, each hop placed offline (DB-IP lite city + ASN, monthly, read by Aurora's own MaxMind DB reader), a seat the round trip makes impossible dashed (light in fibre 200 km/ms), a canvas globe that turns to each hop | tests (net_trace); live: 8.8.8.8, 1.1.1.1 |
 | DJ, two decks | two tracks: one tempo (A, B, style or a number), B tuned to A, mix (B in on A's beat at the bar chosen, 4-32 bars: bass swap, crossfade, filter sweep, echo out) or EQ mashup, a beat added or not, each deck's volume; the beat followed one by one (C261) | tests (deck, dj); M180 |
 | firewall undo | every block (the owner's or Aurora's) undone with one click; group and rule names shown once the API is set | live (N44), tests |
-| firewall drivers | the device's dialect behind one interface (aurora/fw_drivers, by AURORA_FIREWALL_API_KIND); one driver today, its XML byte for byte as before | test_fw_drivers |
+| firewall drivers | the device's dialect behind one interface (aurora/fw_drivers, by AURORA_FIREWALL_API_KIND); two: the first everything, its XML byte for byte as before; pfSense (REST API package) and OPNsense (its own API) blocking and unblocking, tried on two aurora-lab VMs (pfSense CE 2.9.0: in the filter 0.4-0.5 s after the call; OPNsense 26.7: the call 1.2-2.3 s); each firewall's official guides indexed apart (manual, API reference — OpenAPI or a page of links — and log format) | test_fw_drivers, test_fw_more_drivers |
+| firewall connections | 🛡️ Security → 🔌: many firewalls, each connected and confirmed, passwords sealed, a block to every confirmed one that receives blocks | test_sec_firewalls |
+| plugins on request | a plugin's tools in the agent's catalog only when the goal names it (GitHub), `more_tools` otherwise | test_agt_tools |
+| users' permissions | the admin decides per user: their routines, settings, autonomy; the machine's pages the admin's | test_users_perm |
+| plugin contract | every plugin.json checked against one contract (tests, forge), written in PLUGINS.md | test_plugin_contract |
+| ☀️ Oggi | the day's headlines scrolling (every 3 hours) and the research routines' last report with its PDF | test_today |
 | self-update | the clean clone updated itself from GitHub: 332 tests, 19.7 s | M103 bis |
 | memory | STM turns with their path; recent turns in context and in the chat after a refresh; session memories (LTM) written by the REM and recalled by meaning when Aurora answers about herself or the past, dates labelled by the clock | tests, live |
 | autonomic cycle | aurora-rem: session memories, thoughts (boredom, weather), dreams painted with SDXL-Lightning (reasoner swapped out for ~20 s, AI-marked) and shown in the chat, daily self-review from the logs with measured evidence, self-repair on recurring problems only, daily social report, log retention; second thoughts (kno_review): drives counted (curiosity, dissatisfaction, novelty, social), past answers answered again in AURORA_REVIEW_HOURS, a better one with new sources told in the chat (≤ AURORA_REVIEW_MESSAGES a day) and put in the shadow, paused by itself after 12 reviews with nothing better; narrated videos (kno_story): from the vault, checked, local pictures, Aurora's natural voice and free classical music by mood, cost zero, made and published from the Social page (🎬, M123: Facebook video; Instagram Reels and TikTok need the owner's connection) | tests, live (M120, M121) |

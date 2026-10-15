@@ -2,6 +2,7 @@
  "name": "backup",
  "version": "1.0",
  "kind": "service",
+ "page": "status",
  "description": {
   "it": "Backup notturno dei tuoi dati su un altro disco o sul NAS: cifrato, deduplicato, verificato.",
   "en": "Nightly backup of your data to another disk or the NAS: encrypted, deduplicated, checked."

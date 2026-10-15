@@ -240,6 +240,8 @@ def check(manifest: dict, code: str, existing: set[str], people: set[str] = froz
     if bad := sorted(n for n in people if len(n) > 2 and re.search(rf"(?<![\w-]){re.escape(n)}(?![\w-])", code)):
         errs.append(f"server.py names a person ({', '.join(bad)}): never a user's name; the plugin works for "
                     "cfg.user, its folders come from sys_users_layout.place(cfg, area, cfg.user)")
+    from . import plg_contract                          # the same contract as every other plugin
+    errs += [e for e in plg_contract.check(manifest) if not e.startswith("name ")]     # the name: said above
     return errs
 
 

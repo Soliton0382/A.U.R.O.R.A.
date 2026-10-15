@@ -2,6 +2,7 @@
  "name": "expenses",
  "version": "1.0",
  "kind": "tool",
+ "page": "expenses",
  "description": {
   "it": "Le tue spese, solo su questa macchina: «ho speso 45 € di benzina» le registra; riepilogo del mese per categoria, confronto con il mese prima, budget mensili per categoria.",
   "en": "Your spending, on this machine only: \"I spent 45 € on fuel\" records it; the month by category, against the month before, monthly budgets per category."

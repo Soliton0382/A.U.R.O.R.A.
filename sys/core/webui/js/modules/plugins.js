@@ -7,8 +7,10 @@ import { bus } from "../bus.js";
 import { el, toBase64, useCss } from "../dom.js";
 import { apply, lang, t } from "../i18n.js";
 import { renderMarkdown } from "../md.js";
-import { restartPrompt } from "../restart.js";
 import { autonomySlot } from "./autonomy_box.js";
+import { settingsForm } from "./settings_form.js";
+
+const KEEP = new Set(["self", "security"]);    // plg_trash.KEEP: her repairs, the security suite's tools
 
 // a plugin Aurora forged works at once; it becomes official when the admin signs the code from a shell with root's
 // rights (owner, 2026-10-08) — the signing key is root's: never from the web
@@ -58,7 +60,7 @@ function placeSearch(form) {
   form.querySelector("h4").after(row);
 }
 
-export default {
+const view = {
   id: "plugins",
   icon: "🧩",
   title: "nav.plugins",
@@ -75,8 +77,16 @@ export default {
 
   async enter() {
     const code = lang.slice(0, 2);
-    const plugins = await call("/v1/aurora/plugins");
+    const all = await call("/v1/aurora/plugins");
     this.me = await call("/v1/aurora/me").catch(() => ({ admin: true }));
+    // a plugin with a page of its own is configured there (owner, 2026-10-16): the grid keeps the general ones
+    const plugins = all.filter((p) => !p.page);
+    const paged = all.filter((p) => p.page);
+    this.root.querySelector(".plug-paged")?.remove();
+    if (paged.length) {
+      const note = el("p", "muted plug-paged", t("plug.paged", { list: paged.map((p) => `${p.name} → ${document.querySelector(`#nav button[data-view="${p.page}"]`)?.textContent.trim() || p.page}`).join(" · ") }));
+      this.grid.after(note);
+    }
     this.grid.replaceChildren(...plugins.map((p) => {
       const b = el("button", `plug-tile ${p.available ? "on" : "off"}`);
       b.type = "button";
@@ -105,7 +115,13 @@ export default {
         try { await call(`/v1/aurora/plugins-trash/${it.id}/restore`, { method: "POST" }); this.enter(); bus.emit("plugins", {}); }
         catch (e) { alert(e.message); }
       });
-      row.append(el("span", "", `${it.name} · ${new Date(it.at * 1000).toLocaleString()}`), back);
+      const gone = el("button", "danger", `✖️ ${t("plug.purge")}`);
+      gone.addEventListener("click", async () => {
+        if (!confirm(t("plug.purge_q", { name: it.name }))) return;
+        try { await call(`/v1/aurora/plugins-trash/${it.id}/purge`, { method: "POST" }); this.enter(); }
+        catch (e) { alert(e.message); }
+      });
+      row.append(el("span", "", `${it.name} · ${new Date(it.at * 1000).toLocaleString()}`), back, gone);
       box.append(row);
     }
     this.grid.after(box);
@@ -114,7 +130,7 @@ export default {
   async open(p, code) {
     const dlg = el("dialog", "modal plug-modal");
     const close = el("button", "icon close", "✕");
-    close.addEventListener("click", () => { dlg.close(); dlg.remove(); this.enter(); });
+    close.addEventListener("click", () => { dlg.close(); dlg.remove(); this.reshow(); });
     const head = el("div", "plug-head");
     const img = el("img");
     img.src = p.icon;
@@ -128,7 +144,7 @@ export default {
     const sw = el("button", "", p.enabled ? t("plug.disable") : t("plug.enable"));
     sw.addEventListener("click", async () => {
       await call(`/v1/aurora/plugins/${p.name}/${p.enabled ? "disable" : "enable"}`, { method: "POST" });
-      dlg.close(); dlg.remove(); this.enter();
+      dlg.close(); dlg.remove(); this.reshow();
       bus.emit("plugins", {});                       // the menu follows: a plugin's page appears or goes
     });
     const stRow = el("div", "appr-actions");
@@ -138,7 +154,7 @@ export default {
       again.addEventListener("click", async () => {
         again.disabled = true;
         await call(`/v1/aurora/plugins/${p.name}/retry`, { method: "POST" });
-        dlg.close(); dlg.remove(); this.enter();
+        dlg.close(); dlg.remove(); this.reshow();
       });
       stRow.append(again);
     }
@@ -153,13 +169,13 @@ export default {
       });
       share.append(box, el("span", "", t("plug.users")));
       stRow.append(sw, share);
-      if (p.name !== "self") {                      // deleted into the trash: restored from the foot of this page
+      if (!KEEP.has(p.name)) {                      // deleted into the trash: restored from the foot of this page
         const del = el("button", "danger", `🗑️ ${t("plug.delete")}`);
         del.addEventListener("click", async () => {
           if (!confirm(t("plug.delete_q", { name: p.name }))) return;
           try { await call(`/v1/aurora/plugins/${p.name}/delete`, { method: "POST" }); }
           catch (e) { alert(e.message); return; }
-          dlg.close(); dlg.remove(); this.enter();
+          dlg.close(); dlg.remove(); this.reshow();
           bus.emit("plugins", {});
         });
         stRow.append(del);
@@ -179,7 +195,7 @@ export default {
         go.textContent = "…";
         try { await call(`/v1/aurora/plugins/${p.name}/${st.installed ? "uninstall" : "install"}`, { method: "POST" }); }
         catch (e) { alert(e.message); }
-        dlg.close(); dlg.remove(); this.enter();
+        dlg.close(); dlg.remove(); this.reshow();
       });
       row.append(go);
       dlg.append(row);
@@ -223,73 +239,17 @@ export default {
       dlg.append(box);
     }
 
-    // the plugin's own settings (the same .env values as in Settings)
+    // the plugin's own settings (settings_form.js: the same box a page uses for its own)
     if (p.settings?.length) {
-      const all = (await call("/v1/aurora/settings")).settings;
-      const specs = all.filter((s) => p.settings.includes(s.key));
-      const form = el("div", "plug-settings");
-      form.append(el("h4", "", `⚙️ ${t("plug.settings")}`));
       // devices connected to the machine: the camera and the microphone are chosen from a list
       const found = p.name === "senses" ? await call("/v1/aurora/senses/devices").catch(() => null) : null;
       const choices = found ? { AURORA_SENSES_CAMERA: found.cameras, AURORA_SENSES_MIC: found.microphones } : {};
-      for (const s of specs) {
-        const row = el("label", "plug-field");
-        const list = choices[s.key];
-        // yes/no as a checkbox, a choice as a menu, a number as a number (owner, 2026-10-04)
-        const on = (v) => ["1", "true", "yes", "on"].includes(String(v).toLowerCase());
-        if (s.type === "bool") {
-          const box = el("input");
-          box.type = "checkbox";
-          box.checked = on(s.value);
-          box.dataset.key = s.key;
-          box.dataset.bool = "1";
-          box.dataset.orig = on(s.value) ? "1" : "0";
-          const r = el("label", "plug-field plug-check");
-          r.append(box, el("span", "", s[code] || s.en));
-          form.append(r);
-          continue;
-        }
-        const input = el(list || s.type === "enum" ? "select" : "input");
-        if (!list && s.type === "enum") for (const c of s.choices) input.append(el("option", "", c));
-        if (s.type === "int") { input.type = "number"; if (s.min !== undefined) input.min = s.min; if (s.max !== undefined) input.max = s.max; }
-        if (list) {
-          for (const d of [{ id: "auto", name: t("plug.device.auto") }, ...list]) {
-            const o = el("option", "", d.id === "auto" ? d.name : `${d.name} — ${d.id}`);
-            o.value = d.id;
-            input.append(o);
-          }
-          if (s.value && ![...input.options].some((o) => o.value === s.value)) input.append(el("option", "", s.value));
-        }
-        input.value = s.secret ? "" : s.value;
-        input.placeholder = s.secret ? (s.value ? t("plug.secret.set") : t("plug.secret.empty")) : (s.recommended || "");
-        if (s.secret) input.type = "password";
-        input.dataset.key = s.key;
-        input.dataset.secret = s.secret ? "1" : "";
-        input.dataset.orig = s.secret ? "" : s.value;
-        row.append(el("code", "", s.key), input, el("span", "muted", s[code] || s.en));
-        form.append(row);
-      }
-      if (p.settings.includes("AURORA_WEATHER_LAT")) placeSearch(form);   // the town by its name, not coordinates
-      const save = el("button", "approve", `💾 ${t("settings.save")}`);
-      const out = el("span", "muted");
-      save.addEventListener("click", async () => {
-        const changes = {};
-        form.querySelectorAll("[data-key]").forEach((i) => {
-          if (i.dataset.bool) { const v = i.checked ? "1" : "0"; if (v !== i.dataset.orig) changes[i.dataset.key] = v; return; }
-          if (i.dataset.secret ? i.value !== "" : i.value !== i.dataset.orig) changes[i.dataset.key] = i.value;
-        });
-        if (!Object.keys(changes).length) { out.textContent = t("settings.none"); return; }
-        try {
-          const r = await call("/v1/aurora/settings", { method: "PUT", body: JSON.stringify(changes) });
-          out.textContent = t("settings.saved", { keys: r.changed.join(", "), services: r.restart.join(", ") || "—" });
+      dlg.append(await settingsForm(p.settings, { choices,
+        after: p.settings.includes("AURORA_WEATHER_LAT") ? placeSearch : null,     // the town by its name, not coordinates
+        onSaved: (r, restarted) => {
           bus.emit("plugins", {});                        // its account filled: its page may appear now
-          if (await restartPrompt(r.restart)) { dlg.close(); dlg.remove(); this.enter(); bus.emit("plugins", {}); }
-        } catch (e) { out.textContent = t("ev.error", { m: e.message }); }
-      });
-      const actions = el("div", "appr-actions");
-      actions.append(save, out);
-      form.append(actions);
-      dlg.append(form);
+          if (restarted) { dlg.close(); dlg.remove(); this.reshow(); bus.emit("plugins", {}); }
+        } }));
     }
 
     // tools: effect, and a "Try" for read-only tools without required arguments
@@ -341,4 +301,15 @@ export default {
     document.body.append(dlg);
     dlg.showModal();
   },
+  // the grid again only where it is shown: the same window opens from a plugin's own page (plugin_slot.js)
+  reshow() { if (this.root?.isConnected) this.enter(); else bus.emit("plugins", {}); },
 };
+export default view;
+
+// a plugin's window from any page (owner, 2026-10-16: «se hanno una pagina tanto vale avere le configurazioni lì
+// dentro»): the same window as the Plugins page's, one code for both
+export async function openPlugin(name) {
+  view.me = view.me || await call("/v1/aurora/me").catch(() => ({ admin: true }));
+  const p = (await call("/v1/aurora/plugins")).find((x) => x.name === name);
+  if (p) view.open(p, lang.slice(0, 2));
+}

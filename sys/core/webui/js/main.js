@@ -220,9 +220,14 @@ async function pluginNav() {
   let list;
   try { list = await call("/v1/aurora/plugins"); } catch { return; }
   const on = (p) => p.enabled && p.available;
+  let firewalls = null;                                 // the security suite: once a firewall is connected
+  if (isAdmin && views.some((v) => v.needs === "firewall")) {
+    try { firewalls = (await call("/v1/aurora/security/firewalls")).receivers.length > 0; } catch { firewalls = false; }
+  }
   for (const v of views) {
-    if (!v.plugin) continue;
-    let shown = v.plugin === "social" ? list.some((p) => p.social && on(p)) : list.some((p) => p.name === v.plugin && on(p));
+    if (!v.plugin && !v.needs) continue;
+    let shown = v.needs === "firewall" ? !!firewalls
+      : v.plugin === "social" ? list.some((p) => p.social && on(p)) : list.some((p) => p.name === v.plugin && on(p));
     if (shown && v.visible) shown = await v.visible().catch(() => false);   // a page with nothing to show stays out
     document.querySelectorAll(`#nav button[data-view="${v.id}"]`).forEach((b) => b.classList.toggle("hidden", !shown || (!isAdmin && adminOnly.has(v.id))));
   }

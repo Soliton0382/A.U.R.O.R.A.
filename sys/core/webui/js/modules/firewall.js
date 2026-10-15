@@ -16,7 +16,7 @@ export default {
   id: "firewall",
   icon: "🧱",
   title: "nav.sec.firewall",
-  plugin: "security",
+  needs: "firewall",                  // in the menu once a firewall is connected (🔌 Firewall)
 
   mount(root) {
     root.classList.add("page");

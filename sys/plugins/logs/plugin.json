@@ -2,6 +2,7 @@
   "name": "logs",
   "version": "1.0",
   "kind": "tool",
+  "page": "status",
   "description": {
     "en": "Aurora's logs, read only: for each component, how many lines per level (WARNING, ERROR, CRITICAL…) over a time window, and the latest warnings and errors. Rotated .gz copies included.",
     "it": "I log di Aurora, in sola lettura: per ogni componente quante righe per livello (WARNING, ERROR, CRITICAL…) in una finestra di tempo, e gli ultimi avvisi ed errori. Comprese le copie ruotate .gz."

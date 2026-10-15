@@ -3,7 +3,11 @@
 """The firewall's official documentation, kept and searched on this machine (owner, 2026-10-07: "the security plugin
 can index the whole manual and use it to carry out the operations").
 
-Three sources, each a setting (Sophos Firewall 22.0 by default; a new version is a new number in the three links):
+Three sources, each a setting (Sophos Firewall 22.0 by default; a new version is a new number in the three links).
+Another firewall (AURORA_FIREWALL_API_KIND, ROADMAP 108) brings its own official links (its driver's DOCS), used while
+a setting still holds the first dialect's default; a link the owner pastes always wins. Each firewall has its own index.
+The API's reference may be: the first dialect's list.html, an OpenAPI JSON (each operation a passage, its example the
+sample), or any page of links (the pages it links under its own folder).
   manual   AURORA_FIREWALL_MANUAL_URL — the administrator's help (MkDocs: every page listed in its sitemap.xml)
   api      AURORA_FIREWALL_API_DOC_URL — the XML API reference (list.html → entity pages → operation pages; the
            operation's sample request, inside <xmp>, is kept verbatim: it is what the writer copies)
@@ -30,8 +34,27 @@ UA = {"User-Agent": "Aurora/1.0 (https://github.com/Soliton0382/A.U.R.O.R.A.; se
 CHUNK = 1800                                         # characters of a passage: a section of a page, or a part of it
 
 
+KEYS = {"manual": "AURORA_FIREWALL_MANUAL_URL", "api": "AURORA_FIREWALL_API_DOC_URL", "syslog": "AURORA_SECURITY_SYSLOG_DOC"}
+
+
+def _kind(cfg) -> str:
+    return str(cfg["AURORA_FIREWALL_API_KIND"] or "sophos")
+
+
 def path(cfg: sys_config.Config) -> Path:
-    return cfg.path("AURORA_STATUS_DIR") / "security" / "fwdocs.sqlite"
+    kind = _kind(cfg)
+    return cfg.path("AURORA_STATUS_DIR") / "security" / ("fwdocs.sqlite" if kind == "sophos" else f"fwdocs-{kind}.sqlite")
+
+
+def url(cfg: sys_config.Config, source: str) -> str:
+    """The link of one source: the owner's, or the firewall's own while the setting holds the first dialect's default."""
+    value = str(cfg[KEYS[source]] or "")
+    if _kind(cfg) == "sophos":
+        return value
+    spec = next((x for x in sys_config.load_schema()["settings"] if x["key"] == KEYS[source]), {})
+    from .fw_drivers import driver
+    own = (getattr(driver(cfg), "DOCS", {}) or {}).get(source, "")
+    return own if (not value or value == spec.get("recommended")) and own else value
 
 
 def _db(cfg: sys_config.Config) -> sqlite3.Connection:
@@ -59,6 +82,9 @@ def page_text(raw: str) -> tuple[str, str, list[str]]:
     """(title, text, samples): the article of a MkDocs page or the body of any other; an <xmp> sample stays as XML."""
     title = html.unescape(re.sub(r"\s+", " ", (re.search(r"<title>(.*?)</title>", raw, re.S | re.I) or [None, ""])[1])).strip()
     samples = [s.strip() for s in re.findall(r"<xmp[^>]*>(.*?)</xmp>", raw, re.S | re.I)]
+    if not samples:                                      # a Sphinx page (OPNsense): its code blocks are the samples
+        samples = [html.unescape(re.sub(r"<[^>]+>", "", s)).strip()
+                   for s in re.findall(r'<div class="highlight[^"]*"><pre>(.*?)</pre>', raw, re.S)][:20]
     raw = re.sub(r"<xmp[^>]*>(.*?)</xmp>", lambda m: "\n[[SAMPLE]]\n", raw, flags=re.S | re.I)
     body = re.search(r"<article[^>]*>(.*?)</article>", raw, re.S | re.I) or re.search(r"<body[^>]*>(.*)</body>", raw, re.S | re.I)
     text = _plain(body.group(1) if body else raw)
@@ -93,8 +119,22 @@ def manual_pages(client: httpx.Client, base: str) -> list[str]:
     return [u.strip() for u in re.findall(r"<loc>([^<]+)</loc>", r.text)]
 
 
-def api_pages(client: httpx.Client, base: str) -> list[str]:
-    """The entity pages named in list.html, then each entity's operation pages (names with spaces and «&»)."""
+def link_pages(client: httpx.Client, base: str) -> list[str]:
+    """A page of links (OPNsense's API reference): itself and the pages it links under its own folder."""
+    root = base.rsplit("/", 1)[0] + "/"
+    r = client.get(base)
+    r.raise_for_status()
+    found = [urljoin(base, h.split("#")[0]) for h in re.findall(r'href="([^"#][^"]*\.html)', r.text)]
+    return [base] + [u for u in dict.fromkeys(found) if u.startswith(root) and u != base]
+
+
+def api_pages(client: httpx.Client, base: str, kind: str = "sophos") -> list[str]:
+    """The entity pages named in list.html, then each entity's operation pages (names with spaces and «&»); an
+    OpenAPI JSON is one page; another dialect's reference, a page of links."""
+    if base.endswith(".json"):
+        return [base]
+    if kind != "sophos":
+        return link_pages(client, base)
     root = base.rsplit("/", 1)[0] + "/"
     r = client.get(root + "list.html")
     r.raise_for_status()
@@ -120,6 +160,42 @@ def _entity(url: str) -> tuple[str, str]:
     return re.sub(r"\.html$", "", parts[-1]), ""
 
 
+def add_openapi(con: sqlite3.Connection, url: str, raw: str) -> int:
+    """Each operation of an OpenAPI document a passage («METHOD path», its summary, parameters and body's fields), its
+    example body the sample."""
+    import json
+    spec = json.loads(raw)
+    con.execute("DELETE FROM passages WHERE url LIKE ?", (url + "%",))
+    con.execute("DELETE FROM samples WHERE url LIKE ?", (url + "%",))
+    n = 0
+    for p, ops in (spec.get("paths") or {}).items():
+        for method, op in ops.items():
+            if not isinstance(op, dict):
+                continue
+            body = (((op.get("requestBody") or {}).get("content") or {}).get("application/json") or {}).get("schema") or {}
+            for part in [body] + list(body.get("allOf") or []):     # #/components/schemas/<Model>, alone or in allOf
+                if "$ref" in part:
+                    body = spec.get("components", {}).get("schemas", {}).get(part["$ref"].rsplit("/", 1)[-1], {})
+                    break
+            fields = ", ".join(sorted((body.get("properties") or {}).keys()))[:900]
+            params = ", ".join(x.get("name", "") for x in op.get("parameters") or [] if isinstance(x, dict))
+            desc = _plain(str(op.get("description") or ""))[:900]
+            text = (f"{method.upper()} {p}\n{op.get('summary', '')}\n{desc}"
+                    + (f"\nparameters: {params}" if params else "") + (f"\nbody fields: {fields}" if fields else ""))
+            ref = f"{url}#{method}:{p}"
+            con.execute("INSERT INTO passages (kind, title, url, text) VALUES (?, ?, ?, ?)",
+                        ("api", f"{method.upper()} {p}", ref, text))
+            example = {k: (v.get("example", v.get("default", f"<{v.get('type', 'value')}>")) if isinstance(v, dict) else None)
+                       for k, v in (body.get("properties") or {}).items()}
+            if example:
+                con.execute("INSERT INTO samples VALUES (?, ?, ?, ?)",
+                            (p.strip("/").split("/")[-1], method.upper(), ref, json.dumps(example)[:3000]))
+            n += 1
+    con.execute("INSERT OR REPLACE INTO pages VALUES (?, ?, ?, ?)", (url, "api", spec.get("info", {}).get("title", url),
+                                                                       time.time()))
+    return n
+
+
 def add_page(con: sqlite3.Connection, kind: str, url: str, raw: str) -> int:
     title, text, samples = page_text(raw)
     con.execute("DELETE FROM passages WHERE url = ?", (url,))
@@ -143,24 +219,25 @@ def refresh(cfg: sys_config.Config, kinds: tuple[str, ...] = ("syslog", "api", "
     with httpx.Client(timeout=60, follow_redirects=True, headers=UA) as client:
         for kind in kinds:
             if kind == "syslog":
-                urls = [str(cfg["AURORA_SECURITY_SYSLOG_DOC"])]
+                urls = [url(cfg, "syslog")]
             elif kind == "api":
-                urls = api_pages(client, str(cfg["AURORA_FIREWALL_API_DOC_URL"]))
+                urls = api_pages(client, url(cfg, "api"), _kind(cfg))
             else:
-                urls = manual_pages(client, str(cfg["AURORA_FIREWALL_MANUAL_URL"]))
+                urls = manual_pages(client, url(cfg, "manual"))
             urls = list(dict.fromkeys(urls))[:limit] if limit else list(dict.fromkeys(urls))
             done = {"pages": 0, "passages": 0, "failed": 0}
             con = _db(cfg)
             try:
-                for n, url in enumerate(urls, 1):
+                for n, link in enumerate(urls, 1):
                     try:
-                        r = client.get(url)
+                        r = client.get(link)
                         r.raise_for_status()
-                        done["passages"] += add_page(con, kind, url, r.text)
+                        done["passages"] += (add_openapi(con, link, r.text) if link.endswith(".json")
+                                             else add_page(con, kind, link, r.text))
                         done["pages"] += 1
-                    except (httpx.HTTPError, sqlite3.Error) as e:
+                    except (httpx.HTTPError, sqlite3.Error, ValueError) as e:
                         done["failed"] += 1
-                        log.warning("fwdocs: %s not indexed: %s", url, e)
+                        log.warning("fwdocs: %s not indexed: %s", link, e)
                     if n % 50 == 0:
                         con.commit()
                         if progress:

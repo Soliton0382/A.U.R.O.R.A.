@@ -22,7 +22,7 @@ const SEV = { high: "bad", medium: "warn", low: "ok" };
 // le cose separate e pulite»): the same code, one tab shown, its tab bar hidden
 export function page(tab, meta) { const { title } = meta; return {
   ...meta,
-  plugin: "security",                 // in the menu only when that plugin is on (social: any platform connected)
+  needs: "firewall",                  // in the menu once a firewall is connected (🔌 Firewall)
 
   mount(root) {
     this.root = root;

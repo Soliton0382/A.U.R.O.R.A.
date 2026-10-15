@@ -21,7 +21,7 @@ export default {
     root.innerHTML = `<p class="muted td-date"></p><h2 class="td-hello"></h2>
       <form class="td-ask"><label class="sr-only" for="td-q" data-i18n="today.ask"></label>
       <input id="td-q" autocomplete="off"><button class="approve" data-i18n="today.ask_go"></button></form>
-      <div class="td-tiles"></div>`;
+      <div class="td-news" hidden></div><div class="td-tiles"></div>`;
     apply(root);
     const q = root.querySelector("#td-q");
     q.placeholder = t("today.ask");
@@ -38,8 +38,51 @@ export default {
     this.root.querySelector(".td-date").textContent = now.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
     const h = now.getHours();
     this.root.querySelector(".td-hello").textContent = t(h < 13 ? "today.morning" : h < 18 ? "today.afternoon" : "today.evening");
-    const made = await Promise.all([this.agenda(), this.house(), this.waiting(), this.dream(), this.health()].map((p) => p.catch(() => null)));
+    const made = await Promise.all([this.agenda(), this.research(), this.house(), this.waiting(), this.dream(), this.health()].map((p) => p.catch(() => null)));
     this.tiles.replaceChildren(...made.filter(Boolean));
+    this.news().catch(() => {});
+  },
+
+  // the day's headlines in a strip that scrolls (owner, 2026-10-16: «in scorrimento… aggiornate ogni 3 ore»);
+  // paused under the pointer or a finger, a plain list for who asks the system for less motion
+  async news() {
+    const d = await call("/v1/aurora/today/news");
+    const box = this.root.querySelector(".td-news");
+    if (!d.items.length) { box.hidden = true; return; }
+    const track = el("div", "td-news-track");
+    const items = d.items.map((n) => {
+      const a = el("a", "td-news-item", n.title);
+      a.href = n.link;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.title = `${n.source} · ${n.when}\n${n.summary}`;
+      a.prepend(el("small", "muted", `${n.source} · `));
+      return a;
+    });
+    track.append(...items, ...items.map((x) => { const c = x.cloneNode(true); c.setAttribute("aria-hidden", "true"); c.tabIndex = -1; return c; }));
+
+    const view = el("div", "td-news-view");             // the strip ends at the label: the label stays clean
+    view.append(track);
+    box.replaceChildren(el("span", "td-news-label", `📰 ${t("today.news")}`), view);
+    box.hidden = false;
+    // a steady speed whatever the number of headlines (owner, 2026-10-16: 16 in 112 s «sembrano ferme», then «leggermente più veloci»): ~120 px a second
+    requestAnimationFrame(() => track.style.setProperty("--td-news-s", `${Math.max(20, Math.round(track.scrollWidth / 2 / 120))}s`));
+  },
+
+  // the last report of the research routines, with its PDF (owner, 2026-10-16: «le novità della ricerca… in Oggi»)
+  async research() {
+    const d = await call("/v1/aurora/today/research");
+    const r = d.items[0];
+    if (!r) return null;
+    const first = r.text.split(/\n+/).filter((x) => x.trim()).slice(0, 3).join(" ").slice(0, 320);
+    const body = [el("p", "", first + (r.text.length > first.length ? "…" : ""))];
+    if (r.pdf) {
+      const a = el("a", "link", `📄 ${t("today.research_pdf")}`);
+      a.href = r.pdf.url;
+      a.target = "_blank";
+      body.push(a);
+    }
+    return this.tile(r.title || t("today.research"), ...body, this.link(t("today.all_reports"), "reports"));
   },
 
   tile(title, ...body) {

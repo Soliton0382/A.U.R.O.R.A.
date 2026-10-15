@@ -149,6 +149,7 @@ def plugins() -> list[dict]:
              "settings": [k for k in dict.fromkeys(p.manifest.get("env", []) + p.manifest.get("requires", [])
                                                    + list(p.manifest.get("env_as", {})) + p.manifest.get("settings", []))],
              "icon": f"/v1/aurora/plugins/{p.name}/icon?v={_icon_version(p)}",
+             "page": p.manifest.get("page") or "",          # configured in that page, not in the Plugins grid
              **({"forged": bool(p.manifest.get("forged")), "forged_need": (p.manifest.get("forged") or {}).get("need", ""),
                  "unsigned": unsigned.get(p.name, 0)} if admin else {}),
              "tools": [{"name": t["name"], "effect": t["effect"], "description": t["description"],
@@ -216,6 +217,17 @@ def plugins_trash() -> list[dict]:
     if me() != _admin():
         raise HTTPException(status_code=403, detail="only the admin")
     return plg_trash.trashed(cfg)
+
+
+@router.post("/v1/aurora/plugins-trash/{item}/purge", dependencies=[Depends(auth)])
+def plugins_purge(item: str) -> dict:
+    from aurora import plg_trash
+    if me() != _admin():
+        raise HTTPException(status_code=403, detail="only the admin")
+    try:
+        return plg_trash.purge(cfg, item)
+    except plg_trash.TrashError as e:
+        raise HTTPException(status_code=409, detail=str(e)) from None
 
 
 @router.post("/v1/aurora/plugins-trash/{item}/restore", dependencies=[Depends(auth)])

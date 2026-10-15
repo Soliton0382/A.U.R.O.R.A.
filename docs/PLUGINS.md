@@ -4,21 +4,57 @@ Generated from `sys/plugins/*/plugin.json` by `sys/core/script/doc_plugins.py`: 
 
 A plugin may bring its own program (`"install"`: Python libraries pinned with `--hash=sha256:`, programs with their `sha256`): installed into the plugin's own folder when it is switched on or with 📦 on its card, never into Aurora's environment, removed whole with 🧹; its command is `["{python}", "{root}/sys/core/script/plg_run.py", "server.py"]` (aurora/plg_deps.py; the `qr` plugin).
 
+## The contract
+
+Every plugin.json follows it (aurora/plg_contract.py: the tests check every plugin, the forge every plugin it builds; a field not listed here is refused).
+
+| field | required | what it is |
+|---|---|---|
+| `name` | yes | the folder's name: lowercase letters, digits, _; the tools are called <name>__<tool> |
+| `version` | yes | the plugin's own version |
+| `kind` | yes | tool (works on this machine), connector (an account somewhere), service (no tools: a job) |
+| `description` | yes | {it, en}: what it does, shown in the Plugins page and to the agent |
+| `command` | yes | how its program starts: ["{python}", "server.py"], or a program of its own |
+| `requires` | yes | settings without which it does not start (named, never their values) |
+| `effects` | yes | tool → read | write_local | external; "*" for the rest |
+| `env` | — | settings passed to its program |
+| `settings` | — | settings shown in its card |
+| `settings_spec` | — | its own settings: {key AURORA_<NAME>_…, type, secret, it, en} |
+| `setup` | — | {it, en, links}: how to set it up |
+| `sandbox` | — | {network: bool, write: [setting names of folders]}: the cage |
+| `tests` | — | read tools called by «Prova»: [{tool, args}] or {tool: args} |
+| `welcome` | — | {it, en}: said once when it is first switched on |
+| `publishes` | — | tool → the argument that is published (a post, a comment): checked before it leaves |
+| `page` | — | the page it belongs to (a menu id): configured there, not in the Plugins grid |
+| `on_demand` | — | {words: [...]}: its tools in the agent's catalog only when the goal names one (agt_tools) |
+| `cache` | — | tool → seconds an answer is kept |
+| `capabilities` | — | what it lets Aurora do, checked by the ethics code |
+| `from_network` | — | tools whose answers come from the internet (marked as such) |
+| `social` | — | a social platform: its statistics and posts in the 📣 Social page |
+| `routines` | — | routines it proposes |
+| `private` | — | its data are private: after one of its reads the run uses the local model only |
+| `install` | — | what it brings: Python libraries pinned by hash, programs by sha256 (plg_deps) |
+| `home_commands` | — | tools that command the house's devices (AURORA_HA_COMMANDS) |
+| `owner_only` | — | tools only the owner's own words may start (never a run's idea) |
+| `oauth` | — | the name of its OAuth flow (api/oauth) |
+| `env_as` | — | setting → the environment name its program expects |
+| `effect_prefixes` | — | tool-name prefix → effect, for a program with many tools |
+| `outputs` | — | tool → {pattern, url, mime}: a file it makes, offered for download |
+| `forged` | — | made by the forge: {request, at, need} |
+
 | plugin | kind | tools (effect) | needs |
 |---|---|---|---|
 | `backup` | service | — | — |
 | `cad` | tool | cad_build (write_local), cad_drawings (write_local), cad_blueprint (write_local) | — |
 | `calendar` | tool | calendar_agenda (read), calendar_add (write_local), calendar_remind (write_local), calendar_change (write_local), calendar_delete (write_local), calendar_add_event (external) | — |
 | `cinema` | tool | — | AURORA_TMDB_TOKEN |
-| `cloud` | connector | — | — |
 | `cloudflare` | connector | cloudflare_status (read), cloudflare_check (read), cloudflare_activate (external), cloudflare_culprits (read), cloudflare_blocks (read), cloudflare_block (external), cloudflare_unblock (external) | AURORA_CLOUDFLARE_ACCOUNT_ID, AURORA_CLOUDFLARE_API_TOKEN |
 | `diary` | tool | — | — |
 | `discord` | connector | discord_read (read), discord_send (external) | AURORA_DISCORD_BOT_TOKEN, AURORA_DISCORD_CHANNEL_ID |
 | `dj` | tool | dj_styles (read), dj_tracks (read) | — |
-| `documents` | tool | create_pdf (write_local), list_documents (read) | — |
+| `documents` | tool | create_pdf (write_local), list_documents (read), my_pdfs_count (read), my_pdfs_list (read) | — |
 | `dropbox` | connector | dropbox_list (read), dropbox_search (read), dropbox_read (read), dropbox_upload (external) | AURORA_DROPBOX_APP_KEY, AURORA_DROPBOX_APP_SECRET, AURORA_DROPBOX_REFRESH_TOKEN |
 | `email` | connector | list_unread (read), read_message (read), send_email (external) | AURORA_EMAIL_IMAP_HOST, AURORA_EMAIL_USER, AURORA_EMAIL_PASSWORD |
-| `email_diag` | tool | — | — |
 | `expenses` | tool | expense_list (read), expense_summary (read) | — |
 | `facebook` | connector | publish_post (external), page_info (read), list_posts (read), page_stats (read), list_comments (read), reply_comment (external), update_page_info (external), set_welcome_message (external), publish_photo (external) | AURORA_FACEBOOK_PAGE_ID, AURORA_FACEBOOK_PAGE_TOKEN |
 | `github` | connector | get_* (read), list_* (read), search_* (read), everything else (external) | AURORA_GITHUB_TOKEN |
@@ -36,7 +72,6 @@ A plugin may bring its own program (`"install"`: Python libraries pinned with `-
 | `projects` | tool | project_list (read), project_tree (read), project_read_file (read), project_status (read), project_create (write_local), project_write_file (write_local), project_commit (write_local), project_publish (external), project_push (external) | — |
 | `pyenv` | tool | — | — |
 | `qr` | tool | — | — |
-| `routine_status` | tool | routine_status_summary (read), routine_status_list (read) | — |
 | `routines` | tool | routines_summary (read), routines_list (read) | — |
 | `runs` | tool | runs_previous (read), runs_list (read), runs_links (read) | — |
 | `security` | tool | firewall_docs_refresh (write_local), firewall_plan_request (write_local), firewall_plan_publish (write_local), firewall_plan_unpublish (write_local), firewall_plan_quarantine (write_local), firewall_plan_release (write_local), firewall_plan_harden (write_local), firewall_plan_port_block (write_local), firewall_apply (external), firewall_revert (external) | — |
@@ -45,7 +80,6 @@ A plugin may bring its own program (`"install"`: Python libraries pinned with `-
 | `telegram` | connector | send_message (external), get_me (read), get_updates (read) | AURORA_TELEGRAM_BOT_TOKEN |
 | `tiktok` | connector | tiktok_account (read), tiktok_post_video (external) | AURORA_TIKTOK_CLIENT_KEY, AURORA_TIKTOK_CLIENT_SECRET, AURORA_TIKTOK_REFRESH_TOKEN |
 | `twitch` | connector | — | AURORA_TWITCH_CLIENT_ID, AURORA_TWITCH_CLIENT_SECRET |
-| `userpdfs` | tool | userpdfs_count (read), userpdfs_list (read) | — |
 | `weather` | tool | — | AURORA_WEATHER_LAT, AURORA_WEATHER_LON |
 | `web` | tool | fetch_url (read), search (read) | — |
 | `whatsapp` | connector | whatsapp_send (external), whatsapp_send_template (external) | AURORA_WHATSAPP_TOKEN, AURORA_WHATSAPP_PHONE_ID, AURORA_WHATSAPP_TO |
@@ -140,27 +174,6 @@ Questo prodotto usa l'API di TMDB ma non è approvato né certificato da TMDB. I
 
 - [TMDB – API](https://www.themoviedb.org/settings/api)
 - [JustWatch](https://www.justwatch.com)
-
-## cloud
-
-Cloud AI providers (Anthropic, Claude Code, Google Gemini, xAI Grok, OpenAI, Mistral, OpenRouter, any OpenAI-compatible service): their keys, and each one's list of models. Which model does each step is chosen in the Models page; everything sent is masked by default.
-
-### Setup (EN)
-
-Paste the keys of the providers you want (only those you assign in the 🧠 Models page). Claude Code uses your subscription. Masking is always on (no setting turns it off): addresses, e-mails, phones, IBANs, cards, keys, tax codes, VAT numbers, car plates, street addresses, documents, dates of birth, passwords become placeholders and come back in the answer; pictures cannot be masked. Any other OpenAI-compatible service (a company server, vLLM, LM Studio, Ollama) as «custom»: its address ending in /v1 and, if it asks one, its key.
-
-### Configurazione (IT)
-
-Incolla qui sotto le chiavi dei provider che vuoi usare (servono solo quelli che assegnerai nella pagina 🧠 Modelli). Claude Code usa il tuo abbonamento, senza chiave. Le chiavi restano nel `.env` (permessi 0600) e le vede solo questo plugin. **Mascheramento** (sempre acceso, nessuna impostazione lo spegne): IP, email, telefoni, IBAN, carte, chiavi, codice fiscale, partita IVA, targhe, indirizzi, documenti, date di nascita, password, i tuoi dati e le parole di `AURORA_CLOUD_MASK_WORDS` diventano segnaposto prima di partire e tornano veri nella risposta. Le **immagini** non si possono mascherare: se assegni la visione a un provider cloud, le tue foto (volti, documenti) arrivano a lui così come sono. Qualsiasi altro servizio compatibile OpenAI (un server aziendale, vLLM, LM Studio, Ollama) come «custom»: il suo indirizzo che finisce con /v1 e, se la chiede, la sua chiave.
-
-### Official guides
-
-- [Anthropic API keys](https://console.anthropic.com/settings/keys)
-- [Google AI Studio (Gemini)](https://aistudio.google.com/apikey)
-- [xAI console (Grok)](https://console.x.ai/)
-- [OpenAI API keys](https://platform.openai.com/api-keys)
-- [Mistral console](https://console.mistral.ai/api-keys)
-- [OpenRouter keys](https://openrouter.ai/settings/keys)
 
 ## cloudflare
 
@@ -302,7 +315,7 @@ Niente da configurare: i brani stanno in `usr/<utente>/music`, i mix in `music/m
 
 ## documents
 
-Documents: Aurora writes a PDF from Markdown (headings, lists, tables, code), marked as AI-generated (EU AI Act); files in AURORA_DOCUMENTS_DIR, downloadable from the WebUI.
+Documents: Aurora writes a PDF from Markdown (headings, lists, tables, code), marked as AI-generated (EU AI Act); files in AURORA_DOCUMENTS_DIR, downloadable from the WebUI. It also lists, read only, the PDFs of your own Documents folder (path, size, date; never their content).
 
 ### Setup (EN)
 
@@ -361,10 +374,6 @@ Inviare una mail è un'azione esterna: passa sempre dalla tua approvazione e por
 - [Gmail – password per le app](https://support.google.com/accounts/answer/185833)
 - [Crea password per le app](https://myaccount.google.com/apppasswords)
 - [Gmail – impostazioni IMAP](https://support.google.com/mail/answer/7126229)
-
-## email_diag
-
-Read only diagnosis of the email plugin: whether it is installed and configured (variable names only, never values), how its recent calls went in Aurora's traces and logs, and the latest errors. It explains why reading the mailbox failed.
 
 ## expenses
 
@@ -636,10 +645,6 @@ Aurora's Python environment, read only: Python and installed library versions, t
 
 QR codes: a text, a link or the home Wi-Fi (network name and password) as a QR code to frame with a phone — as SVG and as characters. It brings its own library (segno 1.6.6, 75 KB, checked by its hash), installed in the plugin's folder.
 
-## routine_status
-
-Aurora's routines per user, read only: how many there are in total, how many are active and how many suspended, with name, schedule and last run of each, read from routines.json.
-
 ## routines
 
 Aurora's configured routines, read only: how many there are, how many are active or disabled, with name, schedule and last run of each.
@@ -654,11 +659,11 @@ The house's security officer on the firewall: incidents and traffic, an audit of
 
 ### Setup (EN)
 
-The firewall sends its syslog to the sentinel (aurora-sentinel). Below: the address it listens on, the firewalls allowed, the window and thresholds of incidents, and whether Aurora investigates by herself. Saving restarts the sentinel.
+The firewall sends its syslog to the sentinel (aurora-sentinel). Below: the address it listens on, the firewalls allowed, the window and thresholds of incidents, and whether Aurora investigates by herself. Saving restarts the sentinel. The firewalls (kind, address, credentials, blocking group, guides) are set in 🛡️ Security → 🔌 Firewall connections: connected there, one or more.
 
 ### Configurazione (IT)
 
-Il firewall manda il suo syslog alla sentinella (aurora-sentinel). Qui sotto: l'indirizzo su cui ascolta (`AURORA_SENTINEL_BIND`), i firewall ammessi (`AURORA_SENTINEL_ALLOW`), la finestra e le soglie degli incidenti, e se Aurora indaga da sola. Salvando, la sentinella riparte. Se il riassunto dice «nessuna riga», controlla che il firewall mandi il syslog all'indirizzo di `AURORA_SENTINEL_BIND`.
+Il firewall manda il suo syslog alla sentinella (aurora-sentinel). Qui sotto: l'indirizzo su cui ascolta (`AURORA_SENTINEL_BIND`), i firewall ammessi (`AURORA_SENTINEL_ALLOW`), la finestra e le soglie degli incidenti, e se Aurora indaga da sola. Salvando, la sentinella riparte. Se il riassunto dice «nessuna riga», controlla che il firewall mandi il syslog all'indirizzo di `AURORA_SENTINEL_BIND`. I firewall (tipo, indirizzo, credenziali, gruppo di blocco, guide) si impostano in 🛡️ Sicurezza → 🔌 Collegamenti firewall: lì si collegano, uno o più.
 
 ## self
 
@@ -719,20 +724,20 @@ Aurora's videos on TikTok (Content Posting API). Until TikTok audits your app, p
 
 ### Setup (EN)
 
-1. On **TikTok for Developers** create an app, add **Login Kit** and **Content Posting API** (with *Direct Post* on) and the scopes `user.info.basic`, `video.publish`, `video.upload`.
-2. In the app's settings add as **Redirect URI** your WebUI's address, e.g. `https://aurora.example.com/` (HTTPS).
+1. On **TikTok for Developers** create an app, add **Login Kit** and **Content Posting API** (with *Direct Post* on) and the scopes `user.info.basic` and `video.publish`.
+2. In **Login Kit** add as **Redirect URI** your WebUI's address, e.g. `https://aurora.example.com/` (HTTPS).
 3. Below put **client key**, **client secret** and the same **redirect URI**, and save.
-4. Once, in a terminal from Aurora's folder: `.venv/bin/python sys/plugins/tiktok/authorize.py` and follow it (open the link, accept, paste the address shown).
+4. Press **🔗 Connect the account**: sign in on TikTok, accept, and you come back here connected. No terminal.
 5. Press **▶ Try** on `tiktok_account`.
 
 **Important:** until TikTok audits your app, every video posted through the API is visible **only to you** and the account must be private. For public posts ask for the audit in the app's console. Every post waits for your approval and is declared AI-generated.
 
 ### Configurazione (IT)
 
-1. Su **TikTok for Developers** crea un'app, aggiungi i prodotti **Login Kit** e **Content Posting API** (con *Direct Post* attivo) e gli scope `user.info.basic`, `video.publish`, `video.upload`.
-2. Nelle impostazioni dell'app aggiungi come **Redirect URI** l'indirizzo della tua WebUI, es. `https://aurora.example.com/` (deve essere HTTPS).
+1. Su **TikTok for Developers** crea un'app, aggiungi i prodotti **Login Kit** e **Content Posting API** (con *Direct Post* attivo) e gli scope `user.info.basic` e `video.publish`.
+2. In **Login Kit** aggiungi come **Redirect URI** l'indirizzo della tua WebUI, es. `https://aurora.example.com/` (HTTPS).
 3. Qui sotto inserisci **client key**, **client secret** e lo stesso **redirect URI**, e salva.
-4. Una volta sola, nel terminale dalla cartella di Aurora: `.venv/bin/python sys/plugins/tiktok/authorize.py` e segui le istruzioni (apri il link, accetti, incolli l'indirizzo che compare).
+4. Premi **🔗 Collega l'account**: accedi su TikTok, accetti e torni qui collegato. Niente terminale.
 5. Premi **▶ Prova** su `tiktok_account`.
 
 **Importante:** finché TikTok non fa l'*audit* della tua app, ogni video pubblicato via API è visibile **solo a te** e l'account deve essere privato. Per i post pubblici chiedi l'audit dalla console dell'app. Ogni pubblicazione aspetta la tua approvazione e il video è dichiarato generato dall'IA.
@@ -757,18 +762,6 @@ Twitch, read only: which of your favourite channels are live and what they strea
 ### Official guides
 
 - [Twitch Developer Console](https://dev.twitch.tv/console)
-
-## userpdfs
-
-The PDF files in your Documents folder on this computer, subfolders included, read only: path, size, modification date and the total count. It never opens a file's content and never changes anything.
-
-### Setup (EN)
-
-Nothing to configure: the plugin finds your Documents folder by itself (Documenti or Documents in your home folder). If your PDFs are elsewhere: 1) open the file manager and go to that folder; 2) press Ctrl+L to see the full path (for example /home/mario/Archive) and copy it; 3) in Aurora open Plugin → userpdfs and paste it into AURORA_USERPDFS_DIR; 4) save.
-
-### Configurazione (IT)
-
-Non serve configurare nulla: il plugin trova da solo la tua cartella Documenti (Documenti o Documents nella tua cartella personale). Se i tuoi PDF sono altrove: 1) apri il gestore file e vai nella cartella che vuoi; 2) premi Ctrl+L per vedere il percorso completo (per esempio /home/mario/Archivio) e copialo; 3) in Aurora apri Plugin → userpdfs e incollalo in AURORA_USERPDFS_DIR; 4) salva.
 
 ## weather
 

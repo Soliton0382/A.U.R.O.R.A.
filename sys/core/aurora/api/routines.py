@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse
 
 from .core import _admin, _run_lock, _runs, auth, cfg, everyone, log, me, note, pipeline, plugin_host, start_run
 
-from .users import admin_only  # noqa: E402
+from .users import admin_only, may_manage  # noqa: E402
 
 router = APIRouter()
 
@@ -125,7 +125,7 @@ def routines() -> dict:
                         for p in plugins if p.available and p.manifest.get("welcome")]}
 
 
-@router.post("/v1/aurora/routines", dependencies=[Depends(auth)])
+@router.post("/v1/aurora/routines", dependencies=[Depends(may_manage("routines"))])
 async def routine_create(request: Request) -> dict:
     from aurora import sys_routines
     body = await request.json()
@@ -148,7 +148,7 @@ async def routine_create(request: Request) -> dict:
     return r
 
 
-@router.put("/v1/aurora/routines/{rid}", dependencies=[Depends(auth)])
+@router.put("/v1/aurora/routines/{rid}", dependencies=[Depends(may_manage("routines"))])
 async def routine_update(rid: str, request: Request) -> dict:
     from aurora import sys_routines
     try:
@@ -161,7 +161,7 @@ async def routine_update(rid: str, request: Request) -> dict:
     return r
 
 
-@router.delete("/v1/aurora/routines/{rid}", dependencies=[Depends(auth)])
+@router.delete("/v1/aurora/routines/{rid}", dependencies=[Depends(may_manage("routines"))])
 def routine_delete(rid: str) -> dict:
     from aurora import sys_routines
     if not sys_routines.delete(cfg, rid):
@@ -170,7 +170,7 @@ def routine_delete(rid: str) -> dict:
     return {"deleted": rid}
 
 
-@router.post("/v1/aurora/routines/{rid}/clone", dependencies=[Depends(auth)])
+@router.post("/v1/aurora/routines/{rid}/clone", dependencies=[Depends(may_manage("routines"))])
 def routine_clone(rid: str) -> dict:
     from aurora import sys_routines
     try:
@@ -181,7 +181,7 @@ def routine_clone(rid: str) -> dict:
     return r
 
 
-@router.post("/v1/aurora/routines/{rid}/run", dependencies=[Depends(auth)])
+@router.post("/v1/aurora/routines/{rid}/run", dependencies=[Depends(may_manage("routines"))])
 def routine_run(rid: str) -> dict:
     from aurora import sys_routines
     r = sys_routines.get(cfg, rid)

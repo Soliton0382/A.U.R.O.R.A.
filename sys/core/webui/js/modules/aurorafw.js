@@ -15,7 +15,6 @@ export default {
   id: "aurorafw",
   icon: "🔥",
   title: "nav.sec.aurorafw",
-  plugin: "security",
 
   mount(root) {
     root.classList.add("page");

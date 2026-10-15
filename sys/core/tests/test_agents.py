@@ -391,3 +391,12 @@ def test_the_same_read_a_third_time_is_not_made_again(cfg):
     agent.host = FakeHost()
     ans = agent.run("prova", lambda e, p: None, "run1")
     assert len(agent.host.calls) == 2 and "Fatto." in ans.text
+
+
+def test_the_system_prompt_holds_nothing_of_the_moment():
+    """The tools' ~45k tokens are read back from the cloud's prompt cache run after run only if the prompt before them
+    is the same: «NOW» moved into the goal's message (16 Oct: a week wrote 35.5M tokens to the cache, read 5.5M)."""
+    import inspect
+    spec = {"type": "function", "function": {"name": "x", "description": "d", "parameters": {"type": "object"}}}
+    assert Agent._system(object(), [spec]) == Agent._system(object(), [spec])
+    assert "NOW:" not in Agent._system(object(), [spec]) and 'f"NOW: {sns_clock.now_text' in inspect.getsource(Agent.run)

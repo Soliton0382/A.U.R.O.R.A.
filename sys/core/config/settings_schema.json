@@ -3958,13 +3958,15 @@
    "key": "AURORA_FIREWALL_API_KIND",
    "type": "enum",
    "choices": [
-    "sophos"
+    "sophos",
+    "pfsense",
+    "opnsense"
    ],
    "category": "security",
    "recommended": "sophos",
    "evidence": "owner",
-   "en": "The firewall API's dialect (sophos: the XML API of Sophos firewalls; others to come).",
-   "it": "Il dialetto dell'API del firewall (sophos: l'API XML dei firewall Sophos; altri in futuro).",
+   "en": "The firewall API's dialect (sophos: the XML API of Sophos firewalls, everything; pfsense: the REST API package of pfSense; opnsense: OPNsense's own API, with an API key as user and its secret as password — both blocking and unblocking addresses only for now).",
+   "it": "Il dialetto dell'API del firewall (sophos: l'API XML dei firewall Sophos, tutto; pfsense: il pacchetto REST API di pfSense; opnsense: l'API di OPNsense, con una chiave API come utente e il suo segreto come password — per entrambi, per ora, solo blocco e sblocco degli indirizzi).",
    "services": [
     "aurora-api"
    ]
@@ -3987,8 +3989,8 @@
    "category": "security",
    "recommended": "",
    "evidence": "owner",
-   "en": "The firewall API's user (best a dedicated administrator with only the rights it needs).",
-   "it": "Utente dell'API del firewall (meglio un amministratore dedicato con i soli permessi necessari).",
+   "en": "The firewall API's user (best a dedicated administrator with only the rights it needs); on OPNsense, the API key.",
+   "it": "Utente dell'API del firewall (meglio un amministratore dedicato con i soli permessi necessari); su OPNsense, la chiave API.",
    "services": [
     "aurora-api"
    ]
@@ -4001,8 +4003,8 @@
    "evidence": "owner",
    "secret": true,
    "optional": true,
-   "en": "The firewall API's password.",
-   "it": "Password dell'API del firewall.",
+   "en": "The firewall API's password; on OPNsense, the API key's secret.",
+   "it": "Password dell'API del firewall; su OPNsense, il segreto della chiave API.",
    "services": [
     "aurora-api"
    ]

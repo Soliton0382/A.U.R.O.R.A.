@@ -47,9 +47,10 @@ def connections(cfg: sys_config.Config) -> list[dict]:
                      "programma trovato" if shutil.which("claude") else "programma non trovato"))
 
     def firewall():
-        from . import sec_fwapi
-        return _line("firewall", sec_fwapi.configured(cfg), "API del firewall", "Firewall API",
-                     cfg["AURORA_FIREWALL_API_KIND"] if sec_fwapi.configured(cfg) else "non configurata", "🧩 Plugin → security")
+        from . import sec_firewalls
+        on = sec_firewalls.receivers(cfg)
+        return _line("firewall", bool(on), "API del firewall", "Firewall API",
+                     ", ".join(f"{x['name']} ({x['kind']})" for x in on) if on else "non configurata", "🛡️ Security → Firewall")
 
     def push():
         from . import sys_push

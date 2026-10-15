@@ -25,6 +25,15 @@ async def admin_only(request: Request) -> None:
         raise HTTPException(status_code=403, detail="only the admin")
 
 
+def may_manage(area: str):
+    """A route of a user's own area (sys_users_perm): the admin always, a user when the admin lets them."""
+    async def dep(request: Request, _: None = Depends(auth)) -> None:     # auth as a sub-dependency: seen as such
+        from aurora import sys_users_perm
+        if not sys_users_perm.may(BASE, me(), area, _admin()):
+            raise HTTPException(status_code=403, detail=f"the admin keeps «{area}» for themselves (👥 Users → permissions)")
+    return dep
+
+
 # ---- login --------------------------------------------------------------------------------------------------------
 def users_login() -> bool:
     """Name, password and code at the login: multi-user, or single-user with the admin's password (and code) set."""
@@ -82,13 +91,14 @@ async def login(request: Request) -> JSONResponse:
 def whoami() -> dict:
     name = me()
     u = _users().by_name(name) if name else None
-    from aurora import sys_persona
+    from aurora import sys_persona, sys_users_perm
     return {"name": name, "role": (u or {}).get("role", "admin"), "admin": name == _admin(),
             "assistant": sys_persona.name(cfg), "personality": str(cfg["AURORA_PERSONALITY"]),
             "gender": str(cfg["AURORA_ASSISTANT_GENDER"]), "person": str(cfg["AURORA_OWNER_NAME"]),
             "mode": str(cfg["AURORA_USER_MODE"]), "mfa": bool(cfg["AURORA_USERS_MFA"]),
             "has_password": bool(u and u["has_password"]), "totp_on": bool(u and u["totp_on"]),
-            "welcomed": (name or "") in _welcomed(), "prefs": _prefs().get(name or "", {})}
+            "welcomed": (name or "") in _welcomed(), "prefs": _prefs().get(name or "", {}),
+            "may": {a: sys_users_perm.may(BASE, name, a, _admin()) for a in sys_users_perm.AREAS}}
 
 
 # each person's look of the WebUI, on any device (ROADMAP 107; owner, 15 Oct: «salva lo stile per utente sul server»):
@@ -246,6 +256,28 @@ def users_list() -> dict:
         out.append({**u, "files": sum(1 for p in home.rglob("*") if p.is_file()) if home.exists() else 0,
                     "devices": sum(1 for d in devices.list() if d.get("user") == u["name"])})
     return {"users": out, "admin": _admin(), "mode": str(cfg["AURORA_USER_MODE"])}
+
+
+@router.get("/v1/aurora/users/permissions", dependencies=[Depends(admin_only)])
+def users_permissions() -> dict:
+    from aurora import sys_users_perm
+    return sys_users_perm.table(BASE, [u["name"] for u in _users().list()], _admin())
+
+
+@router.put("/v1/aurora/users/permissions", dependencies=[Depends(admin_only)])
+async def users_permission_set(request: Request) -> dict:
+    """{"user", "area", "allowed"}: whether a user manages that area of their own."""
+    from aurora import sys_users_perm
+    body = await request.json()
+    user, area = str(body.get("user", "")), str(body.get("area", ""))
+    if not _users().by_name(user):
+        raise HTTPException(status_code=404, detail="no such user")
+    try:
+        sys_users_perm.set_(BASE, user, area, bool(body.get("allowed")))
+    except KeyError:
+        raise HTTPException(status_code=422, detail="area: one of routines, settings, autonomy") from None
+    log.info("audit: %s may%s manage their %s", user, "" if body.get("allowed") else " not", area)
+    return sys_users_perm.table(BASE, [u["name"] for u in _users().list()], _admin())
 
 
 @router.post("/v1/aurora/users", dependencies=[Depends(admin_only)])

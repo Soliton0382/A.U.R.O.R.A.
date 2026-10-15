@@ -2,6 +2,17 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.36 — 2026-10-16
+
+6 publications since v0.2.30.
+
+- 2026-10-16 Security with many firewalls (Sophos, pfSense, OPNsense: drivers, guides, connections, sentinel), plugins configured in their own pages under one contract, users' permissions, Today with headlines and research, Expenses page, plugins on request and agent prompt cache (C332), dreams no longer retold (C330), local fallback fitted (C331), C333-C334, N4 measured (M223, M224)
+- 2026-10-15 Forge keeps no drafts, an unused function removed (T1)
+- 2026-10-15 Dreams no longer retold, local fallback fitted to its window (C330, C331)
+- 2026-10-15 Dreams no longer retold, local fallback fitted to its window (C330, C331)
+- 2026-10-15 Memory review tools, plan for 16 October
+- 2026-10-15 Memory recall order, empty report PDFs, Autonomy page in tabs
+
 ## v0.2.35 — 2026-10-16
 
 5 publications since v0.2.30.

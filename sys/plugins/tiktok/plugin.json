@@ -2,6 +2,7 @@
  "name": "tiktok",
  "version": "1.0",
  "kind": "connector",
+ "page": "social",
  "description": {
   "it": "I video di Aurora su TikTok (Content Posting API). Finché TikTok non approva la tua app, i post sono visibili solo all'account.",
   "en": "Aurora's videos on TikTok (Content Posting API). Until TikTok audits your app, posts are visible to the account alone."

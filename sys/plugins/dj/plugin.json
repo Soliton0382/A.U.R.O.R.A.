@@ -2,6 +2,7 @@
  "name": "dj",
  "version": "1.0",
  "kind": "tool",
+ "page": "dj",
  "description": {
   "it": "Il DJ di Aurora: remix di un tuo brano in uno stile (techno, trance, trance vocale, techno-trance, house, rock, chill) o un mix di più brani a un unico tempo. Tutto in locale, suoni creati da Aurora.",
   "en": "Aurora's DJ: a remix of a track of yours in a style (techno, trance, vocal trance, techno-trance, house, rock, chill) or a mix of several tracks at one tempo. All local, sounds made by Aurora."

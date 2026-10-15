@@ -3,7 +3,8 @@
 """Firewall syslog: parse the lines, detect incidents. Defensive only (ethics code, level A).
 
 Lines are key=value syslog (Sophos and most firewalls: `log_type="Firewall" status="Deny"
-src_ip=... dst_port=...`); a line without pairs is kept as plain text. The detector keeps a
+src_ip=... dst_port=...`), or pfSense's and OPNsense's filterlog (comma-separated, by position: docs.netgate.com
+«Raw Filter Log Format», the same on OPNsense) turned into the same fields; a line of neither is kept as plain text. The detector keeps a
 sliding window per source address and raises an incident when:
   deny_burst   denied connections from one source >= AURORA_SENTINEL_DENY_THRESHOLD in the window
   port_scan    distinct destination ports from one source >= AURORA_SENTINEL_SCAN_PORTS in the window
@@ -22,8 +23,36 @@ from dataclasses import dataclass, field
 PAIR = re.compile(r'(\w+)=(?:"([^"]*)"|(\S+))')
 
 
+FILTERLOG = re.compile(r"filterlog(?:\[\d+\]:|:|\s+\d+\s+-\s+-)\s*(\S.*)$")   # RFC 3164 and RFC 5424
+
+
+def filterlog(csv: str) -> dict | None:
+    """pfSense / OPNsense: rule, sub-rule, anchor, tracker, interface, reason, action, direction, IP version, then by
+    version: v4 tos, ecn, ttl, id, offset, flags, proto id, proto, length, src, dst; v6 class, flow, hop limit, proto,
+    proto id, length, src, dst; then for TCP and UDP the source and destination ports."""
+    c = csv.split(",")
+    if len(c) < 9 or c[8] not in ("4", "6"):
+        return None
+    if c[8] == "4":
+        if len(c) < 20:
+            return None
+        proto, src, dst, rest = c[16].lower(), c[18], c[19], c[20:]
+    else:
+        if len(c) < 17:
+            return None
+        proto, src, dst, rest = c[12].lower(), c[15], c[16], c[17:]
+    f = {"log_type": "Firewall", "log_component": "Firewall Rule", "fw_rule_id": c[3] or c[0], "in_interface": c[4],
+         "status": "Deny" if c[6] in ("block", "reject") else "Allow", "direction": c[7], "protocol": proto,
+         "src_ip": src, "dst_ip": dst}
+    if proto in ("tcp", "udp") and len(rest) >= 2:
+        f.update(src_port=rest[0], dst_port=rest[1])
+    return f
+
+
 def parse(line: str) -> dict:
-    fields = {m.group(1).lower(): (m.group(2) if m.group(2) is not None else m.group(3)) for m in PAIR.finditer(line)}
+    m = FILTERLOG.search(line)
+    fields = (filterlog(m.group(1)) if m else None) or \
+        {m.group(1).lower(): (m.group(2) if m.group(2) is not None else m.group(3)) for m in PAIR.finditer(line)}
     fields["_raw"] = line.strip()
     return fields
 

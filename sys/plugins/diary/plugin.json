@@ -2,6 +2,7 @@
  "name": "diary",
  "version": "1.0",
  "kind": "tool",
+ "page": "diary",
  "description": {
   "it": "La giornata di Aurora, in sola lettura: il suo ultimo sogno, i suoi pensieri, cosa ha imparato. Materiale per i suoi post, senza dati privati.",
   "en": "Aurora's own day, read only: her latest dream, her thoughts, what she learned. Material for her posts, with no private data."

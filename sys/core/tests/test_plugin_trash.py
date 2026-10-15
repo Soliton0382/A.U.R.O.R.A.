@@ -40,3 +40,14 @@ def test_a_restore_never_overwrites_a_plugin_of_the_same_name(cfg, plugins):
     (plugins / "xgaudit" / "plugin.json").write_text("{}")
     with pytest.raises(plg_trash.TrashError, match="esiste già"):
         plg_trash.restore(cfg, out["trash"])
+
+
+def test_a_plugin_in_the_trash_can_go_for_good_and_security_never_goes(cfg, plugins):
+    """Owner, 16 Oct: «vorrei avere la possibilità di eliminare i plugin»."""
+    item = plg_trash.delete(cfg, "xgaudit")["trash"]
+    assert plg_trash.purge(cfg, item) == {"purged": item}
+    assert plg_trash.trashed(cfg) == []
+    with pytest.raises(plg_trash.TrashError):
+        plg_trash.purge(cfg, item)
+    with pytest.raises(plg_trash.TrashError, match="suite di sicurezza"):
+        plg_trash.delete(cfg, "security")

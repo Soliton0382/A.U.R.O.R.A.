@@ -7,18 +7,22 @@ A driver is a module with:
   request(cfg, body) -> str               one authenticated call, the device's answer; FirewallAPIError when refused
   status(text, entity) -> (code, msg)     the result of one object in an answer ("200" = done)
   ok_codes(op) -> tuple                   the codes that mean done for "add_host" (an existing host included)
-  get_group(name) / add_group(name, desc) / add_host(name, ip, desc, group) / ungroup_host(name, ip)
+  has_group(text, name) -> bool          the answer to get_group names the group
+  get_group(name) / add_group(name) / add_host(name, ip, desc, group) / ungroup_host(name, ip, group)
+  remove_host(name)
   x(tag, value) / set_(entity, body, op) / remove(entity, name)
   host(name, ip, groups) / service(name, ports) / rule(...) / dnat(...) / group(name, desc) / release(name, ip)
                                           the body of one object of a plan
   get_rules() -> str / find_rule(text, name) -> str | None / harden(before, ips, log) -> str
                                           an owner's rule read, found and changed (IPS and log)
+The second and third drivers (pfsense and opnsense, step 2) have the call, the answers and the blocking group; a request for a plan's objects
+or an owner's rule is refused by it with the reason, never sent.
 """
 from __future__ import annotations
 
 import importlib
 
-KINDS = ("sophos",)
+KINDS = ("sophos", "pfsense", "opnsense")
 DEFAULT = "sophos"
 
 

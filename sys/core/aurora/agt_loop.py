@@ -25,6 +25,7 @@ import httpx
 from . import sns_clock, sys_config, sys_log
 from .kno_answer import Answer, Trail
 from .agt_loop_make import AgentMakers
+from . import agt_tools
 from .agt_loop_report import SEP, AgentReport
 from .plg_host import PluginHost
 from .sys_approvals import Approvals, needs_owner
@@ -143,11 +144,16 @@ class Agent(AgentMakers, AgentReport):
         return self.p.llm if self.local_only else self.p._for("agent")
 
     # ---- tools ------------------------------------------------------------------------------
-    def _catalog(self) -> tuple[list[dict], dict]:
-        """Tool specs for the prompt, and name -> (plugin, tool, effect)."""
+    def _catalog(self, goal: str = "") -> tuple[list[dict], dict]:
+        """Tool specs for the prompt, and name -> (plugin, tool, effect); a plugin on request (agt_tools) only when the
+        goal names it, the others kept in self.deferred for more_tools."""
         specs, index = [], {}
+        self.deferred = []
         for p in self.host.plugins():
             if not p.available or (self.allow is not None and p.name not in self.allow):
+                continue
+            if not agt_tools.wanted(getattr(p, "manifest", None) or {}, goal):
+                self.deferred.append(p)
                 continue
             for t in p.tools:
                 name = f"{p.name}{SEP}{t['name']}"
@@ -156,18 +162,23 @@ class Agent(AgentMakers, AgentReport):
                     "name": name, "description": f"[{t['effect']}] {t['description']}",
                     "parameters": t["input_schema"] or {"type": "object", "properties": {}}}})
         from . import hom_scenes
-        for t in LOOP_TOOLS + ([hom_scenes.TOOL] if any(v[0] == "homeassistant" for v in index.values()) else []):
+        for t in (LOOP_TOOLS + ([hom_scenes.TOOL] if any(v[0] == "homeassistant" for v in index.values()) else [])
+                  + ([agt_tools.MORE] if self.deferred else [])):
             specs.append({"type": "function", "function": {"name": t["name"], "description": t["description"],
                                                            "parameters": t["input_schema"]}})
         return specs, index
 
     def _system(self, specs: list[dict], short: bool = False) -> str:
         tools = "\n".join(signature(s) if short else json.dumps(s, ensure_ascii=False) for s in specs)
-        return (f"{SYS_AGENT}\nNOW: {sns_clock.now_text(self.cfg)}.\n\n# Tools\n\nYou may call one or more functions "
+        # nothing of the moment in here (the time is in the goal's message): the same system prompt run after run is
+        # read back from the cloud's prompt cache instead of written again — before, «NOW» ahead of ~45k tokens of
+        # tools made each run's first call write it all (16 Oct: 35.5M tokens written, 5.5M read in a week)
+        return (f"{SYS_AGENT}\n\n# Tools\n\nYou may call one or more functions "
                 f"to assist with the goal.\n\nYou are provided with function signatures within <tools></tools> XML "
                 f"tags:\n<tools>\n{tools}\n</tools>\n\nFor each function call, return a json object with function "
                 f"name and arguments within <tool_call></tool_call> XML tags:\n<tool_call>\n"
-                f'{{"name": <function-name>, "arguments": <args-json-object>}}\n</tool_call>')
+                f'{{"name": <function-name>, "arguments": <args-json-object>}}\n</tool_call>'
+                + agt_tools.section(getattr(self, "deferred", [])))
 
     def _home_free(self, plugin: str, tool: str) -> bool:
         """A command to the home's devices (a tool the plugin lists as `home_commands`) done without asking: when the
@@ -252,6 +263,8 @@ class Agent(AgentMakers, AgentReport):
             return f"EXIT {r['exit']} in {r['seconds']} s\n{r['output']}"
         if name == "propose_change":
             return self._propose(args, emit, run_id)
+        if name == "more_tools":                             # a plugin on request (agt_tools)
+            return agt_tools.more(getattr(self, "deferred", []), str(args.get("plugin", "")), index, SEP)
         if name == "request_capability":                     # the forge builds what is missing (agt_forge)
             from . import agt_forge
             req = agt_forge.request(self.cfg, str(args.get("need", "")), str(args.get("why", "")), run_id,
@@ -355,10 +368,11 @@ class Agent(AgentMakers, AgentReport):
             self.trail.add(event, payload)
             sys_log.trace("agent", event, payload, run_id=run_id)      # the path survives in the trace files
             outer(event, payload)
-        specs, index = self._catalog()
+        specs, index = self._catalog(goal + "\n" + context)
         emit("agent.start", {"goal": goal, "tools": len(specs)})
         messages = [{"role": "system", "content": ""},
-                    {"role": "user", "content": f"GOAL: {goal}" + (f"\n\nCONTEXT:\n{context}" if context else "")}]
+                    {"role": "user", "content": f"NOW: {sns_clock.now_text(self.cfg)}.\n\nGOAL: {goal}"
+                                                + (f"\n\nCONTEXT:\n{context}" if context else "")}]
         model = None
         summary, steps, nudged = None, 0, 0
         asked: dict[str, int] = {}                          # each read call and how often it was made

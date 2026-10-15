@@ -6,6 +6,7 @@ import { call } from "../api.js";
 import { clock, el, toBase64, useCss } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { deckPanel } from "./dj_deck.js";
+import { pluginSlot } from "./plugin_slot.js";
 
 const size = (n) => (n < 1048576 ? `${(n / 1024).toFixed(0)} KB` : `${(n / 1048576).toFixed(1)} MB`);
 
@@ -27,6 +28,7 @@ export default {
       <div class="appr-actions"><select class="dj-style"></select><button class="approve dj-go" data-i18n="dj.go"></button>
         <span class="muted dj-out"></span></div>
       <h3 class="setting-cat" data-i18n="dj.mixes"></h3><div class="dj-mixes"></div>`;
+    root.querySelector("h2")?.after(pluginSlot("dj"));   // its plugins, configured here
     apply(root);
     this.tracks = root.querySelector(".dj-tracks");
     this.mixes = root.querySelector(".dj-mixes");

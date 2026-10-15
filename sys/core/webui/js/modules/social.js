@@ -10,6 +10,7 @@ import { apply, t } from "../i18n.js";
 import { approvalCard, isPost, socialPlugins } from "./approvals.js";
 import { videoSection } from "./social_video.js";
 import { autonomySlot } from "./autonomy_box.js";
+import { pluginSlot } from "./plugin_slot.js";
 
 // every "Publish" of this page (owner, 2026-10-08: his name went out unchecked): the server checks the text first —
 // private data it is sure of, a repeat of the last 7 days — and the owner confirms what it found, or goes back to edit
@@ -83,6 +84,7 @@ export default {
       <h3 class="setting-cat" data-i18n="social.report"></h3><div class="report"></div>
       <h3 class="setting-cat" data-i18n="social.history"></h3><div class="soc-history"></div>`;
     root.querySelector("h2").after(autonomySlot("social"));   // how free Aurora is, here (owner, 2026-10-08)
+    root.querySelector("h2")?.after(pluginSlot("social"));   // its plugins, configured here
     apply(root);
     this.platforms = root.querySelector(".platforms");
     this.drafts = root.querySelector(".drafts");

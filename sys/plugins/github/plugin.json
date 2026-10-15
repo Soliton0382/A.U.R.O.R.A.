@@ -2,6 +2,7 @@
  "name": "github",
  "version": "1.12.2",
  "kind": "connector",
+ "on_demand": {"words": ["github", "repository", "repositories", "repo", "repos", "pull request", "pull requests", "commit", "commits", "branch", "gist", "workflow", "release", "releases", "fork", "forks", "stelle", "stars"]},
  "description": {
   "en": "GitHub through the official GitHub MCP server: repositories, issues, pull requests, code search. Reading is automatic; every write (issue, comment, commit, push, merge) waits for the owner.",
   "it": "GitHub tramite il server MCP ufficiale di GitHub: repository, issue, pull request, ricerca nel codice. Leggere è automatico; ogni scrittura (issue, commento, commit, push, merge) aspetta il proprietario."

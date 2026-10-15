@@ -26,7 +26,7 @@ import threading
 import time
 from pathlib import Path
 
-from . import sec_fwapi, sys_config, sys_log
+from . import sec_firewalls, sec_fwapi, sys_config, sys_log
 
 _lock = threading.Lock()
 RANK = {"low": 0, "medium": 1, "high": 2}
@@ -98,8 +98,8 @@ def decide(cfg: sys_config.Config, incident: dict) -> tuple[bool, str]:
     today = time.strftime("%Y-%m-%d")
     if sum(1 for b in _load(cfg) if b.get("auto") and b.get("day") == today) >= int(cfg["AURORA_DEFENCE_MAX_PER_DAY"]):
         return False, "today's limit of automatic blocks reached"
-    if not sec_fwapi.configured(cfg):
-        return False, "the firewall's API is not set"
+    if not sec_firewalls.receivers(cfg):
+        return False, "no firewall connected (🛡️ Security → Firewall)"
     return True, "ok"
 
 
@@ -107,7 +107,7 @@ def act(cfg: sys_config.Config, incident: dict) -> dict:
     """Block the incident's source now, for AURORA_DEFENCE_HOURS (decide() said yes)."""
     ip = str(incident["source"]).strip()
     reason = f"auto: {incident.get('kind')} {incident.get('id')} ({incident.get('severity')})"
-    out = sec_fwapi.block(cfg, ip, reason)
+    out = sec_firewalls.block(cfg, ip, reason)                # every connected firewall that receives blocks
     now = time.time()
     rec = {"ip": ip, "at": now, "until": now + float(cfg["AURORA_DEFENCE_HOURS"]) * 3600, "day": time.strftime("%Y-%m-%d"),
            "incident": incident.get("id"), "kind": incident.get("kind"), "reason": reason, "auto": True,
@@ -154,7 +154,7 @@ def mark_released(cfg: sys_config.Config, ip: str, by: str) -> None:
 
 
 def release(cfg: sys_config.Config, ip: str, by: str = "time") -> dict:
-    out = sec_fwapi.unblock(cfg, ip)
+    out = sec_firewalls.unblock(cfg, ip)
     mark_released(cfg, ip, by)
     sys_log.get_logger("security").info("audit: block of %s lifted (%s)", ip, by)
     sys_log.trace("security", "defence.release", {"ip": ip, "by": by})
@@ -179,4 +179,4 @@ def summary(cfg: sys_config.Config) -> dict:
     return {"mode": str(cfg["AURORA_DEFENCE_MODE"]), "hours": cfg["AURORA_DEFENCE_HOURS"],
             "min_severity": str(cfg["AURORA_DEFENCE_MIN_SEVERITY"]), "max_per_day": cfg["AURORA_DEFENCE_MAX_PER_DAY"],
             "protected": [str(n) for n in protected(cfg)], "group": str(cfg["AURORA_FIREWALL_BLOCK_GROUP"]), "rule": RULE, "today": sum(1 for b in items if b.get("auto") and b.get("day") == today),
-            "active": active(cfg), "history": items[-50:][::-1], "configured": sec_fwapi.configured(cfg)}
+            "active": active(cfg), "history": items[-50:][::-1], "configured": bool(sec_firewalls.receivers(cfg))}

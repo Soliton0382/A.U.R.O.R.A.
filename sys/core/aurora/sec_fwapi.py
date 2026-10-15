@@ -107,7 +107,7 @@ def _driver(cfg: sys_config.Config):
 def test(cfg: sys_config.Config) -> dict:
     """Log in and read the blocking group: the card's "Try the connection"."""
     text = request(cfg, _driver(cfg).get_group(str(cfg["AURORA_FIREWALL_BLOCK_GROUP"])))
-    return {"ok": True, "group_exists": f"<Name>{cfg['AURORA_FIREWALL_BLOCK_GROUP']}</Name>" in text}
+    return {"ok": True, "group_exists": _driver(cfg).has_group(text, str(cfg["AURORA_FIREWALL_BLOCK_GROUP"]))}
 
 
 def block(cfg: sys_config.Config, ip: str, reason: str = "") -> dict:
@@ -127,7 +127,7 @@ def unblock(cfg: sys_config.Config, ip: str) -> dict:
     """Out of the group first, then removed: the firewall refuses to delete a host a group still refers to (509, C146)."""
     ip = blockable(cfg, ip)
     d = _driver(cfg)
-    text = request(cfg, d.ungroup_host(f"aurora-block-{ip}", ip))
+    text = request(cfg, d.ungroup_host(f"aurora-block-{ip}", ip, str(cfg["AURORA_FIREWALL_BLOCK_GROUP"])))
     code, msg = d.status(text, "IPHost")
     if code != "200":
         raise FirewallAPIError(f"the firewall did not take {ip} out of the group: {code} {msg}")

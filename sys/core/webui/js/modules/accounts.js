@@ -8,6 +8,7 @@ import { call } from "../api.js";
 import { clock, el } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { renderServices } from "./accounts_services.js";
+import { settingsForm } from "./settings_form.js";
 
 export default {
   id: "accounts",
@@ -17,12 +18,14 @@ export default {
   mount(root) {
     root.classList.add("page");
     root.innerHTML = `<h2 data-i18n="acc.title"></h2><p class="muted" data-i18n="acc.hint"></p>
-      <div class="acc-policy"></div><div class="acc-list"></div><div class="acc-svc"></div><div class="acc-add"></div>`;
+      <div class="acc-policy"></div><div class="acc-list"></div><div class="acc-svc"></div><div class="acc-add"></div>
+      <div class="acc-cloud-out"></div>`;
     apply(root);
     this.policyBox = root.querySelector(".acc-policy");
     this.list = root.querySelector(".acc-list");
     this.addBox = root.querySelector(".acc-add");
     this.svcBox = root.querySelector(".acc-svc");
+    this.privacyBox = root.querySelector(".acc-cloud-out");
   },
 
   async enter() {
@@ -33,6 +36,12 @@ export default {
     this.drawList();
     this.svcBox.replaceChildren(renderServices(this.d, () => this.enter()));
     this.drawAdd();
+    // what leaves for the cloud, kept here since the «cloud» plugin went (owner, 2026-10-16: the page «è più completa»):
+    // the words masked, the compression (SSCC, M41 and M223: no loss measured) and how much of each text it keeps
+    if (this.d.admin) {
+      this.privacyBox.replaceChildren(await settingsForm(["AURORA_CLOUD_MASK_WORDS", "AURORA_CLOUD_COMPRESSION", "AURORA_CLOUD_KEEP_PCT"],
+        { title: `🔒 ${t("acc.cloud_out")}` }));
+    }
   },
 
   drawPolicy() {

@@ -2,6 +2,7 @@
  "name": "calendar",
  "version": "1.0",
  "kind": "tool",
+ "page": "calendar",
  "description": {
   "it": "Il calendario di Aurora, sempre pronto: appuntamenti e promemoria (anche ripetuti) che ti ricorda con una notifica e in chat. Se vuoi, accanto ci sono i tuoi calendari: link ICS in lettura (Google, Outlook, qualsiasi .ics) e un calendario CalDAV (Nextcloud, iCloud, Fastmail), dove aggiungere aspetta la tua approvazione.",
   "en": "Aurora's own calendar, always there: appointments and reminders (repeated too), told with a notification and in the chat; your agenda (what you have today, tomorrow, this week). Beside it, if you want, your calendars: ICS links read only (Google, Outlook, any .ics) and one CalDAV calendar (Nextcloud, iCloud, Fastmail), where adding waits for your approval."

@@ -8,6 +8,7 @@ import { el, useCss } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { itemForm, ymd } from "./calendar_form.js";
 import { timeGrid } from "./calendar_grid.js";
+import { pluginSlot } from "./plugin_slot.js";
 
 useCss("/static/css/calendar.css");
 
@@ -51,6 +52,7 @@ export default {
         <div class="appr-actions"><a class="button" href="/v1/aurora/calendar/export.ics" download="aurora.ics">⬇️ <span data-i18n="cal.export"></span></a>
         <label class="dj-upload"><span data-i18n="cal.import"></span><input type="file" accept=".ics,text/calendar" hidden></label></div>
         <span class="muted cal-imported"></span></details>`;
+    root.querySelector("h2")?.after(pluginSlot("calendar"));   // its plugins, configured here
     apply(root);
     this.root = root;
     this.view = "agenda";

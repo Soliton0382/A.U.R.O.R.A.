@@ -2,6 +2,7 @@
   "name": "projects",
   "version": "1.0",
   "kind": "tool",
+  "page": "projects",
   "description": {
     "en": "Software projects in AURORA_PROJECTS_DIR: scaffold (README, licence, .gitignore, changelog), write files, commit locally; publishing to GitHub and pushing wait for the owner.",
     "it": "Progetti software in AURORA_PROJECTS_DIR: impalcatura (README, licenza, .gitignore, changelog), scrittura dei file, commit in locale; pubblicare su GitHub e fare push aspettano il proprietario."

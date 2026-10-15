@@ -4,7 +4,8 @@ import pytest
 
 from aurora import agt_forge as F
 
-GOOD = {"name": "harvest_stats", "version": "1.0", "kind": "tool", "command": ["{python}", "server.py"], "env": [],
+GOOD = {"name": "harvest_stats", "version": "1.0", "kind": "tool", "description": {"en": "x", "it": "x"},
+        "command": ["{python}", "server.py"], "env": [],
         "requires": [], "effects": {"*": "read"}, "sandbox": {"network": False}, "tests": [{"tool": "x", "args": {}}]}
 CODE = 'from mcp.server.mcpserver import MCPServer\nserver = MCPServer("x")\nif __name__ == "__main__":\n    server.run("stdio")\n'
 
@@ -152,7 +153,8 @@ def test_the_judge_gets_the_facts_counted_when_the_plugin_runs(cfg, monkeypatch)
     assert out["ok"] and seen["sample"] == "FACTS NOW"
 
 
-SERVICE = {"name": "cloudy", "version": "1.0", "kind": "tool", "command": ["{python}", "server.py"],
+SERVICE = {"name": "cloudy", "version": "1.0", "kind": "tool", "description": {"en": "x", "it": "x"},
+           "command": ["{python}", "server.py"],
            "env": ["AURORA_CLOUDY_ACCOUNT", "AURORA_CLOUDY_TOKEN"], "requires": ["AURORA_CLOUDY_ACCOUNT", "AURORA_CLOUDY_TOKEN"],
            "settings_spec": [{"key": "AURORA_CLOUDY_ACCOUNT", "type": "str", "it": "L'ID dell'account"},
                              {"key": "AURORA_CLOUDY_TOKEN", "type": "str", "secret": True, "it": "Il token API", "en": "The API token"}],

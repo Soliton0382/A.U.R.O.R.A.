@@ -3558,3 +3558,62 @@ reasons at length). A verified program answers a grid puzzle right whenever one 
 for each configuration (only the seconds); the roles outside the benchmark (agent, self, rem); the judge's own
 variation between days (M214's run is from another day and other code, so its +11 holds today's fixes too); which
 of M220's and M221's fixes weighs most; the agent ablation (the public sets almost never reach it).
+
+## M223 — D2's open parts: the cloud's tokens, the judge's drift, SSCC on and off (16 October 2026; ROADMAP N4)
+
+**The cloud's tokens of each configuration** (`bench_tokens.py`, read back from the trace of M214–M222's runs, seeds 7
+and 8, 216 answers each; the benchmark's own agent runs — her edge's live questions — counted with the answers, the
+other agents of the window apart):
+
+| configuration | right of 197 | cloud calls an answer | tokens read an answer | tokens written | USD equivalent an answer |
+|---|---|---|---|---|---|
+| **the best of both** | **172** | 1.16 | 11,226 | 698 | 0.050 |
+| the classifiers on Claude | 164 | 4.80 | 23,377 | 1,093 | 0.090 |
+| all on Claude (M214, another day) | 161 | 4.25 | 16,447 | 1,348 | 0.065 |
+| the readers local | 138 | 0.13 | 6,655 | 91 | 0.028 |
+| all local | — | 0 | 0 | 0 | 0 |
+
+In the best of both the agent's calls were 25 of 251 and 5.09 of 10.76 USD: each began ~50k tokens long and wrote
+them to the cache again (C332). The other agents of a run's window: 0.01–0.84 USD.
+
+**The judge's drift** (`bench_rejudge.py`): the 262 answers a model judged in six runs of 15 October, judged again by
+Sonnet twice. Today against the run's verdict: 6 changed (2.3 %); today against today: 3 (1.1 %); right 194, 194,
+195. By kind: her vault's questions judged on their source 5 of 60 between days (8 %) and 2 of 60 the same day;
+HLE 0 of 48, MATH 0 of 22, SimpleQA 1 of 60, the false premises 0 of 48, the invented works 1 of 24 the same day.
+
+**SSCC on and off** (aurora-mixed, seeds 7 and 8, the same morning; AURORA_CLOUD_COMPRESSION on, then off):
+
+| | right of 197 | synthesis input a call | USD equivalent a run |
+|---|---|---|---|
+| SSCC on (60 %) | 163 | 5,323 and 4,814 | 5.59 and 5.01 |
+| SSCC off | 161 | 6,124 and 5,649 | 2.98 and 2.24 |
+
+On against off: 5 only on, 3 only off, p = 0.73 — no loss measured; SSCC took ~14 % of the synthesis's input. The
+cost halved between the pairs because C332's fix went live at the restart between them (the agent's cache read 7 %
+of its prompt before, 96 % after), not because of SSCC.
+
+**The day's base against M222's**: 163 against 172 (11 only yesterday, 2 only today, p = 0.023). Where: her edge 27
+against 32 — five of the six lost are vault questions judged on their source, the kind whose judge changes 8 % between
+days, and one answer is nearly word for word yesterday's (vault-29); HLE 8 against 11, where the judge never changed:
+three answers different. So part judge, part the answers' own variation; the code also changed between the two days
+(C326's memory order, C330–C332), and which of these weighs is not measured. Read: the best of both stays the best measured and the cheapest of the
+mixed ones; SSCC stays on; one run a day is ±5 answers.
+
+Not measured: a judge made steadier for the vault's questions (three verdicts, the majority); the same base on more
+seeds; the cost with a subscription (the CLI's USD are equivalents).
+
+## M224 — a steadier judge for the vault's questions (16 October 2026; ROADMAP N19)
+
+The vault's source questions changed verdict most (M223: 5 of 60 between days, 2 of 60 the same day, one Sonnet
+verdict each). `bench_edge` now asks up to three verdicts on these questions and keeps the majority, stopping when two
+agree. The same 60 saved answers of six runs of 15 October judged again twice (`bench_rejudge.py --only
+aurora_edge/vault`):
+
+| | changed against the run's own verdict | changed between two judgings of the same day | right of 60 |
+|---|---|---|---|
+| one verdict (M223) | 5 (8 %) | 2 (3 %) | — |
+| majority of three | 3 (5 %) | 1 (1.7 %) | 41, 42, 43 |
+
+Read: fewer flips, as expected, but the sample is small — 60 answers, a difference of two and of one: not a proven
+improvement, only one that goes the right way. It costs up to three judge calls on these questions (two when the first
+two agree). Not measured: the same on more answers; whether a stricter prompt for the source judge does better than votes.

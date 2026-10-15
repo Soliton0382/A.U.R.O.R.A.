@@ -63,6 +63,10 @@ def read_only(code: str, msg: str) -> bool:
     return str(code) == "599" or "privilege" in msg.lower()
 
 
+def has_group(text: str, name: str) -> bool:
+    return f"<Name>{name}</Name>" in text
+
+
 # ---- the blocking group ---------------------------------------------------------------------------------------------
 def get_group(name: str) -> str:
     return f"<Get><IPHostGroup><Name>{escape(name)}</Name></IPHostGroup></Get>"
@@ -80,7 +84,7 @@ def add_host(name: str, ip: str, desc: str, group: str) -> str:
             "</IPHost></Set>")
 
 
-def ungroup_host(name: str, ip: str) -> str:
+def ungroup_host(name: str, ip: str, group: str = "") -> str:      # the group: for a dialect that needs it
     return (f'<Set operation="update"><IPHost><Name>{name}</Name><IPFamily>IPv4</IPFamily>'
             f"<HostType>IP</HostType><IPAddress>{ip}</IPAddress><HostGroupList></HostGroupList></IPHost></Set>")
 

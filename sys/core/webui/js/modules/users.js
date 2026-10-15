@@ -18,6 +18,7 @@ export default {
     root.innerHTML = `<h2 data-i18n="users.title"></h2><p class="muted" data-i18n="users.hint"></p>
       <h3 class="setting-cat" data-i18n="users.me"></h3><div class="me"></div>
       <div class="admin hidden"><h3 class="setting-cat" data-i18n="users.all"></h3><div class="list"></div>
+        <h3 class="setting-cat" data-i18n="perm.title"></h3><p class="muted" data-i18n="perm.hint"></p><div class="perm"></div>
         <form class="import add"><input name="person" data-i18n-placeholder="users.person" required>
           <input name="name" autocapitalize="none" autocomplete="off" spellcheck="false" data-i18n-placeholder="users.name" required>
           <input name="password" type="password" autocomplete="new-password" data-i18n-placeholder="users.password" required>
@@ -201,5 +202,38 @@ export default {
       table.append(tr);
     }
     this.list.replaceChildren(table);
+    this.loadPerms();
+  },
+
+  // what each user manages by themselves (sys_users_perm): the admin's choice, one switch per user and area
+  async loadPerms() {
+    const box = this.list.parentElement.querySelector(".perm");
+    let d;
+    try { d = await call("/v1/aurora/users/permissions"); } catch (e) { box.textContent = e.message; return; }
+    const names = Object.keys(d.users);
+    if (!names.length) { box.replaceChildren(el("p", "muted", t("perm.none"))); return; }
+    const table = el("table", "table");
+    const head = el("tr");
+    head.append(el("th", "", t("users.name")), ...d.areas.map((a) => el("th", "", t(`perm.area.${a}`))));
+    table.append(head);
+    for (const u of names) {
+      const tr = el("tr");
+      tr.append(el("td", "", u));
+      for (const a of d.areas) {
+        const c = el("input");
+        c.type = "checkbox";
+        c.checked = !!d.users[u][a];
+        c.addEventListener("change", async () => {
+          try { await call("/v1/aurora/users/permissions", { method: "PUT", body: JSON.stringify({ user: u, area: a, allowed: c.checked }) }); }
+          catch (e) { c.checked = !c.checked; alert(e.message); }
+        });
+        const td = el("td");
+        td.append(c);
+        tr.append(td);
+      }
+      table.append(tr);
+    }
+    box.replaceChildren(table, el("p", "muted", t("perm.admin_only", { list: d.admin_only.map((a) => t(`perm.fixed.${a}`)).join(", ") })),
+      el("p", "muted", t("perm.always")));
   },
 };

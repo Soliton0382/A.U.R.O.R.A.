@@ -2,6 +2,7 @@
  "name": "health",
  "version": "1.0",
  "kind": "tool",
+ "page": "care",
  "private": true,
  "description": {
   "it": "La tua salute, cifrata: i piani del dietologo, i programmi del personal trainer, gli esami medici. Aurora li legge per risponderti («cosa mangio stasera?», «com'era il colesterolo?») e registra i tuoi appunti. Solo il modello locale li vede, mai il cloud.",

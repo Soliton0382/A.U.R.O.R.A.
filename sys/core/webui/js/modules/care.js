@@ -9,6 +9,7 @@ import { renderMarkdown } from "../md.js";
 import { renderValues } from "./care_values.js";
 import { renderDoctors } from "./care_doctor.js";
 import { renderDiet } from "./care_diet.js";
+import { pluginSlot } from "./plugin_slot.js";
 
 const AREAS = ["diet", "training", "exams"];
 
@@ -30,6 +31,7 @@ export default {
           <button type="submit" data-i18n="care.note_add"></button></form>
         ${a === "exams" ? '<div class="care-values"></div>' : ""}<div class="care-items"></div></div>`).join("")}
       <div class="care-tab" data-tab="doctor" hidden><p class="muted" data-i18n="care.doc.hint"></p><div class="care-doctors"></div></div>`;
+    root.querySelector("h2")?.after(pluginSlot("care"));   // its plugins, configured here
     apply(root);
     root.querySelectorAll(".prj-tabs button").forEach((b) => b.addEventListener("click", () => {
       root.querySelectorAll(".prj-tabs button").forEach((x) => x.classList.toggle("on", x === b));

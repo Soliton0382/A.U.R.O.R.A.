@@ -8,6 +8,7 @@ import { call } from "../api.js";
 import { el } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { qrSvg } from "../qr.js";
+import { pluginSlot } from "./plugin_slot.js";
 
 const readText = (file) => (file ? file.text() : Promise.resolve(""));
 
@@ -22,6 +23,7 @@ export default {
       <section class="https-names"></section><section class="https-ports"></section><section class="https-cert"></section>
       <section class="https-own"></section>
       <p class="muted https-msg" role="status"></p>`;
+    root.querySelector("h2")?.after(pluginSlot("https"));   // its plugins, configured here
     apply(root);
     this.root = root;
     this.msg = root.querySelector(".https-msg");

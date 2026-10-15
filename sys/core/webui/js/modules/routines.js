@@ -10,6 +10,7 @@ import { apply, t } from "../i18n.js";
 import { viewLink } from "../viewer.js";
 import { renderMarkdown } from "../md.js";
 import { templatesSection } from "./routines_templates.js";
+import { pluginSlot } from "./plugin_slot.js";
 
 const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
@@ -119,6 +120,7 @@ export default {
       <div class="rt-welcome"></div><div class="plug-grid rt-grid"></div>
       <h3 class="setting-cat" data-i18n="rt.proposed"></h3><div class="plug-grid rt-sugg"></div>
       <h3 class="setting-cat" data-i18n="rt.tpl_sets"></h3><div class="rt-sets"></div>`;
+    root.querySelector("h2")?.after(pluginSlot("routines"));   // its plugins, configured here
     apply(root);
     this.root = root;
     this.welcome = root.querySelector(".rt-welcome");
@@ -136,6 +138,10 @@ export default {
   },
 
   async enter() {
+    // a user the admin keeps the routines from sees them, without the buttons that change them (sys_users_perm)
+    this.may = await call("/v1/aurora/me").then((m) => m.may?.routines !== false).catch(() => true);
+    const sets0 = this.root.querySelector(".rt-sets");
+    sets0.hidden = sets0.previousElementSibling.hidden = !this.may;
     const sets = await templatesSection(() => this.refresh());
     this.root.querySelector(".rt-sets").replaceChildren(sets);
     await Promise.all([this.refresh(), this.loadAdvice()]);
@@ -190,7 +196,7 @@ export default {
         r.enabled ? "on" : "off", r.icon ? null : this.picture(r.plugin));
       b.addEventListener("click", () => this.open(r));
       return b;
-    }), add);
+    }), ...(this.may !== false ? [add] : []));
     const open = suggestions.filter((s) => !s.active);
     this.sugg.replaceChildren(...(open.length ? open.map((s) => {
       const title = typeof s.title === "object" ? (s.title.it || s.title.en) : s.title;
@@ -309,7 +315,8 @@ export default {
       bar.append(now, toggle, copy, del);
     }
     bar.append(out);
-    form.append(bar);
+    if (this.may !== false) form.append(bar);
+    else form.append(el("p", "muted", t("rt.not_yours")));
     if (r?.last_run) {                                 // what it found last time
       const last = el("div", "rt-last");
       last.append(el("div", "muted", `${t("rt.last")} ${clock(r.last_run)} ${r.last_ok === false ? "❌" : r.last_ok ? "✅" : "⏳"}`));

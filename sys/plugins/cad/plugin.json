@@ -2,6 +2,7 @@
   "name": "cad",
   "version": "1.0",
   "kind": "tool",
+  "page": "projects",
   "description": {
     "en": "CAD for projects: Aurora writes a model part by part (OpenSCAD), and the plugin makes its 3D geometry (STL), its line drawings — assembly, exploded view with reference signs, front, top and side views — and the patent drawing sheets as a PDF (A4, EPO Rule 46: margins, «Fig. N», sheets «1/3», black lines only), with the list of reference signs for the description; for Italy, Europe or the USA (each office's margins and paper); and a dimensioned technical drawing (blueprint: three views in one scale, overall dimensions, title block, parts list). Everything goes into the project's folder (cad/<name>/). Needs OpenSCAD on the machine.",
     "it": "CAD per i progetti: Aurora scrive un modello pezzo per pezzo (OpenSCAD), e il plugin ne ricava la geometria 3D (STL), i disegni al tratto — assieme, esploso con i segni di riferimento, viste frontale, dall'alto e laterale — e le tavole per il brevetto in PDF (A4, Regola 46 EPC: margini, «Fig. N», fogli «1/3», solo linee nere), con l'elenco dei segni di riferimento per la descrizione; per Italia, Europa o USA (margini e carta di ogni ufficio); e la tavola tecnica quotata (tre viste nella stessa scala, quote d'ingombro, cartiglio, distinta dei pezzi). Tutto va nella cartella del progetto (cad/<nome>/). Serve OpenSCAD sulla macchina."

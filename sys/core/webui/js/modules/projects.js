@@ -11,6 +11,7 @@ import { renderMarkdown } from "../md.js";
 import { docsView, pdfPages } from "./project_docs.js";
 import { planView } from "./project_plan.js";
 import { terminalView } from "./project_term.js";
+import { pluginSlot } from "./plugin_slot.js";
 
 const kb = (n) => (n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1048576).toFixed(1)} MB`);
 
@@ -46,6 +47,7 @@ export default {
           <button type="submit" data-i18n="prj.create"></button> <span class="muted out"></span></form></div>
       </div>
       <div class="prj-detail hidden"></div>`;
+    root.querySelector("h2")?.after(pluginSlot("projects"));   // its plugins, configured here
     apply(root);
     this.root = root;
     this.local = root.querySelector(".prj-local");

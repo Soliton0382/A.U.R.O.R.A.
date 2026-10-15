@@ -2,6 +2,7 @@
   "name": "pyenv",
   "version": "1.0",
   "kind": "tool",
+  "page": "projects",
   "description": {
     "en": "Aurora's Python environment, read only: Python and installed library versions, the dependencies a project declares compared with what is installed, and whether the cryptography library offers ML-KEM-768, X25519 and HKDF-SHA256. It runs a short self-test in memory and does not change anything.",
     "it": "L'ambiente Python di Aurora, in sola lettura: le versioni di Python e delle librerie installate, le dipendenze dichiarate da un progetto confrontate con quelle installate, e se la libreria cryptography offre ML-KEM-768, X25519 e HKDF-SHA256. Esegue una breve prova in memoria e non modifica nulla."

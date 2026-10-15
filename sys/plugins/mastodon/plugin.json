@@ -2,6 +2,7 @@
   "name": "mastodon",
   "version": "1.0",
   "kind": "connector",
+  "page": "social",
   "description": {
     "en": "The owner's Mastodon account: statistics of the latest posts; posting waits for the owner.",
     "it": "L'account Mastodon del proprietario: statistiche degli ultimi post; pubblicare aspetta il proprietario."

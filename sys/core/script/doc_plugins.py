@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "sys" / "core"))
 
 
 def main() -> int:
@@ -21,6 +22,11 @@ def main() -> int:
            "their `sha256`): installed into the plugin's own folder when it is switched on or with 📦 on its card, never into "
            "Aurora's environment, removed whole with 🧹; its command is "
            "`[\"{python}\", \"{root}/sys/core/script/plg_run.py\", \"server.py\"]` (aurora/plg_deps.py; the `qr` plugin).", ""]
+    from aurora.plg_contract import FIELDS
+    out += ["## The contract", "", "Every plugin.json follows it (aurora/plg_contract.py: the tests check every plugin, the "
+            "forge every plugin it builds; a field not listed here is refused).", "", "| field | required | what it is |",
+            "|---|---|---|"]
+    out += [f"| `{k}` | {'yes' if req else '—'} | {what} |" for k, (_, req, what) in FIELDS.items()] + [""]
     rows = ["| plugin | kind | tools (effect) | needs |", "|---|---|---|---|"]
     # the owner's private plugins (local_*, never published: .gitignore) are never in a public page (C308)
     manifests = [json.loads(p.read_text()) for p in sorted((ROOT / "sys/plugins").glob("*/plugin.json"))

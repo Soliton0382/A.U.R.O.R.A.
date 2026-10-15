@@ -84,6 +84,9 @@ def items(cfg, n_vault: int = 10, seed: int = 7) -> list[dict]:
     return _pool(cfg, n_vault, seed) + _live() + _home(cfg) + _honesty()
 
 
+VOTES = 3
+
+
 def score(item: dict, answer: str, judge) -> dict:
     k = item["kind"]
     if k == "numbers":
@@ -104,15 +107,26 @@ def score(item: dict, answer: str, judge) -> dict:
         said = "off" if re.match(r"spent|disattivat|off", w) else "on"
         return {"right": said == item["answer"]["state"], "got": said}
     if k in ("source", "judge"):
-        from bench_agi import JUDGE
-        system = SOURCE_JUDGE if k == "source" else JUDGE
+        if k == "source":
+            system = SOURCE_JUDGE
+        else:
+            from bench_agi import JUDGE                      # only here: it reads the settings
+            system = JUDGE
         label = "SOURCE" if k == "source" else "EXPECTED"
-        out = str(getattr(judge.complete(system, f"QUESTION: {item['prompt']}\n{label}: {item['answer']}\n\nANSWER:\n"
-                                                 f"{answer or '(empty)'}", 200), "answer", ""))
-        m = re.search(r"\{.*\}", out, re.S)
-        try:
-            v = json.loads(m.group(0)) if m else {}
-        except ValueError:
-            v = {}
-        return {"right": bool(v.get("right")), "got": str(v.get("why", out))[:160]}
+        prompt = f"QUESTION: {item['prompt']}\n{label}: {item['answer']}\n\nANSWER:\n{answer or '(empty)'}"
+        votes = []
+        # the vault's source questions: the majority of up to three verdicts (M223: one verdict changed on 8 % of
+        # them between days, 3 % the same day); the others one verdict, as their judge never drifted that much
+        for _ in range(VOTES if k == "source" else 1):
+            out = str(getattr(judge.complete(system, prompt, 200), "answer", ""))
+            m = re.search(r"\{.*\}", out, re.S)
+            try:
+                v = json.loads(m.group(0)) if m else {}
+            except ValueError:
+                v = {}
+            votes.append((bool(v.get("right")), str(v.get("why", out))[:160]))
+            if len(votes) >= 2 and len({r for r, _ in votes}) == 1:           # two that agree: the third changes nothing
+                break
+        right = sum(r for r, _ in votes) * 2 > len(votes)
+        return {"right": right, "got": next(w for r, w in votes if r == right), "votes": len(votes)}
     raise ValueError(k)
