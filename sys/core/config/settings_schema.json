@@ -3444,8 +3444,8 @@
    "recommended": "",
    "evidence": "owner",
    "scope": "user",
-   "en": "A folder of this machine with your single frames (lights, flats, dark-flats, as the imaging program saved them), read only: from a pair of flats and a pair of dark-flats at a gain Aurora measures your sensor (e-/ADU, read noise, full well), from your lights the sky of each filter; then the best settings for each kind of object. Empty: none.",
-   "it": "Una cartella di questa macchina con le tue pose singole (light, flat, dark-flat come le ha salvate il programma di ripresa), solo letta: da una coppia di flat e una di dark-flat a un gain Aurora misura il tuo sensore (e-/ADU, rumore di lettura, full well), dalle light il cielo di ogni filtro; poi le impostazioni migliori per ogni tipo di oggetto. Vuota: nessuna.",
+   "en": "A folder of this machine with your single frames (lights, flats, dark-flats, as the imaging program saved them), read only: from a pair of flats and a pair of dark-flats at a gain Aurora measures your sensor (e-/ADU, read noise, full well), from your lights the sky of each filter; then the best settings for each kind of object. A NAS folder too, as smb://address/share/folder: mounted read only on /mnt/aurora-astro with the NAS user of the backup (AURORA_NAS_USER). Empty: none.",
+   "it": "Una cartella di questa macchina con le tue pose singole (light, flat, dark-flat come le ha salvate il programma di ripresa), solo letta: da una coppia di flat e una di dark-flat a un gain Aurora misura il tuo sensore (e-/ADU, rumore di lettura, full well), dalle light il cielo di ogni filtro; poi le impostazioni migliori per ogni tipo di oggetto. Anche una cartella del NAS, come smb://indirizzo/condivisione/cartella: montata in sola lettura su /mnt/aurora-astro con l'utente NAS del backup (AURORA_NAS_USER). Vuota: nessuna.",
    "services": [
     "aurora-api"
    ]

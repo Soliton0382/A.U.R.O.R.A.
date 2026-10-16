@@ -187,6 +187,7 @@ async def update_settings(request: Request) -> dict:
     sys_log.trace("api", "settings.change", {"keys": sorted(changes), "restart": restart})
     from .backup import NAS_KEYS, start_mount             # the backup plugin saved with a NAS folder: mount it now
     mounting = bool(NAS_KEYS & set(changes)) and start_mount(str(changes.get("AURORA_BACKUP_DIR", cfg["AURORA_BACKUP_DIR"])))
+    mounting = mounting or start_mount(str(changes.get("AURORA_ASTRO_FRAMES_DIR", "")))   # the frames on the NAS (N29)
     from .tunnel import start_tunnel                        # the cloudflare plugin saved: everything set up (roadmap 56)
     tunnel = bool(TUNNEL_KEYS & set(changes)) and start_tunnel()
     from .backup import start_retime                        # a new backup time: the timer follows it

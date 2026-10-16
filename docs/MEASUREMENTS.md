@@ -3709,3 +3709,22 @@ A one-shot-colour camera on Sony's IMX294 (4.63 µm), gain 1600 offset 20, coole
 Not measured: any other gain (no frames); the broadband sky (no light through the broadband filter on this machine); the
 dark current in the sky's level (the bias is used when no integrated dark of that exposure has its level read: about 2 e- in
 240 s at −10 °C against 42 e- of sky in the weakest colour: the sky read about 5 % high, the minimum exposure about 5 % short).
+
+## M230 — the frames read from the NAS share, read only (17 October 2026; ROADMAP N29 phase 1)
+
+The person's imaging folder on the NAS (smb://…/share, where the imaging program saves) mounted by aurora-mount on
+/mnt/aurora-astro with the backup's NAS user, read only; the backup's share left as it was (the same line, the same
+credentials, mounted: not touched — never pulled away from a backup running).
+
+| what | measured |
+|---|---|
+| the mount | read only (a write refused: «Read-only file system»); the first look 22 s (the NAS waking), the backup's share «unchanged» |
+| the frames found (6 nights, 4 levels, the NAS's bin and hidden folders left out) | 577: 177 lights, 200 flats, 200 dark-flats |
+| the headers, first read | 32.4 s reading 256 KB a file; 14.6 s reading the header only (XISF: its declared length; FITS: to END) — the same 141 headers, field by field, on the local folder |
+| the headers, again | 0.2 s (cached by file size and time); the imaging route 12 s the first time (pixels of the pairs), 305 ms after |
+| the camera | gain 1600/20: 0.222 e-/ADU, 1.58 e-, bias 1300, 14.3 ke- — as M229, from the newest pair |
+| the narrowband sky (5 nights, dual-band filter, weakest colour) | 0.152–0.439 e-/s, median 0.202: t_min 124 s → 150 s; with the darks of the library 180 s |
+| the broadband sky (1 night, a broadband filter: the first) | 0.890 e-/s: t_min 28 s, the overhead's floor 40 s decides → 45 s; with the darks 60 s |
+
+Not measured: why one narrowband night has twice the sky of the others (the Moon, or haze: the frames' dates against the
+Moon not yet compared); the broadband sky from one night only; other gains (all the flats at 1600).

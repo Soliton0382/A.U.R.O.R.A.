@@ -59,3 +59,33 @@ def test_a_nas_folder_is_used_only_when_the_share_is_mounted(cfg, tmp_path, monk
     assert os.path.ismount(root_mount)
     cfg.values["AURORA_BACKUP_DIR"] = "smb://h/share/tmp"
     assert B.target(cfg, mount=root_mount) == Path("/tmp")
+
+
+def test_the_frames_share_is_read_only_with_its_own_line(tmp_path, monkeypatch):
+    line = N.fstab_line("192.168.1.20", "astro", 1000, 1000, N.ASTRO, N.ASTRO_MARK, ro=True)
+    assert line.startswith("//192.168.1.20/astro /mnt/aurora-astro cifs ro,") and line.endswith("# aurora-astro")
+    backup = N.fstab_line("192.168.1.20", "backups", 1000, 1000)
+    both = N.updated_fstab(N.updated_fstab("UUID=x / ext4 defaults 0 1\n", backup), line, N.ASTRO_MARK)
+    assert both.count("# aurora-nas") == 1 and both.count("# aurora-astro") == 1      # each replaces only its own
+    assert N.updated_fstab(both, None, N.ASTRO_MARK).count("# aurora-nas") == 1
+
+
+def test_a_nas_frames_folder_is_its_mount_and_a_nas_asleep_is_said(tmp_path, monkeypatch):
+    from aurora import ast_frames as F
+    assert F.local("/data/lights") == (Path("/data/lights"), "")
+    monkeypatch.setattr(B, "nas_reachable", lambda url, timeout=1.5: False)
+    assert F.local("smb://192.168.1.20/astro/lights")[0] is None
+    monkeypatch.setattr(B, "nas_reachable", lambda url, timeout=1.5: True)
+    assert "not mounted" in F.local("smb://192.168.1.20/astro/lights", mount=tmp_path)[1]
+    assert F.local("smb://192.168.1.20/astro/lights", mount=Path("/")) == (Path("/lights"), "")
+
+
+def test_the_frames_folder_of_a_person_is_found_for_the_mount(cfg, tmp_path, monkeypatch):
+    from aurora import sys_users_layout as L
+    monkeypatch.setattr(L, "usr", lambda c: tmp_path)
+    (tmp_path / "anna").mkdir()
+    (tmp_path / "anna" / ".env").write_text("AURORA_ASTRO_FRAMES_DIR=smb://192.168.1.20/astro/lights\n")
+    cfg.values["AURORA_ASTRO_FRAMES_DIR"] = ""
+    assert N.astro_url(cfg) == "smb://192.168.1.20/astro/lights"
+    (tmp_path / "anna" / ".env").write_text("AURORA_ASTRO_FRAMES_DIR=/data/lights\n")
+    assert N.astro_url(cfg) == ""                                       # a local folder: nothing to mount

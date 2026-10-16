@@ -19,7 +19,7 @@ SCRIPT = Path(__file__).resolve().parents[3] / "plugins" / "astro" / "astro_inve
 COMMAND = "powershell -ExecutionPolicy Bypass -File .\\astro_inventory.ps1"
 NAME = re.compile(r"^[\w .()+-]{1,120}\.(txt|md|pdf|csv|json|xml|log)$", re.I)
 MAX_BYTES = 50 * 1024 * 1024
-OWN = ("darks.json", "astro_setup.json", "autoguide.jsonl", "sensor.json")   # Aurora's own: the darks' snapshot, the setup, the tuner's log
+OWN = ("darks.json", "astro_setup.json", "autoguide.jsonl", "sensor.json", "frames.json")   # Aurora's own: the darks' snapshot, the setup, the tuner's log, the frames' headers
 
 
 @router.get("/v1/aurora/astro", dependencies=[Depends(auth)])

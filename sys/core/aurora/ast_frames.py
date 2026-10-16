@@ -7,12 +7,15 @@ measure needs them (ast_sensor). A camera writes whole numbers: an image in floa
 darks' library's, a stack), not a frame, and is left out."""
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
 import numpy as np
 
+MOUNT = Path("/mnt/aurora-astro")                  # where aurora-mount puts a NAS frames folder, read only (N29)
 SUFFIX = (".xisf", ".fits", ".fit", ".fts")
+HEAD, MAX_HEAD = 16384, 262144                   # a header read in pieces, never past 256 KB
 KEYS = ("IMAGETYP", "EXPTIME", "EXPOSURE", "GAIN", "OFFSET", "FILTER", "CCD-TEMP", "BAYERPAT", "DATE-OBS", "XBINNING")
 KIND = {"light": "light", "flat": "flat", "dark": "dark", "darkflat": "darkflat", "flatdark": "darkflat", "bias": "bias"}
 
@@ -24,10 +27,32 @@ def _num(x):
         return None
 
 
+def local(raw: str, mount: Path = MOUNT) -> tuple[Path | None, str]:
+    """The frames folder on this machine and, when there is none, why: a NAS folder (smb://host/share/sub) is its
+    share mounted by aurora-mount; a NAS asleep is said at once, never a wait on a hanging mount (C125)."""
+    raw = raw.strip()
+    if not raw.startswith("smb://"):
+        return Path(raw), ""
+    from aurora import sys_backup as B
+    if not B.nas_reachable(raw):
+        return None, f"the NAS ({raw[6:].split('/')[0]}) does not answer: off or asleep"
+    if not B.mounted(mount):
+        return None, f"the NAS frames folder is not mounted on {mount}: save the folder again (it mounts it)"
+    sub = "/".join(raw[6:].strip("/").split("/")[2:])
+    return (mount / sub if sub else mount), ""
+
+
 def header(f: Path) -> dict | None:
     """The keywords that matter and where the pixels are; None when the file is not a single uncompressed 2-D frame."""
-    with f.open("rb") as fh:
-        head = fh.read(262144)
+    with f.open("rb") as fh:                       # only the header: a frame over the network is megabytes
+        head = fh.read(HEAD)
+        if head.startswith(b"XISF0100"):
+            size = 16 + int.from_bytes(head[8:12], "little")
+            if size > len(head):
+                head += fh.read(min(size, MAX_HEAD) - len(head))
+        else:
+            while b"END     " not in head and len(head) < MAX_HEAD and len(more := fh.read(HEAD)):
+                head += more
     kw: dict = {}
     if head.startswith(b"XISF0100"):
         xml = head[16:].decode("utf-8", "replace")
@@ -77,24 +102,50 @@ def pixels(f: Path, h: dict) -> np.ndarray:
     return a.astype(np.float64) * p["scale"] + p["bzero"]
 
 
-def scan(folder: Path, limit: int = 5000) -> list[dict]:
-    """The single frames under the folder (three levels down), each with its header; integrations left out."""
+def _files(folder: Path, depth: int):
+    """The frame files under the folder, `depth` levels at most, in name order: the folders deeper are never walked
+    (a NAS share of years of nights), nor hidden ones and a NAS's own (#recycle, @eaDir)."""
+    import os
+    for top, dirs, names in os.walk(folder):
+        level = len(Path(top).relative_to(folder).parts)
+        dirs[:] = sorted(d for d in dirs if not d.startswith((".", "#", "@"))) if level < depth - 1 else []   # NAS bins
+        for n in sorted(names):
+            if n.lower().endswith(SUFFIX):
+                yield Path(top) / n
+
+
+def scan(folder: Path, limit: int = 5000, cache: Path | None = None) -> list[dict]:
+    """The single frames under the folder (three levels down), each with its header; integrations left out. With a
+    cache file a header is read again only when its file changed (size, time): on a NAS a header is a round trip."""
     out = []
     if not folder.is_dir():
         return out
-    for f in sorted(folder.rglob("*")):
+    try:
+        known = json.loads(cache.read_text(encoding="utf-8")) if cache else {}
+    except (OSError, ValueError):
+        known = {}
+    seen = {}
+    for f in _files(folder, 4):
         if len(out) >= limit:
             break
-        if not f.is_file() or f.suffix.lower() not in SUFFIX or len(f.relative_to(folder).parts) > 4:
-            continue
         try:
-            h = header(f)
+            st = f.stat()
+            k = known.get(str(f))
+            if k and k["size"] == st.st_size and k["mtime"] == st.st_mtime:
+                h = k["h"]
+            else:
+                h = header(f)
+                h = h and {**h, "file": str(f), "mtime": st.st_mtime}
         except (OSError, ValueError, KeyError):
             continue
+        seen[str(f)] = {"size": st.st_size, "mtime": st.st_mtime, "h": h}
         if h and h["pixels"]["dtype"] in ("<u2", ">i2"):           # whole numbers: a frame, not an integration
-            h["file"] = str(f)
-            h["mtime"] = f.stat().st_mtime
             out.append(h)
+    if cache and seen != known:
+        try:
+            cache.write_text(json.dumps(seen), encoding="utf-8")
+        except OSError:
+            pass
     return out
 
 

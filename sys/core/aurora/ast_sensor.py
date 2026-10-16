@@ -214,13 +214,15 @@ def measure(cfg, frames_dir: str) -> dict:
     from aurora import ast_inventory as A
     d = A.folder(cfg)
     snap = d / "sensor.json"
-    root = Path(frames_dir) if Path(frames_dir).is_absolute() else cfg.root / frames_dir
-    if not frames_dir or not root.is_dir():
+    root, why = F.local(frames_dir) if frames_dir else (None, "")
+    if root is not None and not root.is_absolute():
+        root = cfg.root / root
+    if not frames_dir or root is None or not root.is_dir():
         try:
-            return {**json.loads(snap.read_text(encoding="utf-8")), "from": "snapshot"}
+            return {**json.loads(snap.read_text(encoding="utf-8")), "from": "snapshot", "error": why}
         except (OSError, ValueError):
-            return {"sensors": [], "sky": [], "frames": 0, "error": "frames folder not found" if frames_dir else ""}
-    frames = F.scan(root)
+            return {"sensors": [], "sky": [], "frames": 0, "error": why or ("frames folder not found" if frames_dir else "")}
+    frames = F.scan(root, cache=d / "frames.json")
     lib = A.darks_library(cfg)["darks"]
     pairs = _pairs(frames)
     sig = json.dumps({str(k): [[h["file"], h["mtime"]] for h in v[0] + v[1]] for k, v in pairs.items()}, sort_keys=True)

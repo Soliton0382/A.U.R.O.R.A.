@@ -86,3 +86,14 @@ def test_an_objects_kind():
     assert S.kind_of("Galassia di Andromeda") == "broadband" and S.kind_of("Pleiadi") == "hdr"
     assert S.kind_of("Nebulosa Velo Dell'Ovest") == "narrowband" and S.kind_of("Barnard 33") == "broadband"
     assert S.kind_of("Nebulosa Velo Dell'Ovest", {"Nebulosa Velo Dell'Ovest": "broadband"}) == "broadband"
+
+
+def test_a_header_is_read_again_only_when_its_file_changed(tmp_path, monkeypatch):
+    d, cache = night(tmp_path), tmp_path / "frames.json"
+    first = F.scan(d, cache=cache)
+    monkeypatch.setattr(F, "header", lambda f: (_ for _ in ()).throw(AssertionError(f"read again: {f}")))
+    assert F.scan(d, cache=cache) == first                                       # all from the cache
+    xisf(d / "light_0.xisf", frame(SKY * 200), "Light", 200.0, "Optolong L-eXtreme")  # a frame changed
+    monkeypatch.undo()
+    again = {h["file"]: h for h in F.scan(d, cache=cache)}
+    assert again[str(d / "light_0.xisf")]["exposure_s"] == 200.0 and len(again) == len(first)
