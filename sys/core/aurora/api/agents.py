@@ -75,8 +75,11 @@ async def agent(request: Request) -> dict:
     # notified of them (C314: four «Aurora aspetta la tua approvazione» for seeded bugs); the admin's only
     quiet = ("approval.pending", "forge.request", "project.update", "project.progress") \
         if body.get("quiet") and me() == _admin() else ()
-    job = _agent_job(goal, str(body.get("context", "")), remember=body.get("remember", True) is not False, asked=True,
-                     quiet=quiet)
+    remember = body.get("remember", True) is not False
+    job = _agent_job(goal, str(body.get("context", "")), remember=remember, asked=True, quiet=quiet)
+    if remember and not quiet:                       # 😠 the person's own words (kno_anger)
+        from .core_route import mood_wrap
+        job = mood_wrap(goal, job)
     return {"run_id": start_run(goal, origin="agent", job=job)["id"]}
 
 

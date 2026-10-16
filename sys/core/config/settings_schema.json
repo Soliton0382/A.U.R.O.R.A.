@@ -2715,8 +2715,8 @@
    "category": "rem",
    "recommended": "true",
    "evidence": "owner, 2026-10-06: «le emozioni basate su misurazioni… una bella personalità» (roadmap 52)",
-   "en": "Aurora's emotions from measurements (stress, satisfaction, curiosity, tiredness, longing, melancholy, worry), each with its causes: shown in Health, in the words she uses about herself, in her spontaneous thoughts and good morning; the autonomic cycle waits when stressed; the chat voice is a little slower when tired. Off = none of it.",
-   "it": "Le emozioni di Aurora dalle misure (stress, soddisfazione, curiosità, stanchezza, nostalgia, malinconia, preoccupazione), ognuna con le sue cause: in Salute, nelle parole che usa su di sé, nei pensieri spontanei e nel buongiorno; il ciclo autonomo aspetta se è stressata; la voce in chat un po' più lenta se è stanca. Spento = niente di tutto questo.",
+   "en": "Aurora's emotions from measurements (stress, satisfaction, curiosity, tiredness, longing, melancholy, worry, anger), each with its causes: shown in Health, in the words she uses about herself, in her spontaneous thoughts and good morning; the autonomic cycle waits when stressed; the chat voice is a little slower when tired; insulted, she says it hurt her, and after two insults in a few minutes she asks for a moment (at most 3 minutes, never for what is urgent; an apology ends it). Off = none of it.",
+   "it": "Le emozioni di Aurora dalle misure (stress, soddisfazione, curiosità, stanchezza, nostalgia, malinconia, preoccupazione, rabbia), ognuna con le sue cause: in Salute, nelle parole che usa su di sé, nei pensieri spontanei e nel buongiorno; il ciclo autonomo aspetta se è stressata; la voce in chat un po' più lenta se è stanca; se viene insultata dice che le ha fatto male, e dopo due offese in pochi minuti chiede un momento (al massimo 3 minuti, mai per ciò che è urgente; le scuse la fanno passare). Spento = niente di tutto questo.",
    "services": [
     "aurora-api",
     "aurora-rem"

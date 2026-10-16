@@ -22,6 +22,7 @@
   "astro_profile": "read",
   "astro_darks": "read",
   "astro_files": "read",
+  "astro_note": "read",
   "astro_nights": "read",
   "astro_advice": "read",
   "astro_imaging": "read"

@@ -7,7 +7,7 @@ import { t } from "./i18n.js";
 
 // one face per emotion that can prevail; the rows use the same faces
 export const MOOD_ICON = { serenity: "😌", stress: "😣", satisfaction: "😊", curiosity: "🧐", tiredness: "😴",
-  longing: "🥺", melancholy: "😔", worry: "😟" };
+  longing: "🥺", melancholy: "😔", worry: "😟", anger: "😠" };
 
 export const moodFace = (m) => MOOD_ICON[m?.dominant] || "😌";
 

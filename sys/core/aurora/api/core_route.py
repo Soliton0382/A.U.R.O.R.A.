@@ -196,6 +196,36 @@ def _say(question: str, text: str, emit, run_id: str, mode: str, remember: bool 
     return ans
 
 
+def mood_wrap(question: str, job):
+    """😠 Her anger (kno_anger) on a message of the person: counted now; the job answers as usual, after a line that
+    says how she took it, or — two offences in a few minutes — she asks for a moment instead (never for what is urgent)."""
+    from aurora import kno_anger
+    try:
+        r = kno_anger.react(cfg, question)
+    except OSError as e:                             # an anger not counted never stops an answer
+        log.warning("anger: not counted: %s", e)
+        return job
+    if r["kind"]:
+        note("mood", f"anger.{r['kind']}", {"value": r["value"], "cool": bool(r["cool"])})
+
+    def wrapped(q, emit, run_id):
+        if r["cool"]:
+            return _say(q, r["cool"], emit, run_id, "mood")
+        if not r["prefix"]:
+            return job(q, emit, run_id)
+
+        def said(event, payload):
+            if event == "answer.final" and payload.get("text") and not payload["text"].startswith(r["prefix"]):
+                payload = {**payload, "text": f"{r['prefix']}\n\n{payload['text']}"}
+            emit(event, payload)
+        token = kno_anger.SAID_FIRST.set(r["prefix"])
+        try:
+            return job(q, said, run_id)
+        finally:
+            kno_anger.SAID_FIRST.reset(token)
+    return wrapped
+
+
 def video_busy_answer(question: str, emit, run_id: str):
     """While a video is being made the reasoner is off: say so, and when the video should be ready."""
     v = gpu_busy()

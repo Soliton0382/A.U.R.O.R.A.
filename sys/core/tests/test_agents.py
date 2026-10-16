@@ -210,6 +210,18 @@ def test_a_denied_action_is_not_a_claim():
     assert a._honest("I did not create a sandbox. Ho creato una sandbox e ho applicato il fix.").startswith("⚠️")
 
 
+def test_a_heading_answered_by_nothing_is_not_a_claim():
+    """C350: «**Cosa ho cambiato o proposto**\nNiente: ho solo letto» was flagged as code changes not in the log."""
+    from aurora.agt_loop import Agent
+    import logging
+    a = Agent.__new__(Agent)
+    a.ledger, a.pending, a.effects, a.log = [], [], {}, logging.getLogger("t")
+    text = "Ho riletto i dati.\n\n**Cosa ho cambiato o proposto**\nNiente: ho solo letto, non ho creato sandbox."
+    assert a._honest(text) == text
+    assert a._honest("**Cosa ho cambiato**\nHo modificato core.py.").startswith("⚠️")
+    assert a._honest("Ho cambiato la soglia del firewall.").startswith("⚠️")
+
+
 def test_a_call_written_in_claudes_own_format_is_made_and_its_invented_result_is_dropped(cfg):
     """C232 (owner, 9 Oct: «routine raccomandate… ha dato degli errori»): Claude Code haiku wrote its calls as
     <invoke name=…> and, after each, a result it made up («Metodo non disponibile»); the run made 0 calls and reported

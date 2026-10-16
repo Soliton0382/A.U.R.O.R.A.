@@ -14,6 +14,7 @@ number from 0 to 1 computed from things measured now, and carries its causes in 
 | longing      | hours since the person last wrote                                              | the boredom threshold         |
 | melancholy   | clouds and rain at home                                                        | overcast, or 1 mm of rain     |
 | worry        | open incidents of high severity + health problems                              | one                           |
+| anger        | the person's messages that insult her, each fading in 30 min; an apology ends it| one offence (kno_anger)       |
 
 Effects (each small, each said): the words she uses about herself (the "self" answers, her spontaneous messages, the
 good morning), the autonomic cycle waiting when stress passes AURORA_MOOD_STRESS_PAUSE, the chat voice a little slower
@@ -30,7 +31,7 @@ from pathlib import Path
 
 from . import sys_config
 
-NAMES = ("stress", "satisfaction", "curiosity", "tiredness", "longing", "melancholy", "worry")
+NAMES = ("stress", "satisfaction", "curiosity", "tiredness", "longing", "melancholy", "worry", "anger")
 WINDOW_H = 6                      # tiredness looks at the last 6 hours of samples
 MIN_SAMPLES = 30                  # half an hour of REM looks before tiredness is said at all
 EVERY_S = 50                      # at most one sample a minute (rem/state is asked per user, and by the Health page)
@@ -179,9 +180,23 @@ def measure(cfg: sys_config.Config, st: dict | None = None, active_runs: int = 0
     n = sum(w[0] for w in worries)
     out["worry"] = {"value": _sat(n, 1), "causes": [w[1] for w in worries] or ["nessun incidente grave, salute in ordine"]}
 
-    known = {k: v["value"] for k, v in out.items() if v["value"] is not None and k != "satisfaction"}
+    from . import kno_anger
+    out["anger"] = kno_anger.level(cfg)
+    return _dominant({"on": True, "emotions": out, "at": time.time()})
+
+
+def _dominant(m: dict) -> dict:
+    known = {k: v["value"] for k, v in m["emotions"].items() if v["value"] is not None and k != "satisfaction"}
     top = max(known, key=known.get) if known else None
-    return {"on": True, "emotions": out, "dominant": top if top and known[top] >= 0.5 else "serenity", "at": time.time()}
+    return {**m, "dominant": top if top and known[top] >= 0.5 else "serenity"}
+
+
+def with_anger(cfg: sys_config.Config, m: dict | None) -> dict | None:
+    """A saved measure (once a minute) with the anger of now: an insult counts at once, an apology ends it at once."""
+    if not m or not m.get("on"):
+        return m
+    from . import kno_anger
+    return _dominant({**m, "emotions": {**m["emotions"], "anger": kno_anger.level(cfg)}})
 
 
 def words(m: dict, lang: str = "it") -> str:
@@ -196,9 +211,10 @@ def words(m: dict, lang: str = "it") -> str:
 
 
 LABELS = {"it": {"stress": "stress", "satisfaction": "soddisfazione", "curiosity": "curiosità", "tiredness": "stanchezza",
-                 "longing": "nostalgia", "melancholy": "malinconia", "worry": "preoccupazione", "serenity": "serenità"},
+                 "longing": "nostalgia", "melancholy": "malinconia", "worry": "preoccupazione", "anger": "rabbia",
+                 "serenity": "serenità"},
           "en": {"stress": "stress", "satisfaction": "satisfaction", "curiosity": "curiosity", "tiredness": "tiredness",
-                 "longing": "longing", "melancholy": "melancholy", "worry": "worry", "serenity": "serenity"}}
+                 "longing": "longing", "melancholy": "melancholy", "worry": "worry", "anger": "anger", "serenity": "serenity"}}
 
 
 def _last_file(cfg: sys_config.Config) -> Path:
@@ -235,9 +251,9 @@ def compact(m: dict | None) -> dict | str:
 
 
 THE = {"it": {"stress": "lo stress", "curiosity": "la curiosità", "tiredness": "la stanchezza", "longing": "la nostalgia",
-              "melancholy": "la malinconia", "worry": "la preoccupazione", "serenity": "la serenità"},
+              "melancholy": "la malinconia", "worry": "la preoccupazione", "anger": "la rabbia", "serenity": "la serenità"},
        "en": {"stress": "stress", "curiosity": "curiosity", "tiredness": "tiredness", "longing": "longing",
-              "melancholy": "melancholy", "worry": "worry", "serenity": "serenity"}}
+              "melancholy": "melancholy", "worry": "worry", "anger": "anger", "serenity": "serenity"}}
 
 
 def feeling(m: dict, lang: str = "it") -> str:

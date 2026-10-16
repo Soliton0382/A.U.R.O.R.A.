@@ -106,6 +106,9 @@ async def ask(request: Request) -> dict:
             return ans
         return answer_or_acquire(q, emit, run_id, suggest=suggest, think=think, quote=quote, remember=remember,
                                  lessons=lessons)
+    if remember:                                     # 😠 the person's own words (a check's or a benchmark's are not)
+        from .core_route import mood_wrap
+        job = mood_wrap(question, job)
     if roles is None:
         return {"run_id": start_run(question, origin="webui", job=job)["id"]}
     from aurora import mdl_router

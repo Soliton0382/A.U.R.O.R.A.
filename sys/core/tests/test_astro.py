@@ -136,3 +136,22 @@ def test_of_a_server_only_its_version_is_kept_and_a_public_network_warns_only_wi
     assert any("Pubblica" in c["what"] for c in p["checks"])
     off = A.parse(links.replace("(script 2)", "(script 4)").replace("Public\n", "Public\nwindows firewall: Public = off\n", 1))
     assert not any("Pubblica" in c["what"] for c in off["checks"])
+
+
+def test_her_notes_in_the_astro_folder_are_read_whole_and_dated(cfg, monkeypatch):
+    """C351 (17 Oct): the person's equipment note, updated that day, was listed but could not be read: she said the
+    data were not updated. Made-up note."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "astro_server", Path(__file__).resolve().parents[2] / "plugins" / "astro" / "server.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    monkeypatch.setattr(mod.sys_config, "get", lambda: cfg)
+    d = A.folder(cfg)
+    (d / "Scheda_treno_ottico.md").write_text("# Treno ottico\nCorrettore → sensore: 55,0 mm\n", encoding="utf-8")
+    (d / "manuale.pdf").write_bytes(b"%PDF-1.4")
+    listing = mod.astro_files()
+    assert "Scheda_treno_ottico.md" in listing and "cambiato il" in listing and "leggibile con astro_note" in listing
+    note = mod.astro_note("treno")
+    assert "55,0 mm" in note and note.startswith("Scheda_treno_ottico.md (cambiata il")
+    assert "Nessuna nota con quel nome" in mod.astro_note("manuale")          # a PDF is not a note

@@ -3793,3 +3793,24 @@ fires (0.4 s held + one 0.1 s read), then 3 s more; transcribed by the server's 
 The trimmed file decodes (5.2 s; one Opus packet broken at the seam, skipped by the decoder). The worst case of her
 voice in the owner's turn: the fake microphone had no echo cancellation, so ~1 s of her last words came in.
 Not measured: on a phone, where echo cancellation takes most of her voice out; the pause's resume on a real Android.
+
+## M235 — the sky without a library, against astropy (17 October 2026, N30)
+
+ast_sky (the Almanac's low-precision Sun and Moon, the Moon's parallax, precession) against astropy 8.0.2 at a site
+rounded to a tenth of a degree, 50 instants through 2026 (every ~7.5 days, at a different hour each):
+
+| quantity | median error | largest |
+|---|---|---|
+| the Sun's altitude | 0.003° | 0.010° |
+| the Moon's altitude, seen from the ground | 0.042° | 0.199° |
+| M31's altitude (J2000 → the date) | 0.003° | 0.006° |
+| the Moon's lit fraction | 0.000 | 0.002 |
+
+(The places themselves differ by 22′ for the Sun and 0.36° for the Moon only because astropy's are J2000 and ours of
+the date: the altitudes, which the plan uses, agree.) Astronomical dusk at a made-up site, 1-minute steps: within 2 min
+of astropy's (test_astro_sky).
+
+The catalogues: OpenNGC 3,676 kept of its 14,034 rows (NGC.csv 13,970 + addendum 64), Sharpless 313, Barnard 349, Lynds (opacity ≥ 5) 543 → 4,697
+objects after the aliases, 646 KB, fetched in 2.0 s. A night's plan for the whole catalogue (4,697 × 145 steps): 0.41 s.
+Not measured: the plan's targets against what the owner would choose; the forecast's accuracy (7Timer!'s seeing is
+coarse: 3-hour steps, 8 classes).

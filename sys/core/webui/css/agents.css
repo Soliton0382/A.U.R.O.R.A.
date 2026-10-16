@@ -312,3 +312,27 @@ dialog.welcome p { margin: 0; }
   .aa-table .aa-why { display: block; }
   .aa-table .aa-why td { display: block; }
 }
+/* 🔭 Astro → 🌌 Tonight */
+.sky-controls { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: .5rem 0 1rem; }
+.sky-controls input[type=number] { width: 4.5rem; }
+.sky-night { display: grid; gap: .25rem; padding: .7rem .9rem; margin-bottom: .8rem; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.sky-row { cursor: pointer; } .sky-row:hover td { background: var(--surface); }
+.sky-table td, .sky-table th { text-align: left; }
+.sky-table td:nth-child(2) { white-space: normal; font-weight: 600; }
+/* a phone: each target a card of label/value lines, no sideways scroll */
+@media (max-width: 700px) {
+  .sky-table { min-width: 0; width: 100%; }
+  .sky-table tr:first-child { display: none; }
+  .sky-table tr { display: block; padding: .5rem 0; border-bottom: 1px solid var(--line); }
+  .sky-table td { display: flex; gap: .6rem; border: 0; padding: .1rem 0; white-space: normal; }
+  .sky-table td::before { content: attr(data-label); flex: 0 0 6.5rem; color: var(--muted); font-weight: 400; }
+  .sky-table td:first-child { display: none; }
+  .sky-table .sky-detail td { display: block; }
+  .sky-table .sky-detail td::before { content: none; }
+}
+.sky-hours { display: flex; align-items: flex-end; gap: 3px; height: 120px; padding: .4rem 0; }
+.sky-hour { flex: 1; min-width: 14px; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; }
+.sky-hour i { display: block; width: 100%; background: var(--line); border-radius: 4px 4px 0 0; }
+.sky-hour.ok i { background: var(--accent); }
+.sky-hour.twilight i { opacity: .45; }
+.sky-hour small { font-size: .7rem; color: var(--muted); }

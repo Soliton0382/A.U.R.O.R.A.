@@ -19,7 +19,7 @@ SCRIPT = Path(__file__).resolve().parents[3] / "plugins" / "astro" / "astro_inve
 COMMAND = "powershell -ExecutionPolicy Bypass -File .\\astro_inventory.ps1"
 NAME = re.compile(r"^[\w .()+-]{1,120}\.(txt|md|pdf|csv|json|xml|log)$", re.I)
 MAX_BYTES = 50 * 1024 * 1024
-OWN = ("darks.json", "astro_setup.json", "autoguide.jsonl", "sensor.json", "frames.json")   # Aurora's own: the darks' snapshot, the setup, the tuner's log, the frames' headers
+OWN = ("darks.json", "astro_setup.json", "autoguide.jsonl", "sensor.json", "frames.json", "sky_catalog.json")   # Aurora's own: the darks' snapshot, the setup, the tuner's log, the frames' headers
 
 
 @router.get("/v1/aurora/astro", dependencies=[Depends(auth)])
@@ -151,6 +151,18 @@ async def astro_imaging_set(request: Request) -> dict:
         kinds.pop(name, None)
     V.save_part(d, "kinds", kinds)
     return astro_imaging(name)
+
+
+@router.get("/v1/aurora/astro/sky", dependencies=[Depends(auth)])
+def astro_sky(date: str = "", object: str = "", kind: str = "", min_alt: float = 30, limit: int = 15) -> dict:
+    """🌌 Tonight's plan (ROADMAP N30): the night, the forecast and the catalogue's targets ranked for the person's
+    equipment; `object`: that one object's night. The catalogue is fetched on the first ask (ast_catalog)."""
+    from aurora import ast_skyplan
+    if date and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date):
+        raise HTTPException(status_code=422, detail="date: YYYY-MM-DD")
+    if kind not in ("", "narrowband", "broadband", "hdr", "galaxy"):
+        raise HTTPException(status_code=422, detail="kind: narrowband, broadband, hdr or galaxy")
+    return ast_skyplan.tonight(cfg, date, max(0.0, min(80.0, min_alt)), kind, max(1, min(50, limit)), object.strip()[:80])
 
 
 @router.get("/v1/aurora/astro/live", dependencies=[Depends(auth)])

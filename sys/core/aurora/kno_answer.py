@@ -328,6 +328,11 @@ class Pipeline(Stages, SelfTalk):
         """The question and the answer become STM turns; the answer keeps the path that produced it
         (steps and reasoning, in `extra`), so that Aurora and the owner can look back at what she did."""
         lang = txt_lang.detect(question)
+        from dataclasses import replace
+        from . import kno_anger
+        first = kno_anger.SAID_FIRST.get()              # 😠 how she took the message, said before the answer
+        if first and not result.text.startswith(first):
+            result = replace(result, text=f"{first}\n\n{result.text}")
         turns = [Soliton.new(question, "conversation", "conversation", lang, f"run:{run_id}",
                              extra={"role": "user", "run_id": run_id,
                                     **({"reply_to": {"run_id": quote.extra.get("run_id"), "text": quote.text[:300]}}

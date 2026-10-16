@@ -57,7 +57,7 @@ def mood() -> dict:
     from aurora import kno_mood
     if not cfg["AURORA_MOOD"]:
         return {"on": False, "emotions": {}, "dominant": None}
-    return kno_mood.last(cfg, 180) or rem_state()["mood"]
+    return kno_mood.with_anger(cfg, kno_mood.last(cfg, 180)) or rem_state()["mood"]
 
 
 @router.get("/v1/aurora/rem/state", dependencies=[Depends(auth)])

@@ -40,15 +40,44 @@ def astro_darks() -> str:
     return "\n".join(lines)
 
 
+OWN = ("darks.json", "astro_setup.json", "autoguide.jsonl", "sensor.json", "frames.json", "sky_catalog.json")   # Aurora's own files
+NOTES = (".md", ".txt")
+NOTE_MAX = 12000                                  # characters of one note given to the model
+
+
 @server.tool()
 def astro_files() -> str:
-    """The files of the astro folder: the inventories and the manuals and notes added in the 🔭 Astro page."""
+    """The files of the astro folder, each with the day it was last changed: the inventories and the manuals and
+    notes added in the 🔭 Astro page (a note is read with astro_note)."""
+    import time
     cfg = sys_config.get()
     d = ast_inventory.folder(cfg)
     inv = {f.name for f in ast_inventory.inventories(cfg)}
-    rows = [f"- {f.name} ({f.stat().st_size // 1024} KB){' — inventario' if f.name in inv else ''}"
-            for f in sorted(d.iterdir()) if f.is_file() and f.name not in ("darks.json", "astro_setup.json", "autoguide.jsonl", "sensor.json")]
+    rows = [f"- {f.name} ({f.stat().st_size // 1024} KB, cambiato il {time.strftime('%Y-%m-%d', time.localtime(f.stat().st_mtime))})"
+            + (" — inventario" if f.name in inv else " — nota: leggibile con astro_note" if f.suffix.lower() in NOTES else "")
+            for f in sorted(d.iterdir()) if f.is_file() and f.name not in OWN]
     return "\n".join(rows) or "La cartella astro è vuota."
+
+
+@server.tool()
+def astro_note(name: str) -> str:
+    """Una nota della persona nella cartella astro (.md o .txt: la scheda dell'attrezzatura, il treno ottico e il back
+    focus, la collimazione, i manuali scritti a mano), letta per intero. name: il nome del file come in astro_files, o
+    una sua parte. Le note sono i dati che la persona ha scritto: l'inventario del PC non le contiene (C351)."""
+    import time
+    d = ast_inventory.folder(sys_config.get())
+    notes = [f for f in sorted(d.iterdir()) if f.is_file() and f.suffix.lower() in NOTES and f.name not in OWN]
+    want = name.strip().lower()
+    hit = ([f for f in notes if f.name.lower() == want] or [f for f in notes if want and f.name.lower().startswith(want)]
+           or [f for f in notes if want and want in f.name.lower()])
+    if len(hit) != 1:
+        return (("Più note con quel nome: " if hit else "Nessuna nota con quel nome. Note: ")
+                + ", ".join(f.name for f in (hit or notes)) if (hit or notes) else "Nessuna nota nella cartella astro.")
+    f = hit[0]
+    text = f.read_text(encoding="utf-8-sig", errors="replace")
+    cut = len(text) > NOTE_MAX
+    return (f"{f.name} (cambiata il {time.strftime('%Y-%m-%d %H:%M', time.localtime(f.stat().st_mtime))}):\n\n"
+            + text[:NOTE_MAX] + (f"\n\n[… tagliata: {len(text)} caratteri, i primi {NOTE_MAX}]" if cut else ""))
 
 
 @server.tool()
