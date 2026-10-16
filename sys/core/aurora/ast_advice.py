@@ -267,6 +267,7 @@ def advise(profile: dict | None, facts: dict, nights: list[dict] | None = None, 
                 reach = root + blen - (facts["cw_stack_m"] or 0) / 2 if None not in (root, blen) else None
                 st = "info" if arm is None else ("ok" if abs(arm - balance) <= 0.02 else "warn")
                 why = ("cw_short" if reach is not None and balance > reach else
+                       "cw_ok" if arm is not None and abs(arm - balance) <= 0.02 else     # a tape's reading: balanced
                        "cw_arm" if arm is None or arm <= balance else "cw_heavy")
                 share = (cw * reach + bar_m) / (pay * (s2ra + com)) if reach is not None else None   # the weights at the end
                 if why == "cw_short" and facts["mount_drive"] == "strain_wave" and share >= 0.85:

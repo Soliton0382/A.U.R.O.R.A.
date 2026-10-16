@@ -163,3 +163,5 @@ def test_the_bar_s_weight_and_its_reach():
     near = rows(**base, **{**bar, "cw_bar_from_m": 0.053}, mount_drive="strain_wave")["cw_arm"]    # the weights at the end: 91 %
     assert near["why"] == "cw_end_ok" and near["status"] == "ok" and near["n"]["pct"] == 91
     assert rows(**base, **{**bar, "cw_bar_from_m": 0.053}, mount_drive="worm")["cw_arm"]["why"] == "cw_short"
+    ok = rows(**base, **{**bar, "cw_bar_from_m": 0.07, "cw_bar_len_m": 0.225}, cw_arm_m=0.251)["cw_arm"]   # measured: 1 mm off
+    assert ok["why"] == "cw_ok" and ok["status"] == "ok"

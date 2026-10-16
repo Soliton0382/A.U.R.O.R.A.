@@ -2426,6 +2426,7 @@
   "aa.w.torque": "Weight × 9.8 × (saddle–RA axis + centre of mass from the saddle) = {pct}% of the maker's limit. At this weight the centre of mass can be at most {com_max} m from the saddle.",
   "aa.w.cw_arm": "To balance, the centre of the {cw} kg counterweight goes this far from the RA axis: weight × (saddle–axis + centre of mass) ÷ counterweight.",
   "aa.w.cw_heavy": "The {cw} kg counterweight is {diff_cm} cm farther than balance: the counterweight side is heavier. Move it towards the mount.",
+  "aa.w.cw_ok": "Balanced: the centre of the {cw} kg is {diff_cm} cm from the balance point, within a tape measure's error.",
   "aa.w.cw_short": "The bar does not reach balance: the centre of the {cw} kg should sit this far from the RA axis, it reaches {reach} m at most (the bar's end less half the weights). More counterweight or an extension is needed.",
   "aa.w.cw_end_ok": "With the {cw} kg against the cap the bar balances {pct}% of the tube: the tube side stays a little heavier, which is what a strain-wave gear wants (its teeth always work on one side). Fine as it is.",
   "aa.w.gain_offset": "The frames must have the darks' gain and offset. Exposures covered: {exposures} s.",

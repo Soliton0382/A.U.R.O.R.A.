@@ -2426,6 +2426,7 @@
   "aa.w.torque": "Peso × 9,8 × (slitta–asse RA + baricentro dalla slitta) = {pct}% del limite del costruttore. Con questo peso il baricentro può stare al massimo a {com_max} m dalla slitta.",
   "aa.w.cw_arm": "Per bilanciare, il centro del contrappeso da {cw} kg va a questa distanza dall'asse RA: peso × (slitta–asse + baricentro) ÷ contrappeso.",
   "aa.w.cw_heavy": "Il contrappeso da {cw} kg è {diff_cm} cm più lontano del bilanciamento: il lato del contrappeso pesa di più. Avvicinalo alla montatura.",
+  "aa.w.cw_ok": "Bilanciato: il centro dei {cw} kg è a {diff_cm} cm dal punto di equilibrio, dentro l'errore di una misura col metro.",
   "aa.w.cw_short": "La barra non arriva al bilanciamento: il centro dei {cw} kg dovrebbe stare a questa distanza dall'asse RA, al massimo arriva a {reach} m (fine barra meno metà dei contrappesi). Serve più contrappeso o una prolunga.",
   "aa.w.cw_end_ok": "Con i {cw} kg contro il tappo la barra compensa il {pct}% del tubo: il lato del tubo resta un poco più pesante, ed è quello che vuole un riduttore a onda di deformazione (i denti lavorano sempre dallo stesso lato). Va bene così.",
   "aa.w.gain_offset": "Le pose devono avere lo stesso gain e offset dei dark. Esposizioni coperte: {exposures} s.",
