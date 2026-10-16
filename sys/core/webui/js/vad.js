@@ -10,7 +10,11 @@
 export const CALIB = 300, RATIO = 3, MIN = 0.012, SILENCE = 1200, WAIT = 8000;
 
 export class SilenceGate {
-  constructor() { this.t = 0; this.floor = 0; this.n = 0; this.heard = false; this.quiet = 0; }
+  // from = {floor}: the owner is speaking already (a barge-in): no calibration over their own voice, the floor the
+  // barge-in learnt (C349: calibrated on the voice, the gate heard nothing more and closed the turn after WAIT)
+  constructor(from = null) {
+    this.t = from ? CALIB : 0; this.floor = from?.floor || 0; this.n = from ? 1 : 0; this.heard = Boolean(from); this.quiet = 0;
+  }
   // rms: the level of the last `ms` of sound → "calibrating" | "waiting" | "speaking" | "end" | "nothing"
   step(rms, ms) {
     this.t += ms;
@@ -24,7 +28,7 @@ export class SilenceGate {
 }
 
 // Watch a microphone stream; onEnd("end" | "nothing") once. Returns stop(). No Web Audio here: the gate never ends.
-export function watch(stream, onEnd, every = 100) {
+export function watch(stream, onEnd, every = 100, from = null) {
   const AC = globalThis.AudioContext || globalThis.webkitAudioContext;
   if (!AC) return () => {};
   const ctx = new AC();
@@ -33,7 +37,7 @@ export function watch(stream, onEnd, every = 100) {
   an.fftSize = 1024;
   ctx.createMediaStreamSource(stream).connect(an);
   const buf = new Float32Array(an.fftSize);
-  const gate = new SilenceGate();
+  const gate = new SilenceGate(from);
   let done = false;
   const timer = setInterval(() => {
     an.getFloatTimeDomainData(buf);
@@ -83,7 +87,7 @@ export function bargeIn(stream, onSpeech, every = 100) {
     an.getFloatTimeDomainData(buf);
     let sum = 0;
     for (const v of buf) sum += v * v;
-    if (gate.step(Math.sqrt(sum / buf.length), every)) { stop(); onSpeech(); }
+    if (gate.step(Math.sqrt(sum / buf.length), every)) { stop(); onSpeech(gate.floor); }
   }, every);
   function stop() {
     if (done) return;

@@ -3777,3 +3777,19 @@ into a scratch folder first.
 
 Not measured: the days whose oldest trace file was already deleted (their counts come out short); the cost of the
 live count per event (a lock and a small JSON file, a few hundred events an hour).
+
+## M234 — the owner's first words over her voice (17 October 2026, C349)
+
+Headless Chrome, a fake microphone playing a WAV: 5.0 s of her voice (Piper), then an invented sentence of the owner,
+2.8 s («Aspetta, voglio sapere a che ora sorge Giove domani.»). The barge-in's hand-over taken 0.5 s into it, as the gate
+fires (0.4 s held + one 0.1 s read), then 3 s more; transcribed by the server's own path (sns_av.decode + transcribe).
+
+| recording | transcript |
+|---|---|
+| the sentence alone (reference) | «Aspetta, voglio sapere a che ora sorge giovedomani.» |
+| before: a recorder opened at the barge-in (the sentence from 0.8 s) | «e io saprò che ora su oggi è giovedomani.» — the first words lost |
+| now: the pre-roll (header + the last 1.5 s), still recording | «Il tè è buona per le nebulose. Aspetta, voglio sapere a che ora su oggi giovedomani.» |
+
+The trimmed file decodes (5.2 s; one Opus packet broken at the seam, skipped by the decoder). The worst case of her
+voice in the owner's turn: the fake microphone had no echo cancellation, so ~1 s of her last words came in.
+Not measured: on a phone, where echo cancellation takes most of her voice out; the pause's resume on a real Android.

@@ -39,3 +39,16 @@ def test_the_owner_speaking_over_her_interrupts_her_echo_and_a_cough_do_not():
                                     capture_output=True, text=True, check=True).stdout)
     assert out["owner"] == 1200                                       # 0.3 calibration + 0.5 echo + 0.4 voice
     assert out["echo"] == -1 and out["cough"] == -1
+
+
+@pytest.mark.skipif(not shutil.which("node"), reason="node not installed")
+def test_a_turn_begun_over_her_voice_is_heard_to_its_end():
+    """C349: after a barge-in the owner is already speaking — a gate that calibrated on their voice heard nothing more
+    and closed the turn at 8 s as «nothing said». Handed the barge-in's floor (her echo), it ends at the silence."""
+    floor, owner = 0.02, [0.15] * 15
+    cases = {"handed": {"from": {"floor": floor}, "levels": owner + [0.01] * 20},
+             "calibrated_on_the_voice": owner + [0.01] * 100}
+    out = json.loads(subprocess.run(["node", str(HERE / "js" / "vad_gate.mjs"), VAD.as_uri(), json.dumps(cases)],
+                                    capture_output=True, text=True, check=True).stdout)
+    assert out["handed"] == ["end", 300 + 1500 + 1200]             # the turn ends 1.2 s after the owner stops
+    assert out["calibrated_on_the_voice"][0] == "nothing"            # what the old way did

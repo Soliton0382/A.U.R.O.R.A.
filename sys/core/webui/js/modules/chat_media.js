@@ -23,21 +23,47 @@ export async function shrink(file) {
   } catch { return file; }
 }
 
+const recType = () => ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/aac"].find((m) => MediaRecorder.isTypeSupported?.(m));
+
+// While Aurora speaks in a conversation, the last KEEP ms of the microphone (C349, owner 17 Oct: «si interrompe se
+// parlo ma non recupera quello che dico nelle prime frasi»): the barge-in knows the owner speaks 400 ms after they began,
+// and a recorder started then lost the first words. The first piece (the file's header) and the last ones are kept;
+// take() hands the recorder over, still recording, drop() ends it.
+export const KEEP = 1500, PIECE = 250;
+export function preRoll(stream) {
+  let rec = null;
+  const chunks = [];
+  try { const type = recType(); rec = new MediaRecorder(stream, type ? { mimeType: type } : {}); } catch { return { take: () => ({}), drop() {} }; }
+  rec.ondataavailable = (ev) => {
+    if (!ev.data.size) return;
+    chunks.push(ev.data);
+    const keep = Math.ceil(KEEP / PIECE);
+    if (chunks.length > keep + 1) chunks.splice(1, chunks.length - keep - 1);
+  };
+  rec.start(PIECE);
+  return { take: () => ({ rec, chunks }), drop: () => { try { rec.stop(); } catch { /* stopped already */ } } };
+}
+
 // the recorder of this device's microphone, bound to the chat's button and composer (heard: the transcription)
 export function makeRecorder({ mic, input, heard, canRecord }) {
   // this device's microphone: tap to start; it stops by itself when the owner stops speaking (vad.js), or with a tap
   // (at most MAX s); WebM/Opus on Android, MP4/AAC on iOS. Nothing said in 8 s: nothing sent, heard({nothing: true})
   const MAX = 30, PART = 1500;
   let rec = null;
-  const recordHere = async () => {
+  // shared: a conversation's microphone, open from its tap to its end (never reopened while she speaks: C349); with
+  // the barge-in's recorder and what it kept (adopted), and the floor it learnt (the owner is speaking already)
+  const recordHere = async (shared = {}) => {
     if (rec) { rec.stop(); return; }
     if (!canRecord) { input.placeholder = t("chat.src.unsupported"); return; }
-    let stream;
-    try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); }
-    catch (e) { input.placeholder = t(e.name === "NotAllowedError" ? "chat.src.denied" : "ev.error", { m: e.message }); return; }
-    const type = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/aac"].find((m) => MediaRecorder.isTypeSupported?.(m));
-    const chunks = [];
-    rec = new MediaRecorder(stream, type ? { mimeType: type } : {});
+    let stream = shared.stream;
+    const own = !stream;
+    if (own) {
+      try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); }
+      catch (e) { input.placeholder = t(e.name === "NotAllowedError" ? "chat.src.denied" : "ev.error", { m: e.message }); return; }
+    }
+    const type = shared.rec?.mimeType || recType();
+    const chunks = shared.chunks || [];
+    rec = shared.rec || new MediaRecorder(stream, type ? { mimeType: type } : {});
     rec.ondataavailable = (ev) => { if (ev.data.size) chunks.push(ev.data); };
     // C114: a recording of 0.1 s reached the server twice (the microphone closed at once): said, never sent
     let closed = false;
@@ -48,7 +74,8 @@ export function makeRecorder({ mic, input, heard, canRecord }) {
     mic.textContent = "⏹️ 0";
     const tick = setInterval(() => { mic.textContent = `⏹️ ${++secs}`; if (secs >= MAX) rec?.stop(); }, 1000);
     let nothing = false;
-    const unwatch = watch(stream, (state) => { nothing = state === "nothing"; rec?.stop(); });
+    const unwatch = watch(stream, (state) => { nothing = state === "nothing"; rec?.stop(); }, 100,
+      shared.floor ? { floor: shared.floor } : null);
     // ROADMAP 99: what was said so far, written while the owner speaks — the recording from its start again every
     // PART ms (its pieces from the first are a whole file), one request at a time; shown in the composer's
     // placeholder, never as the text: the final transcript, at the silence, is the one sent
@@ -68,7 +95,8 @@ export function makeRecorder({ mic, input, heard, canRecord }) {
       clearInterval(sofar);
       clearInterval(tick);
       unwatch();
-      stream.getTracks().forEach((tr) => tr.stop());          // the phone's microphone is released at once
+      if (own) stream.getTracks().forEach((tr) => tr.stop());  // the phone's microphone is released at once (a
+      // conversation's stays open until it ends)
       const mime = rec.mimeType || type || "audio/webm";
       rec = null;
       const took = (performance.now() - t0) / 1000;
@@ -89,7 +117,7 @@ export function makeRecorder({ mic, input, heard, canRecord }) {
       mic.classList.remove("recording");
       mic.disabled = false;
     };
-    rec.start(500);                                // pieces every half second, not only at the stop
+    if (!shared.rec) rec.start(500);               // pieces every half second, not only at the stop
   };
   return recordHere;
 }

@@ -58,3 +58,14 @@ def test_the_first_sentence_is_heard_while_the_rest_is_written():
     assert heard[0] == s.strip() and " ".join(heard).replace("  ", " ") == text   # in order, all of it
     assert out["heard"][0][1] < out["ended"]                                    # heard before the answer was finished
     assert len(out["made"]) == len(heard) and all(len(h) <= 400 for h in heard)
+
+
+@pytest.mark.skipif(not shutil.which("node"), reason="node not installed")
+def test_a_pause_by_the_phone_is_not_the_end_of_a_sentence():
+    # C349: the phone paused her voice when the microphone opened; the sentence was taken for heard and the rest of it
+    # lost (owner: «quello che dice in quel secondo e mezzo di silenzio non si sente»)
+    text = "".join(f"Frase numero {w} del discorso, abbastanza lunga da partire da sola. " for w in ("uno", "due", "tre"))
+    out = _stream("pause", _tokens(text))
+    played = [h[0] for h in out["heard"]]
+    assert out["r"] == "ok" and len(played) == len(set(played)) + 1        # the paused one played again, once
+    assert out["whole"] == list(dict.fromkeys(played))                      # every piece heard to its end, in order

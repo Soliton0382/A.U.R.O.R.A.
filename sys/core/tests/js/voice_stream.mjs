@@ -11,16 +11,25 @@ globalThis.fetch = async (url, opt) => {
   await new Promise((r) => setTimeout(r, 20));
   return { ok: true, blob: async () => ({ text }) };
 };
+// mode "pause": the phone pauses the second clip 20 ms in (a microphone opened: C349), as a page never would
+const ended = [];
+let clipNo = 0;
 globalThis.Audio = class {
-  constructor() { this.paused = true; }
+  constructor() { this.paused = true; this.ended = false; }
+  set src(v) { this._src = v; this.left = 60; this.ended = false; this.no = ++clipNo; }
+  get src() { return this._src; }
   play() {
     if (this.src.startsWith("data:")) return Promise.resolve();
     heard.push([this.src, Date.now() - t0]);
     this.paused = false;
-    setTimeout(() => { this.paused = true; this.onended?.(); }, 60);
+    const from = Date.now();
+    this.timer = setTimeout(() => { this.paused = true; this.ended = true; ended.push(this.src); this.onended?.(); }, this.left);
+    if (process.argv[3] === "pause" && this.no === 3 && this.left === 60) {     // clip 1 is the unlock's silence
+      setTimeout(() => { clearTimeout(this.timer); this.left -= Date.now() - from; this.paused = true; this.onpause?.(); }, 20);
+    }
     return Promise.resolve();
   }
-  pause() { this.paused = true; this.onpause?.(); }
+  pause() { clearTimeout(this.timer); this.paused = true; this.onpause?.(); }
 };
 const { SentenceFeed, streamSpeak } = await import(process.argv[2]);
 const [mode, tokens] = [process.argv[3], JSON.parse(process.argv[4])];
@@ -30,9 +39,9 @@ if (mode === "feed") {
   console.log(JSON.stringify([...out, ...f.end()]));
 } else {
   const s = streamSpeak("it-IT");
-  let ended = 0;
+  let at = 0;
   for (const x of tokens) { s.push(x); await new Promise((r) => setTimeout(r, 15)); }
-  s.end(); ended = Date.now() - t0;
+  s.end(); at = Date.now() - t0;
   const r = await s.done;
-  console.log(JSON.stringify({ r, made, heard, ended }));
+  console.log(JSON.stringify({ r, made, heard, ended: at, whole: ended }));
 }

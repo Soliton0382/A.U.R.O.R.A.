@@ -144,6 +144,24 @@ async function fetchClip(say, lang) {
   return { url };
 }
 
+// The clip heard to its end. A pause the page did not ask for (stop() or a new answer change `turn`) is the phone's:
+// opening a microphone moves Android's sound to a call's route and pauses what plays (C349, owner 17 Oct: «quello che
+// dice in quel secondo e mezzo di silenzio non si sente») — played again from where it was, not taken for the end.
+export const RESUME_TRIES = 3, RESUME_MS = 400;
+function untilHeard(a, mine) {
+  return new Promise((ok) => {
+    let tries = 0;
+    a.onended = () => ok();
+    a.onpause = () => {
+      if (mine !== turn || a !== audio || a.ended || ++tries > RESUME_TRIES) { ok(); return; }
+      setTimeout(() => {
+        if (mine !== turn || a !== audio || a.ended) { ok(); return; }
+        a.play().catch(() => ok());
+      }, RESUME_MS);
+    };
+  });
+}
+
 // play() called at once, so a tap's permission is still there; the browser's refusal said by its name
 function playClip(url, keep = false) {
   if (!keep) stop();
@@ -189,7 +207,7 @@ async function serverSpeak(text, lang) {
     next = i + 1 < parts.length ? fetchClip(parts[i + 1], lang) : null;     // made while this one is heard
     const r = await playClip(c.url, true);
     if (r !== "ok") { queued = 0; return r; }
-    await new Promise((done) => { audio.onended = done; audio.onpause = done; });
+    await untilHeard(audio, mine);
     queued -= 1;
   }
   return "ok";
@@ -293,7 +311,7 @@ export function streamSpeak(lang) {
       if (c.err) return c.err;
       const r = await playClip(c.url, true);
       if (r !== "ok") return r;
-      const heard = new Promise((ok) => { audio.onended = ok; audio.onpause = ok; });
+      const heard = untilHeard(audio, mine);
       while (!queue.length && !ended && audio && !audio.paused) await Promise.race([heard, more()]);
       if (queue.length) ahead = fetchClip(take(), lang);
       await heard;

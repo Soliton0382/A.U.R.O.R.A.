@@ -10,7 +10,7 @@ import { viewLink } from "../viewer.js";
 import * as voice from "../voice.js";
 import { dietBubbles, dietCards } from "../diet.js";
 import { calendarBubbles } from "../calendar_alerts.js";
-import { dreamOf, makeRecorder, morningOf, shrink } from "./chat_media.js";
+import { dreamOf, makeRecorder, morningOf, preRoll, shrink } from "./chat_media.js";
 import { thinkMode } from "./chat_think.js";
 import { attachMenu, settingsMenu, showGear, source } from "./chat_menu.js";
 import { actions, quoteBox, quoted } from "./chat_actions.js";
@@ -140,7 +140,7 @@ export default {
         onEvent: (name, p) => {
           if (name === "route") mode = p.mode;
           if (name !== "synthesis.delta" || p.kind !== "answer" || mode !== "self") return;
-          if (!live) { watchVoice(); live = voice.streamSpeak(lang.replace("_", "-")); }
+          if (!live) { watchVoice(); live = voice.streamSpeak(lang.replace("_", "-")); if (talking) watchBarge(); }
           live.push(p.text);
         },
         finish: (final) => {
@@ -170,25 +170,41 @@ export default {
     };
 
     // 🗣️ a conversation (ROADMAP 99): the microphone opens again when her answer has been said; silence ends it
-    let talking = false;
-    const setTalking = (on) => { talking = on; conv.classList.toggle("talking", on); mic.title = t(on ? "chat.talk_on" : "chat.mic"); };
-    const listenAgain = async () => {                // when she has finished speaking (polled: speak() only queues)
-      let quiet = 0, over = () => {}, ear = null;
-      const done = () => { over(); ear?.getTracks().forEach((tr) => tr.stop()); ear = null; };
-      // barge-in (vad.js): the owner speaking over her stops her and opens the microphone, as with a person
-      try {
+    let talking = false, ear = null, barge = null;
+    // the conversation's one microphone, opened in its tap and closed at its end (C349): opening it again while she
+    // spoke moved the phone's sound to a call's route and cut her voice for a second and a half
+    const openEar = async () => {
+      if (!ear || ear.getAudioTracks().every((tr) => tr.readyState === "ended")) {
         ear = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
-        over = bargeIn(ear, () => {
-          clearInterval(poll);
-          done();
-          voice.stop();
-          if (talking && !mic.classList.contains("recording")) recordHere();
-        });
-      } catch { /* no microphone now: she finishes, then listens, as before */ }
+      }
+      return ear;
+    };
+    const stopBarge = () => { if (!barge) return; barge.off(); barge.pre.drop(); barge = null; };
+    const setTalking = (on) => {
+      talking = on; conv.classList.toggle("talking", on); mic.title = t(on ? "chat.talk_on" : "chat.mic");
+      if (!on) { stopBarge(); ear?.getTracks().forEach((tr) => tr.stop()); ear = null; }
+    };
+    // barge-in (vad.js) from her first word: the owner speaking over her stops her, and the recording goes on from
+    // the last second and a half before (preRoll), so their first words are in it
+    const watchBarge = () => {
+      if (barge || !talking || !ear) return;
+      const pre = preRoll(ear);
+      const off = bargeIn(ear, (floor) => {
+        const b = barge;
+        barge = null;
+        voice.stop();
+        if (talking && !mic.classList.contains("recording")) recordHere({ stream: ear, floor, ...b.pre.take() });
+        else b.pre.drop();
+      });
+      barge = { off, pre };
+    };
+    const listenAgain = () => {                      // when she has finished speaking (polled: speak() only queues)
+      let quiet = 0;
+      watchBarge();
       const poll = setInterval(() => {
-        if (!talking) { clearInterval(poll); done(); return; }
+        if (!talking || mic.classList.contains("recording")) { clearInterval(poll); return; }   // the barge-in took it
         quiet = voice.speaking() ? 0 : quiet + 1;
-        if (quiet >= 2) { clearInterval(poll); done(); recordHere(); }
+        if (quiet >= 2) { clearInterval(poll); stopBarge(); recordHere({ stream: ear }); }
       }, 300);
     };
     const heard = (r) => {
@@ -204,7 +220,7 @@ export default {
       if (talking) { setTalking(false); voice.stop(); return; }
       setTalking(true);
       voice.unlock();                                // during the tap: some phones speak only after one
-      if (!mic.classList.contains("recording")) recordHere();
+      if (!mic.classList.contains("recording")) openEar().then(() => recordHere({ stream: ear }), () => recordHere());
     };
     // 🎙️ asks which: a dictation, or a conversation hands-free (owner, 2026-10-14: «se ci clicco sopra scelgo microfono
     // o hands-free»); while one is on, the same tap stops it
