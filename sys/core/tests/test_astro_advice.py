@@ -6,6 +6,7 @@ Assistant's runs give the minimum moves, the person's choice judges the row, and
 is found before the night."""
 import json
 import math
+import time
 
 from aurora import ast_advice as V
 from aurora import ast_sequence as S
@@ -139,3 +140,12 @@ def test_a_value_only_the_person_knows_is_set_not_chosen():
     r = {x["key"]: x for x in rs}["mount_limit"]
     assert r["fact"] == "mount_limit_min" and r["src"] == "fact" and r["current"] == 15
     assert "choice" not in r and r["status"] == "ok"                                     # an old choice there is ignored
+
+
+def test_an_old_polar_alignment_says_nothing_of_tonight():
+    r = {x["key"]: x for x in V.advise(profile(), V.facts_of({}))}["polar"]
+    assert r["status"] == "unknown" and r["why"] == "polar_old" and r["n"]["when"] == "2026-01-01"
+    today = time.strftime("%Y-%m-%d")
+    night = [{"night": today, "sessions": [], "findings": [], "advice": {"pa_arcmin": 3.0}}]
+    r = {x["key"]: x for x in V.advise(profile(), V.facts_of({}), night)}["polar"]
+    assert r["status"] == "ok" and r["current"] == 3.0 and r["n"]["when"] == today       # tonight's log wins

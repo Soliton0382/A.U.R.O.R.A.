@@ -3682,7 +3682,7 @@ Italian and English forms are read); the debug logs (tens of MB) are not read.
 | the advice on a real inventory (N.I.N.A. 3.2, PHD2 2.6.14, three Guiding Assistant runs, two nights of logs, 15 darks) | 23 rows: 13 ✅, 7 ⚠️, 1 ❌ (the mount's meridian limit, from a night's log), 1 ❓ (the focuser's step, a fact not given) |
 | PHD2's calibration step by its own formula | 1050 ms advised, 1100 ms set: the formula and the setting agree within 5 % |
 | dither in guide pixels for 10 imaging pixels | 3.9 advised, 4 set |
-| 45 real N.I.N.A. sequences read | 3 found at an offset no current dark has (before the night) |
+| 45 real N.I.N.A. sequences read | 26 at an offset no current dark has (the ones made before the darks at offset 20), 1 at a gain none has, 1 without the flip trigger — before the night (first written «3»: C341) |
 | the tuner's reads on a real PHD2 2.6.14 over Wi-Fi (not guiding: no write) | 7 calls answered in 15–21 ms each; the minimum move found by name on both axes (Predictive PEC: minMove, predictiveWeight, reactiveWeight, periodLength; Resist Switch: minMove, fastSwitch, aggression) |
 | the advice with the values read live (PHD2 2.6.14 + N.I.N.A.'s active profile) | 13 of 23 rows from the programs now, the report in 0.23 s; after the owner's changes 17 ✅ 3 ⚠️ (two of them the max durations, not readable live: the inventory's older values) 1 ❌ 1 ❓; nothing of the site in the answer |
 | N.I.N.A.'s Advanced API 2.2.15.2 on the real PC over Wi-Fi (read only) | the 6 reads in 73 ms together; the mount parked drawn at the pole (counterweight down); nothing of the site in the answer kept (a test checks it). Seen on the way: the first call to port 1888 raised a «new port» incident on the network's firewall — rightly |

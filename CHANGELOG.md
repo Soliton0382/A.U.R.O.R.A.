@@ -2,6 +2,13 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.45 — 2026-10-16
+
+2 publications since v0.2.43.
+
+- 2026-10-16 Brain widget follows runs already open; polar alignment from the newest Guiding Assistant; sequence count corrected (C341, C342)
+- 2026-10-16 Astro: a value only the person knows is set in the table, not chosen; the meridian limit in degrees for OnStep
+
 ## v0.2.44 — 2026-10-16
 
 1 publications since v0.2.43.

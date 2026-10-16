@@ -2508,5 +2508,7 @@
   "aa.src.live": "read now from PHD2 or N.I.N.A.",
   "aa.src.inventory": "from the inventory (a snapshot of the PC)",
   "aa.src.measured": "measured (logs, Guiding Assistant)",
-  "aa.src.fact": "written by you in your facts"
+  "aa.src.fact": "written by you in your facts",
+  "aa.w.polar_old": "The latest Guiding Assistant measure: {when}. The mount is set up again each night, so it says nothing of tonight: after the polar alignment run the Guiding Assistant for at least 5 minutes, near the meridian and the celestial equator, and Aurora reads it from the log.",
+  "brain.reasoning": "reasons on what it read"
 }

@@ -2508,5 +2508,7 @@
   "aa.src.live": "letto adesso da PHD2 o N.I.N.A.",
   "aa.src.inventory": "dall'inventario (fotografia del PC)",
   "aa.src.measured": "misurato (log, Guiding Assistant)",
-  "aa.src.fact": "scritto da te nei tuoi dati"
+  "aa.src.fact": "scritto da te nei tuoi dati",
+  "aa.w.polar_old": "Ultima misura del Guiding Assistant: {when}. La montatura si rimonta ogni notte, quindi non dice niente di stasera: dopo l'allineamento polare lancia il Guiding Assistant per almeno 5 minuti, vicino al meridiano e all'equatore celeste, e Aurora lo legge dal log.",
+  "brain.reasoning": "ragiona su quello che ha letto"
 }

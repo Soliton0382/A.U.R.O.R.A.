@@ -202,10 +202,15 @@ def advise(profile: dict | None, facts: dict, nights: list[dict] | None = None, 
         rows.append(_row("backlash", "guiding", "phd2_algo", "on" if on else "off", f"on {med:g} ms" if agree and med > 100 else "—",
                          "", ("ok" if on else "warn") if agree and med > 100 else "info",
                          "backlash_agree" if agree else "backlash_scatter", reads=", ".join(f"{x:g}" for x in bl)))
+    # polar alignment: the latest Guiding Assistant, from the inventory or a night's log; a portable mount is set up
+    # again each night, so a measure older than POLAR_DAYS says nothing of tonight's
     pa = [(_f(r.get("pa_error")), r["when"]) for r in ga if _f(r.get("pa_error")) is not None]
+    pa += [(n["advice"]["pa_arcmin"], n["night"]) for n in nights or [] if (n.get("advice") or {}).get("pa_arcmin") is not None]
     if pa:
-        rows.append(_row("polar", "guiding", "measured", pa[-1][0], "≤ 5 (≤ 3)", "′", "ok" if pa[-1][0] <= 5 else "warn", "polar",
-                         when=pa[-1][1], drift=_r(pa[-1][0] * 60 * 2 * math.pi / 1436, 1)))
+        v, when = max(pa, key=lambda x: x[1])
+        old = (time.time() - time.mktime(time.strptime(when, "%Y-%m-%d"))) / 86400 > POLAR_DAYS
+        rows.append(_row("polar", "guiding", "measured", v, "≤ 5 (≤ 3)", "′", "unknown" if old else ("ok" if v <= 5 else "warn"),
+                         "polar_old" if old else "polar", when=when, drift=_r(v * 60 * 2 * math.pi / 1436, 1)))
     # ---- dither and settle -----------------------------------------------------------------------------------------
     if img and gscale:
         want = facts["dither_img_px"] * img / gscale
@@ -285,6 +290,8 @@ def advise(profile: dict | None, facts: dict, nights: list[dict] | None = None, 
             r["fact"], r["src"] = FACT_ROWS[r["key"]], "fact"
     return rows
 
+
+POLAR_DAYS = 3                  # a Guiding Assistant's polar alignment older than this: tonight's is not known
 
 # the rows whose current value is one of the person's facts: the table's box sets the fact itself
 FACT_ROWS = {"mount_limit": "mount_limit_min"}

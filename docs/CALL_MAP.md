@@ -691,7 +691,7 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | POST `/v1/aurora/ask` | `api/runs.py` | `script/bench_agi.py`, `script/bench_memory_days.py`, `script/bench_public.py`, `script/bench_quality.py`, `script/shadow_seed.py`, `script/svc_api.py`, `webui/js/modules/chat.js` |
 | POST `/v1/aurora/shadow/import` | `api/runs.py` | `script/shadow_seed.py` |
 | POST `/v1/aurora/acquire` | `api/runs.py` | `script/svc_api.py`, `webui/js/modules/chat.js` |
-| GET `/v1/aurora/runs` | `api/runs.py` | `script/bench_preflight.py`, `script/bench_repair.py`, `script/svc_api.py`, `webui/js/modules/bugreport.js`, `webui/js/modules/runs.js`, `webui/js/modules/social_video.js` |
+| GET `/v1/aurora/runs` | `api/runs.py` | `script/bench_preflight.py`, `script/bench_repair.py`, `script/svc_api.py`, `webui/js/modules/brain.js`, `webui/js/modules/bugreport.js`, `webui/js/modules/runs.js`, `webui/js/modules/social_video.js` |
 | GET `/v1/aurora/runs/{run_id}/events` | `api/runs.py` | `script/bench_agi.py`, `script/bench_memory_days.py`, `script/bench_quality.py`, `script/shadow_seed.py`, `script/svc_api.py`, `webui/js/api.js` |
 | GET `/v1/aurora/security/profile` | `api/security.py` | `webui/js/modules/security_watch.js` |
 | POST `/v1/aurora/security/learn` | `api/security.py` | `webui/js/modules/security.js` |

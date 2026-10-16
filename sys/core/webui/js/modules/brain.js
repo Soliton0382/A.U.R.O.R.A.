@@ -9,7 +9,7 @@
 // what she does by herself (dreams, harvest, the sentinel) in the brainstem — and a signal runs along the synapses from
 // the area of the step before. Only the names of the events are read, never what they carry. ▶ plays a typical
 // question when nothing is running; ⛶ fills the screen.
-import { followRun, stream } from "../api.js";
+import { call, followRun, stream } from "../api.js";
 import { el, useCss } from "../dom.js";
 import * as i18n from "../i18n.js";
 import { FISSURES, GYRI, LOBES, OUTLINE, VIEW } from "./brain_gray.js";
@@ -329,12 +329,18 @@ export default {
       }
       if (followed.size && last && ts - lastEvent > 1500 && ts - lastSustain > 450) {   // a long step: its area works on
         lastSustain = ts;
-        const mine = g.nodes.map((n, i) => [n, i]).filter(([n]) => n.area === last);
+        // a tool's answer back and silence: the model is reasoning on it (an agent writes its answer in one go)
+        const busy = last === "cerebellum" ? "frontal" : last;
+        const mine = g.nodes.map((n, i) => [n, i]).filter(([n]) => n.area === busy);
         for (let k = 0; k < 4 && mine.length; k++) mine[Math.floor(Math.random() * mine.length)][0].e = 0.85;
         const to = mine[Math.floor(Math.random() * mine.length)]?.[1];
-        const p = !calm && Math.random() < 0.5 ? path(g.adj, g.hubs[last], to) : null;
-        if (p && p.length > 1) pulses.push({ p, s: 0, rgb: AREAS[last].rgb });
-        if (!working) { working = true; now.textContent = `${AREAS[last].icon} ${t("brain.working")}`; }
+        const p = !calm && Math.random() < 0.5 ? path(g.adj, g.hubs[busy], to) : null;
+        if (p && p.length > 1) pulses.push({ p, s: 0, rgb: AREAS[busy].rgb });
+        if (!working) {
+          working = true;
+          for (const [k, c] of Object.entries(chips)) c.classList.toggle("on", k === busy);
+          now.textContent = `${AREAS[busy].icon} ${t(busy === last ? "brain.working" : "brain.reasoning")}`;
+        }
       }
       for (const n of g.nodes) n.e *= 0.965;
       for (const [i, j] of g.edges) {
@@ -375,23 +381,29 @@ export default {
     };
     raf = requestAnimationFrame(draw);
 
-    // what runs now: the activity feed (this person's own), each run followed to its end
+    // what runs now: the activity feed (this person's own), each run followed to its end. The feed starts «from now»:
+    // a run begun before the widget opened, or while the feed was away (the API restarted), is found in the open runs
     const stop = new AbortController();
+    const follow = (id) => {
+      if (!id || followed.has(id)) return;
+      followed.add(id);
+      onEvent("run.begin");
+      followRun(id, (e) => onEvent(e.event)).catch(() => { /* the run is gone */ }).finally(() => followed.delete(id));
+    };
+    const catchUp = () => call("/v1/aurora/runs").then((rs) => rs.filter((r) => !r.done).forEach((r) => follow(r.id)))
+      .catch(() => { /* not now: the feed will say */ });
     (async () => {
-      for (let attempt = 0; !stop.signal.aborted; attempt++) {
+      for (let attempt = 0; !stop.signal.aborted;) {
+        const since = performance.now();
+        catchUp();
         try {
           await stream("/v1/aurora/activity/stream", (a) => {
-            if (a.event === "run.begin" && a.payload?.run_id && !followed.has(a.payload.run_id)) {
-              followed.add(a.payload.run_id);
-              onEvent("run.begin");
-              followRun(a.payload.run_id, (e) => onEvent(e.event)).catch(() => { /* the run is gone */ })
-                .finally(() => followed.delete(a.payload.run_id));
-            } else if (!a.event.startsWith("run.")) {
-              onEvent(a.event.includes(".") ? a.event : `${a.source}.${a.event}`);
-            }
+            if (a.event === "run.begin" && a.payload?.run_id) follow(a.payload.run_id);
+            else if (!a.event.startsWith("run.")) onEvent(a.event.includes(".") ? a.event : `${a.source}.${a.event}`);
           }, stop.signal);
         } catch { /* closed or away: again in a moment */ }
-        if (!stop.signal.aborted) await new Promise((r) => setTimeout(r, Math.min(15000, 2000 * (attempt + 1))));
+        attempt = performance.now() - since > 30000 ? 0 : attempt + 1;   // a feed that held: the next try at once
+        if (!stop.signal.aborted) await new Promise((r) => setTimeout(r, Math.min(15000, 1000 * attempt)));
       }
     })();
 
