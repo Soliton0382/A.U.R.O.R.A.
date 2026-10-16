@@ -131,4 +131,12 @@ out["boss"]["oauth_saved"] = "AURORA_TIKTOK_REFRESH_TOKEN=rt-good" in _uc.env_pa
 out["guest"]["oauth_saved"] = _uc.env_path(base, "guest").exists() and "rt-good" in _uc.env_path(base, "guest").read_text()
 out["guest"]["oauth_machine"] = "rt-good" in (root / ".env").read_text()
 out["guest"]["theme_bad"] = client.put("/v1/aurora/me/prefs", headers=H["guest"], json={"theme": "x;}body{"}).status_code
+# the machine's health: the admin sees its items, a user only its level (17 Oct)
+import time as _t  # noqa: E402
+from aurora.api import activity as _act  # noqa: E402
+_act._health_cache.update(at=_t.time(), value={"level": "warn", "items": [{"name": "backup", "text": "/mnt/x"}],
+                                               "problems": ["backup"], "checked": "now"})
+for who in ("boss", "guest"):
+    h = get(who, "/v1/aurora/health").json()
+    out[who]["health"] = [h["level"], len(h["items"]), len(h["problems"])]
 print(json.dumps(out))

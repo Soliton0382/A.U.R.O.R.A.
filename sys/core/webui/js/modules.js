@@ -83,3 +83,5 @@ export const groups = [
 // the machine's pages (owner, 2026-10-06, multi-user): a user sees neither them in the menu nor their data (the API
 // answers 403); their own preferences are in 👥 Users → My account, their plugins' settings in the plugins' cards
 export const adminOnly = new Set(["firewalls", "edge", "security", "ciso", "firewall", "aurorafw", "secdefence", "secwatch", "secout", "sectrace", "models", "harvester", "synapses", "status", "updates", "settings", "import", "https"]);
+// a page may say it is the admin's alone (adminOnly: true), e.g. an installation's own pages about the house
+for (const v of views) if (v.adminOnly) adminOnly.add(v.id);

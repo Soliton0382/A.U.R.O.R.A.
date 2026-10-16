@@ -128,10 +128,16 @@ def video_status() -> dict:
 
 @router.get("/v1/aurora/health", dependencies=[Depends(auth)])
 def health_all() -> dict:
+    """The machine's health; to a user who is not the admin only its level (owner, 17 Oct: «verifica la vista di un utente
+    normale»: the backup's NAS path, the GPUs and the code's files are the machine's, not theirs)."""
     from aurora import sys_health
+    from .core import _admin
     if time.time() - _health_cache["at"] > 10:
         _health_cache.update(at=time.time(), value=sys_health.check(cfg))
-    return _health_cache["value"]
+    v = _health_cache["value"]
+    if me() != _admin():
+        return {"level": v.get("level"), "items": [], "problems": [], "checked": v.get("checked")}
+    return v
 
 
 @router.get("/v1/aurora/answers/stats", dependencies=[Depends(auth)])

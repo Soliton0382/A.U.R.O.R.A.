@@ -101,7 +101,7 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `api` | `api.users`, `script/bench_router.py`, `script/svc_api.py` | 2 |
 | `api.access` | `api (MODULES)` | 0 |
 | `api.accounts` | `api (MODULES)` | 0 |
-| `api.activity` | `api (MODULES)`, `api.core`, `api.rem`, `api.social`, `script/svc_api.py` | 0 |
+| `api.activity` | `api (MODULES)`, `api.core`, `api.rem`, `api.social`, `script/svc_api.py` | 1 |
 | `api.agents` | `api (MODULES)`, `api.core`, `api.core_route`, `api.projects_plan`, `api.rem`, `api.routines`, `api.social`, `api.updates` | 0 |
 | `api.astro` | `api (MODULES)`, `api.routines` | 0 |
 | `api.autonomy` | `api (MODULES)` | 0 |

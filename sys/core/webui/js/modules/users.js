@@ -35,10 +35,11 @@ export default {
       const f = ev.target;
       try {
         await call("/v1/aurora/users", { method: "POST", body: JSON.stringify({ name: f.name.value.trim(), person: f.person.value.trim(), password: f.password.value }) });
-        out.textContent = t("users.added", { name: f.name.value.trim() });
+        const added = f.name.value.trim();
+        out.textContent = t("users.added", { name: added });
         out.className = "result add-out";
         f.reset();
-        this.loadUsers();
+        await this.loadUsers(added);
       } catch (e) { out.textContent = t("ev.error", { m: e.message }); out.className = "result add-out error"; }
     });
   },
@@ -163,7 +164,9 @@ export default {
     box.append(form, shown);
   },
 
-  async loadUsers() {
+  // added: the user just created — the list is above the form, off a phone's screen: scrolled to and lit (owner, 17 Oct:
+  // «la pagina non si è ricaricata per mostrarmi il nuovo utente»)
+  async loadUsers(added = null) {
     const { users, admin } = await call("/v1/aurora/users");
     const table = el("table", "table");
     const head = el("tr");
@@ -200,8 +203,10 @@ export default {
       tr.append(el("td", "", u.name), el("td", "", t(`users.role.${u.role}`)), el("td", "", u.totp_on ? "✅" : "—"),
         el("td", "", String(u.files)), el("td", "", String(u.devices)), acts);
       table.append(tr);
+      if (u.name === added) tr.classList.add("just-added");
     }
     this.list.replaceChildren(table);
+    table.querySelector(".just-added")?.scrollIntoView({ behavior: "smooth", block: "center" });
     this.loadPerms();
   },
 

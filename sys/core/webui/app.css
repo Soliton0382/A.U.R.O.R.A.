@@ -92,6 +92,8 @@ body.drawer-open .scrim { opacity: 1; pointer-events: auto; }
 .table { width: 100%; border-collapse: collapse; }
 .table td, .table th { border-bottom: 1px solid var(--line); padding: .45rem .4rem; text-align: left; vertical-align: top; }
 .table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+tr.just-added td { animation: just-added 2.4s ease-out; }   /* the user just added, lit a moment (users.js) */
+@keyframes just-added { from { background: color-mix(in srgb, var(--accent, #4a90e2) 35%, transparent); } to { background: transparent; } }
 .table tr.total td { font-weight: 600; }
 /* a phone: a data table is a pile of cards, each cell named by its column (js/stack.js) */
 @media (max-width: 640px) {

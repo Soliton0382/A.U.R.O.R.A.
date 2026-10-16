@@ -40,6 +40,7 @@ def test_guest_never_sees_boss_s_things(cfg):
     assert boss["welcomed"] is True and guest["welcomed"] is False                     # 107: once per person
     assert boss["prefs"] == {"style": "essenziale", "theme": "foresta", "pins": ["dreams", "models"]} and guest["prefs"] == {}
     assert guest["prefs_bad"] == 422 and guest["theme_bad"] == 422
+    assert boss["health"] == ["warn", 1, 1] and guest["health"] == ["warn", 0, 0]          # the machine's details: the admin's
     assert guest["oauth_start"] == 409 and guest["oauth_finish"] == 403 and boss["oauth_no_keys"] == 409   # his own keys; not boss's sign-in
     assert boss["oauth_scope"] == "user.info.basic,video.publish"                       # no scope the plugin does not use
     assert boss["oauth_forged"] == 409 and boss["oauth_again"] == 409                   # a state Aurora gave, once
