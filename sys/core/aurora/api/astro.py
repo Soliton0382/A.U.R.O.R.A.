@@ -178,6 +178,14 @@ def astro_nina() -> dict:
     return {**ast_nina.status(name), "lat": round(lat) if isinstance(lat, (int, float)) else None}
 
 
+@router.get("/v1/aurora/astro/nina/mount", dependencies=[Depends(auth)])
+def astro_nina_mount() -> dict:
+    """Only where the mount points, for the drawing that follows it every second (ast_nina.where)."""
+    from aurora import ast_nina
+    name, _ = _host()
+    return ast_nina.where(name) if name else {"reachable": False, "error": "no address"}
+
+
 def autoguide_again() -> dict | None:
     """The person's tuner as their setup says (started again after a restart by the routines' tick); its state."""
     from aurora import ast_advice as V, ast_autoguide as T, ast_inventory as A, sys_context

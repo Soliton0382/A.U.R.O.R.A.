@@ -97,6 +97,25 @@ def sequence(s) -> dict:
     return {"running": running[-4:], "active": bool(running)}
 
 
+WHERE_S = 0.4                                     # the mount alone, asked every second by the drawing (one call, ~0.1 s)
+
+
+def where(host: str, port: int = PORT) -> dict:
+    """Only where the mount points (the drawing follows it every second; the rest every few): the site dropped."""
+    key = ("where", host, port)
+    with _lock:
+        hit = _cache.get(key)
+        if hit and time.time() - hit[0] < WHERE_S:
+            return hit[1]
+    try:
+        out = {"reachable": True, "mount": mount(_get(f"http://{host}:{port}/v2/api", "/equipment/mount/info", 2.0))}
+    except (OSError, ValueError, RuntimeError, AttributeError, urllib.error.URLError) as e:
+        out = {"reachable": False, "error": str(getattr(e, "reason", e))[:160]}
+    with _lock:
+        _cache[key] = (time.time(), out)
+    return out
+
+
 def status(host: str, port: int = PORT) -> dict:
     """The picture: mount, camera, focuser, guider, sequence; each part on its own (one that fails says why)."""
     key = (host, port)

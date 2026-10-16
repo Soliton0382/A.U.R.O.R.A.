@@ -526,6 +526,7 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | PUT `/v1/aurora/astro/imaging` | `api/astro.py` | `webui/js/modules/astro_imaging.js` |
 | GET `/v1/aurora/astro/live` | `api/astro.py` | `webui/js/modules/astro_live.js` |
 | GET `/v1/aurora/astro/nina` | `api/astro.py` | `webui/js/modules/astro_mount.js` |
+| GET `/v1/aurora/astro/nina/mount` | `api/astro.py` | `webui/js/modules/astro_mount.js` |
 | GET `/v1/aurora/astro/autoguide` | `api/astro.py` | `webui/js/modules/astro_tuner.js` |
 | PUT `/v1/aurora/astro/autoguide` | `api/astro.py` | `webui/js/modules/astro_tuner.js` |
 | GET `/v1/aurora/autonomy` | `api/autonomy.py` | `webui/js/modules/autonomy.js`, `webui/js/modules/autonomy_box.js` |
@@ -782,4 +783,4 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | GET `/v1/aurora/tts` | `api/voice.py` | `webui/js/voice.js` |
 | POST `/v1/aurora/tts` | `api/voice.py` | `webui/js/voice.js` |
 
-Modules nobody in the code imports: 0; routes nobody in the repository names: 4 of 311.
+Modules nobody in the code imports: 0; routes nobody in the repository names: 4 of 312.

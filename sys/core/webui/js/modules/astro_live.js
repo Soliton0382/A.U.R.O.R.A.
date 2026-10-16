@@ -102,11 +102,13 @@ export function liveTab(box, imagingScale) {
     start() { if (!timer) { tick(); timer = setInterval(() => {
       // only while the tab is in sight: another page or tab, and nobody asks (the server stops its watcher by itself)
       if (document.visibilityState === "visible" && box.offsetParent !== null) {
-        tick();
-        if (++ticks % 5 === 0) tuner.refresh();                // the tuner's state every 10 s
-        if (ticks % 2 === 0) mount.refresh();                  // where the mount points every 4 s
+        ++ticks;
+        if (ticks % 2 === 0) tick();                           // PHD2 every 2 s
+        if (ticks % 10 === 0) tuner.refresh();                 // the tuner's state every 10 s
+        if (ticks % 4 === 0) mount.refresh();                  // camera, focuser, guider, sequence every 4 s
+        else mount.where();                                    // where the mount points every second (owner, 17 Oct)
       }
-    }, 2000); } },
+    }, 1000); } },
     stop() { clearInterval(timer); timer = null; },
   };
 }

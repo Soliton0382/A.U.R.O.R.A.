@@ -60,3 +60,12 @@ def test_the_hour_angle_and_an_unreachable_pc():
     assert N.ha_of(1.0, 23.0) == 2.0 and N.ha_of(23.0, 1.0) == -2.0 and N.ha_of(None, 1.0) is None
     s = N.status("127.0.0.1", 9)                      # nothing listens there
     assert not s["reachable"] and s["error"] and "mount" not in s
+
+
+def test_the_mount_alone_every_second_without_the_site():
+    srv = serve()
+    w = N.where("127.0.0.1", srv.server_address[1])
+    assert w["reachable"] and set(w) == {"reachable", "mount"} and w["mount"]["ha_h"] == 1.75   # one call, the mount only
+    assert "41.12" not in json.dumps(w) and "Site" not in json.dumps(w)
+    srv.shutdown()
+    assert not N.where("127.0.0.1", 9)["reachable"]

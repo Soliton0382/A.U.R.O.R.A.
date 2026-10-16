@@ -52,6 +52,37 @@ export function mountBox(box) {
     <ul class="am-lines"></ul>`;
   box.querySelectorAll("[data-i18n]").forEach((e) => { e.textContent = t(e.dataset.i18n); });
   const draw3d = mount3d(box.querySelector(".am-mount"));
+  // the drawing moves smoothly to each new position (asked every second): from what is shown to what was read, in
+  // ~1 s; the hour angle the short way round; a flip (the other side of the pier) is shown at once
+  let shown = null, goal = null, lat = 45, t0 = 0, raf = 0;
+  const KEYS = ["ha_h", "dec_deg", "alt_deg", "az_deg"];
+  const step = (now) => {
+    const k = Math.min(1, (now - t0) / 950);
+    const m = { ...goal };
+    for (const key of KEYS) {
+      if (shown[key] == null || goal[key] == null) continue;
+      let d = goal[key] - shown[key];
+      if (key === "ha_h") d = ((d + 36) % 24) - 12;
+      if (key === "az_deg") d = ((d + 540) % 360) - 180;
+      m[key] = shown[key] + d * k;
+    }
+    draw3d(m, lat);
+    drawSky(box.querySelector(".am-sky"), m);
+    if (k < 1) raf = requestAnimationFrame(step); else { shown = m; raf = 0; }
+  };
+  const moveTo = (m) => {
+    if (raf) { cancelAnimationFrame(raf); raf = 0; }
+    if (!shown || shown.pier !== m.pier || !m.connected) { shown = goal = m; draw3d(m, lat); drawSky(box.querySelector(".am-sky"), m); return; }
+    if (KEYS.every((k) => shown[k] === m[k]) && shown.tracking === m.tracking && shown.slewing === m.slewing) return;   // still: no redraw
+    goal = m;
+    t0 = performance.now();
+    raf = requestAnimationFrame(step);
+  };
+  const where = async () => {
+    let d;
+    try { d = await call("/v1/aurora/astro/nina/mount"); } catch { return; }
+    if (d.reachable && d.mount) moveTo(d.mount);
+  };
   const refresh = async () => {
     let d;
     try { d = await call("/v1/aurora/astro/nina"); } catch (e) { box.querySelector(".am-state").textContent = e.message; return; }
@@ -61,8 +92,8 @@ export function mountBox(box) {
     const what = m.parked ? t("am.parked") : m.slewing ? t("am.slewing") : m.tracking ? t("am.tracking") : t("am.stopped");
     st.textContent = `${what} · RA ${f(m.ra_h, 2)} h · Dec ${f(m.dec_deg)}° · ${t("am.ha")} ${f(m.ha_h, 2)} h · ${t("am.alt")} ${f(m.alt_deg)}° · ` +
       `${t("am.pier")} ${t(`am.pier.${m.pier || "unknown"}`)}${m.flip_h != null ? ` · ${t("am.flip", { m: Math.round(m.flip_h * 60) })}` : ""}`;
-    draw3d(m, d.lat ?? 45);
-    drawSky(box.querySelector(".am-sky"), m);
+    lat = d.lat ?? 45;
+    moveTo(m);
     const c = d.camera || {}, fo = d.focuser || {}, gu = d.guider || {}, sq = d.sequence || {};
     box.querySelector(".am-lines").replaceChildren(
       el("li", "", `📷 ${c.name || "—"}: ${c.state || "—"} · ${f(c.temp_c)} °C → ${f(c.target_c)} °C${c.cooler ? ` (${f(c.power, 0)}%)` : ` · ${t("am.cooler_off")}`} · gain ${c.gain ?? "—"} / offset ${c.offset ?? "—"}`),
@@ -71,5 +102,5 @@ export function mountBox(box) {
       el("li", "", `🗂️ ${t("am.sequence")}: ${sq.active ? sq.running.join(" › ") : t("am.idle")}`));
   };
   refresh();
-  return { refresh };
+  return { refresh, where };
 }
