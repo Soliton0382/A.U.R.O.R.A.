@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 A.U.R.O.R.A. Project
-// ☀️ Oggi, the first page of the Essenziale and Misto styles (ROADMAP 107): a box to ask, and a few big tiles — the
+// ☀️ Oggi, the first page of every style (ROADMAP 107; Completo too since 17 Oct): a box to ask, and a few big tiles — the
 // day's agenda, the house's switches, what waits for you, last night's dream, and whether all is well. Each tile asks
 // its own API and stays out when it has nothing (no calendar, no house, a user without the machine's health).
 import { call } from "../api.js";
@@ -9,6 +9,7 @@ import { el } from "../dom.js";
 import { apply, t } from "../i18n.js";
 
 const SWITCHES = new Set(["light", "switch", "fan", "input_boolean"]);
+const NEWS_PX_S = 250;                                    // the headlines' speed, pixels a second
 
 export default {
   id: "today",
@@ -38,9 +39,9 @@ export default {
     this.root.querySelector(".td-date").textContent = now.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
     const h = now.getHours();
     this.root.querySelector(".td-hello").textContent = t(h < 13 ? "today.morning" : h < 18 ? "today.afternoon" : "today.evening");
+    this.news().catch(() => {});                          // at once, not after the slowest tile (owner, 17 Oct)
     const made = await Promise.all([this.agenda(), this.research(), this.house(), this.waiting(), this.dream(), this.health()].map((p) => p.catch(() => null)));
     this.tiles.replaceChildren(...made.filter(Boolean));
-    this.news().catch(() => {});
   },
 
   // the day's headlines in a strip that scrolls (owner, 2026-10-16: «in scorrimento… aggiornate ogni 3 ore»);
@@ -65,8 +66,9 @@ export default {
     view.append(track);
     box.replaceChildren(el("span", "td-news-label", `📰 ${t("today.news")}`), view);
     box.hidden = false;
-    // a steady speed whatever the number of headlines (owner, 2026-10-16: 16 in 112 s «sembrano ferme», then «leggermente più veloci», «ancora un pochino»): ~170 px a second
-    requestAnimationFrame(() => track.style.setProperty("--td-news-s", `${Math.max(20, Math.round(track.scrollWidth / 2 / 170))}s`));
+    // a steady speed whatever the number of headlines (owner, 2026-10-16: 16 in 112 s «sembrano ferme», then «leggermente
+    // più veloci», «ancora un pochino»; 17 Oct at 170 px/s «ancora troppo lente»): ~250 px a second
+    requestAnimationFrame(() => track.style.setProperty("--td-news-s", `${Math.max(15, Math.round(track.scrollWidth / 2 / NEWS_PX_S))}s`));
   },
 
   // the last report of the research routines, with its PDF (owner, 2026-10-16: «le novità della ricerca… in Oggi»)

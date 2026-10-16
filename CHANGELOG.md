@@ -2,6 +2,16 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.48 — 2026-10-17
+
+5 publications since v0.2.43.
+
+- 2026-10-17 WebUI: Oggi first, the page kept after a reload, faster headlines (C343)
+- 2026-10-16 Astro: frames from the NAS share, read only (N29 phase 1)
+- 2026-10-16 Astro: the imaging sets from the sensor and the sky measured on the person's own frames (N28)
+- 2026-10-16 Brain widget follows runs already open; polar alignment from the newest Guiding Assistant; sequence count corrected (C341, C342)
+- 2026-10-16 Astro: a value only the person knows is set in the table, not chosen; the meridian limit in degrees for OnStep
+
 ## v0.2.47 — 2026-10-17
 
 4 publications since v0.2.43.

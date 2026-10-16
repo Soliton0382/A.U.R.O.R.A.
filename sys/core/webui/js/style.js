@@ -60,8 +60,9 @@ function save(change) {
 }
 
 // the first page: Oggi for the two styles that have it, the chat for Completo (as before)
-export function home(isAdmin) {
-  return current(isAdmin) === "completo" ? "chat" : "today";
+// Oggi first in every style (owner, 17 Oct: «quando apro Aurora non mi porta nella giornata oggi»); the chat is a tap away
+export function home() {
+  return "today";
 }
 
 export function pins() {

@@ -184,9 +184,12 @@ function adminNav() {
   tidyNav();
 }
 
+const SHOWN = "aurora.view";                         // the page shown, for this tab only (a fresh open starts at home)
+
 async function show(id) {
   if (!isAdmin && adminOnly.has(id)) id = "chat";
   current = id;
+  try { sessionStorage.setItem(SHOWN, id); } catch { /* private mode: home after a reload */ }
   drawer(false);
   document.querySelectorAll("#nav button[data-view]").forEach((b) => b.classList.toggle("active", b.dataset.view === id));
   document.querySelectorAll("#nav .nav-group").forEach((g) => {        // the shown page's area stays open
@@ -316,7 +319,11 @@ async function start() {
   if (!started) { for (const w of widgets) w.enter?.(); started = true; }
   const asked = new URLSearchParams(location.search).get("view");
   if (await oauthBack()) return;
-  show(current || (asked && byId[asked] ? asked : styleHome(isAdmin)));
+  // after a reload — a new version of the WebUI (controllerchange), the phone freeing the page in the background — the
+  // page that was open, not the home (owner, 17 Oct: «dopo qualche secondo… mi porta nella chat»)
+  let kept = null;
+  try { kept = sessionStorage.getItem(SHOWN); } catch { /* none */ }
+  show(current || (asked && byId[asked] ? asked : kept && byId[kept] ? kept : styleHome(isAdmin)));
   if (m && !m.welcomed) welcome(m, show);              // the first run's five screens, once per person (107)
 }
 
