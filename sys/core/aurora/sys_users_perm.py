@@ -10,6 +10,8 @@ Three kinds of thing:
             (the settings of scope «user»), their autonomy (sys_autonomy's may_choose, kept there);
   always    a user's own data: their chat, memory (forget included), calendar, notes, files — never taken away.
 Kept in <STATUS>/users/permissions.json: {"areas": {user: {area: bool}}}; absent means the area's default.
+And each user's daily ceiling on the cloud (owner, 17 Oct: a friend on the owner's subscription, «così almeno evito di
+rimanere a secco»): {"cloud": {user: tokens a day}}, every cloud provider counted, the subscription too; 0 = none.
 """
 from __future__ import annotations
 
@@ -69,7 +71,27 @@ def set_(cfg: sys_config.Config, user: str, area: str, allowed: bool) -> dict:
     return p
 
 
+def cloud_cap(cfg: sys_config.Config, user: str | None) -> int:
+    """A user's tokens a day on the cloud, the admin's choice (0: no ceiling; the admin is never given one)."""
+    return int(load(cfg).get("cloud", {}).get(user or "", 0)) if user else 0
+
+
+def set_cloud(cfg: sys_config.Config, user: str, tokens: int) -> dict:
+    if not 0 <= int(tokens) <= 100_000_000:
+        raise ValueError("tokens a day: 0-100,000,000 (0 = no ceiling)")
+    with _lock:
+        p = load(cfg)
+        p.setdefault("cloud", {})[user] = int(tokens)
+        f = _file(cfg)
+        f.parent.mkdir(parents=True, exist_ok=True)
+        tmp = f.with_suffix(".tmp")
+        tmp.write_text(json.dumps(p, indent=1), encoding="utf-8")
+        os.replace(tmp, f)
+    return p
+
+
 def table(cfg: sys_config.Config, users: list[str], admin: str | None) -> dict:
-    """For the Users page: every user's areas, the fixed admin-only list."""
+    """For the Users page: every user's areas and cloud ceiling, the fixed admin-only list."""
     return {"areas": list(AREAS), "admin_only": list(ADMIN),
-            "users": {u: {a: may(cfg, u, a, admin) for a in AREAS} for u in users if u != admin}}
+            "users": {u: {a: may(cfg, u, a, admin) for a in AREAS} for u in users if u != admin},
+            "cloud": {u: cloud_cap(cfg, u) for u in users if u != admin}}

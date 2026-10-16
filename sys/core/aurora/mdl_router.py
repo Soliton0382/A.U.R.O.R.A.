@@ -570,6 +570,11 @@ class Fallback:
         """Each piece passed on as it comes (C344: the whole answer was gathered first, so the chat «streamed» it all
         at the end and nothing could be spoken while written). A failure before the first piece: the local model, as
         if nothing happened; after some: said, and the local model answers whole (what was shown cannot be taken back)."""
+        from . import mdl_budget
+        if self.cfg is not None and mdl_budget.over(self.cfg, self.provider):    # today's ceiling (the user's too)
+            yield from self.local.stream(*a, **k)
+            self.last_speed = getattr(self.local, "last_speed", None)
+            return
         given = False
         try:
             for piece in self.primary.stream(*a, **k):

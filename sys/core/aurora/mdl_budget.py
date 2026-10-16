@@ -56,8 +56,13 @@ def record(cfg: sys_config.Config, provider: str, usage: dict) -> int:
     """Add a call's tokens to today's total of `provider`; returns the new total."""
     n = tokens_of(usage)
 
+    from . import sys_context
+    who = sys_context.user()
+
     def add(d):
         d.setdefault("tokens", {})[provider] = d.get("tokens", {}).get(provider, 0) + n
+        if who:                                          # each user's day, every provider: their ceiling (17 Oct)
+            d.setdefault("users", {})[who] = d.get("users", {}).get(who, 0) + n
         d.setdefault("calls", {})[provider] = d.get("calls", {}).get(provider, 0) + 1
         now = time.time()                               # the last minute's calls, for a per-minute limit
         d.setdefault("recent", {})[provider] = [t for t in d.get("recent", {}).get(provider, []) if now - t < 60] + [now]
@@ -131,9 +136,30 @@ def today(cfg: sys_config.Config) -> dict:
         return {}
 
 
+def user_over(cfg: sys_config.Config, d: dict | None = None) -> bool:
+    """The user of this request has spent their day on the cloud (sys_users_perm.cloud_cap): said once a day."""
+    from . import sys_context, sys_users_perm
+    who = sys_context.user()
+    cap = sys_users_perm.cloud_cap(cfg, who)
+    if not cap:
+        return False
+    d = today(cfg) if d is None else d
+    spent = d.get("users", {}).get(who, 0)
+    if spent < cap:
+        return False
+    if who not in d.get("users_stopped", []):
+        _update(cfg, lambda x: x.setdefault("users_stopped", []).append(who) if who not in x.get("users_stopped", []) else None)
+        sys_log.get_logger("llm_client").warning("%s: their daily cloud ceiling is reached (%d of %d tokens): the local "
+                                                 "model until tomorrow", who, spent, cap)
+        sys_log.trace("llm_client", "cloud.user_budget", {"user": who, "spent": spent, "cap": cap})
+    return True
+
+
 def over(cfg: sys_config.Config, provider: str) -> bool:
     """True when a provider paid by the token has spent today's ceiling (said once a day in the log and the trace)."""
     d = today(cfg)
+    if user_over(cfg, d):                               # this user's own ceiling, the admin's choice
+        return True
     why = free_reason(cfg, provider, d)
     if why:                                             # the free tier the owner chose to stay in: the local model
         sys_log.trace("llm_client", "cloud.free_limit", {"provider": provider, "limit": why})

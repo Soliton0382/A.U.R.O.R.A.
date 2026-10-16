@@ -131,6 +131,11 @@ out["boss"]["oauth_saved"] = "AURORA_TIKTOK_REFRESH_TOKEN=rt-good" in _uc.env_pa
 out["guest"]["oauth_saved"] = _uc.env_path(base, "guest").exists() and "rt-good" in _uc.env_path(base, "guest").read_text()
 out["guest"]["oauth_machine"] = "rt-good" in (root / ".env").read_text()
 out["guest"]["theme_bad"] = client.put("/v1/aurora/me/prefs", headers=H["guest"], json={"theme": "x;}body{"}).status_code
+# a user's cloud ceiling: the admin's to set, never the user's own, never the admin's (17 Oct)
+out["guest"]["cloud_set"] = client.put("/v1/aurora/users/cloud", headers=H["guest"], json={"user": "guest", "tokens": 10**9}).status_code
+out["boss"]["cloud_set"] = client.put("/v1/aurora/users/cloud", headers=H["boss"], json={"user": "guest", "tokens": 200000}).json()["cloud"]
+out["boss"]["cloud_self"] = client.put("/v1/aurora/users/cloud", headers=H["boss"], json={"user": "boss", "tokens": 5}).status_code
+out["boss"]["cloud_list"] = {u["name"]: u["cloud_cap"] for u in get("boss", "/v1/aurora/users").json()["users"]}
 # the machine's health: the admin sees its items, a user only its level (17 Oct)
 import time as _t  # noqa: E402
 from aurora.api import activity as _act  # noqa: E402

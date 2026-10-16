@@ -3748,3 +3748,17 @@ the conversation route with nothing remembered (`remember: false, tools: true`);
 The knowledge route is still spoken when final (its verification may take sentences out). Where the time goes now: the
 model's thinking (~4 s) and the memories (~2.5 s) before the first word. Not measured: a phone's network, the turn timed
 end to end on a phone, the device's own voices speaking a stream.
+
+## M232 — what a question costs on the cloud (17 October 2026; a user's own ceiling)
+
+The day's cloud calls read back from the trace (`cloud.call`, the provider's own usage: input + cache writes + output).
+
+| what | measured |
+|---|---|
+| cloud calls in the day (the subscription, one model) | 258, 2.23 M tokens |
+| a call | median 9.8 k tokens, p90 12.9 k, the largest 52.9 k |
+| calls a question | ≈ 1.5 (258 calls over 148 answers and 19 agent runs) |
+| **a question** | **≈ 15 k tokens**: a ceiling of 300 k a day ≈ 20 questions |
+
+Not measured: a question of the agent alone (heavier: tools and several turns); the subscription's own window, which
+counts its usage in its own way — the tokens are Aurora's measure, not the provider's limit.

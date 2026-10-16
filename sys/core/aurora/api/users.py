@@ -249,12 +249,15 @@ def my_key_revoke(key_id: str) -> dict:
 # ---- the admin's Users page ---------------------------------------------------------------------------------------
 @router.get("/v1/aurora/users", dependencies=[Depends(admin_only)])
 def users_list() -> dict:
+    from aurora import mdl_budget, sys_users_perm
     base = BASE.base or BASE
+    used = mdl_budget.today(base).get("users", {})       # each user's cloud tokens today, every provider
     out = []
     for u in _users().list():
         home = sys_users_layout.usr_home(base, u["name"])
         out.append({**u, "files": sum(1 for p in home.rglob("*") if p.is_file()) if home.exists() else 0,
-                    "devices": sum(1 for d in devices.list() if d.get("user") == u["name"])})
+                    "devices": sum(1 for d in devices.list() if d.get("user") == u["name"]),
+                    "cloud_cap": sys_users_perm.cloud_cap(base, u["name"]), "cloud_today": used.get(u["name"], 0)})
     return {"users": out, "admin": _admin(), "mode": str(cfg["AURORA_USER_MODE"])}
 
 
@@ -277,6 +280,25 @@ async def users_permission_set(request: Request) -> dict:
     except KeyError:
         raise HTTPException(status_code=422, detail="area: one of routines, settings, autonomy") from None
     log.info("audit: %s may%s manage their %s", user, "" if body.get("allowed") else " not", area)
+    return sys_users_perm.table(BASE, [u["name"] for u in _users().list()], _admin())
+
+
+@router.put("/v1/aurora/users/cloud", dependencies=[Depends(admin_only)])
+async def users_cloud_set(request: Request) -> dict:
+    """{"user", "tokens"}: a user's tokens a day on the cloud, every provider and the subscription (0: no ceiling);
+    the admin's own use is never capped here."""
+    from aurora import sys_users_perm
+    body = await request.json()
+    user = str(body.get("user", ""))
+    if not _users().by_name(user):
+        raise HTTPException(status_code=404, detail="no such user")
+    if user == _admin():
+        raise HTTPException(status_code=422, detail="the admin has no ceiling of their own")
+    try:
+        sys_users_perm.set_cloud(BASE, user, int(body.get("tokens", 0)))
+    except (TypeError, ValueError) as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
+    log.info("audit: %s's cloud ceiling set to %s tokens a day", user, body.get("tokens"))
     return sys_users_perm.table(BASE, [u["name"] for u in _users().list()], _admin())
 
 

@@ -55,3 +55,31 @@ def test_every_local_call_is_traced_with_its_step(cfg):
     assert [c["role"] for c in calls] == ["verify", "verify"] and calls[0]["tokens_out"] == 7
     assert calls[0]["chars_in"] == len("sys") + len("user")
     assert B.tokens_of({"input_tokens": 5, "cache_creation_input_tokens": 2, "output_tokens": 3}) == 10
+
+
+def test_a_user_s_own_ceiling_counts_every_provider_the_subscription_too(cfg):
+    """17 Oct: a friend on the owner's Claude subscription — their day on the cloud capped by the admin, the others free."""
+    from aurora import sys_context, sys_users_perm as P
+
+    class Sub(Cloud):
+        name = "claude_code"
+
+        def stream(self, system, user, max_tokens, think=False):
+            self.calls += 1
+            yield "answer", "cloud"
+    sub, local = Sub(), Local()
+    f = R.Fallback(sub, local, "self", cfg, "claude_code")
+    P.set_cloud(cfg, "friend", 1000)
+    with sys_context.acting_as("friend"):
+        assert f.complete("s", "u", 10).answer == "cloud"
+        B.record(cfg, "claude_code", {"input_tokens": 700})
+        B.record(cfg, "google", {"prompt_tokens": 300})                  # every provider adds to their day
+        assert f.complete("s", "u", 10).answer == "local"               # 1000 of 1000: the local model
+        assert "".join(p for _, p in f.stream("s", "u", 10)) == "ciao mondo" and sub.calls == 1   # the stream too
+    with sys_context.acting_as("owner"):
+        assert f.complete("s", "u", 10).answer == "cloud"               # another user: their own day, no ceiling
+    day = B.today(cfg)
+    assert day["users"]["friend"] == 1000 and day["users_stopped"] == ["friend"]
+    P.set_cloud(cfg, "friend", 0)
+    with sys_context.acting_as("friend"):
+        assert not B.user_over(cfg)                                     # 0 = no ceiling

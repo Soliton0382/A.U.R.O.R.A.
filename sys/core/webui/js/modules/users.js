@@ -170,7 +170,7 @@ export default {
     const { users, admin } = await call("/v1/aurora/users");
     const table = el("table", "table");
     const head = el("tr");
-    for (const k of ["users.name", "users.role", "users.totp", "users.files", "users.devices", ""]) head.append(el("th", "", k && t(k)));
+    for (const k of ["users.name", "users.role", "users.totp", "users.files", "users.devices", "users.cloud", ""]) head.append(el("th", "", k && t(k)));
     table.append(head);
     for (const u of users) {
       const tr = el("tr");
@@ -201,13 +201,31 @@ export default {
         acts.append(pw, tt, del);
       }
       tr.append(el("td", "", u.name), el("td", "", t(`users.role.${u.role}`)), el("td", "", u.totp_on ? "✅" : "—"),
-        el("td", "", String(u.files)), el("td", "", String(u.devices)), acts);
+        el("td", "", String(u.files)), el("td", "", String(u.devices)), this.cloudCell(u, admin), acts);
       table.append(tr);
       if (u.name === added) tr.classList.add("just-added");
     }
     this.list.replaceChildren(table);
     table.querySelector(".just-added")?.scrollIntoView({ behavior: "smooth", block: "center" });
     this.loadPerms();
+  },
+
+  // a user's cloud tokens a day (every provider, the subscription too): the admin's choice, today's use beside it
+  cloudCell(u, admin) {
+    const td = el("td");
+    const k = (n) => `${Math.round(n / 1000).toLocaleString()} k`;
+    if (u.name === admin) { td.append(el("span", "muted", `${k(u.cloud_today || 0)} · ${t("users.cloud_none")}`)); return td; }
+    const input = el("input");
+    Object.assign(input, { type: "number", min: 0, step: 50, value: Math.round((u.cloud_cap || 0) / 1000), title: t("users.cloud_hint") });
+    input.style.width = "6em";
+    const used = el("span", u.cloud_cap && u.cloud_today >= u.cloud_cap ? "warn" : "muted",
+      ` k · ${t("users.cloud_today", { n: k(u.cloud_today || 0) })}`);
+    input.addEventListener("change", async () => {
+      try { await call("/v1/aurora/users/cloud", { method: "PUT", body: JSON.stringify({ user: u.name, tokens: Math.max(0, Number(input.value) || 0) * 1000 }) }); input.classList.add("saved"); }
+      catch (e) { alert(e.message); }
+    });
+    td.append(input, used);
+    return td;
   },
 
   // what each user manages by themselves (sys_users_perm): the admin's choice, one switch per user and area
