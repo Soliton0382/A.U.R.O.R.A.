@@ -47,6 +47,7 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | security page | four tabs (incidents, defence and network, checks, what went out), each loaded when opened; the network drawn | M115 |
 | media providers | pictures, edits and videos: local or a cloud provider per task (Models page) | test_media; live: N86 |
 | ideas | 💡 a tidy request to improve Aurora, with its state | test_ideas |
+| usage | 📈 Usage page: questions, agent, cloud and local model calls, tool calls and failures per day and per user, counts only; the admin everyone's, a user their own; history from the trace files | M233, test_usage, test_users_crossing |
 | multi-user | a user sees and changes only what is theirs (menu and API); chats private, vault and the seed's shadow shared; the machine's health details and an installation's house pages the admin's (C347); each user's cloud tokens a day, set by the admin, every provider and the subscription (17 Oct: ≈ 15 k tokens a question, M232) | M116, test_users_crossing, test_budget |
 | uninstall, reset, restore | uninstall.sh (keep the data / everything), factory settings in Settings, sys_factory_reset.py, sys_restore.py from the backup card with the formats checked | dry-runs, tests |
 | synapses | links between domains grown at night (99 from 990 passages, 18 min), spread in the search, Hebbian, fading | M107, tests |

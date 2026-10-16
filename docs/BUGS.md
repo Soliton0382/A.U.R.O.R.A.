@@ -6,7 +6,7 @@ Numbered, never deleted: a fixed issue moves to "Closed" with the proof.
 
 | # | issue | impact | plan |
 |---|---|---|---|
-| — | none open | — | — |
+| C348 | Found running the suite without .env, 17 Oct: `test_reader_release::test_release_closes_thread_connections` and `test_sol_index::test_reset_memory_also_drops_the_memory_index` fail together in about 1 full run out of 3 (`'FakeReader' object has no attribute '_caches'`), never alone (6 of 6 passed); the same with the new usage count switched off, so it was there before | publish.sh may stop on a run that would pass again | find which earlier test leaves a reader patched (order-dependent), then fix the test |
 
 ## Closed
 

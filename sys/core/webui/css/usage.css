@@ -1,0 +1,20 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* 📊 The usage page: tiles, one-series bar charts, tables (usage.js) */
+.usage-bar-top { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: .5rem 0 1rem; }
+.usage-periods { display: flex; gap: .35rem; flex-wrap: wrap; }
+.usage-periods button.on { background: var(--accent-mid); border-color: var(--accent-line); color: var(--accent-text); }
+.usage-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .6rem; margin-bottom: 1rem; }
+.usage-tile { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: .7rem .8rem; }
+.usage-label { font-size: .82rem; color: var(--muted); }
+.usage-value { font-size: 1.6rem; font-weight: 600; font-variant-numeric: tabular-nums; margin: .15rem 0; color: var(--text); }
+.usage-sub { font-size: .8rem; }
+.usage-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: .6rem; margin-bottom: 1rem; }
+.usage-chartbox { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: .6rem .7rem; }
+.usage-chart { width: 100%; height: auto; display: block; margin-top: .3rem; }
+.usage-bar { fill: var(--accent); }
+.usage-hit { fill: transparent; }
+.usage-hit:hover { fill: var(--accent-soft); }
+.usage-base { stroke: var(--line); stroke-width: 1; }
+.usage-axis { fill: var(--muted); font-size: 10px; }
+.usage-table { margin-bottom: 1rem; font-size: .9rem; }
+.usage-table td:first-child { word-break: break-all; }

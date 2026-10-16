@@ -254,6 +254,35 @@ LOCKS = [
         sys_platform.current().unlock(fh)
     return data""",
      "mdl_budget: the day's spending, one writer at a time"),
+    ("sys/core/aurora/sys_usage.py", "import fcntl\n", "", "sys_usage: no fcntl at import"),
+    ("sys/core/aurora/sys_usage.py",
+     """        fcntl.flock(fh, fcntl.LOCK_EX)
+        fh.seek(0)
+        try:
+            data = json.loads(fh.read() or "{}")
+        except ValueError:
+            data = {}
+        change(data)
+        fh.seek(0)
+        fh.truncate()
+        fh.write(json.dumps(data))
+    return data""",
+     f"""        {P}
+        sys_platform.current().lock(fh)
+        fh.seek(0)
+        try:
+            data = json.loads(fh.read() or "{{}}")
+        except ValueError:
+            data = {{}}
+        change(data)
+        fh.seek(0)
+        fh.truncate()
+        fh.write(json.dumps(data))
+        fh.flush()
+        # released by hand: Windows frees a lock left to the closing «when resources allow» (LockFile, Remarks)
+        sys_platform.current().unlock(fh)
+    return data""",
+     "sys_usage: the day's counts, one writer at a time"),
     ("sys/core/aurora/sys_backup.py", "import fcntl\n", "", "sys_backup: no fcntl at import"),
     ("sys/core/aurora/sys_backup.py",
      """    try:

@@ -3762,3 +3762,18 @@ The day's cloud calls read back from the trace (`cloud.call`, the provider's own
 
 Not measured: a question of the agent alone (heavier: tools and several turns); the subscription's own window, which
 counts its usage in its own way — the tokens are Aurora's measure, not the provider's limit.
+
+## M233 — the usage page's history rebuilt from the trace files (17 October 2026)
+
+`sys_usage.rebuild` over the trace files on disk (current and rotated) of api, agent, llm_client, plugins, approvals,
+into a scratch folder first.
+
+| what | measured |
+|---|---|
+| days rebuilt | 18 (the oldest trace still on disk) |
+| events counted | 92,767, in 4.1 s |
+| today's cloud calls, by the page and by the ceiling's own count (M232) | 267 and 258 at two moments of the day: the same source |
+| the most failed tool | 42 % of 2,570 calls (a home plugin with its server down): seen first on this page |
+
+Not measured: the days whose oldest trace file was already deleted (their counts come out short); the cost of the
+live count per event (a lock and a small JSON file, a few hundred events an hour).

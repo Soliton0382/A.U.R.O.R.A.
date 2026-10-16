@@ -277,6 +277,8 @@ def purge_plan(cfg: sys_config.Config, name: str) -> list[dict]:
     folders = [("usr", usr_home(cfg, name))] + [(a.name, home(cfg, a, name)) for a in SYS_AREAS]
     plan = [{"what": w, "path": str(p), "files": _count(p), "bytes": _size(p)} for w, p in folders if p.exists()]
     plan += [{"what": "trace", "path": str(f), "lines": n} for f in _trace_files(cfg) if (n := _user_lines(f, name))]
+    from . import sys_usage                              # their usage counts (📊 Usage)
+    plan += [{"what": "usage", "path": str(f), "days": 1} for f in sys_usage.days_of(cfg, name)]
     return plan
 
 
@@ -305,6 +307,9 @@ def purge(cfg: sys_config.Config, name: str, admin: str) -> dict:
     for step in plan:
         if step["what"] == "trace":
             _strip_trace(Path(step["path"]), name)
+        elif step["what"] == "usage":
+            from . import sys_usage
+            sys_usage.forget(Path(step["path"]), name)
         else:
             shutil.rmtree(step["path"])
     for a in SYS_AREAS:

@@ -176,6 +176,8 @@ def trace(component: str, event: str, payload: dict[str, Any] | None = None,
     if sys_context.user():
         record["user"] = sys_context.user()
     tr.info(json.dumps(record, ensure_ascii=False, default=str))
+    from . import sys_usage                          # the usage counts (names and numbers only)
+    sys_usage.count(_config(), component, event, payload or {}, record.get("user"))
     for fn in _listeners:
         try:
             fn(component, event, payload or {})

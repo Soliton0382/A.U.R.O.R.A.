@@ -43,6 +43,8 @@ def test_guest_never_sees_boss_s_things(cfg):
     assert boss["health"] == ["warn", 1, 1] and guest["health"] == ["warn", 0, 0]          # the machine's details: the admin's
     assert guest["cloud_set"] == 403 and boss["cloud_set"] == {"guest": 200000} and boss["cloud_self"] == 422
     assert boss["cloud_list"] == {"boss": 0, "guest": 200000}
+    assert boss["usage"][0] and set(boss["usage"][1]) >= {"", "boss", "guest"} and boss["usage_pick"] == 1
+    assert guest["usage"] == [False, ["guest"], 1] and guest["usage_pick"] == 1          # their own, not boss's
     assert guest["oauth_start"] == 409 and guest["oauth_finish"] == 403 and boss["oauth_no_keys"] == 409   # his own keys; not boss's sign-in
     assert boss["oauth_scope"] == "user.info.basic,video.publish"                       # no scope the plugin does not use
     assert boss["oauth_forged"] == 409 and boss["oauth_again"] == 409                   # a state Aurora gave, once

@@ -139,6 +139,8 @@ call downward (ECOSYSTEM §1).
 | `sys_user_config.py` | system | each user's settings: the keys of scope user in `usr/<name>/.env`; `for_user` = the machine's values, the user's own, their usr/ folders; split/merge at the migration | sys_config, sys_users_layout | api/core (plugin hosts), api/system (settings) |
 | `sys_users_mode.py` | system | single ↔ multi (AURORA_USER_MODE): multi only on the per-user layout and with the login (U5); single only after the list of users to delete and a confirmation | sys_users_layout, sys_users | api/system |
 | `sys_context.py` | system | whose work: the user of the request being served (a context variable set by the API's auth); `sys_config.get()` answers with their configuration, the trace records them, threads carry them (`start`), background work acts as a user (`acting_as`) | — | api/core, sys_config, sys_log |
+| `sys_usage.py` | system | 📊 the usage counts per user and per day — questions, agent runs and steps, model calls (cloud by provider/model with tokens, local by role), fallbacks, tool calls with failures, approvals — from the trace events (sys_log.trace counts them live); names and numbers only; the history rebuilt from the trace files; a purged user's counts removed | sys_config, mdl_budget | sys_log, api/usage, sys_users_layout |
+| `api/usage.py` | api | GET /v1/aurora/usage: the admin everyone's (or one user's, or Aurora's own), a user only their own | sys_usage | WebUI |
 | `api/users.py` | api | login (password, Authenticator code, first-login QR), my account, the admin's Users page (create, reset, delete with the purge list) | sys_users, sys_users_layout, sys_devices | WebUI |
 | `sys_devices.py` | system | registered devices: token hashes in `<status>/devices.json` (600), HttpOnly cookie for the WebUI | — | svc_api |
 | `kno_acquire.py` | knowledge | iterative arXiv agent: queries, re-ranked abstracts, import (HTML first, kno_arxiv), answer again | kno_ingest, kno_answer, arXiv API | svc_api |
@@ -377,6 +379,7 @@ Static files served by aurora-api; no build step. The page is a showcase that co
 | `js/modules/alerts.js` (+ `css/alerts.css`) | top-bar widget: health dot (green/yellow/red, reasons on hover), pulsing bell for pending approvals, shield for open incidents |
 | `js/md.js` | Markdown to DOM (never HTML): headings, lists, code, tables, formulas drawn by KaTeX (`vendor/katex`, loaded only when a formula is there; prices like $5 stay text) |
 | `js/qr.js` | a QR code as SVG elements (vendor/qrcode, MIT) for the Authenticator |
+| `js/modules/usage.js` (+ `css/usage.css`) | 📈 Usage: tiles, one bar chart a measure per day, tables by user, model, task and tool |
 | `js/modules/users.js` | 👥 Users: my account (password, Authenticator) and the admin's users |
 | `js/modules/security_firewalls.js` | 🔌 Firewall connections: a card per firewall (kind, address, user and password or key and secret, blocking group, official guides, receives blocks), «Collega»; the security pages show once one is connected (main.js) |
 | `js/modules/plugin_slot.js` | ⚙️ the plugins of a page («page» in their manifest), one chip each with its state, opening the same window as the Plugins page (plugins.js openPlugin) |

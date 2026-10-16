@@ -144,4 +144,13 @@ _act._health_cache.update(at=_t.time(), value={"level": "warn", "items": [{"name
 for who in ("boss", "guest"):
     h = get(who, "/v1/aurora/health").json()
     out[who]["health"] = [h["level"], len(h["items"]), len(h["problems"])]
+# the usage page: the admin sees everyone and may pick one; a user only their own, whatever they ask (17 Oct)
+from aurora import sys_log as _log  # noqa: E402
+for who in ("boss", "guest", None):
+    with sys_context.acting_as(who):
+        _log.trace("plugins", "plugin.call", {"plugin": "p", "tool": "t", "ok": True, "seconds": 0.1})
+for who in ("boss", "guest"):
+    u = get(who, "/v1/aurora/usage?days=1").json()
+    out[who]["usage"] = [u["everyone"], u["names"], u["totals"]["tool_calls"]]
+    out[who]["usage_pick"] = get(who, "/v1/aurora/usage?days=1&user=boss").json()["totals"]["tool_calls"]
 print(json.dumps(out))

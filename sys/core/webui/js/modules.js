@@ -49,6 +49,7 @@ import social from "./modules/social.js";
 import status from "./modules/status.js";
 import updates from "./modules/updates.js";
 import users from "./modules/users.js";
+import usage from "./modules/usage.js";
 import ideas from "./modules/ideas_page.js";
 import https from "./modules/https.js";
 import home from "./modules/home.js";
@@ -58,7 +59,7 @@ import { kinds as homeKinds } from "./modules/home.js";
 let local = { views: [] };
 try { local = await import("./local/index.js"); } catch { /* none on this installation */ }
 
-export const views = [today, advanced, chat, approvals, reports, secFirewalls, secEdge, security, ciso, firewall, aurorafw, secDefence, secWatch, secOut, secTrace, autonomy, diary, dreams, memory, social, dj, care, expenses, astro, home, calendar, projects, routines, models, accounts, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, settings, https, guide, bugreport, ideas];
+export const views = [today, advanced, chat, approvals, reports, secFirewalls, secEdge, security, ciso, firewall, aurorafw, secDefence, secWatch, secOut, secTrace, autonomy, diary, dreams, memory, social, dj, care, expenses, astro, home, calendar, projects, routines, models, accounts, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, usage, settings, https, guide, bugreport, ideas];
 views.push(...homeKinds, ...local.views);
 export const widgets = [sky, alerts, metrics, brain];
 
@@ -77,7 +78,7 @@ export const groups = [
   // the security area (owner, 2026-10-08: «sotto menù specifici CISO, etc… separate e pulite»)
   { id: "security", icon: "🛡️", title: "nav.g.security", views: ["firewalls", "edge", "security", "ciso", "firewall", "aurorafw", "secdefence", "secwatch", "secout", "sectrace"] },
   { id: "autonomy", views: ["autonomy"] },
-  { id: "system", icon: "⚙️", title: "nav.g.system", views: ["status", "models", "accounts", "plugins", "users", "settings", "https", "updates"] },
+  { id: "system", icon: "⚙️", title: "nav.g.system", views: ["status", "models", "accounts", "plugins", "users", "usage", "settings", "https", "updates"] },
   { id: "help", icon: "❓", title: "nav.g.help", views: ["guide", "bugreport", "ideas"] },
 ];
 // the machine's pages (owner, 2026-10-06, multi-user): a user sees neither them in the menu nor their data (the API
