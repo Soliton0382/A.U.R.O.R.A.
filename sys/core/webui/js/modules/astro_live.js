@@ -7,6 +7,8 @@
 import { call } from "../api.js";
 import { el } from "../dom.js";
 import { t } from "../i18n.js";
+import { tunerBox } from "./astro_tuner.js";
+import { mountBox } from "./astro_mount.js";
 
 const RA = "#4aa3ff", DEC = "#ff6b6b";
 const f = (x, d = 2) => (x == null ? "—" : Number(x).toFixed(d));
@@ -73,9 +75,11 @@ export function liveTab(box, imagingScale) {
     <div class="al-tiles"></div><canvas class="al-chart" aria-label="guiding"></canvas>
     <div class="al-legend"><span style="color:${RA}">━ RA</span> <span style="color:${DEC}">━ DEC</span></div>
     <h4>👁️ <span data-i18n="al.seen"></span></h4><ul class="al-seen"></ul>
-    <h4>📋 <span data-i18n="al.events"></span></h4><div class="al-events"></div>`;
+    <h4>📋 <span data-i18n="al.events"></span></h4><div class="al-events"></div><div class="al-mount"></div><div class="al-tuner"></div>`;
   box.querySelectorAll("[data-i18n]").forEach((e) => { e.textContent = t(e.dataset.i18n); });
-  let timer = null;
+  let timer = null, ticks = 0;
+  const tuner = tunerBox(box.querySelector(".al-tuner"));
+  const mount = mountBox(box.querySelector(".al-mount"));
   const tick = async () => {
     let d;
     try { d = await call("/v1/aurora/astro/live"); } catch (e) { box.querySelector(".al-state").textContent = e.message; return; }
@@ -97,7 +101,11 @@ export function liveTab(box, imagingScale) {
   return {
     start() { if (!timer) { tick(); timer = setInterval(() => {
       // only while the tab is in sight: another page or tab, and nobody asks (the server stops its watcher by itself)
-      if (document.visibilityState === "visible" && box.offsetParent !== null) tick();
+      if (document.visibilityState === "visible" && box.offsetParent !== null) {
+        tick();
+        if (++ticks % 5 === 0) tuner.refresh();                // the tuner's state every 10 s
+        if (ticks % 2 === 0) mount.refresh();                  // where the mount points every 4 s
+      }
     }, 2000); } },
     stop() { clearInterval(timer); timer = null; },
   };

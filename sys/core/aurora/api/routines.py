@@ -205,7 +205,20 @@ def routine_tick() -> dict:
             _devices_if_due(who)
             _scenes_again(who)
             _local_ticks(who)
+            _astro_again(who)
     return {"started": started, "welcomed": sorted(welcomed)}
+
+
+def _astro_again(who: str | None) -> None:
+    """The guiding tuner the person turned on runs again after a restart, without the page open (ast_autoguide)."""
+    p = plugin_host().get("astro")
+    if p is None or not p.available:
+        return
+    try:
+        from aurora.api.astro import autoguide_again
+        autoguide_again()
+    except Exception:                                    # noqa: BLE001 — the next tick tries again
+        log.exception("astro: the guiding tuner not started again")
 
 
 _looking: set[str] = set()

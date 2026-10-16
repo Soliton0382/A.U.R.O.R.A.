@@ -3653,3 +3653,42 @@ Found on the way (before any publication, in this test): pfSense refuses «any»
 given) — the first word-plan was refused by the firewall and undone by itself, as designed; fixed. Not measured: the
 published server reached from outside (no server at the lab address); a change in words that opens something; Snort or
 Suricata installed on pfSense (only «not installed» seen).
+
+## M227 — the nights already guided, read back from PHD2's guide logs (16 October 2026; ROADMAP N28)
+
+Six real guide logs of PHD2 2.6.13–2.6.14 (two full nights, four of a few lines), read by ast_guidelog on this machine.
+
+| what | measured |
+|---|---|
+| read time | 27 ms (684 KB, 8,450 lines, 8,150 frames) and 33 ms (1 MB, 12,288 lines, 11,815 frames); the four short logs: no session, left out |
+| sessions | 3 and 6 with ≥ 30 frames; the Guiding Assistant's unguided minutes told apart |
+| RMS, settling and lost stars out | best sessions 0.79″ and 0.84″ total; one stretch with 7 % of the frames on a lost star |
+| a runaway | 1 found: RA growing at 13.8″/s (the sidereal rate at that declination) for 112 frames with the pulses at the 500 ms limit, 1 min before the meridian, while the imaging program's flip waits until 2–5 min after it: the mount stopped at its own meridian limit before the flip (inferred: the mount's limit is not in any log) |
+| the Guiding Assistant against the settings | backlash compensation advised and later off; minimum move advised 0.13/0.20 px, in use 0.10/0.10 |
+| the site | altitude and azimuth dropped, hour angle rounded to 0.1 h: a test checks it |
+
+Checked afterwards against PHD2's own guide to the logs (B. Waddington): sudden jumps («gremlins») counted only between
+frames one after the other, beyond 6 × the axis's RMS and 3″, staying for two more frames, one event per 30 s — a
+first rule without these (4 × RMS, any pair of frames) found 219 in a 0.79″ session, all seeing and dither gaps; with
+them 7 there (2.6 an hour) and 1 in each long session of the other night, the one looked at by hand a DEC excursion of
+4.8″ recovered in about 8 frames. Elongation: either axis's RMS twice the other's (it was DEC only, 1.6 ×).
+Not measured: the same reading on another person's logs (PHD2 in another language writes some advice in it: the
+Italian and English forms are read); the debug logs (tens of MB) are not read.
+
+## M228 — the values advised and the guiding tuner (16 October 2026; ROADMAP N28)
+
+| what | measured |
+|---|---|
+| the advice on a real inventory (N.I.N.A. 3.2, PHD2 2.6.14, three Guiding Assistant runs, two nights of logs, 15 darks) | 23 rows: 13 ✅, 7 ⚠️, 1 ❌ (the mount's meridian limit, from a night's log), 1 ❓ (the focuser's step, a fact not given) |
+| PHD2's calibration step by its own formula | 1050 ms advised, 1100 ms set: the formula and the setting agree within 5 % |
+| dither in guide pixels for 10 imaging pixels | 3.9 advised, 4 set |
+| 45 real N.I.N.A. sequences read | 3 found at an offset no current dark has (before the night) |
+| the tuner's reads on a real PHD2 2.6.14 over Wi-Fi (not guiding: no write) | 7 calls answered in 15–21 ms each; the minimum move found by name on both axes (Predictive PEC: minMove, predictiveWeight, reactiveWeight, periodLength; Resist Switch: minMove, fastSwitch, aggression) |
+| the advice with the values read live (PHD2 2.6.14 + N.I.N.A.'s active profile) | 13 of 23 rows from the programs now, the report in 0.23 s; after the owner's changes 17 ✅ 3 ⚠️ (two of them the max durations, not readable live: the inventory's older values) 1 ❌ 1 ❓; nothing of the site in the answer |
+| N.I.N.A.'s Advanced API 2.2.15.2 on the real PC over Wi-Fi (read only) | the 6 reads in 73 ms together; the mount parked drawn at the pole (counterweight down); nothing of the site in the answer kept (a test checks it). Seen on the way: the first call to port 1888 raised a «new port» incident on the network's firewall — rightly |
+| the tuner on a simulated guider (PHD2's protocol, reads and writes) | window of 120 steps read; RA minimum move 0.10 → 0.15 proposed and applied (corrections flipping 61 % of the time); judged 90 steps later: RMS 1.08″ → 1.24″, put back; the guider received exactly the two writes |
+
+Read: the loop works end to end; the simulated error is noise that no setting changes, so it shows the mechanism, not
+a gain. From it: the trial was raised to 120 steps and the revert threshold to +15 % (the RMS of n steps scatters by
+~1/√(2n): 7.5 % at 90, 6.5 % at 120). Not measured: the tuner on the real PHD2 and a real sky; whether its changes lower
+the RMS over a night.

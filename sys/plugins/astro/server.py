@@ -4,7 +4,7 @@
 inventory (ast_inventory), the integrated darks' library of this machine, the files of the astro folder. No network."""
 from __future__ import annotations
 
-from aurora import ast_inventory, sys_config
+from aurora import ast_advice, ast_guidelog, ast_inventory, sys_config
 from mcp.server.mcpserver import MCPServer
 
 server = MCPServer("astro", version="1.0")
@@ -14,7 +14,11 @@ server = MCPServer("astro", version="1.0")
 def astro_profile() -> str:
     """L'attrezzatura per l'astrofotografia (telescopio, montatura, camere con la scala in "/px, guida PHD2, focheggiatore,
     filtri, plate solving, sito arrotondato, software, integrated dark) e cosa conviene controllare."""
-    return ast_inventory.text(ast_inventory.profile(sys_config.get()))
+    cfg = sys_config.get()
+    p = ast_inventory.profile(cfg)
+    if p and ast_guidelog.logs(ast_inventory.folder(cfg)):     # the guide logs added in the folder count
+        p = {**p, "checks": [c for c in p["checks"] if c["what"] != ast_inventory.NO_GUIDE_LOG]}
+    return ast_inventory.text(p)
 
 
 @server.tool()
@@ -43,8 +47,48 @@ def astro_files() -> str:
     d = ast_inventory.folder(cfg)
     inv = {f.name for f in ast_inventory.inventories(cfg)}
     rows = [f"- {f.name} ({f.stat().st_size // 1024} KB){' — inventario' if f.name in inv else ''}"
-            for f in sorted(d.iterdir()) if f.is_file() and f.name != "darks.json"]
+            for f in sorted(d.iterdir()) if f.is_file() and f.name not in ("darks.json", "astro_setup.json", "autoguide.jsonl")]
     return "\n".join(rows) or "La cartella astro è vuota."
+
+
+@server.tool()
+def astro_nights() -> str:
+    """Le notti già guidate: i log di guida di PHD2 della cartella astro, l'RMS di ogni sessione, e cosa ci legge Aurora
+    (montatura ferma al meridiano, stella persa, allineamento polare, backlash, minimo movimento)."""
+    cfg = sys_config.get()
+    rig = (ast_inventory.profile(cfg) or {}).get("rig") or {}
+    got = ast_guidelog.nights(ast_inventory.folder(cfg), rig.get("scale_arcsec_px"), rig.get("meridian_flip"))
+    if not got:
+        return "Nessun log di guida di PHD2 (PHD2_GuideLog_*.txt) nella cartella astro: si aggiungono dalla pagina 🔭 Astro."
+    lines = []
+    for n in got:
+        lines.append(f"Notte {n['night']} ({n['file']}):")
+        for s in n["sessions"]:
+            r = s["rms"]
+            lines.append(f"- {s['start'][11:16]}, {s['minutes']:g} min{' (Guiding Assistant)' if s['assistant'] else ''}: "
+                         f"RMS RA {r['ra']}″ DEC {r['dec']}″ totale {r['total']}″, SNR {s['snr']}, stelle perse {s['lost']}")
+        lines += [f"  ⚠ {f['code']}: " + ", ".join(f"{k}={v}" for k, v in f.items() if k not in ("code", "level")) for f in n["findings"]]
+    return "\n".join(lines)
+
+
+@server.tool()
+def astro_advice() -> str:
+    """I valori consigliati per l'attrezzatura (campionamento, rapporto guida/ripresa, posa di guida, minimo movimento,
+    passo di calibrazione, durata massima, dither e assestamento, flip al meridiano, carico, coppia e contrappeso,
+    gain/offset contro i dark, passo dell'autofocus): impostato ora, consigliato, perché; e le sequenze controllate."""
+    r = ast_advice.report(sys_config.get())
+    if not r["inventory"]:
+        return "Nessun inventario: si scarica lo script dalla pagina 🔭 Astro e si carica il file che scrive."
+    mark = {"ok": "✅", "warn": "⚠️", "bad": "❌", "unknown": "❓", "info": "ℹ️"}
+    lines = [f"{mark.get(x['status'], '•')} {x['key']}: ora {x['current']} {x['unit']}, consigliato {x['advised']}"
+             + (f", scelto {x['choice']}" if x.get("choice") else "") + f" — {x['why']} {x['n']}" for x in r["rows"]]
+    for q in r["sequences"]:
+        if q.get("findings"):
+            lines.append(f"Sequenza {q['name']}: " + "; ".join(f"{f['code']} {f}" for f in q["findings"]))
+    unknown = [f["key"] for f in r["facts_spec"] if r["facts"].get(f["key"]) is None]
+    if unknown:
+        lines.append("Dati che solo la persona conosce, ancora da dare (pagina 🔭 Astro → 🎛️): " + ", ".join(unknown))
+    return "\n".join(lines)
 
 
 if __name__ == "__main__":

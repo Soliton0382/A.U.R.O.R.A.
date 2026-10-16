@@ -4,8 +4,8 @@
  "kind": "tool",
  "page": "astro",
  "description": {
-  "it": "La tua attrezzatura per l'astrofotografia, letta dall'inventario del PC che la comanda (N.I.N.A., PHD2, ASCOM, ASTAP) e dalla libreria dei dark integrati: telescopio, montatura, camere e scale, guida, dark disponibili, cosa controllare.",
-  "en": "Your astrophotography equipment, read from the inventory of the PC that drives it (N.I.N.A., PHD2, ASCOM, ASTAP) and from the integrated darks' library: telescope, mount, cameras and scales, guiding, darks available, what to check."
+  "it": "La tua attrezzatura per l'astrofotografia, letta dall'inventario del PC che la comanda (N.I.N.A., PHD2, ASCOM, ASTAP) e dalla libreria dei dark integrati: telescopio, montatura, camere e scale, guida, dark disponibili, cosa controllare; e le notti già guidate, dai log di PHD2.",
+  "en": "Your astrophotography equipment, read from the inventory of the PC that drives it (N.I.N.A., PHD2, ASCOM, ASTAP) and from the integrated darks' library: telescope, mount, cameras and scales, guiding, darks available, what to check; and the nights already guided, from PHD2's logs."
  },
  "command": [
   "{python}",
@@ -20,7 +20,9 @@
  "effects": {
   "astro_profile": "read",
   "astro_darks": "read",
-  "astro_files": "read"
+  "astro_files": "read",
+  "astro_nights": "read",
+  "astro_advice": "read"
  },
  "on_demand": {
   "words": ["astro", "telescopio", "telescope", "montatura", "mount", "guida", "guiding", "phd2", "n.i.n.a", "nina",

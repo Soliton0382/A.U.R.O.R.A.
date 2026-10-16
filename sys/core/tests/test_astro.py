@@ -75,6 +75,8 @@ def test_the_inventory_becomes_a_profile_with_its_scales_and_checks():
     assert p["darks"][0]["files"] == 20 and r["site"] == {"lat": 41.9, "lon": 12.5, "elevation_m": 50.0}
     assert any("Focuser timeout" in c["why"] for c in p["checks"])                       # an error that repeats
     assert "Refractor 80" in A.text(p)
+    opt = INV.replace("Focuser timeout", "An unexpected exception occurred during GET of Focuser.StepSize: ")
+    assert not any("ripete" in c["what"] for c in A.parse(opt)["checks"])               # optional in ASCOM: harmless
 
 
 def _xisf(path: Path, keywords: dict, frames: int) -> None:

@@ -3,7 +3,8 @@
 """🔭 The guiding followed live (ROADMAP N28; owner, 16 Oct: «grafici stile PHD2… quello che sta facendo Aurora per
 risolvere i problemi di inseguimento»): PHD2's own event server on the telescope's PC (TCP, port 4400 by default: one
 JSON event a line — GuideStep, StarLost, Settle…, and JSON-RPC calls on the same connection). Read only here: the
-events, the pixel scale and the app's state (get_pixel_scale, get_app_state); nothing is ever sent that changes PHD2.
+events, the pixel scale and the app's state (get_pixel_scale, get_app_state); nothing is ever sent that changes PHD2
+(the tuner that may, when the person turns it on, is ast_autoguide, on its own connection).
 
 One watcher per host, started by whoever asks for the picture and stopped by itself when nobody has asked for
 IDLE_S: a night's guiding is not followed when nobody looks (the routines that watch a night ask for it themselves).

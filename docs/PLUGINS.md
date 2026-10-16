@@ -44,7 +44,7 @@ Every plugin.json follows it (aurora/plg_contract.py: the tests check every plug
 
 | plugin | kind | tools (effect) | needs |
 |---|---|---|---|
-| `astro` | tool | astro_profile (read), astro_darks (read), astro_files (read) | — |
+| `astro` | tool | astro_profile (read), astro_darks (read), astro_files (read), astro_nights (read), astro_advice (read) | — |
 | `backup` | service | — | — |
 | `cad` | tool | cad_build (write_local), cad_drawings (write_local), cad_blueprint (write_local) | — |
 | `calendar` | tool | calendar_agenda (read), calendar_add (write_local), calendar_remind (write_local), calendar_change (write_local), calendar_delete (write_local), calendar_add_event (external) | — |

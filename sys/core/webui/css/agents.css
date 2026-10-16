@@ -255,3 +255,54 @@ dialog.welcome p { margin: 0; }
 .al-chart { width: 100%; height: 260px; display: block; border: 1px solid var(--line); border-radius: .6rem; background: var(--panel, rgba(13, 23, 38, .7)); }
 .al-legend { display: flex; gap: 1rem; font-size: .85rem; margin: .3rem 0 .6rem; }
 .al-events { max-height: 14rem; overflow: auto; font-size: .85rem; display: flex; flex-direction: column; gap: .15rem; }
+.al-mount { margin-top: 1rem; border-top: 1px solid var(--line); padding-top: .6rem; }
+.am-views { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: .8rem; margin: .5rem 0; }
+.am-views figure { margin: 0; }
+.am-views canvas { width: 100%; height: 300px; display: block; border: 1px solid var(--line); border-radius: .6rem; background: var(--panel, rgba(13, 23, 38, .7)); }
+.am-views figcaption { font-size: .8rem; color: var(--muted); text-align: center; margin-top: .2rem; }
+.am-lines { padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: .25rem; font-size: .9rem; }
+.al-tuner { margin-top: 1rem; border-top: 1px solid var(--line); padding-top: .6rem; }
+.at-modes { display: flex; flex-wrap: wrap; gap: .4rem; margin: .4rem 0 .7rem; }
+.at-pair { display: flex; gap: .4rem; }
+.at-pair input { width: 50%; min-width: 0; box-sizing: border-box; }
+.at-state p { margin: .3rem 0; }
+
+/* 🔭 Astro → 📜 the nights already guided */
+.an-night { border: 1px solid var(--line); border-radius: .6rem; padding: .5rem .8rem; margin: .6rem 0; }
+.an-night summary { cursor: pointer; font-weight: 600; overflow-wrap: anywhere; }
+.an-findings { margin: .3rem 0 .6rem; padding-left: 1.1rem; display: flex; flex-direction: column; gap: .3rem; }
+.an-findings li { list-style: none; margin-left: -1.1rem; }
+.an-wrap { overflow-x: auto; max-width: 100%; }
+.an-table { border-collapse: collapse; font-size: .85rem; font-variant-numeric: tabular-nums; min-width: 34rem; }
+.an-table th, .an-table td { border-bottom: 1px solid var(--line); padding: .25rem .5rem; text-align: right; white-space: nowrap; }
+.an-table th:first-child, .an-table td:first-child { text-align: left; }
+.an-table th { color: var(--muted); font-weight: 500; }
+
+/* 🔭 Astro → 🎛️ the values advised */
+.aa-sum { font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+.aa-facts { border: 1px solid var(--line); border-radius: .6rem; padding: .5rem .8rem; margin: .6rem 0; }
+.aa-facts summary { cursor: pointer; font-weight: 600; }
+.aa-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: .5rem .8rem; margin: .5rem 0 .7rem; }
+.aa-fact { display: flex; flex-direction: column; gap: .2rem; font-size: .85rem; }
+.aa-fact input, .aa-fact select { width: 100%; box-sizing: border-box; }
+.aa-table { min-width: 30rem; width: 100%; }
+.aa-table td { white-space: normal; vertical-align: top; }
+.aa-table .aa-group th { text-align: left; padding-top: .9rem; color: var(--text, inherit); font-weight: 700; }
+.aa-table .aa-why td { border-bottom: 1px solid var(--line); font-size: .8rem; text-align: left; padding-bottom: .5rem; }
+.aa-table tr:not(.aa-why):not(.aa-group) td { border-bottom: 0; }
+.aa-mine { width: 5.5rem; }
+.aa-state { font-size: 1.05rem; }
+@media (max-width: 640px) {        /* each setting a card: name and state, then now · advised · your value, then why */
+  .aa-table { min-width: 0; }
+  .aa-table tr.aa-head { display: none; }
+  .aa-table, .aa-table tbody { display: block; width: 100%; }
+  .aa-table tr:not(.aa-why):not(.aa-group):not(.aa-head) { display: grid; grid-template-columns: 1fr auto; gap: .2rem .6rem; padding-top: .5rem; }
+  .aa-table tr:not(.aa-why):not(.aa-group) td { padding: 0 .2rem; text-align: left; }
+  .aa-table .aa-name { grid-column: 1; grid-row: 1; }
+  .aa-table .aa-state { grid-column: 2; grid-row: 1; text-align: right; }
+  .aa-table .aa-now, .aa-table .aa-adv { grid-column: 1 / -1; }
+  .aa-table .aa-now::before, .aa-table .aa-adv::before { content: attr(data-label) ": "; color: var(--muted); }
+  .aa-table .aa-minecell { grid-column: 1 / -1; }
+  .aa-table .aa-why { display: block; }
+  .aa-table .aa-why td { display: block; }
+}

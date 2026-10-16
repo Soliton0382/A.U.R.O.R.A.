@@ -8,6 +8,8 @@ import { call } from "../api.js";
 import { el } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { liveTab } from "./astro_live.js";
+import { nightsTab } from "./astro_nights.js";
+import { adviceTab } from "./astro_advice.js";
 import { pluginSlot } from "./plugin_slot.js";
 import { settingsForm } from "./settings_form.js";
 
@@ -31,12 +33,14 @@ export default {
   mount(root) {
     root.classList.add("page");
     root.innerHTML = `<h2 data-i18n="nav.astro"></h2><p class="muted" data-i18n="astro.hint"></p>
-      <div class="prj-tabs astro-tabs"><button type="button" class="cat-chip on" data-tab="gear" data-i18n="astro.tab.gear"></button><button type="button" class="cat-chip" data-tab="live" data-i18n="astro.tab.live"></button></div>
+      <div class="prj-tabs astro-tabs"><button type="button" class="cat-chip on" data-tab="gear" data-i18n="astro.tab.gear"></button><button type="button" class="cat-chip" data-tab="live" data-i18n="astro.tab.live"></button><button type="button" class="cat-chip" data-tab="nights" data-i18n="astro.tab.nights"></button><button type="button" class="cat-chip" data-tab="advice" data-i18n="astro.tab.advice"></button></div>
       <div class="astro-tab" data-tab="gear">
         <h3 class="setting-cat" data-i18n="astro.step1"></h3><div class="astro-script"></div>
         <h3 class="setting-cat" data-i18n="astro.step2"></h3><div class="astro-files"></div>
         <h3 class="setting-cat" data-i18n="astro.step3"></h3><div class="astro-profile"></div></div>
-      <div class="astro-tab" data-tab="live" hidden><div class="astro-live"></div></div>`;
+      <div class="astro-tab" data-tab="live" hidden><div class="astro-live"></div></div>
+      <div class="astro-tab" data-tab="nights" hidden><div class="astro-nights"></div></div>
+      <div class="astro-tab" data-tab="advice" hidden><div class="astro-advice"></div></div>`;
     root.querySelector("h2").after(pluginSlot("astro"));
     apply(root);
     this.root = root;
@@ -51,6 +55,8 @@ export default {
       this.live ||= liveTab(this.root.querySelector(".astro-live"), this.scale);
       this.live.start();
     } else this.live?.stop();
+    if (id === "nights") nightsTab(this.root.querySelector(".astro-nights"));
+    if (id === "advice") adviceTab(this.root.querySelector(".astro-advice"));
   },
 
   async enter() {

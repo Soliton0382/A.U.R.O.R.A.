@@ -24,6 +24,9 @@ ALGO = {"0": "nessuno", "1": "Hysteresis", "2": "Lowpass", "3": "Lowpass2", "4":
         "5": "Predictive PEC (GP)", "6": "Z-Filter"}
 SIMULATED = re.compile(r"(?i)simulator|omnisim|\bsim\b|justahub|devicehub")
 HEADER = "# astro inventory"
+NO_GUIDE_LOG = "Nessun log di guida di PHD2 utile"
+# ASCOM properties a driver may leave out (PropertyNotImplemented): N.I.N.A. logs an error reading them, harmless
+OPTIONAL_ASCOM = ("StepSize", "TempComp", "TempCompAvailable", "Temperature", "ElectronsPerADU", "FullWellCapacity")
 
 
 def folder(cfg: sys_config.Config) -> Path:
@@ -167,6 +170,7 @@ def _phd2(lines: list[str]) -> dict:
             continue
         if line.startswith("  ") and "=" in s:
             k, v = s.split("=", 1)
+            out.setdefault("pairs", []).append((k, v.strip()))     # in order: the algorithms' blocks, each assistant run
             if k == "name":
                 profiles.append({"name": v})
                 continue
@@ -263,8 +267,11 @@ def _checks(p: dict) -> list[dict]:
                     + ("" if p["script"] == 2 else "; lo script 1 non guardava la cartella delle immagini di N.I.N.A.: "
                        "rigenera l'inventario con lo script nuovo")})
     if not p["phd2"]["logs"] or p["phd2"]["latest_log"].endswith("(0 KB)"):
-        out.append({"what": "Nessun log di guida di PHD2 utile", "why": "senza log non si giudica la guida (RMS, stelle perse)"})
+        out.append({"what": NO_GUIDE_LOG, "why": "senza log non si giudica la guida (RMS, stelle perse)"})
     for e in p["nina_errors"]:
+        m = re.search(r"GET of (\w+)\.(\w+)", e["text"])
+        if m and m.group(2) in OPTIONAL_ASCOM:            # N.I.N.A. asks every property on connecting; some are optional
+            continue
         if e["times"] >= 3:
             out.append({"what": f"N.I.N.A. ripete un errore ({e['times']} volte)", "why": e["text"]})
     g = rig.get("guiding") or {}
