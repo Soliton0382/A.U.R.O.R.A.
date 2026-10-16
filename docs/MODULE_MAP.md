@@ -401,7 +401,7 @@ Static files served by aurora-api; no build step. The page is a showcase that co
 | `js/welcome.js` | 🧭 the first run: five screens, each from what is set now, saving only a change (the name, the language, the reasoning through models_choice.useChoice, the style, the colours); /v1/aurora/me/welcomed | api/users, models_choice, style.js, theme.js |
 | `js/modules/today.js` | ☀️ Oggi: ask, the day's headlines scrolling (api/today, every 3 hours), agenda, the research routines' last report with its PDF, house switches, approvals waiting, last dream, health — each tile from its own API, out when empty | calendar, home, approvals, dreams, health, today |
 | `js/modules/advanced.js` | ⋯ Avanzate: every page of the full menu by area (read from it: hidden the same way), 📌 pin to the short menu | style.js |
-| `js/voice.js` | answers read aloud by the device (speech synthesis, local voices only; modes per device) |
+| `js/voice.js` | answers read aloud by the device (speech synthesis, local voices only; modes per device), or by Aurora's own voice sentence by sentence; streamSpeak: an answer spoken while it is written (SentenceFeed cuts whole sentences, never inside code) |
 | `js/vad.js` | when the owner starts and stops speaking, from the microphone's level in the browser (SilenceGate: the end of a turn); BargeGate: the owner speaking over Aurora's voice (5× her echo, 0.4 s) — nothing recorded or sent |
 | `js/artifact.js` | an artifact live in the answer (sandboxed frame, full screen, download) |
 | `js/share.js` | ↗ Share on dreams and thoughts: the Social page with the drafts and the dream's picture |

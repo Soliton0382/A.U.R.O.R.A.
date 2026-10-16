@@ -3728,3 +3728,23 @@ credentials, mounted: not touched — never pulled away from a backup running).
 
 Not measured: why one narrowband night has twice the sky of the others (the Moon, or haze: the frames' dates against the
 Moon not yet compared); the broadband sky from one night only; other gains (all the flats at 1600).
+
+## M231 — the voice's turn timed, end of the sentence to her first word (17 October 2026; ROADMAP 99)
+
+Measured on this machine with invented questions (made with Aurora's voice, encoded as a phone records: Opus 32 kb/s);
+the conversation route with nothing remembered (`remember: false, tools: true`); the events timed as a client gets them.
+
+| stage | measured |
+|---|---|
+| the end of the turn (vad.js) | 1.2 s of silence, fixed |
+| words shown while speaking | yes: the recording transcribed again every 1.5 s, in the composer's placeholder |
+| the final transcription (3.3 s and 2.4 s of speech) | 0.16–0.20 s (1.38 s the first, the model cold); the words exact |
+| the answer, conversation route (cloud model), two questions | route 0.2–0.5 s, memories 2.6–3.3 s, thinking from 4.3–5.1 s, the first sentence **8.7–9.2 s**, the whole 16.6–18.8 s (2.2–2.8 k characters) |
+| before C344 | every piece at the end: 17.4 and 20.1 s |
+| her voice, the first sentence | 0.67–0.78 s (WAV); MP3 0.88 s (M211) |
+| **the whole, before** (the answer whole, then spoken) | ≈ 1.2 + 0.2 + 17–20 + 0.9 ≈ **19–22 s** |
+| **the whole, now** (the self route spoken while written: voice.streamSpeak) | ≈ 1.2 + 0.2 + 8.7–9.2 + 0.8 ≈ **11–11.5 s** — estimated from the stages, not timed in a phone |
+
+The knowledge route is still spoken when final (its verification may take sentences out). Where the time goes now: the
+model's thinking (~4 s) and the memories (~2.5 s) before the first word. Not measured: a phone's network, the turn timed
+end to end on a phone, the device's own voices speaking a stream.

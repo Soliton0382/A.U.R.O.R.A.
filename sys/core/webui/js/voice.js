@@ -229,3 +229,80 @@ export async function speak(text, lang, only = null) {
   }
   return "ok";
 }
+
+// ROADMAP 99: the answer spoken while it is written (the self route, whose final text is the stream itself: nothing is
+// taken out afterwards). The text comes in tokens; a piece goes out when it ends a sentence and says something (≥ MIN_SAY
+// characters spoken: «1.» of a list waits for its item), never inside a code block still open.
+const MIN_SAY = 12;
+export class SentenceFeed {
+  constructor() { this.buf = ""; }
+  push(text) { this.buf += text; return this.take(false); }
+  end() { return this.take(true); }
+  take(all) {
+    let cut = all ? this.buf.length : -1;
+    if (!all) {
+      const re = /[.!?;:](?=\s)|\n\s*\n/g;
+      for (let m; (m = re.exec(this.buf));) {
+        const end = m.index + m[0].length, head = this.buf.slice(0, end);
+        if ((head.match(/```/g) || []).length % 2 === 0 && speakable(head).length >= MIN_SAY) cut = end;   // outside code
+      }
+    }
+    if (cut <= 0) return [];
+    const out = this.buf.slice(0, cut);
+    this.buf = this.buf.slice(cut);
+    return speakable(out) ? [out] : [];
+  }
+}
+
+// {push(text), end()} and `done`, the outcome as speak() says it. The first piece one sentence, heard at once; then
+// what has come meanwhile, up to 400 characters, made while the piece before is heard (M211's queue, fed as it grows)
+export function streamSpeak(lang) {
+  stop();
+  const mine = turn;
+  prime();
+  const feed = new SentenceFeed(), queue = [];
+  let ended = false, wake = null, first = true;
+  queued = 1;                                         // «speaking» from the first token to the last piece heard
+  const put = (chunks) => { for (const c of chunks) { const s = speakable(c); if (s) queue.push(s); } wake?.(); };
+  const more = () => new Promise((ok) => {           // until a piece or the end comes; only its own waker cleared
+    if (queue.length || ended) { ok(); return; }
+    const mineWake = () => { if (wake === mineWake) wake = null; ok(); };
+    wake = mineWake;
+  });
+  const take = () => {
+    let say = queue.shift();
+    while (!first && queue.length && say.length + 1 + queue[0].length <= 400) say += ` ${queue.shift()}`;
+    first = false;
+    return say;
+  };
+  const done = (async () => {
+    const own = supported() && (!chosen() || chosen() !== SERVER) ? await localVoice(lang) : null;
+    let ahead = null;                                 // the next clip, made while this one is heard
+    while (mine === turn) {
+      if (!ahead && !queue.length) { if (ended) return "ok"; await more(); continue; }
+      if (own) {                                      // the device's voice queues the sentences itself
+        const u = new SpeechSynthesisUtterance(take());
+        u.voice = own;
+        u.lang = own.lang;
+        speechSynthesis.speak(u);
+        continue;
+      }
+      const c = await (ahead || fetchClip(take(), lang));
+      ahead = null;
+      if (mine !== turn) return "ok";
+      if (c.err) return c.err;
+      const r = await playClip(c.url, true);
+      if (r !== "ok") return r;
+      const heard = new Promise((ok) => { audio.onended = ok; audio.onpause = ok; });
+      while (!queue.length && !ended && audio && !audio.paused) await Promise.race([heard, more()]);
+      if (queue.length) ahead = fetchClip(take(), lang);
+      await heard;
+    }
+    return "ok";
+  })().finally(() => { if (mine === turn) queued = 0; });
+  return {
+    push: (text) => { if (mine === turn) put(feed.push(text)); },
+    end: () => { if (mine === turn) { put(feed.end()); ended = true; wake?.(); } },
+    done,
+  };
+}

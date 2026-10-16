@@ -244,7 +244,8 @@ export function renderPast(b, turn) {
 }
 
 // Follow a run's events into a bubble. Returns the final answer payload (or null).
-export async function follow(runId, b, scroller) {
+// onEvent(name, payload): every event as it comes, for who acts on it live (the chat speaking the answer as written)
+export async function follow(runId, b, scroller, onEvent = null) {
   let thought = null, draft = null, final = null, diet = null;
   const seen = [];                                  // the run's events, for the answer's check line
   b.iter.open = true;
@@ -254,8 +255,9 @@ export async function follow(runId, b, scroller) {
   runStarted();
   // a connection lost while following (the phone asleep, a change of network): taken up again from the last event seen,
   // a few times — 6 October, «network error» 15 s before the answer, which was complete and saved
-  const onEvent = (e) => handle(e);
+  const listen = (e) => handle(e);
   const handle = ({ event: name, payload: p }) => {
+      try { onEvent?.(name, p); } catch (err) { console.warn("follow: a listener failed", err); }
       const stick = nearEnd();
       if (name === "synthesis.delta") {
         if (p.kind === "thought") {
@@ -298,7 +300,7 @@ export async function follow(runId, b, scroller) {
   try {
     // followed again from the last event, waiting while the page is away (C199: 30 tries in 5 minutes gave up on a
     // phone left in the pocket)
-    await followRun(runId, onEvent, () => status(`🔌 ${t("chat.reconnecting")}`));
+    await followRun(runId, listen, () => status(`🔌 ${t("chat.reconnecting")}`));
   } finally {
     runEnded();
     b.head.classList.remove("running");

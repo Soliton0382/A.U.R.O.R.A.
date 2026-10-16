@@ -149,3 +149,17 @@ def test_an_old_polar_alignment_says_nothing_of_tonight():
     night = [{"night": today, "sessions": [], "findings": [], "advice": {"pa_arcmin": 3.0}}]
     r = {x["key"]: x for x in V.advise(profile(), V.facts_of({}), night)}["polar"]
     assert r["status"] == "ok" and r["current"] == 3.0 and r["n"]["when"] == today       # tonight's log wins
+
+
+def test_the_bar_s_weight_and_its_reach():
+    base = dict(payload_kg=12.75, saddle_to_ra_m=0.1, com_from_saddle_m=0.11, cw_kg=10.3)
+    assert rows(**base)["cw_arm"]["advised"] == round(12.75 * 0.21 / 10.3, 3)            # no bar given: as before
+    bar = dict(cw_bar_kg=0.55, cw_bar_from_m=0.1, cw_bar_len_m=0.22, cw_stack_m=0.088)
+    r = rows(**base, **bar)["cw_arm"]
+    assert r["advised"] == round((12.75 * 0.21 - 0.55 * (0.1 + 0.11)) / 10.3, 3) and r["why"] == "cw_arm"
+    assert r["n"]["reach"] == round(0.1 + 0.22 - 0.044, 3)
+    short = rows(**{**base, "cw_kg": 3.0}, **bar)["cw_arm"]                              # 3 kg: 0.85 m, the bar ends at 0.28
+    assert short["why"] == "cw_short" and short["status"] == "warn"
+    near = rows(**base, **{**bar, "cw_bar_from_m": 0.053}, mount_drive="strain_wave")["cw_arm"]    # the weights at the end: 91 %
+    assert near["why"] == "cw_end_ok" and near["status"] == "ok" and near["n"]["pct"] == 91
+    assert rows(**base, **{**bar, "cw_bar_from_m": 0.053}, mount_drive="worm")["cw_arm"]["why"] == "cw_short"

@@ -26,6 +26,8 @@ FACTS = (("seeing_arcsec", "″", 3.0, "num"), ("mount_drive", "", None, ("strai
          ("mount_torque_nm", "N·m", None, "num"), ("saddle_to_ra_m", "m", None, "num"),
          ("payload_kg", "kg", None, "num"), ("com_from_saddle_m", "m", None, "num"),
          ("cw_kg", "kg", None, "num"), ("cw_arm_m", "m", None, "num"),
+         ("cw_bar_kg", "kg", None, "num"), ("cw_bar_from_m", "m", None, "num"), ("cw_bar_len_m", "m", None, "num"),
+         ("cw_stack_m", "m", None, "num"),
          ("mount_limit_min", "min", None, "num"), ("focuser_step_um", "µm", None, "num"),
          ("dither_img_px", "px", 10.0, "num"))
 
@@ -256,10 +258,22 @@ def advise(profile: dict | None, facts: dict, nights: list[dict] | None = None, 
                 rows.append(_row("torque", "mount", "mount", _r(moment, 1), f"< {tq:g}", "N·m", "ok" if moment < tq * 0.85 else
                                  ("warn" if moment < tq else "bad"), "torque", com_max=_r(tq / (pay * 9.8) - s2ra, 2), pct=round(moment / tq * 100)))
             if cw:
-                balance = pay * (s2ra + com) / cw
+                # the bar's own weight acts at its middle (from where it leaves the mount to its end), when it is given
+                bar, root, blen = facts["cw_bar_kg"], facts["cw_bar_from_m"], facts["cw_bar_len_m"]
+                bar_m = bar * (root + blen / 2) if None not in (bar, root, blen) else 0.0
+                balance = (pay * (s2ra + com) - bar_m) / cw
+                # the farthest the weights' centre can go: the bar's end (its usable length, the cap left out) less half
+                # the weights' thickness, when given
+                reach = root + blen - (facts["cw_stack_m"] or 0) / 2 if None not in (root, blen) else None
                 st = "info" if arm is None else ("ok" if abs(arm - balance) <= 0.02 else "warn")
-                rows.append(_row("cw_arm", "mount", "mount", arm, _r(balance, 3), "m", st, "cw_arm" if arm is None or arm <= balance else "cw_heavy",
-                                 cw=cw, diff_cm=_r((arm - balance) * 100, 1) if arm is not None else None))
+                why = ("cw_short" if reach is not None and balance > reach else
+                       "cw_arm" if arm is None or arm <= balance else "cw_heavy")
+                share = (cw * reach + bar_m) / (pay * (s2ra + com)) if reach is not None else None   # the weights at the end
+                if why == "cw_short" and facts["mount_drive"] == "strain_wave" and share >= 0.85:
+                    why, st = "cw_end_ok", "ok"    # a strain-wave gear likes the tube side a little heavier: one side of the teeth
+                rows.append(_row("cw_arm", "mount", "mount", arm, _r(balance, 3), "m", "warn" if why == "cw_short" else st, why,
+                                 cw=cw, diff_cm=_r((arm - balance) * 100, 1) if arm is not None else None,
+                                 bar=bool(bar_m), reach=_r(reach, 3), pct=round(share * 100) if share is not None else None))
     # ---- camera, darks, focus ------------------------------------------------------------------------------------------
     usable = [d for d in darks or [] if not d.get("old")]
     gain, off = _f(rig.get("gain")), _f(rig.get("offset"))

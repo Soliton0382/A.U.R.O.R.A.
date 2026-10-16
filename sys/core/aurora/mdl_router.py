@@ -567,14 +567,28 @@ class Fallback:
         return self._try("count_tokens", text)
 
     def stream(self, *a, **k):
+        """Each piece passed on as it comes (C344: the whole answer was gathered first, so the chat «streamed» it all
+        at the end and nothing could be spoken while written). A failure before the first piece: the local model, as
+        if nothing happened; after some: said, and the local model answers whole (what was shown cannot be taken back)."""
+        given = False
         try:
-            pieces = list(self.primary.stream(*a, **k))                # a stream cannot change model half-way
+            for piece in self.primary.stream(*a, **k):
+                given = given or bool(piece[1] if isinstance(piece, tuple) else piece)
+                yield piece
             self.last_speed = getattr(self.primary, "last_speed", None)
-            yield from pieces
+            return
         except Exception as e:                           # noqa: BLE001
             sys_log.get_logger("llm_client").warning("%s stream on %s failed (%s): local", self.role, self.name, str(e)[:200])
-            yield from self.local.stream(*a, **k)
-            self.last_speed = getattr(self.local, "last_speed", None)
+            sys_log.trace("llm_client", "cloud.fallback", {"role": self.role, "provider": self.name, "error": str(e)[:300],
+                                                         "midway": given})
+        if given:
+            from . import txt_lang
+            user = a[1] if len(a) > 1 else k.get("user", "")
+            yield "answer", ("\n\n⚠️ Il modello cloud si è interrotto: ti rispondo da capo con quello locale.\n\n"
+                             if txt_lang.detect(str(user)) == "it" else
+                             "\n\n⚠️ The cloud model stopped: the local one answers from the start.\n\n")
+        yield from self.local.stream(*a, **k)
+        self.last_speed = getattr(self.local, "last_speed", None)
 
 
 def is_local(model, local) -> bool:

@@ -130,7 +130,27 @@ export default {
     hush.addEventListener("click", () => { voice.stop(); clearInterval(hushTimer); hush.classList.add("hidden"); });
     const sayAloud = async (text) => {
       watchVoice();
-      const r = await voice.speak(text, lang.replace("_", "-"));
+      return told(await voice.speak(text, lang.replace("_", "-")));
+    };
+    // the answer spoken while it is written (ROADMAP 99): the self route only — its final text is the stream itself;
+    // the knowledge route's verification may still take sentences out, so it is spoken when final
+    const aloudLive = () => {
+      let mode = null, live = null;
+      return {
+        onEvent: (name, p) => {
+          if (name === "route") mode = p.mode;
+          if (name !== "synthesis.delta" || p.kind !== "answer" || mode !== "self") return;
+          if (!live) { watchVoice(); live = voice.streamSpeak(lang.replace("_", "-")); }
+          live.push(p.text);
+        },
+        finish: (final) => {
+          if (!live) return final?.text ? sayAloud(final.text) : null;
+          live.end();
+          return live.done.then(told);
+        },
+      };
+    };
+    const told = async (r) => {
       if (r === "unplayable") {                     // not a permission: the browser's own reason, by its name
         const msg = t("chat.voice.unplayable", { e: voice.unplayable });
         input.placeholder = msg;
@@ -310,9 +330,10 @@ export default {
           : call("/v1/aurora/ask", { method: "POST", body: JSON.stringify({ question, attachments, suggest: true, ...(focus ? { focus } : {}), ...(reply ? { reply_to: reply } : {}), ...(thinking() ? { think: thinking() } : {}) }) })
         ).finally(() => asking--);
         mine.add(run_id);
-        const final = await follow(run_id, b, messages);
+        const speech = aloud ? aloudLive() : null;
+        const final = await follow(run_id, b, messages, speech?.onEvent);
         if (final?.text) actions(b.root, final.text, replyTo(final.text, run_id));
-        if (aloud && final?.text) sayAloud(final.text);
+        speech?.finish(final);
         if (talking) listenAgain();
         if (final?.diet) await dietCards(b, final.diet);
         if (final?.abstained && final.mode !== "self") offerAcquire(b, question);
