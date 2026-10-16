@@ -47,7 +47,7 @@ def astro_files() -> str:
     d = ast_inventory.folder(cfg)
     inv = {f.name for f in ast_inventory.inventories(cfg)}
     rows = [f"- {f.name} ({f.stat().st_size // 1024} KB){' — inventario' if f.name in inv else ''}"
-            for f in sorted(d.iterdir()) if f.is_file() and f.name not in ("darks.json", "astro_setup.json", "autoguide.jsonl")]
+            for f in sorted(d.iterdir()) if f.is_file() and f.name not in ("darks.json", "astro_setup.json", "autoguide.jsonl", "sensor.json")]
     return "\n".join(rows) or "La cartella astro è vuota."
 
 
@@ -88,6 +88,32 @@ def astro_advice() -> str:
     unknown = [f["key"] for f in r["facts_spec"] if r["facts"].get(f["key"]) is None]
     if unknown:
         lines.append("Dati che solo la persona conosce, ancora da dare (pagina 🔭 Astro → 🎛️): " + ", ".join(unknown))
+    return "\n".join(lines)
+
+
+@server.tool()
+def astro_imaging(object: str = "") -> str:
+    """Le impostazioni di ripresa migliori (gain, offset, posa) per un oggetto o per ogni tipo di oggetto (banda stretta,
+    banda larga, HDR), calcolate dal sensore e dal cielo misurati sulle pose della persona, e il meglio con i suoi dark."""
+    from aurora import ast_sensor
+    cfg = sys_config.get()
+    m = ast_sensor.measure(cfg, str(cfg["AURORA_ASTRO_FRAMES_DIR"] or "").strip())
+    p = ast_sensor.plan(m, ast_inventory.darks_library(cfg)["darks"], ast_inventory.profile(cfg), 3, object.strip()[:120])
+    def one(name, k):
+        if name == "hdr":
+            return f"HDR: gain {k['gain']:g}, offset {k['offset']:g}, pose {', '.join(f'{x:g} s' for x in k['exposures'])}, 30–40 light ciascuna"
+        if not k["best"]:
+            return f"{name}: non calcolabile ({'cielo non misurato' if not k['rate'] else 'sensore non misurato'})"
+        b, w = k["best"], k["with_darks"]
+        return (f"{name}: ottimale gain {b['gain']:g} offset {b['offset']:g} posa {b['exposure_s']} s (minima {b['t_min']} s)"
+                + (f"; con i dark che ha: {w['exposure_s']:g} s" if w else "; nessun dark adatto"))
+    lines = [one(n, k) for n, k in p["kinds"].items()]
+    if p.get("object"):
+        o = p["object"]
+        lines.insert(0, f"Oggetto {o['name']}: tipo {o['kind']}{' (dal nome)' if o['guessed'] else ''} → " + one(o["kind"], p["kinds"][o["kind"]]))
+    for s in m.get("sensors", []):
+        lines.append(f"Sensore a gain {s['gain']:g}/offset {s['offset']:g}: {s['gain_e_adu']} e-/ADU, rumore {s['read_noise_e']} e-, "
+                     f"full well {s['full_well_e']} e- (SubframeSelector: camera gain {s['gain_e_adu']}, 16-bit)")
     return "\n".join(lines)
 
 

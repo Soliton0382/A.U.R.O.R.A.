@@ -3692,3 +3692,20 @@ Read: the loop works end to end; the simulated error is noise that no setting ch
 a gain. From it: the trial was raised to 120 steps and the revert threshold to +15 % (the RMS of n steps scatters by
 ~1/√(2n): 7.5 % at 90, 6.5 % at 120). Not measured: the tuner on the real PHD2 and a real sky; whether its changes lower
 the RMS over a night.
+
+## M229 — the camera and the sky measured from the person's own frames (17 October 2026; ROADMAP N28)
+
+A one-shot-colour camera on Sony's IMX294 (4.63 µm), gain 1600 offset 20, cooled to −10 °C; the frames of one night
+(144 single frames: 62 lights through a dual-band filter at 240 s, 40 flats and 40 dark-flats at 3.93 s), read only.
+
+| what | measured |
+|---|---|
+| the photon transfer (2 flats, 2 dark-flats; the greens) | 0.222 e-/ADU (the colours 0.219–0.223 in three pairs), read noise 1.58 e- (1.63 without the 6 σ clip), bias 1300 ADU, full well to 16-bit saturation 14.3 ke-, no pixel left at zero by the offset; the maker's sheet says 1.6 e- and 14.5 ke- at that gain |
+| the sky (3 of 60 lights, 8 × 8 block medians, their 10th percentile) | R 0.176, G 0.370, B 0.197 e-/s per pixel; the 10th percentile of single pixels gave 0.167 (the noise pulls it down 1.3 σ: on synthetic frames 0.174 for a true 0.25 — the reason for the blocks) |
+| the narrowband set | the sky gives 10 × RN² = 25 e- in 142 s; with a 1.2 margin and the ladder, 180 s at gain 1600 — a dark the library has; the floor from the overhead (2 s download, a 10 s settle + 5 s every 3 frames: 7 s a frame, 85 % collecting) 40 s |
+| HDR from the darks at 1600/20 | 15, 60, 120 s |
+| reading | 144 headers and the measures 0.7 s; then cached (0.24 s the route) |
+
+Not measured: any other gain (no frames); the broadband sky (no light through the broadband filter on this machine); the
+dark current in the sky's level (the bias is used when no integrated dark of that exposure has its level read: about 2 e- in
+240 s at −10 °C against 42 e- of sky in the weakest colour: the sky read about 5 % high, the minimum exposure about 5 % short).

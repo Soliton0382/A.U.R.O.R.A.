@@ -278,6 +278,12 @@ dialog.welcome p { margin: 0; }
 .an-table th:first-child, .an-table td:first-child { text-align: left; }
 .an-table th { color: var(--muted); font-weight: 500; }
 
+/* 🔭 Astro → 🎯 imaging: the sets */
+.im-kind { border: 1px solid var(--line); border-radius: .6rem; padding: .4rem .8rem; margin: .5rem 0; }
+.im-kind h4 { margin: .2rem 0; }
+.im-kind p { margin: .25rem 0; overflow-wrap: anywhere; }
+.im-pick { display: flex; gap: .5rem; flex-wrap: wrap; margin: .4rem 0 .6rem; }
+.im-pick input { flex: 1 1 14rem; min-width: 0; }
 /* 🔭 Astro → 🎛️ the values advised */
 .aa-sum { font-size: 1.05rem; font-variant-numeric: tabular-nums; }
 .aa-facts { border: 1px solid var(--line); border-radius: .6rem; padding: .5rem .8rem; margin: .6rem 0; }

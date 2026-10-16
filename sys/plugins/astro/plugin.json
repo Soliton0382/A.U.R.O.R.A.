@@ -14,7 +14,8 @@
  "env": [
   "AURORA_ASTRO_DIR",
   "AURORA_ASTRO_DARKS_DIR",
-  "AURORA_ASTRO_DARKS_TEMP"
+  "AURORA_ASTRO_DARKS_TEMP",
+  "AURORA_ASTRO_FRAMES_DIR"
  ],
  "requires": [],
  "effects": {
@@ -22,7 +23,8 @@
   "astro_darks": "read",
   "astro_files": "read",
   "astro_nights": "read",
-  "astro_advice": "read"
+  "astro_advice": "read",
+  "astro_imaging": "read"
  },
  "on_demand": {
   "words": ["astro", "telescopio", "telescope", "montatura", "mount", "guida", "guiding", "phd2", "n.i.n.a", "nina",
@@ -40,7 +42,8 @@
  "settings": [
   "AURORA_ASTRO_DIR",
   "AURORA_ASTRO_DARKS_DIR",
-  "AURORA_ASTRO_DARKS_TEMP"
+  "AURORA_ASTRO_DARKS_TEMP",
+  "AURORA_ASTRO_FRAMES_DIR"
  ],
  "sandbox": {
   "network": false,

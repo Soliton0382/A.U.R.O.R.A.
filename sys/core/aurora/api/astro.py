@@ -19,7 +19,7 @@ SCRIPT = Path(__file__).resolve().parents[3] / "plugins" / "astro" / "astro_inve
 COMMAND = "powershell -ExecutionPolicy Bypass -File .\\astro_inventory.ps1"
 NAME = re.compile(r"^[\w .()+-]{1,120}\.(txt|md|pdf|csv|json|xml|log)$", re.I)
 MAX_BYTES = 50 * 1024 * 1024
-OWN = ("darks.json", "astro_setup.json", "autoguide.jsonl")   # Aurora's own: the darks' snapshot, the setup, the tuner's log
+OWN = ("darks.json", "astro_setup.json", "autoguide.jsonl", "sensor.json")   # Aurora's own: the darks' snapshot, the setup, the tuner's log
 
 
 @router.get("/v1/aurora/astro", dependencies=[Depends(auth)])
@@ -114,6 +114,43 @@ def _host() -> tuple[str, int]:
     """The telescope's PC (ast_advice.telescope_host)."""
     from aurora import ast_advice
     return ast_advice.telescope_host(cfg)
+
+
+@router.get("/v1/aurora/astro/imaging", dependencies=[Depends(auth)])
+def astro_imaging(object: str = "") -> dict:
+    """The camera and the sky measured from the person's frames, and the settings for each kind of object and for the
+    one named (ast_sensor); the objects of their sequences to choose from."""
+    from aurora import ast_advice as V, ast_inventory as A, ast_sensor as S, ast_sequence as Q
+    d = A.folder(cfg)
+    m = S.measure(cfg, str(cfg["AURORA_ASTRO_FRAMES_DIR"] or "").strip())
+    seqs = Q.sequences(d) + Q.sequences(d / "sequences")
+    every = [q["dither_every"] for q in seqs if q.get("dither_every")]
+    names = sorted({t["name"] for q in seqs for t in q.get("targets", []) if t.get("name")})
+    kinds = V.setup(d).get("kinds") or {}
+    out = S.plan(m, A.darks_library(cfg)["darks"], A.profile(cfg), max(set(every), key=every.count) if every else None,
+                 object.strip()[:120], kinds)
+    return {**out, "sensors": m.get("sensors", []), "sky": m.get("sky", []), "frames": m.get("frames", 0),
+            "kinds_count": m.get("kinds", {}), "errors": m.get("errors", []) + ([m["error"]] if m.get("error") else []),
+            "frames_dir": bool(str(cfg["AURORA_ASTRO_FRAMES_DIR"] or "").strip()), "objects": names,
+            "object_kinds": {n: S.kind_of(n, kinds) for n in names}}
+
+
+@router.put("/v1/aurora/astro/imaging", dependencies=[Depends(auth)])
+async def astro_imaging_set(request: Request) -> dict:
+    """An object's kind as the person says it (narrowband, broadband, hdr; empty: guessed from its name again)."""
+    from aurora import ast_advice as V, ast_inventory as A, ast_sensor as S
+    body = await request.json()
+    name, kind = str(body.get("object", "")).strip()[:120], str(body.get("kind", ""))
+    if not name or kind not in S.CLASSES + ("",):
+        raise HTTPException(status_code=422, detail=f"object, and kind one of {S.CLASSES}")
+    d = A.folder(cfg)
+    kinds = dict(V.setup(d).get("kinds") or {})
+    if kind:
+        kinds[name] = kind
+    else:
+        kinds.pop(name, None)
+    V.save_part(d, "kinds", kinds)
+    return astro_imaging(name)
 
 
 @router.get("/v1/aurora/astro/live", dependencies=[Depends(auth)])

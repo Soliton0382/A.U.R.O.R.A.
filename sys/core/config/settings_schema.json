@@ -3438,6 +3438,19 @@
    ]
   },
   {
+   "key": "AURORA_ASTRO_FRAMES_DIR",
+   "type": "str",
+   "category": "plugins",
+   "recommended": "",
+   "evidence": "owner",
+   "scope": "user",
+   "en": "A folder of this machine with your single frames (lights, flats, dark-flats, as the imaging program saved them), read only: from a pair of flats and a pair of dark-flats at a gain Aurora measures your sensor (e-/ADU, read noise, full well), from your lights the sky of each filter; then the best settings for each kind of object. Empty: none.",
+   "it": "Una cartella di questa macchina con le tue pose singole (light, flat, dark-flat come le ha salvate il programma di ripresa), solo letta: da una coppia di flat e una di dark-flat a un gain Aurora misura il tuo sensore (e-/ADU, rumore di lettura, full well), dalle light il cielo di ogni filtro; poi le impostazioni migliori per ogni tipo di oggetto. Vuota: nessuna.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_EXPENSES_DIR",
    "type": "path",
    "category": "plugins",
