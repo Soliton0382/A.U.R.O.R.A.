@@ -2420,8 +2420,8 @@
   "aa.w.settle_time": "Per quanti secondi la guida deve restare sotto soglia prima di riprendere.",
   "aa.w.settle_timeout": "Dopo quanto N.I.N.A. riprende comunque. Con meno di 40 s una posa può partire con la guida non ancora stabile (il valore di partenza è 40).",
   "aa.w.flip_after": "Con «usa il lato del pilastro» N.I.N.A. aspetta di aver passato il meridiano; il flip parte entro {max} min.",
-  "aa.w.mount_limit": "La montatura deve continuare a inseguire almeno 3 minuti dopo il flip più tardivo di N.I.N.A. ({max} min). Il valore lo trovi nell'app della montatura: scrivilo nei tuoi dati.",
-  "aa.w.mount_limit_stopped": "Il {night} la montatura ha smesso di inseguire a {at} min dal meridiano, prima del flip di N.I.N.A. (fino a {max} min dopo). Porta il limite RA ad almeno 3 min oltre il flip.",
+  "aa.w.mount_limit": "La montatura deve continuare a inseguire almeno 3 minuti dopo il flip più tardivo di N.I.N.A. ({max} min). Il valore lo trovi nell'app della montatura: scrivilo nei tuoi dati. Nelle app delle montature OnStep il limite («Meridian Limit E/W») è in gradi: 1° = 4 min.",
+  "aa.w.mount_limit_stopped": "Il {night} la montatura ha smesso di inseguire a {at} min dal meridiano, prima del flip di N.I.N.A. (fino a {max} min dopo). Porta il limite RA ad almeno 3 min oltre il flip. Nelle app delle montature OnStep il limite («Meridian Limit E/W») è in gradi: 1° = 4 min.",
   "aa.w.payload": "{pct}% della portata di {limit} kg{cw}. Per fare foto la regola pratica è stare sotto il 70%: oltre, la guida soffre (raffiche, flessioni).",
   "aa.w.torque": "Peso × 9,8 × (slitta–asse RA + baricentro dalla slitta) = {pct}% del limite del costruttore. Con questo peso il baricentro può stare al massimo a {com_max} m dalla slitta.",
   "aa.w.cw_arm": "Per bilanciare, il centro del contrappeso da {cw} kg va a questa distanza dall'asse RA: peso × (slitta–asse + baricentro) ÷ contrappeso.",
@@ -2507,5 +2507,6 @@
   "aa.live_off": "📄 Il PC del telescopio non risponde: i valori vengono dall'inventario del {w}. Con PHD2 e N.I.N.A. aperti Aurora li legge dal vivo.",
   "aa.src.live": "letto adesso da PHD2 o N.I.N.A.",
   "aa.src.inventory": "dall'inventario (fotografia del PC)",
-  "aa.src.measured": "misurato (log, Guiding Assistant)"
+  "aa.src.measured": "misurato (log, Guiding Assistant)",
+  "aa.src.fact": "scritto da te nei tuoi dati"
 }

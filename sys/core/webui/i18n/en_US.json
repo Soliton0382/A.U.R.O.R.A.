@@ -2420,8 +2420,8 @@
   "aa.w.settle_time": "How many seconds the guiding must stay below the threshold before resuming.",
   "aa.w.settle_timeout": "After how long N.I.N.A. resumes anyway. Under 40 s a frame may start before the guiding is steady (the starting value is 40).",
   "aa.w.flip_after": "With «use side of pier» N.I.N.A. waits until the meridian is passed; the flip starts within {max} min.",
-  "aa.w.mount_limit": "The mount must keep tracking at least 3 minutes past N.I.N.A.'s latest flip ({max} min). Find the value in the mount's app and write it in your facts.",
-  "aa.w.mount_limit_stopped": "On {night} the mount stopped tracking {at} min from the meridian, before N.I.N.A.'s flip (up to {max} min past). Set the RA limit at least 3 min beyond the flip.",
+  "aa.w.mount_limit": "The mount must keep tracking at least 3 minutes past N.I.N.A.'s latest flip ({max} min). Find the value in the mount's app and write it in your facts. In OnStep mounts' apps the limit («Meridian Limit E/W») is in degrees: 1° = 4 min.",
+  "aa.w.mount_limit_stopped": "On {night} the mount stopped tracking {at} min from the meridian, before N.I.N.A.'s flip (up to {max} min past). Set the RA limit at least 3 min beyond the flip. In OnStep mounts' apps the limit («Meridian Limit E/W») is in degrees: 1° = 4 min.",
   "aa.w.payload": "{pct}% of the {limit} kg capacity{cw}. For imaging, the rule of thumb is to stay below 70%: beyond it the guiding suffers (gusts, flexure).",
   "aa.w.torque": "Weight × 9.8 × (saddle–RA axis + centre of mass from the saddle) = {pct}% of the maker's limit. At this weight the centre of mass can be at most {com_max} m from the saddle.",
   "aa.w.cw_arm": "To balance, the centre of the {cw} kg counterweight goes this far from the RA axis: weight × (saddle–axis + centre of mass) ÷ counterweight.",
@@ -2507,5 +2507,6 @@
   "aa.live_off": "📄 The telescope's PC does not answer: the values come from the inventory of {w}. With PHD2 and N.I.N.A. open Aurora reads them live.",
   "aa.src.live": "read now from PHD2 or N.I.N.A.",
   "aa.src.inventory": "from the inventory (a snapshot of the PC)",
-  "aa.src.measured": "measured (logs, Guiding Assistant)"
+  "aa.src.measured": "measured (logs, Guiding Assistant)",
+  "aa.src.fact": "written by you in your facts"
 }

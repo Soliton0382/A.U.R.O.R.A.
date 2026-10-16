@@ -281,8 +281,13 @@ def advise(profile: dict | None, facts: dict, nights: list[dict] | None = None, 
     for r in rows:                                         # where each value came from
         src = LIVE_FROM.get(r["key"])
         r["src"] = "live" if src and lv.get(src) else ("measured" if r["where"] == "measured" else "inventory")
+        if r["key"] in FACT_ROWS:                          # a value only the person knows: they set it, not choose it
+            r["fact"], r["src"] = FACT_ROWS[r["key"]], "fact"
     return rows
 
+
+# the rows whose current value is one of the person's facts: the table's box sets the fact itself
+FACT_ROWS = {"mount_limit": "mount_limit_min"}
 
 # the rows whose value is read live, and from which program
 LIVE_FROM = {"guide_exposure": "phd2", "min_move_ra": "phd2", "min_move_dec": "phd2", "dither": "nina", "settle_px": "nina",
@@ -317,7 +322,7 @@ def choose(rows: list[dict], choices: dict) -> list[dict]:
     """The person's own value for a row, kept beside the advised one: the row is judged against the choice."""
     for r in rows:
         v = (choices or {}).get(r["key"])
-        if v in (None, ""):
+        if v in (None, "") or r.get("fact"):
             continue
         r["choice"] = v
         cur, ch = _f(r["current"]), _f(v)

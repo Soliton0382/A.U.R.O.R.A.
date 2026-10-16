@@ -132,3 +132,10 @@ def test_what_the_programs_have_now_wins_over_the_inventory():
     assert r["settle_timeout"]["current"] == 60 and r["settle_timeout"]["src"] == "live"
     assert r["cal_step"]["src"] == "inventory"                                              # not readable live
     assert {x["key"]: x for x in V.advise(profile(), V.facts_of({}))}["min_move_ra"]["src"] == "inventory"
+
+
+def test_a_value_only_the_person_knows_is_set_not_chosen():
+    rs = V.choose(V.advise(profile(), V.facts_of({"mount_limit_min": 15})), {"mount_limit": "8"})
+    r = {x["key"]: x for x in rs}["mount_limit"]
+    assert r["fact"] == "mount_limit_min" and r["src"] == "fact" and r["current"] == 15
+    assert "choice" not in r and r["status"] == "ok"                                     # an old choice there is ignored

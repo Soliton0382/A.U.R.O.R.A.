@@ -71,14 +71,15 @@ function rowsTable(d, save) {
       const mine = el("td");
       if (r.status !== "info" && r.advised != null) {
         const inp = el("input", "aa-mine");
-        inp.value = r.choice ?? "";
+        inp.value = (r.fact ? r.current : r.choice) ?? "";      // a fact's row: the box is the fact itself
         inp.placeholder = "—";
-        inp.setAttribute("aria-label", t("aa.col.mine"));
-        inp.addEventListener("change", () => save({ choices: { [r.key]: inp.value.trim() } }));
+        inp.setAttribute("aria-label", t(r.fact ? `aa.fact.${r.fact}` : "aa.col.mine"));
+        inp.addEventListener("change", () => save(r.fact ? { facts: { [r.fact]: inp.value.trim() } }
+          : { choices: { [r.key]: inp.value.trim() } }));
         mine.append(inp);
       }
       const cell = (k, v) => el("td", `aa-${k}`, v);
-      const SRC = { live: "🟢", inventory: "📄", measured: "📏" };
+      const SRC = { live: "🟢", inventory: "📄", measured: "📏", fact: "✍️" };
       const now = cell("now", `${show(r.current)} ${r.current == null ? "" : r.unit}`.trim() + (r.current == null ? "" : ` ${SRC[r.src] || ""}`));
       now.title = t(`aa.src.${r.src || "inventory"}`);
       const adv = cell("adv", `${show(r.advised)} ${r.advised == null ? "" : r.unit}`.trim());

@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.44 — 2026-10-16
+
+1 publications since v0.2.43.
+
+- 2026-10-16 Astro: a value only the person knows is set in the table, not chosen; the meridian limit in degrees for OnStep
+
 ## v0.2.43 — 2026-10-16
 
 13 publications since v0.2.30.
