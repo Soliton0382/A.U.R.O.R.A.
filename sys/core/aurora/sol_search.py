@@ -23,6 +23,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from . import sys_config, sys_log
+from .sol_ahead import Ahead
 from .sol_index import IndexSet
 from .sol_reader import VaultReader
 from .sol_schema import Soliton
@@ -46,10 +47,22 @@ class Searcher:
         self.reader = reader or VaultReader(self.cfg, user=user)
         self.index = index or IndexSet(self.cfg)            # shared between users: the knowledge loaded once
         self.log = sys_log.get_logger("search")
+        self.ahead = Ahead(self._search)                   # searched while the person still speaks (sol_ahead)
 
     def search(self, question: str, translation: str | None = None, candidates: int | None = None,
                top_k: int | None = None, run_id: str | None = None, sections: set[str] | None = None,
                recall: list[str] | None = None) -> list[Hit]:
+        kw = {"translation": translation, "candidates": candidates, "top_k": top_k, "sections": sections,
+              "recall": recall}
+        hits = self.ahead.take(question, kw)
+        if hits is not None:
+            self.log.info("search: taken from the search done while the question was spoken (%d hits)", len(hits))
+            return hits
+        return self._search(question, run_id=run_id, **kw)
+
+    def _search(self, question: str, translation: str | None = None, candidates: int | None = None,
+                top_k: int | None = None, run_id: str | None = None, sections: set[str] | None = None,
+                recall: list[str] | None = None) -> list[Hit]:
         """`recall`: more texts that only bring candidates (the vector search), never judge them — e.g. the model's
         draft answer (M129: it changed the top 12, not the passage's rank); the re-ranker reads the question."""
         candidates = candidates or self.cfg["AURORA_SEARCH_CANDIDATES"]

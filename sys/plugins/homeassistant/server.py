@@ -36,7 +36,15 @@ DEVICES = ("{%- for s in states -%}{%- set d = device_id(s.entity_id) -%}"
 def _call(method: str, path: str, **kw) -> httpx.Response:
     if not URL or not TOKEN:
         raise ToolError("AURORA_HA_URL and AURORA_HA_TOKEN are needed")
-    r = httpx.request(method, f"{URL}/api{path}", headers={"Authorization": f"Bearer {TOKEN}"}, timeout=30, **kw)
+    try:
+        r = httpx.request(method, f"{URL}/api{path}", headers={"Authorization": f"Bearer {TOKEN}"},
+                          timeout=httpx.Timeout(30, connect=5), **kw)
+    except httpx.TransportError as e:
+        # C352: the server off (a NAS that sleeps at night) said as such — before, «Error executing tool» and nothing
+        # more, and a night routine tried four times and wrote a report of failures about the devices
+        raise ToolError(f"UNREACHABLE: Home Assistant does not answer ({type(e).__name__}): the server is off or out of "
+                        "the network. This says nothing about the devices: do not retry, report only that it was "
+                        "unreachable.") from None
     if r.status_code >= 400:
         raise ToolError(f"Home Assistant {r.status_code}: {r.text[:200]}")
     return r

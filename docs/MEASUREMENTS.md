@@ -3814,3 +3814,48 @@ The catalogues: OpenNGC 3,676 kept of its 14,034 rows (NGC.csv 13,970 + addendum
 objects after the aliases, 646 KB, fetched in 2.0 s. A night's plan for the whole catalogue (4,697 × 145 steps): 0.41 s.
 Not measured: the plan's targets against what the owner would choose; the forecast's accuracy (7Timer!'s seeing is
 coarse: 3-hour steps, 8 classes).
+
+## M236 — memory over days, the third night (17 October 2026; ROADMAP D1, N3)
+
+The same probe as M217 (`bench_memory_days.py` on the user «test», the eight questions, `remember: false`), 2.55 days
+after the facts were told: **8 of 8**. The miss of M217 is answered now: a Nutella dessert is refused because of the
+hazelnut allergy told on the first evening, and the never-told brother and colour are still «I don't know», nothing
+invented. Times: 4.4–7.8 s for six answers, 25.9 s for the dessert (it searched), 78.4 s for the shoe size (one outlier,
+not explained). Not measured: the cause of the 78 s; the repeat variance (8 questions); the 7-night probe — its timer
+did not survive (none listed on 19 Oct), to run by hand on 21 Oct.
+
+## M237 — her memory searched while the person speaks (19 October 2026; ROADMAP 99, sol_ahead)
+
+Where the voice's wait went (43 answers of the self route, 15–18 Oct, from the trace): route 0.35 s, her state 0.56 s,
+**the memory recalled at 2.89 s** (median; p10 0.85, p90 3.42), the first word at 5.72 s. The memory search alone, on
+the owner's memory, repeated: 2.0–2.2 s every time (not a cold model: the re-ranker reads 300 candidates; on the test
+user's small memory 0.47 s). Fewer candidates were measured and refused: 150 → 1.36 s but only 57 % of the twelve
+memories the same (top 3: 57 %), 100 → 0.93 s and 43 %, 60 → 0.69 s and 39 %; 300 against 300 again: 100 %.
+
+So the search is done ahead, on the partial transcripts (every 1.5 s while speaking) and on the final one, and the
+answer takes it when its question is the same text. Simulated turns on the owner's memory (a 3 s sentence, partials at
+0 and 1.5 s, the final transcript at end + 1.4 s, the answer asking at end + 2.0 s, as measured in M231), five invented
+questions each:
+
+| case | the answer waits for its memories |
+|---|---|
+| searched as before | 2.16 s (max 2.27) |
+| the partial with every word at end + 0.1 s | 1.07 s (max 1.80: the previous partial's search still running) |
+| … at end + 0.6 s | **0.77 s** (max 0.92) |
+| … at end + 1.1 s | 1.24 s (max 1.39) |
+| no partial with every word, the final transcript only | 1.55 s (max 1.68) |
+
+The memories: identical, in the same order, 20 of 20. Matching the same words with case and punctuation aside was
+tried first and dropped: the re-ranker reads the text, and a lower-case variant without its question mark changed up
+to 6 of 12 memories. End to end on the API (user «test», a sentence in her own voice sent as a partial, then final,
+then asked): the memory ready 1 ms after her state. Not measured: on a phone (the partial transcripts' real timing),
+how often a partial carries the very text of the final transcript, the thinking (~2.8 s after the memories) — the
+next part of the wait.
+
+## M238 — an agent's real goals: steps and minutes (19 October 2026; ROADMAP 34)
+
+Every agent run that finished from 30 Sep to 19 Oct (20 days, the routines' and the chat's agents together), from the
+trace (`agent.finish`): **734 runs**. Steps: median 3, p90 11, max 60. Time: median **15.9 s**, p90 76.4 s, max 1,050 s.
+121 runs ended with «NOTHING» (a check with nothing to report, by design); 73 had at least one failed call (Home
+Assistant off at night among them: C352). Not measured: which goals were reached — a run that finishes is not a goal
+met; the split by routine; the steps a person would have needed.

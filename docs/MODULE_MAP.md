@@ -15,6 +15,7 @@ call downward (ECOSYSTEM §1).
 | `sol_reader.py` | memory | get by sid, iterate a domain from a position, recent turns, counts | sol_vault | sol_index, sol_search |
 | `sol_index.py` | memory | per-domain vectors (exact → HNSW), incremental update, crash cut, encoder guard; `IndexSet` search | sol_reader, faiss, sys_log | sol_search, harvester; bench |
 | `sol_search.py` | knowledge | recall + re-ranking, passage read in its own language, group by domain | sol_index, sol_reader, an embedder, a re-ranker | API (planned); bench |
+| `sol_ahead.py` | knowledge | a search done while the person still speaks (partial and final transcripts), taken by the answer when its question is the same text (M237) | — | sol_search (Searcher.ahead), kno_self.ahead ← api/knowledge transcribe |
 | `sol_lexical.py` | knowledge | the hybrid search's words (BM25, SQLite FTS5, contentless) over every knowledge passage: updated, dropped and reset with the vectors; its candidates join the re-ranker's (M200) | sqlite3 | sol_index, sol_search |
 | `mdl_embedder.py` | models | the encoder (Qwen3-Embedding-0.6B), query prompt, L2-normalized fp16 vectors | sentence-transformers | sol_index, sol_search |
 | `mdl_stt.py` | speech to text (Whisper, CPU) inside aurora-models: transcribe (a voice message), segments (a video's track); loaded at the first request — never in the API's process, where faiss is (M146) | sns_av.clear_speech, transformers | svc_models /transcribe, /transcribe/segments ← sns_av |

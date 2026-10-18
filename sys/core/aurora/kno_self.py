@@ -87,6 +87,12 @@ class SelfTalk:
             state.update(self.state_fn())
         return state
 
+    def ahead(self, words: str) -> None:
+        """The words said so far (a partial transcript): her memory searched now, as _memories will ask it — the same
+        parameters, or the answer would not find it (sol_ahead)."""
+        self.search.ahead.submit(words, translation=None, candidates=None, top_k=self.cfg["AURORA_MEMORY_RECALL_K"],
+                                 sections={"memory"}, recall=None)
+
     def _memories(self, question: str, recent: list[Soliton], ev: Emit) -> tuple[list[Soliton], list[str]]:
         """What she remembers that bears on the question: semantic recall over the memory section
         (past turns, session memories, thoughts, dreams) plus every session memory of the last days.

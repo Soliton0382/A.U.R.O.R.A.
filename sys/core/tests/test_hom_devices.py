@@ -146,3 +146,24 @@ def test_a_look_that_failed_waits_its_interval(cfg):
     assert H.due(cfg, now=10_000.0)
     H.tried(cfg, now=10_000.0)
     assert not H.due(cfg, now=10_000.0 + 59 * 60) and H.due(cfg, now=10_000.0 + 60 * 60)
+
+
+def test_a_server_that_is_off_is_said_unreachable_not_a_device_fault(monkeypatch):
+    """C352 (19 Oct): Home Assistant on a NAS that sleeps at night — every night check failed with «Error executing
+    tool» alone, retried, and wrote a report of failures about the devices."""
+    import httpx
+    import pytest
+    from mcp.server.mcpserver.exceptions import ToolError
+    spec = importlib.util.spec_from_file_location(
+        "ha_server", Path(__file__).resolve().parents[2] / "plugins" / "homeassistant" / "server.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    monkeypatch.setattr(mod, "URL", "http://ha.example.invalid:8123")
+    monkeypatch.setattr(mod, "TOKEN", "t")
+
+    def off(*a, **kw):
+        raise httpx.ConnectTimeout("timed out")
+    monkeypatch.setattr(mod.httpx, "request", off)
+    with pytest.raises(ToolError) as e:
+        mod._call("GET", "/states")
+    assert str(e.value).startswith("UNREACHABLE") and "do not retry" in str(e.value)

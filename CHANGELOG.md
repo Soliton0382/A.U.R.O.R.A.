@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.58 — 2026-10-19
+
+1 publications since v0.2.57.
+
+- 2026-10-19 Voice: her memory searched while the person speaks (M237); Home Assistant off said as such (C352); measures M236-M238
+
 ## v0.2.57 — 2026-10-19
 
 14 publications since v0.2.43.
