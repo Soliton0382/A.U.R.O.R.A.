@@ -4,7 +4,7 @@
 inventory (ast_inventory), the integrated darks' library of this machine, the files of the astro folder. No network."""
 from __future__ import annotations
 
-from aurora import ast_advice, ast_guidelog, ast_inventory, ast_polar, sys_config
+from aurora import ast_advice, ast_guidelog, ast_inventory, ast_pointing, ast_polar, sys_config
 from mcp.server.mcpserver import MCPServer
 
 server = MCPServer("astro", version="1.0")
@@ -109,6 +109,19 @@ def astro_polar() -> str:
     logs = [ast_guidelog.read(f) for f in ast_guidelog.logs(folder)[:12]]
     out = [ast_polar.text(ast_polar.night(g)) for g in logs if g.get("sessions")]
     return "\n".join(out) or "Nessun log di guida di PHD2 con sessioni nella cartella astro."
+
+
+@server.tool()
+def astro_pointing() -> str:
+    """Dove la montatura credeva di puntare e dove puntava (i plate solve di N.I.N.A. dell'inventario, script 5): l'errore
+    al primo tentativo di ogni centratura e, ai flip col ricentraggio dello stesso oggetto, cono e assi non ortogonali."""
+    p = ast_inventory.profile(sys_config.get())
+    if not p:
+        return "Nessun inventario: si scarica lo script dalla pagina 🔭 Astro e si carica il file che scrive."
+    if p.get("script", 1) < 5:
+        return (f"L'inventario è dello script {p.get('script', 1)}: i plate solve di N.I.N.A. li raccoglie lo script 5 — "
+                "scaricalo di nuovo dalla pagina 🔭 Astro ed eseguilo sul PC del telescopio dopo una notte.")
+    return ast_pointing.text(p.get("pointing") or {"centerings": [], "flips": []})
 
 
 @server.tool()

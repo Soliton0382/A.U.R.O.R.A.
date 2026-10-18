@@ -16,7 +16,7 @@ import re
 from collections import Counter
 from pathlib import Path
 
-from . import sys_config
+from . import ast_pointing, sys_config
 
 ARCSEC = 206.265                                       # arcsec per pixel = 206.265 × pixel size (µm) / focal length (mm)
 # PHD2's guide algorithms by their number in its settings
@@ -128,6 +128,7 @@ def parse(text: str) -> dict:
     said = Counter(re.sub(r"^\S+\|", "", e).split("|", 3)[-1][:160] for e in errors)
     p["nina_errors"] = [{"text": t, "times": n} for t, n in said.most_common(8)]
     p["phd2"] = _phd2(_section(secs, "phd2"))
+    p["pointing"] = ast_pointing.parse(_section(secs, "n.i.n.a. pointing"))      # script 5
     astap = _section(secs, "astap")
     p["astap"] = {"program": next((x.split(":", 1)[1].strip() for x in astap if x.startswith("program:")), ""),
                   "databases": next((x.split(":", 1)[1].split() for x in astap if x.startswith("star databases:")), [])}

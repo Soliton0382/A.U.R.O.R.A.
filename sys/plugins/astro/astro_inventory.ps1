@@ -6,10 +6,12 @@
 # name and its guide logs where PHD2 writes them. Version 3: run it with the programs open - the servers they offer
 # (PHD2's event server, N.I.N.A.'s Advanced API, ASCOM Remote / Alpaca) are listed and tried from this PC, read only.
 # Version 4: of a server only whether it answers and its version (Stellarium's status held the exact site).
+# Version 5: N.I.N.A.'s pointing - from its last logs only the lines of plate solving, centering, sync, meridian flip
+# and polar alignment (where the mount thought it pointed and where it did), any latitude or longitude taken out.
 $ErrorActionPreference = "SilentlyContinue"
 $out = Join-Path $PSScriptRoot "astro_inventory.txt"
 function W($s) { Add-Content -Path $out -Value $s -Encoding UTF8 }
-Set-Content -Path $out -Value "# astro inventory $(Get-Date -Format 'yyyy-MM-dd HH:mm') (script 4)" -Encoding UTF8
+Set-Content -Path $out -Value "# astro inventory $(Get-Date -Format 'yyyy-MM-dd HH:mm') (script 5)" -Encoding UTF8
 
 W "`n== system"
 $os = Get-CimInstance Win32_OperatingSystem; $cpu = Get-CimInstance Win32_Processor
@@ -62,6 +64,14 @@ W "N.I.N.A. last log, errors and warnings:"
 Get-ChildItem (Join-Path $nina "Logs") -Filter *.log | Sort-Object LastWriteTime | Select-Object -Last 1 | ForEach-Object {
   W "  log: $($_.Name) ($($_.LastWriteTime))"
   Select-String -Path $_.FullName -Pattern "\|ERROR\||\|WARNING\|" | Select-Object -Last 15 | ForEach-Object { W "  $($_.Line.Substring(0, [Math]::Min(220, $_.Line.Length)))" } }
+
+W "`n== N.I.N.A. pointing (the last logs: plate solving, centering, sync, meridian flip, polar alignment)"
+$pointing = "Centering Solver - Scope Position|Platesolve successful|Platesolve failed|Sync (disabled|failed)|Sync failed silently|Slewing to target after sync|(?i)meridian ?flip|(?i)polar|(?i)three ?point|(?i)\bTPPA\b"
+Get-ChildItem (Join-Path $nina "Logs") -Filter *.log | Sort-Object LastWriteTime | Select-Object -Last 10 | ForEach-Object {
+  W "-- log: $($_.Name)"
+  Select-String -Path $_.FullName -Pattern $pointing | Select-Object -Last 300 | ForEach-Object {
+    $l = $_.Line -replace "(?i)\b(latitude|longitude|lat|lon|elevation)\b\s*[:=]?\s*-?[\d.,]+[^;|]*", '$1 (removed)'
+    W "  $($l.Substring(0, [Math]::Min(600, $l.Length)))" } }
 
 W "`n== PHD2: the current profile, its settings and the guide logs"
 $phd = "HKCU:\Software\StarkLabs\PHDGuidingV2"

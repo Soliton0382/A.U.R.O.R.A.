@@ -25,12 +25,13 @@
   "astro_note": "read",
   "astro_nights": "read",
   "astro_polar": "read",
+  "astro_pointing": "read",
   "astro_advice": "read",
   "astro_imaging": "read"
  },
  "on_demand": {
   "words": ["astro", "telescopio", "telescope", "montatura", "mount", "guida", "guiding", "phd2", "n.i.n.a", "nina",
-            "dark", "flat", "polare", "polar", "allineamento", "esposizione", "exposure", "camera di ripresa", "astrofotografia", "astrophotography", "pixinsight"]
+            "dark", "flat", "polare", "polar", "allineamento", "puntamento", "pointing", "cono", "ortogonalità", "esposizione", "exposure", "camera di ripresa", "astrofotografia", "astrophotography", "pixinsight"]
  },
  "welcome": {
   "it": "🔭 Astro collegato. Nella pagina 🔭 Astro scarichi lo script per il PC del telescopio e carichi l'inventario: poi chiedimi dell'attrezzatura, delle scale o dei dark che hai.",
