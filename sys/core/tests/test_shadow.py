@@ -31,6 +31,8 @@ def test_a_close_question_gets_the_answer_a_far_one_does_not(cfg):
     assert K.find(cfg, Emb(), RR(0.1), "Che cos'è la decoerenza quantistica?") is None  # the old answer does not answer it
     assert K.find(cfg, Emb(), RR(0.99), "Che ore sono?") is None
     assert K.stats(cfg) == {"answers": 1, "served": 1, "seed": 0}
+    assert K.find(cfg, Emb(), RR(0.99), "Che cos'è la decoerenza quantistica?", count=False)    # C354: a check, not a use
+    assert K.stats(cfg)["served"] == 1
 
 
 def test_an_answer_without_sources_casts_no_shadow(cfg):

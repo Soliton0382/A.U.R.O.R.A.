@@ -8,7 +8,8 @@ Fetched from Hugging Face's public rows API (no library, no account) or from Git
 <STATUS>/bench/public/cache/. A fixed sample (seed 7) so that two runs ask the same questions. Scored as the sets
 define it: the letter or the number exactly; MATH's answers compared as text, and when they differ judged equivalent
 or not by the judge; SimpleQA graded correct / incorrect / not attempted with its own grader's criteria; ARC the whole
-grid exactly. GPQA Diamond and Humanity's Last Exam are gated: they need a Hugging Face token (HF_TOKEN in the
+grid exactly; IFEval's instructions by its checks (bench_ifeval); HumanEval's code by its tests in the cage
+(bench_humaneval). GPQA Diamond and Humanity's Last Exam are gated: they need a Hugging Face token (HF_TOKEN in the
 environment) after accepting their terms on the site; without it they are skipped and said so.
 """
 from __future__ import annotations
@@ -21,6 +22,9 @@ import time
 from pathlib import Path
 
 import httpx
+
+import bench_humaneval
+import bench_ifeval
 
 ROWS = "https://datasets-server.huggingface.co/rows"
 LETTERS = "ABCDEFGHIJKLMNOP"               # MMLU-Pro up to 10 options, TruthfulQA up to 13
@@ -163,8 +167,17 @@ def arc_agi(cache: Path, version: int = 1) -> list[dict]:
     return out
 
 
+def ifeval(cache: Path) -> list[dict]:
+    return bench_ifeval.items(_cached(cache, "ifeval", lambda: _hf("google/IFEval", "default", "train")))
+
+
+def humaneval(cache: Path) -> list[dict]:
+    return bench_humaneval.items(_cached(cache, "humaneval", lambda: _hf("openai/openai_humaneval", "openai_humaneval", "test")))
+
+
 SETS = {"mmlu_pro": mmlu_pro, "gpqa_diamond": gpqa_diamond, "hle": hle, "aime": aime, "math500": math500, "simpleqa": simpleqa,
-        "truthfulqa": truthfulqa, "arc_agi_1": lambda c: arc_agi(c, 1), "arc_agi_2": lambda c: arc_agi(c, 2)}
+        "truthfulqa": truthfulqa, "arc_agi_1": lambda c: arc_agi(c, 1), "arc_agi_2": lambda c: arc_agi(c, 2),
+        "ifeval": ifeval, "humaneval": humaneval}
 GATED = {"gpqa_diamond", "hle"}
 
 
@@ -226,6 +239,10 @@ EXACT_JUDGE = ("A question's GOLD answer and a candidate's FINAL answer. Do they
 def score(item: dict, answer: str, judge=None) -> dict:
     """{"right": bool, "got": what was read, "grade"?: SimpleQA's}."""
     k = item["kind"]
+    if k == "ifeval":
+        return bench_ifeval.score(item, answer, judge)
+    if k == "code":
+        return bench_humaneval.score(item, answer, judge)
     if k == "letter":
         got = letter(answer)
         return {"right": got == item["answer"], "got": got}

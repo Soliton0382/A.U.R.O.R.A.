@@ -3859,3 +3859,96 @@ trace (`agent.finish`): **734 runs**. Steps: median 3, p90 11, max 60. Time: med
 121 runs ended with «NOTHING» (a check with nothing to report, by design); 73 had at least one failed call (Home
 Assistant off at night among them: C352). Not measured: which goals were reached — a run that finishes is not a goal
 met; the split by routine; the steps a person would have needed.
+
+## M239 — her refusals week by week (19 October 2026; ROADMAP 24)
+
+Every answer in the API trace from 1 Oct (47 files, 6,493 runs): `answer.final` with `abstained`. The runs that wrote
+the turn to memory are the real conversations; the others are tests and benchmarks (`remember: false`), split apart
+because they are thousands and change their questions every week.
+
+| ISO week | conversations | refused | benchmarks and tests | refused |
+|---|---|---|---|---|
+| W40 (to 4 Oct) | 51 | 11 (21.6 %) | 347 | 89 (25.6 %) |
+| W41 | 69 | 16 (23.2 %) | 1,884 | 265 (14.1 %) |
+| W42 | 48 | **1 (2.1 %)** | 3,857 | 155 (4.0 %) |
+| W43 (to 19 Oct) | 0 | — | 126 | 0 |
+
+The refusals of the real conversations fell from about one in five to one in 48 in the third week. Not measured: whether
+each refusal was right (an honest «I don't know» is a good answer — this counts refusals, not mistakes); the cause of
+the fall (the vault grew, the route and the reading changed the same weeks); W43 has no conversation yet.
+
+## M240 — the deep path step by step (19 October 2026; ROADMAP 27)
+
+The knowledge route's runs in the same trace (6,129, benchmarks included): when each stage first appears, from the
+question.
+
+| stage | runs | median | p90 |
+|---|---|---|---|
+| route | 6,136 | 0.39 s | 2.80 s |
+| translation | 4,198 | 0.73 s | 5.77 s |
+| pivot (the question in English) | 2,494 | 0.72 s | 6.05 s |
+| **the passages found** (retrieval.hits) | 3,933 | **10.68 s** | 16.01 s |
+| the model's thinking starts | 5,288 | 14.45 s | 32.23 s |
+| reasoning read from the web | 1,567 | 14.51 s | 58.31 s |
+| the first words written | 665 | 25.63 s | 34.33 s |
+| verified (verify.keep) | 649 | 48.67 s | 74.61 s |
+| the final answer | 6,129 | 16.70 s | 49.91 s |
+
+Where the time goes: ~10 s between the pivot and the passages found — the search over the whole vault (two queries,
+300 candidates each, the words' candidates, the re-ranker) — the next place to look, as M237 did for the memory. Not
+measured: the search's own split on the vault (encode, vector, re-rank) for these runs; the conversations alone (the
+benchmarks dominate the counts).
+
+## M241 — the shadows: answers and tools served without the model (19 October 2026; ROADMAP 31, 32)
+
+**Tools** (the plugin's own cache, `tool.cached` in the agent trace, 30 Sep–19 Oct): 128 of 3,330 calls (3.8 %),
+mostly the network lookups (rdap 54, reverse DNS 51, headlines 13). Time saved: ≈ 136 s in 20 days (each cached
+call × its tool's mean time from the usage files). No token is saved: the cached text goes into the prompt as the
+tool's would.
+
+**Answers** (kno_shadow): 1,401 shadows in the owner's store (train 1,024, seed 351, chat 21, web 5); the lookup works
+(stored questions asked again: 4 of 5 hits, cosine 1.0). Answers served from a shadow in the API trace since 1 Oct:
+**0 of 6,129**. The store's own counter said 124 uses: it counted the night training's checks (and 4 lookups of this
+measurement) — C354. The owner's real questions do not come back close enough (cosine ≥ 0.9) to an answer already
+given. Not measured: the shadows' worth with more users asking the same things (the seed's purpose); how much a
+lower cosine would serve, and how often wrongly.
+
+## M242 — the same picture asked again (19 October 2026; ROADMAP 33)
+
+How often: the pictures uploaded by every user, by their hash: 5, all different; 29 questions with an attachment in the
+API trace since 15 Oct — the same picture never came back. What it would save: an invented picture (shapes and a line
+of text, 800 × 600) described twice on the user «test» (`remember: false`): 42.1 s and 39.2 s, the same description.
+A cache by the picture's hash would save ~40 s a repeat, and there were none: not built. Not measured: where the 40 s
+go (the vision reading against the writing).
+
+## M243 — a night's trained questions judged (19 October 2026; ROADMAP 46)
+
+The 117 shadows the night training made in the last 24 hours (kno_train); 20 drawn (seed 46), each judged by Claude
+Sonnet with its whole passages (the vault's text, by the citation numbers the answer uses):
+
+| | of 20 |
+|---|---|
+| a question a person could ask on its own | 20 |
+| its passages hold the answer | 18 |
+| **the answer right and supported by its passages** | **16** |
+
+The four misses: details added from the model's own knowledge that the passages do not hold (a name, a date, a list of
+standards), and one shadow whose sources carry no passage id (nothing to verify). A first run of this measure said
+8 of 20: the passages were cut to 1,500 characters and numbered in order instead of by their citation — the judge saw
+less than the answer had; corrected before writing. Not measured: the other 97 of the night; whether the four
+unsupported details are wrong or only unsupported.
+
+## M244 — the review's judge on answers already good (19 October 2026; ROADMAP 49)
+
+kno_review's judge (her own model, the prompt that decides whether a second thought is worth a message) on pairs of
+answers both graded right to the same question — the cloud runs of 13 Oct on sample 8, with and without lessons — 30
+drawn (seed 49); and 10 answers against themselves.
+
+| | verdicts |
+|---|---|
+| an answer against itself | SAME 10 of 10 |
+| two right answers | SAME 22 · NEW_INFO 7 · **CORRECTION 1** |
+
+Reading: 8 of 30 would become a message to the owner; the CORRECTION is wrong (the old answer was right), the NEW_INFO
+may be true (a right answer can still add a fact). Not measured: whether each NEW_INFO really adds a fact; the same on
+the local model's answers.

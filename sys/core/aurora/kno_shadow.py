@@ -102,8 +102,9 @@ def _shared(cfg: sys_config.Config):
     return f if f.is_file() else None
 
 
-def find(cfg: sys_config.Config, embedder, reranker, question: str) -> dict | None:
-    """The answer whose shadow this question falls in, or None."""
+def find(cfg: sys_config.Config, embedder, reranker, question: str, count: bool = True) -> dict | None:
+    """The answer whose shadow this question falls in, or None. `count`: a use of the shadow — False for a lookup that
+    answers nobody (C354: the night's training counted its own checks as uses: 124 «used», 0 answers served)."""
     with closing(_db(cfg)) as con:
         rows = [(*r, False) for r in con.execute("SELECT id, question, vec, answer, sources, made, follow FROM shadows "
                                                   "WHERE expires IS NULL OR expires > ?", (time.time(),)).fetchall()]
@@ -127,7 +128,7 @@ def find(cfg: sys_config.Config, embedder, reranker, question: str) -> dict | No
     if score < float(cfg["AURORA_SHADOW_ANSWER"]):
         return None
     rid, old_q, _, text, sources, made, follow, shared = rows[best]
-    if not shared:                                     # the admin's seed is read only for the other users
+    if count and not shared:                           # the admin's seed is read only for the other users
         with _lock, closing(_db(cfg)) as con, con:
             con.execute("UPDATE shadows SET used = used + 1, last = ? WHERE id = ?", (time.time(), rid))
     return {"question": old_q, "text": text, "sources": json.loads(sources), "made": made, "follow": json.loads(follow or "[]"),

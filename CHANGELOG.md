@@ -2,6 +2,13 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.59 — 2026-10-19
+
+2 publications since v0.2.57.
+
+- 2026-10-19 Measures M239-M244 (refusals, the deep path, shadows, pictures, the night's questions, the review's judge); C354 the shadow's uses counted right; embedder batch 4 (C353); IFEval and HumanEval built, HumanEval's code run in the cage; the forged cloud plugin
+- 2026-10-18 Voice: her memory searched while the person speaks (M237); Home Assistant off said as such (C352); measures M236-M238
+
 ## v0.2.58 — 2026-10-19
 
 1 publications since v0.2.57.

@@ -1,0 +1,56 @@
+{
+  "name": "cloud",
+  "version": "1.0",
+  "kind": "tool",
+  "description": {
+    "en": "Cloud AI providers configured by the owner, read only: name, plan, usage and cost of the current month (from Aurora's own usage records), budget or limit, last update. Never contacts the providers and never shows the keys.",
+    "it": "I fornitori di AI cloud configurati dal proprietario, in sola lettura: nome, piano, uso e costo del mese corrente (dai registri d'uso di Aurora), budget o limite, ultimo aggiornamento. Non contatta i fornitori e non mostra mai le chiavi."
+  },
+  "command": [
+    "{python}",
+    "server.py"
+  ],
+  "env": [
+    "AURORA_CLOUD_BUDGETS",
+    "AURORA_CLOUD_PLANS"
+  ],
+  "requires": [],
+  "settings_spec": [
+    {
+      "key": "AURORA_CLOUD_BUDGETS",
+      "type": "str",
+      "secret": false,
+      "it": "Budget mensile per fornitore, es. openai=20;anthropic=30 (in euro o nella valuta del fornitore)",
+      "en": "Monthly budget per provider, e.g. openai=20;anthropic=30 (in euros or the provider's currency)"
+    },
+    {
+      "key": "AURORA_CLOUD_PLANS",
+      "type": "str",
+      "secret": false,
+      "it": "Piano di ogni fornitore, es. openai=Pay-as-you-go;anthropic=Build",
+      "en": "Plan of each provider, e.g. openai=Pay-as-you-go;anthropic=Build"
+    }
+  ],
+  "setup": {
+    "it": "1. Non serve nessuna chiave: il plugin legge solo i registri d'uso di Aurora (sys/status/usage) e quali fornitori hanno una chiave nelle impostazioni (senza mai mostrarla).\n2. Facoltativo: apri Plugin → cloud.\n3. In AURORA_CLOUD_BUDGETS scrivi il budget mensile di ogni fornitore, separati da punto e virgola: openai=20;anthropic=30. Il valore lo decidi tu, oppure copialo dal limite di spesa impostato sul sito del fornitore (es. OpenAI: Settings → Limits; Anthropic: Console → Limits).\n4. In AURORA_CLOUD_PLANS scrivi il piano di ciascuno, come appare nella pagina Billing del fornitore: openai=Pay-as-you-go;anthropic=Build.\n5. Salva.",
+    "en": "1. No key is needed: the plugin only reads Aurora's usage records (sys/status/usage) and which providers have a key in the settings (never showing it).\n2. Optional: open Plugin → cloud.\n3. In AURORA_CLOUD_BUDGETS write each provider's monthly budget, separated by semicolons: openai=20;anthropic=30. You choose it, or copy the spending limit set on the provider's site (e.g. OpenAI: Settings → Limits; Anthropic: Console → Limits).\n4. In AURORA_CLOUD_PLANS write each one's plan as shown on the provider's Billing page: openai=Pay-as-you-go;anthropic=Build.\n5. Save."
+  },
+  "effects": {
+    "cloud_providers": "read",
+    "*": "read"
+  },
+  "sandbox": {
+    "network": false
+  },
+  "tests": [
+    {
+      "tool": "cloud_providers",
+      "args": {}
+    }
+  ],
+  "forged": {
+    "request": "aac098665f",
+    "at": "2026-10-19T10:33:22+0200",
+    "need": "Read-only tool cloud.cloud_providers: list the cloud AI providers configured by the owner (name, plan, current-period usage and cost, limits or budget, last update) and return them as structured data."
+  }
+}

@@ -74,7 +74,7 @@ def train(pipeline, cfg: sys_config.Config, emit, n: int, seed: int | None = Non
             continue
         if not q.endswith("?") or len(q) > 220 or q.upper().startswith("NONE"):
             continue
-        if kno_shadow.find(cfg, pipeline.search.embedder, pipeline.search.reranker, q) is not None:
+        if kno_shadow.find(cfg, pipeline.search.embedder, pipeline.search.reranker, q, count=False) is not None:
             skipped += 1                                 # already in a shadow
             continue
         asked += 1

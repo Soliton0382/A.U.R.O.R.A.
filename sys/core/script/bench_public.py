@@ -14,7 +14,7 @@ Targets — the same questions to each:
   bare-claude    Claude through the owner's subscription alone (the CLI with no tools, no MCP)
 Each run says who did each step. The owner's choice of models is saved before an aurora-* target changes it and put
 back after, also when the run is stopped (or by hand: --restore).
-The sets: bench_public_data (MMLU-Pro, GPQA, AIME, MATH-500, SimpleQA, TruthfulQA, ARC-AGI) and «aurora_edge»
+The sets: bench_public_data (MMLU-Pro, GPQA, AIME, MATH-500, SimpleQA, TruthfulQA, ARC-AGI, IFEval, HumanEval) and «aurora_edge»
 (bench_edge: her vault, this machine and house now, honesty). Results: <STATUS>/bench/public/<date>-<target>.json,
 saved after every set; --report puts the latest of each target side by side (report.md).
 
@@ -53,7 +53,8 @@ TARGETS = ("aurora-local", "aurora-mixed", "aurora-cloud", "bare-local", "bare-c
 # cloud, the readers to the local model — what each local step costs, against a mixed run of the same day
 GROUPS = {"classifiers-cloud": (("route", "translate", "gate", "verify"), "cloud"),
           "readers-local": (("extract", "synthesis"), "local")}
-DEFAULT_SETS = ["aurora_edge", "mmlu_pro", "gpqa_diamond", "hle", "aime", "math500", "simpleqa", "truthfulqa", "arc_agi_1"]
+DEFAULT_SETS = ["aurora_edge", "mmlu_pro", "gpqa_diamond", "hle", "aime", "math500", "simpleqa", "truthfulqa", "arc_agi_1",
+                "ifeval", "humaneval"]
 BARE_SYSTEM = "You are a helpful assistant. Answer in the language of the question."
 
 
@@ -152,6 +153,10 @@ def run(target: str, sets: list[str], n: int, cloud_model: str, judge, bare_toke
         if s == "simpleqa":                              # its own measures: attempted, and correct of attempted
             att = [r for r in rows if r.get("grade") != "NOT_ATTEMPTED"]
             entry.update(attempted=len(att), correct_of_attempted=round(right / len(att), 3) if att else None)
+        if s == "ifeval":                                # the set's other three measures
+            ins = sum(r["instructions"] for r in rows)
+            entry.update(loose=sum(r["loose_right"] for r in rows),
+                         instructions=f"{sum(r['followed'] for r in rows)}/{ins}")
         if s == "aurora_edge":
             entry["groups"] = {g: f"{sum(r['right'] for r in rows if r['group'] == g)}/{sum(r['group'] == g for r in rows)}"
                                for g in sorted({r["group"] for r in rows})}
