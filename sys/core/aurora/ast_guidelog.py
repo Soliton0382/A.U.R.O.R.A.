@@ -17,6 +17,8 @@ import re
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from . import ast_polar
+
 FIRST = "PHD2 version"
 RUN_MIN = 5                        # pulses at the limit in a row, the error growing, to call it a runaway
 RUN_PX = 3.0                       # … and beyond this many pixels
@@ -66,6 +68,8 @@ def _settings(lines: list[str]) -> dict:
             s["y_algo"], s["y_min_move"], s["y_aggr"] = m.group(1).strip(), float(m.group(2)), _n(m.group(3), int)
         elif m := re.match(r"Backlash comp = (enabled|disabled), pulse = (\d+) ms", ln):
             s["backlash_on"], s["backlash_ms"] = m.group(1) == "enabled", int(m.group(2))
+        elif m := re.search(r"Dec Guide Speed = ([\d.]+) a-s/s", ln):
+            s["dec_speed"] = float(m.group(1))
         elif m := re.match(r"Max RA duration = (\d+), Max DEC duration = (\d+), DEC guide mode = (\w+)", ln):
             s["max_ra_ms"], s["max_dec_ms"], s["dec_mode"] = int(m.group(1)), int(m.group(2)), m.group(3)
         elif m := re.match(r"RA = ([\d.-]+) hr, Dec = ([\d.-]+) deg, Hour angle = ([\d.-]+) hr, Pier side = (\w+)", ln):
@@ -123,7 +127,8 @@ def _session(start: str, head: list[str], body: list[str], info: list[tuple[int,
         if d.get("mount") != "Mount" or d.get("ErrorCode", "0") not in ("0", "1", ""):
             continue                                      # a frame guided on a star that was not there
         r = {"t": _n(d.get("Time")) or 0.0, "ra": _n(d.get("RARawDistance")) or 0.0, "dec": _n(d.get("DECRawDistance")) or 0.0,
-             "ra_ms": _n(d.get("RADuration"), int) or 0, "dec_ms": _n(d.get("DECDuration"), int) or 0, "snr": _n(d.get("SNR"))}
+             "ra_ms": _n(d.get("RADuration"), int) or 0, "dec_ms": _n(d.get("DECDuration"), int) or 0, "snr": _n(d.get("SNR")),
+             "dec_dir": d.get("DECDirection", "")}
         if settling:
             skip.add(len(rows))
         rows.append(r)
@@ -134,6 +139,8 @@ def _session(start: str, head: list[str], body: list[str], info: list[tuple[int,
     t0 = datetime.strptime(start, "%Y-%m-%d %H:%M:%S") if re.match(r"\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$", start) else None
     when = lambda x: (t0 + timedelta(seconds=x)).strftime("%H:%M") if t0 else None
     ha = s.pop("_ha", None)
+    drift = ast_polar.windows([{"t": r["t"], "dec_ms": r["dec_ms"] * {"N": 1, "S": -1}.get(r["dec_dir"], 0)} for r in rows],
+                              skip | {i for i in range(len(rows)) if i in away}, s.get("dec_speed") or 0.0, ha)
     for w in runs:
         w["at"] = when(w["t0"])
         if ha is not None:                               # minutes from the meridian then: the header's hour angle and
@@ -148,7 +155,8 @@ def _session(start: str, head: list[str], body: list[str], info: list[tuple[int,
             "at_limit": {"ra": sat("ra_ms", s.get("max_ra_ms")), "dec": sat("dec_ms", s.get("max_dec_ms"))},
             "dithers": sum(1 for _, x in info if x.startswith("DITHER")), "runaways": runs,
             "gremlins": {"n": len(jumps), "at": [when(t) for t in jumps[:5]]},
-            "changes": [x.split("Guiding parameter change, ", 1)[1] for _, x in info if "Guiding parameter change" in x]}
+            "changes": [x.split("Guiding parameter change, ", 1)[1] for _, x in info if "Guiding parameter change" in x],
+            "drift": drift}
 
 
 def _gremlins(rows: list[dict], scale: float, ra: float | None, dec: float | None, max_ra, max_dec) -> list[float]:

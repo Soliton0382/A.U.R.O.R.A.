@@ -9,6 +9,7 @@ say with where it was read; and when nothing says it, say what one remembers as 
     from_web     the subject searched (kno_web: ddgs, a masked query), the snippets read; not there: the best pages
                  opened and read again
     from_vault   the vault's best passages read
+    from_writing a text to compose (an email, a story: C355), written with room and its form kept, nothing put around it
     from_memory  the model's own answer, marked ⚠️ «dalla mia memoria, non verificato» — never silence, never passed
                  off as checked
 One call reads, instead of the gate, the extraction per domain, the synthesis and the check: 14 of 25 common
@@ -25,11 +26,18 @@ SYS_KIND = ("Classify the user's message. FACT: a fact to look up — who, when,
             "why, a definition, a comparison, a method. CASE: tells a personal situation with one or more problems and "
             "asks what to do. SOLVE: a problem to work out by reasoning — a calculation, mathematics, logic, a puzzle, "
             "an exercise or quiz with options to choose, code; also any message that itself gives the facts needed "
-            "(relations, quantities, rules) and asks what follows from them, even when it asks «who» or «which». Reply with exactly one word: FACT, EXPLAIN, CASE or SOLVE.")
+            "(relations, quantities, rules) and asks what follows from them, even when it asks «who» or «which». "
+            "WRITE: asks to compose a text — an email, a letter, a story, a poem, a song, a speech, an ad, a dialogue, a "
+            "résumé, a post, a rewrite or a summary — often with rules on its form (length, format, words to use or "
+            "avoid). Reply with exactly one word: FACT, EXPLAIN, CASE, SOLVE or WRITE.")
 SYS_SOLVE = ("Work out the problem the user gives — mathematics, logic, a puzzle, an exercise with options, code — by "
              "reasoning carefully, in the question's language. Follow every instruction of the question on the form of "
              "the answer (a letter, a number, a grid, a last line «Risposta: …»). If the problem rests on a false premise, "
              "say so. Give the reasoning in brief and the result clearly.")
+SYS_WRITE = ("Write the text the user asks for, in the question's language unless it asks for another. Follow every "
+             "instruction on its form exactly — length, number of paragraphs, sections or bullets, words to use or "
+             "avoid, capital letters, punctuation, quotation marks, how it starts and ends, JSON, a title, a postscript "
+             "— and add nothing around it: no preamble, no comment, no note.")
 SYS_READ = ("Answer the question using ONLY the numbered texts below, in the question's language. Cite the text of "
             "every sentence like [2]. {size} First judge what the question takes for granted. If it is TRUE, or true "
             "in substance, just answer the question it asks: do not comment on the premise, never call it wrong, "
@@ -54,6 +62,8 @@ EMPTY = re.compile(r"(?i)^\W*(?:i |questi |le |gli )?(?:testi|passaggi|documenti
                    r"(?:specify|say|mention|contain|list|name|give)")
 # options on their own lines («A) …») or an instruction on the answer's form («Risposta: …»)
 TASK = re.compile(r"\n\s*[A-P]\)\s|(?i:\b(?:risposta|answer)\s*:)")
+# code given in the question (a fenced block, a function's signature): an exercise, never a fact to look up (C355)
+CODE = re.compile(r"```|^\s*def \w+\s*\(|^\s*(?:function|fn|func|public|class) \w+.*[({]\s*$", re.M)
 
 
 def _exp(p, about: bool = True) -> str:
@@ -63,11 +73,11 @@ def _exp(p, about: bool = True) -> str:
 
 
 def kind(p, question: str) -> str:
-    if TASK.search(question):                         # options to choose, or the answer's form asked: an exercise (C274)
+    if TASK.search(question) or CODE.search(question):   # options, the answer's form asked, code: an exercise (C274, C355)
         return "solve"
     out = p._for("route").complete(SYS_KIND + _exp(p, about=False), question[:1500], 4).answer.strip().upper()
     return ("case" if out.startswith("CASE") else "explain" if out.startswith("EXPLAIN")
-            else "solve" if out.startswith("SOLVE") else "fact")
+            else "solve" if out.startswith("SOLVE") else "write" if out.startswith("WRITE") else "fact")
 
 
 def _for_cloud(p, question: str, texts: list[dict]) -> list[dict]:
@@ -191,8 +201,25 @@ def from_reasoning(p, question: str, ev) -> dict | None:
     return {"text": f"{note}\n\n{ans}", "sources": [], "dropped": []}
 
 
+def from_writing(p, question: str, ev) -> dict | None:
+    """A text to compose (C355: an email, a story, an ad asked with rules on its form): the model writes it, thinking
+    on, AURORA_SOLVE_TOKENS of room; nothing put around it — a note inside the text would break the form asked (a
+    reply that must be in quotes, all capitals, JSON), and a composition is not a claim a source could check. That it
+    was written by her, without sources, travels beside the text («written»)."""
+    out = p._for("synthesis").complete(SYS_WRITE + _exp(p), question, int(p.cfg["AURORA_SOLVE_TOKENS"]), think=True)
+    ans = (out.answer or "").strip()
+    if not ans:
+        return None
+    ev("read.writing", {"tokens": getattr(out, "tokens", None), "truncated": bool(getattr(out, "truncated", False))})
+    return {"text": ans, "sources": [], "dropped": [], "written": True}
+
+
 def from_memory(p, question: str, ev) -> dict | None:
-    ans = p._for("synthesis").complete(SYS_MEMORY + _exp(p), question, 300, think=False).answer.strip()
+    out = p._for("synthesis").complete(SYS_MEMORY + _exp(p), question, 300, think=False)
+    ans = out.answer.strip()
+    if getattr(out, "truncated", False):                 # cut at 300 tokens (C355: a function half written): reasoned
+        ev("read.memory_cut", {"chars": len(ans)})        # with room instead, never half an answer
+        return from_reasoning(p, question, ev)
     if not ans or re.match(r"(?i)^\W*non lo so\W*$", ans):
         return None
     from . import txt_lang

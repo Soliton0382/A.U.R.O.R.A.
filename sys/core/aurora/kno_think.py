@@ -19,7 +19,8 @@ from . import kno_grid, kno_read
 
 MODES = ("vault", "light", "medium", "deep", "auto")
 VAULT_FIRST = 0.6       # the best vault passage's re-rank that sends a FACT to the vault before the web (M194)
-KIND_IT = {"fact": "un fatto da cercare", "explain": "una spiegazione", "case": "un caso", "solve": "un problema da risolvere"}
+KIND_IT = {"fact": "un fatto da cercare", "explain": "una spiegazione", "case": "un caso", "solve": "un problema da risolvere",
+           "write": "un testo da scrivere"}
 
 
 def mode_of(cfg, asked: str | None) -> str:
@@ -56,6 +57,8 @@ def answer(p, question: str, translation: str | None, mode: str, retrieve, class
             steps.append(("grid", lambda: ("read", kno_grid.solve(p, question, ev))))
         steps.append(("reason", lambda: ("read", kno_read.from_reasoning(p, question, ev))))
         steps.append(("web", lambda: ("read", kno_read.from_web(p, question, ev, "explain", open_pages, translation))))
+    elif kind == "write":                             # a text to compose: no source to look for, its form kept (C355)
+        steps.append(("write", lambda: ("read", kno_read.from_writing(p, question, ev))))
     elif focused and not deep:                        # a follow-up: the sources of the answer before come first
         steps.append(("vault", lambda: ("read", kno_read.from_vault(p, question, hits()[0], "fact" if kind == "fact" else "explain"))))
         steps.append(("web", lambda: ("read", kno_read.from_web(p, question, ev, "fact" if kind == "fact" else "explain",
@@ -97,7 +100,7 @@ def answer(p, question: str, translation: str | None, mode: str, retrieve, class
             say(mode, f"{KIND_IT[kind]} → {where}")
             if what == "classic":
                 return None, out, *hits()
-            out = {**out, "came_from": where, "learn": kind not in ("fact", "solve") and where in ("web", "memory")}
+            out = {**out, "came_from": where, "learn": kind not in ("fact", "solve", "write") and where in ("web", "memory")}
             return out, None, *(got.get("hits", []), got.get("subs", []))
     say(mode, f"{KIND_IT[kind]} → nessuna fonte")
     return None, None, *(got.get("hits", []), got.get("subs", []))

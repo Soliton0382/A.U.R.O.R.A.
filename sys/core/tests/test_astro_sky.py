@@ -127,6 +127,9 @@ def test_the_page_the_api_and_the_plugin_are_there():
     api = (core / "aurora" / "api" / "astro.py").read_text(encoding="utf-8")
     assert '"/v1/aurora/astro/sky"' in api and "sky_catalog.json" in api
     m = json.loads((core.parents[0] / "plugins" / "sky" / "plugin.json").read_text(encoding="utf-8"))
-    assert set(m["effects"].values()) == {"read"} and m["sandbox"]["write"] == ["AURORA_ASTRO_DIR"]
+    # read only but the sequence for N.I.N.A. (N29 phase 2), written in the astro folder alone
+    assert {t: e for t, e in m["effects"].items() if e != "read"} == {"sky_sequence": "write_local",
+                                                                                "sky_rotation": "write_local"}
+    assert m["sandbox"]["write"] == ["AURORA_ASTRO_DIR"]
     js = (core / "webui" / "js" / "modules" / "astro.js").read_text(encoding="utf-8")
     assert 'data-tab="sky"' in js and "skyTab" in js

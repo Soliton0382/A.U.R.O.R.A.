@@ -4,7 +4,7 @@
 inventory (ast_inventory), the integrated darks' library of this machine, the files of the astro folder. No network."""
 from __future__ import annotations
 
-from aurora import ast_advice, ast_guidelog, ast_inventory, sys_config
+from aurora import ast_advice, ast_guidelog, ast_inventory, ast_polar, sys_config
 from mcp.server.mcpserver import MCPServer
 
 server = MCPServer("astro", version="1.0")
@@ -98,6 +98,17 @@ def astro_nights() -> str:
                          f"RMS RA {r['ra']}″ DEC {r['dec']}″ totale {r['total']}″, SNR {s['snr']}, stelle perse {s['lost']}")
         lines += [f"  ⚠ {f['code']}: " + ", ".join(f"{k}={v}" for k, v in f.items() if k not in ("code", "level")) for f in n["findings"]]
     return "\n".join(lines)
+
+
+@server.tool()
+def astro_polar() -> str:
+    """L'allineamento polare che ogni notte ha avuto davvero, dalla sua guida (non dagli strumenti di allineamento):
+    la deriva in DEC che PHD2 ha corretto, in finestre da 15 minuti, adattata all'angolo orario → errore polare con la
+    sua incertezza; accanto la stima del Guiding Assistant e quanto RA e DEC erano fuori squadra in calibrazione."""
+    folder = ast_inventory.folder(sys_config.get())
+    logs = [ast_guidelog.read(f) for f in ast_guidelog.logs(folder)[:12]]
+    out = [ast_polar.text(ast_polar.night(g)) for g in logs if g.get("sessions")]
+    return "\n".join(out) or "Nessun log di guida di PHD2 con sessioni nella cartella astro."
 
 
 @server.tool()

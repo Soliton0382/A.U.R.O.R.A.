@@ -154,3 +154,39 @@ def test_a_fact_goes_to_the_vault_first_when_the_vault_is_sure(monkeypatch):
         calls.clear()
         T.answer(NS(cfg={}), "q", None, "auto", lambda recall: ([NS(rerank=score)], []), lambda h, s: None, lambda e, p: None)
         assert calls[0] == first, (score, calls)
+
+
+def test_a_text_to_write_is_written_never_searched_nor_refused(run, monkeypatch):
+    """C355: an email, a story, an ad asked with rules on its form went to the vault, the web, memory — cited, refused,
+    or with ⚠️ before a text that had to start with a quote."""
+    monkeypatch.setattr(T.kno_read, "from_writing", lambda p, q, ev: {"text": "\"Caro Marco\"", "sources": [], "dropped": [],
+                                                                       "written": True})
+    (r, _, _, _), calls, ev = run("auto", "write", web=READ, vault=READ)
+    assert r["text"] == "\"Caro Marco\"" and r["came_from"] == "write" and not r["learn"]
+    assert "web" not in " ".join(calls) and "vault" not in " ".join(calls) and ev["why"] == "un testo da scrivere → write"
+
+
+def test_code_in_the_question_is_an_exercise_without_asking_the_model():
+    p = SimpleNamespace(_for=lambda role: (_ for _ in ()).throw(AssertionError("the router was asked")))
+    assert T.kno_read.kind(p, "Complete it:\n```python\ndef add(a, b):\n    \"\"\"a + b\"\"\"\n```") == "solve"
+    assert T.kno_read.kind(p, "Fix this:\n\ndef media(xs):\n    return sum(xs) / len(xs)\n") == "solve"
+
+
+class Cut:
+    def __init__(self, answers):
+        self.answers = list(answers)
+
+    def complete(self, system, q, tokens, think=False):
+        text, cut = self.answers.pop(0)
+        return SimpleNamespace(answer=text, truncated=cut, tokens=tokens)
+
+
+def test_a_memory_answer_cut_is_reasoned_again_with_room():
+    llm = Cut([("def fib4(n):\n    a, b, c,", True), ("def fib4(n):\n    return 0", False)])
+    p = SimpleNamespace(_for=lambda role: llm, cfg={"AURORA_SOLVE_TOKENS": 8000})
+    events = []
+    r = T.kno_read.from_memory(p, "Write fib4", lambda e, pl: events.append(e))
+    assert r["text"].endswith("return 0") and "read.memory_cut" in events and "read.reasoning" in events
+    llm = Cut([("Roma.", False)])
+    p = SimpleNamespace(_for=lambda role: llm, cfg={})
+    assert T.kno_read.from_memory(p, "Capitale d'Italia?", lambda e, pl: None)["text"].endswith("Roma.")

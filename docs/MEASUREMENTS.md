@@ -3952,3 +3952,19 @@ drawn (seed 49); and 10 answers against themselves.
 Reading: 8 of 30 would become a message to the owner; the CORRECTION is wrong (the old answer was right), the NEW_INFO
 may be true (a right answer can still add a fact). Not measured: whether each NEW_INFO really adds a fact; the same on
 the local model's answers.
+
+## M245 — the polar alignment two nights really had, from their guiding (19 October 2026; ROADMAP N29)
+
+ast_polar on the owner's two long guide logs: the declination pulses PHD2 sent, summed in 15-minute windows (settling
+and runaways out), fitted to e·sin(H − A) over the hour angles the night covered.
+
+| night | windows | hour angles spanned | polar error, whole night | Guiding Assistant (minutes) | calibration out of square |
+|---|---|---|---|---|---|
+| 9 Nov 2025 | 10 | 2.3 h | **4.0′ ± 2.1′** | 7.6′ | 3.2° |
+| 17 Feb 2026 | 8 | 2.0 h | **3.1′ ± 1.8′** | — | 1.7° |
+
+Reading: both nights had a few arcminutes — the order every alignment tool reports, and below what a guided 60–180 s
+frame shows (field rotation ≈ 0.1 px at the corner for 7.6′, computed). The error bar comes from the windows' scatter
+(0.25–0.42″/min): declination moves the polar error does not explain, the next thing to look at (Dec backlash, cable,
+flexure). Not measured: the sign of each component (pulse «N» taken as north on both sides of the pier); a night after
+a NINA three-point alignment against its own reported error; the mount's orthogonality from plate solves.

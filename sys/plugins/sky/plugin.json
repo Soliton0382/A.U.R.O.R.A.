@@ -16,6 +16,7 @@
   "AURORA_ASTRO_DARKS_DIR",
   "AURORA_ASTRO_DARKS_TEMP",
   "AURORA_ASTRO_FRAMES_DIR",
+  "AURORA_ASTRO_PC",
   "AURORA_TIMEZONE",
   "AURORA_WEATHER_LAT",
   "AURORA_WEATHER_LON"
@@ -25,12 +26,15 @@
  "effects": {
   "sky_tonight": "read",
   "sky_target": "read",
-  "sky_catalog": "read"
+  "sky_catalog": "read",
+  "sky_sequence": "write_local",
+  "sky_rotation": "write_local"
  },
  "on_demand": {
   "words": ["stanotte", "tonight", "pianifica", "planning", "plan", "cosa riprendo", "cosa fotografo", "target",
             "catalogo", "catalogue", "catalog", "ngc", "messier", "sharpless", "nebulosa", "nebula", "galassia", "galaxy",
-            "seeing", "luna", "moon", "mosaico", "mosaic", "inquadratura", "framing"]
+            "seeing", "luna", "moon", "mosaico", "mosaic", "inquadratura", "framing", "sequenza", "sequence", "nina", "ruota", "ruotare", "rotazione", "rotation", "angolo",
+            "n.i.n.a"]
  },
  "welcome": {
   "it": "🌌 Cielo collegato. Chiedimi cosa riprendere stanotte, la notte di un oggetto preciso o di cercarlo nel catalogo: uso la tua attrezzatura dell'inventario Astro e le previsioni del cielo.",

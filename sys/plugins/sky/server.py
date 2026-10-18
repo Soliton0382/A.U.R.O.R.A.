@@ -6,7 +6,7 @@ VizieR) and the sky's forecast (Open-Meteo, 7Timer!) with the site rounded to a 
 read from the astro folder (the «astro» plugin's, which stays offline)."""
 from __future__ import annotations
 
-from aurora import ast_catalog, ast_inventory, ast_skyplan, sys_config
+from aurora import ast_catalog, ast_inventory, ast_rotate, ast_seqwrite, ast_skyplan, sys_config
 from mcp.server.mcpserver import MCPServer
 
 server = MCPServer("sky", version="1.0")
@@ -49,6 +49,41 @@ def sky_catalog(search: str, limit: int = 15) -> str:
             f"{ast_catalog.WORDS.get(o['type'], o['type'])}, RA {o['ra'] / 15:.2f} h, Dec {o['dec']:+.2f}°, "
             f"{o['maj'] or '?'}′" + (f", mag {o['mag']}" if o.get("mag") else "") for o in hit[:max(1, min(int(limit), 50))]]
     return "\n".join(rows) or f"Nessun oggetto per «{search}» fra {len(objs)}."
+
+
+@server.tool()
+def sky_sequence(object: str, date: str = "", kind: str = "", count: int = 0, exposure_s: float = 0) -> str:
+    """Scrive la sequenza avanzata di N.I.N.A. per un oggetto e una notte (stanotte o date, AAAA-MM-GG), partendo dal
+    modello della persona per quel tipo (banda stretta o larga, scelti in astro_setup.json): coordinate J2000 dal
+    catalogo, gain/offset/posa misurati sui suoi frame e con i suoi dark, numero di pose che riempie le ore utili
+    (o count), il resto del modello com'è; senza rotatore toglie le sue istruzioni e riduce un mosaico al primo
+    pannello. Il file va in sequences/ della cartella astro: la persona lo apre in N.I.N.A., Aurora non lo avvia."""
+    if kind not in ("", "narrowband", "broadband"):
+        return "kind: narrowband, broadband o vuoto (dal tipo dell'oggetto)"
+    try:
+        r = ast_seqwrite.for_tonight(sys_config.get(), object.strip()[:80], date.strip(), kind, int(count), float(exposure_s))
+    except ValueError as e:
+        return f"Sequenza non scritta: {e}"
+    return ast_seqwrite.text(r)
+
+
+@server.tool()
+def sky_rotation(angle: str = "") -> str:
+    """Aiuta a ruotare la camera a mano nel focheggiatore fino all'angolo dell'inquadratura (senza rotatore): N.I.N.A.
+    scatta e risolve un frame, Aurora confronta l'angolo con quello voluto (angle in gradi come in N.I.N.A., o vuoto
+    per quello dell'assistente di inquadratura aperto) e dice di quanti gradi girare e in che verso; si ripete finché
+    è entro ±0,3°. Non muove la montatura né altro: solo uno scatto di plate solving."""
+    want = None
+    if angle.strip():
+        try:
+            want = float(angle.replace(",", ".").replace("°", ""))
+        except ValueError:
+            return "angle: un numero di gradi (es. 125 o 37,5), o vuoto"
+    r = ast_rotate.run(sys_config.get(), want)
+    if "error" in r:
+        return f"Non misurata: {r['error']}"
+    return "\n".join(x for x in (f"Angolo ora {r['pa']}°, voluto {r['want']}°.", r.get("learned") and f"Imparato: {r['learned']}.",
+                                  r["say"]) if x)
 
 
 if __name__ == "__main__":
