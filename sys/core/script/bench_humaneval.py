@@ -6,7 +6,8 @@ when the set's own tests pass (owner, 2026-10-19: «costruisci IFEval e HumanEva
 The answer's last Python block is taken: the whole function (put after the prompt, so the prompt's imports and
 helpers stay) or only its body (put under the prompt). Then the set's test and check(<entry point>) run in
 prj_run's cage — no network, no home, no environment — at most SECONDS; pass@1, one answer a problem. Without
-bubblewrap nothing is run and the run says so: the code of a model is never run outside the cage.
+bubblewrap, or with one that cannot start (a CI runner without user namespaces), nothing is run and the run says so:
+the code of a model is never run outside the cage.
 """
 from __future__ import annotations
 
@@ -41,9 +42,28 @@ def program(item: dict, answer: str) -> str:
     return f"{whole}\n\n{item['test']}\n\ncheck({item['entry_point']})\n"
 
 
+_works: list[bool] = []
+
+
+def cage_works() -> bool:
+    """bwrap there and allowed to make its namespaces (a CI runner may have it and refuse them: «loopback: not
+    permitted»); asked once."""
+    if not _works:
+        ok = False
+        if shutil.which("bwrap"):
+            with tempfile.TemporaryDirectory(prefix="aurora-humaneval-") as d:
+                try:
+                    r = subprocess.run(cage(None, Path(d), "python3 -c 0"), capture_output=True, timeout=SECONDS)
+                    ok = r.returncode == 0
+                except (OSError, subprocess.TimeoutExpired):
+                    ok = False
+        _works.append(ok)
+    return _works[0]
+
+
 def score(item: dict, answer: str, judge=None) -> dict:
-    if not shutil.which("bwrap"):
-        raise RuntimeError("bubblewrap (bwrap) is not installed: a model's code is never run outside the cage")
+    if not cage_works():                                 # a cage that cannot start is never a model's wrong answer
+        raise RuntimeError("the cage (bubblewrap) does not start here: a model's code is never run outside it")
     with tempfile.TemporaryDirectory(prefix="aurora-humaneval-") as d:
         folder = Path(d)
         (folder / "solution.py").write_text(program(item, answer), encoding="utf-8")

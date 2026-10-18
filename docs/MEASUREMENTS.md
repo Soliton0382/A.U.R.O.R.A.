@@ -3968,3 +3968,24 @@ frame shows (field rotation ≈ 0.1 px at the corner for 7.6′, computed). The 
 (0.25–0.42″/min): declination moves the polar error does not explain, the next thing to look at (Dec backlash, cable,
 flexure). Not measured: the sign of each component (pulse «N» taken as north on both sides of the pier); a night after
 a NINA three-point alignment against its own reported error; the mount's orthogonality from plate solves.
+
+## M246 — IFEval and HumanEval, Aurora local against the same model bare (19 October 2026; ROADMAP 18b, C355)
+
+50 prompts of each set (seed 7), Qwen3.6-35B-A3B on this machine; Aurora whole through the API, everything local.
+
+| set | bare model | Aurora, before C355 | Aurora, after C355 | after C356 (the form a rule) |
+|---|---|---|---|---|
+| IFEval, prompts with every instruction followed (strict) | **45/50** | 29/50 | 35/50 (loose 37) | **45/50** (loose 46) |
+| IFEval, instructions followed | 75/83 | — | 61/83 | **77/83** |
+| HumanEval, tests passed (pass@1, in the cage) | 47/50 | 38/50 | **49/50** | — |
+| median seconds an answer (HumanEval) | 26.3 | 42.0 | 25.6 | — |
+
+Reading: before C355 a text to write or code to complete went the way of a question of knowledge — code cut at the
+memory step's 300 tokens with ⚠️ before its fence, texts read from the web with citations, refused or marked. After it
+code is an exercise by rule and Aurora passes the bare model (49 against 47); IFEval still loses 10: the 4-token router
+missed some texts to write (⚠️ before a reply that had to start with a quote or be JSON), some went to the web (one in
+Italian to an English prompt), two answered «the premise is wrong». After C356 (the reply's form read by a rule: 445 of
+IFEval's 541 prompts, none of 4,326 SimpleQA, 817 TruthfulQA, 4,281 questions asked here) Aurora equals the bare model
+on prompts (45) and passes it on instructions (77 against 75): lost one (a reply asked in another language, refused:
+no form rule names a language alone), won one. Not measured: the rest of each set; what the 4-token classifier calls
+WRITE among questions of knowledge.

@@ -62,6 +62,24 @@ EMPTY = re.compile(r"(?i)^\W*(?:i |questi |le |gli )?(?:testi|passaggi|documenti
                    r"(?:specify|say|mention|contain|list|name|give)")
 # options on their own lines («A) …») or an instruction on the answer's form («Risposta: …»)
 TASK = re.compile(r"\n\s*[A-P]\)\s|(?i:\b(?:risposta|answer)\s*:)")
+# the answer's form imposed (C356, M246: «no commas», «at least 300 words», «in JSON», «all capital letters», «end
+# with…»): the form comes first — written by the model with its room, never read from sources around which the form
+# breaks. Only explicit rules on the reply's form, in English and Italian; a language asked alone is not one.
+FORM = re.compile(
+    r"(?i)\b(?:do not|don't|without)\s+(?:use\s+)?(?:any\s+)?commas|senza\s+(?:usare\s+)?(?:alcuna\s+)?virgol"
+    r"|\b(?:at least|at most|less than|fewer than|no more than|exactly)\s+\d+\s+(?:words|sentences|paragraphs|bullet|sections|times)"
+    r"|\b(?:almeno|al massimo|meno di|non più di|esattamente)\s+\d+\s+(?:parole|frasi|paragrafi|punti|sezioni|volte)"
+    r"|\ball\s+(?:capital|uppercase|lowercase|small)\s+letters|\ball caps\b|\btutt[oa]\s+in\s+(?:maiuscol|minuscol)"
+    r"|\b(?:wrap|enclose)\s+(?:your\s+)?(?:entire\s+)?(?:response|answer|reply)|\b(?:entire|whole)\s+(?:response|reply|output)\s+(?:should|must)"
+    r"|\bin\s+(?:valid\s+)?json(?:\s+format)?\b|\bformato\s+json\b"
+    r"|\b(?:end|finish)\s+(?:your\s+)?(?:response|answer|reply|email|letter|it)\s+with\b|\btermina\s+(?:la\s+risposta\s+)?con\b"
+    r"|\bpostscript\b|\bP\.P?\.S\b|\bpost\s?scriptum\b"
+    r"|\bmarkdown\b|\bbullet points?\b|\b\*\*\*\b|\*{6}|<<[^>]*>>|\bdouble angular brackets\b"
+    r"|\bhighlight\s+at least\b|\bplaceholders?\b|\b(?:SECTION|PARAGRAPH|Section)\s+X\b"
+    r"|\brepeat\s+the\s+request\b|\bfirst\s+repeat\b|\btwo\s+different\s+responses\b"
+    r"|\bthe\s+(?:letter|word)\s+\S+\s+should\s+appear|\binclude\s+the\s+keywords?\b|\bdo not include\s+(?:the\s+)?(?:words?|keywords?)\b"
+    r"|\bnon\s+usare\s+(?:la\s+parola|le\s+parole)\b|\bMy answer is (?:yes|no|maybe)\b"
+    r"|\bno other language is allowed\b")
 # code given in the question (a fenced block, a function's signature): an exercise, never a fact to look up (C355)
 CODE = re.compile(r"```|^\s*def \w+\s*\(|^\s*(?:function|fn|func|public|class) \w+.*[({]\s*$", re.M)
 
@@ -75,6 +93,8 @@ def _exp(p, about: bool = True) -> str:
 def kind(p, question: str) -> str:
     if TASK.search(question) or CODE.search(question):   # options, the answer's form asked, code: an exercise (C274, C355)
         return "solve"
+    if FORM.search(question):                         # the reply's form imposed: written, its form kept (C356)
+        return "write"
     out = p._for("route").complete(SYS_KIND + _exp(p, about=False), question[:1500], 4).answer.strip().upper()
     return ("case" if out.startswith("CASE") else "explain" if out.startswith("EXPLAIN")
             else "solve" if out.startswith("SOLVE") else "write" if out.startswith("WRITE") else "fact")

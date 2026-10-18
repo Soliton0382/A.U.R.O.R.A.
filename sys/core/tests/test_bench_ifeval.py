@@ -91,7 +91,7 @@ ITEM = {"entry_point": "add", "header": "import math\n\n\ndef add(a, b):\n    \"
         "test": "def check(c):\n    assert c(2, 3) == 5\n    assert math.pi > 3\n"}
 
 
-@pytest.mark.skipif(not shutil.which("bwrap"), reason="no cage on this machine")
+@pytest.mark.skipif(not H.cage_works(), reason="no working cage on this machine")
 def test_humaneval_runs_the_answer_in_the_cage():
     assert H.score(ITEM, "Sure:\n```python\ndef add(a, b):\n    return a + b\n```")["right"]
     assert H.score(ITEM, "```\n    return a + b\n```")["right"]                       # only the body
@@ -100,7 +100,7 @@ def test_humaneval_runs_the_answer_in_the_cage():
     assert not H.score(ITEM, net)["right"]
 
 
-@pytest.mark.skipif(not shutil.which("bwrap"), reason="no cage on this machine")
+@pytest.mark.skipif(not H.cage_works(), reason="no working cage on this machine")
 def test_humaneval_stops_a_loop(monkeypatch):
     monkeypatch.setattr(H, "SECONDS", 2)
     assert H.score(ITEM, "```python\ndef add(a, b):\n    while True:\n        pass\n```")["got"] == "more than 2 s"

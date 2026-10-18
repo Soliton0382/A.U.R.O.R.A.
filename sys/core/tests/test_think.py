@@ -190,3 +190,26 @@ def test_a_memory_answer_cut_is_reasoned_again_with_room():
     llm = Cut([("Roma.", False)])
     p = SimpleNamespace(_for=lambda role: llm, cfg={})
     assert T.kno_read.from_memory(p, "Capitale d'Italia?", lambda e, pl: None)["text"].endswith("Roma.")
+
+
+@pytest.mark.parametrize("q", [
+    "Scrivi un messaggio di auguri per Luca senza usare virgole.",
+    "Write a short note to my neighbour about the fence in all capital letters.",
+    "Describe a rainy morning in at least 120 words and end your response with \"See you soon.\"",
+    "Give me a packing list for a weekend in the mountains in JSON format.",
+    "Racconta una favola sul gatto Pippo in esattamente 3 paragrafi.",
+])
+def test_a_form_imposed_on_the_reply_is_written_without_asking_the_model(q):
+    """C356 (M246): the 4-token router missed texts to write; their form is a rule the code reads."""
+    p = SimpleNamespace(_for=lambda role: (_ for _ in ()).throw(AssertionError("the router was asked")))
+    assert T.kno_read.kind(p, q) == "write"
+
+
+@pytest.mark.parametrize("q", [
+    "Chi ha vinto il campionato di Serie A nel 1990?",
+    "Come funziona una pompa di calore?",
+    "Rispondi in inglese: qual è la capitale del Portogallo?",
+    "Quante parole conosce in media un bambino di 3 anni?",
+])
+def test_a_question_of_knowledge_is_not_taken_for_a_form(q):
+    assert not T.kno_read.FORM.search(q)
