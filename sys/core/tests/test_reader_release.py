@@ -4,6 +4,7 @@
 import gc
 import os
 import threading
+import weakref
 
 import pytest
 
@@ -13,7 +14,8 @@ from aurora import sol_reader, sol_vault
 class FakeReader(sol_reader.VaultReader):
     def __init__(self):                                   # no config: only the per-thread cache is under test
         self._local = threading.local()
-        sol_reader._readers.add(self)
+        self._caches = weakref.WeakSet()                  # as the real one (C352: without it the job thread died before
+        sol_reader._readers.add(self)                     # opening, and forget() in a later test met this reader)
 
 
 def fds() -> int:
@@ -41,6 +43,6 @@ def test_release_closes_thread_connections(tmp_path):
             t = threading.Thread(target=job)
             t.start()
             t.join()
-        assert fds() == start
+        assert fds() <= start                             # a leak is +1 a thread; an earlier test's file may close meanwhile
     finally:
         gc.enable()

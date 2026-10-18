@@ -115,6 +115,10 @@ def _slice(owner) -> int:
     return min(step, CPU_SLICE) if device.startswith("cpu") else step
 
 
+REMEMBER_S = 600.0       # a batch that ran out of memory is not tried again at full size for 10 minutes
+_SHRUNK: dict = {}       # id(owner) -> (the batch that went through, when)
+
+
 def _one(owner, fn, items, urgent: bool):
     """fn(items) with the model's batch halved on CUDA out of memory, down to 1 (C197, 8 Oct: the harvester's batches
     of 8 long chunks ran out of memory beside the reasoner, the service answered 500 every 5 s and the failed batch's
@@ -124,6 +128,11 @@ def _one(owner, fn, items, urgent: bool):
     _gpu.take(urgent)
     try:
         batch = owner.batch
+        known = _SHRUNK.get(id(owner))
+        if known and time.monotonic() - known[1] < REMEMBER_S:
+            owner.batch = min(owner.batch, known[0])
+        else:
+            _SHRUNK.pop(id(owner), None)
         try:
             while True:
                 try:
@@ -132,6 +141,7 @@ def _one(owner, fn, items, urgent: bool):
                     if owner.batch <= 1:
                         raise
                     owner.batch = max(1, owner.batch // 2)
+                    _SHRUNK[id(owner)] = (owner.batch, time.monotonic())
                     failed = True
                 else:
                     failed = False
