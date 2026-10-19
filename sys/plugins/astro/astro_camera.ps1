@@ -1,84 +1,66 @@
 # Aurora - a camera of this PC sent to Aurora (the collimator's, a guide camera...), for the live collimation page.
-# Run in PowerShell, in the folder of this file, with the command Aurora's page gives (it holds your camera key):
+# Run in PowerShell, in the folder of this file, with the command Aurora's collimation page gives (it holds your key):
 #   powershell -ExecutionPolicy Bypass -File .\astro_camera.ps1 -Url https://your-aurora:8443 -Key aurcam_...
-# What it does: tells Aurora the cameras this PC sees, asks which one you chose in the page, and sends only that one,
-# as JPEG frames, with ffmpeg. Nothing is listened to on this PC (no port opened): it only sends. The camera key can
-# only send frames: it reads nothing of Aurora. Ctrl+C stops it. Close the camera's own program first (it holds the
-# camera). ffmpeg: if it is not installed,  winget install --id Gyan.FFmpeg -e  (or -Ffmpeg C:\path\to\ffmpeg.exe).
-# -Insecure: accept a certificate this PC does not trust (Aurora reached by its LAN address).
+# The first time it installs what it needs, for this user only: Python (with winget, if missing), then in a folder of
+# its own next to this file (.aurora-camera) OpenCV - the same engine the collimator's program uses - and pygrabber
+# (the cameras' names). Then it starts astro_camera.py: it tells Aurora the cameras this PC sees, sends the one you
+# choose in the page, and sets on it what you ask there (gain, exposure, focus, zoom, resolution). Nothing listens on
+# this PC: it only sends. Close the collimator's own program first (it holds the camera). Ctrl+C stops it.
+# -Insecure: accept a certificate this PC does not trust (Aurora reached by its LAN address). -List: only the cameras.
 param(
-  [Parameter(Mandatory = $true)][string]$Url,
-  [Parameter(Mandatory = $true)][string]$Key,
-  [string]$Ffmpeg = "",
-  [int]$Fps = 10,
-  [int]$Width = 1280,
-  [switch]$Insecure
+  [string]$Url = "",
+  [string]$Key = "",
+  [switch]$Insecure,
+  [switch]$List
 )
 $ErrorActionPreference = "Stop"
-$Url = $Url.TrimEnd("/")
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-if ($Insecure) { [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $true } }
+$here = $PSScriptRoot
+$venv = Join-Path $here ".aurora-camera"
+$vpy = Join-Path $venv "Scripts\python.exe"
 
-function Find-Ffmpeg {
-  if ($Ffmpeg -and (Test-Path $Ffmpeg)) { return $Ffmpeg }
-  $c = Get-Command ffmpeg -ErrorAction SilentlyContinue
-  if ($c) { return $c.Source }
-  $w = Join-Path $env:LOCALAPPDATA "Microsoft\WinGet\Links\ffmpeg.exe"
-  if (Test-Path $w) { return $w }
+function Find-Python {
+  $py = Get-Command py -ErrorAction SilentlyContinue
+  if ($py) {
+    $exe = (& py -3 -c "import sys; print(sys.executable)" 2>$null)
+    if ($LASTEXITCODE -eq 0 -and $exe) { return $exe.Trim() }
+  }
+  $p = Get-Command python -ErrorAction SilentlyContinue
+  if ($p -and $p.Source -notmatch "WindowsApps") { return $p.Source }        # not the Store's stub
+  foreach ($v in "313", "312", "311", "310") {
+    $c = Join-Path $env:LOCALAPPDATA "Programs\Python\Python$v\python.exe"
+    if (Test-Path $c) { return $c }
+  }
   return $null
 }
 
-function Get-Cameras($ff) {
-  # ffmpeg lists DirectShow devices on stderr: '"Name" (video)' (newer) or a "DirectShow video devices" section (older)
-  $lines = & $ff -hide_banner -list_devices true -f dshow -i dummy 2>&1 | ForEach-Object { "$_" }
-  $names = @(); $inVideo = $false
-  foreach ($l in $lines) {
-    if ($l -match "DirectShow video devices") { $inVideo = $true; continue }
-    if ($l -match "DirectShow audio devices") { $inVideo = $false; continue }
-    if ($l -match "Alternative name") { continue }
-    if ($l -match '"([^"]+)"\s+\(video\)') { $names += $Matches[1]; continue }
-    if ($inVideo -and $l -match '"([^"]+)"') { $names += $Matches[1] }
-  }
-  return @($names | Select-Object -Unique)
-}
-
-function Ask($cams) {
-  $body = @{ devices = @($cams) } | ConvertTo-Json -Compress
-  $r = Invoke-RestMethod -Method Post -Uri "$Url/v1/aurora/astro/camera/pc" -Headers @{ "X-Aurora-Camera" = $Key } `
-    -ContentType "application/json" -Body $body -TimeoutSec 10
-  return [string]$r.wanted
-}
-
-$ff = Find-Ffmpeg
-if (-not $ff) {
-  Write-Host "ffmpeg not found. Install it with:  winget install --id Gyan.FFmpeg -e   (then open a new PowerShell)"
-  exit 1
-}
-Write-Host "ffmpeg: $ff"
-$cams = Get-Cameras $ff
-Write-Host "cameras: $($cams -join ', ')"
-if (-not $cams.Count) { Write-Host "no camera seen by DirectShow: is it plugged in?" }
-
-$proc = $null; $current = ""; $listed = Get-Date
-try {
-  while ($true) {
-    try { $wanted = Ask $cams } catch { Write-Host "Aurora does not answer: $($_.Exception.Message)"; Start-Sleep 5; continue }
-    if ($proc -and $proc.HasExited) { $proc = $null }
-    if ($wanted -ne $current -or ($wanted -and -not $proc)) {
-      if ($proc) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue; $proc = $null }
-      $current = $wanted
-      if ($wanted) {
-        Write-Host "sending: $wanted"
-        $ffArgs = @("-hide_banner", "-loglevel", "error", "-f", "dshow", "-rtbufsize", "64M", "-i", "video=`"$wanted`"",
-          "-vf", "`"scale='min($Width,iw)':-2`"", "-r", "$Fps", "-f", "mpjpeg", "-q:v", "5",
-          "-method", "POST", "-chunked_post", "1", "-headers", "`"X-Aurora-Camera: $Key`"",
-          "$Url/v1/aurora/astro/camera/push")
-        $proc = Start-Process -FilePath $ff -ArgumentList $ffArgs -NoNewWindow -PassThru
-      } else { Write-Host "no camera chosen: waiting" }
+if (-not (Test-Path $vpy)) {
+  $python = Find-Python
+  if (-not $python) {
+    if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+      Write-Host "Python is missing and winget is not on this PC: install Python 3 from python.org, then run this again."
+      exit 1
     }
-    if (-not $proc -and ((Get-Date) - $listed).TotalSeconds -gt 30) { $cams = Get-Cameras $ff; $listed = Get-Date }
-    Start-Sleep 2
+    Write-Host "Installing Python (once, for this user)..."
+    winget install -e --id Python.Python.3.12 --scope user --silent --accept-package-agreements --accept-source-agreements
+    $env:Path = [Environment]::GetEnvironmentVariable("Path", "User") + ";" + [Environment]::GetEnvironmentVariable("Path", "Machine")
+    $python = Find-Python
+    if (-not $python) { Write-Host "Python installed but not found: open a new PowerShell and run this again."; exit 1 }
   }
-} finally {
-  if ($proc) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
+  Write-Host "Preparing the folder .aurora-camera with $python ..."
+  & $python -m venv $venv
+  if ($LASTEXITCODE -ne 0) { Write-Host "the folder could not be made"; exit 1 }
 }
+
+& $vpy -c "import cv2, pygrabber" 2>$null
+if ($LASTEXITCODE -ne 0) {
+  Write-Host "Installing OpenCV and pygrabber (once)..."
+  & $vpy -m pip install --disable-pip-version-check --quiet opencv-python pygrabber
+  if ($LASTEXITCODE -ne 0) { Write-Host "the installation did not succeed: is the PC on the internet?"; exit 1 }
+}
+
+$agent = Join-Path $here "astro_camera.py"
+if ($List) { & $vpy $agent --list; exit 0 }
+if (-not $Url -or -not $Key) { Write-Host "Give -Url and -Key: the command is in Aurora's collimation page."; exit 1 }
+$a = @($agent, "--url", $Url, "--key", $Key)
+if ($Insecure) { $a += "--insecure" }
+& $vpy @a

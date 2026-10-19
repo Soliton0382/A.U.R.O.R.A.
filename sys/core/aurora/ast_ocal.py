@@ -71,8 +71,12 @@ def expected(k: float, scope: dict | None) -> dict | None:
         vals.append(shift(view, focus, m / 2))
     focus = m * f / ap
     s, mag = f - focus, f / focus
+    half = m / 2
     return {"lo": round(min(vals), 4), "mid": round(vals[1], 4), "hi": round(max(vals), 4),
-            "view_mm": round(k * (s + s * mag) / (mag - k))}
+            "view_mm": round(k * (s + s * mag) / (mag - k)),
+            # the shadow's displacement × its radius: the offset seen in the primary, magnified as its size — the
+            # circle that moves most (first drawn concentric in the live page: the owner, 19 Oct)
+            "shadow": round(-(focus - math.sqrt(focus * focus + 4 * half * half)) / 2 / half, 4)}
 
 
 def _circle(ys, xs):

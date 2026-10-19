@@ -51,7 +51,7 @@ def test_the_key_kept_as_a_hash_one_a_person(tmp_path):
 
 def test_the_choice_the_last_frame_and_staleness(tmp_path):
     r = C.Relay(tmp_path)
-    assert r.devices("anna", ["Cam A", "Cam B"]) == ""
+    assert r.pc("anna", ["Cam A", "Cam B"], None)["wanted"] == ""
     r.want("anna", "Cam B")
     assert r.wanted("anna") == "Cam B" and r.last("anna") == (None, 0.0)
     r.put("anna", JPEG)
@@ -102,7 +102,7 @@ def test_a_real_ffmpeg_sends_and_the_page_reads(server):
     key = httpx.post(f"{url}/v1/aurora/astro/camera/key").json()["key"]
     assert httpx.post(f"{url}/v1/aurora/astro/camera/pc", json={"devices": ["Cam A"]}).status_code == 401
     pc = {"X-Aurora-Camera": key}
-    assert httpx.post(f"{url}/v1/aurora/astro/camera/pc", headers=pc, json={"devices": "Cam A"}).json() == {"wanted": ""}
+    assert httpx.post(f"{url}/v1/aurora/astro/camera/pc", headers=pc, json={"devices": "Cam A"}).json()["wanted"] == ""
     httpx.put(f"{url}/v1/aurora/astro/camera", json={"wanted": "Cam A"})
     assert httpx.post(f"{url}/v1/aurora/astro/camera/pc", headers=pc, json={"devices": ["Cam A"]}).json()["wanted"] == "Cam A"
     ff = subprocess.Popen(["ffmpeg", "-hide_banner", "-loglevel", "error", "-re", "-f", "lavfi", "-i",
@@ -133,9 +133,93 @@ def test_a_real_ffmpeg_sends_and_the_page_reads(server):
             ff.kill()
 
 
-def test_the_pc_script_only_sends():
+def test_the_settings_checked_and_the_dialog_a_counter(tmp_path):
+    r = C.Relay(tmp_path)
+    out = r.settings("anna", {"gain": 12, "auto_exposure": 0, "size": [3840, 2160], "fps": 99, "send_width": 100})
+    assert out["settings"] == {"gain": 12.0, "auto_exposure": False, "size": [3840, 2160], "fps": 30, "send_width": 320}
+    for bad in ({"size": [1000, 1000]}, {"gain": 1e9}, {"shutter": 1}):
+        with pytest.raises(ValueError):
+            r.settings("anna", bad)
+    r.settings("anna", {"gain": None, "dialog": True})                  # back to the camera's own; the window once
+    a = r.pc("anna", ["Cam A"], {"values": {"gain": 3.0}, "size": [1920, 1080], "secret": "x"})
+    assert "gain" not in a["settings"] and a["dialog"] == 1 and a["version"] == 2
+    assert r.status("anna")["camera"] == {"values": {"gain": 3.0}, "size": [1920, 1080]}
+
+
+def _plugin(name):
     from pathlib import Path
-    ps = (Path(__file__).resolve().parents[2] / "plugins" / "astro" / "astro_camera.ps1").read_text()
-    assert "/v1/aurora/astro/camera/pc" in ps and "/v1/aurora/astro/camera/push" in ps and "X-Aurora-Camera" in ps
-    assert "-chunked_post" in ps and "dshow" in ps and "-listen" not in ps and "HttpListener" not in ps
-    assert "$args =" not in ps                                             # PowerShell's own variable
+    return Path(__file__).resolve().parents[2] / "plugins" / "astro" / name
+
+
+def test_the_pc_side_installs_what_it_needs_and_only_sends():
+    ps, py = _plugin("astro_camera.ps1").read_text(), _plugin("astro_camera.py").read_text()
+    assert "winget install -e --id Python.Python" in ps and "-m venv" in ps and "opencv-python pygrabber" in ps
+    assert "astro_camera.py" in ps and "$args =" not in ps                  # PowerShell's own variable
+    assert "/v1/aurora/astro/camera/pc" in py and "/v1/aurora/astro/camera/push" in py and "X-Aurora-Camera" in py
+    assert "CAP_DSHOW" in py and "CAP_PROP_SETTINGS" in py and "encode_chunked=True" in py
+    assert "listen(" not in py and "HTTPServer" not in py and "bind(" not in py
+
+
+@pytest.mark.skipif(__import__("importlib").util.find_spec("cv2") is None, reason="OpenCV not installed")
+def test_the_agent_sends_and_takes_the_settings(server, monkeypatch):
+    # the PC's agent itself, a camera invented: the page's gain reaches the camera and comes back as taken
+    import importlib.util
+    import httpx
+    import numpy as np
+    url, mod = server
+    spec = importlib.util.spec_from_file_location("astro_camera", _plugin("astro_camera.py"))
+    agent = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(agent)
+
+    class Cam:
+        def __init__(self, *a):
+            self.p = {agent.cv2.CAP_PROP_FRAME_WIDTH: 640, agent.cv2.CAP_PROP_FRAME_HEIGHT: 480}
+
+        def isOpened(self):  # noqa: N802
+            return True
+
+        def set(self, k, v):
+            self.p[k] = v
+            return True
+
+        def get(self, k):
+            return float(self.p.get(k, -1))
+
+        def read(self):
+            return True, np.full((480, 640, 3), 90, np.uint8)
+
+        def release(self):
+            pass
+
+    monkeypatch.setattr(agent.cv2, "VideoCapture", Cam)
+    monkeypatch.setattr(agent, "cameras", lambda: ["Cam A"])
+    key = httpx.post(f"{url}/v1/aurora/astro/camera/key").json()["key"]
+    httpx.put(f"{url}/v1/aurora/astro/camera", json={"wanted": "Cam A", "settings": {"gain": 7, "fps": 20}})
+    threading.Thread(target=agent.Agent(url, key, False).run, daemon=True).start()
+    st = {}
+    for _ in range(100):
+        st = httpx.get(f"{url}/v1/aurora/astro/camera").json()
+        if st["live"] and st["camera"].get("values", {}).get("gain") == 7:
+            break
+        time.sleep(0.1)
+    assert st["live"] and st["devices"] == ["Cam A"] and st["camera"]["values"]["gain"] == 7
+    assert httpx.get(f"{url}/v1/aurora/astro/camera/frame").content[:2] == b"\xff\xd8"
+    httpx.put(f"{url}/v1/aurora/astro/camera", json={"settings": {"gain": 3}})
+    for _ in range(60):
+        if httpx.get(f"{url}/v1/aurora/astro/camera").json()["camera"]["values"]["gain"] == 3:
+            break
+        time.sleep(0.1)
+    assert httpx.get(f"{url}/v1/aurora/astro/camera").json()["camera"]["values"]["gain"] == 3
+    httpx.put(f"{url}/v1/aurora/astro/camera", json={"wanted": ""})
+
+
+def test_the_package_for_the_pc(server):
+    import io
+    import zipfile
+    import httpx
+    url, _ = server
+    r = httpx.get(f"{url}/v1/aurora/astro/camera/bundle")
+    names = zipfile.ZipFile(io.BytesIO(r.content)).namelist()
+    assert r.headers["content-type"] == "application/zip"
+    assert sorted(names) == ["aurora_camera/LEGGIMI.txt", "aurora_camera/README.txt", "aurora_camera/astro_camera.ps1",
+                             "aurora_camera/astro_camera.py"]

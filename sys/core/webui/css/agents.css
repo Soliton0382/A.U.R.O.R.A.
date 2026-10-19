@@ -392,3 +392,9 @@ dialog.welcome p { margin: 0; }
 
 .col-live .col-row strong { align-self: center; }
 .col-pc-how pre { white-space: pre-wrap; word-break: break-all; }
+
+.col-inner { position: relative; transition: transform .15s; }
+.col-night .col-stage { filter: grayscale(1) sepia(1) hue-rotate(-50deg) saturate(5) brightness(.65); }
+.col-pc-controls { margin: .4rem 0; } .col-pc-controls summary { cursor: pointer; font-weight: 600; }
+.col-pc-controls .col-row label small { min-height: 1em; }
+.col-steps { margin: .4rem 0 .4rem 1.2rem; }

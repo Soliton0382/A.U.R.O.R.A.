@@ -162,12 +162,17 @@ def test_the_live_circles_use_the_same_geometry_as_the_server():
         r = json.loads(out.stdout)
         e = O.expected(k, scope)
         assert abs(r["shift"] - e["mid"]) < 1e-3 and abs(r["view"] - e["view_mm"]) < 1
+        assert abs(r["shadow"] - e["shadow"]) < 1e-3                       # the shadow moved the same way on both
+    # the Quattro: offset 4.3 mm each way on a 35 mm half secondary → the shadow 12 % of its radius off the axis
+    assert 0.11 < O.expected(0.336, QUATTRO)["shadow"] < 0.13
 
 
 def test_the_live_tab_its_scope_and_the_offline_shell():
     live = (ROOT / "webui" / "js" / "modules" / "astro_collim_live.js").read_text()
     assert "getUserMedia" in live and "enumerateDevices" in live and "/v1/aurora/astro/collimation/scope" in live
-    assert "/v1/aurora/astro/camera/stream" in live and "/v1/aurora/astro/camera/key" in live    # the PC's camera too
+    assert "/v1/aurora/astro/camera/stream" in live and "pcPanel(" in live                          # the PC's camera too
+    pc = (ROOT / "webui" / "js" / "modules" / "astro_collim_pc.js").read_text()
+    assert "/v1/aurora/astro/camera/key" in pc and "/v1/aurora/astro/camera/bundle" in pc and "dialog: true" in pc
     assert "liveCard(state.scope)" in (ROOT / "webui" / "js" / "modules" / "astro_collim.js").read_text()
     assert "/static/js/modules/astro_collim_live.js" in (ROOT / "webui" / "sw.js").read_text()
     api = (ROOT / "aurora" / "api" / "astro.py").read_text()

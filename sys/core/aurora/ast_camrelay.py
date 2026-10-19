@@ -21,6 +21,11 @@ from pathlib import Path
 
 MAX_FRAME = 8 * 1024 * 1024          # a JPEG bigger than this is not a camera's frame
 STALE_S = 10.0                       # no frame for this long: the camera is not live
+# what the page may ask of the PC's camera (OpenCV's properties, as the collimator's own program sets them): numbers
+# within these bounds, the camera saying back what it took; the resolution and the stream's size and pace
+CONTROLS = ("brightness", "contrast", "saturation", "sharpness", "gamma", "gain", "exposure", "focus", "zoom")
+SWITCHES = ("auto_exposure", "autofocus")
+SIZES = ((1280, 720), (1920, 1080), (2592, 1944), (3840, 2160))
 HEAD = re.compile(rb"--[^\r\n]*\r\n(?:[^\r\n]+\r\n)*?Content-length: *(\d+)\r\n(?:[^\r\n]+\r\n)*\r\n", re.I)
 
 
@@ -90,15 +95,54 @@ class Relay:
 
     def _s(self, user: str) -> dict:
         return self.state.setdefault(user, {"devices": [], "wanted": "", "seen": 0.0, "frame": None, "at": 0.0, "n": 0,
-                                            "rate": 0.0})
+                                            "rate": 0.0, "settings": {}, "version": 0, "camera": {}})
 
-    def devices(self, user: str, names: list[str]) -> str:
-        """The PC's cameras told; the camera wanted answered."""
+    def settings(self, user: str, change: dict) -> dict:
+        """The page's asks for the camera, checked and merged; each change a new version the PC applies once."""
+        out = {}
+        for k, v in (change or {}).items():
+            if k in CONTROLS:
+                if v is None:
+                    out[k] = None                      # back to the camera's own
+                    continue
+                v = float(v)
+                if not -100000 <= v <= 100000:
+                    raise ValueError(f"{k}: out of range")
+                out[k] = v
+            elif k in SWITCHES:
+                out[k] = bool(v)
+            elif k == "size":
+                if list(v) not in [list(x) for x in SIZES]:
+                    raise ValueError("size: one of " + ", ".join(f"{w}x{h}" for w, h in SIZES))
+                out[k] = [int(v[0]), int(v[1])]
+            elif k == "fps":
+                out[k] = max(1, min(30, int(v)))
+            elif k == "send_width":
+                out[k] = 0 if int(v) <= 0 else max(320, min(4096, int(v)))
+            elif k == "quality":
+                out[k] = max(40, min(95, int(v)))
+            elif k == "dialog":
+                out[k] = True                          # the camera's own window, once, on the PC's screen (a counter)
+            else:
+                raise ValueError(f"unknown setting: {k}")
+        with self.lock:
+            st = self._s(user)
+            if out.pop("dialog", None):
+                st["dialog"] = st.get("dialog", 0) + 1
+            st["settings"].update(out)
+            st["settings"] = {k: v for k, v in st["settings"].items() if v is not None}
+            st["version"] += 1
+            return {"settings": dict(st["settings"]), "version": st["version"]}
+
+    def pc(self, user: str, names: list, camera: dict | None) -> dict:
+        """The PC's cameras and its camera's state told; the camera wanted and the settings answered."""
         with self.lock:
             s = self._s(user)
             s["devices"] = [str(x)[:120] for x in names][:20]
             s["seen"] = time.time()
-            return s["wanted"]
+            if isinstance(camera, dict):
+                s["camera"] = {k: camera[k] for k in ("values", "size", "agent", "error") if k in camera}
+            return {"wanted": s["wanted"], "settings": s["settings"], "version": s["version"], "dialog": s.get("dialog", 0)}
 
     def want(self, user: str, name: str) -> None:
         with self.lock:
@@ -138,4 +182,5 @@ class Relay:
             now = time.time()
             return {"devices": s["devices"], "wanted": s["wanted"], "pc_seen_s": round(now - s["seen"], 1) if s["seen"] else None,
                     "live": s["frame"] is not None and now - s["at"] < STALE_S, "fps": round(s["rate"], 1),
-                    "key": self.has_key(user)}
+                    "key": self.has_key(user), "camera": s["camera"], "settings": s["settings"],
+                    "controls": list(CONTROLS), "switches": list(SWITCHES), "sizes": [list(x) for x in SIZES]}

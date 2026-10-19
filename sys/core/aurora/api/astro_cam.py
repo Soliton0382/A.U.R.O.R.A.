@@ -13,12 +13,42 @@ import time
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import FileResponse, Response, StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 
 from .core import BASE, auth, log, me
 
 router = APIRouter()
-SCRIPT = Path(__file__).resolve().parents[3] / "plugins" / "astro" / "astro_camera.ps1"   # sys/plugins/astro
+PLUGIN = Path(__file__).resolve().parents[3] / "plugins" / "astro"            # sys/plugins/astro
+SCRIPT, AGENT = PLUGIN / "astro_camera.ps1", PLUGIN / "astro_camera.py"
+README = {"LEGGIMI.txt": """Aurora - la camera del PC del telescopio
+
+1. Estrai questa cartella sul PC del telescopio (per esempio accanto allo script dell'inventario).
+2. Chiudi il programma del collimatore (tiene occupata la camera).
+3. Apri PowerShell in questa cartella e incolla il comando che ti dà la pagina di collimazione
+   (Astro > Collimazione > Collimazione dal vivo > Collega il PC). Contiene la tua chiave: tienila per te.
+4. La prima volta installa da solo, solo per il tuo utente: Python (con winget, se manca), poi OpenCV e pygrabber
+   in una cartella sua (.aurora-camera) accanto a questi file. Servono internet e qualche minuto.
+5. Nella pagina scegli la camera e premi Mostra: da li' regoli gain, esposizione, fuoco, zoom e risoluzione,
+   da qualsiasi dispositivo. Ctrl+C nella finestra di PowerShell lo ferma.
+
+Lo script non apre porte: manda soltanto. La chiave puo' solo mandare immagini, non legge niente di Aurora.
+Se Aurora ha un certificato che il PC non riconosce, aggiungi -Insecure al comando. Solo l'elenco delle camere: -List.
+Per togliere tutto: cancella questa cartella (e Python, se l'aveva installato lo script, da Impostazioni > App).
+""", "README.txt": """Aurora - the telescope PC's camera
+
+1. Unzip this folder on the telescope PC (beside the inventory script, for one).
+2. Close the collimator's own program (it holds the camera).
+3. Open PowerShell in this folder and paste the command the collimation page gives
+   (Astro > Collimation > Live collimation > Link the PC). It holds your key: keep it to yourself.
+4. The first time it installs, for your user only: Python (with winget, if missing), then OpenCV and pygrabber in a
+   folder of its own (.aurora-camera) beside these files. It needs the internet and a few minutes.
+5. In the page choose the camera and press Show: gain, exposure, focus, zoom and resolution are set from there, from
+   any device. Ctrl+C in the PowerShell window stops it.
+
+The script opens no port: it only sends. The key can only send pictures; it reads nothing of Aurora.
+If Aurora's certificate is not trusted by the PC, add -Insecure to the command. Only the cameras' list: -List.
+To remove it all: delete this folder (and Python, if the script installed it, from Settings > Apps).
+"""}
 STREAM_S = 1800                      # a page's stream ends after this; the page opens it again
 _relay = None
 
@@ -50,9 +80,19 @@ def camera_key(request: Request) -> dict:
             "command": f"powershell -ExecutionPolicy Bypass -File .\\{SCRIPT.name} -Url {url} -Key {key}"}
 
 
-@router.get("/v1/aurora/astro/camera/script", dependencies=[Depends(auth)])
-def camera_script():
-    return FileResponse(SCRIPT, media_type="text/plain", filename=SCRIPT.name)
+@router.get("/v1/aurora/astro/camera/bundle", dependencies=[Depends(auth)])
+def camera_bundle():
+    """The PC's side zipped: the script that installs and starts, the agent, the instructions."""
+    import io
+    import zipfile
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        for f in (SCRIPT, AGENT):
+            z.write(f, f"aurora_camera/{f.name}")
+        for name, text in README.items():
+            z.writestr(f"aurora_camera/{name}", text.replace("\n", "\r\n"))
+    return Response(buf.getvalue(), media_type="application/zip",
+                    headers={"Content-Disposition": 'attachment; filename="aurora_camera.zip"'})
 
 
 @router.get("/v1/aurora/astro/camera", dependencies=[Depends(auth)])
@@ -62,9 +102,15 @@ def camera_status() -> dict:
 
 @router.put("/v1/aurora/astro/camera", dependencies=[Depends(auth)])
 async def camera_choose(request: Request) -> dict:
-    """{wanted}: the camera the PC should send ("" stops it)."""
-    name = str((await request.json()).get("wanted") or "")
-    relay().want(me() or "", name)
+    """{wanted?, settings?}: the camera the PC should send ("" stops it), and what to ask of it (gain, exposure…)."""
+    body = await request.json()
+    if "wanted" in body:
+        relay().want(me() or "", str(body.get("wanted") or ""))
+    if isinstance(body.get("settings"), dict):
+        try:
+            relay().settings(me() or "", body["settings"])
+        except (TypeError, ValueError) as e:
+            raise HTTPException(status_code=422, detail=str(e)) from e
     return relay().status(me() or "")
 
 
@@ -106,7 +152,7 @@ async def camera_pc(request: Request) -> dict:
     body = await request.json()
     names = body.get("devices")
     names = names if isinstance(names, list) else [names] if isinstance(names, str) and names else []   # one: a string
-    return {"wanted": relay().devices(who, names)}
+    return relay().pc(who, names, body.get("camera"))
 
 
 @router.post("/v1/aurora/astro/camera/push")

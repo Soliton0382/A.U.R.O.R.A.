@@ -14,6 +14,7 @@
 import { call } from "../api.js";
 import { el } from "../dom.js";
 import { t } from "../i18n.js";
+import { pcPanel } from "./astro_collim_pc.js";
 
 const KEY = "aurora.collim.live";
 const RATIOS = [2.8, 3, 3.5, 3.8, 4, 4.5, 5, 5.5, 6, 7, 8];
@@ -22,7 +23,7 @@ const TYPICAL = { 2.8: 0.45, 3: 0.42, 3.5: 0.38, 3.8: 0.36, 4: 0.35, 4.5: 0.31, 
 const CIRCLES = ["drawtube", "secondary", "shadow", "ocal", "spot"];
 const COLOR = { drawtube: "#4060ff", secondary: "#ff40ff", shadow: "#00dcff", ocal: "#ff8c00", spot: "#ff2020" };
 const FIRST = { cx: 0.5, cy: 0.5, R: 0.42, drawtube: 1, secondary: 0.62, shadow: 0.2, ocal: 0.11, spot: 0.03,
-  angle: 0, side: 1, manual: null, ratio: 4, aperture: 200, secondary_mm: 70 };
+  angle: 0, side: 1, manual: null, ratio: 4, aperture: 200, secondary_mm: 70, axis: { dx: 0, dy: 0 }, zoom: 1, night: false };
 
 // the same geometry as ast_ocal: the offset secondary's outline seen from `view` mm, centred from the focal point
 export function shift(view, focus, half) {
@@ -31,7 +32,16 @@ export function shift(view, focus, half) {
   return (up + down) / (up - down);
 }
 
-// {shift, view, offset_mm} from the shadow-to-secondary ratio k: the shadow the concave primary's image, × f/(f − S)
+// the shadow's displacement, × its radius, toward the primary's end: the secondary offset (each way) seen in the concave
+// primary, magnified as its size is — offset / half the secondary, whatever the camera's distance (first drawn
+// concentric: the owner, 19 Oct: «sono tutti concentrici non hanno l'offset corretto»)
+export function shadowShift(m, ap, f) {
+  if (!(m > 0 && m < ap && ap < f)) return 0;
+  const focus = (m * f) / ap;
+  return -(focus - Math.sqrt(focus * focus + m * m)) / 2 / (m / 2);
+}
+
+// {shift, view, offset_mm, shadow} from the shadow-to-secondary ratio k: the shadow the concave primary's image, × f/(f − S)
 export function offsetFor(k, m, ap, f) {
   if (!(k > 0.03 && k < 0.8 && m > 0 && m < ap && ap < f)) return null;
   const focus = (m * f) / ap, s = f - focus, mag = f / focus;
@@ -39,7 +49,7 @@ export function offsetFor(k, m, ap, f) {
   const view = (k * (s + s * mag)) / (mag - k);
   if (view <= m) return null;
   const offset = -(focus - Math.sqrt(focus * focus + m * m)) / 2;
-  return { shift: shift(view, focus, m / 2), view, offset_mm: offset };
+  return { shift: shift(view, focus, m / 2), view, offset_mm: offset, shadow: shadowShift(m, ap, f) };
 }
 
 function load() {
@@ -78,53 +88,18 @@ export function liveCard(scope) {
   const src = el("div", "col-row");
   src.append(cams, start, stop, fromPic, file);
 
-  // the telescope PC's camera, relayed: linked once with a key, its cameras listed, the one chosen streamed
-  const pcCams = el("select");
-  const pcGo = el("button", "approve", `📡 ${t("col.pc_use")}`);
-  const pcStop = el("button", "btn", `⏹ ${t("col.live_stop")}`);
-  const pcLink = el("button", "btn", `🔑 ${t("col.pc_link")}`);
-  const pcSaid = el("small", "muted");
-  const pcHow = el("div", "col-pc-how");
-  const pcRow = el("div", "col-row");
-  pcRow.append(el("strong", "", `📡 ${t("col.pc")}`), pcCams, pcGo, pcStop, pcLink, pcSaid);
-  const pcState = async () => {
-    try {
-      const s = await call("/v1/aurora/astro/camera");
-      const keep = pcCams.value || s.wanted;
-      pcCams.replaceChildren(...s.devices.map((d) => { const o = el("option", "", d); o.value = d; return o; }));
-      if (keep) pcCams.value = keep;
-      pcSaid.textContent = !s.key ? t("col.pc_none") : s.pc_seen_s === null || s.pc_seen_s > 15 ? t("col.pc_off")
-        : s.live ? t("col.pc_live", { fps: s.fps }) : t("col.pc_on");
-      return s;
-    } catch { pcSaid.textContent = ""; return null; }
-  };
-  pcGo.addEventListener("click", async () => {
-    if (!pcCams.value) return;
-    await call("/v1/aurora/astro/camera", { method: "PUT", body: JSON.stringify({ wanted: pcCams.value }) });
-    stream?.getTracks().forEach((x) => x.stop());
-    remote.onload = () => { remote.onload = null; draw(); };
-    remote.src = `/v1/aurora/astro/camera/stream?t=${Date.now()}`;
-    remote.hidden = false;
-    video.hidden = true;
-    still.hidden = true;
-    pcState();
+  // the telescope PC's camera, relayed through Aurora (astro_collim_pc.js): shown here when chosen there
+  const pc = pcPanel(c, {
+    show: () => {
+      stream?.getTracks().forEach((x) => x.stop());
+      remote.onload = () => { remote.onload = null; draw(); };
+      remote.src = `/v1/aurora/astro/camera/stream?t=${Date.now()}`;
+      remote.hidden = false;
+      video.hidden = true;
+      still.hidden = true;
+    },
+    stop: () => remote.removeAttribute("src"),
   });
-  pcStop.addEventListener("click", async () => {
-    remote.removeAttribute("src");
-    await call("/v1/aurora/astro/camera", { method: "PUT", body: JSON.stringify({ wanted: "" }) });
-    pcState();
-  });
-  pcLink.addEventListener("click", async () => {
-    if (!confirm(t("col.pc_link_q"))) return;
-    const k = await call("/v1/aurora/astro/camera/key", { method: "POST" });
-    const dl = el("a", "btn", `⬇️ ${t("col.pc_script")}`);
-    dl.href = "/v1/aurora/astro/camera/script";
-    dl.download = "astro_camera.ps1";
-    pcHow.replaceChildren(el("p", "muted", t("col.pc_how")), dl, el("pre", "col-text", k.command));
-    pcState();
-  });
-  const pcTimer = setInterval(() => { if (!document.body.contains(c)) clearInterval(pcTimer); else pcState(); }, 5000);
-  pcState();
 
   const stage = el("div", "col-stage");
   const video = el("video");
@@ -134,7 +109,9 @@ export function liveCard(scope) {
   const remote = el("img");
   remote.hidden = true;
   const canvas = el("canvas", "col-overlay");
-  stage.append(video, still, remote, canvas);
+  const inner = el("div", "col-inner");                  // what the digital zoom enlarges: the picture and the circles
+  inner.append(video, still, remote, canvas);
+  stage.append(inner);
   const said = el("p", "col-say");
   let stream = null;
 
@@ -204,9 +181,28 @@ export function liveCard(scope) {
   const sizes = el("div", "col-row");
   sizes.append(lab("col.live_radius", radius), lab("col.live_axis", angle), flip, reset);
 
+  // the view: digital zoom around the circles, night mode; the camera's true centre by turning it (as the collimator's
+  // own program does): the centre spot marked, the collimator turned 180° in the focuser, marked again — the middle is
+  // where the focuser's axis is at the reflections' depth, whatever the camera's own tilt or play
+  const zoom = el("input");
+  Object.assign(zoom, { type: "range", min: 1, max: 4, step: 0.05, value: st.zoom });
+  zoom.addEventListener("input", () => { st.zoom = Number(zoom.value); draw(); });
+  const night = el("input");
+  night.type = "checkbox";
+  night.checked = st.night;
+  night.addEventListener("change", () => { st.night = night.checked; draw(); });
+  const turn = el("button", "btn", `🔄 ${t("col.live_turn")}`);
+  const unturn = el("button", "btn", t("col.live_unturn"));
+  let marking = 0, first = null;
+  turn.addEventListener("click", () => { marking = 1; first = null; said.textContent = t("col.live_turn1"); });
+  unturn.addEventListener("click", () => { st.axis = { dx: 0, dy: 0 }; draw(); });
+  const view = el("div", "col-row");
+  view.append(lab("col.live_zoom", zoom), lab("col.live_night", night), turn, unturn);
+
   const analyse = el("button", "primary", `🔎 ${t("col.live_analyse")}`);
   const verdict = el("ul", "an-findings");
-  c.append(src, pcRow, pcHow, tube, which, sizes, stage, said, analyse, verdict, el("p", "muted", t("col.live_legend")));
+  c.append(src, pc.row, pc.how, pc.controls, tube, which, sizes, view, stage, said, analyse, verdict,
+    el("p", "muted", t("col.live_legend")));
 
   function circle(ctx, x, y, r, color, dashed) {
     ctx.setLineDash(dashed ? [10, 8] : []);
@@ -224,28 +220,34 @@ export function liveCard(scope) {
     const ctx = canvas.getContext("2d");
     ctx.lineWidth = Math.max(2, w / 500);
     const cx = st.cx * w, cy = st.cy * h, R = st.R * w;
+    const ax = cx + (st.axis?.dx || 0) * w, ay = cy + (st.axis?.dy || 0) * h;   // the axis at the reflections' depth
+    inner.style.transformOrigin = `${st.cx * 100}% ${st.cy * 100}%`;
+    inner.style.transform = st.zoom > 1 ? `scale(${st.zoom})` : "";
+    c.classList.toggle("col-night", !!st.night);
     const a = (st.angle * Math.PI) / 180, dx = Math.cos(a) * st.side, dy = Math.sin(a) * st.side;
     const geo = offsetFor(st.shadow / st.secondary, st.secondary_mm, st.aperture, st.aperture * st.ratio);
     const sh = st.manual !== null ? st.manual / 100 : geo ? geo.shift : 0;
+    const shs = shadowShift(st.secondary_mm, st.aperture, st.aperture * st.ratio);   // the shadow: toward the primary
     const rs = st.secondary * R;
     circle(ctx, cx, cy, R, COLOR.drawtube, false);
-    circle(ctx, cx + dx * sh * rs, cy + dy * sh * rs, rs, COLOR.secondary, false);
-    circle(ctx, cx, cy, st.shadow * R, COLOR.shadow, true);
-    circle(ctx, cx, cy, st.ocal * R, COLOR.ocal, false);
-    circle(ctx, cx, cy, st.spot * R, COLOR.spot, false);
+    circle(ctx, ax + dx * sh * rs, ay + dy * sh * rs, rs, COLOR.secondary, false);
+    circle(ctx, ax - dx * shs * st.shadow * R, ay - dy * shs * st.shadow * R, st.shadow * R, COLOR.shadow, true);
+    circle(ctx, ax, ay, st.ocal * R, COLOR.ocal, false);
+    circle(ctx, ax, ay, st.spot * R, COLOR.spot, false);
     ctx.setLineDash([]);
     ctx.strokeStyle = "#3cff3c";                          // the focuser's axis: where the spot and the reflection go
     ctx.beginPath();
-    ctx.moveTo(cx - R * 0.08, cy); ctx.lineTo(cx + R * 0.08, cy);
-    ctx.moveTo(cx, cy - R * 0.08); ctx.lineTo(cx, cy + R * 0.08);
+    ctx.moveTo(ax - R * 0.08, ay); ctx.lineTo(ax + R * 0.08, ay);
+    ctx.moveTo(ax, ay - R * 0.08); ctx.lineTo(ax, ay + R * 0.08);
     ctx.stroke();
     ctx.strokeStyle = "rgba(255,255,255,.35)";            // the tube's axis, the open end at the arrow
     ctx.beginPath();
     ctx.moveTo(cx - dx * R, cy - dy * R); ctx.lineTo(cx + dx * R, cy + dy * R);
     ctx.stroke();
+    if (marking) return;                                  // the turn's instructions stay on screen
     said.textContent = st.manual !== null
-      ? t("col.live_said_manual", { s: (sh * 100).toFixed(1) })
-      : geo ? t("col.live_said", { s: (sh * 100).toFixed(1), v: Math.round(geo.view), o: geo.offset_mm.toFixed(1) })
+      ? t("col.live_said_manual", { s: (sh * 100).toFixed(1), h: (shs * 100).toFixed(1) })
+      : geo ? t("col.live_said", { s: (sh * 100).toFixed(1), v: Math.round(geo.view), o: geo.offset_mm.toFixed(1), h: (shs * 100).toFixed(1) })
         : t("col.live_said_none");
   }
 
@@ -255,7 +257,20 @@ export function liveCard(scope) {
     const r = canvas.getBoundingClientRect();
     return [(ev.clientX - r.left) / r.width, (ev.clientY - r.top) / r.height];
   };
-  canvas.addEventListener("pointerdown", (ev) => { const [x, y] = at(ev); drag = { x, y, cx: st.cx, cy: st.cy }; canvas.setPointerCapture(ev.pointerId); });
+  canvas.addEventListener("pointerdown", (ev) => {
+    const [x, y] = at(ev);
+    if (marking === 1) { first = [x, y]; marking = 2; said.textContent = t("col.live_turn2"); return; }
+    if (marking === 2) {
+      st.axis = { dx: (first[0] + x) / 2 - st.cx, dy: (first[1] + y) / 2 - st.cy };
+      marking = 0;
+      draw();
+      const [w, h] = size();
+      said.textContent = t("col.live_turned", { p: ((Math.hypot(st.axis.dx * w, st.axis.dy * h) / (st.R * w)) * 100).toFixed(1) });
+      return;
+    }
+    drag = { x, y, cx: st.cx, cy: st.cy };
+    canvas.setPointerCapture(ev.pointerId);
+  });
   canvas.addEventListener("pointermove", (ev) => {
     if (!drag) return;
     const [x, y] = at(ev);
