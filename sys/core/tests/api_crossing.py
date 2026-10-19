@@ -133,7 +133,7 @@ out["guest"]["oauth_machine"] = "rt-good" in (root / ".env").read_text()
 out["guest"]["theme_bad"] = client.put("/v1/aurora/me/prefs", headers=H["guest"], json={"theme": "x;}body{"}).status_code
 # Oggi's tiles (19 Oct): each person's order and hidden ones; an id that is not a word refused
 out["guest"]["tiles"] = client.put("/v1/aurora/me/prefs", headers=H["guest"],
-                                   json={"tiles": {"order": ["sky", "agenda", "sky"], "off": ["news"]}}).json().get("tiles")
+                                   json={"tiles": {"order": ["sky", "agenda", "sky", "page:ideas"], "off": ["news"]}}).json().get("tiles")
 out["guest"]["tiles_bad"] = client.put("/v1/aurora/me/prefs", headers=H["guest"], json={"tiles": {"order": ["<b>"]}}).status_code
 # a user's cloud ceiling: the admin's to set, never the user's own, never the admin's (17 Oct)
 out["guest"]["cloud_set"] = client.put("/v1/aurora/users/cloud", headers=H["guest"], json={"user": "guest", "tokens": 10**9}).status_code

@@ -189,7 +189,7 @@ def write(folder: Path, kind: str, templates: dict, target: dict, exposure_s: fl
 
 
 def for_tonight(cfg, name: str, date: str = "", kind: str = "", count: int = 0, exposure_s: float = 0,
-                min_alt: float = 30) -> dict:
+                min_alt: float = 30, gain: float | None = None, offset: float | None = None) -> dict:
     """The person's sequence for one object and night: the object's J2000 place from the catalogue, its kind and usable
     hours from tonight's plan, the camera's set for that kind measured on their frames (with their darks), the count
     that fills the usable hours (each frame's cost besides its light included) unless given."""
@@ -227,8 +227,15 @@ def for_tonight(cfg, name: str, date: str = "", kind: str = "", count: int = 0, 
             raise ValueError(f"«{o['name']}» non ha ore utili la notte del {p.get('date')} sopra {min_alt:g}°: "
                              "indica tu il numero di pose")
     rig = profile.get("rig") or {}
+    # the person's own values win over the measured ones (owner, 19 Oct: «modificare parametri base, come il numero di
+    # scatti»); a gain or offset of their own may leave the darks' library without a match: said by the checks
+    g = float(s["gain"] if gain is None else gain)
+    off = float(s["offset"] if offset is None else offset)
+    if gain is not None or offset is not None:
+        notes.append(f"gain {g:g} e offset {off:g} scelti da te (misurati: {s['gain']:g} e {s['offset']:g})")
     out = write(folder, kind, saved.get("templates") or {}, {"name": o["name"], "ra_deg": o["ra"], "dec_deg": o["dec"]},
-                exp, count, s["gain"], s["offset"], rig, lib)
+                exp, count, g, off, rig, lib)
+    out["params"] = {"count": int(count), "exposure_s": exp, "gain": g, "offset": off}
     out.update(object=o["name"], common=(ast_catalog.named(o) + o["common"])[:2], kind=kind, date=p.get("date"),
                hours=hours, window=[row.get("from"), row.get("to")], overhead_s=sp["overhead_s"],
                notes=notes + out["notes"])

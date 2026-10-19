@@ -55,12 +55,57 @@ function nightCard(d) {
   return card;
 }
 
+// the sequence's base values, the measured ones first, each changeable before it goes to N.I.N.A. (owner, 19 Oct: «la
+// possibilità di modificare parametri base, come il numero di scatti»): written again with them
+function seqParams(p, write) {
+  const form = el("form", "sky-seq-params");
+  if (!p) return form;
+  const fields = [["count", 1, 2000, 1], ["exposure_s", 0.001, 3600, "any"], ["gain", 0, 10000, 1], ["offset", 0, 10000, 1]];
+  const inputs = {};
+  for (const [key, min, max, step] of fields) {
+    const lab = el("label", "", t(`sky.seq_${key}`));
+    const inp = el("input");
+    Object.assign(inp, { type: "number", min, max, step, value: p[key], required: true });
+    inputs[key] = inp;
+    lab.append(inp);
+    form.append(lab);
+  }
+  const again = el("button", "btn", `✍️ ${t("sky.seq_rewrite")}`);
+  again.type = "submit";
+  form.append(again);
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    write(Object.fromEntries(Object.entries(inputs).map(([k, v]) => [k, Number(v.value)])));
+  });
+  return form;
+}
+
 // the written sequence: downloaded, or loaded into N.I.N.A. through its Advanced API (owner, 19 Oct: «non c'è modo di
 // scaricarla ed inviarla a nina»)
+// …or for another program (owner, 19 Oct: «rendere compatibile… con altri software di pianificazione»): Ekos, CCDciel,
+// a target list (N.I.N.A., SGP, APT); the Ekos folder kept in this browser
+const EKOS_DIR = "aurora.astro.ekos_dir";
 function seqActions(file) {
+  const fmt = el("select", "sky-seq-fmt");
+  fmt.setAttribute("aria-label", t("sky.seq_format"));
+  for (const f of ["nina", "ekos", "ccdciel", "csv"]) { const o = el("option", "", t(`sky.fmt.${f}`)); o.value = f; fmt.append(o); }
+  const dir = el("input", "sky-seq-dir");
+  dir.placeholder = t("sky.seq_ekos_dir");
+  dir.setAttribute("aria-label", t("sky.seq_ekos_dir"));
+  try { dir.value = localStorage.getItem(EKOS_DIR) || ""; } catch { /* this visit only */ }
   const down = el("a", "btn", `⬇️ ${t("sky.seq_download")}`);
-  down.href = `/v1/aurora/astro/sky/sequence/file?name=${encodeURIComponent(file)}`;
-  down.download = file;
+  const hint = el("small", "muted");
+  const link = () => {
+    const q = new URLSearchParams({ name: file, format: fmt.value });
+    if (fmt.value === "ekos" && dir.value.trim()) q.set("folder", dir.value.trim());
+    down.href = `/v1/aurora/astro/sky/sequence/file?${q}`;
+    down.download = "";
+    dir.hidden = fmt.value !== "ekos";
+    hint.textContent = t(`sky.fmt_note.${fmt.value}`);
+  };
+  fmt.addEventListener("change", link);
+  dir.addEventListener("input", () => { try { localStorage.setItem(EKOS_DIR, dir.value.trim()); } catch { /* this visit only */ } link(); });
+  link();
   const send = el("button", "btn", `📤 ${t("sky.seq_send")}`);
   const out = el("span", "muted");
   send.addEventListener("click", async () => {
@@ -72,7 +117,7 @@ function seqActions(file) {
     } catch (e) { out.textContent = e.message; }
     send.disabled = false;
   });
-  return [down, send, out];
+  return [fmt, dir, down, send, out, hint];
 }
 
 function hourly(d) {
@@ -145,16 +190,17 @@ export async function skyTab(box) {
       pic.addEventListener("error", () => pic.replaceWith(el("p", "muted", t("sky.no_thumb"))));
       const plan = el("button", "primary", `🗓️ ${t("sky.plan")}`);
       const said = el("pre", "col-text");
-      plan.addEventListener("click", async () => {
+      const write = async (own = {}) => {
         plan.disabled = true;
         said.textContent = `⏳ ${t("sky.planning")}`;
         try {
-          const s = await call("/v1/aurora/astro/sky/sequence", { method: "POST", body: JSON.stringify({ object: name, date: last.date || "", kind: last.kind && last.kind !== "galaxy" ? last.kind : "" }) });
+          const s = await call("/v1/aurora/astro/sky/sequence", { method: "POST", body: JSON.stringify({ object: name, date: last.date || "", kind: last.kind && last.kind !== "galaxy" ? last.kind : "", ...own }) });
           said.textContent = s.error ? `⚠️ ${s.error}` : s.text;
-          if (s.file) acts.replaceChildren(...seqActions(s.file));
+          if (s.file) acts.replaceChildren(seqParams(s.params, write), ...seqActions(s.file));
         } catch (e) { said.textContent = e.message; }
         plan.disabled = false;
-      });
+      };
+      plan.addEventListener("click", () => write());
       const acts = el("div", "sky-seq-acts");
       const side = el("div", "sky-one-side");
       side.append(el("h4", "", `🎯 ${r.name} · ${r.if_clear ? "☁️ " : ""}${r.hours} h · ${r.fit.words}`), hourly(d), plan, acts, said);

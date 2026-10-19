@@ -12,11 +12,13 @@ import { apply, t } from "../i18n.js";
 import { setTilePrefs, tilePrefs } from "../style.js";
 import astro from "./astro.js";
 import { editTiles, shown } from "./today_edit.js";
+import { pageTile } from "./today_pages.js";
 
 const SWITCHES = new Set(["light", "switch", "fan", "input_boolean"]);
 const NEWS_PX_S = 250;                                    // the headlines' speed, pixels a second
-// every tile in its first order; each is a method below of the same name ("news" is the headlines' strip)
-const TILES = ["news", "agenda", "sky", "research", "house", "waiting", "stats", "dream", "health"];
+// every tile in its first order; each is a method below of the same name ("news" is the headlines' strip); the pages
+// added are "page:<id>" (today_pages.js)
+export const TILES = ["news", "agenda", "sky", "research", "house", "waiting", "stats", "dream", "health"];
 
 export default {
   id: "today",
@@ -67,7 +69,8 @@ export default {
     const slots = ids.filter((id) => id !== "news").map((id) => { const s = el("div", "td-slot"); s.dataset.tile = id; return s; });
     this.tiles.replaceChildren(...slots);
     await Promise.all(slots.map(async (slot) => {
-      const made = await this[slot.dataset.tile]().catch(() => null);
+      const id = slot.dataset.tile;
+      const made = await (id.startsWith("page:") ? pageTile(id.slice(5), this.ctx) : this[id]()).catch(() => null);
       if (this.run !== run) return;                       // the page was drawn again meanwhile
       if (made) slot.replaceWith(made); else slot.remove();
     }));

@@ -143,8 +143,8 @@ async def my_prefs(request: Request) -> dict:
     if "tiles" in body:                              # Oggi's tiles: their order and the hidden ones (today_edit.js)
         tiles = body["tiles"] if isinstance(body["tiles"], dict) else {}
         lists = [tiles.get("order", []), tiles.get("off", [])]
-        if not all(isinstance(x, list) and len(x) <= 30 for x in lists) or not all(
-                isinstance(x, str) and re.fullmatch(r"[a-z][a-z0-9_-]{0,30}", x) for x in lists[0] + lists[1]):
+        if not all(isinstance(x, list) and len(x) <= 80 for x in lists) or not all(   # a tile, or a page ("page:<id>")
+                isinstance(x, str) and re.fullmatch(r"(page:)?[a-z][a-z0-9_-]{0,40}", x) for x in lists[0] + lists[1]):
             raise HTTPException(status_code=422, detail="tiles: {order: [ids], off: [ids]}")
         mine["tiles"] = {"order": list(dict.fromkeys(lists[0])), "off": list(dict.fromkeys(lists[1]))}
     allp = {**_prefs(), me() or "": mine}

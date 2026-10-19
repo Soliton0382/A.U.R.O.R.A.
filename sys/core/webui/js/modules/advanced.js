@@ -2,11 +2,13 @@
 // Copyright 2026 A.U.R.O.R.A. Project
 // ⋯ Avanzate, the Essenziale style's way to every other page (ROADMAP 107): the areas of the full menu as cards, read
 // from the full menu itself — the same pages, hidden the same way (a user's, a plugin's switched off); each page can
-// be pinned to the short menu.
+// be pinned to the short menu, and put in Oggi as a tile (☀️).
 import { bus } from "../bus.js";
 import { el } from "../dom.js";
 import { apply, t } from "../i18n.js";
-import { pins, togglePin } from "../style.js";
+import { pins, setTilePrefs, tilePrefs, togglePin } from "../style.js";
+import { TILES } from "./today.js";
+import { inToday, toggleToday } from "./today_edit.js";
 
 export default {
   id: "advanced",
@@ -43,7 +45,15 @@ export default {
         pin.setAttribute("aria-label", `${pin.title}: ${go.textContent.trim()}`);
         pin.setAttribute("aria-pressed", String(pinned.has(id)));
         pin.addEventListener("click", () => { togglePin(id); bus.emit("pins"); this.enter(); });
-        row.append(go, pin);
+        // ☀️ the page in Oggi too (owner, 19 Oct: «aggiungere qualsiasi cosa… come hai fatto… cliccando sulla piantina»)
+        const on = inToday(TILES, tilePrefs(), id);
+        const sun = el("button", `adv-pin${on ? " on" : ""}`, "☀️");
+        sun.type = "button";
+        sun.title = t(on ? "adv.untoday" : "adv.today");
+        sun.setAttribute("aria-label", `${sun.title}: ${go.textContent.trim()}`);
+        sun.setAttribute("aria-pressed", String(on));
+        sun.addEventListener("click", () => { setTilePrefs(toggleToday(TILES, tilePrefs(), id)); this.enter(); });
+        row.append(go, sun, pin);
         c.append(row);
       }
       cards.push(c);

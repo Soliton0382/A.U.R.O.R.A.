@@ -368,3 +368,12 @@ dialog.welcome p { margin: 0; }
 
 .sky-seq-acts { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: .5rem 0; }
 .sky-seq-acts a.btn { text-decoration: none; }
+
+.sky-seq-params { display: flex; flex-wrap: wrap; gap: .5rem .8rem; align-items: flex-end; width: 100%; }
+.sky-seq-params label { display: flex; flex-direction: column; gap: .2rem; font-size: .85rem; }
+.sky-seq-params input { width: 6.5rem; }
+
+.td-edit-add { align-self: flex-start; max-width: 100%; }
+
+.sky-seq-dir { min-width: 14rem; }
+.sky-seq-acts small { flex-basis: 100%; }

@@ -193,23 +193,52 @@ async def astro_sky_sequence(request: Request) -> dict:
     date = str(body.get("date") or "")
     if date and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date):
         raise HTTPException(status_code=422, detail="date: YYYY-MM-DD")
+    def num(key, lo, hi):                            # {count?, exposure_s?, gain?, offset?}: the person's own values
+        v = body.get(key)
+        if v in (None, ""):
+            return None
+        try:
+            v = float(v)
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=422, detail=f"{key}: a number") from None
+        if not lo <= v <= hi:
+            raise HTTPException(status_code=422, detail=f"{key}: from {lo} to {hi}")
+        return v
+    count, exp = num("count", 1, 2000), num("exposure_s", 0.001, 3600)
+    gain, offset = num("gain", 0, 10000), num("offset", 0, 10000)
     try:
-        r = ast_seqwrite.for_tonight(cfg, str(body.get("object") or "").strip()[:80], date, str(body.get("kind") or ""))
+        r = ast_seqwrite.for_tonight(cfg, str(body.get("object") or "").strip()[:80], date, str(body.get("kind") or ""),
+                                     int(count or 0), exp or 0, gain=gain, offset=offset)
     except ValueError as e:
         return {"error": str(e)}
     log.info("audit: %s had a sequence written: %s", me(), r["file"])
-    return {"file": r["file"], "text": ast_seqwrite.text(r)}
+    return {"file": r["file"], "text": ast_seqwrite.text(r), "params": r.get("params")}
 
 
 @router.get("/v1/aurora/astro/sky/sequence/file", dependencies=[Depends(auth)])
-def astro_sky_sequence_file(name: str):
-    """A written sequence, downloaded (to open in N.I.N.A. by hand)."""
-    from aurora import ast_inventory, ast_seqwrite
+def astro_sky_sequence_file(name: str, format: str = "nina", folder: str = ""):
+    """A written sequence, downloaded: as written (N.I.N.A.), or for Ekos (folder: where the .esq will be on the Ekos
+    machine), CCDciel or as a target list (ast_seqexport)."""
+    import json as _json
+    from fastapi.responses import Response
+    from aurora import ast_catalog, ast_inventory, ast_seqexport, ast_seqwrite
+    base = ast_inventory.folder(cfg)
     try:
-        f = ast_seqwrite.written(ast_inventory.folder(cfg), name)
+        f = ast_seqwrite.written(base, name)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
-    return FileResponse(f, media_type="application/json", filename=f.name)
+    if format == "nina":
+        return FileResponse(f, media_type="application/json", filename=f.name)
+    try:
+        seq = _json.loads(f.read_text(encoding="utf-8-sig"))
+        t = (ast_seqexport.read(seq, f.stem)["target"])["name"]
+        o = ast_catalog.find(ast_catalog.load(base)["objects"], t) or {}
+        common = ((ast_catalog.named(o) + o.get("common", [])) if o else [""])[0]
+        data, fname, media = ast_seqexport.export(seq, f.stem, format, folder.strip()[:200], common)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    from urllib.parse import quote
+    return Response(data, media_type=media, headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(fname)}"})
 
 
 @router.post("/v1/aurora/astro/sky/sequence/send", dependencies=[Depends(auth)])

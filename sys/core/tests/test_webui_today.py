@@ -46,3 +46,26 @@ def test_every_tile_a_method_and_a_name():
 def test_tonights_sky_only_with_astro_on():
     body = TODAY[TODAY.index("async sky()"):TODAY.index("async stats()")]
     assert 'p.name === "astro" && p.enabled && p.available' in body and "return null" in body
+
+
+@pytest.mark.skipif(not shutil.which("node"), reason="node not installed")
+def test_any_page_put_in_and_taken_out_a_page_with_its_own_tile_turns_that_on():
+    all_ = ["news", "agenda", "sky"]
+    one = run(f"M.toggleToday({json.dumps(all_)}, {{}}, 'routines')")
+    assert one == {"order": all_ + ["page:routines"], "off": []}
+    assert run(f"M.inToday({json.dumps(all_)}, {json.dumps(one)}, 'routines')") is True
+    # astro has a tile of its own (tonight's sky): ☀️ hides or shows that one, no page tile beside it
+    two = run(f"M.toggleToday({json.dumps(all_)}, {json.dumps(one)}, 'astro')")
+    assert two == {"order": all_ + ["page:routines"], "off": ["sky"]}
+    back = run(f"M.toggleToday({json.dumps(all_)}, {json.dumps(two)}, 'routines')")
+    assert back == {"order": all_, "off": ["sky"]}
+    # a page tile kept in the person's order among the built-in ones
+    assert run(f'M.shown({json.dumps(all_)}, {{order: ["page:ideas", "sky"]}})') == ["page:ideas", "sky", "news", "agenda"]
+
+
+def test_pages_offered_as_the_menu_shows_them():
+    src = (WEB / "js" / "modules" / "today_pages.js").read_text()
+    assert '#nav .nav-full' in src and '!b.classList.contains("hidden")' in src and '.nav-group.hidden' in src
+    adv = (WEB / "js" / "modules" / "advanced.js").read_text()
+    assert "toggleToday(" in adv and "☀️" in adv
+    assert "/static/js/modules/today_pages.js" in (WEB / "sw.js").read_text()
