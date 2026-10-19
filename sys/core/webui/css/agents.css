@@ -114,8 +114,6 @@ dialog.plug-modal.net-modal { width: min(96vw, 1200px); max-width: 96vw; }
 @media (max-width: 600px) { .sec-rules-table td:nth-child(2) { width: 50%; } .sec-rules-table td { font-size: .85rem; } }
 .md-limits-table input[type=number] { width: 6rem; max-width: 100%; }
 .md-free { margin-left: .3rem; }
-.doc-thumb { width: 42px; height: 56px; object-fit: cover; object-position: top; border-radius: 4px; border: 1px solid var(--line); background: #fff; }
-.up-card img { object-fit: cover; object-position: top; }
 .sec-weekly { white-space: pre-wrap; font-size: .85rem; }
 .appr-elsewhere { display: flex; flex-wrap: wrap; gap: .5rem; margin: .5rem 0; }
 .appr-table { border-collapse: collapse; width: 100%; font-size: .88rem; }
@@ -185,7 +183,15 @@ body[data-style="essenziale"] #nav .nav-full, body:not([data-style="essenziale"]
 .td-news-label { flex: none; font-weight: 600; font-size: .9rem; padding-right: .8rem; border-right: 1px solid var(--line); }
 .td-news-view { flex: 1; min-width: 0; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 1.2rem, #000 calc(100% - 1.2rem), transparent); mask-image: linear-gradient(90deg, transparent, #000 1.2rem, #000 calc(100% - 1.2rem), transparent); }
 .td-news-track { display: flex; gap: 2.2rem; white-space: nowrap; animation: td-news var(--td-news-s, 60s) linear infinite; }
-.td-news:hover .td-news-track, .td-news:focus-within .td-news-track, .td-news:active .td-news-track { animation-play-state: paused; }
+/* paused under the pointer or a finger on the headlines only: the speed button, focused after its tap, kept it still */
+.td-news-view:hover .td-news-track, .td-news-view:focus-within .td-news-track, .td-news-view:active .td-news-track { animation-play-state: paused; }
+.td-news-speed { flex: none; padding: .1rem .45rem; font-size: 1rem; background: none; border: 1px solid var(--line); border-radius: 8px; }
+/* a phone: the label is its icon, the button small — the headlines keep the width (owner, 20 Oct) */
+@media (max-width: 600px) {
+  .td-news { gap: .45rem; padding: .45rem .55rem; }
+  .td-news-label { padding-right: .45rem; } .td-news-word { display: none; }
+  .td-news-speed { padding: 0 .25rem; font-size: .9rem; }
+}
 .td-news-item { color: inherit; text-decoration: none; } .td-news-item:hover { text-decoration: underline; }
 @keyframes td-news { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 @media (prefers-reduced-motion: reduce) {
@@ -415,3 +421,21 @@ dialog.welcome p { margin: 0; }
 .col-pc-controls { margin: .4rem 0; } .col-pc-controls summary { cursor: pointer; font-weight: 600; }
 .col-pc-controls .col-row label small { min-height: 1em; }
 .col-steps { margin: .4rem 0 .4rem 1.2rem; }
+
+/* on a touch screen the small marks get a finger's target (the phone check, 20 Oct: «i» 18×18, ticks 13×13) */
+@media (pointer: coarse) {
+  .info-i { position: relative; }
+  .info-i::after { content: ""; position: absolute; inset: -.7rem; }
+  body input[type="checkbox"], body input[type="radio"] { width: 1.3rem; height: 1.3rem; }   /* app.css's «body input» */
+  .td-news-item, button.link { padding-block: .35rem; }
+}
+
+/* approvals in tabs, short cards; in the chat, over the box (owner, 20 Oct) */
+.appr-tab { margin-top: .5rem; }
+.appr-more summary { cursor: pointer; color: var(--muted); font-size: .85rem; }
+.appr-more .preview { margin-top: .3rem; }
+.appr-why { margin: .3rem 0; }
+.chat-approvals { display: flex; flex-direction: column; gap: .4rem; margin: 0 0 .5rem; max-height: 40vh; overflow-y: auto; }
+.appr-card.appr-small { margin: 0; padding: .55rem .7rem; border-left: 3px solid var(--accent); }
+.appr-card.appr-small .appr-head { font-size: .95rem; }
+.appr-card.appr-small .appr-actions .big { padding: .35rem .8rem; }

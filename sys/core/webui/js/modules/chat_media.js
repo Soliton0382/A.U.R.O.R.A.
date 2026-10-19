@@ -6,7 +6,7 @@ import { call } from "../api.js";
 import { clock, el, toBase64 } from "../dom.js";
 import { lang, t } from "../i18n.js";
 import { shareButton } from "../share.js";
-import { view } from "../viewer.js";
+import { trashable, view } from "../viewer.js";
 import * as voice from "../voice.js";
 import { watch } from "../vad.js";
 
@@ -158,5 +158,15 @@ export function morningOf(messages, d, sayAloud) {
     if (msg) listen.after(el("div", "meta", msg));          // said under the button pressed, not only in the composer
   });
   m.append(listen, el("div", "meta", clock(d.created_at)));
+  messages.append(m);
+}
+
+// the documents a routine wrote (api/knowledge.made_lately): said in the chat, a tap opens each, 🗑️ moves one to the trash
+export function madeOf(messages, d, chip) {
+  const m = el("div", "msg aurora made past");
+  m.append(el("p", "", t("chat.made_routine", { n: d.files.length, routine: d.routine })));
+  const row = el("div", "chips");
+  row.append(...d.files.map((f) => trashable(chip(f), f)));
+  m.append(row, el("div", "meta", clock(d.created_at)));
   messages.append(m);
 }

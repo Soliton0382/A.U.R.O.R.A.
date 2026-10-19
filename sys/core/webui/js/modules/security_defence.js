@@ -6,6 +6,10 @@ import { call } from "../api.js";
 import { bus } from "../bus.js";
 import { el } from "../dom.js";
 import { t } from "../i18n.js";
+
+// who lifted a block: «owner», «time», or the owner with a note («owner (shared CDN, C190)»): the word, then the note's
+const releasedBy = (by = "") => { const [who] = by.split(/[\s(]/); const k = `sec.def_by.${who}`, s = t(k);
+  return (s !== k ? s : by) + (/shared CDN/.test(by) ? ` (${t("sec.def_shared_cdn")})` : ""); };
 import { fwPick } from "./fw_pick.js";
 import { openMap } from "./security_map.js";
 
@@ -101,7 +105,7 @@ export const defence = {
     const hist = el("details", "report");
     hist.append(el("summary", "", t("sec.def_history", { n: d.history.length })),
       ...d.history.map((b) => el("p", "", `${new Date(b.at * 1000).toLocaleString()} · ${this.who(b.ip)} · ${b.kind} · `
-        + (b.released ? t("sec.def_released", { by: t(`sec.def_by.${b.released_by}`) }) : t("sec.def_active")))));
+        + (b.released ? t("sec.def_released", { by: releasedBy(b.released_by) }) : t("sec.def_active")))));
     // the firewall's side, said only once its API is set: the group Aurora fills and the drop rule the owner makes
     const fw = [];
     if (d.configured) {

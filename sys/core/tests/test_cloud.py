@@ -73,3 +73,28 @@ def test_claude_code_gets_an_output_ceiling_and_a_runaway_turn_comes_back_trunca
     assert seen["env"]["CLAUDE_CODE_MAX_OUTPUT_TOKENS"] == "4096" and out.truncated and out.answer == ""
     assert mdl_cloud.ClaudeCodeLLM._cap(28000)["CLAUDE_CODE_MAX_OUTPUT_TOKENS"] == "56000"
     assert mdl_cloud.ClaudeCodeLLM._cap(10 ** 6)["CLAUDE_CODE_MAX_OUTPUT_TOKENS"] == "64000"
+
+
+def test_a_system_prompt_too_long_for_one_argument_goes_in_a_file_removed_after(cfg, monkeypatch):
+    # C370: an agent's prompt with its tools went past Linux's 128 KB for one argument («Argument list too long»)
+    import json as _json
+    import os as _os
+    import subprocess as _sp
+    from aurora import mdl_cloud
+    seen = {}
+
+    def run(cmd, **k):
+        seen["cmd"] = cmd
+        if "--system-prompt-file" in cmd:
+            path = cmd[cmd.index("--system-prompt-file") + 1]
+            seen["path"], seen["text"], seen["mode"] = path, open(path, encoding="utf-8").read(), _os.stat(path).st_mode & 0o777
+        return _sp.CompletedProcess(cmd, 0, _json.dumps({"result": "ok", "usage": {"output_tokens": 1}}), "")
+    monkeypatch.setattr(mdl_cloud.subprocess, "run", run)
+    monkeypatch.setattr(mdl_cloud.ClaudeCodeLLM, "_account", lambda self, d, s: None)
+    llm = mdl_cloud.ClaudeCodeLLM.__new__(mdl_cloud.ClaudeCodeLLM)
+    llm.cfg, llm.bin, llm.model, llm.cwd = cfg, "claude", "haiku", None
+    assert llm.complete("short", "user", 100).answer == "ok" and "--system-prompt" in seen["cmd"] and "path" not in seen
+    long = "tool description. " * 10_000                                  # 180 KB
+    assert llm.complete(long, "user", 100).answer == "ok"
+    assert "--system-prompt" not in seen["cmd"] and seen["text"].startswith(long[:50]) and seen["mode"] == 0o600
+    assert not _os.path.exists(seen["path"])

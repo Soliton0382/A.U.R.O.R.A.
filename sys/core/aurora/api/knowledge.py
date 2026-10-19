@@ -187,7 +187,24 @@ def recent_dreams() -> list[dict]:
                   if d.extra.get("type") == "morning" and datetime.fromisoformat(d.created_at) >= since][-1:]] + [
         {"sid": r.sid, "role": "review", "text": r.text, "created_at": r.created_at}        # second thoughts (kno_review)
         for r in pipeline().reader.recent(100, domain="reflection")
-        if r.extra.get("type") == "review" and datetime.fromisoformat(r.created_at) >= since]
+        if r.extra.get("type") == "review" and datetime.fromisoformat(r.created_at) >= since] + made_lately(since)
+
+
+def made_lately(since) -> list[dict]:
+    """The documents the routines wrote in these hours, said in the chat (owner, 2026-10-20: «se aurora produce
+    documenti, sarebbe carino che avvisasse in chat indicando appunto che ha creato il documento»)."""
+    from datetime import datetime, timezone
+    from aurora import sys_routines
+    out, docs = [], cfg.path("AURORA_DOCUMENTS_DIR")
+    for r in sys_routines.all_routines(cfg):
+        files, at = r.get("last_files") or [], r.get("last_run") or 0
+        # one moved to the trash from the chat stays said as such (its line changed in place, owner 2026-10-20)
+        files = [{**f, "trashed": True} if str(f.get("url", "")).startswith("/v1/aurora/documents/")
+                 and not (docs / f["url"].rsplit("/", 1)[-1]).is_file() else f for f in files]
+        if files and at >= since.timestamp():
+            out.append({"sid": f"made:{r['id']}:{int(at)}", "role": "made", "routine": r.get("title", ""),
+                        "text": "", "files": files, "created_at": datetime.fromtimestamp(at, timezone.utc).isoformat()})
+    return out
 
 
 @router.get("/v1/aurora/senses/devices", dependencies=[Depends(auth)])

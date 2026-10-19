@@ -13,6 +13,7 @@ import contextvars
 import threading
 
 CURRENT: contextvars.ContextVar[str | None] = contextvars.ContextVar("aurora_user", default=None)
+ANON: contextvars.ContextVar[bool] = contextvars.ContextVar("aurora_anonymous", default=False)
 
 
 def user() -> str | None:
@@ -39,4 +40,21 @@ class acting_as:
 
     def __exit__(self, *exc):
         CURRENT.reset(self._token)
+        return False
+
+
+def anonymous_now() -> bool:
+    """This work is an anonymous chat's (sys_anon): nothing of it written to the traces."""
+    return ANON.get()
+
+
+class anonymous:
+    """`with anonymous():` — the work started inside (its threads too, by `start`) leaves no trace on disk."""
+
+    def __enter__(self):
+        self._token = ANON.set(True)
+        return self
+
+    def __exit__(self, *exc):
+        ANON.reset(self._token)
         return False

@@ -72,3 +72,31 @@ export function viewLink(a, url, name, mime) {
   a.addEventListener("click", (ev) => { ev.preventDefault(); view(url, name, mime); });
   return a;
 }
+
+// a document Aurora made, with its 🗑️ (owner, 2026-10-20: «aggiungerei anche il pulsante cestino così il file si sposta
+// nel cestino e il messaggio viene modificato nella medesima riga»): the chip, and after the bin the same place says so
+export function trashable(chip, file) {
+  const kept = /^\/v1\/aurora\/(documents|uploads)\//.test(file.url || "");
+  const gone = () => {
+    const was = el("span", "chip trashed", `🗑️ ${t("chat.in_trash", { name: file.name })}`);
+    (box.isConnected ? box : chip).replaceWith(was);
+  };
+  const box = el("span", "chip-with-bin");
+  if (file.trashed) { const was = el("span", "chip trashed", `🗑️ ${t("chat.in_trash", { name: file.name })}`); return was; }
+  if (!kept) return chip;
+  const bin = el("button", "chip-bin", "🗑️");
+  bin.type = "button";
+  bin.title = t("chat.to_trash");
+  bin.addEventListener("click", async (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    if (!confirm(t("up.confirm", { name: file.name }))) return;
+    bin.disabled = true;
+    try {
+      await call(file.url, { method: "DELETE" });
+      gone();
+    } catch (e) { bin.disabled = false; bin.title = String(e.message || e); }
+  });
+  box.append(chip, bin);
+  return box;
+}

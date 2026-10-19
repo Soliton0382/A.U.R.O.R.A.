@@ -33,3 +33,11 @@
   .gauge .load { min-width: 0; }
   .gauge .load::before { content: "·"; margin-right: .15rem; color: var(--muted); }
 }
+
+/* the next 3 hours' weather, beside Aurora's mood (its icon on every screen) */
+.wx-chip { display: inline-flex; align-items: center; gap: .15rem; margin-left: .35rem; font-size: .85rem; white-space: nowrap; cursor: default; }
+.wx-chip .wx-icon { font-size: 1.1rem; line-height: 1; }
+.wx-chip .wx-temp { font-variant-numeric: tabular-nums; opacity: .9; }
+.gauge .icon.chip { color: #9fb6ff; line-height: 0; }
+/* a phone: the weather's icon alone beside the mood (its temperature in the tooltip), the bar keeps its place */
+@media (max-width: 820px) { .wx-chip { margin-left: .2rem; } .wx-chip .wx-temp { display: none; } }

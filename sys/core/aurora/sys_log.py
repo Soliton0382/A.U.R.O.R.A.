@@ -175,7 +175,8 @@ def trace(component: str, event: str, payload: dict[str, Any] | None = None,
     from . import sys_context                        # whose work (multi-user): a purge removes a user's lines
     if sys_context.user():
         record["user"] = sys_context.user()
-    tr.info(json.dumps(record, ensure_ascii=False, default=str))
+    if not sys_context.anonymous_now():              # an anonymous chat's run: nothing on disk (sys_anon)
+        tr.info(json.dumps(record, ensure_ascii=False, default=str))
     from . import sys_usage                          # the usage counts (names and numbers only)
     sys_usage.count(_config(), component, event, payload or {}, record.get("user"))
     for fn in _listeners:

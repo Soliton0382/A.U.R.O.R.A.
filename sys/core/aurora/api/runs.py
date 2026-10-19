@@ -35,7 +35,8 @@ async def ask(request: Request) -> dict:
     "remember": false) casts the answer's shadow as a seed (kno_shadow)."""
     body = await request.json()
     question = body.get("question", "").strip()
-    remember = body.get("remember", True) is not False
+    anon = body.get("anonymous") is True             # 🕶️ the anonymous chat (sys_anon): nothing remembered, no trace
+    remember = body.get("remember", True) is not False and not anon
     suggest = body.get("suggest") is True
     from aurora.kno_think import MODES
     think = str(body.get("think") or "").lower() or None          # how much to think for this message (kno_think)
@@ -52,7 +53,7 @@ async def ask(request: Request) -> dict:
             roles = mdl_router.check_roles(body["roles"])
         except ValueError as e:
             raise HTTPException(status_code=422, detail=str(e))
-    full = body.get("tools") is True                 # with remember: false, the whole path (tools, agent, search)
+    full = body.get("tools") is True or anon         # with remember: false, the whole path (tools, agent, search)
     lessons = body.get("lessons") is True            # her lessons of method (kno_lessons): only when asked (M191)
     from aurora import kno_followup, sol_schema
     focus = kno_followup.clean_focus(body.get("focus"), sol_schema.load_taxonomy())
@@ -109,6 +110,10 @@ async def ask(request: Request) -> dict:
     if remember:                                     # 😠 the person's own words (a check's or a benchmark's are not)
         from .core_route import mood_wrap
         job = mood_wrap(question, job)
+    if anon:
+        from aurora import sys_context
+        with sys_context.anonymous():                    # copied into the run's thread: its traces are not written
+            return {"run_id": start_run(question, origin="anon", job=job)["id"]}
     if roles is None:
         return {"run_id": start_run(question, origin="webui", job=job)["id"]}
     from aurora import mdl_router
@@ -166,3 +171,25 @@ async def run_events(run_id: str, after: int = 0):
                 yield "event: end\ndata: {}\n\n"
                 break
     return StreamingResponse(quiet(gen()), media_type="text/event-stream")
+
+
+@router.get("/v1/aurora/chat/anon", dependencies=[Depends(auth)])
+def anon_chat() -> dict:
+    """🕶️ The anonymous chat of this person (sys_anon): its turns while its 24 hours last."""
+    from aurora import sys_anon, sys_context
+    return sys_anon.load(cfg, sys_context.user())
+
+
+@router.post("/v1/aurora/chat/anon", dependencies=[Depends(auth)])
+async def anon_chat_add(request: Request) -> dict:
+    """{"turns": [{"role", "text", "created_at"}]}: kept sealed, only to be shown again."""
+    from aurora import sys_anon, sys_context
+    d = sys_anon.add(cfg, (await request.json()).get("turns") or [], sys_context.user())
+    return {"started": d["started"], "expires": d["expires"], "n": len(d["turns"])}
+
+
+@router.delete("/v1/aurora/chat/anon", dependencies=[Depends(auth)])
+def anon_chat_clear() -> dict:
+    """Emptied now, its key too."""
+    from aurora import sys_anon, sys_context
+    return {"cleared": sys_anon.clear(cfg, sys_context.user())}

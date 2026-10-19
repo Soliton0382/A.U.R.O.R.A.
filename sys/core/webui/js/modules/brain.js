@@ -13,6 +13,7 @@ import { call, followRun, stream } from "../api.js";
 import { el, useCss } from "../dom.js";
 import * as i18n from "../i18n.js";
 import { FISSURES, GYRI, LOBES, OUTLINE, VIEW } from "./brain_gray.js";
+import { turnable } from "./brain_3d.js";
 
 const t = i18n.t;
 const OPEN = "aurora.brain";
@@ -274,6 +275,9 @@ export default {
     const ro = new ResizeObserver(fit);
     ro.observe(canvas);
 
+    const turn = turnable(canvas, g, lobeAt, TALL, () => W);      // 3D: held and turned (brain_3d.js)
+    const proj = turn.proj;
+
     const fire = (area, label) => {
       if (!area || !AREAS[area]) return;
       const mine = g.nodes.map((n, i) => [n, i]).filter(([n]) => n.area === area);
@@ -321,7 +325,12 @@ export default {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, W, H);
       const X = (x) => x * W, Y = (y) => y * W;
-      if (bg) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(bg, 0, 0); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
+      turn.frame(ctx);                                    // the view glides home; the brain's body drawn
+      const front = turn.front();                         // the drawing fits only from the front
+      if (bg && front > 0.02) {
+        ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = front; ctx.drawImage(bg, 0, 0); ctx.globalAlpha = 1;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
       if (!calm && ts - lastSpark > 280) {                // her own quiet activity
         lastSpark = ts;
         const n = g.nodes[Math.floor(Math.random() * g.nodes.length)];
@@ -344,22 +353,23 @@ export default {
       }
       for (const n of g.nodes) n.e *= 0.965;
       for (const [i, j] of g.edges) {
-        const a = g.nodes[i], b = g.nodes[j], e = Math.min(1, (a.e + b.e) / 2);
-        ctx.strokeStyle = e > 0.05 ? `rgba(${AREAS[a.area].rgb},${0.18 + e * 0.6})` : "rgba(170,190,240,0.2)";
-        ctx.lineWidth = 0.6 + e * 1.4;
-        ctx.beginPath(); ctx.moveTo(X(a.x), Y(a.y)); ctx.lineTo(X(b.x), Y(b.y)); ctx.stroke();
+        const a = g.nodes[i], b = g.nodes[j], e = Math.min(1, (a.e + b.e) / 2), far = (proj[i][2] + proj[j][2]) / 2;
+        ctx.strokeStyle = e > 0.05 ? `rgba(${AREAS[a.area].rgb},${(0.18 + e * 0.6) * far})` : `rgba(170,190,240,${0.2 * far})`;
+        ctx.lineWidth = (0.6 + e * 1.4) * far;
+        ctx.beginPath(); ctx.moveTo(X(proj[i][0]), Y(proj[i][1])); ctx.lineTo(X(proj[j][0]), Y(proj[j][1])); ctx.stroke();
       }
-      for (const n of g.nodes) {
-        const tw = 0.45 + 0.2 * Math.sin(ts / 900 + n.tw);
+      g.nodes.forEach((n, i) => {
+        const [px, py, near] = proj[i];
+        const tw = (0.45 + 0.2 * Math.sin(ts / 900 + n.tw)) * near;
         const e = Math.min(1, n.e);
-        const r = 1.3 + e * 2.6;
+        const r = (1.3 + e * 2.6) * near;
         if (e > 0.05) {
           ctx.fillStyle = `rgba(${AREAS[n.area].rgb},${0.18 * e})`;
-          ctx.beginPath(); ctx.arc(X(n.x), Y(n.y), r * 3.2, 0, 6.283); ctx.fill();
+          ctx.beginPath(); ctx.arc(X(px), Y(py), r * 3.2, 0, 6.283); ctx.fill();
         }
-        ctx.fillStyle = e > 0.05 ? `rgba(${AREAS[n.area].rgb},${0.5 + e * 0.5})` : `rgba(200,212,245,${tw})`;
-        ctx.beginPath(); ctx.arc(X(n.x), Y(n.y), r, 0, 6.283); ctx.fill();
-      }
+        ctx.fillStyle = e > 0.05 ? `rgba(${AREAS[n.area].rgb},${0.5 + e * 0.5})` : `rgba(200,212,245,${Math.min(1, tw)})`;
+        ctx.beginPath(); ctx.arc(X(px), Y(py), r, 0, 6.283); ctx.fill();
+      });
       for (let k = pulses.length - 1; k >= 0; k--) {     // the signals, along their synapses
         const p = pulses[k];
         p.s += p.big ? 0.32 : 0.22;
@@ -370,9 +380,9 @@ export default {
           pulses.splice(k, 1);
           continue;
         }
-        const a = g.nodes[p.p[at]], b = g.nodes[p.p[at + 1]], f = p.s - at;
+        const a = g.nodes[p.p[at]], A = proj[p.p[at]], Bp = proj[p.p[at + 1]], f = p.s - at;
         a.e = Math.max(a.e, p.big ? 0.7 : 0.45);
-        const x = X(a.x + (b.x - a.x) * f), y = Y(a.y + (b.y - a.y) * f);
+        const x = X(A[0] + (Bp[0] - A[0]) * f), y = Y(A[1] + (Bp[1] - A[1]) * f);
         ctx.fillStyle = `rgba(${p.rgb},0.25)`;
         ctx.beginPath(); ctx.arc(x, y, p.big ? 7 : 5, 0, 6.283); ctx.fill();
         ctx.fillStyle = "rgba(255,255,255,0.95)";

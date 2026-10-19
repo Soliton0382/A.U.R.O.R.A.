@@ -6,11 +6,12 @@ import { bus } from "../bus.js";
 import { clock, el, scrollEnd, toBase64, useCss } from "../dom.js";
 import { apply, lang, t } from "../i18n.js";
 import { auroraBubble, follow, renderPast } from "./trace.js";
+import { chatApprovals } from "./approvals.js";
 import { viewLink } from "../viewer.js";
 import * as voice from "../voice.js";
 import { dietBubbles, dietCards } from "../diet.js";
 import { calendarBubbles } from "../calendar_alerts.js";
-import { dreamOf, makeRecorder, morningOf, preRoll, shrink } from "./chat_media.js";
+import { dreamOf, madeOf, makeRecorder, morningOf, preRoll, shrink } from "./chat_media.js";
 import { thinkMode } from "./chat_think.js";
 import { attachMenu, settingsMenu, showGear, source } from "./chat_menu.js";
 import { actions, quoteBox, quoted } from "./chat_actions.js";
@@ -41,11 +42,13 @@ export default {
 
   mount(root, ctx) {
     useCss("/static/css/chat.css");
+    useCss("/static/css/agents.css");                       // the approvals' cards over the box
     root.classList.add("chat");
     root.innerHTML = `
       <div class="conversation">
         <div class="messages"></div>
         <div class="chips pending"></div>
+        <div class="chat-approvals" hidden></div>
         <div class="quote-box hidden"></div>
         <form class="ask">
           <button type="button" class="icon attach" data-i18n-title="chat.attach">📎</button>
@@ -66,6 +69,11 @@ export default {
     const fileInput = root.querySelector("input[type=file]:not(.shoot)");
     const send = root.querySelector(".send");
     const chipsBox = root.querySelector(".chips.pending");
+    // what waits for a yes, over the box (approvals.chatApprovals): now, every 20 s, and at once when a run asks
+    const asks = root.querySelector(".chat-approvals");
+    const askAgain = () => { if (root.isConnected && !document.hidden) chatApprovals(asks); };
+    askAgain();
+    setInterval(askAgain, 20000);
     const thinking = thinkMode;                                    // how much to think (chat_think.js, in ⚙️)
     const gear = root.querySelector(".gear");
     showGear(gear);
@@ -274,7 +282,8 @@ export default {
       messages.append(m);
     };
 
-    const dreamBubble = (d) => { dreamOf(messages, d); actions(messages.lastElementChild, d.text, replyTo(d.text)); };    // chat_media.js
+    const dreamBubble = (d) => { dreamOf(messages, d); actions(messages.lastElementChild, d.text, replyTo(d.text), sayAloud); };    // chat_media.js
+    const madeBubble = (d) => madeOf(messages, d, chip);                     // chat_media.js
     const morningBubble = (d) => { morningOf(messages, d, sayAloud); actions(messages.lastElementChild, d.text, replyTo(d.text)); };   // chat_media.js
 
     // Questions to go deeper, under a knowledge answer: complete on their own, each with the answer's sources
@@ -347,8 +356,11 @@ export default {
         ).finally(() => asking--);
         mine.add(run_id);
         const speech = aloud ? aloudLive() : null;
-        const final = await follow(run_id, b, messages, speech?.onEvent);
-        if (final?.text) actions(b.root, final.text, replyTo(final.text, run_id));
+        const final = await follow(run_id, b, messages, (name, p) => {
+          speech?.onEvent?.(name, p);
+          if (name === "approval.request") askAgain();
+        });
+        if (final?.text) actions(b.root, final.text, replyTo(final.text, run_id), sayAloud);
         speech?.finish(final);
         if (talking) listenAgain();
         if (final?.diet) await dietCards(b, final.diet);
@@ -373,10 +385,11 @@ export default {
       shown.add(turn.sid);
       if (turn.role === "user") { userBubble(turn.text, turn.attachments || [], turn.created_at, turn.reply_to); return; }
       if (turn.role === "dream") { dreamBubble(turn); return; }
+      if (turn.role === "made") { madeBubble(turn); return; }
       if (turn.role === "morning" || turn.role === "review") { morningBubble(turn); return; }
       const b = auroraBubble(messages);
       renderPast(b, turn);
-      actions(b.root, turn.text, replyTo(turn.text, turn.run_id));
+      actions(b.root, turn.text, replyTo(turn.text, turn.run_id), sayAloud);
       if (turn.suggestions?.length) offerDeeper(b, turn.suggestions);
       b.root.classList.add("past");
       if (turn.run_id) mine.add(turn.run_id);
@@ -399,18 +412,7 @@ export default {
       const turns = await call(`/v1/aurora/history?n=${HISTORY_TURNS}`);
       messages.replaceChildren();
       shown.clear();
-      for (const turn of turns) {
-        shown.add(turn.sid);
-        if (turn.role === "user") { userBubble(turn.text, turn.attachments || [], turn.created_at, turn.reply_to); continue; }
-        if (turn.role === "dream") { dreamBubble(turn); continue; }
-        if (turn.role === "morning" || turn.role === "review") { morningBubble(turn); continue; }
-        const b = auroraBubble(messages);
-        renderPast(b, turn);
-        actions(b.root, turn.text, replyTo(turn.text, turn.run_id));
-        if (turn.suggestions?.length) offerDeeper(b, turn.suggestions);   // under every answer that has them (owner, 2026-10-05)
-        b.root.classList.add("past");
-        if (turn.run_id) mine.add(turn.run_id);
-      }
+      turns.forEach(renderTurn);                       // suggestions under every answer that has them (owner, 2026-10-05)
       const n = turns.filter((x) => !["dream", "morning", "review"].includes(x.role)).length;
       if (n) messages.append(el("div", "divider", t("chat.history", { n })));
       await dietBubbles(messages);                    // a meal reminded and not answered yet

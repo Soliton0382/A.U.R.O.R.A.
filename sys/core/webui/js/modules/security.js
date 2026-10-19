@@ -9,6 +9,9 @@ import { call } from "../api.js";
 import { bus } from "../bus.js";
 import { clock, el } from "../dom.js";
 import { apply, t } from "../i18n.js";
+
+// a kind's words; one without its own (a new detector): the incident's title, never the raw key (20 Oct)
+const kindLabel = (i) => { const k = `sec.kind.${i.kind}`, s = t(k); return s !== k ? s : i.detail?.title || i.title || i.kind; };
 import { renderMarkdown } from "../md.js";
 import { defence } from "./security_defence.js";
 import { watch } from "./security_watch.js";
@@ -91,7 +94,7 @@ export function page(tab, meta) { const { title } = meta; return {
     c.open = i.status === "open";
     const head = el("summary");
     head.append(el("span", `pill ${SEV[i.severity] || "warn"}`, t(`sec.sev.${i.severity}`)),
-      el("span", "", ` ${i.kind.startsWith("rule:") ? (i.detail?.title || i.kind) : t(`sec.kind.${i.kind}`)} · ${this.who(i.source)}${i.internal ? " (" + t("sec.internal") + ")" : ""} · `
+      el("span", "", ` ${i.kind.startsWith("rule:") ? (i.detail?.title || i.kind) : kindLabel(i)} · ${this.who(i.source)}${i.internal ? " (" + t("sec.internal") + ")" : ""} · `
         + `${i.count} ${t("sec.events")}${i.repeats ? ` · ${t("sec.repeats", { n: i.repeats })}` : ""}${i.known ? " · 🏠" : ""} · ${clock(i.received)}`));
     c.append(head);
     if (i.intel) for (const [k, v] of Object.entries(i.intel)) c.append(el("div", "muted", `${k}: ${v}`));

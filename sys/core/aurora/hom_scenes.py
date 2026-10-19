@@ -12,6 +12,7 @@ API stopped starts again at the next tick, if its time is not over.
 """
 from __future__ import annotations
 
+import math
 import re
 import threading
 import time
@@ -48,6 +49,12 @@ def _save(cfg, data: dict) -> None:
     sys_routines._save(cfg, FILE, data)
 
 
+# a scene says what lights do; which lights, the automation says (owner, 2026-10-20: «le scene stabiliscono cosa fanno
+# le luci, la selezione delle scene+luce la si fa negli automatismi»): a scene's own lights are only its default
+# «fade»: a step of at most FADE_DEG degrees of hue every FADE_EVERY_S — a cloud bulb jumps to each colour it is
+# given, so smooth means small and often (owner, 2026-10-20: «va ancora a scatti… deve essere super smooth»: 4° every
+# 3 s were seen as steps)
+FADE_DEG, FADE_EVERY_S = 2.5, 1.0
 FILLER = {"scenario", "scena", "scene", "lo", "la", "il", "di", "del", "della", "lights", "luci", "scene:"}
 
 
@@ -57,12 +64,14 @@ def key(name: str) -> str:
 
 
 def colour(c) -> tuple | str:
-    """A name («rosso», «gold»), [hue, saturation] or «#rrggbb»."""
+    """A name («rosso», «gold»), [hue, saturation], «#rrggbb», or a white by its warmth «3000K» (2000-6500)."""
     if isinstance(c, (list, tuple)) and len(c) == 2:
         return (max(0, min(360, float(c[0]))), max(0, min(100, float(c[1]))))
     s = str(c).strip().lower()
     if s in COLOURS:
         return COLOURS[s]
+    if m := re.fullmatch(r"(\d{4})\s*k", s):
+        return f"k{max(2000, min(6500, int(m.group(1))))}"
     if re.fullmatch(r"#[0-9a-f]{6}", s):
         import colorsys
         r, g, b = (int(s[i:i + 2], 16) / 255 for i in (1, 3, 5))
@@ -79,16 +88,17 @@ def save(cfg, name: str, lights: list, colours: list, every_s: float = 5, mode: 
     switches = [str(x).strip() for x in switches or []]
     if not k:
         raise SceneError("a scene needs a name")
-    if not lights and not switches or len(lights) + len(switches) > MAX_LIGHTS:
-        raise SceneError(f"1 to {MAX_LIGHTS} devices")
+    if len(lights) + len(switches) > MAX_LIGHTS:
+        raise SceneError(f"at most {MAX_LIGHTS} devices")
     if not all(ENTITY.fullmatch(x) for x in lights) or not all(SWITCH.fullmatch(x) for x in switches):
         raise SceneError("lights as light.… entity ids; plugs and switches as switch.…, fan.…, input_boolean.…")
     cols = [colour(c) for c in colours or []]
-    if lights and not cols:
-        raise SceneError("at least one colour for the lights")
+    if not cols and not switches:
+        raise SceneError("at least one colour (or a white, «3000K»)")
     scene = {"name": str(name).strip(), "lights": lights, "switches": switches,
              "colours": [list(c) if isinstance(c, tuple) else c for c in cols],
-             "every_s": max(MIN_EVERY_S, min(3600, float(every_s or 5))), "mode": "together" if mode == "together" else "chase",
+             "every_s": max(FADE_EVERY_S if mode == "fade" else MIN_EVERY_S, min(3600, float(every_s or 5))),
+             "mode": mode if mode in ("together", "fade") else "chase",
              "brightness": max(1, min(100, int(brightness or 80))), "minutes": max(0, float(minutes or 0)),
              "saved": time.time()}
     data = load(cfg)
@@ -107,16 +117,40 @@ def find(cfg, name: str) -> tuple[str, dict]:
     raise SceneError(f"no scene {name!r}; saved: {', '.join(data['scenes']) or 'none'}")
 
 
+def _between(a, b, f: float) -> list:
+    """A hue and saturation part of the way from a to b, the short way round the circle."""
+    dh = ((b[0] - a[0] + 180) % 360) - 180
+    return [round((a[0] + dh * f) % 360, 1), round(a[1] + (b[1] - a[1]) * f, 1)]
+
+
+def fade_path(hues: list) -> list[list]:
+    """Every shade of a «fade», in order: from each colour to the next by steps of at most FADE_DEG degrees."""
+    path = []
+    for a, b in zip(hues, hues[1:] + hues[:1]):
+        k = max(2, math.ceil(abs(((b[0] - a[0] + 180) % 360) - 180) / FADE_DEG))
+        path += [_between(a, b, j / k) for j in range(k)]
+    return path
+
+
 def step(scene: dict, n: int) -> list[tuple[str, dict]]:
-    """The service data of each light at step n."""
+    """The service data of each light at step n. «fade» walks the path of every shade (fade_path), each light a part
+    of the way behind the one before (RGB lights, owner 2026-10-20: «procede in modo graduale… non va a blocchi»)."""
     cols, out = scene["colours"], []
+    hues = [c for c in cols if isinstance(c, list)]
+    path = fade_path(hues) if scene["mode"] == "fade" and len(hues) > 1 else []
     for i, light in enumerate(scene["lights"]):
+        if path:
+            out.append((light, {"brightness_pct": scene["brightness"], "hs_color": path[(n + i * len(path) // 7) % len(path)],
+                                "transition": scene["every_s"]}))   # used where the light can fade (dropped where not)
+            continue
         c = cols[(n + (0 if scene["mode"] == "together" else i)) % len(cols)]
         data = {"brightness_pct": scene["brightness"]}
         if c == "white":
             data["color_temp_kelvin"] = 5000
         elif c == "warm":
             data["color_temp_kelvin"] = 2700
+        elif isinstance(c, str) and c.startswith("k"):
+            data["color_temp_kelvin"] = int(c[1:])
         else:
             data["hs_color"] = list(c)
         out.append((light, data))
@@ -147,8 +181,8 @@ def _run(cfg, user: str, k: str, scene: dict, stop: threading.Event, until: floa
                     errors += 1
                     if log:
                         log.warning("scene %s: %s not reached: %s", k, light, e)
-            if errors >= 3 * max(1, len(scene["lights"])):
-                break
+            if errors >= 3 * max(1, len(scene["lights"])) or len(scene["colours"]) == 1:
+                break                                  # one colour: set once, nothing to change
             n += 1
             stop.wait(scene["every_s"])
     finally:
@@ -160,8 +194,11 @@ def _run(cfg, user: str, k: str, scene: dict, stop: threading.Event, until: floa
                 _save(cfg, data)
 
 
-def start(cfg, name: str, user: str = "", minutes: float | None = None, log=None) -> dict:
+def start(cfg, name: str, user: str = "", minutes: float | None = None, log=None, lights: list | None = None) -> dict:
+    """The scene on its lights, or on `lights` (an automation applies a scene to the lights it names)."""
     k, scene = find(cfg, name)
+    if lights:
+        scene = {**scene, "lights": [x for x in lights if ENTITY.fullmatch(str(x))], "switches": []}
     stop_scene(cfg, k, user)
     mins = scene["minutes"] if minutes is None else max(0, float(minutes))
     until = time.time() + mins * 60 if mins else 0
@@ -169,7 +206,7 @@ def start(cfg, name: str, user: str = "", minutes: float | None = None, log=None
     with _lock:
         _running[(user, k)] = ev
         data = load(cfg)
-        data["running"][k] = {"since": time.time(), "until": until}
+        data["running"][k] = {"since": time.time(), "until": until, "lights": scene["lights"]}
         _save(cfg, data)
     sys_context.start(_run, cfg, user, k, scene, ev, until, log, name=f"scene-{k}"[:15])
     return {"scene": scene["name"], "lights": scene["lights"], "switches": scene.get("switches", []), "until": until}
@@ -193,6 +230,15 @@ def stop_scene(cfg, name: str, user: str = "", off: bool = False) -> bool:
     return bool(ev or was)
 
 
+def stop_on(cfg, lights: list, user: str = "") -> list[str]:
+    """The running scenes that hold any of these lights, stopped (a light switched off must stay off)."""
+    held = set(lights)
+    out = [k for k, r in load(cfg)["running"].items() if held & set(r.get("lights") or [])]
+    for k in out:
+        stop_scene(cfg, k, user)
+    return out
+
+
 def running(user: str = "") -> list[str]:
     return sorted(k for (u, k) in _running if u == user)
 
@@ -205,8 +251,10 @@ def resume(cfg, user: str = "", log=None) -> list[str]:
             continue
         left = (r.get("until") or 0) - time.time()
         if r.get("until") and left <= 0:
-            data["running"].pop(k, None)
-            _save(cfg, data)
+            with _lock:                                  # read again: a scene started just before may have saved
+                fresh = load(cfg)
+                fresh["running"].pop(k, None)
+                _save(cfg, fresh)
             continue
         start(cfg, k, user, left / 60 if r.get("until") else 0, log)
         out.append(k)

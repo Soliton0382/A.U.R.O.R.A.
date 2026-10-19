@@ -38,3 +38,10 @@ async def places(q: str) -> dict:
         return {"places": await asyncio.to_thread(search, q[:80], lang)}
     except Exception as e:                               # noqa: BLE001 - offline or refused: said, never a crash
         raise HTTPException(status_code=502, detail=f"geocoding: {str(e)[:160]}") from None
+
+
+@router.get("/v1/aurora/weather/next", dependencies=[Depends(auth)])
+async def weather_next() -> dict:
+    """The next 3 hours at home for the top bar (sns_weather.next_hours): an icon, words, temperatures, rain."""
+    from aurora import sns_weather
+    return {"next": await asyncio.to_thread(sns_weather.next_hours, cfg)}

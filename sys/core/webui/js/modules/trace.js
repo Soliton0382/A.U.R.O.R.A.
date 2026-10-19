@@ -8,7 +8,7 @@ import { clock, el, external, scrollEnd } from "../dom.js";
 import { t } from "../i18n.js";
 import { renderMarkdown } from "../md.js";
 import { artifactCard } from "../artifact.js";
-import { view, viewLink } from "../viewer.js";
+import { trashable, view, viewLink } from "../viewer.js";
 
 export const ICONS = {
   "run.start": "▶️", route: "🧭", "attach.image": "🖼️", "attach.video": "🎬", "image.plan": "🛠️", "image.edited": "🎨", "video.frames": "🎞️", "video.plan": "🎬", "attach.document": "📄", "self.state": "🩺", translate: "🌐",
@@ -171,13 +171,14 @@ export function renderAnswer(b, p, when) {
       box.append(v, a);
     }
   }
-  if (p.files?.length) {                         // documents Aurora wrote (a PDF...): one tap downloads them
+  if (p.files?.length) {                         // documents Aurora wrote (a PDF...): said, and one tap downloads them
+    box.append(el("div", "meta made-note", t("chat.made_files", { n: p.files.length })));
     const row = el("div", "chips");
     for (const f of p.files) {
       if (f.mime === "text/html" && f.url?.startsWith("/v1/aurora/uploads/")) { box.append(artifactCard(f)); continue; }
       const a = viewLink(el("a", "chip"), f.url, f.name, f.mime);       // a PDF opens in place; it can be saved there
       a.append(el("span", "", "📄"), el("span", "", f.name));
-      row.append(a);
+      row.append(trashable(a, f));
     }
     box.append(row);
   }

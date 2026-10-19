@@ -151,15 +151,30 @@ async def home_scene_save(request: Request) -> dict:
 
 
 @router.post("/v1/aurora/home/scenes/{name}/{action}", dependencies=[Depends(auth)])
-async def home_scene(name: str, action: str) -> dict:
-    """▶ / ⏹ from the page: the user's own click (like a switch), written in the log."""
+async def home_scene(name: str, action: str, request: Request) -> dict:
+    """▶ / ⏹ from the page: the user's own click (like a switch), written in the log. {"lights"}: the lights to try it
+    on (a scene holds no lights of its own: the automations choose them)."""
     from aurora import hom_scenes
     _host()
     try:
+        body = await request.json()
+    except ValueError:
+        body = {}
+    try:
         if action == "start":
-            out = hom_scenes.start(cfg, name, me() or "", log=log)
+            lights = [str(x) for x in (body or {}).get("lights") or []][:hom_scenes.MAX_LIGHTS]
+            out = hom_scenes.start(cfg, name, me() or "", log=log, lights=lights or None)
         elif action in ("stop", "off"):
-            out = {"stopped": await in_thread(lambda: hom_scenes.stop_scene(cfg, name, me() or "", action == "off"))}
+            lights = [str(x) for x in (body or {}).get("lights") or [] if hom_scenes.ENTITY.fullmatch(str(x))]
+
+            def stop():
+                done = hom_scenes.stop_scene(cfg, name, me() or "", action == "off")
+                if lights:                              # the lights it was tried on: a white one is over at once
+                    hom_scenes.stop_on(cfg, lights, me() or "")
+                    if action == "off":
+                        hom_scenes._ha(cfg, "light/turn_off", {"entity_id": lights})
+                return done or bool(lights)
+            out = {"stopped": await in_thread(stop)}
         elif action == "delete":
             hom_scenes.stop_scene(cfg, name, me() or "")
             data = hom_scenes.load(cfg)
@@ -170,4 +185,60 @@ async def home_scene(name: str, action: str) -> dict:
     except hom_scenes.SceneError as e:
         raise HTTPException(status_code=404, detail=str(e)) from None
     log.info("home scene %s: %s by %s", name, action, me())
+    return out
+
+
+@router.get("/v1/aurora/home/automations", dependencies=[Depends(auth)])
+async def home_automations() -> dict:
+    """🪄 The user's automations on every device (hom_auto), each with today's time when it has one."""
+    from aurora import hom_auto
+    _host()
+
+    def work():
+        autos = hom_auto.load(cfg)["automations"]
+        try:
+            sun = hom_auto._sun(cfg) if any(a["when"]["type"] in ("sunrise", "sunset") for a in autos) else None
+        except (httpx.HTTPError, KeyError, ValueError):
+            sun = None                                 # Home Assistant away: the list still shown, without the sun
+        out = []
+        for a in autos:
+            try:
+                at = hom_auto.at_today(cfg, a, sun) if (sun or a["when"]["type"] in ("manual", "time")) else None
+            except (httpx.HTTPError, KeyError, ValueError):
+                at = None
+            out.append({**a, "today": at.strftime("%H:%M") if at else None})
+        return {"automations": out, "sun": {k: v.strftime("%H:%M") for k, v in (sun or {}).items()}}
+    return await in_thread(work)
+
+
+@router.post("/v1/aurora/home/automations", dependencies=[Depends(auth)])
+async def home_automation_save(request: Request) -> dict:
+    """The guided editor: {"id"?, "name", "enabled", "when", "actions"} — any user's own, on their own devices."""
+    from aurora import hom_auto
+    _host()
+    try:
+        out = hom_auto.save(cfg, await request.json())
+    except (hom_auto.AutoError, TypeError, ValueError) as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
+    log.info("home automation %s saved by %s", out["name"], me())
+    return out
+
+
+@router.post("/v1/aurora/home/automations/{aid}/{action}", dependencies=[Depends(auth)])
+async def home_automation(aid: str, action: str) -> dict:
+    """▶ (run now), on / off, delete: the user's own click, written in the log."""
+    from aurora import hom_auto
+    _host()
+    a = next((x for x in hom_auto.load(cfg)["automations"] if x["id"] == aid), None)
+    if a is None:
+        raise HTTPException(status_code=404, detail="unknown automation")
+    if action == "run":
+        out = await in_thread(lambda: hom_auto.run(cfg, a, me() or "", log))
+    elif action in ("on", "off"):
+        out = hom_auto.save(cfg, {**a, "enabled": action == "on"})
+    elif action == "delete":
+        out = {"deleted": hom_auto.delete(cfg, aid)}
+    else:
+        raise HTTPException(status_code=404, detail="run, on, off or delete")
+    log.info("audit: home automation %s: %s by %s", a["name"], action, me())
     return out

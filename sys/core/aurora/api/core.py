@@ -324,7 +324,7 @@ def start_run(question: str, origin: str, job=None) -> dict:
     if not mdl_tts.BUSY:
         mdl_tts.BUSY.append(lambda: any(not r["done"] for r in list(_runs.values())))
     threading.Thread(target=mdl_tts.release, daemon=True, name="tts-release").start()
-    note(origin, "run.begin", {"run_id": run["id"], "question": question, "origin": origin})
+    note(origin, "run.begin", {"run_id": run["id"], "question": "🕶️" if origin == "anon" else question, "origin": origin})
 
     from aurora import sys_runs
 

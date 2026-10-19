@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 A.U.R.O.R.A. Project
-// Under every message (owner, 2026-10-08): 📋 copy its text, and ↩️ reply to one of Aurora's, as in a messaging app —
+// Under every message (owner, 2026-10-08): 📋 copy its text, 🔊 listen to one of Aurora's (owner, 2026-10-20: «il tasto
+// ascolta in ogni chat sarebbe l'ultimo tassello»), and ↩️ reply to one of hers, as in a messaging app —
 // the message goes over the box, quoted, and is sent with the reply: Aurora reads it as the last thing said, with its
 // sources, however old (kno_followup.quoted), instead of looking for it in the recent turns.
 import { el } from "../dom.js";
 import { t } from "../i18n.js";
+import * as voice from "../voice.js";
 
 const QUOTE_SHOWN = 160;          // characters of the quote shown over the box and in the bubble
 const QUOTE_SENT = 3000;          // characters sent when the message is not one of Aurora's runs (kno_followup.QUOTE_CUT)
@@ -28,8 +30,8 @@ export const excerpt = (text) => {
   return s.length > QUOTE_SHOWN ? `${s.slice(0, QUOTE_SHOWN)}…` : s;
 };
 
-// the row of a message: `reply` only for Aurora's messages
-export function actions(root, text, reply = null) {
+// the row of a message: `reply` and `speak` only for Aurora's messages
+export function actions(root, text, reply = null, speak = null) {
   if (!text || root.querySelector(":scope > .msg-actions")) return;
   const bar = el("div", "msg-actions");
   const c = el("button", "", "📋");
@@ -43,6 +45,20 @@ export function actions(root, text, reply = null) {
     setTimeout(() => { c.textContent = "📋"; c.title = t("chat.copy"); }, 1500);
   });
   bar.append(c);
+  if (speak) {
+    const s = el("button", "", "🔊");
+    s.type = "button";
+    s.title = t("chat.listen");
+    s.setAttribute("aria-label", s.title);
+    s.addEventListener("click", async () => {
+      if (voice.speaking()) { voice.stop(); s.textContent = "🔊"; return; }
+      s.textContent = "⏹️";
+      const msg = await speak(text);                       // voice.speak keeps the words only (speakable)
+      s.textContent = "🔊";
+      if (msg) s.title = msg;                                // why it did not speak (sayAloud's words)
+    });
+    bar.append(s);
+  }
   if (reply) {
     const r = el("button", "", "↩️");
     r.type = "button";

@@ -18,12 +18,16 @@ import json
 import os
 import shutil
 import subprocess
+import tempfile
 import time
+from contextlib import contextmanager
 from typing import Iterator
 
 import httpx
 
 from . import sys_config, sys_ethics, sys_log
+
+ARG_SPILL = 100_000      # bytes: past this the system prompt goes in a file (one argument: 128 KB on Linux)
 from .mdl_llm import Completion
 
 API = "https://api.anthropic.com/v1"
@@ -59,6 +63,24 @@ class ClaudeCodeLLM:
         self.cwd = self.cfg.path("AURORA_STATUS_DIR") / "claude_code"      # empty: no project instructions
         self.cwd.mkdir(parents=True, exist_ok=True)
         self.log = sys_log.get_logger("llm_client")
+
+    @contextmanager
+    def _command(self, system: str, stream: bool, max_tokens: int):
+        """The command, with a system prompt too long for one argument (Linux: 128 KB each, an agent's prompt with
+        its tools went past it — C370, «Argument list too long», the local model answered) in a private file, the
+        file removed once the call is over."""
+        cmd = self._cmd(system, stream, max_tokens)
+        i = cmd.index("--system-prompt")
+        if len(cmd[i + 1].encode()) < ARG_SPILL:
+            yield cmd
+            return
+        f = tempfile.NamedTemporaryFile("w", encoding="utf-8", prefix="aurora-sys-", suffix=".txt", delete=False)  # 0600
+        try:
+            with f:
+                f.write(cmd[i + 1])
+            yield cmd[:i] + ["--system-prompt-file", f.name] + cmd[i + 2:]
+        finally:
+            os.unlink(f.name)
 
     def _cmd(self, system: str, stream: bool, max_tokens: int) -> list[str]:
         # The CLI has no output limit (A16): the budget is stated in the prompt; Italian measured at ~3.1
@@ -98,8 +120,9 @@ class ClaudeCodeLLM:
 
     def complete(self, system: str, user: str, max_tokens: int, think: bool = False) -> Completion:
         t0 = time.time()
-        r = subprocess.run(self._cmd(system, False, max_tokens), input=user, capture_output=True, text=True,
-                           timeout=self.cfg["AURORA_LLM_TIMEOUT_S"], cwd=self.cwd, env=self._env(max_tokens))
+        with self._command(system, False, max_tokens) as cmd:
+            r = subprocess.run(cmd, input=user, capture_output=True, text=True,
+                               timeout=self.cfg["AURORA_LLM_TIMEOUT_S"], cwd=self.cwd, env=self._env(max_tokens))
         try:
             d = json.loads(r.stdout)
         except ValueError:
@@ -115,30 +138,31 @@ class ClaudeCodeLLM:
 
     def stream(self, system: str, user: str, max_tokens: int, think: bool = False) -> Iterator[tuple[str, str]]:
         t0 = time.time()
-        p = subprocess.Popen(self._cmd(system, True, max_tokens), env=self._env(max_tokens),
-                             stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE, text=True, cwd=self.cwd)
-        p.stdin.write(user)
-        p.stdin.close()
-        self.last_speed, first = None, None
-        for line in p.stdout:
-            try:
-                e = json.loads(line)
-            except ValueError:
-                continue
-            if e.get("type") == "stream_event" and e["event"].get("type") == "content_block_delta":
-                delta = e["event"]["delta"]
-                first = first or time.time()
-                if delta.get("type") == "text_delta":
-                    yield "answer", delta["text"]
-                elif delta.get("type") == "thinking_delta":
-                    yield "thought", delta.get("thinking", "")
-            elif e.get("type") == "result":
-                self._account(e, time.time() - t0)
-                n = int(e.get("usage", {}).get("output_tokens", 0))
-                if n and first:
-                    self.last_speed = {"tokens": n, "per_second": round(n / max(0.001, time.time() - first), 1)}
-        p.wait(timeout=30)
+        with self._command(system, True, max_tokens) as cmd:
+            p = subprocess.Popen(cmd, env=self._env(max_tokens),
+                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE, text=True, cwd=self.cwd)
+            p.stdin.write(user)
+            p.stdin.close()
+            self.last_speed, first = None, None
+            for line in p.stdout:
+                try:
+                    e = json.loads(line)
+                except ValueError:
+                    continue
+                if e.get("type") == "stream_event" and e["event"].get("type") == "content_block_delta":
+                    delta = e["event"]["delta"]
+                    first = first or time.time()
+                    if delta.get("type") == "text_delta":
+                        yield "answer", delta["text"]
+                    elif delta.get("type") == "thinking_delta":
+                        yield "thought", delta.get("thinking", "")
+                elif e.get("type") == "result":
+                    self._account(e, time.time() - t0)
+                    n = int(e.get("usage", {}).get("output_tokens", 0))
+                    if n and first:
+                        self.last_speed = {"tokens": n, "per_second": round(n / max(0.001, time.time() - first), 1)}
+            p.wait(timeout=30)
 
     def complete_turns(self, messages: list[dict], max_tokens: int, think: bool = False) -> Completion:
         system, transcript = _flatten(messages)

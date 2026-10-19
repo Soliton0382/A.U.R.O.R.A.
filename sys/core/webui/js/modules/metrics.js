@@ -6,16 +6,25 @@
 // in each one's tooltip, and on a wide screen as before.
 import { call } from "../api.js";
 import { el, useCss } from "../dom.js";
+import { t } from "../i18n.js";
 
 const gb = (mib) => (mib / 1024).toFixed(1);
 const pct = (f) => `${Math.round(Math.max(0, Math.min(1, f || 0)) * 100)}%`;
 const rate = (bps) => (bps == null ? "…" : bps >= 1e6 ? `${(bps / 1e6).toFixed(1)} MB/s` : `${Math.round(bps / 1e3)} kB/s`);
 
+// a processor's chip, drawn: no emoji is one (owner, 2026-10-20: «sostituisci l'icona ingranaggio con un chip»)
+const CHIP = `<svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true" fill="none" stroke="currentColor"
+  stroke-width="1.8" stroke-linecap="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5"
+  height="5" rx=".8" fill="currentColor" stroke="none"/><path d="M9 2.5v3M12 2.5v3M15 2.5v3M9 18.5v3M12 18.5v3M15 18.5v3
+  M2.5 9h3M2.5 12h3M2.5 15h3M18.5 9h3M18.5 12h3M18.5 15h3"/></svg>`;
+
 function gauge(label, icon, withLoad = false) {
   const g = el("div", "gauge");
   const bar = el("span", "bar");
   bar.append(el("span", "fill"));
-  g.append(el("span", "icon", icon), el("span", "label", label), bar, el("span", "value"), el("span", "short"));
+  const ic = el("span", "icon");
+  if (icon === "chip") { ic.innerHTML = CHIP; ic.classList.add("chip"); } else ic.textContent = icon;
+  g.append(ic, el("span", "label", label), bar, el("span", "value"), el("span", "short"));
   if (withLoad) g.append(el("span", "load"));
   return g;
 }
@@ -38,11 +47,29 @@ export default {
     useCss("/static/css/metrics.css");
     const box = el("div", "metrics");
     root.append(box);
-    const cpu = gauge("CPU", "⚙️"), ram = gauge("RAM", "💾");
+    const cpu = gauge("CPU", "chip"), ram = gauge("RAM", "💾");
     const net = gauge("NET", "🌐"), cloud = gauge("CLOUD", "☁️");
     net.classList.add("net");
     cloud.classList.add("cloud");
+    // the next 3 hours at home (owner, 2026-10-20): its icon and the temperature beside Aurora's mood, not in this bar
+    // («lo metterei di fianco allo stato d'animo… così il resto non si spagina»), the words in the tooltip; read
+    // every 15 minutes (the server keeps it as long), hidden when the weather has no place
+    const wx = el("span", "wx-chip");
+    wx.hidden = true;
+    (document.getElementById("slot-health") || box).append(wx);
     box.append(cpu, ram);
+    const sky = async () => {
+      try {
+        const n = (await call("/v1/aurora/weather/next")).next;
+        wx.hidden = !n;
+        if (!n) return;
+        const temp = n.t_min === n.t_max ? `${n.t_max}°` : `${n.t_min}–${n.t_max}°`;
+        wx.replaceChildren(el("span", "wx-icon", n.icon), el("span", "wx-temp", temp));
+        wx.title = t("wx.next", { h: n.hours, words: n.words, temp, p: n.rain_pct, mm: n.rain_mm });
+      } catch { /* offline: try again later */ }
+    };
+    sky();
+    setInterval(() => { if (!document.hidden) sky(); }, 15 * 60_000);
     const gpus = [];
     let timer = 0, placed = false;
 

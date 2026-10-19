@@ -9,6 +9,7 @@ import { call } from "../api.js";
 import { el, useCss } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { autonomySlot } from "./autonomy_box.js";
+import { automationsBlock } from "./home_auto.js";
 import { scenesBlock } from "./home_scenes.js";
 
 const TOGGLE = new Set(["switch", "light", "fan", "input_boolean"]);
@@ -57,12 +58,18 @@ const base = {
     try { r = await devices(true); } catch (e) { this.out.textContent = t("ev.error", { m: e.message }); return; }
     this.allowed = r.allowed || {};
     this.out.textContent = t(`home.level.${r.level}`);
+    if (this.kind === "scenes") {                      // 🪄 its own page: the light scenes and the automations of every device
+      const reload = () => this.enter();
+      const blocks = [await scenesBlock(r.devices, reload), await automationsBlock(r.devices, this.allowed, reload)];
+      this.list.replaceChildren(...(blocks.some(Boolean) ? blocks.filter(Boolean) : [el("p", "muted", t("home.none"))]));
+      return;
+    }
     const mine = this.kind ? r.devices.filter((d) => kindOf(d) === this.kind) : r.devices;
     if (!mine.length) { this.list.replaceChildren(el("p", "muted", t("home.none"))); return; }
+    try { this.autos = (await call("/v1/aurora/home/automations")).automations; } catch { this.autos = []; }
     const grid = (ds) => { const g = el("div", "home-grid"); g.append(...ds.map((d) => this.device(d))); return g; };
-    const scenes = !this.kind || this.kind === "lights" ? await scenesBlock(r.devices, () => this.enter()) : null;   // 🎨
-    if (this.kind) { this.list.replaceChildren(...[scenes, grid(mine)].filter(Boolean)); return; }
-    const parts = scenes ? [scenes] : [];              // the overview: a block a kind — its title, then its own grid
+    if (this.kind) { this.list.replaceChildren(grid(mine)); return; }
+    const parts = [];                                  // the overview: a block a kind — its title, then its own grid
     for (const k of KINDS) {
       const of = mine.filter((d) => kindOf(d) === k);
       if (!of.length) continue;
@@ -83,8 +90,29 @@ const base = {
     const rows = el("div", "home-entities");
     for (const e of d.entities.filter((x) => x.domain !== "camera")) rows.append(this.entity(e));
     card.append(rows);
+    const used = this.uses(d);
+    if (used) card.append(used);
     card.append(this.agents(d));
     return card;
+  },
+
+  // 🪄 the automations that act on this device, with the scene each gives it and when (owner, 2026-10-20: «nelle tab
+  // dei dispositivi puoi indicare quali scene sono applicate»)
+  uses(d) {
+    const ids = new Set(d.entities.map((e) => e.entity_id));
+    const lines = [];
+    for (const a of this.autos || []) {
+      for (const x of a.actions) {
+        if (!ids.has(x.entity_id)) continue;
+        const what = x.service === "scene" ? `🎨 ${x.scene_name}` : t(`hauto.svc.${x.service}`);
+        const when = a.when.type === "time" ? a.when.at : t(`hauto.when.${a.when.type}`);
+        lines.push(el("div", `home-agent${a.enabled ? "" : " muted"}`, `${a.enabled ? "🟢" : "⏸️"} ${a.name} · ${when} → ${what}`));
+      }
+    }
+    if (!lines.length) return null;
+    const box = el("div", "home-agents");
+    box.append(el("h4", "", t("home.automations")), ...lines);
+    return box;
   },
 
   entity(e) {
@@ -178,11 +206,12 @@ const base = {
 };
 
 function page(id, icon, title, kind = "") {
+  const has = kind === "scenes" ? (d) => ["lights", "plugs", "cameras"].includes(kindOf(d)) : (d) => kindOf(d) === kind;
   return { ...base, id, icon, title, kind, plugin: "homeassistant",        // in the menu only when that plugin is on
-           ...(kind ? { group: "home", visible: async () => (await devices()).devices.some((d) => kindOf(d) === kind) } : {}) };
+           ...(kind ? { group: "home", visible: async () => (await devices()).devices.some(has) } : {}) };
 }
 
 export default page("home", "🏠", "nav.home");
 // a page per kind, shown only while the house has one (main.js asks visible())
-export const kinds = [page("homelights", "💡", "nav.homelights", "lights"), page("homeplugs", "🔌", "nav.homeplugs", "plugs"),
+export const kinds = [page("homescenes", "🪄", "nav.homescenes", "scenes"), page("homelights", "💡", "nav.homelights", "lights"), page("homeplugs", "🔌", "nav.homeplugs", "plugs"),
   page("homecameras", "📹", "nav.homecameras", "cameras"), page("homesensors", "🌡️", "nav.homesensors", "sensors")];

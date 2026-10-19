@@ -9,6 +9,61 @@ import { viewLink } from "../viewer.js";
 
 const size = (n) => (n < 1048576 ? `${(n / 1024).toFixed(0)} KB` : `${(n / 1048576).toFixed(1)} MB`);
 
+// a file's small picture: the image itself, a PDF's first page (I5), else an icon
+function thumbOf(f) {
+  const pdf = f.mime === "application/pdf" || /\.pdf$/i.test(f.name);
+  if (!(f.inline && /^(image|video)\//.test(f.mime)) && !pdf) return el("span", "up-icon", f.mime?.startsWith("audio/") ? "🎧" : f.mime?.startsWith("video/") ? "🎬" : "📄");
+  const img = el(f.mime?.startsWith("video/") ? "video" : "img", "up-thumb");
+  if (img.tagName === "VIDEO") { img.preload = "metadata"; img.muted = true; }
+  else { img.loading = "lazy"; img.alt = ""; }
+  img.src = pdf ? `/v1/aurora/preview/page?url=${encodeURIComponent(f.url)}&n=1` : f.url;
+  img.addEventListener("error", () => img.replaceWith(el("span", "up-icon", "📄")), { once: true });
+  return img;
+}
+
+// a compact list with a tick on each row (owner, 2026-10-20: «un'impaginazione più compatta e con la possibilità di
+// selezionare più file alla volta prima di premere elimina — tutti, nessuno e selezione individuale»): the bar
+// above ticks all or none and deletes the ticked ones with one question; a row's name opens the file
+function picker(items, done) {
+  const ticks = [];
+  const bar = el("div", "up-bar");
+  const all = el("button", "", `☑️ ${t("up.all")}`), none = el("button", "", `⬜ ${t("up.none_sel")}`);
+  const del = el("button", "danger", "");
+  const count = () => {
+    const n = ticks.filter((x) => x.checked).length;
+    del.textContent = `🗑️ ${t("up.delete_sel", { n })}`;
+    del.disabled = !n;
+  };
+  all.addEventListener("click", () => { ticks.forEach((x) => (x.checked = true)); count(); });
+  none.addEventListener("click", () => { ticks.forEach((x) => (x.checked = false)); count(); });
+  del.addEventListener("click", async () => {
+    const chosen = items.filter((_, i) => ticks[i].checked);
+    if (!chosen.length || !confirm(t("up.confirm_n", { n: chosen.length }))) return;
+    del.disabled = true;
+    const failed = [];
+    for (const it of chosen) { try { await it.drop(); } catch (e) { failed.push(`${it.name}: ${e.message}`); } }
+    if (failed.length) alert(failed.join("\n"));
+    done();
+  });
+  bar.append(all, none, del);
+  const list = el("div", "up-list");
+  for (const it of items) {
+    const row = el("label", "up-row");
+    const tick = el("input");
+    tick.type = "checkbox";
+    tick.addEventListener("change", count);
+    ticks.push(tick);
+    const open = viewLink(el("a", "up-name"), it.url, it.name, it.mime);
+    open.textContent = it.name;
+    const text = el("div", "up-text");
+    text.append(open, el("span", "muted", it.meta));
+    row.append(tick, it.thumb, text);
+    list.append(row);
+  }
+  count();
+  return [bar, list];
+}
+
 export default {
   id: "uploads",
   icon: "📎",
@@ -31,26 +86,16 @@ export default {
     const { files, total_bytes: total, keep_days: days } = await call("/v1/aurora/uploads");
     this.hint.textContent = t("up.hint", { n: files.length, size: size(total) }) + " "
       + (days ? t("up.keep_days", { d: days }) : t("up.keep_turn"));
-    this.grid.replaceChildren(...(files.filter((f) => f.size).length
-      ? files.filter((f) => f.size).map((f) => this.card(f)) : [el("p", "muted", t("up.none"))]));
-    const docs = await call("/v1/aurora/documents");          // the PDFs Aurora wrote: download them
-    this.docs.replaceChildren(...(docs.length ? docs.map((d) => {
-      const a = viewLink(el("a", "ev"), d.url, d.name, "application/pdf");
-      const del = el("button", "", "🗑️");
-      del.title = t("up.delete");
-      del.addEventListener("click", async (ev) => {
-        ev.preventDefault();
-        ev.stopPropagation();                                  // the row opens the viewer: the bin must not
-        if (!confirm(t("up.confirm", { name: d.name }))) return;
-        try { await call(d.url, { method: "DELETE" }); } catch (e) { alert(e.message); }
-        this.enter();
-      });
-      const thumb = el("img", "doc-thumb"); thumb.loading = "lazy"; thumb.alt = "";      // the first page (I5)
-      thumb.src = `/v1/aurora/preview/page?url=${encodeURIComponent(d.url)}&n=1`;
-      thumb.addEventListener("error", () => thumb.replaceWith(el("span", "", "📄")), { once: true });
-      a.append(thumb, el("span", "", d.name), el("span", "muted", size(d.bytes)), del);
-      return a;
-    }) : [el("p", "muted", t("up.no_docs"))]));
+    const kept = files.filter((f) => f.size);
+    this.grid.replaceChildren(...(kept.length ? picker(kept.map((f) => ({
+      name: f.name, url: f.url, mime: f.mime, meta: `${size(f.size)} · ${clock(f.created)}`, thumb: thumbOf(f),
+      drop: () => call(`/v1/aurora/uploads/${f.id}`, { method: "DELETE" }) })), () => this.enter())
+      : [el("p", "muted", t("up.none"))]));
+    const docs = await call("/v1/aurora/documents");          // the PDFs Aurora wrote
+    this.docs.replaceChildren(...(docs.length ? picker(docs.map((d) => ({
+      name: d.name, url: d.url, mime: "application/pdf", meta: size(d.bytes), thumb: thumbOf({ ...d, mime: "application/pdf" }),
+      drop: () => call(d.url, { method: "DELETE" }) })), () => this.enter())
+      : [el("p", "muted", t("up.no_docs"))]));
     await this.loadTrash();
   },
 
@@ -89,29 +134,4 @@ export default {
     this.trash.replaceChildren(...(rows.length ? rows : [el("p", "muted", t("up.trash_none"))]));
   },
 
-  card(f) {
-    const c = el("div", "appr-card up-card");
-    const open = el("a", "up-open");
-    viewLink(open, f.url, f.name, f.mime);
-    if (f.inline && f.mime.startsWith("image/")) { const img = el("img"); img.src = f.url; img.loading = "lazy"; img.alt = f.name; open.append(img); }
-    else if (f.inline && f.mime.startsWith("video/")) { const v = el("video"); v.src = f.url; v.preload = "metadata"; v.muted = true; open.append(v); }
-    else if (f.mime === "application/pdf" || /\.pdf$/i.test(f.name)) {   // I5 (6 October): the first page, not an icon
-      const img = el("img"); img.loading = "lazy"; img.alt = f.name;
-      img.src = `/v1/aurora/preview/page?url=${encodeURIComponent(f.url)}&n=1`;
-      img.addEventListener("error", () => img.replaceWith(el("div", "up-icon", "📄")), { once: true });
-      open.append(img);
-    }
-    else open.append(el("div", "up-icon", f.mime.startsWith("audio/") ? "🎧" : "📄"));
-    const del = el("button", "", "🗑️");
-    del.title = t("up.delete");
-    del.addEventListener("click", async () => {
-      if (!confirm(t("up.confirm", { name: f.name }))) return;
-      await call(`/v1/aurora/uploads/${f.id}`, { method: "DELETE" });
-      this.enter();
-    });
-    const row = el("div", "ev");
-    row.append(el("span", "up-name", f.name), del);
-    c.append(open, row, el("div", "muted", `${size(f.size)} · ${clock(f.created)}`));
-    return c;
-  },
 };

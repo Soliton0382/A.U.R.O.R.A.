@@ -3,7 +3,9 @@
 // Approvals: what waits for the owner (approve ✅ / reject ❌) and the decisions already taken. Social posts are in
 // the Social page (to approve and their history), Aurora's self-reviews and repairs in Reports (owner, 2026-10-05).
 // The page of every decision (owner, 2026-10-09: «la pagina approvazioni racchiude … statistica e log»): what waits
-// elsewhere with its button, the numbers of each kind, the whole log with each request's icon.
+// elsewhere with its button, the numbers of each kind, the whole log with each request's icon. In tabs, as the Models
+// page (owner, 2026-10-20: «nella pagina risulta incasinato… le pagine come quelle dei modelli mi piace»): what waits,
+// the log, the numbers; each request a short card — what and why, ✔ / ✘ — its technical part folded.
 import { call } from "../api.js";
 import { clock, el, useCss } from "../dom.js";
 import { apply, t } from "../i18n.js";
@@ -25,12 +27,13 @@ function preview(a) {
       el("div", "", `${t("appr.restart")}: ${(p.services || []).join(", ") || "—"}`));
     const d = el("details");
     d.append(el("summary", "", t("appr.diff")), el("pre", "diff", p.diff || ""));
-    d.open = true;
     box.append(d);
   } else {
     box.append(el("div", "", `${p.plugin}.${p.tool}`), el("pre", "", JSON.stringify(p.arguments || {}, null, 1)));
   }
-  return box;
+  const fold = el("details", "appr-more");                 // folded: what and why first, the rest on a tap
+  fold.append(el("summary", "", t("appr.details")), box);
+  return fold;
 }
 
 // the social plugins' names (their posts live in the Social page)
@@ -39,11 +42,11 @@ export async function socialPlugins() {
 }
 export const isPost = (a, social) => social.has((a.action || a.preview || {}).plugin);
 
-// one decision card: approve or reject; refresh() redraws the page it is in
-export function approvalCard(a, refresh) {
-  const c = el("div", `appr-card ${a.effect}`);
-  c.append(el("div", "appr-head", `${a.kind === "code_change" ? "🧬" : "📤"} ${a.title}`),
-    el("div", "muted", `${clock(a.created)} · ${t(`appr.effect.${a.effect}`)}`), el("p", "", a.purpose || ""), preview(a));
+// one decision card: approve or reject; refresh() redraws the page it is in. `small`: the chat's own (a bubble)
+export function approvalCard(a, refresh, small = false) {
+  const c = el("div", `appr-card ${a.effect}${small ? " appr-small" : ""}`);
+  c.append(el("div", "appr-head", `${a.icon || (a.kind === "code_change" ? "🧬" : "📤")} ${a.title}`),
+    el("div", "muted", `${clock(a.created)} · ${t(`appr.effect.${a.effect}`)}`), el("p", "appr-why", a.purpose || ""), preview(a));
   const row = el("div", "appr-actions");
   const yes = el("button", "approve big", `✔ ${t("appr.approve")}`), no = el("button", "reject big", `✘ ${t("appr.reject")}`);
   const out = el("span", "muted");
@@ -80,6 +83,17 @@ function statsTable(numbers) {
   return wrap;
 }
 
+// the chat's own: what waits for a yes, over the box, short (owner, 2026-10-20: «un semplice blob in chat potrebbe
+// aiutare per questo tipo di approvazioni»); only this page's kind (a post waits in Social), redrawn when one is decided
+export async function chatApprovals(box) {
+  let pending = [];
+  try { pending = (await call("/v1/aurora/approvals?status=pending")).filter((a) => a.view === "approvals"); } catch { /* offline */ }
+  box.replaceChildren(...pending.slice(0, 3).map((a) => approvalCard(a, () => chatApprovals(box), true)),
+    ...(pending.length > 3 ? [el("p", "muted", t("appr.more_in_page", { n: pending.length - 3 }))] : []));
+  box.hidden = !pending.length;
+  return pending.length;
+}
+
 export default {
   id: "approvals",
   icon: "🛎️",
@@ -89,16 +103,22 @@ export default {
     useCss("/static/css/agents.css");
     root.classList.add("page");
     root.innerHTML = `<h2 data-i18n="appr.title"></h2><p class="muted" data-i18n="appr.hint"></p>
-      <div class="appr-elsewhere"></div><div class="pending"></div><p class="muted appr-posts"></p>
-      <h3 class="setting-cat" data-i18n="appr.stats"></h3><div class="appr-stats"></div>
-      <h3 class="setting-cat" data-i18n="appr.history"></h3><div class="history"></div>`;
+      <div class="appr-elsewhere"></div>
+      <div class="prj-tabs appr-tabs">${["wait", "log", "stats"].map((x, i) => `<button type="button" class="cat-chip${i ? "" : " on"}" data-tab="${x}"></button>`).join("")}</div>
+      <div class="appr-tab" data-tab="wait"><div class="pending"></div></div>
+      <div class="appr-tab" data-tab="log" hidden><div class="history"></div></div>
+      <div class="appr-tab" data-tab="stats" hidden><div class="appr-stats"></div></div>`;
     root.querySelector("h2").after(autonomySlot("repairs"));   // how free Aurora is, here (owner, 2026-10-08)
     apply(root);
     this.pending = root.querySelector(".pending");
     this.history = root.querySelector(".history");
-    this.posts = root.querySelector(".appr-posts");
     this.elsewhere = root.querySelector(".appr-elsewhere");
     this.stats = root.querySelector(".appr-stats");
+    this.tabs = root.querySelectorAll(".appr-tabs button");
+    this.tabs.forEach((b) => b.addEventListener("click", () => {
+      this.tabs.forEach((x) => x.classList.toggle("on", x === b));
+      root.querySelectorAll(".appr-tab").forEach((p) => { p.hidden = p.dataset.tab !== b.dataset.tab; });
+    }));
     this.ctx = ctx;
     const poll = async () => { try { badge((await call("/v1/aurora/approvals?status=pending")).length); } catch { /* offline */ } };
     poll();
@@ -120,13 +140,18 @@ export default {
       b.addEventListener("click", () => this.ctx?.show(view));
       return b;
     }));
-    this.posts.textContent = "";
     this.stats.replaceChildren(statsTable(numbers));
     const all = here;
     const pending = all.filter((a) => a.status === "pending");
     badge(everything.filter((a) => a.status === "pending").length);
     this.pending.replaceChildren(...(pending.length ? pending.map((a) => approvalCard(a, () => this.enter())) : [el("p", "muted", t("appr.none"))]));
-    this.history.replaceChildren(...everything.filter((a) => a.status !== "pending").slice(0, 60).map((a) => {
+    const done = everything.filter((a) => a.status !== "pending");
+    const [w, l, s] = this.tabs;
+    w.textContent = `⏳ ${t("appr.tab.wait")}${pending.length ? ` (${pending.length})` : ""}`;
+    l.textContent = `📜 ${t("appr.tab.log")}`;
+    s.textContent = `📊 ${t("appr.tab.stats")}`;
+    if (!done.length) this.history.replaceChildren(el("p", "muted", t("appr.none")));
+    else this.history.replaceChildren(...done.slice(0, 60).map((a) => {
       const row = el("div", `ev appr-${a.status}`);
       row.append(el("span", "ic", { executed: "✅", failed: "⛔", rejected: "✖️", approved: "⏳" }[a.status] || "•"),
         el("span", "", `${a.icon || ""} ${clock(a.created)} · ${a.title} · ${t(`appr.status.${a.status}`)}`));

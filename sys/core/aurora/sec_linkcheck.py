@@ -72,6 +72,15 @@ def _cached(cfg, url: str) -> dict | None:
 
 
 def _keep(cfg, url: str, verdict: dict) -> None:
+    """The day's memory of a verdict; only a saving of quota: a plugin's sandbox sees the status folder read-only, and
+    the check goes on without it (C369: every check_link of the plugin failed on that write)."""
+    try:
+        _write(cfg, url, verdict)
+    except OSError as e:
+        sys_log.get_logger("security").debug("link verdict not kept (%s): %s", type(e).__name__, url[:100])
+
+
+def _write(cfg, url: str, verdict: dict) -> None:
     with _lock:
         f = _cache_file(cfg)
         try:

@@ -30,3 +30,7 @@
 .brain-info dt { font-weight: 600; margin-top: .45rem; }
 .brain-info dd { margin: .1rem 0 0 1.4rem; color: var(--muted); }
 .brain-pop:fullscreen .brain-info { max-width: 60rem; margin: 0 auto; font-size: 1rem; max-height: 75vh; }
+
+/* 3D: held and turned by a finger or the mouse; the page does not scroll under the finger */
+.brain-canvas { touch-action: none; cursor: grab; }
+.brain-canvas.turning { cursor: grabbing; }

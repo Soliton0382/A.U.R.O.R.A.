@@ -161,8 +161,8 @@ class Agent(AgentMakers, AgentReport):
                 specs.append({"type": "function", "function": {
                     "name": name, "description": f"[{t['effect']}] {t['description']}",
                     "parameters": t["input_schema"] or {"type": "object", "properties": {}}}})
-        from . import hom_scenes
-        for t in (LOOP_TOOLS + ([hom_scenes.TOOL] if any(v[0] == "homeassistant" for v in index.values()) else [])
+        from . import hom_auto, hom_scenes
+        for t in (LOOP_TOOLS + ([hom_scenes.TOOL, hom_auto.TOOL] if any(v[0] == "homeassistant" for v in index.values()) else [])
                   + ([agt_tools.MORE] if self.deferred else [])):
             specs.append({"type": "function", "function": {"name": t["name"], "description": t["description"],
                                                            "parameters": t["input_schema"]}})
@@ -240,11 +240,20 @@ class Agent(AgentMakers, AgentReport):
         return text
 
     def _call(self, name: str, args: dict, index: dict, emit, run_id: str) -> str:
+        from . import sys_anon                               # 🕶️ the anonymous chat: she only reads
+        if (refused := sys_anon.refusal(name, index, self.host)):
+            return refused
         if name == "home_scene":                              # Aurora's own light scenes (hom_scenes, owner 2026-10-12)
             from . import hom_scenes
             out = hom_scenes.tool(self.cfg, args, self._may_command(), self.log)
             if out.startswith(("STARTED", "STOPPED")):
                 self.notify("home.command", {"title": f"home_scene.{args.get('action')}", "arguments": args})
+            return out
+        if name == "home_automation":                         # Aurora's own automations on every device (hom_auto)
+            from . import hom_auto
+            out = hom_auto.tool(self.cfg, args, self._may_command(), self.log)
+            if out.startswith("RAN"):
+                self.notify("home.command", {"title": "home_automation.run", "arguments": args})
             return out
         if name == "create_artifact":
             return self._artifact(args, emit, run_id)
@@ -330,6 +339,8 @@ class Agent(AgentMakers, AgentReport):
         purpose = args.pop("_purpose", "") if effect == "external" else ""
         from . import plg_shadow                             # the plugin's own small cache: read tools it declares
         keep = plg_shadow.ttl(self.host.get(plugin).manifest, tool, effect) if self.cfg["AURORA_PLUGIN_SHADOW"] else 0
+        from . import sys_context
+        keep = 0 if sys_context.anonymous_now() else keep    # 🕶️ nothing of an anonymous run kept on disk
         cached = plg_shadow.get(self.cfg, plugin, tool, args, keep)
         if cached is not None:
             emit("tool.cached", {"plugin": plugin, "tool": tool})

@@ -195,6 +195,10 @@ def routine_tick() -> dict:
     """aurora-rem, every tick: start what is due, for every user (their routines run as their work); tell each, once,
     what a newly ready plugin can do."""
     from aurora import sys_context, sys_routines
+    for who in everyone():                            # the home's automations keep their time, talk or not
+        with sys_context.acting_as(who):
+            _automations(who)
+            _anon_expired(who)
     if (wait := _someone_talking()) is not None:      # a person first: the routines wait (owner, 2026-10-07)
         return {"started": [], "welcomed": [], "deferred": wait}
     started, welcomed = [], set()
@@ -235,6 +239,29 @@ def _scenes_again(who: str | None) -> None:
             log.info("scenes started again: %s", again)
     except Exception:                                    # noqa: BLE001 — the next tick tries again
         log.exception("scenes: not started again")
+
+
+def _anon_expired(who: str | None) -> None:
+    """🕶️ An anonymous chat past its 24 hours: emptied, its key deleted, even when nobody opens it (sys_anon)."""
+    from aurora import sys_anon
+    try:
+        if sys_anon.purge_due(cfg, who):
+            log.info("anonymous chat emptied after its hours")
+    except Exception:                                    # noqa: BLE001 — the next tick tries again
+        log.exception("anonymous chat: not emptied")
+
+
+def _automations(who: str | None) -> None:
+    """The home's automations due now (hom_auto), each user's: run."""
+    from aurora import hom_auto
+    p = plugin_host().get("homeassistant")
+    if p is None or not p.available:
+        return
+    try:
+        if ran := hom_auto.tick(cfg, who or "", log):
+            log.info("home automations ran: %s", ran)
+    except Exception:                                    # noqa: BLE001 — Home Assistant away: the next tick tries again
+        log.exception("home automations: not run")
 
 
 def _local_ticks(who: str | None) -> None:

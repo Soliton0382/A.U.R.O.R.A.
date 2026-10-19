@@ -51,3 +51,14 @@ def test_switched_off_nothing_is_checked_and_an_agent_call_is_refused_when_on(on
     assert L.tool_call(on, "web", {"query": "meteo"}, lambda e, p: None, logging.getLogger("t")) == ""
     (on.path("AURORA_STATUS_DIR") / "plugins.json").write_text(json.dumps({"linkcheck": {"enabled": False}}))
     assert not L.check("https://bad3.example/", on)["blocked"]
+
+
+def test_a_read_only_status_folder_never_stops_the_check(on, monkeypatch):
+    """C369: in a plugin's sandbox the status folder is read-only; the day's memory is lost, the verdict is not."""
+    monkeypatch.setitem(L.CHECKS, "virustotal", lambda c, cfg, u: ("malicious", "VirusTotal: 5 motori"))
+    monkeypatch.setitem(L.CHECKS, "urlhaus", lambda c, cfg, u: ("clean", "URLhaus: non presente"))
+
+    def read_only(*a, **k):
+        raise OSError(30, "Read-only file system")
+    monkeypatch.setattr(L, "_write", read_only)
+    assert L.check("https://ro.example/x", on)["blocked"]

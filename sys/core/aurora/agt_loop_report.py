@@ -60,7 +60,7 @@ class AgentReport:
         false = [what for what, (rx, tools) in self.CLAIMS.items() if self._claims(rx, summary) and not self._count(*tools)
                  and not (what == "proposal" and pending)]       # "waiting for your approval" is true for a post
         if pending:
-            head = ("⏳ Proposto, non ancora fatto — aspetta la tua approvazione (🛠️ Riparazioni): "
+            head = ("⏳ Proposto, non ancora fatto — aspetta la tua approvazione (🛎️ Approvazioni): "
                     + ", ".join(dict.fromkeys(pending)) + ".")
             if self.DONE.search(summary):
                 head = "⚠️ Niente è stato ancora pubblicato o inviato.\n" + head

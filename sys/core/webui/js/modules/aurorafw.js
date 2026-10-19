@@ -6,6 +6,9 @@
 import { call } from "../api.js";
 import { clock, el } from "../dom.js";
 import { apply, t } from "../i18n.js";
+
+// a kind's words; one without its own (a new detector): the incident's title, never the raw key (20 Oct)
+const kindLabel = (i) => { const k = `sec.kind.${i.kind}`, s = t(k); return s !== k ? s : i.detail?.title || i.title || i.kind; };
 import { autonomySlot } from "./autonomy_box.js";
 
 const ICON = { high: "🔴", medium: "🟠", low: "🟡" };
@@ -83,7 +86,7 @@ export default {
     this.q(".afw-doors").replaceChildren(table, more);
 
     this.q(".afw-incidents").replaceChildren(...(h.incidents.length ? h.incidents.map((i) =>
-      el("div", "ev", `${ICON[i.severity] || "•"} ${t(`sec.kind.${i.kind}`)} · ${i.source} · ${clock(i.received)} · ${i.status}`))
+      el("div", "ev", `${ICON[i.severity] || "•"} ${kindLabel(i)} · ${i.source} · ${clock(i.received)} · ${i.status}`))
       : [el("p", "ok", t("afw.no_incidents"))]));
   },
 };

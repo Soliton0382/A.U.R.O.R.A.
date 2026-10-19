@@ -15,7 +15,11 @@ import { editTiles, shown } from "./today_edit.js";
 import { pageTile } from "./today_pages.js";
 
 const SWITCHES = new Set(["light", "switch", "fan", "input_boolean"]);
-const NEWS_PX_S = 250;                                    // the headlines' speed, pixels a second
+// the headlines' speed, pixels a second: three to try (owner, 2026-10-20: «va piano… un pulsante… tipo 3 velocità»),
+// the choice kept on this device
+const NEWS_SPEEDS = [["🐢", 300], ["🚶", 600], ["🐇", 1000]];   // owner, 20 Oct: «andrebbero aumentate»
+const NEWS_KEY = "aurora.news_speed";
+const newsSpeed = () => { try { return Math.min(2, Math.max(0, Number(localStorage.getItem(NEWS_KEY) ?? 1))); } catch { return 1; } };
 // every tile in its first order; each is a method below of the same name ("news" is the headlines' strip); the pages
 // added are "page:<id>" (today_pages.js)
 export const TILES = ["news", "agenda", "sky", "research", "house", "waiting", "stats", "dream", "health"];
@@ -147,11 +151,31 @@ export default {
 
     const view = el("div", "td-news-view");             // the strip ends at the label: the label stays clean
     view.append(track);
-    box.replaceChildren(el("span", "td-news-label", `📰 ${t("today.news")}`), view);
+    const speed = el("button", "td-news-speed");
+    const pace = () => {
+      const [icon, base] = NEWS_SPEEDS[newsSpeed()];
+      // the speeds are a wide screen's: a phone's strip is a third as wide, the same pixels a second crossed it
+      // in half a second (owner, 2026-10-20, the PWA: «ancora illeggibile») — scaled to the strip's own width
+      const px = Math.round(base * Math.max(0.35, Math.min(1.3, view.clientWidth / 900)));
+      speed.textContent = icon;
+      speed.title = t("today.news_speed", { px });
+      track.style.setProperty("--td-news-s", `${Math.max(3, track.scrollWidth / 2 / px).toFixed(1)}s`);   // no floor that flattens the fast one
+      track.style.animation = "none";                   // started again: the new duration taken on every browser
+      void track.offsetWidth;
+      track.style.animation = "";
+    };
+    speed.addEventListener("click", () => {
+      speed.blur();
+      try { localStorage.setItem(NEWS_KEY, String((newsSpeed() + 1) % NEWS_SPEEDS.length)); } catch { /* not kept */ }
+      pace();
+    });
+    const label = el("span", "td-news-label", "📰 ");
+    label.append(el("span", "td-news-word", t("today.news")));
+    box.replaceChildren(label, speed, view);
     box.hidden = false;
     // a steady speed whatever the number of headlines (owner, 2026-10-16: 16 in 112 s «sembrano ferme», then «leggermente
     // più veloci», «ancora un pochino»; 17 Oct at 170 px/s «ancora troppo lente»): ~250 px a second
-    requestAnimationFrame(() => track.style.setProperty("--td-news-s", `${Math.max(15, Math.round(track.scrollWidth / 2 / NEWS_PX_S))}s`));
+    requestAnimationFrame(pace);
   },
 
   // the last report of the research routines, with its PDF (owner, 2026-10-16: «le novità della ricerca… in Oggi»)
