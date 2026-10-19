@@ -17,6 +17,7 @@ const KEY = "aurora.style";
 const PINS = "aurora.pins";
 const OWNER = "aurora.prefs.who";
 const THEME = "aurora.theme";                           // theme.js's own copy
+const TILES = "aurora.tiles";                           // Oggi's tiles: {order, off}
 
 export function chosen() {
   try { return STYLES.includes(localStorage.getItem(KEY)) ? localStorage.getItem(KEY) : null; } catch { return null; }
@@ -42,13 +43,14 @@ export function setStyle(id) {
 export function adopt(prefs, who) {
   try {
     const owner = localStorage.getItem(OWNER);
-    if (owner !== null && owner !== String(who)) { localStorage.removeItem(KEY); localStorage.removeItem(PINS); localStorage.removeItem(THEME); }
+    if (owner !== null && owner !== String(who)) { localStorage.removeItem(KEY); localStorage.removeItem(PINS); localStorage.removeItem(THEME); localStorage.removeItem(TILES); }
     localStorage.setItem(OWNER, String(who));
     const up = {};
     if (STYLES.includes(prefs?.style)) localStorage.setItem(KEY, prefs.style);
     else if (chosen()) up.style = chosen();
     if (Array.isArray(prefs?.pins)) localStorage.setItem(PINS, JSON.stringify(prefs.pins));
     else if (pins().length) up.pins = pins();
+    if (prefs?.tiles && typeof prefs.tiles === "object") localStorage.setItem(TILES, JSON.stringify(prefs.tiles));
     if (FORMATS.includes(prefs?.date_format)) setDateFormat(prefs.date_format, false);   // and how dates are written
     if (THEMES.some((x) => x.id === prefs?.theme)) applyTheme(prefs.theme);          // the colours too, on any device
     else if (localStorage.getItem(THEME)) up.theme = currentTheme();
@@ -69,6 +71,16 @@ export function home() {
 
 export function pins() {
   try { return JSON.parse(localStorage.getItem(PINS) || "[]").filter((x) => typeof x === "string"); } catch { return []; }
+}
+
+// Oggi's tiles as this person arranged them ({order, off}; {} until they do)
+export function tilePrefs() {
+  try { const v = JSON.parse(localStorage.getItem(TILES) || "{}"); return v && typeof v === "object" ? v : {}; } catch { return {}; }
+}
+
+export function setTilePrefs(v) {
+  try { localStorage.setItem(TILES, JSON.stringify(v)); } catch { /* this visit only */ }
+  save({ tiles: v });
 }
 
 export function togglePin(id) {

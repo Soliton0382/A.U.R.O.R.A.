@@ -55,6 +55,26 @@ function nightCard(d) {
   return card;
 }
 
+// the written sequence: downloaded, or loaded into N.I.N.A. through its Advanced API (owner, 19 Oct: «non c'è modo di
+// scaricarla ed inviarla a nina»)
+function seqActions(file) {
+  const down = el("a", "btn", `⬇️ ${t("sky.seq_download")}`);
+  down.href = `/v1/aurora/astro/sky/sequence/file?name=${encodeURIComponent(file)}`;
+  down.download = file;
+  const send = el("button", "btn", `📤 ${t("sky.seq_send")}`);
+  const out = el("span", "muted");
+  send.addEventListener("click", async () => {
+    send.disabled = true;
+    out.textContent = "⏳";
+    try {
+      const r = await call("/v1/aurora/astro/sky/sequence/send", { method: "POST", body: JSON.stringify({ file }) });
+      out.textContent = r.error ? `⚠️ ${r.error}` : `✅ ${r.said}`;
+    } catch (e) { out.textContent = e.message; }
+    send.disabled = false;
+  });
+  return [down, send, out];
+}
+
 function hourly(d) {
   // the object's altitude through the night: one bar an hour, dark hours solid, the usable ones marked
   const wrap = el("div", "sky-hours");
@@ -131,11 +151,13 @@ export async function skyTab(box) {
         try {
           const s = await call("/v1/aurora/astro/sky/sequence", { method: "POST", body: JSON.stringify({ object: name, date: last.date || "", kind: last.kind && last.kind !== "galaxy" ? last.kind : "" }) });
           said.textContent = s.error ? `⚠️ ${s.error}` : s.text;
+          if (s.file) acts.replaceChildren(...seqActions(s.file));
         } catch (e) { said.textContent = e.message; }
         plan.disabled = false;
       });
+      const acts = el("div", "sky-seq-acts");
       const side = el("div", "sky-one-side");
-      side.append(el("h4", "", `🎯 ${r.name} · ${r.if_clear ? "☁️ " : ""}${r.hours} h · ${r.fit.words}`), hourly(d), plan, said);
+      side.append(el("h4", "", `🎯 ${r.name} · ${r.if_clear ? "☁️ " : ""}${r.hours} h · ${r.fit.words}`), hourly(d), plan, acts, said);
       const box2 = el("div", "sky-one-box");
       box2.append(pic, side);
       one.replaceChildren(box2, el("p", "muted", t("sky.thumb_note")));

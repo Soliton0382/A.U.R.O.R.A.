@@ -201,6 +201,31 @@ async def astro_sky_sequence(request: Request) -> dict:
     return {"file": r["file"], "text": ast_seqwrite.text(r)}
 
 
+@router.get("/v1/aurora/astro/sky/sequence/file", dependencies=[Depends(auth)])
+def astro_sky_sequence_file(name: str):
+    """A written sequence, downloaded (to open in N.I.N.A. by hand)."""
+    from aurora import ast_inventory, ast_seqwrite
+    try:
+        f = ast_seqwrite.written(ast_inventory.folder(cfg), name)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    return FileResponse(f, media_type="application/json", filename=f.name)
+
+
+@router.post("/v1/aurora/astro/sky/sequence/send", dependencies=[Depends(auth)])
+async def astro_sky_sequence_send(request: Request) -> dict:
+    """{file}: the written sequence loaded into N.I.N.A. (its Advanced API), not started."""
+    from aurora import ast_seqwrite
+    name = str((await request.json()).get("file") or "")
+    try:
+        r = ast_seqwrite.send(cfg, name)
+    except ValueError as e:
+        return {"error": str(e)}
+    if "sent" in r:
+        log.info("audit: %s sent a sequence to N.I.N.A.: %s", me(), r["sent"])
+    return r
+
+
 @router.get("/v1/aurora/astro/live", dependencies=[Depends(auth)])
 def astro_live() -> dict:
     """The guiding now (ROADMAP N28): PHD2's events on the telescope's PC, read only — the watcher starts on the first

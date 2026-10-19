@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.64 — 2026-10-19
+
+1 publications since v0.2.63.
+
+- 2026-10-19 Oggi as widgets with tonight's targets and the day's numbers; sequences downloaded or sent to N.I.N.A.
+
 ## v0.2.63 — 2026-10-19
 
 6 publications since v0.2.57.

@@ -235,6 +235,45 @@ def for_tonight(cfg, name: str, date: str = "", kind: str = "", count: int = 0, 
     return out
 
 
+def written(folder: Path, name: str) -> Path:
+    """A sequence of the person's sequences/ folder, by its bare file name: never a path out of it."""
+    f = folder / "sequences" / name
+    if not re.fullmatch(r"[\w .()+-]{1,120}\.json", name) or f.resolve().parent != (folder / "sequences").resolve() \
+            or not f.is_file():
+        raise ValueError(f"«{name}» non è tra le sequenze")
+    return f
+
+
+def send(cfg, name: str, timeout: float = 20.0) -> dict:
+    """The sequence loaded into N.I.N.A.'s advanced sequencer through its Advanced API (POST sequence/load with the
+    JSON as body; owner, 19 Oct: «non c'è modo di scaricarla ed inviarla a nina»). Loaded, never started: the
+    person starts it in N.I.N.A."""
+    import urllib.error
+    import urllib.request
+    from . import ast_advice, ast_inventory, ast_rotate
+    f = written(ast_inventory.folder(cfg), name)
+    host, _ = ast_advice.telescope_host(cfg)
+    if not host:
+        return {"error": "nessun indirizzo del PC del telescopio (AURORA_ASTRO_PC o l'inventario)"}
+    req = urllib.request.Request(f"http://{host}:{ast_rotate.PORT}/v2/api/sequence/load", method="POST",
+                                 data=f.read_bytes(), headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:  # noqa: S310 — the person's own PC
+            said = json.loads(r.read() or b"{}")
+    except urllib.error.HTTPError as e:              # 400: not initialised, already running
+        try:
+            said = json.loads(e.read() or b"{}")
+        except ValueError:
+            said = {"Error": f"HTTP {e.code}"}
+    except (OSError, ValueError) as e:
+        return {"error": f"N.I.N.A. non risponde ({type(e).__name__}): è acceso, con l'Advanced API attiva?"}
+    if not said.get("Success"):
+        why = {"Sequence is already running": "una sequenza è già in corso: fermala prima",
+               "Sequence is not initialized": "il sequencer di N.I.N.A. non è ancora pronto: apri la scheda Sequenza"}
+        return {"error": why.get(said.get("Error"), f"N.I.N.A. ha rifiutato: {said.get('Error') or 'senza motivo'}")}
+    return {"sent": f.name, "said": "caricata nel sequencer avanzato di N.I.N.A.: controllala e avviala da lì"}
+
+
 def text(r: dict) -> str:
     seq = r["sequence"]
     e = seq["exposures"][0] if seq["exposures"] else {}

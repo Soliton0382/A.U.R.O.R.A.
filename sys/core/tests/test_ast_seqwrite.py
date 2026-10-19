@@ -105,3 +105,52 @@ def test_written_next_to_the_template_never_over_it(tmp_path):
         W.write(tmp_path, "broadband", {"narrowband": "narrow.json"}, TARGET, 60, 10, 1600, 20, {}, [])
     with pytest.raises(ValueError, match="pose"):
         W.write(tmp_path, "narrowband", {"narrowband": "narrow.json"}, TARGET, 180, 0, 1600, 20, {}, [])
+
+
+def test_only_a_file_of_the_sequences_folder_is_given(tmp_path):
+    (tmp_path / "sequences").mkdir()
+    (tmp_path / "sequences" / "M1 Aurora.json").write_text("{}", encoding="utf-8")
+    (tmp_path / "secret.json").write_text("{}", encoding="utf-8")
+    assert W.written(tmp_path, "M1 Aurora.json").name == "M1 Aurora.json"
+    for bad in ("../secret.json", "missing.json", "M1 Aurora.txt", "/etc/passwd"):
+        with pytest.raises(ValueError):
+            W.written(tmp_path, bad)
+
+
+def test_sent_to_nina_as_its_api_asks(tmp_path, monkeypatch):
+    # an invented N.I.N.A.: POST sequence/load with the file as body, loaded and never started
+    import http.server
+    import threading
+    from aurora import ast_advice, ast_inventory, ast_rotate
+    got = {}
+
+    class Nina(http.server.BaseHTTPRequestHandler):
+        def do_POST(self):  # noqa: N802
+            got["path"] = self.path
+            got["body"] = self.rfile.read(int(self.headers["Content-Length"]))
+            busy = got.get("busy")
+            self.send_response(400 if busy else 200)
+            self.end_headers()
+            self.wfile.write(json.dumps({"Success": not busy, "Error": "Sequence is already running" if busy else "",
+                                         "Response": "" if busy else "Sequence updated"}).encode())
+
+        def log_message(self, *a):
+            pass
+
+    srv = http.server.HTTPServer(("127.0.0.1", 0), Nina)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    (tmp_path / "sequences").mkdir()
+    (tmp_path / "sequences" / "M1 Aurora.json").write_text('{"Name": "M1"}', encoding="utf-8")
+    monkeypatch.setattr(ast_inventory, "folder", lambda cfg: tmp_path)
+    monkeypatch.setattr(ast_advice, "telescope_host", lambda cfg: ("127.0.0.1", 4400))
+    monkeypatch.setattr(ast_rotate, "PORT", srv.server_port)
+    try:
+        r = W.send(None, "M1 Aurora.json")
+        assert r["sent"] == "M1 Aurora.json" and got["path"] == "/v2/api/sequence/load"
+        assert json.loads(got["body"]) == {"Name": "M1"}
+        got["busy"] = True
+        assert "già in corso" in W.send(None, "M1 Aurora.json")["error"]
+    finally:
+        srv.shutdown()
+    monkeypatch.setattr(ast_rotate, "PORT", 9)                      # nothing listens: said, not raised
+    assert "non risponde" in W.send(None, "M1 Aurora.json", timeout=2)["error"]

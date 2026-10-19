@@ -2,14 +2,21 @@
 // Copyright 2026 A.U.R.O.R.A. Project
 // ☀️ Oggi, the first page of every style (ROADMAP 107; Completo too since 17 Oct): a box to ask, and a few big tiles — the
 // day's agenda, the house's switches, what waits for you, last night's dream, and whether all is well. Each tile asks
-// its own API and stays out when it has nothing (no calendar, no house, a user without the machine's health).
+// its own API and stays out when it has nothing (no calendar, no house, a user without the machine's health). The
+// tiles are each person's to show, hide and move (today_edit.js; owner, 19 Oct: «un insieme di widget che uno può
+// personalizzare»), with what to photograph tonight when astro is on and the day's numbers.
 import { call } from "../api.js";
 import { bus } from "../bus.js";
 import { el } from "../dom.js";
 import { apply, t } from "../i18n.js";
+import { setTilePrefs, tilePrefs } from "../style.js";
+import astro from "./astro.js";
+import { editTiles, shown } from "./today_edit.js";
 
 const SWITCHES = new Set(["light", "switch", "fan", "input_boolean"]);
 const NEWS_PX_S = 250;                                    // the headlines' speed, pixels a second
+// every tile in its first order; each is a method below of the same name ("news" is the headlines' strip)
+const TILES = ["news", "agenda", "sky", "research", "house", "waiting", "stats", "dream", "health"];
 
 export default {
   id: "today",
@@ -22,7 +29,8 @@ export default {
     root.innerHTML = `<p class="muted td-date"></p><h2 class="td-hello"></h2>
       <form class="td-ask"><label class="sr-only" for="td-q" data-i18n="today.ask"></label>
       <input id="td-q" autocomplete="off"><button class="approve" data-i18n="today.ask_go"></button></form>
-      <div class="td-news" hidden></div><div class="td-tiles"></div>`;
+      <div class="td-news" hidden></div><div class="td-tiles"></div>
+      <p class="td-foot"><button type="button" class="link td-edit-go"></button></p>`;
     apply(root);
     const q = root.querySelector("#td-q");
     q.placeholder = t("today.ask");
@@ -32,6 +40,16 @@ export default {
     });
     this.root = root;
     this.tiles = root.querySelector(".td-tiles");
+    const go = root.querySelector(".td-edit-go");
+    go.textContent = `✏️ ${t("today.edit")}`;
+    go.addEventListener("click", () => {
+      go.hidden = true;
+      editTiles(this.tiles, TILES, tilePrefs(), (v) => {
+        if (v) setTilePrefs(v);
+        go.hidden = false;
+        this.enter();
+      });
+    });
   },
 
   async enter() {
@@ -39,9 +57,71 @@ export default {
     this.root.querySelector(".td-date").textContent = now.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
     const h = now.getHours();
     this.root.querySelector(".td-hello").textContent = t(h < 13 ? "today.morning" : h < 18 ? "today.afternoon" : "today.evening");
-    this.news().catch(() => {});                          // at once, not after the slowest tile (owner, 17 Oct)
-    const made = await Promise.all([this.agenda(), this.research(), this.house(), this.waiting(), this.dream(), this.health()].map((p) => p.catch(() => null)));
-    this.tiles.replaceChildren(...made.filter(Boolean));
+    const ids = shown(TILES, tilePrefs());
+    if (ids.includes("news")) this.news().catch(() => {});  // at once, not after the slowest tile (owner, 17 Oct)
+    else this.root.querySelector(".td-news").hidden = true;
+    // a hidden place a tile, in the person's order: each tile takes its own as soon as it answers, the slow ones
+    // (tonight's sky) never holding the others back
+    const run = (this.run || 0) + 1;
+    this.run = run;
+    const slots = ids.filter((id) => id !== "news").map((id) => { const s = el("div", "td-slot"); s.dataset.tile = id; return s; });
+    this.tiles.replaceChildren(...slots);
+    await Promise.all(slots.map(async (slot) => {
+      const made = await this[slot.dataset.tile]().catch(() => null);
+      if (this.run !== run) return;                       // the page was drawn again meanwhile
+      if (made) slot.replaceWith(made); else slot.remove();
+    }));
+  },
+
+  // what to photograph tonight, when astro is on (owner, 19 Oct: «nella schermata oggi magari il suggerimento su cosa
+  // fotografare»): the three best objects with usable hours, else the best if the sky opens; the full list in Astro
+  async sky() {
+    const plugins = await call("/v1/aurora/plugins");
+    if (!plugins.some((p) => p.name === "astro" && p.enabled && p.available)) return null;
+    const d = await call("/v1/aurora/astro/sky?limit=10");
+    const all = d.targets || [];
+    if (d.error || !all.length) return null;
+    const clear = all.filter((r) => !r.if_clear);
+    const pick = (clear.length ? clear : all).slice(0, 3);
+    const list = el("div", "td-sky");
+    for (const r of pick) {
+      const row = el("div", "td-sky-row");
+      if (r.thumb) {
+        const im = el("img", "td-sky-pic");
+        im.src = `/v1/aurora/astro/sky/thumb?object=${encodeURIComponent(r.name)}`;
+        im.alt = "";
+        im.loading = "lazy";
+        row.append(im);
+      } else row.append(el("span", "td-sky-pic", "🔭"));
+      const names = (r.common || []).slice(0, 1).join("");
+      const what = el("div", "");
+      what.append(el("strong", "", `${r.name}${names ? ` · ${names}` : ""}`),
+        el("small", "muted", `${r.if_clear ? "☁️ " : ""}${r.hours} h${r.from ? ` · ${r.from}–${r.to}` : ""} · ${r.type || ""}`));
+      row.append(what);
+      list.append(row);
+    }
+    const s = this.tile(`🌌 ${t("today.sky")}`, list);
+    if (!clear.length) s.append(el("p", "muted", t("today.sky_clouds")));
+    const open = el("button", "link", t("today.sky_open"));
+    open.type = "button";
+    open.addEventListener("click", async () => { await this.ctx.show("astro"); astro.tab("sky"); });
+    s.append(open);
+    return s;
+  },
+
+  // the day's numbers (Utilizzo): questions, the agent's runs, the cloud's calls, the tools
+  async stats() {
+    const r = await call("/v1/aurora/usage?days=1");
+    const s = r.totals;
+    if (!s) return null;
+    const grid = el("div", "td-stats");
+    for (const [icon, key, n] of [["💬", "usage.questions", s.questions], ["🤖", "usage.agent", s.agent_runs],
+      ["☁️", "usage.cloud", s.cloud_calls], ["🧰", "usage.tools", s.tool_calls]]) {
+      const b = el("div", "td-stat");
+      b.append(el("strong", "", `${icon} ${Number(n || 0).toLocaleString()}`), el("small", "muted", t(key)));
+      grid.append(b);
+    }
+    return this.tile(t("today.stats"), grid, this.link(t("today.open_usage"), "usage"));
   },
 
   // the day's headlines in a strip that scrolls (owner, 2026-10-16: «in scorrimento… aggiornate ogni 3 ore»);

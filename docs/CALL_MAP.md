@@ -149,19 +149,19 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `api.usage` | `api (MODULES)` | 0 |
 | `api.users` | `api (MODULES)`, `api.activity`, `api.agents`, `api.autonomy`, `api.backup`, `api.calendar`, `api.diet`, `api.edge`, `api.firewalls`, `api.harvester`, `api.https`, `api.incidents`, `api.knowledge`, `api.models`, `api.models_custom`, `api.oai`, `api.rem`, `api.routines`, `api.security`, `api.security_ciso`, `api.synapses`, `api.updates` | 0 |
 | `api.voice` | `api (MODULES)` | 0 |
-| `ast_advice` | `api.astro`, `ast_donut`, `ast_rotate`, `ast_seqwrite`, `ast_skyplan`, `sys/plugins/astro/server.py` | 1 |
+| `ast_advice` | `api.astro`, `ast_donut`, `ast_rotate`, `ast_seqwrite`, `ast_skyplan`, `sys/plugins/astro/server.py` | 2 |
 | `ast_autoguide` | `api.astro`, `ast_advice` | 1 |
 | `ast_catalog` | `ast_seqwrite`, `ast_skyplan`, `ast_skythumb`, `sys/plugins/sky/server.py` | 1 |
 | `ast_donut` | `api.astro`, `sys/plugins/sky/server.py` | 1 |
 | `ast_frames` | `ast_sensor`, `ast_stars` | 2 |
 | `ast_guidelog` | `api.astro`, `ast_advice`, `sys/plugins/astro/server.py` | 1 |
-| `ast_inventory` | `api.astro`, `ast_advice`, `ast_donut`, `ast_rotate`, `ast_sensor`, `ast_seqwrite`, `ast_skyplan`, `ast_skythumb`, `ast_stars`, `sys/plugins/astro/server.py`, `sys/plugins/sky/server.py` | 2 |
+| `ast_inventory` | `api.astro`, `ast_advice`, `ast_donut`, `ast_rotate`, `ast_sensor`, `ast_seqwrite`, `ast_skyplan`, `ast_skythumb`, `ast_stars`, `sys/plugins/astro/server.py`, `sys/plugins/sky/server.py` | 3 |
 | `ast_nina` | `api.astro`, `ast_advice` | 1 |
 | `ast_ocal` | `api.astro` | 1 |
 | `ast_phd2` | `api.astro`, `ast_advice`, `ast_autoguide` | 1 |
 | `ast_pointing` | `ast_inventory`, `sys/plugins/astro/server.py` | 1 |
 | `ast_polar` | `ast_guidelog`, `sys/plugins/astro/server.py` | 1 |
-| `ast_rotate` | `sys/plugins/sky/server.py` | 1 |
+| `ast_rotate` | `ast_seqwrite`, `sys/plugins/sky/server.py` | 2 |
 | `ast_sensor` | `api.astro`, `ast_seqwrite`, `ast_skyplan`, `sys/plugins/astro/server.py` | 1 |
 | `ast_sequence` | `api.astro`, `ast_advice`, `ast_seqwrite` | 2 |
 | `ast_seqwrite` | `api.astro`, `sys/plugins/sky/server.py` | 1 |
@@ -373,8 +373,8 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `js/cards.js` | `js/modules/updates.js` |
 | `js/dates.js` | `js/modules/astro_collim.js`, `js/modules/astro_nights.js`, `js/modules/astro_sky.js`, `js/modules/settings.js`, `js/style.js` |
 | `js/diet.js` | `js/modules/care_diet.js`, `js/modules/chat.js` |
-| `js/dom.js` | `js/artifact.js`, `js/backup.js`, `js/calendar_alerts.js`, `js/cards.js`, `js/dates.js`, `js/diet.js`, `js/main.js`, `js/md.js`, `js/modules/accounts.js`, `js/modules/accounts_services.js`, `js/modules/advanced.js`, `js/modules/alerts.js`, `js/modules/approvals.js`, `js/modules/astro.js`, `js/modules/astro_advice.js`, `js/modules/astro_collim.js`, `js/modules/astro_imaging.js`, `js/modules/astro_live.js`, `js/modules/astro_mount.js`, `js/modules/astro_nights.js`, `js/modules/astro_sky.js`, `js/modules/astro_tuner.js`, `js/modules/aurorafw.js`, `js/modules/autonomy.js`, `js/modules/autonomy_box.js`, `js/modules/brain.js`, `js/modules/bugreport.js`, `js/modules/calendar.js`, `js/modules/calendar_form.js`, `js/modules/calendar_grid.js`, `js/modules/care.js`, `js/modules/care_diet.js`, `js/modules/care_doctor.js`, `js/modules/care_values.js`, `js/modules/chat.js`, `js/modules/chat_actions.js`, `js/modules/chat_media.js`, `js/modules/chat_menu.js`, `js/modules/ciso.js`, `js/modules/deductions_box.js`, `js/modules/diary.js`, `js/modules/dj.js`, `js/modules/dj_deck.js`, `js/modules/dreams.js`, `js/modules/expenses.js`, `js/modules/firewall.js`, `js/modules/fw_pick.js`, `js/modules/guide.js`, `js/modules/harvest_plan.js`, `js/modules/harvester.js`, `js/modules/home.js`, `js/modules/home_scenes.js`, `js/modules/https.js`, `js/modules/ideas.js`, `js/modules/import.js`, `js/modules/mask_view.js`, `js/modules/memory.js`, `js/modules/metrics.js`, `js/modules/models.js`, `js/modules/models_choice.js`, `js/modules/models_custom.js`, `js/modules/models_mode.js`, `js/modules/notifications.js`, `js/modules/plugin_slot.js`, `js/modules/plugins.js`, `js/modules/project_docs.js`, `js/modules/project_plan.js`, `js/modules/project_term.js`, `js/modules/projects.js`, `js/modules/reports.js`, `js/modules/routines.js`, `js/modules/routines_templates.js`, `js/modules/runs.js`, `js/modules/security.js`, `js/modules/security_defence.js`, `js/modules/security_edge.js`, `js/modules/security_firewalls.js`, `js/modules/security_map.js`, `js/modules/security_trace.js`, `js/modules/security_watch.js`, `js/modules/settings.js`, `js/modules/settings_form.js`, `js/modules/social.js`, `js/modules/social_video.js`, `js/modules/status.js`, `js/modules/synapses.js`, `js/modules/today.js`, `js/modules/trace.js`, `js/modules/updates.js`, `js/modules/uploads.js`, `js/modules/usage.js`, `js/modules/users.js`, `js/modules/wizard.js`, `js/mood.js`, `js/restart.js`, `js/share.js`, `js/theme.js`, `js/viewer.js`, `js/welcome.js` |
-| `js/i18n.js` | `js/artifact.js`, `js/backup.js`, `js/calendar_alerts.js`, `js/cards.js`, `js/dates.js`, `js/diet.js`, `js/main.js`, `js/modules/accounts.js`, `js/modules/accounts_services.js`, `js/modules/advanced.js`, `js/modules/alerts.js`, `js/modules/approvals.js`, `js/modules/astro.js`, `js/modules/astro_advice.js`, `js/modules/astro_collim.js`, `js/modules/astro_imaging.js`, `js/modules/astro_live.js`, `js/modules/astro_mount.js`, `js/modules/astro_mount3d.js`, `js/modules/astro_nights.js`, `js/modules/astro_sky.js`, `js/modules/astro_tuner.js`, `js/modules/aurorafw.js`, `js/modules/autonomy.js`, `js/modules/autonomy_box.js`, `js/modules/brain.js`, `js/modules/bugreport.js`, `js/modules/calendar.js`, `js/modules/calendar_form.js`, `js/modules/calendar_grid.js`, `js/modules/care.js`, `js/modules/care_diet.js`, `js/modules/care_doctor.js`, `js/modules/care_values.js`, `js/modules/chat.js`, `js/modules/chat_actions.js`, `js/modules/chat_media.js`, `js/modules/chat_menu.js`, `js/modules/ciso.js`, `js/modules/deductions_box.js`, `js/modules/diary.js`, `js/modules/dj.js`, `js/modules/dj_deck.js`, `js/modules/dreams.js`, `js/modules/expenses.js`, `js/modules/firewall.js`, `js/modules/guide.js`, `js/modules/harvest_plan.js`, `js/modules/harvester.js`, `js/modules/home.js`, `js/modules/home_scenes.js`, `js/modules/https.js`, `js/modules/ideas.js`, `js/modules/ideas_page.js`, `js/modules/import.js`, `js/modules/mask_view.js`, `js/modules/memory.js`, `js/modules/models.js`, `js/modules/models_choice.js`, `js/modules/models_custom.js`, `js/modules/models_mode.js`, `js/modules/notifications.js`, `js/modules/plugin_slot.js`, `js/modules/plugins.js`, `js/modules/project_docs.js`, `js/modules/project_plan.js`, `js/modules/project_term.js`, `js/modules/projects.js`, `js/modules/reports.js`, `js/modules/routines.js`, `js/modules/routines_templates.js`, `js/modules/runs.js`, `js/modules/security.js`, `js/modules/security_defence.js`, `js/modules/security_edge.js`, `js/modules/security_firewalls.js`, `js/modules/security_map.js`, `js/modules/security_trace.js`, `js/modules/security_watch.js`, `js/modules/settings.js`, `js/modules/settings_form.js`, `js/modules/social.js`, `js/modules/social_video.js`, `js/modules/status.js`, `js/modules/synapses.js`, `js/modules/today.js`, `js/modules/trace.js`, `js/modules/updates.js`, `js/modules/uploads.js`, `js/modules/usage.js`, `js/modules/users.js`, `js/modules/wizard.js`, `js/mood.js`, `js/restart.js`, `js/share.js`, `js/theme.js`, `js/viewer.js`, `js/welcome.js` |
+| `js/dom.js` | `js/artifact.js`, `js/backup.js`, `js/calendar_alerts.js`, `js/cards.js`, `js/dates.js`, `js/diet.js`, `js/main.js`, `js/md.js`, `js/modules/accounts.js`, `js/modules/accounts_services.js`, `js/modules/advanced.js`, `js/modules/alerts.js`, `js/modules/approvals.js`, `js/modules/astro.js`, `js/modules/astro_advice.js`, `js/modules/astro_collim.js`, `js/modules/astro_imaging.js`, `js/modules/astro_live.js`, `js/modules/astro_mount.js`, `js/modules/astro_nights.js`, `js/modules/astro_sky.js`, `js/modules/astro_tuner.js`, `js/modules/aurorafw.js`, `js/modules/autonomy.js`, `js/modules/autonomy_box.js`, `js/modules/brain.js`, `js/modules/bugreport.js`, `js/modules/calendar.js`, `js/modules/calendar_form.js`, `js/modules/calendar_grid.js`, `js/modules/care.js`, `js/modules/care_diet.js`, `js/modules/care_doctor.js`, `js/modules/care_values.js`, `js/modules/chat.js`, `js/modules/chat_actions.js`, `js/modules/chat_media.js`, `js/modules/chat_menu.js`, `js/modules/ciso.js`, `js/modules/deductions_box.js`, `js/modules/diary.js`, `js/modules/dj.js`, `js/modules/dj_deck.js`, `js/modules/dreams.js`, `js/modules/expenses.js`, `js/modules/firewall.js`, `js/modules/fw_pick.js`, `js/modules/guide.js`, `js/modules/harvest_plan.js`, `js/modules/harvester.js`, `js/modules/home.js`, `js/modules/home_scenes.js`, `js/modules/https.js`, `js/modules/ideas.js`, `js/modules/import.js`, `js/modules/mask_view.js`, `js/modules/memory.js`, `js/modules/metrics.js`, `js/modules/models.js`, `js/modules/models_choice.js`, `js/modules/models_custom.js`, `js/modules/models_mode.js`, `js/modules/notifications.js`, `js/modules/plugin_slot.js`, `js/modules/plugins.js`, `js/modules/project_docs.js`, `js/modules/project_plan.js`, `js/modules/project_term.js`, `js/modules/projects.js`, `js/modules/reports.js`, `js/modules/routines.js`, `js/modules/routines_templates.js`, `js/modules/runs.js`, `js/modules/security.js`, `js/modules/security_defence.js`, `js/modules/security_edge.js`, `js/modules/security_firewalls.js`, `js/modules/security_map.js`, `js/modules/security_trace.js`, `js/modules/security_watch.js`, `js/modules/settings.js`, `js/modules/settings_form.js`, `js/modules/social.js`, `js/modules/social_video.js`, `js/modules/status.js`, `js/modules/synapses.js`, `js/modules/today.js`, `js/modules/today_edit.js`, `js/modules/trace.js`, `js/modules/updates.js`, `js/modules/uploads.js`, `js/modules/usage.js`, `js/modules/users.js`, `js/modules/wizard.js`, `js/mood.js`, `js/restart.js`, `js/share.js`, `js/theme.js`, `js/viewer.js`, `js/welcome.js` |
+| `js/i18n.js` | `js/artifact.js`, `js/backup.js`, `js/calendar_alerts.js`, `js/cards.js`, `js/dates.js`, `js/diet.js`, `js/main.js`, `js/modules/accounts.js`, `js/modules/accounts_services.js`, `js/modules/advanced.js`, `js/modules/alerts.js`, `js/modules/approvals.js`, `js/modules/astro.js`, `js/modules/astro_advice.js`, `js/modules/astro_collim.js`, `js/modules/astro_imaging.js`, `js/modules/astro_live.js`, `js/modules/astro_mount.js`, `js/modules/astro_mount3d.js`, `js/modules/astro_nights.js`, `js/modules/astro_sky.js`, `js/modules/astro_tuner.js`, `js/modules/aurorafw.js`, `js/modules/autonomy.js`, `js/modules/autonomy_box.js`, `js/modules/brain.js`, `js/modules/bugreport.js`, `js/modules/calendar.js`, `js/modules/calendar_form.js`, `js/modules/calendar_grid.js`, `js/modules/care.js`, `js/modules/care_diet.js`, `js/modules/care_doctor.js`, `js/modules/care_values.js`, `js/modules/chat.js`, `js/modules/chat_actions.js`, `js/modules/chat_media.js`, `js/modules/chat_menu.js`, `js/modules/ciso.js`, `js/modules/deductions_box.js`, `js/modules/diary.js`, `js/modules/dj.js`, `js/modules/dj_deck.js`, `js/modules/dreams.js`, `js/modules/expenses.js`, `js/modules/firewall.js`, `js/modules/guide.js`, `js/modules/harvest_plan.js`, `js/modules/harvester.js`, `js/modules/home.js`, `js/modules/home_scenes.js`, `js/modules/https.js`, `js/modules/ideas.js`, `js/modules/ideas_page.js`, `js/modules/import.js`, `js/modules/mask_view.js`, `js/modules/memory.js`, `js/modules/models.js`, `js/modules/models_choice.js`, `js/modules/models_custom.js`, `js/modules/models_mode.js`, `js/modules/notifications.js`, `js/modules/plugin_slot.js`, `js/modules/plugins.js`, `js/modules/project_docs.js`, `js/modules/project_plan.js`, `js/modules/project_term.js`, `js/modules/projects.js`, `js/modules/reports.js`, `js/modules/routines.js`, `js/modules/routines_templates.js`, `js/modules/runs.js`, `js/modules/security.js`, `js/modules/security_defence.js`, `js/modules/security_edge.js`, `js/modules/security_firewalls.js`, `js/modules/security_map.js`, `js/modules/security_trace.js`, `js/modules/security_watch.js`, `js/modules/settings.js`, `js/modules/settings_form.js`, `js/modules/social.js`, `js/modules/social_video.js`, `js/modules/status.js`, `js/modules/synapses.js`, `js/modules/today.js`, `js/modules/today_edit.js`, `js/modules/trace.js`, `js/modules/updates.js`, `js/modules/uploads.js`, `js/modules/usage.js`, `js/modules/users.js`, `js/modules/wizard.js`, `js/mood.js`, `js/restart.js`, `js/share.js`, `js/theme.js`, `js/viewer.js`, `js/welcome.js` |
 | `js/main.js` | `index.html` |
 | `js/md.js` | `js/modules/care.js`, `js/modules/diary.js`, `js/modules/dreams.js`, `js/modules/expenses.js`, `js/modules/guide.js`, `js/modules/memory.js`, `js/modules/plugins.js`, `js/modules/projects.js`, `js/modules/reports.js`, `js/modules/routines.js`, `js/modules/security.js`, `js/modules/trace.js`, `js/modules/wizard.js` |
 | `js/modules.js` | `js/main.js` |
@@ -383,7 +383,7 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `js/modules/advanced.js` | `js/modules.js` |
 | `js/modules/alerts.js` | `js/modules.js` |
 | `js/modules/approvals.js` | `js/modules.js`, `js/modules/social.js` |
-| `js/modules/astro.js` | `js/modules.js` |
+| `js/modules/astro.js` | `js/modules.js`, `js/modules/today.js` |
 | `js/modules/astro_advice.js` | `js/modules/astro.js` |
 | `js/modules/astro_collim.js` | `js/modules/astro.js` |
 | `js/modules/astro_imaging.js` | `js/modules/astro.js` |
@@ -466,6 +466,7 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `js/modules/status.js` | `js/modules.js` |
 | `js/modules/synapses.js` | `js/modules.js` |
 | `js/modules/today.js` | `js/modules.js` |
+| `js/modules/today_edit.js` | `js/modules/today.js` |
 | `js/modules/trace.js` | `js/modules/chat.js` |
 | `js/modules/updates.js` | `js/modules.js` |
 | `js/modules/uploads.js` | `js/modules.js` |
@@ -478,7 +479,7 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `js/restart.js` | `js/modules/autonomy.js`, `js/modules/autonomy_box.js`, `js/modules/firewall.js`, `js/modules/harvester.js`, `js/modules/models_choice.js`, `js/modules/models_mode.js`, `js/modules/settings.js`, `js/modules/settings_form.js`, `js/modules/updates.js`, `js/modules/wizard.js` |
 | `js/share.js` | `js/modules/chat_media.js`, `js/modules/diary.js`, `js/modules/dreams.js` |
 | `js/stack.js` | `js/main.js` |
-| `js/style.js` | `js/main.js`, `js/modules/advanced.js`, `js/welcome.js` |
+| `js/style.js` | `js/main.js`, `js/modules/advanced.js`, `js/modules/today.js`, `js/welcome.js` |
 | `js/theme.js` | `js/main.js`, `js/style.js`, `js/welcome.js` |
 | `js/vad.js` | `js/modules/chat.js`, `js/modules/chat_media.js` |
 | `js/viewer.js` | `js/modules/chat.js`, `js/modules/chat_media.js`, `js/modules/diary.js`, `js/modules/dreams.js`, `js/modules/routines.js`, `js/modules/trace.js`, `js/modules/uploads.js` |
@@ -524,7 +525,7 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | GET `/v1/aurora/reflections` | `api/activity.py` | `script/svc_api.py`, `webui/js/modules/diary.js`, `webui/js/modules/reports.js` |
 | POST `/v1/aurora/agent` | `api/agents.py` | `script/bench_repair.py`, `script/svc_api.py`, `webui/js/modules/chat.js` |
 | GET `/v1/aurora/plugins/signature` | `api/agents.py` | `webui/js/modules/plugins.js` |
-| GET `/v1/aurora/plugins` | `api/agents.py` | `script/svc_api.py`, `webui/js/main.js`, `webui/js/modules/approvals.js`, `webui/js/modules/plugin_slot.js`, `webui/js/modules/plugins.js`, `webui/js/modules/routines.js` |
+| GET `/v1/aurora/plugins` | `api/agents.py` | `script/svc_api.py`, `webui/js/main.js`, `webui/js/modules/approvals.js`, `webui/js/modules/plugin_slot.js`, `webui/js/modules/plugins.js`, `webui/js/modules/routines.js`, `webui/js/modules/today.js` |
 | POST `/v1/aurora/plugins/{name}/{action}` | `api/agents.py` | `script/svc_api.py`, `webui/js/modules/expenses.js`, `webui/js/modules/plugins.js` |
 | GET `/v1/aurora/plugins-trash` | `api/agents.py` | `webui/js/modules/plugins.js` |
 | POST `/v1/aurora/plugins-trash/{item}/purge` | `api/agents.py` | `webui/js/modules/plugins.js` |
@@ -546,9 +547,11 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | PUT `/v1/aurora/astro/advice` | `api/astro.py` | `webui/js/modules/astro_advice.js` |
 | GET `/v1/aurora/astro/imaging` | `api/astro.py` | `webui/js/modules/astro_imaging.js` |
 | PUT `/v1/aurora/astro/imaging` | `api/astro.py` | `webui/js/modules/astro_imaging.js` |
-| GET `/v1/aurora/astro/sky` | `api/astro.py` | `webui/js/modules/astro_sky.js` |
-| GET `/v1/aurora/astro/sky/thumb` | `api/astro.py` | `webui/js/modules/astro_sky.js` |
+| GET `/v1/aurora/astro/sky` | `api/astro.py` | `webui/js/modules/astro_sky.js`, `webui/js/modules/today.js` |
+| GET `/v1/aurora/astro/sky/thumb` | `api/astro.py` | `webui/js/modules/astro_sky.js`, `webui/js/modules/today.js` |
 | POST `/v1/aurora/astro/sky/sequence` | `api/astro.py` | `webui/js/modules/astro_sky.js` |
+| GET `/v1/aurora/astro/sky/sequence/file` | `api/astro.py` | `webui/js/modules/astro_sky.js` |
+| POST `/v1/aurora/astro/sky/sequence/send` | `api/astro.py` | `webui/js/modules/astro_sky.js` |
 | GET `/v1/aurora/astro/live` | `api/astro.py` | `webui/js/modules/astro_live.js` |
 | GET `/v1/aurora/astro/nina` | `api/astro.py` | `webui/js/modules/astro_mount.js` |
 | GET `/v1/aurora/astro/nina/mount` | `api/astro.py` | `webui/js/modules/astro_mount.js` |
@@ -793,10 +796,10 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | POST `/v1/aurora/trash/{tid}/restore` | `api/uploads.py` | `webui/js/modules/uploads.js` |
 | DELETE `/v1/aurora/trash/{tid}` | `api/uploads.py` | `webui/js/modules/uploads.js` |
 | POST `/v1/aurora/uploads/purge` | `api/uploads.py` | `aurora/sys_trash.py`, `script/svc_api.py`, `script/svc_rem.py` |
-| GET `/v1/aurora/usage` | `api/usage.py` | `webui/js/modules/usage.js` |
+| GET `/v1/aurora/usage` | `api/usage.py` | `webui/js/modules/today.js`, `webui/js/modules/usage.js` |
 | POST `/v1/aurora/login` | `api/users.py` | `script/bench_memory_days.py`, `webui/js/main.js` |
 | GET `/v1/aurora/me` | `api/users.py` | `script/bench_memory_days.py`, `webui/js/main.js`, `webui/js/modules/plugin_slot.js`, `webui/js/modules/plugins.js`, `webui/js/modules/routines.js`, `webui/js/modules/users.js` |
-| PUT `/v1/aurora/me/prefs` | `api/users.py` | `webui/js/dates.js`, `webui/js/style.js`, `webui/js/theme.js` |
+| PUT `/v1/aurora/me/prefs` | `api/users.py` | `webui/js/dates.js`, `webui/js/modules/today_edit.js`, `webui/js/style.js`, `webui/js/theme.js` |
 | POST `/v1/aurora/me/welcomed` | `api/users.py` | `webui/js/welcome.js` |
 | POST `/v1/aurora/me/password` | `api/users.py` | `webui/js/modules/users.js` |
 | POST `/v1/aurora/me/totp` | `api/users.py` | `webui/js/modules/users.js` |
@@ -814,4 +817,4 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | GET `/v1/aurora/tts` | `api/voice.py` | `webui/js/voice.js` |
 | POST `/v1/aurora/tts` | `api/voice.py` | `webui/js/voice.js` |
 
-Modules nobody in the code imports: 0; routes nobody in the repository names: 4 of 321.
+Modules nobody in the code imports: 0; routes nobody in the repository names: 4 of 323.
