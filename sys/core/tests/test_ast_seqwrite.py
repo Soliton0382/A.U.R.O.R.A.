@@ -37,7 +37,7 @@ def panel(name: str, parent: str, rotate: bool) -> dict:
     take = node("SequenceItem.Imaging.TakeManyExposures", me, Name="Take Many Exposures",
                 Conditions=items(node("Conditions.LoopCondition", None, Iterations=20, CompletedIterations=17)))
     take["Items"] = items(node("SequenceItem.Imaging.TakeExposure", take["$id"], ExposureTime=120.0, Gain=-1, Offset=-1,
-                               ImageType="LIGHT"))
+                               ImageType="LIGHT", ExposureCount=52))
     first = (node("SequenceItem.Platesolving.CenterAndRotate", me, PositionAngle=125.0, Coordinates=coords(5, 35, 0, -5, 23, 0))
              if rotate else node("SequenceItem.Platesolving.Center", me, Coordinates=coords(5, 35, 0, -5, 23, 0)))
     group = node("Container.SequentialContainer", me, Name="20x120s")
@@ -69,6 +69,7 @@ def test_only_the_target_and_the_exposures_change():
     assert back["cool_c"] == -10.0 and back["dither_every"] == 4
     text = json.dumps(seq)
     assert '"Iterations": 40' in text and '"CompletedIterations": 17' not in text and '"Count": 41' not in text
+    assert '"ExposureCount": 52' not in text and '"ExposureCount": 0' in text      # the files numbered from 0
     assert "40x180s" in text and "Old target" not in text
 
 

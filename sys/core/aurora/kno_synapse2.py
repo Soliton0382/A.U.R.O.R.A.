@@ -40,12 +40,17 @@ def _graph(cfg: sys_config.Config, min_w: float = 0.0):
 
 
 def triads(cfg: sys_config.Config, reader, embedder, limit: int = 200) -> dict:
-    """Level-2 links from the triads A↔B↔C whose ends are similar themselves."""
+    """Level-2 links from the triads A↔B↔C whose ends are similar themselves. A pair looked at once is kept with its
+    similarity (l2_tried) and not looked at again: the first `limit` candidates were the same every round, so the
+    rest never came (C362: 16 rounds, 0 links, 708 of 908 never seen)."""
     adj, dom, have = _graph(cfg)
+    with closing(S._db(cfg)) as con, con:
+        con.execute("CREATE TABLE IF NOT EXISTS l2_tried (a TEXT, b TEXT, sim REAL, PRIMARY KEY (a, b))")
+        tried = {(a, b) for a, b in con.execute("SELECT a, b FROM l2_tried")}
     cands = []
     for b, ns in adj.items():
         for a, c in itertools.combinations(sorted(ns), 2):
-            if dom[a] != dom[c] and (a, c) not in have:
+            if dom[a] != dom[c] and (a, c) not in have and (a, c) not in tried:
                 cands.append((a, c))
     cands = list(dict.fromkeys(cands))[:limit]
     if not cands:
@@ -55,21 +60,36 @@ def triads(cfg: sys_config.Config, reader, embedder, limit: int = 200) -> dict:
     sids = [s for s in sids if s in sols]
     v = np.asarray(embedder.encode_queries([sols[s].text[:1500] for s in sids]), dtype=float)
     v /= np.linalg.norm(v, axis=1, keepdims=True) + 1e-12
-    ix, made = {s: i for i, s in enumerate(sids)}, 0
+    ix, made, seen = {s: i for i, s in enumerate(sids)}, 0, []
     for a, c in cands:
-        if a in ix and c in ix and not S.same_source(sols[a], sols[c]):
-            sim = float(v[ix[a]] @ v[ix[c]])
-            if sim >= cfg["AURORA_SYNAPSE_L2_MIN"]:
+        if a in ix and c in ix:
+            sim = None if S.same_source(sols[a], sols[c]) else float(v[ix[a]] @ v[ix[c]])
+            seen.append((a, c, sim))
+            if sim is not None and sim >= cfg["AURORA_SYNAPSE_L2_MIN"]:
                 S.link(cfg, (a, dom[a]), (c, dom[c]), sim, kind="triad")
                 with closing(S._db(cfg)) as con, con:
                     con.execute("UPDATE links SET level = 2 WHERE a = ? AND b = ?", S._pair(a, c))
                 made += 1
+    with closing(S._db(cfg)) as con, con:
+        con.executemany("INSERT OR REPLACE INTO l2_tried VALUES (?, ?, ?)", seen)
     return {"candidates": len(cands), "made": made}
 
 
 def concepts(cfg: sys_config.Config, reader, llm=None, min_w: float = 0.6) -> dict:
-    """Groups held by strong links across domains, named by the local model; the table is rebuilt each time."""
+    """Groups held by strong links across domains, named by the local model; the table is rebuilt each time, a group
+    mostly the same as one already named (Jaccard ≥ 0.5) keeps that name: every round asked the local model again for
+    all of them (C362: 733 requests in one round of 4 minutes, for 720 concepts)."""
     adj, dom, _ = _graph(cfg, min_w)
+    with closing(S._db(cfg)) as con:
+        old = [(set(json.loads(m)), n) for m, n in con.execute("SELECT members, name FROM concepts") if n]
+
+    def known(g: set) -> str:
+        best, name = 0.0, ""
+        for members, n in old:
+            j = len(members & g) / len(members | g)
+            if j > best:
+                best, name = j, n
+        return name if best >= 0.5 else ""
     seen, groups = set(), []
     for start in adj:
         if start in seen:
@@ -84,12 +104,13 @@ def concepts(cfg: sys_config.Config, reader, llm=None, min_w: float = 0.6) -> di
         seen |= comp
         if len(comp) >= 3 and len({dom[x] for x in comp}) >= 2:
             groups.append(sorted(comp))
-    rows = []
+    rows, asked = [], 0
     for g in groups:
-        sols = reader.get_many({s: 0 for s in g})
-        titles = [f"[{sols[s].domain}] {sols[s].title or sols[s].text[:80]}" for s in g if s in sols][:12]
-        name = ""
-        if llm is not None:
+        name = known(set(g))
+        if not name and llm is not None:
+            sols = reader.get_many({s: 0 for s in g})
+            titles = [f"[{sols[s].domain}] {sols[s].title or sols[s].text[:80]}" for s in g if s in sols][:12]
+            asked += 1
             try:
                 name = llm.complete(NAME, "\n".join(titles), 40).answer.strip().strip('"«»').split("\n")[0][:80]
             except Exception:                         # noqa: BLE001 — a concept without a name is still a concept
@@ -98,7 +119,7 @@ def concepts(cfg: sys_config.Config, reader, llm=None, min_w: float = 0.6) -> di
     with S._lock, closing(S._db(cfg)) as con, con:
         con.execute("DELETE FROM concepts")
         con.executemany("INSERT INTO concepts (members, domains, name, made) VALUES (?, ?, ?, ?)", rows)
-    return {"concepts": len(rows)}
+    return {"concepts": len(rows), "named": asked}
 
 
 def due(cfg: sys_config.Config) -> bool:

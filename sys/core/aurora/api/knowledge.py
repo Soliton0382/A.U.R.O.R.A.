@@ -29,6 +29,9 @@ def domains() -> list[dict]:
 
 def _import(name: str, data: bytes, domain: str, title: str, origin: str = "upload", meta: dict | None = None) -> dict:
     from aurora.kno_ingest import Importer
+    from aurora import sec_detonate, sec_filecheck
+    if origin in sec_detonate.OWNER_ORIGINS:          # a person's file: its reputation by its hash (and the decoy, in add)
+        sec_filecheck.gate(cfg, name, data)
     p = pipeline()
     with _write_lock:                                 # one import at a time; the answers go on (C219)
         rep = Importer(p.writer, p.indexer, cfg, llm=p.llm, decoy=p.llm).add(name, data, domain, title,

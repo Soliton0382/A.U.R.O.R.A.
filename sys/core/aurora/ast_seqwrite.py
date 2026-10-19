@@ -124,7 +124,8 @@ def build(template: dict, target: dict, exposure_s: float, count: int, gain: flo
         elif isinstance(n.get("Coordinates"), dict):
             _set_coords(n, "Coordinates", c)
         if k == "TakeExposure" and str(n.get("ImageType", "LIGHT")).upper() == "LIGHT":
-            n.update(ExposureTime=float(exposure_s), Gain=int(gain), Offset=int(offset))
+            # the frame number too: the template's count of an old night (52 on the owner's) numbered the new files on
+            n.update(ExposureTime=float(exposure_s), Gain=int(gain), Offset=int(offset), ExposureCount=0)
         elif k == "LoopCondition" and _kind_up(seq, n) == "TakeManyExposures":
             n.update(Iterations=int(count), CompletedIterations=0)
         elif k == "DitherAfterExposures" and dither_every:
@@ -288,7 +289,8 @@ def text(r: dict) -> str:
              f"{r['object']}{' — ' + ', '.join(r['common']) if r['common'] else ''}, {r['kind']}, notte del {r['date']}: "
              f"{r['hours']} h utili" + (f" ({r['window'][0]}–{r['window'][1]})" if r["window"][0] else "") + ".",
              f"{seq['targets'][0]['ra_h']:.4f} h, {seq['targets'][0]['dec_deg']:+.3f}° (J2000) · "
-             f"{r['count']} pose da {e.get('s'):g} s, gain {e.get('gain'):g}, offset {e.get('offset'):g} · "
+             f"{r['count']} pose da {e.get('s'):g} s ({r['count'] * (e.get('s') or 0) / 3600:.1f} h di luci), "
+             f"gain {e.get('gain'):g}, offset {e.get('offset'):g} · "
              f"dither ogni {seq['dither_every']} · raffreddamento {seq['cool_c']} °C · guida {'sì' if seq['guiding'] else 'no'}"
              f" · autofocus {'sì' if seq['autofocus'] else 'no'} · flip {'sì' if seq['flip'] else 'no'}."]
     if r["notes"]:

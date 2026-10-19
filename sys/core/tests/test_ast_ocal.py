@@ -111,6 +111,36 @@ def test_the_spot_off_the_drawtubes_centre_is_the_secondarys_tilt():
     assert v["ok"] is False and "basso" in v["text"] and "3 viti" in v["text"]
 
 
+def live(shadow=(392, 400, 36), reflection=(398, 400, 100), secondary=(397, 400, 150), tube=(400, 400, 310)):
+    """The live view of C365 (the camera close to the secondary): a faint lit rim of the drawtube, the secondary's border
+    a lighter disk inside it, the primary's reflection a brighter disk not filling it, the secondary's reflection with
+    the collimator a dark disk in that."""
+    im = Image.new("RGB", (800, 800), (20, 20, 20))
+    d = ImageDraw.Draw(im)
+    x, y, r = tube
+    d.ellipse([x - r, y - r, x + r, y + r], outline=(60, 60, 60), width=10)    # wider than the moiré filter
+    for (x, y, r), c in ((secondary, (170, 160, 140)), (reflection, (250, 250, 250)), (shadow, (25, 25, 25))):
+        d.ellipse([x - r, y - r, x + r, y + r], fill=c)
+    buf = io.BytesIO()
+    im.save(buf, "JPEG", quality=92)
+    return buf.getvalue()
+
+
+def test_the_live_view_has_its_rings_in_their_order():
+    """C365: on the owner's live frame the primary's reflection was taken for the secondary and the secondary's border
+    for the drawtube; and step 3 compared the collimator's ring with its own centre."""
+    r = O.analyse(live(), QUATTRO)
+    assert r["view"] == "live"
+    k = r["size"][0] / 800
+    assert abs(r["drawtube"]["r"] / k - 310) < 6 and abs(r["secondary"]["r"] / k - 150) < 4
+    assert abs(r["reflection"]["r"] / k - 100) < 4
+    v = {x["code"]: x for x in r["verdict"]}
+    assert v["secondary_tilt"]["ok"] and v["secondary_place"]["ok"]
+    assert v["primary"]["ok"] is False and "sinistra" in v["primary"]["text"]      # 8 px of 150: 5 %
+    centred = {x["code"]: x for x in O.analyse(live(shadow=(399, 400, 36)), QUATTRO)["verdict"]}
+    assert centred["primary"]["ok"] and "spot_hidden" in centred
+
+
 def test_what_is_not_a_collimator_view_is_said():
     buf = io.BytesIO()
     Image.new("RGB", (300, 200), (120, 120, 120)).save(buf, "PNG")

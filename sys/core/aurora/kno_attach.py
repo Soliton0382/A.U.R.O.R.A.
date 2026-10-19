@@ -94,7 +94,7 @@ class AttachmentHandler:
     def __init__(self, pipeline, cfg: sys_config.Config | None = None):
         self.cfg = cfg or sys_config.get()
         self.p = pipeline
-        self.importer = Importer(pipeline.writer, pipeline.indexer, self.cfg, llm=pipeline.llm)
+        self.importer = Importer(pipeline.writer, pipeline.indexer, self.cfg, llm=pipeline.llm, decoy=pipeline.llm)
         self.log = sys_log.get_logger("attach")
 
     def check(self, name: str, data: bytes, mime: str = "") -> None:
@@ -105,6 +105,8 @@ class AttachmentHandler:
             raise ValueError(f"{name}: larger than {limit} MB")
         if not is_image(name, mime) and not is_video(name, mime) and Path(name).suffix.lower() not in FORMATS:
             raise ValueError(f"{name}: unsupported (images, videos, or {', '.join(sorted(FORMATS))})")
+        from . import sec_filecheck                   # its reputation by its hash, the file never sent (owner, 20 Oct)
+        sec_filecheck.gate(self.cfg, name, data)
 
     def prepare(self, files: list[tuple[str, bytes, str]], question: str, emit, run_id: str) -> list[Attached]:
         lang = "Italian" if txt_lang.detect(question or "ciao come stai") == "it" else "English"

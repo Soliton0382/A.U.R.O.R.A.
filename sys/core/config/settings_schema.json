@@ -4314,14 +4314,13 @@
    "category": "plugins",
    "recommended": "",
    "evidence": "owner",
-   "en": "Brave Search API key for web search (optional).",
-   "it": "Chiave API di Brave Search per la ricerca web (facoltativa).",
+   "en": "Brave Search API key (optional): set, Brave is the web search of everyone (the answers and the agent); empty, DuckDuckGo and the other keyless engines.",
+   "it": "Chiave API di Brave Search (facoltativa): impostata, Brave è la ricerca web di tutti (risposte e agente); vuota, DuckDuckGo e gli altri motori senza chiave.",
    "services": [
     "aurora-api"
    ],
    "secret": true,
-   "optional": true,
-   "scope": "user"
+   "optional": true
   },
   {
    "key": "AURORA_EMAIL_IMAP_HOST",

@@ -114,6 +114,38 @@ def _edge(mask):
     return np.nonzero(mask & ~ndimage.binary_erosion(mask))
 
 
+def _ring(s, cx, cy, lo: float, hi: float, kind: str):
+    """A ring around (cx, cy) between the radii lo and hi, by 360 rays: «edge» the strongest fall of light outward (a
+    mirror's border), «rim» the brightest thin line (the drawtube's lit rim, faint at a short exposure): the circle
+    through those points, far ones dropped — (x, y, r, kept, points) or None."""
+    pts = []
+    rr = np.arange(int(lo), int(hi))
+    if len(rr) < 8:
+        return None
+    for a in np.linspace(0, 2 * np.pi, 360, endpoint=False):
+        x, y = (cx + rr * np.cos(a)).astype(int), (cy + rr * np.sin(a)).astype(int)
+        ok = (x >= 0) & (x < s.shape[1]) & (y >= 0) & (y < s.shape[0])
+        if not ok[: len(rr) // 2].all():                  # the ray's part in the picture, its first half at least
+            continue
+        v = s[y[ok], x[ok]]
+        if kind == "edge":
+            d = np.diff(v)
+            j = int(np.argmin(d))
+            good = d[j] < -2
+        else:
+            j = int(np.argmax(v))
+            good = 2 < j < len(v) - 3 and v[j] - float(np.median(v)) > 1.0
+        if good:
+            pts.append((y[ok][j], x[ok][j]))
+    if len(pts) < 90:
+        return None
+    P = np.array(pts)
+    x, y, r, kept, keep = _robust(P[:, 0], P[:, 1])
+    if kept < 0.6 or math.hypot(x - cx, y - cy) > 0.15 * r:
+        return None
+    return x, y, r, kept, P[keep]
+
+
 def load(data: bytes, side: int = SIDES[1]):
     from PIL import Image
     im = Image.open(io.BytesIO(data)).convert("RGB")
@@ -179,7 +211,8 @@ def _one(data: bytes, side: int) -> dict:
         if hs.max() > 0.002 * s.size and (hole is None or hs.max() > hole.sum()):
             disk, hole = filled, hl == (int(np.argmax(hs)) + 1)
     if disk is None:
-        return {"error": "non trovo il secondario con la sua ombra: serve la vista dal collimatore, a fuoco e intera"}
+        return {"error": "non trovo il secondario con la sua ombra: serve la vista dal collimatore, a fuoco e intera — "
+                         "se il riflesso è tutto bianco, abbassa l'esposizione o il gain finché si vede lo spider"}
     ys, xs = _edge(disk)
     cx, cy, r, kept, keep = _robust(ys, xs)
     if kept < 0.6 or r < 40:
@@ -196,6 +229,37 @@ def _one(data: bytes, side: int) -> dict:
     sx, sy, sr, _, _ = _robust(hy, hx)
     shadow = {"x": round(sx, 1), "y": round(sy, 1), "r": round(sr, 1)}
     out = {"size": [im.width, im.height], "secondary": sec, "shadow": shadow}
+    # the live view (C365): the camera close to the secondary, the primary's reflection does not fill it — the bright
+    # disk is that reflection, the secondary's own border a ring outside it, the drawtube a faint lit rim further out;
+    # taken so only when both rings are there, nested, and whole in the picture
+    def whole(t):
+        return t and t[0] - t[2] > -2 and t[1] - t[2] > -2 and t[0] + t[2] < im.width + 2 and t[1] + t[2] < im.height + 2
+
+    def live(refl, sec_c, tube):
+        out["view"] = "live"
+        out["reflection"] = {"x": round(refl[0], 1), "y": round(refl[1], 1), "r": round(refl[2], 1)}
+        out["secondary"] = sec_c
+        dx, dy, dr = tube[:3]
+        out["drawtube"] = {"x": round(dx, 1), "y": round(dy, 1), "r": round(dr, 1),
+                           "off": round(math.hypot(sec_c["x"] - dx, sec_c["y"] - dy) / dr, 4),
+                           "toward_deg": round(math.degrees(math.atan2(sec_c["y"] - dy, sec_c["x"] - dx)))}
+        return out
+    # the bright disk the primary's reflection, the secondary's border a ring outside it (its margin darker)…
+    outline = _ring(s, cx, cy, 1.08 * r, 2.0 * r, "edge")
+    if outline and outline[2] > 1.15 * r:
+        tube = _ring(s, cx, cy, 1.4 * outline[2], 3.6 * r, "rim")   # past the secondary's lit margin
+        if whole(tube) and tube[2] > 1.5 * outline[2]:
+            ox, oy, orr, _, P = outline
+            ratio = _ellipse_ratio(P[:, 1].astype(np.float64), P[:, 0].astype(np.float64))
+            return live((cx, cy, r), {"x": round(ox, 1), "y": round(oy, 1), "r": round(orr, 1),
+                                      "round": round(ratio, 4) if ratio == ratio else 1.0,
+                                      "round_err": sec["round_err"]}, tube)
+    # …or the bright disk the secondary itself (its margin as bright), the reflection a brighter disk inside it
+    inner = _ring(s, cx, cy, max(1.3 * sr, 0.3 * r), 0.95 * r, "edge")
+    if inner and 0.4 * r < inner[2] < 0.9 * r:
+        tube = _ring(s, cx, cy, 1.4 * r, 3.6 * r, "rim")
+        if whole(tube) and tube[2] > 1.5 * r:
+            return live(inner[:3], sec, tube)
     # the collimator's reflection: the brighter ring inside the shadow; the centre spot: the darkest blob inside it
     yy, xx = np.mgrid[0:s.shape[0], 0:s.shape[1]]
     inside = np.hypot(xx - sx, yy - sy) < 0.85 * sr
@@ -261,8 +325,42 @@ def place(o: dict, scope: dict | None) -> None:
     o["expected"] = e
 
 
+def _live(o: dict) -> list[dict]:
+    """The three steps on the live view (C365), the centre spot hidden behind the secondary's reflection: 1) the
+    primary's reflection centred in the drawtube (the secondary's tilt), 2) the secondary's border where the offset puts
+    it, 3) the secondary's reflection — the dark disk the collimator sits in — on the focuser's axis (the primary)."""
+    from .ast_stars import way
+    sec, d, ref, sh, out = o["secondary"], o["drawtube"], o["reflection"], o["shadow"], []
+
+    def step(code, n, what, p, screws):
+        off = math.hypot(p["x"] - d["x"], p["y"] - d["y"]) / sec["r"]
+        ok = off <= SPOT_OK
+        to = way(round(math.degrees(math.atan2(p["y"] - d["y"], p["x"] - d["x"]))))
+        out.append({"code": code, "ok": ok,
+                    "text": f"{n}) {what}: al centro del drawtube (scarto {off:.1%} del raggio del secondario)" if ok else
+                            f"{n}) {what}: spostato verso {to} di {off:.1%} del raggio del secondario rispetto al centro "
+                            f"del drawtube — {screws}"})
+    step("secondary_tilt", 1, "inclinazione del secondario, il riflesso del primario", ref, "le 3 viti del secondario")
+    e = o.get("expected")
+    if e:
+        top = max(abs(e["lo"]), abs(e["hi"])) + PLACE_TOL
+        ok = e["across"] <= PLACE_TOL and e["along"] <= top
+        out.append({"code": "secondary_place", "ok": ok,
+                    "text": f"2) posizione del secondario: il bordo è {e['along']:.1%} del suo raggio lungo il tubo (atteso "
+                            f"fino a {top:.0%}) e {e['across']:.1%} di traverso"
+                            + ("" if ok else " — " + ("di traverso: rotazione del secondario" if e["across"] > PLACE_TOL
+                                                      else "lungo il tubo: vite centrale del secondario"))})
+    step("primary", 3, "primario, il riflesso del secondario con il collimatore", sh,
+         "viti del primario (o la camera inclinata nel focheggiatore: la prova di rotazione lo dice)")
+    out.append({"code": "spot_hidden", "ok": None,
+                "text": "il salvabuchi è nascosto dal riflesso del secondario: il passo 3 usa quel riflesso sull'asse"})
+    return out
+
+
 def verdict(o: dict) -> list[dict]:
     from .ast_stars import way
+    if o.get("view") == "live":
+        return _live(o)
     sec, out = o["secondary"], []
     d = o.get("drawtube")
     # 1) the secondary's tilt: the centre spot on the focuser's axis (the drawtube's centre)
@@ -328,7 +426,7 @@ def drawn(im, o: dict) -> str:
     pic = im.copy()
     d = ImageDraw.Draw(pic)
     for key, col in (("secondary", (255, 0, 255)), ("shadow", (0, 220, 255)), ("ocal", (255, 140, 0)),
-                     ("drawtube", (60, 60, 255))):
+                     ("drawtube", (60, 60, 255)), ("reflection", (255, 230, 0))):
         c = o.get(key)
         if c:
             d.ellipse([c["x"] - c["r"], c["y"] - c["r"], c["x"] + c["r"], c["y"] + c["r"]], outline=col, width=3)

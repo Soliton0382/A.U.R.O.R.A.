@@ -96,7 +96,8 @@ def test_the_darks_library_says_what_matches_the_camera_and_never_reads_the_site
     _xisf(lib_dir / "old" / "Dark_EXPOSURE-60.00s_120g_10o.xisf", {"IMAGETYP": "'Integrated dark'", "EXPTIME": "60"}, 20)
     cfg.values["AURORA_ASTRO_DARKS_DIR"] = str(lib_dir)
     lib = A.darks_library(cfg)
-    now = next(d for d in lib["darks"] if not d["old"])
+    assert [d["file"] for d in lib["darks"]] == ["Dark_BIN-1_EXPOSURE-120.00s_120Gain_30Offset.xisf"]  # «old» never read
+    now = lib["darks"][0]
     assert (now["exposure_s"], now["gain"], now["offset"], now["frames"], now["date"]) == (120.0, 120.0, 30.0, 30, "2025-12-01")
     assert "41.9" not in json.dumps(lib) and "12.49" not in json.dumps(lib)               # the site never read
     m = A.darks_for(lib, A.parse(INV)["rig"])

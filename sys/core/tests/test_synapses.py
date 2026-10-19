@@ -101,6 +101,39 @@ def test_synapses_of_synapses_and_concepts(cfg):
     assert not S2.due(cfg)                                                 # nothing new since the round
 
 
+def test_level_two_looks_at_new_pairs_and_keeps_names(cfg):
+    """C362: the first `limit` triads were the same every round (the rest never looked at), and every concept was named
+    again by the local model each round."""
+    from aurora import kno_synapse2 as S2
+    cfg.values.update(AURORA_SYNAPSE_L2_MIN=0.6)
+    dom = {"b1": "biomedicine", "p1": "physics", "l1": "literature", "x1": "history", "m1": "medicine"}
+    for s in ("p1", "l1", "x1", "m1"):
+        S.link(cfg, ("b1", "biomedicine"), (s, dom[s]), 0.8)
+    vec = {"p1": [1, 0, 0], "l1": [0, 1, 0], "x1": [0, 0, 1], "m1": [0.9, 0, 0.1]}   # only p1~m1, the last pair
+
+    class Emb:
+        def encode_queries(self, texts):
+            return [vec[t] for t in texts]
+
+    class R:
+        def get_many(self, sids):
+            return {s: SimpleNamespace(sid=s, text=s, title=s, domain=dom[s]) for s in sids}
+
+    class Namer:
+        calls = 0
+
+        def complete(self, *a, **k):
+            Namer.calls += 1
+            return SimpleNamespace(answer="Un'idea")
+    seen = [S2.triads(cfg, R(), Emb(), limit=2) for _ in range(4)]
+    assert [o["candidates"] for o in seen] == [2, 2, 2, 0]                     # 6 pairs, each looked at once
+    assert sum(o["made"] for o in seen) == 1 and S.listing(cfg, level=2)[0]["a"] == "m1"
+    assert S2.concepts(cfg, R(), Namer()) == {"concepts": 1, "named": 1}
+    S.link(cfg, ("b1", "biomedicine"), ("q1", "chemistry"), 0.8)              # the group grows by one
+    assert S2.concepts(cfg, R(), Namer()) == {"concepts": 1, "named": 0} and Namer.calls == 1
+    assert S2.list_concepts(cfg)[0]["name"] == "Un'idea"
+
+
 def test_the_owner_pins_wakes_and_deletes(cfg):
     S.link(cfg, ("p1", "physics"), ("b1", "biomedicine"), 0.55)
     S.edit(cfg, "b1", "p1", pinned=True)

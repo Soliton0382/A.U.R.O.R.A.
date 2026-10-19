@@ -1,11 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2026 A.U.R.O.R.A. Project
-"""Plugin "web": read public pages, search. Never local or private addresses (no internal probing)."""
+"""Plugin "web": read public pages, search. Never local or private addresses (no internal probing).
+The search is the answers' own (kno_web.search): Brave Search when the machine has its key, else ddgs — DuckDuckGo and,
+when one refuses, the other engines it knows, with no key (C368: this tool knew only Brave, with no key since the
+first day, while the answers searched through ddgs)."""
 from __future__ import annotations
 
 import html.parser
 import ipaddress
-import os
 import socket
 from urllib.parse import urljoin, urlparse
 
@@ -13,7 +15,6 @@ import httpx
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 
-KEY = os.environ.get("AURORA_BRAVE_SEARCH_KEY", "")
 server = MCPServer("web", version="1.0")
 
 
@@ -90,14 +91,13 @@ def fetch_url(url: str, max_chars: int = 12000) -> str:
 
 @server.tool()
 def search(query: str, count: int = 8) -> str:
-    """Web search (Brave Search API): title, address, snippet of the best results."""
-    if not KEY:
-        return "not available: AURORA_BRAVE_SEARCH_KEY is empty"
-    r = httpx.get("https://api.search.brave.com/res/v1/web/search", params={"q": query, "count": max(1, min(count, 20))},
-                  headers={"X-Subscription-Token": KEY, "Accept": "application/json"}, timeout=30)
-    if r.status_code != 200:
-        raise ToolError(f"Brave Search {r.status_code}")
-    return "\n\n".join(f"{x['title']}\n{x['url']}\n{x.get('description', '')}" for x in r.json().get("web", {}).get("results", []))
+    """Web search: Brave Search when its key is set, else the engines without a key (DuckDuckGo and the others of
+    ddgs): title, address, snippet of the best results."""
+    from aurora import kno_web
+    hits = kno_web.search(query, n=max(1, min(count, 20)))
+    if not hits:
+        raise ToolError("search: no results (every engine refused or failed) — read the known sources with fetch_url")
+    return "\n\n".join(f"{x['title']}\n{x['url']}\n{x['text']}" for x in hits)
 
 
 if __name__ == "__main__":

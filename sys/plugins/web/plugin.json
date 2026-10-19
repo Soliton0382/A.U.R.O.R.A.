@@ -3,8 +3,8 @@
   "version": "1.0",
   "kind": "tool",
   "description": {
-    "en": "The web: read a public page as text; search (Brave Search API, with a key). Local and private addresses are refused.",
-    "it": "Il web: leggere una pagina pubblica come testo; cercare (Brave Search API, con una chiave). Gli indirizzi locali e privati sono rifiutati."
+    "en": "The web: read a public page as text; search with DuckDuckGo and the other engines without a key, or with Brave Search when its key is set. Local and private addresses are refused.",
+    "it": "Il web: leggere una pagina pubblica come testo; cercare con DuckDuckGo e gli altri motori senza chiave, o con Brave Search quando c'è la sua chiave. Gli indirizzi locali e privati sono rifiutati."
   },
   "command": [
     "{python}",
@@ -28,8 +28,8 @@
     "*": "external"
   },
   "setup": {
-    "it": "`fetch_url` funziona subito (solo pagine pubbliche: la rete di casa è sempre rifiutata).\nPer la **ricerca**: registrati su **Brave Search API**, scegli un piano, crea una chiave → `AURORA_BRAVE_SEARCH_KEY`. **▶ Prova** su `search` non è disponibile qui perché richiede una query: usala dalla chat con `/agente cerca …`.",
-    "en": "`fetch_url` works at once. For search: Brave Search API key → `AURORA_BRAVE_SEARCH_KEY`.",
+    "it": "Funziona subito: `fetch_url` legge le pagine pubbliche (la rete di casa è sempre rifiutata) e la **ricerca** usa DuckDuckGo e, se rifiuta, gli altri motori senza chiave — gli stessi delle risposte.\n**Brave Search** (facoltativo): registrati, crea una chiave → `AURORA_BRAVE_SEARCH_KEY`. Da quel momento è il motore predefinito per tutti (risposte e agente); se finisce la quota o non risponde, si torna ai motori senza chiave.\n**▶ Prova** su `search` non è disponibile qui perché richiede una query: usala dalla chat con `/agente cerca …`.",
+    "en": "Works at once: `fetch_url` reads public pages and the search uses DuckDuckGo and the other keyless engines, the answers' own. Brave Search (optional): its key → `AURORA_BRAVE_SEARCH_KEY` makes it the default for everyone; over quota or down, the keyless engines again.",
     "links": [
       {
         "label": "Brave Search API",

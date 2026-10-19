@@ -340,7 +340,8 @@ def _header(f: Path) -> dict:
 
 def darks_library(cfg: sys_config.Config) -> dict:
     """The integrated darks in AURORA_ASTRO_DARKS_DIR (a folder of this machine), each with what its name and header say;
-    the ones in a folder named «old» marked as such."""
+    the ones in a folder named «old» not read at all (owner, 20 Oct: «rimuoviamo dall'import i vecchi file… a 30» — the
+    library of January at offset 30, kept by the person, never to be shown or matched)."""
     where = str(cfg["AURORA_ASTRO_DARKS_DIR"] or "").strip()
     if not where:
         return {"folder": "", "darks": [], "error": ""}
@@ -357,6 +358,8 @@ def darks_library(cfg: sys_config.Config) -> dict:
     out = []
     for f in sorted(d.rglob("*")):
         if not f.is_file() or not DARK_FILE.search(f.name) or len(f.relative_to(d).parts) > 3:
+            continue
+        if "old" in [p.lower() for p in f.relative_to(d).parts[:-1]]:
             continue
         h = {}
         try:

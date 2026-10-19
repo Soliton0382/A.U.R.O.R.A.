@@ -233,15 +233,20 @@ def agent_gate(loop, plugin: str, tool: str, args: dict, text: str, emit, run_id
     return refusal(source, v)
 
 
-OWNER_ORIGINS = ("", "upload", "chat")              # the owner's own files: never a decoy's business
+OWNER_ORIGINS = ("", "upload", "chat")              # a person's own files: their reputation asked by hash too
 
 
-def import_gate(cfg: sys_config.Config, model, origin: str, url: str, text: str) -> None:
-    """Before a document from the network enters the vault (kno_ingest, the harvester's passages): ValueError when it
-    exploded — a poisoned passage kept in the vault would be read again for months. The site is listed like a page's."""
-    if origin in OWNER_ORIGINS or model is None:
+def import_gate(cfg: sys_config.Config, model, origin: str, url: str, text: str, name: str = "") -> None:
+    """Before a document enters the vault (kno_ingest, the harvester's passages): ValueError when it exploded — a
+    poisoned passage kept in the vault would be read again for months. The site is listed like a page's. A person's
+    own file too (owner, 2026-10-20: «attiva l'honeypot sui miei file»): a PDF they downloaded can hide an injection
+    as well as a page; it has no site, nothing listed — only refused."""
+    if model is None:
         return
-    source = url or (f"https://arxiv.org/abs/{origin[6:]}" if origin.startswith("arxiv:") else origin)
+    source = url or (f"https://arxiv.org/abs/{origin[6:]}" if origin.startswith("arxiv:")
+                     else f"file:{name}" if origin in OWNER_ORIGINS else origin)
     v = guard(cfg, model, source, text)
     if v["exploded"]:
-        raise ValueError(f"honeypot: {source[:200]} carries a prompt injection ({v['why'][:200]}): not imported")
+        raise ValueError(f"honeypot: {source[:200]} carries a prompt injection ({v['why'][:200]}): not imported"
+                         if origin not in OWNER_ORIGINS else
+                         f"honeypot: {name or 'il file'} contiene una prompt injection ({v['why'][:200]}): non lo leggo")

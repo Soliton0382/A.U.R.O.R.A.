@@ -28,6 +28,7 @@ TEXTS = {   # event -> (kind the owner chooses, view to open, {lang: title})
     "defence.failed": ("incident", "security", {"it": "⚠️ Blocco non riuscito", "en": "⚠️ Block failed"}),
     "defence.release": ("incident", "security", {"it": "🛡️ Blocco scaduto e tolto", "en": "🛡️ Block expired and lifted"}),
     "security.honeypot": ("incident", "security", {"it": "🍯 Tentativo di prompt injection fermato", "en": "🍯 Prompt injection stopped"}),
+    "security.filecheck": ("incident", "security", {"it": "🦠 File malevolo rifiutato", "en": "🦠 Malicious file refused"}),
     "shared.denied": ("incident", "security", {"it": "☁️ Traffico già rifiutato da una rete condivisa", "en": "☁️ Shared network's traffic, already refused"}),
     "security.action": ("incident", "security", {"it": "🛡️ Firewall", "en": "🛡️ Firewall"}),
     "auth.lockout": ("incident", "security", {"it": "🔐 Troppi accessi falliti", "en": "🔐 Too many failed logins"}),

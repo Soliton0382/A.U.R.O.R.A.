@@ -1,7 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2026 A.U.R.O.R.A. Project
 """The web for an answer (owner, 2026-10-07: «per la ricerca usiamo duck… ddgs»; M130): a search through ddgs (DuckDuckGo
-and, when one refuses, the other engines it knows: no key), and a public page read as text.
+and, when one refuses, the other engines it knows: no key), and a public page read as text. With a Brave Search key
+(AURORA_BRAVE_SEARCH_KEY, the machine's: set once by the admin) Brave answers first, for everyone — the answers and
+the agent's tool web.search alike (owner, 2026-10-20: «se uno si vuole installare brave gli mette l'api e lo attiva
+come predefinito»); ddgs when it fails or finds nothing.
 
 Only a query on the subject leaves the machine — written by the local model, masked (query) —, never the owner's
 question. A page is read only at a public address: the name resolved once, every address global, the
@@ -11,6 +14,7 @@ from __future__ import annotations
 
 import html.parser
 import ipaddress
+import os
 import re
 import socket
 import time
@@ -38,10 +42,38 @@ def query(model, question: str, cfg) -> str:
     return " ".join(re.sub(r"[^\w\s'’-]", " ", q).split()[:10])
 
 
+def brave_key() -> str:
+    """The Brave Search key: the process's own (a plugin's filtered environment) or the machine's settings."""
+    key = os.environ.get("AURORA_BRAVE_SEARCH_KEY", "")
+    if key:
+        return key
+    try:
+        from . import sys_config
+        return str(sys_config.get()["AURORA_BRAVE_SEARCH_KEY"] or "")
+    except Exception:  # noqa: BLE001 — no settings (a test, a tool alone): no key
+        return ""
+
+
+def brave(query: str, n: int, key: str) -> list[dict]:
+    r = httpx.get("https://api.search.brave.com/res/v1/web/search", params={"q": query, "count": max(1, min(n, 20))},
+                  headers={"X-Subscription-Token": key, "Accept": "application/json"}, timeout=30)
+    r.raise_for_status()
+    return [{"title": x.get("title") or "", "url": x.get("url") or "", "text": x.get("description") or ""}
+            for x in r.json().get("web", {}).get("results", []) if str(x.get("url", "")).startswith(("https://", "http://"))]
+
+
 def search(query: str, n: int = 6, region: str = "it-it") -> list[dict]:
     """[{"title", "url", "text"}]: the results' titles and snippets; [] when every engine refuses or fails."""
     if not query.strip():
         return []
+    key = brave_key()
+    if key:
+        try:
+            found = brave(query, n, key)
+        except Exception:  # noqa: BLE001 — over quota, down, a bad key: the engines without a key
+            found = []
+        if found:
+            return found
     try:
         from ddgs import DDGS
     except ImportError:                                  # not installed: no web, said by the caller

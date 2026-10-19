@@ -25,7 +25,7 @@ const COLOR = { drawtube: "#4060ff", secondary: "#ff40ff", shadow: "#00dcff", oc
 // each circle's radius its own, × the picture's width (owner, 19 Oct: «i raggi li facciamo che si possono modificare in
 // modo indipendente»): the drawtube changed, the others stay
 const FIRST = { cx: 0.5, cy: 0.5, rad: { drawtube: 0.42, secondary: 0.26, shadow: 0.084, ocal: 0.046, spot: 0.013 },
-  code: { on: false, x: 2000, y: 1500, w: 4000, h: 3000 },
+  code: { on: false, x: 1920, y: 1080, w: 3840, h: 2160 },   // the maker's codes are on 3840×2160 (C363)
   angle: 0, side: 1, manual: null, ratio: 4, aperture: 200, secondary_mm: 70, axis: { dx: 0, dy: 0 }, zoom: 1, night: false };
 
 // the same geometry as ast_ocal: the offset secondary's outline seen from `view` mm, centred from the focal point
@@ -63,6 +63,7 @@ function load() {
   }
   st.rad = { ...FIRST.rad, ...st.rad, v: 2 };
   st.code = { ...FIRST.code, ...st.code };
+  if (st.code.w === 4000 && st.code.h === 3000) Object.assign(st.code, { w: 3840, h: 2160 });   // the old guess (C363)
   return st;
 }
 
@@ -189,16 +190,50 @@ export function liveCard(scope) {
   };
   radius.addEventListener("input", () => { st.rad[pick] = Number(radius.value); px.value = Math.round(st.rad[pick] * size()[0]); draw(); });
   px.addEventListener("change", () => { if (Number(px.value) > 0) { st.rad[pick] = Number(px.value) / size()[0]; mark(); draw(); } });
+  // the train turned to the collimator's view, by degrees (owner, 20 Oct: «non posso ruotare la disposizione dei cerchi
+  // per farli combaciare con la visuale dell'ocal»): slider, typed degrees, ±1°, the mouth's side flipped
   const angle = el("input");
   Object.assign(angle, { type: "range", min: 0, max: 359, step: 1, value: st.angle });
-  angle.addEventListener("input", () => { st.angle = Number(angle.value); draw(); });
-  const flip = el("button", "btn", "⇄");
+  const deg = num(st.angle, 1, 0, 359);
+  const turnTo = (v) => { st.angle = ((Math.round(v) % 360) + 360) % 360; angle.value = st.angle; deg.value = st.angle; draw(); };
+  angle.addEventListener("input", () => turnTo(Number(angle.value)));
+  deg.addEventListener("change", () => turnTo(Number(deg.value)));
+  const ccw = el("button", "btn", "↺ 1°"), cw = el("button", "btn", "↻ 1°");
+  ccw.addEventListener("click", () => turnTo(st.angle - 1));
+  cw.addEventListener("click", () => turnTo(st.angle + 1));
+  const flip = el("button", "btn", "⇄ 180°");
   flip.title = t("col.live_flip");
   flip.addEventListener("click", () => { st.side = -st.side; draw(); });
+
+  // the train moved by pixels on X and Y (owner, 20 Oct: «i classici + e − degli spostamenti su assi x e y»): arrows
+  // on screen and on the keyboard (the picture clicked first), the step chosen, the centre typed
+  const stepPx = el("select");
+  for (const v of [1, 5, 20]) { const o = el("option", "", `${v} px`); o.value = v; stepPx.append(o); }
+  const cxIn = num(0, 1, 0, 20000), cyIn = num(0, 1, 0, 20000);
+  const showCentre = () => { const [w, h] = size(); cxIn.value = Math.round(st.cx * w); cyIn.value = Math.round(st.cy * h); };
+  const nudge = (ix, iy) => {
+    const [w, h] = size(), d = Number(stepPx.value);
+    st.cx += (ix * d) / w;
+    st.cy += (iy * d) / h;
+    showCentre();
+    draw();
+  };
+  cxIn.addEventListener("change", () => { st.cx = Number(cxIn.value) / size()[0]; draw(); });
+  cyIn.addEventListener("change", () => { st.cy = Number(cyIn.value) / size()[1]; draw(); });
+  const arrows = [["←", -1, 0], ["→", 1, 0], ["↑", 0, -1], ["↓", 0, 1]].map(([s, ix, iy]) => {
+    const b = el("button", "btn", s);
+    b.addEventListener("click", () => nudge(ix, iy));
+    return b;
+  });
+  const move = el("div", "col-row");
+  move.append(el("strong", "", `✥ ${t("col.live_move")}`), ...arrows, lab("col.live_step", stepPx), lab("col.live_cx", cxIn),
+    lab("col.live_cy", cyIn));
+  const rotate = el("div", "col-row");
+  rotate.append(el("strong", "", `🔄 ${t("col.live_axis")}`), angle, deg, ccw, cw, flip);
   const reset = el("button", "btn", t("col.live_reset"));
   reset.addEventListener("click", () => { Object.assign(st, { ...FIRST, rad: { ...FIRST.rad, v: 2 }, code: st.code, ratio: st.ratio, aperture: st.aperture, secondary_mm: st.secondary_mm, manual: st.manual }); mark(); draw(); });
   const sizes = el("div", "col-row");
-  sizes.append(lab("col.live_radius", radius), lab("col.live_px", px), less, more, lab("col.live_axis", angle), flip, reset);
+  sizes.append(lab("col.live_radius", radius), lab("col.live_px", px), less, more, reset);
 
   // the view: digital zoom around the circles, night mode; the camera's true centre by turning it (as the collimator's
   // own program does): the centre spot marked, the collimator turned 180° in the focuser, marked again — the middle is
@@ -215,8 +250,12 @@ export function liveCard(scope) {
   let marking = 0, first = null;
   turn.addEventListener("click", () => { marking = 1; first = null; said.textContent = t("col.live_turn1"); });
   unturn.addEventListener("click", () => { st.axis = { dx: 0, dy: 0 }; draw(); });
+  const cross = el("input");
+  cross.type = "checkbox";
+  cross.checked = st.cross !== false;
+  cross.addEventListener("change", () => { st.cross = cross.checked; draw(); });
   const view = el("div", "col-row");
-  view.append(lab("col.live_zoom", zoom), lab("col.live_night", night), turn, unturn);
+  view.append(lab("col.live_zoom", zoom), lab("col.live_night", night), lab("col.live_cross", cross), turn, unturn);
 
   // the collimator's centre code (its own program's «Center Code», a pair of pixels the maker gives for each serial):
   // the reflections' circles on that pixel; the code's resolution given, so any picture's size takes it
@@ -235,8 +274,17 @@ export function liveCard(scope) {
 
   const analyse = el("button", "primary", `🔎 ${t("col.live_analyse")}`);
   const verdict = el("ul", "an-findings");
-  c.append(src, pc.row, pc.how, pc.controls, tube, which, sizes, view, code, stage, said, analyse, verdict,
-    el("p", "muted", t("col.live_legend")));
+  // the picture first, under its source; the controls under it in groups that fold (owner, 20 Oct: «la pagina comincia
+  // ad essere incasinata»): the circles open, the tube and the view folded once set
+  const group = (icon, key, rows, open = false) => {
+    const d = el("details", "col-group");
+    d.open = open;
+    d.append(el("summary", "", `${icon} ${t(key)}`), ...rows);
+    return d;
+  };
+  c.append(src, pc.row, pc.how, pc.controls, stage, said, analyse, verdict,
+    group("⭕", "col.g_circles", [which, sizes, move, rotate], true), group("🔭", "col.g_tube", [tube]),
+    group("👁️", "col.g_view", [view, code]), el("p", "muted", t("col.live_legend")));
 
   function circle(ctx, x, y, r, color, dashed) {
     ctx.setLineDash(dashed ? [10, 8] : []);
@@ -257,6 +305,7 @@ export function liveCard(scope) {
     let ax = cx + (st.axis?.dx || 0) * w, ay = cy + (st.axis?.dy || 0) * h;     // the axis at the reflections' depth
     const odd = st.code.on && Math.abs(w / h - st.code.w / st.code.h) > 0.01;    // the code for another shape
     if (st.code.on && st.code.w > 0 && st.code.h > 0) { ax = (st.code.x / st.code.w) * w; ay = (st.code.y / st.code.h) * h; }
+    inner.style.aspectRatio = `${w} / ${h}`;            // the picture's own shape: circles never drawn as ellipses
     inner.style.transformOrigin = `${st.cx * 100}% ${st.cy * 100}%`;
     inner.style.transform = st.zoom > 1 ? `scale(${st.zoom})` : "";
     c.classList.toggle("col-night", !!st.night);
@@ -271,17 +320,21 @@ export function liveCard(scope) {
     circle(ctx, ax, ay, st.rad.ocal * w, COLOR.ocal, false);
     circle(ctx, ax, ay, st.rad.spot * w, COLOR.spot, false);
     ctx.setLineDash([]);
-    ctx.strokeStyle = "#3cff3c";                          // the focuser's axis: where the spot and the reflection go
-    ctx.beginPath();
-    ctx.moveTo(ax - R * 0.08, ay); ctx.lineTo(ax + R * 0.08, ay);
-    ctx.moveTo(ax, ay - R * 0.08); ctx.lineTo(ax, ay + R * 0.08);
-    ctx.stroke();
+    if (st.cross !== false) {                             // hidden on request: it covers the centre spot (owner, 20 Oct)
+      ctx.strokeStyle = "#3cff3c";                        // the focuser's axis: where the spot and the reflection go
+      ctx.beginPath();
+      ctx.moveTo(ax - R * 0.08, ay); ctx.lineTo(ax + R * 0.08, ay);
+      ctx.moveTo(ax, ay - R * 0.08); ctx.lineTo(ax, ay + R * 0.08);
+      ctx.stroke();
+    }
     ctx.strokeStyle = "rgba(255,255,255,.35)";            // the tube's axis, the open end at the arrow
     ctx.beginPath();
     ctx.moveTo(cx - dx * R, cy - dy * R); ctx.lineTo(cx + dx * R, cy + dy * R);
     ctx.stroke();
+    if (document.activeElement !== cxIn && document.activeElement !== cyIn) showCentre();
     if (marking) return;                                  // the turn's instructions stay on screen
-    said.textContent = (odd ? `⚠️ ${t("col.live_code_odd", { cw: st.code.w, ch: st.code.h, w, h })} ` : "") + (st.manual !== null
+    said.textContent = (odd ? `⚠️ ${t("col.live_code_odd", { cw: st.code.w, ch: st.code.h, w, h })} ` : "")
+      + (st.code.on ? `📌 ${t("col.live_code_said", { x: Math.round(ax), y: Math.round(ay) })} ` : "") + (st.manual !== null
       ? t("col.live_said_manual", { s: (sh * 100).toFixed(1), h: (shs * 100).toFixed(1) })
       : geo ? t("col.live_said", { s: (sh * 100).toFixed(1), v: Math.round(geo.view), o: geo.offset_mm.toFixed(1), h: (shs * 100).toFixed(1) })
         : t("col.live_said_none"));
@@ -315,7 +368,14 @@ export function liveCard(scope) {
     st.cy = drag.cy + y - drag.y;
     draw();
   });
-  canvas.addEventListener("pointerup", () => { drag = null; });
+  canvas.addEventListener("pointerup", () => { drag = null; showCentre(); });
+  canvas.tabIndex = 0;                                     // the arrows of the keyboard, once the picture is clicked
+  canvas.addEventListener("keydown", (ev) => {
+    const k = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[ev.key];
+    if (!k) return;
+    ev.preventDefault();
+    nudge(...k);
+  });
   canvas.addEventListener("wheel", (ev) => {
     ev.preventDefault();
     const f = ev.deltaY < 0 ? 1.01 : 1 / 1.01;

@@ -13,7 +13,7 @@ import { view, viewLink } from "../viewer.js";
 export const ICONS = {
   "run.start": "▶️", route: "🧭", "attach.image": "🖼️", "attach.video": "🎬", "image.plan": "🛠️", "image.edited": "🎨", "video.frames": "🎞️", "video.plan": "🎬", "attach.document": "📄", "self.state": "🩺", translate: "🌐",
   "question.standalone": "🧷", "retrieval.focus": "🎯", "answer.suggestions": "🧭",
-  "retrieval.filter": "🧹", "retrieval.hits": "🔎", "memory.recent": "🧠", gate: "🚪", "synthesis.domain": "🧩",
+  "retrieval.filter": "🧹", "retrieval.hits": "🔎", "memory.recent": "🧠", "memory.recall": "🧠", gate: "🚪", "synthesis.domain": "🧩",
   "verify.keep": "✅", "verify.drop": "✂️", "memory.write": "💾", "answer.final": "📝", "run.end": "🏁", error: "⛔",
   "acquire.confirmed": "🛰️", "acquire.round": "🛰️", "acquire.candidates": "📚", "acquire.paper": "📥", "acquire.error": "⚠️", "acquire.done": "🏁",
   "rem.start": "🌙", "rem.session_memory": "🗂️", "rem.thought": "💭", "rem.dream": "🌌", "rem.self_review": "🔍", "rem.repair": "🛠️",
@@ -50,6 +50,7 @@ export function describe(name, p) {
     case "agent.local": return t("ev.agent.local", { plugin: p.plugin });
     case "retrieval.hits": return t("ev.retrieval.hits", { n: p.hits.length });
     case "memory.recent": return t("ev.memory.recent", { n: p.turns });
+    case "memory.recall": return t("ev.memory.recall", { n: p.kept ?? 0 });
     case "gate": return p.open ? t("ev.gate.open", { ids: p.passages.join(", ") }) : t("ev.gate.closed");
     case "synthesis.domain": return t(p.kept ? "ev.synthesis.domain.kept" : "ev.synthesis.domain.empty", { domain: p.domain });
     case "verify.keep": return t("ev.verify.keep", { s: p.sentence });

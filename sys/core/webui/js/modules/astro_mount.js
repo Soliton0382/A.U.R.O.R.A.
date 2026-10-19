@@ -45,8 +45,8 @@ export function drawSky(canvas, m) {
   g.beginPath(); g.arc(x, y, 7, 0, Math.PI * 2); g.fill();
 }
 
-export function mountBox(box) {
-  box.innerHTML = `<h4>🔭 <span data-i18n="am.title"></span></h4><div class="am-state muted"></div>
+export function mountBox(box, onData = null) {   // onData: N.I.N.A.'s state, for the shooting box
+  box.innerHTML = `<div class="am-state muted"></div>
     <div class="am-views"><figure><canvas class="am-mount" aria-label="mount"></canvas><figcaption data-i18n="am.mount"></figcaption></figure>
     <figure><canvas class="am-sky" aria-label="sky"></canvas><figcaption data-i18n="am.sky"></figcaption></figure></div>
     <ul class="am-lines"></ul>`;
@@ -85,7 +85,8 @@ export function mountBox(box) {
   };
   const refresh = async () => {
     let d;
-    try { d = await call("/v1/aurora/astro/nina"); } catch (e) { box.querySelector(".am-state").textContent = e.message; return; }
+    try { d = await call("/v1/aurora/astro/nina"); } catch (e) { box.querySelector(".am-state").textContent = e.message; onData?.(null); return; }
+    onData?.(d);
     const st = box.querySelector(".am-state");
     if (!d.reachable) { st.textContent = t("am.off", { e: d.error || "" }); return; }
     const m = d.mount || {};
@@ -96,7 +97,7 @@ export function mountBox(box) {
     moveTo(m);
     const c = d.camera || {}, fo = d.focuser || {}, gu = d.guider || {}, sq = d.sequence || {};
     box.querySelector(".am-lines").replaceChildren(
-      el("li", "", `📷 ${c.name || "—"}: ${c.state || "—"} · ${f(c.temp_c)} °C → ${f(c.target_c)} °C${c.cooler ? ` (${f(c.power, 0)}%)` : ` · ${t("am.cooler_off")}`} · gain ${c.gain ?? "—"} / offset ${c.offset ?? "—"}`),
+      el("li", "", `📷 ${c.name || "—"}: ${c.state || "—"}`),
       el("li", "", `🎯 ${t("am.focuser")}: ${fo.position ?? "—"} · ${f(fo.temp_c)} °C${fo.moving ? ` · ${t("am.moving")}` : ""}`),
       el("li", "", `🧭 PHD2: ${gu.state || "—"}${gu.rms?.total ? ` · RMS ${f(gu.rms.total, 2)}″` : ""}`),
       el("li", "", `🗂️ ${t("am.sequence")}: ${sq.active ? sq.running.join(" › ") : t("am.idle")}`));

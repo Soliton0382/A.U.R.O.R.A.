@@ -138,7 +138,7 @@ def test_green_needs_a_service_not_only_the_link_s_own_form(cfg, monkeypatch):
     assert not sec_detonate.green(cfg, "email.read_message")
 
 
-def test_a_poisoned_document_from_the_network_never_enters_the_vault(cfg):
+def test_a_poisoned_document_never_enters_the_vault_the_owner_s_own_neither(cfg):
     from aurora.kno_ingest import Importer
     from aurora.sol_index import Indexer
     from aurora.sol_reader import VaultReader
@@ -152,5 +152,8 @@ def test_a_poisoned_document_from_the_network_never_enters_the_vault(cfg):
         imp.add("p.txt", data, "law_it", origin="harvest:x", meta={"url": "https://poison.example.org/p"})
     assert not VaultReader(cfg).count("law_it").get("law_it")
     assert sec_detonate.listed(cfg, "https://poison.example.org/other")
-    mine = imp.add("mio.txt", data, "law_it", origin="upload")                    # the owner's own file: no decoy
-    assert mine.written > 0
+    with pytest.raises(ValueError, match="mio.txt contiene una prompt injection"):   # the owner's own file: tried too
+        imp.add("mio.txt", data, "law_it", origin="upload")
+    assert not VaultReader(cfg).count("law_it").get("law_it")
+    clean = imp.add("ricetta.txt", (("Articolo 1. " + PAGE + " ") * 20).encode(), "law_it", origin="chat")
+    assert clean.written > 0

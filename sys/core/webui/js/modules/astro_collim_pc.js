@@ -20,7 +20,15 @@ export function pcPanel(card, { show, stop }) {
   const said = el("small", "muted");
   const how = el("div", "col-pc-how");
   const row = el("div", "col-row");
-  row.append(el("strong", "", `📡 ${t("col.pc")}`), cams, go, halt, link, said);
+  // the package always in sight (owner, 20 Oct: «non vedo dove scaricare il ps1»): it holds no key, the key comes
+  // with «Collega il PC»
+  const bundle = () => {
+    const a = el("a", "btn", `⬇️ ${t("col.pc_script")}`);
+    a.href = "/v1/aurora/astro/camera/bundle";
+    a.download = "aurora_camera.zip";
+    return a;
+  };
+  row.append(el("strong", "", `📡 ${t("col.pc")}`), cams, go, halt, bundle(), link, said);
   const controls = el("details", "col-pc-controls");
   controls.hidden = true;
   const put = (body) => call("/v1/aurora/astro/camera", { method: "PUT", body: JSON.stringify(body) });
@@ -98,12 +106,20 @@ export function pcPanel(card, { show, stop }) {
   link.addEventListener("click", async () => {
     if (!confirm(t("col.pc_link_q"))) return;
     const k = await call("/v1/aurora/astro/camera/key", { method: "POST" });
-    const dl = el("a", "btn", `⬇️ ${t("col.pc_script")}`);
-    dl.href = "/v1/aurora/astro/camera/bundle";
-    dl.download = "aurora_camera.zip";
+    const dl = bundle();
     const steps = el("ol", "col-steps");
     for (const n of [1, 2, 3, 4, 5]) steps.append(el("li", "", t(`col.pc_step${n}`)));
-    how.replaceChildren(el("p", "muted", t("col.pc_how")), dl, steps, el("pre", "col-text", k.command));
+    // the command in sight, with its copy (owner, 20 Oct: «il comando powershell nella pagina non c'è»: it was a
+    // small grey box under the steps); shown once, as the key
+    const cmd = el("pre", "col-text col-pc-cmd", k.command);
+    const copy = el("button", "approve", `📋 ${t("col.pc_copy")}`);
+    copy.addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(k.command); copy.textContent = `✅ ${t("col.pc_copied")}`; }
+      catch { getSelection().selectAllChildren(cmd); }
+    });
+    how.replaceChildren(el("strong", "", `🖥️ ${t("col.pc_cmd")}`), cmd, copy, el("p", "muted", t("col.pc_cmd_once")),
+      el("p", "muted", t("col.pc_how")), dl, steps);
+    how.scrollIntoView({ behavior: "smooth", block: "start" });
     state();
   });
   const timer = setInterval(() => { if (!document.body.contains(card)) clearInterval(timer); else state(); }, 4000);

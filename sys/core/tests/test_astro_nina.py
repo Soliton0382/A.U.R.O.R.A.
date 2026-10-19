@@ -69,3 +69,28 @@ def test_the_mount_alone_every_second_without_the_site():
     assert "41.12" not in json.dumps(w) and "Site" not in json.dumps(w)
     srv.shutdown()
     assert not N.where("127.0.0.1", 9)["reachable"]
+
+
+def _series(name, exp, total, done, status="CREATED"):
+    shot = {"Status": status, "Name": "Take Exposure", "ImageType": "LIGHT", "ExposureTime": exp, "Gain": 1600,
+            "Offset": 20, "ExposureCount": 52}
+    loop = {"Status": status, "Name": "Loop For Iterations_Condition", "Iterations": total, "CompletedIterations": done}
+    take = {"Status": status, "Name": "Take Many Exposures_Container", "Items": [shot, loop]}
+    return {"Status": status, "Name": f"{name}_Container", "Items": [take]}
+
+
+def test_the_shooting_progress_in_hours():
+    """Owner, 20 Oct: «il numero di ore totali… una sezione dedicata allo scatto e al progresso totale»: each series of
+    the tree N.I.N.A. sends (the shape of its sequence/state), the totals; the file counter is not the progress."""
+    tree = [{"GlobalTriggers": []}, {"Name": "Targets_Container", "Items": [
+        {"Name": "IC 5070_Container", "Target": {}, "Items": [_series("50x180s", 180.0, 50, 12, "RUNNING"),
+                                                               _series("20x300s", 300.0, 20, 0)]}]}]
+    p = N.sequence(tree)
+    assert [(s["target"], s["name"], s["done"], s["total"], s["running"]) for s in p["series"]] == [
+        ("IC 5070", "50x180s", 12, 50, True), ("IC 5070", "20x300s", 0, 20, False)]
+    assert (p["planned_s"], p["done_s"], p["left_s"]) == (15000, 2160, 12840)
+
+
+def test_the_exposure_counts_down():
+    assert N._ends_in("2026-10-20T11:31:42.9050137+02:00", now=0) > 0
+    assert N._ends_in("2020-01-01T00:00:00+00:00") is None and N._ends_in("never") is None

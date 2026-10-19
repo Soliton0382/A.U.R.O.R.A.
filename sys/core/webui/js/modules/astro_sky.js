@@ -57,7 +57,9 @@ function nightCard(d) {
 
 // the sequence's base values, the measured ones first, each changeable before it goes to N.I.N.A. (owner, 19 Oct: «la
 // possibilità di modificare parametri base, come il numero di scatti»): written again with them
-function seqParams(p, write) {
+// the total time the lights make, as the values are typed (owner, 20 Oct: «il numero di ore totali in base al numero
+// di light × il tempo per ogni frame»), against the hours the object is up tonight
+function seqParams(p, write, nightH = null) {
   const form = el("form", "sky-seq-params");
   if (!p) return form;
   const fields = [["count", 1, 2000, 1], ["exposure_s", 0.001, 3600, "any"], ["gain", 0, 10000, 1], ["offset", 0, 10000, 1]];
@@ -70,9 +72,20 @@ function seqParams(p, write) {
     lab.append(inp);
     form.append(lab);
   }
+  const total = el("output", "sky-seq-total");
+  const sum = () => {
+    const s = Number(inputs.count.value) * Number(inputs.exposure_s.value);
+    const h = s / 3600;
+    total.textContent = `⏱️ ${t("sky.seq_total", { h: h.toFixed(h < 10 ? 2 : 1), m: Math.round(s / 60) })}`
+      + (nightH ? ` · ${t(h > nightH ? "sky.seq_over" : "sky.seq_fits", { n: nightH })}` : "");
+    total.classList.toggle("warn", !!nightH && h > nightH);
+  };
+  inputs.count.addEventListener("input", sum);
+  inputs.exposure_s.addEventListener("input", sum);
+  sum();
   const again = el("button", "btn", `✍️ ${t("sky.seq_rewrite")}`);
   again.type = "submit";
-  form.append(again);
+  form.append(total, again);
   form.addEventListener("submit", (e) => {
     e.preventDefault();
     write(Object.fromEntries(Object.entries(inputs).map(([k, v]) => [k, Number(v.value)])));
@@ -196,7 +209,7 @@ export async function skyTab(box) {
         try {
           const s = await call("/v1/aurora/astro/sky/sequence", { method: "POST", body: JSON.stringify({ object: name, date: last.date || "", kind: last.kind && last.kind !== "galaxy" ? last.kind : "", ...own }) });
           said.textContent = s.error ? `⚠️ ${s.error}` : s.text;
-          if (s.file) acts.replaceChildren(seqParams(s.params, write), ...seqActions(s.file));
+          if (s.file) acts.replaceChildren(seqParams(s.params, write, r.hours), ...seqActions(s.file));
         } catch (e) { said.textContent = e.message; }
         plan.disabled = false;
       };

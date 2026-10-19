@@ -133,6 +133,17 @@ def test_a_real_ffmpeg_sends_and_the_page_reads(server):
             ff.kill()
 
 
+def test_the_choice_and_the_settings_outlive_a_restart(tmp_path):
+    """C366: the camera chosen lived only in memory: after an API restart the PC was linked and sent nothing."""
+    r = C.Relay(tmp_path)
+    r.want("anna", "ocal3")
+    r.settings("anna", {"exposure": -10, "gain": 40})
+    again = C.Relay(tmp_path)                                             # the API restarted
+    told = again.pc("anna", ["ocal3"], None)
+    assert told["wanted"] == "ocal3" and told["settings"] == {"exposure": -10.0, "gain": 40.0} and told["version"] == 1
+    assert again.pc("bruno", ["x"], None)["wanted"] == ""                 # each person's own
+
+
 def test_the_settings_checked_and_the_dialog_a_counter(tmp_path):
     r = C.Relay(tmp_path)
     out = r.settings("anna", {"gain": 12, "auto_exposure": 0, "size": [3840, 2160], "fps": 99, "send_width": 100})

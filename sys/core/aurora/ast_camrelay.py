@@ -57,10 +57,12 @@ class Frames:
 
 
 class Relay:
-    """The keys (by hash, with their person) in the status folder; cameras, choice and last frame in memory."""
+    """The keys (by hash, with their person) and each person's choice (the camera wanted, the settings asked) in the
+    status folder, so an API restart does not stop the live view (C366); the PC's cameras and the last frame in memory."""
 
     def __init__(self, status_dir: Path):
         self.file = Path(status_dir) / "camera_keys.json"
+        self.choices = Path(status_dir) / "camera_choice.json"
         self.lock = threading.Lock()
         self.state: dict[str, dict] = {}
 
@@ -93,9 +95,26 @@ class Relay:
     def has_key(self, user: str) -> bool:
         return any(v.get("user") == user for v in self._keys().values())
 
+    def _saved(self) -> dict:
+        try:
+            d = json.loads(self.choices.read_text(encoding="utf-8"))
+            return d if isinstance(d, dict) else {}
+        except (OSError, ValueError):
+            return {}
+
+    def _save(self, user: str, s: dict) -> None:
+        d = self._saved()
+        d[user] = {"wanted": s["wanted"], "settings": s["settings"], "version": s["version"]}
+        self.choices.parent.mkdir(parents=True, exist_ok=True)
+        self.choices.write_text(json.dumps(d), encoding="utf-8")
+
     def _s(self, user: str) -> dict:
-        return self.state.setdefault(user, {"devices": [], "wanted": "", "seen": 0.0, "frame": None, "at": 0.0, "n": 0,
-                                            "rate": 0.0, "settings": {}, "version": 0, "camera": {}})
+        if user not in self.state:
+            kept = self._saved().get(user) or {}
+            self.state[user] = {"devices": [], "wanted": str(kept.get("wanted") or ""), "seen": 0.0, "frame": None,
+                                "at": 0.0, "n": 0, "rate": 0.0, "settings": dict(kept.get("settings") or {}),
+                                "version": int(kept.get("version") or 0), "camera": {}}
+        return self.state[user]
 
     def settings(self, user: str, change: dict) -> dict:
         """The page's asks for the camera, checked and merged; each change a new version the PC applies once."""
@@ -132,6 +151,7 @@ class Relay:
             st["settings"].update(out)
             st["settings"] = {k: v for k, v in st["settings"].items() if v is not None}
             st["version"] += 1
+            self._save(user, st)
             return {"settings": dict(st["settings"]), "version": st["version"]}
 
     def pc(self, user: str, names: list, camera: dict | None) -> dict:
@@ -150,6 +170,7 @@ class Relay:
             s["wanted"] = str(name)[:120]
             if not name:
                 s["frame"] = None
+            self._save(user, s)
 
     def wanted(self, user: str) -> str:
         with self.lock:

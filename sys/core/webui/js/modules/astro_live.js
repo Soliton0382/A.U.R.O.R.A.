@@ -9,6 +9,7 @@ import { el } from "../dom.js";
 import { t } from "../i18n.js";
 import { tunerBox } from "./astro_tuner.js";
 import { mountBox } from "./astro_mount.js";
+import { shootBox } from "./astro_shoot.js";
 
 const RA = "#4aa3ff", DEC = "#ff6b6b";
 const f = (x, d = 2) => (x == null ? "—" : Number(x).toFixed(d));
@@ -71,15 +72,22 @@ function seen(d, imaging) {
 }
 
 export function liveTab(box, imagingScale) {
-  box.innerHTML = `<p class="muted" data-i18n="al.hint"></p><div class="al-state"></div>
-    <div class="al-tiles"></div><canvas class="al-chart" aria-label="guiding"></canvas>
-    <div class="al-legend"><span style="color:${RA}">━ RA</span> <span style="color:${DEC}">━ DEC</span></div>
-    <h4>👁️ <span data-i18n="al.seen"></span></h4><ul class="al-seen"></ul>
-    <h4>📋 <span data-i18n="al.events"></span></h4><div class="al-events"></div><div class="al-mount"></div><div class="al-tuner"></div>`;
+  // one screen, in blocks (owner, 20 Oct: «tutto sotto controllo in una unica videata… la pagina comincia ad essere
+  // incasinata»): the shooting first, then the guiding, the mount, the tuner; the events folded away
+  box.innerHTML = `<p class="muted" data-i18n="al.hint"></p>
+    <section class="al-sec"><h3>📸 <span data-i18n="sh.title"></span></h3><div class="al-shoot"></div></section>
+    <section class="al-sec"><h3>🧭 <span data-i18n="al.guide"></span></h3><div class="al-state"></div>
+      <div class="al-tiles"></div><canvas class="al-chart" aria-label="guiding"></canvas>
+      <div class="al-legend"><span style="color:${RA}">━ RA</span> <span style="color:${DEC}">━ DEC</span></div>
+      <h4>👁️ <span data-i18n="al.seen"></span></h4><ul class="al-seen"></ul>
+      <details class="al-more"><summary>📋 <span data-i18n="al.events"></span></summary><div class="al-events"></div></details></section>
+    <section class="al-sec"><h3>🔭 <span data-i18n="am.title"></span></h3><div class="al-mount"></div></section>
+    <section class="al-sec"><div class="al-tuner"></div></section>`;
   box.querySelectorAll("[data-i18n]").forEach((e) => { e.textContent = t(e.dataset.i18n); });
   let timer = null, ticks = 0;
   const tuner = tunerBox(box.querySelector(".al-tuner"));
-  const mount = mountBox(box.querySelector(".al-mount"));
+  const shoot = shootBox(box.querySelector(".al-shoot"));
+  const mount = mountBox(box.querySelector(".al-mount"), shoot.update);
   const tick = async () => {
     let d;
     try { d = await call("/v1/aurora/astro/live"); } catch (e) { box.querySelector(".al-state").textContent = e.message; return; }

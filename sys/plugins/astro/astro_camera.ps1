@@ -13,7 +13,9 @@ param(
   [switch]$Insecure,
   [switch]$List
 )
-$ErrorActionPreference = "Stop"
+# "Continue", not "Stop": Windows PowerShell 5.1 turns any line a program writes on stderr into an error, and with
+# "Stop" the expected failure of the first check (OpenCV not installed yet) ended the script (owner's PC, 20 Oct)
+$ErrorActionPreference = "Continue"
 $here = $PSScriptRoot
 $venv = Join-Path $here ".aurora-camera"
 $vpy = Join-Path $venv "Scripts\python.exe"
@@ -21,7 +23,7 @@ $vpy = Join-Path $venv "Scripts\python.exe"
 function Find-Python {
   $py = Get-Command py -ErrorAction SilentlyContinue
   if ($py) {
-    $exe = (& py -3 -c "import sys; print(sys.executable)" 2>$null)
+    $exe = (& py -3 -c "import sys; print(sys.executable)" 2>&1 | Where-Object { $_ -is [string] } | Select-Object -Last 1)
     if ($LASTEXITCODE -eq 0 -and $exe) { return $exe.Trim() }
   }
   $p = Get-Command python -ErrorAction SilentlyContinue
@@ -51,7 +53,8 @@ if (-not (Test-Path $vpy)) {
   if ($LASTEXITCODE -ne 0) { Write-Host "the folder could not be made"; exit 1 }
 }
 
-& $vpy -c "import cv2, pygrabber" 2>$null
+# a check that writes nothing on stderr: 0 when both are installed
+& $vpy -c "import importlib.util as u, sys; sys.exit(0 if u.find_spec('cv2') and u.find_spec('pygrabber') else 1)"
 if ($LASTEXITCODE -ne 0) {
   Write-Host "Installing OpenCV and pygrabber (once)..."
   & $vpy -m pip install --disable-pip-version-check --quiet opencv-python pygrabber

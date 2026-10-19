@@ -238,7 +238,7 @@ class Importer:
         if not parts:
             raise ValueError(f"{name}: no text found")
         from . import sec_detonate                    # from the network: tried on a decoy before it enters the vault
-        sec_detonate.import_gate(self.cfg, self.decoy, origin, str((meta or {}).get("url") or ""), text)
+        sec_detonate.import_gate(self.cfg, self.decoy, origin, str((meta or {}).get("url") or ""), text, name)
         from . import kno_dedup                       # the same document in another form: not a second copy (C150)
         lang = txt_lang.detect(" ".join(parts[:3]))
         from .sol_reader import VaultReader

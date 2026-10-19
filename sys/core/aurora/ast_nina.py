@@ -10,6 +10,7 @@ to 0.1°, the hour angle to 0.01 h. Asked at most every ASK_S; an unreachable PC
 from __future__ import annotations
 
 import json
+import re
 import threading
 import time
 import urllib.error
@@ -61,11 +62,24 @@ def mount(m: dict) -> dict:
             "guide_rate": _num(m.get("GuideRateRightAscensionArcsecPerSec"), 2)}
 
 
+def _ends_in(iso, now: float | None = None):
+    """Seconds to N.I.N.A.'s «ExposureEndTime» (an ISO time with its offset), None when past or unreadable."""
+    from datetime import datetime
+    try:
+        end = datetime.fromisoformat(str(iso)[:26] + str(iso)[-6:] if len(str(iso)) > 32 else str(iso)).timestamp()
+    except ValueError:
+        return None
+    left = end - (now if now is not None else time.time())
+    return round(left, 1) if left > 0 else None
+
+
 def camera(c: dict) -> dict:
+    exposing = bool(c.get("IsExposing"))
     return {"connected": bool(c.get("Connected")), "name": c.get("DisplayName") or c.get("Name") or "",
             "state": c.get("CameraState") or "", "temp_c": _num(c.get("Temperature"), 1), "target_c": _num(c.get("TargetTemp"), 1),
             "cooler": bool(c.get("CoolerOn")), "power": _num(c.get("CoolerPower"), 0), "gain": c.get("Gain"),
-            "offset": c.get("Offset"), "size": [c.get("XSize"), c.get("YSize")]}
+            "offset": c.get("Offset"), "size": [c.get("XSize"), c.get("YSize")], "exposing": exposing,
+            "ends_in_s": _ends_in(c.get("ExposureEndTime")) if exposing else None}
 
 
 def focuser(f: dict) -> dict:
@@ -94,7 +108,62 @@ def sequence(s) -> dict:
             for x in n:
                 walk(x)
     walk(s)
-    return {"running": running[-4:], "active": bool(running)}
+    return {"running": running[-4:], "active": bool(running), **progress(s)}
+
+
+def progress(s) -> dict:
+    """The sequence's shooting (owner, 20 Oct: «il numero di ore totali… una sezione dedicata allo scatto e al progresso
+    totale»): each series — a container holding a light «Take Exposure» and its loop of N iterations — with its target,
+    exposure, gain, offset, done and planned; the totals in seconds. From the tree N.I.N.A. sends, nothing asked twice."""
+    series: list[dict] = []
+
+    def walk(n, target, above=""):
+        if isinstance(n, list):
+            for x in n:
+                walk(x, target, above)
+            return
+        if not isinstance(n, dict):
+            return
+        if "Target" in n and n.get("Name"):
+            target = str(n["Name"]).removesuffix("_Container")
+        kids = n.get("Items") if isinstance(n.get("Items"), list) else []
+        kids = kids + (n.get("Conditions") if isinstance(n.get("Conditions"), list) else [])
+        shot = next((k for k in kids if isinstance(k, dict) and "ExposureTime" in k
+                     and str(k.get("ImageType", "LIGHT")).upper() == "LIGHT"), None)
+        loop = next((k for k in kids if isinstance(k, dict) and "CompletedIterations" in k), None)
+        if shot and loop:
+            exp = _num(shot.get("ExposureTime")) or 0.0
+            total, done = int(loop.get("Iterations") or 0), int(loop.get("CompletedIterations") or 0)
+            name = str(n.get("Name") or "").removesuffix("_Container")
+            if re.match(r"(Take Many Exposures|Smart Exposure)", name) and above:     # the series' own name, «50x180s»
+                name = above
+            series.append({"target": target, "name": name,
+                           "exposure_s": exp, "gain": shot.get("Gain"), "offset": shot.get("Offset"),
+                           "done": min(done, total), "total": total, "status": str(n.get("Status") or shot.get("Status") or ""),
+                           "running": "RUNNING" in (n.get("Status"), shot.get("Status"))})
+            return
+        here = str(n.get("Name") or "").removesuffix("_Container") or above
+        for v in n.values():
+            if isinstance(v, (dict, list)):
+                walk(v, target, here)
+    walk(s, "")
+    planned = sum(x["total"] * x["exposure_s"] for x in series)
+    done = sum(x["done"] * x["exposure_s"] for x in series)
+    return {"series": series, "planned_s": round(planned), "done_s": round(done), "left_s": round(planned - done)}
+
+
+def last_image(base: str) -> dict | None:
+    """The last picture N.I.N.A. took this session (its image history): kind, exposure, filter, HFR, stars."""
+    n = _get(base, "/image-history?count=true")
+    if not isinstance(n, int) or n <= 0:
+        return None
+    h = _get(base, f"/image-history?index={n - 1}")
+    h = h[0] if isinstance(h, list) and h else h
+    if not isinstance(h, dict):
+        return None
+    return {"n": n, "type": h.get("ImageType") or "", "exposure_s": _num(h.get("ExposureTime"), 1),
+            "filter": h.get("Filter") or "", "hfr": _num(h.get("HFR"), 2), "stars": h.get("Stars"),
+            "date": str(h.get("Date") or "")[:19], "temp_c": _num(h.get("Temperature"), 1)}
 
 
 WHERE_S = 0.4                                     # the mount alone, asked every second by the drawing (one call, ~0.1 s)
@@ -138,6 +207,10 @@ def status(host: str, port: int = PORT) -> dict:
                 out[part] = fn(_get(base, path))
             except (OSError, ValueError, RuntimeError, AttributeError, urllib.error.URLError) as e:
                 out[part] = {"error": str(getattr(e, "reason", e))[:160]}
+        try:
+            out["image"] = last_image(base)
+        except (OSError, ValueError, RuntimeError, AttributeError, urllib.error.URLError):
+            out["image"] = None
     with _lock:
         _cache[key] = (time.time(), out)
     return out
