@@ -72,9 +72,11 @@ def test_the_offset_seen_from_the_focal_point_is_centred():
 
 
 def test_the_collimators_distance_from_the_shadow():
-    # shadow / secondary = view / (view + 2 × secondary-to-primary): 0.2 → 260 mm for 70 mm at f/4
-    e = O.expected(0.2, QUATTRO)
-    assert e["view_mm"] == 260 and e["lo"] <= e["mid"] <= e["hi"]
+    # the shadow is the concave primary's virtual image of the secondary, magnified f / (f − S): 70 mm at f/4, the
+    # secondary 520 mm from the primary → × 2.86; a ratio of 0.336 (the owner's picture) → about 267 mm, near focus
+    e = O.expected(0.336, QUATTRO)
+    assert 260 <= e["view_mm"] <= 275 and e["lo"] <= e["mid"] <= e["hi"] and abs(e["mid"]) < 0.02
+    assert O.expected(0.2, QUATTRO)["view_mm"] < e["view_mm"] < O.expected(0.6, QUATTRO)["view_mm"]
     assert O.expected(0.2, None) is None and O.expected(0.95, QUATTRO) is None
 
 
@@ -145,3 +147,27 @@ def test_the_tab_its_words_and_the_offline_shell():
         words = json.loads((ROOT / f"webui/i18n/{lang}.json").read_text())
         used = set(__import__("re").findall(r't\("(col\.[a-z_]+)"', (ROOT / "webui/js/modules/astro_collim.js").read_text()))
         assert used and used <= set(words) and "astro.tab.collim" in words
+
+
+@pytest.mark.skipif(not __import__("shutil").which("node"), reason="node not installed")
+def test_the_live_circles_use_the_same_geometry_as_the_server():
+    # the page's offset (astro_collim_live.js) and ast_ocal.expected agree, for the Quattro and an f/6
+    import subprocess
+    src = (ROOT / "webui" / "js" / "modules" / "astro_collim_live.js").as_uri()
+    for k, scope in ((0.336, QUATTRO), (0.25, {"secondary_mm": 58, "aperture_mm": 254, "focal_mm": 1524})):
+        js = (f"const M = await import({json.dumps(src)}); const r = M.offsetFor({k}, {scope['secondary_mm']}, "
+              f"{scope['aperture_mm']}, {scope['focal_mm']}); console.log(JSON.stringify(r))")
+        out = subprocess.run(["node", "--input-type=module", "-e", js], capture_output=True, text=True, timeout=30)
+        assert out.returncode == 0, out.stderr[-600:]
+        r = json.loads(out.stdout)
+        e = O.expected(k, scope)
+        assert abs(r["shift"] - e["mid"]) < 1e-3 and abs(r["view"] - e["view_mm"]) < 1
+
+
+def test_the_live_tab_its_scope_and_the_offline_shell():
+    live = (ROOT / "webui" / "js" / "modules" / "astro_collim_live.js").read_text()
+    assert "getUserMedia" in live and "enumerateDevices" in live and "/v1/aurora/astro/collimation/scope" in live
+    assert "liveCard(state.scope)" in (ROOT / "webui" / "js" / "modules" / "astro_collim.js").read_text()
+    assert "/static/js/modules/astro_collim_live.js" in (ROOT / "webui" / "sw.js").read_text()
+    api = (ROOT / "aurora" / "api" / "astro.py").read_text()
+    assert '"/v1/aurora/astro/collimation/scope"' in api and "0 < secondary < aperture < focal length" in api

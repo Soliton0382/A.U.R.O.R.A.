@@ -8,6 +8,7 @@ import { call } from "../api.js";
 import { el } from "../dom.js";
 import { t } from "../i18n.js";
 import { datePicker } from "../dates.js";
+import { liveCard } from "./astro_collim_live.js";
 
 const MARK = { true: "✅", false: "⚠️", null: "ℹ️" };
 const TURNS = ["1/16", "1/8", "1/4", "3/8", "1/2", "1"];
@@ -121,6 +122,6 @@ export async function collimTab(box) {
   let state = {};
   try { state = await call("/v1/aurora/astro/collimation"); } catch (e) { box.append(el("p", "warn", e.message)); }
   const cards = el("div", "astro-cards");
-  cards.append(photoCard(state), starCard(state), starsCard(state));
+  cards.append(liveCard(state.scope), photoCard(state), starCard(state), starsCard(state));
   box.append(cards);
 }

@@ -366,8 +366,24 @@ def astro_collimation() -> dict:
         d = json.loads(_collim_file().read_text(encoding="utf-8"))
     except (OSError, ValueError):
         d = {}
+    from aurora import ast_ocal
     screws = (V.setup(A.folder(cfg)).get("collimation") or {}).get("screws") or {}
-    return {**d, "screws": screws}
+    return {**d, "screws": screws, "scope": ast_ocal.scope_of(cfg)}
+
+
+@router.put("/v1/aurora/astro/collimation/scope", dependencies=[Depends(auth)])
+async def astro_collimation_scope(request: Request) -> dict:
+    """{secondary_mm, aperture_mm, focal_mm}: the person's Newtonian, for the offset's circles (any tube, not one)."""
+    from aurora import ast_advice as V, ast_inventory as A
+    body = await request.json()
+    try:
+        s = {k: float(body[k]) for k in ("secondary_mm", "aperture_mm", "focal_mm")}
+    except (KeyError, TypeError, ValueError):
+        raise HTTPException(status_code=422, detail="secondary_mm, aperture_mm, focal_mm: numbers") from None
+    if not 0 < s["secondary_mm"] < s["aperture_mm"] < s["focal_mm"] <= 20000:
+        raise HTTPException(status_code=422, detail="0 < secondary < aperture < focal length")
+    V.save_part(A.folder(cfg), "scope", s)
+    return s
 
 
 @router.post("/v1/aurora/astro/collimation/photo", dependencies=[Depends(auth)])

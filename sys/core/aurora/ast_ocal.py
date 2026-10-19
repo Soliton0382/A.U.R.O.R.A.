@@ -21,7 +21,9 @@ collimatore laser ma con una camera»): 1) the secondary's tilt — the centre s
 axis); 2) the secondary round, its outline where the offset puts it: centred only seen from the focal point, from the
 collimator's place displaced along the tube (C359: it was asked concentric) — how much from the picture itself, no
 ruler: the shadow's size against the secondary's gives the collimator's distance (the shadow is the secondary seen
-twice as far, by the primary), the secondary's size and the focal ratio the rest, the axis the shadow's own
+in the concave primary: a virtual image magnified f/(f − S), S the secondary-to-primary distance; first taken as a flat
+mirror's, «twice as far» — retracted the same day: it put the collimator at 526 mm on the owner's picture, 267 mm right),
+the secondary's size and the focal ratio the rest, the axis the shadow's own
 displacement; a band, as the secondary's margin is not known; 3) the primary — the collimator's reflection on the spot."""
 from __future__ import annotations
 
@@ -59,12 +61,18 @@ def expected(k: float, scope: dict | None) -> dict | None:
     vals = []
     for u in MARGIN:
         focus = m * f / ap * u                    # where the axis' cone is as wide as the secondary, × the margin
-        view = 2 * (f - focus) * k / (1 - k)      # shadow / secondary = view / (view + 2 × secondary-to-primary)
+        s = f - focus                             # the secondary to the primary
+        mag = f / focus                           # the primary's virtual image of the secondary: f / (f − s)
+        if mag <= k:
+            return None
+        view = k * (s + s * mag) / (mag - k)      # shadow / secondary = mag × view / (view + s + s × mag)
         if view <= m:
             return None
         vals.append(shift(view, focus, m / 2))
+    focus = m * f / ap
+    s, mag = f - focus, f / focus
     return {"lo": round(min(vals), 4), "mid": round(vals[1], 4), "hi": round(max(vals), 4),
-            "view_mm": round(2 * (f - m * f / ap) * k / (1 - k))}
+            "view_mm": round(k * (s + s * mag) / (mag - k))}
 
 
 def _circle(ys, xs):
