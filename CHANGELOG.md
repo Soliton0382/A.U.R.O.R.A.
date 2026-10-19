@@ -2,6 +2,20 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.72 — 2026-10-20
+
+9 publications since v0.2.63.
+
+- 2026-10-20 C353 closed: a day of indexing at embedder batch 4 with no GPU out-of-memory
+- 2026-10-19 Dependencies scanned at each publish (pip-audit); aiohttp 3.14.5 for three advisories (C361)
+- 2026-10-19 Collimation like the collimator's own program: the PC's camera with its settings from the page (Python + OpenCV, installed by the script), independent radii, the collimator's centre code, digital zoom, night mode, the true centre by a 180° turn; the shadow drawn where the offset puts it (C360)
+- 2026-10-19 Collimation like the collimator's own program: the PC's camera with its settings from the page (Python + OpenCV, installed by the script), digital zoom, night mode, the true centre by a 180° turn; the shadow drawn where the offset puts it (C360)
+- 2026-10-19 Live collimation for any Newtonian, with the telescope PC's camera streamed to Aurora (no port opened on the PC); the shadow as the concave primary's image (C359)
+- 2026-10-19 Live collimation with any collimating camera: circles dragged to the drawtube, radii to the reflections, offset from the focal ratio or typed; the shadow as the concave primary's image (C359)
+- 2026-10-19 Collimation in three steps: the centre spot on the drawtube's centre, the secondary where its offset puts it (read from the picture), the primary (C359)
+- 2026-10-19 Oggi: any page as a tile; sequence parameters editable; sequences exported for Ekos, CCDciel and as a target list
+- 2026-10-19 Oggi as widgets with tonight's targets and the day's numbers; sequences downloaded or sent to N.I.N.A.
+
 ## v0.2.71 — 2026-10-20
 
 8 publications since v0.2.63.
