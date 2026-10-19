@@ -377,7 +377,7 @@ async def astro_collimation_photo(request: Request) -> dict:
     raw = await request.body()
     if not raw or len(raw) > PHOTO_BYTES:
         raise HTTPException(status_code=422, detail="a picture from 1 byte to 25 MB")
-    out = ast_ocal.analyse(raw)
+    out = ast_ocal.analyse(raw, ast_ocal.scope_of(cfg))
     if "error" not in out:
         _collim_keep("photo", {k: v for k, v in out.items() if k != "image"})
     log.info("audit: %s had a collimator's picture read (%d bytes)", me(), len(raw))

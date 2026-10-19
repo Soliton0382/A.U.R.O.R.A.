@@ -14,7 +14,15 @@ What is found, from the light itself (never from the circles the person placed):
                     in it): concentric when the primary points at the focuser — their offset, in the secondary's radius
   the drawtube      the outer edge of the light, only when the whole circle is in the picture
 A picture places to a few pixels: the verdict is «within what a picture shows», and the stars decide (ast_donut,
-ast_stars). Directions are the picture's (right, down…), as the person sees the screen."""
+ast_stars). Directions are the picture's (right, down…), as the person sees the screen.
+
+The steps, the owner's (19 Oct: «cerchio drawtube, cerchio salvabuchi e cerchio secondario spostato… come usare il
+collimatore laser ma con una camera»): 1) the secondary's tilt — the centre spot on the drawtube's centre (the focuser's
+axis); 2) the secondary round, its outline where the offset puts it: centred only seen from the focal point, from the
+collimator's place displaced along the tube (C359: it was asked concentric) — how much from the picture itself, no
+ruler: the shadow's size against the secondary's gives the collimator's distance (the shadow is the secondary seen
+twice as far, by the primary), the secondary's size and the focal ratio the rest, the axis the shadow's own
+displacement; a band, as the secondary's margin is not known; 3) the primary — the collimator's reflection on the spot."""
 from __future__ import annotations
 
 import base64
@@ -27,6 +35,36 @@ from scipy import ndimage
 SIDES = (900, 1100, 1300)         # the picture is worked at these sizes (the long side); their spread is the error
 ROUND_OK = 0.99                   # axis ratio of the secondary's outline: round enough
 SPOT_OK = 0.03                    # centre spot off the collimator's reflection, × the secondary's radius
+PLACE_TOL = 0.03                  # the outline beyond its expected band, × the secondary's radius
+MARGIN = (0.9, 1.0, 1.1)          # the secondary's distance to focus against the one that just fills the axis' cone
+
+
+def shift(view: float, focus: float, half: float) -> float:
+    """How far the offset secondary's outline looks off the focuser's axis seen from `view` mm (along that axis), when it
+    is centred seen from the focal point `focus` mm away; × its apparent radius, + toward the tube's open end."""
+    c = (focus - math.sqrt(focus * focus + 4 * half * half)) / 2          # the offset (each way) that centres it from focus
+    up, down = (c + half) / (view - c - half), (c - half) / (view - c + half)
+    return (up + down) / (up - down)
+
+
+def expected(k: float, scope: dict | None) -> dict | None:
+    """{lo, mid, hi}: the outline's expected displacement from the shadow-to-secondary ratio k of the picture and the
+    scope {secondary_mm, aperture_mm, focal_mm} (native); None when unknown or the picture is not a collimator's view."""
+    try:
+        m, ap, f = (float(scope[x]) for x in ("secondary_mm", "aperture_mm", "focal_mm"))
+    except (TypeError, KeyError, ValueError):
+        return None
+    if not (0.03 < k < 0.8 and 0 < m < ap < f):
+        return None
+    vals = []
+    for u in MARGIN:
+        focus = m * f / ap * u                    # where the axis' cone is as wide as the secondary, × the margin
+        view = 2 * (f - focus) * k / (1 - k)      # shadow / secondary = view / (view + 2 × secondary-to-primary)
+        if view <= m:
+            return None
+        vals.append(shift(view, focus, m / 2))
+    return {"lo": round(min(vals), 4), "mid": round(vals[1], 4), "hi": round(max(vals), 4),
+            "view_mm": round(2 * (f - m * f / ap) * k / (1 - k))}
 
 
 def _circle(ys, xs):
@@ -73,7 +111,19 @@ def load(data: bytes, side: int = SIDES[1]):
     return im
 
 
-def analyse(data: bytes) -> dict:
+def scope_of(cfg) -> dict | None:
+    """{secondary_mm, aperture_mm, focal_mm} of the person's Newtonian: astro_setup.json "scope" (the secondary's minor
+    axis is in no inventory), the aperture and the focal length else from the inventory (focal_mm / focal_ratio)."""
+    from . import ast_advice, ast_inventory
+    s = dict(ast_advice.setup(ast_inventory.folder(cfg)).get("scope") or {})
+    rig = (ast_inventory.profile(cfg) or {}).get("rig") or {}
+    if rig.get("focal_mm") and rig.get("focal_ratio"):
+        s.setdefault("focal_mm", float(rig["focal_mm"]))
+        s.setdefault("aperture_mm", round(float(rig["focal_mm"]) / float(rig["focal_ratio"])))
+    return s if s.get("secondary_mm") else None
+
+
+def analyse(data: bytes, scope: dict | None = None) -> dict:
     """The picture's bytes → {"secondary", "shadow", "ocal", "spot", "drawtube", "verdict", "image"} or {"error"}: worked
     at three sizes, the middle one kept, the spread of the spot's offset and of the roundness given as their error."""
     runs = [_one(data, side) for side in SIDES]
@@ -86,6 +136,7 @@ def analyse(data: bytes) -> dict:
         out["spot"]["spread"] = round(max(spots) - min(spots), 4)
     rounds = [r["secondary"]["round"] for r in good]
     out["secondary"]["round_err"] = round(max(out["secondary"]["round_err"] or 0, (max(rounds) - min(rounds)) / 2), 4)
+    place(out, scope)
     out["verdict"] = verdict(out)
     out["image"] = drawn(load(data), out)
     return out
@@ -177,23 +228,67 @@ def _one(data: bytes, side: int) -> dict:
     return out
 
 
+def place(o: dict, scope: dict | None) -> None:
+    """The secondary's expected place (o["expected"]): the band along the tube's axis — the axis the shadow's
+    displacement, the side the one the outline is on — and the centre of the circle to draw."""
+    sec, sh, d = o["secondary"], o["shadow"], o.get("drawtube")
+    e = expected(sh["r"] / sec["r"], scope)
+    if not e or not d:
+        return
+    ax, ay = sh["x"] - sec["x"], sh["y"] - sec["y"]
+    n = math.hypot(ax, ay)
+    if n / sec["r"] < 0.02:                     # the shadow centred: no axis to read
+        return
+    ax, ay = ax / n, ay / n
+    vx, vy = (sec["x"] - d["x"]) / sec["r"], (sec["y"] - d["y"]) / sec["r"]
+    along, across = vx * ax + vy * ay, vy * ax - vx * ay
+    side = 1 if along >= 0 else -1
+    e.update(along=round(abs(along), 4), across=round(abs(across), 4),
+             x=round(d["x"] + side * abs(e["mid"]) * sec["r"] * ax, 1), y=round(d["y"] + side * abs(e["mid"]) * sec["r"] * ay, 1),
+             r=sec["r"])
+    o["expected"] = e
+
+
 def verdict(o: dict) -> list[dict]:
     from .ast_stars import way
     sec, out = o["secondary"], []
+    d = o.get("drawtube")
+    # 1) the secondary's tilt: the centre spot on the focuser's axis (the drawtube's centre)
+    if d and "spot" in o:
+        sp = o["spot"]
+        off = math.hypot(sp["x"] - d["x"], sp["y"] - d["y"]) / sec["r"]
+        ok = off <= SPOT_OK
+        out.append({"code": "secondary_tilt", "ok": ok,
+                    "text": ("1) inclinazione del secondario: il salvabuchi è al centro del drawtube "
+                             f"(scarto {off:.1%} del raggio del secondario)" if ok else
+                             f"1) inclinazione del secondario: il salvabuchi è spostato verso "
+                             f"{way(round(math.degrees(math.atan2(sp['y'] - d['y'], sp['x'] - d['x']))))} di {off:.1%} "
+                             "del raggio del secondario rispetto al centro del drawtube — le 3 viti del secondario")})
     err = sec["round_err"] or 0.0
     if sec["round"] >= ROUND_OK - 2 * err:
         out.append({"code": "secondary_round", "ok": True,
-                    "text": f"secondario rotondo: assi al {sec['round']:.1%} uno dell'altro (±{err:.2%})"})
+                    "text": f"2) secondario rotondo: assi al {sec['round']:.1%} uno dell'altro (±{err:.2%})"})
     else:
         out.append({"code": "secondary_oval", "ok": False,
-                    "text": f"secondario ovale: assi al {sec['round']:.1%} uno dell'altro — rotazione o inclinazione del "
+                    "text": f"2) secondario ovale: assi al {sec['round']:.1%} uno dell'altro — rotazione o inclinazione del "
                             "secondario da ritoccare"})
-    if "drawtube" in o:
-        d = o["drawtube"]
-        ok = d["off"] <= 0.03
+    if d and o.get("expected"):
+        e = o["expected"]
+        top = max(abs(e["lo"]), abs(e["hi"])) + PLACE_TOL
+        ok = e["across"] <= PLACE_TOL and e["along"] <= top
         out.append({"code": "secondary_place", "ok": ok,
-                    "text": f"secondario {'centrato' if ok else 'spostato verso ' + way(d['toward_deg'])} nel drawtube "
-                            f"({d['off']:.1%} del raggio del drawtube)"})
+                    "text": (f"2) posizione del secondario: il contorno è dove l'offset lo mette — {e['along']:.1%} del "
+                             f"suo raggio lungo il tubo (atteso fino a {top:.0%}, il collimatore a circa {e['view_mm']} mm), "
+                             f"{e['across']:.1%} di traverso" if ok else
+                             f"2) posizione del secondario: il contorno è {e['along']:.1%} lungo il tubo (atteso fino a "
+                             f"{top:.0%}) e {e['across']:.1%} di traverso — "
+                             + ("di traverso: rotazione del secondario" if e["across"] > PLACE_TOL else
+                                "lungo il tubo: il secondario va avvicinato o allontanato dal primario (vite centrale)"))})
+    elif d:
+        out.append({"code": "secondary_place", "ok": None,
+                    "text": f"2) posizione del secondario: il contorno è a {d['off']:.1%} del raggio del drawtube dal centro "
+                            "— con l'offset non deve essere centrato; quanto spostato si calcola con le misure del tubo "
+                            "(diametro del secondario, apertura, focale)"})
     else:
         out.append({"code": "drawtube_unseen", "ok": None,
                     "text": "il bordo del drawtube non è intero nella foto: la posizione del secondario non si giudica"})
@@ -202,10 +297,10 @@ def verdict(o: dict) -> list[dict]:
         ok = sp["off"] <= SPOT_OK
         pm = f" (±{sp['spread'] / 2:.1%} fra le misure)" if sp.get("spread") is not None else ""
         out.append({"code": "primary", "ok": ok,
-                    "text": (f"primario: il salvabuchi è nel riflesso del collimatore, scarto {sp['off']:.1%} del raggio "
+                    "text": (f"3) primario: il salvabuchi è nel riflesso del collimatore, scarto {sp['off']:.1%} del raggio "
                              f"del secondario{pm} — entro quello che una foto può vedere; il giudice finale sono le stelle"
                              if ok else
-                             f"primario: il salvabuchi è spostato verso {way(sp['toward_deg'])} di {sp['off']:.1%} del "
+                             f"3) primario: il salvabuchi è spostato verso {way(sp['toward_deg'])} di {sp['off']:.1%} del "
                              "raggio del secondario rispetto al riflesso del collimatore — viti del primario")})
     else:
         out.append({"code": "spot_unseen", "ok": None, "text": "non trovo il salvabuchi nel riflesso del collimatore"})
@@ -227,6 +322,14 @@ def drawn(im, o: dict) -> str:
             d.ellipse([c["x"] - c["r"], c["y"] - c["r"], c["x"] + c["r"], c["y"] + c["r"]], outline=col, width=3)
             d.line([c["x"] - 8, c["y"], c["x"] + 8, c["y"]], fill=col, width=2)
             d.line([c["x"], c["y"] - 8, c["x"], c["y"] + 8], fill=col, width=2)
+    e = o.get("expected")
+    if e and "x" in e:                          # where the outline should be: dashed, the secondary's own colour
+        for a in range(0, 360, 12):
+            d.arc([e["x"] - e["r"], e["y"] - e["r"], e["x"] + e["r"], e["y"] + e["r"]], a, a + 6, fill=(255, 120, 255), width=2)
+    if o.get("drawtube"):                       # the focuser's axis: where the centre spot goes
+        c = o["drawtube"]
+        d.line([c["x"] - 14, c["y"], c["x"] + 14, c["y"]], fill=(60, 255, 60), width=2)
+        d.line([c["x"], c["y"] - 14, c["x"], c["y"] + 14], fill=(60, 255, 60), width=2)
     if o.get("spot"):
         p = o["spot"]
         d.ellipse([p["x"] - 5, p["y"] - 5, p["x"] + 5, p["y"] + 5], outline=(255, 0, 0), width=3)

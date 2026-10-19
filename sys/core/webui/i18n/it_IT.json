@@ -2638,7 +2638,7 @@
   "col.photo_hint": "Uno screenshot del programma del collimatore (OCAL o simili) o una foto dello schermo. Aurora trova da sola il bordo del secondario, la sua ombra, il riflesso del collimatore e il salvabuchi: non usa i cerchi disegnati da te.",
   "col.photo_pick": "Carica la foto",
   "col.reading": "Leggo…",
-  "col.legend": "Disegnati da Aurora: magenta il bordo del secondario, azzurro la sua ombra, arancio il riflesso del collimatore, rosso il salvabuchi, blu il drawtube quando è intero.",
+  "col.legend": "Disegnati da Aurora: magenta il bordo del secondario, azzurro la sua ombra, arancio il riflesso del collimatore, rosso il salvabuchi, blu il drawtube quando è intero; croce verde il suo centro (l'asse del focheggiatore: lì va il salvabuchi, passo 1); magenta tratteggiato dove l'offset mette il bordo del secondario visto dal collimatore (passo 2): il bordo non deve essere concentrico al drawtube. Passo 3: il riflesso del collimatore sul salvabuchi, viti del primario.",
   "col.last": "Ultima foto letta: {d}",
   "col.star": "Stella sfocata",
   "col.star_hint": "Autofocus, una stella luminosa al centro del campo, sfocata finché si vede l'ombra scura del secondario. N.I.N.A. scatta e Aurora misura quanto l'ombra è fuori dal centro dell'anello: ti dice se è collimato o quale vite girare.",

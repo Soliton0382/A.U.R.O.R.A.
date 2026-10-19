@@ -62,6 +62,53 @@ def test_the_shadow_off_the_middle_is_never_a_fault():
     assert all(v["ok"] is not False for v in r["verdict"])
 
 
+QUATTRO = {"secondary_mm": 70, "aperture_mm": 200, "focal_mm": 800}
+
+
+def test_the_offset_seen_from_the_focal_point_is_centred():
+    # C359: centred only from the focal point; nearer, toward the open end; farther, the other way
+    assert abs(O.shift(280, 280, 35)) < 1e-9
+    assert O.shift(150, 280, 35) > 0.08 and O.shift(450, 280, 35) < -0.04
+
+
+def test_the_collimators_distance_from_the_shadow():
+    # shadow / secondary = view / (view + 2 × secondary-to-primary): 0.2 → 260 mm for 70 mm at f/4
+    e = O.expected(0.2, QUATTRO)
+    assert e["view_mm"] == 260 and e["lo"] <= e["mid"] <= e["hi"]
+    assert O.expected(0.2, None) is None and O.expected(0.95, QUATTRO) is None
+
+
+def _tube(im_bytes):
+    """The picture with a whole drawtube around it: a lit ring, dark beyond."""
+    im = Image.open(io.BytesIO(im_bytes)).convert("RGB")
+    out = Image.new("RGB", im.size, (5, 5, 5))
+    d = ImageDraw.Draw(out)
+    d.ellipse([400 - 370, 400 - 370, 400 + 370, 400 + 370], fill=(40, 40, 40))
+    mask = Image.new("L", im.size, 0)
+    ImageDraw.Draw(mask).ellipse([400 - 300, 400 - 300, 400 + 300, 400 + 300], fill=255)
+    out.paste(im, (0, 0), mask)
+    buf = io.BytesIO()
+    out.save(buf, "JPEG", quality=92)
+    return buf.getvalue()
+
+
+def test_the_three_steps_with_the_outline_where_the_offset_puts_it():
+    # the outline 4 % of its radius toward the shadow's side, the spot on the drawtube's centre and on the reflection
+    pic = _tube(picture(sec=(390, 400, 250, 250), shadow=(365, 400, 75), ocal=(400, 400, 40), spot=(400, 400), lines=False))
+    r = O.analyse(pic, QUATTRO)
+    assert "drawtube" in r and "expected" in r
+    codes = {v["code"]: v for v in r["verdict"]}
+    assert codes["secondary_tilt"]["ok"] and codes["secondary_tilt"]["text"].startswith("1)")
+    assert codes["secondary_place"]["ok"] is True and codes["secondary_place"]["text"].startswith("2)")
+    assert codes["primary"]["ok"] and codes["primary"]["text"].startswith("3)")
+
+
+def test_the_spot_off_the_drawtubes_centre_is_the_secondarys_tilt():
+    pic = _tube(picture(sec=(390, 400, 250, 250), shadow=(365, 400, 75), ocal=(400, 430, 40), spot=(400, 430), lines=False))
+    v = next(x for x in O.analyse(pic, QUATTRO)["verdict"] if x["code"] == "secondary_tilt")
+    assert v["ok"] is False and "basso" in v["text"] and "3 viti" in v["text"]
+
+
 def test_what_is_not_a_collimator_view_is_said():
     buf = io.BytesIO()
     Image.new("RGB", (300, 200), (120, 120, 120)).save(buf, "PNG")

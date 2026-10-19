@@ -2638,7 +2638,7 @@
   "col.photo_hint": "A screenshot of the collimator's program (OCAL or similar) or a photo of the screen. Aurora finds the secondary's edge, its shadow, the collimator's reflection and the centre spot by herself: the circles you drew are not used.",
   "col.photo_pick": "Upload the picture",
   "col.reading": "Reading…",
-  "col.legend": "Drawn by Aurora: magenta the secondary's edge, light blue its shadow, orange the collimator's reflection, red the centre spot, blue the drawtube when whole.",
+  "col.legend": "Drawn by Aurora: magenta the secondary's edge, light blue its shadow, orange the collimator's reflection, red the centre spot, blue the drawtube when whole; green cross its centre (the focuser's axis: the centre spot goes there, step 1); dashed magenta where the offset puts the secondary's edge seen from the collimator (step 2): the edge is not meant to be concentric with the drawtube. Step 3: the collimator's reflection on the centre spot, the primary's screws.",
   "col.last": "Last picture read: {d}",
   "col.star": "Defocused star",
   "col.star_hint": "Autofocus, a bright star in the middle of the field, defocused until the secondary's dark shadow shows. N.I.N.A. takes it and Aurora measures how far the shadow is from the ring's middle: collimated, or which screw to turn.",
