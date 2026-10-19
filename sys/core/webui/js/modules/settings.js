@@ -5,6 +5,7 @@ import { call } from "../api.js";
 import { el, info } from "../dom.js";
 import { apply, lang, t } from "../i18n.js";
 import { restartPrompt } from "../restart.js";
+import { FORMATS, dateFormat, fmtDate, setDateFormat } from "../dates.js";
 
 const TRUE = ["1", "true", "yes", "on"];
 
@@ -206,9 +207,30 @@ export default {
       row.dataset.cat = s.category;
       row.dataset.text = `${s.key} ${s[code] || s.en}`.toLowerCase();
       this.box.append(row);
+      if (s.key === "AURORA_TIMEZONE") this.box.append(this.dateRow(s.category));
     }
     this.menu();
     this.applyFilter();
+  },
+
+  // 📅 how dates are written, beside the time zone (owner, 2026-10-19): the person's own preference, on every device
+  dateRow(cat) {
+    const row = el("div", "setting");
+    const label = el("div");
+    label.append(el("code", "", t("date.format")), info(t("date.format_help")));
+    const pick = el("select");
+    for (const f of FORMATS) {
+      const o = el("option", "", `${f.replace("dd", lang === "it_IT" ? "gg" : "dd").replace("yyyy", lang === "it_IT" ? "aaaa" : "yyyy")} — ${fmtDate("2026-10-19", f)}`);
+      o.value = f;
+      pick.append(o);
+    }
+    pick.value = dateFormat();
+    const said = el("div", "help");
+    pick.addEventListener("change", () => { setDateFormat(pick.value); said.textContent = `✅ ${t("date.saved")}`; });
+    row.append(label, pick, said);
+    row.dataset.cat = cat;
+    row.dataset.text = `${t("date.format")} ${t("date.format_help")}`.toLowerCase();
+    return row;
   },
 
   // 🗂️ three levels (owner, 2026-10-06: on the phone the chips of 29 categories took half the screen): a button opens

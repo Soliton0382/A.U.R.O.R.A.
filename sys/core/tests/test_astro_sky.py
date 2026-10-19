@@ -129,7 +129,69 @@ def test_the_page_the_api_and_the_plugin_are_there():
     m = json.loads((core.parents[0] / "plugins" / "sky" / "plugin.json").read_text(encoding="utf-8"))
     # read only but the sequence for N.I.N.A. (N29 phase 2), written in the astro folder alone
     assert {t: e for t, e in m["effects"].items() if e != "read"} == {"sky_sequence": "write_local",
-                                                                                "sky_rotation": "write_local"}
+                                                                                "sky_rotation": "write_local",
+                                                                                "sky_collimation": "write_local"}
     assert m["sandbox"]["write"] == ["AURORA_ASTRO_DIR"]
     js = (core / "webui" / "js" / "modules" / "astro.js").read_text(encoding="utf-8")
     assert 'data-tab="sky"' in js and "skyTab" in js
+
+
+def test_all_holds_every_kinds_list_decided_object_by_object(tmp_path):
+    """C357: the «if the sky opens» fallback was decided on the filtered set: «all» lost the broadband objects that
+    «broadband» alone showed. Object by object, a kind's list is always inside «all», clouded ones after, said."""
+    cfg = {"AURORA_TIMEZONE": "UTC"}
+    t0 = int(P.start_of("2026-10-20", P.ZoneInfo("UTC")).timestamp())
+    fc = {"hours": {t0 + h * 3600: (100 if h % 2 else 0) for h in range(30)}, "seeing": {}}
+    every = P.plan(cfg, _profile(), _folder(tmp_path), "2026-10-20", objects=OBJS, fc=fc, limit=50)
+    for kind in ("narrowband", "broadband"):
+        some = P.plan(cfg, _profile(), _folder(tmp_path), "2026-10-20", objects=OBJS, fc=fc, only=kind, limit=50)
+        assert {r["name"] for r in some["targets"]} <= {r["name"] for r in every["targets"]}
+        same = {r["name"]: (r["hours"], r["if_clear"]) for r in every["targets"]}
+        assert all(same[r["name"]] == (r["hours"], r["if_clear"]) for r in some["targets"])
+    flags = [r["if_clear"] for r in every["targets"]]
+    assert flags == sorted(flags)                               # the clear ones first
+
+
+def test_all_takes_the_families_in_turn_and_keeps_each_in_sight():
+    """Owner, 19 Oct: «l'elenco con tutti non fa vedere nebulose galassie etc»: the families in turn, the clear first,
+    and a family the night leaves without an hour still shown (its best two), said in the families' count."""
+    def row(n, kind, typ, clear=False, score=1.0):
+        return {"name": n, "kind": kind, "type": typ, "if_clear": clear, "score": score}
+    rows = [row("N1", "narrowband", "regione HII"), row("N2", "narrowband", "regione HII"), row("N3", "narrowband", "regione HII"),
+            row("G1", "broadband", "galassia"), row("R1", "broadband", "nebulosa a riflessione"),
+            row("G2", "broadband", "galassia", clear=True)]
+    assert [r["name"] for r in P.mix(rows)] == ["N1", "G1", "R1", "N2", "N3", "G2"]
+    assert P.family(row("x", "hdr", "regione HII")) == "hdr"
+
+
+def test_a_picture_is_fetched_only_when_opened_and_then_kept(tmp_path, monkeypatch):
+    """Owner, 19 Oct: «la cache si potrebbe popolare in base ai click»: nothing fetched for the list; the first opening
+    asks the survey once (the object's place only), the field drawn; then the row knows it has a picture."""
+    import io
+    from PIL import Image
+    from aurora import ast_skythumb as T
+    asked = []
+
+    class Answer:
+        def __init__(self, url):
+            asked.append(url)
+            buf = io.BytesIO()
+            Image.new("RGB", (T.W, T.H)).save(buf, "JPEG")
+            self.data = buf.getvalue()
+
+        def read(self):
+            return self.data
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    monkeypatch.setattr(T.urllib.request, "urlopen", lambda url, timeout=0: Answer(url))
+    obj = {"name": "NGC 7000", "ra": 314.7, "dec": 44.3, "maj": 120}
+    assert not T.cached(tmp_path, "NGC 7000")
+    pic = T.picture(tmp_path, obj, {"w_deg": 1.457, "h_deg": 0.978})
+    T.picture(tmp_path, obj, {"w_deg": 1.457, "h_deg": 0.978})
+    assert len(asked) == 1 and "ra=314.7" in asked[0] and "lat" not in asked[0] and T.cached(tmp_path, "NGC 7000")
+    assert pic[:2] == b"\xff\xd8"

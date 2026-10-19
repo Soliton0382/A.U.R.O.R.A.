@@ -2,6 +2,17 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.63 — 2026-10-19
+
+6 publications since v0.2.57.
+
+- 2026-10-19 BFCL measured (M248): empty answers scored wrong (C358); sky thumbnails and planning
+- 2026-10-18 IFEval and HumanEval on the local model (M246): code and texts to write no longer taken for questions of knowledge (C355), the reply's form read by a rule (C356) - Aurora 45/50 and 49/50 against the bare model's 45 and 47; HumanEval's cage tried before it is trusted
+- 2026-10-18 Astro: N.I.N.A.'s pointing read back - the inventory script 5 copies its centering and flip lines, Aurora tells cone and non-orthogonality from the flips (ast_pointing)
+- 2026-10-18 Astro: the sequence for N.I.N.A. from the person's template without the rotator; the camera turned by hand to the framing's angle; the polar alignment each night really had, from its guiding (M245)
+- 2026-10-18 Measures M239-M244 (refusals, the deep path, shadows, pictures, the night's questions, the review's judge); C354 the shadow's uses counted right; embedder batch 4 (C353); IFEval and HumanEval built, HumanEval's code run in the cage; the forged cloud plugin
+- 2026-10-18 Voice: her memory searched while the person speaks (M237); Home Assistant off said as such (C352); measures M236-M238
+
 ## v0.2.62 — 2026-10-19
 
 5 publications since v0.2.57.

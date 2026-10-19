@@ -6,6 +6,7 @@
 import { call } from "../api.js";
 import { el } from "../dom.js";
 import { t } from "../i18n.js";
+import { fmtDate } from "../dates.js";
 
 const ICON = { high: "🛑", mid: "⚠️", low: "💡" };
 const f = (x, d = 2) => (x == null ? "—" : Number(x).toFixed(d));
@@ -43,7 +44,7 @@ function night(n, scale, open) {
   const minutes = n.sessions.filter((s) => !s.assistant).reduce((a, s) => a + s.minutes, 0);
   const best = Math.min(...n.sessions.filter((s) => !s.assistant && s.minutes >= 10 && s.rms.total != null).map((s) => s.rms.total));
   const worst = n.findings.reduce((a, x) => (a === "high" || x.level === "high" ? "high" : x.level === "mid" ? "mid" : a), "");
-  d.append(el("summary", "", `${ICON[worst] || "✅"} ${n.night} · ${t("an.guided", { m: f(minutes, 0) })}` +
+  d.append(el("summary", "", `${ICON[worst] || "✅"} ${fmtDate(n.night)} · ${t("an.guided", { m: f(minutes, 0) })}` +
     (Number.isFinite(best) ? ` · ${t("an.best", { r: f(best) })}` : "") + ` · ${n.file}`));
   d.append(el("h4", "", `👁️ ${t("an.seen")}`));
   const ul = el("ul", "an-findings");

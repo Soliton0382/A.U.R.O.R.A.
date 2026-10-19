@@ -19,7 +19,8 @@ SCRIPT = Path(__file__).resolve().parents[3] / "plugins" / "astro" / "astro_inve
 COMMAND = "powershell -ExecutionPolicy Bypass -File .\\astro_inventory.ps1"
 NAME = re.compile(r"^[\w .()+-]{1,120}\.(txt|md|pdf|csv|json|xml|log)$", re.I)
 MAX_BYTES = 50 * 1024 * 1024
-OWN = ("darks.json", "astro_setup.json", "autoguide.jsonl", "sensor.json", "frames.json", "sky_catalog.json")   # Aurora's own: the darks' snapshot, the setup, the tuner's log, the frames' headers
+OWN = ("darks.json", "astro_setup.json", "autoguide.jsonl", "sensor.json", "frames.json", "sky_catalog.json",
+       "collimation.json")   # Aurora's own: the darks' snapshot, the setup, the tuner's log, the frames' headers
 
 
 @router.get("/v1/aurora/astro", dependencies=[Depends(auth)])
@@ -162,7 +163,42 @@ def astro_sky(date: str = "", object: str = "", kind: str = "", min_alt: float =
         raise HTTPException(status_code=422, detail="date: YYYY-MM-DD")
     if kind not in ("", "narrowband", "broadband", "hdr", "galaxy"):
         raise HTTPException(status_code=422, detail="kind: narrowband, broadband, hdr or galaxy")
-    return ast_skyplan.tonight(cfg, date, max(0.0, min(80.0, min_alt)), kind, max(1, min(50, limit)), object.strip()[:80])
+    from aurora import ast_inventory, ast_skythumb
+    out = ast_skyplan.tonight(cfg, date, max(0.0, min(80.0, min_alt)), kind, max(1, min(50, limit)), object.strip()[:80])
+    folder = ast_inventory.folder(cfg)
+    for r in out.get("targets", []):
+        r["thumb"] = ast_skythumb.cached(folder, r["name"])          # opened before: its picture in the row
+    return out
+
+
+@router.get("/v1/aurora/astro/sky/thumb", dependencies=[Depends(auth)])
+def astro_sky_thumb(object: str):
+    """The object's sky (the CDS's DSS2 survey, asked with its catalogue place) with the person's field drawn."""
+    from fastapi.responses import Response
+    from aurora import ast_skythumb
+    try:
+        data = ast_skythumb.for_object(cfg, object.strip()[:80])
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    except OSError as e:
+        raise HTTPException(status_code=502, detail=f"the sky survey did not answer ({type(e).__name__})") from e
+    return Response(data, media_type="image/jpeg", headers={"Cache-Control": "private, max-age=86400"})
+
+
+@router.post("/v1/aurora/astro/sky/sequence", dependencies=[Depends(auth)])
+async def astro_sky_sequence(request: Request) -> dict:
+    """{object, date?, kind?}: the sequence for N.I.N.A. written for that object and night (ast_seqwrite)."""
+    from aurora import ast_seqwrite
+    body = await request.json()
+    date = str(body.get("date") or "")
+    if date and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date):
+        raise HTTPException(status_code=422, detail="date: YYYY-MM-DD")
+    try:
+        r = ast_seqwrite.for_tonight(cfg, str(body.get("object") or "").strip()[:80], date, str(body.get("kind") or ""))
+    except ValueError as e:
+        return {"error": str(e)}
+    log.info("audit: %s had a sequence written: %s", me(), r["file"])
+    return {"file": r["file"], "text": ast_seqwrite.text(r)}
 
 
 @router.get("/v1/aurora/astro/live", dependencies=[Depends(auth)])
@@ -242,3 +278,82 @@ async def astro_autoguide_set(request: Request) -> dict:
     V.save_part(d, "autoguide", {"mode": mode, "limits": limits})
     log.info("audit: %s set the guiding tuner to %s within %s", me(), mode, limits)
     return astro_autoguide()
+
+
+# ⭕ Collimation (owner, 19 Oct: «una tab specifica nella sezione astro dedicata alla collimazione così almeno ho una parte
+# dedicata e aurora la può sfruttare durante le sessioni»): the collimator's picture read, the defocused star with the
+# screws learned, a night's stars across the field; the last of each kept in collimation.json for the chat.
+PHOTO_BYTES = 25 * 1024 * 1024
+
+
+def _collim_file() -> Path:
+    from aurora import ast_inventory as A
+    return A.folder(cfg) / "collimation.json"
+
+
+def _collim_keep(part: str, value: dict) -> None:
+    import json
+    import time
+    f = _collim_file()
+    try:
+        d = json.loads(f.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        d = {}
+    d[part] = {**value, "at": time.time()}
+    f.write_text(json.dumps(d, ensure_ascii=False), encoding="utf-8")
+
+
+@router.get("/v1/aurora/astro/collimation", dependencies=[Depends(auth)])
+def astro_collimation() -> dict:
+    """The last picture read, the last star test, the screws learned."""
+    import json
+    from aurora import ast_advice as V, ast_inventory as A
+    try:
+        d = json.loads(_collim_file().read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        d = {}
+    screws = (V.setup(A.folder(cfg)).get("collimation") or {}).get("screws") or {}
+    return {**d, "screws": screws}
+
+
+@router.post("/v1/aurora/astro/collimation/photo", dependencies=[Depends(auth)])
+async def astro_collimation_photo(request: Request) -> dict:
+    """The body is a picture of the collimator (a screenshot or a phone's photo of the screen): what Aurora reads in it."""
+    from aurora import ast_ocal
+    raw = await request.body()
+    if not raw or len(raw) > PHOTO_BYTES:
+        raise HTTPException(status_code=422, detail="a picture from 1 byte to 25 MB")
+    out = ast_ocal.analyse(raw)
+    if "error" not in out:
+        _collim_keep("photo", {k: v for k, v in out.items() if k != "image"})
+    log.info("audit: %s had a collimator's picture read (%d bytes)", me(), len(raw))
+    return out
+
+
+@router.post("/v1/aurora/astro/collimation/star", dependencies=[Depends(auth)])
+async def astro_collimation_star(request: Request) -> dict:
+    """{exposure_s, learned_screw?, turned?}: N.I.N.A. takes the defocused star, Aurora says what to turn (ast_donut)."""
+    from aurora import ast_donut
+    body = await request.json()
+    learn = None
+    if str(body.get("learned_screw") or "").strip():
+        eighths = ast_donut.parse_turn(str(body.get("turned") or ""))
+        if eighths is None:
+            raise HTTPException(status_code=422, detail="turned: for example «1/8 orario» or «1/4 antiorario»")
+        learn = (str(body["learned_screw"]).strip()[:40], eighths)
+    out = ast_donut.run(cfg, float(body.get("exposure_s") or 3), learn)
+    if "offset" in out:
+        _collim_keep("star", out)
+    return out
+
+
+@router.get("/v1/aurora/astro/collimation/stars", dependencies=[Depends(auth)])
+def astro_collimation_stars(date: str = "") -> dict:
+    """A night's lights across the field (ast_stars.night): each frame's sectors and verdict, and the night's."""
+    from aurora import ast_stars
+    out = ast_stars.night(cfg, date.strip()[:10])
+    if "error" not in out:
+        out["text"] = ast_stars.night_text(out)
+        _collim_keep("stars", {"date": out["date"], "codes": out["codes"], "constant": out.get("constant"),
+                               "text": out["text"]})
+    return out

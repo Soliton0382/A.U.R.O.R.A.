@@ -14,7 +14,7 @@ Targets — the same questions to each:
   bare-claude    Claude through the owner's subscription alone (the CLI with no tools, no MCP)
 Each run says who did each step. The owner's choice of models is saved before an aurora-* target changes it and put
 back after, also when the run is stopped (or by hand: --restore).
-The sets: bench_public_data (MMLU-Pro, GPQA, AIME, MATH-500, SimpleQA, TruthfulQA, ARC-AGI, IFEval, HumanEval) and «aurora_edge»
+The sets: bench_public_data (MMLU-Pro, GPQA, AIME, MATH-500, SimpleQA, TruthfulQA, ARC-AGI, IFEval, HumanEval, BFCL) and «aurora_edge»
 (bench_edge: her vault, this machine and house now, honesty). Results: <STATUS>/bench/public/<date>-<target>.json,
 saved after every set; --report puts the latest of each target side by side (report.md).
 
@@ -54,7 +54,7 @@ TARGETS = ("aurora-local", "aurora-mixed", "aurora-cloud", "bare-local", "bare-c
 GROUPS = {"classifiers-cloud": (("route", "translate", "gate", "verify"), "cloud"),
           "readers-local": (("extract", "synthesis"), "local")}
 DEFAULT_SETS = ["aurora_edge", "mmlu_pro", "gpqa_diamond", "hle", "aime", "math500", "simpleqa", "truthfulqa", "arc_agi_1",
-                "ifeval", "humaneval"]
+                "ifeval", "humaneval", "bfcl_simple", "bfcl_multiple", "bfcl_irrelevance"]
 BARE_SYSTEM = "You are a helpful assistant. Answer in the language of the question."
 
 

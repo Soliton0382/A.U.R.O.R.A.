@@ -105,7 +105,9 @@ def whoami() -> dict:
 # the menu's style, the pinned pages and the colours (owner, 15 Oct: «leghiamo le configurazioni agli utenti e non ai
 # device»)
 PREFS = {"style": ("completo", "essenziale", "misto"),
-         "theme": ("aurora", "notte", "oceano", "foresta", "tramonto", "chiaro", "contrasto")}
+         "theme": ("aurora", "notte", "oceano", "foresta", "tramonto", "chiaro", "contrasto"),
+         # how dates are written (owner, 19 Oct: «la selezione del tipo di formato della data, sai dd-mm-aaaa o mm-dd-aaaa»)
+         "date_format": ("dd/mm/yyyy", "dd-mm-yyyy", "mm/dd/yyyy", "mm-dd-yyyy", "yyyy-mm-dd")}
 
 
 def _prefs_file():
@@ -122,7 +124,7 @@ def _prefs() -> dict:
 
 @router.put("/v1/aurora/me/prefs", dependencies=[Depends(auth)])
 async def my_prefs(request: Request) -> dict:
-    """{"style"?, "theme"?, "pins"?}: only what is sent changes; a value out of its list is refused."""
+    """{"style"?, "theme"?, "date_format"?, "pins"?}: only what is sent changes; a value out of its list is refused."""
     import json
     import re
     body = await request.json()

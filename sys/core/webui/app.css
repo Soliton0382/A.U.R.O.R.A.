@@ -306,3 +306,22 @@ button.danger { border-color: #c0392b; color: #ff8a80; }
 .modal.wizard input:not([type=checkbox]), .modal.wizard select { width: 100%; }
 .modal.wizard .close { float: right; }
 .wz-check { display: inline-flex; gap: .5rem; align-items: center; }
+
+/* 📅 the date field with its calendar (dates.js) */
+.datepick { position: relative; display: inline-flex; gap: .25rem; align-items: center; }
+.datepick input { width: 8.5rem; }
+.datepick input.bad { outline: 2px solid var(--warn, #e0a030); }
+.datepick-btn { padding: .2rem .45rem; }
+.datepick-pop { position: absolute; top: 100%; left: 0; z-index: 30; margin-top: .3rem; padding: .5rem; width: 16rem; max-width: calc(100vw - 2rem);
+  background: var(--panel-solid, var(--panel, #0d1726)); border: 1px solid var(--line); border-radius: .6rem; box-shadow: 0 6px 24px rgba(0, 0, 0, .35); }
+.datepick-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: .3rem; text-transform: capitalize; }
+.datepick-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: .15rem; text-align: center; }
+.datepick-dow { font-size: .75rem; opacity: .7; text-transform: uppercase; }
+.datepick-day { padding: .25rem 0; border-radius: .35rem; }
+.datepick-day.today { outline: 1px solid var(--line); }
+.datepick-day.on { background: var(--accent, #4aa3ff); color: #fff; }
+.datepick-foot { display: flex; justify-content: space-between; margin-top: .4rem; }
+
+/* the options of every drop-down on an opaque background in the theme's colours (C357: a translucent select's list was
+   drawn by Windows on white, its light text invisible) */
+select option, select optgroup { background-color: var(--panel-solid); color: var(--text); }

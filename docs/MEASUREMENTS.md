@@ -3989,3 +3989,42 @@ IFEval's 541 prompts, none of 4,326 SimpleQA, 817 TruthfulQA, 4,281 questions as
 on prompts (45) and passes it on instructions (77 against 75): lost one (a reply asked in another language, refused:
 no form rule names a language alone), won one. Not measured: the rest of each set; what the 4-token classifier calls
 WRITE among questions of knowledge.
+
+## M247 — the stars of two old nights across the field: the drawer's tilt (19 October 2026; ROADMAP N29)
+
+ast_stars on the owner's lights from the frames folder, 8 spread over each night (2×2 cells summed, 1.257″ a pixel).
+
+| night | filter (behind the corrector, in the drawer) | stars a frame | side worse, frames | gradient centre → edge | coma tail | corners |
+|---|---|---|---|---|---|---|
+| 17 Feb 2026 | L-eXtreme | 1,460–2,030 | **left**, 7 of 8 | +0.15…0.73″ (≈ 4 % of FWHM 4.6–6.9″), 2–5 × its noise | none (0.003–0.012 FWHM) | radial, small (+0.04…+0.13) |
+| 9 Nov 2025 | IDAS D2 | 670–1,640 | **left**, 6 of 8 | +0.35…0.71″ (≈ 12 %) | none | tangential, larger (−0.15…−0.25) |
+
+Reading: the same side worse on two nights three months apart, on other objects and filters, with no coma tail, is in
+the optical train — a tilt; the owner found it in the filter drawer (19 Oct) and took it out. The corners change sign
+with the filter behind the corrector (its thickness lengthens the path by t/3): what the filter now in front removes.
+Also seen: the stars elongated the same way everywhere, without a tail (tracking or guiding), the direction turning
+over the night (−26° → −82°). Not measured: the stars after the drawer came out (the next night); FWHM on cells of two
+pixels reads larger than the stars are (undersampled: compare frames, not with other software); the elongation's cause.
+
+## M248 — BFCL, the tool-use set: Aurora local against the same model bare (19 October 2026; ROADMAP 18b, C358)
+
+50 questions of each category (seed 7, the dataset at a pinned revision), Qwen3.6-35B-A3B on this machine, BFCL's
+«prompt» mode (the functions as JSON in the text, the answer a list of Python calls); Aurora whole through the API,
+everything local (thinking up to 6,000 tokens); the bare model with thinking up to 28,000 tokens.
+
+| category | bare model | Aurora | bare, BFCL's own rule | Aurora, BFCL's own rule |
+|---|---|---|---|---|
+| simple (one function, one call) | 44/50 | **47/50** | 44/50 | 47/50 |
+| multiple (the right one of several) | 47/50 | 47/50 | 47/50 | 47/50 |
+| irrelevance (none fits: no call) | 24/50 | **43/50** | 49/50 | 48/50 |
+| empty answers | 28 (25 in irrelevance, 3 in simple) | 6 (5 in irrelevance, 1 in multiple) | — | — |
+| median seconds an answer (simple · multiple · irrelevance) | 3.2 · 3.0 · 267.3 | 15.5 · 17.7 · 17.5 | — | — |
+
+Reading: BFCL's checker counts an answer from which no call decodes as a right abstention — an empty one too. The bare
+model left 25 of 50 irrelevance answers empty (its thinking ran 267 s and was cut, never writing), so its 49/50 was 24
+answered right; scored again with «an empty answer is wrong» (C358) Aurora leads 137 to 115 of 150, and 142 to 140 by
+BFCL's own rule. Lost by both: a city written without its state where the dataset allows only «Los Angeles, CA», a room
+type with its word «room», one function called where none fitted (a profit with the price missing). Aurora's empty
+answers end at about 64 s each, the same for all six (a limit of its path, not looked into). Every question went
+Aurora's «write» way; none used her own tools (the set gives its functions in the text). Not measured: the rest of each
+category; BFCL's other categories (parallel, live, multi-turn); native function calling; why Aurora's six were empty.

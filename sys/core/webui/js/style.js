@@ -7,6 +7,7 @@
 // colours are the theme's (theme.js): a style changes what the menu holds, never the colours. The style and the pins
 // are each person's on the server (/v1/aurora/me/prefs: the same on every device); this browser keeps a copy, so the
 // page opens in its style before the server answers.
+import { FORMATS, setDateFormat } from "./dates.js";
 import { call } from "./api.js";
 import { THEMES, applyTheme, current as currentTheme } from "./theme.js";
 
@@ -48,6 +49,7 @@ export function adopt(prefs, who) {
     else if (chosen()) up.style = chosen();
     if (Array.isArray(prefs?.pins)) localStorage.setItem(PINS, JSON.stringify(prefs.pins));
     else if (pins().length) up.pins = pins();
+    if (FORMATS.includes(prefs?.date_format)) setDateFormat(prefs.date_format, false);   // and how dates are written
     if (THEMES.some((x) => x.id === prefs?.theme)) applyTheme(prefs.theme);          // the colours too, on any device
     else if (localStorage.getItem(THEME)) up.theme = currentTheme();
     else applyTheme("aurora");                           // another person's colours never stay

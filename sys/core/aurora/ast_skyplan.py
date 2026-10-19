@@ -219,33 +219,77 @@ def plan(cfg, profile: dict | None, folder, date: str = "", min_alt: float = MIN
     moon_ok_b = ~moon_up[None, :] | (n["moon_lit"][None, :] < MOON_DIM) | ((sep >= MOON_SEP_BROAD) & (n["moon_lit"][None, :] < 0.5))
     sky_ok = dark[None, :] & (alt >= min_alt) & np.where(narrow, moon_ok_n, moon_ok_b)
     usable = sky_ok & clear[None, :]
-    if not usable.any() and sky_ok.any() and known[dark].any():
-        usable = sky_ok                                  # all clouded: the ranking if the sky opens, said as such
-        out["clouds_ignored"] = True
-    hours = usable.sum(axis=1) * n["step_h"]
+    # each object on its own (owner, 19 Oct: «l'elenco non viene compilato in modo corretto»): the hours it really has
+    # (dark, high, the Moon allowing, clear); an object whose only hours are clouded comes after, «if the sky opens» —
+    # decided object by object, so that «all» holds every kind's list (C357: decided on the filtered set, «all» lost
+    # the broadband objects that «broadband» alone showed)
+    hours_use = usable.sum(axis=1) * n["step_h"]
+    hours_clear = sky_ok.sum(axis=1) * n["step_h"]
     rows = []
     for i, o in enumerate(pick):
-        if hours[i] <= 0 and not name:
+        if_clear = hours_use[i] <= 0 < hours_clear[i]
+        if hours_use[i] <= 0 and not if_clear and not name:
             continue
+        mask = sky_ok[i] if if_clear else usable[i]
+        h = float(hours_clear[i] if if_clear else hours_use[i])
         f = fit(o, fov)
         a = np.where(dark, alt[i], -90)
         top = int(np.argmax(a))
-        idx = np.flatnonzero(usable[i])
+        idx = np.flatnonzero(mask)
         rows.append({"name": o["name"], "aliases": o["aliases"][:3], "common": (ast_catalog.named(o) + o["common"])[:2],
                      "type": ast_catalog.WORDS.get(o["type"], o["type"]), "kind": kinds[i],
                      "size_arcmin": [o.get("maj"), o.get("min")], "mag": o.get("mag"),
-                     "hours": round(float(hours[i]), 1), "from": hm(n["t"][idx[0]]) if idx.size else None,
+                     "hours": round(h, 1), "if_clear": bool(if_clear), "from": hm(n["t"][idx[0]]) if idx.size else None,
                      "to": hm(n["t"][idx[-1]] + n["step_h"] * 3600) if idx.size else None,
                      "max_alt": round(float(a[top]), 0), "max_at": hm(n["t"][top]),
                      "moon_sep": round(float(np.min(np.where(dark & moon_up, sep[i], 180))), 0),
-                     "fit": f, "score": round(float(hours[i]) * f["weight"] * brightness(o), 2)})
-    rows.sort(key=lambda r: (-r["score"], -r["max_alt"]))
-    out["targets"] = rows[:max(1, min(int(limit), 50))]
+                     "fit": f, "score": round(h * f["weight"] * brightness(o), 2)})
+    rows.sort(key=lambda r: (r["if_clear"], -r["score"], -r["max_alt"]))
+    if not only and not name:                            # «all»: every family in sight, not ten nebulae in a row
+        rows = mix(rows)
+    if rows and all(r["if_clear"] for r in rows):
+        out["clouds_ignored"] = True                     # no object has a clear hour: the whole list is «if it opens»
+    lim = max(1, min(int(limit), 50))
+    top = rows[:lim]
+    if not only and not name:
+        # every family said, and the best two of a family the night leaves without a usable hour kept in sight
+        out["families"] = {f: {"usable": sum(1 for r in rows if family(r) == f and not r["if_clear"]),
+                               "if_clear": sum(1 for r in rows if family(r) == f and r["if_clear"])}
+                           for f in ("narrowband", "galaxy", "broadband", "hdr")}
+        seen = {family(r) for r in top}
+        extra = [r for f in ("narrowband", "galaxy", "broadband", "hdr") if f not in seen
+                 for r in [x for x in rows if family(x) == f][:2]]
+        if extra:
+            top = top[:max(1, lim - len(extra))] + extra
+    out["targets"] = top
     out["candidates"] = len(rows)
     if name:
         out["hourly"] = [{"at": hm(t), "alt": round(float(alt[0][k]), 0), "dark": bool(dark[k]), "moon_alt": round(float(n["moon_alt"][k]), 0),
                           "cloud": None if np.isnan(cloud[k]) else int(cloud[k]), "usable": bool(usable[0][k])}
                          for k, t in enumerate(n["t"]) if k % 6 == 0 and (dark[k] or n["sun_alt"][k] < 0)]
+    return out
+
+
+def family(r: dict) -> str:
+    """narrowband, galaxy, other broadband (reflection and dark nebulae, clusters) or hdr — for «all»'s mixing."""
+    if r["kind"] in ("narrowband", "hdr"):
+        return r["kind"]
+    return "galaxy" if "galass" in r["type"] else "broadband"
+
+
+def mix(rows: list[dict]) -> list[dict]:
+    """The ranked rows, the families taken in turn (owner, 19 Oct: «l'elenco con tutti non fa vedere nebulose galassie
+    etc»): each family keeps its own order, the clear ones before the «if the sky opens» ones."""
+    out = []
+    for clear in (False, True):
+        groups: dict[str, list[dict]] = {}
+        for r in rows:
+            if r["if_clear"] == clear:
+                groups.setdefault(family(r), []).append(r)
+        while any(groups.values()):
+            for g in list(groups):
+                if groups[g]:
+                    out.append(groups[g].pop(0))
     return out
 
 
@@ -305,7 +349,8 @@ def text(p: dict) -> str:
         alias = ", ".join(r["common"] + r["aliases"])
         size = f"{r['size_arcmin'][0]:g}′" if r["size_arcmin"][0] else "dimensione ?"
         lines.append(f"{i}. {r['name']}{f' ({alias})' if alias else ''} — {r['type']}, {r['kind']}, {size}: "
-                     f"{r['hours']} h utili" + (f" {r['from']}–{r['to']}" if r["from"] else "")
+                     f"{r['hours']} h utili" + (" solo se il cielo si apre" if r.get("if_clear") else "")
+                     + (f" {r['from']}–{r['to']}" if r["from"] else "")
                      + f", massimo {r['max_alt']:.0f}° alle {r['max_at']}, Luna a {r['moon_sep']:.0f}°; {r['fit']['words']}"
                      + (f"; {r['set']}" if r.get("set") else ""))
     if p.get("hourly"):

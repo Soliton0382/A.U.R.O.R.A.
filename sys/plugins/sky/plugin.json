@@ -28,12 +28,13 @@
   "sky_target": "read",
   "sky_catalog": "read",
   "sky_sequence": "write_local",
-  "sky_rotation": "write_local"
+  "sky_rotation": "write_local",
+  "sky_collimation": "write_local"
  },
  "on_demand": {
   "words": ["stanotte", "tonight", "pianifica", "planning", "plan", "cosa riprendo", "cosa fotografo", "target",
             "catalogo", "catalogue", "catalog", "ngc", "messier", "sharpless", "nebulosa", "nebula", "galassia", "galaxy",
-            "seeing", "luna", "moon", "mosaico", "mosaic", "inquadratura", "framing", "sequenza", "sequence", "nina", "ruota", "ruotare", "rotazione", "rotation", "angolo",
+            "seeing", "luna", "moon", "mosaico", "mosaic", "inquadratura", "framing", "sequenza", "sequence", "nina", "ruota", "ruotare", "rotazione", "rotation", "angolo", "collimazione", "collimation", "sfocata", "viti",
             "n.i.n.a"]
  },
  "welcome": {

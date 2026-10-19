@@ -6,7 +6,7 @@ VizieR) and the sky's forecast (Open-Meteo, 7Timer!) with the site rounded to a 
 read from the astro folder (the «astro» plugin's, which stays offline)."""
 from __future__ import annotations
 
-from aurora import ast_catalog, ast_inventory, ast_rotate, ast_seqwrite, ast_skyplan, sys_config
+from aurora import ast_catalog, ast_donut, ast_inventory, ast_rotate, ast_seqwrite, ast_skyplan, sys_config
 from mcp.server.mcpserver import MCPServer
 
 server = MCPServer("sky", version="1.0")
@@ -84,6 +84,23 @@ def sky_rotation(angle: str = "") -> str:
         return f"Non misurata: {r['error']}"
     return "\n".join(x for x in (f"Angolo ora {r['pa']}°, voluto {r['want']}°.", r.get("learned") and f"Imparato: {r['learned']}.",
                                   r["say"]) if x)
+
+
+@server.tool()
+def sky_collimation(exposure_s: float = 3, learned_screw: str = "", turned: str = "") -> str:
+    """Il test della stella sfocata: con una stella luminosa al centro del campo, sfocata finché si vede l'ombra del
+    secondario, N.I.N.A. scatta e Aurora misura quanto l'ombra è fuori dal centro dell'anello; dice se il primario è
+    collimato o quale vite girare, di quanto e in che verso. Le viti si imparano una volta: gira una vite (per esempio
+    di 1/8 in senso orario) e chiama con learned_screw il suo nome («in basso a destra») e turned quanto
+    («1/8 orario», «1/4 antiorario»). Muove solo l'otturatore: uno scatto."""
+    learn = None
+    if learned_screw.strip():
+        eighths = ast_donut.parse_turn(turned)
+        if eighths is None:
+            return "turned: quanto hai girato, per esempio «1/8 orario» o «1/4 antiorario»"
+        learn = (learned_screw.strip()[:40], eighths)
+    r = ast_donut.run(sys_config.get(), float(exposure_s), learn)
+    return "\n".join(x for x in (r.get("learned") and f"Imparato: {r['learned']}.", r["say"]) if x)
 
 
 if __name__ == "__main__":

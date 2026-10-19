@@ -6,31 +6,36 @@
 import { call } from "../api.js";
 import { el } from "../dom.js";
 import { t } from "../i18n.js";
+import { datePicker, fmtDate } from "../dates.js";
 
 const KINDS = ["", "narrowband", "broadband", "hdr", "galaxy"];
-const COLS = ["n", "name", "type", "size", "hours", "max", "moon", "fit", "set"];
+const COLS = ["n", "pic", "name", "type", "size", "hours", "max", "moon", "fit", "set"];
+const thumbUrl = (name) => `/v1/aurora/astro/sky/thumb?object=${encodeURIComponent(name)}`;
 const pct = (x) => `${Math.round(x * 100)}%`;
 
 function controls(box, run) {
   const row = el("div", "sky-controls");
-  const date = el("input");
-  date.type = "date";
-  const kind = el("select");
+  const date = datePicker("", () => again());
+  const kind = el("select", "sky-kind");
   KINDS.forEach((k) => { const o = el("option", "", t(`sky.kind.${k || "all"}`)); o.value = k; kind.append(o); });
   const alt = el("input");
   alt.type = "number"; alt.min = "0"; alt.max = "80"; alt.value = "30"; alt.title = t("sky.min_alt");
-  const go = el("button", "btn", `🔭 ${t("sky.go")}`);
+  const go = el("button", "btn", `🔄 ${t("sky.again")}`);
   go.type = "button";
-  go.addEventListener("click", () => run({ date: date.value, kind: kind.value, min_alt: alt.value }));
-  row.append(el("label", "", t("sky.date")), date, el("label", "", t("sky.kind")), kind,
+  const again = () => run({ date: date.value, kind: kind.value, min_alt: alt.value });
+  let wait;
+  go.addEventListener("click", again);
+  kind.addEventListener("change", again);
+  alt.addEventListener("input", () => { clearTimeout(wait); wait = setTimeout(again, 600); });
+  row.append(el("label", "", t("sky.date")), date.el, el("label", "", t("sky.kind")), kind,
     el("label", "", t("sky.min_alt")), alt, go);
-  box.append(row);
+  box.append(row, el("p", "muted sky-how", `👆 ${t("sky.how")}`));
 }
 
 function nightCard(d) {
   const n = d.night;
   const card = el("div", "sky-night");
-  const lines = [`📍 ${d.site.lat}, ${d.site.lon} (${d.site.from}) · ${d.date}`];
+  const lines = [`📍 ${d.site.lat}, ${d.site.lon} (${d.site.from}) · ${fmtDate(d.date)}`];
   if (!n.dusk) lines.push(t("sky.never_dark"));
   else {
     lines.push(`🌑 ${t("sky.dark", { from: n.dusk, to: n.dawn, h: n.dark_h })}`);
@@ -42,6 +47,11 @@ function nightCard(d) {
   if (d.field) lines.push(`🖼️ ${t("sky.field", { w: d.field.w_deg, h: d.field.h_deg, s: d.field.scale })}`);
   lines.forEach((x) => card.append(el("div", "", x)));
   if (d.clouds_ignored) card.append(el("div", "warn", `⚠️ ${t("sky.clouds_ignored")}`));
+  if (d.families) {
+    const said = Object.entries(d.families).filter(([, v]) => v.usable || v.if_clear)
+      .map(([f, v]) => `${t(`sky.fam.${f}`)} ${v.usable}${v.if_clear ? ` (+${v.if_clear} ☁️)` : ""}`);
+    card.append(el("div", "", `🗂️ ${t("sky.families")}: ${said.join(" · ")}`));
+  }
   return card;
 }
 
@@ -65,12 +75,18 @@ function table(d, open) {
   for (const k of COLS) head.append(el("th", "", t(`sky.col.${k}`)));
   tb.append(head);
   d.targets.forEach((r, i) => {
-    const tr = el("tr", "sky-row");
+    const tr = el("tr", `sky-row${r.if_clear ? " muted" : ""}`);
     const names = [...r.common, ...r.aliases].join(", ");
-    const cells = [String(i + 1), `${r.name}${names ? ` · ${names}` : ""}`, `${r.type} · ${t(`sky.kind.${r.kind}`)}`,
-      r.size_arcmin[0] ? `${r.size_arcmin[0]}′` : "—", `${r.hours} h${r.from ? ` · ${r.from}–${r.to}` : ""}`,
+    const cells = [String(i + 1), "", `${r.name}${names ? ` · ${names}` : ""}`, `${r.type} · ${t(`sky.kind.${r.kind}`)}`,
+      r.size_arcmin[0] ? `${r.size_arcmin[0]}′` : "—", `${r.if_clear ? "☁️ " : ""}${r.hours} h${r.from ? ` · ${r.from}–${r.to}` : ""}${r.if_clear ? ` · ${t("sky.if_clear")}` : ""}`,
       `${r.max_alt}° · ${r.max_at}`, `${r.moon_sep}°`, r.fit.words, r.set || "—"];
     cells.forEach((c, k) => { const td = el("td", "", c); td.dataset.label = t(`sky.col.${COLS[k]}`); tr.append(td); });
+    const picCell = tr.children[1];
+    picCell.className = "sky-pic";
+    const mini = () => { const im = el("img", "sky-mini"); im.loading = "lazy"; im.alt = ""; im.src = thumbUrl(r.name); picCell.replaceChildren(im); };
+    if (r.thumb) mini();                                     // opened before: its picture is kept
+    else picCell.textContent = "📷";
+    tr.addEventListener("click", () => { if (!r.thumb) { r.thumb = true; setTimeout(mini, 2500); } });
     tr.title = t("sky.open");
     tr.addEventListener("click", () => open(r.name, tr));
     tb.append(tr);
@@ -102,7 +118,27 @@ export async function skyTab(box) {
       const d = await call(`/v1/aurora/astro/sky?${q}`);
       if (d.error) { one.replaceChildren(el("p", "warn", d.error)); return; }
       const r = d.targets[0];
-      one.replaceChildren(el("h4", "", `🎯 ${r.name} · ${r.hours} h · ${r.fit.words}`), hourly(d));
+      const pic = el("img", "sky-thumb");
+      pic.alt = r.name;
+      pic.loading = "lazy";
+      pic.src = thumbUrl(name);
+      pic.addEventListener("error", () => pic.replaceWith(el("p", "muted", t("sky.no_thumb"))));
+      const plan = el("button", "primary", `🗓️ ${t("sky.plan")}`);
+      const said = el("pre", "col-text");
+      plan.addEventListener("click", async () => {
+        plan.disabled = true;
+        said.textContent = `⏳ ${t("sky.planning")}`;
+        try {
+          const s = await call("/v1/aurora/astro/sky/sequence", { method: "POST", body: JSON.stringify({ object: name, date: last.date || "", kind: last.kind && last.kind !== "galaxy" ? last.kind : "" }) });
+          said.textContent = s.error ? `⚠️ ${s.error}` : s.text;
+        } catch (e) { said.textContent = e.message; }
+        plan.disabled = false;
+      });
+      const side = el("div", "sky-one-side");
+      side.append(el("h4", "", `🎯 ${r.name} · ${r.if_clear ? "☁️ " : ""}${r.hours} h · ${r.fit.words}`), hourly(d), plan, said);
+      const box2 = el("div", "sky-one-box");
+      box2.append(pic, side);
+      one.replaceChildren(box2, el("p", "muted", t("sky.thumb_note")));
       at.scrollIntoView({ behavior: "smooth", block: "nearest" });
     } catch (e) { one.replaceChildren(el("p", "warn", e.message)); }
   };
@@ -117,7 +153,7 @@ export async function skyTab(box) {
     if (d.targets?.length) out.append(table(d, open), el("p", "muted", t("sky.count", { n: d.candidates, of: d.catalogue })));
     else if (d.night.dusk) out.append(el("p", "muted", t("sky.none")));
   };
-  controls(box, run);
+  controls(box, (p) => run(p));
   box.append(out, one);
   run();
 }

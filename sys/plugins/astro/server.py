@@ -4,7 +4,7 @@
 inventory (ast_inventory), the integrated darks' library of this machine, the files of the astro folder. No network."""
 from __future__ import annotations
 
-from aurora import ast_advice, ast_guidelog, ast_inventory, ast_pointing, ast_polar, sys_config
+from aurora import ast_advice, ast_guidelog, ast_inventory, ast_pointing, ast_polar, ast_stars, sys_config
 from mcp.server.mcpserver import MCPServer
 
 server = MCPServer("astro", version="1.0")
@@ -122,6 +122,41 @@ def astro_pointing() -> str:
         return (f"L'inventario è dello script {p.get('script', 1)}: i plate solve di N.I.N.A. li raccoglie lo script 5 — "
                 "scaricalo di nuovo dalla pagina 🔭 Astro ed eseguilo sul PC del telescopio dopo una notte.")
     return ast_pointing.text(p.get("pointing") or {"centerings": [], "flips": []})
+
+
+@server.tool()
+def astro_stars(date: str = "") -> str:
+    """Le stelle delle pose di una notte (l'ultima, o date AAAA-MM-GG) su tutto il campo: FWHM nei 9 settori, il lato
+    dove si gonfiano (tilt o collimazione), la coda uniforme della coma (primario scollimato), gli angoli allungati allo
+    stesso modo (distanza correttore-sensore), il mosso nello stesso verso (inseguimento o guida); o campo uniforme."""
+    return ast_stars.night_text(ast_stars.night(sys_config.get(), date.strip()))
+
+
+@server.tool()
+def astro_collimation() -> str:
+    """Lo stato della collimazione dalla scheda ⭕ Collimazione: l'ultima foto del collimatore letta (secondario rotondo e
+    centrato, primario), l'ultima stella sfocata (scostamento dell'ombra, vite da girare), l'ultima notte di stelle sul
+    campo; con quando è stata fatta ciascuna e le viti del primario che Aurora conosce."""
+    import json
+    import time
+    folder = ast_inventory.folder(sys_config.get())
+    try:
+        d = json.loads((folder / "collimation.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        d = {}
+    screws = (ast_advice.setup(folder).get("collimation") or {}).get("screws") or {}
+    when = lambda x: time.strftime("%Y-%m-%d %H:%M", time.localtime(x["at"])) if x.get("at") else "?"   # noqa: E731
+    lines = []
+    if d.get("photo"):
+        lines.append(f"Foto del collimatore ({when(d['photo'])}): " + "; ".join(v["text"] for v in d["photo"].get("verdict", [])))
+    if d.get("star"):
+        lines.append(f"Stella sfocata ({when(d['star'])}): {d['star'].get('say', '')}")
+    if d.get("stars"):
+        lines.append(f"Stelle sul campo, notte del {d['stars'].get('date')} ({when(d['stars'])}):\n{d['stars'].get('text', '')}")
+    lines.append(f"Viti del primario imparate: {', '.join(screws) if screws else 'nessuna'}.")
+    if len(lines) == 1:
+        lines.insert(0, "Nessuna misura di collimazione ancora: si fanno dalla scheda 🔭 Astro → ⭕ Collimazione.")
+    return "\n".join(lines)
 
 
 @server.tool()
