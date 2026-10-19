@@ -22,7 +22,10 @@ const RATIOS = [2.8, 3, 3.5, 3.8, 4, 4.5, 5, 5.5, 6, 7, 8];
 const TYPICAL = { 2.8: 0.45, 3: 0.42, 3.5: 0.38, 3.8: 0.36, 4: 0.35, 4.5: 0.31, 5: 0.27, 5.5: 0.25, 6: 0.23, 7: 0.2, 8: 0.18 };
 const CIRCLES = ["drawtube", "secondary", "shadow", "ocal", "spot"];
 const COLOR = { drawtube: "#4060ff", secondary: "#ff40ff", shadow: "#00dcff", ocal: "#ff8c00", spot: "#ff2020" };
-const FIRST = { cx: 0.5, cy: 0.5, R: 0.42, drawtube: 1, secondary: 0.62, shadow: 0.2, ocal: 0.11, spot: 0.03,
+// each circle's radius its own, × the picture's width (owner, 19 Oct: «i raggi li facciamo che si possono modificare in
+// modo indipendente»): the drawtube changed, the others stay
+const FIRST = { cx: 0.5, cy: 0.5, rad: { drawtube: 0.42, secondary: 0.26, shadow: 0.084, ocal: 0.046, spot: 0.013 },
+  code: { on: false, x: 2000, y: 1500, w: 4000, h: 3000 },
   angle: 0, side: 1, manual: null, ratio: 4, aperture: 200, secondary_mm: 70, axis: { dx: 0, dy: 0 }, zoom: 1, night: false };
 
 // the same geometry as ast_ocal: the offset secondary's outline seen from `view` mm, centred from the focal point
@@ -53,7 +56,14 @@ export function offsetFor(k, m, ap, f) {
 }
 
 function load() {
-  try { return { ...FIRST, ...JSON.parse(localStorage.getItem(KEY) || "{}") }; } catch { return { ...FIRST }; }
+  let st;
+  try { st = { ...FIRST, ...JSON.parse(localStorage.getItem(KEY) || "{}") }; } catch { st = { ...FIRST }; }
+  if (st.R && !st.rad?.v) {                    // the circles kept before: their radii were × the drawtube's
+    st.rad = { drawtube: st.R, ...Object.fromEntries(CIRCLES.slice(1).map((k) => [k, (st[k] ?? FIRST.rad[k] / 0.42) * st.R])) };
+  }
+  st.rad = { ...FIRST.rad, ...st.rad, v: 2 };
+  st.code = { ...FIRST.code, ...st.code };
+  return st;
 }
 
 function keep(st) {
@@ -164,12 +174,21 @@ export function liveCard(scope) {
     b.addEventListener("click", () => { pick = k; mark(); });
     which.append(b);
   }
+  radius.max = 0.8;
+  radius.min = 0.002;
+  const px = el("input", "col-num");                       // the radius in the picture's pixels, typed or stepped
+  Object.assign(px, { type: "number", step: 1, min: 1 });
+  const step = (d) => { const [w] = size(); st.rad[pick] = Math.max(1, st.rad[pick] * w + d) / w; mark(); draw(); };
+  const less = el("button", "btn", "−"), more = el("button", "btn", "+");
+  less.addEventListener("click", () => step(-1));
+  more.addEventListener("click", () => step(1));
   const mark = () => {
     which.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.c === pick));
-    radius.max = pick === "drawtube" ? 0.8 : 1.2;
-    radius.value = pick === "drawtube" ? st.R : st[pick];
+    radius.value = st.rad[pick];
+    px.value = Math.round(st.rad[pick] * size()[0]);
   };
-  radius.addEventListener("input", () => { if (pick === "drawtube") st.R = Number(radius.value); else st[pick] = Number(radius.value); draw(); });
+  radius.addEventListener("input", () => { st.rad[pick] = Number(radius.value); px.value = Math.round(st.rad[pick] * size()[0]); draw(); });
+  px.addEventListener("change", () => { if (Number(px.value) > 0) { st.rad[pick] = Number(px.value) / size()[0]; mark(); draw(); } });
   const angle = el("input");
   Object.assign(angle, { type: "range", min: 0, max: 359, step: 1, value: st.angle });
   angle.addEventListener("input", () => { st.angle = Number(angle.value); draw(); });
@@ -177,9 +196,9 @@ export function liveCard(scope) {
   flip.title = t("col.live_flip");
   flip.addEventListener("click", () => { st.side = -st.side; draw(); });
   const reset = el("button", "btn", t("col.live_reset"));
-  reset.addEventListener("click", () => { Object.assign(st, { ...FIRST, ratio: st.ratio, aperture: st.aperture, secondary_mm: st.secondary_mm, manual: st.manual }); mark(); draw(); });
+  reset.addEventListener("click", () => { Object.assign(st, { ...FIRST, rad: { ...FIRST.rad, v: 2 }, code: st.code, ratio: st.ratio, aperture: st.aperture, secondary_mm: st.secondary_mm, manual: st.manual }); mark(); draw(); });
   const sizes = el("div", "col-row");
-  sizes.append(lab("col.live_radius", radius), lab("col.live_axis", angle), flip, reset);
+  sizes.append(lab("col.live_radius", radius), lab("col.live_px", px), less, more, lab("col.live_axis", angle), flip, reset);
 
   // the view: digital zoom around the circles, night mode; the camera's true centre by turning it (as the collimator's
   // own program does): the centre spot marked, the collimator turned 180° in the focuser, marked again — the middle is
@@ -199,9 +218,24 @@ export function liveCard(scope) {
   const view = el("div", "col-row");
   view.append(lab("col.live_zoom", zoom), lab("col.live_night", night), turn, unturn);
 
+  // the collimator's centre code (its own program's «Center Code», a pair of pixels the maker gives for each serial):
+  // the reflections' circles on that pixel; the code's resolution given, so any picture's size takes it
+  const codeOn = el("input");
+  codeOn.type = "checkbox";
+  codeOn.checked = st.code.on;
+  const cn = (k, stepv) => {
+    const i = num(st.code[k], stepv, 0, 20000);
+    i.addEventListener("input", () => { st.code[k] = Number(i.value); draw(); });
+    return i;
+  };
+  codeOn.addEventListener("change", () => { st.code.on = codeOn.checked; draw(); });
+  const code = el("div", "col-row");
+  code.append(lab("col.live_code_on", codeOn), lab("col.live_code_x", cn("x", 1)), lab("col.live_code_y", cn("y", 1)),
+    lab("col.live_code_w", cn("w", 1)), lab("col.live_code_h", cn("h", 1)));
+
   const analyse = el("button", "primary", `🔎 ${t("col.live_analyse")}`);
   const verdict = el("ul", "an-findings");
-  c.append(src, pc.row, pc.how, pc.controls, tube, which, sizes, view, stage, said, analyse, verdict,
+  c.append(src, pc.row, pc.how, pc.controls, tube, which, sizes, view, code, stage, said, analyse, verdict,
     el("p", "muted", t("col.live_legend")));
 
   function circle(ctx, x, y, r, color, dashed) {
@@ -219,21 +253,23 @@ export function liveCard(scope) {
     canvas.height = h;
     const ctx = canvas.getContext("2d");
     ctx.lineWidth = Math.max(2, w / 500);
-    const cx = st.cx * w, cy = st.cy * h, R = st.R * w;
-    const ax = cx + (st.axis?.dx || 0) * w, ay = cy + (st.axis?.dy || 0) * h;   // the axis at the reflections' depth
+    const cx = st.cx * w, cy = st.cy * h, R = st.rad.drawtube * w;
+    let ax = cx + (st.axis?.dx || 0) * w, ay = cy + (st.axis?.dy || 0) * h;     // the axis at the reflections' depth
+    const odd = st.code.on && Math.abs(w / h - st.code.w / st.code.h) > 0.01;    // the code for another shape
+    if (st.code.on && st.code.w > 0 && st.code.h > 0) { ax = (st.code.x / st.code.w) * w; ay = (st.code.y / st.code.h) * h; }
     inner.style.transformOrigin = `${st.cx * 100}% ${st.cy * 100}%`;
     inner.style.transform = st.zoom > 1 ? `scale(${st.zoom})` : "";
     c.classList.toggle("col-night", !!st.night);
     const a = (st.angle * Math.PI) / 180, dx = Math.cos(a) * st.side, dy = Math.sin(a) * st.side;
-    const geo = offsetFor(st.shadow / st.secondary, st.secondary_mm, st.aperture, st.aperture * st.ratio);
+    const geo = offsetFor(st.rad.shadow / st.rad.secondary, st.secondary_mm, st.aperture, st.aperture * st.ratio);
     const sh = st.manual !== null ? st.manual / 100 : geo ? geo.shift : 0;
     const shs = shadowShift(st.secondary_mm, st.aperture, st.aperture * st.ratio);   // the shadow: toward the primary
-    const rs = st.secondary * R;
+    const rs = st.rad.secondary * w, rsh = st.rad.shadow * w;
     circle(ctx, cx, cy, R, COLOR.drawtube, false);
     circle(ctx, ax + dx * sh * rs, ay + dy * sh * rs, rs, COLOR.secondary, false);
-    circle(ctx, ax - dx * shs * st.shadow * R, ay - dy * shs * st.shadow * R, st.shadow * R, COLOR.shadow, true);
-    circle(ctx, ax, ay, st.ocal * R, COLOR.ocal, false);
-    circle(ctx, ax, ay, st.spot * R, COLOR.spot, false);
+    circle(ctx, ax - dx * shs * rsh, ay - dy * shs * rsh, rsh, COLOR.shadow, true);
+    circle(ctx, ax, ay, st.rad.ocal * w, COLOR.ocal, false);
+    circle(ctx, ax, ay, st.rad.spot * w, COLOR.spot, false);
     ctx.setLineDash([]);
     ctx.strokeStyle = "#3cff3c";                          // the focuser's axis: where the spot and the reflection go
     ctx.beginPath();
@@ -245,10 +281,10 @@ export function liveCard(scope) {
     ctx.moveTo(cx - dx * R, cy - dy * R); ctx.lineTo(cx + dx * R, cy + dy * R);
     ctx.stroke();
     if (marking) return;                                  // the turn's instructions stay on screen
-    said.textContent = st.manual !== null
+    said.textContent = (odd ? `⚠️ ${t("col.live_code_odd", { cw: st.code.w, ch: st.code.h, w, h })} ` : "") + (st.manual !== null
       ? t("col.live_said_manual", { s: (sh * 100).toFixed(1), h: (shs * 100).toFixed(1) })
       : geo ? t("col.live_said", { s: (sh * 100).toFixed(1), v: Math.round(geo.view), o: geo.offset_mm.toFixed(1), h: (shs * 100).toFixed(1) })
-        : t("col.live_said_none");
+        : t("col.live_said_none"));
   }
 
   // the whole train dragged; the wheel changes the chosen circle
@@ -265,7 +301,8 @@ export function liveCard(scope) {
       marking = 0;
       draw();
       const [w, h] = size();
-      said.textContent = t("col.live_turned", { p: ((Math.hypot(st.axis.dx * w, st.axis.dy * h) / (st.R * w)) * 100).toFixed(1) });
+      said.textContent = t("col.live_turned", { p: ((Math.hypot(st.axis.dx * w, st.axis.dy * h) / (st.rad.drawtube * w)) * 100).toFixed(1),
+        x: Math.round((st.cx + st.axis.dx) * w), y: Math.round((st.cy + st.axis.dy) * h), w, h });
       return;
     }
     drag = { x, y, cx: st.cx, cy: st.cy };
@@ -282,7 +319,7 @@ export function liveCard(scope) {
   canvas.addEventListener("wheel", (ev) => {
     ev.preventDefault();
     const f = ev.deltaY < 0 ? 1.01 : 1 / 1.01;
-    if (pick === "drawtube") st.R *= f; else st[pick] *= f;
+    st.rad[pick] *= f;
     mark();
     draw();
   }, { passive: false });

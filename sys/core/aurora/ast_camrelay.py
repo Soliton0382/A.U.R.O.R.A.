@@ -25,7 +25,7 @@ STALE_S = 10.0                       # no frame for this long: the camera is not
 # within these bounds, the camera saying back what it took; the resolution and the stream's size and pace
 CONTROLS = ("brightness", "contrast", "saturation", "sharpness", "gamma", "gain", "exposure", "focus", "zoom")
 SWITCHES = ("auto_exposure", "autofocus")
-SIZES = ((1280, 720), (1920, 1080), (2592, 1944), (3840, 2160))
+SIZES = ((1280, 720), (1280, 960), (1920, 1080), (2592, 1944), (3840, 2160), (4000, 3000))   # 4:3 too: the collimator's
 HEAD = re.compile(rb"--[^\r\n]*\r\n(?:[^\r\n]+\r\n)*?Content-length: *(\d+)\r\n(?:[^\r\n]+\r\n)*\r\n", re.I)
 
 

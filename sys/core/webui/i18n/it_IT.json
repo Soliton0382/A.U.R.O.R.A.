@@ -2726,7 +2726,7 @@
   "sky.fmt_note.ccdciel": "Oggetto e pose. Gain, offset e temperatura CCDciel li prende dalle sue impostazioni.",
   "sky.fmt_note.csv": "Solo l'oggetto e le coordinate (nel formato di Telescopius): le pose le imposti nel programma; nelle note trovi quelle di Aurora.",
   "col.live": "Collimazione dal vivo",
-  "col.live_hint": "La camera del collimatore (per esempio l'OCAL: chiudi prima il suo programma, che tiene occupata la camera) o una foto. 1) Trascina l'insieme dei cerchi finché il blu combacia con il bordo del drawtube (la rotella o il cursore cambiano il cerchio scelto). 2) Porta i raggi del magenta, dell'azzurro, dell'arancio e del rosso alla grandezza del secondario, della sua ombra, del riflesso del collimatore e del salvabuchi. Lo spostamento del magenta lo calcola Aurora da questi raggi e dal rapporto focale; se vuoi lo scrivi tu. Poi collima: salvabuchi sulla croce verde (viti del secondario), bordo del secondario nel magenta, riflesso del collimatore sul salvabuchi (viti del primario). I cerchi restano dove li hai messi anche la prossima volta.",
+  "col.live_hint": "La camera del collimatore (per esempio l'OCAL: chiudi prima il suo programma, che tiene occupata la camera) o una foto. 1) Trascina l'insieme dei cerchi finché il blu combacia con il bordo del drawtube (la rotella, il cursore, i pixel o − e + cambiano solo il cerchio scelto). 2) Porta i raggi del magenta, dell'azzurro, dell'arancio e del rosso alla grandezza del secondario, della sua ombra, del riflesso del collimatore e del salvabuchi. Lo spostamento del magenta lo calcola Aurora da questi raggi e dal rapporto focale; se vuoi lo scrivi tu. Poi collima: salvabuchi sulla croce verde (viti del secondario), bordo del secondario nel magenta, riflesso del collimatore sul salvabuchi (viti del primario). I cerchi restano dove li hai messi anche la prossima volta.",
   "col.live_start": "Avvia la camera",
   "col.live_stop": "Ferma",
   "col.live_picture": "Usa una foto",
@@ -2770,7 +2770,7 @@
   "col.live_unturn": "Azzera il centro",
   "col.live_turn1": "Clicca sul salvabuchi nell'immagine.",
   "col.live_turn2": "Ora ruota il collimatore di 180° nel focheggiatore (senza toccare altro) e clicca di nuovo sul salvabuchi.",
-  "col.live_turned": "Centro vero trovato: a {p}% del raggio del drawtube dal centro del drawtube. Croce, salvabuchi, riflesso e secondario sono ora lì.",
+  "col.live_turned": "Centro vero trovato: a {p}% del raggio del drawtube dal centro del drawtube (pixel {x}, {y} su {w}×{h}: è il tuo codice centro per questa risoluzione). Croce, salvabuchi, riflesso e ombra sono ora lì.",
   "col.pc_full": "come la camera",
   "col.pc_size": "Risoluzione",
   "col.pc_fps": "Fotogrammi al secondo",
@@ -2794,5 +2794,12 @@
   "col.pc_step2": "Chiudi il programma del collimatore (tiene occupata la camera).",
   "col.pc_step3": "Apri PowerShell nella cartella estratta e incolla il comando qui sotto.",
   "col.pc_step4": "La prima volta installa da solo Python, OpenCV e pygrabber, solo per il tuo utente: servono internet e qualche minuto.",
-  "col.pc_step5": "Quando qui compare «PC collegato», scegli la camera e premi «Mostra»."
+  "col.pc_step5": "Quando qui compare «PC collegato», scegli la camera e premi «Mostra».",
+  "col.live_px": "Raggio (px)",
+  "col.live_code_on": "Usa il codice centro dell'OCAL",
+  "col.live_code_x": "X",
+  "col.live_code_y": "Y",
+  "col.live_code_w": "su larghezza",
+  "col.live_code_h": "e altezza",
+  "col.live_code_odd": "il codice centro è per {cw}×{ch}, l'immagine è {w}×{h}: proporzioni diverse, scegli la risoluzione giusta della camera."
 }

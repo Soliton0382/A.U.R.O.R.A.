@@ -2726,7 +2726,7 @@
   "sky.fmt_note.ccdciel": "Target and exposures. Gain, offset and temperature come from CCDciel's own settings.",
   "sky.fmt_note.csv": "The target and its coordinates only (Telescopius's format): set the exposures in the program; Aurora's are in the notes.",
   "col.live": "Live collimation",
-  "col.live_hint": "The collimator's camera (the OCAL for one: close its own program first, it holds the camera) or a picture. 1) Drag the set of circles until the blue one sits on the drawtube's edge (the wheel or the slider change the chosen circle). 2) Bring the radii of magenta, light blue, orange and red to the size of the secondary, its shadow, the collimator's reflection and the centre spot. Aurora works out the magenta's displacement from these radii and the focal ratio; you may type it. Then collimate: the centre spot on the green cross (secondary's screws), the secondary's edge in the magenta, the collimator's reflection on the spot (primary's screws). The circles stay where you left them.",
+  "col.live_hint": "The collimator's camera (the OCAL for one: close its own program first, it holds the camera) or a picture. 1) Drag the set of circles until the blue one sits on the drawtube's edge (the wheel, the slider, the pixels or − and + change only the chosen circle). 2) Bring the radii of magenta, light blue, orange and red to the size of the secondary, its shadow, the collimator's reflection and the centre spot. Aurora works out the magenta's displacement from these radii and the focal ratio; you may type it. Then collimate: the centre spot on the green cross (secondary's screws), the secondary's edge in the magenta, the collimator's reflection on the spot (primary's screws). The circles stay where you left them.",
   "col.live_start": "Start the camera",
   "col.live_stop": "Stop",
   "col.live_picture": "Use a picture",
@@ -2770,7 +2770,7 @@
   "col.live_unturn": "Clear the centre",
   "col.live_turn1": "Click on the centre spot in the picture.",
   "col.live_turn2": "Now turn the collimator 180° in the focuser (touch nothing else) and click on the centre spot again.",
-  "col.live_turned": "True centre found: {p}% of the drawtube's radius from the drawtube's centre. The cross, spot, reflection and secondary are now there.",
+  "col.live_turned": "True centre found: {p}% of the drawtube's radius from the drawtube's centre (pixel {x}, {y} of {w}×{h}: your centre code at this resolution). The cross, spot, reflection and shadow are now there.",
   "col.pc_full": "as the camera takes it",
   "col.pc_size": "Resolution",
   "col.pc_fps": "Frames a second",
@@ -2794,5 +2794,12 @@
   "col.pc_step2": "Close the collimator's own program (it holds the camera).",
   "col.pc_step3": "Open PowerShell in the unzipped folder and paste the command below.",
   "col.pc_step4": "The first time it installs Python, OpenCV and pygrabber by itself, for your user only: it needs the internet and a few minutes.",
-  "col.pc_step5": "When «PC linked» shows here, choose the camera and press «Show»."
+  "col.pc_step5": "When «PC linked» shows here, choose the camera and press «Show».",
+  "col.live_px": "Radius (px)",
+  "col.live_code_on": "Use the collimator's centre code",
+  "col.live_code_x": "X",
+  "col.live_code_y": "Y",
+  "col.live_code_w": "of width",
+  "col.live_code_h": "and height",
+  "col.live_code_odd": "the centre code is for {cw}×{ch}, the picture is {w}×{h}: another shape, choose the camera's right resolution."
 }

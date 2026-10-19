@@ -171,6 +171,9 @@ def test_the_live_tab_its_scope_and_the_offline_shell():
     live = (ROOT / "webui" / "js" / "modules" / "astro_collim_live.js").read_text()
     assert "getUserMedia" in live and "enumerateDevices" in live and "/v1/aurora/astro/collimation/scope" in live
     assert "/v1/aurora/astro/camera/stream" in live and "pcPanel(" in live                          # the PC's camera too
+    # each radius its own (owner, 19 Oct: «modificare in modo indipendente»); the collimator's centre code by its size
+    assert "st.rad[pick] *= f" in live and "st.rad.drawtube * w" in live and "st.R" not in live.replace("st.R &&", "").replace("* st.R", "").replace("drawtube: st.R", "")
+    assert "st.code.x / st.code.w" in live and "col.live_code_odd" in live
     pc = (ROOT / "webui" / "js" / "modules" / "astro_collim_pc.js").read_text()
     assert "/v1/aurora/astro/camera/key" in pc and "/v1/aurora/astro/camera/bundle" in pc and "dialog: true" in pc
     assert "liveCard(state.scope)" in (ROOT / "webui" / "js" / "modules" / "astro_collim.js").read_text()
