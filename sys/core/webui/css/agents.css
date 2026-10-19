@@ -389,3 +389,6 @@ dialog.welcome p { margin: 0; }
 .col-live input[type="range"] { width: 14rem; min-height: 0; height: 1.6rem; padding: 0; }
 .col-stage [hidden] { display: none; }
 .col-live .col-row label input:not([type="number"]):not([type="date"]) { flex: none; }
+
+.col-live .col-row strong { align-self: center; }
+.col-pc-how pre { white-space: pre-wrap; word-break: break-all; }

@@ -9,7 +9,8 @@
 // (step 2). The radii set by hand to the reflections' sizes; the displacement then follows from them — the shadow's
 // size against the secondary's gives the camera's distance (ast_ocal.expected, the same formula), the focal ratio and
 // the secondary's size the rest — or is typed by hand. The train kept in this browser: after a secondary taken out,
-// the circles are where they were.
+// the circles are where they were. Or the telescope PC's camera relayed through Aurora (owner, 19 Oct: «un server da
+// installare nel mini PC… che invii in streaming»): its script sends the camera chosen here, seen from any device.
 import { call } from "../api.js";
 import { el } from "../dom.js";
 import { t } from "../i18n.js";
@@ -77,17 +78,67 @@ export function liveCard(scope) {
   const src = el("div", "col-row");
   src.append(cams, start, stop, fromPic, file);
 
+  // the telescope PC's camera, relayed: linked once with a key, its cameras listed, the one chosen streamed
+  const pcCams = el("select");
+  const pcGo = el("button", "approve", `📡 ${t("col.pc_use")}`);
+  const pcStop = el("button", "btn", `⏹ ${t("col.live_stop")}`);
+  const pcLink = el("button", "btn", `🔑 ${t("col.pc_link")}`);
+  const pcSaid = el("small", "muted");
+  const pcHow = el("div", "col-pc-how");
+  const pcRow = el("div", "col-row");
+  pcRow.append(el("strong", "", `📡 ${t("col.pc")}`), pcCams, pcGo, pcStop, pcLink, pcSaid);
+  const pcState = async () => {
+    try {
+      const s = await call("/v1/aurora/astro/camera");
+      const keep = pcCams.value || s.wanted;
+      pcCams.replaceChildren(...s.devices.map((d) => { const o = el("option", "", d); o.value = d; return o; }));
+      if (keep) pcCams.value = keep;
+      pcSaid.textContent = !s.key ? t("col.pc_none") : s.pc_seen_s === null || s.pc_seen_s > 15 ? t("col.pc_off")
+        : s.live ? t("col.pc_live", { fps: s.fps }) : t("col.pc_on");
+      return s;
+    } catch { pcSaid.textContent = ""; return null; }
+  };
+  pcGo.addEventListener("click", async () => {
+    if (!pcCams.value) return;
+    await call("/v1/aurora/astro/camera", { method: "PUT", body: JSON.stringify({ wanted: pcCams.value }) });
+    stream?.getTracks().forEach((x) => x.stop());
+    remote.onload = () => { remote.onload = null; draw(); };
+    remote.src = `/v1/aurora/astro/camera/stream?t=${Date.now()}`;
+    remote.hidden = false;
+    video.hidden = true;
+    still.hidden = true;
+    pcState();
+  });
+  pcStop.addEventListener("click", async () => {
+    remote.removeAttribute("src");
+    await call("/v1/aurora/astro/camera", { method: "PUT", body: JSON.stringify({ wanted: "" }) });
+    pcState();
+  });
+  pcLink.addEventListener("click", async () => {
+    if (!confirm(t("col.pc_link_q"))) return;
+    const k = await call("/v1/aurora/astro/camera/key", { method: "POST" });
+    const dl = el("a", "btn", `⬇️ ${t("col.pc_script")}`);
+    dl.href = "/v1/aurora/astro/camera/script";
+    dl.download = "astro_camera.ps1";
+    pcHow.replaceChildren(el("p", "muted", t("col.pc_how")), dl, el("pre", "col-text", k.command));
+    pcState();
+  });
+  const pcTimer = setInterval(() => { if (!document.body.contains(c)) clearInterval(pcTimer); else pcState(); }, 5000);
+  pcState();
+
   const stage = el("div", "col-stage");
   const video = el("video");
   Object.assign(video, { autoplay: true, muted: true, playsInline: true });
   const still = el("img");
   still.hidden = true;
+  const remote = el("img");
+  remote.hidden = true;
   const canvas = el("canvas", "col-overlay");
-  stage.append(video, still, canvas);
+  stage.append(video, still, remote, canvas);
   const said = el("p", "col-say");
   let stream = null;
 
-  const media = () => (still.hidden ? video : still);
+  const media = () => (!remote.hidden ? remote : still.hidden ? video : still);
   const size = () => {
     const m = media();
     return [m.videoWidth || m.naturalWidth || 1280, m.videoHeight || m.naturalHeight || 720];
@@ -155,7 +206,7 @@ export function liveCard(scope) {
 
   const analyse = el("button", "primary", `🔎 ${t("col.live_analyse")}`);
   const verdict = el("ul", "an-findings");
-  c.append(src, tube, which, sizes, stage, said, analyse, verdict, el("p", "muted", t("col.live_legend")));
+  c.append(src, pcRow, pcHow, tube, which, sizes, stage, said, analyse, verdict, el("p", "muted", t("col.live_legend")));
 
   function circle(ctx, x, y, r, color, dashed) {
     ctx.setLineDash(dashed ? [10, 8] : []);
@@ -233,6 +284,8 @@ export function liveCard(scope) {
       stream = await navigator.mediaDevices.getUserMedia({ video: cams.value ? { deviceId: { exact: cams.value }, width: { ideal: 1920 } } : { width: { ideal: 1920 } } });
       video.srcObject = stream;
       still.hidden = true;
+      remote.hidden = true;
+      remote.removeAttribute("src");
       video.hidden = false;
       await cameras();
       st.device = stream.getVideoTracks()[0]?.getSettings().deviceId || st.device;
@@ -246,6 +299,8 @@ export function liveCard(scope) {
     still.onload = draw;
     still.src = URL.createObjectURL(f);
     still.hidden = false;
+    remote.hidden = true;
+    remote.removeAttribute("src");
     video.hidden = true;
     file.value = "";
   });

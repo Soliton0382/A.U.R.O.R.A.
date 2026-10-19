@@ -2753,5 +2753,15 @@
   "col.live_said_none": "No displacement to work out: bring the secondary's and the shadow's radii to their size, or type it.",
   "col.live_https": "The camera needs a secure connection: open Aurora at its https address.",
   "col.live_no_camera": "The camera does not open: is it plugged in and free (the OCAL's program closed)?",
-  "col.live_legend": "Blue the drawtube, green cross its centre (the focuser's axis), magenta where the secondary's edge should be, dashed light blue the shadow (only its size counts), orange and red the collimator's reflection and the centre spot; the light line is the tube's axis. «Read» has Aurora read the frame as a picture."
+  "col.live_legend": "Blue the drawtube, green cross its centre (the focuser's axis), magenta where the secondary's edge should be, dashed light blue the shadow (only its size counts), orange and red the collimator's reflection and the centre spot; the light line is the tube's axis. «Read» has Aurora read the frame as a picture.",
+  "col.pc": "Telescope PC",
+  "col.pc_use": "Show",
+  "col.pc_link": "Link the PC",
+  "col.pc_link_q": "Make a new key for the telescope PC's camera? The old one stops working.",
+  "col.pc_script": "Download the script",
+  "col.pc_none": "not linked: «Link the PC»",
+  "col.pc_off": "the PC does not answer: is the script running?",
+  "col.pc_on": "PC linked: choose a camera and «Show»",
+  "col.pc_live": "live, {fps} frames a second",
+  "col.pc_how": "On the telescope PC: download the script into the inventory script's folder and run the command below in PowerShell (it holds the key: keep it to yourself). It needs ffmpeg: if missing, «winget install --id Gyan.FFmpeg -e». The script opens no port: it only sends the camera you choose here. If Aurora's certificate is not trusted by the PC, add -Insecure."
 }

@@ -2753,5 +2753,15 @@
   "col.live_said_none": "Spostamento non calcolabile: porta i raggi del secondario e dell'ombra alla loro grandezza, o scrivilo a mano.",
   "col.live_https": "La camera serve una connessione sicura: apri Aurora con il suo indirizzo https.",
   "col.live_no_camera": "Non riesco ad aprire la camera: è collegata e libera (il programma dell'OCAL chiuso)?",
-  "col.live_legend": "Blu il drawtube, croce verde il suo centro (l'asse del focheggiatore), magenta dove deve stare il bordo del secondario, azzurro tratteggiato l'ombra (conta solo la sua grandezza), arancio e rosso il riflesso del collimatore e il salvabuchi; la linea chiara è l'asse del tubo. «Analizza» fa leggere il fotogramma ad Aurora come una foto."
+  "col.live_legend": "Blu il drawtube, croce verde il suo centro (l'asse del focheggiatore), magenta dove deve stare il bordo del secondario, azzurro tratteggiato l'ombra (conta solo la sua grandezza), arancio e rosso il riflesso del collimatore e il salvabuchi; la linea chiara è l'asse del tubo. «Analizza» fa leggere il fotogramma ad Aurora come una foto.",
+  "col.pc": "PC del telescopio",
+  "col.pc_use": "Mostra",
+  "col.pc_link": "Collega il PC",
+  "col.pc_link_q": "Creo una nuova chiave per la camera del PC del telescopio? Quella vecchia smette di funzionare.",
+  "col.pc_script": "Scarica lo script",
+  "col.pc_none": "non collegato: «Collega il PC»",
+  "col.pc_off": "il PC non risponde: lo script è avviato?",
+  "col.pc_on": "PC collegato: scegli una camera e «Mostra»",
+  "col.pc_live": "in diretta, {fps} fotogrammi al secondo",
+  "col.pc_how": "Sul PC del telescopio: scarica lo script nella stessa cartella dello script d'inventario e lancia in PowerShell il comando qui sotto (contiene la chiave: tienilo per te). Serve ffmpeg: se manca, «winget install --id Gyan.FFmpeg -e». Lo script non apre porte: manda soltanto la camera che scegli qui. Se Aurora ha un certificato che il PC non riconosce, aggiungi -Insecure."
 }

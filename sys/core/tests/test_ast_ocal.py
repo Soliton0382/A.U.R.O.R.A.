@@ -167,6 +167,7 @@ def test_the_live_circles_use_the_same_geometry_as_the_server():
 def test_the_live_tab_its_scope_and_the_offline_shell():
     live = (ROOT / "webui" / "js" / "modules" / "astro_collim_live.js").read_text()
     assert "getUserMedia" in live and "enumerateDevices" in live and "/v1/aurora/astro/collimation/scope" in live
+    assert "/v1/aurora/astro/camera/stream" in live and "/v1/aurora/astro/camera/key" in live    # the PC's camera too
     assert "liveCard(state.scope)" in (ROOT / "webui" / "js" / "modules" / "astro_collim.js").read_text()
     assert "/static/js/modules/astro_collim_live.js" in (ROOT / "webui" / "sw.js").read_text()
     api = (ROOT / "aurora" / "api" / "astro.py").read_text()
