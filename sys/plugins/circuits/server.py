@@ -51,7 +51,8 @@ def circuit_schematic(project: str, name: str, parts: list[dict], title: str = "
     default); length in units (3). A wire joins two names into one node (to draw a corner or close a loop).
     Draw it as by hand: the main path first, each branch from a node already drawn, corners with wires; a
     transistor or op-amp sits with its terminal on the node already drawn, the others a little off: go on from them.
-    Optional: model «NAME TYPE(params)» for diodes and transistors (generic ones otherwise), label, label_side
+    Optional: model «NAME TYPE(params)» for diodes and transistors (generic ones otherwise), label (shown in place
+    of the id; the value is always shown), label_side
     "other" (the label on the other side, when two parts sit close), a wire's dir (up/down: it goes that way first). Writes
     <project>/circuits/<name>/: schematic.svg/.pdf/.png, netlist.cir, circuit.json."""
     import circ_draw
@@ -108,6 +109,7 @@ def circuit_simulate(project: str, name: str, analyses: list[dict] | None = None
             lines.append("op: " + ", ".join(f"{k} = {circ_sim.fmt(v)}" for k, v in values.items()))
             continue
         head, cols = circ_sim.read_table(out / a["file"])
+        (out / a["file"]).unlink()                      # ngspice's raw table: the CSV below says it with names
         if not cols:
             raise ToolError(f"{a['type']}: ngspice wrote no data")
         x = cols[0]

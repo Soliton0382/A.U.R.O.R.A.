@@ -36,6 +36,8 @@ def test_no_line_of_the_netlist_comes_from_a_value():
         N.check([{"id": "Q1", "kind": "npn", "nodes": ["c", "b", "e"], "model": "X NPN(Bf=1)\n.control"}])
     with pytest.raises(N.CircuitError):
         N.netlist(N.check([RC[1]]))                                         # no ground
+    net, _ = N.netlist(N.check([{**RC[1], "label": "R d'ingresso"}, RC[0]]), "Filtro, fc ≈ 1 kHz\n.control")
+    assert net.splitlines()[0] == "* Filtro, fc ≈ 1 kHz .control" and len(net.splitlines()) == 3   # C374: a title
     with pytest.raises(N.CircuitError):
         N.check([RC[1], {**RC[1]}])                                         # the same id twice
 

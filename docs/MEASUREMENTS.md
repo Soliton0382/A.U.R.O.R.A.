@@ -4043,7 +4043,8 @@ through the plugin's own modules (circ_net → circ_draw → circ_sim), outside 
 
 Reading: the first three agree to the fourth digit; the transistor's differs by its Vbe (0.673 V simulated, 0.7 assumed
 by hand) — the hand's approximation, not the simulator's. Drawn: the four schematics read right by eye (a first
-transistor came out turned the way of the part before it: fixed, its angle always set). Not measured: the plugin
-called through Aurora's agent and sandbox (ngspice not yet installed on the machine, the plugin's libraries not yet
-installed); transient accuracy against an analytic step; larger circuits; the drawing of circuits written by the model
+transistor came out turned the way of the part before it: fixed, its angle always set). Through Aurora's agent and the
+sandbox (the same day, the plugin's libraries and ngspice in its own folder): asked for an RC low-pass at about 1 kHz,
+she chose 1.6 kΩ and 100 nF, computed 994.7 Hz and measured 994.7 Hz in the simulation; 6 steps in 48 s, one refusal on
+the way (her title with «≈», C374). Not measured: transient accuracy against an analytic step; larger circuits; the drawing of circuits written by the model
 itself.

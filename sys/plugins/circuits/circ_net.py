@@ -54,6 +54,12 @@ def _safe(text, what: str) -> str:
     return s
 
 
+def text(s, limit: int = 80) -> str:
+    """A title or a label: any words of one line (the drawing's, and a comment of the netlist) — not a value (C374:
+    «fc ≈ 1 kHz» was refused)."""
+    return " ".join(str(s if s is not None else "").split())[:limit]
+
+
 def ground(name: str) -> bool:
     return name in GROUND
 
@@ -86,7 +92,7 @@ def check(parts: list[dict]) -> list[dict]:
             raise CircuitError(f"{pid} model: «NAME TYPE(params)», e.g. «Q2N2222 NPN(Bf=200 Is=14f)»")
         d = str(p.get("dir", "")).lower()
         out.append({"id": pid, "kind": kind, "nodes": nodes, "value": value, "model": model,
-                    "dir": d if d in ("right", "left", "up", "down") else "", "label": _safe(p.get("label", ""), f"{pid} label"),
+                    "dir": d if d in ("right", "left", "up", "down") else "", "label": text(p.get("label", ""), 40),
                     "label_side": "other" if str(p.get("label_side", "")).lower() == "other" else "",
                     "length": max(1.0, min(12.0, float(p.get("length") or 3)))})
     return out
@@ -123,7 +129,7 @@ def spice_name(p: dict) -> str:
 
 def netlist(parts: list[dict], title: str = "circuit") -> tuple[str, list[str]]:
     """The SPICE netlist (no analysis: the simulation adds its own) and the nodes, ground first."""
-    net, lines, models = nets(parts), [f"* {_safe(title, 'title') or 'circuit'}"], {}
+    net, lines, models = nets(parts), [f"* {text(title) or 'circuit'}"], {}
     for p in parts:
         letter, _, default = KINDS[p["kind"]]
         if letter is None:

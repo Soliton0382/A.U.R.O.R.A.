@@ -76,7 +76,8 @@ def draw(parts: list[dict], title: str = "") -> schemdraw.Drawing:
 
     for p in parts:
         kind, nodes = p["kind"], p["nodes"]
-        text = p["label"] or ("" if kind == "wire" else "\n".join(x for x in (p["id"], _value(p)) if x))
+        # the label in place of the id, the value always under it (C374: a label «R1» hid the 1.6 kΩ)
+        text = p["label"] if kind == "wire" else "\n".join(x for x in (p["label"] or p["id"], _value(p)) if x)
         if kind in THREE:
             make, anchors = THREE[kind]
             e = make()
