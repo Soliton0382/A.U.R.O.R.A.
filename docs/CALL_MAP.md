@@ -267,7 +267,7 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `plg_access` | `api.agents`, `api.core` | 1 |
 | `plg_contract` | `agt_forge`, `script/doc_plugins.py` | 2 |
 | `plg_deps` | `api.agents` | 1 |
-| `plg_host` | `agt_forge`, `agt_loop`, `api.agents`, `api.core`, `kno_rem`, `kno_social`, `plg_access`, `script/bench_forge.py` | 5 |
+| `plg_host` | `agt_forge`, `agt_loop`, `api.agents`, `api.core`, `kno_rem`, `kno_social`, `plg_access`, `script/bench_forge.py` | 6 |
 | `plg_sandbox` | `plg_host` | 3 |
 | `plg_shadow` | `agt_loop` | 1 |
 | `plg_trash` | `api.agents` | 1 |

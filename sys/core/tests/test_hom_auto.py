@@ -111,3 +111,13 @@ def test_off_from_the_page_switches_off_the_light_a_white_scene_was_tried_on(cfg
     hom_scenes.stop_on(cfg, ["light.s"], "")
     hom_scenes._ha(cfg, "light/turn_off", {"entity_id": ["light.s"]})        # what the page's ⏹ does after it
     assert sent[-1] == ("light/turn_off", {"entity_id": ["light.s"]}) and sent[0][1]["color_temp_kelvin"] == 3125
+
+
+def test_the_sun_unread_a_moment_does_not_stop_the_clock_s_automations(cfg, monkeypatch):
+    def away(c):
+        raise httpx.ConnectError("away")
+    monkeypatch.setattr(A, "_sun", away)
+    now = sns_clock.now(cfg).replace(hour=19, minute=31, second=0, microsecond=0)
+    A.save(cfg, {"name": "Tramonto", "when": {"type": "sunset"}, "actions": PLUGS})
+    A.save(cfg, {"name": "Sera", "when": {"type": "time", "at": "19:30"}, "actions": PLUGS})
+    assert [x["name"] for x in A.due(cfg, now)] == ["Sera"]

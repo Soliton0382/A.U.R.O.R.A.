@@ -176,7 +176,12 @@ def due(cfg, now: datetime | None = None) -> list[dict]:
     """The automations whose time today has come (within WINDOW_S) and that have not run since it."""
     now = now or sns_clock.now(cfg)
     autos = [a for a in load(cfg)["automations"] if a.get("enabled") and a["when"]["type"] != "manual"]
-    sun = _sun(cfg) if any(a["when"]["type"] in ("sunrise", "sunset") for a in autos) else None
+    sun = None
+    if any(a["when"]["type"] in ("sunrise", "sunset") for a in autos):
+        try:
+            sun = _sun(cfg)
+        except (httpx.HTTPError, KeyError, ValueError):     # Home Assistant away a moment: the sun's wait, the clock's go
+            autos = [a for a in autos if a["when"]["type"] == "time"]
     out = []
     for a in autos:
         at = at_today(cfg, a, sun)

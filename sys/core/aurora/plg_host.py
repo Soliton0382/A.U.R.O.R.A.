@@ -180,7 +180,27 @@ class PluginHost:
         return r.json()
 
     def _run(self, coro):
-        return asyncio.run(asyncio.wait_for(coro, self.cfg["AURORA_PLUGIN_TIMEOUT_S"]))
+        """The plugin's call to its end. From inside a running event loop (an async endpoint asked for a plugin before
+        the background listing was over) asyncio.run cannot run: there, in a thread of its own (C372: every plugin
+        said «cannot list tools», Home Assistant «not on», until the next listing)."""
+        work = asyncio.wait_for(coro, self.cfg["AURORA_PLUGIN_TIMEOUT_S"])
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return asyncio.run(work)
+        out: dict = {}
+
+        def alone():
+            try:
+                out["value"] = asyncio.run(work)
+            except BaseException as e:                   # noqa: BLE001 — given back to the caller, as asyncio.run would
+                out["error"] = e
+        t = threading.Thread(target=alone, name="plugin-call", daemon=True)
+        t.start()
+        t.join()
+        if "error" in out:
+            raise out["error"]
+        return out.get("value")
 
     def _tools(self, p: Plugin, mtime: float) -> list[dict]:
         cached = self._cache.get(p.name)
