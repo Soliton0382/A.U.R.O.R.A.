@@ -6,13 +6,21 @@ A plugin's manifest may declare what it needs beyond Aurora:
 
     "install": {"python": ["segno==1.6.6 --hash=sha256:28c7…"],                  # pinned, with their hashes
                 "no_deps": false,                                                   # true: what Aurora has is not fetched
-                "programs": [{"name": "tool", "url": "https://…", "sha256": "…"}]}   # a program and its checksum
+                "programs": [{"name": "tool", "url": "https://…", "sha256": "…"},   # a program and its checksum
+                             {"name": "ngspice", "apt": "ngspice", "bin": "usr/bin/ngspice",
+                              "relocate": "usr/share/ngspice"}]}      # or the system's own package, not installed
 
 On the owner's «install» Aurora fetches them into the plugin's OWN folder — the libraries in <plugin>/.deps
 (pip --target, every hash required when the manifest gives them), the programs in <plugin>/.bin, each checked
 against its SHA-256 — never into Aurora's environment: a plugin's library cannot break Aurora. The plugin runs them
 through script/plg_run.py ("command": ["{python}", "{root}/sys/core/script/plg_run.py", "server.py"]), which puts
 .deps and .bin first in that process only. «Uninstall» removes the two folders: nothing else was written.
+
+A program a system already packages (owner, 2026-10-21: «speravo si potesse fare qualcosa nell'env però senza sporcare
+il sistema operativo») is taken from its package without installing it: apt-get download (no root; apt checks the
+package against the repository's signed lists) and dpkg-deb -x into <plugin>/.bin/<name>/; the absolute /usr/ paths of
+its own files under "relocate" are pointed at that folder; the program is run once to show it starts. Where there is
+no apt (a Mac, Windows) nothing is fetched: the plugin says how to get it.
 """
 from __future__ import annotations
 
@@ -81,9 +89,13 @@ def install(folder: Path, manifest: dict, log=print, timeout: int = 900) -> dict
             import httpx
             bin_tmp.mkdir(parents=True)
             for prog in n["programs"]:
-                name, url, want = str(prog["name"]), str(prog["url"]), str(prog["sha256"]).lower()
+                name = str(prog["name"])
                 if "/" in name or name.startswith("."):
                     raise RuntimeError(f"a program's name: {name!r}")
+                if prog.get("apt"):
+                    _from_package(prog, bin_tmp, folder / BIN, log)
+                    continue
+                url, want = str(prog["url"]), str(prog["sha256"]).lower()
                 h, dest = hashlib.sha256(), bin_tmp / name
                 with httpx.stream("GET", url, follow_redirects=True, timeout=120) as resp, open(dest, "wb") as out:
                     resp.raise_for_status()
@@ -106,6 +118,43 @@ def install(folder: Path, manifest: dict, log=print, timeout: int = 900) -> dict
             shutil.rmtree(p, ignore_errors=True)
         raise
     return state(folder, manifest)
+
+
+def _from_package(prog: dict, bin_tmp: Path, final: Path, log) -> None:
+    """The system's package of a program, unpacked into the plugin's folder (see above); nothing where there is no apt."""
+    name, pkg = str(prog["name"]), str(prog["apt"])
+    if not shutil.which("apt-get") or not shutil.which("dpkg-deb"):
+        log(f"program {name}: no apt on this system — install it with the system's own way (e.g. brew install {pkg})")
+        return
+    if not pkg.replace("-", "").replace(".", "").isalnum():
+        raise RuntimeError(f"a package's name: {pkg!r}")
+    with tempfile.TemporaryDirectory() as tmp:
+        r = subprocess.run(["apt-get", "download", pkg], cwd=tmp, capture_output=True, text=True, timeout=300)
+        debs = sorted(Path(tmp).glob("*.deb"))
+        if r.returncode or not debs:
+            raise RuntimeError(f"apt-get download {pkg}: {(r.stderr or r.stdout).strip()[-400:]}")
+        root = bin_tmp / name
+        r = subprocess.run(["dpkg-deb", "-x", str(debs[0]), str(root)], capture_output=True, text=True, timeout=300)
+        if r.returncode:
+            raise RuntimeError(f"dpkg-deb {debs[0].name}: {r.stderr.strip()[-400:]}")
+        log(f"program {name}: {debs[0].name} unpacked into the plugin's folder (nothing installed in the system)")
+    if prog.get("relocate"):
+        for f in (root / str(prog["relocate"])).rglob("*"):
+            try:
+                text = f.read_text(encoding="utf-8") if f.is_file() else None
+            except UnicodeDecodeError:
+                continue
+            if text and "/usr/" in text:
+                f.write_text(text.replace("/usr/", f"{final / name}/usr/"), encoding="utf-8")
+    exe = root / str(prog.get("bin", f"usr/bin/{name}"))
+    try:
+        r = subprocess.run([str(exe), "--version"], capture_output=True, text=True, timeout=20)
+    except OSError as e:
+        raise RuntimeError(f"{name} does not start: {e}") from None
+    if r.returncode:
+        raise RuntimeError(f"{name} does not start (a library of the system missing?): {(r.stderr or r.stdout).strip()[-300:]}")
+    said = [ln.strip(" *") for ln in (r.stdout or r.stderr).splitlines() if name.lower() in ln.lower()]
+    log(f"program {name}: {said[0][:80] if said else 'starts'}")
 
 
 def uninstall(folder: Path) -> int:

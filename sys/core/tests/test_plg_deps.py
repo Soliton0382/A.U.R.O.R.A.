@@ -83,3 +83,35 @@ def test_the_qr_plugin_declares_a_pinned_hashed_library():
     req = plg_deps.needs(m)["python"]
     assert req and all("==" in r and "--hash=sha256:" in r for r in req)
     assert m["command"][1].endswith("sys/core/script/plg_run.py")
+
+
+def test_a_program_from_the_system_s_package_unpacked_in_the_plugin_not_installed(tmp_path, monkeypatch):
+    # owner, 2026-10-21: «senza sporcare il sistema operativo» — apt-get download + dpkg-deb -x, no root
+    calls = []
+
+    def fake(cmd, cwd=None, **kw):
+        calls.append(cmd[:2])
+        if cmd[:2] == ["apt-get", "download"]:
+            (Path(cwd) / "tool_1.0_amd64.deb").write_bytes(b"deb")
+        elif cmd[0] == "dpkg-deb":
+            root = Path(cmd[3])
+            (root / "usr/bin").mkdir(parents=True)
+            (root / "usr/bin/tool").write_text("#!/bin/sh\necho tool-1.0\n")
+            (root / "usr/bin/tool").chmod(0o755)
+            (root / "usr/share/tool").mkdir(parents=True)
+            (root / "usr/share/tool/init").write_text("load /usr/lib/tool/a.cm\n")
+        else:
+            return subprocess.CompletedProcess(cmd, 0, "tool-1.0\n", "")
+        return subprocess.CompletedProcess(cmd, 0, "", "")
+    monkeypatch.setattr(plg_deps.shutil, "which", lambda name: f"/usr/bin/{name}")
+    monkeypatch.setattr(plg_deps.subprocess, "run", fake)
+    m = {"install": {"programs": [{"name": "tool", "apt": "tool", "bin": "usr/bin/tool", "relocate": "usr/share/tool"}]}}
+    said = []
+    st = plg_deps.install(tmp_path, m, log=said.append)
+    assert st["installed"] and calls[:2] == [["apt-get", "download"], ["dpkg-deb", "-x"]]    # never «apt-get install»
+    init = (tmp_path / ".bin/tool/usr/share/tool/init").read_text()
+    assert init == f"load {tmp_path}/.bin/tool/usr/lib/tool/a.cm\n"                            # its paths: the plugin's
+    assert any("nothing installed in the system" in s for s in said) and any("tool-1.0" in s for s in said)
+    monkeypatch.setattr(plg_deps.shutil, "which", lambda name: None)                              # a Mac: nothing fetched
+    said.clear()
+    assert plg_deps.install(tmp_path, m, log=said.append)["installed"] and "brew install tool" in said[0]

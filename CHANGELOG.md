@@ -2,6 +2,13 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.77 — 2026-10-21
+
+2 publications since v0.2.75.
+
+- 2026-10-21 circuits plugin (N37 phases 1-2, M249); a plugin's program unpacked from the system's package, the installer installs every plugin's libraries
+- 2026-10-20 Scenes never started on no light, resumed on their own lights, automations retried when Home Assistant is back (C373); Pillow 13, certifi
+
 ## v0.2.76 — 2026-10-21
 
 1 publications since v0.2.75.

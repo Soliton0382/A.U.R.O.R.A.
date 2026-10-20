@@ -390,6 +390,10 @@ fi
 # the GitHub plugin's own program (pinned, SHA-256 checked): nothing installed it before 8 Oct 2026
 if out="$(bash sys/core/script/sys_github_mcp_install.sh 2>&1)"; then ok "GitHub MCP: $(echo "$out" | tail -1)"
 else warn "$(t 'programma del plugin GitHub non installato' 'the GitHub plugin program not installed'): $(echo "$out" | tail -1)"; fi
+# the plugins' own libraries and programs (plg_deps: circuits' schemdraw, matplotlib and ngspice, patent, qr…), each in
+# its own folder — nothing installed in the system (a program taken from its apt package, unpacked)
+if .venv/bin/python sys/core/script/plg_install_all.py; then ok "$(t 'librerie e programmi dei plugin' 'the plugins'"'"' libraries and programs')"
+else warn "$(t 'alcuni plugin senza le loro librerie: si installano dalla loro pagina (Installa)' 'some plugins without their libraries: install them from their page (Install)')"; fi
 
 # ---------------------------------------------------------------------------------------------------
 step "10. Test"

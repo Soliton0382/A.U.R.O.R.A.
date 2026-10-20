@@ -39,6 +39,8 @@ PROGRAMS_ALLOWED = {
     ("prj_term.py", "bwrap"): "phase 4: the terminal's cage, asked once whether it can start (C264); none: said on the page",
     ("net_trace.py", "mtr"): "the visual traceroute: mtr (brew on a Mac; none on Windows, where the page says «mtr is not installed»)",
     ("sec_hostfw.py", "sudo"): "phase 4: the host firewall",
+    ("plg_deps.py", "apt-get"): "a plugin's program from the system's package, only where apt is (shutil.which): elsewhere said",
+    ("plg_deps.py", "dpkg-deb"): "the same package unpacked into the plugin's folder: with apt-get only",
 }
 # the scripts the owner or the installer runs: all of phase 3 (installers and admin scripts per system)
 SCRIPTS_PHASE_3 = {"systemctl", "journalctl", "runuser", "systemd-escape", "systemd-mount", "systemd-umount",
@@ -69,7 +71,8 @@ PLUGIN_WORDS_ALLOWED = {
     ("tiktok", ".venv/bin"): "the docstring of authorize.py, a command the owner reads (phase 3: per system)",
 }
 PLUGIN_PROGRAMS_ALLOWED = {("facebook", "ffprobe"), ("projects", "git"),
-                           ("cad", "_openscad()"), ("patent", "pdftoppm")}   # poppler: in every installer (EVERYWHERE)   # OpenSCAD: brew on a Mac, its installer on Windows; missing: said       # both in EVERYWHERE's installers
+                           ("cad", "_openscad()"), ("patent", "pdftoppm"),
+                           ("circuits", "exe")}   # ngspice (circ_sim.ngspice): brew on a Mac, its zip on Windows; missing: said   # poppler: in every installer (EVERYWHERE)   # OpenSCAD: brew on a Mac, its installer on Windows; missing: said       # both in EVERYWHERE's installers
 # a plugin started by a program of its own (not Python): it must exist for each system (phase 3, PORTING.md)
 PLUGIN_COMMANDS = {"github": "{root}/sys/runtime/github-mcp-server/github-mcp-server"}
 

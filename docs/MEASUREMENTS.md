@@ -4028,3 +4028,22 @@ type with its word «room», one function called where none fitted (a profit wit
 answers end at about 64 s each, the same for all six (a limit of its path, not looked into). Every question went
 Aurora's «write» way; none used her own tools (the set gives its functions in the text). Not measured: the rest of each
 category; BFCL's other categories (parallel, live, multi-turn); native function calling; why Aurora's six were empty.
+
+## M249 — the circuits plugin: four invented circuits simulated against their hand calculation (21 October 2026; ROADMAP N37)
+
+ngspice 45.2 in batch on this machine, the plugin's generic models (circ_net.MODELS); each circuit drawn and simulated
+through the plugin's own modules (circ_net → circ_draw → circ_sim), outside the sandbox.
+
+| circuit | quantity | computed by hand | simulated |
+|---|---|---|---|
+| RC low-pass, 1 kΩ · 1 µF | cut-off frequency (−3.0103 dB) | 1/(2π·RC) = 159.155 Hz | 159.156 Hz |
+| LED (generic red) + 680 Ω from 9 V | LED voltage · current | ≈ 1.75 V (the model's) · (9 − 1.75)/680 = 10.66 mA | 1.750 V · 10.7 mA |
+| inverting op-amp, 10 kΩ / 47 kΩ, ideal (gain 1e5) | gain at 10 Hz · phase · peak of a 0.5 V sine | 20·log10(4.7) = 13.44 dB · 180° · 2.35 V | 13.441 dB · 180° · 2.3498 V |
+| common emitter, 12 V, 47 k/10 k divider, RC 4.7 k, RE 1 k (generic NPN, β 416) | V(E) · V(C), Vbe ≈ 0.7 V | 1.38 V · 5.5 V | 1.406 V (Vbe 0.673) · 5.408 V |
+
+Reading: the first three agree to the fourth digit; the transistor's differs by its Vbe (0.673 V simulated, 0.7 assumed
+by hand) — the hand's approximation, not the simulator's. Drawn: the four schematics read right by eye (a first
+transistor came out turned the way of the part before it: fixed, its angle always set). Not measured: the plugin
+called through Aurora's agent and sandbox (ngspice not yet installed on the machine, the plugin's libraries not yet
+installed); transient accuracy against an analytic step; larger circuits; the drawing of circuits written by the model
+itself.
