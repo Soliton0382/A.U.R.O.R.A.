@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.76 — 2026-10-21
+
+1 publications since v0.2.75.
+
+- 2026-10-21 Scenes never started on no light, resumed on their own lights, automations retried when Home Assistant is back (C373); Pillow 13, certifi
+
 ## v0.2.75 — 2026-10-20
 
 12 publications since v0.2.63.

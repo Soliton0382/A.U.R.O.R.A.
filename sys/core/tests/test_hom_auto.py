@@ -121,3 +121,64 @@ def test_the_sun_unread_a_moment_does_not_stop_the_clock_s_automations(cfg, monk
     A.save(cfg, {"name": "Tramonto", "when": {"type": "sunset"}, "actions": PLUGS})
     A.save(cfg, {"name": "Sera", "when": {"type": "time", "at": "19:30"}, "actions": PLUGS})
     assert [x["name"] for x in A.due(cfg, now)] == ["Sera"]
+
+
+def _retry_now(cfg):
+    data = A.load(cfg)
+    for x in data["automations"]:
+        x["retry_at"] = 0
+    A._save(cfg, data)
+
+
+def test_home_assistant_away_its_failed_actions_tried_again_when_it_is_back(cfg, monkeypatch):
+    # C373: Home Assistant down for hours one night, the 03:00 «off» was lost
+    away, sent = [True], []
+
+    def ha(c, path, body):
+        if away[0]:
+            raise httpx.ConnectError("refused")
+        sent.append((path, body["entity_id"]))
+    monkeypatch.setattr(hom_scenes, "_ha", ha)
+    monkeypatch.setattr(hom_scenes, "stop_on", lambda c, lights, user="": [])
+    off = A.save(cfg, {"name": "Notte", "actions": [{"entity_id": "light.palla", "service": "turn_off"},
+                                                    {"entity_id": "switch.presa", "service": "turn_off"}]})
+    A.run(cfg, off)
+    assert A.load(cfg)["automations"][0]["pending"] == [0, 1]
+    assert A.tick(cfg) == [] and sent == []                                  # not every minute: every RETRY_EVERY_S
+    _retry_now(cfg)
+    assert A.tick(cfg) == [] and A.load(cfg)["automations"][0]["pending"] == [0, 1]   # still away: kept
+    away[0] = False
+    _retry_now(cfg)
+    assert A.tick(cfg) == ["Notte"] and sent == [("light/turn_off", "light.palla"), ("switch/turn_off", "switch.presa")]
+    a = A.load(cfg)["automations"][0]
+    assert "pending" not in a and a["last_ok"] and "riprovate" in a["last_text"]
+
+
+def test_a_device_acted_on_since_is_not_given_the_old_action_and_too_late_is_given_up(cfg, monkeypatch):
+    monkeypatch.setattr(hom_scenes, "_ha", lambda c, path, body: (_ for _ in ()).throw(httpx.ConnectError("refused")))
+    monkeypatch.setattr(hom_scenes, "stop_on", lambda c, lights, user="": [])
+    on = A.save(cfg, {"name": "Sera", "actions": [{"entity_id": "light.palla", "service": "turn_on"},
+                                                  {"entity_id": "switch.presa", "service": "turn_on"}]})
+    A.run(cfg, on)
+    monkeypatch.setattr(hom_scenes, "_ha", lambda c, path, body: None)
+    A.run(cfg, A.save(cfg, {"name": "Notte", "actions": [{"entity_id": "light.palla", "service": "turn_off"}]}))
+    assert A.load(cfg)["automations"][0]["pending"] == [1]                  # the light was switched off since
+    data = A.load(cfg)
+    data["automations"][0]["pending_until"] = 0
+    A._save(cfg, data)
+    assert A.tick(cfg) == [] and "pending" not in A.load(cfg)["automations"][0]
+
+
+def test_a_scene_with_no_light_is_not_started_on_nothing_and_comes_back_on_its_lights(cfg, monkeypatch):
+    # C373: «applied to the Suprema», saved as the whole scene — it has no lights: «1 done», nothing lit
+    hom_scenes.save(cfg, "Colorful", [], ["rosso", "verde"], brightness=80)
+    with pytest.raises(hom_scenes.SceneError):
+        hom_scenes.start(cfg, "Colorful")
+    out = A.run(cfg, A.save(cfg, {"name": "Mattina", "actions": [{"scene": "colorful"}]}))
+    assert out["done"] == [] and "no light" in out["failed"][0]
+    started = []
+    monkeypatch.setattr(hom_scenes.sys_context, "start", lambda *a, **k: started.append(a[4]["lights"]))
+    data = hom_scenes.load(cfg)
+    data["running"]["colorful"] = {"since": 0, "until": 0, "lights": ["light.suprema"]}
+    hom_scenes._save(cfg, data)
+    assert hom_scenes.resume(cfg) == ["colorful"] and started == [["light.suprema"]]

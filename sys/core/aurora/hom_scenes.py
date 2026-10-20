@@ -199,6 +199,8 @@ def start(cfg, name: str, user: str = "", minutes: float | None = None, log=None
     k, scene = find(cfg, name)
     if lights:
         scene = {**scene, "lights": [x for x in lights if ENTITY.fullmatch(str(x))], "switches": []}
+    if not scene["lights"] and not scene.get("switches"):   # no light nor plug: started on nothing it did nothing (C373)
+        raise SceneError(f"«{scene['name']}» has no light to run on: pick the light it goes on")
     stop_scene(cfg, k, user)
     mins = scene["minutes"] if minutes is None else max(0, float(minutes))
     until = time.time() + mins * 60 if mins else 0
@@ -256,7 +258,14 @@ def resume(cfg, user: str = "", log=None) -> list[str]:
                 fresh["running"].pop(k, None)
                 _save(cfg, fresh)
             continue
-        start(cfg, k, user, left / 60 if r.get("until") else 0, log)
+        try:                                             # on the lights it was running on (C373: not the scene's own,
+            start(cfg, k, user, left / 60 if r.get("until") else 0, log, lights=r.get("lights") or None)   # none)
+        except SceneError:
+            with _lock:
+                fresh = load(cfg)
+                fresh["running"].pop(k, None)
+                _save(cfg, fresh)
+            continue
         out.append(k)
     return out
 

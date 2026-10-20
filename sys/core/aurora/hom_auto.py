@@ -13,7 +13,9 @@ an action is {"entity_id", "service"} on a device (a light, a plug, a camera's s
 page allows, hom_devices.ALLOWED), optionally {"data"} (a light's brightness_pct 1-100 and color_temp_kelvin
 2000-6500: a vendor app's «white» with its warmth), or {"scene": name} (one of hom_scenes' light scenes, started;
 with "stop": true, stopped — a bulb's own «scene» mode, which Home Assistant cannot set, becomes one of Aurora's). The routines' tick (every minute) runs an automation once a day at its time —
-up to WINDOW_S late (an API restart, a tick deferred), never twice; «manual» ones only by ▶.
+up to WINDOW_S late (an API restart, a tick deferred), never twice; «manual» ones only by ▶. The actions that
+failed because Home Assistant was away are tried again every RETRY_EVERY_S, for up to RETRY_S (C373: it was down for
+hours one night and the 03:00 «off» was lost) — unless another automation has acted on that device since.
 The sun's times come from Home Assistant's own sun.sun (the home's coordinates stay there).
 """
 from __future__ import annotations
@@ -28,6 +30,7 @@ from . import hom_devices, hom_scenes, sns_clock, sys_routines
 
 FILE = "home_automations.json"
 WINDOW_S = 15 * 60                                  # a time missed by this much still runs, later never
+RETRY_S, RETRY_EVERY_S = 6 * 3600, 5 * 60           # Home Assistant away: its failed actions tried again
 TYPES = ("manual", "time", "sunrise", "sunset")
 ENTITY = re.compile(r"[a-z_]{2,20}\.[a-z0-9_]{1,120}")
 MAX_ACTIONS = 30
@@ -134,14 +137,22 @@ def at_today(cfg, a: dict, sun: dict | None = None) -> datetime | None:
     return sun[w["type"]] + timedelta(minutes=w.get("offset_min", 0))
 
 
-def run(cfg, a: dict, user: str = "", log=None, now: datetime | None = None) -> dict:
-    """Every action in order; one that fails does not stop the others. The result kept with the automation. The
-    lights given one scene start it together, at the first of them; a light switched off stops a scene it was in."""
-    done, failed, grouped = [], [], {}
-    for act in a["actions"]:
+def _away(e: Exception) -> bool:
+    """Home Assistant not there, or failing on its side: worth trying again later."""
+    return isinstance(e, (httpx.TransportError, OSError)) or (
+        isinstance(e, httpx.HTTPStatusError) and e.response.status_code >= 500)
+
+
+def run(cfg, a: dict, user: str = "", log=None, now: datetime | None = None, only: list | None = None) -> dict:
+    """Every action in order (or the `only` ones, a retry); one that fails does not stop the others. The result kept
+    with the automation, and those that failed with Home Assistant away kept to be tried again. The lights given one
+    scene start it together, at the first of them; a light switched off stops a scene it was in."""
+    done, failed, grouped, again = [], [], {}, []
+    acts = [(i, act) for i, act in enumerate(a["actions"]) if only is None or i in only]
+    for _, act in acts:
         if act.get("service") == "scene":
             grouped.setdefault(act["scene_name"], []).append(act["entity_id"])
-    for act in a["actions"]:
+    for i, act in acts:
         try:
             if act.get("service") == "scene":
                 lights = grouped.pop(act["scene_name"], None)
@@ -159,16 +170,34 @@ def run(cfg, a: dict, user: str = "", log=None, now: datetime | None = None) -> 
                 domain = act["entity_id"].split(".", 1)[0]
                 hom_scenes._ha(cfg, f"{domain}/{act['service']}", {"entity_id": act["entity_id"], **(act.get("data") or {})})
             done.append(f"{act['scene']}{' stop' if act.get('stop') else ''}" if act.get("scene") else f"{act['entity_id']} {act['service']}")
-        except (httpx.HTTPError, hom_scenes.SceneError, OSError) as e:
+        except hom_scenes.SceneError as e:
+            failed.append(f"{act.get('scene') or act['entity_id']}: {e}")
+        except (httpx.HTTPError, OSError) as e:
             failed.append(f"{act.get('scene') or act['entity_id']}: {type(e).__name__}")
+            if _away(e):
+                again += [j for j, x in acts if x is act or (act.get("service") == "scene"
+                                                             and x.get("scene_name") == act["scene_name"])]
+    t = (now or sns_clock.now(cfg)).timestamp()
+    mine = {x.get("entity_id") for _, x in acts}
     data = load(cfg)
     for x in data["automations"]:
         if x["id"] == a["id"]:
-            x.update(last=(now or sns_clock.now(cfg)).timestamp(), last_ok=not failed,
-                     last_text=(f"{len(done)} azioni fatte" + (f"; non riuscite: {', '.join(failed)}" if failed else "")))
+            text = f"{len(done)} azioni fatte" + (f"; non riuscite: {', '.join(failed)}" if failed else "")
+            if only is not None:
+                text = f"{text} (riprovate: Home Assistant non rispondeva)"
+            x.update(last=t if only is None else x.get("last"), last_ok=not failed, last_text=text)
+            if again:
+                x.update(pending=sorted(set(again)), retry_at=t + RETRY_EVERY_S,
+                         pending_until=x.get("pending_until") if only is not None else t + RETRY_S)
+            else:
+                for k in ("pending", "retry_at", "pending_until"):
+                    x.pop(k, None)
+        elif x.get("pending") and only is None:          # a device acted on since: its old action not tried again
+            x["pending"] = [j for j in x["pending"] if j < len(x["actions"]) and x["actions"][j].get("entity_id") not in mine]
     _save(cfg, data)
-    if log:
-        log.info("automation %s ran: %d done, %d failed", a["name"], len(done), len(failed))
+    if log and (only is None or done):
+        log.info("automation %s ran: %d done, %d failed%s", a["name"], len(done), len(failed),
+                 " (a retry)" if only is not None else "")
     return {"done": done, "failed": failed}
 
 
@@ -196,6 +225,18 @@ def tick(cfg, user: str = "", log=None) -> list[str]:
     for a in due(cfg):
         run(cfg, a, user, log)
         ran.append(a["name"])
+    t = sns_clock.now(cfg).timestamp()
+    for a in load(cfg)["automations"]:
+        if a.get("pending") and a["name"] not in ran:
+            if not a.get("enabled") or t >= a.get("pending_until", 0):
+                data = load(cfg)                         # too late, or paused: given up
+                for x in data["automations"]:
+                    if x["id"] == a["id"]:
+                        for k in ("pending", "retry_at", "pending_until"):
+                            x.pop(k, None)
+                _save(cfg, data)
+            elif t >= a.get("retry_at", 0) and run(cfg, a, user, log, only=a["pending"])["done"]:
+                ran.append(a["name"])
     return ran
 
 
@@ -208,7 +249,7 @@ TOOL = {"name": "home_automation", "description": "Aurora's own automations on t
         "| manual, days [0-6, Monday 0; all when omitted]}, actions [{entity_id (from homeassistant devices), service "
         "turn_on | turn_off | toggle | press, data {brightness_pct, color_temp_kelvin} for a light; or service scene "
         "with scene_name: that home_scene on this light only} or {scene: a "
-        "home_scene's name, stop: true to stop it}]; a bulb's own «scene» mode cannot be set: use a home_scene; "
+        "home_scene's name, stop: true to stop it — started so only when it has its own lights}]; a bulb's own «scene» mode cannot be set: use a home_scene; "
         "id to change one. action=run: id, now. action=delete: id.",
         "input_schema": {"type": "object", "properties": {
             "action": {"enum": ["list", "save", "run", "delete"]}, "id": {"type": "string"}, "name": {"type": "string"},

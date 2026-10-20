@@ -140,7 +140,11 @@ function editor(a, targets, scenes, allowed, close, reload) {
     const fill = () => {
       how.replaceChildren();
       const v = what.value, domain = v.split(".")[0];
-      if (v.startsWith("scene:")) how.append(new Option(t("hauto.start_scene"), "start"), new Option(t("hauto.stop_scene"), "stop"));
+      // a whole scene: started only when it has its own lights (they are chosen per light, below a light: C373)
+      if (v.startsWith("scene:")) {
+        if (scenes[v.slice(6)]?.lights?.length) how.append(new Option(t("hauto.start_scene"), "start"));
+        how.append(new Option(t("hauto.stop_scene"), "stop"));
+      }
       else for (const s of allowed[domain] || []) how.append(new Option(svc(s), s));
       // a light: any scene on it alone, beside switching it (owner, 2026-10-20: «di fianco al device, si possa
       // applicare la possibile scena»)
