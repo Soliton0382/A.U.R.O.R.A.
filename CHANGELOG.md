@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.80 — 2026-10-22
+
+1 publications since v0.2.79.
+
+- 2026-10-22 circuits plugin; projects: policy, install, save, tree, GitHub cards; cad figures; forge requests visible and a project tier for forged tools; local-only plugin network; project work in her emotions; long tool results announced; local fallback fits its window; patent sign check; pypdf 6.21.1 (C373–C382, N40)
+
 ## v0.2.79 — 2026-10-22
 
 4 publications since v0.2.75.
