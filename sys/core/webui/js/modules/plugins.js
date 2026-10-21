@@ -60,6 +60,22 @@ function placeSearch(form) {
   form.querySelector("h4").after(row);
 }
 
+// C378: a capability Aurora asked for was seen nowhere while the forge built it: the notice led here, to nothing
+async function forgeBox() {
+  const all = (await call("/v1/aurora/forge").catch(() => ({ requests: [] }))).requests || [];
+  const recent = Date.now() / 1000 - 3 * 86400;
+  const items = all.filter((r) => ["pending", "building"].includes(r.status) || (r.status === "failed" && (r.created || 0) > recent));
+  const box = el("div", "plug-forge");
+  if (!items.length) return box;
+  box.append(el("h4", "", `🔨 ${t("plug.forge", { n: items.length })}`));
+  for (const r of items) {
+    const row = el("p", "muted", `${t(`plug.forge_${r.status}`)} · ${r.need}`);
+    row.title = r.why || "";
+    box.append(row);
+  }
+  return box;
+}
+
 const view = {
   id: "plugins",
   icon: "🧩",
@@ -110,6 +126,8 @@ const view = {
       b.addEventListener("click", () => this.open(p, code));
       return b;
     }));
+    this.root?.querySelector(".plug-forge")?.remove();
+    if (this.me.admin) this.grid.before(await forgeBox());   // the requests carry the runs' words: the admin's
     this.root?.querySelector(".plug-trash")?.remove();
     this.root?.querySelector(".plug-sign")?.remove();
     if (!this.me.admin) return;                      // the trash is the admin's, like deleting

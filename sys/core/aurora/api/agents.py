@@ -39,19 +39,24 @@ def _gap_check(agent, goal: str, report: str, emit, run_id: str, routine: str | 
 
 
 def _agent_job(goal: str, context: str = "", after=None, remember: bool = False, label: str | None = None,
-               asked: bool = False, quiet: tuple[str, ...] = ()):
+               asked: bool = False, quiet: tuple[str, ...] = (), local: bool = False):
     """An agent run. `remember`: the owner asked for it, so goal and report become conversation turns
     (with the whole path), like any other answer; the autonomic ones become reflections (`after`). `asked`: the goal
     is the owner's own words (the chat, the agent page), so a home command it asks for is done (C281). `quiet`: the
-    agent's notifications not sent (a project's plan tells its own)."""
+    agent's notifications not sent (a project's plan tells its own). `local`: the whole run on the local model, from
+    its first step, and no gap sent to the forge (owner, 2026-10-21, a patent not yet filed: «procedi solo locale»)."""
     def job(q, emit, run_id):
         from aurora.agt_loop import Agent
         from aurora.sol_schema import now_iso
         asked_at = now_iso()
         agent = Agent(pipeline(), cfg, notify=lambda e, p: None if e in quiet else note("agent", e, p), host=plugin_host())
         agent.asked = asked
+        if local:
+            agent.local_only = True
+            emit("agent.local", {"plugin": "—", "why": "asked: the local model only"})
         ans = agent.run(goal, emit, run_id, context)
-        _gap_check(agent, goal, ans.text, emit, run_id)
+        if not local:
+            _gap_check(agent, goal, ans.text, emit, run_id)
         if agent.produced:                             # the documents it wrote stay with its turn (downloadable)
             from aurora import sys_uploads
             for f in agent.produced:
@@ -76,7 +81,8 @@ async def agent(request: Request) -> dict:
     quiet = ("approval.pending", "forge.request", "project.update", "project.progress") \
         if body.get("quiet") and me() == _admin() else ()
     remember = body.get("remember", True) is not False
-    job = _agent_job(goal, str(body.get("context", "")), remember=remember, asked=True, quiet=quiet)
+    local = bool(body.get("local")) and me() == _admin()        # the admin's: nothing of this run leaves the machine
+    job = _agent_job(goal, str(body.get("context", "")), remember=remember, asked=True, quiet=quiet, local=local)
     if remember and not quiet:                       # 😠 the person's own words (kno_anger)
         from .core_route import mood_wrap
         job = mood_wrap(goal, job)

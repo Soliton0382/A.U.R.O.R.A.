@@ -16,9 +16,9 @@ import subprocess
 import time
 from pathlib import Path
 
-from . import sys_config
+from . import prj_policy, sys_config
 
-SKIP = {".git", "node_modules", "__pycache__", ".venv", "venv", ".mypy_cache", ".pytest_cache", "dist", "build"}
+SKIP = {".git", "node_modules", "__pycache__", ".venv", "venv", ".libs", ".mypy_cache", ".pytest_cache", "dist", "build"}
 NAME = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
 MAX_TEXT = 400_000
 MAX_TREE = 3000
@@ -61,8 +61,9 @@ def summary(cfg: sys_config.Config, proj: Path) -> dict:
     first = ""
     if readme:
         for line in (proj / readme).read_text(encoding="utf-8", errors="replace").splitlines():
-            line = line.strip().lstrip("#").strip()
-            if line and not line.startswith(("<", "!", "[")):
+            raw, line = line.strip(), line.strip().lstrip("#").strip()
+            # not the AI notice («> 🤖 …»), not a title that only repeats the folder's name: what it is about
+            if line and not raw.startswith(("<", "!", "[", ">")) and line.lower() != proj.name.lower():
                 first = line[:200]
                 break
     last = _git(proj, "log", "-1", "--format=%h%x1f%cI%x1f%s").split("\x1f")
@@ -71,7 +72,8 @@ def summary(cfg: sys_config.Config, proj: Path) -> dict:
             "last_commit": dict(zip(("hash", "date", "subject"), last)) if len(last) == 3 else None,
             "changes": len([x for x in _git(proj, "status", "--porcelain").splitlines() if x.strip()]),
             "remote": re.sub(r"//[^@/]+@", "//", _git(proj, "remote", "get-url", "origin")),
-            "has_index_html": any((proj / d / "index.html").is_file() for d in ("", "docs", "public", "site", "web"))}
+            "has_index_html": any((proj / d / "index.html").is_file() for d in ("", "docs", "public", "site", "web")),
+            "policy": prj_policy.load(cfg, proj.name)}
 
 
 def list_projects(cfg: sys_config.Config) -> list[dict]:

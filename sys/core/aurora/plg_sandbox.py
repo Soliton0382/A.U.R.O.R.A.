@@ -9,6 +9,7 @@ wrap()      the plugin's command inside bubblewrap (AURORA_PLUGIN_SANDBOX): the 
             hidden (a private tmpfs), Aurora's folder read-only with its .env replaced by the filtered one,
             the push keys, the registered devices and the other plugins' env files hidden, private /tmp,
             own PID/IPC/UTS namespaces; with "sandbox": {"network": false} no network at all (forged plugins);
+            with "network": "local" none either, but the local model reached through a socket (plg_modelnet);
             writable only the folders the manifest names in "sandbox": {"write":
             [settings]} (e.g. AURORA_PROJECTS_DIR). Network and devices stay (connectors talk to services,
             the senses use the camera). Dies with Aurora.
@@ -111,8 +112,13 @@ def wrap(cmd: list[str], folder: Path, manifest: dict, filtered_env: Path, cfg: 
         p = cfg.path(key)
         p.mkdir(parents=True, exist_ok=True)
         args += ["--bind", str(p), str(p)]
-    if manifest.get("sandbox", {}).get("network") is False:
+    net = manifest.get("sandbox", {}).get("network")
+    if net is False or net == "local":
         args += ["--unshare-net"]                               # no network at all (forged plugins): nothing leaves
+    if net == "local":                                          # the local model only, through a socket (plg_modelnet)
+        from . import plg_modelnet
+        sock, port = plg_modelnet.bridge(cfg)
+        cmd = plg_modelnet.wrap(cmd, sock, port)
     args += ["--ro-bind", str(folder), str(folder)]           # the plugin's own code, wherever it lives
     args += ["--setenv", "AURORA_IN_SANDBOX", "1"]              # programs inside may rely on this cage (doc_pdf)
     return args + ["--chdir", str(folder), "--"] + cmd

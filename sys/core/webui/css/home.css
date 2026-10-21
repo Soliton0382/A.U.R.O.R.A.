@@ -35,6 +35,9 @@
 /* 🪄 automations (home_auto.js) */
 .auto-row { align-items: flex-start; gap: .6rem; }
 .auto-text { display: flex; flex-direction: column; gap: .15rem; min-width: 0; flex: 1; }
+/* a name in a column: its row's 10rem basis would be a height (160 px empty under each automation) */
+.auto-text .home-name { flex: none; }
+.auto-row + .auto-row { border-top: 1px solid var(--line); padding-top: .55rem; margin-top: .25rem; }
 .auto-text .muted { font-size: .8rem; }
 .auto-btns { display: flex; gap: .25rem; flex: none; }
 .auto-days { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .4rem; }
@@ -46,6 +49,7 @@
 .auto-action input[type=number] { width: 5.5rem; flex: none; }
 /* 🎨 scenes without lights of their own: each row tried on a light picked beside it */
 .scene-row { flex-wrap: wrap; }
-.scene-tools { display: flex; flex-wrap: wrap; gap: .3rem; margin-left: auto; align-items: center; }
+.scene-tools { display: flex; flex-wrap: wrap; gap: .3rem; margin-left: auto; align-items: center; flex: none; max-width: 100%; }
+@media (min-width: 700px) { .scene-tools { flex-wrap: nowrap; } }   /* the bin beside the others, not under them */
 .scene-try { max-width: 12rem; }
 .scene-k { display: inline-block; margin-left: .6rem; padding: .15rem .5rem; border-radius: 8px; color: #222; font-variant-numeric: tabular-nums; }

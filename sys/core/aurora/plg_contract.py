@@ -33,7 +33,7 @@ FIELDS = {
     "settings_spec": (list, False, "its own settings: {key AURORA_<NAME>_…, type, secret, scope, it, en}; scope "
                                    "\"user\": a person's account, kept in their own .env"),
     "setup": (dict, False, "{it, en, links}: how to set it up"),
-    "sandbox": (dict, False, "{network: bool, write: [setting names of folders]}: the cage"),
+    "sandbox": (dict, False, "{network: bool or \"local\" (the local model only), write: [setting names of folders]}: the cage"),
     "tests": ((list, dict), False, "read tools called by «Prova»: [{tool, args}] or {tool: args}"),
     "welcome": (dict, False, "{it, en}: said once when it is first switched on"),
     "publishes": (dict, False, "tool → the argument that is published (a post, a comment): checked before it leaves"),
@@ -89,8 +89,8 @@ def check(m: dict, folder: str = "") -> list[str]:
     sb = m.get("sandbox") or {}
     if bad := sorted(set(sb) - {"network", "write"}):
         out.append(f"sandbox: {', '.join(bad)} not in the contract (network, write)")
-    if "network" in sb and not isinstance(sb["network"], bool):
-        out.append("sandbox.network: true or false")
+    if "network" in sb and not (isinstance(sb["network"], bool) or sb["network"] == "local"):
+        out.append("sandbox.network: true, false or \"local\" (the local model only)")
     if bad := [s for s in sb.get("write") or [] if not SETTING.match(str(s))]:
         out.append(f"sandbox.write: folders by their setting's name, not {', '.join(map(str, bad))}")
     if "page" in m and not re.fullmatch(r"[a-z][a-z0-9_]{1,30}", str(m["page"])):

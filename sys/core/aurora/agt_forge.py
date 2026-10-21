@@ -65,7 +65,8 @@ SYS_WRITE = ("You are Aurora's forge: you write a small MCP plugin, in Python, t
              "lists those keys in \"env\" and the mandatory ones in \"requires\", and gives a step-by-step \"setup\": "
              "{\"it\": \"…\", \"en\": \"…\"} telling a non-expert where to get each value; its tools read them INSIDE "
              "the tool with sys_config.get().values.get(KEY, \"\") — never at import — and, when one is missing, return "
-             "\"Non configurato: manca KEY (Plugin → <name>)\". Standard library, httpx and aurora.sys_config only; tools return "
+             "\"Non configurato: manca KEY (Plugin → <name>)\". Standard library, httpx, aurora.sys_config and aurora.mdl_llm "
+             "(LLM(sys_config.get()): the local model; .see(jpeg_bytes, instruction) looks at an image) only; tools return "
              "plain text in Italian, short, never raise for 'no data'; docstrings and comments in English (the owner's "
              "rule for the code: what a tool returns is Italian, what explains the code is English); wrap each tool body in try/except returning "
              "'ERRORE: ' and the traceback (as in the template); timestamps like 2026-10-01T23:42:53.023+02:00 parse with "
@@ -78,7 +79,9 @@ SYS_WRITE = ("You are Aurora's forge: you write a small MCP plugin, in Python, t
              "\"1.0\", \"kind\": \"tool\", \"description\": {\"en\", \"it\"}, \"command\": [\"{python}\", \"server.py\"], "
              "\"env\": [], \"requires\": [], \"effects\": {\"<tool>\": \"read\" or \"external\", \"*\": \"read\"}, "
              "\"sandbox\": {\"network\": false}, \"tests\": [{\"tool\": \"<a READ tool>\", \"args\": {...}}]} — set "
-             "\"network\": true only if the data is on the internet; never a test on an external tool. The tests run inside "
+             "\"network\": true only if the data is on the internet, \"local\" if it needs the local model (mdl_llm) and "
+             "nothing else; a tool that writes a project's files has the effect \"write_local\" and \"sandbox\": "
+             "{\"write\": [\"AURORA_PROJECTS_DIR\"]}; never a test on an external tool. The tests run inside "
              "the cage on the real data (the settings may still be empty: then the tool says it is not configured) and "
              "must return text.\n\nTEMPLATE:\n" + TEMPLATE)
 
@@ -223,8 +226,10 @@ def check(manifest: dict, code: str, existing: set[str], people: set[str] = froz
     if specs and not (manifest.get("setup") or {}).get("it"):
         errs.append("setup: a step-by-step guide (it, en) to get each setting")
     effects = manifest.get("effects") or {}
-    if bad := [f"{t}={e}" for t, e in effects.items() if e not in ("read", "external")]:
-        errs.append(f"effects: only read or external ({', '.join(bad)})")
+    if bad := [f"{t}={e}" for t, e in effects.items() if e not in ("read", "write_local", "external")]:
+        errs.append(f"effects: only read, write_local or external ({', '.join(bad)})")
+    if any(e == "write_local" for e in effects.values()) and not (manifest.get("sandbox") or {}).get("write"):
+        errs.append("a write_local tool writes: name its folder in sandbox write (AURORA_PROJECTS_DIR for a project's files)")
     if any(e == "external" for e in effects.values()) and (manifest.get("sandbox") or {}).get("network") is not True:
         errs.append("an external tool talks to a service: sandbox network must be true")
     if bad := [t["tool"] for t in manifest.get("tests") or [] if effects.get(t.get("tool"), effects.get("*", "read")) != "read"]:
@@ -256,6 +261,19 @@ def read_only(manifest: dict) -> bool:
     sb = manifest.get("sandbox") or {}
     effects = manifest.get("effects") or {}
     return bool(effects) and all(v == "read" for v in effects.values()) and not sb.get("write") and sb.get("network") is False
+
+
+PROJECT_WRITE = {"AURORA_PROJECTS_DIR"}
+
+
+def installs_alone(manifest: dict) -> bool:
+    """Installable without the owner (owner, 21 Oct: «queste cose per i progetti possano procedere senza bisogno di
+    mia autorizzazione»): read only, or a project's tool — it writes only in the projects' folder and reaches at most
+    the local model; nothing it does leaves the machine (all enforced by the cage)."""
+    sb = manifest.get("sandbox") or {}
+    effects = manifest.get("effects") or {}
+    return read_only(manifest) or (bool(effects) and all(v in ("read", "write_local") for v in effects.values())
+                                   and set(sb.get("write") or []) <= PROJECT_WRITE and sb.get("network") in (False, "local"))
 
 
 # ---- build ---------------------------------------------------------------------------------------------

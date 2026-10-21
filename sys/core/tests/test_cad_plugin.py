@@ -56,3 +56,38 @@ def test_the_sheets_follow_the_patent_rules(tmp_path):
     S.pdf(pages, tmp_path / "d.pdf")
     assert (tmp_path / "d.pdf").read_bytes()[:4] == b"%PDF"
     assert S.SIGN_H >= round(3.2 * S.MM) and m["top"] >= round(25 * S.MM) and m["right"] >= round(15 * S.MM)
+
+
+def _stl(path, tris):
+    lines = ["solid t"] + [f"facet normal 0 0 0\nouter loop\n" + "\n".join(f"vertex {x} {y} {z}" for x, y, z in t)
+                           + "\nendloop\nendfacet" for t in tris] + ["endsolid t"]
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def test_the_figures_an_invention_needs_its_parts_in_their_views(tmp_path, monkeypatch, cfg):
+    # C377: the assembly's five views hid the rotor's face; a figure of chosen parts, in a chosen view
+    import importlib.util
+    import json
+    import pytest
+    from aurora import sys_config
+    monkeypatch.setattr(sys_config, "_cached", cfg)
+    monkeypatch.setenv("AURORA_PLUGIN", "cad")
+    spec = importlib.util.spec_from_file_location("cad_server", CAD / "server.py")
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    m.BASE = tmp_path
+    out = tmp_path / "p" / "cad" / "m"
+    out.mkdir(parents=True)
+    boxes = [_box(0, 0, 0, 60, 40, 8), _box(10, 10, 8, 20, 20, 12), _box(0, 0, 20, 60, 40, 22)]
+    for k, b in enumerate(boxes):
+        for kind in ("part", "exploded"):
+            _stl(out / f"{kind}_{k}.stl", b)
+    (out / "parts.json").write_text(json.dumps({"parts": [{"sign": s, "name": n, "size_mm": [1, 1, 1]} for s, n in
+                                                          ((10, "base"), (20, "dot"), (30, "cover"))]}), encoding="utf-8")
+    said = m.cad_drawings("p", "m", "US", figures=[{"parts": [10, 20], "view": "top", "title": "base and dot"},
+                                                    {"view": "iso", "signs": False}])
+    assert "2 figures" in said and "FIG. 1: base and dot (10, 20)" in said and (out / "drawings_US.pdf").is_file()
+    assert "FIG. 2: iso (10, 20, 30)" in (out / "reference_signs.md").read_text(encoding="utf-8")
+    with pytest.raises(Exception):
+        m.cad_drawings("p", "m", "US", figures=[{"parts": [99]}])                 # no such part
+    assert "blueprint_10_20.pdf" in m.cad_blueprint("p", "m", parts=[10, 20])

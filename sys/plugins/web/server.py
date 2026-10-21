@@ -69,8 +69,9 @@ class _Text(html.parser.HTMLParser):
 
 
 @server.tool()
-def fetch_url(url: str, max_chars: int = 12000) -> str:
-    """A public web page as plain text (title first). Follows redirects, but only to public addresses."""
+def fetch_url(url: str, max_chars: int = 12000, offset: int = 0) -> str:
+    """A public web page as plain text (title first). Follows redirects, but only to public addresses. A long page
+    says where it stops; `offset` reads on from that character (C381)."""
     url, addr = _public(url)
     with httpx.Client(timeout=30, follow_redirects=False, headers={"User-Agent": "Aurora/1.0 (https://github.com/Soliton0382/A.U.R.O.R.A.; personal assistant)"}) as c:
         for _ in range(5):
@@ -82,11 +83,18 @@ def fetch_url(url: str, max_chars: int = 12000) -> str:
     if r.status_code >= 400:
         raise ToolError(f"HTTP {r.status_code}")
     if "html" not in r.headers.get("content-type", "html"):
-        return r.text[:max_chars]
+        return _part(r.text, max_chars, offset)
     p = _Text()
     p.feed(r.text)
     text = "\n".join(line.strip() for line in "".join(p.out).splitlines() if line.strip())
-    return f"{p.title.strip()}\n{url}\n\n{text[:max_chars]}"
+    return f"{p.title.strip()}\n{url}\n\n{_part(text, max_chars, offset)}"
+
+
+def _part(text: str, max_chars: int, offset: int) -> str:
+    offset = max(0, offset)
+    part, left = text[offset:offset + max_chars], len(text) - offset - max_chars
+    return part + (f"\n[page cut here: {left} more characters; fetch_url(url, offset={offset + max_chars}) reads on]"
+                   if left > 0 else "")
 
 
 @server.tool()

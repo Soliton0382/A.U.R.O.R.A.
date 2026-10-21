@@ -172,7 +172,7 @@ def test_a_plugin_for_a_service_declares_its_settings_and_its_actions_wait_for_t
     errs = F.check({**SERVICE, "tests": [{"tool": "cloudy_activate", "args": {}}]}, CODE, set())
     assert any("never an external tool" in e for e in errs)                    # a test would act without the owner
     errs = F.check({**SERVICE, "sandbox": {"network": False}, "effects": {"cloudy_activate": "write_everything"}}, CODE, set())
-    assert any("only read or external" in e for e in errs)
+    assert any("only read, write_local or external" in e for e in errs)
 
 
 def test_a_plugin_s_own_settings_join_the_schema_its_secret_masked(tmp_path):
@@ -220,3 +220,15 @@ def test_an_installed_draft_leaves_the_stage(cfg):
     (stage / "server.py").write_text(CODE, encoding="utf-8")
     dest = F.install(cfg, str(stage))
     assert (dest / "server.py").read_text(encoding="utf-8") == CODE and not stage.exists()
+
+
+def test_a_project_s_tool_is_installed_alone_and_nothing_wider():
+    # owner, 21 Oct: tools for the projects need no authorization — the cage keeps them in the projects and on the machine
+    proj = {**GOOD, "effects": {"*": "read", "save": "write_local"},
+            "sandbox": {"network": "local", "write": ["AURORA_PROJECTS_DIR"]}}
+    assert F.installs_alone(GOOD) and F.installs_alone(proj) and not F.read_only(proj)
+    assert F.check(proj, CODE, set()) == []
+    assert not F.installs_alone({**proj, "sandbox": {"network": True, "write": ["AURORA_PROJECTS_DIR"]}})   # the internet
+    assert not F.installs_alone({**proj, "sandbox": {"network": "local", "write": ["AURORA_VAULT_DIR"]}})   # elsewhere
+    assert not F.installs_alone({**proj, "effects": {"*": "read", "send": "external"}})
+    assert any("sandbox write" in e for e in F.check({**proj, "sandbox": {"network": "local"}}, CODE, set()))

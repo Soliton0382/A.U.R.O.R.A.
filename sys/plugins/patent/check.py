@@ -126,10 +126,14 @@ def check(folder: Path, rule: dict) -> list[tuple[str, str]]:
     desc = next((t for n, t in texts.items() if re.search(r"descri|specif", n, re.I)), "")
     signs = folder / "reference_signs.md"
     if desc and signs.is_file() and rule["signs_in_description"]:
-        want = re.findall(r"(?m)^(\d{1,4})\s", signs.read_text(encoding="utf-8"))
+        # a line «12  name» or a Markdown table row «| 12 | name |» (C382: a table read as no sign at all, «0 recalled»)
+        want = re.findall(r"(?m)^\|?\s*(\d{1,4})\s*[|\s]", signs.read_text(encoding="utf-8"))
         missing = [s for s in want if not re.search(rf"\b{s}\b", desc)]
-        out.append((BAD, f"reference signs not recalled in the description: {', '.join(missing)}") if missing
-                   else (OK, f"all {len(want)} reference signs recalled in the description"))
+        if not want:
+            out.append((WARN, "reference_signs.md lists no sign («12  name» or «| 12 | name |» per line): nothing checked"))
+        else:
+            out.append((BAD, f"reference signs not recalled in the description: {', '.join(missing)}") if missing
+                       else (OK, f"all {len(want)} reference signs recalled in the description"))
     dates = sorted(set(re.findall(r"\b\d{1,2} (?:January|February|March|April|May|June|July|August|September|"
                                   r"October|November|December|gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|"
                                   r"agosto|settembre|ottobre|novembre|dicembre) 20\d\d\b", " ".join(texts.values()))))

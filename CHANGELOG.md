@@ -2,6 +2,15 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.79 — 2026-10-22
+
+4 publications since v0.2.75.
+
+- 2026-10-22 circuits plugin; projects: policy, install, save, tree, GitHub cards; cad figures; forge requests visible and a project tier for forged tools; local-only plugin network; project work in her emotions; long tool results announced; local fallback fits its window; patent sign check; pypdf 6.21.1 (C373–C382, N40)
+- 2026-10-20 circuits: any text in titles and labels, values always drawn (C374); live run in M249
+- 2026-10-20 circuits plugin (N37 phases 1-2, M249); a plugin's program unpacked from the system's package, the installer installs every plugin's libraries
+- 2026-10-20 Scenes never started on no light, resumed on their own lights, automations retried when Home Assistant is back (C373); Pillow 13, certifi
+
 ## v0.2.78 — 2026-10-21
 
 3 publications since v0.2.75.

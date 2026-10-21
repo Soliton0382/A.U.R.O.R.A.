@@ -69,3 +69,16 @@ def test_the_ticks_and_the_goal_of_procedi(cfg):
     g = prj_docs.goal("demo", d["targets"])
     assert "cad_blueprint" in g and "office='US'" in g and "patent_check" in g and "AI made them" in g
     assert "Brevetto USA" in prj_docs.plan_note(cfg, "demo") and prj_docs.plan_note(cfg, "other") == ""
+
+
+def test_signs_written_as_a_table_are_checked_too(tmp_path, monkeypatch):
+    # C382: a Markdown table of signs was read as none — «0 reference signs recalled» passed while one was missing
+    texts = {"02_claims.pdf": "CLAIMS\n1. A stand.", "01_description.pdf": "base 10 and lip 20"}
+    for n in texts:
+        _pdf(tmp_path / n, [lambda d: None])
+    (tmp_path / "reference_signs.md").write_text("| segno | elemento |\n|---|---|\n| 10 | base |\n| 20 | lip |\n| 30 | foot |\n")
+    monkeypatch.setattr(check, "_text", lambda f: (texts[f.name], {"Producer": "fpdf2"}, [(210.0, 297.0)]))
+    rep = [w for _, w in check.check(tmp_path, rules.office("EP"))]
+    assert any("not recalled in the description: 30" in w for w in rep)
+    (tmp_path / "reference_signs.md").write_text("# signs\n")
+    assert any("lists no sign" in w for _, w in check.check(tmp_path, rules.office("EP")))

@@ -77,3 +77,47 @@ def test_the_rc_cut_off_simulated_is_the_one_computed(tmp_path):
                         [{"name": "f3db", "analysis": "ac", "expr": "WHEN vdb(out)=-3.0103"}])
     text = S.run(shutil.which("ngspice"), tmp_path, net + deck)
     assert abs(S.measured(text, [{"name": "f3db"}])["f3db"] - 1 / (2 * math.pi * 1e3 * 1e-6)) < 0.5
+
+
+def test_the_board_says_what_would_lie_on_what():
+    import circ_layout as L
+    b = L.Board()
+    b.add_part((0, 0), (0, 3))                                                # a part, upright
+    b.points[(0, 3)] = "vcc"
+    assert b.part_cost((0, 3), (0, 0), "vcc", "x") > 0                       # back over it
+    assert b.part_ok((0, 3), (3, 3), "vcc", "b")                              # from its end, across: room
+    assert not b.wire_ok([(-1, 3), (2, 3)], "in")                             # a wire over another node's point
+    assert not b.wire_ok([(-1, 1.5), (1, 1.5)], "in")                         # through a part's body: no
+    b.add_line((5, 0), (5, 3), "x")
+    assert b.wire_ok([(4, 1.5), (6, 1.5)], "in")                              # across another wire: allowed
+    assert L.crosses((0, -1, 0, 1), (-1, 0, 1, 0)) and not L.crosses((0, 0, 0, 1), (0, 0, 1, 0))
+
+
+def test_a_circuit_written_as_a_netlist_is_drawn_with_nothing_on_anything(tmp_path):
+    # C375: parts in netlist order (supply, divider, collector, transistor, coupling) — drawn on top of each other
+    pytest.importorskip("schemdraw")
+    import circ_draw as D
+    import circ_layout as L
+    seen = []
+    real = L.Board.add_line
+    L.Board.add_line = lambda self, a, b, n: (seen.append((self, a, b, n)), real(self, a, b, n))[1]
+    try:
+        parts = N.check([{"id": "V1", "kind": "voltage_source", "value": "DC 12", "nodes": ["vcc", "0"]},
+                         {"id": "R1", "kind": "resistor", "value": "100k", "nodes": ["vcc", "b"], "dir": "down"},
+                         {"id": "R2", "kind": "resistor", "value": "13k", "nodes": ["b", "0"], "dir": "down"},
+                         {"id": "RC", "kind": "resistor", "value": "6.8k", "nodes": ["vcc", "c"], "dir": "down"},
+                         {"id": "Q1", "kind": "npn", "nodes": ["c", "b", "e"]},
+                         {"id": "RE", "kind": "resistor", "value": "680", "nodes": ["e", "0"], "dir": "down"},
+                         {"id": "VIN", "kind": "sine_source", "value": "SIN(0 50m 1k)", "nodes": ["in", "0"]},
+                         {"id": "CIN", "kind": "capacitor", "value": "10u", "nodes": ["in", "b"]},
+                         {"id": "COUT", "kind": "capacitor", "value": "10u", "nodes": ["c", "out"]},
+                         {"id": "RL", "kind": "resistor", "value": "100k", "nodes": ["out", "0"], "dir": "down"}])
+        D.draw(parts)
+    finally:
+        L.Board.add_line = real
+    board = seen[-1][0]
+    lines = board.lines
+    for i, s in enumerate(lines):                                             # no line along another node's line
+        assert not any(L.collinear(s, t) and (s[4] is None or t[4] is None or s[4] != t[4])
+                       for t in lines[i + 1:]), s
+        assert not any(n != s[4] and s[4] is not None and L.on_line(pt, s) for pt, n in board.points.items()), s

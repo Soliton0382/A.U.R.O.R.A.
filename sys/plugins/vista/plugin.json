@@ -1,0 +1,37 @@
+{
+  "name": "vista",
+  "version": "1.0",
+  "kind": "tool",
+  "description": {
+    "en": "Looks at an image (PNG/JPG) of a project with Aurora's local vision: describes what is drawn and checks drawings (crossing leader lines, overlapping texts, black-and-white line art), plus an exact pixel count of colours and greys for PNG files. Local only: it asks the running local model (127.0.0.1).",
+    "it": "Guarda un'immagine (PNG/JPG) di un progetto con la visione locale di Aurora: descrive cosa è disegnato e controlla le tavole (linee di richiamo che si incrociano, testi sovrapposti, solo bianco e nero al tratto), più un conteggio esatto dei pixel colorati e grigi per i PNG. Solo in locale: chiede al modello locale già acceso (127.0.0.1)."
+  },
+  "command": [
+    "{python}",
+    "server.py"
+  ],
+  "env": [],
+  "requires": [],
+  "effects": {
+    "vista_describe": "read",
+    "vista_info": "read",
+    "*": "read"
+  },
+  "sandbox": {
+    "network": "local"
+  },
+  "tests": [
+    {
+      "tool": "vista_info",
+      "args": {
+        "project": "macchina2",
+        "path": "cad/macchina2/tavole/fig3.png"
+      }
+    }
+  ],
+  "forged": {
+    "request": "0c321354a1",
+    "at": "2026-10-21T14:50:55+0200",
+    "need": "Un tool che apra un file immagine (PNG/JPG) di un progetto, ad esempio cad/macchina2/tavole/fig3.png, e lo descriva con la visione locale di Aurora (cosa e disegnato, se le linee di richiamo incrocian"
+  }
+}

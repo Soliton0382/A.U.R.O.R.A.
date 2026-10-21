@@ -63,3 +63,13 @@ def test_both_ways_to_the_local_model_fit_it(monkeypatch):
 def test_without_settings_nothing_changes():
     msgs = long_run()
     assert mdl_fit.fit(msgs, 1500, mdl_fit.window({})) == (msgs, 1500)
+
+
+def test_the_last_turns_too_long_are_shortened_as_well():
+    # C380: four long file reads at the end and a long prompt: 42,540 tokens to a slot of 32,768 after a cloud limit
+    msgs = [{"role": "system", "content": "s" * 30000}, {"role": "user", "content": "GOAL"}]
+    for i in range(3):
+        msgs += [{"role": "assistant", "content": "read %d" % i}, {"role": "tool", "content": "y" * 20000}]
+    out, max_tokens = mdl_fit.fit(msgs, 1500, 32768)
+    assert mdl_fit.used(out) + max_tokens + 256 <= 32768
+    assert out[0] == msgs[0] and out[-1]["content"].startswith("y" * 2000)

@@ -72,7 +72,8 @@ PLUGIN_WORDS_ALLOWED = {
 }
 PLUGIN_PROGRAMS_ALLOWED = {("facebook", "ffprobe"), ("projects", "git"),
                            ("cad", "_openscad()"), ("patent", "pdftoppm"),
-                           ("circuits", "exe")}   # ngspice (circ_sim.ngspice): brew on a Mac, its zip on Windows; missing: said   # poppler: in every installer (EVERYWHERE)   # OpenSCAD: brew on a Mac, its installer on Windows; missing: said       # both in EVERYWHERE's installers
+                           ("circuits", "exe"),
+                           ("projects", "sys.executable")}   # the Python running the plugin: pip and venv for a project   # ngspice (circ_sim.ngspice): brew on a Mac, its zip on Windows; missing: said   # poppler: in every installer (EVERYWHERE)   # OpenSCAD: brew on a Mac, its installer on Windows; missing: said       # both in EVERYWHERE's installers
 # a plugin started by a program of its own (not Python): it must exist for each system (phase 3, PORTING.md)
 PLUGIN_COMMANDS = {"github": "{root}/sys/runtime/github-mcp-server/github-mcp-server"}
 

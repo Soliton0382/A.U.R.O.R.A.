@@ -87,11 +87,19 @@ def cad_build(project: str, name: str, parts: list[dict], library: str = "") -> 
 
 
 @server.tool()
-def cad_drawings(project: str, name: str, office: str = "EP") -> str:
+def cad_drawings(project: str, name: str, office: str = "EP", figures: list[dict] | None = None) -> str:
     """The patent drawing sheets of a model built with cad_build, for an office (EP, IT or US): Fig. 1 the assembly
     (isometric), Fig. 2 the exploded view with the reference signs, Fig. 3–5 front, top and side views;
     drawings_<office>.pdf in that office's form (its margins and paper, «Fig. N» — «FIG. N» for the US —, sheets
-    «1/3», black lines only) and reference_signs.md (the list for the description), with the figures."""
+    «1/3», black lines only) and reference_signs.md (the list for the description), with the figures.
+    figures (optional, in place of those five): the figures the invention needs, in order, e.g.
+    [{"parts": [41, 42, 21, 22], "view": "top", "title": "rotor seen from above: the two lobes and the sub-poles"},
+     {"parts": [110, 121, 122, 123, 124], "view": "top", "title": "stator 100 seen from above"},
+     {"view": "iso", "exploded": true, "title": "exploded view"}] — parts: reference signs (all when omitted); view:
+    iso, top, front or side; exploded: the exploded positions; signs: false for a figure without reference signs
+    (C377: the assembly's views hid the rotor's faces, the heart of the invention)."""
+    if figures:
+        return _figures(project, name, office, figures)
     office = (office or "EP").upper()
     if office not in cad_sheets.OFFICES:
         raise ToolError(f"office: one of {', '.join(cad_sheets.OFFICES)}")
@@ -131,22 +139,77 @@ def cad_drawings(project: str, name: str, office: str = "EP") -> str:
             f"{time.time() - t0:.1f} s ({out / f'drawings_{office}.pdf'}). Reference signs:\n{signs_md}")
 
 
-@server.tool()
-def cad_blueprint(project: str, name: str, title: str = "") -> str:
-    """A dimensioned technical drawing of a model built with cad_build (not a patent sheet): A4 landscape, front, top
-    and side views in one standard scale (first-angle projection, ISO 128-30), overall dimensions in mm (ISO 129-1),
-    an isometric view, the title block and the parts list with their sizes; blueprint.pdf in <project>/cad/<name>/."""
-    import cad_blueprint
+def _figures(project: str, name: str, office: str, figures: list[dict]) -> str:
+    """cad_drawings with the figures asked: each one some parts, in a view, one figure a sheet."""
+    office = (office or "EP").upper()
+    if office not in cad_sheets.OFFICES:
+        raise ToolError(f"office: one of {', '.join(cad_sheets.OFFICES)}")
+    if not 1 <= len(figures) <= 20:
+        raise ToolError("1 to 20 figures")
+    fig = "FIG." if office == "US" else "Fig."
     out = _folder(project, name)
     meta = out / "parts.json"
     if not meta.is_file():
         raise ToolError(f"no model {name}: build it first with cad_build")
     parts = json.loads(meta.read_text(encoding="utf-8"))["parts"]
+    signs = [p["sign"] for p in parts]
     t0 = time.time()
-    assembled = [cad_draw.load_stl(out / f"part_{k}.stl") for k in range(len(parts))]
-    page = cad_blueprint.sheet(assembled, parts, title or name, project)
-    cad_sheets.pdf([page], out / "blueprint.pdf")
-    return f"blueprint.pdf: A4 landscape, 3 dimensioned views, {len(parts)} parts listed, in {time.time() - t0:.1f} s ({out / 'blueprint.pdf'})"
+    load = lambda kind: [cad_draw.load_stl(out / f"{kind}_{k}.stl") for k in range(len(parts))]   # noqa: E731
+    assembled, exploded = load("part"), load("exploded")
+    figs = out / "figures"
+    figs.mkdir(exist_ok=True)
+    images, lines = [], []
+    for n, f in enumerate(figures, 1):
+        view = str(f.get("view", "iso"))
+        if view not in cad_draw.VIEWS:
+            raise ToolError(f"figure {n}: view one of {', '.join(cad_draw.VIEWS)}")
+        wanted = [int(s) for s in (f.get("parts") or signs)]
+        unknown = [s for s in wanted if s not in signs]
+        if unknown:
+            raise ToolError(f"figure {n}: no part with sign {unknown} (signs: {signs})")
+        idx = [k for k, s in enumerate(signs) if s in wanted]
+        tris = [(exploded if f.get("exploded") else assembled)[k] for k in idx]
+        r = cad_draw.render(tris, view, 1800)
+        img, (x0, y0) = cad_sheets.crop(r["lines"])
+        if f.get("signs", True):
+            anchors = [(a[0] - x0, a[1] - y0) if a else None for a in cad_draw.anchors(r["part"], len(tris))]
+            picture = cad_sheets.label(img, anchors, [signs[k] for k in idx])
+        else:
+            picture = cad_sheets.Image.fromarray(img)
+        picture.save(figs / f"fig{n}.png")
+        images.append((picture, f"{fig} {n}"))
+        lines.append(f"{fig} {n}: {str(f.get('title', '')).strip() or view} ({', '.join(str(signs[k]) for k in idx)})")
+    pages = [cad_sheets.sheet([im], i, len(images), office) for i, im in enumerate(images, 1)]
+    cad_sheets.pdf(pages, out / f"drawings_{office}.pdf")
+    signs_md = "\n".join(f"{p['sign']}  {p['name']}" for p in parts)
+    (out / "reference_signs.md").write_text("Reference signs (for the description)\n\n" + signs_md + "\n\n"
+                                            + "\n".join(lines) + "\n", encoding="utf-8")
+    return (f"drawings_{office}.pdf: {len(pages)} sheets, {len(images)} figures, in {time.time() - t0:.1f} s "
+            f"({out / f'drawings_{office}.pdf'}); the figures one by one in {figs}/fig<n>.png.\n" + "\n".join(lines))
+
+
+@server.tool()
+def cad_blueprint(project: str, name: str, title: str = "", parts: list[int] | None = None) -> str:
+    """A dimensioned technical drawing of a model built with cad_build (not a patent sheet): A4 landscape, front, top
+    and side views in one standard scale (first-angle projection, ISO 128-30), overall dimensions in mm (ISO 129-1),
+    an isometric view, the title block and the parts list with their sizes; blueprint.pdf in <project>/cad/<name>/.
+    parts (optional): only these reference signs — a part's own drawing (e.g. the rotor), blueprint_<signs>.pdf."""
+    import cad_blueprint
+    out = _folder(project, name)
+    meta = out / "parts.json"
+    if not meta.is_file():
+        raise ToolError(f"no model {name}: build it first with cad_build")
+    every = json.loads(meta.read_text(encoding="utf-8"))["parts"]
+    wanted = set(int(s) for s in parts) if parts else {p["sign"] for p in every}
+    idx = [k for k, p in enumerate(every) if p["sign"] in wanted]
+    if not idx:
+        raise ToolError(f"no part with signs {sorted(wanted)} (signs: {[p['sign'] for p in every]})")
+    t0 = time.time()
+    assembled = [cad_draw.load_stl(out / f"part_{k}.stl") for k in idx]
+    page = cad_blueprint.sheet(assembled, [every[k] for k in idx], title or name, project)
+    file = "blueprint.pdf" if not parts else f"blueprint_{'_'.join(str(every[k]['sign']) for k in idx)}.pdf"
+    cad_sheets.pdf([page], out / file)
+    return f"{file}: A4 landscape, 3 dimensioned views, {len(idx)} parts listed, in {time.time() - t0:.1f} s ({out / file})"
 
 
 if __name__ == "__main__":

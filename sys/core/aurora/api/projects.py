@@ -53,6 +53,42 @@ async def projects_github() -> dict:
     return await in_thread(work)
 
 
+_traffic: dict[str, tuple[float, dict]] = {}
+TRAFFIC_S = 1800
+
+
+@router.get("/v1/aurora/projects/github/{owner}/{repo}/traffic", dependencies=[Depends(auth)])
+def projects_github_traffic(owner: str, repo: str) -> dict:
+    """A repository's last 14 days on GitHub: views and clones, all and unique (GitHub keeps only 14 days; it needs
+    the token's push access). Kept for 30 minutes."""
+    import re as _re
+    import time as _time
+
+    import httpx
+    full = f"{owner}/{repo}"
+    if not _re.fullmatch(r"[A-Za-z0-9_.-]{1,100}/[A-Za-z0-9_.-]{1,100}", full):
+        raise HTTPException(status_code=400, detail="owner/repo")
+    hit = _traffic.get(full)
+    if hit and hit[0] > _time.time() - TRAFFIC_S:
+        return hit[1]
+    token = str(cfg["AURORA_GITHUB_TOKEN"] or "")
+    out: dict = {"views": None, "clones": None}
+    if token:
+        h = {"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"}
+        for k in ("views", "clones"):
+            try:
+                r = httpx.get(f"https://api.github.com/repos/{full}/traffic/{k}", headers=h, timeout=15)
+                if r.status_code == 200:
+                    d = r.json()
+                    out[k] = {"count": d.get("count", 0), "uniques": d.get("uniques", 0)}
+                elif r.status_code == 403:                 # the token lacks «Administration: Read» (GitHub's own rule)
+                    out["why"] = "permission"
+            except httpx.HTTPError:
+                pass
+    _traffic[full] = (_time.time(), out)
+    return out
+
+
 @router.get("/v1/aurora/projects/{name}/tree", dependencies=[Depends(auth)])
 def project_tree_api(name: str) -> dict:
     from aurora import prj_browse
@@ -123,6 +159,42 @@ async def project_new(request: Request) -> dict:
     log.info("audit: project created from the page: %s (%s)", args.get("name"), "ok" if out["ok"] else "failed")
     if not out["ok"]:
         raise HTTPException(status_code=422, detail=out["text"][:400])
+    from aurora import prj_policy                     # how Aurora handles it, chosen in the same form
+    out["policy"] = prj_policy.save(cfg, args["name"], {"models": body.get("models"),
+                                                         "publish": body.get("publish") not in (False, "no")})
+    return out
+
+
+@router.post("/v1/aurora/projects/{name}/save", dependencies=[Depends(auth)])
+async def project_save(name: str, request: Request) -> dict:
+    """💾 Every change of the project kept in its history (a local commit, never a push): the page's «Salva»."""
+    body = await request.json()
+    message = str(body.get("message") or "").strip()[:200] or "Salvato dalla pagina del progetto"
+
+    def work():
+        return plugin_host().call("projects", "project_commit", {"name": name, "message": message})
+    out = await in_thread(work)
+    if not out["ok"]:
+        raise HTTPException(status_code=422, detail=out["text"][:400])
+    log.info("audit: project %s saved from the page", name)
+    return {"saved": "nothing to commit" not in out["text"], "text": out["text"][:300]}
+
+
+@router.get("/v1/aurora/projects/{name}/policy", dependencies=[Depends(auth)])
+def project_policy(name: str) -> dict:
+    from aurora import prj_policy
+    return prj_policy.load(cfg, name)
+
+
+@router.put("/v1/aurora/projects/{name}/policy", dependencies=[Depends(auth)])
+async def project_policy_set(name: str, request: Request) -> dict:
+    """🔒 local only or ☁️ the cloud (masked); 🚫 never published (prj_policy)."""
+    from aurora import prj_policy
+    try:
+        out = prj_policy.save(cfg, name, await request.json())
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    log.info("audit: project %s handled: %s", name, out)
     return out
 
 

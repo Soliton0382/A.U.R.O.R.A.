@@ -124,15 +124,23 @@ def project_tree(name: str) -> str:
 
 
 @tool
-def project_read_file(name: str, path: str) -> str:
-    """Read a file of a project (a PDF: its text, page by page)."""
+def project_read_file(name: str, path: str, offset: int = 0) -> str:
+    """Read a file of a project (a PDF: its text, page by page), 20,000 characters at a time: a longer one says where
+    it stops — read the rest with offset (C376: a long file was cut without a word)."""
     f = _inside(_project(name), path)
     if f.suffix.lower() == ".pdf":                      # its raw bytes say nothing and look like data to mask (C310)
         from pypdf import PdfReader
         pages = PdfReader(str(f)).pages
-        return "\n\n".join(f"--- page {i}/{len(pages)} ---\n{p.extract_text() or '(no text: a drawing)'}"
-                             for i, p in enumerate(pages, 1))[:20000]
-    return f.read_text(encoding="utf-8", errors="replace")[:20000]
+        text = "\n\n".join(f"--- page {i}/{len(pages)} ---\n{p.extract_text() or '(no text: a drawing)'}"
+                           for i, p in enumerate(pages, 1))
+    else:
+        text = f.read_text(encoding="utf-8", errors="replace")
+    start = max(0, int(offset or 0))
+    part = text[start:start + READ_MAX]
+    if start + READ_MAX < len(text):
+        part += (f"\n\n[… {len(text) - start - READ_MAX} more characters of {len(text)}: "
+                 f"project_read_file(name, path, offset={start + READ_MAX}) for the rest]")
+    return part
 
 
 @tool
@@ -142,6 +150,51 @@ def project_write_file(name: str, path: str, content: str) -> str:
     f.parent.mkdir(parents=True, exist_ok=True)
     f.write_text(content, encoding="utf-8")
     return f"written {path} ({len(content.splitlines())} lines)"
+
+
+READ_MAX = 20000
+SPEC = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,79}(\[[A-Za-z0-9,_-]{1,60}\])?((==|>=|<=|~=|<|>)[0-9][0-9A-Za-z.*+!-]{0,30})?")
+
+
+@tool
+def project_install(name: str, packages: list[str]) -> str:
+    """Install Python libraries the project needs (owner, 2026-10-21: «dalle la capacità di installare nei progetti
+    tutto quello che serve»), e.g. ["magpylib==6.0.0", "pandas"]. They go into the project's own environment
+    (<project>/.venv), which sees Aurora's libraries without changing them, so only what is missing is fetched; wheels
+    only (no package's code runs while installing); the versions written to requirements-aurora.txt. run_in_project
+    uses that environment by itself: `python script.py` imports them. At most 10 packages a call."""
+    import sys
+    project = _project(name)
+    if not project.is_dir():
+        raise ToolError(f"no project {name}")
+    packages = [str(x).strip() for x in (packages or []) if str(x).strip()]
+    if not packages or len(packages) > 10 or not all(SPEC.fullmatch(x) for x in packages):
+        raise ToolError("1 to 10 packages, as «name» or «name==1.2.3» (extras like «name[plot]» allowed)")
+    env, t0 = project / ".venv", time.time()
+    py = env / ("Scripts/python.exe" if os.name == "nt" else "bin/python")      # a venv's layout on each system
+    if not py.exists():                               # the project's own environment, on Aurora's Python
+        subprocess.run([sys.executable, "-m", "venv", "--without-pip", str(env)], check=True, capture_output=True,
+                       timeout=120)
+        site = next(env.glob("lib/python*/site-packages"), env / "Lib" / "site-packages")
+        aurora = next(p for p in sys.path if p.endswith("site-packages") and Path(p).is_dir())
+        (site / "aurora.pth").write_text(aurora + "\n", encoding="utf-8")     # Aurora's libraries seen, not copied
+        gi = project / ".gitignore"
+        if gi.is_file() and ".venv/" not in gi.read_text(encoding="utf-8").split():
+            gi.write_text(gi.read_text(encoding="utf-8").rstrip("\n") + "\n.venv/\n", encoding="utf-8")
+    r = subprocess.run([sys.executable, "-m", "pip", "--python", str(py), "install", "--only-binary=:all:",
+                        "--no-input", "--disable-pip-version-check", "--no-cache-dir", *packages],
+                       capture_output=True, text=True, timeout=900)
+    if r.returncode:
+        raise ToolError(f"pip refused: {(r.stderr or r.stdout).strip()[-1200:]}")
+    site = next(env.glob("lib/python*/site-packages"), env / "Lib" / "site-packages")
+    f = subprocess.run([sys.executable, "-m", "pip", "--python", str(py), "list", "--path", str(site),
+                        "--format=freeze", "--disable-pip-version-check"], capture_output=True, text=True, timeout=120)
+    (project / "requirements-aurora.txt").write_text(
+        "# what Aurora installed for this project (project_install), beside Aurora's own libraries\n"
+        + f.stdout, encoding="utf-8")
+    done = [ln.split(" ", 1)[1] for ln in r.stdout.splitlines() if ln.startswith("Successfully installed")]
+    return (f"Installed in {time.time() - t0:.0f} s into {name}/.venv: {done[0] if done else 'already there'}. "
+            "run_in_project uses it: `python your_script.py` imports them.")
 
 
 @tool

@@ -58,13 +58,15 @@ def _forge_job(req: dict, cloud: bool = False):
             note("forge", "forge.failed", {"id": req["id"], "text": f"Non sono riuscita a costruire: {req['need'][:120]}"})
             return Answer(run_id, q, "Forgia non riuscita: " + "; ".join(res["errors"])[:1500], False, mode="agent")
         m = res["manifest"]
-        if agt_forge.read_only(m):
+        if agt_forge.installs_alone(m):                 # read only, or a project's tool (owner, 21 Oct)
             agt_forge.install(cfg, res["stage"])
-            log.info("audit: forged plugin %s installed (read only, no network)", m["name"])
+            log.info("audit: forged plugin %s installed (%s)", m["name"],
+                     "read only, no network" if agt_forge.read_only(m) else "a project's tool: projects folder, local model")
             from aurora import sys_autonomy
             sys_autonomy.log(cfg, "forge", f"plugin {m['name']} built and installed (read only): {req['need'][:150]}")
             _forge_done(req["id"], m["name"])
-            text = f"Plugin «{m['name']}» costruito, provato nella gabbia e acceso (sola lettura, senza rete)."
+            text = (f"Plugin «{m['name']}» costruito, provato nella gabbia e acceso ("
+                    + ("sola lettura, senza rete)." if agt_forge.read_only(m) else "scrive solo nei progetti, rete solo verso il modello locale)."))
         else:
             from aurora.sys_approvals import Approvals
             code = (Path(res["stage"]) / "server.py").read_text(encoding="utf-8")

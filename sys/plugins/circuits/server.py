@@ -79,10 +79,12 @@ def circuit_simulate(project: str, name: str, analyses: list[dict] | None = None
                      measures: list[dict] | None = None) -> str:
     """Simulate a circuit drawn with circuit_schematic (ngspice). analyses: [{"type": "op"} (every node's voltage,
     every source's current), {"type": "tran", "step": "10u", "stop": "5m"}, {"type": "ac", "points": 20 (per
-    decade), "start": 1, "stop": "1meg"} (magnitude dB and phase °), {"type": "dc", "source": "V1", "start": 0,
+    decade), "start": 1, "stop": "1meg"} (magnitude dB and phase °; the input source needs «AC 1» in its value),
+    {"type": "dc", "source": "V1", "start": 0,
     "stop": 5, "step": 0.1}]; probes: nodes («out») or a source's current («I(V1)»), at most 6 (the named nodes when
     none; a source's current is the one it gives out); measures: [{"name": "f3db", "analysis": "ac", "expr": "WHEN vdb(out)=-3.0103"}, {"name": "peak",
-    "analysis": "tran", "expr": "MAX v(out)"}]. Writes results.json, a CSV and a graph (PNG) per analysis."""
+    "analysis": "tran", "expr": "MAX v(out)"}] — an amplifier's −3 dB is relative: «WHEN vdb(out)=<gain−3.01>»
+    with its gain measured first. Writes results.json, a CSV and a graph (PNG) per analysis."""
     out = _folder(project, name)
     meta = out / "circuit.json"
     if not meta.is_file():

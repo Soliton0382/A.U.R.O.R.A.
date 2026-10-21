@@ -8,10 +8,10 @@ number from 0 to 1 computed from things measured now, and carries its causes in 
 |--------------|--------------------------------------------------------------------------------|-------------------------------|
 | stress       | the largest of: GPU load, the GPUs' distance from their thermal limit (driver),| 50 % load · 15 °C from the    |
 |              | answers being made / the parallel slots, errors in the last hour               | limit · a full slot · 1 error |
-| satisfaction | answers found in the sources / all answers of the last 24 h (abstained, errors)| —  (a ratio)                  |
-| curiosity    | questions to study + past answers with something new to look at                | one night's capacity          |
+| satisfaction | answers found + steps saved in the projects / all answers + those steps (24 h)  | —  (a ratio)                  |
+| curiosity    | questions to study + past answers with something new + projects' open items    | one night's capacity          |
 | tiredness    | the share of the last 6 h with a GPU busy (sampled at every REM look)          | —  (a share)                  |
-| longing      | hours since the person last wrote                                              | the boredom threshold         |
+| longing      | hours since the person last wrote, or a project last moved (kno_mood_work)     | the boredom threshold         |
 | melancholy   | clouds and rain at home                                                        | overcast, or 1 mm of rain     |
 | worry        | open incidents of high severity + health problems                              | one                           |
 | anger        | the person's messages that insult her, each fading in 30 min; an apology ends it| one offence (kno_anger)       |
@@ -134,25 +134,34 @@ def measure(cfg: sys_config.Config, st: dict | None = None, active_runs: int = 0
     else:
         out["stress"] = {"value": None, "causes": ["non misurato: nessuna GPU letta"]}
 
+    from . import kno_mood_work                         # the projects are interaction too (owner, 21 Oct)
+    work = kno_mood_work.read(cfg)
     day = sys_logread.answer_stats(24, cfg)
-    found = day["answers"] - day["by_outcome"].get("abstained", 0)
-    asked = day["answers"] + day["errors"]
-    out["satisfaction"] = ({"value": round(found / asked, 2),
-                            "causes": [f"{found} domande su {asked} con una risposta (24 h)"]}
+    found = day["answers"] - day["by_outcome"].get("abstained", 0) + work["steps_24h"]
+    asked = day["answers"] + day["errors"] + work["steps_24h"]
+    causes = ([f"{found - work['steps_24h']} domande su {asked - work['steps_24h']} con una risposta (24 h)"]
+              if asked > work["steps_24h"] else [])
+    if work["steps_24h"]:
+        causes.append(f"{work['steps_24h']} passi salvati nei progetti (24 h)")
+    out["satisfaction"] = ({"value": round(found / asked, 2), "causes": causes}
                            if asked else {"value": None, "causes": ["nessuna domanda nelle ultime 24 ore"]})
 
     d = st.get("drives") or {}
-    todo = int(st.get("to_study") or 0) + int(d.get("novelty") or 0)
+    todo = int(st.get("to_study") or 0) + int(d.get("novelty") or 0) + work["open"]
     night = int(cfg["AURORA_STUDY_PER_NIGHT"]) + int(cfg["AURORA_REVIEW_PER_DAY"])
     out["curiosity"] = {"value": _sat(todo, night),
                         "causes": [f"{st.get('to_study') or 0} domande da studiare",
-                                   f"{d.get('novelty') or 0} risposte passate con qualcosa di nuovo da guardare"]}
+                                   f"{d.get('novelty') or 0} risposte passate con qualcosa di nuovo da guardare"]
+                        + ([f"{work['open']} cose aperte nei progetti"] if work["open"] else [])}
 
     out["tiredness"] = tiredness(cfg)
 
     idle = st.get("idle_min")
-    out["longing"] = ({"value": _sat(idle, float(cfg["AURORA_REM_BORED_MIN"])),
-                       "causes": [f"nessun messaggio da {idle / 60:.1f} ore"]}
+    if work["last_s"] is not None and (idle is None or work["last_s"] / 60 < idle):
+        idle, why = work["last_s"] / 60, f"il progetto «{work['last']}» è fermo da {work['last_s'] / 3600:.1f} ore"
+    else:
+        why = f"nessun messaggio da {idle / 60:.1f} ore" if idle is not None else ""
+    out["longing"] = ({"value": _sat(idle, float(cfg["AURORA_REM_BORED_MIN"])), "causes": [why]}
                       if idle is not None else {"value": None, "causes": ["nessuna conversazione ancora"]})
 
     w = st.get("weather") or {}

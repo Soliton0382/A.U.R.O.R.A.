@@ -32,3 +32,24 @@ def test_more_tools_gives_the_specs_and_makes_them_callable():
     assert specs[0]["function"]["name"] == "github__t0"
     assert agt_tools.more([gh], "dropbox", {}, "__").startswith("ERROR")
     assert "github: github things (2 tools)" in agt_tools.section([gh]) and agt_tools.section([]) == ""
+
+
+def test_a_long_result_says_where_it_stops():
+    # C381: every tool result was cut at 6,000 characters without a word (a patent page ended at its «Definitions»)
+    from aurora import agt_tools
+    short = "x" * 100
+    assert agt_tools.clip(short) == short
+    out = agt_tools.clip("y" * (agt_tools.RESULT_CHARS + 500))
+    assert out.startswith("y" * agt_tools.RESULT_CHARS) and "500 more characters" in out and "offset" in out
+
+
+def test_a_long_page_is_read_in_parts():
+    import importlib.util
+    from pathlib import Path
+    spec = importlib.util.spec_from_file_location("web_plugin_server", Path(__file__).resolve().parents[2] / "plugins" / "web" / "server.py")
+    web = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(web)
+    text = "a" * 30 + "b" * 30
+    first = web._part(text, 30, 0)
+    assert first.startswith("a" * 30) and "30 more characters" in first and "offset=30" in first
+    assert web._part(text, 30, 30) == "b" * 30

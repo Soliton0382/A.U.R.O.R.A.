@@ -25,6 +25,7 @@
     "project_commit": "write_local",
     "project_publish": "external",
     "project_push": "external",
+    "project_install": "write_local",
     "*": "external"
   },
   "publishes": {},

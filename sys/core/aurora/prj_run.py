@@ -7,7 +7,8 @@ The code is Aurora's own and not reviewed, so the cage is strict, and not the pr
 network and the GitHub token for the push; a cage cannot be opened inside another one here):
   - no network at all, an empty environment (no token, no key), a fresh /tmp;
   - the home folders, /mnt and /media hidden: the owner's files, the NAS and Aurora's .env are not there;
-  - only the project's folder writable; Aurora's Python environment (.venv) readable, to run pytest;
+  - only the project's folder writable; Aurora's Python environment (.venv) readable, to run pytest; the project's own
+    environment first when Aurora installed libraries for it (<project>/.venv, projects.project_install);
   - at most AURORA_PROJECT_RUN_S seconds, the output's last 8,000 characters.
 """
 from __future__ import annotations
@@ -43,8 +44,10 @@ def cage(cfg: sys_config.Config, project: Path, command: str) -> list[str]:
             args += ["--tmpfs", hidden]
     if venv.is_dir():
         args += ["--ro-bind", str(venv), str(venv)]
+    own = project / ".venv" / "bin"                  # the libraries Aurora installed for it (projects.project_install)
+    first = f"{own}:" if (own / "python").exists() else ""
     args += ["--bind", str(project), str(project), "--clearenv",
-             "--setenv", "PATH", f"{venv / 'bin'}:/usr/local/bin:/usr/bin:/bin", "--setenv", "HOME", "/tmp",
+             "--setenv", "PATH", f"{first}{venv / 'bin'}:/usr/local/bin:/usr/bin:/bin", "--setenv", "HOME", "/tmp",
              "--setenv", "LANG", "C.UTF-8", "--setenv", "PYTHONDONTWRITEBYTECODE", "1",
              "--chdir", str(project), "--", "bash", "-c", command]
     return args

@@ -296,6 +296,9 @@ class Agent(AgentMakers, AgentReport):
             return refused
         if plugin == "projects" and args.get("name"):
             self.projects.add(str(args["name"]))
+        from . import prj_policy                            # the project's own way: local only, never published
+        if refused := prj_policy.guard(self, plugin, tool, args, emit):
+            return refused
         if self.host.get(plugin).manifest.get("private") and not self.local_only:
             # health data never reaches a cloud model (owner, 2026-10-05) — but the question is answered (2026-10-06:
             # "a che ora ho il medico?" was refused): from here the run goes on with the local model only
@@ -385,6 +388,8 @@ class Agent(AgentMakers, AgentReport):
             outer(event, payload)
         specs, index = self._catalog(goal + "\n" + context)
         emit("agent.start", {"goal": goal, "tools": len(specs)})
+        from . import prj_policy
+        prj_policy.at_start(self, goal, emit)
         messages = [{"role": "system", "content": ""},
                     {"role": "user", "content": f"NOW: {sns_clock.now_text(self.cfg)}.\n\nGOAL: {goal}"
                                                 + (f"\n\nCONTEXT:\n{context}" if context else "")}]
@@ -461,7 +466,7 @@ class Agent(AgentMakers, AgentReport):
                 self.effects[name] = index[name][2] if name in index else ""
                 emit("tool.result", {"name": name, "ok": not result.startswith(("ERROR", "REFUSED")),
                                      "text": result[:1500]})
-                messages.append({"role": "tool", "content": result[:6000]})
+                messages.append({"role": "tool", "content": agt_tools.clip(result)})
             if summary is not None:
                 break
         if summary is None:

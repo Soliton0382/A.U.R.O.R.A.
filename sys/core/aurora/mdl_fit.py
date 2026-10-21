@@ -23,7 +23,8 @@ def window(cfg) -> int:
 
 
 def used(messages: list[dict]) -> int:
-    return sum(len(str(m.get("content") or "")) for m in messages) // 3      # a safe estimate: chars / 3
+    # a safe estimate: chars / 2.5 — chars / 3 let 42,540 real tokens through as fitting (C380: code, JSON, Italian)
+    return sum(len(str(m.get("content") or "")) for m in messages) * 2 // 5
 
 
 def fit(messages: list[dict], max_tokens: int, ctx: int) -> tuple[list[dict], int]:
@@ -42,4 +43,9 @@ def fit(messages: list[dict], max_tokens: int, ctx: int) -> tuple[list[dict], in
         del out[2]
         while len(out) > 2 + KEEP_LAST and out[2]["role"] == "tool":    # no result without the call that asked it
             del out[2]
+    for m in out[2:]:                      # C380: the last turns alone too long (long file reads): their results too
+        if used(out) + want <= ctx:
+            break
+        if m["role"] == "tool" and len(str(m["content"])) > 5 * SHORT:
+            m["content"] = str(m["content"])[:5 * SHORT] + "\n[shortened to fit the local model's window]"
     return out, max_tokens

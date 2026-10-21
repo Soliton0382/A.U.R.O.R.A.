@@ -64,3 +64,17 @@ def more(deferred: list, name: str, index: dict, sep: str) -> str:
     index.update(idx)
     return (f"The tools of {p.name}, callable now:\n<tools>\n"
             + "\n".join(json.dumps(s, ensure_ascii=False) for s in specs) + "\n</tools>")
+
+
+RESULT_CHARS = 12000
+
+
+def clip(result: str) -> str:
+    """A tool's result as the agent reads it: at most RESULT_CHARS, and a longer one says so (C381: every result was
+    cut at 6,000 characters without a word — a patent page asked with max_chars 60,000 ended at its «Definitions» and
+    the agent believed it had read it all)."""
+    over = len(result) - RESULT_CHARS
+    if over <= 0:
+        return result
+    return (result[:RESULT_CHARS] + f"\n[cut here: {over} more characters not shown. Read the rest in parts — the "
+            "tool's offset, a smaller max_chars, or save it to a project file and read that by offset]")
