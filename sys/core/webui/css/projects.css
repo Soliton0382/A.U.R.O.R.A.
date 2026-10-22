@@ -66,3 +66,5 @@
 .prj-pdf-page { width: 100%; max-width: 900px; background: #fff; border: 1px solid var(--line); }
 .prj-docs-ticks { display: flex; flex-direction: column; gap: .3rem; margin: .5rem 0; }
 .prj-docs-file { display: block; margin: .2rem 0; text-align: left; }
+/* 🖥️ the conductor's live console (N39): the agent's steps as they happen */
+.prj-console { height: 40vh; white-space: pre-wrap; background: #0d1117; color: #c9d1d9; font-family: ui-monospace, monospace; font-size: .8rem; }

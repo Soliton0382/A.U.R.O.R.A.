@@ -161,8 +161,8 @@ class Agent(AgentMakers, AgentReport):
                 specs.append({"type": "function", "function": {
                     "name": name, "description": f"[{t['effect']}] {t['description']}",
                     "parameters": t["input_schema"] or {"type": "object", "properties": {}}}})
-        from . import hom_auto, hom_scenes
-        for t in (LOOP_TOOLS + ([hom_scenes.TOOL, hom_auto.TOOL] if any(v[0] == "homeassistant" for v in index.values()) else [])
+        from . import agt_vault, hom_auto, hom_scenes
+        for t in (LOOP_TOOLS + [agt_vault.TOOL] + ([hom_scenes.TOOL, hom_auto.TOOL] if any(v[0] == "homeassistant" for v in index.values()) else [])
                   + ([agt_tools.MORE] if self.deferred else [])):
             specs.append({"type": "function", "function": {"name": t["name"], "description": t["description"],
                                                            "parameters": t["input_schema"]}})
@@ -259,6 +259,9 @@ class Agent(AgentMakers, AgentReport):
             return self._artifact(args, emit, run_id)
         if name == "create_picture":
             return self._picture(args, emit, run_id)
+        if name == "search_vault":                           # what the vault knows that the model does not
+            from . import agt_vault
+            return agt_vault.run(self.p, args, emit)
         if name == "run_in_project":                         # Aurora's own code, in a cage without network (prj_run)
             from . import prj_run
             try:
