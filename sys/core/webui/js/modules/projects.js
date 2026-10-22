@@ -3,19 +3,13 @@
 // Projects: the local ones (folder tree, files, README, history, sandboxed page preview), the owner's GitHub
 // repositories (stars, forks, issues; clone to browse them), a new project, and "ask Aurora" about one.
 // Reading only here; writing goes through Aurora's "projects" plugin and the owner's approvals.
-import { policyBox, policyFields } from "./project_policy.js";
+import { policyFields } from "./project_policy.js";
 import { call } from "../api.js";
 import { bus } from "../bus.js";
 import { clock, el, useCss } from "../dom.js";
 import { apply, t } from "../i18n.js";
-import { renderMarkdown } from "../md.js";
-import { docsView, pdfPages } from "./project_docs.js";
-import { planView } from "./project_plan.js";
-import { conductView } from "./project_conduct.js";
-import { terminalView } from "./project_term.js";
+import { openProject } from "./project_page.js";
 import { pluginSlot } from "./plugin_slot.js";
-
-const kb = (n) => (n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1048576).toFixed(1)} MB`);
 
 export default {
   id: "projects",
@@ -201,150 +195,10 @@ export default {
     if (reload) this.refresh();          // what changed inside (a save, Aurora's work) shown on the cards at once
   },
 
-  async open(p) {
-    const name = p.name;
+  // one project's page, in sections the Models page's way (project_page.js)
+  open(p) {
     this.list.classList.add("hidden");
     this.detail.classList.remove("hidden");
-    const d = this.detail;
-    d.innerHTML = `
-      <div class="ev prj-bar"><button class="back"></button><h3></h3>
-        <button class="preview"></button><button class="term"></button><button class="history"></button><button class="reports"></button><button class="conduct"></button><button class="plan"></button><button class="docs"></button></div>
-      <form class="prj-ask"><input data-i18n-placeholder="prj.ask_ph"><button type="submit" data-i18n="prj.ask"></button></form>
-      <div class="prj-body"><div class="prj-tree"></div><div class="prj-view"></div></div>`;
-    apply(d);
-    d.querySelector("h3").textContent = `📁 ${name}`;
-    policyBox(name).then((b) => d.querySelector("h3").after(b));
-    // 💾 what «saved» means: the project's history (git commits) — said here, and done with one click
-    const saveBox = el("span", "prj-save");
-    const drawSave = (changes) => {
-      const st = el("span", changes ? "prj-state warn" : "prj-state ok", changes ? t("prj.changes", { n: changes }) : t("prj.clean"));
-      st.title = t(changes ? "prj.changes_hint" : "prj.clean_hint");
-      const b = el("button", changes ? "approve" : "", t("prj.save"));
-      b.title = t("prj.save_hint");
-      b.disabled = !changes;
-      b.addEventListener("click", async () => {
-        b.disabled = true;
-        try {
-          await call(`/v1/aurora/projects/${name}/save`, { method: "POST", body: JSON.stringify({ message: prompt(t("prj.save_q"), "") || "" }) });
-          drawSave(0);
-        } catch (e) { b.textContent = t("ev.error", { m: e.message }); }
-      });
-      saveBox.replaceChildren(st, b);
-    };
-    drawSave(p.changes || 0);
-    d.querySelector(".prj-bar").after(saveBox);
-    d.querySelector(".back").textContent = t("prj.back");
-    d.querySelector(".back").addEventListener("click", () => this.back());
-    const view = d.querySelector(".prj-view");
-    const treeBox = d.querySelector(".prj-tree");
-    const preview = d.querySelector(".preview");
-    preview.textContent = t("prj.preview");
-    preview.addEventListener("click", async () => {
-      try {
-        const { url } = await call(`/v1/aurora/projects/${name}/preview`, { method: "POST", body: "{}" });
-        const f = el("iframe", "prj-frame");
-        f.setAttribute("sandbox", "allow-scripts allow-forms allow-popups");   // opaque origin: no cookie, no API
-        f.setAttribute("referrerpolicy", "no-referrer");
-        f.src = url;
-        view.replaceChildren(el("p", "muted", t("prj.preview_note")), f);
-      } catch (e) { view.replaceChildren(el("p", "error", t("ev.error", { m: e.message }))); }
-    });
-    // 🖥️ the project run in its cage (roadmap 75): a terminal, no network, only this folder
-    const term = d.querySelector(".term");
-    term.textContent = t("prj.term");
-    term.addEventListener("click", () => view.replaceChildren(terminalView(name)));
-    // 🧑‍🔬 the conductor: plain words → a phase's goal → the agent → a reply with the choices (ROADMAP N39)
-    const conduct = d.querySelector(".conduct");
-    conduct.textContent = t("conduct.button");
-    conduct.addEventListener("click", () => view.replaceChildren(conductView(name)));
-    // 🏗️ the project carried by Aurora herself, step by step (ROADMAP 97)
-    const plan = d.querySelector(".plan");
-    plan.textContent = t("plan.button");
-    plan.addEventListener("click", () => view.replaceChildren(planView(name)));
-    // 📑 the documentation it must be ready for: blueprints, patents (ROADMAP 100), with «Procedi»
-    const docs = d.querySelector(".docs");
-    docs.textContent = t("docs.button");
-    docs.addEventListener("click", () => view.replaceChildren(docsView(name, (path) => show(path))));
-    // Aurora's reports on this project (owner, 2026-10-05): her considerations, beside the alerts and the chat
-    const reportsBtn = d.querySelector(".reports");
-    reportsBtn.textContent = t("prj.reports");
-    reportsBtn.addEventListener("click", async () => {
-      let items = [];
-      try { items = await call(`/v1/aurora/projects/${name}/reports`); } catch (e) { view.replaceChildren(el("p", "error", t("ev.error", { m: e.message }))); return; }
-      view.replaceChildren(el("h4", "", t("prj.reports")), ...(items.length ? items.map((r, i) => {
-        const box = el("details", "report");
-        box.open = i === 0;
-        box.append(el("summary", "", `${clock(r.at)} · ${t("prj.report_meta", { steps: r.steps ?? "?", min: Math.round((r.seconds || 0) / 60) })}`),
-          renderMarkdown(r.summary || ""));
-        return box;
-      }) : [el("p", "muted", t("prj.no_reports"))]));
-    });
-    const hist = d.querySelector(".history");
-    hist.textContent = t("prj.history");
-    hist.addEventListener("click", async () => {
-      const { commits } = await call(`/v1/aurora/projects/${name}/log`);
-      view.replaceChildren(el("h4", "", t("prj.history")), ...(commits.length ? commits.map((c) => {
-        const r = el("div", "ev");
-        r.append(el("code", "", c.hash), el("span", "muted", clock(c.date)), el("span", "", c.subject), el("span", "muted", c.author));
-        return r;
-      }) : [el("p", "muted", t("prj.no_history"))]));
-    });
-    d.querySelector(".prj-ask").addEventListener("submit", (ev) => {
-      ev.preventDefault();
-      const q = ev.target.querySelector("input").value.trim();
-      if (q) bus.emit("ask", { text: t("prj.ask_text", { name, base: this.base, q }) });
-    });
-    const show = async (path) => {
-      view.replaceChildren(el("p", "muted", t("prj.loading")));
-      try {
-        const f = await call(`/v1/aurora/projects/${name}/file?path=${encodeURIComponent(path)}`);
-        const head = el("div", "muted", `${f.path} · ${kb(f.size)}${f.truncated ? ` · ${t("prj.truncated")}` : ""}`);
-        if (f.image) {
-          const img = el("img", "prj-img"); img.src = `data:${f.mime};base64,${f.image}`; img.alt = f.path;
-          view.replaceChildren(head, img);
-        } else if (f.pdf) {                         // its pages, as pictures: the drawings and the filings seen here
-          const pages = el("div", "prj-pdf");
-          view.replaceChildren(head, pages);
-          await pdfPages(name, f.path, f.pages, pages);
-        } else if (f.binary) view.replaceChildren(head, el("p", "muted", t("prj.binary")));
-        else if (/\.(md|markdown)$/i.test(f.path)) view.replaceChildren(head, renderMarkdown(f.text));
-        else view.replaceChildren(head, el("pre", "prj-code", f.text));
-      } catch (e) { view.replaceChildren(el("p", "error", t("ev.error", { m: e.message }))); }
-    };
-    try {
-      const { files } = await call(`/v1/aurora/projects/${name}/tree`);
-      // folders open and close (owner, 2026-10-21: «l'alberatura… si possa collassare ed espandere»): closed at first,
-      // the open ones remembered on this device for this project
-      const key = `aurora.prj.open.${name}`;
-      let open;
-      try { open = new Set(JSON.parse(localStorage.getItem(key) || "[]")); } catch { open = new Set(); }
-      const keep = () => { try { localStorage.setItem(key, JSON.stringify([...open])); } catch { /* not kept */ } };
-      const nodes = files.map((f) => {
-        const parts = f.path.split("/");
-        const b = el("div", `prj-node${f.dir ? " dir" : ""}`);
-        b.style.paddingLeft = `${(parts.length - 1) * 0.9}rem`;
-        b.dataset.path = f.path;
-        b.dataset.parents = JSON.stringify(parts.slice(0, -1).map((_, i) => parts.slice(0, i + 1).join("/")));
-        if (f.dir) b.addEventListener("click", () => { open.has(f.path) ? open.delete(f.path) : open.add(f.path); keep(); draw(); });
-        else { b.title = kb(f.size); b.addEventListener("click", () => show(f.path)); }
-        return [b, f];
-      });
-      const draw = () => {
-        for (const [b, f] of nodes) {
-          b.hidden = JSON.parse(b.dataset.parents).some((p) => !open.has(p));
-          b.textContent = `${f.dir ? (open.has(f.path) ? "▾ 📂" : "▸ 📁") : "📄"} ${f.path.split("/").pop()}`;
-        }
-      };
-      const all = el("div", "prj-tree-tools");
-      const openAll = el("button", "", t("prj.tree_open"));
-      const closeAll = el("button", "", t("prj.tree_close"));
-      openAll.addEventListener("click", () => { for (const [, f] of nodes) if (f.dir) open.add(f.path); keep(); draw(); });
-      closeAll.addEventListener("click", () => { open.clear(); keep(); draw(); });
-      all.append(openAll, closeAll);
-      draw();
-      treeBox.replaceChildren(all, ...nodes.map(([b]) => b));
-      const readme = files.find((f) => /^readme(\.md)?$/i.test(f.path));
-      if (readme) show(readme.path); else view.replaceChildren(el("p", "muted", t("prj.pick")));
-    } catch (e) { treeBox.replaceChildren(el("p", "error", t("ev.error", { m: e.message }))); }
+    openProject(this.detail, p, { base: this.base, back: () => this.back() });
   },
 };

@@ -6,6 +6,8 @@ Numbered, never deleted: a fixed issue moves to "Closed" with the proof.
 
 | # | issue | impact | plan |
 |---|---|---|---|
+| C384 | Found reading a project's audit, 22 Oct: the run's summary «file scritti» counts only the files written by the agent's own write tool; files written by commands it ran in the project (run_in_project) are missing | the owner reads fewer changes than were made | count the project's changed files from the tree before and after the phase (git status), not from the tool calls |
+| C385 | Seen on a project's phase, 22 Oct (to be measured again after C380): when the cloud model's session ends mid-run, the fallback to the local model can still fail on context size instead of stopping with a clear word | a phase dies with a technical error | when the cloud is out mid-run, stop the phase as «cloud esaurito» (🔁 later) unless the remaining context fits the local slot |
 
 ## Closed
 

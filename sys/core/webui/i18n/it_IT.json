@@ -2943,5 +2943,11 @@
   "prj.gh_local": "💻 copia locale: clicca per aprirla",
   "prj.gh_only": "solo su GitHub",
   "prj.gh_perm": "GitHub dà visite e clonazioni solo a un token con il permesso «Administration: Read» sul repository: aggiungilo al token (GitHub → Settings → Developer settings → token)",
-  "prj.gh_perm_short": "serve il permesso Administration"
+  "prj.gh_perm_short": "serve il permesso Administration",
+  "prj.tab_files": "📄 File",
+  "prj.print": "🖨️ Stampa 3D",
+  "prj.print_hint": "I modelli disegnati in questo progetto (cartella cad/), pronti per la stampante 3D: un file STL per parte, in millimetri, e un LEGGIMI con l'elenco e consigli generici di stampa.",
+  "prj.print_none": "Nessun modello da stampare: chiedi ad Aurora di disegnarlo (plugin CAD), poi torna qui.",
+  "prj.print_parts": "{n} parti",
+  "prj.print_zip": "⬇️ Scarica per la stampante 3D"
 }

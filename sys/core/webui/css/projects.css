@@ -71,3 +71,15 @@
 .conduct-text { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 50vh; }
 .conduct-goal > summary { cursor: pointer; overflow-wrap: anywhere; }
 .prj-console { display: block; width: 100%; box-sizing: border-box; overflow-wrap: anywhere; height: 40vh; white-space: pre-wrap; background: #0d1117; color: #c9d1d9; font-family: ui-monospace, monospace; font-size: .8rem; }
+/* 📁 a project's page in sections, the Models page's way (project_page.js, owner, 23 Oct) */
+.prj-sections { margin-top: .2rem; }
+.prj-sections .cat-chip { font-size: .86rem; padding: .28rem .75rem; }
+.prj-section { min-width: 0; overflow-wrap: anywhere; }
+.prj-print-card { display: flex; flex-direction: column; gap: .5rem; }
+.prj-print-parts { margin: 0; padding-left: 1.1rem; font-size: .86rem; }
+.prj-print-card .button { align-self: flex-start; }
+@media (max-width: 760px) {
+  .prj-sections .cat-chip { font-size: .8rem; padding: .25rem .6rem; }
+  .prj-ask { flex-wrap: wrap; }
+  .prj-ask input { flex: 1 1 12rem; min-width: 0; }
+}

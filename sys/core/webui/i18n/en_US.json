@@ -2943,5 +2943,11 @@
   "prj.gh_local": "💻 local copy: click to open it",
   "prj.gh_only": "on GitHub only",
   "prj.gh_perm": "GitHub gives views and clones only to a token with «Administration: Read» on the repository: add it to the token (GitHub → Settings → Developer settings → token)",
-  "prj.gh_perm_short": "needs the Administration permission"
+  "prj.gh_perm_short": "needs the Administration permission",
+  "prj.tab_files": "📄 Files",
+  "prj.print": "🖨️ 3D print",
+  "prj.print_hint": "The models drawn in this project (cad/ folder), ready for a 3D printer: one STL file per part, in millimetres, and a README with the list and generic printing advice.",
+  "prj.print_none": "No model to print: ask Aurora to draw it (CAD plugin), then come back here.",
+  "prj.print_parts": "{n} parts",
+  "prj.print_zip": "⬇️ Download for the 3D printer"
 }
