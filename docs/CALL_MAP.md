@@ -281,15 +281,16 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `prj_browse` | `api.projects`, `api.projects_plan` | 0 |
 | `prj_conduct` | `api.projects_conduct` | 1 |
 | `prj_cover` | `api.projects_view` | 1 |
+| `prj_cover_cad` | `prj_cover` | 0 |
 | `prj_docs` | `api.projects_plan` | 1 |
 | `prj_plan` | `api.projects_plan` | 1 |
 | `prj_policy` | `agt_loop`, `api.projects`, `prj_browse`, `prj_conduct`, `prj_cover`, `prj_print`, `prj_sim` | 2 |
-| `prj_print` | `api.projects_print`, `prj_view` | 1 |
+| `prj_print` | `api.projects_print`, `prj_cover`, `prj_view` | 1 |
 | `prj_reports` | `agt_loop`, `api.projects` | 1 |
 | `prj_run` | `agt_loop`, `api.projects_plan`, `kno_grid`, `prj_term`, `script/bench_humaneval.py` | 3 |
 | `prj_sim` | `api.projects_view` | 1 |
 | `prj_term` | `api.projects` | 1 |
-| `prj_view` | `api.projects_view` | 1 |
+| `prj_view` | `api.projects_view`, `prj_cover` | 1 |
 | `sec_audit` | `api.security_ciso`, `sys/plugins/security/server.py` | 3 |
 | `sec_baseline` | `script/svc_rem.py`, `script/svc_sentinel.py` | 1 |
 | `sec_defence` | `api.incidents`, `api.security`, `kno_morning`, `net_cfwaf`, `sec_hostfw`, `sys_autonomy` | 3 |

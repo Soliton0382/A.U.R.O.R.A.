@@ -132,3 +132,5 @@
 .prj-card .prj-cover { display: block; width: calc(100% + 2rem); max-width: none; aspect-ratio: 16 / 9; object-fit: cover;
   margin: -.9rem -1rem .1rem;
   border-radius: var(--radius) var(--radius) 0 0; background: #0d1117; }
+.prj-card .prj-cover-gh { display: flex; align-items: center; justify-content: center; font-size: 1.4rem; color: #c9d1d9;
+  background: linear-gradient(135deg, #161b22, #0d1117 60%, #1f2a44); }

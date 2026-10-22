@@ -74,6 +74,9 @@ a.chip { color: inherit; text-decoration: none; }
      rispetto al field della chat») */
   .ask .send { order: 1; align-self: stretch; min-width: 4.5rem; }
   .ask .icon { min-width: 2.75rem; min-height: 2.4rem; }
+  /* the anonymous chat has one button only: 📎, the field and «Invia» on one row, one height (owner, 23 Oct) */
+  .conversation.anon .ask { flex-wrap: nowrap; align-items: stretch; }
+  .conversation.anon .ask textarea { flex: 1 1 auto; }
 }
 
 /* 🎬 a video in progress over the conversation (chat.js) */

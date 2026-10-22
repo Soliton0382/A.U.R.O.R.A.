@@ -53,3 +53,15 @@ def test_a_project_without_code_or_picture_has_none_and_names_stay_inside(cfg):
     for bad in ("../x", "manca"):
         with pytest.raises(ValueError):
             prj_cover.kind(cfg, bad)
+
+
+def test_a_cad_model_is_drawn_when_there_is_no_picture(cfg, project):
+    m = cfg.path("AURORA_PROJECTS_DIR") / project / "cad" / "base"
+    m.mkdir(parents=True)
+    (m / "parts.json").write_text('{"parts": [{"sign": 10, "name": "piastra", "material": "copper"}]}', encoding="utf-8")
+    (m / "part_0.stl").write_text("solid a\nfacet normal 0 0 1\nouter loop\nvertex 0 0 0\nvertex 10 0 0\nvertex 0 10 5\n"
+                                  "endloop\nendfacet\nendsolid a\n", encoding="utf-8")
+    assert prj_cover.kind(cfg, project) == "cad"                         # before the code's picture
+    data, mime = prj_cover.get(cfg, project)
+    img = Image.open(io.BytesIO(data))
+    assert mime == "image/jpeg" and img.size == (960, 540) and len(set(img.convert("L").getdata())) > 3

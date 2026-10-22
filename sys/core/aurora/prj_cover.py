@@ -5,8 +5,9 @@ immagini proof of concept o a schermate di codice se si tratta di algoritmi»).
 
 In this order: the picture set from the page (the realistic view sets its own the first time it is drawn, or the
 owner's «use as cover»), kept with the user's state, not in the project's history; a cover the project has itself
-(cover.png/jpg at its root or in docs/); else a picture of its main source file, coloured as in an editor, made here
-and kept until that file changes. None of these: the card keeps its emoji.
+(cover.png/jpg at its root or in docs/); else its latest CAD model drawn here (prj_cover_cad); else a picture of its
+main source file, coloured as in an editor. The made ones are kept until their source changes. None of these: the
+card keeps its emoji.
 """
 from __future__ import annotations
 
@@ -122,13 +123,36 @@ def code_card(f: Path, label: str) -> bytes:
 
 
 def kind(cfg: sys_config.Config, project: str) -> str:
-    """set (from the page), repo (the project's own), code (made from its source) or none."""
+    """set (from the page), repo (the project's own), cad (its model drawn here), code (from its source) or none."""
     root = _root(cfg, project)
     if (_state(cfg, project) / "cover.jpg").is_file():
         return "set"
     if _repo_cover(root):
         return "repo"
+    if _model(root):
+        return "cad"
     return "code" if main_file(root) else "none"
+
+
+def _model(root: Path) -> Path | None:
+    """The CAD model drawn last (its parts.json the newest) that has at least one part's STL."""
+    found = [d for d in (root / "cad").glob("*") if (d / "parts.json").is_file() and (d / "part_0.stl").is_file()] \
+        if (root / "cad").is_dir() else []
+    return max(found, key=lambda d: (d / "parts.json").stat().st_mtime) if found else None
+
+
+def _made(cfg: sys_config.Config, project: str, name: str, key: str, make) -> bytes | None:
+    """A picture made here, kept with its key until the key changes."""
+    cache = _state(cfg, project) / f"{name}.jpg"
+    stamp = cache.with_suffix(".key")
+    if cache.is_file() and stamp.is_file() and stamp.read_text(encoding="utf-8") == key:
+        return cache.read_bytes()
+    data = make()
+    if data:
+        cache.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        cache.write_bytes(data)
+        stamp.write_text(key, encoding="utf-8")
+    return data
 
 
 def _repo_cover(root: Path) -> Path | None:
@@ -148,18 +172,21 @@ def get(cfg: sys_config.Config, project: str) -> tuple[bytes, str] | None:
     own = _repo_cover(root)
     if own:
         return own.read_bytes(), {"png": "image/png", "webp": "image/webp"}.get(own.suffix[1:].lower(), "image/jpeg")
+    m = _model(root)
+    if m is not None:
+        from . import prj_cover_cad, prj_print, prj_view
+        def draw():
+            listed = prj_print._listed(m)
+            parts = [{**p, "material": prj_view.material(p)[0]} for p in listed]
+            return prj_cover_cad.render(m, parts, prj_view.MATERIALS)
+        data = _made(cfg, project, "cad", f"{m.name}:{(m / 'parts.json').stat().st_mtime_ns}", draw)
+        if data:
+            return data, "image/jpeg"
     f = main_file(root)
     if f is None:
         return None
-    cache = _state(cfg, project) / "code.jpg"
-    key = f"{f.relative_to(root)}:{f.stat().st_mtime_ns}"
-    stamp = cache.with_suffix(".key")
-    if cache.is_file() and stamp.is_file() and stamp.read_text(encoding="utf-8") == key:
-        return cache.read_bytes(), "image/jpeg"
-    data = code_card(f, str(f.relative_to(root)))
-    cache.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    cache.write_bytes(data)
-    stamp.write_text(key, encoding="utf-8")
+    data = _made(cfg, project, "code", f"{f.relative_to(root)}:{f.stat().st_mtime_ns}",
+                 lambda: code_card(f, str(f.relative_to(root))))
     return data, "image/jpeg"
 
 

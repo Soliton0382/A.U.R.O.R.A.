@@ -221,7 +221,7 @@ function modelView(project, model, materials, coverKind) {
     }
     state.remove();
     size();
-    if (coverKind === "none" || coverKind === "code") {
+    if (["none", "code", "cad"].includes(coverKind)) {
       requestAnimationFrame(() => requestAnimationFrame(() => toCover().catch(() => { /* the card keeps what it had */ })));
     }
   })();

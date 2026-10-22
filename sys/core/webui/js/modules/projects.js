@@ -141,6 +141,15 @@ export default {
     head.append(el("strong", "", `🐙 ${r.name}`));
     if (r.private) head.append(el("span", "mch-tag", "🔒"));
     if (r.archived) head.append(el("span", "mch-tag", "📦"));
+    // 🖼️ the local copy's cover when there is one; else a band with the repository's language (nothing is loaded
+    // from GitHub: the page's pictures come from Aurora only)
+    const band = el("div", "prj-cover prj-cover-gh", `🐙 ${r.language || "GitHub"}`);
+    if (mine) {
+      const img = el("img", "prj-cover");
+      Object.assign(img, { loading: "lazy", alt: "", src: `/v1/aurora/projects/${local}/cover` });
+      img.addEventListener("error", () => img.replaceWith(band));
+      c.append(img);
+    } else c.append(band);
     c.append(head, el("div", "mch-line prj-what", r.description || t("prj.no_readme")));
     const stats = el("div", "mch-stats");
     const stat = (label, value, small) => {
