@@ -6,6 +6,8 @@ Numbered, never deleted: a fixed issue moves to "Closed" with the proof.
 
 | # | issue | impact | plan |
 |---|---|---|---|
+| C390 | Found reading the coredumps after M253, 23 Oct: aurora-llm crashed twice at night (18 and 23 Oct), a CUDA error inside cuBLAS («an internal operation failed», ggml_cuda_mul_mat_cublas_impl), minutes after the dream's planned swap; GPU 0 has 0.6–0.7 GB free with the reasoner loaded; systemd restarted it in 5 s (the night's work lost its step) | the night's study or dream run fails; each crash writes a 0.2–1.3 GB coredump | not proved: memory left for cuBLAS's workspace on GPU 0. To measure: free memory on GPU 0 through a night (nvidia-smi each minute) and the prompt's size at the crash; then, if confirmed, about 1 GB more room on GPU 0 (the tensor split or the context), measured against the speed it costs |
+| C389 | Found by the soak's measure (M253), 23 Oct: aurora-api's memory grows between restarts to 6–15 GB (12, 16, 18 and 21–22 Oct) and falls after each; the snapshot counted the process with its files' cache, so a leak could not be told from the vault's cache | if a leak, the API slows or is stopped by the kernel after days | the daily snapshot now writes each service's anon and file memory (sys_soak, kernel's memory.stat); read a week of it: anon growing = a leak to find (tracemalloc on the API), file only = cache, closed as no bug |
 
 ## Closed
 

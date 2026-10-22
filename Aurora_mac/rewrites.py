@@ -19,14 +19,15 @@ SERVICES = [
 
     ("sys/core/aurora/sys_soak.py",
      '''    try:
-        out = subprocess.run(["systemctl", "show", name, "-p", "MemoryCurrent", "-p", "NRestarts", "-p", "ActiveState"],
-                             capture_output=True, text=True, timeout=10).stdout
+        out = subprocess.run(["systemctl", "show", name, "-p", "MemoryCurrent", "-p", "NRestarts", "-p", "ActiveState",
+                              "-p", "ControlGroup"], capture_output=True, text=True, timeout=10).stdout
     except (OSError, subprocess.SubprocessError):
         return {}
     v = dict(line.split("=", 1) for line in out.splitlines() if "=" in line)
     mem = v.get("MemoryCurrent", "")
     return {"mem_mib": round(int(mem) / 2**20, 1) if mem.isdigit() else None,
-            "restarts": int(v["NRestarts"]) if v.get("NRestarts", "").isdigit() else None, "state": v.get("ActiveState")}''',
+            "restarts": int(v["NRestarts"]) if v.get("NRestarts", "").isdigit() else None, "state": v.get("ActiveState"),
+            **_split(v.get("ControlGroup", ""))}''',
      f'''    {P}
     v = sys_platform.current().service_info(name)
     return {{"mem_mib": v["mem_mib"], "restarts": v["restarts"], "state": v["state"]}}''',

@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2026 A.U.R.O.R.A. Project
-"""🧑‍🔬 The conductor of a project (prj_conduct, ROADMAP N39): the owner's words → a phase's goal → the agent → a reply."""
+"""🧑‍🔬 The conductor of a project (prj_conduct, ROADMAP N39): the owner's words → a phase's goal → the agent → a
+reply; and 💬 the conversation with it (prj_talk)."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -92,3 +93,35 @@ def conduct_drop(name: str, entry: str) -> dict:
     if prj_conduct.update(cfg, name, entry, status="dropped") is None:
         raise HTTPException(status_code=404, detail="no such entry")
     return {"dropped": entry}
+
+
+# ---- 💬 the conversation with the conductor (prj_talk, N39 step 2) ------------------------------------------------
+@router.get("/v1/aurora/projects/{name}/talk", dependencies=[Depends(auth)])
+def talk_list(name: str) -> dict:
+    from aurora import prj_talk
+    _check(name)
+    kind, _ = prj_talk.backend(cfg, name, pipeline())
+    s = prj_talk.session(cfg, name)
+    return {"turns": prj_talk.turns(cfg, name), "backend": kind, "session": bool(s.get("session")),
+            "since": s.get("since")}
+
+
+@router.post("/v1/aurora/projects/{name}/talk", dependencies=[Depends(auth)])
+async def talk_say(name: str, request: Request) -> dict:
+    """The owner's words → the conductor's answer (CLI session resumed, or the local model / an API, masked)."""
+    from aurora import prj_talk
+    _check(name)
+    words = str((await request.json()).get("text", "")).strip()
+    if not words:
+        raise HTTPException(status_code=400, detail="empty request")
+    lang = "it" if str(cfg["AURORA_LANG_DEFAULT"]).startswith("it") else "en"
+    out = await in_thread(prj_talk.say, cfg, name, words, pipeline(), lang)
+    log.info("audit: conductor talk in project %s (%s)", name, out.get("backend"))
+    return out
+
+
+@router.post("/v1/aurora/projects/{name}/talk/new", dependencies=[Depends(auth)])
+def talk_new(name: str) -> dict:
+    from aurora import prj_talk
+    _check(name)
+    return prj_talk.new(cfg, name)

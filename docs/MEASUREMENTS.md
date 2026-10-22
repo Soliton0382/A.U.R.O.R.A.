@@ -4107,3 +4107,77 @@ weaker, fixed local model) is not borne out: the lessons stay off; «sessions wh
 are not worth weighing on this evidence. Aside: Aurora local seed 8 on the nine sets went from 74 (14 Oct) to 81
 today, with the same model — the work of 15–22 Oct, or noise (+7 is above it). Not measured: lessons written from
 the local model's own mistakes; another seed; a LoRA (training, not lessons).
+
+## M253 — the soak over 18 days (5–22 October 2026; ROADMAP 6)
+
+aurora-rem's own snapshots (`sys_soak`, <AURORA_STATUS_DIR>/soak.jsonl): 40 lines over 18 days (more than one on days
+with a restart of aurora-rem). Per service, the cgroup's memory (systemd MemoryCurrent: the process **and its file
+cache**), min · median · max, and the medians of the first (5–9 Oct) and the last week (16–22 Oct):
+
+| service | min | median | max | median 5–9 Oct | median 16–22 Oct |
+|---|---|---|---|---|---|
+| aurora-api | 137 MiB | 494 MiB | 15,222 MiB | 387 MiB | 2,107 MiB |
+| aurora-llm | 2,685 | 17,053 | 31,772 | 22,894 | 14,593 |
+| aurora-models | 364 | 3,347 | 7,537 | 2,593 | 3,347 |
+| aurora-rem | 38 | 99 | 180 | 90 | 117 |
+| aurora-harvester | 54 | 212 | 1,147 | 209 | 330 |
+| aurora-sentinel | 23 | 44 | 101 | 44 | 53 |
+| aurora-https | 19 | 61 | 75 | 58 | 61 |
+
+Every service active in all 40 lines; systemd's automatic restarts 0 for all seven (the owner's and Claude's restarts
+for new code are not counted there, and there were many). Logs 102.4 → 329.6 MB (+13.4 MB a day; rotated and
+compressed). GPU swaps in the last 24 h: 1–7, median 4. Failed routines in the last 24 h: 0–7, median 1 (peaks 17 Oct
+5, 19 Oct 7). Free disk 411.4 → 236.8 GB (−175 GB in 17 days), in four steps: 5 Oct −34, 9 Oct −39, 10 Oct −55,
+11 Oct −37, then −22 in 11 days; the 10 Oct step matches the local model's folder (sys/models/llm, changed that day;
+sys/models is 126 GB today); the others not traced. Read: **no crash and no restart by itself in 18 days**; the small
+services flat; aurora-llm's size follows the model and its context, not time; **aurora-api not settled**: between
+restarts it reaches 6–15 GB (12, 16, 18, 21–22 Oct) and falls back after each — the snapshot counts the file cache with
+the process, so a leak and the vault's files read into cache cannot be told apart here. Disk is the one real trend,
+and it is downloads, not growth of Aurora's own data (logs +0.23 GB, status 0.55 GB). Not measured: the API's own
+memory (anon RSS, memory.stat) — the snapshot should write it; a week without new code.
+
+**Correction (same day, law 4):** «no crash and no restart by itself» is wrong. systemd's NRestarts starts again at
+0 with every restart made by hand, and a daily line cannot see what happened between two of them. The coredumps
+(coredumpctl) and the reasoner's log show **two crashes of aurora-llm**, restarted by systemd 5 s later: 18 Oct
+and 23 Oct, both in the night's work right after the dream's planned swap — a CUDA error in cuBLAS
+(«an internal operation failed», ggml_cuda_mul_mat_cublas_impl) with 0.6–0.7 GB free on GPU 0 at the swap. Opened as
+C390. The disk's steps, traced: the local model Qwen3-Next 80B (46 GB, 10 Oct), two test installs with their own
+copies of the models (Aurora_cleantest 5 Oct, aurora-cloud-test 8 Oct), three installer images (6 GB), a 1.3 GB
+coredump (23 Oct); the pip caches (44 GB) are older than 5 Oct (+0.4 GB since). The snapshot now writes each
+service's anon and file memory (sys_soak, from the kernel's memory.stat; C389).
+
+## M254 — the forge over three weeks (5–21 October 2026; ROADMAP «forge over weeks»)
+
+`agt_forge.requests` of the owner: 13 requests in three weeks (W41: 7, W42: 4, W43: 2). 11 built and installed on the
+first attempt, 1 declined by the forge's own check (14 Oct, a patent writer that needed the network in its sandbox: the
+patent plugin was then made by hand), 1 withdrawn (10 Oct, a weather tool asked by a measurement script whose allow
+list left the weather plugin out). Building took 0.7–2.1 minutes (median 1.0), started within the same minute of the
+request. Of the 11 installed, 7 are still there today (pyenv, logs, cloudflare, runs, routines, cloud, vista) and 4
+were removed by the owner (email_diag, xgaudit, routine_status — a twin of routines made the same day —, userpdfs).
+In the routines today: runs (the morning science post) and cloud (the 12-hourly cloud costs); pyenv lost its only
+routine on 23 Oct (removed with the owner's ok). The requests slowed from 7 a week to 2: the gaps she meets are
+fewer. Read: the forge builds what is asked quickly and at the first try; about a third of what it built was not
+kept (two pairs of near-twins on the same day: a request should first look for an installed plugin with the same
+tools). Not measured: how often each forged tool is called by agents (the API's log does not name the tools); whether
+a forged plugin's answers are right.
+
+## M255 — the circuits plugin: transients against the exact solution, and larger circuits (23 October 2026; ROADMAP N37)
+
+The plugin's own modules (circ_net → circ_sim → ngspice 45.2 batch), outside the sandbox; a 1 V step (PULSE, 1 ns
+rise); the simulated V(t) read at fixed times against the closed form (RC, RLC) or the exact solution of the node
+equations (matrix exponential, numpy) for RC ladders.
+
+| circuit | parts | step / stop | compared | largest error | ngspice time |
+|---|---|---|---|---|---|
+| RC 1 kΩ · 1 µF | 3 | 10 µs / 5 ms | V(out) at 0.1–5 ms vs 1 − e^(−t/RC) | 0.009 % (at 0.1 ms) | 0.006 s |
+| same | 3 | 1 µs / 5 ms | same | 0.0005 % | 0.015 s |
+| RLC series 10 Ω, 10 mH, 1 µF (underdamped) | 4 | 1 µs / 5 ms | peak 1.854468 V at 0.3146 ms; damped frequency 1589.559 Hz | peak 0.00007 %, frequency −0.0008 %, V(t) 59 µV | 0.016 s |
+| same | 4 | 0.1 µs / 5 ms | same | peak 0.0000002 %, frequency −0.000008 %, V(t) 4.5 µV | 0.11 s |
+| RC ladder, 10 stages of 1 kΩ / 100 nF | 21 | 1 µs / 20 ms | V(n5), V(n10) at 0.5–20 ms | 0.13 µV | 0.06 s |
+| RC ladder, 50 stages | 101 | 10 µs / 400 ms | V(n25), V(n50) at 10–400 ms | 0.012 µV | 0.27 s |
+
+Read: the simulation's transients agree with the exact ones to better than 0.01 % with a step of RC/100, and the error
+falls with the step as it should; a 101-part circuit (the plugin allows 120) runs in a quarter of a second. The
+simulator is not the weak point: the risk is in the circuit as written (values, nodes, models). Not measured:
+non-linear parts in a transient (diodes, transistors switching) against a reference; circuits over 120 parts (the
+plugin's limit); the drawing of large circuits (schemdraw's layout of 100 parts was not tried).

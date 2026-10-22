@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2026 A.U.R.O.R.A. Project
 """The soak, measured every day by itself (owner, 2026-10-05: "a week of soak" became a measure that collects
-itself): once a day aurora-rem writes a snapshot — each service's memory and restarts, the logs' size, the planned
-GPU swaps and the failed routines of the last 24 h, the disk's free space — to <AURORA_STATUS_DIR>/soak.jsonl.
+itself): once a day aurora-rem writes a snapshot — each service's memory (with its anon and file parts) and
+restarts, the logs' size, the planned GPU swaps and the failed routines of the last 24 h, the disk's free space — to
+<AURORA_STATUS_DIR>/soak.jsonl.
 The Status page shows the last days; a week of lines is the soak's measure.
 """
 from __future__ import annotations
@@ -22,14 +23,26 @@ SERVICES = ("aurora-api", "aurora-llm", "aurora-models", "aurora-rem", "aurora-h
 
 def _unit(name: str) -> dict:
     try:
-        out = subprocess.run(["systemctl", "show", name, "-p", "MemoryCurrent", "-p", "NRestarts", "-p", "ActiveState"],
-                             capture_output=True, text=True, timeout=10).stdout
+        out = subprocess.run(["systemctl", "show", name, "-p", "MemoryCurrent", "-p", "NRestarts", "-p", "ActiveState",
+                              "-p", "ControlGroup"], capture_output=True, text=True, timeout=10).stdout
     except (OSError, subprocess.SubprocessError):
         return {}
     v = dict(line.split("=", 1) for line in out.splitlines() if "=" in line)
     mem = v.get("MemoryCurrent", "")
     return {"mem_mib": round(int(mem) / 2**20, 1) if mem.isdigit() else None,
-            "restarts": int(v["NRestarts"]) if v.get("NRestarts", "").isdigit() else None, "state": v.get("ActiveState")}
+            "restarts": int(v["NRestarts"]) if v.get("NRestarts", "").isdigit() else None, "state": v.get("ActiveState"),
+            **_split(v.get("ControlGroup", ""))}
+
+
+def _split(group: str) -> dict:
+    """The service's memory split as the kernel counts it (M253: MemoryCurrent alone cannot tell a leak from the
+    files' cache): anon is the program's own, file the cache the kernel frees when it needs the room."""
+    try:
+        stat = (Path("/sys/fs/cgroup") / group.lstrip("/") / "memory.stat").read_text(encoding="utf-8")
+    except (OSError, ValueError):
+        return {}
+    v = dict(line.split(" ", 1) for line in stat.splitlines() if " " in line)
+    return {k + "_mib": round(int(v[k]) / 2**20, 1) for k in ("anon", "file") if v.get(k, "").strip().isdigit()}
 
 
 def _lines_since(path: Path, since: float, *needles: str) -> int:

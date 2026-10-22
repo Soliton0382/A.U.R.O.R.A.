@@ -2,6 +2,17 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.87 — 2026-10-23
+
+6 publications since v0.2.81.
+
+- 2026-10-23 project conductor as a conversation (one CLI session per project and user, resumed; local projects stay local; masked; no tools); 3D print parts laid flat and one 3MF per bed; soak writes anon/file memory; measurements M253-M255; C389 and C390 opened
+- 2026-10-22 covers for every project card: CAD models drawn on the server, GitHub-only repositories a language band; anonymous chat composer on one row in the phone app (C388)
+- 2026-10-22 project covers (realistic view picture or code), project page in three groups, phone chat composer aligned; C384 files written by commands, C385 cloud out mid-run stops cleanly, C386 simulator locale, C387 policy shown twice; measurements M250-M252
+- 2026-10-22 project page: realistic view of a project's CAD model (WebGL, materials, exploded view, picture) and sizing simulators from sim/*.json (formulas checked, no eval); cad_build takes a part's material
+- 2026-10-22 project page in sections like the models page; 3D printer export of a project's CAD models (STL zip with README); two open issues noted
+- 2026-10-22 project conductor page: rows full width, live console readable on phones, goal folded once started, start line in the console
+
 ## v0.2.86 — 2026-10-23
 
 5 publications since v0.2.81.

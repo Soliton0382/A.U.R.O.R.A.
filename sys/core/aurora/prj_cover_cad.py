@@ -21,7 +21,10 @@ MAX_TRI = 60_000
 
 def load_stl(f: Path) -> np.ndarray:
     """The triangles of an STL, text or binary: (n, 3, 3) in mm."""
-    raw = f.read_bytes()
+    return load_stl_bytes(f.read_bytes())
+
+
+def load_stl_bytes(raw: bytes) -> np.ndarray:
     if len(raw) >= 84:
         n = struct.unpack_from("<I", raw, 80)[0]
         if 84 + 50 * n == len(raw) and b"facet" not in raw[:300]:

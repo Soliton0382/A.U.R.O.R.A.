@@ -2,10 +2,12 @@
 // Copyright 2026 A.U.R.O.R.A. Project
 // 🧑‍🔬 The conductor of a project (ROADMAP N39, prj_conduct): the owner writes in plain words, the conductor drafts the
 // phase's goal, the owner reads it, changes it and starts it with one click; when the agent ends, the conductor's
-// reply (done, what does not hold, the choices a/b/c) comes into the same conversation.
+// reply (done, what does not hold, the choices a/b/c) comes into the same conversation. Above the phases, the
+// conversation with the conductor (project_talk.js).
 import { call, followRun } from "../api.js";
 import { clock, el } from "../dom.js";
 import { t } from "../i18n.js";
+import { talkView } from "./project_talk.js";
 
 const WHO = { ask: "🙂", goal: "🎯", reply: "🧑‍🔬" };
 const STATUS = { draft: "conduct.st_draft", running: "conduct.st_running", done: "conduct.st_done", failed: "conduct.st_failed" };
@@ -117,7 +119,16 @@ export function conductView(name) {
     send.disabled = false;
     send.textContent = t("conduct.send");
   });
-  box.append(el("h4", "", t("conduct.title")), el("p", "muted", t("conduct.hint")), log, words, send);
+  // 💬 the conversation first (N39 step 2), the phases below it: an answer becomes a phase's draft with one click
+  const phases = el("details", "prj-phases");
+  phases.open = true;
+  phases.append(el("summary", "", t("conduct.title")), el("p", "muted", t("conduct.hint")), log, words, send);
+  const toPhase = async (text) => {
+    await call(base, { method: "POST", body: JSON.stringify({ text }) });
+    phases.open = true;
+    load();
+  };
+  box.append(talkView(name, toPhase), phases);
   load();
   return box;
 }
