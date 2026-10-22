@@ -1,90 +1,131 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 A.U.R.O.R.A. Project
-// 💬 Talking with a project's conductor (ROADMAP N39 step 2, prj_talk): a conversation in the chat's look, kept per
-// project and per user — on the Claude CLI one session resumed turn after turn, else the local model or an API with the
-// turns sent again; who answers and what each turn cost (when the CLI says it) under each answer. The conductor talks,
-// it does not act: under an answer, «🏗️ Fanne una fase» turns it into a phase's goal (the phases below).
+// 💬 Talking with a project's conductor (ROADMAP N39 step 2, prj_talk), as a console (owner, 23 Oct: «la chat con il
+// conduttore la vorrei proprio come te stile console»): a dark terminal, the owner's lines after «❯», the answers in
+// monospace with a dim «⎿» line under each (who answered, how long, what it cost when the CLI says it), «✻» while it
+// thinks; Enter sends, Shift+Enter starts a new line; slash commands: /nuova, /fase, /pulisci, /aiuto. Kept per
+// project and per user — on the Claude CLI one session resumed turn after turn, else the local model or an API with
+// the turns sent again. The conductor talks, it does not act: /fase (or «↳ fanne una fase» under an answer) turns an
+// answer into a phase's goal (the phases below).
 import { call } from "../api.js";
 import { clock, el, useCss } from "../dom.js";
 import { t } from "../i18n.js";
 import { renderMarkdown } from "../md.js";
 
 const WHO = { cli: "prj.talk_cli", cloud: "prj.talk_cloud", local: "prj.talk_local" };
+const SPIN = ["✻", "✶", "✷", "✸", "✹", "✺"];
 
 function meta(e) {
   const parts = [clock(e.t)];
-  if (e.role === "conductor") {
-    if (e.backend) parts.push(t(WHO[e.backend] || "prj.talk_local"));
-    if (e.backend !== "local") {
-      parts.push(e.cost_usd != null ? t("prj.talk_cost", { usd: Number(e.cost_usd).toFixed(4) }) : t("prj.talk_cost_none"));
-    }
-    if (e.seconds != null) parts.push(`${e.seconds} s`);
-    if (e.new_session) parts.push(t("prj.talk_new_session"));
+  if (e.backend) parts.push(t(WHO[e.backend] || "prj.talk_local"));
+  if (e.seconds != null) parts.push(`${e.seconds} s`);
+  if (e.backend && e.backend !== "local") {
+    parts.push(e.cost_usd != null ? t("prj.talk_cost", { usd: Number(e.cost_usd).toFixed(4) }) : t("prj.talk_cost_none"));
   }
-  return parts.join(" · ");
+  if (e.new_session) parts.push(t("prj.talk_new_session"));
+  return `⎿ ${parts.join(" · ")}`;
 }
 
 export function talkView(name, onPhase) {
-  useCss("/static/css/chat.css");                          // the chat's messages and composer
-  const box = el("div", "prj-talk");
-  const head = el("div", "prj-talk-head");
-  const who = el("span", "muted", "");
-  const fresh = el("button", "", t("prj.talk_new"));
-  head.append(el("strong", "", t("prj.talk_title")), who, fresh);
-  const log = el("div", "prj-talk-log");
-  const form = el("form", "ask prj-talk-ask");
+  useCss("/static/css/projects.css");
+  const box = el("div", "prj-talk term");
+  const bar = el("div", "term-bar");
+  const who = el("span", "term-who", "");
+  bar.append(el("span", "term-dots", "● ● ●"), el("span", "term-title", `${t("prj.talk_title")} — ${name}`), who);
+  const log = el("div", "term-log");
+  const form = el("form", "term-input");
   const input = el("textarea");
-  input.rows = 2;
+  input.rows = 1;
   input.placeholder = t("prj.talk_ph");
-  const send = el("button", "send", t("chat.send"));
-  send.type = "submit";
-  form.append(input, send);
+  input.setAttribute("autocapitalize", "off");
+  input.spellcheck = false;
+  const go = el("button", "term-go", "⏎");
+  go.type = "submit";
+  go.title = t("chat.send");
+  form.append(el("span", "term-prompt", "❯"), input, go);
+  const hint = el("div", "term-hint", t("prj.talk_keys"));
   const base = `/v1/aurora/projects/${name}/talk`;
+  let lastAnswer = null;
 
+  const line = (cls, text) => el("div", `term-line ${cls}`, text);
+  const you = (text) => { const l = el("div", "term-line term-you"); l.append(el("span", "term-prompt", "❯ "), text); return l; };
+  const toPhase = async (text, b) => {
+    try { await onPhase(text); log.append(line("term-sys", `✓ ${t("prj.talk_phase_done")}`)); }
+    catch (err) { log.append(line("term-err", `⚠ ${err.message}`)); if (b) b.disabled = false; }
+    end();
+  };
   const turn = (e) => {
-    const m = el("div", `msg ${e.role === "owner" ? "user" : "aurora"}${e.error ? " abstained" : ""}`);
-    m.append(e.role === "owner" ? el("p", "", e.text) : renderMarkdown(e.text), el("div", "meta", meta(e)));
-    if (e.role === "conductor" && !e.error && onPhase) {
-      const b = el("button", "", t("prj.talk_phase"));
-      b.addEventListener("click", async () => {
-        b.disabled = true;
-        try { await onPhase(e.text); b.textContent = t("prj.talk_phase_done"); } catch (err) { b.title = err.message; b.disabled = false; }
-      });
+    if (e.role === "owner") return you(e.text);
+    const out = el("div", `term-out${e.error ? " term-err" : ""}`);
+    out.append(e.error ? el("div", "", `⚠ ${e.text}`) : renderMarkdown(e.text));
+    const m = el("div", "term-meta", meta(e));
+    if (!e.error && onPhase) {
+      lastAnswer = e.text;
+      const b = el("button", "term-act", `↳ ${t("prj.talk_phase")}`);
+      b.type = "button";
+      b.addEventListener("click", () => { b.disabled = true; toPhase(e.text, b); });
       m.append(b);
     }
-    return m;
+    out.append(m);
+    return out;
   };
+  const end = () => { log.scrollTop = log.scrollHeight; };
+  const welcome = () => line("term-sys", `✻ ${t("prj.talk_welcome", { name })}`);
   const show = (turns) => {
-    log.replaceChildren(...(turns.length ? turns.map(turn) : [el("p", "muted", t("prj.talk_none"))]));
-    log.scrollTop = log.scrollHeight;
+    lastAnswer = null;
+    log.replaceChildren(welcome(), ...turns.map(turn));
+    end();
   };
   const load = async () => {
     try {
       const d = await call(base);
       who.textContent = t(WHO[d.backend] || "prj.talk_local");
       show(d.turns);
-    } catch (e) { log.replaceChildren(el("p", "error", t("ev.error", { m: e.message }))); }
+    } catch (e) { log.replaceChildren(line("term-err", `⚠ ${t("ev.error", { m: e.message })}`)); }
+  };
+  // the slash commands: answered here, nothing sent
+  const command = async (cmd) => {
+    log.append(you(cmd));
+    const c = cmd.split(/\s+/)[0].toLowerCase();
+    if (["/aiuto", "/help"].includes(c)) {
+      for (const h of t("prj.talk_help").split("\n")) log.append(line("term-sys", h));
+    } else if (["/nuova", "/new"].includes(c)) {
+      try { await call(`${base}/new`, { method: "POST", body: "{}" }); await load(); log.append(line("term-sys", `✓ ${t("prj.talk_new")}`)); }
+      catch (e) { log.append(line("term-err", `⚠ ${e.message}`)); }
+    } else if (["/fase", "/phase"].includes(c)) {
+      if (!lastAnswer || !onPhase) log.append(line("term-err", `⚠ ${t("prj.talk_no_answer")}`));
+      else await toPhase(lastAnswer);
+    } else if (["/pulisci", "/clear"].includes(c)) {
+      log.replaceChildren(welcome());
+    } else log.append(line("term-err", `⚠ ${t("prj.talk_unknown", { c })}`));
+    end();
   };
   form.addEventListener("submit", async (ev) => {
     ev.preventDefault();
     const text = input.value.trim();
-    if (!text) return;
-    send.disabled = true;
+    if (!text || input.disabled) return;
     input.value = "";
-    log.querySelector("p.muted")?.remove();
-    log.append(turn({ role: "owner", text, t: Date.now() / 1000 }), el("p", "muted prj-talk-wait", t("prj.talk_wait")));
-    log.scrollTop = log.scrollHeight;
-    try { await call(base, { method: "POST", body: JSON.stringify({ text }) }); }
-    catch (e) { log.append(el("p", "error", t("ev.error", { m: e.message }))); }
-    send.disabled = false;
-    load();
+    grow();
+    if (text.startsWith("/")) { await command(text); return; }
+    input.disabled = go.disabled = true;
+    log.append(turn({ role: "owner", text }));
+    const wait = line("term-wait", "");
+    const t0 = Date.now();
+    let k = 0;
+    const tick = () => { wait.textContent = `${SPIN[k++ % SPIN.length]} ${t("prj.talk_thinking", { s: Math.round((Date.now() - t0) / 1000) })}`; };
+    tick();
+    const timer = setInterval(tick, 400);
+    log.append(wait);
+    end();
+    try { await call(base, { method: "POST", body: JSON.stringify({ text }) }); await load(); }
+    catch (e) { wait.remove(); log.append(line("term-err", `⚠ ${t("ev.error", { m: e.message })}`)); }
+    finally { clearInterval(timer); input.disabled = go.disabled = false; input.focus(); end(); }
   });
+  // the line grows with what is written, up to a few lines
+  const grow = () => { input.style.height = "auto"; input.style.height = `${Math.min(input.scrollHeight, 160)}px`; };
+  input.addEventListener("input", grow);
   input.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); } });
-  fresh.addEventListener("click", async () => {
-    if (!confirm(t("prj.talk_new_q"))) return;
-    try { await call(`${base}/new`, { method: "POST", body: "{}" }); load(); } catch (e) { log.append(el("p", "error", e.message)); }
-  });
-  box.append(head, el("p", "muted", t("prj.talk_hint")), log, form);
+  box.append(bar, log, form, hint);
   load();
   return box;
 }
