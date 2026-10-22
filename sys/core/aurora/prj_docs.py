@@ -23,7 +23,13 @@ TARGETS = {
     "patent_IT": ("Brevetto Italia (UIBM)", "an Italian patent application (office IT: D.M. 33/2010 art. 22)"),
     "patent_EP": ("Brevetto europeo (EPO)", "a European patent application (office EP: EPC Rules 43, 46, 47, 49)"),
     "patent_US": ("Brevetto USA (provisional)", "a US provisional application (office US: 37 CFR 1.52, 1.72, 1.84)"),
+    "render": ("Vista realistica (materiali delle parti)", "the CAD model ready for the realistic view (N42)"),
+    "simulator": ("Simulatore di dimensionamento", "a sizing simulator in sim/ (N42)"),
 }
+SIM_FORMAT = ('{"title": "...", "consts": {"rho": 1.72e-8}, "params": [{"id": "N", "label": "spire", "unit": "", "min": 10, '
+              '"max": 400, "step": 5, "value": 100, "group": "Bobine"}], "outputs": [{"id": "R", "label": "resistenza", '
+              '"unit": "ohm", "expr": "rho*L/A", "digits": 3, "group": "Fase", "hidden": false}], "plot": {"x": "N", '
+              '"y": ["R"]}, "notes": "markdown"}')
 
 
 def _file(cfg: sys_config.Config, project: str) -> Path:
@@ -63,6 +69,18 @@ def goal(project: str, targets: list[str]) -> str:
              "model: then the description refers to no figures."]
     if "blueprint" in targets:
         steps.append("Blueprint: cad_blueprint for the model.")
+    if "render" in targets:
+        steps.append("Realistic view: build the model again with cad_build giving each part its `material` (copper, "
+                     "magnet, steel, aluminium, brass, plastic, plastic_light, pcb, carbon, rubber, glass, wood) and an "
+                     "`explode` offset that keeps the parts apart; the page's 🎨 section shows it.")
+    if "simulator" in targets:
+        steps.append("Simulator: write sim/<name>.json with project_write_file, in this form: " + SIM_FORMAT + ". The "
+                     "parameters are the design's choices with sensible ranges; the outputs are the formulas the "
+                     "project uses (in order: an output may use the parameters, consts and the outputs above it; "
+                     "+ - * / ^, one comparison, sqrt abs min max sin cos tan asin acos atan atan2 exp log log10 floor "
+                     "ceil round if(c,a,b), pi e mu0; SI units unless the label says otherwise). The notes say "
+                     "what the model leaves out and how to calibrate it against a measurement. Check every formula "
+                     "by hand on the default values and give them in the report.")
     for o in offices:
         steps.append(f"Office {o}: cad_drawings(office='{o}') when there is a model; then patent_document(office='{o}', "
                      "drawings=<the model>) — the description recalls every reference sign, the claims are numbered "

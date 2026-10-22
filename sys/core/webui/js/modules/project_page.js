@@ -3,9 +3,9 @@
 // 📁 One project's page, the Models page's way (owner, 23 Oct: «le pagine mi sembrano incasinate e il concetto usato
 // fino ad ora che parte dalla struttura della pagina modelli mi piace»): its name, how it is handled and whether all
 // is saved on top; then a row of sections, one shown at a time, in the order of the work: talk to the conductor, the
-// plan, the documents, the files, the 3D print, the terminal, the history, Aurora's reports, the preview. A section
-// is made the first time it is opened and kept (a terminal stays open while the others are looked at); the last one
-// opened is remembered on this device for this project.
+// plan, the documents, the model seen built, the simulators, the files, the 3D print, the terminal, the history,
+// Aurora's reports, the preview. A section is made the first time it is opened and kept (a terminal stays open while
+// the others are looked at); the last one opened is remembered on this device for this project.
 import { call } from "../api.js";
 import { clock, el } from "../dom.js";
 import { apply, t } from "../i18n.js";
@@ -16,10 +16,13 @@ import { planView } from "./project_plan.js";
 import { docsView } from "./project_docs.js";
 import { filesView } from "./project_files.js";
 import { printView } from "./project_print.js";
+import { renderView } from "./project_render.js";
+import { simView } from "./project_sim.js";
 import { terminalView } from "./project_term.js";
 
 // section → its label (existing keys) and whether it is made again each time it is opened (fresh lists)
-const SECTIONS = [["conduct", "conduct.button"], ["plan", "plan.button"], ["docs", "docs.button"], ["files", "prj.tab_files"],
+const SECTIONS = [["conduct", "conduct.button"], ["plan", "plan.button"], ["docs", "docs.button"], ["render", "prj.render"],
+  ["sim", "prj.sim"], ["files", "prj.tab_files"],
   ["print", "prj.print"], ["term", "prj.term"], ["history", "prj.history", true], ["reports", "prj.reports", true],
   ["preview", "prj.preview", true]];
 
@@ -90,6 +93,8 @@ export function openProject(d, p, { base, back }) {
     conduct: () => [conductView(name)],          // 🧑‍🔬 plain words → a phase's goal → the agent → a reply (N39)
     plan: () => [planView(name)],                // 🏗️ the project carried by Aurora, step by step (ROADMAP 97)
     docs: () => [docsView(name, (path) => { show("files"); fileSection().show(path); })],   // 📑 blueprints, patents (100)
+    render: () => [renderView(name)],            // 🎨 the model seen built, in a studio light (N42)
+    sim: () => [simView(name)],                  // 🧮 the project's simulators: parameters → results (N42)
     files: () => { fileSection(); return null; },
     print: () => [printView(name)],              // 🖨️ the models for a 3D printer (N41)
     term: () => [terminalView(name)],            // 🖥️ the project run in its cage (roadmap 75)

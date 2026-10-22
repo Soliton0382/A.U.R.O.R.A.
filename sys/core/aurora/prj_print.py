@@ -46,14 +46,19 @@ def _folder(cfg: sys_config.Config, project: str, model: str | None = None) -> P
     return p / "cad" if model is None else p / "cad" / model
 
 
-def _parts(folder: Path) -> list[dict]:
-    """The parts that have their STL, with the file they will have in the zip."""
+def _listed(folder: Path) -> list[dict]:
+    """parts.json's parts, in the order of part_<k>.stl."""
     try:
         listed = json.loads((folder / "parts.json").read_text(encoding="utf-8")).get("parts", [])
     except (OSError, ValueError):
-        listed = []
+        return []
+    return [p if isinstance(p, dict) else {} for p in listed] if isinstance(listed, list) else []   # k stays k
+
+
+def _parts(folder: Path) -> list[dict]:
+    """The parts that have their STL, with the file they will have in the zip."""
     out = []
-    for k, p in enumerate(listed):
+    for k, p in enumerate(_listed(folder)):
         stl = folder / f"part_{k}.stl"
         if not stl.is_file():
             continue

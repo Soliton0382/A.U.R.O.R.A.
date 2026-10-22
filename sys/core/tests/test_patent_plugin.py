@@ -69,6 +69,8 @@ def test_the_ticks_and_the_goal_of_procedi(cfg):
     g = prj_docs.goal("demo", d["targets"])
     assert "cad_blueprint" in g and "office='US'" in g and "patent_check" in g and "AI made them" in g
     assert "Brevetto USA" in prj_docs.plan_note(cfg, "demo") and prj_docs.plan_note(cfg, "other") == ""
+    g = prj_docs.goal("demo", ["render", "simulator"])                      # N42: the two new ticks
+    assert "`material`" in g and "sim/<name>.json" in g and "project_write_file" in g
 
 
 def test_signs_written_as_a_table_are_checked_too(tmp_path, monkeypatch):

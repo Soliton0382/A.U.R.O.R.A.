@@ -57,10 +57,13 @@ def _stl(scad: Path, stl: Path) -> None:
 @server.tool()
 def cad_build(project: str, name: str, parts: list[dict], library: str = "") -> str:
     """Build a model from its parts. parts: [{"sign": 10, "name": "base plate", "code": "base();",
-    "explode": [0, 0, 0]}, …] — `code` is OpenSCAD that draws the part where it sits in the assembly (it may use the
-    modules of `library`: shared OpenSCAD code, e.g. module definitions and $fn = 64); `explode` moves it in the
-    exploded view (mm). Reference signs: integers, distinct (10, 20, 30… leaves room). Writes the STL of the assembly
-    and of each part into <project>/cad/<name>/."""
+    "explode": [0, 0, 0], "material": "copper"}, …] — `code` is OpenSCAD that draws the part where it sits in the
+    assembly (it may use the modules of `library`: shared OpenSCAD code, e.g. module definitions and $fn = 64);
+    `explode` moves it in the exploded view (mm); `material` (optional) is how the project page's realistic view
+    paints it: copper, magnet, steel, aluminium, brass, plastic, plastic_light, pcb, carbon, rubber, glass or wood
+    (else guessed from the name).
+    Reference signs: integers, distinct (10, 20, 30… leaves room). Writes the STL of the assembly and of each part
+    into <project>/cad/<name>/."""
     out = _folder(project, name)
     if not parts or len(parts) > 60:
         raise ToolError("1 to 60 parts")
@@ -79,8 +82,9 @@ def cad_build(project: str, name: str, parts: list[dict], library: str = "") -> 
         sizes.append((tri.max(0) - tri.min(0)).round(1).tolist())
     assembly = "\n".join(f"// {p.get('name', '')} ({signs[k]})\n{p['code']}" for k, p in enumerate(parts))
     (out / "model.scad").write_text(f"{library}\n{assembly}\n", encoding="utf-8")
-    (out / "parts.json").write_text(json.dumps({"parts": [{"sign": s, "name": p.get("name", ""), "size_mm": z}
-                                                          for s, p, z in zip(signs, parts, sizes)]},
+    mat = [{"material": str(p["material"])[:20]} if p.get("material") else {} for p in parts]
+    (out / "parts.json").write_text(json.dumps({"parts": [{"sign": s, "name": p.get("name", ""), "size_mm": z, **m}
+                                                          for s, p, z, m in zip(signs, parts, sizes, mat)]},
                                                ensure_ascii=False, indent=1), encoding="utf-8")
     lines = "\n".join(f"- {s} {p.get('name', '')}: {z[0]} × {z[1]} × {z[2]} mm" for s, p, z in zip(signs, parts, sizes))
     return f"Model {name}: {len(parts)} parts built in {time.time() - t0:.1f} s ({out}).\n{lines}"

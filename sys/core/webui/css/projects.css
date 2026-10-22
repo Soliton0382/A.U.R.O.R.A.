@@ -83,3 +83,37 @@
   .prj-ask { flex-wrap: wrap; }
   .prj-ask input { flex: 1 1 12rem; min-width: 0; }
 }
+/* 🎨 the realistic view (project_render, N42) */
+.rnd-stage { position: relative; background: var(--rnd-bg, #292a2d); border-radius: var(--radius); overflow: hidden; }
+.rnd-canvas { display: block; width: 100%; aspect-ratio: 16 / 10; touch-action: none; cursor: grab; }
+.rnd-canvas:active { cursor: grabbing; }
+.rnd-state { position: absolute; inset: auto 0 0 0; margin: 0; padding: .5rem .8rem; color: #ccc; }
+.rnd-tools { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: center; margin: .6rem 0; }
+.rnd-slider { display: flex; gap: .4rem; align-items: center; }
+.rnd-parts { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: .3rem .8rem; font-size: .86rem; }
+.rnd-part { display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; }
+.rnd-part select { max-width: 11rem; }
+/* 🧮 the simulators (project_sim, N42) */
+.sim-card h4 { margin: .4rem 0 .6rem; }
+.sim-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 1rem; align-items: start; }
+@media (max-width: 760px) { .sim-grid { grid-template-columns: minmax(0, 1fr); } }
+.sim-params h5, .sim-group th { margin: .6rem 0 .2rem; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); text-align: left; font-weight: 600; }
+.sim-param { display: grid; grid-template-columns: minmax(7rem, 1fr) minmax(5rem, 1.4fr) 5.5rem minmax(2rem, auto); gap: .4rem; align-items: center; margin: .25rem 0; font-size: .88rem; }
+.sim-param input[type=range] { width: 100%; }
+.sim-num { width: 100%; }
+.sim-out { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.sim-out td { padding: .22rem .4rem; border-bottom: 1px solid var(--line); }
+.sim-val { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.sim-charts { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: .8rem; margin: .8rem 0; }
+.sim-chart { margin: 0; position: relative; }
+.sim-chart figcaption { font-size: .85rem; margin-bottom: .2rem; }
+.sim-svg { width: 100%; height: auto; display: block; }
+.sim-rule { stroke: var(--line); stroke-width: 1; }
+.sim-tick { fill: var(--muted); font-size: 11px; }
+.sim-line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
+.sim-dot { fill: var(--accent); stroke: var(--surface, var(--bg)); stroke-width: 2; }
+.sim-cross { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+.sim-tip { font-size: .8rem; color: var(--text); font-family: var(--mono); min-height: 1.2em; }
+.sim-bar { display: flex; gap: .5rem; flex-wrap: wrap; }
+.sim-notes { margin-top: .6rem; font-size: .88rem; }
+@media (max-width: 520px) { .sim-param { grid-template-columns: minmax(0, 1fr) 5rem minmax(1.5rem, auto); } .sim-param input[type=range] { grid-column: 1 / -1; grid-row: 2; } }
