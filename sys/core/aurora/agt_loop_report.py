@@ -31,6 +31,11 @@ class AgentReport:
     def _count(self, *suffixes: str) -> int:
         return sum(1 for name, ok in self.ledger if ok and name.split(SEP)[-1] in suffixes)
 
+    def _written(self) -> str:
+        """The files written in projects: by the write tool and by the commands run there (C384), each once."""
+        touched = getattr(self, "touched", None)
+        return str(max(len(touched or ()), self._count("project_write_file")))
+
     def _record(self) -> str:
         own = ("list_files", "read_file", "search_code", "logs_inventory", "read_log", "sandbox_read", "sandbox_diff")
         reads = self._count(*own) + sum(1 for name, ok in self.ledger if ok and name.split(SEP)[-1] not in own
@@ -40,7 +45,7 @@ class AgentReport:
                 f"{self._count('sandbox_create')} sandbox create; {self._count('sandbox_replace', 'sandbox_write')} "
                 f"modifiche in sandbox; {self._count('run_tests')} esecuzioni di test; "
                 f"{self._count('propose_change')} proposte di modifica; "
-                f"{self._count('project_write_file')} file scritti nei progetti; {self._count('run_in_project')} "
+                f"{self._written()} file scritti nei progetti; {self._count('run_in_project')} "
                 f"esecuzioni nei progetti; {failed} chiamate non riuscite.")
 
     # "Non ho creato sandbox e non ho proposto modifiche" is not a claim (C155: a weather report was flagged for it)

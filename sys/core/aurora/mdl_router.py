@@ -546,9 +546,18 @@ class Fallback:
     def _local(self, method: str, *a, **k):
         if method == "complete_turns" and self.cfg is not None and a:      # C331: fitted to the cloud's window
             from . import mdl_fit
-            messages, max_tokens = mdl_fit.fit(a[0], k.pop("max_tokens", a[1] if len(a) > 1 else 1500),
-                                               mdl_fit.window(self.cfg))
+            ctx = mdl_fit.window(self.cfg)
+            messages, max_tokens = mdl_fit.fit(a[0], k.pop("max_tokens", a[1] if len(a) > 1 else 1500), ctx)
+            # C385: a run that, even shortened, does not fit the local slot stops with a clear word, not a 400
+            if not mdl_fit.fits(messages, max_tokens, ctx):
+                raise mdl_fit.CloudOut("cloud esaurito: the run does not fit the local model's window")
             a = (messages, max_tokens) + tuple(a[2:])
+            try:
+                return self.local.complete_turns(*a, **k)
+            except Exception as e:                       # noqa: BLE001 - only the context refusal is renamed
+                if mdl_fit.context_error(e):
+                    raise mdl_fit.CloudOut(f"cloud esaurito: the local model refused the run's size ({e})") from e
+                raise
         return getattr(self.local, method)(*a, **k)
 
     def complete(self, *a, **k):

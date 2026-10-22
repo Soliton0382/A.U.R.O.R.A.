@@ -49,3 +49,22 @@ def fit(messages: list[dict], max_tokens: int, ctx: int) -> tuple[list[dict], in
         if m["role"] == "tool" and len(str(m["content"])) > 5 * SHORT:
             m["content"] = str(m["content"])[:5 * SHORT] + "\n[shortened to fit the local model's window]"
     return out, max_tokens
+
+
+class CloudOut(RuntimeError):
+    """The cloud stopped mid-run and what is left of the run does not fit the local slot (C385): the phase stops with
+    a clear word («cloud esaurito», try again later) instead of a context error from the local server."""
+
+
+def fits(messages: list[dict], max_tokens: int, ctx: int) -> bool:
+    """Whether fitted messages and their answer stay inside the local window (the same estimate as fit)."""
+    return ctx <= 0 or used(messages) + max_tokens + 256 <= ctx
+
+
+def context_error(e: Exception) -> bool:
+    """A local server's refusal of a prompt longer than its slot (a 400 «exceeds the available context size»)."""
+    r = getattr(e, "response", None)
+    try:
+        return r is not None and r.status_code == 400 and "context" in r.text.lower()
+    except Exception:                                    # noqa: BLE001 - a body that cannot be read: not this error
+        return False

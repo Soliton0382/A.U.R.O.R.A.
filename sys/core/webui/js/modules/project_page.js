@@ -25,6 +25,12 @@ const SECTIONS = [["conduct", "conduct.button"], ["plan", "plan.button"], ["docs
   ["sim", "prj.sim"], ["files", "prj.tab_files"],
   ["print", "prj.print"], ["term", "prj.term"], ["history", "prj.history", true], ["reports", "prj.reports", true],
   ["preview", "prj.preview", true]];
+// the sections in three groups (owner, 23 Oct: «dentro il progetto le diverse sezioni sembrano incasinate»): a row of
+// groups, then the row of the chosen group's sections — two short rows instead of eleven chips over four lines
+const GROUPS = [["work", "prj.g_work", ["conduct", "plan", "term", "reports"]],
+  ["model", "prj.g_model", ["docs", "render", "sim", "print"]],
+  ["files", "prj.g_files", ["files", "history", "preview"]]];
+const groupOf = (id) => GROUPS.find(([, , ids]) => ids.includes(id))?.[0] || "work";
 
 async function history(name) {
   const { commits } = await call(`/v1/aurora/projects/${name}/log`);
@@ -60,13 +66,16 @@ export function openProject(d, p, { base, back }) {
   const name = p.name;
   d.innerHTML = `
     <div class="ev prj-bar"><button class="back"></button><h3></h3></div>
-    <div class="prj-tabs prj-sections">${SECTIONS.map(([id, label]) => `<button type="button" class="cat-chip" data-tab="${id}" data-i18n="${label}"></button>`).join("")}</div>
+    <div class="prj-tabs prj-groups">${GROUPS.map(([g, label]) => `<button type="button" class="cat-chip" data-group="${g}" data-i18n="${label}"></button>`).join("")}</div>
+    <div class="prj-tabs prj-sections">${SECTIONS.map(([id, label]) => `<button type="button" class="cat-chip" data-tab="${id}" data-group="${groupOf(id)}" data-i18n="${label}"></button>`).join("")}</div>
     ${SECTIONS.map(([id]) => `<div class="prj-section md-tab" data-tab="${id}" hidden></div>`).join("")}`;
   apply(d);
   d.querySelector("h3").textContent = `📁 ${name}`;
   d.querySelector(".back").textContent = t("prj.back");
   d.querySelector(".back").addEventListener("click", back);
-  policyBox(name).then((b) => d.querySelector(".prj-bar").after(b));
+  // the policy beside the save state, on one row; a page opened again meanwhile (a double tap) keeps its own only
+  const saveRow = el("div", "prj-save-row");
+  policyBox(name).then((b) => { if (saveRow.isConnected) saveRow.prepend(b); });
   // 💾 what «saved» means: the project's history (git commits) — said here, and done with one click
   const saveBox = el("div", "prj-save");
   const drawSave = (changes) => {
@@ -85,7 +94,8 @@ export function openProject(d, p, { base, back }) {
     saveBox.replaceChildren(st, b);
   };
   drawSave(p.changes || 0);
-  d.querySelector(".prj-tabs").before(saveBox);
+  saveRow.append(saveBox);
+  d.querySelector(".prj-groups").before(saveRow);
   const pane = (id) => d.querySelector(`.prj-section[data-tab="${id}"]`);
   let files = null;
   const fileSection = () => { if (!files) { files = filesView(name, base); pane("files").append(files.box); } return files; };
@@ -102,9 +112,11 @@ export function openProject(d, p, { base, back }) {
   };
   const key = `aurora.prj.tab.${name}`;
   const show = async (id) => {
-    d.querySelectorAll(".prj-sections button").forEach((b) => b.classList.toggle("on", b.dataset.tab === id));
+    const g = groupOf(id);
+    d.querySelectorAll(".prj-groups button").forEach((b) => b.classList.toggle("on", b.dataset.group === g));
+    d.querySelectorAll(".prj-sections button").forEach((b) => { b.classList.toggle("on", b.dataset.tab === id); b.hidden = b.dataset.group !== g; });
     d.querySelectorAll(".prj-section").forEach((x) => { x.hidden = x.dataset.tab !== id; });
-    try { localStorage.setItem(key, id); } catch { /* not kept */ }
+    try { localStorage.setItem(key, id); localStorage.setItem(`${key}.${g}`, id); } catch { /* not kept */ }
     const box = pane(id);
     const again = SECTIONS.find(([s]) => s === id)?.[2];
     if (box.dataset.made && !again) return;
@@ -116,6 +128,13 @@ export function openProject(d, p, { base, back }) {
     } catch (e) { box.replaceChildren(el("p", "error", t("ev.error", { m: e.message }))); }
   };
   d.querySelectorAll(".prj-sections button").forEach((b) => b.addEventListener("click", () => show(b.dataset.tab)));
+  // a group opens its section seen last on this device, else its first
+  d.querySelectorAll(".prj-groups button").forEach((b) => b.addEventListener("click", () => {
+    const ids = GROUPS.find(([g]) => g === b.dataset.group)[2];
+    let last = null;
+    try { last = localStorage.getItem(`${key}.${b.dataset.group}`); } catch { /* the first */ }
+    show(ids.includes(last) ? last : ids[0]);
+  }));
   let first = "conduct";
   try { first = localStorage.getItem(key) || first; } catch { /* the conductor first */ }
   show(make[first] ? first : "conduct");

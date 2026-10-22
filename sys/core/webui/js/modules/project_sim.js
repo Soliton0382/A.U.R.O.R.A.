@@ -16,7 +16,7 @@ const svg = (tag, attrs = {}) => {
   return e;
 };
 const fmt = (v, digits) => (Number.isFinite(v)
-  ? new Intl.NumberFormat(lang, { maximumSignificantDigits: digits }).format(v) : "—");
+  ? new Intl.NumberFormat(lang.replace("_", "-"), { maximumSignificantDigits: digits }).format(v) : "—");   // it_IT → it-IT
 
 function chart(sim, out, values, compiled) {
   const p = sim.params.find((x) => x.id === sim.plot.x);

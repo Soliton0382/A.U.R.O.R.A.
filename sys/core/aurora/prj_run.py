@@ -53,8 +53,41 @@ def cage(cfg: sys_config.Config, project: Path, command: str) -> list[str]:
     return args
 
 
+SKIP = {".git", ".venv", "node_modules", "__pycache__", ".pytest_cache", ".mypy_cache"}
+MAX_FILES = 20000
+
+
+def snapshot(project: Path) -> dict[str, tuple[int, int]]:
+    """Each file of the project (path → mtime, size), without the folders a command fills by itself (C384)."""
+    out: dict[str, tuple[int, int]] = {}
+    stack = [project]
+    while stack and len(out) < MAX_FILES:
+        try:
+            entries = list(stack.pop().iterdir())
+        except OSError:
+            continue
+        for e in entries:
+            if e.name in SKIP or e.is_symlink():
+                continue
+            if e.is_dir():
+                stack.append(e)
+            elif e.is_file():
+                try:
+                    st = e.stat()
+                except OSError:
+                    continue
+                out[e.relative_to(project).as_posix()] = (st.st_mtime_ns, st.st_size)
+    return out
+
+
+def changed(before: dict, after: dict) -> list[str]:
+    """The files a command wrote: new ones and those whose time or size changed (a removed file is not «written»)."""
+    return sorted(k for k, v in after.items() if before.get(k) != v)
+
+
 def run(cfg: sys_config.Config, name: str, command: str) -> dict:
-    """{"exit", "seconds", "output"}: the command's result in the cage; ValueError for a bad name or command."""
+    """{"exit", "seconds", "output", "changed"}: the command's result in the cage and the files it wrote (C384: the
+    run's summary counted only the write tool's files); ValueError for a bad name or command."""
     if not shutil.which("bwrap"):
         raise RuntimeError("bubblewrap (bwrap) is not installed: no cage, nothing is run")
     command = str(command or "").strip()
@@ -62,6 +95,7 @@ def run(cfg: sys_config.Config, name: str, command: str) -> dict:
         raise ValueError("a command of 1 to 2000 characters")
     project = project_dir(cfg, name)
     limit = int(cfg["AURORA_PROJECT_RUN_S"])
+    before = snapshot(project)
     t0 = time.time()
     try:
         r = subprocess.run(cage(cfg, project, command), capture_output=True, text=True, timeout=limit)
@@ -72,4 +106,4 @@ def run(cfg: sys_config.Config, name: str, command: str) -> dict:
               f"\nSTOPPED after {limit} s (AURORA_PROJECT_RUN_S)"
     out = out.strip()
     return {"exit": code, "seconds": round(time.time() - t0, 1),
-            "output": out if len(out) <= KEEP else "…" + out[-KEEP:]}
+            "output": out if len(out) <= KEEP else "…" + out[-KEEP:], "changed": changed(before, snapshot(project))}

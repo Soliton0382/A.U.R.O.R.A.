@@ -2,6 +2,15 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.85 — 2026-10-23
+
+4 publications since v0.2.81.
+
+- 2026-10-23 project covers (realistic view picture or code), project page in three groups, phone chat composer aligned; C384 files written by commands, C385 cloud out mid-run stops cleanly, C386 simulator locale, C387 policy shown twice; measurements M250-M252
+- 2026-10-22 project page: realistic view of a project's CAD model (WebGL, materials, exploded view, picture) and sizing simulators from sim/*.json (formulas checked, no eval); cad_build takes a part's material
+- 2026-10-22 project page in sections like the models page; 3D printer export of a project's CAD models (STL zip with README); two open issues noted
+- 2026-10-22 project conductor page: rows full width, live console readable on phones, goal folded once started, start line in the console
+
 ## v0.2.84 — 2026-10-23
 
 3 publications since v0.2.81.

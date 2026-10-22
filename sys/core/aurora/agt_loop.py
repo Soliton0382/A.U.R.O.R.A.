@@ -22,7 +22,7 @@ import time
 
 import httpx
 
-from . import sns_clock, sys_config, sys_log
+from . import mdl_fit, sns_clock, sys_config, sys_log
 from .kno_answer import Answer, Trail
 from .agt_loop_make import AgentMakers
 from . import agt_tools
@@ -272,6 +272,7 @@ class Agent(AgentMakers, AgentReport):
                                  "exit": r["exit"], "seconds": r["seconds"]})
             name = str(args.get("project", ""))
             self.projects.add(name)
+            self.touched.update((name, f) for f in r.get("changed", []))   # files its commands wrote (C384)
             if r["exit"] == 0 and name not in self.passed:     # the owner is told the first time it works
                 self.passed.add(name)
                 self.notify("project.progress", {"project": name, "text": f"{name}: ok in {r['seconds']} s — "
@@ -405,6 +406,7 @@ class Agent(AgentMakers, AgentReport):
         self.projects: set[str] = set()                     # the projects it worked on: told at the end
         self.passed: set[str] = set()                       # those whose tests passed once: told at once
         self.ledger: list[tuple[str, bool]] = []
+        self.touched: set[tuple[str, str]] = set()          # (project, file) written by the tool or by its commands
         self.effects: dict[str, str] = {}                    # tool -> its effect: the plugins' reads are counted too
         budget = self.cfg["AURORA_PIPELINE_THINK_TOKENS"]
         limit_s = self.max_min * 60
@@ -413,7 +415,14 @@ class Agent(AgentMakers, AgentReport):
                 model = self._model()
                 messages[0]["content"] = self._prompt(specs, emit)
             room = self._fit(messages, budget, emit)
-            c = self._model().complete_turns(messages, min(budget, room), think=True)
+            try:
+                c = self._model().complete_turns(messages, min(budget, room), think=True)
+            except mdl_fit.CloudOut as e:                  # C385: the cloud ran out and the run is too long for the local
+                emit("agent.cloud_out", {"step": steps, "error": str(e)[:300]})
+                summary = (f"☁️ Cloud esaurito al passo {steps}: il modello cloud si è fermato e il lavoro fatto fin qui "
+                           "non entra nella finestra del modello locale. La fase si ferma qui: 🔁 riprovala quando il "
+                           "cloud torna disponibile. Quello che è stato fatto finora è nel registro qui sotto.")
+                break
             text, calls, said = parse(c.answer)
             cut = not calls and bool(OPENED.search(said))      # a call begun and never ended: not an answer (C278)
             if c.thought:
@@ -466,6 +475,8 @@ class Agent(AgentMakers, AgentReport):
                     continue
                 result = self._call(name, args, index, emit, run_id)
                 self.ledger.append((name, not result.startswith(("ERROR", "REFUSED"))))
+                if name.split(SEP)[-1] == "project_write_file" and self.ledger[-1][1]:
+                    self.touched.add((str(args.get("name", "")), str(args.get("path", "")).removeprefix("./")))
                 self.effects[name] = index[name][2] if name in index else ""
                 emit("tool.result", {"name": name, "ok": not result.startswith(("ERROR", "REFUSED")),
                                      "text": result[:1500]})
@@ -479,7 +490,7 @@ class Agent(AgentMakers, AgentReport):
             room = self._fit(messages, 1500, emit)
             try:
                 report = self._model().complete_turns(messages, min(1500, room), think=False).answer
-            except httpx.HTTPError as e:                    # never a run without a report (C68)
+            except (httpx.HTTPError, mdl_fit.CloudOut) as e:  # never a run without a report (C68, C385)
                 self.log.warning("agent run %s: final report failed: %s", run_id, e)
                 report = "Non sono riuscita a scrivere il resoconto finale (" + type(e).__name__ + ")."
             _, rcalls, rsaid = parse(report)

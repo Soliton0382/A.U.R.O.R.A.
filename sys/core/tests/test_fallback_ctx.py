@@ -73,3 +73,41 @@ def test_the_last_turns_too_long_are_shortened_as_well():
     out, max_tokens = mdl_fit.fit(msgs, 1500, 32768)
     assert mdl_fit.used(out) + max_tokens + 256 <= 32768
     assert out[0] == msgs[0] and out[-1]["content"].startswith("y" * 2000)
+
+
+class TooLong:
+    """A local server whose slot refuses the prompt (llama-server's 400)."""
+
+    def complete_turns(self, messages, max_tokens, think=False):
+        import httpx
+        req = httpx.Request("POST", "http://local/v1/chat/completions")
+        raise httpx.HTTPStatusError("400", request=req, response=httpx.Response(
+            400, request=req, text='{"error":"request (42540 tokens) exceeds the available context size (32768 tokens)"}'))
+
+
+def test_a_run_that_cannot_fit_stops_as_cloud_out(monkeypatch):
+    # C385: the cloud ends mid-run; a run too long for the local slot, even shortened, stops with a clear word
+    import pytest
+    from aurora import mdl_budget
+    monkeypatch.setattr(mdl_budget, "over", lambda cfg, provider: False)
+    huge = [{"role": "system", "content": "s" * 100000}, {"role": "user", "content": "GOAL"}]
+    with pytest.raises(mdl_fit.CloudOut):
+        R.Fallback(Cloud(), Local(), "agent", CFG).complete_turns(huge, 1500, think=True)
+    with pytest.raises(mdl_fit.CloudOut):                      # the local server's own refusal is renamed too
+        R.Fallback(Cloud(), TooLong(), "agent", CFG).complete_turns(long_run(1), 1500, think=True)
+
+
+def test_the_agent_stops_the_phase_with_cloud_out(cfg):
+    from types import SimpleNamespace
+    from aurora.agt_loop import Agent
+
+    class Out:
+        def complete_turns(self, *a, **k):
+            raise mdl_fit.CloudOut("cloud esaurito: the run does not fit the local model's window")
+
+    llm = Out()
+    agent = Agent(SimpleNamespace(llm=llm, _for=lambda role: llm), cfg)
+    agent.host = SimpleNamespace(plugins=lambda: [], get=lambda p: None)
+    events = []
+    ans = agent.run("lavora al progetto", lambda e, p: events.append(e), "r1")
+    assert ans.text.startswith("☁️ Cloud esaurito") and "agent.cloud_out" in events and "agent.finish" in events

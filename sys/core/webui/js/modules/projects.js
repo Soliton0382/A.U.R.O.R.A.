@@ -114,7 +114,11 @@ export default {
     const pol = p.policy || { models: "cloud", publish: true };
     if (pol.models === "local") head.append(el("span", "mch-tag", "🔒"));
     if (!pol.publish) head.append(el("span", "mch-tag prj-never", "🚫"));
-    c.append(head, el("div", "mch-line prj-what", p.description || t("prj.no_readme")));
+    // 🖼️ its cover (prj_cover): the realistic view's picture, the project's own, or its main code; else the emoji
+    const cover = el("img", "prj-cover");
+    Object.assign(cover, { loading: "lazy", alt: "", src: `/v1/aurora/projects/${p.name}/cover?v=${encodeURIComponent(p.last_commit?.date || "")}` });
+    cover.addEventListener("error", () => cover.remove());
+    c.append(cover, head, el("div", "mch-line prj-what", p.description || t("prj.no_readme")));
     // git's words in plain ones (owner, 2026-10-21: «non capisco quelle scritte verdi e gialle (pulito, modifiche)»)
     const saved = el("div", p.changes ? "prj-state warn" : "prj-state ok", p.changes ? t("prj.changes", { n: p.changes }) : t("prj.clean"));
     saved.title = t(p.changes ? "prj.changes_hint" : "prj.clean_hint");
@@ -191,6 +195,7 @@ export default {
   back(reload = true) {
     this.detail.classList.add("hidden");
     this.list.classList.remove("hidden");
+    this.root.classList.remove("prj-open");
     this.detail.replaceChildren();
     if (reload) this.refresh();          // what changed inside (a save, Aurora's work) shown on the cards at once
   },
@@ -199,6 +204,7 @@ export default {
   open(p) {
     this.list.classList.add("hidden");
     this.detail.classList.remove("hidden");
+    this.root.classList.add("prj-open");                 // the list's title, plugins and words step aside
     openProject(this.detail, p, { base: this.base, back: () => this.back() });
   },
 };

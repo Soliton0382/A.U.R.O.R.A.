@@ -69,7 +69,7 @@ async function stl(url) {
   return parseStl(await res.arrayBuffer());
 }
 
-function modelView(project, model, materials) {
+function modelView(project, model, materials, coverKind) {
   const box = el("div", "rnd-box");
   const stage = el("div", "rnd-stage"), canvas = el("canvas", "rnd-canvas"), state = el("p", "muted rnd-state", t("prj.loading"));
   stage.append(canvas, state);
@@ -179,7 +179,17 @@ function modelView(project, model, materials) {
       size();
     }, "image/png")));
   });
-  tools.append(reset, shot);
+  // 🖼️ the picture as the project's cover on its card; the first time the view is drawn it becomes the cover by
+  // itself, unless the owner chose one or the project has its own
+  const toCover = async () => call(`/v1/aurora/projects/${project}/cover`, { method: "PUT",
+    body: JSON.stringify({ image: canvas.toDataURL("image/jpeg", 0.88) }) });
+  const asCover = el("button", "", t("prj.render_cover"));
+  asCover.addEventListener("click", async () => {
+    asCover.disabled = true;
+    try { await toCover(); asCover.textContent = t("prj.render_cover_done"); } catch (e) { asCover.title = t("ev.error", { m: e.message }); }
+    asCover.disabled = false;
+  });
+  tools.append(reset, shot, asCover);
   (async () => {
     const loaded = [];
     for (const [i, p] of model.parts.entries()) {
@@ -211,6 +221,9 @@ function modelView(project, model, materials) {
     }
     state.remove();
     size();
+    if (coverKind === "none" || coverKind === "code") {
+      requestAnimationFrame(() => requestAnimationFrame(() => toCover().catch(() => { /* the card keeps what it had */ })));
+    }
   })();
   return box;
 }
@@ -219,12 +232,12 @@ export function renderView(name) {
   const box = el("div", "prj-render");
   box.append(el("p", "muted", t("prj.render_hint")));
   canvasBg(box);
-  call(`/v1/aurora/projects/${name}/scene`).then(({ models, materials }) => {
+  call(`/v1/aurora/projects/${name}/scene`).then(({ models, materials, cover }) => {
     if (!models.length) { box.append(el("p", "muted", t("prj.render_none"))); return; }
     const chips = el("div", "prj-tabs"), pane = el("div");
     const pick = (i) => {
       chips.querySelectorAll("button").forEach((b, k) => b.classList.toggle("on", k === i));
-      pane.replaceChildren(modelView(name, models[i], materials));
+      pane.replaceChildren(modelView(name, models[i], materials, i === 0 ? cover : "set"));
     };
     models.forEach((m, i) => {
       const b = el("button", "cat-chip", `🧊 ${m.model}`);

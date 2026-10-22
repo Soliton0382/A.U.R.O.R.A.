@@ -4048,3 +4048,62 @@ sandbox (the same day, the plugin's libraries and ngspice in its own folder): as
 she chose 1.6 kΩ and 100 nF, computed 994.7 Hz and measured 994.7 Hz in the simulation; 6 steps in 48 s, one refusal on
 the way (her title with «≈», C374). Not measured: transient accuracy against an analytic step; larger circuits; the drawing of circuits written by the model
 itself.
+
+## M250 — the steadier judge on 80 more answers: three verdicts against one (23 October 2026; ROADMAP N19)
+
+The vault's source questions of eight saved runs not used in M224 (14 October: local, local seed 8, cloud, cloud seed
+8; 16 October: mixed ×2, mixed seed 8 ×2; the four runs of 19 October found none of their vault questions in today's
+sample) judged again twice by Sonnet in each of two ways: majority of up to three verdicts (`bench_edge.VOTES` = 3, as
+now) and one verdict (`VOTES` = 1, set from outside for this run; no code changed). `bench_rejudge.py --only
+aurora_edge/vault`; files 20261023-1012-rejudge.json (three) and 20261023-1021-rejudge.json (one).
+
+| | changed against the run's own verdict | changed between two judgings of the same day | right of 80 |
+|---|---|---|---|
+| majority of three | 6 (7.5 %) | 3 (3.8 %) | 53, 52 |
+| one verdict | 6 (7.5 %) | 3 (3.8 %) | 51, 54 |
+
+The two ways disagreed on 2 of 80 first verdicts; 5 of 80 answers changed in at least one of the four judgings (the
+same borderline answers both ways). Together with M224 (60 answers): one verdict 2 + 3 = 5 same-day changes of 140,
+majority 1 + 3 = 4 of 140. Read: no measurable gain — the votes steady a single call, but the answers that flip are
+borderline for the judge whichever way it is asked, and the votes cost up to three judge calls on these questions.
+Verdict for N19: not an improvement shown; the votes stay (they never did worse), the noise of the vault's source
+questions is about 4 % same day and 7–8 % between days. Not measured: a stricter source-judge prompt; Opus as judge.
+
+## M251 — memory over days, the seventh and the ninth night (23 October 2026; ROADMAP D1, N3)
+
+The same probe as M217 and M236 (`bench_memory_days.py probe`, the user «test», the eight questions, `remember:
+false`). The 7-night probe of 21 October ran (its result had stayed in the file, not here); today's by hand.
+
+| days after the facts | right | the answers' seconds |
+|---|---|---|
+| 0.45 (M217) | 7 of 8 | 4.7–17.3 |
+| 2.55 (M236) | 8 of 8 | 4.4–78.4 |
+| **6.55** (21 Oct) | **8 of 8** | 4.2–36.1 |
+| **8.67** (23 Oct) | **8 of 8** | 4.3–29.1 |
+
+The changed fact (the car sold, the new one told later in the same talk) is the new one at every probe; the
+hazelnut allergy refuses the Nutella dessert; the never-told brother and colour are «I don't know», nothing invented;
+she now also says when she was told («me l'hai detto il 14 ottobre»). The slowest answer is the dessert (it searches)
+and, on 21 Oct, the cat (36.1 s, not explained). Read: nine nights of REM consolidation lose nothing of seven facts
+and invent nothing. Not measured: more users and more facts (one user, 7 facts, 8 questions); a month; facts told in
+different sessions rather than one talk.
+
+## M252 — lessons on the local model (23 October 2026; ROADMAP T4)
+
+The M191 trial on Aurora local (every role on the local model, Qwen3.6-35B-A3B Q4_K_M), seed 8, the same day, without
+and with the 33 lessons of method of M191 (`bench_public.py --targets aurora-local --seed 8 [--lessons]`; the file of
+lessons does not say which model wrote them). The default sets are 14 today (IFEval, HumanEval and BFCL added since
+M191): 158 questions. Judge Sonnet. Files 20261023-0950-aurora-local-s8.json, 20261023-1154-aurora-local-lessons-s8.json.
+
+| sets | without | with | changed: right without → with |
+|---|---|---|---|
+| the nine of M191 (108) | 81 | 82 | +4 −3 |
+| all fourteen (158) | **127** | **128** | **+5 −4** |
+
+By set: edge 21 → 22, MMLU-Pro 9 → 10, ARC 1 → 2 (+2 −1), HLE 2 → 1, MATH-500 10 → 9, BFCL irrelevance 7 → 7 (+1 −1);
+the others the same. Read: no effect on the local model either — +1 of 158 with 9 outcomes changing both ways, under the
+noise M191 measured (9 of 108 change between two runs of one configuration). The owner's guess (lessons might help the
+weaker, fixed local model) is not borne out: the lessons stay off; «sessions where the cloud trains the local model»
+are not worth weighing on this evidence. Aside: Aurora local seed 8 on the nine sets went from 74 (14 Oct) to 81
+today, with the same model — the work of 15–22 Oct, or noise (+7 is above it). Not measured: lessons written from
+the local model's own mistakes; another seed; a LoRA (training, not lessons).
