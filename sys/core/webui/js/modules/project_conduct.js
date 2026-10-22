@@ -15,6 +15,7 @@ const cut = (v, n) => { const s = typeof v === "string" ? v : JSON.stringify(v ?
 function line(ev) {
   const p = ev.payload || {};
   switch (ev.event) {
+    case "agent.start": return `🚀 ${t("conduct.started")}`;
     case "tool.call": return `▶ ${p.name} ${cut(p.arguments, 160)}`;
     case "tool.result": return `  ${p.ok ? "✓" : "✗"} ${cut(p.text, 220)}`;
     case "project.run": return `  ⚙️ ${cut(p.command, 120)} → exit ${p.exit} · ${p.seconds} s`;
@@ -50,7 +51,7 @@ export function conductView(name) {
   const base = `/v1/aurora/projects/${name}/conduct`;
 
   const entry = (e) => {
-    const row = el("div", `ev conduct-${e.kind}`);
+    const row = el("div", `conduct-row conduct-${e.kind}`);
     row.append(el("p", "muted", `${WHO[e.kind] || "•"} ${clock(e.t)}${STATUS[e.status] ? ` · ${t(STATUS[e.status])}` : ""}`));
     if (e.kind === "goal" && e.status === "draft") {
       const text = el("textarea");
@@ -68,7 +69,13 @@ export function conductView(name) {
       });
       row.append(text, el("div", "", ""), go, drop);
     } else {
-      row.append(el("pre", "prj-code", e.text));
+      if (e.kind === "goal") {                    // a started goal folded: the room goes to the console and the reply
+        const fold = el("details", "conduct-goal");
+        fold.append(el("summary", "", e.text.split("\n").find((l) => l.trim()) || "🎯"), el("pre", "prj-code conduct-text", e.text));
+        row.append(fold);
+      } else {
+        row.append(el("pre", "prj-code conduct-text", e.text));
+      }
       if (e.kind === "goal" && e.status === "running" && e.run_id) {
         row.append(...liveConsole(e.run_id, () => setTimeout(load, 3000)));      // the judge's reply follows the end
       }

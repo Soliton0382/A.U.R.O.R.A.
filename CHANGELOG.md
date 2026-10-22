@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.82 — 2026-10-23
+
+1 publications since v0.2.81.
+
+- 2026-10-23 project conductor page: rows full width, live console readable on phones, goal folded once started, start line in the console
+
 ## v0.2.81 — 2026-10-22
 
 2 publications since v0.2.79.

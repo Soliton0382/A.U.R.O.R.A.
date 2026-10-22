@@ -67,4 +67,7 @@
 .prj-docs-ticks { display: flex; flex-direction: column; gap: .3rem; margin: .5rem 0; }
 .prj-docs-file { display: block; margin: .2rem 0; text-align: left; }
 /* 🖥️ the conductor's live console (N39): the agent's steps as they happen */
-.prj-console { height: 40vh; white-space: pre-wrap; background: #0d1117; color: #c9d1d9; font-family: ui-monospace, monospace; font-size: .8rem; }
+.conduct-row { display: block; margin: .6rem 0; }
+.conduct-text { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 50vh; }
+.conduct-goal > summary { cursor: pointer; overflow-wrap: anywhere; }
+.prj-console { display: block; width: 100%; box-sizing: border-box; overflow-wrap: anywhere; height: 40vh; white-space: pre-wrap; background: #0d1117; color: #c9d1d9; font-family: ui-monospace, monospace; font-size: .8rem; }

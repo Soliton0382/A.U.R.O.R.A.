@@ -900,6 +900,7 @@
   "conduct.local": "lavora il modello locale",
   "conduct.finished": "lavoro finito: ora giudica il conduttore",
   "conduct.live": "🖥️ In diretta · {s} s · {n} passi",
+  "conduct.started": "fase avviata: il modello legge e ragiona, i passi compaiono qui",
   "plan.button": "🏗️ Piano",
   "docs.button": "📑 Documenti",
   "docs.title": "📑 Documentazione del progetto",

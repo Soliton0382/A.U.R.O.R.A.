@@ -900,6 +900,7 @@
   "conduct.local": "the local model works",
   "conduct.finished": "work done: now the conductor judges",
   "conduct.live": "🖥️ Live · {s} s · {n} steps",
+  "conduct.started": "phase started: the model reads and reasons, the steps show here",
   "plan.button": "🏗️ Plan",
   "docs.button": "📑 Documents",
   "docs.title": "📑 The project's documentation",
