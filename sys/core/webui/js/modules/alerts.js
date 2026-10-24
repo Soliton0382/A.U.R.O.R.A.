@@ -33,9 +33,10 @@ export default {
     this.showPush = async () => {
       const st = await pushState();
       notif.classList.toggle("hidden", st === "unsupported");
-      notif.textContent = st === "on" ? "🔔" : "🔕";
-      notif.classList.toggle("on", st === "on");
-      notif.title = t(st === "on" ? "push.on" : st === "denied" ? "push.denied" : "push.off");
+      const on = st === "on" || st === "app";
+      notif.textContent = on ? "🔔" : "🔕";
+      notif.classList.toggle("on", on);
+      notif.title = t({ on: "push.on", denied: "push.denied", app: "push.app", appoff: "push.appoff" }[st] || "push.off");
       notif.setAttribute("aria-label", notif.title);
     };
     this.showPush();

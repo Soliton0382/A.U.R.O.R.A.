@@ -8,7 +8,14 @@ async function registration() {
   return navigator.serviceWorker.ready;
 }
 
+// inside Aurora's phone app the notifications come from its line, not from Web Push (the WebView has none): the app
+// says whether Android lets it show them, and opens its settings
+export const inApp = () => typeof window.AuroraApp?.notifications === "function";
+
+export function appSettings() { window.AuroraApp?.settings(); }
+
 export async function pushState() {
+  if (inApp()) return window.AuroraApp.notifications() ? "app" : "appoff";
   const reg = await registration();
   if (!reg) return "unsupported";
   if (Notification.permission === "denied") return "denied";

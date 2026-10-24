@@ -411,6 +411,8 @@ async def push_action(action: str, request: Request) -> dict:
         return {"subscriptions": n}
     if action == "test":
         msg = sys_push.message("test", {"text": "Aurora"}, cfg)
+        from aurora import sys_line
+        await asyncio.to_thread(sys_line.post, msg, cfg)              # the app's line too (aurora-app F2)
         return await asyncio.to_thread(sys_push.send, msg, cfg)
     raise HTTPException(status_code=404, detail="unknown action")
 

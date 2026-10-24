@@ -114,6 +114,12 @@ def _push(event: str, payload: dict) -> None:
             log.exception("notification history")
     if toast and event != "test":
         note("notify", "notify", toast)              # the WebUI shows it (alerts widget); "notify" itself is not in TEXTS
+    if msg:
+        from aurora import sys_line
+        try:
+            sys_line.post(msg, cfg.now())            # Aurora's app keeps a line open: no push service (aurora-app F2)
+        except OSError:
+            log.exception("line")
     if msg and sys_push.count(cfg):
         sys_context.start(sys_push.send, msg, cfg.now(), name="push")     # to the devices of the event's user
 

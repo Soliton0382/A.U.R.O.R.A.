@@ -4215,3 +4215,20 @@ Warm, a sentence is heard and translated about 0.5 s after the pause that ends i
 then the voice's first sound (0.7–1.1 s, M211). The one mistake is Whisper's on a synthetic voice; the translation
 keeps it. Not measured: a person's voice, a phone's microphone and network, a noisy room, languages other than these
 three, the page itself on a phone (the voices a phone has for German and others).
+
+## M258 — the line to Aurora's Android app (25 October 2026; ROADMAP N45)
+
+Aurora's Android app (a project of its own, outside this repository) keeps a request open on GET /v1/aurora/line
+(sys_line, up to 50 s, then again). Measured on an Android 16 emulator (x86_64, swiftshader) against a stand-in server
+on this machine with the same answers, from the event to the notification on the phone (`dumpsys notification`):
+
+| Case | Shown after |
+|---|---|
+| app in the background | 0.30 s |
+| deep Doze forced (`deviceidle force-idle`), no battery exemption, request already open | 0.55 s |
+| deep Doze for 70 s, so the request was opened again while dozing | 0.55 s |
+| after a reboot (the line started by BOOT_COMPLETED, no app opened) | 0.57 s |
+
+A tap on the notification opens `/?view=<page>`, as Web Push does. Not measured: a real phone and its maker's battery
+saver, a mobile network's NAT on a request held 50 s, the battery the line costs, the route on the real aurora-api
+(the stand-in answers like it; the route is tested in test_line.py).

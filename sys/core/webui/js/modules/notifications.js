@@ -5,7 +5,7 @@
 import { call } from "../api.js";
 import { el } from "../dom.js";
 import { apply, lang, t } from "../i18n.js";
-import { pushOff, pushOn, pushState } from "../push.js";
+import { appSettings, pushOff, pushOn, pushState } from "../push.js";
 import { bus } from "../bus.js";
 
 const CHANNELS = ["push", "webui"];
@@ -67,6 +67,12 @@ export default {
     const st = await pushState();
     const box = this.device;
     box.replaceChildren(el("div", "ev", t(`notif.state.${st}`)));
+    if (st === "app" || st === "appoff") {             // Aurora's phone app: Android's own switch
+      const b = el("button", "", t("notif.app_settings"));
+      b.addEventListener("click", () => appSettings());
+      box.append(b);
+      return;
+    }
     if (st === "unsupported" || st === "denied") return;
     const b = el("button", "", t(st === "on" ? "notif.off" : "notif.on"));
     b.addEventListener("click", async () => {

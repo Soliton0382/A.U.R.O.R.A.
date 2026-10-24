@@ -2,6 +2,13 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.91 — 2026-10-25
+
+2 publications since v0.2.89.
+
+- 2026-10-25 Interprete (N44); proposte senza doppioni (C395); linea per l'app Android e pagina per scaricarla (N45)
+- 2026-10-24 Interprete simultaneo (N44); proposte delle routine senza doppioni (C395)
+
 ## v0.2.90 — 2026-10-25
 
 1 publications since v0.2.89.

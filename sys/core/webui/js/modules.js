@@ -24,6 +24,7 @@ import uploads from "./modules/uploads.js";
 import metrics from "./modules/metrics.js";
 import anonchat from "./modules/chat_anon.js";
 import interpret from "./modules/interpret.js";
+import phoneApp from "./modules/phone_app.js";
 import plugins from "./modules/plugins.js";
 import models from "./modules/models.js";
 import guide from "./modules/guide.js";
@@ -61,7 +62,7 @@ import { kinds as homeKinds } from "./modules/home.js";
 let local = { views: [] };
 try { local = await import("./local/index.js"); } catch { /* none on this installation */ }
 
-export const views = [today, advanced, chat, anonchat, interpret, approvals, reports, secFirewalls, secEdge, security, ciso, firewall, aurorafw, secDefence, secWatch, secOut, secTrace, autonomy, diary, dreams, memory, social, dj, care, expenses, astro, home, calendar, projects, routines, models, accounts, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, usage, settings, https, guide, bugreport, ideas];
+export const views = [today, advanced, chat, anonchat, interpret, approvals, reports, secFirewalls, secEdge, security, ciso, firewall, aurorafw, secDefence, secWatch, secOut, secTrace, autonomy, diary, dreams, memory, social, dj, care, expenses, astro, home, calendar, projects, routines, models, accounts, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, usage, settings, https, guide, bugreport, ideas, phoneApp];
 views.push(...homeKinds, ...local.views);
 export const widgets = [sky, alerts, metrics, brain];
 
@@ -83,6 +84,7 @@ export const groups = [
   { id: "security", icon: "🛡️", title: "nav.g.security", views: ["firewalls", "edge", "security", "ciso", "firewall", "aurorafw", "secdefence", "secwatch", "secout", "sectrace"] },
   { id: "autonomy", views: ["autonomy"] },
   { id: "system", icon: "⚙️", title: "nav.g.system", views: ["status", "models", "accounts", "plugins", "users", "usage", "settings", "https", "updates"] },
+  { id: "phoneapp", views: ["phoneapp"] },              // 📱 the phone app: download and set up (owner, 25 Oct)
   { id: "help", icon: "❓", title: "nav.g.help", views: ["guide", "bugreport", "ideas"] },
 ];
 // the machine's pages (owner, 2026-10-06, multi-user): a user sees neither them in the menu nor their data (the API
