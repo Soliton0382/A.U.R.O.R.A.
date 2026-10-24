@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.90 — 2026-10-25
+
+1 publications since v0.2.89.
+
+- 2026-10-25 Interprete simultaneo (N44); proposte delle routine senza doppioni (C395)
+
 ## v0.2.89 — 2026-10-24
 
 8 publications since v0.2.81.

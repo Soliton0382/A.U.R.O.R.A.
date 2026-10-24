@@ -52,6 +52,42 @@ def test_aurora_s_proposals_are_checked_before_they_are_shown():
     assert out[1]["change"]["kind"] == "agent"
 
 
+def test_a_copy_of_a_routine_and_a_second_proposal_on_one_routine_are_not_shown():
+    """C395: two new agents with a routine's goal word for word; two contradicting changes of one routine."""
+    goal = "Controlla i link nei post pubblicati nelle ultime 24 ore con linkcheck.check_link e segnala i sospetti."
+    rs = [_r("l", "Link nei post", goal=goal, plugins=["facebook", "linkcheck"]), _r("f", "Firewall del mattino")]
+    reply = json.dumps([
+        {"action": "new", "routine": None, "title": "Verifica link", "why": "esiste già un agente uguale",
+         "change": {"goal": goal, "title": "Verifica link", "plugins": ["facebook", "linkcheck"],
+                    "schedule": {"every": "custom", "times": ["21:00"], "group": "all"}, "notify": "if_any"}},
+        {"action": "change", "routine": "f", "title": "Solo se critico", "change": {"goal": "solo se critico"}},
+        {"action": "change", "routine": "f", "title": "Settimanale", "change": {"notify": "never"}},
+        {"action": "new", "routine": None, "title": "Agenda", "why": "y",
+         "change": {"goal": "leggi l'agenda di domani e dimmi il primo impegno", "title": "Agenda", "plugins": ["calendar"],
+                    "schedule": {"every": "custom", "times": ["21:15"], "group": "all"}, "notify": "if_any"}},
+    ])
+    llm = SimpleNamespace(complete=lambda *a, **k: SimpleNamespace(answer=reply))
+    out = A.review(llm, rs, [{"name": "calendar", "tools": ["calendar_agenda"]}])
+    assert [a["title"] for a in out] == ["Solo se critico", "Agenda"]
+
+
+def test_a_proposal_read_from_a_result_since_replaced_is_not_shown(cfg):
+    """C395: a change proposed from a failure stayed open days after the routine worked again."""
+    r = sys_routines.create(cfg, {"kind": "agent", "goal": "approfondisci una notizia", "title": "Approfondimento",
+                                  "schedule": {"every": "day", "at": "10:00"}})
+    sys_routines.record(cfg, r["id"], "la ricerca web non è configurata", False)
+    llm = SimpleNamespace(complete=lambda *a, **k: SimpleNamespace(answer=json.dumps(
+        [{"action": "change", "routine": r["id"], "title": "Usa le notizie", "change": {"goal": "usa le notizie"}}])))
+    fresh = A.review(llm, sys_routines.all_routines(cfg), [])
+    A.remember(cfg, fresh)
+    shown = lambda: [a["title"] for a in A.current(cfg, set())["items"] if a["by"] == "aurora"]
+    assert shown() == ["Usa le notizie"]
+    sys_routines.record(cfg, r["id"], "tre fonti trovate, una pagina con i link", True)
+    assert shown() == []                                        # its premise is gone
+    A.remember(cfg, A.review(llm, sys_routines.all_routines(cfg), []))
+    assert shown() == ["Usa le notizie"]                        # proposed again from the new result: shown again
+
+
 def test_a_paused_routine_is_left_alone_by_aurora():
     seen = {}
     def complete(system, user, *a, **k):

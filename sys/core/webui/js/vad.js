@@ -27,7 +27,8 @@ export class SilenceGate {
   }
 }
 
-// Watch a microphone stream; onEnd("end" | "nothing") once. Returns stop(). No Web Audio here: the gate never ends.
+// Watch a microphone stream; onEnd("end" | "nothing", floor) once — the floor it learnt, for a next turn that starts
+// while the person still speaks (the interpreter). Returns stop(). No Web Audio here: the gate never ends.
 export function watch(stream, onEnd, every = 100, from = null) {
   const AC = globalThis.AudioContext || globalThis.webkitAudioContext;
   if (!AC) return () => {};
@@ -44,7 +45,7 @@ export function watch(stream, onEnd, every = 100, from = null) {
     let sum = 0;
     for (const v of buf) sum += v * v;
     const state = gate.step(Math.sqrt(sum / buf.length), every);
-    if (state === "end" || state === "nothing") { stop(); onEnd(state); }
+    if (state === "end" || state === "nothing") { stop(); onEnd(state, gate.floor); }
   }, every);
   function stop() {
     if (done) return;

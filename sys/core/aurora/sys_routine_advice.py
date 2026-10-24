@@ -113,7 +113,10 @@ SYS_REVIEW = (
     "a time that collides, and NEW agents the owner is missing given the plugins ready and how the owner works. Never propose "
     "something already done by another routine or by the system (listed), nothing about a routine the owner paused (they "
     "paused it on purpose), never to pause or move one set_by_the_owner_recently (their fresh choice), never a change "
-    "to a tool routine's tool; in a new agent's goal name only tools listed. "
+    "to a tool routine's tool; in a new agent's goal name only tools listed. A NEW agent must do what no listed routine "
+    "does: if one already has that goal, propose a change to it, or nothing. What the owner asked for in so many words "
+    "in a goal («invia sempre», «ogni mattina») is their wish, not a fault. A result that waits for the owner's approval "
+    "(«⏳ … aspetta la tua approvazione») is the design: never a problem to fix. Judge only by the last result as shown. "
     "Reply ONLY with a JSON list of "
     "objects: {{\"action\": \"change\"|\"pause\"|\"new\", \"routine\": the id (change, pause) or null (new), \"title\": a short "
     "Italian title, \"why\": one or two Italian sentences, \"change\": for change only the fields to change among goal, "
@@ -135,6 +138,27 @@ def _summary(routines: list[dict]) -> str:
     return "\n".join(rows)
 
 
+def _seen(r: dict) -> str:
+    """The result a proposal was read from: a proposal stands while the routine still gives that result."""
+    return hashlib.blake2b(str(r.get("last_text") or "").encode(), digest_size=6).hexdigest()
+
+
+def _goal_words(text: str) -> set[str]:
+    return {w for w in re.findall(r"[a-zà-ù_.]{4,}", str(text or "").lower()) if w not in STOP}
+
+
+def _copy_of(spec: dict, routines: dict) -> dict | None:
+    """The routine a proposed new agent repeats (C395: Aurora proposed two agents whose goal was word for word a
+    routine's already there, and wrote so in her own «why»): the same plugins and most of the goal's words."""
+    words, plugins = _goal_words(spec.get("goal")), set(spec.get("plugins") or [])
+    for r in routines.values():
+        theirs = _goal_words(r.get("goal") or f"{r.get('plugin')}.{r.get('tool')}")
+        same_plugins = set(r.get("plugins") or ([r["plugin"]] if r.get("plugin") else [])) == plugins
+        if words and theirs and len(words & theirs) / len(words | theirs) >= (0.4 if same_plugins else 0.7):
+            return r
+    return None
+
+
 def _checked(a: dict, by_id: dict) -> dict | None:
     """The proposal made applicable, or None (an unknown routine, a spec validate refuses, a kind not allowed)."""
     act, rid = a.get("action"), a.get("routine")
@@ -146,6 +170,7 @@ def _checked(a: dict, by_id: dict) -> dict | None:
             r = by_id.get(rid)
             if r is None:
                 return None
+            out["seen"] = _seen(r)
             if act == "change":
                 change = {k: v for k, v in (a.get("change") or {}).items()
                           if k in ("schedule", "notify", "title") or k == "goal" and r.get("kind") == "agent"}
@@ -156,6 +181,8 @@ def _checked(a: dict, by_id: dict) -> dict | None:
         else:
             spec = {k: v for k, v in (a.get("change") or {}).items()
                     if k in ("goal", "title", "plugins", "schedule", "notify", "icon")}
+            if _copy_of(spec, by_id):
+                return None
             out["change"] = {"kind": "agent", "event": "routine.done", **sys_routines.validate({"kind": "agent", **spec})}
     except (ValueError, TypeError):
         return None
@@ -179,7 +206,12 @@ def review(llm, routines: list[dict], plugins: list[dict], system: list[str] = (
     except ValueError:
         items = []
     by_id = {r["id"]: r for r in on}
-    return [c for c in (_checked(a, by_id) for a in items if isinstance(a, dict)) if c][:n]
+    out, seen = [], set()
+    for c in (_checked(a, by_id) for a in items if isinstance(a, dict)):
+        if c and (c["action"] == "new" or c["routine"] not in seen):     # one proposal a routine: two may contradict
+            out.append(c)
+            seen.add(c["routine"])
+    return out[:n]
 
 
 def current(cfg: sys_config.Config, ready: set[str]) -> dict:
@@ -193,7 +225,12 @@ def current(cfg: sys_config.Config, ready: set[str]) -> dict:
             code.append({**a, "id": a["key"], "status": "open"})
     kept = [a for a in data["items"] if a.get("by") == "aurora" and a.get("status") == "open"]
     live = {r["id"] for r in sys_routines.all_routines(cfg)}
-    kept = [a for a in kept if a["action"] == "new" or a.get("routine") in live]
+    now = {r["id"]: r for r in sys_routines.all_routines(cfg)}
+    # a change read from a result the routine has since replaced is not shown (C395: proposals of days before, one
+    # from a failure fixed since); the next review proposes it again if the new result still calls for it
+    kept = [a for a in kept if a["action"] == "new" or a.get("routine") in live and (
+            _seen(now[a["routine"]]) == a["seen"] if a.get("seen")
+            else float(now[a["routine"]].get("last_run") or 0) <= a.get("at", 0))]
     return {"items": code + kept, "reviewed": data.get("reviewed", 0)}
 
 
@@ -209,6 +246,9 @@ def remember(cfg: sys_config.Config, fresh: list[dict], reviewed: bool = True) -
     added = 0
     for a in fresh:
         k = _key(a)
+        for x in data["items"]:                       # proposed again from a fresh result: shown again
+            if x["key"] == k and x.get("status") == "open":
+                x["at"], x["seen"] = time.time(), a.get("seen", x.get("seen"))
         if k not in known:
             data["items"].append({**a, "by": "aurora", "key": k, "id": k, "status": "open", "at": time.time()})
             added += 1

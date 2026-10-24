@@ -4198,3 +4198,20 @@ With Whisper on the GPU (0.14–0.20 s a sentence, M204) and the first sound of 
 sentence would be heard translated about 1.5 s after its end, plus the pause that ends it. Not measured: the first
 call (cold), sentences spoken by a person, a GPU busy with another job, languages other than these four, the quality
 on idioms and names.
+
+## M257 — the interpreter's chain on this machine (24 October 2026; ROADMAP N44)
+
+Three invented sentences spoken by Aurora's own voice (/v1/aurora/tts, WAV), then what /v1/aurora/interpret does:
+decoded (sns_av.decode), heard by Whisper on the GPU in the speaker's language, translated by the local reasoner with
+the previous sentences as context (kno_interpret):
+
+| | audio | heard | seconds | translated | seconds |
+|---|---|---|---|---|---|
+| it → en | 3.5 s | «… a che ora **fate** l'ultimo autobus per il **100**?» (said: «parte», «centro») | 1.36 (the first call) | faithful to what was heard | 0.54 |
+| it → de | 3.3 s | exact | 0.18 | «Ich hätte gerne ein Doppelzimmer für zwei Nächte mit Frühstück.» | 0.29 |
+| en → it | 4.8 s | exact | 0.17 | «L'incontro è stato spostato a giovedì pomeriggio. Le va bene?» | 0.32 |
+
+Warm, a sentence is heard and translated about 0.5 s after the pause that ends it; the pause itself is 1.2 s (vad.js),
+then the voice's first sound (0.7–1.1 s, M211). The one mistake is Whisper's on a synthetic voice; the translation
+keeps it. Not measured: a person's voice, a phone's microphone and network, a noisy room, languages other than these
+three, the page itself on a phone (the voices a phone has for German and others).
