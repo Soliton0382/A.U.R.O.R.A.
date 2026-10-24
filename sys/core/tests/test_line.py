@@ -43,3 +43,16 @@ def test_the_route_needs_a_login_and_every_chosen_notification_goes_on_the_line(
     core = (ROOT / "aurora" / "api" / "core.py").read_text()
     push = core.split("def _push(")[1].split("\n\n\n")[0]
     assert "sys_line.post(msg" in push and push.index("sys_line.post") < push.index("sys_push.count(cfg)")
+
+
+def test_the_page_knows_whose_line_is_open(monkeypatch):
+    monkeypatch.setattr(sys_line, "seen", {})
+    phone = {"id": "d1", "name": "Telefono"}
+    sys_line.held(phone, "anna", +1)
+    sys_line.held({"id": "d2", "name": "Altro"}, "bruno", +1)
+    assert sys_line.lines("anna") == [{"name": "Telefono", "ago": 0, "open": True}]
+    sys_line.held(phone, "anna", -1)
+    sys_line.held(phone, "anna", -1)                                  # never below zero
+    assert sys_line.lines("anna")[0]["open"] is False and sys_line.seen["d1"]["open"] == 0
+    sys_line.held(None, "anna", +1)                                   # the API key: no phone to show
+    assert len(sys_line.seen) == 2

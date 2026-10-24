@@ -24,10 +24,15 @@ async def line(request: Request, after: str = "", wait: float = 0) -> dict:
         log.info("audit: line opened by %s", dev.get("name") or "the API key")
         return {"events": [], "next": await asyncio.to_thread(sys_line.last, cfg)}
     end = time.monotonic() + max(0.0, min(float(wait), sys_line.WAIT_MAX))
-    while True:
-        seen = sys_line.version
-        events = await asyncio.to_thread(sys_line.since, after, cfg)
-        if events or time.monotonic() >= end or await request.is_disconnected():
-            return {"events": events, "next": events[-1]["id"] if events else after}
-        while sys_line.version == seen and time.monotonic() < end:
-            await asyncio.sleep(0.5)
+    dev, who = getattr(request.state, "device", None), getattr(request.state, "user", None)
+    sys_line.held(dev, who, +1)                       # the 📱 page: «linea collegata adesso / N minuti fa»
+    try:
+        while True:
+            seen = sys_line.version
+            events = await asyncio.to_thread(sys_line.since, after, cfg)
+            if events or time.monotonic() >= end or await request.is_disconnected():
+                return {"events": events, "next": events[-1]["id"] if events else after}
+            while sys_line.version == seen and time.monotonic() < end:
+                await asyncio.sleep(0.5)
+    finally:
+        sys_line.held(dev, who, -1)

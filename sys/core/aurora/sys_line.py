@@ -19,6 +19,7 @@ KEEP, TTL = 200, 12 * 3600                            # events kept per user; ol
 WAIT_MAX = 55                                          # seconds a request is held: under the usual 60 s idle timeouts
 
 _lock = threading.Lock()
+seen: dict[str, dict] = {}            # device id -> {"name", "user", "at": last request, "open": requests held now}
 version = 0                       # grows at every event: a waiting request looks only at this, not at the file
 
 
@@ -71,3 +72,21 @@ def last(cfg: sys_config.Config) -> str:
     except (ValueError, KeyError):
         return "0"
 
+
+
+def held(device: dict | None, user: str | None, delta: int) -> None:
+    """A request of `device` starts (+1) or ends (-1): the 📱 page says when the phone's line was last connected."""
+    if not device or not device.get("id"):
+        return
+    with _lock:
+        row = seen.setdefault(device["id"], {"name": device.get("name", ""), "user": user, "at": 0.0,
+                                             "open": 0})
+        row["at"], row["open"] = time.time(), max(0, row["open"] + delta)
+
+
+def lines(user: str | None) -> list[dict]:
+    """The phones of `user` that opened a line since the API started: {"name", "ago" (s), "open"}."""
+    now = time.time()
+    with _lock:
+        rows = [dict(r) for r in seen.values() if r["user"] == user]
+    return [{"name": r["name"], "ago": round(now - r["at"]), "open": r["open"] > 0} for r in rows]

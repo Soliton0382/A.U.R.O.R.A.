@@ -16,6 +16,11 @@ const STEPS = [                                      // [text key, screenshot or
   ["phoneapp.s6", null],
 ];
 
+const BRANDS = ["samsung", "xiaomi", "huawei", "oppo", "other"];
+
+const ago = (s) => (s < 90 ? t("phoneapp.line.now") : s < 5400 ? t("phoneapp.line.min", { n: Math.round(s / 60) })
+  : t("phoneapp.line.hours", { n: Math.round(s / 3600) }));
+
 const older = (a, b) => {                            // version a before b
   const x = a.split(".").map(Number), y = b.split(".").map(Number);
   for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) < (y[i] || 0);
@@ -31,9 +36,20 @@ export default {
     root.classList.add("page");
     useCss("/static/css/phone_app.css");
     root.innerHTML = `<h2 data-i18n="phoneapp.title"></h2><p class="muted" data-i18n="phoneapp.hint"></p>
-      <div class="pa-get"></div><ol class="pa-steps"></ol><p class="muted" data-i18n="phoneapp.tips"></p>`;
+      <div class="pa-get"></div><div class="pa-lines"></div><ol class="pa-steps"></ol>
+      <details class="pa-bg"><summary data-i18n="phoneapp.bg.title"></summary><p data-i18n="phoneapp.bg.intro"></p>
+        <ul><li data-i18n="phoneapp.bg.check"></li><li data-i18n="phoneapp.bg.battery"></li><li data-i18n="phoneapp.bg.recent"></li></ul>
+        <table class="pa-brands"><tbody></tbody></table></details>
+      <p class="muted" data-i18n="phoneapp.tips"></p>`;
     apply(root);
     this.get = root.querySelector(".pa-get");
+    this.lines = root.querySelector(".pa-lines");
+    const brands = root.querySelector(".pa-brands tbody");          // where each maker hides «run in the background»
+    for (const b of BRANDS) {
+      const tr = el("tr");
+      tr.append(el("th", "", t(`phoneapp.bg.${b}.name`)), el("td", "", t(`phoneapp.bg.${b}`)));
+      brands.append(tr);
+    }
     const ol = root.querySelector(".pa-steps");
     const port = location.port || "443";
     for (const [key, shot] of STEPS) {
@@ -56,6 +72,12 @@ export default {
     let a;
     try { a = await call("/v1/aurora/app"); } catch (e) { box.replaceChildren(el("p", "error", e.message)); return; }
     box.replaceChildren();
+    // 📶 is the line of each phone open? (the notifications only arrive while it is)
+    // between two requests of the line there is a second or two: a minute without one is a line stopped
+    const live = (l) => l.open || l.ago < 90;
+    this.lines.replaceChildren(...(a.lines?.length ? a.lines.map((l) => el("p", live(l) ? "pa-line on" : "pa-line",
+      t(live(l) ? "phoneapp.line.open" : "phoneapp.line.last", { name: l.name, when: ago(l.ago) })))
+      : [el("p", "muted", t("phoneapp.line.none"))]));
     const mine = (navigator.userAgent.match(/AuroraApp\/([\d.]+)/) || [])[1];
     if (mine) box.append(el("p", "pa-mine", t(a.available && older(mine, a.version) ? "phoneapp.update" : "phoneapp.using",
                                             { v: mine, n: a.version || "" })));

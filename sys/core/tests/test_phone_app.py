@@ -36,5 +36,7 @@ def test_the_page_is_in_the_menu_with_its_texts_and_screens():
         table = json.loads((ROOT / "webui" / "i18n" / f"{loc}.json").read_text())
         assert keys and keys <= set(table) and "nav.phoneapp" in table
         assert "{host}" in table["phoneapp.s3"] and "{port}" in table["phoneapp.s3"]   # this Aurora's, read live
+    for b in re.findall(r'"(\w+)"', PAGE.split("const BRANDS = [")[1].split("]")[0]):  # the makers' rows
+        assert f"phoneapp.bg.{b}" in table and f"phoneapp.bg.{b}.name" in table
     for shot in re.findall(r'"phoneapp\.s\d", "(\w+)"', PAGE):
         assert (ROOT / "webui" / "assets" / "app" / f"{shot}.webp").is_file()
