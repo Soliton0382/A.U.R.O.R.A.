@@ -121,6 +121,15 @@ def test_mistrals_newer_call_form_is_read():
     assert [json.loads(x)["name"] for x in calls] == ["weather__forecast", "finish"] and said == "Guardo."
 
 
+def test_arguments_written_beside_the_name_are_kept():
+    """C391: «{"name": "finish", "summary": …}» was read as a finish with no report."""
+    raw = '<tool_call>\n{"name": "finish", "summary": "Nessuna spesa a ottobre."}\n</tool_call>'
+    assert json.loads(parse(raw)[1][0]) == {"name": "finish", "arguments": {"summary": "Nessuna spesa a ottobre."}}
+    flat = '<tool_call>{"name": "weather__forecast", "place": "Trento"}</tool_call>'
+    assert json.loads(parse(flat)[1][0])["arguments"] == {"place": "Trento"}
+    assert json.loads(parse('<tool_call>{"name": "finish"}</tool_call>')[1][0])["arguments"] == {}
+
+
 def test_an_output_the_server_cannot_read_is_asked_again_not_sent_to_the_text_form(cfg, monkeypatch):
     """M170: gpt-oss now and then — «does not match the expected … format» — was taken for a template without
     tools, and every later turn lost them (1 of 8 runs right; asked again: 8 of 8)."""

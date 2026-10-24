@@ -427,7 +427,7 @@ def _gpus() -> list[dict]:
 
     ("sys/core/aurora/sys_bugreport.py",
      """    try:
-        env["os"] = next(l.split("=", 1)[1].strip().strip('"') for l in open("/etc/os-release")
+        env["os"] = next(l.split("=", 1)[1].strip().strip('"') for l in Path("/etc/os-release").read_text().splitlines()
                          if l.startswith("PRETTY_NAME="))
     except (OSError, StopIteration):
         env["os"] = "?\"""",

@@ -38,7 +38,8 @@ def ram_gb() -> float:
 def cpu_bf16() -> bool:
     """The processor computes in bfloat16 natively (AVX-512 BF16 or AMX): 2.8x faster re-ranking than float32 (M151)."""
     try:
-        flags = next((l for l in open("/proc/cpuinfo", encoding="utf-8") if l.startswith("flags")), "").split()
+        with open("/proc/cpuinfo", encoding="utf-8") as f:
+            flags = next((l for l in f if l.startswith("flags")), "").split()
     except OSError:
         return False
     return "avx512_bf16" in flags or "amx_bf16" in flags

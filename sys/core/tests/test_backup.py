@@ -62,6 +62,7 @@ def test_a_backup_round_trip_keeps_everything_and_writes_only_what_changed(setup
     assert r["files"] == third["files"]
     back = sqlite3.connect(out / "sys/vault/knowledge/law_it/0001.db")
     assert back.execute("SELECT count(*) FROM s").fetchone()[0] == 501
+    back.close()
     assert (out / "usr/documents/paper.pdf").read_bytes() == (root / "usr/documents/paper.pdf").read_bytes()
     assert B.verify(cfg) == len({e[4] for e in B.read_snapshot(B.snapshots(dest)[-1], B._subkeys(B.load_key(cfg))[0])["files"]})
 

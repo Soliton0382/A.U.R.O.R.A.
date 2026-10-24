@@ -79,7 +79,7 @@ def forget(cfg: sys_config.Config, sids: list[str]) -> int:
     gone = list(dict.fromkeys(sids))
     if not gone:
         return 0
-    with _db(cfg) as con:
+    with closing(_db(cfg)) as con, con:
         n = 0
         for i in range(0, len(gone), 500):
             part = gone[i:i + 500]

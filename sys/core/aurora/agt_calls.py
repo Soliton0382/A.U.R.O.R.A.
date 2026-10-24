@@ -74,7 +74,11 @@ def _call(obj) -> str | None:
         return None
     obj = obj.get("function", obj) if isinstance(obj.get("function"), dict) else obj
     name = obj.get("name")
-    args = next((obj[k] for k in ("arguments", "parameters", "input", "args") if k in obj), {})
+    args = next((obj[k] for k in ("arguments", "parameters", "input", "args") if k in obj), None)
+    if args is None:
+        # the arguments written beside the name, {"name": "finish", "summary": "…"} (C391: four routine reports read
+        # as an empty finish, 24 Oct)
+        args = {k: v for k, v in obj.items() if k not in ("name", "type", "id")}
     if isinstance(args, str):
         try:
             args = json.loads(args) if args.strip() else {}

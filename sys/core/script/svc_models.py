@@ -18,6 +18,7 @@ import os
 import sys
 import threading
 import time
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -31,7 +32,15 @@ from aurora.mdl_reranker import Reranker  # noqa: E402
 
 cfg = sys_config.get()
 log = sys_log.get_logger("models")
-app = FastAPI(title="aurora-models")
+
+
+@asynccontextmanager
+async def _lifespan(_app):                            # the models loaded at start (on_event is deprecated)
+    load()
+    yield
+
+
+app = FastAPI(title="aurora-models", lifespan=_lifespan)
 state: dict = {}
 
 
@@ -168,7 +177,6 @@ class RerankIn(BaseModel):
     pairs: list[tuple[str, str]]
 
 
-@app.on_event("startup")
 def load() -> None:
     state["embedder"], state["reranker"] = Embedder(cfg), Reranker(cfg)
     sys_log.trace("models", "service.start", {"encoder": state["embedder"].name, "reranker": state["reranker"].name})

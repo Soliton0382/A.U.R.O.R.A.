@@ -61,6 +61,7 @@ async def conduct_start(name: str, entry: str, request: Request) -> dict:
             return prj_conduct.review(cfg, name, goal_text, report, pipeline().llm)
 
     def after(ans, emit):
+        prj_conduct.update(cfg, name, entry, status="judging")    # the work is over, the conductor reads it (shown live)
         try:
             r = judge(text, ans.text)
             note("agent", "project.update", {"project": name, "text": r["text"][:300]})
@@ -93,6 +94,14 @@ def conduct_drop(name: str, entry: str) -> dict:
     if prj_conduct.update(cfg, name, entry, status="dropped") is None:
         raise HTTPException(status_code=404, detail="no such entry")
     return {"dropped": entry}
+
+
+@router.get("/v1/aurora/projects/{name}/live", dependencies=[Depends(auth)])
+def project_live(name: str) -> dict:
+    """🖥️ One look at everything that moves in the project (prj_live): the page's activity console compares two."""
+    from aurora import prj_live
+    _check(name)
+    return prj_live.snapshot(cfg, name)
 
 
 # ---- 💬 the conversation with the conductor (prj_talk, N39 step 2) ------------------------------------------------

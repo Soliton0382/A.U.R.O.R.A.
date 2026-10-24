@@ -36,6 +36,19 @@ class AgentReport:
         touched = getattr(self, "touched", None)
         return str(max(len(touched or ()), self._count("project_write_file")))
 
+    def _from_record(self) -> str:
+        """No report written by the model (C393: a local phase ran its commands and wrote its files, its report came
+        out empty, and the judge read «nothing done»): what the record shows, so the work is not lost."""
+        cmds = getattr(self, "commands", [])
+        files = sorted(f"{p}/{f}" for p, f in getattr(self, "touched", set()))
+        if not cmds and not files:
+            return "Nessun resoconto prodotto."
+        out = ["Il modello non ha scritto il resoconto. Dal registro delle chiamate:"]
+        out += [f"- comando in {p}: `{c}` → exit {e} in {s} s" for p, c, e, s in cmds]
+        if files:
+            out.append("- file scritti: " + ", ".join(files[:30]) + (" …" if len(files) > 30 else ""))
+        return "\n".join(out)
+
     def _record(self) -> str:
         own = ("list_files", "read_file", "search_code", "logs_inventory", "read_log", "sandbox_read", "sandbox_diff")
         reads = self._count(*own) + sum(1 for name, ok in self.ledger if ok and name.split(SEP)[-1] not in own

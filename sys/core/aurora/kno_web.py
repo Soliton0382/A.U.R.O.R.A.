@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import html.parser
 import ipaddress
+import logging
 import os
 import re
 import socket
@@ -22,6 +23,7 @@ from urllib.parse import urlparse
 
 import httpx
 
+LOG = logging.getLogger("aurora.web")       # each engine's refusal said (C391: two searches failed and left no trace)
 UA = {"User-Agent": "Aurora/1.0 (https://github.com/Soliton0382/A.U.R.O.R.A.; personal assistant)"}
 ENGINES = ("auto", "duckduckgo,brave,mojeek", "bing,yahoo")       # M130: a burst of searches is refused by one engine
 SYS_QUERY = ("Write a web search query (at most 8 words) for the GENERAL subject of this question, in its language: "
@@ -70,7 +72,8 @@ def search(query: str, n: int = 6, region: str = "it-it") -> list[dict]:
     if key:
         try:
             found = brave(query, n, key)
-        except Exception:  # noqa: BLE001 — over quota, down, a bad key: the engines without a key
+        except Exception as e:  # noqa: BLE001 — over quota, down, a bad key: the engines without a key
+            LOG.warning("web search: brave failed (%s: %s)", type(e).__name__, str(e)[:160])
             found = []
         if found:
             return found
@@ -81,7 +84,8 @@ def search(query: str, n: int = 6, region: str = "it-it") -> list[dict]:
     for i, backend in enumerate(ENGINES):
         try:
             found = DDGS().text(query, region=region, max_results=n, backend=backend)
-        except Exception:  # noqa: BLE001 — «No results found», a timeout, an engine down: the next one
+        except Exception as e:  # noqa: BLE001 — «No results found», a timeout, an engine down: the next one
+            LOG.warning("web search: ddgs %s failed (%s: %s)", backend, type(e).__name__, str(e)[:160])
             found = []
         if found:
             return [{"title": x.get("title") or "", "url": x.get("href") or "", "text": x.get("body") or ""}

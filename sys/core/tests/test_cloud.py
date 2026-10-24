@@ -79,6 +79,7 @@ def test_a_system_prompt_too_long_for_one_argument_goes_in_a_file_removed_after(
     # C370: an agent's prompt with its tools went past Linux's 128 KB for one argument («Argument list too long»)
     import json as _json
     import os as _os
+    from pathlib import Path as _Path
     import subprocess as _sp
     from aurora import mdl_cloud
     seen = {}
@@ -87,7 +88,7 @@ def test_a_system_prompt_too_long_for_one_argument_goes_in_a_file_removed_after(
         seen["cmd"] = cmd
         if "--system-prompt-file" in cmd:
             path = cmd[cmd.index("--system-prompt-file") + 1]
-            seen["path"], seen["text"], seen["mode"] = path, open(path, encoding="utf-8").read(), _os.stat(path).st_mode & 0o777
+            seen["path"], seen["text"], seen["mode"] = path, _Path(path).read_text(encoding="utf-8"), _os.stat(path).st_mode & 0o777
         return _sp.CompletedProcess(cmd, 0, _json.dumps({"result": "ok", "usage": {"output_tokens": 1}}), "")
     monkeypatch.setattr(mdl_cloud.subprocess, "run", run)
     monkeypatch.setattr(mdl_cloud.ClaudeCodeLLM, "_account", lambda self, d, s: None)

@@ -40,7 +40,7 @@ LIBS = ("torch", "transformers", "diffusers", "fastapi", "httpx", "numpy", "mcp"
 def _environment(cfg: sys_config.Config) -> dict:
     env = {"python": platform.python_version(), "kernel": platform.release(), "machine": platform.machine()}
     try:
-        env["os"] = next(l.split("=", 1)[1].strip().strip('"') for l in open("/etc/os-release")
+        env["os"] = next(l.split("=", 1)[1].strip().strip('"') for l in Path("/etc/os-release").read_text().splitlines()
                          if l.startswith("PRETTY_NAME="))
     except (OSError, StopIteration):
         env["os"] = "?"

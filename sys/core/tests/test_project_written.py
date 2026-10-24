@@ -50,3 +50,33 @@ def test_the_record_counts_the_files_the_commands_wrote(cfg, monkeypatch):
     agent.touched.add(("demo", "src/gen.py"))                 # the write tool's file, written again by a command: once
     agent.ledger.append(("projects__project_write_file", True))
     assert "3 file scritti nei progetti" in agent._record()
+
+
+def test_run_in_project_takes_the_name_as_the_project_tools_call_it(cfg, monkeypatch):
+    # C392: the local model wrote «name» (as projects__project_* want it); the run refused a valid project name
+    seen = []
+    monkeypatch.setattr(prj_run, "run", lambda cfg, name, command: seen.append(name) or {
+        "exit": 0, "seconds": 0.1, "output": "ok", "changed": []})
+    raw = "<tool_call>\n" + json.dumps({"name": "run_in_project", "arguments": {
+        "name": "elica-chirale", "command": "python -m pytest -q tests"}}) + "\n</tool_call>"
+    llm = LLM([raw,
+               call("finish", summary="Test passati.")])
+    agent = Agent(SimpleNamespace(llm=llm, _for=lambda role: llm), cfg)
+    agent.host = SimpleNamespace(plugins=lambda: [], get=lambda p: None)
+    agent.notify = lambda *a, **k: None
+    agent.run("lavora a elica-chirale", lambda e, p: None, "r1")
+    assert seen == ["elica-chirale"]
+
+
+def test_a_run_without_its_report_says_what_the_record_shows(cfg, monkeypatch):
+    # C393: the local phase ran its commands and wrote files, its report came out empty, the judge read «nothing done»
+    monkeypatch.setattr(prj_run, "run", lambda cfg, name, command: {
+        "exit": 0, "seconds": 9.0, "output": "ok", "changed": ["docs/22_dot.md"]})
+    llm = LLM([call("run_in_project", project="demo", command="python src/esperimento.py dot p=2"),
+               call("finish", summary=""), ""])
+    agent = Agent(SimpleNamespace(llm=llm, _for=lambda role: llm), cfg)
+    agent.host = SimpleNamespace(plugins=lambda: [], get=lambda p: None)
+    agent.notify = lambda *a, **k: None
+    ans = agent.run("lavora a demo", lambda e, p: None, "r1")
+    assert "Nessun resoconto prodotto" not in ans.text
+    assert "`python src/esperimento.py dot p=2` → exit 0 in 9.0 s" in ans.text and "demo/docs/22_dot.md" in ans.text

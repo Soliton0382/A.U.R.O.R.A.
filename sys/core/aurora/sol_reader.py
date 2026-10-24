@@ -54,6 +54,15 @@ class _Cache(dict):
     __hash__ = object.__hash__
     __eq__ = object.__eq__
 
+    def __del__(self) -> None:
+        # gone with its thread or its reader: its connections closed here, not left to the collector (93 of the
+        # suite's 96 ResourceWarnings, 24 Oct)
+        for con in self.values():
+            try:
+                con.close()
+            except Exception:                              # noqa: BLE001 — a finalizer never raises
+                pass
+
 
 _SELECT = f"SELECT rowid, {', '.join(sol_vault.COLUMNS)} FROM solitons"
 

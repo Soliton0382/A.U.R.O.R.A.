@@ -56,6 +56,11 @@ export function talkView(name, onPhase) {
   };
   const turn = (e) => {
     if (e.role === "owner") return you(e.text);
+    if (e.role === "judge") {                                     // a phase's verdict, said here too (owner, 23 Oct)
+      const out = el("div", "term-out");
+      out.append(renderMarkdown(e.text), el("div", "term-meta", `⎿ ${clock(e.t)} · ${t("prj.talk_judge")}`));
+      return out;
+    }
     const out = el("div", `term-out${e.error ? " term-err" : ""}`);
     out.append(e.error ? el("div", "", `⚠ ${e.text}`) : renderMarkdown(e.text));
     const m = el("div", "term-meta", meta(e));
@@ -71,16 +76,27 @@ export function talkView(name, onPhase) {
   };
   const end = () => { log.scrollTop = log.scrollHeight; };
   const welcome = () => line("term-sys", `✻ ${t("prj.talk_welcome", { name })}`);
-  const show = (turns) => {
+  let count = -1, judging = null;
+  // the conversation's turns and the phases' verdicts in time order; while a phase is judged, «✻» as for a turn
+  const show = (turns, conduct) => {
     lastAnswer = null;
-    log.replaceChildren(welcome(), ...turns.map(turn));
+    const verdicts = conduct.filter((e) => e.kind === "reply").map((e) => ({ role: "judge", text: e.text, t: e.t }));
+    const items = [...turns, ...verdicts].sort((a, b) => (a.t || 0) - (b.t || 0));
+    count = items.length;
+    judging = conduct.some((e) => e.kind === "goal" && e.status === "judging");
+    log.replaceChildren(welcome(), ...items.map(turn));
+    if (judging) log.append(line("term-wait", `✻ ${t("prj.talk_judging")}`));
     end();
+  };
+  const both = async () => {
+    const [d, c] = await Promise.all([call(base), call(`/v1/aurora/projects/${name}/conduct`)]);
+    return [d, c.items];
   };
   const load = async () => {
     try {
-      const d = await call(base);
+      const [d, items] = await both();
       who.textContent = t(WHO[d.backend] || "prj.talk_local");
-      show(d.turns);
+      show(d.turns, items);
     } catch (e) { log.replaceChildren(line("term-err", `⚠ ${t("ev.error", { m: e.message })}`)); }
   };
   // the slash commands: answered here, nothing sent
@@ -127,5 +143,18 @@ export function talkView(name, onPhase) {
   input.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); } });
   box.append(bar, log, form, hint);
   load();
+  // alive (owner, 23 Oct: «entità vive»): a turn said elsewhere (another page, the API) comes in by itself
+  let shown = false;
+  const timer = setInterval(async () => {
+    if (box.isConnected) shown = true;
+    else if (shown) { clearInterval(timer); return; }
+    if (input.disabled || !box.isConnected) return;               // a turn of this page is on its way: it reloads itself
+    try {
+      const [d, items] = await both();
+      const n = d.turns.length + items.filter((e) => e.kind === "reply").length;
+      const busy = items.some((e) => e.kind === "goal" && e.status === "judging");
+      if (n !== count || busy !== judging) show(d.turns, items);
+    } catch { /* the next look */ }
+  }, 5000);
   return box;
 }

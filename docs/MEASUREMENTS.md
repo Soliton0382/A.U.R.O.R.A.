@@ -4181,3 +4181,20 @@ falls with the step as it should; a 101-part circuit (the plugin allows 120) run
 simulator is not the weak point: the risk is in the circuit as written (values, nodes, models). Not measured:
 non-linear parts in a transient (diodes, transistors switching) against a reference; circuits over 120 parts (the
 plugin's limit); the drawing of large circuits (schemdraw's layout of 100 parts was not tried).
+
+## M256 — a sentence translated by the local reasoner (24 October 2026; ROADMAP N44)
+
+The reasoner's own server (llama.cpp, the running model, no thinking, temperature 0.2), a system prompt «simultaneous
+interpreter, output only the translation», four invented sentences of 14–17 words, each asked twice (the second timed):
+
+| | seconds | tokens out | translation |
+|---|---|---|---|
+| it → en | 0.29 | 21 | right, «the eight o'clock train to Milan» |
+| en → it | 0.30 | 26 | right, formal «Potrebbe dirmi» |
+| it → de | 0.28 | 22 | right, «alle venti» → «um 20 Uhr» |
+| es → it | 0.30 | 24 | right |
+
+With Whisper on the GPU (0.14–0.20 s a sentence, M204) and the first sound of Aurora's voice (0.7–1.1 s, M211), a
+sentence would be heard translated about 1.5 s after its end, plus the pause that ends it. Not measured: the first
+call (cold), sentences spoken by a person, a GPU busy with another job, languages other than these four, the quality
+on idioms and names.

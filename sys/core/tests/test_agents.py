@@ -312,6 +312,27 @@ def test_a_finish_written_with_the_calls_before_their_results_is_not_the_report(
     assert ("agent.nudge", {"reason": "finish before results"}) in events
 
 
+
+def test_an_empty_finish_is_not_the_report_it_is_asked_again(cfg):
+    # C391: two routines ended with only the call log as their report: the finish came with nothing in it
+    llm = FakeLLM([call("demo__read_log", component="api"), call("finish", summary=""),
+                   "Resoconto: il log dice ok."])
+    agent = Agent(fake_pipeline(llm), cfg)
+    agent.host = FakeHost()
+    events = []
+    ans = agent.run("prova", lambda e, p: events.append((e, p)), "run1")
+    assert "Resoconto: il log dice ok." in ans.text
+    empty = [p for e, p in events if e == "agent.empty_finish"]
+    assert empty and empty[0]["keys"] == ["summary"] and '"finish"' in empty[0]["raw"]
+
+
+def test_a_finish_with_its_report_under_another_key_is_kept(cfg):
+    llm = FakeLLM([call("finish", report="Fatto: tre punti.")])
+    agent = Agent(fake_pipeline(llm), cfg)
+    agent.host = FakeHost()
+    ans = agent.run("prova", lambda e, p: None, "run1")
+    assert ans.text.startswith("Fatto: tre punti.")
+
 def test_a_catalog_too_big_for_the_context_becomes_one_line_signatures(cfg):
     # C279: 176 tools ≈ the 32k context of the local model; the room for the answer fell to its 256-token floor
     llm = FakeLLM([call("finish", summary="ok")])

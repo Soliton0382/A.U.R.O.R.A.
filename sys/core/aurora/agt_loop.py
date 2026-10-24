@@ -264,13 +264,18 @@ class Agent(AgentMakers, AgentReport):
             return agt_vault.run(self.p, args, emit)
         if name == "run_in_project":                         # Aurora's own code, in a cage without network (prj_run)
             from . import prj_run
+            # «name» as the projects plugin's tools call it (C392: the local model wrote it, the run said the name
+            # was not valid and the phase stopped)
+            name = str(args.get("project") or args.get("name") or "")
+            if not name:
+                return "ERROR: run_in_project needs «project» (the project's name) and «command»."
             try:
-                r = prj_run.run(self.cfg, str(args.get("project", "")), str(args.get("command", "")))
+                r = prj_run.run(self.cfg, name, str(args.get("command", "")))
             except (ValueError, RuntimeError) as e:
                 return f"ERROR: {e}"
-            emit("project.run", {"project": args.get("project"), "command": str(args.get("command", ""))[:200],
+            emit("project.run", {"project": name, "command": str(args.get("command", ""))[:200],
                                  "exit": r["exit"], "seconds": r["seconds"]})
-            name = str(args.get("project", ""))
+            self.commands.append((name, str(args.get("command", ""))[:160], r["exit"], r["seconds"]))
             self.projects.add(name)
             self.touched.update((name, f) for f in r.get("changed", []))   # files its commands wrote (C384)
             if r["exit"] == 0 and name not in self.passed:     # the owner is told the first time it works
@@ -398,7 +403,7 @@ class Agent(AgentMakers, AgentReport):
                     {"role": "user", "content": f"NOW: {sns_clock.now_text(self.cfg)}.\n\nGOAL: {goal}"
                                                 + (f"\n\nCONTEXT:\n{context}" if context else "")}]
         model = None
-        summary, steps, nudged = None, 0, 0
+        summary, steps, nudged, empty = None, 0, 0, False
         asked: dict[str, int] = {}                          # each read call and how often it was made
         self.produced: list[dict] = []                      # files made by the tools: links in the answer
         self.pending: list[str] = []                        # actions waiting for the owner: said in the report
@@ -407,6 +412,7 @@ class Agent(AgentMakers, AgentReport):
         self.passed: set[str] = set()                       # those whose tests passed once: told at once
         self.ledger: list[tuple[str, bool]] = []
         self.touched: set[tuple[str, str]] = set()          # (project, file) written by the tool or by its commands
+        self.commands: list[tuple] = []                     # (project, command, exit, seconds) run in projects
         self.effects: dict[str, str] = {}                    # tool -> its effect: the plugins' reads are counted too
         budget = self.cfg["AURORA_PIPELINE_THINK_TOKENS"]
         limit_s = self.max_min * 60
@@ -459,7 +465,13 @@ class Agent(AgentMakers, AgentReport):
                                      "calls above: it is ignored. Read the results, then call finish with what they say."})
                     break
                 if name == "finish":
-                    summary = str(args.get("summary", "")).strip() or said
+                    # C391: a finish with nothing in it (empty, or the report under another key) is not a report:
+                    # its raw text kept in the trace, the report asked for once more below
+                    summary = next((str(args[k]).strip() for k in ("summary", "report", "text", "content", "message")
+                                    if str(args.get(k) or "").strip()), "") or said
+                    if not summary:
+                        emit("agent.empty_finish", {"keys": sorted(args), "raw": c.answer[-3000:]})
+                        summary, empty = None, True
                     break
                 ran = True
                 emit("tool.call", {"name": name, "arguments": json.dumps(args, ensure_ascii=False)[:1500],
@@ -481,7 +493,7 @@ class Agent(AgentMakers, AgentReport):
                 emit("tool.result", {"name": name, "ok": not result.startswith(("ERROR", "REFUSED")),
                                      "text": result[:1500]})
                 messages.append({"role": "tool", "content": agt_tools.clip(result)})
-            if summary is not None:
+            if summary is not None or empty:
                 break
         if summary is None:
             # always a report: from what was found, without a long reasoning
@@ -500,7 +512,7 @@ class Agent(AgentMakers, AgentReport):
                 report = report[:m.start()].strip()
             limit = time.time() - t0 >= limit_s or steps >= self.max_steps
             summary = ((f"(Limite raggiunto: {steps} passi, {round((time.time() - t0) / 60, 1)} min.) " if limit else "")
-                       + (report or "Nessun resoconto prodotto."))
+                       + (report or self._from_record()))
         summary = self._honest(summary.strip()) + "\n\n" + self._record()
         seconds = round(time.time() - t0, 1)
         emit("agent.finish", {"summary": summary, "steps": steps, "seconds": seconds,
