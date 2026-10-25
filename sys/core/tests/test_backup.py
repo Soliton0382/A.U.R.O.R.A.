@@ -67,6 +67,34 @@ def test_a_backup_round_trip_keeps_everything_and_writes_only_what_changed(setup
     assert B.verify(cfg) == len({e[4] for e in B.read_snapshot(B.snapshots(dest)[-1], B._subkeys(B.load_key(cfg))[0])["files"]})
 
 
+def test_a_blob_write_that_fails_once_is_tried_again(tmp_path, monkeypatch):
+    """C400: Errno 14 on the NAS once in a night's copy; the second try writes the whole blob, a third failure is raised."""
+    import errno
+    real, fails = B.encrypt_stream, []
+
+    def flaky(src, dst, key):
+        if len(fails) < want:
+            fails.append(1)
+            dst.write(b"half")
+            raise OSError(errno.EFAULT, "Bad address")
+        real(src, dst, key)
+    monkeypatch.setattr(B, "encrypt_stream", flaky)
+    monkeypatch.setattr(B.time, "sleep", lambda s: None)
+    (tmp_path / "f").write_bytes(b"data" * 1000)
+    key, bp, log = os.urandom(32), tmp_path / "ab" / "blob", __import__("logging").getLogger("t")
+    bp.parent.mkdir()
+    want = 1
+    B._write_blob(tmp_path / "f", bp, key, log)
+    out = io.BytesIO()
+    B.decrypt_stream(io.BytesIO(bp.read_bytes()), out, key)
+    assert out.getvalue() == b"data" * 1000 and not (bp.parent / "blob.part").exists()
+    fails.clear()
+    want, bp2 = 2, tmp_path / "ab" / "blob2"
+    with pytest.raises(OSError):
+        B._write_blob(tmp_path / "f", bp2, key, log)
+    assert not bp2.exists() and not (bp.parent / "blob2.part").exists()
+
+
 def test_a_changed_or_cut_blob_and_a_wrong_key_are_refused():
     key = bytes(32)
     blob = io.BytesIO()

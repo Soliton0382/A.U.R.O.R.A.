@@ -101,6 +101,7 @@ def integrity(root: Path = CODE_ROOT, public_hex: str = "") -> tuple[bool, str]:
 
 CODE_PATTERNS = ("install.sh", "requirements.txt", "sys/core/**/*.py", "sys/core/**/*.js", "sys/core/**/*.css",
                  "sys/core/**/*.html", "sys/core/**/*.json", "sys/core/**/*.md", "sys/core/**/*.sh", "sys/plugins/*/*")
+DATA_FILES = ("sys/core/config/shadow_seed.json",)  # rewritten every day by its timer (C401): data, not code
 
 
 def code_files(root: Path = CODE_ROOT) -> list[str]:
@@ -109,7 +110,8 @@ def code_files(root: Path = CODE_ROOT) -> list[str]:
     for pattern in CODE_PATTERNS:
         for p in root.glob(pattern):
             rel = p.relative_to(root).as_posix()
-            if p.is_file() and "__pycache__" not in rel and rel not in (MANIFEST, "sys/core/ethics/exemption.sig"):
+            if (p.is_file() and "__pycache__" not in rel and rel not in (MANIFEST, "sys/core/ethics/exemption.sig")
+                    and rel not in DATA_FILES):
                 found.add(rel)
     return sorted(found)
 
@@ -131,6 +133,7 @@ def code_drift(root: Path = CODE_ROOT, public_hex: str = "") -> dict:
         return {"unsigned": "the manifest has no code list (sign again)"}
     if not _verify(_canonical(code), m.get("code_signature", ""), public_hex):
         return {"unsigned": "the code list is not signed by the owner"}
+    code = {k: v for k, v in code.items() if k not in DATA_FILES}   # signed before C401: not code any more
     now = set(code_files(root))
     return {"changed": sorted(f for f in now & set(code) if _sha(root / f) != code[f]),
             "added": sorted(now - set(code)), "removed": sorted(set(code) - now)}

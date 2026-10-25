@@ -220,6 +220,8 @@ def test_a_project_s_report_is_not_flagged_as_false(cfg):
     a.ledger = [("projects__project_write_file", True), ("run_in_project", True)]
     out = a._honest("Ho modificato core.py e i test passano: 32 superati.")
     assert not out.startswith("⚠️") and "1 file scritti nei progetti" in a._record()
+    a.ledger = [("projects__project_edit_file", True)]   # C402: three edits were flagged as «not in the record»
+    assert not a._honest("Ho corretto le tre incongruenze con project_edit_file.").startswith("⚠️")
     a.ledger = []
     assert a._honest("Ho modificato core.py e i test passano.").startswith("⚠️")
 

@@ -242,12 +242,7 @@ def run(cfg: sys_config.Config | None = None, emit=None) -> dict:
             bp = _blob_path(dest, bid)
             if not bp.exists():
                 bp.parent.mkdir(parents=True, exist_ok=True)
-                part = bp.with_name(bp.name + ".part")
-                with open(source, "rb") as src, open(part, "wb") as dst:
-                    encrypt_stream(src, dst, enc)
-                    dst.flush()
-                    os.fsync(dst.fileno())
-                os.replace(part, bp)
+                _write_blob(source, bp, enc, log)
                 n_new += 1
                 bytes_new += size
             entries.append([rel, size, int(st.st_mtime), st.st_mode & 0o777, bid])
@@ -418,6 +413,26 @@ def unit_failure(unit: str = "aurora-backup.service", after: float | None = None
         return None
     code = int(v.get("ExecMainStatus") or 0)
     return UNIT_STATUS.get(code, f"esito {v.get('Result')}, codice {code}")
+
+
+def _write_blob(source: Path, bp: Path, enc: bytes, log, tries: int = 2) -> None:
+    """One encrypted blob, written as .part and renamed when whole. A write on the NAS (cifs, soft) failed once
+    with Errno 14 after 21 minutes and not again by hand (C400): an I/O error is tried once more, and logged."""
+    part = bp.with_name(bp.name + ".part")
+    for n in range(1, tries + 1):
+        try:
+            with open(source, "rb") as src, open(part, "wb") as dst:
+                encrypt_stream(src, dst, enc)
+                dst.flush()
+                os.fsync(dst.fileno())
+            os.replace(part, bp)
+            return
+        except OSError as e:
+            part.unlink(missing_ok=True)
+            if n == tries or not source.exists():
+                raise
+            log.warning("backup: writing %s failed (%s), try %d of %d", source.name, e, n + 1, tries)
+            time.sleep(5)
 
 
 # moved to sys_backup_crypto (it uses names of this module): imported back last

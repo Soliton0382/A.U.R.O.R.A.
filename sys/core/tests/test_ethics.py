@@ -32,6 +32,24 @@ def test_intact_then_tampered(signed):
     assert not ok and "CODE.md" in reason
 
 
+def test_the_daily_seed_is_data_not_signed_code(signed):
+    """C401: the seed's timer rewrites it every day; a manifest signed before still lists it, and that is no drift."""
+    root, key = signed
+    seed, code_file = root / sys_ethics.DATA_FILES[0], root / "sys/core/aurora/x.py"
+    seed.parent.mkdir(parents=True, exist_ok=True)
+    seed.write_text("[]\n")
+    code_file.write_text("x = 1\n")
+    code = {f: sys_ethics._sha(root / f) for f in [*sys_ethics.code_files(root), sys_ethics.DATA_FILES[0]]}
+    m = json.loads((root / sys_ethics.MANIFEST).read_text())
+    m.update(code=code, code_signature=key.sign(sys_ethics._canonical(code)).hex())
+    (root / sys_ethics.MANIFEST).write_text(json.dumps(m))
+    assert sys_ethics.DATA_FILES[0] not in sys_ethics.code_files(root)
+    seed.write_text('[{"question": "new"}]\n')
+    assert sys_ethics.code_drift(root) == {"changed": [], "added": [], "removed": []}
+    code_file.write_text("x = 2\n")
+    assert sys_ethics.code_drift(root)["changed"] == ["sys/core/aurora/x.py"]
+
+
 def test_a_manifest_signed_by_another_key_is_refused(signed):
     root, _ = signed
     other = Ed25519PrivateKey.generate()

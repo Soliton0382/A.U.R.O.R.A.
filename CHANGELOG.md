@@ -2,6 +2,13 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.95 — 2026-10-26
+
+2 publications since v0.2.93.
+
+- 2026-10-26 Agent loop: edits count as written and as changes, references from a verified list; backup retries a failed blob write and ignores a unit failure fixed later; daily seed out of the code signature
+- 2026-10-25 Agent loop: written files counted from edits, references from a verified list; backup health ignores a unit failure fixed by a later run
+
 ## v0.2.94 — 2026-10-26
 
 1 publications since v0.2.93.

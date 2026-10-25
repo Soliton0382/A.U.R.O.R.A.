@@ -4249,3 +4249,20 @@ the call's WebSocket, decline):
 
 Not measured: a real voice and a real phone (earpiece, echo canceller, a mobile network), Whisper and the answer inside
 a call (the stand-in only echoes), the time from the end of a sentence to her first word, a call longer than a minute.
+
+## M260 — two writing phases on the local model after C396–C399 (26 October 2026; BUGS C396–C399, C402)
+
+A test project with invented content: a source of seven facts (a torsion pendulum bench) and a 114-line draft with
+three of them planted wrong. Each phase drafted by the conductor as usual (vault search first, then the request) and
+run by the local model; the record is the agent's trace.
+
+| Phase | Calls | Time | Result |
+|---|---|---|---|
+| write an 8-line synthesis only from the source | 13 | 80 s | every number from the source, no reference added, the missing fact said missing; the three wrong lines of the draft found unasked; committed |
+| correct the draft with edits only | 11 | 3 min 3 s | three project_edit_file calls, git diff of 3 lines, no rewrite, no extra copy; committed |
+
+Both phases started with the conversation compacted: 204 tools, 37,035 prompt tokens against a 32,768-token slot.
+Each had one or two «truncated» nudges (the thinking budget) and went on. The second report was headed by a false
+warning, «modifiche al codice … NON contiene» (C402). Not measured: a long document (the paper's 160 lines), a source
+longer than the slot after compaction, the cloud worker.
+

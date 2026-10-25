@@ -19,7 +19,8 @@ class AgentReport:
     CLAIMS = {
         "sandbox": (re.compile(r"(?i)ho creato (?:una )?sandbox|created a sandbox"), ("sandbox_create",)),
         "edit": (re.compile(r"(?i)\b(?:ho (?:applicato|corretto|modificato|sostituito|cambiato)|sostituit[oa] l|"
-                            r"fix applicat|i fixed|i changed)"), ("sandbox_replace", "sandbox_write", "project_write_file")),
+                            r"fix applicat|i fixed|i changed)"), ("sandbox_replace", "sandbox_write", "project_write_file",
+                                                       "project_edit_file")),       # C402: an edit is a change
         # a project's files and tests count too (C134: a project's report was flagged as false)
         "tests": (re.compile(r"(?i)test (?:passano|superati|verdi)|ho eseguito i test|tests? pass"),
                   ("run_tests", "run_in_project")),

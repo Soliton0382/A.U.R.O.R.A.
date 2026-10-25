@@ -64,4 +64,4 @@ def test_a_cad_model_is_drawn_when_there_is_no_picture(cfg, project):
     assert prj_cover.kind(cfg, project) == "cad"                         # before the code's picture
     data, mime = prj_cover.get(cfg, project)
     img = Image.open(io.BytesIO(data))
-    assert mime == "image/jpeg" and img.size == (960, 540) and len(set(img.convert("L").getdata())) > 3
+    assert mime == "image/jpeg" and img.size == (960, 540) and len(set(img.convert("L").get_flattened_data())) > 3
