@@ -75,12 +75,16 @@ SERVICES = [
     ("sys/core/aurora/sys_backup.py",
      '''    import subprocess
     try:
-        out = subprocess.run(["systemctl", "show", unit, "-p", "Result", "-p", "ExecMainStatus", "-p", "LoadState"],
+        out = subprocess.run(["systemctl", "show", unit, "--timestamp=unix", "-p", "Result", "-p", "ExecMainStatus",
+                              "-p", "LoadState", "-p", "InactiveEnterTimestamp"],
                              capture_output=True, text=True, timeout=10).stdout
     except (OSError, subprocess.SubprocessError):
         return None
     v = dict(line.split("=", 1) for line in out.splitlines() if "=" in line)
     if v.get("LoadState") != "loaded" or v.get("Result", "success") == "success":
+        return None
+    failed_at = v.get("InactiveEnterTimestamp", "").lstrip("@")
+    if after and failed_at.isdigit() and int(failed_at) < after:
         return None
     code = int(v.get("ExecMainStatus") or 0)
     return UNIT_STATUS.get(code, f"esito {v.get('Result')}, codice {code}")''',

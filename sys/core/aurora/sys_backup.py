@@ -399,17 +399,22 @@ def status(cfg: sys_config.Config | None = None) -> dict:
 UNIT_STATUS = {226: "la cartella del backup (NAS) non era raggiungibile quando il servizio è partito"}
 
 
-def unit_failure(unit: str = "aurora-backup.service") -> str | None:
+def unit_failure(unit: str = "aurora-backup.service", after: float | None = None) -> str | None:
     """Why the last start of the backup unit failed, or None (succeeded, never ran, not installed). A failure
-    before Aurora's code runs (the NAS asleep: 226/NAMESPACE) leaves no line in Aurora's own log (A18)."""
+    before Aurora's code runs (the NAS asleep: 226/NAMESPACE) leaves no line in Aurora's own log (A18).
+    after: the time of the last successful copy; a unit failure older than it (a run by hand fixed it) is past."""
     import subprocess
     try:
-        out = subprocess.run(["systemctl", "show", unit, "-p", "Result", "-p", "ExecMainStatus", "-p", "LoadState"],
+        out = subprocess.run(["systemctl", "show", unit, "--timestamp=unix", "-p", "Result", "-p", "ExecMainStatus",
+                              "-p", "LoadState", "-p", "InactiveEnterTimestamp"],
                              capture_output=True, text=True, timeout=10).stdout
     except (OSError, subprocess.SubprocessError):
         return None
     v = dict(line.split("=", 1) for line in out.splitlines() if "=" in line)
     if v.get("LoadState") != "loaded" or v.get("Result", "success") == "success":
+        return None
+    failed_at = v.get("InactiveEnterTimestamp", "").lstrip("@")
+    if after and failed_at.isdigit() and int(failed_at) < after:
         return None
     code = int(v.get("ExecMainStatus") or 0)
     return UNIT_STATUS.get(code, f"esito {v.get('Result')}, codice {code}")

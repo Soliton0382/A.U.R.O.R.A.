@@ -48,6 +48,7 @@ class FakeHost:
     def plugins(self):
         tools = [{"name": "read_log", "description": "read", "input_schema": {}, "effect": "read"},
                  {"name": "read_file", "description": "read a file", "input_schema": {}, "effect": "read"},
+                 {"name": "project_edit_file", "description": "edit a file", "input_schema": {}, "effect": "write_local"},
                  {"name": "send_message", "description": "send", "input_schema": {}, "effect": "external"}]
         return [SimpleNamespace(name="demo", available=True, tools=tools)]
 
@@ -471,3 +472,17 @@ def test_an_announced_write_with_no_call_is_asked_again(cfg):
     nudges = [p for e, p in events if e == "agent.nudge"]
     assert nudges and nudges[0]["reason"] == "file not written" and nudges[0]["paths"] == ["docs/paper/paper.md"]
     assert unwritten("Write the file `a.md`", {("p", "a.md")}) == []                  # written: nothing owed
+
+
+def test_an_edited_file_counts_as_written(cfg):
+    # C399: nine edits of paper.md, then «not written», then the model wrote a copy of the paper under another name
+    edit = "<tool_call>\n" + json.dumps({"name": "demo__project_edit_file", "arguments": {
+        "name": "p", "path": "docs/paper/paper.md", "old": "a", "new": "b"}}) + "\n</tool_call>"
+    llm = FakeLLM([edit,
+                   "Fatto: modificato."])
+    agent = Agent(fake_pipeline(llm), cfg)
+    agent.host = FakeHost()
+    events = []
+    agent.run("Write the document `docs/paper/paper.md` with the fixes", lambda e, p: events.append((e, p)), "run11")
+    assert ("p", "docs/paper/paper.md") in agent.touched
+    assert not [p for e, p in events if e == "agent.nudge" and p.get("reason") == "file not written"]

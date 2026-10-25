@@ -22,6 +22,7 @@
     "project_status": "read",
     "project_create": "write_local",
     "project_write_file": "write_local",
+    "project_edit_file": "write_local",
     "project_commit": "write_local",
     "project_publish": "external",
     "project_push": "external",

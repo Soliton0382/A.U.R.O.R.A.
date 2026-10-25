@@ -509,7 +509,8 @@ class Agent(AgentMakers, AgentReport):
                     continue
                 result = self._call(name, args, index, emit, run_id)
                 self.ledger.append((name, not result.startswith(("ERROR", "REFUSED"))))
-                if name.split(SEP)[-1] == "project_write_file" and self.ledger[-1][1]:
+                if name.split(SEP)[-1] in ("project_write_file", "project_edit_file") and self.ledger[-1][1]:
+                    # an edit writes the file too (C399: nine edits of paper.md, then «not written», then a copy)
                     self.touched.add((str(args.get("name", "")), str(args.get("path", "")).removeprefix("./")))
                 self.effects[name] = index[name][2] if name in index else ""
                 emit("tool.result", {"name": name, "ok": not result.startswith(("ERROR", "REFUSED")),

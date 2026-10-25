@@ -32,7 +32,8 @@ constraints; ask the agent to search Aurora's vault first (tool search_vault: it
 the models' training) for findings that bear on the request, to apply those that fit and cite them, and to say when the
 vault has nothing; ask the agent to verify every result (a check against a known case, convergence, a second method),
 never to give a number it did not compute or did not declare as an assumption, to keep each run under 100 s; say which
-document to write (the next number in docs/), to update the open-items file, to commit, and to end with a summary
+document to write (a new one takes the next number in docs/; a document the request names is changed in place, never
+copied to a new file), to update the open-items file, to commit, and to end with a summary
 that lists what it did, what does not hold and what is still open. Do not invent results, do not answer the request
 yourself. Reply with the goal text only."""
 

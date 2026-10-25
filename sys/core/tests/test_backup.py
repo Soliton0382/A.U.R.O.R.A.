@@ -158,6 +158,11 @@ def test_a_backup_unit_that_could_not_start_is_reported(monkeypatch):
     assert sys_backup.unit_failure() is None
     monkeypatch.setattr(subprocess, "run", show("Result=success\nExecMainStatus=0\nLoadState=not-found\n"))
     assert sys_backup.unit_failure() is None
+    # C400: the unit failed at 1000, then a run by hand succeeded at 1100: the failure is past
+    monkeypatch.setattr(subprocess, "run", show("Result=exit-code\nExecMainStatus=1\nLoadState=loaded\n"
+                                                "InactiveEnterTimestamp=@1000\n"))
+    assert sys_backup.unit_failure(after=1100.0) is None
+    assert "codice 1" in sys_backup.unit_failure(after=900.0)
 
 
 def test_the_copy_of_a_database_leaves_no_descriptor_open(tmp_path):
