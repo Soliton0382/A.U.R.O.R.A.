@@ -78,6 +78,18 @@ export default {
     this.lines.replaceChildren(...(a.lines?.length ? a.lines.map((l) => el("p", live(l) ? "pa-line on" : "pa-line",
       t(live(l) ? "phoneapp.line.open" : "phoneapp.line.last", { name: l.name, when: ago(l.ago) })))
       : [el("p", "muted", t("phoneapp.line.none"))]));
+    if (a.lines?.some(live)) {                         // 📞 a test call to this user's phones (N45)
+      const ring = el("button", "", t("phoneapp.call"));
+      ring.addEventListener("click", async () => {
+        ring.disabled = true;
+        try {
+          await call("/v1/aurora/call", { method: "POST", body: JSON.stringify({ reason: t("phoneapp.call_reason") }) });
+          ring.textContent = t("phoneapp.call_sent");
+        } catch (e) { ring.textContent = e.message; }
+        setTimeout(() => { ring.disabled = false; ring.textContent = t("phoneapp.call"); }, 30000);
+      });
+      this.lines.append(ring);
+    }
     const mine = (navigator.userAgent.match(/AuroraApp\/([\d.]+)/) || [])[1];
     if (mine) box.append(el("p", "pa-mine", t(a.available && older(mine, a.version) ? "phoneapp.update" : "phoneapp.using",
                                             { v: mine, n: a.version || "" })));

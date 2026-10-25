@@ -26,7 +26,6 @@ import hashlib
 import hmac
 import json
 import os
-import random
 import socket
 import sqlite3
 import tempfile
@@ -298,7 +297,8 @@ def prune(cfg: sys_config.Config, dest: Path, enc: bytes) -> tuple[int, int]:
 
 
 def verify(cfg: sys_config.Config | None = None, sample: int | None = None) -> int:
-    """Decrypt the blobs of the newest snapshot (a random sample, or all) and check their ids; raises on a bad one."""
+    """Decrypt the blobs of the newest snapshot (a sample, or all) and check their ids; raises on a bad one. The sample
+    is the next slice of a walk kept between runs (sys_cycle): every blob is checked once per round, not by chance."""
     cfg = cfg or sys_config.get()
     dest = target(cfg)
     enc, idkey = _subkeys(load_key(cfg))
@@ -307,7 +307,15 @@ def verify(cfg: sys_config.Config | None = None, sample: int | None = None) -> i
         raise BackupError("no snapshot yet")
     blobs = sorted({e[4] for e in read_snapshot(snaps[-1], enc)["files"]})
     if sample is not None and len(blobs) > sample:
-        blobs = random.sample(blobs, sample)
+        from . import sys_cycle
+        f = _state_dir(cfg) / "verify_cycle.json"
+        try:
+            at = int(json.loads(f.read_text()).get("state", 0))
+        except (OSError, ValueError, TypeError):
+            at = 0
+        picked, at = sys_cycle.walk(len(blobs), sample, at)
+        _write_atomic(f, json.dumps({"state": at, "blobs": len(blobs)}).encode())
+        blobs = [blobs[i] for i in picked]
     for bid in blobs:
         bp = _blob_path(dest, bid)
         if not bp.is_file():

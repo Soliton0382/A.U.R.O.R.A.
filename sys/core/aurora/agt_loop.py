@@ -54,10 +54,22 @@ Rules:
 - When you have done what you can, call finish with a report in Italian: what you found (with evidence),
   what you changed or proposed, what is still open. If there is nothing to fix, say so and finish.
 - One or more tool calls per turn; think briefly before each.
+- A file's content goes in the tool call's arguments, never written out in your reasoning first; a long
+  document goes one section per call (project_write_file with append=true after the first); to change a part
+  of an existing file, project_edit_file with an exact passage, never the whole file again.
 - Report ONLY actions you actually performed with your tools. Saying you created a sandbox, ran tests or
   proposed a change that you did not is a lie; your report is checked against the log of your calls.
 - A problem found in the logs may already be solved: compare its last time with the current code and with
   the service starts; if the cause is no longer in the code, report it as resolved, with the evidence."""
+
+WRITE_ASK = re.compile(r"[Ww]rite (?:the |a )?(?:document |file )?`([\w./-]+\.(?:md|txt|tex|py|json|csv))`")
+
+
+def unwritten(goal: str, touched: set) -> list[str]:
+    """The files the goal asks to write («Write the document `docs/x.md`») that no tool call wrote."""
+    done = {path for _, path in touched}
+    return [p for p in dict.fromkeys(WRITE_ASK.findall(goal)) if p.removeprefix("./") not in done]
+
 
 LOOP_TOOLS = [
     {"name": "propose_change", "description": "Propose the code change made in a sandbox. Its tests are run again; "
@@ -414,6 +426,7 @@ class Agent(AgentMakers, AgentReport):
         self.touched: set[tuple[str, str]] = set()          # (project, file) written by the tool or by its commands
         self.commands: list[tuple] = []                     # (project, command, exit, seconds) run in projects
         self.effects: dict[str, str] = {}                    # tool -> its effect: the plugins' reads are counted too
+        self.pinned: set[int] = set()                       # reads of the files the goal names: shortened last
         budget = self.cfg["AURORA_PIPELINE_THINK_TOKENS"]
         limit_s = self.max_min * 60
         while steps < self.max_steps and time.time() - t0 < limit_s:
@@ -446,6 +459,15 @@ class Agent(AgentMakers, AgentReport):
                 continue
             messages.append({"role": "assistant", "content": text})
             if not calls:
+                owed = [] if cut or nudged >= 3 else unwritten(goal, self.touched)
+                if owed:
+                    # C397: «I will now write it» with no call ended the run as its report, the file never written
+                    nudged += 1
+                    emit("agent.nudge", {"reason": "file not written", "paths": owed})
+                    messages.append({"role": "user", "content": "You answered without calling a tool, but the goal "
+                                     f"asks for {', '.join(owed)} and nothing was written. Call project_write_file now "
+                                     "(a long document: one section per call, append=true after the first)."})
+                    continue
                 summary = None if cut else said or None       # still cut: the report is written from what was found
                 break
             ran = False                                     # a call of this turn already done
@@ -493,6 +515,11 @@ class Agent(AgentMakers, AgentReport):
                 emit("tool.result", {"name": name, "ok": not result.startswith(("ERROR", "REFUSED")),
                                      "text": result[:1500]})
                 messages.append({"role": "tool", "content": agt_tools.clip(result)})
+                path = str(args.get("path", "")).removeprefix("./")
+                if path and name.endswith("read_file") and path in goal and not result.startswith(("ERROR", "REFUSED")):
+                    # a source the goal names (C396: the paper's material cut to 400 characters, the model filled
+                    # the gap): kept whole while anything else can be shortened
+                    self.pinned.add(id(messages[-1]))
             if summary is not None or empty:
                 break
         if summary is None:

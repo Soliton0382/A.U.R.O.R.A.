@@ -177,3 +177,16 @@ def test_the_copy_of_a_database_leaves_no_descriptor_open(tmp_path):
     for _ in range(20):
         B._sqlite_copy(db, tmp_path / "copies").unlink()
     assert len(os.listdir("/proc/self/fd")) == before
+
+
+def test_the_sampled_check_goes_round_every_blob_instead_of_drawing_by_chance(setup, monkeypatch):
+    cfg, dest, con, root = setup
+    B.init_key(cfg)
+    B.run(cfg)
+    blobs = {e[4] for e in B.read_snapshot(B.snapshots(dest)[-1], B._subkeys(B.load_key(cfg))[0])["files"]}
+    assert len(blobs) > 2
+    checked, path = [], B._blob_path
+    monkeypatch.setattr(B, "_blob_path", lambda d, bid: (checked.append(bid), path(d, bid))[1])
+    for _ in range(len(blobs)):                            # one blob per run: all of them in as many runs
+        assert B.verify(cfg, sample=1) == 1
+    assert sorted(checked) == sorted(blobs)                # each once, none drawn twice by chance

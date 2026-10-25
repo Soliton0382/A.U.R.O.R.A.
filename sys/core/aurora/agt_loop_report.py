@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import re
 
+from .mdl_fit import SHORTENED
 from .mdl_llm import chatml_turns
 
 SEP = "__"                                               # plugin__tool: a function name the model can write
@@ -112,12 +113,16 @@ class AgentReport:
         ctx = self._ctx()
         used = self._tokens(messages)
         tools = [i for i, m in enumerate(messages) if m["role"] == "tool"]
+        older = tools[:-self.KEEP_FULL] if len(tools) > self.KEEP_FULL else []
+        pinned = getattr(self, "pinned", set())
+        # the goal's own sources last (C396): searches and other reads go first, oldest first
+        older = [i for i in older if id(messages[i]) not in pinned] + [i for i in older if id(messages[i]) in pinned]
         cut = 0
-        for i in tools[:-self.KEEP_FULL] if len(tools) > self.KEEP_FULL else []:
+        for i in older:
             if ctx - used >= want + 256:
                 break
             if len(messages[i]["content"]) > 500:
-                messages[i]["content"] = messages[i]["content"][:400] + "\n[shortened: an older result]"
+                messages[i]["content"] = messages[i]["content"][:400] + "\n" + SHORTENED
                 cut += 1
                 used = self._tokens(messages)
         dropped = 0

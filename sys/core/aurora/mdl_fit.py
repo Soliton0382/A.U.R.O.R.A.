@@ -12,6 +12,8 @@ from __future__ import annotations
 
 KEEP_LAST = 4                                            # the latest turns: what the model is answering now
 SHORT = 400
+# said so the model can get it back (C396: a source cut without a way back was filled with invention)
+SHORTENED = "[shortened: an older result — call the same tool again if you still need it]"
 
 
 def window(cfg) -> int:
@@ -38,7 +40,7 @@ def fit(messages: list[dict], max_tokens: int, ctx: int) -> tuple[list[dict], in
         if used(out) + want <= ctx:
             break
         if m["role"] == "tool" and len(str(m["content"])) > SHORT + 100:
-            m["content"] = str(m["content"])[:SHORT] + "\n[shortened: an older result]"
+            m["content"] = str(m["content"])[:SHORT] + "\n" + SHORTENED
     while used(out) + want > ctx and len(out) > 2 + KEEP_LAST:
         del out[2]
         while len(out) > 2 + KEEP_LAST and out[2]["role"] == "tool":    # no result without the call that asked it

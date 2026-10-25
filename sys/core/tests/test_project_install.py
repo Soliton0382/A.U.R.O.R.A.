@@ -51,3 +51,31 @@ def test_a_long_file_says_where_it_stops_and_is_read_on(cfg, monkeypatch):
     first = p.project_read_file("lungo", "note.md")
     assert first.startswith("a" * 20000) and "5004 more characters" in first and "offset=20000" in first
     assert p.project_read_file("lungo", "note.md", offset=20000) == "a" * 5000 + "FINE"
+
+
+def test_a_long_document_is_written_a_section_per_call(cfg, monkeypatch):
+    # C397: a whole paper in one call ran past the model's budget and was never written
+    p = _plugin(monkeypatch, cfg)
+    proj = cfg.path("AURORA_PROJECTS_DIR") / "carta"
+    proj.mkdir(parents=True)
+    p.project_write_file("carta", "docs/paper.md", "# Titolo\n")
+    out = p.project_write_file("carta", "docs/paper.md", "## 1. Intro\n", append=True)
+    assert (proj / "docs/paper.md").read_text() == "# Titolo\n## 1. Intro\n" and "2 in all" in out
+    p.project_write_file("carta", "docs/paper.md", "nuovo\n")                     # without append: the whole file
+    assert (proj / "docs/paper.md").read_text() == "nuovo\n"
+
+
+def test_a_part_of_a_file_is_changed_only_when_it_occurs_once(cfg, monkeypatch):
+    # C398: a model that could not rewrite a whole paper could not fix one line of it either
+    p = _plugin(monkeypatch, cfg)
+    proj = cfg.path("AURORA_PROJECTS_DIR") / "carta2"
+    proj.mkdir(parents=True)
+    (proj / "paper.md").write_text("## A\nuno\n## B\nuno\nfine\n")
+    assert "edited" in p.project_edit_file("carta2", "paper.md", "## B\nuno", "## B\ndue")
+    assert (proj / "paper.md").read_text() == "## A\nuno\n## B\ndue\nfine\n"
+    import pytest
+    with pytest.raises(Exception) as e:
+        p.project_edit_file("carta2", "paper.md", "## ", "### ")                   # twice in the file: ambiguous
+    assert "2 times" in str(e.value)
+    with pytest.raises(Exception):
+        p.project_edit_file("carta2", "paper.md", "assente", "x")

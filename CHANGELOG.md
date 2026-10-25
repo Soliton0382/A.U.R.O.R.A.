@@ -2,6 +2,15 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.93 — 2026-10-25
+
+4 publications since v0.2.89.
+
+- 2026-10-25 Telefonate dall'app; l'agente conserva le fonti e scrive i documenti a sezioni; verifica dei backup a rotazione; file di citazione
+- 2026-10-24 Pagina dell'app: stato della linea e consigli per la batteria; la chiamata in lista (N45)
+- 2026-10-24 Interprete (N44); proposte senza doppioni (C395); linea per l'app Android e pagina per scaricarla (N45)
+- 2026-10-24 Interprete simultaneo (N44); proposte delle routine senza doppioni (C395)
+
 ## v0.2.92 — 2026-10-25
 
 3 publications since v0.2.89.

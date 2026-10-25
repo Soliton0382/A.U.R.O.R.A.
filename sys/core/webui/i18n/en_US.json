@@ -3076,5 +3076,8 @@
   "phoneapp.bg.oppo.name": "Oppo, Realme, OnePlus",
   "phoneapp.bg.oppo": "Apps → Aurora → Battery usage: «Allow background activity» and «Allow auto launch».",
   "phoneapp.bg.other.name": "Others",
-  "phoneapp.bg.other": "Look in the Aurora app's settings for «autostart», «background» or «unrestricted» and turn them on."
+  "phoneapp.bg.other": "Look in the Aurora app's settings for «autostart», «background» or «unrestricted» and turn them on.",
+  "phoneapp.call": "📞 Call me (test)",
+  "phoneapp.call_reason": "A test call from the app page. Go ahead.",
+  "phoneapp.call_sent": "📞 Ringing on the phone…"
 }

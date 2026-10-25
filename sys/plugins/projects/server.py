@@ -144,12 +144,33 @@ def project_read_file(name: str, path: str, offset: int = 0) -> str:
 
 
 @tool
-def project_write_file(name: str, path: str, content: str) -> str:
-    """Write a file of a project (new or whole)."""
+def project_write_file(name: str, path: str, content: str, append: bool = False) -> str:
+    """Write a file of a project (new or whole). append=true adds the content at the end instead: a long document is
+    written a section per call (C397: a whole paper in one call ran past the model's budget and was never written)."""
     f = _inside(_project(name), path)
     f.parent.mkdir(parents=True, exist_ok=True)
+    if append and f.exists():
+        with f.open("a", encoding="utf-8") as out:
+            out.write(content)
+        return f"appended to {path} ({len(content.splitlines())} lines, {len(f.read_text(encoding='utf-8').splitlines())} in all)"
     f.write_text(content, encoding="utf-8")
     return f"written {path} ({len(content.splitlines())} lines)"
+
+
+@tool
+def project_edit_file(name: str, path: str, old: str, new: str) -> str:
+    """Change one part of a project's file without writing it all again: `old` must occur exactly once in the file
+    (copy it from project_read_file, with its spaces), and is replaced by `new`. For a long document, edit a sentence
+    or a section at a time (C398: a model that cannot write a whole paper in one call could not fix one line of it)."""
+    f = _inside(_project(name), path)
+    if not f.is_file():
+        raise ToolError(f"no file {path}")
+    text = f.read_text(encoding="utf-8")
+    n = text.count(old) if old else 0
+    if n != 1:
+        raise ToolError(f"`old` occurs {n} times in {path}: it must occur exactly once (copy a longer, exact passage)")
+    f.write_text(text.replace(old, new, 1), encoding="utf-8")
+    return f"edited {path}: {len(old.splitlines()) or 1} lines replaced by {len(new.splitlines()) or 1}"
 
 
 READ_MAX = 20000

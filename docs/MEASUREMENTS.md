@@ -4232,3 +4232,20 @@ on this machine with the same answers, from the event to the notification on the
 A tap on the notification opens `/?view=<page>`, as Web Push does. Not measured: a real phone and its maker's battery
 saver, a mobile network's NAT on a request held 50 s, the battery the line costs, the route on the real aurora-api
 (the stand-in answers like it; the route is tested in test_line.py).
+
+## M259 — the call screen and its voice, on an emulator (25 October 2026; ROADMAP N45)
+
+Aurora's Android app 0.3.0 on an Android 16 emulator, against a stand-in server speaking the same protocol (the line,
+the call's WebSocket, decline):
+
+| Step | Result |
+|---|---|
+| a call on the line, screen off and locked | screen on, the call screen over the lock screen, ringtone channel, «Rifiuta / Rispondi» |
+| «Rispondi» | WebSocket opened with the device's cookie; her greeting played and written; the ringing notification gone |
+| the microphone upstream | 361 600 bytes in 11.3 s: 32 000 B/s, 16 kHz 16-bit mono in real time |
+| «Chiudi» | `hangup` reached the server, the socket closed, the screen gone |
+| «Decline» on the notification, phone unlocked | POST …/decline reached the server, the ringing stopped |
+| a notification tapped with the WebUI open | the page switched (the service worker's message), no reload |
+
+Not measured: a real voice and a real phone (earpiece, echo canceller, a mobile network), Whisper and the answer inside
+a call (the stand-in only echoes), the time from the end of a sentence to her first word, a call longer than a minute.

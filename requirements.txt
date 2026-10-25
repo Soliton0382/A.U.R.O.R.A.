@@ -17,6 +17,7 @@ pypdf==6.21.2
 markdown-it-py==4.2.0
 fastapi==0.142.1
 uvicorn==0.54.0
+websockets==17.2             # the call's audio over the HTTPS port (aurora-app F3: uvicorn's WebSocket), BSD-3
 httpx==0.28.1
 ddgs==9.16.0                 # web search without a key (kno_web: DuckDuckGo and other engines), MIT
 pydantic==2.13.5

@@ -4,6 +4,8 @@ import json
 from types import SimpleNamespace
 
 from aurora import agt_change
+from aurora.agt_loop import unwritten
+from aurora.mdl_fit import SHORTENED
 from aurora.agt_loop import Agent
 from aurora.sys_approvals import Approvals, needs_owner
 
@@ -45,6 +47,7 @@ class FakeHost:
 
     def plugins(self):
         tools = [{"name": "read_log", "description": "read", "input_schema": {}, "effect": "read"},
+                 {"name": "read_file", "description": "read a file", "input_schema": {}, "effect": "read"},
                  {"name": "send_message", "description": "send", "input_schema": {}, "effect": "external"}]
         return [SimpleNamespace(name="demo", available=True, tools=tools)]
 
@@ -124,10 +127,33 @@ def test_old_tool_results_are_shortened_when_the_context_is_full(cfg):
         messages += [{"role": "assistant", "content": f"call {i}"}, {"role": "tool", "content": f"{i}" * 3000}]
     room = agent._fit(messages, 1000, lambda e, p: None)
     tools = [m["content"] for m in messages if m["role"] == "tool"]
-    short = [t.endswith("[shortened: an older result]") for t in tools]
+    short = [t.endswith(SHORTENED) for t in tools]
     assert any(short) and short == sorted(short, reverse=True)          # only the oldest, as few as needed
     assert all(len(t) == 3000 for t in tools[-4:])                      # the latest four stay whole
     assert room >= 1000
+    assert "call the same tool again" in SHORTENED                      # the model is told how to get it back
+
+
+def test_the_sources_the_goal_names_are_shortened_last(cfg):
+    # C396: the paper's material, read first, was cut to 400 characters while a vault search stayed whole
+    cfg.values["AURORA_LLM_CTX"] = 6000
+    agent = Agent(fake_pipeline(SimpleNamespace(count_tokens=lambda text: len(text) // 4)), cfg)
+    messages = [{"role": "system", "content": "s"}, {"role": "user", "content": "goal"}]
+    for i in range(8):
+        messages += [{"role": "assistant", "content": f"call {i}"}, {"role": "tool", "content": f"{i}" * 3000}]
+    agent.pinned = {id(messages[3])}                                    # the first result: a source the goal names
+    agent._fit(messages, 1000, lambda e, p: None)
+    tools = [m["content"] for m in messages if m["role"] == "tool"]
+    assert len(tools[0]) == 3000 and tools[1].endswith(SHORTENED)       # the next oldest went instead
+
+
+def test_a_read_of_a_file_the_goal_names_is_pinned(cfg):
+    llm = FakeLLM([call("demo__read_file", path="docs/fonte.md"), call("demo__read_file", path="altro.md"),
+                   call("finish", summary="Fatto.")])
+    agent = Agent(fake_pipeline(llm), cfg)
+    agent.host = FakeHost()
+    agent.run("scrivi partendo da docs/fonte.md", lambda e, p: None, "run9")
+    assert len(agent.pinned) == 1
 
 
 def test_report_ends_with_the_record_and_false_claims_are_flagged(cfg):
@@ -433,3 +459,15 @@ def test_the_system_prompt_holds_nothing_of_the_moment():
     spec = {"type": "function", "function": {"name": "x", "description": "d", "parameters": {"type": "object"}}}
     assert Agent._system(object(), [spec]) == Agent._system(object(), [spec])
     assert "NOW:" not in Agent._system(object(), [spec]) and 'f"NOW: {sns_clock.now_text' in inspect.getsource(Agent.run)
+
+
+def test_an_announced_write_with_no_call_is_asked_again(cfg):
+    # C397: «I will now write paper.md» with no tool call ended the phase as its report, the file never written
+    llm = FakeLLM(["Ora scrivo il file.", call("finish", summary="Fatto.")])
+    agent = Agent(fake_pipeline(llm), cfg)
+    agent.host = FakeHost()
+    events = []
+    agent.run("Write the document `docs/paper/paper.md` from the notes", lambda e, p: events.append((e, p)), "run10")
+    nudges = [p for e, p in events if e == "agent.nudge"]
+    assert nudges and nudges[0]["reason"] == "file not written" and nudges[0]["paths"] == ["docs/paper/paper.md"]
+    assert unwritten("Write the file `a.md`", {("p", "a.md")}) == []                  # written: nothing owed

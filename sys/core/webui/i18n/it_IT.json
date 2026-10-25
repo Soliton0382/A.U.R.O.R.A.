@@ -3076,5 +3076,8 @@
   "phoneapp.bg.oppo.name": "Oppo, Realme, OnePlus",
   "phoneapp.bg.oppo": "App → Aurora → Uso batteria: «Consenti attività in background» e «Consenti avvio automatico».",
   "phoneapp.bg.other.name": "Altri",
-  "phoneapp.bg.other": "Cerca nelle impostazioni dell'app Aurora le voci «avvio automatico», «in background» o «senza restrizioni» e attivale."
+  "phoneapp.bg.other": "Cerca nelle impostazioni dell'app Aurora le voci «avvio automatico», «in background» o «senza restrizioni» e attivale.",
+  "phoneapp.call": "📞 Chiamami (prova)",
+  "phoneapp.call_reason": "Prova di chiamata dalla pagina dell'app. Dimmi pure.",
+  "phoneapp.call_sent": "📞 Squilla sul telefono…"
 }
