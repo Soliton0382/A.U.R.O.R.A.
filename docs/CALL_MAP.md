@@ -248,7 +248,7 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `kno_think` | `api.runs`, `kno_answer` | 1 |
 | `kno_trail` | `kno_answer`, `kno_stages` | 1 |
 | `kno_train` | `api.rem`, `kno_deduce` | 1 |
-| `kno_vault_audit` | `api.rem` | 1 |
+| `kno_vault_audit` | `api.harvester`, `api.rem` | 1 |
 | `kno_video` | `kno_attach` | 1 |
 | `kno_web` | `kno_read`, `sys/plugins/web/server.py` | 2 |
 | `mdl_accounts` | `api.accounts`, `mdl_cloud`, `mdl_router`, `mdl_services` | 2 |

@@ -56,7 +56,7 @@ call downward (ECOSYSTEM §1).
 | `sys_push.py` | system | Web Push (VAPID) to the owner's browsers: key pair made locally, subscriptions, which events notify (AURORA_PUSH_EVENTS), gone subscriptions dropped | pywebpush | svc_api |
 | `sys_line.py` | system | the line to Aurora's Android app (N45): each user's last notifications (line/events.jsonl, 0600, 200, 12 h), the id the phone got last as its acknowledgement; which phones hold a line now (in memory, for the 📱 page) | — | api/core (_push), api/routines (push test), api/line |
 | `sys_call.py` | system | Aurora calls (N45): a ringing call on the app's line, declined or missed → a notification with its reason; the voice coming in cut at its pauses (Segmenter, floor learnt from the quietest frames), the answer said in sentences, any WAV to the call's 16 kHz mono PCM | numpy | api/call |
-| `sys_phone_app.py` | system | the phone app offered by the WebUI: the newest aurora-app-<version>.apk in <AURORA_STATUS_DIR>/app (built and signed outside the repository), its size and SHA-256 | — | api/phone_app |
+| `sys_phone_app.py` | system | the phone app offered by the WebUI: the newest aurora-app-<version>.apk in <AURORA_STATUS_DIR>/app (built on this machine) or sys/app/dist (published with the code), its size and SHA-256 | — | api/phone_app |
 | `api/places.py` | interface | a town by its name (Open-Meteo's geocoding, no key): coordinates and region for the weather's card | httpx | Plugins page (weather) |
 | `api/interpret.py` | interface | /v1/aurora/interpret: a sentence (audio or text) heard in its language (sns_av) and translated (kno_interpret, the «translate» model); an audit line without the words | sns_av, kno_interpret, sys_features | webui interpret.js |
 | `api/line.py` | interface | GET /v1/aurora/line: the app's request held up to 55 s until an event after `after` (no thread held while it waits); empty `after` = the id to start from | sys_line | aurora-app (Android) |
@@ -290,7 +290,7 @@ call downward (ECOSYSTEM §1).
 | `sys_trash.py` | system | the trash: a deleted file waits AURORA_TRASH_DAYS before going for good | sys_config | api/dj, api/documents, api/knowledge, sys_uploads |
 | `sys_runs.py` | system | a run's events kept apart from api/core so they test without a configuration: only the run's own end ends it (C166), the inner pipelines' «run.end» held | — | api/core |
 | `kno_domain.py` | knowledge | a document's domain chosen by what it says (title and start, each domain's «about»), not by the list it came from (M195: the list was right 42%); arXiv keeps its own | the route model | svc_harvester, kno_vault_audit, vault_realign |
-| `kno_vault_audit.py` | knowledge | the vault watched every night, read only (aurora-rem's task «audit»): duplicates by official identity, arXiv papers still as PDF, a sample of Wikipedia articles whose domain the chooser would change | kno_dedup, kno_domain | api/rem |
+| `kno_vault_audit.py` | knowledge | the vault watched every night, read only (aurora-rem's task «audit»): duplicates by official identity, arXiv papers still as PDF, a sample of Wikipedia articles whose domain the chooser would change (told from 6 of 40: below that it is the chooser's own noise, C405); last() for the Harvester page | kno_dedup, kno_domain | api/rem, api/harvester |
 
 ## Scripts: `sys/core/script/`
 
@@ -367,8 +367,17 @@ call downward (ECOSYSTEM §1).
 | `sys_tts_install.sh` | Piper (GPL-3, a separate program in its own environment) and the voices of config/models.json | install.sh; the Voice feature |
 | `sys_tts_qwen_install.sh` | the natural voice (Qwen3-TTS 0.6B) in sys/runtime/qwen-tts, apart from Aurora's environment; an installation's own reference clip | the Voice feature, by hand |
 | `tts_qwen_worker.py` | the natural voice kept loaded: one JSON request a line on stdin, one answer on stdout; exits when stdin closes, giving the GPU back | mdl_tts |
-| `vault_realign.py` | every arXiv paper once, as HTML, in its own domain: dry run by default, `--apply` paper by paper through aurora-api | by hand, when kno_vault_audit reports |
+| `vault_realign.py` | every arXiv paper once, as HTML, in its own domain: dry run by default, `--apply` paper by paper through aurora-api; `--wikipedia` every article once in the domain its text says (`--fresh`: chosen again, not the kept choice) | by hand, when kno_vault_audit reports |
 | `doc_callmap.py` | docs/CALL_MAP.md from the code: what starts each script, who imports each module, who calls each route; `--check` (also every file named here); `--live` this machine's units and timers, printed only | publish.sh, after adding a file |
+
+## Android app: `sys/app/`
+
+| File | What it does | Started by |
+|---|---|---|
+| `build.py` | the APK without Gradle (aapt2, javac, d8, zipalign, apksigner from `tools/`), signed with `keys/` (both ignored by git, on the machine that builds); `--to DIR` a copy for the 📱 page, `--dist` the only APK in `dist/` | by hand, at each app version |
+| `android/` | the app's sources (Java, manifest, resources): the WebUI's window, the line (LineService), the calls (CallActivity, CallAudio, Ws) | build.py |
+| `dist/aurora-app-<version>.apk` | the APK published with the code, attached to the GitHub release (release.yml) and offered by sys_phone_app | build.py --dist |
+| `README.md`, `CHANGELOG.md` | how to install and build it, the certificate's SHA-256; the app's own versions | — |
 
 ## Configuration: `sys/core/config/`
 

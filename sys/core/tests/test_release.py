@@ -86,5 +86,6 @@ def test_the_workflows_are_valid_and_the_release_checks_the_signature():
     assert {m["port"] for m in ports["jobs"]["port"]["strategy"]["matrix"]["include"]} == {"Aurora_mac", "Aurora_windows"}
     steps = "\n".join(s.get("run", "") for s in rel["jobs"]["release"]["steps"])
     assert "verify-tag" in steps and "allowed_signers" in steps and "CHANGELOG.md" in steps
+    assert "sys/app/dist/aurora-app-*.apk" in steps and list((ROOT / "sys/app/dist").glob("aurora-app-*.apk"))  # the app
     assert (ROOT / "sys/core/config/allowed_signers").exists()
     assert rel["permissions"] == {"contents": "write"} and ports["permissions"] == {"contents": "read"}

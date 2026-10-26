@@ -24,6 +24,8 @@ export default {
       <div class="harvest-state"></div>
       <div class="harvest-actions"><button class="toggle"></button> <button class="now" data-i18n="harvest.now"></button>
         <span class="result muted"></span></div>
+      <div class="harvest-audit-wrap" hidden><h3 class="setting-cat" data-i18n="harvest.audit"></h3>
+        <p class="muted" data-i18n="harvest.audit_hint"></p><div class="harvest-audit"></div></div>
       <h3 class="setting-cat" data-i18n="harvest.langs"></h3>
       <p class="muted" data-i18n="harvest.langs_hint"></p><div class="harvest-langs"></div>
       <h3 class="setting-cat" data-i18n="harvest.domains"></h3>
@@ -40,6 +42,7 @@ export default {
     root.querySelector("h2").after(autonomySlot("harvest", "knowledge", "study"));   // how free Aurora is, here (owner, 2026-10-08)
     apply(root);
     this.stateBox = root.querySelector(".harvest-state");
+    this.auditWrap = root.querySelector(".harvest-audit-wrap");
     this.domainsBox = root.querySelector(".harvest-domains");
     this.planBox = root.querySelector(".harvest-plan-box");
     this.langsBox = root.querySelector(".harvest-langs");
@@ -82,6 +85,7 @@ export default {
     row(t("harvest.last"), when(s.last_round));
     if (s.next_round && s.enabled_setting) row(t("harvest.next"), when(s.next_round));
     row(t("harvest.seen"), String(s.papers_seen));
+    this.renderAudit(s.audit);
     this.renderDomains(s.domains || []);
     const names = Object.fromEntries((s.domains || []).map((d) => [d.id, lang.startsWith("it") ? d.it : d.en]));
     this.planBox.replaceChildren(planBlock(s.plan, names, () => this.refresh()));
@@ -108,6 +112,27 @@ export default {
         box.append(r);
       }
     }
+  },
+
+  // the vault's nightly check, the owner's only: what the notification «vault.audit» opens (C405)
+  renderAudit(a) {
+    this.auditWrap.hidden = !a;                       // another user, or no night checked yet
+    if (!a) return;
+    const box = this.auditWrap.querySelector(".harvest-audit");
+    box.replaceChildren();
+    const r = el("div", "ev");
+    r.append(el("span", `pill ${a.fix.length ? "warn" : "ok"}`, a.fix.length ? "⚠️" : "✓"), el("strong", "", when(a.at)),
+      el("span", "", t("harvest.audit_line", { dup: a.duplicates, pdf: a.arxiv_pdf, mis: a.misplaced, n: a.wikipedia_read })));
+    box.append(r);
+    for (const m of a.misplaced_examples || []) {
+      const e = el("div", "ev");
+      e.append(el("span", "", m.title), el("span", "muted", `${m.in} → ${m.would_be}`));
+      box.append(e);
+    }
+    if (a.fix.length) {
+      box.append(el("div", "muted", t("harvest.audit_fix")));
+      for (const c of a.fix) box.append(el("pre", "", c));
+    } else box.append(el("div", "muted", a.misplaced ? t("harvest.audit_noise", { k: a.tell_from }) : t("harvest.audit_ok")));
   },
 
   renderDomains(domains) {

@@ -13,6 +13,7 @@ paper arXiv has no HTML of keeps its PDF unless --drop-pdf-without-html. Resumab
 
     python script/vault_realign.py                      # what it would do
     python script/vault_realign.py --apply [--limit 50] # do it (arXiv's pace: AURORA_ARXIV_DELAY_S between calls)
+    python script/vault_realign.py --wikipedia [--fresh] [--apply]   # the Wikipedia articles, each in its domain
 """
 from __future__ import annotations
 
@@ -102,7 +103,10 @@ def _write(api, name: str, domain: str, ident: str, text: str) -> dict:
 
 def wikipedia(cfg, a, api, get) -> int:
     """Every Wikipedia article once, in the domain its text says (kno_domain, M195): copies merged, wrong domains
-    moved — imported in the right one as a declared replacement, then the others removed."""
+    moved — imported in the right one as a declared replacement, then the others removed. The domain chosen once is
+    kept in realign/wikipedia.json; --fresh asks the chooser again for every article (the nightly check's command,
+    C405: the kept choices are the ones it doubts)."""
+    fresh = getattr(a, "fresh", False)
     state = cfg.path("AURORA_STATUS_DIR") / "realign" / "wikipedia.json"
     state.parent.mkdir(parents=True, exist_ok=True)
     known = json.loads(state.read_text()) if state.exists() else {}
@@ -111,8 +115,10 @@ def wikipedia(cfg, a, api, get) -> int:
     moves = merges = fine = 0
     for n, (ident, copies) in enumerate(sorted(groups.items()), 1):
         first = next((c for c in copies if not c["source_id"].startswith("legacy:")), copies[0])
-        if ident not in known or "target" not in known[ident]:
-            known[ident] = {"target": kno_domain.choose(reader, first["title"], first["text"], first["domain"])}
+        if fresh or ident not in known or "target" not in known[ident]:
+            chosen = kno_domain.choose(reader, first["title"], first["text"], first["domain"])
+            if known.get(ident, {}).get("target") != chosen:       # a new choice is done again, an equal one kept
+                known[ident] = {"target": chosen}
             if n % 200 == 0:
                 state.write_text(json.dumps(known))
         target = known[ident]["target"]
@@ -180,6 +186,8 @@ def main() -> int:
     ap.add_argument("--apply", action="store_true")
     ap.add_argument("--limit", type=int, default=0, help="at most N papers this time (0 = all)")
     ap.add_argument("--wikipedia", action="store_true", help="the Wikipedia articles: one copy each, in the domain their text says")
+    ap.add_argument("--fresh", action="store_true",
+                    help="with --wikipedia: choose every article's domain again, not the one kept from the last run")
     ap.add_argument("--drop-pdf-without-html", action="store_true",
                     help="remove a paper that arXiv has only as PDF (otherwise kept)")
     a = ap.parse_args()

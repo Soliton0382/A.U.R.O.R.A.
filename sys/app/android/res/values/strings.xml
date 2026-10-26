@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Aurora</string>
+    <string name="welcome_text">Aurora sul tuo telefono. Ti servono l\'indirizzo della tua Aurora e, solo la prima volta, la chiave per entrare: poi l\'app entra da sola.</string>
+    <string name="start">Inizia</string>
+    <string name="host_label">Indirizzo (IP o nome)</string>
+    <string name="host_hint">aurora.example</string>
+    <string name="port_label">Porta</string>
+    <string name="port_hint">443</string>
+    <string name="setup_title">Indirizzo di Aurora</string>
+    <string name="setup_help">Si usa sempre HTTPS. Porta vuota = 443.</string>
+    <string name="shortcut_setup">Cambia indirizzo</string>
+    <string name="setup_go">Connetti</string>
+    <string name="bad_address">Serve un indirizzo IP o un nome, e una porta fra 1 e 65535 (o vuota).</string>
+    <string name="unreachable">Aurora non risponde a questo indirizzo: %1$s</string>
+    <string name="untrusted">Il certificato di Aurora non è fidato. Installa sul telefono aurora-ca.crt (Impostazioni → Sicurezza → Certificati), poi riprova.</string>
+    <string name="mic_denied">Senza il microfono la voce e l\'interprete non funzionano.</string>
+    <string name="no_app">Nessuna app per aprire questo file.</string>
+    <string name="ch_line">Linea con Aurora</string>
+    <string name="ch_news">Notifiche di Aurora</string>
+    <string name="line_on">Aurora è in linea</string>
+    <string name="ch_calls">Chiamate di Aurora</string>
+    <string name="call_title">Aurora ti chiama</string>
+    <string name="call_ringing">Ti sta chiamando…</string>
+    <string name="call_out">Stai chiamando Aurora</string>
+    <string name="call_connecting">Collegamento…</string>
+    <string name="call_in">In chiamata %1$d:%2$02d</string>
+    <string name="call_over">Chiamata terminata</string>
+    <string name="call_failed">Chiamata interrotta: %1$s</string>
+    <string name="call_answer">Rispondi</string>
+    <string name="call_decline">Rifiuta</string>
+    <string name="call_hangup">Chiudi</string>
+    <string name="call_mute">Muto</string>
+    <string name="call_speaker">Vivavoce</string>
+    <string name="full_screen">Per far squillare le chiamate di Aurora a telefono bloccato, permetti le notifiche a schermo intero.</string>
+    <string name="download">Scaricamento avviato: %1$s</string>
+</resources>

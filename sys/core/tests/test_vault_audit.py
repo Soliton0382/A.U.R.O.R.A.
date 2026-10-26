@@ -44,3 +44,21 @@ def test_copies_pdfs_and_misplaced_articles_are_told(cfg, monkeypatch):
     assert told and "vault_realign.py" in told[0]["text"] and A.done_tonight(cfg)
     clean = A.audit(cfg, Said("religion"), lambda e, p: told.append(p))       # the article where it belongs
     assert clean["misplaced"] == 0
+
+
+def test_a_few_misplaced_articles_are_the_choosers_noise_not_told(cfg, monkeypatch):
+    """C405: 2 of 40 a night is the local chooser changing its mind; told from MISPLACED_TELL, with --fresh."""
+    from aurora import kno_dedup
+    kno_dedup._index.clear()
+    imp = Importer(VaultWriter(cfg), Indexer(Emb(), cfg), cfg)
+    monkeypatch.setattr(imp.indexer, "update", lambda *a, **k: 0)
+    for i in range(A.MISPLACED_TELL):
+        body = f"Article {i} about the history of a small invented town and its people, told at length. " * 6
+        imp.add(f"Town_{i}.txt", body.encode(), "religion", title=f"Town {i}", origin=f"wikipedia:Town {i}")
+    told = []
+    out = A.audit(cfg, Said("history"), lambda e, p: told.append(p), sample=2)
+    assert out["misplaced"] == 2 and not told and A.last(cfg)["fix"] == []
+    assert A.last(cfg)["misplaced_examples"][0]["would_be"] == "history"      # still shown on the Harvester page
+    out = A.audit(cfg, Said("history"), lambda e, p: told.append(p))
+    assert out["misplaced"] == A.MISPLACED_TELL and told and A.last(cfg)["fix"] == [A.FIX_WIKI]
+    assert "--fresh" in told[0]["text"] and "Harvester" in told[0]["text"]

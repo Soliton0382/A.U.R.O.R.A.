@@ -3,8 +3,9 @@
 #
 # A release from a tag pushed by sys/core/script/publish.sh --release X.Y.Z: the tag must be signed by a key of
 # sys/core/config/allowed_signers (the same check the updater makes on every commit), its notes are that version's
-# section of CHANGELOG.md. Nothing is built here: Aurora is installed from the source (install.sh); the Ports
-# workflow runs on the same tag.
+# section of CHANGELOG.md. Nothing is built here: Aurora is installed from the source (install.sh); the Android app's
+# APK is the one published with the code (sys/app/dist, built and signed on the owner's machine by sys/app/build.py
+# --dist: the signing key never leaves it) and is attached as it is. The Ports workflow runs on the same tag.
 name: Release
 
 on:
@@ -43,4 +44,4 @@ jobs:
       - name: Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" --verify-tag --title "Aurora $GITHUB_REF_NAME" --notes-file notes.md
+        run: gh release create "$GITHUB_REF_NAME" --verify-tag --title "Aurora $GITHUB_REF_NAME" --notes-file notes.md sys/app/dist/aurora-app-*.apk

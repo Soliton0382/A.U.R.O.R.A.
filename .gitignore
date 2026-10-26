@@ -30,6 +30,12 @@ tmp/
 # Built or downloaded by the installer: llama.cpp (sys_nvidia.sh llama), GitHub MCP server
 sys/runtime
 
+# The Android app's toolchain (JDK, SDK), its signing key and its build: on the machine that builds it (sys/app/build.py);
+# the APK published is sys/app/dist
+sys/app/tools
+sys/app/keys
+sys/app/out
+
 # The owner's Claude Code workspace (personal paths and settings)
 .claude/
 CLAUDE.md

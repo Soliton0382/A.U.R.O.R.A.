@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A long press on the icon: change Aurora's address (the only setting the app keeps). -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut android:shortcutId="setup" android:enabled="true" android:icon="@drawable/ic_aurora"
+        android:shortcutShortLabel="@string/shortcut_setup">
+        <intent android:action="org.aurora.app.SETUP"
+            android:targetPackage="org.aurora.app" android:targetClass="org.aurora.app.MainActivity" />
+    </shortcut>
+</shortcuts>

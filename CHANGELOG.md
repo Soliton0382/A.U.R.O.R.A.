@@ -2,6 +2,15 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.100 — 2026-10-27
+
+4 publications since v0.2.96.
+
+- 2026-10-27 Vault check: told above the chooser's noise, shown on the Harvester page; the Android app's source in sys/app and its APK on the release
+- 2026-10-26 Call Aurora: a phone button in the chat's bar, only in the phone app, opens a call answered at once that rings nowhere (POST /v1/aurora/call/dial)
+- 2026-10-26 Projects: a Papers tab with a card for each work (views and downloads unique and total, the change since yesterday and in a week, versions, licence, keywords, views day by day); the publications plugin set up on that page; Oggi's tile links to it
+- 2026-10-26 Publications plugin: each user's works on Zenodo by ORCID, views and downloads with the daily change, an evening routine and a tile on Oggi; Oggi greets with the person's name and a sign of the weather
+
 ## v0.2.99 — 2026-10-26
 
 3 publications since v0.2.96.

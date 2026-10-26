@@ -10,8 +10,9 @@ SRC = (ROOT / "aurora" / "api" / "phone_app.py").read_text()
 PAGE = (ROOT / "webui" / "js" / "modules" / "phone_app.js").read_text()
 
 
-def test_the_newest_version_is_offered(cfg):
+def test_the_newest_version_is_offered(cfg, tmp_path, monkeypatch):
     from aurora import sys_phone_app
+    monkeypatch.setattr(sys_phone_app, "DIST", tmp_path / "dist")
     assert sys_phone_app.newest(cfg) is None and sys_phone_app.info(cfg) == {"available": False}
     d = cfg.path("AURORA_STATUS_DIR") / "app"
     d.mkdir(parents=True)
@@ -20,6 +21,9 @@ def test_the_newest_version_is_offered(cfg):
     (d / "aurora-app-9.0.0.apk.part").write_bytes(b"x")              # not a finished build
     info = sys_phone_app.info(cfg)
     assert info["version"] == "0.10.0" and info["size"] == 8 and len(info["sha256"]) == 64
+    (tmp_path / "dist").mkdir()                                       # the one published with the code, if newer
+    (tmp_path / "dist" / "aurora-app-0.11.0.apk").write_bytes(b"PK")
+    assert sys_phone_app.info(cfg)["version"] == "0.11.0"
 
 
 def test_both_routes_need_a_login():

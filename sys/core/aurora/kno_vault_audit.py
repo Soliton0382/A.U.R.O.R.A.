@@ -7,7 +7,14 @@ Read only, once a night (aurora-rem's task «audit»): the knowledge's documents
 (kno_dedup.official: an arXiv id, a Wikipedia article, a PMC id…) — more than one copy is a duplicate; the arXiv papers
 still held as PDF (formulas garbled: C137, C293); a sample of Wikipedia articles read again by the domain chooser
 (kno_domain): one whose domain the chooser would change is misplaced. Anything found is told to the owner (a
-notification «vault.audit») with the commands that fix it; nothing is changed here."""
+notification «vault.audit») with the commands that fix it, and shown on the Harvester page (last()); nothing is
+changed here.
+
+The chooser is a local model and does not always give an article the same domain (C405: «Nigeria» general on 13 Oct,
+society on 27 Oct; «Rifiuto» law_it at night, society 5 times out of 5 the morning after): 15 of 520 sampled articles
+over 13 nights (2.9 %, at most 3 of 40 a night), told on 9 nights, none of them a vault to fix. So misplaced articles
+are told only from MISPLACED_TELL of the sample: with 2.9 % that many come once in about a thousand nights, while the
+list-based placement this check was made for (58 % wrong, M195) gives them every night."""
 from __future__ import annotations
 
 import json
@@ -19,10 +26,24 @@ from pathlib import Path
 from . import kno_dedup, sol_vault, sys_config, sys_log
 
 SAMPLE = 40            # Wikipedia articles read again a night (the local model: ~1 s each)
+MISPLACED_TELL = 6     # of SAMPLE: binomial tail at the measured 2.9 % ≈ 0.001; at 58 % ≈ 1
+FIX_PAPERS = "python sys/core/script/vault_realign.py --apply"
+FIX_WIKI = "python sys/core/script/vault_realign.py --wikipedia --fresh"   # a dry run first; then with --apply
 
 
 def _state(cfg: sys_config.Config) -> Path:
     return cfg.path("AURORA_STATUS_DIR") / "vault_audit.json"
+
+
+def last(cfg: sys_config.Config) -> dict | None:
+    """The last night's check as the Harvester page shows it, with what to run when something is to fix."""
+    try:
+        out = json.loads(_state(cfg).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    fix = ([FIX_PAPERS] if out.get("duplicates") or out.get("arxiv_pdf") else []) \
+        + ([FIX_WIKI] if out.get("misplaced", 0) >= MISPLACED_TELL else [])
+    return {**out, "tell_from": MISPLACED_TELL, "fix": fix}
 
 
 def done_tonight(cfg: sys_config.Config) -> bool:
@@ -79,10 +100,11 @@ def audit(cfg: sys_config.Config, llm, tell=None, sample: int = SAMPLE) -> dict:
     _state(cfg).parent.mkdir(parents=True, exist_ok=True)
     _state(cfg).write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
     sys_log.trace("rem", "vault.audit", {k: v for k, v in out.items() if not k.endswith("examples")})
-    if out["duplicates"] or out["arxiv_pdf"] or out["misplaced"]:
+    fix = last(cfg)["fix"]
+    if fix:
         text = (f"Controllo del vault: {out['duplicates']} documenti in più copie, {out['arxiv_pdf']} paper arXiv ancora "
                 f"in PDF, {out['misplaced']} voci Wikipedia su {out['wikipedia_read']} in un dominio che non è il loro. "
-                "Si sistemano con: python sys/core/script/vault_realign.py --apply (paper) e --wikipedia --apply (voci).")
+                "Il dettaglio e i comandi sono nella pagina Harvester: " + " · ".join(fix))
         if tell:
             tell("vault.audit", {"text": text, **{k: out[k] for k in ("duplicates", "arxiv_pdf", "misplaced")}})
         out["text"] = text

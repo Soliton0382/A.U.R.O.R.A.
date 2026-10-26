@@ -9,7 +9,7 @@ import json
 from aurora import sys_config
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from .core import auth, cfg, log
+from .core import _admin, auth, cfg, log, me
 
 from .users import admin_only  # noqa: E402
 
@@ -39,7 +39,7 @@ async def harvester_domains(request: Request) -> dict:
 
 @router.get("/v1/aurora/harvester", dependencies=[Depends(auth)])
 def harvester() -> dict:
-    from aurora import kno_harvest
+    from aurora import kno_harvest, kno_vault_audit
     env = sys_config.parse_env(sys_config.env_file_path().read_text(encoding="utf-8"))
     seen = cfg.path("AURORA_STATUS_DIR") / "harvest" / "seen.json"
     return {**kno_harvest.status(cfg), "pending": kno_harvest.pending(cfg),
@@ -47,7 +47,9 @@ def harvester() -> dict:
             "categories": cfg["AURORA_HARVEST_CATEGORIES"], "per_category": cfg["AURORA_HARVEST_PER_CATEGORY"],
             "interval_h": cfg["AURORA_HARVEST_INTERVAL_H"],
             "papers_seen": len(json.loads(seen.read_text())) if seen.exists() else 0,
-            "domains": _harvest_domains()}
+            "domains": _harvest_domains(),
+            # the vault's nightly check (kno_vault_audit), the owner's: what the notification «vault.audit» opens (C405)
+            "audit": kno_vault_audit.last(cfg) if me() == _admin() else None}
 
 
 @router.post("/v1/aurora/harvester/{action}", dependencies=[Depends(admin_only)])
