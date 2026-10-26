@@ -70,7 +70,10 @@ def test_the_composer_has_the_clip_the_microphone_and_the_gear_only():
     chat = (JS / "modules" / "chat.js").read_text()
     form = re.search(r'<form class="ask">(.*?)</form>', chat, re.S).group(1)
     buttons = re.findall(r'<button type="button" class="icon (\w+)', form)
-    assert buttons == ["attach", "mic", "gear", "hush"]
+    assert buttons == ["attach", "mic", "dial", "gear", "hush"]
+    # 📞 only in the phone app that can open a call (owner, 26 Oct): hidden here, shown by the app's bridge
+    assert re.search(r'class="icon dial"[^>]*\bhidden>', form)
+    assert 'dial.hidden = typeof window.AuroraApp?.callAurora !== "function"' in chat
     menu = (JS / "modules" / "chat_menu.js").read_text()
     think = (JS / "modules" / "chat_think.js").read_text()
     assert '"": "🧠"' in think and "⚙️" not in re.search(r"THINK_ICON = \{.*?\}", think).group(0)

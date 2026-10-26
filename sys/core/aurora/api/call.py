@@ -28,6 +28,14 @@ async def call_ring(request: Request) -> dict:
     return call
 
 
+@router.post("/v1/aurora/call/dial", dependencies=[Depends(auth)])
+async def call_dial(request: Request) -> dict:
+    """The owner calls Aurora from the app: a call ready to be opened, ringing nowhere."""
+    call = sys_call.dial(request.state.user)
+    log.info("audit: call dialled %s", call["id"])
+    return call
+
+
 @router.post("/v1/aurora/call/{call_id}/decline", dependencies=[Depends(auth)])
 async def call_decline(call_id: str, request: Request) -> dict:
     c = sys_call.calls.get(call_id)
@@ -81,7 +89,7 @@ class _Voice:
 async def call_audio(ws: WebSocket, call_id: str) -> None:
     user = _who(ws)
     c = sys_call.calls.get(call_id)
-    if user is False or not c or c["user"] != user or c["state"] not in ("ringing", "answered"):
+    if user is False or not c or c["user"] != user or c["state"] not in ("ringing", "answered", "dialing"):
         await ws.close(code=4404)
         return
     sys_context.CURRENT.set(user)                     # her answers are this user's (memory, conversation)
@@ -89,6 +97,7 @@ async def call_audio(ws: WebSocket, call_id: str) -> None:
     if sys_call.set_state(call_id, "answered", only_from="ringing"):
         from aurora import sys_line                   # the other phones stop ringing
         await asyncio.to_thread(sys_line.post, {"kind": "call_answered", "call": call_id}, cfg.now())
+    sys_call.set_state(call_id, "answered", only_from="dialing")      # the owner's own call: nobody else rang
     log.info("audit: call answered %s", call_id)
     lang = str(cfg["AURORA_LANG_DEFAULT"])[:2]
     voice, seg, heard = _Voice(ws, lang), sys_call.Segmenter(), asyncio.Queue()
@@ -100,7 +109,7 @@ async def call_audio(ws: WebSocket, call_id: str) -> None:
 
     worker = asyncio.create_task(turns())
     try:
-        await voice.say(f"Ciao, sono Aurora. {c['reason']}")
+        await voice.say("Ciao, dimmi pure." if c.get("by") == "owner" else f"Ciao, sono Aurora. {c['reason']}")
         while True:
             msg = await ws.receive()
             if msg.get("type") == "websocket.disconnect":

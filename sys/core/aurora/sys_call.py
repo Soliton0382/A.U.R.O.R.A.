@@ -43,6 +43,17 @@ def ring(reason: str, cfg: sys_config.Config, user: str | None) -> dict:
     return dict(call)
 
 
+def dial(user: str | None) -> dict:
+    """The owner calls Aurora (owner, 26 Oct: «un tasto cornetta da qualche parte per chiamare aurora»): the app opens
+    the call screen at once, nothing rings anywhere; a call never opened is forgotten with the others (KEEP_S)."""
+    call = {"id": secrets.token_hex(8), "user": user, "reason": "", "state": "dialing", "by": "owner", "at": time.time()}
+    with _lock:
+        for k in [k for k, c in calls.items() if time.time() - c["at"] > KEEP_S]:
+            del calls[k]
+        calls[call["id"]] = call
+    return dict(call)
+
+
 def _missed(call_id: str, cfg: sys_config.Config) -> None:
     if set_state(call_id, "missed", only_from="ringing"):
         _tell(calls[call_id], "📞 Chiamata persa", cfg)

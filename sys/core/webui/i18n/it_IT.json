@@ -789,6 +789,7 @@
   "update.protected": "tocca file protetti del codice etico: si applica a mano e si firma ({f})",
   "update.check": "Controlla ora",
   "chat.mic": "Detta il messaggio (8 secondi)",
+  "chat.dial": "Chiama Aurora",
   "chat.mic.dictate": "🎙️ Detta un messaggio",
   "chat.mic.talk": "🗣️ Conversazione a mani libere (puoi interromperla parlando)",
   "chat.mic.none": "Non ho sentito un parlato chiaro: riprova.",

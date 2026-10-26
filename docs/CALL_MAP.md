@@ -646,8 +646,9 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | GET `/v1/aurora/calendar/export.ics` | `api/calendar.py` | `webui/js/modules/calendar.js` |
 | POST `/v1/aurora/calendar/import` | `api/calendar.py` | `webui/js/modules/calendar.js` |
 | POST `/v1/aurora/call` | `api/call.py` | `webui/js/modules/phone_app.js` |
-| POST `/v1/aurora/call/{call_id}/decline` | `api/call.py` | — |
-| WEBSOCKET `/v1/aurora/call/{call_id}/audio` | `api/call.py` | — |
+| POST `/v1/aurora/call/dial` | `api/call.py` | `webui/js/modules/chat.js` |
+| POST `/v1/aurora/call/{call_id}/decline` | `api/call.py` | `webui/js/modules/chat.js` |
+| WEBSOCKET `/v1/aurora/call/{call_id}/audio` | `api/call.py` | `webui/js/modules/chat.js` |
 | GET `/v1/aurora/health/values` | `api/care.py` | `webui/js/modules/care_values.js` |
 | POST `/v1/aurora/health/values/read/{doc_id}` | `api/care.py` | `webui/js/modules/care.js` |
 | PUT `/v1/aurora/health/values/{vid}` | `api/care.py` | `webui/js/modules/care.js`, `webui/js/modules/care_values.js` |
@@ -914,4 +915,4 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | GET `/v1/aurora/tts` | `api/voice.py` | `webui/js/voice.js` |
 | POST `/v1/aurora/tts` | `api/voice.py` | `webui/js/voice.js` |
 
-Modules nobody in the code imports: 0; routes nobody in the repository names: 7 of 368.
+Modules nobody in the code imports: 0; routes nobody in the repository names: 5 of 369.

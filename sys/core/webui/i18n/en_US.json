@@ -789,6 +789,7 @@
   "update.protected": "touches protected files of the code of conduct: apply by hand and sign ({f})",
   "update.check": "Check now",
   "chat.mic": "Dictate the message (8 seconds)",
+  "chat.dial": "Call Aurora",
   "chat.mic.dictate": "🎙️ Dictate a message",
   "chat.mic.talk": "🗣️ Hands-free conversation (speak to interrupt her)",
   "chat.mic.none": "No clear speech heard: try again.",

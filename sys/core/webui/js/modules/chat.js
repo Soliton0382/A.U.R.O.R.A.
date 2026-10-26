@@ -53,6 +53,7 @@ export default {
         <form class="ask">
           <button type="button" class="icon attach" data-i18n-title="chat.attach">📎</button>
           <button type="button" class="icon mic" data-i18n-title="chat.mic">🎙️</button>
+          <button type="button" class="icon dial" data-i18n-title="chat.dial" hidden>📞</button>
           <button type="button" class="icon gear">⚙️</button>
           <button type="button" class="icon hush hidden" data-i18n-title="chat.hush">⏹️</button>
           <input type="file" multiple hidden accept="image/*,video/*,.txt,.md,.markdown,.html,.htm,.pdf">
@@ -101,6 +102,17 @@ export default {
     // "senses"), chosen in ⚙️ (chat_menu.js). A touch screen starts on this device, a PC on the machine.
     // The owner's click is the consent; the browser asks its own permission the first time.
     const mic = root.querySelector(".mic");
+    // 📞 calling Aurora (owner, 26 Oct: «un tasto cornetta da qualche parte per chiamare aurora»): only in the phone
+    // app that opens its call screen (AuroraApp.callAurora, aurora-app 0.4); a call made here rings nowhere
+    const dial = root.querySelector(".dial");
+    dial.hidden = typeof window.AuroraApp?.callAurora !== "function";
+    dial.addEventListener("click", async () => {
+      dial.disabled = true;
+      try {
+        const c = await call("/v1/aurora/call/dial", { method: "POST" });
+        window.AuroraApp.callAurora(c.id);
+      } catch (e) { input.placeholder = t("ev.error", { m: e.message }); } finally { dial.disabled = false; }
+    });
     const shoot = root.querySelector(".shoot");
     const canRecord = !!(window.isSecureContext && navigator.mediaDevices?.getUserMedia && window.MediaRecorder);
 
