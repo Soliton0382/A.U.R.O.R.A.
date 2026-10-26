@@ -9,7 +9,7 @@ What Aurora was measured on (**recommended**: the owner's machine), and what is 
 |---|---|---|---|
 | OS | Ubuntu 26.04 LTS, kernel 7.0.0-34-generic | — | all services, tests |
 | GPUs | 2 × NVIDIA GeForce RTX 5060 Ti 16 GB (Blackwell, compute capability 12.0) | — | M23, M28 |
-| NVIDIA driver | **595-open (595.91.07, CUDA 13.2)**; 580-server-open (580.178.04, CUDA 13.0) also measured | Ubuntu's signed, precompiled modules (`linux-modules-nvidia-*-generic`), never NVIDIA's driver packages | `sys_nvidia.sh verify`; M34: 112.4 tok/s on 595, 112.3 on 580 |
+| NVIDIA driver | **595-open (595.99.02 since 8 Oct, CUDA 13.2; 595.91.07 before)**; 580-server-open (580.178.04, CUDA 13.0) also measured | Ubuntu's signed, precompiled modules (`linux-modules-nvidia-*-generic`), never NVIDIA's driver packages | `sys_nvidia.sh verify`; M34: 112.4 tok/s on 595, 112.3 on 580 |
 | CUDA toolkit | 13.4 (`cuda-toolkit-13-4`) from NVIDIA's ubuntu2604 repository, toolkit only, apt pin against NVIDIA drivers | `sys_nvidia.sh toolkit` | M34 |
 | llama.cpp | commit 7fee178, built for sm_120 with CUDA 13.4, RUNPATH $ORIGIN | `sys_nvidia.sh llama` | M34: 112.3 tok/s |
 | Python | 3.14 (venv) with torch 2.14 + cu130 (carries its own CUDA runtime and cuDNN) | requirements.txt | tests |
