@@ -218,8 +218,8 @@ domande e risposte).
 
 ### SSCC — compressione per il ragionatore cloud
 
-Quando si usa un ragionatore cloud, il testo inviato viene compresso con il **Soliton-Salience Context
-Compressor**: ogni frase $c_i$ (su $n$) riceve una salienza
+Quando si usa un ragionatore cloud, il testo inviato viene compresso con la **Saliency-Scored Context
+Compression**: ogni frase $c_i$ (su $n$) riceve una salienza
 
 $$\mathrm{score}_i = \cos(q, c_i)\cdot\big(1 + \alpha\,\mathrm{Amp}_i\big)\cdot\big(\gamma + (1-\gamma)\,\mathrm{Vel}_i\big)$$
 

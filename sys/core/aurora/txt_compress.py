@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2026 A.U.R.O.R.A. Project
-"""Token compression for cloud reasoners: the owner's Soliton-Salience compressor (SSCC).
+"""Token compression for cloud reasoners: the owner's Saliency-Scored Context Compression (SSCC).
 
 Port of AGI_old/Papers/Presentation_Hybrid-Offload-Engine/sscc_api_client.py, applied to sentences:
 

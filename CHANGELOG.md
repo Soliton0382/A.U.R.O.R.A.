@@ -2,6 +2,13 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.102 — 2026-10-27
+
+2 publications since v0.2.100.
+
+- 2026-10-27 SSCC spelled out as Saliency-Scored Context Compression
+- 2026-10-26 Backup keeps the Android app's signing key (sys/app/keys), not its toolchain
+
 ## v0.2.101 — 2026-10-27
 
 1 publications since v0.2.100.

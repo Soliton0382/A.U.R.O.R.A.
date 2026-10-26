@@ -218,7 +218,7 @@ answers).
 
 ### SSCC — compression for the cloud reasoner
 
-With a cloud reasoner, the text sent is compressed by the **Soliton-Salience Context Compressor**: each
+With a cloud reasoner, the text sent is compressed by **Saliency-Scored Context Compression**: each
 sentence $c_i$ (of $n$) gets a salience
 
 $$\mathrm{score}_i = \cos(q, c_i)\cdot\big(1 + \alpha\,\mathrm{Amp}_i\big)\cdot\big(\gamma + (1-\gamma)\,\mathrm{Vel}_i\big)$$
