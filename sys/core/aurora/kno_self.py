@@ -83,6 +83,11 @@ class SelfTalk:
                 last = next((x for x in reversed(inner) if x.extra.get("type") == kind), None)
                 state[f"last_{kind}"] = ({"when": sns_clock.when(last.created_at, self.cfg), "text": last.text}
                                          if last else "none yet")
+        # what the owner did in the projects lately: a paper published there was news to her (owner, 26 Oct)
+        from . import kno_mood_work, mdl_router, sys_ethics
+        cloud = (mdl_router.assignments(self.cfg).get("self", {}).get("provider", "local") != "local"
+                 and sys_ethics.exempt(self.cfg))
+        state["owner_projects_last_48h"] = kno_mood_work.recent_steps(self.cfg, cloud=cloud) or "none moved"
         if self.state_fn:
             state.update(self.state_fn())
         return state

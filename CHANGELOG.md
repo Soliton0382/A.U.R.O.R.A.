@@ -2,6 +2,14 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.96 — 2026-10-26
+
+3 publications since v0.2.93.
+
+- 2026-10-26 Chat: composer as one box in the phone app, router's question and answer told apart; her state carries what moved in the projects; backup retries a blob write three times
+- 2026-10-25 Agent loop: edits count as written and as changes, references from a verified list; backup retries a failed blob write and ignores a unit failure fixed later; daily seed out of the code signature
+- 2026-10-25 Agent loop: written files counted from edits, references from a verified list; backup health ignores a unit failure fixed by a later run
+
 ## v0.2.95 — 2026-10-26
 
 2 publications since v0.2.93.

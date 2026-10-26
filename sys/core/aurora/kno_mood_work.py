@@ -62,3 +62,25 @@ def read(cfg: sys_config.Config, now: float | None = None) -> dict:
            "steps_24h": sum(v["steps_24h"] for v in by.values()), "open": sum(v["open"] for v in by.values()), "by": by}
     _cache[key] = (now, out)
     return out
+
+
+def recent_steps(cfg: sys_config.Config, hours: int = 48, per: int = 4, cloud: bool = False) -> list[dict]:
+    """What moved in the owner's projects (owner, 26 Oct: told of a paper published that day, she «non lo sapeva»):
+    each project with a commit in the last `hours`, newest first, with its last `per` commit messages and dates.
+    cloud: the answer goes to a cloud model, so a project kept «local only» (prj_policy) is left out."""
+    try:
+        base = cfg.path("AURORA_PROJECTS_DIR")
+    except (KeyError, ValueError):
+        return []
+    from . import prj_policy
+    out = []
+    for p in sorted(x for x in base.iterdir() if x.is_dir() and (x / ".git").exists()) if base.is_dir() else []:
+        if cloud and prj_policy.load(cfg, p.name)["models"] == "local":
+            continue
+        rows = [line.split("\t", 2) for line in _git(p, "log", f"--since={hours}.hours", f"-{per}",
+                                                     "--format=%ct\t%cs\t%s").splitlines() if line.count("\t") >= 2]
+        if rows:
+            out.append({"project": p.name, "t": int(rows[0][0]),
+                        "saved": [{"day": day, "what": what[:200]} for _, day, what in rows]})
+    return [{k: v for k, v in r.items() if k != "t"} for r in sorted(out, key=lambda r: -r["t"])]
+

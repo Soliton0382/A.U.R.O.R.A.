@@ -68,7 +68,7 @@ def test_a_backup_round_trip_keeps_everything_and_writes_only_what_changed(setup
 
 
 def test_a_blob_write_that_fails_once_is_tried_again(tmp_path, monkeypatch):
-    """C400: Errno 14 on the NAS once in a night's copy; the second try writes the whole blob, a third failure is raised."""
+    """C400: Errno 14 on the NAS in a night's copy; a later try writes the whole blob, a third failure is raised."""
     import errno
     real, fails = B.encrypt_stream, []
 
@@ -83,13 +83,13 @@ def test_a_blob_write_that_fails_once_is_tried_again(tmp_path, monkeypatch):
     (tmp_path / "f").write_bytes(b"data" * 1000)
     key, bp, log = os.urandom(32), tmp_path / "ab" / "blob", __import__("logging").getLogger("t")
     bp.parent.mkdir()
-    want = 1
+    want = 2
     B._write_blob(tmp_path / "f", bp, key, log)
     out = io.BytesIO()
     B.decrypt_stream(io.BytesIO(bp.read_bytes()), out, key)
     assert out.getvalue() == b"data" * 1000 and not (bp.parent / "blob.part").exists()
     fails.clear()
-    want, bp2 = 2, tmp_path / "ab" / "blob2"
+    want, bp2 = 3, tmp_path / "ab" / "blob2"
     with pytest.raises(OSError):
         B._write_blob(tmp_path / "f", bp2, key, log)
     assert not bp2.exists() and not (bp.parent / "blob2.part").exists()

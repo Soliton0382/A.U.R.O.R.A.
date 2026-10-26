@@ -415,9 +415,10 @@ def unit_failure(unit: str = "aurora-backup.service", after: float | None = None
     return UNIT_STATUS.get(code, f"esito {v.get('Result')}, codice {code}")
 
 
-def _write_blob(source: Path, bp: Path, enc: bytes, log, tries: int = 2) -> None:
+def _write_blob(source: Path, bp: Path, enc: bytes, log, tries: int = 3) -> None:
     """One encrypted blob, written as .part and renamed when whole. A write on the NAS (cifs, soft) failed once
-    with Errno 14 after 21 minutes and not again by hand (C400): an I/O error is tried once more, and logged."""
+    with Errno 14 twice, 90 s and 4 min after aurora-api restarted, and not again by hand later (C400): an I/O
+    error is tried again, 30 s apart, and logged."""
     part = bp.with_name(bp.name + ".part")
     for n in range(1, tries + 1):
         try:
@@ -432,7 +433,7 @@ def _write_blob(source: Path, bp: Path, enc: bytes, log, tries: int = 2) -> None
             if n == tries or not source.exists():
                 raise
             log.warning("backup: writing %s failed (%s), try %d of %d", source.name, e, n + 1, tries)
-            time.sleep(5)
+            time.sleep(30)
 
 
 # moved to sys_backup_crypto (it uses names of this module): imported back last

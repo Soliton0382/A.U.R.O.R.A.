@@ -27,7 +27,9 @@ export const ICONS = {
 export function describe(name, p) {
   switch (name) {
     case "route": return t(`ev.route.${p.mode}`);
-    case "route.tools": return t("ev.route.tools", { reply: p.reply || "" });
+    // the question asked of the router; "route" mode "tools" (its answer) has ev.route.tools — one key for both
+    // showed «({reply})» unfilled while the agent worked (owner, 26 Oct)
+    case "route.tools": return t("ev.route.tools_ask", { reply: p.reply || "" });
     case "attach.image": return t("ev.attach.image", { name: p.name });
     case "image.plan": return t("ev.image.plan", { name: p.name, n: p.ops.length });
     case "image.edited": return t("ev.image.edited", { name: p.name, w: p.width, h: p.height });

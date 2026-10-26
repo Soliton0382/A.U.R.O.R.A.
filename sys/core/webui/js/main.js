@@ -16,6 +16,10 @@ import { stackTables } from "./stack.js";
 const byId = Object.fromEntries(views.map((v) => [v.id, v]));
 let current = null;
 let isAdmin = true;                // multi-user: a user does not see the machine's pages (adminOnly)
+// a phone's own layout (chat.css): the installed PWA, and Aurora's Android app — a WebView, never «standalone»
+if (/AuroraApp\//.test(navigator.userAgent) || matchMedia("(display-mode: standalone)").matches) {
+  document.documentElement.classList.add("phone-app");
+}
 
 // ---- login: this browser becomes a registered device ------------------------------------
 function deviceName() {

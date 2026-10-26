@@ -36,3 +36,19 @@ def test_no_projects_no_signal(cfg):
     W._cache.clear()
     r = W.read(cfg)
     assert r["last_s"] is None and r["steps_24h"] == 0 and r["open"] == 0
+
+
+def test_what_moved_in_the_projects_is_told_with_its_messages(cfg):
+    """26 Oct: a paper published in a project was news to her; the last saves reach her own state, a project kept
+    «local only» not when the answer goes to a cloud model."""
+    from aurora import prj_policy
+    base = cfg.path("AURORA_PROJECTS_DIR")
+    _project(base, "motore", 6, 0)
+    _project(base, "segreto", 1, 0)
+    _project(base, "idea", 0, 0)
+    prj_policy.save(cfg, "segreto", {"models": "local"})
+    r = W.recent_steps(cfg)
+    assert [x["project"] for x in r] == ["segreto", "motore"] or [x["project"] for x in r] == ["motore", "segreto"]
+    motore = next(x for x in r if x["project"] == "motore")
+    assert [s["what"] for s in motore["saved"]] == ["s5", "s4", "s3", "s2"]           # the last four, newest first
+    assert [x["project"] for x in W.recent_steps(cfg, cloud=True)] == ["motore"]
