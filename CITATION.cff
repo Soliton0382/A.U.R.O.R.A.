@@ -5,6 +5,7 @@ abstract: "A local AI that answers only from knowledge it can show, remembers, d
 type: software
 authors:
   - name: "A.U.R.O.R.A. Project"
+doi: "10.5281/zenodo.23650856"
 repository-code: "https://github.com/Soliton0382/A.U.R.O.R.A."
 license: Apache-2.0
 keywords:
