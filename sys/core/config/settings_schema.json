@@ -3463,6 +3463,18 @@
    ]
   },
   {
+   "key": "AURORA_PUBLICATIONS_DIR",
+   "type": "path",
+   "category": "plugins",
+   "recommended": "usr/publications",
+   "evidence": "owner, 2026-10-26 (the publications plugin: one reading a day)",
+   "en": "Folder of the publications plugin: the daily history of your works' views and downloads.",
+   "it": "Cartella del plugin pubblicazioni: lo storico giornaliero di visite e download delle tue opere.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_EXPENSES_CURRENCY",
    "type": "str",
    "category": "plugins",

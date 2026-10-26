@@ -128,3 +128,21 @@ def next_hours(cfg: sys_config.Config | None = None, hours: int = 3) -> dict | N
                "times": [x[-5:] for x in h["time"]]}
         _next.update(at=time.time(), value=out)
         return out
+
+
+# Oggi's greeting (api/today.hello; owner, 26 Oct: «una emoji basata… sul meteo, le misurazioni»)
+SKY = {"rain": "🌧️", "low_pressure_overcast": "☁️", "hot_humid": "🥵", "cold": "🥶"}
+
+
+def sign_of_day(w: dict | None, hour: int) -> tuple[str, str]:
+    """(emoji, its reason) from the weather reading (sns_weather) and the hour; night wins over a clear sky."""
+    night = hour >= 20 or hour < 6
+    if w and w.get("condition") in SKY:
+        return SKY[w["condition"]], w["condition"]
+    if w and (w.get("clouds_pct") or 0) >= 70:
+        return "☁️", "clouds"
+    if night:
+        return "🌙", "night"
+    if w and (w.get("clouds_pct") or 0) >= 30:
+        return "⛅", "some clouds"
+    return ("☀️", "clear") if w else ("👋", "no weather")

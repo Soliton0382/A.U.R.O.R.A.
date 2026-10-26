@@ -56,3 +56,39 @@ def today_research() -> dict:
         out.append({"id": r["id"], "title": r.get("title", ""), "at": r.get("last_run"), "text": str(r["last_text"])[:1200],
                     "pdf": pdf})
     return {"items": sorted(out, key=lambda x: -(x["at"] or 0))[:2]}
+
+
+# ---- the greeting: the person's name and a sign of the day (owner, 26 Oct: «Buongiorno, <nome> con una emoji
+# basata… sul meteo, le misurazioni») — the weather at home when it is read, else the hour
+@router.get("/v1/aurora/today/hello", dependencies=[Depends(auth)])
+async def today_hello() -> dict:
+    from datetime import datetime
+
+    from aurora import sns_weather
+    from aurora.sns_weather import sign_of_day
+    try:
+        w = await in_thread(sns_weather.read, cfg)        # cached; a provider down gives the hour's sign
+    except Exception:                                    # noqa: BLE001
+        w = None
+    emoji, why = sign_of_day(w, datetime.now().hour)
+    return {"person": str(cfg["AURORA_OWNER_NAME"] or ""), "emoji": emoji, "why": why,
+            "temperature_c": (w or {}).get("temperature_c")}
+
+
+@router.get("/v1/aurora/today/publications", dependencies=[Depends(auth)])
+async def today_publications() -> dict:
+    """The owner's works with their views and downloads (the publications plugin); empty when it is off."""
+    import json
+
+    def work():
+        p = plugin_host().get("publications")
+        if p is None or not (p.enabled and p.available):
+            return []
+        r = plugin_host().call("publications", "publications_list", {})
+        return json.loads(r["text"]) if r.get("ok") else []
+    try:
+        items = await in_thread(work)
+    except Exception:                                    # noqa: BLE001 — the tile stays out, the page stays whole
+        items = []
+    return {"items": items}
+

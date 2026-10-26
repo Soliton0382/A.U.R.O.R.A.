@@ -22,7 +22,7 @@ const NEWS_KEY = "aurora.news_speed";
 const newsSpeed = () => { try { return Math.min(2, Math.max(0, Number(localStorage.getItem(NEWS_KEY) ?? 1))); } catch { return 1; } };
 // every tile in its first order; each is a method below of the same name ("news" is the headlines' strip); the pages
 // added are "page:<id>" (today_pages.js)
-export const TILES = ["news", "agenda", "sky", "research", "house", "waiting", "stats", "dream", "health"];
+export const TILES = ["news", "agenda", "sky", "research", "house", "waiting", "publications", "stats", "dream", "health"];
 
 export default {
   id: "today",
@@ -62,7 +62,14 @@ export default {
     const now = new Date();
     this.root.querySelector(".td-date").textContent = now.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
     const h = now.getHours();
-    this.root.querySelector(".td-hello").textContent = t(h < 13 ? "today.morning" : h < 18 ? "today.afternoon" : "today.evening");
+    const hello = this.root.querySelector(".td-hello");
+    const word = t(h < 13 ? "today.morning" : h < 18 ? "today.afternoon" : "today.evening").replace(/\.$/, "");
+    hello.textContent = `${word}.`;
+    // the person's name and a sign of the day: the weather at home, else the hour (owner, 26 Oct)
+    call("/v1/aurora/today/hello").then((g) => {
+      hello.textContent = `${word}${g.person ? `, ${g.person}` : ""} ${g.emoji}`;
+      hello.title = g.temperature_c != null ? `${Math.round(g.temperature_c)} °C` : "";
+    }).catch(() => {});
     const ids = shown(TILES, tilePrefs());
     if (ids.includes("news")) this.news().catch(() => {});  // at once, not after the slowest tile (owner, 17 Oct)
     else this.root.querySelector(".td-news").hidden = true;
@@ -114,6 +121,33 @@ export default {
     open.addEventListener("click", async () => { await this.ctx.show("astro"); astro.tab("sky"); });
     s.append(open);
     return s;
+  },
+
+  // 📚 the owner's works and how much they are read (the publications plugin; owner, 26 Oct): the totals, the change
+  // since yesterday, the three newest; out when the plugin is off or has no ORCID
+  async publications() {
+    const { items } = await call("/v1/aurora/today/publications");
+    if (!items.length) return null;
+    const sum = (k, f = (w) => w[k]) => items.reduce((n, w) => n + (f(w) || 0), 0);
+    const plus = (n) => (n > 0 ? ` (+${n})` : "");
+    const grid = el("div", "td-stats");
+    for (const [icon, key, k] of [["👁️", "today.pub_views", "views"], ["⬇️", "today.pub_downloads", "downloads"]]) {
+      const b = el("div", "td-stat");
+      b.append(el("strong", "", `${icon} ${sum(k).toLocaleString()}${plus(sum(k, (w) => (w.day || {})[k]))}`),
+        el("small", "muted", t(key)));
+      grid.append(b);
+    }
+    const list = el("div", "td-list");
+    for (const w of items.slice(0, 3)) {
+      const a = el("a", "", w.title);
+      a.href = w.url;
+      a.target = "_blank";
+      a.rel = "noopener";
+      const row = el("div", "");
+      row.append(a, el("small", "muted", ` · 👁️ ${w.views}${plus((w.day || {}).views)} · ⬇️ ${w.downloads}${plus((w.day || {}).downloads)}`));
+      list.append(row);
+    }
+    return this.tile(`📚 ${t("today.publications")}`, grid, list);
   },
 
   // the day's numbers (Utilizzo): questions, the agent's runs, the cloud's calls, the tools

@@ -1,0 +1,86 @@
+{
+  "name": "publications",
+  "version": "1.0",
+  "kind": "tool",
+  "description": {
+    "it": "Le tue pubblicazioni e quanto vengono lette: le opere su Zenodo collegate al tuo ORCID, con visite e download e la variazione da ieri e da una settimana. Un resoconto ogni sera e un riquadro nella schermata Oggi. (Le statistiche dei repository GitHub sono già nella pagina dei progetti.)",
+    "en": "Your publications and how much they are read: the works on Zenodo linked to your ORCID, with views and downloads and the change since yesterday and a week ago. A report every evening and a tile on the Today screen. (GitHub repositories' numbers are on the projects page.)"
+  },
+  "command": [
+    "{python}",
+    "server.py"
+  ],
+  "env": [
+    "AURORA_PUBLICATIONS_DIR"
+  ],
+  "requires": [],
+  "effects": {
+    "*": "read"
+  },
+  "from_network": [
+    "publications_list",
+    "publications_report"
+  ],
+  "settings_spec": [
+    {
+      "key": "AURORA_PUBLICATIONS_ORCID",
+      "type": "str",
+      "secret": false,
+      "scope": "user",
+      "it": "Il tuo ORCID iD (es. 0000-0002-1825-0097): le opere su Zenodo con questo ORCID tra gli autori",
+      "en": "Your ORCID iD (e.g. 0000-0002-1825-0097): the works on Zenodo with this ORCID among their creators"
+    }
+  ],
+  "settings": [
+    "AURORA_PUBLICATIONS_ORCID",
+    "AURORA_PUBLICATIONS_DIR"
+  ],
+  "routines": [
+    {
+      "id": "daily",
+      "title": {
+        "it": "Le tue pubblicazioni ogni sera",
+        "en": "Your publications every evening"
+      },
+      "kind": "tool",
+      "tool": "publications_report",
+      "args": {},
+      "schedule": {
+        "every": "day",
+        "at": "20:30"
+      },
+      "notify": "always",
+      "event": "publications.daily"
+    }
+  ],
+  "tests": [
+    {
+      "tool": "publications_report",
+      "args": {}
+    }
+  ],
+  "welcome": {
+    "it": "📊 Pubblicazioni collegate. Ogni sera ti dico visite e download delle tue opere e quanto sono cambiati da ieri; li trovi anche nella schermata Oggi.",
+    "en": "📊 Publications connected. Every evening I tell you the views and downloads of your works and how they changed since yesterday; they are on the Today screen too."
+  },
+  "setup": {
+    "it": "Scrivi il tuo ORCID iD in `AURORA_PUBLICATIONS_ORCID`: Aurora legge da Zenodo le opere che ti hanno come autore (dati pubblici, nessuna chiave). Zenodo dà solo i totali: Aurora ne tiene una lettura al giorno per dirti quanto sono cambiati, quindi le variazioni compaiono dal secondo giorno.",
+    "en": "Write your ORCID iD in `AURORA_PUBLICATIONS_ORCID`: Aurora reads from Zenodo the works that name you as creator (public data, no key). Zenodo gives totals only: Aurora keeps one reading a day to tell you the change, so the changes show from the second day.",
+    "links": [
+      {
+        "label": "ORCID",
+        "url": "https://orcid.org/"
+      },
+      {
+        "label": "Zenodo REST API",
+        "url": "https://developers.zenodo.org/"
+      }
+    ]
+  },
+  "sandbox": {
+    "network": true,
+    "write": [
+      "AURORA_PUBLICATIONS_DIR"
+    ]
+  }
+}

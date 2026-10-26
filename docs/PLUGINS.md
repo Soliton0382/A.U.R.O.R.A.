@@ -21,7 +21,7 @@ Every plugin.json follows it (aurora/plg_contract.py: the tests check every plug
 | `settings` | — | settings shown in its card |
 | `settings_spec` | — | its own settings: {key AURORA_<NAME>_…, type, secret, scope, it, en}; scope "user": a person's account, kept in their own .env |
 | `setup` | — | {it, en, links}: how to set it up |
-| `sandbox` | — | {network: bool, write: [setting names of folders]}: the cage |
+| `sandbox` | — | {network: bool or "local" (the local model only), write: [setting names of folders]}: the cage |
 | `tests` | — | read tools called by «Prova»: [{tool, args}] or {tool: args} |
 | `welcome` | — | {it, en}: said once when it is first switched on |
 | `publishes` | — | tool → the argument that is published (a post, a comment): checked before it leaves |
@@ -44,11 +44,13 @@ Every plugin.json follows it (aurora/plg_contract.py: the tests check every plug
 
 | plugin | kind | tools (effect) | needs |
 |---|---|---|---|
-| `astro` | tool | astro_profile (read), astro_darks (read), astro_files (read), astro_nights (read), astro_advice (read), astro_imaging (read) | — |
+| `astro` | tool | astro_profile (read), astro_darks (read), astro_files (read), astro_note (read), astro_nights (read), astro_polar (read), astro_pointing (read), astro_stars (read), astro_collimation (read), astro_advice (read), astro_imaging (read) | — |
 | `backup` | service | — | — |
 | `cad` | tool | cad_build (write_local), cad_drawings (write_local), cad_blueprint (write_local) | — |
 | `calendar` | tool | calendar_agenda (read), calendar_add (write_local), calendar_remind (write_local), calendar_change (write_local), calendar_delete (write_local), calendar_add_event (external) | — |
 | `cinema` | tool | — | AURORA_TMDB_TOKEN |
+| `circuits` | tool | circuit_schematic (write_local), circuit_simulate (write_local) | — |
+| `cloud` | tool | cloud_providers (read) | — |
 | `cloudflare` | connector | cloudflare_status (read), cloudflare_check (read), cloudflare_activate (external), cloudflare_culprits (read), cloudflare_blocks (read), cloudflare_block (external), cloudflare_unblock (external) | AURORA_CLOUDFLARE_ACCOUNT_ID, AURORA_CLOUDFLARE_API_TOKEN |
 | `diary` | tool | — | — |
 | `discord` | connector | discord_read (read), discord_send (external) | AURORA_DISCORD_BOT_TOKEN, AURORA_DISCORD_CHANNEL_ID |
@@ -70,7 +72,8 @@ Every plugin.json follows it (aurora/plg_contract.py: the tests check every plug
 | `nextcloud` | connector | files_list (read), files_read (read), files_upload (external) | AURORA_WEBDAV_URL, AURORA_WEBDAV_USER, AURORA_WEBDAV_PASSWORD |
 | `notes` | tool | notes_list (read), notes_search (read), notes_read (read), notes_write (write_local) | — |
 | `patent` | tool | patent_offices (read), patent_check (read), patent_document (write_local) | — |
-| `projects` | tool | project_list (read), project_tree (read), project_read_file (read), project_status (read), project_create (write_local), project_write_file (write_local), project_commit (write_local), project_publish (external), project_push (external) | — |
+| `projects` | tool | project_list (read), project_tree (read), project_read_file (read), project_status (read), project_create (write_local), project_write_file (write_local), project_edit_file (write_local), project_commit (write_local), project_publish (external), project_push (external), project_install (write_local) | — |
+| `publications` | tool | — | — |
 | `pyenv` | tool | — | — |
 | `qr` | tool | — | — |
 | `routines` | tool | routines_summary (read), routines_list (read) | — |
@@ -78,16 +81,18 @@ Every plugin.json follows it (aurora/plg_contract.py: the tests check every plug
 | `security` | tool | firewall_docs_refresh (write_local), firewall_plan_request (write_local), firewall_plan_publish (write_local), firewall_plan_unpublish (write_local), firewall_plan_quarantine (write_local), firewall_plan_release (write_local), firewall_plan_harden (write_local), firewall_plan_port_block (write_local), firewall_apply (external), firewall_revert (external) | — |
 | `self` | tool | list_files (read), read_file (read), search_code (read), logs_inventory (read), read_log (read), sandbox_read (read), sandbox_diff (read), sandbox_create (write_local), sandbox_replace (write_local), sandbox_write (write_local), run_tests (write_local) | — |
 | `senses` | tool | devices (read), look (external), listen (external) | — |
+| `sky` | tool | sky_tonight (read), sky_target (read), sky_catalog (read), sky_sequence (write_local), sky_rotation (write_local), sky_collimation (write_local) | — |
 | `telegram` | connector | send_message (external), get_me (read), get_updates (read) | AURORA_TELEGRAM_BOT_TOKEN |
 | `tiktok` | connector | tiktok_account (read), tiktok_post_video (external) | AURORA_TIKTOK_CLIENT_KEY, AURORA_TIKTOK_CLIENT_SECRET, AURORA_TIKTOK_REFRESH_TOKEN |
 | `twitch` | connector | — | AURORA_TWITCH_CLIENT_ID, AURORA_TWITCH_CLIENT_SECRET |
+| `vista` | tool | vista_describe (read), vista_info (read) | — |
 | `weather` | tool | — | AURORA_WEATHER_LAT, AURORA_WEATHER_LON |
 | `web` | tool | fetch_url (read), search (read) | — |
 | `whatsapp` | connector | whatsapp_send (external), whatsapp_send_template (external) | AURORA_WHATSAPP_TOKEN, AURORA_WHATSAPP_PHONE_ID, AURORA_WHATSAPP_TO |
 
 ## astro
 
-Your astrophotography equipment, read from the inventory of the PC that drives it (N.I.N.A., PHD2, ASCOM, ASTAP) and from the integrated darks' library: telescope, mount, cameras and scales, guiding, darks available, what to check.
+Your astrophotography equipment, read from the inventory of the PC that drives it (N.I.N.A., PHD2, ASCOM, ASTAP) and from the integrated darks' library: telescope, mount, cameras and scales, guiding, darks available, what to check; and the nights already guided, from PHD2's logs.
 
 ### Setup (EN)
 
@@ -187,6 +192,30 @@ Questo prodotto usa l'API di TMDB ma non è approvato né certificato da TMDB. I
 
 - [TMDB – API](https://www.themoviedb.org/settings/api)
 - [JustWatch](https://www.justwatch.com)
+
+## circuits
+
+Electric circuits for projects: Aurora writes a circuit part by part — resistors, capacitors, inductors, diodes and LEDs, sources, transistors (BJT, MOSFET), op-amps — and the plugin draws its schematic (SVG, PDF, PNG) and its SPICE netlist, then simulates it with ngspice: the operating point, in time, in frequency (magnitude and phase) and with a source swept, with graphs, a CSV per analysis and the measures asked (cut-off frequency, peak, delay…). Everything goes into the project's folder (circuits/<name>/). The simulation needs ngspice on the machine.
+
+## cloud
+
+Cloud AI providers configured by the owner, read only: name, plan, usage and cost of the current month (from Aurora's own usage records), budget or limit, last update. Never contacts the providers and never shows the keys.
+
+### Setup (EN)
+
+1. No key is needed: the plugin only reads Aurora's usage records (sys/status/usage) and which providers have a key in the settings (never showing it).
+2. Optional: open Plugin → cloud.
+3. In AURORA_CLOUD_BUDGETS write each provider's monthly budget, separated by semicolons: openai=20;anthropic=30. You choose it, or copy the spending limit set on the provider's site (e.g. OpenAI: Settings → Limits; Anthropic: Console → Limits).
+4. In AURORA_CLOUD_PLANS write each one's plan as shown on the provider's Billing page: openai=Pay-as-you-go;anthropic=Build.
+5. Save.
+
+### Configurazione (IT)
+
+1. Non serve nessuna chiave: il plugin legge solo i registri d'uso di Aurora (sys/status/usage) e quali fornitori hanno una chiave nelle impostazioni (senza mai mostrarla).
+2. Facoltativo: apri Plugin → cloud.
+3. In AURORA_CLOUD_BUDGETS scrivi il budget mensile di ogni fornitore, separati da punto e virgola: openai=20;anthropic=30. Il valore lo decidi tu, oppure copialo dal limite di spesa impostato sul sito del fornitore (es. OpenAI: Settings → Limits; Anthropic: Console → Limits).
+4. In AURORA_CLOUD_PLANS scrivi il piano di ciascuno, come appare nella pagina Billing del fornitore: openai=Pay-as-you-go;anthropic=Build.
+5. Salva.
 
 ## cloudflare
 
@@ -650,6 +679,23 @@ Funziona subito in locale (`usr/projects`). Per **pubblicare** su GitHub serve i
 
 - [Token GitHub (serve per pubblicare)](https://github.com/settings/personal-access-tokens)
 
+## publications
+
+Your publications and how much they are read: the works on Zenodo linked to your ORCID, with views and downloads and the change since yesterday and a week ago. A report every evening and a tile on the Today screen. (GitHub repositories' numbers are on the projects page.)
+
+### Setup (EN)
+
+Write your ORCID iD in `AURORA_PUBLICATIONS_ORCID`: Aurora reads from Zenodo the works that name you as creator (public data, no key). Zenodo gives totals only: Aurora keeps one reading a day to tell you the change, so the changes show from the second day.
+
+### Configurazione (IT)
+
+Scrivi il tuo ORCID iD in `AURORA_PUBLICATIONS_ORCID`: Aurora legge da Zenodo le opere che ti hanno come autore (dati pubblici, nessuna chiave). Zenodo dà solo i totali: Aurora ne tiene una lettura al giorno per dirti quanto sono cambiati, quindi le variazioni compaiono dal secondo giorno.
+
+### Official guides
+
+- [ORCID](https://orcid.org/)
+- [Zenodo REST API](https://developers.zenodo.org/)
+
 ## pyenv
 
 Aurora's Python environment, read only: Python and installed library versions, the dependencies a project declares compared with what is installed, and whether the cryptography library offers ML-KEM-768, X25519 and HKDF-SHA256. It runs a short self-test in memory and does not change anything.
@@ -705,6 +751,25 @@ Collega una webcam (va bene anche con microfono integrato). Nella finestra del p
 ### Official guides
 
 - [Whisper large-v3-turbo (model)](https://huggingface.co/openai/whisper-large-v3-turbo)
+
+## sky
+
+The sky to choose from for imaging: tonight (darkness, Moon, clouds, seeing) and the whole deep-sky catalogue (NGC, IC, Messier, Sharpless, Barnard, Lynds) ranked by the hours each can be taken with your equipment, with framing, mosaic and camera settings.
+
+### Setup (EN)
+
+Needs the inventory of the telescope's PC (🔭 Astro page): the rounded site, the focal length and the camera. The catalogue (OpenNGC, CC-BY-SA 4.0; Sharpless, Barnard and Lynds from CDS VizieR) is fetched on first use into the astro folder; the forecast (Open-Meteo, 7Timer!) is asked with the site rounded to a tenth of a degree.
+
+### Configurazione (IT)
+
+Serve l'inventario del PC del telescopio (pagina 🔭 Astro): il sito arrotondato, la focale e la camera. Il catalogo (OpenNGC, CC-BY-SA 4.0; Sharpless, Barnard e Lynds da CDS VizieR) si scarica al primo uso nella cartella astro; le previsioni (Open-Meteo, 7Timer!) si chiedono con il sito arrotondato a un decimo di grado.
+
+### Official guides
+
+- [OpenNGC](https://github.com/mattiaverga/OpenNGC)
+- [CDS VizieR](https://vizier.cds.unistra.fr/)
+- [Open-Meteo](https://open-meteo.com/)
+- [7Timer!](https://www.7timer.info/)
 
 ## telegram
 
@@ -776,6 +841,10 @@ Twitch, read only: which of your favourite channels are live and what they strea
 
 - [Twitch Developer Console](https://dev.twitch.tv/console)
 
+## vista
+
+Looks at an image (PNG/JPG) of a project with Aurora's local vision: describes what is drawn and checks drawings (crossing leader lines, overlapping texts, black-and-white line art), plus an exact pixel count of colours and greys for PNG files. Local only: it asks the running local model (127.0.0.1).
+
 ## weather
 
 The weather at home: now, the forecast for 3 days, a daily report and alerts on sudden changes (falling pressure, gusts, heavy rain, storms, snow, ice) plus the official warnings of the region (MeteoAlarm). Open-Meteo, no key.
@@ -795,16 +864,17 @@ Il meteo usa il luogo di casa: `AURORA_WEATHER_LAT`, `AURORA_WEATHER_LON` e `AUR
 
 ## web
 
-The web: read a public page as text; search (Brave Search API, with a key). Local and private addresses are refused.
+The web: read a public page as text; search with DuckDuckGo and the other engines without a key, or with Brave Search when its key is set. Local and private addresses are refused.
 
 ### Setup (EN)
 
-`fetch_url` works at once. For search: Brave Search API key → `AURORA_BRAVE_SEARCH_KEY`.
+Works at once: `fetch_url` reads public pages and the search uses DuckDuckGo and the other keyless engines, the answers' own. Brave Search (optional): its key → `AURORA_BRAVE_SEARCH_KEY` makes it the default for everyone; over quota or down, the keyless engines again.
 
 ### Configurazione (IT)
 
-`fetch_url` funziona subito (solo pagine pubbliche: la rete di casa è sempre rifiutata).
-Per la **ricerca**: registrati su **Brave Search API**, scegli un piano, crea una chiave → `AURORA_BRAVE_SEARCH_KEY`. **▶ Prova** su `search` non è disponibile qui perché richiede una query: usala dalla chat con `/agente cerca …`.
+Funziona subito: `fetch_url` legge le pagine pubbliche (la rete di casa è sempre rifiutata) e la **ricerca** usa DuckDuckGo e, se rifiuta, gli altri motori senza chiave — gli stessi delle risposte.
+**Brave Search** (facoltativo): registrati, crea una chiave → `AURORA_BRAVE_SEARCH_KEY`. Da quel momento è il motore predefinito per tutti (risposte e agente); se finisce la quota o non risponde, si torna ai motori senza chiave.
+**▶ Prova** su `search` non è disponibile qui perché richiede una query: usala dalla chat con `/agente cerca …`.
 
 ### Official guides
 
