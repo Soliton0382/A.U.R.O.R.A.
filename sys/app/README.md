@@ -31,8 +31,8 @@ The server's side is in Aurora's code: `sys_line` and `api/line` (the line), `sy
 ## Build
 
 Without Gradle: `build.py` uses aapt2, javac, d8, zipalign and apksigner from `tools/` (JDK 21 and Android SDK 36,
-ignored by git). The signing key is made on the first build in `keys/` (0600, ignored by git) and must be kept and
-backed up, never made again.
+ignored by git, downloaded again when missing). The signing key is made on the first build in `keys/` (0600, ignored
+by git, kept by Aurora's backup) and is never made again.
 
     python sys/app/build.py --to <AURORA_STATUS_DIR>/app   # the 📱 page offers it
     python sys/app/build.py --dist                         # the APK published with the code, attached to the release

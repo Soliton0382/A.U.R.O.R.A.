@@ -39,7 +39,8 @@ MAGIC = b"AURB1"
 FRAME = 4 * 2**20
 SOURCES = ("AURORA_VAULT_DIR", "AURORA_STATUS_DIR", "AURORA_PLUGINS_DIR", "AURORA_UPLOADS_DIR", "AURORA_IMAGE_DIR",
            "AURORA_PROJECTS_DIR", "AURORA_DOCUMENTS_DIR")
-DIRS = ("usr", "sys/https/cert")                        # the rest of the user folder; the owner's own certificates
+DIRS = ("usr", "sys/https/cert",                       # the rest of the user folder; the owner's own certificates
+        "sys/app/keys")                                 # the app's signing key: an update installs only with it
 FILES = (".env", "sys/core/ethics/MANIFEST.json")
 SKIP_NAMES = {"gpu.lock", "heartbeat"}                  # live markers, not data
 SKIP_SUFFIXES = (".db-wal", ".db-shm", ".lock", ".tmp", ".part", ".pyc")

@@ -223,3 +223,13 @@ def test_the_sampled_check_goes_round_every_blob_instead_of_drawing_by_chance(se
     for _ in range(len(blobs)):                            # one blob per run: all of them in as many runs
         assert B.verify(cfg, sample=1) == 1
     assert sorted(checked) == sorted(blobs)                # each once, none drawn twice by chance
+
+
+def test_the_apps_signing_key_is_kept_and_its_toolchain_is_not(cfg):
+    """sys/app/keys is in the backup (an app update installs only with the same key); sys/app/tools, 8 GB that can
+    be downloaded again, is not."""
+    for d, name in (("keys", "aurora-app.jks"), ("tools", "javac")):
+        (cfg.root / "sys" / "app" / d).mkdir(parents=True, exist_ok=True)
+        (cfg.root / "sys" / "app" / d / name).write_bytes(b"x")
+    kept = {rel for rel, _ in B.files(cfg)}
+    assert "sys/app/keys/aurora-app.jks" in kept and not any(r.startswith("sys/app/tools") for r in kept)
