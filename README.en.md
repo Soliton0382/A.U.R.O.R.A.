@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.en.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-1279%20passed-1baf7a" alt="Tests"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-1282%20passed-1baf7a" alt="Tests"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
 
 <p align="center">🇮🇹 <a href="README.md">Italiano</a> · 🇬🇧 <b>English</b></p>
 
@@ -60,6 +60,7 @@ exemption, and what leaves is always masked (no setting turns it off).
 | **Autonomy** | 🧭 page: how free Aurora is area by area (social, forge, repairs, security, updates, knowledge, inner life, projects, home…), ready profiles (careful, balanced, free), what she did by herself each day and the statistics of her proposals; for each user the admin decides |
 | **Code of conduct** | level A (never: attacks, locating people, malware), level B (confirmations, disclosure) exemptible only by a signature with the installation's own key; services refuse to start if the rules are changed unsigned |
 | **Projects** | 📁 page: local projects and GitHub repositories (stars, forks, issues), clone locally, folder tree, files, README, history, **sandboxed page preview**, "ask Aurora" about a project |
+| **The project's conductor** | 🧑‍🔬 on the project's page: you write to it in your own words, in a console; it answers remembering the conversation (one session per project and per user) and «🏗️ Make it a phase» turns the request into a phase's goal, which you read, change and start with one click. Aurora's agent runs the phase in the project's cage, then the conductor reads the report and tells you what is done, what does not hold and what only you can decide (choices a / b / c, one recommended). The conductor talks, it does not act. Two writing phases on the local model: every number from the source, 3 fixes in 3 lines of diff (M260) |
 | **Projects carried by herself** | 🏗️ Plan: write the goal, Aurora proposes the steps (each with the test command that proves it), you change them and start it; in idle time she does one step at a time, and a step is done **only when its tests pass** (the code decides, not the model); 3 failures on a step and she stops and tells you; 🤝 one step then she waits for your «go on», 🚀 to the end. Pushes and publishing always wait for you. Pilot: 6 of 6 steps alone (M201) |
 | **CAD drawings and patents** | 📑 in the project's page: ticks (blueprint, patent IT, EP, US) and ▶ Proceed. Aurora writes the CAD model part by part (OpenSCAD), draws the dimensioned blueprint (ISO 128, first angle, title block, parts list) and each office's drawing sheets with reference signs, writes description, claims and abstract in each office's form and checks the package against the rules and their sources (UIBM D.M. 33/2010, EPC, 37 CFR); no AI mark on documents for the offices. From a two-line README: 175.6 s (M209, M210) |
 | **Plugins with their own libraries** | a plugin declares its libraries with their hash: installed in its own folder, never in Aurora's environment, removed with it (M208) |
@@ -229,6 +230,36 @@ where $\cos$ is the TF-IDF similarity of question and sentence, $u_i/t_i$ the in
 tokens over tokens), $\mathrm{Vel}_i$ the position (later = fresher). The best $\min\big(n,\ \max(3,\ \mathrm{round}(0.35\,n))\big)$
 sentences stay, in their original order, **plus every sentence with a citation**, so verification still
 works. Measured: −29.6% of text on one question (M26); the effect on answer quality is **not measured yet**.
+
+### Projects: you, the conductor, Aurora
+
+A project is a folder with its git history, in `usr/<name>/projects`. Three parts work on it, each with its own job:
+
+| Who | What it does | With which model |
+|---|---|---|
+| **you** | say what you want in your own words, read the phase's goal and start it, pick among the choices | — |
+| 🧑‍🔬 **the conductor** | talks, writes each phase's goal after reading `DA_FARE.md`, the project's documents and the conversation; judges the phase when it ends. **It never touches the files** | the «agent» role of the 🧠 page: Claude Code with a resumed session (`--resume`), a masked API, or the local model |
+| 🛠️ **Aurora's agent** | runs the phase: searches the vault first, then edits files, runs commands and tests in the **project's cage** (no network) and writes the report | the local model by default; the cloud only when you ask and the project allows it |
+
+```mermaid
+flowchart TD
+  U([you, in your own words]) --> T[🧑‍🔬 conductor<br/>console, conversation remembered]
+  T -- «🏗️ Make it a phase» --> G[the phase's goal<br/>from DA_FARE.md, documents, conversation]
+  G -- you read it, change it, one click --> A[🛠️ Aurora's agent<br/>vault first, then files and commands]
+  A --> K[the project's cage<br/>files, tests, no network]
+  K --> R[the phase's report]
+  R --> J[🧑‍🔬 the conductor judges<br/>done · what does not hold · choices a/b/c]
+  J --> U
+  P[🏗️ Plan: steps, each<br/>with the command of its tests] -- in idle time, one step --> A
+  K -- a step is done only if its test exits 0 --> P
+```
+
+Over all of it stands the **project's rule**, chosen when you make it: 🔒 the local model only (the conductor too) or
+☁️ the cloud, always masked; 🚫 «never published» blocks pushes and publications (a patent not yet filed).
+The project's page has three groups of sections: **🛠️ Work** (Conductor, Plan, Terminal, Aurora's reports),
+**📐 Drawings and model** (Documents, Realistic view, Simulator, 3D print) and **📂 Files and history** (Files,
+History, Preview). Under the conductor, an activity console tells line by line what moves: the running phase, the
+saves, the files written.
 
 ### The autonomic cycle
 

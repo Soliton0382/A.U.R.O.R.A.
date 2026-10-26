@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-1279%20passed-1baf7a" alt="Tests"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-1282%20passed-1baf7a" alt="Tests"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
 
 <p align="center">🇮🇹 <b>Italiano</b> · 🇬🇧 <a href="README.en.md">English</a></p>
 
@@ -60,6 +60,7 @@ con l'esenzione firmata dal proprietario, e ciò che parte è sempre mascherato 
 | **Autonomia** | pagina 🧭: quanto è libera Aurora area per area (social, forgia, riparazioni, sicurezza, aggiornamenti, conoscenza, vita interiore, progetti, casa…), profili pronti (prudente, equilibrata, libera), cosa ha fatto da sola ogni giorno e le statistiche delle sue proposte; per ogni utente lo decide l'amministratore |
 | **Codice di condotta** | livello A (mai: attacchi, localizzare persone, malware), livello B (conferme, dichiarazione IA) esentabile solo con una firma con la chiave della propria installazione; i servizi non partono se le regole cambiano senza firma |
 | **Progetti** | pagina 📁: progetti locali e repository GitHub (stelle, fork, issue), clone in locale, albero delle cartelle, file, README, storia, **anteprima delle pagine in sandbox**, «chiedi ad Aurora» su un progetto |
+| **Conduttore del progetto** | 🧑‍🔬 nella pagina del progetto: gli scrivi a parole tue, in una console; risponde ricordando la conversazione (una sessione per progetto e per utente) e con «🏗️ Fanne una fase» trasforma la richiesta nell'obiettivo di una fase, che leggi, correggi e avvii con un clic. La fase la esegue l'agente di Aurora nella gabbia del progetto, poi il conduttore legge il resoconto e ti dice cosa è fatto, cosa non regge e cosa decidere tu (scelte a / b / c, una consigliata). Il conduttore parla, non agisce. Due fasi di scrittura sul modello locale: tutti i numeri dalla fonte, 3 correzioni con 3 righe di diff (M260) |
 | **Progetti portati avanti da sola** | 🏗️ Piano: scrivi l'obiettivo, Aurora propone i passi (ognuno con il comando dei test che lo prova), tu li correggi e avvii; nei momenti liberi fa un passo alla volta, e un passo è fatto **solo se i suoi test passano** (lo decide il codice, non il modello); 3 fallimenti su un passo e si ferma e ti avvisa; 🤝 un passo e aspetta il tuo «vai avanti», 🚀 fino alla fine. Push e pubblicazioni aspettano sempre te. Pilota: 6 passi su 6 da sola (M201) |
 | **Disegni CAD e brevetti** | 📑 nella pagina del progetto: spunte (blueprint, brevetto IT, EP, US) e ▶ Procedi. Aurora scrive il modello CAD parte per parte (OpenSCAD), disegna il blueprint quotato (ISO 128, primo diedro, cartiglio, distinta) e le tavole per ufficio con i segni di riferimento, scrive descrizione, rivendicazioni e riassunto nella forma di ogni ufficio e controlla il pacchetto con le regole e le loro fonti (UIBM D.M. 33/2010, EPC, 37 CFR); nessun marchio IA sui documenti per gli uffici. Da un README di due righe: 175,6 s (M209, M210) |
 | **Plugin con le proprie librerie** | un plugin dichiara le sue librerie con l'hash: si installano nella sua cartella, mai nell'ambiente di Aurora, e si tolgono con lui (M208) |
@@ -230,6 +231,37 @@ sui token), $\mathrm{Vel}_i$ la posizione (più recente = più fresca). Restano 
 $\min\big(n,\ \max(3,\ \mathrm{round}(0{,}35\,n))\big)$ frasi, nell'ordine originale, **più tutte quelle con una citazione**,
 così la verifica funziona ancora. Misurato: −29,6% di testo su una domanda (M26); l'effetto sulla qualità
 delle risposte **non è ancora misurato**.
+
+### I progetti: tu, il conduttore, Aurora
+
+Un progetto è una cartella con la sua storia git, in `usr/<nome>/projects`. Ci lavorano tre figure, ognuna con il suo
+compito:
+
+| Chi | Cosa fa | Con quale modello |
+|---|---|---|
+| **tu** | dici cosa vuoi a parole tue, leggi l'obiettivo della fase e la avvii, scegli tra le opzioni | — |
+| 🧑‍🔬 **il conduttore** | conversa, scrive l'obiettivo di ogni fase leggendo prima `DA_FARE.md`, i documenti del progetto e la conversazione; a fase finita la giudica. **Non tocca i file** | il ruolo «agente» della pagina 🧠: Claude Code con una sessione ripresa (`--resume`), un'API mascherata, o il modello locale |
+| 🛠️ **l'agente di Aurora** | esegue la fase: cerca prima nel vault, poi modifica i file, lancia comandi e test nella **gabbia del progetto** (nessuna rete) e scrive il resoconto | il modello locale di default; il cloud solo se lo chiedi e il progetto lo permette |
+
+```mermaid
+flowchart TD
+  U([tu, a parole tue]) --> T[🧑‍🔬 conduttore<br/>console, conversazione ricordata]
+  T -- «🏗️ Fanne una fase» --> G[obiettivo della fase<br/>da DA_FARE.md, documenti, conversazione]
+  G -- lo leggi, lo cambi, un clic --> A[🛠️ agente di Aurora<br/>vault prima, poi file e comandi]
+  A --> K[gabbia del progetto<br/>file, test, nessuna rete]
+  K --> R[resoconto della fase]
+  R --> J[🧑‍🔬 il conduttore giudica<br/>fatto · cosa non regge · scelte a/b/c]
+  J --> U
+  P[🏗️ Piano: passi, ognuno<br/>con il comando dei suoi test] -- nei momenti liberi, un passo --> A
+  K -- passo fatto solo se il test esce 0 --> P
+```
+
+Sopra tutto vale la **regola del progetto**, scelta quando lo crei: 🔒 solo il modello locale (anche il conduttore) oppure
+☁️ il cloud, sempre mascherato; 🚫 «mai pubblicato» blocca push e pubblicazioni (un brevetto non ancora depositato).
+La pagina del progetto ha tre gruppi di sezioni: **🛠️ Lavoro** (Conduttore, Piano, Terminale, Resoconti di Aurora),
+**📐 Disegni e modello** (Documenti, Vista realistica, Simulatore, Stampa 3D) e **📂 File e storia** (File, Storia,
+Anteprima). Sotto il conduttore, una console dell'attività dice riga per riga cosa si muove: la fase in corso, i
+salvataggi, i file scritti.
 
 ### Il ciclo autonomo
 

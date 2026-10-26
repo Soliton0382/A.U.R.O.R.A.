@@ -2,6 +2,18 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.107 — 2026-10-27
+
+7 publications since v0.2.100.
+
+- 2026-10-27 README: the projects explained, with the conductor and a diagram; alerts that learn from the owner's verdicts
+- 2026-10-26 A plugin's scheduled pause: a daily window on its page, off by default; inside it the plugin rests in silence
+- 2026-10-26 C401 closed; driver 595.99.02 in the compatibility table
+- 2026-10-26 Concept DOI in CITATION.cff and a DOI badge in the README
+- 2026-10-26 README: test badge measured at every publish, 13 model steps
+- 2026-10-26 SSCC spelled out as Saliency-Scored Context Compression
+- 2026-10-26 Backup keeps the Android app's signing key (sys/app/keys), not its toolchain
+
 ## v0.2.106 — 2026-10-27
 
 6 publications since v0.2.100.

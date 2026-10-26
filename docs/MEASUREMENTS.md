@@ -4266,3 +4266,22 @@ Each had one or two «truncated» nudges (the thinking budget) and went on. The 
 warning, «modifiche al codice … NON contiene» (C402). Not measured: a long document (the paper's 160 lines), a source
 longer than the slot after compaction, the cloud worker.
 
+## M261 — the owner's verdicts on the incidents, per kind (27 October 2026; BUGS C406, sec_quiet)
+
+The incidents kept on the reference machine, read with sec_quiet.pattern and tally (30 days of verdicts). Weekly,
+the judged ones: week of 12 Oct 76 false alarms of 146, week of 19 Oct 52 of 118, week of 26 Oct 13 of 21.
+
+| Kind of incident (pattern) | false alarm | right | proposed (≥ 5 false, ≤ 20 % right) |
+|---|---|---|---|
+| a device uses a new high port (≥ 1024) | 56 | 9 | yes |
+| spike of invalid traffic | 27 | 4 | yes |
+| IPS alert from a device at home to port 53 | 27 | 2 | yes |
+| a device talks with a new country | 19 | 0 | yes |
+| IPS alert from a device at home to port 443 | 12 | 0 | yes |
+| a check of the firewall's rules | 8 | 34 | no |
+| IPS alert from the Internet to port 32400 | 2 | 64 | no |
+| others (6 kinds) | 9 | 2 | no (fewer than 5 false) |
+
+The five proposed hold 141 of the 158 false alarms and 15 of the 115 right verdicts: what quieting all of them would
+cost, shown with each proposal. Not measured: how the notified alerts change after the owner's answers (C406).
+

@@ -15,6 +15,7 @@ const kindLabel = (i) => { const k = `sec.kind.${i.kind}`, s = t(k); return s !=
 import { renderMarkdown } from "../md.js";
 import { defence } from "./security_defence.js";
 import { watch } from "./security_watch.js";
+import { quiet } from "./security_quiet.js";
 import { autonomySlot } from "./autonomy_box.js";
 
 const TABS = ["incidents", "defence", "watch", "out"];
@@ -34,6 +35,7 @@ export function page(tab, meta) { const { title } = meta; return {
       <div class="prj-tabs">${TABS.map((x, i) => `<button type="button" class="cat-chip${i ? "" : " on"}" data-tab="${x}" data-i18n="sec.tab.${x}"></button>`).join("")}</div>
       <div class="sec-tab" data-tab="incidents">
         <details class="report sec-score-box"><summary data-i18n="sec.score"></summary><div class="sec-score"></div></details>
+        <div class="sec-quiet"></div>
         <h3 class="setting-cat" data-i18n="sec.open"></h3><div class="open"></div>
         <h3 class="setting-cat"><span data-i18n="sec.closed"></span> <button class="sec-show-closed" data-i18n="sec.show_closed"></button> <button class="sec-archive" hidden></button></h3>
         <div class="closed"></div></div>
@@ -163,6 +165,7 @@ export function page(tab, meta) { const { title } = meta; return {
         i.verdict = v;
         row.replaceWith(this.verdict(i));
         this.loadScore();
+        this.loadQuiet();                            // a verdict may make a proposal, or wake a quiet kind
       });
       row.append(b);
     }
@@ -189,12 +192,13 @@ export function page(tab, meta) { const { title } = meta; return {
 
   ...defence,
   ...watch,
+  ...quiet,
 
   // a tab's data, the first time it is shown (and again when the page is entered while it is the open one)
   async show(tab, again = false) {
     if (this.loaded.has(tab) && !again) return;
     this.loaded.add(tab);
-    if (tab === "incidents") { await this.loadOpen(); this.loadScore(); }
+    if (tab === "incidents") { await this.loadOpen(); this.loadScore(); this.loadQuiet(); }
     if (tab === "defence") { await this.loadDefence(); await this.loadMap(); }   // Aurora's own machine: 🔥 its page
     if (tab === "watch") { this.rules.replaceChildren(el("p", "muted", "…")); await this.loadProfile(); }
     if (tab === "out") { this.outbound.replaceChildren(el("p", "muted", "…")); await this.loadOutbound(); }

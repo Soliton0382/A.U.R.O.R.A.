@@ -64,6 +64,11 @@ async def sentinel_incident(request: Request) -> dict:
         Incidents(cfg).update(item["id"], status="closed", closed=time.strftime("%Y-%m-%dT%H:%M:%S%z"),
                               defence="already blocked")  # said again (C174)
         return {"id": item["id"], "severity": item["severity"], "blocked": True}
+    from aurora import sec_quiet
+    quiet = sec_quiet.is_quiet(cfg, item)
+    if quiet:                                             # a pattern the owner quieted (sec_quiet): kept, low, not said
+        item = Incidents(cfg).update(item["id"], severity="low", quiet=quiet)
+        return {"id": item["id"], "severity": "low", "quiet": quiet}
     who = f"{name} ({item['source']})" if name else item["source"]
     if not (name and item["severity"] == "low"):          # a known device's routine traffic: in the list, no alert
         note("sentinel", "incident", {"id": item["id"], "kind": item["kind"], "source": item["source"],
@@ -185,13 +190,70 @@ async def incident_verdict(incident_id: str, request: Request) -> dict:
     if verdict not in sec_scorecard.VERDICTS:
         raise HTTPException(status_code=422, detail=f"verdict: one of {', '.join(sec_scorecard.VERDICTS)}")
     try:
-        Incidents(cfg).update(incident_id, verdict=verdict, verdict_note=str(body.get("note", ""))[:300],
-                              verdict_at=time.time())
+        item = Incidents(cfg).update(incident_id, verdict=verdict, verdict_note=str(body.get("note", ""))[:300],
+                                     verdict_at=time.time())
     except StopIteration:
         raise HTTPException(status_code=404, detail="unknown incident")
     _score.clear()
     log.info("audit: incident %s judged %s by the owner", incident_id, verdict)
-    return {"id": incident_id, "verdict": verdict}
+    from aurora import sec_quiet                          # the verdict put to use: a pattern proposed, or woken
+    said = sec_quiet.after_verdict(cfg, Incidents(cfg).list(), item)
+    if said and said.get("propose") and not _quiet_alone(Incidents(cfg).list()):   # 🚀: quieted by herself, told
+        x = said["propose"]
+        note("security", "quiet.propose", {"title": "🔇 Silenzio questo tipo di allarme?",
+             "text": f"«{x['label']}»: {x['false_alarm']} falsi allarmi e {x['right']} giusti su {x['judged']} giudizi. "
+                     "Rispondi nella pagina Sicurezza."})
+    elif said and said.get("woke"):
+        log.info("audit: incidents «%s» awake again: judged right", said["woke"])
+        note("security", "quiet.woke", {"title": "🔔 Tipo di allarme riattivato", "text": f"«{said['label']}»: l'hai giudicato giusto, torna ad avvisarti."})
+    return {"id": incident_id, "verdict": verdict, **({"quiet": said} if said else {})}
+
+
+def _quiet_alone(items: list[dict]) -> list[str]:
+    """With security at 🚀 on the Autonomy page (owner, 27 Oct: «l'obiettivo è arrivare ad avere aurora che prende
+    decisioni in modo indipendente»), the patterns that qualify are quieted by herself — on this machine only, so
+    level B is not asked —, written to her ledger and told, with the way back; at 🤝 or 🔒 they wait for the owner."""
+    from aurora import sec_quiet, sys_autonomy
+    if sys_autonomy.levels(cfg).get("security") != 2:
+        return []
+    done = []
+    for x in sec_quiet.proposals(cfg, items):
+        sec_quiet.answer(cfg, x["pattern"], "quiet", sec_quiet.tally(items)[x["pattern"]])
+        sys_autonomy.log(cfg, "security", f"quieted «{x['label']}»: {x['false_alarm']} false alarms, {x['right']} right")
+        note("security", "quiet.auto", {"title": "🔇 Ho silenziato un tipo di allarme",
+             "text": f"«{x['label']}»: {x['false_alarm']} falsi allarmi e {x['right']} giusti su {x['judged']} tuoi "
+                     "giudizi. Restano nell'elenco come bassi; si riattiva dalla pagina Sicurezza, o da sé con un 👍."})
+        log.info("audit: incidents «%s» quieted by Aurora (security 🚀)", x["pattern"])
+        done.append(x["pattern"])
+    return done
+
+
+@router.get("/v1/aurora/incidents/quiet", dependencies=[Depends(admin_only)])
+def incidents_quiet(lang: str = "it") -> dict:
+    """The patterns proposed for quiet (the owner's verdicts, sec_quiet) and the ones quiet now."""
+    from aurora import sec_quiet, sys_autonomy
+    from aurora.sec_incidents import Incidents
+    _quiet_alone(Incidents(cfg).list())                   # raised to 🚀 since a proposal: decided now
+    return {"alone": sys_autonomy.levels(cfg).get("security") == 2, "proposals": sec_quiet.proposals(cfg, Incidents(cfg).list(), lang), "quiet": sec_quiet.quiet_list(cfg, lang),
+            "rule": {"false_alarm": sec_quiet.PROPOSE_FA, "right_share": sec_quiet.PROPOSE_RIGHT, "days": sec_quiet.WINDOW_DAYS}}
+
+
+@router.post("/v1/aurora/incidents/quiet", dependencies=[Depends(admin_only)])
+async def incidents_quiet_answer(request: Request) -> dict:
+    """The owner's answer on a pattern: quiet, declined or awake."""
+    from aurora import sec_quiet
+    from aurora.sec_incidents import Incidents
+    body = await request.json()
+    p, state = str(body.get("pattern", "")), str(body.get("state", ""))
+    counts = sec_quiet.tally(Incidents(cfg).list()).get(p)
+    if not p or (state == "quiet" and counts is None):
+        raise HTTPException(status_code=404, detail="unknown pattern")
+    try:
+        out = sec_quiet.answer(cfg, p, state, counts)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
+    log.info("audit: incidents «%s» set %s by the owner", p, state)
+    return out
 
 
 @router.post("/v1/aurora/incidents/{incident_id}/close", dependencies=[Depends(admin_only)])
