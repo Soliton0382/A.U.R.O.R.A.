@@ -10,7 +10,33 @@ import { renderMarkdown } from "../md.js";
 import { autonomySlot } from "./autonomy_box.js";
 import { settingsForm } from "./settings_form.js";
 
-const KEEP = new Set(["self", "security"]);    // plg_trash.KEEP: her repairs, the security suite's tools
+const KEEP = new Set(["self", "security"]);
+
+// 🌙 its scheduled pause (plg_away): off by default; inside the window the routines skip it, no warnings
+function awayRow(p) {
+  const w = p.away || { on: false, from: "", to: "" };
+  const row = el("div", "plug-away");
+  const on = el("input");
+  on.type = "checkbox";
+  on.checked = !!w.on;
+  const time = (v) => { const i = el("input"); i.type = "time"; i.value = v || ""; return i; };
+  const from = time(w.from || "01:00"), to = time(w.to || "06:00");
+  const save = el("button", "", t("plug.away.save"));
+  const msg = el("span", "muted");
+  save.addEventListener("click", async () => {
+    try {
+      const out = await call(`/v1/aurora/plugins/${p.name}/away`,
+        { method: "PUT", body: JSON.stringify({ on: on.checked, from: from.value, to: to.value }) });
+      p.away = out.away;
+      msg.textContent = out.away.on ? t("plug.away.saved", { from: out.away.from, to: out.away.to }) : t("plug.away.off");
+    } catch (e) { msg.textContent = e.message; }
+  });
+  const box = el("label", "plug-share");
+  box.append(on, el("span", "", t("plug.away")));
+  row.append(box, el("span", "", t("plug.away.from")), from, el("span", "", t("plug.away.to")), to, save, msg);
+  row.title = t("plug.away.hint");
+  return row;
+}    // plg_trash.KEEP: her repairs, the security suite's tools
 
 // a plugin Aurora forged works at once; it becomes official when the admin signs the code from a shell with root's
 // rights (owner, 2026-10-08) — the signing key is root's: never from the web
@@ -121,7 +147,7 @@ const view = {
       img.src = p.icon;
       img.alt = "";
       b.append(img, el("span", "name", `${p.forged ? "🔨 " : ""}${p.name}`),
-        el("span", "state", `${p.available ? t("plug.on") : (p.enabled && !p.missing.length ? t("plug.stuck") : t("plug.off"))}${p.unsigned ? " · ✍️" : ""}`));
+        el("span", "state", `${p.available ? t("plug.on") : p.paused ? t("plug.paused") : (p.enabled && !p.missing.length ? t("plug.stuck") : t("plug.off"))}${p.unsigned ? " · ✍️" : ""}`));
       b.title = p.description?.[code] || p.description?.en || "";
       b.addEventListener("click", () => this.open(p, code));
       return b;
@@ -167,8 +193,9 @@ const view = {
     dlg.append(head, el("p", "", p.description?.[code] || p.description?.en || ""));
     // switched on but not running: said as such, with the reason from its stderr (the owner's colleague, 9 Oct: «me li
     // da tutti spenti ma quando clicco su uno c'è solo il pulsante spegni»)
-    const stuck = p.enabled && !p.available && !p.missing.length;
+    const stuck = p.enabled && !p.available && !p.missing.length && !p.paused;
     const state = !p.enabled ? t("plug.state.disabled") : p.missing.length ? t("plug.state.missing", { keys: p.missing.join(", ") })
+      : p.paused ? t("plug.state.paused", { to: p.away.to })
       : stuck ? t("plug.state.stuck", { e: p.why || p.error || "?" }) : p.error ? t("plug.state.error", { e: p.error }) : t("plug.state.ok", { n: p.tools.length });
     const sw = el("button", "", p.enabled ? t("plug.disable") : t("plug.enable"));
     sw.addEventListener("click", async () => {
@@ -177,7 +204,7 @@ const view = {
       bus.emit("plugins", {});                       // the menu follows: a plugin's page appears or goes
     });
     const stRow = el("div", "appr-actions");
-    stRow.append(el("span", `pill ${p.available ? "ok" : "bad"}`, p.available ? t("plug.on") : stuck ? t("plug.stuck") : t("plug.off")), el("span", "", state));
+    stRow.append(el("span", `pill ${p.available ? "ok" : p.paused ? "warn" : "bad"}`, p.available ? t("plug.on") : p.paused ? t("plug.paused") : stuck ? t("plug.stuck") : t("plug.off")), el("span", "", state));
     if (stuck && this.me.admin) {
       const again = el("button", "approve", `🔄 ${t("plug.retry")}`);
       again.addEventListener("click", async () => {
@@ -211,6 +238,7 @@ const view = {
       }
     }
     dlg.append(stRow);
+    if (this.me.admin) dlg.append(awayRow(p));
     if (this.me.admin && p.install) {               // 📦 what it brings (plg_deps, ROADMAP 101): in its own folder, never Aurora's
       const st = p.install;
       const what = [...st.needs.python.map((r) => r.split(" ")[0]), ...st.needs.programs.map((x) => x.name)].join(", ");

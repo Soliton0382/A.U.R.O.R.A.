@@ -151,6 +151,7 @@ def plugins() -> list[dict]:
     unsigned = _unsigned_plugins() if admin else {}
     return [{"name": p.name, "users": plg_access.for_users(cfg, p.name), "version": p.manifest.get("version"), "kind": p.manifest.get("kind"),
              "description": p.manifest.get("description", {}), "enabled": p.enabled, "available": p.available,
+             "away": p.away or {"on": False, "from": "", "to": ""}, "paused": p.paused,
              "social": bool(p.manifest.get("social")), "missing": p.missing, "error": p.error, "setup": p.manifest.get("setup", {}),
              "oauth": p.manifest.get("oauth"),
              **({"install": plg_deps.state(p.folder, p.manifest)} if admin and p.manifest.get("install") else {}),
@@ -164,6 +165,20 @@ def plugins() -> list[dict]:
              "tools": [{"name": t["name"], "effect": t["effect"], "description": t["description"],
                         "required": (t.get("input_schema") or {}).get("required", [])} for t in p.tools]}
             for p in plugin_host().plugins() if admin or not getattr(p, "admin_only", False)]
+
+
+@router.put("/v1/aurora/plugins/{name}/away", dependencies=[Depends(auth)])
+def plugin_away(name: str, body: dict) -> dict:
+    """Its scheduled pause (plg_away): {"on", "from", "to"} in local time; the admin's."""
+    if me() != _admin():
+        raise HTTPException(status_code=403, detail="only the admin switches plugins")
+    host = plugin_host()
+    if name not in {p.name for p in host.plugins(with_tools=False)}:
+        raise HTTPException(status_code=404, detail="unknown plugin")
+    try:
+        return {"name": name, "away": host.set_away(name, body)}
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
 
 
 @router.post("/v1/aurora/plugins/{name}/{action}", dependencies=[Depends(auth)])

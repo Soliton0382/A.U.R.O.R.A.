@@ -51,10 +51,16 @@ class Plugin:
     enabled: bool = True
     tools: list[dict] = field(default_factory=list)          # {"name", "description", "input_schema", "effect"}
     error: str = ""
+    away: dict = field(default_factory=dict)                 # its scheduled pause (plg_away), off by default
+
+    @property
+    def paused(self) -> bool:
+        from . import plg_away
+        return plg_away.paused(self.away)
 
     @property
     def available(self) -> bool:
-        return self.enabled and not self.missing and not self.error
+        return self.enabled and not self.missing and not self.error and not self.paused
 
     def effect(self, tool: str) -> str:
         m = self.manifest
@@ -95,6 +101,20 @@ class PluginHost:
             os.replace(tmp, self.state_file)
         self.log.info("audit: plugin %s %s", name, "enabled" if enabled else "disabled")
 
+    def set_away(self, name: str, window: dict) -> dict:
+        """Its scheduled pause (plg_away.clean: ValueError when the times are not valid), stored with its state."""
+        from . import plg_away
+        w = plg_away.clean(window)
+        with _lock:
+            st = self._state()
+            st.setdefault(name, {})["away"] = w
+            self.state_file.parent.mkdir(parents=True, exist_ok=True)
+            tmp = self.state_file.with_suffix(".tmp")
+            tmp.write_text(json.dumps(st, indent=1), encoding="utf-8")
+            os.replace(tmp, self.state_file)
+        self.log.info("audit: plugin %s: scheduled pause %s", name, f"{w['from']}-{w['to']}" if w["on"] else "off")
+        return w
+
     def plugins(self, with_tools: bool = True) -> list[Plugin]:
         out, st = [], self._state()
         if not self.dir.is_dir():
@@ -107,7 +127,8 @@ class PluginHost:
                 continue
             p = Plugin(manifest.get("name", mf.parent.name), mf.parent, manifest,
                        missing=[k for k in manifest.get("requires", []) if not str(self.cfg.values.get(k, "") or "").strip()],
-                       enabled=st.get(manifest.get("name", mf.parent.name), {}).get("enabled", True))
+                       enabled=st.get(manifest.get("name", mf.parent.name), {}).get("enabled", True),
+                       away=st.get(manifest.get("name", mf.parent.name), {}).get("away", {}))
             from . import sys_ethics
             if (bad := sys_ethics.forbidden_capabilities(manifest)):      # ethics code, level A: never loaded
                 p.error = f"refused by the ethics code (level A): {', '.join(bad)}"
@@ -240,6 +261,8 @@ class PluginHost:
     def call(self, plugin: str, tool: str, args: dict, run_id: str | None = None) -> dict:
         """Run one tool now (the gate is the caller's job). Returns {"ok", "text", "seconds"}."""
         p = self.get(plugin)
+        if p is not None and p.paused:
+            return {"ok": False, "text": f"plugin {plugin} in its scheduled pause until {p.away.get('to')}", "seconds": 0}
         if p is None or not p.available:
             return {"ok": False, "text": f"plugin {plugin} not available"
                                         + (f" (missing {', '.join(p.missing)})" if p and p.missing else ""), "seconds": 0}

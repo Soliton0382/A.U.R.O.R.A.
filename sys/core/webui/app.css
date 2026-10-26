@@ -118,6 +118,7 @@ tr.just-added td { animation: just-added 2.4s ease-out; }   /* the user just add
 .pill.ok { color: var(--ok); border-color: var(--ok); }
 .pill.bad { color: var(--bad); border-color: var(--bad); }
 .pill.warn { color: var(--warn); border-color: var(--warn); }
+.pill.warn { color: var(--warn); border-color: var(--warn); }
 .import { display: grid; gap: .7rem; max-width: 640px; margin-bottom: 1rem; }
 .import label { display: grid; gap: .3rem; }
 .log { display: flex; flex-direction: column; gap: .35rem; font-size: .88rem; }
