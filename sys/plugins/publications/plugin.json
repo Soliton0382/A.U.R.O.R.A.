@@ -2,9 +2,10 @@
   "name": "publications",
   "version": "1.0",
   "kind": "tool",
+  "page": "projects",
   "description": {
-    "it": "Le tue pubblicazioni e quanto vengono lette: le opere su Zenodo collegate al tuo ORCID, con visite e download e la variazione da ieri e da una settimana. Un resoconto ogni sera e un riquadro nella schermata Oggi. (Le statistiche dei repository GitHub sono già nella pagina dei progetti.)",
-    "en": "Your publications and how much they are read: the works on Zenodo linked to your ORCID, with views and downloads and the change since yesterday and a week ago. A report every evening and a tile on the Today screen. (GitHub repositories' numbers are on the projects page.)"
+    "it": "Le tue pubblicazioni e quanto vengono lette: le opere su Zenodo collegate al tuo ORCID, ciascuna con visite e download (unici e totali), versioni e la variazione da ieri e da una settimana. Le trovi in Progetti → 📚 Papers, con un resoconto ogni sera e un riquadro nella schermata Oggi. (Le statistiche dei repository GitHub sono nella scheda GitHub della stessa pagina.)",
+    "en": "Your publications and how much they are read: the works on Zenodo linked to your ORCID, each with its views and downloads (unique and total), its versions and the change since yesterday and a week ago. They are in Projects → 📚 Papers, with a report every evening and a tile on the Today screen. (GitHub repositories' numbers are in the same page's GitHub tab.)"
   },
   "command": [
     "{python}",
@@ -60,8 +61,8 @@
     }
   ],
   "welcome": {
-    "it": "📊 Pubblicazioni collegate. Ogni sera ti dico visite e download delle tue opere e quanto sono cambiati da ieri; li trovi anche nella schermata Oggi.",
-    "en": "📊 Publications connected. Every evening I tell you the views and downloads of your works and how they changed since yesterday; they are on the Today screen too."
+    "it": "📚 Pubblicazioni collegate. Le trovi in Progetti → Papers; ogni sera ti dico visite e download delle tue opere e quanto sono cambiati da ieri, e il riassunto è anche nella schermata Oggi.",
+    "en": "📚 Publications connected. They are in Projects → Papers; every evening I tell you the views and downloads of your works and how they changed since yesterday, and the summary is on the Today screen too."
   },
   "setup": {
     "it": "Scrivi il tuo ORCID iD in `AURORA_PUBLICATIONS_ORCID`: Aurora legge da Zenodo le opere che ti hanno come autore (dati pubblici, nessuna chiave). Zenodo dà solo i totali: Aurora ne tiene una lettura al giorno per dirti quanto sono cambiati, quindi le variazioni compaiono dal secondo giorno.",

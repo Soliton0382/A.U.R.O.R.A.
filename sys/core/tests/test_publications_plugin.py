@@ -66,3 +66,21 @@ def test_the_greeting_s_sign_follows_the_weather_then_the_hour():
     assert sign_of_day({"condition": "neutral", "clouds_pct": 40}, 10)[0] == "⛅"
     assert sign_of_day({"condition": "clear_mild", "clouds_pct": 5}, 10)[0] == "☀️"
     assert sign_of_day(None, 10)[0] == "👋" and sign_of_day(None, 22)[0] == "🌙"
+
+
+def test_the_papers_tab_gets_each_work_day_by_day_and_its_versions(cfg, monkeypatch, tmp_path):
+    import json
+    P = load(cfg, monkeypatch, tmp_path)
+    day0, counts = date(2026, 3, 1), {"1": (10, 2)}
+    monkeypatch.setattr(P, "_zenodo", lambda orcid: [work(k, *v) for k, v in counts.items()])
+    for i, v in enumerate((10, 12, 15)):
+        counts["1"] = (v, 2)
+        P._cache["works"] = None
+        P.works(day0 + timedelta(days=i))
+    monkeypatch.setattr(P, "date", type("D", (date,), {"today": staticmethod(lambda: day0 + timedelta(days=2))}))
+    got = json.loads(P.publications_list(history_days=2))[0]
+    assert [h["day"] for h in got["history"]] == ["2026-03-02", "2026-03-03"] and got["history"][-1]["views"] == 15
+    assert "history" not in json.loads(P.publications_list())[0]          # the agent's list stays short
+    assert len(json.loads(P.publications_list(history_days=9999))[0]["history"]) == 3   # at most a year: all three
+    assert P._versions({"relations": {"version": [{"index": 1, "is_last": True}]}}) == 2
+    assert P._versions({}) == 1

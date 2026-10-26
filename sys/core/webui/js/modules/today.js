@@ -147,7 +147,13 @@ export default {
       row.append(a, el("small", "muted", ` · 👁️ ${w.views}${plus((w.day || {}).views)} · ⬇️ ${w.downloads}${plus((w.day || {}).downloads)}`));
       list.append(row);
     }
-    return this.tile(`📚 ${t("today.publications")}`, grid, list);
+    const all = el("button", "link", t("today.pub_all"));        // every work, with its full numbers
+    all.type = "button";
+    all.addEventListener("click", async () => {
+      await this.ctx.show("projects");
+      (await import("./projects.js")).default.tab("papers");
+    });
+    return this.tile(`📚 ${t("today.publications")}`, grid, list, all);
   },
 
   // the day's numbers (Utilizzo): questions, the agent's runs, the cloud's calls, the tools

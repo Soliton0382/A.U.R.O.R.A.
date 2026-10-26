@@ -512,6 +512,7 @@ Server data is always inserted as text, never as HTML.
 | `sys/models/{embedder,reranker,llm,diffusion}/` | owner | mdl_* |
 
 | `webui/js/modules/project_page.js` | interface | 📁 one project's page in sections, the Models page's way (N41): name, policy, saved state on top; chips for conductor, plan, documents, files, 3D print, terminal, history, reports, preview; each made at first opening, the last one remembered per project |
+| `webui/js/modules/project_papers.js` | interface | 📚 Projects → Papers (N47): a card a work from the publications plugin — views and downloads unique and total, the change since yesterday and in 7 days, versions, licence, keywords, the views day by day with a pointer readout |
 | `webui/js/modules/project_files.js` | interface | 📄 a project's files section: the folder tree that opens and closes, the viewer (text, Markdown, pictures, PDF pages), «ask Aurora» |
 | `webui/js/modules/project_render.js` | interface | 🎨 a project's realistic view: the cad parts' STL (text or binary, normals smoothed under 40°) in their materials, turned by drag/pinch, exploded by a slider, light turned, parts hidden or given another material (kept on the device), picture saved at twice the size (N42) |
 | `webui/js/modules/project_render_gl.js` | interface | the realistic view's WebGL2 renderer, no library: GGX shading, Fresnel, a key light with a 3×3-filtered depth-map shadow, a fill light, a studio of soft boxes reflected by metals, a floor that fades into the backdrop, ACES tone map (N42) |

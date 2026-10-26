@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 A.U.R.O.R.A. Project
 // Projects: the local ones (folder tree, files, README, history, sandboxed page preview), the owner's GitHub
-// repositories (stars, forks, issues; clone to browse them), a new project, and "ask Aurora" about one.
+// repositories (stars, forks, issues; clone to browse them), the owner's papers (the publications plugin), a new
+// project, and "ask Aurora" about one.
 // Reading only here; writing goes through Aurora's "projects" plugin and the owner's approvals.
 import { policyFields } from "./project_policy.js";
 import { call } from "../api.js";
@@ -10,6 +11,7 @@ import { clock, el, useCss } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { openProject } from "./project_page.js";
 import { pluginSlot } from "./plugin_slot.js";
+import { paperCard, papersHead } from "./project_papers.js";
 
 export default {
   id: "projects",
@@ -27,7 +29,9 @@ export default {
         <div class="prj-tabs"><button type="button" class="cat-chip on" data-tab="local" data-i18n="prj.local"></button>
           <button type="button" class="cat-chip" data-tab="new" data-i18n="prj.tab_new"></button>
           <button type="button" class="cat-chip" data-tab="brief" data-i18n="prj.tab_brief"></button>
-          <button type="button" class="cat-chip" data-tab="github" data-i18n="prj.github"></button></div>
+          <button type="button" class="cat-chip" data-tab="github" data-i18n="prj.github"></button>
+          <button type="button" class="cat-chip" data-tab="papers" data-i18n="prj.papers"></button></div>
+        <div class="prj-tab" data-tab="papers" hidden><p class="muted" data-i18n="prj.papers_hint"></p><div class="prj-papers"></div></div>
         <div class="prj-tab" data-tab="github" hidden><p class="muted" data-i18n="prj.github_hint"></p><div class="prj-github"></div></div>
         <div class="prj-tab" data-tab="local"><p class="muted" data-i18n="prj.local_hint"></p><div class="prj-local prj-grid"></div></div>
         <div class="prj-tab" data-tab="brief" hidden><div class="mch-panel prj-panel"><h4 data-i18n="prj.brief"></h4>
@@ -53,13 +57,11 @@ export default {
     this.root = root;
     this.local = root.querySelector(".prj-local");
     this.github = root.querySelector(".prj-github");
+    this.papers = root.querySelector(".prj-papers");
     this.list = root.querySelector(".prj-list");
     this.detail = root.querySelector(".prj-detail");
     // two tabs (owner, 2026-10-04): the local projects, where Aurora writes, tests and tries again; GitHub's
-    root.querySelectorAll(".prj-tabs button").forEach((b) => b.addEventListener("click", () => {
-      root.querySelectorAll(".prj-tabs button").forEach((x) => x.classList.toggle("on", x === b));
-      root.querySelectorAll(".prj-tab").forEach((p) => { p.hidden = p.dataset.tab !== b.dataset.tab; });
-    }));
+    root.querySelectorAll(".prj-tabs button").forEach((b) => b.addEventListener("click", () => this.tab(b.dataset.tab)));
     // a project given to Aurora as a brief (owner, 2026-10-05): goal, requirements, acceptance tests, limits, and how
     // to work — she creates it, writes, runs the tests in her cage, iterates, commits, reports (and notifies)
     root.querySelector(".prj-brief").addEventListener("submit", (ev) => {
@@ -89,12 +91,21 @@ export default {
 
   async enter() { this.back(false); await this.refresh(); },
 
+  // one of the list's tabs shown (also from Oggi's 📚 tile: «all in Projects → Papers»)
+  tab(name) {
+    if (!this.root) return;
+    this.back(false);
+    this.root.querySelectorAll(".prj-tabs button").forEach((x) => x.classList.toggle("on", x.dataset.tab === name));
+    this.root.querySelectorAll(".prj-tab").forEach((p) => { p.hidden = p.dataset.tab !== name; });
+  },
+
   async refresh() {
     const { projects, base } = await call("/v1/aurora/projects");
     this.base = base;
     this.names = new Set(projects.map((p) => p.name));
     this.local.replaceChildren(...(projects.length ? projects.map((p) => this.localCard(p)) : [el("p", "muted", t("prj.none", { base }))]));
     this.github.replaceChildren(el("p", "muted", t("prj.loading")));
+    this.refreshPapers();                    // on its own: Zenodo's answer never holds the GitHub tab back
     try {
       const g = await call("/v1/aurora/projects/github");
       if (!g.connected) { this.github.replaceChildren(el("p", "muted", t("prj.gh_off"))); return; }
@@ -103,6 +114,24 @@ export default {
       this.github.replaceChildren(el("p", "muted", t("prj.gh_user", { login: g.login, n: g.repos.length })), grid,
         ...(g.error ? [el("p", "error", g.error)] : []), el("p", "muted", t("prj.gh_private")));
     } catch (e) { this.github.replaceChildren(el("p", "error", t("ev.error", { m: e.message }))); }
+  },
+
+  // 📚 the papers (owner, 26 Oct: «nella sezione progetti… la parte Papers che riporta le statistiche complete per ogni
+  // paper gestita a quadratoni come le altre parti… con plugin configurabile lì dentro»): one card a work
+  async refreshPapers() {
+    this.papers.replaceChildren(el("p", "muted", t("prj.loading")));
+    try {
+      const r = await call("/v1/aurora/projects/papers?days=90");
+      if (r.state === "off") { this.papers.replaceChildren(el("p", "muted", t("prj.papers_off"))); return; }
+      if (r.state === "error") {
+        this.papers.replaceChildren(el("p", "error", t("ev.error", { m: r.error })), el("p", "muted", t("prj.papers_set")));
+        return;
+      }
+      if (!r.items.length) { this.papers.replaceChildren(el("p", "muted", t("prj.papers_none"))); return; }
+      const grid = el("div", "prj-grid");
+      grid.append(...r.items.map((w) => paperCard(w)));
+      this.papers.replaceChildren(papersHead(r.items), grid);
+    } catch (e) { this.papers.replaceChildren(el("p", "error", t("ev.error", { m: e.message }))); }
   },
 
   // a project as a card, the Models page's way: what it is, whether all is saved, how Aurora handles it

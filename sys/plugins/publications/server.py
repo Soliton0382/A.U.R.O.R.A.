@@ -62,8 +62,19 @@ def _zenodo(orcid: str) -> list[dict]:
         out.append({"id": f"zenodo:{h['id']}", "source": "zenodo", "title": m.get("title", "")[:200],
                     "kind": (m.get("resource_type") or {}).get("title", ""), "published": m.get("publication_date", ""),
                     "url": f"https://doi.org/{h['doi']}" if h.get("doi") else h.get("links", {}).get("self_html", ""),
-                    "views": int(st.get("unique_views") or 0), "downloads": int(st.get("unique_downloads") or 0)})
+                    "views": int(st.get("unique_views") or 0), "downloads": int(st.get("unique_downloads") or 0),
+                    # the whole picture for the Papers tab: every visit and download (a person counted each time),
+                    # the versions, the licence and the keywords
+                    "views_all": int(st.get("views") or 0), "downloads_all": int(st.get("downloads") or 0),
+                    "versions": _versions(m), "license": (m.get("license") or {}).get("id", ""),
+                    "keywords": [str(k)[:40] for k in (m.get("keywords") or [])][:6]})
     return out
+
+
+def _versions(m: dict) -> int:
+    """How many versions the work has: Zenodo gives the index of this one (0 for the first)."""
+    v = ((m.get("relations") or {}).get("version") or [{}])[0]
+    return int(v.get("index", 0)) + 1 if isinstance(v, dict) else 1
 
 
 def _folder() -> Path:
@@ -97,6 +108,12 @@ def _before(rows: list[dict], day: str) -> dict:
     """The numbers of the last day kept before `day`; {} when none is older."""
     old = [r for r in rows if r["day"] < day]
     return old[-1]["n"] if old else {}
+
+
+def series(rows: list[dict], wid: str, days: int, today: date) -> list[dict]:
+    """One work's numbers day by day, the last `days` days kept (a day not read is missing, not zero)."""
+    since = (today - timedelta(days=days - 1)).isoformat()
+    return [{"day": r["day"], **r["n"][wid]} for r in rows if r["day"] >= since and wid in r.get("n", {})]
 
 
 def works(today: date | None = None) -> list[dict]:
@@ -145,10 +162,16 @@ def report(ws: list[dict]) -> str:
 
 
 @tool
-def publications_list() -> str:
-    """Your public works as JSON: each with its views and downloads and
-    their change since yesterday («day») and a week ago («week»); null where nothing older was kept."""
-    return json.dumps(works(), ensure_ascii=False)
+def publications_list(history_days: int = 0) -> str:
+    """Your public works as JSON: each with its views and downloads (unique, and «_all» counting every one) and
+    their change since yesterday («day») and a week ago («week»); null where nothing older was kept.
+    history_days > 0 adds each work's numbers day by day («history»), at most 365 days."""
+    found, today = works(), date.today()
+    days = max(0, min(int(history_days or 0), 365))
+    if not days:
+        return json.dumps(found, ensure_ascii=False)
+    rows = _history()
+    return json.dumps([{**w, "history": series(rows, w["id"], days, today)} for w in found], ensure_ascii=False)
 
 
 @tool

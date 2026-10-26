@@ -681,7 +681,7 @@ Funziona subito in locale (`usr/projects`). Per **pubblicare** su GitHub serve i
 
 ## publications
 
-Your publications and how much they are read: the works on Zenodo linked to your ORCID, with views and downloads and the change since yesterday and a week ago. A report every evening and a tile on the Today screen. (GitHub repositories' numbers are on the projects page.)
+Your publications and how much they are read: the works on Zenodo linked to your ORCID, each with its views and downloads (unique and total), its versions and the change since yesterday and a week ago. They are in Projects → 📚 Papers, with a report every evening and a tile on the Today screen. (GitHub repositories' numbers are in the same page's GitHub tab.)
 
 ### Setup (EN)
 

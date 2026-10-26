@@ -53,6 +53,22 @@ async def projects_github() -> dict:
     return await in_thread(work)
 
 
+@router.get("/v1/aurora/projects/papers", dependencies=[Depends(auth)])
+async def projects_papers(days: int = 90) -> dict:
+    """The user's works through the publications plugin (read), each with its numbers day by day: «off» when the
+    plugin is off or misses its settings, «error» with the plugin's words (a wrong ORCID, Zenodo not answering)."""
+    def work():
+        host = plugin_host()
+        p = host.get("publications")
+        if p is None or not (p.enabled and p.available):
+            return {"state": "off", "items": [], "missing": list(p.missing) if p else []}
+        r = host.call("publications", "publications_list", {"history_days": max(1, min(days, 365))})
+        if not r.get("ok"):
+            return {"state": "error", "items": [], "error": str(r.get("text", ""))[:300]}
+        return {"state": "ok", "items": json.loads(r["text"])}
+    return await in_thread(work)
+
+
 _traffic: dict[str, tuple[float, dict]] = {}
 TRAFFIC_S = 1800
 
