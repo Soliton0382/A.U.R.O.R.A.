@@ -107,8 +107,15 @@ say "== code"
 PY="$SRC/.venv/bin/python"
 (cd "$DST" && "$PY" -m compileall -q sys/core sys/plugins >/dev/null) || fail "Python files that do not compile"
 find "$DST" -name __pycache__ -type d -prune -exec rm -rf {} +
-(cd "$DST/sys/core" && PYTHONDONTWRITEBYTECODE=1 timeout 1800 "$PY" -m pytest -q -p no:cacheprovider tests --ignore=tests/test_models_gpu.py) | tail -2 \
-  || fail "tests failed on the mirror"
+TESTS="$( (cd "$DST/sys/core" && PYTHONDONTWRITEBYTECODE=1 timeout 1800 "$PY" -m pytest -q -o addopts="" -p no:cacheprovider tests --ignore=tests/test_models_gpu.py) | tail -2)" \
+  || { echo "$TESTS"; fail "tests failed on the mirror"; }
+echo "$TESTS"
+# The README badge carries the count just measured, in the source and in the mirror (it said 878 long after 1304)
+PASSED="$(grep -oE '[0-9]+ passed' <<<"$TESTS" | tr -cd '0-9')" || fail "no «N passed» in the test summary"
+for f in README.md README.en.md; do
+  for d in "$SRC" "$DST"; do sed -i -E "s/badge\/tests-[0-9]+%20passed/badge\/tests-$PASSED%20passed/" "$d/$f"; done
+done
+echo "README badge: $PASSED passed"
 find "$DST" -name __pycache__ -type d -prune -exec rm -rf {} +
 
 say "== ports (built from this code, platform tests)"
