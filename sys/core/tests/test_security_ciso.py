@@ -364,3 +364,15 @@ def test_aurora_s_own_objects_on_the_firewall_are_not_new_devices():
     new = {"hosts": old["hosts"] + [{"name": "aurora-block-203.0.113.9", "type": "IP", "address": "203.0.113.9"},
                                     {"name": "printer", "type": "IP", "address": "10.0.0.9"}], "dhcp": []}
     assert sec_netmap.diff(old, new)["new"] == ["printer (10.0.0.9)"]
+
+
+def test_aurora_s_own_https_port_and_her_guests_bridges_are_not_unknown_services(cfg):
+    """Owner, 27 Oct: «firewall di aurora segnala cose che non capisco»: her HTTPS on 8443 (TCP and HTTP/3) and the DNS
+    of the test VMs on their bridges were «unknown services reachable from the network»."""
+    from aurora import sec_hostaudit
+    cfg.values.update(AURORA_HTTPS_PORT=8443, AURORA_HTTP_PORT=80, AURORA_HONEYPOT_PORTS="", AURORA_SENTINEL_BIND="10.0.0.5:5514")
+    raw = "\n".join(["tcp LISTEN 0 4096 *:8443 *:*", "udp UNCONN 0 0 *:8443 *:*",
+                     "udp UNCONN 0 0 10.9.9.254:53 0.0.0.0:*", "tcp LISTEN 0 32 10.9.9.254:53 0.0.0.0:*"])
+    socks = sec_hostaudit.sockets(raw, bridges={"10.9.9.254"})
+    assert sec_hostaudit.findings(cfg, socks) == []
+    assert [s["kind"] for s in socks] == ["expected", "expected", "local", "local"]

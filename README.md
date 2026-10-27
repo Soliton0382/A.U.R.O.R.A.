@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-1294%20passed-1baf7a" alt="Tests"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-1295%20passed-1baf7a" alt="Tests"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
 
 <p align="center">🇮🇹 <b>Italiano</b> · 🇬🇧 <a href="README.en.md">English</a></p>
 
@@ -289,7 +289,7 @@ locale) è stata misurata e chiusa a tre livelli (M263):
 | 🛠️ **gli strumenti** (plugin, raccolta, API) | non raggiungono mai le reti della blacklist `AURORA_EGRESS_DENY_ASNS` (di default Alibaba Cloud e Taobao, 536 prefissi da RIPEstat); i comandi dei progetti girano senza rete |
 | 🚨 **la sentinella** | se la macchina di Aurora va comunque verso una rete in blacklist, un incidente **alto, mai silenziabile**, con il processo che ha la connessione |
 | 👁️ **la sorveglianza del modello** | ogni 10 s guarda le connessioni del processo del modello locale, **qualunque modello sia**: un indirizzo che non sia `127.0.0.1`, anche un tentativo già fermato, è un incidente alto con la rete e il suo proprietario |
-| 🌐 **le uscite dei servizi** | per una settimana impara, servizio per servizio, le reti che raggiunge; poi una rete mai vista è un incidente (**alto se nessun lavoro era in corso**, cioè «dal nulla»), e una connessione che manda un file (oltre 10 MB e 4 volte il solito) è alto. Tutto in Sicurezza → 📤 |
+| 🌐 **le uscite dei servizi** | per una settimana impara, servizio per servizio, le reti che raggiunge; poi una rete mai vista è un incidente (**alto se nessun lavoro era in corso**, cioè «dal nulla»), e una connessione che manda un file (oltre 10 MB e 4 volte il solito) è alto. Tutto in Sicurezza → 🌐 Connessioni in uscita |
 
 La decisione segue la pagina 🧭 Autonomia per la sicurezza: su 🤝 un clic sull'incidente (✓ legittimo, o 🚫 in
 blacklist); su 🚀 decide Aurora da sola (impara le uscite incontrate durante un lavoro, blocca quelle nate dal nulla se

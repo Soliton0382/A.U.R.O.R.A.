@@ -48,7 +48,8 @@ export function page(tab, meta) { const { title } = meta; return {
         <div class="sec-rules"></div><details class="report"><summary data-i18n="sec.traffic"></summary><div class="sec-groups"></div></details></div>
       <div class="sec-tab" data-tab="out" hidden>
         <h3 class="setting-cat" data-i18n="sec.out"></h3><p class="muted" data-i18n="sec.out_hint"></p><div class="sec-out"></div></div>`;
-    root.querySelector(".prj-tabs").hidden = true;
+    // one menu entry, four tabs (owner, 27 Oct): the tab asked for is shown and marked
+    root.querySelectorAll(".prj-tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === tab));
     root.querySelectorAll(".sec-tab").forEach((p) => { p.hidden = p.dataset.tab !== tab; });
     root.querySelector("h2").dataset.i18n = title;
     root.querySelector("h2").after(autonomySlot("security"));

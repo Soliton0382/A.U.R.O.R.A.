@@ -74,17 +74,34 @@ export default {
     apply(root);
     this.q = (s) => root.querySelector(s);
     this.canvas = this.q(".trace-globe");
-    this.view = { lon: 12, lat: 42, to: null, drag: null };
+    this.view = { lon: 12, lat: 42, to: null, drag: null, zoom: 1 };
     this.hops = [];
     this.q(".trace-form").addEventListener("submit", (e) => { e.preventDefault(); this.start(this.q(".trace-ip").value); });
-    this.canvas.addEventListener("pointerdown", (e) => { this.view.drag = [e.clientX, e.clientY, this.view.lon, this.view.lat]; this.view.to = null; });
-    window.addEventListener("pointerup", () => { this.view.drag = null; });
-    this.canvas.addEventListener("pointermove", (e) => {
-      const d = this.view.drag;
-      if (!d) return;
-      this.view.lon = d[2] - (e.clientX - d[0]) * 0.4;
-      this.view.lat = Math.max(-80, Math.min(80, d[3] + (e.clientY - d[1]) * 0.4));
+    // zoom (owner, 27 Oct: «zoommare il mappamondo da cellulare con le dita mentre da web con lo scrolling del
+    // mouse»): two fingers pinch, the wheel scrolls, a double tap or click goes back to the whole Earth
+    const v = this.view, touches = new Map();
+    const clamp = (z) => Math.max(1, Math.min(12, z));
+    const spread = () => { const [a, b] = [...touches.values()]; return Math.hypot(a[0] - b[0], a[1] - b[1]); };
+    this.canvas.style.touchAction = "none";
+    this.canvas.addEventListener("pointerdown", (e) => {
+      touches.set(e.pointerId, [e.clientX, e.clientY]);
+      this.canvas.setPointerCapture?.(e.pointerId);
+      if (touches.size === 2) { v.drag = null; v.pinch = [spread(), v.zoom]; }
+      else { v.drag = [e.clientX, e.clientY, v.lon, v.lat]; v.to = null; }
     });
+    const up = (e) => { touches.delete(e.pointerId); if (touches.size < 2) v.pinch = null; if (!touches.size) v.drag = null; };
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+    this.canvas.addEventListener("pointermove", (e) => {
+      if (touches.has(e.pointerId)) touches.set(e.pointerId, [e.clientX, e.clientY]);
+      if (v.pinch && touches.size === 2) { v.zoom = clamp(v.pinch[1] * spread() / Math.max(1, v.pinch[0])); return; }
+      const d = v.drag;
+      if (!d) return;
+      v.lon = d[2] - (e.clientX - d[0]) * 0.4 / v.zoom;         // a zoomed Earth turns slower under the finger
+      v.lat = Math.max(-80, Math.min(80, d[3] + (e.clientY - d[1]) * 0.4 / v.zoom));
+    });
+    this.canvas.addEventListener("wheel", (e) => { e.preventDefault(); v.zoom = clamp(v.zoom * Math.exp(-e.deltaY * 0.0015)); }, { passive: false });
+    this.canvas.addEventListener("dblclick", () => { v.zoom = 1; });
     loadWorld().then(() => this.loop());
   },
 
@@ -173,7 +190,7 @@ export default {
         v.lat += (Math.max(-60, Math.min(60, v.to[1])) - v.lat) * 0.06;
         if (Math.abs(dl) < 0.05) v.to = null;
       } else if (!v.drag && !this.hops.length) v.lon += 0.08;   // idle: the Earth turns
-      const r = Math.min(w, hgt) / 2 - 12, cx = w / 2, cy = hgt / 2;
+      const r = (Math.min(w, hgt) / 2 - 12) * (v.zoom || 1), cx = w / 2, cy = hgt / 2;
       const sea = g.createRadialGradient(cx - r / 3, cy - r / 3, r / 6, cx, cy, r);
       sea.addColorStop(0, "#1b3a63"); sea.addColorStop(1, "#071425");
       g.fillStyle = sea; g.beginPath(); g.arc(cx, cy, r, 0, 2 * Math.PI); g.fill();

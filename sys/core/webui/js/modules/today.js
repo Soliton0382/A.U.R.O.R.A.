@@ -307,7 +307,7 @@ export default {
     return s;
   },
 
-  // 🌐 Aurora's ways out today (owner, 27 Oct: «con widget nella pagina oggi»): the admin's; the others get no tile
+  // 🌐 Aurora's outgoing connections today (owner, 27 Oct: «con widget nella pagina oggi»): the admin's; the others get no tile
   async egress() {
     const r = await call("/v1/aurora/security/egress");
     const grid = el("div", "td-stats");

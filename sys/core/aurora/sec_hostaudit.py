@@ -4,8 +4,11 @@
 con la sua gestione… simile ad un mini CISO»): what listens on it and who can reach it.
 
 sockets(): the listening sockets (`ss -tulnpH`, no root: a root service shows no process). Each is
-  local      bound to loopback (127.*, ::1, %lo) or a virtual network of this machine (virbr): nobody outside reaches it
-  expected   one of Aurora's own doors: Caddy (80, 443 TCP/UDP), the sentinel's syslog port, the decoys
+  local      bound to loopback (127.*, ::1, %lo) or a virtual network of this machine (a bridge of its own VMs or
+             containers: virbr*, docker*, br-*): nobody outside reaches it
+  expected   one of Aurora's own doors: Caddy (AURORA_HTTPS_PORT TCP and UDP, AURORA_HTTP_PORT), the sentinel's syslog
+             port, the decoys (owner, 27 Oct: «firewall di aurora segnala cose che non capisco» — her own HTTPS port on
+             8443 and the VMs' DNS on their bridges were «unknown services reachable from the network»)
   exposed    reachable from the network: said with what it is and whether it is needed
 findings(): the exposed ones judged — an unknown service on every interface is worth a look; SSH and desktop
   services (KDE Connect) are common and said low; outgoing UDP of a client (cloudflared) is not a service.
@@ -18,8 +21,24 @@ import subprocess
 
 from . import sys_config
 
-KNOWN = {("tcp", "443"): "Caddy: l'interfaccia di Aurora (HTTPS)", ("udp", "443"): "Caddy: HTTP/3",
-         ("tcp", "80"): "Caddy: rinvio a HTTPS"}
+BRIDGES = ("virbr", "docker", "br-", "vnet", "lxc", "veth")        # this machine's own guests' networks
+
+
+def known(cfg: sys_config.Config) -> dict:
+    """Aurora's own doors, on the ports the settings give them."""
+    https, http = str(cfg["AURORA_HTTPS_PORT"]), str(cfg["AURORA_HTTP_PORT"])
+    return {("tcp", https): "Caddy: l'interfaccia di Aurora (HTTPS)", ("udp", https): "Caddy: HTTP/3",
+            ("tcp", http): "Caddy: rinvio a HTTPS"}
+
+
+def bridged() -> set[str]:
+    """The addresses this machine holds on its guests' bridges (a VM's DHCP and DNS listen there, for the VMs)."""
+    try:
+        out = subprocess.run(["ip", "-o", "addr", "show"], capture_output=True, text=True, timeout=5).stdout
+    except (OSError, subprocess.SubprocessError):
+        return set()
+    return {m.group(2) for m in re.finditer(r"^\d+: (\S+)\s+inet6? ([0-9a-fA-F.:]+)/", out, re.M)
+            if m.group(1).startswith(BRIDGES)}
 COMMON = {("tcp", "22"): ("SSH", "Accesso remoto alla macchina: va bene con le chiavi; con le password è il primo bersaglio",
                           "usare solo le chiavi (PasswordAuthentication no) o limitarlo alla LAN"),
           ("tcp", "1716"): ("KDE Connect", "Lo scambio con il telefono del desktop KDE: ascolta su tutta la rete",
@@ -29,13 +48,14 @@ COMMON = {("tcp", "22"): ("SSH", "Accesso remoto alla macchina: va bene con le c
 CLIENTS = ("cloudflared", "kdeconnectd", "avahi-daemon")             # their high UDP ports are a client's, not a door
 
 
-def _local(addr: str) -> bool:
+def _local(addr: str, bridges: set[str] = frozenset()) -> bool:
     host = addr.rsplit(":", 1)[0].strip("[]")
     return (host.startswith("127.") or host in ("::1",) or "%lo" in host or "%virbr" in host
-            or host.startswith("192.168.122."))                      # libvirt's own network: this machine's guests
+            or host.startswith("192.168.122.") or host.split("%")[0] in bridges)   # this machine's guests' networks
 
 
-def sockets(raw: str | None = None) -> list[dict]:
+def sockets(raw: str | None = None, bridges: set[str] | None = None) -> list[dict]:
+    bridges = bridged() if bridges is None else bridges
     if raw is None:
         try:
             raw = subprocess.run(["ss", "-tulnpH"], capture_output=True, text=True, timeout=10).stdout
@@ -53,20 +73,20 @@ def sockets(raw: str | None = None) -> list[dict]:
         if key in seen or not port.isdigit():
             continue
         seen.add(key)
-        out.append({"proto": proto, "address": addr, "port": port, "process": proc, "local": _local(addr)})
+        out.append({"proto": proto, "address": addr, "port": port, "process": proc, "local": _local(addr, bridges)})
     return out
 
 
 def findings(cfg: sys_config.Config, socks: list[dict]) -> list[dict]:
     decoys = {p.strip() for p in str(cfg["AURORA_HONEYPOT_PORTS"] or "").split(",") if p.strip()}
     sentinel = str(cfg["AURORA_SENTINEL_BIND"] or "").rsplit(":", 1)[-1]
-    out = []
+    out, doors = [], known(cfg)
     for s in socks:
         k = (s["proto"], s["port"])
         if s["local"]:
             s["kind"], s["what"] = "local", "solo da questa macchina"
-        elif k in KNOWN:
-            s["kind"], s["what"] = "expected", KNOWN[k]
+        elif k in doors:
+            s["kind"], s["what"] = "expected", doors[k]
         elif s["port"] in decoys and s["proto"] == "tcp":
             s["kind"], s["what"] = "expected", "esca: chi la tocca viene bloccato"
         elif s["proto"] == "udp" and s["port"] == sentinel:

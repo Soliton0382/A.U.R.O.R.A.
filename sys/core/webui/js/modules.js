@@ -81,8 +81,10 @@ export const groups = [
   ...local.views.filter((v) => v.group === "home").map((v) => v.id)] },
   { id: "work", icon: "🛠️", title: "nav.g.work", views: ["projects", "routines", "uploads"] },
   { id: "knowledge", icon: "📚", title: "nav.g.knowledge", views: ["import", "harvester", "synapses"] },
-  // the security area (owner, 2026-10-08: «sotto menù specifici CISO, etc… separate e pulite»)
-  { id: "security", icon: "🛡️", title: "nav.g.security", views: ["firewalls", "edge", "security", "ciso", "firewall", "aurorafw", "secdefence", "secwatch", "secout", "secegress", "sectrace"] },
+  // the security area (owner, 2026-10-08: «sotto menù specifici CISO, etc… separate e pulite»); defence, checks and
+  // what was shared are tabs of 🚨 Incidenti e difesa, one entry (owner, 27 Oct: «sono già tutti accorpati… basta una
+  // voce sola del menù»): their own ids still open the page on their tab
+  { id: "security", icon: "🛡️", title: "nav.g.security", views: ["firewalls", "edge", "security", "ciso", "firewall", "aurorafw", "secegress", "sectrace"] },
   { id: "autonomy", views: ["autonomy"] },
   { id: "system", icon: "⚙️", title: "nav.g.system", views: ["status", "models", "accounts", "plugins", "users", "usage", "settings", "https", "updates"] },
   { id: "phoneapp", views: ["phoneapp"] },              // 📱 the phone app: download and set up (owner, 25 Oct)
