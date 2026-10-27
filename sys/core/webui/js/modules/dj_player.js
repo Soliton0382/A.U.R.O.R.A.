@@ -8,7 +8,9 @@
 // Audio) — spectrum, oscilloscope, MilkDrop's presets (dj_milk.js: fixed per click or ∞ in turn) — full screen, or
 // over the whole page where the browser has none (the phone app's WebView); the playlist of everything, each with its
 // icon (🎤 sung by Aurora, 🎵 yours, 💿 a remix or mix, 🎛️ a set), a tick to choose it for the next mix, 🗑️, and for a
-// song ✏️ its words and 🎤 «sing it again», for a set its console.
+// song ✏️ its words and 🎤 «sing it again», for a set its console. Folders (owner, 28 Oct: «la gestione in cartelle dei
+// brani, tipo play list»): by kind, and the user's own playlists (aud_playlists) — 📁 on a row puts it in one, ↑ ↓ ➖
+// inside a list; what plays next, shuffled too, stays in the folder shown.
 import { call } from "../api.js";
 import { el, toBase64 } from "../dom.js";
 import { t } from "../i18n.js";
@@ -110,10 +112,70 @@ export function djPlayer({ reload, onSelect, onConsole }) {
   const legend = el("div", "wa-legend", `🎤 ${t("dj.player.k_song")} · 🎵 ${t("dj.player.k_mine")} · 💿 ${t("dj.player.k_mix")} · 🎛️ ${t("dj.player.k_set")} · ☑ ${t("dj.player.k_tick")}`);
   const editor = el("div", "wa-editor");
   editor.hidden = true;
-  box.append(main, vis, el("div", "wa-bar", t("dj.player.playlist")), list, legend, editor, audio);
+  // — the folders: all, by kind, the user's playlists
+  const fsel = el("select", "wa-fsel");
+  fsel.title = t("dj.pl.folder");
+  const newB = btn("➕📁", t("dj.pl.new")), renB = btn("✏️", t("dj.pl.rename")), delB = btn("🗑️", t("dj.pl.delete"));
+  const folders = el("div", "wa-folders");
+  folders.append(fsel, newB, renB, delB);
+  const bar = el("div", "wa-bar");
+  bar.append(el("span", "", t("dj.player.playlist")), folders);
+  box.append(main, vis, bar, list, legend, editor, audio);
 
   let styleOptions = {};
   let items = [], cur = -1, shuffle = false, repeat = 0, ctx = null, an = null, freq, wave, chosen = [];
+  let lists = [], lastS = null, view = "all";
+  try { view = localStorage.getItem("dj.folder") || "all"; } catch { /* no storage: all */ }
+  const KINDS = ["song", "mine", "mix", "set"];
+  const plOf = () => lists.find((p) => `p:${p.id}` === view);
+  const savePl = async (next) => {
+    const r = await call("/v1/aurora/dj/playlists", { method: "PUT", body: JSON.stringify({ lists: next }) });
+    lists = r.lists;
+    if (lastS) refresh({ ...lastS, playlists: lists });
+  };
+  const setView = (v) => { view = v; try { localStorage.setItem("dj.folder", v); } catch { /* fine */ } if (lastS) refresh(lastS); };
+  fsel.addEventListener("change", () => setView(fsel.value));
+  newB.addEventListener("click", async () => {
+    const name = prompt(t("dj.pl.name"));
+    if (!name || !name.trim()) return;
+    await savePl([...lists, { name: name.trim(), items: [] }]).catch((x) => alert(x.message));
+    setView(`p:${lists[lists.length - 1].id}`);
+  });
+  renB.addEventListener("click", async () => {
+    const p = plOf(); if (!p) return;
+    const name = prompt(t("dj.pl.name"), p.name);
+    if (name && name.trim()) await savePl(lists.map((x) => (x.id === p.id ? { ...x, name: name.trim() } : x))).catch((x) => alert(x.message));
+  });
+  delB.addEventListener("click", async () => {
+    const p = plOf(); if (!p || !confirm(t("dj.pl.delete_q", { name: p.name }))) return;
+    await savePl(lists.filter((x) => x.id !== p.id)).catch((x) => alert(x.message));
+    setView("all");
+  });
+  // 📁 on a row: the playlists with a tick each, the track in or out
+  const putIn = (it, anchor) => {
+    document.querySelectorAll(".wa-plmenu").forEach((m) => m.remove());
+    const menu = el("li", "wa-plmenu");                 // a row of the list itself (inside the <ol>)
+    if (!lists.length) menu.append(el("div", "muted", t("dj.pl.none")));
+    for (const p of lists) {
+      const lab = el("label");
+      const c = el("input"); c.type = "checkbox"; c.checked = p.items.includes(ref(it));
+      c.addEventListener("change", () => savePl(lists.map((x) => (x.id !== p.id ? x
+        : { ...x, items: c.checked ? [...x.items, ref(it)] : x.items.filter((r) => r !== ref(it)) }))).catch((e) => alert(e.message)));
+      lab.append(c, ` 📁 ${p.name}`);
+      menu.append(lab);
+    }
+    const close = btn("✕", t("dj.pl.close"));
+    close.addEventListener("click", () => menu.remove());
+    menu.append(close);
+    anchor.after(menu);
+  };
+  const move = (it, d) => {                        // ↑ ↓ inside the playlist shown: the order it plays in
+    const p = plOf(); if (!p) return;
+    const a = [...p.items], i = a.indexOf(ref(it)), j = i + d;
+    if (i < 0 || j < 0 || j >= a.length) return;
+    [a[i], a[j]] = [a[j], a[i]];
+    savePl(lists.map((x) => (x.id === p.id ? { ...x, items: a } : x))).catch((e) => alert(e.message));
+  };
   pick.addEventListener("change", async () => {
     for (const f of pick.files) {
       upOut.textContent = t("dj.uploading", { name: f.name });
@@ -251,7 +313,19 @@ export function djPlayer({ reload, onSelect, onConsole }) {
   const refresh = (s) => {
     styleOptions = s.song_style || styleOptions;
     const was = items[cur]?.name;
-    items = [...s.mixes.map((f) => ({ ...f, kind: "mixes" })), ...s.tracks.map((f) => ({ ...f, kind: "tracks" }))];
+    lastS = s;
+    lists = s.playlists || lists;
+    const all = [...s.mixes.map((f) => ({ ...f, kind: "mixes" })), ...s.tracks.map((f) => ({ ...f, kind: "tracks" }))];
+    if (view.startsWith("p:") && !plOf()) view = "all";
+    const pl = plOf();
+    items = pl ? pl.items.map((r) => all.find((it) => ref(it) === r)).filter(Boolean)
+      : view.startsWith("k:") ? all.filter((it) => kindOf(it) === view.slice(2)) : all;
+    const opt = (v, label) => { const o = el("option", "", label); o.value = v; return o; };
+    fsel.replaceChildren(opt("all", `🎶 ${t("dj.pl.all")} (${all.length})`),
+      ...KINDS.map((k) => opt(`k:${k}`, `${ICON[k]} ${t(`dj.player.k_${k}`)} (${all.filter((it) => kindOf(it) === k).length})`)),
+      ...lists.map((p) => opt(`p:${p.id}`, `📁 ${p.name} (${p.items.length})`)));
+    fsel.value = view;
+    renB.hidden = delB.hidden = !pl;
     chosen = chosen.filter((r) => items.some((it) => ref(it) === r));
     list.replaceChildren(...(items.length ? items.map((it, k) => {
       const li = el("li", it.name === was ? "on" : "");
@@ -284,6 +358,16 @@ export function djPlayer({ reload, onSelect, onConsole }) {
       get.download = it.name;
       get.title = t("dj.player.download");
       acts.append(get);
+      const fold = btn("📁", t("dj.pl.put"));
+      fold.addEventListener("click", () => putIn(it, li));
+      acts.append(fold);
+      if (pl) {
+        const up = btn("↑", t("dj.pl.up")), down = btn("↓", t("dj.pl.down")), out = btn("➖", t("dj.pl.out"));
+        up.addEventListener("click", () => move(it, -1));
+        down.addEventListener("click", () => move(it, 1));
+        out.addEventListener("click", () => savePl(lists.map((x) => (x.id === pl.id ? { ...x, items: x.items.filter((r) => r !== ref(it)) } : x))).catch((e) => alert(e.message)));
+        acts.append(up, down, out);
+      }
       const del = btn("🗑️", t("up.delete"));
       del.addEventListener("click", async () => {
         if (!confirm(t("up.confirm", { name: it.name }))) return;
@@ -294,7 +378,7 @@ export function djPlayer({ reload, onSelect, onConsole }) {
       acts.append(del);
       li.append(tick, name, acts);
       return li;
-    }) : [el("li", "wa-none", t("dj.player.none"))]));
+    }) : [el("li", "wa-none", t(pl ? "dj.pl.empty" : "dj.player.none"))]));
     cur = items.findIndex((x) => x.name === was);
     if (!items.length) mtext.textContent = t("dj.player.empty");
     onSelect([...chosen]);

@@ -3375,5 +3375,19 @@
   "dj.mix.l3": "in primo piano",
   "dj.mix.reset": "Tutto normale",
   "dj.insp.title": "Ispirato allo stile di",
-  "dj.insp.ph": "es. un brano trance dei primi anni 2000 che ami: solo lo stile, mai la melodia"
+  "dj.insp.ph": "es. un brano trance dei primi anni 2000 che ami: solo lo stile, mai la melodia",
+  "dj.pl.folder": "Cartella",
+  "dj.pl.all": "Tutti",
+  "dj.pl.new": "Nuova playlist",
+  "dj.pl.rename": "Rinomina la playlist",
+  "dj.pl.delete": "Elimina la playlist (i brani restano)",
+  "dj.pl.delete_q": "Eliminare la playlist «{name}»? I brani restano nel lettore.",
+  "dj.pl.name": "Nome della playlist",
+  "dj.pl.none": "Nessuna playlist: creala con ➕📁",
+  "dj.pl.close": "Chiudi",
+  "dj.pl.put": "Metti in una playlist",
+  "dj.pl.up": "Su",
+  "dj.pl.down": "Giù",
+  "dj.pl.out": "Togli dalla playlist",
+  "dj.pl.empty": "Playlist vuota: aggiungi i brani con 📁 dalla cartella «Tutti»."
 }

@@ -58,10 +58,23 @@ def dj_state() -> dict:
     from aurora import aud_dj
     d = _dir()
     lang = str(cfg["AURORA_LANG_DEFAULT"])
-    from aurora import aud_song, aud_song_style
-    return {"styles": aud_dj.styles(lang), "tracks": _list(d), "mixes": _list(d / "mixes"), "song": aud_song.installed(cfg),
+    from aurora import aud_playlists, aud_song, aud_song_style
+    tracks, mixes = _list(d), _list(d / "mixes")
+    have = {t["name"] for t in tracks} | {f"mixes/{m['name']}" for m in mixes}
+    return {"styles": aud_dj.styles(lang), "tracks": tracks, "mixes": mixes, "song": aud_song.installed(cfg),
+            "playlists": aud_playlists.load(d, have),
             "song_style": aud_song_style.options(lang),
             "busy": _busy.get(me() or "", {}).get("title"), "max_minutes": cfg["AURORA_DJ_MAX_MINUTES"]}
+
+
+@router.put("/v1/aurora/dj/playlists", dependencies=[Depends(auth)])
+async def dj_playlists(request: Request) -> dict:
+    """{"lists": [{"id"?, "name", "items": [track refs]}]}: the player's folders, saved whole (aud_playlists)."""
+    from aurora import aud_playlists
+    try:
+        return {"lists": aud_playlists.save(_dir(), (await request.json()).get("lists"))}
+    except (ValueError, AttributeError) as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
 
 
 @router.post("/v1/aurora/dj/tracks", dependencies=[Depends(auth)])

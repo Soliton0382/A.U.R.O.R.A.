@@ -3375,5 +3375,19 @@
   "dj.mix.l3": "up front",
   "dj.mix.reset": "All normal",
   "dj.insp.title": "Inspired by the style of",
-  "dj.insp.ph": "e.g. an early-2000s trance track you love: its style only, never its melody"
+  "dj.insp.ph": "e.g. an early-2000s trance track you love: its style only, never its melody",
+  "dj.pl.folder": "Folder",
+  "dj.pl.all": "All",
+  "dj.pl.new": "New playlist",
+  "dj.pl.rename": "Rename the playlist",
+  "dj.pl.delete": "Delete the playlist (the tracks stay)",
+  "dj.pl.delete_q": "Delete the playlist «{name}»? The tracks stay in the player.",
+  "dj.pl.name": "The playlist's name",
+  "dj.pl.none": "No playlist yet: make one with ➕📁",
+  "dj.pl.close": "Close",
+  "dj.pl.put": "Put in a playlist",
+  "dj.pl.up": "Up",
+  "dj.pl.down": "Down",
+  "dj.pl.out": "Take out of the playlist",
+  "dj.pl.empty": "Empty playlist: add tracks with 📁 from the «All» folder."
 }
