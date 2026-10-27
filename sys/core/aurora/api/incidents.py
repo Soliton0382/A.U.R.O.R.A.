@@ -200,7 +200,7 @@ async def incident_verdict(incident_id: str, request: Request) -> dict:
     said = sec_quiet.after_verdict(cfg, Incidents(cfg).list(), item)
     if said and said.get("propose") and not _quiet_alone(Incidents(cfg).list()):   # 🚀: quieted by herself, told
         x = said["propose"]
-        note("security", "quiet.propose", {"title": "🔇 Silenzio questo tipo di allarme?",
+        note("security", "quiet.propose", {"title": "🔇 Silenzio questo allarme su questo dispositivo?",
              "text": f"«{x['label']}»: {x['false_alarm']} falsi allarmi e {x['right']} giusti su {x['judged']} giudizi. "
                      "Rispondi nella pagina Sicurezza."})
     elif said and said.get("woke"):
@@ -218,9 +218,9 @@ def _quiet_alone(items: list[dict]) -> list[str]:
         return []
     done = []
     for x in sec_quiet.proposals(cfg, items):
-        sec_quiet.answer(cfg, x["pattern"], "quiet", sec_quiet.tally(items)[x["pattern"]])
+        sec_quiet.answer(cfg, x["pattern"], "quiet", sec_quiet.tally(items)[x["pattern"]], x["name"])
         sys_autonomy.log(cfg, "security", f"quieted «{x['label']}»: {x['false_alarm']} false alarms, {x['right']} right")
-        note("security", "quiet.auto", {"title": "🔇 Ho silenziato un tipo di allarme",
+        note("security", "quiet.auto", {"title": "🔇 Ho silenziato un allarme su un dispositivo",
              "text": f"«{x['label']}»: {x['false_alarm']} falsi allarmi e {x['right']} giusti su {x['judged']} tuoi "
                      "giudizi. Restano nell'elenco come bassi; si riattiva dalla pagina Sicurezza, o da sé con un 👍."})
         log.info("audit: incidents «%s» quieted by Aurora (security 🚀)", x["pattern"])
@@ -233,8 +233,11 @@ def incidents_quiet(lang: str = "it") -> dict:
     """The patterns proposed for quiet (the owner's verdicts, sec_quiet) and the ones quiet now."""
     from aurora import sec_quiet, sys_autonomy
     from aurora.sec_incidents import Incidents
-    _quiet_alone(Incidents(cfg).list())                   # raised to 🚀 since a proposal: decided now
-    return {"alone": sys_autonomy.levels(cfg).get("security") == 2, "proposals": sec_quiet.proposals(cfg, Incidents(cfg).list(), lang), "quiet": sec_quiet.quiet_list(cfg, lang),
+    items = Incidents(cfg).list()
+    if moved := sec_quiet.by_kind(cfg, items):            # C407: the answers given to a kind alone, made per device
+        log.info("audit: incidents quiet per device now (C407): %s", ", ".join(moved))
+    _quiet_alone(items)                                   # raised to 🚀 since a proposal: decided now
+    return {"alone": sys_autonomy.levels(cfg).get("security") == 2, "proposals": sec_quiet.proposals(cfg, items, lang), "quiet": sec_quiet.quiet_list(cfg, lang),
             "rule": {"false_alarm": sec_quiet.PROPOSE_FA, "right_share": sec_quiet.PROPOSE_RIGHT, "days": sec_quiet.WINDOW_DAYS}}
 
 
@@ -245,11 +248,12 @@ async def incidents_quiet_answer(request: Request) -> dict:
     from aurora.sec_incidents import Incidents
     body = await request.json()
     p, state = str(body.get("pattern", "")), str(body.get("state", ""))
-    counts = sec_quiet.tally(Incidents(cfg).list()).get(p)
+    items = Incidents(cfg).list()
+    counts = sec_quiet.tally(items).get(p)
     if not p or (state == "quiet" and counts is None):
         raise HTTPException(status_code=404, detail="unknown pattern")
     try:
-        out = sec_quiet.answer(cfg, p, state, counts)
+        out = sec_quiet.answer(cfg, p, state, counts, sec_quiet.names(items).get(p, ""))
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from None
     log.info("audit: incidents «%s» set %s by the owner", p, state)

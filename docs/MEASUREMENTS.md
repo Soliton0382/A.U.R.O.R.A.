@@ -4285,3 +4285,20 @@ the judged ones: week of 12 Oct 76 false alarms of 146, week of 19 Oct 52 of 118
 The five proposed hold 141 of the 158 false alarms and 15 of the 115 right verdicts: what quieting all of them would
 cost, shown with each proposal. Not measured: how the notified alerts change after the owner's answers (C406).
 
+## M262 — the same verdicts, per kind and device (27 October 2026; BUGS C407, sec_quiet)
+
+M261's verdicts with the device in the pattern (its MAC, else its address): 145 patterns, 158 false alarms and 116
+right. What a rule proposes now, and what it would have silenced had it run as the verdicts came (only the incidents
+after a pattern qualified):
+
+| Rule (per device) | proposals | false alarms inside | right inside | run as they came: false / right silenced |
+|---|---|---|---|---|
+| ≥ 3 false, no right | 9 | 46 | 0 | 25 / 2 |
+| **≥ 3 false, ≤ 20 % right** | **14** | **94** | **7** | **49 / 4** |
+| ≥ 4 false, ≤ 20 % right | 12 | 88 | 7 | 39 / 4 |
+| ≥ 5 false, ≤ 20 % right | 9 | 76 | 7 | 30 / 4 |
+
+Chosen: ≥ 3 and ≤ 20 % (PROPOSE_FA, PROPOSE_RIGHT). Per kind (M261) the five proposals held 141 false alarms but
+reached every device of the house. The owner's four kind answers, made again per device: 13 patterns quiet; the kind
+declined forgotten, 1 of its devices proposed.
+
