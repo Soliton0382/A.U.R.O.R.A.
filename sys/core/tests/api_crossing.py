@@ -99,6 +99,16 @@ for who in ("boss", "guest"):
                                         if s["key"] == "AURORA_WEATHER_LAT")
         seen["pipeline_dropped"] = "guest" not in core._state["pipelines"]
     seen["logs"] = client.get("/v1/aurora/logs", headers=H[who]).status_code             # C414
+    seen["photo"] = client.post("/v1/aurora/senses/photo", headers=H[who], json={}).status_code      # C421
+    seen["senses_devices"] = client.get("/v1/aurora/senses/devices", headers=H[who]).status_code
+    seen["forge"] = client.get("/v1/aurora/forge", headers=H[who]).status_code                       # C422
+    seen["forge_tick"] = client.post("/v1/aurora/forge/tick", headers=H[who], json={}).status_code
+    if who == "guest":                                  # a services' line; a machine approval in the user's own list
+        seen["activity_post"] = client.post("/v1/aurora/activity", headers=H[who],
+                                       json={"event": "security.honeypot", "payload": {"site": "x"}}).status_code
+        with sys_context.acting_as("guest"):
+            aid = Approvals(C.get()).request("plugin_install", "code_change", "a plugin", "for everyone", {}, {})["id"]
+        seen["approve_plugin"] = client.post(f"/v1/aurora/approvals/{aid}/approve", headers=H[who]).status_code
     seen["log_tail"] = client.get("/v1/aurora/logs/api", headers=H[who]).status_code
     seen["ups"] = client.get("/v1/aurora/ups", headers=H[who]).status_code               # C416
     if who == "guest":                                  # the admin's would move Caddy, file an incident: only refused

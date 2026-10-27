@@ -192,8 +192,10 @@ async def my_password(request: Request) -> dict:
         users.set_password(u["id"], str(body.get("new", "")))
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from None
-    log.info("audit: %s changed their password", name)
-    return {"ok": True}
+    here = getattr(request.state, "device", None)       # C428: the other sessions out, this one kept
+    out = devices.revoke_user(name, keep=here["id"] if here else None)
+    log.info("audit: %s changed their password; %d other device(s) logged out", name, out)
+    return {"ok": True, "logged_out": out}
 
 
 @router.post("/v1/aurora/me/totp", dependencies=[Depends(auth)])
@@ -346,8 +348,9 @@ async def users_password(name: str, request: Request) -> dict:
         _users().set_password(u["id"], str((await request.json()).get("password", "")))
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from None
-    log.info("audit: password of %s reset by %s", name, me())
-    return {"ok": True}
+    out = devices.revoke_user(name)                      # C428: whoever had a session of theirs is out
+    log.info("audit: password of %s reset by %s; %d device(s) logged out", name, me(), out)
+    return {"ok": True, "logged_out": out}
 
 
 @router.post("/v1/aurora/users/{name}/totp-reset", dependencies=[Depends(admin_only)])
@@ -356,8 +359,9 @@ def users_totp_reset(name: str) -> dict:
     if u is None:
         raise HTTPException(status_code=404, detail="no such user")
     _users().totp_reset(u["id"])
-    log.info("audit: authenticator of %s reset by %s", name, me())
-    return {"ok": True}
+    out = devices.revoke_user(name)                      # C428
+    log.info("audit: authenticator of %s reset by %s; %d device(s) logged out", name, me(), out)
+    return {"ok": True, "logged_out": out}
 
 
 @router.delete("/v1/aurora/users/{name}", dependencies=[Depends(admin_only)])

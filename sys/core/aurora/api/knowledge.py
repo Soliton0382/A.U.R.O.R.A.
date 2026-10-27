@@ -207,7 +207,7 @@ def made_lately(since) -> list[dict]:
     return out
 
 
-@router.get("/v1/aurora/senses/devices", dependencies=[Depends(auth)])
+@router.get("/v1/aurora/senses/devices", dependencies=[Depends(admin_only)])
 def senses_devices() -> dict:
     from aurora import sns_av
     return {**sns_av.devices(), "camera": cfg["AURORA_SENSES_CAMERA"], "microphone": cfg["AURORA_SENSES_MIC"]}
@@ -215,7 +215,12 @@ def senses_devices() -> dict:
 
 @router.post("/v1/aurora/senses/{action}", dependencies=[Depends(auth)])
 async def senses_action(action: str, request: Request) -> dict:
-    """The owner's own click in the WebUI (📷, 🎙️): consent is the click itself, no approval needed."""
+    """The owner's own click in the WebUI (📷, 🎙️): consent is the click itself, no approval needed. The machine's camera
+    and microphone are the admin's (C421, 28 Oct: any user could take a photo or record the room from afar); a user's
+    own recording sent to be transcribed (transcribe) is everyone's."""
+    from .core import _admin, me
+    if action != "transcribe" and me() != _admin():
+        raise HTTPException(status_code=403, detail="the machine's camera and microphone are the admin's")
     from aurora import sns_av
     if action in ("listen", "transcribe"):
         try:

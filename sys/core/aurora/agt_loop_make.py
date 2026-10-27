@@ -4,6 +4,8 @@
 of the Agent (agt_loop) kept apart: no monoliths."""
 from __future__ import annotations
 
+import re
+
 import json
 import time
 
@@ -17,7 +19,7 @@ class AgentMakers:
     def _propose(self, args: dict, emit, run_id: str) -> str:
         sid = str(args.get("sandbox_id", ""))
         box = self.cfg.path("AURORA_SANDBOX_DIR") / sid
-        if not sid or not box.is_dir():
+        if not re.fullmatch(r"[a-z0-9][a-z0-9-]{2,63}", sid) or not box.is_dir():   # a name, never «../..» (C420)
             return f"ERROR: no sandbox {sid!r}"
         files = agt_change.changed_files(box, self.cfg.root)
         if not files:
@@ -26,7 +28,7 @@ class AgentMakers:
         if (protected := [f for f in files if f in sys_ethics.PROTECTED]):
             return ("REFUSED: these files belong to the code of conduct and change only with the owner's own "
                     f"signature: {', '.join(protected)}. Report the need instead.")
-        t = sys_tests.run_suite(box)
+        t = sys_tests.run_suite(box, caged=True)        # the agent's code: in the cage (C420)
         emit("change.tests.sandbox", {"ok": t["ok"], "summary": t["summary"]})
         if not t["ok"]:
             return f"REFUSED: the sandbox tests fail ({t['summary']}). Fix them first.\n{t['output'][-3000:]}"

@@ -14,6 +14,7 @@ from __future__ import annotations
 import subprocess
 
 from . import prj_conduct, prj_run, prj_talk, sys_config
+from .prj_run import GIT_SAFE
 
 FILES = 30
 COMMITS = 15
@@ -29,7 +30,7 @@ def _commits(root) -> list[dict]:
     if not (root / ".git").exists():
         return []
     try:
-        out = subprocess.run(["git", "-C", str(root), "log", f"-n{COMMITS}", "--format=%h%x09%ct%x09%s"],
+        out = subprocess.run(["git", *GIT_SAFE, "-C", str(root), "log", f"-n{COMMITS}", "--format=%h%x09%ct%x09%s"],
                              capture_output=True, text=True, timeout=10).stdout
     except (OSError, subprocess.SubprocessError):
         return []

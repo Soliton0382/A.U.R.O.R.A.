@@ -16,7 +16,7 @@ import threading
 import time
 from datetime import datetime, timezone
 
-from . import txt_ical
+from . import sys_config, txt_ical
 
 UA = {"User-Agent": "Aurora/1.0"}
 KEEP_S = 600
@@ -41,7 +41,8 @@ def _ics_text(url: str) -> str:
         hit = _cache.get(url)
     if hit and time.time() - hit[0] < KEEP_S:
         return hit[1]
-    text = httpx.get(url, headers=UA, timeout=30, follow_redirects=True).raise_for_status().text
+    from . import net_public                             # C426: never this machine; the LAN for the admin's only
+    text = net_public.request("GET", url, lan=_lan(), headers=UA, timeout=30).raise_for_status().text
     with _lock:
         _cache[url] = (time.time(), text)
         for k in [k for k, v in _cache.items() if time.time() - v[0] > KEEP_S]:
@@ -53,6 +54,18 @@ def _z(d: datetime) -> str:
     return d.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
 
+def _lan() -> bool:
+    """The calendars on the LAN (a NAS's CalDAV) are the admin's: a user's address reaches the internet only."""
+    from . import sys_context
+    from .sys_users import Users
+    try:
+        admin = Users(sys_config.get().base or sys_config.get()).admin_name()
+    except Exception:                                    # noqa: BLE001 — no users: the single owner
+        return True
+    who = sys_context.user()
+    return admin is None or who is None or who == admin
+
+
 class Refused(Exception):
     """CalDAV said no to the user and password."""
 
@@ -62,8 +75,9 @@ def caldav_ics(dav: str, auth: tuple[str, str], a: datetime, b: datetime) -> lis
     body = ('<?xml version="1.0" encoding="utf-8"?><C:calendar-query xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">'
             '<D:prop><C:calendar-data/></D:prop><C:filter><C:comp-filter name="VCALENDAR"><C:comp-filter name="VEVENT">'
             f'<C:time-range start="{_z(a)}" end="{_z(b)}"/></C:comp-filter></C:comp-filter></C:filter></C:calendar-query>')
-    r = httpx.request("REPORT", dav, content=body, auth=auth, timeout=30,
-                      headers={**UA, "Depth": "1", "Content-Type": "application/xml; charset=utf-8"})
+    from . import net_public
+    r = net_public.request("REPORT", dav, lan=_lan(), content=body, auth=auth, timeout=30,
+                           headers={**UA, "Depth": "1", "Content-Type": "application/xml; charset=utf-8"})
     if r.status_code == 401:
         raise Refused("CalDAV refused the user/password (iCloud and Google need an app password)")
     r.raise_for_status()

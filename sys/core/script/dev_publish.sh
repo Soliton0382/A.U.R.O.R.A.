@@ -116,6 +116,12 @@ for f in README.md README.en.md; do
   for d in "$SRC" "$DST"; do sed -i -E "s/badge\/tests-[0-9]+%20passed/badge\/tests-$PASSED%20passed/" "$d/$f"; done
 done
 echo "README badge: $PASSED passed"
+# and the lines of code of what is published (doc_loc: the code's own, no bundled libraries, no ports' copies)
+LOC="$("$PY" "$SRC/sys/core/script/doc_loc.py" "$DST" --badge)" || fail "no count of the lines of code"
+for f in README.md README.en.md; do
+  for d in "$SRC" "$DST"; do sed -i -E "s/badge\/code-[0-9]+k?%20lines/badge\/code-$LOC%20lines/" "$d/$f"; done
+done
+echo "README badge: $LOC lines of code"
 find "$DST" -name __pycache__ -type d -prune -exec rm -rf {} +
 
 say "== ports (built from this code, platform tests)"

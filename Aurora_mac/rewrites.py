@@ -364,9 +364,12 @@ def _gpus() -> list[dict]:
         return []
     gpus = []
     for line in out.strip().splitlines():
-        i, name, util, used, total, temp = [x.strip() for x in line.split(",")]
-        gpus.append({"index": int(i), "name": name, "util_pct": int(util), "used_mib": int(used),
-                     "total_mib": int(total), "temp_c": int(temp)})
+        try:                                             # a driver's message instead of a row (no GPU in a cage,
+            i, name, util, used, total, temp = [x.strip() for x in line.split(",")]   # a driver being updated): none
+            gpus.append({"index": int(i), "name": name, "util_pct": int(util), "used_mib": int(used),
+                         "total_mib": int(total), "temp_c": int(temp)})
+        except ValueError:
+            continue
     return gpus""",
      f"""{P}
 

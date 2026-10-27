@@ -86,6 +86,15 @@ class Devices:
             self._save(kept)
         return True
 
+    def revoke_user(self, user: str | None, keep: str | None = None) -> int:
+        """Every device of `user` out but `keep` (C428: a stolen session outlived a new password or authenticator)."""
+        with _lock:
+            items = self._load()
+            kept = [d for d in items if d.get("user") != user or d["id"] == keep]
+            if len(kept) != len(items):
+                self._save(kept)
+        return len(items) - len(kept)
+
     @staticmethod
     def public(rec: dict) -> dict:
         return {k: v for k, v in rec.items() if k != "token_sha256"}

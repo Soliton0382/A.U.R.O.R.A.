@@ -201,6 +201,15 @@ refuses the rest; sudo lets the target's user run only the two power commands. W
 restart or shut down that machine. A machine counts for the UPS only after a trial that worked, and again after its
 address or user changes. Every restart and shutdown is an audit line in the power log.
 
+## Security review (2026-10-28)
+
+Four read-only reviews of the code (authentication, command execution, files and network, deployment); each finding
+checked again before its fix (BUGS.md C420–C429). Left for the installation, needing root: the services run as the
+owner's own account, which on a typical desktop is in groups that give root (docker, libvirt): a dedicated service
+account (ROADMAP U6) is the real fix; the units that run as root should run code root owns; the polkit rule should
+name its units one by one; the firewall helper should keep its own list of addresses never blocked; Caddy's admin
+endpoint on a socket; the real client address from the tunnel; UMask=0077 for the services.
+
 ## Known limits
 
 - Plugins keep the network and the devices (connectors talk to services, the senses use the camera); the cage

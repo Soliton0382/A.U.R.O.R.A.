@@ -13,6 +13,7 @@ network and the GitHub token for the push; a cage cannot be opened inside anothe
 """
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
@@ -23,6 +24,8 @@ from pathlib import Path
 from . import sys_config
 
 NAME = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
+# git run here on a project's own .git (not trusted, C420): no fsmonitor command, no hook
+GIT_SAFE = ["-c", "core.fsmonitor=", "-c", f"core.hooksPath={os.devnull}"]
 KEEP = 8000
 
 
@@ -39,14 +42,20 @@ def cage(cfg: sys_config.Config, project: Path, command: str) -> list[str]:
     venv = Path(sys.prefix)                         # the Python environment running Aurora (its .venv)
     args = ["bwrap", "--die-with-parent", "--new-session", "--unshare-all", "--ro-bind", "/", "/",
             "--dev", "/dev", "--proc", "/proc", "--tmpfs", "/tmp"]
-    for hidden in ("/home", "/root", "/mnt", "/media", "/srv", "/run/user"):
+    # /run hidden whole (C420, 28 Oct: the host's sockets were there — docker answered «200 OK» from inside, root at one
+    # call; libvirt, the system D-Bus with the polkit rule, the firewall helper's socket): no network here, no DNS needed
+    for hidden in ("/home", "/root", "/mnt", "/media", "/srv", "/run"):
         if Path(hidden).is_dir():
             args += ["--tmpfs", hidden]
     if venv.is_dir():
         args += ["--ro-bind", str(venv), str(venv)]
     own = project / ".venv" / "bin"                  # the libraries Aurora installed for it (projects.project_install)
     first = f"{own}:" if (own / "python").exists() else ""
-    args += ["--bind", str(project), str(project), "--clearenv",
+    args += ["--bind", str(project), str(project)]
+    for ro in (".git", ".venv"):                     # C420: a hook or core.fsmonitor in .git, a python in .venv ran
+        if (project / ro).is_dir():                  # later outside the cage (git status, pip --python): read only
+            args += ["--ro-bind", str(project / ro), str(project / ro)]
+    args += ["--clearenv",
              "--setenv", "PATH", f"{first}{venv / 'bin'}:/usr/local/bin:/usr/bin:/bin", "--setenv", "HOME", "/tmp",
              "--setenv", "LANG", "C.UTF-8", "--setenv", "PYTHONDONTWRITEBYTECODE", "1",
              "--chdir", str(project), "--", "bash", "-c", command]

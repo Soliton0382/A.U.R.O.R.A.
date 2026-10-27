@@ -3389,5 +3389,9 @@
   "dj.pl.up": "Up",
   "dj.pl.down": "Down",
   "dj.pl.out": "Take out of the playlist",
-  "dj.pl.empty": "Empty playlist: add tracks with 📁 from the «All» folder."
+  "dj.pl.empty": "Empty playlist: add tracks with 📁 from the «All» folder.",
+  "dj.style.meter": "Time signature",
+  "dj.style.steps": "Detail",
+  "dj.style.adherence": "Follows the description",
+  "phoneapp.reputation": "⚠️ Android may warn that the app is «uncommon» or «unknown»: normal for an app installed outside the Play Store and downloaded by few people. Play Protect's scan finds it safe. Check the SHA-256 fingerprint above, then choose «Install anyway»."
 }

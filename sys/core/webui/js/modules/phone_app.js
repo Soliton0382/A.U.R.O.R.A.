@@ -98,5 +98,8 @@ export default {
     link.href = "/v1/aurora/app/download";
     link.setAttribute("download", a.name);
     box.append(link, el("p", "muted pa-sum", t("phoneapp.sum", { mb: (a.size / 1048576).toFixed(2), sha: a.sha256.slice(0, 16) })));
+    // Android warns about an app from outside the store with few installs (owner, 28 Oct: «l'app viene segnalata da
+    // android perché con reputazione bassa… ma le scansioni av fatte da android la danno ok»): said before it surprises
+    box.append(el("p", "pa-warn", t("phoneapp.reputation")));
   },
 };

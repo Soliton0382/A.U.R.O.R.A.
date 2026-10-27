@@ -36,6 +36,9 @@ def test_guest_never_sees_boss_s_things(cfg):
     assert boss["logs"] == 200 and guest["logs"] == 403 and guest["log_tail"] == 403    # C414: the machine's logs
     assert boss["ups"] == 200 and guest["ups"] == 403                                  # C416: the house's addresses
     assert guest["ports"] == 403 and guest["incident"] == 403                          # C417, C415
+    assert guest["photo"] == 403 and guest["senses_devices"] == 403                    # C421: the machine's camera
+    assert guest["forge"] == 403 and guest["forge_tick"] == 403 and boss["forge"] == 200  # C422: the forge
+    assert guest["activity_post"] == 403 and guest["approve_plugin"] == 403                 # C423, C422
     assert guest["only_own_settings"] and not boss["only_own_settings"]               # ⚙️ Impostazioni for a user
     assert guest["own_setting"] == 200 and guest["own_setting_read"] == "45.5" and guest["pipeline_dropped"]
     assert guest["revoke_boss_device"] == 404

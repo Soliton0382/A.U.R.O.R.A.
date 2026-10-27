@@ -154,3 +154,13 @@ def test_more_genres_the_mix_and_an_inspiration_in_words():
     for bad in ({"mix": {"lead": 4}}, {"mix": {"cowbell": 3}}, {"mix": "lead"}):
         with pytest.raises(ValueError):
             S.check(bad)
+
+
+def test_the_music_model_s_own_fields():
+    """Owner, 28 Oct: the model's parameters in the page — those that act on the turbo model: the time signature, the
+    steps (1-20 on turbo), the planner's CFG; guidance_scale is the base model's only, so it is not offered."""
+    from aurora import aud_song_style as S
+    r = S.resolve({"meter": "3", "steps": "fine", "adherence": "strict"})
+    assert r["time_signature"] == "3" and r["inference_steps"] == 14 and r["lm_cfg_scale"] == 3.5 and "3/4" in r["brief"]
+    assert all(1 <= v[2] <= 20 for v in S.STEPS.values()) and "guidance" not in " ".join(S.AXES)
+    assert {o["id"] for o in S.options("en")["meter"]} == {"2", "3", "4", "6"}

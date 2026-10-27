@@ -15,6 +15,7 @@ import time
 from pathlib import Path
 
 from . import sys_config
+from .prj_run import GIT_SAFE
 
 EVERY_S = 300
 _cache: dict[str, tuple[float, dict]] = {}
@@ -22,7 +23,7 @@ _cache: dict[str, tuple[float, dict]] = {}
 
 def _git(p: Path, *args: str) -> str:
     try:
-        return subprocess.run(["git", "-C", str(p), *args], capture_output=True, text=True, timeout=10).stdout
+        return subprocess.run(["git", *GIT_SAFE, "-C", str(p), *args], capture_output=True, text=True, timeout=10).stdout
     except (OSError, subprocess.SubprocessError):
         return ""
 

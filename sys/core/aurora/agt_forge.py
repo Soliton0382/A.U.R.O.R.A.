@@ -285,6 +285,8 @@ def build(cfg: sys_config.Config, llm, host, req: dict, emit, masker=None, judge
     tools = "\n".join(f"- {p.name}: {(p.manifest.get('description') or {}).get('en', '')[:160]}"
                       for p in host.plugins(with_tools=False))
     ask = f"MISSING CAPABILITY: {req['need']}\nWHY: {req['why']}\n\nDATA PLACES:\n{data_places(cfg)}"
+    if masker:                                           # C425: the request and the places (usr/<name>) masked too
+        ask = masker(ask)
     raw = llm.complete(SYS_LOOK, ask, 200).answer
     m = re.search(r"\[.*\]", raw, re.S)
     try:
@@ -300,7 +302,8 @@ def build(cfg: sys_config.Config, llm, host, req: dict, emit, masker=None, judge
     for attempt in range(1, 4):
         prompt = (f"{ask}\n\nPLUGINS ALREADY THERE (do not duplicate):\n{tools}\n\nNAMES TAKEN — the new plugin's name "
                   f"must be none of these: {', '.join(sorted(existing))}\n\nWHAT THE DATA LOOKS LIKE:\n{seen}"
-                  + (f"\n\nYOUR LAST ATTEMPT FAILED:\n" + "\n".join(errors) if errors else ""))
+                  # C425: the last attempt's errors carry the plugin's real output and its traceback: masked as well
+                  + (f"\n\nYOUR LAST ATTEMPT FAILED:\n" + "\n".join(masker(e) if masker else e for e in errors) if errors else ""))
         reply = llm.complete(SYS_WRITE, prompt, 3500).answer
         try:
             manifest, code = parse_reply(reply)

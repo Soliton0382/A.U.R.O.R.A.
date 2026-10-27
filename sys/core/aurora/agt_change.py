@@ -80,7 +80,7 @@ def apply(sandbox_id: str, emit, cfg: sys_config.Config | None = None, restart: 
     if clash:                                         # the live code moved on under these files: redo the change on it
         return {"applied": False, "reason": f"changed in the live code since the sandbox was made: {', '.join(clash)}"}
     emit("change.check", {"files": files})
-    t = sys_tests.run_suite(box)
+    t = sys_tests.run_suite(box, caged=True)           # the sandbox's code: in the cage (C420)
     emit("change.tests.sandbox", {"ok": t["ok"], "summary": t["summary"]})
     if not t["ok"]:
         return {"applied": False, "reason": "sandbox tests fail", "tests": t["summary"]}

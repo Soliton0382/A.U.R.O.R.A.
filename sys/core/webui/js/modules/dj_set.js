@@ -136,7 +136,7 @@ export async function setConsole(file) {
 // music model is not installed yet, what to install and where
 // 🎨 how a song is dressed (aud_song_style): one select per axis, «auto» first; `values()` gives the choices made,
 // `surprise()` draws one at random on every axis (owner, 27 Oct: «vengono tutte un po' uguali… vestire le canzoni»)
-export function styleSelects(options, axes = ["genre", "dress", "voice", "tempo", "key", "creativity"]) {
+export function styleSelects(options, axes = ["genre", "dress", "voice", "tempo", "key", "creativity", "meter", "steps", "adherence"]) {
   const grid = el("div", "dj-style-grid");
   const sel = {};
   for (const axis of axes) {
@@ -151,7 +151,9 @@ export function styleSelects(options, axes = ["genre", "dress", "voice", "tempo"
   return {
     grid,
     values: () => Object.fromEntries(Object.entries(sel).filter(([, s]) => s.value !== "auto").map(([k, s]) => [k, s.value])),
-    surprise: () => { for (const s of Object.values(sel)) s.selectedIndex = 1 + Math.floor(Math.random() * (s.options.length - 1)); },
+    // the dice dresses the song; the model's own settings (meter, detail, adherence) stay as chosen: a 3/4 or the
+    // slowest detail by chance is not a dress
+    surprise: () => { for (const [axis, s] of Object.entries(sel)) if (!["meter", "steps", "adherence"].includes(axis)) s.selectedIndex = 1 + Math.floor(Math.random() * (s.options.length - 1)); },
   };
 }
 

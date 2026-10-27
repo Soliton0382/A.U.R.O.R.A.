@@ -10,6 +10,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends
 
 from .core import auth, cfg, log, note, pipeline, plugin_host, start_run
+from .users import admin_only  # noqa: E402
 
 router = APIRouter()
 
@@ -81,13 +82,13 @@ def _forge_job(req: dict, cloud: bool = False):
     return job
 
 
-@router.get("/v1/aurora/forge", dependencies=[Depends(auth)])
+@router.get("/v1/aurora/forge", dependencies=[Depends(admin_only)])
 def forge_list() -> dict:
     from aurora import agt_forge
     return {"requests": list(reversed(agt_forge.requests(cfg)))}
 
 
-@router.post("/v1/aurora/forge/tick", dependencies=[Depends(auth)])
+@router.post("/v1/aurora/forge/tick", dependencies=[Depends(admin_only)])
 def forge_tick() -> dict:
     """aurora-rem, every tick: the oldest pending request is built (one at a time)."""
     from aurora import agt_forge

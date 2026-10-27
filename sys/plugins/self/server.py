@@ -150,7 +150,11 @@ def sandbox_create(label: str = "change") -> str:
     shutil.copytree(ROOT / "sys" / "core", box / "sys" / "core", ignore=ignore)
     # the plugins too, read only for the tests that load them: without them the suite never ran green in a sandbox
     # and no repair could ever be proposed (C143); only sys/core is ever applied (agt_change)
-    shutil.copytree(ROOT / "sys" / "plugins", box / "sys" / "plugins", ignore=ignore)
+    shutil.copytree(ROOT / "sys" / "plugins", box / "sys" / "plugins", ignore=ignore, symlinks=True)
+    # the phone app's sources and its published APK, for their tests — never its signing keys (C420)
+    if (ROOT / "sys" / "app").is_dir():
+        shutil.copytree(ROOT / "sys" / "app", box / "sys" / "app", symlinks=True,
+                        ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "keys", "tools", "build", "out"))
     # the starting copy: the diff and the change applied are what was done HERE, not what moved in the live code (C145)
     shutil.copytree(box / "sys" / "core", box / ".base" / "sys" / "core")
     shutil.copy2(ROOT / "pyproject.toml", box / "pyproject.toml")

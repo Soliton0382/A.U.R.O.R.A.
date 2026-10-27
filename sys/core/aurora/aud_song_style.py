@@ -93,8 +93,15 @@ VOICES = {
 TEMPOS = {"slow": ("Lento", "Slow", 78), "mid": ("Medio", "Medium", 112), "fast": ("Veloce", "Fast", 138)}
 KEYS = {"major": ("Maggiore (luminosa)", "Major (bright)", "major"), "minor": ("Minore (malinconica)", "Minor (moody)", "minor")}
 CREATIVITY = {"safe": ("Sicura", "Safe", 0.7), "balanced": ("Equilibrata", "Balanced", 0.85), "bold": ("Audace", "Bold", 1.05)}
+# the music model's own fields (owner, 28 Oct: «aggiungi i parametri del modello musicale nella pagina»), only those that
+# act on the turbo model installed: its guidance_scale works only on the base model (ACE-Step's API.md), so it is not here
+METERS = {"4": ("4/4", "4/4", "4"), "3": ("3/4 (valzer)", "3/4 (waltz)", "3"), "6": ("6/8", "6/8", "6"), "2": ("2/4 (marcia)", "2/4 (march)", "2")}
+STEPS = {"standard": ("Rifinitura standard", "Standard detail", 8), "fine": ("Più rifinita (più lenta)", "Finer (slower)", 14),
+         "max": ("Massima (la più lenta)", "Most detail (slowest)", 20)}          # turbo: 1-20, 8 recommended
+ADHERENCE = {"loose": ("Libera", "Loose", 1.8), "normal": ("Normale", "Normal", 2.5), "strict": ("Stretta", "Strict", 3.5)}  # the planner's CFG
 NOTES = ["C", "D", "E", "F", "G", "A", "B"]
-AXES = {"genre": GENRES, "dress": DRESSES, "voice": VOICES, "tempo": TEMPOS, "key": KEYS, "creativity": CREATIVITY}
+AXES = {"genre": GENRES, "dress": DRESSES, "voice": VOICES, "tempo": TEMPOS, "key": KEYS, "creativity": CREATIVITY,
+        "meter": METERS, "steps": STEPS, "adherence": ADHERENCE}
 INSPIRATION_MAX = 160
 
 
@@ -170,6 +177,13 @@ def resolve(style: dict | None, rng: random.Random | None = None) -> dict:
         brief.append(f"key: {out['key_scale']}")
     if "creativity" in s:
         out["lm_temperature"] = CREATIVITY[s["creativity"]][2]
+    if "meter" in s:
+        out["time_signature"] = METERS[s["meter"]][2]
+        brief.append(f"time signature {METERS[s['meter']][1]}")
+    if "steps" in s:
+        out["inference_steps"] = STEPS[s["steps"]][2]
+    if "adherence" in s:
+        out["lm_cfg_scale"] = ADHERENCE[s["adherence"]][2]
     out["brief"] = "; ".join(brief)
     return out
 

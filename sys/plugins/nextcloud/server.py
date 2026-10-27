@@ -26,6 +26,13 @@ server = MCPServer("nextcloud", version="1.0")
 
 
 def _url(path: str) -> str:
+    from aurora import net_public                        # C426: a user's address never this machine's own services
+    try:
+        net_public.check(BASE, lan=True)
+    except net_public.Refused as e:
+        raise ToolError(f"AURORA_WEBDAV_URL: {e}") from None
+    if "?" in BASE or "#" in BASE:
+        raise ToolError("AURORA_WEBDAV_URL: an address without ? or #")
     parts = [p for p in path.strip().strip("/").split("/") if p]
     if any(p in (".", "..") for p in parts):
         raise ToolError("a path inside the files root")

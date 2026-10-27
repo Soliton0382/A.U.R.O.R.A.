@@ -17,13 +17,14 @@ import time
 from pathlib import Path
 
 from . import prj_policy, sys_config
+from .prj_run import GIT_SAFE
 
 SKIP = {".git", "node_modules", "__pycache__", ".venv", "venv", ".libs", ".mypy_cache", ".pytest_cache", "dist", "build"}
 NAME = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
 MAX_TEXT = 400_000
 MAX_TREE = 3000
 PREVIEW_S = 600
-_previews: dict[str, tuple[str, float]] = {}
+_previews: dict[str, tuple[Path, float]] = {}   # token -> the project's folder resolved for its owner, the expiry
 
 
 def base(cfg: sys_config.Config) -> Path:
@@ -52,7 +53,8 @@ def inside(proj: Path, path: str) -> Path:
 
 
 def _git(proj: Path, *args: str) -> str:
-    r = subprocess.run(["git", "-C", str(proj), *args], capture_output=True, text=True, timeout=30)
+    # a project's own .git is not trusted (C420): no fsmonitor command, no hook runs here, outside the cage
+    r = subprocess.run(["git", *GIT_SAFE, "-C", str(proj), *args], capture_output=True, text=True, timeout=30)
     return r.stdout.strip() if r.returncode == 0 else ""
 
 
@@ -127,20 +129,23 @@ def log(cfg: sys_config.Config, name: str, n: int = 20) -> list[dict]:
 # ---- previews ---------------------------------------------------------------------------------------------
 
 def preview_token(cfg: sys_config.Config, name: str) -> str:
-    project(cfg, name)
+    """The folder kept, resolved now for the asking user: the preview route has no login, so it must not resolve the
+    name again (C424, 28 Oct: there it was the admin's view — a user's project named as the admin's served the admin's
+    files)."""
+    folder = project(cfg, name).resolve()
     now = time.time()
     for t in [t for t, (_, exp) in _previews.items() if exp < now]:
         _previews.pop(t, None)
     tok = secrets.token_urlsafe(24)
-    _previews[tok] = (name, now + PREVIEW_S)
+    _previews[tok] = (folder, now + PREVIEW_S)
     return tok
 
 
 def preview_file(cfg: sys_config.Config, token: str, path: str) -> tuple[bytes, str]:
-    name, exp = _previews.get(token, ("", 0.0))
-    if not name or exp < time.time():
+    folder, exp = _previews.get(token, (None, 0.0))
+    if folder is None or exp < time.time():
         raise PermissionError("preview expired")
-    p = inside(project(cfg, name), path or "index.html")
+    p = inside(folder, path or "index.html")
     if p.is_dir():
         p = p / "index.html"
     if not p.is_file():

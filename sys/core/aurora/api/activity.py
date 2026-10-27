@@ -18,7 +18,7 @@ router = APIRouter()
 
 
 # ---- activity, logs ----------------------------------------------------------------------------
-@router.post("/v1/aurora/activity", dependencies=[Depends(auth)])
+@router.post("/v1/aurora/activity", dependencies=[Depends(admin_only)])   # services only (C423)
 async def post_activity(request: Request) -> dict:
     """A service reports what it is doing: {"source", "event", "payload"} (shown in the WebUI)."""
     body = await request.json()

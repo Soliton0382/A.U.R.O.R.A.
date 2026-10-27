@@ -42,6 +42,34 @@ def _explain(e: BaseException) -> str:
     return f"{type(e).__name__}: {e}"
 
 
+# what a plugin writes on its stderr reaches its log with its tokens cut (C429, 28 Oct: 234 Graph «access_token=» in a
+# readable log — httpx's INFO lines carry the URL): a pipe, a thread that redacts each line, the file 0600
+_SECRET_IN_LOG = __import__("re").compile(
+    r"(?i)((?:access_token|refresh_token|token|api_key|apikey|key|secret|password|passwd|signature|sig)=)[^&\s\"']+"
+    r"|(authorization:\s*(?:bearer|basic)\s+)\S+|\b(?=[A-Za-z0-9_\-]*\d)(?=[A-Za-z0-9_\-]*[A-Za-z])[A-Za-z0-9_\-]{40,}\b")
+
+
+def _redact(line: str) -> str:
+    return _SECRET_IN_LOG.sub(lambda m: (m.group(1) or m.group(2) or "") + "<redacted>", line)
+
+
+def _redacted_log(path: Path):
+    """A file-like object for the plugin's stderr (a real descriptor: the process writes to it)."""
+    import threading
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+    os.chmod(path, 0o600)
+    r, w = os.pipe()
+
+    def pump():
+        with os.fdopen(r, "r", encoding="utf-8", errors="replace") as src, os.fdopen(fd, "a", encoding="utf-8") as out:
+            for line in src:
+                out.write(_redact(line))
+                out.flush()
+    threading.Thread(target=pump, name=f"stderr-{path.stem}", daemon=True).start()
+    return os.fdopen(w, "w", encoding="utf-8")
+
+
 @dataclass
 class Plugin:
     name: str
@@ -178,7 +206,7 @@ class PluginHost:
     async def _session(self, p: Plugin, work):
         from mcp import ClientSession
         from mcp.client.stdio import stdio_client
-        errlog = open(self.cfg.path("AURORA_LOG_DIR") / "plugins" / f"{p.name}.stderr.log", "a", encoding="utf-8")
+        errlog = _redacted_log(self.cfg.path("AURORA_LOG_DIR") / "plugins" / f"{p.name}.stderr.log")
         try:
             async with stdio_client(self._params(p), errlog=errlog) as (read, write):
                 async with ClientSession(read, write) as session:

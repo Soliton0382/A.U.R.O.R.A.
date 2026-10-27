@@ -306,7 +306,9 @@ async def plugin_icon_set(name: str, request: Request) -> dict:
             url = str(body["url"])
             if not url.startswith("https://"):
                 raise ValueError("only https:// links")
-            raw = httpx.get(url, timeout=20, follow_redirects=True).content
+            from aurora import net_public                # C426: never this machine, the LAN only for the admin
+            from .core import _admin, me
+            raw = net_public.request("GET", url, lan=me() == _admin(), timeout=20).content
         else:
             raw = base64.b64decode(body.get("data", ""), validate=True)
         if len(raw) > 5 * 1024 * 1024:
@@ -386,6 +388,9 @@ def approvals_stats() -> dict:
     return stats(Approvals(cfg).list())
 
 
+MACHINE_KINDS = ("code_change", "plugin_install", "forge_cloud", "update")   # what changes the machine for everyone
+
+
 @router.post("/v1/aurora/approvals/{approval_id}/{decision}", dependencies=[Depends(auth)])
 def decide(approval_id: str, decision: str) -> dict:
     from aurora.sys_approvals import Approvals
@@ -397,6 +402,9 @@ def decide(approval_id: str, decision: str) -> dict:
         raise HTTPException(status_code=404, detail="unknown request")
     if item["status"] != "pending":
         raise HTTPException(status_code=409, detail=f"already {item['status']}")
+    from .core import _admin, me
+    if item["kind"] in MACHINE_KINDS and me() != _admin():   # C422: a user approving a plugin for every user
+        raise HTTPException(status_code=403, detail="only the admin decides on the machine's code and plugins")
     now = time.strftime("%Y-%m-%dT%H:%M:%S%z")
     if decision == "reject":
         store.update(approval_id, status="rejected", decided=now)

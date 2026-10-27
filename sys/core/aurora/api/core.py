@@ -217,8 +217,11 @@ def _failed(request: Request) -> None:
 
 async def auth(request: Request) -> None:
     """The API key (third-party clients) or a registered device (WebUI cookie). Async on purpose: the user it sets
-    (sys_context) stays in the request's context, where the route runs (a sync dependency runs in another thread)."""
-    _locked(request)
+    (sys_context) stays in the request's context, where the route runs (a sync dependency runs in another thread).
+    A valid key or device passes even while its address is locked out (C427, 28 Oct: behind the tunnel every remote
+    device shares one address, so ten wrong tries from anyone locked the owner's own phone out); a wrong one is refused
+    by the lockout first. Keys and device tokens are 256-bit: the lockout is not what keeps them from being guessed;
+    the passwords' route (login) keeps its lockout before the check."""
     bearer = request.headers.get("authorization", "").removeprefix("Bearer ").strip()
     if _is_key(bearer):
         request.state.device = None
@@ -227,6 +230,7 @@ async def auth(request: Request) -> None:
         return
     dev = devices.check(bearer) or devices.check(request.cookies.get(COOKIE, ""))
     if dev is None:
+        _locked(request)
         if bearer or request.cookies.get(COOKIE):              # a wrong credential, not a page asking who we are
             _failed(request)
         raise HTTPException(status_code=401, detail="invalid or missing API key")

@@ -61,7 +61,8 @@ def _git(project: Path, *args: str, extra_env: dict | None = None) -> str:
     email = cfg["AURORA_GIT_AUTHOR_EMAIL"] or "aurora@localhost"
     env = dict(os.environ, GIT_AUTHOR_NAME=author, GIT_AUTHOR_EMAIL=email, GIT_COMMITTER_NAME=author,
                GIT_COMMITTER_EMAIL=email, GIT_TERMINAL_PROMPT="0", **(extra_env or {}))
-    r = subprocess.run(["git", *args], cwd=project, env=env, capture_output=True, text=True, timeout=300)
+    # a project's .git is not trusted (C420: the cage could write a hook or core.fsmonitor there): neither runs
+    r = subprocess.run(["git", "-c", "core.fsmonitor=", "-c", f"core.hooksPath={os.devnull}", *args], cwd=project, env=env, capture_output=True, text=True, timeout=300)
     if r.returncode != 0:
         raise ToolError(f"git {args[0]}: {(r.stderr or r.stdout).strip()[:1500]}")
     return (r.stdout + r.stderr).strip()
@@ -83,7 +84,7 @@ def project_list() -> str:
     BASE.mkdir(parents=True, exist_ok=True)
     rows = []
     for p in sorted(x for x in BASE.iterdir() if (x / ".git").is_dir()):
-        last = subprocess.run(["git", "log", "-1", "--format=%cs %s"], cwd=p, capture_output=True, text=True).stdout.strip()
+        last = subprocess.run(["git", "-c", "core.fsmonitor=", "-c", f"core.hooksPath={os.devnull}", "log", "-1", "--format=%cs %s"], cwd=p, capture_output=True, text=True).stdout.strip()
         rows.append(f"{p.name}: {last or 'no commits'}")
     return "\n".join(rows) or "no projects"
 

@@ -84,12 +84,19 @@ def _others_hidden(cfg: sys_config.Config) -> list[str]:
     return out
 
 
+def _devices(manifest: dict) -> bool:
+    """The host's devices only for a plugin that says it needs them (a camera, the GPU, sound): the others get a
+    minimal /dev, no shared /dev/shm (C420)."""
+    return bool(manifest.get("sandbox", {}).get("devices"))
+
+
 def wrap(cmd: list[str], folder: Path, manifest: dict, filtered_env: Path, cfg: sys_config.Config) -> list[str]:
     root = cfg.root
     status = cfg.path("AURORA_STATUS_DIR")
     home = Path(os.environ.get("HOME") or Path.home())
     args = ["bwrap", "--die-with-parent", "--new-session", "--unshare-pid", "--unshare-ipc", "--unshare-uts",
-            "--unshare-cgroup-try", "--ro-bind", "/", "/", "--dev-bind", "/dev", "/dev", "--proc", "/proc",
+            "--unshare-cgroup-try", "--ro-bind", "/", "/", "--dev-bind" if _devices(manifest) else "--dev", "/dev",
+            *(["/dev"] if _devices(manifest) else []), "--proc", "/proc",
             "--tmpfs", "/tmp"]
     # the home hidden wherever Aurora is (C204, 8 Oct 2026: with Aurora outside the home — /opt, /srv — a plugin read
     # the whole home, ~/.ssh included; the ports' probe found it); Aurora's folder visible again when it is inside
@@ -102,6 +109,20 @@ def wrap(cmd: list[str], folder: Path, manifest: dict, filtered_env: Path, cfg: 
         if home != Path("/") and python.is_relative_to(home) and not python.is_relative_to(root):
             args += ["--ro-bind", str(python), str(python)]
     args += ["--ro-bind", str(filtered_env), str(cfg.env_file)]
+    # /run hidden (C420: docker, libvirt, the system D-Bus and the firewall helper's sockets were reachable from a
+    # plugin), the resolver's folder put back for the plugins with a network (/etc/resolv.conf points there)
+    args += ["--tmpfs", "/run"]
+    if Path("/run/systemd/resolve").is_dir():
+        args += ["--ro-bind", "/run/systemd/resolve", "/run/systemd/resolve"]
+    # the machine's keys and tokens, never a plugin's (C420): the SSH key for the computers, the tunnel's token, the
+    # cloud accounts and the Claude logins, the cameras' keys, the HTTPS key, the phone app's signing keys
+    for hidden in (status / "keys", status / "cloudflare", status / "cloud_accounts", status / "claude_code",
+                   root / "sys" / "https" / "cert", root / "sys" / "app" / "keys"):
+        if hidden.is_dir():
+            args += ["--tmpfs", str(hidden)]
+    for f in (status / "camera_keys.json", status / "cloud_accounts.json"):
+        if f.is_file():
+            args += ["--ro-bind", "/dev/null", str(f)]
     for hidden in (status / "push", status / "plugins" / "env"):
         if hidden.is_dir():
             args += ["--tmpfs", str(hidden)]
