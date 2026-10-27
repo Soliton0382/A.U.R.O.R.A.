@@ -5,7 +5,7 @@ verificata su quel tipo di conoscenza… il classico lampo di genio, il guardare
 
 A deduction is not a summary. It is a bridge between two distant pieces of knowledge, and it must be:
   far        the same structure in two distant fields: a passage's principle stated without its field's words and
-             searched in the other fields (far_pairs) — and the strongest synapses between two fields, level 2 first;
+             searched in the other fields (far_pairs) — and the strongest synapses between two fields, level 1 first;
              one subject under two labels is not a pair (title cosine ≥ 0.70, then a judge);
   grounded   the fact taken from each side stated by that side's own passage (the verifier, YES/NO);
   sound      the deduction following from the two facts, with at most one reasonable step (the verifier again);
@@ -52,6 +52,9 @@ def _db(cfg: sys_config.Config) -> sqlite3.Connection:
     con = sqlite3.connect(f, timeout=30)
     con.execute("CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT)")
     con.execute("CREATE TABLE IF NOT EXISTS looked (a TEXT, b TEXT, at REAL, outcome TEXT, PRIMARY KEY (a, b))")
+    if "level" not in {r[1] for r in con.execute("PRAGMA table_info(looked)")}:
+        # where each pair came from (owner, 28 Oct: how much do the level-2 synapses give?): 0 far, 1–2 a synapse's
+        con.execute("ALTER TABLE looked ADD COLUMN level INTEGER")
     con.execute("CREATE TABLE IF NOT EXISTS deductions (id INTEGER PRIMARY KEY, a TEXT, b TEXT, da TEXT, db TEXT, "
                 "w REAL, level INTEGER, text TEXT, perspective TEXT, test TEXT, a_fact TEXT, b_fact TEXT, "
                 "known REAL, score REAL, made REAL, verdict TEXT DEFAULT '', note TEXT DEFAULT '', en TEXT)")
@@ -59,12 +62,13 @@ def _db(cfg: sys_config.Config) -> sqlite3.Connection:
 
 
 def candidates(cfg: sys_config.Config, limit: int) -> list[dict]:
-    """Synapses between two fields not looked at yet: level 2 first, then the strongest."""
+    """Synapses between two fields not looked at yet: level 1 first, then the strongest (28 Oct, the looked pairs by
+    origin: far pairs 23 deductions of 242, level 1 15 of 489, level 2 1 of 573 — level 2 had gone first)."""
     from . import kno_synapse as S
     with closing(S._db(cfg)) as con, closing(_db(cfg)) as dcon:
         seen = {(a, b) for a, b in dcon.execute("SELECT a, b FROM looked")}
         rows = con.execute("SELECT a, b, da, db, w, level FROM links WHERE active = 1 AND da != db "
-                           "ORDER BY level DESC, w DESC LIMIT ?", (limit * 20 + len(seen),)).fetchall()
+                           "ORDER BY level ASC, w DESC LIMIT ?", (limit * 20 + len(seen),)).fetchall()
     out = [{"a": a, "b": b, "da": da, "db": db, "w": float(w), "level": int(lv or 1)}
            for a, b, da, db, w, lv in rows if (a, b) not in seen]
     return out[:limit]
@@ -206,8 +210,8 @@ def round_(p, cfg: sys_config.Config, emit, n: int, seed: int | None = None) -> 
             r = {"outcome": f"error: {type(e).__name__}"}
         outcomes[r["outcome"]] = outcomes.get(r["outcome"], 0) + 1
         with closing(_db(cfg)) as con:
-            con.execute("INSERT OR REPLACE INTO looked VALUES (?, ?, ?, ?)", (cand["a"], cand["b"], time.time(),
-                                                                             r["outcome"]))
+            con.execute("INSERT OR REPLACE INTO looked (a, b, at, outcome, level) VALUES (?, ?, ?, ?, ?)",
+                        (cand["a"], cand["b"], time.time(), r["outcome"], cand["level"]))
             if r["outcome"] == "deduction":
                 found += 1
                 con.execute("INSERT INTO deductions (a, b, da, db, w, level, text, perspective, test, a_fact, b_fact, "

@@ -1,0 +1,16 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright 2026 A.U.R.O.R.A. Project */
+/* 🔋 The UPS page (ups.js) */
+.ups-card { max-width: 32rem; padding: 1rem 1.1rem; margin: .5rem 0 1rem; border: 1px solid var(--line);
+  border-radius: var(--radius); background: var(--surface); }
+.ups-big { display: flex; align-items: center; gap: .6rem; font-size: 1.25rem; font-weight: 600; }
+.ups-icon { font-size: 2rem; }
+.ups-bar { height: .6rem; margin: .7rem 0; border-radius: 99px; background: var(--line); overflow: hidden; }
+.ups-fill { height: 100%; background: var(--ok); transition: width .6s; }
+.ups-battery .ups-fill { background: var(--warn); }
+.ups-low { border-color: var(--warn); }
+.ups-low .ups-fill { background: #e5484d; }
+.ups-rows { display: grid; grid-template-columns: max-content 1fr; gap: .25rem .9rem; margin: 0; }
+.ups-rows dt { color: var(--muted); }
+.ups-rows dd { margin: 0; }
+.ups-rule code { word-break: break-all; }

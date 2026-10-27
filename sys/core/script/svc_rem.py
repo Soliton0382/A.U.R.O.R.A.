@@ -150,7 +150,14 @@ def main() -> int:
     client = httpx.Client(headers=HEADERS, timeout=30)
     wait_for_api(client)
     ups_watch()
-    last_reason, last_purge, last_update = "", 0.0, 0.0
+    last_reason, last_update = "", 0.0
+    # the daily round's last time kept on disk: a restart is not a new day (C412: each restart grew the synapses again,
+    # 16 cores for ~40 minutes by day)
+    daily = cfg.path("AURORA_STATUS_DIR") / "rem_daily.txt"
+    try:
+        last_purge = float(daily.read_text(encoding="ascii"))
+    except (OSError, ValueError):
+        last_purge = 0.0
     while not _stop:
         if cfg["AURORA_UPDATE_MODE"] != "off" and time.time() - last_update > cfg["AURORA_UPDATE_INTERVAL_H"] * 3600:
             last_update = time.time()                 # updates: checked by the API, decided by the owner (or auto)
@@ -206,6 +213,7 @@ def main() -> int:
             except Exception as e:  # noqa: BLE001 — a measure never stops the cycle
                 log.warning("soak snapshot failed: %s", e)
             last_purge = time.time()
+            daily.write_text(str(last_purge), encoding="ascii")
         if cfg["AURORA_REM_ENABLED"]:
             try:                                      # every user's memory, one task at a time (one GPU)
                 who = client.get(f"{BASE}/v1/aurora/rem/users").raise_for_status().json()

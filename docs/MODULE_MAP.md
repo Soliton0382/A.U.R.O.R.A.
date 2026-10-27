@@ -453,6 +453,7 @@ Static files served by aurora-api; no build step. The page is a showcase that co
 | `js/modules/settings_form.js` | ⚙️ a few settings in a box (checkbox, menu, number, secret never shown), saved through PUT /v1/aurora/settings with the restart asked: a plugin's window and a page's own box (Accounts) |
 | `js/modules/expenses.js` | 💶 Spese in ✨ Vita: the month by category and the latest spendings from the expenses plugin's read tools; its settings at the top |
 | `js/modules/consoles.js` | 🖥️ Pannelli dei dispositivi in 🏠 Casa: the devices' management pages as tiles by group, a click opens one in a new tab; ✏️ / 🗑️ and the form (css/consoles.css) |
+| `js/modules/ups.js` | 🔋 UPS in ⚙️ Sistema: the UPS's last read every 15 s (mains or battery, charge, runtime, load, server) and its settings in a box (settings_form); the command that installs the power-off permission (css/ups.css) |
 | `js/modules/security_edge.js` | ☁️ Cloudflare in the security area: the «edge» autonomy, the plugin's settings, the tunnel, the blocks active (Sblocca) and lifted (by whom), who hit Aurora through Cloudflare (Blocca) — api/edge on net_cfwaf |
 | `js/modules/fw_pick.js` | which firewall the audit, the changes and the network map are for, when more than one is connected |
 | `js/modules/astro.js` | 🔭 Astro: the inventory script and its command, the files of the person's astro folder, the equipment as Aurora reads it (cards), the darks |
