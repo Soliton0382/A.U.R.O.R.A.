@@ -76,7 +76,7 @@ export default {
     const s = await call("/v1/aurora/dj");
     const songSlot = this.root.querySelector(".dj-song-slot");
     if (!songSlot.firstChild || songSlot.dataset.ready !== String(s.song.code && s.song.weights)) {
-      songSlot.replaceChildren(songPanel(s.song, () => this.enter()));   // drawn again only when installed or not changes
+      songSlot.replaceChildren(songPanel(s.song, () => this.enter(), s.song_style));   // again only when installed or not changes
       songSlot.dataset.ready = String(s.song.code && s.song.weights);
     }
     if (!this.style.options.length) {

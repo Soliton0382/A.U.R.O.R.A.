@@ -13,6 +13,7 @@ import { call } from "../api.js";
 import { el, toBase64 } from "../dom.js";
 import { t } from "../i18n.js";
 import { bus } from "../bus.js";
+import { styleSelects } from "./dj_set.js";
 import { milkdrop, PRESETS } from "./dj_milk.js";
 
 const MODES = ["spectrum", "scope", "milk"];
@@ -111,6 +112,7 @@ export function djPlayer({ reload, onSelect, onConsole }) {
   editor.hidden = true;
   box.append(main, vis, el("div", "wa-bar", t("dj.player.playlist")), list, legend, editor, audio);
 
+  let styleOptions = {};
   let items = [], cur = -1, shuffle = false, repeat = 0, ctx = null, an = null, freq, wave, chosen = [];
   pick.addEventListener("change", async () => {
     for (const f of pick.files) {
@@ -205,6 +207,11 @@ export function djPlayer({ reload, onSelect, onConsole }) {
     title.value = s.title || ""; cap.value = s.caption || ""; lyr.value = s.lyrics || "";
     cap.rows = 2; lyr.rows = 12;
     const save = btn(`💾 ${t("dj.player.save")}`, ""), again = btn(`🎤 ${t("dj.player.again")}`, ""), close = btn("✕", "");
+    // 🎨 the same words in other clothes: another arrangement, voice, tempo, key (aud_song_style.redress)
+    const style = styleSelects(styleOptions, ["genre", "dress", "voice", "tempo", "key", "creativity"]);
+    const dice = btn(`🎲 ${t("dj.style.surprise")}`, "");
+    dice.addEventListener("click", () => style.surprise());
+    const redress = btn(`🎨 ${t("dj.player.redress")}`, "");
     const out = el("span", "muted");
     save.addEventListener("click", async () => {
       try { await call(`/v1/aurora/dj-song/${encodeURIComponent(it.name)}`, { method: "PUT", body: JSON.stringify({ title: title.value, caption: cap.value, lyrics: lyr.value }) }); out.textContent = t("dj.player.saved"); }
@@ -218,17 +225,31 @@ export function djPlayer({ reload, onSelect, onConsole }) {
         reload();
       } catch (e) { out.textContent = e.message; }
     });
+    redress.addEventListener("click", async () => {
+      const chosen = style.values();
+      if (!Object.keys(chosen).length) { out.textContent = t("dj.player.redress_pick"); return; }
+      try {
+        const r = await call("/v1/aurora/dj/song", { method: "POST", body: JSON.stringify({ title: title.value, caption: cap.value, lyrics: lyr.value, language: s.language || "en", seconds: s.seconds || 180, style: chosen }) });
+        out.textContent = t("dj.song.started", { title: r.title });
+        out.dataset.working = "1";
+        reload();
+      } catch (e) { out.textContent = e.message; }
+    });
     close.addEventListener("click", () => { editor.hidden = true; });
     const row = el("div", "appr-actions");
     row.append(save, again, close, out);
+    const dressRow = el("div", "appr-actions");
+    dressRow.append(dice, redress);
     editor.replaceChildren(el("strong", "", `✏️ ${nice(it.name)}`), el("label", "", t("dj.player.f_title")), title,
-      el("label", "", t("dj.player.f_caption")), cap, el("label", "", t("dj.player.f_lyrics")), lyr, row);
+      el("label", "", t("dj.player.f_caption")), cap, el("label", "", t("dj.player.f_lyrics")), lyr, row,
+      el("strong", "", `🎨 ${t("dj.player.redress_title")}`), style.grid, dressRow);
     editor.hidden = false;
     editor.scrollIntoView({ behavior: "smooth", block: "nearest" });
   };
 
   const ref = (it) => (it.kind === "mixes" ? `mixes/${it.name}` : it.name);   // what the mixer takes
   const refresh = (s) => {
+    styleOptions = s.song_style || styleOptions;
     const was = items[cur]?.name;
     items = [...s.mixes.map((f) => ({ ...f, kind: "mixes" })), ...s.tracks.map((f) => ({ ...f, kind: "tracks" }))];
     chosen = chosen.filter((r) => items.some((it) => ref(it) === r));

@@ -42,10 +42,16 @@ def installed(cfg: sys_config.Config) -> dict:
             "dir": str(home), "models": str(models)}
 
 
-def write(llm, idea: str, lang: str = "en", lyrics: str = "") -> dict:
-    """The reasoner's song: {"title", "caption", "lyrics"}; the user's lyrics kept as they are when given."""
+def write(llm, idea: str, lang: str = "en", lyrics: str = "", style: dict | None = None) -> dict:
+    """The reasoner's song: {"title", "caption", "lyrics"} and the dress chosen (aud_song_style: genre, arrangement,
+    voice, tempo, key, boldness — the caption built on them, their tags always in it); the user's lyrics kept."""
+    from . import aud_song_style
     language = LANGS.get(lang, "English")
-    raw = llm.complete(WRITER.replace("LANGUAGE", language), f"{idea}\n\nLANGUAGE: {language}"
+    r = aud_song_style.resolve(style)
+    must = f"\n\nSTYLE CHOSEN BY THE OWNER (build the caption on it): {r['brief']}" if r["brief"] else ""
+    if r["instrumental"]:
+        must += "\nInstrumental: no vocals; the lyrics field is only «[instrumental]»."
+    raw = llm.complete(WRITER.replace("LANGUAGE", language), f"{idea}\n\nLANGUAGE: {language}" + must
                        + (f"\n\nUse these lyrics as they are:\n{lyrics}" if lyrics else ""), 1600).answer
     m = re.search(r"\{.*\}", raw, re.S)
     try:
@@ -54,8 +60,11 @@ def write(llm, idea: str, lang: str = "en", lyrics: str = "") -> dict:
         song = {}
     if not song.get("caption") or not (song.get("lyrics") or lyrics):
         raise RuntimeError("the reasoner did not write the song (no caption or lyrics)")
-    return {"title": str(song.get("title") or idea[:40]).strip()[:80], "caption": str(song["caption"]).strip()[:600],
-            "lyrics": (lyrics or str(song["lyrics"])).strip()[:6000], "language": lang}
+    words = "[instrumental]" if r["instrumental"] else (lyrics or str(song["lyrics"])).strip()[:6000]
+    return {"title": str(song.get("title") or idea[:40]).strip()[:80],
+            "caption": aud_song_style.dress(str(song["caption"]).strip(), r["tags"]), "lyrics": words, "language": lang,
+            "style": aud_song_style.check(style),
+            **{k: r[k] for k in ("bpm", "key_scale", "lm_temperature") if k in r}}
 
 
 LMS = ("acestep-5Hz-lm-1.7B", "acestep-5Hz-lm-0.6B", "acestep-5Hz-lm-4B")   # its planner: the one downloaded
@@ -138,7 +147,9 @@ def sing(cfg: sys_config.Config, song: dict, seconds: int, out: Path, emit=None)
             r = httpx.post(f"{base}/release_task", headers=head, timeout=60, json={
                 "prompt": song["caption"], "lyrics": song["lyrics"], "audio_duration": int(seconds),
                 "vocal_language": song["language"], "audio_format": "mp3", "batch_size": 1,
-                "thinking": bool(cfg["AURORA_SONG_THINKING"])})
+                "thinking": bool(cfg["AURORA_SONG_THINKING"]),
+                # the dress's own fields (aud_song_style): the tempo, the key, how bold the planner is
+                **{k: song[k] for k in ("bpm", "key_scale", "lm_temperature") if song.get(k) is not None}})
             r.raise_for_status()
             task = r.json()["data"]["task_id"]
             say("song.sing", {"task": task})

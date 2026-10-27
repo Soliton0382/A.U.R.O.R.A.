@@ -25,7 +25,7 @@ def test_the_reasoner_writes_title_caption_and_lyrics_or_keeps_the_users():
     llm = LLM('ok {"title": "Abyss", "caption": "90s trance, female vocalist, 138 BPM", "lyrics": "[verse]\\nIn the dark wood"}')
     s = S.write(llm, "a 90s trance on Dante's Inferno", "en")
     assert s == {"title": "Abyss", "caption": "90s trance, female vocalist, 138 BPM", "lyrics": "[verse]\nIn the dark wood",
-                 "language": "en"}
+                 "language": "en", "style": {}}
     assert "LANGUAGE: English" in llm.asked[0]
     mine = S.write(llm, "the same", "it", lyrics="[chorus]\nmio testo")
     assert mine["lyrics"] == "[chorus]\nmio testo" and "Use these lyrics" in llm.asked[1]

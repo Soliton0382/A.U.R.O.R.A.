@@ -40,3 +40,10 @@
 }
 .dj-song textarea { width: 100%; box-sizing: border-box; margin: .3rem 0; }
 .dj-song pre { white-space: pre-wrap; font-size: .8rem; }
+.dj-song-idea { min-height: 7rem; resize: vertical; }
+.dj-style-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr)); gap: .45rem .7rem; margin: .45rem 0; }
+.dj-style-field { display: grid; gap: .15rem; font-size: .8rem; }
+.dj-style-field select { width: 100%; }
+.dj-dress { margin: .4rem 0; }
+.wa-editor .dj-style-grid { color: #e8ecf3; }
+.wa-editor .dj-style-field select { background: #0b0e13; color: #e8ecf3; border: 1px solid #4a5468; border-radius: 3px; }

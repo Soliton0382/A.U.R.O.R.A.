@@ -134,7 +134,28 @@ export async function setConsole(file) {
 
 // 🎤 a song from an idea (aud_song): the idea, the language it is sung in, how long, the user's lyrics if any; when the
 // music model is not installed yet, what to install and where
-export function songPanel(state, done) {
+// 🎨 how a song is dressed (aud_song_style): one select per axis, «auto» first; `values()` gives the choices made,
+// `surprise()` draws one at random on every axis (owner, 27 Oct: «vengono tutte un po' uguali… vestire le canzoni»)
+export function styleSelects(options, axes = ["genre", "dress", "voice", "tempo", "key", "creativity"]) {
+  const grid = el("div", "dj-style-grid");
+  const sel = {};
+  for (const axis of axes) {
+    const s = el("select");
+    const auto = el("option", "", t("dj.style.auto")); auto.value = "auto"; s.append(auto);
+    for (const o of options?.[axis] || []) { const op = el("option", "", o.label); op.value = o.id; s.append(op); }
+    const lab = el("label", "dj-style-field");
+    lab.append(el("span", "", t(`dj.style.${axis}`)), s);
+    grid.append(lab);
+    sel[axis] = s;
+  }
+  return {
+    grid,
+    values: () => Object.fromEntries(Object.entries(sel).filter(([, s]) => s.value !== "auto").map(([k, s]) => [k, s.value])),
+    surprise: () => { for (const s of Object.values(sel)) s.selectedIndex = 1 + Math.floor(Math.random() * (s.options.length - 1)); },
+  };
+}
+
+export function songPanel(state, done, styleOptions) {
   const box = el("details", "report dj-song");
   box.open = true;
   box.append(el("summary", "", t("dj.song.title")));
@@ -144,7 +165,7 @@ export function songPanel(state, done) {
     return box;
   }
   const idea = el("textarea", "dj-song-idea");
-  idea.rows = 3;
+  idea.rows = 5;                                     // open from the start (owner, 27 Oct: «parte quasi tutto chiuso»)
   idea.placeholder = t("dj.song.ph");
   const lang = el("select");
   for (const [v, n] of [["en", "English"], ["it", "Italiano"], ["es", "Español"], ["fr", "Français"], ["de", "Deutsch"], ["pt", "Português"], ["ja", "日本語"], ["zh", "中文"], ["ko", "한국어"]]) {
@@ -158,11 +179,18 @@ export function songPanel(state, done) {
   lyr.rows = 6;
   lyr.placeholder = "[verse]\n…\n[chorus]\n…";
   own.append(el("summary", "", t("dj.song.own")), lyr);
+  const style = styleSelects(styleOptions);
+  const dice = el("button", "", `🎲 ${t("dj.style.surprise")}`);
+  dice.type = "button";
+  dice.addEventListener("click", () => style.surprise());
+  const dressed = el("details", "dj-dress");
+  dressed.open = true;
+  dressed.append(el("summary", "", `🎨 ${t("dj.style.title")}`), style.grid, dice);
   const go = el("button", "approve", `🎤 ${t("dj.song.go")}`);
   const out = el("span", "muted");
   go.addEventListener("click", async () => {
     try {
-      const r = await call("/v1/aurora/dj/song", { method: "POST", body: JSON.stringify({ idea: idea.value, language: lang.value, seconds: Number(secs.value), lyrics: lyr.value }) });
+      const r = await call("/v1/aurora/dj/song", { method: "POST", body: JSON.stringify({ idea: idea.value, language: lang.value, seconds: Number(secs.value), lyrics: lyr.value, style: style.values() }) });
       out.textContent = t("dj.song.started", { title: r.title });
       out.dataset.working = "1";
     } catch (e) { out.textContent = t("ev.error", { m: e.message }); }
@@ -170,6 +198,6 @@ export function songPanel(state, done) {
   });
   const row = el("div", "appr-actions");
   row.append(lang, secs, go, out);
-  box.append(el("p", "muted", t("dj.song.hint")), idea, own, row);
+  box.append(el("p", "muted", t("dj.song.hint")), idea, dressed, own, row);
   return box;
 }

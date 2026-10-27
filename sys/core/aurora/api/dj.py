@@ -58,8 +58,9 @@ def dj_state() -> dict:
     from aurora import aud_dj
     d = _dir()
     lang = str(cfg["AURORA_LANG_DEFAULT"])
-    from aurora import aud_song
+    from aurora import aud_song, aud_song_style
     return {"styles": aud_dj.styles(lang), "tracks": _list(d), "mixes": _list(d / "mixes"), "song": aud_song.installed(cfg),
+            "song_style": aud_song_style.options(lang),
             "busy": _busy.get(me() or "", {}).get("title"), "max_minutes": cfg["AURORA_DJ_MAX_MINUTES"]}
 
 
@@ -217,15 +218,25 @@ async def dj_song(request: Request) -> dict:
     have = aud_song.installed(cfg)
     if not (have["code"] and have["weights"]):
         raise HTTPException(status_code=409, detail="the music model is not installed yet (DJ page: how to)")
+    from aurora import aud_song_style                     # the dress: genre, arrangement, voice, tempo, key, boldness
+    try:
+        style = aud_song_style.check(body.get("style") if isinstance(body.get("style"), dict) else {})
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
     caption = str(body.get("caption") or "").strip()[:600]
-    given = {"title": str(body.get("title") or idea[:40] or "canzone").strip()[:80], "caption": caption,
-             "lyrics": lyrics, "language": lang} if caption and lyrics else None
+    given = None
+    if caption and lyrics:                                # sung again — in other clothes when a dress is chosen
+        r = aud_song_style.resolve(style)
+        given = {"title": str(body.get("title") or idea[:40] or "canzone").strip()[:80],
+                 "caption": aud_song_style.redress(caption, style) if style else caption,
+                 "lyrics": "[instrumental]" if r["instrumental"] else lyrics, "language": lang, "style": style,
+                 **{k: r[k] for k in ("bpm", "key_scale", "lm_temperature") if k in r}}
     title = f"🎤 {(given or {}).get('title') or idea[:60] or 'canzone'}"
     _busy[who] = {"title": title, "since": time.time()}
 
     def work():
         try:
-            song = given or aud_song.write(pipeline().llm, idea or "a song on these lyrics", lang, lyrics)
+            song = given or aud_song.write(pipeline().llm, idea or "a song on these lyrics", lang, lyrics, style)
             stem = re.sub(r"[^\w-]+", "-", song["title"].lower()).strip("-")[:50] or "song"
             out = _dir() / "mixes" / f"{stem}-{time.strftime('%Y%m%d-%H%M')}.mp3"
             r = aud_song.sing(cfg, song, seconds, out)
