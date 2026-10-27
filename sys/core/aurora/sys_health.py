@@ -136,8 +136,11 @@ def check(cfg: sys_config.Config | None = None) -> dict:
             add(unit, "ok", "attivo e risponde", how)
         elif ok:
             add(unit, "warn", f"risponde ma systemd dice {state!r}", how)
-        elif unit == "aurora-llm" and state == "inactive" and (job := gpu_job(cfg)):
-            add(unit, "ok", f"spento apposta per un lavoro sulla GPU: {job}", "si riaccende alla fine (C157)")
+        elif unit == "aurora-llm" and (job := gpu_job(cfg)):
+            # stopped on purpose for a GPU job (a dream, a song, a video), in every state of the swap: stopping, off,
+            # starting again and loading — the job holds the lock until the reasoner answers again (C157, C409)
+            add(unit, "ok", f"in pausa per un lavoro sulla GPU: {job}" + ("" if state == "inactive" else f" (systemd: {state})"),
+                "si riaccende alla fine (C157)")
         else:
             add(unit, "down", f"non risponde ({how}), systemd: {state}", url)
 

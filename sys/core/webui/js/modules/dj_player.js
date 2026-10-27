@@ -5,16 +5,16 @@
 // milkdrop che si alternano… la possibilità di importare musica propria nel player… le canzoni create e caricate
 // finiscono nel player ma si possono selezionare per il mix… differenziare con icone»): a green LCD with the title
 // running and the time; the buttons, volume, seek, shuffle, repeat, ⏏ import; a visualiser fed by the music (Web
-// Audio) — spectrum, oscilloscope, MilkDrop-like presets that take turns by themselves, a starfield — full screen, or
+// Audio) — spectrum, oscilloscope, MilkDrop's presets (dj_milk.js: fixed per click or ∞ in turn) — full screen, or
 // over the whole page where the browser has none (the phone app's WebView); the playlist of everything, each with its
 // icon (🎤 sung by Aurora, 🎵 yours, 💿 a remix or mix, 🎛️ a set), a tick to choose it for the next mix, 🗑️, and for a
 // song ✏️ its words and 🎤 «sing it again», for a set its console.
 import { call } from "../api.js";
 import { el, toBase64 } from "../dom.js";
 import { t } from "../i18n.js";
+import { milkdrop, PRESETS } from "./dj_milk.js";
 
-const MODES = ["spectrum", "scope", "milk", "stars"];
-const PRESETS = ["rings", "tunnel", "kaleido", "plasma", "spiral"];
+const MODES = ["spectrum", "scope", "milk"];
 const PRESET_S = 14;                                   // a MilkDrop preset this long, then the next
 const mmss = (s) => (Number.isFinite(s) ? `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}` : "--:--");
 const nice = (name) => name.replace(/\.(mp3|wav|flac|ogg|m4a|aac|opus|webm)$/i, "").replace(/-\d{8}-\d{4}$/, "").replace(/[-_]+/g, " ");
@@ -80,7 +80,9 @@ export function djPlayer({ reload, onSelect, onConsole }) {
   const full = btn("⛶", t("dj.player.full"));
   const unmax = btn("✕", t("dj.player.exit"));
   unmax.classList.add("wa-unmax");
-  const maxed = (on) => { vis.classList.toggle("wa-max", on); document.body.classList.toggle("wa-maxed", on); };
+  // over the page where the browser has no full screen (an app of before 0.4.1): the page up and held still, so the
+  // visualiser is not scrolled away (owner, 27 Oct: «conviene fare salire la pagina perché scende»)
+  const maxed = (on) => { if (on) window.scrollTo(0, 0); vis.classList.toggle("wa-max", on); document.body.classList.toggle("wa-maxed", on); };
   full.addEventListener("click", async () => {
     if (document.fullscreenElement) return document.exitFullscreen();
     if (vis.classList.contains("wa-max")) return maxed(false);
@@ -98,7 +100,7 @@ export function djPlayer({ reload, onSelect, onConsole }) {
   editor.hidden = true;
   box.append(main, vis, el("div", "wa-bar", t("dj.player.playlist")), list, legend, editor, audio);
 
-  let items = [], cur = -1, shuffle = false, repeat = false, ctx = null, an = null, freq, wave, chosen = [];
+  let items = [], cur = -1, shuffle = false, repeat = 0, ctx = null, an = null, freq, wave, chosen = [];
   pick.addEventListener("change", async () => {
     for (const f of pick.files) {
       upOut.textContent = t("dj.uploading", { name: f.name });
@@ -130,7 +132,12 @@ export function djPlayer({ reload, onSelect, onConsole }) {
     list.querySelectorAll("li").forEach((li, k) => li.classList.toggle("on", k === cur));
     if (go) { ensureAudio(); ctx.resume(); audio.play().catch(() => {}); }
   };
-  const step = (d) => load(shuffle && items.length > 1 ? Math.floor(Math.random() * items.length) : cur + d);
+  const step = (d) => {                            // shuffle: any other track, never the same one again at once
+    if (!shuffle || items.length < 2) return load(cur + d);
+    let k = cur;
+    while (k === cur) k = Math.floor(Math.random() * items.length);
+    load(k);
+  };
   play.addEventListener("click", () => {
     if (cur < 0) return load(0);
     ensureAudio(); ctx.resume();
@@ -139,14 +146,25 @@ export function djPlayer({ reload, onSelect, onConsole }) {
   stop.addEventListener("click", () => { audio.pause(); audio.currentTime = 0; });
   prev.addEventListener("click", () => step(-1));
   next.addEventListener("click", () => step(1));
-  shuf.addEventListener("click", () => { shuffle = !shuffle; shuf.classList.toggle("on", shuffle); });
-  rep.addEventListener("click", () => { repeat = !repeat; rep.classList.toggle("on", repeat); });
+  // the owner, 27 Oct: «i tasti riproduzione casuale e loop sembrano non funzionare» — they did, but an emoji takes no
+  // colour: «on» is now the pressed look; the loop as in Winamp: off → 🔁 the playlist → 🔂 one track → off
+  shuf.addEventListener("click", () => { shuffle = !shuffle; shuf.classList.toggle("on", shuffle); shuf.title = `${t("dj.player.shuffle")}: ${t(shuffle ? "dj.player.on" : "dj.player.off")}`; });
+  rep.addEventListener("click", () => {
+    repeat = (repeat + 1) % 3;
+    rep.textContent = repeat === 2 ? "🔂" : "🔁";
+    rep.classList.toggle("on", repeat > 0);
+    rep.title = t(["dj.player.loop_off", "dj.player.loop_all", "dj.player.loop_one"][repeat]);
+  });
   vol.addEventListener("input", () => { audio.volume = vol.value / 100; });
   audio.volume = 0.8;
   seek.addEventListener("input", () => { if (audio.duration) audio.currentTime = (seek.value / 1000) * audio.duration; });
   audio.addEventListener("play", () => { play.textContent = "⏸"; box.classList.add("playing"); });
   audio.addEventListener("pause", () => { play.textContent = "▶"; box.classList.remove("playing"); });
-  audio.addEventListener("ended", () => (repeat ? load(cur) : cur < items.length - 1 || shuffle ? step(1) : null));
+  audio.addEventListener("ended", () => {
+    if (repeat === 2) return load(cur);                       // 🔂 the same track
+    if (shuffle || cur < items.length - 1) return step(1);
+    if (repeat === 1) load(0);                                // 🔁 the playlist again from the top
+  });
   audio.addEventListener("timeupdate", () => {
     time.textContent = mmss(audio.currentTime);
     if (audio.duration) seek.value = String(Math.round((audio.currentTime / audio.duration) * 1000));
@@ -230,11 +248,8 @@ export function djPlayer({ reload, onSelect, onConsole }) {
   };
 
   // — the drawing, every frame while the page shows it
-  let peaks = new Float32Array(48), stars = [], hue = 0, preset = 0, presetAt = performance.now(), tagAt = 0;
+  let peaks = new Float32Array(48), hue = 0, preset = 0, presetAt = performance.now(), tagAt = 0;
   const g = canvas.getContext("2d"), gm = mini.getContext("2d");
-  const small = document.createElement("canvas");  // the plasma, drawn small and stretched
-  small.width = 96; small.height = 54;
-  const gs = small.getContext("2d"), img = gs.createImageData(96, 54);
   const fit = (c) => { const r = c.getBoundingClientRect(), d = window.devicePixelRatio || 1; if (c.width !== Math.round(r.width * d)) { c.width = Math.round(r.width * d); c.height = Math.round(r.height * d); } return [c.width, c.height]; };
   const bands = (n) => {                            // n logarithmic bands from the spectrum, 0..1
     const out = new Float32Array(n), N = freq.length;
@@ -245,73 +260,7 @@ export function djPlayer({ reload, onSelect, onConsole }) {
     }
     return out;
   };
-  const feedback = (w, h, rot, zoom, fade) => {     // MilkDrop's heart: the last frame, turned and zoomed, under the new
-    g.save(); g.globalAlpha = fade; g.translate(w / 2, h / 2); g.rotate(rot); g.scale(zoom, zoom);
-    g.drawImage(canvas, -w / 2, -h / 2); g.restore();
-  };
-  const milk = (w, h, b, live, bass, treble, now) => {
-    const P = PRESETS[preset], dpr = window.devicePixelRatio || 1, n = wave ? wave.length : 1;
-    const wv = (k) => (live && wave ? (wave[Math.floor(k) % n] - 128) / 128 : 0);
-    if (P === "rings") {
-      feedback(w, h, 0.004 + bass * 0.02, 1.012 + bass * 0.05, 0.93);
-      g.fillStyle = "rgba(0,0,0,.06)"; g.fillRect(0, 0, w, h);
-      const r0 = Math.min(w, h) * (0.16 + bass * 0.18);
-      g.lineWidth = 2.5 * dpr;
-      for (let ring = 0; ring < 2; ring++) {
-        g.strokeStyle = `hsla(${(hue + ring * 140) % 360},100%,${55 + treble * 30}%,.9)`;
-        g.beginPath();
-        for (let i = 0; i <= 360; i += 2) {
-          const r = r0 * (1 + ring * 0.6) + wv((i / 360) * (n - 1)) * r0 * 0.9, a = (i * Math.PI) / 180 + hue / 60;
-          const x = w / 2 + Math.cos(a) * r, y = h / 2 + Math.sin(a) * r;
-          i ? g.lineTo(x, y) : g.moveTo(x, y);
-        }
-        g.stroke();
-      }
-    } else if (P === "tunnel") {                     // squares flying at you, the beat speeding them
-      feedback(w, h, -0.01 - bass * 0.03, 1.04 + bass * 0.1, 0.9);
-      g.fillStyle = "rgba(0,0,0,.08)"; g.fillRect(0, 0, w, h);
-      const s = Math.min(w, h) * (0.08 + bass * 0.12);
-      g.lineWidth = 3 * dpr;
-      g.strokeStyle = `hsl(${hue},100%,${50 + treble * 40}%)`;
-      g.save(); g.translate(w / 2, h / 2); g.rotate(hue / 40);
-      g.strokeRect(-s, -s, 2 * s, 2 * s); g.restore();
-    } else if (P === "kaleido") {                    // the wave in six mirrored slices
-      feedback(w, h, 0.006, 0.985, 0.88);
-      g.save(); g.translate(w / 2, h / 2);
-      g.lineWidth = 2 * dpr;
-      for (let k = 0; k < 6; k++) {
-        g.rotate(Math.PI / 3);
-        g.strokeStyle = `hsla(${(hue + k * 60) % 360},100%,60%,.85)`;
-        g.beginPath();
-        for (let i = 0; i < 128; i++) {
-          const x = (i / 128) * Math.min(w, h) * 0.48, y = wv(i * 8) * Math.min(w, h) * (0.12 + bass * 0.2) * (k % 2 ? -1 : 1);
-          i ? g.lineTo(x, y) : g.moveTo(x, y);
-        }
-        g.stroke();
-      }
-      g.restore();
-    } else if (P === "plasma") {                     // a colour field folding with the bass and the highs
-      const T = now / 1000, d = img.data;
-      for (let y = 0; y < 54; y++) for (let x = 0; x < 96; x++) {
-        const v = Math.sin(x / (8 - bass * 4) + T) + Math.sin(y / 6 + T * 1.3) + Math.sin((x + y) / (10 + treble * 6) + T * 0.7)
-          + Math.sin(Math.hypot(x - 48, y - 27) / (5 - bass * 2) - T * 2);
-        const hh = (hue + v * 45 + 360) % 360, c = (1 - Math.abs(((hh / 60) % 2) - 1));
-        const [r, gg, bb] = hh < 60 ? [1, c, 0] : hh < 120 ? [c, 1, 0] : hh < 180 ? [0, 1, c] : hh < 240 ? [0, c, 1] : hh < 300 ? [c, 0, 1] : [1, 0, c];
-        const L = 0.45 + 0.5 * Math.abs(Math.sin(v)), o = (y * 96 + x) * 4;
-        d[o] = r * 255 * L; d[o + 1] = gg * 255 * L; d[o + 2] = bb * 255 * L; d[o + 3] = 255;
-      }
-      gs.putImageData(img, 0, 0);
-      g.imageSmoothingEnabled = true; g.drawImage(small, 0, 0, w, h);
-    } else {                                         // spiral: the spectrum thrown out along turning arms
-      feedback(w, h, 0.02 + bass * 0.04, 1.006, 0.92);
-      g.fillStyle = "rgba(0,0,0,.05)"; g.fillRect(0, 0, w, h);
-      for (let i = 0; i < 48; i++) {
-        const a = i * 0.45 + hue / 20, r = (i / 48) * Math.min(w, h) * 0.5;
-        g.fillStyle = `hsl(${(hue + i * 7) % 360},100%,${45 + b[i] * 45}%)`;
-        g.beginPath(); g.arc(w / 2 + Math.cos(a) * r, h / 2 + Math.sin(a) * r, (1 + b[i] * 9) * dpr, 0, Math.PI * 2); g.fill();
-      }
-    }
-  };
+  const milkDraw = milkdrop(canvas);              // the presets (dj_milk.js)
   const frame = (now) => {
     if (!box.isConnected) return;                    // the page left: the loop stops
     requestAnimationFrame(frame);
@@ -343,17 +292,7 @@ export function djPlayer({ reload, onSelect, onConsole }) {
       for (let i = 0; i < (wave ? wave.length : 0); i += 2) { const x = (i / wave.length) * w, y = h / 2 + ((live ? wave[i] : 128) - 128) / 128 * h * 0.45; i ? g.lineTo(x, y) : g.moveTo(x, y); }
       g.stroke(); g.shadowBlur = 0;
     } else if (mode === "milk") {
-      milk(w, h, b, live, bass, treble, now);
-    } else {                                         // stars: the beat pushes them out
-      g.fillStyle = "rgba(0,0,0,.3)"; g.fillRect(0, 0, w, h);
-      while (stars.length < 380) stars.push({ x: (Math.random() - 0.5) * w, y: (Math.random() - 0.5) * h, z: Math.random() * w });
-      for (const s of stars) {
-        s.z -= 2 + bass * 40;
-        if (s.z <= 1) { s.x = (Math.random() - 0.5) * w; s.y = (Math.random() - 0.5) * h; s.z = w; }
-        const k = 128 / s.z, x = w / 2 + s.x * k, y = h / 2 + s.y * k, r = Math.max(0.6, (1 - s.z / w) * 3.2);
-        g.fillStyle = `hsl(${(hue + s.z / 4) % 360},90%,${60 + treble * 30}%)`;
-        g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
-      }
+      milkDraw(PRESETS[preset], w, h, { b, wave, live, bass, treble, now, hue });
     }
     const [mw, mh] = fit(mini);                      // the LCD's own small spectrum
     gm.clearRect(0, 0, mw, mh);

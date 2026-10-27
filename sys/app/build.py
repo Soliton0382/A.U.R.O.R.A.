@@ -22,7 +22,7 @@ import sys
 import zipfile
 from pathlib import Path
 
-VERSION, CODE = "0.4.0", 6                   # versionName and versionCode (the code grows by one at every release)
+VERSION, CODE = "0.4.1", 7                   # versionName and versionCode (the code grows by one at every release)
 MIN_SDK, TARGET_SDK, BUILD_TOOLS = 29, 36, "36.0.0"
 PACKAGE = "org.aurora.app"
 

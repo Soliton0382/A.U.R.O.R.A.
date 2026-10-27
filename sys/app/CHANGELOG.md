@@ -1,5 +1,10 @@
 # Aurora's Android app — changelog
 
+## 0.4.1 - 2026-10-27
+
+- Full screen for the page (the music player's visualiser): the element over everything, the system bars hidden in
+  immersive mode (a swipe shows them for a moment), back or the page's own button leave it (`onShowCustomView`).
+
 ## 0.4.0 - 2026-10-26
 
 - Calling Aurora: the 📞 in the chat's bar (in the app only) opens the call screen already answered

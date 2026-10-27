@@ -22,6 +22,7 @@ import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowInsets;
+import android.view.WindowInsetsController;
 import android.view.inputmethod.EditorInfo;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
@@ -62,11 +63,14 @@ public class MainActivity extends Activity {
     private String base;
     private PermissionRequest waiting;                               // the page's mic request, until the user answers
     private ValueCallback<Uri[]> picking;
+    private FrameLayout root;
+    private View custom;                                             // the page's element in full screen (the player's visualiser)
+    private WebChromeClient.CustomViewCallback customDone;
 
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
-        FrameLayout root = new FrameLayout(this);
+        root = new FrameLayout(this);
         web = new WebView(this);
         root.addView(web, new FrameLayout.LayoutParams(-1, -1));
         root.addView(setup = buildSetup(), new FrameLayout.LayoutParams(-1, -1));
@@ -155,6 +159,10 @@ public class MainActivity extends Activity {
 
     // the window under the status bar and above the keyboard (edge to edge is forced from Android 15)
     private WindowInsets pad(View v, WindowInsets in) {
+        if (custom != null) {                                        // full screen: edge to edge, no bars
+            v.setPadding(0, 0, 0, 0);
+            return in;
+        }
         if (Build.VERSION.SDK_INT >= 30) {
             Insets i = in.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.ime());
             v.setPadding(i.left, i.top, i.right, i.bottom);
@@ -166,6 +174,7 @@ public class MainActivity extends Activity {
     }
 
     private void back() {
+        if (custom != null) { exitFull(); return; }
         if (setup.getVisibility() == View.VISIBLE && base != null) hideSetup();
         else if (web.canGoBack()) web.goBack();
         else moveTaskToBack(true);                                   // like leaving an app: Aurora stays where she was
@@ -305,6 +314,14 @@ public class MainActivity extends Activity {
             @Override
             public void onPermissionRequest(PermissionRequest r) { runOnUiThread(() -> answer(r)); }
 
+            // the page's full screen (the player's visualiser; owner, 27 Oct: «aggiornare l'app android per avere la
+            // giusta integrazione tutto schermo»): its element over everything, the system bars hidden, immersive
+            @Override
+            public void onShowCustomView(View v, CustomViewCallback cb) { runOnUiThread(() -> enterFull(v, cb)); }
+
+            @Override
+            public void onHideCustomView() { runOnUiThread(MainActivity.this::exitFull); }
+
             @Override
             public boolean onShowFileChooser(WebView v, ValueCallback<Uri[]> cb, FileChooserParams p) {
                 if (picking != null) picking.onReceiveValue(null);
@@ -321,6 +338,44 @@ public class MainActivity extends Activity {
         });
         web.setDownloadListener((url, agent, disposition, mime, length) -> download(url, agent, disposition, mime));
         web.addJavascriptInterface(new Bridge(), "AuroraApp");
+    }
+
+    private void enterFull(View v, WebChromeClient.CustomViewCallback cb) {
+        if (custom != null) { cb.onCustomViewHidden(); return; }
+        custom = v;
+        customDone = cb;
+        root.addView(v, new FrameLayout.LayoutParams(-1, -1));
+        immersive(true);
+        root.requestApplyInsets();
+    }
+
+    private void exitFull() {
+        if (custom == null) return;
+        root.removeView(custom);
+        custom = null;
+        immersive(false);
+        if (customDone != null) customDone.onCustomViewHidden();
+        customDone = null;
+        root.requestApplyInsets();
+    }
+
+    @SuppressWarnings("deprecation")
+    private void immersive(boolean on) {
+        if (Build.VERSION.SDK_INT >= 30) {
+            WindowInsetsController c = getWindow().getInsetsController();
+            if (c == null) return;
+            if (on) {
+                c.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                c.hide(WindowInsets.Type.systemBars());
+            } else {
+                c.show(WindowInsets.Type.systemBars());
+            }
+        } else {                                                     // Android 10: the flags of before
+            getWindow().getDecorView().setSystemUiVisibility(on
+                ? View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                  | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                : View.SYSTEM_UI_FLAG_VISIBLE);
+        }
     }
 
     /** What the WebUI asks the app: two answers about the notifications (push.js), and calling Aurora (chat.js). */

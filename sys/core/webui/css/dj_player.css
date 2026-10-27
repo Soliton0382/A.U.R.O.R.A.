@@ -22,7 +22,8 @@
 .wa-btn { min-width: 2.2rem; height: 1.9rem; padding: 0 .45rem; border-radius: 3px; border: 1px solid #0f1217; color: #e8ecf3; font-size: .9rem;
   background: linear-gradient(180deg, #8792a8, #4a5368); box-shadow: inset 0 1px 0 #b7c2d6; cursor: pointer; }
 .wa-btn:active { background: linear-gradient(180deg, #4a5368, #8792a8); }
-.wa-btn.on { color: #39ff6a; text-shadow: 0 0 6px #39ff6a; }
+.wa-btn.on { color: #39ff6a; background: linear-gradient(180deg, #2b3a2e, #18321f); border-color: #39ff6a;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, .7), 0 0 8px rgba(57, 255, 106, .6); }   /* pressed: an emoji takes no colour */
 .wa-vol-l { margin-left: auto; }
 .wa-vol { width: 7rem; }
 .wa-vis { position: relative; border: 2px inset #12161c; border-radius: 4px; overflow: hidden; background: #000; }
@@ -55,7 +56,7 @@
   .wa-vol { width: 5rem; }
 }
 /* the visualiser over the whole page where the browser has no full screen (the phone app's WebView) */
-.wa-vis.wa-max { position: fixed; inset: 0; z-index: 2147483000; border: 0; border-radius: 0; }   /* over Aurora's own bar */
+.wa-vis.wa-max { position: fixed; inset: 0; z-index: 2147483000; border: 0; border-radius: 0; touch-action: none; overscroll-behavior: contain; }   /* over Aurora's own bar */
 .wa-vis.wa-max .wa-canvas { height: 100vh; height: 100dvh; }
 body.wa-maxed { overflow: hidden; }
 .wa-unmax { display: none; position: absolute; top: .6rem; right: .6rem; z-index: 2; }
