@@ -16,7 +16,7 @@ from aurora import sys_context
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse
 
-from .core import auth, cfg, log, me, note
+from .core import auth, cfg, log, me, note, pipeline
 
 router = APIRouter()
 AUDIO = re.compile(r"\.(mp3|wav|flac|ogg|m4a|aac|opus|webm)$", re.I)
@@ -40,7 +40,8 @@ def _file(name: str, mixes: bool = False):
 
 
 def _list(folder) -> list[dict]:
-    return [{"name": f.name, "bytes": f.stat().st_size, "at": f.stat().st_mtime}
+    return [{"name": f.name, "bytes": f.stat().st_size, "at": f.stat().st_mtime, "set": f.with_suffix(".json").is_file(),
+             "song": f.with_suffix(".song.json").is_file()}
             for f in sorted(folder.iterdir(), key=lambda f: -f.stat().st_mtime) if f.is_file() and AUDIO.search(f.name)]
 
 
@@ -49,7 +50,8 @@ def dj_state() -> dict:
     from aurora import aud_dj
     d = _dir()
     lang = str(cfg["AURORA_LANG_DEFAULT"])
-    return {"styles": aud_dj.styles(lang), "tracks": _list(d), "mixes": _list(d / "mixes"),
+    from aurora import aud_song
+    return {"styles": aud_dj.styles(lang), "tracks": _list(d), "mixes": _list(d / "mixes"), "song": aud_song.installed(cfg),
             "busy": _busy.get(me() or "", {}).get("title"), "max_minutes": cfg["AURORA_DJ_MAX_MINUTES"]}
 
 
@@ -77,7 +79,11 @@ async def dj_upload(request: Request) -> dict:
 def dj_delete(kind: str, name: str) -> dict:
     from aurora import sys_trash
     f = _file(name, mixes=kind == "mixes")
+    beside = [f.with_suffix(".json"), f.with_suffix(".song.json")]   # a set's timeline, a song's lyrics: with it
     tid = sys_trash.discard(cfg, f, "music")
+    for extra in beside if kind == "mixes" else []:
+        if extra.is_file():
+            sys_trash.discard(cfg, extra, "music")
     return {"deleted": name, "trash": tid}
 
 
@@ -131,3 +137,101 @@ async def dj_make(request: Request) -> dict:
             _busy.pop(who, None)
     sys_context.start(work, name=f"dj-{who}")
     return {"started": True, "title": title, "file": out.name}
+
+@router.post("/v1/aurora/dj/set", dependencies=[Depends(auth)])
+async def dj_set(request: Request) -> dict:
+    """{"tracks": [names], "keep_order"?: bool, "bars"?: 8|16|32, "title"?}: Aurora's set (aud_set) — the order by key
+    and tempo unless kept, each track in on the beat of the one ending. Made in the background; its timeline beside it."""
+    from aurora import aud_set
+    body = await request.json()
+    who = me() or ""
+    if who in _busy:
+        raise HTTPException(status_code=409, detail=f"already mixing: {_busy[who]['title']}")
+    names = [str(n) for n in body.get("tracks") or []][:20]
+    paths = [_file(n) for n in names]
+    if len(paths) < 2:
+        raise HTTPException(status_code=422, detail="a set takes at least two tracks")
+    bars = int(body.get("bars") or 16)
+    if bars not in (8, 16, 32):
+        raise HTTPException(status_code=422, detail="bars: 8, 16 or 32")
+    keep = bool(body.get("keep_order"))
+    stem = re.sub(r"[^\w-]+", "-", str(body.get("title") or "set").lower()).strip("-")[:60] or "set"
+    out = _dir() / "mixes" / f"{stem}-{time.strftime('%Y%m%d-%H%M')}.mp3"
+    title = f"🎛️ Set: {len(paths)} brani"
+    _busy[who] = {"title": title, "since": time.time()}
+    minutes = float(cfg["AURORA_DJ_MAX_MINUTES"])
+
+    def work():
+        try:
+            r = aud_set.make(paths, out, keep_order=keep, bars=bars, seconds=minutes * 60)
+            note("dj", "dj.done", {"text": f"{title}: {r['seconds'] / 60:.0f} min a {r['bpm']} BPM", "file": r["file"]})
+            log.info("dj: %s made the set %s (%d tracks, %.0f s)", who, r["file"], len(paths), r["seconds"])
+        except Exception as e:  # noqa: BLE001 — the owner is told, never silence
+            log.exception("dj set failed")
+            note("dj", "dj.failed", {"text": f"{title}: {type(e).__name__}: {str(e)[:150]}"})
+        finally:
+            _busy.pop(who, None)
+    sys_context.start(work, name=f"djset-{who}")
+    return {"started": True, "title": title, "file": out.name}
+
+
+@router.get("/v1/aurora/dj-timeline/{name}", dependencies=[Depends(auth)])   # not under /dj/{kind}/{name}
+def dj_timeline(name: str) -> dict:
+    """A set's timeline (aud_set): each track's place, the transitions, the waveform — the console draws it."""
+    import json
+    f = _file(name, mixes=True).with_suffix(".json")
+    if not f.is_file():
+        raise HTTPException(status_code=404, detail="no timeline: not a set")
+    return json.loads(f.read_text(encoding="utf-8"))
+
+
+@router.post("/v1/aurora/dj/song", dependencies=[Depends(auth)])
+async def dj_song(request: Request) -> dict:
+    """{"idea", "language"?: en|it|…, "seconds"?: 30-300, "lyrics"?}: a song from an idea (aud_song) — the local
+    reasoner writes it, then the music model sings it with the reasoner out of the GPU; made in the background."""
+    from aurora import aud_song
+    body = await request.json()
+    who = me() or ""
+    if who in _busy:
+        raise HTTPException(status_code=409, detail=f"already working: {_busy[who]['title']}")
+    idea = str(body.get("idea") or "").strip()[:1500]
+    lyrics = str(body.get("lyrics") or "").strip()[:6000]
+    if len(idea) < 8 and not lyrics:
+        raise HTTPException(status_code=422, detail="describe the song in a few words")
+    lang = str(body.get("language") or "en")
+    if lang not in aud_song.LANGS:
+        raise HTTPException(status_code=422, detail=f"language: one of {', '.join(aud_song.LANGS)}")
+    seconds = int(body.get("seconds") or 180)
+    if not 30 <= seconds <= 300:
+        raise HTTPException(status_code=422, detail="seconds: 30 to 300")
+    have = aud_song.installed(cfg)
+    if not (have["code"] and have["weights"]):
+        raise HTTPException(status_code=409, detail="the music model is not installed yet (DJ page: how to)")
+    title = f"🎤 {idea[:60] or 'canzone'}"
+    _busy[who] = {"title": title, "since": time.time()}
+
+    def work():
+        try:
+            song = aud_song.write(pipeline().llm, idea or "a song on these lyrics", lang, lyrics)
+            stem = re.sub(r"[^\w-]+", "-", song["title"].lower()).strip("-")[:50] or "song"
+            out = _dir() / "mixes" / f"{stem}-{time.strftime('%Y%m%d-%H%M')}.mp3"
+            r = aud_song.sing(cfg, song, seconds, out)
+            note("dj", "dj.done", {"text": f"🎤 {song['title']}: pronta ({r['seconds'] / 60:.0f} min di lavoro)", "file": r["file"]})
+            log.info("dj: %s made the song %s (%s, %d s)", who, r["file"], lang, seconds)
+        except Exception as e:  # noqa: BLE001 — the owner is told, never silence
+            log.exception("dj song failed")
+            note("dj", "dj.failed", {"text": f"{title}: {type(e).__name__}: {str(e)[:150]}"})
+        finally:
+            _busy.pop(who, None)
+    sys_context.start(work, name=f"djsong-{who}")
+    return {"started": True, "title": title}
+
+
+@router.get("/v1/aurora/dj-song/{name}", dependencies=[Depends(auth)])
+def dj_song_text(name: str) -> dict:
+    """A song's lyrics and caption, as the reasoner wrote them."""
+    import json
+    f = _file(name, mixes=True).with_suffix(".song.json")
+    if not f.is_file():
+        raise HTTPException(status_code=404, detail="not a song")
+    return json.loads(f.read_text(encoding="utf-8"))

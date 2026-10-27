@@ -6,6 +6,7 @@ import { call } from "../api.js";
 import { clock, el, toBase64, useCss } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { deckPanel } from "./dj_deck.js";
+import { setConsole, setPanel, songPanel, songText } from "./dj_set.js";
 import { pluginSlot } from "./plugin_slot.js";
 
 const size = (n) => (n < 1048576 ? `${(n / 1024).toFixed(0)} KB` : `${(n / 1048576).toFixed(1)} MB`);
@@ -17,8 +18,10 @@ export default {
   plugin: "dj",                       // in the menu only when that plugin is on
 
   mount(root) {
+    this.root = root;
     root.classList.add("page");
     useCss("/static/css/dj_deck.css");
+    useCss("/static/css/dj_set.css");
     root.innerHTML = `<h2 data-i18n="dj.title"></h2><p class="muted" data-i18n="dj.hint"></p>
       <h3 class="setting-cat" data-i18n="dj.tracks"></h3>
       <label class="dj-upload"><span data-i18n="dj.upload"></span><input type="file" accept="audio/*" multiple hidden></label>
@@ -27,7 +30,8 @@ export default {
       <div class="dj-deck-slot"></div>
       <div class="appr-actions"><select class="dj-style"></select><button class="approve dj-go" data-i18n="dj.go"></button>
         <span class="muted dj-out"></span></div>
-      <h3 class="setting-cat" data-i18n="dj.mixes"></h3><div class="dj-mixes"></div>`;
+      <div class="dj-set-slot"></div><div class="dj-song-slot"></div>
+      <h3 class="setting-cat" data-i18n="dj.mixes"></h3><div class="dj-console-slot"></div><div class="dj-mixes"></div>`;
     root.querySelector("h2")?.after(pluginSlot("dj"));   // its plugins, configured here
     apply(root);
     this.tracks = root.querySelector(".dj-tracks");
@@ -36,6 +40,9 @@ export default {
     this.order = [];                                  // the tracks in the order they were ticked: A, then B
     this.deck = deckPanel(() => { this.order.reverse(); this.deck.show(...this.order); });
     root.querySelector(".dj-deck-slot").append(this.deck);
+    // 🎛️ Aurora's set: two or more tracks, in her order or yours (aud_set)
+    root.querySelector(".dj-set-slot").append(setPanel(() => [...this.tracks.querySelectorAll("input:checked")].map((b) => b.value), () => this.enter()));
+    this.consoleSlot = root.querySelector(".dj-console-slot");
     this.out = root.querySelector(".dj-out");
     const upOut = root.querySelector(".dj-up-out");
     root.querySelector(".dj-upload input").addEventListener("change", async (ev) => {
@@ -76,11 +83,33 @@ export default {
       this.enter();
     });
     row.append(el("span", "up-name", f.name), el("span", "muted", `${size(f.bytes)} · ${clock(f.at)}`), audio, del);
+    if (f.song) {                                      // a song of Aurora's: its lyrics
+      const text = el("button", "", `📝 ${t("dj.song.text")}`);
+      text.addEventListener("click", async () => {
+        const open = row.nextElementSibling?.classList.contains("dj-song-text");
+        if (open) { row.nextElementSibling.remove(); return; }
+        try { row.after(await songText(f.name)); } catch (e) { alert(e.message); }
+      });
+      row.append(text);
+    }
+    if (f.set) {                                       // a set of Aurora's: its console
+      const open = el("button", "approve", `🎛️ ${t("dj.set.console")}`);
+      open.addEventListener("click", async () => {
+        try { this.consoleSlot.replaceChildren(await setConsole(f.name)); this.consoleSlot.scrollIntoView({ behavior: "smooth" }); }
+        catch (e) { this.consoleSlot.replaceChildren(el("p", "warn", e.message)); }
+      });
+      row.append(open);
+    }
     return row;
   },
 
   async enter() {
     const s = await call("/v1/aurora/dj");
+    const songSlot = this.root.querySelector(".dj-song-slot");
+    if (!songSlot.firstChild || songSlot.dataset.ready !== String(s.song.code && s.song.weights)) {
+      songSlot.replaceChildren(songPanel(s.song, () => this.enter()));   // drawn again only when installed or not changes
+      songSlot.dataset.ready = String(s.song.code && s.song.weights);
+    }
     if (!this.style.options.length) {
       for (const st of s.styles) { const o = el("option", "", st.label + (st.bpm ? ` · ${st.bpm} BPM` : "")); o.value = st.id; this.style.append(o); }
       this.style.value = "techno_trance";

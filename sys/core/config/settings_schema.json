@@ -549,6 +549,88 @@
    ]
   },
   {
+   "key": "AURORA_SONG_DIR",
+   "type": "path",
+   "recommended": "sys/runtime/ace-step",
+   "en": "Where the music model that sings songs (ACE-Step 1.5) is installed: its code, set up with uv.",
+   "it": "Dove è installato il modello musicale che canta le canzoni (ACE-Step 1.5): il suo codice, installato con uv.",
+   "category": "attachments",
+   "optional": true,
+   "services": [
+    "aurora-api"
+   ],
+   "evidence": "owner, 2026-10-27"
+  },
+  {
+   "key": "AURORA_SONG_MODELS",
+   "type": "path",
+   "recommended": "sys/models/music/ace-step",
+   "en": "The music model's weights (downloaded once by the owner: nothing is fetched while singing).",
+   "it": "I pesi del modello musicale (scaricati una volta dal proprietario: niente viene scaricato mentre canta).",
+   "category": "attachments",
+   "optional": true,
+   "services": [
+    "aurora-api"
+   ],
+   "evidence": "owner, 2026-10-27"
+  },
+  {
+   "key": "AURORA_SONG_CMD",
+   "type": "str",
+   "recommended": "uv run acestep-api",
+   "en": "The command that starts the music model's API server, in its folder.",
+   "it": "Il comando che avvia il server del modello musicale, nella sua cartella.",
+   "category": "attachments",
+   "optional": true,
+   "services": [
+    "aurora-api"
+   ],
+   "evidence": "owner, 2026-10-27"
+  },
+  {
+   "key": "AURORA_SONG_PORT",
+   "type": "int",
+   "min": 1024,
+   "max": 65535,
+   "recommended": "8011",
+   "en": "The music model's port on 127.0.0.1, only while it sings.",
+   "it": "La porta del modello musicale su 127.0.0.1, solo mentre canta.",
+   "category": "attachments",
+   "optional": true,
+   "services": [
+    "aurora-api"
+   ],
+   "evidence": "owner, 2026-10-27"
+  },
+  {
+   "key": "AURORA_SONG_TIMEOUT_S",
+   "type": "int",
+   "min": 120,
+   "max": 7200,
+   "recommended": "1200",
+   "en": "Longest wait for a song, start included, in seconds.",
+   "it": "Attesa massima per una canzone, avvio compreso, in secondi.",
+   "category": "attachments",
+   "optional": true,
+   "services": [
+    "aurora-api"
+   ],
+   "evidence": "owner, 2026-10-27"
+  },
+  {
+   "key": "AURORA_SONG_THINKING",
+   "type": "bool",
+   "recommended": "true",
+   "en": "The music model's own language model plans the song first (better structure, a little slower).",
+   "it": "Il modello linguistico del modello musicale progetta prima la canzone (struttura migliore, un po' più lento).",
+   "category": "attachments",
+   "optional": true,
+   "services": [
+    "aurora-api"
+   ],
+   "evidence": "owner, 2026-10-27"
+  },
+  {
    "key": "AURORA_HEALTH_DIR",
    "type": "path",
    "category": "attachments",

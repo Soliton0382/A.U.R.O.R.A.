@@ -1,0 +1,44 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright 2026 A.U.R.O.R.A. Project */
+/* 🎛️ Aurora's set and its console (dj_set.js) */
+.dj-set-panel { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: .5rem 0; padding: .5rem .7rem;
+  border: 1px dashed var(--line); border-radius: 10px; }
+.dj-console { margin: .8rem 0 1.2rem; padding: .9rem; border-radius: 16px; border: 1px solid var(--line);
+  background: radial-gradient(120% 140% at 50% 0%, rgba(80, 110, 255, .16), rgba(10, 14, 30, .55) 60%), rgba(0, 0, 0, .25); }
+.dj-console h4 { margin: 0 0 .6rem; font-size: .9rem; opacity: .8; word-break: break-all; }
+.dj-c-decks { display: grid; grid-template-columns: 1fr minmax(8rem, 12rem) 1fr; gap: .8rem; align-items: center; }
+.dj-c-deck { display: grid; justify-items: center; gap: .3rem; text-align: center; opacity: .55; transition: opacity .4s; }
+.dj-c-deck.live { opacity: 1; }
+.dj-c-disc { --h: 220; width: min(34vw, 9.5rem); aspect-ratio: 1; border-radius: 50%; position: relative;
+  background: repeating-radial-gradient(circle, #111 0 2px, #1b1b1b 2px 4px);
+  box-shadow: 0 0 0 3px hsla(var(--h), 80%, 55%, .55), 0 0 28px hsla(var(--h), 80%, 55%, .35); }
+.dj-c-deck.live .dj-c-disc { box-shadow: 0 0 0 3px hsla(var(--h), 85%, 60%, .9), 0 0 40px hsla(var(--h), 85%, 60%, .6); }
+.dj-c-disc.dj-c-spinning { animation: dj-spin 1.8s linear infinite; }   /* not .spin: the chat's class hides */
+@keyframes dj-spin { to { transform: rotate(360deg); } }
+.dj-c-label { position: absolute; inset: 34%; border-radius: 50%; display: grid; place-items: center; font-weight: 700;
+  background: hsl(var(--h), 70%, 48%); color: #fff; font-size: 1rem; }
+.dj-c-label::after { content: ""; position: absolute; width: 8%; aspect-ratio: 1; border-radius: 50%; background: #0b0b0b; }
+.dj-c-name { font-weight: 600; font-size: .9rem; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dj-c-meta { font-size: .75rem; opacity: .8; }
+.dj-c-mid { display: grid; justify-items: center; gap: .45rem; }
+.dj-c-bpm { font-size: 1.1rem; font-weight: 700; letter-spacing: .04em; }
+.dj-c-play { width: 3.4rem; height: 3.4rem; border-radius: 50%; font-size: 1.3rem; background: var(--accent, #4b6bff); color: #fff; border: 0; }
+.dj-c-time { font-variant-numeric: tabular-nums; font-size: .85rem; opacity: .85; }
+.dj-c-fader { position: relative; width: 100%; height: 1.6rem; display: flex; justify-content: space-between; align-items: center;
+  padding: 0 .3rem; border-radius: 8px; background: rgba(255, 255, 255, .06); font-size: .7rem; opacity: .9; }
+.dj-c-knob { position: absolute; top: .15rem; width: .9rem; height: 1.3rem; margin-left: -.45rem; border-radius: 4px;
+  background: linear-gradient(#ddd, #888); box-shadow: 0 0 8px rgba(255, 255, 255, .35); transition: left .1s linear; }
+.dj-c-wave { width: 100%; height: 90px; margin-top: .8rem; display: block; cursor: pointer; border-radius: 8px;
+  background: rgba(0, 0, 0, .25); }
+.dj-c-list { margin: .6rem 0 0; padding-left: 1.4rem; font-size: .85rem; display: grid; gap: .2rem; }
+.dj-c-list li { cursor: pointer; }
+.dj-c-cam { display: inline-block; min-width: 2.3rem; text-align: center; border-radius: 6px; font-weight: 700;
+  font-size: .75rem; background: hsl(var(--h), 65%, 42%); color: #fff; }
+@media (max-width: 600px) {
+  .dj-c-decks { grid-template-columns: 1fr 1fr; }
+  .dj-c-mid { grid-column: 1 / -1; grid-row: 2; }
+}
+.dj-song textarea { width: 100%; box-sizing: border-box; margin: .3rem 0; }
+.dj-song pre { white-space: pre-wrap; font-size: .8rem; }
+.dj-song-text { margin: .2rem 0 .8rem 1rem; padding: .6rem .8rem; border-left: 3px solid var(--accent, #4b6bff); }
+.dj-song-text pre { white-space: pre-wrap; font-family: inherit; margin: .4rem 0 0; }

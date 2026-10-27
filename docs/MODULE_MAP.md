@@ -321,6 +321,7 @@ call downward (ECOSYSTEM §1).
 | `sys_backup_retime.py` | moves the nightly backup timer (root helper, aurora-retime) | when the owner changes the backup time |
 | `sys_users_migrate.py` | to the per-user layout: plan, migrate (with a backup first), fresh for a new install | once, at the passage to users |
 | `bench_retrieval.py` | permanent retrieval benchmark on a fixed suite, isolated vault; results + history | after any change to encoder, index or search |
+| `bench_synapses.py` | the synapses with and without on real questions of the last days (search traces), the real vault, the running models, nothing written; the local reasoner judges what they bring and what they push out (0-2); <STATUS>/bench/synapses-*.json, a notification |
 | `svc_models.py` | service aurora-models (127.0.0.1:9710): encoder + re-ranker on GPU1 | systemd |
 | `svc_llm.py` | service aurora-llm (127.0.0.1:9711): launches llama-server with the `.env` values | systemd |
 | `svc_api.py` | service aurora-api (127.0.0.1:9700): builds the app from the routers of `aurora/api/` (in order), the WebUI, start (vault check, plugin tools listed in the background) | systemd |
@@ -539,5 +540,8 @@ Server data is always inserted as text, never as HTML.
 | `net_geo.py` | network | where an IP is, offline: DB-IP lite city + ASN (monthly into <STATUS>/geo), a MaxMind DB reader of its own (no library) |
 | `net_trace.py` | network | the visual traceroute: mtr raw mode read line by line, each hop placed (net_geo), plausibility by the speed of light in fibre |
 | `aud_deck.py` | audio | the DJ's two decks: one tempo, B tuned to A, mix with a transition (bass swap, crossfade, filter, echo) at A's bar, or EQ mashup |
+| `aud_set.py` | audio | Aurora's DJ set: each track analysed once, the order by the Camelot wheel and tempo (or the user's), one common tempo without changing keys, each track in on the beat of the one ending (bass swap between agreeing keys, filter otherwise), the timeline with the waveform's peaks beside the MP3 | aud_analysis, aud_deck | api/dj |
+| `aud_song.py` | audio | a song from an idea: the local reasoner writes title, caption and lyrics (or keeps the user's); ACE-Step 1.5 sings it — aurora-llm stopped under the GPU lock, ACE-Step's API server on 127.0.0.1 with a key of the moment, then stopped and the reasoner started again whatever happened (mdl_image's swap); the MP3 tagged as AI, its lyrics beside it | mdl_image, aud_analysis, httpx | api/dj |
 | `webui/js/modules/security_trace.js` | interface | 🌍 Traceroute: a canvas globe (orthographic, Natural Earth via world-atlas), hops fly in as they answer |
 | `webui/js/modules/dj_deck.js` | interface | 🎚️ the two decks' choices on the DJ page |
+| `webui/js/modules/dj_set.js` | interface | 🎛️ the set's options and its console — two spinning decks with the Camelot colours, the crossfader moved by each transition, the set's waveform coloured by track with the transitions shaded, the tracklist; 🎤 the song panel (idea, language, length, own lyrics; what to install when missing) and a song's lyrics |
