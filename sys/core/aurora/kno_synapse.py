@@ -12,7 +12,9 @@ fade without it.
   decides, a link never puts a passage in the answer by itself;
 - strengthen (Hebb: what fires together wires together): passages cited together in one answer, a link made or made
   stronger;
-- fade (daily): a link unused for a week loses a little weight each day; below FADE_FLOOR it is gone.
+- fade (daily, only when AURORA_SYNAPSE_FADE is on — off by default since 27 Oct, owner: «io non le farei scadere,
+  le farei crescere così quando servono ci sono»): a link unused for a week loses a little weight each day; below
+  FADE_FLOOR it falls asleep.
 State: <AURORA_STATUS_DIR>/synapses.db (SQLite): the knowledge is shared, so are its links.
 """
 from __future__ import annotations

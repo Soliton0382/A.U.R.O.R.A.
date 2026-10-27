@@ -125,3 +125,12 @@ def test_everything_of_the_music_model_stays_inside_aurora(cfg, tmp_path):
     own.write_text("")
     cfg.values["AURORA_SONG_CMD"] = "uv run --no-sync acestep-api"
     assert S.command(cfg) == [str(own), "run", "--no-sync", "acestep-api"]   # Aurora's own uv, never the user's
+
+
+def test_songs_are_offered_where_the_gpu_allows():
+    """The installer offers them by default from a 4 GB GPU (under 10 GB ACE-Step offloads by itself); not without one."""
+    from aurora import sys_features as F
+    gpu = lambda gb: {"gpus": [{"vram_gb": gb}], "ram_gb": 32}   # noqa: E731
+    assert F.GROUPS["songs"]["default"] is True
+    assert F.fits(gpu(16), "songs")[0] and F.fits(gpu(6), "songs")[0]
+    assert not F.fits(gpu(3), "songs")[0] and not F.fits({"gpus": [], "ram_gb": 64}, "songs")[0]

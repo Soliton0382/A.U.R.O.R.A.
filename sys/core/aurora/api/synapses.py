@@ -33,7 +33,8 @@ def synapses_grow(limit: int = 0) -> dict:
         _growing.set()
         try:
             out = kno_synapse.grow(cfg, s.reader, s.index, s.embedder, n)
-            faded = kno_synapse.fade(cfg)
+            # owner, 27 Oct: «io non le farei scadere, le farei crescere così quando servono ci sono»
+            faded = kno_synapse.fade(cfg) if cfg["AURORA_SYNAPSE_FADE"] else {"weaker": 0, "gone": 0}
             log.info("synapses: %d passages looked at, %d links made in %.0f s; faded %d, asleep %d",
                      out["seen"], out["made"], out["seconds"], faded["weaker"], faded["gone"])
             _level2_if_due()

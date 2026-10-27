@@ -1121,6 +1121,19 @@
    "max": 0.99
   },
   {
+   "key": "AURORA_SYNAPSE_FADE",
+   "type": "bool",
+   "category": "search",
+   "recommended": "false",
+   "optional": true,
+   "evidence": "owner, 2026-10-27",
+   "services": [
+    "aurora-api"
+   ],
+   "en": "Synapses unused for a week lose a little weight each day and fall asleep below 0.5. Off: they never expire, they grow and stay for when they are needed.",
+   "it": "Le sinapsi inutilizzate da una settimana perdono un po' di peso ogni giorno e si addormentano sotto 0,5. Spento: non scadono mai, crescono e restano per quando servono."
+  },
+  {
    "key": "AURORA_SYNAPSE_EXPAND",
    "type": "int",
    "category": "search",

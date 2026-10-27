@@ -65,7 +65,10 @@ GROUPS = {
     "voice_natural": {"models": ["tts_qwen"], "features": [], "default": True, "gpu": True,
                       "label": {"it": "Voce naturale di Aurora (Qwen3-TTS, sulla GPU, ~2,5 GB)",
                                 "en": "Aurora's natural voice (Qwen3-TTS, on the GPU, ~2.5 GB)"}},
-    "songs": {"models": ["music"], "features": ["songs"], "default": False, "gpu": True,
+    # part of Aurora wherever the hardware allows (owner, 27 Oct: «quando uno installa aurora questa parte deve essere
+    # integrata se ovviamente l'hw lo permette»): on a GPU of 10 GB or more all on the card, from 4 GB ACE-Step offloads
+    # to the CPU by itself (its own tiers: INT8, its planner off under 6 GB); with no GPU it is not offered
+    "songs": {"models": ["music"], "features": ["songs"], "default": True, "gpu": True,
               "label": {"it": "Canzoni da un'idea, cantate (ACE-Step 1.5, sulla GPU; tutto dentro la cartella di Aurora)",
                         "en": "Songs from an idea, sung (ACE-Step 1.5, on the GPU; everything inside Aurora's folder)"}},
     "video": {"models": ["video"], "features": ["video_make"], "default": False,
@@ -73,7 +76,7 @@ GROUPS = {
 }
 # measured needs: VRAM on one GPU (GB, peak + margin), RAM of the machine (GB), where it was measured
 HARDWARE = {"dreams": (7, 0, "M27: 6.21 GB"), "edit_ai": (10, 0, "M55: 9.23 GB"),
-            "video_make": (14, 48, "M57: 13.88 GB, process 42 GB of RAM"), "songs": (10, 0, "M265: 8.38 GB")}
+            "video_make": (14, 48, "M57: 13.88 GB, process 42 GB of RAM"), "songs": (4, 0, "M265: 8.38 GB peak on one GPU; under 10 GB ACE-Step offloads to the CPU by itself")}
 
 
 def fits(profile: dict, group: str) -> tuple[bool, str]:
