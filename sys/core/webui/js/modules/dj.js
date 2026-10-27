@@ -8,6 +8,7 @@
 import { call } from "../api.js";
 import { el, useCss } from "../dom.js";
 import { apply, t } from "../i18n.js";
+import { bus } from "../bus.js";
 import { deckPanel } from "./dj_deck.js";
 import { djPlayer } from "./dj_player.js";
 import { setConsole, setPanel, songPanel } from "./dj_set.js";
@@ -54,6 +55,9 @@ export default {
       },
     });
     root.querySelector(".dj-player-slot").append(this.playerView.box);
+    // a song sung, a mix made, a failure: the playlist at once, not at the next look (owner, 27 Oct: «non c'è un
+    // refresh in tempo reale dell'elenco»); the activity is each user's own (note() per user)
+    bus.on("activity", (a) => { if (String(a?.event || "").startsWith("dj.") && this.root?.isConnected) this.enter(); });
     this.out = root.querySelector(".dj-out");
     root.querySelector(".dj-go").addEventListener("click", async () => {
       const chosen = this.order;

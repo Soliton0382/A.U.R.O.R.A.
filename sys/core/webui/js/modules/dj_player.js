@@ -12,6 +12,7 @@
 import { call } from "../api.js";
 import { el, toBase64 } from "../dom.js";
 import { t } from "../i18n.js";
+import { bus } from "../bus.js";
 import { milkdrop, PRESETS } from "./dj_milk.js";
 
 const MODES = ["spectrum", "scope", "milk"];
@@ -20,6 +21,10 @@ const mmss = (s) => (Number.isFinite(s) ? `${Math.floor(s / 60)}:${String(Math.f
 const nice = (name) => name.replace(/\.(mp3|wav|flac|ogg|m4a|aac|opus|webm)$/i, "").replace(/-\d{8}-\d{4}$/, "").replace(/[-_]+/g, " ");
 const kindOf = (it) => (it.song ? "song" : it.set ? "set" : it.kind === "mixes" ? "mix" : "mine");
 const ICON = { song: "🎤", set: "🎛️", mix: "💿", mine: "🎵" };
+// rows shown before the playlist scrolls (owner, 27 Oct: «un massimo di X brani visualizzati in base a chi siamo sul
+// cellulare (pwa o app) o browser»): the phone app, an installed PWA or a narrow screen 6; a computer's browser 12
+const ROWS = () => (/AuroraApp/.test(navigator.userAgent) || matchMedia("(display-mode: standalone)").matches
+  || matchMedia("(max-width: 700px)").matches ? 6 : 12);
 
 export function djPlayer({ reload, onSelect, onConsole }) {
   const box = el("section", "wa");
@@ -48,7 +53,12 @@ export function djPlayer({ reload, onSelect, onConsole }) {
   const vol = el("input", "wa-vol");
   Object.assign(vol, { type: "range", min: 0, max: 100, value: 80 });
   const controls = el("div", "wa-controls");
-  controls.append(prev, play, stop, next, shuf, rep, eject, el("span", "wa-vol-l", "🔊"), vol);
+  // the speaker and its slider one block, never apart when the row wraps (owner, 27 Oct: in the app «il simbolo
+  // altoparlante è scollegato dallo slider… lo farei cliccabile»): a tap mutes, the icon follows the volume
+  const spk = btn("🔊", t("dj.player.mute"));
+  const volBox = el("span", "wa-volbox");
+  volBox.append(spk, vol);
+  controls.append(prev, play, stop, next, shuf, rep, eject, volBox);
   const upOut = el("div", "wa-up muted");
   main.append(bar, lcd, seek, controls, upOut);
   // — the visualiser
@@ -95,6 +105,7 @@ export function djPlayer({ reload, onSelect, onConsole }) {
   vis.append(canvas, tag, modes, unmax);
   // — the playlist
   const list = el("ol", "wa-list");
+  list.style.setProperty("--rows", ROWS());
   const legend = el("div", "wa-legend", `🎤 ${t("dj.player.k_song")} · 🎵 ${t("dj.player.k_mine")} · 💿 ${t("dj.player.k_mix")} · 🎛️ ${t("dj.player.k_set")} · ☑ ${t("dj.player.k_tick")}`);
   const editor = el("div", "wa-editor");
   editor.hidden = true;
@@ -130,6 +141,7 @@ export function djPlayer({ reload, onSelect, onConsole }) {
     audio.src = `/v1/aurora/dj/${it.kind}/${encodeURIComponent(it.name)}`;
     mtext.textContent = `${cur + 1}. ${nice(it.name)}  ***  ${nice(it.name)}  ***`;
     list.querySelectorAll("li").forEach((li, k) => li.classList.toggle("on", k === cur));
+    list.children[cur]?.scrollIntoView({ block: "nearest" });           // the playing one in view, in the list only
     if (go) { ensureAudio(); ctx.resume(); audio.play().catch(() => {}); }
   };
   const step = (d) => {                            // shuffle: any other track, never the same one again at once
@@ -155,11 +167,26 @@ export function djPlayer({ reload, onSelect, onConsole }) {
     rep.classList.toggle("on", repeat > 0);
     rep.title = t(["dj.player.loop_off", "dj.player.loop_all", "dj.player.loop_one"][repeat]);
   });
-  vol.addEventListener("input", () => { audio.volume = vol.value / 100; });
+  const speaker = () => {
+    const v = audio.muted ? 0 : audio.volume;
+    spk.textContent = v === 0 ? "🔇" : v < 0.34 ? "🔈" : v < 0.67 ? "🔉" : "🔊";
+    spk.classList.toggle("on", audio.muted);
+  };
+  vol.addEventListener("input", () => { audio.volume = vol.value / 100; audio.muted = false; speaker(); });
+  spk.addEventListener("click", () => { audio.muted = !audio.muted; speaker(); });
   audio.volume = 0.8;
   seek.addEventListener("input", () => { if (audio.duration) audio.currentTime = (seek.value / 1000) * audio.duration; });
-  audio.addEventListener("play", () => { play.textContent = "⏸"; box.classList.add("playing"); });
-  audio.addEventListener("pause", () => { play.textContent = "▶"; box.classList.remove("playing"); });
+  // she listens with you: the page says it every half minute while it plays (her mood: 🎧), and when it stops
+  let heard = null;
+  const listen = (playing) => {
+    const title = cur >= 0 && items[cur] ? nice(items[cur].name) : "";
+    call("/v1/aurora/dj/listening", { method: "POST", body: JSON.stringify({ playing, title }) }).then(() => bus.emit("mood")).catch(() => {});
+  };
+  audio.addEventListener("play", () => {
+    play.textContent = "⏸"; box.classList.add("playing");
+    listen(true); clearInterval(heard); heard = setInterval(() => { if (!box.isConnected) { clearInterval(heard); return listen(false); } listen(true); }, 30000);
+  });
+  audio.addEventListener("pause", () => { play.textContent = "▶"; box.classList.remove("playing"); clearInterval(heard); listen(false); });
   audio.addEventListener("ended", () => {
     if (repeat === 2) return load(cur);                       // 🔂 the same track
     if (shuffle || cur < items.length - 1) return step(1);
@@ -231,6 +258,11 @@ export function djPlayer({ reload, onSelect, onConsole }) {
         c.addEventListener("click", () => onConsole(it.name));
         acts.append(c);
       }
+      const get = el("a", "wa-btn", "⬇️");             // to keep it (the phone app saves it to Downloads)
+      get.href = `/v1/aurora/dj/${it.kind}/${encodeURIComponent(it.name)}?download=1`;
+      get.download = it.name;
+      get.title = t("dj.player.download");
+      acts.append(get);
       const del = btn("🗑️", t("up.delete"));
       del.addEventListener("click", async () => {
         if (!confirm(t("up.confirm", { name: it.name }))) return;

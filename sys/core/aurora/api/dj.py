@@ -22,6 +22,8 @@ router = APIRouter()
 AUDIO = re.compile(r"\.(mp3|wav|flac|ogg|m4a|aac|opus|webm)$", re.I)
 NAME = re.compile(r"[\w\- .()'àèéìòù]{1,120}")
 _busy: dict[str, dict] = {}                 # user -> the job running
+_listening: dict[str, dict] = {}            # user -> {"title", "at"}: the player playing (her mood: 🎧)
+LISTEN_S = 75                               # the page says it every 30 s: two missed and she has stopped listening
 
 
 def _dir():
@@ -94,10 +96,11 @@ def dj_delete(kind: str, name: str) -> dict:
 
 
 @router.get("/v1/aurora/dj/{kind}/{name}", dependencies=[Depends(auth)])
-def dj_file(kind: str, name: str):
+def dj_file(kind: str, name: str, download: bool = False):
+    """A track to play, or with ?download=1 to keep (the player's ⬇️; the phone app saves it to Downloads)."""
     f = _file(name, mixes=kind == "mixes")
     return FileResponse(f, media_type="audio/mpeg" if f.suffix.lower() == ".mp3" else "application/octet-stream",
-                        filename=f.name, content_disposition_type="inline")
+                        filename=f.name, content_disposition_type="attachment" if download else "inline")
 
 
 @router.post("/v1/aurora/dj/make", dependencies=[Depends(auth)])
@@ -263,3 +266,21 @@ async def dj_song_edit(name: str, request: Request) -> dict:
     f.write_text(json.dumps(song, ensure_ascii=False, indent=1), encoding="utf-8")
     log.info("dj: %s edited the words of %s", me(), name)
     return song
+
+
+@router.post("/v1/aurora/dj/listening", dependencies=[Depends(auth)])
+async def dj_listening(request: Request) -> dict:
+    """{"playing": bool, "title"}: the music player says what it plays, every half minute (her mood shows 🎧)."""
+    body = await request.json()
+    who = me() or ""
+    if body.get("playing"):
+        _listening[who] = {"title": str(body.get("title") or "")[:120], "at": time.time()}
+    else:
+        _listening.pop(who, None)
+    return {"listening": who in _listening}
+
+
+def listening(who: str) -> dict | None:
+    """What this user's player plays now, or None (silent, or no word for LISTEN_S)."""
+    x = _listening.get(who or "")
+    return x if x and time.time() - x["at"] < LISTEN_S else None

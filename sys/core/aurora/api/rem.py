@@ -57,7 +57,10 @@ def mood() -> dict:
     from aurora import kno_mood
     if not cfg["AURORA_MOOD"]:
         return {"on": False, "emotions": {}, "dominant": None}
-    return kno_mood.with_anger(cfg, kno_mood.last(cfg, 180)) or rem_state()["mood"]
+    m = kno_mood.with_anger(cfg, kno_mood.last(cfg, 180)) or rem_state()["mood"]
+    from .dj import listening
+    now = listening(me() or "")                       # the music player playing: she listens with you (🎧)
+    return {**m, "listening": now} if now else m
 
 
 @router.get("/v1/aurora/rem/state", dependencies=[Depends(auth)])

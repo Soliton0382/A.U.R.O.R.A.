@@ -15,6 +15,12 @@ number from 0 to 1 computed from things measured now, and carries its causes in 
 | melancholy   | clouds and rain at home                                                        | overcast, or 1 mm of rain     |
 | worry        | open incidents of high severity + health problems                              | one                           |
 | anger        | the person's messages that insult her, each fading in 30 min; an apology ends it| one offence (kno_anger)       |
+| joy          | music made with her — songs sung, mixes, sets — each fading over JOY_HALF_H     | one piece made just now       |
+
+While the music player plays (api/dj: the page tells it every half minute), the mood also carries «listening»: the
+top bar shows her with headphones (owner, 2026-10-27: «musica e dj sono cose che dovrebbero influire sugli stati
+d'animo di aurora… se è stimolata con la creazione spingerei su emoji di felicità… se il player sta a riprodurre una
+bella emoji con le cuffie»).
 
 Effects (each small, each said): the words she uses about herself (the "self" answers, her spontaneous messages, the
 good morning), the autonomic cycle waiting when stress passes AURORA_MOOD_STRESS_PAUSE, the chat voice a little slower
@@ -31,7 +37,8 @@ from pathlib import Path
 
 from . import sys_config
 
-NAMES = ("stress", "satisfaction", "curiosity", "tiredness", "longing", "melancholy", "worry", "anger")
+NAMES = ("stress", "satisfaction", "curiosity", "tiredness", "longing", "melancholy", "worry", "anger", "joy")
+JOY_HALF_H = 6                    # a piece of music made counts half after 6 hours
 WINDOW_H = 6                      # tiredness looks at the last 6 hours of samples
 MIN_SAMPLES = 30                  # half an hour of REM looks before tiredness is said at all
 EVERY_S = 50                      # at most one sample a minute (rem/state is asked per user, and by the Health page)
@@ -191,7 +198,25 @@ def measure(cfg: sys_config.Config, st: dict | None = None, active_runs: int = 0
 
     from . import kno_anger
     out["anger"] = kno_anger.level(cfg)
+    out["joy"] = joy(cfg)
     return _dominant({"on": True, "emotions": out, "at": time.time()})
+
+
+def joy(cfg: sys_config.Config, now: float | None = None) -> dict:
+    """Music made with her (the user's mixes folder: songs sung, mixes, sets), each piece fading over JOY_HALF_H."""
+    now = time.time() if now is None else now
+    try:
+        made = [f for f in (cfg.path("AURORA_MUSIC_DIR") / "mixes").iterdir() if f.suffix.lower() == ".mp3"]
+    except OSError:
+        made = []
+    recent = [f for f in made if now - f.stat().st_mtime < 24 * 3600]
+    if not recent:
+        return {"value": 0.0, "causes": ["nessuna musica creata nelle ultime 24 ore"]}
+    weight = sum(0.5 ** ((now - f.stat().st_mtime) / 3600 / JOY_HALF_H) for f in recent)
+    songs = sum(1 for f in recent if f.with_suffix(".song.json").is_file())
+    rest = len(recent) - songs
+    said = ([f"{songs} canzoni cantate"] if songs else []) + ([f"{rest} mix o remix"] if rest else [])
+    return {"value": _sat(weight, 1), "causes": [", ".join(said) + " nelle ultime 24 ore"]}
 
 
 def _dominant(m: dict) -> dict:
@@ -221,9 +246,10 @@ def words(m: dict, lang: str = "it") -> str:
 
 LABELS = {"it": {"stress": "stress", "satisfaction": "soddisfazione", "curiosity": "curiosità", "tiredness": "stanchezza",
                  "longing": "nostalgia", "melancholy": "malinconia", "worry": "preoccupazione", "anger": "rabbia",
-                 "serenity": "serenità"},
+                 "serenity": "serenità", "joy": "gioia"},
           "en": {"stress": "stress", "satisfaction": "satisfaction", "curiosity": "curiosity", "tiredness": "tiredness",
-                 "longing": "longing", "melancholy": "melancholy", "worry": "worry", "anger": "anger", "serenity": "serenity"}}
+                 "longing": "longing", "melancholy": "melancholy", "worry": "worry", "anger": "anger", "serenity": "serenity",
+                 "joy": "joy"}}
 
 
 def _last_file(cfg: sys_config.Config) -> Path:
@@ -260,9 +286,10 @@ def compact(m: dict | None) -> dict | str:
 
 
 THE = {"it": {"stress": "lo stress", "curiosity": "la curiosità", "tiredness": "la stanchezza", "longing": "la nostalgia",
-              "melancholy": "la malinconia", "worry": "la preoccupazione", "anger": "la rabbia", "serenity": "la serenità"},
+              "melancholy": "la malinconia", "worry": "la preoccupazione", "anger": "la rabbia", "serenity": "la serenità",
+              "joy": "la gioia"},
        "en": {"stress": "stress", "curiosity": "curiosity", "tiredness": "tiredness", "longing": "longing",
-              "melancholy": "melancholy", "worry": "worry", "anger": "anger", "serenity": "serenity"}}
+              "melancholy": "melancholy", "worry": "worry", "anger": "anger", "serenity": "serenity", "joy": "joy"}}
 
 
 def feeling(m: dict, lang: str = "it") -> str:

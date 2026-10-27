@@ -7,9 +7,13 @@ import { t } from "./i18n.js";
 
 // one face per emotion that can prevail; the rows use the same faces
 export const MOOD_ICON = { serenity: "😌", stress: "😣", satisfaction: "😊", curiosity: "🧐", tiredness: "😴",
-  longing: "🥺", melancholy: "😔", worry: "😟", anger: "😠" };
+  longing: "🥺", melancholy: "😔", worry: "😟", anger: "😠", joy: "😄" };
 
-export const moodFace = (m) => MOOD_ICON[m?.dominant] || "😌";
+// the music player playing: she listens with you (owner, 27 Oct: «una bella emoji con le cuffie»), unless anger or
+// worry prevail — those are never hidden
+export const listening = (m) => Boolean(m?.listening) && !["anger", "worry"].includes(m?.dominant);
+export const moodFace = (m) => (listening(m) ? "🎧" : MOOD_ICON[m?.dominant] || "😌");
+export const moodKey = (m) => (listening(m) ? "listening" : m?.dominant || "serenity");
 
 export function moodTitle(m) {
   return t("mood.title", { d: `${moodFace(m)} ${t(`mood.${m.dominant || "serenity"}`)}` });
@@ -17,6 +21,7 @@ export function moodTitle(m) {
 
 // the dominant emotion's first cause, in one line (the top bar's tooltip and aria-label)
 export function moodLine(m) {
+  if (listening(m)) return t("mood.listening", { title: m.listening.title || "…" });
   const top = m.emotions?.[m.dominant];
   return top ? `${moodTitle(m)} — ${top.causes[0]}` : `${moodTitle(m)} — ${t("mood.calm")}`;
 }

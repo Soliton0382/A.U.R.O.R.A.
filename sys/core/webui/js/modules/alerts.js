@@ -9,7 +9,7 @@ import { el, useCss } from "../dom.js";
 import { t } from "../i18n.js";
 import { pushState } from "../push.js";
 import { bus } from "../bus.js";
-import { moodFace, moodLine, moodRows, moodTitle } from "../mood.js";
+import { moodFace, moodKey, moodLine, moodRows, moodTitle } from "../mood.js";
 
 export default {
   id: "alerts",
@@ -117,13 +117,14 @@ export default {
     document.addEventListener("click", (e) => { if (pinned && !card.contains(e.target) && e.target !== face) close(true); });
     document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(true); });
     window.addEventListener("resize", () => { if (!card.classList.contains("hidden")) place(); });
+    bus.on("mood", () => this.moodTick?.());           // the player started or stopped: the face at once
     this.moodTick = async () => {
       try {
         m = await call("/v1/aurora/mood");
         face.classList.toggle("hidden", !m.on);
         if (!m.on) return;
         face.textContent = moodFace(m);
-        face.dataset.mood = m.dominant;
+        face.dataset.mood = moodKey(m);
         face.title = moodLine(m);
         face.setAttribute("aria-label", face.title);
         if (!card.classList.contains("hidden")) open();
@@ -147,7 +148,8 @@ export default {
     };
     (async () => {
       for (;;) {
-        try { await stream("/v1/aurora/activity/stream", (a) => { if (a.event === "notify") show(a.payload); }); }
+        // every event on the bus too: a page that waits for one (the music page: a song sung) follows it live
+        try { await stream("/v1/aurora/activity/stream", (a) => { if (a.event === "notify") show(a.payload); bus.emit("activity", a); }); }
         catch (e) { if (e.status === 401) return; }
         await new Promise((ok) => setTimeout(ok, 5000));
       }
