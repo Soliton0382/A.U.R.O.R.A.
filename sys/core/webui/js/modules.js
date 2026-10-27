@@ -85,9 +85,9 @@ export const groups = [
   // what was shared are tabs of 🚨 Incidenti e difesa, one entry (owner, 27 Oct: «sono già tutti accorpati… basta una
   // voce sola del menù»): their own ids still open the page on their tab
   { id: "security", icon: "🛡️", title: "nav.g.security", views: ["firewalls", "edge", "security", "ciso", "firewall", "aurorafw", "secegress", "sectrace"] },
-  { id: "autonomy", views: ["autonomy"] },
-  { id: "system", icon: "⚙️", title: "nav.g.system", views: ["status", "models", "accounts", "plugins", "users", "usage", "settings", "https", "updates"] },
-  { id: "phoneapp", views: ["phoneapp"] },              // 📱 the phone app: download and set up (owner, 25 Oct)
+  // ⚙️ the system, with how free Aurora is and the phone app (owner, 27 Oct: «app per il telefono lo metterei sotto la
+  // voce sistema… anche autonomia»)
+  { id: "system", icon: "⚙️", title: "nav.g.system", views: ["status", "autonomy", "models", "accounts", "plugins", "users", "usage", "settings", "https", "updates", "phoneapp"] },
   { id: "help", icon: "❓", title: "nav.g.help", views: ["guide", "bugreport", "ideas"] },
 ];
 // the machine's pages (owner, 2026-10-06, multi-user): a user sees neither them in the menu nor their data (the API
