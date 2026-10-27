@@ -59,3 +59,20 @@ def test_make_keeps_the_timeline_beside_the_mp3(monkeypatch, tmp_path):
     r = S.make([tmp_path / "a.mp3", tmp_path / "b.mp3"], tmp_path / "set.mp3")
     assert r["file"] == "set.mp3" and "peaks" not in r
     assert json.loads((tmp_path / "set.json").read_text())["peaks"] == [0.0]
+
+
+def test_a_song_or_a_mix_can_be_chosen_for_a_mix(tmp_path, monkeypatch):
+    """The player's ticks send «mixes/<name>» for what is in mixes/ (a song Aurora sang): the first try cut one letter."""
+    from aurora.sys_config import ConfigError
+    try:
+        from aurora.api import dj as M
+    except ConfigError:                                   # the API loads the configuration: none here (publish's run)
+        pytest.skip("no configuration to load the API with")
+    (tmp_path / "mixes").mkdir()
+    (tmp_path / "mixes" / "song-1.mp3").write_bytes(b"x")
+    (tmp_path / "mine.mp3").write_bytes(b"x")
+    monkeypatch.setattr(M, "_dir", lambda: tmp_path)
+    assert M._pick("mixes/song-1.mp3") == tmp_path / "mixes" / "song-1.mp3"
+    assert M._pick("mine.mp3") == tmp_path / "mine.mp3"
+    with pytest.raises(M.HTTPException):
+        M._pick("mixes/../mine.mp3")

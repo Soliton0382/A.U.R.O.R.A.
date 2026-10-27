@@ -1,0 +1,70 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright 2026 A.U.R.O.R.A. Project */
+/* 📻 the DJ's player, the Winamp way (dj_player.js) */
+.wa { margin: .6rem 0 1.2rem; display: grid; gap: .45rem; max-width: 760px; font-family: "Tahoma", "Verdana", sans-serif; }
+.wa-main, .wa-list, .wa-editor { border: 1px solid #4a5468; border-radius: 6px;
+  background: linear-gradient(180deg, #343c4e, #20262f); box-shadow: inset 0 1px 0 #5d6a84, 0 6px 18px rgba(0, 0, 0, .35); }
+.wa-main { padding: .45rem .55rem .55rem; display: grid; gap: .45rem; }
+.wa-bar { font-size: .7rem; letter-spacing: .18em; font-weight: 700; color: #c9d4e8; padding: .15rem .45rem; border-radius: 3px;
+  background: repeating-linear-gradient(90deg, #2c3a5c 0 2px, #22304d 2px 4px); text-transform: uppercase; }
+.wa-lcd { display: grid; grid-template-columns: auto 1fr auto; grid-template-rows: auto auto; gap: .2rem .7rem; align-items: center;
+  background: #000; border: 2px inset #12161c; border-radius: 3px; padding: .45rem .6rem; color: #39ff6a;
+  font-family: "Courier New", monospace; text-shadow: 0 0 6px rgba(57, 255, 106, .6); }
+.wa-time { grid-row: 1 / 3; font-size: 2.2rem; font-weight: 700; letter-spacing: .06em; font-variant-numeric: tabular-nums; }
+.wa-marquee { overflow: hidden; white-space: nowrap; font-size: .95rem; }
+.wa-marquee span { display: inline-block; padding-left: 100%; animation: wa-run 16s linear infinite; }
+@keyframes wa-run { to { transform: translateX(-100%); } }
+.wa-info { font-size: .7rem; opacity: .8; }
+.wa-mini { grid-row: 1 / 3; grid-column: 3; width: 90px; height: 36px; }
+.wa-seek, .wa-vol { accent-color: #d6b72e; }
+.wa-seek { width: 100%; }
+.wa-controls { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem; }
+.wa-btn { min-width: 2.2rem; height: 1.9rem; padding: 0 .45rem; border-radius: 3px; border: 1px solid #0f1217; color: #e8ecf3; font-size: .9rem;
+  background: linear-gradient(180deg, #8792a8, #4a5368); box-shadow: inset 0 1px 0 #b7c2d6; cursor: pointer; }
+.wa-btn:active { background: linear-gradient(180deg, #4a5368, #8792a8); }
+.wa-btn.on { color: #39ff6a; text-shadow: 0 0 6px #39ff6a; }
+.wa-vol-l { margin-left: auto; }
+.wa-vol { width: 7rem; }
+.wa-vis { position: relative; border: 2px inset #12161c; border-radius: 4px; overflow: hidden; background: #000; }
+.wa-canvas { display: block; width: 100%; height: 220px; }
+.wa-vis:fullscreen .wa-canvas { height: 100vh; }
+.wa-modes { position: absolute; left: .4rem; bottom: .4rem; display: flex; gap: .25rem; opacity: .55; transition: opacity .3s; }
+.wa-vis:hover .wa-modes { opacity: 1; }
+.wa-modes .wa-btn { height: 1.6rem; font-size: .72rem; }
+.wa-list { list-style: none; counter-reset: wa; margin: 0; padding: .3rem; max-height: 16rem; overflow-y: auto;
+  background: #000; font-family: "Courier New", monospace; font-size: .85rem; }
+.wa-list li { counter-increment: wa; display: flex; align-items: center; gap: .4rem; padding: .12rem .35rem; color: #39ff6a; border-radius: 2px; }
+.wa-list li::before { content: counter(wa) "."; opacity: .7; min-width: 1.6rem; }
+.wa-list li.on { background: #0a246a; color: #fff; }
+.wa-list li:hover { background: #102a12; }
+.wa-name { flex: 1; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wa-acts { display: flex; gap: .2rem; }
+.wa-acts .wa-btn { min-width: 1.7rem; height: 1.45rem; font-size: .72rem; padding: 0 .25rem; }
+.wa-editor { padding: .6rem .7rem; display: grid; gap: .3rem; color: #e8ecf3; }
+.wa-editor[hidden] { display: none; }
+.wa-editor input, .wa-editor textarea { width: 100%; box-sizing: border-box; background: #0b0e13; color: #e8ecf3; border: 1px solid #4a5468;
+  border-radius: 3px; font-family: inherit; }
+.wa-editor label { font-size: .75rem; opacity: .8; }
+.wa.playing .wa-time { animation: wa-glow 1.2s ease-in-out infinite alternate; }
+@keyframes wa-glow { to { text-shadow: 0 0 14px rgba(57, 255, 106, .95); } }
+@media (max-width: 600px) {
+  .wa-time { font-size: 1.6rem; }
+  .wa-mini { display: none; }
+  .wa-lcd { grid-template-columns: auto 1fr; }
+  .wa-canvas { height: 180px; }
+  .wa-vol { width: 5rem; }
+}
+/* the visualiser over the whole page where the browser has no full screen (the phone app's WebView) */
+.wa-vis.wa-max { position: fixed; inset: 0; z-index: 2147483000; border: 0; border-radius: 0; }   /* over Aurora's own bar */
+.wa-vis.wa-max .wa-canvas { height: 100vh; height: 100dvh; }
+body.wa-maxed { overflow: hidden; }
+.wa-unmax { display: none; position: absolute; top: .6rem; right: .6rem; z-index: 2; }
+.wa-vis.wa-max .wa-unmax { display: block; }
+.wa-tag { position: absolute; top: .5rem; left: .7rem; color: #e8f6ff; font: 700 .8rem "Courier New", monospace; letter-spacing: .1em;
+  text-shadow: 0 0 8px #6ad7ff; pointer-events: none; }
+.wa-tick { accent-color: #39ff6a; margin: 0; }
+.wa-legend { font-size: .72rem; opacity: .75; padding: 0 .2rem; }
+.wa-eject { display: inline-grid; place-items: center; cursor: pointer; }
+.wa-up { font-size: .8rem; }
+.wa-up:empty { display: none; }
+.wa-none { color: #8fa; opacity: .7; }

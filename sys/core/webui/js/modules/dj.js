@@ -1,15 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 A.U.R.O.R.A. Project
-// 🎧 DJ: your tracks (uploaded here, kept in your music folder), a style, "Create": one track becomes a remix, several
-// become a mix at one tempo. Made in the background; a notification when ready; the mixes play here (owner, 2026-10-05).
+// 🎧 Musica e DJ (owner, 2026-10-05; 27 Oct: «toglierei la parte sotto di elenco file che non serve più… importare musica
+// propria nel player così puliamo la pagina e la rendiamo più accattivante… la chiamerei Musica e DJ»): the player is the
+// page's centre — your music imported there (⏏), every track, mix, set and song in its playlist, each ticked to be
+// mixed — then «Crea»: one ticked → a remix in a style, two → the two decks, more → a mix or Aurora's set; and a song
+// from an idea. Made in the background; a notification when ready.
 import { call } from "../api.js";
-import { clock, el, toBase64, useCss } from "../dom.js";
+import { el, useCss } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { deckPanel } from "./dj_deck.js";
-import { setConsole, setPanel, songPanel, songText } from "./dj_set.js";
+import { djPlayer } from "./dj_player.js";
+import { setConsole, setPanel, songPanel } from "./dj_set.js";
 import { pluginSlot } from "./plugin_slot.js";
-
-const size = (n) => (n < 1048576 ? `${(n / 1024).toFixed(0)} KB` : `${(n / 1048576).toFixed(1)} MB`);
 
 export default {
   id: "dj",
@@ -22,85 +24,48 @@ export default {
     root.classList.add("page");
     useCss("/static/css/dj_deck.css");
     useCss("/static/css/dj_set.css");
-    root.innerHTML = `<h2 data-i18n="dj.title"></h2><p class="muted" data-i18n="dj.hint"></p>
-      <h3 class="setting-cat" data-i18n="dj.tracks"></h3>
-      <label class="dj-upload"><span data-i18n="dj.upload"></span><input type="file" accept="audio/*" multiple hidden></label>
-      <span class="muted dj-up-out"></span><div class="dj-tracks"></div>
-      <h3 class="setting-cat" data-i18n="dj.make"></h3>
+    useCss("/static/css/dj_player.css");
+    root.innerHTML = `<h2 data-i18n="dj.title"></h2><p class="muted" data-i18n="dj.hint"></p><div class="dj-player-slot"></div>
+      <div class="dj-console-slot"></div>
+      <h3 class="setting-cat" data-i18n="dj.make"></h3><p class="muted dj-chosen"></p>
       <div class="dj-deck-slot"></div>
       <div class="appr-actions"><select class="dj-style"></select><button class="approve dj-go" data-i18n="dj.go"></button>
         <span class="muted dj-out"></span></div>
-      <div class="dj-set-slot"></div><div class="dj-song-slot"></div>
-      <h3 class="setting-cat" data-i18n="dj.mixes"></h3><div class="dj-console-slot"></div><div class="dj-mixes"></div>`;
+      <div class="dj-set-slot"></div><div class="dj-song-slot"></div>`;
     root.querySelector("h2")?.after(pluginSlot("dj"));   // its plugins, configured here
     apply(root);
-    this.tracks = root.querySelector(".dj-tracks");
-    this.mixes = root.querySelector(".dj-mixes");
     this.style = root.querySelector(".dj-style");
-    this.order = [];                                  // the tracks in the order they were ticked: A, then B
+    this.order = [];                                  // what is ticked in the player, in the order of the ticks: A, then B
     this.deck = deckPanel(() => { this.order.reverse(); this.deck.show(...this.order); });
     root.querySelector(".dj-deck-slot").append(this.deck);
-    // 🎛️ Aurora's set: two or more tracks, in her order or yours (aud_set)
-    root.querySelector(".dj-set-slot").append(setPanel(() => [...this.tracks.querySelectorAll("input:checked")].map((b) => b.value), () => this.enter()));
+    root.querySelector(".dj-set-slot").append(setPanel(() => this.order, () => this.enter()));
     this.consoleSlot = root.querySelector(".dj-console-slot");
-    this.out = root.querySelector(".dj-out");
-    const upOut = root.querySelector(".dj-up-out");
-    root.querySelector(".dj-upload input").addEventListener("change", async (ev) => {
-      for (const f of ev.target.files) {
-        upOut.textContent = t("dj.uploading", { name: f.name });
-        try { await call("/v1/aurora/dj/tracks", { method: "POST", body: JSON.stringify({ name: f.name, data: await toBase64(f) }) }); }
-        catch (e) { upOut.textContent = t("ev.error", { m: e.message }); return; }
-      }
-      upOut.textContent = "";
-      ev.target.value = "";
-      this.enter();
+    const chosenNote = root.querySelector(".dj-chosen");
+    this.playerView = djPlayer({                       // 📻 the Winamp-like player over every track, mix and song
+      reload: () => this.enter(),
+      onSelect: (refs) => {
+        this.order = refs;
+        this.deck.show(...(refs.length === 2 ? refs : []));
+        chosenNote.textContent = refs.length ? t("dj.chosen", { n: refs.length }) : t("dj.pick");
+      },
+      onConsole: async (name) => {
+        try { this.consoleSlot.replaceChildren(await setConsole(name)); this.consoleSlot.scrollIntoView({ behavior: "smooth" }); }
+        catch (e) { this.consoleSlot.replaceChildren(el("p", "warn", e.message)); }
+      },
     });
+    root.querySelector(".dj-player-slot").append(this.playerView.box);
+    this.out = root.querySelector(".dj-out");
     root.querySelector(".dj-go").addEventListener("click", async () => {
-      const ticked = [...this.tracks.querySelectorAll("input:checked")].map((b) => b.value);
-      const chosen = ticked.length === 2 ? this.order : ticked;
+      const chosen = this.order;
       if (!chosen.length) { this.out.textContent = t("dj.pick"); return; }
       const body = { tracks: chosen, style: this.style.value, ...(chosen.length === 2 ? { deck: this.deck.options() } : {}) };
       try {
         const r = await call("/v1/aurora/dj/make", { method: "POST", body: JSON.stringify(body) });
         this.out.textContent = t("dj.started", { title: r.title });
+        this.out.dataset.working = "1";
       } catch (e) { this.out.textContent = t("ev.error", { m: e.message }); }
       this.enter();
     });
-  },
-
-  player(kind, f) {
-    const row = el("div", "ev dj-row");
-    const audio = el("audio");
-    audio.controls = true;
-    audio.preload = "none";
-    audio.src = `/v1/aurora/dj/${kind}/${encodeURIComponent(f.name)}`;
-    const del = el("button", "", "🗑️");
-    del.title = t("up.delete");
-    del.addEventListener("click", async (ev) => {
-      ev.preventDefault();
-      if (!confirm(t("up.confirm", { name: f.name }))) return;
-      await call(`/v1/aurora/dj/${kind}/${encodeURIComponent(f.name)}`, { method: "DELETE" });
-      this.enter();
-    });
-    row.append(el("span", "up-name", f.name), el("span", "muted", `${size(f.bytes)} · ${clock(f.at)}`), audio, del);
-    if (f.song) {                                      // a song of Aurora's: its lyrics
-      const text = el("button", "", `📝 ${t("dj.song.text")}`);
-      text.addEventListener("click", async () => {
-        const open = row.nextElementSibling?.classList.contains("dj-song-text");
-        if (open) { row.nextElementSibling.remove(); return; }
-        try { row.after(await songText(f.name)); } catch (e) { alert(e.message); }
-      });
-      row.append(text);
-    }
-    if (f.set) {                                       // a set of Aurora's: its console
-      const open = el("button", "approve", `🎛️ ${t("dj.set.console")}`);
-      open.addEventListener("click", async () => {
-        try { this.consoleSlot.replaceChildren(await setConsole(f.name)); this.consoleSlot.scrollIntoView({ behavior: "smooth" }); }
-        catch (e) { this.consoleSlot.replaceChildren(el("p", "warn", e.message)); }
-      });
-      row.append(open);
-    }
-    return row;
   },
 
   async enter() {
@@ -114,25 +79,18 @@ export default {
       for (const st of s.styles) { const o = el("option", "", st.label + (st.bpm ? ` · ${st.bpm} BPM` : "")); o.value = st.id; this.style.append(o); }
       this.style.value = "techno_trance";
     }
-    this.tracks.replaceChildren(...(s.tracks.length ? s.tracks.map((f) => {
-      const row = this.player("tracks", f);
-      const box = el("input");
-      box.type = "checkbox";
-      box.value = f.name;
-      box.checked = this.order.includes(f.name);
-      box.addEventListener("change", () => {           // A and B: the order of the ticks
-        this.order = this.order.filter((n) => n !== f.name);
-        if (box.checked) this.order.push(f.name);
-        this.deck.show(...(this.order.length === 2 ? this.order : []));
-      });
-      row.prepend(box);
-      return row;
-    }) : [el("p", "muted", t("dj.no_tracks"))]));
-    this.mixes.replaceChildren(...(s.mixes.length ? s.mixes.map((f) => this.player("mixes", f)) : [el("p", "muted", t("dj.no_mixes"))]));
+    this.playerView.refresh(s);                      // the playlist follows the files
     clearTimeout(this.timer);
     if (s.busy) {                                    // working: the state again in a few seconds
       this.out.textContent = t("dj.busy", { title: s.busy });
+      this.out.dataset.working = "1";
       this.timer = setTimeout(() => this.enter(), 5000);
+    } else {                                         // over: no note says «working» any more (owner, 27 Oct)
+      for (const n of this.root.querySelectorAll("[data-working='1']")) {
+        n.textContent = t("dj.ready");
+        delete n.dataset.working;
+        setTimeout(() => { if (!n.dataset.working) n.textContent = ""; }, 8000);
+      }
     }
   },
 };

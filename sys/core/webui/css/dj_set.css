@@ -40,5 +40,3 @@
 }
 .dj-song textarea { width: 100%; box-sizing: border-box; margin: .3rem 0; }
 .dj-song pre { white-space: pre-wrap; font-size: .8rem; }
-.dj-song-text { margin: .2rem 0 .8rem 1rem; padding: .6rem .8rem; border-left: 3px solid var(--accent, #4b6bff); }
-.dj-song-text pre { white-space: pre-wrap; font-family: inherit; margin: .4rem 0 0; }

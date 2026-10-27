@@ -28,6 +28,7 @@ export function setPanel(ticked, done) {
     try {
       const r = await call("/v1/aurora/dj/set", { method: "POST", body: JSON.stringify({ tracks, keep_order: order.value === "mine", bars: Number(bars.value) }) });
       out.textContent = t("dj.started", { title: r.title });
+      out.dataset.working = "1";                       // cleared by the page when the work is over
     } catch (e) { out.textContent = t("ev.error", { m: e.message }); }
     done();
   });
@@ -163,19 +164,12 @@ export function songPanel(state, done) {
     try {
       const r = await call("/v1/aurora/dj/song", { method: "POST", body: JSON.stringify({ idea: idea.value, language: lang.value, seconds: Number(secs.value), lyrics: lyr.value }) });
       out.textContent = t("dj.song.started", { title: r.title });
+      out.dataset.working = "1";
     } catch (e) { out.textContent = t("ev.error", { m: e.message }); }
     done();
   });
   const row = el("div", "appr-actions");
   row.append(lang, secs, go, out);
   box.append(el("p", "muted", t("dj.song.hint")), idea, own, row);
-  return box;
-}
-
-// a song's lyrics and caption, under its row
-export async function songText(file) {
-  const s = await call(`/v1/aurora/dj-song/${encodeURIComponent(file)}`);
-  const box = el("div", "dj-song-text");
-  box.append(el("strong", "", s.title), el("p", "muted", s.caption), el("pre", "", s.lyrics));
   return box;
 }

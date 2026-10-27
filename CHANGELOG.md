@@ -2,6 +2,21 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.118 — 2026-10-27
+
+10 publications since v0.2.108.
+
+- 2026-10-27 Music and DJ: the player at the centre (⏏ import, icons, ticks to mix songs and mixes too), MilkDrop with five presets — fixed per click or ∞ in turn — and full screen in the phone app
+- 2026-10-27 Synapses never expire (AURORA_SYNAPSE_FADE off); songs offered by default where the GPU allows
+- 2026-10-27 Songs sung from an idea, everything inside Aurora's folder (pinned uv, Python and caches in sys/runtime; weights in models.json); the installer's optional «songs»; C408
+- 2026-10-27 DJ: Aurora's set with its console, a song from an idea (ACE-Step 1.5 under the GPU swap); the synapses' comparison script
+- 2026-10-27 Menu: autonomy and the phone app under System; the guide aligned with the pages
+- 2026-10-27 Menu: the security tabs never as main entries
+- 2026-10-27 Security menu: one entry with its four tabs; Aurora's firewall knows her own HTTPS port and the VMs' bridges; the traceroute globe zooms; data shared and outgoing connections named apart
+- 2026-10-27 Aurora's ways out: a page of their own and a Today tile; every service's networks learnt, then the new ones and the files going out told, decided by the owner or by her autopilot
+- 2026-10-27 The local model watched whatever it is: a way out is a high incident, its network denied by a click or by herself at security autopilot
+- 2026-10-27 No way out for the local reasoner; Alibaba's networks denied to Aurora's services and watched by the sentinel
+
 ## v0.2.117 — 2026-10-27
 
 9 publications since v0.2.108.

@@ -39,6 +39,12 @@ def _file(name: str, mixes: bool = False):
     return f
 
 
+def _pick(ref: str):
+    """A track to mix: an uploaded one by its name, or one of the mixes — a song Aurora sang, a remix — as «mixes/<name>»
+    (owner, 27 Oct: «le canzoni create e caricate finiscono nel player ma si possono selezionare per il mix»)."""
+    return _file(ref.removeprefix("mixes/"), mixes=True) if ref.startswith("mixes/") else _file(ref)
+
+
 def _list(folder) -> list[dict]:
     return [{"name": f.name, "bytes": f.stat().st_size, "at": f.stat().st_mtime, "set": f.with_suffix(".json").is_file(),
              "song": f.with_suffix(".song.json").is_file()}
@@ -113,7 +119,7 @@ async def dj_make(request: Request) -> dict:
     if style not in aud_dj.STYLES:
         raise HTTPException(status_code=422, detail=f"style: one of {', '.join(aud_dj.STYLES)}")
     names = [str(n) for n in body.get("tracks") or []][:12]
-    paths = [_file(n) for n in names]
+    paths = [_pick(n) for n in names]
     if not paths:
         raise HTTPException(status_code=422, detail="choose at least one track")
     stem = re.sub(r"[^\w-]+", "-", str(body.get("title") or f"{paths[0].stem}-{style}").lower()).strip("-")[:60] or "mix"
@@ -148,7 +154,7 @@ async def dj_set(request: Request) -> dict:
     if who in _busy:
         raise HTTPException(status_code=409, detail=f"already mixing: {_busy[who]['title']}")
     names = [str(n) for n in body.get("tracks") or []][:20]
-    paths = [_file(n) for n in names]
+    paths = [_pick(n) for n in names]
     if len(paths) < 2:
         raise HTTPException(status_code=422, detail="a set takes at least two tracks")
     bars = int(body.get("bars") or 16)
@@ -187,8 +193,9 @@ def dj_timeline(name: str) -> dict:
 
 @router.post("/v1/aurora/dj/song", dependencies=[Depends(auth)])
 async def dj_song(request: Request) -> dict:
-    """{"idea", "language"?: en|it|…, "seconds"?: 30-300, "lyrics"?}: a song from an idea (aud_song) — the local
-    reasoner writes it, then the music model sings it with the reasoner out of the GPU; made in the background."""
+    """{"idea", "language"?: en|it|…, "seconds"?: 30-300, "lyrics"?, "caption"?, "title"?}: a song from an idea
+    (aud_song) — the local reasoner writes it, then the music model sings it with the reasoner out of the GPU; made in
+    the background. With lyrics and caption both given (the player's «sing it again»), nothing is written: sung as is."""
     from aurora import aud_song
     body = await request.json()
     who = me() or ""
@@ -207,12 +214,15 @@ async def dj_song(request: Request) -> dict:
     have = aud_song.installed(cfg)
     if not (have["code"] and have["weights"]):
         raise HTTPException(status_code=409, detail="the music model is not installed yet (DJ page: how to)")
-    title = f"🎤 {idea[:60] or 'canzone'}"
+    caption = str(body.get("caption") or "").strip()[:600]
+    given = {"title": str(body.get("title") or idea[:40] or "canzone").strip()[:80], "caption": caption,
+             "lyrics": lyrics, "language": lang} if caption and lyrics else None
+    title = f"🎤 {(given or {}).get('title') or idea[:60] or 'canzone'}"
     _busy[who] = {"title": title, "since": time.time()}
 
     def work():
         try:
-            song = aud_song.write(pipeline().llm, idea or "a song on these lyrics", lang, lyrics)
+            song = given or aud_song.write(pipeline().llm, idea or "a song on these lyrics", lang, lyrics)
             stem = re.sub(r"[^\w-]+", "-", song["title"].lower()).strip("-")[:50] or "song"
             out = _dir() / "mixes" / f"{stem}-{time.strftime('%Y%m%d-%H%M')}.mp3"
             r = aud_song.sing(cfg, song, seconds, out)
@@ -235,3 +245,21 @@ def dj_song_text(name: str) -> dict:
     if not f.is_file():
         raise HTTPException(status_code=404, detail="not a song")
     return json.loads(f.read_text(encoding="utf-8"))
+
+
+@router.put("/v1/aurora/dj-song/{name}", dependencies=[Depends(auth)])
+async def dj_song_edit(name: str, request: Request) -> dict:
+    """{"title"?, "lyrics"?, "caption"?}: a song's words changed (the player's ✏️); the audio stays as it was sung —
+    «sing it again» makes a new one from them."""
+    import json
+    f = _file(name, mixes=True).with_suffix(".song.json")
+    if not f.is_file():
+        raise HTTPException(status_code=404, detail="not a song")
+    body = await request.json()
+    song = json.loads(f.read_text(encoding="utf-8"))
+    for k, most in (("title", 80), ("lyrics", 6000), ("caption", 600)):
+        if isinstance(body.get(k), str) and body[k].strip():
+            song[k] = body[k].strip()[:most]
+    f.write_text(json.dumps(song, ensure_ascii=False, indent=1), encoding="utf-8")
+    log.info("dj: %s edited the words of %s", me(), name)
+    return song
