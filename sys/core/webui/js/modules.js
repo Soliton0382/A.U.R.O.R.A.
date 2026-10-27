@@ -41,6 +41,7 @@ import secEgress from "./modules/security_egress_page.js";
 import secTrace from "./modules/security_trace.js";
 import secFirewalls from "./modules/security_firewalls.js";
 import expenses from "./modules/expenses.js";
+import consoles from "./modules/consoles.js";
 import astro from "./modules/astro.js";
 import secEdge from "./modules/security_edge.js";
 import ciso from "./modules/ciso.js";
@@ -63,7 +64,7 @@ import { kinds as homeKinds } from "./modules/home.js";
 let local = { views: [] };
 try { local = await import("./local/index.js"); } catch { /* none on this installation */ }
 
-export const views = [today, advanced, chat, anonchat, interpret, approvals, reports, secFirewalls, secEdge, security, ciso, firewall, aurorafw, secDefence, secWatch, secOut, secEgress, secTrace, autonomy, diary, dreams, memory, social, dj, care, expenses, astro, home, calendar, projects, routines, models, accounts, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, usage, settings, https, guide, bugreport, ideas, phoneApp];
+export const views = [today, advanced, chat, anonchat, interpret, approvals, reports, secFirewalls, secEdge, security, ciso, firewall, aurorafw, secDefence, secWatch, secOut, secEgress, secTrace, autonomy, diary, dreams, memory, social, dj, care, expenses, astro, home, consoles, calendar, projects, routines, models, accounts, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, usage, settings, https, guide, bugreport, ideas, phoneApp];
 views.push(...homeKinds, ...local.views);
 export const widgets = [sky, alerts, metrics, brain];
 
@@ -77,7 +78,8 @@ export const groups = [
   { id: "activity", icon: "🛎️", title: "nav.g.activity", views: ["approvals", "notifications", "reports", "runs"] },
   { id: "life", icon: "✨", title: "nav.g.life", views: ["calendar", "diary", "dreams", "memory", "social", "dj", "care", "expenses", "astro"] },
   // 🏠 the house (owner, 2026-10-12: «sotto casa avremmo tab casa e poi…»): Home Assistant's pages
-  { id: "home", icon: "🏠", title: "nav.g.home", views: ["home", ...homeKinds.map((v) => v.id),
+  // 🖥️ the devices' own management pages, beside the house (owner, 28 Oct)
+  { id: "home", icon: "🏠", title: "nav.g.home", views: ["home", "consoles", ...homeKinds.map((v) => v.id),
   ...local.views.filter((v) => v.group === "home").map((v) => v.id)] },
   { id: "work", icon: "🛠️", title: "nav.g.work", views: ["projects", "routines", "uploads"] },
   { id: "knowledge", icon: "📚", title: "nav.g.knowledge", views: ["import", "harvester", "synapses"] },

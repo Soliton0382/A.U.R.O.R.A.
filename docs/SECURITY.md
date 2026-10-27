@@ -177,6 +177,13 @@ and a connection sending more than 10 MB and four times the most that service ev
 out). The owner answers ✓ legitimate (learnt) or 🚫 (the deny list); at 🚀 Aurora learns the networks met during a run
 and denies those met with nothing running, unless they are a shared network (a cloud's, a CDN's), which wait.
 
+## Powering off for the UPS (2026-10-28, ROADMAP N53)
+
+The service user may power the computer off only when the owner chose AURORA_UPS_MODE shutdown: then, and only
+then, Aurora's polkit rule (50-aurora.rules, written by sys_install_services) grants it logind's power-off actions;
+in any other mode the rule does not hold them. The power-off follows a low battery read twice in a row (30 s), so one
+odd read never stops the machine; the UPS's password, when set, is a secret setting and never logged.
+
 ## Known limits
 
 - Plugins keep the network and the devices (connectors talk to services, the senses use the camera); the cage

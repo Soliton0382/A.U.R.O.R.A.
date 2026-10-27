@@ -4360,3 +4360,21 @@ synths… 138 BPM», two verses, a chorus twice, an outro); ACE-Step sang it on 
 Three tries failed before (C408), each before singing, each with the reasoner back healthy. Not measured: the song's
 quality to a listener, the words heard against the lyrics, a song in another language.
 
+
+## M266 — do the synapses make the answers' passages better? (28 October 2026; ROADMAP N52, bench_synapses.py)
+
+160 real questions of the last 14 days, searched with and without the synapses; where the passages changed, the local
+reasoner judged each passage brought in and each pushed out (0 not relevant, 1 partly, 2 relevant). 10,927 links.
+
+| measure | value |
+|---|---|
+| questions whose passages the synapses changed | 3 of 160 (1.9 %) |
+| relevance of the passages brought in | 0, 0, 0 (re-ranker 0.81, 0.62, 0.17) |
+| relevance of the passages pushed out | 0, 0, 2 (mean 0.67) |
+| better / worse / same | 0 / 1 / 2 |
+| time | 41.9 minutes |
+
+The one that did harm came in at 0.17 against a relevant passage at 0.15: a link's passage now enters only from
+AURORA_SYNAPSE_MIN_RERANK = 0.5 (the two above it did no harm); the deductions, which take the strongest synapses
+between fields on their own path, are not touched. Not measured: a second round with the floor (3 cases are too few
+for a rate), the answers' text itself, the deductions' share coming from synapses.

@@ -168,6 +168,14 @@ polkit.addRule(function (action, subject) {
     var ours = /^aurora(-[a-z]+)?\\.(service|target)$$/.test(unit);
     if (ours && ["start", "stop", "restart", "try-restart", "reload"].indexOf(verb) >= 0) return polkit.Result.YES;
 });
+$power""")
+
+# Only with AURORA_UPS_MODE shutdown: the service user may power the computer off (sys_ups, battery nearly flat)
+POWER = Template("""polkit.addRule(function (action, subject) {
+    if (subject.user !== "$user") return;
+    if (["org.freedesktop.login1.power-off", "org.freedesktop.login1.power-off-multiple-sessions",
+         "org.freedesktop.login1.power-off-ignore-inhibit"].indexOf(action.id) >= 0) return polkit.Result.YES;
+});
 """)
 
 
@@ -349,7 +357,9 @@ def main() -> int:
         encoding="utf-8")
     (out / "aurora.target").write_text(TARGET.substitute(wants=" ".join(f"{n}.service" for n in units)),
                                        encoding="utf-8")
-    (out / "50-aurora.rules").write_text(POLKIT.substitute(user=sys_config.service_user(cfg)), encoding="utf-8")
+    user = sys_config.service_user(cfg)
+    power = POWER.substitute(user=user) if cfg["AURORA_UPS_MODE"] == "shutdown" else ""
+    (out / "50-aurora.rules").write_text(POLKIT.substitute(user=user, power=power), encoding="utf-8")
     print(f"units written to {out}:")
     for p in sorted(out.iterdir()):
         print(f"  {p.name}")

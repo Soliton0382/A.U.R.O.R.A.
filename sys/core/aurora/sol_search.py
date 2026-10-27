@@ -140,8 +140,11 @@ class Searcher:
             return hits, set()
         use_tr = [bool(translation) and sols[sid].lang == "en" for sid in new]
         scores = self.reranker.score([((translation if tr else question), sols[sid].text) for sid, tr in zip(new, use_tr)])
+        # only a passage the re-ranker finds clearly about the question: the synapses' bench (28 Oct, 160 questions)
+        # saw one at 0.17 push out a relevant one at 0.15; the two at 0.62 and 0.81 did no harm
+        floor = float(self.cfg["AURORA_SYNAPSE_MIN_RERANK"])
         extra = [Hit(sid, sols[sid], 0.0, float(sc), "translation" if tr else "original")
-                 for sid, sc, tr in zip(new, scores, use_tr)]
+                 for sid, sc, tr in zip(new, scores, use_tr) if float(sc) >= floor]
         merged = sorted(hits + extra, key=lambda h: -h.rerank)[:top_k]
         return merged, set(new)
 

@@ -166,6 +166,11 @@ case "$(ask "$(t 'Voce femminile o maschile (f/m)' 'Female or male voice (f/m)')
 esac
 LANGDEF=$([ "$IT" = 1 ] && echo it_IT || echo en_US)
 ULANG=$(ask "$(t 'Lingua (it_IT / en_US)' 'Language (it_IT / en_US)')" "$LANGDEF" LANG)
+case "$ULANG" in                     # «it» typed is it_IT: never found wrong only at step 7 (C411, the VM, 28 Oct)
+  it|IT|it_IT|it-IT|italiano) ULANG=it_IT ;;
+  en|EN|en_US|en-US|english) ULANG=en_US ;;
+  *) die "$(t 'lingua: it_IT o en_US' 'language: it_IT or en_US') ($ULANG)" ;;
+esac
 # where Aurora is used from: the phone needs an address it can reach (this computer's on the home network)
 LANIP=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for (i = 1; i <= NF; i++) if ($i == "src") { print $(i + 1); exit }}')
 ALIASES=""; REACH=1
@@ -320,7 +325,8 @@ ok "$(t 'scelte' 'chosen'): ${PICK:-$(t 'nessuna' 'none')} ($(t 'da scaricare' '
 step "7. $(t 'Configurazione (.env)' 'Configuration (.env)')"
 if [ -f .env ]; then
   ok "$(t '.env esistente: lo tengo (le chiavi nuove prendono il valore consigliato)' 'existing .env kept (new keys take their recommended value)')"
-  .venv/bin/python sys/core/script/sys_env_sync.py >/dev/null && mv .env.proposed .env
+  SYNC=$(.venv/bin/python sys/core/script/sys_env_sync.py 2>&1) || { echo "$SYNC" | tail -5; die ".env"; }
+  mv .env.proposed .env
 else
   FRESH_ENV=1
   SETS=(--set "AURORA_OWNER_NAME=$OWNER" --set "AURORA_ASSISTANT_NAME=$ANAME" --set "AURORA_PERSONALITY=$PERSONA"
@@ -337,7 +343,9 @@ else
   while IFS='=' read -r k v; do [ -n "$k" ] && SETS+=(--set "$k=$v"); done < <(echo "$PROFILE" | .venv/bin/python -c 'import json,sys; [print(f"{k}={v}") for k, v in json.load(sys.stdin)["env"].items()]')
   case ",$PICK," in *,dreams,*) ;; *) SETS+=(--set "AURORA_IMAGE_ENABLED=0") ;; esac   # no dream model, no dream painting
   case ",$PICK," in *,voice,*) ;; *) SETS+=(--set "AURORA_TTS=0") ;; esac              # no Piper, no voice switched on
-  .venv/bin/python sys/core/script/sys_env_sync.py "${SETS[@]}" | grep -E '^\s+[=*]' || true
+  # its own error said, not hidden by the filter (C411: only «mv: cannot stat .env.proposed» was left)
+  SYNC=$(.venv/bin/python sys/core/script/sys_env_sync.py "${SETS[@]}" 2>&1) || { echo "$SYNC" | tail -5; die ".env"; }
+  echo "$SYNC" | grep -E '^\s+[=*]' || true
   mv .env.proposed .env
   [ -n "$CKEYNAME" ] && unset "$CKEYNAME"
 fi

@@ -23,9 +23,13 @@ case "$(uname -m)" in
   aarch64) UV_ARCH=aarch64-unknown-linux-gnu; UV_SHA=8c9d0f0ee98166ae6ab198747519ba6f25db29d185bd2ae5960ecebc91a5c22a ;;
   *) echo "❌ songs: no uv build for $(uname -m)"; exit 1 ;;
 esac
-# every cache and every Python of uv and of ACE-Step inside Aurora (aud_song.inside gives the service the same)
-eval "$("$ROOT/.venv/bin/python" -c "import sys; sys.path.insert(0, 'sys/core'); from aurora import aud_song
-for k, v in aud_song.inside('$ROOT').items(): print(f'export {k}={v!r}')")"
+# every cache and every Python of uv and of ACE-Step inside Aurora (aud_song.inside gives the service the same).
+# Aurora installed first: without its .venv the paths are never set and uv would fill ~/.cache (C410, the VM, 28 Oct)
+[ -x "$ROOT/.venv/bin/python" ] || { echo "❌ songs: Aurora is not installed here yet (no .venv): run install.sh first"; exit 1; }
+INSIDE=$("$ROOT/.venv/bin/python" -c "import sys; sys.path.insert(0, 'sys/core'); from aurora import aud_song
+for k, v in aud_song.inside('$ROOT').items(): print(f'export {k}={v!r}')")
+[ -n "$INSIDE" ] || { echo "❌ songs: the paths inside Aurora could not be read"; exit 1; }
+eval "$INSIDE"
 
 if [ ! -x "$RT/uv/bin/uv" ]; then
   tmp=$(mktemp -d)

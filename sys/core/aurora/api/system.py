@@ -194,3 +194,87 @@ async def update_settings(request: Request) -> dict:
     retimed = "AURORA_BACKUP_TIME" in changes and start_retime()
     return {"changed": sorted(changes), "restart": restart, "mounting": mounting, "retimed": retimed, "tunnel": tunnel,
             **({"moved": moved["urls"]} if moved and moved.get("changed") else {})}
+
+
+@router.get("/v1/aurora/ups", dependencies=[Depends(auth)])
+def ups() -> dict:
+    """The UPS's last read (sys_ups, aurora-rem's watch): mains or battery, charge, runtime, the mode."""
+    from aurora import sys_ups
+    return sys_ups.status(cfg)
+
+
+@router.get("/v1/aurora/debug/memory", dependencies=[Depends(auth)])
+def debug_memory(request: Request, trim: bool = False) -> dict:
+    """What the API's memory is (C389): anonymous memory, glibc's arenas, the most numerous Python objects; with
+    trim=1, malloc_trim(0) and the anonymous memory again — freed by it = fragmentation, kept = live objects."""
+    user = user_of(request)
+    if user and user != _admin():
+        raise HTTPException(status_code=403, detail="the owner's only")
+    import collections
+    import ctypes
+    import gc
+
+    def anon() -> float:
+        with open("/proc/self/smaps_rollup", encoding="ascii") as f:
+            return next(int(l.split()[1]) for l in f if l.startswith("Anonymous:")) / 1024
+
+    try:
+        before = anon()
+    except OSError:                                    # no /proc (the Mac, Windows): nothing to read
+        return {"error": "not available on this system"}
+    out = {"anon_mib": round(before), "threads": len(__import__("os").listdir("/proc/self/task"))}
+    with open("/proc/self/smaps", encoding="ascii", errors="replace") as f:
+        sizes, cur = [], None
+        for line in f:
+            if "-" in line.split(" ", 1)[0] and len(line.split()) < 6:     # an anonymous mapping's header
+                cur = len(sizes)
+                sizes.append(0)
+            elif "-" in line.split(" ", 1)[0]:
+                cur = None
+            elif cur is not None and line.startswith("Anonymous:"):
+                sizes[cur] += int(line.split()[1])
+    out["anon_mappings"] = len(sizes)
+    out["arena_like_mib"] = round(sum(s for s in sizes if 60_000 <= s <= 132_000) / 1024)
+    counts = collections.Counter(type(o).__name__ for o in gc.get_objects())
+    out["objects"] = sum(counts.values())
+    out["top_types"] = counts.most_common(15)
+    if trim:
+        ctypes.CDLL("libc.so.6").malloc_trim(0)
+        out["after_trim_mib"] = round(anon())
+        out["freed_by_trim_mib"] = round(before - anon())
+    return out
+
+
+# ---- the devices' management pages (sys_consoles) ------------------------------------------------
+@router.get("/v1/aurora/consoles", dependencies=[Depends(auth)])
+def consoles() -> list[dict]:
+    from aurora import sys_consoles
+    return sys_consoles.load(cfg)
+
+
+@router.post("/v1/aurora/consoles", dependencies=[Depends(auth)])
+def console_add(body: dict) -> dict:
+    from aurora import sys_consoles
+    try:
+        return sys_consoles.put(cfg, body)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from None
+
+
+@router.put("/v1/aurora/consoles/{cid}", dependencies=[Depends(auth)])
+def console_change(cid: str, body: dict) -> dict:
+    from aurora import sys_consoles
+    try:
+        return sys_consoles.put(cfg, body, cid)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    except KeyError:
+        raise HTTPException(status_code=404, detail="not found") from None
+
+
+@router.delete("/v1/aurora/consoles/{cid}", dependencies=[Depends(auth)])
+def console_delete(cid: str) -> dict:
+    from aurora import sys_consoles
+    if not sys_consoles.delete(cfg, cid):
+        raise HTTPException(status_code=404, detail="not found")
+    return {"deleted": cid}

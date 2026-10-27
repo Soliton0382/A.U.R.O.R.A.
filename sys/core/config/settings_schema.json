@@ -1148,6 +1148,21 @@
    "max": 48
   },
   {
+   "key": "AURORA_SYNAPSE_MIN_RERANK",
+   "type": "float",
+   "min": 0,
+   "max": 1,
+   "category": "search",
+   "recommended": "0.5",
+   "optional": true,
+   "evidence": "synapses' bench, 2026-10-28",
+   "services": [
+    "aurora-api"
+   ],
+   "en": "A passage brought by a synapse enters an answer only with at least this re-ranker score: on 28 Oct the only one that did harm scored 0.17 (it pushed out a relevant passage). The deductions are not touched.",
+   "it": "Un passaggio portato da una sinapsi entra in una risposta solo con almeno questo punteggio del riordinatore: il 28 ottobre l'unico che ha fatto danno aveva 0,17 (ha spinto fuori un passaggio pertinente). Le deduzioni non cambiano."
+  },
+  {
    "key": "AURORA_SYNAPSE_PER_NIGHT",
    "type": "int",
    "category": "search",
@@ -5161,6 +5176,108 @@
     "aurora-api"
    ],
    "optional": true
+  },
+  {
+   "key": "AURORA_UPS_MODE",
+   "type": "enum",
+   "choices": [
+    "off",
+    "notify",
+    "shutdown"
+   ],
+   "category": "services",
+   "recommended": "off",
+   "optional": true,
+   "evidence": "owner, 2026-10-28",
+   "services": [
+    "aurora-rem",
+    "aurora-api"
+   ],
+   "en": "The UPS: off; notify (power lost, power back and low battery told); shutdown (also this computer powered off cleanly when the battery is nearly flat).",
+   "it": "L'UPS: off; notify (corrente mancata, tornata e batteria scarica avvisate); shutdown (in più il computer viene spento in modo pulito quando la batteria è quasi scarica)."
+  },
+  {
+   "key": "AURORA_UPS_SERVERS",
+   "type": "list",
+   "category": "services",
+   "recommended": "",
+   "optional": true,
+   "evidence": "owner, 2026-10-28",
+   "services": [
+    "aurora-rem"
+   ],
+   "en": "UPS servers (network UPS protocol, NUT), tried in order: host or host:port (3493 by default). A NAS serving its UPS, or 127.0.0.1 for a UPS on this computer's USB with a local NUT server.",
+   "it": "Server UPS (protocollo di rete NUT), provati in ordine: host oppure host:porta (3493 di base). Un NAS che condivide il suo UPS, o 127.0.0.1 per un UPS sull'USB di questo computer con un server NUT locale."
+  },
+  {
+   "key": "AURORA_UPS_NAME",
+   "type": "str",
+   "category": "services",
+   "recommended": "ups",
+   "optional": true,
+   "evidence": "owner, 2026-10-28",
+   "services": [
+    "aurora-rem"
+   ],
+   "en": "The UPS's name on its server (NAS units usually call it ups).",
+   "it": "Il nome dell'UPS sul suo server (i NAS di solito lo chiamano ups)."
+  },
+  {
+   "key": "AURORA_UPS_USER",
+   "type": "str",
+   "category": "services",
+   "recommended": "",
+   "optional": true,
+   "evidence": "owner, 2026-10-28",
+   "services": [
+    "aurora-rem"
+   ],
+   "en": "User on the UPS's server (optional): logged in, the server waits for this computer before cutting the power.",
+   "it": "Utente sul server dell'UPS (facoltativo): con l'accesso, il server aspetta questo computer prima di togliere la corrente."
+  },
+  {
+   "key": "AURORA_UPS_PASSWORD",
+   "type": "str",
+   "secret": true,
+   "category": "services",
+   "recommended": "",
+   "optional": true,
+   "evidence": "owner, 2026-10-28",
+   "services": [
+    "aurora-rem"
+   ],
+   "en": "Password of that user.",
+   "it": "Password di quell'utente."
+  },
+  {
+   "key": "AURORA_UPS_SHUTDOWN_CHARGE",
+   "type": "int",
+   "min": 5,
+   "max": 90,
+   "category": "services",
+   "recommended": "30",
+   "optional": true,
+   "evidence": "owner, 2026-10-28",
+   "services": [
+    "aurora-rem"
+   ],
+   "en": "On battery, the charge (%) at or under which this computer is powered off (the UPS's own low-battery signal counts too).",
+   "it": "A batteria, la carica (%) a cui o sotto cui il computer viene spento (vale anche il segnale di batteria scarica dell'UPS)."
+  },
+  {
+   "key": "AURORA_UPS_SHUTDOWN_RUNTIME_S",
+   "type": "int",
+   "min": 60,
+   "max": 3600,
+   "category": "services",
+   "recommended": "300",
+   "optional": true,
+   "evidence": "owner, 2026-10-28",
+   "services": [
+    "aurora-rem"
+   ],
+   "en": "On battery, the runtime left (seconds) at or under which this computer is powered off: keep it above the time a shutdown takes.",
+   "it": "A batteria, l'autonomia residua (secondi) a cui o sotto cui il computer viene spento: tienila sopra il tempo che serve a spegnersi."
   }
  ]
 }

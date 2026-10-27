@@ -182,3 +182,18 @@ def test_a_removed_source_leaves_no_link_pointing_to_nothing(cfg):
     with S._db(cfg) as con:
         left = {(a, b) for a, b in con.execute("SELECT a, b FROM links")}
     assert left == {S._pair("c1", "d1")} and S.forget(cfg, []) == 0
+
+
+def test_a_weak_passage_brought_by_a_synapse_never_pushes_out_a_chosen_one(cfg, monkeypatch):
+    from aurora import sol_search
+    cfg.values.update({"AURORA_SYNAPSE_EXPAND": 8, "AURORA_SYNAPSE_MIN_RERANK": 0.5})
+    monkeypatch.setattr(S, "neighbours", lambda cfg, sids, n: [("weak", 0.9, "a")])
+    sol = lambda sid: SimpleNamespace(lang="it", text=sid, domain="x")                       # noqa: E731
+    reader = SimpleNamespace(get_many=lambda d: {sid: sol(sid) for sid in d})
+    reranker = SimpleNamespace(score=lambda pairs: [0.17 if t == "weak" else 0.8 for _, t in pairs])
+    s = sol_search.Searcher(None, reranker, cfg, reader=reader, index=SimpleNamespace())
+    hits = [sol_search.Hit("a", sol("a"), 0.0, 0.9, "original"), sol_search.Hit("b", sol("b"), 0.0, 0.15, "original")]
+    merged, _ = s._synapses(hits, "q", None, 2)
+    assert [h.sid for h in merged] == ["a", "b"]                    # 0.17 > 0.15, yet under the floor: kept out
+    cfg.values["AURORA_SYNAPSE_MIN_RERANK"] = 0.0
+    assert [h.sid for h in s._synapses(hits, "q", None, 2)[0]] == ["a", "weak"]      # with no floor it would enter

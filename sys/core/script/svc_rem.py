@@ -118,6 +118,26 @@ def wait_for_api(client: httpx.Client, limit_s: int = 300) -> None:
         time.sleep(2)
 
 
+def ups_watch() -> None:
+    """The UPS on its own thread (sys_ups): a look every POLL_S, whatever the cycle below is waiting on."""
+    if cfg["AURORA_UPS_MODE"] == "off" or not cfg["AURORA_UPS_SERVERS"]:
+        return
+    import threading
+    from aurora import sys_ups
+
+    def loop() -> None:
+        watch = sys_ups.Watch(cfg)
+        log.info("UPS watch: %s, mode %s", ", ".join(cfg["AURORA_UPS_SERVERS"]), cfg["AURORA_UPS_MODE"])
+        while not _stop:
+            try:
+                for e in watch.step():
+                    log.info("UPS: %s", e)
+            except Exception as e:  # noqa: BLE001 — the watch never stops
+                log.warning("UPS watch: %s", e)
+            time.sleep(sys_ups.POLL_S)
+    threading.Thread(target=loop, name="ups", daemon=True).start()
+
+
 def main() -> int:
     def stop(*_):
         global _stop
@@ -129,6 +149,7 @@ def main() -> int:
     log.info("aurora-rem started: tick %d s, enabled %s", cfg["AURORA_REM_TICK_S"], cfg["AURORA_REM_ENABLED"])
     client = httpx.Client(headers=HEADERS, timeout=30)
     wait_for_api(client)
+    ups_watch()
     last_reason, last_purge, last_update = "", 0.0, 0.0
     while not _stop:
         if cfg["AURORA_UPDATE_MODE"] != "off" and time.time() - last_update > cfg["AURORA_UPDATE_INTERVAL_H"] * 3600:

@@ -20,6 +20,8 @@ LINUX_ONLY = re.compile(r'"systemctl"|\bfcntl\b|/proc/|"nvidia-smi"|import pwd|o
 WORDS_ALLOWED = {
     ("sys_config.py", "import pwd"): "guarded: Windows takes getpass (FILES)",
     ("sys_bugreport.py", '"nvidia-smi"'): "the driver's version in a bug report; not found = «not measured» everywhere",
+    ("system.py", "/proc/"): "C389: the API's own memory for the owner's diagnosis; no /proc = «not available on this system»",
+    ("sys_ups.py", '"systemctl"'): "ROADMAP N53: the UPS's power-off, Linux's logind; elsewhere the call fails and is logged, the notifications still go (AURORA_UPS_MODE notify is the ports' choice)",
     ("mdl_custom.py", '"nvidia-smi"'): "the GPU memory others hold, for the Models page's fit; not found = 0 (C252)",
     ("kno_grid.py", '"bwrap"'): "ROADMAP 105: without bwrap a grid puzzle goes to the reasoning, as before (no cage, nothing is run)",
     ("prj_run.py", '"bwrap"'): "phase 4: without bwrap a project does not run («no cage, nothing is run»)",
@@ -40,6 +42,7 @@ PROGRAMS_ALLOWED = {
     ("sec_hostaudit.py", "ip"): "the addresses on this machine's guests' bridges (virbr…): missing = none, as before",
     ("sec_hostaudit.py", "ss"): "the Linux branch only; netstat (Mac) and psutil (Windows) otherwise (NETWORK)",
     ("sys_bugreport.py", "nvidia-smi"): "a bug report's driver version: «not measured» where missing",
+    ("sys_ups.py", "systemctl"): "ROADMAP N53: the UPS's power-off through logind, Linux only; elsewhere it fails, logged, notify still works",
     ("mdl_custom.py", "nvidia-smi"): "the GPU memory others hold (C252): 0 where missing, llama.cpp's --fit decides",
     ("prj_term.py", "bwrap"): "phase 4: the terminal's cage, asked once whether it can start (C264); none: said on the page",
     ("net_trace.py", "mtr"): "the visual traceroute: mtr (brew on a Mac; none on Windows, where the page says «mtr is not installed»)",
