@@ -27,6 +27,7 @@ WORDS_ALLOWED = {
     ("plg_sandbox.py", '"bwrap"'): "phase 4: without a cage plugins do not run on the Mac or Windows (GUARDS)",
     ("plg_sandbox.py", "/dev/null"): "phase 4: bwrap's own arguments, Linux only",
     ("sec_hostfw.py", '"sudo"'): "phase 4: the host firewall (nft) — not installed elsewhere, it says so",
+    ("sec_egress_watch.py", "/proc/"): "ROADMAP N50: a process's service from its cgroup; not found = no Aurora service, the watch sees nothing there",
 }
 # programs every system has, or that Aurora installs everywhere (phase 3 installs them on the Mac and Windows)
 EVERYWHERE = {"ffmpeg", "ffprobe", "git", "curl", "pdfinfo", "pdftoppm", "sys.executable"}
@@ -34,6 +35,7 @@ EVERYWHERE = {"ffmpeg", "ffprobe", "git", "curl", "pdfinfo", "pdftoppm", "sys.ex
 PROGRAMS_ALLOWED = {
     ("mdl_accounts.py", "_bin(cfg)"): "ROADMAP 106: the claude CLI of AURORA_CLAUDE_CODE_BIN, found with shutil.which as in mdl_cloud",
     ("sec_egress.py", "ip"): "this machine's addresses for the egress watch (ROADMAP N50): none found elsewhere, the watch then matches nothing and the services' unit rules do not exist there",
+    ("sec_egress_watch.py", "ss"): "ROADMAP N50: the services' sockets; missing = nothing read, nothing told",
     ("sec_egress.py", "ss"): "the process holding a connection to a denied network: '' where missing",
     ("sec_hostaudit.py", "ss"): "the Linux branch only; netstat (Mac) and psutil (Windows) otherwise (NETWORK)",
     ("sys_bugreport.py", "nvidia-smi"): "a bug report's driver version: «not measured» where missing",

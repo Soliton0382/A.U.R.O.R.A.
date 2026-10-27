@@ -146,11 +146,23 @@ export function page(tab, meta) { const { title } = meta; return {
         who: i.destination_provider || "—", feed: i.destination_feed || "—",
         lists: (i.destination_lists || []).map((x) => x.list || x.name || "").join(", ") || t("sec.dest_none") })));
     }
-    if (i.detail?.asn && ["model_egress", "egress_deny"].includes(i.kind)) {   // 🚫 its network on the deny list (sec_egress)
+    if (["egress_new", "egress_upload"].includes(i.kind) && i.detail?.service && i.status === "open") {   // ✓ learnt (N50)
+      const ok = el("button", "approve", `✓ ${t("sec.egress.legit")}`);
+      ok.addEventListener("click", async () => {
+        try {
+          await call("/v1/aurora/security/egress-legit", { method: "POST", body: JSON.stringify({ service: i.detail.service, key: i.detail.key }) });
+          ok.replaceWith(el("p", "ok", t("sec.egress.learnt")));
+        } catch (e) { alert(e.message); }
+      });
+      c.append(ok);
+    }
+    if (i.detail?.asn && ["model_egress", "egress_deny", "egress_new", "egress_upload"].includes(i.kind)) {   // 🚫 its network on the deny list (sec_egress)
       const deny = el("button", "danger", `🚫 ${t("sec.egress.deny", { asn: i.detail.asn, who: i.detail.holder || "" })}`);
       deny.addEventListener("click", async () => {
+        if (i.detail.shared && !confirm(t("sec.shared", { who: i.detail.shared }))) return;
         try {
-          const r = await call("/v1/aurora/security/egress-deny", { method: "POST", body: JSON.stringify({ asn: i.detail.asn }) });
+          const r = await call("/v1/aurora/security/egress-deny", { method: "POST",
+            body: JSON.stringify({ asn: i.detail.asn, service: i.detail.service || "", key: i.detail.key || "" }) });
           deny.replaceWith(el("p", "ok", t("sec.egress.denied", { n: r.prefixes, cmd: r.install })));
         } catch (e) { alert(e.message); }
       });

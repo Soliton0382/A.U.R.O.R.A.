@@ -93,6 +93,14 @@ def main() -> int:
     egress = sec_egress.Watch(cfg)
     model = sec_egress.ModelWatch()                    # the local model's own sockets: never beyond 127.0.0.1
     model_at = 0.0
+    from aurora import sec_egress_watch                # every way out of Aurora's services, learnt (ROADMAP N50)
+
+    def busy() -> bool:                                # a run working: a new network is not «from nothing»
+        try:
+            return any(not r.get("done") for r in api.get(f"{BASE}/v1/aurora/runs").json())
+        except (httpx.HTTPError, ValueError):
+            return True                                # not known: never said «from nothing» on a guess
+    ways = sec_egress_watch.EgressWatch(cfg, busy=busy)
     log.info("egress watch: %d networks listed (%s), this machine as %s", len(egress.deny.nets),
              ", ".join(map(str, sec_egress.asns(cfg))) or "none", ", ".join(sorted(egress.mine)) or "?")
     received = dropped = 0
@@ -115,12 +123,17 @@ def main() -> int:
                 dropped = 0
         if time.time() - model_at > 10:
             model_at = time.time()
-            for incident in model.look():
-                log.warning("the local model reached out: %s", incident["detail"]["title"])
+            try:
+                found_out = ways.look()
+            except Exception as e:                     # noqa: BLE001 — the watch never stops the sentinel
+                log.warning("egress watch: %s", e)
+                found_out = []
+            for incident in model.look() + found_out:
+                log.warning("a way out: %s", incident["detail"]["title"])
                 try:
                     api.post(f"{BASE}/v1/aurora/sentinel/incident", json=incident).raise_for_status()
                 except httpx.HTTPError as e:
-                    log.warning("model egress incident not delivered: %s", e)
+                    log.warning("egress incident not delivered: %s", e)
         try:
             data, (addr, *_rest) = sock.recvfrom(65535)
         except socket.timeout:

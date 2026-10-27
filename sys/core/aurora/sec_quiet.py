@@ -31,7 +31,7 @@ from . import sys_config
 PROPOSE_FA = 3            # false alarms on one device's pattern before a proposal (M262: 14 proposals, 94 of 158)
 PROPOSE_RIGHT = 0.2       # at most this share of its verdicts right (M262: 7 right inside the 14)
 WINDOW_DAYS = 30          # the verdicts counted
-NEVER = {"honeypot", "recon_then_out", "egress_deny", "model_egress"}
+NEVER = {"honeypot", "recon_then_out", "egress_deny", "model_egress", "egress_new", "egress_upload"}
 _lock = threading.Lock()
 
 

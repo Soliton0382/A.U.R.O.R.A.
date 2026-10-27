@@ -4324,3 +4324,20 @@ the announced prefixes of AS45102 and AS37963 (Alibaba Cloud) and AS24429 (Taoba
 Not measured: which process made the connections not matched (the firewall sees the machine, not the process; the
 machine is also the owner's desktop); the bytes; the reasoner's traffic before today (no accounting was on).
 
+## M264 — the services' ways out while working, and the cost of looking (27 October 2026; ROADMAP N50, sec_egress_watch)
+
+The sockets of this user's processes read every 2 s for 7 minutes (ss -tinp, 207 reads), each public connection
+given to its service by its cgroup, while an agent run on the local model searched the web and read pages and a
+question went to the local model.
+
+| | |
+|---|---|
+| aurora-api (the plugins inside) | 3 public connections, at most 31 KB sent on one |
+| aurora-harvester | 1 public connection, at most 7 KB sent |
+| other services | none public |
+| one read of ss | 35.5 ms mean, 52 ms at most |
+
+Hence UPLOAD_BYTES 10 MB (over 300 times the most measured) with UPLOAD_FACTOR 4 of what a service ever sent to that
+network, and a read every 10 s (~0.4 % of one core). Not measured: a cloud model's call with a long context or a
+picture (sent masked; larger than these), a harvest pass in full, a week — the learning week is that measure.
+

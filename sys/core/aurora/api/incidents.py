@@ -66,6 +66,10 @@ async def sentinel_incident(request: Request) -> dict:
         return {"id": item["id"], "severity": item["severity"], "blocked": True}
     if item["kind"] == "model_egress" and (item.get("detail") or {}).get("asn"):
         item = _deny_alone(item)                          # 🚀: its network on the deny list by herself (sec_egress)
+    if item["kind"] in ("egress_new", "egress_upload"):
+        item = _egress_alone(item)                        # 🚀: learnt, or denied, by herself (sec_egress_watch)
+        if item.get("status") == "closed":
+            return {"id": item["id"], "severity": item["severity"], "learnt": True}
     from aurora import sec_quiet
     quiet = sec_quiet.is_quiet(cfg, item)
     if quiet:                                             # a pattern the owner quieted (sec_quiet): kept, low, not said
@@ -211,6 +215,30 @@ async def incident_verdict(incident_id: str, request: Request) -> dict:
     return {"id": incident_id, "verdict": verdict, **({"quiet": said} if said else {})}
 
 
+def _egress_alone(item: dict) -> dict:
+    """A way out of a service never seen, or a file going out (sec_egress_watch). With security at 🚀: a new network
+    met while a run was working is learnt (the incident closed, low, in her ledger); one met with nothing running, or
+    a file going out, is denied by herself — unless the network is shared (a cloud's, a CDN's: denying it cuts off
+    half the web), then it waits for the owner like at 🤝 or 🔒."""
+    from aurora import sec_egress_watch, sys_autonomy
+    from aurora.sec_incidents import Incidents
+    if sys_autonomy.levels(cfg).get("security") != 2:
+        return item
+    d = item["detail"]
+    if item["kind"] == "egress_new" and d.get("busy"):
+        sec_egress_watch.decide(cfg, d["service"], d["key"], "legit")
+        sys_autonomy.log(cfg, "security", f"learnt {d['service']} → {d['key']} {d.get('holder', '')} (met during a run)")
+        note("security", "egress.learnt", {"title": "🌐 Ho imparato una nuova uscita",
+             "text": f"{d.get('title', '')}: incontrata durante un lavoro, la considero legittima. Se non lo è: pagina "
+                     "Sicurezza → Uscite."})
+        return Incidents(cfg).update(item["id"], status="closed", severity="low", closed=time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                                     decided="learnt by Aurora")
+    if d.get("shared") or not d.get("asn"):
+        return item
+    sec_egress_watch.decide(cfg, d["service"], d["key"], "denied")
+    return _deny_alone({**item, "detail": {**d, "destination": d.get("destination")}})
+
+
 def _deny_alone(item: dict) -> dict:
     """The local model reached out (sec_egress.ModelWatch): with security at 🚀 on the Autonomy page its network goes on
     the deny list by herself — the sentinel watches it at once, the units take it at their next install —, written to
@@ -224,11 +252,11 @@ def _deny_alone(item: dict) -> dict:
     sys_config.write_env(sys_config.env_file_path(), {"AURORA_EGRESS_DENY_ASNS": ",".join(listed)})
     cfg.values["AURORA_EGRESS_DENY_ASNS"] = listed
     sec_egress.refresh(cfg, force=True)
-    sys_autonomy.log(cfg, "security", f"AS{d['asn']} {d.get('holder', '')} on the deny list: the local model reached {d.get('destination')}")
-    log.warning("audit: AS%s added to the deny list by Aurora (security 🚀): the local model reached %s", d["asn"], d.get("destination"))
+    sys_autonomy.log(cfg, "security", f"AS{d['asn']} {d.get('holder', '')} on the deny list: {d.get('title', '')}")
+    log.warning("audit: AS%s added to the deny list by Aurora (security 🚀): %s", d["asn"], d.get("title", ""))
     note("security", "egress.denied", {"title": "🚫 Ho messo una rete in blacklist",
-         "text": f"Il modello locale ha cercato {d.get('destination')} (AS{d['asn']} {d.get('holder', '')}): la rete è in "
-                 "blacklist e la sentinella la sorveglia. Perché anche i servizi non possano raggiungerla: reinstalla le unit."})
+         "text": f"{d.get('title', '')} → AS{d['asn']} {d.get('holder', '')} è in blacklist e la sentinella la "
+                 "sorveglia. Perché anche i servizi non possano raggiungerla: reinstalla le unit."})
     return Incidents(cfg).update(item["id"], deny="added by Aurora")
 
 

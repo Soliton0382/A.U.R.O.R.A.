@@ -191,6 +191,27 @@ def watch_defence() -> None:
             log.warning("defence: release round failed: %s", e)
 
 
+@router.get("/v1/aurora/security/egress", dependencies=[Depends(admin_only)])
+def egress_report() -> dict:
+    """Every way out of Aurora's services as learnt (sec_egress_watch): learning or watching, per service."""
+    from aurora import sec_egress_watch
+    from aurora.sec_incidents import Incidents
+    return sec_egress_watch.report(cfg, incidents=Incidents(cfg).list())
+
+
+@router.post("/v1/aurora/security/egress-legit", dependencies=[Depends(admin_only)])
+async def egress_legit(request: Request) -> dict:
+    """The owner's «it is legitimate» on a way out: learnt, never told again."""
+    from aurora import sec_egress_watch
+    body = await request.json()
+    svc, key = str(body.get("service", "")), str(body.get("key", ""))
+    if not svc.startswith("aurora-") or not key:
+        raise HTTPException(status_code=422, detail="service and key")
+    sec_egress_watch.decide(cfg, svc, key, "legit")
+    log.info("audit: way out %s → %s judged legitimate by the owner", svc, key)
+    return {"service": svc, "key": key, "state": "legit"}
+
+
 @router.post("/v1/aurora/security/egress-deny", dependencies=[Depends(admin_only)])
 async def egress_deny(request: Request) -> dict:
     """A network added to the deny list (sec_egress), from an incident's button: the sentinel watches it at once; the
@@ -202,6 +223,9 @@ async def egress_deny(request: Request) -> dict:
     except ValueError:
         raise HTTPException(status_code=422, detail="asn: a number, e.g. 45102") from None
     listed = sec_egress.add_deny(cfg, asn)
+    if body.get("service") and body.get("key"):         # from a way out of a service: answered too
+        from aurora import sec_egress_watch
+        sec_egress_watch.decide(cfg, str(body["service"]), str(body["key"]), "denied")
     sys_config.write_env(sys_config.env_file_path(), {"AURORA_EGRESS_DENY_ASNS": ",".join(listed)})
     cfg.values["AURORA_EGRESS_DENY_ASNS"] = listed
     got = await asyncio.to_thread(sec_egress.refresh, cfg, None, True)

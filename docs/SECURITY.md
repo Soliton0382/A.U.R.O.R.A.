@@ -170,6 +170,13 @@ model's own processes are watched every 10 s, whatever the model: an address not
 refuses) is a high incident with the network's owner; the network goes on the list by the owner's click, or by Aurora
 herself when security is at 🚀 on the Autonomy page.
 
+Every way out of Aurora's other services is learnt too (sec_egress_watch, ROADMAP N50): their own sockets (by
+cgroup, never the owner's desktop) every 10 s, per service the networks reached. A week of learning; then a network a
+service never reached is an incident, high when no run was working (a connection «from nothing»), medium during one,
+and a connection sending more than 10 MB and four times the most that service ever sent there is high (a file going
+out). The owner answers ✓ legitimate (learnt) or 🚫 (the deny list); at 🚀 Aurora learns the networks met during a run
+and denies those met with nothing running, unless they are a shared network (a cloud's, a CDN's), which wait.
+
 ## Known limits
 
 - Plugins keep the network and the devices (connectors talk to services, the senses use the camera); the cage

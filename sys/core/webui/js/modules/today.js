@@ -22,7 +22,7 @@ const NEWS_KEY = "aurora.news_speed";
 const newsSpeed = () => { try { return Math.min(2, Math.max(0, Number(localStorage.getItem(NEWS_KEY) ?? 1))); } catch { return 1; } };
 // every tile in its first order; each is a method below of the same name ("news" is the headlines' strip); the pages
 // added are "page:<id>" (today_pages.js)
-export const TILES = ["news", "agenda", "sky", "research", "house", "waiting", "publications", "stats", "dream", "health"];
+export const TILES = ["news", "agenda", "sky", "research", "house", "waiting", "publications", "stats", "dream", "health", "egress"];
 
 export default {
   id: "today",
@@ -305,6 +305,22 @@ export default {
     const first = (d.text.match(/^.{20,160}?[.!?…](\s|$)/) || [d.text.slice(0, 140)])[0];
     s.append(el("h3", "", t("today.dream")), el("p", "", first.trim()), this.link(t("today.all_dreams"), "dreams"));
     return s;
+  },
+
+  // 🌐 Aurora's ways out today (owner, 27 Oct: «con widget nella pagina oggi»): the admin's; the others get no tile
+  async egress() {
+    const r = await call("/v1/aurora/security/egress");
+    const grid = el("div", "td-stats");
+    for (const [big, label, warn] of [[r.learning ? "📚" : "👁️", r.learning ? t("today.eg_learning") : t("today.eg_watching"), false],
+      [`${r.today.networks}`, t("today.eg_networks"), false], [`${r.today.new}`, t("today.eg_new"), r.today.new > 0],
+      [`${r.incidents.open}`, t("today.eg_open"), r.incidents.open > 0]]) {
+      const b = el("div", `td-stat${warn ? " warn" : ""}`);
+      b.append(el("strong", "", big), el("small", "muted", label));
+      grid.append(b);
+    }
+    const ok = !r.incidents.open && !r.today.new;
+    return this.tile(`🌐 ${t("today.tile.egress")}`, el("p", ok ? "ok" : "warn", t(ok ? "today.eg_ok" : "today.eg_look")),
+      grid, this.link(t("today.eg_page"), "secegress"));
   },
 
   async health() {
