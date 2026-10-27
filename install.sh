@@ -377,6 +377,8 @@ fi
 if [ -n "$MODELS" ]; then
   .venv/bin/python sys/core/script/sys_models_fetch.py --models "$MODELS" --yes || die "$(t 'download dei modelli facoltativi' 'optional model download')"
   case ",$PICK," in *,voice,*) bash sys/core/script/sys_tts_install.sh || warn "$(t 'voce di Aurora non installata' "Aurora's voice not installed")" ;; esac
+  # the songs' music model: its uv, Python, caches and code all inside sys/runtime (sys_song_install.sh)
+  case ",$PICK," in *,songs,*) bash sys/core/script/sys_song_install.sh || warn "$(t 'canzoni non installate' 'songs not installed')" ;; esac
 fi
 
 # ---------------------------------------------------------------------------------------------------

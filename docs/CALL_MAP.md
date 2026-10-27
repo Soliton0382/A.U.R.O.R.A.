@@ -73,13 +73,14 @@ Generated from the code by `sys/core/script/doc_callmap.py` (`--check` in publis
 | `sys_github_mcp_install.sh` | `install.sh`, `sys/plugins/github/plugin.json` |
 | `sys_install_services.py` | its own timer (--schedule), `aurora/api/backup.py`, `aurora/api/security.py`, `aurora/api/system.py`, `aurora/net_https.py`, `aurora/sec_egress.py`, `install.sh`, `script/sys_relocate.sh`, `webui/i18n/en_US.json`, `webui/i18n/it_IT.json` |
 | `sys_model_check.py` | by hand |
-| `sys_models_fetch.py` | `aurora/mdl_video.py`, `aurora/sys_features.py`, `config/models.json`, `install.sh`, `script/sys_tts_install.sh`, `script/sys_tts_qwen_install.sh` |
+| `sys_models_fetch.py` | `aurora/mdl_video.py`, `aurora/sys_features.py`, `config/models.json`, `install.sh`, `script/sys_song_install.sh`, `script/sys_tts_install.sh`, `script/sys_tts_qwen_install.sh` |
 | `sys_nas_mount.py` | `aurora/sys_backup.py`, `script/sys_install_services.py` |
 | `sys_nvidia.sh` | `install.sh` |
 | `sys_profile.py` | `aurora/mdl_custom.py`, `aurora/sys_features.py`, `install.sh`, `script/sys_calibrate.py`, `script/sys_model_check.py` |
 | `sys_ready.py` | `install.sh` |
 | `sys_relocate.sh` | by hand |
 | `sys_restore.py` | `aurora/api/backup.py` |
+| `sys_song_install.sh` | `aurora/aud_song.py`, `aurora/sys_features.py`, `config/settings_schema.json`, `install.sh` |
 | `sys_tts_install.sh` | `aurora/mdl_tts.py`, `aurora/sys_capabilities.py`, `aurora/sys_features.py`, `config/settings_schema.json`, `install.sh` |
 | `sys_tts_qwen_install.sh` | `aurora/sys_features.py` |
 | `sys_users_migrate.py` | `aurora/api/users.py`, `aurora/sys_users_layout.py`, `aurora/sys_users_mode.py`, `install.sh` |
@@ -263,7 +264,7 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `mdl_formats` | `mdl_custom`, `mdl_llm`, `mdl_router`, `script/svc_llm.py`, `script/sys_model_check.py` | 2 |
 | `mdl_gguf` | `mdl_custom`, `mdl_formats`, `script/sys_model_check.py` | 2 |
 | `mdl_image` | `agt_loop_make`, `api.core_route`, `aud_song`, `kno_rem`, `kno_story`, `mdl_tts`, `mdl_video` | 4 |
-| `mdl_llm` | `agt_loop_report`, `kno_answer`, `mdl_cloud`, `mdl_custom`, `mdl_router`, `script/bench_domain_assign.py`, `script/bench_forge.py`, `script/bench_learn.py`, `script/bench_public.py`, `script/bench_synapses.py`, `script/svc_harvester.py`, `script/vault_realign.py`, `sys/plugins/homeassistant/server.py`, `sys/plugins/senses/server.py`, `sys/plugins/vista/server.py` | 8 |
+| `mdl_llm` | `agt_loop_report`, `kno_answer`, `mdl_cloud`, `mdl_custom`, `mdl_router`, `script/bench_domain_assign.py`, `script/bench_forge.py`, `script/bench_learn.py`, `script/bench_public.py`, `script/bench_synapses.py`, `script/svc_harvester.py`, `script/vault_realign.py`, `sys/plugins/homeassistant/server.py`, `sys/plugins/senses/server.py`, `sys/plugins/vista/server.py` | 10 |
 | `mdl_media` | `api.core_route`, `api.models`, `mdl_image`, `mdl_modes`, `mdl_tts`, `mdl_video`, `sns_av`, `sys_features` | 3 |
 | `mdl_modes` | `api.models`, `mdl_custom` | 2 |
 | `mdl_remote` | `api.core`, `script/bench_common.py`, `script/bench_domain_assign.py`, `script/bench_domains.py`, `script/bench_followup.py`, `script/bench_learn.py`, `script/bench_retrieval.py`, `script/bench_synapses.py`, `script/bench_vault_diag.py` | 1 |

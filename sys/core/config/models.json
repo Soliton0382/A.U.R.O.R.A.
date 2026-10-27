@@ -285,6 +285,47 @@
     "vae/config.json",
     "vae/diffusion_pytorch_model.safetensors"
    ]
+  },
+  "music": {
+   "purpose": "songs from an idea, sung (ACE-Step 1.5: turbo DiT, 5 Hz LM 1.7B, VAE; aud_song)",
+   "repo": "ACE-Step/Ace-Step1.5",
+   "revision": "19671f406d603126926c1b7e2adc169acbcade22",
+   "license": "mit",
+   "dir": "sys/models/music/ace-step",
+   "files": [
+    "Qwen3-Embedding-0.6B/added_tokens.json",
+    "Qwen3-Embedding-0.6B/chat_template.jinja",
+    "Qwen3-Embedding-0.6B/config.json",
+    "Qwen3-Embedding-0.6B/merges.txt",
+    "Qwen3-Embedding-0.6B/model.safetensors",
+    "Qwen3-Embedding-0.6B/special_tokens_map.json",
+    "Qwen3-Embedding-0.6B/tokenizer.json",
+    "Qwen3-Embedding-0.6B/tokenizer_config.json",
+    "Qwen3-Embedding-0.6B/vocab.json",
+    "README.md",
+    "acestep-5Hz-lm-1.7B/added_tokens.json",
+    "acestep-5Hz-lm-1.7B/chat_template.jinja",
+    "acestep-5Hz-lm-1.7B/config.json",
+    "acestep-5Hz-lm-1.7B/merges.txt",
+    "acestep-5Hz-lm-1.7B/model.safetensors",
+    "acestep-5Hz-lm-1.7B/special_tokens_map.json",
+    "acestep-5Hz-lm-1.7B/tokenizer.json",
+    "acestep-5Hz-lm-1.7B/tokenizer_config.json",
+    "acestep-5Hz-lm-1.7B/vocab.json",
+    "acestep-v15-turbo/config.json",
+    "acestep-v15-turbo/configuration_acestep_v15.py",
+    "acestep-v15-turbo/model.safetensors",
+    "acestep-v15-turbo/modeling_acestep_v15_turbo.py",
+    "acestep-v15-turbo/silence_latent.pt",
+    "config.json",
+    "vae/config.json",
+    "vae/diffusion_pytorch_model.safetensors"
+   ],
+   "size_gb": 9.4,
+   "required": false,
+   "settings": {
+    "AURORA_SONG_MODELS": "sys/models/music/ace-step"
+   }
   }
  }
 }

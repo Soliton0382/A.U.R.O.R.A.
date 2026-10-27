@@ -9,6 +9,7 @@ from types import SimpleNamespace
 import pytest
 
 from aurora import aud_analysis as A, aud_song as S, mdl_image
+from aurora.mdl_llm import Completion
 
 
 class LLM:
@@ -17,7 +18,7 @@ class LLM:
 
     def complete(self, system, user, max_tokens):
         self.asked.append(user)
-        return SimpleNamespace(text=self.text)
+        return Completion(self.text, "", 10, 0.1, False)      # the real shape (it was .text: C408)
 
 
 def test_the_reasoner_writes_title_caption_and_lyrics_or_keeps_the_users():
@@ -48,7 +49,7 @@ def stage(cfg, monkeypatch, tmp_path):
     proc = SimpleNamespace(poll=lambda: None, terminate=lambda: units.append(("terminate", "ace")), wait=lambda t: 0)
     monkeypatch.setattr(S, "_server", lambda c, key, port: proc)
     monkeypatch.setattr(A, "load", lambda p, s=None: "audio")
-    monkeypatch.setattr(A, "save", lambda x, out, title="": out.write_bytes(b"mp3"))
+    monkeypatch.setattr(A, "save", lambda x, out, title="", made="": out.write_bytes(made.encode()))
     return units
 
 
@@ -66,7 +67,7 @@ def test_the_song_is_sung_with_the_reasoner_out_and_back(cfg, stage, monkeypatch
     song = {"title": "Abyss", "caption": "90s trance", "lyrics": "[verse]\nla", "language": "en"}
     out = tmp_path / "abyss.mp3"
     r = S.sing(cfg, song, 180, out)
-    assert r["swap"] is True and out.read_bytes() == b"mp3"
+    assert r["swap"] is True and out.read_bytes() == b"AI-generated song"
     assert stage == [("stop", "aurora-llm"), ("terminate", "ace"), ("start", "aurora-llm")]
     assert sent["vocal_language"] == "en" and sent["audio_duration"] == 180 and sent["thinking"] is True
     assert json.loads(out.with_suffix(".song.json").read_text())["title"] == "Abyss"
@@ -88,3 +89,39 @@ def test_not_installed_says_where(cfg, tmp_path):
     assert have["code"] is False and have["weights"] is False
     with pytest.raises(RuntimeError, match="not installed"):
         S.sing(cfg, {"title": "x", "caption": "c", "lyrics": "l", "language": "en"}, 60, tmp_path / "x.mp3")
+
+
+def test_the_command_finds_uv_in_the_users_own_folder(cfg, monkeypatch, tmp_path):
+    """The services' PATH lacks ~/.local/bin, where uv installs itself (the first song: «No such file: 'uv'»)."""
+    (tmp_path / ".local/bin").mkdir(parents=True)
+    (tmp_path / ".local/bin/uv").write_text("")
+    monkeypatch.setattr(S.Path, "home", lambda: tmp_path)
+    monkeypatch.setattr("shutil.which", lambda name: None)
+    cfg.values["AURORA_SONG_CMD"] = "uv run acestep-api"
+    assert S.command(cfg) == [str(tmp_path / ".local/bin/uv"), "run", "acestep-api"]
+    cfg.values["AURORA_SONG_CMD"] = "/opt/x/uv run acestep-api"
+    assert S.command(cfg)[0] == "/opt/x/uv"
+
+
+def test_the_server_gets_the_planner_by_its_whole_path(cfg, monkeypatch, tmp_path):
+    """ACE-Step looked for acestep-5Hz-lm-1.7B in its own checkpoints/ (the third song): the whole path is given."""
+    models = tmp_path / "w"
+    (models / "acestep-5Hz-lm-1.7B").mkdir(parents=True)
+    cfg.values.update(AURORA_SONG_MODELS=str(models), AURORA_SONG_DIR=str(tmp_path), AURORA_SONG_CMD="uv run acestep-api")
+    seen = {}
+    monkeypatch.setattr(S.subprocess, "Popen", lambda cmd, cwd=None, env=None, **k: seen.update(env) or "proc")
+    S._server(cfg, "k", 8011)
+    assert seen["ACESTEP_LM_MODEL_PATH"] == str(models / "acestep-5Hz-lm-1.7B")
+    assert seen["ACESTEP_API_HOST"] == "127.0.0.1" and seen["HF_HUB_OFFLINE"] == "1"
+
+
+def test_everything_of_the_music_model_stays_inside_aurora(cfg, tmp_path):
+    """Owner, 27 Oct: «tutto dentro la cartella di installazione di aurora»: uv's cache and Python, ACE-Step's caches."""
+    env = S.inside(tmp_path)
+    assert all(v.startswith(str(tmp_path / "sys" / "runtime")) for k, v in env.items() if k.endswith(("DIR", "HOME", "CACHE")))
+    assert env["UV_PYTHON_PREFERENCE"] == "only-managed" and env["UV_NO_CONFIG"] == "1"
+    own = cfg.root / "sys" / "runtime" / "uv" / "bin" / "uv"
+    own.parent.mkdir(parents=True)
+    own.write_text("")
+    cfg.values["AURORA_SONG_CMD"] = "uv run --no-sync acestep-api"
+    assert S.command(cfg) == [str(own), "run", "--no-sync", "acestep-api"]   # Aurora's own uv, never the user's

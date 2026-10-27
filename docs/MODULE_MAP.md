@@ -372,6 +372,7 @@ call downward (ECOSYSTEM §1).
 | `sys_commands_write.py` | writes <STATUS>/commands.json for the command cards from a port's commands file and its clone | the Mac and Windows installers |
 | `sys_domains.py` | the eight areas an installation cares about (list, set): the harvester's domains and the seed's shadows | install.sh; later the Knowledge page |
 | `sys_tts_install.sh` | Piper (GPL-3, a separate program in its own environment) and the voices of config/models.json | install.sh; the Voice feature |
+| `sys_song_install.sh` | the songs' music model, everything inside Aurora's folder: uv pinned and SHA-256 checked in sys/runtime/uv (its cache, its Python), ACE-Step 1.5 at a pinned commit in sys/runtime/ace-step (`uv sync --frozen`), the weights by sys_models_fetch (models.json «music»); a .venv on a Python outside is made again inside |
 | `sys_tts_qwen_install.sh` | the natural voice (Qwen3-TTS 0.6B) in sys/runtime/qwen-tts, apart from Aurora's environment; an installation's own reference clip | the Voice feature, by hand |
 | `tts_qwen_worker.py` | the natural voice kept loaded: one JSON request a line on stdin, one answer on stdout; exits when stdin closes, giving the GPU back | mdl_tts |
 | `vault_realign.py` | every arXiv paper once, as HTML, in its own domain: dry run by default, `--apply` paper by paper through aurora-api; `--wikipedia` every article once in the domain its text says (`--fresh`: chosen again, not the kept choice) | by hand, when kno_vault_audit reports |

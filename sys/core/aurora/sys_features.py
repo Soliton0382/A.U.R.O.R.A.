@@ -43,6 +43,8 @@ FEATURES = {
                    ["video"], [], None, ["ffmpeg"]),
     "voice_out": (False, {"it": "Voce di Aurora sui dispositivi senza voce (Piper)", "en": "Aurora's voice on devices without one (Piper)"},
                   ["tts"], ["AURORA_TTS_BIN"], "AURORA_TTS", []),
+    "songs": (False, {"it": "Canzoni da un'idea (ACE-Step 1.5)", "en": "Songs from an idea (ACE-Step 1.5)"},
+              ["music"], ["AURORA_SONG_DIR"], None, ["ffmpeg"]),
 }
 # the features a media task of the Models page can give to a cloud provider (mdl_media)
 MEDIA_TASK = {"dreams": "image", "edit_ai": "edit", "video_make": "video", "voice_out": "voice", "speech": "speech"}
@@ -63,12 +65,15 @@ GROUPS = {
     "voice_natural": {"models": ["tts_qwen"], "features": [], "default": True, "gpu": True,
                       "label": {"it": "Voce naturale di Aurora (Qwen3-TTS, sulla GPU, ~2,5 GB)",
                                 "en": "Aurora's natural voice (Qwen3-TTS, on the GPU, ~2.5 GB)"}},
+    "songs": {"models": ["music"], "features": ["songs"], "default": False, "gpu": True,
+              "label": {"it": "Canzoni da un'idea, cantate (ACE-Step 1.5, sulla GPU; tutto dentro la cartella di Aurora)",
+                        "en": "Songs from an idea, sung (ACE-Step 1.5, on the GPU; everything inside Aurora's folder)"}},
     "video": {"models": ["video"], "features": ["video_make"], "default": False,
               "label": {"it": "Creare video (~19 minuti per 5 secondi)", "en": "Making videos (~19 minutes for 5 seconds)"}},
 }
 # measured needs: VRAM on one GPU (GB, peak + margin), RAM of the machine (GB), where it was measured
 HARDWARE = {"dreams": (7, 0, "M27: 6.21 GB"), "edit_ai": (10, 0, "M55: 9.23 GB"),
-            "video_make": (14, 48, "M57: 13.88 GB, process 42 GB of RAM")}
+            "video_make": (14, 48, "M57: 13.88 GB, process 42 GB of RAM"), "songs": (10, 0, "M265: 8.38 GB")}
 
 
 def fits(profile: dict, group: str) -> tuple[bool, str]:
@@ -93,7 +98,8 @@ def group_size_gb(group: str) -> float:
 
 LLM_FILES = {"AURORA_LLM_MODEL": "llm", "AURORA_LLM_MMPROJ": "llm"}   # where a missing path comes from
 SCRIPTS = {"tts": "bash sys/core/script/sys_tts_install.sh", "AURORA_TTS_BIN": "bash sys/core/script/sys_tts_install.sh",
-           "tts_qwen": "bash sys/core/script/sys_tts_qwen_install.sh"}
+           "tts_qwen": "bash sys/core/script/sys_tts_qwen_install.sh",
+           "music": "bash sys/core/script/sys_song_install.sh", "AURORA_SONG_DIR": "bash sys/core/script/sys_song_install.sh"}
 
 
 class Missing(RuntimeError):

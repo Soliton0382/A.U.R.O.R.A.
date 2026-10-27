@@ -58,7 +58,7 @@ def questions(cfg, days: int, most: int) -> list[str]:
 
 
 def judge(llm, question: str, text: str) -> int:
-    out = llm.complete(JUDGE, f"QUESTION: {question}\n\nPASSAGE:\n{text[:1500]}", 4).text
+    out = llm.complete(JUDGE, f"QUESTION: {question}\n\nPASSAGE:\n{text[:1500]}", 4).answer
     m = re.search(r"[012]", out)
     return int(m.group(0)) if m else 0
 

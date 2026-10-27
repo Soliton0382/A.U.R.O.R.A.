@@ -46,7 +46,7 @@ def write(llm, idea: str, lang: str = "en", lyrics: str = "") -> dict:
     """The reasoner's song: {"title", "caption", "lyrics"}; the user's lyrics kept as they are when given."""
     language = LANGS.get(lang, "English")
     raw = llm.complete(WRITER.replace("LANGUAGE", language), f"{idea}\n\nLANGUAGE: {language}"
-                       + (f"\n\nUse these lyrics as they are:\n{lyrics}" if lyrics else ""), 1600).text
+                       + (f"\n\nUse these lyrics as they are:\n{lyrics}" if lyrics else ""), 1600).answer
     m = re.search(r"\{.*\}", raw, re.S)
     try:
         song = json.loads(m.group(0)) if m else {}
@@ -58,12 +58,50 @@ def write(llm, idea: str, lang: str = "en", lyrics: str = "") -> dict:
             "lyrics": (lyrics or str(song["lyrics"])).strip()[:6000], "language": lang}
 
 
+LMS = ("acestep-5Hz-lm-1.7B", "acestep-5Hz-lm-0.6B", "acestep-5Hz-lm-4B")   # its planner: the one downloaded
+
+
+def inside(root) -> dict[str, str]:
+    """Every cache and every Python of uv and of ACE-Step inside Aurora's folder (owner, 27 Oct: «tutto dentro la
+    cartella di installazione di aurora e non in giro per il sistema»): the installer (sys_song_install.sh) and the
+    singing server get the same."""
+    rt = Path(root) / "sys" / "runtime"
+    ace = rt / "ace-step" / ".cache"
+    return {"UV_CACHE_DIR": str(rt / "uv" / "cache"), "UV_PYTHON_INSTALL_DIR": str(rt / "uv" / "python"),
+            "UV_PYTHON_PREFERENCE": "only-managed", "UV_TOOL_DIR": str(rt / "uv" / "tools"), "UV_NO_CONFIG": "1",
+            "XDG_CACHE_HOME": str(ace), "HF_HOME": str(ace / "huggingface"), "MODELSCOPE_CACHE": str(ace / "modelscope"),
+            "TRITON_CACHE_DIR": str(ace / "triton"), "TORCHINDUCTOR_CACHE_DIR": str(ace / "inductor"),
+            "ACESTEP_TMPDIR": str(ace / "tmp")}
+
+
+def command(cfg: sys_config.Config) -> list[str]:
+    """AURORA_SONG_CMD with its program found: the services' PATH lacks the user's own folders, where uv installs
+    itself (~/.local/bin, ~/.cargo/bin) — the first song failed on «No such file or directory: 'uv'»."""
+    import shutil
+    words = str(cfg["AURORA_SONG_CMD"]).split()
+    own = cfg.root / "sys" / "runtime" / "uv" / "bin" / "uv"     # the one sys_song_install.sh put inside Aurora
+    if words and words[0] == "uv" and own.is_file():
+        words[0] = str(own)
+    if words and not Path(words[0]).is_absolute():
+        home = Path.home()
+        found = shutil.which(words[0]) or next((str(p) for p in (home / ".local/bin" / words[0], home / ".cargo/bin" / words[0])
+                                                if p.is_file()), None)
+        if found:
+            words[0] = found
+    return words
+
+
 def _server(cfg: sys_config.Config, key: str, port: int) -> subprocess.Popen:
-    env = {**os.environ, "ACESTEP_API_HOST": "127.0.0.1", "ACESTEP_API_PORT": str(port), "ACESTEP_API_KEY": key,
-           "ACESTEP_CHECKPOINTS_DIR": str(cfg.path("AURORA_SONG_MODELS")), "ACESTEP_LM_BACKEND": "pt",
+    models = cfg.path("AURORA_SONG_MODELS")
+    lm = next((m for m in LMS if (models / m).is_dir()), "")
+    env = {**os.environ, **inside(cfg.root), "ACESTEP_API_HOST": "127.0.0.1", "ACESTEP_API_PORT": str(port), "ACESTEP_API_KEY": key,
+           "ACESTEP_CHECKPOINTS_DIR": str(models), "ACESTEP_LM_BACKEND": "pt",
+           # its whole path: ACE-Step joins a name to its own checkpoints/ folder, not to ACESTEP_CHECKPOINTS_DIR
+           **({"ACESTEP_LM_MODEL_PATH": str(models / lm)} if lm else {}),
            "HF_HUB_OFFLINE": "1"}                       # the weights are the owner's download: nothing fetched here
+    cfg.path("AURORA_LOG_DIR").mkdir(parents=True, exist_ok=True)
     log = open(cfg.path("AURORA_LOG_DIR") / "song.log", "ab")
-    return subprocess.Popen(str(cfg["AURORA_SONG_CMD"]).split(), cwd=cfg.path("AURORA_SONG_DIR"), env=env,
+    return subprocess.Popen(command(cfg), cwd=cfg.path("AURORA_SONG_DIR"), env=env,
                             stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
 
 
@@ -122,7 +160,7 @@ def sing(cfg: sys_config.Config, song: dict, seconds: int, out: Path, emit=None)
             data = httpx.get(got if got.startswith("http") else base + got, headers=head, timeout=120)
             data.raise_for_status()
             raw.write_bytes(data.content)
-            A.save(A.load(raw), out, title=f"{song['title']} (AI)")  # levelled and tagged as made by an AI
+            A.save(A.load(raw), out, title=f"{song['title']} (AI)", made="AI-generated song")  # levelled and tagged as made by an AI
             raw.unlink(missing_ok=True)
         finally:
             if proc and proc.poll() is None:

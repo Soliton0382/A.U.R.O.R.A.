@@ -62,13 +62,13 @@ def load(path: Path, seconds: float | None = None) -> np.ndarray:
     return np.frombuffer(r.stdout, np.float32).reshape(-1, 2).copy()
 
 
-def save(x: np.ndarray, path: Path, title: str = "") -> Path:
+def save(x: np.ndarray, path: Path, title: str = "", made: str = "AI-generated remix") -> Path:
     """Stereo float to an MP3 (192 kb/s), loudness levelled to -14 LUFS, marked as made by an AI in its tags."""
     path.parent.mkdir(parents=True, exist_ok=True)
     x = np.clip(x, -1.0, 1.0).astype(np.float32)
     cmd = ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-f", "f32le", "-ar", str(SR), "-ac", "2", "-i", "-",
            "-af", "loudnorm=I=-14:TP=-1.0:LRA=11", "-ar", str(SR), "-b:a", "192k",
-           "-metadata", f"title={title or path.stem}", "-metadata", "comment=Made with Aurora (AI-generated remix)",
+           "-metadata", f"title={title or path.stem}", "-metadata", f"comment=Made with Aurora ({made})",
            str(path)]
     r = subprocess.run(cmd, input=x.tobytes(), capture_output=True, timeout=900)
     if r.returncode != 0:

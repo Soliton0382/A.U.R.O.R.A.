@@ -577,9 +577,9 @@
   {
    "key": "AURORA_SONG_CMD",
    "type": "str",
-   "recommended": "uv run acestep-api",
-   "en": "The command that starts the music model's API server, in its folder.",
-   "it": "Il comando che avvia il server del modello musicale, nella sua cartella.",
+   "recommended": "uv run --no-sync acestep-api",
+   "en": "The command that starts the music model's API server, in its folder (--no-sync: nothing installed or fetched while singing; sys_song_install.sh installs).",
+   "it": "Il comando che avvia il server del modello musicale, nella sua cartella (--no-sync: niente installato o scaricato mentre canta; installa sys_song_install.sh).",
    "category": "attachments",
    "optional": true,
    "services": [

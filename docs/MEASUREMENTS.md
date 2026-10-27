@@ -4341,3 +4341,22 @@ Hence UPLOAD_BYTES 10 MB (over 300 times the most measured) with UPLOAD_FACTOR 4
 network, and a read every 10 s (~0.4 % of one core). Not measured: a cloud model's call with a long context or a
 picture (sent masked; larger than these), a harvest pass in full, a week — the learning week is that measure.
 
+## M265 — the first song from an idea (27 October 2026; ROADMAP N51, aud_song, ACE-Step 1.5 turbo + 5 Hz LM 1.7B)
+
+The idea: a 90s trance with a female vocalist, based on the Divine Comedy, sung in English, 180 s. The local reasoner
+wrote it (title «Paradiso Rising», caption «90s Eurotrance, female vocalist with ethereal reverb, driving supersaw
+synths… 138 BPM», two verses, a chorus twice, an outro); ACE-Step sang it on the reference machine.
+
+| | |
+|---|---|
+| from the request to the MP3 | 81 s (sampled every 10 s) |
+| the reasoner out of the GPU | ~60 s, then healthy again |
+| GPU memory with the reasoner out | 4.7 GB + 2.5 GB (the encoder, the re-ranker…) |
+| ACE-Step's peak, as it logs it | 8.38 GB on GPU 0 (VAE decode); GPU 1 untouched |
+| GPU 0 load while singing | 89 % at its height |
+| the song | 180.0 s, MP3, tagged «Paradiso Rising (AI)» |
+| PyTorch of ACE-Step | 2.10 + CUDA 12.8, sm_120 supported (the RTX 5060 Ti) |
+
+Three tries failed before (C408), each before singing, each with the reasoner back healthy. Not measured: the song's
+quality to a listener, the words heard against the lyrics, a song in another language.
+
