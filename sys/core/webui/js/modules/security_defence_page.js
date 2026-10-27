@@ -3,4 +3,4 @@
 // A page of the security area: the «defence» tab of security.js on its own (owner, 2026-10-08: «sotto menù specifici»).
 import { page } from "./security.js";
 
-export default page("defence", { id: "secdefence", icon: "🛡️", title: "nav.sec.defence" });
+export default page("defence", { id: "secdefence", icon: "🛡️", title: "nav.sec.defence", menu: false });   // a tab of 🚨 Incidenti e difesa (owner, 27 Oct: one entry)

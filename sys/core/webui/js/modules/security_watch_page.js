@@ -3,4 +3,4 @@
 // A page of the security area: the «watch» tab of security.js on its own (owner, 2026-10-08: «sotto menù specifici»).
 import { page } from "./security.js";
 
-export default page("watch", { id: "secwatch", icon: "👁️", title: "nav.sec.watch" });
+export default page("watch", { id: "secwatch", icon: "👁️", title: "nav.sec.watch", menu: false });   // a tab of 🚨 Incidenti e difesa (owner, 27 Oct: one entry)

@@ -2,6 +2,16 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.113 — 2026-10-27
+
+5 publications since v0.2.108.
+
+- 2026-10-27 Menu: the security tabs never as main entries
+- 2026-10-27 Security menu: one entry with its four tabs; Aurora's firewall knows her own HTTPS port and the VMs' bridges; the traceroute globe zooms; data shared and outgoing connections named apart
+- 2026-10-27 Aurora's ways out: a page of their own and a Today tile; every service's networks learnt, then the new ones and the files going out told, decided by the owner or by her autopilot
+- 2026-10-27 The local model watched whatever it is: a way out is a high incident, its network denied by a click or by herself at security autopilot
+- 2026-10-27 No way out for the local reasoner; Alibaba's networks denied to Aurora's services and watched by the sentinel
+
 ## v0.2.112 — 2026-10-27
 
 4 publications since v0.2.108.

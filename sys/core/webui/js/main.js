@@ -127,7 +127,8 @@ function buildNav() {
     box.append(head, sub);
     nav.append(box);
   }
-  views.filter((v) => !placed.has(v.id)).forEach((v) => nav.append(navButton(v)));   // a page not in an area yet
+  // a page not in an area yet; never one that is a tab of another page (menu: false — its id still opens it)
+  views.filter((v) => !placed.has(v.id) && v.menu !== false).forEach((v) => nav.append(navButton(v)));
   shortNav();
 }
 
