@@ -3366,5 +3366,14 @@
   "prj.talk_steps": "🛠️ {n} passi",
   "prj.talk_working": "il conduttore lavora nel progetto… {s} s",
   "prj.talk_stopped": "fermato ({n})",
-  "prj.talk_stop": "Ferma"
+  "prj.talk_stop": "Ferma",
+  "dj.mix.title": "Mixer dell'arrangiamento",
+  "dj.mix.hint": "Per ogni elemento: 0 niente, 1 leggero, 2 come lo vuole il genere, 3 in primo piano.",
+  "dj.mix.l0": "niente",
+  "dj.mix.l1": "leggero",
+  "dj.mix.l2": "normale",
+  "dj.mix.l3": "in primo piano",
+  "dj.mix.reset": "Tutto normale",
+  "dj.insp.title": "Ispirato allo stile di",
+  "dj.insp.ph": "es. un brano trance dei primi anni 2000 che ami: solo lo stile, mai la melodia"
 }

@@ -11,6 +11,10 @@ identity card, driving licence, health card, date of birth). Each becomes a plac
 within a conversation with the model, so the model can still reason about "the same address"; the answer is
 unmasked before Aurora uses it. Pictures cannot be masked (faces, documents in a photo): a call that sends one is
 counted and the owner is warned in the interface.
+
+Since 28 Oct (owner: «privacy è default… rendiamo i mascheramenti dinamici»): the names of Aurora's own users too, and
+before the owner's words a dynamic pass (sec_mask_spot): the local model names the personal data no rule can see — a
+person's name, a private place, an employer — masked as PRIVATE and learnt for the next time.
 """
 from __future__ import annotations
 
@@ -57,6 +61,7 @@ PATTERNS = [   # (kind, regex): order matters, the most specific first
 ]
 FIELD = re.compile(r'\b(\w*(?:serial|user|username|login|account|host|hostname|mac|email|domain|device_name)\w*)='
                    r'("[^"]*"|\S+)', re.I)
+COMMON = {"test", "admin", "user", "users", "guest", "root", "demo", "main", "home", "aurora", "default"}
 KINDS = "EMAIL|IBAN|CARD|MAC|IP|IP6|PHONE|TOKEN|SECRET|PRIVATE|FIELD|KEY|JWT|CRED|ID|CF|VAT|ADDRESS|PLATE"
 PLACEHOLDER = re.compile(rf"\[({KINDS})_(\d+)\]")
 BARE = re.compile(rf"\b({KINDS})_(\d+)\b")   # brackets dropped
@@ -116,6 +121,21 @@ class Pseudonymizer:
         user = Path.home().name
         if len(user) >= 3:
             own.append(f"/home/{user}")
+        # whole words only (a user called «test» must not turn «pytest» into «py[PRIVATE_1]»): Aurora's own users'
+        # names — a common word (test, admin…) only in their folder's path usr/<name> — and what the local model
+        # found before (sec_mask_spot, dynamic masking)
+        from . import sec_mask_spot
+        users = []
+        try:
+            from .sys_users import Users
+            users = [u["name"] for u in Users(cfg.base or cfg).list()]
+        except Exception:                                # noqa: BLE001 — no users yet: nothing to add
+            pass
+        self.paths = [re.compile(rf"(?<=usr/){re.escape(u)}(?=/|\b)") for u in users if len(u) >= 2]
+        self.names = [re.compile(rf"(?<![\w\[]){re.escape(u)}(?![\w\]])", re.I) for u in users
+                      if len(u) >= 3 and u.lower() not in COMMON]      # a user's name in any case (stored lowercase)
+        self.words = sorted({w for w in sec_mask_spot.learned(cfg) if len(w) >= 3}, key=len, reverse=True)
+        self.cfg = cfg
         self.private = sorted({w for w in own if len(w) >= 3 and w.lower() not in ("localhost", "auto")}, key=len, reverse=True)
         secrets = []
         for s in sys_config.load_schema()["settings"]:
@@ -157,6 +177,15 @@ class Pseudonymizer:
                     return v                             # a long number that is not a card, a date that is not a phone
                 return self._ph(k, v)
             text = rx.sub(rep, text)
+        from . import sec_mask_spot                     # the local model's own look, before the text leaves
+        self.words, self.paths = getattr(self, "words", []), getattr(self, "paths", [])   # one made by hand (tests)
+        for w in (sec_mask_spot.spot(self.cfg, PLACEHOLDER.sub(" ", text))[0] if getattr(self, "cfg", None) else []):
+            if w not in self.words and w not in self.private:
+                self.words = sorted(self.words + [w], key=len, reverse=True)
+        for rx in self.paths + getattr(self, "names", []):   # usr/<a user>/…, a user's name
+            text = rx.sub(lambda m: self._ph("PRIVATE", m.group(0)), text)
+        for w in self.words:                             # names and learnt values: whole words, any case as written
+            text = re.sub(rf"(?<![\w\[]){re.escape(w)}(?![\w\]])", lambda m: self._ph("PRIVATE", m.group(0)), text)
         for w in self.private:                           # the owner's own words, case kept as written
             if w in text:
                 text = text.replace(w, self._ph("PRIVATE", w))

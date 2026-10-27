@@ -230,7 +230,7 @@ async def dj_song(request: Request) -> dict:
         given = {"title": str(body.get("title") or idea[:40] or "canzone").strip()[:80],
                  "caption": aud_song_style.redress(caption, style) if style else caption,
                  "lyrics": "[instrumental]" if r["instrumental"] else lyrics, "language": lang, "style": style,
-                 **{k: r[k] for k in ("bpm", "key_scale", "lm_temperature") if k in r}}
+                 **{k: r[k] for k in ("bpm", "key_scale", "lm_temperature", "negative") if k in r}}
     title = f"🎤 {(given or {}).get('title') or idea[:60] or 'canzone'}"
     _busy[who] = {"title": title, "since": time.time()}
 

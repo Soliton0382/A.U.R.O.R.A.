@@ -2230,6 +2230,19 @@
    ]
   },
   {
+   "key": "AURORA_CLOUD_MASK_DYNAMIC",
+   "type": "bool",
+   "category": "llm",
+   "recommended": "true",
+   "optional": true,
+   "evidence": "owner",
+   "en": "Before a text leaves for a cloud model, the local model reads it and names the personal data the fixed rules cannot see (people's names, private places, employers): masked and learnt for the next time. Off only to measure.",
+   "it": "Prima che un testo parta verso un modello cloud, il modello locale lo legge e indica i dati personali che le regole fisse non vedono (nomi di persone, luoghi privati, datori di lavoro): mascherati e imparati per la volta dopo. Da spegnere solo per misurare.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_CLOUD_MASK_MINE",
    "type": "str",
    "category": "llm",

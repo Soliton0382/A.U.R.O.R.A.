@@ -185,12 +185,41 @@ export function songPanel(state, done, styleOptions) {
   dice.addEventListener("click", () => style.surprise());
   const dressed = el("details", "dj-dress");
   dressed.open = true;
-  dressed.append(el("summary", "", `🎨 ${t("dj.style.title")}`), style.grid, dice);
+  // 🎚️ the mix (owner, 28 Oct: «pompare più o meno determinati arrangiamenti»): each element 0 left out … 3 up front
+  const mixer = el("details", "dj-mixer");
+  mixer.append(el("summary", "", `🎚️ ${t("dj.mix.title")}`), el("p", "muted", t("dj.mix.hint")));
+  const levels = {};
+  const grid = el("div", "dj-mix-grid");
+  for (const m of styleOptions?.mix || []) {
+    const r = el("input");
+    r.type = "range"; r.min = "0"; r.max = "3"; r.step = "1"; r.value = "2";
+    const v = el("span", "dj-mix-val", t("dj.mix.l2"));
+    r.addEventListener("input", () => { v.textContent = t(`dj.mix.l${r.value}`); });
+    const lab = el("label", "dj-mix-field");
+    lab.append(el("span", "", m.label), r, v);
+    grid.append(lab);
+    levels[m.id] = r;
+  }
+  const reset = el("button", "", `↺ ${t("dj.mix.reset")}`);
+  reset.type = "button";
+  reset.addEventListener("click", () => { for (const r of Object.values(levels)) { r.value = "2"; r.dispatchEvent(new Event("input")); } });
+  mixer.append(grid, reset);
+  // 💫 inspired by a track, in words only: its style, never its melody (owner, 28 Oct: «tutto gestito tramite il prompt»)
+  const insp = el("input", "dj-insp");
+  insp.maxLength = 160;
+  insp.placeholder = t("dj.insp.ph");
+  const inspLab = el("label", "dj-style-field dj-insp-field");
+  inspLab.append(el("span", "", `💫 ${t("dj.insp.title")}`), insp);
+  dressed.append(el("summary", "", `🎨 ${t("dj.style.title")}`), style.grid, inspLab, dice, mixer);
+  const allStyle = () => {
+    const mix = Object.fromEntries(Object.entries(levels).map(([k, r]) => [k, Number(r.value)]).filter(([, v]) => v !== 2));
+    return { ...style.values(), ...(Object.keys(mix).length ? { mix } : {}), ...(insp.value.trim() ? { inspiration: insp.value.trim() } : {}) };
+  };
   const go = el("button", "approve", `🎤 ${t("dj.song.go")}`);
   const out = el("span", "muted");
   go.addEventListener("click", async () => {
     try {
-      const r = await call("/v1/aurora/dj/song", { method: "POST", body: JSON.stringify({ idea: idea.value, language: lang.value, seconds: Number(secs.value), lyrics: lyr.value, style: style.values() }) });
+      const r = await call("/v1/aurora/dj/song", { method: "POST", body: JSON.stringify({ idea: idea.value, language: lang.value, seconds: Number(secs.value), lyrics: lyr.value, style: allStyle() }) });
       out.textContent = t("dj.song.started", { title: r.title });
       out.dataset.working = "1";
     } catch (e) { out.textContent = t("ev.error", { m: e.message }); }

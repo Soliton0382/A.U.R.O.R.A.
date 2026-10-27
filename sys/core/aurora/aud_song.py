@@ -64,7 +64,7 @@ def write(llm, idea: str, lang: str = "en", lyrics: str = "", style: dict | None
     return {"title": str(song.get("title") or idea[:40]).strip()[:80],
             "caption": aud_song_style.dress(str(song["caption"]).strip(), r["tags"]), "lyrics": words, "language": lang,
             "style": aud_song_style.check(style),
-            **{k: r[k] for k in ("bpm", "key_scale", "lm_temperature") if k in r}}
+            **{k: r[k] for k in ("bpm", "key_scale", "lm_temperature", "negative") if k in r}}
 
 
 LMS = ("acestep-5Hz-lm-1.7B", "acestep-5Hz-lm-0.6B", "acestep-5Hz-lm-4B")   # its planner: the one downloaded
@@ -149,7 +149,9 @@ def sing(cfg: sys_config.Config, song: dict, seconds: int, out: Path, emit=None)
                 "vocal_language": song["language"], "audio_format": "mp3", "batch_size": 1,
                 "thinking": bool(cfg["AURORA_SONG_THINKING"]),
                 # the dress's own fields (aud_song_style): the tempo, the key, how bold the planner is
-                **{k: song[k] for k in ("bpm", "key_scale", "lm_temperature") if song.get(k) is not None}})
+                **{k: song[k] for k in ("bpm", "key_scale", "lm_temperature") if song.get(k) is not None},
+                # the mix's elements left out (aud_song_style): what the planner must not put in
+                **({"lm_negative_prompt": song["negative"]} if song.get("negative") else {})})
             r.raise_for_status()
             task = r.json()["data"]["task_id"]
             say("song.sing", {"task": task})

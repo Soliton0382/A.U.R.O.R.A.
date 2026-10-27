@@ -4378,3 +4378,21 @@ The one that did harm came in at 0.17 against a relevant passage at 0.15: a link
 AURORA_SYNAPSE_MIN_RERANK = 0.5 (the two above it did no harm); the deductions, which take the strongest synapses
 between fields on their own path, are not touched. Not measured: a second round with the floor (3 cases are too few
 for a rate), the answers' text itself, the deductions' share coming from synapses.
+
+## M267 — dynamic masking with the local model (28 October 2026; C418, sec_mask_spot)
+
+The conductor's test project's brief (the published paper's formulas, an author as «F. Surname») with a paragraph of
+made-up private data added: a colleague's full name, an employer of two words, a town of three words, a sister's first
+name, a doctor by title; and three scientific names that must stay (Einstein–Cartan, Hadamard, Walsh).
+
+| measure | value |
+|---|---|
+| first prompt: the author «F. Surname», the employer, the town | missed (3 of 8 private values) |
+| prompt with examples + the rules «F. Surname» / «Dott. Name» always beside it, 3 runs | 8 of 8 private values masked in each run |
+| scientific names masked by mistake | 0 of 3, in every run |
+| time, a 2,600-character text | 0.5–1.3 s; a chunk already seen: from memory |
+| the local model off (the music model on the GPU) | the rules alone: the author's surname still masked, a 15,000-character paper in 0.2 s; nothing learnt |
+
+Not measured: a large set of real texts (precision and recall over many), names in languages other than Italian and
+English, the delay of a whole vault context with the local model busy answering.
+

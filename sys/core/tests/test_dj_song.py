@@ -134,3 +134,23 @@ def test_songs_are_offered_where_the_gpu_allows():
     assert F.GROUPS["songs"]["default"] is True
     assert F.fits(gpu(16), "songs")[0] and F.fits(gpu(6), "songs")[0]
     assert not F.fits(gpu(3), "songs")[0] and not F.fits({"gpus": [], "ram_gb": 64}, "songs")[0]
+
+
+def test_more_genres_the_mix_and_an_inspiration_in_words():
+    """Owner, 28 Oct: vocal trance, cosmic instrumental trance, 2000s techno, metal; each element of the arrangement
+    0 (left out: the negative prompt) to 3 (up front); a track's style in words, never its name in the caption."""
+    from aurora import aud_song_style as S
+    for g in ("vocal_trance", "cosmic_trance", "techno2000", "hard_trance", "metal", "symphonic_metal"):
+        assert g in S.GENRES and S.resolve({"genre": g})["tags"]
+    assert 134 <= S.resolve({"genre": "vocal_trance"})["bpm"] <= 140                 # its own tempo when «auto»
+    assert 74 <= S.resolve({"genre": "vocal_trance", "tempo": "slow"})["bpm"] <= 82   # a tempo chosen wins
+    r = S.resolve({"genre": "cosmic_trance", "mix": {"lead": 3, "guitars": 0, "pads": 2, "piano": 1}})
+    assert "prominent supersaw lead up front, supersaw lead-driven" in r["tags"] and "subtle piano" in r["tags"]
+    assert r["negative"] == "distorted electric guitars" and "pads" not in r["brief"].split("mix:")[1]   # 2 is not kept
+    assert S.resolve({"mix": {"vocals": 0}})["instrumental"]
+    insp = S.resolve({"inspiration": "  un brano   trance del 2000  "})
+    assert "STYLE of «un brano trance del 2000»" in insp["brief"] and "never name" in insp["brief"]
+    assert {o["id"] for o in S.options("it")["mix"]} == set(S.MIX)
+    for bad in ({"mix": {"lead": 4}}, {"mix": {"cowbell": 3}}, {"mix": "lead"}):
+        with pytest.raises(ValueError):
+            S.check(bad)

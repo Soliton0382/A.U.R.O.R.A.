@@ -251,11 +251,27 @@ def _command(run: Run, cc, system_file: str, mcp_file: str, sid: str, resume: bo
     return cmd + (["--resume", sid] if resume else ["--session-id", sid])
 
 
+def _vault_first(run: Run) -> str:
+    """The vault on the owner's words, looked up before the conductor starts (owner, 28 Oct, after a trial where the CLI
+    never searched it: the search is Aurora's, always, not left to the model); compressed by SSCC when long."""
+    from . import agt_vault
+    try:
+        from .api.core import pipeline
+        with sys_context.acting_as(run.user):
+            found = agt_vault.run(pipeline(run.user), {"query": f"{run.project.replace('-', ' ')}: {run.goal}"[:300],
+                                                       "top_k": 5}, lambda *x: None)
+    except Exception as e:                               # noqa: BLE001 — no vault here (a test, the models down): said
+        found = f"(the vault could not be searched: {type(e).__name__})"
+    _note(run.cfg, run.project, step="⏺ search_vault (Aurora, before the start)")
+    return "\n\n## The vault on this request (searched by Aurora before you started; search again for more)\n" + _prose(run, found)
+
+
 def _work(run: Run, cc, system: str, s: dict) -> None:
     from . import prj_talk
     from .mdl_router import _cloud_call
     from .sec_mask import KEEP
     cfg, project, p = run.cfg, run.project, run.mask
+    system += _vault_first(run)                          # the vault looked up by Aurora before the CLI starts
     ms, mu = p.mask(sys_config.personal(system, cfg)), p.mask(run.goal)
     if p.to_val:
         ms += KEEP

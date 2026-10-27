@@ -3366,5 +3366,14 @@
   "prj.talk_steps": "🛠️ {n} steps",
   "prj.talk_working": "the conductor is working in the project… {s} s",
   "prj.talk_stopped": "stopped ({n})",
-  "prj.talk_stop": "Stop"
+  "prj.talk_stop": "Stop",
+  "dj.mix.title": "Arrangement mixer",
+  "dj.mix.hint": "For each element: 0 none, 1 subtle, 2 as the genre has it, 3 up front.",
+  "dj.mix.l0": "none",
+  "dj.mix.l1": "subtle",
+  "dj.mix.l2": "normal",
+  "dj.mix.l3": "up front",
+  "dj.mix.reset": "All normal",
+  "dj.insp.title": "Inspired by the style of",
+  "dj.insp.ph": "e.g. an early-2000s trance track you love: its style only, never its melody"
 }

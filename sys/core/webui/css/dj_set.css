@@ -47,3 +47,10 @@
 .dj-dress { margin: .4rem 0; }
 .wa-editor .dj-style-grid { color: #e8ecf3; }
 .wa-editor .dj-style-field select { background: #0b0e13; color: #e8ecf3; border: 1px solid #4a5468; border-radius: 3px; }
+/* 🎚️ the arrangement's mixer and 💫 the inspiration (dj_set.js songPanel) */
+.dj-mixer { margin: .5rem 0; }
+.dj-mix-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: .3rem .9rem; margin: .4rem 0; }
+.dj-mix-field { display: grid; grid-template-columns: 9.5rem 1fr 6.5rem; align-items: center; gap: .4rem; font-size: .85rem; }
+.dj-mix-val { color: var(--muted); font-size: .8rem; }
+.dj-insp-field { display: flex; flex-direction: column; gap: .2rem; margin: .5rem 0; }
+.dj-insp { width: 100%; }

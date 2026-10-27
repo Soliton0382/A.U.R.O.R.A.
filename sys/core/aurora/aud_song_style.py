@@ -8,6 +8,14 @@ orchestral, minimal, a club anthem… sounds another song), the voice, the tempo
 model's own planner is. A choice becomes words the reasoner must build the caption on, tags added to the caption
 whatever the reasoner wrote (so it is never lost), and the music model's own fields (bpm, key_scale, the planner's
 temperature). «Sing it again» with another dress keeps the words and changes the clothes (redress).
+
+Then (owner, 28 Oct: «vocal trance bella strumentale… che ti fa toccare con mano l'infinito dell'universo… techno di
+quella giusta anni 2000… manca anche il metal… quali set si possono specificare per pompare più o meno determinati
+arrangiamenti… prendere ispirazione allo stile di determinati brani»): more genres, each with its own tempo when the
+tempo is «auto»; the mix — each element of the arrangement from 0 (left out: the model's negative prompt) to 3 (up
+front); and an inspiration — a track named in words, whose style (never its melody or its words) the reasoner turns
+into musical terms. Only words: no reference audio (owner, 28 Oct: «no file di riferimento, tutto gestito tramite il
+prompt»).
 """
 from __future__ import annotations
 
@@ -31,7 +39,38 @@ GENRES = {
     "hiphop": ("Hip hop", "Hip hop", "hip hop, boom bap drums, deep bass, sampled soul chords"),
     "classical": ("Classica", "Classical", "classical, chamber orchestra, strings and woodwinds, romantic era"),
     "italo": ("Italo disco", "Italo disco", "italo disco, 80s, vocoder, arpeggiated bass, sparkling synths"),
+    "vocal_trance": ("Vocal trance", "Vocal trance", "vocal trance, uplifting, euphoric, soaring ethereal female vocal, long "
+                     "instrumental passages, supersaw lead, emotional breakdown with piano and strings, big drop"),
+    "cosmic_trance": ("Trance cosmica strumentale", "Cosmic instrumental trance", "uplifting instrumental trance, epic and "
+                      "cosmic, vast space atmosphere, huge supersaw chords, lush evolving pads, long breakdown, "
+                      "euphoric melody, early 2000s"),
+    "techno2000": ("Techno anni 2000", "2000s techno", "early 2000s peak-time techno, driving and hypnotic, rolling "
+                   "percussive loops, punchy kick, filtered stabs, warehouse energy"),
+    "hard_trance": ("Hard trance anni 2000", "2000s hard trance", "2000s hard trance, pounding kick, acid 303 lines, "
+                    "fast energetic leads, hoover synths"),
+    "metal": ("Metal", "Metal", "heavy metal, distorted down-tuned guitars, double kick drums, galloping riffs, "
+              "powerful vocals, guitar solo"),
+    "symphonic_metal": ("Metal sinfonico", "Symphonic metal", "symphonic metal, heavy guitars with full orchestra and "
+                        "choir, operatic vocals, epic and dramatic"),
 }
+GENRE_BPM = {"trance90": 138, "vocal_trance": 138, "cosmic_trance": 136, "techno2000": 132, "hard_trance": 145,
+             "techno": 130, "house": 124, "dnb": 174, "eurodance": 135, "metal": 160, "symphonic_metal": 140}
+# the mix: the elements of an arrangement, each 0 (left out) to 3 (up front); 1 subtle, 2 as the genre has it
+MIX = {
+    "lead": ("Lead synth (supersaw)", "Lead synth (supersaw)", "supersaw lead"),
+    "pads": ("Pad e atmosfere", "Pads and atmosphere", "atmospheric pads"),
+    "arp": ("Arpeggi", "Arpeggios", "arpeggiated synths"),
+    "acid": ("Acid 303", "Acid 303", "acid 303 bassline"),
+    "piano": ("Pianoforte", "Piano", "piano"),
+    "strings": ("Archi e orchestra", "Strings and orchestra", "orchestral strings"),
+    "guitars": ("Chitarre distorte", "Distorted guitars", "distorted electric guitars"),
+    "bass": ("Basso", "Bass", "bassline"),
+    "kick": ("Cassa e batteria", "Kick and drums", "kick drum"),
+    "choir": ("Coro", "Choir", "choir"),
+    "vocals": ("Voce", "Vocals", "vocals"),
+    "breakdown": ("Breakdown", "Breakdown", "breakdown"),
+}
+LEVELS = {0: "no {x}", 1: "subtle {x}", 2: "{x}", 3: "prominent {x} up front, {x}-driven"}
 DRESSES = {
     "acoustic": ("Acustico, unplugged", "Acoustic, unplugged", "unplugged, acoustic guitars, piano, no synths, natural room sound"),
     "orchestral": ("Orchestrale", "Orchestral", "full orchestral arrangement, strings, brass, timpani, choir pads"),
@@ -56,18 +95,37 @@ KEYS = {"major": ("Maggiore (luminosa)", "Major (bright)", "major"), "minor": ("
 CREATIVITY = {"safe": ("Sicura", "Safe", 0.7), "balanced": ("Equilibrata", "Balanced", 0.85), "bold": ("Audace", "Bold", 1.05)}
 NOTES = ["C", "D", "E", "F", "G", "A", "B"]
 AXES = {"genre": GENRES, "dress": DRESSES, "voice": VOICES, "tempo": TEMPOS, "key": KEYS, "creativity": CREATIVITY}
+INSPIRATION_MAX = 160
 
 
 def options(lang: str = "it") -> dict:
     """Each axis with its choices, for the page: {axis: [{"id", "label"}]} («auto» is the page's own first choice)."""
     k = 0 if lang.startswith("it") else 1
-    return {axis: [{"id": i, "label": v[k]} for i, v in table.items()] for axis, table in AXES.items()}
+    out = {axis: [{"id": i, "label": v[k]} for i, v in table.items()] for axis, table in AXES.items()}
+    return {**out, "mix": [{"id": i, "label": v[k]} for i, v in MIX.items()]}
 
 
 def check(style: dict | None) -> dict:
     """The choices kept, «auto» or unknown dropped (ValueError for an unknown axis)."""
     out = {}
     for axis, choice in (style or {}).items():
+        if axis == "mix":                                # {element: 0..3}; 2 (as the genre has it) is not kept
+            if not isinstance(choice, dict):
+                raise ValueError("style mix: {element: 0-3}")
+            mix = {}
+            for e, v in choice.items():
+                if e not in MIX or str(v) not in ("0", "1", "2", "3"):
+                    raise ValueError(f"style mix: elements {', '.join(MIX)}, levels 0-3")
+                if int(v) != 2:
+                    mix[e] = int(v)
+            if mix:
+                out["mix"] = mix
+            continue
+        if axis == "inspiration":
+            words = " ".join(str(choice or "").split())[:INSPIRATION_MAX]
+            if words:
+                out["inspiration"] = words
+            continue
         if axis not in AXES:
             raise ValueError(f"style: unknown axis {axis!r}")
         if choice and choice != "auto":
@@ -83,7 +141,11 @@ def resolve(style: dict | None, rng: random.Random | None = None) -> dict:
     s = check(style)
     rng = rng or random.Random()
     tags = [AXES[a][c][2] for a, c in s.items() if a in ("genre", "dress", "voice")]
-    out: dict = {"tags": tags, "instrumental": s.get("voice") == "instrumental"}
+    mix = s.get("mix", {})
+    tags += [LEVELS[v].format(x=MIX[e][2]) for e, v in mix.items() if v > 0]
+    out: dict = {"tags": tags, "instrumental": s.get("voice") == "instrumental" or mix.get("vocals") == 0}
+    if any(v == 0 for v in mix.values()):              # what is left out: the planner's negative prompt
+        out["negative"] = ", ".join(MIX[e][2] for e, v in mix.items() if v == 0)
     brief = []
     if "genre" in s:
         brief.append(f"genre: {GENRES[s['genre']][1]}")
@@ -94,6 +156,15 @@ def resolve(style: dict | None, rng: random.Random | None = None) -> dict:
     if "tempo" in s:
         out["bpm"] = TEMPOS[s["tempo"]][2] + rng.randint(-4, 4)          # a little apart each time
         brief.append(f"tempo about {out['bpm']} BPM")
+    elif s.get("genre") in GENRE_BPM:                                    # the genre's own tempo when «auto»
+        out["bpm"] = GENRE_BPM[s["genre"]] + rng.randint(-2, 2)
+        brief.append(f"tempo about {out['bpm']} BPM")
+    if mix:
+        brief.append("mix: " + "; ".join(f"{MIX[e][1]} {('left out', 'subtle', 'normal', 'up front')[v]}" for e, v in mix.items()))
+    if "inspiration" in s:                             # the style of a track in words: never its melody, never its name
+        brief.append(f"inspired by the STYLE of «{s['inspiration']}»: describe that style in musical terms only "
+                     "(era, tempo, instruments, structure, mood); never name the track or the artist in the caption, "
+                     "never reuse its melody or its words")
     if "key" in s:                                                       # a tonic of chance in the mode chosen
         out["key_scale"] = f"{rng.choice(NOTES)} {KEYS[s['key']][2]}"
         brief.append(f"key: {out['key_scale']}")
