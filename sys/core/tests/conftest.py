@@ -59,6 +59,10 @@ def nothing_leaves_the_tests(monkeypatch, request):
     # nor the owner's Notifications page (C336, 16 Oct: «fake (gate): provider down», a decoy's tool call and a cloud
     # ceiling of a test were in the owner's history: the API imported in-process kept them with its own configuration)
     monkeypatch.setattr(sys_push, "remember", lambda msg, event, channels, cfg: sent.append({"event": event, **msg}))
+    # nor RIPEstat: the deny list's networks are the test's own (sec_egress)
+    if request.module.__name__.rsplit(".", 1)[-1] != "test_egress":
+        from aurora import sec_egress
+        monkeypatch.setattr(sec_egress, "refresh", lambda cfg, fetch=None, force=False: sec_egress.load(cfg))
     listeners = list(sys_log._listeners)
     yield sent
     sys_log._listeners[:] = listeners

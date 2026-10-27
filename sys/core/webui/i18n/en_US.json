@@ -2870,6 +2870,7 @@
   "sec.kind.behaviour:new_country": "A country this device never talked to",
   "sec.kind.behaviour:new_device": "A device never seen on the network",
   "sec.kind.behaviour:upload": "Unusual data upload",
+  "sec.kind.egress_deny": "Towards a denied network",
   "sec.kind.honeypot": "Contact with the honeypot",
   "sec.kind.beacon": "Regular calls out (beacon)",
   "sec.kind.sweep": "Sweep of the internal network",

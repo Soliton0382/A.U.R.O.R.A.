@@ -4302,3 +4302,25 @@ Chosen: ≥ 3 and ≤ 20 % (PROPOSE_FA, PROPOSE_RIGHT). Per kind (M261) the five
 reached every device of the house. The owner's four kind answers, made again per device: 13 patterns quiet; the kind
 declined forgotten, 1 of its devices proposed.
 
+## M263 — where the local reasoner's traffic goes, and this machine's to Alibaba's networks (27 October 2026; ROADMAP N50)
+
+Live: the TCP/UDP sockets of every process of the service user sampled once a second for 15 minutes (ss), while a
+question went to the local model and an agent run on the local model read a page with fetch_url (traced: web plugin,
+example.org, 0.55 s). llama-server: 215 samples, every one on 127.0.0.1 (its listening port and Aurora's calls);
+nothing else. The way out was the plugins' and services' Python processes (Wikipedia and the page asked), not the
+reasoner. Its command line has no download option (no -hf, no --model-url), though the program can make HTTPS
+requests (it links libssl): hence the unit's IPAddressDeny=any.
+
+History: 683 firewall log files (30 Sep–27 Oct, 7.3 M lines, 1.6 M from this machine), destinations matched against
+the announced prefixes of AS45102 and AS37963 (Alibaba Cloud) and AS24429 (Taobao), 2,552 IPv4 prefixes, 536 collapsed.
+73 connections from this machine on 7 days, all TCP 443, bytes not logged:
+
+| Destination | Connections | Days | Matched to |
+|---|---|---|---|
+| a patent search site hosted on Alibaba Cloud | 4 | 21 Oct | the agent's fetch_url on a patent phase (DNS of the site = the address) |
+| Taobao's network (8 addresses) | 49 | 1 and 16 Oct | the minutes of service restarts (1 Oct) and a firewall application «Alibaba» (16 Oct); no Aurora trace names it |
+| Alibaba Cloud (2 addresses) | 20 | 2, 14, 15, 21 Oct | not matched to any Aurora trace |
+
+Not measured: which process made the connections not matched (the firewall sees the machine, not the process; the
+machine is also the owner's desktop); the bytes; the reasoner's traffic before today (no accounting was on).
+

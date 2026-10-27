@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.109 — 2026-10-27
+
+1 publications since v0.2.108.
+
+- 2026-10-27 No way out for the local reasoner; Alibaba's networks denied to Aurora's services and watched by the sentinel
+
 ## v0.2.108 — 2026-10-27
 
 8 publications since v0.2.100.

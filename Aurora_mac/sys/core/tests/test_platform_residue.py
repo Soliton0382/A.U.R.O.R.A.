@@ -33,6 +33,8 @@ EVERYWHERE = {"ffmpeg", "ffprobe", "git", "curl", "pdfinfo", "pdftoppm", "sys.ex
 # (file, program): why it may stay — the modules
 PROGRAMS_ALLOWED = {
     ("mdl_accounts.py", "_bin(cfg)"): "ROADMAP 106: the claude CLI of AURORA_CLAUDE_CODE_BIN, found with shutil.which as in mdl_cloud",
+    ("sec_egress.py", "ip"): "this machine's addresses for the egress watch (ROADMAP N50): none found elsewhere, the watch then matches nothing and the services' unit rules do not exist there",
+    ("sec_egress.py", "ss"): "the process holding a connection to a denied network: '' where missing",
     ("sec_hostaudit.py", "ss"): "the Linux branch only; netstat (Mac) and psutil (Windows) otherwise (NETWORK)",
     ("sys_bugreport.py", "nvidia-smi"): "a bug report's driver version: «not measured» where missing",
     ("mdl_custom.py", "nvidia-smi"): "the GPU memory others hold (C252): 0 where missing, llama.cpp's --fit decides",

@@ -156,6 +156,17 @@ device in quarantine and put an IPS policy on a rule (sec_fwwrite), within these
 The firewall's documentation is kept in `status/security/fwdocs.sqlite`: copyrighted, for the licensee's own use on
 this machine, never in the repository.
 
+## Networks never reached (2026-10-27, ROADMAP N50, M263)
+
+A Qwen model (not the one Aurora uses) was caught, as an agent with a shell, writing a curl to a storage bucket of
+Alibaba Cloud in Beijing. A model's weights reach nothing by themselves: its tools do. On this machine the local
+reasoner talked to 127.0.0.1 alone, so its unit now forbids every other address (IPAddressDeny=any,
+IPAddressAllow=localhost); the commands of a project already run without network. The services that do go out (the
+tools, the plugins, the harvest) never reach the networks of AURORA_EGRESS_DENY_ASNS (Alibaba Cloud and Taobao by
+default; prefixes from RIPEstat, kept a week, written into their units at install). The machine is also the owner's
+desktop, which the list does not touch: the sentinel raises a high incident, never quieted, for any firewall line
+from this machine to a listed network, with the local process when its connection is still open.
+
 ## Known limits
 
 - Plugins keep the network and the devices (connectors talk to services, the senses use the camera); the cage

@@ -229,3 +229,20 @@ def test_any_openai_compatible_service_with_or_without_a_key(cfg, monkeypatch):
     assert mdl_router.CloudBase(cfg).problem() == "AURORA_CUSTOM_BASE_URL is empty"
     assert set(mdl_router.PROVIDERS) - {"local"} <= set(sys_config.load_schema()["settings"][
         [s["key"] for s in sys_config.load_schema()["settings"]].index("AURORA_CLOUD_PROVIDER")]["choices"])
+
+def test_the_local_reasoner_reaches_no_network_but_its_own_address(cfg, monkeypatch):
+    """M263: llama-server talks to 127.0.0.1 alone; its unit lets it reach nothing else (owner, 27 Oct)."""
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "script"))
+    import sys_install_services as inst
+    monkeypatch.setattr(sys_config, "get", lambda: cfg)
+    from aurora import net_https
+    monkeypatch.setattr(net_https.subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(a, 0, "", ""))
+    cfg.values["AURORA_LLM_HOST"] = "127.0.0.1"
+    assert inst.main() == 0
+    out = cfg.root / "sys/deploy/systemd"
+    unit = (out / "aurora-llm.service").read_text(encoding="utf-8")
+    assert "IPAddressDeny=any" in unit and "IPAddressAllow=localhost" in unit
+    assert "IPAddressDeny" not in (out / "aurora-api.service").read_text(encoding="utf-8")   # the tools go out
+    cfg.values["AURORA_LLM_HOST"] = "0.0.0.0"                      # served to the network: its clients must reach it
+    assert inst.main() == 0
+    assert "IPAddressDeny" not in (out / "aurora-llm.service").read_text(encoding="utf-8")

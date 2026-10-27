@@ -4307,6 +4307,19 @@
    ]
   },
   {
+   "key": "AURORA_EGRESS_DENY_ASNS",
+   "type": "list",
+   "category": "security",
+   "recommended": "45102,37963,24429",
+   "evidence": "owner, 2026-10-27 (M263)",
+   "en": "Networks (autonomous system numbers, comma separated) Aurora's services never reach, and the sentinel's alarm if this machine does: by default Alibaba Cloud and Taobao, the Qwen model's maker (a Qwen model was caught trying to send a file to a bucket in Beijing). Their prefixes come from RIPEstat, kept and refreshed every week. Empty: no list.",
+   "it": "Reti (numeri di sistema autonomo, separati da virgola) che i servizi di Aurora non raggiungono mai, e l'allarme della sentinella se questa macchina ci prova: di default Alibaba Cloud e Taobao, chi fa il modello Qwen (un modello Qwen è stato visto tentare di mandare un file a un bucket di Pechino). I loro prefissi arrivano da RIPEstat, tenuti e aggiornati ogni settimana. Vuoto: nessuna lista.",
+   "services": [
+    "aurora-sentinel",
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_ABUSEIPDB_KEY",
    "type": "str",
    "category": "security",

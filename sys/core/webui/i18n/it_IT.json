@@ -2870,6 +2870,7 @@
   "sec.kind.behaviour:new_country": "Paese mai contattato da questo dispositivo",
   "sec.kind.behaviour:new_device": "Dispositivo mai visto nella rete",
   "sec.kind.behaviour:upload": "Invio di dati insolito",
+  "sec.kind.egress_deny": "Verso una rete in blacklist",
   "sec.kind.honeypot": "Contatto con l'honeypot",
   "sec.kind.beacon": "Chiamate regolari verso l'esterno (beacon)",
   "sec.kind.sweep": "Scansione della rete interna",

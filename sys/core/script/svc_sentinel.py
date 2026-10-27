@@ -88,8 +88,14 @@ def main() -> int:
     base = sec_baseline.Baseline(cfg)
     log.info("aurora-sentinel started: syslog on %s:%s, allowed %s", host, port, ", ".join(sorted(allow)))
     recon = Recon()                                    # chatter, then a threat going out: one high incident
+    from aurora import sec_egress                      # this machine towards a listed network (owner, 27 Oct)
+    sec_egress.refresh(cfg)
+    egress = sec_egress.Watch(cfg)
+    log.info("egress watch: %d networks listed (%s), this machine as %s", len(egress.deny.nets),
+             ", ".join(map(str, sec_egress.asns(cfg))) or "none", ", ".join(sorted(egress.mine)) or "?")
     received = dropped = 0
     beat = 0.0
+    egress_at = time.time()
     while not _stop:
         if time.time() - beat > 60:
             sys_health.heartbeat(cfg, "sentinel")
@@ -98,6 +104,10 @@ def main() -> int:
             if [r for r in fresh if r["on"]] != rules.rules:
                 rules = sec_rules.RuleSet(fresh)
                 log.info("checks of the owner: %d on", len(rules.rules))
+            if time.time() - egress_at > 86400:        # the list a day old: fetched again when a week old
+                sec_egress.refresh(cfg)
+                egress = sec_egress.Watch(cfg)
+                egress_at = time.time()
             if dropped:
                 log.warning("dropped %d datagrams from addresses not allowed", dropped)
                 dropped = 0
@@ -116,6 +126,8 @@ def main() -> int:
         if quiet:
             recon.chatter(src_of(f), time.time(), str(f.get("dst_port", "")))
         found = [] if quiet else [i.as_dict() for i in det.feed(f)]
+        if (out := egress.feed(f)):                     # before any quiet: an allowed line is still a way out
+            found.append(out)
         if is_ips(f):
             linked = recon.out(f, time.time())
             if linked:

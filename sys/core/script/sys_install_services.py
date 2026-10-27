@@ -274,6 +274,20 @@ def main() -> int:
                          f"ExecReload={cfg['AURORA_CADDY_BIN']} reload --config {caddyfile} --adapter caddyfile --force\n"
                          + ("AmbientCapabilities=CAP_NET_BIND_SERVICE\n" if low_ports else "")),
     }
+    # the reasoner needs no network but its own address (owner, 27 Oct, after a Qwen model was caught trying to send a
+    # file to a cloud in Beijing: «se fino ad oggi… genera solo traffico su 127.0.0.1… si può pensare di limitare
+    # llama-server»; M263: only 127.0.0.1 seen). Fetching, searching and the cloud are the tools', in other processes
+    if str(cfg["AURORA_LLM_HOST"]) in ("127.0.0.1", "localhost", "::1"):
+        desc, after, exec_, extra = units["aurora-llm"]
+        units["aurora-llm"] = (desc, after, exec_, extra + "IPAddressDeny=any\nIPAddressAllow=localhost\n")
+    # the networks no service of Aurora reaches (sec_egress, AURORA_EGRESS_DENY_ASNS: Alibaba Cloud by default); the
+    # owner's desktop on the same machine is not touched — the sentinel says if this machine goes there anyway
+    from aurora import sec_egress
+    deny = sec_egress.refresh(cfg)["prefixes"]
+    if deny:
+        for name, (desc, after, exec_, extra) in units.items():
+            if "IPAddressDeny=any" not in extra:       # the reasoner reaches nothing but 127.0.0.1 already
+                units[name] = (desc, after, exec_, extra + f"IPAddressDeny={' '.join(deny)}\n")
     if cloud:
         del units["aurora-llm"]
         # no GPU: the encoder and the harvest run on the CPU, which is also the owner's desktop (a colleague's
