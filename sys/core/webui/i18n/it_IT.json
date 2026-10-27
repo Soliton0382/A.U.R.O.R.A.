@@ -3294,5 +3294,6 @@
   "con.k.tv": "TV / media",
   "con.k.audio": "Audio",
   "con.k.astro": "Astronomia",
-  "con.k.other": "Altro"
+  "con.k.other": "Altro",
+  "rt.firewall.restart": "🔥 Riavvia il firewall dalla sua console, poi aspetta che torni raggiungibile e dice dopo quanti secondi (Internet manca per circa un minuto e mezzo)."
 }

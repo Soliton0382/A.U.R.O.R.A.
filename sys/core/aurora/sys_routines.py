@@ -6,6 +6,7 @@ A routine is either
     tool   one read-only tool of a plugin, called directly (no model: fast, deterministic), e.g. weather alerts
     agent  a goal for the agent with the plugins' tools, e.g. a weekly report of the GitHub repositories
     story  Aurora's narrated videos on a schedule (kno_story_auto): "action" make (at night) or publish (by day)
+    firewall  the firewall restarted (sec_fwpower; owner, 28 Oct: «il restart del firewall»), the admin's
 and has a schedule: {"every": "hours", "hours": n} | {"every": "day", "at": "HH:MM"} |
 {"every": "week", "weekday": 0-6 (Monday 0), "at": "HH:MM"} |
 {"every": "custom", "times": ["HH:MM", ...], "days": [0-6, ...] or "group": all | weekdays | weekend | workdays |
@@ -70,8 +71,10 @@ def get(cfg: sys_config.Config, rid: str) -> dict | None:
 def validate(spec: dict) -> dict:
     """The fields a routine may have, checked; raises ValueError with the reason."""
     kind = spec.get("kind")
-    if kind not in ("tool", "agent", "story"):
-        raise ValueError("kind must be tool, agent or story")
+    if kind not in ("tool", "agent", "story", "firewall"):
+        raise ValueError("kind must be tool, agent, story or firewall")
+    if kind == "firewall" and spec.get("action", "restart") != "restart":
+        raise ValueError("a firewall routine restarts it (action: restart)")
     if kind == "story" and spec.get("action", "make") not in ("make", "publish"):
         raise ValueError("a story routine makes a video or publishes the one ready (action: make or publish)")
     if "format" in spec and spec["format"] not in ("", "reel", "post", "story"):

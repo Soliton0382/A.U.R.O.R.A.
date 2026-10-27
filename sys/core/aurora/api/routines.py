@@ -40,6 +40,18 @@ def _routine_job(r: dict):
                 log.exception("routine %s (video) failed", r["id"])
                 ok, text = False, f"{type(e).__name__}: {str(e)[:300]}"
             ans = Answer(run_id, q, text, False, mode="agent")
+        elif r["kind"] == "firewall":                         # the firewall restarted on a schedule (sec_fwpower)
+            from aurora import sec_fwpower
+            try:
+                out = sec_fwpower.restart(cfg)
+                ok = out["ok"]
+                text = (f"🔥 Firewall riavviato: di nuovo raggiungibile dopo {out['away_s']} s" if ok else
+                        f"⚠️ Firewall riavviato ma la sua API non risponde dopo {out['away_s']} s: controllalo")
+            except Exception as e:                       # noqa: BLE001 - a restart not sent is recorded and said
+                log.exception("routine %s (firewall) failed", r["id"])
+                ok, text = False, f"Riavvio del firewall non inviato: {type(e).__name__}: {str(e)[:300]}"
+            emit("routine.result", {"routine": r["id"], "ok": ok, "text": text})
+            ans = Answer(run_id, q, text, False, mode="agent")
         elif r["kind"] == "tool":
             host = plugin_host()
             p = host.get(r["plugin"])
@@ -133,6 +145,8 @@ async def routine_create(request: Request) -> dict:
     try:
         if body.get("kind") == "story" and me() != _admin():
             raise HTTPException(status_code=403, detail="the videos on a schedule are the admin's (GPU and the page)")
+        if body.get("kind") == "firewall" and me() != _admin():
+            raise HTTPException(status_code=403, detail="the firewall's restart is the admin's")
         if body.get("kind") == "tool" and me() != _admin() and body.get("plugin") not in \
                 {p.name for p in plugin_host().plugins(with_tools=False) if p.available}:
             raise HTTPException(status_code=403, detail="a routine of a plugin that is not yours")

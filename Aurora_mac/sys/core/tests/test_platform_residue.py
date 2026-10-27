@@ -42,6 +42,7 @@ PROGRAMS_ALLOWED = {
     ("sec_hostaudit.py", "ip"): "the addresses on this machine's guests' bridges (virbr…): missing = none, as before",
     ("sec_hostaudit.py", "ss"): "the Linux branch only; netstat (Mac) and psutil (Windows) otherwise (NETWORK)",
     ("sys_bugreport.py", "nvidia-smi"): "a bug report's driver version: «not measured» where missing",
+    ("sec_fwpower.py", "ssh"): "ROADMAP N55: the firewall's console over SSH through a terminal (pty): Linux and the Mac; Windows has no pty, the restart says so",
     ("sys_ups.py", "systemctl"): "ROADMAP N53: the UPS's power-off through logind, Linux only; elsewhere it fails, logged, notify still works",
     ("mdl_custom.py", "nvidia-smi"): "the GPU memory others hold (C252): 0 where missing, llama.cpp's --fit decides",
     ("prj_term.py", "bwrap"): "phase 4: the terminal's cage, asked once whether it can start (C264); none: said on the page",

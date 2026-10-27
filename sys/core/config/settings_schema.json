@@ -5278,6 +5278,47 @@
    ],
    "en": "On battery, the runtime left (seconds) at or under which this computer is powered off: keep it above the time a shutdown takes.",
    "it": "A batteria, l'autonomia residua (secondi) a cui o sotto cui il computer viene spento: tienila sopra il tempo che serve a spegnersi."
+  },
+  {
+   "key": "AURORA_FIREWALL_SSH_USER",
+   "type": "str",
+   "category": "security",
+   "recommended": "admin",
+   "optional": true,
+   "evidence": "owner, 2026-10-28",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ],
+   "en": "The firewall console's account, for restarting and shutting it down (Sophos: only the default admin takes the console).",
+   "it": "L'account della console del firewall, per riavviarlo e spegnerlo (Sophos: la console accetta solo l'admin predefinito)."
+  },
+  {
+   "key": "AURORA_FIREWALL_SSH_KEY",
+   "type": "str",
+   "category": "security",
+   "recommended": "~/.ssh/aurora_firewall",
+   "optional": true,
+   "evidence": "owner, 2026-10-28",
+   "services": [
+    "aurora-api",
+    "aurora-rem"
+   ],
+   "en": "Aurora's own SSH key for the firewall's console (RSA: Sophos refuses ED25519); its public half goes on the firewall (Sophos: Administration → Device access).",
+   "it": "La chiave SSH di Aurora per la console del firewall (RSA: Sophos rifiuta ED25519); la sua parte pubblica va sul firewall (Sophos: Administration → Device access)."
+  },
+  {
+   "key": "AURORA_UPS_FIREWALL_OFF",
+   "type": "bool",
+   "category": "services",
+   "recommended": "false",
+   "optional": true,
+   "evidence": "owner, 2026-10-28",
+   "services": [
+    "aurora-rem"
+   ],
+   "en": "With the UPS's battery nearly flat (AURORA_UPS_MODE shutdown), the firewall is shut down too, before this computer.",
+   "it": "Con la batteria dell'UPS quasi scarica (AURORA_UPS_MODE shutdown), viene spento anche il firewall, prima di questo computer."
   }
  ]
 }

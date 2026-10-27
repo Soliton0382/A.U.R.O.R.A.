@@ -3294,5 +3294,6 @@
   "con.k.tv": "TV / media",
   "con.k.audio": "Audio",
   "con.k.astro": "Astronomy",
-  "con.k.other": "Other"
+  "con.k.other": "Other",
+  "rt.firewall.restart": "🔥 Restart the firewall from its console, then wait for it to answer again and say after how many seconds (no Internet for about a minute and a half)."
 }

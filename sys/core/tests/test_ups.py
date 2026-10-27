@@ -112,3 +112,27 @@ def test_the_power_off_rule_only_in_shutdown_mode():
     spec.loader.exec_module(mod)
     rule = mod.POLKIT.substitute(user="u", power=mod.POWER.substitute(user="u"))
     assert "login1.power-off" in rule and "login1" not in mod.POLKIT.substitute(user="u", power="")
+
+
+def test_the_firewall_goes_down_first_only_when_chosen(cfg):
+    for chosen, expect in ((True, ["fw", "off"]), (False, ["off"])):
+        cfg.values.update({"AURORA_UPS_MODE": "shutdown", "AURORA_UPS_SERVERS": ["a"], "AURORA_UPS_FIREWALL_OFF": chosen})
+        order = []
+        w = sys_ups.Watch(cfg, connect=FakeClient, poweroff=lambda: order.append("off"), tell=lambda *a: None,
+                          firewall_off=lambda: order.append("fw"))
+        FakeClient.reads = [{"ups.status": "OB LB"}, {"ups.status": "OB LB"}]
+        w.step(now=0)
+        w.step(now=1)
+        assert order == expect
+
+
+def test_a_firewall_that_cannot_be_shut_down_never_stops_the_power_off(cfg):
+    cfg.values.update({"AURORA_UPS_MODE": "shutdown", "AURORA_UPS_SERVERS": ["a"], "AURORA_UPS_FIREWALL_OFF": True})
+    off = []
+
+    def fail():
+        raise RuntimeError("no console")
+    w = sys_ups.Watch(cfg, connect=FakeClient, poweroff=lambda: off.append(1), tell=lambda *a: None, firewall_off=fail)
+    FakeClient.reads = [{"ups.status": "OB LB"}, {"ups.status": "OB LB"}]
+    w.step(now=0)
+    assert "firewall_off" in w.step(now=1) and off == [1]

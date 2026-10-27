@@ -184,6 +184,14 @@ then, Aurora's polkit rule (50-aurora.rules, written by sys_install_services) gr
 in any other mode the rule does not hold them. The power-off follows a low battery read twice in a row (30 s), so one
 odd read never stops the machine; the UPS's password, when set, is a secret setting and never logged.
 
+## The firewall's console (2026-10-28, ROADMAP N55)
+
+Restarting or shutting the Sophos down is not in its XML API: Aurora reaches the console over SSH as the default
+admin (the only account the console takes) with a key of its own, never a password; the owner adds its public half on
+the firewall and can remove it there at any time. Aurora types one of two commands only (`system restart all`,
+`system shutdown`), from a routine the admin made or from the UPS's power-off when the owner chose it; each is
+written to the firewall log as an audit line.
+
 ## Known limits
 
 - Plugins keep the network and the devices (connectors talk to services, the senses use the camera); the cage

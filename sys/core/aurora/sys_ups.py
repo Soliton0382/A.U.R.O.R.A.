@@ -12,7 +12,8 @@ cutting the power.
 The watch (aurora-rem's thread, every POLL_S): on battery → a notification; back on the mains → another; low —
 the UPS's own LB, a forced shutdown (FSD) from its server, or charge/runtime under AURORA_UPS_SHUTDOWN_CHARGE /
 AURORA_UPS_SHUTDOWN_RUNTIME_S while on battery — seen CONFIRM reads in a row → with AURORA_UPS_MODE shutdown, a last
-notification and `systemctl poweroff` (allowed by Aurora's polkit rule); with notify, only told.
+notification, the firewall shut down too with AURORA_UPS_FIREWALL_OFF (sec_fwpower), and `systemctl poweroff`
+(allowed by Aurora's polkit rule); with notify, only told.
 """
 from __future__ import annotations
 
@@ -109,9 +110,10 @@ def _num(x) -> float | None:
 class Watch:
     """The state between two reads; step() returns the events of this read."""
 
-    def __init__(self, cfg: sys_config.Config, connect=Client, poweroff=None, tell=None):
+    def __init__(self, cfg: sys_config.Config, connect=Client, poweroff=None, tell=None, firewall_off=None):
         self.cfg, self.connect = cfg, connect
         self.poweroff = poweroff or _poweroff
+        self.firewall_off = firewall_off or (lambda: _firewall_off(cfg))
         self.tell = tell or (lambda event, title, body: _tell(cfg, event, title, body))
         self.client: Client | None = None
         self.was_battery = False
@@ -175,6 +177,12 @@ class Watch:
                 events.append("shutdown")
                 self.log.warning("UPS low (%s): powering off", why)
                 self.tell("ups.shutdown", "🔋 Batteria quasi scarica: spengo il computer", f"{why}. UPS {state}")
+                if self.cfg["AURORA_UPS_FIREWALL_OFF"]:     # after the last notification: without it nothing goes out
+                    events.append("firewall_off")
+                    try:
+                        self.firewall_off()
+                    except Exception as e:  # noqa: BLE001 — this computer is powered off whatever the firewall did
+                        self.log.warning("UPS: the firewall not shut down: %s", e)
                 self.poweroff()
             elif not self.told_low:
                 self.told_low = True
@@ -209,6 +217,11 @@ def _tell(cfg: sys_config.Config, event: str, title: str, body: str) -> None:
         sys_push.remember(msg, event, ["push"], cfg)
     except Exception as e:  # noqa: BLE001 — the power-off never waits on a notification
         sys_log.get_logger("ups").warning("UPS notification not sent: %s", e)
+
+
+def _firewall_off(cfg: sys_config.Config) -> None:
+    from . import sec_fwpower
+    sec_fwpower.act(cfg, "shutdown")
 
 
 def _poweroff() -> None:

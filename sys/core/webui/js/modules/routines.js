@@ -93,7 +93,7 @@ function emoji(r) {
   const lead = LEAD.exec(r.title || "");
   if (lead) return lead[1];                          // the title's own emoji ("📘 Post del giorno")
   const hit = WORDS.find(([re]) => re.test(`${r.title || ""} ${r.goal || ""}`));
-  return hit ? hit[1] : r.kind === "agent" ? "🤖" : "⚙️";
+  return hit ? hit[1] : r.kind === "agent" ? "🤖" : r.kind === "firewall" ? "🔥" : "⚙️";
 }
 
 // Ready-made personal agents: a goal to complete, the plugins they use, an icon (owner, 2026-10-06; most asked of
@@ -260,7 +260,8 @@ export default {
       form.append(el("p", "muted", t("rt.tpl_hint")), chips);
     }
     form.append(r?.plugin ? el("p", "", `🧩 ${r.plugin}.${r.tool}`)
-      : r?.kind === "story" ? el("p", "", t(`rt.story.${r.action || "make"}`)) : goal);
+      : r?.kind === "story" ? el("p", "", t(`rt.story.${r.action || "make"}`))
+      : r?.kind === "firewall" ? el("p", "", t("rt.firewall.restart")) : goal);
     if (r?.by === "aurora") form.append(el("p", "muted", `✨ ${t("rt.made_by_aurora")}`));
     let sched = scheduleEditor(r?.schedule || { every: "custom", times: ["08:00"], group: "all" });
     const notify = el("select");
