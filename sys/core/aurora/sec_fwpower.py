@@ -22,7 +22,7 @@ from urllib.parse import urlparse
 
 from . import sys_config, sys_log
 
-COMMANDS = {"restart": "system restart all", "shutdown": "system shutdown"}
+COMMANDS = {"restart": "system restart all", "shutdown": "system shutdown", "test": "exit"}   # test: in and out
 BACK_S = 600
 
 
@@ -45,8 +45,9 @@ def _console(cfg: sys_config.Config, command: str, timeout: float = 40) -> str:
     seen = ""
 
     def read(until: str, seconds: float) -> bool:
+        """Waits for `until` in what arrives from now on: an old prompt never answers for a new command."""
         nonlocal seen
-        end = time.time() + seconds
+        mark, end = len(seen), time.time() + seconds
         while time.time() < end:
             if select.select([fd], [], [], 0.3)[0]:
                 try:
@@ -56,7 +57,7 @@ def _console(cfg: sys_config.Config, command: str, timeout: float = 40) -> str:
                 if not chunk:
                     return False
                 seen += chunk
-                if re.search(until, seen):
+                if re.search(until, seen[mark:]):
                     return True
         return False
 
@@ -67,7 +68,7 @@ def _console(cfg: sys_config.Config, command: str, timeout: float = 40) -> str:
         if not read(r"console>\s*$", 15):
             raise PowerError("no console prompt after menu 4")
         os.write(fd, (command + "\r").encode())
-        read(r"closed|console>\s*$", 15)
+        read(r"closed|console>\s*$|Select Menu Number", 15)     # gone down, a new prompt, or the menu (exit)
         return seen
     finally:
         try:
@@ -88,7 +89,8 @@ def act(cfg: sys_config.Config, action: str) -> None:
     if kind != "sophos":
         raise PowerError(f"restarting a {kind} firewall is not supported yet")
     log = sys_log.get_logger("firewall")
-    log.warning("audit: firewall %s sent", action)
+    if action != "test":
+        log.warning("audit: firewall %s sent", action)
     _console(cfg, COMMANDS[action])
 
 

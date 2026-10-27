@@ -5313,12 +5313,11 @@
    "category": "services",
    "recommended": "false",
    "optional": true,
+   "deprecated": true,
    "evidence": "owner, 2026-10-28",
-   "services": [
-    "aurora-rem"
-   ],
-   "en": "With the UPS's battery nearly flat (AURORA_UPS_MODE shutdown), the firewall is shut down too, before this computer.",
-   "it": "Con la batteria dell'UPS quasi scarica (AURORA_UPS_MODE shutdown), viene spento anche il firewall, prima di questo computer."
+   "services": [],
+   "en": "No longer used: each firewall has its own tick («shut down with the UPS») in its card, and each computer in Servers and computers.",
+   "it": "Non più usata: ogni firewall ha la sua spunta («spegni con l'UPS») nella sua scheda, e ogni computer in Server e computer."
   }
  ]
 }

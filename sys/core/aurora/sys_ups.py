@@ -12,7 +12,8 @@ cutting the power.
 The watch (aurora-rem's thread, every POLL_S): on battery → a notification; back on the mains → another; low —
 the UPS's own LB, a forced shutdown (FSD) from its server, or charge/runtime under AURORA_UPS_SHUTDOWN_CHARGE /
 AURORA_UPS_SHUTDOWN_RUNTIME_S while on battery — seen CONFIRM reads in a row → with AURORA_UPS_MODE shutdown, a last
-notification, the firewall shut down too with AURORA_UPS_FIREWALL_OFF (sec_fwpower), and `systemctl poweroff`
+notification, the devices ticked for it shut down first (the computers over SSH: sys_power_hosts; the firewalls:
+sec_firewalls, sec_fwpower), and `systemctl poweroff`
 (allowed by Aurora's polkit rule); with notify, only told.
 """
 from __future__ import annotations
@@ -45,9 +46,13 @@ class Client:
             host, port = self.server, str(PORT)
         self.sock = socket.create_connection((host, int(port)), timeout=timeout)
         self.f = self.sock.makefile("rw", encoding="utf-8", newline="\n")
-        if user:
-            for cmd in (f"USERNAME {user}", f"PASSWORD {password}", f"LOGIN {ups}"):
-                self._ok(cmd)
+        self.login_error = ""
+        if user:                           # refused: still read (reading needs no login), the page says so (28 Oct)
+            try:
+                for cmd in (f"USERNAME {user}", f"PASSWORD {password}", f"LOGIN {ups}"):
+                    self._ok(cmd)
+            except NutError as e:
+                self.login_error = str(e)
 
     def _say(self, cmd: str) -> str:
         self.f.write(cmd + "\n")
@@ -110,10 +115,10 @@ def _num(x) -> float | None:
 class Watch:
     """The state between two reads; step() returns the events of this read."""
 
-    def __init__(self, cfg: sys_config.Config, connect=Client, poweroff=None, tell=None, firewall_off=None):
+    def __init__(self, cfg: sys_config.Config, connect=Client, poweroff=None, tell=None, others_off=None):
         self.cfg, self.connect = cfg, connect
         self.poweroff = poweroff or _poweroff
-        self.firewall_off = firewall_off or (lambda: _firewall_off(cfg))
+        self.others_off = others_off or (lambda: _others_off(cfg))
         self.tell = tell or (lambda event, title, body: _tell(cfg, event, title, body))
         self.client: Client | None = None
         self.was_battery = False
@@ -177,18 +182,20 @@ class Watch:
                 events.append("shutdown")
                 self.log.warning("UPS low (%s): powering off", why)
                 self.tell("ups.shutdown", "🔋 Batteria quasi scarica: spengo il computer", f"{why}. UPS {state}")
-                if self.cfg["AURORA_UPS_FIREWALL_OFF"]:     # after the last notification: without it nothing goes out
-                    events.append("firewall_off")
-                    try:
-                        self.firewall_off()
-                    except Exception as e:  # noqa: BLE001 — this computer is powered off whatever the firewall did
-                        self.log.warning("UPS: the firewall not shut down: %s", e)
+                try:                               # after the last notification: without the firewall nothing goes out
+                    gone = self.others_off()
+                    if gone:
+                        events.append("others_off")
+                        self.log.warning("UPS: shut down first: %s", ", ".join(gone))
+                except Exception as e:  # noqa: BLE001 — this computer is powered off whatever the others did
+                    self.log.warning("UPS: the other devices not all shut down: %s", e)
                 self.poweroff()
             elif not self.told_low:
                 self.told_low = True
                 self.log.warning("UPS low (%s): mode notify, not powering off", why)
                 self.tell("ups.low", "🔋 Batteria UPS quasi scarica", f"{why}. Lo spegnimento automatico è spento.")
-        _save(self.cfg, {"at": now, "reachable": True, "server": server, **j,
+        login = getattr(self.client, "login_error", "")
+        _save(self.cfg, {"at": now, "reachable": True, "server": server, **j, **({"login_refused": login} if login else {}),
                          "vars": {k: v[k] for k in KEEP if k in v}, "mode": self.cfg["AURORA_UPS_MODE"]})
         return events
 
@@ -206,7 +213,8 @@ def status(cfg: sys_config.Config) -> dict:
         st = json.loads(f.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         st = {}
-    return {"mode": cfg["AURORA_UPS_MODE"], "servers": len(cfg["AURORA_UPS_SERVERS"]), **st}
+    return {"mode": cfg["AURORA_UPS_MODE"], "servers": len(cfg["AURORA_UPS_SERVERS"]),
+            "charge_min": cfg["AURORA_UPS_SHUTDOWN_CHARGE"], "runtime_min": cfg["AURORA_UPS_SHUTDOWN_RUNTIME_S"], **st}
 
 
 def _tell(cfg: sys_config.Config, event: str, title: str, body: str) -> None:
@@ -219,9 +227,24 @@ def _tell(cfg: sys_config.Config, event: str, title: str, body: str) -> None:
         sys_log.get_logger("ups").warning("UPS notification not sent: %s", e)
 
 
-def _firewall_off(cfg: sys_config.Config) -> None:
-    from . import sec_fwpower
-    sec_fwpower.act(cfg, "shutdown")
+def _others_off(cfg: sys_config.Config) -> list[str]:
+    """The ticked devices, before this computer: the computers over SSH first (they may be reached through the
+    firewall), then the firewalls. Each one's failure is logged and the next goes on."""
+    from . import sec_firewalls, sec_fwpower, sys_power_hosts
+    log, done = sys_log.get_logger("ups"), []
+    for h in sys_power_hosts.ups_targets(cfg):
+        try:
+            if sys_power_hosts.run(cfg, h, "shutdown")["ok"]:
+                done.append(h["name"])
+        except Exception as e:  # noqa: BLE001 — the next device still goes down
+            log.warning("UPS: %s not shut down: %s", h["name"], e)
+    for fw in sec_firewalls.ups_targets(cfg):
+        try:
+            sec_fwpower.act(fw["cfg"], "shutdown")
+            done.append(fw["name"])
+        except Exception as e:  # noqa: BLE001
+            log.warning("UPS: firewall %s not shut down: %s", fw["name"], e)
+    return done
 
 
 def _poweroff() -> None:

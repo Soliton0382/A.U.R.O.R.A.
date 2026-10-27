@@ -1,0 +1,17 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright 2026 A.U.R.O.R.A. Project */
+/* 🖧 Servers and computers (hosts.js), and the UPS tick in the firewall cards */
+.hst-card { margin: .6rem 0; }
+.hst-head { display: flex; flex-wrap: wrap; gap: .4rem .9rem; align-items: baseline; }
+.hst-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); gap: .5rem; margin: .6rem 0; }
+.hst-form .fwl-check, .fwl-checks .fwl-check { flex-wrap: wrap; align-items: center; gap: .4rem; }
+.fwl-ups-link, .hst-form .fwl-check button { padding: .15rem .5rem; font-size: .85rem; }
+.hst-guide { max-width: min(46rem, 94vw); max-height: 88vh; overflow: auto; border: 1px solid var(--line);
+  border-radius: var(--radius); background: var(--surface); color: var(--text); padding: 1rem 1.2rem; }
+.hst-guide::backdrop { background: rgba(0, 0, 0, .6); }
+.hst-guide > button:first-child { float: right; }
+.hst-guide h4 { margin: 1rem 0 .3rem; }
+.hst-cmd { position: relative; margin: .35rem 0; }
+.hst-cmd pre { margin: 0; padding: .6rem 2.4rem .6rem .7rem; overflow-x: auto; white-space: pre-wrap; word-break: break-all;
+  border: 1px solid var(--line); border-radius: 8px; background: rgba(0, 0, 0, .3); font-size: .8rem; }
+.hst-cmd button { position: absolute; top: .3rem; right: .3rem; padding: .1rem .35rem; }

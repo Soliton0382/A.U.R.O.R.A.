@@ -114,25 +114,54 @@ def test_the_power_off_rule_only_in_shutdown_mode():
     assert "login1.power-off" in rule and "login1" not in mod.POLKIT.substitute(user="u", power="")
 
 
-def test_the_firewall_goes_down_first_only_when_chosen(cfg):
-    for chosen, expect in ((True, ["fw", "off"]), (False, ["off"])):
-        cfg.values.update({"AURORA_UPS_MODE": "shutdown", "AURORA_UPS_SERVERS": ["a"], "AURORA_UPS_FIREWALL_OFF": chosen})
-        order = []
-        w = sys_ups.Watch(cfg, connect=FakeClient, poweroff=lambda: order.append("off"), tell=lambda *a: None,
-                          firewall_off=lambda: order.append("fw"))
-        FakeClient.reads = [{"ups.status": "OB LB"}, {"ups.status": "OB LB"}]
-        w.step(now=0)
-        w.step(now=1)
-        assert order == expect
+def test_the_ticked_devices_go_down_first_and_a_failure_never_stops_the_power_off(cfg):
+    cfg.values.update({"AURORA_UPS_MODE": "shutdown", "AURORA_UPS_SERVERS": ["a"]})
+    order = []
 
-
-def test_a_firewall_that_cannot_be_shut_down_never_stops_the_power_off(cfg):
-    cfg.values.update({"AURORA_UPS_MODE": "shutdown", "AURORA_UPS_SERVERS": ["a"], "AURORA_UPS_FIREWALL_OFF": True})
-    off = []
-
-    def fail():
+    def others():
+        order.append("others")
         raise RuntimeError("no console")
-    w = sys_ups.Watch(cfg, connect=FakeClient, poweroff=lambda: off.append(1), tell=lambda *a: None, firewall_off=fail)
+    w = sys_ups.Watch(cfg, connect=FakeClient, poweroff=lambda: order.append("off"), tell=lambda *a: None,
+                      others_off=others)
     FakeClient.reads = [{"ups.status": "OB LB"}, {"ups.status": "OB LB"}]
     w.step(now=0)
-    assert "firewall_off" in w.step(now=1) and off == [1]
+    w.step(now=1)
+    assert order == ["others", "off"]
+
+
+def test_the_order_machines_then_firewalls(cfg, monkeypatch):
+    from aurora import sec_firewalls, sec_fwpower, sys_power_hosts
+    sent = []
+    monkeypatch.setattr(sys_power_hosts, "ups_targets", lambda c: [{"name": "mini pc", "host": "h"}])
+    monkeypatch.setattr(sys_power_hosts, "run", lambda c, h, a: sent.append((h["name"], a)) or {"ok": True})
+    monkeypatch.setattr(sec_firewalls, "ups_targets", lambda c: [{"name": "fw", "cfg": c}])
+    monkeypatch.setattr(sec_fwpower, "act", lambda c, a: sent.append(("fw", a)))
+    assert sys_ups._others_off(cfg) == ["mini pc", "fw"] and sent == [("mini pc", "shutdown"), ("fw", "shutdown")]
+
+
+def test_a_refused_login_still_reads():
+    import threading as th
+    srv = socket.socket()
+    srv.bind(("127.0.0.1", 0))
+    srv.listen(1)
+
+    def serve():
+        conn, _ = srv.accept()
+        f = conn.makefile("rw", encoding="utf-8", newline="\n")
+        for line in f:
+            cmd = line.strip()
+            if cmd.startswith(("USERNAME", "PASSWORD")):
+                f.write("OK\n")
+            elif cmd.startswith("LOGIN"):
+                f.write("ERR ACCESS-DENIED\n")
+            elif cmd == "LIST VAR ups":
+                f.write('BEGIN LIST VAR ups\nVAR ups ups.status "OL"\nEND LIST VAR ups\n')
+            else:
+                break
+            f.flush()
+        conn.close()
+        srv.close()
+    th.Thread(target=serve, daemon=True).start()
+    c = sys_ups.Client(f"127.0.0.1:{srv.getsockname()[1]}", "ups", "someone", "pw")
+    assert c.login_error.endswith("ACCESS-DENIED") and c.vars() == {"ups.status": "OL"}
+    c.close()

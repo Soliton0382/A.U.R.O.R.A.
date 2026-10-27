@@ -9,7 +9,7 @@ import { apply, t } from "../i18n.js";
 import { settingsForm } from "./settings_form.js";
 
 const KEYS = ["AURORA_UPS_MODE", "AURORA_UPS_SERVERS", "AURORA_UPS_NAME", "AURORA_UPS_USER", "AURORA_UPS_PASSWORD",
-  "AURORA_UPS_SHUTDOWN_CHARGE", "AURORA_UPS_SHUTDOWN_RUNTIME_S", "AURORA_UPS_FIREWALL_OFF"];
+  "AURORA_UPS_SHUTDOWN_CHARGE", "AURORA_UPS_SHUTDOWN_RUNTIME_S"];
 const RULE = ".venv/bin/python sys/core/script/sys_install_services.py && sudo bash sys/deploy/systemd/install.sh";
 
 export default {
@@ -62,6 +62,7 @@ export default {
         [t("ups.read"), new Date(s.at * 1000).toLocaleTimeString()]]) rows.append(el("dt", "", k), el("dd", "", val));
       card.append(big, bar, rows);
       if (s.why?.length) card.append(el("p", "warn", s.why.join(", ")));
+      if (s.login_refused) card.append(el("p", "muted", `⚠️ ${t("ups.login_refused")}`));
       box.replaceChildren(card);
     }
     this.timer = setTimeout(() => { if (this.root?.isConnected) this.enter(); }, 15000);

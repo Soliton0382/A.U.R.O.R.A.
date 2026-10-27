@@ -192,6 +192,15 @@ the firewall and can remove it there at any time. Aurora types one of two comman
 `system shutdown`), from a routine the admin made or from the UPS's power-off when the owner chose it; each is
 written to the firewall log as an audit line.
 
+## Computers shut down over SSH (2026-10-28, ROADMAP N56)
+
+Aurora's key for the house's computers is its own (ed25519, in its state folder, mode 600), never the owner's. On
+each target the owner adds it to authorized_keys with a forced command: the key runs one script, aurora-power,
+whatever is asked, with no terminal and no forwarding. The script knows three words (test, restart, shutdown) and
+refuses the rest; sudo lets the target's user run only the two power commands. Whoever holds the key can at worst
+restart or shut down that machine. A machine counts for the UPS only after a trial that worked, and again after its
+address or user changes. Every restart and shutdown is an audit line in the power log.
+
 ## Known limits
 
 - Plugins keep the network and the devices (connectors talk to services, the senses use the camera); the cage

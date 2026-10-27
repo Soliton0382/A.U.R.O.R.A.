@@ -7,7 +7,7 @@
 // in, makes the group, indexes the guides, and only then the firewall counts. The admin's.
 import { call } from "../api.js";
 import { bus } from "../bus.js";
-import { el } from "../dom.js";
+import { el, useCss } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { pluginSlot } from "./plugin_slot.js";
 
@@ -37,7 +37,9 @@ export default {
   icon: "🔌",
   title: "nav.sec.firewalls",
 
-  mount(root) {
+  mount(root, ctx) {
+    this.ctx = ctx;
+    useCss("/static/css/hosts.css");                  // the UPS tick's row
     root.classList.add("page");
     root.innerHTML = `<h2 data-i18n="nav.sec.firewalls"></h2><p class="muted" data-i18n="fwl.hint"></p>
       <div class="fwl-list"></div><div class="appr-actions"><button class="fwl-add" data-i18n="fwl.add"></button></div>`;
@@ -52,6 +54,7 @@ export default {
     let d;
     try { d = await call("/v1/aurora/security/firewalls"); } catch (e) { this.root.querySelector(".fwl-list").textContent = e.message; return; }
     this.kinds = d.kinds;
+    try { this.ups = await call("/v1/aurora/ups"); } catch { this.ups = { mode: "off" }; }
     const list = this.root.querySelector(".fwl-list");
     list.replaceChildren();
     if (!d.items.length) list.append(el("p", "muted", t("fwl.empty")));
@@ -67,7 +70,8 @@ export default {
     box.append(head);
     if (it.id !== "new") {                              // what it is, in one line, before any form
       const facts = [it.url, `${t("fwl.group")}: ${it.block_group || "—"}`,
-        it.blocks !== false ? `⛔ ${t("fwl.blocks")}` : `⏸️ ${t("fwl.no_blocks")}`];
+        it.blocks !== false ? `⛔ ${t("fwl.blocks")}` : `⏸️ ${t("fwl.no_blocks")}`,
+        it.ups_off ? `🔋 ${t("fwl.ups_on")}` : ""];
       if (it.indexed && it.indexed.passages) facts.push(t("fwl.indexed", { n: it.indexed.passages }));
       box.append(el("p", "muted fwl-facts", facts.filter(Boolean).join(" · ")));
     }
@@ -96,6 +100,20 @@ export default {
       field(t("fwl.group"), group));
     const checks = el("div", "fwl-checks");
     checks.append(check(t("fwl.tls"), tls), check(t("fwl.blocks"), blocks));
+    // 🔋 shut down with the UPS, this firewall's own tick (owner, 28 Oct): only with a UPS set, its limits said
+    const ups = this.ups || {}, upsOn = ups.mode && ups.mode !== "off" && ups.servers;
+    const upsOff = input("", "checkbox");
+    upsOff.checked = !!it.ups_off;
+    upsOff.disabled = !upsOn;
+    const limits = upsOn ? t("fwl.ups_limits", { charge: ups.charge_min, min: Math.round(ups.runtime_min / 60) })
+      : t("fwl.ups_none");
+    const upsRow = check(`🔋 ${t("fwl.ups_off")} (${limits})`, upsOff);
+    const toUps = el("button", "fwl-ups-link", `🔋 ${t("fwl.ups_settings")}`);
+    toUps.type = "button";
+    toUps.addEventListener("click", () => this.ctx?.show("ups"));
+    upsRow.append(toUps);
+    if (upsOn && ups.mode !== "shutdown") upsRow.append(el("span", "muted", ` · ${t("fwl.ups_notify_only")}`));
+    checks.append(upsRow);
     const docs = el("fieldset", "fwl-guides");
     docs.append(el("legend", "", t("fwl.guides")), el("p", "muted", t("fwl.guides_hint")),
       ...GUIDES.map((g) => field(t(`fwl.guide.${g}`), guides[g], true)));
@@ -108,7 +126,7 @@ export default {
     const edit = el("button", "", `✏️ ${t("fwl.edit")}`);
     edit.addEventListener("click", () => { form.hidden = !form.hidden; });
     const body = () => ({ name: name.value, kind: kind.value, url: url.value, user: user.value, block_group: group.value,
-      verify_tls: tls.checked, blocks: blocks.checked, password: pass.value,
+      verify_tls: tls.checked, blocks: blocks.checked, ups_off: upsOff.checked, password: pass.value,
       ...Object.fromEntries(GUIDES.map((g) => [g, guides[g].value])) });
     save.addEventListener("click", async () => {
       out.textContent = "…";
@@ -131,6 +149,17 @@ export default {
     edit.addEventListener("click", () => { edit.classList.toggle("on", !form.hidden); });
     const actions = el("div", "appr-actions fwl-actions");
     actions.append(...(it.id === "new" ? [] : [edit, connect]));
+    if (it.id !== "new" && it.kind === "sophos") {      // the console the restart and the UPS use: in and out
+      const con = el("button", "", `🖥️ ${t("fwl.console")}`);
+      con.addEventListener("click", async () => {
+        out.textContent = "…";
+        try {
+          const r = await call(`/v1/aurora/security/firewalls/${it.id}/console`, { method: "POST" });
+          out.textContent = r.ok ? `✅ ${t("fwl.console_ok")}` : `❌ ${r.error}`;
+        } catch (e) { out.textContent = e.message; }
+      });
+      actions.append(con);
+    }
     if (it.id !== "main" && it.id !== "new") {
       const del = el("button", "danger", `🗑️ ${t("fwl.remove")}`);
       del.addEventListener("click", async () => {

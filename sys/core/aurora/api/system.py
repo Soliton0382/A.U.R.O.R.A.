@@ -58,7 +58,7 @@ def settings(request: Request) -> dict:
     items = []
     mine_only = bool(user) and user != _admin()   # a user: only their own settings, never the machine's values
     for s in schema["settings"]:
-        if mine_only and s.get("scope") != "user":
+        if (mine_only and s.get("scope") != "user") or s.get("deprecated"):    # a key no longer used: not shown
             continue
         value = current.get(s["key"], "")
         items.append({**s, "value": ("••••••" if s.get("secret") and value else value), "plugin": card.get(s["key"])})

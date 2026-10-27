@@ -41,7 +41,8 @@ def test_every_setting_the_code_reads_is_in_the_schema_and_every_setting_is_read
     named = named_keys()
     assert sorted(k for k in named if k not in schema and k not in PROCESS_ENV
                   and not k.endswith("_") and not k.startswith("AURORA_INSTALL_")) == [],"the code reads a setting the schema does not describe"
-    assert sorted(schema - set(named) - {"AURORA_ROOT"}) == [], "a setting nothing reads: changing it would do nothing"
+    gone = {s["key"] for s in sys_config.load_schema()["settings"] if s.get("deprecated")}    # kept for an old .env
+    assert sorted(schema - set(named) - {"AURORA_ROOT"} - gone) == [], "a setting nothing reads: changing it would do nothing"
 
 
 def test_both_languages_have_every_text_the_interface_uses():

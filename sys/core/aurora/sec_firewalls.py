@@ -23,7 +23,7 @@ from . import sec_fwapi, sys_config, sys_log, sys_seal
 from .fw_drivers import KINDS
 
 _lock = threading.Lock()
-FIELDS = ("name", "kind", "url", "user", "verify_tls", "block_group", "manual", "api", "syslog", "blocks")
+FIELDS = ("name", "kind", "url", "user", "verify_tls", "block_group", "manual", "api", "syslog", "blocks", "ups_off")
 ENV = {"kind": "AURORA_FIREWALL_API_KIND", "url": "AURORA_FIREWALL_API_URL", "user": "AURORA_FIREWALL_API_USER",
        "verify_tls": "AURORA_FIREWALL_VERIFY_TLS", "block_group": "AURORA_FIREWALL_BLOCK_GROUP",
        "manual": "AURORA_FIREWALL_MANUAL_URL", "api": "AURORA_FIREWALL_API_DOC_URL", "syslog": "AURORA_SECURITY_SYSLOG_DOC"}
@@ -71,6 +71,7 @@ def _main(cfg, data: dict) -> dict:
     base = cfg.base or cfg
     it = {k: base[e] for k, e in ENV.items()}
     it.update(id="main", name=data.get("main", {}).get("name") or "Firewall", blocks=data.get("main", {}).get("blocks", True),
+              ups_off=bool(data.get("main", {}).get("ups_off")),
               confirmed=data.get("main", {}).get("confirmed"), error=data.get("main", {}).get("error", ""),
               has_password=bool(base["AURORA_FIREWALL_API_PASSWORD"]))
     return it
@@ -117,6 +118,7 @@ def save(cfg, fid: str, fields: dict, password: str | None = None) -> dict:
                 sys_config.write_env(cfg.env_file, changed)
             data["main"] = {**data.get("main", {}), "name": clean.get("name", data.get("main", {}).get("name", "")),
                             "blocks": bool(clean.get("blocks", data.get("main", {}).get("blocks", True))),
+                            "ups_off": bool(clean.get("ups_off", data.get("main", {}).get("ups_off", False))),
                             **({"confirmed": None} if changed else {})}
             _save(cfg, data)
             return {"id": "main", "restart": bool(changed)}
@@ -179,6 +181,12 @@ def connect(cfg, fid: str, docs: bool = True) -> dict:
         threading.Thread(target=lambda: sec_fwdocs.refresh(v), daemon=True, name=f"fwdocs-{fid}").start()
     sys_log.get_logger("security").info("audit: firewall %s (%s) connected", fid, it["kind"])
     return {"ok": True, "group_was_there": test.get("group_exists"), "docs": "indexing" if docs else "skipped"}
+
+
+def ups_targets(cfg) -> list[dict]:
+    """The firewalls to shut down with the UPS (owner, 28 Oct: a tick in each firewall's card), with the view a driver
+    reads."""
+    return [{**x, "cfg": view(cfg, x)} for x in items(cfg) if x.get("ups_off")]
 
 
 def receivers(cfg) -> list[dict]:
