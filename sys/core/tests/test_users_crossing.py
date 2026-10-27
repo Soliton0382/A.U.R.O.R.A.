@@ -33,6 +33,9 @@ def test_guest_never_sees_boss_s_things(cfg):
     assert boss["devices"] == ["boss phone", "guest phone"] and guest["devices"] == ["guest phone"]
     assert boss["users_page"] == 200 and guest["users_page"] == 403
     assert boss["machine_setting"] == 200 and guest["machine_setting"] == 403
+    assert boss["logs"] == 200 and guest["logs"] == 403 and guest["log_tail"] == 403    # C414: the machine's logs
+    assert boss["ups"] == 200 and guest["ups"] == 403                                  # C416: the house's addresses
+    assert guest["ports"] == 403 and guest["incident"] == 403                          # C417, C415
     assert guest["revoke_boss_device"] == 404
     assert boss["accounts_list"] is True and guest["accounts_list"] is False           # 106: a user's key is theirs
     assert guest["account_remove"] == 403 and guest["account_shared"] == 403

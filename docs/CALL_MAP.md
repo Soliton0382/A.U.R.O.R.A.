@@ -160,7 +160,7 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `api.updates` | `api (MODULES)`, `api.agents`, `api.routines`, `script/svc_api.py` | 1 |
 | `api.uploads` | `api (MODULES)` | 0 |
 | `api.usage` | `api (MODULES)` | 0 |
-| `api.users` | `api (MODULES)`, `api.activity`, `api.agents`, `api.autonomy`, `api.backup`, `api.calendar`, `api.diet`, `api.edge`, `api.firewalls`, `api.harvester`, `api.https`, `api.incidents`, `api.knowledge`, `api.models`, `api.models_custom`, `api.oai`, `api.power`, `api.rem`, `api.routines`, `api.security`, `api.security_ciso`, `api.synapses`, `api.updates` | 0 |
+| `api.users` | `api (MODULES)`, `api.activity`, `api.agents`, `api.autonomy`, `api.backup`, `api.calendar`, `api.diet`, `api.edge`, `api.firewalls`, `api.harvester`, `api.https`, `api.incidents`, `api.knowledge`, `api.models`, `api.models_custom`, `api.oai`, `api.power`, `api.rem`, `api.routines`, `api.security`, `api.security_ciso`, `api.synapses`, `api.system`, `api.updates` | 0 |
 | `api.voice` | `api (MODULES)` | 0 |
 | `ast_advice` | `api.astro`, `ast_donut`, `ast_ocal`, `ast_rotate`, `ast_seqwrite`, `ast_skyplan`, `sys/plugins/astro/server.py` | 2 |
 | `ast_autoguide` | `api.astro`, `ast_advice` | 1 |

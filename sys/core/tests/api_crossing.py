@@ -89,6 +89,13 @@ for who in ("boss", "guest"):
     seen["devices"] = sorted(d["name"] for d in get(who, "/v1/aurora/devices").json())
     seen["users_page"] = get(who, "/v1/aurora/users").status_code
     seen["machine_setting"] = client.put("/v1/aurora/settings", headers=H[who], json={"AURORA_LOG_MAX_MB": "50"}).status_code
+    seen["logs"] = client.get("/v1/aurora/logs", headers=H[who]).status_code             # C414
+    seen["log_tail"] = client.get("/v1/aurora/logs/api", headers=H[who]).status_code
+    seen["ups"] = client.get("/v1/aurora/ups", headers=H[who]).status_code               # C416
+    if who == "guest":                                  # the admin's would move Caddy, file an incident: only refused
+        seen["ports"] = client.put("/v1/aurora/settings", headers=H[who], json={"AURORA_HTTPS_PORT": "8443"}).status_code
+        seen["incident"] = client.post("/v1/aurora/sentinel/incident", headers=H[who],
+                                       json={"source": "10.0.0.9", "kind": "made up"}).status_code
     out[who] = seen
 boss_dev = next(d["id"] for d in get("boss", "/v1/aurora/devices").json() if d["name"] == "boss phone")
 out["guest"]["revoke_boss_device"] = client.delete(f"/v1/aurora/devices/{boss_dev}", headers=H["guest"]).status_code

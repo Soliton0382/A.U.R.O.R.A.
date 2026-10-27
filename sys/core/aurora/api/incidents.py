@@ -16,7 +16,7 @@ router = APIRouter()
 
 
 # ---- firewall incidents -------------------------------------------------------------------------
-@router.post("/v1/aurora/sentinel/incident", dependencies=[Depends(auth)])
+@router.post("/v1/aurora/sentinel/incident", dependencies=[Depends(admin_only)])   # the service's key: the admin (C415)
 async def sentinel_incident(request: Request) -> dict:
     """aurora-sentinel reports an incident: kept, shown, investigated at once if the .env says so."""
     from aurora import sec_netmap

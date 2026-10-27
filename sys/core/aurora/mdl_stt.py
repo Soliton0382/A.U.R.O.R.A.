@@ -29,6 +29,18 @@ _lock = threading.Lock()
 FREE_GB = 3.0                  # free memory a GPU needs at load: the model takes 1.9 GB (M204), the embedder its batches
 
 
+def free_bytes() -> list[tuple[int, int]]:
+    """(free bytes, index) of each GPU, from nvidia-smi: torch.cuda.mem_get_info(i) opened a CUDA context on every GPU
+    it asked, and the one Whisper did not take kept 128 MiB for nothing beside the reasoner (C413). [] = none to ask."""
+    import subprocess
+    try:
+        out = subprocess.run(["nvidia-smi", "--query-gpu=index,memory.free", "--format=csv,noheader,nounits"],
+                             capture_output=True, text=True, timeout=10, check=True).stdout
+        return [(int(m) * 2**20, int(i)) for i, m in (line.split(",") for line in out.strip().splitlines())]
+    except Exception:                                 # noqa: BLE001 — a GPU that cannot be asked: the CPU, as before
+        return []
+
+
 def place(cfg: sys_config.Config) -> str:
     """Where Whisper runs: «cpu», or with AURORA_STT_DEVICE=auto the GPU with the most free memory if it has FREE_GB
     (M204: 0.14 s a sentence against 5.6 s on the CPU, the same words); the CPU when no GPU has room."""
@@ -36,11 +48,11 @@ def place(cfg: sys_config.Config) -> str:
         return "cpu"
     try:
         import torch
-        if not torch.cuda.is_available():
+        if not torch.cuda.is_available():             # asks the driver for a count, opens no context
             return "cpu"
-        free = [(torch.cuda.mem_get_info(i)[0], i) for i in range(torch.cuda.device_count())]
-    except Exception:                                 # noqa: BLE001 — a GPU that cannot be asked: the CPU, as before
+    except Exception:                                 # noqa: BLE001
         return "cpu"
+    free = free_bytes()
     room, best = max(free, default=(0, 0))
     return f"cuda:{best}" if room >= FREE_GB * 1e9 else "cpu"
 

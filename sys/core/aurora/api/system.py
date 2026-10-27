@@ -10,6 +10,7 @@ from aurora import sys_config, sys_log
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from .core import _admin, auth, cfg, log, user_of
+from .users import admin_only  # noqa: E402
 
 router = APIRouter()
 from aurora.net_cloudflare import KEYS as TUNNEL_KEYS  # noqa: E402
@@ -132,6 +133,9 @@ async def update_settings(request: Request) -> dict:
             sys_config.convert(specs[key], str(value))
         except ValueError as e:
             problems.append(f"{key}: {e}")
+    user, admin = user_of(request), _admin()
+    if user and admin and user != admin and any(specs.get(k, {}).get("scope") != "user" for k in changes):
+        raise HTTPException(status_code=403, detail="only the admin changes the machine's settings")   # before anything (C417)
     if not problems and {"AURORA_HTTPS_PORT", "AURORA_HTTP_PORT"} & set(changes):
         from aurora import net_https                 # the 🔒 page's checks (C227: 9700, the API's port, was accepted)
         now = net_https.fresh(cfg)
@@ -157,9 +161,6 @@ async def update_settings(request: Request) -> dict:
             return {"changed": ["AURORA_HTTPS_PORT", "AURORA_HTTP_PORT"], "restart": [], "mounting": False,
                     "retimed": False, "tunnel": False, **({"moved": moved["urls"]} if moved.get("changed") else {})}
     from aurora import sys_user_config, sys_users_layout, sys_users_mode
-    user, admin = user_of(request), _admin()
-    if user and admin and user != admin and any(specs[k].get("scope") != "user" for k in changes):
-        raise HTTPException(status_code=403, detail="only the admin changes the machine's settings")   # before anything
     if "AURORA_USER_MODE" in changes and str(changes["AURORA_USER_MODE"]) != sys_users_mode.current(cfg):
         try:                                                 # single ↔ multi: what it does, refused or confirmed
             sys_users_mode.switch(cfg, str(changes["AURORA_USER_MODE"]), user, admin,
@@ -196,7 +197,7 @@ async def update_settings(request: Request) -> dict:
             **({"moved": moved["urls"]} if moved and moved.get("changed") else {})}
 
 
-@router.get("/v1/aurora/ups", dependencies=[Depends(auth)])
+@router.get("/v1/aurora/ups", dependencies=[Depends(admin_only)])      # its servers are the house's addresses (C416)
 def ups() -> dict:
     """The UPS's last read (sys_ups, aurora-rem's watch): mains or battery, charge, runtime, the mode."""
     from aurora import sys_ups

@@ -59,13 +59,13 @@ async def activity_stream(after: int | None = None):
     return StreamingResponse(quiet(gen()), media_type="text/event-stream")
 
 
-@router.get("/v1/aurora/logs", dependencies=[Depends(auth)])
+@router.get("/v1/aurora/logs", dependencies=[Depends(admin_only)])      # the machine's: every user's lines (C414)
 def logs(hours: float = 24) -> dict:
     from aurora import sys_logread
     return {**sys_logread.inventory(cfg, hours), "answers": sys_logread.answer_stats(hours, cfg)}
 
 
-@router.get("/v1/aurora/logs/{component}", dependencies=[Depends(auth)])
+@router.get("/v1/aurora/logs/{component}", dependencies=[Depends(admin_only)])
 def log_tail(component: str, lines: int = 100, level: str | None = None) -> dict:
     from aurora import sys_logread
     try:
