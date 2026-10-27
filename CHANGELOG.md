@@ -2,6 +2,31 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.128 — 2026-10-28
+
+20 publications since v0.2.108.
+
+- 2026-10-28 Project conductor works in the project on the Claude CLI through Aurora's own tools only (masked, SSCC, the cage, unique-anchor edits), live steps and stop; roadmap and status audited against the code, closed lists archived
+- 2026-10-27 Settings page for every user, with their own settings only: no factory reset, no restart, applied to their answers at once
+- 2026-10-27 Whisper picks its GPU from nvidia-smi (no CUDA context left on the other GPU); machine logs, UPS servers and sentinel incidents are the admin's; a user's port change refused before Caddy moves
+- 2026-10-27 Per-device UPS power-off: a tick on each firewall (console trial), servers and computers over SSH with guided setup and a key forced to one script; UPS reads even when its login is refused
+- 2026-10-27 UPS page in System, deductions look at level-1 synapses before level 2 (origin of each pair recorded), REM's daily round no longer rerun at each restart (C412)
+- 2026-10-27 Firewall restart and shutdown through its console (scheduled restart routine, optional shutdown with the UPS)
+- 2026-10-27 UPS over the network UPS protocol (notify, clean power-off), device consoles page with icons, synapse passages need a re-ranker floor (M266), song installer stops without Aurora (C410), installer language and .env errors (C411), memory diagnosis (C389), C405 and C407 closed
+- 2026-10-27 Songs dressed: genre, arrangement, voice, tempo, key and boldness chosen or drawn at random, redress the same words in the player; the idea field open
+- 2026-10-27 Music in her mood: joy from the music made, headphones while the player plays, a CSS motion for every face; the player's download, live playlist, rows by device, speaker as mute
+- 2026-10-27 MilkDrop with twelve presets (stars among them); shuffle and loop shown pressed, loop all or one; the phone app 0.4.1 with true full screen; no red light for the reasoner paused by a GPU job (C409)
+- 2026-10-27 Music and DJ: the player at the centre (⏏ import, icons, ticks to mix songs and mixes too), MilkDrop with five presets — fixed per click or ∞ in turn — and full screen in the phone app
+- 2026-10-27 Synapses never expire (AURORA_SYNAPSE_FADE off); songs offered by default where the GPU allows
+- 2026-10-27 Songs sung from an idea, everything inside Aurora's folder (pinned uv, Python and caches in sys/runtime; weights in models.json); the installer's optional «songs»; C408
+- 2026-10-27 DJ: Aurora's set with its console, a song from an idea (ACE-Step 1.5 under the GPU swap); the synapses' comparison script
+- 2026-10-27 Menu: autonomy and the phone app under System; the guide aligned with the pages
+- 2026-10-27 Menu: the security tabs never as main entries
+- 2026-10-27 Security menu: one entry with its four tabs; Aurora's firewall knows her own HTTPS port and the VMs' bridges; the traceroute globe zooms; data shared and outgoing connections named apart
+- 2026-10-27 Aurora's ways out: a page of their own and a Today tile; every service's networks learnt, then the new ones and the files going out told, decided by the owner or by her autopilot
+- 2026-10-27 The local model watched whatever it is: a way out is a high incident, its network denied by a click or by herself at security autopilot
+- 2026-10-27 No way out for the local reasoner; Alibaba's networks denied to Aurora's services and watched by the sentinel
+
 ## v0.2.127 — 2026-10-28
 
 19 publications since v0.2.108.

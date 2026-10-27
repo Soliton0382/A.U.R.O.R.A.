@@ -27,22 +27,44 @@
 
 /* 💗 the face beside the health dot and its card (alerts.js, mood.js) */
 .mood-face { background: none; border: 0; padding: 0 .1rem; font-size: 1.05rem; line-height: 1; cursor: pointer; }
-.mood-face[data-mood="stress"], .mood-face[data-mood="worry"] { animation: pulse 2.4s ease-in-out infinite; }
-/* each face its own small motion, CSS only (owner, 27 Oct: «emoji animate… robe easy non compresse») */
-.mood-face { display: inline-block; transform-origin: 50% 80%; }
-.mood-face[data-mood="listening"] { animation: mood-bob .9s ease-in-out infinite; }          /* 🎧 nodding to the beat */
-.mood-face[data-mood="joy"] { animation: mood-hop 1.1s ease-in-out infinite; }               /* 😄 hopping */
-.mood-face[data-mood="serenity"], .mood-face[data-mood="satisfaction"] { animation: mood-breathe 4s ease-in-out infinite; }
-.mood-face[data-mood="tiredness"] { animation: mood-breathe 6s ease-in-out infinite; }        /* 😴 slow breath */
-.mood-face[data-mood="curiosity"] { animation: mood-tilt 3s ease-in-out infinite; }          /* 🧐 head tilted */
-.mood-face[data-mood="anger"] { animation: mood-shake .35s linear infinite; }                /* 😠 trembling */
-.mood-face[data-mood="longing"], .mood-face[data-mood="melancholy"] { animation: mood-sway 5s ease-in-out infinite; }
-@keyframes mood-bob { 0%, 100% { transform: rotate(-9deg) translateY(0); } 50% { transform: rotate(9deg) translateY(-2px); } }
-@keyframes mood-hop { 0%, 100% { transform: translateY(0) scale(1); } 40% { transform: translateY(-4px) scale(1.08); } 60% { transform: translateY(0) scale(.96, 1.04); } }
-@keyframes mood-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
-@keyframes mood-tilt { 0%, 100% { transform: rotate(0); } 30%, 60% { transform: rotate(-14deg); } }
-@keyframes mood-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-1.5px) rotate(-3deg); } 75% { transform: translateX(1.5px) rotate(3deg); } }
-@keyframes mood-sway { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
+/* each face its own motion, livelier, like a messenger's animated emoji (owner, 27–28 Oct: «emoji animate… robe easy
+   non compresse»; «più movimentate in base al tipo… centrate dove si trovano»): a square box, the glyph in its middle
+   and every transform around that middle — no pivot on a side */
+.mood-face { display: inline-grid; place-items: center; width: 1.6em; height: 1.6em; padding: 0; vertical-align: middle;
+  transform-origin: 50% 50%; will-change: transform; }
+.mood-face[data-mood="listening"] { animation: mood-groove .6s ease-in-out infinite; }          /* 🎧 on the beat */
+.mood-face[data-mood="joy"] { animation: mood-hop .9s cubic-bezier(.3, 0, .3, 1) infinite; }   /* 😄 bouncing */
+.mood-face[data-mood="satisfaction"] { animation: mood-glow 2.2s ease-in-out infinite; }       /* 😊 a warm pulse */
+.mood-face[data-mood="serenity"] { animation: mood-float 4s ease-in-out infinite; }           /* 😌 floating */
+.mood-face[data-mood="tiredness"] { animation: mood-doze 4.5s ease-in-out infinite; }         /* 😴 nodding off */
+.mood-face[data-mood="curiosity"] { animation: mood-peek 3s ease-in-out infinite; }           /* 🧐 looking closer */
+.mood-face[data-mood="anger"] { animation: mood-fume .45s linear infinite; }                  /* 😠 fuming */
+.mood-face[data-mood="stress"] { animation: mood-jitter 1.2s ease-in-out infinite; }          /* 😣 squeezed */
+.mood-face[data-mood="worry"] { animation: mood-quiver 1.8s ease-in-out infinite; }           /* 😟 trembling */
+.mood-face[data-mood="longing"] { animation: mood-plead 2.6s ease-in-out infinite; }          /* 🥺 pleading */
+.mood-face[data-mood="melancholy"] { animation: mood-sink 5s ease-in-out infinite; }          /* 😔 sinking */
+@keyframes mood-groove { 0%, 100% { transform: rotate(-12deg) scale(1); } 25% { transform: rotate(0) scale(1.1, .92); }
+  50% { transform: rotate(12deg) scale(1); } 75% { transform: rotate(0) scale(1.1, .92); } }
+@keyframes mood-hop { 0%, 100% { transform: translateY(0) scale(1); } 15% { transform: translateY(0) scale(1.15, .85); }
+  45% { transform: translateY(-5px) scale(.94, 1.08) rotate(-6deg); } 70% { transform: translateY(0) scale(1.1, .9) rotate(4deg); }
+  85% { transform: translateY(-1px) scale(1); } }
+@keyframes mood-glow { 0%, 100% { transform: scale(1) rotate(0); filter: none; }
+  50% { transform: scale(1.18) rotate(-4deg); filter: drop-shadow(0 0 4px rgba(255, 200, 80, .75)); } }
+@keyframes mood-float { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-2px) scale(1.07); } }
+@keyframes mood-doze { 0%, 30%, 100% { transform: rotate(0) translateY(0); opacity: 1; }
+  55%, 75% { transform: rotate(16deg) translateY(2px) scale(.94); opacity: .7; } 82% { transform: rotate(-3deg) translateY(-1px); } }
+@keyframes mood-peek { 0%, 100% { transform: rotate(0) scale(1); } 20%, 40% { transform: rotate(-15deg) scale(1.12); }
+  55% { transform: rotate(0) scale(1); } 70%, 85% { transform: rotate(13deg) scale(1.12); } }
+@keyframes mood-fume { 0%, 100% { transform: translateX(0) scale(1.05); filter: drop-shadow(0 0 3px rgba(255, 60, 40, .8)); }
+  25% { transform: translateX(-2px) rotate(-5deg) scale(1.1); } 50% { transform: translateX(0) scale(1.15); filter: drop-shadow(0 0 6px rgba(255, 60, 40, .9)); }
+  75% { transform: translateX(2px) rotate(5deg) scale(1.1); } }
+@keyframes mood-jitter { 0%, 100% { transform: scale(1); } 20% { transform: scale(.88, 1.06) translateX(-1px); }
+  30% { transform: scale(.9, 1.04) translateX(1px); } 40% { transform: scale(.88, 1.06) translateX(-1px); } 60% { transform: scale(1.04); } }
+@keyframes mood-quiver { 0%, 60%, 100% { transform: rotate(0) scale(1); } 65% { transform: rotate(-6deg) scale(.95); }
+  70% { transform: rotate(6deg) scale(.95); } 75% { transform: rotate(-4deg) scale(.95); } 80% { transform: rotate(3deg); } }
+@keyframes mood-plead { 0%, 100% { transform: scale(1) rotate(0); } 40%, 60% { transform: scale(1.2) rotate(-6deg); }
+  50% { transform: scale(1.24) rotate(-4deg); } }
+@keyframes mood-sink { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(3px) rotate(-6deg) scale(.95); } }
 .mood-pop { position: fixed; z-index: 60; width: min(420px, calc(100vw - 16px)); max-height: 70vh; overflow: auto;
   padding: .7rem .8rem; border-radius: 10px; background: var(--panel-solid); color: var(--text);
   border: 1px solid var(--line); box-shadow: 0 10px 30px rgba(0, 0, 0, .35); font-size: .86rem; }

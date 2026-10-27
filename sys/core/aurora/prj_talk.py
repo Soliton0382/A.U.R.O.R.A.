@@ -112,12 +112,15 @@ def backend(cfg: sys_config.Config, project: str, pipeline) -> tuple[str, object
     return "cloud", agent                                # an API: masked, the local model if it fails
 
 
-def _system(cfg: sys_config.Config, project: str, lang: str) -> str:
+def _policy(cfg: sys_config.Config, project: str) -> str:
     from . import prj_policy
     pol = prj_policy.load(cfg, project)
-    policy = ("local model only" if pol["models"] == "local" else "masked cloud allowed") + \
+    return ("local model only" if pol["models"] == "local" else "masked cloud allowed") + \
         ("" if pol["publish"] else ", never published nor pushed")
-    return TALK.format(name=project, lang=lang, policy=policy, context=prj_conduct.context(cfg, project))
+
+
+def _system(cfg: sys_config.Config, project: str, lang: str) -> str:
+    return TALK.format(name=project, lang=lang, policy=_policy(cfg, project), context=prj_conduct.context(cfg, project))
 
 
 def _cli_turn(cfg: sys_config.Config, project: str, masked, system: str, text: str, s: dict) -> dict:
@@ -177,6 +180,11 @@ def _cli_turn(cfg: sys_config.Config, project: str, masked, system: str, text: s
 def say(cfg: sys_config.Config, project: str, text: str, pipeline, lang: str = "it") -> dict:
     """The owner's words → the conductor's answer, both kept; a failure kept as the answer, said as such."""
     kind, llm = backend(cfg, project, pipeline)
+    if kind == "cli" and cfg["AURORA_CONDUCTOR_ACTS"]:   # N39 step 3: the CLI works in the project (prj_act)
+        from . import prj_act
+        return prj_act.start(cfg, project, llm.inner, text, prj_act.ACT.format(
+            name=project, lang=lang, policy=_policy(cfg, project), context=prj_conduct.context(cfg, project)),
+            session(cfg, project), lang)
     before = turns(cfg, project)
     _add(cfg, project, "owner", text)
     system = _system(cfg, project, lang)

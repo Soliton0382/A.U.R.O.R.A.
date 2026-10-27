@@ -101,6 +101,7 @@ print("\\n".join(sorted(f"{{min(r.methods)}} {{r.path}}" for r in walk(svc_api.a
     assert r.stdout.split("\n")[:-1] == ["GET /", "GET /health", "GET /manifest.webmanifest", "GET /sw.js",
                                          "GET /v1/preview/{token}/{path:path}",
                                          "POST /v1/aurora/astro/camera/pc", "POST /v1/aurora/astro/camera/push",
+                                         "POST /v1/aurora/conductor/call", "POST /v1/aurora/conductor/tools",
                                          "POST /v1/aurora/devices",
                                          "POST /v1/aurora/login", "POST /v1/aurora/push-ack"]   # the push's id is its proof
     # the telescope PC's camera (19 Oct): its camera key (X-Aurora-Camera, checked in the route) is its proof, and it

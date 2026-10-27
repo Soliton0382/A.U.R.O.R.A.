@@ -3174,7 +3174,7 @@
   "prj.print_parts": "{n} parts",
   "prj.print_zip": "⬇️ Download for the 3D printer",
   "prj.talk_welcome": "The conductor of {name}. Say what you want to do in your own words; /help for the commands.",
-  "prj.talk_help": "Commands:\n  /new      start a new conversation (the old session is set aside)\n  /phase    turn the last answer into a phase to start\n  /clear    clear the screen (the history stays)\n  /help     this list\nEnter sends · Shift+Enter starts a new line",
+  "prj.talk_help": "Commands:\n  /new      start a new conversation (the old session is set aside)\n  /phase    turn the last answer into a phase to start\n  /stop     stops the conductor at work\n  /clear    clear the screen (the history stays)\n  /help     this list\nEnter sends · Shift+Enter starts a new line",
   "prj.talk_thinking": "Thinking… {s} s",
   "prj.talk_unknown": "Unknown command: {c} (type /help)",
   "prj.talk_no_answer": "No answer to turn into a phase",
@@ -3362,5 +3362,9 @@
   "hst.g.more": "What is inside (to check it)",
   "hst.g.why": "The script, the sudo rule and the key's line, as they are written:",
   "gd.p.hosts": "The computers and servers Aurora can restart or shut down over SSH, with guided steps to set them up and the tick to shut them down with the UPS.",
-  "settings.hint_user": "Your own settings: they apply only to you, at once. The machine's are the admin's."
+  "settings.hint_user": "Your own settings: they apply only to you, at once. The machine's are the admin's.",
+  "prj.talk_steps": "🛠️ {n} steps",
+  "prj.talk_working": "the conductor is working in the project… {s} s",
+  "prj.talk_stopped": "stopped ({n})",
+  "prj.talk_stop": "Stop"
 }

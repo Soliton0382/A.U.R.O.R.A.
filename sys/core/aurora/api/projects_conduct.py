@@ -111,8 +111,9 @@ def talk_list(name: str) -> dict:
     _check(name)
     kind, _ = prj_talk.backend(cfg, name, pipeline())
     s = prj_talk.session(cfg, name)
+    from aurora import prj_act
     return {"turns": prj_talk.turns(cfg, name), "backend": kind, "session": bool(s.get("session")),
-            "since": s.get("since")}
+            "since": s.get("since"), "working": prj_act.working(cfg, name)}
 
 
 @router.post("/v1/aurora/projects/{name}/talk", dependencies=[Depends(auth)])
@@ -127,6 +128,40 @@ async def talk_say(name: str, request: Request) -> dict:
     out = await in_thread(prj_talk.say, cfg, name, words, pipeline(), lang)
     log.info("audit: conductor talk in project %s (%s)", name, out.get("backend"))
     return out
+
+
+@router.post("/v1/aurora/projects/{name}/talk/stop", dependencies=[Depends(auth)])
+def talk_stop(name: str) -> dict:
+    """The conductor at work stopped (its CLI run ended; what it changed stays, said in the talk)."""
+    from aurora import prj_act
+    _check(name)
+    return prj_act.stop(cfg, name)
+
+
+# ---- the conductor's tools, for its relay (prj_act, N39 step 3) -------------------------------------------------
+# no user's login: the run's token (X-Aurora-Conductor, 32 random bytes, alive only while that run goes) is the proof,
+# and it reaches only that run's project, as that run's user
+def _run_of(request: Request):
+    from aurora import prj_act
+    run = prj_act.lookup(request.headers.get("X-Aurora-Conductor", ""))
+    if run is None:
+        raise HTTPException(status_code=401, detail="no conductor run with this token")
+    return run
+
+
+@router.post("/v1/aurora/conductor/tools")
+def conductor_tools(request: Request) -> dict:
+    from aurora import prj_act
+    _run_of(request)
+    return {"tools": prj_act.TOOLS}
+
+
+@router.post("/v1/aurora/conductor/call")
+async def conductor_call(request: Request) -> dict:
+    from aurora import prj_act
+    run = _run_of(request)
+    body = await request.json()
+    return await in_thread(prj_act.call, run, str(body.get("name", "")), body.get("arguments") or {})
 
 
 @router.post("/v1/aurora/projects/{name}/talk/new", dependencies=[Depends(auth)])

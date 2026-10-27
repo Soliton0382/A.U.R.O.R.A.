@@ -44,6 +44,7 @@ def project(cfg):
 
 
 def _pipe(cfg, cli=True):
+    cfg.values["AURORA_CONDUCTOR_ACTS"] = False          # the talking conductor (step 2); acting: test_prj_act
     local = _Local()
     agent = mdl_router.Fallback(mdl_router.MaskedLLM(_CLI(), "agent", cfg), local, "agent", cfg, "claude_code") \
         if cli else local

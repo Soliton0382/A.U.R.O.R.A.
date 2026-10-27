@@ -147,6 +147,7 @@
 .term-you { color: #e6edf3; margin-top: .5rem; }
 .term-sys { color: #8b949e; }
 .term-wait { color: #d97757; }
+.term-step { color: #8b949e; white-space: pre-wrap; }                      /* the conductor's steps (prj_act) */
 .term-err, .term-out.term-err { color: #ff7b72; }
 .term-out { padding-left: 1.1rem; }
 .term-out p, .term-out ul, .term-out ol { margin: .2rem 0; }

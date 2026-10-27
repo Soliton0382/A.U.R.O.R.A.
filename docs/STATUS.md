@@ -1,6 +1,6 @@
 # Status — work in progress
 
-Updated at every validated change (last: 2026-10-16). Details: BUGS.md (issues, 0 open / 339 closed),
+Updated at every validated change (last: 2026-10-28, audited against the code). Details: BUGS.md (issues, 3 open / 413 closed),
 MANUAL_TESTS.md (what the owner checks by hand),
 TESTS.md (tests and live checks), MEASUREMENTS.md (numbers), MODULE_MAP.md (who does what),
 SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSYSTEM.md (design and decisions).
@@ -85,7 +85,7 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | memory | STM turns with their path; recent turns in context and in the chat after a refresh; session memories (LTM) written by the REM and recalled by meaning when Aurora answers about herself or the past, dates labelled by the clock | tests, live |
 | autonomic cycle | aurora-rem: session memories, thoughts (boredom, weather), dreams painted with SDXL-Lightning (reasoner swapped out for ~20 s, AI-marked) and shown in the chat, daily self-review from the logs with measured evidence, self-repair on recurring problems only, daily social report, log retention; second thoughts (kno_review): drives counted (curiosity, dissatisfaction, novelty, social), past answers answered again in AURORA_REVIEW_HOURS, a better one with new sources told in the chat (≤ AURORA_REVIEW_MESSAGES a day) and put in the shadow, paused by itself after 12 reviews with nothing better; narrated videos (kno_story): from the vault, checked, local pictures, Aurora's natural voice and free classical music by mood, cost zero, made and published from the Social page (🎬, M123: Facebook video; Instagram Reels and TikTok need the owner's connection) | tests, live (M120, M121) |
 | agents | agent loop with budgets (60 steps / 90 min), context compaction, honest report with the record of calls, `/agente <goal>` in the chat; code changes in a sandbox, tests, owner's approval, live tests, rollback | tests, live |
-| plugins (12) | self, projects, netintel, web, documents, senses: active; github (official MCP server), telegram, facebook, mastodon, email, homeassistant: ready, off until their tokens are set | live listing and calls |
+| plugins (45 published) | the full list with what each does in PLUGINS.md; those with a page are set up in it (N21); the installation's private ones beside them | live listing and calls, test_plugin_contract |
 | approval gate | read/write_local automatic; external actions and code changes wait for the owner (Repairs page, pulsing bell) | tests, live |
 | social | platform statistics, daily ideas, drafts in Aurora's voice from any answer ("Share"), publishing by the owner's click | drafts tested live; publishing needs tokens |
 | projects | GitHub-ready scaffolding in usr/projects, local commits, publish/push with approval | tested in a temporary folder |
@@ -133,7 +133,7 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | backup | to the NAS every night at 03:30: encrypted (AES-256-GCM), deduplicated, SQLite-consistent, retention 7/4/6, checked every run; first copy 30.5 GB in 4 min 48 s, the vault restored from it intact | M60, M63 |
 | bug reports | 🐞 page: description, runs, hours of logs → a zip with private data masked, the list of files and of what was masked, a GitHub issue link | M60 |
 | routine PDFs | an agent routine's report is always also a PDF (C84) | M60 |
-| API structure | aurora-api in modules: aurora/api/core (shared) + 14 routers, entry svc_api.py 143 lines; no public API map (C79); one plugin host with cached tool lists, warmed at start (Plugins page 0.004 s, C80) | M59 |
+| API structure | aurora-api in modules: aurora/api/core (shared) + 54 area modules, entry svc_api.py; no public API map (C79); one plugin host with cached tool lists, warmed at start (Plugins page 0.004 s, C80) | M59 |
 | install | clean install validated end to end in a new folder (10 min 55 s with 81 GB of models), rerun 7 s, missing sudo handled, doctor at the end | M59, C81 |
 | log rotation | handler logs rotate and compress by size; loose logs (plugins' stderr) too, in the daily purge; 12-month retention | M59 |
 | features and gates | 10 features, each with what it needs; a missing model or a contradicting setting becomes an answer with the command, never a crash mid-job (live: cut-out and dictation with the model pointed away); ⚙️ Status lists them; sys_doctor checks the whole installation; the installer offers optional groups by measured hardware | M58, C75–C77 |
@@ -142,74 +142,22 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | guide | 📖 Guide page: first steps, cloud, phone, plugins, safety, and every page of the menu with a button | — |
 | logs | one file per component, rotation, gzip, 12-month retention, traces, lifecycle lines; Aurora reads them | sys_logread |
 | encryption | TLS 1.3 to clients, HTTPS everywhere outwards, secrets 0600; storage not encrypted (no LUKS) | SECURITY.md |
+| 🕶️ anonymous chat | a chat that leaves no trace in memory, traces or her moods | test_anon_chat |
+| 💶 expenses | the expenses page and its plugin | plugin expenses |
+| 🛡️ security pages | CISO (plans, checks), the firewall's own page (plan, configuration), Aurora's host firewall, outgoing connections, traceroute | test_security_ciso, test_egress_watch |
+| 🔒 HTTPS | Caddy in front, its own CA or the owner's certificate, ports moved from the page | test_https |
+| 🔋 UPS and 🖧 computers | the UPS read over NUT, the power-off in order (computers over SSH with a key forced to one script, firewalls, this machine) | test_ups, test_power_hosts |
+| 🖥️ device consoles | each user's tiles of the devices' own management pages | sys_consoles |
+| 🏠 the house | Home Assistant's devices, scenes and automations; the house's agents | test_hom_scenes |
+| 🧠 what she remembers of you | the memory page per person | memory.js |
+| 🧑‍🔬 the project's conductor | talk, phases, and on the Claude CLI it works in the project through Aurora's tools only (masked, SSCC, the cage) | test_prj_talk, test_prj_act |
+| ⚙️ settings per user | everyone sees ⚙️ Impostazioni, a user only their own settings | test_users_crossing |
 
-## Closed on 2 October 2026
+## Not working yet
 
-Signed and published (commit d4ce54f, 29 commits, the history clean of the firewall serial); health green; 0 open bugs;
-207 tests; the Messenger welcome message set by hand. The next roadmap is decided by the owner after the weekend
-(ROADMAP.md, "Next roadmap").
+The partial and missing items, checked against the code: ROADMAP.md, first section. The owner's checks: MANUAL_TESTS.md.
 
-## Done 2026-10-05 (night), to verify by the owner (N58-N61)
+## Open bugs (3)
 
-The agent on Claude Code works with Aurora's tools (C133); projects given as briefs, with progress alerts; the
-notification history; the side menu in areas; the top bar on two rows.
-
-## Done 2026-10-05 (evening), to verify by the owner (N53-N57)
-
-Masking stronger and mandatory (C132); the assistant's name, character and gender per user (install, Settings, the
-admin's new user with the person's name); ❤️ Health sealed per user, local model only.
-
-## Done 2026-10-05 (later), to verify by the owner (N49-N52)
-
-🎧 DJ (remix and mix, 8 styles, all local, M93); the login with name, password and code also in single-user once the
-admin has them; Security's checks with their state and "switch on / off / delete selected". Decided by the owner and
-written in ROADMAP: the autonomy panel, users as system accounts (U6), autonomous defence.
-
-## Done 2026-10-05, to verify by the owner (N45-N48)
-
-Log out; Social with posts to approve and history; Approvals apart from Reports; the firewall's API generic and
-working (C131: login verified live). The autonomy panel is a design to decide (ROADMAP).
-
-## Done 2026-10-04, to verify by the owner (N31-N41)
-
-Verified by the owner: the WebUI changes (models menu, PDFs deletable, menu by plugin) and the backup timer.
-Code and tests (273 green), not yet live (aurora-api restarts after the owner's signature): dictation decoded whole
-and sent by itself (C121); plugins of the admin or of everyone, switching the admin's (C124); plugin settings in their
-cards with checkboxes; alerts per user, the cloud ceiling and failing providers notified; the trash (30 days);
-routines with several times and groups of days; projects in two tabs, Aurora's tests in a cage of her own (M85);
-the NAS backup after the mount (C123).
-
-## In progress (2026-10-03)
-
-| what | state |
-|---|---|
-| forge | written and judged by Claude Code (opus): 8 of 8 built, 7 right (M64; local 4/8). Known limit: a plugin that ignored the time window of a JSON log passed the judge; read-only plugins only install alone |
-| self-repair | runs daily (4 self-reviews, 2 repairs in 2 days); 0 code changes proposed so far: no evidence yet that it fixes a real bug |
-| depth | follow-ups: rewritten with the conversation and the previous answer, its sources in focus, 3-4 suggested questions under each answer (C104, C106, M73: typed follow-ups right 2 → 6 of 14, suggestions 8 of 11 ≥ 7); the gate's 3 wrong closures of 30 on complete questions remain (A18) |
-| multi-user | migrated and verified (M77); several users at once (per-request user, filters, REM and routines per user: crossing test M79) and the login with Authenticator code, my account, the Users page: done, live after the owner's signature; the owner switches to multi after setting his password and code (N27) |
-| social | Facebook autonomous since 2026-10-03: Aurora publishes her own posts (at most 3 a day; posts and photos only; recorded as "auto", notified); 09:30 a dream or a thought, 18:30 science; Share on dreams and thoughts with the picture (N18, N19 to verify). Instagram and TikTok plugins ready, waiting for the owner's accounts (Instagram professional linked to the page; TikTok developer app). Facebook connected (page token with 8 scopes; posts, statistics, comments, page info; writes wait for approval; the Messenger welcome message is not accepted by Meta's API for this page: set by hand in Business Suite); routines: a post a day proposed when there is something new, weekly statistics. LinkedIn later <!-- schedule --> |
-| network finding | 11,945 denied connections to port 6667 (IRC) from one internal host, 107 ATP matches: the owner checks the device |
-
-## Owner (2026-10-02)
-
-| what | why |
-|---|---|
-| manual tests N13–N15 | when calendar, notes and Home Assistant devices are set up (docs/MANUAL_TESTS.md) |
-| Instagram, TikTok | parked by the owner: plugins ready, accounts not connected |
-
-## To do (designed)
-
-| what | depends on |
-|---|---|
-| move the owner's key to root-only custody (USB) | owner (SECURITY.md) |
-| abuse reports as approvals | the e-mail plugin set up |
-| full-disk encryption | owner |
-| the calendar synced both ways: CalDAV write-back; Google and Microsoft through their APIs | the owner registers an app with Google / Microsoft (OAuth) |
-| Mac and Windows, phases 3–5: installers, per-system locks, models on Metal/CPU, services, the cages | the Ports workflow's first run (the real list) |
-| updates by release (a channel «only versions») | the owner's choice; today the updater follows the branch |
-
-## Open bugs (0)
-
-None (5 October 2026): A19 closed by re-importing 107 arXiv papers from HTML (C135, M97), A18 closed by
-measurement (C136, M98). Measurements still to take: ROADMAP.md ("Still to measure").
-
+C389 (aurora-api's memory between restarts), C390 (the reasoner's night crashes, none since 23 Oct), C406 (the alerts
+that learn: built, closed after a week of the owner's verdicts). Details in BUGS.md.

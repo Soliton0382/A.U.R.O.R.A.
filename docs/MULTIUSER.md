@@ -155,7 +155,7 @@ Login page (name, password, 6-digit code); TOTP enrolment with a QR code (a vend
 Users page for the admin (create, reset password, reset TOTP, remove with the purge listing); the installer asks
 single or multi; manual tests N17+ (phone and PC, two users, switching modes both ways).
 
-### U6 — Folders protected by the system (owner, 2026-10-03), to decide
+### U6 — Folders protected by the system (owner, 2026-10-03) — decided 5 Oct (users as system accounts, ROADMAP), not built
 The owner wants only an admin (and Aurora) to browse the users' folders. Proposal: Aurora's services run as a
 dedicated system account `aurora` (no login), owner of `usr/` and of every `usr/<name>/` (mode 0750, group
 `aurora-admins`, whose members are the admins' system accounts): other accounts of the machine see nothing; people

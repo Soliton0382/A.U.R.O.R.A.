@@ -3174,7 +3174,7 @@
   "prj.print_parts": "{n} parti",
   "prj.print_zip": "⬇️ Scarica per la stampante 3D",
   "prj.talk_welcome": "Conduttore di {name}. Scrivi cosa vuoi fare in parole tue; /aiuto per i comandi.",
-  "prj.talk_help": "Comandi:\n  /nuova    ricomincia una conversazione (la sessione vecchia resta da parte)\n  /fase     trasforma l'ultima risposta in una fase da avviare\n  /pulisci  pulisce lo schermo (la storia resta)\n  /aiuto    questo elenco\nInvio manda · Maiusc+Invio va a capo",
+  "prj.talk_help": "Comandi:\n  /nuova    ricomincia una conversazione (la sessione vecchia resta da parte)\n  /fase     trasforma l'ultima risposta in una fase da avviare\n  /stop     ferma il conduttore che sta lavorando\n  /pulisci  pulisce lo schermo (la storia resta)\n  /aiuto    questo elenco\nInvio manda · Maiusc+Invio va a capo",
   "prj.talk_thinking": "Sta pensando… {s} s",
   "prj.talk_unknown": "Comando sconosciuto: {c} (scrivi /aiuto)",
   "prj.talk_no_answer": "Nessuna risposta da trasformare in fase",
@@ -3362,5 +3362,9 @@
   "hst.g.more": "Cosa c'è dentro (per chi vuole controllare)",
   "hst.g.why": "Lo script, la regola di sudo e la riga della chiave, così come vengono scritti:",
   "gd.p.hosts": "I computer e i server che Aurora può riavviare o spegnere via SSH, con una procedura guidata per prepararli e la spunta per spegnerli con l'UPS.",
-  "settings.hint_user": "Le tue impostazioni personali: valgono solo per te e si applicano subito. Quelle della macchina le gestisce l'admin."
+  "settings.hint_user": "Le tue impostazioni personali: valgono solo per te e si applicano subito. Quelle della macchina le gestisce l'admin.",
+  "prj.talk_steps": "🛠️ {n} passi",
+  "prj.talk_working": "il conduttore lavora nel progetto… {s} s",
+  "prj.talk_stopped": "fermato ({n})",
+  "prj.talk_stop": "Ferma"
 }

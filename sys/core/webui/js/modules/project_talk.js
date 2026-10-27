@@ -5,7 +5,8 @@
 // monospace with a dim «⎿» line under each (who answered, how long, what it cost when the CLI says it), «✻» while it
 // thinks; Enter sends, Shift+Enter starts a new line; slash commands: /nuova, /fase, /pulisci, /aiuto. Kept per
 // project and per user — on the Claude CLI one session resumed turn after turn, else the local model or an API with
-// the turns sent again. The conductor talks, it does not act: /fase (or «↳ fanne una fase» under an answer) turns an
+// the turns sent again. On the CLI the conductor works in the project (N39 step 3, prj_act): its steps come live as
+// «⏺» lines, /stop ends the run; elsewhere it talks, and /fase (or «↳ fanne una fase» under an answer) turns an
 // answer into a phase's goal (the phases below).
 import { call } from "../api.js";
 import { clock, el, useCss } from "../dom.js";
@@ -22,6 +23,7 @@ function meta(e) {
   if (e.backend && e.backend !== "local") {
     parts.push(e.cost_usd != null ? t("prj.talk_cost", { usd: Number(e.cost_usd).toFixed(4) }) : t("prj.talk_cost_none"));
   }
+  if (e.acted) parts.push(t("prj.talk_steps", { n: e.steps || 0 }));
   if (e.new_session) parts.push(t("prj.talk_new_session"));
   return `⎿ ${parts.join(" · ")}`;
 }
@@ -76,7 +78,15 @@ export function talkView(name, onPhase) {
   };
   const end = () => { log.scrollTop = log.scrollHeight; };
   const welcome = () => line("term-sys", `✻ ${t("prj.talk_welcome", { name })}`);
-  let count = -1, judging = null;
+  let count = -1, judging = null, busy = null;
+  // the conductor at work (prj_act): its steps so far, «✻» with the seconds, the input closed until it answers
+  const working = (w) => {
+    busy = w ? (w.steps || []).length : null;
+    input.disabled = go.disabled = Boolean(w);
+    if (!w) return;
+    for (const s of w.steps || []) log.append(line("term-step", `  ${s.text}`));
+    log.append(line("term-wait", `✻ ${t("prj.talk_working", { s: Math.round(Date.now() / 1000 - w.since) })} · /stop`));
+  };
   // the conversation's turns and the phases' verdicts in time order; while a phase is judged, «✻» as for a turn
   const show = (turns, conduct) => {
     lastAnswer = null;
@@ -86,8 +96,10 @@ export function talkView(name, onPhase) {
     judging = conduct.some((e) => e.kind === "goal" && e.status === "judging");
     log.replaceChildren(welcome(), ...items.map(turn));
     if (judging) log.append(line("term-wait", `✻ ${t("prj.talk_judging")}`));
+    working(work);
     end();
   };
+  let work = null;
   const both = async () => {
     const [d, c] = await Promise.all([call(base), call(`/v1/aurora/projects/${name}/conduct`)]);
     return [d, c.items];
@@ -96,6 +108,7 @@ export function talkView(name, onPhase) {
     try {
       const [d, items] = await both();
       who.textContent = t(WHO[d.backend] || "prj.talk_local");
+      work = d.working;
       show(d.turns, items);
     } catch (e) { log.replaceChildren(line("term-err", `⚠ ${t("ev.error", { m: e.message })}`)); }
   };
@@ -111,6 +124,9 @@ export function talkView(name, onPhase) {
     } else if (["/fase", "/phase"].includes(c)) {
       if (!lastAnswer || !onPhase) log.append(line("term-err", `⚠ ${t("prj.talk_no_answer")}`));
       else await toPhase(lastAnswer);
+    } else if (c === "/stop") {
+      try { const r = await call(`${base}/stop`, { method: "POST", body: "{}" }); log.append(line("term-sys", `✋ ${t("prj.talk_stopped", { n: r.stopped })}`)); }
+      catch (e) { log.append(line("term-err", `⚠ ${e.message}`)); }
     } else if (["/pulisci", "/clear"].includes(c)) {
       log.replaceChildren(welcome());
     } else log.append(line("term-err", `⚠ ${t("prj.talk_unknown", { c })}`));
@@ -119,7 +135,7 @@ export function talkView(name, onPhase) {
   form.addEventListener("submit", async (ev) => {
     ev.preventDefault();
     const text = input.value.trim();
-    if (!text || input.disabled) return;
+    if (!text || (input.disabled && text !== "/stop")) return;
     input.value = "";
     grow();
     if (text.startsWith("/")) { await command(text); return; }
@@ -133,22 +149,39 @@ export function talkView(name, onPhase) {
     const timer = setInterval(tick, 400);
     log.append(wait);
     end();
-    try { await call(base, { method: "POST", body: JSON.stringify({ text }) }); await load(); }
+    try { await call(base, { method: "POST", body: JSON.stringify({ text }) }); await load(); if (work) watch(); }
     catch (e) { wait.remove(); log.append(line("term-err", `⚠ ${t("ev.error", { m: e.message })}`)); }
     finally { clearInterval(timer); input.disabled = go.disabled = false; input.focus(); end(); }
   });
+  // while the conductor works: a look every 2 s, its new steps shown, until its answer is a turn
+  const watch = async () => {
+    while (box.isConnected) {
+      await new Promise((ok) => setTimeout(ok, 2000));
+      try {
+        const [d, items] = await both();
+        work = d.working;
+        if (!work || (work.steps || []).length !== busy) show(d.turns, items);
+        if (!work) { input.focus(); return; }
+      } catch { /* the next look */ }
+    }
+  };
   // the line grows with what is written, up to a few lines
   const grow = () => { input.style.height = "auto"; input.style.height = `${Math.min(input.scrollHeight, 160)}px`; };
   input.addEventListener("input", grow);
   input.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); } });
+  const stopBtn = el("button", "term-act", `✋ ${t("prj.talk_stop")}`);         // the input is closed while it works
+  stopBtn.type = "button";
+  stopBtn.addEventListener("click", () => command("/stop"));
+  hint.append(" ", stopBtn);
   box.append(bar, log, form, hint);
-  load();
+  load().then(() => { if (work) watch(); });
   // alive (owner, 23 Oct: «entità vive»): a turn said elsewhere (another page, the API) comes in by itself
   let shown = false;
   const timer = setInterval(async () => {
     if (box.isConnected) shown = true;
     else if (shown) { clearInterval(timer); return; }
     if (input.disabled || !box.isConnected) return;               // a turn of this page is on its way: it reloads itself
+    if (work) return;                                             // the conductor at work: watch() follows it
     try {
       const [d, items] = await both();
       const n = d.turns.length + items.filter((e) => e.kind === "reply").length;

@@ -3892,6 +3892,49 @@
    ]
   },
   {
+   "key": "AURORA_CONDUCTOR_ACTS",
+   "type": "bool",
+   "category": "projects",
+   "recommended": "true",
+   "optional": true,
+   "evidence": "owner",
+   "en": "On the Claude CLI a project's conductor works in the project (reads, writes, runs the tests in the cage, searches the vault) through Aurora's own tools, masked; off: it only talks and a phase does the work.",
+   "it": "Con la CLI di Claude il conduttore di un progetto lavora nel progetto (legge, scrive, lancia i test nella gabbia, cerca nel vault) con gli strumenti di Aurora, mascherati; spento: parla soltanto e il lavoro lo fa una fase.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_CONDUCTOR_MAX_USD",
+   "type": "float",
+   "min": 0.1,
+   "max": 50,
+   "category": "projects",
+   "recommended": "3",
+   "optional": true,
+   "evidence": "owner",
+   "en": "Most a conductor's turn may spend on the Claude CLI (its --max-budget-usd); a subscription shows it as the API's equivalent.",
+   "it": "Spesa massima di un turno del conduttore sulla CLI di Claude (--max-budget-usd); con un abbonamento è l'equivalente in API.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_CONDUCTOR_TIMEOUT_S",
+   "type": "int",
+   "min": 60,
+   "max": 7200,
+   "category": "projects",
+   "recommended": "1800",
+   "optional": true,
+   "evidence": "owner",
+   "en": "Longest a conductor's turn may work before it is stopped.",
+   "it": "Durata massima di un turno di lavoro del conduttore, poi viene fermato.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_PROJECT_TERM_MAX",
    "type": "int",
    "min": 1,
