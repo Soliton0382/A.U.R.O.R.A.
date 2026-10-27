@@ -91,6 +91,8 @@ def main() -> int:
     from aurora import sec_egress                      # this machine towards a listed network (owner, 27 Oct)
     sec_egress.refresh(cfg)
     egress = sec_egress.Watch(cfg)
+    model = sec_egress.ModelWatch()                    # the local model's own sockets: never beyond 127.0.0.1
+    model_at = 0.0
     log.info("egress watch: %d networks listed (%s), this machine as %s", len(egress.deny.nets),
              ", ".join(map(str, sec_egress.asns(cfg))) or "none", ", ".join(sorted(egress.mine)) or "?")
     received = dropped = 0
@@ -111,6 +113,14 @@ def main() -> int:
             if dropped:
                 log.warning("dropped %d datagrams from addresses not allowed", dropped)
                 dropped = 0
+        if time.time() - model_at > 10:
+            model_at = time.time()
+            for incident in model.look():
+                log.warning("the local model reached out: %s", incident["detail"]["title"])
+                try:
+                    api.post(f"{BASE}/v1/aurora/sentinel/incident", json=incident).raise_for_status()
+                except httpx.HTTPError as e:
+                    log.warning("model egress incident not delivered: %s", e)
         try:
             data, (addr, *_rest) = sock.recvfrom(65535)
         except socket.timeout:

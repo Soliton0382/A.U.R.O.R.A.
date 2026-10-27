@@ -31,6 +31,7 @@ TEXTS = {   # event -> (kind the owner chooses, view to open, {lang: title})
     "security.filecheck": ("incident", "security", {"it": "🦠 File malevolo rifiutato", "en": "🦠 Malicious file refused"}),
     "shared.denied": ("incident", "security", {"it": "☁️ Traffico già rifiutato da una rete condivisa", "en": "☁️ Shared network's traffic, already refused"}),
     "quiet.propose": ("incident", "security", {"it": "🔇 Silenzio questo allarme su questo dispositivo?", "en": "🔇 Quiet this alert on this device?"}),
+    "egress.denied": ("incident", "security", {"it": "🚫 Aurora ha messo una rete in blacklist", "en": "🚫 Aurora put a network on the deny list"}),
     "quiet.auto": ("incident", "security", {"it": "🔇 Aurora ha silenziato un allarme su un dispositivo", "en": "🔇 Aurora quieted an alert on one device"}),
     "quiet.woke": ("incident", "security", {"it": "🔔 Tipo di allarme riattivato", "en": "🔔 Kind of alert awake again"}),
     "security.action": ("incident", "security", {"it": "🛡️ Firewall", "en": "🛡️ Firewall"}),

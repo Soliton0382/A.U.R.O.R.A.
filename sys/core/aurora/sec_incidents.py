@@ -50,7 +50,7 @@ def scanner_knock(incident: dict) -> bool:
 
 def severity(incident: dict) -> str:
     s = SEVERITY.get(incident["kind"], "low")
-    if incident["kind"] in ("recon_then_out", "egress_deny"):
+    if incident["kind"] in ("recon_then_out", "egress_deny", "model_egress"):
         return "high"                                   # egress_deny: this machine towards a listed network (sec_egress)                                   # a device of the house, known or not: see sec_sentinel.Recon
     if incident.get("intel_lists") or incident["kind"] == "honeypot":
         return "high"                                   # a known attacker, or someone touching a decoy: always

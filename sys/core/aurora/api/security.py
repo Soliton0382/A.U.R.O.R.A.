@@ -191,6 +191,25 @@ def watch_defence() -> None:
             log.warning("defence: release round failed: %s", e)
 
 
+@router.post("/v1/aurora/security/egress-deny", dependencies=[Depends(admin_only)])
+async def egress_deny(request: Request) -> dict:
+    """A network added to the deny list (sec_egress), from an incident's button: the sentinel watches it at once; the
+    services' units take it at their next install (the owner's sudo), which the answer says."""
+    from aurora import sec_egress, sys_config
+    body = await request.json()
+    try:
+        asn = int(str(body.get("asn", "")).upper().removeprefix("AS"))
+    except ValueError:
+        raise HTTPException(status_code=422, detail="asn: a number, e.g. 45102") from None
+    listed = sec_egress.add_deny(cfg, asn)
+    sys_config.write_env(sys_config.env_file_path(), {"AURORA_EGRESS_DENY_ASNS": ",".join(listed)})
+    cfg.values["AURORA_EGRESS_DENY_ASNS"] = listed
+    got = await asyncio.to_thread(sec_egress.refresh, cfg, None, True)
+    log.info("audit: network AS%d added to the deny list by the owner (%d prefixes now)", asn, len(got["prefixes"]))
+    return {"asns": listed, "prefixes": len(got["prefixes"]),
+            "install": f"python sys/core/script/sys_install_services.py && sudo bash {cfg.root}/sys/deploy/systemd/install.sh"}
+
+
 @router.post("/v1/aurora/security/block", dependencies=[Depends(admin_only)])
 async def firewall_block(request: Request) -> dict:
     """{"ip", "reason", "unblock": bool}: the owner's click on an incident is the consent; recorded and told."""

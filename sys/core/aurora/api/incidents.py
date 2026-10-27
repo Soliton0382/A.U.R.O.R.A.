@@ -64,6 +64,8 @@ async def sentinel_incident(request: Request) -> dict:
         Incidents(cfg).update(item["id"], status="closed", closed=time.strftime("%Y-%m-%dT%H:%M:%S%z"),
                               defence="already blocked")  # said again (C174)
         return {"id": item["id"], "severity": item["severity"], "blocked": True}
+    if item["kind"] == "model_egress" and (item.get("detail") or {}).get("asn"):
+        item = _deny_alone(item)                          # 🚀: its network on the deny list by herself (sec_egress)
     from aurora import sec_quiet
     quiet = sec_quiet.is_quiet(cfg, item)
     if quiet:                                             # a pattern the owner quieted (sec_quiet): kept, low, not said
@@ -207,6 +209,27 @@ async def incident_verdict(incident_id: str, request: Request) -> dict:
         log.info("audit: incidents «%s» awake again: judged right", said["woke"])
         note("security", "quiet.woke", {"title": "🔔 Tipo di allarme riattivato", "text": f"«{said['label']}»: l'hai giudicato giusto, torna ad avvisarti."})
     return {"id": incident_id, "verdict": verdict, **({"quiet": said} if said else {})}
+
+
+def _deny_alone(item: dict) -> dict:
+    """The local model reached out (sec_egress.ModelWatch): with security at 🚀 on the Autonomy page its network goes on
+    the deny list by herself — the sentinel watches it at once, the units take it at their next install —, written to
+    her ledger and told; at 🤝 or 🔒 the incident's button waits for the owner."""
+    from aurora import sec_egress, sys_autonomy, sys_config
+    from aurora.sec_incidents import Incidents
+    if sys_autonomy.levels(cfg).get("security") != 2:
+        return item
+    d = item["detail"]
+    listed = sec_egress.add_deny(cfg, int(d["asn"]))
+    sys_config.write_env(sys_config.env_file_path(), {"AURORA_EGRESS_DENY_ASNS": ",".join(listed)})
+    cfg.values["AURORA_EGRESS_DENY_ASNS"] = listed
+    sec_egress.refresh(cfg, force=True)
+    sys_autonomy.log(cfg, "security", f"AS{d['asn']} {d.get('holder', '')} on the deny list: the local model reached {d.get('destination')}")
+    log.warning("audit: AS%s added to the deny list by Aurora (security 🚀): the local model reached %s", d["asn"], d.get("destination"))
+    note("security", "egress.denied", {"title": "🚫 Ho messo una rete in blacklist",
+         "text": f"Il modello locale ha cercato {d.get('destination')} (AS{d['asn']} {d.get('holder', '')}): la rete è in "
+                 "blacklist e la sentinella la sorveglia. Perché anche i servizi non possano raggiungerla: reinstalla le unit."})
+    return Incidents(cfg).update(item["id"], deny="added by Aurora")
 
 
 def _quiet_alone(items: list[dict]) -> list[str]:

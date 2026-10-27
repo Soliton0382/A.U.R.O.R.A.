@@ -146,6 +146,16 @@ export function page(tab, meta) { const { title } = meta; return {
         who: i.destination_provider || "—", feed: i.destination_feed || "—",
         lists: (i.destination_lists || []).map((x) => x.list || x.name || "").join(", ") || t("sec.dest_none") })));
     }
+    if (i.detail?.asn && ["model_egress", "egress_deny"].includes(i.kind)) {   // 🚫 its network on the deny list (sec_egress)
+      const deny = el("button", "danger", `🚫 ${t("sec.egress.deny", { asn: i.detail.asn, who: i.detail.holder || "" })}`);
+      deny.addEventListener("click", async () => {
+        try {
+          const r = await call("/v1/aurora/security/egress-deny", { method: "POST", body: JSON.stringify({ asn: i.detail.asn }) });
+          deny.replaceWith(el("p", "ok", t("sec.egress.denied", { n: r.prefixes, cmd: r.install })));
+        } catch (e) { alert(e.message); }
+      });
+      c.append(deny);
+    }
     c.append(this.verdict(i));                       // the owner's judgement: the scorecard counts it (roadmap 81)
     if (i.status === "open") {
       const b = el("button", "sec-close", `✔ ${t("sec.close")}`);

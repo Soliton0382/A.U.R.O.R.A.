@@ -165,7 +165,10 @@ IPAddressAllow=localhost); the commands of a project already run without network
 tools, the plugins, the harvest) never reach the networks of AURORA_EGRESS_DENY_ASNS (Alibaba Cloud and Taobao by
 default; prefixes from RIPEstat, kept a week, written into their units at install). The machine is also the owner's
 desktop, which the list does not touch: the sentinel raises a high incident, never quieted, for any firewall line
-from this machine to a listed network, with the local process when its connection is still open.
+from this machine to a listed network, with the local process when its connection is still open. And the local
+model's own processes are watched every 10 s, whatever the model: an address not loopback (even an attempt the unit
+refuses) is a high incident with the network's owner; the network goes on the list by the owner's click, or by Aurora
+herself when security is at 🚀 on the Autonomy page.
 
 ## Known limits
 

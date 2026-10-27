@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-1287%20passed-1baf7a" alt="Tests"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-1289%20passed-1baf7a" alt="Tests"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
 
 <p align="center">🇮🇹 <b>Italiano</b> · 🇬🇧 <a href="README.en.md">English</a></p>
 
@@ -276,6 +276,24 @@ flowchart LR
   C -- un progetto con un passo aperto --> J[agente di progetto → i test<br/>del passo decidono]
   C -- noia --> T[pensiero]
 ```
+
+### Il modello non esce
+
+Un modello linguistico, da solo, non apre connessioni: le aprono i suoi strumenti. Quando nel 2026 un modello Qwen è
+stato visto scrivere, da agente, un `curl` verso un bucket di Alibaba Cloud a Pechino, Aurora (che usa Qwen 3.6 in
+locale) è stata misurata e chiusa a tre livelli (M263):
+
+| Livello | Cosa vale |
+|---|---|
+| 🧠 **il modello locale** (`llama-server`) | parla solo con `127.0.0.1`: misurato così, e ora è la sua unit a vietargli ogni altro indirizzo (`IPAddressDeny=any`) |
+| 🛠️ **gli strumenti** (plugin, raccolta, API) | non raggiungono mai le reti della blacklist `AURORA_EGRESS_DENY_ASNS` (di default Alibaba Cloud e Taobao, 536 prefissi da RIPEstat); i comandi dei progetti girano senza rete |
+| 🚨 **la sentinella** | se la macchina di Aurora va comunque verso una rete in blacklist, un incidente **alto, mai silenziabile**, con il processo che ha la connessione |
+| 👁️ **la sorveglianza del modello** | ogni 10 s guarda le connessioni del processo del modello locale, **qualunque modello sia**: un indirizzo che non sia `127.0.0.1`, anche un tentativo già fermato, è un incidente alto con la rete e il suo proprietario |
+
+La decisione segue la pagina 🧭 Autonomia per la sicurezza: su 🤝 un clic sull'incidente mette quella rete in
+blacklist; su 🚀 lo fa Aurora da sola, lo scrive nel suo registro e te lo dice. Il traffico legittimo (gli strumenti
+che cercano e leggono pagine quando lavorano) resta libero; quello che non va è il modello che esce da sé.
+Il computer resta anche tuo: la blacklist vale per i servizi di Aurora, non per il tuo browser.
 
 ### Le regole firmate
 

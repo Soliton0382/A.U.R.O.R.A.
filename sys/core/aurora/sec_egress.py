@@ -4,14 +4,20 @@
 Beijing: «basterebbe mettere come destinazioni in black list le destinazioni verso Alibaba… lascerei comunque una
 sentinella per capire se da aurora escono file verso destinazioni in black list»).
 
-AURORA_EGRESS_DENY_ASNS names the networks by their autonomous systems (by default Alibaba Cloud and Taobao); their
+AURORA_EGRESS_DENY_ASNS names the networks by their autonomous systems (by default Alibaba Cloud and Taobao); it grows
+with what the model watch finds (below), whatever the model — nothing here knows who made it; their
 announced IPv4 prefixes come from RIPEstat (public, no key), collapsed and kept in <STATUS>/egress_deny.json, fetched
 again after REFRESH_DAYS — a failed fetch keeps the last list. Two uses:
   - sys_install_services writes them into the units of Aurora's services (IPAddressDeny): the services — the tools,
     the plugins, the harvest — cannot reach them; the owner's desktop on the same machine is not touched;
   - the sentinel (feed) reads the firewall's lines: one from this machine to a listed network is a high incident,
     never quieted, with the local process that holds the connection when it is still open (ss).
-The local reasoner reaches nothing but 127.0.0.1 in any case (its unit: IPAddressDeny=any; M263)."""
+The local reasoner reaches nothing but 127.0.0.1 in any case (its unit: IPAddressDeny=any; M263), and the sentinel
+looks at its processes' sockets every few seconds (ModelWatch), whichever model they run: an address not the
+machine's own — even an attempt the unit refuses — is a high incident with that network's owner; the network goes on
+the list as the Autonomy page says for security (owner, 27 Oct: «una parte dinamica che permette un controllo e
+decisione per poi avere anche lì il pilota automatico… rendendolo agnostico dal tipo di modello»): at 🚀 by Aurora
+herself, told; at 🤝 or 🔒 with the owner's click (add_deny)."""
 from __future__ import annotations
 
 import bisect
@@ -144,3 +150,100 @@ class Watch:
                                      "vietano), quindi è un altro programma di questa macchina, o le unit vanno "
                                      "riscritte (install.sh).",
                            "destination": dst, "process": who}}
+
+
+# ---- dynamic: the local model's own process, whatever the model (owner, 27 Oct: «dovrebbe avvenire in modo dinamico…
+# se aurora si accorge che il modello locale usato tenta di uscire verso internet in modo non consono deve
+# segnalarlo così uno può aggiungere il blocco») ---------------------------------------------------------------------
+LLM_CGROUP = Path("/sys/fs/cgroup/system.slice/aurora-llm.service/cgroup.procs")
+RIPE_NET = "https://stat.ripe.net/data/network-info/data.json?resource={ip}"
+RIPE_AS = "https://stat.ripe.net/data/as-overview/data.json?resource=AS{asn}"
+_nets: dict[str, dict] = {}
+
+
+def network_of(ip: str, fetch=None) -> dict:
+    """{"asn", "prefix", "holder"} of a public address (RIPEstat), {} when not found; kept for the process's life."""
+    if ip in _nets:
+        return _nets[ip]
+    if fetch is None:
+        import httpx
+
+        def fetch(url: str) -> dict:
+            r = httpx.get(url, timeout=15)
+            r.raise_for_status()
+            return r.json()["data"]
+    try:
+        d = fetch(RIPE_NET.format(ip=ip))
+        asn = int((d.get("asns") or [0])[0])
+        holder_ = str(fetch(RIPE_AS.format(asn=asn)).get("holder", "")) if asn else ""
+        out = {"asn": asn, "prefix": d.get("prefix", ""), "holder": holder_} if asn else {}
+    except Exception:                                    # noqa: BLE001 — RIPEstat away: the address alone is told
+        out = {}
+    _nets[ip] = out
+    return out
+
+
+def _model_pids() -> set[int]:
+    try:
+        return {int(x) for x in LLM_CGROUP.read_text().split()}
+    except (OSError, ValueError):
+        return set()
+
+
+def _local(ip: str) -> bool:
+    return ip in ("*", "0.0.0.0", "::", "") or ipaddress.ip_address(ip.split("%")[0]).is_loopback
+
+
+class ModelWatch:
+    """The local model's own processes: any address but the machine's own is not theirs to reach — a connection, or
+    an attempt the unit refuses (it stays in SYN-SENT), is a high incident with the network and its owner, so that
+    the network can be added to the deny list with one click."""
+
+    def __init__(self, pids=_model_pids, sockets=None, network=network_of):
+        self.pids, self.network, self.told = pids, network, {}
+        self.sockets = sockets or (lambda: subprocess.run(["ss", "-tunapH"], capture_output=True, text=True,
+                                                          timeout=5).stdout)
+
+    def look(self, now: float | None = None) -> list[dict]:
+        now = time.time() if now is None else now
+        mine = self.pids()
+        if not mine:
+            return []
+        try:
+            out = self.sockets()
+        except (OSError, subprocess.SubprocessError):
+            return []
+        found = []
+        for line in out.splitlines():
+            m = re.search(r'users:\(\("([^"]+)",pid=(\d+)', line)
+            f = line.split()
+            if not m or int(m.group(2)) not in mine or len(f) < 6:
+                continue
+            peer = f[5].rsplit(":", 1)[0].strip("[]")
+            try:
+                if _local(peer):
+                    continue
+            except ValueError:
+                continue
+            if peer in self.told and now - self.told[peer] < ONCE_S:
+                continue
+            self.told[peer] = now
+            net = self.network(peer)
+            stamp = time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime(now))
+            where = f"AS{net['asn']} {net['holder']}" if net else "rete non trovata"
+            found.append({"kind": "model_egress", "source": "127.0.0.1", "count": 1, "internal": True,
+                          "first": stamp, "last": stamp, "samples": [line[:600]],
+                          "detail": {"title": f"Il modello locale verso {peer} ({where})",
+                                     "why": f"Il processo del modello locale ({m.group(1)}, pid {m.group(2)}) ha una "
+                                            f"connessione verso {peer}:{f[5].rsplit(':', 1)[-1]} (stato {f[1]}): il "
+                                            "modello non ha nessun motivo di uscire da questa macchina.",
+                                     "action": "Aggiungi la rete alla blacklist con il pulsante qui sotto; la unit "
+                                               "del modello già lo ferma, la blacklist ferma anche gli strumenti.",
+                                     "destination": peer, "process": m.group(1), **net}})
+        return found
+
+
+def add_deny(cfg: sys_config.Config, asn: int) -> list[str]:
+    """AURORA_EGRESS_DENY_ASNS with `asn` added (the caller writes the setting)."""
+    have = [str(a) for a in (cfg["AURORA_EGRESS_DENY_ASNS"] or [])]
+    return have if str(asn) in have else have + [str(int(asn))]

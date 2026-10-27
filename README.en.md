@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.en.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-1287%20passed-1baf7a" alt="Tests"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-1289%20passed-1baf7a" alt="Tests"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
 
 <p align="center">🇮🇹 <a href="README.md">Italiano</a> · 🇬🇧 <b>English</b></p>
 
@@ -274,6 +274,24 @@ flowchart LR
   C -- a project with an open step --> J[project agent → the step's<br/>tests decide]
   C -- boredom --> T[thought]
 ```
+
+### The model does not go out
+
+A language model opens no connection by itself: its tools do. When in 2026 a Qwen model was caught writing, as an
+agent, a `curl` to an Alibaba Cloud bucket in Beijing, Aurora (which runs Qwen 3.6 locally) was measured and closed at
+three levels (M263):
+
+| Level | What holds |
+|---|---|
+| 🧠 **the local model** (`llama-server`) | talks to `127.0.0.1` alone: measured so, and now its unit forbids every other address (`IPAddressDeny=any`) |
+| 🛠️ **the tools** (plugins, harvest, API) | never reach the networks of the `AURORA_EGRESS_DENY_ASNS` deny list (Alibaba Cloud and Taobao by default, 536 prefixes from RIPEstat); project commands run without network |
+| 🚨 **the sentinel** | if Aurora's machine goes to a denied network anyway, a **high incident, never quieted**, with the process holding the connection |
+| 👁️ **the model watch** | every 10 s it looks at the local model's process connections, **whatever the model**: an address not `127.0.0.1`, even an attempt already stopped, is a high incident with the network and its owner |
+
+The decision follows the 🧭 Autonomy page for security: at 🤝 one click on the incident puts that network on the deny
+list; at 🚀 Aurora does it herself, writes it to her ledger and tells you. Legitimate traffic (the tools searching and
+reading pages while they work) stays free; what is not is the model going out by itself.
+The computer stays yours too: the deny list holds for Aurora's services, not for your browser.
 
 ### Signed rules
 

@@ -49,3 +49,28 @@ def test_the_units_carry_the_list_and_the_reasoner_reaches_only_itself(cfg, monk
     assert "IPAddressDeny=198.51.100.0/24" in (out / "aurora-api.service").read_text(encoding="utf-8")
     llm = (out / "aurora-llm.service").read_text(encoding="utf-8")
     assert "IPAddressDeny=any" in llm and "198.51.100.0/24" not in llm
+
+
+SS = ('tcp ESTAB 0 0 127.0.0.1:9711 127.0.0.1:50000 users:(("llama-server",pid=42,fd=7))\n'
+      'tcp SYN-SENT 0 1 192.0.2.101:41000 198.51.100.9:443 users:(("llama-server",pid=42,fd=9))\n'
+      'tcp ESTAB 0 0 192.0.2.101:42000 203.0.113.5:443 users:(("python",pid=77,fd=3))\n')
+
+
+def test_the_local_model_reaching_out_is_a_high_incident_with_its_network():
+    """The model's own process (its cgroup's pids): an address not loopback, even an attempt the unit refuses, is
+    told once, with the network to add to the list; another process's connection is not this watch's."""
+    w = E.ModelWatch(pids=lambda: {42}, sockets=lambda: SS,
+                     network=lambda ip: {"asn": 64500, "prefix": "198.51.100.0/24", "holder": "EXAMPLE-NET"})
+    [inc] = w.look(now=1000)
+    assert inc["kind"] == "model_egress" and inc["detail"]["destination"] == "198.51.100.9"
+    assert inc["detail"]["asn"] == 64500 and "SYN-SENT" in inc["detail"]["why"] and "EXAMPLE-NET" in inc["detail"]["title"]
+    assert w.look(now=1200) == []                                           # once an hour
+    assert E.ModelWatch(pids=lambda: set(), sockets=lambda: SS).look() == []  # no local model running
+    assert sec_incidents.severity({**inc, "known": "PC"}) == "high" and sec_quiet.pattern(inc) is None
+
+
+def test_a_network_is_added_once():
+    class C(dict):
+        def __getitem__(self, k): return dict.get(self, k)
+    cfg = C(AURORA_EGRESS_DENY_ASNS=["64500"])
+    assert E.add_deny(cfg, 64501) == ["64500", "64501"] and E.add_deny(cfg, 64500) == ["64500"]
