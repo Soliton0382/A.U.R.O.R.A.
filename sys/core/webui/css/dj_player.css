@@ -77,7 +77,7 @@ body.wa-maxed { overflow: hidden; }
 .wa-up:empty { display: none; }
 .wa-none { color: #8fa; opacity: .7; }
 /* the folders and playlists (dj_player.js) */
-.wa-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .3rem .6rem; }
+.wa-plbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .3rem .6rem; }
 .wa-folders { display: flex; flex-wrap: wrap; gap: .25rem; align-items: center; }
 .wa-fsel { max-width: min(16rem, 60vw); height: 1.9rem; background: #11141c; color: #e8ecf3; border: 1px solid #4a5468; border-radius: 3px; }
 .wa-plmenu { display: flex; flex-direction: column; gap: .25rem; margin: .2rem 0 .4rem 2rem; padding: .45rem .6rem;

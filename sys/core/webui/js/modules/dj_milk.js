@@ -19,6 +19,7 @@ export function milkdrop(canvas) {
   const dim = (a) => { g.fillStyle = `rgba(0,0,0,${a})`; g.fillRect(0, 0, canvas.width, canvas.height); };
 
   return function draw(name, w, h, m) {
+    if (!w || !h || !canvas.width || !canvas.height) return;   // hidden (another page, a closed panel): nothing to draw
     const { b, wave, live, bass, treble, now, hue } = m;
     const dpr = window.devicePixelRatio || 1, n = wave ? wave.length : 1, S = Math.min(w, h);
     const wv = (k) => (live && wave ? (wave[Math.floor(k) % n] - 128) / 128 : 0);

@@ -118,9 +118,9 @@ export function djPlayer({ reload, onSelect, onConsole }) {
   const newB = btn("➕📁", t("dj.pl.new")), renB = btn("✏️", t("dj.pl.rename")), delB = btn("🗑️", t("dj.pl.delete"));
   const folders = el("div", "wa-folders");
   folders.append(fsel, newB, renB, delB);
-  const bar = el("div", "wa-bar");
-  bar.append(el("span", "", t("dj.player.playlist")), folders);
-  box.append(main, vis, bar, list, legend, editor, audio);
+  const plBar = el("div", "wa-bar wa-plbar");
+  plBar.append(el("span", "", t("dj.player.playlist")), folders);
+  box.append(main, vis, plBar, list, legend, editor, audio);
 
   let styleOptions = {};
   let items = [], cur = -1, shuffle = false, repeat = 0, ctx = null, an = null, freq, wave, chosen = [];
