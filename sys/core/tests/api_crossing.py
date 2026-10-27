@@ -89,6 +89,15 @@ for who in ("boss", "guest"):
     seen["devices"] = sorted(d["name"] for d in get(who, "/v1/aurora/devices").json())
     seen["users_page"] = get(who, "/v1/aurora/users").status_code
     seen["machine_setting"] = client.put("/v1/aurora/settings", headers=H[who], json={"AURORA_LOG_MAX_MB": "50"}).status_code
+    mine = get(who, "/v1/aurora/settings").json()["settings"]                     # ⚙️ for everyone: a user's own only
+    seen["only_own_settings"] = all(s.get("scope") == "user" for s in mine)
+    if who == "guest":
+        core._state.setdefault("pipelines", {})["guest"] = object()               # their answers' configuration, made
+        seen["own_setting"] = client.put("/v1/aurora/settings", headers=H[who],
+                                         json={"AURORA_WEATHER_LAT": "45.5"}).status_code
+        seen["own_setting_read"] = next(s["value"] for s in get(who, "/v1/aurora/settings").json()["settings"]
+                                        if s["key"] == "AURORA_WEATHER_LAT")
+        seen["pipeline_dropped"] = "guest" not in core._state["pipelines"]
     seen["logs"] = client.get("/v1/aurora/logs", headers=H[who]).status_code             # C414
     seen["log_tail"] = client.get("/v1/aurora/logs/api", headers=H[who]).status_code
     seen["ups"] = client.get("/v1/aurora/ups", headers=H[who]).status_code               # C416

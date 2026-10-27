@@ -179,6 +179,9 @@ async def update_settings(request: Request) -> dict:
             raise HTTPException(status_code=403, detail="the admin keeps your settings for themselves (👥 Users → permissions)")
         if mine:
             sys_user_config.write(cfg, user, mine)
+            if user != admin:                              # no restart for a user: their pipeline made again
+                from .core import _state
+                _state.get("pipelines", {}).pop(user, None)
     else:
         machine = {k: str(v) for k, v in changes.items()}
     if machine:

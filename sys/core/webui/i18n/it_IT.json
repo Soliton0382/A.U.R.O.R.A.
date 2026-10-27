@@ -3361,5 +3361,6 @@
   "hst.g.test.text": "Premi Prova: Aurora si collega, lo script risponde «ok» e non spegne niente. Dopo, se vuoi, spunta «Spegni con la batteria UPS bassa» nella scheda.",
   "hst.g.more": "Cosa c'è dentro (per chi vuole controllare)",
   "hst.g.why": "Lo script, la regola di sudo e la riga della chiave, così come vengono scritti:",
-  "gd.p.hosts": "I computer e i server che Aurora può riavviare o spegnere via SSH, con una procedura guidata per prepararli e la spunta per spegnerli con l'UPS."
+  "gd.p.hosts": "I computer e i server che Aurora può riavviare o spegnere via SSH, con una procedura guidata per prepararli e la spunta per spegnerli con l'UPS.",
+  "settings.hint_user": "Le tue impostazioni personali: valgono solo per te e si applicano subito. Quelle della macchina le gestisce l'admin."
 }

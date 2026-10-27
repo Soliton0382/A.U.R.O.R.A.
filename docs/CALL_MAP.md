@@ -942,7 +942,7 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | POST `/v1/aurora/uploads/purge` | `api/uploads.py` | `aurora/sys_trash.py`, `script/svc_api.py`, `script/svc_rem.py` |
 | GET `/v1/aurora/usage` | `api/usage.py` | `webui/js/modules/today.js`, `webui/js/modules/usage.js` |
 | POST `/v1/aurora/login` | `api/users.py` | `script/bench_memory_days.py`, `webui/js/main.js` |
-| GET `/v1/aurora/me` | `api/users.py` | `script/bench_memory_days.py`, `webui/js/main.js`, `webui/js/modules/plugin_slot.js`, `webui/js/modules/plugins.js`, `webui/js/modules/routines.js`, `webui/js/modules/users.js` |
+| GET `/v1/aurora/me` | `api/users.py` | `script/bench_memory_days.py`, `webui/js/main.js`, `webui/js/modules/plugin_slot.js`, `webui/js/modules/plugins.js`, `webui/js/modules/routines.js`, `webui/js/modules/settings.js`, `webui/js/modules/users.js` |
 | PUT `/v1/aurora/me/prefs` | `api/users.py` | `webui/js/dates.js`, `webui/js/modules/today_edit.js`, `webui/js/style.js`, `webui/js/theme.js` |
 | POST `/v1/aurora/me/welcomed` | `api/users.py` | `webui/js/welcome.js` |
 | POST `/v1/aurora/me/password` | `api/users.py` | `webui/js/modules/users.js` |

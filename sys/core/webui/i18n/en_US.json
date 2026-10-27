@@ -3361,5 +3361,6 @@
   "hst.g.test.text": "Press Try: Aurora connects, the script answers «ok» and nothing is shut down. Then, if you want, tick «Shut down when the UPS battery is low» in the card.",
   "hst.g.more": "What is inside (to check it)",
   "hst.g.why": "The script, the sudo rule and the key's line, as they are written:",
-  "gd.p.hosts": "The computers and servers Aurora can restart or shut down over SSH, with guided steps to set them up and the tick to shut them down with the UPS."
+  "gd.p.hosts": "The computers and servers Aurora can restart or shut down over SSH, with guided steps to set them up and the tick to shut them down with the UPS.",
+  "settings.hint_user": "Your own settings: they apply only to you, at once. The machine's are the admin's."
 }

@@ -48,6 +48,7 @@ export default {
           <button class="danger mind-go" data-i18n="settings.mind_go"></button></div>
         <p class="muted mind-out"></p></details>`;
     apply(root);
+    this.root = root;
     this.devices = root.querySelector(".devices");
     this.box = root.querySelector(".settings");
     this.nav = root.querySelector(".settings-nav");
@@ -63,7 +64,7 @@ export default {
         const base = root.querySelector("[name=factory-base]:checked").value;
         const r = await call("/v1/aurora/settings/factory", { method: "POST", body: JSON.stringify({ keep_keys: root.querySelector(".keep-keys").checked, base }) });
         fout.textContent = t(r.base === "installed" ? "settings.factory_done_installed" : "settings.factory_done", { n: r.changed.length, file: r.backup });
-        await restartPrompt(r.restart);
+        if (this.me.admin) await restartPrompt(r.restart);
         await this.loadSettings();
       } catch (e) { fout.textContent = t("ev.error", { m: e.message }); }
     });
@@ -118,7 +119,7 @@ export default {
           setTimeout(() => { location.href = go; }, 8000);   // the API restarts meanwhile (a few seconds)
           return;
         }
-        await restartPrompt(r.restart);
+        if (this.me.admin) await restartPrompt(r.restart);
         await this.loadSettings();
       } catch (e) {
         out.textContent = t("ev.error", { m: e.message });
@@ -127,7 +128,14 @@ export default {
     });
   },
 
-  async enter() { await Promise.all([this.loadDevices(), this.loadSettings()]); },
+  async enter() {
+    // a user: their own settings only (owner, 28 Oct: «quelle cose sono a livello utente ed è giusto che se le
+    // gestiscano»), no factory reset, no services to restart (theirs apply at once)
+    this.me = await call("/v1/aurora/me").catch(() => ({ admin: true }));
+    this.root.querySelector(".settings-danger").hidden = !this.me.admin;
+    this.root.querySelector('[data-i18n="settings.hint"]').textContent = t(this.me.admin ? "settings.hint" : "settings.hint_user");
+    await Promise.all([this.loadDevices(), this.loadSettings()]);
+  },
 
   async loadDevices() {
     const list = await call("/v1/aurora/devices");
