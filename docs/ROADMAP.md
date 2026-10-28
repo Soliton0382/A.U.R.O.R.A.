@@ -49,11 +49,11 @@ ARCHIVE.md. Done = code and a test; partial = what is missing is named; owner = 
 | Instagram / TikTok | TikTok connected; the Instagram plugin ready | Instagram live (the owner's account) |
 | Harvester | arXiv, Wikipedia (it), the laws of Italy | EPO patents, other countries' laws, the owner's own topics in the page |
 | Calendar | read from CalDAV and ICS | writing back; Google and Microsoft |
+| U6 users as system accounts | stage 1, 28 Oct: the services on their own account «aurora» (sys_service_account, migration on update, root's code copy, polkit unit by unit); on this machine and the Ubuntu VM | each person a system account of their own (stage 2); a fresh full install and a real uninstall not tried |
 
 ### Missing — not built
 | item | note |
 |---|---|
-| U6 users as system accounts | the owner's decision of 5 Oct; today every service runs as the owner's own account. Design below, first measure not taken |
 | N36 A.U.R.O.R.A. Astro, a light edition | an idea to weigh |
 | Astro: PixInsight headless (WBPP), Alpaca, Flickr, sky events (APOD, ISS, comets) | — |
 | Abuse reports as approvals (by e-mail) | — |

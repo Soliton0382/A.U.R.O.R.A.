@@ -253,7 +253,7 @@ live on a USB stick, so that not even root on this machine can sign:
 
 | risk | today | to do |
 |---|---|---|
-| services run as the owner's user | confined by systemd, plugins caged by bubblewrap | a dedicated system user for new installations (the owner's own installation keeps its user) |
+| each person's data under one account | since 0.3.0 the services run as their own account «aurora» (U6 stage 1), confined by systemd, plugins caged by bubblewrap | each person a system account of their own (U6 stage 2) |
 | storage not encrypted | ext4 without LUKS | full-disk encryption (owner) or SQLCipher for the vault (cost not measured) |
 | secrets in memory and logs | logs never print secrets (checked by grep) | an automated test that scans the logs for every secret of .env |
 
