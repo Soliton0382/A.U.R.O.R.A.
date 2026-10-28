@@ -176,7 +176,9 @@ def tree() -> None:
 def from_home(who: str) -> None:
     src_home = Path(pwd.getpwnam(who).pw_dir)
     dst_home = ROOT / "sys" / "status" / "home"
-    for rel in (".local/share/caddy", ".config/caddy", ".ssh/known_hosts"):
+    # the backup's encryption key too (AURORA_BACKUP_KEY_FILE «~/.config/aurora/backup.key»: «~» is now the account's
+    # home — the first migration of the owner's machine left it behind and the backup lost its key, 28 Oct)
+    for rel in (".local/share/caddy", ".config/caddy", ".ssh/known_hosts", ".config/aurora/backup.key"):
         s, d = src_home / rel, dst_home / rel
         if s.exists() and not d.exists():
             def copy(s=s, d=d):

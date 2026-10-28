@@ -122,7 +122,10 @@ def _office_text(name: str, data: bytes, kind: str) -> str:
     from xml.etree import ElementTree as ET
     try:
         with zipfile.ZipFile(io.BytesIO(data)) as z:
-            root = ET.fromstring(z.read("word/document.xml" if kind == "docx" else "content.xml"))
+            part = "word/document.xml" if kind == "docx" else "content.xml"
+            if z.getinfo(part).file_size > 64 * 1024 * 1024:    # C433: a «zip bomb» never read whole into memory
+                raise ValueError(f"{name}: its text unpacks to more than 64 MB: not read")
+            root = ET.fromstring(z.read(part))
     except (zipfile.BadZipFile, KeyError, ET.ParseError) as e:
         raise ValueError(f"{name}: not a readable {kind} file ({type(e).__name__})") from None
     if kind == "docx":

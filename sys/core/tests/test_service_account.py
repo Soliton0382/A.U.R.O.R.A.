@@ -73,3 +73,12 @@ def test_the_dry_run_changes_nothing_and_needs_root():
     r = subprocess.run([sys.executable, str(SCRIPT / "sys_service_account.py"), "--dry-run"], capture_output=True, text=True)
     if os.geteuid() != 0:
         assert r.returncode == 1 and "sudo" in r.stdout
+
+
+@POSIX
+def test_the_units_have_one_umask_the_group_s():
+    """C436: a second «UMask=0077» after «UMask=0007» won — every log the services wrote was theirs alone."""
+    import pwd
+    m = _load("sys_install_services")
+    text = m.hardening(Path("/tmp"), pwd.getpwuid(os.getuid()).pw_name, False)
+    assert text.count("UMask=") == 1 and "UMask=0007" in text

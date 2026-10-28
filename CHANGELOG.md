@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.2.134 — 2026-10-28
+
+1 publications since v0.2.133.
+
+- 2026-10-28 General check after U6: one service UMask (logs readable by the owner's group), the backup key carried by the migration, songs feature detected, mood saved without races; login timing, .docx bombs and camera content types hardened
+
 ## v0.2.133 — 2026-10-28
 
 25 publications since v0.2.108.

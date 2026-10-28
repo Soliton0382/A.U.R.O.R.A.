@@ -296,7 +296,9 @@ def hardening(root: Path, user: str, bind_low_port: bool, hosts_plugins: bool = 
             + ("LimitNOFILE=8192\n" if hosts_plugins else "")
             + "ProtectKernelModules=yes\nProtectControlGroups=yes\n"
             "ProtectClock=yes\nSystemCallArchitectures=native\n"
-            "RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK\nUMask=0077\n")
+            # one UMask only, 0007 above (U6): a second «0077» here won, and every log the services wrote was theirs
+            # alone — the owner, in their group, could not read it, nor could the publish's privacy scan (C436)
+            "RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK\n")
 
 
 def main() -> int:

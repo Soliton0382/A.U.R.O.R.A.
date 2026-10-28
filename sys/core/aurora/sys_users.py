@@ -93,6 +93,17 @@ def check_password(pw: str, stored: str) -> bool:
     return hmac.compare_digest(got.hex(), h)
 
 
+_DUMMY: list[str] = []
+
+
+def _dummy() -> str:
+    """A hash made once, checked against for an unknown name: the same cost as a known one (C432: hashing and checking
+    cost twice, so the time of a login told which names exist)."""
+    if not _DUMMY:
+        _DUMMY.append(hash_password("x" * 16))
+    return _DUMMY[0]
+
+
 # ---- the store -----------------------------------------------------------------------------------
 class Users:
     def __init__(self, cfg: sys_config.Config | None = None, path: Path | None = None):
@@ -203,7 +214,7 @@ class Users:
         with self._db() as con:
             r = con.execute("SELECT * FROM users WHERE name=?", (name.strip(),)).fetchone()
         if r is None or not r["password"]:
-            check_password(password, hash_password("x" * 10))       # same time as a wrong password
+            check_password(password, _dummy())               # one scrypt, as for a wrong password (C432)
             return None
         return {**self.public(r), "totp": r["totp"]} if check_password(password, r["password"]) else None
 

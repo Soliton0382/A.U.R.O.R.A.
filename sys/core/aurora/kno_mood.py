@@ -92,7 +92,7 @@ def record(cfg: sys_config.Config, busy: bool, g: list[dict] | None = None) -> N
         rows.append({"at": round(now), "gpu": max((x["util"] for x in g), default=0), "busy": bool(busy)})
         f = _file(cfg)
         f.parent.mkdir(parents=True, exist_ok=True)
-        tmp = f.with_suffix(".tmp")
+        tmp = _tmp(f)
         tmp.write_text(json.dumps(rows), encoding="utf-8")
         os.replace(tmp, f)
 
@@ -259,10 +259,17 @@ def _last_file(cfg: sys_config.Config) -> Path:
     return d / "mood.json"
 
 
+def _tmp(f: Path) -> Path:
+    """A temporary name of this process and thread: the API and REM save the same files, and one's «mood.tmp» renamed
+    away left the other's rename without its file (28 Oct, «mood: not saved … mood.tmp -> mood.json»)."""
+    import threading
+    return f.with_name(f".{f.stem}.{os.getpid()}.{threading.get_ident()}.tmp")
+
+
 def save(cfg: sys_config.Config, m: dict) -> None:
     """The last measure (REM's look, each minute): what her own prompts read, without measuring again."""
     f = _last_file(cfg)
-    tmp = f.with_suffix(".tmp")
+    tmp = _tmp(f)
     tmp.write_text(json.dumps(m, ensure_ascii=False), encoding="utf-8")
     os.replace(tmp, f)
 

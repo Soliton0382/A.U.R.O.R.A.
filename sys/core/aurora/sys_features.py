@@ -152,8 +152,8 @@ def check(cfg: sys_config.Config, name: str) -> dict:
                 why = "a picture or a voice goes to the cloud only on an exempted installation"
             return {"ok": not why, "required": required, "label": label, "missing": [why] if why else [],
                     "fix": ["🧠 Modelli / Models"] if why else []}
-    for key in paths:
-        if not cfg.path(key).is_file():
+    for key in paths:                                # a program's file, or a folder (AURORA_SONG_DIR: the music
+        if not cfg.path(key).exists():               # model's code — «is_file» said it missing, always: C431)
             missing.append(f"{key} = {cfg[key]}")
             fix.append(SCRIPTS.get(key) or FETCH.format(m=LLM_FILES.get(key, "llm")))
     if name == "vision" and missing:                 # vision assigned to a cloud model needs no local projector

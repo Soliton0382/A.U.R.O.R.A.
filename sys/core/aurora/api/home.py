@@ -91,7 +91,10 @@ async def home_camera(entity_id: str) -> Response:
             data = await in_thread(lambda: made_safe(cfg, entity_id, r.content))
         except Exception as e:          # noqa: BLE001 — a filter that fails shows nothing, never the picture as it came
             raise HTTPException(status_code=502, detail=f"the camera's privacy filter failed: {str(e)[:120]}") from None
-    return Response(data, media_type=r.headers.get("content-type", "image/jpeg"), headers={"Cache-Control": "no-store"})
+    kind = r.headers.get("content-type", "image/jpeg").split(";")[0].strip().lower()
+    if not kind.startswith("image/") or kind == "image/svg+xml":   # C434: a picture only, never a page or a script
+        raise HTTPException(status_code=502, detail=f"the camera did not send a picture ({kind[:40]})")
+    return Response(data, media_type=kind, headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"})
 
 
 @router.post("/v1/aurora/home/look", dependencies=[Depends(auth)])
