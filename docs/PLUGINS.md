@@ -771,6 +771,17 @@ Serve l'inventario del PC del telescopio (pagina 🔭 Astro): il sito arrotondat
 - [Open-Meteo](https://open-meteo.com/)
 - [7Timer!](https://www.7timer.info/)
 
+## spotify
+
+🟢 Spotify on the DJ page, for a **Premium** account (Spotify allows neither its Web API nor its player in a browser
+without one). The player and the sign-in live in the browser: OAuth with PKCE (no secret on the machine; the token
+stays in that browser), Spotify's Web Playback SDK as a device of the account, a link of a playlist, an album or a
+track pasted and played. Set up with `AURORA_SPOTIFY_CLIENT_ID` (an app on developer.spotify.com: Web API and Web
+Playback SDK, the redirect URI Aurora's address followed by «/»); the guide is in its card. Only while it is set the
+WebUI's security policy opens to Spotify (its script, frame, sign-in, API, pictures). Spotify's sound stays in its
+player: no mix. The player's 🎧 shares another tab's sound for the visuals instead (any player, free accounts too).
+Tool: `spotify_status`.
+
 ## telegram
 
 Telegram through Aurora's bot: send a message (waits for the owner unless confirmation is off), read the messages the bot received.

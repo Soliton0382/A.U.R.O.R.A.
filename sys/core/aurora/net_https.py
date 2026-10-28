@@ -68,7 +68,7 @@ $sites {
 		X-Content-Type-Options nosniff
 		Referrer-Policy strict-origin-when-cross-origin
 		X-Frame-Options DENY
-		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
+		Content-Security-Policy "$csp"
 		-Server
 	}
 }
@@ -102,6 +102,25 @@ def ca_dir(cfg: sys_config.Config) -> Path:
     return home / ".local" / "share" / "caddy" / "pki" / "authorities" / "local"
 
 
+CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
+# Spotify's Web Playback SDK (a Premium account's player in the DJ page): its script and frame, its sign-in and API —
+# only while AURORA_SPOTIFY_CLIENT_ID is set; empty, the policy stays as above (owner, 28 Oct: «lasciamolo come plugin
+# interno alla pagina che uso se lo attiva se ha premium»)
+SPOTIFY = {"script-src": "https://sdk.scdn.co", "frame-src": "https://sdk.scdn.co",
+           "connect-src": "https://accounts.spotify.com https://api.spotify.com", "img-src": "https://i.scdn.co"}
+
+
+def csp(cfg: sys_config.Config) -> str:
+    """The WebUI's security policy, opened to Spotify's player only when its Client ID is set."""
+    if not str(cfg.values.get("AURORA_SPOTIFY_CLIENT_ID") or "").strip():
+        return CSP
+    parts = [p.strip() for p in CSP.split(";") if p.strip()]
+    have = {p.split()[0]: p for p in parts}
+    for k, extra in SPOTIFY.items():
+        have[k] = (have[k] + " " + extra) if k in have else f"{k} 'self' {extra}"
+    return "; ".join(have.values())
+
+
 def render(cfg: sys_config.Config, **over) -> str:
     """The Caddyfile; `over` holds settings not yet in this process's configuration (a change being applied)."""
     https_port, http_port = int(_v(cfg, over, "AURORA_HTTPS_PORT")), int(_v(cfg, over, "AURORA_HTTP_PORT"))
@@ -112,6 +131,7 @@ def render(cfg: sys_config.Config, **over) -> str:
         ca = (f"\thandle {CA_PATH} {{\n\t\troot * {_q(ca_dir(cfg))}\n\t\trewrite * /root.crt\n"
               "\t\theader Content-Type application/x-x509-ca-cert\n\t\tfile_server\n\t}\n")
     return CADDYFILE.substitute(
+        csp=csp(cfg),
         admin=cfg["AURORA_CADDY_ADMIN"], http_port=http_port, https_port=https_port,
         # a client that opens an address sends no name (SNI): this certificate then, not the one Caddy would pick by
         # the address it was reached at — behind Docker that address is the container's own (C221, «internal error»)

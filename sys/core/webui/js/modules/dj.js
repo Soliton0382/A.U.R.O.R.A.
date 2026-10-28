@@ -12,6 +12,7 @@ import { bus } from "../bus.js";
 import { deckPanel } from "./dj_deck.js";
 import { djPlayer } from "./dj_player.js";
 import { radioPanel } from "./dj_radio.js";
+import { spotifyPanel } from "./dj_spotify.js";
 import { setConsole, setPanel, songPanel } from "./dj_set.js";
 import { pluginSlot } from "./plugin_slot.js";
 
@@ -85,6 +86,10 @@ export default {
       this.style.value = "techno_trance";
     }
     this.playerView.refresh(s);                      // the playlist follows the files
+    if (!this.spotify && s.spotify?.client_id) {      // 🟢 Spotify only where it is set up (a Premium account's)
+      this.spotify = spotifyPanel(s);
+      if (this.spotify) this.playerView.box.after(this.spotify);
+    }
     clearTimeout(this.timer);
     if (s.busy) {                                    // working: the state again in a few seconds
       this.out.textContent = t("dj.busy", { title: s.busy });

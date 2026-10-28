@@ -1,0 +1,39 @@
+{
+  "name": "spotify",
+  "version": "1.0",
+  "kind": "connector",
+  "page": "dj",
+  "description": {
+    "en": "Spotify in the DJ page, for a Premium account: Spotify's own player (Web Playback SDK) in the browser, signed in with your account (PKCE: no secret on this machine, the token stays in your browser). Paste a link to a playlist, an album or a track and it plays; play, pause, next. Spotify's sound stays in its player: no visuals, no mix (its rules).",
+    "it": "Spotify nella pagina DJ, per un account Premium: il lettore di Spotify (Web Playback SDK) nel browser, con il tuo account (PKCE: nessun segreto su questa macchina, il token resta nel tuo browser). Incolli il link di una playlist, un album o un brano e suona; play, pausa, avanti. Il suono di Spotify resta nel suo lettore: niente animazioni, niente mix (sono le sue regole)."
+  },
+  "command": [
+    "{python}",
+    "{root}/sys/core/script/plg_run.py",
+    "server.py"
+  ],
+  "env": [
+    "AURORA_SPOTIFY_CLIENT_ID"
+  ],
+  "requires": [],
+  "settings": [
+    "AURORA_SPOTIFY_CLIENT_ID"
+  ],
+  "effects": {
+    "*": "read"
+  },
+  "sandbox": {
+    "network": false
+  },
+  "setup": {
+    "it": "**Serve Spotify Premium**: senza, Spotify non permette né la Web API né il lettore nel browser.\n\n1. Apri **developer.spotify.com** → accedi → **Dashboard** → **Create app**.\n2. Nome e descrizione a piacere. In **Redirect URIs** metti l'indirizzo di Aurora seguito da una barra, esattamente come lo apri, per esempio `https://aurora.example.org:8443/` (la pagina DJ te lo mostra già pronto da copiare).\n3. In **Which API/SDKs** spunta **Web API** e **Web Playback SDK**, accetta i termini e salva.\n4. Apri l'app → **Settings** → copia il **Client ID** (il «Client secret» non serve) e incollalo qui sotto in `AURORA_SPOTIFY_CLIENT_ID`, poi **Salva**: Aurora riavvia l'HTTPS per aprire la politica di sicurezza solo al lettore di Spotify.\n5. Se altre persone di casa lo useranno: nell'app → **User Management**, aggiungi la loro e-mail di Spotify (un'app nuova è in «development mode»: solo gli utenti elencati).\n6. Nella pagina DJ → **🟢 Spotify** → **Collega Spotify**: accetti su Spotify e torni in Aurora; incolli un link e premi ▶.\n\nIl browser deve poter riprodurre contenuti protetti (DRM: Chrome, Edge, Firefox lo fanno; alcuni browser su Linux chiedono di attivarlo).",
+    "en": "**Spotify Premium is needed**: without it, Spotify allows neither the Web API nor the player in a browser.\n\n1. Open **developer.spotify.com** → sign in → **Dashboard** → **Create app**.\n2. Any name and description. In **Redirect URIs** put Aurora's address followed by a slash, exactly as you open it, e.g. `https://aurora.example.org:8443/` (the DJ page shows it ready to copy).\n3. In **Which API/SDKs** tick **Web API** and **Web Playback SDK**, accept the terms and save.\n4. Open the app → **Settings** → copy the **Client ID** (the «Client secret» is not needed) and paste it below in `AURORA_SPOTIFY_CLIENT_ID`, then **Save**: Aurora restarts HTTPS to open its security policy to Spotify's player only.\n5. If other people at home will use it: in the app → **User Management**, add their Spotify e-mail (a new app is in «development mode»: listed users only).\n6. In the DJ page → **🟢 Spotify** → **Connect Spotify**: accept on Spotify and come back to Aurora; paste a link and press ▶.\n\nThe browser must play protected content (DRM: Chrome, Edge, Firefox do; some Linux browsers ask to switch it on).",
+    "links": [
+      {"label": "Spotify for Developers — Dashboard", "url": "https://developer.spotify.com/dashboard"},
+      {"label": "Web Playback SDK", "url": "https://developer.spotify.com/documentation/web-playback-sdk"}
+    ]
+  },
+  "tests": [
+    {"tool": "spotify_status", "args": {}}
+  ]
+}

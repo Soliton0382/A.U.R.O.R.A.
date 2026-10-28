@@ -61,3 +61,7 @@
 .dj-radio-list { list-style: none; padding: 0; margin: .3rem 0; max-height: 22rem; overflow: auto; }
 .dj-radio-list li { display: flex; flex-wrap: wrap; align-items: baseline; gap: .3rem; padding: .2rem 0; border-bottom: 1px solid var(--line); }
 .dj-radio-list button { padding: .05rem .4rem; }
+/* 🟢 Spotify (dj_spotify.js) and 🎧 another tab's sound (dj_player.js) */
+.dj-spotify-link { flex: 1; min-width: 12rem; }
+.dj-spotify-now { display: flex; align-items: center; gap: .5rem; margin: .3rem 0; }
+.dj-spotify-art { width: 48px; height: 48px; border-radius: 4px; object-fit: cover; }

@@ -105,6 +105,12 @@ export function djPlayer({ reload, onSelect, onConsole }) {
   });
   unmax.addEventListener("click", () => maxed(false));
   modes.append(full);
+  // 🎧 the visuals on another tab's sound (owner, 28 Oct: «per le animazioni basta ascoltare l'audio in uscita e
+  // riprodurre il milkdrop»): Spotify's web player, YouTube… in their own tab, shared by the person (the browser asks
+  // which tab, «share audio» ticked); the sound goes to the visuals only, never played again here (no echo)
+  const tabBtn = btn("🎧", t("dj.player.tab_audio"));
+  tabBtn.classList.add("wa-tab");
+  modes.append(tabBtn);
   vis.append(canvas, tag, modes, unmax);
   // — the playlist
   const list = el("ol", "wa-list");
@@ -185,6 +191,30 @@ export function djPlayer({ reload, onSelect, onConsole }) {
     upOut.textContent = "";
     pick.value = "";
     reload();
+  });
+  let tabAn = null, tabStream = null;
+  const stopTab = () => {
+    tabStream?.getTracks().forEach((tr) => tr.stop());
+    tabStream = tabAn = null;
+    tabBtn.classList.remove("on");
+  };
+  tabBtn.addEventListener("click", async () => {
+    if (tabAn) { stopTab(); mtext.textContent = t("dj.player.tab_off"); return; }
+    if (!navigator.mediaDevices?.getDisplayMedia) { mtext.textContent = t("dj.player.tab_none"); return; }
+    try {
+      tabStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+    } catch { mtext.textContent = t("dj.player.tab_off"); return; }
+    const sound = tabStream.getAudioTracks();
+    tabStream.getVideoTracks().forEach((tr) => tr.stop());           // the picture is not wanted, only the sound
+    if (!sound.length) { stopTab(); mtext.textContent = t("dj.player.tab_no_audio"); return; }
+    ensureAudio(); ctx.resume();
+    tabAn = ctx.createAnalyser();
+    tabAn.fftSize = 2048;
+    tabAn.smoothingTimeConstant = 0.78;
+    ctx.createMediaStreamSource(new MediaStream(sound)).connect(tabAn);   // to the visuals only: no destination
+    sound[0].addEventListener("ended", stopTab);
+    tabBtn.classList.add("on");
+    mtext.textContent = `🎧 ${t("dj.player.tab_on")}  ***  🎧 ${t("dj.player.tab_on")}  ***`;
   });
   const ensureAudio = () => {                      // Web Audio after a gesture (the browsers' autoplay rule)
     if (ctx) return;
@@ -402,8 +432,9 @@ export function djPlayer({ reload, onSelect, onConsole }) {
     if (!box.isConnected) return;                    // the page left: the loop stops
     requestAnimationFrame(frame);
     const [w, h] = fit(canvas);
-    if (an) { an.getByteFrequencyData(freq); an.getByteTimeDomainData(wave); }
-    const live = an && !audio.paused;
+    const A = tabAn || an;                           // another tab's sound (🎧) when shared, else the player's
+    if (A) { A.getByteFrequencyData(freq); A.getByteTimeDomainData(wave); }
+    const live = Boolean(tabAn) || (an && !audio.paused);
     const b = live ? bands(48) : new Float32Array(48);
     const bass = (b[2] + b[3] + b[4] + b[5]) / 4, treble = (b[36] + b[40] + b[44]) / 3;
     hue = (hue + 0.4 + bass * 3) % 360;

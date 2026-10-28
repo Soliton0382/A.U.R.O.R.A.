@@ -549,6 +549,20 @@
    ]
   },
   {
+   "key": "AURORA_SPOTIFY_CLIENT_ID",
+   "type": "str",
+   "category": "attachments",
+   "recommended": "",
+   "optional": true,
+   "evidence": "owner",
+   "en": "The Client ID of your Spotify app (developer.spotify.com): the Spotify player in the DJ page, for a Premium account. Empty: no Spotify, and the WebUI's security policy stays closed to it. No secret is needed (PKCE).",
+   "it": "Il Client ID della tua app Spotify (developer.spotify.com): il lettore Spotify nella pagina DJ, per un account Premium. Vuoto: niente Spotify, e la politica di sicurezza della WebUI resta chiusa. Non serve nessun segreto (PKCE).",
+   "services": [
+    "aurora-https",
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_SONG_DIR",
    "type": "path",
    "recommended": "sys/runtime/ace-step",

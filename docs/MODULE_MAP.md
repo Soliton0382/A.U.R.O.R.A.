@@ -467,6 +467,7 @@ Static files served by aurora-api; no build step. The page is a showcase that co
 | `js/modules/ups.js` | 🔋 UPS in ⚙️ Sistema: the UPS's last read every 15 s (mains or battery, charge, runtime, load, server) and its settings in a box (settings_form); the command that installs the power-off permission (css/ups.css) |
 | `js/modules/hosts.js` | 🖧 Server e computer in ⚙️ Sistema: a card per machine (try, restart, shut down, the UPS tick) and 🧙 the guided steps for the target with a 📋 per command (css/hosts.css, also the firewall cards' UPS row) |
 | `js/modules/dj_radio.js` | 📻 Radio internet on the DJ page: genres as buttons, a search, ▶ in the player (its visualiser too), ☆ the user's stations |
+| `js/modules/dj_spotify.js` | 🟢 Spotify on the DJ page for a Premium account (plugin spotify): OAuth with PKCE in the browser (no secret, the token kept in that browser), Spotify's Web Playback SDK as a device, a pasted link played; shown only with AURORA_SPOTIFY_CLIENT_ID |
 | `js/modules/security_edge.js` | ☁️ Cloudflare in the security area: the «edge» autonomy, the plugin's settings, the tunnel, the blocks active (Sblocca) and lifted (by whom), who hit Aurora through Cloudflare (Blocca) — api/edge on net_cfwaf |
 | `js/modules/fw_pick.js` | which firewall the audit, the changes and the network map are for, when more than one is connected |
 | `js/modules/astro.js` | 🔭 Astro: the inventory script and its command, the files of the person's astro folder, the equipment as Aurora reads it (cards), the darks |

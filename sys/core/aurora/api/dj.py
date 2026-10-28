@@ -63,6 +63,7 @@ def dj_state() -> dict:
     have = {t["name"] for t in tracks} | {f"mixes/{m['name']}" for m in mixes}
     return {"styles": aud_dj.styles(lang), "tracks": tracks, "mixes": mixes, "song": aud_song.installed(cfg),
             "playlists": aud_playlists.load(d, have),
+            "spotify": {"client_id": str(cfg["AURORA_SPOTIFY_CLIENT_ID"] or "").strip()},
             "song_style": aud_song_style.options(lang),
             "busy": _busy.get(me() or "", {}).get("title"), "max_minutes": cfg["AURORA_DJ_MAX_MINUTES"]}
 
