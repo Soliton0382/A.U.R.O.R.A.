@@ -96,6 +96,24 @@ def _env_add_missing() -> list[str]:
     return added
 
 
+def _rewrite_caddyfile() -> str:
+    """The Caddyfile written again from the settings before aurora-https restarts: an update can move a setting of
+    Caddy's (C450, 29 Oct: the admin on a socket in the .env, the Caddyfile still on 127.0.0.1:2019). In a new
+    process: this one still runs the code from before the update."""
+    import sys
+    code = "import sys; sys.path.insert(0, 'sys/core'); from aurora import sys_config, net_https; net_https.write(sys_config.get())"
+    try:
+        r = subprocess.run([sys.executable, "-c", code], cwd=str(cfg.root), capture_output=True, text=True, timeout=120)
+    except (OSError, subprocess.SubprocessError) as e:
+        r = None
+        why = str(e)
+    if r is not None and r.returncode == 0:
+        return "written"
+    why = (r.stderr or r.stdout).strip()[-300:] if r is not None else why
+    log.warning("update: the Caddyfile not written again (Caddy keeps the old one): %s", why)
+    return f"kept: {why}"
+
+
 def _runs_here(unit: str) -> bool:
     """The unit runs this folder's code (its ExecStart names cfg.root): units of the same name may be another copy's."""
     try:
@@ -114,6 +132,8 @@ def _start_update(to: str) -> str:
             out["settings_added"] = _env_add_missing()
             mine = [u for u in UNITS if _runs_here(u)]          # a second copy never restarts another's services (C140)
             out["restarted"] = mine
+            if "aurora-https" in mine:
+                out["caddyfile"] = _rewrite_caddyfile()
             if [u for u in mine if u != "aurora-api"]:
                 threading.Timer(2.0, lambda: subprocess.run(["systemctl", "restart", "--no-block",
                                                              *[u for u in mine if u != "aurora-api"]], capture_output=True)).start()

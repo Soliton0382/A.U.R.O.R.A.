@@ -107,3 +107,21 @@ def test_a_new_setting_is_in_the_env_before_the_tests_and_leaves_with_a_rollback
     commit(there, "sys/core/config/settings_schema.json", schema(["OLD", "NEW", "NEWER"]), "breaks")
     out = sys_update.apply(cfg, root=here, run_tests=lambda: {"ok": False, "summary": "1 failed"})
     assert out["rolled_back"] and (here / ".env").read_text() == "OLD=5\nNEW=1\n"
+
+
+def test_a_rollback_puts_back_a_value_the_update_moved(cfg, tmp_path):
+    # C450: a value once recommended moves to today's (C446); a rollback must give it back, not drop the key
+    import json
+    here, there = setup(tmp_path)
+    schema = lambda old: json.dumps({"categories": {}, "settings": [
+        {"key": "ADMIN", "recommended": "socket", **({"old_recommended": ["127.0.0.1:2019"]} if old else {})}]})
+    commit(there, ".gitignore", ".env\n", "the .env is never in git, as in the real repository")
+    commit(there, "sys/core/config/settings_schema.json", schema(False), "schema")
+    git(here, "pull", "-q")
+    (here / ".env").write_text("ADMIN=127.0.0.1:2019\n")
+    commit(there, "sys/core/config/settings_schema.json", schema(True), "the admin on a socket")
+    seen = []
+    failed = lambda: (seen.append((here / ".env").read_text()), {"ok": False, "summary": "1 failed"})[1]
+    out = sys_update.apply(cfg, root=here, run_tests=failed)
+    assert seen == ["ADMIN=socket\n"]
+    assert out["rolled_back"] and (here / ".env").read_text() == "ADMIN=127.0.0.1:2019\n"

@@ -145,11 +145,12 @@ def apply(cfg: sys_config.Config, emit=None, root: Path | None = None, run_tests
     log.info("audit: update %s -> %s (%d commits)", before[:10], info["there"], info["behind"])
 
     added: list[str] = []
+    old_env: dict[str, str] = {}                     # the .env before add_missing: a rollback restores what it moved
 
     def back(reason: str) -> dict:
         _git(root, "reset", "--hard", before)
-        if added:                                    # the settings the update brought go with it
-            sys_config.write_env(env, {}, drop=set(added))
+        if added:                                    # the settings the update brought go, the ones it moved come back
+            sys_config.write_env(env, {k: old_env[k] for k in added if k in old_env}, drop={k for k in added if k not in old_env})
         if info["requirements"]:
             subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-r", str(root / "requirements.txt")],
                            capture_output=True, text=True, timeout=3600)
@@ -170,6 +171,7 @@ def apply(cfg: sys_config.Config, emit=None, root: Path | None = None, run_tests
     env = sys_config.env_file_path() if root == cfg.root else root / ".env"
     if env.exists():
         schema = root / "sys" / "core" / "config" / "settings_schema.json"
+        old_env.update(sys_config.parse_env(env.read_text(encoding="utf-8")))
         added += sys_config.add_missing(env, schema if schema.exists() else sys_config.SCHEMA_FILE)
         if added:
             log.info("audit: update added settings with their recommended value: %s", ", ".join(added))
