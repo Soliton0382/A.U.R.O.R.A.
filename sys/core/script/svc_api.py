@@ -96,6 +96,9 @@ async def upstream_down(request: Request, exc: httpx.HTTPError) -> JSONResponse:
 from aurora.sys_replay import Replay  # noqa: E402
 
 app.add_middleware(Replay)                          # a request repeated after a lost connection: answered once (C199)
+from aurora.sys_csrf import SameOrigin  # noqa: E402
+
+app.add_middleware(SameOrigin)                      # a change with the session from another site: refused (C441)
 
 for _name in MODULES:                               # each area of the API is its own module (aurora/api)
     app.include_router(__import__(f"aurora.api.{_name}", fromlist=["router"]).router)

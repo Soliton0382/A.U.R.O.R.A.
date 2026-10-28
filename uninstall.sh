@@ -56,12 +56,15 @@ if [ -n "$UNITS" ]; then
   ok "$(t 'servizi fermati e tolti' 'services stopped and removed')"
 fi
 if [ -f /etc/polkit-1/rules.d/50-aurora.rules ]; then run sudo rm -f /etc/polkit-1/rules.d/50-aurora.rules; ok "polkit"; fi
+# root's own copy of the code its units ran (sys_root_sync): nothing runs it any more
+if [ -d /usr/local/lib/aurora ]; then run sudo rm -rf /usr/local/lib/aurora; ok "/usr/local/lib/aurora"; fi
 if command -v caddy >/dev/null && [ -d "$HOME/.local/share/caddy/pki" ]; then
   run caddy untrust; ok "$(t 'certificato locale di Caddy non più fidato' 'Caddy local certificate no longer trusted')"
 fi
 
 step "$(t 'Programmi' 'Programs')"
-for d in .venv sys/runtime; do if [ -e "$d" ]; then run rm -rf "$ROOT/$d"; ok "$d"; fi; done
+# sudo: since U6 the runtime is the services' account's (sys_service_account), not the owner's to delete alone
+for d in .venv sys/runtime; do if [ -e "$d" ]; then run sudo rm -rf "$ROOT/$d"; ok "$d"; fi; done
 if [ -d sys/models ]; then
   SIZE=$(du -sh sys/models 2>/dev/null | cut -f1)
   DROP=n
@@ -88,10 +91,23 @@ else
     ANS=""
     [ "$DRY" = 0 ] && read -r -p "  $(t "usr/ (i vostri documenti, papers, progetti, salute) va in $KEEPUSR. Per cancellare anche quelli scrivi" "usr/ (your documents, papers, projects, health) goes to $KEEPUSR. To delete those too type") CANCELLA ANCHE I DOCUMENTI: " ANS
     if [ "$ANS" = "CANCELLA ANCHE I DOCUMENTI" ]; then warn "$(t 'anche usr/ verrà cancellata' 'usr/ will be deleted too')"
-    else run mv "$ROOT/usr" "$KEEPUSR"; ok "$(t 'documenti messi al sicuro in' 'documents kept in') $KEEPUSR"; fi
+    else
+      # the documents become the owner's again before they leave (U6: they were the services' account's, which goes
+      # away below — kept as they were, they would belong to nobody and stay unreadable)
+      run sudo chown -R "$(id -un):$(id -gn)" "$ROOT/usr"
+      run mv "$ROOT/usr" "$KEEPUSR"; ok "$(t 'documenti messi al sicuro in' 'documents kept in') $KEEPUSR"
+    fi
   fi
   cd /
-  run rm -rf "$ROOT"; ok "$ROOT"
+  run sudo rm -rf "$ROOT"; ok "$ROOT"
+  # the services' own account (U6): its group, the owner's membership, its ACL on the folders above
+  if getent passwd aurora >/dev/null; then
+    for p in $(dirname "$ROOT") $(dirname "$(dirname "$ROOT")") "$HOME"; do
+      [ -d "$p" ] && command -v setfacl >/dev/null && run sudo setfacl -x u:aurora "$p" 2>/dev/null
+    done
+    run sudo userdel aurora; ok "$(t 'account aurora tolto' 'account aurora removed')"
+  fi
+  if getent group aurora >/dev/null; then run sudo groupdel aurora; ok "$(t 'gruppo aurora tolto' 'group aurora removed')"; fi
   # the folder was the git clone: a clean installation starts from a new one (the owner's colleague, 9 Oct)
   echo "  $(t 'Per una installazione pulita:' 'For a clean installation:') git clone https://github.com/Soliton0382/A.U.R.O.R.A..git aurora && cd aurora && bash install.sh"
 fi

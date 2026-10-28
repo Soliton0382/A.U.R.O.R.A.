@@ -41,7 +41,8 @@ sys/app/out
 CLAUDE.md
 
 # Generated from .env (absolute paths): regenerate with sys/core/script/sys_install_services.py
-sys/deploy/
+# the units written for this machine (sys_install_services.py); nft/ and cloudflared/ are sources, published
+sys/deploy/systemd/
 sys/https/
 # Signed per installation with its own key (/etc/aurora): never committed
 sys/core/ethics/MANIFEST.json

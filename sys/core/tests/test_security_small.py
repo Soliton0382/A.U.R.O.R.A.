@@ -40,3 +40,28 @@ def test_a_session_unused_too_long_ends_on_the_server(cfg):
     items[0]["last_seen"] = _t.strftime("%Y-%m-%dT%H:%M:%S", _t.localtime(_t.time() - 31 * 86400))
     d._save(items)
     assert d.check(token) is None
+
+
+def test_changing_an_active_authenticator_keeps_the_old_one_until_the_new_is_confirmed(cfg):
+    """C440: a re-enrolment left half done kept the old authenticator in force; the new one only with its code."""
+    from aurora import sys_users as U
+    users = U.Users(cfg)
+    users.add("anna", "user", "a long password")
+    uid = users.by_name("anna")["id"]
+    first = users.totp_begin(uid)
+    assert users.totp_confirm(uid, U.totp_now(first) if hasattr(U, "totp_now") else _code(U, first))
+    second = users.totp_begin(uid)                                                   # a change begun, not finished
+    with users._db() as con:
+        assert con.execute("SELECT totp FROM users WHERE id=?", (uid,)).fetchone()["totp"] == first
+    assert users.totp_confirm(uid, _code(U, second))
+    with users._db() as con:
+        assert con.execute("SELECT totp FROM users WHERE id=?", (uid,)).fetchone()["totp"] == second
+
+
+def _code(U, secret, at=None):
+    import base64, hashlib, hmac, struct, time
+    key = base64.b32decode(secret.upper() + "=" * (-len(secret) % 8))
+    msg = struct.pack(">Q", int((at or time.time()) // 30))
+    h = hmac.new(key, msg, hashlib.sha1).digest()
+    o = h[-1] & 15
+    return f"{(struct.unpack('>I', h[o:o + 4])[0] & 0x7fffffff) % 1000000:06d}"

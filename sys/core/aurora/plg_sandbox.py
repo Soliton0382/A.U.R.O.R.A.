@@ -116,7 +116,7 @@ def wrap(cmd: list[str], folder: Path, manifest: dict, filtered_env: Path, cfg: 
         args += ["--ro-bind", "/run/systemd/resolve", "/run/systemd/resolve"]
     # the machine's keys and tokens, never a plugin's (C420): the SSH key for the computers, the tunnel's token, the
     # cloud accounts and the Claude logins, the cameras' keys, the HTTPS key, the phone app's signing keys
-    for hidden in (status / "keys", status / "cloudflare", status / "cloud_accounts", status / "claude_code",
+    for hidden in (status / "keys", status / "cloudflare", status / "cloud_accounts", status / "claude_code", status / "caddy",
                    root / "sys" / "https" / "cert", root / "sys" / "app" / "keys"):
         if hidden.is_dir():
             args += ["--tmpfs", str(hidden)]

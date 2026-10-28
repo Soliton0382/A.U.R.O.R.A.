@@ -440,7 +440,7 @@ step "12. $(t 'Servizi (systemd) e HTTPS, sul loro account «aurora»' 'Services
 # the units, the polkit rule, root's copy of its units' code written for it, and the services started
 sudo .venv/bin/python sys/core/script/sys_service_account.py || die "$(t 'servizi' 'services')"
 if [ "$TLS" = internal ] || [ "$TRUST" = internal ]; then
-  ADMIN=$(.venv/bin/python -c 'import sys; sys.path.insert(0, "sys/core"); from aurora import sys_config; print(sys_config.get()["AURORA_CADDY_ADMIN"])')
+  ADMIN=$(.venv/bin/python -c 'import sys; sys.path.insert(0, "sys/core"); from aurora import sys_config, net_https; print(net_https.admin_address(sys_config.get()))')
   sudo caddy trust --address "$ADMIN" && ok "$(t 'certificato locale di Caddy riconosciuto da questo computer' 'Caddy local certificate trusted on this computer')"
 fi
 if command -v ufw >/dev/null && sudo ufw status 2>/dev/null | grep -q "Status: active"; then

@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: Apache-2.0
+# One request from aurora-nftd.socket: block, unblock or list in the table inet aurora — nothing else (aurora-nft checks it).
+[Unit]
+Description=Aurora's firewall request
+Requires=aurora-nft.service
+After=aurora-nft.service
+
+[Service]
+ExecStart=/usr/local/sbin/aurora-nft --serve
+StandardInput=socket
+StandardOutput=socket
+StandardError=journal
+User=root
+CapabilityBoundingSet=CAP_NET_ADMIN
+AmbientCapabilities=
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_NETLINK AF_UNIX
+RuntimeMaxSec=20

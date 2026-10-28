@@ -6,12 +6,9 @@
 import { call } from "../api.js";
 import { el, useCss } from "../dom.js";
 import { apply, t } from "../i18n.js";
+import { iconPicker } from "../icon_picker.js";
 
-// the kinds of device, to tell the tiles apart at a glance (owner, 28 Oct: «qualche icona in più per meglio classificare
-// visivamente i device»): a click puts the icon in the form; any emoji can still be typed
-const KINDS = [["🔥", "firewall"], ["📡", "router"], ["📶", "wifi"], ["🔀", "switch"], ["🗄️", "nas"], ["🖥️", "server"],
-  ["🧪", "vm"], ["💻", "pc"], ["🔋", "ups"], ["🖨️", "printer"], ["📷", "camera"], ["🏠", "home"], ["💡", "lights"],
-  ["🌡️", "climate"], ["🔐", "vpn"], ["☁️", "cloud"], ["📺", "tv"], ["🔊", "audio"], ["🔭", "astro"], ["⚙️", "other"]];
+// the icon: a button that opens the icons' window (icon_picker.js; owner, 28 Oct)
 
 export default {
   id: "consoles",
@@ -32,23 +29,12 @@ export default {
         <input name="group" maxlength="40" list="con-group-list" data-i18n-placeholder="con.group">
         <datalist id="con-group-list"></datalist>
         <input name="note" maxlength="200" data-i18n-placeholder="con.note">
-        <div class="con-kinds"></div>
         <div class="appr-actions"><button class="approve" type="submit" data-i18n="con.save"></button>
           <button type="button" class="con-cancel" hidden data-i18n="con.cancel"></button><span class="muted con-out"></span></div>
       </form>`;
     apply(root);
     this.form = root.querySelector(".con-form");
-    const kinds = root.querySelector(".con-kinds");
-    for (const [icon, kind] of KINDS) {
-      const b = el("button", "con-kind", icon);
-      b.type = "button";
-      b.title = t(`con.k.${kind}`);
-      b.addEventListener("click", () => {
-        this.form.elements.icon.value = icon;
-        for (const x of kinds.children) x.classList.toggle("on", x === b);
-      });
-      kinds.append(b);
-    }
+    this.icon = iconPicker(this.form.elements.icon);
     this.out = root.querySelector(".con-out");
     this.cancel = root.querySelector(".con-cancel");
     this.cancel.addEventListener("click", () => this.edit(null));
@@ -67,6 +53,7 @@ export default {
   edit(item) {                                       // the form fills with a tile to change, or empties
     this.editing = item?.id || null;
     for (const f of ["icon", "name", "url", "group", "note"]) this.form.elements[f].value = item?.[f] || "";
+    this.icon.set(item?.icon || "");
     this.root.querySelector(".con-form-title").textContent = t(item ? "con.edit" : "con.add");
     this.cancel.hidden = !item;
     this.out.textContent = "";

@@ -110,6 +110,22 @@ SPOTIFY = {"script-src": "https://sdk.scdn.co", "frame-src": "https://sdk.scdn.c
            "connect-src": "https://accounts.spotify.com https://api.spotify.com", "img-src": "https://i.scdn.co"}
 
 
+def admin_address(cfg: sys_config.Config) -> str:
+    """Caddy's admin endpoint: «socket» (the default) is a Unix socket in the state folder, hidden from the plugins'
+    and the projects' cages (C444, 28 Oct: on 127.0.0.1:2019 with no password, any local process — a plugin with a
+    network — could load a new configuration into Caddy); an address host:port as before when one is set."""
+    v = str(cfg["AURORA_CADDY_ADMIN"] or "").strip()
+    if v in ("", "socket"):
+        d = cfg.path("AURORA_STATUS_DIR") / "caddy"
+        d.mkdir(parents=True, exist_ok=True)
+        try:
+            d.chmod(0o770)                               # the services' group: Caddy (the account) makes its socket here
+        except OSError:
+            pass
+        return f"unix/{d / 'admin.sock'}"
+    return v
+
+
 def csp(cfg: sys_config.Config) -> str:
     """The WebUI's security policy, opened to Spotify's player only when its Client ID is set."""
     if not str(cfg.values.get("AURORA_SPOTIFY_CLIENT_ID") or "").strip():
@@ -132,7 +148,7 @@ def render(cfg: sys_config.Config, **over) -> str:
               "\t\theader Content-Type application/x-x509-ca-cert\n\t\tfile_server\n\t}\n")
     return CADDYFILE.substitute(
         csp=csp(cfg),
-        admin=cfg["AURORA_CADDY_ADMIN"], http_port=http_port, https_port=https_port,
+        admin=admin_address(cfg), http_port=http_port, https_port=https_port,
         # a client that opens an address sends no name (SNI): this certificate then, not the one Caddy would pick by
         # the address it was reached at — behind Docker that address is the container's own (C221, «internal error»)
         default_sni=hosts[0] if hosts else "localhost",
@@ -395,7 +411,8 @@ def check_ports(cfg: sys_config.Config, https_port: int, http_port: int) -> tupl
     if any(not 1 <= p <= 65535 for p in new) or new[0] == new[1]:
         raise HttpsError("two different ports between 1 and 65535")
     own = {int(cfg[k]) for k in ("AURORA_API_PORT", "AURORA_MODELS_PORT", "AURORA_LLM_PORT")}
-    own.add(int(str(cfg["AURORA_CADDY_ADMIN"]).rsplit(":", 1)[-1]))
+    if ":" in str(cfg["AURORA_CADDY_ADMIN"]):            # an admin on a port (not the default socket): not ours either
+        own.add(int(str(cfg["AURORA_CADDY_ADMIN"]).rsplit(":", 1)[-1]))
     if taken := sorted(set(new) & own):
         raise HttpsError(f"port {taken[0]} is one of Aurora's own services")
     unit = cfg.root / "sys" / "deploy" / "systemd" / "aurora-https.service"

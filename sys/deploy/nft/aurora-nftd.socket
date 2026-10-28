@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: Apache-2.0
+# Aurora's way to her own firewall table (C194): her services are hardened (NoNewPrivileges) and cannot use sudo; they
+# write one request on this socket, which only the owner's group may open.
+[Unit]
+Description=Aurora's firewall requests (nftables table inet aurora)
+
+[Socket]
+ListenStream=/run/aurora-nftd.sock
+SocketUser=root
+SocketGroup=@GROUP@
+SocketMode=0660
+Accept=yes
+MaxConnections=8
+
+[Install]
+WantedBy=sockets.target

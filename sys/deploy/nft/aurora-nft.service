@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: Apache-2.0
+[Unit]
+Description=Aurora's own firewall table (nftables)
+Before=aurora.target
+After=network-pre.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/nft -f /etc/aurora/aurora.nft
+ExecStop=/usr/sbin/nft delete table inet aurora
+
+[Install]
+WantedBy=multi-user.target

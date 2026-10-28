@@ -3422,5 +3422,19 @@
   "dj.spotify.ready": "Ready: «Aurora» is a device of your Spotify.",
   "dj.spotify.not_ready": "The player is not ready (network or browser).",
   "dj.spotify.premium": "a Premium account is needed",
-  "dj.spotify.bad_link": "not a Spotify link (playlist, album, track or artist)"
+  "dj.spotify.bad_link": "not a Spotify link (playlist, album, track or artist)",
+  "icons.find": "search (e.g. nas, telescope, zenodo)…",
+  "icons.own": "or type an emoji + Enter",
+  "icons.choose": "Choose the icon",
+  "icons.none": "No icon for that word: type one by hand on the right.",
+  "icons.g.net": "Network and security",
+  "icons.g.server": "Servers and computers",
+  "icons.g.home": "Home",
+  "icons.g.media": "Media",
+  "icons.g.science": "Science and research",
+  "icons.g.web": "Web and services",
+  "icons.g.dev": "Development",
+  "icons.g.signs": "Signs and colours",
+  "users.totp_pw": "To change the authenticator: your password",
+  "users.totp_current": "and the authenticator's current code (6 digits)"
 }

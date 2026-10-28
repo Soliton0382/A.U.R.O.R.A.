@@ -61,7 +61,7 @@ git --git-dir="$GITTMP" --work-tree="$SRC" ls-files --others --exclude-standard 
 echo "$(wc -l < "$LIST") files"
 
 say "== forbidden paths"
-if grep -nE '^(sys/(vault|status|logs|models|runtime|sandbox|https|deploy|tmp)/|usr/|tmp/|\.claude/|CLAUDE\.md$|\.venv|.*\.env$|.*\.sig$|.*MANIFEST\.json$|.*id_(ed25519|rsa|ecdsa).*)' "$LIST"; then
+if grep -nE '^(sys/(vault|status|logs|models|runtime|sandbox|https|deploy/systemd|tmp)/|usr/|tmp/|\.claude/|CLAUDE\.md$|\.venv|.*\.env$|.*\.sig$|.*MANIFEST\.json$|.*id_(ed25519|rsa|ecdsa).*)' "$LIST"; then
   fail "forbidden paths above: fix .gitignore"
 fi
 

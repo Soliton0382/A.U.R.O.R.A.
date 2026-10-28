@@ -36,6 +36,8 @@ def test_inside_the_cage_no_host_socket_and_git_not_writable(tmp_path):
     (tmp_path / ".git").mkdir()
     r = subprocess.run(prj_run.cage(None, tmp_path, "ls /run | wc -l; echo x > .git/config 2>/dev/null && echo WROTE; "
                                     "echo y > ok.txt && echo OK"), capture_output=True, text=True, timeout=30)
+    if r.returncode or not r.stdout.strip():             # a machine whose kernel refuses the cage (CI runners): nothing to see
+        pytest.skip(f"the cage does not start here: {r.stderr.strip()[:80]}")
     out = r.stdout.split()
     assert out[0] == "0" and "WROTE" not in out and "OK" in out
 

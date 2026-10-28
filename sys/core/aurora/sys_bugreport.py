@@ -64,7 +64,7 @@ def _environment(cfg: sys_config.Config) -> dict:
     except (OSError, KeyError, ValueError):
         env["aurora"] = "?"
     try:
-        env["commit"] = subprocess.run(["git", "-C", str(cfg.root), "rev-parse", "--short", "HEAD"], capture_output=True,
+        env["commit"] = subprocess.run(["git", "-c", f"safe.directory={cfg.root}", "-C", str(cfg.root), "rev-parse", "--short", "HEAD"], capture_output=True,
                                        text=True, timeout=10).stdout.strip() or "no git (installed from a copy)"
     except (OSError, subprocess.SubprocessError):
         env["commit"] = "?"
@@ -122,7 +122,7 @@ def repository(cfg: sys_config.Config) -> str:
     if "/" in remote:
         return remote
     try:
-        url = subprocess.run(["git", "-C", str(cfg.root), "remote", "get-url", remote or "origin"], capture_output=True,
+        url = subprocess.run(["git", "-c", f"safe.directory={cfg.root}", "-C", str(cfg.root), "remote", "get-url", remote or "origin"], capture_output=True,
                              text=True, timeout=10).stdout.strip()
         if url:
             return url

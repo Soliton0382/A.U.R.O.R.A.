@@ -24,8 +24,14 @@ from pathlib import Path
 from . import sys_config, sys_ethics, sys_log, sys_tests
 
 
+def _trust(root: Path) -> list[str]:
+    """The installation's own clone trusted by git for this command only: since U6 the services run as their own
+    account and the clone is the owner's, and git refused it («dubious ownership»: no update would have run)."""
+    return ["-c", f"safe.directory={root}"]
+
+
 def _git(root: Path, *args: str, timeout: int = 120) -> str:
-    r = subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True, timeout=timeout)
+    r = subprocess.run(["git", *_trust(root), "-C", str(root), *args], capture_output=True, text=True, timeout=timeout)
     if r.returncode != 0:
         raise RuntimeError(f"git {' '.join(args[:2])}: {(r.stderr or r.stdout).strip()[:300]}")
     return r.stdout
@@ -42,7 +48,7 @@ def _signed(root: Path, commit: str) -> bool:
     signers = root / "sys" / "core" / "config" / "allowed_signers"
     if not signers.exists():
         return False
-    r = subprocess.run(["git", "-C", str(root), "-c", f"gpg.ssh.allowedSignersFile={signers}", "verify-commit", commit],
+    r = subprocess.run(["git", *_trust(root), "-C", str(root), "-c", f"gpg.ssh.allowedSignersFile={signers}", "verify-commit", commit],
                        capture_output=True, text=True, timeout=60)
     return r.returncode == 0
 

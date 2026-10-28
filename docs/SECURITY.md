@@ -204,7 +204,11 @@ address or user changes. Every restart and shutdown is an audit line in the powe
 ## Security review (2026-10-28)
 
 Four read-only reviews of the code (authentication, command execution, files and network, deployment); each finding
-checked again before its fix (BUGS.md C420–C429). Left for the installation, needing root: the services run as the
+checked again before its fix (BUGS.md C420–C429). Closed since, 28 Oct: Caddy's admin on a Unix socket (C444), the authenticator's change confirmed (C440), changes
+from another site refused (C441), sessions ending on the server (C437). A known limit: behind the WARP private
+network every remote client reaches Caddy from this machine's own address (WARP carries the connection, it adds no
+header with the client's), so the login lockout cannot tell one remote client from another; a valid session or key
+passes even while the lockout holds (C427). Left for the installation, needing root: the services run as the
 owner's own account, which on a typical desktop is in groups that give root (docker, libvirt): a dedicated service
 account (ROADMAP U6) is the real fix; the units that run as root should run code root owns; the polkit rule should
 name its units one by one; the firewall helper should keep its own list of addresses never blocked; Caddy's admin

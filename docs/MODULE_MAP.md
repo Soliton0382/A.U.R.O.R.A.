@@ -160,6 +160,7 @@ call downward (ECOSYSTEM §1).
 | `api/usage.py` | api | GET /v1/aurora/usage: the admin everyone's (or one user's, or Aurora's own), a user only their own | sys_usage | WebUI |
 | `api/users.py` | api | login (password, Authenticator code, first-login QR), my account, the admin's Users page (create, reset, delete with the purge list) | sys_users, sys_users_layout, sys_devices | WebUI |
 | `sys_devices.py` | system | registered devices: token hashes in `<status>/devices.json` (600), HttpOnly cookie for the WebUI | — | svc_api |
+| `sys_csrf.py` | security | a change carried by the WebUI's cookie and no API key, from another site (Origin, Sec-Fetch-Site, a sandboxed frame): refused (C441); a middleware of aurora-api | sys_devices | svc_api |
 | `kno_acquire.py` | knowledge | iterative arXiv agent: queries, re-ranked abstracts, import (HTML first, kno_arxiv), answer again | kno_ingest, kno_answer, arXiv API | svc_api |
 | `aud_analysis.py` | audio | audio in and out, and what a track is: its tempo, where its beats fall, its key (the DJ) | numpy | aud_dj, aud_synth |
 | `aud_synth.py` | audio | the DJ's instruments drawn with numpy (kick, clap, hats, snare, bass and pad in the track's key) and the effects of a remix (sidechain, filter, saturation, riser) | aud_analysis, numpy | aud_dj |
@@ -468,6 +469,7 @@ Static files served by aurora-api; no build step. The page is a showcase that co
 | `js/modules/hosts.js` | 🖧 Server e computer in ⚙️ Sistema: a card per machine (try, restart, shut down, the UPS tick) and 🧙 the guided steps for the target with a 📋 per command (css/hosts.css, also the firewall cards' UPS row) |
 | `js/modules/dj_radio.js` | 📻 Radio internet on the DJ page: genres as buttons, a search, ▶ in the player (its visualiser too), ☆ the user's stations |
 | `js/modules/dj_spotify.js` | 🟢 Spotify on the DJ page for a Premium account (plugin spotify): OAuth with PKCE in the browser (no secret, the token kept in that browser), Spotify's Web Playback SDK as a device, a pasted link played; shown only with AURORA_SPOTIFY_CLIENT_ID |
+| `js/icon_picker.js` | an icon chosen in a window, not a grid on the page: ~200 icons by group (network, servers, home, media, science and research, web, development, signs), a search by word, any emoji typed; used by 🖥️ device consoles |
 | `js/modules/security_edge.js` | ☁️ Cloudflare in the security area: the «edge» autonomy, the plugin's settings, the tunnel, the blocks active (Sblocca) and lifted (by whom), who hit Aurora through Cloudflare (Blocca) — api/edge on net_cfwaf |
 | `js/modules/fw_pick.js` | which firewall the audit, the changes and the network map are for, when more than one is connected |
 | `js/modules/astro.js` | 🔭 Astro: the inventory script and its command, the files of the person's astro folder, the equipment as Aurora reads it (cards), the darks |

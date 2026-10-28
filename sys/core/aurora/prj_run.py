@@ -47,6 +47,9 @@ def cage(cfg: sys_config.Config, project: Path, command: str) -> list[str]:
     for hidden in ("/home", "/root", "/mnt", "/media", "/srv", "/run"):
         if Path(hidden).is_dir():
             args += ["--tmpfs", hidden]
+    root = venv.parent                               # Aurora's folder (its .venv is in it): hidden wherever it lives,
+    if (root / "sys" / "core").is_dir():             # outside /home too (C444: .env, the keys, Caddy's socket were there)
+        args += ["--tmpfs", str(root)]
     if venv.is_dir():
         args += ["--ro-bind", str(venv), str(venv)]
     own = project / ".venv" / "bin"                  # the libraries Aurora installed for it (projects.project_install)

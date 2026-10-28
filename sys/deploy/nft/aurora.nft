@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: Apache-2.0
+# Aurora's table: addresses Aurora blocked for a while (aurora-nft), dropped before anything else reaches this machine.
+# Its own table: ufw and the system's rules are not touched.
+table inet aurora {
+  set blocklist {
+    type ipv4_addr
+    flags timeout
+  }
+  chain input {
+    type filter hook input priority -5; policy accept;
+    ip saddr @blocklist drop
+  }
+}

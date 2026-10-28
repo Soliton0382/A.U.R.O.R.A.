@@ -1,0 +1,54 @@
+#!/bin/bash
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 A.U.R.O.R.A. Project
+#
+# Aurora's own firewall on this machine (owner, 2026-10-06): the ONLY root command Aurora may run (sudoers), and it
+# can only touch its own nftables table "inet aurora": put an address in the blocklist for a while, take it out, list.
+#   aurora-nft block <IPv4> <seconds 60-604800> | unblock <IPv4> | list
+set -euo pipefail
+# --serve: one request read from the socket (aurora-nftd.socket, C194: inside Aurora's hardened services sudo cannot
+# work — NoNewPrivileges); the same three commands, the same checks; the answer ends with "#rc <exit code>"
+if [ "${1:-}" = "--serve" ]; then
+  IFS=' ' read -r -t 5 cmd ip secs rest || { echo "#rc 2"; exit 0; }
+  [ -z "${rest:-}" ] || { echo "too many words"; echo "#rc 2"; exit 0; }
+  set -- "${cmd:-}" "${ip:-}" "${secs:-86400}"
+  if out=$("$0" "$@" 2>&1); then rc=0; else rc=$?; fi
+  printf '%s\n#rc %d\n' "$out" "$rc"
+  exit 0
+fi
+cmd="${1:-}"; ip="${2:-}"; secs="${3:-86400}"
+valid_ip() {
+  [[ "$1" =~ ^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$ ]] || return 1
+  for o in "${BASH_REMATCH[@]:1}"; do (( o <= 255 )) || return 1; done
+  case "$1" in 127.*|0.*|224.*|255.*) return 1 ;; esac
+}
+# the addresses never blocked, root's own list (/etc/aurora/nft-never, sys_root_sync.py: the owner's protected ones,
+# the gateways, this machine's): checked here too, not only in the service's Python (security review, 28 Oct)
+ip2int() { local a b c d; IFS=. read -r a b c d <<<"$1"; echo $(( (a << 24) | (b << 16) | (c << 8) | d )); }
+never() {
+  [ -r /etc/aurora/nft-never ] || return 1
+  local x net base bits mask
+  x=$(ip2int "$1")
+  while read -r net; do
+    [[ -z "$net" || "$net" == \#* ]] && continue
+    base=${net%/*}; bits=${net#*/}; [ "$bits" = "$net" ] && bits=32
+    [[ "$base" =~ ^[0-9.]+$ && "$bits" =~ ^[0-9]+$ ]] && (( bits <= 32 )) || continue
+    mask=$(( bits == 0 ? 0 : (0xFFFFFFFF << (32 - bits)) & 0xFFFFFFFF ))
+    (( (x & mask) == ($(ip2int "$base") & mask) )) && return 0
+  done < /etc/aurora/nft-never
+  return 1
+}
+case "$cmd" in
+  block)
+    valid_ip "$ip" || { echo "not a blockable IPv4: $ip" >&2; exit 2; }
+    never "$ip" && { echo "never blocked here: $ip (/etc/aurora/nft-never)" >&2; exit 2; }
+    [[ "$secs" =~ ^[0-9]+$ ]] && (( secs >= 60 && secs <= 604800 )) || { echo "seconds: 60-604800" >&2; exit 2; }
+    nft add element inet aurora blocklist "{ $ip timeout ${secs}s }" ;;
+  unblock)
+    valid_ip "$ip" || { echo "not an IPv4: $ip" >&2; exit 2; }
+    nft delete element inet aurora blocklist "{ $ip }" 2>/dev/null || true ;;
+  list)
+    nft -j list set inet aurora blocklist ;;
+  *)
+    echo "usage: aurora-nft block <IPv4> <seconds> | unblock <IPv4> | list" >&2; exit 2 ;;
+esac

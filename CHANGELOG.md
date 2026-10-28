@@ -2,6 +2,15 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.3.0 — 2026-10-28
+
+4 publications since v0.2.133.
+
+- 2026-10-28 0.3.0: the services on their own account (U6) with migration on update, installer and uninstaller aligned; the security review closed (cages, routes, sessions server-side, authenticator change confirmed, CSRF, Caddy admin on a socket, fetch ceilings); the root firewall helper and tunnel installer published; internet radio, Spotify for Premium, visuals on another tab's sound; icon picker
+- 2026-10-28 Sessions end on the server after the unused days; web fetches read in pieces with a ceiling; the astro darks folder walked to its depth only; the installation's owner may manage Aurora's units again
+- 2026-10-28 General check after U6 (one service UMask, the backup key carried, songs detected, mood saved without races, login timing and .docx bombs hardened); Spotify for Premium accounts with its guide, the security policy open to it only when set up; the player's visuals on another tab's sound
+- 2026-10-28 General check after U6: one service UMask (logs readable by the owner's group), the backup key carried by the migration, songs feature detected, mood saved without races; login timing, .docx bombs and camera content types hardened
+
 ## v0.2.136 — 2026-10-28
 
 3 publications since v0.2.133.

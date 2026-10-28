@@ -208,6 +208,11 @@ async def my_totp(request: Request) -> dict:
         raise HTTPException(status_code=409, detail="no users on this installation yet")
     code = str(body.get("code", "")).strip()
     if not code:
+        if u["totp_on"]:                                 # C440: changing an active authenticator asks for both first
+            if users.check_password(name, str(body.get("password", ""))) is None:
+                raise HTTPException(status_code=401, detail="the password is wrong")
+            if not users.totp_current(u["id"], str(body.get("current", "")).strip()):
+                raise HTTPException(status_code=401, detail="the current authenticator's code is wrong")
         secret = users.totp_begin(u["id"])
         return {"secret": secret, "uri": otpauth_uri(secret, name)}
     if not users.totp_confirm(u["id"], code):

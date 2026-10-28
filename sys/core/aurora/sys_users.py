@@ -94,6 +94,7 @@ def check_password(pw: str, stored: str) -> bool:
 
 
 _DUMMY: list[str] = []
+_PENDING: dict[str, str] = {}                        # uid -> a new authenticator's secret waiting for its first code (C440)
 
 
 def _dummy() -> str:
@@ -194,13 +195,38 @@ class Users:
             con.execute("UPDATE users SET password=? WHERE id=?", (hash_password(password), uid))
 
     def totp_begin(self, uid: str) -> str:
-        """A new secret, not active until confirmed with a code (an enrolment that fails leaves the old one)."""
+        """A new secret, not active until confirmed with a code. With an authenticator already on, the new secret waits
+        apart and the old one stays in force until the new is confirmed (C440: it was overwritten at once — an
+        enrolment left half done let whoever knew the password enrol their own)."""
         secret = new_secret()
         with self._db() as con:
+            r = con.execute("SELECT totp_on FROM users WHERE id=?", (uid,)).fetchone()
+            if r and r["totp_on"]:
+                _PENDING[uid] = secret
+                return secret
             con.execute("UPDATE users SET totp=?, totp_on=0, totp_last=0 WHERE id=?", (secret, uid))
         return secret
 
+    def totp_current(self, uid: str, code: str, now: float | None = None) -> bool:
+        """The active authenticator's code right (and not used before): what a change of it must show first."""
+        with self._db() as con:
+            r = con.execute("SELECT totp, totp_on, totp_last FROM users WHERE id=?", (uid,)).fetchone()
+            if not r or not r["totp_on"]:
+                return False
+            step = totp_step(code, r["totp"], now)
+            if step is None or step <= (r["totp_last"] or 0):
+                return False
+            con.execute("UPDATE users SET totp_last=? WHERE id=?", (step, uid))
+        return True
+
     def totp_confirm(self, uid: str, code: str, now: float | None = None) -> bool:
+        if uid in _PENDING:                              # a change of an active authenticator: the new one confirmed
+            step = totp_step(code, _PENDING[uid], now)
+            if step is None:
+                return False
+            with self._db() as con:
+                con.execute("UPDATE users SET totp=?, totp_on=1, totp_last=? WHERE id=?", (_PENDING.pop(uid), step, uid))
+            return True
         with self._db() as con:
             r = con.execute("SELECT totp FROM users WHERE id=?", (uid,)).fetchone()
             step = totp_step(code, r["totp"], now) if r else None

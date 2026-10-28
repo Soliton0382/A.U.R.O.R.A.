@@ -115,7 +115,17 @@ export default {
     totp.type = "button";
     const enrol = el("div", "enrol");
     totp.addEventListener("click", async () => {
-      const r = await call("/v1/aurora/me/totp", { method: "POST", body: "{}" });
+      let ask = {};
+      if (me.totp_on) {                                  // C440: the password and the current code before a new one
+        const pw = prompt(t("users.totp_pw"));
+        if (!pw) return;
+        const cur = prompt(t("users.totp_current"));
+        if (!cur) return;
+        ask = { password: pw, current: cur.trim() };
+      }
+      let r;
+      try { r = await call("/v1/aurora/me/totp", { method: "POST", body: JSON.stringify(ask) }); }
+      catch (e) { enrol.replaceChildren(el("p", "result error", t("ev.error", { m: e.message }))); return; }
       const code = el("input"); code.inputMode = "numeric"; code.maxLength = 6; code.placeholder = t("login.code");
       const ok = el("button", "", t("users.totp_confirm")); ok.type = "button";
       const msg = el("p", "result");

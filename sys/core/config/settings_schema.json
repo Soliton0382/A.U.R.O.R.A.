@@ -1888,10 +1888,10 @@
    "key": "AURORA_CADDY_ADMIN",
    "type": "str",
    "category": "https",
-   "recommended": "127.0.0.1:2019",
+   "recommended": "socket",
    "evidence": "owner",
-   "en": "Caddy admin endpoint (the previous installation uses 2019).",
-   "it": "Endpoint di amministrazione di Caddy (l'installazione precedente usa 2019).",
+   "en": "Caddy's admin endpoint: «socket» (recommended) a Unix socket in the state folder, out of the plugins' and the projects' reach; or host:port (e.g. 127.0.0.1:2019, as before — any local process could reconfigure Caddy).",
+   "it": "Il punto di amministrazione di Caddy: «socket» (consigliato) un socket Unix nella cartella di stato, fuori dalla portata dei plugin e dei progetti; oppure host:porta (es. 127.0.0.1:2019, come prima — qualunque processo locale poteva riconfigurare Caddy).",
    "services": [
     "aurora-https"
    ]
