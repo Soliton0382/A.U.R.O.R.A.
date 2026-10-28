@@ -83,10 +83,22 @@ ok "$(t 'spazio libero' 'free space'): ${FREE} GB"
 # measured on the reference machine: .venv 6.1 GB, encoder + re-ranker 3.4 GB (cloud); + reasoner 21.5 GB and build (local)
 [ "$UPDATE" = 1 ] || [ "$FREE" -ge 15 ] || die "$(t 'servono almeno 15 GB liberi (45 con il ragionatore locale)' 'at least 15 GB free needed (45 with the local reasoner)')"
 
+# the TPM (owner, 29 Oct): Aurora's key is bound to it when it works — a disk taken away then opens nothing
+TPM_LIBS=""
+if command -v systemd-analyze >/dev/null && systemd-analyze has-tpm2 -q 2>/dev/null; then
+  ok "TPM 2.0: $(t 'funzionante: la chiave di Aurora sarà legata al chip' 'working: Aurora'"'"'s key will be bound to the chip')"
+elif [ -e /dev/tpmrm0 ] || [ -e /dev/tpm0 ]; then
+  TPM_LIBS="libtss2-esys-3.0.2-0t64 libtss2-mu-4.0.1-0t64 libtss2-rc0t64 libtss2-tcti-device0t64"
+  warn "TPM 2.0: $(t 'presente ma incompleto, installo le sue librerie' 'present but incomplete, its libraries are installed')"
+else
+  warn "$(t 'nessun TPM 2.0: la chiave di Aurora sarà legata solo a questa macchina, e un disco rubato si potrà aprire. Per la massima sicurezza serve un TPM funzionante (attivalo nel BIOS: fTPM/PTT)' 'no TPM 2.0: Aurora'"'"'s key will be bound to this machine only, and a stolen disk could be opened. For the best security a working TPM is needed (turn it on in the BIOS: fTPM/PTT)')"
+fi
+
 # ---------------------------------------------------------------------------------------------------
 step "2. $(t 'Pacchetti di sistema' 'System packages')"
 # bubblewrap: the plugins' cage — without it no plugin runs (C226); it was missing here (C237, the Install run, 9 Oct)
 PKGS="python3-venv python3-dev build-essential cmake git curl ffmpeg poppler-utils caddy libnss3-tools openssl bubblewrap"
+for p in $TPM_LIBS; do apt-cache show "$p" >/dev/null 2>&1 && PKGS="$PKGS $p"; done   # the names this release has
 MISSING=$(for p in $PKGS; do dpkg -s "$p" >/dev/null 2>&1 || echo "$p"; done | tr '\n' ' ')
 if [ -n "${MISSING// /}" ]; then
   echo "  $(t 'da installare' 'to install'): $MISSING"

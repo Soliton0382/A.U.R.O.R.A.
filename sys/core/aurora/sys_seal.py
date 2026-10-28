@@ -73,12 +73,17 @@ def unseal(cfg: sys_config.Config, blob: bytes, label: str, user: str | None = N
 
 
 def write(cfg: sys_config.Config, path: Path, data: bytes, user: str | None = None, purpose: str = "health") -> Path:
+    blob = seal(cfg, data, path.name, user, purpose)     # first: a process without the key leaves nothing (C460)
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp = path.with_suffix(path.suffix + f".{os.getpid()}.tmp")   # its own: never another account's file in the way
     fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "wb") as h:
-        h.write(seal(cfg, data, path.name, user, purpose))
-    os.replace(tmp, path)
+    try:
+        with os.fdopen(fd, "wb") as h:
+            h.write(blob)
+        os.replace(tmp, path)
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        raise
     return path
 
 

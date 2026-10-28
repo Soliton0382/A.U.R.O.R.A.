@@ -130,6 +130,18 @@ def sentences(text: str) -> list[str]:
     return [p for p in (" ".join(x.split()) for x in parts) if re.search(r"\w", p)]
 
 
+END = re.compile(r"[.!?…]+[\"»)]*\s")
+LONG = 140                                            # a long sentence still written: said up to its last comma
+
+
+def ready(buf: str) -> tuple[str, str]:
+    """(what can be said now, what waits) of an answer still being written: its complete sentences."""
+    cut = max((m.end() for m in END.finditer(buf)), default=0)
+    if not cut and len(buf) > LONG and "," in buf[:-1]:
+        cut = buf.rindex(",", 0, len(buf) - 1) + 1
+    return buf[:cut], buf[cut:]
+
+
 def pcm16k(wav_bytes: bytes) -> bytes:
     """A WAV (any rate, mono or stereo) as 16 kHz mono 16-bit PCM, the call's format."""
     with wave.open(io.BytesIO(wav_bytes)) as w:

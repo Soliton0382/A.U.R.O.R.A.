@@ -55,6 +55,7 @@ PROGRAMS_ALLOWED = {
     ("prj_term.py", "bwrap"): "phase 4: the terminal's cage, asked once whether it can start (C264); none: said on the page",
     ("net_trace.py", "mtr"): "the visual traceroute: mtr (brew on a Mac; none on Windows, where the page says «mtr is not installed»)",
     ("sec_hostfw.py", "sudo"): "phase 4: the host firewall",
+    ("sys_keyring.py", "systemd-analyze"): "C459: whether the TPM works, asked by the Linux units' installer only before it seals Aurora's key; the ports keep the key as a file of her account",
     ("sys_keyring.py", "systemd-creds"): "N64: Aurora's key sealed by systemd, from the Linux units' installer only; elsewhere a file of her account (0600)",
     ("plg_deps.py", "apt-get"): "a plugin's program from the system's package, only where apt is (shutil.which): elsewhere said",
     ("plg_deps.py", "dpkg-deb"): "the same package unpacked into the plugin's folder: with apt-get only",

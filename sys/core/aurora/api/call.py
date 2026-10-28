@@ -2,8 +2,9 @@
 # Copyright 2026 A.U.R.O.R.A. Project
 """📞 The call (sys_call, ROADMAP N45): ring the owner's phone, decline, and the call's voice both ways over a WebSocket
 on the HTTPS port. In the call: the phone sends 16 kHz PCM; each sentence, cut at its pause, is heard by Whisper and
-answered by the chat's own path (remembered, origin "call"); the answer is said sentence by sentence as soon as each is
-ready. The owner speaking over her stops her (the phone is told to drop what it has not played yet)."""
+answered (remembered, origin "call") by the quick path first (kno_talk: plain talk streamed, each sentence said
+while the next is written) or, when she hands it on, by the chat's whole path, after a «Guardo subito». The owner
+speaking over her stops her (the phone is told to drop what it has not played yet)."""
 from __future__ import annotations
 
 import asyncio
@@ -69,10 +70,13 @@ class _Voice:
             self.until = 0.0
             await self.ws.send_text(json.dumps({"type": "flush"}))
 
-    async def say(self, text: str) -> None:
+    async def say(self, text: str, turn: int | None = None) -> None:
+        """Said sentence by sentence; `turn`: the owner's sentence it answers (cut by a newer one, nothing is said)."""
         from aurora import mdl_tts
-        turn = self.turn
+        turn = self.turn if turn is None else turn
         for s in sys_call.sentences(text):
+            if turn != self.turn:
+                return
             try:
                 wav = await asyncio.to_thread(mdl_tts.speak, cfg.now(), s, self.lang)
             except (RuntimeError, ValueError) as e:
@@ -129,11 +133,32 @@ async def call_audio(ws: WebSocket, call_id: str) -> None:
         log.info("audit: call ended %s", call_id)
 
 
-async def _turn(ws: WebSocket, voice: _Voice, audio, lang: str) -> None:
-    """One sentence of the owner: heard, answered as in the chat, said."""
-    from aurora import sns_av
+def _talk(question: str, emit, run_id: str):
+    """A call's sentence: the quick path (kno_talk), or the whole one when she hands it on; remembered either way."""
+    from aurora import kno_talk
+    from aurora.kno_answer import Answer
+    from aurora.sol_schema import now_iso
 
-    from .core import answer_or_acquire
+    from .core import answer_or_acquire, pipeline
+    p, asked_at, t0 = pipeline(), now_iso(), time.time()
+    try:
+        text, handed = kno_talk.quick(p, cfg.now(), question, p.reader.recent(kno_talk.RECENT), emit)
+    except Exception as e:                            # noqa: BLE001 - the local reasoner off or failing: the whole path
+        log.warning("call: quick path failed: %s", e)
+        text, handed = "", True
+    if handed:
+        emit("talk.handoff", {"seconds": round(time.time() - t0, 2), "said": text[:200]})
+        return answer_or_acquire(question, emit, run_id, remember=True)
+    ans = Answer(run_id, question, text, False, mode="talk", seconds=round(time.time() - t0, 2))
+    emit("answer.final", {"text": text, "abstained": False, "sources": [], "seconds": ans.seconds, "mode": "talk"})
+    p.remember(question, ans, run_id, emit, None, asked_at)
+    emit("run.end", {"seconds": ans.seconds})
+    return ans
+
+
+async def _turn(ws: WebSocket, voice: _Voice, audio, lang: str) -> None:
+    """One sentence of the owner: heard, answered (the quick path streamed, or the whole one), said."""
+    from aurora import sns_av
     try:
         out = await asyncio.to_thread(sns_av.transcribe, audio, lang, cfg.now())
     except RuntimeError as e:
@@ -144,15 +169,35 @@ async def _turn(ws: WebSocket, voice: _Voice, audio, lang: str) -> None:
         return
     await voice.stop()
     await ws.send_text(json.dumps({"type": "heard", "text": text}))
-    run = start_run(text, origin="call",
-                    job=lambda q, emit, run_id: answer_or_acquire(q, emit, run_id, remember=True))
-    t0, told = time.monotonic(), False
-    while not run["done"]:
-        await asyncio.sleep(0.2)
-        if not told and time.monotonic() - t0 > 4 and not voice.speaking():
+    turn = voice.turn
+    run = start_run(text, origin="call", job=_talk)
+    seen, buf, spoken, handed, t0, told = 0, "", False, False, time.monotonic(), False
+    while True:
+        done = run["done"]                            # read before the events: none written after it is missed
+        events = run["events"][seen:]
+        seen += len(events)
+        for e in events:
+            if e["event"] == "talk.delta":
+                buf += str(e["payload"].get("text") or "")
+            elif e["event"] == "talk.handoff":
+                handed = True
+                if buf.strip():                       # the start she said before handing on
+                    await voice.say(buf, turn)
+                buf = ""
+                await voice.say("Guardo subito." if lang == "it" else "Let me check.", turn)
+        now, buf = sys_call.ready(buf)
+        if now.strip():
+            await voice.say(now, turn)
+            spoken = True
+        if done:
+            break
+        if handed and not told and time.monotonic() - t0 > 12 and not voice.speaking():
             told = True
-            await voice.say("Un attimo.")             # a long answer: she says she is on it
+            await voice.say("Ci sono quasi." if lang == "it" else "Almost there.", turn)
+        await asyncio.sleep(0.05)
+    if turn != voice.turn:                            # the owner spoke again: this answer is not said
+        return
     answer = run.get("answer")
     said = str(getattr(answer, "text", answer) or "").strip() or "Scusa, non sono riuscita a rispondere."
     await ws.send_text(json.dumps({"type": "said", "text": said}))
-    await voice.say(said)
+    await voice.say(said if handed or not spoken else buf, turn)   # streamed: only its last words are left

@@ -116,3 +116,17 @@ def test_an_approvals_title_is_never_plain_in_the_logs(cfg):
     req = next(x for x in lines if x["event"] == "approval.request")
     assert req["payload"]["id"] == item["id"] and sys_seal.is_sealed(req["payload"]["title"])   # the id stays plain
     assert sys_log.open_record(cfg, req, None)["payload"]["title"] == f"scrivere a {SECRET}"
+
+
+def test_a_write_that_cannot_seal_leaves_no_temporary_file(cfg, tmp_path, monkeypatch):
+    """C460: a process without the key left an empty .tmp of its own account, which the services could not replace."""
+    import pytest
+    from aurora import sys_seal
+
+    def no_key(*a, **k):
+        raise PermissionError("no key here")
+    monkeypatch.setattr(sys_seal, "seal", no_key)
+    target = tmp_path / "state" / "mask_learned.json"
+    with pytest.raises(PermissionError):
+        sys_seal.write(cfg, target, b"{}", None, "state")
+    assert not list(target.parent.glob("*.tmp")) if target.parent.exists() else True

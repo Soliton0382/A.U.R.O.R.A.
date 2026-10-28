@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-1428%20passed-1baf7a" alt="Tests"> <img src="https://img.shields.io/badge/code-107k%20lines-6a4fd6" alt="Lines of code"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-1443%20passed-1baf7a" alt="Tests"> <img src="https://img.shields.io/badge/code-108k%20lines-6a4fd6" alt="Lines of code"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
 
 <p align="center">🇮🇹 <b>Italiano</b> · 🇬🇧 <a href="README.en.md">English</a></p>
 
@@ -404,6 +404,42 @@ dell'amministratore non vengono mai toccati. Per passare a multi imposti prima l
 l'Authenticator in 👥 Utenti, poi crei gli utenti lì. Installata direttamente in multi, al primo accesso entri con la
 chiave API e Aurora ti porta a creare password e codice prima di tutto il resto (docs/MULTIUSER.md).
 
+## 🔑 Le chiavi e il ripristino
+
+Chat, memoria e dati degli utenti sono cifrati: per riaverli, dopo un guasto, servono due cose da tenere **fuori dal
+PC** (su carta, in un posto sicuro).
+
+| cosa | a cosa serve | dove la trovi |
+|---|---|---|
+| **codice di recupero del backup** | apre i backup (sono cifrati con la chiave del backup) | te lo dà `svc_backup.py init` quando crei la chiave; `svc_backup.py code` lo mostra di nuovo |
+| **codice di ripristino della chiave di Aurora** | riapre la chiave che apre i dati degli utenti (Argon2id + AES-256-GCM) | ⚙️ Sistema → 🔑 Chiavi e ripristino: «Crea il codice», mostrato una volta sola; «Prova» controlla che funzioni |
+
+Il backup porta con sé anche la copia di ripristino della chiave di Aurora (chiusa con la chiave del backup): con il
+solo codice del backup si riapre tutto. Il codice della chiave di Aurora è una seconda strada, indipendente.
+
+**Si è rotta la scheda madre (o il TPM), il disco è sano.** La chiave di Aurora era legata al chip: i servizi non la
+aprono più. Dalla cartella di Aurora:
+
+```bash
+cd sys/core
+sudo -u aurora ../../.venv/bin/python -m aurora.sys_key_recovery recover   # chiede il codice della chiave di Aurora
+#   oppure, con la chiave del backup al suo posto: sudo -u aurora ../../.venv/bin/python -m aurora.sys_keyring recover
+cd ../.. && ./install.sh   # la sigilla di nuovo, legata al TPM nuovo
+```
+
+**Il disco è perso.** Installa Aurora su un disco nuovo (`./install.sh`), poi ripristina l'ultimo backup:
+
+```bash
+.venv/bin/python sys/core/script/svc_backup.py restore --to /tmp/aurora-restore --code <codice del backup>   # prova: una cartella vuota
+.venv/bin/python sys/core/script/sys_restore.py --plan latest      # cosa farebbe
+.venv/bin/python sys/core/script/sys_restore.py --apply latest     # lo fa (ti chiede di scrivere RIPRISTINA)
+```
+
+Poi riapri la chiave di Aurora come sopra (`sys_key_recovery recover` con il suo codice, oppure `sys_keyring recover`)
+e lancia di nuovo l'installer. Il ripristino non scrive mai sopra i dati di oggi: li sposta da parte, interi.
+
+Se perdi **entrambi** i codici e il disco, i dati non si riaprono: è il prezzo della cifratura, voluto.
+
 ## Spostare l'installazione
 
 `sys/core/script/sys_relocate.sh` legge la cartella attuale dal `.env`, chiede la nuova e sposta
@@ -424,6 +460,14 @@ con le tue risposte, scarica i modelli da Hugging Face a revisioni fissate verif
 llama.cpp per le tue GPU, esegue i test, crea la tua cartella `usr/<nome>/` (chiede single o multi-utente), crea la
 chiave del codice di condotta, installa i servizi systemd e
 l'HTTPS, e alla fine ti dice indirizzo e chiave API. Tutto finisce in `install.log`.
+
+🔐 **Per la massima sicurezza serve un TPM 2.0 perfettamente funzionante** (fTPM/PTT acceso nel BIOS). Le chat, la
+memoria e i dati degli utenti sono cifrati con chiavi che si aprono solo con la chiave di Aurora; con il TPM quella
+chiave è legata al chip della scheda madre, e un disco portato via non apre niente. Senza TPM è legata solo a questa
+macchina, con un segreto che sta sullo stesso disco: un disco rubato si può aprire. L'installer controlla il TPM e
+installa le librerie che gli mancano. ⚠️ Finché anche la chiave del backup è un file sullo stesso disco, un disco rubato
+apre la copia di ripristino della chiave di Aurora: va sigillata allo stesso modo (docs/BUGS.md, C461, in corso). Se la scheda madre si guasta, la copia di ripristino (aperta dalla chiave del
+backup) riporta la chiave su un'altra macchina.
 
 Le funzioni facoltative si scelgono una per una, con la loro dimensione: sogni dipinti (6,8 GB), voce (1,5 GB),
 ingrandimento e scontorno (0,2 GB), modifiche creative delle foto (14,9 GB), creare video (34,2 GB). Quelle che la

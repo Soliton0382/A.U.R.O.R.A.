@@ -60,13 +60,14 @@ import usage from "./modules/usage.js";
 import ideas from "./modules/ideas_page.js";
 import https from "./modules/https.js";
 import home from "./modules/home.js";
+import keys from "./modules/keys.js";
 import { kinds as homeKinds } from "./modules/home.js";
 
 // this installation's own pages (js/local, never published): added when present
 let local = { views: [] };
 try { local = await import("./local/index.js"); } catch { /* none on this installation */ }
 
-export const views = [today, advanced, chat, anonchat, interpret, approvals, reports, secFirewalls, secEdge, security, ciso, firewall, aurorafw, secDefence, secWatch, secOut, secEgress, secTrace, autonomy, diary, dreams, memory, social, dj, care, expenses, astro, home, consoles, calendar, projects, routines, models, accounts, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, usage, settings, https, ups, hosts, guide, bugreport, ideas, phoneApp];
+export const views = [today, advanced, chat, anonchat, interpret, approvals, reports, secFirewalls, secEdge, security, ciso, firewall, aurorafw, secDefence, secWatch, secOut, secEgress, secTrace, autonomy, diary, dreams, memory, social, dj, care, expenses, astro, home, consoles, calendar, projects, routines, models, accounts, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, usage, settings, https, ups, hosts, guide, bugreport, ideas, phoneApp, keys];
 views.push(...homeKinds, ...local.views);
 export const widgets = [sky, alerts, metrics, brain];
 
@@ -91,7 +92,7 @@ export const groups = [
   { id: "security", icon: "🛡️", title: "nav.g.security", views: ["firewalls", "edge", "security", "ciso", "firewall", "aurorafw", "secegress", "sectrace"] },
   // ⚙️ the system, with how free Aurora is and the phone app (owner, 27 Oct: «app per il telefono lo metterei sotto la
   // voce sistema… anche autonomia»)
-  { id: "system", icon: "⚙️", title: "nav.g.system", views: ["status", "autonomy", "models", "accounts", "plugins", "users", "usage", "settings", "https", "updates", "ups", "hosts", "phoneapp"] },
+  { id: "system", icon: "⚙️", title: "nav.g.system", views: ["status", "autonomy", "models", "accounts", "plugins", "users", "usage", "settings", "https", "updates", "ups", "hosts", "keys", "phoneapp"] },
   { id: "help", icon: "❓", title: "nav.g.help", views: ["guide", "bugreport", "ideas"] },
 ];
 // the machine's pages (owner, 2026-10-06, multi-user): a user sees neither them in the menu nor their data (the API

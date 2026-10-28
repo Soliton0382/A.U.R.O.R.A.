@@ -4,6 +4,7 @@
 (AURORA_BACKUP_TIME), or by hand:
 
     python sys/core/script/svc_backup.py init                   # once: the key and its recovery code
+    python sys/core/script/svc_backup.py code                   # the recovery code again, from the key file
     python sys/core/script/svc_backup.py run                    # one backup now (what the timer runs)
     python sys/core/script/svc_backup.py failed                 # the unit could not start: tell the owner (OnFailure)
     python sys/core/script/svc_backup.py list                   # the snapshots kept
@@ -37,7 +38,7 @@ def tell(cfg, event: str, payload: dict) -> None:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("action", choices=["init", "run", "list", "verify", "restore", "failed"])
+    ap.add_argument("action", choices=["init", "code", "run", "list", "verify", "restore", "failed"])
     ap.add_argument("--full", action="store_true")
     ap.add_argument("--to", type=Path)
     ap.add_argument("--snapshot", default="latest")
@@ -53,6 +54,9 @@ def main() -> int:
             print("\nRECOVERY CODE — write it down outside this computer (password manager, paper).")
             print("Without it, if this disk is lost, no backup can be read:\n")
             print("   ", code, "\n")
+            return 0
+        if a.action == "code":                           # the same code as at init: write it down if it was lost
+            print(sys_backup.recovery_code(sys_backup.load_key(cfg)))
             return 0
         if a.action == "run":
             out = sys_backup.run(cfg)

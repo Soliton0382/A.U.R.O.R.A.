@@ -1,0 +1,10 @@
+/* 🔑 Keys and recovery (modules/keys.js) */
+.keys-card { border: 1px solid var(--line); border-radius: 10px; padding: .6rem .8rem; margin: .8rem 0; background: rgba(255, 255, 255, .02); min-width: 0; }
+.keys-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .4rem .8rem; padding: .45rem 0; border-top: 1px solid var(--line); }
+.keys-row:first-of-type { border-top: 0; }
+.keys-info { display: flex; flex-direction: column; min-width: 10rem; flex: 1 1 12rem; }
+.keys-state { opacity: .85; }
+.keys-btns { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin: .5rem 0; }
+.keys-btns input { flex: 1 1 16rem; min-width: 0; font-family: monospace; }
+.keys-code { margin: .4rem 0; }
+.keys-warn { color: var(--warn, #e0a030); font-size: .88rem; }

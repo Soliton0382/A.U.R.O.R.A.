@@ -91,3 +91,53 @@ def test_two_installations_never_share_a_sealed_key(tmp_path):
     one, two = (SimpleNamespace(base=None, root=tmp_path / n) for n in ("a", "b"))
     assert sys_keyring.cred_path(one).parent == sys_keyring.CREDSTORE
     assert sys_keyring.cred_path(one) != sys_keyring.cred_path(two)
+
+
+@pytest.fixture
+def fake_creds(kcfg, tmp_path, monkeypatch):
+    """systemd-creds as a stand-in (a prefix naming the binding), run «as root» into a credstore of the test."""
+    import pwd
+    import subprocess
+    store = tmp_path / "credstore"
+    monkeypatch.setattr(sys_keyring, "CREDSTORE", store)
+    monkeypatch.setattr(sys_keyring.os, "geteuid", lambda: 0)
+    monkeypatch.setattr(sys_keyring.os, "chown", lambda *a: None)
+    monkeypatch.setattr(pwd, "getpwnam", lambda n: pwd.getpwuid(os.getuid()))
+    calls = []
+
+    def run(cmd, **kw):
+        calls.append(cmd)
+        if cmd[1] == "encrypt":
+            how = next(a for a in cmd if a.startswith("--with-key=")).split("=", 1)[1]
+            from pathlib import Path
+            Path(cmd[-1]).write_bytes(how.encode() + b"|" + Path(cmd[-2]).read_bytes())
+            return subprocess.CompletedProcess(cmd, 0, b"", b"")
+        from pathlib import Path
+        return subprocess.CompletedProcess(cmd, 0, Path(cmd[-2]).read_bytes().split(b"|", 1)[1], b"")
+    monkeypatch.setattr(sys_keyring.subprocess, "run", run)
+    monkeypatch.setenv("RUNTIME_DIRECTORY", str(tmp_path))
+    sys_keyring._cache.clear()
+    return calls
+
+
+def test_the_key_is_bound_to_a_working_tpm_and_to_the_host_key_alone_without_one(kcfg, fake_creds, monkeypatch):
+    monkeypatch.setattr(sys_keyring, "tpm", lambda: True)
+    key = sys_keyring.own_key(kcfg)
+    assert sys_keyring.seal_host(kcfg) == "sealed (host+tpm2)" and sys_keyring.bound(kcfg) == "host+tpm2"
+    assert sys_keyring.cred_path(kcfg).read_bytes() == b"host+tpm2|" + key
+    assert "--tpm2-pcrs=" in next(c for c in fake_creds if c[1] == "encrypt")    # no PCR: a firmware update never locks it
+    assert not (sys_keyring.folder(kcfg) / "aurora.key").exists()
+    assert sys_keyring.seal_host(kcfg) == "already sealed (host+tpm2)"
+
+
+def test_a_key_sealed_before_the_tpm_worked_is_sealed_again_with_it(kcfg, fake_creds, monkeypatch):
+    monkeypatch.setattr(sys_keyring, "tpm", lambda: False)
+    key = sys_keyring.own_key(kcfg)
+    assert sys_keyring.seal_host(kcfg) == "sealed (host)"
+    (sys_keyring.folder(kcfg) / "aurora.sealed").write_text(f"{sys_keyring.cred_path(kcfg)}\n")   # a marker of before
+    assert sys_keyring.bound(kcfg) == "host" and sys_keyring.seal_host(kcfg) == "already sealed (host)"
+    monkeypatch.setattr(sys_keyring, "tpm", lambda: True)
+    assert sys_keyring.seal_host(kcfg) == "sealed again with the TPM"
+    assert sys_keyring.cred_path(kcfg).read_bytes() == b"host+tpm2|" + key and sys_keyring.bound(kcfg) == "host+tpm2"
+    from pathlib import Path
+    assert not list(Path(os.environ["RUNTIME_DIRECTORY"]).glob("aurora-key-*"))   # the opened key not left in /run

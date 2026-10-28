@@ -9,7 +9,12 @@ bound to the user and the purpose). Where her key lives, strongest first:
     this machine's TPM or its host key (root's), kept in /etc/credstore.encrypted (root's, outside Aurora and its
     backup), never in plaintext on the disk; systemd opens it for Aurora's services only, in a folder in memory
     (/run/credentials/<unit>, hidden from the plugins' cage with all of /run). `seal-host`, run as root by the
-    installer, makes it from the file below and destroys the file; keys/aurora.sealed says where it is.
+    installer, makes it from the file below and destroys the file; keys/aurora.sealed says where it is and how it
+    is bound. With a TPM in full working order (systemd-analyze has-tpm2) it is bound to the chip and the host key
+    (host+tpm2, no PCR: an update of the firmware does not lock it): a disk taken out of this machine opens nothing;
+    without one, the host key alone — on the same disk, so a stolen disk still opens (owner, 29 Oct: «per maggiore
+    sicurezza serve il tpm perfettamente funzionante»). A key sealed before the TPM worked is sealed again with it
+    the next time the installer runs. A board that dies takes the TPM with it: the escrow below brings the key back.
  2. a file <AURORA_STATUS_DIR>/keys/aurora.key, mode 600, the services' account — made at the first need (an update,
     a new installation), until root seals it; the ports keep it (no systemd).
 A recovery copy (aurora.escrow) is her key sealed with the backup's key, which never goes into the backup: a
@@ -147,20 +152,72 @@ def _shred(f: Path) -> None:
     f.unlink()
 
 
+def tpm() -> bool:
+    """Whether this machine has a TPM 2.0 in full working order for systemd (firmware, driver, system, libraries)."""
+    try:
+        return subprocess.run(["systemd-analyze", "has-tpm2", "-q"], capture_output=True, timeout=30).returncode == 0
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+
+
+def bound(cfg: sys_config.Config) -> str:
+    """How the sealed key is bound: «host+tpm2», «host» (sealed before this was written down, or with no TPM), or
+    «» when it is not sealed."""
+    try:
+        lines = (folder(cfg) / "aurora.sealed").read_text().splitlines()
+    except OSError:
+        return ""
+    return lines[1].strip() if len(lines) > 1 and lines[1].strip() else "host"
+
+
+def _encrypt(src: Path, dst: Path, with_key: str) -> None:
+    extra = ["--tpm2-pcrs="] if "tpm2" in with_key else []
+    subprocess.run(["systemd-creds", "encrypt", f"--name={CRED}", f"--with-key={with_key}", *extra, str(src), str(dst)],
+                   check=True, capture_output=True)
+
+
+def _reseal_tpm(cfg: sys_config.Config, cred: Path, marker: Path, svc) -> str:
+    """A key sealed with the host key alone, now that the TPM works: the same key sealed again with the chip, checked
+    before it replaces the old one (which is kept until then)."""
+    key = subprocess.run(["systemd-creds", "decrypt", f"--name={CRED}", str(cred), "-"], check=True,
+                         capture_output=True).stdout
+    mem = Path(os.environ.get("RUNTIME_DIRECTORY") or "/run") / f"aurora-key-{os.getpid()}"
+    fd = os.open(mem, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)   # /run is in memory: the key never on a disk
+    try:
+        with os.fdopen(fd, "wb") as h:
+            h.write(key)
+        tmp = cred.with_suffix(".tmp")
+        _encrypt(mem, tmp, "host+tpm2")
+    finally:
+        _shred(mem)
+    back = subprocess.run(["systemd-creds", "decrypt", f"--name={CRED}", str(tmp), "-"], check=True,
+                          capture_output=True).stdout
+    if back != key:
+        tmp.unlink()
+        raise RuntimeError("the key sealed with the TPM does not give the same key back: the old one kept")
+    os.chmod(tmp, 0o600)
+    os.replace(tmp, cred)
+    _write_private(marker, f"{cred}\nhost+tpm2\n".encode())
+    os.chown(marker, svc.pw_uid, svc.pw_gid)
+    return "sealed again with the TPM"
+
+
 def seal_host(cfg: sys_config.Config) -> str:
-    """As root (the installer): her key file becomes a systemd credential bound to this machine, checked, and the
-    file destroyed. Returns what was done."""
+    """As root (the installer): her key file becomes a systemd credential bound to this machine (and its TPM when it
+    works), checked, and the file destroyed. Returns what was done."""
     keys, f = folder(cfg), folder(cfg) / "aurora.key"
     cred, marker = cred_path(cfg), folder(cfg) / "aurora.sealed"
     if os.geteuid() != 0:
         raise PermissionError("seal-host needs root")
+    import pwd
     if marker.exists() and cred.exists():
-        return "already sealed"
+        if bound(cfg) != "host+tpm2" and tpm():
+            return _reseal_tpm(cfg, cred, marker, pwd.getpwnam(sys_config.service_user(cfg)))
+        return f"already sealed ({bound(cfg)})"
     if not f.is_file():
         if marker.exists():
             raise RuntimeError(f"{marker} says the key is sealed, but {cred} is missing: recover it from the escrow")
         own_key(cfg)
-    import pwd
     svc = pwd.getpwnam(sys_config.service_user(cfg))
     for x in (keys, f, keys / "aurora.escrow"):          # made here as root: still the services' account's (a seal
                                                          # that fails below leaves a key they can read)
@@ -168,8 +225,8 @@ def seal_host(cfg: sys_config.Config) -> str:
             os.chown(x, svc.pw_uid, svc.pw_gid)
     CREDSTORE.mkdir(mode=0o700, exist_ok=True)
     tmp = cred.with_suffix(".tmp")
-    subprocess.run(["systemd-creds", "encrypt", f"--name={CRED}", "--with-key=auto", str(f), str(tmp)], check=True,
-                   capture_output=True)
+    with_key = "host+tpm2" if tpm() else "host"
+    _encrypt(f, tmp, with_key)
     back = subprocess.run(["systemd-creds", "decrypt", f"--name={CRED}", str(tmp), "-"], check=True,
                           capture_output=True).stdout
     if back != f.read_bytes():
@@ -177,10 +234,10 @@ def seal_host(cfg: sys_config.Config) -> str:
         raise RuntimeError("the sealed key does not give the same key back: nothing changed")
     os.chmod(tmp, 0o600)                                # root's: systemd reads it, nobody else
     os.replace(tmp, cred)
-    _write_private(marker, (str(cred) + "\n").encode())
+    _write_private(marker, f"{cred}\n{with_key}\n".encode())
     os.chown(marker, svc.pw_uid, svc.pw_gid)
     _shred(f)
-    return "sealed"
+    return f"sealed ({with_key})"
 
 
 def forget(cfg: sys_config.Config) -> list[str]:
@@ -200,7 +257,8 @@ def main(argv: list[str]) -> int:
     cfg = sys_config.get()
     cmd = argv[0] if argv else "status"
     if cmd == "status":
-        print(where(cfg), "escrow" if (folder(cfg) / "aurora.escrow").is_file() else "no escrow")
+        print(where(cfg), bound(cfg) or "-", "escrow" if (folder(cfg) / "aurora.escrow").is_file() else "no escrow",
+              "tpm ok" if tpm() else "no working tpm")
     elif cmd == "seal-host":
         print(seal_host(cfg))
     elif cmd == "recover":
