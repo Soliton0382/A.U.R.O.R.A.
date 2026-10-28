@@ -401,8 +401,10 @@ class Windows(Platform):
         """The plugin inside an AppContainer (win_cage.py), started by a launcher of Aurora's own: the cage_plan
         written as its spec, the launcher run uncaged with the same Python, the plugin's command after «--»."""
         import json
+        import os
         import re
         import sys
+        import threading
         from .base import cage_plan
         user = getattr(cfg, "user", None)
         name = re.sub(r"[^A-Za-z0-9.-]", "-", f"aurora.{folder.name}" + (f".{user}" if user else ""))[:64]
@@ -410,7 +412,10 @@ class Windows(Platform):
         plan = cage_plan(folder, manifest, filtered_env, cfg, cages / name)
         spec = {"name": name, "marker": str(cages / f"{name}.granted.json"),
                 **{k: [str(x) for x in plan[k]] for k in ("read", "hide", "allow", "write")}, "network": plan["network"]}
-        f = cages / f"{name}.json"
+        # a spec per host process and thread: two hosts starting the same plugin at once (the API and the agent) wrote
+        # one file — a launcher read it truncated (an empty JSON, the plugin gone: seen on the Windows VM, 28 Oct); a
+        # replace over it is refused on Windows while the other launcher has it open
+        f = cages / f"{name}.{os.getpid()}.{threading.get_ident()}.json"
         f.write_text(json.dumps(spec, indent=1), encoding="utf-8")
         return ([sys.executable, "-m", "aurora.sys_platform.win_cage", str(f), "--", *cmd],
                 {"AURORA_ENV_FILE": str(plan["allow"][0]), "AURORA_IN_SANDBOX": "1"})

@@ -112,3 +112,16 @@ def test_a_rooted_path_is_never_relative():
         with pytest.raises(ValueError, match="relative"):
             sys_config.convert(spec, raw)
     assert sys_config.convert(spec, "sys/vault") == "sys/vault"
+
+
+def test_an_old_recommended_value_moves_to_today_s_on_update(tmp_path):
+    # C446: the installer wrote every default, so a safer one (Caddy's admin on a socket) never reached an installation
+    schema = tmp_path / "schema.json"
+    schema.write_text('{"settings": [{"key": "A_ADMIN", "type": "str", "recommended": "socket", '
+                      '"old_recommended": ["127.0.0.1:2019"]}, {"key": "B_ADMIN", "type": "str", "recommended": "socket", '
+                      '"old_recommended": ["127.0.0.1:2019"]}]}', encoding="utf-8")
+    env = tmp_path / ".env"
+    env.write_text("# mine\nA_ADMIN=127.0.0.1:2019\nB_ADMIN=10.0.0.1:2019\n", encoding="utf-8")
+    assert sys_config.add_missing(env, schema) == ["A_ADMIN"]
+    assert sys_config.parse_env(env.read_text(encoding="utf-8")) == {"A_ADMIN": "socket", "B_ADMIN": "10.0.0.1:2019"}
+    assert sys_config.add_missing(env, schema) == []                # once only; a value chosen by hand stays

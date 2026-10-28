@@ -284,7 +284,7 @@ fi
 step "10. $(t 'Servizi (launchd) e HTTPS' 'Services (launchd) and HTTPS')"
 .venv/bin/python sys/core/script/sys_install_agents.py | sed 's/^/  /' || die "$(t 'servizi' 'services')"
 if [ "${TLS:-internal}" = internal ] || [ "$FRESH" = 0 ]; then
-  ADMIN=$(.venv/bin/python -c 'import sys; sys.path.insert(0, "sys/core"); from aurora import sys_config; print(sys_config.get()["AURORA_CADDY_ADMIN"])')
+  ADMIN=$(.venv/bin/python -c 'import sys; sys.path.insert(0, "sys/core"); from aurora import sys_config, net_https; print(net_https.admin_address(sys_config.get()))')
   # the System keychain: the root certificate trusted by Safari and Chrome on this Mac
   sudo "$CADDY" trust --address "$ADMIN" >/dev/null 2>&1 && ok "$(t 'certificato locale di Caddy riconosciuto da questo Mac' 'Caddy local certificate trusted on this Mac')" \
     || warn "$(t 'certificato di Caddy non registrato: il browser chiederà un eccezione' 'Caddy'"'"'s certificate not registered: the browser will ask for an exception')"

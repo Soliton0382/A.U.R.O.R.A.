@@ -1894,6 +1894,9 @@
    "it": "Il punto di amministrazione di Caddy: «socket» (consigliato) un socket Unix nella cartella di stato, fuori dalla portata dei plugin e dei progetti; oppure host:porta (es. 127.0.0.1:2019, come prima — qualunque processo locale poteva riconfigurare Caddy).",
    "services": [
     "aurora-https"
+   ],
+   "old_recommended": [
+    "127.0.0.1:2019"
    ]
   },
   {

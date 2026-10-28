@@ -18,5 +18,10 @@
   "linux": "/usr/bin/google-chrome",
   "value": "C:/Program Files/Google/Chrome/Application/chrome.exe",
   "why": "Chrome's own place on Windows"
+ },
+ "AURORA_CADDY_ADMIN": {
+  "linux": "socket",
+  "value": "127.0.0.1:2019",
+  "why": "Caddy's admin on a Unix socket is not tried on Windows, and install.ps1 reaches it over http (C446, 28 Oct): the port stays as before (a known limit, in SECURITY.md)"
  }
 }

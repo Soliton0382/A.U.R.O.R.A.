@@ -204,7 +204,7 @@ address or user changes. Every restart and shutdown is an audit line in the powe
 ## Security review (2026-10-28)
 
 Four read-only reviews of the code (authentication, command execution, files and network, deployment); each finding
-checked again before its fix (BUGS.md C420–C429). Closed since, 28 Oct: Caddy's admin on a Unix socket (C444), the authenticator's change confirmed (C440), changes
+checked again before its fix (BUGS.md C420–C429). Closed since, 28 Oct: Caddy's admin on a Unix socket (C444; on Windows still on 127.0.0.1:2019, C446), the authenticator's change confirmed (C440), changes
 from another site refused (C441), sessions ending on the server (C437). A known limit: behind the WARP private
 network every remote client reaches Caddy from this machine's own address (WARP carries the connection, it adds no
 header with the client's), so the login lockout cannot tell one remote client from another; a valid session or key

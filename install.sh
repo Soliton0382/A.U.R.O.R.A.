@@ -439,20 +439,22 @@ step "12. $(t 'Servizi (systemd) e HTTPS, sul loro account «aurora»' 'Services
 # U6: the services under an account of their own (no login, the GPU's groups only), the data theirs, the code yours;
 # the units, the polkit rule, root's copy of its units' code written for it, and the services started
 sudo .venv/bin/python sys/core/script/sys_service_account.py || die "$(t 'servizi' 'services')"
+# from here the data are the account's, and you join its group only at your next login: read them as the account (C447)
+AS_SVC=(sudo -u aurora -g aurora)
 if [ "$TLS" = internal ] || [ "$TRUST" = internal ]; then
-  ADMIN=$(.venv/bin/python -c 'import sys; sys.path.insert(0, "sys/core"); from aurora import sys_config, net_https; print(net_https.admin_address(sys_config.get()))')
+  ADMIN=$("${AS_SVC[@]}" .venv/bin/python -c 'import sys; sys.path.insert(0, "sys/core"); from aurora import sys_config, net_https; print(net_https.admin_address(sys_config.get()))')
   sudo caddy trust --address "$ADMIN" && ok "$(t 'certificato locale di Caddy riconosciuto da questo computer' 'Caddy local certificate trusted on this computer')"
 fi
 if command -v ufw >/dev/null && sudo ufw status 2>/dev/null | grep -q "Status: active"; then
-  HTTPP=$(.venv/bin/python -c 'import sys; sys.path.insert(0, "sys/core"); from aurora import sys_config; print(sys_config.get()["AURORA_HTTP_PORT"])')
+  HTTPP=$("${AS_SVC[@]}" .venv/bin/python -c 'import sys; sys.path.insert(0, "sys/core"); from aurora import sys_config; print(sys_config.get()["AURORA_HTTP_PORT"])')
   warn "$(t 'firewall attivo: per usare Aurora da altri dispositivi' 'firewall active: to use Aurora from other devices'): sudo ufw allow $PORT/tcp && sudo ufw allow $HTTPP/tcp"
 fi
 
 # ---------------------------------------------------------------------------------------------------
 step "13. $(t 'Pronta' 'Ready')"
-.venv/bin/python sys/core/script/sys_ready.py
+"${AS_SVC[@]}" .venv/bin/python sys/core/script/sys_ready.py
 [ "$UMODE" = multi ] && echo "  $(t 'Multi-utente: al primo accesso entra con la chiave API, poi crea la tua password e collega Google Authenticator; da lì entrerai con nome, password e codice.' 'Multi-user: at the first login enter with the API key, then create your password and link Google Authenticator; from then on you enter with name, password and code.')"
 echo
-.venv/bin/python sys/core/script/sys_doctor.py || warn "$(t 'qualcosa di obbligatorio non va: vedi sopra' 'something required is wrong: see above')"
+"${AS_SVC[@]}" .venv/bin/python sys/core/script/sys_doctor.py || warn "$(t 'qualcosa di obbligatorio non va: vedi sopra' 'something required is wrong: see above')"
 echo "  $(t 'Funzioni non scelte: si aggiungono quando vuoi con' 'Features not chosen: add them any time with'): .venv/bin/python sys/core/script/sys_models_fetch.py --models <$(t 'nome' 'name')> --yes"
 echo "  $(t 'Log dell installazione' 'Installation log'): $ROOT/install.log"

@@ -252,11 +252,17 @@ def write_env(env: Path, changes: dict[str, str], drop: set[str] = frozenset()) 
 
 def add_missing(env: Path | None = None, schema: Path = SCHEMA_FILE) -> list[str]:
     """Keys the schema declares and the .env lacks get their recommended value: an update that brings a new setting
-    must not stop Aurora (C139). Returns the keys added."""
+    must not stop Aurora (C139). A key still holding a value the schema once recommended («old_recommended») gets
+    today's: the installer wrote every default, so a safer one would otherwise never reach an installation (C446).
+    Returns the keys added or moved."""
     env = env or env_file_path()
     current = parse_env(env.read_text(encoding="utf-8")) if env.exists() else {}
-    missing = {s["key"]: s["recommended"] for s in load_schema(schema)["settings"]
+    settings = load_schema(schema)["settings"]
+    missing = {s["key"]: s["recommended"] for s in settings
                if s["key"] not in current and not s.get("optional") and s.get("scope") != "user"}   # a user's own (C141)
+    missing |= {s["key"]: s["recommended"] for s in settings
+                if s["key"] in current and current[s["key"]] in s.get("old_recommended", ())
+                and current[s["key"]] != s["recommended"]}
     if missing:
         write_env(env, missing)
     return list(missing)
