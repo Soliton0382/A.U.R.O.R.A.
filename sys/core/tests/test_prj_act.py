@@ -13,6 +13,7 @@ import pytest
 
 from aurora import prj_act as A
 from aurora import prj_talk as T
+from aurora import sys_seal
 from aurora.sec_mask import Pseudonymizer
 
 
@@ -39,7 +40,7 @@ def test_the_tools_stay_in_the_project_and_obey_the_anchor(run):
     assert not A.call(run, "edit_file", {"path": "calc.py", "old": "K = 2", "new": "K = 3"})["error"]
     assert "1\tK = 3" in A.call(run, "read_file", {"path": "calc.py"})["text"]
     assert "misurare la coppia" in A.call(run, "project_notes", {})["text"]
-    steps = A.working(run.cfg, "motore") or json.loads(A._state(run.cfg, "motore").read_text())
+    steps = A.working(run.cfg, "motore") or json.loads(sys_seal.read_any(run.cfg, A._state(run.cfg, "motore"), run.cfg.user))
     assert any(s["text"].startswith("✗ read_file") for s in steps["steps"])
 
 
@@ -94,7 +95,7 @@ def test_a_whole_turn_with_a_stand_in_cli(cfg, run, tmp_path):
     last = T.turns(cfg, "motore")[-1]
     assert last["role"] == "conductor" and last["acted"] and last["text"] == "**Fatto** scritto a mario.rossi@example.com"
     assert last["cost_usd"] == 0.5 and T.session(cfg, "motore")["session"] == "s-1"
-    steps = json.loads(A._state(cfg, "motore").read_text())["steps"]
+    steps = json.loads(sys_seal.read_any(cfg, A._state(cfg, "motore"), cfg.user))["steps"]   # sealed (N64)
     assert steps[-1]["text"] == "✻ Leggo le note di mario.rossi@example.com" and not A._RUNS
 
 

@@ -231,6 +231,36 @@ if __name__ == "__main__":
     app.router.add_event_handler("startup", _settings_in_place)
     app.router.add_event_handler("startup", lambda: threading.Thread(target=_seed_shadows, name="seed-shadows",
                                                                       daemon=True).start())
+
+    def _seal_memory() -> None:
+        """N64: the memory of before sealed, its vectors indexed again sealed, the chats' documents out of the shared
+        knowledge (kno_memory_seal: each step finds only what is left) — once the encoder answers."""
+        from aurora import kno_memory_seal
+        from aurora import sys_keyring
+        try:                                                 # the recovery copy of her key, which the root seal cannot
+            if sys_keyring.ensure_escrow(cfg):               # write (its home has no backup key)
+                log.info("Aurora's key: recovery copy present")
+            else:
+                log.warning("Aurora's key: no recovery copy (no backup key yet)")
+        except Exception as e:                               # noqa: BLE001 - never fail the start
+            log.warning("Aurora's key: recovery copy not written: %s", e)
+        for _ in range(60):
+            try:
+                from aurora.api.core import pipeline
+                embedder = pipeline().search.embedder
+                embedder.dim
+                break
+            except Exception:                                # noqa: BLE001 - not ready yet: wait, never fail the start
+                time.sleep(10)
+        else:
+            log.warning("memory not sealed at this start: the encoder did not answer")
+            return
+        try:
+            kno_memory_seal.run(cfg, embedder)
+        except Exception as e:                               # noqa: BLE001 - said, tried again at the next start
+            log.warning("memory sealing stopped: %s", e)
+    app.router.add_event_handler("startup", lambda: threading.Thread(target=_seal_memory, name="seal-memory",
+                                                                      daemon=True).start())
     def _update_state() -> None:
         """The update's state checked again at start, without fetching: an update made by hand is seen at once."""
         try:

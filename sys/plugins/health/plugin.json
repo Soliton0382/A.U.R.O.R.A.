@@ -39,5 +39,8 @@
   "write": [
    "AURORA_HEALTH_DIR"
   ]
- }
+ },
+ "seal_keys": [
+  "health"
+ ]
 }

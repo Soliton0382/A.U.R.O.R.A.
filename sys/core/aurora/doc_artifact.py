@@ -15,7 +15,6 @@ import html as htmllib
 import re
 import secrets
 import time
-from pathlib import Path
 
 from . import sys_config, sys_uploads
 
@@ -26,7 +25,7 @@ CSP = ("sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline'; s
        "img-src data: blob:; font-src data:; media-src data: blob:; connect-src 'none'; form-action 'none'; "
        "base-uri 'none'; frame-ancestors 'self'")
 UPLOAD_URL = re.compile(r"/v1/aurora/uploads/([0-9a-f]{16})")
-_tokens: dict[str, tuple[Path, float]] = {}
+_tokens: dict[str, tuple[bytes, float]] = {}
 
 
 def create(cfg: sys_config.Config, run_id: str, title: str, page: str) -> dict:
@@ -56,12 +55,12 @@ def open_token(cfg: sys_config.Config, url: str) -> str:
     for t in [t for t, (_, exp) in _tokens.items() if exp < now]:
         _tokens.pop(t, None)
     tok = PREFIX + secrets.token_urlsafe(24)
-    _tokens[tok] = (found[0], now + TTL_S)
+    _tokens[tok] = (found[0].read_bytes(), now + TTL_S)        # opened now (a sealed page, N64): kept in memory
     return tok
 
 
 def page(token: str) -> bytes:
-    path, exp = _tokens.get(token, (None, 0.0))
-    if path is None or exp < time.time():
+    data, exp = _tokens.get(token, (None, 0.0))
+    if data is None or exp < time.time():
         raise PermissionError("artifact expired")
-    return path.read_bytes()
+    return data

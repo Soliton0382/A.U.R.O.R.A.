@@ -7,7 +7,9 @@ Only what a plugin declares in its manifest, "cache": {"tool": seconds, "*": sec
 effect is "read": nothing that writes, sends or publishes is ever served from here. The key is the tool and its
 arguments exactly (an operation is either the same or not: no nearness here, unlike kno_shadow), per user (a token of
 one user is not another's). A result is served while younger than its seconds; errors are never kept.
-Each plugin's cache: <user state>/plugin_shadow/<plugin>.db, at most MAX_ROWS results.
+Each plugin's cache: <user state>/plugin_shadow/<plugin>.db, at most MAX_ROWS results; each result sealed with the
+user's key, bound to its plugin and key (N64: a tool's results can quote a chat). The key itself is a plain hash of
+the arguments, as before.
 """
 from __future__ import annotations
 
@@ -18,7 +20,7 @@ import threading
 import time
 from contextlib import closing
 
-from . import sys_config
+from . import sys_config, sys_seal
 
 MAX_ROWS = 500
 _lock = threading.Lock()
@@ -54,13 +56,18 @@ def get(cfg: sys_config.Config, plugin: str, tool: str, args: dict, seconds: int
         if row is None or time.time() - row[1] > seconds:
             return None
         con.execute("UPDATE results SET used = used + 1 WHERE key = ?", (k,))
-    return row[0]
+    try:
+        return sys_seal.open_text(cfg, row[0], f"{plugin}:{k}", cfg.user)    # a row of before: as it is
+    except ValueError:                                 # not this user's, or changed: done again
+        return None
 
 
 def put(cfg: sys_config.Config, plugin: str, tool: str, args: dict, text: str) -> None:
+    k = key(tool, args)
+    sealed = sys_seal.seal_text(cfg, text, f"{plugin}:{k}", cfg.user)
     with _lock, closing(_db(cfg, plugin)) as con, con:
         con.execute("INSERT OR REPLACE INTO results (key, tool, text, at) VALUES (?, ?, ?, ?)",
-                    (key(tool, args), tool, text, time.time()))
+                    (k, tool, sealed, time.time()))
         n = con.execute("SELECT count(*) FROM results").fetchone()[0]
         if n > MAX_ROWS:                               # the oldest go first
             con.execute("DELETE FROM results WHERE key IN (SELECT key FROM results ORDER BY at LIMIT ?)", (n - MAX_ROWS,))

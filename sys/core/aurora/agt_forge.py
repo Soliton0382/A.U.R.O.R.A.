@@ -114,16 +114,38 @@ def update(cfg: sys_config.Config, rid: str, **fields) -> dict:
     return item
 
 
+TEXT = ("need", "why")                                  # written from a user's goal: sealed with their key (N64)
+
+
+def opened(cfg: sys_config.Config, item: dict) -> dict:
+    """A request with its need and why opened (the build reads them; a request of before N64 is plain already)."""
+    return {**item, **sys_log.open_fields(cfg, {k: item[k] for k in TEXT if k in item}, f"forge/{item['id']}",
+                                          item.get("user"))}
+
+
+def shown(cfg: sys_config.Config, item: dict, viewer: str | None = None) -> dict:
+    """A request as `viewer` (default: the user of this work) sees it: opened when it is theirs (no user: the admin's),
+    else its need «(private: <user>)» — the admin's forge page never reads another user's goal (N64)."""
+    from . import sys_context
+    admin = sys_log.admin_name(cfg)
+    if (item.get("user") or admin) == (viewer or sys_context.user() or admin):
+        return opened(cfg, item)
+    return {**item, **sys_log.hide_fields({k: item[k] for k in TEXT if k in item}, item.get("user"))}
+
+
 def request(cfg: sys_config.Config, need: str, why: str, run_id: str | None, routine: str | None = None) -> dict:
-    """Queue a missing capability once: the same need asked again joins the open request."""
-    need = need.strip()[:500]
+    """Queue a missing capability once: the same need asked again by the same user joins the open request. The need
+    and the why are sealed with the asking user's key in the shared file (N64 phase 4); the item returned is opened."""
+    from . import sys_context
+    need, user = need.strip()[:500], sys_context.user()
     items = requests(cfg)
-    same = next((i for i in items if i["need"].lower() == need.lower() and i["status"] in ("pending", "building", "proposed")), None)
+    same = next((o for i in items if i.get("user") == user and i["status"] in ("pending", "building", "proposed")
+                 and str((o := opened(cfg, i))["need"]).lower() == need.lower()), None)
     if same:
         return same
     item = {"id": uuid.uuid4().hex[:10], "need": need, "why": why.strip()[:1000], "run_id": run_id, "routine": routine,
-            "status": "pending", "created": time.time(), "attempts": 0, "plugin": None, "log": []}
-    items.append(item)
+            "status": "pending", "created": time.time(), "attempts": 0, "plugin": None, "log": [], "user": user}
+    items.append(sys_log.seal_fields(cfg, item, TEXT, f"forge/{item['id']}", user))
     _save(cfg, items)
     return item
 
@@ -312,7 +334,9 @@ def build(cfg: sys_config.Config, llm, host, req: dict, emit, masker=None, judge
             emit("forge.attempt", {"attempt": attempt, "ok": False, "errors": errors})
             continue
         manifest.setdefault("sandbox", {}).setdefault("network", False)
-        manifest["forged"] = {"request": req["id"], "at": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "need": req["need"][:200]}
+        # the plugin is the machine's: its manifest carries the need as the admin may see it (N64: another user's private)
+        manifest["forged"] = {"request": req["id"], "at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                              "need": str(req.get("public", req["need"]))[:200]}
         errors = check(manifest, code, existing, people(cfg))
         stage = _dir(cfg) / "stage" / str(manifest.get("name", "x"))
         if not errors:

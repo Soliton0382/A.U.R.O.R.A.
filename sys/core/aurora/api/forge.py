@@ -20,7 +20,7 @@ router = APIRouter()
 def _forge_done(req_id: str, name: str) -> None:
     """A forged plugin is live: tell the owner, and run again the routine that asked for it."""
     from aurora import agt_forge, sys_routines
-    req = agt_forge.update(cfg, req_id, status="installed", plugin=name, installed=time.time())
+    req = agt_forge.shown(cfg, agt_forge.update(cfg, req_id, status="installed", plugin=name, installed=time.time()))
     note("forge", "forge.installed", {"id": req_id, "plugin": name,
                                       "text": f"Mi sono costruita il plugin «{name}»: {req['need'][:160]}"})
     r = sys_routines.get(cfg, req["routine"]) if req.get("routine") else None
@@ -28,12 +28,16 @@ def _forge_done(req_id: str, name: str) -> None:
         _start_routine(r)
 
 
-def _forge_job(req: dict, cloud: bool = False):
+def _forge_job(raw: dict, cloud: bool = False):
     def job(q, emit, run_id):
         from aurora import agt_forge
         from aurora.kno_answer import Answer
+        # N64: the build reads the need opened; whatever the admin sees (notes, approvals, the ledger, the plugin's
+        # manifest) carries it as the admin may see it — another user's «(private: <user>)»
+        seen = agt_forge.shown(cfg, raw)
+        req = {**agt_forge.opened(cfg, raw), "public": seen["need"]}
         agt_forge.update(cfg, req["id"], status="building", started=time.time(), attempts=req.get("attempts", 0) + 1)
-        emit("forge.start", {"id": req["id"], "need": req["need"], "cloud": cloud})
+        emit("forge.start", {"id": req["id"], "need": seen["need"], "cloud": cloud})
         host = plugin_host()
         if cloud:                                       # the owner allowed it for this request: masked samples only
             from aurora import mdl_router                 # the forge's cloud model, else the default, else Claude Code
@@ -45,18 +49,18 @@ def _forge_job(req: dict, cloud: bool = False):
             from aurora.sys_approvals import Approvals
             m = agt_forge.Masker(cfg)
             sample = m(agt_forge.peek(cfg, re.findall(r"[\w./-]+/[\w./-]+", req["need"])[:3] or ["sys/logs"]))
-            item = Approvals(cfg).request("forge_cloud", "external", f"Posso farmi aiutare dal cloud per «{req['need'][:80]}»?",
+            item = Approvals(cfg).request("forge_cloud", "external", f"Posso farmi aiutare dal cloud per «{seen['need'][:80]}»?",
                                           "La forgia locale non ci è riuscita. Il ragionatore cloud (Claude) vedrebbe la "
                                           "richiesta e questi campioni, mascherati (IP, email, token, nomi di dispositivi, "
                                           "i tuoi dati personali). Il plugin girerebbe comunque solo qui, nella gabbia.",
-                                          {"need": req["need"], "campioni mascherati": sample[:4000],
+                                          {"need": seen["need"], "campioni mascherati": sample[:4000],
                                            "errori locali": res["errors"][:3]}, {"request": req["id"]}, run_id)
             agt_forge.update(cfg, req["id"], status="awaiting_cloud", errors=res["errors"][:5], approval=item["id"])
             note("forge", "approval.pending", {"id": item["id"], "kind": "forge_cloud", "title": item["title"]})
             return Answer(run_id, q, "Forgia locale non riuscita: chiedo il permesso per il cloud.", False, mode="agent")
         if not res["ok"]:
             agt_forge.update(cfg, req["id"], status="failed", errors=res["errors"][:5])
-            note("forge", "forge.failed", {"id": req["id"], "text": f"Non sono riuscita a costruire: {req['need'][:120]}"})
+            note("forge", "forge.failed", {"id": req["id"], "text": f"Non sono riuscita a costruire: {seen['need'][:120]}"})
             return Answer(run_id, q, "Forgia non riuscita: " + "; ".join(res["errors"])[:1500], False, mode="agent")
         m = res["manifest"]
         if agt_forge.installs_alone(m):                 # read only, or a project's tool (owner, 21 Oct)
@@ -64,7 +68,7 @@ def _forge_job(req: dict, cloud: bool = False):
             log.info("audit: forged plugin %s installed (%s)", m["name"],
                      "read only, no network" if agt_forge.read_only(m) else "a project's tool: projects folder, local model")
             from aurora import sys_autonomy
-            sys_autonomy.log(cfg, "forge", f"plugin {m['name']} built and installed (read only): {req['need'][:150]}")
+            sys_autonomy.log(cfg, "forge", f"plugin {m['name']} built and installed (read only): {seen['need'][:150]}")
             _forge_done(req["id"], m["name"])
             text = (f"Plugin «{m['name']}» costruito, provato nella gabbia e acceso ("
                     + ("sola lettura, senza rete)." if agt_forge.read_only(m) else "scrive solo nei progetti, rete solo verso il modello locale)."))
@@ -72,7 +76,7 @@ def _forge_job(req: dict, cloud: bool = False):
             from aurora.sys_approvals import Approvals
             code = (Path(res["stage"]) / "server.py").read_text(encoding="utf-8")
             item = Approvals(cfg).request("plugin_install", "external", f"Installare il plugin «{m['name']}»?",
-                                          f"{req['need']}\n\nMotivo: {req['why']}",
+                                          f"{seen['need']}\n\nMotivo: {seen.get('why', '')}",
                                           {"manifest": m, "server.py": code[:6000]},
                                           {"request": req["id"], "stage": res["stage"], "name": m["name"]}, run_id)
             agt_forge.update(cfg, req["id"], status="proposed", plugin=m["name"], approval=item["id"])
@@ -85,7 +89,7 @@ def _forge_job(req: dict, cloud: bool = False):
 @router.get("/v1/aurora/forge", dependencies=[Depends(admin_only)])
 def forge_list() -> dict:
     from aurora import agt_forge
-    return {"requests": list(reversed(agt_forge.requests(cfg)))}
+    return {"requests": [agt_forge.shown(cfg, r) for r in reversed(agt_forge.requests(cfg))]}   # N64
 
 
 @router.post("/v1/aurora/forge/tick", dependencies=[Depends(admin_only)])
@@ -96,7 +100,7 @@ def forge_tick() -> dict:
     if req is None:
         return {"started": None}
     agt_forge.update(cfg, req["id"], status="building", started=time.time())
-    return {"started": start_run(f"[forge] {req['need'][:120]}", origin="forge", job=_forge_job(req))["id"]}
+    return {"started": start_run(f"[forge] {agt_forge.shown(cfg, req)['need'][:120]}", origin="forge", job=_forge_job(req))["id"]}
 
 
 # names of sibling modules, looked up only when called: imported last, so that modules that use each

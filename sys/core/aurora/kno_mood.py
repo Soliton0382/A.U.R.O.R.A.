@@ -35,7 +35,7 @@ import threading
 import time
 from pathlib import Path
 
-from . import sys_config
+from . import sys_config, sys_seal
 
 NAMES = ("stress", "satisfaction", "curiosity", "tiredness", "longing", "melancholy", "worry", "anger", "joy")
 JOY_HALF_H = 6                    # a piece of music made counts half after 6 hours
@@ -267,10 +267,14 @@ def _tmp(f: Path) -> Path:
 
 
 def save(cfg: sys_config.Config, m: dict) -> None:
-    """The last measure (REM's look, each minute): what her own prompts read, without measuring again."""
+    """The last measure (REM's look, each minute): what her own prompts read, without measuring again. Sealed with the
+    user's key (N64: the causes can quote a chat), through this thread's own temporary name (not sys_seal.write's)."""
     f = _last_file(cfg)
     tmp = _tmp(f)
-    tmp.write_text(json.dumps(m, ensure_ascii=False), encoding="utf-8")
+    blob = sys_seal.seal(cfg, json.dumps(m, ensure_ascii=False).encode("utf-8"), f.name, cfg.user, "state")
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "wb") as h:
+        h.write(blob)
     os.replace(tmp, f)
 
 
@@ -279,7 +283,7 @@ def last(cfg: sys_config.Config, max_age_s: float = 900) -> dict | None:
     if not cfg["AURORA_MOOD"]:
         return None
     try:
-        m = json.loads(_last_file(cfg).read_text(encoding="utf-8"))
+        m = json.loads(sys_seal.read_any(cfg, _last_file(cfg), cfg.user))
     except (OSError, ValueError):
         return None
     return m if time.time() - float(m.get("at", 0)) <= max_age_s else None

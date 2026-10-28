@@ -1,0 +1,23 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright 2026 A.U.R.O.R.A. Project */
+/* The composer of every chat (composer.js): one box, as in the phone app (owner, 26 Oct: «mettendo i tasti dentro il
+   field»; 29 Oct: «uniformiamo le chat… una visualizzazione unica e pulita») — the text over the whole width, the
+   buttons on a row inside it, «Invia» on the right. The same on the phone and on the PC. */
+.ask { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: .3rem; padding: .35rem .4rem;
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--msg-bg); backdrop-filter: blur(10px); }
+.ask:focus-within { border-color: var(--accent); }
+.ask textarea { order: 0; flex: 1 1 100%; min-width: 0; min-height: 2.6rem; max-height: 30vh; resize: none;
+  padding: .3rem .4rem; border: 0; background: none; outline: none; box-shadow: none; }
+.ask .icon { order: 1; min-width: 2.6rem; min-height: 2.3rem; background: none; border-color: transparent; }
+.ask .icon:hover { border-color: var(--line); }
+.ask .send { order: 2; margin-left: auto; min-width: 4.5rem; min-height: 2.3rem; }
+.ask .icon.recording { color: #e34948; animation: pulse 1s ease-in-out infinite; }
+/* the gear tells how much she thinks without opening it */
+.ask .gear { position: relative; }
+.ask .gear[data-think]:not([data-think=""])::after { content: attr(data-think); position: absolute; right: -.2rem; bottom: -.2rem; font-size: .7rem; }
+/* 🎙️ dictation or conversation: opens above the box */
+.mic-menu { position: absolute; bottom: calc(100% + .3rem); left: .5rem; z-index: 20; display: flex; flex-direction: column;
+  gap: .25rem; padding: .35rem; border: 1px solid var(--line); border-radius: 10px; background: var(--modal-bg, var(--bg));
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .18); }
+.mic-menu.hidden { display: none; }
+.mic-menu button { text-align: left; white-space: nowrap; padding: .45rem .7rem; border-radius: 8px; }

@@ -7,7 +7,10 @@ machine; browsers subscribe from the bell in the top bar (a registered device is
 Which events notify, and where (push on the devices, a toast in the WebUI), is the owner's choice in the
 Notifications page, kept in <AURORA_STATUS_DIR>/push/prefs.json and read at every event (no restart);
 AURORA_PUSH_EVENTS is only the starting point. Subscriptions the push service reports gone (404/410)
-are dropped. Payloads carry a title, a short text and the page to open, nothing more.
+are dropped. Payloads carry a title, a short text and the page to open, nothing more; with AURORA_PUSH_PRIVATE (N64)
+the text is only «Aurora ha qualcosa per te» under the event's title, which never quotes anything: what it is about
+is read in Aurora, not on a locked screen nor by the push service. The history keeps the real text, sealed with the
+user's key.
 """
 from __future__ import annotations
 
@@ -18,7 +21,7 @@ import threading
 import time
 from pathlib import Path
 
-from . import sys_config, sys_log
+from . import sys_config, sys_log, sys_seal
 
 _lock = threading.Lock()
 
@@ -233,14 +236,29 @@ def message(event: str, payload: dict, cfg: sys_config.Config, channel: str = "p
     return {"title": titles[lang], "body": body, "view": view, "tag": tag}
 
 
+PRIVATE_BODY = {"it": "Aurora ha qualcosa per te", "en": "Aurora has something for you"}
+
+
+def outgoing(msg: dict, cfg: sys_config.Config) -> dict:
+    """What leaves for a phone (push, the app's line): with AURORA_PUSH_PRIVATE a neutral line in the user's language
+    instead of the text (N64); the title is the event's own, generic already. Calls, acks: no body, as they are."""
+    if not cfg["AURORA_PUSH_PRIVATE"] or not msg.get("body"):
+        return msg
+    lang = "it" if str(cfg["AURORA_LANG_DEFAULT"]).startswith("it") else "en"
+    return {**msg, "body": PRIVATE_BODY[lang]}
+
+
 HISTORY_MAX = 500
 
 
 def remember(msg: dict, event: str, channels: list[str], cfg: sys_config.Config) -> None:
     """Every notification Aurora made, for the Notifications page's history (owner, 2026-10-05): the user's own, the
-    last HISTORY_MAX, in their state folder."""
+    last HISTORY_MAX, in their state folder. The text sealed with the user's key, one line each (N64); when, which
+    event, the generic title and the page stay plain for the list."""
     f = _mine(cfg) / "history.jsonl"
-    line = json.dumps({"at": time.time(), "event": event, "title": msg.get("title", ""), "body": msg.get("body", ""),
+    body = msg.get("body", "")
+    line = json.dumps({"at": time.time(), "event": event, "title": msg.get("title", ""),
+                       "body": sys_seal.seal_text(cfg, body, "history.jsonl", cfg.user, "push") if body else "",
                        "view": msg.get("view", ""), "channels": channels}, ensure_ascii=False)
     with _lock:
         old = f.read_text(encoding="utf-8").splitlines()[-(HISTORY_MAX - 1):] if f.exists() else []
@@ -252,9 +270,11 @@ def history(cfg: sys_config.Config, n: int = 200) -> list[dict]:
     out = []
     for line in (f.read_text(encoding="utf-8").splitlines() if f.exists() else [])[-n:]:
         try:
-            out.append(json.loads(line))
+            ev = json.loads(line)
+            ev["body"] = sys_seal.open_text(cfg, ev.get("body", ""), "history.jsonl", cfg.user, "push")  # rotated too   # a line of before: as it is
         except ValueError:
             continue
+        out.append(ev)
     return out[::-1]
 
 
@@ -314,7 +334,7 @@ def send(msg: dict, cfg: sys_config.Config) -> dict:
     from pywebpush import WebPushException, webpush
     log = sys_log.get_logger("push")
     pem = str(_vapid_pem(cfg))
-    msg = {**msg, "id": secrets.token_hex(8)}             # the device posts it back: delivery measured (M101)
+    msg = {**outgoing(msg, cfg), "id": secrets.token_hex(8)}   # the device posts it back: delivery measured (M101)
     sent, dropped, failed = 0, [], 0
     for s in _load(cfg):
         try:

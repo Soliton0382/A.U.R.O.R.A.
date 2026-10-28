@@ -30,10 +30,23 @@ def upload_get(uid: str):
         raise HTTPException(status_code=404, detail="no such file")
     path, item = found
     inline = bool(sys_uploads.INLINE.match(item["mime"]))
-    return FileResponse(path, media_type=item["mime"] if inline else "application/octet-stream",
-                        filename=item["name"], content_disposition_type="inline" if inline else "attachment",
-                        headers={"X-Content-Type-Options": "nosniff", "Content-Security-Policy": "sandbox",
-                                 "Cache-Control": "private, max-age=86400"})
+    media = item["mime"] if inline else "application/octet-stream"
+    headers = {"X-Content-Type-Options": "nosniff", "Content-Security-Policy": "sandbox",
+               "Cache-Control": "private, max-age=86400"}
+    from aurora import sys_seal
+    with open(path, "rb") as f:
+        plain = f.read(len(sys_seal.MAGIC)) != sys_seal.MAGIC
+    if plain:                                          # never sealed (before N64, Aurora's own media): as a file
+        return FileResponse(path, media_type=media, filename=item["name"],
+                            content_disposition_type="inline" if inline else "attachment", headers=headers)
+    try:                                               # sealed with its owner's key (N64): opened here, in memory
+        data = path.read_bytes()
+    except ValueError:
+        raise HTTPException(status_code=404, detail="no such file") from None
+    from urllib.parse import quote
+    from fastapi.responses import Response
+    headers["Content-Disposition"] = f"{'inline' if inline else 'attachment'}; filename*=utf-8''{quote(item['name'])}"
+    return Response(content=data, media_type=media, headers=headers)
 
 
 @router.delete("/v1/aurora/uploads/{uid}", dependencies=[Depends(auth)])

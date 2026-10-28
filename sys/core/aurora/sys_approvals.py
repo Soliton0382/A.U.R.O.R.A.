@@ -13,18 +13,19 @@ Every action has an effect (ECOSYSTEM §3.3):
 
 A request keeps what is needed to decide and to act: who asks, why, the preview (a message,
 a diff with the test results), and what to execute once approved. Requests live in
-<AURORA_STATUS_DIR>/approvals.json; every change of state is logged and traced.
+<AURORA_STATUS_DIR>/approvals.json, sealed with the user's key (N64: a tool call's arguments, its purpose and its
+result quote the chat; a file of before is read as it is and sealed at the next change); every change of state is
+logged and traced.
 """
 from __future__ import annotations
 
 import json
-import os
 import threading
 import time
 import uuid
 from pathlib import Path
 
-from . import sys_config, sys_log
+from . import sys_config, sys_log, sys_seal
 
 EFFECTS = ("read", "write_local", "external", "code_change")
 _lock = threading.Lock()
@@ -124,13 +125,11 @@ class Approvals:
         self.log = sys_log.get_logger("approvals")
 
     def _load(self) -> list[dict]:
-        return json.loads(self.file.read_text(encoding="utf-8")) if self.file.exists() else []
+        return json.loads(sys_seal.read_any(self.cfg, self.file, self.cfg.user)) if self.file.exists() else []
 
     def _save(self, items: list[dict]) -> None:
-        self.file.parent.mkdir(parents=True, exist_ok=True)
-        tmp = self.file.with_suffix(".tmp")
-        tmp.write_text(json.dumps(items, ensure_ascii=False, indent=1), encoding="utf-8")
-        os.replace(tmp, self.file)
+        sys_seal.write(self.cfg, self.file, json.dumps(items, ensure_ascii=False, indent=1).encode("utf-8"),
+                       self.cfg.user, "state")
 
     def request(self, kind: str, effect: str, title: str, purpose: str, preview: dict, action: dict,
                 run_id: str | None = None) -> dict:

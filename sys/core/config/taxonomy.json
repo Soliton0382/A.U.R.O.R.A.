@@ -220,6 +220,12 @@
       "it": "Riflessioni di Aurora",
       "en": "Aurora's reflections",
       "memory": true
+    },
+    {
+      "id": "attachment",
+      "it": "Allegati delle chat",
+      "en": "Chat attachments",
+      "memory": true
     }
   ]
 }

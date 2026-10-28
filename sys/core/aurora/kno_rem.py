@@ -27,6 +27,7 @@ from pathlib import Path
 
 from . import (mdl_image, sns_clock, sns_weather, sol_vault, sys_config, sys_features, sys_log, sys_logread, sys_persona,
                txt_lang)
+from . import kno_diary
 from .sol_schema import Soliton
 
 
@@ -108,7 +109,7 @@ class Rem:
         out = []
         for shard in self.p.reader.layout.shards("memory", "conversation"):
             with sol_vault.db(shard, readonly=True) as con:
-                out += [Soliton.from_row(dict(r)) for r in con.execute(
+                out += [self.p.reader._sol(r) for r in con.execute(      # sealed turns opened (N64)
                     f"SELECT {','.join(sol_vault.COLUMNS)} FROM solitons WHERE consolidated=0 ORDER BY created_at")]
         return out
 
@@ -131,6 +132,9 @@ class Rem:
         rep = self.p.writer.add_many([sol])
         if rep.rejected:
             raise ValueError(f"{typ} rejected: {rep.rejected}")
+        if typ in kno_diary.KINDS:                        # the diary plugin's copy, under its own key (N64)
+            kno_diary.add(self.cfg, [{"at": sol.created_at, "type": typ, "text": text, "image": extra.get("image")}],
+                          self.p.writer.user)
         self.p.indexer.update("reflection")
         emit(f"rem.{typ}", {"sid": sol.sid, "text": text, **{k: v for k, v in extra.items() if k != "turns"}})
         return sol

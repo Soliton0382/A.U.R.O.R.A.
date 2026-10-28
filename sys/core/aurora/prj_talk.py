@@ -5,7 +5,8 @@ come se fosse il terminale che stiamo usando adesso con il --resume così lo sto
 se non si ha claude code, medesimo concetto per modello locale o api»).
 
 A conversation on the project's page, kept per project and per user in the user's state (state/projects/<name>/:
-talk.jsonl the turns, talk.json the session), never in the project's history. Who answers:
+talk.jsonl the turns, talk.json the session), never in the project's history; both sealed with the user's key (N64:
+each turn one sealed line, the session's file whole — its mask map holds the real values). Who answers:
   local    a project whose policy is «local» (prj_policy), or an agent role assigned to the local model: the local
            model, the stored turns sent again each time
   cli      the agent role on the Claude CLI: one CLI session per project and user (--session-id, then --resume), so
@@ -27,7 +28,7 @@ import time
 import uuid
 from pathlib import Path
 
-from . import prj_conduct, sys_config
+from . import prj_conduct, sys_config, sys_seal
 from . import sys_users_layout as L
 
 KEEP_TURNS = 20                 # turns sent again to a model that keeps no session (local, API)
@@ -48,6 +49,11 @@ def _dir(cfg: sys_config.Config, project: str) -> Path:
     return L.place(cfg, "state", cfg.user) / "projects" / project
 
 
+def _label(project: str) -> str:
+    """What a turn's line is bound to: the project's conversation, the same after new() sets the file aside."""
+    return f"projects/{project}/talk.jsonl"
+
+
 def turns(cfg: sys_config.Config, project: str) -> list[dict]:
     try:
         lines = (_dir(cfg, project) / "talk.jsonl").read_text(encoding="utf-8").splitlines()
@@ -56,7 +62,7 @@ def turns(cfg: sys_config.Config, project: str) -> list[dict]:
     out = []
     for line in lines:
         try:
-            out.append(json.loads(line))
+            out.append(json.loads(sys_seal.open_text(cfg, line, _label(project), cfg.user)))   # a line of before: as it is
         except ValueError:
             pass
     return out
@@ -67,22 +73,21 @@ def _add(cfg: sys_config.Config, project: str, role: str, text: str, **extra) ->
     d.mkdir(parents=True, exist_ok=True, mode=0o700)
     e = {"id": uuid.uuid4().hex[:10], "t": time.time(), "role": role, "text": text, **extra}
     with (d / "talk.jsonl").open("a", encoding="utf-8") as fh:
-        fh.write(json.dumps(e, ensure_ascii=False) + "\n")
+        fh.write(sys_seal.seal_text(cfg, json.dumps(e, ensure_ascii=False), _label(project), cfg.user) + "\n")
     return e
 
 
 def session(cfg: sys_config.Config, project: str) -> dict:
     try:
-        return json.loads((_dir(cfg, project) / "talk.json").read_text(encoding="utf-8"))
+        return json.loads(sys_seal.read_any(cfg, _dir(cfg, project) / "talk.json", cfg.user))
     except (OSError, ValueError):
         return {}
 
 
 def _keep_session(cfg: sys_config.Config, project: str, s: dict) -> None:
-    f = _dir(cfg, project) / "talk.json"
-    f.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    f.write_text(json.dumps(s, ensure_ascii=False), encoding="utf-8")
-    os.chmod(f, 0o600)                                   # the mask's map holds the real values
+    # sealed, 0600: the mask's map holds the real values
+    sys_seal.write(cfg, _dir(cfg, project) / "talk.json", json.dumps(s, ensure_ascii=False).encode("utf-8"), cfg.user,
+                   "state")
 
 
 def new(cfg: sys_config.Config, project: str) -> dict:

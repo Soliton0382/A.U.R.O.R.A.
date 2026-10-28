@@ -4,7 +4,9 @@
 browser, brought to Aurora's Android app by a request the app keeps open (GET /v1/aurora/line), with no push service
 in between. The same notifications the owner chose for push (sys_push.message), plus what only the app can take later
 (a call that rings). Each user's last events are kept in their state folder (line/events.jsonl, 0600), so a phone that
-was offline gets what it missed (up to TTL) when it comes back; the id it got last is its acknowledgement."""
+was offline gets what it missed (up to TTL) when it comes back; the id it got last is its acknowledgement. Each line
+sealed with the user's key (N64: the bodies are what was pushed, a call's reason), the text of the phone's screen as
+AURORA_PUSH_PRIVATE says for a notification (sys_push.outgoing); a call keeps its reason, the screen that rings."""
 from __future__ import annotations
 
 import json
@@ -13,7 +15,7 @@ import threading
 import time
 from pathlib import Path
 
-from . import sys_config
+from . import sys_config, sys_seal
 
 KEEP, TTL = 200, 12 * 3600                            # events kept per user; older than TTL are not delivered (as push)
 WAIT_MAX = 55                                          # seconds a request is held: under the usual 60 s idle timeouts
@@ -30,17 +32,24 @@ def _file(cfg: sys_config.Config) -> Path:
     return d / "events.jsonl"
 
 
+def _open(line: str, f: Path, cfg: sys_config.Config) -> dict:
+    """One event of the file: a sealed line (N64), or a plain one written before."""
+    return json.loads(sys_seal.open_text(cfg, line, f.name, cfg.user))
+
+
 def post(msg: dict, cfg: sys_config.Config) -> dict:
     """One event on the line of the current user: {"id", "at", **msg}; ids grow (nanoseconds, as text)."""
     global version
+    from . import sys_push
     f = _file(cfg)
     with _lock:
         old = f.read_text(encoding="utf-8").splitlines()[-(KEEP - 1):] if f.exists() else []
-        last = int(json.loads(old[-1])["id"]) if old else 0
-        ev = {"id": str(max(time.time_ns(), last + 1)), "at": round(time.time(), 1), **msg}
+        last = int(_open(old[-1], f, cfg)["id"]) if old else 0
+        ev = {"id": str(max(time.time_ns(), last + 1)), "at": round(time.time(), 1), **(msg if msg.get("kind") else sys_push.outgoing(msg, cfg))}
+        line = sys_seal.seal_text(cfg, json.dumps(ev, ensure_ascii=False), f.name, cfg.user)
         fd = os.open(f.with_suffix(".tmp"), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
         with os.fdopen(fd, "w", encoding="utf-8") as out:
-            out.write("\n".join(old + [json.dumps(ev, ensure_ascii=False)]) + "\n")
+            out.write("\n".join(old + [line]) + "\n")
         os.replace(f.with_suffix(".tmp"), f)
         version += 1
     return ev
@@ -55,7 +64,7 @@ def since(after: str | int | None, cfg: sys_config.Config) -> list[dict]:
     f, now, out = _file(cfg), time.time(), []
     for line in f.read_text(encoding="utf-8").splitlines() if f.exists() else []:
         try:
-            ev = json.loads(line)
+            ev = _open(line, f, cfg)
         except ValueError:
             continue
         if int(ev["id"]) > after_id and now - ev.get("at", 0) <= TTL:
@@ -68,7 +77,7 @@ def last(cfg: sys_config.Config) -> str:
     f = _file(cfg)
     lines = f.read_text(encoding="utf-8").splitlines() if f.exists() else []
     try:
-        return json.loads(lines[-1])["id"] if lines else "0"
+        return _open(lines[-1], f, cfg)["id"] if lines else "0"
     except (ValueError, KeyError):
         return "0"
 

@@ -1625,6 +1625,19 @@
    ]
   },
   {
+   "key": "AURORA_PUSH_PRIVATE",
+   "type": "bool",
+   "category": "interface",
+   "recommended": "1",
+   "evidence": "owner, 2026-10-29 (N64)",
+   "scope": "user",
+   "en": "A notification on the phone (push, Aurora's app) says only «Aurora has something for you» under its usual title: what it is about is read in Aurora, never on the lock screen nor through the push service; 0: the text itself, up to 180 characters.",
+   "it": "Una notifica sul telefono (push, l'app di Aurora) dice solo «Aurora ha qualcosa per te» sotto il suo solito titolo: di cosa si tratta si legge in Aurora, mai sullo schermo bloccato né attraverso il servizio push; 0: il testo stesso, fino a 180 caratteri.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_CHAT_STREAMING",
    "type": "bool",
    "category": "interface",

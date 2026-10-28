@@ -162,17 +162,35 @@ def _ledger(cfg: sys_config.Config) -> Path:
     return (cfg.base or cfg).path("AURORA_STATUS_DIR") / "autonomy_ledger.jsonl"
 
 
+# the areas whose line is written from a user's words (the question searched, a post's text, an agent's purpose, a
+# forge need): sealed with that user's key in the shared file (N64 phase 4); the machine's own (security, updates,
+# devices, edge) stay plain
+PRIVATE_AREAS = ("knowledge", "social", "other", "forge")
+
+
+def _label(row: dict) -> str:
+    return f"autonomy/{row['at']}/{row['area']}"
+
+
 def log(cfg: sys_config.Config, area: str, text: str, user: str | None = None) -> None:
     """One thing Aurora did by herself (a post, a block, an update, a search, a plugin)."""
     row = {"at": round(time.time(), 1), "day": time.strftime("%Y-%m-%d"), "area": area, "text": text[:240],
            "user": user or cfg.user}
+    if area in PRIVATE_AREAS:
+        from . import sys_log
+        row = sys_log.seal_fields(cfg, row, ("text",), _label(row), row["user"])
     _ledger(cfg).parent.mkdir(parents=True, exist_ok=True)
     with _lock, open(_ledger(cfg), "a", encoding="utf-8") as f:
         f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
-def days(cfg: sys_config.Config, n: int = 14, user: str | None = None) -> list[dict]:
-    """[{"day", "count", "areas": {area: count}, "items": [...]}] newest first: the daily line."""
+def days(cfg: sys_config.Config, n: int = 14, user: str | None = None, viewer: str | None = None) -> list[dict]:
+    """[{"day", "count", "areas": {area: count}, "items": [...]}] newest first: the daily line. `user`: only that
+    user's lines (None: every line, the admin's page). `viewer` (default: the user of this work) reads the text of their
+    own lines (default: `user`, else the user of this work); another user's sealed text is «(private: <user>)» (N64)."""
+    from . import sys_context, sys_log
+    admin = sys_log.admin_name(cfg)
+    viewer = viewer or user or sys_context.user() or admin
     f = _ledger(cfg)
     since = time.time() - n * 86400
     by: dict[str, list] = {}
@@ -182,6 +200,8 @@ def days(cfg: sys_config.Config, n: int = 14, user: str | None = None) -> list[d
         except ValueError:
             continue
         if r["at"] >= since and (user is None or r.get("user") in (user, None)):
+            mine = (r.get("user") or admin) == viewer
+            r = sys_log.open_fields(cfg, r, _label(r), r.get("user")) if mine else sys_log.hide_fields(r, r.get("user"))
             by.setdefault(r["day"], []).append(r)
     return [{"day": d, "count": len(rows), "areas": dict(Counter(r["area"] for r in rows)), "items": rows[-20:][::-1]}
             for d, rows in sorted(by.items(), reverse=True)]

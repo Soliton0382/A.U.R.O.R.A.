@@ -401,8 +401,8 @@ def shadow_answer(p, question: str, emit, run_id: str):
             note("api", "answer.refined", {"run_id": run_id, "title": f"🔁 {question[:80]}", "text": new.text[:1500]})
     if again:
         sys_context.start(recheck, name="shadow-recheck")
-    log.info("shadow: answered in %.1f s (cosine %.3f, re-rank %.3f, %d overlapping, adapted %s, recheck %s) from «%s»",
-             ans.seconds, hit["cos"], hit["score"], hit["overlap"], adapted, again, hit["question"][:80])
+    log.info("shadow: answered in %.1f s (cosine %.3f, re-rank %.3f, %d overlapping, adapted %s, recheck %s), run %s",
+             ans.seconds, hit["cos"], hit["score"], hit["overlap"], adapted, again, run_id)   # N64: no question in api.log
     return ans
 
 

@@ -344,6 +344,10 @@ class Agent(AgentMakers, AgentReport):
         if field and isinstance(args.get(field), str):
             from . import sec_privacy
             private = [f["value"] for f in sec_privacy.findings(args[field], self.cfg, llm=self.p._for("service")) if f["sure"]]
+            from .sec_mask import Pseudonymizer               # N64 phase 6: a user's name, a private value learnt or
+            m = Pseudonymizer(self.cfg)                       # set, an address or an id: by code too, never published
+            m.mask(args[field])                               # alone — the owner decides
+            private += [v for v in m.to_ph if v not in private]
         home = not private and self._home_free(plugin, tool)
         if home:
             emit("agent.home", {"plugin": plugin, "tool": tool, "asked": self.asked})

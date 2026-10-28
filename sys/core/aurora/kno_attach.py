@@ -7,8 +7,10 @@
            question only (it is an observation, not knowledge: it is not written to the vault).
  video     watched (kno_video): frames at the scene changes seen in one call, the speech transcribed with
            timestamps; like an image, an observation for this question only (not written to the vault)
- document  imported into the vault like any document (kno_ingest), in the domain the reasoner
-           picks from the taxonomy; its chunks are put first among the passages of the question.
+ document  read and cut like any document (kno_ingest), kept in the user's own memory (domain «attachment»,
+           sealed with the rest of it: C453, 29 Oct — it went to the shared knowledge, where every other user found
+           and quoted it); in an anonymous chat kept nowhere, a passage for this question only. Its chunks are put
+           first among the passages of the question.
 """
 from __future__ import annotations
 
@@ -133,14 +135,22 @@ class AttachmentHandler:
                 emit("attach.image", {"name": name, "description": text})
                 out.append(Attached(name, "image", [sol]))
             else:
-                from .kno_ingest import read_text
-                text, _ = read_text(name, data, self.cfg)
-                domain = classify(self.p._for("service"), name, text)
-                rep = self.importer.add(name, data, domain, origin="chat", run_id=run_id)
-                found = self.p.reader.get_many(rep.sids)
-                sols = [found[sid] for sid in rep.sids if sid in found]
-                emit("attach.document", {"name": name, "domain": domain, "chunks": rep.chunks, "written": rep.written,
-                                         "known": rep.duplicates})
-                out.append(Attached(name, "document", sols, domain))
+                from . import sys_context
+                from .kno_ingest import chunk, read_text
+                text, title = read_text(name, data, self.cfg)
+                parts = chunk(text, self.cfg["AURORA_CHUNK_CHARS"], self.cfg["AURORA_CHUNK_MIN_CHARS"])
+                if not parts:
+                    raise ValueError(f"{name}: no text found")
+                sols = [Soliton.new(p, "attachment", "attachment", txt_lang.detect(p), f"attachment:{run_id}",
+                                    title=title or name, chunk_index=i, chunk_count=len(parts), consolidated=True,
+                                    extra={"file": name}) for i, p in enumerate(parts)]
+                written = 0
+                if not sys_context.anonymous_now():          # the anonymous chat keeps nothing (sys_anon)
+                    written = len(self.p.writer.add_many(sols, run_id=run_id).written)
+                    if written:
+                        self.p.indexer.update("attachment", run_id=run_id)
+                emit("attach.document", {"name": name, "domain": "attachment", "chunks": len(parts),
+                                         "written": written, "known": len(sols) - written})
+                out.append(Attached(name, "document", sols, "attachment"))
             self.log.info("attached %s (%s) to run %s", name, out[-1].kind, run_id)
         return out

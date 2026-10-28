@@ -76,6 +76,10 @@ class VaultReader:
         self._caches: "weakref.WeakSet[_Cache]" = weakref.WeakSet()       # every thread's, for forget()
         _readers.add(self)
 
+    def _sol(self, r) -> Soliton:
+        """A row as a soliton, a memory row opened with its user's key (N64)."""
+        return Soliton.from_row(sol_vault.open_row(self.cfg, self.user, dict(r)))
+
     def _con(self, path: Path) -> sqlite3.Connection | None:
         cache = self._local.__dict__.get("cons")
         if cache is None:
@@ -123,7 +127,7 @@ class VaultReader:
             for i in range(0, len(rows), 500):
                 part = rows[i:i + 500]
                 for r in con.execute(f"{_SELECT} WHERE rowid IN ({','.join('?' * len(part))})", part):
-                    out[r["sid"]] = Soliton.from_row(dict(r))
+                    out[r["sid"]] = self._sol(r)
         return out
 
     def get(self, sid: str) -> Soliton | None:
@@ -145,7 +149,7 @@ class VaultReader:
                 if not rows:
                     break
                 for r in rows:
-                    yield key, r["rowid"], Soliton.from_row(dict(r))
+                    yield key, r["rowid"], self._sol(r)
                 last = rows[-1]["rowid"]
 
     def count(self, domain: str | None = None) -> dict[str, int]:
@@ -166,7 +170,7 @@ class VaultReader:
         out: list[Soliton] = []
         for shard in self.layout.shards(self.layout.section_of(domain), domain):
             con = self._con(shard)
-            out += [Soliton.from_row(dict(r)) for r in con.execute(
+            out += [self._sol(r) for r in con.execute(
                 f"{_SELECT} WHERE source_id = ? ORDER BY chunk_index LIMIT ?", (source_id, limit - len(out)))]
             if len(out) >= limit:
                 break
@@ -184,24 +188,25 @@ class VaultReader:
             if len(rows) >= n:
                 break
         rows.sort(key=lambda r: r["created_at"], reverse=True)
-        return [Soliton.from_row(r) for r in reversed(rows[:n])]
+        return [self._sol(r) for r in reversed(rows[:n])]
 
     def of_type(self, domain: str, kind: str, n: int, before: str | None = None, text: str = "") -> list[Soliton]:
         """The n most recent memory solitons of one type (extra.type: «dream»…), newest first, older than `before`,
         holding `text` — every shard read, not the last few hundred (the Dreams page: they got lost in the chat)."""
         if n <= 0:
             return []
-        sql = f"{_SELECT} WHERE json_extract(extra, '$.type') = ?"
-        args: list = [kind]
+        sql, args = f"{_SELECT}", []
         if before:
-            sql, args = sql + " AND created_at < ?", args + [before]
-        if text:
-            sql, args = sql + " AND text LIKE ? ESCAPE '\\'", args + ["%" + text.replace("\\", "\\\\")
-                                                                         .replace("%", "\\%").replace("_", "\\_") + "%"]
-        rows = []
+            sql, args = sql + " WHERE created_at < ?", [before]
+        # the type (in extra) and the text are sealed (N64): looked for in the opened rows, newest first, not by SQL
+        rows, needle = [], text.casefold()
         for shard in reversed(self.layout.shards("memory", domain)):   # newest shards first
-            rows += [dict(r) for r in self._con(shard).execute(sql + " ORDER BY created_at DESC LIMIT ?", (*args, n))]
+            for s in map(self._sol, self._con(shard).execute(sql + " ORDER BY created_at DESC", args)):
+                if s.extra.get("type") == kind and (not text or needle in s.text.casefold()):
+                    rows.append(s)
+                    if len(rows) >= n:
+                        break
             if len(rows) >= n:
                 break
-        rows.sort(key=lambda r: r["created_at"], reverse=True)
-        return [Soliton.from_row(r) for r in rows[:n]]
+        rows.sort(key=lambda s: s.created_at, reverse=True)
+        return rows[:n]

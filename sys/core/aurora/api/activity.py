@@ -76,9 +76,10 @@ def log_tail(component: str, lines: int = 100, level: str | None = None) -> dict
 
 @router.get("/v1/aurora/runs/{run_id}/record", dependencies=[Depends(auth)])
 def run_record(run_id: str) -> list[dict]:
-    """A past run's events from the trace files (also after a restart of the API)."""
+    """A past run's events from the trace files (also after a restart of the API): the requesting user's own lines,
+    opened with their key — before N64 any user read any run's (the run's words sealed now, another user's left out)."""
     from aurora import sys_logread
-    return sys_logread.run_events(run_id, cfg)
+    return sys_logread.run_events(run_id, cfg, viewer=me())
 
 
 _health_cache: dict = {"at": 0.0, "value": None}

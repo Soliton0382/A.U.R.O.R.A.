@@ -26,7 +26,7 @@ from pathlib import Path
 
 import httpx
 
-from . import kno_arxiv, sys_config, sys_log, txt_lang
+from . import kno_arxiv, kno_web, sys_config, sys_log, txt_lang
 from .kno_ingest import Importer
 
 MAP_FILE = Path(__file__).resolve().parents[1] / "config" / "arxiv_domains.json"
@@ -128,6 +128,9 @@ class ArxivAgent:
         title = self.p._for("service").complete(SYS_ORIGIN, english, 40).answer.strip().splitlines()[0].strip().strip('"')
         if title.upper().startswith("NONE") or len(title.split()) > 20 or "*" in title or len(title) < 8:
             return None
+        title = kno_web.clean(self.cfg, title, 20)          # N64 phase 6: what leaves is masked like the web search's
+        if len(title) < 8:
+            return None
         try:
             xml = self._polite_get(self.cfg["AURORA_ARXIV_API"], search_query=f'ti:"{" ".join(re.sub(r"[^\w\s]", " ", title).split())}"',
                                    start=0, max_results=5).text
@@ -149,6 +152,8 @@ class ArxivAgent:
             user += "PAPERS ALREADY READ (they did not answer):\n" + "\n".join(titles[-30:]) + "\n"
         out = self.p._for("service").complete(SYS_QUERIES.format(n=n), user, 200).answer
         qs = [re.sub(r"^[\s\-*\d.)]+", "", l).strip().strip('"') for l in out.splitlines()]
+        # written from the question, sent to arXiv and the other archives: masked like the web search's (N64 phase 6)
+        qs = [kno_web.clean(self.cfg, q) for q in qs]
         return [q for q in qs if q and q.lower() not in {t.lower() for t in tried}][:n]
 
     def run(self, question: str, emit, run_id: str, remember: bool = True, min_score: float = 0.0):

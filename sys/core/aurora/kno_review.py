@@ -19,12 +19,11 @@ PAUSE_AFTER reviews with nothing better the review pauses by itself: it was not 
 from __future__ import annotations
 
 import json
-import os
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from . import sys_config
+from . import sys_config, sys_seal
 
 DAYS = 14                     # how far back answers are reviewed
 MIN_AGE_H = 6                 # an answer of the last hours: nothing new can be in the vault yet
@@ -48,18 +47,16 @@ def _state_file(cfg: sys_config.Config) -> Path:
 def _done(cfg: sys_config.Config) -> dict:
     f = _state_file(cfg)
     try:
-        return json.loads(f.read_text(encoding="utf-8")) if f.exists() else {}
+        return json.loads(sys_seal.read_any(cfg, f, cfg.user)) if f.exists() else {}
     except ValueError:
         return {}
 
 
 def _mark(cfg: sys_config.Config, run_id: str, outcome: dict) -> None:
+    """Sealed with the user's key (N64: the outcomes quote the answers); a file of before is sealed here."""
     d = _done(cfg)
     d[run_id] = outcome
-    f = _state_file(cfg)
-    tmp = f.with_suffix(".tmp")
-    tmp.write_text(json.dumps(d, ensure_ascii=False, indent=1), encoding="utf-8")
-    os.replace(tmp, f)
+    sys_seal.write(cfg, _state_file(cfg), json.dumps(d, ensure_ascii=False, indent=1).encode("utf-8"), cfg.user, "state")
 
 
 def _today() -> float:

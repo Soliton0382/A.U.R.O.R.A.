@@ -28,8 +28,9 @@ from pathlib import Path
 from typing import Any
 
 TAXONOMY_FILE = Path(__file__).resolve().parents[1] / "config" / "taxonomy.json"
-KINDS = ("knowledge", "conversation", "reflection")
-MEMORY_KINDS = ("conversation", "reflection")
+KINDS = ("knowledge", "conversation", "reflection", "attachment")
+# a document attached to a chat is the user's, kept in their memory (C453: it went to the shared knowledge)
+MEMORY_KINDS = ("conversation", "reflection", "attachment")
 _LANG = re.compile(r"^[a-z]{2}$")
 _SPACES = re.compile(r"[ \t  -​]+")
 _BLANK_LINES = re.compile(r"\n{3,}")

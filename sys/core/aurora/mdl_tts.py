@@ -8,6 +8,8 @@ measured 12.7 s of speech in 0.95 s, 248 MB. Piper is GPL-3: it runs as a progra
 environment in sys/runtime/piper made by script/sys_tts_install.sh), never imported into Aurora's code. Voices
 (config/models.json "tts", rhasspy/piper-voices, MIT): it_IT paola (dataset CC0), en_US ljspeech (public domain).
 A sentence already spoken is kept (the user's state, at most CACHE files): the good morning played again costs nothing.
+Each clip sealed with the user's key and named by a keyed hash (a random salt sealed beside them), so neither the
+audio of an answer nor its name tells what was said (N64); a clip of before reads as it is until it ages out.
 
 The natural voice (owner, 2026-10-06, "la 5! è la voce di Aurora"): with AURORA_TTS_ENGINE=qwen, Qwen3-TTS 0.6B on
 AURORA_TTS_GPU clones a Piper voice from a reference clip (AURORA_TTS_QWEN_REF: the owner's own, in the private state
@@ -34,7 +36,7 @@ import threading
 import time
 from pathlib import Path
 
-from . import sys_config, sys_log
+from . import sys_config, sys_log, sys_seal
 
 VOICES = {"it": "it/it_IT/paola/medium/it_IT-paola-medium.onnx", "en": "en/en_US/ljspeech/medium/en_US-ljspeech-medium.onnx"}
 MAX_CHARS = 6000
@@ -71,6 +73,32 @@ def _cache_dir(cfg: sys_config.Config) -> Path:
     return d
 
 
+def _clip(cfg: sys_config.Config, what: str) -> Path:
+    """A clip's file: its name a hash of what it says keyed by the user's sealed salt (N64), never of the text alone."""
+    f = _cache_dir(cfg) / "salt"
+    try:
+        salt = sys_seal.read_any(cfg, f, cfg.user)
+    except (OSError, ValueError):
+        salt = os.urandom(32)
+        sys_seal.write(cfg, f, salt, cfg.user, "state")
+    return _cache_dir(cfg) / f"{hashlib.sha256(salt + what.encode()).hexdigest()[:32]}.wav"
+
+
+def _cached(cfg: sys_config.Config, f: Path) -> bytes | None:
+    if not f.is_file():
+        return None
+    try:
+        data = sys_seal.read_any(cfg, f, cfg.user)
+    except (OSError, ValueError):                      # changed, or not this user's: said again
+        return None
+    f.touch()
+    return data
+
+
+def _keep(cfg: sys_config.Config, f: Path, data: bytes) -> None:
+    sys_seal.write(cfg, f, data, cfg.user, "state")
+
+
 def speak(cfg: sys_config.Config, text: str, lang: str, use: str = "chat") -> bytes:
     """The text as WAV audio. `use`: "chat" (AURORA_TTS_ENGINE; the natural voice on the GPU when it has room) or
     "video" (AURORA_VIDEO_VOICE; the natural voice on the CPU: a video may wait).
@@ -81,13 +109,12 @@ def speak(cfg: sys_config.Config, text: str, lang: str, use: str = "chat") -> by
     from . import mdl_media
     p, model = mdl_media.provider(cfg, "voice")
     if p != "local":                                   # a cloud voice (the Models page): masked, spoken by kind
-        key = hashlib.sha256(f"{p}:{model}\n{cfg['AURORA_ASSISTANT_GENDER']}\n{text}".encode()).hexdigest()[:32]
-        cached = _cache_dir(cfg) / f"{key}.wav"
-        if cached.is_file():
-            cached.touch()
-            return cached.read_bytes()
+        cached = _clip(cfg, f"{p}:{model}\n{cfg['AURORA_ASSISTANT_GENDER']}\n{text}")
+        data = _cached(cfg, cached)
+        if data is not None:
+            return data
         data = mdl_media.spoken(cfg, text, lang)
-        cached.write_bytes(data)
+        _keep(cfg, cached, data)
         return data
     v = voice(cfg, lang)
     if not (cfg["AURORA_TTS"] and _bin(cfg).is_file() and v):
@@ -100,22 +127,19 @@ def speak(cfg: sys_config.Config, text: str, lang: str, use: str = "chat") -> by
     place = "cpu" if use == "video" else f"cuda:{int(cfg['AURORA_TTS_GPU'])}"
     natural = cfg["AURORA_VIDEO_VOICE" if use == "video" else "AURORA_TTS_ENGINE"] == "qwen" and qwen_ready(cfg, place)
     engine = "qwen" if natural else v.name
-    key = hashlib.sha256(f"{engine}\n{' '.join(tune)}\n{text}".encode()).hexdigest()[:32]     # a new tuning, a new clip
-    cached = _cache_dir(cfg) / f"{key}.wav"
-    if cached.is_file():
-        cached.touch()
-        return cached.read_bytes()
-    data = None
+    cached = _clip(cfg, f"{engine}\n{' '.join(tune)}\n{text}")                     # a new tuning, a new clip
+    data = _cached(cfg, cached)
+    if data is not None:
+        return data
     if natural:
         try:
             data = _qwen(cfg, text, lang, place)
         except Exception as e:  # noqa: BLE001 — the natural voice failed: Piper says it, and it is logged
             sys_log.get_logger("tts").warning("natural voice failed, Piper instead: %s", e)
-            key = hashlib.sha256(f"{v.name}\n{' '.join(tune)}\n{text}".encode()).hexdigest()[:32]
-            cached = _cache_dir(cfg) / f"{key}.wav"
+            cached = _clip(cfg, f"{v.name}\n{' '.join(tune)}\n{text}")
     if data is None:
         data = _piper(cfg, text, v, tune)
-    cached.write_bytes(data)
+    _keep(cfg, cached, data)
     old = sorted(_cache_dir(cfg).glob("*.wav"), key=lambda p: p.stat().st_mtime)[:-CACHE]
     for p in old:                                      # the least recently played go first
         p.unlink(missing_ok=True)

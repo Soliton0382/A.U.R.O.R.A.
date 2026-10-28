@@ -24,5 +24,8 @@
   "en": "Nothing to set up: it reads only Aurora's dreams and thoughts (never the conversations) and the harvester's log.",
   "links": []
  },
- "settings": []
+ "settings": [],
+ "seal_keys": [
+  "diary"
+ ]
 }

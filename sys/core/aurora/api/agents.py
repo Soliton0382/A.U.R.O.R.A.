@@ -35,7 +35,7 @@ def _gap_check(agent, goal: str, report: str, emit, run_id: str, routine: str | 
         req = agt_forge.request(cfg, need, f"rilevato dopo il run: {goal[:300]}", run_id, routine)
         emit("forge.request", {"id": req["id"], "need": req["need"], "status": req["status"], "by": "code"})
         note("forge", "forge.request", {"id": req["id"], "title": req["need"][:160]})
-        log.info("gap found after run %s: forge request %s (%s)", run_id, req["id"], need[:120])
+        log.info("gap found after run %s: forge request %s (%d chars)", run_id, req["id"], len(need))   # N64: no goal in api.log
 
 
 def _agent_job(goal: str, context: str = "", after=None, remember: bool = False, label: str | None = None,
@@ -428,7 +428,7 @@ def decide(approval_id: str, decision: str) -> dict:
             elif item["kind"] == "forge_cloud":             # the owner allowed the cloud for this request
                 from aurora import agt_forge
                 req = next(r for r in agt_forge.requests(cfg) if r["id"] == item["action"]["request"])
-                rid = start_run(f"[forge, cloud] {req['need'][:100]}", origin="forge", job=_forge_job(req, cloud=True))["id"]
+                rid = start_run(f"[forge, cloud] {agt_forge.shown(cfg, req)['need'][:100]}", origin="forge", job=_forge_job(req, cloud=True))["id"]
                 out, ok = {"forge_run": rid}, True
             elif item["kind"] == "plugin_install":          # a forged plugin the owner approved
                 from aurora import agt_forge
@@ -483,7 +483,7 @@ def react(origin: str, title: str, error: str, run_id: str) -> str | None:
         Rem(p, cfg)._write(ans.text, "repair", f"react:{int(time.time())}",
                            {"failed_run": run_id, "origin": origin, "run_id": ans.run_id}, emit)
         note("react", "react.done", {"text": f"{title[:60]}: {ans.text[:160]}", "run_id": ans.run_id, "failed_run": run_id})
-    log.info("react: a failed %s request (%s) is diagnosed now", origin, title[:80])
+    log.info("react: a failed %s request (run %s) is diagnosed now", origin, run_id)   # N64: no title in api.log
     return start_run(f"[riparazione] {title[:80]}", origin="react", job=_agent_job(agt_react.GOAL, ctx, after))["id"]
 
 

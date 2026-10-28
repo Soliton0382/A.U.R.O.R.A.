@@ -51,6 +51,28 @@ def draft(llm, content: str, targets: list[dict], cfg: sys_config.Config | None 
     return out
 
 
+def public(cfg: sys_config.Config, text: str) -> bool:
+    """Nothing the masker would hide: no user's name, no private value learnt or set (sec_mask), no address, phone or
+    id. A memory that holds one is never drawn for a post — not even masked (N64 phase 6)."""
+    from .sec_mask import Pseudonymizer
+    m = Pseudonymizer(cfg)
+    m.mask(text)
+    return not m.to_ph
+
+
+def drawn(p, cfg: sys_config.Config) -> tuple[list[str], list[str]]:
+    """The recent turns and thoughts a post idea may come from: the admin's own memory only (the pages are the
+    admin's; another user's chat never reaches a post), and of it only what `public` lets through."""
+    from . import sys_log
+    admin = sys_log.admin_name(cfg)
+    if admin and getattr(p.reader, "user", None) not in (None, admin):
+        return [], []
+    recent = [s.text[:300] for s in p.reader.recent(8)]
+    inner = [s.text[:300] for s in p.reader.recent(6, domain="reflection")] \
+        if p.reader.layout.shards("memory", "reflection") else []
+    return [t for t in recent if public(cfg, t)], [t for t in inner if public(cfg, t)]
+
+
 def report(p, host: PluginHost, cfg: sys_config.Config | None = None) -> dict:
     """Statistics of every connected platform, and ideas; returned for a memory (REM)."""
     cfg = cfg or sys_config.get()
@@ -61,9 +83,7 @@ def report(p, host: PluginHost, cfg: sys_config.Config | None = None) -> dict:
             stats[t["label"]] = r["text"] if r["ok"] else f"not measured: {r['text'][:200]}"
     if not stats:
         return {"skipped": "no social platform connected"}
-    recent = [s.text[:300] for s in p.reader.recent(8)]
-    inner = [s.text[:300] for s in p.reader.recent(6, domain="reflection")] \
-        if p.reader.layout.shards("memory", "reflection") else []
+    recent, inner = drawn(p, cfg)
     user = json.dumps({"statistics": stats, "recent_conversation": recent, "recent_thoughts": inner}, ensure_ascii=False)
     text = p._for("rem").complete(sys_persona.identity(p.cfg) + SYS_IDEAS, user, 900).answer.strip()
     sys_log.get_logger("social").info("social report: %s", ", ".join(stats))

@@ -9,6 +9,7 @@ import { call } from "../api.js";
 import { clock, el, scrollEnd, toBase64, useCss } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { actions } from "./chat_actions.js";
+import { composer } from "./composer.js";
 import { auroraBubble, follow, renderPast } from "./trace.js";
 
 const anonLoad = () => call("/v1/aurora/chat/anon");
@@ -64,9 +65,10 @@ export default {
       c.addEventListener("click", () => { pending.splice(i, 1); drawChips(); });
       return c;
     }));
+    const addFiles = (list) => { pending.push(...list); drawChips(); };
     root.querySelector(".attach").addEventListener("click", () => fileInput.click());
-    fileInput.addEventListener("change", () => { pending.push(...fileInput.files); fileInput.value = ""; drawChips(); });
-    input.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); } });
+    fileInput.addEventListener("change", () => { addFiles(fileInput.files); fileInput.value = ""; });
+    composer({ form, input, onFiles: addFiles, dropOn: root.querySelector(".conversation") });   // the chat's own box
     form.addEventListener("submit", async (ev) => {
       ev.preventDefault();
       const question = input.value.trim(), files = pending;

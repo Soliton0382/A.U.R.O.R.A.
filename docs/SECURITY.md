@@ -28,7 +28,11 @@ encrypted to the platform (HTTPS) but readable by it; that is how those platform
 |---|---|---|
 | `.env` and `.env.proposed` (keys, tokens) | mode 0600, kept at every write and restored at every start | was 0644 until 2026-09-30 (C30) |
 | device tokens, approvals, TLS private key | 0600 | measured |
-| knowledge and memory stores, logs, traces | file permissions of the service user | **not encrypted**: the disk is ext4 without LUKS |
+| a user's memory (STM, LTM: turns, session memories, thoughts, dreams, reviews, a chat's attached documents) | text, title and extra of every row AES-256-GCM with the user's «memory» key, the sid and the column bound to it; the vectors AES-CTR with their own key, no HNSW graph; the memory of before sealed at the start, the files' old pages emptied (VACUUM) — N64, 29 Oct | `test_memory_sealed.py`, `test_memory_seal_migration.py`; plain for the queries: dates, kind, STM/LTM, the source id (a kind and an id) |
+| the traces (api, agent, search) | a chat's text in them sealed with the run's user's key; the drafts not written; another user's lines never read back | `test_sys_log.py`, `test_n64_logs.py`; the traces of before stay until their 30 days pass |
+| the knowledge (harvested papers), its indexes, the deductions, the synapses | file permissions of the services' account: public papers, not encrypted (owner, 29 Oct) | the disk is ext4 without LUKS |
+| the users' keys | each wrapped by Aurora's own key (sys_keyring): a key file alone opens nothing | `test_keyring.py` |
+| Aurora's own key | a systemd credential bound to this machine (TPM or host key, /etc/credstore.encrypted, root's), opened by systemd for her services only in /run/credentials (hidden from the plugins' cage); a file of the services' account (0600) until the installer seals it, and on the Mac and Windows ports; its recovery copy sealed with the backup's key | `test_keyring.py`; root on the running machine can still reach it |
 | health (diet, training, exams) | AES-256-GCM per file, one key per user kept apart (status/users/<name>/keys, 0600), the file's name bound to it; deletion final | `test_health.py`; protects at rest, not against root (the key is on this machine) |
 | the doctors' cards (hours, phone, notes) | the same as health: sealed with the user's key (hlt_doctor) | `test_doctor.py` |
 | the plugins' cage and the home | bubblewrap: the home a private tmpfs wherever Aurora is installed (C204: before, only when Aurora was inside the home); the Mac (sandbox-exec) and Windows (AppContainer) ports give the same contract (cage_plan) | `test_cage_users.py`; the ports' probe on real machines |
@@ -39,8 +43,13 @@ encrypted to the platform (HTTPS) but readable by it; that is how those platform
 | Aurora's own firewall (nftables) | Aurora may run ONE root command, /usr/local/sbin/aurora-nft (sudoers, checked with visudo), and it touches only its own table inet aurora: an address in a timed blocklist, out, the list; never a protected address (AURORA_DEFENCE_PROTECTED), this machine, the firewall | test_security_plus.py; installed by the owner |
 
 Recommendation (the owner's decision: it needs a reinstall or an encrypted home): full-disk
-encryption with LUKS. Application-level encryption of the stores (SQLCipher) is possible; its cost
-on search speed is not measured.
+encryption with LUKS, under the application-level sealing above. Its cost: M268 (a retrieval +0.1 ms).
+
+**Who the sealing protects from (N64), said plainly.** Aurora must open a chat to answer it, to consolidate it at
+night, to dream: while she works unattended her key is on this machine. The admin's account (in the services' group),
+another user, a plugin, a project's code, a stolen disk or NAS copy, a backup: they find only ciphertext. Root on the
+running machine can ask systemd for the credential or read a service's memory: no design without the user's own
+password at every opening stops that (ROADMAP N64, phase 7, optional).
 
 ## Code of conduct (sys/core/ethics/CODE.md)
 

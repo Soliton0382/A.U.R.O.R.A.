@@ -15,6 +15,14 @@ AURORA_LOG_RETENTION_TRACE_DAYS, everything else AURORA_LOG_RETENTION_DAYS.
 The trace is one file per component instead of one shared file: each component
 runs in its own process, and rotating a file shared by several processes is not
 safe. Readers merge the files by timestamp.
+
+No chat's words in the trace (N64 phase 4, owner 29 Oct: «l'admin non può leggere il contenuto delle chat»): the
+run events of the components that carry a chat (CHAT: the question, its translation, the draft, the answer, an
+agent's goal, thoughts and tool arguments, the search queries) keep their structure plain — ids, sids, counts, times,
+modes (PLAIN) — and every other value sealed with the run's user's key (sys_seal.seal_text, bound to
+"<run_id>/<event>"); the pieces of a draft (OFF_DISK) are not written at all. A reader opens a line for its own user
+only (open_record): another user's values become «(private: <user>)». The listeners and the usage counts still get the
+payload as it was, in memory.
 """
 from __future__ import annotations
 
@@ -175,7 +183,11 @@ def trace(component: str, event: str, payload: dict[str, Any] | None = None,
     from . import sys_context                        # whose work (multi-user): a purge removes a user's lines
     if sys_context.user():
         record["user"] = sys_context.user()
-    if not sys_context.anonymous_now():              # an anonymous chat's run: nothing on disk (sys_anon)
+    if not sys_context.anonymous_now() and not (component in CHAT and event in OFF_DISK):
+        # an anonymous chat's run: nothing on disk (sys_anon); a chat's words sealed with its user's key (N64)
+        if component in CHAT and record["payload"]:
+            record["payload"] = seal_fields(_config(), record["payload"], chat_keys(record["payload"]),
+                                            f"{run_id}/{event}", record.get("user"))
         tr.info(json.dumps(record, ensure_ascii=False, default=str))
     from . import sys_usage                          # the usage counts (names and numbers only)
     sys_usage.count(_config(), component, event, payload or {}, record.get("user"))
@@ -185,6 +197,77 @@ def trace(component: str, event: str, payload: dict[str, Any] | None = None,
         except Exception:  # noqa: BLE001 — a listener never breaks the traced work
             pass
     return seq
+
+
+# ---- a chat's words sealed (N64 phase 4) ---------------------------------------------------------------------------
+CHAT = frozenset({"api", "agent", "search"})       # their run events carry a chat's words
+# the structure of an event, never a chat's words: ids, modes, names of tools and models, numbers in a dict
+PLAIN = frozenset({"mode", "kind", "lang", "from", "effect", "plugin", "tool", "status", "stage", "domain", "provider",
+                   "model", "role", "usage", "seconds", "speed", "hits", "reason", "id", "asked", "used", "region",
+                   "by", "cloud", "found"})
+OFF_DISK = frozenset({"synthesis.delta"})          # every piece of the draft: nobody reads them back from the trace
+PRIVATE = "(private: {})"
+
+
+def chat_keys(payload: dict) -> list[str]:
+    """The keys of a run event whose values may hold a chat's words: every one but PLAIN and plain numbers."""
+    return [k for k, v in payload.items()
+            if k not in PLAIN and v is not None and not isinstance(v, (bool, int, float))]
+
+
+def seal_fields(cfg: sys_config.Config, d: dict, keys, label: str, user: str | None) -> dict:
+    """A copy of `d` with the values at `keys` sealed with `user`'s key (sys_seal.seal_text of the value as JSON, bound to
+    `label`; no user: the admin's). A key that does not open here (a tool outside the services, sys_keyring.Locked)
+    drops the value and keeps its length: never written in plaintext."""
+    from . import sys_seal
+    out = dict(d)
+    for k in keys:
+        v = out.get(k)
+        if v is None or sys_seal.is_sealed(v):
+            continue
+        raw = json.dumps(v, ensure_ascii=False, default=str)
+        try:
+            out[k] = sys_seal.seal_text(cfg, raw, label, user, "state")
+        except Exception:  # noqa: BLE001 — no key here: the length only
+            out[k] = f"(not kept: {len(raw)} chars)"
+    return out
+
+
+def open_fields(cfg: sys_config.Config, d: dict, label: str, user: str | None) -> dict:
+    """`d` with its sealed values opened with `user`'s key (a value of before N64 comes back as it is)."""
+    from . import sys_seal
+    out = dict(d)
+    for k, v in d.items():
+        if isinstance(v, str) and sys_seal.is_sealed(v):
+            try:
+                out[k] = json.loads(sys_seal.open_text(cfg, v, label, user, "state"))
+            except Exception:  # noqa: BLE001 — changed, or not this user's
+                out[k] = "(does not open)"
+    return out
+
+
+def hide_fields(d: dict, owner: str | None) -> dict:
+    """`d` as another user sees it: every sealed value «(private: <owner>)»."""
+    from . import sys_seal
+    return {k: PRIVATE.format(owner or "?") if isinstance(v, str) and sys_seal.is_sealed(v) else v for k, v in d.items()}
+
+
+def admin_name(cfg: sys_config.Config) -> str | None:
+    """The admin's name after the per-user layout; None before it (one user: every line is theirs)."""
+    from . import sys_users_layout
+    return (sys_users_layout.migrated(cfg.base or cfg) or {}).get("admin")
+
+
+def open_record(cfg: sys_config.Config, record: dict, viewer: str | None, admin: str | None = None) -> dict | None:
+    """A trace line as `viewer` may see it: opened when it is theirs (no user on the line: the admin's), None when it
+    is another user's — nobody reads another user's run (the admin neither)."""
+    admin = admin if admin is not None else admin_name(cfg)
+    if (record.get("user") or admin) != (viewer or admin):
+        return None
+    p = record.get("payload")
+    if not isinstance(p, dict):
+        return record
+    return {**record, "payload": open_fields(cfg, p, f"{record.get('run_id')}/{record.get('event')}", record.get("user"))}
 
 
 def scan_secrets(cfg: sys_config.Config | None = None) -> list[tuple[str, str]]:
@@ -207,8 +290,9 @@ def scan_secrets(cfg: sys_config.Config | None = None) -> list[tuple[str, str]]:
     return hits
 
 
-# written in append mode by programs without a rotating handler: the plugins' stderr, kept by the plugin host
-LOOSE = ("plugins/*.stderr.log",)
+# written in append mode by programs without a rotating handler: the plugins' stderr, kept by the plugin host, and
+# the music model's output (aud_song) — rotated here on every system, no logrotate of the machine needed (C452)
+LOOSE = ("plugins/*.stderr.log", "song.log")
 
 
 def rotate_loose(cfg: sys_config.Config | None = None) -> list[Path]:

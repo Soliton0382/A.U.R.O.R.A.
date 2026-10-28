@@ -81,6 +81,29 @@ class DomainFiles:
         return json.loads(self.manifest.read_text(encoding="utf-8")) if self.manifest.exists() else None
 
 
+def _ctr(cfg: sys_config.Config, m: dict, offset: int, data: bytes) -> bytes:
+    """A user's memory vectors sealed (N64: from the vectors much of a turn's text can be found again): AES-CTR keyed by
+    the user's «memory_index» key, its counter the byte's place in the file — appending stays appending; a full
+    rewrite takes a new nonce (manifest «sealed»). The same call seals and opens."""
+    from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+    from . import sys_seal
+    s = m["sealed"]
+    block, skip = divmod(offset, 16)
+    iv = ((int(s["nonce"], 16) + block) % (1 << 128)).to_bytes(16, "big")
+    enc = Cipher(algorithms.AES(sys_seal._key(cfg, s["user"] or None, "memory_index")), modes.CTR(iv)).encryptor()
+    return enc.update(bytes(skip) + data)[skip:]
+
+
+def _vectors(cfg: sys_config.Config, f: "DomainFiles", m: dict):
+    """The matrix: mapped as it is, or a sealed one opened in memory (a user's memory is small)."""
+    shape = (m["count"], m["dim"])
+    if not m.get("sealed"):
+        return np.memmap(f.vectors, dtype=np.float16, mode="r", shape=shape)
+    with open(f.vectors, "rb") as h:
+        raw = h.read(m["count"] * m["dim"] * 2)
+    return np.frombuffer(_ctr(cfg, m, 0, raw), dtype=np.float16).reshape(shape)
+
+
 def memory_index(cfg: sys_config.Config, user: str | None) -> Path:
     """The memory index of a user (multi-user, U3): today's index/memory until the migration."""
     from . import sys_users_layout
@@ -130,7 +153,9 @@ class Indexer:
         f.folder.mkdir(parents=True, exist_ok=True)
         dim = self.encoder.dim
         m = f.read_manifest() or {"encoder": self.encoder.name, "dim": dim, "count": 0,
-                                  "position": None, "hnsw_count": 0}
+                                  "position": None, "hnsw_count": 0,
+                                  **({"sealed": {"user": self.user or "", "nonce": os.urandom(16).hex()}}
+                                     if self.reader.layout.section_of(domain) == "memory" else {})}
         if m["encoder"] != self.encoder.name or m["dim"] != dim:
             raise IndexMismatch(f"index of {domain} was built with {m['encoder']} ({m['dim']}-d), the encoder is "
                                 f"{self.encoder.name} ({dim}-d): rebuild it with rebuild('{domain}')")
@@ -147,8 +172,11 @@ class Indexer:
             nonlocal added
             vecs = self.encoder.encode_documents([s.text for _, _, s in batch])
             assert vecs.shape == (len(batch), dim), f"encoder returned {vecs.shape}"
+            data = np.ascontiguousarray(vecs, dtype=np.float16).tobytes()
+            if m.get("sealed"):
+                data = _ctr(self.cfg, m, m["count"] * dim * 2, data)
             with open(f.vectors, "ab") as fv, open(f.sids, "ab") as fs:
-                fv.write(np.ascontiguousarray(vecs, dtype=np.float16).tobytes())
+                fv.write(data)
                 fs.write("".join(s.sid for _, _, s in batch).encode("ascii"))
             m["count"] += len(batch)
             m["position"] = [batch[-1][0], batch[-1][1]]
@@ -164,7 +192,9 @@ class Indexer:
                 flush()
         if batch:
             flush()
-        if extend_hnsw and m["count"] > self.cfg["AURORA_INDEX_EXACT_MAX"] and m["hnsw_count"] < m["count"]:
+        # no graph for a sealed matrix: it would hold the vectors in plaintext (a memory is searched exactly)
+        if extend_hnsw and not m.get("sealed") and m["count"] > self.cfg["AURORA_INDEX_EXACT_MAX"] \
+                and m["hnsw_count"] < m["count"]:
             self._extend_hnsw(f, m)
         secs = time.time() - t0
         if added:
@@ -232,11 +262,16 @@ class Indexer:
         removed = int((~keep).sum())
         if not removed:
             return 0
-        vecs = np.memmap(f.vectors, dtype=np.float16, mode="r", shape=(n, dim))
+        vecs = _vectors(self.cfg, f, m)
         tmp_v, tmp_s = f.vectors.with_suffix(".tmp"), f.sids.with_suffix(".tmp")
+        if m.get("sealed"):
+            m["sealed"] = {**m["sealed"], "nonce": os.urandom(16).hex()}           # a rewrite: a new nonce
         with open(tmp_v, "wb") as fv:
+            at = 0
             for i in range(0, n, 65536):
-                fv.write(np.ascontiguousarray(vecs[i:i + 65536][keep[i:i + 65536]]).tobytes())
+                data = np.ascontiguousarray(vecs[i:i + 65536][keep[i:i + 65536]]).tobytes()
+                fv.write(_ctr(self.cfg, m, at, data) if m.get("sealed") else data)
+                at += len(data)
         tmp_s.write_bytes("".join(x for x, k in zip(all_sids, keep) if k).encode("ascii"))
         del vecs
         forget(f.folder)                              # the readers' maps of these files: Windows replaces no mapped file
@@ -247,7 +282,7 @@ class Indexer:
         if f.hnsw.exists():
             f.hnsw.unlink()
         _write_json_atomic(f.manifest, m)
-        if m["count"] > self.cfg["AURORA_INDEX_EXACT_MAX"]:
+        if m["count"] > self.cfg["AURORA_INDEX_EXACT_MAX"] and not m.get("sealed"):
             self._extend_hnsw(f, m)
         self.log.info("audit: index %s: dropped %d rows, %d left", domain, removed, m["count"])
         sys_log.trace(self.component, "index.drop", {"domain": domain, "removed": removed, "total": m["count"]})
@@ -299,7 +334,7 @@ class IndexSet:
         if not m or not m["count"]:
             return None
         entry = {"mtime": mtime, "manifest": m,
-                 "vectors": np.memmap(f.vectors, dtype=np.float16, mode="r", shape=(m["count"], m["dim"])),
+                 "vectors": _vectors(self.cfg, f, m),
                  "sids": np.memmap(f.sids, dtype=f"S{SID_BYTES}", mode="r", shape=(m["count"],)),
                  "hnsw": None}
         if m["hnsw_count"] and f.hnsw.exists():

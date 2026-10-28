@@ -31,7 +31,7 @@ import time
 import uuid
 from pathlib import Path
 
-from . import prj_conduct, prj_run, sys_config, sys_context, sys_log
+from . import prj_conduct, prj_run, sys_config, sys_context, sys_log, sys_seal
 
 READ_LINES = 400                # lines of a file returned at once
 LIST_MAX = 400                  # entries of a listing
@@ -111,7 +111,7 @@ def _state(cfg, project: str) -> Path:
 def working(cfg, project: str) -> dict | None:
     """The turn on its way ({since, steps}) or None."""
     try:
-        d = json.loads(_state(cfg, project).read_text(encoding="utf-8"))
+        d = json.loads(sys_seal.read_any(cfg, _state(cfg, project), cfg.user))
     except (OSError, ValueError):
         return None
     return d if d.get("working") else None
@@ -120,15 +120,14 @@ def working(cfg, project: str) -> dict | None:
 def _note(cfg, project: str, **changes) -> None:
     f = _state(cfg, project)
     try:
-        d = json.loads(f.read_text(encoding="utf-8"))
+        d = json.loads(sys_seal.read_any(cfg, f, cfg.user))
     except (OSError, ValueError):
         d = {}
     steps = d.get("steps", [])
     if "step" in changes:
         steps = (steps + [{"t": time.time(), "text": changes.pop("step")[:300]}])[-STEPS_KEEP:]
     d.update(changes, steps=steps)
-    f.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    f.write_text(json.dumps(d, ensure_ascii=False), encoding="utf-8")
+    sys_seal.write(cfg, f, json.dumps(d, ensure_ascii=False).encode("utf-8"), cfg.user, "state")   # the steps quote the turn (N64)
 
 
 # ---- the tools, done here for the relay ------------------------------------------------------------------------

@@ -9,7 +9,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from aurora import sys_config
+from aurora import sys_config, sys_seal
 from mcp.server.mcpserver import MCPServer
 
 cfg = sys_config.get()
@@ -43,6 +43,11 @@ def _events() -> list[dict]:
                     except Exception:
                         continue
                     if isinstance(ev, dict):
+                        # the body sealed (N64): opened with the one key this plugin gets («push», plg_host)
+                        try:
+                            ev["body"] = sys_seal.open_text(cfg, str(ev.get("body", "")), "history.jsonl", None, "push")
+                        except Exception:
+                            ev["body"] = "[testo cifrato: si legge nella pagina Notifiche]"
                         out.append(ev)
         except Exception:
             continue

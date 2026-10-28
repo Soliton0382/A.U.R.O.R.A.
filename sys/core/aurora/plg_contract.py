@@ -50,6 +50,7 @@ FIELDS = {
     "owner_only": (list, False, "tools only the owner's own words may start (never a run's idea)"),
     "oauth": (str, False, "the name of its OAuth flow (api/oauth)"),
     "env_as": (dict, False, "setting → the environment name its program expects"),
+    "seal_keys": (list, False, "the sealed stores it keeps (calendar, health): their key given to it opened (N64)"),
     "effect_prefixes": (dict, False, "tool-name prefix → effect, for a program with many tools"),
     "outputs": (dict, False, "tool → {pattern, url, mime}: a file it makes, offered for download"),
     "forged": (dict, False, "made by the forge: {request, at, need}"),

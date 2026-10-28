@@ -14,6 +14,12 @@ let 7 of 9 such questions through with 0.51-0.99 (a topic in common is not an an
 for and when, and the whole pipeline checks it again at once in the background: a different answer replaces it in the
 shadow and is shown in the chat. The shadow lives in the user's state folder (shadow.db), at most 2,000 answers.
 
+Sealed with the user's key (N64): each row's question, vector, answer, sources and follow-ups, bound to the row's id
+and column; the id, dates, uses, origin and expiry stay plain for the queries. A question is matched by opening the
+rows (at most MAX_ROWS), the vectors opened once per process and kept in memory. The admin's seed and training rows
+that serve the other users (_shared) are opened with the admin's key by Aurora, as they were read before: what the
+others see of them does not change, and the file stays sealed. Rows of before are read as they are.
+
 A seed (owner, 2026-10-05): script/shadow_seed.py asks many questions on purpose (origin "seed", never the owner's
 own); export_seed() writes those whose every source is public (an arXiv, Wikipedia, Normattiva... identity) to a file
 published with the code, import_seed() lets a new installation start with them — rechecked like any other.
@@ -29,7 +35,7 @@ from contextlib import closing
 
 import numpy as np
 
-from . import sys_config
+from . import sys_config, sys_seal
 
 MAX_ROWS = 2000
 OVERLAP = 5                                       # the nearest shadows the re-ranker chooses among
@@ -38,6 +44,40 @@ OVERLAP = 5                                       # the nearest shadows the re-r
 PUBLIC = ("arxiv:", "legacy:arxiv_", "wikipedia:", "normattiva:", "europepmc:", "pmc", "biorxiv:", "medrxiv:", "github:",
           "docs:", "doi:")
 _lock = threading.Lock()
+_vecs: dict[tuple[int, bytes], np.ndarray] = {}   # (row id, the seal's nonce) -> its opened vector
+
+
+def _label(rid: int, col: str) -> str:
+    return f"shadow:{rid}:{col}"
+
+
+def _open(cfg: sys_config.Config, rid: int, col: str, value, user: str | None):
+    """A column's text back (a row of before: as it is); None stays None."""
+    return value if value is None else sys_seal.open_text(cfg, value, _label(rid, col), user)
+
+
+def _vec(cfg: sys_config.Config, rid: int, blob: bytes, user: str | None) -> np.ndarray:
+    if not sys_seal.is_sealed(blob):
+        return np.frombuffer(blob, dtype=np.float32)
+    k = (rid, blob[len(sys_seal.MAGIC):len(sys_seal.MAGIC) + 12])
+    v = _vecs.get(k)
+    if v is None:
+        if len(_vecs) > 10 * MAX_ROWS:                 # rows replaced long ago: forgotten all at once, opened again
+            _vecs.clear()
+        v = _vecs[k] = np.frombuffer(sys_seal.unseal(cfg, blob, _label(rid, "vec"), user, "state"), dtype=np.float32)
+    return v
+
+
+def _same(cfg: sys_config.Config, con, question: str) -> list[int]:
+    """The rows asked with exactly this question (sealed: each one opened)."""
+    out = []
+    for rid, q in con.execute("SELECT id, question FROM shadows").fetchall():
+        try:
+            if _open(cfg, rid, "question", q, cfg.user) == question:
+                out.append(rid)
+        except ValueError:                             # a row that does not open here: not this question
+            continue
+    return out
 
 
 def task_like(question: str) -> bool:
@@ -78,12 +118,20 @@ def add(cfg: sys_config.Config, embedder, question: str, text: str, sources: lis
     origin = "web" if web and origin == "chat" else origin
     expires = time.time() + float(cfg["AURORA_SHADOW_WEB_DAYS"]) * 86400 if web else None
     vec = _unit(embedder.encode_queries([question])[0])
+    u = cfg.user
     with _lock, closing(_db(cfg)) as con, con:
-        con.execute("DELETE FROM shadows WHERE question = ?", (question,))
-        con.execute("INSERT INTO shadows (question, vec, answer, sources, made, last, origin, follow, expires)"
-                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    (question, vec.tobytes(), text, json.dumps(sources, ensure_ascii=False), made or time.time(),
-                     time.time(), origin, json.dumps(follow or [], ensure_ascii=False), expires))
+        same = _same(cfg, con, question)
+        con.executemany("DELETE FROM shadows WHERE id = ?", [(i,) for i in same])
+        rid = con.execute("SELECT coalesce(max(id), 0) + 1 FROM shadows").fetchone()[0]
+
+        def sealed(col: str, value: str) -> str:
+            return sys_seal.seal_text(cfg, value, _label(rid, col), u)
+        con.execute("INSERT INTO shadows (id, question, vec, answer, sources, made, last, origin, follow, expires)"
+                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (rid, sealed("question", question), sys_seal.seal(cfg, vec.tobytes(), _label(rid, "vec"), u, "state"),
+                     sealed("answer", text), sealed("sources", json.dumps(sources, ensure_ascii=False)),
+                     made or time.time(), time.time(), origin,
+                     sealed("follow", json.dumps(follow or [], ensure_ascii=False)), expires))
         n = con.execute("SELECT count(*) FROM shadows").fetchone()[0]
         if n > MAX_ROWS:                               # the least used and oldest go first
             con.execute("DELETE FROM shadows WHERE id IN (SELECT id FROM shadows ORDER BY used, last LIMIT ?)",
@@ -91,15 +139,16 @@ def add(cfg: sys_config.Config, embedder, question: str, text: str, sources: lis
 
 
 def _shared(cfg: sys_config.Config):
-    """The admin's shadow file when the asking user is someone else: its seed answers are knowledge, not memories, and
-    serve every user (2026-10-06: a user's «Cos'è la decoerenza quantistica?» went through the whole search)."""
+    """(the admin's shadow file, the admin) when the asking user is someone else: its seed answers are knowledge, not
+    memories, and serve every user (2026-10-06: a user's «Cos'è la decoerenza quantistica?» went through the whole
+    search); None otherwise. Its rows open with the admin's key (N64)."""
     from . import sys_users_layout
     m = sys_users_layout.migrated(cfg)
     admin = (m or {}).get("admin")
     if not admin or (cfg.user or admin) == admin:
         return None
     f = sys_users_layout.place(cfg, "state", admin) / "shadow.db"
-    return f if f.is_file() else None
+    return (f, admin) if f.is_file() else None
 
 
 def find(cfg: sys_config.Config, embedder, reranker, question: str, count: bool = True) -> dict | None:
@@ -110,24 +159,42 @@ def find(cfg: sys_config.Config, embedder, reranker, question: str, count: bool 
                                                   "WHERE expires IS NULL OR expires > ?", (time.time(),)).fetchall()]
     seed = _shared(cfg)
     if seed is not None:
-        with closing(sqlite3.connect(f"file:{seed}?mode=ro", uri=True, timeout=30)) as con:
+        with closing(sqlite3.connect(f"file:{seed[0]}?mode=ro", uri=True, timeout=30)) as con:
             rows += [(*r, True) for r in con.execute("SELECT id, question, vec, answer, sources, made, follow FROM shadows "
                                                       "WHERE origin IN ('seed', 'train')").fetchall()]
+
+    def who(r) -> str | None:                         # whose key opens the row: the admin's for the shared ones
+        return seed[1] if r[7] else cfg.user
+    try:
+        vecs = [_vec(cfg, r[0], r[2], who(r)) for r in rows]
+    except ValueError:                                 # a row that does not open here (changed, another's): left out
+        vecs, keep = [], []
+        for r in rows:
+            try:
+                vecs.append(_vec(cfg, r[0], r[2], who(r)))
+                keep.append(r)
+            except ValueError:
+                continue
+        rows = keep
     if not rows:
         return None
     q = _unit(embedder.encode_queries([question])[0])
-    mat = np.stack([np.frombuffer(r[2], dtype=np.float32) for r in rows])
+    mat = np.stack(vecs)
     cos = mat @ q
     near = [int(i) for i in np.argsort(-cos)[:OVERLAP] if float(cos[i]) >= float(cfg["AURORA_SHADOW_COS"])]
     if not near:
         return None
     # shadows that overlap: the re-ranker chooses the answer that answers this question best (the nearest on a tie)
-    scores = [float(x) for x in reranker.score([(question, rows[i][3][:3000]) for i in near])]
+    answers = {i: _open(cfg, rows[i][0], "answer", rows[i][3], who(rows[i])) for i in near}
+    scores = [float(x) for x in reranker.score([(question, answers[i][:3000]) for i in near])]
     k = max(range(len(near)), key=lambda j: (scores[j], float(cos[near[j]])))
     best, score = near[k], scores[k]
     if score < float(cfg["AURORA_SHADOW_ANSWER"]):
         return None
-    rid, old_q, _, text, sources, made, follow, shared = rows[best]
+    rid, old_q, _, _, sources, made, follow, shared = rows[best]
+    u = who(rows[best])
+    old_q, text = _open(cfg, rid, "question", old_q, u), answers[best]
+    sources, follow = _open(cfg, rid, "sources", sources, u), _open(cfg, rid, "follow", follow, u)
     if count and not shared:                           # the admin's seed is read only for the other users
         with _lock, closing(_db(cfg)) as con, con:
             con.execute("UPDATE shadows SET used = used + 1, last = ? WHERE id = ?", (time.time(), rid))
@@ -222,8 +289,10 @@ def export_seed(cfg: sys_config.Config, reader=None, asked: dict | None = None, 
     Each answer says its domain (the one it was asked for, `asked`: question → domain; else its sources') and its
     language, so an installation takes the ones it chose (seed_for)."""
     with closing(_db(cfg)) as con:
-        rows = con.execute("SELECT question, answer, sources, made, follow FROM shadows WHERE origin = 'seed' "
-                           "ORDER BY id").fetchall()
+        rows = [(*(_open(cfg, rid, c, v, cfg.user) for c, v in zip(("question", "answer", "sources"), r)), made,
+                 _open(cfg, rid, "follow", follow, cfg.user))
+                for rid, *r, made, follow in con.execute("SELECT id, question, answer, sources, made, follow FROM shadows "
+                                                         "WHERE origin = 'seed' ORDER BY id").fetchall()]
     found = reader.get_many([s.get("sid") for r in rows for s in json.loads(r[2]) if s.get("sid")]) if reader else {}
     out = []
     for q, text, sources, made, follow in rows:
@@ -243,7 +312,7 @@ def export_seed(cfg: sys_config.Config, reader=None, asked: dict | None = None, 
 def import_seed(cfg: sys_config.Config, embedder, rows: list[dict]) -> dict:
     """A published seed into this installation's shadow; questions already there are left as they are."""
     with closing(_db(cfg)) as con:
-        have = {r[0] for r in con.execute("SELECT question FROM shadows")}
+        have = {_open(cfg, rid, "question", q, cfg.user) for rid, q in con.execute("SELECT id, question FROM shadows")}
     added = skipped = 0
     for r in rows:
         if r.get("question") in have or not public(r.get("sources") or []) or not r.get("answer"):

@@ -33,10 +33,13 @@ def resolve(cfg: sys_config.Config, url: str) -> Path:
     m = re.fullmatch(r"/v1/aurora/uploads/([0-9a-f]{16})", url or "")
     if m:
         from . import sys_uploads
-        found = sys_uploads.get(cfg, m.group(1))
+        try:
+            found = sys_uploads.plain_copy(cfg, m.group(1))         # a sealed one opened in memory (N64)
+        except ValueError:
+            found = None
         if not found:
             raise PreviewError("no such file")
-        return found[0]
+        return found
     raise PreviewError("only Aurora's documents and the chat's files can be previewed")
 
 
@@ -63,7 +66,9 @@ def page_png(cfg: sys_config.Config, path: Path, n: int) -> Path:
     with open(path, "rb") as f:
         for b in iter(lambda: f.read(2**20), b""):
             h.update(b)
-    cache = cfg.path("AURORA_STATUS_DIR") / "preview"
+    from . import sys_uploads
+    # a sealed upload's pages stay beside its opened copy, in memory (N64), never in the shared preview folder
+    cache = path.parent if path.parent == sys_uploads.memory_dir() else cfg.path("AURORA_STATUS_DIR") / "preview"
     cache.mkdir(parents=True, exist_ok=True)
     out = cache / f"{h.hexdigest()[:24]}-{n}.png"
     if not out.is_file():

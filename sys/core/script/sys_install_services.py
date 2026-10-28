@@ -243,6 +243,16 @@ for u in $units $backup $oneshots; do install -m 0644 "$src/$$u" "/etc/systemd/s
 install -m 0644 "$src/50-aurora.rules" /etc/polkit-1/rules.d/50-aurora.rules
 # root's own copy of the code its units run, and the addresses never blocked (sys_root_sync: security review, 28 Oct)
 "$py" "$script/sys_root_sync.py"
+# Aurora's own key (N64): sealed by systemd for her services only, then given to each of them by a drop-in — written
+# only once the sealed key is there and checked, so a unit never asks for a credential that does not exist
+if "$py" "$script/sys_key_seal.py"; then
+  for u in $units; do
+    case "$$u" in *.service) grep -q "$py" "$src/$$u" || continue
+      mkdir -p "/etc/systemd/system/$$u.d"
+      printf '[Service]\nLoadCredentialEncrypted=aurora-key:%s\n' "$$(head -1 "$keys/aurora.sealed")" > "/etc/systemd/system/$$u.d/aurora-key.conf";;
+    esac
+  done
+fi
 systemctl daemon-reload
 systemctl reset-failed $units 2>/dev/null || true
 systemctl enable $units
@@ -435,7 +445,7 @@ def main() -> int:
               "aurora-api": f"http://{cfg['AURORA_API_HOST']}:{cfg['AURORA_API_PORT']}/health",
               "aurora-https": f"https://{cfg['AURORA_DOMAIN']}:{cfg['AURORA_HTTPS_PORT']}/"}
     script_sh = out / "install.sh"
-    script_sh.write_text(INSTALL.substitute(py=py, script=script, 
+    script_sh.write_text(INSTALL.substitute(py=py, script=script, keys=cfg.path("AURORA_STATUS_DIR") / "keys",
         src=out, units=" ".join(names), services=" ".join(f"{n}.service" for n in units), backup=" ".join(backup),
         oneshots=" ".join(oneshots),
         checks="\n".join(f"check {n} {u} || fail=1" for n, u in checks.items()),

@@ -83,6 +83,7 @@ if [ "$CHOICE" = 1 ]; then
   echo "  $(t 'Per tornare: bash install.sh in questa cartella — è un aggiornamento: nessuna domanda, le scelte del .env restano.' 'To come back: bash install.sh in this folder — an update: no question asked, the choices in .env stay.')"
 else
   step "$(t 'Dati e chiavi' 'Data and keys')"
+  CRED=$(head -1 sys/status/keys/aurora.sealed 2>/dev/null)   # Aurora's own key, sealed by systemd (N64)
   if [ -d /etc/aurora ]; then run sudo rm -rf /etc/aurora; ok "/etc/aurora"; fi
   if [ -d "$HOME/.config/aurora" ]; then run rm -rf "$HOME/.config/aurora"; ok "~/.config/aurora"; fi
   # usr/ holds the people's own documents (papers, projects, health): kept outside unless asked a third time
@@ -92,6 +93,14 @@ else
     [ "$DRY" = 0 ] && read -r -p "  $(t "usr/ (i vostri documenti, papers, progetti, salute) va in $KEEPUSR. Per cancellare anche quelli scrivi" "usr/ (your documents, papers, projects, health) goes to $KEEPUSR. To delete those too type") CANCELLA ANCHE I DOCUMENTI: " ANS
     if [ "$ANS" = "CANCELLA ANCHE I DOCUMENTI" ]; then warn "$(t 'anche usr/ verrà cancellata' 'usr/ will be deleted too')"
     else
+      # N64: what is sealed in them (health, calendar, uploads) opened first, while Aurora's key still exists — after
+      # the keys go it would never open again; the sealed key is the services' only: given to this one run by systemd
+      if [ -n "$CRED" ]; then
+        run sudo systemd-run --wait --pipe --quiet -p User=aurora -p Group=aurora -p "WorkingDirectory=$ROOT" \
+          -p "LoadCredentialEncrypted=aurora-key:$CRED" "$ROOT/.venv/bin/python" sys/core/script/sys_unseal_export.py
+      elif getent passwd aurora >/dev/null; then
+        run sudo -u aurora -g aurora .venv/bin/python sys/core/script/sys_unseal_export.py
+      fi
       # the documents become the owner's again before they leave (U6: they were the services' account's, which goes
       # away below — kept as they were, they would belong to nobody and stay unreadable)
       run sudo chown -R "$(id -un):$(id -gn)" "$ROOT/usr"
@@ -100,6 +109,7 @@ else
   fi
   cd /
   run sudo rm -rf "$ROOT"; ok "$ROOT"
+  if [ -n "$CRED" ] && [ -e "$CRED" ]; then run sudo rm -f "$CRED"; ok "$(t 'chiave di Aurora distrutta' 'Aurora key destroyed')"; fi
   # the services' own account (U6): its group, the owner's membership, its ACL on the folders above
   if getent passwd aurora >/dev/null; then
     for p in $(dirname "$ROOT") $(dirname "$(dirname "$ROOT")") "$HOME"; do

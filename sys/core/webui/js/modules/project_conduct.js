@@ -8,6 +8,7 @@ import { call, followRun } from "../api.js";
 import { clock, el } from "../dom.js";
 import { t } from "../i18n.js";
 import { talkView } from "./project_talk.js";
+import { composer } from "./composer.js";
 
 const WHO = { ask: "🙂", goal: "🎯", reply: "🧑‍🔬" };
 const STATUS = { draft: "conduct.st_draft", running: "conduct.st_running", judging: "conduct.st_judging", done: "conduct.st_done",
@@ -166,12 +167,18 @@ export function conductView(name) {
     } catch (e) { fail(e); }
   };
 
+  // the same box as the chat's (composer.js): the text, «Invia» inside it; Enter sends, Shift+Enter a new line
+  const ask = el("form", "ask");
   const words = el("textarea");
   words.rows = 3;
   words.placeholder = t("conduct.ph");
-  const send = el("button", "approve", t("conduct.send"));
-  send.addEventListener("click", async () => {
-    if (!words.value.trim()) return;
+  const send = el("button", "approve send", t("conduct.send"));
+  send.type = "submit";
+  ask.append(words, send);
+  composer({ form: ask, input: words });
+  ask.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    if (send.disabled || !words.value.trim()) return;
     send.disabled = true;
     send.textContent = t("conduct.drafting");
     try {
@@ -185,7 +192,7 @@ export function conductView(name) {
   // 💬 the conversation first (N39 step 2), the phases below it: an answer becomes a phase's draft with one click
   const phases = el("details", "prj-phases");
   phases.open = true;
-  phases.append(el("summary", "", t("conduct.title")), el("p", "muted", t("conduct.hint")), log, words, send);
+  phases.append(el("summary", "", t("conduct.title")), el("p", "muted", t("conduct.hint")), log, ask);
   const toPhase = async (text) => {
     await call(base, { method: "POST", body: JSON.stringify({ text }) });
     phases.open = true;

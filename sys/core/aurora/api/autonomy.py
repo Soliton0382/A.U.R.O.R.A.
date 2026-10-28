@@ -43,7 +43,7 @@ async def autonomy(request: Request, days: int = 14) -> dict:
     from aurora.sys_approvals import Approvals, auto_tools
     user = user_of(request)
     out = _view(user)
-    out["days"] = sys_autonomy.days(cfg, max(1, min(days, 90)), None if out["admin"] else user)
+    out["days"] = sys_autonomy.days(cfg, max(1, min(days, 90)), None if out["admin"] else user, viewer=user)
     if out["admin"]:
         out["stats"] = await asyncio.to_thread(sys_autonomy.statistics, cfg, Approvals(cfg)._load(), auto_tools(cfg))
         from aurora.sys_users import Users

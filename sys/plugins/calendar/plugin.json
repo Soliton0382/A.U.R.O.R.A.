@@ -47,5 +47,8 @@
  "welcome": {
   "it": "📅 Il mio calendario è pronto. Dimmi «ricordami domani alle 9 di chiamare Marco» o «fissa il dentista venerdì alle 15»: te lo ricordo con una notifica e qui in chat. Li trovi anche nella pagina 📅 Calendario.",
   "en": "📅 My calendar is ready. Tell me \"remind me tomorrow at 9 to call Marco\" or \"book the dentist on Friday at 3 pm\": I will tell you with a notification and here in the chat. They are in the 📅 Calendar page too."
- }
+ },
+ "seal_keys": [
+  "calendar"
+ ]
 }

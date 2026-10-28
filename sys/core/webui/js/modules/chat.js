@@ -15,6 +15,7 @@ import { dreamOf, madeOf, makeRecorder, morningOf, preRoll, shrink } from "./cha
 import { thinkMode } from "./chat_think.js";
 import { attachMenu, settingsMenu, showGear, source } from "./chat_menu.js";
 import { actions, quoteBox, quoted } from "./chat_actions.js";
+import { composer } from "./composer.js";
 import { bargeIn } from "../vad.js";
 
 const HISTORY_TURNS = 8;          // 4 exchanges: the same memory Aurora keeps in context
@@ -273,16 +274,7 @@ export default {
       mic.disabled = false;
     };
     fileInput.addEventListener("change", () => { addFiles(fileInput.files); fileInput.value = ""; });
-    input.addEventListener("paste", (ev) => {
-      const files = Array.from(ev.clipboardData?.files || []);
-      if (files.length) { ev.preventDefault(); addFiles(files); }
-    });
-    conv.addEventListener("dragover", (ev) => { ev.preventDefault(); conv.classList.add("drop"); });
-    conv.addEventListener("dragleave", () => conv.classList.remove("drop"));
-    conv.addEventListener("drop", (ev) => { ev.preventDefault(); conv.classList.remove("drop"); addFiles(ev.dataTransfer.files); });
-    input.addEventListener("keydown", (ev) => {
-      if (ev.key === "Enter" && !ev.shiftKey) { ev.preventDefault(); form.requestSubmit(); }
-    });
+    composer({ form, input, onFiles: addFiles, dropOn: conv });       // Enter, paste and drop of files (composer.js)
 
     const userBubble = (text, files = [], when, reply = null) => {
       const m = el("div", "msg user");

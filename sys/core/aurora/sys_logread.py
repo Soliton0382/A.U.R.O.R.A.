@@ -111,9 +111,14 @@ def tail(component: str, lines: int = 100, level: str | None = None, cfg: sys_co
     return list(keep)
 
 
-def run_events(run_id: str, cfg: sys_config.Config | None = None) -> list[dict]:
-    """Every traced event of a run, from the live trace files."""
+def run_events(run_id: str, cfg: sys_config.Config | None = None, viewer: str | None = None) -> list[dict]:
+    """Every traced event of a run, from the live trace files, as `viewer` (default: the user of this work) may see
+    it: their own lines opened (N64: a chat's words are sealed with its user's key, sys_log.open_record), another
+    user's left out — the admin's neither reads another user's run."""
+    from . import sys_context, sys_log
     cfg = cfg or sys_config.get()
+    admin = sys_log.admin_name(cfg)
+    viewer = viewer or sys_context.user() or admin
     out = []
     for f in sorted((_dir(cfg) / "trace").glob("*.jsonl")):
         with open(f, encoding="utf-8", errors="replace") as fh:
@@ -123,9 +128,9 @@ def run_events(run_id: str, cfg: sys_config.Config | None = None) -> list[dict]:
                         e = json.loads(line)
                     except ValueError:
                         continue
-                    if e.get("run_id") == run_id:
+                    if e.get("run_id") == run_id and (e := sys_log.open_record(cfg, e, viewer, admin)) is not None:
                         out.append(e)
-    return sorted(out, key=lambda e: e["ts"])
+    return sorted(out, key=lambda e: (e["ts"], e.get("seq", 0)))       # one millisecond holds several events
 
 
 def answer_stats(hours: float = 24, cfg: sys_config.Config | None = None) -> dict:

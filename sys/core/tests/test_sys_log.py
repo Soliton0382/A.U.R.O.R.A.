@@ -50,7 +50,45 @@ def test_trace_is_one_json_event_per_line(cfg):
     lines = (cfg.path("AURORA_LOG_DIR") / "trace" / "api.jsonl").read_text(encoding="utf-8").splitlines()
     events = [json.loads(line) for line in lines]
     assert [e["event"] for e in events] == ["run.start", "run.end"]
-    assert b > a and events[1]["parent"] == a and events[0]["payload"] == {"goal": "test"}
+    assert b > a and events[1]["parent"] == a and events[0]["payload"]["goal"].startswith("aurseal1:")   # N64
+    assert sys_log.open_record(cfg, events[0], None)["payload"] == {"goal": "test"}
+
+
+def test_a_chat_s_words_are_sealed_in_the_trace_and_open_for_their_user_only(cfg):
+    """N64 phase 4: an invented question, answer, thought and search query never in plaintext on disk; the run's
+    record opens them for the run's user and shows nothing of it to another user; the pieces of a draft not written."""
+    from aurora import sys_context, sys_logread
+    with sys_context.acting_as("giulia"):
+        sys_log.trace("api", "run.start", {"question": "Quanto pesa il criceto Pellegrino Zuffo?"}, run_id="r9")
+        sys_log.trace("api", "synthesis.delta", {"kind": "answer", "text": "Pellegrino Zuffo pesa"}, run_id="r9")
+        sys_log.trace("api", "answer.final", {"text": "Pellegrino Zuffo pesa 120 grammi.", "abstained": False,
+                                              "mode": "knowledge", "seconds": 2.5, "sources": []}, run_id="r9")
+        sys_log.trace("agent", "agent.thought", {"text": "Zuffo vive in una gabbia blu"}, run_id="r9")
+        sys_log.trace("agent", "tool.call", {"name": "web.search", "arguments": '{"q": "criceto Zuffo"}',
+                                             "effect": "read"}, run_id="r9")
+        sys_log.trace("search", "retrieval.hits", {"question": "peso criceto Zuffo", "candidates": 3, "hits": []},
+                      run_id="r9")
+    on_disk = "".join(f.read_text(encoding="utf-8") for f in (cfg.path("AURORA_LOG_DIR") / "trace").glob("*.jsonl"))
+    assert "Zuffo" not in on_disk and "gabbia" not in on_disk and "synthesis.delta" not in on_disk
+    assert '"mode": "knowledge"' in on_disk and '"seconds": 2.5' in on_disk and '"effect": "read"' in on_disk
+    mine = sys_logread.run_events("r9", cfg, viewer="giulia")
+    assert [e["event"] for e in mine] == ["run.start", "answer.final", "agent.thought", "tool.call", "retrieval.hits"]
+    assert mine[0]["payload"]["question"] == "Quanto pesa il criceto Pellegrino Zuffo?"
+    assert mine[1]["payload"]["text"] == "Pellegrino Zuffo pesa 120 grammi." and mine[1]["payload"]["sources"] == []
+    assert mine[3]["payload"]["arguments"] == '{"q": "criceto Zuffo"}'
+    assert sys_logread.run_events("r9", cfg, viewer="marco") == []
+    assert sys_logread.answer_stats(1, cfg)["answers"] == 1        # the numbers stay plain for the statistics
+
+
+def test_a_key_that_does_not_open_here_drops_the_words(cfg, monkeypatch):
+    from aurora import sys_seal
+
+    def locked(*a, **k):
+        raise RuntimeError("locked")
+    monkeypatch.setattr(sys_seal, "seal_text", locked)
+    sys_log.trace("api", "run.start", {"question": "Il codice segreto di Ottavia"}, run_id="r8")
+    line = (cfg.path("AURORA_LOG_DIR") / "trace" / "api.jsonl").read_text(encoding="utf-8")
+    assert "Ottavia" not in line and "(not kept: " in line
 
 
 def test_a_caged_plugin_logs_to_stderr_not_to_the_read_only_folder(cfg, monkeypatch, capsys):
@@ -78,6 +116,16 @@ def test_a_loose_plugin_log_is_rotated_and_keeps_being_written(cfg):
     writer.write("after\n")
     writer.close()
     assert live.read_text() == "after\n"                   # no hole of zeros: append mode writes at the new end
+
+
+def test_the_music_model_s_log_is_rotated_by_aurora_too(cfg):
+    """C452: song.log was left to a logrotate rule of this machine only (as the owner's account: refused after U6)."""
+    live = cfg.path("AURORA_LOG_DIR") / "song.log"
+    live.parent.mkdir(parents=True, exist_ok=True)
+    live.write_text("y" * (cfg["AURORA_LOG_MAX_MB"] * sys_log.MIB + 10))
+    rotated = sys_log.rotate_loose(cfg)
+    assert [f.name.startswith("song.") and f.name.endswith(".log.gz") for f in rotated] == [True]
+    assert live.stat().st_size == 0
 
 
 def test_each_kind_of_log_keeps_its_own_days(cfg):

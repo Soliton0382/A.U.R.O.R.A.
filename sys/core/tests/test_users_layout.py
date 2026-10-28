@@ -121,6 +121,19 @@ def test_purge_leaves_nothing_of_the_user(cfg):
         L.rollback(cfg, "boss")
 
 
+@pytest.mark.skipif(__import__("sys").platform == "win32", reason="POSIX modes")
+def test_a_new_user_s_home_is_open_to_the_services_group(cfg):
+    """C454: a user made after U6 had mode 700 (the admin, in the group, left out), the others 2770 by the migration."""
+    import os, stat
+    old = os.umask(0o007)                                   # the services' UMask
+    try:
+        home = L.make_home(cfg, "guest")
+    finally:
+        os.umask(old)
+    assert stat.S_IMODE(home.stat().st_mode) & 0o070 == 0o070
+    assert all(stat.S_IMODE(d.stat().st_mode) & 0o070 == 0o070 for d in home.iterdir())
+
+
 def test_names_are_folders_never_paths(cfg):
     cfg.values["AURORA_UPLOADS_DIR"] = "usr/uploads"
     for bad in ("", "../x", "a/b", ".", "..", ".hidden", "uploads", "users", "x" * 41):

@@ -93,14 +93,16 @@ def usr_home(cfg: sys_config.Config, name: str) -> Path:
 
 
 def make_home(cfg: sys_config.Config, name: str) -> Path:
-    """A new user's usr/<name>/ with the same tree as everyone's (the folders the settings name), mode 700."""
+    """A new user's usr/<name>/ with the same tree as everyone's (the folders the settings name): the services' group
+    reads and writes it (C454: mode 700 left the admin out of a user made after U6, the others 2770 by the migration;
+    the setgid comes from usr/)."""
     cfg = cfg.base or cfg
     home = usr_home(cfg, name)
-    home.mkdir(parents=True, exist_ok=True, mode=0o700)
+    home.mkdir(parents=True, exist_ok=True, mode=0o770)
     for key in USR_SETTINGS.values():
         p = cfg.path(key)
         if p == usr(cfg) or usr(cfg) in p.parents:
-            (home / p.relative_to(usr(cfg))).mkdir(parents=True, exist_ok=True, mode=0o700)
+            (home / p.relative_to(usr(cfg))).mkdir(parents=True, exist_ok=True, mode=0o770)
     return home
 
 

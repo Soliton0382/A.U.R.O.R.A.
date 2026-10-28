@@ -53,7 +53,8 @@ def items(cfg: sys_config.Config) -> list[dict]:
             continue
         f = d / m["file"]
         out.append({"id": d.name, "name": m["name"], "kind": m["kind"], "at": m["at"],
-                    "bytes": f.stat().st_size if f.is_file() else 0,
+                    # a sealed upload (N64): its own size, as its line says, not the seal's 36 bytes more
+                    "bytes": (m.get("record") or {}).get("size") or (f.stat().st_size if f.is_file() else 0),
                     "expires": m["at"] + int(cfg["AURORA_TRASH_DAYS"]) * DAY})
     return out
 

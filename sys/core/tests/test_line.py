@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_events_come_after_the_id_the_phone_got_last(cfg):
+    cfg.values["AURORA_PUSH_PRIVATE"] = False                         # the bodies themselves (N64: else a neutral line)
     start = sys_line.last(cfg)
     a = sys_line.post({"title": "Aurora", "body": "uno", "view": "chat"}, cfg)
     b = sys_line.post({"title": "Aurora", "body": "due", "view": "chat"}, cfg)
@@ -25,13 +26,14 @@ def test_events_come_after_the_id_the_phone_got_last(cfg):
 
 def test_only_the_last_events_and_not_the_stale_ones(cfg, monkeypatch):
     monkeypatch.setattr(sys_line, "KEEP", 3)
+    cfg.values["AURORA_PUSH_PRIVATE"] = False
     for n in range(5):
         sys_line.post({"body": str(n)}, cfg)
     assert [e["body"] for e in sys_line.since("0", cfg)] == ["2", "3", "4"]
     f = sys_line._file(cfg)
-    rows = [json.loads(x) for x in f.read_text().splitlines()]
+    rows = [sys_line._open(x, f, cfg) for x in f.read_text().splitlines()]
     rows[0]["at"] = time.time() - sys_line.TTL - 1                    # older than a push would live
-    f.write_text("\n".join(json.dumps(r) for r in rows) + "\n")
+    f.write_text("\n".join(json.dumps(r) for r in rows) + "\n")      # plain lines, as before N64: still read
     assert [e["body"] for e in sys_line.since("0", cfg)] == ["3", "4"]
     assert sys_line.since("not a number", cfg) == sys_line.since("0", cfg)
 
@@ -56,3 +58,16 @@ def test_the_page_knows_whose_line_is_open(monkeypatch):
     assert sys_line.lines("anna")[0]["open"] is False and sys_line.seen["d1"]["open"] == 0
     sys_line.held(None, "anna", +1)                                   # the API key: no phone to show
     assert len(sys_line.seen) == 2
+
+
+def test_the_line_is_sealed_and_says_nothing_private_on_the_phone(cfg):
+    """N64: each line sealed with the user's key; with AURORA_PUSH_PRIVATE (recommended) the phone gets a neutral body."""
+    from aurora import sys_seal
+    assert cfg["AURORA_PUSH_PRIVATE"] is True
+    ev = sys_line.post({"title": "💭 Un pensiero di Aurora", "body": "Zanzibar violetto 4417", "view": "diary"}, cfg)
+    assert ev["body"] == "Aurora ha qualcosa per te" and ev["title"] == "💭 Un pensiero di Aurora"
+    cfg.values["AURORA_PUSH_PRIVATE"] = False
+    sys_line.post({"title": "📞 Aurora", "body": "Zanzibar violetto 4417"}, cfg)
+    raw = sys_line._file(cfg).read_text()
+    assert "Zanzibar" not in raw and "pensiero" not in raw and all(sys_seal.is_sealed(x) for x in raw.splitlines())
+    assert [e["body"] for e in sys_line.since("0", cfg)] == ["Aurora ha qualcosa per te", "Zanzibar violetto 4417"]

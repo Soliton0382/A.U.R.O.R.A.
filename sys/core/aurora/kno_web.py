@@ -35,13 +35,20 @@ def query(model, question: str, cfg) -> str:
     """What leaves the machine: a query on the general subject written by the local model — never the question —
     then masked (sec_mask), its placeholders removed, and every run of digits longer than a year dropped (the masker
     missed «333 1234567» and plain names: a query of the subject alone is the real protection)."""
-    from .sec_mask import BARE, PLACEHOLDER, Pseudonymizer
     lines = model.complete(SYS_QUERY, question[:600], 40).answer.strip().splitlines() if question else []
     q = lines[0] if lines else ""                    # an empty reply: no query, never the question (C256)
+    return clean(cfg, q)
+
+
+def clean(cfg, q: str, words: int = 10) -> str:
+    """A query about to leave the machine, as the web search's: masked (sec_mask), its placeholders removed, every run
+    of digits longer than a year dropped, at most `words` words. The paper archives' queries too (N64 phase 6:
+    arXiv, EuropePMC, Wikipedia, GitHub got the reasoner's queries written from the question as they were)."""
+    from .sec_mask import BARE, PLACEHOLDER, Pseudonymizer
     q = Pseudonymizer(cfg).mask(q)
     q = BARE.sub(" ", PLACEHOLDER.sub(" ", q))
     q = re.sub(r"\d[\d\s./-]{4,}\d|\d{5,}", " ", q)
-    return " ".join(re.sub(r"[^\w\s'’-]", " ", q).split()[:10])
+    return " ".join(re.sub(r"[^\w\s'’-]", " ", q).split()[:words])
 
 
 def brave_key() -> str:

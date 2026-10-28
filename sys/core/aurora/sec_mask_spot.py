@@ -6,7 +6,8 @@ conductor's trial sent the owner's surname as a paper's author: «gravissimo!!! 
 mascheramenti dinamici, se il modello si accorge maschera prima di mandare in cloud»).
 
 What it finds is masked at once and LEARNT: kept in the user's state (mask_learned.json, 0600), so the same value is
-masked next time by the fixed rules even when the local model cannot be asked. The local model never sees anything
+masked next time by the fixed rules even when the local model cannot be asked; sealed with the user's key (N64: the
+file is a list of the private values themselves). The local model never sees anything
 that was not already on this machine; nothing of this pass goes to a cloud. Beside the model, always, two rules mask
 what plainly is a person — an initial and a surname («F. Rossi»), a title and a name («Dott. Rossi», «ing. Bianchi»)
 (the first live trial: the model missed an author written «F. Surname»); when the local model does not answer (the
@@ -17,13 +18,12 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import re
 import threading
 import time
 from collections import OrderedDict
 
-from . import sys_config, sys_log
+from . import sys_config, sys_log, sys_seal
 from . import sys_users_layout as L
 
 CHUNK = 3000                    # characters asked at once
@@ -60,9 +60,14 @@ def _file(cfg: sys_config.Config):
 def learned(cfg: sys_config.Config) -> list[str]:
     """The values the local model found before, for this user (masked by the fixed rules from now on)."""
     try:
-        return [w for w in json.loads(_file(cfg).read_text(encoding="utf-8")).get("words", []) if len(w) >= MIN_LEN]
+        return [w for w in json.loads(sys_seal.read_any(cfg, _file(cfg), cfg.user)).get("words", []) if len(w) >= MIN_LEN]
     except (OSError, ValueError):
         return []
+
+
+def _save(cfg: sys_config.Config, words: list[str]) -> None:
+    sys_seal.write(cfg, _file(cfg), json.dumps({"words": words, "at": time.time()}, ensure_ascii=False).encode("utf-8"),
+                   cfg.user, "state")                   # 0600, written through a temporary file
 
 
 def _learn(cfg: sys_config.Config, words: list[str]) -> None:
@@ -70,10 +75,7 @@ def _learn(cfg: sys_config.Config, words: list[str]) -> None:
     new = [w for w in words if w not in have]
     if not new:
         return
-    f = _file(cfg)
-    f.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    f.write_text(json.dumps({"words": sorted(have | set(new)), "at": time.time()}, ensure_ascii=False), encoding="utf-8")
-    os.chmod(f, 0o600)
+    _save(cfg, sorted(have | set(new)))
     sys_log.get_logger("security").info("audit: dynamic masking learnt %d new private value(s)", len(new))
 
 
@@ -82,8 +84,7 @@ def forget(cfg: sys_config.Config, word: str) -> bool:
     have = learned(cfg)
     if word not in have:
         return False
-    f = _file(cfg)
-    f.write_text(json.dumps({"words": [w for w in have if w != word], "at": time.time()}, ensure_ascii=False), encoding="utf-8")
+    _save(cfg, [w for w in have if w != word])
     return True
 
 

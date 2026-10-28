@@ -60,6 +60,26 @@ CREATE TABLE IF NOT EXISTS registry (
 """
 COLUMNS = ("sid", "text", "domain", "kind", "lang", "source_id", "title", "chunk_index", "chunk_count",
            "consolidated", "consolidated_at", "created_at", "schema_version", "extra")
+# N64 (owner, 29 Oct: «LTM e STM devono essere cifrate… l'admin non può leggere il contenuto delle chat»): in the memory
+# section these columns are sealed with the user's «memory» key (AES-256-GCM, the sid and the column as associated
+# data: a value moved to another row does not open); the rest stays plain for the queries (dates, kind, STM/LTM).
+SEALED = ("text", "title", "extra")
+
+
+def seal_row(cfg: sys_config.Config, user: str | None, row: dict) -> dict:
+    from . import sys_seal
+    return {**row, **{c: sys_seal.seal(cfg, str(row[c]).encode("utf-8"), f"{row['sid']}/{c}", user, "memory")
+                      for c in SEALED}}
+
+
+def open_row(cfg: sys_config.Config, user: str | None, row: dict) -> dict:
+    """A row as written: a sealed memory value opened, a plain one (the knowledge, a memory row of before) as it is."""
+    from . import sys_seal
+    for c in SEALED:
+        v = row.get(c)
+        if isinstance(v, bytes) and v.startswith(sys_seal.MAGIC):
+            row[c] = sys_seal.unseal(cfg, v, f"{row['sid']}/{c}", user, "memory").decode("utf-8")
+    return row
 
 
 def _wal(con: sqlite3.Connection) -> None:

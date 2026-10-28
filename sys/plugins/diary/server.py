@@ -9,9 +9,7 @@ posts (the Facebook routine): material of her own, with no private data in it.
 from __future__ import annotations
 
 import gzip
-import json
 import re
-import sqlite3
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 
@@ -35,19 +33,10 @@ def _public(text: str) -> str:
 
 
 def _reflections(kinds: tuple[str, ...], hours: float, limit: int) -> list[dict]:
-    since = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
-    out = []
-    from aurora import sys_users_layout              # the memory of the user (the admin's after the migration: C115)
-    for db in sorted((sys_users_layout.place(cfg, "memory", None) / "reflection").glob("[0-9][0-9][0-9][0-9].db")):
-        con = sqlite3.connect(f"file:{db}?mode=ro", uri=True, timeout=10)
-        try:
-            for created, text, extra in con.execute(
-                    "SELECT created_at, text, extra FROM solitons WHERE created_at >= ? ORDER BY created_at DESC", (since,)):
-                e = json.loads(extra or "{}")
-                if e.get("type") in kinds:
-                    out.append({"at": created, "type": e["type"], "text": _public(text), "image": e.get("image")})
-        finally:
-            con.close()
+    # the memory is sealed (N64): her dreams and thoughts come from her diary, sealed with the one key this plugin gets
+    from aurora import kno_diary
+    rows = kno_diary.since(cfg, kinds, datetime.now(timezone.utc) - timedelta(hours=hours))
+    out = [{"at": r["at"], "type": r["type"], "text": _public(r["text"]), "image": r.get("image")} for r in rows]
     return sorted(out, key=lambda x: x["at"], reverse=True)[:limit]
 
 

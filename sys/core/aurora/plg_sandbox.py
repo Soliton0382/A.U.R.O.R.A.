@@ -81,6 +81,9 @@ def _others_hidden(cfg: sys_config.Config) -> list[str]:
     for secret in (base.path("AURORA_STATUS_DIR") / "users.db", usr / me / ".env"):
         if secret.exists():
             out += ["--ro-bind", "/dev/null", str(secret)]
+    own = L.place(base, "state", me) / "keys"            # its own user's keys too (N64): they open the user's memory
+    if own.is_dir():
+        out += ["--tmpfs", str(own)]
     return out
 
 

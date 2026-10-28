@@ -18,13 +18,12 @@ from __future__ import annotations
 
 import contextvars
 import json
-import os
 import re
 import threading
 import time
 from pathlib import Path
 
-from . import sys_config
+from . import sys_config, sys_seal
 
 FADE_S = 30 * 60                  # an offence weighs nothing after half an hour
 COOL_AT = 0.6                     # two offences close together
@@ -59,16 +58,14 @@ def _file(cfg: sys_config.Config) -> Path:
 
 def _events(cfg: sys_config.Config) -> list[dict]:
     try:
-        return json.loads(_file(cfg).read_text(encoding="utf-8"))
+        return json.loads(sys_seal.read_any(cfg, _file(cfg), cfg.user))
     except (OSError, ValueError):
         return []
 
 
 def _save(cfg: sys_config.Config, rows: list[dict]) -> None:
-    f = _file(cfg)
-    tmp = f.with_suffix(".tmp")
-    tmp.write_text(json.dumps(rows, ensure_ascii=False), encoding="utf-8")
-    os.replace(tmp, f)
+    """Sealed with the user's key (N64: the events keep the words heard); a file of before is sealed here."""
+    sys_seal.write(cfg, _file(cfg), json.dumps(rows, ensure_ascii=False).encode("utf-8"), cfg.user, "state")
 
 
 def heard(text: str) -> str:

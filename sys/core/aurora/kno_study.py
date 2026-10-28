@@ -13,14 +13,13 @@ the state per user is in their state folder (study.json).
 from __future__ import annotations
 
 import json
-import os
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import re
 
-from . import kno_abstain, sys_config
+from . import kno_abstain, sys_config, sys_seal
 
 # the night imports only what the re-ranker found clearly relevant: in the first study run (2026-10-05, 12 imports) the
 # relevant ones scored 0.75-0.97, the useless ones ("Red", "GIMP" for a question about a picture) 0.11-0.32 —
@@ -41,18 +40,16 @@ def _state_file(cfg: sys_config.Config) -> Path:
 def _done(cfg: sys_config.Config) -> dict:
     f = _state_file(cfg)
     try:
-        return json.loads(f.read_text(encoding="utf-8")) if f.exists() else {}
+        return json.loads(sys_seal.read_any(cfg, f, cfg.user)) if f.exists() else {}
     except ValueError:
         return {}
 
 
 def _mark(cfg: sys_config.Config, run_id: str, outcome: dict) -> None:
+    """Sealed with the user's key (N64: the outcomes name the questions); a file of before is sealed here."""
     d = _done(cfg)
     d[run_id] = outcome
-    f = _state_file(cfg)
-    tmp = f.with_suffix(".tmp")
-    tmp.write_text(json.dumps(d, ensure_ascii=False, indent=1), encoding="utf-8")
-    os.replace(tmp, f)
+    sys_seal.write(cfg, _state_file(cfg), json.dumps(d, ensure_ascii=False, indent=1).encode("utf-8"), cfg.user, "state")
 
 
 def pending(pipeline, cfg: sys_config.Config, days: float = 7) -> list[dict]:

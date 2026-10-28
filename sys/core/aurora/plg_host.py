@@ -32,6 +32,8 @@ from pathlib import Path
 from . import sys_config, sys_log
 
 EFFECTS = ("read", "write_local", "external", "code_change")
+# the sealed stores a caged plugin may open with its own key (N64): its manifest asks for them in «seal_keys»
+SEAL_KEYS = ("calendar", "health", "diary", "push")
 _lock = threading.Lock()
 
 
@@ -195,6 +197,12 @@ class PluginHost:
             env[k] = str(self.cfg.values.get(k, "") or "")
         for k, v in p.manifest.get("env_as", {}).items():     # .env key -> name the program expects
             env[v] = str(self.cfg.values.get(k, "") or "")
+        # N64: the cage holds neither Aurora's key nor the user's key files; a plugin keeping sealed data of its own
+        # gets that one key, opened — only the purposes below, never the memory's or the state's
+        from . import sys_seal
+        for purpose in p.manifest.get("seal_keys", []):
+            if purpose in SEAL_KEYS:
+                env[f"AURORA_SEAL_KEY_{purpose.upper()}"] = sys_seal._key(self.cfg, self.cfg.user, purpose).hex()
         from . import plg_sandbox
         filtered = plg_sandbox.env_file(p.name, p.manifest, self.cfg)    # only this plugin's own secrets
         if self.cfg["AURORA_PLUGIN_SANDBOX"]:

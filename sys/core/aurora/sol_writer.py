@@ -100,6 +100,8 @@ class VaultWriter:
                     nxt = _next_rowid(con)
                     for s in fresh:
                         row = s.to_row()
+                        if section == "memory":                  # N64: a user's turns never in plaintext
+                            row = sol_vault.seal_row(self.cfg, self.user, row)
                         try:
                             cur = con.execute(
                                 f"INSERT INTO solitons(rowid,{','.join(sol_vault.COLUMNS)}) "

@@ -31,6 +31,11 @@ def init_key(cfg: sys_config.Config) -> str:
     fd = os.open(p, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(fd, "wb") as f:
         f.write(raw)
+    try:                                               # N64: Aurora's key's recovery copy, now that there is a backup key
+        from . import sys_keyring
+        sys_keyring.escrow(cfg)
+    except Exception:                                  # noqa: BLE001 — sealed for the services and not one of them: later
+        pass
     return recovery_code(raw)
 
 

@@ -266,3 +266,20 @@ def as_markdown(p, d: dict) -> str:
             f"in tema: {d['known']:.2f}); punteggio {d['score']:.2f}.\n\n"
             f"_Deduzione di Aurora: i due fatti sono verificati sulle loro fonti, il passaggio fra loro no — è "
             f"un'ipotesi da controllare._")
+
+
+def forget(cfg: sys_config.Config, sids) -> int:
+    """The deductions and the pairs looked at that cite these passages, gone (a source removed; C453: a chat's
+    document taken out of the knowledge — its sentences were quoted in a_fact/b_fact)."""
+    sids = list(sids)
+    if not sids:
+        return 0
+    gone = 0
+    with closing(_db(cfg)) as con:
+        for i in range(0, len(sids), 400):
+            part = sids[i:i + 400]
+            q = ",".join("?" * len(part))
+            gone += con.execute(f"DELETE FROM deductions WHERE a IN ({q}) OR b IN ({q})", part + part).rowcount
+            con.execute(f"DELETE FROM looked WHERE a IN ({q}) OR b IN ({q})", part + part)
+        con.commit()
+    return gone

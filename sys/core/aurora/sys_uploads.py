@@ -9,6 +9,11 @@ deletes it from the Files page; AURORA_UPLOADS_KEEP_DAYS > 0 also removes it aft
 
 Served safely: images (but SVG), videos and audio inline; anything else only as a download, never rendered by the
 WebUI's origin (an uploaded HTML or SVG must not run there).
+
+Sealed with the user's key (N64): the index (names, turns) and every stored file, bound to its id (the trash may move
+it), opened only for its owner by read(); a program that needs a file (pdfinfo, pdftoppm) gets plain_copy(), a copy
+in this process's memory folder. Not sealed: Aurora's own pictures and videos (role «assistant»), which the social
+plugins publish by file name from their cage, where no key is. A file or index of before reads as it is.
 """
 from __future__ import annotations
 
@@ -16,11 +21,12 @@ import json
 import mimetypes
 import os
 import re
+import tempfile
 import time
 import uuid
 from pathlib import Path
 
-from . import sys_config
+from . import sys_config, sys_seal
 
 GRACE_S = 3600
 INLINE = re.compile(r"^(image/(jpeg|png|webp|gif|bmp|avif)|video/[\w.+-]+|audio/[\w.+-]+)$")
@@ -34,18 +40,32 @@ def _dir(cfg: sys_config.Config) -> Path:
 
 def _index(cfg: sys_config.Config) -> list[dict]:
     try:
-        return json.loads((_dir(cfg) / "index.json").read_text(encoding="utf-8"))
+        return json.loads(sys_seal.read_any(cfg, _dir(cfg) / "index.json", cfg.user))
     except (OSError, ValueError):
         return []
 
 
 def _write_index(cfg: sys_config.Config, items: list[dict]) -> None:
-    f = _dir(cfg) / "index.json"
-    tmp = f.with_name("index.json.tmp")
-    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "w", encoding="utf-8") as h:
-        json.dump(items, h, ensure_ascii=False, indent=1)
-    os.replace(tmp, f)
+    sys_seal.write(cfg, _dir(cfg) / "index.json", json.dumps(items, ensure_ascii=False, indent=1).encode("utf-8"),
+                   cfg.user, "state")                   # 0600, through a temporary file
+
+
+def _label(uid: str) -> str:
+    return f"upload:{uid}"
+
+
+def sealed(role: str, mime: str) -> bool:
+    """Whether a stored file is sealed: all but Aurora's own pictures and videos (the cage's social plugins post them)."""
+    return not (role == "assistant" and str(mime).startswith(("image/", "video/")))
+
+
+class _Stored(type(Path())):
+    """A stored file's path whose read_bytes() gives the plain data (a reader of before calls it on get()'s path)."""
+    _open = None
+
+    def read_bytes(self) -> bytes:
+        blob = super().read_bytes()
+        return self._open(blob) if self._open and sys_seal.is_sealed(blob) else blob
 
 
 def safe_name(name: str) -> str:
@@ -58,10 +78,11 @@ def save(cfg: sys_config.Config, run_id: str, name: str, mime: str, data: bytes,
     rel = Path(time.strftime("%Y-%m")) / f"{uid}-{safe_name(name)}"
     path = _dir(cfg) / rel
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    mime = mime or mimetypes.guess_type(name)[0] or "application/octet-stream"
     fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(fd, "wb") as h:
-        h.write(data)
-    item = {"id": uid, "name": Path(name).name[:200], "mime": mime or mimetypes.guess_type(name)[0] or "application/octet-stream",
+        h.write(sys_seal.seal(cfg, data, _label(uid), cfg.user, "state") if sealed(role, mime) else data)
+    item = {"id": uid, "name": Path(name).name[:200], "mime": mime,
             "size": len(data), "run_id": run_id, "created": time.time(), "path": str(rel), "role": role}
     items = _index(cfg)
     items.append(item)
@@ -104,7 +125,50 @@ def get(cfg: sys_config.Config, uid: str) -> tuple[Path, dict] | None:
     path = (_dir(cfg) / item["path"]).resolve()
     if _dir(cfg).resolve() not in path.parents or not path.is_file():
         return None
-    return path, item
+    p = _Stored(path)
+    p._open = lambda blob, u=item["id"]: sys_seal.unseal(cfg, blob, _label(u), cfg.user, "state")
+    return p, item
+
+
+def read(cfg: sys_config.Config, uid: str) -> tuple[bytes, dict] | None:
+    """A stored file's plain data and its line, for its owner only (ValueError: not this user's, or changed)."""
+    found = get(cfg, uid)
+    return (found[0].read_bytes(), found[1]) if found else None
+
+
+def plain_copy(cfg: sys_config.Config, uid: str) -> Path | None:
+    """A file for a program that reads paths (pdfinfo, pdftoppm): the stored file itself when never sealed, else a
+    copy opened into this process's memory folder (/dev/shm, 0700; the system's temporary folder without one), made
+    once per file and process — never beside the sealed one."""
+    found = get(cfg, uid)
+    if not found:
+        return None
+    path, item = found
+    with open(path, "rb") as f:
+        if f.read(len(sys_seal.MAGIC)) != sys_seal.MAGIC:
+            return path
+    out = memory_dir() / f"{item['id']}-{path.name}"
+    if not out.is_file():
+        tmp = out.with_name(out.name + f".{os.getpid()}.tmp")
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "wb") as h:
+            h.write(path.read_bytes())
+        os.replace(tmp, out)
+    return out
+
+
+def memory_dir() -> Path:
+    """This process's folder for opened copies (plain_copy) and what is drawn from them (doc_preview's pages)."""
+    base = Path("/dev/shm") if Path("/dev/shm").is_dir() and os.access("/dev/shm", os.W_OK) else Path(tempfile.gettempdir())
+    import getpass                                    # every system has it (os.getuid: not on Windows)
+    d = base / f"aurora-{getpass.getuser()}-{os.getpid()}" / "uploads"
+    if not d.is_dir():
+        import atexit
+        import shutil
+        d.mkdir(parents=True, exist_ok=True, mode=0o700)
+        os.chmod(d.parent, 0o700)
+        atexit.register(shutil.rmtree, d.parent, True)  # the opened copies end with the process
+    return d
 
 
 def delete(cfg: sys_config.Config, uid: str) -> bool:

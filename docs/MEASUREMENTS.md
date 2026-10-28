@@ -4396,3 +4396,26 @@ name, a doctor by title; and three scientific names that must stay (Einstein–C
 Not measured: a large set of real texts (precision and recall over many), names in languages other than Italian and
 English, the delay of a whole vault context with the local model busy answering.
 
+## M268 — the memory encrypted at rest: what it costs (29 October 2026; ROADMAP N64)
+
+Synthetic shards with the vault's own DDL (sol_vault.SHARD_DDL), text of about 1,100 characters (today's memory: a
+mean of 830–1,160 per user, a few hundred solitons each); AES-256-GCM (the `cryptography` package) on text, title and
+extra, a fresh 12-byte nonce each, the sid as associated data. Medians of 200 runs where repeated; one CPU thread.
+
+| measure | 1,000 solitons: plain → encrypted | 100,000 solitons: plain → encrypted |
+|---|---|---|
+| 50 solitons by rowid (an answer's retrieval) | 0.14 → 0.26 ms | 0.18 → 0.29 ms |
+| the 20 most recent | 0.05 → 0.09 ms | 0.05 → 0.09 ms |
+| every STM soliton (the REM's consolidation, 20 %) | 0.7 → 1.0 ms | 110 → 163 ms |
+| a full scan | 3.1 → 4.5 ms | 355 → 535 ms |
+| a text search (LIKE in SQL → a scan in Python) | 0.7 → 4.7 ms | 171 → 491 ms |
+| writing, per soliton | 0.005 → 0.007 ms | 0.005 → 0.008 ms |
+| file size | 1.6 → 1.8 MB (+10 %) | 167 → 180 MB (+8 %) |
+
+Reading: an answer pays about 0.1 ms more, beside seconds of generation; only the text search over the whole memory
+grows (×3–7). The indexes hold no text (the vectors and the sids; the lexical one is contentless), so they are not
+encrypted: the lexical index still keeps which words appear in a soliton.
+
+Not measured: real memory shards (the test is synthetic), the migration of today's memory, a machine slower than this
+one (the Mac's and Windows' CPUs), the cost inside the whole answer path.
+
