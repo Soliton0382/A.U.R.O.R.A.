@@ -27,6 +27,9 @@ def write_env(root: Path, **overrides: str) -> Path:
     for s in schema["settings"]:
         if s.get("secret"):
             values[s["key"]] = "test-secret-" + s["key"].lower()
+    # the test's own backup key, never the one in the home of whoever runs the suite (C461: the tests read the
+    # owner's real key, and stopped when it was sealed)
+    values["AURORA_BACKUP_KEY_FILE"] = str(root / "home" / ".config" / "aurora" / "backup.key")
     values.update(overrides)
     env = root / ".env"
     env.write_text("".join(f"{k}={v}\n" for k, v in values.items()), encoding="utf-8")

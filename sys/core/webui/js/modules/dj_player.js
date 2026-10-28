@@ -228,8 +228,28 @@ export function djPlayer({ reload, onSelect, onConsole }) {
     freq = new Uint8Array(an.frequencyBinCount);
     wave = new Uint8Array(an.fftSize);
   };
+  // 📻 a live station that stops (the API restarted, a gap in the stream, a phone network): taken again by itself
+  // (owner, 29 Oct: «dopo un po' la radio smette di andare»), every few seconds more, never after the user's pause
+  let live = null;
+  const again = () => {
+    if (!live || live.paused) return;
+    clearTimeout(live.timer);
+    live.timer = setTimeout(() => {
+      if (!live || live.paused) return;
+      live.tries += 1;
+      audio.src = `${live.url}${live.url.includes("?") ? "&" : "?"}again=${Date.now()}`;
+      audio.play().catch(() => {});
+    }, Math.min(30000, 2000 * 2 ** Math.min(live.tries, 4)));
+  };
+  setInterval(() => {                                // a stream that plays but brings nothing for 10 s
+    if (live && !live.paused && !audio.paused && Date.now() - live.heard > 10000) { live.heard = Date.now(); again(); }
+  }, 5000);
+  audio.addEventListener("timeupdate", () => { if (live) { live.heard = Date.now(); live.tries = 0; } });
+  audio.addEventListener("error", () => { if (live) again(); });
+  audio.addEventListener("play", () => { if (live) live.paused = false; });
   const load = (i, go = true) => {
     if (!items.length) return;
+    live = null;                                     // a track of the list: no station to take again
     cur = (i + items.length) % items.length;
     const it = items[cur];
     audio.src = `/v1/aurora/dj/${it.kind}/${encodeURIComponent(it.name)}`;
@@ -280,8 +300,9 @@ export function djPlayer({ reload, onSelect, onConsole }) {
     play.textContent = "⏸"; box.classList.add("playing");
     listen(true); clearInterval(heard); heard = setInterval(() => { if (!box.isConnected) { clearInterval(heard); return listen(false); } listen(true); }, 30000);
   });
-  audio.addEventListener("pause", () => { play.textContent = "▶"; box.classList.remove("playing"); clearInterval(heard); listen(false); });
+  audio.addEventListener("pause", () => { if (live && !audio.ended && audio.error === null) live.paused = true; play.textContent = "▶"; box.classList.remove("playing"); clearInterval(heard); listen(false); });
   audio.addEventListener("ended", () => {
+    if (live) return again();                        // a station never ends: it dropped
     if (repeat === 2) return load(cur);                       // 🔂 the same track
     if (shuffle || cur < items.length - 1) return step(1);
     if (repeat === 1) load(0);                                // 🔁 the playlist again from the top
@@ -468,8 +489,9 @@ export function djPlayer({ reload, onSelect, onConsole }) {
   };
   requestAnimationFrame(frame);
   // 📻 a radio's stream (dj_radio.js): no row of the list, the LCD runs the station's name
-  const playStream = (url, title) => {
+  const playStream = (url, title, onAir = true) => {   // onAir false: a preview, played once, never taken again
     cur = -1;
+    live = onAir ? { url, paused: false, tries: 0, heard: Date.now(), timer: null } : null;
     audio.src = url;
     mtext.textContent = `${title}  ***  ${title}  ***`;
     list.querySelectorAll("li").forEach((li) => li.classList.remove("on"));

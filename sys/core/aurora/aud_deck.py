@@ -129,7 +129,7 @@ def blend(xa: np.ndarray, xb: np.ndarray, opts: dict | None = None, emit=None) -
     say = emit or (lambda e, p: None)
     ia, ib = A.analyze(xa), A.analyze(xb)
     say("dj.analysis", {"a": ia.as_dict(), "b": ib.as_dict()})
-    target = {"a": ia.bpm, "b": ib.bpm, "style": aud_dj.STYLES[o["style"]]["bpm"] or ia.bpm}.get(str(o["bpm"]))
+    target = {"a": ia.bpm, "b": ib.bpm, "style": aud_dj.find(o["style"])["bpm"] or ia.bpm}.get(str(o["bpm"]))
     target = float(target or o["bpm"])
     ra, rb = _near(ia.bpm, target), _near(ib.bpm, target)
     steps = semitones(ia, ib) if o["key"] == "match" else 0

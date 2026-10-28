@@ -209,13 +209,42 @@ export function songPanel(state, done, styleOptions) {
   // 💫 inspired by a track, in words only: its style, never its melody (owner, 28 Oct: «tutto gestito tramite il prompt»)
   const insp = el("input", "dj-insp");
   insp.maxLength = 160;
+  insp.name = "dj-inspiration";                      // not a login field: the browser filled it with the user name
+  insp.autocomplete = "off";
   insp.placeholder = t("dj.insp.ph");
   const inspLab = el("label", "dj-style-field dj-insp-field");
   inspLab.append(el("span", "", `💫 ${t("dj.insp.title")}`), insp);
-  dressed.append(el("summary", "", `🎨 ${t("dj.style.title")}`), style.grid, inspLab, dice, mixer);
+  // 🎓 the styles the DJ learnt, ticked one or more (up to three: blended into one groove)
+  const learnt = el("div", "dj-style-field dj-learnt-field");
+  const ticks = [];
+  const fillLearnt = (d) => {
+    const on = new Set(ticks.filter((c) => c.checked).map((c) => c.value));
+    ticks.length = 0;
+    learnt.replaceChildren();
+    const mine = d.styles.filter((x) => x.learned);
+    if (!mine.length) return;
+    learnt.append(el("span", "", `🎓 ${t("dj.learn.use")}`));
+    for (const x of mine) {
+      const c = el("input");
+      c.type = "checkbox";
+      c.value = x.id;
+      c.checked = on.has(x.id);
+      c.addEventListener("change", () => { if (ticks.filter((k) => k.checked).length > 3) c.checked = false; });
+      const lab = el("label", "");
+      lab.append(c, ` ${x.label} (${x.bpm} BPM)`);
+      ticks.push(c);
+      learnt.append(lab);
+    }
+  };
+  const refill = () => call("/v1/aurora/dj").then(fillLearnt).catch(() => {});
+  refill();
+  window.addEventListener("dj-styles", refill);       // a style learnt or forgotten: no refresh of the page
+  dressed.append(el("summary", "", `🎨 ${t("dj.style.title")}`), style.grid, learnt, inspLab, dice, mixer);
   const allStyle = () => {
     const mix = Object.fromEntries(Object.entries(levels).map(([k, r]) => [k, Number(r.value)]).filter(([, v]) => v !== 2));
-    return { ...style.values(), ...(Object.keys(mix).length ? { mix } : {}), ...(insp.value.trim() ? { inspiration: insp.value.trim() } : {}) };
+    const learned = ticks.filter((c) => c.checked).map((c) => c.value);
+    return { ...style.values(), ...(Object.keys(mix).length ? { mix } : {}), ...(insp.value.trim() ? { inspiration: insp.value.trim() } : {}),
+      ...(learned.length ? { learned } : {}) };
   };
   const go = el("button", "approve", `🎤 ${t("dj.song.go")}`);
   const out = el("span", "muted");

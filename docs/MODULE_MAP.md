@@ -167,6 +167,7 @@ call downward (ECOSYSTEM §1).
 | `aud_analysis.py` | audio | audio in and out, and what a track is: its tempo, where its beats fall, its key (the DJ) | numpy | aud_dj, aud_synth |
 | `aud_synth.py` | audio | the DJ's instruments drawn with numpy (kick, clap, hats, snare, bass and pad in the track's key) and the effects of a remix (sidechain, filter, saturation, riser) | aud_analysis, numpy | aud_dj |
 | `aud_dj.py` | audio | the DJ: a track remixed in a style, or several tracks mixed into one set | aud_analysis, aud_synth | api/dj |
+| `aud_learn.py` | creation | 🎓 the DJ learns a style from a radio: a few minutes heard in memory (never written), the 16-step patterns of kick, clap, hats and bass on the beats followed, pad, pump, drive, a low-pass; kept as numbers in the user's dj_styles.json, offered beside the DJ's own | aud_analysis, aud_radio, net_public | api/dj, aud_dj.find |
 | `hlt_store.py` | health | a user's health folder, sealed: the dietitian's plans, the trainer's programmes, medical exams; documents and notes, the index | sys_seal, kno_ingest | api/care, hlt_labs, plugin health |
 | `hlt_labs.py` | health | exam values over time: read by the LOCAL model from an exam, sealed, a series per test with its range, corrected by the owner; never a diagnosis | hlt_store, sys_seal | api/care, plugin health |
 | `kno_acquire_more.py` | knowledge | beyond arXiv: when Aurora does not know, the search agent also asks the harvester's sources searchable by words, the re-ranker picks the best | kno_acquire, kno_sources | kno_acquire |

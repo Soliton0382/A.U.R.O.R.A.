@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-1449%20passed-1baf7a" alt="Tests"> <img src="https://img.shields.io/badge/code-108k%20lines-6a4fd6" alt="Lines of code"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-1460%20passed-1baf7a" alt="Tests"> <img src="https://img.shields.io/badge/code-109k%20lines-6a4fd6" alt="Lines of code"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
 
 <p align="center">🇮🇹 <b>Italiano</b> · 🇬🇧 <a href="README.en.md">English</a></p>
 
@@ -465,8 +465,8 @@ l'HTTPS, e alla fine ti dice indirizzo e chiave API. Tutto finisce in `install.l
 memoria e i dati degli utenti sono cifrati con chiavi che si aprono solo con la chiave di Aurora; con il TPM quella
 chiave è legata al chip della scheda madre, e un disco portato via non apre niente. Senza TPM è legata solo a questa
 macchina, con un segreto che sta sullo stesso disco: un disco rubato si può aprire. L'installer controlla il TPM e
-installa le librerie che gli mancano. ⚠️ Finché anche la chiave del backup è un file sullo stesso disco, un disco rubato
-apre la copia di ripristino della chiave di Aurora: va sigillata allo stesso modo (docs/BUGS.md, C461, in corso). Se la scheda madre si guasta, la copia di ripristino (aperta dalla chiave del
+installa le librerie che gli mancano. Anche la chiave del backup è sigillata così, e dal terminale si usa il suo codice di recupero
+(`--code`). Se la scheda madre si guasta, la copia di ripristino (aperta dalla chiave del
 backup) riporta la chiave su un'altra macchina.
 
 Le funzioni facoltative si scelgono una per una, con la loro dimensione: sogni dipinti (6,8 GB), voce (1,5 GB),

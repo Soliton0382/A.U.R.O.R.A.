@@ -180,6 +180,8 @@ def from_home(who: str) -> None:
     # home — the first migration of the owner's machine left it behind and the backup lost its key, 28 Oct)
     for rel in (".local/share/caddy", ".config/caddy", ".ssh/known_hosts", ".config/aurora/backup.key"):
         s, d = src_home / rel, dst_home / rel
+        if rel.endswith("backup.key") and d.with_name("backup.key.sealed").exists():
+            continue                                    # sealed for the services (C461): never a plain copy again
         if s.exists() and not d.exists():
             def copy(s=s, d=d):
                 d.parent.mkdir(parents=True, exist_ok=True)

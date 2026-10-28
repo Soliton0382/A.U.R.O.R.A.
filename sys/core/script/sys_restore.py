@@ -104,8 +104,13 @@ def main() -> int:
     ap.add_argument("--plan", metavar="SNAPSHOT")
     ap.add_argument("--apply", metavar="SNAPSHOT")
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--code", action="store_true", help="ask the backup's recovery code (its key is sealed for "
+                    "Aurora's services, C461)")
     a = ap.parse_args()
     cfg = sys_config.get()
+    if a.code:
+        import getpass
+        sys_backup.use_code(getpass.getpass("Backup recovery code: "))
     if not (a.plan or a.apply):
         rows = listing(cfg)
         if a.json:

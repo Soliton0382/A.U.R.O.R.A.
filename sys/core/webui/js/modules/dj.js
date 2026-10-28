@@ -56,7 +56,7 @@ export default {
         catch (e) { this.consoleSlot.replaceChildren(el("p", "warn", e.message)); }
       },
     });
-    root.querySelector(".dj-player-slot").append(this.playerView.box, radioPanel((url, title) => this.playerView.playStream(url, title)));
+    root.querySelector(".dj-player-slot").append(this.playerView.box, radioPanel((url, title, onAir) => this.playerView.playStream(url, title, onAir)));
     // a song sung, a mix made, a failure: the playlist at once, not at the next look (owner, 27 Oct: «non c'è un
     // refresh in tempo reale dell'elenco»); the activity is each user's own (note() per user)
     bus.on("activity", (a) => { if (String(a?.event || "").startsWith("dj.") && this.root?.isConnected) this.enter(); });
@@ -74,6 +74,16 @@ export default {
     });
   },
 
+  fillStyles(styles) {                               // the style list, the choice kept when it is still there
+    const was = this.style.value;
+    this.style.replaceChildren(...styles.map((st) => {
+      const o = el("option", "", st.label + (st.bpm ? ` · ${st.bpm} BPM` : ""));
+      o.value = st.id;
+      return o;
+    }));
+    this.style.value = styles.some((st) => st.id === was) ? was : "techno_trance";
+  },
+
   async enter() {
     const s = await call("/v1/aurora/dj");
     const songSlot = this.root.querySelector(".dj-song-slot");
@@ -81,9 +91,12 @@ export default {
       songSlot.replaceChildren(songPanel(s.song, () => this.enter(), s.song_style));   // again only when installed or not changes
       songSlot.dataset.ready = String(s.song.code && s.song.weights);
     }
-    if (!this.style.options.length) {
-      for (const st of s.styles) { const o = el("option", "", st.label + (st.bpm ? ` · ${st.bpm} BPM` : "")); o.value = st.id; this.style.append(o); }
-      this.style.value = "techno_trance";
+    this.fillStyles(s.styles);
+    if (!this.stylesHeard) {                         // a style learnt or forgotten (dj_radio.js): the list follows
+      this.stylesHeard = true;
+      window.addEventListener("dj-styles", async () => {
+        try { this.fillStyles((await call("/v1/aurora/dj")).styles); } catch { /* the next visit fills it */ }
+      });
     }
     this.playerView.refresh(s);                      // the playlist follows the files
     if (!this.spotify && s.spotify?.client_id) {      // 🟢 Spotify only where it is set up (a Premium account's)

@@ -2,6 +2,24 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.3.9 — 2026-10-29
+
+13 publications since v0.2.133.
+
+- 2026-10-29 Backup key sealed with the TPM; units never swap; the DJ learns a style from a radio or a track; style previews; the radio resumes a dropped stream
+- 2026-10-28 Backup frames may carry an installation's own inner layer; recovery code: an installation's own cipher; restore docs
+- 2026-10-28 TPM-bound key and installer check; recovery code for Aurora's key; restore steps in the README; quick spoken path in calls; seal writes leave no temp file
+- 2026-10-28 Seal more at rest: routines, ideas, project plans and reports, expenses; per-user access fixes; plugin shadow keys keyed; sealed video range
+- 2026-10-28 N64: memoria, trace e dati degli utenti cifrati a riposo con una chiave di Aurora sigillata da systemd; allegati nella memoria privata (C453); fix C455, C456
+- 2026-10-28 0.3.4: the Linux suite runs again on the Windows port, a test imported a module Windows has not (C451)
+- 2026-10-28 0.3.3: after an update the Caddyfile is written again, so Caddy follows a setting the update moved (the admin on its socket); a rollback gives back a value it moved (C450)
+- 2026-10-28 0.3.2: the Install check runs its stand-in and its reads as the services' account (C449); roadmap and security notes aligned with U6
+- 2026-10-28 0.3.1: the installation finishes after the move to the account (C447); Caddy's admin on the socket reaches existing installations, Mac trust fixed (C446); Windows cage spec per process (C448)
+- 2026-10-28 0.3.0: the services on their own account (U6) with migration on update, installer and uninstaller aligned; the security review closed (cages, routes, sessions server-side, authenticator change confirmed, CSRF, Caddy admin on a socket, fetch ceilings); the root firewall helper and tunnel installer published; internet radio, Spotify for Premium, visuals on another tab's sound; icon picker
+- 2026-10-28 Sessions end on the server after the unused days; web fetches read in pieces with a ceiling; the astro darks folder walked to its depth only; the installation's owner may manage Aurora's units again
+- 2026-10-28 General check after U6 (one service UMask, the backup key carried, songs detected, mood saved without races, login timing and .docx bombs hardened); Spotify for Premium accounts with its guide, the security policy open to it only when set up; the player's visuals on another tab's sound
+- 2026-10-28 General check after U6: one service UMask (logs readable by the owner's group), the backup key carried by the migration, songs feature detected, mood saved without races; login timing, .docx bombs and camera content types hardened
+
 ## v0.3.8 — 2026-10-29
 
 12 publications since v0.2.133.

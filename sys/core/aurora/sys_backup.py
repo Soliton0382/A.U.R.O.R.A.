@@ -377,7 +377,7 @@ def restore(cfg: sys_config.Config, into: Path, snapshot: str = "latest", prefix
 def status(cfg: sys_config.Config | None = None) -> dict:
     """What the Status page and the health show: configured?, last run, snapshots."""
     cfg = cfg or sys_config.get()
-    out = {"configured": False, "problem": "", "last": None, "snapshots": [], "key": key_path(cfg).is_file()}
+    out = {"configured": False, "problem": "", "last": None, "snapshots": [], "key": has_key(cfg)}
     try:
         dest = target(cfg)
         out["configured"] = out["key"]
@@ -443,4 +443,4 @@ def _write_blob(source: Path, bp: Path, enc: bytes, log, tries: int = 3) -> None
 
 # moved to sys_backup_crypto (it uses names of this module): imported back last
 from .sys_backup_crypto import (  # noqa: E402,F401 — moved there, still read from here
-    key_path, init_key, recovery_code, key_from_code, load_key, _subkeys, encrypt_stream, decrypt_stream, _encrypt_bytes, _decrypt_bytes)
+    key_path, has_key, use_code, init_key, recovery_code, key_from_code, load_key, _subkeys, encrypt_stream, decrypt_stream, _encrypt_bytes, _decrypt_bytes)

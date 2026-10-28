@@ -133,6 +133,16 @@ def check(style: dict | None) -> dict:
             if words:
                 out["inspiration"] = words
             continue
+        if axis == "learned":                            # 🎓 styles the DJ learnt (aud_learn), up to three, blended
+            from . import aud_dj
+            mine = aud_dj._learned()
+            ids = [str(x) for x in (choice or [])][:3] if isinstance(choice, list) else []
+            unknown = [x for x in ids if x not in mine]
+            if unknown:
+                raise ValueError(f"style learned: unknown {', '.join(unknown)}")
+            if ids:
+                out["learned"] = ids
+            continue
         if axis not in AXES:
             raise ValueError(f"style: unknown axis {axis!r}")
         if choice and choice != "auto":
@@ -168,6 +178,17 @@ def resolve(style: dict | None, rng: random.Random | None = None) -> dict:
         brief.append(f"tempo about {out['bpm']} BPM")
     if mix:
         brief.append("mix: " + "; ".join(f"{MIX[e][1]} {('left out', 'subtle', 'normal', 'up front')[v]}" for e, v in mix.items()))
+    if "learned" in s:                                 # 🎓 the rhythm learnt, in words; several: a blend of them
+        from . import aud_dj, aud_learn
+        mine = aud_dj._learned()
+        learnt = [mine[x] for x in s["learned"] if x in mine]
+        for st in learnt:
+            brief.append(f"rhythm of a style learnt by ear: {aud_learn.describe(st)}")
+        if len(learnt) > 1:
+            brief.append("blend these rhythms into one groove")
+        if learnt and "bpm" not in out:
+            out["bpm"] = round(sum(float(st["bpm"]) for st in learnt) / len(learnt))
+            brief.append(f"tempo about {out['bpm']} BPM")
     if "inspiration" in s:                             # the style of a track in words: never its melody, never its name
         brief.append(f"inspired by the STYLE of «{s['inspiration']}»: describe that style in musical terms only "
                      "(era, tempo, instruments, structure, mood); never name the track or the artist in the caption, "

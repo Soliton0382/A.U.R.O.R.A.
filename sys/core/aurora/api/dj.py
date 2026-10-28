@@ -14,14 +14,15 @@ import time
 
 from aurora import sys_context
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 
-from .core import auth, cfg, log, me, note, pipeline
+from .core import auth, cfg, in_thread, log, me, note, pipeline
 
 router = APIRouter()
 AUDIO = re.compile(r"\.(mp3|wav|flac|ogg|m4a|aac|opus|webm)$", re.I)
 NAME = re.compile(r"[\w\- .()'àèéìòù]{1,120}")
 _busy: dict[str, dict] = {}                 # user -> the job running
+_learnt: dict[str, dict] = {}               # user -> how their last 🎓 listen ended (the page shows it)
 _listening: dict[str, dict] = {}            # user -> {"title", "at"}: the player playing (her mood: 🎧)
 LISTEN_S = 75                               # the page says it every 30 s: two missed and she has stopped listening
 
@@ -134,8 +135,10 @@ async def dj_make(request: Request) -> dict:
     if who in _busy:
         raise HTTPException(status_code=409, detail=f"already mixing: {_busy[who]['title']}")
     style = str(body.get("style", ""))
-    if style not in aud_dj.STYLES:
-        raise HTTPException(status_code=422, detail=f"style: one of {', '.join(aud_dj.STYLES)}")
+    try:
+        named = aud_dj.find(style).get("it", style)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
     names = [str(n) for n in body.get("tracks") or []][:12]
     paths = [_pick(n) for n in names]
     if not paths:
@@ -145,7 +148,7 @@ async def dj_make(request: Request) -> dict:
     if deck is not None and len(paths) != 2:
         raise HTTPException(status_code=422, detail="the two decks take two tracks")
     title = (f"{paths[0].stem[:38]} × {paths[1].stem[:38]} (🎚️)" if deck is not None
-             else f"{', '.join(p.stem for p in paths)[:80]} → {aud_dj.STYLES[style]['it']}")
+             else f"{', '.join(p.stem for p in paths)[:80]} → {named}")
     _busy[who] = {"title": title, "since": time.time()}
     minutes = float(cfg["AURORA_DJ_MAX_MINUTES"])
 
@@ -161,6 +164,112 @@ async def dj_make(request: Request) -> dict:
             _busy.pop(who, None)
     sys_context.start(work, name=f"dj-{who}")
     return {"started": True, "title": title, "file": out.name}
+
+@router.post("/v1/aurora/dj/learn", dependencies=[Depends(auth)])
+async def dj_learn(request: Request) -> dict:
+    """{"station": id, "seconds"?: 45-900, "name"?} or {"track": name}: 🎓 the DJ learns a style from the radio or
+    from one of the user's own tracks (aud_learn) — the radio heard in memory and let go, only the style kept. In the
+    background; told when done (and GET says how far it is)."""
+    from aurora import aud_analysis, aud_learn
+    body = await request.json()
+    who, sid = me() or "", str(body.get("station") or "")
+    track = _pick(str(body["track"])) if body.get("track") else None       # 404 when it is not theirs
+    if track is None and not sid:
+        raise HTTPException(status_code=422, detail="a station or one of your tracks")
+    if who in _busy:
+        raise HTTPException(status_code=409, detail=f"already busy: {_busy[who]['title']}")
+    seconds = max(aud_learn.SECONDS[0], min(aud_learn.SECONDS[1], float(body.get("seconds") or 150)))   # up to 15 min
+    title = f"🎓 {str(body.get('name') or '').strip()[:60] or (track.stem[:60] if track else 'radio')}"
+    if track is not None:
+        seconds = 0.0                                     # a file: nothing to wait for, straight to the analysis
+    import threading
+    stop = threading.Event()
+    _busy[who] = {"title": title, "since": time.time(), "learn": True, "seconds": seconds, "stop": stop,
+                  "phase": "analysing" if track is not None else "listening"}
+    _learnt.pop(who, None)
+    folder = _dir()
+
+    def work():
+        try:
+            if track is not None:
+                x, station = aud_analysis.load(track, 600), track.stem   # the first ten minutes are plenty
+            else:
+                x, station = aud_learn.record(sid, seconds, stop)
+            _busy[who]["phase"] = "analysing"
+            try:
+                style = aud_learn.learn(x)
+            finally:
+                del x                                     # the audio heard: never kept
+            sid_ = aud_learn.save(folder, str(body.get("name") or (track.stem if track else "")), style, station)
+            text = f"{title}: {style['bpm']} BPM, cassa {style['kick']}, clap {style['clap']}"
+            note("dj", "dj.learned", {"text": text, "style": sid_})
+            _learnt[who] = {"ok": True, "text": text, "style": sid_, "at": time.time()}
+            log.info("dj: %s learnt %s from %s", who, sid_, "a track" if track is not None else f"a radio ({seconds:.0f} s heard)")
+        except Exception as e:  # noqa: BLE001 — the owner is told, never silence
+            log.warning("dj learn failed: %s", e)
+            note("dj", "dj.learn_failed", {"text": f"{title}: {str(e)[:200]}"})
+            _learnt[who] = {"ok": False, "text": f"{title}: {str(e)[:200]}", "at": time.time()}
+        finally:
+            _busy.pop(who, None)
+    sys_context.start(work, name=f"dj-learn-{who}")
+    return {"started": True, "title": title, "seconds": seconds}
+
+
+@router.post("/v1/aurora/dj/learn/stop", dependencies=[Depends(auth)])
+def dj_learn_stop() -> dict:
+    """🎓 «Fine»: the listen ends now and the DJ learns from what it heard."""
+    job = _busy.get(me() or "")
+    if not job or not job.get("learn"):
+        raise HTTPException(status_code=409, detail="no listen going on")
+    job["stop"].set()
+    return {"stopping": True}
+
+
+@router.get("/v1/aurora/dj/learn", dependencies=[Depends(auth)])
+def dj_learn_state() -> dict:
+    """The 🎓 listen going on (its seconds, elapsed, listening or analysing), or how the last one ended."""
+    who = me() or ""
+    job = _busy.get(who)
+    if job and job.get("learn"):
+        return {"running": True, "title": job["title"], "seconds": job["seconds"], "phase": job["phase"],
+                "elapsed": round(time.time() - job["since"], 1), "stopping": job["stop"].is_set()}
+    return {"running": False, "last": _learnt.get(who)}
+
+
+@router.get("/v1/aurora/dj/styles/{sid}/preview", dependencies=[Depends(auth)])
+async def dj_style_preview(sid: str) -> Response:
+    """▶ How a style sounds: 16 bars of the DJ's own drums and bass in it, over silence (0.3 s to make), never kept."""
+    from aurora import aud_dj
+
+    def make() -> bytes:
+        import subprocess
+        import numpy as np
+        from aurora.aud_analysis import SR
+        st = aud_dj.find(sid)
+        bpm = float(st.get("bpm") or 124)
+        with np.errstate(all="ignore"):                   # silence has no key: the analysis divides by zero there
+            y, _ = aud_dj.remix(np.zeros((int(16 * 4 * 60 / bpm * SR), 2), np.float32), sid)
+        r = subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-f", "f32le", "-ar", str(SR), "-ac", "2",
+                            "-i", "-", "-af", "loudnorm=I=-14:TP=-1.0", "-b:a", "160k", "-f", "mp3", "-"],
+                           input=np.clip(y, -1, 1).astype(np.float32).tobytes(), capture_output=True, timeout=60)
+        if r.returncode != 0 or not r.stdout:
+            raise RuntimeError("the preview could not be encoded")
+        return r.stdout
+    try:
+        mp3 = await in_thread(make)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from None
+    return Response(mp3, media_type="audio/mpeg", headers={"Cache-Control": "no-store"})
+
+
+@router.delete("/v1/aurora/dj/styles/{sid}", dependencies=[Depends(auth)])
+def dj_style_delete(sid: str) -> dict:
+    """A style the DJ learnt, forgotten (the DJ's own cannot be)."""
+    from aurora import aud_learn
+    if not sid.startswith(aud_learn.PREFIX) or not aud_learn.delete(_dir(), sid):
+        raise HTTPException(status_code=404, detail="no such learnt style")
+    return {"deleted": sid}
+
 
 @router.post("/v1/aurora/dj/set", dependencies=[Depends(auth)])
 async def dj_set(request: Request) -> dict:

@@ -111,7 +111,7 @@ def unwrap(cfg: sys_config.Config, blob: bytes, label: str) -> bytes:
 def escrow(cfg: sys_config.Config, key: bytes | None = None) -> bool:
     """The recovery copy, sealed with the backup's key (outside the backup); False when there is no backup key yet."""
     from . import sys_backup as bc            # its crypto, through sys_backup (no import cycle)
-    if not bc.key_path(cfg).is_file():
+    if not bc.has_key(cfg):
         return False
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
     nonce = os.urandom(12)
@@ -170,9 +170,9 @@ def bound(cfg: sys_config.Config) -> str:
     return lines[1].strip() if len(lines) > 1 and lines[1].strip() else "host"
 
 
-def _encrypt(src: Path, dst: Path, with_key: str) -> None:
+def _encrypt(src: Path, dst: Path, with_key: str, name: str = CRED) -> None:
     extra = ["--tpm2-pcrs="] if "tpm2" in with_key else []
-    subprocess.run(["systemd-creds", "encrypt", f"--name={CRED}", f"--with-key={with_key}", *extra, str(src), str(dst)],
+    subprocess.run(["systemd-creds", "encrypt", f"--name={name}", f"--with-key={with_key}", *extra, str(src), str(dst)],
                    check=True, capture_output=True)
 
 

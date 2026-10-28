@@ -44,8 +44,10 @@ def dj_make(tracks: list[str], style: str) -> str:
         if "/" in name or not AUDIO.search(name) or not f.is_file():
             raise ToolError(f"no track {name!r}: see dj_tracks")
         paths.append(f)
-    if style not in aud_dj.STYLES:
-        raise ToolError(f"style: one of {', '.join(aud_dj.STYLES)}")
+    try:
+        aud_dj.find(style)
+    except ValueError as e:
+        raise ToolError(str(e)) from None
     stem = re.sub(r"[^\w-]+", "-", f"{paths[0].stem}-{style}".lower()).strip("-")[:60]
     out = MUSIC / "mixes" / f"{stem}-{time.strftime('%Y%m%d-%H%M')}.mp3"
     r = aud_dj.make(paths, style, out, seconds=float(cfg["AURORA_DJ_MAX_MINUTES"]) * 60)

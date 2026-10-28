@@ -12,7 +12,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from aurora import sys_config, sys_keyring  # noqa: E402
+from aurora import sys_backup, sys_config, sys_keyring  # noqa: E402,F401
 
 
 def main() -> int:
@@ -21,6 +21,12 @@ def main() -> int:
         print("  Aurora's key: a file of her account (no systemd-creds here)")
         return 3
     print(f"  Aurora's key: {sys_keyring.seal_host(cfg)}")
+    import os
+    import pwd
+    from aurora import sys_backup_crypto  # noqa: F401 - after sys_backup (it is read back by it)
+    who = os.environ.get("SUDO_USER", "")
+    home = Path(pwd.getpwnam(who).pw_dir) if who and who != "root" else None
+    print(f"  the backup's key: {sys_backup_crypto.seal_host(cfg, home)}")
     return 0
 
 

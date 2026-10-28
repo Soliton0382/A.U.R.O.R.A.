@@ -71,6 +71,8 @@ TEXTS = {   # event -> (kind the owner chooses, view to open, {lang: title})
     "project.update": ("project", "projects", {"it": "📁 Lavoro su un progetto concluso", "en": "📁 Work on a project done"}),
     "dj.done": ("creation", "dj", {"it": "🎧 Il tuo mix è pronto", "en": "🎧 Your mix is ready"}),
     "dj.failed": ("creation", "dj", {"it": "🎧 Il mix non è riuscito", "en": "🎧 The mix failed"}),
+    "dj.learned": ("creation", "dj", {"it": "🎓 Il DJ ha imparato uno stile", "en": "🎓 The DJ learnt a style"}),
+    "dj.learn_failed": ("creation", "dj", {"it": "🎓 Lo stile non si è potuto imparare", "en": "🎓 The style could not be learnt"}),
     "diet.meal": ("diet", "chat", {"it": "🍽️ È ora di mangiare", "en": "🍽️ Time to eat"}),
     "calendar.alert": ("calendar", "chat", {"it": "📅 Promemoria", "en": "📅 Reminder"}),
     "video.done": ("creation", "chat", {"it": "🎬 Il tuo video è pronto", "en": "🎬 Your video is ready"}),

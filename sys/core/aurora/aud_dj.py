@@ -46,8 +46,30 @@ STYLES = {
 }
 
 
+def _learned() -> dict[str, dict]:
+    """The styles this user's DJ learnt from a radio (aud_learn), in their music folder."""
+    from . import aud_learn, sys_config
+    try:
+        return aud_learn.load(sys_config.get().path("AURORA_MUSIC_DIR"))
+    except sys_config.ConfigError:                     # no installation around (a tool on its own): the DJ's alone
+        return {}
+
+
+def find(style: str) -> dict:
+    """A style by its id: the DJ's own, or one the user's DJ learnt (ValueError: neither)."""
+    if style in STYLES:
+        return STYLES[style]
+    mine = _learned() if str(style).startswith("learned-") else {}
+    if style in mine:
+        return mine[style]
+    raise ValueError(f"style: one of {', '.join([*STYLES, *_learned()])}")
+
+
 def styles(lang: str = "it") -> list[dict]:
-    return [{"id": k, "label": v["it" if lang.startswith("it") else "en"], "bpm": v["bpm"]} for k, v in STYLES.items()]
+    key = "it" if lang.startswith("it") else "en"
+    return ([{"id": k, "label": v[key], "bpm": v["bpm"]} for k, v in STYLES.items()]
+            + [{"id": k, "label": v.get(key, k), "bpm": v.get("bpm"), "learned": True, "station": v.get("station", "")}
+               for k, v in _learned().items()])
 
 
 def _sections(bars: int, long_break: bool) -> dict[str, tuple[int, int]]:
@@ -87,7 +109,7 @@ def remix(x: np.ndarray, style: str, seconds: float | None = None, emit=None, bp
           drums_level: float = 1.0) -> tuple[np.ndarray, dict]:
     """One track in a style; returns the audio and what was done (tempo, key, sections). `bpm`: a tempo of the
     user's instead of the style's (the two-deck mixer, aud_deck); `drums_level`: how loud the added beat is."""
-    st = {**STYLES[style], **({"bpm": float(bpm)} if bpm else {})}
+    st = {**find(style), **({"bpm": float(bpm)} if bpm else {})}
     say = emit or (lambda e, p: None)
     info = A.analyze(x)
     say("dj.analysis", info.as_dict())
@@ -194,7 +216,7 @@ def mix(tracks: list[np.ndarray], style: str, emit=None) -> tuple[np.ndarray, li
     if not parts:
         raise ValueError("no track")
     bpm = notes[0]["bpm"]
-    over = int((8 * 4 * 60 / bpm if STYLES[style]["bpm"] else 8.0) * SR)
+    over = int((8 * 4 * 60 / bpm if find(style)["bpm"] else 8.0) * SR)
     out = parts[0]
     for y in parts[1:]:
         o = min(over, len(out) // 2, len(y) // 2)
@@ -207,8 +229,7 @@ def make(paths: list[Path], style: str, out: Path, seconds: float | None = None,
          deck: dict | None = None) -> dict:
     """The DJ's one call: files in, an MP3 out (loudness levelled, tagged as an AI remix). `deck`: two tracks on the
     two-deck mixer with the user's choices (aud_deck)."""
-    if style not in STYLES:
-        raise ValueError(f"style: one of {', '.join(STYLES)}")
+    find(style)                                          # ValueError: not a style here
     if not paths:
         raise ValueError("no track")
     tracks = [A.load(p, seconds) for p in paths]
@@ -222,5 +243,5 @@ def make(paths: list[Path], style: str, out: Path, seconds: float | None = None,
                 "tracks": [{"bpm": note["bpm"], "key": note["key_a"]}]}
     y, notes = (remix(tracks[0], style, emit=emit) if len(tracks) == 1 else mix(tracks, style, emit=emit))
     notes = notes if isinstance(notes, list) else [notes]
-    A.save(y, out, title=f"{out.stem} ({STYLES[style]['en']})")
+    A.save(y, out, title=f"{out.stem} ({find(style).get('en', style)})")
     return {"file": out.name, "seconds": round(len(y) / SR, 1), "style": style, "tracks": notes}

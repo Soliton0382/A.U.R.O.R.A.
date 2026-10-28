@@ -53,7 +53,8 @@ encryption with LUKS, under the application-level sealing above. Its cost: M268 
 night, to dream: while she works unattended her key is on this machine. The admin's account (in the services' group),
 another user, a plugin, a project's code, a NAS copy, a backup: they find only ciphertext. A stolen disk too, but only
 with a working TPM and the backup's key not on that disk in plaintext: with the host key alone the secret that
-opens her key is on the same disk (C459), and the escrow opens with a backup key left there (C461, open). Root on the
+opens her key is on the same disk (C459), and the escrow opened with a backup key left there (C461, closed: sealed the same way). What a stolen disk
+still gives: the swap file's pages (C462) and the .env's secrets (C463). Root on the
 running machine can ask systemd for the credential or read a service's memory: no design without the user's own
 password at every opening stops that (ROADMAP N64, phase 7, optional).
 
