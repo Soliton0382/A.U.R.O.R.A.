@@ -54,3 +54,10 @@
 .dj-mix-val { color: var(--muted); font-size: .8rem; }
 .dj-insp-field { display: flex; flex-direction: column; gap: .2rem; margin: .5rem 0; }
 .dj-insp { width: 100%; }
+/* 📻 internet radio (dj_radio.js) */
+.dj-radio-presets { display: flex; flex-wrap: wrap; gap: .3rem; margin: .4rem 0; }
+.dj-radio-search { display: flex; gap: .3rem; max-width: 28rem; }
+.dj-radio-search input { flex: 1; }
+.dj-radio-list { list-style: none; padding: 0; margin: .3rem 0; max-height: 22rem; overflow: auto; }
+.dj-radio-list li { display: flex; flex-wrap: wrap; align-items: baseline; gap: .3rem; padding: .2rem 0; border-bottom: 1px solid var(--line); }
+.dj-radio-list button { padding: .05rem .4rem; }

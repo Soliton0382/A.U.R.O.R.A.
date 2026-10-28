@@ -68,3 +68,24 @@ def request(method: str, url: str, lan: bool = False, max_bytes: int = MAX_BYTES
                 keep = {k: v for k, v in r.headers.items() if k.lower() not in ("content-encoding", "content-length")}
                 return httpx.Response(r.status_code, headers=keep, content=body, request=r.request)
     raise Refused("too many redirects")
+
+
+def open_stream(url: str, lan: bool = False, timeout: float = 20, headers: dict | None = None):
+    """(client, response) of a GET left open to read as it comes (a radio's endless stream), every redirect checked;
+    the caller closes both."""
+    for _ in range(REDIRECTS + 1):
+        addr = check(url, lan)
+        u = urlparse(url)
+        host = f"[{addr}]" if ":" in addr else addr
+        target = u._replace(netloc=host + (f":{u.port}" if u.port else "")).geturl()
+        h = {**(headers or {}), "Host": u.hostname + (f":{u.port}" if u.port else "")}
+        ext = {"sni_hostname": u.hostname} if u.scheme == "https" else {}
+        c = httpx.Client(timeout=httpx.Timeout(timeout, read=60), follow_redirects=False)
+        r = c.send(c.build_request("GET", target, headers=h, extensions=ext), stream=True)
+        if r.is_redirect and r.headers.get("location"):
+            url = urljoin(url, r.headers["location"])
+            r.close()
+            c.close()
+            continue
+        return c, r
+    raise Refused("too many redirects")

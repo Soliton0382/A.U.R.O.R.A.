@@ -3393,5 +3393,14 @@
   "dj.style.meter": "Time signature",
   "dj.style.steps": "Detail",
   "dj.style.adherence": "Follows the description",
-  "phoneapp.reputation": "⚠️ Android may warn that the app is «uncommon» or «unknown»: normal for an app installed outside the Play Store and downloaded by few people. Play Protect's scan finds it safe. Check the SHA-256 fingerprint above, then choose «Install anyway»."
+  "phoneapp.reputation": "⚠️ Android may warn that the app is «uncommon» or «unknown»: normal for an app installed outside the Play Store and downloaded by few people. Play Protect's scan finds it safe. Check the SHA-256 fingerprint above, then choose «Install anyway».",
+  "dj.radio.title": "Internet radio",
+  "dj.radio.hint": "Radio Browser's stations, an open and free directory: pick a genre or search by name. They play in the player, with its visuals; nothing is recorded.",
+  "dj.radio.ph": "station name…",
+  "dj.radio.play": "Listen",
+  "dj.radio.keep": "Keep it",
+  "dj.radio.unkeep": "Let it go",
+  "dj.radio.kept": "Your stations",
+  "dj.radio.looking": "looking…",
+  "dj.radio.found": "{n} stations for «{what}»"
 }

@@ -111,6 +111,9 @@ def main() -> int:
                                                             "code_signature": code_sig}, indent=1) + "\n")
         give_back(root / sys_ethics.MANIFEST)
         print(f"signed {len(files)} protected files and {len(code)} code files -> {sys_ethics.MANIFEST}")
+        # what root keeps for Aurora follows the code just signed: the root units' copy, the never-blocked list
+        import subprocess
+        subprocess.run([sys.executable, str(Path(__file__).with_name("sys_root_sync.py"))], check=False)
     if args.action == "exempt" or (args.action == "setup" and args.exempt):
         cfg = sys_config.get()
         target = cfg.path("AURORA_ETHICS_EXEMPTION")

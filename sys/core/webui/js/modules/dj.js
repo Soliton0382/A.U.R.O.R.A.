@@ -11,6 +11,7 @@ import { apply, t } from "../i18n.js";
 import { bus } from "../bus.js";
 import { deckPanel } from "./dj_deck.js";
 import { djPlayer } from "./dj_player.js";
+import { radioPanel } from "./dj_radio.js";
 import { setConsole, setPanel, songPanel } from "./dj_set.js";
 import { pluginSlot } from "./plugin_slot.js";
 
@@ -54,7 +55,7 @@ export default {
         catch (e) { this.consoleSlot.replaceChildren(el("p", "warn", e.message)); }
       },
     });
-    root.querySelector(".dj-player-slot").append(this.playerView.box);
+    root.querySelector(".dj-player-slot").append(this.playerView.box, radioPanel((url, title) => this.playerView.playStream(url, title)));
     // a song sung, a mix made, a failure: the playlist at once, not at the next look (owner, 27 Oct: «non c'è un
     // refresh in tempo reale dell'elenco»); the activity is each user's own (note() per user)
     bus.on("activity", (a) => { if (String(a?.event || "").startsWith("dj.") && this.root?.isConnected) this.enter(); });

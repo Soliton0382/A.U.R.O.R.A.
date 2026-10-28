@@ -435,9 +435,10 @@ if [ "$SERVICES" = 0 ] || [ "$SUDO_LATER" = 1 ]; then
   .venv/bin/python sys/core/script/sys_ready.py --pending          # where to open it, and the key: always said
   exit 0
 fi
-step "12. $(t 'Servizi (systemd) e HTTPS' 'Services (systemd) and HTTPS')"
-.venv/bin/python sys/core/script/sys_install_services.py | tail -3
-sudo bash sys/deploy/systemd/install.sh || die "$(t 'servizi' 'services')"
+step "12. $(t 'Servizi (systemd) e HTTPS, sul loro account «aurora»' 'Services (systemd) and HTTPS, on their own account «aurora»')"
+# U6: the services under an account of their own (no login, the GPU's groups only), the data theirs, the code yours;
+# the units, the polkit rule, root's copy of its units' code written for it, and the services started
+sudo .venv/bin/python sys/core/script/sys_service_account.py || die "$(t 'servizi' 'services')"
 if [ "$TLS" = internal ] || [ "$TRUST" = internal ]; then
   ADMIN=$(.venv/bin/python -c 'import sys; sys.path.insert(0, "sys/core"); from aurora import sys_config; print(sys_config.get()["AURORA_CADDY_ADMIN"])')
   sudo caddy trust --address "$ADMIN" && ok "$(t 'certificato locale di Caddy riconosciuto da questo computer' 'Caddy local certificate trusted on this computer')"

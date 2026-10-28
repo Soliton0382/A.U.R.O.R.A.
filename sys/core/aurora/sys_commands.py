@@ -13,6 +13,7 @@ their installers build it from the clone — 9 Oct, the Windows VM: «not a git 
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 from . import sys_config
@@ -34,6 +35,15 @@ TEXT = {
              "en": ("✍️ Protected code not signed",
                     "These files of the code of conduct changed and are not signed yet: {f}. Until you sign, the "
                     "services do not start again.")},
+    # U6 (owner, 28 Oct: «l'aggiornamento dovrà prevedere la migrazione di ambiente già configurato»)
+    "account": {"it": ("🔐 I servizi sul loro account",
+                       "I servizi girano ancora come «{u}», il tuo account. Il comando crea l'account «aurora» (niente "
+                       "login, solo i gruppi della GPU), gli dà i dati e lascia a te il codice; poi riavvia i servizi. "
+                       "Una volta sola; poi rifai il login di Claude da ☁️ Account."),
+                "en": ("🔐 The services on their own account",
+                       "The services still run as «{u}», your own account. The command makes the account «aurora» (no "
+                       "login, only the GPU's groups), gives it the data and leaves the code to you; then restarts the "
+                       "services. Once; then log in to Claude again from ☁️ Accounts.")},
 }
 
 
@@ -84,6 +94,11 @@ def cards(cfg: sys_config.Config, lang: str = "it") -> list[dict]:
         title, body = TEXT["sign"][lang]
         out.append({"id": "sign", "title": title, "text": body.format(f=", ".join(changed)),
                     "command": command(cfg, "sign"), "admin": True})
+    who = sys_config.service_user(cfg)
+    if os.name == "posix" and who != sys_config.SERVICE_GROUP and (cfg.root / ".git").exists() and not by_hand(cfg):
+        title, body = TEXT["account"][lang]               # Linux's systemd installation only: the ports have their own
+        out.append({"id": "account", "title": title, "text": body.format(u=who), "command": command(cfg, "account"),
+                    "admin": True})
     return out
 
 
@@ -93,6 +108,6 @@ def verify(cfg: sys_config.Config, card: str) -> dict:
     if card == "update":
         info = sys_update.check(cfg)
         return {"done": not info.get("behind"), "behind": info.get("behind"), "error": info.get("error")}
-    if card == "sign":
-        return {"done": not any(c["id"] == "sign" for c in cards(cfg))}
+    if card in ("sign", "account"):
+        return {"done": not any(c["id"] == card for c in cards(cfg))}
     raise ValueError(f"no such card: {card}")

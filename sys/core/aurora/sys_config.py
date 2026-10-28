@@ -22,7 +22,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-CODE_ROOT = Path(__file__).resolve().parents[3]           # <root>/sys/core/aurora/sys_config.py
+# <root>/sys/core/aurora/sys_config.py; INSTALL_ROOT for the root units' own copy of the code (sys_root_sync:
+# /usr/local/lib/aurora), which reads the installation's data — its .env, its schema — and none of its code
+CODE_ROOT = Path(os.environ.get("INSTALL_ROOT") or Path(__file__).resolve().parents[3])
 SCHEMA_FILE = CODE_ROOT / "sys" / "core" / "config" / "settings_schema.json"
 TRUE_WORDS = {"1", "true", "yes", "on"}
 FALSE_WORDS = {"0", "false", "no", "off"}
@@ -179,9 +181,11 @@ def load(env_file: Path | None = None, schema_file: Path = SCHEMA_FILE, check_ro
     schema = load_schema(schema_file)
     specs = {s["key"]: s for s in schema["settings"]}
     raw = parse_env(env_file.read_text(encoding="utf-8"), str(env_file))
-    if env_file.stat().st_mode & 0o077:              # secrets inside: nobody but the owner may read it
+    st = env_file.stat()
+    shared = _group_name(st.st_gid) == SERVICE_GROUP     # U6: the services' own group reads and writes it too
+    if st.st_mode & (0o007 if shared else 0o077):    # secrets inside: nobody else may read it
         try:
-            env_file.chmod(0o600)
+            env_file.chmod(0o660 if shared else 0o600)
         except OSError:
             pass
     problems, values = [], {}
@@ -230,7 +234,19 @@ def write_env(env: Path, changes: dict[str, str], drop: set[str] = frozenset()) 
     fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)     # secrets inside: owner only
     with os.fdopen(fd, "w", encoding="utf-8") as fh:
         fh.write("\n".join(out) + "\n")
-    os.chmod(tmp, 0o600)
+    # U6: written again with the group the file had — the services' own group keeps reading it (0660), else 0600
+    try:
+        gid = env.stat().st_gid if env.exists() else -1
+    except OSError:
+        gid = -1
+    if gid >= 0 and _group_name(gid) == SERVICE_GROUP:
+        try:
+            os.chown(tmp, -1, gid)
+            os.chmod(tmp, 0o660)
+        except OSError:
+            os.chmod(tmp, 0o600)
+    else:
+        os.chmod(tmp, 0o600)
     os.replace(tmp, env)
 
 
@@ -244,6 +260,17 @@ def add_missing(env: Path | None = None, schema: Path = SCHEMA_FILE) -> list[str
     if missing:
         write_env(env, missing)
     return list(missing)
+
+
+SERVICE_GROUP = "aurora"                             # the services' own account and group (U6, sys_service_account)
+
+
+def _group_name(gid: int) -> str:
+    try:
+        import grp
+        return grp.getgrgid(gid).gr_name
+    except (ImportError, KeyError):                  # no groups here (Windows), an unknown id
+        return ""
 
 
 def service_user(cfg: "Config") -> str:

@@ -58,9 +58,13 @@ PROGRAMS_ALLOWED = {
 }
 # the scripts the owner or the installer runs: all of phase 3 (installers and admin scripts per system)
 SCRIPTS_PHASE_3 = {"systemctl", "journalctl", "runuser", "systemd-escape", "systemd-mount", "systemd-umount",
-                   "nvidia-smi", "cfg['AURORA_CADDY_BIN']"}
+                   "nvidia-smi", "cfg['AURORA_CADDY_BIN']",
+                   "ip"}                    # sys_root_sync: the root units and the firewall helper are Linux's (phase 3)
 # each port's own installer scripts start their system's own programs (phase 3, 9 Oct): the Mac's launchd agents
 PORT_SCRIPTS = {("sys_install_agents.py", "launchctl"), ("sys_install_agents.py", "brew")}
+# U6, the services' own account (sys_service_account): Linux's systemd installation only; each port has its own
+PORT_SCRIPTS |= {("sys_service_account.py", p) for p in ("bash", "chown", "getfacl", "setfacl", "groupadd", "useradd",
+                                                         "usermod", "apt-get", "runuser")}
 
 
 def _programs(f: Path) -> set[str]:

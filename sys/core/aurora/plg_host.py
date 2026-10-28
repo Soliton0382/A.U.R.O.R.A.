@@ -58,7 +58,11 @@ def _redacted_log(path: Path):
     import threading
     path.parent.mkdir(parents=True, exist_ok=True)
     fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
-    os.chmod(path, 0o600)
+    try:                                             # 0600, or 0660 when the file is the services' group's (U6)
+        shared = sys_config._group_name(os.fstat(fd).st_gid) == sys_config.SERVICE_GROUP
+        os.fchmod(fd, 0o660 if shared else 0o600)
+    except OSError:                                  # not ours to change (another account wrote it first): as it is
+        pass
     r, w = os.pipe()
 
     def pump():

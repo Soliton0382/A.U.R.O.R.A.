@@ -318,9 +318,13 @@ def _work(run: Run, cc, system: str, s: dict) -> None:
                         break
                 err = run.proc.stderr.read()
                 run.proc.wait(30)
-                if result or attempt or fresh or "No conversation found" not in err:
+                lost = "No conversation found" in err or bool(result and result.get("is_error")
+                                                              and result.get("subtype") == "error_during_execution")
+                if attempt or fresh or not lost:
                     break
-                fresh = True                                  # the CLI lost the session: a new one
+                # the CLI lost the session — or, after the services moved to their own account (U6, 28 Oct), the
+                # session belongs to the login of before and resuming it fails «error_during_execution»: a new one
+                fresh, result = True, None
             cl.got = len(str((result or {}).get("result", "")))
         if run.stopped:
             raise RuntimeError("stopped by the owner")

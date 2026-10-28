@@ -107,3 +107,30 @@ def test_the_relay_speaks_mcp(monkeypatch):
     assert [t["name"] for t in R.answer({"id": 2, "method": "tools/list"})["result"]["tools"]] == [t["name"] for t in A.TOOLS]
     r = R.answer({"id": 3, "method": "tools/call", "params": {"name": "run", "arguments": {"command": "pytest"}}})
     assert r["result"] == {"content": [{"type": "text", "text": "ok"}], "isError": False}
+
+
+RESUME_FAILS = r'''#!/bin/sh
+cat > /dev/null
+case " $* " in
+  *" --resume "*) echo '{"type":"result","is_error":true,"subtype":"error_during_execution","result":""}' ;;
+  *) echo '{"type":"result","is_error":false,"result":"fatto","session_id":"new-1","total_cost_usd":0.01,"usage":{}}' ;;
+esac
+'''
+
+
+def test_a_session_of_another_login_starts_again(cfg, run, tmp_path):
+    """U6, 28 Oct: after the services moved to their own account the old session (the owner's login) could not be
+    resumed («error_during_execution»): a new session, said as such."""
+    fake = tmp_path / "claude"
+    fake.write_text(RESUME_FAILS)
+    fake.chmod(0o755)
+    cc = type("CC", (), {"bin": str(fake), "model": "opus", "name": "claude_code", "_env": lambda self, n: {"PATH": "/usr/bin:/bin"},
+                         "_account": lambda self, d, s: None})()
+    A._RUNS.pop(run.token)
+    A.start(cfg, "motore", cc, "ancora", "sistema", {"session": "old-session"}, "it")
+    for _ in range(100):
+        if not A.working(cfg, "motore"):
+            break
+        time.sleep(0.05)
+    last = T.turns(cfg, "motore")[-1]
+    assert last["text"] == "fatto" and last["new_session"] and T.session(cfg, "motore")["session"] == "new-1"

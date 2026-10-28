@@ -110,8 +110,8 @@ def test_the_power_off_rule_only_in_shutdown_mode():
                                                   "sys_install_services.py")
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
-    rule = mod.POLKIT.substitute(user="u", power=mod.POWER.substitute(user="u"))
-    assert "login1.power-off" in rule and "login1" not in mod.POLKIT.substitute(user="u", power="")
+    rule = mod.POLKIT.substitute(user="u", units='"aurora-api.service"', power=mod.POWER.substitute(user="u"))
+    assert "login1.power-off" in rule and "login1" not in mod.POLKIT.substitute(user="u", units='"aurora-api.service"', power="")
 
 
 def test_the_ticked_devices_go_down_first_and_a_failure_never_stops_the_power_off(cfg):
@@ -165,3 +165,14 @@ def test_a_refused_login_still_reads():
     c = sys_ups.Client(f"127.0.0.1:{srv.getsockname()[1]}", "ups", "someone", "pw")
     assert c.login_error.endswith("ACCESS-DENIED") and c.vars() == {"ups.status": "OL"}
     c.close()
+
+
+def test_the_polkit_rule_names_its_units_one_by_one():
+    """Security review, 28 Oct: no pattern — a root unit with a name like ours is not allowed by the rule."""
+    import importlib.util
+    from pathlib import Path
+    spec = importlib.util.spec_from_file_location("sis", Path(__file__).resolve().parents[1] / "script" / "sys_install_services.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    rule = mod.POLKIT.substitute(user="u", units='"aurora-api.service", "aurora.target"', power="")
+    assert '["aurora-api.service", "aurora.target"].indexOf(unit) >= 0' in rule and ".test(unit)" not in rule

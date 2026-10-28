@@ -108,3 +108,16 @@ def test_a_new_password_logs_the_other_sessions_out(cfg):
     d.register("other", "ua", user="bruno")
     assert d.revoke_user("anna", keep=keep["id"]) == 1
     assert sorted(x["name"] for x in d.list()) == ["other", "phone"]
+
+
+def test_no_stray_folder_under_usr_with_the_machine_s_configuration(cfg, tmp_path, monkeypatch):
+    """Owner, 28 Oct: nine empty folders straight under usr/ (music, notes…), made when the plugins' tools were listed
+    with the machine's configuration: a plugin's writable folder is made only when it is a user's."""
+    from aurora import sys_users_layout as L
+    monkeypatch.setattr(L, "migrated", lambda cfg: {"layout": 1, "admin": "boss"})
+    music = cfg.path("AURORA_MUSIC_DIR")                    # usr/music with no user: nobody's folder
+    assert music.parent == L.usr(cfg) and not music.exists()
+    env = tmp_path / "env"
+    env.write_text("")
+    args = plg_sandbox.wrap(["python3"], tmp_path, {"sandbox": {"write": ["AURORA_MUSIC_DIR"]}}, env, cfg)
+    assert not music.exists() and str(music) not in args

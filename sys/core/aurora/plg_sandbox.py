@@ -129,8 +129,15 @@ def wrap(cmd: list[str], folder: Path, manifest: dict, filtered_env: Path, cfg: 
     if (status / "devices.json").exists():
         args += ["--ro-bind", "/dev/null", str(status / "devices.json")]
     args += _others_hidden(cfg)
+    from . import sys_users_layout as L
+    usr = L.usr(cfg) if L.migrated(cfg) else None
     for key in manifest.get("sandbox", {}).get("write", []):
         p = cfg.path(key)
+        # a user's folder only: with the machine's configuration (no user: the tools listed at start) the path is
+        # usr/<x> itself, not anyone's — never made (owner, 28 Oct: «dentro usr ci sono cartelle che non dovrebbero
+        # esserci»: nine empty ones, made at a start)
+        if usr is not None and p.parent == usr and not p.exists():
+            continue
         p.mkdir(parents=True, exist_ok=True)
         args += ["--bind", str(p), str(p)]
     net = manifest.get("sandbox", {}).get("network")

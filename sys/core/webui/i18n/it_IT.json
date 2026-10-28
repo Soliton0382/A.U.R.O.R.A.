@@ -3393,5 +3393,14 @@
   "dj.style.meter": "Metrica",
   "dj.style.steps": "Rifinitura",
   "dj.style.adherence": "Aderenza alla descrizione",
-  "phoneapp.reputation": "⚠️ Android può avvisare che l'app è «poco diffusa» o «sconosciuta»: è normale per un'app installata fuori dal Play Store e scaricata da poche persone. La scansione di Play Protect la dà come sicura. Controlla l'impronta SHA-256 qui sopra, poi scegli «Installa comunque»."
+  "phoneapp.reputation": "⚠️ Android può avvisare che l'app è «poco diffusa» o «sconosciuta»: è normale per un'app installata fuori dal Play Store e scaricata da poche persone. La scansione di Play Protect la dà come sicura. Controlla l'impronta SHA-256 qui sopra, poi scegli «Installa comunque».",
+  "dj.radio.title": "Radio internet",
+  "dj.radio.hint": "Le stazioni di Radio Browser, un elenco aperto e gratuito: scegli un genere o cerca per nome. Si ascoltano nel lettore, con le animazioni; niente viene registrato.",
+  "dj.radio.ph": "nome della stazione…",
+  "dj.radio.play": "Ascolta",
+  "dj.radio.keep": "Tieni tra le tue",
+  "dj.radio.unkeep": "Togli dalle tue",
+  "dj.radio.kept": "Le tue stazioni",
+  "dj.radio.looking": "cerco…",
+  "dj.radio.found": "{n} stazioni per «{what}»"
 }

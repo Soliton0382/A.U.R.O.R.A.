@@ -436,5 +436,14 @@ export function djPlayer({ reload, onSelect, onConsole }) {
     for (let i = 0; i < 24; i++) { const v = (b[i * 2] || 0) * mh; gm.fillStyle = "#39ff6a"; gm.fillRect(i * (mw / 24) + 1, mh - v, mw / 24 - 2, v); }
   };
   requestAnimationFrame(frame);
-  return { box, refresh };
+  // 📻 a radio's stream (dj_radio.js): no row of the list, the LCD runs the station's name
+  const playStream = (url, title) => {
+    cur = -1;
+    audio.src = url;
+    mtext.textContent = `${title}  ***  ${title}  ***`;
+    list.querySelectorAll("li").forEach((li) => li.classList.remove("on"));
+    ensureAudio(); ctx.resume(); audio.play().catch(() => {});
+    box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  };
+  return { box, refresh, playStream };
 }
