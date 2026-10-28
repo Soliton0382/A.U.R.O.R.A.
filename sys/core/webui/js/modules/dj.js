@@ -4,7 +4,8 @@
 // propria nel player così puliamo la pagina e la rendiamo più accattivante… la chiamerei Musica e DJ»): the player is the
 // page's centre — your music imported there (⏏), every track, mix, set and song in its playlist, each ticked to be
 // mixed — then «Crea»: one ticked → a remix in a style, two → the two decks, more → a mix or Aurora's set; and a song
-// from an idea. Made in the background; a notification when ready.
+// from an idea. Made in the background; a notification when ready. Under the player, tabs (owner, 29 Oct: «ora mi sembra
+// incasinata»): 🎛️ Mixa, 📻 Radio (and 🎓 learn), 🎤 Canzone, 🎓 Stili — the one last open comes back.
 import { call } from "../api.js";
 import { el, useCss } from "../dom.js";
 import { apply, t } from "../i18n.js";
@@ -13,6 +14,7 @@ import { deckPanel } from "./dj_deck.js";
 import { djPlayer } from "./dj_player.js";
 import { radioPanel } from "./dj_radio.js";
 import { spotifyPanel } from "./dj_spotify.js";
+import { stylesPanel } from "./dj_styles.js";
 import { setConsole, setPanel, songPanel } from "./dj_set.js";
 import { pluginSlot } from "./plugin_slot.js";
 
@@ -28,13 +30,19 @@ export default {
     useCss("/static/css/dj_deck.css");
     useCss("/static/css/dj_set.css");
     useCss("/static/css/dj_player.css");
+    const tabs = [["mix", "🎛️"], ["radio", "📻"], ["song", "🎤"], ["styles", "🎓"]];
     root.innerHTML = `<h2 data-i18n="dj.title"></h2><p class="muted" data-i18n="dj.hint"></p><div class="dj-player-slot"></div>
       <div class="dj-console-slot"></div>
-      <h3 class="setting-cat" data-i18n="dj.make"></h3><p class="muted dj-chosen"></p>
-      <div class="dj-deck-slot"></div>
-      <div class="appr-actions"><select class="dj-style"></select><button class="approve dj-go" data-i18n="dj.go"></button>
-        <span class="muted dj-out"></span></div>
-      <div class="dj-set-slot"></div><div class="dj-song-slot"></div>`;
+      <div class="prj-tabs dj-tabs">${tabs.map(([id, icon]) => `<button type="button" class="cat-chip" data-tab="${id}">${icon} <span data-i18n="dj.tab.${id}"></span></button>`).join("")}</div>
+      <div class="dj-tab" data-tab="mix">
+        <p class="muted dj-chosen"></p>
+        <div class="dj-deck-slot"></div>
+        <div class="appr-actions"><select class="dj-style"></select><button class="approve dj-go" data-i18n="dj.go"></button>
+          <span class="muted dj-out"></span></div>
+        <div class="dj-set-slot"></div></div>
+      <div class="dj-tab dj-tab-open" data-tab="radio" hidden><div class="dj-radio-slot"></div></div>
+      <div class="dj-tab dj-tab-open" data-tab="song" hidden><div class="dj-song-slot"></div></div>
+      <div class="dj-tab" data-tab="styles" hidden><div class="dj-styles-slot"></div></div>`;
     root.querySelector("h2")?.after(pluginSlot("dj"));   // its plugins, configured here
     apply(root);
     this.style = root.querySelector(".dj-style");
@@ -56,7 +64,14 @@ export default {
         catch (e) { this.consoleSlot.replaceChildren(el("p", "warn", e.message)); }
       },
     });
-    root.querySelector(".dj-player-slot").append(this.playerView.box, radioPanel((url, title, onAir) => this.playerView.playStream(url, title, onAir)));
+    const play = (url, title, onAir) => this.playerView.playStream(url, title, onAir);
+    root.querySelector(".dj-player-slot").append(this.playerView.box);
+    root.querySelector(".dj-radio-slot").append(radioPanel(play));
+    root.querySelector(".dj-styles-slot").append(stylesPanel(play));
+    root.querySelectorAll(".dj-tabs button").forEach((b) => b.addEventListener("click", () => this.tab(b.dataset.tab)));
+    let last = "mix";
+    try { last = localStorage.getItem("dj.tab") || "mix"; } catch { /* a private window: the first tab */ }
+    this.tab(tabs.some(([id]) => id === last) ? last : "mix");
     // a song sung, a mix made, a failure: the playlist at once, not at the next look (owner, 27 Oct: «non c'è un
     // refresh in tempo reale dell'elenco»); the activity is each user's own (note() per user)
     bus.on("activity", (a) => { if (String(a?.event || "").startsWith("dj.") && this.root?.isConnected) this.enter(); });
@@ -72,6 +87,15 @@ export default {
       } catch (e) { this.out.textContent = t("ev.error", { m: e.message }); }
       this.enter();
     });
+  },
+
+  tab(id) {                                          // one tab shown; a <details> inside it opened, its title hidden
+    this.root.querySelectorAll(".dj-tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === id));
+    this.root.querySelectorAll(".dj-tab").forEach((d) => {
+      d.hidden = d.dataset.tab !== id;
+      if (!d.hidden) d.querySelectorAll(":scope details").forEach((x) => { if (d.classList.contains("dj-tab-open")) x.open = true; });
+    });
+    try { localStorage.setItem("dj.tab", id); } catch { /* the choice is only a convenience */ }
   },
 
   fillStyles(styles) {                               // the style list, the choice kept when it is still there

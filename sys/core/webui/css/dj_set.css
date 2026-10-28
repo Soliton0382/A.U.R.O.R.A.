@@ -65,3 +65,9 @@
 .dj-spotify-link { flex: 1; min-width: 12rem; }
 .dj-spotify-now { display: flex; align-items: center; gap: .5rem; margin: .3rem 0; }
 .dj-spotify-art { width: 48px; height: 48px; border-radius: 4px; object-fit: cover; }
+
+/* the DJ page's tabs (dj.js): a section inside a tab is open, the tab's chip says its title */
+.dj-tabs { margin: .9rem 0 .4rem; }
+.dj-tab-open > div > details > summary { display: none; }
+.dj-tab-open > div > details { border: 0; padding: 0; }
+.dj-styles ol { margin-top: .2rem; }
