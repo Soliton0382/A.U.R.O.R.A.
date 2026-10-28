@@ -18,8 +18,8 @@ safe. Readers merge the files by timestamp.
 
 No chat's words in the trace (N64 phase 4, owner 29 Oct: «l'admin non può leggere il contenuto delle chat»): the
 run events of the components that carry a chat (CHAT: the question, its translation, the draft, the answer, an
-agent's goal, thoughts and tool arguments, the search queries) keep their structure plain — ids, sids, counts, times,
-modes (PLAIN) — and every other value sealed with the run's user's key (sys_seal.seal_text, bound to
+agent's goal, thoughts and tool arguments, the search queries, an approval's title) keep their structure plain — ids,
+sids, counts, times, modes (PLAIN) — and every other value sealed with the run's user's key (sys_seal.seal_text, bound to
 "<run_id>/<event>"); the pieces of a draft (OFF_DISK) are not written at all. A reader opens a line for its own user
 only (open_record): another user's values become «(private: <user>)». The listeners and the usage counts still get the
 payload as it was, in memory.
@@ -200,7 +200,8 @@ def trace(component: str, event: str, payload: dict[str, Any] | None = None,
 
 
 # ---- a chat's words sealed (N64 phase 4) ---------------------------------------------------------------------------
-CHAT = frozenset({"api", "agent", "search"})       # their run events carry a chat's words
+# their run events carry a chat's words; "approvals": an approval's title quotes the chat (a tool call's purpose, a post)
+CHAT = frozenset({"api", "agent", "search", "approvals"})
 # the structure of an event, never a chat's words: ids, modes, names of tools and models, numbers in a dict
 PLAIN = frozenset({"mode", "kind", "lang", "from", "effect", "plugin", "tool", "status", "stage", "domain", "provider",
                    "model", "role", "usage", "seconds", "speed", "hits", "reason", "id", "asked", "used", "region",

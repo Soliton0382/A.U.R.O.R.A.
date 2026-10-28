@@ -13,7 +13,9 @@ WebUI's origin (an uploaded HTML or SVG must not run there).
 Sealed with the user's key (N64): the index (names, turns) and every stored file, bound to its id (the trash may move
 it), opened only for its owner by read(); a program that needs a file (pdfinfo, pdftoppm) gets plain_copy(), a copy
 in this process's memory folder. Not sealed: Aurora's own pictures and videos (role «assistant»), which the social
-plugins publish by file name from their cage, where no key is. A file or index of before reads as it is.
+plugins publish by file name from their cage, where no key is — but a picture or video a user asked for in their
+chat is theirs (private=True: sealed; owner, 29 Oct: «la parte social è solo di aurora, gli utenti non devono
+condividere»). A file or index of before reads as it is.
 """
 from __future__ import annotations
 
@@ -73,7 +75,8 @@ def safe_name(name: str) -> str:
     return base[-120:]
 
 
-def save(cfg: sys_config.Config, run_id: str, name: str, mime: str, data: bytes, role: str = "user") -> dict:
+def save(cfg: sys_config.Config, run_id: str, name: str, mime: str, data: bytes, role: str = "user",
+         private: bool = False) -> dict:
     uid = uuid.uuid4().hex[:16]
     rel = Path(time.strftime("%Y-%m")) / f"{uid}-{safe_name(name)}"
     path = _dir(cfg) / rel
@@ -81,7 +84,7 @@ def save(cfg: sys_config.Config, run_id: str, name: str, mime: str, data: bytes,
     mime = mime or mimetypes.guess_type(name)[0] or "application/octet-stream"
     fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(fd, "wb") as h:
-        h.write(sys_seal.seal(cfg, data, _label(uid), cfg.user, "state") if sealed(role, mime) else data)
+        h.write(sys_seal.seal(cfg, data, _label(uid), cfg.user, "state") if private or sealed(role, mime) else data)
     item = {"id": uid, "name": Path(name).name[:200], "mime": mime,
             "size": len(data), "run_id": run_id, "created": time.time(), "path": str(rel), "role": role}
     items = _index(cfg)

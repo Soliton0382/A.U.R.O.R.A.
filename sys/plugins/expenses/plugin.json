@@ -36,5 +36,8 @@
   "write": [
    "AURORA_EXPENSES_DIR"
   ]
- }
+ },
+ "seal_keys": [
+  "expenses"
+ ]
 }

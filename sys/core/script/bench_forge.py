@@ -107,7 +107,8 @@ def documents_pdf():
 
 def routines_active():
     from aurora import sys_users_layout
-    rs = json.loads((sys_users_layout.place(cfg, "state", None) / "routines.json").read_text())
+    from aurora import sys_seal                          # sealed with the admin's key (N64), or a file of before
+    rs = json.loads(sys_seal.read_any(cfg, sys_users_layout.place(cfg, "state", None) / "routines.json", None))
     return {"active": sum(1 for r in rs if r.get("enabled", True)), "total": len(rs)}
 
 

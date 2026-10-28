@@ -184,4 +184,17 @@ for who in ("boss", "guest"):
     u = get(who, "/v1/aurora/usage?days=1").json()
     out[who]["usage"] = [u["everyone"], u["names"], u["totals"]["tool_calls"]]
     out[who]["usage_pick"] = get(who, "/v1/aurora/usage?days=1&user=boss").json()["totals"]["tool_calls"]
+# C457: the machine's logs in a bug report, a plugin's icon everyone sees, another user's saved set of routines
+out["guest"]["bugreport"] = client.post("/v1/aurora/bugreport", headers=H["guest"], json={"description": "x"}).status_code
+out["guest"]["plugin_icon"] = client.post("/v1/aurora/plugins/calendar/icon", headers=H["guest"], json={"data": ""}).status_code
+from aurora import sys_routine_templates as _rt  # noqa: E402
+_tpl = _rt._dir(C.get()); _tpl.mkdir(parents=True, exist_ok=True)
+(_tpl / "mine-serata.json").write_text(json.dumps({"id": "mine-serata", "saved_by": "boss", "routines": []}))
+with sys_context.acting_as("guest"):
+    try:
+        _rt.save_mine(C.get(), "Serata", "guest")
+        out["guest"]["template_over"] = "saved"
+    except ValueError as e:
+        out["guest"]["template_over"] = "refused" if "someone else" in str(e) else str(e)
+out["guest"]["template_kept"] = json.loads((_tpl / "mine-serata.json").read_text())["saved_by"]
 print(json.dumps(out))

@@ -42,6 +42,15 @@ def test_expenses_in_cents_by_month_with_budgets(cfg, monkeypatch, tmp_path):
     first = ex.expense_list(m).splitlines()[-1].split()[0][1:]
     assert ex.expense_delete(int(first)).startswith("removed")
     assert private(tmp_path / "exp" / "expenses.db")
+    import sqlite3
+    raw = (tmp_path / "exp" / "expenses.db").read_bytes()
+    assert b"benzina" not in raw and b"divano" not in raw                # what it was: sealed (C458)
+    con = sqlite3.connect(tmp_path / "exp" / "expenses.db")              # a row of before, plain
+    con.execute("INSERT INTO expenses (day, cents, what, category, payment, created) VALUES ('2026-09-01', 500, "
+                "'farmacia segreta', 'salute', 'contanti', 0)")
+    con.commit(); con.close()
+    assert "farmacia segreta" in ex.expense_list("2026-09")             # read as it is, sealed at the opening
+    assert b"farmacia segreta" not in (tmp_path / "exp" / "expenses.db").read_bytes()
 
 
 def test_cinema_lines_providers_and_refs(monkeypatch):

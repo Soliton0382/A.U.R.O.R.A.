@@ -69,7 +69,7 @@ async def projects_papers(days: int = 90) -> dict:
     return await in_thread(work)
 
 
-_traffic: dict[str, tuple[float, dict]] = {}
+_traffic: dict[tuple[str, str], tuple[float, dict]] = {}   # (user, repo): read with that user's token (C457)
 TRAFFIC_S = 1800
 
 
@@ -84,7 +84,8 @@ def projects_github_traffic(owner: str, repo: str) -> dict:
     full = f"{owner}/{repo}"
     if not _re.fullmatch(r"[A-Za-z0-9_.-]{1,100}/[A-Za-z0-9_.-]{1,100}", full):
         raise HTTPException(status_code=400, detail="owner/repo")
-    hit = _traffic.get(full)
+    from .core import me
+    hit = _traffic.get((me(), full))
     if hit and hit[0] > _time.time() - TRAFFIC_S:
         return hit[1]
     token = str(cfg["AURORA_GITHUB_TOKEN"] or "")
@@ -101,7 +102,7 @@ def projects_github_traffic(owner: str, repo: str) -> dict:
                     out["why"] = "permission"
             except httpx.HTTPError:
                 pass
-    _traffic[full] = (_time.time(), out)
+    _traffic[(me(), full)] = (_time.time(), out)
     return out
 
 

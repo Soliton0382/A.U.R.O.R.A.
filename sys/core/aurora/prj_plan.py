@@ -14,6 +14,8 @@ the owner: the agent's gates are the same as in the chat (ethics code).
     <the user's state>/projects/<project>/plan.json
     {"goal", "active", "waiting", "steps": [{"title", "test", "status": open|done|blocked, "tries", "runs": [...]}],
      "created", "updated", "told_day"}
+sealed with the user's key (N64: the goal and the steps' titles are the owner's words; a plan of before is read as it
+is and sealed at its next save).
 Level (AURORA_PROJECT_AUTONOMY, the Autonomy panel's «projects»): 0 🔒 never by herself; 1 🤝 one step, then she
 waits for the owner; 2 🚀 step after step until done or blocked."""
 from __future__ import annotations
@@ -23,7 +25,7 @@ import re
 import time
 from pathlib import Path
 
-from . import sys_config, sys_users_layout as L
+from . import sys_config, sys_seal, sys_users_layout as L
 
 NAME = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
 TRIES = 3                      # failures on one step before it is blocked and told
@@ -43,9 +45,15 @@ def _file(cfg: sys_config.Config, project: str) -> Path:
 
 
 def load(cfg: sys_config.Config, project: str) -> dict | None:
+    """The plan, None when there is none (or it is not JSON). A sealed plan that does not open raises: a None here
+    would let a new plan be saved over it."""
     try:
-        return json.loads(_file(cfg, project).read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+        blob = sys_seal.read_any(cfg, _file(cfg, project), cfg.user)
+    except OSError:
+        return None
+    try:
+        return json.loads(blob)
+    except ValueError:
         return None
 
 
@@ -53,9 +61,7 @@ def save(cfg: sys_config.Config, project: str, plan: dict) -> dict:
     f = _file(cfg, project)
     f.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     plan["updated"] = time.time()
-    tmp = f.with_suffix(".tmp")
-    tmp.write_text(json.dumps(plan, ensure_ascii=False, indent=1), encoding="utf-8")
-    tmp.replace(f)
+    sys_seal.write(cfg, f, json.dumps(plan, ensure_ascii=False, indent=1).encode("utf-8"), cfg.user, "state")
     return plan
 
 
@@ -103,7 +109,10 @@ def due(cfg: sys_config.Config, projects: list[str], now: float | None = None) -
         return None
     now = now or time.time()
     for name in sorted(projects):
-        plan = load(cfg, name)
+        try:
+            plan = load(cfg, name)
+        except ValueError:                               # a bad name, or a sealed plan that does not open: not this one
+            continue
         i = next_step(plan)
         if i is None:
             continue

@@ -22,25 +22,26 @@ def _area(area: str) -> str:
     return area
 
 
-_reading: dict[str, str] = {}                        # exam id -> "reading" | "N values" | "error: ..."
+_reading: dict[tuple[str, str], str] = {}            # (user, exam id) -> "reading" | "N values" | "error: ..." (C457)
 
 
 def read_values(doc_id: str) -> None:
     """The exam's values read by the LOCAL model (pipeline().llm: never a cloud model), in a thread of this user."""
     from aurora import hlt_labs, sys_context
     from .core import pipeline
-    _reading[doc_id] = "reading"
+    slot = (me(), doc_id)
+    _reading[slot] = "reading"
 
     def work():
         from aurora import mdl_router
         llm = mdl_router.private_model(pipeline().llm, cfg)
         if llm is None:                                   # C213: health never to a cloud model, and there is no other
-            _reading[doc_id] = "error: no local model on this installation: the values are entered by hand"
+            _reading[slot] = "error: no local model on this installation: the values are entered by hand"
             return
         try:
-            _reading[doc_id] = f"{len(hlt_labs.extract(cfg, doc_id, llm))} values"
+            _reading[slot] = f"{len(hlt_labs.extract(cfg, doc_id, llm))} values"
         except Exception as e:                            # noqa: BLE001 — told on the page, the document stays
-            _reading[doc_id] = f"error: {type(e).__name__}"
+            _reading[slot] = f"error: {type(e).__name__}"
             log.warning("exam values not read: %s", type(e).__name__)
     sys_context.start(work, name="exam-values")
 
@@ -49,7 +50,8 @@ def read_values(doc_id: str) -> None:
 def health_values() -> dict:
     """Each test over time (hlt_labs.series), and which exams are being read now."""
     from aurora import hlt_labs
-    return {"series": hlt_labs.series(cfg), "reading": dict(_reading)}
+    who = me()
+    return {"series": hlt_labs.series(cfg), "reading": {d: s for (u, d), s in _reading.items() if u == who}}
 
 
 @router.post("/v1/aurora/health/values/read/{doc_id}", dependencies=[Depends(auth)])

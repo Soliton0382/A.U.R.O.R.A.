@@ -141,7 +141,7 @@ class Approvals:
             items = self._load()
             items.append(item)
             self._save(items[-500:])
-        self.log.info("audit: approval requested %s (%s, %s): %s", item["id"], kind, effect, title)
+        self.log.info("audit: approval requested %s (%s, %s)", item["id"], kind, effect)   # the title quotes the chat
         sys_log.trace("approvals", "approval.request", {"id": item["id"], "kind": kind, "effect": effect, "title": title},
                       run_id=run_id)
         return item
@@ -156,7 +156,7 @@ class Approvals:
             items = self._load()
             items.append(item)
             self._save(items[-500:])
-        self.log.info("audit: autonomous action %s: %s", item["id"], title)
+        self.log.info("audit: autonomous action %s", item["id"])
         sys_log.trace("approvals", "approval.auto", {"id": item["id"], "title": title}, run_id=run_id)
         return item
 

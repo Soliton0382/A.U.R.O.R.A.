@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from aurora import sys_config
+from aurora import sys_config, sys_seal
 from mcp.server.mcpserver import MCPServer
 
 cfg = sys_config.get()
@@ -91,9 +91,14 @@ def _load(user: str):
             notes.append(f"{u}: nessuna routine configurata (manca routines.json)")
             continue
         try:
-            data = json.loads(f.read_text(encoding="utf-8") or "[]")
+            # sealed with its user's «routines» key (N64), which the host gives this cage: another user's file does
+            # not open here and is said sealed, never guessed; a file of before is read as it is
+            data = json.loads(sys_seal.read_any(cfg, f, u, "routines") or b"[]")
         except json.JSONDecodeError as e:
             notes.append(f"{u}: routines.json non leggibile ({e.msg}, riga {e.lineno})")
+            continue
+        except (ValueError, RuntimeError):                # does not open here (sys_keyring.Locked is a RuntimeError)
+            notes.append(f"{u}: routines.json è sigillato con la chiave dell'utente: le routine sono nella pagina Routine")
             continue
         got.append((u, _as_list(data)))
     return got, notes

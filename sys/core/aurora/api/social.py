@@ -159,12 +159,18 @@ async def social_story(request: Request) -> dict:
     topic = str((await request.json()).get("topic", "")).strip()
     if not 3 <= len(topic) <= 300:
         raise HTTPException(status_code=400, detail="a topic of 3-300 characters")
+    from .core import _admin, me
+    mine = me() != _admin()                           # a user's own video, never a post of Aurora's (C458)
 
     def job(q, emit, run_id):
         from aurora import kno_story, sys_uploads
         out = kno_story.make(pipeline(), cfg, q, emit)
         data = Path(out["video"]).read_bytes()
-        url = sys_uploads.public(sys_uploads.save(cfg, run_id, "aurora-story.mp4", "video/mp4", data, role="assistant"))["url"]
+        url = sys_uploads.public(sys_uploads.save(cfg, run_id, "aurora-story.mp4", "video/mp4", data, role="assistant",
+                                                  private=mine))["url"]
+        if mine:                                      # its topic, scenes and answer: only in the sealed upload
+            import shutil
+            shutil.rmtree(out["folder"], ignore_errors=True)
         emit("story.ready", {"url": url, "post": out["post"], "folder": out["folder"], "length_s": out["length_s"]})
         return None
     return {"run_id": start_run(topic, origin="story", job=job)["id"]}

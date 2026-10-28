@@ -76,9 +76,9 @@ def last_picture(recent: list) -> tuple[str, bytes] | None:
     files = sys_uploads.by_run(cfg, {t.extra.get("run_id") for t in recent[-6:]} - {None})
     for t in reversed(recent[-6:]):
         for f in sorted(files.get(t.extra.get("run_id"), []), key=lambda f: f["role"] != "assistant"):
-            found = sys_uploads.get(cfg, f["id"]) if f["inline"] and f["mime"].startswith("image/") else None
-            if found:
-                return f["name"], found[0].read_bytes()
+            found = sys_uploads.read(cfg, f["id"]) if f["inline"] and f["mime"].startswith("image/") else None
+            if found:                                  # read(): the plain picture, a sealed one opened (N64)
+                return f["name"], found[0]
     return None
 
 

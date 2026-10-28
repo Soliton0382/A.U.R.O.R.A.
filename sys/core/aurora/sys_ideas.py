@@ -5,17 +5,17 @@ is written in a form we can take into consideration").
 
 Each idea: the areas it touches (ticks), its kind (new feature, improvement, simpler, faster, a fix), a priority, a
 title and the owner's words; then a state the owner and the developer move along (new → considered → planned → done,
-or no, with a note why). Kept per user in their state folder (ideas.json): the owner's words never go to the repository.
+or no, with a note why). Kept per user in their state folder (ideas.json): the owner's words never go to the repository,
+and the file is sealed with the user's key (N64; a file of before is read as it is and sealed at the next change).
 as_markdown() is the request as a developer reads it.
 """
 from __future__ import annotations
 
 import json
-import os
 import time
 import uuid
 
-from . import sys_config
+from . import sys_config, sys_seal
 
 AREAS = ("chat", "knowledge", "agents", "security", "health", "voice", "interface", "phone", "plugins", "speed", "other")
 KINDS = ("feature", "improve", "simpler", "faster", "fix")
@@ -32,17 +32,17 @@ def _file(cfg: sys_config.Config):
 
 def listing(cfg: sys_config.Config) -> list[dict]:
     f = _file(cfg)
+    if not f.exists():
+        return []
+    blob = sys_seal.read_any(cfg, f, cfg.user)          # a sealed file that does not open raises: never saved over
     try:
-        return json.loads(f.read_text(encoding="utf-8")) if f.exists() else []
+        return json.loads(blob)
     except ValueError:
         return []
 
 
 def _save(cfg: sys_config.Config, items: list[dict]) -> None:
-    f = _file(cfg)
-    tmp = f.with_suffix(".tmp")
-    tmp.write_text(json.dumps(items, ensure_ascii=False, indent=1), encoding="utf-8")
-    os.replace(tmp, f)
+    sys_seal.write(cfg, _file(cfg), json.dumps(items, ensure_ascii=False, indent=1).encode("utf-8"), cfg.user, "state")
 
 
 def add(cfg: sys_config.Config, spec: dict) -> dict:

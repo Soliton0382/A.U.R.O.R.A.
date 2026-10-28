@@ -10,11 +10,12 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse
 
 from .core import auth, cfg, log, pipeline
+from .users import admin_only
 
 router = APIRouter()
 
 
-@router.post("/v1/aurora/bugreport", dependencies=[Depends(auth)])
+@router.post("/v1/aurora/bugreport", dependencies=[Depends(admin_only)])   # the machine's logs inside (C457)
 async def bugreport_make(request: Request) -> dict:
     from aurora import sys_bugreport, sys_features, sys_health
     body = await request.json()

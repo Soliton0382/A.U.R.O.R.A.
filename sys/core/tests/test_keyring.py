@@ -80,7 +80,7 @@ def test_the_services_read_the_credential_systemd_opened_for_them(kcfg, tmp_path
 
 def test_a_caged_plugin_gets_its_own_store_s_key_only(kcfg, monkeypatch):
     from aurora import plg_host
-    assert set(plg_host.SEAL_KEYS) == {"calendar", "health", "diary", "push"}                   # never the memory's or the state's
+    assert set(plg_host.SEAL_KEYS) == {"calendar", "health", "diary", "push", "expenses", "routines"}                   # never the memory's or the state's
     k = sys_seal._key(kcfg, kcfg.user, "calendar")
     monkeypatch.setenv("AURORA_SEAL_KEY_CALENDAR", k.hex())
     assert sys_seal._key(kcfg, kcfg.user, "calendar") == k

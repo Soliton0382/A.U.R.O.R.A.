@@ -18,7 +18,10 @@ answer NOTHING) | if_new (if_any, and different from the last notified text: an 
 
 aurora-rem asks for the due routines every tick; aurora-api runs them as runs (visible in the Runs page),
 stores the result here and notifies. Reading is automatic; anything else a routine's agent wants to do
-waits for the owner's approval like any other agent action. Stored in <AURORA_STATUS_DIR>/routines.json.
+waits for the owner's approval like any other agent action. Stored in <AURORA_STATUS_DIR>/routines.json, sealed with
+the user's key (N64: an agent routine's goal is the owner's words, its last_text and memory the agent's report; a file
+of before is read as it is and sealed at the next write). The other small files kept through _load/_save here (the
+home's automations, devices, scenes, the advice) stay as they were: only SEALED is sealed.
 
 Plugins suggest routines in their manifest ("routines": [...]) and say what they can do ("welcome");
 when a plugin becomes ready, the owner is told once (ready()).
@@ -33,8 +36,10 @@ import uuid
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-from . import sns_clock, sys_config
+from . import sns_clock, sys_config, sys_seal
 
+SEALED = ("routines.json",)                              # the files of _save written sealed (N64)
+PURPOSE = "routines"                                     # a key of its own: the routines plugin's cage gets this one
 NOTIFY = ("always", "if_any", "if_new", "never")
 NOTHING = re.compile(r"^\s*(niente|nothing|nessuna novit|no news)", re.I)
 
@@ -47,14 +52,23 @@ def _file(cfg: sys_config.Config, name: str) -> Path:
 
 
 def _load(cfg: sys_config.Config, name: str, default):
+    """The file's data, or `default` when it is missing or not JSON. A sealed file that does not open (changed, not
+    this user's, the key locked) raises: an empty default here would be saved over the routines at the next write."""
     try:
-        return json.loads(_file(cfg, name).read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+        blob = sys_seal.read_any(cfg, _file(cfg, name), cfg.user, PURPOSE)
+    except OSError:
+        return default
+    try:
+        return json.loads(blob)
+    except ValueError:
         return default
 
 
 def _save(cfg: sys_config.Config, name: str, data) -> None:
     f = _file(cfg, name)
+    if name in SEALED:                                   # sealed, 0600, written aside and moved in place
+        sys_seal.write(cfg, f, json.dumps(data, ensure_ascii=False, indent=1).encode("utf-8"), cfg.user, PURPOSE)
+        return
     tmp = f.with_name(f.name + ".tmp")
     tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
     os.replace(tmp, f)

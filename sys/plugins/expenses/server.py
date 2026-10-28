@@ -5,6 +5,10 @@
 "Ho speso 45 € di benzina" becomes a row (amount, what, category, day); the owner asks for a month, a category, a
 summary against the month before and against his monthly budgets. No network (sandbox), writes only its folder.
 Amounts are kept in cents (integers): sums never drift.
+
+What a spending was and how it was paid are sealed with the user's «expenses» key (N64, C458: the host hands the
+cage only that key, opened); day, amount and category stay plain, the month's sums are made from them in SQL. A row
+of before is sealed the first time the file is opened.
 """
 from __future__ import annotations
 
@@ -16,7 +20,7 @@ from contextlib import contextmanager
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-from aurora import sys_config
+from aurora import sys_config, sys_seal
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 
@@ -49,10 +53,31 @@ def _db():
         if new:
             os.chmod(f, 0o600)
         con.executescript(DDL)
+        _seal_old(con)
         yield con
         con.commit()
     finally:
         con.close()
+
+
+def _seal(value: str, col: str) -> str:
+    return sys_seal.seal_text(cfg, value, f"expense:{col}", cfg.user, "expenses") if value else value
+
+
+def _open(value: str, col: str) -> str:
+    return sys_seal.open_text(cfg, value, f"expense:{col}", cfg.user, "expenses") if value else value
+
+
+def _seal_old(con) -> None:
+    """The rows written before N64, sealed once (then VACUUM: their old pages go)."""
+    old = [(i, w, p) for i, w, p in con.execute("SELECT id, what, payment FROM expenses")
+           if not sys_seal.is_sealed(w) or (p and not sys_seal.is_sealed(p))]
+    for i, w, p in old:
+        con.execute("UPDATE expenses SET what = ?, payment = ? WHERE id = ?",
+                    (w if sys_seal.is_sealed(w) else _seal(w, "what"), p if sys_seal.is_sealed(p) else _seal(p, "payment"), i))
+    if old:
+        con.commit()
+        con.execute("VACUUM")
 
 
 def _cents(amount) -> int:
@@ -116,7 +141,7 @@ def expense_add(amount: str, what: str, category: str = "altro", day: str = "ogg
     d, c = _day(day), _cat(category)
     with _db() as con:
         cur = con.execute("INSERT INTO expenses (day, cents, what, category, payment, created) VALUES (?,?,?,?,?,?)",
-                          (d, cents, what, c, (payment or "").strip()[:40], time.time()))
+                          (d, cents, _seal(what, "what"), c, _seal((payment or "").strip()[:40], "payment"), time.time()))
     return f"recorded #{cur.lastrowid}: {_money(cents)} · {what} · {c} · {d}"
 
 
@@ -131,7 +156,8 @@ def expense_list(month: str = "", category: str = "", limit: int = 50) -> str:
         rows = con.execute(q + " ORDER BY day DESC, id DESC LIMIT ?", args + [max(1, min(limit, 500))]).fetchall()
     if not rows:
         return f"no spendings in {m}" + (f" for {category}" if category else "")
-    return "\n".join(f"#{i} {d} · {_money(c)} · {w} · {cat}" + (f" · {p}" if p else "") for i, d, c, w, cat, p in rows)
+    return "\n".join(f"#{i} {d} · {_money(c)} · {_open(w, 'what')} · {cat}" + (f" · {_open(p, 'payment')}" if p else "")
+                     for i, d, c, w, cat, p in rows)
 
 
 @server.tool()

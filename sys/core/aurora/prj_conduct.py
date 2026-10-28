@@ -8,7 +8,9 @@ the project's open items, its documents and the conversation so far; the owner s
 it with one click (owner, 22 Oct: «mostra e poi un clic»). The agent runs the phase; when it ends, the conductor reads
 its report and answers: what was done, what does not hold, and the questions only the owner can decide, as choices
 (a / b / c, one recommended). The conversation is kept per user beside the project's policy
-(state/projects/<name>/conduct.jsonl). A «local» project is conducted by the local model only, like its runs.
+(state/projects/<name>/conduct.jsonl), each entry one line sealed with the user's key (N64: the owner's words, the
+drafted goals and the replies; a line of before is read as it is, and sealed when update() writes the file again). A
+«local» project is conducted by the local model only, like its runs.
 """
 from __future__ import annotations
 
@@ -17,7 +19,7 @@ import time
 import uuid
 from pathlib import Path
 
-from . import prj_policy, sys_config
+from . import prj_policy, sys_config, sys_seal
 from . import sys_users_layout as L
 
 OPEN_ITEMS = ("docs/DA_FARE.md", "DA_FARE.md")
@@ -50,6 +52,15 @@ def _file(cfg: sys_config.Config, project: str) -> Path:
     return L.place(cfg, "state", cfg.user) / "projects" / project / "conduct.jsonl"
 
 
+def _label(project: str) -> str:
+    """What an entry's line is bound to: this project's conversation with the conductor."""
+    return f"projects/{project}/conduct.jsonl"
+
+
+def _line(cfg: sys_config.Config, project: str, e: dict) -> str:
+    return sys_seal.seal_text(cfg, json.dumps(e, ensure_ascii=False), _label(project), cfg.user) + "\n"
+
+
 def _project(cfg: sys_config.Config, project: str) -> Path:
     if not prj_policy.NAME.fullmatch(project or ""):
         raise ValueError("bad project name")
@@ -67,7 +78,7 @@ def history(cfg: sys_config.Config, project: str) -> list[dict]:
     out = []
     for line in lines:
         try:
-            out.append(json.loads(line))
+            out.append(json.loads(sys_seal.open_text(cfg, line, _label(project), cfg.user)))   # a line of before: as it is
         except ValueError:
             pass
     return out
@@ -79,7 +90,7 @@ def add(cfg: sys_config.Config, project: str, kind: str, text: str, **extra) -> 
     f.parent.mkdir(parents=True, exist_ok=True)
     e = {"id": uuid.uuid4().hex[:10], "t": time.time(), "kind": kind, "text": text, **extra}
     with f.open("a", encoding="utf-8") as fh:
-        fh.write(json.dumps(e, ensure_ascii=False) + "\n")
+        fh.write(_line(cfg, project, e))
     return e
 
 
@@ -90,7 +101,7 @@ def update(cfg: sys_config.Config, project: str, entry_id: str, **changes) -> di
             e.update(changes)
             hit = e
     if hit is not None:
-        _file(cfg, project).write_text("".join(json.dumps(e, ensure_ascii=False) + "\n" for e in items), encoding="utf-8")
+        _file(cfg, project).write_text("".join(_line(cfg, project, e) for e in items), encoding="utf-8")
     return hit
 
 

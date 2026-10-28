@@ -37,5 +37,8 @@
     "request": "e3e1ba2d38",
     "at": "2026-10-12T14:40:07+0200",
     "need": "Missing capability: tool to read the list of configured routines (including their active/disabled status) from the Aurora service."
-  }
+  },
+  "seal_keys": [
+    "routines"
+  ]
 }

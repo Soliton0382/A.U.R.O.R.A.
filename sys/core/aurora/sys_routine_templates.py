@@ -153,6 +153,11 @@ def save_mine(cfg: sys_config.Config, title: str, user: str | None, description:
             "saved_by": user, "saved_at": time.time(), "routines": items}
     d = _dir(cfg)
     d.mkdir(parents=True, exist_ok=True)
+    try:                                                # the same title as another user's set: theirs stays (C457)
+        if json.loads((d / f"{pid}.json").read_text(encoding="utf-8")).get("saved_by") != user:
+            raise ValueError("a set with this title was saved by someone else: choose another title")
+    except (OSError, json.JSONDecodeError):
+        pass
     tmp = d / f"{pid}.json.tmp"
     tmp.write_text(json.dumps(pack, ensure_ascii=False, indent=1), encoding="utf-8")
     os.replace(tmp, d / f"{pid}.json")

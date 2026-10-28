@@ -181,6 +181,44 @@ def plugin_away(name: str, body: dict) -> dict:
         raise HTTPException(status_code=422, detail=str(e)) from None
 
 
+# before the actions' route below, which would take «icon» as an action (C457: never reached until 29 Oct)
+@router.post("/v1/aurora/plugins/{name}/icon", dependencies=[Depends(admin_only)])   # seen by everyone (C457)
+async def plugin_icon_set(name: str, request: Request) -> dict:
+    """The owner changes a plugin's icon: {"data": base64 image} or {"url": "https://..."} (checked,
+    made a 64x64 PNG)."""
+    import io
+    from PIL import Image
+    p = next((x for x in plugin_host().plugins(with_tools=False) if x.name == name), None)
+    if p is None:
+        raise HTTPException(status_code=404, detail="unknown plugin")
+    body = await request.json()
+    try:
+        if body.get("url"):
+            url = str(body["url"])
+            if not url.startswith("https://"):
+                raise ValueError("only https:// links")
+            from aurora import net_public                # C426: never this machine, the LAN only for the admin
+            from .core import _admin, me
+            raw = net_public.request("GET", url, lan=me() == _admin(), timeout=20).content
+        else:
+            raw = base64.b64decode(body.get("data", ""), validate=True)
+        if len(raw) > 5 * 1024 * 1024:
+            raise ValueError("image larger than 5 MB")
+        img = Image.open(io.BytesIO(raw))
+        img.load()
+        img = img.convert("RGBA")
+        img.thumbnail((64, 64))
+        canvas = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+        canvas.paste(img, ((64 - img.width) // 2, (64 - img.height) // 2))
+        mine = cfg.path("AURORA_STATUS_DIR") / "plugins" / "icons"       # user data: the plugin's own icon stays
+        mine.mkdir(parents=True, exist_ok=True)
+        canvas.save(mine / f"{name}.png")
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"not a usable image: {e}")
+    log.info("audit: icon of plugin %s changed", name)
+    return {"name": name, "icon": f"/v1/aurora/plugins/{name}/icon"}
+
+
 @router.post("/v1/aurora/plugins/{name}/{action}", dependencies=[Depends(auth)])
 def plugin_switch(name: str, action: str) -> dict:
     """enable / disable (for everyone), share / unshare (the users may use it, or only the admin), delete (into the
@@ -289,43 +327,6 @@ def plugin_icon(name: str):
     svg = (f"<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><rect width='64' height='64' rx='14' "
            f"fill='#2a3350'/><text x='32' y='44' font-size='32' text-anchor='middle'>{glyph}</text></svg>")
     return Response(svg, media_type="image/svg+xml")
-
-
-@router.post("/v1/aurora/plugins/{name}/icon", dependencies=[Depends(auth)])
-async def plugin_icon_set(name: str, request: Request) -> dict:
-    """The owner changes a plugin's icon: {"data": base64 image} or {"url": "https://..."} (checked,
-    made a 64x64 PNG)."""
-    import io
-    from PIL import Image
-    p = next((x for x in plugin_host().plugins(with_tools=False) if x.name == name), None)
-    if p is None:
-        raise HTTPException(status_code=404, detail="unknown plugin")
-    body = await request.json()
-    try:
-        if body.get("url"):
-            url = str(body["url"])
-            if not url.startswith("https://"):
-                raise ValueError("only https:// links")
-            from aurora import net_public                # C426: never this machine, the LAN only for the admin
-            from .core import _admin, me
-            raw = net_public.request("GET", url, lan=me() == _admin(), timeout=20).content
-        else:
-            raw = base64.b64decode(body.get("data", ""), validate=True)
-        if len(raw) > 5 * 1024 * 1024:
-            raise ValueError("image larger than 5 MB")
-        img = Image.open(io.BytesIO(raw))
-        img.load()
-        img = img.convert("RGBA")
-        img.thumbnail((64, 64))
-        canvas = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
-        canvas.paste(img, ((64 - img.width) // 2, (64 - img.height) // 2))
-        mine = cfg.path("AURORA_STATUS_DIR") / "plugins" / "icons"       # user data: the plugin's own icon stays
-        mine.mkdir(parents=True, exist_ok=True)
-        canvas.save(mine / f"{name}.png")
-    except Exception as e:
-        raise HTTPException(status_code=422, detail=f"not a usable image: {e}")
-    log.info("audit: icon of plugin %s changed", name)
-    return {"name": name, "icon": f"/v1/aurora/plugins/{name}/icon"}
 
 
 UNITS = ("aurora-llm", "aurora-models", "aurora-api", "aurora-rem", "aurora-harvester", "aurora-sentinel", "aurora-https")

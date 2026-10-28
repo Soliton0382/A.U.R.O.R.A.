@@ -79,12 +79,23 @@ def test_plugin_results_are_sealed(cfg):
     plg_shadow.put(cfg, "weather", "forecast", {"place": "Borgo"}, SECRET)
     assert plg_shadow.get(cfg, "weather", "forecast", {"place": "Borgo"}, 60) == SECRET
     with closing(plg_shadow._db(cfg, "weather")) as con:
-        (text,) = con.execute("SELECT text FROM results").fetchone()
+        (k, text) = con.execute("SELECT key, text FROM shadow").fetchone()
     assert sys_seal.is_sealed(text) and SECRET not in text
-    with closing(plg_shadow._db(cfg, "weather")) as con, con:              # a row of before
-        con.execute("INSERT OR REPLACE INTO results (key, tool, text, at) VALUES (?, ?, ?, ?)",
-                    (plg_shadow.key("forecast", {"place": "Valle"}), "forecast", "di prima", time.time()))
-    assert plg_shadow.get(cfg, "weather", "forecast", {"place": "Valle"}, 60) == "di prima"
+    import hashlib
+    plain = hashlib.sha256(json.dumps(["forecast", {"place": "Borgo"}], sort_keys=True).encode()).hexdigest()
+    assert k != plain                                       # a guessed argument is not confirmed from the file
+
+
+def test_the_plain_hash_cache_of_before_is_dropped(cfg):
+    from aurora import plg_shadow, sys_users_layout
+    d = sys_users_layout.place(cfg, "state", cfg.user) / "plugin_shadow"
+    d.mkdir(parents=True, exist_ok=True)
+    with closing(sqlite3.connect(d / "weather.db")) as con, con:
+        con.execute("CREATE TABLE results (key TEXT PRIMARY KEY, tool TEXT, text TEXT, at REAL, used INTEGER DEFAULT 0)")
+        con.execute("INSERT INTO results VALUES ('abc', 'forecast', 'di prima', ?, 0)", (time.time(),))
+    assert plg_shadow.stats(cfg)["weather"] == {"results": 0, "served": 0}
+    with closing(sqlite3.connect(d / "weather.db")) as con:
+        assert con.execute("SELECT name FROM sqlite_schema WHERE name = 'results'").fetchone() is None
 
 
 def test_a_projects_talk_and_its_mask_map_are_sealed(cfg, monkeypatch):
@@ -183,7 +194,7 @@ def test_the_download_endpoint_opens_a_sealed_upload(cfg, monkeypatch):
     api = importlib.import_module("aurora.api.uploads")
     monkeypatch.setattr(api, "cfg", cfg)
     item = sys_uploads.save(cfg, "run-1", "nota.txt", "text/plain", SECRET.encode())
-    r = api.upload_get(item["id"])
+    r = api.upload_get(item["id"], type("Asked", (), {"headers": {}})())
     assert r.body == SECRET.encode() and "attachment" in r.headers["content-disposition"]
     assert r.headers["content-security-policy"] == "sandbox"
 
@@ -250,3 +261,44 @@ def test_the_admins_seed_serves_another_user_with_the_admins_key(cfg):
     import pytest
     with pytest.raises(ValueError):                                          # the admin's key does not open it
         sys_seal.open_text(base, q, K._label(rid, "question"), "boss")
+
+
+def test_a_sealed_video_is_served_by_ranges_as_a_plain_file_is(cfg, monkeypatch):
+    import importlib
+    import sys
+    import pytest
+    from fastapi import HTTPException
+    from aurora import sys_config, sys_uploads
+    monkeypatch.setattr(sys_config, "_cached", cfg)                                 # the API's own cfg: this one
+    for m in [m for m in sys.modules if m.startswith("aurora.api")]:
+        monkeypatch.delitem(sys.modules, m)
+    for name in ("oai", "runs"):                                                     # the app's own order (svc_api)
+        importlib.import_module(f"aurora.api.{name}")
+    from aurora.api import uploads
+    data = bytes(range(256)) * 40
+    item = sys_uploads.save(cfg, "run-1", "gita.mp4", "video/mp4", data)
+    assert sys_seal.is_sealed(open(sys_uploads.get(cfg, item["id"])[0], "rb").read())
+
+    class Asked:                                                                     # a player's request
+        def __init__(self, rng): self.headers = {"range": rng} if rng else {}
+    whole = uploads.upload_get(item["id"], Asked(""))
+    assert whole.status_code == 200 and whole.body == data and whole.headers["accept-ranges"] == "bytes"
+    part = uploads.upload_get(item["id"], Asked("bytes=100-199"))
+    assert part.status_code == 206 and part.body == data[100:200]
+    assert part.headers["content-range"] == f"bytes 100-199/{len(data)}"
+    assert uploads.upload_get(item["id"], Asked("bytes=-10")).body == data[-10:]
+    assert uploads.upload_get(item["id"], Asked("bytes=10000-")).body == data[10000:]
+    with pytest.raises(HTTPException) as e:
+        uploads.upload_get(item["id"], Asked(f"bytes={len(data)}-"))
+    assert e.value.status_code == 416
+
+
+def test_a_picture_a_user_asked_for_is_sealed_and_aurora_s_own_is_not(cfg):
+    from aurora import sys_uploads
+    asked = sys_uploads.save(cfg, "run-2", "aurora-1.png", "image/png", b"\x89PNG " + SECRET.encode(), role="assistant",
+                             private=True)
+    on_disk = open(sys_uploads.get(cfg, asked["id"])[0], "rb").read()
+    assert sys_seal.is_sealed(on_disk) and SECRET.encode() not in on_disk
+    assert sys_uploads.read(cfg, asked["id"])[0] == b"\x89PNG " + SECRET.encode()
+    own = sys_uploads.save(cfg, "run-2", "dream.png", "image/png", b"\x89PNG own", role="assistant")
+    assert open(sys_uploads.get(cfg, own["id"])[0], "rb").read() == b"\x89PNG own"      # the social plugins post it

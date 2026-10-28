@@ -58,6 +58,8 @@ def test_guest_never_sees_boss_s_things(cfg):
     assert boss["oauth_scope"] == "user.info.basic,video.publish"                       # no scope the plugin does not use
     assert boss["oauth_forged"] == 409 and boss["oauth_again"] == 409                   # a state Aurora gave, once
     assert boss["oauth_finish"]["days"] == 365 and boss["oauth_saved"] is True
+    assert guest["bugreport"] == 403 and guest["plugin_icon"] == 403                    # C457: the machine's
+    assert guest["template_over"] in ("refused", "no routine switched on to save") and guest["template_kept"] == "boss"
     assert guest["oauth_saved"] is False and guest["oauth_machine"] is False           # boss's token stays boss's
 
 

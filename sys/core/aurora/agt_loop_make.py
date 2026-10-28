@@ -71,8 +71,10 @@ class AgentMakers:
         except Exception as e:                           # a failed painting is said, never hidden
             return f"ERROR: the picture was not painted: {type(e).__name__}: {str(e)[:300]}"
         path = self.cfg.path("AURORA_IMAGE_DIR") / out["file"]
+        # asked in a user's chat: theirs, sealed with the turn; the painter's plain copy goes (C458)
         item = sys_uploads.public(sys_uploads.save(self.cfg, run_id, out["file"], "image/png", path.read_bytes(),
-                                                   role="assistant"))
+                                                   role="assistant", private=True))
+        path.unlink(missing_ok=True)
         f = {"name": out["file"], "url": item["url"], "mime": "image/png"}
         self.produced.append(f)
         emit("agent.file", f)

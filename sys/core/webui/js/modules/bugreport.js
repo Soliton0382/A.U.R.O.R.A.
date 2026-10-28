@@ -10,6 +10,7 @@ export default {
   id: "bugreport",
   icon: "🐞",
   title: "nav.bugreport",
+  adminOnly: true,                     // the zip holds the machine's logs (C457)
 
   mount(root) {
     root.classList.add("page");
