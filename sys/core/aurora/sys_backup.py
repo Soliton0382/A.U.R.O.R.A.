@@ -254,6 +254,10 @@ def run(cfg: sys_config.Config | None = None, emit=None) -> dict:
                 "formats": sys_formats.current(cfg), "files": entries}
         _write_atomic(dest / "snapshots" / f"{stamp}.snap", _encrypt_bytes(json.dumps(snap).encode(), enc))
         _write_atomic(cache_f, json.dumps(new_cache).encode())
+        from .sys_backup_crypto import _layer         # an installation's own layer: its code beside the snapshots,
+        layer = _layer()                              # so a new installation can read them back
+        if layer is not None and hasattr(layer, "export"):
+            layer.export(dest)
     finally:
         for f in tmpdir.glob("*"):
             f.unlink()

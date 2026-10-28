@@ -2,7 +2,9 @@
 # Copyright 2026 A.U.R.O.R.A. Project
 """The backup's key and encryption (moved from sys_backup, 7 October 2026: one module per part): the owner's key and
 its recovery code, the sub-keys, and the streams in frames of AES-256-GCM with the last one marked (a cut file is
-refused)."""
+refused). An installation may add a layer of its own inside the frames (aurora.local.backup_layer()): each frame
+passes through it before AES-256-GCM, whose security the backup rests on; a file says by its first bytes which it
+was made with, and one made with a layer this installation does not have is refused by name."""
 from __future__ import annotations
 
 import base64
@@ -66,15 +68,28 @@ def _subkeys(raw: bytes) -> tuple[bytes, bytes]:
 
 
 # ---- encryption: frames of AES-256-GCM, the last one marked (a cut file is refused) ---------------
+def _layer():
+    """This installation's own layer inside the frames, if it has one: MAGIC (as long as MAGIC), NONCE (its length),
+    key(the backup's encryption key) and xor(layer key, nonce, frame index, data)."""
+    try:
+        from aurora import local                       # ImportError, not only ModuleNotFoundError (C267)
+    except ImportError:
+        return None
+    return getattr(local, "backup_layer", lambda: None)()
+
+
 def encrypt_stream(src, dst, key: bytes) -> None:
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    layer = _layer()
     aes, prefix = AESGCM(key), os.urandom(8)
-    dst.write(MAGIC + prefix)
+    nonce, lk = (os.urandom(layer.NONCE), layer.key(key)) if layer else (b"", b"")
+    dst.write((layer.MAGIC if layer else MAGIC) + prefix + nonce)
     i, chunk = 0, src.read(FRAME)
     while True:
         nxt = src.read(FRAME) if chunk else b""
         last = not nxt
-        ct = aes.encrypt(prefix + struct.pack(">I", i), chunk, struct.pack(">I?", i, last))
+        body = layer.xor(lk, nonce, i, chunk) if layer else chunk
+        ct = aes.encrypt(prefix + struct.pack(">I", i), body, struct.pack(">I?", i, last) + nonce)   # the nonce bound
         dst.write(struct.pack(">I", len(ct)) + ct)
         if last:
             return
@@ -83,25 +98,31 @@ def encrypt_stream(src, dst, key: bytes) -> None:
 
 def decrypt_stream(src, dst, key: bytes) -> None:
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-    head = src.read(len(MAGIC) + 8)
-    if head[:len(MAGIC)] != MAGIC:
-        raise BackupError("not an Aurora backup file")
-    aes, prefix, i = AESGCM(key), head[len(MAGIC):], 0
+    head, layer = src.read(len(MAGIC)), None
+    if head != MAGIC:
+        layer = _layer()
+        if layer is None or head != layer.MAGIC:
+            raise BackupError("made with a layer this installation does not have (README, the restore steps)"
+                              if head.startswith(MAGIC[:3]) else "not an Aurora backup file")
+    prefix = src.read(8)
+    nonce = src.read(layer.NONCE) if layer else b""
+    lk = layer.key(key) if layer else b""
+    aes, i = AESGCM(key), 0
     while True:
         n = src.read(4)
         if len(n) < 4:
             raise BackupError("the file is cut short: its last part is missing")
         ct = src.read(struct.unpack(">I", n)[0])
         try:
-            pt = aes.decrypt(prefix + struct.pack(">I", i), ct, struct.pack(">I?", i, False))
+            pt = aes.decrypt(prefix + struct.pack(">I", i), ct, struct.pack(">I?", i, False) + nonce)
             last = False
         except Exception:                               # noqa: BLE001 - the same frame, read as the last one
             try:
-                pt = aes.decrypt(prefix + struct.pack(">I", i), ct, struct.pack(">I?", i, True))
+                pt = aes.decrypt(prefix + struct.pack(">I", i), ct, struct.pack(">I?", i, True) + nonce)
                 last = True
             except Exception as e:                      # noqa: BLE001
                 raise BackupError("wrong key, or the file was changed") from e
-        dst.write(pt)
+        dst.write(layer.xor(lk, nonce, i, pt) if layer else pt)
         if last:
             if src.read(1):
                 raise BackupError("data after the last part")
