@@ -4,7 +4,10 @@
 file of someone else and acts on the open file; the .env keeps the services' group when read or written; the command
 card asks for the migration while the services run as the owner; the migration's dry run changes nothing. The whole
 migration, the certificate's watch and the link trick were tried as root on the Ubuntu VM (ROADMAP U6)."""
-import grp
+try:
+    import grp
+except ImportError:                                      # Windows: the POSIX tests are skipped there
+    grp = None
 import importlib.util
 import os
 import subprocess
