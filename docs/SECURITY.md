@@ -208,7 +208,10 @@ checked again before its fix (BUGS.md C420–C429). Left for the installation, n
 owner's own account, which on a typical desktop is in groups that give root (docker, libvirt): a dedicated service
 account (ROADMAP U6) is the real fix; the units that run as root should run code root owns; the polkit rule should
 name its units one by one; the firewall helper should keep its own list of addresses never blocked; Caddy's admin
-endpoint on a socket; the real client address from the tunnel; UMask=0077 for the services.
+endpoint on a socket; the real client address from the tunnel. Done since: the services' own account (U6),
+root's own copy of its units' code, the polkit rule unit by unit, the firewall helper's own never-blocked list.
+The tunnel's private network reaches this machine on every port: the owner's choice (28 Oct: SSH through it), the
+machine's own firewall letting in 8443 and 22 only.
 
 ## Known limits
 

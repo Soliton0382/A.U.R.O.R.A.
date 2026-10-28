@@ -147,8 +147,16 @@ def page(url: str, chars: int = 12000) -> str:
     target = u._replace(netloc=host + (f":{u.port}" if u.port else "")).geturl()
     try:                                                 # the name travels in Host and in TLS (SNI): the certificate is checked
         with httpx.Client(timeout=10, follow_redirects=False) as c:
-            r = c.get(target, headers={**UA, "Host": u.hostname},
-                      extensions={"sni_hostname": u.hostname} if u.scheme == "https" else {})
+            # up to 1 MB read, in pieces (C438: an endless answer was read whole before the 600,000 characters' cut)
+            with c.stream("GET", target, headers={**UA, "Host": u.hostname},
+                          extensions={"sni_hostname": u.hostname} if u.scheme == "https" else {}) as s:
+                body = b""
+                for chunk in s.iter_bytes():
+                    body += chunk
+                    if len(body) > 1024 * 1024:
+                        break
+                keep = {k: v for k, v in s.headers.items() if k.lower() not in ("content-encoding", "content-length")}
+                r = httpx.Response(s.status_code, headers=keep, content=body[:1024 * 1024], request=s.request)
     except (httpx.HTTPError, ValueError):
         return ""
     if r.status_code != 200 or "html" not in r.headers.get("content-type", "html"):

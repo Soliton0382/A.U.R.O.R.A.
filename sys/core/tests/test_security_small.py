@@ -26,3 +26,17 @@ def test_an_unknown_name_costs_one_hash_made_once(monkeypatch):
     sys_users._DUMMY.clear()
     a, b = sys_users._dummy(), sys_users._dummy()
     assert a == b and len(made) == 1
+
+
+def test_a_session_unused_too_long_ends_on_the_server(cfg):
+    """C437: a device unused for longer than AURORA_DEVICE_DAYS is refused, whatever its cookie still says."""
+    import time as _t
+    from aurora.sys_devices import Devices
+    cfg.values["AURORA_DEVICE_DAYS"] = 30
+    d = Devices(cfg)
+    token, rec = d.register("phone", "ua", user="anna")
+    assert d.check(token)
+    items = d._load()
+    items[0]["last_seen"] = _t.strftime("%Y-%m-%dT%H:%M:%S", _t.localtime(_t.time() - 31 * 86400))
+    d._save(items)
+    assert d.check(token) is None

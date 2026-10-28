@@ -338,6 +338,21 @@ def _header(f: Path) -> dict:
     return out
 
 
+def _darks_walk(d: Path, depth: int = 3, most: int = 20000) -> list[Path]:
+    """The files at most `depth` folders down and at most `most` of them, sorted: the walk stops there (C439: a folder
+    of «/» walked the whole disk, the NAS's mounts too, before the depth was looked at)."""
+    import os
+    found: list[Path] = []
+    for top, dirs, files in os.walk(d, followlinks=False):
+        level = len(Path(top).relative_to(d).parts)
+        if level >= depth - 1:
+            dirs[:] = []                                 # no deeper than `depth` (files counted from the folder)
+        found += [Path(top) / f for f in files]
+        if len(found) >= most:
+            break
+    return sorted(found[:most])
+
+
 def darks_library(cfg: sys_config.Config) -> dict:
     """The integrated darks in AURORA_ASTRO_DARKS_DIR (a folder of this machine), each with what its name and header say;
     the ones in a folder named «old» not read at all (owner, 20 Oct: «rimuoviamo dall'import i vecchi file… a 30» — the
@@ -356,8 +371,8 @@ def darks_library(cfg: sys_config.Config) -> dict:
                 pass
         return {"folder": where, "darks": [], "error": "cartella non trovata su questa macchina"}
     out = []
-    for f in sorted(d.rglob("*")):
-        if not f.is_file() or not DARK_FILE.search(f.name) or len(f.relative_to(d).parts) > 3:
+    for f in _darks_walk(d):
+        if not DARK_FILE.search(f.name):
             continue
         if "old" in [p.lower() for p in f.relative_to(d).parts[:-1]]:
             continue

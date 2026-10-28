@@ -110,8 +110,8 @@ def test_the_power_off_rule_only_in_shutdown_mode():
                                                   "sys_install_services.py")
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
-    rule = mod.POLKIT.substitute(user="u", units='"aurora-api.service"', power=mod.POWER.substitute(user="u"))
-    assert "login1.power-off" in rule and "login1" not in mod.POLKIT.substitute(user="u", units='"aurora-api.service"', power="")
+    rule = mod.POLKIT.substitute(user="u", managers='"u"', units='"aurora-api.service"', power=mod.POWER.substitute(user="u"))
+    assert "login1.power-off" in rule and "login1" not in mod.POLKIT.substitute(user="u", managers='"u"', units='"aurora-api.service"', power="")
 
 
 def test_the_ticked_devices_go_down_first_and_a_failure_never_stops_the_power_off(cfg):
@@ -174,5 +174,5 @@ def test_the_polkit_rule_names_its_units_one_by_one():
     spec = importlib.util.spec_from_file_location("sis", Path(__file__).resolve().parents[1] / "script" / "sys_install_services.py")
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
-    rule = mod.POLKIT.substitute(user="u", units='"aurora-api.service", "aurora.target"', power="")
+    rule = mod.POLKIT.substitute(user="u", managers='"u", "owner"', units='"aurora-api.service", "aurora.target"', power="")
     assert '["aurora-api.service", "aurora.target"].indexOf(unit) >= 0' in rule and ".test(unit)" not in rule

@@ -41,7 +41,19 @@ def _get(c: httpx.Client, url: str, addr: str) -> httpx.Response:
     netloc = host + (f":{u.port}" if u.port else "")
     headers = {"Host": u.hostname + (f":{u.port}" if u.port else "")}
     ext = {"sni_hostname": u.hostname} if u.scheme == "https" else {}
-    return c.get(u._replace(netloc=netloc).geturl(), headers=headers, extensions=ext)
+    # read in pieces up to a ceiling (C438: a page answering gigabytes was read whole into memory before the cut)
+    with c.stream("GET", u._replace(netloc=netloc).geturl(), headers=headers, extensions=ext) as r:
+        body = b""
+        for chunk in r.iter_bytes():
+            body += chunk
+            if len(body) > MAX_BYTES:
+                body = body[:MAX_BYTES]
+                break
+        keep = {k: v for k, v in r.headers.items() if k.lower() not in ("content-encoding", "content-length")}
+        return httpx.Response(r.status_code, headers=keep, content=body, request=r.request)
+
+
+MAX_BYTES = 5 * 1024 * 1024
 
 
 class _Text(html.parser.HTMLParser):

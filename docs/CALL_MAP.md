@@ -378,7 +378,7 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `sys_consoles` | `api.system` | 1 |
 | `sys_context` | `agt_loop`, `api.activity`, `api.astro`, `api.calendar`, `api.call`, `api.care`, `api.core`, `api.core_route`, `api.diet`, `api.dj`, `api.rem`, `api.routine_advice`, `api.routines`, `api.runs`, `api.tunnel`, `api.users`, `cal_external`, `hom_auto`, `hom_scenes`, `mdl_budget`, `prj_act`, `sys_anon`, `sys_config`, `sys_log` | 6 |
 | `sys_cycle` | `sys_backup` | 1 |
-| `sys_devices` | `api.access`, `api.call`, `api.core`, `api.users`, `sys_users_layout` | 3 |
+| `sys_devices` | `api.access`, `api.call`, `api.core`, `api.users`, `sys_users_layout` | 4 |
 | `sys_disclosure` | `agt_loop`, `api.core_route`, `api.social`, `doc_pdf`, `kno_social`, `kno_story`, `mdl_image`, `mdl_video`, `sys/plugins/projects/server.py` | 1 |
 | `sys_ethics` | `agt_change`, `agt_forge`, `agt_loop`, `agt_loop_make`, `api.agents`, `api.autonomy`, `api.edge`, `api.models`, `kno_self`, `mdl_cloud`, `mdl_media`, `mdl_modes`, `mdl_router`, `net_cfwaf`, `plg_host`, `script/bench_preflight.py`, `script/dev_license_headers.py`, `script/svc_api.py`, `script/svc_harvester.py`, `script/svc_llm.py`, `script/svc_models.py`, `script/svc_rem.py`, `script/svc_sentinel.py`, `script/sys_ethics_sign.py`, `sec_defence`, `sys_approvals`, `sys_cloud_consent`, `sys_commands`, `sys_disclosure`, `sys_features`, `sys_health`, `sys_update` | 10 |
 | `sys_features` | `agt_loop_make`, `api.bugreport`, `api.core`, `api.core_route`, `api.interpret`, `api.knowledge`, `kno_attach`, `kno_rem`, `kno_video`, `mdl_modes`, `script/sys_doctor.py`, `sys_health` | 5 |

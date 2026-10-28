@@ -28,6 +28,17 @@ def _hash(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
+def _idle_days(rec: dict) -> float:
+    """Days since the device was last used (its creation when never): a session ends on the server after
+    AURORA_DEVICE_DAYS of this, not only in the browser (C437: a stolen cookie lived as long as the cookie)."""
+    for k in ("last_seen", "created"):
+        try:
+            return (time.time() - time.mktime(time.strptime(str(rec.get(k)), "%Y-%m-%dT%H:%M:%S"))) / 86400
+        except (TypeError, ValueError):
+            continue
+    return 0.0
+
+
 class Devices:
     def __init__(self, cfg: sys_config.Config | None = None):
         self.cfg = cfg or sys_config.get()
@@ -67,6 +78,8 @@ class Devices:
         with _lock:
             items = self._load()
             rec = next((d for d in items if secrets.compare_digest(d["token_sha256"], h)), None)
+            if rec and _idle_days(rec) > float(self.cfg["AURORA_DEVICE_DAYS"]):
+                return None                              # C437: unused that long, its session is over on the server too
             if rec and time.time() - self._last_touch.get(rec["id"], 0) > 60:
                 rec["last_seen"] = time.strftime("%Y-%m-%dT%H:%M:%S")
                 self._last_touch[rec["id"]] = time.time()
