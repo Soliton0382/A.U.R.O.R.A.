@@ -142,6 +142,43 @@ export default {
     });
     box.append(pw, res, totp, enrol, el("h4", "", `🔑 ${t("users.keys")}`), this.keysBox = el("div", "keys"));
     this.loadKeys();
+    if (!me.admin || me.assist) { box.append(this.assistBox = el("div", "assist")); this.loadAssist(); }
+  },
+
+  // 🛟 Assistance (sys_assist): the disclaimer is the consent; a window of hours, revocable; every step of the admin listed
+  async loadAssist() {
+    const box = this.assistBox;
+    let a;
+    try { a = await call("/v1/aurora/assist"); } catch (e) { box.replaceChildren(el("p", "result error", e.message)); return; }
+    const when = (s) => new Date(s * 1000).toLocaleString([], { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+    box.replaceChildren(el("h4", "", `🛟 ${t("assist.title")}`), el("p", "muted", t("assist.disclaimer")));
+    if (a.grant) {
+      box.append(el("p", a.inside ? "warn" : "", t(a.inside ? "assist.inside" : "assist.open", { until: when(a.grant.until) })));
+      if (!a.session) {
+        const stop = el("button", "danger", t("assist.revoke"));
+        stop.type = "button";
+        stop.addEventListener("click", async () => { await call("/v1/aurora/assist/revoke", { method: "POST", body: "{}" }); this.loadAssist(); });
+        box.append(stop);
+      }
+    } else if (!a.session) {
+      const hours = el("select");
+      for (const h of a.windows) { const o = el("option", "", t("assist.hours", { h })); o.value = h; hours.append(o); }
+      const go = el("button", "approve", t("assist.grant"));
+      go.type = "button";
+      go.addEventListener("click", async () => {
+        try { await call("/v1/aurora/assist/grant", { method: "POST", body: JSON.stringify({ hours: Number(hours.value) }) }); }
+        catch (e) { alert(e.message); }
+        this.loadAssist();
+      });
+      const row = el("div", "appr-actions");
+      row.append(hours, go);
+      box.append(row);
+    }
+    const what = (s) => (["grant", "revoke", "enter", "end"].includes(s.what) ? t(`assist.step.${s.what}`, { path: s.path }) : `${s.what} ${s.path}`);
+    const d = el("details");
+    d.append(el("summary", "", t("assist.log", { n: a.log.length })),
+      ...(a.log.length ? a.log.map((s) => el("div", "ev", `${when(s.at)} · ${s.by} · ${what(s)}`)) : [el("p", "muted", t("assist.log_none"))]));
+    box.append(d);
   },
 
   // the user's own API keys: one per program (Chatbox, LibreChat...), each working as this user, revocable
@@ -209,6 +246,15 @@ export default {
           this.loadUsers();
         });
         acts.append(pw, tt, del);
+        if (u.assist) {                                // 🛟 the user opened the assistance: the admin may enter
+          const go = el("button", "approve", t("assist.enter"));
+          go.title = t("assist.enter_until", { until: new Date(u.assist.until * 1000).toLocaleString() });
+          go.addEventListener("click", async () => {
+            try { await call("/v1/aurora/assist/enter", { method: "POST", body: JSON.stringify({ user: u.name }) }); location.reload(); }
+            catch (e) { alert(e.message); }
+          });
+          acts.prepend(go);
+        }
       }
       tr.append(el("td", "", u.name), el("td", "", t(`users.role.${u.role}`)), el("td", "", u.totp_on ? "✅" : "—"),
         el("td", "", String(u.files)), el("td", "", String(u.devices)), this.cloudCell(u, admin), this.conductCell(u.conduct), acts);

@@ -236,7 +236,29 @@ async def auth(request: Request) -> None:
         raise HTTPException(status_code=401, detail="invalid or missing API key")
     request.state.device = dev
     request.state.user = dev.get("user") or _admin()   # a device made before multi-user is the admin's
+    if request.state.user == _admin():
+        _assisting(request, dev)
     sys_context.CURRENT.set(request.state.user)
+
+
+def _assisting(request: Request, dev: dict) -> None:
+    """🛟 The admin's device inside a user's account (sys_assist): the request is the user's, each step in their log;
+    the account's keys and sessions (sys_assist.NEVER) refused."""
+    from aurora import sys_assist, sys_user_config
+    base = BASE.base or BASE
+    s = sys_assist.acting(base, dev.get("id", ""))
+    if not s:
+        return
+    path = request.url.path
+    if not sys_assist.allowed(path):
+        raise HTTPException(status_code=403, detail="assistance: the password, the Authenticator, the keys and the "
+                                                    "devices stay the user's own")
+    request.state.assist = {"user": s["user"], "by": request.state.user, "until": s["until"]}
+    request.state.user = s["user"]
+    try:
+        sys_assist.step(sys_user_config.for_user(base, s["user"]), request.state.assist["by"], request.method, path)
+    except OSError:
+        log.exception("assistance log")
 
 
 def _admin() -> str | None:

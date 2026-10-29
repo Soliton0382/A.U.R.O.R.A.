@@ -29,6 +29,7 @@
     GET  /v1/aurora/images/{name}                  an image Aurora painted (a dream), with its AI disclosure
     GET  /v1/aurora/push; POST /v1/aurora/push/{subscribe|unsubscribe|test}  Web Push to this browser
     GET|PUT /v1/aurora/notifications                which events notify, on which channel (push, WebUI)
+    GET  /v1/aurora/assist; POST /v1/aurora/assist/{grant|revoke|enter|leave}  🛟 the admin inside a user's account, when let
     GET  /v1/aurora/harvester; POST /v1/aurora/harvester/{now|batch}  the owner steers aurora-harvester
     PUT  /v1/aurora/harvester/domains {domain: off|round|exhaust}   which domains it harvests, and how
     GET|POST /v1/aurora/routines; PUT|DELETE /v1/aurora/routines/{id}; POST /v1/aurora/routines/{id}/run

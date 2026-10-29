@@ -217,6 +217,13 @@ refuses the rest; sudo lets the target's user run only the two power commands. W
 restart or shut down that machine. A machine counts for the UPS only after a trial that worked, and again after its
 address or user changes. Every restart and shutdown is an audit line in the power log.
 
+## Assistance: the admin inside a user's account (2026-10-30, ROADMAP 🛟)
+
+- Only when the user opens a window (8, 16, 24, 48 or 72 h) from their own page; the disclaimer beside the button is the consent. The user closes it at any moment; it ends by itself, and a session inside it ends with it (checked at every request).
+- Only from a device of the admin's: the API key never enters. Inside, the admin's device is the user for every route, so the admin's own pages answer 403 until they leave.
+- Never reached, whoever asks (403 before the route): the password, the Authenticator, the API keys, the devices, the logout, the window itself (the admin cannot extend it).
+- Every step (method and path, never a body; a page polled counted once a minute) goes into the user's own log, each line sealed with the user's key, shown on their page; the user is told when the admin enters and when it ends.
+
 ## Security review (2026-10-28)
 
 Four read-only reviews of the code (authentication, command execution, files and network, deployment); each finding

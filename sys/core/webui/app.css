@@ -335,3 +335,7 @@ select option, select optgroup { background-color: var(--panel-solid); color: va
 /* the installed app and a phone: everything a little smaller, so the top bar and the pages fit (owner, 2026-10-20:
    «imposterei uno zoom della pwa tipo al 90%… anche un 95% potrebbe andare bene») */
 @media (display-mode: standalone), (max-width: 820px) { html { zoom: .92; } }
+
+/* 🛟 the admin inside a user's account (main.js assistBanner): over every page */
+.assist-banner { position: sticky; top: 0; z-index: 1000; display: flex; gap: .8rem; align-items: center; justify-content: center; flex-wrap: wrap; padding: .45rem 1rem; background: #b45309; color: #fff; font-weight: 600; }
+.assist-banner button { background: #fff; color: #7c2d12; border: 0; border-radius: 6px; padding: .2rem .8rem; }

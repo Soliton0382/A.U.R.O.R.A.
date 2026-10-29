@@ -90,6 +90,8 @@ TEXTS = {   # event -> (kind the owner chooses, view to open, {lang: title})
     "harvest.waiting": ("harvest", "harvester", {"it": "🌾 L'harvester è in attesa", "en": "🌾 The harvester is waiting"}),
     "health.down": ("health", "status", {"it": "🚨 Aurora non sta bene", "en": "🚨 Aurora is not well"}),
     "health.up": ("health", "status", {"it": "✅ Aurora è tornata a posto", "en": "✅ Aurora is fine again"}),
+    "assist.begin": ("access", "users", {"it": "🛟 Assistenza iniziata", "en": "🛟 Assistance began"}),
+    "assist.end": ("access", "users", {"it": "🛟 Assistenza finita", "en": "🛟 Assistance ended"}),
     "device.new": ("access", "settings", {"it": "🔐 Nuovo accesso al tuo account", "en": "🔐 A new sign-in to your account"}),
     "forge.request": ("plugin", "plugins", {"it": "🔨 Aurora chiede una nuova capacità", "en": "🔨 Aurora asks for a new capability"}),
     "devices.new": ("home", "home", {"it": "🏠 Nuovo dispositivo in casa", "en": "🏠 A new device at home"}),

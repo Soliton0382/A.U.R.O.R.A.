@@ -209,6 +209,8 @@ def routine_tick() -> dict:
     """aurora-rem, every tick: start what is due, for every user (their routines run as their work); tell each, once,
     what a newly ready plugin can do."""
     from aurora import sys_context, sys_routines
+    from .assist import expire_due
+    expire_due()                                      # 🛟 an assistance window ended by its time: the user told
     for who in everyone():                            # the home's automations keep their time, talk or not
         with sys_context.acting_as(who):
             _automations(who)

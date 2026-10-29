@@ -88,7 +88,7 @@ async def login(request: Request) -> JSONResponse:
 
 # ---- the user's own account ---------------------------------------------------------------------------------------
 @router.get("/v1/aurora/me", dependencies=[Depends(auth)])
-def whoami() -> dict:
+def whoami(request: Request) -> dict:
     name = me()
     u = _users().by_name(name) if name else None
     from aurora import sys_persona, sys_users_perm
@@ -98,7 +98,8 @@ def whoami() -> dict:
             "mode": str(cfg["AURORA_USER_MODE"]), "mfa": bool(cfg["AURORA_USERS_MFA"]),
             "has_password": bool(u and u["has_password"]), "totp_on": bool(u and u["totp_on"]),
             "welcomed": (name or "") in _welcomed(), "prefs": _prefs().get(name or "", {}),
-            "may": {a: sys_users_perm.may(BASE, name, a, _admin()) for a in sys_users_perm.AREAS}}
+            "may": {a: sys_users_perm.may(BASE, name, a, _admin()) for a in sys_users_perm.AREAS},
+            "assist": getattr(request.state, "assist", None)}       # 🛟 the admin inside this account: the banner
 
 
 # each person's look of the WebUI, on any device (ROADMAP 107; owner, 15 Oct: «salva lo stile per utente sul server»):
@@ -266,7 +267,7 @@ def my_key_revoke(key_id: str) -> dict:
 # ---- the admin's Users page ---------------------------------------------------------------------------------------
 @router.get("/v1/aurora/users", dependencies=[Depends(admin_only)])
 def users_list() -> dict:
-    from aurora import kno_anger, mdl_budget, sys_user_config, sys_users_perm
+    from aurora import kno_anger, mdl_budget, sys_assist, sys_user_config, sys_users_perm
     base = BASE.base or BASE
     used = mdl_budget.today(base).get("users", {})       # each user's cloud tokens today, every provider
     out = []
@@ -275,7 +276,8 @@ def users_list() -> dict:
         out.append({**u, "files": sum(1 for p in home.rglob("*") if p.is_file()) if home.exists() else 0,
                     "devices": sum(1 for d in devices.list() if d.get("user") == u["name"]),
                     "cloud_cap": sys_users_perm.cloud_cap(base, u["name"]), "cloud_today": used.get(u["name"], 0),
-                    "conduct": kno_anger.card(sys_user_config.for_user(base, u["name"]))})
+                    "conduct": kno_anger.card(sys_user_config.for_user(base, u["name"])),
+                    "assist": sys_assist.granted(base, u["name"])})
     return {"users": out, "admin": _admin(), "mode": str(cfg["AURORA_USER_MODE"])}
 
 

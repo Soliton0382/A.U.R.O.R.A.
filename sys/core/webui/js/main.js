@@ -261,6 +261,7 @@ async function persona() {
     applyStyle(currentStyle(isAdmin));                 // until chosen: Completo for the admin, Essenziale for a user
     shortNav();
     whoIs(m);
+    assistBanner(m);
     adminNav();
     if (!isAdmin && adminOnly.has(current)) show("chat");
     firstSetup(m);
@@ -283,6 +284,23 @@ function whoIs(m) {
       textContent: [login && login !== person ? login : null, login ? role : null].filter(Boolean).join(" · ") }));
   box.title = i18n.t("nav.who", { n: person || login });
   box.classList.remove("hidden");
+}
+
+// 🛟 the admin inside a user's account (sys_assist): a banner over every page, whose account and until when, the way out
+function assistBanner(m) {
+  document.getElementById("assist-banner")?.remove();
+  if (!m.assist) return;
+  const bar = el("div", "assist-banner");
+  bar.id = "assist-banner";
+  const until = new Date(m.assist.until * 1000).toLocaleString([], { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+  const out = el("button", "", i18n.t("assist.leave"));
+  out.type = "button";
+  out.addEventListener("click", async () => {
+    try { await call("/v1/aurora/assist/leave", { method: "POST", body: "{}" }); } catch { /* ended already */ }
+    location.reload();
+  });
+  bar.append(el("span", "", i18n.t("assist.banner", { user: m.assist.user, until })), out);
+  document.body.prepend(bar);
 }
 
 // multi-user, the admin's first login (owner, 2026-10-05): in with the installer's API key, then a password and Google
