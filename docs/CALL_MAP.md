@@ -230,7 +230,7 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `kno_abstain` | `kno_answer`, `kno_study` | 1 |
 | `kno_acquire` | `api.core_route`, `api.runs`, `kno_acquire_more`, `kno_sources`, `kno_study`, `script/svc_harvester.py`, `script/vault_realign.py` | 2 |
 | `kno_acquire_more` | `kno_acquire` | 1 |
-| `kno_anger` | `api.core_route`, `kno_answer`, `kno_mood`, `sec_mask` | 2 |
+| `kno_anger` | `api.core_route`, `api.users`, `kno_answer`, `kno_mood`, `sec_mask` | 2 |
 | `kno_answer` | `agt_loop`, `api.agents`, `api.call`, `api.core`, `api.core_route`, `api.forge`, `api.incidents`, `api.models_custom`, `api.routines`, `api.updates`, `kno_acquire`, `kno_followup`, `script/bench_common.py`, `script/bench_domains.py`, `script/bench_followup.py`, `script/bench_vault_diag.py` | 7 |
 | `kno_arxiv` | `kno_acquire`, `kno_sources`, `script/svc_harvester.py`, `script/vault_realign.py` | 1 |
 | `kno_attach` | `api.core_route`, `api.runs`, `kno_answer`, `kno_video` | 4 |

@@ -266,7 +266,7 @@ def my_key_revoke(key_id: str) -> dict:
 # ---- the admin's Users page ---------------------------------------------------------------------------------------
 @router.get("/v1/aurora/users", dependencies=[Depends(admin_only)])
 def users_list() -> dict:
-    from aurora import mdl_budget, sys_users_perm
+    from aurora import kno_anger, mdl_budget, sys_user_config, sys_users_perm
     base = BASE.base or BASE
     used = mdl_budget.today(base).get("users", {})       # each user's cloud tokens today, every provider
     out = []
@@ -274,7 +274,8 @@ def users_list() -> dict:
         home = sys_users_layout.usr_home(base, u["name"])
         out.append({**u, "files": sum(1 for p in home.rglob("*") if p.is_file()) if home.exists() else 0,
                     "devices": sum(1 for d in devices.list() if d.get("user") == u["name"]),
-                    "cloud_cap": sys_users_perm.cloud_cap(base, u["name"]), "cloud_today": used.get(u["name"], 0)})
+                    "cloud_cap": sys_users_perm.cloud_cap(base, u["name"]), "cloud_today": used.get(u["name"], 0),
+                    "conduct": kno_anger.card(sys_user_config.for_user(base, u["name"]))})
     return {"users": out, "admin": _admin(), "mode": str(cfg["AURORA_USER_MODE"])}
 
 

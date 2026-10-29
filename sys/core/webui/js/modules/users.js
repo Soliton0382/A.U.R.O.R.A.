@@ -180,7 +180,7 @@ export default {
     const { users, admin } = await call("/v1/aurora/users");
     const table = el("table", "table");
     const head = el("tr");
-    for (const k of ["users.name", "users.role", "users.totp", "users.files", "users.devices", "users.cloud", ""]) head.append(el("th", "", k && t(k)));
+    for (const k of ["users.name", "users.role", "users.totp", "users.files", "users.devices", "users.cloud", "users.conduct", ""]) head.append(el("th", "", k && t(k)));
     table.append(head);
     for (const u of users) {
       const tr = el("tr");
@@ -211,13 +211,25 @@ export default {
         acts.append(pw, tt, del);
       }
       tr.append(el("td", "", u.name), el("td", "", t(`users.role.${u.role}`)), el("td", "", u.totp_on ? "✅" : "—"),
-        el("td", "", String(u.files)), el("td", "", String(u.devices)), this.cloudCell(u, admin), acts);
+        el("td", "", String(u.files)), el("td", "", String(u.devices)), this.cloudCell(u, admin), this.conductCell(u.conduct), acts);
       table.append(tr);
       if (u.name === added) tr.classList.add("just-added");
     }
     this.list.replaceChildren(table);
     table.querySelector(".just-added")?.scrollIntoView({ behavior: "smooth", block: "center" });
     this.loadPerms();
+  },
+
+  // 📋 the behaviour card (kno_anger.card): the last 30 days' offences, apologies and cool-downs, each day on a click
+  conductCell(c) {
+    const td = el("td");
+    if (!c || !c.days.length) { td.append(el("span", "muted", t("users.conduct_none"))); return td; }
+    const d = el("details");
+    d.append(el("summary", c.offence ? "warn" : "", `😠 ${c.offence} · 🙂 ${c.apology} · ⏸️ ${c.cool}`));
+    for (const r of c.days) d.append(el("div", "muted", `${r.day}: 😠 ${r.offence} · 🙂 ${r.apology} · ⏸️ ${r.cool}`));
+    d.title = t("users.conduct_hint");
+    td.append(d);
+    return td;
   },
 
   // a user's cloud tokens a day (every provider, the subscription too): the admin's choice, today's use beside it

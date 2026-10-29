@@ -13,7 +13,11 @@ Its effects, each said in her words:
 - at COOL_AT or more (two offences in a few minutes): for COOL_S after the last she asks for a moment instead of
   answering — never for what is urgent (URGENT: alarms, the house, security, health), and never longer than COOL_S;
 - an apology: «scuse accettate», and the answer as usual.
-No model is asked: the words are counted here, so the same message always gives the same anger (tested)."""
+No model is asked: the words are counted here, so the same message always gives the same anger (tested).
+
+The behaviour card (owner, 29 Oct: a card per user on the admin's Users page): each day's offences, apologies that
+ended an anger and cool-downs, numbers only — never the words — kept CONDUCT_DAYS; offences counted with the mood off
+too (core_route.mood_wrap still keeps them local)."""
 from __future__ import annotations
 
 import contextvars
@@ -29,6 +33,7 @@ FADE_S = 30 * 60                  # an offence weighs nothing after half an hour
 COOL_AT = 0.6                     # two offences close together
 COOL_S = 3 * 60                   # the longest she asks for a moment
 KEEP_S = 2 * FADE_S
+CONDUCT_DAYS = 365
 _lock = threading.Lock()
 # the line she says before this run's answer: kept with the answer in her memory too (kno_answer.remember), not only
 # shown live — the conversation read again says it as it was said
@@ -68,6 +73,39 @@ def _save(cfg: sys_config.Config, rows: list[dict]) -> None:
     sys_seal.write(cfg, _file(cfg), json.dumps(rows, ensure_ascii=False).encode("utf-8"), cfg.user, "state")
 
 
+def _card_file(cfg: sys_config.Config) -> Path:
+    return _file(cfg).with_name("conduct.json")
+
+
+def _tally(cfg: sys_config.Config, kind: str, now: float) -> None:
+    """One more of kind ("offence", "apology", "cool") on today's line of the card (called under _lock)."""
+    try:
+        days = json.loads(sys_seal.read_any(cfg, _card_file(cfg), cfg.user))
+    except (OSError, ValueError):
+        days = {}
+    today = time.strftime("%Y-%m-%d", time.localtime(now))
+    line = days.setdefault(today, {})
+    line[kind] = line.get(kind, 0) + 1
+    oldest = time.strftime("%Y-%m-%d", time.localtime(now - CONDUCT_DAYS * 86400))
+    days = {d: v for d, v in days.items() if d >= oldest}
+    sys_seal.write(cfg, _card_file(cfg), json.dumps(days).encode("utf-8"), cfg.user, "state")
+
+
+def card(cfg: sys_config.Config, days: int = 30, now: float | None = None) -> dict:
+    """{"offence", "apology", "cool": totals of the last `days`, "days": [{"day", "offence", "apology", "cool"}] newest
+    first, "last": the last day with an offence or None} — the admin's Users page."""
+    now = now or time.time()
+    try:
+        rows = json.loads(sys_seal.read_any(cfg, _card_file(cfg), cfg.user))
+    except (OSError, ValueError):
+        rows = {}
+    since = time.strftime("%Y-%m-%d", time.localtime(now - (days - 1) * 86400))
+    kinds = ("offence", "apology", "cool")
+    shown = [{"day": d, **{k: int(rows[d].get(k, 0)) for k in kinds}} for d in sorted(rows, reverse=True) if d >= since]
+    return {**{k: sum(r[k] for r in shown) for k in kinds}, "days": shown,
+            "last": max((d for d, v in rows.items() if v.get("offence")), default=None)}
+
+
 def heard(text: str) -> str:
     """What a message is to her anger: "offence", "apology" or "" (pure: the words only)."""
     if INSULT.search(text or ""):
@@ -99,6 +137,9 @@ def react(cfg: sys_config.Config, text: str, now: float | None = None) -> dict:
     → {"kind", "value", "cool": the answer instead of one, or "", "prefix": a line before the answer, or ""}."""
     now = now or time.time()
     if not cfg["AURORA_MOOD"]:
+        if heard(text) == "offence":
+            with _lock:
+                _tally(cfg, "offence", now)
         return {"kind": "", "value": 0.0, "cool": "", "prefix": ""}
     it = str(cfg["AURORA_LANG_DEFAULT"]).startswith("it")
     kind = heard(text)
@@ -112,7 +153,10 @@ def react(cfg: sys_config.Config, text: str, now: float | None = None) -> dict:
             rows.append({"at": now, "kind": "apology"})
         if kind and (kind == "offence" or before > 0):
             _save(cfg, rows)
-    v, live = value(rows, now)
+            _tally(cfg, kind, now)
+        v, live = value(rows, now)
+        if v >= COOL_AT and live and now - live[-1]["at"] < COOL_S and kind == "offence" and not URGENT.search(text or ""):
+            _tally(cfg, "cool", now)                     # a cool-down begun (by this offence): counted once
     out = {"kind": kind, "value": v, "cool": "", "prefix": ""}
     if kind == "apology" and before > 0:
         out["prefix"] = "🙂 Scuse accettate: è passata." if it else "🙂 Apology accepted: it's gone."

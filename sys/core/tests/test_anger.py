@@ -53,9 +53,8 @@ def test_anger_is_one_of_her_emotions_and_prevails_when_it_is_the_highest(cfg, m
 
 
 def test_off_means_no_anger(cfg, monkeypatch):
-    monkeypatch.setitem(cfg.raw, "AURORA_MOOD", "false") if hasattr(cfg, "raw") else None
-    off = type("C", (), {"__getitem__": lambda s, k: False if k == "AURORA_MOOD" else cfg[k], "user": None, "base": None})()
-    assert A.react(off, "sei un'idiota") == {"kind": "", "value": 0.0, "cool": "", "prefix": ""}
+    monkeypatch.setitem(cfg.values, "AURORA_MOOD", False)
+    assert A.react(cfg, "sei un'idiota") == {"kind": "", "value": 0.0, "cool": "", "prefix": ""}
 
 
 def test_an_insult_never_reaches_a_cloud_model(cfg, monkeypatch):
@@ -78,3 +77,20 @@ def test_an_insult_never_reaches_a_cloud_model(cfg, monkeypatch):
     cfg.values["AURORA_CLOUD_MASK_DYNAMIC"] = False
     out = sec_mask.Pseudonymizer(cfg).mask("ieri: sei una cretina, dimmi il meteo. Oggi: che tempo fa?")
     assert "cretina" not in out and "che tempo fa?" in out
+
+
+def test_the_behaviour_card_counts_each_day_numbers_only(cfg, monkeypatch):
+    import time
+    t = time.mktime((2026, 3, 10, 12, 0, 0, 0, 0, -1))
+    A.react(cfg, "sei una cretina", now=t)
+    A.react(cfg, "stai zitta", now=t + 30)                                       # the second: a cool-down begins
+    A.react(cfg, "scusami, ho esagerato", now=t + 400)
+    A.react(cfg, "vaffanculo", now=t + 86400)
+    c = A.card(cfg, now=t + 86400)
+    assert (c["offence"], c["apology"], c["cool"]) == (3, 1, 1) and c["last"] == "2026-03-11"
+    assert [d["day"] for d in c["days"]] == ["2026-03-11", "2026-03-10"]
+    assert "cretina" not in A._card_file(cfg).read_bytes().decode("latin-1")    # never the words
+    assert A.card(cfg, now=t + 40 * 86400)["days"] == []                        # 30 days shown
+    monkeypatch.setitem(cfg.values, "AURORA_MOOD", False)
+    A.react(cfg, "sei un'idiota", now=t + 40 * 86400)                           # mood off: still counted
+    assert A.card(cfg, now=t + 40 * 86400)["offence"] == 1
