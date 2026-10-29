@@ -419,13 +419,23 @@ def test(host, manifest: dict, stage: Path, llm=None, sample: str = "", masker=N
     return errs
 
 
+def _copy_plain(src: Path, dest: Path) -> None:
+    for d in [src, *sorted(x for x in src.rglob("*") if x.is_dir())]:
+        (dest / d.relative_to(src)).mkdir(parents=True, exist_ok=d != src)
+    for f in sorted(x for x in src.rglob("*") if x.is_file() and not x.is_symlink()):
+        shutil.copyfile(f, dest / f.relative_to(src))
+
+
 def install(cfg: sys_config.Config, stage: str) -> Path:
     """The tested plugin goes live: its folder is copied into the plugins directory (never over an existing one)."""
     src = Path(stage)
     dest = cfg.path("AURORA_PLUGINS_DIR") / src.name
     if dest.exists():
         raise FileExistsError(f"plugin {src.name} exists already")
-    shutil.copytree(src, dest)
+    # the contents only (C474): copytree's copystat set the stage's setgid bit again, which the API's unit refuses
+    # (RestrictSUIDSGID) — «Operation not permitted» after the files were already there; the folder's own group and
+    # bits come from the plugins directory
+    _copy_plain(src, dest)
     icon = cfg.path("AURORA_PLUGINS_DIR") / "self" / "icon.png"
     if icon.exists() and not (dest / "icon.png").exists():
         shutil.copy(icon, dest / "icon.png")

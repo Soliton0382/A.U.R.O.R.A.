@@ -73,6 +73,8 @@ PORT_SCRIPTS = {("sys_install_agents.py", "launchctl"), ("sys_install_agents.py"
 # U6, the services' own account (sys_service_account): Linux's systemd installation only; each port has its own
 PORT_SCRIPTS |= {("sys_service_account.py", p) for p in ("bash", "chown", "getfacl", "setfacl", "groupadd", "useradd",
                                                          "usermod", "apt-get", "runuser")}
+# 🔒 aurora-vpn (svc_vpn): openvpn with the Linux routing rules and nftables of a systemd unit; each port its own (phase 3)
+PORT_SCRIPTS |= {("svc_vpn.py", "OPENVPN")}
 
 
 def _programs(f: Path) -> set[str]:

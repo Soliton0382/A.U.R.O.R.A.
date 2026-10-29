@@ -93,7 +93,10 @@ export function itemForm(item, day, done, hour = 9) {        // hour: where the 
       users.append(b);
     }
     if (!users.children.length) users.append(el("span", "muted", t("cal.people_none")));
+    if (!r.mail) mailHint.hidden = false;           // the invitations need the ✉️ plugin: where to set it up
   }).catch(() => users.append(el("span", "muted", t("cal.people_none"))));
+  const mailHint = el("small", "muted cal-mail-hint", t("cal.mail_setup"));
+  mailHint.hidden = true;
   const addresses = () => emails.value.split(/[,;\s]+/).map((x) => x.trim()).filter(Boolean);
   // the notice before an invitation leaves Aurora (owner, 30 Oct: «basta un disclaimer… procedere ugualmente?»)
   const okToMail = (list) => !list.length || confirm(t("cal.email_ask", { list: list.join(", ") }));
@@ -124,7 +127,9 @@ export function itemForm(item, day, done, hour = 9) {        // hour: where the 
   if (item?.repeat) f.append(el("p", "muted", t("cal.series_hint")));
   if (shared) f.append(el("p", "muted", t("cal.shared_by", { n: shared.user })));
   const people = el("div", "cal-row");
-  people.append(field(t("cal.people"), users), field(t("cal.emails"), emails));
+  const mailField = field(t("cal.emails"), emails);
+  mailField.append(mailHint);
+  people.append(field(t("cal.people"), users), mailField);
   f.append(field(t("cal.kind"), kind), field(t("cal.what"), title), when, field(t("cal.where"), where),
     field(t("cal.notes"), notes), people, tell, again, out);
   if (shared) for (const x of [kind, title, date, start, end, allDay, where, notes, emails, repeat, until]) x.disabled = true;

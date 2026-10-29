@@ -298,7 +298,8 @@ exit $$fail
 """)
 
 
-def hardening(root: Path, user: str, bind_low_port: bool, hosts_plugins: bool = False, also: tuple = ()) -> str:
+def hardening(root: Path, user: str, bind_low_port: bool, hosts_plugins: bool = False, also: tuple = (),
+              caps: str = "") -> str:
     """systemd confinement: the system read-only, the home read-only but for what a service writes, no new
     privileges, no capabilities (Caddy keeps only the one to open ports below 1024), kernel and clock protected.
     Devices stay visible: the GPUs and the camera are devices. A "-" path may be missing.
@@ -309,7 +310,7 @@ def hardening(root: Path, user: str, bind_low_port: bool, hosts_plugins: bool = 
     home = Path(pwd.getpwnam(user).pw_dir)
     writable = [str(root), f"-{home}/.cache", f"-{home}/.local/share/caddy", f"-{home}/.config/caddy",
                 f"-{home}/.claude", f"-{home}/.claude.json", f"-{home}/.ssh/known_hosts", *also]
-    caps = "CAP_NET_BIND_SERVICE" if bind_low_port else ""
+    caps = caps or ("CAP_NET_BIND_SERVICE" if bind_low_port else "")
     # the owner's private SSH keys (an account key can write to every repository he has): no service needs them
     ssh = home / ".ssh"
     hidden = sorted(f"-{f}" for f in (ssh.iterdir() if ssh.is_dir() else []) if f.is_file()
@@ -361,6 +362,11 @@ def main() -> int:
                              f"{py} {script / 'svc_harvester.py'}", ""),
         "aurora-sentinel": ("sentinel (firewall syslog, incidents)", "aurora-api.service",
                             f"{py} {script / 'svc_sentinel.py'}", ""),
+        # 🔒 Aurora's own internet through a VPN (net_vpn): idle until the owner turns it on; the only unit that may
+        # make a device and routing rules (CAP_NET_ADMIN), for the service user's traffic alone
+        "aurora-vpn": ("VPN of Aurora's own internet (OpenVPN)", "", f"{py} {script / 'svc_vpn.py'}",
+                       "AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE\nRuntimeDirectory=aurora-vpn\n"
+                       "RuntimeDirectoryMode=0700\n"),
         "aurora-https": ("HTTPS (Caddy)", "aurora-api.service",
                          f"{cfg['AURORA_CADDY_BIN']} run --config {caddyfile} --adapter caddyfile",
                          f"ExecReload={cfg['AURORA_CADDY_BIN']} reload --config {caddyfile} --adapter caddyfile --force\n"
@@ -393,10 +399,19 @@ def main() -> int:
     stale = out / "aurora-llm.service"
     if cloud and stale.exists():                       # written when this machine had a local reasoner
         stale.unlink()
+    # the services' resolver (net_vpn.set_dns): the machine's while the VPN is off, the tunnel's while it is up; the
+    # VPN's own unit and the reasoner (no network) keep the machine's
+    from aurora import net_vpn
+    if not net_vpn.resolv(cfg).exists():
+        net_vpn.set_dns(cfg, None)
+    import os
+    resolv_at = os.path.realpath("/etc/resolv.conf")    # a link to systemd-resolved's stub here: its target, a file
     for name, (desc, after, exec_, extra) in units.items():
+        if str(py) in exec_ and name not in ("aurora-vpn", "aurora-llm"):
+            extra += f"BindReadOnlyPaths=-{net_vpn.resolv(cfg)}:{resolv_at}\n"
         if cfg["AURORA_SERVICE_HARDENING"]:
             extra += hardening(root, sys_config.service_user(cfg), name == "aurora-https" and low_ports,
-                               hosts_plugins=name == "aurora-api")
+                               hosts_plugins=name == "aurora-api", caps="CAP_NET_ADMIN CAP_NET_BIND_SERVICE" if name == "aurora-vpn" else "")
         (out / f"{name}.service").write_text(UNIT.substitute(
             description=desc, after=after, user=sys_config.service_user(cfg), root=root, exec=exec_, extra=extra),
             encoding="utf-8")

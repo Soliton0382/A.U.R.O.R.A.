@@ -7,6 +7,7 @@ import { bus } from "../bus.js";
 import { el, toBase64, useCss } from "../dom.js";
 import { apply, lang, t } from "../i18n.js";
 import { renderMarkdown } from "../md.js";
+import { approvalCard } from "./approvals.js";
 import { autonomySlot } from "./autonomy_box.js";
 import { settingsForm } from "./settings_form.js";
 
@@ -87,13 +88,18 @@ function placeSearch(form) {
 }
 
 // C378: a capability Aurora asked for was seen nowhere while the forge built it: the notice led here, to nothing
-async function forgeBox() {
-  const all = (await call("/v1/aurora/forge").catch(() => ({ requests: [] }))).requests || [];
+// C473: a plugin built and waiting for the admin's yes (status «proposed», a plugin_install request; or the cloud
+// asked for, forge_cloud) was shown nowhere: the bell led here and the page had no card to decide — now its card, here
+async function forgeBox(refresh) {
+  const [all, waiting] = await Promise.all([call("/v1/aurora/forge").catch(() => ({ requests: [] })),
+    call("/v1/aurora/approvals?status=pending").catch(() => [])]);
   const recent = Date.now() / 1000 - 3 * 86400;
-  const items = all.filter((r) => ["pending", "building"].includes(r.status) || (r.status === "failed" && (r.created || 0) > recent));
+  const items = (all.requests || []).filter((r) => ["pending", "building"].includes(r.status) || (r.status === "failed" && (r.created || 0) > recent));
+  const cards = waiting.filter((a) => a.view === "plugins");
   const box = el("div", "plug-forge");
-  if (!items.length) return box;
-  box.append(el("h4", "", `🔨 ${t("plug.forge", { n: items.length })}`));
+  if (!items.length && !cards.length) return box;
+  box.append(el("h4", "", `🔨 ${t("plug.forge", { n: items.length + cards.length })}`));
+  for (const a of cards) box.append(approvalCard(a, refresh));
   for (const r of items) {
     const row = el("p", "muted", `${t(`plug.forge_${r.status}`)} · ${r.need}`);
     row.title = r.why || "";
@@ -153,7 +159,7 @@ const view = {
       return b;
     }));
     this.root?.querySelector(".plug-forge")?.remove();
-    if (this.me.admin) this.grid.before(await forgeBox());   // the requests carry the runs' words: the admin's
+    if (this.me.admin) this.grid.before(await forgeBox(() => this.enter()));   // the requests carry the runs' words: the admin's
     this.root?.querySelector(".plug-trash")?.remove();
     this.root?.querySelector(".plug-sign")?.remove();
     if (!this.me.admin) return;                      // the trash is the admin's, like deleting

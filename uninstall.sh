@@ -55,6 +55,16 @@ if [ -n "$UNITS" ]; then
   run sudo systemctl daemon-reload
   ok "$(t 'servizi fermati e tolti' 'services stopped and removed')"
 fi
+# 🔒 the VPN's rules and table (net_vpn: priorities 17110-17112, table 711, nftables aurora_vpn) stay in the kernel
+# after its unit stops — the kill switch would keep the service user offline until a reboot
+if ip rule show 2>/dev/null | grep -q "^1711[012]:"; then
+  for fam in -4 -6; do for p in 17110 17111 17112; do run sudo ip $fam rule del priority $p 2>/dev/null; done
+    run sudo ip $fam route flush table 711 2>/dev/null; done
+  ok "$(t 'regole della VPN tolte' 'VPN rules taken away')"
+fi
+if command -v nft >/dev/null && sudo nft list table inet aurora_vpn >/dev/null 2>&1; then
+  run sudo nft delete table inet aurora_vpn; ok "nftables aurora_vpn"
+fi
 if [ -f /etc/polkit-1/rules.d/50-aurora.rules ]; then run sudo rm -f /etc/polkit-1/rules.d/50-aurora.rules; ok "polkit"; fi
 # root's own copy of the code its units ran (sys_root_sync): nothing runs it any more
 if [ -d /usr/local/lib/aurora ]; then run sudo rm -rf /usr/local/lib/aurora; ok "/usr/local/lib/aurora"; fi

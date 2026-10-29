@@ -232,3 +232,20 @@ def test_a_project_s_tool_is_installed_alone_and_nothing_wider():
     assert not F.installs_alone({**proj, "sandbox": {"network": "local", "write": ["AURORA_VAULT_DIR"]}})   # elsewhere
     assert not F.installs_alone({**proj, "effects": {"*": "read", "send": "external"}})
     assert any("sandbox write" in e for e in F.check({**proj, "sandbox": {"network": "local"}}, CODE, set()))
+
+
+def test_installing_never_copies_the_stage_s_bits(cfg, monkeypatch):
+    """C474, 30 Oct: the API's unit refuses a setgid bit set again (RestrictSUIDSGID); copytree's copystat did it after
+    copying the files — the owner approved «ntfy» and got «Operation not permitted»."""
+    import shutil
+
+    def refused(*a, **k):
+        raise PermissionError(1, "Operation not permitted")
+    monkeypatch.setattr(shutil, "copystat", refused)
+    monkeypatch.setattr(shutil, "copymode", refused)
+    stage = F._dir(cfg) / "stage" / "pinger"
+    (stage / "data").mkdir(parents=True)
+    (stage / "server.py").write_text(CODE, encoding="utf-8")
+    (stage / "data" / "list.txt").write_text("a", encoding="utf-8")
+    dest = F.install(cfg, str(stage))
+    assert (dest / "server.py").read_text(encoding="utf-8") == CODE and (dest / "data" / "list.txt").read_text() == "a"

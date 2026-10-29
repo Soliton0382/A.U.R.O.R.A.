@@ -28,6 +28,13 @@ function preview(a) {
     const d = el("details");
     d.append(el("summary", "", t("appr.diff")), el("pre", "diff", p.diff || ""));
     box.append(d);
+  } else if (a.kind === "plugin_install") {         // a plugin the forge built: what it may do, and its code
+    const m = p.manifest || {};
+    box.append(el("div", "", `${t("appr.plugin_effects")}: ${Object.entries(m.effects || {}).map(([k, v]) => `${k} → ${v}`).join(", ") || "—"}`),
+      el("div", "", `${t("appr.plugin_env")}: ${(m.env || []).join(", ") || "—"}`));
+    const d = el("details");
+    d.append(el("summary", "", "server.py"), el("pre", "diff", p["server.py"] || ""));
+    box.append(d);
   } else {
     box.append(el("div", "", `${p.plugin}.${p.tool}`), el("pre", "", JSON.stringify(p.arguments || {}, null, 1)));
   }

@@ -212,6 +212,8 @@ def routine_tick() -> dict:
     from .assist import expire_due
     from .core import trim_memory
     expire_due()                                      # 🛟 an assistance window ended by its time: the user told
+    from .vpn import notice as vpn_notice
+    vpn_notice()                                      # 🔒 every VPN profile failed (the owner asked), or back up
     trim_memory()                                     # C389: the memory glibc holds free, given back every half hour
     for who in everyone():                            # the home's automations keep their time, talk or not
         with sys_context.acting_as(who):

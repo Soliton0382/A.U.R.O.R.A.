@@ -77,8 +77,10 @@ def _names() -> list[str]:
 
 @router.get("/v1/aurora/calendar/people", dependencies=[Depends(auth)])
 def calendar_people() -> dict:
-    """The users one may invite (owner, 30 Oct: every user sees the others' names, nothing else of them)."""
-    return {"users": [n for n in _names() if n != me()]}
+    """The users one may invite (owner, 30 Oct: every user sees the others' names, nothing else of them) and whether
+    this person's ✉️ mailbox can send an invitation (not: the form says where to set it up)."""
+    p = plugin_host().get("email")
+    return {"users": [n for n in _names() if n != me()], "mail": bool(p and p.available)}
 
 
 def _confirmed(emails: list[str], yes) -> None:

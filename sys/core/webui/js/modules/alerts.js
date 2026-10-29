@@ -20,8 +20,9 @@ export default {
 
   mount(root, ctx) {
     useCss("/static/css/alerts.css");
-    const dot = el("button", "health-dot unknown");
-    dot.type = "button";
+    // the state is the name's halo, green, amber or red (owner, 30 Oct: «togliere il pallino di stato integrando i
+    // colori di stato in aurora… se ci si clicca sopra allora si va nella pagina di stato»)
+    const dot = document.getElementById("brand") || el("button", "brand health-unknown");
     const bells = el("span", "bells");                              // one per page where a decision waits
     const shield = el("button", "bell shield hidden");
     shield.type = "button";
@@ -29,7 +30,7 @@ export default {
     notif.type = "button";
     const face = el("button", "mood-face hidden");                    // 💗 how she feels (owner, 2026-10-07)
     face.type = "button";
-    (document.getElementById("slot-health") || root).append(dot, face);    // the state beside the name
+    (document.getElementById("slot-health") || root).append(face);        // her mood beside the name
     this.mood(face, ctx);
     root.append(bells, shield, notif);                               // the rest under it
     notif.addEventListener("click", () => ctx.show("notifications"));
@@ -51,10 +52,10 @@ export default {
     const tick = async () => {
       try {
         const h = await call("/v1/aurora/health");
-        dot.className = `health-dot ${h.level}`;
+        dot.className = `brand health-${h.level}`;
         dot.title = h.problems.length ? `${t("alerts.problems")}\n• ${h.problems.join("\n• ")}` : t("alerts.allgood");
         dot.setAttribute("aria-label", dot.title);
-      } catch { dot.className = "health-dot unknown"; dot.title = t("alerts.unknown"); }
+      } catch { dot.className = "brand health-unknown"; dot.title = t("alerts.unknown"); }
       try {
         const waiting = await call("/v1/aurora/approvals?status=pending");
         const places = new Map();                        // view -> {icon, n, title}: the server says where each is decided

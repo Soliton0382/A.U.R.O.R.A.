@@ -1,0 +1,69 @@
+{
+  "name": "ntfy",
+  "version": "1.0",
+  "kind": "tool",
+  "description": {
+    "en": "Push notifications to the owner's phone through ntfy (ntfy.sh or a self-hosted server): send a short message, e.g. tonight's best sky targets (waits for the owner's approval), and read the latest notifications on the topic.",
+    "it": "Notifiche push sul telefono del proprietario tramite ntfy (ntfy.sh o un server proprio): invia un messaggio breve, per esempio i migliori oggetti del cielo di stanotte (con la tua approvazione), e legge le ultime notifiche del canale."
+  },
+  "command": [
+    "{python}",
+    "server.py"
+  ],
+  "env": [
+    "AURORA_NTFY_URL",
+    "AURORA_NTFY_TOPIC",
+    "AURORA_NTFY_TOKEN"
+  ],
+  "requires": [
+    "AURORA_NTFY_TOPIC"
+  ],
+  "settings_spec": [
+    {
+      "key": "AURORA_NTFY_URL",
+      "type": "str",
+      "secret": false,
+      "it": "Indirizzo del server ntfy (vuoto = https://ntfy.sh)",
+      "en": "Address of the ntfy server (empty = https://ntfy.sh)"
+    },
+    {
+      "key": "AURORA_NTFY_TOPIC",
+      "type": "str",
+      "secret": true,
+      "it": "Nome del canale (topic) su cui ricevere le notifiche: lungo e difficile da indovinare",
+      "en": "Name of the channel (topic) the notifications go to: long and hard to guess"
+    },
+    {
+      "key": "AURORA_NTFY_TOKEN",
+      "type": "str",
+      "secret": true,
+      "it": "Token di accesso (facoltativo, solo se il canale è protetto)",
+      "en": "Access token (optional, only if the topic is protected)"
+    }
+  ],
+  "setup": {
+    "it": "1) Installa l'app ntfy sul telefono (Play Store, F-Droid o App Store). 2) Nell'app tocca «+» e scegli un nome di canale lungo e casuale, per esempio aurora-cielo-7f3k9q2x: chi conosce il nome può leggerlo. 3) Scrivi lo stesso nome in AURORA_NTFY_TOPIC (Plugin → ntfy). 4) Se usi ntfy.sh lascia vuoto AURORA_NTFY_URL; se hai un tuo server scrivi il suo indirizzo, per esempio https://ntfy.casa.it. 5) Solo se il canale è protetto: sul sito del server vai in Account → Token di accesso, crea un token e incollalo in AURORA_NTFY_TOKEN. 6) Prova chiedendo ad Aurora le ultime notifiche.",
+    "en": "1) Install the ntfy app on your phone (Play Store, F-Droid or App Store). 2) In the app tap «+» and choose a long random topic name, e.g. aurora-sky-7f3k9q2x: anyone who knows the name can read it. 3) Put the same name in AURORA_NTFY_TOPIC (Plugin → ntfy). 4) With ntfy.sh leave AURORA_NTFY_URL empty; with your own server write its address, e.g. https://ntfy.home.net. 5) Only if the topic is protected: on the server's web page open Account → Access tokens, create a token and paste it into AURORA_NTFY_TOKEN. 6) Test it by asking Aurora for the latest notifications."
+  },
+  "effects": {
+    "ntfy_send": "external",
+    "ntfy_recent": "read",
+    "*": "read"
+  },
+  "sandbox": {
+    "network": true
+  },
+  "tests": [
+    {
+      "tool": "ntfy_recent",
+      "args": {
+        "hours": 24
+      }
+    }
+  ],
+  "forged": {
+    "request": "7c56f488b0",
+    "at": "2026-10-30T17:02:31+0100",
+    "need": "Missing capability: tool to send messages or emails"
+  }
+}
