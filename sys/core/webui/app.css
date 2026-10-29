@@ -25,6 +25,9 @@ button:hover { border-color: var(--accent); }
 button:disabled { opacity: .5; cursor: default; }
 button.icon { padding: .35rem .6rem; font-size: 1.1rem; line-height: 1; }
 input, select, textarea { background: var(--input); border: 1px solid var(--line); border-radius: 8px; padding: .45rem .6rem; width: 100%; }
+/* a list as tall as a text field (C472): at its own height (34 px against 39) an emoji of its choice was cut above and
+   below (owner, 30 Oct: «appuntamento o promemoria… tagliati») */
+select { line-height: 1.5; min-height: calc(1.5em + .9rem + 2px); }
 /* a box or a dot keeps its own size: «width: 100%» made every checkbox take half a flexible row (the family page,
    the ideas' areas); «body» outweighs a page's «.form input» rule */
 body input[type=checkbox], body input[type=radio] { width: auto; flex: none; padding: 0; margin: 0; accent-color: var(--accent); }
