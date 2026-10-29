@@ -98,6 +98,9 @@ jobs:
           tail -n 60 install.log 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | split -l 12 - part.
           for f in part.*; do [ -f "$f" ] && echo "::notice title=install.log ($f)::$(sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g' "$f")"; done
           [ -f install.log ] || echo "::notice title=install.log::missing: install.sh stopped before writing it"
+          # the API's own journal too (29 Oct: «aurora-api: activating» and nothing else readable without a login)
+          sudo journalctl -u aurora-api -n 48 --no-pager 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | split -l 12 - api.
+          for f in api.*; do [ -f "$f" ] && echo "::notice title=aurora-api journal ($f)::$(sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g' "$f")"; done
 
   # The Mac (owner, 2026-10-09: «gli installer dei 3 os devono essere allineati»; no Mac to try it on): the same run on
   # a real macOS, Aurora_mac/install.sh with Homebrew, launchd agents and the same stand-in for Claude Code.

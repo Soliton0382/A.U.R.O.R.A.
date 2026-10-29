@@ -55,3 +55,17 @@ def test_the_stations_kept_are_the_user_s(tmp_path):
     assert R.keep(tmp_path, {"id": SID}, False) == []
     with pytest.raises(ValueError):
         R.keep(tmp_path, {"id": "x"}, True)
+
+
+def test_every_genre_family_comes_with_its_stations_and_the_empty_ones_go(monkeypatch):
+    from aurora import aud_radio
+    tags = [{"name": "house", "stationcount": 793}, {"name": "goa", "stationcount": 2}, {"name": "shoegaze", "stationcount": 40}]
+    monkeypatch.setattr(aud_radio, "_get", lambda path: tags)
+    g = aud_radio.genres()
+    shown = {x["tag"]: x["stations"] for f in g["families"] for x in f["genres"]}
+    assert shown == {"house": 793} and g["more"] == ["shoegaze"]          # goa has too few; shoegaze is not curated
+
+    def down(path):
+        raise RuntimeError("the radio directory did not answer")
+    monkeypatch.setattr(aud_radio, "_get", down)
+    assert sum(len(f["genres"]) for f in aud_radio.genres()["families"]) == sum(len(i) for _, i in aud_radio.GENRES)

@@ -26,7 +26,8 @@ def _folder():
 @router.get("/v1/aurora/radio", dependencies=[Depends(auth)])
 def radio_state() -> dict:
     from aurora import aud_radio
-    return {"presets": [{"tag": t, "label": n} for t, n in aud_radio.PRESETS], "favourites": aud_radio.favourites(_folder())}
+    return {"presets": [{"tag": t, "label": n} for t, n in aud_radio.PRESETS], "favourites": aud_radio.favourites(_folder()),
+            "genres": aud_radio.genres()}
 
 
 @router.get("/v1/aurora/radio/search", dependencies=[Depends(auth)])

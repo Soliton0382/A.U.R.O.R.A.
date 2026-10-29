@@ -12,6 +12,19 @@ export function radioPanel(play) {
   const box = el("details", "report dj-radio");
   box.append(el("summary", "", `📻 ${t("dj.radio.title")}`), el("p", "muted", t("dj.radio.hint")));
   const presets = el("div", "dj-radio-presets");
+  // every genre in families (aud_radio.GENRES): a family's chip opens its genres, each with its stations counted
+  const families = el("div", "dj-radio-presets");
+  const genresRow = el("div", "dj-radio-presets");
+  const other = el("input");
+  other.placeholder = t("dj.radio.other");
+  other.setAttribute("list", "dj-radio-more");
+  other.autocomplete = "off";
+  const more = el("datalist");
+  more.id = "dj-radio-more";
+  const otherForm = el("form", "dj-radio-search");
+  const otherGo = el("button", "", "🎼");
+  otherGo.type = "submit";
+  otherForm.append(other, more, otherGo);
   const form = el("form", "dj-radio-search");
   const q = el("input");
   q.placeholder = t("dj.radio.ph");
@@ -84,7 +97,7 @@ export function radioPanel(play) {
     for (const tr of d.tracks) { const o = el("option", "", tr.name); o.value = tr.name; pick.append(o); }
     if (!d.tracks.length) fromTrack.hidden = true;
   }).catch(() => { fromTrack.hidden = true; });
-  box.append(presets, form, kept, learnBar, fromTrack, learnLine, out, found);
+  box.append(presets, families, genresRow, otherForm, form, kept, learnBar, fromTrack, learnLine, out, found);
   box.addEventListener("toggle", () => { if (box.open) follow(); else clearTimeout(timer); });
   let mine = [];
 
@@ -134,6 +147,7 @@ export function radioPanel(play) {
     } catch (e) { out.textContent = t("ev.error", { m: e.message }); }
   };
   form.addEventListener("submit", (e) => { e.preventDefault(); if (q.value.trim()) look({ q: q.value.trim() }, q.value.trim()); });
+  otherForm.addEventListener("submit", (e) => { e.preventDefault(); const g = other.value.trim().toLowerCase(); if (g) look({ tag: g }, g); });
   call("/v1/aurora/radio").then((s) => {
     mine = s.favourites;
     for (const p of s.presets) {
@@ -142,6 +156,23 @@ export function radioPanel(play) {
       b.addEventListener("click", () => look({ tag: p.tag }, p.label));
       presets.append(b);
     }
+    const fams = (s.genres && s.genres.families) || [];
+    const open = (f, chip) => {
+      families.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === chip));
+      genresRow.replaceChildren(...f.genres.map((g) => {
+        const b = el("button", "", g.stations ? `${g.label} · ${g.stations}` : g.label);
+        b.type = "button";
+        b.addEventListener("click", () => look({ tag: g.tag }, g.label));
+        return b;
+      }));
+    };
+    for (const f of fams) {
+      const chip = el("button", "cat-chip", f.label);
+      chip.type = "button";
+      chip.addEventListener("click", () => (chip.classList.contains("on") ? (chip.classList.remove("on"), genresRow.replaceChildren()) : open(f, chip)));
+      families.append(chip);
+    }
+    for (const tag of (s.genres && s.genres.more) || []) { const o = el("option"); o.value = tag; more.append(o); }
     show();
   }).catch(() => {});
   return box;
