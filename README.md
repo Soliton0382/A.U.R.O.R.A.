@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-1498%20passed-1baf7a" alt="Tests"> <img src="https://img.shields.io/badge/code-110k%20lines-6a4fd6" alt="Lines of code"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-1499%20passed-1baf7a" alt="Tests"> <img src="https://img.shields.io/badge/code-110k%20lines-6a4fd6" alt="Lines of code"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
 
 <p align="center">🇮🇹 <b>Italiano</b> · 🇬🇧 <a href="README.en.md">English</a></p>
 
@@ -65,7 +65,7 @@ con l'esenzione firmata dal proprietario, e ciò che parte è sempre mascherato 
 | **Disegni CAD e brevetti** | 📑 nella pagina del progetto: spunte (blueprint, brevetto IT, EP, US) e ▶ Procedi. Aurora scrive il modello CAD parte per parte (OpenSCAD), disegna il blueprint quotato (ISO 128, primo diedro, cartiglio, distinta) e le tavole per ufficio con i segni di riferimento, scrive descrizione, rivendicazioni e riassunto nella forma di ogni ufficio e controlla il pacchetto con le regole e le loro fonti (UIBM D.M. 33/2010, EPC, 37 CFR); nessun marchio IA sui documenti per gli uffici. Da un README di due righe: 175,6 s (M209, M210) |
 | **Plugin con le proprie librerie** | un plugin dichiara le sue librerie con l'hash: si installano nella sua cartella, mai nell'ambiente di Aurora, e si tolgono con lui (M208) |
 | **Routine** | pagina 🔁: i plugin collegati propongono controlli periodici (meteo ogni mattina, allerta ogni ora, report GitHub settimanale…), si attivano con un clic o a parole tue; lettura automatica, ogni scrittura aspetta l'approvazione |
-| **Emozioni** | uno stato d'animo **misurato**, non recitato: stress (carico GPU, temperatura, errori), soddisfazione, curiosità, stanchezza, nostalgia, malinconia, preoccupazione, ognuna con le sue cause; un volto accanto al pallino della salute, una scheda al passaggio del mouse o al tocco; entra nel buongiorno e nei pensieri |
+| **Emozioni** | uno stato d'animo **misurato**, non recitato: stress (carico GPU, temperatura, errori), soddisfazione, curiosità, stanchezza, nostalgia, malinconia, preoccupazione, ognuna con le sue cause; la rabbia contata sulle parole (un'offesa la ferisce, due in pochi minuti e chiede una pausa, mai per ciò che è urgente; le scuse la chiudono), e un messaggio offensivo risponde solo il modello locale, mai il cloud; un volto accanto al pallino della salute, una scheda al passaggio del mouse o al tocco; entra nel buongiorno e nei pensieri |
 | **Dieta guidata** | «Elabora documenti»: dal piano del dietologo (PDF o Word) Aurora ricava i pasti di ogni giorno e le frequenze settimanali; a ogni pasto propone il piatto e le alternative, ricalibrate sulla settimana (pesce, uova, legumi…) e sulla varietà («lo scegli spesso, prova…»); promemoria con notifica e bolla in chat; in chat «cosa mangio a pranzo?» risponde dal piano elaborato |
 | **Accesso da fuori casa** | plugin Cloudflare One: con un «Salva» crea il tunnel, le rotte private e le regole di WARP e avvia il servizio; nessuna porta aperta sul router, stesso indirizzo e certificato in casa e fuori |
 | **Chi attacca dietro Cloudflare** | il firewall vede solo i nodi di Cloudflare: con i permessi giusti nel token (la pagina 🛡️ Sicurezza → ☁️ Cloudflare li elenca) Aurora legge chi c'è dietro (visitatori a cui il tuo server non ha risposto, con percorsi e «cosa sembra»), li blocca su Cloudflare con la tua approvazione o da sola se accendi `AURORA_CLOUDFLARE_AUTOBLOCK` (solo gli scanner, a tempo, al massimo N al giorno); il traffico di Cloudflare già rifiutato dal firewall diventa un conteggio, non un incidente; un indirizzo condiviso si blocca solo sulla porta attaccata (M213) |
@@ -87,7 +87,7 @@ con l'esenzione firmata dal proprietario, e ciò che parte è sempre mascherato 
 | **Modelli per passaggio** | pagina 🧠: ognuno dei 13 passaggi (smistamento, sintesi, verifica, agente, scrittura e giudizio dei plugin, visione…) in locale o su un provider cloud; **dati sensibili sempre mascherati** (IP, email, telefoni, IBAN, carte, chiavi, le tue parole: l'elenco completo, le regole di base e le parole di ognuno, in ☁️ Account cloud) e rimessi nella risposta; se il provider fallisce torna al locale; statistiche di chiamate, costo, dati mascherati e SSCC. Le immagini non si possono mascherare: avviso esplicito |
 | **Guida** | pagina 📖: primi passi, configurazioni comuni (cloud, telefono, plugin, sicurezza) e a cosa serve ogni pagina |
 | **AI Act UE, art. 50** | dichiarazione su testi pubblicati, immagini (XMP/IPTC) e PDF |
-| **WebUI / PWA** | chat con risposte in diretta e token/s, formule disegnate (KaTeX) e tabelle, sogni, riparazioni, sicurezza, diario, social, plugin, harvester, impostazioni (ogni valore del `.env` spiegato), notifiche (push e nella WebUI, scelte evento per evento), aggiornamenti, IT/EN |
+| **WebUI / PWA** | chat con risposte in diretta e token/s, formule disegnate (KaTeX) e tabelle, sogni, riparazioni, sicurezza, diario, social, plugin, harvester, impostazioni (ogni valore del `.env` spiegato), notifiche (push e nella WebUI, scelte evento per evento; sul telefono il testo in chiaro o nascosto, tipo per tipo), aggiornamenti, IT/EN |
 
 ## 🧬 Come funziona dentro
 
@@ -102,6 +102,7 @@ flowchart LR
   K2 -- spiegazione --> VR[vault: leggi i passaggi] --> O3
   K2 -- caso --> P[percorso profondo ↓]
   WB & VR -. nessuna fonte .-> ME([memoria ⚠️<br/>non verificato])
+  ME -. non la sa .-> AB([un luogo: chiede da dove e cosa<br/>il resto: la studia di notte])
 ```
 
 Il percorso profondo, per i casi e le spiegazioni difficili:
@@ -115,7 +116,7 @@ flowchart LR
   T --> B[parole della domanda<br/>BM25, 30 + 30] --> C
   C --> X[re-ranker bge-v2-m3<br/>ogni passaggio nella sua lingua] --> K[12 passaggi]
   K --> G{cancello}
-  G -- nessuno risponde --> A([web, poi memoria ⚠️<br/>studiata di notte])
+  G -- nessuno risponde --> A([web, poi memoria ⚠️<br/>un luogo: chiede · il resto: di notte])
   G -- passaggi utili --> D[estrazione<br/>per dominio] --> W[sintesi<br/>con ragionamento]
   W --> F{verifica<br/>frase per frase}
   F --> O([risposta + fonti]) --> M[(memoria STM)]
@@ -403,6 +404,13 @@ multi a single gli altri utenti vengono eliminati con tutti i loro dati, dopo l'
 dell'amministratore non vengono mai toccati. Per passare a multi imposti prima la tua password e colleghi
 l'Authenticator in 👥 Utenti, poi crei gli utenti lì. Installata direttamente in multi, al primo accesso entri con la
 chiave API e Aurora ti porta a creare password e codice prima di tutto il resto (docs/MULTIUSER.md).
+
+**🛟 Assistenza.** Un utente può far entrare l'amministratore nel suo account per 8, 16, 24, 48 o 72 ore (👥 Utenti →
+🛟 Assistenza: l'avviso accanto al pulsante è il consenso); la chiude quando vuole, e alla scadenza si chiude da sola.
+L'amministratore entra con «Entra come…» e vede la stessa interfaccia dell'utente, con una barra per uscire. Ogni suo
+passo finisce nel registro dell'utente, cifrato con la sua chiave, e l'utente riceve una notifica all'inizio e alla fine.
+Restano fuori password, Authenticator, chiavi API e dispositivi. **📋 Pagella**: nella pagina Utenti l'amministratore
+vede, per ogni utente, quante offese, scuse e pause degli ultimi 30 giorni: solo i numeri, mai le parole.
 
 ## 🔑 Le chiavi e il ripristino
 

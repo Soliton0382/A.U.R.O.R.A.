@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.en.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-1498%20passed-1baf7a" alt="Tests"> <img src="https://img.shields.io/badge/code-110k%20lines-6a4fd6" alt="Lines of code"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-1499%20passed-1baf7a" alt="Tests"> <img src="https://img.shields.io/badge/code-110k%20lines-6a4fd6" alt="Lines of code"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
 
 <p align="center">🇮🇹 <a href="README.md">Italiano</a> · 🇬🇧 <b>English</b></p>
 
@@ -65,7 +65,7 @@ exemption, and what leaves is always masked (no setting turns it off).
 | **CAD drawings and patents** | 📑 in the project's page: ticks (blueprint, patent IT, EP, US) and ▶ Proceed. Aurora writes the CAD model part by part (OpenSCAD), draws the dimensioned blueprint (ISO 128, first angle, title block, parts list) and each office's drawing sheets with reference signs, writes description, claims and abstract in each office's form and checks the package against the rules and their sources (UIBM D.M. 33/2010, EPC, 37 CFR); no AI mark on documents for the offices. From a two-line README: 175.6 s (M209, M210) |
 | **Plugins with their own libraries** | a plugin declares its libraries with their hash: installed in its own folder, never in Aurora's environment, removed with it (M208) |
 | **Routines** | 🔁 page: connected plugins propose periodic checks (weather every morning, alerts every hour, weekly GitHub report…), switched on with one click or in your own words; reading is automatic, every write waits for approval |
-| **Emotions** | a **measured** mood, not acted: stress (GPU load, heat, errors), satisfaction, curiosity, tiredness, longing, melancholy, worry, each with its causes; a face beside the health dot, a card on hover or tap; part of the good morning and her thoughts |
+| **Emotions** | a **measured** mood, not acted: stress (GPU load, heat, errors), satisfaction, curiosity, tiredness, longing, melancholy, worry, each with its causes; anger counted on the words (an offence hurts her, two in a few minutes and she asks for a pause, never for what is urgent; an apology ends it), and an offensive message is answered by the local model only, never the cloud; a face beside the health dot, a card on hover or tap; part of the good morning and her thoughts |
 | **Guided diet** | «Process documents»: from the dietitian's plan (PDF or Word) Aurora reads each day's meals and the weekly frequencies; at each meal she proposes the dish and the alternatives, re-weighed on the week (fish, eggs, legumes…) and on variety («you choose it often, try…»); reminders with a notification and a chat bubble; in the chat «what do I eat for lunch?» answers from the processed plan |
 | **Access from away** | Cloudflare One plugin: one «Save» creates the tunnel, the private routes and WARP's rules and starts the service; no port opened on the router, the same address and certificate at home and away |
 | **Attackers behind Cloudflare** | the firewall sees Cloudflare's nodes only: with the right permissions in the token (the 🛡️ Security → ☁️ Cloudflare page lists them) Aurora reads who is behind them (clients your server did not answer, with paths and «what they look like»), blocks them at Cloudflare with your approval or by herself if you switch on `AURORA_CLOUDFLARE_AUTOBLOCK` (scanners only, for a time, at most N a day); Cloudflare's traffic the firewall already refused becomes a count, not an incident; a shared address is blocked on the attacked port only (M213) |
@@ -87,7 +87,7 @@ exemption, and what leaves is always masked (no setting turns it off).
 | **Models per step** | 🧠 page: each of 13 steps (routing, synthesis, verification, agent, plugin writing and judging, vision…) local or on a cloud provider; **sensitive data always masked** (addresses, e-mails, phones, IBANs, cards, keys, your words: the whole list, the built-in rules and each person's words, in ☁️ Cloud accounts) and put back in the answer; falls back to local on a provider error; daily token ceiling per paid provider; statistics of calls, cost, masked items and SSCC. Pictures cannot be masked: said explicitly |
 | **Guide** | 📖 page: first steps, common configurations (cloud, phone, plugins, safety) and what each page is for |
 | **EU AI Act art. 50** | disclosure on published text, images (XMP/IPTC) and PDFs |
-| **WebUI / PWA** | chat with live answers and tokens/s, formulas drawn (KaTeX) and tables, dreams, repairs, security, diary, social, plugins, harvester, settings (every `.env` value explained), notifications (push and in-app, chosen event by event), updates, IT/EN |
+| **WebUI / PWA** | chat with live answers and tokens/s, formulas drawn (KaTeX) and tables, dreams, repairs, security, diary, social, plugins, harvester, settings (every `.env` value explained), notifications (push and in-app, chosen event by event; on the phone the text shown or hidden, kind by kind), updates, IT/EN |
 
 ## 🧬 How it works inside
 
@@ -102,6 +102,7 @@ flowchart LR
   K2 -- explanation --> VR[vault: read the passages] --> O3
   K2 -- case --> P[deep path ↓]
   WB & VR -. no source .-> ME([memory ⚠️<br/>not verified])
+  ME -. does not know .-> AB([a place: asks from where and what<br/>the rest: studied at night])
 ```
 
 The deep path, for cases and hard explanations:
@@ -115,7 +116,7 @@ flowchart LR
   T --> B[the question's words<br/>BM25, 30 + 30] --> C
   C --> X[bge-v2-m3 re-ranker<br/>each passage in its language] --> K[12 passages]
   K --> G{gate}
-  G -- none answers --> A([the web, then memory ⚠️<br/>studied at night])
+  G -- none answers --> A([the web, then memory ⚠️<br/>a place: asks · the rest: at night])
   G -- useful passages --> D[per-domain<br/>extraction] --> W[synthesis<br/>with reasoning]
   W --> F{sentence-by-sentence<br/>verification}
   F --> O([answer + sources]) --> M[(STM memory)]
@@ -400,6 +401,49 @@ password and link the Authenticator in 👥 Users, then create the users there. 
 the first login you enter with the API key and Aurora takes you to create password and code before anything else
 (docs/MULTIUSER.md).
 
+**🛟 Assistance.** A user can let the admin into their account for 8, 16, 24, 48 or 72 hours (👥 Users → 🛟 Assistance:
+the notice beside the button is the consent); they close it when they like, and it closes by itself when it ends. The
+admin enters with «Enter as…» and sees the user's own interface, with a bar to leave. Each of their steps goes into the
+user's log, encrypted with the user's key, and the user is told when it begins and ends. Password, Authenticator, API
+keys and devices stay out. **📋 Behaviour card**: on the Users page the admin sees, for each user, the offences,
+apologies and pauses of the last 30 days: numbers only, never the words.
+
+## 🔑 Keys and recovery
+
+Chats, memory and the users' data are encrypted: to get them back after a failure you need two things kept **off the
+PC** (on paper, somewhere safe).
+
+| what | what it is for | where you find it |
+|---|---|---|
+| **the backup's recovery code** | opens the backups (they are encrypted with the backup's key) | `svc_backup.py init` gives it when it makes the key; `svc_backup.py code` shows it again |
+| **the recovery code of Aurora's key** | opens again the key that opens the users' data (Argon2id + AES-256-GCM) | ⚙️ System → 🔑 Keys and recovery: «Make the code», shown once only; «Try» checks it works |
+
+The backup carries the recovery copy of Aurora's key too (closed with the backup's key): the backup's code alone opens
+everything again. The code of Aurora's key is a second, independent way.
+
+**The motherboard (or the TPM) broke, the disk is fine.** Aurora's key was bound to the chip: the services no longer
+open it. From Aurora's folder:
+
+```bash
+cd sys/core
+sudo -u aurora ../../.venv/bin/python -m aurora.sys_key_recovery recover   # asks for the code of Aurora's key
+#   or, with the backup's key in its place: sudo -u aurora ../../.venv/bin/python -m aurora.sys_keyring recover
+cd ../.. && ./install.sh   # seals it again, bound to the new TPM
+```
+
+**The disk is lost.** Install Aurora on a new disk (`./install.sh`), then restore the latest backup:
+
+```bash
+.venv/bin/python sys/core/script/svc_backup.py restore --to /tmp/aurora-restore --code <the backup's code>   # a test: an empty folder
+.venv/bin/python sys/core/script/sys_restore.py --plan latest      # what it would do
+.venv/bin/python sys/core/script/sys_restore.py --apply latest     # does it (asks you to type RIPRISTINA)
+```
+
+Then open Aurora's key again as above (`sys_key_recovery recover` with its code, or `sys_keyring recover`) and run the
+installer again. The restore never writes over today's data: it moves them aside, whole.
+
+If you lose **both** codes and the disk, the data do not open again: the price of encryption, on purpose.
+
 ## Moving the installation
 
 `sys/core/script/sys_relocate.sh` reads the current folder from `.env`, asks the new one, and moves
@@ -419,6 +463,13 @@ only: the driver stays Ubuntu's), creates the venv, recognises the hardware and 
 `.env` from your answers, downloads the models from Hugging Face at pinned revisions checking their SHA-256,
 builds llama.cpp for your GPUs, runs the tests, makes your folder `usr/<name>/` (asking single or multi-user), makes the code-of-conduct key, installs the systemd services
 and HTTPS, and finally tells you the address and the API key. Everything goes to `install.log`.
+
+🔐 **For the highest security a fully working TPM 2.0 is needed** (fTPM/PTT on in the BIOS). The chats, the memory and
+the users' data are encrypted with keys that open only with Aurora's key; with the TPM that key is bound to the
+motherboard's chip, and a disk taken away opens nothing. Without a TPM it is bound only to this machine, with a secret on
+the same disk: a stolen disk can be opened. The installer checks the TPM and installs the libraries it lacks. The
+backup's key is sealed the same way, and from the terminal you use its recovery code (`--code`). If the motherboard
+fails, the recovery copy (opened by the backup's key) brings the key to another machine.
 
 Optional features are chosen one by one, with their size: painted dreams (6.8 GB), voice (1.5 GB), enlargement
 and cut-out (0.2 GB), creative photo edits (14.9 GB), making videos (34.2 GB). Those your machine cannot run

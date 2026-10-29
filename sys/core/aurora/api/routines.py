@@ -210,7 +210,9 @@ def routine_tick() -> dict:
     what a newly ready plugin can do."""
     from aurora import sys_context, sys_routines
     from .assist import expire_due
+    from .core import trim_memory
     expire_due()                                      # 🛟 an assistance window ended by its time: the user told
+    trim_memory()                                     # C389: the memory glibc holds free, given back every half hour
     for who in everyone():                            # the home's automations keep their time, talk or not
         with sys_context.acting_as(who):
             _automations(who)

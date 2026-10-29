@@ -45,7 +45,16 @@ purge listing, not hidden.
 | basic preferences (language, voice, theme, notifications) | ✅ | ✅ (own) |
 | settings, models, plugins install, forge, backup, security, incidents, users | ✅ | ❌ |
 | plugins with `external` or `code_change` effects (Facebook, …) | ✅ | ❌ unless the admin grants it |
-| read another user's conversations | ❌ | ❌ |
+| read another user's conversations | ❌ (only inside an assistance the user opened: 🛟 below) | ❌ |
+
+## 🛟 Assistance (30 Oct 2026, sys_assist)
+
+The user opens a window of 8, 16, 24, 48 or 72 hours from 👥 Users → 🛟 Assistance (the notice beside the button is the
+consent), closes it when they like, and it ends by itself. While it is open the admin's device enters with «Enter as…»:
+every request is the user's, the same pages under a banner with the way out, the admin's own pages refused until they
+leave. Never reached (403 before the route): the password, the Authenticator, the API keys, the devices, the logout,
+the window itself, the first-run screens. Each step (method and path, never a body) goes into the user's log, sealed
+with the user's key; the user is told when it begins and ends. The API key never enters. Tests: test_assist.
 
 ## Login
 

@@ -1,6 +1,6 @@
 # Status — work in progress
 
-Updated at every validated change (last: 2026-10-28, audited against the code). Details: BUGS.md (issues, 4 open / 464 closed),
+Updated at every validated change (last: 2026-10-30; audited against the code on 2026-10-28). Details: BUGS.md (issues, 4 open / 464 closed),
 MANUAL_TESTS.md (what the owner checks by hand),
 TESTS.md (tests and live checks), MEASUREMENTS.md (numbers), MODULE_MAP.md (who does what),
 SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSYSTEM.md (design and decisions).
@@ -54,6 +54,8 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | ideas | 💡 a tidy request to improve Aurora, with its state | test_ideas |
 | usage | 📈 Usage page: questions, agent, cloud and local model calls, tool calls and failures per day and per user, counts only; the admin everyone's, a user their own; history from the trace files | M233, test_usage, test_users_crossing |
 | multi-user | a user sees and changes only what is theirs (menu and API); chats private, vault and the seed's shadow shared; the machine's health details and an installation's house pages the admin's (C347); each user's cloud tokens a day, set by the admin, every provider and the subscription (17 Oct: ≈ 15 k tokens a question, M232) | M116, test_users_crossing, test_budget |
+| 🛟 assistance | a user lets the admin into their account for 8–72 h, revocable, ending by itself; the admin's device is the user for every route under a banner; password, Authenticator, API keys, devices, logout and the first run never reached (403); each step in the user's sealed log; the user told when it begins and ends | test_assist; live 30 Oct with a temporary user |
+| 📋 behaviour card | the Users page: each user's offences, apologies after one and pauses of the last 30 days, numbers only (kno_anger.card, sealed, 365 days kept) | test_anger |
 | uninstall, reset, restore | uninstall.sh (keep the data / everything), factory settings in Settings, sys_factory_reset.py, sys_restore.py from the backup card with the formats checked | dry-runs, tests |
 | synapses | links between domains grown at night (99 from 990 passages, 18 min), spread in the search, Hebbian, fading | M107, tests |
 | deductions | 🧠 Synapses → 💡 Deductions: a passage's principle searched in distant fields and the strongest cross-field synapses; five tests (not one subject, a bridge, each fact in its passage, the step follows, not already in the vault); a night round after the training and «Look now»; 💡 flash / ✗ no / 📄 PDF | M178; tests (deduce); first 3 live, waiting for the owner's judgement |
@@ -96,7 +98,7 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | services | api, models, llm, https (443), rem, harvester, sentinel; one install.sh; polkit for restarts; clean stop in 5 s | install checks |
 | harvester | rounds by domain (on by default since 9 Oct: a new Aurora starts empty; the installer asks; a host that says «slow down» is asked again and then left alone, C214), "harvest now" and batches of papers from the 🌾 page, each paper in its category's domain | live batch test |
 | updates | Updates page: mode (notify / auto / off), what a new version changes, update now; daily check by the REM, approval in Repairs, fast-forward + tests + rollback | tests with real git repositories; live once the remote exists |
-| notifications | Notifications page: push on each device and toasts in the WebUI, which events on each channel (suggested / all / none / custom), effective at once | tests; live delivery depends on the browser |
+| notifications | Notifications page: push on each device and toasts in the WebUI, which events on each channel (suggested / all / none / custom), effective at once; 🙈 on the phone the text shown or hidden, kind by kind, each user's own (C468) | tests; live delivery depends on the browser |
 | senses | plugin `senses`: camera photo described by Aurora's vision, microphone transcribed locally (Whisper on a GPU with room, else the CPU: M204, 0.14 s a sentence); 📷 photo and 🎙️ dictation in the chat; devices chosen from a list | live (M35) |
 | knowledge sources | harvester per domain (off / a round / until exhausted) from arXiv, Normattiva (Akoma Ntoso, one passage per group of articles), Europe PMC, bioRxiv/medRxiv, Wikipedia, GitHub; licence kept with every text; certificate chains completed (AIA) | M43–M44, tests |
 | chat → services | a third route "tools": requests about connected services go to the agent with the plugins | M45 |

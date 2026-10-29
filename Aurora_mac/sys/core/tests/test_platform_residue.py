@@ -21,6 +21,7 @@ WORDS_ALLOWED = {
     ("sys_config.py", "import pwd"): "guarded: Windows takes getpass (FILES)",
     ("sys_bugreport.py", '"nvidia-smi"'): "the driver's version in a bug report; not found = «not measured» everywhere",
     ("system.py", "/proc/"): "C389: the API's own memory for the owner's diagnosis; no /proc = «not available on this system»",
+    ("core.py", "/proc/"): "C389: the API gives back glibc's free memory every half hour; no /proc (no glibc) = nothing done",
     ("sys_power_hosts.py", "/dev/null"): "ROADMAP N56: inside the commands shown for the target to run, never run here",
     ("sys_ups.py", '"systemctl"'): "ROADMAP N53: the UPS's power-off, Linux's logind; elsewhere the call fails and is logged, the notifications still go (AURORA_UPS_MODE notify is the ports' choice)",
     ("mdl_stt.py", '"nvidia-smi"'): "the free memory of each GPU for Whisper's place (C413); not found = the CPU",

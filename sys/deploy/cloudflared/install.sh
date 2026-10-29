@@ -63,6 +63,8 @@ RestrictSUIDSGID=yes
 LockPersonality=yes
 ProtectKernelTunables=yes
 ProtectControlGroups=yes
+# the tunnel's token never written to a swap file on the disk, which may be plain (C462)
+MemorySwapMax=0
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
 
 [Install]

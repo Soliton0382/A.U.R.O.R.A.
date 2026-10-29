@@ -261,6 +261,33 @@ def _assisting(request: Request, dev: dict) -> None:
         log.exception("assistance log")
 
 
+_trimmed = [0.0]
+TRIM_S = 30 * 60
+
+
+def trim_memory(now: float | None = None) -> int | None:
+    """C389: glibc keeps freed memory in its arenas (malloc_trim freed 272 of 770 MiB an hour after a restart, 30
+    Oct): given back to the system every TRIM_S, the MiB written in the log — the API's growth read there. None: not
+    yet, or no glibc (the Mac, Windows)."""
+    import ctypes
+    now = now or time.time()
+    if now - _trimmed[0] < TRIM_S:
+        return None
+    _trimmed[0] = now
+
+    def anon() -> float:
+        with open("/proc/self/smaps_rollup", encoding="ascii") as f:
+            return next(int(x.split()[1]) for x in f if x.startswith("Anonymous:")) / 1024
+    try:
+        before = anon()
+        ctypes.CDLL("libc.so.6").malloc_trim(0)
+        after = anon()
+    except (OSError, StopIteration, AttributeError):
+        return None
+    log.info("memory: malloc_trim gave back %d MiB (anonymous %d → %d MiB)", before - after, before, after)
+    return round(before - after)
+
+
 def _admin() -> str | None:
     """The admin's name; None while the installation has no users (today's layout: every path as before)."""
     from aurora.sys_users import Users

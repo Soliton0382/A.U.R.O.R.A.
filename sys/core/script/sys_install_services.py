@@ -351,8 +351,10 @@ def main() -> int:
     units = {
         "aurora-llm": ("reasoner (llama.cpp)", "", f"{py} {script / 'svc_llm.py'}", ""),
         "aurora-models": ("encoder and re-ranker", "", f"{py} {script / 'svc_models.py'}", ""),
+        # glibc's arenas, one per thread by default: the API's 40-odd threads left a third of its memory free but
+        # held (C389, 30 Oct: malloc_trim freed 272 of 770 MiB after an hour)
         "aurora-api": ("API, events and WebUI", "aurora-models.service" + ("" if cloud else " aurora-llm.service"),
-                       f"{py} {script / 'svc_api.py'}", ""),
+                       f"{py} {script / 'svc_api.py'}", "Environment=MALLOC_ARENA_MAX=2\n"),
         "aurora-rem": ("autonomic cycle (consolidation, reflections, dreams)", "aurora-api.service",
                        f"{py} {script / 'svc_rem.py'}", ""),
         "aurora-harvester": ("harvester (new knowledge)", "aurora-api.service",
