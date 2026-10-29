@@ -71,6 +71,17 @@ def test_every_genre_family_comes_with_its_stations_and_the_empty_ones_go(monkey
     assert sum(len(f["genres"]) for f in aud_radio.genres()["families"]) == sum(len(i) for _, i in aud_radio.GENRES)
 
 
+@pytest.mark.parametrize("tag,music", [
+    ("shoegaze", True), ("80's", True), ("80s en español", True), ("regional mexican", True), ("música popular mexicana", True),
+    ("americana", True), ("drum & bass", True), ("k-pop", True), ("рок", True), ("ska", True),
+    ("méxico", False), ("fm", False), ("news talk", False), ("noticias locales", False), ("exa fm", False), ("aac", False),
+    ("latinoamérica", False), ("alaska", False), ("technology", False), ("popular", False), ("music", False),
+    ("christian preaching", False), ("college radio", False), ("demo", False)])
+def test_the_other_genres_are_music_not_places_talk_or_broadcasters(tag, music):
+    from aurora import aud_radio
+    assert aud_radio.is_genre(tag) is music
+
+
 def test_a_genre_is_the_whole_tag_and_its_own_stations_come_first(monkeypatch):
     asked = []
 

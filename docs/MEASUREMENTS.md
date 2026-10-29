@@ -4419,3 +4419,20 @@ encrypted: the lexical index still keeps which words appear in a soliton.
 Not measured: real memory shards (the test is synthetic), the migration of today's memory, a machine slower than this
 one (the Mac's and Windows' CPUs), the cost inside the whole answer path.
 
+## M269 — which of the radio directory's tags name music (30 October 2026; aud_radio.is_genre)
+
+The radio page's «Altri generi» offered the directory's 300 tags with most stations outside the curated families; the
+owner saw towns, languages, broadcasters and news among them. The directory's 1,500 tags with most stations
+(hidebroken), minus the curated ones, at least 20 stations and 2–30 characters: 889 candidates.
+
+| filter | kept | dropped |
+|---|---|---|
+| none (before) | the first 300 of 889, by stations | — |
+| is_genre: a genre's root at a word's start or a decade; no word of talk, places, broadcasting | 342 | 547 |
+
+Read by eye: among the first 300 kept, about 3 doubtful (a broadcaster with a genre in its name, «la bestia grupera»;
+bare «deep», «movie»); the kept list is mostly Mexican and Latin formats because the directory's counts are. Among
+the dropped, a few music tags still go (religious music on purpose, some national «X music» not listed); not
+counted one by one.
+
+Not measured: the tags beyond the first 1,500, a second reader's judgement of the same lists.

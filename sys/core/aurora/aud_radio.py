@@ -75,6 +75,45 @@ GENRES = [
                    ("kids", "Per bambini")]),
 ]
 MIN_STATIONS = 3
+# «more» keeps only the tags that name music (owner, 30 Oct: the other genres listed «tag che non sono generi» — towns,
+# languages, broadcasters, news, «fm», «aac»): a tag with a genre's root (GENRE_ROOTS, any language the directory
+# uses) or a decade, and none of the words of talk, places and broadcasting (NOT_MUSIC); measured on the directory's
+# 1500 tags with most stations (M269, 30 Oct)
+GENRE_ROOTS = (
+    "rock", "pop", "поп", "jazz", "blues", "metal", "punk", "folk", "soul", "funk", "disco", "house", "techno", "trance",
+    "dance", "electr", "edm", "hip hop", "hip-hop", "hiphop", "rap", "trap", "reggae", "ska", "dub", "country",
+    "classical", "clásic", "classic", "classica", "opera", "ambient", "chill", "lounge", "lofi", "lo-fi", "lo fi", "indie",
+    "alternativ", "grunge", "gospel", "swing", "latin", "salsa", "cumbia", "bachata", "merengue", "banda", "norteñ",
+    "ranchera", "mariachi", "vallenato", "tango", "samba", "bossa", "mpb", "sertanejo", "flamenco", "fado", "chanson",
+    "schlager", "manele", "soundtrack", "instrumental", "piano", "new wave", "synth", "industrial", "experimental",
+    "drum", "breakbeat", "garage", "grime", "hardstyle", "hardcore", "emo", "goth", "psychedel", "progressive",
+    "rockabilly", "r&b", "rnb", "afro", "zouk", "kizomba", "reggaeton", "balad", "ballad", "oldies", "easy listening",
+    "adult contemporary", "hits", "top 40", "top40", "urban", "tropical", "grupera", "grupero", "romantic", "romántic",
+    "christmas", "christian music", "christian contemporary", "cristiana", "worship", "new age", "relax", "smooth",
+    "world music", "freeform", "eclectic", "club", "anime", "orchestr", "choral", "baroque", "sinfon", "symphon",
+    "chamber", "minimal", "acid", "vaporwave", "shoegaze", "post-", "regional mexican", "música regional",
+    "musica regional", "tradicional", "traditional", "greek music", "african music", "mexican music", "música mexicana",
+    "musica mexicana", "retro", "love songs", "recuerdo", "beat", "groove", "lieder", "volksmusik", "polka", "celtic",
+    "irish", "bollywood", "bhangra", "qawwali", "arabesk", "chillout", "downtempo", "dancehall", "britpop", "darkwave",
+    "soca", "calypso", "kompa", "highlife", "amapiano", "kwaito", "gqom", "forró", "forro", "pagode", "axé", "axe",
+    "choro", "frevo", "bolero", "son cubano", "trova", "nueva trova", "j-rock", "k-rock", "city pop", "enka", "kayokyoku",
+    "c-pop", "mandopop", "cantopop", "turbo folk", "chalga", "laïko", "laiko", "rebetiko", "entekhno", "musette",
+    "zydeco", "cajun", "bluegrass", "americana", "outlaw", "honky", "western", "surf", "doo-wop", "doo wop", "motown",
+    "big band", "bebop", "fusion", "acoustic", "unplugged", "a cappella", "barbershop", "cabaret", "musical",
+    "showtunes", "broadway", "film score", "game music", "videogame", "chiptune", "8-bit", "noise", "drone", "glitch",
+    "dj", "kpop", "jpop", "k-pop", "j-pop", "dnb", "trip-hop", "trip hop", "rave", "remix", "musica italiana",
+    "música italiana", "brazilian music", "turkish music", "arabic music", "caribbean", "singer-songwriter", "sierreño",
+    "opm", "folclor", "folklor", "deutschrock", "narodna", "etno", "goldies", "evergreen", "old school", "oldschool",
+    "r'n'b", "reguetón", "anthems", "lovesongs", "medieval", "guitar", "vocal", "movie", "cinema", "ost", "phonk",
+    "dangdut", "klassik", "bass", "deep", "рок", "ретро", "танцев", "музык")
+DECADE = re.compile(r"(?<!\w)(?:19|20)?\d0(?:'?s|er)(?!\w)")
+NOT_MUSIC = ("news", "talk", "hablada", "sport", "sports", "deporte", "deportes", "radio", "fm", "am", "station",
+             "traffic", "bible", "catholic", "islamic", "américa", "america", "latinoamérica", "latinoamerica",
+             "norteamérica", "aac", "mp3", "online", "internet", "web", "tv", "live", "local", "community",
+             "university", "college", "public", "pública", "grupo", "medios", "rire")      # whole words
+NOT_MUSIC_IN = ("noticia", "estación", "informa", "entrevista", "religio", "politic", "discograph", "comunitari",
+                "technolog")
+NOT_MUSIC_TAG = ("popular", "music", "música", "musica", "musique", "musik", "variety", "mix")   # the whole tag
 TAG_FIRST = 5                                     # search(): a genre among a station's first tags is its own
 _cache: dict[str, tuple[float, object]] = {}
 _lock = threading.Lock()
@@ -97,10 +136,22 @@ def _get(path: str) -> list | dict:
     raise RuntimeError(f"the radio directory did not answer: {type(last).__name__}")
 
 
+def is_genre(tag: str) -> bool:
+    """Whether a tag of the directory names music (GENRE_ROOTS, DECADE), not talk, a place or a broadcaster
+    (NOT_MUSIC: whole words)."""
+    tag = tag.strip().lower()
+    if tag in NOT_MUSIC_TAG or set(re.split(r"[^\w&'-]+", tag)) & set(NOT_MUSIC) or any(n in tag for n in NOT_MUSIC_IN):
+        return False
+    if DECADE.search(tag):
+        return True
+    return any(re.search(r"(?<![^\W\d_])" + re.escape(r), tag) for r in GENRE_ROOTS)   # at a word's start: not «alaska»
+
+
 def genres() -> dict:
     """{"families": [{"label", "genres": [{"tag", "label", "stations"}]}], "more": [tag, …]}: every family's genres
     with their stations counted by the directory (one call, kept KEEP_S), the ones with fewer than MIN_STATIONS left
-    out; «more», the directory's other tags with most stations, for a search by genre. The directory down: the
+    out; «more», the directory's other tags with most stations that name music (is_genre), for a search by genre.
+    The directory down: the
     families as they are, without counts."""
     try:
         counts = {str(t.get("name", "")).lower(): int(t.get("stationcount") or 0)
@@ -115,7 +166,7 @@ def genres() -> dict:
         if shown:
             fams.append({"label": label, "genres": shown})
     more = [t for t, n in sorted(counts.items(), key=lambda kv: -kv[1])
-            if t not in mine and n >= 20 and 2 <= len(t) <= 30][:300]
+            if t not in mine and n >= 20 and 2 <= len(t) <= 30 and is_genre(t)][:300]
     return {"families": fams, "more": more}
 
 

@@ -2,6 +2,19 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.3.19 — 2026-10-30
+
+8 publications since v0.3.11.
+
+- 2026-10-30 Radio: the other genres are music only - no towns, languages, broadcasters or news among them
+- 2026-10-29 Assistance: the admin inside never marks the user's first run seen nor sends their look up
+- 2026-10-29 Assistance: a user lets the admin into their account for 8 to 72 hours, revocable, every step in the user's own sealed log, told when it begins and ends; never the password, the Authenticator, the keys or the devices
+- 2026-10-29 Notifications: all in clear, each user choosing kind by kind which ones show only a neutral line on the phone
+- 2026-10-29 Users: a behaviour card per user for the admin - each day's offences, apologies and pauses, numbers only, never the words
+- 2026-10-29 Chat: the web searched and read in the user's words, a town kept in the query, places asked back instead of studied at night, follow-ups on the answer's own subject; an insult answered locally and never sent to a cloud model
+- 2026-10-29 Radio: a genre picked outside the families closes the family left open
+- 2026-10-29 Radio: a station switched gives its place back (no more 429 after two), a genre matches the whole tag and its own stations come first
+
 ## v0.3.18 — 2026-10-30
 
 7 publications since v0.3.11.
