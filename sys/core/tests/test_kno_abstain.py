@@ -31,7 +31,7 @@ def test_a_thing_with_no_trace_is_not_told_nor_studied():
     assert kno_abstain.kind(Said("No trace."), "Riassumi «Le nebbie di Tarvelion»") == "no_trace"
     t = kno_abstain.text("no_trace", "it")
     assert "non esiste" in t and "stanotte" not in t
-    assert set(kno_abstain.NOT_STUDIED) == {"future", "no_trace"}
+    assert set(kno_abstain.NOT_STUDIED) == {"future", "no_trace", "local"}
 
 
 def test_anything_else_or_a_failure_keeps_the_old_sentence():
@@ -47,3 +47,11 @@ def test_only_a_later_year_is_asked_before_searching():
     assert not kno_abstain.later_year("Chi ha vinto il Nobel per la fisica nel 2025?", today)
     assert not kno_abstain.later_year("Quanto fa 2027 per 3?", date(2027, 1, 1))
     assert "forecasts, projections" in kno_abstain.SYS_WHY        # an IPCC projection for 2050 is not «future»
+
+
+def test_a_place_or_a_shop_is_asked_back_never_promised_for_tonight():
+    """C466: «cartolerie da qui a <town>» ended in «la studio stanotte» — the night cannot find a shop."""
+    assert kno_abstain.kind(Said("LOCAL"), "cartolerie da qui a Borgoverde") == "local"
+    t = kno_abstain.text("local", "it")
+    assert "stanotte" not in t and "da dove parti" in t and "local" in kno_abstain.NOT_STUDIED
+    assert "LOCAL" in kno_abstain.SYS_WHY and "tonight" not in kno_abstain.text("local", "en")

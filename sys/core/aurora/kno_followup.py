@@ -43,6 +43,20 @@ SYS_SUGGEST = ("You get the owner's QUESTION, Aurora's ANSWER and numbered PASSA
                "those marked 'not used'), COMPLETE on its own (it names its subject and, when it matters, the work: "
                "never 'it', 'this', 'the author'), not already answered by the ANSWER, at most 20 words, in the "
                "language of the QUESTION; all different. Output only JSON: [{\"q\": \"...\", \"p\": [passage numbers]}]")
+# an answer not read from the library (the web, memory, reasoning) or none at all: the follow-ups from the question
+# and the answer themselves (owner, 29 Oct: «le metterei a prescindere… il focus sull'argomento resti costante» —
+# measured the same day: a wine stain's answer from the web got the library's cotton flammability and ginning)
+SYS_SUGGEST_FREE = ("You get the owner's QUESTION, Aurora's ANSWER and the titles of the SOURCES it read. Write 3 or 4 "
+                    "questions the owner may want to ask next, on the SAME subject as the QUESTION: a detail, a "
+                    "practical next step, a related case. Each one COMPLETE on its own (it names its subject: never "
+                    "'it', 'this'), not already answered by the ANSWER, at most 20 words, in the language of the "
+                    "QUESTION; all different. Output only JSON: [{\"q\": \"...\"}]")
+SYS_SUGGEST_UNSURE = ("Aurora could not answer the owner's QUESTION. Write 3 or 4 more precise versions of the SAME "
+                      "request, in the owner's own voice, ready to be searched. When a word of it has two meanings, "
+                      "write one version for each meaning, naming it plainly (e.g. «cancelleria»: a stationery shop, or "
+                      "a court's registry office). Keep every place it names; for «here» or «near me» write «vicino "
+                      "a» and the place it names. Never add a purpose it did not say. Each one COMPLETE, at most 20 "
+                      "words, in the language of the QUESTION; all different. Output only JSON: [{\"q\": \"...\"}]")
 MAX_FOCUS = 4                 # sources in focus
 PER_SOURCE = 120              # passages of one source scored at most (a paper is 20-60)
 ANSWER_CUT = 3000             # characters of the previous answer given to the rewrite
@@ -148,15 +162,25 @@ def with_focus(p: "Pipeline", question: str, translation: str | None, hits: list
     return merged
 
 
-def suggest(p: "Pipeline", question: str, answer_text: str, sources: list[dict], hits: list[Hit], ev) -> list[dict]:
+def suggest(p: "Pipeline", question: str, answer_text: str, sources: list[dict], hits: list[Hit], ev,
+            abstained: bool = False) -> list[dict]:
+    """Follow-ups: from the library's passages when the answer was read there (each with its sources in focus), else
+    from the question and the answer (the web, memory), or, without an answer, the question made more precise."""
     cited = {s.get("sid") for s in sources}
     pool = [h for h in hits if h.soliton.kind != "conversation"][:8]
-    if not pool:
-        return []
-    passages = "\n\n".join(f"[{i}] ({h.soliton.title or h.soliton.source_id}; {'used' if h.sid in cited else 'not used'})"
-                           f"\n{h.soliton.text[:700]}" for i, h in enumerate(pool, 1))
-    raw = p._for("translate").complete(SYS_SUGGEST, f"QUESTION: {question}\n\nANSWER:\n{answer_text[:2500]}\n\n"
-                                                    f"PASSAGES:\n\n{passages}", 500).answer
+    if abstained or not any(h.sid in cited for h in pool):
+        pool = []
+        if abstained:
+            raw = p._for("translate").complete(SYS_SUGGEST_UNSURE, f"QUESTION: {question}", 300).answer
+        else:
+            titles = "\n".join(f"- {s.get('title') or s.get('source') or ''}" for s in sources[:6]) or "-"
+            raw = p._for("translate").complete(SYS_SUGGEST_FREE, f"QUESTION: {question}\n\nANSWER:\n{answer_text[:2500]}"
+                                                                 f"\n\nSOURCES:\n{titles}", 400).answer
+    else:
+        passages = "\n\n".join(f"[{i}] ({h.soliton.title or h.soliton.source_id}; {'used' if h.sid in cited else 'not used'})"
+                               f"\n{h.soliton.text[:700]}" for i, h in enumerate(pool, 1))
+        raw = p._for("translate").complete(SYS_SUGGEST, f"QUESTION: {question}\n\nANSWER:\n{answer_text[:2500]}\n\n"
+                                                        f"PASSAGES:\n\n{passages}", 500).answer
     m = re.search(r"\[.*\]", raw, re.S)
     try:
         items = json.loads(m.group(0)) if m else []

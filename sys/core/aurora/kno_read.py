@@ -143,13 +143,16 @@ def _web_source(r: dict) -> dict:
     return {"url": r["url"], "title": r["title"] or r["url"], "source": r["url"], "domain": "web"}
 
 
-def from_web(p, question: str, ev, size: str = "fact", open_pages: bool = True, translation: str | None = None) -> dict | None:
-    """The web in the question's language; not found there, in English — a film, a song, a series is often known by
-    its original title («Quando posso rivederti» is «When Can I See You Again», M130)."""
+def from_web(p, question: str, ev, size: str = "fact", open_pages: bool = True, translation: str | None = None,
+             native: str | None = None) -> dict | None:
+    """The web in the user's own words (`native`, the question as written: with the English pivot `question` is its
+    translation — C466); not found there, in English — a film, a song, a series is often known by its original title
+    («Quando posso rivederti» is «When Can I See You Again», M130)."""
     if not p.cfg["AURORA_VERIFY_WEB"]:
         return None
-    out = _web(p, question, question, ev, size, open_pages, "it-it")
-    if out is None and translation and translation.strip().lower() != question.strip().lower():
+    first = (native or "").strip() or question
+    out = _web(p, first, first, ev, size, open_pages, "it-it")    # read with the words it was found by
+    if out is None and translation and translation.strip().lower() != first.strip().lower():
         out = _web(p, question, translation, ev, size, open_pages, "wt-wt")
     return out
 

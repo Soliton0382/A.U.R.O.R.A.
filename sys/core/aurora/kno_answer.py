@@ -239,7 +239,7 @@ class Pipeline(Stages, SelfTalk):
             verified, answer, hits, subs = None, None, [], []
         else:
             verified, answer, hits, subs = kno_think.answer(self, question, translation, mode, retrieve, classic, ev,
-                                                            focused=bool(focus))
+                                                            focused=bool(focus), native=native)
         if verified:
             hebb(self.cfg, [x for x in verified["sources"] if x.get("sid")])
             result = Answer(run_id, asked, verified["text"], False, verified["sources"], verified["dropped"],
@@ -259,9 +259,10 @@ class Pipeline(Stages, SelfTalk):
         ev("answer.final", {"text": result.text, "abstained": result.abstained, "sources": result.sources,
                             "dropped": result.dropped, "seconds": round(result.seconds, 1), "mode": "knowledge",
                             "speed": result.speed})
-        if suggest and not result.abstained and self.cfg["AURORA_PIPELINE_SUGGEST"]:
+        if suggest and self.cfg["AURORA_PIPELINE_SUGGEST"]:
             try:                                    # after the answer is shown: never a reason to fail it
-                result.suggestions = kno_followup.suggest(self, native, result.text, result.sources, hits, ev)
+                result.suggestions = kno_followup.suggest(self, native, result.text, result.sources, hits, ev,
+                                                          abstained=result.abstained)
             except Exception as e:
                 self.log.warning("suggestions failed: %s", e)
         if remember:                                # with the suggestions: another window shows them too (C110)

@@ -56,3 +56,25 @@ def test_off_means_no_anger(cfg, monkeypatch):
     monkeypatch.setitem(cfg.raw, "AURORA_MOOD", "false") if hasattr(cfg, "raw") else None
     off = type("C", (), {"__getitem__": lambda s, k: False if k == "AURORA_MOOD" else cfg[k], "user": None, "base": None})()
     assert A.react(off, "sei un'idiota") == {"kind": "", "value": 0.0, "cool": "", "prefix": ""}
+
+
+def test_an_insult_never_reaches_a_cloud_model(cfg, monkeypatch):
+    """Owner, 29 Oct: «già il primo insulto arriva sul Cloud… sempre modello locale». The run with an insult gets the
+    local model for every step, whatever is assigned; a later turn read again sends it without the insult."""
+    from aurora import mdl_router as M
+    from aurora import sec_mask
+    monkeypatch.setattr(M, "assignments", lambda c: {"synthesis": {"provider": "anthropic", "model": "x"}})
+    monkeypatch.setattr(M.sys_ethics, "exempt", lambda c: True)
+    monkeypatch.setattr(M, "cloud_client", lambda provider, model, c: type("Cloud", (), {"name": "cloud"})())
+    local = object()
+    assert isinstance(M.model_for("synthesis", local, cfg), M.Fallback)            # an ordinary message: the cloud
+    token = M.LOCAL_ONLY.set(True)
+    try:
+        from aurora.mdl_budget import Metered
+        m = M.model_for("synthesis", local, cfg)
+        assert type(m) is Metered and m._inner is local
+    finally:
+        M.LOCAL_ONLY.reset(token)
+    cfg.values["AURORA_CLOUD_MASK_DYNAMIC"] = False
+    out = sec_mask.Pseudonymizer(cfg).mask("ieri: sei una cretina, dimmi il meteo. Oggi: che tempo fa?")
+    assert "cretina" not in out and "che tempo fa?" in out

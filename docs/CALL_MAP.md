@@ -126,7 +126,7 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `api.call` | `api (MODULES)` | 0 |
 | `api.care` | `api (MODULES)` | 0 |
 | `api.core` | `api.access`, `api.accounts`, `api.activity`, `api.agents`, `api.astro`, `api.astro_cam`, `api.autonomy`, `api.backup`, `api.bugreport`, `api.calendar`, `api.call`, `api.care`, `api.core_route`, `api.diet`, `api.dj`, `api.documents`, `api.edge`, `api.firewalls`, `api.forge`, `api.harvester`, `api.home`, `api.https`, `api.incidents`, `api.interpret`, `api.keys`, `api.knowledge`, `api.line`, `api.models`, `api.models_custom`, `api.oai`, `api.oauth`, `api.phone_app`, `api.places`, `api.power`, `api.preview`, `api.projects`, `api.projects_conduct`, `api.projects_plan`, `api.projects_print`, `api.projects_view`, `api.radio`, `api.rem`, `api.routine_advice`, `api.routines`, `api.runs`, `api.security`, `api.security_ciso`, `api.social`, `api.synapses`, `api.system`, `api.today`, `api.tunnel`, `api.updates`, `api.uploads`, `api.usage`, `api.users`, `api.voice`, `prj_act`, `script/bench_router.py`, `script/svc_api.py` | 2 |
-| `api.core_route` | `api.agents`, `api.core`, `api.runs`, `script/bench_router.py` | 0 |
+| `api.core_route` | `api.agents`, `api.call`, `api.core`, `api.runs`, `script/bench_router.py` | 0 |
 | `api.diet` | `api (MODULES)`, `script/svc_api.py` | 0 |
 | `api.dj` | `api (MODULES)`, `api.rem` | 2 |
 | `api.documents` | `api (MODULES)` | 0 |
@@ -230,7 +230,7 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `kno_abstain` | `kno_answer`, `kno_study` | 1 |
 | `kno_acquire` | `api.core_route`, `api.runs`, `kno_acquire_more`, `kno_sources`, `kno_study`, `script/svc_harvester.py`, `script/vault_realign.py` | 2 |
 | `kno_acquire_more` | `kno_acquire` | 1 |
-| `kno_anger` | `api.core_route`, `kno_answer`, `kno_mood` | 2 |
+| `kno_anger` | `api.core_route`, `kno_answer`, `kno_mood`, `sec_mask` | 2 |
 | `kno_answer` | `agt_loop`, `api.agents`, `api.call`, `api.core`, `api.core_route`, `api.forge`, `api.incidents`, `api.models_custom`, `api.routines`, `api.updates`, `kno_acquire`, `kno_followup`, `script/bench_common.py`, `script/bench_domains.py`, `script/bench_followup.py`, `script/bench_vault_diag.py` | 7 |
 | `kno_arxiv` | `kno_acquire`, `kno_sources`, `script/svc_harvester.py`, `script/vault_realign.py` | 1 |
 | `kno_attach` | `api.core_route`, `api.runs`, `kno_answer`, `kno_video` | 4 |
@@ -273,7 +273,7 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `kno_video` | `kno_attach` | 1 |
 | `kno_web` | `kno_acquire`, `kno_read`, `sys/plugins/web/server.py` | 2 |
 | `mdl_accounts` | `api.accounts`, `mdl_cloud`, `mdl_router`, `mdl_services` | 2 |
-| `mdl_budget` | `api.models`, `api.users`, `mdl_cloud`, `mdl_media`, `mdl_router`, `prj_talk`, `sys_health`, `sys_usage` | 4 |
+| `mdl_budget` | `api.models`, `api.users`, `mdl_cloud`, `mdl_media`, `mdl_router`, `prj_talk`, `sys_health`, `sys_usage` | 5 |
 | `mdl_cloud` | `mdl_router`, `script/bench_agi.py`, `script/bench_domain_assign.py`, `script/bench_forge.py`, `script/bench_honesty.py`, `script/bench_memory_days.py`, `script/bench_public.py`, `script/bench_quality.py`, `script/bench_rejudge.py`, `script/bench_router.py` | 2 |
 | `mdl_custom` | `api.models_custom`, `script/sys_model_check.py` | 1 |
 | `mdl_embedder` | `script/bench_retrieval.py`, `script/svc_models.py`, `script/sys_calibrate.py` | 1 |
@@ -286,7 +286,7 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `mdl_modes` | `api.models`, `mdl_custom` | 2 |
 | `mdl_remote` | `api.core`, `script/bench_common.py`, `script/bench_domain_assign.py`, `script/bench_domains.py`, `script/bench_followup.py`, `script/bench_learn.py`, `script/bench_retrieval.py`, `script/bench_synapses.py`, `script/bench_vault_diag.py` | 1 |
 | `mdl_reranker` | `script/bench_retrieval.py`, `script/svc_models.py`, `script/sys_calibrate.py` | 2 |
-| `mdl_router` | `agt_loop`, `api.accounts`, `api.care`, `api.diet`, `api.forge`, `api.models`, `api.runs`, `api.system`, `kno_answer`, `kno_grid`, `kno_read`, `kno_self`, `kno_stages`, `mdl_accounts`, `mdl_llm`, `mdl_media`, `mdl_modes`, `mdl_services`, `prj_act`, `prj_talk`, `script/bench_domain_assign.py`, `script/bench_forge.py`, `script/bench_honeypot.py`, `script/bench_learn.py`, `script/bench_preflight.py`, `script/bench_public.py`, `script/bench_router.py`, `script/svc_harvester.py`, `script/sys_cloud_setup.py`, `script/sys_doctor.py`, `script/vault_realign.py`, `sec_fwplan`, `sec_outbound`, `sys_capabilities`, `sys_features`, `sys_health`, `sys_metrics` | 16 |
+| `mdl_router` | `agt_loop`, `api.accounts`, `api.care`, `api.core_route`, `api.diet`, `api.forge`, `api.models`, `api.runs`, `api.system`, `kno_answer`, `kno_grid`, `kno_read`, `kno_self`, `kno_stages`, `mdl_accounts`, `mdl_llm`, `mdl_media`, `mdl_modes`, `mdl_services`, `prj_act`, `prj_talk`, `script/bench_domain_assign.py`, `script/bench_forge.py`, `script/bench_honeypot.py`, `script/bench_learn.py`, `script/bench_preflight.py`, `script/bench_public.py`, `script/bench_router.py`, `script/svc_harvester.py`, `script/sys_cloud_setup.py`, `script/sys_doctor.py`, `script/vault_realign.py`, `sec_fwplan`, `sec_outbound`, `sys_capabilities`, `sys_features`, `sys_health`, `sys_metrics` | 17 |
 | `mdl_services` | `api.accounts`, `mdl_router` | 1 |
 | `mdl_stt` | `script/svc_models.py` | 1 |
 | `mdl_tts` | `api.call`, `api.core`, `api.voice`, `kno_story`, `mdl_image`, `sys_capabilities` | 4 |
@@ -347,7 +347,7 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `sec_incidents` | `api.incidents`, `api.security`, `api.security_ciso`, `kno_mood`, `sec_report`, `sec_scorecard`, `sys_autonomy` | 7 |
 | `sec_intel` | `api.incidents`, `api.security`, `net_cfwaf`, `script/svc_rem.py`, `sec_defence`, `sec_egress_watch`, `sec_fwport`, `sec_hunt`, `sec_report`, `sec_shared` | 5 |
 | `sec_linkcheck` | `agt_loop`, `kno_web`, `sec_detonate`, `sec_filecheck`, `sys/plugins/linkcheck/server.py` | 2 |
-| `sec_mask` | `agt_forge`, `agt_loop`, `api.accounts`, `api.social`, `kno_social`, `kno_web`, `mdl_media`, `mdl_router`, `prj_act`, `prj_talk`, `script/dev_privacy_scan.py`, `script/shadow_seed.py`, `sec_privacy`, `sys_bugreport` | 5 |
+| `sec_mask` | `agt_forge`, `agt_loop`, `api.accounts`, `api.social`, `kno_social`, `kno_web`, `mdl_media`, `mdl_router`, `prj_act`, `prj_talk`, `script/dev_privacy_scan.py`, `script/shadow_seed.py`, `sec_privacy`, `sys_bugreport` | 6 |
 | `sec_mask_spot` | `sec_mask` | 2 |
 | `sec_netmap` | `api.incidents`, `api.security`, `api.security_ciso`, `sec_fwops`, `sec_fwplan_ops`, `sec_hunt`, `sys/plugins/security/server.py`, `sys_capabilities` | 2 |
 | `sec_outbound` | `api.security` | 0 |

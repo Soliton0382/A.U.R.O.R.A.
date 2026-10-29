@@ -2,6 +2,14 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.3.14 — 2026-10-29
+
+3 publications since v0.3.11.
+
+- 2026-10-29 Chat: the web searched and read in the user's words, a town kept in the query, places asked back instead of studied at night, follow-ups on the answer's own subject; an insult answered locally and never sent to a cloud model
+- 2026-10-29 Radio: a genre picked outside the families closes the family left open
+- 2026-10-29 Radio: a station switched gives its place back (no more 429 after two), a genre matches the whole tag and its own stations come first
+
 ## v0.3.13 — 2026-10-29
 
 2 publications since v0.3.11.

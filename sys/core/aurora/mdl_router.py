@@ -110,6 +110,9 @@ def _dir(cfg: sys_config.Config) -> Path:
 
 # C280: the roles of one request (a benchmark's target), never written to roles.json — the owner's chat keeps hers
 RUN_ROLES: contextvars.ContextVar[dict | None] = contextvars.ContextVar("aurora_run_roles", default=None)
+# a message that insults her is answered by the local model only, whatever the Models page assigns (owner, 29 Oct:
+# «già il primo insulto arriva sul Cloud… sempre modello locale e poi Cloud»): set for that run (api.core_route)
+LOCAL_ONLY: contextvars.ContextVar[bool] = contextvars.ContextVar("aurora_local_only", default=False)
 
 
 def check_roles(roles: dict) -> dict[str, dict]:
@@ -617,7 +620,7 @@ def model_for(role: str, local, cfg: sys_config.Config | None = None):
     provider = a["provider"]
     from .mdl_budget import Metered
     metered = Metered(local, role)                       # every local call traced with its step (what it would cost)
-    if provider == "local":
+    if provider == "local" or LOCAL_ONLY.get():
         return metered
     if not sys_ethics.exempt(cfg):                       # rule 9: no private data to cloud models without the exemption
         return metered

@@ -9,6 +9,8 @@ The model reads the question once and says which of three it is:
     future    about something that has not happened yet: nobody can know it today
     no_trace  about one precise named thing (a book, a theorem, a person, a law) of which no source has any trace:
               it may not exist, or its name is different — its content is never told
+    local     a place, a shop, an office or a service near someone, an opening hour, a route (C466): the night cannot
+              help — the user is asked where from and what exactly, so the next search finds it
     open      anything else: the sentence as before, and the night studies it
 Only the kind comes from the model; the words are fixed here, so nothing is invented in them. `future` and
 `no_trace` are not studied at night (kno_study.pending)."""
@@ -17,8 +19,8 @@ from __future__ import annotations
 import re
 from datetime import date
 
-KINDS = ("future", "no_trace", "open")
-NOT_STUDIED = ("future", "no_trace")
+KINDS = ("future", "no_trace", "local", "open")
+NOT_STUDIED = ("future", "no_trace", "local")
 
 SYS_WHY = ("Today is {today}. Neither a library, nor the web, nor memory answered the QUESTION below. You do not "
            "answer it: you say why it cannot be answered, with one word.\n"
@@ -26,9 +28,11 @@ SYS_WHY = ("Today is {today}. Neither a library, nor the web, nor memory answere
            "match, a price in a later year): nobody can know it yet.\n"
            "NO_TRACE — it asks about the content of one precise named thing (a book, a film, a theorem, a law, a "
            "person, a paper) that well-known sources would mention if it existed.\n"
+           "LOCAL — it asks for places, shops, offices or services in or near a place, an opening hour, a route or "
+           "a distance between places.\n"
            "OPEN — anything else (a hard or rare fact, an opinion, a vague question), and forecasts, projections, "
            "plans or schedules already published about a later year.\n"
-           "Reply with one word: FUTURE, NO_TRACE or OPEN.")
+           "Reply with one word: FUTURE, NO_TRACE, LOCAL or OPEN.")
 
 TEXT = {
     ("future", "it"): "Riguarda qualcosa che non è ancora successo (oggi è il {today}): nessuno può saperlo, "
@@ -41,6 +45,12 @@ TEXT = {
     ("no_trace", "en"): "I find no trace of what you ask, neither in my vault nor on the web: it probably does not "
                         "exist, or its name or title is different. I will not tell its content, because I would make "
                         "it up. If it is spelt another way, tell me and I will look again.",
+    ("local", "it"): "Non ho trovato risultati affidabili per questa ricerca, e non voglio inventarli. Per cercare "
+                     "meglio mi servono due cose: da dove parti (città, paese o via) e cosa cerchi di preciso — per "
+                     "esempio «cartolerie» o «cancelleria del tribunale». Riscrivimelo così e ricerco subito.",
+    ("local", "en"): "I found no reliable results for this search, and I will not make them up. To search better I "
+                     "need two things: where you start from (town or street) and what exactly you are looking for. "
+                     "Tell me and I will search again at once.",
     ("open", "it"): "Non ho trovato una risposta né nel vault né sul web, e non voglio inventarla. La studio stanotte: "
                     "domani ne saprò di più.",
     ("open", "en"): "I found no answer in my vault nor on the web, and I will not make one up. I will study it tonight.",
@@ -55,13 +65,13 @@ def later_year(question: str, today: date | None = None) -> bool:
 
 
 def kind(llm, question: str, today: date | None = None) -> str:
-    """future | no_trace | open; open when the model fails or says something else (the sentence as before)."""
+    """future | no_trace | local | open; open when the model fails or says something else (the sentence as before)."""
     try:
         said = llm.complete(SYS_WHY.format(today=(today or date.today()).isoformat()),
                             f"QUESTION: {question}", 6).answer
     except Exception:                                 # noqa: BLE001 — in doubt, the old sentence
         return "open"
-    m = re.search(r"\b(FUTURE|NO_TRACE|OPEN)\b", said.upper().replace("NO TRACE", "NO_TRACE"))
+    m = re.search(r"\b(FUTURE|NO_TRACE|LOCAL|OPEN)\b", said.upper().replace("NO TRACE", "NO_TRACE"))
     return m.group(1).lower() if m else "open"
 
 

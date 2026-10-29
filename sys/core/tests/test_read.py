@@ -133,3 +133,29 @@ def test_an_answer_saying_the_texts_lack_it_is_not_an_answer():
     assert EMPTY.search("Le fonti fornite non riportano il dato.")
     assert not EMPTY.search("Il Duomo e gli Uffizi sono le tappe principali [1]; i testi non specificano gli orari.")
     assert not EMPTY.search("Non è vero che i testi antichi non citano Firenze [2].")
+
+
+def test_a_town_the_user_wrote_stays_in_the_query_a_person_never(cfg):
+    """C466: the dynamic masking takes a home town for a private value — the shops «da qui a <town>» went out as a
+    query without the town. A masked value the user wrote and the local model calls a town stays; a person goes."""
+    cfg.values["AURORA_CLOUD_MASK_MINE"] = "Borgoverde,Ada Neri"
+    cfg.values["AURORA_CLOUD_MASK_DYNAMIC"] = False
+    m = Model({"web search query": "cartolerie Borgoverde Ada Neri", "«Borgoverde»": "YES", "«Ada Neri»": "NO"})
+    q = W.query(m, "chiedo per Ada Neri: cartolerie da qui a Borgoverde?", cfg)
+    assert q == "cartolerie Borgoverde"
+    m = Model({"web search query": "cartolerie Borgoverde"})                 # not in the question: masked as before
+    assert W.query(m, "cartolerie vicino a casa mia?", cfg) == "cartolerie"
+    m = Model({"web search query": "cartolerie Borgoverde", "«Borgoverde»": "NO"})   # the model says not a town
+    assert W.query(m, "cartolerie a Borgoverde?", cfg) == "cartolerie"
+
+
+def test_the_web_is_searched_in_the_user_s_words_before_the_pivot(monkeypatch):
+    """C466: with the English pivot the web got the translation («cancellerie» → «post offices»): the user's own words
+    first, the English second."""
+    asked, regions = [], []
+    monkeypatch.setattr(W, "query", lambda m, q, cfg: asked.append(q) or q)
+    monkeypatch.setattr(W, "search", lambda q, region="it-it": regions.append(region) or [])
+    R.from_web(_p(Model({})), "show me some post offices near Borgoverde", lambda *a: None, "fact", True,
+               "show me some post offices near Borgoverde", native="indicami delle cartolerie vicino a Borgoverde")
+    assert asked == ["indicami delle cartolerie vicino a Borgoverde", "show me some post offices near Borgoverde"]
+    assert regions == ["it-it", "wt-wt"]

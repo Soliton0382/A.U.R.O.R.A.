@@ -170,7 +170,8 @@ async def _turn(ws: WebSocket, voice: _Voice, audio, lang: str) -> None:
     await voice.stop()
     await ws.send_text(json.dumps({"type": "heard", "text": text}))
     turn = voice.turn
-    run = start_run(text, origin="call", job=_talk)
+    from .core_route import mood_wrap                    # 😠 an insult said in a call: her anger, and local only
+    run = start_run(text, origin="call", job=mood_wrap(text, _talk))
     seen, buf, spoken, handed, t0, told = 0, "", False, False, time.monotonic(), False
     while True:
         done = run["done"]                            # read before the events: none written after it is missed

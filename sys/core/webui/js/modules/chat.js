@@ -369,7 +369,8 @@ export default {
         if (talking) listenAgain();
         if (final?.diet) await dietCards(b, final.diet);
         if (final?.abstained && final.mode !== "self") offerAcquire(b, question);
-        else if (final?.suggestions?.length) { const stick = messages.scrollHeight - messages.scrollTop - messages.clientHeight < 120; offerDeeper(b, final.suggestions); if (stick) scrollEnd(messages); }
+        // also beside an abstention: the question made more precise (C466)
+        if (final?.suggestions?.length) { const stick = messages.scrollHeight - messages.scrollTop - messages.clientHeight < 120; offerDeeper(b, final.suggestions); if (stick) scrollEnd(messages); }
       } catch (e) {
         b.body.replaceChildren(el("p", "error", t("ev.error", { m: e.message })));
         b.head.classList.remove("running");

@@ -19,7 +19,7 @@ def run(monkeypatch):
     def go(mode, kind, web=None, vault=None, memory=None, deep=None):
         calls, events = [], []
         monkeypatch.setattr(T.kno_read, "kind", lambda p, q: kind)
-        monkeypatch.setattr(T.kno_read, "from_web", lambda p, q, ev, size="fact", open_pages=True, translation=None:
+        monkeypatch.setattr(T.kno_read, "from_web", lambda p, q, ev, size="fact", open_pages=True, translation=None, native=None:
                             calls.append(f"web({size},{'pages' if open_pages else 'snippets'})") or web)
         monkeypatch.setattr(T.kno_read, "from_vault", lambda p, q, hits, size="explain": calls.append(f"vault({size})") or vault)
         monkeypatch.setattr(T.kno_read, "from_memory", lambda p, q, ev: calls.append("memory") or memory)

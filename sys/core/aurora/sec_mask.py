@@ -189,7 +189,8 @@ class Pseudonymizer:
         for w in self.private:                           # the owner's own words, case kept as written
             if w in text:
                 text = text.replace(w, self._ph("PRIVATE", w))
-        return text
+        from .kno_anger import INSULT                    # an insult said to her, in a turn read again: never sent
+        return INSULT.sub("…", text)
 
     def unmask(self, text: str) -> str:
         """The model's answer with the real values back (a placeholder it invented stays as it is)."""

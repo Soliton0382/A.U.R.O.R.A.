@@ -28,9 +28,12 @@ def mode_of(cfg, asked: str | None) -> str:
     return m if m in MODES else "vault"
 
 
-def answer(p, question: str, translation: str | None, mode: str, retrieve, classic, ev, focused: bool = False) -> tuple:
+def answer(p, question: str, translation: str | None, mode: str, retrieve, classic, ev, focused: bool = False,
+           native: str | None = None) -> tuple:
     """(read | None, classic answer | None, hits, subs). `retrieve(recall)` → (hits, subs); `classic(hits, subs)` →
-    the vault pipeline's (text, sources, dropped) or None. `read` is kno_read's {"text", "sources", "dropped"}."""
+    the vault pipeline's (text, sources, dropped) or None. `read` is kno_read's {"text", "sources", "dropped"}.
+    `native`: the question as the user wrote it (with the English pivot `question` is its translation) — the web is
+    searched in it first (C466: «cancellerie» became «post offices», US pages read for a shop near a town)."""
     got: dict = {}
 
     def hits():
@@ -56,13 +59,13 @@ def answer(p, question: str, translation: str | None, mode: str, retrieve, class
         if kno_grid.puzzle(question) and kno_grid.worth(p):   # a grid puzzle: its rule as a program (ROADMAP 105)
             steps.append(("grid", lambda: ("read", kno_grid.solve(p, question, ev))))
         steps.append(("reason", lambda: ("read", kno_read.from_reasoning(p, question, ev))))
-        steps.append(("web", lambda: ("read", kno_read.from_web(p, question, ev, "explain", open_pages, translation))))
+        steps.append(("web", lambda: ("read", kno_read.from_web(p, question, ev, "explain", open_pages, translation, native))))
     elif kind == "write":                             # a text to compose: no source to look for, its form kept (C355)
         steps.append(("write", lambda: ("read", kno_read.from_writing(p, question, ev))))
     elif focused and not deep:                        # a follow-up: the sources of the answer before come first
         steps.append(("vault", lambda: ("read", kno_read.from_vault(p, question, hits()[0], "fact" if kind == "fact" else "explain"))))
         steps.append(("web", lambda: ("read", kno_read.from_web(p, question, ev, "fact" if kind == "fact" else "explain",
-                                                                 open_pages, translation))))
+                                                                 open_pages, translation, native))))
     elif kind == "fact" and not deep:
         # the vault first when it is sure (the CRAG way): its best passage's re-rank ≥ VAULT_FIRST. Measured (M194):
         # at 0.6 61 of 64 questions whose source is first in the vault read it first; 7 of 60 SimpleQA facts (not in
@@ -76,7 +79,7 @@ def answer(p, question: str, translation: str | None, mode: str, retrieve, class
             score = None
         sure = score is not None and score >= VAULT_FIRST
         ev("think.vault_first", {"rerank": None if score is None else round(score, 3), "vault_first": sure})
-        web = ("web", lambda: ("read", kno_read.from_web(p, question, ev, "fact", open_pages, translation)))
+        web = ("web", lambda: ("read", kno_read.from_web(p, question, ev, "fact", open_pages, translation, native)))
         vault = ("vault", lambda: ("read", kno_read.from_vault(p, question, hits()[0], "fact")))
         steps += [vault, web] if sure else [web, vault]
     else:
@@ -85,7 +88,7 @@ def answer(p, question: str, translation: str | None, mode: str, retrieve, class
         else:
             steps.append(("vault", lambda: ("read", kno_read.from_vault(p, question, hits()[0], "explain"))))
         steps.append(("web", lambda: ("read", kno_read.from_web(p, question, ev, "explain" if kind != "fact" else "fact",
-                                                                 open_pages, translation))))
+                                                                 open_pages, translation, native))))
     steps.append(("memory", lambda: ("read", kno_read.from_memory(p, question, ev))))
     for where, step in steps:
         try:

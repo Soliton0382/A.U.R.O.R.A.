@@ -86,3 +86,21 @@ def test_suggestions_are_complete_questions_with_their_sources():
     assert events == ["answer.suggestions"]
     bad = SimpleNamespace(complete=lambda *a: SimpleNamespace(answer="no JSON here"))
     assert F.suggest(SimpleNamespace(_for=lambda r: bad), "q", "a", [], hits, lambda *a: None) == []
+
+
+def test_an_answer_not_from_the_library_gets_follow_ups_on_its_own_subject():
+    """Owner, 29 Oct: the follow-ups «a prescindere», on the subject — a wine stain answered from the web got the
+    library's cotton passages; an abstention got none."""
+    hits = [Hit("h1", sol("Cotton flammability.", "arxiv:a", "materials"), 0.5, 3.0, "original")]
+    asked = []
+
+    def complete(system, user, n):
+        asked.append((system, user))
+        return SimpleNamespace(answer='[{"q": "Come si toglie una macchia di vino dalla lana?"}]')
+    p = SimpleNamespace(_for=lambda role: SimpleNamespace(complete=complete))
+    web = [{"url": "https://example.org/vino", "title": "Macchie di vino: i rimedi", "domain": "web"}]
+    out = F.suggest(p, "Come si toglie il vino dal cotone?", "Con acqua fredda [1].", web, hits, lambda *a: None)
+    assert out == [{"question": "Come si toglie una macchia di vino dalla lana?", "focus": []}]
+    assert asked[0][0] == F.SYS_SUGGEST_FREE and "Macchie di vino" in asked[0][1] and "Cotton" not in asked[0][1]
+    out = F.suggest(p, "cartolerie da qui a Borgoverde", "Non ho trovato…", [], hits, lambda *a: None, abstained=True)
+    assert out and asked[1][0] == F.SYS_SUGGEST_UNSURE and "Non ho trovato" not in asked[1][1]
