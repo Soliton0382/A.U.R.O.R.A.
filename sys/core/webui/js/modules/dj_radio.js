@@ -138,6 +138,10 @@ export function radioPanel(play) {
     if (mine.length) kept.lastChild.append(...mine.map(row));
     found.replaceChildren(...last.map(row));
   };
+  const shut = () => {                       // a genre picked outside the families: the family open closed
+    families.querySelectorAll("button").forEach((x) => x.classList.remove("on"));
+    genresRow.replaceChildren();
+  };
   const look = async (params, label) => {
     out.textContent = `✻ ${t("dj.radio.looking")}`;
     try {
@@ -146,14 +150,14 @@ export function radioPanel(play) {
       show();
     } catch (e) { out.textContent = t("ev.error", { m: e.message }); }
   };
-  form.addEventListener("submit", (e) => { e.preventDefault(); if (q.value.trim()) look({ q: q.value.trim() }, q.value.trim()); });
-  otherForm.addEventListener("submit", (e) => { e.preventDefault(); const g = other.value.trim().toLowerCase(); if (g) look({ tag: g }, g); });
+  form.addEventListener("submit", (e) => { e.preventDefault(); if (q.value.trim()) shut(), look({ q: q.value.trim() }, q.value.trim()); });
+  otherForm.addEventListener("submit", (e) => { e.preventDefault(); const g = other.value.trim().toLowerCase(); if (g) shut(), look({ tag: g }, g); });
   call("/v1/aurora/radio").then((s) => {
     mine = s.favourites;
     for (const p of s.presets) {
       const b = el("button", "", p.label);
       b.type = "button";
-      b.addEventListener("click", () => look({ tag: p.tag }, p.label));
+      b.addEventListener("click", () => { shut(); look({ tag: p.tag }, p.label); });
       presets.append(b);
     }
     const fams = (s.genres && s.genres.families) || [];
@@ -169,7 +173,7 @@ export function radioPanel(play) {
     for (const f of fams) {
       const chip = el("button", "cat-chip", f.label);
       chip.type = "button";
-      chip.addEventListener("click", () => (chip.classList.contains("on") ? (chip.classList.remove("on"), genresRow.replaceChildren()) : open(f, chip)));
+      chip.addEventListener("click", () => (chip.classList.contains("on") ? shut() : open(f, chip)));
       families.append(chip);
     }
     for (const tag of (s.genres && s.genres.more) || []) { const o = el("option"); o.value = tag; more.append(o); }
