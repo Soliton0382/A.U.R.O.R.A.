@@ -994,7 +994,7 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | POST `/v1/aurora/login` | `api/users.py` | `aurora/sys_assist.py`, `script/bench_memory_days.py`, `webui/js/main.js` |
 | GET `/v1/aurora/me` | `api/users.py` | `script/bench_memory_days.py`, `webui/js/main.js`, `webui/js/modules/plugin_slot.js`, `webui/js/modules/plugins.js`, `webui/js/modules/routines.js`, `webui/js/modules/settings.js`, `webui/js/modules/users.js` |
 | PUT `/v1/aurora/me/prefs` | `api/users.py` | `webui/js/dates.js`, `webui/js/modules/today_edit.js`, `webui/js/style.js`, `webui/js/theme.js` |
-| POST `/v1/aurora/me/welcomed` | `api/users.py` | `webui/js/welcome.js` |
+| POST `/v1/aurora/me/welcomed` | `api/users.py` | `aurora/sys_assist.py`, `webui/js/welcome.js` |
 | POST `/v1/aurora/me/password` | `api/users.py` | `aurora/sys_assist.py`, `webui/js/modules/users.js` |
 | POST `/v1/aurora/me/totp` | `api/users.py` | `aurora/sys_assist.py`, `webui/js/modules/users.js` |
 | GET `/v1/aurora/me/keys` | `api/users.py` | `aurora/sys_assist.py`, `webui/js/modules/users.js` |

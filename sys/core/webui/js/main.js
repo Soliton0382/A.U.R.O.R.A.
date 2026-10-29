@@ -257,7 +257,7 @@ async function persona() {
     document.title = m.assistant || "Aurora";
     voice.setGender(m.gender);
     isAdmin = m.admin !== false;
-    adopt(m.prefs, m.name);                            // this person's style and pins, from any device
+    adopt(m.prefs, m.name, Boolean(m.assist));         // this person's style and pins, from any device
     applyStyle(currentStyle(isAdmin));                 // until chosen: Completo for the admin, Essenziale for a user
     shortNav();
     whoIs(m);
@@ -347,7 +347,8 @@ async function start() {
   let kept = null;
   try { kept = sessionStorage.getItem(SHOWN); } catch { /* none */ }
   show(current || (asked && byId[asked] ? asked : kept && byId[kept] ? kept : styleHome(isAdmin)));
-  if (m && !m.welcomed) welcome(m, show);              // the first run's five screens, once per person (107)
+  // the first run's five screens, once per person (107): the person's own, never seen for them by the admin assisting
+  if (m && !m.welcomed && !m.assist) welcome(m, show);
 }
 
 // ---- boot --------------------------------------------------------------------------------

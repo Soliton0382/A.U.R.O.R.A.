@@ -9,7 +9,8 @@ Exchange… il consenso è implicito all'atto di attivazione (basta un disclaime
   device is the user's — the same pages, the same data, a banner with the way out — until the admin leaves, the user
   revokes or the window ends.
 - Never, whoever asks: the password, the Authenticator, the API keys, the devices (sessions), the logout of the
-  admin's own device while inside (NEVER, refused by the API before the route).
+  admin's own device while inside, the user's first-run screens marked seen (NEVER, refused by the API before the
+  route); the WebUI inside sends none of the person's look up (style.adopt) nor shows the first run.
 - Every step (the method and the path, no body) goes into the user's log (assist_log.jsonl, each line sealed with the
   user's key), shown on their page; the user is told when the admin enters and when the assistance ends (api.assist).
 
@@ -27,7 +28,8 @@ from . import sys_config, sys_seal
 
 WINDOWS = (8, 16, 24, 48, 72)                          # hours a user can open it for
 NEVER = ("/v1/aurora/me/password", "/v1/aurora/me/totp", "/v1/aurora/me/keys", "/v1/aurora/devices",
-         "/v1/aurora/logout", "/v1/aurora/login", "/v1/aurora/assist/grant", "/v1/aurora/assist/revoke")
+         "/v1/aurora/logout", "/v1/aurora/login", "/v1/aurora/assist/grant", "/v1/aurora/assist/revoke",
+         "/v1/aurora/me/welcomed")                     # the first run's screens: the person's own to see
 STEP_GAP_S = 60                                        # the same page read again within a minute: one step, not many
 LOG_MAX = 3000
 _lock = threading.Lock()

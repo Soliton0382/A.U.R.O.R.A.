@@ -33,7 +33,7 @@ def test_a_window_is_one_of_the_hours_offered_and_ends_by_itself(cfg):
 
 def test_the_account_s_keys_are_never_reached():
     for p in ("/v1/aurora/me/password", "/v1/aurora/me/totp", "/v1/aurora/me/keys/k1", "/v1/aurora/devices/d1",
-              "/v1/aurora/logout", "/v1/aurora/assist/grant", "/v1/aurora/assist/revoke"):
+              "/v1/aurora/logout", "/v1/aurora/assist/grant", "/v1/aurora/assist/revoke", "/v1/aurora/me/welcomed"):
         assert not S.allowed(p), p
     for p in ("/v1/aurora/me", "/v1/aurora/me/prefs", "/v1/aurora/calendar/items", "/v1/aurora/assist/leave",
               "/v1/aurora/devicesx"):

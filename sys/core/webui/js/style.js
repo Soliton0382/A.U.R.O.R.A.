@@ -40,7 +40,7 @@ export function setStyle(id) {
 // what the server holds for this person, taken as this browser's copy (at login, on every device)
 // whose copy it is: two people on one browser never get each other's; a choice made here before the server kept
 // them (one person's) goes up once
-export function adopt(prefs, who) {
+export function adopt(prefs, who, look = false) {    // look: the admin assisting — shown, nothing sent up
   try {
     const owner = localStorage.getItem(OWNER);
     if (owner !== null && owner !== String(who)) { localStorage.removeItem(KEY); localStorage.removeItem(PINS); localStorage.removeItem(THEME); localStorage.removeItem(TILES); }
@@ -55,7 +55,7 @@ export function adopt(prefs, who) {
     if (THEMES.some((x) => x.id === prefs?.theme)) applyTheme(prefs.theme);          // the colours too, on any device
     else if (localStorage.getItem(THEME)) up.theme = currentTheme();
     else applyTheme("aurora");                           // another person's colours never stay
-    if (Object.keys(up).length) save(up);
+    if (Object.keys(up).length && !look) save(up);
   } catch { /* this visit only */ }
 }
 
