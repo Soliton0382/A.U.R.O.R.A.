@@ -7,10 +7,12 @@ machine; browsers subscribe from the bell in the top bar (a registered device is
 Which events notify, and where (push on the devices, a toast in the WebUI), is the owner's choice in the
 Notifications page, kept in <AURORA_STATUS_DIR>/push/prefs.json and read at every event (no restart);
 AURORA_PUSH_EVENTS is only the starting point. Subscriptions the push service reports gone (404/410)
-are dropped. Payloads carry a title, a short text and the page to open, nothing more; with AURORA_PUSH_PRIVATE (N64)
-the text is only «Aurora ha qualcosa per te» under the event's title, which never quotes anything: what it is about
-is read in Aurora, not on a locked screen nor by the push service. The history keeps the real text, sealed with the
-user's key.
+are dropped. Payloads carry a title, a short text and the page to open, nothing more. A kind the user marks 🙈 in the
+Notifications page ("masked", owner, 30 Oct: «tutte in chiaro con possibilità… di decidere se averle in chiaro o
+mascherate e in modo granulare») shows only «Aurora ha qualcosa per te» under the event's title, which never quotes
+anything: what it is about is read in Aurora, not on a locked screen (the push service never reads a payload: Web Push
+encrypts it for the device, RFC 8291). AURORA_PUSH_PRIVATE is the starting point: every kind masked until chosen, and
+a line with no kind (the app's). The history keeps the real text, sealed with the user's key.
 """
 from __future__ import annotations
 
@@ -130,22 +132,25 @@ CHANNELS = ("push", "webui")
 
 
 def prefs(cfg: sys_config.Config) -> dict:
-    """{"push": [kinds], "webui": [kinds]}: the saved choice, else the suggested one (push from AURORA_PUSH_EVENTS)."""
+    """{"push": [kinds], "webui": [kinds], "masked": [kinds]}: the saved choice, else the suggested one (push from
+    AURORA_PUSH_EVENTS; masked: every kind with AURORA_PUSH_PRIVATE, none without)."""
     f = _mine(cfg) / "prefs.json"
+    start = list(KINDS) if cfg["AURORA_PUSH_PRIVATE"] else []
     try:
         p = json.loads(f.read_text(encoding="utf-8"))
         # a kind added after the owner chose is on when suggested; the kinds he saw keep his choice
         new = [k for k in PRESETS["suggested"] if k not in p.get("known", KNOWN_BEFORE)]
-        return {c: [k for k in KINDS if k in p.get(c, []) or k in new] for c in CHANNELS}
+        out = {c: [k for k in KINDS if k in p.get(c, []) or k in new] for c in CHANNELS}
+        return {**out, "masked": [k for k in KINDS if k in p.get("masked", start)]}
     except (OSError, ValueError):
         # never chosen: AURORA_PUSH_EVENTS, plus the suggested kinds that setting predates (routines, weather, plugins)
         push = [k.strip() for k in cfg["AURORA_PUSH_EVENTS"].split(",") if k.strip() in KINDS]
         push += [k for k in PRESETS["suggested"] if k not in KNOWN_BEFORE and k not in push]
-        return {"push": push, "webui": list(PRESETS["suggested"])}
+        return {"push": push, "webui": list(PRESETS["suggested"]), "masked": start}
 
 
 def set_prefs(cfg: sys_config.Config, choice: dict) -> dict:
-    p = {c: [k for k in KINDS if k in set(choice.get(c, []))] for c in CHANNELS}
+    p = {c: [k for k in KINDS if k in set(choice.get(c, []))] for c in CHANNELS + ("masked",)}
     _write_private(_mine(cfg) / "prefs.json", json.dumps({**p, "known": list(KINDS)}, indent=1).encode())
     return p
 
@@ -241,10 +246,20 @@ def message(event: str, payload: dict, cfg: sys_config.Config, channel: str = "p
 PRIVATE_BODY = {"it": "Aurora ha qualcosa per te", "en": "Aurora has something for you"}
 
 
+def _kind(tag: str) -> str:
+    """The kind of a notification from its tag (message(): "aurora-<kind>", the calendar's "aurora-calendar-<key>")."""
+    rest = tag[len("aurora-"):] if tag.startswith("aurora-") else ""
+    return next((k for k in KINDS if rest == k or rest.startswith(k + "-")), "")
+
+
 def outgoing(msg: dict, cfg: sys_config.Config) -> dict:
-    """What leaves for a phone (push, the app's line): with AURORA_PUSH_PRIVATE a neutral line in the user's language
-    instead of the text (N64); the title is the event's own, generic already. Calls, acks: no body, as they are."""
-    if not cfg["AURORA_PUSH_PRIVATE"] or not msg.get("body"):
+    """What leaves for a phone (push, the app's line): a kind the user masked, a neutral line in the user's language
+    instead of the text (N64); a line with no kind, AURORA_PUSH_PRIVATE says. The title is the event's own, generic
+    already. Calls, acks: no body, as they are."""
+    if not msg.get("body"):
+        return msg
+    kind = _kind(str(msg.get("tag", "")))
+    if not (kind in prefs(cfg)["masked"] if kind else cfg["AURORA_PUSH_PRIVATE"]):
         return msg
     lang = "it" if str(cfg["AURORA_LANG_DEFAULT"]).startswith("it") else "en"
     return {**msg, "body": PRIVATE_BODY[lang]}

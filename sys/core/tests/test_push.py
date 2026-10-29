@@ -72,3 +72,21 @@ def test_a_device_confirms_a_push_once_and_only_a_real_one(cfg, monkeypatch):
     assert not sys_push.ack("../../etc", SUB["endpoint"], cfg)
     monkeypatch.setattr(time, "time", lambda real=time.time(): real + 120)      # past the one minute still on its way
     assert sys_push.delivery(cfg) == {"days": 7, "pushes": 1, "accepted": 2, "confirmed": 1, "rate": 0.5}
+
+
+def test_each_kind_is_shown_or_masked_on_the_phone_as_the_user_chooses(cfg):
+    """Owner, 30 Oct: all in clear, each user choosing kind by kind which ones show only the neutral line."""
+    cfg.values["AURORA_PUSH_PRIVATE"] = False                                 # recommended: all in clear
+    weather = {"title": "☀️", "body": "Sole, 18 gradi", "tag": "aurora-weather"}
+    thought = {"title": "💭", "body": "Zanzibar violetto", "tag": "aurora-thought"}
+    cal = {"title": "📅", "body": "Dentista alle 9", "tag": "aurora-calendar-k1"}
+    assert sys_push.prefs(cfg)["masked"] == [] and sys_push.outgoing(thought, cfg)["body"] == "Zanzibar violetto"
+    p = sys_push.prefs(cfg)
+    sys_push.set_prefs(cfg, {**p, "masked": ["thought", "calendar", "not-a-kind"]})
+    assert sys_push.prefs(cfg)["masked"] == ["thought", "calendar"]
+    assert sys_push.outgoing(weather, cfg)["body"] == "Sole, 18 gradi"
+    assert sys_push.outgoing(thought, cfg)["body"] == "Aurora ha qualcosa per te"
+    assert sys_push.outgoing(cal, cfg)["body"] == "Aurora ha qualcosa per te"
+    assert sys_push.outgoing({"title": "📞", "body": "senza tipo"}, cfg)["body"] == "senza tipo"   # no kind: the setting
+    cfg.values["AURORA_PUSH_PRIVATE"] = True
+    assert sys_push.outgoing(weather, cfg)["body"] == "Sole, 18 gradi"           # a choice saved wins over the start

@@ -124,7 +124,7 @@ def test_push_history_is_sealed_and_the_phone_gets_a_neutral_body(cfg):
     with f.open("a") as fh:                                                  # a line of before
         fh.write(json.dumps({"at": 1.0, "event": "rem.dream", "title": "t", "body": "di prima"}) + "\n")
     assert [e["body"] for e in sys_push.history(cfg)] == ["di prima", SECRET]
-    assert cfg["AURORA_PUSH_PRIVATE"] is True                                # recommended
+    cfg.values["AURORA_PUSH_PRIVATE"] = True                                 # the masked start (recommended: 0)
     out = sys_push.outgoing(msg, cfg)
     assert out["body"] == "Aurora ha qualcosa per te" and out["title"] == msg["title"]
     cfg.values["AURORA_LANG_DEFAULT"] = "en_US"
@@ -136,9 +136,10 @@ def test_push_history_is_sealed_and_the_phone_gets_a_neutral_body(cfg):
 def test_the_push_sent_carries_the_neutral_body(cfg, monkeypatch):
     import pywebpush
     sent = []
+    cfg.values["AURORA_PUSH_PRIVATE"] = True                                 # the masked start: every kind hidden
     sys_push.subscribe({"endpoint": "https://push.example/abc", "keys": {"p256dh": "k", "auth": "a"}}, None, cfg)
     monkeypatch.setattr(pywebpush, "webpush", lambda info, data, **kw: sent.append(json.loads(data)))
-    SEND({"title": "🔁 Routine di Aurora", "body": SECRET, "view": "routines", "tag": "t"}, cfg)
+    SEND({"title": "🔁 Routine di Aurora", "body": SECRET, "view": "routines", "tag": "aurora-routine"}, cfg)
     assert sent and sent[0]["body"] == "Aurora ha qualcosa per te" and SECRET not in json.dumps(sent)
 
 

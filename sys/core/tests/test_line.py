@@ -63,7 +63,7 @@ def test_the_page_knows_whose_line_is_open(monkeypatch):
 def test_the_line_is_sealed_and_says_nothing_private_on_the_phone(cfg):
     """N64: each line sealed with the user's key; with AURORA_PUSH_PRIVATE (recommended) the phone gets a neutral body."""
     from aurora import sys_seal
-    assert cfg["AURORA_PUSH_PRIVATE"] is True
+    cfg.values["AURORA_PUSH_PRIVATE"] = True                                 # the masked start (recommended: 0)
     ev = sys_line.post({"title": "💭 Un pensiero di Aurora", "body": "Zanzibar violetto 4417", "view": "diary"}, cfg)
     assert ev["body"] == "Aurora ha qualcosa per te" and ev["title"] == "💭 Un pensiero di Aurora"
     cfg.values["AURORA_PUSH_PRIVATE"] = False

@@ -367,7 +367,8 @@ def notifications_history(n: int = 200) -> list[dict]:
 async def notifications_set(request: Request) -> dict:
     from aurora import sys_push
     p = sys_push.set_prefs(cfg, await request.json())
-    log.info("audit: notifications: push %s, webui %s", ",".join(p["push"]) or "-", ",".join(p["webui"]) or "-")
+    log.info("audit: notifications: push %s, webui %s, masked %s", ",".join(p["push"]) or "-", ",".join(p["webui"]) or "-",
+             ",".join(p["masked"]) or "-")
     return {"prefs": p}
 
 

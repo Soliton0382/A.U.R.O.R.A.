@@ -118,6 +118,21 @@ export default {
       this.boxes[ch] = checks;
       this.grid.append(col);
     }
+    // 🙈 which kinds show only «Aurora ha qualcosa per te» on the phone (sys_push.outgoing): each user's own choice
+    const col = el("div", "notif-col");
+    col.append(el("h4", "", t("notif.ch.masked")), el("p", "muted", t("notif.masked_hint")));
+    const masked = {};
+    for (const k of n.kinds) {
+      const row = el("label", "notif-row");
+      const c = el("input");
+      c.type = "checkbox";
+      c.checked = (n.prefs.masked || []).includes(k.id);
+      masked[k.id] = c;
+      row.append(c, el("span", "", k[code] || k.label));
+      col.append(row);
+    }
+    this.boxes.masked = masked;
+    this.grid.append(col);
   },
 
   presetOf(presets, checks) {
@@ -127,7 +142,7 @@ export default {
 
   async save() {
     const body = {};
-    for (const ch of CHANNELS) body[ch] = Object.entries(this.boxes[ch]).filter(([, c]) => c.checked).map(([id]) => id);
+    for (const ch of [...CHANNELS, "masked"]) body[ch] = Object.entries(this.boxes[ch]).filter(([, c]) => c.checked).map(([id]) => id);
     try {
       await call("/v1/aurora/notifications", { method: "PUT", body: JSON.stringify(body) });
       this.out.textContent = t("notif.saved");

@@ -828,6 +828,8 @@
   "notif.state.unsupported": "This browser does not support push notifications.",
   "notif.ch.push": "📲 Push (devices)",
   "notif.ch.webui": "🖥️ WebUI (toast)",
+  "notif.ch.masked": "🙈 Text hidden on the phone",
+  "notif.masked_hint": "Ticked: the phone shows only the title and «Aurora has something for you»; the text is read in Aurora. For what you do not want on a locked screen.",
   "notif.preset.suggested": "Suggested",
   "notif.preset.all": "All",
   "notif.preset.none": "None",
