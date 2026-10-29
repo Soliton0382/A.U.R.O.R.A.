@@ -1,6 +1,6 @@
 # Status — work in progress
 
-Updated at every validated change (last: 2026-10-30; audited against the code on 2026-10-28). Details: BUGS.md (issues, 4 open / 464 closed),
+Updated at every validated change (last: 2026-10-30; audited against the code on 2026-10-28). Details: BUGS.md (issues, 3 open / 465 closed),
 MANUAL_TESTS.md (what the owner checks by hand),
 TESTS.md (tests and live checks), MEASUREMENTS.md (numbers), MODULE_MAP.md (who does what),
 SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSYSTEM.md (design and decisions).
@@ -159,8 +159,8 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 
 The partial and missing items, checked against the code: ROADMAP.md, first section. The owner's checks: MANUAL_TESTS.md.
 
-## Open bugs (4)
+## Open bugs (3)
 
 C389 (aurora-api's memory between restarts), C406 (the alerts that learn: built, closed after a week of the owner's
-verdicts), C462 (the swap file), C463 (the .env's secrets in plaintext). C390 (the reasoner's night crashes) closed on
-30 Oct after a week without one. Details in BUGS.md.
+verdicts), C463 (the .env's secrets in plaintext). C390 (the reasoner's night crashes) closed on
+30 Oct after a week without one; C462 (the swap file) the same day. Details in BUGS.md.

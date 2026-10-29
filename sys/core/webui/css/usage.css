@@ -3,6 +3,9 @@
 .usage-bar-top { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: .5rem 0 1rem; }
 .usage-periods { display: flex; gap: .35rem; flex-wrap: wrap; }
 .usage-periods button.on { background: var(--accent-mid); border-color: var(--accent-line); color: var(--accent-text); }
+/* the user's list keeps its own width: «width: 100%» of every select made it shrink beside the periods' buttons,
+   the names cut (owner, 30 Oct) */
+.usage-who { width: auto; flex: 0 0 auto; min-width: 10rem; max-width: 100%; }
 .usage-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .6rem; margin-bottom: 1rem; }
 .usage-tile { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: .7rem .8rem; }
 .usage-label { font-size: .82rem; color: var(--muted); }
