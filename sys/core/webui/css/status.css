@@ -1,0 +1,16 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* 📊 The status page: a line of tiles with the counts, each part closed unless it asks to be looked at (status.js) */
+.status-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .5rem; margin: .5rem 0 1rem; }
+.status-tile { display: flex; flex-direction: column; align-items: flex-start; gap: .1rem; text-align: left;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: .6rem .75rem; }
+.status-tile.warn { border-color: var(--warn); }
+.status-tile-label { font-size: .82rem; color: var(--muted); }
+.status-tile-value { font-size: 1.35rem; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text); }
+.status-sec { border: 1px solid var(--line); border-radius: var(--radius); padding: .1rem .8rem; margin: 0 0 .5rem; background: var(--panel); }
+.status-sec > summary { display: flex; align-items: center; gap: .6rem; cursor: pointer; list-style: none; padding: .5rem 0; }
+.status-sec > summary::-webkit-details-marker { display: none; }
+.status-sec > summary::before { content: "▸"; opacity: .6; transition: transform .2s; }
+.status-sec[open] > summary::before { transform: rotate(90deg); }
+.status-sec > summary .setting-cat { margin: 0; flex: 1; }
+.status-sec[open] { padding-bottom: .6rem; }
+.status-scroll { overflow-x: auto; }

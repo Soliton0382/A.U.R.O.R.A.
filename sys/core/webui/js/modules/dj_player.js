@@ -17,6 +17,7 @@ import { t } from "../i18n.js";
 import { bus } from "../bus.js";
 import { styleSelects } from "./dj_set.js";
 import { milkdrop, PRESETS } from "./dj_milk.js";
+import { beat } from "../beat.js";
 
 const MODES = ["spectrum", "scope", "milk"];
 const PRESET_S = 14;                                   // a MilkDrop preset this long, then the next
@@ -458,6 +459,7 @@ export function djPlayer({ reload, onSelect, onConsole }) {
     const live = Boolean(tabAn) || (an && !audio.paused);
     const b = live ? bands(48) : new Float32Array(48);
     const bass = (b[2] + b[3] + b[4] + b[5]) / 4, treble = (b[36] + b[40] + b[44]) / 3;
+    beat(bass, now, live);                           // 🥁 the top bar's face dances on it (beat.js)
     hue = (hue + 0.4 + bass * 3) % 360;
     if (mode === "milk" && fixed < 0 && now - presetAt > PRESET_S * 1000) {   // ∞: the presets take turns, like MilkDrop's
       preset = (preset + 1) % PRESETS.length; presetAt = now; tagAt = now;

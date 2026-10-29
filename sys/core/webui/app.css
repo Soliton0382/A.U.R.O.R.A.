@@ -71,6 +71,15 @@ body.drawer-open .scrim { opacity: 1; pointer-events: auto; }
 #nav button.active { background: var(--accent-mid); border-color: var(--accent-line); color: var(--accent-text); }
 #nav .ic { width: 1.4rem; text-align: center; }
 .drawer-foot { padding-top: .6rem; border-top: 1px solid var(--line); }
+/* 🔎 the menu's search (nav_find.js): while it has a word, the pages found stand in the menu's place */
+.drawer .nav-find { flex-shrink: 0; margin-bottom: .45rem; }
+.nav-found { display: flex; flex-direction: column; gap: .2rem; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.nav-found-row { display: flex; align-items: center; gap: .7rem; text-align: left; background: none; border-color: transparent; padding: .5rem .7rem; flex-shrink: 0; }
+.nav-found-row:hover, .nav-found-row:focus-visible { background: var(--accent-soft); }
+.nav-found-row .ic { width: 1.4rem; text-align: center; }
+.nav-found-row .label { display: flex; flex-direction: column; min-width: 0; }
+.nav-found-row small { font-size: .78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-found-none { padding: .5rem .7rem; margin: 0; }
 .drawer-foot { display: flex; gap: .5rem; align-items: center; justify-content: space-between; }
 .drawer-foot .logout { font-size: .85rem; }
 .who { display: flex; gap: .45rem; align-items: baseline; padding: .55rem .2rem .2rem; border-top: 1px solid var(--line);

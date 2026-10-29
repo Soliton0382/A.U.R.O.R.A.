@@ -34,7 +34,7 @@ export default {
       </form>`;
     apply(root);
     this.form = root.querySelector(".con-form");
-    this.icon = iconPicker(this.form.elements.icon);
+    this.picker = iconPicker(this.form.elements.icon);
     this.out = root.querySelector(".con-out");
     this.cancel = root.querySelector(".con-cancel");
     this.cancel.addEventListener("click", () => this.edit(null));
@@ -53,7 +53,7 @@ export default {
   edit(item) {                                       // the form fills with a tile to change, or empties
     this.editing = item?.id || null;
     for (const f of ["icon", "name", "url", "group", "note"]) this.form.elements[f].value = item?.[f] || "";
-    this.icon.set(item?.icon || "");
+    this.picker.set(item?.icon || "");
     this.root.querySelector(".con-form-title").textContent = t(item ? "con.edit" : "con.add");
     this.cancel.hidden = !item;
     this.out.textContent = "";

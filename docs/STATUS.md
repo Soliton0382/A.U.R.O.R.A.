@@ -1,6 +1,6 @@
 # Status — work in progress
 
-Updated at every validated change (last: 2026-10-30; audited against the code on 2026-10-28). Details: BUGS.md (issues, 3 open / 465 closed),
+Updated at every validated change (last: 2026-10-30; audited against the code on 2026-10-28). Details: BUGS.md (issues, 3 open / 467 closed),
 MANUAL_TESTS.md (what the owner checks by hand),
 TESTS.md (tests and live checks), MEASUREMENTS.md (numbers), MODULE_MAP.md (who does what),
 SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSYSTEM.md (design and decisions).
@@ -124,6 +124,9 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | files | attached files kept with their turn, 📎 Files page, Aurora's documents downloadable | M49, C66, C69 |
 | forge | capability requests, plugins written, tested in the cage (no network), judged; read-only installed alone, else Approvals — safe, not yet useful with the local reasoner | M53, C70 |
 | WebUI | modular showcase: chat (full width, dates, path, share), repairs, security, diary, social, plugins, import, activity, status, settings; sky with orbiting fireflies; metrics with GPU load; PWA; safe Markdown | headless Chrome checks |
+| 🔎 menu search | a word finds the pages whose title, area, search words (i18n nav.words.<id>), headings or lead carry it, and offers the settings filtered by it; only the person's pages: the role first (adminOnly), then the menu's state (a plugin off) — checked headless as admin (58 pages) and as a user (36, none of the security suite) | nav_find.js |
+| 📊 Status page | tiles with the counts (services, backup, features, plugins, connections, solitons), each part closed unless it needs a look (a service down, a required feature missing), the vault's 12 largest domains and the rest on one line: 4284 → 1194 px on the reference install | status.js |
+| 🥁 the face on the beat | while the player plays, the bass rising 0.06 over its lowest of 10 frames is a beat (beat.js): the face nods on it and changes every 8 beats (🎧🎶🕺💃🎵😎🤘); a synthetic kick at 90–174 BPM found exactly, none without one; a trance mix 36 beats in 20 s | beat.js, alerts.js |
 | videos | «fammi un video di…», «anima questa foto»: Wan 2.2 TI2V 5B, 5 s at 1280×704 (a photo keeps its shape), ~19 min with the reasoner swapped out; immediate answer with the estimate, the chat says when it will be ready, push when done or failed; AI label and metadata; GPU lock shared with dreams and edits | M57, C74 |
 | news and diary | 📰 news (14 official feeds, by topic) and 📔 diary (dream, thoughts, what she learned): current events in the chat, the Facebook routine's material | M66 |
 | answer quality | 30 questions, live: 6.90 (was 6.03), 22 of 30 answered; verification no longer drops right sentences; the gate stays (measured) | M66, M67 |

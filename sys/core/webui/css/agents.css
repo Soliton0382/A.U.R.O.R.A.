@@ -8,7 +8,9 @@
 .appr-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; font-weight: 600; }
 .appr-actions { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin-top: .6rem; }
 /* a field in a row of buttons keeps a usable width and the buttons wrap under it (the HTTPS names on a phone) */
-.appr-actions > input:not([type=checkbox]):not([type=radio]), .appr-actions > select { flex: 1 1 12rem; min-width: 0; width: auto; }
+.appr-actions > input:not([type=checkbox]):not([type=radio]) { flex: 1 1 12rem; min-width: 0; width: auto; }
+/* a list as wide as its longest choice: it goes to the next line before it cuts the choice (C470) */
+.appr-actions > select { flex: 1 1 auto; min-width: min(100%, 12rem); max-width: 100%; width: auto; }
 .appr-actions .approve { border-color: var(--ok); }
 .appr-actions .reject { border-color: var(--bad); }
 .preview pre, .history pre { white-space: pre-wrap; font: .78rem/1.4 var(--mono); max-height: 50vh; overflow: auto; background: rgba(0, 0, 0, .3); padding: .5rem; border-radius: 6px; }
@@ -150,7 +152,8 @@ dialog.plug-modal.net-modal { width: min(96vw, 1200px); max-width: 96vw; }
 .acc-signin p { flex-basis: 100%; margin: .2rem 0; }
 .acc-signin input { flex: 1 1 14rem; min-width: 0; }
 .acc-form { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
-.acc-form input, .acc-form select { flex: 1 1 10rem; min-width: 0; }
+.acc-form input { flex: 1 1 10rem; min-width: 0; }
+.acc-form select { flex: 1 1 auto; min-width: min(100%, 10rem); max-width: 100%; }
 .svc-form { margin-top: .6rem; }
 .svc-form .svc-out { flex-basis: 100%; overflow-wrap: anywhere; }
 .svc-form input[inputmode="url"] { flex-basis: 100%; }

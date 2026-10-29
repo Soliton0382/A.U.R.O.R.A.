@@ -32,7 +32,13 @@
    and every transform around that middle — no pivot on a side */
 .mood-face { display: inline-grid; place-items: center; width: 1.6em; height: 1.6em; padding: 0; vertical-align: middle;
   transform-origin: 50% 50%; will-change: transform; }
-.mood-face[data-mood="listening"] { animation: mood-groove .6s ease-in-out infinite; }          /* 🎧 on the beat */
+.mood-face[data-mood="listening"] { animation: mood-groove .6s ease-in-out infinite; }          /* 🎧 its own groove */
+/* the music's own beat (beat.js, alerts.js): a nod each beat, left and right in turn; the groove waits meanwhile */
+.mood-face[data-mood="listening"][data-beat] { animation: none; }
+.mood-face[data-mood="listening"][data-beat].beat-l { animation: mood-nod-l .26s ease-out; }
+.mood-face[data-mood="listening"][data-beat].beat-r { animation: mood-nod-r .26s ease-out; }
+@keyframes mood-nod-l { 0% { transform: scale(1.28, .82) rotate(-14deg) translateY(2px); } 100% { transform: none; } }
+@keyframes mood-nod-r { 0% { transform: scale(1.28, .82) rotate(14deg) translateY(2px); } 100% { transform: none; } }
 .mood-face[data-mood="joy"] { animation: mood-hop .9s cubic-bezier(.3, 0, .3, 1) infinite; }   /* 😄 bouncing */
 .mood-face[data-mood="satisfaction"] { animation: mood-glow 2.2s ease-in-out infinite; }       /* 😊 a warm pulse */
 .mood-face[data-mood="serenity"] { animation: mood-float 4s ease-in-out infinite; }           /* 😌 floating */

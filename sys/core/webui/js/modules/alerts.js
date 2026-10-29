@@ -11,6 +11,9 @@ import { pushState } from "../push.js";
 import { bus } from "../bus.js";
 import { moodFace, moodKey, moodLine, moodRows, moodTitle } from "../mood.js";
 
+const DANCE = ["🎧", "🎶", "🕺", "💃", "🎵", "😎", "🤘"];   // the faces of a song, in turn
+const DANCE_EVERY = 8;                                    // beats a face lasts: two bars of four
+
 export default {
   id: "alerts",
   slot: "alerts",
@@ -118,12 +121,25 @@ export default {
     document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(true); });
     window.addEventListener("resize", () => { if (!card.classList.contains("hidden")) place(); });
     bus.on("mood", () => this.moodTick?.());           // the player started or stopped: the face at once
+    // 🥁 listening, on the music's beat (beat.js): a nod each beat, left and right in turn, another face every
+    // DANCE_EVERY beats; no beat for a while (Spotify, a pause) and the groove of its own goes on (alerts.css)
+    let still = 0;
+    bus.on("beat", ({ n }) => {
+      if (face.dataset.mood !== "listening") return;
+      if (n % DANCE_EVERY === 0) face.textContent = DANCE[(n / DANCE_EVERY) % DANCE.length];
+      face.classList.remove("beat-l", "beat-r");
+      void face.offsetWidth;                           // the same class again: the nod starts over
+      face.classList.add(n % 2 ? "beat-l" : "beat-r");
+      face.dataset.beat = "1";
+      clearTimeout(still);
+      still = setTimeout(() => { delete face.dataset.beat; face.classList.remove("beat-l", "beat-r"); }, 1500);
+    });
     this.moodTick = async () => {
       try {
         m = await call("/v1/aurora/mood");
         face.classList.toggle("hidden", !m.on);
         if (!m.on) return;
-        face.textContent = moodFace(m);
+        if (!(moodKey(m) === "listening" && face.dataset.beat)) face.textContent = moodFace(m);   // dancing: its face kept
         face.dataset.mood = moodKey(m);
         face.title = moodLine(m);
         face.setAttribute("aria-label", face.title);

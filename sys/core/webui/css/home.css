@@ -51,5 +51,5 @@
 .scene-row { flex-wrap: wrap; }
 .scene-tools { display: flex; flex-wrap: wrap; gap: .3rem; margin-left: auto; align-items: center; flex: none; max-width: 100%; }
 @media (min-width: 700px) { .scene-tools { flex-wrap: nowrap; } }   /* the bin beside the others, not under them */
-.scene-try { max-width: 12rem; }
+.scene-try { max-width: min(100%, 20rem); }
 .scene-k { display: inline-block; margin-left: .6rem; padding: .15rem .5rem; border-radius: 8px; color: #222; font-variant-numeric: tabular-nums; }

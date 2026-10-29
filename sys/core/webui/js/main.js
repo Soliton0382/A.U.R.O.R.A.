@@ -10,6 +10,7 @@ import * as voice from "./voice.js";
 import { adminOnly, groups, views, widgets } from "./modules.js";
 import { applyTheme, current as currentTheme, themePicker } from "./theme.js";
 import { welcome } from "./welcome.js";
+import { navFind } from "./nav_find.js";
 import { SHORT, adopt, applyStyle, current as currentStyle, home as styleHome, pins, setStyle } from "./style.js";
 import { stackTables } from "./stack.js";
 
@@ -361,6 +362,12 @@ $("lang").value = lang;
 await i18n.load(lang);
 buildNav();
 mountAll();
+navFind({ input: $("nav-find"), list: $("nav-found"), nav: $("nav"), views, groups, open: show,
+  usable: (v) => {                                   // the person's pages only: never the admin's to a user (asked
+    if (!isAdmin && adminOnly.has(v.id)) return false; // first, before the menu's state), then as the menu shows them
+    const b = document.querySelector(`#nav .nav-full button[data-view="${v.id}"]`);
+    return b ? !b.classList.contains("hidden") && !b.closest(".nav-group.hidden") : v.menu === false;
+  } });
 // Aurora may still be starting (a new installation loads its models; Caddy answers 502 meanwhile): say it and try
 // again, never a page with only its background (the owner's colleague, 9 Oct: «resta ferma la foto… solo le stelle»)
 async function boot() {
