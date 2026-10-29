@@ -4,6 +4,7 @@
 through here — its address looked up by its id, a public one only."""
 from __future__ import annotations
 
+import asyncio
 import threading
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -13,7 +14,7 @@ from .core import auth, cfg, in_thread, log, me
 
 router = APIRouter()
 MAX_STREAMS = 2                                   # per user: a radio here, one on the phone
-_streams: dict[str, int] = {}
+_streams: dict[str, list] = {}                    # per user: the station responses open, the oldest first
 _lock = threading.Lock()
 
 
@@ -67,22 +68,30 @@ async def radio_stream(sid: str):
         r.close()
         client.close()
         raise HTTPException(status_code=502, detail=f"the station answered {r.status_code} {r.headers.get('content-type', '')}")
+    # one more than MAX_STREAMS: the oldest is closed, never the new one refused (owner, 29 Oct: «clicco ma non
+    # vanno» — a sync body was never closed when the player let it go, its count stayed, every ▶ after two got 429)
     with _lock:
-        if _streams.get(who, 0) >= MAX_STREAMS:
-            r.close()
-            client.close()
-            raise HTTPException(status_code=429, detail=f"at most {MAX_STREAMS} radios at once")
-        _streams[who] = _streams.get(who, 0) + 1
+        mine = _streams.setdefault(who, [])
+        while len(mine) >= MAX_STREAMS:
+            mine.pop(0).close()
+        mine.append(r)
     log.info("radio: %s listens to %s", who, name[:80])
 
-    def body():
+    async def body():
+        chunks = r.iter_raw(16384)
         try:
-            for chunk in r.iter_raw(16384):
+            while True:
+                chunk = await asyncio.to_thread(next, chunks, None)
+                if not chunk:
+                    break
                 yield chunk
-        finally:
+        except Exception:                                   # noqa: BLE001 — closed (a newer radio) or the station gone
+            pass
+        finally:                                            # the player gone too: Starlette cancels this, it runs
             r.close()
             client.close()
             with _lock:
-                _streams[who] = max(0, _streams.get(who, 1) - 1)
+                if r in _streams.get(who, []):
+                    _streams[who].remove(r)
     return StreamingResponse(body(), media_type=r.headers.get("content-type", "audio/mpeg"),
                              headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"})

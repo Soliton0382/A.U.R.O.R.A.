@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.3.12 — 2026-10-29
+
+1 publications since v0.3.11.
+
+- 2026-10-29 Radio: a station switched gives its place back (no more 429 after two), a genre matches the whole tag and its own stations come first
+
 ## v0.3.11 — 2026-10-29
 
 15 publications since v0.2.133.

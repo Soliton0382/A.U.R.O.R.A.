@@ -75,6 +75,7 @@ GENRES = [
                    ("kids", "Per bambini")]),
 ]
 MIN_STATIONS = 3
+TAG_FIRST = 5                                     # search(): a genre among a station's first tags is its own
 _cache: dict[str, tuple[float, object]] = {}
 _lock = threading.Lock()
 
@@ -126,14 +127,22 @@ def _station(s: dict) -> dict:
 
 
 def search(name: str = "", tag: str = "", limit: int = 40) -> list[dict]:
-    """Stations by name or genre, the most listened first, the broken ones left out."""
+    """Stations by name or genre, the most listened first, the broken ones left out. A genre is the whole tag (the
+    directory's own match is a part of one: «rock» found «rockabilly»), and a station that names it among its first
+    TAG_FIRST tags comes before one listing every genre (owner, 29 Oct: the same few stations under every genre)."""
     from urllib.parse import urlencode
-    q = {"hidebroken": "true", "order": "clickcount", "reverse": "true", "limit": str(max(1, min(100, limit)))}
+    n = max(1, min(100, limit))
+    q = {"hidebroken": "true", "order": "clickcount", "reverse": "true", "limit": str(min(200, n * 2) if tag.strip() else n)}
     if name.strip():
         q["name"] = name.strip()[:80]
     if tag.strip():
         q["tag"] = tag.strip()[:40]
-    return [_station(s) for s in _get("/json/stations/search?" + urlencode(q)) if s.get("stationuuid")]
+        q["tagExact"] = "true"
+    found = [_station(s) for s in _get("/json/stations/search?" + urlencode(q)) if s.get("stationuuid")]
+    if tag.strip():
+        g = tag.strip().lower()
+        found.sort(key=lambda s: g not in [x.strip().lower() for x in s["tags"].split(",")][:TAG_FIRST])
+    return found[:n]
 
 
 def stream_url(sid: str) -> tuple[str, str]:

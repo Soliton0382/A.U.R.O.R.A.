@@ -69,3 +69,59 @@ def test_every_genre_family_comes_with_its_stations_and_the_empty_ones_go(monkey
         raise RuntimeError("the radio directory did not answer")
     monkeypatch.setattr(aud_radio, "_get", down)
     assert sum(len(f["genres"]) for f in aud_radio.genres()["families"]) == sum(len(i) for _, i in aud_radio.GENRES)
+
+
+def test_a_genre_is_the_whole_tag_and_its_own_stations_come_first(monkeypatch):
+    asked = []
+
+    def get(path):
+        asked.append(path)
+        return [{"stationuuid": "a" * 36, "name": "Every genre", "tags": "pop,rock,news,talk,jazz,dance,trance"},
+                {"stationuuid": "b" * 36, "name": "Trance only", "tags": "trance,vocal trance"}]
+    monkeypatch.setattr(R, "_get", get)
+    found = R.search(tag="trance", limit=40)
+    assert "tagExact=true" in asked[0] and "limit=80" in asked[0]
+    assert [s["name"] for s in found] == ["Trance only", "Every genre"]
+    R.search(name="cosmo")
+    assert "tagExact" not in asked[1] and "limit=40" in asked[1]
+
+
+def test_a_third_radio_closes_the_oldest_never_refused(monkeypatch):
+    import asyncio
+
+    from aurora.sys_config import ConfigError
+    try:
+        from aurora.api import radio as A
+    except ConfigError:                                   # the API loads the configuration: none here (publish's run)
+        pytest.skip("no configuration to load the API with")
+
+    class Stream:
+        status_code, headers = 200, {"content-type": "audio/mpeg"}
+
+        def __init__(self):
+            self.closed = False
+
+        def iter_raw(self, n):
+            yield b"x" * 8
+
+        def close(self):
+            self.closed = True
+
+    opened = []
+
+    def open_stream(*a, **k):
+        opened.append(Stream())
+        return Stream(), opened[-1]
+    monkeypatch.setattr(R, "stream_url", lambda sid: ("https://stream.example.org/live.mp3", "Cosmo"))
+    monkeypatch.setattr(A, "me", lambda: "ada")
+    monkeypatch.setattr("aurora.net_public.open_stream", open_stream)
+    A._streams.clear()
+
+    async def three():
+        replies = [await A.radio_stream(SID) for _ in range(3)]
+        assert opened[0].closed and not opened[1].closed and not opened[2].closed
+        assert len(A._streams["ada"]) == 2
+        async for _ in replies[2].body_iterator:          # played to its end: its place given back
+            pass
+        assert opened[2] not in A._streams["ada"]
+    asyncio.run(three())
