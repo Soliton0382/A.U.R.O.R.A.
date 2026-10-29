@@ -12,7 +12,7 @@ from datetime import date, datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import Response
 
-from .core import auth, cfg, in_thread, log, me, note
+from .core import BASE, auth, cfg, in_thread, log, me, note, plugin_host
 
 router = APIRouter()
 MAX_DAYS = 62                                       # a month view with its first and last weeks
@@ -55,18 +55,71 @@ async def calendar(start: str | None = None, end: str | None = None, external: b
 
 def _spec(b: dict) -> dict:
     keys = ("kind", "title", "start", "end", "all_day", "minutes", "location", "notes", "alerts", "repeat")
-    return {k: b[k] for k in keys if k in b}
+    out = {k: b[k] for k in keys if k in b}
+    if "people" in b:                              # 👥 cal_share: users of this installation, e-mail addresses
+        from aurora import cal_share
+        out["people"] = cal_share.normalize(b["people"], me(), _names())
+    return out
+
+
+def _base():
+    return BASE.base or BASE
+
+
+def _names() -> list[str]:
+    """The users of this installation (one alone before the multi-user: none to invite)."""
+    from .users import _users
+    try:
+        return [u["name"] for u in _users().list()]
+    except Exception:  # noqa: BLE001 — no users' store: nobody to invite
+        return []
+
+
+@router.get("/v1/aurora/calendar/people", dependencies=[Depends(auth)])
+def calendar_people() -> dict:
+    """The users one may invite (owner, 30 Oct: every user sees the others' names, nothing else of them)."""
+    return {"users": [n for n in _names() if n != me()]}
+
+
+def _confirmed(emails: list[str], yes) -> None:
+    """Invitations to addresses go only on the person's word in the form (owner, 30 Oct: a notice, «procedere?»)."""
+    if emails and not yes:
+        raise HTTPException(status_code=409, detail={"confirm_email": emails})
+
+
+def _mail(item: dict, to: list[str], method: str = "REQUEST") -> dict:
+    """The invitation (or its cancellation) from the person's own mailbox (✉️ plugin): {"sent", "failed"}."""
+    from aurora import cal_share, sys_disclosure
+    if not to:
+        return {"sent": [], "failed": []}
+    host = plugin_host()
+    p = host.get("email")
+    if p is None or not p.available:
+        return {"sent": [], "failed": [{"to": e, "why": "✉️ e-mail plugin not set up"} for e in to]}
+    subject, body, ics = cal_share.invitation(item, _store().tz(cfg), me() or "", cfg.values.get("AURORA_EMAIL_USER") or "", method)
+    body = sys_disclosure.mark_text(body, "it", cfg)        # EU AI Act art. 50: sent with an AI assistant
+    sent, failed = [], []
+    for e in to:
+        r = host.call("email", "send_invite", {"to": e, "subject": subject, "body": body, "ics": ics})
+        (sent.append(e) if r.get("ok") else failed.append({"to": e, "why": str(r.get("text", ""))[:200]}))
+    log.info("audit: %s sent a calendar %s to %d address(es), %d failed", me(), method.lower(), len(sent), len(failed))
+    return {"sent": sent, "failed": failed}
 
 
 @router.post("/v1/aurora/calendar/items", dependencies=[Depends(auth)])
 async def calendar_add(request: Request) -> dict:
+    from aurora import cal_share
     cs = _store()
+    b = await request.json()
     try:
-        it = cs.add(cfg, {**_spec(await request.json()), "by": "page"})
+        spec = _spec(b)
+        _confirmed([p["email"] for p in spec.get("people", []) if p.get("email")], b.get("confirm_email"))
+        it = cs.add(cfg, {**spec, "by": "page"})
     except (ValueError, TypeError) as e:
         raise HTTPException(status_code=422, detail=str(e)) from None
     log.info("audit: %s added a calendar %s", me(), it["kind"])
-    return {"item": it}
+    shared = await in_thread(cal_share.sync, _base(), me(), it)
+    return {"item": it, "shared": shared, "mail": await in_thread(_mail, it, cal_share.emails_of(it))}
 
 
 @router.get("/v1/aurora/calendar/items/{iid}", dependencies=[Depends(auth)])
@@ -79,26 +132,57 @@ def calendar_item(iid: str) -> dict:
 
 @router.put("/v1/aurora/calendar/items/{iid}", dependencies=[Depends(auth)])
 async def calendar_change(iid: str, request: Request) -> dict:
+    from aurora import cal_share
     cs = _store()
+    b = await request.json()
+    old = cs.get(cfg, iid)
+    if old is None:
+        raise HTTPException(status_code=404, detail="no such item")
     try:
-        return {"item": cs.update(cfg, iid, _spec(await request.json()))}
+        spec = _spec(b)
+        if old.get("shared_from"):                 # another's appointment: only its alerts are this person's
+            if set(spec) - {"alerts"}:
+                raise HTTPException(status_code=403, detail=f"shared by {old['shared_from']['user']}: only your alerts change here")
+            return {"item": cs.update(cfg, iid, spec)}
+        before = cal_share.emails_of(old)
+        _confirmed(cal_share.emails_of({"people": spec.get("people", old.get("people"))}) or before, b.get("confirm_email"))
+        it = cs.update(cfg, iid, spec)
     except KeyError:
         raise HTTPException(status_code=404, detail="no such item") from None
     except (ValueError, TypeError) as e:
         raise HTTPException(status_code=422, detail=str(e)) from None
+    shared = await in_thread(cal_share.sync, _base(), me(), it, old)
+    now = cal_share.emails_of(it)
+    mail = await in_thread(_mail, it, now)
+    off = await in_thread(_mail, it, [e for e in before if e not in now], "CANCEL")
+    return {"item": it, "shared": shared, "mail": {"sent": mail["sent"] + off["sent"], "failed": mail["failed"] + off["failed"]}}
 
 
 @router.delete("/v1/aurora/calendar/items/{iid}", dependencies=[Depends(auth)])
-def calendar_delete(iid: str, occurrence: str | None = None) -> dict:
-    """The item, or (`occurrence`: its "YYYY-MM-DDTHH:MM") only that occurrence of a repeated one."""
+def calendar_delete(iid: str, occurrence: str | None = None, confirm_email: bool = False) -> dict:
+    """The item, or (`occurrence`: its "YYYY-MM-DDTHH:MM") only that occurrence of a repeated one. Another's
+    appointment: this person leaves it. One's own with people: their copies follow, the addresses told."""
+    from aurora import cal_share
     cs = _store()
+    old = cs.get(cfg, iid)
+    if old is None:
+        raise HTTPException(status_code=404, detail="no such item")
+    if not old.get("shared_from"):
+        _confirmed(cal_share.emails_of(old), confirm_email)
     try:
-        left = cs.delete(cfg, iid, occurrence)
+        left = cs.delete(cfg, iid, None if old.get("shared_from") else occurrence)
     except KeyError:
         raise HTTPException(status_code=404, detail="no such item") from None
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from None
-    return {"deleted": iid, "item": left}
+    if old.get("shared_from"):
+        cal_share.leave(_base(), me(), old)
+        return {"deleted": iid, "item": None, "left": old["shared_from"]["user"]}
+    if left:                                       # one occurrence skipped: the copies and the invitation too
+        cal_share.sync(_base(), me(), left, old)
+        return {"deleted": iid, "item": left, "mail": _mail(left, cal_share.emails_of(left))}
+    cal_share.unshare(_base(), me(), old)
+    return {"deleted": iid, "item": None, "mail": _mail(old, cal_share.emails_of(old), "CANCEL")}
 
 
 # ---- the alerts -------------------------------------------------------------------------------------------------------

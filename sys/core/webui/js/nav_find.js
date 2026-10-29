@@ -74,7 +74,17 @@ export function navFind({ input, list, nav, views, groups, open, usable }) {
     list.replaceChildren(...found);
   }
 
-  input.addEventListener("input", draw);
+  // the browser's saved login is never written here (owner, 30 Oct: «c'è sempre selezionato <il nome di accesso> nella ricerca»):
+  // a password manager fills no read-only field, so the field is read-only until it is touched; and a value the
+  // browser put in all the same (:autofill) is wiped
+  const editable = () => input.removeAttribute("readonly");
+  input.addEventListener("focus", editable);
+  input.addEventListener("pointerdown", editable);
+  const filled = () => { try { return input.matches(":autofill"); } catch { return input.matches(":-webkit-autofill"); } };
+  const wipe = () => { if (input.value && filled()) { input.value = ""; draw(); } };
+  input.addEventListener("input", () => { if (filled()) { input.value = ""; } draw(); });
+  input.addEventListener("blur", () => { if (!input.value) input.setAttribute("readonly", ""); });
+  document.getElementById("menu")?.addEventListener("click", wipe);
   input.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && input.value) { e.stopPropagation(); input.value = ""; draw(); }
     if (e.key === "Enter") list.querySelector("button")?.click();

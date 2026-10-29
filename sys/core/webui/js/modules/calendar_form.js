@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 A.U.R.O.R.A. Project
 // 📅 An appointment or a reminder, new or changed (calendar.js): what, when, how long, where, when to tell, how often.
-// The times are wall-clock times of Aurora's zone (cal_store): what is typed here is what is kept.
+// The times are wall-clock times of Aurora's zone (cal_store): what is typed here is what is kept. 👥 Who else takes
+// part (cal_share): users of this installation (in their calendar at once) and addresses (an invitation, sent on
+// the person's word: a notice before it goes); another's appointment shows who made it, only its alerts change.
 import { call } from "../api.js";
 import { el } from "../dom.js";
 import { t } from "../i18n.js";
@@ -74,6 +76,31 @@ export function itemForm(item, day, done, hour = 9) {        // hour: where the 
   const repeat = select("repeat", REPEATS, (r) => t(`cal.repeat.${r || "none"}`), item?.repeat?.freq || "");
   const until = input("until", "date", item?.repeat?.until || "");
   const out = el("div", "warn");
+  // 👥 the people: a chip per user of this installation, and addresses
+  const shared = item?.shared_from || null;
+  const had = item?.people || [];
+  const picked = new Set(had.filter((x) => x.user).map((x) => x.user));
+  const users = el("div", "chips cal-people");
+  const emails = input("emails", "text", had.filter((x) => x.email).map((x) => x.email).join(", "));
+  emails.placeholder = t("cal.emails_ph");
+  emails.autocomplete = "off";
+  call("/v1/aurora/calendar/people").then((r) => {
+    for (const name of new Set([...r.users, ...picked])) {
+      const b = el("button", `chip ${picked.has(name) ? "on" : ""}`, `👤 ${name}`);
+      b.type = "button";
+      b.disabled = !!shared;
+      b.addEventListener("click", () => { picked.has(name) ? picked.delete(name) : picked.add(name); b.classList.toggle("on", picked.has(name)); });
+      users.append(b);
+    }
+    if (!users.children.length) users.append(el("span", "muted", t("cal.people_none")));
+  }).catch(() => users.append(el("span", "muted", t("cal.people_none"))));
+  const addresses = () => emails.value.split(/[,;\s]+/).map((x) => x.trim()).filter(Boolean);
+  // the notice before an invitation leaves Aurora (owner, 30 Oct: «basta un disclaimer… procedere ugualmente?»)
+  const okToMail = (list) => !list.length || confirm(t("cal.email_ask", { list: list.join(", ") }));
+  const told = (r) => {
+    const bad = r?.mail?.failed || [];
+    if (bad.length) alert(t("cal.mail_failed", { list: bad.map((x) => `${x.to} (${x.why})`).join("; ") }));
+  };
 
   const rowEnd = field(t("cal.end"), end);
   const rowAll = el("label", "cal-check");
@@ -95,8 +122,12 @@ export function itemForm(item, day, done, hour = 9) {        // hour: where the 
   const again = el("div", "cal-row");
   again.append(field(t("cal.repeat"), repeat), rowUntil);
   if (item?.repeat) f.append(el("p", "muted", t("cal.series_hint")));
+  if (shared) f.append(el("p", "muted", t("cal.shared_by", { n: shared.user })));
+  const people = el("div", "cal-row");
+  people.append(field(t("cal.people"), users), field(t("cal.emails"), emails));
   f.append(field(t("cal.kind"), kind), field(t("cal.what"), title), when, field(t("cal.where"), where),
-    field(t("cal.notes"), notes), tell, again, out);
+    field(t("cal.notes"), notes), people, tell, again, out);
+  if (shared) for (const x of [kind, title, date, start, end, allDay, where, notes, emails, repeat, until]) x.disabled = true;
 
   const bar = el("div", "appr-actions");
   const save = el("button", "primary", `💾 ${t("cal.save")}`);
@@ -106,18 +137,23 @@ export function itemForm(item, day, done, hour = 9) {        // hour: where the 
   cancel.addEventListener("click", () => done(false));
   bar.append(save, cancel);
   if (item) {
-    const del = el("button", "danger", `🗑️ ${item.repeat ? t("cal.delete_all") : t("cal.delete")}`);
+    const del = el("button", "danger", `🗑️ ${shared ? t("cal.leave") : item.repeat ? t("cal.delete_all") : t("cal.delete")}`);
     del.type = "button";
     del.addEventListener("click", async () => {
-      if (!confirm(t("cal.delete_ask", { title: item.title }))) return;
-      try { await call(`/v1/aurora/calendar/items/${item.id}`, { method: "DELETE" }); done(true); } catch (e) { out.textContent = e.message; }
+      if (!confirm(t(shared ? "cal.leave_ask" : "cal.delete_ask", { title: item.title }))) return;
+      const mails = shared ? [] : had.filter((x) => x.email).map((x) => x.email);
+      if (!okToMail(mails)) return;
+      try { told(await call(`/v1/aurora/calendar/items/${item.id}${mails.length ? "?confirm_email=true" : ""}`, { method: "DELETE" })); done(true); }
+      catch (e) { out.textContent = e.message; }
     });
     bar.append(del);
-    if (item.repeat && item.at) {
+    if (item.repeat && item.at && !shared) {
       const one = el("button", "", `✂️ ${t("cal.delete_one")}`);
       one.type = "button";
       one.addEventListener("click", async () => {
-        try { await call(`/v1/aurora/calendar/items/${item.id}?occurrence=${encodeURIComponent(item.at)}`, { method: "DELETE" }); done(true); }
+        const mails = had.filter((x) => x.email).map((x) => x.email);
+        if (!okToMail(mails)) return;
+        try { told(await call(`/v1/aurora/calendar/items/${item.id}?occurrence=${encodeURIComponent(item.at)}${mails.length ? "&confirm_email=true" : ""}`, { method: "DELETE" })); done(true); }
         catch (e) { out.textContent = e.message; }
       });
       bar.append(one);
@@ -142,11 +178,16 @@ export function itemForm(item, day, done, hour = 9) {        // hour: where the 
       all_day: whole, location: where.value, notes: notes.value, alerts,
       repeat: repeat.value ? { freq: repeat.value, ...(until.value ? { until: until.value } : {}) } : null,
       ...(reminder || whole ? {} : { end: endAt }),
+      people: [...[...picked].map((user) => ({ user })), ...addresses().map((email) => ({ email }))],
     };
+    // the addresses told: the ones there now, and the ones taken off (their cancellation)
+    const mails = [...new Set([...addresses(), ...had.filter((x) => x.email).map((x) => x.email)])];
+    if (!shared && !okToMail(mails)) return;
+    if (mails.length) body.confirm_email = true;
     save.disabled = true;
     try {
-      await call(item ? `/v1/aurora/calendar/items/${item.id}` : "/v1/aurora/calendar/items",
-        { method: item ? "PUT" : "POST", body: JSON.stringify(body) });
+      told(await call(item ? `/v1/aurora/calendar/items/${item.id}` : "/v1/aurora/calendar/items",
+        { method: item ? "PUT" : "POST", body: JSON.stringify(shared ? { alerts } : body) }));
       done(true);
     } catch (e) { out.textContent = e.message; save.disabled = false; }
   });

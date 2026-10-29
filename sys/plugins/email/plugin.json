@@ -28,10 +28,12 @@
     "list_unread": "read",
     "read_message": "read",
     "send_email": "external",
-    "*": "external"
+    "*": "external",
+    "send_invite": "external"
   },
   "publishes": {
-    "send_email": "body"
+    "send_email": "body",
+    "send_invite": "body"
   },
   "setup": {
     "it": "Aurora usa solo connessioni cifrate (IMAP su TLS, SMTP su TLS o STARTTLS).\n\n**Gmail**: attiva la verifica in due passaggi, poi crea una **password per le app** e usala al posto della tua password. IMAP `imap.gmail.com:993`, SMTP `smtp.gmail.com:465`.\n**Altri provider**: cerca nelle impostazioni del provider i server IMAP/SMTP con SSL/TLS.\n\n1. Aurora → **Impostazioni → Plugin**: `AURORA_EMAIL_IMAP_HOST`, `AURORA_EMAIL_SMTP_HOST`, `AURORA_EMAIL_USER` (il tuo indirizzo), `AURORA_EMAIL_PASSWORD`.\n2. **▶ Prova** su `list_unread`: i messaggi restano non letti.\n\nInviare una mail è un'azione esterna: passa sempre dalla tua approvazione e porta la dichiarazione IA.",

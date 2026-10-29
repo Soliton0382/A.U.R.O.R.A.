@@ -77,6 +77,11 @@ def send_email(to: str, subject: str, body: str) -> str:
     msg = EmailMessage()
     msg["From"], msg["To"], msg["Subject"] = USER, to, subject
     msg.set_content(body)
+    _send(host, port, msg)
+    return f"sent to {to}"
+
+
+def _send(host: str, port: int, msg: EmailMessage) -> None:
     if port == 465:
         with smtplib.SMTP_SSL(host, port, context=CTX, timeout=30) as s:
             s.login(USER, PASSWORD)
@@ -86,7 +91,25 @@ def send_email(to: str, subject: str, body: str) -> str:
             s.starttls(context=CTX)                  # raises if the server does not offer TLS: never in clear
             s.login(USER, PASSWORD)
             s.send_message(msg)
-    return f"sent to {to}"
+
+
+@server.tool()
+def send_invite(to: str, subject: str, body: str, ics: str) -> str:
+    """Send a calendar invitation (the .ics attached, METHOD:REQUEST or CANCEL) from the owner's address: the other
+    calendar adds it and reminds by itself. An external action: sent on the person's word in the calendar's form."""
+    if not (SMTP and USER and PASSWORD):
+        raise ToolError("sending not configured (AURORA_EMAIL_SMTP_HOST)")
+    if "BEGIN:VCALENDAR" not in ics or len(ics) > 200_000:
+        raise ToolError("ics: one calendar, up to 200 kB")
+    host, _, port = SMTP.partition(":")
+    method = "CANCEL" if "METHOD:CANCEL" in ics else "REQUEST"
+    msg = EmailMessage()
+    msg["From"], msg["To"], msg["Subject"] = USER, to, subject
+    msg.set_content(body)
+    msg.add_alternative(ics, subtype="calendar", params={"method": method})      # read inline by Gmail and Outlook
+    msg.add_attachment(ics.encode("utf-8"), maintype="application", subtype="ics", filename="invito.ics")
+    _send(host, int(port or 465), msg)
+    return f"invitation sent to {to}"
 
 
 if __name__ == "__main__":

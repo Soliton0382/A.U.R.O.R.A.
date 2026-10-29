@@ -76,3 +76,9 @@ button.cal-item { cursor: pointer; }
 .cal-g-place { font-size: .68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cal-g-now { position: absolute; left: 0; right: 0; height: 2px; background: #ef4444; z-index: 1; pointer-events: none; }
 .cal-g-now::before { content: ""; position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: #ef4444; }
+/* 👥 the people of an appointment (calendar_form.js): a chip per user, the chosen ones lit */
+.cal-people { display: flex; flex-wrap: wrap; gap: .35rem; margin: 0; }
+.cal-people .chip { cursor: pointer; padding: .3rem .7rem; border-radius: 999px; background: var(--panel2); border: 1px solid var(--line); }
+.cal-people .chip.on { background: var(--accent-mid); border-color: var(--accent-line); color: var(--accent-text); }
+.cal-people .chip:disabled { cursor: default; opacity: .75; }
+.cal-row > .cal-field:has(.cal-people), .cal-row > .cal-field:has(input[name=emails]) { flex: 1 1 14rem; }
