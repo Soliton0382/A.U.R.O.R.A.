@@ -9,7 +9,7 @@
   "nav.role_admin": "administrator",
   "nav.role_user": "user",
   "nav.logout_q": "Log out of Aurora on this device? The next visit will ask for the login again.",
-  "nav.vpn": "🔒 Aurora's VPN",
+  "nav.vpn": "Aurora's VPN",
   "vpn.lead": "Sends Aurora's internet traffic (searches, plugins, cloud, harvester…) through a VPN, and only that: the rest of the computer, the home network, the NAS and the WebUI stay on the normal line. An .ovpn file of any provider is enough. If the tunnel falls Aurora tries the other profiles; if all fall she stays offline (kill switch) and asks whether to use the unprotected line.",
   "vpn.profiles": "Profiles",
   "vpn.import": "📥 Import .ovpn files (several at once)",

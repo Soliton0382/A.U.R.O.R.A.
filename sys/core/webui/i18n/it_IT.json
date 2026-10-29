@@ -9,7 +9,7 @@
   "nav.role_admin": "amministratore",
   "nav.role_user": "utente",
   "nav.logout_q": "Uscire da Aurora su questo dispositivo? Al prossimo accesso servirà di nuovo il login.",
-  "nav.vpn": "🔒 VPN di Aurora",
+  "nav.vpn": "VPN di Aurora",
   "vpn.lead": "Fa passare da una VPN il traffico internet di Aurora (ricerche, plugin, cloud, harvester…), e solo quello: il resto del computer, la rete di casa, il NAS e la WebUI restano sulla linea normale. Basta un file .ovpn di qualunque provider. Se il tunnel cade Aurora prova gli altri profili; se cadono tutti resta senza internet (kill switch) e ti chiede se usare la linea non protetta.",
   "vpn.profiles": "Profili",
   "vpn.import": "📥 Importa file .ovpn (anche più insieme)",

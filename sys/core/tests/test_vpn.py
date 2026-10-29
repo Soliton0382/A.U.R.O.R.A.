@@ -48,7 +48,8 @@ def test_an_ovpn_keeps_only_a_client_s_connection():
     assert "up /tmp/evil.sh" in dropped and "comp-lzo no" not in kept
     assert "<ca>" in kept and "MIIBmadeup" in kept and "</tls-auth>" in kept
     run = V.runtime_config(kept, __import__("pathlib").Path("/run/aurora-vpn"), '"py hook"')
-    for line in ("dev avpn0", "route-nopull", "mark 1809", "auth-user-pass /run/aurora-vpn/auth", 'up "py hook"'):
+    assert "route-nopull" not in run and "dns-updown disable" in run   # C476: the pushed DNS kept
+    for line in ("dev avpn0", 'pull-filter ignore "route"', "mark 1809", "auth-user-pass /run/aurora-vpn/auth", 'up "py hook"'):
         assert line in run, line
     assert V.place_of(kept) == "vpn-made-up.example.net"
     with pytest.raises(ValueError):
@@ -83,10 +84,16 @@ def test_the_rules_are_the_service_user_s_alone_and_the_kill_switch_never_leaks(
     rules = V.rules(997)
     assert ["ip", "-4", "rule", "add", "priority", "17110", "fwmark", "0x711", "lookup", "main"] in rules
     assert ["ip", "-4", "rule", "add", "priority", "17111", "uidrange", "997-997", "lookup", "main", "suppress_prefixlength", "0"] in rules
-    assert ["ip", "-6", "rule", "add", "priority", "17112", "uidrange", "997-997", "lookup", "711"] in rules
-    assert all(r[3] == "del" for r in V.rules(997, False))
-    assert V.table(True)[0] == ["ip", "-4", "route", "replace", "default", "dev", "avpn0", "table", "711"]
-    assert "unreachable" in V.table(False)[0] and all("unreachable" in r for r in (V.table(True)[1], V.table(False)[1]))
+    assert ["ip", "-6", "rule", "add", "priority", "17113", "uidrange", "997-997", "lookup", "711"] in rules
+    # C475: the home's other subnets (a NAS behind the firewall) by the main table, before the tunnel's
+    assert ["ip", "-4", "rule", "add", "priority", "17112", "uidrange", "997-997", "to", "192.168.0.0/16", "lookup", "main"] in rules
+    assert all(r[3] == "del" and len(r) == 6 for r in V.rules(997, False))
+    # C477: the floor «unreachable» always there, under the tunnel's route (which goes with its device)
+    for up in (True, False):
+        floor = [r for r in V.table(up) if "unreachable" in r]
+        assert [r[1] for r in floor] == ["-4", "-6"] and all(r[r.index("metric") + 1] == str(V.FLOOR_METRIC) for r in floor)
+    assert ["ip", "-4", "route", "replace", "default", "dev", "avpn0", "metric", "10", "table", "711"] in V.table(True)
+    assert ["ip", "-4", "route", "del", "default", "dev", "avpn0", "metric", "10", "table", "711"] in V.table(False)
     nft = V.nft_exclusions(["aurora-tunnel.service"])
     assert 'socket cgroupv2 level 2 "system.slice/aurora-tunnel.service" meta mark set 0x711' in nft and "@split4" in nft
     assert V.nft_split([("203.0.113.9", 5)])[0][-1] == "{ 203.0.113.9 timeout 60s }"
@@ -193,3 +200,19 @@ def test_keepalive_the_reset_timer_and_the_traffic(cfg):
             V.set_options(cfg, reset_h=bad)
     status = "OpenVPN STATISTICS\nUpdated,2026-10-30 18:00:00\nTUN/TAP read bytes,100\nTCP/UDP read bytes,52345\nTCP/UDP write bytes,1200\nEND\n"
     assert V.traffic(status) == {"bytes_in": 52345, "bytes_out": 1200} and V.traffic("") == {}
+
+
+def test_the_rules_are_reconciled_without_a_gap():
+    """30 Oct: the unit restarted deleted every rule and added it again — for an instant Aurora's traffic took the
+    normal line. Now only what is missing is added and only what is not wanted deleted."""
+    want = V.rules(997)
+    present = {"-4": [{"priority": 17110, "src": "all", "fwmark": "0x711", "table": "main"},
+                      {"priority": 17112, "src": "all", "uid_start": 997, "uid_end": 997, "table": "711"},  # an old layout
+                      {"priority": 17113, "src": "all", "uid_start": 997, "uid_end": 997, "table": "711"}],
+               "-6": []}
+    adds, dels = V.reconcile(997, present)
+    assert ["ip", "-4", "rule", "add", "priority", "17110", "fwmark", "0x711", "lookup", "main"] not in adds
+    assert ["ip", "-4", "rule", "add", "priority", "17113", "uidrange", "997-997", "lookup", "711"] not in adds
+    assert len(adds) == len(want) - 2
+    assert dels == [["ip", "-4", "rule", "del", "priority", "17112", "uidrange", "997-997", "lookup", "711"]]
+    assert V.reconcile(997, {"-4": [], "-6": []})[0] == want and V.reconcile(997, {"-4": [], "-6": []})[1] == []

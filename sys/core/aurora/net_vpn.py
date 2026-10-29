@@ -33,7 +33,12 @@ from . import sys_config, sys_seal
 PURPOSE = "vpn"
 TABLE = 711                                         # the routing table of Aurora's internet
 MARK = 0x711                                        # the tunnel's own packets (and the remote-access tunnel's): never in it
-PRIO = (17110, 17111, 17112)                        # the rules: the marked, the local routes, the rest into the table
+PRIO = (17110, 17111, 17112, 17113)                 # the rules: the marked, the local routes, the private nets, the rest
+# the home's own networks, whatever the route to them (C475, 30 Oct: the NAS at another subnet, reached through the
+# firewall as the gateway, went into the tunnel — the main table's default was the one route left out): the main table
+PRIVATE4 = ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "169.254.0.0/16", "100.64.0.0/10")
+PRIVATE6 = ("fc00::/7", "fe80::/10")
+FLOOR_METRIC = 4000000000                          # the kill switch's route, under the tunnel's (metric 10)
 DEV = "avpn0"
 MAX_PROFILES = 40
 MAX_OVPN = 64 * 1024
@@ -68,8 +73,11 @@ KEEP = {"client", "dev-type", "proto", "remote", "remote-random", "port", "rport
         "rcvbuf", "fast-io", "ping", "ping-restart", "ping-exit", "keepalive", "explicit-exit-notify", "pull", "verb",
         "mute", "mute-replay-warnings", "auth-nocache", "float", "hand-window", "tran-window", "replay-window"}
 BLOCKS = ("ca", "cert", "key", "tls-auth", "tls-crypt", "tls-crypt-v2", "extra-certs")
-ADDED = ("dev {dev}", "dev-type tun", "route-nopull", "pull-filter ignore \"redirect-gateway\"",
-         "pull-filter ignore \"route\"", "pull-filter ignore \"block-outside-dns\"", "mark {mark}",
+# no route of the provider's (route, route-ipv6, redirect-gateway…): ignored one by one — not «route-nopull», which
+# drops the pushed DNS too (C476); OpenVPN 2.7's own DNS script off, it would change the whole machine's resolver
+ADDED = ("dev {dev}", "dev-type tun", "pull-filter ignore \"redirect-gateway\"", "pull-filter ignore \"redirect-private\"",
+         "pull-filter ignore \"route\"", "pull-filter ignore \"block-outside-dns\"", "ignore-unknown-option dns-updown",
+         "dns-updown disable", "mark {mark}",
          "auth-user-pass {auth}", "auth-nocache", "script-security 2", "up {hook}", "down {hook}", "up-restart",
          "status {status} 10")
 
@@ -396,22 +404,72 @@ def set_dns(cfg: sys_config.Config, servers: list[str] | None) -> None:
 def rules(uid: int, add_: bool = True) -> list[list[str]]:
     """The three rules: the marked packets (the tunnel's own, the remote access) by the main table; the service
     user's local routes (LAN, loopback) by the main table but its default; the rest of its traffic by TABLE."""
-    op = "add" if add_ else "del"
+    if not add_:                                       # by priority: whatever a version before left there too
+        return [["ip", fam, "rule", "del", "priority", str(p)] for fam in ("-4", "-6") for p in PRIO for _ in range(6)]
     out = []
-    for fam in ("-4", "-6"):
-        out += [["ip", fam, "rule", op, "priority", str(PRIO[0]), "fwmark", hex(MARK), "lookup", "main"],
-                ["ip", fam, "rule", op, "priority", str(PRIO[1]), "uidrange", f"{uid}-{uid}", "lookup", "main",
+    for fam, private in (("-4", PRIVATE4), ("-6", PRIVATE6)):
+        out += [["ip", fam, "rule", "add", "priority", str(PRIO[0]), "fwmark", hex(MARK), "lookup", "main"],
+                ["ip", fam, "rule", "add", "priority", str(PRIO[1]), "uidrange", f"{uid}-{uid}", "lookup", "main",
                  "suppress_prefixlength", "0"],
-                ["ip", fam, "rule", op, "priority", str(PRIO[2]), "uidrange", f"{uid}-{uid}", "lookup", str(TABLE)]]
+                *[["ip", fam, "rule", "add", "priority", str(PRIO[2]), "uidrange", f"{uid}-{uid}", "to", net,
+                   "lookup", "main"] for net in private],
+                ["ip", fam, "rule", "add", "priority", str(PRIO[3]), "uidrange", f"{uid}-{uid}", "lookup", str(TABLE)]]
     return out
 
 
+def _key(prio, dst=None, fwmark=None, uid=None, tbl="main", suppress=None) -> tuple:
+    return (int(prio), dst, fwmark, uid, str(tbl), suppress)
+
+
+def _cmd_key(c: list[str]) -> tuple:
+    w = dict(zip(c[4::2], c[5::2]))                    # ip FAM rule add priority P [k v]…
+    uid = int(w["uidrange"].split("-")[0]) if "uidrange" in w else None
+    return (c[1],) + _key(w["priority"], w.get("to"), w.get("fwmark"), uid, w["lookup"],
+                          int(w["suppress_prefixlength"]) if "suppress_prefixlength" in w else None)
+
+
+def _json_key(fam: str, r: dict) -> tuple:
+    dst = f"{r['dst']}/{r['dstlen']}" if r.get("dst") else None
+    return (fam,) + _key(r["priority"], dst, r.get("fwmark"), r.get("uid_start"), r.get("table", "main"),
+                         r.get("suppress_prefixlen"))
+
+
+def reconcile(uid: int, present: dict) -> tuple[list[list[str]], list[list[str]]]:
+    """(the rules to add, the rules to delete) from what is there now (present: {"-4": ip -j rule, "-6": …}): only the
+    ones missing are added and only the ones not wanted are deleted — never all deleted and added again, which left an
+    instant with Aurora's traffic on the normal line (30 Oct, the unit restarted)."""
+    want = {_cmd_key(c): c for c in rules(uid)}
+    have = {}
+    for fam, rows in present.items():
+        for r in rows:
+            if r.get("priority") in PRIO:
+                have[_json_key(fam, r)] = r
+    adds = [c for k, c in want.items() if k not in have]
+    dels = []
+    for k, r in have.items():
+        if k in want:
+            continue
+        c = ["ip", k[0], "rule", "del", "priority", str(r["priority"])]
+        if r.get("dst"):
+            c += ["to", f"{r['dst']}/{r['dstlen']}"]
+        if r.get("fwmark"):
+            c += ["fwmark", r["fwmark"]]
+        if r.get("uid_start") is not None:
+            c += ["uidrange", f"{r['uid_start']}-{r['uid_end']}"]
+        dels.append(c + ["lookup", str(r.get("table", "main"))])
+    return adds, dels
+
+
 def table(up: bool) -> list[list[str]]:
-    """The table: into the tunnel when it is up; «unreachable» when it is not (Aurora fails at once, never leaks).
+    """The table: into the tunnel when it is up; and always, under it, «unreachable» — the tunnel's route goes with its
+    device (openvpn stopped or crashed), and an empty table let the lookup fall to the main one: Aurora's traffic on
+    the normal line (C477, 30 Oct: 54 of 518 probes during a restart). The floor stays whatever happens to the device.
     IPv6: always unreachable (the providers' .ovpn carry IPv4), so nothing of hers leaves by IPv6 around it."""
-    v4 = ["ip", "-4", "route", "replace", "default", "dev", DEV, "table", str(TABLE)] if up else \
-        ["ip", "-4", "route", "replace", "unreachable", "default", "table", str(TABLE)]
-    return [v4, ["ip", "-6", "route", "replace", "unreachable", "default", "table", str(TABLE)]]
+    floor = [["ip", fam, "route", "replace", "unreachable", "default", "metric", str(FLOOR_METRIC), "table", str(TABLE)]
+             for fam in ("-4", "-6")]
+    tunnel = (["ip", "-4", "route", "replace", "default", "dev", DEV, "metric", "10", "table", str(TABLE)] if up else
+              ["ip", "-4", "route", "del", "default", "dev", DEV, "metric", "10", "table", str(TABLE)])
+    return floor + [tunnel]
 
 
 def nft_exclusions(units) -> str:

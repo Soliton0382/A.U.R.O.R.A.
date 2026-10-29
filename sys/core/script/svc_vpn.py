@@ -40,7 +40,9 @@ def sh(cmd: list[str], quiet: bool = False) -> bool:
 
 def hook(argv: list[str]) -> int:
     """openvpn's up/down: the DNS servers pushed (foreign_option_N «dhcp-option DNS x»), for the loop."""
-    dns = [v.split()[-1] for k, v in sorted(os.environ.items()) if k.startswith("foreign_option_") and "DNS" in v.split()]
+    env = os.environ
+    dns = [v.split()[-1] for k, v in sorted(env.items()) if k.startswith("foreign_option_") and "DNS" in v.split()]
+    dns += [v for k, v in sorted(env.items()) if k.startswith("dns_server_") and "_address_" in k and ":" not in v]
     (RUN / "run.json").write_text(json.dumps({"script": os.environ.get("script_type", ""), "dns": dns,
                                               "ip": os.environ.get("ifconfig_local", "")}), encoding="utf-8")
     return 0
@@ -58,9 +60,14 @@ class Tunnel:
     def guard(self, on: bool) -> None:
         """The rules in place (the service user's traffic by the table) or gone (the normal line, as before)."""
         if on and not self.rules_on:
-            for c in V.rules(self.uid, False):
-                sh(c, quiet=True)                          # a rule left by a crash: never twice
-            for c in V.rules(self.uid, True) + V.table(self.up):
+            for c in V.table(self.up):                     # the table first: «unreachable» before any rule points to it
+                sh(c)
+            present = {}
+            for fam in ("-4", "-6"):
+                r = subprocess.run(["ip", "-j", fam, "rule", "show"], capture_output=True, text=True, timeout=20)
+                present[fam] = json.loads(r.stdout or "[]") if r.returncode == 0 else []
+            adds, dels = V.reconcile(self.uid, present)    # only what is missing, only what is not wanted: no gap
+            for c in adds + dels:
                 sh(c)
             self.rules_on = True
         elif not on and self.rules_on:
@@ -94,7 +101,7 @@ class Tunnel:
     def route(self, up: bool) -> None:
         self.up = up
         for c in V.table(up):
-            sh(c)
+            sh(c, quiet=not up and c[3] == "del")          # the tunnel's route gone already with its device
 
     # ---- openvpn -----------------------------------------------------------------------------------------------------
     def start(self, pid: str) -> None:
