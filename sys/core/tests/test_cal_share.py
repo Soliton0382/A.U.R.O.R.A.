@@ -35,7 +35,7 @@ def test_who_takes_part_is_checked():
     users = ["boss", "ada", "eve"]
     got = S.normalize([{"user": "ada"}, "ada", {"user": "boss"}, "Zia.Pina@Example.org", {"email": "zia.pina@example.org"}],
                       "boss", users)
-    assert got == [{"user": "ada"}, {"email": "zia.pina@example.org"}]        # oneself and doubles dropped
+    assert got == [{"user": "ada", "rsvp": "pending"}, {"email": "zia.pina@example.org"}]   # oneself and doubles dropped
     with pytest.raises(ValueError):
         S.normalize([{"user": "mallory"}], "boss", users)                      # not a user here
     with pytest.raises(ValueError):
@@ -93,3 +93,29 @@ def test_the_invitation_is_one_event_the_other_calendar_updates():
     assert "ada" not in ics                                                       # a user is never an address
     subject, body, ics = S.invitation(it, ROME, "boss", "boss@example.org", "CANCEL")
     assert subject.startswith("Annullato") and "METHOD:CANCEL" in ics and "STATUS:CANCELLED" in ics
+
+
+def test_she_is_asked_answers_and_he_knows(base):
+    """Owner, 30 Oct: «lui riceve una notifica che… può accettare o rifiutare e a me poi arriva la notifica di quello
+    che ha scelto». Each user's answer on the maker's list; a no takes her copy away and keeps her as declined; the
+    appointment moved asks again; invited again after a no, she is asked again."""
+    boss, ada = mine(base, "boss"), mine(base, "ada")
+    people = S.normalize([{"user": "ada"}], "boss", ["boss", "ada"])
+    assert people == [{"user": "ada", "rsvp": "pending"}]
+    it = cal_store.add(boss, {"title": "Cinema", "start": "2026-11-05 21:00", "people": people})
+    assert S.newly(None, it) == ["ada"]
+    S.sync(base, "boss", it)
+    cid = S.copy_id("boss", it["id"])
+    assert S.rsvp_of(cal_store.get(ada, cid), "ada") == "pending"
+    item = S.answer(base, "ada", cal_store.get(ada, cid), True)
+    assert S.rsvp_of(item, "ada") == "yes" and S.rsvp_of(cal_store.get(ada, cid), "ada") == "yes"   # her copy shows it
+    moved = cal_store.update(boss, it["id"], {"start": "2026-11-06 21:00"})
+    assert S.moved(item, moved) and S.ask_again(moved["people"]) == [{"user": "ada", "rsvp": "pending"}]
+    assert not S.moved(moved, cal_store.update(boss, it["id"], {"title": "Cinema!"}))             # a new title: no
+    item = S.answer(base, "ada", cal_store.get(ada, cid), False)
+    assert S.rsvp_of(item, "ada") == "no" and cal_store.get(ada, cid) is None and S.users_of(item) == set()
+    again = S.normalize([{"user": "ada"}], "boss", ["boss", "ada"], item["people"])
+    assert again == [{"user": "ada", "rsvp": "pending"}]                                          # asked again
+    assert S.newly(item, {**item, "people": again}) == ["ada"]
+    with pytest.raises(KeyError):
+        S.answer(base, "ada", {"id": "x"}, True)                                                   # not a shared one

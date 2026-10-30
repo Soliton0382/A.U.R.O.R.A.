@@ -43,6 +43,7 @@ export default {
         <span class="cal-views"><button type="button" class="cat-chip on" data-view="agenda" data-i18n="cal.agenda"></button><button type="button" class="cat-chip" data-view="day" data-i18n="cal.day"></button><button type="button" class="cat-chip" data-view="week" data-i18n="cal.week"></button><button type="button" class="cat-chip" data-view="month" data-i18n="cal.month"></button></span>
         <button type="button" class="primary cal-new">➕ <span data-i18n="cal.new"></span></button>
       </div>
+      <div class="cal-invites" hidden></div>
       <div class="cal-edit" hidden></div>
       <div class="cal-out"></div>
       <div class="cal-body"></div>
@@ -98,7 +99,32 @@ export default {
     return [a, addDays(a, 42)];
   },
 
+  // 📨 the appointments others added me to, waiting for my answer (owner, 30 Oct): accept or decline, the maker told
+  async invites() {
+    const box = this.root.querySelector(".cal-invites");
+    let list = [];
+    try { list = (await call("/v1/aurora/calendar/invites")).invites; } catch { /* the page still works */ }
+    box.hidden = !list.length;
+    box.replaceChildren(...(list.length ? [el("h3", "", t("cal.invites", { n: list.length }))] : []), ...list.map((it) => {
+      const row = el("div", "cal-invite");
+      const when = `${it.start.slice(8, 10)}/${it.start.slice(5, 7)}${it.all_day ? "" : ` ${it.start.slice(11, 16)}`}`;
+      row.append(el("span", "", t("cal.invite_line", { who: it.shared_from.user, title: it.title, when })));
+      for (const yes of [true, false]) {
+        const b = el("button", yes ? "primary" : "", yes ? `✔ ${t("cal.accept")}` : `✘ ${t("cal.decline")}`);
+        b.type = "button";
+        b.addEventListener("click", async () => {
+          b.disabled = true;
+          try { await call(`/v1/aurora/calendar/items/${it.id}/rsvp`, { method: "POST", body: JSON.stringify({ yes }) }); } catch (e) { alert(e.message); }
+          this.enter();
+        });
+        row.append(b);
+      }
+      return row;
+    }));
+  },
+
   async enter() {
+    this.invites();
     const [a, b] = this.range();
     const out = this.root.querySelector(".cal-out");
     let v;

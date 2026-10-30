@@ -85,8 +85,11 @@ export function itemForm(item, day, done, hour = 9) {        // hour: where the 
   emails.placeholder = t("cal.emails_ph");
   emails.autocomplete = "off";
   call("/v1/aurora/calendar/people").then((r) => {
+    const said = Object.fromEntries(had.filter((x) => x.user).map((x) => [x.user, x.rsvp || "pending"]));
+    const mark = { pending: "⏳", yes: "✔", no: "✘" };
     for (const name of new Set([...r.users, ...picked])) {
-      const b = el("button", `chip ${picked.has(name) ? "on" : ""}`, `👤 ${name}`);
+      const b = el("button", `chip ${picked.has(name) ? "on" : ""}`, `👤 ${name}${said[name] ? ` ${mark[said[name]]}` : ""}`);
+      if (said[name]) b.title = t(`cal.rsvp.${said[name]}`);
       b.type = "button";
       b.disabled = !!shared;
       b.addEventListener("click", () => { picked.has(name) ? picked.delete(name) : picked.add(name); b.classList.toggle("on", picked.has(name)); });
@@ -125,7 +128,23 @@ export function itemForm(item, day, done, hour = 9) {        // hour: where the 
   const again = el("div", "cal-row");
   again.append(field(t("cal.repeat"), repeat), rowUntil);
   if (item?.repeat) f.append(el("p", "muted", t("cal.series_hint")));
-  if (shared) f.append(el("p", "muted", t("cal.shared_by", { n: shared.user })));
+  if (shared) {
+    f.append(el("p", "muted", t("cal.shared_by", { n: shared.user })));
+    // my answer to whoever added me (owner, 30 Oct): accept or decline, they are told
+    const mine = item.mine;                          // the server's: my own answer (api calendar)
+    const ask = el("div", "appr-actions cal-rsvp");
+    for (const yes of [true, false]) {
+      const b = el("button", yes ? "primary" : "", yes ? `✔ ${t("cal.accept")}` : `✘ ${t("cal.decline")}`);
+      b.type = "button";
+      b.addEventListener("click", async () => {
+        try { await call(`/v1/aurora/calendar/items/${item.id}/rsvp`, { method: "POST", body: JSON.stringify({ yes }) }); done(true); }
+        catch (e) { out.textContent = e.message; }
+      });
+      ask.append(b);
+    }
+    if (mine) ask.append(el("span", "muted", t(`cal.rsvp.${mine}`)));
+    f.append(ask);
+  }
   const people = el("div", "cal-row");
   const mailField = field(t("cal.emails"), emails);
   mailField.append(mailHint);

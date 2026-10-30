@@ -701,6 +701,8 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | POST `/v1/aurora/calendar/items` | `api/calendar.py` | `webui/js/modules/calendar_form.js` |
 | GET `/v1/aurora/calendar/items/{iid}` | `api/calendar.py` | `webui/js/modules/calendar.js`, `webui/js/modules/calendar_form.js` |
 | PUT `/v1/aurora/calendar/items/{iid}` | `api/calendar.py` | `webui/js/modules/calendar.js`, `webui/js/modules/calendar_form.js` |
+| GET `/v1/aurora/calendar/invites` | `api/calendar.py` | `webui/js/modules/calendar.js` |
+| POST `/v1/aurora/calendar/items/{iid}/rsvp` | `api/calendar.py` | `webui/js/modules/calendar.js`, `webui/js/modules/calendar_form.js` |
 | DELETE `/v1/aurora/calendar/items/{iid}` | `api/calendar.py` | `webui/js/modules/calendar.js`, `webui/js/modules/calendar_form.js` |
 | GET `/v1/aurora/calendar/pending` | `api/calendar.py` | `webui/js/calendar_alerts.js` |
 | POST `/v1/aurora/calendar/answer` | `api/calendar.py` | `webui/js/calendar_alerts.js` |
@@ -1015,4 +1017,4 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | GET `/v1/aurora/tts` | `api/voice.py` | `webui/js/voice.js` |
 | POST `/v1/aurora/tts` | `api/voice.py` | `webui/js/voice.js` |
 
-Modules nobody in the code imports: 0; routes nobody in the repository names: 8 of 415.
+Modules nobody in the code imports: 0; routes nobody in the repository names: 8 of 417.

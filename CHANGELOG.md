@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.3.28 — 2026-10-30
+
+1 publications since v0.3.27.
+
+- 2026-10-30 Calendar invitations answered: the invited user is told and accepts or declines, the maker hears the answer; moved, they are asked again
+
 ## v0.3.27 — 2026-10-30
 
 17 publications since v0.3.11.

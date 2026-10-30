@@ -134,7 +134,7 @@ def validate(spec: dict, old: dict | None = None) -> dict:
             "notes": str(s.get("notes") or "").strip()[:4000], "alerts": alerts, "repeat": _repeat(s.get("repeat")),
             "skip": sorted(set(s.get("skip") or []))[-500:], "by": s.get("by") or "page",
             # 👥 who else takes part (cal_share: users of this installation, e-mail addresses; checked by the API)
-            "people": [{k: str(v) for k, v in x.items() if k in ("user", "email")} for x in s.get("people") or []
+            "people": [{k: str(v) for k, v in x.items() if k in ("user", "email", "rsvp")} for x in s.get("people") or []
                        if isinstance(x, dict)][:20],
             **({"shared_from": s["shared_from"]} if s.get("shared_from") else {}),
             "created": s.get("created") or time.time(), "updated": time.time()}

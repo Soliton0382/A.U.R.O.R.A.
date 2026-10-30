@@ -45,7 +45,12 @@ async def calendar(start: str | None = None, end: str | None = None, external: b
     if not 0 < (b - a).days <= MAX_DAYS:
         raise HTTPException(status_code=422, detail=f"from 1 to {MAX_DAYS} days")
     ta, tb = datetime.combine(a, datetime.min.time(), z), datetime.combine(b, datetime.min.time(), z)
-    out = {"today": today.isoformat(), "tz": getattr(z, "key", str(z)), "events": cs.occurrences(cfg, ta, tb),
+    from aurora import cal_share
+    events = cs.occurrences(cfg, ta, tb)
+    for o in events:                               # another's appointment: my own answer to it, for the form
+        if o.get("shared_from"):
+            o["mine"] = cal_share.rsvp_of(o, me() or "")
+    out = {"today": today.isoformat(), "tz": getattr(z, "key", str(z)), "events": events,
            "external": [], "failed": [], "connected": cal_external.configured(cfg.values)}
     if external and out["connected"]:
         evs, out["failed"] = await in_thread(cal_external.events, cfg.values, ta, tb)
@@ -53,13 +58,39 @@ async def calendar(start: str | None = None, end: str | None = None, external: b
     return out
 
 
-def _spec(b: dict) -> dict:
+def _spec(b: dict, old: dict | None = None) -> dict:
     keys = ("kind", "title", "start", "end", "all_day", "minutes", "location", "notes", "alerts", "repeat")
     out = {k: b[k] for k in keys if k in b}
     if "people" in b:                              # 👥 cal_share: users of this installation, e-mail addresses
         from aurora import cal_share
-        out["people"] = cal_share.normalize(b["people"], me(), _names())
+        out["people"] = cal_share.normalize(b["people"], me(), _names(), (old or {}).get("people"))
     return out
+
+
+def _when(it: dict) -> str:
+    from datetime import datetime as _dt
+    from aurora import cal_text
+    s = _dt.strptime(it["start"], "%Y-%m-%dT%H:%M")
+    return cal_text.date_it(s.date()) + ("" if it.get("all_day") else f" {s:%H:%M}")
+
+
+def _tell(user: str, event: str, text: str, item: dict) -> None:
+    """A notification to another user (theirs: their phone, their chat), about an appointment."""
+    from aurora import sys_context
+    with sys_context.acting_as(user):
+        note("calendar", event, {"title": text, "text": text, "item": item.get("id", "")})
+
+
+def _invited(maker: str, before: dict | None, it: dict) -> None:
+    """The users invited now are told and asked; moved, the others are asked again (owner, 30 Oct)."""
+    from aurora import cal_share
+    new = cal_share.newly(before, it)
+    cid = cal_share.copy_id(maker, it["id"])
+    for u in new:
+        _tell(u, "calendar.invite", f"👥 {maker} ti ha aggiunto a «{it['title']}», {_when(it)}: accetti?", {"id": cid})
+    if cal_share.moved(before, it):
+        for u in sorted(cal_share.users_of(it) - set(new)):
+            _tell(u, "calendar.moved", f"🔁 {maker} ha spostato «{it['title']}» a {_when(it)}: ci sei ancora?", {"id": cid})
 
 
 def _base():
@@ -121,6 +152,7 @@ async def calendar_add(request: Request) -> dict:
         raise HTTPException(status_code=422, detail=str(e)) from None
     log.info("audit: %s added a calendar %s", me(), it["kind"])
     shared = await in_thread(cal_share.sync, _base(), me(), it)
+    _invited(me() or "", None, it)
     return {"item": it, "shared": shared, "mail": await in_thread(_mail, it, cal_share.emails_of(it))}
 
 
@@ -141,7 +173,7 @@ async def calendar_change(iid: str, request: Request) -> dict:
     if old is None:
         raise HTTPException(status_code=404, detail="no such item")
     try:
-        spec = _spec(b)
+        spec = _spec(b, old)
         if old.get("shared_from"):                 # another's appointment: only its alerts are this person's
             if set(spec) - {"alerts"}:
                 raise HTTPException(status_code=403, detail=f"shared by {old['shared_from']['user']}: only your alerts change here")
@@ -149,15 +181,46 @@ async def calendar_change(iid: str, request: Request) -> dict:
         before = cal_share.emails_of(old)
         _confirmed(cal_share.emails_of({"people": spec.get("people", old.get("people"))}) or before, b.get("confirm_email"))
         it = cs.update(cfg, iid, spec)
+        if cal_share.moved(old, it) and any(p.get("rsvp") == "yes" for p in it.get("people") or []):
+            it = cs.update(cfg, iid, {"people": cal_share.ask_again(it["people"])})   # moved: asked again
     except KeyError:
         raise HTTPException(status_code=404, detail="no such item") from None
     except (ValueError, TypeError) as e:
         raise HTTPException(status_code=422, detail=str(e)) from None
     shared = await in_thread(cal_share.sync, _base(), me(), it, old)
+    _invited(me() or "", old, it)
     now = cal_share.emails_of(it)
     mail = await in_thread(_mail, it, now)
     off = await in_thread(_mail, it, [e for e in before if e not in now], "CANCEL")
     return {"item": it, "shared": shared, "mail": {"sent": mail["sent"] + off["sent"], "failed": mail["failed"] + off["failed"]}}
+
+
+@router.get("/v1/aurora/calendar/invites", dependencies=[Depends(auth)])
+def calendar_invites() -> dict:
+    """The appointments others added me to that wait for my answer."""
+    from aurora import cal_share
+    who = me() or ""
+    return {"invites": [it for it in _store().items(cfg)
+                        if it.get("shared_from") and cal_share.rsvp_of(it, who) == "pending"]}
+
+
+@router.post("/v1/aurora/calendar/items/{iid}/rsvp", dependencies=[Depends(auth)])
+async def calendar_rsvp(iid: str, request: Request) -> dict:
+    """{"yes": bool}: my answer to an appointment another user added me to; its maker is told."""
+    from aurora import cal_share
+    copy = _store().get(cfg, iid)
+    if copy is None or not copy.get("shared_from"):
+        raise HTTPException(status_code=404, detail="no such invitation")
+    yes = bool((await request.json()).get("yes"))
+    try:
+        item = await in_thread(cal_share.answer, _base(), me() or "", copy, yes)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from None
+    maker = copy["shared_from"]["user"]
+    _tell(maker, "calendar.rsvp", f"{'✔' if yes else '✘'} {me()} ha {'accettato' if yes else 'rifiutato'} «{item['title']}», "
+          f"{_when(item)}", item)
+    log.info("audit: %s answered %s to a shared appointment", me(), "yes" if yes else "no")
+    return {"rsvp": "yes" if yes else "no", "item": _store().get(cfg, iid)}
 
 
 @router.delete("/v1/aurora/calendar/items/{iid}", dependencies=[Depends(auth)])
@@ -169,17 +232,20 @@ def calendar_delete(iid: str, occurrence: str | None = None, confirm_email: bool
     old = cs.get(cfg, iid)
     if old is None:
         raise HTTPException(status_code=404, detail="no such item")
-    if not old.get("shared_from"):
-        _confirmed(cal_share.emails_of(old), confirm_email)
+    if old.get("shared_from"):                     # another's appointment: leaving it is a «no», its maker told
+        try:
+            item = cal_share.answer(_base(), me() or "", old, False)
+            _tell(old["shared_from"]["user"], "calendar.rsvp", f"✘ {me()} si è tolto da «{item['title']}», {_when(item)}", item)
+        except KeyError:                           # the maker's is gone already: only this copy
+            cs.delete(cfg, iid)
+        return {"deleted": iid, "item": None, "left": old["shared_from"]["user"]}
+    _confirmed(cal_share.emails_of(old), confirm_email)
     try:
-        left = cs.delete(cfg, iid, None if old.get("shared_from") else occurrence)
+        left = cs.delete(cfg, iid, occurrence)
     except KeyError:
         raise HTTPException(status_code=404, detail="no such item") from None
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from None
-    if old.get("shared_from"):
-        cal_share.leave(_base(), me(), old)
-        return {"deleted": iid, "item": None, "left": old["shared_from"]["user"]}
     if left:                                       # one occurrence skipped: the copies and the invitation too
         cal_share.sync(_base(), me(), left, old)
         return {"deleted": iid, "item": left, "mail": _mail(left, cal_share.emails_of(left))}

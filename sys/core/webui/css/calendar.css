@@ -82,3 +82,8 @@ button.cal-item { cursor: pointer; }
 .cal-people .chip.on { background: var(--accent-mid); border-color: var(--accent-line); color: var(--accent-text); }
 .cal-people .chip:disabled { cursor: default; opacity: .75; }
 .cal-row > .cal-field:has(.cal-people), .cal-row > .cal-field:has(input[name=emails]) { flex: 1 1 14rem; }
+/* 📨 the invitations waiting for my answer (calendar.js) */
+.cal-invites { border: 1px solid var(--accent-line, var(--accent)); border-radius: var(--radius); padding: .6rem .8rem; margin: .5rem 0 .8rem; }
+.cal-invites h3 { margin: 0 0 .4rem; }
+.cal-invite { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; padding: .3rem 0; }
+.cal-invite > span { flex: 1 1 16rem; }

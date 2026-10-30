@@ -6,7 +6,9 @@ lei… così ad entrambi aurora manda il promemoria… magari anche indirizzi em
 - Another user of this installation: the appointment enters their calendar at once (owner's choice), «da <name>»,
   with its alerts — a copy in their own sealed file, so their reminders are theirs. Changed or deleted by its maker,
   the copies follow; a participant who deletes it leaves it (taken off the maker's list), and may change only their
-  own alerts.
+  own alerts. They are told, and answer (owner, 30 Oct: «riceve una notifica che… può accettare o rifiutare e a me poi
+  arriva la notifica di quello che ha scelto»): each user's «rsvp» on the maker's list — pending, yes or no; a no takes
+  the copy away and keeps them on the list as declined; the appointment moved asks again.
 - An address: an invitation (.ics, METHOD:REQUEST; CANCEL when it is called off) sent from the maker's own mailbox
   (the ✉️ plugin), so the other calendar — Google, Outlook, Apple — adds it and reminds by itself. Only on the maker's
   word in the form (a notice: «to addresses outside Aurora's users, go on?» — owner, 30 Oct: the confirmation in the
@@ -27,9 +29,14 @@ EMAIL = re.compile(r"^[^@\s<>\"',;]{1,64}@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$")
 FIELDS = ("kind", "title", "start", "end", "all_day", "location", "notes", "repeat", "skip", "people")
 
 
-def normalize(people, me: str | None, users: list[str]) -> list[dict]:
-    """[{"user": name} | {"email": address}] from what the form sent: a user of this installation (never oneself), an
-    address well formed; doubles dropped, at most MAX_PEOPLE. A name that is not a user is refused, said."""
+RSVP = ("pending", "yes", "no")
+
+
+def normalize(people, me: str | None, users: list[str], old: list[dict] | None = None) -> list[dict]:
+    """[{"user": name, "rsvp"} | {"email": address}] from what the form sent: a user of this installation (never
+    oneself), an address well formed; doubles dropped, at most MAX_PEOPLE. A name that is not a user is refused, said.
+    A user's answer is kept from `old` (the item before); a new one is pending."""
+    was = {p["user"]: p.get("rsvp", "pending") for p in old or [] if p.get("user")}
     out, seen = [], set()
     for p in people or []:
         if isinstance(p, str):
@@ -41,7 +48,7 @@ def normalize(people, me: str | None, users: list[str]) -> list[dict]:
             k = ("user", u)
             if u == me or k in seen:
                 continue
-            out.append({"user": u})
+            out.append({"user": u, "rsvp": was.get(u, "pending") if was.get(u) != "no" else "pending"})
         elif p.get("email"):
             e = str(p["email"]).strip().lower()
             if not EMAIL.match(e):
@@ -59,7 +66,27 @@ def normalize(people, me: str | None, users: list[str]) -> list[dict]:
 
 
 def users_of(item: dict) -> set[str]:
-    return {p["user"] for p in item.get("people") or [] if p.get("user")}
+    """The users who have it in their calendar: every one invited but the ones who said no."""
+    return {p["user"] for p in item.get("people") or [] if p.get("user") and p.get("rsvp") != "no"}
+
+
+def rsvp_of(item: dict, user: str) -> str | None:
+    return next((p.get("rsvp", "pending") for p in item.get("people") or [] if p.get("user") == user), None)
+
+
+def moved(before: dict | None, after: dict) -> bool:
+    """The day or the time changed: the users are asked again."""
+    return bool(before) and any(before.get(k) != after.get(k) for k in ("start", "end", "all_day", "repeat"))
+
+
+def ask_again(people: list[dict]) -> list[dict]:
+    return [{**p, "rsvp": "pending"} if p.get("user") and p.get("rsvp") == "yes" else p for p in people]
+
+
+def newly(before: dict | None, after: dict) -> list[str]:
+    """The users invited by this save (not there before, or there as declined and invited again)."""
+    had = {p["user"] for p in (before or {}).get("people") or [] if p.get("user") and p.get("rsvp") != "no"}
+    return sorted(users_of(after) - had)
 
 
 def emails_of(item: dict) -> list[str]:
@@ -113,6 +140,27 @@ def unshare(base: sys_config.Config, maker: str, item: dict) -> list[str]:
     for u in users_of(item):
         _drop(_cfg(base, u), cid)
     return sorted(users_of(item))
+
+
+def answer(base: sys_config.Config, user: str, copy: dict, yes: bool) -> dict:
+    """A participant answers on their copy: their «rsvp» on the maker's list; a no takes the copy away (they stay on
+    the list as declined). → the maker's item."""
+    src = copy.get("shared_from") or {}
+    if not src.get("user"):
+        raise KeyError("not a shared appointment")
+    m = _cfg(base, src["user"])
+    rows = cal_store.items(m)
+    item = next((r for r in rows if r["id"] == src.get("id")), None)
+    if item is None:
+        raise KeyError("the maker deleted it")
+    item["people"] = [{**p, "rsvp": "yes" if yes else "no"} if p.get("user") == user else p for p in item.get("people") or []]
+    cal_store._save(m, rows)
+    if yes:
+        sync(base, src["user"], item)                  # every copy shows the answer
+    else:
+        _drop(_cfg(base, user), copy["id"])
+        sync(base, src["user"], item)
+    return item
 
 
 def leave(base: sys_config.Config, user: str, copy: dict) -> None:
