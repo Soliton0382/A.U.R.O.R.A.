@@ -56,6 +56,8 @@ SYS_LOOK = ("You are Aurora's forge. A capability is missing; before writing a p
             "Reply ONLY with a JSON list of at most 3 paths relative to Aurora's folder (files or folders) to look at, "
             "e.g. [\"sys/logs/firewall\", \"sys/status/incidents.json\"]. Use the DATA PLACES given.")
 SYS_WRITE = ("You are Aurora's forge: you write a small MCP plugin, in Python, that gives Aurora the missing capability. "
+             "Never a plugin that reads or changes Aurora's own internal data — the people's cards, memories, users, "
+             "keys, approvals, settings, sealed files: that is the core's, and such a need is refused. "
              "Rules: tools read by default (never write files, never contact the network unless the capability is "
              "impossible without it). When the NEED asks to change something on a service (create, send, configure, "
              "activate), write that tool too and give it the effect \"external\" in plugin.json: each of its calls "
@@ -133,10 +135,34 @@ def shown(cfg: sys_config.Config, item: dict, viewer: str | None = None) -> dict
     return {**item, **sys_log.hide_fields({k: item[k] for k in TEXT if k in item}, item.get("user"))}
 
 
+# Aurora's own stores are the core's, never a plugin's (owner, 30 Oct: «non può proporre tools che potrebbero minare
+# quello che abbiamo faticosamente implementato e calibrato» — the forge built a plugin to read the people's sealed
+# cards; in its cage it could not open them, and a plugin that could would be a way around the seals, the users'
+# separation and the visibility each person chose). Asked for, it is refused and said: a core tool, from the owner.
+CORE_STORES = re.compile(r"(?i)(sys_people|people\.sealed|sys_seal|\.sealed\b|sealed (store|file|data)|sys_users|users\.db|"
+                         r"sys_approvals|approvals\.json|sys_keyring|keyring|aurora-key|\.env\b|sys_config\.(write|set)|"
+                         r"sys_ethics|ethics/|MANIFEST\.json|vault keys?|memory (store|shards?)|sys_memory|reflection domain|"
+                         r"session memor|another user'?s|other users'? (memor|conversation|data)|assist\.json|sys_assist)")
+CORE_REFUSAL = ("REFUSED: this reaches Aurora's own internal data (the people's cards, memories, users, keys, approvals, "
+                "settings or sealed files). A plugin never reads them: it would go around the seals, the users' separation "
+                "and what each person chose to share. Use the core's own tools — people_cards for who the people are, "
+                "search_vault for the vault — and, if one is missing, say so to the owner: it is the core's to add.")
+
+
+class CoreNeed(ValueError):
+    """A request for a plugin that would read Aurora's own stores (CORE_STORES): refused, never queued."""
+
+
+def core_need(need: str, why: str = "") -> bool:
+    return bool(CORE_STORES.search(f"{need}\n{why}"))
+
+
 def request(cfg: sys_config.Config, need: str, why: str, run_id: str | None, routine: str | None = None) -> dict:
     """Queue a missing capability once: the same need asked again by the same user joins the open request. The need
     and the why are sealed with the asking user's key in the shared file (N64 phase 4); the item returned is opened."""
     from . import sys_context
+    if core_need(need, why):
+        raise CoreNeed(CORE_REFUSAL)
     need, user = need.strip()[:500], sys_context.user()
     items = requests(cfg)
     same = next((o for i in items if i.get("user") == user and i["status"] in ("pending", "building", "proposed")

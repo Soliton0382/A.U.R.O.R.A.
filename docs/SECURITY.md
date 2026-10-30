@@ -217,6 +217,10 @@ refuses the rest; sudo lets the target's user run only the two power commands. W
 restart or shut down that machine. A machine counts for the UPS only after a trial that worked, and again after its
 address or user changes. Every restart and shutdown is an audit line in the power log.
 
+## The forge never builds into Aurora's own data (2026-10-30)
+
+A run asked the forge for a plugin reading the people's cards (sys_people.load): in its cage it could not open the sealed store, and a plugin that could would go around the seals, the users' separation and what each person chose to share. Now a request naming Aurora's own stores (agt_forge.CORE_STORES: the people's cards, memories, users, keys, approvals, settings, sealed files) is refused before it is queued, and the agent is told so in its rules; the cards reach the agent through the core's own read-only tool `people_cards`.
+
 ## Assistance: the admin inside a user's account (2026-10-30, ROADMAP 🛟)
 
 - Only when the user opens a window (8, 16, 24, 48 or 72 h) from their own page; the disclaimer beside the button is the consent. The user closes it at any moment; it ends by itself, and a session inside it ends with it (checked at every request).

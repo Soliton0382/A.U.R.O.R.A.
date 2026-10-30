@@ -375,3 +375,25 @@ def prompt_block(cfg: sys_config.Config, viewer: str | None, users: list[str], a
             "conversation):\n- " + "\n- ".join(lines) +
             "\nSpeak of them warmly from these lines only. What another user told you is theirs: if asked what someone "
             "said to you, say plainly that you cannot speak of another user's conversations — never «I do not remember».")
+
+
+# ---- the agent's tool (owner, 30 Oct: «ho chiesto ad aurora di dirmi di me… non c'è riuscita e ora si sta costruendo
+# un plugin per farlo»: the agent's runs had no card — a caged plugin cannot open a sealed store, the core can) ----------
+TOOL = {"name": "people_cards", "description": "Who the people of this Aurora are: the card of the person asking you "
+        "(all of it: name, birthday, city, work, social pages, biography), what the others chose to share of theirs, "
+        "how they are related, and who created you. Read only; never conversations. Use it when asked about the person "
+        "or the people of the house.", "input_schema": {"type": "object", "properties": {}}}
+
+
+def tool_text(cfg: sys_config.Config, viewer: str | None, users: list[str], admin: str | None) -> str:
+    """What the tool returns: the people block, or the asker's own card when they are alone here."""
+    text = prompt_block(cfg, viewer, users, admin)
+    if text:
+        return text.strip()
+    c = load(cfg)["cards"].get(viewer or "", {})
+    if not c:
+        return "The person asking has no card yet (✨ Life → 🪪 Aurora's people)."
+    bits = [f"{k}: {c[k]}" for k in ("name", "birth", "city", "work") if c.get(k)]
+    bits += [f"social: {s.get('label', '')} {s['url']}" for s in c.get("social", [])]
+    bits += [f"- {b['text']}" for b in c.get("bio", [])]
+    return "THE PERSON ASKING (their own card):\n" + "\n".join(bits)

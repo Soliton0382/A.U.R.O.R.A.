@@ -249,3 +249,16 @@ def test_installing_never_copies_the_stage_s_bits(cfg, monkeypatch):
     (stage / "data" / "list.txt").write_text("a", encoding="utf-8")
     dest = F.install(cfg, str(stage))
     assert (dest / "server.py").read_text(encoding="utf-8") == CODE and (dest / "data" / "list.txt").read_text() == "a"
+
+
+def test_a_plugin_for_aurora_s_own_stores_is_refused_and_never_queued(cfg):
+    """Owner, 30 Oct: «non può proporre tools che potrebbero minare quello che abbiamo faticosamente implementato e
+    calibrato» — the forge built a plugin to read the people's sealed cards (sys_people.load)."""
+    for need in ("A read-only tool that returns the card of the user (sys_people.load(cfg)['cards'][user])",
+                 "read the people.sealed file", "a tool to read another user's memories", "list the users from users.db",
+                 "change a setting in the .env"):
+        with pytest.raises(F.CoreNeed):
+            F.request(cfg, need, "", None)
+    assert F.requests(cfg) == []                                    # nothing queued
+    assert not F.core_need("read the firewall's syslog and count the denied lines")
+    assert not F.core_need("Ogni giorno alle 17:00 usa sky_tonight per stanotte")

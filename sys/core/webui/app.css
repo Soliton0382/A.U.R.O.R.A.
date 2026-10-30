@@ -48,7 +48,7 @@ body input[type=checkbox], body input[type=radio] { width: auto; flex: none; pad
   background: var(--bar); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); z-index: 2; }
 .brand { font-weight: 700; letter-spacing: .08em; }
 .brand-box { display: flex; flex-direction: column; gap: .15rem; min-width: 0; flex: 0 1 auto; }
-.brand-row { display: flex; align-items: center; gap: .45rem; }
+.brand-row { display: flex; align-items: center; gap: .4rem; }
 /* the gauges keep their width; the alerts under the name wrap instead (owner, 10 Oct: with alerts the percentages
    went out of the screen — 21 of their 206 px left at 500 px wide) */
 .slot-topbar { flex: 1 0 auto; min-width: 0; display: flex; justify-content: flex-end; }

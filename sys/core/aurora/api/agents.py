@@ -32,7 +32,11 @@ def _gap_check(agent, goal: str, report: str, emit, run_id: str, routine: str | 
         log.exception("gap check")
         return
     if need:
-        req = agt_forge.request(cfg, need, f"rilevato dopo il run: {goal[:300]}", run_id, routine)
+        try:
+            req = agt_forge.request(cfg, need, f"rilevato dopo il run: {goal[:300]}", run_id, routine)
+        except agt_forge.CoreNeed:                       # Aurora's own data: the core's, never a plugin's
+            log.info("gap after run %s: refused, it reaches Aurora's own stores", run_id)
+            return
         emit("forge.request", {"id": req["id"], "need": req["need"], "status": req["status"], "by": "code"})
         note("forge", "forge.request", {"id": req["id"], "title": req["need"][:160]})
         log.info("gap found after run %s: forge request %s (%d chars)", run_id, req["id"], len(need))   # N64: no goal in api.log

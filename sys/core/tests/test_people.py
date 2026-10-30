@@ -118,3 +118,15 @@ def test_a_new_person_is_asked_once_and_the_first_proposals_come_once(cfg):
     P.set_card(cfg, "boss", {"visible": {"bio": True}})
     block = P.prompt_block(cfg, "ada", USERS, "boss")
     assert "…" in block and "w" * 400 not in block                        # the prompt kept small: 1500 a person
+
+
+def test_the_agent_s_tool_tells_the_asker_s_own_card_even_alone(cfg):
+    """Owner, 30 Oct: «ho chiesto ad aurora di dirmi di me… non c'è riuscita e ora si sta costruendo un plugin»: the
+    agent's runs had no card; the core's own read-only tool gives it, alone too."""
+    assert "no card yet" in P.tool_text(cfg, "boss", ["boss"], "boss")
+    P.set_card(cfg, "boss", {"name": "Boss", "city": "Roma"})
+    P.add_bio(cfg, "boss", "costruisce telescopi")
+    alone = P.tool_text(cfg, "boss", ["boss"], "boss")
+    assert "Roma" in alone and "costruisce telescopi" in alone
+    assert "cannot speak of another user's conversations" in P.tool_text(cfg, "boss", USERS, "boss")
+    assert P.TOOL["name"] == "people_cards" and P.TOOL["input_schema"]["properties"] == {}

@@ -2,6 +2,15 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.3.32 — 2026-10-30
+
+4 publications since v0.3.27.
+
+- 2026-10-30 The agent reads who the people are through the core's own people_cards tool; the forge refuses any plugin into Aurora's own stores, and the agent is told why; the header's name, face and weather evenly spaced on one line
+- 2026-10-30 Aurora's people: longer biography lines; a new user invited once to tell about themselves, and their first card proposals prepared by the cycle and told; proposals from the local model without its thinking phase
+- 2026-10-30 Aurora's people: a card each with a photo or an avatar Aurora paints (local models), fields chosen visible, a biography from one's own memories, relations confirmed by both; no greeting again in a conversation going on; the natural voice and the new abilities on the Status page
+- 2026-10-30 Calendar invitations answered: the invited user is told and accepts or declines, the maker hears the answer; moved, they are asked again
+
 ## v0.3.30 — 2026-10-30
 
 3 publications since v0.3.27.

@@ -3,7 +3,7 @@
 /* Health dot and pending-approval bell next to Aurora's name. */
 #slot-alerts { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .4rem; min-height: 1.2rem; min-width: 0; }
 #slot-alerts:empty { display: none; }
-#slot-health { display: inline-flex; align-items: center; }
+#slot-health { display: inline-flex; align-items: center; gap: .4rem; }
 /* the state: the name's halo (alerts.js), a button to the Status page; no dot beside it any more. Bright, the
    letters tinted too (owner, 30 Oct: «più accesi, non si capisce che ora è verde») */
 button.brand { background: none; border: 0; padding: 0 .1rem; color: inherit; font: inherit; font-weight: 700;
@@ -14,7 +14,10 @@ button.brand { background: none; border: 0; padding: 0 .1rem; color: inherit; fo
 .brand.health-unknown { text-shadow: none; }
 @keyframes halo { 50% { text-shadow: 0 0 2px #ef6b6b, 0 0 5px rgba(239, 107, 107, .5); } }
 /* her face a little apart from the name: dancing, it no longer seems to touch it */
-#slot-health .mood-face { margin-left: .35rem; }
+/* the name, the face and the weather in one line: the same gap between each, every one on the same middle, the face
+   as tall as the name (owner, 30 Oct: «una po' più di geometria ordinata tra Aurora, emoji, meteo») */
+#slot-health .mood-face { margin: 0; width: 1.4em; height: 1.4em; }
+#slot-health .wx-chip { margin-left: 0; }
 .bell { font-size: .8rem; padding: .15rem .6rem; border-radius: 999px; border-color: var(--warn); color: #ffd79a;
   background: rgba(240, 179, 90, .15); animation: pulse 1.6s ease-in-out infinite; white-space: nowrap;
   max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
