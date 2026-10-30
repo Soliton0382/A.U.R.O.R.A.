@@ -97,3 +97,24 @@ def test_a_picture_is_square_small_sealed_and_seen_only_when_let(cfg):
     with pytest.raises(ValueError):
         P.set_picture(cfg, "ada", "photo", b"not a picture")
     assert P.view(cfg, "ada", USERS, "boss")["cards"]["ada"]["pictures"] == ["photo"]
+
+
+def test_a_new_person_is_asked_once_and_the_first_proposals_come_once(cfg):
+    """Owner, 30 Oct: «un nuovo utente alla prima interazione… conosciamoci meglio… così già comincia a popolare la
+    biografia»; and the biography «un po' più esteso»."""
+    assert not P.intro_due(cfg, "boss", "boss")                           # the admin made her: never asked
+    assert P.intro_due(cfg, "ada", "boss")
+    P.mark_intro(cfg, "ada")
+    assert not P.intro_due(cfg, "ada", "boss")                            # once
+    assert P.intro_due(cfg, "luca", "boss")
+    P.add_bio(cfg, "luca", "x" * 550)                                     # a short paragraph fits
+    assert not P.intro_due(cfg, "luca", "boss") and len(P.load(cfg)["cards"]["luca"]["bio"][0]["text"]) == 550
+    assert P.auto_due(cfg, "ada")
+    P.mark_auto(cfg, "ada")
+    assert not P.auto_due(cfg, "ada")
+    P.add_bio(cfg, "boss", "y" * 600)
+    P.add_bio(cfg, "boss", "z" * 600)
+    P.add_bio(cfg, "boss", "w" * 600)
+    P.set_card(cfg, "boss", {"visible": {"bio": True}})
+    block = P.prompt_block(cfg, "ada", USERS, "boss")
+    assert "…" in block and "w" * 400 not in block                        # the prompt kept small: 1500 a person

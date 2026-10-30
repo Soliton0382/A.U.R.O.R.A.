@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.en.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-1511%20passed-1baf7a" alt="Tests"> <img src="https://img.shields.io/badge/code-112k%20lines-6a4fd6" alt="Lines of code"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-1512%20passed-1baf7a" alt="Tests"> <img src="https://img.shields.io/badge/code-112k%20lines-6a4fd6" alt="Lines of code"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
 
 <p align="center">🇮🇹 <a href="README.md">Italiano</a> · 🇬🇧 <b>English</b></p>
 
@@ -401,7 +401,7 @@ password and link the Authenticator in 👥 Users, then create the users there. 
 the first login you enter with the API key and Aurora takes you to create password and code before anything else
 (docs/MULTIUSER.md).
 
-**🪪 Aurora's people.** Everyone has a card (a photo, or an avatar Aurora paints from it or from your words, with the local models only; name, birthday, city, work, social pages, a biography: Aurora proposes lines from the memories of your conversations, with the local model, and they enter only with your yes) and chooses field by field what the others see; the relations (wife, son, friend…) hold once both confirm them. So Aurora knows who you are to her and to each other, and who created her, but of the others' conversations she says plainly she cannot speak.
+**🪪 Aurora's people.** Everyone has a card (a photo, or an avatar Aurora paints from it or from your words, with the local models only; name, birthday, city, work, social pages, a biography: Aurora proposes lines from the memories of your conversations, with the local model, and they enter only with your yes; a new user is asked once to tell her about themselves, then gets the first proposals) and chooses field by field what the others see; the relations (wife, son, friend…) hold once both confirm them. So Aurora knows who you are to her and to each other, and who created her, but of the others' conversations she says plainly she cannot speak.
 
 **🛟 Assistance.** A user can let the admin into their account for 8, 16, 24, 48 or 72 hours (👥 Users → 🛟 Assistance:
 the notice beside the button is the consent); they close it when they like, and it closes by itself when it ends. The

@@ -228,7 +228,17 @@ def routine_tick() -> dict:
             _scenes_again(who)
             _local_ticks(who)
             _astro_again(who)
+            _people_first(who)
     return {"started": started, "welcomed": sorted(welcomed)}
+
+
+def _people_first(who: str | None) -> None:
+    """🪪 A new person's first proposals for their card, once there are memories (api/people.first_proposals)."""
+    try:
+        from .people import first_proposals
+        first_proposals(who)
+    except Exception:                                    # noqa: BLE001 — the local model busy: the next tick
+        log.exception("people: first proposals failed")
 
 
 def _astro_again(who: str | None) -> None:

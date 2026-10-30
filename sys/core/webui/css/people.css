@@ -25,3 +25,4 @@
 .ppl-pic-tools { display: flex; flex-direction: column; gap: .45rem; flex: 1 1 18rem; min-width: 0; }
 .ppl-upload { display: inline-block; padding: .4rem .8rem; border: 1px dashed var(--accent); border-radius: 8px; cursor: pointer; align-self: flex-start; }
 .ppl-show { display: flex; flex-wrap: wrap; gap: .8rem; }
+.ppl-bio-add textarea { flex: 1 1 22rem; min-width: 0; resize: vertical; }

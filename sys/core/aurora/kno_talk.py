@@ -55,7 +55,7 @@ def system(cfg: sys_config.Config, recent: list, lang: str) -> str:
     return (sys_persona.identity(cfg) + f"\n\nCALENDAR: {days}, now {today:%H:%M}."
             + (f"\n\nTHIS CONVERSATION SO FAR:\n{_turns(recent)}" if recent else "")
             + (kno_self.NO_GREETING if kno_self.going_on(recent) else "")
-            + kno_self.people_block(cfg, "en" if lang == "en" else "it")
+            + kno_self.people_block(cfg, "en" if lang == "en" else "it", recent)
             + STYLE["en" if lang == "en" else "it"].replace("{owner}", str(cfg["AURORA_OWNER_NAME"])))
 
 

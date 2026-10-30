@@ -146,7 +146,7 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `api.models_custom` | `api (MODULES)` | 0 |
 | `api.oai` | `api (MODULES)` | 0 |
 | `api.oauth` | `api (MODULES)` | 0 |
-| `api.people` | `api (MODULES)` | 0 |
+| `api.people` | `api (MODULES)`, `api.routines` | 0 |
 | `api.phone_app` | `api (MODULES)` | 0 |
 | `api.places` | `api (MODULES)` | 0 |
 | `api.power` | `api (MODULES)` | 0 |

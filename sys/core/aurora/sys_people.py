@@ -34,7 +34,7 @@ PICTURES = ("photo", "avatar")                              # the photo the pers
 PICTURE_PX = 512
 MAX_PICTURE = 8 * 1024 * 1024
 MAX_BIO = 30
-MAX_LINE = 200
+MAX_LINE = 600                                              # a line may be a short paragraph (owner, 30 Oct: «un po' più esteso»)
 MAX_SOCIAL = 8
 # a relation as said from each side: (one to the other, the other to the one), in Italian and English
 KINDS = {
@@ -283,6 +283,42 @@ def label(r: dict, seen_from: str, lang: str = "it") -> str:
     return (a_to_b if seen_from == r["b"] else b_to_a)[li]
 
 
+# ---- getting to know a new person (owner, 30 Oct: «un nuovo utente alla prima interazione con aurora lei proponga un
+# classico conosciamoci meglio… così già comincia a popolare la biografia») ------------------------------------------------
+INTRO = ("\n\nTHIS PERSON IS NEW TO YOU: answer what they ask, then — once, warmly, in a sentence or two — invite them to "
+         "tell you a little about themselves (what they do, what they love, their interests), so you can get to know "
+         "them. Do not insist if they would rather not.")
+
+
+def intro_due(cfg: sys_config.Config, user: str | None, admin: str | None) -> bool:
+    """A user (not the admin: they made her) with an empty biography who has not been asked yet."""
+    if not user or user == admin:
+        return False
+    c = load(cfg)["cards"].get(user, {})
+    return not c.get("bio") and not c.get("intro_at")
+
+
+def mark_intro(cfg: sys_config.Config, user: str) -> None:
+    """She asked once: never again (the rest of the biography comes from the proposals)."""
+    with _lock:
+        d = load(cfg)
+        _card(d, user)["intro_at"] = time.time()
+        _save(cfg, d)
+
+
+def auto_due(cfg: sys_config.Config, user: str) -> bool:
+    """The first proposals not prepared yet for a person with an empty biography (once; then they ask on the page)."""
+    c = load(cfg)["cards"].get(user, {})
+    return not c.get("bio") and not c.get("proposals") and not c.get("auto_at")
+
+
+def mark_auto(cfg: sys_config.Config, user: str) -> None:
+    with _lock:
+        d = load(cfg)
+        _card(d, user)["auto_at"] = time.time()
+        _save(cfg, d)
+
+
 # ---- what each one sees, and what Aurora reads -----------------------------------------------------------------------
 def view(cfg: sys_config.Config, viewer: str, users: list[str], admin: str | None) -> dict:
     """The viewer's own card whole; every other user's visible part; the relations confirmed, and the viewer's own
@@ -329,7 +365,8 @@ def prompt_block(cfg: sys_config.Config, viewer: str | None, users: list[str], a
                 bits.append(f"{word} {c[k]}")
         bio = [b["text"] for b in c.get("bio", [])] if own or visible(c, "bio") else []
         if bio:
-            bits.append("— " + "; ".join(bio[:8]))
+            text = "; ".join(bio[:12])
+            bits.append("— " + (text if len(text) <= 1500 else text[:1499] + "…"))    # the prompt kept small
         lines.append(("THE PERSON ASKING: " if own else "") + " ".join(bits))
     for r in d["relations"]:
         if r["state"] == "confirmed":

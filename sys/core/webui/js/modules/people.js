@@ -126,8 +126,10 @@ export default {
     bv.checked = !!vis.bio;
     bv.addEventListener("change", () => this.send("/v1/aurora/people/me", "PUT", { visible: { bio: bv.checked } }));
     bioVis.append(bv, el("span", "", t("ppl.bio_visible")));
-    const add = el("form", "appr-actions");
-    const line = el("input");
+    const add = el("form", "appr-actions ppl-bio-add");
+    const line = el("textarea");                      // a short paragraph, up to 600 characters (owner, 30 Oct)
+    line.rows = 3;
+    line.maxLength = 600;
     line.placeholder = t("ppl.bio_ph");
     const go = el("button", "", t("ppl.add"));
     go.type = "submit";
@@ -135,12 +137,20 @@ export default {
     add.addEventListener("submit", (ev) => { ev.preventDefault(); if (line.value.trim()) this.send("/v1/aurora/people/me/bio", "POST", { text: line.value }); });
     const propose = el("button", "", `💡 ${t("ppl.propose")}`);
     propose.type = "button";
+    const said = el("span", "muted");
     propose.addEventListener("click", async () => {
       propose.disabled = true;
       propose.textContent = `⏳ ${t("ppl.proposing")}`;
-      await this.send("/v1/aurora/people/me/propose", "POST", {});
+      try {
+        const r = await call("/v1/aurora/people/me/propose", { method: "POST", body: "{}" });
+        this.draw(r);                                   // and say what came of it: «nothing happens» was 0 lines unsaid
+        const box = this.root.querySelector(".ppl-propose-said");
+        if (box) box.textContent = r.why === "no_memories" ? t("ppl.prop_none_mem") : r.proposed ? t("ppl.prop_n", { n: r.proposed })
+          : r.found ? t("ppl.prop_known") : t("ppl.prop_none");
+      } catch (e) { propose.disabled = false; propose.textContent = `💡 ${t("ppl.propose")}`; said.textContent = e.message; }
     });
-    bio.append(bioVis, add, propose);
+    said.className = "muted ppl-propose-said";
+    bio.append(bioVis, add, propose, said);
     for (const p of mine.proposals || []) {
       const row = el("div", "ppl-line ppl-proposal");
       row.append(el("span", "", `💡 ${p.text}`));

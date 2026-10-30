@@ -50,7 +50,7 @@ purge listing, not hidden.
 ## 🪪 The people of this Aurora (30 Oct 2026, sys_people)
 
 - One card each (✨ Life → 🪪 Aurora's people): name, birthday, city, work, social pages, a biography. The person writes it and chooses per field what the others see; name, role and relations are seen by default, the rest is private until they say.
-- The biography: lines the person writes, or Aurora's proposals from that person's own session memories (the local model; never health, feelings or others' matters), entering only with their yes; a no is never proposed again.
+- The biography: lines the person writes, or Aurora's proposals from that person's own session memories (the local model; never health, feelings or others' matters), entering only with their yes; a no is never proposed again. A line may be a short paragraph (600 characters). A new user (not the admin) is invited once, at the start of a conversation, to tell her about themselves; once there are memories of their conversations, the cycle prepares their first proposals and tells them.
 - A relation (spouse, partner, parent, sibling, relative, friend, colleague) is asked by one and confirmed by the other; either takes it away.
 - The admin's card says what they are to her: her creator and programmer.
 - A picture: a photo the person gives (cut square, 512 px, its metadata dropped, sealed) or an avatar Aurora makes from it or from their words, in a style from a closed list, with the local image models only — a face never leaves the computer; private until the person lets the others see it.
