@@ -48,11 +48,14 @@ STYLE = {
 
 
 def system(cfg: sys_config.Config, recent: list, lang: str) -> str:
+    from . import kno_self                                # the rule on greeting again, one for both routes
     today = sns_clock.now(cfg)
     days = "; ".join(f"{label} = {sns_clock.DAYS_IT[d.weekday()]} {d:%Y-%m-%d}" for label, d in
                      (("oggi", today), ("ieri", today - timedelta(days=1))))
     return (sys_persona.identity(cfg) + f"\n\nCALENDAR: {days}, now {today:%H:%M}."
             + (f"\n\nTHIS CONVERSATION SO FAR:\n{_turns(recent)}" if recent else "")
+            + (kno_self.NO_GREETING if kno_self.going_on(recent) else "")
+            + kno_self.people_block(cfg, "en" if lang == "en" else "it")
             + STYLE["en" if lang == "en" else "it"].replace("{owner}", str(cfg["AURORA_OWNER_NAME"])))
 
 

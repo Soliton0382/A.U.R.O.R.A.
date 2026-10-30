@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-1505%20passed-1baf7a" alt="Tests"> <img src="https://img.shields.io/badge/code-111k%20lines-6a4fd6" alt="Lines of code"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-1511%20passed-1baf7a" alt="Tests"> <img src="https://img.shields.io/badge/code-112k%20lines-6a4fd6" alt="Lines of code"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
 
 <p align="center">🇮🇹 <b>Italiano</b> · 🇬🇧 <a href="README.en.md">English</a></p>
 
@@ -404,6 +404,8 @@ multi a single gli altri utenti vengono eliminati con tutti i loro dati, dopo l'
 dell'amministratore non vengono mai toccati. Per passare a multi imposti prima la tua password e colleghi
 l'Authenticator in 👥 Utenti, poi crei gli utenti lì. Installata direttamente in multi, al primo accesso entri con la
 chiave API e Aurora ti porta a creare password e codice prima di tutto il resto (docs/MULTIUSER.md).
+
+**🪪 Persone di Aurora.** Ognuno ha la sua scheda (foto o un avatar che Aurora dipinge dalla foto o da parole tue, solo con i modelli locali; nome, data di nascita, città, lavoro, social, una biografia: Aurora propone frasi dai ricordi delle tue conversazioni, con il modello locale, ed entrano solo se dici sì) e sceglie campo per campo cosa vedono gli altri; le relazioni (moglie, figlio, amico…) valgono quando le confermate in due. Così Aurora sa chi siete per lei e fra di voi, e chi l'ha creata, ma delle conversazioni degli altri dice chiaro che non può parlare.
 
 **🛟 Assistenza.** Un utente può far entrare l'amministratore nel suo account per 8, 16, 24, 48 o 72 ore (👥 Utenti →
 🛟 Assistenza: l'avviso accanto al pulsante è il consenso); la chiude quando vuole, e alla scadenza si chiude da sola.

@@ -61,13 +61,14 @@ import ideas from "./modules/ideas_page.js";
 import https from "./modules/https.js";
 import home from "./modules/home.js";
 import keys from "./modules/keys.js";
+import people from "./modules/people.js";
 import { kinds as homeKinds } from "./modules/home.js";
 
 // this installation's own pages (js/local, never published): added when present
 let local = { views: [] };
 try { local = await import("./local/index.js"); } catch { /* none on this installation */ }
 
-export const views = [today, advanced, chat, anonchat, interpret, approvals, reports, secFirewalls, secEdge, security, ciso, firewall, aurorafw, secDefence, secWatch, secOut, secEgress, secTrace, autonomy, diary, dreams, memory, social, dj, care, expenses, astro, home, consoles, calendar, projects, routines, models, accounts, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, usage, settings, https, ups, hosts, guide, bugreport, ideas, phoneApp, keys];
+export const views = [today, advanced, chat, anonchat, interpret, approvals, reports, secFirewalls, secEdge, security, ciso, firewall, aurorafw, secDefence, secWatch, secOut, secEgress, secTrace, autonomy, diary, dreams, memory, social, dj, care, expenses, astro, home, consoles, calendar, projects, routines, models, accounts, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, usage, settings, https, ups, hosts, guide, bugreport, ideas, phoneApp, keys, people];
 views.push(...homeKinds, ...local.views);
 export const widgets = [sky, alerts, metrics, brain];
 
@@ -79,7 +80,7 @@ export const groups = [
   { id: "anonchat", views: ["anonchat"] },              // 🕶️ the anonymous chat, beside the chat (owner, 20 Oct)
   { id: "interpret", views: ["interpret"] },            // 🌍 the interpreter, a page of its own (owner, 24 Oct)
   { id: "activity", icon: "🛎️", title: "nav.g.activity", views: ["approvals", "notifications", "reports", "runs"] },
-  { id: "life", icon: "✨", title: "nav.g.life", views: ["calendar", "diary", "dreams", "memory", "social", "dj", "care", "expenses", "astro"] },
+  { id: "life", icon: "✨", title: "nav.g.life", views: ["calendar", "people", "diary", "dreams", "memory", "social", "dj", "care", "expenses", "astro"] },
   // 🏠 the house (owner, 2026-10-12: «sotto casa avremmo tab casa e poi…»): Home Assistant's pages
   // 🖥️ the devices' own management pages, beside the house (owner, 28 Oct)
   { id: "home", icon: "🏠", title: "nav.g.home", views: ["home", "consoles", ...homeKinds.map((v) => v.id),

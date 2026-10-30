@@ -1,0 +1,27 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright 2026 A.U.R.O.R.A. Project */
+/* 🪪 The people of this Aurora (people.js): my card, my biography, the relations, the others' cards as tiles */
+.ppl-ask { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; padding: .55rem .8rem; margin: .4rem 0;
+  border: 1px solid var(--accent-line, var(--accent)); border-radius: var(--radius); }
+.ppl-ask > span { flex: 1 1 16rem; }
+.ppl-card { display: flex; flex-direction: column; gap: .5rem; max-width: 44rem; }
+.ppl-field { display: grid; grid-template-columns: 9rem 1fr auto; gap: .6rem; align-items: center; }
+.ppl-label { font-size: .85rem; color: var(--muted); }
+.ppl-eye { display: flex; align-items: center; gap: .35rem; font-size: .8rem; white-space: nowrap; cursor: pointer; }
+.ppl-bio-box, .ppl-rel-box { display: flex; flex-direction: column; gap: .4rem; max-width: 44rem; margin-bottom: .8rem; }
+.ppl-line { display: flex; align-items: center; gap: .5rem; padding: .3rem .5rem; border: 1px solid var(--line); border-radius: 8px; }
+.ppl-line > span { flex: 1; overflow-wrap: anywhere; }
+.ppl-proposal { border-style: dashed; }
+.ppl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: .7rem; margin: .4rem 0 1rem; }
+.ppl-tile { display: flex; flex-direction: column; gap: .25rem; padding: .8rem .9rem; border: 1px solid var(--line);
+  border-radius: var(--radius); background: var(--surface); min-width: 0; }
+.ppl-tile a { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 640px) { .ppl-field { grid-template-columns: 1fr; } }
+.ppl-pic-box { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-start; margin-bottom: .8rem; max-width: 44rem; }
+.ppl-face-big { width: 8rem; height: 8rem; border-radius: 50%; overflow: hidden; display: grid; place-items: center;
+  border: 2px solid var(--accent-line, var(--accent)); background: var(--panel2); font-size: 3rem; flex: none; }
+.ppl-face-big img, .ppl-face { width: 100%; height: 100%; object-fit: cover; }
+.ppl-face { width: 4rem; height: 4rem; border-radius: 50%; align-self: center; }
+.ppl-pic-tools { display: flex; flex-direction: column; gap: .45rem; flex: 1 1 18rem; min-width: 0; }
+.ppl-upload { display: inline-block; padding: .4rem .8rem; border: 1px dashed var(--accent); border-radius: 8px; cursor: pointer; align-self: flex-start; }
+.ppl-show { display: flex; flex-wrap: wrap; gap: .8rem; }

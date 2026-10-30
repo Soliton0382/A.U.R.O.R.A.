@@ -47,6 +47,15 @@ purge listing, not hidden.
 | plugins with `external` or `code_change` effects (Facebook, …) | ✅ | ❌ unless the admin grants it |
 | read another user's conversations | ❌ (only inside an assistance the user opened: 🛟 below) | ❌ |
 
+## 🪪 The people of this Aurora (30 Oct 2026, sys_people)
+
+- One card each (✨ Life → 🪪 Aurora's people): name, birthday, city, work, social pages, a biography. The person writes it and chooses per field what the others see; name, role and relations are seen by default, the rest is private until they say.
+- The biography: lines the person writes, or Aurora's proposals from that person's own session memories (the local model; never health, feelings or others' matters), entering only with their yes; a no is never proposed again.
+- A relation (spouse, partner, parent, sibling, relative, friend, colleague) is asked by one and confirmed by the other; either takes it away.
+- The admin's card says what they are to her: her creator and programmer.
+- A picture: a photo the person gives (cut square, 512 px, its metadata dropped, sealed) or an avatar Aurora makes from it or from their words, in a style from a closed list, with the local image models only — a face never leaves the computer; private until the person lets the others see it.
+- What Aurora reads, for the person asking: their own card whole, the others' visible part, the relations confirmed, and the rule — another user's conversations are theirs: asked what someone said, she says plainly she cannot speak of it. The cards are a store apart (people.sealed), never filled by a conversation by itself, never holding one.
+
 ## 🛟 Assistance (30 Oct 2026, sys_assist)
 
 The user opens a window of 8, 16, 24, 48 or 72 hours from 👥 Users → 🛟 Assistance (the notice beside the button is the

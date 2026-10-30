@@ -94,12 +94,14 @@ def _wait(cond, limit_s: float, step: float = 2.0) -> bool:
     return cond()
 
 
-def paint(prompt: str, name: str, cfg: sys_config.Config | None = None, emit=None, title: str = "") -> dict:
-    """Paint `prompt` into AURORA_IMAGE_DIR/<name>.png. Returns {"file", "seconds", "swap", ...}."""
+def paint(prompt: str, name: str, cfg: sys_config.Config | None = None, emit=None, title: str = "",
+          local_only: bool = False) -> dict:
+    """Paint `prompt` into AURORA_IMAGE_DIR/<name>.png. Returns {"file", "seconds", "swap", ...}. `local_only`: never
+    a provider, whatever the Models page says (a person's avatar: their words stay home)."""
     cfg = cfg or sys_config.get()
     log = sys_log.get_logger("image")
     ev = emit or (lambda e, d: None)
-    cloud = _cloud(cfg, "image", prompt, None, log)           # the Models page may give new pictures to a provider
+    cloud = None if local_only else _cloud(cfg, "image", prompt, None, log)   # the Models page may give it a provider
     if cloud is not None:
         from PIL import Image
         out_dir = cfg.path("AURORA_IMAGE_DIR")

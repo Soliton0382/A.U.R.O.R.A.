@@ -6,6 +6,7 @@ state measured now and her memories, never from the vault's knowledge. A mixin o
 from __future__ import annotations
 
 import json
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Callable
@@ -31,6 +32,38 @@ SYS_ROUTE_QUOTE = ("The owner replies to a MESSAGE of the assistant Aurora, quot
                    "for facts the message does not contain (more about its subject, a related question). "
                    "Examples: 'spiegamelo in due righe' ON; 'traducilo in inglese' ON; 'perché dici così?' ON; "
                    "'chi l'ha scoperto?' NEW; 'e come si misura?' NEW. Reply with exactly one word.")
+
+
+GOING_ON_S = 30 * 60                                      # a last turn this recent: the same conversation
+NO_GREETING = ("\n\nTHE CONVERSATION IS GOING ON (your last message is a few minutes old): do not greet again — "
+               "no «Ciao», «Buongiorno», «Bentornato» —, go on from where it is.")
+
+
+def going_on(recent) -> bool:
+    """A conversation going on: its last turn under GOING_ON_S old (owner, 30 Oct: greeted twice in a row)."""
+    if not recent:
+        return False
+    try:
+        from datetime import datetime as _dt
+        last = recent[-1].created_at
+        ts = last if isinstance(last, (int, float)) else _dt.fromisoformat(str(last)).timestamp()
+    except (ValueError, TypeError, AttributeError):
+        return False
+    return time.time() - ts < GOING_ON_S
+
+
+def people_block(cfg, lang: str = "it") -> str:
+    """🪪 The people of this Aurora for the person asking (sys_people): "" alone, or when it cannot be read."""
+    try:
+        from . import sys_context, sys_people, sys_users
+        base = cfg.base or cfg
+        users = sys_users.Users(base)
+        if not users.path.exists():                           # one person alone: nobody to speak of, nothing made
+            return ""
+        names = [u["name"] for u in users.list()]
+        return sys_people.prompt_block(base, sys_context.user() or users.admin_name(), names, users.admin_name(), lang)
+    except Exception:  # noqa: BLE001 — no users' store, a sealed file unreadable: nothing, never a failed answer
+        return ""
 
 
 class SelfTalk:
@@ -140,6 +173,9 @@ class SelfTalk:
                 used += n
         return "\n".join(line(s) for s in mems if s.sid in keep)
 
+    def _going_on(self, recent: list[Soliton]) -> bool:
+        return going_on(recent)
+
     def _self_answer(self, question: str, recent: list[Soliton], ev: Emit, quote: Soliton | None = None) -> str:
         state = self.self_state()
         ev("self.state", state)
@@ -154,6 +190,10 @@ class SelfTalk:
                      f"If what is asked is not here, say you do not remember it, do not invent:\n{self._memory_block(mems, asked)}"
                      if mems else "\n\nYOUR MEMORIES: none found for this question; do not invent any.")
                   + (f"\n\nRECENT CONVERSATION:\n{self._turns(recent, len(recent))}" if recent else "")
+                  # a conversation going on: no greeting again (owner, 30 Oct: «mi ha salutata 2 volte consecutivamente…
+                  # anche se… mi stava rispondendo al proseguo del messaggio precedente»)
+                  + (NO_GREETING if self._going_on(recent) else "")
+                  + people_block(self.cfg)
                   + (f"\n\nTHE OWNER REPLIES TO THIS MESSAGE OF YOURS (work on it as asked, adding no facts it does "
                      f"not contain):\n{quote.text}" if quote is not None else ""))
         model, parts = self._for("self"), []

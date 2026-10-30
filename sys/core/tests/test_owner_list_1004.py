@@ -426,7 +426,7 @@ def test_the_live_capabilities_say_what_is_missing(cfg):
         SimpleNamespace(name="email", available=False, enabled=True, missing=["AURORA_EMAIL_USER"], error="")])
     r = C.report(cfg, host)
     assert [x["ok"] for x in r["plugins"]] == [True, False] and "AURORA_EMAIL_USER" in r["plugins"][1]["detail"]
-    assert any(x["name"] == "cloud:openai" for x in r["connections"]) and len(r["abilities"]) == 5
+    assert any(x["name"] == "cloud:openai" for x in r["connections"]) and len(r["abilities"]) == 7   # + avatar, invites (30 Oct)
     boom = C._safe("x", "X", "X", lambda: 1 / 0)
     assert boom["ok"] is False and "ZeroDivisionError" in boom["detail"]
 

@@ -45,6 +45,10 @@ FEATURES = {
                   ["tts"], ["AURORA_TTS_BIN"], "AURORA_TTS", []),
     "songs": (False, {"it": "Canzoni da un'idea (ACE-Step 1.5)", "en": "Songs from an idea (ACE-Step 1.5)"},
               ["music"], ["AURORA_SONG_DIR"], None, ["ffmpeg"]),
+    # the installer offered it (GROUPS «voice_natural») but no line said whether it is here (owner, 30 Oct: the
+    # Status page's list to be brought up to date)
+    "voice_natural": (False, {"it": "Voce naturale di Aurora (Qwen3-TTS)", "en": "Aurora's natural voice (Qwen3-TTS)"},
+                      ["tts_qwen"], [], None, []),
 }
 # the features a media task of the Models page can give to a cloud provider (mdl_media)
 MEDIA_TASK = {"dreams": "image", "edit_ai": "edit", "video_make": "video", "voice_out": "voice", "speech": "speech"}
@@ -62,7 +66,7 @@ GROUPS = {
                            "en": "Photos: creative edits in words (FLUX.2 klein)"}},
     "voice": {"models": ["tts"], "features": ["voice_out"], "default": True,
               "label": {"it": "Voce di Aurora (lettura ad alta voce, sulla CPU)", "en": "Aurora's voice (reading aloud, on the CPU)"}},
-    "voice_natural": {"models": ["tts_qwen"], "features": [], "default": True, "gpu": True,
+    "voice_natural": {"models": ["tts_qwen"], "features": ["voice_natural"], "default": True, "gpu": True,
                       "label": {"it": "Voce naturale di Aurora (Qwen3-TTS, sulla GPU, ~2,5 GB)",
                                 "en": "Aurora's natural voice (Qwen3-TTS, on the GPU, ~2.5 GB)"}},
     # part of Aurora wherever the hardware allows (owner, 27 Oct: «quando uno installa aurora questa parte deve essere

@@ -2,6 +2,13 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.3.29 — 2026-10-30
+
+2 publications since v0.3.27.
+
+- 2026-10-30 Aurora's people: a card each with a photo or an avatar Aurora paints (local models), fields chosen visible, a biography from one's own memories, relations confirmed by both; no greeting again in a conversation going on; the natural voice and the new abilities on the Status page
+- 2026-10-30 Calendar invitations answered: the invited user is told and accepts or declines, the maker hears the answer; moved, they are asked again
+
 ## v0.3.28 — 2026-10-30
 
 1 publications since v0.3.27.

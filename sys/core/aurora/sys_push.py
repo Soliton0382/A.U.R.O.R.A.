@@ -77,6 +77,8 @@ TEXTS = {   # event -> (kind the owner chooses, view to open, {lang: title})
     "dj.learn_failed": ("creation", "dj", {"it": "🎓 Lo stile non si è potuto imparare", "en": "🎓 The style could not be learnt"}),
     "diet.meal": ("diet", "chat", {"it": "🍽️ È ora di mangiare", "en": "🍽️ Time to eat"}),
     "calendar.alert": ("calendar", "chat", {"it": "📅 Promemoria", "en": "📅 Reminder"}),
+    "people.relation": ("access", "people", {"it": "🪪 Una relazione da confermare", "en": "🪪 A relation to confirm"}),
+    "people.relation_answer": ("access", "people", {"it": "🪪 Relazione confermata o no", "en": "🪪 A relation answered"}),
     "calendar.invite": ("calendar", "calendar", {"it": "👥 Nuovo invito", "en": "👥 New invitation"}),
     "calendar.moved": ("calendar", "calendar", {"it": "🔁 Appuntamento spostato", "en": "🔁 Appointment moved"}),
     "calendar.rsvp": ("calendar", "calendar", {"it": "👥 Risposta a un invito", "en": "👥 An invitation answered"}),

@@ -98,10 +98,25 @@ def abilities(cfg: sys_config.Config) -> list[dict]:
     def study():
         n = int(cfg["AURORA_STUDY_PER_NIGHT"])
         return _line("study", n > 0, "Studio notturno", "Night study", f"fino a {n} domande a notte" if n else "spento")
+
+    def avatar():                                        # 🪪 the people's cards (sys_people, api/people)
+        from . import sys_features
+        f = sys_features.report(cfg)
+        ways = [w for k, w in (("edit_ai", "dalla foto"), ("dreams", "dalle parole")) if f.get(k, {}).get("ok")]
+        return _line("avatar", bool(ways), "Avatar delle schede", "The cards' avatars",
+                     ", ".join(ways) + " (modelli locali)" if ways else "servono i modelli delle immagini",
+                     ".venv/bin/python sys/core/script/sys_models_fetch.py --models photo_ai --yes")
+
+    def invites():                                       # 👥 the calendar's invitations by e-mail (cal_share)
+        ok = all(str(cfg.values.get(k) or "") for k in ("AURORA_EMAIL_SMTP_HOST", "AURORA_EMAIL_USER", "AURORA_EMAIL_PASSWORD"))
+        return _line("invites", ok, "Inviti del calendario per email", "Calendar invitations by e-mail",
+                     "dalla casella del plugin ✉️" if ok else "il plugin ✉️ email non è configurato",
+                     "🔌 Plugin → ✉️ email → ⚙️ (server, indirizzo, password per le app)")
     return [_safe(n, it, en, f) for n, it, en, f in (
         ("shadow", "Ombra delle risposte", "Answer shadow", shadow), ("voice", "Voce di Aurora", "Aurora's voice", voice),
         ("netmap", "Mappa della rete", "Network map", netmap), ("synapses", "Sinapsi", "Synapses", synapses),
-        ("study", "Studio notturno", "Night study", study))]
+        ("study", "Studio notturno", "Night study", study), ("avatar", "Avatar delle schede", "The cards' avatars", avatar),
+        ("invites", "Inviti del calendario per email", "Calendar invitations by e-mail", invites))]
 
 
 def report(cfg: sys_config.Config, host) -> dict:
