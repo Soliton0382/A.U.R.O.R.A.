@@ -217,14 +217,6 @@ refuses the rest; sudo lets the target's user run only the two power commands. W
 restart or shut down that machine. A machine counts for the UPS only after a trial that worked, and again after its
 address or user changes. Every restart and shutdown is an audit line in the power log.
 
-## Aurora's VPN (2026-10-30)
-
-- One unit only may touch the network's configuration: aurora-vpn (svc_vpn.py), as the service user, with CAP_NET_ADMIN (its tun device, three routing rules, table 711, the nftables table `aurora_vpn`) and CAP_NET_BIND_SERVICE (its resolver on 127.0.0.71:53); the other units keep no capability.
-- Only the service user's traffic: `ip rule uidrange`; its local routes (LAN, loopback) by the main table first (`suppress_prefixlength 0`), so the WebUI's answers and the home network never enter the tunnel; the tunnel's own packets and the services left out are marked (0x711) and keep the normal line.
-- The kill switch: while no tunnel is up, the table says `unreachable` (IPv6 always): Aurora fails at once and never leaves by the normal line, unless the owner says so on the page (or turns the kill switch off).
-- An imported .ovpn keeps only the directives of a client's connection (net_vpn.KEEP and the certificate blocks); what runs a program (`up`, `script-security`…), sets routes (`redirect-gateway`, `route`) or reads a file is dropped and said. The profiles and the provider's user name and password are sealed; the plain configuration and the password file live only in the unit's RuntimeDirectory (0700) while openvpn runs.
-- DNS: while the tunnel is up the services read a resolver file bound over the machine's (their units only) pointing to 127.0.0.71; the names under the chosen domains go to the machine's resolver, the rest through the tunnel.
-
 ## Assistance: the admin inside a user's account (2026-10-30, ROADMAP 🛟)
 
 - Only when the user opens a window (8, 16, 24, 48 or 72 h) from their own page; the disclaimer beside the button is the consent. The user closes it at any moment; it ends by itself, and a session inside it ends with it (checked at every request).

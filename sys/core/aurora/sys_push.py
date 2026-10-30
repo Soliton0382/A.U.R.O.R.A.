@@ -90,8 +90,6 @@ TEXTS = {   # event -> (kind the owner chooses, view to open, {lang: title})
     "harvest.waiting": ("harvest", "harvester", {"it": "🌾 L'harvester è in attesa", "en": "🌾 The harvester is waiting"}),
     "health.down": ("health", "status", {"it": "🚨 Aurora non sta bene", "en": "🚨 Aurora is not well"}),
     "health.up": ("health", "status", {"it": "✅ Aurora è tornata a posto", "en": "✅ Aurora is fine again"}),
-    "vpn.failed": ("health", "vpn", {"it": "🔒 VPN giù: Aurora senza internet", "en": "🔒 VPN down: Aurora offline"}),
-    "vpn.back": ("health", "vpn", {"it": "🔒 VPN di nuovo attiva", "en": "🔒 VPN up again"}),
     "assist.begin": ("access", "users", {"it": "🛟 Assistenza iniziata", "en": "🛟 Assistance began"}),
     "assist.end": ("access", "users", {"it": "🛟 Assistenza finita", "en": "🛟 Assistance ended"}),
     "device.new": ("access", "settings", {"it": "🔐 Nuovo accesso al tuo account", "en": "🔐 A new sign-in to your account"}),

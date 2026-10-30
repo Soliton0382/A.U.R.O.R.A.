@@ -61,14 +61,13 @@ import ideas from "./modules/ideas_page.js";
 import https from "./modules/https.js";
 import home from "./modules/home.js";
 import keys from "./modules/keys.js";
-import vpn from "./modules/vpn.js";
 import { kinds as homeKinds } from "./modules/home.js";
 
 // this installation's own pages (js/local, never published): added when present
 let local = { views: [] };
 try { local = await import("./local/index.js"); } catch { /* none on this installation */ }
 
-export const views = [today, advanced, chat, anonchat, interpret, approvals, reports, secFirewalls, secEdge, security, ciso, firewall, aurorafw, secDefence, secWatch, secOut, secEgress, secTrace, autonomy, diary, dreams, memory, social, dj, care, expenses, astro, home, consoles, calendar, projects, routines, models, accounts, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, usage, settings, https, ups, hosts, guide, bugreport, ideas, phoneApp, keys, vpn];
+export const views = [today, advanced, chat, anonchat, interpret, approvals, reports, secFirewalls, secEdge, security, ciso, firewall, aurorafw, secDefence, secWatch, secOut, secEgress, secTrace, autonomy, diary, dreams, memory, social, dj, care, expenses, astro, home, consoles, calendar, projects, routines, models, accounts, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, usage, settings, https, ups, hosts, guide, bugreport, ideas, phoneApp, keys];
 views.push(...homeKinds, ...local.views);
 export const widgets = [sky, alerts, metrics, brain];
 
@@ -90,7 +89,7 @@ export const groups = [
   // the security area (owner, 2026-10-08: «sotto menù specifici CISO, etc… separate e pulite»); defence, checks and
   // what was shared are tabs of 🚨 Incidenti e difesa, one entry (owner, 27 Oct: «sono già tutti accorpati… basta una
   // voce sola del menù»): their own ids still open the page on their tab
-  { id: "security", icon: "🛡️", title: "nav.g.security", views: ["firewalls", "edge", "security", "ciso", "firewall", "aurorafw", "secegress", "sectrace", "vpn"] },
+  { id: "security", icon: "🛡️", title: "nav.g.security", views: ["firewalls", "edge", "security", "ciso", "firewall", "aurorafw", "secegress", "sectrace"] },
   // ⚙️ the system, with how free Aurora is and the phone app (owner, 27 Oct: «app per il telefono lo metterei sotto la
   // voce sistema… anche autonomia»)
   { id: "system", icon: "⚙️", title: "nav.g.system", views: ["status", "autonomy", "models", "accounts", "plugins", "users", "usage", "settings", "https", "updates", "ups", "hosts", "keys", "phoneapp"] },
@@ -98,6 +97,9 @@ export const groups = [
 ];
 // the machine's pages (owner, 2026-10-06, multi-user): a user sees neither them in the menu nor their data (the API
 // answers 403); their own preferences are in 👥 Users → My account, their plugins' settings in the plugins' cards
-export const adminOnly = new Set(["vpn", "firewalls", "edge", "security", "ciso", "firewall", "aurorafw", "secdefence", "secwatch", "secout", "secegress", "sectrace", "models", "harvester", "synapses", "status", "updates", "import", "https"]);
+// a page of this installation's own (js/local) goes into the area it names (v.group), the house's included above
+for (const g of groups) if (g.id !== "home") g.views.push(...local.views.filter((v) => v.group === g.id).map((v) => v.id));
+
+export const adminOnly = new Set(["firewalls", "edge", "security", "ciso", "firewall", "aurorafw", "secdefence", "secwatch", "secout", "secegress", "sectrace", "models", "harvester", "synapses", "status", "updates", "import", "https"]);
 // a page may say it is the admin's alone (adminOnly: true), e.g. an installation's own pages about the house
 for (const v of views) if (v.adminOnly) adminOnly.add(v.id);

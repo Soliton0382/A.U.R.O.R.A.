@@ -204,6 +204,13 @@ def check(cfg: sys_config.Config | None = None) -> dict:
         add("backup", "ok", f"ultimo {age_h:.0f} h fa: {last.get('files')} file, {last.get('bytes', 0) / 1e9:.1f} GB, "
             f"{len(b['snapshots'])} copie", b.get("dest", ""))
 
+    try:                                                 # this installation's own lines (aurora/local), if any
+        from . import local
+        for line in getattr(local, "health", lambda c: [])(cfg):
+            add(*line)
+    except ImportError:
+        pass
+
     from . import sys_ethics                             # the code as the owner signed it (second tier)
     drift = sys_ethics.drift_summary(sys_ethics.code_drift(cfg.root))
     add("firma del codice", "warn" if drift else "ok", drift or "ogni file come firmato dal proprietario")

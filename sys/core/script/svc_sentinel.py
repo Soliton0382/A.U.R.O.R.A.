@@ -75,6 +75,11 @@ def main() -> int:
     sys_ethics.require_intact(log)
     host, _, port = str(cfg["AURORA_SENTINEL_BIND"]).rpartition(":")
     allow = set(cfg["AURORA_SENTINEL_ALLOW"])
+    try:                                               # this installation's own addresses (aurora/local), if any
+        from aurora import local
+        own = getattr(local, "own_address", lambda c, ip: False)
+    except ImportError:
+        own = lambda c, ip: False                      # noqa: E731
     sock = socket.socket(socket.AF_INET6 if ":" in host else socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind((host, int(port)))
     sock.settimeout(1.0)
@@ -145,6 +150,8 @@ def main() -> int:
         line = data.decode("utf-8", errors="replace").strip()
         fw.info("%s %s", addr, line)
         f = parse(line)
+        if own(cfg, src_of(f) or ""):                  # an address of Aurora's own (this installation's, aurora/local):
+            continue                                   # hers, never an attack from outside — said in her health
         quiet = household(f)                           # the house's chatter: logged and learned, never an incident
         if quiet:
             recon.chatter(src_of(f), time.time(), str(f.get("dst_port", "")))

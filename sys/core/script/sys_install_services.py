@@ -362,11 +362,6 @@ def main() -> int:
                              f"{py} {script / 'svc_harvester.py'}", ""),
         "aurora-sentinel": ("sentinel (firewall syslog, incidents)", "aurora-api.service",
                             f"{py} {script / 'svc_sentinel.py'}", ""),
-        # 🔒 Aurora's own internet through a VPN (net_vpn): idle until the owner turns it on; the only unit that may
-        # make a device and routing rules (CAP_NET_ADMIN), for the service user's traffic alone
-        "aurora-vpn": ("VPN of Aurora's own internet (OpenVPN)", "", f"{py} {script / 'svc_vpn.py'}",
-                       "AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE\nRuntimeDirectory=aurora-vpn\n"
-                       "RuntimeDirectoryMode=0700\n"),
         "aurora-https": ("HTTPS (Caddy)", "aurora-api.service",
                          f"{cfg['AURORA_CADDY_BIN']} run --config {caddyfile} --adapter caddyfile",
                          f"ExecReload={cfg['AURORA_CADDY_BIN']} reload --config {caddyfile} --adapter caddyfile --force\n"
@@ -399,19 +394,25 @@ def main() -> int:
     stale = out / "aurora-llm.service"
     if cloud and stale.exists():                       # written when this machine had a local reasoner
         stale.unlink()
-    # the services' resolver (net_vpn.set_dns): the machine's while the VPN is off, the tunnel's while it is up; the
-    # VPN's own unit and the reasoner (no network) keep the machine's
-    from aurora import net_vpn
-    if not net_vpn.resolv(cfg).exists():
-        net_vpn.set_dns(cfg, None)
+    # this installation's own units and its resolver file for the services (aurora/local), if any: the own units and
+    # the reasoner (no network) keep the machine's resolver
+    caps, own, resolver = {}, set(), None
+    try:
+        from aurora import local
+        for name, (desc, after, exec_, extra, cap) in getattr(local, "units", lambda c, p: {})(cfg, py).items():
+            units[name], caps[name] = (desc, after, exec_, extra), cap
+            own.add(name)
+        resolver = getattr(local, "resolver", lambda c: None)(cfg)
+    except ImportError:
+        pass
     import os
     resolv_at = os.path.realpath("/etc/resolv.conf")    # a link to systemd-resolved's stub here: its target, a file
     for name, (desc, after, exec_, extra) in units.items():
-        if str(py) in exec_ and name not in ("aurora-vpn", "aurora-llm"):
-            extra += f"BindReadOnlyPaths=-{net_vpn.resolv(cfg)}:{resolv_at}\n"
+        if resolver and str(py) in exec_ and name not in own and name != "aurora-llm":
+            extra += f"BindReadOnlyPaths=-{resolver}:{resolv_at}\n"
         if cfg["AURORA_SERVICE_HARDENING"]:
             extra += hardening(root, sys_config.service_user(cfg), name == "aurora-https" and low_ports,
-                               hosts_plugins=name == "aurora-api", caps="CAP_NET_ADMIN CAP_NET_BIND_SERVICE" if name == "aurora-vpn" else "")
+                               hosts_plugins=name == "aurora-api", caps=caps.get(name, ""))
         (out / f"{name}.service").write_text(UNIT.substitute(
             description=desc, after=after, user=sys_config.service_user(cfg), root=root, exec=exec_, extra=extra),
             encoding="utf-8")
