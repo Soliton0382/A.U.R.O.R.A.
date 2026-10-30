@@ -142,15 +142,23 @@ def _public(url: str) -> str | None:
 
 class _Text(html.parser.HTMLParser):
     SKIP = {"script", "style", "noscript", "nav", "footer", "header", "svg", "form", "aside"}
+    PDF_META = ("citation_pdf_url", "eprints.document_url", "bepress_citation_pdf_url")
 
     def __init__(self):
         super().__init__()
-        self.out, self.skip = [], 0
+        self.out, self.skip, self.pdfs = [], 0, []      # pdfs: the paper's own PDF first (its citation tag), then links
 
     def handle_starttag(self, tag, attrs):
         self.skip += tag in self.SKIP
         if tag in ("p", "br", "li", "h1", "h2", "h3", "tr", "div", "td"):
             self.out.append("\n")
+        a = dict(attrs)
+        if tag == "meta" and (a.get("name") or "").lower() in self.PDF_META and a.get("content"):
+            self.pdfs.insert(0, a["content"])
+        elif tag == "link" and "pdf" in (a.get("type") or "").lower() and a.get("href"):
+            self.pdfs.append(a["href"])
+        elif tag == "a" and re.search(r"\.pdf($|[?#])", a.get("href") or "", re.I) and len(self.pdfs) < 8:
+            self.pdfs.append(a["href"])
 
     def handle_endtag(self, tag):
         self.skip -= tag in self.SKIP and self.skip > 0
@@ -160,36 +168,88 @@ class _Text(html.parser.HTMLParser):
             self.out.append(d)
 
 
-def page(url: str, chars: int = 12000) -> str:
-    """A public page as plain text (its first `chars`); "" when it cannot be read, or when its reputation says not to
-    open it (the plugin linkcheck: sec_linkcheck)."""
-    addr = _public(url)
-    if not addr:
-        return ""
+# reading a page whole (owner, 30 Oct: «le ho dato il link del mio paper ha letto solo l'abstract e non il PDF… lo
+# possiamo potenziare?»): a page's redirects followed, each hop checked again; a PDF read as text; a paper's page
+# opens its own PDF (citation_pdf_url, as Zenodo, arXiv and the journals give it, or a link to a .pdf)
+HOPS = 4
+PAGE_MAX = 1024 * 1024
+PDF_MAX = 25 * 1024 * 1024
+PAPER_CHARS = 30000                                     # a paper read whole is longer than a page's 12,000
+
+
+def _fetch(url: str, limit: int):
+    """(response, final url) of a public address — every redirect followed hop by hop, each one through the same
+    checks (only global addresses, the link's reputation, the name in TLS) — or None."""
+    from urllib.parse import urljoin
     from . import sec_linkcheck
+    seen = set()
+    for _ in range(HOPS + 1):
+        addr = _public(url)
+        if not addr:
+            return None
+        host = urlparse(url).hostname
+        if host not in seen:                            # a new site: its reputation first
+            seen.add(host)
+            try:
+                if sec_linkcheck.check(url)["blocked"]:
+                    return None                         # a bad page is never opened: the next result is read instead
+            except Exception:                           # noqa: BLE001 — the check failing is «not checked», not «clean»:
+                pass                                    # the page is read as text, never run
+        u = urlparse(url)
+        netloc = f"[{addr}]" if ":" in addr else addr
+        target = u._replace(netloc=netloc + (f":{u.port}" if u.port else "")).geturl()
+        try:                                            # the name travels in Host and in TLS (SNI): the certificate is checked
+            with httpx.Client(timeout=20, follow_redirects=False) as c:
+                # read up to `limit`, in pieces (C438: an endless answer was read whole before the cut)
+                with c.stream("GET", target, headers={**UA, "Host": u.hostname},
+                              extensions={"sni_hostname": u.hostname} if u.scheme == "https" else {}) as s:
+                    body = b""
+                    for chunk in s.iter_bytes():
+                        body += chunk
+                        if len(body) > limit:
+                            break
+                    keep = {k: v for k, v in s.headers.items() if k.lower() not in ("content-encoding", "content-length")}
+                    r = httpx.Response(s.status_code, headers=keep, content=body[:limit], request=s.request)
+        except (httpx.HTTPError, ValueError):
+            return None
+        if r.status_code in (301, 302, 303, 307, 308) and r.headers.get("location"):
+            url = urljoin(url, r.headers["location"])
+            continue
+        return r, url
+    return None
+
+
+def _is_pdf(r) -> bool:
+    return "pdf" in r.headers.get("content-type", "").lower() or r.content[:5] == b"%PDF-"
+
+
+def _pdf_text(r) -> str:
+    from . import kno_ingest, sys_config
     try:
-        if sec_linkcheck.check(url)["blocked"]:
-            return ""                                    # a bad page is never opened: the next result is read instead
-    except Exception:                                    # noqa: BLE001 — the check failing is «not checked», not «clean»:
-        pass                                             # the page is a search result, read as text, never run
-    u = urlparse(url)
-    host = f"[{addr}]" if ":" in addr else addr
-    target = u._replace(netloc=host + (f":{u.port}" if u.port else "")).geturl()
-    try:                                                 # the name travels in Host and in TLS (SNI): the certificate is checked
-        with httpx.Client(timeout=10, follow_redirects=False) as c:
-            # up to 1 MB read, in pieces (C438: an endless answer was read whole before the 600,000 characters' cut)
-            with c.stream("GET", target, headers={**UA, "Host": u.hostname},
-                          extensions={"sni_hostname": u.hostname} if u.scheme == "https" else {}) as s:
-                body = b""
-                for chunk in s.iter_bytes():
-                    body += chunk
-                    if len(body) > 1024 * 1024:
-                        break
-                keep = {k: v for k, v in s.headers.items() if k.lower() not in ("content-encoding", "content-length")}
-                r = httpx.Response(s.status_code, headers=keep, content=body[:1024 * 1024], request=s.request)
-    except (httpx.HTTPError, ValueError):
+        text, _ = kno_ingest.read_text("page.pdf", r.content, sys_config.get())
+    except ValueError:
         return ""
-    if r.status_code != 200 or "html" not in r.headers.get("content-type", "html"):
+    return "\n".join(" ".join(x.split()) for x in text.splitlines() if x.strip())
+
+
+def page(url: str, chars: int = 12000) -> str:
+    """A public page as plain text (its first `chars`; a paper with its PDF up to PAPER_CHARS); "" when it cannot be
+    read, or when its reputation says not to open it (the plugin linkcheck: sec_linkcheck)."""
+    from urllib.parse import urljoin
+    got = _fetch(url, PAGE_MAX)
+    if got is None:
+        return ""
+    r, final = got
+    if r.status_code != 200:
+        return ""
+    if _is_pdf(r):                                      # the link is the PDF itself
+        if len(r.content) >= PAGE_MAX:
+            got = _fetch(final, PDF_MAX)
+            if got is None or got[0].status_code != 200:
+                return ""
+            r = got[0]
+        return _pdf_text(r)[:max(chars, PAPER_CHARS)]
+    if "html" not in r.headers.get("content-type", "html"):
         return ""
     p = _Text()
     try:
@@ -197,4 +257,11 @@ def page(url: str, chars: int = 12000) -> str:
     except Exception:  # noqa: BLE001 — a broken page is no page
         return ""
     lines = [" ".join(x.split()) for x in "".join(p.out).splitlines()]
-    return "\n".join(x for x in lines if len(x) > 30)[:chars]
+    text = "\n".join(x for x in lines if len(x) > 30)
+    for link in list(dict.fromkeys(p.pdfs))[:2]:       # a paper's page: its own PDF, read beside the abstract
+        pdf = _fetch(urljoin(final, link), PDF_MAX)
+        if pdf is not None and pdf[0].status_code == 200 and _is_pdf(pdf[0]):
+            body = _pdf_text(pdf[0])
+            if len(body) > 500:
+                return (text[:3000] + "\n\n[PDF]\n" + body)[:max(chars, PAPER_CHARS)]
+    return text[:chars]
