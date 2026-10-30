@@ -2,6 +2,17 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.3.34 — 2026-10-31
+
+6 publications since v0.3.27.
+
+- 2026-10-31 pypdf 6.21.4 (3 known CVEs); readings: the API's memory with two arenas and a trim, the quiet patterns' first days, the agent on the people's cards
+- 2026-10-30 A page read whole: redirects followed and each hop checked again, PDFs read as text, a paper's page opening its own PDF beside the abstract
+- 2026-10-30 The agent reads who the people are through the core's own people_cards tool; the forge refuses any plugin into Aurora's own stores, and the agent is told why; the header's name, face and weather evenly spaced on one line
+- 2026-10-30 Aurora's people: longer biography lines; a new user invited once to tell about themselves, and their first card proposals prepared by the cycle and told; proposals from the local model without its thinking phase
+- 2026-10-30 Aurora's people: a card each with a photo or an avatar Aurora paints (local models), fields chosen visible, a biography from one's own memories, relations confirmed by both; no greeting again in a conversation going on; the natural voice and the new abilities on the Status page
+- 2026-10-30 Calendar invitations answered: the invited user is told and accepts or declines, the maker hears the answer; moved, they are asked again
+
 ## v0.3.33 — 2026-10-30
 
 5 publications since v0.3.27.

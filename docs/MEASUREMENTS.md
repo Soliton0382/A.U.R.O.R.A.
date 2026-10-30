@@ -4436,3 +4436,46 @@ the dropped, a few music tags still go (religious music on purpose, some nationa
 counted one by one.
 
 Not measured: the tags beyond the first 1,500, a second reader's judgement of the same lists.
+
+## M270 — aurora-api's anonymous memory with two arenas and a trim every 30 minutes (31 October 2026; BUGS C389)
+
+The API restarted with MALLOC_ARENA_MAX=2 in its unit and aurora-rem's malloc_trim every 30 min (logged by the API:
+«memory: malloc_trim gave back…»). Read from those lines, the first ~8 hours after the restart, the night's rounds
+inside them:
+
+| hours after the restart | anonymous before the trim | after the trim |
+|---|---|---|
+| 0–2 (idle) | 113–203 MiB | 92–164 MiB |
+| 2.5–3 (the night's round of aurora-rem) | 1,257–1,992 MiB (the peak) | 736–758 MiB |
+| 3.5–7.7 (nine trims) | 715–1,267 MiB | 473–528 MiB |
+| the same, before the fix: 9 h (28 Oct) / 24 h (24 Oct) | 3,535 / 3,343 MiB | — |
+
+The cgroup's own count (memory.stat, the API with its children) 910 MiB anonymous at 8 h, 11,184 MiB file cache.
+After the night's round the trimmed value is flat (473 → 528 MiB over four hours), about a seventh of before at the
+same age. Not measured yet: the 24 h mark without a restart, the value that closes C389 (under 1.5 GB); a whole day with
+users asking.
+
+## M271 — the notified false alarms after the first quiet patterns (31 October 2026; BUGS C406, sec_quiet)
+
+The owner quieted 12 patterns on 27 Oct (and declined one on 28 Oct). The incidents per day received, kept quiet
+(low, no notification), and notified (not quiet, not a known device's low), with the owner's verdicts on the notified:
+
+| days | received | quiet | notified | false alarms | right | share false |
+|---|---|---|---|---|---|---|
+| 20–26 Oct (before) | 115 | 0 | 107 | 44 | 55 | 41 % |
+| 28–30 Oct (after) | 106 | 25 | 44 | 18 | 24 | 41 % |
+
+Of the 29 incidents marked quiet, 27 were judged false alarms afterwards, one unjudged and one right — received before
+its pattern was quieted, merged later. No 👍 landed on a quiet pattern after it was quieted (the three «awake» patterns
+are new ones proposed and not taken). The notifications stayed at ~15 a day with more incidents received
+(41, 31, 34 a day against 13–23): the quiet patterns took the growth away, not the share. Three patterns are
+proposed and not answered yet (two «new port», one «new country»). Not measured: the week after the answers (C406 closes on 3 Nov at the earliest), the proposals
+once answered.
+
+## M272 — the agent asked about the people of the house (31 October 2026; sys_people.TOOL)
+
+One question to /v1/aurora/agent with remember:false («who are the people of this house and how are they related»),
+the local reasoner idle before: the agent called people_cards at its first step (ok, 782 characters back) and finished
+in 77 s, one step, 63 s of them before the call. The answer's content not read here (the owner's own card). Not
+measured: the answer's correctness (the owner's to read), a question where the tool should not be used, a second user
+asking (what the others chose to share).
