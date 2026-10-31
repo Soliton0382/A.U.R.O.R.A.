@@ -2,6 +2,14 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.3.39 — 2026-11-01
+
+3 publications since v0.3.36.
+
+- 2026-11-01 Expenses page in four parts: incomes and fixed items of every month, a saving goal, the year's trend; Aurora advises on a purchase with the user's own numbers, local model only
+- 2026-10-31 The security plugin opens its sealed network map and firewalls again (C480); expenses page and certificates on the roadmap
+- 2026-10-31 A clean start every morning: after the night's work the API restarts itself, only when nothing would be lost (no run, question, GPU job or backup; the ethics code intact)
+
 ## v0.3.38 — 2026-11-01
 
 2 publications since v0.3.36.

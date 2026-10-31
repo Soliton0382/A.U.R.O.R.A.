@@ -3,9 +3,10 @@
  "version": "1.0",
  "kind": "tool",
  "page": "expenses",
+ "private": true,
  "description": {
-  "it": "Le tue spese, solo su questa macchina: «ho speso 45 € di benzina» le registra; riepilogo del mese per categoria, confronto con il mese prima, budget mensili per categoria.",
-  "en": "Your spending, on this machine only: \"I spent 45 € on fuel\" records it; the month by category, against the month before, monthly budgets per category."
+  "it": "Le tue entrate e uscite, solo su questa macchina: «ho speso 45 € di benzina», lo stipendio e le spese fisse di ogni mese, il riepilogo, i budget, l'obiettivo di risparmio; e consigli su un acquisto con i tuoi numeri veri. Privato: letto, risponde solo il modello locale.",
+  "en": "Your incomes and spending, on this machine only: \"I spent 45 € on fuel\", the salary and the fixed costs of every month, the summary, budgets, the saving goal; and advice on a purchase with your real numbers. Private: once read, only the local model answers."
  },
  "command": [
   "{python}",
@@ -16,11 +17,12 @@
  "effects": {
   "expense_list": "read",
   "expense_summary": "read",
+  "money_overview": "read",
   "*": "write_local"
  },
  "welcome": {
-  "it": "💶 Spese collegate. Dimmi «ho speso 30 € al supermercato» e lo registro; chiedimi il riepilogo del mese o fissa un budget per categoria. Restano solo qui.",
-  "en": "💶 Expenses connected. Tell me \"I spent 30 € at the supermarket\" and I record it; ask for the month's summary or set a budget per category. They stay here."
+  "it": "💶 Spese collegate. Dimmi «ho speso 30 € al supermercato» o «lo stipendio di 1.850 € arriva il 27», oppure chiedimi «posso permettermi una bici da 600 €?»: ti rispondo con i tuoi numeri. Restano solo qui, e ne parla solo il modello locale.",
+  "en": "💶 Expenses connected. Tell me \"I spent 30 € at the supermarket\" or \"my 1,850 € salary comes on the 27th\", or ask \"can I afford a 600 € bike?\": I answer with your numbers. They stay here, and only the local model talks about them."
  },
  "setup": {
   "it": "Niente da configurare: le spese stanno in `usr/expenses/expenses.db` (solo su questa macchina, mai nel repository; `AURORA_EXPENSES_DIR` per spostarle). Il plugin non ha rete.",

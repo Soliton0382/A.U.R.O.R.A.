@@ -1,0 +1,86 @@
+/* 💶 Spese (expenses.js): the month's tiles, the add form, the movements, the charts. Series colours: the first three
+   categorical slots, dark steps by default (every theme but «chiaro» is dark), light steps for «chiaro». */
+:root { --exp-in: #3987e5; --exp-out: #d95926; --exp-saved: #199e70; }
+:root[data-theme="chiaro"] { --exp-in: #2a78d6; --exp-out: #eb6834; --exp-saved: #1baf7a; }
+
+.exp-monthbar { display: flex; align-items: center; gap: .6rem; margin: .2rem 0 .8rem; }
+.exp-monthbar b { min-width: 9rem; text-align: center; text-transform: capitalize; }
+.exp-monthbar button { padding: .2rem .7rem; }
+
+.exp-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: .8rem; margin-bottom: .6rem; }
+.exp-tile { display: flex; flex-direction: column; gap: .2rem; padding: .8rem 1rem; border: 1px solid var(--line);
+  border-radius: 12px; background: var(--surface); border-left: 4px solid var(--line); }
+.exp-tile.in { border-left-color: var(--exp-in); }
+.exp-tile.out { border-left-color: var(--exp-out); }
+.exp-tile.saved { border-left-color: var(--exp-saved); }
+.exp-tile-label { font-size: .85rem; color: var(--muted); }
+.exp-tile-val { font-size: 1.5rem; }
+.exp-tile.neg .exp-tile-val::before { content: "⚠️ "; font-size: 1rem; }
+.exp-progress { display: flex; flex-direction: column; gap: .2rem; font-size: .82rem; }
+.exp-progress-track { height: 8px; border-radius: 4px; background: var(--accent-soft); border: 1px solid var(--line); overflow: hidden; }
+.exp-progress-bar { height: 100%; border-radius: 4px; background: var(--exp-saved); }
+
+.exp-chartbox { border: 1px solid var(--line); border-radius: 12px; padding: .6rem .8rem; background: var(--surface); }
+.exp-chart { width: 100%; height: auto; display: block; }
+.exp-chart .exp-in { fill: var(--exp-in); }
+.exp-chart .exp-out { fill: var(--exp-out); }
+.exp-chart .exp-saved { fill: none; stroke: var(--exp-saved); stroke-width: 2; }
+.exp-chart .exp-dot { fill: var(--exp-saved); stroke: var(--panel-solid); stroke-width: 2; }
+.exp-chart .exp-grid { stroke: var(--line); stroke-width: 1; }
+.exp-chart .exp-base { stroke: var(--muted); stroke-width: 1; }
+.exp-chart .exp-goal { stroke: var(--text); stroke-width: 1.5; stroke-dasharray: 5 4; opacity: .7; }
+.exp-chart .exp-axis { fill: var(--muted); font-size: 11px; }
+.exp-chart .exp-hit { fill: transparent; }
+.exp-chart .exp-hit:hover { fill: var(--accent-soft); }
+.exp-legend { display: flex; flex-wrap: wrap; gap: .9rem; font-size: .82rem; color: var(--muted); margin-bottom: .3rem; }
+.exp-key { display: inline-flex; align-items: center; gap: .35rem; }
+.exp-key i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
+.exp-key i.exp-in { background: var(--exp-in); }
+.exp-key i.exp-out { background: var(--exp-out); }
+.exp-key i.exp-saved { height: 3px; border-radius: 2px; background: var(--exp-saved); }
+.exp-key i.exp-goal { height: 0; border-top: 2px dashed var(--text); border-radius: 0; }
+.exp-table { margin-top: .4rem; font-size: .85rem; }
+.exp-table table { border-collapse: collapse; margin-top: .3rem; }
+.exp-table td, .exp-table th { padding: .15rem .7rem; text-align: right; border-bottom: 1px solid var(--line); }
+.exp-table td:first-child { text-align: left; text-transform: capitalize; }
+
+.exp-cats { display: flex; flex-direction: column; gap: .35rem; }
+.exp-cat { display: grid; grid-template-columns: minmax(7rem, 11rem) 1fr minmax(6rem, auto); align-items: center; gap: .6rem; font-size: .9rem; }
+.exp-track { position: relative; height: 12px; }
+.exp-fill { height: 100%; border-radius: 0 4px 4px 0; background: var(--exp-out); min-width: 2px; }
+.exp-budget { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--text); }
+.exp-cat-val { text-align: right; white-space: nowrap; }
+
+.exp-form { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; padding: .8rem; margin-bottom: 1rem;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.exp-form input[name=amount] { width: 7rem; }
+.exp-form input[name=what] { flex: 1 1 12rem; }
+.exp-kind { display: flex; gap: .3rem; }
+.exp-kind .cat-chip { font-size: .9rem; padding: .3rem .8rem; }
+.exp-kind .cat-chip.on { background: var(--accent); color: #fff; }
+.exp-monthly { display: inline-flex; align-items: center; gap: .3rem; font-size: .9rem; }
+.exp-monthly[hidden] { display: none; }
+.exp-form select, .exp-form input[type=date] { width: auto; flex: 0 1 auto; }
+
+.exp-moves { display: flex; flex-direction: column; }
+.exp-move { display: grid; grid-template-columns: 4.5rem 1fr minmax(6rem, 9rem) 7.5rem 2.2rem; align-items: center; gap: .5rem;
+  padding: .45rem .2rem; border-bottom: 1px solid var(--line); }
+.exp-move-amt { text-align: right; white-space: nowrap; }
+.exp-move.in .exp-move-amt { color: var(--text); }
+.exp-move-day { color: var(--muted); font-size: .85rem; }
+.exp-del { padding: .15rem .4rem; background: none; border-color: transparent; }
+.exp-left { padding: .6rem .8rem; border-radius: 10px; background: var(--accent-soft); }
+
+.exp-goalform { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+.exp-goalform input { width: 7rem; }
+.exp-budgets { display: flex; flex-direction: column; }
+.exp-budgetrow { display: grid; grid-template-columns: minmax(8rem, 1fr) 6rem 7rem; align-items: center; gap: .5rem;
+  padding: .3rem .2rem; border-bottom: 1px solid var(--line); }
+.exp-budgetrow input { width: 100%; }
+
+@media (max-width: 560px) {
+  .exp-move { grid-template-columns: 3.6rem 1fr 6.5rem 2rem; }
+  .exp-move-cat { display: none; }
+  .exp-cat { grid-template-columns: 6.5rem 1fr 5.5rem; font-size: .82rem; }
+  .exp-tile-val { font-size: 1.25rem; }
+}

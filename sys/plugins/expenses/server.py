@@ -1,206 +1,159 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2026 A.U.R.O.R.A. Project
-"""Plugin "expenses": the owner's spending, kept on this machine only (AURORA_EXPENSES_DIR/expenses.db, mode 600).
+"""Plugin "expenses": the user's money told in the chat, on the same file as the 💶 page (aurora/fin_store.py, this
+machine only; what and how sealed with the user's «expenses» key).
 
-"Ho speso 45 € di benzina" becomes a row (amount, what, category, day); the owner asks for a month, a category, a
-summary against the month before and against his monthly budgets. No network (sandbox), writes only its folder.
-Amounts are kept in cents (integers): sums never drift.
-
-What a spending was and how it was paid are sealed with the user's «expenses» key (N64, C458: the host hands the
-cage only that key, opened); day, amount and category stay plain, the month's sums are made from them in SQL. A row
-of before is sealed the first time the file is opened.
+"Ho speso 45 € di benzina" becomes a spending; "mi arriva lo stipendio di 1.850 € il 27" a fixed income; the month,
+a category, budgets and the saving goal on request. And advice (owner, 1 Nov: «voglio comprare questa cosa che costa
+X… e lei in base a quello indicato nelle spese dice come fare»): money_overview gives the model the user's real
+numbers — the months' averages, the fixed ones, what is left this month, the goal — and, for a price, how long the
+savings take. The plugin is private: once it is read, the answer is made by the local model only. No network.
 """
 from __future__ import annotations
 
-import os
-import re
-import sqlite3
-import time
-from contextlib import contextmanager
-from datetime import date, datetime, timedelta
-from pathlib import Path
+from datetime import date
 
-from aurora import sys_config, sys_seal
+from aurora import fin_store, sys_config
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 
 cfg = sys_config.get()
-CURRENCY = (str(cfg.values.get("AURORA_EXPENSES_CURRENCY") or "EUR").strip().upper())[:3]
-CATEGORIES = ("casa", "spesa", "trasporti", "auto", "salute", "svago", "ristoranti", "viaggi", "abbigliamento",
-              "tecnologia", "abbonamenti", "regali", "tasse", "altro")
-DDL = """
-CREATE TABLE IF NOT EXISTS expenses (id INTEGER PRIMARY KEY, day TEXT NOT NULL, cents INTEGER NOT NULL,
-    what TEXT NOT NULL, category TEXT NOT NULL, payment TEXT NOT NULL DEFAULT '', created REAL NOT NULL);
-CREATE INDEX IF NOT EXISTS expenses_day ON expenses(day);
-CREATE TABLE IF NOT EXISTS budgets (category TEXT PRIMARY KEY, cents INTEGER NOT NULL);
-"""
 server = MCPServer("expenses", version="1.0")
 
 
-def _file() -> Path:
-    raw = str(cfg.values.get("AURORA_EXPENSES_DIR") or "usr/expenses").strip()
-    d = Path(raw) if Path(raw).is_absolute() else cfg.root / raw
-    d.mkdir(parents=True, exist_ok=True, mode=0o700)
-    return d / "expenses.db"
-
-
-@contextmanager
-def _db():
-    f = _file()
-    new = not f.exists()
-    con = sqlite3.connect(f, timeout=10)
+def _do(fn, *a):
     try:
-        if new:
-            os.chmod(f, 0o600)
-        con.executescript(DDL)
-        _seal_old(con)
-        yield con
-        con.commit()
-    finally:
-        con.close()
+        return fn(*a)
+    except ValueError as e:
+        raise ToolError(str(e)) from None
+    except KeyError as e:
+        raise ToolError(f"no item #{e.args[0]}") from None
 
 
-def _seal(value: str, col: str) -> str:
-    return sys_seal.seal_text(cfg, value, f"expense:{col}", cfg.user, "expenses") if value else value
-
-
-def _open(value: str, col: str) -> str:
-    return sys_seal.open_text(cfg, value, f"expense:{col}", cfg.user, "expenses") if value else value
-
-
-def _seal_old(con) -> None:
-    """The rows written before N64, sealed once (then VACUUM: their old pages go)."""
-    old = [(i, w, p) for i, w, p in con.execute("SELECT id, what, payment FROM expenses")
-           if not sys_seal.is_sealed(w) or (p and not sys_seal.is_sealed(p))]
-    for i, w, p in old:
-        con.execute("UPDATE expenses SET what = ?, payment = ? WHERE id = ?",
-                    (w if sys_seal.is_sealed(w) else _seal(w, "what"), p if sys_seal.is_sealed(p) else _seal(p, "payment"), i))
-    if old:
-        con.commit()
-        con.execute("VACUUM")
-
-
-def _cents(amount) -> int:
-    s = str(amount).strip().replace("€", "").replace(" ", "")
-    if re.fullmatch(r"\d{1,3}(\.\d{3})+(,\d{1,2})?", s):        # 1.234,56
-        s = s.replace(".", "")
-    s = s.replace(",", ".")
-    try:
-        v = round(float(s) * 100)
-    except ValueError:
-        raise ToolError(f"amount: a number, e.g. 45.90 ({amount!r})") from None
-    if not 0 < v < 10_000_000_00:
-        raise ToolError("amount: more than 0")
-    return v
-
-
-def _money(cents: int) -> str:
-    s = f"{cents / 100:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    return f"{s} {'€' if CURRENCY == 'EUR' else CURRENCY}"
-
-
-def _day(raw: str) -> str:
-    raw = (raw or "").strip().lower()
-    today = date.today()
-    if raw in ("", "oggi", "today"):
-        return today.isoformat()
-    if raw in ("ieri", "yesterday"):
-        return (today - timedelta(days=1)).isoformat()
-    for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d/%m/%y", "%d-%m-%Y"):
-        try:
-            return datetime.strptime(raw, fmt).date().isoformat()
-        except ValueError:
-            pass
-    raise ToolError("day: YYYY-MM-DD, DD/MM/YYYY, oggi or ieri")
-
-
-def _month(raw: str) -> str:
-    raw = (raw or "").strip()
-    if not raw:
-        return date.today().strftime("%Y-%m")
-    if re.fullmatch(r"\d{4}-\d{2}", raw):
-        return raw
-    m = re.fullmatch(r"(\d{1,2})[/-](\d{4})", raw)
-    if m:
-        return f"{m.group(2)}-{int(m.group(1)):02d}"
-    raise ToolError("month: YYYY-MM (e.g. 2026-10)")
-
-
-def _cat(raw: str) -> str:
-    c = (raw or "altro").strip().lower()
-    return c if c in CATEGORIES else "altro"
+def _m(c: int) -> str:
+    return fin_store.money(cfg, c)
 
 
 @server.tool()
 def expense_add(amount: str, what: str, category: str = "altro", day: str = "oggi", payment: str = "") -> str:
-    """Record a spending: amount (e.g. 45.90), what it was, category (one of: casa, spesa, trasporti, auto, salute,
-    svago, ristoranti, viaggi, abbigliamento, tecnologia, abbonamenti, regali, tasse, altro), day, how it was paid."""
-    cents, what = _cents(amount), (what or "").strip()[:200]
-    if not what:
-        raise ToolError("what: what the money was for")
-    d, c = _day(day), _cat(category)
-    with _db() as con:
-        cur = con.execute("INSERT INTO expenses (day, cents, what, category, payment, created) VALUES (?,?,?,?,?,?)",
-                          (d, cents, _seal(what, "what"), c, _seal((payment or "").strip()[:40], "payment"), time.time()))
-    return f"recorded #{cur.lastrowid}: {_money(cents)} · {what} · {c} · {d}"
+    """Record a spending: amount (e.g. 45.90), what it was, category (one of: casa, spesa, bollette, trasporti, auto,
+    salute, svago, ristoranti, viaggi, abbigliamento, tecnologia, abbonamenti, regali, tasse, altro), day, how paid."""
+    r = _do(fin_store.add, cfg, "out", amount, what, category, day, payment)
+    return f"recorded spending #{r['id']}: {_m(r['cents'])} · {r['what']} · {r['category']} · {r['day']}"
+
+
+@server.tool()
+def income_add(amount: str, what: str, category: str = "altro", day: str = "oggi") -> str:
+    """Record an income once (a refund, a sale, a gift): amount, what, category (stipendio, pensione, rimborsi,
+    vendite, regali, altro), day. A salary of every month is expense_fixed_add with kind «in»."""
+    r = _do(fin_store.add, cfg, "in", amount, what, category, day)
+    return f"recorded income #{r['id']}: {_m(r['cents'])} · {r['what']} · {r['category']} · {r['day']}"
+
+
+@server.tool()
+def expense_fixed_add(kind: str, amount: str, what: str, category: str = "altro", day_of_month: int = 1) -> str:
+    """A movement of every month on its day, from this month: kind «in» (salary, pension) or «out» (rent, bills, a
+    subscription, a loan's instalment). Aurora adds it to each month by herself."""
+    r = _do(fin_store.fixed_add, cfg, kind, amount, what, category, day_of_month)
+    return f"fixed #{r['id']}: {'+' if kind == 'in' else '−'}{_m(r['cents'])} · {r['what']} · every month on the {r['dom']}"
+
+
+@server.tool()
+def expense_fixed_stop(fixed_id: int) -> str:
+    """Stop a fixed item from next month (its #id from money_overview); the months gone stay."""
+    _do(fin_store.fixed_stop, cfg, fixed_id)
+    return f"fixed #{fixed_id} stopped from next month"
 
 
 @server.tool()
 def expense_list(month: str = "", category: str = "", limit: int = 50) -> str:
-    """The spendings of a month (default this one), optionally of one category, newest first."""
-    m = _month(month)
-    q, args = "SELECT id, day, cents, what, category, payment FROM expenses WHERE day LIKE ?", [f"{m}-%"]
-    if category:
-        q, args = q + " AND category = ?", args + [_cat(category)]
-    with _db() as con:
-        rows = con.execute(q + " ORDER BY day DESC, id DESC LIMIT ?", args + [max(1, min(limit, 500))]).fetchall()
+    """The movements of a month (default this one; spendings and incomes), optionally of one category, newest first."""
+    m = _do(fin_store.month, month)
+    rows = fin_store.moves(cfg, m, cat=category, limit=max(1, min(limit, 500)))
     if not rows:
-        return f"no spendings in {m}" + (f" for {category}" if category else "")
-    return "\n".join(f"#{i} {d} · {_money(c)} · {_open(w, 'what')} · {cat}" + (f" · {_open(p, 'payment')}" if p else "")
-                     for i, d, c, w, cat, p in rows)
+        return f"no movements in {m}" + (f" for {category}" if category else "")
+    return "\n".join(f"#{r['id']} {r['day']} · {'+' if r['kind'] == 'in' else '−'}{_m(r['cents'])} · {r['what']} · "
+                     f"{r['category']}{' · fixed' if r['fixed'] else ''}" for r in rows)
 
 
 @server.tool()
 def expense_summary(month: str = "") -> str:
-    """A month by category, the total, the change against the month before and the budgets passed."""
-    m = _month(month)
-    y, mo = int(m[:4]), int(m[5:])
-    prev = f"{y - 1}-12" if mo == 1 else f"{y}-{mo - 1:02d}"
-    with _db() as con:
-        cur = dict(con.execute("SELECT category, SUM(cents) FROM expenses WHERE day LIKE ? GROUP BY category", (f"{m}-%",)))
-        before = dict(con.execute("SELECT category, SUM(cents) FROM expenses WHERE day LIKE ? GROUP BY category", (f"{prev}-%",)))
-        budgets = dict(con.execute("SELECT category, cents FROM budgets"))
-    if not cur:
-        return f"no spendings in {m}"
-    total, total_before = sum(cur.values()), sum(before.values())
-    rows = [f"Spese di {m}: {_money(total)}" + (f" (mese prima {_money(total_before)}, "
-                                                 f"{(total - total_before) / total_before:+.0%})" if total_before else "")]
-    for c, v in sorted(cur.items(), key=lambda kv: -kv[1]):
-        b = budgets.get(c)
-        rows.append(f"- {c}: {_money(v)} ({v / total:.0%})" + (f" · budget {_money(b)}{' ⚠️ superato' if v > b else ''}" if b else ""))
-    return "\n".join(rows)
+    """A month: incomes, spendings by category with the budgets passed, what was saved against the goal and the month
+    before."""
+    return _do(fin_store.summary_text, cfg, month)
 
 
 @server.tool()
 def expense_budget(category: str, monthly: str) -> str:
-    """Set the monthly budget of a category (0 removes it); the summary says when it is passed."""
-    c = _cat(category)
-    with _db() as con:
-        if str(monthly).strip() in ("0", "0.0", "0,0", ""):
-            con.execute("DELETE FROM budgets WHERE category = ?", (c,))
-            return f"budget of {c} removed"
-        cents = _cents(monthly)
-        con.execute("INSERT INTO budgets VALUES (?, ?) ON CONFLICT(category) DO UPDATE SET cents = excluded.cents", (c, cents))
-    return f"budget of {c}: {_money(cents)} a month"
+    """Set the monthly budget of a spending category (0 removes it); the summary says when it is passed."""
+    v = _do(fin_store.set_budget, cfg, category, monthly)
+    return f"budget of {fin_store.category('out', category)}: " + (_m(v) + " a month" if v else "removed")
 
 
 @server.tool()
-def expense_delete(expense_id: int) -> str:
-    """Remove a spending recorded by mistake (its #id from expense_list)."""
-    with _db() as con:
-        n = con.execute("DELETE FROM expenses WHERE id = ?", (int(expense_id),)).rowcount
-    if not n:
-        raise ToolError(f"no spending #{expense_id}")
+def saving_goal(monthly: str) -> str:
+    """Set how much the user wants to save every month (0 removes the goal)."""
+    v = _do(fin_store.set_goal, cfg, monthly)
+    return f"saving goal: {_m(v)} a month" if v else "saving goal removed"
+
+
+@server.tool()
+def money_overview(price: str = "") -> str:
+    """The user's money in numbers, to advise them: use it when they ask whether they can afford something, how to
+    pay for it or save for it, or how they are doing. The last 6 months' averages (income, spending, saved), the fixed
+    incomes and spendings of every month, this month so far, the goal and the categories that weigh most; with a
+    `price`, how many months of the average savings it takes and what buying it now leaves. Numbers only: the
+    advice is yours, said plainly, never a judgement."""
+    today = date.today()
+    now = today.strftime("%Y-%m")
+    v = fin_store.view(cfg, now)
+    past = [m for m in fin_store.trend(cfg, fin_store._shift(now, -1), 6) if m["income"] or m["spent"]]
+    if not past and not v["income"] and not v["spent"]:
+        return "No movements recorded yet: the user can add them on the 💶 page or tell you («ho speso…», the salary)."
+    rows = []
+    if past:
+        avg = {k: round(sum(m[k] for m in past) / len(past)) for k in ("income", "spent", "saved")}
+        rows.append(f"Last {len(past)} months, on average: income {_m(avg['income'])}, spending {_m(avg['spent'])}, "
+                    f"saved {_m(avg['saved'])} a month (best {_m(max(m['saved'] for m in past))}, "
+                    f"worst {_m(min(m['saved'] for m in past))}).")
+    fin = sum(f["cents"] for f in v["fixed"] if f["kind"] == "in")
+    fout = sum(f["cents"] for f in v["fixed"] if f["kind"] == "out")
+    if v["fixed"]:
+        rows.append(f"Fixed every month: in {_m(fin)}, out {_m(fout)} — "
+                    + "; ".join(f"#{f['id']} {f['what']} {'+' if f['kind'] == 'in' else '−'}{_m(f['cents'])} on the {f['dom']}"
+                                for f in v["fixed"]) + ".")
+    come_in = sum(f["cents"] for f in v["fixed"] if f["kind"] == "in" and f["dom"] > today.day)
+    come_out = sum(f["cents"] for f in v["fixed"] if f["kind"] == "out" and f["dom"] > today.day)
+    end = v["saved"] + come_in - come_out
+    rows.append(f"This month so far ({today.isoformat()}): income {_m(v['income'])}, spending {_m(v['spent'])}, "
+                f"left {_m(v['saved'])}" + (f"; still to come this month from the fixed ones: in {_m(come_in)}, out "
+                                            f"{_m(come_out)} — the month ends around {_m(end)} before other spending."
+                                            if come_in or come_out else "."))
+    if v["goal"]:
+        rows.append(f"Saving goal: {_m(v['goal'])} a month" + (f", reached in {sum(m['saved'] >= v['goal'] for m in past)} "
+                                                              f"of the last {len(past)} months." if past else "."))
+    if past:
+        cats: dict[str, int] = {}
+        for m in past:
+            for c in fin_store.view(cfg, m["month"])["categories"]:
+                cats[c["category"]] = cats.get(c["category"], 0) + c["cents"]
+        top = sorted(cats.items(), key=lambda kv: -kv[1])[:4]
+        rows.append("Spending that weighs most (monthly average): "
+                    + ", ".join(f"{c} {_m(round(s / len(past)))}" for c, s in top) + ".")
+    if price:
+        p = _do(fin_store.cents, price)
+        saved = round(sum(m["saved"] for m in past) / len(past)) if past else v["saved"]
+        rows.append(f"Price {_m(p)}: " + (f"about {p / saved:.1f} months of the average savings"
+                                           if saved > 0 else "the average savings are not positive: it cannot be paid from savings")
+                    + f"; bought this month, the month would end around {_m(end - p)}"
+                    + (f"; against the goal, {p / v['goal']:.1f} months of it" if v["goal"] else "") + ".")
+    return "\n".join(rows)
+
+
+@server.tool()
+def expense_delete(expense_id: int, kind: str = "out") -> str:
+    """Remove a movement recorded by mistake (its #id from expense_list; kind «in» for an income)."""
+    _do(fin_store.remove, cfg, kind, expense_id)
     return f"removed #{expense_id}"
 
 
