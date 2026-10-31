@@ -33,7 +33,8 @@ from . import sys_config, sys_log
 
 EFFECTS = ("read", "write_local", "external", "code_change")
 # the sealed stores a caged plugin may open with its own key (N64): its manifest asks for them in «seal_keys»
-SEAL_KEYS = ("calendar", "health", "diary", "push", "expenses", "routines")
+SEAL_KEYS = ("calendar", "health", "diary", "push", "expenses", "routines", "network",
+             "firewalls")   # the security plugin's network map and the other firewalls' passwords (C480)
 _lock = threading.Lock()
 
 

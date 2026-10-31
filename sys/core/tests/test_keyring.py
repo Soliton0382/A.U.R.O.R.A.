@@ -80,7 +80,7 @@ def test_the_services_read_the_credential_systemd_opened_for_them(kcfg, tmp_path
 
 def test_a_caged_plugin_gets_its_own_store_s_key_only(kcfg, monkeypatch):
     from aurora import plg_host
-    assert set(plg_host.SEAL_KEYS) == {"calendar", "health", "diary", "push", "expenses", "routines"}                   # never the memory's or the state's
+    assert set(plg_host.SEAL_KEYS) == {"calendar", "health", "diary", "push", "expenses", "routines", "network", "firewalls"}                   # never the memory's or the state's
     k = sys_seal._key(kcfg, kcfg.user, "calendar")
     monkeypatch.setenv("AURORA_SEAL_KEY_CALENDAR", k.hex())
     assert sys_seal._key(kcfg, kcfg.user, "calendar") == k
@@ -141,3 +141,14 @@ def test_a_key_sealed_before_the_tpm_worked_is_sealed_again_with_it(kcfg, fake_c
     assert sys_keyring.cred_path(kcfg).read_bytes() == b"host+tpm2|" + key and sys_keyring.bound(kcfg) == "host+tpm2"
     from pathlib import Path
     assert not list(Path(os.environ["RUNTIME_DIRECTORY"]).glob("aurora-key-*"))   # the opened key not left in /run
+
+
+def test_every_plugin_gets_the_keys_of_the_sealed_files_it_reads():
+    """C480 (owner, 1 Nov: «problemi con delle routine»): the security plugin reads the network map and the other
+    firewalls' passwords, sealed with the «network» and «firewalls» keys, and its cage was given neither since N64 — «the sealed file does not open» every morning."""
+    import json
+    from pathlib import Path
+
+    from aurora import plg_host
+    m = json.loads((Path(__file__).resolve().parents[2] / "plugins" / "security" / "plugin.json").read_text())
+    assert {"network", "firewalls"} <= set(m["seal_keys"]) and set(m["seal_keys"]) <= set(plg_host.SEAL_KEYS)

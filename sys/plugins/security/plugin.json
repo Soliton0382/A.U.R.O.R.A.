@@ -3,6 +3,7 @@
   "version": "1.0",
   "kind": "tool",
   "page": "firewalls",
+  "seal_keys": ["network", "firewalls"],
   "description": {
     "en": "The house's security officer on the firewall: incidents and traffic, an audit of the configuration (published services, IPS, administration, blocking rule), threat hunting in the logs (beaconing, lateral movement, threat-protection matches judged, dubious domains, admin logins and changes), the security posture with playbooks, the firewall's manual and API searched on this machine, and changes — publish a server, quarantine a device, harden a rule — planned by Aurora and applied only with the owner's approval, undone by themselves if anything fails.",
     "it": "La responsabile della sicurezza di casa sul firewall: incidenti e traffico, audit della configurazione (servizi pubblicati, IPS, amministrazione, regola dei blocchi), caccia alle minacce nei log (chiamate regolari verso l'esterno, movimento laterale, allarmi ATP giudicati, domini dubbi, login e modifiche al firewall), il quadro della sicurezza con i playbook, il manuale e l'API del firewall consultati in locale, e modifiche — pubblicare un server, mettere in quarantena un dispositivo, proteggere una regola — preparate da Aurora e applicate solo con la tua approvazione, annullate da sole se qualcosa va storto."
