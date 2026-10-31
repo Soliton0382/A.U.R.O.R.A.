@@ -4452,8 +4452,19 @@ inside them:
 
 The cgroup's own count (memory.stat, the API with its children) 910 MiB anonymous at 8 h, 11,184 MiB file cache.
 After the night's round the trimmed value is flat (473 → 528 MiB over four hours), about a seventh of before at the
-same age. Not measured yet: the 24 h mark without a restart, the value that closes C389 (under 1.5 GB); a whole day with
-users asking.
+same age. At 24 h without a restart (1 Nov), 41 trims after the night's round, the day with users asking (123 answers in 24 h):
+
+| hours after the restart | trims | trimmed, mean | trimmed, highest |
+|---|---|---|---|
+| 3.5–6 | 6 | 479 MiB | 488 MiB |
+| 6–12 | 11 | 538 MiB | 578 MiB |
+| 12–18 | 12 | 586 MiB | 752 MiB |
+| 18–24 | 12 | 665 MiB | 813 MiB |
+
+683 MiB after the trim at 24 h (3,343 MiB before the fix), the highest before a trim during the day 1,402 MiB; the
+cgroup's anonymous count 964 MiB, its file cache 9,071 MiB. C389 closed (under 1.5 GB). The trimmed value still
+rises, ~+190 MiB a day over this one day. Not measured: whether that slope goes on over days (it would cross 1.5 GB
+in about four) or flattens; one day is one reading.
 
 ## M271 — the notified false alarms after the first quiet patterns (31 October 2026; BUGS C406, sec_quiet)
 
