@@ -6,7 +6,7 @@ quello è interazione con aurora quindi gli stati d'animo devono riflettersi anc
 From the user's projects themselves, not from a log: the last time one moved (its last commit, its git index, its
 open-items file), the steps saved in the last 24 h (commits), and the items still open («- [ ]» in DA_FARE.md or
 docs/DA_FARE.md). kno_mood uses them: longing counts from the last of a message and a project's move, satisfaction
-counts the saved steps, curiosity the open items. Read at most every 5 minutes per folder.
+counts the saved steps, curiosity the open items of the projects moved lately. Read at most every 5 minutes per folder.
 """
 from __future__ import annotations
 
@@ -18,6 +18,7 @@ from . import sys_config
 from .prj_run import GIT_SAFE
 
 EVERY_S = 300
+LIVE_DAYS = 3                     # a project moved in the last 3 days is being worked on: its open items count
 _cache: dict[str, tuple[float, dict]] = {}
 
 
@@ -40,11 +41,12 @@ def _open_items(p: Path) -> int:
 
 
 def read(cfg: sys_config.Config, now: float | None = None) -> dict:
-    """{"last_s": seconds since a project last moved or None, "last": its name, "steps_24h", "open", "by": {name: …}}."""
+    """{"last_s": seconds since a project last moved or None, "last": its name, "steps_24h", "open", "open_live" (the
+    open items of the projects moved in the last LIVE_DAYS), "by": {name: …}}."""
     try:
         base = cfg.path("AURORA_PROJECTS_DIR")
     except (KeyError, ValueError):
-        return {"last_s": None, "last": None, "steps_24h": 0, "open": 0, "by": {}}
+        return {"last_s": None, "last": None, "steps_24h": 0, "open": 0, "open_live": 0, "by": {}}
     key = str(base)
     hit = _cache.get(key)
     now = now or time.time()
@@ -60,7 +62,8 @@ def read(cfg: sys_config.Config, now: float | None = None) -> dict:
         if moved > newest:
             newest, last = moved, p.name
     out = {"last_s": now - newest if newest else None, "last": last,
-           "steps_24h": sum(v["steps_24h"] for v in by.values()), "open": sum(v["open"] for v in by.values()), "by": by}
+           "steps_24h": sum(v["steps_24h"] for v in by.values()), "open": sum(v["open"] for v in by.values()),
+           "open_live": sum(v["open"] for v in by.values() if now - v["moved"] < LIVE_DAYS * 86400), "by": by}
     _cache[key] = (now, out)
     return out
 

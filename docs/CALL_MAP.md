@@ -252,7 +252,7 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `kno_lessons` | `kno_answer`, `script/bench_learn.py` | 1 |
 | `kno_memory_seal` | `script/svc_api.py` | 1 |
 | `kno_mood` | `api.core`, `api.rem`, `kno_morning`, `kno_rem`, `mdl_tts` | 4 |
-| `kno_mood_work` | `kno_mood`, `kno_self` | 1 |
+| `kno_mood_work` | `kno_mood`, `kno_self` | 2 |
 | `kno_morning` | `api.rem` | 1 |
 | `kno_read` | `kno_think`, `script/bench_router.py`, `script/bench_vault_diag.py` | 4 |
 | `kno_rem` | `api.agents`, `api.rem`, `kno_morning`, `kno_review`, `kno_study` | 1 |

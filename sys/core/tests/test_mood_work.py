@@ -52,3 +52,14 @@ def test_what_moved_in_the_projects_is_told_with_its_messages(cfg):
     motore = next(x for x in r if x["project"] == "motore")
     assert [s["what"] for s in motore["saved"]] == ["s5", "s4", "s3", "s2"]           # the last four, newest first
     assert [x["project"] for x in W.recent_steps(cfg, cloud=True)] == ["motore"]
+
+
+def test_only_the_projects_moved_lately_bring_their_open_items(cfg):
+    W._cache.clear()
+    base = cfg.path("AURORA_PROJECTS_DIR")
+    _project(base, "viva", 1, 2)
+    _project(base, "ferma", 0, 5)
+    r = W.read(cfg, now=time.time() + (W.LIVE_DAYS + 1) * 86400)   # four days later: none of them moved since
+    assert r["open"] == 7 and r["open_live"] == 0
+    W._cache.clear()
+    assert W.read(cfg)["open_live"] == 7

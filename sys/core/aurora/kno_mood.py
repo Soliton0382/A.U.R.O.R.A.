@@ -9,7 +9,8 @@ number from 0 to 1 computed from things measured now, and carries its causes in 
 | stress       | the largest of: GPU load, the GPUs' distance from their thermal limit (driver),| 50 % load · 15 °C from the    |
 |              | answers being made / the parallel slots, errors in the last hour               | limit · a full slot · 1 error |
 | satisfaction | answers found + steps saved in the projects / all answers + those steps (24 h)  | —  (a ratio)                  |
-| curiosity    | questions to study + past answers with something new + projects' open items    | one night's capacity          |
+| curiosity    | questions to study + past answers with something new + the open items of the   | one night's capacity          |
+|              | projects moved in the last 3 days (at most half a night's worth)               |                               |
 | tiredness    | the share of the last 6 h with a GPU busy (sampled at every REM look)          | —  (a share)                  |
 | longing      | hours since the person last wrote, or a project last moved (kno_mood_work)     | the boredom threshold         |
 | melancholy   | clouds and rain at home                                                        | overcast, or 1 mm of rain     |
@@ -154,12 +155,15 @@ def measure(cfg: sys_config.Config, st: dict | None = None, active_runs: int = 0
                            if asked else {"value": None, "causes": ["nessuna domanda nelle ultime 24 ore"]})
 
     d = st.get("drives") or {}
-    todo = int(st.get("to_study") or 0) + int(d.get("novelty") or 0) + work["open"]
     night = int(cfg["AURORA_STUDY_PER_NIGHT"]) + int(cfg["AURORA_REVIEW_PER_DAY"])
+    # A project's open items are a backlog, not news (C479: 198 of them kept her «curious» for good): only the projects
+    # being worked on count, and at most half a night's work, so they alone never make curiosity her mood.
+    backlog = min(work.get("open_live", 0), night // 2)
+    todo = int(st.get("to_study") or 0) + int(d.get("novelty") or 0) + backlog
     out["curiosity"] = {"value": _sat(todo, night),
                         "causes": [f"{st.get('to_study') or 0} domande da studiare",
                                    f"{d.get('novelty') or 0} risposte passate con qualcosa di nuovo da guardare"]
-                        + ([f"{work['open']} cose aperte nei progetti"] if work["open"] else [])}
+                        + ([f"{work['open_live']} cose aperte nei progetti in corso"] if work.get("open_live") else [])}
 
     out["tiredness"] = tiredness(cfg)
 

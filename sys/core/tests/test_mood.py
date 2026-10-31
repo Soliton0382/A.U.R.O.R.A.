@@ -113,3 +113,18 @@ def test_what_she_did_alone_is_counted_from_her_ledger(cfg):
     sys_autonomy.log(cfg, "social", "facebook.publish_post: y")         # social: counted from the approvals instead
     st = sys_autonomy.statistics(cfg, [], set())
     assert (st["knowledge"]["alone"], st["forge"]["alone"], st["social"]["alone"]) == (1, 1, 0)
+
+
+def test_a_projects_backlog_alone_never_makes_her_curious(cfg, machine, monkeypatch):
+    """C479 (owner, 31 Oct: «resta sempre su curiosa»): 198 open items in the projects kept curiosity at 0.96 for good.
+    Only the projects being worked on count, and at most half a night's work."""
+    from aurora import kno_mood_work
+    work = {"last_s": None, "last": None, "steps_24h": 0, "open": 198, "open_live": 198, "by": {}}
+    monkeypatch.setattr(kno_mood_work, "read", lambda cfg: work)
+    m = kno_mood.measure(cfg, {}, 0)
+    assert m["emotions"]["curiosity"]["value"] == 0.33 and m["dominant"] == "serenity"   # 4/(4+8)
+    assert "198 cose aperte nei progetti in corso" in m["emotions"]["curiosity"]["causes"]
+    work.update(open_live=0)                                         # the same projects, untouched for days
+    assert kno_mood.measure(cfg, {}, 0)["emotions"]["curiosity"]["value"] == 0.0
+    st = {"to_study": 8, "drives": {"novelty": 4}}                    # new things to study still make her curious
+    assert kno_mood.measure(cfg, st, 0)["dominant"] == "curiosity"
