@@ -135,11 +135,12 @@ class Client:
                 raise AcmeError(f"still {body.get('status')} after {timeout:.0f} s")
             self.sleep(3)
 
-    def certificate(self, names: list[str], dns, wait_seen, log=lambda m: None) -> tuple[bytes, bytes]:
-        """(fullchain PEM, private key PEM) for `names`; `dns`: add_txt/remove_txt, `wait_seen(name, values)`."""
+    def begin(self, names: list[str]) -> dict:
+        """An order for `names`: {"names", "order", "finalize", "authorizations", "todo": [{"name", "value", "url"}]} —
+        the TXT records to show (a name and its wildcard: one name, two values); kept by the caller until verify."""
         order_r = self.post(self.dir["newOrder"], {"identifiers": [{"type": "dns", "value": n} for n in names]})
-        order, order_url = order_r.json(), order_r.headers["Location"]
-        todo: list[tuple[str, str, str]] = []                     # (record name, value, challenge url)
+        order = order_r.json()
+        todo = []
         for a in order["authorizations"]:
             auth = self.post(a).json()
             if auth.get("status") == "valid":
@@ -147,29 +148,42 @@ class Client:
             ch = next((c for c in auth["challenges"] if c["type"] == "dns-01"), None)
             if ch is None:
                 raise AcmeError(f"no dns-01 challenge for {auth['identifier']['value']}")
-            todo.append((f"_acme-challenge.{auth['identifier']['value']}", challenge_value(ch["token"], self.key), ch["url"]))
+            todo.append({"name": f"_acme-challenge.{auth['identifier']['value']}",
+                         "value": challenge_value(ch["token"], self.key), "url": ch["url"]})
+        return {"names": list(names), "order": order_r.headers["Location"], "finalize": order["finalize"],
+                "authorizations": order["authorizations"], "todo": todo}
+
+    def complete(self, st: dict) -> tuple[bytes, bytes]:
+        """The records are public: the authority told to look, the names validated, the certificate made. → (fullchain
+        PEM, private key PEM)."""
+        for t in st["todo"]:
+            self.post(t["url"], {})
+        for a in st["authorizations"]:
+            self._poll(a)
+        key_pem, csr = new_key_and_csr(st["names"])
+        self.post(st["finalize"], {"csr": b64u(csr)})
+        done = self._poll(st["order"], fail=("invalid",))
+        chain = self.post(done["certificate"], accept="application/pem-certificate-chain").content
+        return chain, key_pem
+
+    def certificate(self, names: list[str], dns, wait_seen, log=lambda m: None) -> tuple[bytes, bytes]:
+        """All at once (the DNS written by its provider's API): (fullchain PEM, private key PEM) for `names`."""
+        st = self.begin(names)
         refs = []
         try:
-            for name, value, _ in todo:
-                refs.append(dns.add_txt(name, value))
-                log(f"TXT {name} written")
-            for name in sorted({n for n, _, _ in todo}):
-                if not wait_seen(name, {v for n, v, _ in todo if n == name}):
+            for t in st["todo"]:
+                refs.append(dns.add_txt(t["name"], t["value"]))
+                log(f"TXT {t['name']} written")
+            for name in sorted({t["name"] for t in st["todo"]}):
+                if not wait_seen(name, {t["value"] for t in st["todo"] if t["name"] == name}):
                     raise AcmeError(f"{name}: the TXT record is not seen from the Internet after 3 minutes")
             log("TXT records seen from the Internet")
-            for _, _, url in todo:
-                self.post(url, {})
-            for a in order["authorizations"]:
-                self._poll(a)
-            log("names validated")
+            out = self.complete(st)
+            log("names validated, certificate made")
+            return out
         finally:
             for ref in refs:
                 try:
                     dns.remove_txt(ref)
                 except Exception:  # noqa: BLE001 — a record left behind is harmless, the certificate is not lost for it
                     log(f"TXT record {ref} not removed")
-        key_pem, csr = new_key_and_csr(names)
-        self.post(order["finalize"], {"csr": b64u(csr)})
-        done = self._poll(order_url, fail=("invalid",))
-        chain = self.post(done["certificate"], accept="application/pem-certificate-chain").content
-        return chain, key_pem

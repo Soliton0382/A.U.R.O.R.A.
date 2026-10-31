@@ -87,9 +87,51 @@ async def https_acme_renew(force: bool = False) -> dict:
     if not net_https.fresh(cfg)["AURORA_ACME_ENABLED"] and not force:   # the settings as saved now, not at start
         return {"renewed": False, "why": None, "copied": await asyncio.to_thread(net_certs.copy, cfg), "off": True}
     try:
-        return await asyncio.to_thread(net_certs.renew, cfg, force)
+        out = await asyncio.to_thread(net_certs.renew, cfg, force)
     except net_certs.CertError as e:
         raise HTTPException(status_code=422, detail=str(e)) from None
+    if out.get("waiting") and not force:                 # by hand: the admin told what to add, once a day at most
+        from .core import note
+        note("https", "certificate.dns", {"title": f"🔏 Certificato da rinnovare ({out['why']}): aggiungi "
+                                                   f"{len(out['waiting']['records'])} record TXT e verifica in 🔒 HTTPS"})
+    return out
+
+
+@router.post("/v1/aurora/https/acme/start", dependencies=[Depends(admin_only)])
+async def https_acme_start() -> dict:
+    """The guided way, step one: an order for the names saved, its TXT records written or to add by hand."""
+    from aurora import net_certs
+    try:
+        return await asyncio.to_thread(net_certs.start, cfg)
+    except net_certs.CertError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
+
+
+@router.get("/v1/aurora/https/acme/check", dependencies=[Depends(admin_only)])
+async def https_acme_check() -> dict:
+    """Step two: each record as the Internet sees it now."""
+    from aurora import net_certs
+    out = await asyncio.to_thread(net_certs.check, cfg)
+    if out is None:
+        raise HTTPException(status_code=404, detail="no certificate being asked")
+    return out
+
+
+@router.post("/v1/aurora/https/acme/verify", dependencies=[Depends(admin_only)])
+async def https_acme_verify() -> dict:
+    """Step three: the authority looks; the certificate in use and copied."""
+    from aurora import net_certs
+    try:
+        return await asyncio.to_thread(net_certs.verify, cfg)
+    except net_certs.CertError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
+
+
+@router.delete("/v1/aurora/https/acme/order", dependencies=[Depends(admin_only)])
+async def https_acme_cancel() -> dict:
+    from aurora import net_certs
+    await asyncio.to_thread(net_certs.cancel, cfg)
+    return {"cancelled": True}
 
 
 @router.post("/v1/aurora/https/acme/copy", dependencies=[Depends(admin_only)])

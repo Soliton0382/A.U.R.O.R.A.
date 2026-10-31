@@ -1919,8 +1919,8 @@
    "recommended": "0",
    "evidence": "owner",
    "optional": true,
-   "en": "The HTTPS certificate is asked and renewed by Aurora from an ACME authority (Let's Encrypt), with a DNS challenge: 30 days before it ends, by itself.",
-   "it": "Il certificato HTTPS lo chiede e lo rinnova Aurora a un'autorità ACME (Let's Encrypt), con la sfida DNS: 30 giorni prima della scadenza, da sola.",
+   "en": "Aurora looks once a day and renews the certificate 30 days before it ends (by hand: she prepares the record to add and tells you).",
+   "it": "Aurora controlla una volta al giorno e rinnova il certificato 30 giorni prima della scadenza (a mano: prepara il record da aggiungere e te lo dice).",
    "services": []
   },
   {
@@ -1953,10 +1953,11 @@
    "evidence": "owner",
    "optional": true,
    "choices": [
-    "cloudflare"
+    "cloudflare",
+    "manual"
    ],
-   "en": "Who serves the domain's DNS, where the challenge's TXT record is written.",
-   "it": "Chi gestisce il DNS del dominio, dove si scrive il record TXT della sfida.",
+   "en": "How the challenge's TXT record is written: by Aurora through the DNS provider's API (cloudflare: renewals fully automatic) or by hand (manual: the page shows the record to add, then you verify).",
+   "it": "Come si scrive il record TXT della sfida: da Aurora con l'API del provider DNS (cloudflare: rinnovi del tutto automatici) o a mano (manual: la pagina mostra il record da aggiungere, poi verifichi).",
    "services": []
   },
   {

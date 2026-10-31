@@ -99,6 +99,9 @@ def renew(cfg: sys_config.Config, force: bool = False, http=None, wait_seen=None
     if not why:
         copied = copy(cfg)
         return {"renewed": False, "why": None, "copied": copied}
+    if manual(cfg):                                   # by hand: the records shown, the admin adds them and verifies
+        st = pending(cfg)
+        return {"renewed": False, "why": why, "waiting": _public(st) if st else start(cfg, http), "copied": copy(cfg)}
     names = wanted(cfg)
     if not names:
         raise CertError("no public name to certify: set AURORA_ACME_DOMAINS or the HTTPS names")
@@ -122,6 +125,140 @@ def renew(cfg: sys_config.Config, force: bool = False, http=None, wait_seen=None
     _log().info("audit: certificate renewed by ACME (%s): %s, until %s%s", why, ", ".join(names), info["not_after"][:10],
              " (test service)" if staging else "")
     return {"renewed": True, "why": why, "certificate": info, "copied": copy(cfg)}
+
+
+# ---- the guided way: start, see, verify (owner, 1 Nov: «metto il dominio, faccio partire, dà il token da aggiungere,
+# lo aggiungo e poi fa la verifica del dominio… un po' più interattiva nella pagina se no si perdono pezzi») -----------
+def manual(cfg: sys_config.Config) -> bool:
+    return str(cfg["AURORA_ACME_DNS"]) == "manual"
+
+
+def _order_file(cfg: sys_config.Config) -> Path:
+    return _dir(cfg) / "order.json"
+
+
+def pending(cfg: sys_config.Config) -> dict | None:
+    try:
+        return json.loads(_order_file(cfg).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
+def _keep_order(cfg: sys_config.Config, st: dict | None) -> None:
+    f = _order_file(cfg)
+    if st is None:
+        f.unlink(missing_ok=True)
+        return
+    f.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    tmp = f.with_suffix(f".{os.getpid()}.tmp")
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as h:
+        json.dump(st, h)
+    os.replace(tmp, f)
+
+
+def _client(cfg: sys_config.Config, staging: bool, http=None):
+    from . import net_acme
+    c = net_acme.Client(net_acme.account_key(_dir(cfg)), net_acme.DIRECTORY["staging" if staging else "production"], http)
+    c.account(str(cfg["AURORA_ACME_EMAIL"] or ""))
+    return c
+
+
+def _public(st: dict, seen: dict | None = None) -> dict:
+    recs = [{"name": t["name"], "value": t["value"], **({"seen": seen.get((t["name"], t["value"]), False)} if seen is not None else {})}
+            for t in st["todo"]]
+    return {"names": st["names"], "staging": st["staging"], "manual": st["manual"], "started": st["started"], "records": recs,
+            **({"all_seen": all(r["seen"] for r in recs)} if seen is not None else {})}
+
+
+def start(cfg: sys_config.Config, http=None) -> dict:
+    """An order begun for the names asked: its TXT records, written by Aurora (a DNS provider) or shown to be added by
+    hand. One at a time: a new start drops the one before (its records too)."""
+    from . import net_acme, net_dnsapi
+    cfg = net_https.fresh(cfg)
+    names = wanted(cfg)
+    if not names:
+        raise CertError("no public name to certify: write the names (e.g. example.org, *.example.org)")
+    if pending(cfg):
+        cancel(cfg)
+    staging, by_hand = bool(cfg["AURORA_ACME_STAGING"]), manual(cfg)
+    try:
+        st = _client(cfg, staging, http).begin(names)
+        st.update(staging=staging, manual=by_hand, started=time.time(), refs=[])
+        if not by_hand:
+            dns = net_dnsapi.provider(cfg)
+            for t in st["todo"]:
+                st["refs"].append(dns.add_txt(t["name"], t["value"]))
+    except (net_acme.AcmeError, net_dnsapi.DnsError, OSError, KeyError) as e:
+        _remember(cfg, tried=time.time(), trying=False, error=str(e)[:400], steps=[])
+        raise CertError(str(e)) from None
+    _keep_order(cfg, st)
+    _remember(cfg, tried=time.time(), trying=True, error=None,
+              steps=[f"order for {', '.join(names)}{' (test service)' if staging else ''}",
+                     f"{len(st['todo'])} TXT record(s) " + ("to add by hand" if by_hand else "written by Aurora")])
+    _log().info("certificate: order begun for %s (%s)", ", ".join(names), "by hand" if by_hand else "DNS provider")
+    return _public(st)
+
+
+def check(cfg: sys_config.Config, client=None) -> dict | None:
+    """The order's records as the Internet sees them now (two public resolvers), each ✅ or ⏳."""
+    from . import net_dnsapi
+    st = pending(cfg)
+    if not st:
+        return None
+    seen = {}
+    for name in {t["name"] for t in st["todo"]}:
+        have = net_dnsapi.txt(name, client)
+        for t in st["todo"]:
+            if t["name"] == name:
+                seen[(name, t["value"])] = t["value"] in have
+    return _public(st, seen)
+
+
+def verify(cfg: sys_config.Config, http=None) -> dict:
+    """The authority told to look: the names validated, the certificate made, put in use and copied; the order and
+    the records Aurora wrote gone either way (a refused order cannot be tried again)."""
+    from . import net_acme
+    cfg = net_https.fresh(cfg)
+    st = pending(cfg)
+    if not st:
+        raise CertError("no certificate being asked: start first")
+    steps = list(_state(cfg).get("steps") or [])
+    try:
+        chain, key = _client(cfg, st["staging"], http).complete(st)
+        steps.append("names validated by the authority, certificate made")
+        out = net_https.install_cert(cfg, chain, key)
+        steps.append("in use: Caddy reloaded")
+    except (net_acme.AcmeError, net_https.HttpsError, OSError) as e:
+        _drop(cfg, st)
+        _remember(cfg, trying=False, error=str(e)[:400], steps=steps + [f"refused: {str(e)[:200]}"])
+        raise CertError(str(e)) from None
+    _drop(cfg, st)
+    info = out["certificate"]
+    _remember(cfg, trying=False, error=None, issued=time.time(), staging=st["staging"], names=st["names"], steps=steps,
+              not_after=info["not_after"])
+    _log().info("audit: certificate issued by ACME: %s, until %s%s", ", ".join(st["names"]), info["not_after"][:10],
+                " (test service)" if st["staging"] else "")
+    return {"renewed": True, "certificate": info, "copied": copy(cfg)}
+
+
+def _drop(cfg: sys_config.Config, st: dict) -> None:
+    if st.get("refs"):
+        from . import net_dnsapi
+        try:
+            dns = net_dnsapi.provider(cfg)
+            for ref in st["refs"]:
+                dns.remove_txt(ref)
+        except Exception as e:  # noqa: BLE001 — a record left behind is harmless
+            _log().warning("certificate: TXT records not removed: %s", e)
+    _keep_order(cfg, None)
+
+
+def cancel(cfg: sys_config.Config) -> None:
+    st = pending(cfg)
+    if st:
+        _drop(net_https.fresh(cfg), st)
+        _remember(cfg, trying=False)
 
 
 # ---- the copy for the other devices -----------------------------------------------------------------------------
@@ -196,6 +333,7 @@ def status(cfg: sys_config.Config) -> dict:
     return {"enabled": bool(cfg["AURORA_ACME_ENABLED"]), "names": wanted(cfg), "dns": str(cfg["AURORA_ACME_DNS"]),
             "token_set": bool(cfg["AURORA_ACME_DNS_TOKEN"]), "staging": bool(cfg["AURORA_ACME_STAGING"]),
             "certificate": info, "renew_from": nxt, "due": why_due(cfg) if cfg["AURORA_ACME_ENABLED"] else None,
+            "manual": manual(cfg), "pending": _public(pending(cfg)) if pending(cfg) else None,
             "last": {k: st.get(k) for k in ("tried", "issued", "error", "steps", "staging", "trying")},
             "copy": {"dir": str(cfg["AURORA_CERTS_COPY_DIR"] or ""), "at": st.get("copied_at"), "error": st.get("copy_error"),
                      "p12_password": bool(cfg["AURORA_CERTS_P12_PASSWORD"]), "legacy": bool(cfg["AURORA_CERTS_P12_LEGACY"])}}

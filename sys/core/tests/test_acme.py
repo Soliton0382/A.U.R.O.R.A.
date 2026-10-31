@@ -220,3 +220,38 @@ def test_a_failed_renewal_is_kept_for_the_page_and_the_old_certificate_stays(htt
     https.values["AURORA_ACME_ENABLED"] = False
     with pytest.raises(net_certs.CertError, match="off"):
         net_certs.renew(https, force=True)
+
+
+def test_the_guided_way_by_hand_start_add_see_verify(https, tmp_path, monkeypatch):
+    """1 Nov («metto il dominio, faccio partire, dà il token da aggiungere, lo aggiungo e poi fa la verifica»)."""
+    zone: dict[str, set] = {}
+    auth = Authority(zone)
+    http = httpx.Client(transport=httpx.MockTransport(auth))
+    monkeypatch.setitem(net_acme.DIRECTORY, "production", D + "/dir")
+    monkeypatch.setattr(net_dnsapi, "txt", lambda name, client=None: zone.get(name, set()))
+    https.values["AURORA_ACME_DNS"] = "manual"
+    p = net_certs.start(https, http)
+    assert p["manual"] and {r["name"] for r in p["records"]} == {"_acme-challenge.example.org"} and len(p["records"]) == 2
+    assert net_certs.status(https)["pending"]["records"] == p["records"]
+    assert not net_certs.check(https)["all_seen"]
+    zone["_acme-challenge.example.org"] = {p["records"][0]["value"]}                 # one added: not yet
+    assert [r["seen"] for r in net_certs.check(https)["records"]] == [True, False]
+    zone["_acme-challenge.example.org"].add(p["records"][1]["value"])
+    assert net_certs.check(https)["all_seen"]
+    r = net_certs.verify(https, http)
+    assert r["renewed"] and https["AURORA_TLS_MODE"] == "files" and net_certs.pending(https) is None
+    with pytest.raises(net_certs.CertError, match="start first"):
+        net_certs.verify(https, http)
+
+
+def test_by_hand_the_daily_look_prepares_the_records_and_waits(https, monkeypatch):
+    zone: dict[str, set] = {}
+    http = httpx.Client(transport=httpx.MockTransport(Authority(zone)))
+    monkeypatch.setitem(net_acme.DIRECTORY, "production", D + "/dir")
+    https.values["AURORA_ACME_DNS"] = "manual"
+    out = net_certs.renew(https, http=http)
+    assert out["renewed"] is False and len(out["waiting"]["records"]) == 2
+    again = net_certs.renew(https, http=http)                                     # the next day: the same order
+    assert again["waiting"]["records"] == out["waiting"]["records"]
+    net_certs.cancel(https)
+    assert net_certs.pending(https) is None

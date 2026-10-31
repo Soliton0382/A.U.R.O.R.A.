@@ -791,7 +791,11 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | PUT `/v1/aurora/https/names` | `api/https.py` | `webui/js/modules/https.js` |
 | PUT `/v1/aurora/https/ports` | `api/https.py` | `webui/js/modules/https.js` |
 | GET `/v1/aurora/https/acme` | `api/https.py` | `webui/js/modules/https_acme.js` |
-| POST `/v1/aurora/https/acme/renew` | `api/https.py` | `script/svc_rem.py`, `webui/js/modules/https_acme.js` |
+| POST `/v1/aurora/https/acme/renew` | `api/https.py` | `script/svc_rem.py` |
+| POST `/v1/aurora/https/acme/start` | `api/https.py` | `webui/js/modules/https_acme.js` |
+| GET `/v1/aurora/https/acme/check` | `api/https.py` | `webui/js/modules/https_acme.js` |
+| POST `/v1/aurora/https/acme/verify` | `api/https.py` | `webui/js/modules/https_acme.js` |
+| DELETE `/v1/aurora/https/acme/order` | `api/https.py` | `webui/js/modules/https_acme.js` |
 | POST `/v1/aurora/https/acme/copy` | `api/https.py` | `webui/js/modules/https_acme.js` |
 | POST `/v1/aurora/sentinel/incident` | `api/incidents.py` | `script/svc_api.py`, `script/svc_sentinel.py` |
 | GET `/v1/aurora/incidents` | `api/incidents.py` | `script/svc_api.py`, `webui/js/modules/alerts.js`, `webui/js/modules/security.js` |
@@ -1005,11 +1009,11 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | POST `/v1/aurora/deductions/{did}/pdf` | `api/synapses.py` | `webui/js/modules/deductions_box.js` |
 | POST `/v1/aurora/deductions/round` | `api/synapses.py` | `webui/js/modules/deductions_box.js` |
 | GET `/v1/aurora/status` | `api/system.py` | `script/svc_api.py`, `webui/js/modules/status.js` |
-| GET `/v1/aurora/settings` | `api/system.py` | `script/svc_api.py`, `sys/plugins/dropbox/authorize.py`, `sys/plugins/tiktok/authorize.py`, `webui/js/modules/care_diet.js`, `webui/js/modules/firewall.js`, `webui/js/modules/harvester.js`, `webui/js/modules/mask_view.js`, `webui/js/modules/settings.js`, `webui/js/modules/settings_form.js`, `webui/js/modules/updates.js`, `webui/js/modules/users.js`, `webui/js/modules/wizard.js`, `webui/js/welcome.js` |
+| GET `/v1/aurora/settings` | `api/system.py` | `script/svc_api.py`, `sys/plugins/dropbox/authorize.py`, `sys/plugins/tiktok/authorize.py`, `webui/js/modules/care_diet.js`, `webui/js/modules/firewall.js`, `webui/js/modules/harvester.js`, `webui/js/modules/https_acme.js`, `webui/js/modules/mask_view.js`, `webui/js/modules/settings.js`, `webui/js/modules/settings_form.js`, `webui/js/modules/updates.js`, `webui/js/modules/users.js`, `webui/js/modules/wizard.js`, `webui/js/welcome.js` |
 | POST `/v1/aurora/settings/factory` | `api/system.py` | `webui/js/modules/settings.js` |
 | GET `/v1/aurora/factory` | `api/system.py` | `webui/js/modules/settings.js` |
 | POST `/v1/aurora/factory/mind` | `api/system.py` | `webui/js/modules/settings.js` |
-| PUT `/v1/aurora/settings` | `api/system.py` | `script/svc_api.py`, `sys/plugins/dropbox/authorize.py`, `sys/plugins/tiktok/authorize.py`, `webui/js/modules/care_diet.js`, `webui/js/modules/firewall.js`, `webui/js/modules/harvester.js`, `webui/js/modules/mask_view.js`, `webui/js/modules/settings.js`, `webui/js/modules/settings_form.js`, `webui/js/modules/updates.js`, `webui/js/modules/users.js`, `webui/js/modules/wizard.js`, `webui/js/welcome.js` |
+| PUT `/v1/aurora/settings` | `api/system.py` | `script/svc_api.py`, `sys/plugins/dropbox/authorize.py`, `sys/plugins/tiktok/authorize.py`, `webui/js/modules/care_diet.js`, `webui/js/modules/firewall.js`, `webui/js/modules/harvester.js`, `webui/js/modules/https_acme.js`, `webui/js/modules/mask_view.js`, `webui/js/modules/settings.js`, `webui/js/modules/settings_form.js`, `webui/js/modules/updates.js`, `webui/js/modules/users.js`, `webui/js/modules/wizard.js`, `webui/js/welcome.js` |
 | GET `/v1/aurora/ups` | `api/system.py` | `webui/js/modules/security_firewalls.js`, `webui/js/modules/ups.js` |
 | GET `/v1/aurora/debug/memory` | `api/system.py` | — |
 | GET `/v1/aurora/consoles` | `api/system.py` | `webui/js/modules/consoles.js` |
@@ -1052,4 +1056,4 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | GET `/v1/aurora/tts` | `api/voice.py` | `webui/js/voice.js` |
 | POST `/v1/aurora/tts` | `api/voice.py` | `webui/js/voice.js` |
 
-Modules nobody in the code imports: 0; routes nobody in the repository names: 8 of 441.
+Modules nobody in the code imports: 0; routes nobody in the repository names: 8 of 445.
