@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.3.37 — 2026-11-01
+
+1 publications since v0.3.36.
+
+- 2026-11-01 A clean start every morning: after the night's work the API restarts itself, only when nothing would be lost (no run, question, GPU job or backup; the ethics code intact)
+
 ## v0.3.36 — 2026-11-01
 
 8 publications since v0.3.27.

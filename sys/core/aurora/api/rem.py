@@ -50,6 +50,19 @@ def _mood(st: dict, admin: bool) -> dict:
     return m
 
 
+@router.get("/v1/aurora/rem/fresh", dependencies=[Depends(admin_only)])
+def rem_fresh() -> dict:
+    """aurora-rem, before the morning's restart (sys_fresh): what a restart now would lose or break, or null."""
+    from aurora import sys_fresh
+
+    from .backup import backup_state
+    try:
+        running = bool(backup_state().get("running"))
+    except Exception:  # noqa: BLE001 — no backup set up: none running
+        running = False
+    return {"why": sys_fresh.why_not(cfg, list(_runs.values()), running)}
+
+
 @router.get("/v1/aurora/mood", dependencies=[Depends(auth)])
 def mood() -> dict:
     """How Aurora feels now, each emotion with its measured causes (the top bar each minute, the Health page): the

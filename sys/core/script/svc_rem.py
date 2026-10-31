@@ -138,6 +138,19 @@ def ups_watch() -> None:
     threading.Thread(target=loop, name="ups", daemon=True).start()
 
 
+def fresh_tick(client: httpx.Client, idle: bool, said: str) -> str:
+    """🌅 Once a day after the night's work, aurora-api restarted clean (sys_fresh)."""
+    from aurora import sys_fresh
+
+    def ask() -> str | None:
+        return client.get(f"{BASE}/v1/aurora/rem/fresh").raise_for_status().json()["why"]
+
+    def restart() -> None:
+        client.post(f"{BASE}/v1/aurora/services/restart", json={"services": ["aurora-api"]}).raise_for_status()
+
+    return sys_fresh.tick(cfg, sns_clock.now(cfg), idle, said, ask, restart, log)
+
+
 def main() -> int:
     def stop(*_):
         global _stop
@@ -150,7 +163,7 @@ def main() -> int:
     client = httpx.Client(headers=HEADERS, timeout=30)
     wait_for_api(client)
     ups_watch()
-    last_reason, last_update = "", 0.0
+    last_reason, last_update, fresh_said = "", 0.0, ""
     # the daily round's last time kept on disk: a restart is not a new day (C412: each restart grew the synapses again,
     # 16 cores for ~40 minutes by day)
     daily = cfg.path("AURORA_STATUS_DIR") / "rem_daily.txt"
@@ -214,6 +227,7 @@ def main() -> int:
                 log.warning("soak snapshot failed: %s", e)
             last_purge = time.time()
             daily.write_text(str(last_purge), encoding="ascii")
+        idle = not cfg["AURORA_REM_ENABLED"]
         if cfg["AURORA_REM_ENABLED"]:
             try:                                      # every user's memory, one task at a time (one GPU)
                 who = client.get(f"{BASE}/v1/aurora/rem/users").raise_for_status().json()
@@ -229,11 +243,14 @@ def main() -> int:
                         sys_log.trace("rem", "rem.task", {"task": task, "reason": reason, "run_id": run["run_id"]})
                         break
                 else:
+                    idle = True
                     if reason != last_reason:
                         log.info("idle: %s", reason)
                 last_reason = reason
             except (httpx.HTTPError, KeyError, ValueError) as e:
                 log.warning("state or task failed: %s", e)
+        if cfg["AURORA_NIGHT_RESTART"]:
+            fresh_said = fresh_tick(client, idle, fresh_said)
         for _ in range(cfg["AURORA_REM_TICK_S"]):
             if _stop:
                 break

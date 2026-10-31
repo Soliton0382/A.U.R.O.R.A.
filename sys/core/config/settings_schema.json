@@ -2781,6 +2781,19 @@
    "max": 3600
   },
   {
+   "key": "AURORA_NIGHT_RESTART",
+   "type": "bool",
+   "category": "rem",
+   "recommended": "1",
+   "optional": true,
+   "evidence": "owner",
+   "en": "Once a day, after the night's work (within 3 hours of the dream window's end), the API restarts itself clean — only with no run, question, GPU job or backup going on, and the ethics code intact.",
+   "it": "Una volta al giorno, dopo i lavori notturni (entro 3 ore dalla fine della finestra dei sogni), l'API si riavvia pulita — solo senza run, domande, lavori sulla GPU o backup in corso, e con il codice etico intatto.",
+   "services": [
+    "aurora-rem"
+   ]
+  },
+  {
    "key": "AURORA_REM_IDLE_MIN",
    "type": "int",
    "category": "rem",
