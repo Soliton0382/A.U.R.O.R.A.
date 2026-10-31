@@ -34,10 +34,9 @@ async def money_add(request: Request) -> dict:
     from aurora import fin_store
     b = await request.json()
     kind = str(b.get("kind", "out"))
-    if b.get("monthly"):
-        when = _do(fin_store.day, str(b.get("day", "")))
+    if b.get("monthly"):                              # the day of the month (1–31), from this month
         out = _do(fin_store.fixed_add, cfg, kind, b.get("amount"), str(b.get("what", "")), str(b.get("category", "")),
-                  int(when[8:]), when[:7])
+                  int(b.get("dom") or 1))
     else:
         out = _do(fin_store.add, cfg, kind, b.get("amount"), str(b.get("what", "")), str(b.get("category", "")),
                   str(b.get("day", "")))
@@ -57,6 +56,15 @@ def money_fixed_stop(fid: int) -> dict:
     from aurora import fin_store
     _do(fin_store.fixed_stop, cfg, fid)
     return {"stopped": fid}
+
+
+@router.put("/v1/aurora/expenses/fixed/{fid}", dependencies=[Depends(auth)])
+async def money_fixed_change(fid: int, request: Request) -> dict:
+    """{"dom"?, "amount"?}: a fixed item's day of the month or amount, from now on."""
+    from aurora import fin_store
+    b = await request.json()
+    _do(fin_store.fixed_update, cfg, fid, b.get("dom"), b.get("amount"))
+    return {"changed": fid}
 
 
 @router.put("/v1/aurora/expenses/goal", dependencies=[Depends(auth)])

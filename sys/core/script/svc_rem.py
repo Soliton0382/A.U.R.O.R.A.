@@ -220,6 +220,14 @@ def main() -> int:
                     log.info("MAC makers: %d lines", sec_baseline.refresh_makers(cfg))
             except Exception as e:  # noqa: BLE001 — a list that cannot be read waits for tomorrow
                 log.warning("threat lists not refreshed: %s", e)
+            try:                                      # 🔏 the HTTPS certificate: renewed when due, copied (net_certs)
+                c = client.post(f"{BASE}/v1/aurora/https/acme/renew", timeout=600)
+                if c.status_code == 200 and (c.json().get("renewed") or (c.json().get("copied") or {}).get("copied")):
+                    log.info("certificate: %s", "renewed" if c.json().get("renewed") else "copied")
+                elif c.status_code != 200:
+                    log.warning("certificate: %s", c.text[:300])
+            except (httpx.HTTPError, ValueError) as e:
+                log.warning("certificate check failed: %s", e)
             try:                                      # the soak, measured by itself: one snapshot a day
                 from aurora import sys_soak
                 sys_soak.record(cfg)

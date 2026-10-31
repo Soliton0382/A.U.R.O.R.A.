@@ -1913,6 +1913,110 @@
    ]
   },
   {
+   "key": "AURORA_ACME_ENABLED",
+   "type": "bool",
+   "category": "https",
+   "recommended": "0",
+   "evidence": "owner",
+   "optional": true,
+   "en": "The HTTPS certificate is asked and renewed by Aurora from an ACME authority (Let's Encrypt), with a DNS challenge: 30 days before it ends, by itself.",
+   "it": "Il certificato HTTPS lo chiede e lo rinnova Aurora a un'autorità ACME (Let's Encrypt), con la sfida DNS: 30 giorni prima della scadenza, da sola.",
+   "services": []
+  },
+  {
+   "key": "AURORA_ACME_DOMAINS",
+   "type": "str",
+   "category": "https",
+   "recommended": "",
+   "evidence": "owner",
+   "optional": true,
+   "en": "The names the certificate covers, separated by commas (e.g. example.org, *.example.org); empty = the names this Aurora serves.",
+   "it": "I nomi coperti dal certificato, separati da virgole (es. example.org, *.example.org); vuoto = i nomi serviti da questa Aurora.",
+   "services": []
+  },
+  {
+   "key": "AURORA_ACME_EMAIL",
+   "type": "str",
+   "category": "https",
+   "recommended": "",
+   "evidence": "owner",
+   "optional": true,
+   "en": "The address the authority writes to about the certificate (optional).",
+   "it": "L'indirizzo a cui l'autorità scrive sul certificato (facoltativo).",
+   "services": []
+  },
+  {
+   "key": "AURORA_ACME_DNS",
+   "type": "str",
+   "category": "https",
+   "recommended": "cloudflare",
+   "evidence": "owner",
+   "optional": true,
+   "choices": [
+    "cloudflare"
+   ],
+   "en": "Who serves the domain's DNS, where the challenge's TXT record is written.",
+   "it": "Chi gestisce il DNS del dominio, dove si scrive il record TXT della sfida.",
+   "services": []
+  },
+  {
+   "key": "AURORA_ACME_DNS_TOKEN",
+   "type": "str",
+   "category": "https",
+   "recommended": "",
+   "evidence": "owner",
+   "optional": true,
+   "secret": true,
+   "en": "The DNS provider's API token; on Cloudflare a token with Zone:DNS:Edit on this zone only.",
+   "it": "Il token API del provider DNS; su Cloudflare un token con Zone:DNS:Edit solo su questa zona.",
+   "services": []
+  },
+  {
+   "key": "AURORA_ACME_STAGING",
+   "type": "bool",
+   "category": "https",
+   "recommended": "0",
+   "evidence": "owner",
+   "optional": true,
+   "en": "Use the authority's test service (certificates not trusted by browsers): for a first try without its limits.",
+   "it": "Usa il servizio di prova dell'autorità (certificati non riconosciuti dai browser): per un primo tentativo senza i suoi limiti.",
+   "services": []
+  },
+  {
+   "key": "AURORA_CERTS_COPY_DIR",
+   "type": "path",
+   "category": "https",
+   "recommended": "",
+   "evidence": "owner",
+   "optional": true,
+   "en": "A folder (e.g. the NAS's shared one, mounted here) where every new certificate is copied, overwriting: fullchain.pem, privkey.pem, cert.pem, chain.pem and keyStore.p12; empty = no copy.",
+   "it": "Una cartella (es. quella condivisa del NAS, montata qui) dove ogni nuovo certificato viene copiato sovrascrivendo: fullchain.pem, privkey.pem, cert.pem, chain.pem e keyStore.p12; vuoto = nessuna copia.",
+   "services": []
+  },
+  {
+   "key": "AURORA_CERTS_P12_PASSWORD",
+   "type": "str",
+   "category": "https",
+   "recommended": "",
+   "evidence": "owner",
+   "optional": true,
+   "secret": true,
+   "en": "The password of the copied keyStore.p12 (for a media server: its custom certificate's encryption key).",
+   "it": "La password del keyStore.p12 copiato (per un media server: la chiave di cifratura del suo certificato personalizzato).",
+   "services": []
+  },
+  {
+   "key": "AURORA_CERTS_P12_LEGACY",
+   "type": "bool",
+   "category": "https",
+   "recommended": "0",
+   "evidence": "owner",
+   "optional": true,
+   "en": "keyStore.p12 in the older encryption (3DES, SHA-1) for programs that refuse the modern one (AES-256).",
+   "it": "keyStore.p12 con la cifratura vecchia (3DES, SHA-1) per i programmi che rifiutano quella moderna (AES-256).",
+   "services": []
+  },
+  {
    "key": "AURORA_FORMATS_CACHE_H",
    "type": "float",
    "min": 1,

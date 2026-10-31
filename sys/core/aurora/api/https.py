@@ -70,3 +70,32 @@ async def https_ports(request: Request) -> dict:
     except net_https.HttpsError as e:
         raise HTTPException(status_code=422, detail=str(e)) from None
     return out
+
+
+# ---- 🔏 the certificate looked after by Aurora (net_certs): the admin's only -------------------------------------
+@router.get("/v1/aurora/https/acme", dependencies=[Depends(admin_only)])
+def https_acme() -> dict:
+    from aurora import net_certs
+    return net_certs.status(cfg)
+
+
+@router.post("/v1/aurora/https/acme/renew", dependencies=[Depends(admin_only)])
+async def https_acme_renew(force: bool = False) -> dict:
+    """A new certificate now (`force`, the page's button) or only when due (aurora-rem's daily look); the copy for the
+    other devices either way."""
+    from aurora import net_certs, net_https
+    if not net_https.fresh(cfg)["AURORA_ACME_ENABLED"] and not force:   # the settings as saved now, not at start
+        return {"renewed": False, "why": None, "copied": await asyncio.to_thread(net_certs.copy, cfg), "off": True}
+    try:
+        return await asyncio.to_thread(net_certs.renew, cfg, force)
+    except net_certs.CertError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
+
+
+@router.post("/v1/aurora/https/acme/copy", dependencies=[Depends(admin_only)])
+async def https_acme_copy() -> dict:
+    from aurora import net_certs
+    out = await asyncio.to_thread(net_certs.copy, cfg)
+    if out is None:
+        raise HTTPException(status_code=422, detail="no folder to copy to (AURORA_CERTS_COPY_DIR)")
+    return out

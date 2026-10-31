@@ -222,6 +222,44 @@ def fixed_stop(cfg: sys_config.Config, fid: int, today: date | None = None) -> N
             raise KeyError(fid)
 
 
+def fixed_update(cfg: sys_config.Config, fid: int, dom: int | None = None, amount=None, today: date | None = None) -> None:
+    """A fixed item's day or amount changed from now on. This month's movement made from it follows: moved to the new
+    day (taken away until then, when that day has not come yet), its amount the new one; the months gone stay."""
+    today = today or date.today()
+    with db(cfg, today) as con:
+        row = con.execute("SELECT kind, cents, dom FROM fixed WHERE id = ? AND until IS NULL", (int(fid),)).fetchone()
+        if not row:
+            raise KeyError(fid)
+        kind, c, d = row
+        if dom is not None:
+            d = int(dom)
+            if not 1 <= d <= 31:
+                raise ValueError("day of the month: 1 to 31")
+        if amount not in (None, ""):
+            c = cents(amount)
+        con.execute("UPDATE fixed SET dom = ?, cents = ? WHERE id = ?", (d, c, int(fid)))
+        m, table = today.strftime("%Y-%m"), KINDS[kind][0]
+        day_ = date(today.year, today.month, min(d, calendar.monthrange(today.year, today.month)[1]))
+        if day_ <= today:
+            con.execute(f"UPDATE {table} SET day = ?, cents = ? WHERE fixed_id = ? AND day LIKE ?",
+                        (day_.isoformat(), c, int(fid), f"{m}-%"))
+        else:                                             # not come yet: made again on its day
+            con.execute(f"DELETE FROM {table} WHERE fixed_id = ? AND day LIKE ?", (int(fid), f"{m}-%"))
+            con.execute("DELETE FROM fixed_done WHERE fixed_id = ? AND month = ?", (int(fid), m))
+
+
+def next_day(dom: int, today: date | None = None) -> date:
+    """The next date a fixed item of day `dom` comes (today included; the month's last day when shorter)."""
+    today = today or date.today()
+    y, m = today.year, today.month
+    for _ in range(2):
+        d = date(y, m, min(dom, calendar.monthrange(y, m)[1]))
+        if d >= today:
+            return d
+        y, m = (y + 1, 1) if m == 12 else (y, m + 1)
+    return d
+
+
 def fixed_list(cfg: sys_config.Config) -> list[dict]:
     with db(cfg) as con:
         rows = con.execute("SELECT id, kind, cents, what, category, dom, since FROM fixed WHERE until IS NULL "

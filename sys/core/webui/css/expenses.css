@@ -60,6 +60,11 @@
 .exp-kind .cat-chip.on { background: var(--accent); color: #fff; }
 .exp-monthly { display: inline-flex; align-items: center; gap: .3rem; font-size: .9rem; }
 .exp-monthly[hidden] { display: none; }
+.exp-dom { display: inline-flex; align-items: center; gap: .3rem; font-size: .9rem; }
+.exp-dom[hidden] { display: none; }
+.exp-dom input, .exp-fix-dom { width: 4rem; }
+.exp-fix-amt { width: 100%; text-align: right; }
+.exp-move-day { display: inline-flex; align-items: center; gap: .25rem; }
 .exp-form select, .exp-form input[type=date] { width: auto; flex: 0 1 auto; }
 
 .exp-moves { display: flex; flex-direction: column; }

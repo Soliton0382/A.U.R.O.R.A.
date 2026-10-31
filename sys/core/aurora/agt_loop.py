@@ -449,6 +449,7 @@ class Agent(AgentMakers, AgentReport):
         self.touched: set[tuple[str, str]] = set()          # (project, file) written by the tool or by its commands
         self.commands: list[tuple] = []                     # (project, command, exit, seconds) run in projects
         self.effects: dict[str, str] = {}                    # tool -> its effect: the plugins' reads are counted too
+        self.reads: list[tuple[str, str]] = []                # (plugin tool, result) of the plugins' reads: told if no report
         self.pinned: set[int] = set()                       # reads of the files the goal names: shortened last
         budget = self.cfg["AURORA_PIPELINE_THINK_TOKENS"]
         limit_s = self.max_min * 60
@@ -536,6 +537,8 @@ class Agent(AgentMakers, AgentReport):
                     # an edit writes the file too (C399: nine edits of paper.md, then «not written», then a copy)
                     self.touched.add((str(args.get("name", "")), str(args.get("path", "")).removeprefix("./")))
                 self.effects[name] = index[name][2] if name in index else ""
+                if self.effects[name] == "read" and not name.startswith("self" + SEP) and self.ledger[-1][1]:
+                    self.reads.append((name, result[:1200]))
                 emit("tool.result", {"name": name, "ok": not result.startswith(("ERROR", "REFUSED")),
                                      "text": result[:1500]})
                 messages.append({"role": "tool", "content": agt_tools.clip(result)})

@@ -114,7 +114,8 @@ export default {
       <input name="amount" inputmode="decimal" required placeholder="${t("exp.amount")}">
       <input name="what" required placeholder="${t(monthly ? "exp.what_fixed" : "exp.what")}">
       <select name="category"></select>
-      <input name="day" type="date" value="${day}">
+      <input name="day" type="date" value="${day}"${monthly ? " hidden" : ""}>
+      <label class="exp-dom"${monthly ? "" : " hidden"}>${t("exp.dom")} <input name="dom" type="number" min="1" max="31" value="${new Date().getDate()}"></label>
       <label class="exp-monthly"${monthly ? " hidden" : ""}><input type="checkbox" name="monthly"${monthly ? " checked" : ""}> 🔁 ${t("exp.monthly")}</label>
       <button type="submit">${t(monthly ? "exp.add_fixed" : "exp.add")}</button>`;
     let kind = "out";
@@ -125,10 +126,15 @@ export default {
       fill();
     }));
     fill();
+    f.monthly.addEventListener("change", () => {           // every month: a day of the month, not a date
+      f.day.hidden = f.monthly.checked;
+      f.querySelector(".exp-dom").hidden = !f.monthly.checked;
+      if (f.monthly.checked) f.dom.value = Number(f.day.value.slice(8)) || 1;
+    });
     f.addEventListener("submit", (ev) => {
       ev.preventDefault();
       this.send("/v1/aurora/expenses/moves", "POST", { kind, amount: f.amount.value, what: f.what.value, category: f.category.value,
-        day: f.day.value, monthly: f.monthly.checked });
+        day: f.day.value, dom: f.dom.value, monthly: f.monthly.checked });
     });
     return f;
   },
@@ -169,8 +175,17 @@ export default {
         stop.type = "button";
         stop.title = t("exp.stop");
         stop.addEventListener("click", () => { if (confirm(t("exp.stop_q", { w: x.what }))) this.send(`/v1/aurora/expenses/fixed/${x.id}`, "DELETE"); });
-        row.append(el("span", "exp-move-day", t("exp.on_day", { d: x.dom })), el("span", "exp-move-what", x.what),
-          el("span", "exp-move-cat muted", this.label(x.category)), el("b", "exp-move-amt", this.fmt(x.cents)), stop);
+        // the day and the amount changed in place, from this month on (this month's movement follows)
+        const dom = el("input", "exp-fix-dom");
+        Object.assign(dom, { type: "number", min: 1, max: 31, value: x.dom, title: t("exp.dom") });
+        const amt = el("input", "exp-fix-amt");
+        Object.assign(amt, { inputMode: "decimal", value: (x.cents / 100).toFixed(2).replace(".", ","), title: t("exp.amount") });
+        const put = (body) => this.send(`/v1/aurora/expenses/fixed/${x.id}`, "PUT", body);
+        dom.addEventListener("change", () => put({ dom: Number(dom.value) }));
+        amt.addEventListener("change", () => put({ amount: amt.value }));
+        const day = el("label", "exp-move-day");
+        day.append(t("exp.on_day_short"), dom);
+        row.append(day, el("span", "exp-move-what", x.what), el("span", "exp-move-cat muted", this.label(x.category)), amt, stop);
         list.append(row);
       }
       out.push(list);

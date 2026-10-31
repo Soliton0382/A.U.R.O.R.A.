@@ -1,0 +1,6 @@
+/* 🔒 HTTPS page: the automatic certificate's facts (https_acme.js) */
+.acme-facts { display: grid; grid-template-columns: minmax(9rem, 14rem) 1fr; gap: .35rem 1rem; margin: .4rem 0 .8rem;
+  padding: .7rem .9rem; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.acme-facts span { overflow-wrap: anywhere; }
+.acme-steps { font: .82rem var(--mono); white-space: pre-wrap; }
+@media (max-width: 560px) { .acme-facts { grid-template-columns: 1fr; } .acme-facts .muted { margin-top: .3rem; } }

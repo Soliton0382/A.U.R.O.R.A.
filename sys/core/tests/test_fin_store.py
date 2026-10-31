@@ -84,6 +84,8 @@ def test_the_chat_advises_with_the_user_s_numbers(money, monkeypatch):
     ex.saving_goal("200")
     out = ex.money_overview("900")
     assert "saved 300,00 € a month" in out and "about 3.0 months" in out and "4.5 months of it" in out
+    ex.expense_fixed_add("in", "1800", "Paga", "stipendio", 27)
+    assert "Next Paga: +1.800,00 € on " in ex.money_overview()
     assert ex.income_add("50", "Rimborso", "rimborsi").startswith("recorded income")
     assert "every month on the 27" in ex.expense_fixed_add("in", "1800", "Stipendio", "stipendio", 27)
 
@@ -93,3 +95,28 @@ def test_the_expenses_plugin_is_private():
     import json
     m = json.loads((Path(__file__).resolve().parents[2] / "plugins" / "expenses" / "plugin.json").read_text())
     assert m["private"] is True and m["effects"]["money_overview"] == "read"
+
+
+def test_a_fixed_item_s_day_changed_moves_this_month_s_movement(money):
+    """1 Nov: every fixed item went in on the 1st (the form's date was today): the day changed, the salary of a day
+    not come yet leaves this month until then; the rent's day passed stays, at its new amount."""
+    sal = F.fixed_add(money, "in", "2900", "Stipendio", "stipendio", 1, "2099-11")
+    rent = F.fixed_add(money, "out", "260", "Mutuo", "casa", 1, "2099-11")
+    with F.db(money, date(2099, 11, 1)):
+        pass
+    assert len(F.moves(money, "2099-11")) == 2
+    F.fixed_update(money, sal["id"], dom=27, today=date(2099, 11, 1))
+    F.fixed_update(money, rent["id"], amount="270", today=date(2099, 11, 1))
+    left = F.moves(money, "2099-11")
+    assert [(m["what"], m["day"], m["cents"]) for m in left] == [("Mutuo", "2099-11-01", 27000)]
+    with F.db(money, date(2099, 11, 27)):
+        pass
+    assert {m["day"] for m in F.moves(money, "2099-11") if m["what"] == "Stipendio"} == {"2099-11-27"}
+    with pytest.raises(ValueError):
+        F.fixed_update(money, sal["id"], dom=32)
+
+
+def test_the_next_salary_s_date():
+    assert F.next_day(27, date(2026, 11, 1)) == date(2026, 11, 27)
+    assert F.next_day(27, date(2026, 11, 28)) == date(2026, 12, 27)
+    assert F.next_day(31, date(2027, 2, 3)) == date(2027, 2, 28) and F.next_day(1, date(2026, 12, 2)) == date(2027, 1, 1)

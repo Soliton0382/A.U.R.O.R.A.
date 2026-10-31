@@ -43,6 +43,12 @@ class AgentReport:
         out empty, and the judge read «nothing done»): what the record shows, so the work is not lost."""
         cmds = getattr(self, "commands", [])
         files = sorted(f"{p}/{f}" for p, f in getattr(self, "touched", set()))
+        reads = getattr(self, "reads", [])
+        if not cmds and not files and reads:
+            # C481: the local model read the user's expenses, then ran out of thinking twice and wrote nothing — what it
+            # read is the answer's matter, not «nothing»
+            return "\n".join(["Il modello non ha scritto la risposta. Ecco quello che ho letto:"]
+                             + [f"- {n.split(SEP)[0]}: {t}" for n, t in reads[-3:]])
         if not cmds and not files:
             return "Nessun resoconto prodotto."
         out = ["Il modello non ha scritto il resoconto. Dal registro delle chiamate:"]

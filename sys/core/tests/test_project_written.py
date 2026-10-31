@@ -80,3 +80,13 @@ def test_a_run_without_its_report_says_what_the_record_shows(cfg, monkeypatch):
     ans = agent.run("lavora a demo", lambda e, p: None, "r1")
     assert "Nessun resoconto prodotto" not in ans.text
     assert "`python src/esperimento.py dot p=2` → exit 0 in 9.0 s" in ans.text and "demo/docs/22_dot.md" in ans.text
+
+
+def test_a_run_without_its_answer_tells_what_the_plugins_read():
+    # C481: the local model read the user's expenses, ran out of thinking twice and wrote nothing: «Nessun resoconto»
+    from aurora.agt_loop_report import AgentReport
+    run = SimpleNamespace(commands=[], touched=set(),
+                          reads=[("expenses__expense_summary", "Mese 2099-11: entrate 10,00 €"), ("expenses__money_overview", "Fixed every month: …")])
+    text = AgentReport._from_record(run)
+    assert "Nessun resoconto" not in text and "- expenses: Mese 2099-11: entrate 10,00 €" in text
+    assert AgentReport._from_record(SimpleNamespace(commands=[], touched=set(), reads=[])) == "Nessun resoconto prodotto."

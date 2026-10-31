@@ -3,11 +3,13 @@
 // 🔒 HTTPS and devices (owner, 2026-10-08: the certificate chosen from the WebUI; Aurora opened from the phone): the
 // addresses Aurora answers to, with a QR code for the phone; the certificate in use; the owner's own certificate
 // (checked by the server before use, everything put back if Caddy refuses it); back to Caddy's local authority; the
-// ports (owner, 2026-10-09: «sulla 443 ho altri servizi»): checked, then Aurora moves and the page says where.
+// ports (owner, 2026-10-09: «sulla 443 ho altri servizi»): checked, then Aurora moves and the page says where; the
+// certificate asked and renewed by Aurora herself (https_acme.js, 1 Nov).
 import { call } from "../api.js";
-import { el } from "../dom.js";
+import { el, useCss } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { qrSvg } from "../qr.js";
+import { acmeBox } from "./https_acme.js";
 import { pluginSlot } from "./plugin_slot.js";
 
 const readText = (file) => (file ? file.text() : Promise.resolve(""));
@@ -18,10 +20,11 @@ export default {
   title: "nav.https",
 
   mount(root) {
+    useCss("/static/css/https.css");
     root.classList.add("page");
     root.innerHTML = `<h2 data-i18n="https.title"></h2><p class="muted" data-i18n="https.hint"></p>
       <section class="https-names"></section><section class="https-ports"></section><section class="https-cert"></section>
-      <section class="https-own"></section>
+      <section class="https-acme"></section><section class="https-own"></section>
       <p class="muted https-msg" role="status"></p>`;
     root.querySelector("h2")?.after(pluginSlot("https"));   // its plugins, configured here
     apply(root);
@@ -37,6 +40,7 @@ export default {
     this.names(s);
     this.ports(s);
     this.cert(s);
+    await acmeBox(this.root.querySelector(".https-acme"), (m) => this.say(m), () => this.enter());
     this.own(s);
   },
 

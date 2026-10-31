@@ -101,7 +101,8 @@ def saving_goal(monthly: str) -> str:
 def money_overview(price: str = "") -> str:
     """The user's money in numbers, to advise them: use it when they ask whether they can afford something, how to
     pay for it or save for it, or how they are doing. The last 6 months' averages (income, spending, saved), the fixed
-    incomes and spendings of every month, this month so far, the goal and the categories that weigh most; with a
+    incomes and spendings of every month with their days, this month so far and how it ends, when the next income
+    comes (to say «wait until then» when it is better), the goal and the categories that weigh most; with a
     `price`, how many months of the average savings it takes and what buying it now leaves. Numbers only: the
     advice is yours, said plainly, never a judgement."""
     today = date.today()
@@ -129,6 +130,9 @@ def money_overview(price: str = "") -> str:
                 f"left {_m(v['saved'])}" + (f"; still to come this month from the fixed ones: in {_m(come_in)}, out "
                                             f"{_m(come_out)} — the month ends around {_m(end)} before other spending."
                                             if come_in or come_out else "."))
+    for f in (x for x in v["fixed"] if x["kind"] == "in"):     # «wait for the 27th, the salary comes» (owner, 1 Nov)
+        nxt = fin_store.next_day(f["dom"], today)
+        rows.append(f"Next {f['what']}: +{_m(f['cents'])} on {nxt.isoformat()} (in {(nxt - today).days} days).")
     if v["goal"]:
         rows.append(f"Saving goal: {_m(v['goal'])} a month" + (f", reached in {sum(m['saved'] >= v['goal'] for m in past)} "
                                                               f"of the last {len(past)} months." if past else "."))
