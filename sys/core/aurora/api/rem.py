@@ -137,7 +137,7 @@ def _rem_run(task: str) -> dict:
         emit("rem.start", {"task": task})
         if task == "study":                               # what she declined, studied at night (kno_study)
             from aurora import kno_study
-            out = kno_study.study(pipeline(), cfg, tell, int(cfg["AURORA_STUDY_PER_NIGHT"]))
+            out = kno_study.study(pipeline(), cfg, tell, int(cfg["AURORA_STUDY_PER_NIGHT"]), between=give_way)
         elif task == "train":                             # the shadow trained on the vault's documents (kno_train)
             from aurora import kno_train
             out = kno_train.train(pipeline(), cfg, tell, int(cfg["AURORA_SHADOW_TRAIN_PER_NIGHT"]))

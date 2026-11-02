@@ -161,6 +161,8 @@ export default {
       return {
         onEvent: (name, p) => {
           if (name === "route") mode = p.mode;
+          // 🗣️ what she is doing while the tools work (sys_call_steps): only between her sentences
+          if (name === "talk.step" && talking && !live && !voice.speaking()) voice.speak(p.text, lang.replace("_", "-"));
           const said = name === "talk.delta" || (name === "synthesis.delta" && p.kind === "answer" && mode === "self");
           if (!said) return;
           if (!live) { watchVoice(); live = voice.streamSpeak(lang.replace("_", "-")); if (talking) watchBarge(); }

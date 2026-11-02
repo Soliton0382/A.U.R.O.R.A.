@@ -11,7 +11,7 @@ import pytest
 HERE = Path(__file__).resolve().parent
 JS = HERE.parent / "webui" / "js" / "modules" / "models_presets.js"
 IDS = ["route", "translate", "gate", "extract", "synthesis", "verify", "self", "agent", "rem", "forge_write", "forge_judge",
-       "vision", "service"]
+       "vision", "service", "review"]
 CLOUD = {"extract", "synthesis", "self", "agent"}
 
 

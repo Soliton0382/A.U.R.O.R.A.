@@ -30,6 +30,10 @@ class P:
         self.llm = SimpleNamespace(complete=lambda s, u, n: SimpleNamespace(answer=verdict))
         self.search = SimpleNamespace(embedder=None)
 
+    def _for(self, role):
+        assert role == "review"                       # the judge has its own role (M278)
+        return self.llm
+
     def run(self, question, emit, run_id, remember=True):
         assert remember is False                      # a review never writes a conversation turn
         self.asked.append(question)

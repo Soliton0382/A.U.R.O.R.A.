@@ -195,7 +195,7 @@ def main() -> int:
     chosen = [s for s in (a.only.split(",") if a.only else SECTIONS) if s]
     if bad := [s for s in chosen if s not in SECTIONS]:
         ap.error(f"unknown section: {', '.join(bad)}")
-    judge = ClaudeCodeLLM(cfg, "opus")
+    judge = ClaudeCodeLLM(cfg, "opus", shell_login=True)
     report, t0 = {}, time.time()
     path = cfg.path("AURORA_STATUS_DIR") / "bench" / f"agi-{datetime.now():%Y%m%d-%H%M}.json"
     path.parent.mkdir(parents=True, exist_ok=True)

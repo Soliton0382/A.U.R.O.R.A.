@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.en.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-1582%20passed-1baf7a" alt="Tests"> <img src="https://img.shields.io/badge/code-116k%20lines-6a4fd6" alt="Lines of code"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-1598%20passed-1baf7a" alt="Tests"> <img src="https://img.shields.io/badge/code-117k%20lines-6a4fd6" alt="Lines of code"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
 
 <p align="center">🇮🇹 <a href="README.md">Italiano</a> · 🇬🇧 <b>English</b></p>
 
@@ -85,7 +85,7 @@ exemption, and what leaves is always masked (no setting turns it off).
 | **Senses** | camera (Aurora describes what she sees) and microphone (local transcription with Whisper, on the GPU when it has room: 0.14 s a sentence instead of 5.6 s, M204); 📷 and 🎙️ in the chat, with **📱 the phone's camera and microphone** (Android and iOS: the photo is shrunk on the phone, the voice transcribed by the home Whisper, never by an outside service) or 🖥️ the PC's |
 | **Voice conversation** | ⚙️ → 🗣️: you speak, the turn ends when you stop (silence measured in the browser), Aurora answers aloud sentence by sentence (first sound in 0.88 s instead of 11.3 s), the microphone opens again by itself; silence ends the conversation (M207, M211) |
 | **The call and the phone's assistant** | Android app: 📞 calls Aurora, and she can take the place of the phone's assistant (long press: a screen of her own with the brain and the scope, no words). Commands on the phone — apps, timers, alarms, navigation, calls and messages prepared, never sent alone — read by the local model in 0.13–0.57 s (M273); a long answer said in one sentence (0.29–0.54 s, M273) |
-| **🔮 The sentence foreseen** | in a call and in the chat's hands-free conversation Aurora does not wait for the end: at your first pause she transcribes, understands and prepares the answer and her voice; if the sentence is over she starts at once, if you go on it is dropped. A guess does nothing and is not remembered |
+| **🔮 The sentence foreseen** | in a call and in the chat's hands-free conversation Aurora does not wait for the end: at your first pause she transcribes, understands and prepares the answer and her voice; if the sentence is over she starts at once, if you go on it is dropped. A guess does nothing and is not remembered ([how it works](#-the-sentence-foreseen)). While the tools work she says what she is doing («opening the calendar», «checking»), never mute for long |
 | **Models per step** | 🧠 page: each of 13 steps (routing, synthesis, verification, agent, plugin writing and judging, vision…) local or on a cloud provider; **sensitive data always masked** (addresses, e-mails, phones, IBANs, cards, keys, your words: the whole list, the built-in rules and each person's words, in ☁️ Cloud accounts) and put back in the answer; falls back to local on a provider error; daily token ceiling per paid provider; statistics of calls, cost, masked items and SSCC. Pictures cannot be masked: said explicitly |
 | **Guide** | 📖 page: first steps, common configurations (cloud, phone, plugins, safety) and what each page is for |
 | **EU AI Act art. 50** | disclosure on published text, images (XMP/IPTC) and PDFs |
@@ -124,6 +124,40 @@ flowchart LR
   F --> O([answer + sources]) --> M[(STM memory)]
   M -. night .-> L[(LTM, thoughts,<br/>dreams)]
 ```
+
+### 🔮 The sentence foreseen
+
+A sentence counts as over after 0.8 s of quiet: waiting empty-handed would be time lost. So Aurora bets sooner, at the first pause of 0.3 s, that you have already finished.
+
+```mermaid
+flowchart TD
+  V([🎙️ you speak]) --> P{first pause<br/>0.3 s}
+  P --> W[Whisper transcribes<br/>what you said]
+  W --> A{a command for<br/>the phone?}
+  A -- yes --> C[action understood<br/>but not carried out]
+  A -- no --> T{one token:<br/>talk or search?}
+  T -- talk --> M[the model writes,<br/>streaming]
+  M --> S[first sentence already<br/>turned into voice]
+  T -- search --> R[searching memory<br/>already]
+  C & S & R --> E{and now?}
+  E -- you go on speaking --> D([all dropped:<br/>stream closed, nothing remembered])
+  D --> P
+  E -- quiet confirmed,<br/>0.6 s instead of 0.8 --> G([acts and speaks at once,<br/>only now writes the turn])
+```
+
+**What it uses**
+
+| What | Why it saves time |
+|---|---|
+| **The model already is a predictor** | it generates one token at a time by predicting the next, and hands them over as it writes: the bet stops as soon as you go on, costing only the tokens already written |
+| **One token is enough to decide** | talk or search is read from the probabilities of a single answer token, with no sentence generated (M197, M199) |
+| **The prompt cache** | the server does not process again the start of a prompt it has just seen |
+| **The clips' cache** | the first sentence is already audio when the bet turns out right |
+| **The quiet** | the pause is the signal: no extra model has to listen |
+
+**What it does not do.** It does not guess words you have not said yet: it bets that you have finished, and prepares the answer to what you did say. In the chat's hands-free conversation the bet starts from the words transcribed while you speak. A bet starts no action and leaves no memory: only the sentence really ended counts.
+
+**What it gives.** On a real call of five turns, from the sentence's end to the first voice: 0.95, 1.33, 1.53, 1.69 s, and 23.4 s for the turn that went through the agent with its tools (M279). The same call without the guess, and how many bets come true, are not measured yet.
 
 ### The soliton
 
@@ -435,16 +469,22 @@ sudo -u aurora ../../.venv/bin/python -m aurora.sys_key_recovery recover   # ask
 cd ../.. && ./install.sh   # seals it again, bound to the new TPM
 ```
 
+**The backup always copies everything, the restore is selective:** configuration, memory, vault, files, plugins and history are chosen one by one (`--parts`, or the ticks on the backup's card).
+
 **The disk is lost.** Install Aurora on a new disk (`./install.sh`), then restore the latest backup:
 
 ```bash
 .venv/bin/python sys/core/script/svc_backup.py restore --to /tmp/aurora-restore --code <the backup's code>   # a test: an empty folder
 .venv/bin/python sys/core/script/sys_restore.py --plan latest      # what it would do
-.venv/bin/python sys/core/script/sys_restore.py --apply latest     # does it (asks you to type RIPRISTINA)
+sudo .venv/bin/python sys/core/script/sys_restore.py --apply latest     # does it (asks you to type RIPRISTINA)
+sudo .venv/bin/python sys/core/script/sys_restore.py --apply latest --parts config     # the configuration alone, on a newly installed Aurora
 ```
 
-Then open Aurora's key again as above (`sys_key_recovery recover` with its code, or `sys_keyring recover`) and run the
-installer again. The restore never writes over today's data: it moves them aside, whole.
+`--apply` runs with `sudo` when Aurora has her own account: only root can stop her services and write every folder.
+
+Then open Aurora's key again as above (`sys_key_recovery recover` with its code, or `sys_keyring recover`, which asks for the backup's code),
+put the backup's key back (`sudo -u aurora .venv/bin/python sys/core/script/svc_backup.py init --code <the backup's code>`: the old copies stay readable)
+and run the installer again. The restore never writes over today's data: it moves them aside, whole.
 
 If you lose **both** codes and the disk, the data do not open again: the price of encryption, on purpose.
 

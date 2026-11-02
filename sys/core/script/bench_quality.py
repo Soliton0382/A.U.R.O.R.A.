@@ -109,8 +109,8 @@ def main() -> int:
     ap.add_argument("--english", action="store_true", help="the pool's questions in their English translation")
     a = ap.parse_args()
     from aurora.mdl_cloud import ClaudeCodeLLM
-    judge = ClaudeCodeLLM(cfg, a.judge)
-    backup = ClaudeCodeLLM(cfg, "sonnet" if a.judge != "sonnet" else "opus")
+    judge = ClaudeCodeLLM(cfg, a.judge, shell_login=True)
+    backup = ClaudeCodeLLM(cfg, "sonnet" if a.judge != "sonnet" else "opus", shell_login=True)
     bench = cfg.path("AURORA_STATUS_DIR") / "bench"
     rows = []
     qs = pool(a.pool, a.english) if a.pool else questions(bench / "quality_questions.json")

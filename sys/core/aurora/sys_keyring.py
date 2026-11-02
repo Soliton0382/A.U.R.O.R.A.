@@ -210,8 +210,8 @@ def seal_host(cfg: sys_config.Config) -> str:
     if os.geteuid() != 0:
         raise PermissionError("seal-host needs root")
     import pwd
-    if marker.exists() and cred.exists():
-        if bound(cfg) != "host+tpm2" and tpm():
+    if marker.exists() and cred.exists() and not f.is_file():   # a key file beside a seal is a key recovered (a new
+        if bound(cfg) != "host+tpm2" and tpm():                 # machine, a new TPM): it replaces the seal, C492
             return _reseal_tpm(cfg, cred, marker, pwd.getpwnam(sys_config.service_user(cfg)))
         return f"already sealed ({bound(cfg)})"
     if not f.is_file():
@@ -262,7 +262,13 @@ def main(argv: list[str]) -> int:
     elif cmd == "seal-host":
         print(seal_host(cfg))
     elif cmd == "recover":
-        print(recover(cfg))
+        from . import sys_backup as bc
+        try:
+            print(recover(cfg))
+        except bc.BackupError:                        # a new machine: no key file, the backup's recovery code opens it
+            import getpass
+            bc.use_code(getpass.getpass("Backup recovery code: "))
+            print(recover(cfg))
     elif cmd == "escrow":
         print("escrow written" if escrow(cfg) else "no backup key: sys_backup.py init first")
     else:

@@ -9,7 +9,7 @@
     python sys/core/script/svc_backup.py failed                 # the unit could not start: tell the owner (OnFailure)
     python sys/core/script/svc_backup.py list                   # the snapshots kept
     python sys/core/script/svc_backup.py verify [--full]        # decrypt and check a sample (or every blob)
-    python sys/core/script/svc_backup.py restore --to DIR [--snapshot S] [--only sys/vault] [--code RECOVERY]
+    python sys/core/script/svc_backup.py restore --to DIR [--snapshot S] [--only sys/vault] [--parts config,memory] [--code RECOVERY]
 
 The result goes to the API's activity feed: the owner is notified of a failure (and of a success if he asks).
 """
@@ -23,7 +23,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import httpx  # noqa: E402
 
-from aurora import sys_backup, sys_config, sys_log  # noqa: E402
+from aurora import sys_backup, sys_backup_parts, sys_config, sys_log  # noqa: E402
 
 
 def tell(cfg, event: str, payload: dict) -> None:
@@ -43,13 +43,14 @@ def main() -> int:
     ap.add_argument("--to", type=Path)
     ap.add_argument("--snapshot", default="latest")
     ap.add_argument("--only", default="", help="restore only paths starting with this (e.g. sys/vault)")
+    ap.add_argument("--parts", default="", help="restore only these parts: config,memory,vault,files,plugins,history")
     ap.add_argument("--code", default="", help="the recovery code, when the key file is lost")
     a = ap.parse_args()
     cfg = sys_config.get()
     log = sys_log.get_logger("backup")
     try:
         if a.action == "init":
-            code = sys_backup.init_key(cfg)
+            code = sys_backup.init_key(cfg, a.code)
             print("Backup key made:", sys_backup.key_path(cfg))
             print("\nRECOVERY CODE — write it down outside this computer (password manager, paper).")
             print("Without it, if this disk is lost, no backup can be read:\n")
@@ -80,7 +81,7 @@ def main() -> int:
         if a.action == "restore":
             if not a.to:
                 ap.error("restore needs --to DIR (an empty folder)")
-            print(json.dumps(sys_backup.restore(cfg, a.to, a.snapshot, a.only, a.code)))
+            print(json.dumps(sys_backup.restore(cfg, a.to, a.snapshot, a.only, a.code, sys_backup_parts.chosen(a.parts) if a.parts else ())))
             return 0
     except sys_backup.BackupError as e:
         log.error("backup %s failed: %s", a.action, e)

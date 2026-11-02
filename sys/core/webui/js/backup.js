@@ -29,7 +29,8 @@ export async function backupRow() {
     row.append(el("span", "ic", b.running ? "⏳" : l ? "✅" : "⏳"),
       el("span", "", b.running ? t("status.backup.running") : l ? t("status.backup.last", { at: clock(l.at), files: l.files,
         gb: (l.bytes / 1e9).toFixed(1), n: b.snapshots.length }) : t("status.backup.never")),
-      el("span", "muted", b.installed ? t("status.backup.next", { at: b.next || b.time }) : t("status.backup.unit")));
+      el("span", "muted", b.installed ? t("status.backup.next", { at: b.next || b.time }) : t("status.backup.unit")),
+      el("span", "muted", `· ${t("bk.full")}`));
     const go = el("button", "", t("status.backup.run"));
     go.disabled = b.running;
     go.addEventListener("click", async () => {
@@ -68,20 +69,40 @@ export function restoreBox() {
     let rows;
     try { rows = await call("/v1/aurora/backup/snapshots"); } catch (e) { body.replaceChildren(el("p", "error", t("ev.error", { m: e.message }))); return; }
     const mark = { same: "✅", migrate: "🔄", unknown: "ℹ️", newer: "⛔" };
-    body.replaceChildren(el("p", "muted", t("bk.restore_hint")), ...rows.map((r) => {
+    body.replaceChildren(el("p", "muted", t("bk.selective")), el("p", "muted", t("bk.restore_hint")), ...rows.map((r) => {
       const row = el("div", "ev");
       row.append(el("span", "ic", mark[r.compat.verdict] || "•"), el("strong", "", r.snapshot),
         el("span", "muted", `${r.files} file · ${(r.bytes / 1e9).toFixed(1)} GB · ${t(`bk.v.${r.compat.verdict}`)}`));
-      if (r.compat.verdict !== "newer") {
-        const copy = el("button", "", `📋 ${t("bk.copy")}`);
-        copy.title = r.command;
-        copy.addEventListener("click", async () => {
-          try { await navigator.clipboard.writeText(r.command); copy.textContent = `✅ ${t("idea.copied")}`; }
-          catch { copy.replaceWith(el("code", "", r.command)); }
-        });
-        row.append(copy);
-      } else row.append(el("span", "error", r.compat.why));
-      return row;
+      if (r.compat.verdict === "newer") { row.append(el("span", "error", r.compat.why)); return row; }
+      // what goes back (sys_backup_parts): all of it by default; the command says the choice
+      const boxes = Object.entries(r.parts || {}).filter(([, v]) => v.files).map(([name, v]) => {
+        const box = el("input");
+        box.type = "checkbox";
+        box.checked = true;
+        box.dataset.part = name;
+        const label = el("label", "muted", " ");
+        label.prepend(box);
+        label.append(`${t(`bk.part.${name}`)} (${(v.bytes / 1e9).toFixed(v.bytes < 1e8 ? 3 : 1)} GB)`);
+        label.style.marginRight = "12px";
+        return { box, label };
+      });
+      const command = () => {
+        const on = boxes.filter((x) => x.box.checked).map((x) => x.box.dataset.part);
+        return on.length === boxes.length ? r.command : `${r.command} --parts ${on.join(",")}`;
+      };
+      const copy = el("button", "", `📋 ${t("bk.copy")}`);
+      copy.addEventListener("click", async () => {
+        if (!boxes.some((x) => x.box.checked)) return;
+        try { await navigator.clipboard.writeText(command()); copy.textContent = `✅ ${t("idea.copied")}`; }
+        catch { copy.replaceWith(el("code", "", command())); }
+      });
+      row.append(copy);
+      if (!boxes.length) return row;
+      const choice = el("div", "");
+      choice.append(...boxes.map((x) => x.label));
+      const both = el("div");
+      both.append(row, choice);
+      return both;
     }));
   });
   return d;

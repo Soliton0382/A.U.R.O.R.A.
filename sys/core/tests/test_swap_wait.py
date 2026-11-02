@@ -82,3 +82,18 @@ def test_a_hold_whose_holder_died_holds_nobody(cfg):
     assert time.time() - t0 < 3
     with mdl_image.gpu_lock(cfg, 1, "a video that needs no swap"):       # and the next job clears it
         assert not mdl_image._hold_file(cfg).exists()
+
+
+def test_from_a_shell_the_cloud_uses_that_shell_s_login(cfg, monkeypatch, tmp_path):
+    """C489: the shared account's credentials are the service user's; a benchmark from a shell uses its own login."""
+    from aurora import mdl_accounts
+    from aurora.mdl_cloud import ClaudeCodeLLM
+    closed, readable = tmp_path / "closed", tmp_path / "readable"
+    readable.mkdir()
+    (readable / ".credentials.json").write_text("{}")
+    monkeypatch.setattr(mdl_accounts, "claude_env", lambda c: {"CLAUDE_CONFIG_DIR": str(closed)})
+    assert ClaudeCodeLLM(cfg, "m", shell_login=False)._env(10)["CLAUDE_CONFIG_DIR"] == str(closed)
+    monkeypatch.delenv("CLAUDE_CONFIG_DIR", raising=False)
+    assert "CLAUDE_CONFIG_DIR" not in ClaudeCodeLLM(cfg, "m", shell_login=True)._env(10)
+    monkeypatch.setattr(mdl_accounts, "claude_env", lambda c: {"CLAUDE_CONFIG_DIR": str(readable)})
+    assert ClaudeCodeLLM(cfg, "m", shell_login=True)._env(10)["CLAUDE_CONFIG_DIR"] == str(readable)

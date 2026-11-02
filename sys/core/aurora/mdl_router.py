@@ -95,6 +95,8 @@ ROLES = {   # role: (Italian label, English label, what it sees)
     "rem": ("Ciclo autonomo (sogni, pensieri)", "Autonomic cycle (dreams, thoughts)", "memories, logs"),
     "forge_write": ("Forgia: scrittura plugin", "Forge: writing plugins", "samples of the data the plugin reads"),
     "forge_judge": ("Forgia: giudice", "Forge: judge", "samples and the plugin's output"),
+    "review": ("Giudice della revisione delle vecchie risposte", "Judge of the review of past answers",
+               "your past question, its old and new answer"),
     "vision": ("Visione (immagini)", "Vision (pictures)", "your photos and video frames — NOT maskable"),
     "service": ("Chiamate di servizio (titoli, classificazione, ricerca di fonti, bozze)",
                 "Service calls (titles, classification, finding sources, drafts)",

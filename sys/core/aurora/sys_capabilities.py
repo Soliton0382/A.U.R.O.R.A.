@@ -43,8 +43,9 @@ def connections(cfg: sys_config.Config) -> list[dict]:
             ready = mdl_router.configured(name, cfg)
             out.append(_line(f"cloud:{name}", ready, spec["label"], spec["label"],
                              "pronto" if ready else "nessuna chiave o indirizzo", f"{spec.get('base_key') or spec['key']} (🧠 Modelli)"))
-    out.append(_line("cloud:claude_code", bool(shutil.which("claude")), "Claude Code (abbonamento)", "Claude Code (subscription)",
-                     "programma trovato" if shutil.which("claude") else "programma non trovato"))
+    found = shutil.which(str(cfg["AURORA_CLAUDE_CODE_BIN"]))    # where the calls look (C497: not on the services' PATH)
+    out.append(_line("cloud:claude_code", bool(found), "Claude Code (abbonamento)", "Claude Code (subscription)",
+                     "programma trovato" if found else "programma non trovato", "AURORA_CLAUDE_CODE_BIN"))
 
     def firewall():
         from . import sec_firewalls

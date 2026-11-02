@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-1582%20passed-1baf7a" alt="Tests"> <img src="https://img.shields.io/badge/code-116k%20lines-6a4fd6" alt="Lines of code"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-1598%20passed-1baf7a" alt="Tests"> <img src="https://img.shields.io/badge/code-117k%20lines-6a4fd6" alt="Lines of code"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
 
 <p align="center">🇮🇹 <b>Italiano</b> · 🇬🇧 <a href="README.en.md">English</a></p>
 
@@ -85,7 +85,7 @@ con l'esenzione firmata dal proprietario, e ciò che parte è sempre mascherato 
 | **Sensi** | videocamera (Aurora descrive ciò che vede) e microfono (trascrizione locale con Whisper, sulla GPU quando ha posto: 0,14 s a frase invece di 5,6 s, M204); 📷 e 🎙️ in chat, con **📱 fotocamera e microfono del telefono** (Android e iOS: la foto viene ridotta sul telefono, la voce trascritta dal Whisper di casa, mai da servizi esterni) o 🖥️ quelli del PC |
 | **Conversazione a voce** | ⚙️ → 🗣️: parli, il turno finisce quando smetti (silenzio misurato nel browser), Aurora risponde a voce frase per frase (primo suono in 0,88 s invece di 11,3 s), il microfono si riapre da solo; il silenzio chiude la conversazione (M207, M211) |
 | **Chiamata e assistente del telefono** | app Android: il 📞 chiama Aurora, e può prendere il posto dell'assistente del telefono (tasto lungo: schermata propria con il cervello e l'oscilloscopio, niente parole). Comandi sul telefono — app, timer, sveglie, navigazione, chiamate e messaggi preparati, mai inviati da soli — capiti dal modello locale in 0,13–0,57 s (M273); una risposta lunga detta in una frase (0,29–0,54 s, M273) |
-| **🔮 Previsione della frase** | in una chiamata e nella conversazione a mani libere della chat, Aurora non aspetta la fine: alla prima pausa trascrive, capisce e prepara risposta e voce; se la frase è finita parte subito, se continui butta tutto. Da una previsione non esegue azioni e non ricorda niente |
+| **🔮 Previsione della frase** | in una chiamata e nella conversazione a mani libere della chat, Aurora non aspetta la fine: alla prima pausa trascrive, capisce e prepara risposta e voce; se la frase è finita parte subito, se continui butta tutto. Da una previsione non esegue azioni e non ricorda niente ([come funziona](#-la-previsione-della-frase)). Mentre usa gli strumenti dice a voce cosa sta facendo («apro il calendario», «verifico»), senza restare muta |
 | **Modelli per passaggio** | pagina 🧠: ognuno dei 13 passaggi (smistamento, sintesi, verifica, agente, scrittura e giudizio dei plugin, visione…) in locale o su un provider cloud; **dati sensibili sempre mascherati** (IP, email, telefoni, IBAN, carte, chiavi, le tue parole: l'elenco completo, le regole di base e le parole di ognuno, in ☁️ Account cloud) e rimessi nella risposta; se il provider fallisce torna al locale; statistiche di chiamate, costo, dati mascherati e SSCC. Le immagini non si possono mascherare: avviso esplicito |
 | **Guida** | pagina 📖: primi passi, configurazioni comuni (cloud, telefono, plugin, sicurezza) e a cosa serve ogni pagina |
 | **AI Act UE, art. 50** | dichiarazione su testi pubblicati, immagini (XMP/IPTC) e PDF |
@@ -124,6 +124,40 @@ flowchart LR
   F --> O([risposta + fonti]) --> M[(memoria STM)]
   M -. notte .-> L[(LTM, pensieri,<br/>sogni)]
 ```
+
+### 🔮 La previsione della frase
+
+Una frase si considera finita dopo 0,8 s di silenzio: aspettare a mani vuote sarebbe tempo perso. Così Aurora scommette prima, alla prima pausa di 0,3 s, che tu abbia già finito.
+
+```mermaid
+flowchart TD
+  V([🎙️ parli]) --> P{prima pausa<br/>0,3 s}
+  P --> W[Whisper trascrive<br/>quello che hai detto]
+  W --> A{comando per<br/>il telefono?}
+  A -- sì --> C[azione capita<br/>ma non eseguita]
+  A -- no --> T{un token solo:<br/>chiacchiera o ricerca?}
+  T -- chiacchiera --> M[il modello scrive<br/>in streaming]
+  M --> S[prima frase già<br/>trasformata in voce]
+  T -- ricerca --> R[cerca già<br/>in memoria]
+  C & S & R --> E{e adesso?}
+  E -- continui a parlare --> D([tutto buttato:<br/>stream chiuso, niente ricordato])
+  D --> P
+  E -- silenzio confermato,<br/>0,6 s invece di 0,8 --> G([esegue e parla subito,<br/>solo ora scrive il turno])
+```
+
+**Cosa sfrutta**
+
+| Cosa | Perché fa risparmiare |
+|---|---|
+| **Il modello è già un previsore** | genera un token alla volta prevedendo il successivo, e li consegna mentre li scrive: la scommessa si interrompe appena continui a parlare, e costa solo i token già scritti |
+| **Un token basta per decidere** | chiacchiera o ricerca si legge dalle probabilità di un solo token di risposta, senza generare frasi (M197, M199) |
+| **La cache del prompt** | il server non rielabora l'inizio di prompt uguale a quello appena visto |
+| **La cache delle voci** | la prima frase è già audio quando la scommessa si rivela giusta |
+| **Il silenzio** | la pausa è il segnale: non serve nessun modello in più che ascolti |
+
+**Cosa non fa.** Non indovina le parole che non hai ancora detto: scommette che tu abbia finito, e prepara la risposta a ciò che hai già detto. Nella conversazione a mani libere della chat la scommessa parte dalle parole trascritte mentre parli. Da una scommessa non parte nessuna azione e non resta nessun ricordo: conta solo la frase finita davvero.
+
+**Quanto rende.** Su una chiamata vera di cinque turni, dalla fine della frase alla prima voce: 0,95, 1,33, 1,53, 1,69 s, e 23,4 s per il turno passato dall'agente con gli strumenti (M279). Il confronto con la stessa chiamata senza previsione e quante scommesse vanno a segno non sono ancora misurati.
 
 ### Il solitone
 
@@ -439,16 +473,22 @@ sudo -u aurora ../../.venv/bin/python -m aurora.sys_key_recovery recover   # chi
 cd ../.. && ./install.sh   # la sigilla di nuovo, legata al TPM nuovo
 ```
 
+**Il backup copia sempre tutto, il ripristino è selettivo:** configurazione, memoria, vault, file, plugin e storico si scelgono uno per uno (`--parts`, o le spunte nella scheda del backup).
+
 **Il disco è perso.** Installa Aurora su un disco nuovo (`./install.sh`), poi ripristina l'ultimo backup:
 
 ```bash
 .venv/bin/python sys/core/script/svc_backup.py restore --to /tmp/aurora-restore --code <codice del backup>   # prova: una cartella vuota
 .venv/bin/python sys/core/script/sys_restore.py --plan latest      # cosa farebbe
-.venv/bin/python sys/core/script/sys_restore.py --apply latest     # lo fa (ti chiede di scrivere RIPRISTINA)
+sudo .venv/bin/python sys/core/script/sys_restore.py --apply latest     # lo fa (ti chiede di scrivere RIPRISTINA)
+sudo .venv/bin/python sys/core/script/sys_restore.py --apply latest --parts config     # solo la configurazione, su un'Aurora appena installata
 ```
 
-Poi riapri la chiave di Aurora come sopra (`sys_key_recovery recover` con il suo codice, oppure `sys_keyring recover`)
-e lancia di nuovo l'installer. Il ripristino non scrive mai sopra i dati di oggi: li sposta da parte, interi.
+`--apply` va lanciato con `sudo` quando Aurora ha il suo account: solo root può fermare i servizi e scrivere in tutte le cartelle.
+
+Poi riapri la chiave di Aurora come sopra (`sys_key_recovery recover` con il suo codice, oppure `sys_keyring recover`, che chiede il codice del backup),
+rimetti la chiave del backup (`sudo -u aurora .venv/bin/python sys/core/script/svc_backup.py init --code <codice del backup>`: le copie vecchie restano leggibili)
+e lancia di nuovo l'installer. Il ripristino non scrive mai sopra i dati di oggi: li sposta da parte, interi, in `sys/status/backup/before-restore-…`.
 
 Se perdi **entrambi** i codici e il disco, i dati non si riaprono: è il prezzo della cifratura, voluto.
 

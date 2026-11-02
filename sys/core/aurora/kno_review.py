@@ -182,7 +182,7 @@ def review(pipeline, cfg: sys_config.Config, emit, limit: int, between=None) -> 
         if ans.abstained or ans.mode != "knowledge":
             verdict, why = "WORSE", ""
         else:
-            verdict, why = judge(pipeline.llm, item["question"], old, ans.text)
+            verdict, why = judge(pipeline._for("review"), item["question"], old, ans.text)
         better = verdict in GOOD and bool(fresh)          # a new claim needs a new source, not only new words
         told = better and told_today(cfg) < int(cfg["AURORA_REVIEW_MESSAGES"])
         outcome = {"verdict": verdict, "better": better, "told": told, "drive": item["drive"], "new_sources": len(fresh),

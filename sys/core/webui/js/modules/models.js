@@ -11,9 +11,9 @@ import { renderChoice } from "./models_choice.js";
 
 // the tabs (ROADMAP 109): the choice first; the rows only under «Su misura»; «Panoramica» keeps the whole of before
 const TABS = ["choose", "custom", "media", "limits", "stats", "local", "overview"];
-// the 13 roles by what they do (mdl_router.ROLES)
+// the 14 roles by what they do (mdl_router.ROLES)
 const GROUPS = { understand: ["route", "translate"], read: ["gate", "extract"], write: ["synthesis", "verify", "self"],
-  act: ["agent", "forge_write", "forge_judge"], background: ["vision", "rem", "service"] };
+  act: ["agent", "forge_write", "forge_judge"], background: ["vision", "rem", "service", "review"] };
 
 export default {
   id: "models",

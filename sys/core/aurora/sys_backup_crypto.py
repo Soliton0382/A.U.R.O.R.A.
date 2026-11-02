@@ -59,13 +59,14 @@ def use_code(code: str) -> None:
     _given[:] = [raw]
 
 
-def init_key(cfg: sys_config.Config) -> str:
-    """Make the key (once) and return its recovery code; an existing key is never replaced."""
+def init_key(cfg: sys_config.Config, code: str = "") -> str:
+    """Make the key (once) and return its recovery code; an existing key is never replaced. `code`: the key of a backup
+    that already exists, on a new machine: the old snapshots stay readable and the next ones join them."""
     p = key_path(cfg)
     if p.exists() or marker(cfg).exists():
         raise BackupError(f"{p} exists: a backup key is never replaced (the old snapshots would become unreadable)")
     p.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    raw = os.urandom(32)
+    raw = key_from_code(code) if code else os.urandom(32)
     fd = os.open(p, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(fd, "wb") as f:
         f.write(raw)

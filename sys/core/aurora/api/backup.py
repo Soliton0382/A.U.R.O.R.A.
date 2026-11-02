@@ -81,7 +81,8 @@ def backup_snapshots() -> list[dict]:
         rows = mod.listing(cfg)
     except Exception as e:  # noqa: BLE001 — the NAS asleep, no key: said on the card
         raise HTTPException(status_code=409, detail=f"{type(e).__name__}: {str(e)[:200]}") from None
-    return [{**r, "command": f"cd {cfg.root} && .venv/bin/python sys/core/script/sys_restore.py --apply {r['snapshot']}"}
+    as_it = "sudo " if mod.needs_root(cfg) else ""
+    return [{**r, "command": f"cd {cfg.root} && {as_it}.venv/bin/python sys/core/script/sys_restore.py --apply {r['snapshot']}"}
             for r in reversed(rows)]
 
 

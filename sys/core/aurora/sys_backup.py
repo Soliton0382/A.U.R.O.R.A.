@@ -46,6 +46,8 @@ SKIP_NAMES = {"gpu.lock", "heartbeat"}                  # live markers, not data
 SKIP_SUFFIXES = (".db-wal", ".db-shm", ".lock", ".tmp", ".part", ".pyc")
 SKIP_STATUS = ("bench", "backup")                       # in the status folder: benchmarks are rebuilt, the backup's own
                                                         # state stays local
+SKIP_HOME = (".cache", ".nv")                           # the service account's home: what its programs rebuild
+OWN_KEY = ".config/aurora/backup.key"                   # the service's home holds the backup's key: never in the backup (C491)
 
 
 class BackupError(RuntimeError):
@@ -105,6 +107,7 @@ def files(cfg: sys_config.Config):
     """(relative path, absolute path) of everything the backup keeps."""
     root = cfg.root.resolve()
     skip = {(cfg.path("AURORA_STATUS_DIR") / d).resolve() for d in SKIP_STATUS}
+    skip |= {(cfg.path("AURORA_STATUS_DIR") / "home" / d).resolve() for d in SKIP_HOME}
     seen = set()
     for base in [cfg.path(k) for k in SOURCES] + [root / d for d in DIRS]:
         if not base.exists():
@@ -113,7 +116,7 @@ def files(cfg: sys_config.Config):
             dirnames[:] = sorted(d for d in dirnames if d != "__pycache__" and (Path(dirpath) / d).resolve() not in skip)
             for n in sorted(names):
                 p = Path(dirpath) / n
-                if n in SKIP_NAMES or n.endswith(SKIP_SUFFIXES) or not p.is_file() or p.is_symlink():
+                if n in SKIP_NAMES or n.endswith(SKIP_SUFFIXES) or not p.is_file() or p.is_symlink() or str(p).endswith(OWN_KEY):
                     continue
                 full = p.resolve()                      # a folder set outside Aurora's root keeps its place apart
                 rel = str(full.relative_to(root)) if root in full.parents else "external" + str(full)
@@ -332,11 +335,14 @@ def verify(cfg: sys_config.Config | None = None, sample: int | None = None) -> i
     return len(blobs)
 
 
-def restore(cfg: sys_config.Config, into: Path, snapshot: str = "latest", prefix: str = "", code: str = "") -> dict:
+def restore(cfg: sys_config.Config, into: Path, snapshot: str = "latest", prefix: str = "", code: str = "",
+            parts: tuple[str, ...] = ()) -> dict:
     """Write a snapshot's files into an empty folder (never over the live installation). `code`: the recovery code,
-    when the key file is lost with the disk."""
+    when the key file is lost with the disk. `parts`: only these (sys_backup_parts)."""
+    from . import sys_backup_parts
     into = Path(into).resolve()
-    if into == cfg.root.resolve() or cfg.root.resolve() in into.parents:
+    own = (cfg.path("AURORA_STATUS_DIR") / "backup").resolve()       # the backup's own folder: never backed up, her account's
+    if (into == cfg.root.resolve() or cfg.root.resolve() in into.parents) and own not in into.parents:
         raise BackupError("restore goes into a separate empty folder, never into the live installation")
     if into.exists() and any(into.iterdir()):
         raise BackupError(f"{into} is not empty")
@@ -349,8 +355,8 @@ def restore(cfg: sys_config.Config, into: Path, snapshot: str = "latest", prefix
         raise BackupError(f"no snapshot {snapshot}")
     data, n, size = read_snapshot(snap, enc), 0, 0
     for rel, sz, mtime, mode, bid in data["files"]:
-        if prefix and not rel.startswith(prefix):
-            continue
+        if prefix and not rel.startswith(prefix) or parts and sys_backup_parts.part_of(cfg, rel) not in parts or rel.endswith(OWN_KEY):
+            continue                                     # (OWN_KEY: in a snapshot made before C491, it stays out)
         out = into / rel
         if into not in out.resolve().parents:
             raise BackupError(f"unsafe path in the snapshot: {rel}")

@@ -4803,3 +4803,56 @@ Live, after the fix, one run on invented text: a long local answer in progress (
 | picture, from the request to the reasoner healthy | | 44.6 s |
 
 Not measured: a video or a song with the same code (the same two functions, tried only with fakes); a phone call during a swap, which now waits up to the client's timeout in silence; a stop past the 300 s limit; a repeat of this run.
+
+## M278 — which model judges the review (3 November 2026; BUGS C489; ROADMAP 49)
+
+The same 30 pairs of right answers of the local model (M276: seed 49) and 10 answers against themselves, kno_review's prompt verbatim, 120 tokens; the same pairs through each model.
+
+| judge | SAME | NEW_INFO | **CORRECTION** | WORSE | against itself |
+|---|---|---|---|---|---|
+| local | 19 | 4 | **7** | 0 | SAME 10 of 10 |
+| Sonnet | 21 | 6 | **3** | 0 | SAME 10 of 10 |
+| Opus | 21 | 7 | **1** | 1 | SAME 10 of 10 |
+
+Read from each verdict's own one-line reason, not from the two answers in full, by one reader. Local's 7: a real difference once (a name, «Shantha» and «Shanthi», on which all three agree), two counts of the house that had simply moved between the two runs, two business plans that differ in form and two pieces of code, one a change of style called a correction, one a bug it claims in the old answer, not checked. Sonnet's 3: the name and the two counts. Opus's 1: the name. So Opus is the review's judge, in a role of its own («review», mdl_router; local until chosen). Retired: M276's reading «worse than M244's cloud-run pairs» compares different answers, not different judges: M244's judge was the local model too. Both answers graded right do not make the two the same: the name's case may hide a grader's leniency, not checked.
+Not measured: a real review's messages; the cost of a judgement on Opus; another sample.
+
+## M279 — the first voice on a real call, with the sentence guessed (3 November 2026; ROADMAP N67)
+
+The owner's own call, five turns, the phone's app, read from the API's log («call: first voice»), nothing of what was said.
+
+| turn | from the sentence's end to the first voice |
+|---|---|
+| 1 | 1.69 s |
+| 2 | 0.95 s |
+| 3 | **23.40 s** |
+| 4 | 1.33 s |
+| 5 | 1.53 s |
+
+Four of five under 1.7 s, the owner's verdict «mi sembra vada bene». Read again in the trace, a first reading retired («the third went through the agent»): an agent begun by the sentence before worked 66 s in silence (one spoken line, then nothing); the owner spoke over it, and this third sentence waited behind it for the run lock until the agent ended, then was answered in about 1.2 s; that agent's own answer was never said, its turn cut. Hence sys_call_steps. All five logged as «guessed», which says a guess was ready for that sentence, not that it was the one spoken. Not measured: how often the guess was right; the same turns without the guess; a slow network; the hands-free chat.
+
+## M280 — a restore tried for real: the lost disk and the selective restore (3 November 2026; BUGS C491–C495; ROADMAP N71)
+
+On the lab VM, invented data (a chosen model, a sealed .env, a conversation, a document), the published 0.3.43 with the new code on top. Aurora reinstalled from nothing, Aurora's key and the backup's taken away, only the backup folder and the backup's recovery code kept: a lost disk. Four attempts, each stopped by a fault of the restore; the last went through.
+
+| step | result |
+|---|---|
+| configuration alone on a new Aurora | the model choice and the settings back, sealed .env opens, no memory, no document; 80 files; 6 files sealed with the new keys set aside; a new conversation works |
+| Aurora's key back from the backup's code alone, sealed again by the installer | ✅ after the fixes below |
+| full restore on top | memory, document, model choice back, today's kept aside; 715 files, 41 s with the services' stop |
+| the backup's key back from its code | new snapshot next to the old, the nightly unit runs, sealed by the installer |
+
+Found on the way, each one a promise of the documents that did not hold (C492–C495). Sizes: 21.6 MB, nothing about the time of the owner's 36 GB.
+Not measured: the owner's real backup restored (needs their code and the NAS, which stay theirs); a restore on real different hardware or a real TPM (the VM has the host key); the web page's ticks seen in a browser; a user's plugin brought back.
+
+## M281 — the conductor on a real research project, first phases (3 November 2026; ROADMAP N39, M275)
+
+A private project on a real question. Every phase checked from outside: the code read, its script run again in a copy, the numbers computed exactly.
+
+| phase | worker | time | what it left | the conductor's report |
+|---|---|---|---|---|
+| 1 | local | 8.5 min | a simulator with no tests; not the code it names (4 of 8 stabilizers), the crosstalk built and never used, numbers that are noise (exact: 0.00049 and 0.00415 against 0.0020 and 0.0030) | honest on weak statistics and unproved claims, advised against going on; did not see the two gravest faults, which need the code read |
+| 1 again | local | 4.7 min | nothing: 9 calls, 2 stops at the token limit, closed as done | said plainly «not carried out», with the right counts |
+| 1 again, short | **cloud** | 7.7 min, 0.90 USD equivalent, 8 calls | the right [[9,1,3]] code, 10 tests that pass again outside it, an exact p_L confirmed by a separate calculation | honest, and named its own weak spots (the Monte Carlo reuses the same table) |
+
+The conductor's three calls in phase 1 came to 0.14 USD equivalent. Read: on a phase of real computation the local worker does not carry it (as M275's small phase did not show); the cloud judge is honest but judges the report, not the code. It also repeated a wrong detail from its own environment («not a git repository»; the commits are there). So a phase's result still needs a check from outside. Not measured: the local worker's token use; a whole project.

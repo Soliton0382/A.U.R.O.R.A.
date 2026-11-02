@@ -51,9 +51,11 @@ def _flatten(messages: list[dict]) -> tuple[str, str]:
 class ClaudeCodeLLM:
     name = "claude_code"
     context_tokens = 200_000
+    shell_login = False
 
-    def __init__(self, cfg: sys_config.Config | None = None, model: str | None = None):
+    def __init__(self, cfg: sys_config.Config | None = None, model: str | None = None, shell_login: bool = False):
         self.cfg = cfg or sys_config.get()
+        self.shell_login = shell_login                     # a benchmark run from a person's shell (C489, _env)
         # resolved here: on Windows a bare «claude» is only looked for as claude.exe, and npm installs claude.cmd
         # (found on a real Windows, 9 Oct: WinError 2); shutil.which follows PATHEXT there, and is the same path on Linux
         # absolute: Windows's which also looks in the current folder and answers «.\claude.CMD», wrong from the cwd below
@@ -116,6 +118,9 @@ class ClaudeCodeLLM:
         account = mdl_accounts.claude_env(self.cfg)
         if account is None:
             raise RuntimeError("no Claude account for this user (the admin's policy: their own account)")
+        # the shared account's credentials are the service user's alone: from a shell, that shell's own login (C489)
+        if self.shell_login and not os.access(os.path.join(account.get("CLAUDE_CONFIG_DIR", ""), ".credentials.json"), os.R_OK):
+            account = {}
         return {**self._cap(max_tokens), **account}
 
     def complete(self, system: str, user: str, max_tokens: int, think: bool = False) -> Completion:

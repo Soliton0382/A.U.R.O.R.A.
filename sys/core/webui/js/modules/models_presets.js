@@ -3,7 +3,7 @@
 // The choices of Models → Come ragiona as assignments, without the page (tests/js/models_presets.mjs runs them in node).
 
 export const BEST_CLOUD = ["extract", "synthesis", "self", "agent"];
-const FORGE = ["forge_write", "forge_judge"];
+const FORGE = ["forge_write", "forge_judge", "review"];   // chosen one by one: the presets leave them as they are
 
 // which of the four the roles describe now
 export function choiceOf(roles, mode) {

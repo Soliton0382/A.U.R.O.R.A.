@@ -97,7 +97,7 @@ def main() -> int:
     p = core.pipeline()
     from aurora import mdl_router
     from aurora.mdl_cloud import ClaudeCodeLLM
-    judge = mdl_router.MaskedLLM(ClaudeCodeLLM(cfg, a.judge), "service", cfg)       # the owner's words masked
+    judge = mdl_router.MaskedLLM(ClaudeCodeLLM(cfg, a.judge, shell_login=True), "service", cfg)       # the owner's words masked
     services = "\n".join(core_route.connected_services())
     if a.replay:                                       # the turns before: the chat's, found again by the question
         old = json.loads(Path(a.replay).read_text(encoding="utf-8"))["rows"]

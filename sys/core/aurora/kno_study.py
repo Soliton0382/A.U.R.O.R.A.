@@ -91,7 +91,7 @@ def self_contained(llm, question: str) -> bool:
         return False
 
 
-def study(pipeline, cfg: sys_config.Config, emit, limit: int) -> dict:
+def study(pipeline, cfg: sys_config.Config, emit, limit: int, between=None) -> dict:
     """Study up to `limit` declined questions; each outcome a reflection of type study."""
     from .kno_acquire import ArxivAgent
     from .kno_rem import Rem
@@ -106,7 +106,9 @@ def study(pipeline, cfg: sys_config.Config, emit, limit: int) -> dict:
                                         "question": item["question"]})
             skipped += 1
     learned = 0
-    for item in todo:
+    for i, item in enumerate(todo):
+        if i and between:                                 # whoever waits for the run lock goes first (C487)
+            between()
         t0 = time.time()
         ans = ArxivAgent(pipeline, cfg).run(item["question"], emit, item["run_id"] + "-study", remember=False,
                                             min_score=MIN_SCORE)

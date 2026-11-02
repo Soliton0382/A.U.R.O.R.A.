@@ -73,7 +73,7 @@ def main() -> int:
     ids = sorted(tax)
     names = "; ".join(f"{k} ({tax[k]['en']}: {tax[k].get('about', '')})" for k in ids)
     from aurora.mdl_cloud import ClaudeCodeLLM
-    judge = ClaudeCodeLLM(cfg, a.judge)
+    judge = ClaudeCodeLLM(cfg, a.judge, shell_login=True)
     local = mdl_router.model_for("route", LLM(cfg), cfg)
     emb = RemoteEmbedder(cfg)
     t0 = time.time()

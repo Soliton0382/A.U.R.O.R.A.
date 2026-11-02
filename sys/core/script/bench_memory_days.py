@@ -125,7 +125,7 @@ def probe() -> int:
     from bench_agi import judged
     _, cfg, _, OUT = _env()
     data = json.loads(OUT.read_text(encoding="utf-8"))
-    cookie, judge = login()["cookie"], ClaudeCodeLLM(cfg, "opus")
+    cookie, judge = login()["cookie"], ClaudeCodeLLM(cfg, "opus", shell_login=True)
     days = round((time.time() - data["planted"]) / 86400, 2)
     rows = []
     for q, expected in ASKED:

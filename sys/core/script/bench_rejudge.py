@@ -50,7 +50,7 @@ def main() -> int:
     ap.add_argument("--judge", default="sonnet")
     ap.add_argument("--only", default="", help="set or set/id-prefix, e.g. aurora_edge/vault")
     a = ap.parse_args()
-    judge = ClaudeCodeLLM(cfg, a.judge)
+    judge = ClaudeCodeLLM(cfg, a.judge, shell_login=True)
     out = {"at": datetime.now().isoformat(timespec="seconds"), "judge": a.judge, "files": a.files, "rows": []}
     for f in a.files:
         report = json.loads((OUT / f).read_text(encoding="utf-8"))

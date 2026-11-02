@@ -171,7 +171,9 @@ def _talk(question: str, emit, run_id: str):
         text, handed = "", True
     if handed:
         emit("talk.handoff", {"seconds": round(time.time() - t0, 2), "said": text[:200]})
-        return answer_or_acquire(question, emit, run_id, remember=True)
+        from aurora import sys_call_steps, txt_lang               # 🗣️ never mute for long
+        return sys_call_steps.watched(emit, txt_lang.detect(question),
+                                      lambda told: answer_or_acquire(question, told, run_id, remember=True))
     ans = Answer(run_id, question, text, False, mode="talk", seconds=round(time.time() - t0, 2))
     emit("answer.final", {"text": text, "abstained": False, "sources": [], "seconds": ans.seconds, "mode": "talk"})
     p.remember(question, ans, run_id, emit, None, asked_at)
@@ -203,9 +205,12 @@ async def _turn(ws: WebSocket, voice: _Voice, audio, lang: str, ahead=None) -> N
     model = pipeline().llm                            # the local reasoner: the phone's commands, the spoken answer
     if await sys_call.phone_now(ws, voice, text, lang, turn, log, model, guess):   # ⚡ «apri YouTube»: the app at once (N68)
         return
+    from .core import _run_lock
     from .core_route import mood_wrap                    # 😠 an insult said in a call: her anger, and local only
+    if _run_lock.locked():                            # behind what she is still doing (M279: 23 s in silence)
+        await voice.say("Un attimo, finisco quello di prima." if lang == "it" else "One moment, finishing what came before.", turn)
     run = start_run(text, origin="call", job=mood_wrap(text, _talk))
-    seen, buf, spoken, handed, t0, told = 0, "", False, False, time.monotonic(), False
+    seen, buf, spoken, handed = 0, "", False, False
     while True:
         done = run["done"]                            # read before the events: none written after it is missed
         events = run["events"][seen:]
@@ -217,6 +222,8 @@ async def _turn(ws: WebSocket, voice: _Voice, audio, lang: str, ahead=None) -> N
                 buf += str(e["payload"].get("text") or "")
             elif e["event"] == "phone.action":         # 📱 what the agent asked of the phone (agt_phone)
                 await ws.send_text(json.dumps({"type": "phone", "action": e["payload"]}))
+            elif e["event"] == "talk.step" and not voice.speaking():      # 🗣️ what she is doing (sys_call_steps)
+                await voice.say(str(e["payload"].get("text") or ""), turn)
             elif e["event"] == "talk.handoff":
                 handed = True
                 if buf.strip():                       # the start she said before handing on
@@ -229,9 +236,6 @@ async def _turn(ws: WebSocket, voice: _Voice, audio, lang: str, ahead=None) -> N
             spoken = True
         if done:
             break
-        if handed and not told and time.monotonic() - t0 > 12 and not voice.speaking():
-            told = True
-            await voice.say("Ci sono quasi." if lang == "it" else "Almost there.", turn)
         await asyncio.sleep(0.05)
     if turn != voice.turn:                            # the owner spoke again: this answer is not said
         return

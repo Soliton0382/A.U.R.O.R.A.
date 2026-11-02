@@ -2,6 +2,13 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.3.44 — 2026-11-03
+
+2 publications since v0.3.42.
+
+- 2026-11-03 Selective restore, a real restore tested, GPU swap, spoken steps, review judge
+- 2026-11-02 Assistant on the phone, security autopilot, sealed settings, GPU swap that waits
+
 ## v0.3.43 — 2026-11-03
 
 1 publications since v0.3.42.

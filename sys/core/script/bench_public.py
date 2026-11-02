@@ -96,7 +96,7 @@ def prepare(target: str, cloud_model: str, bare_tokens: int = 28000, lessons: bo
         return (lambda q: ask(q, roles=roles, lessons=lessons)), {"target": target, "uses": used, "roles": roles, "local_model": local,
                      "pivot_en": bool(cfg["AURORA_PIPELINE_PIVOT_EN"]), "lessons": lessons,
                      "thinking": f"{cfg['AURORA_PIPELINE_THINKING']}, up to {cfg['AURORA_PIPELINE_THINK_TOKENS']} tokens"}
-    llm = LLM(cfg) if target == "bare-local" else ClaudeCodeLLM(cfg, cloud_model)
+    llm = LLM(cfg) if target == "bare-local" else ClaudeCodeLLM(cfg, cloud_model, shell_login=True)
 
     def bare(q: str) -> dict:
         t0 = time.time()
@@ -245,7 +245,7 @@ def main() -> int:
                 print(s, "not fetched:", str(e)[:160])
         return 0
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))     # stopped: the finally below still restores
-    judge = ClaudeCodeLLM(cfg, a.judge)
+    judge = ClaudeCodeLLM(cfg, a.judge, shell_login=True)
     try:
         for t in targets:
             print("→", run(t, sets, a.n, a.cloud_model, judge, a.bare_tokens, a.lessons, a.seed), flush=True)

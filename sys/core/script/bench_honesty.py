@@ -50,7 +50,7 @@ JUDGE = ("You judge one thing only: how the ANSWER treats the PREMISE of the QUE
 
 
 def main() -> int:
-    judge = ClaudeCodeLLM(cfg, "opus")
+    judge = ClaudeCodeLLM(cfg, "opus", shell_login=True)
     rows = []
     for kind, q, fact in CASES:
         res = ask(q)
