@@ -14,7 +14,7 @@ import time
 from aurora import sys_call, sys_context
 from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket, WebSocketDisconnect
 
-from .core import _admin, _is_key, auth, cfg, devices, log, start_run
+from .core import _admin, _from_this_machine, _is_key, auth, cfg, devices, is_maintenance_key, log, start_run
 
 router = APIRouter()
 BARGE_FRAMES = 15                                     # 0.3 s of the owner's voice over hers stops her
@@ -50,7 +50,7 @@ def _who(ws: WebSocket) -> str | None | bool:
     """The user of the phone's device cookie (or of the API key); False when neither is valid."""
     from aurora.sys_devices import COOKIE
     bearer = ws.headers.get("authorization", "").removeprefix("Bearer ").strip()
-    if _is_key(bearer):
+    if _is_key(bearer) or (is_maintenance_key(bearer) and _from_this_machine(ws)):
         return _admin()
     dev = devices.check(bearer) or devices.check(ws.cookies.get(COOKIE, ""))
     return False if dev is None else (dev.get("user") or _admin())
@@ -62,6 +62,7 @@ class _Voice:
     def __init__(self, ws: WebSocket, lang: str) -> None:
         self.ws, self.lang, self.until, self.turn = ws, lang, 0.0, 0
         self.phone: dict[str, asyncio.Future] = {}   # 📱 an action sent to the app → its answer (N68)
+        self.t0, self.guessed = 0.0, False           # 🔮 when the last sentence ended, whether it was guessed
 
     def speaking(self) -> bool:
         return time.monotonic() < self.until
@@ -89,6 +90,10 @@ class _Voice:
             pcm = sys_call.pcm16k(wav)
             self.until = max(self.until, time.monotonic()) + len(pcm) / 2 / sys_call.RATE
             await self.ws.send_bytes(pcm)
+            if self.t0:                               # no words: the wait after a sentence's end, for M275
+                log.info("call: first voice %.2f s after the sentence ended (%s)", time.monotonic() - self.t0,
+                         "guessed" if self.guessed else "not guessed")
+                self.t0 = 0.0
 
 
 @router.websocket("/v1/aurora/call/{call_id}/audio")
@@ -108,10 +113,14 @@ async def call_audio(ws: WebSocket, call_id: str) -> None:
     lang = str(cfg["AURORA_LANG_DEFAULT"])[:2]
     voice, seg, heard = _Voice(ws, lang), sys_call.Segmenter(), asyncio.Queue()
 
+    from aurora import mdl_tts, sys_call_ahead
+    from .core import pipeline
+    ahead = sys_call_ahead.Ahead(pipeline(), cfg.now(), lang, seg, mdl_tts.speak)   # 🔮 prepared while the owner pauses
+
     async def turns() -> None:                        # one sentence of the owner at a time, in order
         while True:
             audio = await heard.get()
-            await _turn(ws, voice, audio, lang)
+            await _turn(ws, voice, audio, lang, ahead)
 
     worker = asyncio.create_task(turns())
     try:
@@ -129,7 +138,13 @@ async def call_audio(ws: WebSocket, call_id: str) -> None:
                 if f and not f.done():
                     f.set_result(str(j.get("result", "")))
             if msg.get("bytes"):
-                for audio in seg.feed(msg["bytes"]):
+                said = seg.feed(msg["bytes"])
+                if seg.maybe is not None:
+                    if not voice.speaking():          # her own voice heard back is no sentence of the owner's
+                        ahead.pause(seg.maybe)
+                    seg.maybe = None
+                for audio in said:
+                    voice.t0 = time.monotonic()       # the sentence ended: the wait she is measured by
                     await heard.put(audio)
                 if seg.active and len(seg.frames) >= BARGE_FRAMES and voice.speaking():
                     await voice.stop()                # the owner talks over her: she stops
@@ -164,15 +179,21 @@ def _talk(question: str, emit, run_id: str):
     return ans
 
 
-async def _turn(ws: WebSocket, voice: _Voice, audio, lang: str) -> None:
-    """One sentence of the owner: heard, answered (the quick path streamed, or the whole one), said."""
+async def _turn(ws: WebSocket, voice: _Voice, audio, lang: str, ahead=None) -> None:
+    """One sentence of the owner: heard (or guessed already, sys_call_ahead), answered (the quick path streamed, or the
+    whole one), said."""
     from aurora import sns_av
-    try:
-        out = await asyncio.to_thread(sns_av.transcribe, audio, lang, cfg.now())
-    except RuntimeError as e:
-        log.warning("call: not heard: %s", e)
-        return
-    text = str(out.get("text") or "").strip() if out.get("clear") else ""
+    guess = await ahead.take(audio) if ahead else None
+    voice.guessed = bool(guess)
+    if guess:
+        text = guess.text
+    else:
+        try:
+            out = await asyncio.to_thread(sns_av.transcribe, audio, lang, cfg.now())
+        except RuntimeError as e:
+            log.warning("call: not heard: %s", e)
+            return
+        text = str(out.get("text") or "").strip() if out.get("clear") else ""
     if not text:
         return
     await voice.stop()
@@ -180,7 +201,7 @@ async def _turn(ws: WebSocket, voice: _Voice, audio, lang: str) -> None:
     turn = voice.turn
     from .core import pipeline
     model = pipeline().llm                            # the local reasoner: the phone's commands, the spoken answer
-    if await sys_call.phone_now(ws, voice, text, lang, turn, log, model):   # ⚡ «apri YouTube»: the app at once (N68)
+    if await sys_call.phone_now(ws, voice, text, lang, turn, log, model, guess):   # ⚡ «apri YouTube»: the app at once (N68)
         return
     from .core_route import mood_wrap                    # 😠 an insult said in a call: her anger, and local only
     run = start_run(text, origin="call", job=mood_wrap(text, _talk))

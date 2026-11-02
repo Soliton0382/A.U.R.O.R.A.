@@ -76,3 +76,16 @@ def test_an_answer_given_to_a_kind_alone_is_made_again_per_device(cfg):
     assert not Q.is_quiet(cfg, _inc("ips_alert", sample=IN_DNS, mac=TV))   # one false alarm only: loud
     assert [x["pattern"] for x in Q.proposals(cfg, items)] == [f"behaviour:new_country|{TV}"]
     assert Q.by_kind(cfg, items) == []                                     # once
+
+
+def test_a_no_is_asked_again_only_after_many_more_false_alarms_and_none_right(cfg):
+    """C406: the NAS's alert declined at 3 false alarms had 53 a week later, and was never proposed again."""
+    past = time.time() - 3600
+    old = [_inc("ips_alert", "false_alarm", sample=IN_DNS, verdict_at=past) for _ in range(3)]
+    p = Q.pattern(old[0])
+    Q.answer(cfg, p, "declined")
+    more = [_inc("ips_alert", "false_alarm", sample=IN_DNS, verdict_at=time.time() + 1) for _ in range(Q.AGAIN_FA - 1)]
+    assert Q.proposals(cfg, old + more) == []
+    ten = more + [_inc("ips_alert", "false_alarm", sample=IN_DNS, verdict_at=time.time() + 1)]
+    assert Q.proposals(cfg, old + ten)[0]["pattern"] == p
+    assert Q.proposals(cfg, old + ten + [_inc("ips_alert", "right", sample=IN_DNS, verdict_at=time.time() + 1)]) == []

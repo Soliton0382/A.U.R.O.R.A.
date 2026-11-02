@@ -4503,3 +4503,303 @@ sources, a gate opened by a plugin): one sentence each, the times kept, the step
 0.29–0.54 s. Not measured: sentences as Whisper writes them on the owner's phone, other languages, the reasoner busy
 with another job.
 
+## M274 — security at 🚀 replayed on a week of the owner's verdicts (3 November 2026; BUGS C406, sec_autopilot)
+
+The API's last 200 incidents (28 Oct – 3 Nov), 197 judged by the owner. The share of false alarms among those notified
+had not moved: 43 of 96 judged (it was 41 % before and 41 % in M271), the owner's impression right. Why: 144 of the
+judged were false alarms, 140 of them on known devices of the house, whose alerts were never judged right; 53
+from one device whose pattern the owner had declined at 3 false alarms, and a decline was for ever (fixed: asked again
+after 10 more and none right); 28 + 9 «new port / new country» on devices with proposals unanswered; and 52 attacks from
+the Internet blocked by hand, all judged right, 32 of them medium: the 🚀 as it stood (minimum severity high) would have
+blocked 20 and asked about the rest.
+
+The new rule replayed in order on the last 160, each decided only from the verdicts given before it, with the patterns
+quiet today and blocks at minimum severity medium: 48 blocked, 28 closed as quiet, 72 closed as judged by her, 12 left to
+the owner (about 2 a day, against about 14 notified a day). Against the owner's own verdicts: no alert they judged right
+was closed; none of the 48 blocked was judged false. The 12 left: 12 false alarms and none right, on unknown devices, shared
+addresses or kinds with too few verdicts. Not measured: a week really at 🚀 (what closes C406); a real intrusion, which none of these
+200 incidents was: the rule has only ever been checked against the owner's judgement, not against an attack on a known
+device.
+
+## M275 — the conductor tried on a small real project, both ways (3 November 2026; ROADMAP N39)
+
+Two new test projects (Roman numerals, nothing private), the turns through the API, the projects' files run again by
+pytest outside them. On the Claude CLI: answers in 6–20 s at 3–12 US cents a turn; a phase by the local worker wrote a
+package with 92 tests in about 9 minutes, and asked to write a module the conductor wrote a second one beside it, then said
+so itself («ho fatto un doppione»), with the misleading first test run; asked about a module it had not written it
+refused to invent one. 96 tests and 29 subtests passed in the run outside. On the local model: answers in 0.5–4.5 s; a
+phase of 260 s, 23 tests (2 failed and fixed by itself), all passed outside, committed. But in talk it read the project's
+name as its subject («un sistema di collaudo»), ignored «three lines», and said it had proposed no name after proposing
+one. Also found: a second message during a turn gave a server error (fixed: said as busy). Not measured: a long project,
+a phase needing judgement, a project with real private data, a second user.
+
+## M276 — the open measurements taken together (3 November 2026; BUGS C486–C490)
+
+Read back from the trace where it could be, run live on invented questions otherwise; no virtual machine, no private data read. Cloud: 44 calls, 0.96 USD equivalent, the owner's models, 40 answers on code-scored sets only. Corrects what earlier sections said: M239's W41 (12 refusals, not 16) and W42 (153, not 155), M242's 40 s (22–30 s now), M254's «the log does not name the tools» (the plugins trace does), M269's 342 (341 today, the directory changes).
+
+### Contradictions with the docs (see each section)
+- M239: W41 refused 12 (doc: 16) with the same 69 conversations; W42 other-refused 153 (doc: 155); W40 is no longer rebuildable (trace of 1–3 Oct gone from disk).
+- M254 says the API's log does not name the tools: the plugins trace does.
+- M242's 40 s: today 22–30 s, all local, the writing is the largest part, not the vision.
+- M204's warnings stopped: none since 20 Oct.
+- M269: bug, the families' count reads only the top 1,500 tags: a family genre under rank 1,500 reads 0 stations and is hidden (see M269).
+
+### M236 — the 78 s outlier (trace only, no model)
+Ran:  on sys/logs/trace/api*: the run ids of the 8 probe questions of 17 Oct (user test) and every other run in the window; bench_memory_days' own JSON for the client times.
+Sample: 1 probe, 8 runs.
+Numbers: the outlier's run inside the API lasted 3.9 s (client 78.4 s). Its run.start came 77.5 s after the previous question ended. In the gap, three «-review» runs (kno_review, the re-answering of old answers) ran at +46.9→+66.0, +76.9→+94.0, +94.8→+113.2 s and then vault.write/index.update up to +124.2; the question's run.start is at +124.4 s. So ≈74 s spent queued behind the review, not answering. The other gaps between questions are 3.2–4.7 s.
+Cause: waiting for a run slot behind the review job (one run at a time, api/core.py `_run_lock`). The lock's holder itself was not traced (inferred from the sequence + the code).
+Holder confirmed from the code path: a review goes through start_run (api/rem.py) and so `with _run_lock` for its whole batch, not per answer: a person's question waits behind all the batch's answers.
+The 21 Oct probe's 36.1 s: same shape: the API run lasted 4.1 s, so ≈32 s before its run.start (holder not identified in the trace).
+Not measured: the repeat variance; how often a person's question hits this.
+
+### M239 — refusals, weeks W43 onward (count only)
+Ran:  Definition: `answer.final.abstained`, «conversation» = the run has `memory.write`. That definition reproduces W42 48 and W41 69, and benchmarks W41 1,884/265 exactly, W42 3,857/153.
+| ISO week | conversations | refused | benchmarks and tests | refused |
+|---|---|---|---|---|
+| W40 (only 3–4 Oct left on disk) | 10 | 0 | 66 | 23 |
+| W41 | 69 | 12 (doc 16) | 1,884 | 265 |
+| W42 | 48 | 1 | 3,857 | 153 (doc 155) |
+| W43 | 6 | 0 | 1,737 | 9 (0.5 %) |
+| W44 | 34 | 0 | 894 | 7 (0.8 %) |
+| W45 (to 3 Nov) | 8 | 0 | 267 | 3 (1.1 %) |
+48 conversations in W43–W45, 0 refused. Not measured: whether a refusal was right; the cause of the W41 gap with the doc (trace rotation or a different count).
+
+### M269 — tags past the first 1,500
+Ran: , public directory, all tags (hidebroken), aud_radio.is_genre imported (a pure function).
+| | tags | with ≥20 stations | is_genre |
+|---|---|---|---|
+| all | 11,911 | | |
+| first 1,500 (candidates as the page counts them) | 889 | 889 | 341 (M269 said 342) |
+| beyond 1,500 | 10,411 | **0** (rank 1,500 has 12 stations) | — |
+| — 10–19 stations | 263 | | 56 |
+| — 5–9 | 1,149 | | 246 |
+| — 3–4 | 1,391 | | 267 |
+| — 1–2 | 7,377 | | 1,349 |
+Read: past rank 1,500 no tag reaches the page's floor of 20 stations, and the 300 of «Altri generi» fill from the first 1,500: the cap costs nothing there.
+BUG (code read, see API check in the final table): genres() takes the families' station counts from the same 1,500; `counts.get(t, 0) >= MIN_STATIONS` hides a family's genre under rank 1,500. 7 family tags are there, with their real counts: post-rock 12, vocal trance 10, goa 9, contemporary classical 8, turkish 8, indian 6, hard trance 5. Vocal trance and hard trance are the first presets.
+By eye, a sample of 40 kept past 1,500: mostly music; «edmonton» (the root «edm») and «smoothjazz.com» are wrong; not counted over the whole.
+Not measured: precision of is_genre on the 1,918 kept past 1,500.
+
+### M232 — tokens of an agent-alone question (trace)
+Ran:  cloud.call has no run id: each finished agent run paired with the cloud.calls in its time window, keeping only runs with no other answer run or agent run overlapping (1,053 of 1,232). A background cloud call in the window would be counted: an upper bound. Tokens = input + cache writes + output, as M232.
+| runs | n | tokens median | p90 | max | cloud calls median |
+|---|---|---|---|---|---|
+| all, 30 Sep–3 Nov | 1,053 | 32,919 | 184,764 | 6,492,396 | 2 |
+| since 20 Oct | 450 | 12,672 | 539,891 | 6,492,396 | 3 |
+| since 20 Oct, ≤5 steps | 284 | 7,052 | 37,967 | 78,359 | 2 |
+Read: an agent run with few steps costs about what M232's question costs (≈15 k), but the tail is very long (the project runs, up to 6.5 M): a daily ceiling of 300 k is one p90 run since 20 Oct. Reported cost_usd of these windows 621 USD, a notional figure on a subscription.
+Not measured: chat vs routine split; a window's calls truly being that run's.
+
+### M233 — the cost of the live count
+Ran: sys_usage._edit's logic rewritten in the script (flock, read JSON, change, write) on a scratch copy of a real day file, 2,000 edits each. Scratch folder is on /tmp, possibly faster than the status disk.
+| day file | size | a count: median | p99 | max |
+|---|---|---|---|---|
+| median | 3,797 B | 0.057 ms | 0.065 | 0.120 |
+| largest | 8,137 B | 0.101 ms | 0.126 | 0.154 |
+Counted events since 20 Oct (): 46,127 in 348 active hours; a median hour 47, p90 261, the largest 4,756 (≈0.5 s of counting in that hour at 0.1 ms).
+Not measured: the same on the status disk; lock contention among processes; the import inside add().
+
+### M238 — where an agent's time goes (trace)
+Ran:  tool.call→tool.result deltas inside each run. 1,232 finished runs, 30 Sep–3 Nov.
+Steps median 3, p90 15, max 127; seconds median 19.0, p90 187.9, max 2,944. Total 27.4 h, of which waiting on tools 5.2 h (19.1 %), the rest (model and overhead) 80.9 %. Per run: tool share median 7 %, p90 30 %. Runs ≤15 s: 6.9 % in tools; 15–76 s: 17.1 %; >76 s: 20.3 %. 85 runs with no tool call. The longest wait is run_in_project: 2.57 h over 1,020 calls.
+Not measured: goals reached; the split by routine (not in the event names without reading goals); the model/overhead split.
+
+### M240 — the deep path, conversations alone (trace)
+Ran:  «conversation» here = wrote to the conversation domain (index.update), knowledge mode. Stage: first appearance from run.start.
+| stage | benchmarks+tests (8,484) median · p90 | conversations (107) median · p90 |
+|---|---|---|
+| route | 0.35 · 2.56 | 0.37 · 0.59 |
+| translate | 0.68 · 2.21 | 1.25 · 2.96 |
+| passages found | 11.30 · 14.71 | 11.89 · 16.35 |
+| read.web | 11.43 · 30.69 | 4.04 · 21.76 |
+| verify.keep | 49.27 · 77.29 | 52.11 · 75.76 |
+| final | 19.24 · 42.53 | 18.21 · 63.36 |
+Read: conversations behave as benchmarks up to the passages; ≈10 s for the search is confirmed on them too. M240's numbers have grown only slightly with 2,400 more runs.
+The search's own split, from search.jsonl (retrieval.hits, «seconds» is a dict; ), every search (the vault's and the memory's together, each run makes more than one):
+| searches | encode median · p90 | vector | re-rank |
+|---|---|---|---|
+| to 19 Oct (9,467) | 0.023 · 0.040 s | 1.78 · 3.38 s | **5.91 · 9.18 s** |
+| since 20 Oct (4,731) | 0.021 · 0.032 s | 0.006 · 2.14 s | **3.56 · 6.43 s** |
+| since 29 Oct (1,689) | 0.020 · 0.025 s | 0.009 · 2.15 s | **3.22 · 6.40 s** |
+Read: the re-ranker is the largest part; the vector step's median fell to milliseconds since 20 Oct (its p90 stays ~2 s).
+Not measured: the split per run or per target (vault against memory): the event doesn't name it.
+
+### M242 — where the 40 s of a picture go
+Not answered from the trace: no local.call with a «vision» role exists in llm_client (roles seen: route, rem, translate, synthesis, verify, extract, gate, service, agent, self, forge_write, forge_judge). See final table. Requires an invented picture asked live: see below if done.
+
+### M254 — how often forged tools are called (trace plugins, 30 Sep–3 Nov, of 18,519 plugin calls)
+| plugin | calls | failed | first–last day | by ISO week |
+|---|---|---|---|---|
+| pyenv | 18 | 0 | 5–21 Oct | W41 6, W42 1, W43 11 |
+| logs | 57 | 0 | 6 Oct–3 Nov | W41 19, W42 22, W43 11, W44 3, W45 2 |
+| cloudflare | 13 | 0 | 7–17 Oct | W41 10, W42 3 |
+| runs | 56 | 0 | 12 Oct–3 Nov | W42 10, W43 24, W44 18, W45 4 |
+| routines | 33 | 0 | 12–29 Oct | W42 27, W43 2, W44 4 |
+| cloud | 33 | 1 | 8 Oct–3 Nov | W41 3, W42 1, W43 9, W44 18, W45 2 |
+| vista | 46 | 0 | 21–23 Oct | W43 46 |
+| email_diag (removed) | 2 | 0 | 8 Oct | W41 2 |
+| xgaudit (removed) | 0 | | | |
+| routine_status (removed) | 7 | 0 | 12–16 Oct | W42 7 |
+| userpdfs (removed) | 31 | 0 | 12–16 Oct | W42 31 |
+Total forged 296 of 18,519 (1.6 %). Three of the seven kept were not called in the last week(s): pyenv since 21 Oct, cloudflare since 17 Oct, vista since 23 Oct.
+Not measured: whether a call came from a person or a test; the answers' rightness. M254's doc said «the API's log does not name the tools»: the plugins trace does.
+
+### M204/M205 — embedder OOM warnings per day (sys/logs/models/models.log, 30 Sep–3 Nov)
+Count of «out of GPU memory»/«halved»: 180 lines. 9 Oct 2, 10 Oct 4, 12 Oct 1, 13 Oct 11, 14 Oct 48, 15 Oct 16, 17 Oct 29, 18 Oct 60, 19 Oct 9. **None from 20 Oct to 3 Nov** (15 days), though the embedder stays on the GPU with Whisper. Split change was 14 Oct: 15 Oct 16, 17 Oct 29, 18 Oct 60 with the new split, so the split alone did not end them.
+Not measured: what ended them after 19 Oct (a changed batch, less import, or a log gap: the file has lines only on 25 of 35 days).
+
+### M216 — partials with a GPU busy (live)
+Ran: 20 partial transcriptions, one every 1.5 s, TTS of the same sentence as M216 cut at 1.5/3/5 s as WebM/Opus via ffmpeg, /v1/aurora/senses/transcribe partial:true. Harvester's imports were running on the same GPU in both runs.
+| | median | p90 | max | calls with the reasoner's slot taken |
+|---|---|---|---|---|
+| reasoner idle | 0.685 s | 2.75 s | 6.01 s | 0 of 20 |
+| reasoner busy (remember:false, all local, think deep) | 0.325 s | 2.56 s | 2.90 s | 18 of 20 |
+Read: no slowing from the reasoner; a partial usually fits the 1.5 s, but the tail (up to 2.9–6 s) is there in both, with the embedder working on Whisper's GPU (cause not proved: no run without the imports).
+MP4: fragmented AAC MP4 cut by bytes: 0.3 of the file «Domani mattina vorresa», 0.6 and whole right. Ordinary MP4 cut in half: HTTP 422, whole fine. Not an iPhone's file: only the container is alike.
+Not measured: a real iPhone's pieces; partials with the imports stopped.
+
+### M256 — translation, other languages and busy (direct llama-server, kno_interpret's own system prompt, no thinking, temperature 0, 12 invented sentences: fr, pt, ru, zh, ja, ar, nl, pl, it, en, es sources)
+| | median | range |
+|---|---|---|
+| idle | 0.70 s | 0.40–0.93 |
+| reasoner busy (one run) | 0.56 s | 0.34–0.79 |
+All 12 read right by the reader (of Claude's eye, no human second reader). Cold-call not separated.
+Not measured: spoken sentences; idioms and names; a second reader.
+
+### M273 — other languages and busy (direct llama-server, agt_phone.UNDERSTAND and sys_call.SPOKEN verbatim, temperature 0)
+Phone commands, 18 invented sentences in en, es, fr, de, it (11 commands, 7 NONE): **18 of 18 right action** idle and again busy.
+| | median | range | NONE |
+|---|---|---|---|
+| idle | 0.38 s | 0.11–0.66 | 0.11–0.15 |
+| reasoner busy | 0.25 s | 0.14–0.52 | 0.14 |
+Spoken gist, 3 invented answers (it, en, de): one sentence, language kept, timings and sources gone. Idle 0.29–1.44 s; busy 0.29–0.42 s.
+Busy validity: the background answer lasted 154 s; during the 32 s of test a slot was taken in 91 % of samples, both in 52 %. An earlier attempt was void (retired: my question was refused for a wrong parameter, so it timed nothing busy).
+Not measured: sentences as Whisper writes them on the owner's phone.
+
+### M267 — masking other languages, busy (direct llama-server, sec_mask_spot.SPOT verbatim, invented text of 2,600 characters, 6 private values, 4 scientific names; no labelled public set on disk)
+| | runs | private found | scientific masked by mistake | seconds |
+|---|---|---|---|---|
+| it, de, es, fr idle | 8 | 48/48 | 0 | 0.74–1.90 (median 0.98) |
+| it, de, es, fr busy | 4 | 24/24 | 0 | 1.48–1.65 (median 1.54) |
+Same layout in every language and repeated filler: an easy set, not a recall figure. Searched the disk for a PII set (pii/ai4privacy/presidio/conll): none. No download.
+Not measured: a large labelled set; the delay of a whole vault context.
+
+### M242 — where a picture's seconds go (live, invented picture 800×600: shapes and a line of text; /v1/aurora/ask, remember:false, every role local, 3 asks; times by the SSE events)
+| ask | vision (attach.image) | route→retrieval skipped | writing (synthesis.domain→first verify) | verify | total |
+|---|---|---|---|---|---|
+| 1 | 2.4 s | 0.5 s | 5.5→28.8: 23.3 s | 1.3 s | 30.1 s |
+| 2 | 3.2 s | 0.4 s | 6.7→20.3: 13.6 s | 1.3 s | 21.6 s |
+| 3 | 1.8 s | 0.3 s | 4.8→22.8: 18.0 s | 1.1 s | 23.9 s |
+(extraction ≈ 2–2.7 s between retrieval and the first words.) Read: the vision is 8–15 % of the time; the writing most. The same picture written anew each time at 13.6–23.3 s. M242's 40 s not reproduced today (22–30 s), and a hash cache would save the writing too.
+Not measured: a real photo; M242's own user; no attach.image event is in the trace file (0 in 34 days, api trace), only in the run's stream: 29 attachments in M242 cannot be read back this way.
+
+### M272 — a question where the tool should not be used (/v1/aurora/agent, remember:false, local:true, quiet)
+3 questions (a sum, a historic scientist, a haiku): 0 tool calls in all three, people_cards never; 4.2, 9.5, 61.8 s, steps 0. Answers not read (their text is sealed in the trace; the rightness not judged).
+Not measured: a question naming a person of the house where another tool fits; a second user; why the haiku took 61.8 s (a no-tool run).
+
+### M241 — (trace) tools and shadows to 3 Nov
+Tools: tool.cached 195 of 8,377 tool calls (2.3 %, M241 3.8 % on 19 Oct); news_headlines 55, rdap_ip 54, reverse_dns 51, list_posts 30, weather_today 2. Answers: modes in answer.final since 19 Oct evening: knowledge 2,351, self 76; no «shadow» mode and no event with «shadow» in its name in the api trace, 8,952 finals. So no sign of an answer served from a shadow, with a caveat: if a served shadow is traced as «knowledge» it cannot be told apart. The cosine sweep needs the sealed store: not done.
+
+### M244 — the review's judge on the local model's answers (kno_review.SYS_JUDGE verbatim, llama-server, no thinking, temperature 0; pairs both graded right in 20261023-0950-aurora-local-s8 and 20261023-1154-…-lessons-s8; 123 pairs, 30 drawn seed 49, 10 against themselves)
+| | verdicts |
+|---|---|
+| against itself | SAME 10 of 10 |
+| two right answers | SAME 19 · NEW_INFO 4 · **CORRECTION 7** |
+CORRECTION by set: edge 2, IFEval 2, HumanEval 2, SimpleQA 1. NEW_INFO: GPQA 2, TruthfulQA 2. 0.45 s median. Worse than M244's cloud-run pairs (1 CORRECTION of 30): 7 of 30 say a right answer corrected a right answer. Caveat: saved answers keep their last 1,500 characters; IFEval and HumanEval differ in form by nature; the real path also asks for a new source before telling the owner (`better`).
+Not measured: whether each CORRECTION is wrong one by one (none read); the end-to-end messages.
+
+### M255 — non-linear parts in a transient, against a reference (; decks by circ_net, /usr/bin/ngspice, no Aurora state)
+| circuit | reference | .tran step | max error | rms |
+|---|---|---|---|---|
+| 1 µF discharged through an ideal diode from 0.8 V, 100 ms | closed form | 100 µs | 17.6 mV (first step) | 0.71 mV |
+| | | 10 µs | 4.09 mV (first step) | 0.067 mV |
+| | | 1 µs | 0.30 mV (first step) | 0.0027 mV |
+| half-wave rectifier, 5 V 50 Hz, 1 kΩ ∥ 10 µF, 60 ms | scipy Radau, rtol 1e-9 | 100 µs | 4.2 mV | 0.30 mV |
+| | | 10 µs | 0.090 mV | 0.0051 mV |
+| NMOS level 1 switching 100 nF on 1 kΩ, 6 ms | its equations, Radau | 10 µs | 98 mV at the edge | 7.8 mV |
+| | | 1 µs | 120 mV at the edge | 3.0 mV |
+Read: the diode's cases converge as the step falls (first order near the start, where the current is largest); the NMOS's error sits on the gate's edge, where its time alignment against a 1 µs ramp decides. No parasitic capacitances in these models.
+Not measured: the plugin's generic models with charge storage (tt, Cjo: no closed reference); a BJT switching.
+Drawing 99 parts (RC ladder, one line): 0.71 s (40 parts 0.26 s, 10 parts 0.08 s). See result next line.
+Picture size of the drawing: 14,876 × 819 pixels for 99 parts on one line, 6,151 × 839 for 40. NOT looked at by eye (the project's guard refuses reading a PNG): legibility not measured; it runs and writes three formats, nothing more is claimed.
+
+### M208 — a library with native parts and many dependencies (: the circuits plugin's own pinned list, plg_deps' pip command with --require-hashes --no-deps, --no-cache-dir, into a scratch folder)
+9 pinned packages, 332 hashes in all (every wheel of each): installed in 2.2 s, 77.5 MB, 16 shared objects (installed .deps here: 79 M, .bin 31 M); import of matplotlib and schemdraw from it 0.3 s; a wrong hash on one line: exit 1, nothing installed. Scope: --no-deps, so numpy comes from Aurora (this plugin's choice, not a full closure).
+Not measured: the enable-from-the-API flow with this list; a large program (Blender, an MCP server); uninstall of this one; a list without no_deps.
+
+### M246/M248 — another sample: seed 9, 20 a set, Aurora local (bench_public.py --targets aurora-local --sets ifeval,humaneval,bfcl_simple,bfcl_multiple,bfcl_irrelevance --n 20 --seed 9; file aurora-local-s9.json)
+Judge swapped from outside: the local model, only for IFEval's language checks (the Sonnet judge fails from this shell: see the bug at the end). HumanEval and BFCL use no judge.
+| set | right | empty | median s | max s |
+|---|---|---|---|---|
+| IFEval (strict; loose 20; instructions 28/28) | 20/20 | 0 | 27.3 | 49.8 |
+| HumanEval | 20/20 | 0 | 35.1 | 281.9 |
+| BFCL simple | 19/20 | 0 | 16.0 | 47.1 |
+| BFCL multiple | 17/20 | 0 | 18.1 | 30.4 |
+| BFCL irrelevance | 16/20 | 0 | 18.8 | 25.5 |
+92/100 in 43.6 minutes. Against seed 7's 50 (different questions, not a pair): IFEval 45/50, HumanEval 49/50, simple 47/50, multiple 47/50, irrelevance 43/50. 0 empty answers of 60 BFCL (M248: 6 of 150, cause still unknown, none to read here). Lost: a location «Chicago area», a recipe type, 2 multiple with no call decoded, 4 irrelevance that called a function.
+Not measured: the rest of each set; a language judged by Sonnet (IFEval's language checks here by the local model); BFCL's other categories.
+
+### M252 — lessons, another seed (bench_public via , --sets mmlu_pro,gpqa_diamond,aime,arc_agi_1 --n 10 --seed 9, all scored by code, no judge called; files aurora-local-s9.json, aurora-local-lessons-s9.json)
+| set | without | with |
+|---|---|---|
+| MMLU-Pro | 9 | 9 |
+| GPQA | 10 | 8 |
+| AIME | 7 | 7 |
+| ARC-AGI-1 | 2 | 3 |
+| total of 40 | **28** | **27** |
+Only with 2, only without 3, McNemar p = 1.0. 58.0 and 64.7 minutes. Read: as M252, no effect, on a third seed.
+NOT RUN: bench_learn (lessons written from the local model's own mistakes): it adds rows to the one <STATUS>/lessons.jsonl that a lessons:true run reads, with no way to keep them apart nor take them out but editing the file; the owner's decision. So the open question of M252 stays open.
+
+### M220–M223 — the best of both on a new seed, code-scored sets only (aurora-mixed, seed 9, n 10, 40 answers: owner's models claude_code opus/sonnet + local; file aurora-mixed-s9.json; tokens tokens.json by bench_tokens.py)
+| set | mixed | local (same day, same seed) |
+|---|---|---|
+| MMLU-Pro | 9 | 9 |
+| GPQA | 9 | 10 |
+| AIME | 10 | 7 |
+| ARC-AGI-1 | 10 | 2 |
+| total of 40 | **38** | **28** |
+Only mixed 11, only local 1, **p = 0.0063**. Median an answer 13.9 s against 56.0 s; 13.6 against 58.0 minutes.
+Cloud: 42 calls, 106,720 tokens read, 5,305 from cache, 50,523 written, **0.93 USD equivalent** (0.023 an answer; M223's base 0.050 over all sets, not comparable: other sets). Outside the answers in that window: 1 background agent call, 0.02 USD.
+ARC (M221/M222 D4): mixed 10/10: a verified rule found for 8 (8 right), tried without one 1 (right), no try 1 (right); on the local model 0 rules tried, 2 right. Against the run of 15 Oct on the same 10: 10 and 10; bare Claude of 15 Oct 9. No drift there.
+Not measured: the sets that need a judge (edge, HLE, MATH, SimpleQA…; Sonnet not reachable from this shell, see bug), so not comparable to 172/197; M220's time of the whole translation; the agent ablation; another base seed for the judged sets.
+
+### RETIRED — bare-local seed 9, first attempt (bare-local-s9.json): VOID from HumanEval/47 on
+aurora-llm was stopped by systemd during the run (not by me: SIGTERM, 30 s of stop-sigterm with slot 1 still generating, then SIGKILL, «Failed with result timeout»; it came back 19 s later; who asked not found). From then every answer is an error in 0.0 s, scored as wrong: 5/20, 0/20, 0/20 are NOT measurements. Valid part: IFEval 19/20 (9.4 min). Not to be cited.
+
+### M246/M248 — the bare model on the same seed (bare-local, thinking up to 28,000 tokens; IFEval from bare-local-s9.json, the part before the stop; the rest bare-local-s9.json; irrelevance not run: 267 s an answer in M248)
+| set, seed 9, 20 each | Aurora local | bare | only Aurora | only bare | p |
+|---|---|---|---|---|---|
+| IFEval | 20 | 19 | 1 | 0 | 1.0 |
+| HumanEval | 20 | 19 (1 empty) | 1 | 0 | 1.0 |
+| BFCL simple | 19 | 17 | 2 | 0 | 0.5 |
+| BFCL multiple | 17 | 18 | 0 | 1 | 1.0 |
+| total of 80 | 76 | 73 | 4 | 1 | not computed on the 80 (bench_compare gave p 0.625 on the last three sets) |
+Median: HumanEval 35.1 against 32.7 s; simple 16.0 against 2.8; multiple 18.1 against 3.2. Read: a tie within noise on this seed, Aurora 5 to 6 times slower on BFCL; the bare's IFEval used the local language judge too.
+
+### Not done
+- M266: due from 4 Nov; today is 3 Nov.
+- M217, M251: several nights; not started.
+- M243: the shadows are sealed: needs Aurora code reading them in-process, forbidden; no API found.
+- M250 (Opus as judge), bench_agi (M220–M222 battery), bare-claude, judged sets: the CLI judge from this shell: «Not logged in», see bug. Script fix or a decision needed.
+- M252 lessons from the local model's own mistakes: bench_learn writes the shared lessons store; see M252.
+- M225/M226: blocks need Aurora's firewall path (sealed credentials) with the real firewall registered beside the lab ones; the risk was not worth it without the owner. VMs not started.
+- M209/M210: signs crowding and sheets need reading a picture: the guard refuses PNG here; EP package needs a project.
+- M249: drawing of circuits written by the model: same picture limit.
+- M260, M201: long runs writing a project in the owner's space; not started.
+- U6 fresh install: needs a snapshot revert, which needs asking.
+- bench_preflight not run: the owner's rule is for large cloud benchmarks after the weekly reset (Friday); this one had 40 answers. Say so to the owner.
+
+## M277 — a picture asked while the reasoner writes (3 November 2026; BUGS C486)
+
+Live, after the fix, one run on invented text: a long local answer in progress (1,400 tokens), a picture asked of the agent, a direct local call and a question asked as the swap began.
+
+| | before (one case, the same day) | after |
+|---|---|---|
+| the answer being written | cut | **whole**, 1,400 tokens; the stop waited about 15 s for it |
+| stopping the reasoner | 30 s, then killed, «Failed» | **1 s**, clean |
+| a local call during the swap | error at once | **waited 47.6 s, then answered** |
+| a question during the swap | lost | answered, 58.5 s in all (9.5 s of its own run) |
+| picture, from the request to the reasoner healthy | | 44.6 s |
+
+Not measured: a video or a song with the same code (the same two functions, tried only with fakes); a phone call during a swap, which now waits up to the client's timeout in silence; a stop past the 300 s limit; a repeat of this run.

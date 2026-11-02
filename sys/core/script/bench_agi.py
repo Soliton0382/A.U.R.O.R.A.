@@ -107,7 +107,7 @@ def ask(q: str, quote: str = "", roles: dict | None = None, lessons: bool = Fals
     body = {"question": q, "remember": False, "tools": True, **({"reply_to": {"text": quote}} if quote else {}),
             **({"roles": roles} if roles else {}), "lessons": lessons}
     run = httpx.post(f"{BASE}/v1/aurora/ask", headers=HEAD, timeout=60, json=body).json()["run_id"]
-    t0, final, steps = time.time(), None, []
+    t0, final, steps, void = time.time(), None, [], False
     with httpx.stream("GET", f"{BASE}/v1/aurora/runs/{run}/events", headers=HEAD, timeout=900) as r:
         for line in r.iter_lines():
             if not line.startswith("data: "):
@@ -120,10 +120,12 @@ def ask(q: str, quote: str = "", roles: dict | None = None, lessons: bool = Fals
                 final = e["payload"]
             elif e["event"] == "agent.finish" and final is None:     # the tools' path ends with the agent's report
                 final = {"text": e["payload"].get("summary", ""), "abstained": False}
+            if e["event"] == "error":                    # the model not there: no answer to score (C486)
+                void = any(w in str((e.get("payload") or {}).get("message")) for w in ("ConnectError", "ReadError", "RemoteProtocolError"))
             if e["event"] == "error" or e["event"] == "run.end" and final is not None:
                 break
     return {"answer": (final or {}).get("text", ""), "abstained": bool((final or {}).get("abstained")),
-            "seconds": round(time.time() - t0, 1), "steps": steps, "run": run}
+            "seconds": round(time.time() - t0, 1), "steps": steps, "run": run, **({"void": True} if void else {})}
 
 
 def judged(judge, q: str, expected: str, answer: str) -> dict:

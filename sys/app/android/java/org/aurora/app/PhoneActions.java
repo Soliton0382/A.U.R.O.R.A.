@@ -13,7 +13,8 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.provider.AlarmClock;
 import android.provider.CalendarContract;
-import android.provider.ContactsContract;
+import android.provider.ContactsContract.CommonDataKinds.Phone;
+import android.provider.ContactsContract.Data;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.TelephonyManager;
 
@@ -142,11 +143,46 @@ final class PhoneActions {
             a.runOnUiThread(() -> a.requestPermissions(new String[] {Manifest.permission.READ_CONTACTS}, ASK_CONTACTS));
             return "!need_contacts";
         }
-        String[] cols = {ContactsContract.CommonDataKinds.Phone.NUMBER};
-        try (Cursor c = a.getContentResolver().query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI, cols,
-                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME + " LIKE ?", new String[] {"%" + who + "%"}, null)) {
-            if (c != null && c.moveToFirst()) return c.getString(0);
+        if ("whatsapp".equals(j.optString("via"))) {
+            String w = onWhatsapp(a, who);
+            if (w != null) return w;
         }
-        return "!no_contact";
+        String[] cols = {Phone.NUMBER, Phone.DISPLAY_NAME, Phone.TYPE, Phone.IS_SUPER_PRIMARY, Phone.STARRED};
+        String best = null;
+        int top = -1;
+        try (Cursor c = a.getContentResolver().query(Phone.CONTENT_URI, cols, Phone.DISPLAY_NAME + " LIKE ?",
+                new String[] {"%" + who + "%"}, null)) {
+            while (c != null && c.moveToNext()) {
+                int score = nameScore(c.getString(1), who) * 8 + (c.getInt(3) != 0 ? 4 : 0)
+                    + (c.getInt(2) == Phone.TYPE_MOBILE ? 2 : 0) + (c.getInt(4) != 0 ? 1 : 0);
+                if (score > top) { top = score; best = c.getString(0); }
+            }
+        }
+        return best != null ? best : "!no_contact";
+    }
+
+    // the number WhatsApp itself has linked to this contact (owner, 3 Nov: «ha cercato di scriverlo ad un numero che non
+    // era su whatsapp»): the first number of a contact may be an old one; its WhatsApp row holds «<digits>@s.whatsapp.net»
+    private static String onWhatsapp(Activity a, String who) {
+        String[] cols = {Data.DATA1, Data.DISPLAY_NAME};
+        String best = null;
+        int top = -1;
+        try (Cursor c = a.getContentResolver().query(Data.CONTENT_URI, cols, Data.MIMETYPE + " = ? AND " + Data.DISPLAY_NAME + " LIKE ?",
+                new String[] {"vnd.android.cursor.item/vnd.com.whatsapp.profile", "%" + who + "%"}, null)) {
+            while (c != null && c.moveToNext()) {
+                String id = c.getString(0);
+                int score = nameScore(c.getString(1), who);
+                if (id != null && id.contains("@") && score > top) { top = score; best = id.substring(0, id.indexOf('@')); }
+            }
+        } catch (RuntimeException e) {
+            return null;                                             // a phone that keeps no such rows: the contact's own numbers
+        }
+        return best == null ? null : "+" + best;
+    }
+
+    // «Alice» is Alice before Alice Rossi, Alice Rossi before Malice
+    private static int nameScore(String name, String who) {
+        String n = name == null ? "" : name.trim().toLowerCase(Locale.ROOT), w = who.toLowerCase(Locale.ROOT);
+        return n.equals(w) ? 3 : n.startsWith(w + " ") ? 2 : (" " + n).contains(" " + w) ? 1 : 0;
     }
 }

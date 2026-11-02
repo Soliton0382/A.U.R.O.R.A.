@@ -165,8 +165,9 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 
 The partial and missing items, checked against the code: ROADMAP.md, first section. The owner's checks: MANUAL_TESTS.md.
 
-## Open bugs (3)
+## Open bugs (5)
 
-C389 (aurora-api's memory between restarts), C406 (the alerts that learn: built, closed after a week of the owner's
-verdicts), C463 (the .env's secrets in plaintext). C390 (the reasoner's night crashes) closed on
+C487 (a question queued behind a review: fix written, to see on a real review), C489 (the benchmarks' cloud judge from a shell), C490 (two non-genres in the genre filter), C406 (the alerts that learn: built, closed after a week of the owner's verdicts), C463 (the .env's secrets in
+plaintext). Closed 3 Nov: C480 (a routine's sealed files), C484 (closed by the owner, not seen again), C485 (the
+wildcard certificate's request). C390 (the reasoner's night crashes) closed on
 30 Oct after a week without one; C462 (the swap file) the same day. Details in BUGS.md.

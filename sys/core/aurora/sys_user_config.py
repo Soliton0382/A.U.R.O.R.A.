@@ -32,7 +32,11 @@ def env_path(cfg: sys_config.Config, name: str) -> Path:
 
 def _own(cfg: sys_config.Config, name: str) -> dict[str, str]:
     f = env_path(cfg, name)
-    return sys_config.parse_env(f.read_text(encoding="utf-8"), str(f)) if f.is_file() else {}
+    own = sys_config.parse_env(f.read_text(encoding="utf-8"), str(f)) if f.is_file() else {}
+    for k, v in own.items():                               # 🔐 sealed with Aurora's key (N69): empty for anyone else
+        if v.startswith("aurseal1:"):
+            own[k] = sys_config.open_value(cfg, k, v) or ""
+    return own
 
 
 def for_user(cfg: sys_config.Config, name: str | None) -> sys_config.Config:

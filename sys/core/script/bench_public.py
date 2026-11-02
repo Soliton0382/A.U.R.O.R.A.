@@ -33,6 +33,8 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+import httpx
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import bench_edge as E  # noqa: E402
@@ -100,6 +102,8 @@ def prepare(target: str, cloud_model: str, bare_tokens: int = 28000, lessons: bo
         t0 = time.time()
         try:
             text = llm.complete(BARE_SYSTEM, q, bare_tokens, think=True).answer
+        except httpx.TransportError as e:                # the model was not there: no answer to score (C486)
+            return {"answer": f"(error: {e})", "abstained": False, "seconds": round(time.time() - t0, 1), "void": True}
         except Exception as e:                           # noqa: BLE001 — an error is a wrong answer, said
             text = f"(error: {e})"
         return {"answer": text, "abstained": False, "seconds": round(time.time() - t0, 1)}
@@ -136,9 +140,13 @@ def run(target: str, sets: list[str], n: int, cloud_model: str, judge, bare_toke
             report["sets"][s] = {"skipped": why}
             print(f"-- {s}: skipped ({why})", flush=True)
             continue
-        rows, t0 = [], time.time()
+        rows, t0, void = [], time.time(), 0
         for it in items:
             res = answer(it["prompt"])
+            if res.get("void"):                          # not asked, so neither right nor wrong: counted apart
+                void += 1
+                print(f"- {s} {it['id']} void: {res['answer'][:80]}", flush=True)
+                continue
             sc = grade(it, res["answer"], judge)
             rows.append({"id": it["id"], "group": it.get("group", ""), "question": it["prompt"][:2000],
                          "expected": str(it.get("answer"))[:200], **sc,
@@ -149,7 +157,7 @@ def run(target: str, sets: list[str], n: int, cloud_model: str, judge, bare_toke
         right, secs = sum(r["right"] for r in rows), sorted(r["seconds"] for r in rows)
         entry = {"right": right, "total": len(rows), "accuracy": round(right / len(rows), 3) if rows else None,
                  "declined": sum(r["declined"] for r in rows), "median_s": secs[len(secs) // 2] if secs else None,
-                 "minutes": round((time.time() - t0) / 60, 1), "rows": rows}
+                 "minutes": round((time.time() - t0) / 60, 1), "rows": rows, **({"void": void} if void else {})}
         if s == "simpleqa":                              # its own measures: attempted, and correct of attempted
             att = [r for r in rows if r.get("grade") != "NOT_ATTEMPTED"]
             entry.update(attempted=len(att), correct_of_attempted=round(right / len(att), 3) if att else None)

@@ -19,6 +19,8 @@ quick(p, cfg, question, recent, emit)   (the answer, handed on), streamed as «t
 """
 from __future__ import annotations
 
+import threading
+import time
 from datetime import timedelta
 
 from . import sns_clock, sys_config, sys_persona, txt_lang
@@ -73,10 +75,61 @@ def talk(model, question: str, recent: list) -> bool:
     return sure["SEARCH"] <= SURE
 
 
+# 🔮 The same answer made before it is asked (sys_call_ahead: the owner paused and the sentence may be over): kept for
+# its question a moment, taken once, written to no memory. Only the words asked: another sentence asks anew.
+KEEP_S = 30.0
+_lock = threading.Lock()
+_ready: dict[str, tuple[float, str, bool]] = {}
+
+
+def _key(question: str) -> str:
+    return " ".join(str(question).split())
+
+
+def prepare(p, cfg: sys_config.Config, question: str, recent: list, stop=lambda: False) -> tuple[str, bool]:
+    """(the answer, handed on) as quick() would give them, kept for it; `stop`: the owner went on, the stream closed."""
+    model = p.llm
+    if stop():
+        return "", False
+    if not talk(model, question, recent):
+        text, handed = "", True
+    else:
+        parts: list[str] = []
+        handed = False
+        stream = model.stream(system(cfg, recent, txt_lang.detect(question)), question, MAX_TOKENS, think=False)
+        try:
+            for kind, piece in stream:
+                if stop():
+                    return "", False
+                if kind != "answer" or not piece:
+                    continue
+                if HANDOFF in piece:
+                    parts.append(piece.split(HANDOFF, 1)[0])
+                    handed = True
+                    break
+                parts.append(piece)
+        finally:
+            getattr(stream, "close", lambda: None)()
+        text = "".join(parts).strip()
+        handed = handed or not text
+    with _lock:
+        for k in [k for k, v in _ready.items() if time.time() - v[0] > KEEP_S]:
+            del _ready[k]
+        _ready[_key(question)] = (time.time(), text, handed)
+    return text, handed
+
+
 def quick(p, cfg: sys_config.Config, question: str, recent: list, emit) -> tuple[str, bool]:
     """(the answer, handed on): plain talk streamed as «talk.delta»; anything else handed on at once. Always the
     local reasoner, whatever the Models page gives «self»: a cloud model took 4.2 s for the choice alone (one token
-    read from its probabilities only here) and the masking before each sentence; the whole path keeps the owner's."""
+    read from its probabilities only here) and the masking before each sentence; the whole path keeps the owner's.
+    An answer already prepared for these words (prepare) is said as it is."""
+    with _lock:
+        got = _ready.pop(_key(question), None)
+    if got and time.time() - got[0] <= KEEP_S:
+        if got[1]:
+            emit("talk.delta", {"text": got[1]})
+        return got[1], got[2]
     model = p.llm
     if not talk(model, question, recent):
         return "", True

@@ -125,7 +125,10 @@ async def talk_say(name: str, request: Request) -> dict:
     if not words:
         raise HTTPException(status_code=400, detail="empty request")
     lang = "it" if str(cfg["AURORA_LANG_DEFAULT"]).startswith("it") else "en"
-    out = await in_thread(prj_talk.say, cfg, name, words, pipeline(), lang)
+    try:
+        out = await in_thread(prj_talk.say, cfg, name, words, pipeline(), lang)
+    except RuntimeError as e:                         # already working on this project: said, not a server error
+        raise HTTPException(status_code=409, detail=str(e)) from None
     log.info("audit: conductor talk in project %s (%s)", name, out.get("backend"))
     return out
 

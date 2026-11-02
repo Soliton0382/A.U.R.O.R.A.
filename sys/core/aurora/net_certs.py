@@ -99,7 +99,7 @@ def renew(cfg: sys_config.Config, force: bool = False, http=None, wait_seen=None
         raise CertError("the automatic certificate is off (AURORA_ACME_ENABLED)")
     why = "asked by the admin" if force else why_due(cfg)
     if not why:
-        return {"renewed": False, "why": None, "copied": copy_when(cfg)}
+        return {"renewed": False, "why": None, "own": copy_cert(cfg, force, http, wait_seen), "copied": copy_when(cfg)}
     if manual(cfg):                                   # by hand: the records shown, the admin adds them and verifies
         st = pending(cfg)
         return {"renewed": False, "why": why, "waiting": _public(st) if st else start(cfg, http),
@@ -126,7 +126,8 @@ def renew(cfg: sys_config.Config, force: bool = False, http=None, wait_seen=None
               not_after=info["not_after"])
     _log().info("audit: certificate renewed by ACME (%s): %s, until %s%s", why, ", ".join(names), info["not_after"][:10],
              " (test service)" if staging else "")
-    return {"renewed": True, "why": why, "certificate": info, "copied": copy_when(cfg)}
+    return {"renewed": True, "why": why, "certificate": info, "own": copy_cert(cfg, force, http, wait_seen),
+            "copied": copy_when(cfg)}
 
 
 # ---- the guided way: start, see, verify (owner, 1 Nov: «metto il dominio, faccio partire, dà il token da aggiungere,
@@ -375,15 +376,86 @@ def chances(raw: str, start: datetime, end: datetime) -> int | None:
     return n
 
 
-def copy(cfg: sys_config.Config) -> dict | None:
-    """The certificate in use copied to AURORA_CERTS_COPY_DIR when the copy there is not the same; None with no folder."""
+# 🎯 A certificate of the copy's own (owner, 3 Nov: «un certificato solo per plex… così il p12 sarà solo per plex»): a
+# wildcard's key on a NAS share opens every name of the domain; AURORA_CERTS_COPY_NAMES asks one for those names alone,
+# kept here beside the account (not where Caddy reads), renewed with the same rule and copied in place of Aurora's own.
+def copy_names(cfg: sys_config.Config) -> list[str]:
+    return list(dict.fromkeys(n.strip().lower() for n in str(cfg["AURORA_CERTS_COPY_NAMES"] or "").split(",") if n.strip()))
+
+
+def _own_files(cfg: sys_config.Config) -> tuple[Path, Path]:
+    d = _dir(cfg) / "copy"
+    return d / "fullchain.pem", d / "privkey.pem"
+
+
+def own_info(cfg: sys_config.Config) -> dict | None:
+    try:
+        return net_https.describe(_own_files(cfg)[0].read_bytes())
+    except (OSError, ValueError):
+        return None
+
+
+def own_due(cfg: sys_config.Config, now: datetime | None = None) -> str | None:
+    """Why the copy's own certificate is wanted now, or None (none asked, or still good for its names)."""
+    names = copy_names(cfg)
+    if not names:
+        return None
+    info = own_info(cfg)
+    if not info:
+        return "none yet"
+    if _not_after(info) - (now or datetime.now(timezone.utc)) < timedelta(days=RENEW_DAYS):
+        return f"it ends on {info['not_after'][:10]}"
+    if sorted(info["names"]) != sorted(names):
+        return f"it is for {', '.join(info['names'])}"
+    return None
+
+
+def copy_cert(cfg: sys_config.Config, force: bool = False, http=None, wait_seen=None) -> dict | None:
+    """The copy's own certificate asked when due, through the DNS provider (by hand it would be a second round of
+    records: not offered); an error kept for the page, the copy waits. None with nothing to do."""
+    from . import net_acme, net_dnsapi
+    names = copy_names(cfg)
+    why = ("asked by the admin" if force and names else None) or own_due(cfg)
+    if not why:
+        return None
+    try:
+        if manual(cfg):
+            raise CertError("a certificate of the copy's own needs the DNS provider, not records by hand")
+        staging = bool(cfg["AURORA_ACME_STAGING"])
+        client = net_acme.Client(net_acme.account_key(_dir(cfg)), net_acme.DIRECTORY["staging" if staging else "production"], http)
+        client.account(str(cfg["AURORA_ACME_EMAIL"] or ""))
+        chain, key = client.certificate(names, net_dnsapi.provider(cfg), wait_seen or net_dnsapi.wait_seen, lambda m: None)
+    except (CertError, net_acme.AcmeError, net_dnsapi.DnsError, OSError) as e:
+        _remember(cfg, own_error=str(e)[:300])
+        _log().warning("certificate of the copy: %s", e)
+        return {"issued": False, "error": str(e)[:300]}
+    cert_f, key_f = _own_files(cfg)
+    cert_f.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    for f, data in ((cert_f, chain), (key_f, key)):
+        tmp = f.with_suffix(".tmp")
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "wb") as h:
+            h.write(data)
+        os.replace(tmp, f)
+    _remember(cfg, own_error=None)
+    _log().info("audit: certificate of the copy issued: %s (%s)", ", ".join(names), why)
+    return {"issued": True, "names": names}
+
+
+def copy(cfg: sys_config.Config, http=None, wait_seen=None) -> dict | None:
+    """The certificate for the other devices (its own, or the one in use) copied to AURORA_CERTS_COPY_DIR when the copy
+    there is not the same; keyStore.p12 only if asked (AURORA_CERTS_P12); None with no folder."""
     cfg = net_https.fresh(cfg)
     raw = str(cfg["AURORA_CERTS_COPY_DIR"] or "").strip()
     if not raw:
         return None
     dest = CERTS_MOUNT / _sub(raw) if raw.startswith("smb://") else (cfg.root / os.path.expanduser(raw)).resolve()
-    chain_f, key_f = cfg.path("AURORA_TLS_CERT"), cfg.path("AURORA_TLS_KEY")
+    chain_f, key_f = _own_files(cfg) if copy_names(cfg) else (cfg.path("AURORA_TLS_CERT"), cfg.path("AURORA_TLS_KEY"))
+    p12 = bool(cfg["AURORA_CERTS_P12"])
     try:
+        own = copy_cert(cfg, False, http, wait_seen)        # asked now if none yet: never Aurora's own in its place
+        if own and own.get("error"):
+            raise OSError(f"the certificate for {', '.join(copy_names(cfg))}: {own['error']}")
         if raw.startswith("smb://"):
             _mount(raw)
         if not dest.is_dir():
@@ -393,13 +465,14 @@ def copy(cfg: sys_config.Config) -> dict | None:
             same = (dest / "fullchain.pem").read_bytes() == chain and (dest / "privkey.pem").read_bytes() == key
         except OSError:
             same = False
-        if same and (dest / "keyStore.p12").exists():
+        if same and (not p12 or (dest / "keyStore.p12").exists()):
             out = {"copied": False, "to": str(dest), "at": _state(cfg).get("copied_at")}
         else:
             cert, rest = _split(chain)
-            files = {"fullchain.pem": chain, "privkey.pem": key, "cert.pem": cert, "chain.pem": rest,
-                     "keyStore.p12": _p12(chain, key, str(cfg["AURORA_CERTS_P12_PASSWORD"] or ""),
-                                          bool(cfg["AURORA_CERTS_P12_LEGACY"]))}
+            files = {"fullchain.pem": chain, "privkey.pem": key, "cert.pem": cert, "chain.pem": rest}
+            if p12:
+                files["keyStore.p12"] = _p12(chain, key, str(cfg["AURORA_CERTS_P12_PASSWORD"] or ""),
+                                             bool(cfg["AURORA_CERTS_P12_LEGACY"]))
             for name, data in files.items():                      # overwritten in place, each file whole
                 tmp = dest / f".{name}.aurora-tmp"
                 tmp.write_bytes(data)
@@ -428,7 +501,8 @@ def status(cfg: sys_config.Config) -> dict:
             "manual": manual(cfg), "pending": _public(pending(cfg)) if pending(cfg) else None,
             "last": {k: st.get(k) for k in ("tried", "issued", "error", "steps", "staging", "trying")},
             "copy": {"dir": str(cfg["AURORA_CERTS_COPY_DIR"] or ""), "at": st.get("copied_at"), "error": st.get("copy_error"),
-                     "window": str(cfg["AURORA_CERTS_COPY_WINDOW"] or ""),
+                     "window": str(cfg["AURORA_CERTS_COPY_WINDOW"] or ""), "names": copy_names(cfg), "own": own_info(cfg),
+                     "own_error": st.get("own_error"), "p12": bool(cfg["AURORA_CERTS_P12"]),
                      "chances": chances(str(cfg["AURORA_CERTS_COPY_WINDOW"] or ""), datetime.fromisoformat(nxt).astimezone()
                                         .replace(tzinfo=None), _not_after(info).astimezone().replace(tzinfo=None))
                      if nxt else None,

@@ -213,6 +213,26 @@ def senses_devices() -> dict:
     return {**sns_av.devices(), "camera": cfg["AURORA_SENSES_CAMERA"], "microphone": cfg["AURORA_SENSES_MIC"]}
 
 
+_talking: dict[str, int] = {}                         # each user's newest words in a hands-free conversation
+
+
+def _prepare_talk(text: str) -> None:
+    """🔮 The chat's hands-free conversation: the answer to the words so far made in the background (kno_talk.prepare),
+    the newest words only; taken if the final transcript is the same, as in a call (sys_call_ahead)."""
+    from aurora import kno_talk, sys_context
+    from .core import me
+    who = str(me())
+    _talking[who] = gen = _talking.get(who, 0) + 1
+
+    def work() -> None:
+        try:
+            p = pipeline()
+            kno_talk.prepare(p, cfg.now(), text, p.reader.recent(kno_talk.RECENT), lambda: _talking.get(who) != gen)
+        except Exception as e:                        # noqa: BLE001 - a guess that fails costs nothing
+            log.warning("hands-free: the guess failed: %s", e)
+    sys_context.start(work, name="talk-ahead")
+
+
 @router.post("/v1/aurora/senses/{action}", dependencies=[Depends(auth)])
 async def senses_action(action: str, request: Request) -> dict:
     """The owner's own click in the WebUI (📷, 🎙️): consent is the click itself, no approval needed. The machine's camera
@@ -254,6 +274,8 @@ async def senses_action(action: str, request: Request) -> dict:
             out = await asyncio.to_thread(sns_av.transcribe, audio, str(cfg["AURORA_LANG_DEFAULT"])[:2], cfg)
             if out.get("clear") and out.get("text"):      # her memory searched while the person still speaks, and with
                 pipeline().ahead(out["text"])            # the final words before they come back as the question (sol_ahead)
+                if body.get("partial") and body.get("conversation") is True:   # 🔮 hands-free: the answer ready too
+                    _prepare_talk(out["text"])
             if not body.get("partial"):                  # the words so far while speaking (ROADMAP 99): not a dictation
                 log.info("audit: owner dictated %.1f s from a device (%s, %d bytes; clear: %s)", out["audio_s"],
                          str(body.get("mime", "?"))[:40], len(data), out["clear"])

@@ -72,3 +72,13 @@ def test_the_cloud_judge_out_the_local_model_drafts(cfg, project):
     assert g["text"] == "obiettivo locale" and [e["kind"] for e in C.history(cfg, project)] == ["ask", "goal"]
     with pytest.raises(RuntimeError):
         C.draft(cfg, project, "senza riserva", _Down())
+
+
+def test_a_project_goes_to_the_trash_never_at_once():
+    """🗑️ DELETE /v1/aurora/projects/{name}: to the trash with its conversation, refused while its conductor works or
+    with the trash off."""
+    from pathlib import Path
+    src = (Path(__file__).resolve().parents[1] / "aurora" / "api" / "projects.py").read_text()
+    body = src.split('def project_delete(')[1].split("@router")[0]
+    assert "prj_act.working(cfg, name)" in body and 'cfg["AURORA_TRASH_ENABLED"]' in body
+    assert 'sys_trash.discard(cfg, folder, "project", name)' in body and "rmtree" not in body

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from .core import _admin, _run_lock, _runs, auth, cfg, everyone, log, me, note, pipeline, plugin_host, start_run
+from .core import _admin, _run_lock, _runs, auth, cfg, everyone, give_way, log, me, note, pipeline, plugin_host, start_run
 
 from .users import admin_only  # noqa: E402
 
@@ -149,7 +149,7 @@ def _rem_run(task: str) -> dict:
             out = kno_vault_audit.audit(cfg, pipeline()._for("route"), tell)
         elif task == "review":                            # past answers answered again (kno_review)
             from aurora import kno_review
-            out = kno_review.review(pipeline(), cfg, tell, kno_review.due(pipeline(), cfg))
+            out = kno_review.review(pipeline(), cfg, tell, kno_review.due(pipeline(), cfg), between=give_way)
         elif task == "morning":                           # the good morning (kno_morning)
             from aurora import kno_morning
             out = kno_morning.write(pipeline(), cfg, tell)

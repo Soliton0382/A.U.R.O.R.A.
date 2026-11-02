@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import httpx
+import hashlib
 import secrets
 import subprocess
 import threading
@@ -151,6 +152,28 @@ def _is_key(token: str) -> bool:
     return bool(token) and secrets.compare_digest(token.encode(), str(cfg["AURORA_API_KEY"]).encode())
 
 
+# 🔧 The maintenance key (N69, owner, 3 Nov: «concordo»): once the settings are sealed the owner's scripts read no secret,
+# so they reach the API with a key of their own, in the owner's home, of which she keeps the hash; good from this
+# machine only, never through the proxy.
+def _maintenance_file():
+    return BASE.path("AURORA_STATUS_DIR") / "keys" / "maintenance.sha256"
+
+
+def is_maintenance_key(token: str) -> bool:
+    if not token:
+        return False
+    try:
+        kept = _maintenance_file().read_text(encoding="ascii").strip()
+    except OSError:
+        return False
+    return secrets.compare_digest(hashlib.sha256(token.encode()).hexdigest(), kept)
+
+
+def _from_this_machine(request) -> bool:
+    return bool(request.client) and request.client.host in ("127.0.0.1", "::1") \
+        and "x-forwarded-for" not in request.headers
+
+
 # Failed logins per client address: after AURORA_AUTH_MAX_FAILS in AURORA_AUTH_WINDOW_S the address is refused
 # for the same window (429), and the owner is told (a security incident notification). A direct loopback
 # caller (no proxy header) is never counted nor locked: Aurora's own services live there, and a 256-bit key
@@ -223,7 +246,7 @@ async def auth(request: Request) -> None:
     by the lockout first. Keys and device tokens are 256-bit: the lockout is not what keeps them from being guessed;
     the passwords' route (login) keeps its lockout before the check."""
     bearer = request.headers.get("authorization", "").removeprefix("Bearer ").strip()
-    if _is_key(bearer):
+    if _is_key(bearer) or (is_maintenance_key(bearer) and _from_this_machine(request)):
         request.state.device = None
         request.state.user = _admin()                    # the API key is the admin's (third-party clients)
         sys_context.CURRENT.set(request.state.user)
@@ -369,6 +392,16 @@ def text_of(content) -> str:
     if isinstance(content, str):
         return content
     return "\n".join(p.get("text", "") for p in content or [] if isinstance(p, dict) and p.get("type") == "text")
+
+
+def give_way() -> None:
+    """Between two pieces of a long batch run under the run lock: whoever is waiting goes first (C487, M236: a question
+    waited about 74 s behind three answers of a review). Called only by the thread holding the lock."""
+    _run_lock.release()
+    try:
+        time.sleep(0.2)
+    finally:
+        _run_lock.acquire()
 
 
 def start_run(question: str, origin: str, job=None) -> dict:

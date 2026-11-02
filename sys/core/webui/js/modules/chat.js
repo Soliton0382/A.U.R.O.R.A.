@@ -161,7 +161,8 @@ export default {
       return {
         onEvent: (name, p) => {
           if (name === "route") mode = p.mode;
-          if (name !== "synthesis.delta" || p.kind !== "answer" || mode !== "self") return;
+          const said = name === "talk.delta" || (name === "synthesis.delta" && p.kind === "answer" && mode === "self");
+          if (!said) return;
           if (!live) { watchVoice(); live = voice.streamSpeak(lang.replace("_", "-")); if (talking) watchBarge(); }
           live.push(p.text);
         },
@@ -237,7 +238,7 @@ export default {
       if (r.clear) { form.requestSubmit(); return; }   // hands-free: what was dictated goes, the answer comes aloud
       input.focus();
     };
-    const recordHere = makeRecorder({ mic, input, heard, canRecord });     // chat_media.js
+    const recordHere = makeRecorder({ mic, input, heard, canRecord, conversing: () => talking });     // chat_media.js
     const toggleTalk = () => {                       // from the ⚙️ menu (the composer keeps its three buttons)
       if (talking) { setTalking(false); voice.stop(); return; }
       setTalking(true);
@@ -368,7 +369,7 @@ export default {
         const goal = question.match(/^\/agen(?:te|t)\s+(.+)/s)?.[1];
         const { run_id } = await (goal
           ? call("/v1/aurora/agent", { method: "POST", body: JSON.stringify({ goal }) })
-          : call("/v1/aurora/ask", { method: "POST", body: JSON.stringify({ question, attachments, suggest: true, ...(focus ? { focus } : {}), ...(reply ? { reply_to: reply } : {}), ...(thinking() ? { think: thinking() } : {}) }) })
+          : call("/v1/aurora/ask", { method: "POST", body: JSON.stringify({ question, attachments, suggest: true, ...(talking && !attachments.length && !focus && !reply ? { talk: true } : {}), ...(focus ? { focus } : {}), ...(reply ? { reply_to: reply } : {}), ...(thinking() ? { think: thinking() } : {}) }) })
         ).finally(() => asking--);
         mine.add(run_id);
         const speech = aloud ? aloudLive() : null;

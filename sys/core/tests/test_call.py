@@ -140,3 +140,94 @@ def test_a_plain_phone_command_in_a_call_is_done_by_the_app_at_once(cfg, monkeyp
     done, sent = asyncio.run(run2("vorrei ascoltare un po' di musica su Spotify"))
     assert done and sent[0]["action"]["app"] == "Spotify"
     assert asyncio.run(run2("Che tempo fa domani?"))[0] is False
+
+
+def _pcm(voice_s, quiet_s, rate=16000):
+    import numpy as np
+    n, q = int(voice_s * rate), int(quiet_s * rate)
+    return (np.sin(np.arange(n) * 0.2) * 12000).astype("<i2").tobytes() + b"\0\0" * q
+
+
+def test_the_first_pause_of_a_sentence_is_a_guess_and_going_on_is_not_the_end():
+    """🔮 The voice so far offered at PAUSE_S of quiet; once the answer is ready the end comes sooner; the owner going on
+    gives the whole wait back."""
+    from aurora.sys_call import Segmenter as S
+    s = S()
+    s.feed(b"\0\0" * 3200)
+    assert s.feed(_pcm(1.0, S.PAUSE_S + 0.04)) == [] and s.maybe is not None     # at the pause, not ended
+    first = len(s.maybe)
+    s.maybe, s.end_s = None, 0.6
+    s.feed(_pcm(0.5, 0))                                                          # goes on
+    assert s.end_s == S.END_S
+    assert s.feed(b"\0\0" * int(0.6 * 16000)) == [] and s.maybe is not None and len(s.maybe) > first
+    assert len(s.feed(b"\0\0" * int(0.3 * 16000))) == 1 and s.end_s == S.END_S    # at END_S only
+    s.feed(_pcm(1.0, S.PAUSE_S + 0.04))
+    s.end_s = 0.6
+    assert len(s.feed(b"\0\0" * int(0.3 * 16000))) == 1                           # ready: ended sooner
+
+
+def test_a_guess_is_taken_only_for_the_same_voice_and_acts_on_nothing(monkeypatch):
+    import asyncio
+    import numpy as np
+    from aurora import agt_phone, kno_talk, sns_av, sys_call, sys_call_ahead as A
+    said = []
+    monkeypatch.setattr(sns_av, "transcribe", lambda a, l, c: {"clear": True, "text": "Apri YouTube adesso per favore."})
+    monkeypatch.setattr(agt_phone, "understand", lambda m, t: {"id": "x", "action": "open_app", "app": "YouTube"})
+    monkeypatch.setattr(agt_phone, "quick", lambda t: None)
+
+    class P:
+        llm = object()
+
+    async def run():
+        seg = sys_call.Segmenter()
+        a = A.Ahead(P(), None, "it", seg, lambda *x: said.append(x))
+        voice = np.zeros(16000, dtype=np.float32)
+        a.pause(voice)
+        got = await a.take(np.zeros(16000 + 8000, dtype=np.float32))              # only quiet added
+        assert got.act["app"] == "YouTube" and got.done and seg.end_s == A.READY_END_S
+        a.pause(voice)
+        assert await a.take(np.zeros(16000 * 4, dtype=np.float32)) is None        # the owner went on: dropped
+        assert await a.take(voice) is None                                        # no guess
+    asyncio.run(run())
+    assert not said and kno_talk._ready == {}
+
+
+def test_an_answer_prepared_is_said_once_with_no_second_generation():
+    from aurora import kno_talk as K
+    calls = []
+
+    class M:
+        def decide(self, s, u, o):
+            calls.append("route")
+            return {"TALK": 1.0, "SEARCH": 0.0}
+
+        def stream(self, *a, **k):
+            calls.append("stream")
+            return iter([("answer", "Sto "), ("answer", "bene.")])
+
+    class P:
+        llm = M()
+    orig = K.system
+    K.system = lambda *a: "S"
+    try:
+        assert K.prepare(P(), None, "Come stai?", []) == ("Sto bene.", False)
+        ev = []
+        assert K.quick(P(), None, " Come  stai?", [], lambda n, d: ev.append(d["text"])) == ("Sto bene.", False)
+        assert ev == ["Sto bene."] and calls == ["route", "stream"]
+        K.quick(P(), None, "Come stai?", [], lambda n, d: ev.append(d["text"]))
+        assert calls.count("stream") == 2                                         # taken once
+        assert K.prepare(P(), None, "Altro", [], stop=lambda: True) == ("", False) and "Altro" not in K._ready
+    finally:
+        K.system = orig
+
+
+def test_the_chat_s_hands_free_sentence_takes_a_call_s_quick_path():
+    """🗣️ The chat's conversation asks with talk: true, the words so far prepared (kno_talk.prepare) while it listens."""
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    chat = (root / "webui/js/modules/chat.js").read_text()
+    media = (root / "webui/js/modules/chat_media.js").read_text()
+    assert "talking && !attachments.length" in chat and "{ talk: true }" in chat and 'name === "talk.delta"' in chat
+    assert "conversation: conversing()" in media
+    assert 'body.get("talk") is True' in (root / "aurora/api/runs.py").read_text()
+    assert "_prepare_talk(" in (root / "aurora/api/knowledge.py").read_text()

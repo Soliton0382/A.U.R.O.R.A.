@@ -3785,5 +3785,18 @@
   "phone.bad": "Il telefono non ha capito questa richiesta.",
   "phone.open": "Apri sul telefono",
   "phone.app_only": "Questo lo posso fare solo dall'app Aurora sul telefono.",
-  "assist.title": "Assistenza"
+  "assist.title": "Assistenza",
+  "sec.settled_blocked": "Bloccato e chiuso da Aurora. Se sbaglia, dillo con un giudizio qui sotto.",
+  "sec.settled_quiet": "Chiuso da Aurora: un allarme che hai silenziato.",
+  "sec.settled_judged": "Chiuso da Aurora: su questo tipo di allarme i tuoi giudizi dicono che è falso. Un 👍 qui sotto le insegna il contrario.",
+  "acme.copy_names": "Certificato solo per questa copia (nomi)",
+  "acme.copy_names_hint": "vuoto = si copia quello di Aurora · es. plex.example.org",
+  "acme.copy_own": "Certificato della copia: {n}, valido fino al {d}.",
+  "acme.copy_own_none": "Lo chiede Aurora alla prossima copia.",
+  "acme.copy_own_same": "Si copia il certificato di Aurora: se è un jolly, chi legge la cartella ha la chiave di tutti i sottodomini.",
+  "acme.copy_p12": "Crea anche keyStore.p12 (per un media server)",
+  "acme.copy_p12_pass": "Password del keyStore.p12",
+  "acme.copy_p12_set": "impostata: scrivi solo per cambiarla",
+  "acme.copy_p12_none": "nessuna: scrivila qui",
+  "acme.copy_p12_legacy": "Cifratura vecchia (3DES, SHA-1), per i programmi che rifiutano quella moderna"
 }

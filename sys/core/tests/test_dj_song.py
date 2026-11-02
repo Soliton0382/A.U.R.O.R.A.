@@ -46,6 +46,7 @@ def stage(cfg, monkeypatch, tmp_path):
     monkeypatch.setattr(mdl_image, "_unit", lambda verb, u: units.append((verb, u)))
     monkeypatch.setattr(mdl_image, "_wait", lambda cond, limit, step=2.0: cond())
     monkeypatch.setattr(mdl_image, "_llm_ok", lambda c: True)
+    monkeypatch.setattr(mdl_image, "_slots_idle", lambda c: True)
     proc = SimpleNamespace(poll=lambda: None, terminate=lambda: units.append(("terminate", "ace")), wait=lambda t: 0)
     monkeypatch.setattr(S, "_server", lambda c, key, port: proc)
     monkeypatch.setattr(A, "load", lambda p, s=None: "audio")

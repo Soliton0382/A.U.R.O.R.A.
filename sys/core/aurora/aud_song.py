@@ -129,7 +129,7 @@ def sing(cfg: sys_config.Config, song: dict, seconds: int, out: Path, emit=None)
         try:
             if mdl_image._active(mdl_image.LLM_UNIT):        # the reasoner out of the GPU, as for a dream
                 say("song.swap", {"stop": mdl_image.LLM_UNIT})
-                mdl_image._unit("stop", mdl_image.LLM_UNIT)
+                mdl_image.reasoner_out(cfg)
                 swapped = True
             proc = _server(cfg, key, port)
             base, head = f"http://127.0.0.1:{port}", {"Authorization": f"Bearer {key}"}
@@ -184,8 +184,7 @@ def sing(cfg: sys_config.Config, song: dict, seconds: int, out: Path, emit=None)
                 except subprocess.TimeoutExpired:
                     proc.kill()
             if swapped:
-                mdl_image._unit("start", mdl_image.LLM_UNIT)
-                ok = mdl_image._wait(lambda: mdl_image._llm_ok(cfg), 600, 3)
+                ok = mdl_image.reasoner_back(cfg, 600)
                 log.info("song: %s started again (%s)", mdl_image.LLM_UNIT, "healthy" if ok else "NOT healthy yet")
                 say("song.swap", {"start": mdl_image.LLM_UNIT, "healthy": ok})
     out.with_suffix(".song.json").write_text(json.dumps({**song, "seconds": seconds}, ensure_ascii=False, indent=1),

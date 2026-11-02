@@ -75,6 +75,11 @@ async def ask(request: Request) -> dict:
                         else "Di cosa parla questo documento?")
     if not question:
         raise HTTPException(status_code=400, detail="empty question")
+    if body.get("talk") is True and remember and not files and not focus and not quote and not think:
+        # 🗣️ a sentence of the chat's hands-free conversation (owner, 3 Nov): a call's quick path, plain talk at once
+        from .call import _talk
+        from .core_route import mood_wrap
+        return {"run_id": start_run(question, origin="webui", job=mood_wrap(question, _talk))["id"]}
     def job(q, emit, run_id):
         attached = []
         if files and remember:                         # kept to show them again in the conversation (sys_uploads)

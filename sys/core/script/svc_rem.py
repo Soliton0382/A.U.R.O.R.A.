@@ -238,6 +238,10 @@ def main() -> int:
                     log.warning("certificate: %s", c.text[:300])
             except (httpx.HTTPError, ValueError) as e:
                 log.warning("certificate check failed: %s", e)
+            try:                                      # 🤖 security at 🚀: one line a day of what she decided
+                client.post(f"{BASE}/v1/aurora/security/digest", timeout=60).raise_for_status()
+            except httpx.HTTPError as e:
+                log.warning("security digest failed: %s", e)
             try:                                      # the soak, measured by itself: one snapshot a day
                 from aurora import sys_soak
                 sys_soak.record(cfg)

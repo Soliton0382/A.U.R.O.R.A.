@@ -85,15 +85,33 @@ def credentials(user: str, password: str) -> str:
     return f"username={user}\npassword={password}\n"
 
 
+def taken(status: Path) -> dict:
+    """The passwords the API handed over for this mount, read once and removed."""
+    f = status / "nas_pass.json"
+    try:
+        out = json.loads(f.read_text())
+    except (OSError, ValueError):
+        return {}
+    f.unlink(missing_ok=True)
+    return out
+
+
 def mount_one(cfg, url: str, mount: Path, mark: str, ro: bool, user, cred_file: Path = CRED,
-              login: tuple[str, str] = ("AURORA_NAS_USER", "AURORA_NAS_PASSWORD")) -> dict:
+              login: tuple[str, str] = ("AURORA_NAS_USER", "AURORA_NAS_PASSWORD"), handed: dict | None = None) -> dict:
     """One share mounted on `mount` for the service user; the folder checked as that user (written to, or listed).
     `login`: the settings of its NAS user and password, kept in `cred_file`."""
     host, share, sub = parse(url)
     from aurora import sys_backup                   # C125: a NAS asleep said as such, not "File exists"
     if not sys_backup.nas_reachable(url):
         raise RuntimeError(f"the NAS {host} does not answer (off or asleep): mount it again when it is on")
-    cred = credentials(str(cfg[login[0]] or ""), str(cfg[login[1]] or ""))
+    # 🔐 a password sealed in the .env (N69): given once by the API when it changes, else the credentials kept here
+    password = (handed or {}).get(login[1]) or str(cfg[login[1]] or "")
+    if not password and cfg.locked and cred_file.is_file():
+        cred = cred_file.read_text()
+        if f"username={cfg[login[0]]}\n" not in cred:
+            raise ValueError(f"{login[0]} changed but its password is sealed: save the password again")
+    else:
+        cred = credentials(str(cfg[login[0]] or ""), password)
     line = fstab_line(host, share, user.pw_uid, user.pw_gid, mount, mark, ro, cred_file)
     dest = mount / sub if sub else mount
     try:
@@ -194,7 +212,7 @@ def main() -> int:
         jobs.append(("AURORA_ASTRO_FRAMES_DIR", ASTRO, ASTRO_MARK, True, "astro.json"))
     if str(cfg["AURORA_CERTS_COPY_DIR"] or "").strip().startswith("smb://"):   # the certificates' copy (read and write)
         jobs.append(("AURORA_CERTS_COPY_DIR", CERTS, CERTS_MARK, False, "certs.json"))
-    ok = True
+    ok, handed = True, taken(status)
     for key, mount, mark, ro, name in jobs:
         out = {"at": time.time(), "ok": False, "mount": str(mount)}
         try:
@@ -204,9 +222,9 @@ def main() -> int:
             if not url.startswith("smb://"):
                 raise ValueError(f"{key} is not smb://…: nothing to mount")
             if key == "AURORA_CERTS_COPY_DIR":
-                out.update(mount_one(cfg, url, mount, mark, ro, user, CERTS_CRED, certs_login(cfg)))
+                out.update(mount_one(cfg, url, mount, mark, ro, user, CERTS_CRED, certs_login(cfg), handed))
             else:
-                out.update(mount_one(cfg, url, mount, mark, ro, user))
+                out.update(mount_one(cfg, url, mount, mark, ro, user, handed=handed))
         except Exception as e:                              # said in the card, never silent
             out["error"] = f"{type(e).__name__}: {e}"[:400]
         ok = ok and (out["ok"] or (key == "AURORA_BACKUP_DIR" and len(jobs) > 1 and "nothing to mount" in out.get("error", "")))

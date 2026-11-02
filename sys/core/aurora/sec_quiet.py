@@ -31,6 +31,8 @@ from . import sys_config
 PROPOSE_FA = 3            # false alarms on one device's pattern before a proposal (M262: 14 proposals, 94 of 158)
 PROPOSE_RIGHT = 0.2       # at most this share of its verdicts right (M262: 7 right inside the 14)
 WINDOW_DAYS = 30          # the verdicts counted
+AGAIN_FA = 10             # a «no» asked again after this many more false alarms and none right (C406: the NAS's alert,
+                          # declined at 3, had 53 false alarms a week later and was never proposed again)
 NEVER = {"honeypot", "recon_then_out", "egress_deny", "model_egress", "egress_new", "egress_upload"}
 _lock = threading.Lock()
 
@@ -119,6 +121,15 @@ def names(items: list[dict]) -> dict[str, str]:
     return out
 
 
+def _still_no(entry: dict, p: str, items: list[dict]) -> bool:
+    """A declined pattern stays declined until the verdicts since say otherwise, many of them and none right."""
+    if entry.get("state") != "declined":
+        return False
+    since = [i["verdict"] for i in items if pattern(i) == p and i.get("verdict")
+             and float(i.get("verdict_at") or 0) > float(entry.get("at") or 0)]
+    return since.count("false_alarm") < AGAIN_FA or "right" in since
+
+
 def proposals(cfg: sys_config.Config, items: list[dict], lang: str = "it") -> list[dict]:
     """The patterns worth quieting that the owner has not answered yet, most false alarms first."""
     st, named = load(cfg), names(items)
@@ -126,7 +137,7 @@ def proposals(cfg: sys_config.Config, items: list[dict], lang: str = "it") -> li
     for p, c in tally(items).items():
         judged = sum(c.values())
         if c["false_alarm"] >= PROPOSE_FA and c["right"] <= PROPOSE_RIGHT * judged \
-                and st.get(p, {}).get("state") not in ("quiet", "declined"):
+                and st.get(p, {}).get("state") != "quiet" and not _still_no(st.get(p, {}), p, items):
             out.append({"pattern": p, "label": label(p, lang, named.get(p, "")), "name": named.get(p, ""),
                         "false_alarm": c["false_alarm"], "right": c["right"], "judged": judged})
     return sorted(out, key=lambda x: -x["false_alarm"])
@@ -190,7 +201,7 @@ def after_verdict(cfg: sys_config.Config, items: list[dict], incident: dict, lan
     if incident.get("verdict") == "right" and st.get("state") == "quiet":
         answer(cfg, p, "awake")
         return {"woke": p, "label": label(p, lang, st.get("name", ""))}
-    if st.get("proposed") or st.get("state") in ("quiet", "declined"):
+    if st.get("proposed") or st.get("state") == "quiet":
         return None
     hit = next((x for x in proposals(cfg, items, lang) if x["pattern"] == p), None)
     if hit:

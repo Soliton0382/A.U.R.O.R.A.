@@ -163,13 +163,16 @@ def compose(item: dict, why: str, text: str, sources: list[dict], cfg: sys_confi
     return "\n\n".join(x for x in (head, text.strip(), f"Fonti: {names}" if names else "") if x)
 
 
-def review(pipeline, cfg: sys_config.Config, emit, limit: int) -> dict:
-    """Answer again up to `limit` past answers; tell the owner the better ones (within AURORA_REVIEW_MESSAGES)."""
+def review(pipeline, cfg: sys_config.Config, emit, limit: int, between=None) -> dict:
+    """Answer again up to `limit` past answers; tell the owner the better ones (within AURORA_REVIEW_MESSAGES). `between`:
+    called between two answers, for whoever waits for the run lock (C487)."""
     from . import kno_shadow
     from .kno_rem import Rem
     items, out = candidates(pipeline, cfg)[:max(0, limit)], []
     past = {s.sid: s for s in pipeline.reader.recent(2000)}
-    for item in items:
+    for i, item in enumerate(items):
+        if i and between:
+            between()
         t0 = time.time()
         ans = pipeline.run(item["question"], emit, item["run_id"] + "-review", remember=False)
         turn = past.get(item["sid"])

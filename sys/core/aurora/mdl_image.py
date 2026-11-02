@@ -26,6 +26,9 @@ from . import sys_config, sys_disclosure, sys_log
 
 SCRIPT = Path(__file__).resolve().parents[1] / "script" / "img_paint.py"
 LLM_UNIT = "aurora-llm"
+# How long a swap waits for what the reasoner is writing (C486): the longest local call in 34 days of trace lasted 261.5 s
+# (6,898 calls, p99 38.3 s, 3 Nov). Past it the swap goes on, and says so.
+SWAP_WAIT_S = 300
 
 
 def gpu_busy(cfg: sys_config.Config) -> bool:
@@ -69,6 +72,7 @@ def gpu_lock(cfg: sys_config.Config, wait_s: float, what: str):
         fh.truncate()
         fh.write(f"{what} since {time.strftime('%H:%M:%S')}")
         fh.flush()
+        _hold_off(cfg)                                # one left by a holder that died
         from . import mdl_tts
         mdl_tts.release()                             # the natural voice gives its GPU memory back first
         try:
@@ -79,6 +83,53 @@ def gpu_lock(cfg: sys_config.Config, wait_s: float, what: str):
 
 def _unit(verb: str, unit: str) -> None:
     subprocess.run(["systemctl", verb, unit], check=True, timeout=120)       # polkit rule 50-aurora.rules
+
+
+def _hold_file(cfg: sys_config.Config) -> Path:
+    return cfg.path("AURORA_STATUS_DIR") / "llm_swap"
+
+
+def _hold_off(cfg: sys_config.Config) -> None:
+    with contextlib.suppress(OSError):
+        _hold_file(cfg).unlink(missing_ok=True)
+
+
+def _slots_idle(cfg: sys_config.Config) -> bool:
+    """Nothing being written. A reasoner that does not answer has nothing to lose."""
+    try:
+        slots = httpx.get(f"http://127.0.0.1:{cfg['AURORA_LLM_PORT']}/slots", timeout=5).json()
+    except (httpx.HTTPError, ValueError):
+        return True
+    return not (isinstance(slots, list) and any(s.get("is_processing") for s in slots))
+
+
+def reasoner_out(cfg: sys_config.Config) -> None:
+    """The reasoner stopped for a GPU job, with the GPU lock held, without cutting an answer (C486): new local calls
+    wait (swap_wait), what it is writing ends, then the stop. The caller's reasoner_back ends the wait."""
+    with contextlib.suppress(OSError):
+        _hold_file(cfg).parent.mkdir(parents=True, exist_ok=True)
+        _hold_file(cfg).write_text(f"{time.time():.0f}", encoding="utf-8")
+    if not _wait(lambda: _slots_idle(cfg), SWAP_WAIT_S, 1):
+        sys_log.get_logger("image").warning("planned swap: the reasoner still writing after %d s, stopped anyway", SWAP_WAIT_S)
+    _unit("stop", LLM_UNIT)
+
+
+def reasoner_back(cfg: sys_config.Config, limit_s: float) -> bool:
+    """Started again after a GPU job, and the local calls let go once it answers. Whether it is healthy."""
+    try:
+        _unit("start", LLM_UNIT)
+        return _wait(lambda: _llm_ok(cfg), limit_s, 3)
+    finally:
+        _hold_off(cfg)
+
+
+def swap_wait(cfg: sys_config.Config, limit_s: float) -> None:
+    """A local call asked during a swap waits for the reasoner instead of failing at once (C486). The hold counts only
+    while its holder has the GPU lock: a holder that died holds nobody."""
+    f = _hold_file(cfg)
+    with contextlib.suppress(OSError):
+        if f.is_file():
+            _wait(lambda: not f.is_file() or not gpu_busy(cfg), limit_s, 1)
 
 
 def _active(unit: str) -> bool:
@@ -127,7 +178,7 @@ def paint(prompt: str, name: str, cfg: sys_config.Config | None = None, emit=Non
                 raise RuntimeError(f"GPU {gpu}: {free:.1f} GB free, {need} GB needed, and the reasoner may not be swapped")
             log.info("planned swap: stopping %s to paint on GPU %d (%.1f GB free, %.1f needed)", LLM_UNIT, gpu, free, need)
             ev("image.swap", {"stop": LLM_UNIT})
-            _unit("stop", LLM_UNIT)
+            reasoner_out(cfg)
             swapped = True
             if not _wait(lambda: free_gb(gpu) >= need, 90):
                 raise RuntimeError(f"GPU {gpu} still has {free_gb(gpu):.1f} GB free after stopping {LLM_UNIT}")
@@ -147,8 +198,7 @@ def paint(prompt: str, name: str, cfg: sys_config.Config | None = None, emit=Non
         target.write_bytes(data)
     finally:
         if swapped:
-            _unit("start", LLM_UNIT)
-            up = _wait(lambda: _llm_ok(cfg), cfg["AURORA_IMAGE_TIMEOUT_S"], 3)
+            up = reasoner_back(cfg, cfg["AURORA_IMAGE_TIMEOUT_S"])
             log.info("planned swap: %s started again (%s)", LLM_UNIT, "healthy" if up else "NOT healthy yet")
             ev("image.swap", {"start": LLM_UNIT, "healthy": up})
         lock.__exit__(None, None, None)
@@ -176,7 +226,7 @@ def paint_many(prompts: list[str], out_dir: Path, cfg: sys_config.Config | None 
                     raise RuntimeError(f"GPU {gpu}: {free_gb(gpu):.1f} GB free, {need} GB needed, and the reasoner may not be swapped")
                 log.info("planned swap: stopping %s to paint %d pictures", LLM_UNIT, len(prompts))
                 ev("image.swap", {"stop": LLM_UNIT})
-                _unit("stop", LLM_UNIT)
+                reasoner_out(cfg)
                 swapped = True
                 if not _wait(lambda: free_gb(gpu) >= need, 90):
                     raise RuntimeError(f"GPU {gpu} still has {free_gb(gpu):.1f} GB free after stopping {LLM_UNIT}")
@@ -198,8 +248,7 @@ def paint_many(prompts: list[str], out_dir: Path, cfg: sys_config.Config | None 
                         files.append(target)
         finally:
             if swapped:
-                _unit("start", LLM_UNIT)
-                up = _wait(lambda: _llm_ok(cfg), cfg["AURORA_IMAGE_TIMEOUT_S"], 3)
+                up = reasoner_back(cfg, cfg["AURORA_IMAGE_TIMEOUT_S"])
                 log.info("planned swap: %s started again (%s)", LLM_UNIT, "healthy" if up else "NOT healthy yet")
                 ev("image.swap", {"start": LLM_UNIT, "healthy": up})
     result = {"files": files, "seconds": round(time.time() - t0, 1), "swap": swapped, **stats}
@@ -250,7 +299,7 @@ def gpu_job(task: str, src: bytes, cfg: sys_config.Config | None = None, emit=No
                 raise RuntimeError(f"GPU {gpu}: {free_gb(gpu):.1f} GB free, {need_gb} GB needed, and the reasoner may not be swapped")
             log.info("planned swap for %s: stopping %s", task, LLM_UNIT)
             ev("image.swap", {"stop": LLM_UNIT, "task": task})
-            _unit("stop", LLM_UNIT)
+            reasoner_out(cfg)
             swapped = True
             if not _wait(lambda: free_gb(gpu) >= need_gb, 90):
                 raise RuntimeError(f"GPU {gpu} still has {free_gb(gpu):.1f} GB free after stopping {LLM_UNIT}")
@@ -267,8 +316,7 @@ def gpu_job(task: str, src: bytes, cfg: sys_config.Config | None = None, emit=No
             data = out.read_bytes()
     finally:
         if swapped:
-            _unit("start", LLM_UNIT)
-            up = _wait(lambda: _llm_ok(cfg), cfg["AURORA_IMAGE_TIMEOUT_S"], 3)
+            up = reasoner_back(cfg, cfg["AURORA_IMAGE_TIMEOUT_S"])
             log.info("planned swap: %s started again (%s)", LLM_UNIT, "healthy" if up else "NOT healthy yet")
             ev("image.swap", {"start": LLM_UNIT, "healthy": up})
         lock.__exit__(None, None, None)

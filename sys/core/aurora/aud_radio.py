@@ -75,6 +75,9 @@ GENRES = [
                    ("kids", "Per bambini")]),
 ]
 MIN_STATIONS = 3
+# The tags read for the counts: every tag with at least MIN_STATIONS stations must be among them, or a family's genre
+# reads 0 and is hidden (C488). By stations those were about 4,300 of 11,911 on 3 Nov.
+TAGS_READ = 5000
 # «more» keeps only the tags that name music (owner, 30 Oct: the other genres listed «tag che non sono generi» — towns,
 # languages, broadcasters, news, «fm», «aac»): a tag with a genre's root (GENRE_ROOTS, any language the directory
 # uses) or a decade, and none of the words of talk, places and broadcasting (NOT_MUSIC); measured on the directory's
@@ -155,7 +158,7 @@ def genres() -> dict:
     families as they are, without counts."""
     try:
         counts = {str(t.get("name", "")).lower(): int(t.get("stationcount") or 0)
-                  for t in _get("/json/tags?order=stationcount&reverse=true&hidebroken=true&limit=1500")}
+                  for t in _get(f"/json/tags?order=stationcount&reverse=true&hidebroken=true&limit={TAGS_READ}")}
     except RuntimeError:
         counts = {}
     fams, mine = [], set()

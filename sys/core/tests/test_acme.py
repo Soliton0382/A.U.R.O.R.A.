@@ -181,7 +181,8 @@ def https(cfg, tmp_path, monkeypatch):
     cfg.values.update(AURORA_DOMAIN="example.org", AURORA_DOMAIN_ALIASES="", AURORA_TLS_MODE="internal",
                       AURORA_ACME_ENABLED=True, AURORA_ACME_DOMAINS="example.org, *.example.org", AURORA_ACME_EMAIL="",
                       AURORA_ACME_DNS="cloudflare", AURORA_ACME_DNS_TOKEN="tok", AURORA_ACME_STAGING=False,
-                      AURORA_CERTS_COPY_DIR="", AURORA_CERTS_P12_PASSWORD="", AURORA_CERTS_P12_LEGACY=False)
+                      AURORA_CERTS_COPY_DIR="", AURORA_CERTS_P12_PASSWORD="", AURORA_CERTS_P12_LEGACY=False,
+                      AURORA_CERTS_COPY_NAMES="", AURORA_CERTS_P12=True)
     return cfg
 
 
@@ -325,3 +326,50 @@ def test_the_copy_waits_for_its_window_and_the_hourly_look_does_nothing_without_
     assert net_certs.copy_when(https, T(2026, 11, 7, 10), scheduled=True)["copied"] and len(done) == 2
     https.values["AURORA_CERTS_COPY_WINDOW"] = "sempre"
     assert "not a window" in net_certs.copy_when(https)["error"]
+
+
+def test_a_certificate_for_the_copy_alone_and_the_p12_only_if_asked(https, tmp_path, monkeypatch):
+    """Owner, 3 Nov: «un certificato solo per plex»: a share never holds the wildcard's key; the p12 by a tick."""
+    dns = FakeDns()
+    auth = Authority(dns.txt)
+    monkeypatch.setattr(net_dnsapi, "provider", lambda cfg, client=None: dns)
+    monkeypatch.setitem(net_acme.DIRECTORY, "production", D + "/dir")
+    client = httpx.Client(transport=httpx.MockTransport(auth))
+    seen = lambda n, v: True
+    https.values.update(AURORA_ACME_DOMAINS="*.example.org", AURORA_DOMAIN="www.example.org")
+    net_certs.renew(https, http=client, wait_seen=seen)
+    nas = tmp_path / "share"
+    nas.mkdir()
+    https.values.update(AURORA_CERTS_COPY_DIR=str(nas), AURORA_CERTS_P12_PASSWORD="plex", AURORA_CERTS_COPY_NAMES="media.example.org",
+                        AURORA_CERTS_P12=True)
+    assert net_certs.own_due(https) == "none yet"
+    out = net_certs.copy(https, http=client, wait_seen=seen)
+    assert out["copied"] and net_certs.own_due(https) is None
+    copied = net_https.describe((nas / "fullchain.pem").read_bytes())
+    assert copied["names"] == ["media.example.org"]                                 # not the wildcard
+    assert (nas / "privkey.pem").read_bytes() != (tmp_path / "cert" / "privkey.pem").read_bytes()
+    _, cert, _ = pkcs12.load_key_and_certificates((nas / "keyStore.p12").read_bytes(), b"plex")
+    assert cert.subject.rfc4514_string() == "CN=media.example.org"
+    assert net_certs.copy(https, http=client, wait_seen=seen)["copied"] is False    # the same: not written again
+    assert net_certs.status(https)["copy"]["own"]["names"] == ["media.example.org"]
+    (nas / "keyStore.p12").unlink()
+    https.values["AURORA_CERTS_P12"] = False
+    assert net_certs.copy(https, http=client, wait_seen=seen)["copied"] is False and not (nas / "keyStore.p12").exists()
+    https.values.update(AURORA_CERTS_COPY_NAMES="", AURORA_CERTS_P12=True)
+    assert net_https.describe((nas / "fullchain.pem").read_bytes())["names"] == ["media.example.org"]
+    net_certs.copy(https)
+    assert net_https.describe((nas / "fullchain.pem").read_bytes())["names"] == ["*.example.org"]   # none asked: her own
+
+
+def test_the_copy_s_own_certificate_refused_is_said_and_her_own_never_takes_its_place(https, tmp_path, monkeypatch):
+    def broken(cfg, client=None):
+        raise net_dnsapi.DnsError("no token")
+    monkeypatch.setattr(net_dnsapi, "provider", broken)
+    nas = tmp_path / "share2"
+    nas.mkdir()
+    https.values.update(AURORA_CERTS_COPY_DIR=str(nas), AURORA_CERTS_COPY_NAMES="media.example.org", AURORA_CERTS_P12=True)
+    monkeypatch.setattr(net_acme, "account_key", lambda d: None)
+    monkeypatch.setattr(net_acme.Client, "account", lambda self, e: None)
+    monkeypatch.setattr(net_acme.Client, "__init__", lambda self, *a: None)
+    out = net_certs.copy(https)
+    assert "no token" in out["error"] and list(nas.iterdir()) == []

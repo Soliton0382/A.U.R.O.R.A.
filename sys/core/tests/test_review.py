@@ -102,3 +102,14 @@ def test_hours_limit_and_pause(cfg):
     assert kno_review.paused(cfg)                                               # 12 in a row with nothing better
     kno_review._mark(cfg, "good", {"verdict": "NEW_INFO", "at": time.time()})
     assert not kno_review.paused(cfg) and kno_review.reviewed_today(cfg) == 1
+
+
+def test_between_two_answers_whoever_waits_goes_first(cfg):
+    """C487: the review holds the run lock; a person's question waited about 74 s behind a batch (M236)."""
+    turns = [turn("user", "Cos'è un laser?", "r1"), answer("r1"), turn("user", "Cos'è la fusione?", "r2"), answer("r2"),
+             turn("user", "Cos'è il plasma?", "r3"), answer("r3")]
+    new = SimpleNamespace(text="nuova [1]", abstained=False, mode="knowledge", sources=[{"sid": "s9", "title": "Nuovo"}],
+                          suggestions=[])
+    gave = []
+    kno_review.review(P(turns, new, verdict="SAME"), cfg, lambda *a: None, 3, between=lambda: gave.append(1))
+    assert len(gave) == 2                             # not before the first, not after the last

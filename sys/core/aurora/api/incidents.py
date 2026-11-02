@@ -72,11 +72,20 @@ async def sentinel_incident(request: Request) -> dict:
             return {"id": item["id"], "severity": item["severity"], "learnt": True}
     from aurora import sec_quiet
     quiet = sec_quiet.is_quiet(cfg, item)
+    from aurora import sec_autopilot
+    alone = sec_autopilot.on(cfg)                         # 🤖 security at 🚀: what she decides needs nobody
     if quiet:                                             # a pattern the owner quieted (sec_quiet): kept, low, not said
         item = Incidents(cfg).update(item["id"], severity="low", quiet=quiet)
+        if alone:
+            sec_autopilot.settle(item["id"], cfg, "quiet")
         return {"id": item["id"], "severity": "low", "quiet": quiet}
+    why = sec_autopilot.judged_false(item, Incidents(cfg).list()) if alone else None
+    if why:
+        sec_autopilot.settle(item["id"], cfg, why)
+        return {"id": item["id"], "severity": item["severity"], "settled": why}
+    blocks = alone and sec_defence.decide(cfg, item)[0]
     who = f"{name} ({item['source']})" if name else item["source"]
-    if not (name and item["severity"] == "low"):          # a known device's routine traffic: in the list, no alert
+    if not blocks and not (name and item["severity"] == "low"):   # a known device's routine traffic: listed, no alert
         note("sentinel", "incident", {"id": item["id"], "kind": item["kind"], "source": item["source"],
                                       "severity": item["severity"], "title": f"{item['kind']} · {who}"})
     defend(item)
@@ -92,7 +101,7 @@ async def sentinel_incident(request: Request) -> dict:
         threading.Thread(target=keep_out, name="hostfw", daemon=True).start()
     # a known device's routine needs no inquiry — but one of them reaching a threat feed's address does (M161: those
     # were never looked at, the device being known)
-    if cfg["AURORA_SENTINEL_INVESTIGATE"] and (not name or outbound):
+    if cfg["AURORA_SENTINEL_INVESTIGATE"] and (not name or outbound) and not blocks:
         def job(q, emit, run_id):
             from aurora.kno_answer import Answer
             from aurora.sec_incidents import investigate
@@ -150,6 +159,10 @@ def defend(item: dict) -> None:
         try:
             out = sec_defence.act(cfg, item)
             Incidents(cfg).update(item["id"], defence="blocked", blocked_until=out["until"])
+            from aurora import sec_autopilot
+            if sec_autopilot.on(cfg):                     # 🤖 said once a day with the others (digest)
+                sec_autopilot.settle(item["id"], cfg, "blocked")
+                return
             note("security", "defence.block", {"title": f"🛡️ {item['source']} bloccato da Aurora",
                                                "text": f"{item['kind']} · {item['severity']} · {cfg['AURORA_DEFENCE_HOURS']} h"})
         except sec_fwapi.FirewallAPIError as e:
@@ -277,6 +290,21 @@ def _quiet_alone(items: list[dict]) -> list[str]:
         log.info("audit: incidents «%s» quieted by Aurora (security 🚀)", x["pattern"])
         done.append(x["pattern"])
     return done
+
+
+@router.post("/v1/aurora/security/digest", dependencies=[Depends(admin_only)])
+def security_digest() -> dict:
+    """🤖 One line a day of what she decided at 🚀 (aurora-rem's daily round); those incidents then leave the page."""
+    from aurora import sec_autopilot
+    from aurora.sec_incidents import Incidents
+    if not sec_autopilot.on(cfg):
+        return {"off": True}
+    d = sec_autopilot.digest(cfg, Incidents(cfg).list())
+    if d:
+        for i in d["ids"]:
+            Incidents(cfg).update(i, archived=True, archived_at=time.time())
+        note("security", "autopilot.digest", {"title": "🤖 Sicurezza: il riepilogo", "text": sec_autopilot.said(d)})
+    return {"digest": d}
 
 
 @router.get("/v1/aurora/incidents/quiet", dependencies=[Depends(admin_only)])

@@ -182,6 +182,27 @@ async def project_new(request: Request) -> dict:
     return out
 
 
+@router.delete("/v1/aurora/projects/{name}", dependencies=[Depends(auth)])
+def project_delete(name: str) -> dict:
+    """🗑️ A project to the trash, with its conversation (owner, 3 Nov: «elimina pure quello che non serve più passando
+    dall'api»): taken back from the Files page until AURORA_TRASH_DAYS; never while its conductor works."""
+    from aurora import prj_act, prj_conduct, sys_trash, sys_users_layout as L
+    try:
+        folder = prj_conduct._project(cfg, name)
+    except (ValueError, KeyError):
+        raise HTTPException(status_code=404, detail="no such project") from None
+    if prj_act.working(cfg, name):
+        raise HTTPException(status_code=409, detail="its conductor is working: stop it first")
+    if not cfg["AURORA_TRASH_ENABLED"]:
+        raise HTTPException(status_code=409, detail="the trash is off: a project is never removed at once")
+    out = {"trash": sys_trash.discard(cfg, folder, "project", name)}
+    state = L.place(cfg, "state", cfg.user) / "projects" / name
+    if state.is_dir():
+        out["state"] = sys_trash.discard(cfg, state, "project-state", f"{name} (conversation)")
+    log.info("audit: project %s moved to the trash", name)
+    return out
+
+
 @router.post("/v1/aurora/projects/{name}/save", dependencies=[Depends(auth)])
 async def project_save(name: str, request: Request) -> dict:
     """💾 Every change of the project kept in its history (a local commit, never a push): the page's «Salva»."""

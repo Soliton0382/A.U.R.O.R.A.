@@ -103,7 +103,7 @@ def generate(prompt_en: str, cfg: sys_config.Config | None = None, emit=None, im
                                        "and the reasoner may not be swapped")
                 log.info("planned swap for a video: stopping %s", mdl_image.LLM_UNIT)
                 ev("image.swap", {"stop": mdl_image.LLM_UNIT, "task": "video"})
-                mdl_image._unit("stop", mdl_image.LLM_UNIT)
+                mdl_image.reasoner_out(cfg)
                 swapped = True
                 if not mdl_image._wait(lambda: mdl_image.free_gb(gpu) >= need, 90):
                     raise RuntimeError(f"GPU {gpu} still has {mdl_image.free_gb(gpu):.1f} GB free after stopping the reasoner")
@@ -126,8 +126,7 @@ def generate(prompt_en: str, cfg: sys_config.Config | None = None, emit=None, im
                 data = out.read_bytes()
         finally:
             if swapped:
-                mdl_image._unit("start", mdl_image.LLM_UNIT)
-                up = mdl_image._wait(lambda: mdl_image._llm_ok(cfg), cfg["AURORA_IMAGE_TIMEOUT_S"], 3)
+                up = mdl_image.reasoner_back(cfg, cfg["AURORA_IMAGE_TIMEOUT_S"])
                 log.info("planned swap: %s started again (%s)", mdl_image.LLM_UNIT, "healthy" if up else "NOT healthy yet")
                 ev("image.swap", {"start": mdl_image.LLM_UNIT, "healthy": up})
     stats.update(total_seconds=round(time.time() - t0, 1), swap=swapped, bytes=len(data))

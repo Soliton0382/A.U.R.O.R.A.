@@ -155,6 +155,7 @@ class Config:
     raw: dict[str, str] = field(default_factory=dict, repr=False)      # the effective values as written in an .env
     base: "Config | None" = field(default=None, repr=False, compare=False)   # the machine's, under a user's view
     user: str | None = None                                             # whose view (multi-user, U3)
+    locked: bool = False                                                # sealed secrets this process cannot open (N69)
 
     @property
     def root(self) -> Path:
@@ -206,15 +207,101 @@ def load(env_file: Path | None = None, schema_file: Path = SCHEMA_FILE, check_ro
     if problems:
         raise ConfigError(f"configuration problems in {env_file}:\n  " + "\n  ".join(problems))
     unknown = sorted(set(raw) - set(specs))
-    return Config(values=values, specs=specs, env_file=env_file, unknown_keys=unknown,
-                  raw={k: raw[k] for k in specs if k in raw})
+    cfg = Config(values=values, specs=specs, env_file=env_file, unknown_keys=unknown,
+                 raw={k: raw[k] for k in specs if k in raw})
+    open_secrets(cfg)
+    return cfg
+
+
+# 🔐 The secrets of an .env sealed with Aurora's key (N69, C463; owner, 3 Nov: «cifriamo le ultime cose»): each value one
+# line «aurseal1:…», opened here for her services only. Any other process (the owner's scripts, root's units, a plugin
+# with its own file) gets them empty: scripts reach the API with the maintenance key (loopback only), root keeps its
+# credentials file. Sealing is asked (POST /v1/aurora/settings/seal), and undone the same way.
+SEAL_PURPOSE = "settings"
+MAINTENANCE_KEY = Path.home() / ".config" / "aurora" / "maintenance.key"
+_opened: dict[str, str] = {}                          # a value opened once: the settings are read very often
+
+
+def _sealed(value: object) -> bool:
+    return isinstance(value, str) and value.startswith("aurseal1:")
+
+
+def open_value(cfg: Config, key: str, value: str) -> str | None:
+    """A sealed value in the clear; None when this process has no key."""
+    if value in _opened:
+        return _opened[value]
+    from . import sys_seal
+    try:
+        plain = sys_seal.open_text(cfg.base or cfg, value, key, None, SEAL_PURPOSE)
+    except Exception:                                 # noqa: BLE001 - no key here, or no library (root's Python)
+        return None
+    _opened[value] = plain
+    return plain
+
+
+def open_secrets(cfg: Config) -> None:
+    """Opens in place what is sealed in cfg.raw; what cannot be opened is empty, and cfg.locked says so."""
+    for key, value in list(cfg.raw.items()):
+        if not _sealed(value):
+            continue
+        plain = open_value(cfg, key, value)
+        if plain is None:
+            cfg.locked = True
+            plain = ""
+            if key == "AURORA_API_KEY" and MAINTENANCE_KEY.is_file():
+                try:
+                    plain = MAINTENANCE_KEY.read_text(encoding="ascii").strip()
+                except OSError:
+                    pass
+        cfg.raw[key] = plain
+        cfg.values[key] = plain                       # never converted again: a required secret may be empty here
+
+
+def _seal_one(cfg: Config, key: str, value: str) -> str:
+    from . import sys_seal
+    return sys_seal.seal_text(cfg.base or cfg, value, key, None, SEAL_PURPOSE)
+
+
+def seal_env(cfg: Config, env: Path, seal: bool = True) -> int:
+    """Every secret of an .env sealed (or opened back); the file's other lines as they are. How many changed."""
+    if not env.is_file():
+        return 0
+    raw = parse_env(env.read_text(encoding="utf-8"), str(env))
+    changes = {}
+    for key, value in raw.items():
+        if not cfg.specs.get(key, {}).get("secret") or not value:
+            continue
+        if seal and not _sealed(value):
+            changes[key] = _seal_one(cfg, key, value)
+        elif not seal and _sealed(value):
+            plain = open_value(cfg, key, value)
+            if plain is None:
+                raise RuntimeError("this process has no key: nothing opened")
+            changes[key] = plain
+    if changes:
+        write_env(env, changes, plain=True)
+    return len(changes)
+
+
+def _is_sealed_file(env: Path) -> bool:
+    try:
+        return any(_sealed(v) for v in parse_env(env.read_text(encoding="utf-8"), str(env)).values())
+    except (OSError, ConfigError):
+        return False
 
 
 _cached: Config | None = None
 
 
-def write_env(env: Path, changes: dict[str, str], drop: set[str] = frozenset()) -> None:
-    """Set `changes` and remove `drop` in an .env file, keeping its comments and order; atomic, mode 600."""
+def write_env(env: Path, changes: dict[str, str], drop: set[str] = frozenset(), plain: bool = False) -> None:
+    """Set `changes` and remove `drop` in an .env file, keeping its comments and order; atomic, mode 600. In a file
+    already sealed a new secret is sealed too (N69), unless `plain` (seal_env itself)."""
+    if not plain and changes and env.exists() and _is_sealed_file(env):
+        specs = {s["key"]: s for s in load_schema()["settings"]}
+        keys = [k for k, v in changes.items() if specs.get(k, {}).get("secret") and v and not _sealed(v)]
+        if keys:
+            cfg = get()
+            changes = {**changes, **{k: _seal_one(cfg, k, changes[k]) for k in keys}}
     lines = env.read_text(encoding="utf-8").splitlines() if env.exists() else []
     out, done = [], set()
     for line in lines:

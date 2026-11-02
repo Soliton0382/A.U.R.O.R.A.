@@ -136,3 +136,17 @@ def test_a_third_radio_closes_the_oldest_never_refused(monkeypatch):
             pass
         assert opened[2] not in A._streams["ada"]
     asyncio.run(three())
+
+
+def test_a_family_s_genre_past_the_first_tags_keeps_its_count(monkeypatch):
+    """C488: the counts read the first 1,500 tags, so a family's genre below them read 0 and was hidden."""
+    from aurora import aud_radio
+    past = [{"name": f"tag{i}", "stationcount": 12} for i in range(1500)]
+    every = past + [{"name": "goa", "stationcount": 9}]
+
+    def get(path):
+        n = int(path.rsplit("limit=", 1)[1])
+        return every[:n]
+    monkeypatch.setattr(aud_radio, "_get", get)
+    shown = {x["tag"]: x["stations"] for f in aud_radio.genres()["families"] for x in f["genres"]}
+    assert shown == {"goa": 9}

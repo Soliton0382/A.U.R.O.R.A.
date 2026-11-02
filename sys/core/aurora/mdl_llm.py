@@ -130,6 +130,7 @@ class LLM:
 
     def _chat(self, messages: list[dict], max_tokens: int, think: bool) -> Completion:
         from .mdl_router import as_text
+        self._ready()
         t0 = time.time()
         body = self._native(messages, max_tokens, think)
         r = httpx.post(self.url + "/v1/chat/completions", json=body, timeout=self.timeout)
@@ -156,6 +157,11 @@ class LLM:
         return Completion(answer.strip(), thought.strip(), int((d.get("usage") or {}).get("completion_tokens") or 0),
                           time.time() - t0, d["choices"][0].get("finish_reason") == "length")
 
+    def _ready(self) -> None:
+        """A picture has the reasoner out of the GPU: the call waits for it (C486)."""
+        from . import mdl_image                             # here: the client alone needs no image code
+        mdl_image.swap_wait(self.cfg, self.timeout)
+
     def health(self) -> bool:
         try:
             return httpx.get(self.url + "/health", timeout=3).json().get("status") == "ok"
@@ -178,6 +184,7 @@ class LLM:
         system = sys_config.personal(system, self.cfg)
         if self.fmt.template == "native":
             system = self.fmt.system(system, False)
+        self._ready()
         try:
             r = httpx.post(self.url + "/v1/chat/completions", timeout=self.timeout, json={
                 "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
@@ -201,6 +208,7 @@ class LLM:
 
         Goes through llama-server's chat endpoint, which applies the model's own template to the
         image; needs the vision projector (AURORA_LLM_MMPROJ) loaded."""
+        self._ready()
         t0 = time.time()
         uri = "data:image/jpeg;base64," + base64.b64encode(jpeg).decode("ascii")
         r = httpx.post(self.url + "/v1/chat/completions", timeout=self.timeout, json={
@@ -214,6 +222,7 @@ class LLM:
 
     def see_many(self, frames: list[tuple[str, bytes]], instruction: str, max_tokens: int = 1600) -> str:
         """Look at several images in order, each with its label (a video's frames with their time), in one call."""
+        self._ready()
         t0 = time.time()
         parts: list[dict] = [{"type": "text", "text": instruction}]
         for label, jpeg in frames:
@@ -230,6 +239,7 @@ class LLM:
     def complete(self, system: str, user: str, max_tokens: int, think: bool = False) -> Completion:
         if self.fmt.template == "native":
             return self._chat([{"role": "system", "content": system}, {"role": "user", "content": user}], max_tokens, think)
+        self._ready()
         t0 = time.time()
         r = httpx.post(self.url + "/completion", json=self._body(system, user, max_tokens, think, False),
                        timeout=self.timeout)
@@ -258,6 +268,7 @@ class LLM:
         """Like complete(), for a conversation of several turns (agents)."""
         if self.fmt.template == "native":
             return self._chat(messages, max_tokens, think)
+        self._ready()
         t0 = time.time()
         messages = [{**m, "content": sys_config.personal(m["content"], self.cfg)} if m["role"] == "system" else m for m in messages]
         body = {"prompt": chatml_turns(messages, think), "n_predict": max_tokens, "stream": False,
@@ -280,6 +291,7 @@ class LLM:
         body = self._native([{"role": "system", "content": system}, {"role": "user", "content": user}], max_tokens,
                             think, stream=True)
         self.last_speed = None
+        self._ready()
         with httpx.stream("POST", self.url + "/v1/chat/completions", json=body, timeout=self.timeout) as r:
             r.raise_for_status()
             for line in r.iter_lines():
@@ -295,6 +307,7 @@ class LLM:
         if self.fmt.template == "native":
             yield from self._stream_native(system, user, max_tokens, think)
             return
+        self._ready()
         phase = "thought" if think else "answer"
         pending = ""
         self.last_speed = None

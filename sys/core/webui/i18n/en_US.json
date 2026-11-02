@@ -3785,5 +3785,18 @@
   "phone.bad": "The phone did not understand this request.",
   "phone.open": "Open on the phone",
   "phone.app_only": "I can do this only from the Aurora app on the phone.",
-  "assist.title": "Assistance"
+  "assist.title": "Assistance",
+  "sec.settled_blocked": "Blocked and closed by Aurora. If she is wrong, say so with a verdict below.",
+  "sec.settled_quiet": "Closed by Aurora: an alert you quieted.",
+  "sec.settled_judged": "Closed by Aurora: your verdicts say this kind of alert is false. A 👍 below teaches her otherwise.",
+  "acme.copy_names": "A certificate for this copy alone (names)",
+  "acme.copy_names_hint": "empty = Aurora's own is copied · e.g. plex.example.org",
+  "acme.copy_own": "The copy's certificate: {n}, valid until {d}.",
+  "acme.copy_own_none": "Aurora asks for it at the next copy.",
+  "acme.copy_own_same": "Aurora's own certificate is copied: if it is a wildcard, whoever reads the folder has the key of every subdomain.",
+  "acme.copy_p12": "Also create keyStore.p12 (for a media server)",
+  "acme.copy_p12_pass": "keyStore.p12 password",
+  "acme.copy_p12_set": "set: write only to change it",
+  "acme.copy_p12_none": "none: write it here",
+  "acme.copy_p12_legacy": "Old encryption (3DES, SHA-1), for programs that refuse the modern one"
 }

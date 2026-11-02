@@ -2029,6 +2029,28 @@
    "services": []
   },
   {
+   "key": "AURORA_CERTS_COPY_NAMES",
+   "type": "str",
+   "optional": true,
+   "category": "https",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "The names of a certificate for the copy alone (e.g. the media server's plex.example.org): asked and renewed by Aurora through the DNS provider, and copied in place of her own, so a share never holds a wildcard's key. Empty = her own is copied.",
+   "it": "I nomi di un certificato solo per la copia (es. quello del media server, plex.example.org): richiesto e rinnovato da Aurora attraverso il provider DNS, e copiato al posto del suo, così una cartella condivisa non contiene mai la chiave di un jolly. Vuoto = si copia il suo.",
+   "services": []
+  },
+  {
+   "key": "AURORA_CERTS_P12",
+   "type": "bool",
+   "category": "https",
+   "recommended": "1",
+   "evidence": "owner",
+   "en": "Create keyStore.p12 in the copy, with AURORA_CERTS_P12_PASSWORD (the format a media server takes).",
+   "it": "Crea keyStore.p12 nella copia, con AURORA_CERTS_P12_PASSWORD (il formato di un media server).",
+   "services": [],
+   "optional": true
+  },
+  {
    "key": "AURORA_CERTS_P12_PASSWORD",
    "type": "str",
    "category": "https",

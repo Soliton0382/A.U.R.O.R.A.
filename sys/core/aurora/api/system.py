@@ -4,6 +4,9 @@
 from __future__ import annotations
 
 import asyncio
+import json
+import os
+
 import httpx
 
 from aurora import sys_config, sys_log
@@ -120,6 +123,52 @@ async def factory_mind(request: Request) -> dict:
     return {"started": True}
 
 
+@router.post("/v1/aurora/settings/seal", dependencies=[Depends(admin_only)])
+def settings_seal(body: dict) -> dict:
+    """🔐 {"on": true}: the secrets of the machine's .env and of each user's sealed with Aurora's key (N69); false: back
+    in the clear. From a service only: no other process has the key."""
+    from aurora import sys_users_layout as L
+    from aurora.sys_config import seal_env
+    on = body.get("on") is not False
+    base = cfg.base or cfg
+    n = seal_env(base, sys_config.env_file_path(), on)
+    for d in L.usr(base).iterdir():
+        n += seal_env(base, d / ".env", on)
+    log.info("audit: %d secrets %s", n, "sealed" if on else "back in the clear")
+    return {"changed": n, "sealed": on}
+
+
+@router.post("/v1/aurora/maintenance-key", dependencies=[Depends(admin_only)])
+def maintenance_key() -> dict:
+    """🔧 A new key for the owner's scripts, said once; its hash kept; from this machine only (N69)."""
+    import hashlib
+    import secrets
+    from .core import _maintenance_file
+    token = secrets.token_urlsafe(32)
+    f = _maintenance_file()
+    f.parent.mkdir(parents=True, exist_ok=True)
+    tmp = f.with_suffix(".tmp")
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="ascii") as h:
+        h.write(hashlib.sha256(token.encode()).hexdigest())
+    os.replace(tmp, f)
+    log.info("audit: a new maintenance key")
+    return {"key": token}
+
+
+def _hand_to_root(changes: dict) -> None:
+    """The NAS's passwords, sealed in the .env, reach root's mount once (sys_nas_mount): a file of the service, read and
+    removed by root at once. Root's unit has no key of Aurora's and no need of one (N69)."""
+    mine = {k: str(v) for k, v in changes.items() if k in ("AURORA_NAS_PASSWORD", "AURORA_CERTS_NAS_PASSWORD") and v}
+    if not mine:
+        return
+    d = cfg.path("AURORA_STATUS_DIR") / "backup"
+    d.mkdir(parents=True, exist_ok=True)
+    fd = os.open(d / "nas_pass.json", os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as h:
+        json.dump(mine, h)
+
+
 @router.put("/v1/aurora/settings", dependencies=[Depends(auth)])
 async def update_settings(request: Request) -> dict:
     changes: dict = await request.json()
@@ -185,6 +234,7 @@ async def update_settings(request: Request) -> dict:
     else:
         machine = {k: str(v) for k, v in changes.items()}
     if machine:
+        _hand_to_root(machine)
         sys_config.write_env(sys_config.env_file_path(), machine)
     restart = sorted({svc for k in changes for svc in specs[k]["services"]})
     log.info("audit: settings changed: %s; services to restart: %s", ", ".join(sorted(changes)), ", ".join(restart))

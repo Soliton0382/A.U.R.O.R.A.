@@ -45,7 +45,7 @@ export function preRoll(stream) {
 }
 
 // the recorder of this device's microphone, bound to the chat's button and composer (heard: the transcription)
-export function makeRecorder({ mic, input, heard, canRecord }) {
+export function makeRecorder({ mic, input, heard, canRecord, conversing = () => false }) {
   // this device's microphone: tap to start; it stops by itself when the owner stops speaking (vad.js), or with a tap
   // (at most MAX s); WebM/Opus on Android, MP4/AAC on iOS. Nothing said in 8 s: nothing sent, heard({nothing: true})
   const MAX = 30, PART = 1500;
@@ -85,7 +85,7 @@ export function makeRecorder({ mic, input, heard, canRecord }) {
       busy = true;
       try {
         const data = await toBase64(new Blob(chunks, { type: type || "audio/webm" }));
-        const r = await call("/v1/aurora/senses/transcribe", { method: "POST", body: JSON.stringify({ data, mime: type, partial: true }) });
+        const r = await call("/v1/aurora/senses/transcribe", { method: "POST", body: JSON.stringify({ data, mime: type, partial: true, conversation: conversing() }) });
         if (live && r.clear && r.text) input.placeholder = `🎙️ ${r.text}`;
       } catch { /* a partial that fails says nothing: the final transcript is the one that counts */ }
       busy = false;

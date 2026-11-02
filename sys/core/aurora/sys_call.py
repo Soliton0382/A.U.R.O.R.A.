@@ -90,11 +90,13 @@ def decline(call_id: str, cfg: sys_config.Config) -> bool:
 class Segmenter:
     """20 ms frames in, a whole sentence out when it ends. The floor is learnt from the quietest frames (the line's own
     noise, after the phone's echo canceller), as the WebUI's vad.js does: speech is a few frames well above it."""
-    START, END_S, MAX_S, MIN_S = 3, 0.8, 20.0, 0.4
+    START, END_S, MAX_S, MIN_S, PAUSE_S = 3, 0.8, 20.0, 0.4, 0.3
 
     def __init__(self) -> None:
         self.buf, self.voiced, self.quiet, self.floor = bytearray(), 0, 0, None
         self.active, self.frames = False, []
+        self.end_s = self.END_S                       # shorter once its answer is ready (sys_call_ahead)
+        self.maybe = None                             # the voice so far, at the first quiet: it may be over (the guess)
 
     def rms(self, frame: bytes) -> float:
         x = np.frombuffer(frame, dtype="<i2").astype(np.float32)
@@ -116,12 +118,17 @@ class Segmenter:
                     self.active, self.quiet = True, 0
                 continue
             self.frames.append(frame)
+            if loud:
+                self.end_s = self.END_S               # the owner goes on: a sentence not over after all
             self.quiet = 0 if loud else self.quiet + 1
             seconds = len(self.frames) * FRAME / RATE
-            if self.quiet * FRAME / RATE >= self.END_S or seconds >= self.MAX_S:
-                if seconds - self.quiet * FRAME / RATE >= self.MIN_S:
+            spoken = seconds - self.quiet * FRAME / RATE
+            if self.quiet == round(self.PAUSE_S * RATE / FRAME) and spoken >= self.MIN_S:
+                self.maybe = np.frombuffer(b"".join(self.frames), dtype="<i2").astype(np.float32) / 32768
+            if self.quiet * FRAME / RATE >= self.end_s or seconds >= self.MAX_S:
+                if spoken >= self.MIN_S:
                     done.append(np.frombuffer(b"".join(self.frames), dtype="<i2").astype(np.float32) / 32768)
-                self.active, self.voiced, self.frames = False, 0, []
+                self.active, self.voiced, self.frames, self.end_s = False, 0, [], self.END_S
         return done
 
 
@@ -165,13 +172,14 @@ PHONE_SAID = {"ok": "Fatto.", "no_app": "Sul telefono non c'è un'app per farlo.
               "need_contacts": "Consenti l'accesso ai contatti e chiedimelo di nuovo."}
 
 
-async def phone_now(ws, voice, text: str, lang: str, turn: int, log, model=None) -> bool:
+async def phone_now(ws, voice, text: str, lang: str, turn: int, log, model=None, guess=None) -> bool:
     """A command for the phone sent to the app at once: a plain one read by the patterns (agt_phone.quick), any other
-    by the local reasoner in one short answer (agt_phone.understand); said done, or why not. False when it is not one,
-    or the app did not answer (a version without phone actions): then Aurora answers as before."""
+    by the local reasoner in one short answer (agt_phone.understand); `guess`: already read while the owner paused
+    (sys_call_ahead); said done, or why not. False when it is not one, or the app did not answer (a version without
+    phone actions): then Aurora answers as before."""
     from . import agt_phone
-    act = agt_phone.quick(text)
-    if not act and model is not None:
+    act = guess.act if guess is not None and guess.done else agt_phone.quick(text)
+    if not act and model is not None and not (guess is not None and guess.done):
         act = await asyncio.to_thread(agt_phone.understand, model, text)
     if not act:
         return False

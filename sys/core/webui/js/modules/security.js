@@ -169,6 +169,7 @@ export function page(tab, meta) { const { title } = meta; return {
       });
       c.append(deny);
     }
+    if (i.settled) c.append(el("p", "muted", `🤖 ${t(i.settled === "blocked" ? "sec.settled_blocked" : i.settled === "quiet" ? "sec.settled_quiet" : "sec.settled_judged")}`));   // security at 🚀 (sec_autopilot)
     c.append(this.verdict(i));                       // the owner's judgement: the scorecard counts it (roadmap 81)
     if (i.status === "open") {
       const b = el("button", "sec-close", `✔ ${t("sec.close")}`);

@@ -11,7 +11,7 @@ import { el } from "../dom.js";
 import { lang, t } from "../i18n.js";
 import { settingsForm } from "./settings_form.js";
 
-const MORE = ["AURORA_ACME_EMAIL", "AURORA_CERTS_P12_PASSWORD", "AURORA_CERTS_P12_LEGACY"];
+const MORE = ["AURORA_ACME_EMAIL"];
 const when = (x) => (x ? new Date(typeof x === "number" ? x * 1000 : x).toLocaleString(lang.replace("_", "-"),
   { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—");
 const day = (x) => (x ? new Date(x).toLocaleDateString(lang.replace("_", "-"), { day: "numeric", month: "long", year: "numeric" }) : "—");
@@ -193,6 +193,36 @@ async function copyFolder(s, refresh, say) {
   };
   net.addEventListener("change", show);
   show();
+  // 🎯 a certificate of the copy's own, and 🔑 the p12 with its password (owner, 3 Nov)
+  const names = el("input");
+  names.value = (s.copy.names || []).join(", ");
+  names.placeholder = t("acme.copy_names_hint");
+  const namesRow = el("label", "plug-field");
+  namesRow.append(el("span", "", `🎯 ${t("acme.copy_names")}`), names);
+  const own = s.copy.own;
+  const ownLine = el("p", "muted", s.copy.own_error ? `❌ ${s.copy.own_error}`
+    : own ? t("acme.copy_own", { n: own.names.join(", "), d: day(own.not_after) }) : t(s.copy.names?.length ? "acme.copy_own_none" : "acme.copy_own_same"));
+  const p12 = el("input");
+  p12.type = "checkbox";
+  p12.checked = s.copy.p12 !== false;
+  const p12Row = el("label", "plug-field plug-check");
+  p12Row.append(p12, el("span", "", `🔑 ${t("acme.copy_p12")}`));
+  const p12Pass = el("input");
+  p12Pass.type = "password";
+  p12Pass.autocomplete = "new-password";
+  p12Pass.placeholder = t(s.copy.p12_password ? "acme.copy_p12_set" : "acme.copy_p12_none");
+  const legacy = el("input");
+  legacy.type = "checkbox";
+  legacy.checked = !!s.copy.legacy;
+  const p12Auth = el("div", "acme-copy-auth");
+  const pr = el("label", "plug-field");
+  pr.append(el("span", "", t("acme.copy_p12_pass")), p12Pass);
+  const lr = el("label", "plug-field plug-check");
+  lr.append(legacy, el("span", "", t("acme.copy_p12_legacy")));
+  p12Auth.append(pr, lr);
+  const showP12 = () => { p12Auth.hidden = !p12.checked; };
+  p12.addEventListener("change", showP12);
+  showP12();
   // 🗓️ when the copy may run (a NAS asleep at night): empty = right after the renewal; Aurora says how many hours of
   // the window fall between the renewal and the certificate's end
   const win = el("input");
@@ -210,13 +240,15 @@ async function copyFolder(s, refresh, say) {
     if (net.checked && d && !d.startsWith("smb://")) { say(t("acme.copy_need_smb")); return; }
     if (!net.checked && d.startsWith("smb://")) { say(t("acme.copy_need_local")); return; }
     try {
-      await save({ AURORA_CERTS_COPY_DIR: d, AURORA_CERTS_COPY_WINDOW: win.value.trim(), ...(net.checked ? { AURORA_CERTS_NAS_USER: user.value.trim() } : {}),
+      await save({ AURORA_CERTS_COPY_DIR: d, AURORA_CERTS_COPY_WINDOW: win.value.trim(), AURORA_CERTS_COPY_NAMES: names.value.trim(),
+        AURORA_CERTS_P12: p12.checked ? "1" : "0", AURORA_CERTS_P12_LEGACY: legacy.checked ? "1" : "0",
+        ...(p12Pass.value ? { AURORA_CERTS_P12_PASSWORD: p12Pass.value } : {}), ...(net.checked ? { AURORA_CERTS_NAS_USER: user.value.trim() } : {}),
         ...(net.checked && pass.value ? { AURORA_CERTS_NAS_PASSWORD: pass.value } : {}) });
       say(t("acme.copy_saved"));
     } catch (e) { say(t("ev.error", { m: e.message })); return; }
     await refresh();
   });
-  wrap.append(tick, where, auth, winRow, advice, go);
+  wrap.append(tick, where, auth, namesRow, ownLine, p12Row, p12Auth, winRow, advice, go);
   return wrap;
 }
 

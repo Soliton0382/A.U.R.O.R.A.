@@ -1,5 +1,11 @@
 # Aurora's Android app — changelog
 
+## 0.5.3 - 2026-11-03
+
+- A WhatsApp message goes to the number WhatsApp has linked to the contact, not to the contact's first number (owner:
+  «ha cercato di scriverlo ad un numero che non era su whatsapp»). A call or an SMS by a name: the exact name first,
+  then the default number, then the mobile one.
+
 ## 0.5.2 - 2026-11-02
 
 - The assistant has its own screen (owner: «se apro l'assistente si vede il full screen dell'assistente»): the long
