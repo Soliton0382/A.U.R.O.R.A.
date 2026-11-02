@@ -255,3 +255,73 @@ def test_by_hand_the_daily_look_prepares_the_records_and_waits(https, monkeypatc
     assert again["waiting"]["records"] == out["waiting"]["records"]
     net_certs.cancel(https)
     assert net_certs.pending(https) is None
+
+
+def test_a_wildcard_s_request_names_only_what_the_order_has():
+    """C485: «*.example.org» alone was asked with «example.org» as its common name; the authority refused the
+    request (CSR does not specify same identifiers as Order)."""
+    from aurora import net_acme
+    _, der = net_acme.new_key_and_csr(["*.example.org"])
+    csr = x509.load_der_x509_csr(der)
+    cn = [a.value for a in csr.subject.get_attributes_for_oid(NameOID.COMMON_NAME)]
+    sans = csr.extensions.get_extension_for_class(x509.SubjectAlternativeName).value.get_values_for_type(x509.DNSName)
+    assert sans == ["*.example.org"] and set(cn) <= set(sans) and cn == ["*.example.org"]
+
+
+def test_a_nas_copy_folder_is_mounted_by_aurora_mount_and_its_failures_said(https, tmp_path, monkeypatch):
+    """AURORA_CERTS_COPY_DIR as smb://…: the files go to its folder under /mnt/aurora-certs, mounted by aurora-mount
+    when it is not yet; a NAS asleep or a mount refused is said, never a wait."""
+    import subprocess
+    from aurora import sys_backup
+    (tmp_path / "cert").mkdir()
+    (tmp_path / "cert" / "fullchain.pem").write_bytes(b"-----BEGIN CERTIFICATE-----\nA\n-----END CERTIFICATE-----\n")
+    (tmp_path / "cert" / "privkey.pem").write_bytes(b"k")
+    mnt = tmp_path / "mnt"
+    monkeypatch.setattr(net_certs, "CERTS_MOUNT", mnt)
+    monkeypatch.setattr(net_certs, "_p12", lambda *a: b"p12")
+    https.values["AURORA_CERTS_COPY_DIR"] = "smb://192.168.1.20/Media/Library/certificate/"
+    monkeypatch.setattr(sys_backup, "nas_reachable", lambda url: False)
+    assert "does not answer" in net_certs.copy(https)["error"]
+    monkeypatch.setattr(sys_backup, "nas_reachable", lambda url: True)
+    started, up = [], {"on": False}
+    monkeypatch.setattr(sys_backup, "mounted", lambda m: up["on"])
+    monkeypatch.setattr(subprocess, "run", lambda cmd, **k: started.append(cmd) or subprocess.CompletedProcess(cmd, 1, "", "refused"))
+    assert "AURORA_CERTS_NAS_USER" in net_certs.copy(https)["error"] and started[0][-1] == "aurora-mount.service"
+    up["on"] = True
+    (mnt / "Library" / "certificate").mkdir(parents=True)
+    out = net_certs.copy(https)
+    assert out["copied"] and out["to"] == str(mnt / "Library" / "certificate") and len(started) == 1
+    assert (mnt / "Library" / "certificate" / "keyStore.p12").read_bytes() == b"p12"
+
+
+def test_the_copy_window_days_and_hours_and_the_tries_it_leaves():
+    """Owner, 3 Nov: the copy right after the renewal by default, or inside a window (a NAS asleep at night)."""
+    from datetime import datetime as T
+    W = net_certs.window
+    assert W("") is None and W("10-20") == (set(range(7)), 10, 20)
+    assert W("sab,dom 9-12") == ({5, 6}, 9, 12) and W("lun-ven 18-23")[0] == {0, 1, 2, 3, 4}
+    assert W("Sat,Sun 9-12")[0] == {5, 6} and W("ven-lun 8-9")[0] == {4, 5, 6, 0}
+    for bad in ("sempre", "25-3", "10-10", "xyz 9-12"):
+        with pytest.raises(ValueError):
+            W(bad)
+    sat, mon = T(2026, 11, 7, 10), T(2026, 11, 9, 10)
+    assert net_certs.in_window(W("sab,dom 9-12"), sat) and not net_certs.in_window(W("sab,dom 9-12"), mon)
+    night = W("ven 22-6")                                                 # across midnight: Friday's night
+    assert net_certs.in_window(night, T(2026, 11, 6, 23)) and net_certs.in_window(night, T(2026, 11, 7, 3))
+    assert not net_certs.in_window(night, T(2026, 11, 7, 23))
+    assert net_certs.chances("10-12", T(2026, 1, 1, 0), T(2026, 1, 3, 0)) == 4
+    assert net_certs.chances("", sat, mon) is None and net_certs.chances("boh", sat, mon) is None
+
+
+def test_the_copy_waits_for_its_window_and_the_hourly_look_does_nothing_without_one(https, monkeypatch):
+    from datetime import datetime as T
+    done = []
+    monkeypatch.setattr(net_certs, "copy", lambda cfg: done.append(1) or {"copied": True})
+    https.values.update(AURORA_CERTS_COPY_DIR="/x", AURORA_CERTS_COPY_WINDOW="")
+    assert net_certs.copy_when(https)["copied"] and len(done) == 1                       # no window: at once
+    assert net_certs.copy_when(https, scheduled=True) == {"copied": False, "skipped": True} and len(done) == 1
+    https.values["AURORA_CERTS_COPY_WINDOW"] = "sab,dom 9-12"
+    assert net_certs.copy_when(https, T(2026, 11, 9, 10))["outside"] == "sab,dom 9-12" and len(done) == 1
+    assert net_certs.copy_when(https, T(2026, 11, 7, 10), scheduled=True)["copied"] and len(done) == 2
+    https.values["AURORA_CERTS_COPY_WINDOW"] = "sempre"
+    assert "not a window" in net_certs.copy_when(https)["error"]

@@ -21,6 +21,8 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import org.json.JSONObject;
+
 import java.net.HttpURLConnection;
 import java.net.URL;
 
@@ -78,7 +80,7 @@ public class CallActivity extends Activity implements CallAudio.Events {
     @Override
     protected void onNewIntent(Intent i) {
         super.onNewIntent(i);
-        if (ANSWER.equals(i.getAction()) && audio == null && id.equals(i.getStringExtra(ID))) answer();
+        if (ANSWER.equals(i.getAction()) && audio == null && id.equals(i.getStringExtra(ID))) { setIntent(i); answer(); }
     }
 
     private int dp(int v) { return (int) (v * getResources().getDisplayMetrics().density); }
@@ -122,7 +124,7 @@ public class CallActivity extends Activity implements CallAudio.Events {
         mute.setAlpha(0.6f);
         Button spk = round(getString(R.string.call_speaker), 0xFF3A4260, null);
         spk.setOnClickListener(v -> { loud = !loud; audio.speaker(loud); spk.setAlpha(loud ? 1f : 0.6f); });
-        spk.setAlpha(0.6f);
+        spk.setAlpha(loud ? 1f : 0.6f);
         buttons.addView(mute);
         buttons.addView(round(getString(R.string.call_hangup), 0xFFE5484D, v -> audio.hangup()));
         buttons.addView(spk);
@@ -199,6 +201,17 @@ public class CallActivity extends Activity implements CallAudio.Events {
     @Override
     public void line(String who, String text) {
         runOnUiThread(() -> ("heard".equals(who) ? heard : said).setText(("heard".equals(who) ? "🗣️ " : "✨ ") + text));
+    }
+
+    // N68: an action Aurora was asked for, done by the phone's own app; its result goes back to her, who says it
+    @Override
+    public void phone(JSONObject action) {
+        runOnUiThread(() -> {
+            String r = PhoneActions.run(this, action);
+            CallAudio a = audio;
+            if (a == null) return;
+            a.phoneResult(action.optString("id"), r);
+        });
     }
 
     @Override

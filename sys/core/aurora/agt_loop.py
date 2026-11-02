@@ -22,7 +22,7 @@ import time
 
 import httpx
 
-from . import mdl_fit, sns_clock, sys_config, sys_log, sys_people
+from . import agt_phone, mdl_fit, sns_clock, sys_config, sys_log, sys_people
 from .kno_answer import Answer, Trail
 from .agt_loop_make import AgentMakers
 from . import agt_tools
@@ -111,6 +111,7 @@ LOOP_TOOLS = [
          "project": {"type": "string", "description": "the project's name"},
          "command": {"type": "string", "description": "a shell command run in the project's folder"}},
          "required": ["project", "command"]}},
+    agt_phone.TOOL,                                          # 📱 the owner's phone (N68)
     {"name": "finish", "description": "End the work with a report in Italian for the owner.",
      "input_schema": {"type": "object", "properties": {"summary": {"type": "string"}}, "required": ["summary"]}},
 ]
@@ -282,6 +283,15 @@ class Agent(AgentMakers, AgentReport):
             return out
         if name == "create_artifact":
             return self._artifact(args, emit, run_id)
+        if name == "phone_action":                           # 📱 done by the app on the owner's phone (agt_phone)
+            if not self.asked:
+                return "ERROR: the phone acts only when the owner asks for it in the conversation"
+            act = agt_phone.prepare(args)
+            if isinstance(act, str):
+                return act
+            emit("phone.action", act)
+            return (f"SENT to the owner's phone: {agt_phone.said(act)}. The Aurora app does it now (in a browser the "
+                    "owner gets a button); a call or a message waits for the owner's tap.")
         if name == "create_picture":
             return self._picture(args, emit, run_id)
         if name == "people_cards":                           # 🪪 who the people are (sys_people): the core reads it

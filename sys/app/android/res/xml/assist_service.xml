@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Aurora as the phone's digital assistant (N68): a session opens the chat hands-free; no hotword. -->
+<voice-interaction-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:sessionService="org.aurora.app.AssistSessionService"
+    android:recognitionService="org.aurora.app.AssistRecognition"
+    android:supportsAssist="true" />

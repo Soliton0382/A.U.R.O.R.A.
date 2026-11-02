@@ -8,7 +8,9 @@ Whisper, answered by the same path as the chat, said by Aurora's voice and sent 
 answered within RING_S, or declined: a notification with the reason, so nothing is lost."""
 from __future__ import annotations
 
+import asyncio
 import io
+import json
 import re
 import secrets
 import threading
@@ -43,10 +45,12 @@ def ring(reason: str, cfg: sys_config.Config, user: str | None) -> dict:
     return dict(call)
 
 
-def dial(user: str | None) -> dict:
+def dial(user: str | None, assistant: bool = False) -> dict:
     """The owner calls Aurora (owner, 26 Oct: «un tasto cornetta da qualche parte per chiamare aurora»): the app opens
-    the call screen at once, nothing rings anywhere; a call never opened is forgotten with the others (KEEP_S)."""
-    call = {"id": secrets.token_hex(8), "user": user, "reason": "", "state": "dialing", "by": "owner", "at": time.time()}
+    the call screen at once, nothing rings anywhere; a call never opened is forgotten with the others (KEEP_S).
+    `assistant`: the phone's assistant (N68), which listens at once with no greeting: its screen shows it is there."""
+    call = {"id": secrets.token_hex(8), "user": user, "reason": "", "state": "dialing", "by": "owner", "at": time.time(),
+            "assistant": bool(assistant)}
     with _lock:
         for k in [k for k, c in calls.items() if time.time() - c["at"] > KEEP_S]:
             del calls[k]
@@ -155,3 +159,61 @@ def pcm16k(wav_bytes: bytes) -> bytes:
         n = int(round(x.size * RATE / rate))
         x = np.interp(np.linspace(0, x.size - 1, n), np.arange(x.size), x)
     return np.clip(x, -32768, 32767).astype("<i2").tobytes()
+
+
+PHONE_SAID = {"ok": "Fatto.", "no_app": "Sul telefono non c'è un'app per farlo.", "no_contact": "Non trovo quel contatto.",
+              "need_contacts": "Consenti l'accesso ai contatti e chiedimelo di nuovo."}
+
+
+async def phone_now(ws, voice, text: str, lang: str, turn: int, log, model=None) -> bool:
+    """A command for the phone sent to the app at once: a plain one read by the patterns (agt_phone.quick), any other
+    by the local reasoner in one short answer (agt_phone.understand); said done, or why not. False when it is not one,
+    or the app did not answer (a version without phone actions): then Aurora answers as before."""
+    from . import agt_phone
+    act = agt_phone.quick(text)
+    if not act and model is not None:
+        act = await asyncio.to_thread(agt_phone.understand, model, text)
+    if not act:
+        return False
+    fut = asyncio.get_running_loop().create_future()
+    voice.phone[act["id"]] = fut
+    await ws.send_text(json.dumps({"type": "phone", "action": act}))
+    try:
+        result = await asyncio.wait_for(fut, 3)
+    except asyncio.TimeoutError:
+        voice.phone.pop(act["id"], None)
+        return False
+    said = PHONE_SAID.get(result) or ("Non ci sono riuscita." if lang == "it" else "I could not do it.")
+    log.info("call: phone %s → %s", act["action"], result)
+    await ws.send_text(json.dumps({"type": "said", "text": f"{agt_phone.said(act)} — {said}"}))
+    await voice.say(said if lang == "it" else ("Done." if result == "ok" else said), turn)
+    return True
+
+
+# 🗣️ What is said aloud of a long answer (owner, 2 Nov: «evitare che l'assistente mi dica il resoconto delle attività
+# svolte se no il feedback vocale diventa lungo e inutile»): the agent's answer is written for the chat — its steps, its
+# timings, its sources. Said in a call, only what the person needs, rewritten by the local reasoner: 0.29–0.54 s on the
+# reference machine (M273). The whole text stays written in the conversation.
+SHORT = 220                                           # a short answer is said as it is
+SPOKEN = """You turn an assistant's written answer into what she says aloud on the phone, in the answer's language.
+One or two short spoken sentences: the result or the answer the person needs, nothing else.
+Leave out: statistics, timings, sources, tool names, the steps that were done, lists, markdown, emoji, links, offers \
+of more help.
+Keep any number, time or name the person actually asked for."""
+
+
+def spoken(model, text: str) -> str:
+    """The answer as said in a call: as it is when short and plain, else its spoken gist; the reasoner off: its first
+    two sentences."""
+    parts = sentences(text)
+    plain = len(parts) <= 2 and not re.search(r"^\s*([-*•]|\d+[.)])\s|\*\*|#", str(text), re.M)
+    if plain and len(" ".join(parts)) <= SHORT:
+        return " ".join(parts)
+    if model is not None:
+        try:
+            out = model.complete(SPOKEN, str(text)[:4000], 90).answer.strip()
+            if out:
+                return " ".join(sentences(out))
+        except Exception:                             # noqa: BLE001 - the reasoner off or failing: the first sentences
+            pass
+    return " ".join(parts[:2])

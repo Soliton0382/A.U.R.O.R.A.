@@ -67,10 +67,12 @@ def challenge_value(token: str, key: ec.EllipticCurvePrivateKey) -> str:
 
 
 def new_key_and_csr(names: list[str]) -> tuple[bytes, bytes]:
-    """(the certificate's private key in PEM, the CSR in DER) for `names`, the first as the common name."""
+    """(the certificate's private key in PEM, the CSR in DER) for `names`, the first as the common name — as it is: a
+    wildcard's «*.» taken off made a name the order does not have, and the authority refused it (C485)."""
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    subject = [x509.NameAttribute(NameOID.COMMON_NAME, names[0])] if len(names[0]) <= 64 else []   # X.509's limit
     csr = (x509.CertificateSigningRequestBuilder()
-           .subject_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, names[0].lstrip("*."))]))
+           .subject_name(x509.Name(subject))
            .add_extension(x509.SubjectAlternativeName([x509.DNSName(n) for n in names]), critical=False)
            .sign(key, hashes.SHA256()))
     pem = key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.TraditionalOpenSSL,

@@ -15,6 +15,8 @@ from __future__ import annotations
 
 import json
 import os
+import re
+import subprocess
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -97,11 +99,11 @@ def renew(cfg: sys_config.Config, force: bool = False, http=None, wait_seen=None
         raise CertError("the automatic certificate is off (AURORA_ACME_ENABLED)")
     why = "asked by the admin" if force else why_due(cfg)
     if not why:
-        copied = copy(cfg)
-        return {"renewed": False, "why": None, "copied": copied}
+        return {"renewed": False, "why": None, "copied": copy_when(cfg)}
     if manual(cfg):                                   # by hand: the records shown, the admin adds them and verifies
         st = pending(cfg)
-        return {"renewed": False, "why": why, "waiting": _public(st) if st else start(cfg, http), "copied": copy(cfg)}
+        return {"renewed": False, "why": why, "waiting": _public(st) if st else start(cfg, http),
+                "copied": copy_when(cfg)}
     names = wanted(cfg)
     if not names:
         raise CertError("no public name to certify: set AURORA_ACME_DOMAINS or the HTTPS names")
@@ -124,7 +126,7 @@ def renew(cfg: sys_config.Config, force: bool = False, http=None, wait_seen=None
               not_after=info["not_after"])
     _log().info("audit: certificate renewed by ACME (%s): %s, until %s%s", why, ", ".join(names), info["not_after"][:10],
              " (test service)" if staging else "")
-    return {"renewed": True, "why": why, "certificate": info, "copied": copy(cfg)}
+    return {"renewed": True, "why": why, "certificate": info, "copied": copy_when(cfg)}
 
 
 # ---- the guided way: start, see, verify (owner, 1 Nov: «metto il dominio, faccio partire, dà il token da aggiungere,
@@ -239,7 +241,7 @@ def verify(cfg: sys_config.Config, http=None) -> dict:
               not_after=info["not_after"])
     _log().info("audit: certificate issued by ACME: %s, until %s%s", ", ".join(st["names"]), info["not_after"][:10],
                 " (test service)" if st["staging"] else "")
-    return {"renewed": True, "certificate": info, "copied": copy(cfg)}
+    return {"renewed": True, "certificate": info, "copied": copy_when(cfg)}
 
 
 def _drop(cfg: sys_config.Config, st: dict) -> None:
@@ -285,15 +287,105 @@ def _split(chain: bytes) -> tuple[bytes, bytes]:
     return chain[:i].strip() + b"\n", chain[i:].strip() + (b"\n" if chain[i:].strip() else b"")
 
 
+CERTS_MOUNT = Path("/mnt/aurora-certs")               # where aurora-mount puts an smb:// copy folder (sys_nas_mount)
+
+
+def _sub(url: str) -> str:
+    return "/".join(p for p in url[6:].strip("/").split("/")[2:] if p)
+
+
+def _mount(url: str) -> None:
+    """An smb:// copy folder (owner, 3 Nov: a media server's certificate folder on the NAS) mounted by aurora-mount,
+    as root, with its own NAS user; a NAS asleep is said at once, never a wait on a hanging mount (C125)."""
+    from . import sys_backup
+    if not sys_backup.nas_reachable(url):
+        raise OSError(f"the NAS ({url[6:].split('/')[0]}) does not answer: off or asleep")
+    if sys_backup.mounted(CERTS_MOUNT):
+        return
+    r = subprocess.run(["systemctl", "start", "aurora-mount.service"], capture_output=True, text=True, timeout=200)
+    if not sys_backup.mounted(CERTS_MOUNT):
+        raise OSError(f"the NAS folder is not mounted on {CERTS_MOUNT}: check AURORA_CERTS_NAS_USER and its password "
+                      f"({(r.stderr or r.stdout).strip()[-200:]})")
+
+
+# 🗓️ When the copy may run (owner, 3 Nov: «la copia di default a seguito del rinnovo, se no scegliamo una finestra per
+# fargliela eseguire» — the NAS sleeps at night): AURORA_CERTS_COPY_WINDOW empty = at once, after each renewal and at
+# the daily look; else days and hours, «10-20», «sab,dom 9-12», «lun-ven 18-23», «22-6» across midnight: only then,
+# looked at every hour (svc_rem), a copy missed tried again at the next.
+DAYS = {"lun": 0, "mar": 1, "mer": 2, "gio": 3, "ven": 4, "sab": 5, "dom": 6,
+        "mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
+
+
+def window(raw: str) -> tuple[set[int], int, int] | None:
+    """«[days] H-H» → (weekdays, first hour, hour it ends); None when empty; ValueError when not understood."""
+    raw = " ".join(str(raw or "").lower().split())
+    if not raw:
+        return None
+    m = re.fullmatch(r"(?:([a-z,\- ]+?) )?(\d{1,2})\s*-\s*(\d{1,2})", raw)
+    if not m or int(m.group(2)) > 23 or not 0 <= int(m.group(3)) <= 24 or m.group(2) == m.group(3):
+        raise ValueError(f"not a window: {raw!r} (e.g. 10-20, sab,dom 9-12)")
+    days: set[int] = set()
+    for part in (m.group(1) or "").replace(" ", "").split(",") if m.group(1) else []:
+        a, _, b = part.partition("-")
+        if a[:3] not in DAYS or (b and b[:3] not in DAYS):
+            raise ValueError(f"not a day: {part!r}")
+        i, j = DAYS[a[:3]], DAYS[(b or a)[:3]]
+        days |= {(i + k) % 7 for k in range((j - i) % 7 + 1)}
+    return days or set(range(7)), int(m.group(2)), int(m.group(3))
+
+
+def in_window(w: tuple[set[int], int, int] | None, now: datetime) -> bool:
+    if w is None:
+        return True
+    days, h0, h1 = w
+    if h0 < h1:
+        return now.weekday() in days and h0 <= now.hour < h1
+    if now.hour >= h0:                                # across midnight: the evening counts for its own day
+        return now.weekday() in days
+    return now.hour < h1 and (now.weekday() - 1) % 7 in days
+
+
+def copy_when(cfg: sys_config.Config, now: datetime | None = None, scheduled: bool = False) -> dict | None:
+    """The copy if it may run now: with no window at once (`scheduled`, the hourly look: nothing, the daily look does
+    it), with one only inside it; outside, said and left to the next hour inside it."""
+    cfg = net_https.fresh(cfg)
+    try:
+        w = window(str(cfg["AURORA_CERTS_COPY_WINDOW"] or ""))
+    except ValueError as e:
+        return {"copied": False, "error": str(e)}
+    if (w is None and scheduled) or not str(cfg["AURORA_CERTS_COPY_DIR"] or "").strip():
+        return None if not scheduled else {"copied": False, "skipped": True}
+    if not in_window(w, now or datetime.now()):
+        return {"copied": False, "outside": str(cfg["AURORA_CERTS_COPY_WINDOW"])}
+    return copy(cfg)
+
+
+def chances(raw: str, start: datetime, end: datetime) -> int | None:
+    """The hours inside the window between the renewal and the certificate's end: how many tries the copy has."""
+    try:
+        w = window(raw)
+    except ValueError:
+        return None
+    if w is None:
+        return None
+    t, n = start.replace(minute=0, second=0, microsecond=0), 0
+    while t < end:
+        n += in_window(w, t)
+        t += timedelta(hours=1)
+    return n
+
+
 def copy(cfg: sys_config.Config) -> dict | None:
     """The certificate in use copied to AURORA_CERTS_COPY_DIR when the copy there is not the same; None with no folder."""
     cfg = net_https.fresh(cfg)
     raw = str(cfg["AURORA_CERTS_COPY_DIR"] or "").strip()
     if not raw:
         return None
-    dest = cfg.path("AURORA_CERTS_COPY_DIR")
+    dest = CERTS_MOUNT / _sub(raw) if raw.startswith("smb://") else (cfg.root / os.path.expanduser(raw)).resolve()
     chain_f, key_f = cfg.path("AURORA_TLS_CERT"), cfg.path("AURORA_TLS_KEY")
     try:
+        if raw.startswith("smb://"):
+            _mount(raw)
         if not dest.is_dir():
             raise OSError(f"{dest} is not a folder here (is the NAS mounted?)")
         chain, key = chain_f.read_bytes(), key_f.read_bytes()
@@ -336,4 +428,8 @@ def status(cfg: sys_config.Config) -> dict:
             "manual": manual(cfg), "pending": _public(pending(cfg)) if pending(cfg) else None,
             "last": {k: st.get(k) for k in ("tried", "issued", "error", "steps", "staging", "trying")},
             "copy": {"dir": str(cfg["AURORA_CERTS_COPY_DIR"] or ""), "at": st.get("copied_at"), "error": st.get("copy_error"),
+                     "window": str(cfg["AURORA_CERTS_COPY_WINDOW"] or ""),
+                     "chances": chances(str(cfg["AURORA_CERTS_COPY_WINDOW"] or ""), datetime.fromisoformat(nxt).astimezone()
+                                        .replace(tzinfo=None), _not_after(info).astimezone().replace(tzinfo=None))
+                     if nxt else None,
                      "p12_password": bool(cfg["AURORA_CERTS_P12_PASSWORD"]), "legacy": bool(cfg["AURORA_CERTS_P12_LEGACY"])}}

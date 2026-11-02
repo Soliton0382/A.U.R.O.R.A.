@@ -61,6 +61,8 @@ public class MainActivity extends Activity {
     private EditText host, port;
     private TextView note;
     private String base;
+    private volatile String page = "";
+                               // the page shown: the bridge's thread may not ask the WebView
     private PermissionRequest waiting;                               // the page's mic request, until the user answers
     private ValueCallback<Uri[]> picking;
     private FrameLayout root;
@@ -291,6 +293,9 @@ public class MainActivity extends Activity {
             }
 
             @Override
+            public void onPageStarted(WebView v, String url, android.graphics.Bitmap icon) { page = url == null ? "" : url; }
+
+            @Override
             public void onPageFinished(WebView v, String url) {
                 // the first time too, right after «Connetti» and the login: the line needs the device's cookie
                 if (Address.inside(base, url)) {
@@ -378,8 +383,20 @@ public class MainActivity extends Activity {
         }
     }
 
-    /** What the WebUI asks the app: two answers about the notifications (push.js), and calling Aurora (chat.js). */
+    /** What the WebUI asks the app: two answers about the notifications (push.js), calling Aurora (chat.js), and an
+     *  action on the phone Aurora was asked for (phone.js, N68). */
     final class Bridge {
+        /** 📱 One of PhoneActions' actions, as JSON; the answer is a word for the page ("ok", "no_app"…). */
+        @JavascriptInterface
+        public String act(String json) {
+            if (base == null || !Address.inside(base, page)) return "bad";
+            try {
+                return PhoneActions.run(MainActivity.this, new JSONObject(json));
+            } catch (org.json.JSONException e) {
+                return "bad";
+            }
+        }
+
         @JavascriptInterface
         public boolean notifications() {
             return getSystemService(NotificationManager.class).areNotificationsEnabled();
@@ -425,6 +442,10 @@ public class MainActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(int code, String[] perms, int[] results) {
         if (code == ASK_NOTIFY) { askBattery(); return; }
+        if (code == PhoneActions.ASK_CONTACTS) {
+            toast(getString(results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED ? R.string.contacts_ok : R.string.contacts_denied));
+            return;
+        }
         if (code != ASK_MIC || waiting == null) return;
         if (results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED) {
             waiting.grant(new String[] {PermissionRequest.RESOURCE_AUDIO_CAPTURE});

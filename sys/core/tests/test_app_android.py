@@ -23,7 +23,9 @@ def test_only_the_permissions_the_app_uses():
     assert asked == {"INTERNET", "RECORD_AUDIO", "MODIFY_AUDIO_SETTINGS",                    # phase 1
                      "FOREGROUND_SERVICE", "FOREGROUND_SERVICE_REMOTE_MESSAGING", "POST_NOTIFICATIONS",  # phase 2
                      "RECEIVE_BOOT_COMPLETED", "REQUEST_IGNORE_BATTERY_OPTIMIZATIONS",
-                     "USE_FULL_SCREEN_INTENT", "WAKE_LOCK", "VIBRATE"}                                  # phase 3
+                     "USE_FULL_SCREEN_INTENT", "WAKE_LOCK", "VIBRATE",                                  # phase 3
+                     "READ_CONTACTS"}                                    # N68: a call or a message to a contact by name
+    assert "com.android.alarm.permission.SET_ALARM" in MANIFEST         # N68: the clock's alarm and timer
 
 
 def test_the_line_sends_only_the_login_to_aurora_and_stops_when_it_is_gone():
@@ -89,9 +91,12 @@ def test_the_apk_builds_signed():
     assert "CN=Aurora app" in v
 
 
-def test_the_page_can_ask_the_app_only_about_its_notifications_and_to_call_aurora():
+def test_the_page_can_ask_the_app_only_about_its_notifications_to_call_aurora_and_its_phone_actions():
     bridge = MAIN.split("final class Bridge {")[1].split("\n    }\n")[0]
-    assert re.findall(r"@JavascriptInterface\s+public \w+ (\w+)\(", bridge) == ["notifications", "settings", "callAurora"]
+    assert re.findall(r"@JavascriptInterface\s+(?:/\*\*.*?\*/\s+)?public \w+ (\w+)\(", bridge, re.S) == \
+        ["act", "notifications", "settings", "callAurora"]
+    act = bridge.split("public String act(")[1].split("\n        }\n")[0]
+    assert "Address.inside(base, page)" in act                          # only Aurora's own page asks the phone
     call = bridge.split("public void callAurora(")[1]
     assert 'id.matches("[0-9a-f]{16}")' in call and "CallActivity.ANSWER" in call      # only a call id, opened answered
 
@@ -112,3 +117,31 @@ def test_the_apk_published_is_the_version_the_sources_say():
     """sys/app/dist holds one APK, of build.VERSION: the one the release attaches (python sys/app/build.py --dist)."""
     assert [p.name for p in (ROOT / "dist").iterdir()] == [f"aurora-app-{build.VERSION}.apk"]
     assert f"## {build.VERSION} " in (ROOT / "CHANGELOG.md").read_text()
+
+
+def test_the_phone_actions_prepare_and_never_send_alone():
+    """N68: a call is dialled, never placed (ACTION_DIAL, not ACTION_CALL); a message opens the composer; a page only
+    over http(s)."""
+    java = (ROOT / "android" / "java" / "org" / "aurora" / "app" / "PhoneActions.java").read_text()
+    assert "Intent.ACTION_DIAL" in java and "ACTION_CALL" not in java and "CALL_PHONE" not in MANIFEST
+    assert "Intent.ACTION_SENDTO" in java and "SmsManager" not in java and "SEND_SMS" not in MANIFEST
+    assert '!"https".equals(u.getScheme()) && !"http".equals(u.getScheme())' in java
+
+
+def test_the_assistant_is_bound_only_by_the_system_and_opens_its_own_screen():
+    """N68 (owner, 2 Nov: «se apro l'assistente si vede il full screen dell'assistente»): the long press opens
+    AssistActivity, the call with no page to load, dialled as the assistant (no greeting); the chat is not touched."""
+    for cls in ("AssistService", "AssistSessionService"):
+        tag = MANIFEST.split(f".{cls}\"")[1].split(">")[0]
+        assert 'android:permission="android.permission.BIND_VOICE_INTERACTION"' in tag
+    assist_tag = MANIFEST.split('".AssistActivity"')[1].split("</activity>")[0]
+    assert "android.intent.action.ASSIST" in assist_tag and "org.aurora.app.TALK" in assist_tag
+    session = (ROOT / "android" / "java" / "org" / "aurora" / "app" / "AssistSessionService.java").read_text()
+    assert "AssistActivity.class" in session and "startAssistantActivity" in session
+    assist = (ROOT / "android" / "java" / "org" / "aurora" / "app" / "AssistActivity.java").read_text()
+    assert "/v1/aurora/call/dial?as=assistant" in assist and "PhoneActions.run(this, action)" in assist
+    assert "auroraTalk" not in MAIN and "ACTION_ASSIST" not in MAIN
+    call = (ROOT / "android" / "java" / "org" / "aurora" / "app" / "CallActivity.java").read_text()
+    assert "PhoneActions.run(this, action)" in call and "a.phoneResult(" in call       # N68: the call does the action
+    audio = (ROOT / "android" / "java" / "org" / "aurora" / "app" / "CallAudio.java").read_text()
+    assert '"phone".equals(type)' in audio and '"phone_result"' in audio

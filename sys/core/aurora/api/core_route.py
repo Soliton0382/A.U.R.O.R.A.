@@ -33,6 +33,8 @@ SYS_TOOLS = ("Decide whether the owner's last message asks Aurora to use one of 
              "'cos'è la funzione seno?' NO; 'che tempo farà domani a Lodi?' TOOLS; 'previsioni per il weekend a "
              "Milano' TOOLS; 'ci sono allerte meteo?' TOOLS (a weather service forecasts; the weather NOW at Aurora's "
              "home is hers: 'piove lì da te?' NO); "
+             "'mettimi una sveglia alle 7' TOOLS; 'timer di 10 minuti' TOOLS; 'apri YouTube' TOOLS; 'portami in via Roma 3' "
+             "TOOLS; 'chiama Marco' TOOLS; 'cerca su internet gli orari del museo' TOOLS (the phone); "
              "'ricordami domani alle 9 di chiamare Marco' TOOLS; 'cosa ho in agenda venerdì?' TOOLS; 'fissa il "
              "dentista giovedì alle 15' TOOLS; 'sposta la riunione a lunedì' TOOLS (her calendar). "
              "Reply with exactly one word.\n\nCONNECTED SERVICES:\n{services}")
@@ -43,7 +45,9 @@ def connected_services() -> list[str]:
     """The plugins the owner has connected (enabled, configured, no error): what the chat may hand to the agent."""
     built_in = ["- pictures: paint a new picture on request (a photo, an illustration)",
                 "- artifacts: make an interactive page shown live in the chat (a chart, a plot of a function, a "
-                "calculator, a simulation, a small game or app)"]
+                "calculator, a simulation, a small game or app)",
+                "- phone: on the owner's phone (the Aurora app): an alarm or a timer, open a web page, an app or a web "
+                "search, the navigation to a place, a call or a message prepared (N68)"]
     return built_in + [f"- {p.name}: {(p.manifest.get('description') or {}).get('en', '')[:200]}"
                        for p in plugin_host().plugins(with_tools=False) if p.available and p.name not in ROUTER_SKIP]
 

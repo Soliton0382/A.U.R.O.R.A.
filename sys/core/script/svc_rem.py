@@ -163,7 +163,7 @@ def main() -> int:
     client = httpx.Client(headers=HEADERS, timeout=30)
     wait_for_api(client)
     ups_watch()
-    last_reason, last_update, fresh_said = "", 0.0, ""
+    last_reason, last_update, fresh_said, last_copy = "", 0.0, "", 0.0
     # the daily round's last time kept on disk: a restart is not a new day (C412: each restart grew the synapses again,
     # 16 cores for ~40 minutes by day)
     daily = cfg.path("AURORA_STATUS_DIR") / "rem_daily.txt"
@@ -180,6 +180,16 @@ def main() -> int:
             except (httpx.HTTPError, ValueError) as e:
                 log.warning("update check failed: %s", e)
         sys_health.heartbeat(cfg, "rem")
+        if time.time() - last_copy > 3600:            # 🗓️ the certificate's copy inside its window (net_certs.copy_when)
+            last_copy = time.time()
+            try:
+                c = client.post(f"{BASE}/v1/aurora/https/acme/copy", params={"scheduled": "true"}, timeout=300)
+                if c.status_code == 200 and c.json().get("copied"):
+                    log.info("certificate: copied inside its window")
+                elif c.status_code == 200 and c.json().get("error"):
+                    log.warning("certificate copy: %s", c.json()["error"][:300])
+            except (httpx.HTTPError, ValueError) as e:
+                log.warning("certificate copy look failed: %s", e)
         try:                                          # the owner's routines: not autonomic, so even with REM off
             t = client.post(f"{BASE}/v1/aurora/routines/tick").raise_for_status().json()
             if t["started"] or t["welcomed"]:

@@ -89,3 +89,16 @@ def test_the_frames_folder_of_a_person_is_found_for_the_mount(cfg, tmp_path, mon
     assert N.astro_url(cfg) == "smb://192.168.1.20/astro/lights"
     (tmp_path / "anna" / ".env").write_text("AURORA_ASTRO_FRAMES_DIR=/data/lights\n")
     assert N.astro_url(cfg) == ""                                       # a local folder: nothing to mount
+
+
+def test_the_certificates_share_is_written_with_its_own_user(cfg):
+    """The certificates' copy (owner, 3 Nov: a media server's folder on the NAS, a user of its own): its line, read and
+    write, with its own credentials file; its own user when set, else the backup's."""
+    line = N.fstab_line("192.168.1.20", "Media", 1000, 1000, N.CERTS, N.CERTS_MARK, cred=N.CERTS_CRED)
+    assert line.startswith("//192.168.1.20/Media /mnt/aurora-certs cifs credentials=/etc/aurora/certs.cred,")
+    assert line.endswith("# aurora-certs") and " ro," not in line
+    cfg.values.update(AURORA_CERTS_NAS_USER="", AURORA_CERTS_NAS_PASSWORD="")
+    assert N.certs_login(cfg) == ("AURORA_NAS_USER", "AURORA_NAS_PASSWORD")
+    cfg.values["AURORA_CERTS_NAS_USER"] = "media"
+    assert N.certs_login(cfg) == ("AURORA_CERTS_NAS_USER", "AURORA_CERTS_NAS_PASSWORD")
+    assert N.parse("smb://192.168.1.20/Media/Library/certificate/") == ("192.168.1.20", "Media", "Library/certificate")

@@ -2,6 +2,17 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.3.42 — 2026-11-03
+
+6 publications since v0.3.36.
+
+- 2026-11-03 Phone assistant with its own screen, fast phone commands, short spoken answers; Let's Encrypt wildcard fix, certificate copy to a NAS folder with a window
+- 2026-10-31 The certificate in guided steps: names, who writes the DNS record (Cloudflare or by hand), the TXT records to copy with their public state, the domain verified
+- 2026-10-31 Automatic HTTPS certificate in the HTTPS page: ACME with the DNS challenge, renewal 30 days ahead, copy with keyStore.p12 for other devices; fixed expenses on their day of the month; an agent with no answer tells what it read
+- 2026-10-31 Expenses page in four parts: incomes and fixed items of every month, a saving goal, the year's trend; Aurora advises on a purchase with the user's own numbers, local model only
+- 2026-10-31 The security plugin opens its sealed network map and firewalls again (C480); expenses page and certificates on the roadmap
+- 2026-10-31 A clean start every morning: after the night's work the API restarts itself, only when nothing would be lost (no run, question, GPU job or backup; the ethics code intact)
+
 ## v0.3.41 — 2026-11-01
 
 5 publications since v0.3.36.

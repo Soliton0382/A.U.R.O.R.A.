@@ -27,7 +27,10 @@ import java.util.concurrent.LinkedBlockingQueue;
 final class CallAudio {
     interface Events {
         void line(String who, String text);                         // "heard" (the owner) or "said" (Aurora)
+        void phone(JSONObject action);                              // N68: an action Aurora was asked for on the phone
         void ended(String why);
+        default void step(String name) {}                           // N68: the name of what she is doing (the brain)
+        default void level(boolean her, float v) {}                 // N68: how loud each voice is now, 0..1 (the scope)
     }
 
     static final int RATE = 16000, FRAME = 640;                     // 20 ms of 16-bit samples
@@ -36,6 +39,7 @@ final class CallAudio {
     private final Events events;
     private final LinkedBlockingQueue<byte[]> play = new LinkedBlockingQueue<>();
     private volatile boolean running, muted;
+    private volatile int cut;                                       // grows at each flush: a sentence being played stops
     private Ws ws;
     private AudioRecord rec;
     private AudioTrack track;
@@ -53,6 +57,18 @@ final class CallAudio {
     }
 
     void mute(boolean on) { muted = on; }
+
+    /** N68: what the phone did with an action, back to Aurora, who says it (off the main thread: it is the network). */
+    void phoneResult(String id, String result) {
+        new Thread(() -> {
+            try {
+                JSONObject j = new JSONObject().put("type", "phone_result").put("id", id).put("result", result);
+                if (ws != null) ws.sendText(j.toString());
+            } catch (Exception e) {
+                // the call is gone: nothing to tell
+            }
+        }, "aurora-call-phone").start();
+    }
 
     void speaker(boolean on) {
         AudioManager am = ctx.getSystemService(AudioManager.class);
@@ -112,11 +128,16 @@ final class CallAudio {
                         String type = j.optString("type");
                         if ("flush".equals(type)) {                  // the owner talks over her: what is queued goes
                             play.clear();
+                            cut++;
                             track.pause();
                             track.flush();
                             track.play();
                         } else if ("heard".equals(type) || "said".equals(type)) {
                             events.line(type, j.optString("text"));
+                        } else if ("phone".equals(type) && j.optJSONObject("action") != null) {
+                            events.phone(j.optJSONObject("action"));
+                        } else if ("step".equals(type)) {
+                            events.step(j.optString("name"));
                         }
                     } catch (Exception e) {
                         // a message this version does not know
@@ -146,6 +167,7 @@ final class CallAudio {
             int n = rec.read(buf, 0, FRAME);
             if (n <= 0) continue;
             if (muted) java.util.Arrays.fill(buf, (byte) 0);         // silence, not nothing: her pause detector goes on
+            events.level(false, rms(buf, n));
             try {
                 ws.sendBinary(buf, n);
             } catch (Exception e) {
@@ -159,10 +181,26 @@ final class CallAudio {
             try {
                 byte[] b = play.take();
                 if (b.length == 0) return;
-                track.write(b, 0, b.length);
+                int now = cut;
+                for (int at = 0; at < b.length && running && now == cut; at += FRAME) {   // 20 ms at a time: the scope follows her
+                    int n = Math.min(FRAME, b.length - at);
+                    events.level(true, rms(java.util.Arrays.copyOfRange(b, at, at + n), n));
+                    track.write(b, at, n);
+                }
             } catch (Exception e) {
                 return;
             }
         }
+    }
+
+    // a chunk's loudness, 0..1, stretched four times so a voice fills the scope (not tuned on a phone)
+    private static float rms(byte[] b, int n) {
+        long sum = 0;
+        int k = n / 2;
+        for (int i = 0; i + 1 < n; i += 2) {
+            int v = (short) ((b[i] & 0xFF) | (b[i + 1] << 8));
+            sum += (long) v * v;
+        }
+        return k == 0 ? 0f : Math.min(1f, (float) Math.sqrt(sum / (double) k) / 32768f * 4f);
     }
 }

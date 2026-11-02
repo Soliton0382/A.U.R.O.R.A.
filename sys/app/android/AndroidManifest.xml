@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Aurora's app: the WebUI in a window of its own (phase 1) and the line that brings the notifications
      (phase 2), and Aurora's calls (phase 3). Only that is asked: the network, the microphone (voice, interpreter,
-     calls), the line's service, a call that rings. -->
+     calls), the line's service, a call that rings; and the phone's assistant (N68): an alarm or a timer set, the contacts
+     read to prepare a call or a message by a name. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="org.aurora.app">
 
@@ -18,6 +19,20 @@
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- N68, the assistant: the clock's alarm and timer; a contact's number by their name (asked when first needed) -->
+    <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+
+    <!-- «apri YouTube»: the launchable apps, found by their name (Android 11+ shows only what is declared here) -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.WEB_SEARCH" />
+        </intent>
+    </queries>
 
     <application
         android:label="@string/app_name"
@@ -40,6 +55,24 @@
             <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity>
 
+        <!-- N68: the assistant's own screen, the call to Aurora with no page to load -->
+        <activity
+            android:name=".AssistActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:excludeFromRecents="true"
+            android:taskAffinity="org.aurora.app.assist"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.ASSIST" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="org.aurora.app.TALK" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
         <activity
             android:name=".CallActivity"
             android:exported="false"
@@ -54,6 +87,23 @@
 
         <service android:name=".LineService" android:exported="false"
             android:foregroundServiceType="remoteMessaging" />
+
+        <!-- N68: Aurora as the phone's digital assistant (Settings → Apps → Default apps → Digital assistant) -->
+        <service android:name=".AssistService" android:exported="true"
+            android:permission="android.permission.BIND_VOICE_INTERACTION">
+            <meta-data android:name="android.voice_interaction" android:resource="@xml/assist_service" />
+            <intent-filter>
+                <action android:name="android.service.voice.VoiceInteractionService" />
+            </intent-filter>
+        </service>
+        <service android:name=".AssistSessionService" android:exported="true"
+            android:permission="android.permission.BIND_VOICE_INTERACTION" />
+        <service android:name=".AssistRecognition" android:exported="true">
+            <meta-data android:name="android.speech" android:resource="@xml/assist_recognition" />
+            <intent-filter>
+                <action android:name="android.speech.RecognitionService" />
+            </intent-filter>
+        </service>
 
         <receiver android:name=".Boot" android:exported="false">
             <intent-filter>

@@ -17,6 +17,7 @@ import { attachMenu, settingsMenu, showGear, source } from "./chat_menu.js";
 import { actions, quoteBox, quoted } from "./chat_actions.js";
 import { composer } from "./composer.js";
 import { bargeIn } from "../vad.js";
+import { phoneAction } from "../phone.js";
 
 const HISTORY_TURNS = 8;          // 4 exchanges: the same memory Aurora keeps in context
 
@@ -243,6 +244,17 @@ export default {
       voice.unlock();                                // during the tap: some phones speak only after one
       if (!mic.classList.contains("recording")) openEar().then(() => recordHere({ stream: ear }), () => recordHere());
     };
+    // 📱 the app opened as the phone's assistant (N68: a long press, the gesture, «Parla con Aurora»): a call to Aurora,
+    // as the 📞 above (owner, 1 Nov: «gestire aurora assistente come se fosse una chiamata ad aurora») — told by the app
+    // (auroraTalk), or asked by the address it opened (?talk=1)
+    window.auroraTalk = () => { if (!dial.hidden && !dial.disabled) dial.click(); };
+    const asked = new URLSearchParams(location.search);
+    if (window.auroraTalkPending || asked.get("talk") === "1") {
+      window.auroraTalkPending = false;
+      asked.delete("talk");
+      history.replaceState(null, "", `${location.pathname}${asked.size ? `?${asked}` : ""}${location.hash}`);
+      setTimeout(window.auroraTalk, 400);
+    }
     // 🎙️ asks which: a dictation, or a conversation hands-free (owner, 2026-10-14: «se ci clicco sopra scelgo microfono
     // o hands-free»); while one is on, the same tap stops it
     const micMenu = el("div", "mic-menu hidden");
@@ -363,6 +375,7 @@ export default {
         const final = await follow(run_id, b, messages, (name, p) => {
           speech?.onEvent?.(name, p);
           if (name === "approval.request") askAgain();
+          if (name === "phone.action") phoneAction(p, b.root);          // 📱 done by the app (phone.js, N68)
         });
         if (final?.text) actions(b.root, final.text, replyTo(final.text, run_id), sayAloud);
         speech?.finish(final);

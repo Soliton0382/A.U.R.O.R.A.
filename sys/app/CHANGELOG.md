@@ -1,5 +1,36 @@
 # Aurora's Android app — changelog
 
+## 0.5.2 - 2026-11-02
+
+- The assistant has its own screen (owner: «se apro l'assistente si vede il full screen dell'assistente»): the long
+  press, the gesture or «Parla con Aurora» open it straight away, with no page to load. No words on it: the brain as a
+  watermark, its areas lit by what Aurora is doing, the steps' icons sliding under it, the scope showing who speaks
+  (blue the owner, green Aurora); ✕ or back closes it. It listens at once, with no greeting.
+- WhatsApp messages open straight in WhatsApp with the text written, the contact's number put in the international
+  form its link needs.
+- The chat's 📞 call is the plain call again (earpiece, proximity).
+
+## 0.5.1 - 2026-11-01
+
+- The assistant is a call to Aurora (owner: «gestire aurora assistente come se fosse una chiamata ad aurora ma con la
+  gestione delle azioni cellulare»): the long press, the gesture or «Parla con Aurora» dial her as the chat's 📞 does,
+  answered and on the loudspeaker, without the proximity sensor. In the call, the message «phone» is an action done
+  by `PhoneActions` and its result sent back («phone_result»), which Aurora says; a plain command («apri YouTube»,
+  «timer di 5 minuti») is understood by Aurora without a model, so it is done in the time of a sentence. A call that
+  hands the screen to another app ends once she has said so.
+
+## 0.5.0 - 2026-11-01
+
+- N68, Aurora as the phone's assistant: chosen in Settings → Apps → Default apps → Digital assistant
+  (`AssistService`, `AssistSessionService`, a recognition service that declines so other apps keep the phone's own),
+  the long press or the gesture opens the chat with the conversation hands-free already on; also the launcher's
+  long-press shortcut «Parla con Aurora» and `ACTION_ASSIST`. Nothing listens in the background.
+- Phone actions (`AuroraApp.act`, `PhoneActions`): what Aurora is asked for in the chat is handed to the phone's own
+  apps — a page, a web search, an app by its name, an alarm or a timer, an event in the phone's calendar, the
+  navigation, a call or a message (WhatsApp or SMS) prepared, to a number or to a contact by name. The call and the
+  message are only prepared: the owner presses call or send. New permissions: the clock's alarm, the contacts (asked
+  the first time a name is used).
+
 ## 0.4.1 - 2026-10-27
 
 - Full screen for the page (the music player's visualiser): the element over everything, the system bars hidden in

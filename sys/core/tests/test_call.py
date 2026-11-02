@@ -82,3 +82,61 @@ def test_the_owner_s_own_call_rings_nowhere_and_opens_once(cfg):
     assert not sys_call.set_state(c["id"], "answered", only_from="dialing")
     src = (ROOT / "aurora" / "api" / "call.py").read_text()
     assert '"dialing"):' in src and 'c.get("by") == "owner"' in src     # the audio takes it; she does not say a reason
+
+
+def test_a_plain_phone_command_in_a_call_is_done_by_the_app_at_once(cfg, monkeypatch):
+    """N68: «apri YouTube» said in a call (the assistant's way in) goes to the app with no model; she says it is done.
+    An app that does not answer (a version without phone actions): Aurora answers as before."""
+    import asyncio
+    import json as _json
+    import logging
+
+    from aurora import sys_call as C
+
+    class WS:
+        def __init__(self, answer):
+            self.sent, self.answer, self.voice = [], answer, None
+
+        async def send_text(self, t):
+            self.sent.append(_json.loads(t))
+            j = self.sent[-1]
+            if j["type"] == "phone" and self.answer:
+                self.voice.phone[j["action"]["id"]].set_result(self.answer)
+
+    class Voice:
+        def __init__(self):
+            self.phone, self.said = {}, []
+
+        async def say(self, text, turn=None):
+            self.said.append(text)
+
+    async def run(answer, text):
+        ws, v = WS(answer), Voice()
+        ws.voice = v
+        done = await C.phone_now(ws, v, text, "it", 0, logging.getLogger("t"))
+        return done, ws.sent, v.said
+
+    done, sent, said = asyncio.run(run("ok", "Apri YouTube."))
+    assert done and sent[0]["action"]["action"] == "open_app" and sent[0]["action"]["app"] == "YouTube"
+    assert said == ["Fatto."] and sent[-1]["type"] == "said"
+    done, _, said = asyncio.run(run("no_app", "apri Pippo"))
+    assert done and said == ["Sul telefono non c'è un'app per farlo."]
+    wait_for = C.asyncio.wait_for
+    monkeypatch.setattr(C.asyncio, "wait_for", lambda f, t: (_ for _ in ()).throw(C.asyncio.TimeoutError()))
+    done, _, said = asyncio.run(run("", "Apri YouTube"))
+    assert not done and not said                                        # an old app: the question goes on to Aurora
+    assert asyncio.run(run("ok", "Che tempo fa domani?"))[0] is False   # not a command: Aurora answers
+    monkeypatch.setattr(C.asyncio, "wait_for", wait_for)
+
+    class Model:                                                        # what the patterns miss: the reasoner (M273)
+        def complete(self, system, user, n, think=False):
+            return type("C", (), {"answer": '{"action":"open_app","app":"Spotify"}' if "musica" in user else "NONE"})
+
+    async def run2(text):
+        ws, v = WS("ok"), Voice()
+        ws.voice = v
+        return await C.phone_now(ws, v, text, "it", 0, logging.getLogger("t"), Model()), ws.sent
+
+    done, sent = asyncio.run(run2("vorrei ascoltare un po' di musica su Spotify"))
+    assert done and sent[0]["action"]["app"] == "Spotify"
+    assert asyncio.run(run2("Che tempo fa domani?"))[0] is False

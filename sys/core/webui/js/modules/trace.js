@@ -19,7 +19,7 @@ export const ICONS = {
   "rem.start": "🌙", "rem.session_memory": "🗂️", "rem.thought": "💭", "rem.dream": "🌌", "rem.self_review": "🔍", "rem.repair": "🛠️",
   "rem.end": "🏁",
   "agent.start": "🤖", "agent.thought": "💭", "agent.say": "💬", "tool.call": "🔧", "tool.result": "📎", "tool.cached": "🌗", "agent.local": "🔒",
-  "approval.request": "🛎️", "approval.execute": "▶️", "approval.done": "🏁", "agent.finish": "🏁", "agent.file": "📄",
+  "approval.request": "🛎️", "approval.execute": "▶️", "approval.done": "🏁", "agent.finish": "🏁", "agent.file": "📄", "phone.action": "📱",
   "change.check": "🧬", "change.tests.sandbox": "🧪", "change.applied": "📦", "change.tests.live": "🧪",
   "change.rollback": "↩️", "change.restart": "🔄",
 };

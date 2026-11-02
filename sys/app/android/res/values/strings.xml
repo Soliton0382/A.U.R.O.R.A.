@@ -34,4 +34,7 @@
     <string name="call_speaker">Vivavoce</string>
     <string name="full_screen">Per far squillare le chiamate di Aurora a telefono bloccato, permetti le notifiche a schermo intero.</string>
     <string name="download">Scaricamento avviato: %1$s</string>
+    <string name="shortcut_talk">Parla con Aurora</string>
+    <string name="contacts_ok">Contatti consentiti: chiedi di nuovo ad Aurora.</string>
+    <string name="contacts_denied">Senza i contatti Aurora può chiamare o scrivere solo a un numero che le dici.</string>
 </resources>

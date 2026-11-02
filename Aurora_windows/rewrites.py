@@ -147,6 +147,11 @@ SERVICES = [
      f'''    {P}
     r = sys_platform.current().service_action("start", ["aurora-mount.service"], timeout=200)''',
      "api/backup: the NAS mounted now"),
+    ("sys/core/aurora/net_certs.py",
+     '''    r = subprocess.run(["systemctl", "start", "aurora-mount.service"], capture_output=True, text=True, timeout=200)''',
+     f'''    {P}
+    r = sys_platform.current().service_action("start", ["aurora-mount.service"], timeout=200)''',
+     "net_certs: the certificates' NAS folder mounted"),
     ("sys/core/aurora/api/backup.py",
      '''    r = subprocess.run(["systemctl", "start", "--no-block", "aurora-backup.service"], capture_output=True, text=True)''',
      f'''    {P}

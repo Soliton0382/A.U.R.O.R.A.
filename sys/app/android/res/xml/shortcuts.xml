@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- A long press on the icon: change Aurora's address (the only setting the app keeps). -->
+<!-- A long press on the icon: talk to Aurora, or change her address (the only setting the app keeps). -->
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- N68: straight to the assistant's screen, a call to Aurora -->
+    <shortcut android:shortcutId="talk" android:enabled="true" android:icon="@drawable/ic_aurora"
+        android:shortcutShortLabel="@string/shortcut_talk">
+        <intent android:action="org.aurora.app.TALK"
+            android:targetPackage="org.aurora.app" android:targetClass="org.aurora.app.AssistActivity" />
+    </shortcut>
     <shortcut android:shortcutId="setup" android:enabled="true" android:icon="@drawable/ic_aurora"
         android:shortcutShortLabel="@string/shortcut_setup">
         <intent android:action="org.aurora.app.SETUP"

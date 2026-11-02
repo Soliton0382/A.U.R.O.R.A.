@@ -31,8 +31,9 @@ async def call_ring(request: Request) -> dict:
 
 @router.post("/v1/aurora/call/dial", dependencies=[Depends(auth)])
 async def call_dial(request: Request) -> dict:
-    """The owner calls Aurora from the app: a call ready to be opened, ringing nowhere."""
-    call = sys_call.dial(request.state.user)
+    """The owner calls Aurora from the app: a call ready to be opened, ringing nowhere; ?as=assistant: the phone's
+    assistant, with no greeting."""
+    call = sys_call.dial(request.state.user, request.query_params.get("as") == "assistant")
     log.info("audit: call dialled %s", call["id"])
     return call
 
@@ -60,6 +61,7 @@ class _Voice:
 
     def __init__(self, ws: WebSocket, lang: str) -> None:
         self.ws, self.lang, self.until, self.turn = ws, lang, 0.0, 0
+        self.phone: dict[str, asyncio.Future] = {}   # 📱 an action sent to the app → its answer (N68)
 
     def speaking(self) -> bool:
         return time.monotonic() < self.until
@@ -113,13 +115,19 @@ async def call_audio(ws: WebSocket, call_id: str) -> None:
 
     worker = asyncio.create_task(turns())
     try:
-        await voice.say("Ciao, dimmi pure." if c.get("by") == "owner" else f"Ciao, sono Aurora. {c['reason']}")
+        if not c.get("assistant"):
+            await voice.say("Ciao, dimmi pure." if c.get("by") == "owner" else f"Ciao, sono Aurora. {c['reason']}")
         while True:
             msg = await ws.receive()
             if msg.get("type") == "websocket.disconnect":
                 break
-            if msg.get("text") and json.loads(msg["text"]).get("type") == "hangup":
+            j = json.loads(msg["text"]) if msg.get("text") else {}
+            if j.get("type") == "hangup":
                 break
+            if j.get("type") == "phone_result":       # 📱 what the app did with an action (N68)
+                f = voice.phone.pop(str(j.get("id", "")), None)
+                if f and not f.done():
+                    f.set_result(str(j.get("result", "")))
             if msg.get("bytes"):
                 for audio in seg.feed(msg["bytes"]):
                     await heard.put(audio)
@@ -170,6 +178,10 @@ async def _turn(ws: WebSocket, voice: _Voice, audio, lang: str) -> None:
     await voice.stop()
     await ws.send_text(json.dumps({"type": "heard", "text": text}))
     turn = voice.turn
+    from .core import pipeline
+    model = pipeline().llm                            # the local reasoner: the phone's commands, the spoken answer
+    if await sys_call.phone_now(ws, voice, text, lang, turn, log, model):   # ⚡ «apri YouTube»: the app at once (N68)
+        return
     from .core_route import mood_wrap                    # 😠 an insult said in a call: her anger, and local only
     run = start_run(text, origin="call", job=mood_wrap(text, _talk))
     seen, buf, spoken, handed, t0, told = 0, "", False, False, time.monotonic(), False
@@ -178,8 +190,12 @@ async def _turn(ws: WebSocket, voice: _Voice, audio, lang: str) -> None:
         events = run["events"][seen:]
         seen += len(events)
         for e in events:
+            if not e["event"].endswith(".delta"):     # 🧠 the step's name only, for the assistant's brain (N68)
+                await ws.send_text(json.dumps({"type": "step", "name": e["event"]}))
             if e["event"] == "talk.delta":
                 buf += str(e["payload"].get("text") or "")
+            elif e["event"] == "phone.action":         # 📱 what the agent asked of the phone (agt_phone)
+                await ws.send_text(json.dumps({"type": "phone", "action": e["payload"]}))
             elif e["event"] == "talk.handoff":
                 handed = True
                 if buf.strip():                       # the start she said before handing on
@@ -201,4 +217,8 @@ async def _turn(ws: WebSocket, voice: _Voice, audio, lang: str) -> None:
     answer = run.get("answer")
     said = str(getattr(answer, "text", answer) or "").strip() or "Scusa, non sono riuscita a rispondere."
     await ws.send_text(json.dumps({"type": "said", "text": said}))
+    if handed or not spoken:                          # the whole path's answer, written for the chat: its gist said
+        said = await asyncio.to_thread(sys_call.spoken, model, said)
+        if turn != voice.turn:
+            return
     await voice.say(said if handed or not spoken else buf, turn)   # streamed: only its last words are left

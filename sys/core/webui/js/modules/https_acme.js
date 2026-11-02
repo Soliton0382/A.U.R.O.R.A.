@@ -11,7 +11,7 @@ import { el } from "../dom.js";
 import { lang, t } from "../i18n.js";
 import { settingsForm } from "./settings_form.js";
 
-const MORE = ["AURORA_ACME_EMAIL", "AURORA_CERTS_COPY_DIR", "AURORA_CERTS_P12_PASSWORD", "AURORA_CERTS_P12_LEGACY"];
+const MORE = ["AURORA_ACME_EMAIL", "AURORA_CERTS_P12_PASSWORD", "AURORA_CERTS_P12_LEGACY"];
 const when = (x) => (x ? new Date(typeof x === "number" ? x * 1000 : x).toLocaleString(lang.replace("_", "-"),
   { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—");
 const day = (x) => (x ? new Date(x).toLocaleDateString(lang.replace("_", "-"), { day: "numeric", month: "long", year: "numeric" }) : "—");
@@ -156,6 +156,70 @@ function begin(s, refresh, say) {
   return wrap;
 }
 
+// 📁 Where the certificate is copied (owner, 3 Nov: «mettimi la parte di autenticazione nella parte dove si imposta il
+// percorso di copia… a spunta tipo percorso di rete così espande il percorso riportando l'autenticazione»): a folder of
+// this machine, or ticked a NAS folder as smb://… with its NAS user and password (empty: the backup's)
+async function copyFolder(s, refresh, say) {
+  const all = (await call("/v1/aurora/settings")).settings;
+  const val = (k) => String((all.find((x) => x.key === k) || {}).value || "");
+  const wrap = el("div", "acme-copy-dir plug-settings");
+  wrap.append(el("h4", "", `📁 ${t("acme.copy_dir")}`));
+  const net = el("input");
+  net.type = "checkbox";
+  net.checked = val("AURORA_CERTS_COPY_DIR").startsWith("smb://");
+  const tick = el("label", "plug-field plug-check");
+  tick.append(net, el("span", "", `🌐 ${t("acme.copy_net")}`));
+  const dir = el("input");
+  dir.value = val("AURORA_CERTS_COPY_DIR");
+  const where = el("label", "plug-field");
+  where.append(el("span", "", t("acme.copy_where")), dir);
+  const user = el("input");
+  user.value = val("AURORA_CERTS_NAS_USER");
+  user.placeholder = t("acme.copy_user_hint");
+  user.autocomplete = "off";
+  const pass = el("input");
+  pass.type = "password";
+  pass.autocomplete = "new-password";
+  pass.placeholder = t("acme.copy_pass_hint");
+  const auth = el("div", "acme-copy-auth");
+  for (const [label, input] of [[t("acme.copy_user"), user], [t("acme.copy_pass"), pass]]) {
+    const r = el("label", "plug-field");
+    r.append(el("span", "", label), input);
+    auth.append(r);
+  }
+  const show = () => {
+    auth.hidden = !net.checked;
+    dir.placeholder = net.checked ? "smb://192.168.1.10/share/folder" : "/path/to/folder";
+  };
+  net.addEventListener("change", show);
+  show();
+  // 🗓️ when the copy may run (a NAS asleep at night): empty = right after the renewal; Aurora says how many hours of
+  // the window fall between the renewal and the certificate's end
+  const win = el("input");
+  win.value = s.copy.window || "";
+  win.placeholder = t("acme.copy_window_hint");
+  const winRow = el("label", "plug-field");
+  winRow.append(el("span", "", `🗓️ ${t("acme.copy_window")}`), win);
+  const advice = el("p", "muted", !s.copy.window ? t("acme.copy_window_none")
+    : s.copy.chances === null || s.copy.chances === undefined ? t("acme.copy_window_bad")
+      : t(s.copy.chances < 8 ? "acme.copy_window_few" : "acme.copy_window_ok", { n: s.copy.chances }));
+  const go = el("button", "", `💾 ${t("acme.copy_save")}`);
+  go.type = "button";
+  go.addEventListener("click", async () => {
+    const d = dir.value.trim();
+    if (net.checked && d && !d.startsWith("smb://")) { say(t("acme.copy_need_smb")); return; }
+    if (!net.checked && d.startsWith("smb://")) { say(t("acme.copy_need_local")); return; }
+    try {
+      await save({ AURORA_CERTS_COPY_DIR: d, AURORA_CERTS_COPY_WINDOW: win.value.trim(), ...(net.checked ? { AURORA_CERTS_NAS_USER: user.value.trim() } : {}),
+        ...(net.checked && pass.value ? { AURORA_CERTS_NAS_PASSWORD: pass.value } : {}) });
+      say(t("acme.copy_saved"));
+    } catch (e) { say(t("ev.error", { m: e.message })); return; }
+    await refresh();
+  });
+  wrap.append(tick, where, auth, winRow, advice, go);
+  return wrap;
+}
+
 export async function acmeBox(box, say, refresh) {
   let s;
   try { s = await call("/v1/aurora/https/acme"); } catch (e) { box.replaceChildren(el("p", "error", e.message)); return; }
@@ -184,7 +248,8 @@ export async function acmeBox(box, say, refresh) {
     catch (e) { say(t("ev.error", { m: e.message })); }
     await refresh();
   });
-  more.append(await settingsForm(MORE, { title: `⚙️ ${t("acme.settings")}`, onSaved: () => refresh() }), copy);
+  more.append(await copyFolder(s, refresh, say), copy,
+    await settingsForm(MORE, { title: `⚙️ ${t("acme.settings")}`, onSaved: () => refresh() }));
   parts.push(more);
   box.replaceChildren(...parts);
 }

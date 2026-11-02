@@ -69,7 +69,9 @@ let local = { views: [] };
 try { local = await import("./local/index.js"); } catch { /* none on this installation */ }
 
 export const views = [today, advanced, chat, anonchat, interpret, approvals, reports, secFirewalls, secEdge, security, ciso, firewall, aurorafw, secDefence, secWatch, secOut, secEgress, secTrace, autonomy, diary, dreams, memory, social, dj, care, expenses, astro, home, consoles, calendar, projects, routines, models, accounts, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, usage, settings, https, ups, hosts, guide, bugreport, ideas, phoneApp, keys, people];
-views.push(...homeKinds, ...local.views);
+// the public pages this installation's own replace (local.hides: ids), out of the menu
+const shownKinds = homeKinds.filter((v) => !(local.hides || []).includes(v.id));
+views.push(...shownKinds, ...local.views);
 export const widgets = [sky, alerts, metrics, brain];
 
 // the side menu in areas (owner, 2026-10-05): an area of one page is a plain entry; the others open on a tap
@@ -83,7 +85,7 @@ export const groups = [
   { id: "life", icon: "✨", title: "nav.g.life", views: ["calendar", "people", "diary", "dreams", "memory", "social", "dj", "care", "expenses", "astro"] },
   // 🏠 the house (owner, 2026-10-12: «sotto casa avremmo tab casa e poi…»): Home Assistant's pages
   // 🖥️ the devices' own management pages, beside the house (owner, 28 Oct)
-  { id: "home", icon: "🏠", title: "nav.g.home", views: ["home", "consoles", ...homeKinds.map((v) => v.id),
+  { id: "home", icon: "🏠", title: "nav.g.home", views: ["home", "consoles", ...shownKinds.map((v) => v.id),
   ...local.views.filter((v) => v.group === "home").map((v) => v.id)] },
   { id: "work", icon: "🛠️", title: "nav.g.work", views: ["projects", "routines", "uploads"] },
   { id: "knowledge", icon: "📚", title: "nav.g.knowledge", views: ["import", "harvester", "synapses"] },

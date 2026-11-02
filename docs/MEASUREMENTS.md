@@ -4490,3 +4490,16 @@ the local reasoner idle before: the agent called people_cards at its first step 
 in 77 s, one step, 63 s of them before the call. The answer's content not read here (the owner's own card). Not
 measured: the answer's correctness (the owner's to read), a question where the tool should not be used, a second user
 asking (what the others chose to share).
+
+## M273 — the phone's commands and the spoken gist, by the local reasoner (2 November 2026; agt_phone, sys_call; N68)
+
+The local reasoner (no thinking, temperature 0, its system prompt cached), called on llama-server's chat endpoint
+with invented sentences. Phone commands (agt_phone.UNDERSTAND), 12 sentences: 12 right — a WhatsApp message to a
+contact with its text in first person, a timer, navigation to a place, an app, a call by a name; NONE for small talk, a
+question on the weather, a sum, the house's light, a reminder — in 0.13–0.57 s, NONE in 0.13–0.15 s. A calendar event
+was read as the phone's: the calendar is left out of this path (Aurora's own calendar answers it). Spoken gist
+(sys_call.SPOKEN), 3 invented written answers (a timer's report with its steps and timings, two appointments with their
+sources, a gate opened by a plugin): one sentence each, the times kept, the steps, timings and sources left out, in
+0.29–0.54 s. Not measured: sentences as Whisper writes them on the owner's phone, other languages, the reasoner busy
+with another job.
+

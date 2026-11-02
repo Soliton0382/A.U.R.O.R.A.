@@ -1985,13 +1985,47 @@
   },
   {
    "key": "AURORA_CERTS_COPY_DIR",
-   "type": "path",
+   "type": "str",
    "category": "https",
    "recommended": "",
    "evidence": "owner",
    "optional": true,
-   "en": "A folder (e.g. the NAS's shared one, mounted here) where every new certificate is copied, overwriting: fullchain.pem, privkey.pem, cert.pem, chain.pem and keyStore.p12; empty = no copy.",
-   "it": "Una cartella (es. quella condivisa del NAS, montata qui) dove ogni nuovo certificato viene copiato sovrascrivendo: fullchain.pem, privkey.pem, cert.pem, chain.pem e keyStore.p12; vuoto = nessuna copia.",
+   "en": "Where every new certificate is copied, overwriting: fullchain.pem, privkey.pem, cert.pem, chain.pem and keyStore.p12. A folder of this machine (absolute path) or a NAS folder as smb://address/share/folder (e.g. a media server's certificate folder): Aurora mounts it on /mnt/aurora-certs with AURORA_CERTS_NAS_USER, else the backup's NAS user. Empty = no copy.",
+   "it": "Dove viene copiato ogni nuovo certificato, sovrascrivendo: fullchain.pem, privkey.pem, cert.pem, chain.pem e keyStore.p12. Una cartella di questa macchina (percorso assoluto) o una cartella del NAS come smb://indirizzo/condivisione/cartella (es. quella dei certificati di un media server): Aurora la monta su /mnt/aurora-certs con AURORA_CERTS_NAS_USER, altrimenti con l'utente NAS del backup. Vuoto = nessuna copia.",
+   "services": []
+  },
+  {
+   "key": "AURORA_CERTS_NAS_USER",
+   "type": "str",
+   "optional": true,
+   "category": "https",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "NAS user for an smb:// certificates folder (AURORA_CERTS_COPY_DIR), when its share wants one of its own; empty = the backup's NAS user. Kept by root in /etc/aurora/certs.cred, never in fstab.",
+   "it": "Utente del NAS per una cartella dei certificati smb:// (AURORA_CERTS_COPY_DIR), quando la sua condivisione ne vuole uno suo; vuoto = l'utente NAS del backup. Custodito da root in /etc/aurora/certs.cred, mai in fstab.",
+   "services": []
+  },
+  {
+   "key": "AURORA_CERTS_NAS_PASSWORD",
+   "type": "str",
+   "secret": true,
+   "optional": true,
+   "category": "https",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "Password of AURORA_CERTS_NAS_USER.",
+   "it": "Password di AURORA_CERTS_NAS_USER.",
+   "services": []
+  },
+  {
+   "key": "AURORA_CERTS_COPY_WINDOW",
+   "type": "str",
+   "optional": true,
+   "category": "https",
+   "recommended": "",
+   "evidence": "owner",
+   "en": "When the certificate may be copied to AURORA_CERTS_COPY_DIR (e.g. a NAS that sleeps at night): days and hours, such as 10-20, sat,sun 9-12, mon-fri 18-23, 22-6 across midnight; Aurora looks every hour inside it and tries again a copy that failed. Empty = at once, after each renewal and at the daily look.",
+   "it": "Quando il certificato può essere copiato in AURORA_CERTS_COPY_DIR (es. un NAS che di notte si spegne): giorni e ore, come 10-20, sab,dom 9-12, lun-ven 18-23, 22-6 a cavallo della mezzanotte; Aurora guarda ogni ora dentro la finestra e riprova una copia non riuscita. Vuota = subito, dopo ogni rinnovo e al controllo quotidiano.",
    "services": []
   },
   {

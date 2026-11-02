@@ -135,8 +135,11 @@ async def https_acme_cancel() -> dict:
 
 
 @router.post("/v1/aurora/https/acme/copy", dependencies=[Depends(admin_only)])
-async def https_acme_copy() -> dict:
+async def https_acme_copy(scheduled: bool = False) -> dict:
+    """The copy now (the page's button), or `scheduled` (svc_rem, each hour): only inside AURORA_CERTS_COPY_WINDOW."""
     from aurora import net_certs
+    if scheduled:
+        return await asyncio.to_thread(net_certs.copy_when, cfg, None, True)
     out = await asyncio.to_thread(net_certs.copy, cfg)
     if out is None:
         raise HTTPException(status_code=422, detail="no folder to copy to (AURORA_CERTS_COPY_DIR)")

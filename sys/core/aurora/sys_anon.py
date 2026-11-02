@@ -73,7 +73,7 @@ def purge_due(cfg: sys_config.Config, user: str | None = None) -> bool:
 
 
 LOOP_ACTS = ("create_artifact", "create_picture", "propose_change", "request_capability", "run_in_project",
-             "home_scene", "home_automation")
+             "home_scene", "home_automation", "phone_action")
 
 
 def refusal(name: str, index: dict, host) -> str:

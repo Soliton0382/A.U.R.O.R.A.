@@ -17,6 +17,7 @@
 .msg.aurora { align-self: flex-start; min-width: min(520px, 92%); }
 .msg.aurora.abstained { border-color: rgba(240, 179, 90, .6); }
 .msg.aurora.past { opacity: .9; }
+.msg.aurora .phone-act { margin-top: 6px; font-size: .9em; opacity: .85; }   /* 📱 an action done on the phone (N68) */
 .msg .meta { font-size: .76rem; color: var(--muted); margin-top: .35rem; }
 .msg.user .meta { text-align: right; }
 .msg p { margin: .3rem 0; white-space: pre-wrap; }

@@ -15,6 +15,7 @@ is signed with the same key, so keys/ is kept and backed up, never made again.
 from __future__ import annotations
 
 import os
+import re
 import secrets
 import shutil
 import subprocess
@@ -22,7 +23,7 @@ import sys
 import zipfile
 from pathlib import Path
 
-VERSION, CODE = "0.4.1", 7                   # versionName and versionCode (the code grows by one at every release)
+VERSION, CODE = "0.5.2", 10                 # versionName and versionCode (the code grows by one at every release)
 MIN_SDK, TARGET_SDK, BUILD_TOOLS = 29, 36, "36.0.0"
 PACKAGE = "org.aurora.app"
 
@@ -73,6 +74,33 @@ def copy(apk: Path, dest: Path, alone: bool = False) -> Path:
     return dest / apk.name
 
 
+BRAIN = ROOT.parent / "core" / "webui" / "js" / "modules" / "brain_gray.js"
+# the lobes' tint, as the brain widget's areas (brain.js AREAS)
+TINT = {"frontal": "7AA2FF", "parietal": "78E6C8", "occipital": "FF78AA", "temporal": "82D2FF", "cerebellum": "FAD76E",
+        "stem": "A0FF8C"}
+
+
+def brain(res: Path) -> None:
+    """The assistant's watermark (AssistView): the WebUI's brain (brain_gray.js, Gray's Fig. 728, public domain) as an
+    Android vector drawable, written at each build so the two never part: the lobes dark with their area's tint, the
+    outline, the gyri, the fissures."""
+    src = BRAIN.read_text(encoding="utf-8")
+    view = re.search(r"VIEW = \[(\d+), (\d+)\]", src).groups()
+    lobes = re.findall(r'"(\w+)": "([^"]+)"', src.split("export const LOBES", 1)[1].split("};", 1)[0])
+    one = lambda name: re.search(name + r' = "([^"]+)"', src).group(1)
+    many = lambda name: re.findall(r'"([^"]+)"', src.split(f"export const {name}", 1)[1].split("];", 1)[0])
+    out = [f'<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="{view[0]}dp" '
+           f'android:height="{view[1]}dp" android:viewportWidth="{view[0]}" android:viewportHeight="{view[1]}">']
+    out += [f'<path android:fillColor="#FF0D1430" android:pathData="{d}"/>'
+            f'<path android:fillColor="#30{TINT.get(k, "BE8CFF")}" android:pathData="{d}"/>' for k, d in lobes]
+    out += [f'<path android:strokeColor="#99AABEFF" android:strokeWidth="3" android:pathData="{one("OUTLINE")}"/>']
+    out += [f'<path android:strokeColor="#55AABEFF" android:strokeWidth="2" android:strokeLineCap="round" '
+            f'android:pathData="{d}"/>' for d in many("GYRI")]
+    out += [f'<path android:fillColor="#66AABEFF" android:pathData="{d}"/>' for d in many("FISSURES")]
+    (res / "drawable").mkdir(parents=True, exist_ok=True)
+    (res / "drawable" / "brain.xml").write_text("\n".join(out + ["</vector>"]) + "\n", encoding="utf-8")
+
+
 def build() -> Path:
     if missing():
         raise RuntimeError(f"tools missing: {', '.join(missing())}")
@@ -82,9 +110,11 @@ def build() -> Path:
     (work / "classes").mkdir()
     # resources and manifest; R.java for the code
     run(BT / "aapt2", "compile", "--dir", APP / "res", "-o", work / "res.zip")
+    brain(work / "res")
+    run(BT / "aapt2", "compile", "--dir", work / "res", "-o", work / "brain.zip")
     run(BT / "aapt2", "link", "-o", work / "base.apk", "-I", JAR, "--manifest", APP / "AndroidManifest.xml",
         "--min-sdk-version", MIN_SDK, "--target-sdk-version", TARGET_SDK, "--version-code", CODE,
-        "--version-name", VERSION, "--java", work / "gen", work / "res.zip")
+        "--version-name", VERSION, "--java", work / "gen", work / "res.zip", work / "brain.zip")
     conf = work / "gen" / PACKAGE.replace(".", "/") / "BuildConfig.java"
     conf.write_text(f'package {PACKAGE};\n\n/** Written by sys/app/build.py. */\nfinal class BuildConfig {{\n'
                     f'    static final String VERSION = "{VERSION}";\n    private BuildConfig() {{}}\n}}\n')
