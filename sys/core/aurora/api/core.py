@@ -397,6 +397,8 @@ def text_of(content) -> str:
 def give_way() -> None:
     """Between two pieces of a long batch run under the run lock: whoever is waiting goes first (C487, M236: a question
     waited about 74 s behind three answers of a review). Called only by the thread holding the lock."""
+    if not _run_lock.locked():
+        return
     _run_lock.release()
     try:
         time.sleep(0.2)

@@ -58,6 +58,9 @@ sys/core/webui/css/local/
 sys/core/tests/local/
 docs/local/
 sys/plugins/local_*/
+# forged here for this house, with its devices' names (C508)
+sys/plugins/ha_states/
+sys/plugins/ha_history/
 
 # a plugin's own libraries and programs (plg_deps, ROADMAP 101): fetched on install, never published
 sys/plugins/*/.deps/

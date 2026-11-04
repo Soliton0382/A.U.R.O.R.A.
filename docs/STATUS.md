@@ -43,7 +43,7 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | phone app page | 📱 a menu entry of its own: the app's APK to download (the newest in <AURORA_STATUS_DIR>/app, size and SHA-256), the steps with three screens of the app, this Aurora's address and port read from the page; whether each phone's line is open now or when it was last (sys_line.held, kept in memory); what to allow when notifications only arrive on opening the app (battery, autostart, per maker); inside the app the 🔔 and the Notifications page say the notifications come over the line (a two-method bridge: enabled?, Android's settings). To sign |
 | call | 📞 Aurora calls the phone (N45): a classic call screen over the lock screen with the ringtone (full-screen intent, call style), «Rispondi / Rifiuta»; the voice both ways over a WebSocket on the HTTPS port (16 kHz PCM, the phone's echo canceller), heard by Whisper and answered as in the chat; declined or missed → a notification with the reason. On an emulator against a stand-in: rings with the screen locked, audio up at 32 000 B/s, hang-up and decline reach the server (M259). To sign; then the real voice on a real phone |
 | the sentence foreseen | 🔮 at the first pause of a call (0.3 s), or from the words transcribed in the chat's hands-free conversation, the answer, its first sentence's voice and the search are prepared; the owner going on drops them; a guess acts on nothing and is not remembered (sys_call_ahead, kno_talk.prepare) | real call: first voice 0.95–1.69 s on four turns of five (M279); hit rate and the comparison without it not measured; the hands-free chat not seen live |
-| her steps said aloud | 🗣️ while the tools work she says what she is doing, in a call, in the phone's assistant (the same call path, api/call._turn) and in the hands-free chat (talk.step, sys_call_steps): from a step's name only, one line every 3 s at most, one every 15 s of nothing new; a sentence behind another still at work is told so | test_call_steps; not heard live yet |
+| her steps said aloud | 🗣️ while the tools work she says what she is doing, in a call, in the phone's assistant (the same call path, api/call._turn) and in the hands-free chat (talk.step, sys_call_steps): from a step's name only, one line every 3 s at most, one every 15 s of nothing new; a sentence is heard while a long answer goes on, an answer spoken over is said afterwards («Per quello di prima…»), «lascia stare» drops it and stops the agent before its next step, «no, volevo dire…» replaces it; short signs while the owner talks and while she thinks (AURORA_CALL_NODS); she asks back when she could not make a sentence out | test_call_steps; not heard live yet |
 | autonomous defence | auto blocks within the owner's limits, lifted by themselves, never the home network | tests (fake firewall) |
 | post privacy | 🔍 private names (local model), places, contacts; 🗑️ discard; an autonomous post naming someone waits | M105, tests |
 | exam values | read by the local model from the exams, sealed, a chart over time with the range | tests |
@@ -168,9 +168,9 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 
 The partial and missing items, checked against the code: ROADMAP.md, first section. The owner's checks: MANUAL_TESTS.md.
 
-## Open bugs (4)
+## Open bugs (2)
 
-C487 (a question queued behind a review: fix written, to see on a real review), C496 (the app's signing key out of the backup), C406 (the alerts that learn: built, closed after a week of the owner's verdicts), C463 (the .env's secrets in
-plaintext). Closed 3 Nov: C480 (a routine's sealed files), C484 (closed by the owner, not seen again), C485 (the
+C406 (the alerts that learn: built, closed after a week of the owner's verdicts), C463 (the .env's secrets in
+plaintext). Closed 4-5 Nov: C499-C507 (self-repair's sandbox, a camera's password in a log, M287-M289). Closed 3 Nov: C480 (a routine's sealed files), C484 (closed by the owner, not seen again), C485 (the
 wildcard certificate's request). C390 (the reasoner's night crashes) closed on
 30 Oct after a week without one; C462 (the swap file) the same day. Details in BUGS.md.

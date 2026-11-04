@@ -164,11 +164,24 @@ def answer_stats(hours: float = 24, cfg: sys_config.Config | None = None) -> dic
 HOST = {"models": "models", "llm": "llm", "rem": "rem", "harvester": "harvester", "https": "https"}
 
 
+UNFIXED = 3                     # a problem seen this many times, with no code signed since: not gone with a restart
+
+
+def _signed_at(cfg: sys_config.Config) -> str:
+    """When the code last changed: the owner's signature, as the logs write a time."""
+    try:
+        return datetime.fromtimestamp((cfg.root / "sys" / "core" / "ethics" / "MANIFEST.json").stat().st_mtime).isoformat(timespec="seconds")
+    except OSError:
+        return ""
+
+
 def problem_evidence(cfg: sys_config.Config | None = None, hours: float = 24) -> list[dict]:
     """Every kind of problem with measured facts: how many, first and last time, the last start of the
     service that hosts the component, and whether the problem was seen again after that start. A problem
-    not seen since its service restarted is a candidate "resolved" (to be confirmed in the code)."""
+    not seen since its service restarted is a candidate "resolved" (to be confirmed in the code), unless it kept
+    coming back and the code has not changed since: a restart hid it, it did not fix it (C505)."""
     inv = inventory(cfg, hours)
+    signed = _signed_at(cfg or sys_config.get())
     comps = inv["components"]
     starts = {name: [x[:19] for x in c["lifecycle"] if " started" in x or x[20:].startswith("started")]
               for name, c in comps.items()}
@@ -179,5 +192,6 @@ def problem_evidence(cfg: sys_config.Config | None = None, hours: float = 24) ->
         for kind, k in sorted(c["kinds"].items(), key=lambda kv: -kv[1]["count"]):
             out.append({"component": name, "kind": kind, "count": k["count"], "first": k["first"], "last": k["last"],
                         "host_service": f"aurora-{host}", "host_last_start": last_start,
-                        "seen_after_last_start": bool(last_start and k["last"] > last_start)})
+                        "seen_after_last_start": bool(last_start and k["last"] > last_start),
+                        "unfixed": k["count"] >= UNFIXED and k["last"] > signed})
     return out

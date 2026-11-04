@@ -40,8 +40,16 @@ def rel(p: Path) -> str:
 def ours(p: Path) -> bool:
     """A published file: never the owner's own extensions (local/, local_*: ignored by git, C308), caches, libraries."""
     r = "/" + rel(p)
+    if any(f"/sys/plugins/{n}/" in r for n in _private_plugins()):
+        return False
     return not any(s in r for s in ("/local/", "/local_", "/__pycache__/", "/vendor/", "/node_modules/", "/.deps/",
                                     "/.bin/"))      # a plugin's own installed libraries (plg_deps): not ours
+
+
+def _private_plugins() -> set[str]:
+    """Plugins forged for this house, marked private and ignored by git (C508): not in the public map."""
+    return {f.parent.name for f in (ROOT / "sys" / "plugins").glob("*/plugin.json")
+            if '"private": true' in f.read_text(encoding="utf-8", errors="replace")}
 
 
 def code_files() -> list[Path]:

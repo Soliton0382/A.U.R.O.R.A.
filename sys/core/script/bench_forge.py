@@ -106,9 +106,9 @@ def documents_pdf():
 
 
 def routines_active():
-    from aurora import sys_users_layout
-    from aurora import sys_seal                          # sealed with the admin's key (N64), or a file of before
-    rs = json.loads(sys_seal.read_any(cfg, sys_users_layout.place(cfg, "state", None) / "routines.json", None))
+    import httpx
+    from bench_quality import BASE, HEAD                 # sealed for her services (N64, C503): asked of the API
+    rs = httpx.get(f"{BASE}/v1/aurora/routines", headers=HEAD, timeout=30).json()["routines"]
     return {"active": sum(1 for r in rs if r.get("enabled", True)), "total": len(rs)}
 
 
@@ -126,7 +126,7 @@ NEEDS = [
     ("Quanti sogni (immagini dream-*.png) ha dipinto Aurora negli ultimi 7 giorni, nella cartella delle immagini", dreams),
     ("Quanti PDF ci sono nella cartella dei documenti di Aurora, sottocartelle incluse", documents_pdf),
     ("Quante routine sono attive e quante in tutto, dal file routines.json dell'utente", routines_active),
-    ("Quanto spazio occupano, in MB, i log dell'harvester (cartella sys/logs/harvester)", log_mb),
+    ("Quanto spazio occupano, in MiB (1 MiB = 1024 × 1024 byte), i log dell'harvester (cartella sys/logs/harvester)", log_mb),
 ]
 
 

@@ -4080,6 +4080,7 @@ false`). The 7-night probe of 21 October ran (its result had stayed in the file,
 | 2.55 (M236) | 8 of 8 | 4.4–78.4 |
 | **6.55** (21 Oct) | **8 of 8** | 4.2–36.1 |
 | **8.67** (23 Oct) | **8 of 8** | 4.3–29.1 |
+| **20.66** (4 Nov, after the memory was sealed, N64) | **8 of 8** | 10.4–23.7 |
 
 The changed fact (the car sold, the new one told later in the same talk) is the new one at every probe; the
 hazelnut allergy refuses the Nutella dessert; the never-told brother and colour are «I don't know», nothing invented;
@@ -4378,6 +4379,22 @@ The one that did harm came in at 0.17 against a relevant passage at 0.15: a link
 AURORA_SYNAPSE_MIN_RERANK = 0.5 (the two above it did no harm); the deductions, which take the strongest synapses
 between fields on their own path, are not touched. Not measured: a second round with the floor (3 cases are too few
 for a rate), the answers' text itself, the deductions' share coming from synapses.
+
+**Second round, with the floor (4 November 2026):** the same script, 14 days back, 14,480 links (+3,553 in a week), run in
+a service's identity so that the sealed questions open (`sudo -u aurora` is not enough, the key is given by systemd only).
+
+| measure | 28 Oct | 4 Nov |
+|---|---|---|
+| questions whose passages the synapses changed | 3 of 160 (1.9 %) | 6 of 213 (2.8 %) |
+| relevance of the passages brought in | 0, 0, 0 | 2, 0, 0, 0, 0, 0 (mean 0.33) |
+| relevance of the passages pushed out | 0, 0, 2 (mean 0.67) | 0, 0, 0, 0, 0, 0 |
+| better / worse / same | 0 / 1 / 2 | 1 / 0 / 5 |
+| time | 41.9 minutes | 57.7 minutes |
+
+Read: with the floor no case did harm, one helped, and five of the six brought in a passage judged not relevant in place
+of another not relevant. The synapses touch the passages of about 3 questions in 100: 9 cases in two rounds are still too
+few for a rate, and the two rounds' questions overlap. The local model was reloaded once during the run for a picture of
+the owner's (about 20 s); the run did not stop. The harvester was at work beside it, so the two rounds' times do not compare. Not measured: the answers' text itself, the deductions' share.
 
 ## M267 — dynamic masking with the local model (28 October 2026; C418, sec_mask_spot)
 
@@ -4778,10 +4795,10 @@ aurora-llm was stopped by systemd during the run (not by me: SIGTERM, 30 s of st
 Median: HumanEval 35.1 against 32.7 s; simple 16.0 against 2.8; multiple 18.1 against 3.2. Read: a tie within noise on this seed, Aurora 5 to 6 times slower on BFCL; the bare's IFEval used the local language judge too.
 
 ### Not done
-- M266: due from 4 Nov; today is 3 Nov.
+- M266: done on 4 Nov, see its second round.
 - M217, M251: several nights; not started.
 - M243: the shadows are sealed: needs Aurora code reading them in-process, forbidden; no API found.
-- M250 (Opus as judge), bench_agi (M220–M222 battery), bare-claude, judged sets: the CLI judge from this shell: «Not logged in», see bug. Script fix or a decision needed.
+- M250 (Opus as judge), bench_agi, bare-claude, judged sets: done on 4 Nov (M287, M288), the judge works from this shell since C489.
 - M252 lessons from the local model's own mistakes: bench_learn writes the shared lessons store; see M252.
 - M225/M226: blocks need Aurora's firewall path (sealed credentials) with the real firewall registered beside the lab ones; the risk was not worth it without the owner. VMs not started.
 - M209/M210: signs crowding and sheets need reading a picture: the guard refuses PNG here; EP package needs a project.
@@ -4854,5 +4871,152 @@ A private project on a real question. Every phase checked from outside: the code
 | 1 | local | 8.5 min | a simulator with no tests; not the code it names (4 of 8 stabilizers), the crosstalk built and never used, numbers that are noise (exact: 0.00049 and 0.00415 against 0.0020 and 0.0030) | honest on weak statistics and unproved claims, advised against going on; did not see the two gravest faults, which need the code read |
 | 1 again | local | 4.7 min | nothing: 9 calls, 2 stops at the token limit, closed as done | said plainly «not carried out», with the right counts |
 | 1 again, short | **cloud** | 7.7 min, 0.90 USD equivalent, 8 calls | the right [[9,1,3]] code, 10 tests that pass again outside it, an exact p_L confirmed by a separate calculation | honest, and named its own weak spots (the Monte Carlo reuses the same table) |
+| 1, the coherent noise | **cloud** | 27.6 min, 4.21 USD equivalent, 20 calls | a model of the noise with 17 tests that pass again outside it; its coherent p_L equal to a separate full-state calculation at both angles tried (0.0015602 and 0.27755) | said first that without pulses the model cannot tell sequences apart, with the proof; proposed the step that makes the question well posed |
+| 2, the sequences compared | **cloud** | 41.6 min, 7.39 USD equivalent, 24 calls | 25 tests that pass again outside it; the question not answered yet: on a grid of nearest neighbours Walsh and the shifted sequence are the same by construction | said so first; retired its own two «wins» after repeating them on 5 seeds (a choice among 18 comparisons); flagged a result it could not explain rather than using it |
+| 3, the conclusion | **cloud** | 50.7 min, 10.34 USD equivalent, 39 calls | 34 tests that pass again outside it, its criterion written before measuring, ten lines of conclusions | explained its earlier anomaly as an artefact of its own metric; concluded against the hypothesis it was given, and named the limits of that |
 
-The conductor's three calls in phase 1 came to 0.14 USD equivalent. Read: on a phase of real computation the local worker does not carry it (as M275's small phase did not show); the cloud judge is honest but judges the report, not the code. It also repeated a wrong detail from its own environment («not a git repository»; the commits are there). So a phase's result still needs a check from outside. Not measured: the local worker's token use; a whole project.
+The conductor's three calls in phase 1 came to 0.14 USD equivalent. Read: on a phase of real computation the local worker does not carry it (as M275's small phase did not show); the cloud judge is honest but judges the report, not the code. It also repeated a wrong detail from its own environment («not a git repository»; the commits are there). So a phase's result still needs a check from outside. In all about 23 USD equivalent and 2.3 hours for the four cloud phases. Its result, in a private project: in this small model (9 qubits, one window, code capacity) the code plus shifted pulses gain about 90 times over no pulses, Walsh adds nothing over the shifted sequence; the setting the Walsh paper is about, many qubits with fluctuating crosstalk, was not reached. Checked from outside: code, the coherent numbers of phase 1, the tests; not the factor 90. Not measured: the local worker's token use; a project past this size.
+
+## M282 — the sentence foreseen word by word: is it worth building? (3 November 2026; ROADMAP N70)
+
+The local model, llama-server directly, no thinking, asked to finish 20 invented sentences (it, en) cut after each word: 158 cuts, with a run of the benchmark on the same model. Judged by the same model: «would the assistant do the same?». A first run was void and retired: the model often gave only the rest of the sentence, which the score read as wrong (10 of 158).
+
+| words still to come | right meaning | word for word |
+|---|---|---|
+| 1 | 13 of 20 | 10 |
+| 2 | 9 of 20 | 4 |
+| 3 | 7 of 20 | 1 |
+| 4 | 4 of 20 | 0 |
+
+By the part of the sentence said: first third 0 of 47, middle 8 of 60, last third 25 of 51. Before it stays right to the end: 89 % of the sentence, median. Median 0.26 s a guess, p90 0.31, max 0.37: fast enough. Read: it comes right when almost nothing is left to say, where today's bet at the first pause (M279) already works; a word is about 0.4 s of speech at most, and early guesses are right too rarely to prepare an answer on. Not worth building as it stands. The judge is lenient («Quanto ho speso in benzina in benzina?» passed), so these are upper figures. Not measured: a real person's sentences and habits, with recent turns as context; Whisper's words instead of written ones; a judge other than the model itself.
+
+## M283 — lessons written from the local model's own mistakes (3 November 2026; continues M252)
+
+bench_learn on the local model's two runs of seed 9: 20 wrong answers gave 4 lessons, kept apart for this trial, the store put back byte for byte afterwards. Seed 11, 10 a set, code-scored, no judge.
+
+| set | without | with |
+|---|---|---|
+| MMLU-Pro | 8 | 8 |
+| GPQA | 7 | 8 |
+| AIME | 8 | 9 |
+| ARC-AGI-1 | 2 | 2 |
+| total of 40 | **25** | **27** |
+
+Only with 2, only without 0, exact p = 0.5: no effect that can be told from noise, the fourth trial to say so (M191, M252). The two runs were interrupted once and resumed, with the service restarted in between only before the lessons' part. Read: they stay off. Not measured: more than 4 lessons; a larger sample.
+
+## M284 — a question while an agent is at work (3 November 2026; BUGS C487, C498)
+
+Live, after the fix, one run on invented text: an agent on the local model reading four documents (seven tool calls, 82.9 s); a question sent at 25 s, remember false. Before, it would have waited for the agent's end. It reached its route 1.2 s after being sent, was answered in 10.9 s in all, and the agent went on and finished; between the two, the agent stood still. Not measured: a sentence spoken in a call through the same path; a cloud worker's long tool call, which is not cut; a repeat.
+
+## M285 — the owner's first real call with the signs, read from the logs (4 November 2026; BUGS C499, C500)
+
+One call of 2 min 43 s on the assistant. No words read: only the times of the call's log and of the local reasoner's.
+
+| what | value |
+|---|---|
+| first voice after the sentence's end, answer guessed (8) | 0.75–6.12 s, median 1.56 s |
+| first voice, not guessed (2), no answer written: which sentence they were is not logged | 0.14 and 0.76 s |
+| the slow one, 6.12 s | her long system prompt cold: 3208 tokens read in 3.9 s, and the choice (278 tokens) waiting behind it, 3.8 s |
+| another cold reading, while the owner paused | 3856 tokens in 5.2 s |
+| the same prompt once read | 500–1200 tokens, 0.3–0.7 s |
+| reasoner's calls in the call | 63, 10 of them over 1000 tokens |
+| the whole path's one turn (mode self) | 32.5 s: 9 calls of the local reasoner over about 8 s before the cloud, 16.2 s the cloud as it counts itself, about 7 s not accounted for |
+
+The cold readings are what warm() now removes when the call opens, on both slots: not measured yet. The signs' phonemes, read from the voice's own phonemizer: «Mh» /ɛmme akːa/, «Mm-hm» /ɛm ɛm eɪtʃ ɛm/, also «Mhm», «Hm», «Mmm», spelled; «Uhm» /um/, «Capito», «Vediamo» said. Added to the log for the next call, no words of the owner's: a sign said, her voice cut with the time left, a sentence not understood.
+
+## M286 — the first week of the ways out, read (4 November 2026; ROADMAP N50, M264; BUGS C501)
+
+The learning week ended on 3 November. Read from /v1/aurora/security/egress, the day after:
+
+| what | value |
+|---|---|
+| services with a way out | 4 |
+| networks learnt, service by service | 42 (the API 32, the harvester 7, REM 2, the tunnel 1) |
+| new since the week's end, incidents | 0, 0 |
+| largest sent at once | 25.1 MB towards a social network's network: the size of a video post, the owner's published ones not matched one by one |
+| a network on the deny list among those learnt | 1: 2 samples, 0 bytes sent, no incident |
+
+The last line is C501: the watch on the sockets does not look at the deny list, and only the firewall's lines do. One day's reading: what it says of the alarms is little yet.
+
+The next call (three sentences, warm-up on): first voice 1.80, 1.49, 0.87 s, one sign said, none spelled by the owner's ear; too few to say what the warm-up gains. A prompt of 3,856 tokens read cold, 5.0 s, belongs to none of the call's own and ended before it opened; its origin is not traced.
+
+## M287 — the AGI battery again, three weeks on (4 November 2026; bench_agi.py, M212)
+
+32 questions through the API (remember: false), judged by Claude Code opus; bench_preflight GO; the harvester stopped by
+hand for the run. 15.9 minutes. Repair and autonomy were not run again: their last results, of 14 October. Memory now
+enters as an eighth section (M251, 20.66 days).
+
+| section | M212 (14 Oct) | **4 Nov** | median s |
+|---|---|---|---|
+| reasoning | 8/8 | 8/8 | 10.1 |
+| planning | 3/3 | **2/3** | 21.3 |
+| honesty | 12/12 | 12/12 | 32.3 |
+| refusal | 6/6 | 6/6 | 31.5 |
+| context | 3/3 | 3/3 | 34.3 |
+| repair | 4/4 | 4/4 (of 14 Oct) | — |
+| autonomy | 7/8 | 7/8 (of 14 Oct) | — |
+| memory | not there | 8/8 | — |
+| **score, mean of the shares** | 0.982 (7 sections) | **0.943** (8 sections; 0.935 on the same 7) | |
+
+The one missed: a dinner for 50 euro whose own total came to 50.80 euro, with a saving that did not reach the total it
+promised: an arithmetic slip against a constraint, one question. One question moves a section of three by a third, so the
+fall of the score is that question and no more. Not measured: repair and autonomy on today's code; the times against
+M212, whose medians were not kept in its table.
+
+## M288 — Aurora against the bare models, a new sample (4 November 2026; bench_public.py --seed 12, bench_compare.py; M214)
+
+The same 130 questions to each, 13 public sets, 10 a set, on the signed code with the harvester stopped: Aurora with the
+owner's own models, the local model alone, Claude Sonnet alone. `aurora_edge` is out: it stopped the first run (C503),
+after 8 right of 10 on its vault questions; those were not saved.
+
+| set | Aurora mixed | bare local | bare Sonnet | median s (Aurora, local, Sonnet) |
+|---|---|---|---|---|
+| MMLU-Pro | 7 | 8 | 8 | 11.4, 23.0, 4.0 |
+| GPQA Diamond | 9 | 9 | 10 | 12.4, 217.1, 8.1 |
+| HLE | 4 | 1 | 3 | 23.5, 206.4, 15.1 |
+| AIME | 10 | 7 | 10 | 12.1, 95.9, 8.1 |
+| MATH-500 | 10 | 10 | 9 | 9.9, 37.2, 3.6 |
+| SimpleQA | 5 | 2 | 3 | 33.8, 16.5, 8.6 |
+| TruthfulQA | 7 | 8 | 9 | 10.3, 11.2, 5.5 |
+| ARC-AGI 1 | 9 | 2 | 10 | 80.7, 226.0, 24.5 |
+| IFEval | 9 | 8 | 8 | 19.9, 27.8, 13.4 |
+| HumanEval | 10 | 10 | 10 | 13.8, 32.5, 3.3 |
+| BFCL simple | 10 | 9 | 10 | 10.5, 2.9, 2.4 |
+| BFCL multiple | 10 | 10 | 10 | 14.0, 3.4, 3.1 |
+| BFCL irrelevance | 7 | 5 | 8 | 15.0, 6.6, 4.4 |
+| **total of 130** | **107** | **89** | **108** | 50, 170, 21 minutes |
+
+McNemar on the total, the rule of M214: against the local model alone, 22 only Aurora, 4 only bare, **p = 0.0005: improves**.
+Against Sonnet alone, 7 only Aurora, 8 only bare, **p = 1.0: a tie**, as M214 without aurora_edge (83 against 77, p = 0.15).
+Aurora mixed also uses Opus for some roles, so the tie is not the same model with and without. Read: on public sets, Aurora
+lifts a local model to a cloud model's level and does not go past it; what a bare model cannot know is the aurora_edge set,
+not measured today. Not measured: aurora_edge; why TruthfulQA is 7 against 9 (2 questions, p = 0.5); another seed.
+
+Added on 5 November, after C503: `aurora_edge` on the same seed, 26 questions.
+
+| | Aurora mixed | bare Sonnet |
+|---|---|---|
+| honesty | 12/12 | 12/12 |
+| live (this machine and house now) | 3/4 | 0/4 |
+| vault | 8/10 | 3/10 |
+| **total** | **23/26** | **15/26** |
+
+8 only Aurora, 0 only bare, **p = 0.0078: improves**. With the 13 public sets, 130 against 123 of 156, 15 only Aurora and 8 only
+bare, p = 0.21: not «improves» by M214's rule. Repair and autonomy were not measured: both scripts died at once (C506), and
+the forge's roles need the services' identity from a person's shell.
+
+## M289 — self-repair and the forge on today's code (5 November 2026; bench_repair.py, bench_forge.py --roles; M212, M287)
+
+| | M212 (14 Oct) | **5 Nov** | time |
+|---|---|---|---|
+| self-repair, seeded bugs found, fixed in a sandbox, tests green, proposed | 4/4 | **4/4** | 445–746 s each |
+| the forge, needs answered right | 7/8 | **6/8** (8 of 8 built) | 45–98 s each |
+
+With these two, M287's score on today's code is **0.927** (8 sections). A first round of self-repair gave 0/4: the benchmark's
+own sandbox had no sys/app (C507), and the agent's right fix was refused for a test that could not start; it said so and did
+not force the tests. The forge's two misses: the logs' size, 8.80 MB in decimal against an expected 8.4 in binary, a right answer
+and a question that did not say which (it says MiB now); and the routines, «no file: no routine configured» against 39. The
+forge ran in the services' identity. The second is not explained: a benchmark's plugin may look in another user's place than a
+real one's, and a file not found was told as none. Not measured: the same need asked by a real user; a proposal carried through
+to a real change (the benchmark refuses each); how much the 13 days without a sandbox (C504) left undone.
+

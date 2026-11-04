@@ -18,6 +18,7 @@ import argparse
 import dataclasses
 import glob
 import gzip
+import hashlib
 import json
 import random
 import re
@@ -27,7 +28,7 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from aurora import kno_synapse, sys_config, sys_log  # noqa: E402
+from aurora import kno_synapse, sys_config, sys_log, sys_seal  # noqa: E402
 
 JUDGE = ("You judge whether a passage helps to answer a question. Reply with one digit only: 2 if the passage is "
          "relevant and useful to answer it, 1 if it is related but not much use, 0 if it is not relevant.")
@@ -47,10 +48,14 @@ def questions(cfg, days: int, most: int) -> list[str]:
                     e = json.loads(line)
                 except ValueError:
                     continue
-                q = str(e["payload"].get("question") or "").strip()
-                if e["ts"][:10] < since or len(q) < 12:
+                if e["ts"][:10] < since:
                     continue
-                (touched if (e["payload"].get("synapses") or {}).get("added") else other)[q] = 1
+                # a chat's words are sealed since N64: opened with their user's key, so this runs with her key (uninstall.sh's systemd-run)
+                d = sys_log.open_fields(cfg, e["payload"], f"{e.get('run_id')}/{e['event']}", e.get("user"))
+                q, syn = str(d.get("question") or "").strip(), d.get("synapses")
+                if len(q) < 12 or sys_seal.is_sealed(q):
+                    continue
+                (touched if isinstance(syn, dict) and syn.get("added") else other)[q] = 1
     pick = list(touched)[-most:]
     rest = [q for q in other if q not in touched]
     random.Random(7).shuffle(rest)
@@ -94,7 +99,7 @@ def main() -> int:
         sa, sb = {h.sid: h for h in a}, {h.sid: h for h in b}
         brought = [h for h in a if h.sid not in sb]
         pushed = [h for h in b if h.sid not in sa]
-        row = {"question": q, "changed": bool(brought), "brought": [], "pushed": []}
+        row = {"question": hashlib.sha256(q.encode()).hexdigest()[:16], "changed": bool(brought), "brought": [], "pushed": []}   # never in clear
         for key, hs in (("brought", brought), ("pushed", pushed)):
             for h in hs:
                 row[key].append({"sid": h.sid, "domain": h.soliton.domain, "rerank": round(h.rerank, 4),

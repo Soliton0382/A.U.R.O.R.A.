@@ -206,7 +206,11 @@ def side_by_side() -> str:
             extra.append(f"- {name} (Aurora only; a bare model has no sandbox): {sum(bool(r.get('right')) for r in rows)}/{len(rows)}")
         except (OSError, ValueError, KeyError):
             extra.append(f"- {name}: not run")
-    extra.append("- memory over days: no test yet")
+    try:
+        m = json.loads((bench / "memory_days.json").read_text(encoding="utf-8"))["probes"][-1]
+        extra.append(f"- memory over days: {m['right']}/{m['total']} at {m['days']} days")
+    except (OSError, ValueError, KeyError, TypeError, IndexError):
+        extra.append("- memory over days: no test yet")
     return "\n".join(lines + [""] + extra) + "\n"
 
 

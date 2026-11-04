@@ -63,6 +63,11 @@ class _Voice:
         self.ws, self.lang, self.until, self.turn = ws, lang, 0.0, 0
         self.phone: dict[str, asyncio.Future] = {}   # 📱 an action sent to the app → its answer (N68)
         self.t0, self.guessed = 0.0, False           # 🔮 when the last sentence ended, whether it was guessed
+        from aurora import sys_call_steps
+        self.free, self.owed, self.long = asyncio.Event(), sys_call_steps.Owed(lang), 0    # 🗣️ never behind a long answer
+        self.at_work: dict[int, dict] = {}            # the whole path's runs still going, by their turn
+        self.dropped: set[int] = set()                # 🛑 the owner said to leave those
+        self.nods, self.lost_at = sys_call_steps.Nods(lang), 0.0   # 👂 while the owner talks; 🤔 the last «non ho capito»
 
     def speaking(self) -> bool:
         return time.monotonic() < self.until
@@ -70,14 +75,27 @@ class _Voice:
     async def stop(self) -> None:
         self.turn += 1                                # the sentences of the turn cut are not sent
         if self.speaking():
+            log.info("call: cut with %.1f s of her voice left", self.until - time.monotonic())
             self.until = 0.0
             await self.ws.send_text(json.dumps({"type": "flush"}))
+
+    async def nod(self, word: str, within_s: float = 0.5) -> None:
+        """A short sign that she is there: never counted as her speaking, so it cuts nothing and is cut by nothing; only
+        when its clip is ready at once (they are made when the call opens), else the moment has passed."""
+        from aurora import mdl_tts
+        try:
+            wav = await asyncio.wait_for(asyncio.to_thread(mdl_tts.speak, cfg.now(), word, self.lang), within_s)
+            await self.ws.send_bytes(sys_call.pcm16k(wav))
+            log.info("call: sign %s", word)
+        except (asyncio.TimeoutError, RuntimeError, ValueError) as e:
+            log.debug("call: no nod: %s", e)
 
     async def say(self, text: str, turn: int | None = None) -> None:
         """Said sentence by sentence; `turn`: the owner's sentence it answers (cut by a newer one, nothing is said)."""
         from aurora import mdl_tts
         turn = self.turn if turn is None else turn
-        for s in sys_call.sentences(text):
+        from aurora import sys_call_steps
+        for s in sys_call.sentences(sys_call_steps.sayable(text, self.lang)):
             if turn != self.turn:
                 return
             try:
@@ -113,16 +131,28 @@ async def call_audio(ws: WebSocket, call_id: str) -> None:
     lang = str(cfg["AURORA_LANG_DEFAULT"])[:2]
     voice, seg, heard = _Voice(ws, lang), sys_call.Segmenter(), asyncio.Queue()
 
-    from aurora import mdl_tts, sys_call_ahead
+    from aurora import kno_talk, mdl_tts, sys_call_ahead
     from .core import pipeline
     ahead = sys_call_ahead.Ahead(pipeline(), cfg.now(), lang, seg, mdl_tts.speak)   # 🔮 prepared while the owner pauses
 
-    async def turns() -> None:                        # one sentence of the owner at a time, in order
-        while True:
-            audio = await heard.get()
-            await _turn(ws, voice, audio, lang, ahead)
+    from aurora import sys_call_steps
+    nods_on = bool(cfg["AURORA_CALL_NODS"])
 
-    worker = asyncio.create_task(turns())
+    async def clips() -> None:                        # 👂 ready before the first sentence
+        for w in voice.nods.words():
+            try:
+                await asyncio.to_thread(mdl_tts.speak, cfg.now(), w, lang)
+            except (RuntimeError, ValueError):
+                return
+    if nods_on:
+        asyncio.create_task(clips())
+    asyncio.create_task(asyncio.to_thread(kno_talk.warm, pipeline(), cfg.now(), lang))   # 🔥 no cold first answers (M285)
+
+    async def failed(e: Exception) -> None:           # 🛟 a turn that breaks is told, never silence (C499)
+        log.error("call: turn failed: %r", e, exc_info=e)
+        await voice.say("Scusa, ho avuto un problema. Riprova." if lang == "it" else "Sorry, something went wrong. Try again.")
+
+    worker = asyncio.create_task(sys_call_steps.in_turn(heard, lambda audio: _turn(ws, voice, audio, lang, ahead), voice.free, failed))
     try:
         if not c.get("assistant"):
             await voice.say("Ciao, dimmi pure." if c.get("by") == "owner" else f"Ciao, sono Aurora. {c['reason']}")
@@ -142,6 +172,9 @@ async def call_audio(ws: WebSocket, call_id: str) -> None:
                 if seg.maybe is not None:
                     if not voice.speaking():          # her own voice heard back is no sentence of the owner's
                         ahead.pause(seg.maybe)
+                        word = voice.nods.at_pause(len(seg.maybe) / sys_call.RATE) if nods_on else None
+                        if word:
+                            asyncio.create_task(voice.nod(word))
                     seg.maybe = None
                 for audio in said:
                     voice.t0 = time.monotonic()       # the sentence ended: the wait she is measured by
@@ -197,10 +230,30 @@ async def _turn(ws: WebSocket, voice: _Voice, audio, lang: str, ahead=None) -> N
             return
         text = str(out.get("text") or "").strip() if out.get("clear") else ""
     if not text:
+        # 🤔 a real sentence she could not make out, not a noise: asked back, not too often
+        if len(audio) >= sys_call.RATE and time.monotonic() - voice.lost_at > 15 and not voice.speaking():
+            voice.lost_at = time.monotonic()
+            log.info("call: not understood, %.1f s of voice", len(audio) / sys_call.RATE)
+            await voice.say("Scusa, non ho capito." if lang == "it" else "Sorry, I didn't catch that.")
         return
     await voice.stop()
     await ws.send_text(json.dumps({"type": "heard", "text": text}))
     turn = voice.turn
+    from aurora import sys_call_steps
+    if (voice.at_work or voice.owed.items) and sys_call_steps.cancels(text):     # 🛑 «lascia stare»
+        for t, r in voice.at_work.items():
+            r["cancel"] = True
+            voice.dropped.add(t)
+        voice.owed.take()
+        await voice.say(sys_call_steps.CANCELLED[0 if lang == "it" else 1], turn)
+        return
+    now_means = sys_call_steps.corrected(text)        # ✏️ «no, volevo dire…»
+    if now_means:
+        text = now_means
+        for t, r in voice.at_work.items():
+            r["cancel"] = True
+            voice.dropped.add(t)
+        voice.owed.take()
     from .core import pipeline
     model = pipeline().llm                            # the local reasoner: the phone's commands, the spoken answer
     if await sys_call.phone_now(ws, voice, text, lang, turn, log, model, guess):   # ⚡ «apri YouTube»: the app at once (N68)
@@ -210,7 +263,7 @@ async def _turn(ws: WebSocket, voice: _Voice, audio, lang: str, ahead=None) -> N
     if _run_lock.locked():                            # behind what she is still doing (M279: 23 s in silence)
         await voice.say("Un attimo, finisco quello di prima." if lang == "it" else "One moment, finishing what came before.", turn)
     run = start_run(text, origin="call", job=mood_wrap(text, _talk))
-    seen, buf, spoken, handed = 0, "", False, False
+    seen, buf, spoken, handed, thought, t0 = 0, "", False, False, False, time.monotonic()
     while True:
         done = run["done"]                            # read before the events: none written after it is missed
         events = run["events"][seen:]
@@ -226,6 +279,9 @@ async def _turn(ws: WebSocket, voice: _Voice, audio, lang: str, ahead=None) -> N
                 await voice.say(str(e["payload"].get("text") or ""), turn)
             elif e["event"] == "talk.handoff":
                 handed = True
+                voice.long += 1
+                voice.at_work[turn] = run
+                voice.free.set()                      # the next sentence need not wait for this answer
                 if buf.strip():                       # the start she said before handing on
                     await voice.say(buf, turn)
                 buf = ""
@@ -236,14 +292,28 @@ async def _turn(ws: WebSocket, voice: _Voice, audio, lang: str, ahead=None) -> N
             spoken = True
         if done:
             break
+        # 🤔 no word yet: a sign she is thinking, not her first voice (what she is measured by stays her answer's)
+        if cfg["AURORA_CALL_NODS"] and not (thought or spoken or handed or voice.speaking()) and time.monotonic() - t0 > 1.5:
+            thought = True
+            await voice.nod(voice.nods.thinking())
         await asyncio.sleep(0.05)
-    if turn != voice.turn:                            # the owner spoke again: this answer is not said
+    if handed:
+        voice.long -= 1
+        voice.at_work.pop(turn, None)
+    if turn in voice.dropped:                         # 🛑 left: not said, now or later
+        voice.dropped.discard(turn)
+        return
+    if turn != voice.turn and not handed:             # the owner spoke again: plain talk is not said
         return
     answer = run.get("answer")
     said = str(getattr(answer, "text", answer) or "").strip() or "Scusa, non sono riuscita a rispondere."
     await ws.send_text(json.dumps({"type": "said", "text": said}))
     if handed or not spoken:                          # the whole path's answer, written for the chat: its gist said
         said = await asyncio.to_thread(sys_call.spoken, model, said)
-        if turn != voice.turn:
-            return
-    await voice.say(said if handed or not spoken else buf, turn)   # streamed: only its last words are left
+    if turn != voice.turn:                            # spoken over: said once she has answered the newer one
+        voice.owed.add(said)
+    else:
+        await voice.say(said if handed or not spoken else buf, turn)   # streamed: only its last words are left
+    if not voice.long or turn == voice.turn:
+        for line in voice.owed.take():
+            await voice.say(line)

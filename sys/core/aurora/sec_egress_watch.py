@@ -146,6 +146,7 @@ class EgressWatch:
         self.nets = networks or Networks(cfg)
         self.base = baseline(cfg)
         self.answers = decisions(cfg)
+        self.deny = sec_egress.Deny(sec_egress.load(cfg).get("prefixes", []))
         self.read_at = time.time()
         self.told: dict[tuple[str, str], float] = {}
 
@@ -158,6 +159,7 @@ class EgressWatch:
             self.base["since"] = now
         if now - self.read_at > 60:
             self.answers, self.read_at = decisions(self.cfg), now
+            self.deny = sec_egress.Deny(sec_egress.load(self.cfg).get("prefixes", []))
         found, changed, busy = [], False, None
         for s in self.sample():
             svc = self.owner(s["pid"])
@@ -168,6 +170,11 @@ class EgressWatch:
                 continue                                  # its network asked at the next sample
             key = key_of(net, s["peer"])
             seen = self.base["services"].setdefault(svc, {})
+            if s["peer"] in self.deny:                    # 🚫 always told, learning or not, and never learnt (C501)
+                busy = self.busy() if busy is None else busy
+                found += self._tell("egress_deny", svc, key, net, s, now, busy)
+                changed = seen.pop(key, None) is not None or changed
+                continue
             entry = seen.get(key)
             answer = self.answers.get(svc, {}).get(key)
             if entry is None:
@@ -205,6 +212,10 @@ class EgressWatch:
             why = (f"{name} ({s['process']}) ha aperto una connessione verso {s['peer']}:{s['port']} ({who}), una rete "
                    "che non aveva mai raggiunto" + (" mentre nessun lavoro era in corso" if not busy
                                                     else " durante un lavoro in corso") + f"; inviati {s['sent']} byte.")
+        elif kind == "egress_deny":
+            title = f"{name}: verso una rete in blacklist, {who}"
+            why = (f"{name} ({s['process']}) ha aperto una connessione verso {s['peer']}:{s['port']} ({who}), in una rete "
+                   f"della blacklist (AURORA_EGRESS_DENY_ASNS); inviati {s['sent']} byte.")
         else:
             title = f"{name}: {s['sent'] // 2**20} MB inviati a {who}"
             why = (f"{name} ({s['process']}) ha inviato {s['sent']} byte su una connessione verso {s['peer']}:{s['port']} "

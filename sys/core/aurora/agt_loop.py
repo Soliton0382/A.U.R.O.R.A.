@@ -143,6 +143,9 @@ def signature(spec: dict) -> str:
 
 
 class Agent(AgentMakers, AgentReport):
+    between = None                                      # called between two steps (api/agents: api.core.give_way)
+    cancelled = None                                    # asked between two steps: the owner said to drop it
+
     def __init__(self, pipeline, cfg: sys_config.Config | None = None, notify=None, host: PluginHost | None = None):
         self.cfg = cfg or sys_config.get()
         self.p = pipeline
@@ -464,6 +467,12 @@ class Agent(AgentMakers, AgentReport):
         budget = self.cfg["AURORA_PIPELINE_THINK_TOKENS"]
         limit_s = self.max_min * 60
         while steps < self.max_steps and time.time() - t0 < limit_s:
+            if steps and self.between:                      # whoever waits for the run lock goes first (C498)
+                self.between()
+            if self.cancelled and self.cancelled():         # 🛑 what is done stays, nothing more starts
+                emit("agent.cancelled", {"step": steps})
+                summary = "Annullato dal proprietario: il lavoro fatto finora è nel registro."
+                break
             if model is not self._model():                  # the first step, or the local model after private data
                 model = self._model()
                 messages[0]["content"] = self._prompt(specs, emit)

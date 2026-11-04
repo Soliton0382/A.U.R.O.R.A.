@@ -141,29 +141,48 @@ def read_log(component: str, lines: int = 100, level: str = "") -> str:
 ROOT_FILES = ("install.sh", "uninstall.sh", ".env.example", "CHANGELOG.md", "README.md", "README.en.md", ".github")
 
 
+def _tree(src: Path, dst: Path, ignore=None) -> None:
+    """copytree with no copystat on the folders: it sets the source's setgid bit again, which the services' unit refuses
+    (RestrictSUIDSGID) — «Operation not permitted» with the files already there, and no sandbox from 23 Oct (C504, as C474).
+    A link stays a link, also one pointing at nothing."""
+    dst.mkdir(parents=True, exist_ok=True)
+    names = os.listdir(src)
+    skip = ignore(str(src), names) if ignore else set()
+    for name in names:
+        if name in skip:
+            continue
+        s, d = src / name, dst / name
+        if s.is_symlink():
+            os.symlink(os.readlink(s), d)
+        elif s.is_dir():
+            _tree(s, d, ignore)
+        else:
+            shutil.copy2(s, d)
+
+
 @tool
 def sandbox_create(label: str = "change") -> str:
     """Create a sandbox: a copy of sys/core (and pyproject.toml) where code can be changed and tested safely."""
     sid = f"{re.sub(r'[^a-z0-9]+', '-', label.lower()).strip('-')[:20] or 'change'}-{uuid.uuid4().hex[:6]}"
     box = SANDBOX / sid
     ignore = shutil.ignore_patterns("__pycache__", "*.pyc")
-    shutil.copytree(ROOT / "sys" / "core", box / "sys" / "core", ignore=ignore)
+    _tree(ROOT / "sys" / "core", box / "sys" / "core", ignore)
     # the plugins too, read only for the tests that load them: without them the suite never ran green in a sandbox
     # and no repair could ever be proposed (C143); only sys/core is ever applied (agt_change)
-    shutil.copytree(ROOT / "sys" / "plugins", box / "sys" / "plugins", ignore=ignore, symlinks=True)
+    _tree(ROOT / "sys" / "plugins", box / "sys" / "plugins", ignore)
     # the phone app's sources and its published APK, for their tests — never its signing keys (C420)
     if (ROOT / "sys" / "app").is_dir():
-        shutil.copytree(ROOT / "sys" / "app", box / "sys" / "app", symlinks=True,
-                        ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "keys", "tools", "build", "out"))
+        _tree(ROOT / "sys" / "app", box / "sys" / "app",
+              shutil.ignore_patterns("__pycache__", "*.pyc", "keys", "tools", "build", "out"))
     # the starting copy: the diff and the change applied are what was done HERE, not what moved in the live code (C145)
-    shutil.copytree(box / "sys" / "core", box / ".base" / "sys" / "core")
+    _tree(box / "sys" / "core", box / ".base" / "sys" / "core")
     shutil.copy2(ROOT / "pyproject.toml", box / "pyproject.toml")
     # the root's files the tests read (the installer, the workflows…): without them two tests failed in every sandbox
     # and no repair could be proposed (C312, as C143); only sys/core is ever applied
     for name in ROOT_FILES:
         src = ROOT / name
         if src.is_dir():
-            shutil.copytree(src, box / name, ignore=ignore)
+            _tree(src, box / name, ignore)
         elif src.is_file():
             shutil.copy2(src, box / name)
     (box / "SANDBOX.txt").write_text(f"created {time.strftime('%Y-%m-%d %H:%M:%S')} from {ROOT}/sys/core\n")

@@ -70,6 +70,14 @@ say "== the root holds only what belongs there"
 stray=$(grep -v '/' "$LIST" | grep -vxE '\.dockerignore|\.env\.example|\.gitignore|CHANGELOG\.md|CITATION\.cff|LICENSE|NOTICE|README(\.en)?\.md|SECURITY\.md|install\.sh|uninstall\.sh|pyproject\.toml|requirements\.(txt|lock)' || true)
 [ -z "$stray" ] || fail "unexpected files at the root (take them away or add them to this list): $stray"
 
+say "== plugins forged on this machine"
+# written for this house, its devices' names in them (C508): public only once someone has looked and tracked them
+while read -r f; do
+  if grep -qs '"forged"' "$SRC/$f" && ! git -C "$DST" ls-files --error-unmatch "$f" >/dev/null 2>&1; then
+    fail "a new forged plugin, not looked at yet: $f (.gitignore it, or read it and add it by hand)"
+  fi
+done < <(grep -E '^sys/plugins/[^/]+/plugin\.json$' "$LIST")
+
 say "== copy to $DST"
 rsync -a --files-from="$LIST" "$SRC/" "$DST/"
 # the ports (Aurora_mac, Aurora_windows) are made in the mirror only: never removed from it here

@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-1598%20passed-1baf7a" alt="Tests"> <img src="https://img.shields.io/badge/code-117k%20lines-6a4fd6" alt="Lines of code"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-1616%20passed-1baf7a" alt="Tests"> <img src="https://img.shields.io/badge/code-117k%20lines-6a4fd6" alt="Lines of code"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
 
 <p align="center">🇮🇹 <b>Italiano</b> · 🇬🇧 <a href="README.en.md">English</a></p>
 
@@ -353,6 +353,9 @@ di McNemar sul totale dà p < 0,05; altrimenti «tendenza»; un peggioramento si
 - **In locale** (Qwen3.6 35B): 81 contro 73, p = 0,20: **tendenza, non significativa**.
 - Dove aiuta: i fatti da cercare (SimpleQA 9/10 contro 1/10 in locale, 9/10 contro 3/10 con Claude). Dove peggiora:
   i puzzle ARC-AGI (2 contro 5, 7 contro 10). Il modello nudo ragionava fino a 28.000 token, Aurora fino a 6.000.
+- **Un altro campione, 4-5 novembre** (M288), Aurora con il locale e Claude insieme: sulle 130 domande dei set pubblici
+  107 contro 108 di Sonnet nudo, p = 1,0: **pari**; contro il locale nudo 107 a 89, p = 0,0005: **migliora**. Su
+  `aurora_edge` 23 contro 15 di Sonnet nudo su 26, p = 0,0078: **migliora**. Tutte insieme 130 contro 123 su 156, p = 0,21.
 
 ![Aurora contro il modello nudo, con Claude](docs/img/it/vs_bare_cloud.svg)
 ![Aurora contro il modello nudo, in locale](docs/img/it/vs_bare_local.svg)
@@ -404,7 +407,7 @@ giusti.
 | sogno dipinto | ~20 s compreso lo scambio del ragionatore (M27) |
 | qualità delle risposte (30 domande, giudice esterno) | 6,90 su 10, risposte date 23 su 30 (M98) |
 | persone insieme | 8 tutte servite con 2 slot, con 4 l'ultima dopo 145 s (M102) |
-| batteria AGI | 0,982: ragionamento 8/8, pianificazione 3/3, onestà 12/12, rifiuti evitati 6/6, contesto 3/3, autoriparazione 4/4, forgia 7/8 (M212) |
+| batteria AGI | 0,927: ragionamento 8/8, pianificazione 2/3, onestà 12/12, rifiuti evitati 6/6, contesto 3/3, autoriparazione 4/4, forgia 6/8, memoria dopo 20 giorni 8/8 (M287, M289) |
 | vault riallineato | una copia per documento, nel dominio giusto; risposte dalla fonte giusta 66 → 72 su 97 (M198) |
 | ricerca ibrida | fonte giusta al 1° posto 62 → 63, tra le 12 lette 81 → 82 su 93 (M200) |
 | smistamento | un token dalle probabilità: 0,32 s invece di 0,62 s, 162 su 168 come prima (M199) |

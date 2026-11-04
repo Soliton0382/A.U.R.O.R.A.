@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.en.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-1598%20passed-1baf7a" alt="Tests"> <img src="https://img.shields.io/badge/code-117k%20lines-6a4fd6" alt="Lines of code"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-1616%20passed-1baf7a" alt="Tests"> <img src="https://img.shields.io/badge/code-117k%20lines-6a4fd6" alt="Lines of code"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
 
 <p align="center">🇮🇹 <a href="README.md">Italiano</a> · 🇬🇧 <b>English</b></p>
 
@@ -351,6 +351,10 @@ test on the total gives p < 0.05; otherwise «a trend»; a loss is published all
 - **Local** (Qwen3.6 35B): 81 against 73, p = 0.20: **a trend, not significant**.
 - Where it helps: facts to look up (SimpleQA 9/10 against 1/10 locally, 9/10 against 3/10 with Claude). Where it
   loses: the ARC-AGI puzzles (2 against 5, 7 against 10). The bare model reasoned up to 28,000 tokens, Aurora up to 6,000.
+- **Another sample, 4-5 November** (M288), Aurora with the local model and Claude together: on the 130 questions of the
+  public sets 107 against 108 for bare Sonnet, p = 1.0: **a tie**; against the bare local model 107 to 89, p = 0.0005:
+  **improves**. On `aurora_edge` 23 against 15 for bare Sonnet of 26, p = 0.0078: **improves**. All together 130 against
+  123 of 156, p = 0.21.
 
 ![Aurora against the bare model, with Claude](docs/img/en/vs_bare_cloud.svg)
 ![Aurora against the bare model, local](docs/img/en/vs_bare_local.svg)
@@ -401,7 +405,7 @@ puzzles, a rule written as a program and checked on every example was found for 
 | dream painting | ~20 s including swapping the reasoner out and back (M27) |
 | answer quality (30 questions, external judge) | 6.90 of 10, 23 of 30 answered (M98) |
 | people at once | 8 all served with 2 slots, with 4 the last after 145 s (M102) |
-| AGI battery | 0.982: reasoning 8/8, planning 3/3, honesty 12/12, refusals avoided 6/6, context 3/3, self-repair 4/4, forge 7/8 (M212) |
+| AGI battery | 0.927: reasoning 8/8, planning 2/3, honesty 12/12, refusals avoided 6/6, context 3/3, self-repair 4/4, forge 6/8, memory after 20 days 8/8 (M287, M289) |
 | vault realigned | one copy a document, in the right domain; answers from the right source 66 → 72 of 97 (M198) |
 | hybrid search | right source ranked 1st 62 → 63, among the 12 read 81 → 82 of 93 (M200) |
 | routing | one token from its probabilities: 0.32 s instead of 0.62 s, 162 of 168 as before (M199) |

@@ -30,6 +30,7 @@ import gzip
 import itertools
 import json
 import logging
+import re
 import os
 import shutil
 import sys
@@ -121,9 +122,22 @@ class GzipRotatingFileHandler(RotatingFileHandler):
         self.stream = self._open()
 
 
+# an exception's text can carry a command line whole (C502: ffmpeg's camera address and password, in a timeout's traceback)
+_URL_LOGIN = re.compile(r"""(\w+://)[^/\s:@'"]+:[^/\s@'"]+@""")
+_BEARER = re.compile(r"(Bearer\s+)[\w.~+/=-]{8,}")
+
+
+def hide_secrets(text: str) -> str:
+    """A log line with the login of an address and a bearer token blanked."""
+    return _BEARER.sub(r"\1***", _URL_LOGIN.sub(r"\1***@", text))
+
+
 class _Formatter(logging.Formatter):
     def formatTime(self, record, datefmt=None):
         return datetime.fromtimestamp(record.created).astimezone().isoformat(timespec="milliseconds")
+
+    def format(self, record):
+        return hide_secrets(super().format(record))
 
 
 def _caged() -> bool:

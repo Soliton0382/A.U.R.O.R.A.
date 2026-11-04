@@ -175,15 +175,14 @@ def last(name: str, full: bool) -> dict:
     script, args, file = {"repair": ("bench_repair.py", [], "repair.json"),
                           "autonomy": ("bench_forge.py", ["--roles"], "forge_roles.json")}[name]
     path = cfg.path("AURORA_STATUS_DIR") / "bench" / file
-    if full:
-        subprocess.run([sys.executable, str(Path(__file__).with_name(script)), *args], check=False)
+    ran = full and subprocess.run([sys.executable, str(Path(__file__).with_name(script)), *args], check=False).returncode == 0
     try:
         d = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return {"right": 0, "total": 0, "note": "never run"}
     rows, at = d.get("rows", []), d.get("at", path.stat().st_mtime)
     date = str(at)[:10] if isinstance(at, str) else datetime.fromtimestamp(at).strftime("%Y-%m-%d")   # forge: ISO text
-    return {"right": sum(bool(r.get("right")) for r in rows), "total": len(rows), "ran": full, "date": date}
+    return {"right": sum(bool(r.get("right")) for r in rows), "total": len(rows), "ran": ran, "date": date}          # a run that died: its old result, said old (C506)
 
 
 def main() -> int:

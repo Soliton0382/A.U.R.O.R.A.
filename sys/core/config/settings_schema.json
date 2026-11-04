@@ -3079,6 +3079,19 @@
    "max": 20
   },
   {
+   "key": "AURORA_CALL_NODS",
+   "type": "bool",
+   "optional": true,
+   "category": "senses",
+   "recommended": "true",
+   "evidence": "owner, 2026-11-03",
+   "en": "In a call and in the phone's assistant, short signs that she is listening while you talk («sì», «ok», «uhm») and thinking before she answers.",
+   "it": "In chiamata e nell'assistente del telefono, brevi segni che ti sta ascoltando mentre parli («sì», «ok», «uhm») e che sta pensando prima di rispondere.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_REVIEW_MESSAGES",
    "type": "int",
    "category": "rem",

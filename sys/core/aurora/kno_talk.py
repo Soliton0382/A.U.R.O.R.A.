@@ -19,16 +19,20 @@ quick(p, cfg, question, recent, emit)   (the answer, handed on), streamed as «t
 """
 from __future__ import annotations
 
+import logging
 import threading
 import time
 from datetime import timedelta
 
 from . import sns_clock, sys_config, sys_persona, txt_lang
 
+log = logging.getLogger("aurora.api")
+
 HANDOFF = "⏩"
 RECENT = 6                                            # the call's last turns she sees
 MAX_TOKENS = 220                                      # a spoken answer: a few sentences
 SURE = 0.7                                            # P(SEARCH) above it: the whole path
+SLOTS = 2                                             # the reasoner's parallel slots, each with its own prompt cache
 
 ROUTE = ("You sort what a person says to their assistant on a phone call. Answer with one word.\n"
          "TALK: small talk, greetings, thanks, goodbyes, feelings, how are you, jokes, compliments, opinions and tastes, "
@@ -117,6 +121,21 @@ def prepare(p, cfg: sys_config.Config, question: str, recent: list, stop=lambda:
             del _ready[k]
         _ready[_key(question)] = (time.time(), text, handed)
     return text, handed
+
+
+def warm(p, cfg: sys_config.Config, lang: str) -> None:
+    """The call has opened: her long system prompt read on both of the reasoner's slots, as it cost a turn 3.9 to 5.2 s
+    when cold (M285). One token each, nothing kept; a busy or absent reasoner only leaves the first answers slower."""
+    def one() -> None:
+        try:
+            p.llm.complete(system(cfg, [], lang), ".", 1)
+        except Exception as e:                        # noqa: BLE001 - never in the way of the call
+            log.debug("call: not warmed: %s", e)
+    threads = [threading.Thread(target=one, daemon=True) for _ in range(SLOTS)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
 
 
 def quick(p, cfg: sys_config.Config, question: str, recent: list, emit) -> tuple[str, bool]:

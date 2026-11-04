@@ -67,6 +67,17 @@ def test_a_backup_round_trip_keeps_everything_and_writes_only_what_changed(setup
     assert B.verify(cfg) == len({e[4] for e in B.read_snapshot(B.snapshots(dest)[-1], B._subkeys(B.load_key(cfg))[0])["files"]})
 
 
+def test_a_snapshot_says_what_it_holds_under_a_path(setup):
+    cfg, _, _, _ = setup
+    B.init_key(cfg)
+    B.run(cfg)
+    held = B.holds(cfg, "sys/status/routines.json")
+    assert [f["path"] for f in held["files"]] == ["sys/status/routines.json"]
+    assert B.holds(cfg, "sys/status/nothing")["files"] == []
+    with pytest.raises(B.BackupError):
+        B.holds(cfg, "sys", snapshot="19990101-000000")
+
+
 def test_a_blob_write_that_fails_once_is_tried_again(tmp_path, monkeypatch):
     """C400: Errno 14 on the NAS in a night's copy; a later try writes the whole blob, a third failure is raised."""
     import errno

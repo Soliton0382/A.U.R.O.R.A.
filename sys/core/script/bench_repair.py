@@ -57,7 +57,10 @@ def make_sandbox(case: dict) -> tuple[str, Path]:
     box = cfg.path("AURORA_SANDBOX_DIR") / sid
     ignore = shutil.ignore_patterns("__pycache__", "*.pyc")
     shutil.copytree(cfg.root / "sys" / "core", box / "sys" / "core", ignore=ignore)
-    shutil.copytree(cfg.root / "sys" / "plugins", box / "sys" / "plugins", ignore=ignore)   # as the self plugin (C143)
+    shutil.copytree(cfg.root / "sys" / "plugins", box / "sys" / "plugins", ignore=ignore, symlinks=True)   # as the self plugin (C143)
+    # the phone app's sources, for their tests, as the self plugin (C507): without them the suite stops at its collection
+    shutil.copytree(cfg.root / "sys" / "app", box / "sys" / "app", symlinks=True,
+                    ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "keys", "tools", "build", "out"))
     shutil.copy2(cfg.root / "pyproject.toml", box / "pyproject.toml")
     for name in ("install.sh", "uninstall.sh", ".env.example", "CHANGELOG.md", "README.md", "README.en.md", ".github"):
         src = cfg.root / name                          # the root's files the tests read, as the self plugin (C312)

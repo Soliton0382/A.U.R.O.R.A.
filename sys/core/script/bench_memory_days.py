@@ -69,7 +69,10 @@ def _env() -> tuple[str, object, Path, Path]:
 def _save(path: Path, data: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
-    os.chmod(path, 0o600)
+    try:
+        os.chmod(path, 0o600)
+    except PermissionError:                                # the service account's file: already hers, 660 at most
+        pass
 
 
 def login(name: str = "", password: str = "") -> dict:

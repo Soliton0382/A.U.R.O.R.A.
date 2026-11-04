@@ -86,6 +86,16 @@ def backup_snapshots() -> list[dict]:
             for r in reversed(rows)]
 
 
+@router.get("/v1/aurora/backup/holds", dependencies=[Depends(admin_only)])
+def backup_holds(path: str, snapshot: str = "latest") -> dict:
+    """What a snapshot keeps under a path: names and sizes, nothing opened."""
+    from aurora import sys_backup
+    try:
+        return sys_backup.holds(cfg, path, snapshot)
+    except Exception as e:  # noqa: BLE001 — the NAS asleep, no key: said
+        raise HTTPException(status_code=409, detail=f"{type(e).__name__}: {str(e)[:200]}") from None
+
+
 @router.post("/v1/aurora/backup/run", dependencies=[Depends(admin_only)])
 def backup_now() -> dict:
     """Start the backup unit now (polkit lets the service user start aurora units); the result comes as a notification."""

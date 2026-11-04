@@ -66,3 +66,17 @@ def test_the_call_says_whole_sentences_and_a_long_one_at_its_comma():
     long = "Questa è una frase molto lunga, " * 5 + "senza fine"
     now, rest = _ready(long)
     assert now.endswith(",") and rest.endswith("senza fine") and len(now) > kno_talk.MAX_TOKENS // 4
+
+
+def test_warm_reads_the_prompt_on_each_slot_and_never_fails(monkeypatch):
+    from types import SimpleNamespace
+
+    from aurora import kno_talk
+    monkeypatch.setattr(kno_talk, "system", lambda cfg, recent, lang: f"prompt {lang} {len(recent)}")
+    asked = []
+
+    def complete(system, user, tokens):
+        asked.append((system, tokens))
+        raise RuntimeError("reasoner off")
+    kno_talk.warm(SimpleNamespace(llm=SimpleNamespace(complete=complete)), None, "it")
+    assert asked == [("prompt it 0", 1)] * kno_talk.SLOTS

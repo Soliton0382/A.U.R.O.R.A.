@@ -36,6 +36,17 @@ def test_a_week_of_learning_then_a_new_network_is_told(cfg):
     assert sec_quiet.pattern(inc) is None                                # never quieted
 
 
+def test_a_listed_network_is_told_even_while_learning_and_never_learnt(cfg, monkeypatch):
+    from aurora import sec_egress
+    monkeypatch.setattr(sec_egress, "load", lambda c: {"prefixes": ["203.0.113.0/24"]})
+    w = _watch(cfg, [_sock("203.0.113.9", sent=0)])
+    w.base = {"since": 10.0 * DAY, "services": {"aurora-api.service": {"AS64501": {"seen": 2, "max_sent": 0}}}}   # learnt before
+    [inc] = w.look(now=10 * DAY)
+    assert inc["kind"] == "egress_deny" and "blacklist" in inc["detail"]["title"]
+    assert "AS64501" not in W.baseline(cfg)["services"]["aurora-api.service"]
+    assert w.look(now=10 * DAY + 60) == []                               # told once
+
+
 def test_during_a_run_a_new_network_is_medium(cfg):
     w = _watch(cfg, [_sock("198.51.100.7")], busy=True)
     w.look(now=1000)

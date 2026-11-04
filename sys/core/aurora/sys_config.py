@@ -77,8 +77,9 @@ def plugin_settings(taken: set[str], plugins_dir: Path | None = None) -> list[di
                         "services": ["aurora-api"], "optional": True, **({"secret": True} if s.get("secret") else {}),
                         # a person's account (an alarm's, a camera's): in their own .env, not the machine's (U3)
                         **({"scope": "user"} if s.get("scope") == "user" else {}),
-                        # an installation's own plugin (sys/plugins/local_*, ignored by git): never in .env.example
-                        **({"private": True} if f.parent.name.startswith("local_") else {})})
+                        # an installation's own plugin (sys/plugins/local_*, or marked private, C508; ignored by git):
+                        # never in .env.example
+                        **({"private": True} if f.parent.name.startswith("local_") or m.get("private") else {})})
     return out
 
 

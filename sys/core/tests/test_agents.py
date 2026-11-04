@@ -488,3 +488,27 @@ def test_an_edited_file_counts_as_written(cfg):
     agent.run("Write the document `docs/paper/paper.md` with the fixes", lambda e, p: events.append((e, p)), "run11")
     assert ("p", "docs/paper/paper.md") in agent.touched
     assert not [p for e, p in events if e == "agent.nudge" and p.get("reason") == "file not written"]
+
+
+def test_between_two_steps_whoever_waits_goes_first(cfg):
+    """C498: a project's phase held the run lock for 48 min."""
+    llm = FakeLLM([call("demo__read_log", component="api"), call("demo__read_log", component="web"),
+                   call("finish", summary="Fatto.")])
+    agent = Agent(fake_pipeline(llm), cfg)
+    agent.host = FakeHost()
+    gave = []
+    agent.between = lambda: gave.append(1)
+    agent.run("prova", lambda e, p: None, "run1")
+    assert len(gave) == 2                             # not before the first step
+
+
+def test_dropped_by_the_owner_it_stops_before_the_next_step(cfg):
+    """🛑 «lascia stare» in a call: what is done stays, nothing more starts."""
+    llm = FakeLLM([call("demo__read_log", component="api"), call("demo__read_log", component="web"),
+                   call("finish", summary="Fatto.")])
+    agent = Agent(fake_pipeline(llm), cfg)
+    agent.host = FakeHost()
+    agent.cancelled = lambda: bool(agent.host.calls)
+    events = []
+    ans = agent.run("prova", lambda e, p: events.append(e), "run1")
+    assert len(agent.host.calls) == 1 and "agent.cancelled" in events and "Annullato" in ans.text

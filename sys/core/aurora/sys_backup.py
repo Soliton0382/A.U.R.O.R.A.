@@ -190,6 +190,19 @@ def read_snapshot(path: Path, enc: bytes) -> dict:
     return json.loads(_decrypt_bytes(path.read_bytes(), enc))
 
 
+def holds(cfg: sys_config.Config, prefix: str, snapshot: str = "latest") -> dict:
+    """What a snapshot keeps under a path, names and sizes only, nothing opened (C496: is the app's key in it?)."""
+    enc, _ = _subkeys(load_key(cfg))
+    snaps = snapshots(target(cfg))
+    if not snaps:
+        raise BackupError("no snapshot")
+    snap = snaps[-1] if snapshot == "latest" else target(cfg) / "snapshots" / f"{snapshot}.snap"
+    if not snap.is_file():
+        raise BackupError(f"no snapshot {snapshot}")
+    return {"snapshot": snap.stem, "files": [{"path": r[0], "bytes": r[1]} for r in read_snapshot(snap, enc)["files"]
+                                             if r[0] == prefix or r[0].startswith(prefix.rstrip("/") + "/")]}
+
+
 def keep(names: list[str], daily: int, weekly: int, monthly: int) -> set[str]:
     """Which snapshots to keep: the newest of each of the last `daily` days, `weekly` weeks, `monthly` months."""
     stamps = sorted(names, reverse=True)

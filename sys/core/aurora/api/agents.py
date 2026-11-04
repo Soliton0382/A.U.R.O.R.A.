@@ -15,7 +15,7 @@ import time
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse, Response
 
-from .core import _admin, auth, cfg, in_thread, log, me, note, pipeline, plugin_host, start_run
+from .core import _admin, _runs, auth, cfg, give_way, in_thread, log, me, note, pipeline, plugin_host, start_run
 
 from .users import admin_only  # noqa: E402
 
@@ -55,6 +55,8 @@ def _agent_job(goal: str, context: str = "", after=None, remember: bool = False,
         asked_at = now_iso()
         agent = Agent(pipeline(), cfg, notify=lambda e, p: None if e in quiet else note("agent", e, p), host=plugin_host())
         agent.asked = asked
+        agent.between = give_way                       # every agent runs under start_run: a phase can last 48 min (C498)
+        agent.cancelled = lambda: bool((_runs.get(run_id) or {}).get("cancel"))   # 🛑 said in a call (api/call)
         if local:
             agent.local_only = True
             emit("agent.local", {"plugin": "—", "why": "asked: the local model only"})
@@ -514,10 +516,11 @@ def rem_repair() -> dict:
     evidence = sys_logread.problem_evidence(cfg)
     line = lambda e: (f"- {e['component']}: {e['count']} × {e['kind'][:140]} [{e['first'][11:]} → {e['last'][11:]}]; "
                       f"{e['host_service']} last start {(e['host_last_start'] or '-')[11:]}")
-    alive = [e for e in evidence if e["seen_after_last_start"]]
-    gone = [e for e in evidence if not e["seen_after_last_start"]]
-    # Only problems seen again after their service last restarted go to the agent: the others are, by
-    # measurement, not recurring (a fix or a restart already happened); the code decides this, not the model.
+    alive = [e for e in evidence if e["seen_after_last_start"] or e["unfixed"]]
+    gone = [e for e in evidence if e not in alive]
+    # Only problems seen again after their service last restarted, or many times with no code signed since (C505: a
+    # restart hides, it does not fix), go to the agent: the others are, by measurement, not recurring; the code decides
+    # this, not the model.
     if not alive:
         text = ("Autoriparazione: nessun problema dell'ultima autodiagnosi si è ripresentato dopo l'ultimo riavvio del "
                 "servizio che lo ospita, quindi non c'è nulla da correggere adesso. Non ricomparsi:\n"
@@ -531,8 +534,8 @@ def rem_repair() -> dict:
             return ans
         return {"run_id": start_run("[repair]", origin="rem", job=quick)["id"]}
     context = (f"SELF-REVIEW:\n{review.text}\n\nPROBLEMS STILL OCCURRING (seen again after their service last "
-               f"started; work on these only):\n" + "\n".join(line(e) for e in alive)
-               + "\n\nNOT RECURRING (not seen since the restart: do not work on them):\n"
+               f"started, or many times with no code changed since; work on these only):\n" + "\n".join(line(e) for e in alive)
+               + "\n\nNOT RECURRING (not seen since the restart, and few: do not work on them):\n"
                + "\n".join(line(e) for e in gone[:20]))
     return {"run_id": start_run("[repair]", origin="rem", job=_agent_job(goal, context, after))["id"]}
 
