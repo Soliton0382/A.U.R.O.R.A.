@@ -62,8 +62,11 @@ def test_the_key_is_sealed_with_the_tpm_and_no_plain_copy_is_left(sealing):
 def test_the_services_read_it_from_systemd_and_a_terminal_from_the_code(sealing, monkeypatch):
     cfg = sealing.cfg
     bc.seal_host(cfg, sealing.owner)
+    assert B.load_key(cfg) == sealing.key               # root (aurora-root restore): the credential opened, 9 Nov
+    monkeypatch.setattr(os, "geteuid", lambda: 1000)
     with pytest.raises(B.BackupError, match="recovery code"):
-        B.load_key(cfg)                                 # a terminal: systemd gave it nothing
+        B.load_key(cfg)                                 # a terminal, not root: systemd gave it nothing
+    monkeypatch.setattr(os, "geteuid", lambda: 0)
     with pytest.raises(B.BackupError, match="never replaced"):
         B.init_key(cfg)                                 # never a second key beside the sealed one
     creds = sealing.tmp / "creds"

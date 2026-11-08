@@ -28,7 +28,16 @@ _given: list[bytes] = []                                 # the key from a recove
 
 
 def key_path(cfg: sys_config.Config) -> Path:
-    return Path(os.path.expanduser(str(cfg["AURORA_BACKUP_KEY_FILE"])))
+    """«~» is the services' account's home whoever reads it (C456 for the sealing; 9 Nov for root's restore through
+    aurora-root: it looked in /root and said «no backup key» instead of asking the recovery code)."""
+    raw = str(cfg["AURORA_BACKUP_KEY_FILE"])
+    if raw.startswith("~/") and getattr(os, "geteuid", lambda: 1)() == 0:
+        import pwd
+        try:
+            return Path(pwd.getpwnam(sys_config.service_user(cfg)).pw_dir) / raw[2:]
+        except KeyError:
+            pass
+    return Path(os.path.expanduser(raw))
 
 
 def marker(cfg: sys_config.Config) -> Path:
@@ -96,6 +105,12 @@ def load_key(cfg: sys_config.Config) -> bytes:
             raise BackupError("the backup's sealed key is not 32 bytes")
         return held
     p = key_path(cfg)
+    if not p.is_file() and getattr(os, "geteuid", lambda: 1)() == 0 and cred_path(cfg).is_file():
+        import subprocess                                  # root (aurora-root restore): the sealed credential opened as
+        r = subprocess.run(["systemd-creds", "decrypt", f"--name={CRED}", str(cred_path(cfg)), "-"],   # systemd would
+                           capture_output=True, timeout=60)
+        if r.returncode == 0 and len(r.stdout) == 32:
+            return r.stdout
     if not p.is_file() and marker(cfg).exists():
         raise BackupError("the backup's key is sealed for Aurora's services: give its recovery code (--code)")
     if not p.is_file():

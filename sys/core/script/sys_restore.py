@@ -231,7 +231,7 @@ def main() -> int:
               f"  today's data kept aside in {p['aside']}" + ("" if p["restorable"] else "\n  ⛔ NOT restorable here"))
         return 0 if p["restorable"] else 1
     if needs_root(cfg) and os.geteuid() != 0:
-        print("⛔ Aurora has her own account: run it with sudo: sudo .venv/bin/python sys/core/script/sys_restore.py …")
+        print("⛔ Aurora has her own account: as root, through root's own copy: sudo aurora-root restore …")
         return 1
     what = f"{', '.join(parts)} di " if parts else ""
     if input(f"Ripristinare {what}{p['snapshot']} al posto dei dati di oggi (messi da parte, non cancellati)? Scrivi RIPRISTINA: ").strip() != "RIPRISTINA":

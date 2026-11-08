@@ -432,7 +432,10 @@ def decide(approval_id: str, decision: str) -> dict:
         try:
             if item["kind"] == "code_change":
                 from aurora import agt_change
-                out = agt_change.apply(item["action"]["sandbox_id"], emit, cfg)
+                # C541: the bytes the owner approved; a proposal of before (no hashes) is proposed again
+                out = (agt_change.apply(item["action"]["sandbox_id"], emit, cfg, expect=item["action"]["hashes"])
+                       if item["action"].get("hashes") is not None else
+                       {"applied": False, "reason": "proposed before 9 Nov without its files' hashes: propose it again"})
                 ok = out.get("applied", False)
             elif item["kind"] == "forge_cloud":             # the owner allowed the cloud for this request
                 from aurora import agt_forge

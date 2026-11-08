@@ -38,14 +38,21 @@ Every plugin.json follows it (aurora/plg_contract.py: the tests check every plug
 | `owner_only` | — | tools only the owner's own words may start (never a run's idea) |
 | `oauth` | — | the name of its OAuth flow (api/oauth) |
 | `env_as` | — | setting → the environment name its program expects |
+| `seal_keys` | — | the sealed stores it keeps (calendar, health): their key given to it opened (N64) |
 | `effect_prefixes` | — | tool-name prefix → effect, for a program with many tools |
 | `outputs` | — | tool → {pattern, url, mime}: a file it makes, offered for download |
 | `forged` | — | made by the forge: {request, at, need} |
+| `hosts` | — | a forged plugin's public places: host names its proxy lets it reach (plg_netproxy) |
+
+## The contract of Aurora's own plugins (9 Nov 2026)
+
+A plugin the forge writes (`forged`) is held by its cage at every start, whatever its manifest says (aurora/plg_sandbox.py, plg_host.py, plg_netproxy.py): it writes at most in `AURORA_PROJECTS_DIR`; it reads only its own settings (`AURORA_<NAME>_…`), never another plugin's secret nor a sealed store's key (`seal_keys`); it never commands the house by itself (`home_commands`); it has no network of its own — a proxy of its own lets it reach only the host of its own URL settings (the owner's) and the public `hosts` it lists, never Aurora's own services, each connection logged. The forge refuses a manifest asking for more. Read-only and projects' plugins install by themselves; the others wait for the owner's approval, which shows first what the plugin will be able to do. Aurora's plugins are outside the owner's code signature (the contract holds them); a plugin that is neither hers nor signed is not loaded.
 
 | plugin | kind | tools (effect) | needs |
 |---|---|---|---|
 | `astro` | tool | astro_profile (read), astro_darks (read), astro_files (read), astro_note (read), astro_nights (read), astro_polar (read), astro_pointing (read), astro_stars (read), astro_collimation (read), astro_advice (read), astro_imaging (read) | — |
 | `backup` | service | — | — |
+| `backup_files` | tool | backup_files_dest (read), backup_files_list (read), backup_files_check (read) | — |
 | `cad` | tool | cad_build (write_local), cad_drawings (write_local), cad_blueprint (write_local) | — |
 | `calendar` | tool | calendar_agenda (read), calendar_add (write_local), calendar_remind (write_local), calendar_change (write_local), calendar_delete (write_local), calendar_add_event (external) | — |
 | `cinema` | tool | — | AURORA_TMDB_TOKEN |
@@ -57,10 +64,12 @@ Every plugin.json follows it (aurora/plg_contract.py: the tests check every plug
 | `dj` | tool | dj_styles (read), dj_tracks (read) | — |
 | `documents` | tool | create_pdf (write_local), list_documents (read), my_pdfs_count (read), my_pdfs_list (read) | — |
 | `dropbox` | connector | dropbox_list (read), dropbox_search (read), dropbox_read (read), dropbox_upload (external) | AURORA_DROPBOX_APP_KEY, AURORA_DROPBOX_APP_SECRET, AURORA_DROPBOX_REFRESH_TOKEN |
-| `email` | connector | list_unread (read), read_message (read), send_email (external) | AURORA_EMAIL_IMAP_HOST, AURORA_EMAIL_USER, AURORA_EMAIL_PASSWORD |
-| `expenses` | tool | expense_list (read), expense_summary (read) | — |
+| `email` | connector | list_unread (read), read_message (read), send_email (external), send_invite (external) | AURORA_EMAIL_IMAP_HOST, AURORA_EMAIL_USER, AURORA_EMAIL_PASSWORD |
+| `expenses` | tool | expense_list (read), expense_summary (read), money_overview (read) | — |
 | `facebook` | connector | publish_post (external), page_info (read), list_posts (read), page_stats (read), list_comments (read), reply_comment (external), update_page_info (external), set_welcome_message (external), publish_photo (external) | AURORA_FACEBOOK_PAGE_ID, AURORA_FACEBOOK_PAGE_TOKEN |
 | `github` | connector | get_* (read), list_* (read), search_* (read), everything else (external) | AURORA_GITHUB_TOKEN |
+| `ha_history` | tool | states (read), history (read) | AURORA_HA_HISTORY_URL, AURORA_HA_HISTORY_TOKEN |
+| `ha_states` | tool | ha_states_read (read), ha_states_outlets (read) | AURORA_HA_STATES_URL, AURORA_HA_STATES_TOKEN |
 | `health` | tool | health_list (read), health_read (read), health_values (read), health_doctors (read), health_diet (read) | — |
 | `homeassistant` | connector | states (read), devices (read), history (read), camera_look (external), call_service (external) | AURORA_HA_URL, AURORA_HA_TOKEN |
 | `instagram` | connector | ig_account (read), ig_recent (read), ig_publish_photo (external) | AURORA_FACEBOOK_PAGE_ID, AURORA_FACEBOOK_PAGE_TOKEN |
@@ -71,6 +80,7 @@ Every plugin.json follows it (aurora/plg_contract.py: the tests check every plug
 | `news` | tool | — | — |
 | `nextcloud` | connector | files_list (read), files_read (read), files_upload (external) | AURORA_WEBDAV_URL, AURORA_WEBDAV_USER, AURORA_WEBDAV_PASSWORD |
 | `notes` | tool | notes_list (read), notes_search (read), notes_read (read), notes_write (write_local) | — |
+| `ntfy` | tool | ntfy_send (external), ntfy_recent (read) | AURORA_NTFY_TOPIC |
 | `patent` | tool | patent_offices (read), patent_check (read), patent_document (write_local) | — |
 | `projects` | tool | project_list (read), project_tree (read), project_read_file (read), project_status (read), project_create (write_local), project_write_file (write_local), project_edit_file (write_local), project_commit (write_local), project_publish (external), project_push (external), project_install (write_local) | — |
 | `publications` | tool | — | — |
@@ -82,6 +92,7 @@ Every plugin.json follows it (aurora/plg_contract.py: the tests check every plug
 | `self` | tool | list_files (read), read_file (read), search_code (read), logs_inventory (read), read_log (read), sandbox_read (read), sandbox_diff (read), sandbox_create (write_local), sandbox_replace (write_local), sandbox_write (write_local), run_tests (write_local) | — |
 | `senses` | tool | devices (read), look (external), listen (external) | — |
 | `sky` | tool | sky_tonight (read), sky_target (read), sky_catalog (read), sky_sequence (write_local), sky_rotation (write_local), sky_collimation (write_local) | — |
+| `spotify` | connector | — | — |
 | `telegram` | connector | send_message (external), get_me (read), get_updates (read) | AURORA_TELEGRAM_BOT_TOKEN |
 | `tiktok` | connector | tiktok_account (read), tiktok_post_video (external) | AURORA_TIKTOK_CLIENT_KEY, AURORA_TIKTOK_CLIENT_SECRET, AURORA_TIKTOK_REFRESH_TOKEN |
 | `twitch` | connector | — | AURORA_TWITCH_CLIENT_ID, AURORA_TWITCH_CLIENT_SECRET |
@@ -110,7 +121,7 @@ Nightly backup of your data to another disk or the NAS: encrypted, deduplicated,
 
 **Where**: in *Backup folder* write a folder on another disk (e.g. `/media/user/Data/aurora-backup`) or the NAS folder as `smb://192.168.1.20/backups/aurora`.
 
-**NAS**: put the share's user and password. With *Mount at every start* (on) Aurora adds one line to `/etc/fstab` with `nofail`: a NAS switched off never stops the computer. On **Save** Aurora mounts the share by herself; you gave root's consent once, with `sudo aurora-root install systemd`.
+**NAS**: put the share's user and password. With *Mount at every start* (on) Aurora adds one line to `/etc/fstab` with `nofail`: a NAS switched off never stops the computer. On **Save** Aurora mounts the share by herself; you gave root's consent once, with `sudo bash sys/deploy/systemd/install.sh`.
 
 **The key**: once, `.venv/bin/python sys/core/script/svc_backup.py init`, and write the *recovery code* outside this computer: without it a backup cannot be read.
 
@@ -120,11 +131,15 @@ Nightly backup of your data to another disk or the NAS: encrypted, deduplicated,
 
 **Dove**: in *Cartella del backup* scrivi una cartella di un altro disco (es. `/media/utente/Dati/aurora-backup`) oppure la cartella del NAS come `smb://192.168.1.20/backups/aurora`.
 
-**NAS**: metti utente e password della condivisione. Con *Monta a ogni avvio* (già attivo) Aurora aggiunge una riga a `/etc/fstab` con `nofail`: se il NAS è spento il computer parte lo stesso. Al **Salva** Aurora monta la condivisione da sola; il permesso di root lo hai dato una volta, con `sudo aurora-root install systemd`.
+**NAS**: metti utente e password della condivisione. Con *Monta a ogni avvio* (già attivo) Aurora aggiunge una riga a `/etc/fstab` con `nofail`: se il NAS è spento il computer parte lo stesso. Al **Salva** Aurora monta la condivisione da sola; il permesso di root lo hai dato una volta, con `sudo bash sys/deploy/systemd/install.sh`.
 
 **La chiave**: una volta sola, `.venv/bin/python sys/core/script/svc_backup.py init`, e scrivi il *codice di recupero* fuori da questo computer: senza, un backup non si legge.
 
 **Quando**: ogni notte all'ora scelta; se il PC era spento, al primo avvio. Lo stato e *Esegui ora* sono in ⚙️ Stato.
+
+## backup_files
+
+Backup details, read only: the destination folder's contents (snapshots, blobs, empty or unreadable files), the files recorded by the backup with a filter, and whether specific critical files are recorded and still exist.
 
 ## cad
 
@@ -246,7 +261,7 @@ Aurora reachable everywhere with Cloudflare One (WARP), with no port opened: «S
 6. The **Account ID**: dashboard home, on your account's name → **⋯ → Copy account ID**.
 
 **C. Once on Aurora's computer**
-7. In a terminal in Aurora's folder: `sudo aurora-root install tunnel` — installs *cloudflared* and the *aurora-tunnel* service. It asks nothing.
+7. In a terminal in Aurora's folder: `sudo bash sys/deploy/cloudflared/install.sh` — installs *cloudflared* and the *aurora-tunnel* service. It asks nothing.
 
 **D. In Aurora: Save**
 8. Here, the plugin's **⚙️ Settings**: paste the **Account ID** and the **API token**. If you open Aurora by a name (e.g. *aurora.home.example*) set the **domain** and the **home DNS** that resolves it (usually the router).
@@ -289,7 +304,7 @@ Aurora reachable everywhere with Cloudflare One (WARP), with no port opened: «S
 6. L'**Account ID**: nella home della dashboard, sul nome del tuo account → menu **⋯ → Copy account ID**.
 
 **C. Una volta sul computer di Aurora**
-7. In un terminale nella cartella di Aurora: `sudo aurora-root install tunnel` — installa *cloudflared* e il servizio *aurora-tunnel*. Non chiede nulla.
+7. In un terminale nella cartella di Aurora: `sudo bash sys/deploy/cloudflared/install.sh` — installa *cloudflared* e il servizio *aurora-tunnel*. Non chiede nulla.
 
 **D. In Aurora: Salva**
 8. Qui, **⚙️ Impostazioni** del plugin: incolla **Account ID** e **token API**. Se apri Aurora con un nome (es. *aurora.casa.it*) metti il **dominio** (*casa.it*) e il **DNS di casa** che lo risolve (di solito il router, es. 192.168.1.1). L'indirizzo del computer Aurora lo trova da sola.
@@ -419,7 +434,7 @@ Inviare una mail è un'azione esterna: passa sempre dalla tua approvazione e por
 
 ## expenses
 
-Your spending, on this machine only: "I spent 45 € on fuel" records it; the month by category, against the month before, monthly budgets per category.
+Your incomes and spending, on this machine only: "I spent 45 € on fuel", the salary and the fixed costs of every month, the summary, budgets, the saving goal; and advice on a purchase with your real numbers. Private: once read, only the local model answers.
 
 ### Setup (EN)
 
@@ -495,6 +510,30 @@ Il suo programma (il server MCP di GitHub, versione fissata e verificata) arriva
 - [Token fine-grained](https://github.com/settings/personal-access-tokens)
 - [Guida ufficiale ai token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)
 - [GitHub MCP server (ufficiale)](https://github.com/github/github-mcp-server)
+
+## ha_history
+
+Home Assistant, read only: entity states filtered by id, domain or name, whether they are reachable, and the history of their state changes.
+
+### Setup (EN)
+
+1. Open Home Assistant in the browser and copy its address, port included (usually http://homeassistant.local:8123): it goes in AURORA_HA_HISTORY_URL. 2. Click your user name at the bottom left, then open the Security tab. 3. At the bottom, under Long-lived access tokens, click Create token and give it a name. 4. Copy the token at once, because it is shown only once, and paste it in AURORA_HA_HISTORY_TOKEN. 5. Save.
+
+### Configurazione (IT)
+
+1. Apri Home Assistant nel browser e copia l'indirizzo, compresa la porta (di solito http://homeassistant.local:8123): va in AURORA_HA_HISTORY_URL. 2. Clicca sul tuo nome utente in basso a sinistra, poi apri la scheda Sicurezza. 3. In fondo, alla voce Token di accesso a lunga durata, clicca Crea token e dagli un nome. 4. Copia subito il token, perché viene mostrato una sola volta, e incollalo in AURORA_HA_HISTORY_TOKEN. 5. Salva.
+
+## ha_states
+
+Home Assistant, read only: current state, unit and attributes of the entities named by id, and whether given outlets are off, with their power reading.
+
+### Setup (EN)
+
+1. Open Home Assistant in the browser and copy the address up to the port (for example http://homeassistant.local:8123): it goes in AURORA_HA_STATES_URL. 2. Click your user name at the bottom left and open the Security tab. 3. At the bottom, under Long-lived access tokens, click Create token and name it, for example Aurora. 4. Copy the token at once, because it is shown only one time, and paste it in AURORA_HA_STATES_TOKEN. 5. Save.
+
+### Configurazione (IT)
+
+1. Apri Home Assistant nel browser e copia l'indirizzo fino alla porta (ad esempio http://homeassistant.local:8123): va in AURORA_HA_STATES_URL. 2. Clicca sul tuo nome utente in basso a sinistra e apri la scheda Sicurezza. 3. In fondo, alla voce Token di accesso a lunga durata, clicca su Crea token e dagli un nome, ad esempio Aurora. 4. Copia subito il token, perché viene mostrato una sola volta, e incollalo in AURORA_HA_STATES_TOKEN. 5. Salva.
 
 ## health
 
@@ -659,6 +698,18 @@ Set `AURORA_NOTES_DIR` to the notes folder (e.g. your Obsidian vault, `/home/<us
 
 Imposta `AURORA_NOTES_DIR` sulla cartella delle note (per esempio il tuo vault Obsidian, `/home/<utente>/Documenti/Obsidian`). Di default è `usr/notes` dentro Aurora. Il plugin non ha rete e può scrivere solo in quella cartella.
 
+## ntfy
+
+Push notifications to the owner's phone through ntfy (ntfy.sh or a self-hosted server): send a short message, e.g. tonight's best sky targets (waits for the owner's approval), and read the latest notifications on the topic.
+
+### Setup (EN)
+
+1) Install the ntfy app on your phone (Play Store, F-Droid or App Store). 2) In the app tap «+» and choose a long random topic name, e.g. aurora-sky-7f3k9q2x: anyone who knows the name can read it. 3) Put the same name in AURORA_NTFY_TOPIC (Plugin → ntfy). 4) With ntfy.sh leave AURORA_NTFY_URL empty; with your own server write its address, e.g. https://ntfy.home.net. 5) Only if the topic is protected: on the server's web page open Account → Access tokens, create a token and paste it into AURORA_NTFY_TOKEN. 6) Test it by asking Aurora for the latest notifications.
+
+### Configurazione (IT)
+
+1) Installa l'app ntfy sul telefono (Play Store, F-Droid o App Store). 2) Nell'app tocca «+» e scegli un nome di canale lungo e casuale, per esempio aurora-cielo-7f3k9q2x: chi conosce il nome può leggerlo. 3) Scrivi lo stesso nome in AURORA_NTFY_TOPIC (Plugin → ntfy). 4) Se usi ntfy.sh lascia vuoto AURORA_NTFY_URL; se hai un tuo server scrivi il suo indirizzo, per esempio https://ntfy.casa.it. 5) Solo se il canale è protetto: sul sito del server vai in Account → Token di accesso, crea un token e incollalo in AURORA_NTFY_TOKEN. 6) Prova chiedendo ad Aurora le ultime notifiche.
+
 ## patent
 
 Patent filings for projects: the description, claims and abstract laid out in the form each office asks (Italy: D.M. 33/2010 art. 22; Europe: EPC Rules 43, 46, 47, 49; USA: 37 CFR 1.52, 1.72, 1.75, 1.84, provisional included), the CAD drawings added, and the whole package checked — page size, margins, black-only drawings, abstract words, claims numbering, every reference sign recalled in the description, no AI notice printed or in the metadata, dates to verify. Also checks a package already in the documents (read only). It brings its PDF library (fpdf2) into its own folder.
@@ -773,14 +824,38 @@ Serve l'inventario del PC del telescopio (pagina 🔭 Astro): il sito arrotondat
 
 ## spotify
 
-🟢 Spotify on the DJ page, for a **Premium** account (Spotify allows neither its Web API nor its player in a browser
-without one). The player and the sign-in live in the browser: OAuth with PKCE (no secret on the machine; the token
-stays in that browser), Spotify's Web Playback SDK as a device of the account, a link of a playlist, an album or a
-track pasted and played. Set up with `AURORA_SPOTIFY_CLIENT_ID` (an app on developer.spotify.com: Web API and Web
-Playback SDK, the redirect URI Aurora's address followed by «/»); the guide is in its card. Only while it is set the
-WebUI's security policy opens to Spotify (its script, frame, sign-in, API, pictures). Spotify's sound stays in its
-player: no mix. The player's 🎧 shares another tab's sound for the visuals instead (any player, free accounts too).
-Tool: `spotify_status`.
+Spotify in the DJ page, for a Premium account: Spotify's own player (Web Playback SDK) in the browser, signed in with your account (PKCE: no secret on this machine, the token stays in your browser). Paste a link to a playlist, an album or a track and it plays; play, pause, next. Spotify's sound stays in its player: no visuals, no mix (its rules).
+
+### Setup (EN)
+
+**Spotify Premium is needed**: without it, Spotify allows neither the Web API nor the player in a browser.
+
+1. Open **developer.spotify.com** → sign in → **Dashboard** → **Create app**.
+2. Any name and description. In **Redirect URIs** put Aurora's address followed by a slash, exactly as you open it, e.g. `https://aurora.example.org:8443/` (the DJ page shows it ready to copy).
+3. In **Which API/SDKs** tick **Web API** and **Web Playback SDK**, accept the terms and save.
+4. Open the app → **Settings** → copy the **Client ID** (the «Client secret» is not needed) and paste it below in `AURORA_SPOTIFY_CLIENT_ID`, then **Save**: Aurora restarts HTTPS to open its security policy to Spotify's player only.
+5. If other people at home will use it: in the app → **User Management**, add their Spotify e-mail (a new app is in «development mode»: listed users only).
+6. In the DJ page → **🟢 Spotify** → **Connect Spotify**: accept on Spotify and come back to Aurora; paste a link and press ▶.
+
+The browser must play protected content (DRM: Chrome, Edge, Firefox do; some Linux browsers ask to switch it on).
+
+### Configurazione (IT)
+
+**Serve Spotify Premium**: senza, Spotify non permette né la Web API né il lettore nel browser.
+
+1. Apri **developer.spotify.com** → accedi → **Dashboard** → **Create app**.
+2. Nome e descrizione a piacere. In **Redirect URIs** metti l'indirizzo di Aurora seguito da una barra, esattamente come lo apri, per esempio `https://aurora.example.org:8443/` (la pagina DJ te lo mostra già pronto da copiare).
+3. In **Which API/SDKs** spunta **Web API** e **Web Playback SDK**, accetta i termini e salva.
+4. Apri l'app → **Settings** → copia il **Client ID** (il «Client secret» non serve) e incollalo qui sotto in `AURORA_SPOTIFY_CLIENT_ID`, poi **Salva**: Aurora riavvia l'HTTPS per aprire la politica di sicurezza solo al lettore di Spotify.
+5. Se altre persone di casa lo useranno: nell'app → **User Management**, aggiungi la loro e-mail di Spotify (un'app nuova è in «development mode»: solo gli utenti elencati).
+6. Nella pagina DJ → **🟢 Spotify** → **Collega Spotify**: accetti su Spotify e torni in Aurora; incolli un link e premi ▶.
+
+Il browser deve poter riprodurre contenuti protetti (DRM: Chrome, Edge, Firefox lo fanno; alcuni browser su Linux chiedono di attivarlo).
+
+### Official guides
+
+- [Spotify for Developers — Dashboard](https://developer.spotify.com/dashboard)
+- [Web Playback SDK](https://developer.spotify.com/documentation/web-playback-sdk)
 
 ## telegram
 

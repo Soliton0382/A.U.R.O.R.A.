@@ -26,10 +26,23 @@ from pathlib import Path
 from . import sys_config
 
 REDACTED = "redacted"
+# a plugin Aurora wrote herself (manifest "forged", agt_forge) — owner, 9 Nov: «se aurora si crea un plugin "per
+# evadere" e io firmo lei diventa indipendente»: whatever its manifest says, at every start it writes only here, reads
+# only its own secrets, and reaches the network only through plg_netproxy
+FORGED_WRITE = {"AURORA_PROJECTS_DIR"}
+
+
+def forged(manifest: dict) -> bool:
+    return bool(manifest.get("forged"))
 
 
 def _declared(manifest: dict) -> set[str]:
-    return set(manifest.get("env", [])) | set(manifest.get("env_as", {})) | set(manifest.get("requires", []))
+    keys = set(manifest.get("env", [])) | set(manifest.get("env_as", {})) | set(manifest.get("requires", []))
+    if forged(manifest):                               # its own settings only (AURORA_<NAME>_…), never another's secret
+        name = str(manifest.get("name", ""))           # nor a key Aurora's core or another plugin has (audit 9 Nov)
+        prefix, theirs = f"AURORA_{name.upper()}_", sys_config.others_keys(name)
+        keys = {k for k in keys if k.startswith(prefix) and k not in theirs}
+    return keys
 
 
 _scrubbed: set[str] = set()
@@ -156,7 +169,10 @@ def wrap(cmd: list[str], folder: Path, manifest: dict, filtered_env: Path, cfg: 
     args += _others_hidden(cfg)
     from . import sys_users_layout as L
     usr = L.usr(cfg) if L.migrated(cfg) else None
-    for key in manifest.get("sandbox", {}).get("write", []):
+    writes = manifest.get("sandbox", {}).get("write", [])
+    if forged(manifest):                               # never Aurora's code, settings, approvals or other plugins
+        writes = [k for k in writes if k in FORGED_WRITE]
+    for key in writes:
         p = cfg.path(key)
         # a user's folder only: with the machine's configuration (no user: the tools listed at start) the path is
         # usr/<x> itself, not anyone's — never made (owner, 28 Oct: «dentro usr ci sono cartelle che non dovrebbero
@@ -166,11 +182,23 @@ def wrap(cmd: list[str], folder: Path, manifest: dict, filtered_env: Path, cfg: 
         p.mkdir(parents=True, exist_ok=True)
         args += ["--bind", str(p), str(p)]
     net = manifest.get("sandbox", {}).get("network")
-    if net is False or net == "local":
-        args += ["--unshare-net"]                               # no network at all (forged plugins): nothing leaves
+    if forged(manifest) and net not in (False, "local"):
+        net = "proxy"                                           # a forged plugin: the owner's places only (plg_netproxy)
+    bridges = status / "plugins" / "bridge"
+    bridges.mkdir(parents=True, exist_ok=True)                  # hidden even for the first cage (audit 9 Nov)
+    if bridges.is_dir():                                        # the other plugins' ways out hidden; its own bound below
+        args += ["--tmpfs", str(bridges)]
+    if net is False or net in ("local", "proxy"):
+        args += ["--unshare-net"]                               # no network of its own: nothing leaves by itself
+    from . import plg_modelnet
     if net == "local":                                          # the local model only, through a socket (plg_modelnet)
-        from . import plg_modelnet
         sock, port = plg_modelnet.bridge(cfg)
+        args += ["--ro-bind", str(sock), str(sock)]
+        cmd = plg_modelnet.wrap(cmd, sock, port)
+    if net == "proxy":
+        from . import plg_netproxy
+        sock, port = plg_netproxy.bridge(str(manifest.get("name", folder.name)), manifest, cfg)
+        args += ["--ro-bind", str(sock), str(sock), *plg_netproxy.environment(port)]
         cmd = plg_modelnet.wrap(cmd, sock, port)
     args += ["--ro-bind", str(folder), str(folder)]           # the plugin's own code, wherever it lives
     args += ["--setenv", "AURORA_IN_SANDBOX", "1"]              # programs inside may rely on this cage (doc_pdf)

@@ -87,8 +87,10 @@ def _action(a: dict) -> dict:
     return out
 
 
-def save(cfg, spec: dict) -> dict:
-    """A new automation, or the one with spec["id"] changed."""
+def save(cfg, spec: dict, owner: bool = False) -> dict:
+    """A new automation, or the one with spec["id"] changed. `owner`: the person's own click in 🏠 Casa (api/home);
+    without it (the agent) an automation that lowers the house's security is kept off until the owner turns it on, and
+    one the owner made is not Aurora's to change (C536, owner 9 Nov)."""
     name = str(spec.get("name", "")).strip()[:80]
     if not name:
         raise AutoError("name: required")
@@ -97,8 +99,15 @@ def save(cfg, spec: dict) -> dict:
         raise AutoError("actions: at least one")
     data = load(cfg)
     old = next((x for x in data["automations"] if x["id"] == spec.get("id")), None)
-    a = {"id": old["id"] if old else secrets.token_hex(5), "name": name, "enabled": bool(spec.get("enabled", True)),
-         "when": _when(spec.get("when") or {}), "actions": actions,
+    if old and old.get("by_owner") and not owner:
+        raise AutoError("this automation is the owner's: only he changes it, in 🏠 Casa")
+    from . import hom_safety
+    risky = any(hom_safety.action_lowers(x) for x in actions)
+    agreed = owner or bool(old and old.get("owner_ok") and old["actions"] == actions)
+    a = {"id": old["id"] if old else secrets.token_hex(5), "name": name,
+         "enabled": bool(spec.get("enabled", True)) and (agreed or not risky),
+         "when": _when(spec.get("when") or {}), "actions": actions, "owner_ok": agreed or not risky,
+         "by_owner": bool(owner or (old or {}).get("by_owner")),
          "last": (old or {}).get("last"), "last_ok": (old or {}).get("last_ok"), "last_text": (old or {}).get("last_text", "")}
     data["automations"] = [a if x is old else x for x in data["automations"]] if old else data["automations"] + [a]
     _save(cfg, data)
@@ -152,7 +161,11 @@ def run(cfg, a: dict, user: str = "", log=None, now: datetime | None = None, onl
     for _, act in acts:
         if act.get("service") == "scene":
             grouped.setdefault(act["scene_name"], []).append(act["entity_id"])
+    from . import hom_safety
     for i, act in acts:
+        if hom_safety.action_lowers(act) and not a.get("owner_ok"):     # C536: never without the owner's own yes
+            failed.append(f"{act.get('entity_id')}: {act.get('service')} waits for the owner (🏠 Casa)")
+            continue
         try:
             if act.get("service") == "scene":
                 lights = grouped.pop(act["scene_name"], None)
@@ -269,11 +282,16 @@ def tool(cfg, args: dict, may_command: bool, log=None) -> str:
                 or "No automation saved yet."
         if action == "save":
             a = save(cfg, {k: args[k] for k in ("id", "name", "when", "actions", "enabled") if k in args})
+            if not a["owner_ok"]:
+                return (f"SAVED automation «{a['name']}» ({a['id']}) but OFF: it opens or disarms something, so only "
+                        "the owner turns it on, in 🏠 Casa → Automazioni. Tell him.")
             return f"SAVED automation «{a['name']}» ({a['id']}): {a['when']}, {len(a['actions'])} actions."
         found = next((a for a in load(cfg)["automations"] if a["id"] == str(args.get("id", ""))), None)
         if found is None:
             return "ERROR: unknown id (action=list gives them)"
         if action == "delete":
+            if found.get("by_owner"):
+                return "REFUSED: this automation is the owner's: only he deletes it, in 🏠 Casa."
             delete(cfg, found["id"])
             return f"DELETED «{found['name']}»."
         if action == "run" and not may_command:

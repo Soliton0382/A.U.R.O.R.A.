@@ -220,7 +220,7 @@ async def home_automation_save(request: Request) -> dict:
     from aurora import hom_auto
     _host()
     try:
-        out = hom_auto.save(cfg, await request.json())
+        out = hom_auto.save(cfg, await request.json(), owner=True)      # the person's own click (C536)
     except (hom_auto.AutoError, TypeError, ValueError) as e:
         raise HTTPException(status_code=422, detail=str(e)) from None
     log.info("home automation %s saved by %s", out["name"], me())
@@ -238,7 +238,7 @@ async def home_automation(aid: str, action: str) -> dict:
     if action == "run":
         out = await in_thread(lambda: hom_auto.run(cfg, a, me() or "", log))
     elif action in ("on", "off"):
-        out = hom_auto.save(cfg, {**a, "enabled": action == "on"})
+        out = hom_auto.save(cfg, {**a, "enabled": action == "on"}, owner=True)   # turned on by the person: agreed
     elif action == "delete":
         out = {"deleted": hom_auto.delete(cfg, aid)}
     else:

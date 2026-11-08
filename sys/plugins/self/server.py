@@ -237,7 +237,9 @@ def sandbox_diff(sandbox_id: str) -> str:
 def run_tests(sandbox_id: str = "", select: str = "") -> str:
     """Run the test suite (without the GPU tests) with Aurora's own environment: in a sandbox, or on the live
     code when sandbox_id is empty. `select` is a pytest -k expression. Returns the outcome and the failures."""
-    t = sys_tests.run_suite(_box(sandbox_id) if sandbox_id else ROOT, select)
+    # audit 9 Nov: the code Aurora writes is tested in the projects' cage (no network, no home, no .env), never with
+    # the machine's network; the live code itself is the owner's, signed, and runs as before
+    t = sys_tests.run_suite(_box(sandbox_id) if sandbox_id else ROOT, select, caged=bool(sandbox_id))
     where = f"sandbox {sandbox_id}" if sandbox_id else "live code"
     return f"{'PASSED' if t['ok'] else 'FAILED'} on {where} in {t['seconds']} s: {t['summary']}\n" + (
         "" if t["ok"] else t["output"])

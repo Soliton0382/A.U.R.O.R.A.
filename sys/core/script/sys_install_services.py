@@ -154,6 +154,7 @@ ExecStart=$exec
 $env
 TimeoutStartSec=180
 NoNewPrivileges=yes
+ProtectSystem=true
 ProtectHome=read-only
 ReadWritePaths=-$status
 PrivateTmp=yes
@@ -187,6 +188,7 @@ ExecStart=$exec
 $env
 TimeoutStartSec=60
 NoNewPrivileges=yes
+ProtectSystem=true
 ProtectHome=read-only
 PrivateTmp=yes
 """)

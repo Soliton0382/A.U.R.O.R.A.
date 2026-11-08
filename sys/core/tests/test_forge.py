@@ -160,7 +160,7 @@ SERVICE = {"name": "cloudy", "version": "1.0", "kind": "tool", "description": {"
                              {"key": "AURORA_CLOUDY_TOKEN", "type": "str", "secret": True, "it": "Il token API", "en": "The API token"}],
            "setup": {"it": "1. Apri il pannello… 2. Crea un token…", "en": "1. Open the panel… 2. Create a token…"},
            "effects": {"cloudy_status": "read", "cloudy_activate": "external", "*": "read"},
-           "sandbox": {"network": True}, "tests": [{"tool": "cloudy_status", "args": {}}]}
+           "sandbox": {"network": True}, "hosts": ["api.cloudy.example"], "tests": [{"tool": "cloudy_status", "args": {}}]}
 
 
 def test_a_plugin_for_a_service_declares_its_settings_and_its_actions_wait_for_the_owner():
@@ -269,3 +269,19 @@ def test_a_users_sealed_state_is_never_offered_to_a_plugin(cfg):
     assert "routines.json" not in F.data_places(cfg) and "approvals.json" not in F.data_places(cfg)
     assert "never zero or 'none'" in F.SYS_WRITE
 
+
+
+def test_a_forged_plugin_never_asks_for_more_than_its_own(tmp_path):
+    """9 Nov (owner: «se aurora si crea un plugin "per evadere" e io firmo lei diventa indipendente»): refused at birth,
+    and said plainly to the owner."""
+    for extra, words in (({"sandbox": {"network": True, "write": ["AURORA_STATUS_DIR"]}}, "writes only in AURORA_PROJECTS_DIR"),
+                         ({"env_as": {"AURORA_API_KEY": "KEY"}}, "not declared in settings_spec"),
+                         ({"seal_keys": ["health"]}, "never in a plugin Aurora writes"),
+                         ({"home_commands": ["cloudy_status"]}, "never in a plugin Aurora writes"),
+                         ({"hosts": ["192.168.1.2"]}, "public host names"),
+                         ({"hosts": [], "settings_spec": [{"key": "AURORA_CLOUDY_TOKEN", "it": "t", "secret": True}],
+                           "requires": ["AURORA_CLOUDY_TOKEN"], "env": []}, "needs where it goes")):
+        assert any(words in e for e in F.check({**SERVICE, **extra}, CODE, set())), extra
+    said = F.powers(SERVICE, "it")
+    assert said[0] == "🌐 rete solo verso: api.cloudy.example" and "non scrive niente" in said[1]
+    assert any("aspetta la tua approvazione" in x for x in said) and said[-1].startswith("🚫 non può")

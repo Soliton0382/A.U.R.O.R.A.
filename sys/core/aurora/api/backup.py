@@ -82,7 +82,8 @@ def backup_snapshots() -> list[dict]:
     except Exception as e:  # noqa: BLE001 — the NAS asleep, no key: said on the card
         raise HTTPException(status_code=409, detail=f"{type(e).__name__}: {str(e)[:200]}") from None
     as_it = "sudo " if mod.needs_root(cfg) else ""
-    return [{**r, "command": f"cd {cfg.root} && {as_it}.venv/bin/python sys/core/script/sys_restore.py --apply {r['snapshot']}"}
+    return [{**r, "command": f"sudo aurora-root restore --apply {r['snapshot']}" if as_it else   # C538: root's copy
+             f"cd {cfg.root} && .venv/bin/python sys/core/script/sys_restore.py --apply {r['snapshot']}"}
             for r in reversed(rows)]
 
 

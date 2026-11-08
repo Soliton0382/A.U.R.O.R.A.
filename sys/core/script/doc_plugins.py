@@ -27,6 +27,17 @@ def main() -> int:
             "forge every plugin it builds; a field not listed here is refused).", "", "| field | required | what it is |",
             "|---|---|---|"]
     out += [f"| `{k}` | {'yes' if req else '—'} | {what} |" for k, (_, req, what) in FIELDS.items()] + [""]
+    out += ["## The contract of Aurora's own plugins (9 Nov 2026)", "",
+            "A plugin the forge writes (`forged`) is held by its cage at every start, whatever its manifest says "
+            "(aurora/plg_sandbox.py, plg_host.py, plg_netproxy.py): it writes at most in `AURORA_PROJECTS_DIR`; it reads "
+            "only its own settings (`AURORA_<NAME>_…`), never another plugin's secret nor a sealed store's key "
+            "(`seal_keys`); it never commands the house by itself (`home_commands`); it has no network of its own — "
+            "a proxy of its own lets it reach only the host of its own URL settings (the owner's) and the public "
+            "`hosts` it lists, never Aurora's own services, each connection logged. The forge refuses a manifest "
+            "asking for more. Read-only and projects' plugins install by themselves; the others wait for the owner's "
+            "approval, which shows first what the plugin will be able to do. Aurora's plugins are outside the "
+            "owner's code signature (the contract holds them); a plugin that is neither hers nor signed is not "
+            "loaded.", ""]
     rows = ["| plugin | kind | tools (effect) | needs |", "|---|---|---|---|"]
     # the owner's private plugins (local_*, never published: .gitignore) are never in a public page (C308)
     manifests = [json.loads(p.read_text()) for p in sorted((ROOT / "sys/plugins").glob("*/plugin.json"))

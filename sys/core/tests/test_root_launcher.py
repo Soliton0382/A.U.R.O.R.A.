@@ -48,7 +48,10 @@ def test_signs_what_changed_then_copies_only_the_signed_bytes(repo):
     assert R.drift(snap)["unsigned"]                                   # nothing signed yet
     assert R.sign(snap, yes=True)
     assert not any(R.drift(R.snapshot())[k] for k in ("changed", "added", "removed"))
-    assert R.sync_lib(R.snapshot()) == 8                               # the package (7) and the launcher, nothing else
+    from aurora import sys_ethics as E                                # the package (its protected files and x.py) and
+    want = {f for f in E.PROTECTED if f.startswith("sys/core/aurora/")} | {"sys/core/aurora/x.py"} | {
+        f"sys/core/script/{n}" for n in R.LIB_SCRIPTS if f"sys/core/script/{n}" in R.snapshot()}
+    assert R.sync_lib(R.snapshot()) == len(want)                       # the scripts root runs, nothing else
     assert not (R.LIB / "install.sh").exists() and not (R.LIB / "sys/deploy").exists()
     assert (R.LIB / "sys/core/aurora/x.py").read_text() == "# sys/core/aurora/x.py\n"
     assert R.CONF.read_text() == f"{repo}\n" and "sys_root.py" in R.SHIM.read_text()
@@ -85,3 +88,39 @@ def test_root_never_writes_through_a_link(repo, tmp_path):
     R.sign(R.snapshot(), yes=True)                                     # the manifest written beside, by a rename
     assert target.read_text() == "intact" and not (repo / sys_ethics.MANIFEST).is_symlink()
     assert json.loads((repo / sys_ethics.MANIFEST).read_text())["code_signature"]
+
+
+def test_aurora_s_own_plugins_are_outside_the_signature_and_shown_with_their_contract(repo, capsys):
+    """9 Nov (owner: «senza che debba ogni volta firmare»): a forged plugin is not in the signed code; the status says
+    what its contract lets it do. An owner's plugin not signed is not loaded (sys_ethics.unsigned_plugins)."""
+    p = repo / "sys/plugins/sly"
+    p.mkdir(parents=True)
+    (p / "plugin.json").write_text(json.dumps({"name": "sly", "forged": {"request": "r"}, "sandbox": {"network": False},
+                                               "effects": {"*": "read"}}))
+    (p / "server.py").write_text("# sly\n")
+    R.sign(R.snapshot(), yes=True)
+    assert not any(f.startswith("sys/plugins/sly/") for f in R.snapshot())
+    (p / "server.py").write_text("# sly changed by Aurora\n")
+    assert not any(R.drift(R.snapshot())[k] for k in ("changed", "added", "removed"))     # nothing to sign
+    R.status()
+    out = capsys.readouterr().out
+    assert "🔨 sly (di Aurora, sotto contratto)" in out and "🌐 nessuna rete" in out
+    mine = repo / "sys/plugins/mine"
+    mine.mkdir()
+    (mine / "plugin.json").write_text(json.dumps({"name": "mine"}))
+    assert "mine" in sys_ethics.unsigned_plugins(repo)                                     # the owner's, unsigned
+    R.sign(R.snapshot(), yes=True)
+    sys_ethics._unsigned_cache.clear()
+    assert sys_ethics.unsigned_plugins(repo) == set()
+
+
+def test_a_protected_list_that_grows_is_signed_in_one_go(repo, monkeypatch):
+    """C542 again, 9 Nov: the list of protected files is read from the code being signed, not from root's copy."""
+    R.sign(R.snapshot(), yes=True)
+    extra = "sys/core/aurora/x.py"
+    (repo / "sys/core/aurora/sys_ethics.py").write_text(f"PROTECTED = {(*sys_ethics.PROTECTED, extra)!r}\n")
+    d = R.drift(R.snapshot())
+    assert d["unsigned"] and extra in d["protected"]                # said, though root's copy has the old list
+    R.sign(R.snapshot(), yes=True)
+    signed = json.loads((repo / sys_ethics.MANIFEST).read_text())["files"]
+    assert extra in signed and not R.drift(R.snapshot())["unsigned"]

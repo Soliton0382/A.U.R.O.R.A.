@@ -53,6 +53,24 @@ def load_schema(path: Path = SCHEMA_FILE) -> dict:
 PLUGIN_TYPES = {"str", "bool", "int", "float"}
 
 
+def others_keys(plugin: str, plugins_dir: Path | None = None) -> set[str]:
+    """The settings that belong to someone other than `plugin`: Aurora's core schema and every other plugin's
+    settings_spec (audit 9 Nov: a forged plugin named «api» called AURORA_API_KEY its own)."""
+    try:
+        out = {s["key"] for s in json.loads(SCHEMA_FILE.read_text(encoding="utf-8"))["settings"]}
+    except (OSError, ValueError, KeyError):
+        out = set()
+    d = plugins_dir or (CODE_ROOT / "sys" / "plugins")
+    for mf in d.glob("*/plugin.json"):
+        if mf.parent.name == plugin:
+            continue
+        try:
+            out |= {str(s.get("key", "")) for s in json.loads(mf.read_text(encoding="utf-8")).get("settings_spec") or []}
+        except (OSError, ValueError, AttributeError):
+            continue
+    return out
+
+
 def plugin_settings(taken: set[str], plugins_dir: Path | None = None) -> list[dict]:
     """The settings a plugin declares in its plugin.json («settings_spec»), as schema entries: each named
     AURORA_<PLUGIN>_…, so a plugin can never redefine a setting of Aurora's or another plugin's; a secret is marked
@@ -187,12 +205,16 @@ def load(env_file: Path | None = None, schema_file: Path = SCHEMA_FILE, check_ro
         raise ConfigError(f"{env_file} not found")
     schema = load_schema(schema_file)
     specs = {s["key"]: s for s in schema["settings"]}
+    root = getattr(os, "geteuid", lambda: 1)() == 0
+    if root and Path(env_file).is_symlink():         # audit, 9 Nov: root (its units, aurora-root) never reads it through
+        raise ConfigError(f"{env_file} is a symbolic link: refused as root")   # a link the services' account planted
     raw = parse_env(env_file.read_text(encoding="utf-8"), str(env_file))
     if os.environ.get("AURORA_PLUGIN"):              # a plugin's filtered .env names its secrets, never holds them (C463)
         raw = {k: (os.environ.get(PLUGIN_SECRET + k, "") if v == ENV_REF + k else v) for k, v in raw.items()}
     st = env_file.stat()
     shared = _group_name(st.st_gid) == SERVICE_GROUP     # U6: the services' own group reads and writes it too
-    if st.st_mode & (0o007 if shared else 0o077):    # secrets inside: nobody else may read it
+    if st.st_mode & (0o007 if shared else 0o077) and not root:   # secrets inside: nobody else may read it (never
+                                                     # chmod by root: the file is the services', C5 of 9 Nov)
         try:
             env_file.chmod(0o660 if shared else 0o600)
         except OSError:

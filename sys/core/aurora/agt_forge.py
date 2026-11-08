@@ -23,7 +23,7 @@ import time
 import uuid
 from pathlib import Path
 
-from . import sys_config, sys_log
+from . import plg_netproxy, sys_config, sys_log
 
 NAME = re.compile(r"^[a-z][a-z0-9_]{2,30}$")
 NEVER = (".env", "sys/vault", "usr/uploads", "sys/status/push", "sys/status/plugins/env", "sys/status/devices.json", ".ssh")
@@ -269,8 +269,29 @@ def check(manifest: dict, code: str, existing: set[str], people: set[str] = froz
         elif not (s.get("it") or s.get("en")):
             errs.append(f"settings_spec: {key} needs a description (it, en)")
         declared.add(key)
-    if bad := [k for k in manifest.get("requires", []) + manifest.get("env", []) if k not in declared]:
-        errs.append(f"env/requires: {', '.join(bad)} not declared in settings_spec (a forged plugin reads only its own settings)")
+    if bad := [k for k in manifest.get("requires", []) + manifest.get("env", []) + list(manifest.get("env_as") or {})
+               if k not in declared]:
+        errs.append(f"env/requires/env_as: {', '.join(bad)} not declared in settings_spec (a forged plugin reads only "
+                    "its own settings)")
+    # 9 Nov (owner: «se aurora si crea un plugin "per evadere"…»): what a plugin Aurora writes may never ask for —
+    # the cage refuses it at every start anyway (plg_sandbox, plg_host); said here so that it never reaches the owner
+    theirs = sys_config.others_keys(name)              # audit 9 Nov: a name that makes another's keys look like its own
+    if bad := sorted(k for k in declared if k in theirs):
+        errs.append(f"settings_spec: {', '.join(bad)} belong to Aurora or another plugin: choose a name of your own")
+    if any(k.startswith(f"AURORA_{name_up}_") for k in theirs):
+        errs.append(f"name: AURORA_{name_up}_… is taken by Aurora's own settings or another plugin's: choose another name")
+    if bad := sorted(set(manifest) & FORBIDDEN_FIELDS):
+        errs.append(f"{', '.join(bad)}: never in a plugin Aurora writes (sealed stores, the house's commands, "
+                    "accounts, installs, social pages are the owner's plugins')")
+    sb = manifest.get("sandbox") or {}
+    if bad := [k for k in sb.get("write") or [] if k not in PROJECT_WRITE]:
+        errs.append(f"sandbox write: {', '.join(bad)} — a forged plugin writes only in AURORA_PROJECTS_DIR")
+    hosts = manifest.get("hosts") or []
+    if not isinstance(hosts, list) or [h for h in hosts if not plg_netproxy.HOST.match(str(h).lower().strip("."))]:
+        errs.append("hosts: a list of public host names (example.org), never an address, a port or a pattern")
+    if sb.get("network") is True and not hosts and not [x for x in declared if "URL" in x]:
+        errs.append("network: true needs where it goes — \"hosts\" (public names) or a URL setting of its own "
+                    "(AURORA_<NAME>_URL) the owner fills in: nothing else is reachable")
     if specs and not (manifest.get("setup") or {}).get("it"):
         errs.append("setup: a step-by-step guide (it, en) to get each setting")
     effects = manifest.get("effects") or {}
@@ -296,6 +317,42 @@ def check(manifest: dict, code: str, existing: set[str], people: set[str] = froz
     from . import plg_contract                          # the same contract as every other plugin
     errs += [e for e in plg_contract.check(manifest) if not e.startswith("name ")]     # the name: said above
     return errs
+
+
+FORBIDDEN_FIELDS = {"seal_keys", "home_commands", "owner_only", "oauth", "install", "social", "publishes"}
+
+
+def powers(manifest: dict, lang: str = "it") -> list[str]:
+    """What the plugin will be able to do, in plain words for the owner's approval and signature (9 Nov): the cage's
+    real limits (plg_sandbox, plg_netproxy), not what its tools say of themselves."""
+    it = lang != "en"
+    sb = manifest.get("sandbox") or {}
+    name = str(manifest.get("name", ""))
+    net, hosts = sb.get("network"), plg_netproxy.declared_hosts(manifest)
+    urls = [s.get("key") for s in manifest.get("settings_spec") or [] if "URL" in str(s.get("key", ""))]
+    out = []
+    if net in (False, None) and not hosts:
+        out.append("🌐 nessuna rete" if it else "🌐 no network")
+    elif net == "local":
+        out.append("🌐 solo il modello locale di Aurora" if it else "🌐 Aurora's local model only")
+    else:
+        where = [f"l'indirizzo che metti tu in {u}" if it else f"the address you put in {u}" for u in urls] + hosts
+        out.append(("🌐 rete solo verso: " if it else "🌐 network only to: ") + "; ".join(where or ["—"]))
+    writes = [w for w in sb.get("write") or [] if w in PROJECT_WRITE]
+    out.append(("✏️ scrive solo nei progetti" if it else "✏️ writes only in the projects") if writes
+               else ("✏️ non scrive niente" if it else "✏️ writes nothing"))
+    secrets = sorted({k for k in (manifest.get("env") or []) + list(manifest.get("env_as") or {})
+                      if k.startswith(f"AURORA_{name.upper()}_")})
+    out.append(("🔑 legge solo le sue impostazioni: " if it else "🔑 reads only its own settings: ") + (", ".join(secrets) or "—"))
+    ext = sorted(t for t, e in (manifest.get("effects") or {}).items() if e == "external")
+    if ext:
+        out.append(("📤 ogni chiamata di " if it else "📤 every call of ") + ", ".join(ext)
+                   + (" aspetta la tua approvazione" if it else " waits for your approval"))
+    out.append("🚫 non può: toccare il codice di Aurora, le impostazioni, le approvazioni, le chiavi, gli altri plugin, "
+               "i comandi della casa, né raggiungere i servizi di Aurora o altri indirizzi" if it else
+               "🚫 it cannot: touch Aurora's code, settings, approvals, keys, other plugins, the house's commands, nor "
+               "reach Aurora's services or any other address")
+    return out
 
 
 def people(cfg: sys_config.Config) -> set[str]:
@@ -404,7 +461,9 @@ def test(host, manifest: dict, stage: Path, llm=None, sample: str = "", masker=N
     """Run the manifest's tests in the cage, from the stage folder: every call must work and say something, and
     (with a sample of the data) a judge must find the output true to it: "no data" on data is a failure (M53)."""
     from .plg_host import Plugin
-    p = Plugin(manifest["name"], stage, manifest)
+    # audit 9 Nov: before the owner's approval a plugin reaches no public host it declared — at most the address the
+    # owner set in its own settings (the proxy, plg_netproxy): nothing leaves for a place he has not seen
+    p = Plugin(manifest["name"], stage, {**manifest, "hosts": []})
     errs = []
 
     async def tools(session):

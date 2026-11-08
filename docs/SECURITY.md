@@ -70,6 +70,18 @@ temporary folder. Inside the services' folders root follows no symbolic link (C5
 WebUI needs no root (polkit, 50-aurora.rules) and is unchanged. The first time, from Aurora's folder:
 `sudo /usr/bin/python3 -I sys/core/script/sys_root.py setup`.
 
+## 🔨 The contract of Aurora's own plugins (9 Nov 2026)
+
+A plugin Aurora writes herself (the forge, manifest «forged») is held by its cage at every start, whatever its
+manifest says: it writes at most in the projects' folder; it reads only its own settings (AURORA_<NAME>_…), never
+another plugin's secret or a sealed store's key; it never commands the house's devices by itself; it has no network of
+its own — a proxy of its own (plg_netproxy) lets it reach only the address the owner set in its settings and the public
+hosts its manifest lists, never Aurora's own services, and every connection is logged; it cannot see another plugin's
+way out. The forge refuses a manifest asking for more, and the owner's approval of a plugin that reaches the network or
+acts outside shows first, in plain words, what it will be able to do. Her plugins stand outside the owner's code
+signature — the contract holds them, so she makes and uses them without a signature each time — while a plugin that is
+neither hers nor signed by the owner is not loaded.
+
 ## Code of conduct (sys/core/ethics/CODE.md)
 
 Level A, always and for everyone: no attacks or probing of systems that are not the owner's, no

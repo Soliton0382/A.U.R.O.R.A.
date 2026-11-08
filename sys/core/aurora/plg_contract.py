@@ -54,6 +54,7 @@ FIELDS = {
     "effect_prefixes": (dict, False, "tool-name prefix → effect, for a program with many tools"),
     "outputs": (dict, False, "tool → {pattern, url, mime}: a file it makes, offered for download"),
     "forged": (dict, False, "made by the forge: {request, at, need}"),
+    "hosts": (list, False, "a forged plugin's public places: host names its proxy lets it reach (plg_netproxy)"),
 }
 
 

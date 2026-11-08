@@ -15,6 +15,7 @@ answers «s» to sign it: one command, one question.
     sudo aurora-root sign               sign what changed (the list first), then root's copy follows
     sudo aurora-root install systemd    the units, polkit, Aurora's sealed key (also: nft, tunnel; tunnel status|remove)
     sudo aurora-root exempt | private-cloud | verify-key | keygen [--rotate]
+    sudo aurora-root restore --plan latest | --apply latest [--parts config]   a backup back (C538)
     first time, from Aurora's folder:   sudo /usr/bin/python3 -I sys/core/script/sys_root.py setup
 
 Restarting Aurora from the WebUI is not root's: polkit lets the services' account do it (50-aurora.rules), unchanged.
@@ -37,7 +38,7 @@ HERE = Path(__file__).resolve()
 STEPS = {"systemd": "sys/deploy/systemd", "nft": "sys/deploy/nft", "tunnel": "sys/deploy/cloudflared"}
 # what root keeps of the code: the package and the scripts root runs (its units', this launcher's own)
 LIB_SCRIPTS = ("sys_nas_mount.py", "sys_backup_retime.py", "sys_cert_perms.py", "sys_ethics_sign.py", "sys_root.py",
-               "sys_root_sync.py", "sys_key_seal.py")
+               "sys_root_sync.py", "sys_key_seal.py", "sys_restore.py", "sys_env_sync.py")
 SHIM_TEXT = f'#!/bin/sh\n# aurora-root (sys/core/script/sys_root.py): root\'s copy, the system\'s Python\nexec /usr/bin/python3 -I {LIB}/sys/core/script/sys_root.py "$@"\n'
 
 
@@ -92,6 +93,23 @@ def snapshot() -> dict[str, bytes]:
     return out
 
 
+def protected(snap: dict[str, bytes]) -> tuple[str, ...]:
+    """The protected files as the code being signed lists them (its sys_ethics.py, read as data), not as root's copy —
+    the previous signature — does: a list that grew was signed with the old one, and the services refused to start
+    until a second signature (C542, again 9 Nov)."""
+    import ast
+    try:
+        tree = ast.parse(snap["sys/core/aurora/sys_ethics.py"])
+        for node in tree.body:
+            if isinstance(node, ast.Assign) and any(getattr(t, "id", "") == "PROTECTED" for t in node.targets):
+                value = ast.literal_eval(node.value)
+                if isinstance(value, tuple) and all(isinstance(x, str) for x in value):
+                    return value
+    except (KeyError, SyntaxError, ValueError):
+        pass
+    return tuple(sys_ethics.PROTECTED)
+
+
 def _sha(b: bytes) -> str:
     return hashlib.sha256(b).hexdigest()
 
@@ -118,8 +136,12 @@ def drift(snap: dict[str, bytes]) -> dict:
     changed = sorted(f for f in snap if f in code and code[f] != _sha(snap[f]))
     added = sorted(f for f in snap if f not in code)
     removed = sorted(f for f in code if f not in snap)
-    prot = [f for f in sys_ethics.PROTECTED if f in changed or f in added or f in removed]
-    return {"unsigned": "", "changed": changed, "added": added, "removed": removed, "protected": prot}
+    files = m.get("files") or {}                       # the rules' own list: a protected file added to it, or one changed
+    rules = protected(snap)
+    newly = sorted(f for f in rules if f not in files or (f in snap and files[f] != _sha(snap[f])))
+    prot = sorted(set(f for f in rules if f in changed or f in added or f in removed) | set(newly))
+    unsigned = "" if not newly else "the rules' list does not cover every protected file: to sign again"
+    return {"unsigned": unsigned, "changed": changed, "added": added, "removed": removed, "protected": prot}
 
 
 def show(d: dict) -> int:
@@ -133,6 +155,18 @@ def show(d: dict) -> int:
     if d["protected"]:
         print("  🔒 = regole di Aurora (codice etico): senza firma i servizi non partono")
     return len(rows)
+
+
+def forged_list() -> None:
+    """Aurora's own plugins, outside the signature: each with what its contract lets it do (9 Nov: «se aurora si crea
+    un plugin "per evadere"…»; «senza che debba ogni volta firmare»): the cage holds them, not the signature."""
+    from aurora import agt_forge
+    for name in sorted(sys_ethics.forged_plugins(REPO)):
+        try:
+            m = json.loads(_read(REPO / "sys" / "plugins" / name / "plugin.json"))
+        except (OSError, ValueError):
+            continue
+        print(f"  🔨 {name} (di Aurora, sotto contratto): " + " · ".join(agt_forge.powers(m, "it")[:3]))
 
 
 def ask(question: str, yes: bool) -> bool:
@@ -174,10 +208,11 @@ def sign(snap: dict[str, bytes], yes: bool = False) -> bool:
     trusted, problem = sys_ethics.owner_public_key()
     if S.public_hex(key) != trusted:
         die(problem or "the private key does not match the trusted public key in /etc/aurora")
-    missing = [f for f in sys_ethics.PROTECTED if f not in snap]
+    rules = protected(snap)
+    missing = [f for f in rules if f not in snap]
     if missing:
         die("protected files missing: " + ", ".join(missing))
-    files = {f: _sha(snap[f]) for f in sys_ethics.PROTECTED}
+    files = {f: _sha(snap[f]) for f in rules}
     code = {f: _sha(b) for f, b in snap.items()}
     text = json.dumps({"files": files, "signature": key.sign(sys_ethics._canonical(files)).hex(), "code": code,
                        "code_signature": key.sign(sys_ethics._canonical(code)).hex()}, indent=1) + "\n"
@@ -258,6 +293,8 @@ def status() -> int:
     print(f"regole (codice etico): {'✅' if ok else '✗'} {reason}")
     n = show(d)
     print("codice: " + ("✅ tutto come firmato" if not n else f"{n} file da firmare (sudo aurora-root sign)"))
+    print("plugin scritti da Aurora (fuori dalla firma, li tiene il loro contratto):")
+    forged_list()
     print(f"copia di root: {'✅ ' + str(LIB) if LIB.is_dir() else '✗ assente'}; comando: "
           f"{'✅ ' + str(SHIM) if SHIM.exists() else '✗ assente'}")
     return 0
@@ -293,11 +330,17 @@ def main(argv: list[str]) -> int:
         if len(args) < 2:
             die("install: systemd, nft or tunnel")
         return install(args[1], args[2:], yes)
+    if action == "restore":                             # C538: root's copy of the restore, the system's Python, data only
+        script = LIB / "sys" / "core" / "script" / "sys_restore.py"
+        if not script.is_file():
+            die("root's copy has no restore yet: sudo aurora-root sign first")
+        return subprocess.run(["/usr/bin/python3", "-I", str(script), *args[1:]], cwd=str(REPO),
+                              env={**os.environ, "INSTALL_ROOT": str(REPO)}).returncode
     if action in ("exempt", "private-cloud", "verify-key", "keygen"):
         import sys_ethics_sign as S
         sys.argv = ["sys_ethics_sign.py", *args]
         return S.main()
-    die(f"unknown: {action} (status, sign, install, exempt, private-cloud, verify-key, keygen, setup)")
+    die(f"unknown: {action} (status, sign, install, restore, exempt, private-cloud, verify-key, keygen, setup)")
     return 1
 
 

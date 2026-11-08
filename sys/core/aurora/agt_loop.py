@@ -225,6 +225,8 @@ class Agent(AgentMakers, AgentReport):
         owner asked for it in the chat (AURORA_HA_COMMANDS 1), or also when the run decided it (2, only with the
         exemption from level B). Owner, 2026-10-12: «se io le chiedo di farlo deve farlo automaticamente» (C281)."""
         m = self.host.get(plugin).manifest
+        if m.get("forged"):                               # a plugin Aurora wrote herself never commands the house alone (9 Nov)
+            return False
         if tool in (m.get("owner_only") or []) and not self.asked:    # e.g. disarming an alarm: never a run's own idea
             return False
         return tool in (m.get("home_commands") or []) and self._may_command()
@@ -387,12 +389,14 @@ class Agent(AgentMakers, AgentReport):
             m = Pseudonymizer(self.cfg)                       # set, an address or an id: by code too, never published
             m.mask(args[field])                               # alone — the owner decides
             private += [v for v in m.to_ph if v not in private]
-        home = not private and self._home_free(plugin, tool)
+        from . import hom_safety                          # C536: lowering the house's security always waits for the owner
+        lowers = hom_safety.call_lowers(self.host.get(plugin).manifest if self.host.get(plugin) else {}, tool, args)
+        home = not private and not lowers and self._home_free(plugin, tool)
         if home:
             emit("agent.home", {"plugin": plugin, "tool": tool, "asked": self.asked})
             self.notify("home.command", {"title": f"{plugin}.{tool}", "arguments": {k: v for k, v in args.items()
                                                                                  if k != "_purpose"}})
-        if not home and (private or needs_owner(effect, self.cfg, f"{plugin}.{tool}")):
+        if not home and (private or lowers or needs_owner(effect, self.cfg, f"{plugin}.{tool}")):
             if private:
                 args["_purpose"] = (args.get("_purpose", "") + f" — privacy: {len(private)} sensitive "
                                     f"item(s) found, check before publishing").strip(" —")

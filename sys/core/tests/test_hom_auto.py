@@ -182,3 +182,33 @@ def test_a_scene_with_no_light_is_not_started_on_nothing_and_comes_back_on_its_l
     data["running"]["colorful"] = {"since": 0, "until": 0, "lights": ["light.suprema"]}
     hom_scenes._save(cfg, data)
     assert hom_scenes.resume(cfg) == ["colorful"] and started == [["light.suprema"]]
+
+
+def test_what_lowers_the_house_s_security_waits_for_the_owner(cfg, monkeypatch):
+    """C536 (owner, 9 Nov): arming and locking need no confirmation; disarming and opening always the owner's own yes —
+    an automation of Aurora's that opens stays off until he turns it on, and his own are not hers to change."""
+    from aurora import hom_safety as S
+    assert S.lowers("lock", "unlock") and S.lowers("alarm_control_panel", "alarm_disarm") and S.lowers("cover", "open_cover")
+    assert not S.lowers("lock", "lock") and not S.lowers("alarm_control_panel", "alarm_arm_away") and not S.lowers("light", "turn_on")
+    assert S.call_lowers({"owner_only": ["disarm"]}, "disarm", {})                       # an alarm plugin's disarm
+    assert S.call_lowers({}, "call_service", {"domain": "alarm_control_panel", "service": "alarm_disarm", "entity_id": "x"})
+    assert not S.call_lowers({}, "call_service", {"domain": "lock", "service": "lock", "entity_id": "lock.door"})
+    sent = []
+    monkeypatch.setattr(hom_scenes, "_ha", lambda c, path, body: sent.append(path))
+    when = {"type": "time", "at": "03:00"}
+    out = A.tool(cfg, {"action": "save", "name": "night", "when": when,
+                       "actions": [{"entity_id": "lock.front", "service": "unlock"}]}, may_command=True)
+    assert "only the owner turns it on" in out
+    a = A.load(cfg)["automations"][0]
+    assert a["enabled"] is False and a["owner_ok"] is False
+    A.run(cfg, a)                                                                       # even run: the unlock skipped
+    assert sent == []
+    locked = A.save(cfg, {"name": "lock at night", "when": when, "actions": [{"entity_id": "lock.front", "service": "lock"}]})
+    assert locked["enabled"] and locked["owner_ok"]                                     # raising it: no confirmation
+    mine = A.save(cfg, {**a, "enabled": True}, owner=True)                              # the owner turns it on himself
+    assert mine["enabled"] and mine["owner_ok"]
+    A.run(cfg, mine)
+    assert sent == ["lock/unlock"]
+    assert "owner's" in A.tool(cfg, {"action": "save", "id": mine["id"], "name": "x", "when": when,
+                                     "actions": [{"entity_id": "lock.front", "service": "unlock"}]}, may_command=True)
+    assert "REFUSED" in A.tool(cfg, {"action": "delete", "id": mine["id"]}, may_command=True)

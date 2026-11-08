@@ -33,7 +33,14 @@ PUBLIC_KEY = KEY_DIR / "owner_ed25519.pub"
 CODE_ROOT = Path(__file__).resolve().parents[3]
 PROTECTED = ("sys/core/ethics/CODE.md", "sys/core/aurora/sys_ethics.py", "sys/core/aurora/plg_host.py",
              "sys/core/aurora/sys_approvals.py", "sys/core/aurora/sys_disclosure.py", "sys/core/aurora/agt_change.py",
-             "sys/core/aurora/plg_sandbox.py")
+             "sys/core/aurora/plg_sandbox.py",
+             # audit 9 Nov: what holds her plugins to their contract, and every script root runs — never a self-change
+             "sys/core/aurora/plg_netproxy.py", "sys/core/aurora/plg_modelnet.py", "sys/core/aurora/plg_contract.py",
+             "sys/core/aurora/agt_forge.py", "sys/core/aurora/sys_tests.py",
+             "sys/core/script/sys_root.py", "sys/core/script/sys_ethics_sign.py", "sys/core/script/sys_root_sync.py",
+             "sys/core/script/sys_key_seal.py", "sys/core/script/sys_install_services.py",
+             "sys/core/script/sys_nas_mount.py", "sys/core/script/sys_backup_retime.py", "sys/core/script/sys_cert_perms.py",
+             "sys/core/script/sys_restore.py", "sys/core/script/sys_env_sync.py")
 MANIFEST = "sys/core/ethics/MANIFEST.json"
 FORBIDDEN = {"offensive_scan", "exploit", "denial_of_service", "person_lookup", "person_tracking",
              "credential_attack", "malware", "unauthorized_access", "impersonation"}
@@ -106,16 +113,69 @@ CODE_PATTERNS = ("install.sh", "uninstall.sh", "requirements.txt", "sys/core/**/
 DATA_FILES = ("sys/core/config/shadow_seed.json",)  # rewritten every day by its timer (C401): data, not code
 
 
+def forged_plugins(root: Path = CODE_ROOT) -> set[str]:
+    """The plugins Aurora wrote herself (their manifest says "forged"): under their contract, not the owner's signature
+    — the cage holds them to it at every start (plg_sandbox: the projects' folder at most, their own settings, the
+    network only through plg_netproxy), so she makes and uses them without a signature each time (owner, 9 Nov)."""
+    out = set()
+    for mf in (root / "sys" / "plugins").glob("*/plugin.json"):
+        try:
+            if json.loads(mf.read_text(encoding="utf-8")).get("forged"):
+                out.add(mf.parent.name)
+        except (OSError, ValueError):
+            continue
+    return out
+
+
 def code_files(root: Path = CODE_ROOT) -> list[str]:
-    """Every file of the code base the owner signs as a whole (the second tier: changes are reported, not fatal)."""
-    found = set()
+    """Every file of the code base the owner signs as a whole (the second tier: changes are reported, not fatal); the
+    plugins Aurora wrote herself are not among them (forged_plugins: their contract holds them)."""
+    found, forged = set(), {f"sys/plugins/{n}/" for n in forged_plugins(root)}
     for pattern in CODE_PATTERNS:
         for p in root.glob(pattern):
             rel = p.relative_to(root).as_posix()
             if (p.is_file() and "__pycache__" not in rel and rel not in (MANIFEST, "sys/core/ethics/exemption.sig")
-                    and rel not in DATA_FILES):
+                    and rel not in DATA_FILES and not any(rel.startswith(f) for f in forged)):
                 found.add(rel)
     return sorted(found)
+
+
+_unsigned_cache: dict = {}
+
+
+def unsigned_plugins(root: Path = CODE_ROOT, public_hex: str = "") -> set[str]:
+    """The owner's plugins (not forged) whose files are not as he signed them: not loaded (9 Nov — a plugin is either
+    the owner's and signed, or Aurora's under its contract; never a third kind). Without a signed code list at all (a
+    port, an installation before the code was signed) nothing is held back: the integrity check speaks for it."""
+    import time
+    mf = root / MANIFEST
+    try:
+        stamp = (mf.stat().st_mtime, max((p.stat().st_mtime for p in (root / "sys" / "plugins").glob("*/*")), default=0))
+    except OSError:
+        return set()
+    hit = _unsigned_cache.get(str(root))
+    if hit and hit[0] == stamp and time.time() - hit[1] < 30:
+        return hit[2]
+    out: set[str] = set()
+    if not public_hex:
+        public_hex, _ = owner_public_key()
+    try:
+        m = json.loads(mf.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        m = {}
+    code = m.get("code") or {}
+    if public_hex and code and _verify(_canonical(code), m.get("code_signature", ""), public_hex):
+        forged = forged_plugins(root)
+        for d in (root / "sys" / "plugins").iterdir() if (root / "sys" / "plugins").is_dir() else []:
+            if not d.is_dir() or d.name in forged or not (d / "plugin.json").exists():
+                continue
+            for f in d.iterdir():
+                rel = f"sys/plugins/{d.name}/{f.name}"
+                if f.is_file() and "__pycache__" not in rel and code.get(rel) != _sha(f):
+                    out.add(d.name)
+                    break
+    _unsigned_cache[str(root)] = (stamp, time.time(), out)
+    return out
 
 
 def code_drift(root: Path = CODE_ROOT, public_hex: str = "") -> dict:

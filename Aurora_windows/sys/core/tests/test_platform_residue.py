@@ -78,7 +78,7 @@ SCRIPTS_PHASE_3 = {"systemctl", "journalctl", "runuser", "systemd-escape", "syst
 # each port's own installer scripts start their system's own programs (phase 3, 9 Oct): the Mac's launchd agents
 PORT_SCRIPTS = {("sys_install_agents.py", "launchctl"), ("sys_install_agents.py", "brew")}
 PORT_SCRIPTS |= {("dev_demo_video.py", "tesseract")}   # the demo video's privacy check: a developer's tool, Linux only
-PORT_SCRIPTS |= {("sys_root.py", "bash")}   # aurora-root (9 Nov): Linux's root launcher; a port signs its own way
+PORT_SCRIPTS |= {("sys_root.py", "bash"), ("sys_root.py", "/usr/bin/python3")}   # aurora-root (9 Nov): Linux's root launcher (the restore through root's copy too); a port signs and restores its own way
 # U6, the services' own account (sys_service_account): Linux's systemd installation only; each port has its own
 PORT_SCRIPTS |= {("sys_service_account.py", p) for p in ("bash", "chown", "getfacl", "setfacl", "groupadd", "useradd",
                                                          "usermod", "apt-get", "runuser")}

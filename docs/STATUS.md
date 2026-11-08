@@ -1,6 +1,6 @@
 # Status — work in progress
 
-Updated at every validated change (last: 2026-11-09; audited against the code on 2026-10-28). Details: BUGS.md (issues, 2 open / 520 closed),
+Updated at every validated change (last: 2026-11-09; audited against the code on 2026-10-28). Details: BUGS.md (issues, 7 open / 530 closed),
 MANUAL_TESTS.md (what the owner checks by hand),
 TESTS.md (tests and live checks), MEASUREMENTS.md (numbers), MODULE_MAP.md (who does what),
 SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSYSTEM.md (design and decisions).
@@ -128,7 +128,7 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | first run | 🧭 five screens once per person (name and language, access, reasoning for the admin, the house, style and colours): each starts from what is set now and saves only a change; Esc does not skip it; again from Appearance | walked at 1280 and 390 px without finishing: the models' roles unchanged, no script error; test_users_crossing (once per person) |
 | social sign-in from the card | 🔗 TikTok connected from its plugin card (the sign-in on TikTok, back to the WebUI, the token in the person's own settings): no terminal; scopes user.info.basic and video.publish only; Terms and Privacy pages in docs/; TikTok's app review left aside by the owner (15 Oct: «troppo macchinosa») — without it, posts stay visible to the account alone | test_users_crossing (a state Aurora gave, once, to the same person; the token in their own .env) |
 | files | attached files kept with their turn, 📎 Files page, Aurora's documents downloadable | M49, C66, C69 |
-| forge | capability requests, plugins written, tested in the cage (no network), judged; read-only installed alone, else Approvals — safe, not yet useful with the local reasoner | M53, C70 |
+| forge | capability requests, plugins written, tested in the cage (no network), judged; read-only and projects' plugins installed alone, else Approvals with «cosa potrà fare» first; every plugin of hers held by its contract at every start (projects' folder at most, its own settings, no sealed keys, no house commands alone, the network only through its proxy to the owner's address and the hosts it lists), outside the owner's signature (9 Nov) — safe, not yet useful with the local reasoner | M53, C70, C528, test_plugin_modelnet (the real cage) |
 | WebUI | modular showcase: chat (full width, dates, path, share), repairs, security, diary, social, plugins, import, activity, status, settings; sky with orbiting fireflies; metrics with GPU load; PWA; safe Markdown | headless Chrome checks |
 | 🔎 menu search | a word finds the pages whose title, area, search words (i18n nav.words.<id>), headings or lead carry it, and offers the settings filtered by it; only the person's pages: the role first (adminOnly), then the menu's state (a plugin off) — checked headless as admin (58 pages) and as a user (36, none of the security suite) | nav_find.js |
 | 📊 Status page | tiles with the counts (services, backup, features, plugins, connections, solitons), each part closed unless it needs a look (a service down, a required feature missing), the vault's 12 largest domains and the rest on one line: 4284 → 1194 px on the reference install | status.js |
@@ -168,7 +168,7 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 
 The partial and missing items, checked against the code: ROADMAP.md, first section. The owner's checks: MANUAL_TESTS.md.
 
-## Open bugs (2)
+## Open bugs (7)
 
 C406 (the alerts that learn: built, closed after a week of the owner's verdicts), C526 (server text in one language: the notifications done, the rest file by file). C463 and C520 (the tunnel on the owner's login) closed 9 Nov; C521-C523 found by the security
 audit of 9 Nov and fixed (the tunnel installer's links, a forged UPS «FSD», a refused power-off). Closed 4-5 Nov: C499-C510 (first night after them, 5-6 Nov: 0 watcher stops, 0 camera passwords in the logs, backup ok, a forged read-only plugin with no private names; self-repair's sandbox, a camera's password in a log, a forged plugin's false zero; M287-M289). Closed 3 Nov: C480 (a routine's sealed files), C484 (closed by the owner, not seen again), C485 (the

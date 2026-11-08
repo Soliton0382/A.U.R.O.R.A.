@@ -77,7 +77,8 @@ def _forge_job(raw: dict, cloud: bool = False):
             code = (Path(res["stage"]) / "server.py").read_text(encoding="utf-8")
             item = Approvals(cfg).request("plugin_install", "external", f"Installare il plugin «{m['name']}»?",
                                           f"{seen['need']}\n\nMotivo: {seen.get('why', '')}",
-                                          {"manifest": m, "server.py": code[:6000]},
+                                          {"cosa potrà fare": "\n".join(agt_forge.powers(m, "it")),   # plainly, first (9 Nov)
+                                           "manifest": m, "server.py": code[:6000]},
                                           {"request": req["id"], "stage": res["stage"], "name": m["name"]}, run_id)
             agt_forge.update(cfg, req["id"], status="proposed", plugin=m["name"], approval=item["id"])
             note("forge", "approval.pending", {"id": item["id"], "kind": "plugin_install", "title": item["title"]})

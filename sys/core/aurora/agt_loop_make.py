@@ -24,6 +24,7 @@ class AgentMakers:
         files = agt_change.changed_files(box, self.cfg.root)
         if not files:
             return "ERROR: the sandbox has no differences from the live code"
+        prints = agt_change.fingerprint(box, files)     # C541: taken before the tests and the diff the owner reads
         from . import sys_ethics
         if (protected := [f for f in files if f in sys_ethics.PROTECTED]):
             return ("REFUSED: these files belong to the code of conduct and change only with the owner's own "
@@ -33,15 +34,18 @@ class AgentMakers:
         if not t["ok"]:
             return f"REFUSED: the sandbox tests fail ({t['summary']}). Fix them first.\n{t['output'][-3000:]}"
         diff = self.host.call("self", "sandbox_diff", {"sandbox_id": sid}, run_id)["text"]
+        if agt_change.fingerprint(box, files) != prints:
+            return "REFUSED: the sandbox changed while it was being tested: propose it again"
         preview = {"sandbox_id": sid, "files": files, "diff": diff[:60000], "tests": t["summary"],
-                   "services": agt_change.services_for(files)}
+                   "services": agt_change.services_for(files),
+                   **({"diff_cut": f"the diff is {len(diff):,} characters: only the first 60,000 shown"} if len(diff) > 60000 else {})}
         if needs_owner("code_change", self.cfg):
             req = self.approvals.request("code_change", "code_change", args.get("title", "change"),
-                                         args.get("purpose", ""), preview, {"sandbox_id": sid}, run_id)
+                                         args.get("purpose", ""), preview, {"sandbox_id": sid, "hashes": prints}, run_id)
             emit("approval.request", {"id": req["id"], "kind": "code_change", "title": req["title"], "files": files})
             self.notify("approval.pending", {"id": req["id"], "kind": "code_change", "title": req["title"]})
             return f"PROPOSED: waiting for the owner's approval (request {req['id']}). Tests: {t['summary']}."
-        out = agt_change.apply(sid, emit, self.cfg)
+        out = agt_change.apply(sid, emit, self.cfg, expect=prints)
         return f"APPLIED (forging is automatic): {json.dumps(out, ensure_ascii=False)[:2000]}"
 
     def _artifact(self, args: dict, emit, run_id: str) -> str:

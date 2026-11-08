@@ -170,6 +170,11 @@ class PluginHost:
                 self.log.warning("plugin %s refused by the ethics code: %s", p.name, ", ".join(bad))
                 out.append(p)
                 continue
+            if mf.parent.name in sys_ethics.unsigned_plugins(self.cfg.root):   # neither Aurora's (forged) nor signed
+                p.error = "not signed by the owner and not one of Aurora's own plugins: sudo aurora-root sign"
+                self.log.warning("plugin %s: not loaded, not signed and not forged", p.name)
+                out.append(p)
+                continue
             if with_tools and p.enabled and not p.missing:
                 try:
                     p.tools = self._tools(p, mf.stat().st_mtime)
@@ -194,17 +199,25 @@ class PluginHost:
         env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "HOME": os.environ.get("HOME", ""),
                "AURORA_ENV_FILE": str(self.cfg.env_file), "PYTHONPATH": str(Path(__file__).resolve().parents[1]),
                "AURORA_PLUGIN": p.name}                 # its config is its user's filtered one, taken as it is (U3)
+        from . import plg_sandbox
+        # a plugin Aurora wrote herself (9 Nov): its own settings only (AURORA_<NAME>_…), never another's value
+        if plg_sandbox.forged(p.manifest):           # nor a key of Aurora's core or another plugin (audit 9 Nov)
+            theirs = sys_config.others_keys(p.name)
+            mine = lambda k: k.startswith(f"AURORA_{p.name.upper()}_") and k not in theirs   # noqa: E731
+        else:
+            mine = lambda k: True                        # noqa: E731
         for k in p.manifest.get("env", []):
-            env[k] = str(self.cfg.values.get(k, "") or "")
+            if mine(k):
+                env[k] = str(self.cfg.values.get(k, "") or "")
         for k, v in p.manifest.get("env_as", {}).items():     # .env key -> name the program expects
-            env[v] = str(self.cfg.values.get(k, "") or "")
+            if mine(k):
+                env[v] = str(self.cfg.values.get(k, "") or "")
         # N64: the cage holds neither Aurora's key nor the user's key files; a plugin keeping sealed data of its own
         # gets that one key, opened — only the purposes below, never the memory's or the state's
         from . import sys_seal
-        for purpose in p.manifest.get("seal_keys", []):
+        for purpose in [] if plg_sandbox.forged(p.manifest) else p.manifest.get("seal_keys", []):   # never a forged one's
             if purpose in SEAL_KEYS:
                 env[f"AURORA_SEAL_KEY_{purpose.upper()}"] = sys_seal._key(self.cfg, self.cfg.user, purpose).hex()
-        from . import plg_sandbox
         filtered = plg_sandbox.env_file(p.name, p.manifest, self.cfg)    # only this plugin's own secrets, by name
         specs = {s["key"]: s for s in sys_config.load_schema()["settings"]}
         for k in plg_sandbox._declared(p.manifest):      # their values in its environment, never on the disk (C463)

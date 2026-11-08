@@ -22,6 +22,13 @@ from pathlib import Path
 from . import sys_config, sys_log, sys_tests
 
 
+def fingerprint(box: Path, files: list[str]) -> dict[str, str]:
+    """Each changed file's SHA-256 as proposed: the approval keeps it, apply() takes nothing else (C541, 9 Nov: the
+    sandbox stayed writable after the proposal, and the owner approved one diff while another could be applied)."""
+    import hashlib
+    return {rel: hashlib.sha256((box / rel).read_bytes()).hexdigest() for rel in files}
+
+
 def changed_files(box: Path, root: Path) -> list[str]:
     """The files the change touches: those that differ from the sandbox's own starting copy (.base, kept since
     2026-10-05) — not from the live code, which may have moved on since the sandbox was made (C145); an older sandbox
@@ -73,7 +80,8 @@ def _put(src: Path, dst: Path) -> None:
         pass
 
 
-def apply(sandbox_id: str, emit, cfg: sys_config.Config | None = None, restart: bool = True) -> dict:
+def apply(sandbox_id: str, emit, cfg: sys_config.Config | None = None, restart: bool = True,
+          expect: dict | None = None) -> dict:
     cfg = cfg or sys_config.get()
     log = sys_log.get_logger("changes")
     root, box = cfg.root, cfg.path("AURORA_SANDBOX_DIR") / sandbox_id
@@ -82,6 +90,9 @@ def apply(sandbox_id: str, emit, cfg: sys_config.Config | None = None, restart: 
     files = changed_files(box, root)
     if not files:
         return {"applied": False, "reason": "no differences"}
+    if expect is not None and fingerprint(box, files) != expect:   # C541: what the owner approved, byte for byte
+        return {"applied": False, "reason": "the sandbox changed after the proposal: what the owner approved is not "
+                                            "what is there now — propose it again"}
     from . import sys_ethics
     protected = [f for f in files if f in sys_ethics.PROTECTED or f == sys_ethics.MANIFEST]
     if protected:                                     # the rules change only with the owner's own signature

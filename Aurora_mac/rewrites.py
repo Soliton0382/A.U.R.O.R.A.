@@ -677,7 +677,8 @@ HINTS = [
         f"{{{_VENV}}} sys/core/script/sys_ethics_sign.py sign"))""",
      "api/agents: the signing command shown to the admin"),
     ("sys/core/aurora/api/backup.py",
-     """    return [{**r, "command": f"cd {cfg.root} && {as_it}.venv/bin/python sys/core/script/sys_restore.py --apply {r['snapshot']}"}""",
+     """    return [{**r, "command": f"sudo aurora-root restore --apply {r['snapshot']}" if as_it else   # C538: root's copy
+             f"cd {cfg.root} && .venv/bin/python sys/core/script/sys_restore.py --apply {r['snapshot']}"}""",
      f"""    {P}
     return [{{**r, "command": sys_platform.current().in_folder(cfg.root, f"{{{_VENV}}} sys/core/script/sys_restore.py --apply {{r['snapshot']}}")}}""",
      "api/backup: the restore command"),

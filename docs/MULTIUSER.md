@@ -86,12 +86,21 @@ with the user's key; the user is told when it begins and ends. The API key never
 - Services of one's own (any OpenAI-compatible address: Ollama, Kimi…) are added by the admin with a name; a user
   can add their own key for one. The built-in providers are never removed.
 - The sign-in from the page needs a terminal of its own (pty): Linux and macOS; on Windows, `claude auth login` once.
+- Each user's models (9 Nov): with the policy «own» or «own, else shared», a user chooses step by step the local model
+  or a provider their account reaches (☁️ Cloud accounts → 🧠 My models; mdl_user_roles), kept in their state folder;
+  the forge stays the admin's. Each user's daily cloud ceiling (Users page): reached, the local model answers and both
+  the user and the admin are told (💶).
+- The interface's language is each person's (9 Nov): kept on the server with their style and theme, found on every
+  device; their notifications come in it.
 
 ## Ceiling of users
 
-From a measurement, not a guess (law 2): concurrent questions the LLM serves with an acceptable time to the
-first word (`--parallel` slots of llama.cpp, VRAM per slot, M-number of a load test). **Not measured yet**:
-phase U4.
+Measured (M99, M102, 5 Oct 2026), not guessed: on the reference machine (one server with a GPU, the local model
+with 2 parallel slots, +482 MiB), 1, 2, 4 and 8 full knowledge questions at the same moment were all answered; the
+average wait went from 41 to 142 s, the last answer came after 232 s with 8 at once. Registered users can be many
+more: only the questions asked at the same instant queue. Local or hybrid, the hardware decides (more slots need
+more GPU memory); all cloud, the provider's limits do (not measured). The setting AURORA_USERS_MAX itself was never
+added (ROADMAP, U4).
 
 ## Plan (each phase closed with tests and a measure; one phase at a time)
 

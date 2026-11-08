@@ -85,15 +85,37 @@ def credentials(user: str, password: str) -> str:
     return f"username={user}\npassword={password}\n"
 
 
-def taken(status: Path) -> dict:
-    """The passwords the API handed over for this mount, read once and removed."""
-    f = status / "nas_pass.json"
+def _dirfd(path: Path) -> int:
+    """A folder of the services opened by root through no symbolic link at all, from / down (audit, 9 Nov: a link
+    planted in sys/status/backup made root write and chown a file of its own code). The caller closes it."""
+    fd = os.open("/", os.O_RDONLY | os.O_DIRECTORY)
     try:
-        out = json.loads(f.read_text())
+        for part in Path(os.path.abspath(path)).parts[1:]:
+            nxt = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+            os.close(fd)
+            fd = nxt
+        return fd
+    except OSError:
+        os.close(fd)
+        raise
+
+
+def taken(status: Path) -> dict:
+    """The passwords the API handed over for this mount, read once and removed (never through a link)."""
+    try:
+        d = _dirfd(status)
+    except OSError:
+        return {}
+    try:
+        fd = os.open("nas_pass.json", os.O_RDONLY | os.O_NOFOLLOW, dir_fd=d)
+        with os.fdopen(fd, "rb") as h:
+            out = json.loads(h.read(65536) or b"{}")
+        os.unlink("nas_pass.json", dir_fd=d)
+        return out if isinstance(out, dict) else {}
     except (OSError, ValueError):
         return {}
-    f.unlink(missing_ok=True)
-    return out
+    finally:
+        os.close(d)
 
 
 def mount_one(cfg, url: str, mount: Path, mark: str, ro: bool, user, cred_file: Path = CRED,
@@ -193,9 +215,21 @@ def certs_login(cfg) -> tuple[str, str]:
 
 def report(out: dict, status: Path, user) -> None:
     print(json.dumps(out), flush=True)                          # in the journal first: never lost again
-    try:
-        status.write_text(json.dumps(out))
-        os.chown(status, user.pw_uid, user.pw_gid)
+    try:                                                        # audit, 9 Nov: never through a link, chown on the open file
+        d = _dirfd(status.parent)
+        try:
+            tmp = f".{status.name}.tmp"
+            try:
+                os.unlink(tmp, dir_fd=d)
+            except FileNotFoundError:
+                pass
+            fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o640, dir_fd=d)
+            with os.fdopen(fd, "w") as h:
+                h.write(json.dumps(out))
+                os.fchown(h.fileno(), user.pw_uid, user.pw_gid)
+            os.rename(tmp, status.name, src_dir_fd=d, dst_dir_fd=d)   # a link at the name is replaced, not followed
+        finally:
+            os.close(d)
     except OSError as e:
         print(f"status not written ({e}): the card cannot show it", file=sys.stderr)
 
@@ -204,7 +238,16 @@ def main() -> int:
     from aurora import sys_config
     cfg = sys_config.get()
     status = cfg.path("AURORA_STATUS_DIR") / "backup"
-    status.mkdir(parents=True, exist_ok=True)
+    try:                                                        # made inside its parent opened through no link
+        d = _dirfd(status.parent)
+        try:
+            os.mkdir(status.name, 0o2770, dir_fd=d)
+        except FileExistsError:
+            pass
+        finally:
+            os.close(d)
+    except OSError as e:
+        print(f"status folder: {e}", file=sys.stderr)
     user = pwd.getpwnam(sys_config.service_user(cfg))
     astro = astro_url(cfg)
     jobs = [("AURORA_BACKUP_DIR", MOUNT, MARK, False, "nas.json")]
