@@ -63,12 +63,13 @@ def report(lang: str) -> int:
         line("⚠️", p)
 
     print("== firma del codice" if lang == "it" else "== code signature")
+    from aurora.sys_rootcmd import command as _rootcmd     # aurora-root once installed, the setup before
     eth = subprocess.run([sys.executable, str(ROOT / "sys/core/script/sys_ethics_sign.py"), "check"], capture_output=True, text=True)
     out = (eth.stdout + eth.stderr).strip().splitlines()
     drift = any("differ" in o for o in out)           # code tier: a warning until the owner signs again
     first = any("missing" in o for o in out)        # never signed: setup makes the key (or reuses it) and signs
     line("⛔" if eth.returncode else "⚠️" if drift else "✅", out[-1][:160] if out else "?",
-         f"sudo .venv/bin/python sys/core/script/sys_ethics_sign.py {'setup' if first else 'sign'}"
+         _rootcmd("setup" if first else "sign")
          if drift or eth.returncode else "")
     bad += eth.returncode != 0
 

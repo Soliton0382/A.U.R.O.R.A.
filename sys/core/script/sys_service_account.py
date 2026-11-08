@@ -222,17 +222,19 @@ def services(who: str) -> None:
     py = ROOT / ".venv" / "bin" / "python"
     step("the units and the polkit rule written for the account", run, "runuser", "-u", who, "--", str(py),
          str(ROOT / "sys" / "core" / "script" / "sys_install_services.py"))
-    step("the units installed", run, "bash", str(ROOT / "sys" / "deploy" / "systemd" / "install.sh"))
+    # root installs through aurora-root (sys_root.py, 9 Nov): only what the owner signed, from root's own copy
+    launcher = ["/usr/bin/python3", "-I", str(ROOT / "sys" / "core" / "script" / "sys_root.py"), "install"]
+    step("the units installed", run, *launcher, "systemd")
     nft = ROOT / "sys" / "deploy" / "nft" / "install.sh"
     if Path("/usr/local/sbin/aurora-nft").exists() and nft.exists():
         step("the firewall helper's socket for the account", lambda: subprocess.run(
-            ["bash", str(nft)], env={**os.environ, "SVC_ACCOUNT": ACCOUNT}, check=True))
+            [*launcher, "nft"], env={**os.environ, "SVC_ACCOUNT": ACCOUNT}, check=True))
     tunnel = ROOT / "sys" / "deploy" / "cloudflared" / "install.sh"
     if Path("/etc/systemd/system/aurora-tunnel.service").exists() and tunnel.exists():
         # the tunnel reads its token from the services' data: it runs on their account too, or the way in from
         # outside would be lost at the next start
         step("the Cloudflare tunnel on the account", lambda: subprocess.run(
-            ["bash", str(tunnel)], env={**os.environ, "SVC_ACCOUNT": ACCOUNT}, check=True))
+            [*launcher, "tunnel"], env={**os.environ, "SVC_ACCOUNT": ACCOUNT}, check=True))
     step("the services restarted", run, "systemctl", "restart", "aurora.target")
 
 

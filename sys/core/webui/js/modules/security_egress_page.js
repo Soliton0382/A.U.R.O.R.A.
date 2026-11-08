@@ -48,11 +48,14 @@ export default {
     // 🚫 the deny list in sight, each network with its ↩ (owner, 9 Nov: «le elenca ma non ti fa scegliere»; C512)
     const holders = Object.fromEntries(Object.values(r.services).flat().filter((n) => n.key?.startsWith("AS"))
       .map((n) => [n.key.slice(2), n.holder || ""]));
-    this.root.querySelector(".eg-deny").replaceChildren(...(r.deny.asns.length ? r.deny.asns.map((a) => {
+    // the networks allowed again from here, with the command still to run, kept over the page's redraws (audit 9 Nov:
+    // the «aurora:acted» redraw 1.2 s later wiped it, and the command with it)
+    const done = (this.allowed || []).map((m) => el("p", "ok", m));
+    this.root.querySelector(".eg-deny").replaceChildren(...done, ...(r.deny.asns.length ? r.deny.asns.map((a) => {
       const row = el("div", "eg-deny-row");
       row.append(el("span", "", `🚫 AS${a} ${holders[a] || ""}`), this.allow(a));
       return row;
-    }) : [el("p", "muted", "—")]));
+    }) : done.length ? [] : [el("p", "muted", "—")]));
     const services = this.root.querySelector(".eg-services");
     const names = Object.keys(r.services).sort();
     services.replaceChildren(...(names.length ? names.map((svc) => this.service(svc, r.services[svc])) : [el("p", "muted", t("egress.none"))]));
@@ -74,7 +77,9 @@ export default {
       if (!confirm(t("egress.allow_confirm", { asn }))) return;
       try {
         const r = await call("/v1/aurora/security/egress-allow", { method: "POST", body: JSON.stringify({ asn }) });
-        b.replaceWith(el("p", "ok", t("egress.allowed", { asn, cmd: r.install })));
+        const msg = t("egress.allowed", { asn, cmd: r.install });
+        (this.allowed ||= []).push(msg);
+        b.replaceWith(el("p", "ok", msg));
       } catch (e) { alert(e.message); }
     });
     return b;

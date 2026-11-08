@@ -11,7 +11,7 @@ import { adminOnly, groups, views, widgets } from "./modules.js";
 import { applyTheme, current as currentTheme, themePicker } from "./theme.js";
 import { welcome } from "./welcome.js";
 import { navFind } from "./nav_find.js";
-import { SHORT, adopt, applyStyle, current as currentStyle, home as styleHome, pins, setStyle } from "./style.js";
+import { SHORT, adopt, applyStyle, current as currentStyle, home as styleHome, pins, saveLang, setStyle } from "./style.js";
 import { stackTables } from "./stack.js";
 
 const byId = Object.fromEntries(views.map((v) => [v.id, v]));
@@ -238,9 +238,11 @@ $("logout").addEventListener("click", async () => {
 $("scrim").addEventListener("click", () => drawer(false));
 document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") drawer(false); });
 $("lang").addEventListener("change", async (ev) => {
+  // kept for this person on the server (every device, 9 Nov), then every page drawn again in it: the pages build
+  // part of their text once, when mounted, so a redraw of the current one left the others half in the old language
   await i18n.load(ev.target.value);
-  bus.emit("lang", { code: ev.target.value });
-  if (current) show(current);
+  saveLang(ev.target.value);
+  setTimeout(() => location.reload(), 300);           // the PUT on its way first
 });
 
 // a page that belongs to a plugin shows in the menu only while the plugin is on (and connected: "social" means
@@ -279,7 +281,8 @@ async function persona() {
     document.title = m.assistant || "Aurora";
     voice.setGender(m.gender);
     isAdmin = m.admin !== false;
-    adopt(m.prefs, m.name, Boolean(m.assist));         // this person's style and pins, from any device
+    // this person's style, pins and language, from any device; their language not this browser's: drawn again in it
+    if (adopt(m.prefs, m.name, Boolean(m.assist)) && m.prefs?.lang !== i18n.lang) { location.reload(); return; }
     applyStyle(currentStyle(isAdmin));                 // until chosen: Completo for the admin, Essenziale for a user
     shortNav();
     whoIs(m);

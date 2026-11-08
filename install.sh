@@ -425,7 +425,7 @@ step "10. Test"
 
 # ---------------------------------------------------------------------------------------------------
 step "11. $(t 'Codice di condotta: la chiave di questa installazione' 'Code of conduct: this installation'"'"'s key')"
-SIGN="sudo .venv/bin/python sys/core/script/sys_ethics_sign.py setup"
+SIGN="sudo /usr/bin/python3 -I sys/core/script/sys_root.py setup --yes"   # a fresh copy: nothing to review yet
 [ "$EXEMPT" = 1 ] && SIGN="$SIGN --exempt"           # a false test before && does not stop set -e
 SUDO_LATER=0
 if sudo -n true 2>/dev/null || (exec </dev/tty) 2>/dev/null; then
@@ -435,13 +435,13 @@ else                                   # no terminal to type the sudo password i
   SUDO_LATER=1
   warn "$(t 'nessun terminale per sudo: la firma e i servizi vanno completati a mano, da questa cartella:' 'no terminal for sudo: signature and services must be completed by hand, from this folder:')"
   echo "    $SIGN"
-  [ "$SERVICES" = 1 ] && echo "    .venv/bin/python sys/core/script/sys_install_services.py && sudo bash sys/deploy/systemd/install.sh"
+  [ "$SERVICES" = 1 ] && echo "    .venv/bin/python sys/core/script/sys_install_services.py && sudo aurora-root install systemd"
 fi
 
 # ---------------------------------------------------------------------------------------------------
 if [ "$SERVICES" = 0 ] || [ "$SUDO_LATER" = 1 ]; then
   step "$(t 'Servizi non installati' 'Services not installed') ($([ "$SERVICES" = 0 ] && echo --no-services || echo sudo))"
-  echo "  .venv/bin/python sys/core/script/sys_install_services.py && sudo bash sys/deploy/systemd/install.sh"
+  echo "  .venv/bin/python sys/core/script/sys_install_services.py && sudo aurora-root install systemd"
   .venv/bin/python sys/core/script/sys_doctor.py || true          # what works already, and what is left to do
   echo
   .venv/bin/python sys/core/script/sys_ready.py --pending          # where to open it, and the key: always said

@@ -10,7 +10,7 @@ import { settingsForm } from "./settings_form.js";
 
 const KEYS = ["AURORA_UPS_MODE", "AURORA_UPS_SERVERS", "AURORA_UPS_NAME", "AURORA_UPS_USER", "AURORA_UPS_PASSWORD",
   "AURORA_UPS_SHUTDOWN_CHARGE", "AURORA_UPS_SHUTDOWN_RUNTIME_S"];
-const RULE = ".venv/bin/python sys/core/script/sys_install_services.py && sudo bash sys/deploy/systemd/install.sh";
+const RULE = ".venv/bin/python sys/core/script/sys_install_services.py && sudo aurora-root install systemd";
 
 export default {
   id: "ups",

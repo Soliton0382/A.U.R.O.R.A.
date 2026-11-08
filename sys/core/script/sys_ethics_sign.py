@@ -32,8 +32,17 @@ def give_back(path: Path) -> None:
     """Run with sudo, a file would belong to root and the services could not read it: hand it back to the
     owner of the installation."""
     if os.geteuid() == 0:
-        st = sys_ethics.CODE_ROOT.stat()
-        os.chown(path, st.st_uid, st.st_gid)
+        st = sys_config.CODE_ROOT.stat()                # the installation's (INSTALL_ROOT from root's own copy)
+        os.chown(path, st.st_uid, st.st_gid, follow_symlinks=False)
+
+
+def _private_file(target: Path):
+    """A 0600 file root writes in the services' folders: never through a link (C524)."""
+    for q in (target.parent, *target.parent.parents):
+        if q.is_symlink():
+            raise SystemExit(f"{q} is a symbolic link: refused")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    return os.fdopen(os.open(target, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0), 0o600), "w")
 
 
 def load_private(path: Path):
@@ -82,7 +91,13 @@ def main() -> int:
     ap.add_argument("--rotate", action="store_true", help="keygen: replace an existing key pair (kept aside)")
     ap.add_argument("--exempt", action="store_true", help="setup: also exempt this installation from level B")
     args = ap.parse_args()
-    root = sys_ethics.CODE_ROOT
+    root = sys_config.CODE_ROOT
+    # root acts through aurora-root once it is there (sys_root.py, 9 Nov): this file in Aurora's folder is writable by
+    # her services, so run from there as root it could be anything
+    lib = Path("/usr/local/lib/aurora")
+    if (args.action != "check" and getattr(os, "geteuid", lambda: 1)() == 0 and not Path(__file__).resolve().is_relative_to(lib)
+            and not os.environ.get("AURORA_ROOT_LAUNCHER") and Path("/usr/local/sbin/aurora-root").exists()):
+        ap.error(f"usa: sudo aurora-root {args.action} (root non esegue il codice dalla cartella di Aurora)")
     if args.action == "check":
         ok, reason = sys_ethics.integrity()
         print(("OK: " if ok else "FAILED: ") + reason)
@@ -117,9 +132,7 @@ def main() -> int:
     if args.action == "exempt" or (args.action == "setup" and args.exempt):
         cfg = sys_config.get()
         target = cfg.path("AURORA_ETHICS_EXEMPTION")
-        target.parent.mkdir(parents=True, exist_ok=True)
-        fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-        with os.fdopen(fd, "w") as f:
+        with _private_file(target) as f:
             f.write(key.sign(sys_ethics.exemption_message(cfg.root)).hex())
         give_back(target)
         print(f"level B exemption for this machine written to {target}")
@@ -127,9 +140,7 @@ def main() -> int:
         from aurora import sys_cloud_consent
         cfg = sys_config.get()
         target = sys_cloud_consent.path(cfg)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-        with os.fdopen(fd, "w") as f:
+        with _private_file(target) as f:
             f.write(key.sign(sys_cloud_consent.message(cfg.root)).hex())
         give_back(target)
         print(f"«Tutto cloud»: private data may go, masked, to the cloud model where no local reasoner runs ({target}).")

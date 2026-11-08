@@ -120,6 +120,7 @@ def seal_host(cfg: sys_config.Config, owner_home: Path | None = None) -> str:
     raw = str(cfg["AURORA_BACKUP_KEY_FILE"])           # «~» is the services' account's home, not root's (C456)
     f = Path(svc.pw_dir) / raw[2:] if raw.startswith("~/") else Path(raw)
     cred, mark = cred_path(cfg), f.with_name(f.name + ".sealed")
+    K.no_links(f, mark, mark.with_suffix(mark.suffix + ".tmp"))       # C524: the services' folder, never through a link
     if mark.exists() and cred.exists():
         lines = mark.read_text().splitlines()
         if (lines[1] if len(lines) > 1 else "host") == "host+tpm2" or not K.tpm():
@@ -136,19 +137,26 @@ def seal_host(cfg: sys_config.Config, owner_home: Path | None = None) -> str:
             finally:
                 K._shred(mem)
             K._write_private(mark, f"{cred}\nhost+tpm2\n".encode())
-            os.chown(mark, svc.pw_uid, svc.pw_gid)
+            K._chown(mark, svc.pw_uid, svc.pw_gid)
             done = "sealed again with the TPM"
     elif not f.is_file():
         return "no backup key yet"
     else:
-        key = f.read_bytes()
+        key = K._read_nofollow(f)                       # C524: never through a link; sealed from memory
         if len(key) != 32:
             raise BackupError(f"{f} is not a backup key (32 bytes)")
         K.CREDSTORE.mkdir(mode=0o700, exist_ok=True)
         with_key = "host+tpm2" if K.tpm() else "host"
-        _seal_checked(f, cred, with_key, key)
+        mem = Path(os.environ.get("RUNTIME_DIRECTORY") or "/run") / f"aurora-backup-key-{os.getpid()}"
+        fd = os.open(mem, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        try:
+            with os.fdopen(fd, "wb") as h:
+                h.write(key)
+            _seal_checked(mem, cred, with_key, key)
+        finally:
+            K._shred(mem)
         K._write_private(mark, f"{cred}\n{with_key}\n".encode())
-        os.chown(mark, svc.pw_uid, svc.pw_gid)
+        K._chown(mark, svc.pw_uid, svc.pw_gid)
         K._shred(f)
         done = f"sealed ({with_key})"
     mine = Path(owner_home) / ".config" / "aurora" / "backup.key" if owner_home else None

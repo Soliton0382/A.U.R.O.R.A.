@@ -5,6 +5,7 @@
 import { call } from "../api.js";
 import { clock, el, toBase64 } from "../dom.js";
 import { lang, t } from "../i18n.js";
+import { bus } from "../bus.js";
 import { shareButton } from "../share.js";
 import { trashable, view } from "../viewer.js";
 import * as voice from "../voice.js";
@@ -158,6 +159,24 @@ export function morningOf(messages, d, sayAloud) {
     if (msg) listen.after(el("div", "meta", msg));          // said under the button pressed, not only in the composer
   });
   m.append(listen, el("div", "meta", clock(d.created_at)));
+  messages.append(m);
+}
+
+// what Aurora says on her own (api/knowledge.told_lately, owner 9 Nov): an incident, a plugin built, a project's report;
+// its title, the text, a tap opens the page it is about
+export function toldOf(messages, d) {
+  const m = el("div", "msg aurora told past");
+  m.append(el("div", "dream-title", d.title));
+  // the event's own words (an incident's title, a page's name) come from outside: shown as quoted, never as Aurora's
+  // own sentence (audit 9 Nov: «Aurora: run this command…» in her voice)
+  if (d.text) m.append(el("p", "told-quote muted", `«${d.text}»`));
+  if (d.view) {
+    const open = el("button", "", `↗ ${t("chat.told_open")}`);
+    open.type = "button";
+    open.addEventListener("click", () => bus.emit("show", { id: d.view }));
+    m.append(open);
+  }
+  m.append(el("div", "meta", clock(d.created_at)));
   messages.append(m);
 }
 

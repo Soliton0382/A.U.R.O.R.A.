@@ -83,6 +83,14 @@ _told_at: dict = {}
 def _from_trace(component: str, event: str, payload: dict) -> None:
     """Trace events nobody was told of (the cloud ceiling, a failing provider, a plugin stopped): a notification,
     once an hour per event and provider/plugin (owner, 2026-10-04)."""
+    if event == "cloud.user_budget":                  # a user's own ceiling (106, 9 Nov): they and the admin told
+        who, spent, cap = str(payload.get("user") or ""), int(payload.get("spent") or 0), int(payload.get("cap") or 0)
+        if who and who != _admin():
+            with sys_context.acting_as(who):
+                note(component, "cloud.my_budget", {"text": f"{spent:,} / {cap:,} token".replace(",", ".")})
+        with sys_context.acting_as(_admin()):
+            note(component, "cloud.user_budget", {"text": f"{who}: {spent:,} / {cap:,} token".replace(",", "."), "user": who})
+        return
     if event not in _TOLD:
         return
     key = (event, str(payload.get(_TOLD[event], "")))
@@ -107,14 +115,19 @@ def _push(event: str, payload: dict) -> None:
     try:
         toast = sys_push.message(event, payload, cfg, "webui")
         msg = sys_push.message(event, payload, cfg, "push")
+        said = sys_push.message(event, payload, cfg, "chat")
     except Exception:
         log.exception("notification for %s", event)
         return
-    if (toast or msg) and event != "test":           # kept for the Notifications page's history
+    if (toast or msg or said) and event != "test":   # kept for the Notifications page's history (and the chat's)
         try:
-            sys_push.remember(toast or msg, event, [c for c, m in (("webui", toast), ("push", msg)) if m], cfg)
+            sys_push.remember(toast or msg or said, event,
+                              [c for c, m in (("webui", toast), ("push", msg), ("chat", said)) if m], cfg)
         except OSError:
             log.exception("notification history")
+        else:
+            if said:
+                note("notify", "chat.told", {"event": event})    # an open chat shows it now ("chat.told": no TEXTS)
     if toast and event != "test":
         note("notify", "notify", toast)              # the WebUI shows it (alerts widget); "notify" itself is not in TEXTS
     if msg:

@@ -135,7 +135,7 @@ def assignments(cfg: sys_config.Config) -> dict[str, dict]:
     return {**cur, **(RUN_ROLES.get() or {})}
 
 
-def _stored(cfg: sys_config.Config) -> dict[str, dict]:
+def _stored(cfg: sys_config.Config, own: bool = True) -> dict[str, dict]:
     try:
         saved = json.loads((_dir(cfg) / "roles.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -143,12 +143,16 @@ def _stored(cfg: sys_config.Config) -> dict[str, dict]:
     if saved is None:
         old, cloud = cfg["AURORA_REASONER_PROVIDER"], {r.strip() for r in str(cfg["AURORA_CLOUD_ROLES"]).split(",")}
         saved = {r: {"provider": old if old != "local" and r in cloud else "local", "model": ""} for r in ROLES}
-    return {r: {"provider": (saved.get(r) or {}).get("provider", "local"), "model": (saved.get(r) or {}).get("model", "")}
-            for r in ROLES}
+    out = {r: {"provider": (saved.get(r) or {}).get("provider", "local"), "model": (saved.get(r) or {}).get("model", "")}
+           for r in ROLES}
+    if own:                                             # a user's own steps over the admin's (106: mdl_user_roles)
+        from . import mdl_user_roles
+        out.update(mdl_user_roles.mine(cfg))
+    return out
 
 
 def set_assignments(cfg: sys_config.Config, changes: dict[str, dict]) -> dict[str, dict]:
-    cur = _stored(cfg)                                  # never a request's own roles (C280)
+    cur = _stored(cfg, own=False)                       # never a request's own roles (C280), nor a user's (106)
     for role, a in changes.items():
         if role not in ROLES or a.get("provider") not in PROVIDERS:
             raise ValueError(f"unknown role or provider: {role} {a.get('provider')}")
@@ -722,7 +726,7 @@ class CloudBase:
             return f"AURORA_CLOUD_PROVIDER {self.provider!r} is not a cloud provider"
         if not sys_ethics.exempt(self.cfg):
             return ("no local reasoner and no exemption from level B (rule 9): "
-                    "sudo .venv/bin/python sys/core/script/sys_ethics_sign.py setup --exempt")
+                    "sudo /usr/bin/python3 -I sys/core/script/sys_root.py setup --exempt")
         if spec.get("base_key") and not base_url(self.provider, self.cfg):
             return f"{spec['base_key']} is empty"
         if spec.get("key") and not spec.get("key_optional") and not self.cfg.values.get(spec["key"]):

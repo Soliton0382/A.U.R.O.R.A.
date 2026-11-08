@@ -16,7 +16,7 @@ from pathlib import Path
 from . import sys_config, sys_ethics
 
 PURPOSE = "aurora-private-data-to-cloud"
-COMMAND = "sudo .venv/bin/python sys/core/script/sys_ethics_sign.py private-cloud"
+COMMAND = "sudo aurora-root private-cloud"
 
 
 def message(root: Path) -> bytes:

@@ -7,6 +7,7 @@
 import { call } from "../api.js";
 import { clock, el } from "../dom.js";
 import { apply, t } from "../i18n.js";
+import { myModels } from "./accounts_models.js";
 import { renderServices } from "./accounts_services.js";
 import { rulesList, wordsEditor } from "./mask_view.js";
 import { settingsForm } from "./settings_form.js";
@@ -19,11 +20,12 @@ export default {
   mount(root) {
     root.classList.add("page");
     root.innerHTML = `<h2 data-i18n="acc.title"></h2><p class="muted" data-i18n="acc.hint"></p>
-      <div class="acc-policy"></div><div class="acc-list"></div><div class="acc-svc"></div><div class="acc-add"></div>
+      <div class="acc-policy"></div><div class="acc-list"></div><div class="acc-models"></div><div class="acc-svc"></div><div class="acc-add"></div>
       <div class="acc-cloud-out"></div>`;
     apply(root);
     this.policyBox = root.querySelector(".acc-policy");
     this.list = root.querySelector(".acc-list");
+    this.modelsBox = root.querySelector(".acc-models");
     this.addBox = root.querySelector(".acc-add");
     this.svcBox = root.querySelector(".acc-svc");
     this.privacyBox = root.querySelector(".acc-cloud-out");
@@ -54,6 +56,7 @@ export default {
     LABELS = Object.fromEntries(this.d.providers.map((p) => [p.id, p.label]));
     this.drawPolicy();
     this.drawList();
+    this.modelsBox.replaceChildren(await myModels(() => this.enter()));   // 🧠 each step, the user's own (106)
     this.svcBox.replaceChildren(renderServices(this.d, () => this.enter()));
     this.drawAdd();
     // what leaves for the cloud, kept here since the «cloud» plugin went (owner, 2026-10-16: the page «è più completa»):

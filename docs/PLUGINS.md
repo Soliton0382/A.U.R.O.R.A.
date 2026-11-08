@@ -110,7 +110,7 @@ Nightly backup of your data to another disk or the NAS: encrypted, deduplicated,
 
 **Where**: in *Backup folder* write a folder on another disk (e.g. `/media/user/Data/aurora-backup`) or the NAS folder as `smb://192.168.1.20/backups/aurora`.
 
-**NAS**: put the share's user and password. With *Mount at every start* (on) Aurora adds one line to `/etc/fstab` with `nofail`: a NAS switched off never stops the computer. On **Save** Aurora mounts the share by herself; you gave root's consent once, with `sudo bash sys/deploy/systemd/install.sh`.
+**NAS**: put the share's user and password. With *Mount at every start* (on) Aurora adds one line to `/etc/fstab` with `nofail`: a NAS switched off never stops the computer. On **Save** Aurora mounts the share by herself; you gave root's consent once, with `sudo aurora-root install systemd`.
 
 **The key**: once, `.venv/bin/python sys/core/script/svc_backup.py init`, and write the *recovery code* outside this computer: without it a backup cannot be read.
 
@@ -120,7 +120,7 @@ Nightly backup of your data to another disk or the NAS: encrypted, deduplicated,
 
 **Dove**: in *Cartella del backup* scrivi una cartella di un altro disco (es. `/media/utente/Dati/aurora-backup`) oppure la cartella del NAS come `smb://192.168.1.20/backups/aurora`.
 
-**NAS**: metti utente e password della condivisione. Con *Monta a ogni avvio* (già attivo) Aurora aggiunge una riga a `/etc/fstab` con `nofail`: se il NAS è spento il computer parte lo stesso. Al **Salva** Aurora monta la condivisione da sola; il permesso di root lo hai dato una volta, con `sudo bash sys/deploy/systemd/install.sh`.
+**NAS**: metti utente e password della condivisione. Con *Monta a ogni avvio* (già attivo) Aurora aggiunge una riga a `/etc/fstab` con `nofail`: se il NAS è spento il computer parte lo stesso. Al **Salva** Aurora monta la condivisione da sola; il permesso di root lo hai dato una volta, con `sudo aurora-root install systemd`.
 
 **La chiave**: una volta sola, `.venv/bin/python sys/core/script/svc_backup.py init`, e scrivi il *codice di recupero* fuori da questo computer: senza, un backup non si legge.
 
@@ -246,7 +246,7 @@ Aurora reachable everywhere with Cloudflare One (WARP), with no port opened: «S
 6. The **Account ID**: dashboard home, on your account's name → **⋯ → Copy account ID**.
 
 **C. Once on Aurora's computer**
-7. In a terminal in Aurora's folder: `sudo bash sys/deploy/cloudflared/install.sh` — installs *cloudflared* and the *aurora-tunnel* service. It asks nothing.
+7. In a terminal in Aurora's folder: `sudo aurora-root install tunnel` — installs *cloudflared* and the *aurora-tunnel* service. It asks nothing.
 
 **D. In Aurora: Save**
 8. Here, the plugin's **⚙️ Settings**: paste the **Account ID** and the **API token**. If you open Aurora by a name (e.g. *aurora.home.example*) set the **domain** and the **home DNS** that resolves it (usually the router).
@@ -289,7 +289,7 @@ Aurora reachable everywhere with Cloudflare One (WARP), with no port opened: «S
 6. L'**Account ID**: nella home della dashboard, sul nome del tuo account → menu **⋯ → Copy account ID**.
 
 **C. Una volta sul computer di Aurora**
-7. In un terminale nella cartella di Aurora: `sudo bash sys/deploy/cloudflared/install.sh` — installa *cloudflared* e il servizio *aurora-tunnel*. Non chiede nulla.
+7. In un terminale nella cartella di Aurora: `sudo aurora-root install tunnel` — installa *cloudflared* e il servizio *aurora-tunnel*. Non chiede nulla.
 
 **D. In Aurora: Salva**
 8. Qui, **⚙️ Impostazioni** del plugin: incolla **Account ID** e **token API**. Se apri Aurora con un nome (es. *aurora.casa.it*) metti il **dominio** (*casa.it*) e il **DNS di casa** che lo risolve (di solito il router, es. 192.168.1.1). L'indirizzo del computer Aurora lo trova da sola.

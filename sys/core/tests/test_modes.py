@@ -42,7 +42,7 @@ def test_cloud_with_privacy_needs_the_exemption_then_moves_every_role(machine):
     cfg, state = machine
     with pytest.raises(mdl_modes.ModeError) as e:
         mdl_modes.apply(cfg, "cloud_private", "openai", "gpt-x")
-    assert e.value.need == "exempt" and "sys_ethics_sign.py exempt" in e.value.command
+    assert e.value.need == "exempt" and "aurora-root exempt" in e.value.command
     state["exempt"] = True
     with pytest.raises(mdl_modes.ModeError, match="modello"):
         mdl_modes.apply(cfg, "cloud_private", "openai", "")

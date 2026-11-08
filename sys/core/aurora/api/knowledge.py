@@ -187,7 +187,21 @@ def recent_dreams() -> list[dict]:
                   if d.extra.get("type") == "morning" and datetime.fromisoformat(d.created_at) >= since][-1:]] + [
         {"sid": r.sid, "role": "review", "text": r.text, "created_at": r.created_at}        # second thoughts (kno_review)
         for r in pipeline().reader.recent(100, domain="reflection")
-        if r.extra.get("type") == "review" and datetime.fromisoformat(r.created_at) >= since] + made_lately(since)
+        if r.extra.get("type") == "review" and datetime.fromisoformat(r.created_at) >= since] + made_lately(since) + told_lately(since)
+
+
+TOLD_MAX = 12                                          # the chat is a chat: the newest few, the rest in Notifications
+
+
+def told_lately(since) -> list[dict]:
+    """What Aurora said in the chat on her own (sys_push channel «chat», owner 9 Nov): an incident, a plugin built, a
+    project's report, a backup failed — from the notifications' history, the user's own, the newest TOLD_MAX."""
+    from datetime import datetime, timezone
+    from aurora import sys_push
+    told = [n for n in sys_push.history(cfg, 200) if "chat" in n.get("channels", []) and n.get("at", 0) >= since.timestamp()]
+    return [{"sid": f"told:{n['event']}:{int(n['at'] * 1000)}", "role": "told", "title": n.get("title", ""),
+             "text": n.get("body", ""), "view": n.get("view", ""),
+             "created_at": datetime.fromtimestamp(n["at"], timezone.utc).isoformat()} for n in told[:TOLD_MAX]]
 
 
 def made_lately(since) -> list[dict]:

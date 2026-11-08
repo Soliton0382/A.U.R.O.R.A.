@@ -59,6 +59,17 @@ still gives: the swap file's pages (C462) and the .env's secrets (C463). Root on
 running machine can ask systemd for the credential or read a service's memory: no design without the user's own
 password at every opening stops that (ROADMAP N64, phase 7, optional).
 
+## 🔑 aurora-root: root acts only on what the owner signed (9 Nov 2026)
+
+Aurora's folder is writable by her services' account, because she applies the changes the owner approves. Root
+therefore never runs it as it is. Every root step goes through `sudo aurora-root …` (sys/core/script/sys_root.py):
+the system's Python (-I, never the .venv) from root's own copy in /usr/local/lib/aurora; every code file (the
+installers, the units and the polkit rule included) read once and compared with the owner's Ed25519 signature; what
+changed since the last signature listed and signed only on the owner's «s»; an installer run from a copy in root's own
+temporary folder. Inside the services' folders root follows no symbolic link (C521, C524). Restarting Aurora from the
+WebUI needs no root (polkit, 50-aurora.rules) and is unchanged. The first time, from Aurora's folder:
+`sudo /usr/bin/python3 -I sys/core/script/sys_root.py setup`.
+
 ## Code of conduct (sys/core/ethics/CODE.md)
 
 Level A, always and for everyone: no attacks or probing of systems that are not the owner's, no
@@ -129,10 +140,10 @@ in `/etc/aurora`:
 Why: the services run as the owner's user. A key that user could read or replace would let a
 process of Aurora sign changes to her own rules. Level A has no exemption, whatever the key.
 
-    sudo .venv/bin/python sys/core/script/sys_ethics_sign.py setup            # key pair + signature (installer)
-    sudo .venv/bin/python sys/core/script/sys_ethics_sign.py setup --exempt   # the same, and exempt this installation from level B
-    sudo .venv/bin/python sys/core/script/sys_ethics_sign.py sign             # after a protected file changes
-    sudo .venv/bin/python sys/core/script/sys_ethics_sign.py keygen --rotate  # new pair; the old one is renamed .retired-<date>, then `sign`
+    sudo /usr/bin/python3 -I sys/core/script/sys_root.py setup            # key pair + signature (installer)
+    sudo /usr/bin/python3 -I sys/core/script/sys_root.py setup --exempt   # the same, and exempt this installation from level B
+    sudo aurora-root sign             # after a protected file changes
+    sudo aurora-root keygen --rotate  # new pair; the old one is renamed .retired-<date>, then `sign`
 
 ## EU AI Act, article 50
 
@@ -275,7 +286,7 @@ live on a USB stick, so that not even root on this machine can sign:
     sudo cp /etc/aurora/owner_ed25519 /media/$USER/KEY/   # once, then check the copy
     sudo shred -u /etc/aurora/owner_ed25519
     # whenever something must be signed: plug the stick in
-    sudo .venv/bin/python sys/core/script/sys_ethics_sign.py sign --key /media/$USER/KEY/owner_ed25519
+    sudo aurora-root sign --key /media/$USER/KEY/owner_ed25519
 
 ## Hardening still to do
 

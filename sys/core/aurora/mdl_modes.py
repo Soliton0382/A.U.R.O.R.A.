@@ -21,7 +21,7 @@ import subprocess
 from . import mdl_media, mdl_router, sys_cloud_consent, sys_config, sys_ethics, sys_features
 
 MODES = ("local", "mixed", "cloud_private", "cloud_full")
-EXEMPT_COMMAND = "sudo .venv/bin/python sys/core/script/sys_ethics_sign.py exempt"
+EXEMPT_COMMAND = "sudo aurora-root exempt"
 SERVICES = ["aurora-api", "aurora-rem", "aurora-harvester"]       # they hold the reasoner they started with
 
 

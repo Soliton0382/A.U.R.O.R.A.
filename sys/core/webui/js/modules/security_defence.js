@@ -55,7 +55,7 @@ export const defence = {
     try { h = await call("/v1/aurora/security/host"); } catch { this.host.replaceChildren(); return; }
     const out = [];
     const fw = h.hostfw;
-    if (!fw.installed) out.push(el("p", "warn", t("sec.host_install")), el("code", "", "sudo bash sys/deploy/nft/install.sh"));
+    if (!fw.installed) out.push(el("p", "warn", t("sec.host_install")), el("code", "", "sudo aurora-root install nft"));
     else out.push(el("p", "", t("sec.host_on", { n: fw.active.length })));
     for (const b of fw.active) {
       const r = el("div", "ev");

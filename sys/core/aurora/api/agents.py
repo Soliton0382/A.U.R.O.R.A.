@@ -116,7 +116,9 @@ def _unsigned_plugins() -> dict[str, int]:
     return out
 
 
-SIGN = "cd {root} && sudo .venv/bin/python sys/core/script/sys_ethics_sign.py sign"
+def _sign_command() -> str:
+    from aurora import sys_rootcmd                   # aurora-root once installed, the setup before (9 Nov)
+    return sys_rootcmd.command("sign", cfg.root)
 
 
 @router.get("/v1/aurora/plugins/signature", dependencies=[Depends(admin_only)])
@@ -124,7 +126,7 @@ def plugins_signature() -> dict:
     """The plugins whose files are not signed (forged by Aurora, or changed) and the command the admin runs in a shell
     with root's rights to sign the code as it is now — never done from the web: the signing key is root's."""
     _signed.clear()
-    return {"unsigned": _unsigned_plugins(), "command": SIGN.format(root=cfg.root)}
+    return {"unsigned": _unsigned_plugins(), "command": _sign_command()}
 
 
 def _forget_failure(name: str) -> None:

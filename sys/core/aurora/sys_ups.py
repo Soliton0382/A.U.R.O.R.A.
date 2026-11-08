@@ -93,7 +93,9 @@ def judge(v: dict, charge_min: float, runtime_min: float) -> dict:
     charge = _num(v.get("battery.charge"))
     runtime = _num(v.get("battery.runtime"))
     why = []
-    if "FSD" in flags:
+    # FSD only with OB (audit, 9 Nov): the protocol has no authentication, and a forged «FSD» alone must not power off
+    # the house; a real forced shutdown comes on battery
+    if "FSD" in flags and on_battery:
         why.append("forced shutdown from the UPS's server")
     if on_battery and "LB" in flags:
         why.append("the UPS says low battery")
@@ -127,6 +129,7 @@ class Watch:
         self.battery_since: float | None = None
         self.asked_at, self.can_off = 0.0, ""
         self.told_down = self.told_low = self.shutting = False
+        self.told_failed = self.told_cannot = False
         self.log = sys_log.get_logger("ups")
 
     def _read(self) -> tuple[dict, str]:
@@ -198,13 +201,26 @@ class Watch:
                         self.log.warning("UPS: shut down first: %s", ", ".join(gone))
                 except Exception as e:  # noqa: BLE001 — this computer is powered off whatever the others did
                     self.log.warning("UPS: the other devices not all shut down: %s", e)
-                self.poweroff()
+                err = self.poweroff()
+                if err:                            # audit, 9 Nov: never silent, tried again at the next read
+                    self.shutting = False
+                    events.append("poweroff_failed")
+                    self.log.error("UPS: power-off refused: %s", err)
+                    if not self.told_failed:
+                        self.told_failed = True
+                        self.tell("ups.poweroff_failed", "⚠️ Non riesco a spegnere il computer",
+                                  f"{err[:160]}. Riprovo; serve sys_install_services.py con AURORA_UPS_MODE=shutdown.")
             elif not self.told_low:
                 self.told_low = True
                 self.log.warning("UPS low (%s): mode notify, not powering off", why)
                 self.tell("ups.low", "🔋 Batteria UPS quasi scarica", f"{why}. Lo spegnimento automatico è spento.")
         if now - self.asked_at > 3600:                  # may this account power off with nobody to ask? (logind, polkit)
             self.asked_at, self.can_off = now, can_power_off()
+            if self.cfg["AURORA_UPS_MODE"] == "shutdown" and self.can_off in ("challenge", "no") and not self.told_cannot:
+                self.told_cannot = True                 # the mode turned on after the installer: polkit not written
+                self.log.warning("UPS: mode shutdown but logind says %s to powering off", self.can_off)
+                self.tell("ups.cannot_poweroff", "⚠️ Spegnimento automatico: permesso mancante",
+                          "Rilancia sys_install_services.py: senza il permesso polkit lo spegnimento fallirebbe.")
         login = getattr(self.client, "login_error", "")
         _save(self.cfg, {"at": now, "reachable": True, "server": server, **j, **({"login_refused": login} if login else {}),
                          "vars": {k: v[k] for k in KEEP if k in v}, "mode": self.cfg["AURORA_UPS_MODE"],
@@ -270,6 +286,11 @@ def can_power_off() -> str:
     return r.stdout.strip().removeprefix("s ").strip('"') if r.returncode == 0 else ""
 
 
-def _poweroff() -> None:
+def _poweroff() -> str:
+    """"" when the power-off was accepted, else why not (polkit refused, no systemctl)."""
     # systemd stops every service in order (Aurora's units first among them) before the power goes
-    subprocess.run(["systemctl", "poweroff"], capture_output=True, timeout=60)
+    try:
+        r = subprocess.run(["systemctl", "poweroff"], capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.SubprocessError) as e:
+        return f"{type(e).__name__}: {e}"
+    return "" if r.returncode == 0 else (r.stderr.strip() or f"exit {r.returncode}")

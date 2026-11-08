@@ -236,7 +236,7 @@ async def egress_deny(request: Request) -> dict:
     got = await asyncio.to_thread(sec_egress.refresh, cfg, None, True)
     log.info("audit: network AS%d added to the deny list by the owner (%d prefixes now)", asn, len(got["prefixes"]))
     return {"asns": listed, "prefixes": len(got["prefixes"]),
-            "install": f"python sys/core/script/sys_install_services.py && sudo bash {cfg.root}/sys/deploy/systemd/install.sh"}
+            "install": f"python sys/core/script/sys_install_services.py && sudo aurora-root install systemd"}
 
 
 @router.post("/v1/aurora/security/egress-allow", dependencies=[Depends(admin_only)])
@@ -260,7 +260,7 @@ async def egress_allow(request: Request) -> dict:
     got = await asyncio.to_thread(sec_egress.refresh, cfg, None, True)
     log.info("audit: network AS%d taken off the deny list by the owner (%d prefixes now)", asn, len(got["prefixes"]))
     return {"asns": listed, "prefixes": len(got["prefixes"]),
-            "install": f"python sys/core/script/sys_install_services.py && sudo bash {cfg.root}/sys/deploy/systemd/install.sh"}
+            "install": f"python sys/core/script/sys_install_services.py && sudo aurora-root install systemd"}
 
 
 @router.post("/v1/aurora/security/block", dependencies=[Depends(admin_only)])

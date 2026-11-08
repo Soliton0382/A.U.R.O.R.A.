@@ -8,7 +8,7 @@ NAS user (AURORA_NAS_USER).
 
     systemctl start aurora-mount.service        # what the backup plugin's Save does (polkit: aurora units only)
 
-The owner's consent to root is the one `sudo bash sys/deploy/systemd/install.sh` that installed this unit: after that
+The owner's consent to root is the one `sudo aurora-root install systemd` that installed this unit: after that
 Saving the plugin is enough. What root does, and nothing else:
   - the address and the share are checked strictly (an IPv4 or a host name; letters, digits, . _ - $ /): nothing can
     be injected into /etc/fstab;

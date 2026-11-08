@@ -68,9 +68,11 @@ else
   sed -i "s#$OLD#$NEW#g" .venv/pyvenv.cfg
   grep -rl "$OLD" .venv/bin | xargs -r sed -i "s#$OLD#$NEW#g"
 fi
-echo "== 5. units";       .venv/bin/python sys/core/script/sys_install_services.py; sudo bash sys/deploy/systemd/install.sh
+echo "== 5. units";       .venv/bin/python sys/core/script/sys_install_services.py
+# root's copy and aurora-root follow the new folder (sys_root.py setup writes it down), then the units
+sudo /usr/bin/python3 -I sys/core/script/sys_root.py setup && sudo aurora-root install systemd
 echo "== 6. ethics"
-[ "$EXEMPT" = 1 ] && sudo .venv/bin/python sys/core/script/sys_ethics_sign.py exempt
+[ "$EXEMPT" = 1 ] && sudo aurora-root exempt
 .venv/bin/python sys/core/script/sys_ethics_sign.py check
 echo "== 7. start";       sudo systemctl start aurora.target; sleep 20
 for u in $UNITS; do printf '%-18s %s\n' "$u" "$(systemctl is-active $u)"; done

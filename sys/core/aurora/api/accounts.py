@@ -202,3 +202,50 @@ def mask_words() -> dict:
     return {"rules": [{"kind": k, "it": i, "en": e, "example": x} for k, i, e, x in sec_mask.RULES],
             "mine": mine, "installation": house if admin else [], "installation_n": len(house), "admin": admin,
             "automatic": auto, "secrets": len(p.secrets)}
+
+
+# ---- 🧠 my models: each step chosen by the user, if the admin's policy allows it (106, mdl_user_roles) -----------
+@router.get("/v1/aurora/me/models", dependencies=[Depends(auth)])
+def my_models() -> dict:
+    from aurora import mdl_router, mdl_user_roles
+    c = cfg.now()
+    allowed, own = mdl_user_roles.allowed(c), mdl_user_roles.mine(c)
+    a, house = mdl_router.assignments(c), mdl_router._stored(c, own=False)
+    return {"allowed": allowed, "admin": _is_admin(), "policy": mdl_accounts.load(c)["policy"],
+            "providers": [{"id": k, "label": mdl_router.label(k, c)} for k in mdl_router.PROVIDERS
+                          if allowed and mdl_router.configured(k, c)],
+            "roles": [{"id": r, "it": it, "en": en, "sees": sees, **a[r], "mine": r in own, "house": house[r]}
+                      for r, (it, en, sees) in mdl_router.ROLES.items() if r not in mdl_user_roles.ADMIN_ONLY]}
+
+
+@router.put("/v1/aurora/me/models", dependencies=[Depends(auth)])
+async def my_models_set(request: Request) -> dict:
+    from aurora import mdl_user_roles
+    body, c = await request.json(), cfg.now()
+    try:
+        if body.get("reset"):
+            mdl_user_roles.reset(c)
+            out = {}
+        else:
+            out = mdl_user_roles.set_mine(c, body.get("roles") or {})
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e)) from None
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    log.info("audit: %s's own models: %s", me(), ", ".join(f"{k}={v['provider']}:{v['model']}" for k, v in out.items())
+             or "the admin's")
+    return {"roles": out}
+
+
+@router.get("/v1/aurora/me/models/{provider}/list", dependencies=[Depends(auth)])
+async def my_models_list(provider: str) -> dict:
+    """The models a provider offers this user, read with their own account's key."""
+    import asyncio
+    from aurora import mdl_router, mdl_user_roles
+    c = cfg.now()
+    if provider not in mdl_router.PROVIDERS or not mdl_user_roles.allowed(c) or not mdl_router.configured(provider, c):
+        raise HTTPException(status_code=404, detail="not a provider of yours")
+    try:
+        return {"provider": provider, "models": await asyncio.to_thread(mdl_router.list_models, provider, c)}
+    except Exception as e:                               # a wrong key, a provider down: said, not hidden
+        raise HTTPException(status_code=502, detail=f"{type(e).__name__}: {str(e)[:300]}")

@@ -171,7 +171,10 @@
     uncard() { q("#demo-card").classList.remove("on"); },
     cursor(x, y, click) {                              // seen while it moves and clicks, then gone: never over a caption
       const c = q("#demo-cursor");
-      c.style.opacity = "1";
+      const cap = q("#demo-cap").getBoundingClientRect(), pad = 40;   // over a caption: moved, never seen on the words
+      const onCap = q("#demo-cap").classList.contains("on") && x > cap.left - pad && x < cap.right + pad
+        && y > cap.top - pad && y < cap.bottom + pad;
+      c.style.opacity = onCap ? "0" : "1";
       c.style.left = `${x}px`;
       c.style.top = `${y}px`;
       if (click) { c.classList.remove("click"); void c.offsetWidth; c.classList.add("click"); }

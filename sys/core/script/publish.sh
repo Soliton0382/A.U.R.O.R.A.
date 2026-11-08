@@ -51,7 +51,9 @@ echo "$STATE" | sed 's/^/  /'
 if echo "$STATE" | grep -q "^OK: " && echo "$STATE" | grep -q "every file as signed"; then
   echo "  nothing changed since the last signature"
 else
-  sudo "$PY" "$SRC/sys/core/script/sys_ethics_sign.py" sign
+  # root signs through aurora-root (sys_root.py, 9 Nov): the list of what changed, then «s»; the setup the first time
+  if [ -x /usr/local/sbin/aurora-root ]; then sudo /usr/local/sbin/aurora-root sign
+  else sudo /usr/bin/python3 -I "$SRC/sys/core/script/sys_root.py" setup; fi
 fi
 
 KEEP=""

@@ -9,9 +9,17 @@
 # hardened services reach it: they cannot use sudo, C194), /etc/sudoers.d/aurora-nft (for the shell, checked with visudo).
 set -euo pipefail
 [ "$(id -u)" -eq 0 ] || { echo "run with sudo"; exit 1; }
+# run by aurora-root only (sys_root.py, 9 Nov): this folder is a copy root checked against the owner's signature
+if [ -z "${AURORA_DEPLOY:-}" ]; then
+  if [ -x /usr/local/sbin/aurora-root ]; then echo "usa: sudo aurora-root install nft"
+  else echo "la prima volta, dalla cartella di Aurora: sudo /usr/bin/python3 -I sys/core/script/sys_root.py setup"; fi
+  exit 1
+fi
 HERE="$(cd "$(dirname "$0")" && pwd)"
+ROOT="${INSTALL_ROOT:?}"                              # Aurora's folder: data only, never code run as root
 # the services' account (U6: «aurora», sys_service_account.py passes it), else whoever runs sudo
-USER_SVC="${SVC_ACCOUNT:-${SUDO_USER:-$(stat -c %U "$HERE/../../..")}}"   # else the owner of Aurora's folder
+if [ -z "${SVC_ACCOUNT:-}" ] && id -u aurora >/dev/null 2>&1; then SVC_ACCOUNT=aurora; fi   # C520: the services' account (U6)
+USER_SVC="${SVC_ACCOUNT:-${SUDO_USER:-$(stat -c %U "$ROOT")}}"   # else the owner of Aurora's folder
 if [ "${1:-}" = "--remove" ]; then
   systemctl disable --now aurora-nftd.socket 2>/dev/null || true
   systemctl disable --now aurora-nft.service 2>/dev/null || true
@@ -27,8 +35,7 @@ command -v nft >/dev/null || apt-get install -y -q nftables
 install -m 0755 -o root -g root "$HERE/aurora-nft" /usr/local/sbin/aurora-nft
 install -d -m 0755 /etc/aurora
 install -m 0644 -o root -g root "$HERE/aurora.nft" /etc/aurora/aurora.nft
-# the addresses never blocked, root's own list beside the helper (sys_root_sync.py)
-"$HERE/../../../.venv/bin/python" "$HERE/../../core/script/sys_root_sync.py" || echo "  (never-blocked list not written: run sys_root_sync.py)"
+# the addresses never blocked, root's own list beside the helper: written by aurora-root before this (sys_root_sync)
 install -m 0644 "$HERE/aurora-nft.service" /etc/systemd/system/aurora-nft.service
 GROUP_SVC="$(id -gn "$USER_SVC")"
 sed "s/@GROUP@/$GROUP_SVC/" "$HERE/aurora-nftd.socket" > /etc/systemd/system/aurora-nftd.socket

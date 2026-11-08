@@ -26,8 +26,11 @@ export function extend(strings) {
   Object.assign(table, extra[lang] || {});
 }
 
+// this browser's copy; never chosen here: the browser's own language (an English one gets English), else Italian —
+// after the login the person's choice on the server wins (style.adopt)
 export function saved() {
-  try { return localStorage.getItem(STORE) || "it_IT"; } catch { return "it_IT"; }
+  const guess = /^en\b/i.test(navigator.language || "") ? "en_US" : "it_IT";
+  try { return localStorage.getItem(STORE) || guess; } catch { return guess; }
 }
 
 export function t(k, vars = {}) {

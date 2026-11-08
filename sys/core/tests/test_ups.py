@@ -50,7 +50,8 @@ def test_low_only_on_battery_or_when_the_server_forces_it():
     assert sys_ups.judge({"ups.status": "OB", "battery.charge": "30"}, 30, 300)["low"]
     assert sys_ups.judge({"ups.status": "OB", "battery.charge": "80", "battery.runtime": "240"}, 30, 300)["low"]
     assert not sys_ups.judge({"ups.status": "OB", "battery.charge": "80", "battery.runtime": "900"}, 30, 300)["low"]
-    assert sys_ups.judge({"ups.status": "OL FSD"}, 30, 300)["low"]
+    assert not sys_ups.judge({"ups.status": "OL FSD"}, 30, 300)["low"]          # audit 9 Nov: a forged FSD alone
+    assert sys_ups.judge({"ups.status": "OB FSD"}, 30, 300)["low"]
 
 
 class FakeClient:
@@ -188,3 +189,15 @@ def test_the_polkit_rule_names_its_units_one_by_one():
     spec.loader.exec_module(mod)
     rule = mod.POLKIT.substitute(user="u", managers='"u", "owner"', units='"aurora-api.service", "aurora.target"', power="")
     assert '["aurora-api.service", "aurora.target"].indexOf(unit) >= 0' in rule and ".test(unit)" not in rule
+
+
+def test_a_refused_power_off_is_said_and_tried_again(cfg):
+    """Audit 9 Nov: systemctl poweroff refused (polkit not written) was silent and never retried."""
+    cfg.values.update({"AURORA_UPS_SERVERS": ["nas"], "AURORA_UPS_MODE": "shutdown"})
+    FakeClient.reads = [{"ups.status": "OB LB"} for _ in range(6)]
+    tries, told = [], []
+    w = sys_ups.Watch(cfg, connect=FakeClient, poweroff=lambda: tries.append(1) or "Access denied",
+                      tell=lambda e, *_: told.append(e), others_off=lambda: [])
+    for t in range(6):
+        w.step(t * 30.0)
+    assert len(tries) >= 2 and told.count("ups.poweroff_failed") == 1      # retried, said once

@@ -61,7 +61,7 @@ def week(cfg: sys_config.Config, days: float = 7) -> dict:
             "checks": checks, "missing": minus}
 
 
-NAMES = {"firewall_api": "l'API del firewall", "hostfw": "il firewall di Aurora (sudo bash sys/deploy/nft/install.sh)",
+NAMES = {"firewall_api": "l'API del firewall", "hostfw": "il firewall di Aurora (sudo aurora-root install nft)",
          "threat_lists": "le liste pubbliche di attaccanti", "backup": "un backup negli ultimi 2 giorni"}
 
 

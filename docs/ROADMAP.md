@@ -36,14 +36,14 @@ ARCHIVE.md. Done = code and a test; partial = what is missing is named; owner = 
 | N31 usage / N32 Oggi widgets | phase 1 | usage by hour and a tool-failure alert; tile sizes |
 | N41 / N42 printing and simulators | built | the bed size per printer; simulator values kept in the project |
 | DJ | analysis, deck, set, songs; BPM and beat alignment measured on synthetic tracks (M93, M180) | Demucs stems for real mashups; BPM on real tracks of known tempo |
-| 106 each user's cloud account | shared / own / own-else-shared (mdl_accounts) | per-user roles, a per-user daily ceiling, keys sealed with the user's login |
+| 106 each user's cloud account | shared / own / own-else-shared (mdl_accounts); a per-user daily ceiling (17 Oct: sys_users_perm.cloud_cap, every provider and the subscription counted, set on the Users page — this list still called it missing until 9 Nov), and since 9 Nov the ceiling reached told to the user (💶, kind «my_cloud», in the chat too) and to the admin; 9 Nov: each user's own models step by step («I miei modelli» on ☁️ Cloud accounts, mdl_user_roles: when the policy is not «shared», only providers their account reaches, the forge the admin's) | keys sealed with the user's login |
 | U4 the users' ceiling | the load measured | AURORA_USERS_MAX in the schema and the installer |
 | 98 router cascade | the one-token decision (mdl_llm.decide) | the hand-off to a stronger model below a threshold |
 | 97 the project agent | phases on its own | the steps that need judgement |
 | 74 command cards | update, signature | services, firewall, NAS |
 | 70 / 67 Mac and Windows | Windows phase 3 started (cloud install on a real Windows 11) | the Mac installer, local llama on Windows and Metal, phases 4–5 |
 | Exfiltration (83) | Aurora's own egress (sec_egress_watch) | per-device hourly volumes, slow leaks, new destination networks |
-| Proactive messages in the chat | her second thoughts | findings, incidents and finished work as chat messages |
+| Proactive messages in the chat | her second thoughts; 9 Nov (owner: «li volevo già fare»): a third notification channel, 💬 «in chat» — incidents, approvals, self-reviews, plugins built, projects' reports, creations, backups, health and cloud said by Aurora as a message in the chat, chosen kind by kind in Notifications (sys_push.CHAT_SUGGESTED; never twice what has its own bubble), the open chat shows it at once | seen live in the chat |
 | Self-repair | runs daily (M104, M167) | a recorded real fix that justifies keeping it on |
 | HTTPS | Let's Encrypt by DNS, renewed and copied by Aurora (N67, 3 Nov) | the first automatic renewal (early January) |
 | Instagram / TikTok | TikTok connected; the Instagram plugin ready | Instagram live (the owner's account) |

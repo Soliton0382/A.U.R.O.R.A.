@@ -48,6 +48,7 @@ def test_guest_never_sees_boss_s_things(cfg):
     assert boss["welcomed"] is True and guest["welcomed"] is False                     # 107: once per person
     assert boss["prefs"] == {"style": "essenziale", "theme": "foresta", "pins": ["dreams", "models"]} and guest["prefs"] == {}
     assert guest["prefs_bad"] == 422 and guest["theme_bad"] == 422
+    assert guest["lang_bad"] == 422 and guest["lang"] == "en_US" and boss["lang"] is None   # each person's own
     assert guest["tiles"] == {"order": ["sky", "agenda", "page:ideas"], "off": ["news"]} and guest["tiles_bad"] == 422
     assert boss["health"] == ["warn", 1, 1] and guest["health"] == ["warn", 0, 0]          # the machine's details: the admin's
     assert guest["cloud_set"] == 403 and boss["cloud_set"] == {"guest": 200000} and boss["cloud_self"] == 422

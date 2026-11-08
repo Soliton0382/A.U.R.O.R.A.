@@ -118,7 +118,7 @@ async def factory_mind(request: Request) -> dict:
         sys_reset.take(cfg)                               # not started: the request must not wait for a later start
         raise HTTPException(status_code=409, detail="aurora-reset.service is not installed yet: "
                             f"cd {cfg.root} && .venv/bin/python sys/core/script/sys_install_services.py && "
-                            f"sudo bash sys/deploy/systemd/install.sh ({r.stderr.strip()[:200]})")
+                            f"sudo aurora-root install systemd ({r.stderr.strip()[:200]})")
     log.info("audit: factory reset of the mind asked from the WebUI (knowledge: %s)", bool(body.get("with_knowledge")))
     return {"started": True}
 

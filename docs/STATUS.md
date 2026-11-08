@@ -1,6 +1,6 @@
 # Status — work in progress
 
-Updated at every validated change (last: 2026-11-09; audited against the code on 2026-10-28). Details: BUGS.md (issues, 1 open / 513 closed),
+Updated at every validated change (last: 2026-11-09; audited against the code on 2026-10-28). Details: BUGS.md (issues, 2 open / 520 closed),
 MANUAL_TESTS.md (what the owner checks by hand),
 TESTS.md (tests and live checks), MEASUREMENTS.md (numbers), MODULE_MAP.md (who does what),
 SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSYSTEM.md (design and decisions).
@@ -104,7 +104,7 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | services | api, models, llm, https (443), rem, harvester, sentinel; one install.sh; polkit for restarts; clean stop in 5 s | install checks |
 | harvester | rounds by domain (on by default since 9 Oct: a new Aurora starts empty; the installer asks; a host that says «slow down» is asked again and then left alone, C214), "harvest now" and batches of papers from the 🌾 page, each paper in its category's domain | live batch test |
 | updates | Updates page: mode (notify / auto / off), what a new version changes, update now; daily check by the REM, approval in Repairs, fast-forward + tests + rollback | tests with real git repositories; live once the remote exists |
-| notifications | Notifications page: push on each device and toasts in the WebUI, which events on each channel (suggested / all / none / custom), effective at once; 🙈 on the phone the text shown or hidden, kind by kind, each user's own (C468) | tests; live delivery depends on the browser |
+| notifications | Notifications page: push on each device, toasts in the WebUI and 💬 messages in the chat (Aurora tells on her own what happened: incidents, plugins built, projects' reports…, 9 Nov, tests/test_push), which events on each channel (suggested / all / none / custom), effective at once; 🙈 on the phone the text shown or hidden, kind by kind, each user's own (C468) | tests; live delivery depends on the browser |
 | senses | plugin `senses`: camera photo described by Aurora's vision, microphone transcribed locally (Whisper on a GPU with room, else the CPU: M204, 0.14 s a sentence); 📷 photo and 🎙️ dictation in the chat; devices chosen from a list | live (M35) |
 | knowledge sources | harvester per domain (off / a round / until exhausted) from arXiv, Normattiva (Akoma Ntoso, one passage per group of articles), Europe PMC, bioRxiv/medRxiv, Wikipedia, GitHub; licence kept with every text; certificate chains completed (AIA) | M43–M44, tests |
 | chat → services | a third route "tools": requests about connected services go to the agent with the plugins | M45 |
@@ -170,7 +170,7 @@ The partial and missing items, checked against the code: ROADMAP.md, first secti
 
 ## Open bugs (2)
 
-C406 (the alerts that learn: built, closed after a week of the owner's verdicts), C463 (the .env's secrets in
-plaintext). Closed 4-5 Nov: C499-C510 (first night after them, 5-6 Nov: 0 watcher stops, 0 camera passwords in the logs, backup ok, a forged read-only plugin with no private names; self-repair's sandbox, a camera's password in a log, a forged plugin's false zero; M287-M289). Closed 3 Nov: C480 (a routine's sealed files), C484 (closed by the owner, not seen again), C485 (the
+C406 (the alerts that learn: built, closed after a week of the owner's verdicts), C526 (server text in one language: the notifications done, the rest file by file). C463 and C520 (the tunnel on the owner's login) closed 9 Nov; C521-C523 found by the security
+audit of 9 Nov and fixed (the tunnel installer's links, a forged UPS «FSD», a refused power-off). Closed 4-5 Nov: C499-C510 (first night after them, 5-6 Nov: 0 watcher stops, 0 camera passwords in the logs, backup ok, a forged read-only plugin with no private names; self-repair's sandbox, a camera's password in a log, a forged plugin's false zero; M287-M289). Closed 3 Nov: C480 (a routine's sealed files), C484 (closed by the owner, not seen again), C485 (the
 wildcard certificate's request). C390 (the reasoner's night crashes) closed on
 30 Oct after a week without one; C462 (the swap file) the same day. Details in BUGS.md.

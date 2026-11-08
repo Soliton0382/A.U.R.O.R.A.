@@ -100,7 +100,7 @@ def test_check_lists_what_is_missing_and_never_a_token(account):
     assert "creare il tunnel «aurora»" in out and "aggiungere la rotta privata 192.0.2.10/32" in out
     assert "togliere 192.0.2.10/32 dagli esclusi di WARP (192.0.0.0/16)" in out
     assert "aggiungere home.example al Local Domain Fallback di WARP (DNS 192.0.2.1)" in out
-    assert "sudo bash sys/deploy/cloudflared/install.sh" in out
+    assert "sudo aurora-root install tunnel" in out
     assert "t0ken" not in out and not fake.writes                             # read only
 
 
@@ -132,7 +132,7 @@ def test_a_hostname_published_on_the_internet_is_said(account):
 @pytest.mark.skipif(os.name == "nt", reason="the tunnel's service is installed by a Linux script (sudo bash …): not on Windows yet")
 def test_without_the_service_installed_save_says_the_one_command(account):
     r = CF.apply(account(Fake(), service="missing"), systemctl=lambda verb: pytest.fail("no systemctl"))
-    assert not r["ok"] and "servizio aurora-tunnel non installato: sudo bash sys/deploy/cloudflared/install.sh" in r["text"]
+    assert not r["ok"] and "servizio aurora-tunnel non installato: sudo aurora-root install tunnel" in r["text"]
 
 
 def test_a_public_record_left_for_aurora_s_name_is_said(account, monkeypatch):

@@ -8,7 +8,7 @@ import { apply, lang, t } from "../i18n.js";
 import { appSettings, pushOff, pushOn, pushState } from "../push.js";
 import { bus } from "../bus.js";
 
-const CHANNELS = ["push", "webui"];
+const CHANNELS = ["push", "webui", "chat"];   // chat: Aurora says it there herself (owner, 9 Nov)
 
 export default {
   id: "notifications",
@@ -57,7 +57,7 @@ export default {
       const when = new Date(n.at * 1000);
       row.append(el("span", "muted", `${when.toLocaleDateString([], { day: "2-digit", month: "2-digit" })} ${when.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`),
         el("strong", "", n.title), el("span", "", n.body || ""),
-        el("span", "muted", n.channels.includes("push") ? "📱" : "🖥️"));
+        el("span", "muted", n.channels.includes("push") ? "📱" : n.channels.includes("webui") ? "🖥️" : "💬"));
       if (n.view) row.addEventListener("click", () => bus.emit("show", { id: n.view }));
       return row;
     }) : [el("p", "muted", t("notif.history_none"))]));
@@ -90,6 +90,7 @@ export default {
     this.grid.replaceChildren();
     this.boxes = {};
     for (const ch of CHANNELS) {
+      const presets = ch === "chat" && n.chat_suggested ? { ...n.presets, suggested: n.chat_suggested } : n.presets;
       const col = el("div", "notif-col");
       col.append(el("h4", "", t(`notif.ch.${ch}`)));
       const preset = el("select");
@@ -104,16 +105,16 @@ export default {
         const row = el("label", "notif-row");
         const c = el("input");
         c.type = "checkbox";
-        c.checked = n.prefs[ch].includes(k.id);
-        c.addEventListener("change", () => { preset.value = this.presetOf(n.presets, checks); });
+        c.checked = (n.prefs[ch] || []).includes(k.id);
+        c.addEventListener("change", () => { preset.value = this.presetOf(presets, checks); });
         checks[k.id] = c;
         row.append(c, el("span", "", k[code] || k.label));
         col.append(row);
       }
-      preset.value = this.presetOf(n.presets, checks);
+      preset.value = this.presetOf(presets, checks);
       preset.addEventListener("change", () => {
         if (preset.value === "custom") return;
-        for (const [id, c] of Object.entries(checks)) c.checked = n.presets[preset.value].includes(id);
+        for (const [id, c] of Object.entries(checks)) c.checked = presets[preset.value].includes(id);
       });
       this.boxes[ch] = checks;
       this.grid.append(col);

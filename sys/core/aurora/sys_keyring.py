@@ -33,7 +33,8 @@ from . import sys_config
 
 CRED = "aurora-key"
 CREDSTORE = Path("/etc/credstore.encrypted")
-WRAP = b"AURKEY1"                                        # a user's key wrapped by her key
+WRAP = b"AURKEY1"
+NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)                 # C524; not on Windows (no symbolic links in play there)                                        # a user's key wrapped by her key
 
 
 class Locked(RuntimeError):
@@ -47,10 +48,32 @@ def folder(cfg: sys_config.Config) -> Path:
 def _write_private(path: Path, data: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     tmp = path.with_suffix(path.suffix + ".tmp")
-    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    if os.path.lexists(tmp):                           # C524: a file or a link left there is removed, never followed
+        os.unlink(tmp)
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | NOFOLLOW, 0o600)
     with os.fdopen(fd, "wb") as h:
         h.write(data)
-    os.replace(tmp, path)
+    os.replace(tmp, path)                               # a rename: a link at `path` is replaced, not followed
+
+
+def _read_nofollow(path: Path) -> bytes:
+    """A file's bytes, refused when it is a symbolic link (C524: root reading the services' folder)."""
+    fd = os.open(path, os.O_RDONLY | NOFOLLOW)
+    with os.fdopen(fd, "rb") as h:
+        return h.read()
+
+
+def no_links(*paths: Path) -> None:
+    """C524: root works in the services' own folders only where no symbolic link is on the way — each path and every
+    folder above it (a link planted by the services' account would make root read, write or chown elsewhere)."""
+    for p in paths:
+        for q in (Path(p), *Path(p).parents):
+            if q.is_symlink():
+                raise PermissionError(f"{q} is a symbolic link: refused (remove it and run again)")
+
+
+def _chown(path: Path, uid: int, gid: int) -> None:
+    os.chown(path, uid, gid, follow_symlinks=False)     # the link itself, never what it points to (C524)
 
 
 def cred_path(cfg: sys_config.Config) -> Path:
@@ -145,8 +168,9 @@ def recover(cfg: sys_config.Config) -> Path:
 
 
 def _shred(f: Path) -> None:
-    with open(f, "r+b") as h:
-        h.write(os.urandom(max(f.stat().st_size, 32)))
+    fd = os.open(f, os.O_RDWR | NOFOLLOW)          # C524: a link is refused, its target never overwritten
+    with os.fdopen(fd, "r+b") as h:
+        h.write(os.urandom(max(os.fstat(h.fileno()).st_size, 32)))
         h.flush()
         os.fsync(h.fileno())
     f.unlink()
@@ -198,7 +222,7 @@ def _reseal_tpm(cfg: sys_config.Config, cred: Path, marker: Path, svc) -> str:
     os.chmod(tmp, 0o600)
     os.replace(tmp, cred)
     _write_private(marker, f"{cred}\nhost+tpm2\n".encode())
-    os.chown(marker, svc.pw_uid, svc.pw_gid)
+    _chown(marker, svc.pw_uid, svc.pw_gid)
     return "sealed again with the TPM"
 
 
@@ -210,6 +234,7 @@ def seal_host(cfg: sys_config.Config) -> str:
     if os.geteuid() != 0:
         raise PermissionError("seal-host needs root")
     import pwd
+    no_links(keys, f, marker, keys / "aurora.escrow", f.with_suffix(".tmp"), marker.with_suffix(".tmp"))   # C524
     if marker.exists() and cred.exists() and not f.is_file():   # a key file beside a seal is a key recovered (a new
         if bound(cfg) != "host+tpm2" and tpm():                 # machine, a new TPM): it replaces the seal, C492
             return _reseal_tpm(cfg, cred, marker, pwd.getpwnam(sys_config.service_user(cfg)))
@@ -222,20 +247,28 @@ def seal_host(cfg: sys_config.Config) -> str:
     for x in (keys, f, keys / "aurora.escrow"):          # made here as root: still the services' account's (a seal
                                                          # that fails below leaves a key they can read)
         if x.exists():
-            os.chown(x, svc.pw_uid, svc.pw_gid)
+            _chown(x, svc.pw_uid, svc.pw_gid)
     CREDSTORE.mkdir(mode=0o700, exist_ok=True)
     tmp = cred.with_suffix(".tmp")
     with_key = "host+tpm2" if tpm() else "host"
-    _encrypt(f, tmp, with_key)
+    data = _read_nofollow(f)                            # C524: read once, never through a link, sealed from memory
+    mem = Path(os.environ.get("RUNTIME_DIRECTORY") or "/run") / f"aurora-key-{os.getpid()}"
+    fd = os.open(mem, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        with os.fdopen(fd, "wb") as h:
+            h.write(data)
+        _encrypt(mem, tmp, with_key)
+    finally:
+        _shred(mem)
     back = subprocess.run(["systemd-creds", "decrypt", f"--name={CRED}", str(tmp), "-"], check=True,
                           capture_output=True).stdout
-    if back != f.read_bytes():
+    if back != data:
         tmp.unlink()
         raise RuntimeError("the sealed key does not give the same key back: nothing changed")
     os.chmod(tmp, 0o600)                                # root's: systemd reads it, nobody else
     os.replace(tmp, cred)
     _write_private(marker, f"{cred}\n{with_key}\n".encode())
-    os.chown(marker, svc.pw_uid, svc.pw_gid)
+    _chown(marker, svc.pw_uid, svc.pw_gid)
     _shred(f)
     return f"sealed ({with_key})"
 

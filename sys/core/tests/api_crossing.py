@@ -136,6 +136,11 @@ client.put("/v1/aurora/me/prefs", headers=H["boss"], json={"style": "essenziale"
 out["boss"]["prefs"] = get("boss", "/v1/aurora/me").json()["prefs"]
 out["guest"]["prefs"] = get("guest", "/v1/aurora/me").json()["prefs"]
 out["guest"]["prefs_bad"] = client.put("/v1/aurora/me/prefs", headers=H["guest"], json={"style": "<script>"}).status_code
+# the language (9 Nov): the person's, kept on the server; one outside the two refused
+out["guest"]["lang_bad"] = client.put("/v1/aurora/me/prefs", headers=H["guest"], json={"lang": "fr_FR"}).status_code
+client.put("/v1/aurora/me/prefs", headers=H["guest"], json={"lang": "en_US"})
+out["guest"]["lang"] = get("guest", "/v1/aurora/me").json()["prefs"].get("lang")
+out["boss"]["lang"] = get("boss", "/v1/aurora/me").json()["prefs"].get("lang")
 # a social account connected from the card (api/oauth): the admin's, with a state Aurora gave, once
 import httpx as _httpx  # noqa: E402
 out["guest"]["oauth_start"] = client.post("/v1/aurora/oauth/tiktok/start", headers=H["guest"]).status_code

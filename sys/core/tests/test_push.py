@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2026 A.U.R.O.R.A. Project
 import base64
+import time
 from types import SimpleNamespace
 
 import pytest
@@ -90,3 +91,50 @@ def test_each_kind_is_shown_or_masked_on_the_phone_as_the_user_chooses(cfg):
     assert sys_push.outgoing({"title": "📞", "body": "senza tipo"}, cfg)["body"] == "senza tipo"   # no kind: the setting
     cfg.values["AURORA_PUSH_PRIVATE"] = True
     assert sys_push.outgoing(weather, cfg)["body"] == "Sole, 18 gradi"           # a choice saved wins over the start
+
+
+def test_the_chat_says_what_the_owner_chose_and_never_twice(cfg):
+    """Proactive messages (owner, 9 Nov): the chat channel's suggestion, a choice saved before it, a kind chat-born."""
+    import json
+    assert sys_push.prefs(cfg)["chat"] == sys_push.CHAT_SUGGESTED                      # never chosen
+    f = sys_push._mine(cfg) / "prefs.json"
+    f.write_text(json.dumps({"push": ["incident"], "webui": [], "known": list(sys_push.KINDS)}))
+    assert sys_push.prefs(cfg)["chat"] == sys_push.CHAT_SUGGESTED                      # saved before the channel
+    assert sys_push.message("forge.installed", {"text": "pdf_tools"}, cfg, "chat")["body"] == "pdf_tools"
+    sys_push.set_prefs(cfg, {"push": [], "webui": [], "chat": ["incident", "dream"]})
+    assert sys_push.message("forge.installed", {"text": "x"}, cfg, "chat") is None    # not chosen
+    assert sys_push.message("incident", {"title": "ips"}, cfg, "chat")["view"] == "security"
+    assert sys_push.message("rem.dream", {"text": "x"}, cfg, "chat") is None          # its own bubble in the chat
+
+
+def test_a_told_event_lands_in_the_chats_feed(cfg, monkeypatch):
+    from datetime import datetime, timedelta, timezone
+    from aurora.api import core, knowledge
+    monkeypatch.setattr(core, "cfg", cfg)
+    monkeypatch.setattr(knowledge, "cfg", cfg)
+    kept = []                                            # the history (conftest keeps it off the disk)
+    monkeypatch.setattr(sys_push, "remember", lambda msg, event, channels, cfg: kept.append(
+        {"at": time.time(), "event": event, "title": msg["title"], "body": msg["body"], "view": msg["view"], "channels": channels}))
+    monkeypatch.setattr(sys_push, "history", lambda cfg, n=200: kept[::-1])
+    sys_push.set_prefs(cfg, {"push": [], "webui": [], "chat": ["plugin"]})
+    core._push("forge.installed", {"text": "pdf_tools"})
+    core._push("rem.thought", {"text": "not for the chat"})
+    assert [k["channels"] for k in kept] == [["chat"]]
+    assert any(a["event"] == "chat.told" for a in core._activity)                     # an open chat shows it now
+    told = knowledge.told_lately(datetime.now(timezone.utc) - timedelta(hours=1))
+    assert [(x["role"], x["text"], x["view"]) for x in told] == [("told", "pdf_tools", "plugins")]
+    assert not knowledge.told_lately(datetime.now(timezone.utc) + timedelta(hours=1))  # older than the window: not said
+
+
+def test_a_notification_speaks_the_readers_language(cfg):
+    """9 Nov: the language chosen in the WebUI is the person's; their notifications follow it, not the machine's."""
+    import dataclasses
+    import json
+    cfg.values["AURORA_LANG_DEFAULT"] = "it_IT"
+    cfg.path("AURORA_STATUS_DIR").mkdir(parents=True, exist_ok=True)
+    (cfg.path("AURORA_STATUS_DIR") / "ui_prefs.json").write_text(json.dumps({"anna": {"lang": "en_US"}}))
+    anna, luca = dataclasses.replace(cfg, user="anna", base=cfg), dataclasses.replace(cfg, user="luca", base=cfg)
+    sys_push.set_prefs(anna, {"push": ["update"], "webui": [], "chat": []})
+    sys_push.set_prefs(luca, {"push": ["update"], "webui": [], "chat": []})
+    assert sys_push.message("update.available", {"text": "x"}, anna)["title"].startswith("⬆️ Aurora update")
+    assert sys_push.message("update.available", {"text": "x"}, luca)["title"].startswith("⬆️ Aggiornamento")

@@ -61,7 +61,7 @@ def owner_public_key(path: Path | None = None) -> tuple[str, str]:
         if len(bytes.fromhex(text)) != 32:
             raise ValueError
     except OSError:
-        return "", f"no owner key at {p} (run: sudo .venv/bin/python sys/core/script/sys_ethics_sign.py setup)"
+        return "", f"no owner key at {p} (run: sudo /usr/bin/python3 -I sys/core/script/sys_root.py setup)"
     except ValueError:
         return "", f"{p} is not an Ed25519 public key"
     return text, ""
@@ -99,8 +99,10 @@ def integrity(root: Path = CODE_ROOT, public_hex: str = "") -> tuple[bool, str]:
     return (False, f"changed without the owner's signature: {', '.join(changed)}") if changed else (True, "intact")
 
 
-CODE_PATTERNS = ("install.sh", "requirements.txt", "sys/core/**/*.py", "sys/core/**/*.js", "sys/core/**/*.css",
-                 "sys/core/**/*.html", "sys/core/**/*.json", "sys/core/**/*.md", "sys/core/**/*.sh", "sys/plugins/*/*")
+CODE_PATTERNS = ("install.sh", "uninstall.sh", "requirements.txt", "sys/core/**/*.py", "sys/core/**/*.js",
+                 "sys/core/**/*.css", "sys/core/**/*.html", "sys/core/**/*.json", "sys/core/**/*.md", "sys/core/**/*.sh",
+                 "sys/plugins/*/*",
+                 "sys/deploy/**/*")   # what root installs: aurora-root runs only these files as signed (sys_root, 9 Nov)
 DATA_FILES = ("sys/core/config/shadow_seed.json",)  # rewritten every day by its timer (C401): data, not code
 
 

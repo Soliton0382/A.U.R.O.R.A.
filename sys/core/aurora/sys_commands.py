@@ -72,7 +72,11 @@ def by_hand(cfg: sys_config.Config) -> bool:
 
 
 def command(cfg: sys_config.Config, name: str) -> str:
-    return templates(cfg)[name].format(root=str(cfg.root), source=str(source(cfg)))
+    t = templates(cfg)[name]
+    if name == "sign" and "aurora-root" in t:          # Linux: the one-time setup first, until aurora-root is there
+        from . import sys_rootcmd
+        return sys_rootcmd.command("sign", cfg.root)
+    return t.format(root=str(cfg.root), source=str(source(cfg)))
 
 
 def cards(cfg: sys_config.Config, lang: str = "it") -> list[dict]:

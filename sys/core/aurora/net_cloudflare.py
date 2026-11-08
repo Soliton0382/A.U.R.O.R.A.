@@ -176,7 +176,7 @@ def service_state() -> str:
     return "missing" if load.strip() != "loaded" else active.strip() or "inactive"
 
 
-INSTALL = "sudo bash sys/deploy/cloudflared/install.sh (una volta sola)"
+INSTALL = "sudo aurora-root install tunnel (una volta sola)"
 
 
 def analyse(c: dict, d: dict, service: str) -> tuple[list, list]:
@@ -361,7 +361,7 @@ def apply(cfg: sys_config.Config, systemctl=None) -> dict:
             failed.append("il tunnel lo avvia «Salva» nella scheda del plugin cloudflare (da qui non posso)")
             service = "cage"
         elif changed == "seal":                         # a new token while the old one is sealed: root seals it (C463)
-            failed.append("token del tunnel nuovo: per sigillarlo e usarlo, sudo bash sys/deploy/cloudflared/install.sh")
+            failed.append("token del tunnel nuovo: per sigillarlo e usarlo, sudo aurora-root install tunnel")
             service = "cage"
         if service == "missing":
             failed.append("servizio aurora-tunnel non installato: " + INSTALL)

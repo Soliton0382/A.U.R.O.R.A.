@@ -28,7 +28,7 @@ def sealing(cfg, tmp_path, monkeypatch):
     monkeypatch.setenv("RUNTIME_DIRECTORY", str(tmp_path))
     monkeypatch.setattr(sys_keyring, "CREDSTORE", tmp_path / "credstore")
     monkeypatch.setattr(os, "geteuid", lambda: 0)
-    monkeypatch.setattr(os, "chown", lambda *a: None)
+    monkeypatch.setattr(os, "chown", lambda *a, **k: None)
     import pwd
     monkeypatch.setattr(pwd, "getpwnam", lambda n: SimpleNamespace(pw_dir=str(svc_home), pw_uid=os.getuid(), pw_gid=os.getgid()))
     monkeypatch.setattr(sys_keyring, "tpm", lambda: True)

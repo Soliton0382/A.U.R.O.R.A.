@@ -101,7 +101,7 @@ def fake_creds(kcfg, tmp_path, monkeypatch):
     store = tmp_path / "credstore"
     monkeypatch.setattr(sys_keyring, "CREDSTORE", store)
     monkeypatch.setattr(sys_keyring.os, "geteuid", lambda: 0)
-    monkeypatch.setattr(sys_keyring.os, "chown", lambda *a: None)
+    monkeypatch.setattr(sys_keyring.os, "chown", lambda *a, **k: None)
     monkeypatch.setattr(pwd, "getpwnam", lambda n: pwd.getpwuid(os.getuid()))
     calls = []
 
@@ -152,3 +152,27 @@ def test_every_plugin_gets_the_keys_of_the_sealed_files_it_reads():
     from aurora import plg_host
     m = json.loads((Path(__file__).resolve().parents[2] / "plugins" / "security" / "plugin.json").read_text())
     assert {"network", "firewalls"} <= set(m["seal_keys"]) and set(m["seal_keys"]) <= set(plg_host.SEAL_KEYS)
+
+
+def test_root_never_follows_a_link_in_the_services_folder(tmp_path):
+    """C524: a link planted by the services' account (aurora.escrow -> a root file) is refused, never written through."""
+    target = tmp_path / "shadow"
+    target.write_text("root's own")
+    keys = tmp_path / "keys"
+    keys.mkdir()
+    (keys / "aurora.escrow").symlink_to(target)
+    with pytest.raises(PermissionError, match="symbolic link"):
+        sys_keyring.no_links(keys, keys / "aurora.escrow")
+    with pytest.raises(OSError):
+        sys_keyring._shred(keys / "aurora.escrow")                       # O_NOFOLLOW: the target never overwritten
+    with pytest.raises(OSError):
+        sys_keyring._read_nofollow(keys / "aurora.escrow")
+    (keys / "aurora.sealed.tmp").symlink_to(target)
+    (keys / "aurora.sealed").symlink_to(target)
+    sys_keyring._write_private(keys / "aurora.sealed", b"marker")       # the links replaced, not followed
+    assert target.read_text() == "root's own" and (keys / "aurora.sealed").read_bytes() == b"marker"
+    assert not (keys / "aurora.sealed").is_symlink()
+    link_dir = tmp_path / "status"
+    link_dir.symlink_to(keys)
+    with pytest.raises(PermissionError):
+        sys_keyring.no_links(link_dir / "aurora.key")                    # a folder on the way that is a link

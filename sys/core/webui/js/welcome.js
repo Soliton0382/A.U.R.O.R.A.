@@ -10,7 +10,7 @@ import { bus } from "./bus.js";
 import { el } from "./dom.js";
 import * as i18n from "./i18n.js";
 import { applyTheme, current as currentTheme, THEMES } from "./theme.js";
-import { current as currentStyle, setStyle, STYLES } from "./style.js";
+import { current as currentStyle, saveLang, setStyle, STYLES } from "./style.js";
 
 const t = i18n.t;
 const PERSONAS = ["aurora", "philosopher", "empathic", "practical"];   // the schema's AURORA_PERSONALITY choices
@@ -133,7 +133,13 @@ export async function welcome(me, show) {
           await call("/v1/aurora/settings", { method: "PUT", body: JSON.stringify({ AURORA_OWNER_NAME: want.name.trim() }) });
           bus.emit("me-changed");
         }
-        if (want.lang !== was.lang) { await i18n.load(want.lang); bus.emit("lang", { code: want.lang }); }
+        if (want.lang !== was.lang) {                   // kept for this person on the server, the menu's picker too
+          await i18n.load(want.lang);
+          saveLang(want.lang);
+          const pick = document.getElementById("lang");
+          if (pick) pick.value = want.lang;
+          bus.emit("lang", { code: want.lang });
+        }
       }
       if (at("reason") && me.admin && models && reason.picked !== reason.now && reason.picked !== "custom") {
         const { useChoice } = await import("./modules/models_choice.js");

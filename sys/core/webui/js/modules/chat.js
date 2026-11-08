@@ -11,7 +11,7 @@ import { viewLink } from "../viewer.js";
 import * as voice from "../voice.js";
 import { dietBubbles, dietCards } from "../diet.js";
 import { calendarBubbles } from "../calendar_alerts.js";
-import { dreamOf, madeOf, makeRecorder, morningOf, preRoll, shrink } from "./chat_media.js";
+import { dreamOf, madeOf, makeRecorder, morningOf, preRoll, shrink, toldOf } from "./chat_media.js";
 import { thinkMode } from "./chat_think.js";
 import { attachMenu, settingsMenu, showGear, source } from "./chat_menu.js";
 import { actions, quoteBox, quoted } from "./chat_actions.js";
@@ -407,6 +407,7 @@ export default {
       if (turn.role === "user") { userBubble(turn.text, turn.attachments || [], turn.created_at, turn.reply_to); return; }
       if (turn.role === "dream") { dreamBubble(turn); return; }
       if (turn.role === "made") { madeBubble(turn); return; }
+      if (turn.role === "told") { toldOf(messages, turn); return; }                  // chat_media.js
       if (turn.role === "morning" || turn.role === "review") { morningBubble(turn); return; }
       const b = auroraBubble(messages);
       renderPast(b, turn);
@@ -434,7 +435,7 @@ export default {
       messages.replaceChildren();
       shown.clear();
       turns.forEach(renderTurn);                       // suggestions under every answer that has them (owner, 2026-10-05)
-      const n = turns.filter((x) => !["dream", "morning", "review"].includes(x.role)).length;
+      const n = turns.filter((x) => !["dream", "morning", "review", "told"].includes(x.role)).length;
       if (n) messages.append(el("div", "divider", t("chat.history", { n })));
       await dietBubbles(messages);                    // a meal reminded and not answered yet
       await calendarBubbles(messages);                // an appointment or a reminder told and not answered yet
@@ -449,7 +450,7 @@ export default {
     // The chat stays a chat: Aurora's autonomous work (REM, agents, approvals, harvester) lives in
     // Repairs, Diary and Activity, and the bell in the top bar says when something waits for the owner.
     const onActivity = async (a) => {
-      if (["rem.review", "rem.morning", "rem.dream"].includes(a.event)) { this.catchUp(); return; }   // written while the page is open
+      if (["rem.review", "rem.morning", "rem.dream", "chat.told"].includes(a.event)) { this.catchUp(); return; }   // written while the page is open
       if (a.event === "diet.meal") { await dietBubbles(messages); scrollEnd(messages); return; }       // 🍽️ the meal of now
       if (a.event === "calendar.alert") { await calendarBubbles(messages); scrollEnd(messages); return; }   // 📅 its time came
       if (a.event !== "run.begin" || !["webui", "openai", "acquire"].includes(a.payload.origin)) return;

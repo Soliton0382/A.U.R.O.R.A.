@@ -83,3 +83,24 @@ def test_a_user_s_own_ceiling_counts_every_provider_the_subscription_too(cfg):
     P.set_cloud(cfg, "friend", 0)
     with sys_context.acting_as("friend"):
         assert not B.user_over(cfg)                                     # 0 = no ceiling
+
+
+def test_a_user_at_their_ceiling_is_told_and_so_is_the_admin(cfg, monkeypatch):
+    """9 Nov (106): the ceiling reached was a line in the log only; now the user hears it, and the admin too, once a day."""
+    from aurora import sys_context, sys_push, sys_users_perm as P
+    from aurora.api import core
+    monkeypatch.setattr(core, "cfg", cfg)
+    monkeypatch.setattr(core, "_admin", lambda: "owner")
+    told = []
+    monkeypatch.setattr(core, "note", lambda source, event, payload=None, quiet=False:
+                        told.append((sys_context.user(), event, (payload or {}).get("text"))))
+    # the trace reaches the API's hook as in the service (another test may have swapped the log's hooks)
+    monkeypatch.setattr(B.sys_log, "trace", lambda component, event, payload: core._from_trace(component, event, payload))
+    P.set_cloud(cfg, "friend", 1000)
+    with sys_context.acting_as("friend"):
+        B.record(cfg, "claude_code", {"input_tokens": 1200})
+        assert B.user_over(cfg) and B.user_over(cfg)                    # asked twice: told once
+    assert told == [("friend", "cloud.my_budget", "1.200 / 1.000 token"),
+                    ("owner", "cloud.user_budget", "friend: 1.200 / 1.000 token")]
+    assert sys_push.TEXTS["cloud.my_budget"][0] not in sys_push.MACHINE              # the user's own to choose
+    assert "my_cloud" in sys_push.CHAT_SUGGESTED and sys_push.TEXTS["cloud.my_budget"][1] != "chat"   # said in the chat

@@ -367,6 +367,7 @@ def notifications() -> dict:
     lang = "it" if str(cfg["AURORA_LANG_DEFAULT"]).startswith("it") else "en"
     admin = me() == _admin()                        # each user their own choice; the machine's kinds the admin's
     return {"prefs": sys_push.prefs(cfg), "presets": sys_push.PRESETS, "subscriptions": sys_push.count(cfg),
+            "chat_suggested": sys_push.CHAT_SUGGESTED,
             "kinds": [{"id": k, "label": v[lang], "it": v["it"], "en": v["en"]} for k, v in sys_push.KINDS.items()
                       if admin or k not in sys_push.MACHINE]}
 
@@ -381,8 +382,8 @@ def notifications_history(n: int = 200) -> list[dict]:
 async def notifications_set(request: Request) -> dict:
     from aurora import sys_push
     p = sys_push.set_prefs(cfg, await request.json())
-    log.info("audit: notifications: push %s, webui %s, masked %s", ",".join(p["push"]) or "-", ",".join(p["webui"]) or "-",
-             ",".join(p["masked"]) or "-")
+    log.info("audit: notifications: push %s, webui %s, chat %s, masked %s", ",".join(p["push"]) or "-",
+             ",".join(p["webui"]) or "-", ",".join(p["chat"]) or "-", ",".join(p["masked"]) or "-")
     return {"prefs": p}
 
 

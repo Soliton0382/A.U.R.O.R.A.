@@ -18,6 +18,8 @@ const PINS = "aurora.pins";
 const OWNER = "aurora.prefs.who";
 const THEME = "aurora.theme";                           // theme.js's own copy
 const TILES = "aurora.tiles";                           // Oggi's tiles: {order, off}
+const LANG = "aurora.lang";                             // i18n.js's own copy
+const LANGS = ["it_IT", "en_US"];
 
 export function chosen() {
   try { return STYLES.includes(localStorage.getItem(KEY)) ? localStorage.getItem(KEY) : null; } catch { return null; }
@@ -40,10 +42,12 @@ export function setStyle(id) {
 // what the server holds for this person, taken as this browser's copy (at login, on every device)
 // whose copy it is: two people on one browser never get each other's; a choice made here before the server kept
 // them (one person's) goes up once
+// returns the language to show when the server's differs from this browser's (the page is then drawn again in it)
 export function adopt(prefs, who, look = false) {    // look: the admin assisting — shown, nothing sent up
+  let relang = null;
   try {
     const owner = localStorage.getItem(OWNER);
-    if (owner !== null && owner !== String(who)) { localStorage.removeItem(KEY); localStorage.removeItem(PINS); localStorage.removeItem(THEME); localStorage.removeItem(TILES); }
+    if (owner !== null && owner !== String(who)) { localStorage.removeItem(KEY); localStorage.removeItem(PINS); localStorage.removeItem(THEME); localStorage.removeItem(TILES); localStorage.removeItem(LANG); }
     localStorage.setItem(OWNER, String(who));
     const up = {};
     if (STYLES.includes(prefs?.style)) localStorage.setItem(KEY, prefs.style);
@@ -55,8 +59,18 @@ export function adopt(prefs, who, look = false) {    // look: the admin assistin
     if (THEMES.some((x) => x.id === prefs?.theme)) applyTheme(prefs.theme);          // the colours too, on any device
     else if (localStorage.getItem(THEME)) up.theme = currentTheme();
     else applyTheme("aurora");                           // another person's colours never stay
+    // the language, the person's on every device (9 Nov); one chosen here before the server kept it goes up once
+    if (LANGS.includes(prefs?.lang)) {
+      if (localStorage.getItem(LANG) !== prefs.lang) { localStorage.setItem(LANG, prefs.lang); relang = prefs.lang; }
+    } else if (LANGS.includes(localStorage.getItem(LANG))) up.lang = localStorage.getItem(LANG);
     if (Object.keys(up).length && !look) save(up);
   } catch { /* this visit only */ }
+  return relang;
+}
+
+// a language chosen here: kept on the server for this person (every device follows it)
+export function saveLang(code) {
+  if (LANGS.includes(code)) save({ lang: code });
 }
 
 function save(change) {

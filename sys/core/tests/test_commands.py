@@ -24,7 +24,7 @@ def test_linux_commands_and_a_ports_own(cfg):
         "source": str(src), "by_hand": True,
         "update": "Set-Location '{source}'; git pull --ff-only; powershell -ExecutionPolicy Bypass -File Aurora_windows\\install.ps1"}))
     assert C.source(cfg) == src and C.command(cfg, "update").startswith(f"Set-Location '{src}'")
-    assert C.command(cfg, "sign").endswith("sys_ethics_sign.py sign")       # not given by the port: Linux's
+    assert "sys_root.py setup" in C.command(cfg, "sign") or C.command(cfg, "sign") == "sudo aurora-root sign"   # Linux's
 
 
 def test_an_update_with_protected_files_becomes_a_card_and_is_checked(cfg, monkeypatch):

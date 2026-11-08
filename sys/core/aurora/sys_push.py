@@ -89,6 +89,10 @@ TEXTS = {   # event -> (kind the owner chooses, view to open, {lang: title})
     "backup.done": ("backup_ok", "status", {"it": "💾 Backup fatto", "en": "💾 Backup done"}),
     "cloud.budget": ("cloud", "models", {"it": "💶 Tetto cloud di oggi raggiunto: si torna in locale",
                                          "en": "💶 Today's cloud ceiling reached: back to local"}),
+    "cloud.user_budget": ("cloud", "users", {"it": "💶 Un utente ha finito il suo cloud di oggi",
+                                             "en": "💶 A user spent their cloud for today"}),
+    "cloud.my_budget": ("my_cloud", "usage", {"it": "💶 Il tuo cloud di oggi è finito: risponde il modello locale fino a domani",
+                                             "en": "💶 Your cloud for today is spent: the local model answers until tomorrow"}),
     "cloud.fallback": ("cloud", "models", {"it": "↩️ Provider cloud in errore: risposte dal modello locale",
                                            "en": "↩️ Cloud provider failing: answers from the local model"}),
     "plugin.refused": ("plugin", "plugins", {"it": "🚫 Un plugin è stato fermato (provava a usare un segreto)",
@@ -120,6 +124,7 @@ KINDS = {   # what the owner chooses from, in the Notifications page
     "backup": {"it": "Backup non riuscito", "en": "Backup failed"},
     "backup_ok": {"it": "Backup riuscito (ogni notte)", "en": "Backup done (every night)"},
     "cloud": {"it": "Cloud (tetto raggiunto, provider in errore)", "en": "Cloud (ceiling reached, provider failing)"},
+    "my_cloud": {"it": "Il mio tetto cloud di oggi raggiunto", "en": "My cloud ceiling for today reached"},
     "health": {"it": "Salute di Aurora (un servizio fermo, disco quasi pieno, e quando torna a posto)",
                "en": "Aurora's health (a service down, the disk nearly full, and when it is fine again)"},
     "access": {"it": "Nuovi accessi e dispositivi sul tuo account", "en": "New sign-ins and devices on your account"},
@@ -133,10 +138,14 @@ KINDS = {   # what the owner chooses from, in the Notifications page
 # the machine's: only the admin chooses them (a user is not told of the backup or the firewall)
 MACHINE = {"incident", "update", "self_review", "harvest", "plugin", "backup", "backup_ok", "cloud", "health"}
 PRESETS = {"suggested": ["incident", "approval", "update", "dream", "review", "self_review", "routine", "weather", "plugin", "creation", "backup",
-                         "cloud", "health", "access", "social", "project", "diet", "calendar", "home"],
+                         "cloud", "health", "access", "social", "project", "diet", "calendar", "home", "my_cloud"],
            "all": list(KINDS), "none": []}
 KNOWN_BEFORE = ["incident", "approval", "update", "dream", "self_review", "thought", "harvest"]   # prefs saved without "known"
-CHANNELS = ("push", "webui")
+CHANNELS = ("push", "webui", "chat")
+# 💬 said in the chat as Aurora's own message (owner, 9 Nov: «messaggi proattivi»): findings, incidents, finished work.
+# The events whose page is the chat already (dreams, good morning, second thoughts, meals, reminders) have their own
+# bubble there and are never said twice.
+CHAT_SUGGESTED = ["incident", "approval", "self_review", "plugin", "project", "creation", "backup", "health", "cloud", "my_cloud"]
 
 
 def prefs(cfg: sys_config.Config) -> dict:
@@ -149,12 +158,16 @@ def prefs(cfg: sys_config.Config) -> dict:
         # a kind added after the owner chose is on when suggested; the kinds he saw keep his choice
         new = [k for k in PRESETS["suggested"] if k not in p.get("known", KNOWN_BEFORE)]
         out = {c: [k for k in KINDS if k in p.get(c, []) or k in new] for c in CHANNELS}
+        if "chat" not in p:                            # a choice saved before the chat channel: its suggestion
+            out["chat"] = list(CHAT_SUGGESTED)
+        else:
+            out["chat"] = [k for k in KINDS if k in p["chat"] or (k in new and k in CHAT_SUGGESTED)]
         return {**out, "masked": [k for k in KINDS if k in p.get("masked", start)]}
     except (OSError, ValueError):
         # never chosen: AURORA_PUSH_EVENTS, plus the suggested kinds that setting predates (routines, weather, plugins)
         push = [k.strip() for k in cfg["AURORA_PUSH_EVENTS"].split(",") if k.strip() in KINDS]
         push += [k for k in PRESETS["suggested"] if k not in KNOWN_BEFORE and k not in push]
-        return {"push": push, "webui": list(PRESETS["suggested"]), "masked": start}
+        return {"push": push, "webui": list(PRESETS["suggested"]), "chat": list(CHAT_SUGGESTED), "masked": start}
 
 
 def set_prefs(cfg: sys_config.Config, choice: dict) -> dict:
@@ -241,14 +254,27 @@ def count(cfg: sys_config.Config) -> int:
     return len(_load(cfg))
 
 
+def user_lang(cfg: sys_config.Config) -> str:
+    """"it" or "en": the language the person chose in the WebUI (ui_prefs.json, kept per person since 9 Nov), else the
+    installation's (AURORA_LANG_DEFAULT): a notification in the language of whoever reads it."""
+    try:
+        lang = json.loads(((cfg.base or cfg).path("AURORA_STATUS_DIR") / "ui_prefs.json").read_text(encoding="utf-8")
+                          ).get(cfg.user or "", {}).get("lang", "")
+    except (OSError, ValueError, AttributeError):
+        lang = ""
+    return "en" if str(lang or cfg["AURORA_LANG_DEFAULT"]).startswith("en") else "it"
+
+
 def message(event: str, payload: dict, cfg: sys_config.Config, channel: str = "push") -> dict | None:
     """The notification for an activity event on a channel, or None when the owner did not ask for it."""
     if event not in TEXTS:
         return None
     kind, view, titles = TEXTS[event]
+    if channel == "chat" and (view == "chat" or kind == "test"):     # said in the chat by its own bubble already
+        return None
     if kind != "test" and kind not in prefs(cfg)[channel]:
         return None
-    lang = "it" if str(cfg["AURORA_LANG_DEFAULT"]).startswith("it") else "en"
+    lang = user_lang(cfg)
     body = str(payload.get("text") or payload.get("title") or "").strip()
     body = body if len(body) <= 180 else body[:177].rsplit(" ", 1)[0] + "…"
     # two alerts of the calendar at the same minute: each its own notification, not the second over the first
@@ -274,7 +300,7 @@ def outgoing(msg: dict, cfg: sys_config.Config) -> dict:
     kind = _kind(str(msg.get("tag", "")))
     if not (kind in prefs(cfg)["masked"] if kind else cfg["AURORA_PUSH_PRIVATE"]):
         return msg
-    lang = "it" if str(cfg["AURORA_LANG_DEFAULT"]).startswith("it") else "en"
+    lang = user_lang(cfg)
     return {**msg, "body": PRIVATE_BODY[lang]}
 
 

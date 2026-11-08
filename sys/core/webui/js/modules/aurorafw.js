@@ -51,7 +51,7 @@ export default {
     catch (e) { this.q(".afw-state").replaceChildren(el("p", "bad", t("ev.error", { m: e.message }))); return; }
     const fw = h.hostfw;
     const state = [];
-    if (!fw.installed) state.push(el("p", "warn", t("sec.host_install")), el("code", "", "sudo bash sys/deploy/nft/install.sh"));
+    if (!fw.installed) state.push(el("p", "warn", t("sec.host_install")), el("code", "", "sudo aurora-root install nft"));
     else state.push(el("p", fw.on ? "ok" : "warn", fw.on ? t("afw.on", { n: fw.active.length }) : t("afw.off")));
     state.push(el("p", "muted", h.decoys.length ? t("sec.decoys", { p: h.decoys.join(", ") }) : t("sec.no_decoys")));
     const c = h.audit.counts;

@@ -50,7 +50,7 @@ def call(*args: str, timeout: float = 15) -> tuple[int, str]:
         m = re.search(r"#rc (\d+)\s*$", text)
         return (int(m.group(1)) if m else 1), text[:m.start()].strip() if m else text.strip()
     if not HELPER.is_file() or not shutil.which("sudo"):
-        return 1, "aurora-nft not installed: sudo bash sys/deploy/nft/install.sh"
+        return 1, "aurora-nft not installed: sudo aurora-root install nft"
     try:
         r = subprocess.run(["sudo", "-n", str(HELPER), *args], capture_output=True, text=True, timeout=timeout)
     except (OSError, subprocess.SubprocessError) as e:
@@ -104,7 +104,7 @@ def block(cfg: sys_config.Config, ip: str, why: str, hours: float | None = None)
     secs = int(max(60, min(hours * 3600, 604800)))
     rc, out = call("block", ip, str(secs))
     if rc != 0:
-        return {"ok": False, "why": (out or "aurora-nft not installed: sudo bash sys/deploy/nft/install.sh")[:200]}
+        return {"ok": False, "why": (out or "aurora-nft not installed: sudo aurora-root install nft")[:200]}
     with _lock:
         items = _load(cfg)
         items.append({"ip": ip, "why": why, "at": time.time(), "until": time.time() + secs})

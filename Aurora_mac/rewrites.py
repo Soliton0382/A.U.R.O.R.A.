@@ -652,7 +652,7 @@ KEY_DIR = sys_platform.current().key_dir()           # one key pair per installa
             return "", why""",
      "sys_ethics: the key trusted only when the admin alone can change it"),
     ("sys/core/aurora/sys_ethics.py",
-     """        return "", f"no owner key at {p} (run: sudo .venv/bin/python sys/core/script/sys_ethics_sign.py setup)\"""",
+     """        return "", f"no owner key at {p} (run: sudo /usr/bin/python3 -I sys/core/script/sys_root.py setup)\"""",
      """        how = sys_platform.current().as_admin(f"{sys_platform.current().venv_python(Path('.venv'))} sys/core/script/sys_ethics_sign.py setup")
         return "", f"no owner key at {p} (run: {how})\"""",
      "sys_ethics: the command that makes the key, this system's way"),
@@ -668,10 +668,13 @@ KEY_DIR = sys_platform.current().key_dir()           # one key pair per installa
 _VENV = "sys_platform.current().venv_python(__import__('pathlib').Path('.venv'))"
 HINTS = [
     ("sys/core/aurora/api/agents.py",
-     """SIGN = "cd {root} && sudo .venv/bin/python sys/core/script/sys_ethics_sign.py sign\"""",
-     f"""{P}
-SIGN = sys_platform.current().in_folder("{{root}}", sys_platform.current().as_admin(
-    f"{{{_VENV}}} sys/core/script/sys_ethics_sign.py sign"))""",
+     """def _sign_command() -> str:
+    from aurora import sys_rootcmd                   # aurora-root once installed, the setup before (9 Nov)
+    return sys_rootcmd.command("sign", cfg.root)""",
+     f"""def _sign_command() -> str:
+    {P}
+    return sys_platform.current().in_folder(cfg.root, sys_platform.current().as_admin(
+        f"{{{_VENV}}} sys/core/script/sys_ethics_sign.py sign"))""",
      "api/agents: the signing command shown to the admin"),
     ("sys/core/aurora/api/backup.py",
      """    return [{**r, "command": f"cd {cfg.root} && {as_it}.venv/bin/python sys/core/script/sys_restore.py --apply {r['snapshot']}"}""",
@@ -689,12 +692,12 @@ SIGN = sys_platform.current().in_folder("{{root}}", sys_platform.current().as_ad
 FETCH = f"{{{_VENV}}} sys/core/script/sys_models_fetch.py --models {{{{m}}}} --yes\"""",
      "sys_features: the command that downloads a missing model"),
     ("sys/core/aurora/mdl_modes.py",
-     """EXEMPT_COMMAND = "sudo .venv/bin/python sys/core/script/sys_ethics_sign.py exempt\"""",
+     """EXEMPT_COMMAND = "sudo aurora-root exempt\"""",
      f"""{P}
 EXEMPT_COMMAND = sys_platform.current().as_admin(f"{{{_VENV}}} sys/core/script/sys_ethics_sign.py exempt")""",
      "mdl_modes: the exemption's command, this system's way"),
     ("sys/core/aurora/sys_cloud_consent.py",
-     """COMMAND = "sudo .venv/bin/python sys/core/script/sys_ethics_sign.py private-cloud\"""",
+     """COMMAND = "sudo aurora-root private-cloud\"""",
      f"""{P}
 COMMAND = sys_platform.current().as_admin(f"{{{_VENV}}} sys/core/script/sys_ethics_sign.py private-cloud")""",
      "sys_cloud_consent: the consent's command, this system's way"),
@@ -776,15 +779,15 @@ WORDS = [
      f"""            {P}
             add(unit, "down", f"fermo ({{sys_platform.current().manager}}: {{state}})")""",
      "sys_health: «systemd» named as this system's manager (4)"),
-    ("sys/core/aurora/net_cloudflare.py", """INSTALL = "sudo bash sys/deploy/cloudflared/install.sh (una volta sola)\"""",
+    ("sys/core/aurora/net_cloudflare.py", """INSTALL = "sudo aurora-root install tunnel (una volta sola)\"""",
      f"""{P}
-INSTALL = ("sudo bash sys/deploy/cloudflared/install.sh (una volta sola)" if sys_platform.current().name == "linux"
+INSTALL = ("sudo aurora-root install tunnel (una volta sola)" if sys_platform.current().name == "linux"
            else "il tunnel di Aurora è {_SOON} (PORTING.md, fase 3)")""",
      "net_cloudflare: the tunnel's install command, Linux only for now"),
     ("sys/core/aurora/sec_report.py",
-     """NAMES = {"firewall_api": "l'API del firewall", "hostfw": "il firewall di Aurora (sudo bash sys/deploy/nft/install.sh)",""",
+     """NAMES = {"firewall_api": "l'API del firewall", "hostfw": "il firewall di Aurora (sudo aurora-root install nft)",""",
      f"""{P}
-NAMES = {{"firewall_api": "l'API del firewall", "hostfw": "il firewall di Aurora (sudo bash sys/deploy/nft/install.sh)"
+NAMES = {{"firewall_api": "l'API del firewall", "hostfw": "il firewall di Aurora (sudo aurora-root install nft)"
          if sys_platform.current().name == "linux" else "il firewall di Aurora ({_SOON})",""",
      "sec_report: the host firewall's line"),
     ("sys/core/aurora/sec_hostaudit.py",
@@ -793,12 +796,12 @@ NAMES = {{"firewall_api": "l'API del firewall", "hostfw": "il firewall di Aurora
      "sec_hostaudit: how to see which program listens, this system's way"),
     ("sys/core/aurora/sec_hostfw.py",
      """    if not HELPER.is_file() or not shutil.which("sudo"):
-        return 1, "aurora-nft not installed: sudo bash sys/deploy/nft/install.sh\"""",
+        return 1, "aurora-nft not installed: sudo aurora-root install nft\"""",
      f"""    {P}
     if sys_platform.current().name != "linux":
         return 1, "Aurora's own firewall is {_SOON} (PORTING.md, phase 4)"
     if not HELPER.is_file() or not shutil.which("sudo"):
-        return 1, "aurora-nft not installed: sudo bash sys/deploy/nft/install.sh\"""",
+        return 1, "aurora-nft not installed: sudo aurora-root install nft\"""",
      "sec_hostfw: said plainly where the host firewall does not exist yet"),
 ]
 
@@ -847,9 +850,9 @@ REQUIREMENTS = [
 INSTALLER = [
     ("sys/core/script/sys_ethics_sign.py",
      """    if os.geteuid() == 0:
-        st = sys_ethics.CODE_ROOT.stat()""",
+        st = sys_config.CODE_ROOT.stat()                # the installation's (INSTALL_ROOT from root's own copy)""",
      """    if hasattr(os, "geteuid") and os.geteuid() == 0:   # Windows: the folder's ACL already lets the owner read
-        st = sys_ethics.CODE_ROOT.stat()""",
+        st = sys_config.CODE_ROOT.stat()""",
      "sys_ethics_sign.give_back: files handed back to the owner where there is a root"),
     ("sys/core/script/sys_ethics_sign.py",
      """    os.chown(private.parent, 0, 0)
@@ -877,7 +880,7 @@ from aurora import sys_platform  # noqa: E402
 PLAT = sys_platform.current()""",
      "sys_doctor: this system's commands"),
     ("sys/core/script/sys_doctor.py",
-     """         f"sudo .venv/bin/python sys/core/script/sys_ethics_sign.py {'setup' if first else 'sign'}\"""",
+     """         _rootcmd("setup" if first else "sign")""",
      """         PLAT.as_admin(f"{PLAT.venv_python(Path('.venv'))} sys/core/script/sys_ethics_sign.py {'setup' if first else 'sign'}")""",
      "sys_doctor: the signing command, this system's way"),
     ("sys/core/script/sys_doctor.py",
@@ -910,7 +913,7 @@ PLAT = sys_platform.current()""",
         sys_reset.take(cfg)                               # not started: the request must not wait for a later start
         raise HTTPException(status_code=409, detail="aurora-reset.service is not installed yet: "
                             f"cd {cfg.root} && .venv/bin/python sys/core/script/sys_install_services.py && "
-                            f"sudo bash sys/deploy/systemd/install.sh ({r.stderr.strip()[:200]})")''',
+                            f"sudo aurora-root install systemd ({r.stderr.strip()[:200]})")''',
      '''    sys_reset.take(cfg)                                   # no service for it on this system yet: the request dropped
     raise HTTPException(status_code=409, detail="from the WebUI on Linux only for now: stop Aurora and run "
                         "sys/core/script/sys_factory_reset.py --apply from a terminal in Aurora's folder")''',
