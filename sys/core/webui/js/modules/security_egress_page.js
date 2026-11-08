@@ -21,6 +21,7 @@ export default {
     root.classList.add("page");
     root.innerHTML = `<h2 data-i18n="nav.sec.egress"></h2><p class="muted" data-i18n="egress.hint"></p>
       <div class="td-stats eg-guards"></div>
+      <h3 class="setting-cat" data-i18n="egress.denylist"></h3><div class="eg-deny"></div>
       <h3 class="setting-cat" data-i18n="egress.services"></h3><p class="muted eg-state"></p><div class="eg-services"></div>
       <h3 class="setting-cat" data-i18n="egress.incidents"></h3><div class="eg-incidents"></div>
       <details class="report"><summary data-i18n="egress.rules"></summary><div class="eg-rules"></div></details>`;
@@ -44,6 +45,14 @@ export default {
     this.root.querySelector(".eg-state").textContent = r.learning
       ? t("egress.state_learning", { until: new Date(r.learn_until * 1000).toLocaleDateString() })
       : t("egress.state_watching", { mb: Math.round(r.rule.upload_bytes / 2 ** 20), x: r.rule.factor });
+    // 🚫 the deny list in sight, each network with its ↩ (owner, 9 Nov: «le elenca ma non ti fa scegliere»; C512)
+    const holders = Object.fromEntries(Object.values(r.services).flat().filter((n) => n.key?.startsWith("AS"))
+      .map((n) => [n.key.slice(2), n.holder || ""]));
+    this.root.querySelector(".eg-deny").replaceChildren(...(r.deny.asns.length ? r.deny.asns.map((a) => {
+      const row = el("div", "eg-deny-row");
+      row.append(el("span", "", `🚫 AS${a} ${holders[a] || ""}`), this.allow(a));
+      return row;
+    }) : [el("p", "muted", "—")]));
     const services = this.root.querySelector(".eg-services");
     const names = Object.keys(r.services).sort();
     services.replaceChildren(...(names.length ? names.map((svc) => this.service(svc, r.services[svc])) : [el("p", "muted", t("egress.none"))]));
@@ -57,6 +66,18 @@ export default {
       el("p", "", t("egress.rule_model", { s: r.rule.sample_s })),
       el("p", "", t("egress.rule_deny", { asns: r.deny.asns.map((a) => `AS${a}`).join(", ") || "—" })),
       el("p", "", t("egress.rule_learn", { d: r.rule.learn_days, mb: Math.round(r.rule.upload_bytes / 2 ** 20), x: r.rule.factor })));
+  },
+
+  allow(asn) {
+    const b = el("button", "link", t("egress.allow", { asn }));
+    b.addEventListener("click", async () => {
+      if (!confirm(t("egress.allow_confirm", { asn }))) return;
+      try {
+        const r = await call("/v1/aurora/security/egress-allow", { method: "POST", body: JSON.stringify({ asn }) });
+        b.replaceWith(el("p", "ok", t("egress.allowed", { asn, cmd: r.install })));
+      } catch (e) { alert(e.message); }
+    });
+    return b;
   },
 
   service(svc, nets) {

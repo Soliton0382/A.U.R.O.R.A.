@@ -4,6 +4,8 @@
 every 1.5 s."""
 from __future__ import annotations
 
+import os
+import re
 import subprocess
 import threading
 import time
@@ -28,6 +30,77 @@ def _ram() -> dict:
             info[k] = int(v.split()[0]) // 1024                     # MiB
     return {"used_mib": info["MemTotal"] - info["MemAvailable"], "total_mib": info["MemTotal"],
             "swap_used_mib": info["SwapTotal"] - info["SwapFree"]}
+
+
+def _cpu_by_service() -> dict[str, int]:
+    """CPU time so far (microseconds) of each Aurora service, its plugins and programs with it; empty with no cgroups
+    (the ports)."""
+    out = {}
+    for f in Path("/sys/fs/cgroup/system.slice").glob("aurora-*.service/cpu.stat"):
+        try:
+            out[f.parent.name[len("aurora-"):-len(".service")]] = int(f.read_text().split("usage_usec ")[1].split()[0])
+        except (OSError, IndexError, ValueError):
+            continue
+    return out
+
+
+def _service_of(pid: str) -> str:
+    try:
+        m = re.search(r"aurora-([a-z_]+)\.service", Path(f"/proc/{pid}/cgroup").read_text())
+    except OSError:
+        return "other"
+    return m.group(1) if m else "other"
+
+
+def _gpu_by_service(text: str | None = None) -> dict[str, list[dict]]:
+    """Per GPU, who uses it: {"0": [{"who", "util_pct", "used_mib"}]}. nvidia-smi pmon's columns come from its header."""
+    if text is None:
+        try:
+            text = subprocess.run(["nvidia-smi", "pmon", "-c", "1", "-s", "um"], capture_output=True, text=True, timeout=8).stdout
+        except (OSError, subprocess.SubprocessError):
+            return {}
+    cols, out = [], {}
+    for line in text.splitlines():
+        parts = line.split()
+        if line.startswith("# gpu"):
+            cols = parts[1:]
+        elif cols and parts and not line.startswith("#"):
+            row = dict(zip(cols, parts))
+            if not row.get("pid", "-").isdigit():
+                continue
+            num = lambda k: int(row[k]) if row.get(k, "-").isdigit() else 0  # noqa: E731
+            rows = out.setdefault(row["gpu"], {})
+            who = rows.setdefault(_service_of(row["pid"]), {"util_pct": 0, "used_mib": 0})
+            who["util_pct"] += num("sm")
+            who["used_mib"] += num("fb")
+    return {g: sorted(({"who": w, **v} for w, v in rows.items()), key=lambda r: (-r["util_pct"], -r["used_mib"]))
+            for g, rows in out.items()}
+
+
+def who(cfg, runs_open: int = 0, window: float = 0.4) -> dict:
+    """Who is doing what right now, asked when someone looks (the bar's popup), never polled (owner, 5 Nov: «se clico o
+    passo con il mouse sull'utilizzo cpu e gpu, mi mostra chi sta facendo cosa»). Names of services only, nothing of what
+    they carry: another user's question never shows."""
+    used, cpu, t0 = _cpu_by_service(), _cpu_times(), time.time()
+    time.sleep(window)
+    now, cpu2, wall = _cpu_by_service(), _cpu_times(), max(time.time() - t0, 0.01)
+    share = {k: round((now[k] - used[k]) / 1e6 / (wall * (os.cpu_count() or 1)) * 100, 1) for k in now if k in used}
+    total = round(100 * (1 - (cpu2[0] - cpu[0]) / max(cpu2[1] - cpu[1], 1)), 1)
+    rows = [{"who": k, "pct": v} for k, v in sorted(share.items(), key=lambda kv: -kv[1]) if v >= 0.5]
+    if used:
+        rows.append({"who": "other", "pct": round(max(0.0, total - sum(share.values())), 1)})
+    doing = [{"what": "runs", "n": runs_open}] if runs_open else []
+    try:
+        import httpx
+        slots = httpx.get(f"http://{cfg['AURORA_LLM_HOST']}:{cfg['AURORA_LLM_PORT']}/slots", timeout=2).json()
+        if busy := sum(bool(s.get("is_processing")) for s in slots):
+            doing.append({"what": "slots", "n": busy, "of": len(slots)})
+    except Exception:  # noqa: BLE001 — the reasoner swapped out or busy loading: nothing to say about it
+        pass
+    from . import kno_harvest
+    if (state := str(kno_harvest.status(cfg).get("state") or "")) not in ("", "idle", "unknown"):
+        doing.append({"what": "harvest", "state": state})
+    return {"cpu_pct": total, "cpu": rows, "gpus": _gpu_by_service(), "doing": doing}
 
 
 def _gpus() -> list[dict]:

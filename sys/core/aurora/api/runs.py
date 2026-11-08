@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from .core import _runs, answer_or_acquire, mine, own_run, auth, cfg, edit_pictures, make_video, picture_intent, pipeline, quiet, start_run, video_busy_answer, wait_events
+from .users import admin_only  # noqa: E402
 
 router = APIRouter()
 
@@ -159,6 +160,13 @@ async def acquire(request: Request) -> dict:
 def runs() -> list[dict]:
     return [{"id": r["id"], "question": r["question"], "origin": r["origin"], "started": r["started"],
              "done": r["done"], "events": len(r["events"])} for r in reversed(_runs.values()) if mine(r)]
+
+
+@router.get("/v1/aurora/runs/busy", dependencies=[Depends(admin_only)])
+def runs_busy() -> dict:
+    """How many runs of any user are working: a count, nothing of their questions (C512: the sentinel saw only the
+    admin's runs, so a user's chat that searched the web looked like a connection «from nothing»)."""
+    return {"open": sum(not r["done"] for r in list(_runs.values()))}
 
 
 @router.get("/v1/aurora/runs/{run_id}/events", dependencies=[Depends(auth)])

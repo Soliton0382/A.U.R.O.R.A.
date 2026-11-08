@@ -90,6 +90,10 @@ def main() -> int:
     t0 = time.time()
     frames_n = max(5, (a.frames - 1) // 4 * 4 + 1)
     w, h = (int(x) for x in a.size.lower().split("x"))
+    # C513: the scheduler's first torch.linalg.solve creates cuSOLVER's handle; made after the model filled the GPU it
+    # failed («CUSOLVER_STATUS_INTERNAL_ERROR … cusolverDnCreate») three times in a day. Made here, while the GPU is empty.
+    torch.cuda.set_device(a.gpu)
+    torch.linalg.solve(torch.eye(2, device=f"cuda:{a.gpu}"), torch.ones(2, 1, device=f"cuda:{a.gpu}"))
     vae = AutoencoderKLWan.from_pretrained(d, subfolder="vae", torch_dtype=torch.float32)
     import diffusers.pipelines.wan.pipeline_wan_i2v as i2v
     if not hasattr(i2v, "ftfy"):                       # diffusers 0.40: the i2v prompt cleaning calls ftfy unguarded;

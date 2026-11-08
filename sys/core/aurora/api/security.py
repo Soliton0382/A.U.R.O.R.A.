@@ -176,17 +176,22 @@ def watch_defence() -> None:
         _t.sleep(300)
         rounds += 1
         try:
+            from aurora import sec_autopilot
+            # 🚀 (C406): a block lifted on time, a scanner blocked at Cloudflare are her routine — in the feed and the
+            # digest, never a push (24 of the 31 security pushes of 8 Nov); a block that fails is still told
+            quiet = sec_autopilot.on(cfg)
             for ip in sec_defence.release_due(cfg):
-                note("security", "defence.release", {"title": f"🛡️ {ip}: blocco scaduto, tolto", "text": ""})
+                note("security", "defence.release", {"title": f"🛡️ {ip}: blocco scaduto, tolto", "text": ""}, quiet=quiet)
             from aurora import net_cfwaf, sec_fwport                  # ROADMAP 103: address+port, and at Cloudflare
             for title in sec_fwport.due(cfg):
-                note("security", "defence.release", {"title": f"🛡️ scaduto e tolto: {title}", "text": ""})
+                note("security", "defence.release", {"title": f"🛡️ scaduto e tolto: {title}", "text": ""}, quiet=quiet)
             for ip in net_cfwaf.release_due(cfg):
-                note("security", "defence.release", {"title": f"☁️ {ip}: blocco su Cloudflare scaduto, tolto", "text": ""})
+                note("security", "defence.release", {"title": f"☁️ {ip}: blocco su Cloudflare scaduto, tolto", "text": ""},
+                     quiet=quiet)
             for b in (net_cfwaf.autoblock(cfg) if rounds % 6 == 0 else []):
                 until = _t.strftime("%d/%m %H:%M", _t.localtime(b["until"]))
                 note("security", "defence.block", {"title": f"☁️ {b['ip']} bloccato su Cloudflare fino al {until}",
-                                                   "text": b["reason"]})
+                                                   "text": b["reason"]}, quiet=quiet)
         except Exception as e:                        # noqa: BLE001 — a bad round never stops the next
             log.warning("defence: release round failed: %s", e)
 
@@ -230,6 +235,30 @@ async def egress_deny(request: Request) -> dict:
     cfg.values["AURORA_EGRESS_DENY_ASNS"] = listed
     got = await asyncio.to_thread(sec_egress.refresh, cfg, None, True)
     log.info("audit: network AS%d added to the deny list by the owner (%d prefixes now)", asn, len(got["prefixes"]))
+    return {"asns": listed, "prefixes": len(got["prefixes"]),
+            "install": f"python sys/core/script/sys_install_services.py && sudo bash {cfg.root}/sys/deploy/systemd/install.sh"}
+
+
+@router.post("/v1/aurora/security/egress-allow", dependencies=[Depends(admin_only)])
+async def egress_allow(request: Request) -> dict:
+    """{"asn"}: a network taken off the deny list by the owner (C512), its ways out judged legitimate; the services'
+    units drop it at their next install (the owner's sudo), which the answer says."""
+    from aurora import sec_egress, sec_egress_watch, sys_config
+    body = await request.json()
+    try:
+        asn = int(str(body.get("asn", "")).upper().removeprefix("AS"))
+    except ValueError:
+        raise HTTPException(status_code=422, detail="asn: a number, e.g. 45102") from None
+    if asn not in sec_egress.asns(cfg):
+        raise HTTPException(status_code=404, detail=f"AS{asn} is not on the deny list")
+    listed = sec_egress.remove_deny(cfg, asn)
+    sys_config.write_env(sys_config.env_file_path(), {"AURORA_EGRESS_DENY_ASNS": ",".join(listed)})
+    cfg.values["AURORA_EGRESS_DENY_ASNS"] = listed
+    for svc, keys in sec_egress_watch.decisions(cfg).items():
+        if keys.get(f"AS{asn}") == "denied":
+            sec_egress_watch.decide(cfg, svc, f"AS{asn}", "legit")
+    got = await asyncio.to_thread(sec_egress.refresh, cfg, None, True)
+    log.info("audit: network AS%d taken off the deny list by the owner (%d prefixes now)", asn, len(got["prefixes"]))
     return {"asns": listed, "prefixes": len(got["prefixes"]),
             "install": f"python sys/core/script/sys_install_services.py && sudo bash {cfg.root}/sys/deploy/systemd/install.sh"}
 

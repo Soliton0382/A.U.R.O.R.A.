@@ -5553,6 +5553,21 @@
    "it": "A batteria, l'autonomia residua (secondi) a cui o sotto cui il computer viene spento: tienila sopra il tempo che serve a spegnersi."
   },
   {
+   "key": "AURORA_UPS_SHUTDOWN_AFTER_S",
+   "type": "int",
+   "min": 0,
+   "max": 3600,
+   "category": "services",
+   "recommended": "0",
+   "optional": true,
+   "evidence": "owner, 2026-11-09",
+   "services": [
+    "aurora-rem"
+   ],
+   "en": "On battery, the seconds after which this computer is powered off whatever the charge (0: only when the battery is nearly flat). With nobody to answer when the power goes (the screen is not on the UPS), a short wait is enough to let a blip pass.",
+   "it": "A batteria, dopo quanti secondi il computer viene spento qualunque sia la carica (0: solo a batteria quasi scarica). Quando manca la corrente non c'è nessuno a cui chiedere (lo schermo non è sotto l'UPS): basta un'attesa breve per lasciar passare un calo."
+  },
+  {
    "key": "AURORA_FIREWALL_SSH_USER",
    "type": "str",
    "category": "security",

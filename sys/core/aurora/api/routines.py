@@ -465,6 +465,14 @@ def metrics() -> dict:
     return m
 
 
+@router.get("/v1/aurora/metrics/who", dependencies=[Depends(auth)])
+def metrics_who() -> dict:
+    """Who is using the CPU and the GPUs now: the top bar's popup, asked only when someone looks."""
+    from aurora import sys_metrics
+    from .core import _runs
+    return sys_metrics.who(cfg, sum(not r["done"] for r in list(_runs.values())))
+
+
 from .agents import _gap_check, agent, plugins, react  # noqa: E402
 from .updates import _start_update  # noqa: E402
 from .social import social  # noqa: E402

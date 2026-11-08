@@ -123,7 +123,10 @@ def standalone(p: "Pipeline", question: str, recent: list[Soliton], ev, quote: S
         out = p._for("translate").complete(SYS_REPLY, f"QUOTED: {quote.text[:ANSWER_CUT]}\n\nLAST MESSAGE: {question}",
                                            200).answer.strip().strip('"«»').strip()
     else:
-        out = p._for("translate").complete(SYS_STANDALONE, f"{context}\n\nLAST MESSAGE: {question}",
+        from .kno_stages import LANGS                   # C511: Italian turns around turned an English question Italian
+        from . import txt_lang
+        say = f"\n\nWrite it in {LANGS.get(txt_lang.detect(question), 'the language of the last message')}."
+        out = p._for("translate").complete(SYS_STANDALONE, f"{context}\n\nLAST MESSAGE: {question}{say}",
                                            200).answer.strip().strip('"«»').strip()
     if not out or len(out) > 3 * len(question) + 200 or "\n" in out:          # not a question: keep the owner's
         return question, []
@@ -167,20 +170,23 @@ def suggest(p: "Pipeline", question: str, answer_text: str, sources: list[dict],
     """Follow-ups: from the library's passages when the answer was read there (each with its sources in focus), else
     from the question and the answer (the web, memory), or, without an answer, the question made more precise."""
     cited = {s.get("sid") for s in sources}
+    from .kno_stages import LANGS                       # the language named (C511: English answers, Italian follow-ups)
+    from . import txt_lang
+    say = f"\n\nWrite the questions in {LANGS.get(txt_lang.detect(question), 'the language of the QUESTION')}."
     pool = [h for h in hits if h.soliton.kind != "conversation"][:8]
     if abstained or not any(h.sid in cited for h in pool):
         pool = []
         if abstained:
-            raw = p._for("translate").complete(SYS_SUGGEST_UNSURE, f"QUESTION: {question}", 300).answer
+            raw = p._for("translate").complete(SYS_SUGGEST_UNSURE, f"QUESTION: {question}{say}", 300).answer
         else:
             titles = "\n".join(f"- {s.get('title') or s.get('source') or ''}" for s in sources[:6]) or "-"
             raw = p._for("translate").complete(SYS_SUGGEST_FREE, f"QUESTION: {question}\n\nANSWER:\n{answer_text[:2500]}"
-                                                                 f"\n\nSOURCES:\n{titles}", 400).answer
+                                                                 f"\n\nSOURCES:\n{titles}{say}", 400).answer
     else:
         passages = "\n\n".join(f"[{i}] ({h.soliton.title or h.soliton.source_id}; {'used' if h.sid in cited else 'not used'})"
                                f"\n{h.soliton.text[:700]}" for i, h in enumerate(pool, 1))
         raw = p._for("translate").complete(SYS_SUGGEST, f"QUESTION: {question}\n\nANSWER:\n{answer_text[:2500]}\n\n"
-                                                        f"PASSAGES:\n\n{passages}", 500).answer
+                                                        f"PASSAGES:\n\n{passages}{say}", 500).answer
     m = re.search(r"\[.*\]", raw, re.S)
     try:
         items = json.loads(m.group(0)) if m else []

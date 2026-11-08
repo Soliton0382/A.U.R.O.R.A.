@@ -141,3 +141,19 @@ def test_a_public_record_left_for_aurora_s_name_is_said(account, monkeypatch):
     monkeypatch.setattr(CF, "public_answer", lambda host: ["198.51.100.20"])   # C182: the 1033 page
     out = CF.check(cfg)
     assert "cancellare il record di aurora.home.example in Cloudflare → DNS → Records della zona home.example" in out
+
+
+def test_a_sealed_token_is_never_written_back_in_clear(cfg):
+    """C463 (N69 g): once install.sh sealed it (tunnel.token.cred and its hash), the same token is known by its hash;
+    a new one waits in tunnel.token.new for install.sh to seal it, and the file the unit used to read stays away."""
+    import hashlib
+    first = CF._keep_token(cfg, "tok-one")
+    f = CF.token_file(cfg)
+    assert first is True and f.read_text() == "tok-one" and private(f)
+    assert f.with_name(f.name + ".sha256").read_text() == hashlib.sha256(b"tok-one").hexdigest()
+    f.with_name(f.name + ".cred").write_bytes(b"sealed by systemd-creds")          # as install.sh leaves it
+    f.unlink()
+    assert CF._keep_token(cfg, "tok-one") is False and not f.exists()
+    assert CF._keep_token(cfg, "tok-two") == "seal" and not f.exists()
+    new = f.with_name(f.name + ".new")
+    assert new.read_text() == "tok-two" and private(new)

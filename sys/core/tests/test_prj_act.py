@@ -135,3 +135,33 @@ def test_a_session_of_another_login_starts_again(cfg, run, tmp_path):
         time.sleep(0.05)
     last = T.turns(cfg, "motore")[-1]
     assert last["text"] == "fatto" and last["new_session"] and T.session(cfg, "motore")["session"] == "new-1"
+
+
+def test_a_run_keeps_its_user_s_config_c517(cfg, run):
+    # the API's shared cfg follows whoever is served; the relay calls without a login: the run must not follow it
+    class Shared:
+        target = cfg
+
+        @staticmethod
+        def now():
+            return Shared.target
+
+        def __getattr__(self, name):
+            return getattr(Shared.target, name)
+
+    r = A.Run(Shared(), "motore", Pseudonymizer(cfg), "misura la coppia")
+    Shared.target = None                                    # someone else is served now
+    assert r.cfg is cfg
+    with A._lock:
+        A._RUNS[r.token] = r
+    try:
+        out = A.call(r, "list_files", {})
+        assert not out["error"]
+    finally:
+        A._RUNS.pop(r.token, None)
+
+
+def test_the_answer_s_titles_follow_the_language():
+    en = A.ACT.format(name="p", lang="en", policy="", context="", **A.heads("en"))
+    it = A.ACT.format(name="p", lang="it", policy="", context="", **A.heads("it"))
+    assert "**Done**" in en and "Fatto" not in en and "**Fatto**" in it

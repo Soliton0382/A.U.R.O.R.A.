@@ -1,0 +1,48 @@
+{
+  "name": "backup_files",
+  "version": "1.0",
+  "kind": "tool",
+  "description": {
+    "en": "Backup details, read only: the destination folder's contents (snapshots, blobs, empty or unreadable files), the files recorded by the backup with a filter, and whether specific critical files are recorded and still exist.",
+    "it": "Dettagli del backup, sola lettura: contenuto della cartella di destinazione (snapshot, blob, file vuoti o illeggibili), i file registrati dal backup con un filtro, e se file critici precisi sono registrati ed esistono ancora."
+  },
+  "command": [
+    "{python}",
+    "server.py"
+  ],
+  "env": [],
+  "requires": [],
+  "effects": {
+    "backup_files_dest": "read",
+    "backup_files_list": "read",
+    "backup_files_check": "read",
+    "*": "read"
+  },
+  "sandbox": {
+    "network": false
+  },
+  "tests": [
+    {
+      "tool": "backup_files_dest",
+      "args": {}
+    },
+    {
+      "tool": "backup_files_list",
+      "args": {
+        "filter": "",
+        "limit": 10
+      }
+    },
+    {
+      "tool": "backup_files_check",
+      "args": {
+        "paths": "notes, expenses"
+      }
+    }
+  ],
+  "forged": {
+    "request": "0109fdc7aa",
+    "at": "2026-11-06T07:07:14+0100",
+    "need": "Missing capability: tool to list individual files in the backup directory or verify the presence of specific critical files, as the current backup_status tool only returns a summary and does not provi"
+  }
+}

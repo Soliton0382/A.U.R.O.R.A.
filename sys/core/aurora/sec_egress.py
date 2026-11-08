@@ -243,6 +243,12 @@ class ModelWatch:
         return found
 
 
+def remove_deny(cfg: sys_config.Config, asn: int) -> list[str]:
+    """AURORA_EGRESS_DENY_ASNS without `asn` (the caller writes the setting): a network put there by mistake, taken
+    back by the owner (C512: a legitimate provider denied on a false «from nothing»)."""
+    return [str(a) for a in (cfg["AURORA_EGRESS_DENY_ASNS"] or []) if str(a).strip() != str(int(asn))]
+
+
 def add_deny(cfg: sys_config.Config, asn: int) -> list[str]:
     """AURORA_EGRESS_DENY_ASNS with `asn` added (the caller writes the setting)."""
     have = [str(a) for a in (cfg["AURORA_EGRESS_DENY_ASNS"] or [])]

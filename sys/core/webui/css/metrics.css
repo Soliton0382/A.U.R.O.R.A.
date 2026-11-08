@@ -41,3 +41,11 @@
 .gauge .icon.chip { color: #9fb6ff; line-height: 0; }
 /* a phone: the weather's icon alone beside the mood (its temperature in the tooltip), the bar keeps its place */
 @media (max-width: 820px) { .wx-chip { margin-left: .2rem; } .wx-chip .wx-temp { display: none; } }
+/* who is doing what: on a look at CPU or a GPU, out of the bar's scrolling box */
+.who-gauge { cursor: pointer; }
+.who-pop { position: fixed; z-index: 60; width: min(290px, calc(100vw - 16px)); padding: .5rem .65rem; border-radius: 8px; font-size: .78rem;
+  background: var(--panel, #161c2c); color: var(--text, #e6e9f2); border: 1px solid var(--line, #2a3350); box-shadow: 0 6px 22px rgba(0, 0, 0, .45); }
+.who-head { color: var(--muted); margin-bottom: .3rem; }
+.who-row { display: flex; justify-content: space-between; gap: .8rem; padding: .08rem 0; }
+.who-num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.who-doing { margin-top: .3rem; color: #d9ff8a; }

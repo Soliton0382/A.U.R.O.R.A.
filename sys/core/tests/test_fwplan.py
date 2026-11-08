@@ -93,3 +93,28 @@ def test_an_unclear_request_comes_back_as_questions_and_two_bad_plans_are_an_err
     assert sec_fwplan.plan(firewall, "blocca gli IP esteri", model=m, conf=CONF)["questions"] == ["In entrata o in uscita?"]
     with pytest.raises(sec_fwwrite.WriteError):
         sec_fwplan.plan(firewall, "blocca gli IP esteri", model=Model("not json", "still not"), conf=CONF)
+
+
+def test_a_bare_address_in_a_rule_goes_back_and_an_iphost_first_passes():
+    # C514: SFOS refused <Network>203.0.113.7</Network> with «501 validation failed»; the rule must name an object
+    rule = ("<FirewallRule><Name>Aurora-Block</Name><Position>top</Position><PolicyType>Network</PolicyType>"
+            "<NetworkPolicy><Action>Drop</Action><SourceZones><Zone>WAN</Zone></SourceZones><SourceNetworks>"
+            "<Network>{net}</Network></SourceNetworks></NetworkPolicy></FirewallRule>")
+    host = ("<IPHost><Name>Aurora-Doc-Host</Name><IPFamily>IPv4</IPFamily><HostType>IP</HostType>"
+            "<IPAddress>203.0.113.7</IPAddress></IPHost>")
+    none = lambda cfg, e, n: None  # noqa: E731
+    _, problems = sec_fwplan.check(None, [{"op": "add", "entity": "FirewallRule", "name": "Aurora-Block",
+                                           "xml": rule.format(net="203.0.113.7")}], CONF, reader=none)
+    assert problems and "not an object" in problems[0]
+    steps, problems = sec_fwplan.check(None, [{"op": "add", "entity": "IPHost", "name": "Aurora-Doc-Host", "xml": host},
+                                              {"op": "add", "entity": "FirewallRule", "name": "Aurora-Block",
+                                               "xml": rule.format(net="Aurora-Doc-Host")}], CONF, reader=none)
+    assert not any("not an object" in p for p in problems), problems
+
+
+def test_an_iphost_written_the_model_s_way_is_put_in_sfos_s_form():
+    # C514: the model wrote <IP> and <Status>; SFOS takes <HostType>IP</HostType><IPAddress> (fw_drivers/sophos.py)
+    out = sec_fwplan.tidy("IPHost", "<IPHost><Name>Aurora-H</Name><Description>d</Description><IP>203.0.113.7</IP>"
+                                    "<IPFamily>IPv4</IPFamily><Status>Enable</Status></IPHost>")
+    assert "<HostType>IP</HostType><IPAddress>203.0.113.7</IPAddress>" in out
+    assert "<IP>" not in out and "<Status>" not in out

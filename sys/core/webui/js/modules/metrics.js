@@ -36,7 +36,52 @@ function set(g, frac, text, title, short) {
   fill.className = `fill${f > 0.9 ? " hot" : f > 0.75 ? " warm" : ""}`;
   g.querySelector(".value").textContent = text;
   g.querySelector(".short").textContent = short ?? pct(f);
-  g.title = title || text;
+  g.dataset.fig = title || text;
+  if (!g.dataset.who) g.title = title || text;        // CPU and GPUs: their popup says it, and who
+}
+
+// 👥 who is doing what, on a look at CPU or a GPU (owner, 2026-11-05: «se clico o passo con il mouse… mi mostra chi sta
+// facendo cosa»): asked only then, out of the bar's own scrolling box, the same in the WebUI, the PWA and the app
+const WHO = ["api", "models", "llm", "rem", "sentinel", "harvester", "https", "tunnel", "backup", "other"];
+const whoName = (w) => (WHO.includes(w) ? t(`who.${w}`) : w);
+
+function whoPopup() {
+  const pop = el("div", "who-pop");
+  pop.hidden = true;
+  document.body.append(pop);
+  let at = 0, last = null, current = null, leave = 0;
+  const row = (name, value) => { const r = el("div", "who-row"); r.append(el("span", "", name), el("span", "who-num", value)); return r; };
+  const draw = (g) => {
+    pop.replaceChildren(el("div", "who-head", g.dataset.fig || ""));
+    if (!last) { pop.append(el("div", "muted", t("who.wait"))); return; }
+    const gpu = g.dataset.who === "cpu" ? null : g.dataset.who;
+    const rows = gpu === null ? last.cpu.map((r) => row(whoName(r.who), `${r.pct}%`))
+      : (last.gpus[gpu] || []).map((r) => row(whoName(r.who), `${r.util_pct}% · ${gb(r.used_mib)} GB`));
+    pop.append(...(rows.length ? rows : [el("div", "muted", t("who.none"))]));
+    for (const d of last.doing) pop.append(el("div", "who-doing", t(`who.doing.${d.what}`, d)));
+  };
+  const show = async (g) => {
+    current = g;
+    clearTimeout(leave);
+    const r = g.getBoundingClientRect();
+    pop.style.top = `${r.bottom + 6}px`;
+    pop.style.left = `${Math.max(8, Math.min(r.left, innerWidth - 300))}px`;
+    pop.hidden = false;
+    draw(g);
+    if (Date.now() - at < 3000) return;
+    at = Date.now();
+    try { last = await call("/v1/aurora/metrics/who"); } catch { last = null; }
+    if (current === g && !pop.hidden) draw(g);
+  };
+  const hide = () => { pop.hidden = true; current = null; };
+  document.addEventListener("click", (e) => { if (!e.target.closest?.(".gauge") && !e.target.closest?.(".who-pop")) hide(); });
+  return (g, id) => {
+    g.dataset.who = id;
+    g.classList.add("who-gauge");
+    g.addEventListener("mouseenter", () => show(g));
+    g.addEventListener("mouseleave", () => { leave = setTimeout(hide, 250); });
+    g.addEventListener("click", () => (current === g && !pop.hidden && matchMedia("(hover: none)").matches ? hide() : show(g)));
+  };
 }
 
 export default {
@@ -48,6 +93,8 @@ export default {
     const box = el("div", "metrics");
     root.append(box);
     const cpu = gauge("CPU", "chip"), ram = gauge("RAM", "💾");
+    const whoOn = whoPopup();
+    whoOn(cpu, "cpu");
     const net = gauge("NET", "🌐"), cloud = gauge("CLOUD", "☁️");
     net.classList.add("net");
     cloud.classList.add("cloud");
@@ -80,7 +127,7 @@ export default {
         set(ram, m.ram.used_mib / m.ram.total_mib, `${gb(m.ram.used_mib)}/${gb(m.ram.total_mib)} GB`,
           `RAM ${gb(m.ram.used_mib)}/${gb(m.ram.total_mib)} GB · swap ${gb(m.ram.swap_used_mib)} GB`);
         m.gpus.forEach((g, i) => {
-          if (!gpus[i]) { gpus[i] = gauge(`GPU${g.index}`, `🎮${g.index}`, true); box.append(gpus[i]); }
+          if (!gpus[i]) { gpus[i] = gauge(`GPU${g.index}`, `🎮${g.index}`, true); whoOn(gpus[i], String(g.index)); box.append(gpus[i]); }
           set(gpus[i], g.used_mib / g.total_mib, `${gb(g.used_mib)}/${gb(g.total_mib)} GB`,
             `${g.name} · VRAM ${gb(g.used_mib)}/${gb(g.total_mib)} GB · load ${g.util_pct}% · ${g.temp_c} °C`);
           const load = gpus[i].querySelector(".load");

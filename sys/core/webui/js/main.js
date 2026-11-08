@@ -206,6 +206,27 @@ async function show(id) {
   try { await byId[id].enter?.(); } catch (e) { if (e.status === 401) showLogin(true); else console.error(e); }
 }
 
+// ⚡ every action answers on screen (owner, 9 Nov: «ad ogni azione corrisponde un aggiornamento automatico della
+// sezione… non siamo negli anni 90»): a change done from a click is followed by the page drawn again from the API, in
+// place — the page's own «done» left 1.2 s to be read, the scroll kept, never under a field being typed in; the pages
+// that live by themselves (a chat, a project's console, the player, the telescope, the devices' consoles) stay as they are
+const SELF_LIVE = new Set(["chat", "anonchat", "interpret", "projects", "dj", "astro", "consoles"]);
+let actedTimer = null;
+addEventListener("aurora:acted", () => {
+  clearTimeout(actedTimer);
+  actedTimer = setTimeout(async () => {
+    const v = byId[current];
+    if (!v?.enter || v.live === false || SELF_LIVE.has(v.id)) return;
+    const section = $(`view-${current}`), a = document.activeElement;
+    if (section?.contains(a) && (a.isContentEditable || /^(TEXTAREA|SELECT)$/.test(a.tagName)
+      || (a.tagName === "INPUT" && !/^(button|submit|checkbox|radio|range|file)$/.test(a.type)))) return;
+    const y = window.scrollY, inner = $("views").scrollTop;
+    try { await v.enter(); } catch (e) { if (e.status === 401) showLogin(true); else console.error(e); }
+    window.scrollTo(0, y);
+    $("views").scrollTop = inner;
+  }, 1200);
+});
+
 $("menu").addEventListener("click", () => drawer(!document.body.classList.contains("drawer-open")));
 // log out: this device is forgotten (its key revoked); the next visit asks for the login again
 $("logout").addEventListener("click", async () => {

@@ -1,6 +1,6 @@
 # Status — work in progress
 
-Updated at every validated change (last: 2026-10-30; audited against the code on 2026-10-28). Details: BUGS.md (issues, 3 open / 471 closed),
+Updated at every validated change (last: 2026-11-09; audited against the code on 2026-10-28). Details: BUGS.md (issues, 1 open / 513 closed),
 MANUAL_TESTS.md (what the owner checks by hand),
 TESTS.md (tests and live checks), MEASUREMENTS.md (numbers), MODULE_MAP.md (who does what),
 SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSYSTEM.md (design and decisions).
@@ -171,6 +171,6 @@ The partial and missing items, checked against the code: ROADMAP.md, first secti
 ## Open bugs (2)
 
 C406 (the alerts that learn: built, closed after a week of the owner's verdicts), C463 (the .env's secrets in
-plaintext). Closed 4-5 Nov: C499-C507 (self-repair's sandbox, a camera's password in a log, M287-M289). Closed 3 Nov: C480 (a routine's sealed files), C484 (closed by the owner, not seen again), C485 (the
+plaintext). Closed 4-5 Nov: C499-C510 (first night after them, 5-6 Nov: 0 watcher stops, 0 camera passwords in the logs, backup ok, a forged read-only plugin with no private names; self-repair's sandbox, a camera's password in a log, a forged plugin's false zero; M287-M289). Closed 3 Nov: C480 (a routine's sealed files), C484 (closed by the owner, not seen again), C485 (the
 wildcard certificate's request). C390 (the reasoner's night crashes) closed on
 30 Oct after a week without one; C462 (the swap file) the same day. Details in BUGS.md.

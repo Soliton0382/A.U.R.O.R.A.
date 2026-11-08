@@ -270,18 +270,34 @@ def check(cfg: sys_config.Config) -> str:
     return "\n".join(["Per attivare l'accesso via WARP manca:"] + [f"{i}. {x}" for i, x in enumerate(todo, 1)])
 
 
-def _keep_token(cfg: sys_config.Config, token: str) -> bool:
-    """The tunnel's token in a 0600 file aurora-tunnel reads; True when it changed."""
+def _write600(path: Path, text: str) -> None:
+    tmp = path.with_name(path.name + ".tmp")
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as fh:
+        fh.write(text)
+    os.replace(tmp, path)
+
+
+def _keep_token(cfg: sys_config.Config, token: str) -> bool | str:
+    """The tunnel's token where aurora-tunnel reads it; True when it changed. Sealed (C463, N69 g: install.sh made it a
+    systemd credential bound to this machine's TPM, tunnel.token.cred, and left only its SHA-256): the same token is
+    known by its hash; a new one is put aside in tunnel.token.new and "seal" said — install.sh, run again, seals it
+    (never written back in clear where the unit used to read it)."""
+    import hashlib
     f = token_file(cfg)
     f.parent.mkdir(parents=True, exist_ok=True)
     os.chmod(f.parent, 0o700)
+    sha = hashlib.sha256(token.encode()).hexdigest()
+    cred, mark = f.with_name(f.name + ".cred"), f.with_name(f.name + ".sha256")
+    if cred.exists():
+        if mark.exists() and mark.read_text().strip() == sha:
+            return False
+        _write600(f.with_name(f.name + ".new"), token)
+        return "seal"
     if f.exists() and f.read_text().strip() == token:
         return False
-    tmp = f.with_suffix(".tmp")
-    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "w") as fh:
-        fh.write(token)
-    os.replace(tmp, f)
+    _write600(f, token)
+    _write600(mark, sha)
     return True
 
 
@@ -343,6 +359,9 @@ def apply(cfg: sys_config.Config, systemctl=None) -> dict:
         service = service_state()
         if changed is None:
             failed.append("il tunnel lo avvia «Salva» nella scheda del plugin cloudflare (da qui non posso)")
+            service = "cage"
+        elif changed == "seal":                         # a new token while the old one is sealed: root seals it (C463)
+            failed.append("token del tunnel nuovo: per sigillarlo e usarlo, sudo bash sys/deploy/cloudflared/install.sh")
             service = "cage"
         if service == "missing":
             failed.append("servizio aurora-tunnel non installato: " + INSTALL)

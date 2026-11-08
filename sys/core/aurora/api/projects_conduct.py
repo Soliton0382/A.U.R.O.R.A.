@@ -53,12 +53,15 @@ async def conduct_start(name: str, entry: str, request: Request) -> dict:
     # Cloud»), the cloud only when asked and the project allows it; the judge (draft, reply) stays as assigned
     local = prj_conduct.local(cfg, name) or body.get("worker", "local") != "cloud"
 
+    from aurora import txt_lang
+    lang = txt_lang.detect(text)                      # the verdict in the goal's language (C516)
+
     def judge(goal_text, report):
         try:
-            return prj_conduct.review(cfg, name, goal_text, report, prj_conduct.model(cfg, name, pipeline()))
+            return prj_conduct.review(cfg, name, goal_text, report, prj_conduct.model(cfg, name, pipeline()), lang)
         except Exception as e:                          # the cloud judge out (a session limit): the local model judges
             log.warning("conductor judge failed for %s (%s): the local model judges", name, e)
-            return prj_conduct.review(cfg, name, goal_text, report, pipeline().llm)
+            return prj_conduct.review(cfg, name, goal_text, report, pipeline().llm, lang)
 
     def after(ans, emit):
         prj_conduct.update(cfg, name, entry, status="judging")    # the work is over, the conductor reads it (shown live)
@@ -76,7 +79,8 @@ async def conduct_start(name: str, entry: str, request: Request) -> dict:
         try:
             return inner(q, emit, run_id)
         except Exception as e:                          # never left «running»: the failure said in the talk (C383)
-            prj_conduct.add(cfg, name, "reply", f"⚠️ La fase si è interrotta: {str(e)[:500]}")
+            stop = "La fase si è interrotta" if lang == "it" else "The phase stopped"      # the goal's language (C511)
+            prj_conduct.add(cfg, name, "reply", f"⚠️ {stop}: {str(e)[:500]}")
             prj_conduct.update(cfg, name, entry, status="failed")
             raise
 
@@ -124,7 +128,8 @@ async def talk_say(name: str, request: Request) -> dict:
     words = str((await request.json()).get("text", "")).strip()
     if not words:
         raise HTTPException(status_code=400, detail="empty request")
-    lang = "it" if str(cfg["AURORA_LANG_DEFAULT"]).startswith("it") else "en"
+    from aurora import txt_lang
+    lang = txt_lang.detect(words)                     # the language of the words (C516), not the installation's
     try:
         out = await in_thread(prj_talk.say, cfg, name, words, pipeline(), lang)
     except RuntimeError as e:                         # already working on this project: said, not a server error

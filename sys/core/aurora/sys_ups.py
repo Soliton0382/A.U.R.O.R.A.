@@ -124,6 +124,8 @@ class Watch:
         self.was_battery = False
         self.lows = 0
         self.down_since: float | None = None
+        self.battery_since: float | None = None
+        self.asked_at, self.can_off = 0.0, ""
         self.told_down = self.told_low = self.shutting = False
         self.log = sys_log.get_logger("ups")
 
@@ -162,6 +164,13 @@ class Watch:
             events.append("reachable")
         self.down_since, self.told_down = None, False
         j = judge(v, self.cfg["AURORA_UPS_SHUTDOWN_CHARGE"], self.cfg["AURORA_UPS_SHUTDOWN_RUNTIME_S"])
+        # owner, 9 Nov: «aurora deve spegnersi punto»: nobody to ask when the power goes (the screen is not on the UPS);
+        # after AURORA_UPS_SHUTDOWN_AFTER_S on battery she goes down whatever the charge, the firewall first
+        self.battery_since = (self.battery_since or now) if j["on_battery"] else None
+        after = int(self.cfg["AURORA_UPS_SHUTDOWN_AFTER_S"] or 0)
+        if after and self.battery_since is not None and now - self.battery_since >= after:
+            j["low"] = True
+            j["why"].append(f"on battery for {now - self.battery_since:.0f} s ≥ {after} s")
         state = f"{j['charge']:.0f} %" if j["charge"] is not None else "?"
         if j["runtime"] is not None:
             state += f", {j['runtime'] / 60:.0f} min"
@@ -194,9 +203,12 @@ class Watch:
                 self.told_low = True
                 self.log.warning("UPS low (%s): mode notify, not powering off", why)
                 self.tell("ups.low", "🔋 Batteria UPS quasi scarica", f"{why}. Lo spegnimento automatico è spento.")
+        if now - self.asked_at > 3600:                  # may this account power off with nobody to ask? (logind, polkit)
+            self.asked_at, self.can_off = now, can_power_off()
         login = getattr(self.client, "login_error", "")
         _save(self.cfg, {"at": now, "reachable": True, "server": server, **j, **({"login_refused": login} if login else {}),
-                         "vars": {k: v[k] for k in KEEP if k in v}, "mode": self.cfg["AURORA_UPS_MODE"]})
+                         "vars": {k: v[k] for k in KEEP if k in v}, "mode": self.cfg["AURORA_UPS_MODE"],
+                         "can_power_off": self.can_off})
         return events
 
 
@@ -245,6 +257,17 @@ def _others_off(cfg: sys_config.Config) -> list[str]:
         except Exception as e:  # noqa: BLE001
             log.warning("UPS: firewall %s not shut down: %s", fw["name"], e)
     return done
+
+
+def can_power_off() -> str:
+    """logind's answer for this account: "yes" (polkit lets it, nobody asked), "challenge" (a password would be asked:
+    the power-off would fail with nobody there), "no", or "" when not known (not Linux, no bus)."""
+    try:
+        r = subprocess.run(["busctl", "--system", "call", "org.freedesktop.login1", "/org/freedesktop/login1",
+                            "org.freedesktop.login1.Manager", "CanPowerOff"], capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return r.stdout.strip().removeprefix("s ").strip('"') if r.returncode == 0 else ""
 
 
 def _poweroff() -> None:

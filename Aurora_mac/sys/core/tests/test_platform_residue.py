@@ -26,6 +26,8 @@ WORDS_ALLOWED = {
     ("sys_ups.py", '"systemctl"'): "ROADMAP N53: the UPS's power-off, Linux's logind; elsewhere the call fails and is logged, the notifications still go (AURORA_UPS_MODE notify is the ports' choice)",
     ("mdl_stt.py", '"nvidia-smi"'): "the free memory of each GPU for Whisper's place (C413); not found = the CPU",
     ("mdl_custom.py", '"nvidia-smi"'): "the GPU memory others hold, for the Models page's fit; not found = 0 (C252)",
+    ("sys_metrics.py", '"nvidia-smi"'): "who uses each GPU, for the bar's popup (5 Nov): not found = nobody listed",
+    ("sys_metrics.py", "/proc/"): "the service a process belongs to, for the bar's popup (5 Nov): not there = «other»",
     ("kno_grid.py", '"bwrap"'): "ROADMAP 105: without bwrap a grid puzzle goes to the reasoning, as before (no cage, nothing is run)",
     ("prj_run.py", '"bwrap"'): "phase 4: without bwrap a project does not run («no cage, nothing is run»)",
     ("prj_term.py", '"bwrap"'): "phase 4: without bwrap no project terminal («no cage, no terminal»), said on the page",
@@ -54,6 +56,11 @@ PROGRAMS_ALLOWED = {
     ("sec_fwpower.py", "ssh"): "ROADMAP N55: the firewall's console over SSH through a terminal (pty): Linux and the Mac; Windows has no pty, the restart says so",
     ("sys_ups.py", "systemctl"): "ROADMAP N53: the UPS's power-off through logind, Linux only; elsewhere it fails, logged, notify still works",
     ("mdl_stt.py", "nvidia-smi"): "Whisper's GPU from the free memory (C413): the CPU where missing",
+    ("sys_metrics.py", "nvidia-smi"): "who uses each GPU, for the bar's popup (5 Nov): not found = nobody listed",
+    ("sys_sshkey.py", "ssh-agent"): "sealed SSH keys (C463): Linux only (_here), a port keeps its key file as it is",
+    ("sys_sshkey.py", "ssh-add"): "sealed SSH keys (C463): Linux only (_here), a port keeps its key file as it is",
+    ("sys_sshkey.py", "ssh-keygen"): "a sealed key's public half (C463): Linux only (_here); OpenSSH ships it everywhere",
+    ("sys_ups.py", "busctl"): "may this account power off (logind, C519's UPS check): not found = not known, said so",
     ("mdl_custom.py", "nvidia-smi"): "the GPU memory others hold (C252): 0 where missing, llama.cpp's --fit decides",
     ("prj_term.py", "bwrap"): "phase 4: the terminal's cage, asked once whether it can start (C264); none: said on the page",
     ("net_trace.py", "mtr"): "the visual traceroute: mtr (brew on a Mac; none on Windows, where the page says «mtr is not installed»)",
@@ -70,6 +77,7 @@ SCRIPTS_PHASE_3 = {"systemctl", "journalctl", "runuser", "systemd-escape", "syst
                    "ip"}                    # sys_root_sync: the root units and the firewall helper are Linux's (phase 3)
 # each port's own installer scripts start their system's own programs (phase 3, 9 Oct): the Mac's launchd agents
 PORT_SCRIPTS = {("sys_install_agents.py", "launchctl"), ("sys_install_agents.py", "brew")}
+PORT_SCRIPTS |= {("dev_demo_video.py", "tesseract")}   # the demo video's privacy check: a developer's tool, Linux only
 # U6, the services' own account (sys_service_account): Linux's systemd installation only; each port has its own
 PORT_SCRIPTS |= {("sys_service_account.py", p) for p in ("bash", "chown", "getfacl", "setfacl", "groupadd", "useradd",
                                                          "usermod", "apt-get", "runuser")}

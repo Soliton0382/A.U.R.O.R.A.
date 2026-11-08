@@ -136,12 +136,14 @@ def run(cfg: sys_config.Config, item: dict, action: str, timeout: int = 20) -> d
     """test, restart or shutdown sent over SSH with Aurora's key; for the last two a dropped connection is success."""
     if action not in ACTIONS:
         raise ValueError(f"action: one of {', '.join(ACTIONS)}")
-    cmd = ["ssh", "-i", str(key(cfg)), "-o", "IdentitiesOnly=yes", "-o", "BatchMode=yes",
-           "-o", "StrictHostKeyChecking=accept-new", "-o", f"ConnectTimeout={min(timeout, 10)}", "-p", str(item["port"]),
-           f"{item['user']}@{item['host']}", action]
+    from . import sys_sshkey
     sys_log.get_logger("power").warning("audit: %s sent to %s (%s)", action, item["name"], item["host"])
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        with sys_sshkey.ssh_options(cfg, key(cfg)) as opts:   # sealed at rest, in an agent of its own (C463)
+            cmd = ["ssh", *opts, "-o", "IdentitiesOnly=yes", "-o", "BatchMode=yes",
+                   "-o", "StrictHostKeyChecking=accept-new", "-o", f"ConnectTimeout={min(timeout, 10)}",
+                   "-p", str(item["port"]), f"{item['user']}@{item['host']}", action]
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
     except subprocess.TimeoutExpired:
         return {"ok": action != "test", "detail": "no answer (it may be going down)"}
     text = (r.stdout + r.stderr).strip()

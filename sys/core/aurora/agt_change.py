@@ -63,6 +63,16 @@ def services_for(files: list[str]) -> list[str]:
     return sorted(svc)
 
 
+def _put(src: Path, dst: Path) -> None:
+    """The file's content in place, its mode where allowed: the live code belongs to the owner's account, not to the
+    service, so copying the times (shutil.copy2) is refused with EPERM after the content is already written (C518)."""
+    shutil.copyfile(src, dst)
+    try:
+        shutil.copymode(src, dst)
+    except PermissionError:
+        pass
+
+
 def apply(sandbox_id: str, emit, cfg: sys_config.Config | None = None, restart: bool = True) -> dict:
     cfg = cfg or sys_config.get()
     log = sys_log.get_logger("changes")
@@ -94,9 +104,14 @@ def apply(sandbox_id: str, emit, cfg: sys_config.Config | None = None, restart: 
             new.append(rel)
     (backup / "NEW_FILES.json").parent.mkdir(parents=True, exist_ok=True)
     (backup / "NEW_FILES.json").write_text(json.dumps(new))
-    for rel in files:
-        (root / rel).parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(box / rel, root / rel)
+    try:
+        for rel in files:
+            (root / rel).parent.mkdir(parents=True, exist_ok=True)
+            _put(box / rel, root / rel)
+    except OSError as e:                              # C518: never a change left half in, untested and unsaid
+        rollback(sandbox_id, cfg)
+        emit("change.rollback", {"reason": repr(e)})
+        return {"applied": False, "reason": f"could not write the change: {e!r}: rolled back"}
     log.info("audit: change %s applied: %s", sandbox_id, ", ".join(files))
     emit("change.applied", {"files": files})
     live_t = sys_tests.run_suite(root)
@@ -123,7 +138,7 @@ def rollback(sandbox_id: str, cfg: sys_config.Config | None = None) -> list[str]
     restored = []
     for f in sorted(p for p in backup.rglob("*") if p.is_file() and p.name != "NEW_FILES.json"):
         rel = f.relative_to(backup).as_posix()
-        shutil.copy2(f, root / rel)
+        _put(f, root / rel)
         restored.append(rel)
     for rel in json.loads((backup / "NEW_FILES.json").read_text()) if (backup / "NEW_FILES.json").exists() else []:
         (root / rel).unlink(missing_ok=True)

@@ -188,7 +188,8 @@ def say(cfg: sys_config.Config, project: str, text: str, pipeline, lang: str = "
     if kind == "cli" and cfg["AURORA_CONDUCTOR_ACTS"]:   # N39 step 3: the CLI works in the project (prj_act)
         from . import prj_act
         return prj_act.start(cfg, project, llm.inner, text, prj_act.ACT.format(
-            name=project, lang=lang, policy=_policy(cfg, project), context=prj_conduct.context(cfg, project)),
+            name=project, lang=lang, policy=_policy(cfg, project), context=prj_conduct.context(cfg, project),
+            **prj_act.heads(lang)),
             session(cfg, project), lang)
     before = turns(cfg, project)
     _add(cfg, project, "owner", text)

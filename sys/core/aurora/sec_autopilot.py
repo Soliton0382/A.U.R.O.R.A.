@@ -83,14 +83,20 @@ def digest(cfg: sys_config.Config, items: list[dict], now: float | None = None) 
     out["left"] = sum(not i.get("settled") and i.get("status") == "open" and float(i.get("received_ts") or 0) > since
                       for i in items)
     out["ids"] = [i["id"] for i in mine]
+    try:                                               # 🌐 the scanners blocked at Cloudflare, no push of their own (C406)
+        from . import net_cfwaf
+        out["edge"] = sum(bool(b.get("auto")) and float(b.get("at") or 0) > since for b in net_cfwaf._load(cfg))
+    except Exception:                                  # noqa: BLE001 — no Cloudflare here: nothing to count
+        out["edge"] = 0
     f = _file(cfg)
     f.parent.mkdir(parents=True, exist_ok=True)
     tmp = f.with_suffix(".tmp")
     tmp.write_text(json.dumps({"at": now}), encoding="utf-8")
     os.replace(tmp, f)
-    return out if mine or out["left"] else None
+    return out if mine or out["left"] or out["edge"] else None
 
 
 def said(d: dict) -> str:
-    return (f"🛡️ {d['blocked']} attacchi bloccati · 🔇 {d['quiet'] + d['judged']} allarmi di casa chiusi · "
+    edge = f"☁️ {d['edge']} scanner bloccati su Cloudflare · " if d.get("edge") else ""
+    return (f"🛡️ {d['blocked']} attacchi bloccati · {edge}🔇 {d['quiet'] + d['judged']} allarmi di casa chiusi · "
             f"👀 {d['left']} lasciati a te")

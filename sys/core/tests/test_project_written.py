@@ -90,3 +90,11 @@ def test_a_run_without_its_answer_tells_what_the_plugins_read():
     text = AgentReport._from_record(run)
     assert "Nessun resoconto" not in text and "- expenses: Mese 2099-11: entrate 10,00 €" in text
     assert AgentReport._from_record(SimpleNamespace(commands=[], touched=set(), reads=[])) == "Nessun resoconto prodotto."
+
+
+def test_the_record_follows_the_report_language():
+    # a user who wrote in English gets the record in English (N76: the demo user's answers were half Italian)
+    from aurora.agt_loop_report import AgentReport as R
+    assert R.english("I painted the picture you asked for and it is in the conversation.")
+    assert not R.english("Generati i dati.")
+    assert not R.english("Ho dipinto l'immagine richiesta e la trovi nella conversazione.")

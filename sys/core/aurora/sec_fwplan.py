@@ -23,18 +23,21 @@ import xml.etree.ElementTree as ET
 from xml.sax.saxutils import escape
 
 from . import sec_fwapi, sec_fwconf, sec_fwdocs, sec_fwwrite, sys_config
+from . import txt_lang
 
 ALLOWED = ("FirewallRule", "NATRule", "Services", "ServiceGroup", "IPHost", "IPHostGroup", "FQDNHost", "FQDNHostGroup",
            "MACHost", "IPSPolicy", "WebFilterPolicy", "ApplicationFilterPolicy")
 NEVER = ("AdminSettings", "LocalServiceACL", "Zone", "Interface", "APIConfiguration", "AuthenticationServer", "User",
          "AdminProfile", "VLAN", "DNS", "SyslogServers")
+READBACK_IT = "Dopo l'applicazione Aurora rilegge ogni oggetto: se il firewall non risponde più, annulla."
+READBACK_EN = "After applying, Aurora reads every object back: if the firewall stops answering, she undoes it."
 SYS = """You plan changes on a Sophos Firewall (SFOS 22.0) for its owner, through its XML API. Answer with ONE JSON
 object and nothing else:
-{"title": "<short, in Italian>", "why": "<what the change does and its effect, in Italian, 1-3 sentences>",
+{"title": "<short, in the language of the request>", "why": "<what the change does and its effect, in the language of the request, 1-3 sentences>",
  "steps": [{"op": "add|update|remove", "entity": "<API entity>", "name": "<the object's Name>",
             "xml": "<the whole element, e.g. <FirewallRule>...</FirewallRule>; empty for remove>",
-            "why": "<this step, in Italian>"}],
- "notes": ["<risks or things the owner must know, in Italian>"],
+            "why": "<this step, in the language of the request>"}],
+ "notes": ["<risks or things the owner must know, in the language of the request>"],
  "questions": ["<only if the request cannot be done without an answer: then steps is empty>"]}
 Rules:
 - Entities allowed: %ALLOWED%. Never touch the firewall's own access (administration, API, zones, interfaces, users,
@@ -144,6 +147,14 @@ ANY = re.compile(r"<(Network|Service|Zone)>\s*any\s*</\1>", re.I)
 def tidy(entity: str, xml: str) -> str:
     """What the local model writes and the API does not take, put right (M135): a network rule's <UserPolicy> is a
     <NetworkPolicy>; «any» is a list left out, not an object."""
+    if entity == "IPHost":                               # C514: <IP> and <Status> are not SFOS's: 501 refused
+        xml = re.sub(r"<IP>\s*([^<]+?)\s*</IP>", r"<IPAddress>\1</IPAddress>", xml)
+        xml = re.sub(r"<Status>[^<]*</Status>", "", xml)
+        if "<IPAddress>" in xml and "<HostType>" not in xml:
+            xml = xml.replace("<IPAddress>", "<HostType>IP</HostType><IPAddress>", 1)
+        if "<IPFamily>" not in xml:
+            xml = re.sub(r"(</Name>)", r"\1<IPFamily>IPv4</IPFamily>", xml, count=1)
+        return xml
     if entity != "FirewallRule":
         return xml
     if re.search(r"<PolicyType>\s*Network\s*</PolicyType>", xml) and "<UserPolicy>" in xml:
@@ -245,6 +256,16 @@ def diff(new: ET.Element, old: ET.Element) -> list[dict]:
             for k in sorted(set(a) | set(b)) if a.get(k, "") != b.get(k, "")]
 
 
+def unnamed(root, conf: dict, made: set) -> list[str]:
+    """The networks a rule names that are no object of the firewall nor made earlier in the plan (C514: a bare
+    address in <SourceNetworks> is refused by SFOS with «501 Configuration parameters validation failed»)."""
+    known = {str(x.get("Name")) for e in ("IPHost", "IPHostGroup", "FQDNHost", "FQDNHostGroup", "MACHost")
+             for x in conf.get(e, [])} | {n for _, n in made}
+    known = {k.lower() for k in known} | {"any"}
+    return [n.text.strip() for tag in ("SourceNetworks", "DestinationNetworks") for box in root.iter(tag)
+            for n in box.iter("Network") if n.text and n.text.strip().lower() not in known]
+
+
 def check(cfg: sys_config.Config, steps: list[dict], conf: dict, reader=raw_item) -> tuple[list[dict], list[str]]:
     """The model's steps → sec_fwwrite steps, and the problems found (empty: all good)."""
     out, problems = [], []
@@ -275,6 +296,12 @@ def check(cfg: sys_config.Config, steps: list[dict], conf: dict, reader=raw_item
             wide = danger(entity, root)
             if wide:
                 problems.append(f"{where}: {wide}")
+                continue
+            loose = unnamed(root, conf, made) if entity == "FirewallRule" else []
+            if loose:                                    # C514: an address where the firewall wants an object's name
+                problems.append(f"{where}: {', '.join('«' + x + '»' for x in loose[:4])} is not an object of the "
+                                f"firewall: add an IPHost (or IPHostGroup) named «Aurora-…» as an earlier step and use "
+                                f"its name in the rule")
                 continue
             above = shadowed(root, conf) if entity == "FirewallRule" and op == "add" else []
             if above:
@@ -357,6 +384,7 @@ def plan(cfg: sys_config.Config, request: str, model=None, conf: dict | None = N
     system = (SYS.replace("%ALLOWED%", ", ".join(ALLOWED)).replace("%AURORA%", own or "?").replace("%FIREWALL%", fw)
               .replace("%BLOCKRULE%", f"«{block_rule}»"))
     user = f"REQUEST OF THE OWNER:\n{request}\n\nCONFIGURATION NOW:\n{_short(conf)}\n\nMANUAL AND API:\n{_docs(cfg, request)}"
+    user += f"\n\nWrite title, why, steps' why and notes in {'English' if txt_lang.detect(request) == "en" else 'Italian'}."   # C511
     feedback = ""
     for _attempt in range(2):
         answer = model.complete(system, user + feedback, 4000, think=False).answer   # thinking used all 4000 tokens (M135)
@@ -372,7 +400,7 @@ def plan(cfg: sys_config.Config, request: str, model=None, conf: dict | None = N
             return {"kind": "request", "request": request, "title": str(data.get("title") or request[:80])[:120],
                     "why": str(data.get("why") or "")[:600], "steps": steps,
                     "notes": [str(n) for n in data.get("notes", [])][:8]
-                    + ["Dopo l'applicazione Aurora rilegge ogni oggetto: se il firewall non risponde più, annulla."],
+                    + [READBACK_EN if txt_lang.detect(request) == "en" else READBACK_IT],
                     "check": [(s["entity"], s["name"]) for s in steps if not s["xml"].startswith("<Remove>")]}
         if not steps and not problems:
             problems = ["no steps"]

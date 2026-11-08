@@ -358,10 +358,20 @@ def _ram() -> dict:
             k, v = line.split(":", 1)
             info[k] = int(v.split()[0]) // 1024                     # MiB
     return {"used_mib": info["MemTotal"] - info["MemAvailable"], "total_mib": info["MemTotal"],
-            "swap_used_mib": info["SwapTotal"] - info["SwapFree"]}
+            "swap_used_mib": info["SwapTotal"] - info["SwapFree"]}""",
+     f"""{P}
 
 
-def _gpus() -> list[dict]:
+def _cpu_times() -> tuple[float, float]:
+    return sys_platform.current().cpu_times()
+
+
+def _ram() -> dict:
+    return sys_platform.current().memory()""",
+     "sys_metrics: CPU and memory"),
+
+    ("sys/core/aurora/sys_metrics.py",
+     """def _gpus() -> list[dict]:
     try:
         out = subprocess.run(["nvidia-smi", "--query-gpu=index,name,utilization.gpu,memory.used,memory.total,temperature.gpu",
                               "--format=csv,noheader,nounits"], capture_output=True, text=True, timeout=5).stdout
@@ -376,25 +386,14 @@ def _gpus() -> list[dict]:
         except ValueError:
             continue
     return gpus""",
-     f"""{P}
-
-
-def _cpu_times() -> tuple[float, float]:
-    return sys_platform.current().cpu_times()
-
-
-def _ram() -> dict:
-    return sys_platform.current().memory()
-
-
-def _int(v):
+     f"""def _int(v):
     return None if v is None else int(v)                          # not measured on this system: said, never 0
 
 
 def _gpus() -> list[dict]:
     return [{{"index": g.index, "name": g.name, "util_pct": _int(g.util), "used_mib": _int(g.mem_used),
              "total_mib": _int(g.mem_total), "temp_c": _int(g.temp)}} for g in sys_platform.current().gpus()]""",
-     "sys_metrics: CPU, memory, GPUs"),
+     "sys_metrics: GPUs (5 Nov: split from CPU and memory, the «who» popup's code between them)"),
 
     ("sys/core/aurora/sys_metrics.py",
      'def _net_bytes() -> tuple[int, int, int]:\n    """(received, sent, link Mbit/s) of the physical interfaces (those with a device: not lo, docker, bridges, VMs)."""\n    rx = tx = link = 0\n    try:\n        lines = Path("/proc/net/dev").read_text().splitlines()[2:]\n    except OSError:\n        return 0, 0, 0\n    for line in lines:\n        name, data = line.split(":", 1)\n        name = name.strip()\n        if not (Path("/sys/class/net") / name / "device").exists():\n            continue\n        v = data.split()\n        rx, tx = rx + int(v[0]), tx + int(v[8])\n        try:\n            link = max(link, int((Path("/sys/class/net") / name / "speed").read_text()))\n        except (OSError, ValueError):                 # a Wi-Fi card says no speed: the wired one sets it\n            pass\n    return rx, tx, link',

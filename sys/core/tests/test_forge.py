@@ -262,3 +262,10 @@ def test_a_plugin_for_aurora_s_own_stores_is_refused_and_never_queued(cfg):
     assert F.requests(cfg) == []                                    # nothing queued
     assert not F.core_need("read the firewall's syslog and count the denied lines")
     assert not F.core_need("Ogni giorno alle 17:00 usa sky_tonight per stanotte")
+
+
+def test_a_users_sealed_state_is_never_offered_to_a_plugin(cfg):
+    assert F.core_need("Quante routine sono attive, dal file routines.json dell'utente")   # the routines plugin's (C509)
+    assert "routines.json" not in F.data_places(cfg) and "approvals.json" not in F.data_places(cfg)
+    assert "never zero or 'none'" in F.SYS_WRITE
+

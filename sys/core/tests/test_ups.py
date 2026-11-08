@@ -87,6 +87,18 @@ def test_power_lost_low_twice_then_poweroff(cfg):
     assert sys_ups.status(cfg)["on_battery"] is True
 
 
+def test_after_a_minute_on_battery_she_goes_down_whatever_the_charge(cfg):
+    """Owner, 9 Nov: «aurora deve spegnersi punto»: nobody is asked; a blip shorter than the wait powers nothing off."""
+    w, told, off = watch(cfg, "shutdown")
+    cfg.values["AURORA_UPS_SHUTDOWN_AFTER_S"] = 60
+    full = {"ups.status": "OB", "battery.charge": "100", "battery.runtime": "1000"}
+    FakeClient.reads = [{"ups.status": "OL"}, full, {"ups.status": "OL"},              # a blip of 15 s: nothing
+                        full, full, full, full, full, full, full]
+    events = {t: w.step(now=t) for t in (0, 15, 30, 45, 60, 75, 90, 105, 120, 135)}
+    assert all(events[t] in ([], ["power_lost"], ["power_back"]) for t in (0, 15, 30, 45, 60, 75, 90, 105))
+    assert events[120] == ["low", "shutdown"] and off == [1] and "ups.shutdown" in told   # 60 s from 45, read twice
+
+
 def test_notify_mode_never_powers_off_and_power_back_resets(cfg):
     w, told, off = watch(cfg, "notify")
     FakeClient.reads = [{"ups.status": "OB LB"}, {"ups.status": "OB LB"}, {"ups.status": "OB LB"}, {"ups.status": "OL"}]

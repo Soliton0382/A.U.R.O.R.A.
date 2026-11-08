@@ -205,7 +205,11 @@ class PluginHost:
             if purpose in SEAL_KEYS:
                 env[f"AURORA_SEAL_KEY_{purpose.upper()}"] = sys_seal._key(self.cfg, self.cfg.user, purpose).hex()
         from . import plg_sandbox
-        filtered = plg_sandbox.env_file(p.name, p.manifest, self.cfg)    # only this plugin's own secrets
+        filtered = plg_sandbox.env_file(p.name, p.manifest, self.cfg)    # only this plugin's own secrets, by name
+        specs = {s["key"]: s for s in sys_config.load_schema()["settings"]}
+        for k in plg_sandbox._declared(p.manifest):      # their values in its environment, never on the disk (C463)
+            if specs.get(k, {}).get("secret"):
+                env[sys_config.PLUGIN_SECRET + k] = str(self.cfg.raw.get(k, "") or "")
         if self.cfg["AURORA_PLUGIN_SANDBOX"]:
             if not plg_sandbox.available():
                 # never uncaged because the cage is missing (C226: a container without bubblewrap ran them bare, as

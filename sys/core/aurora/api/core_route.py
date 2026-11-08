@@ -10,7 +10,7 @@ import re
 import time
 from pathlib import Path
 
-from aurora import sol_reader, sys_context, sys_features
+from aurora import sol_reader, sys_context, sys_features, txt_lang
 
 from .core import cfg, log, note, pipeline, plugin_host
 
@@ -133,7 +133,7 @@ def edit_pictures(question: str, pictures: list[tuple[str, bytes]], emit, run_id
     from aurora.kno_answer import Answer
     from aurora.sol_schema import now_iso
     asked_at, t0 = now_iso(), time.time()
-    lang = "it" if str(cfg["AURORA_LANG_DEFAULT"]).startswith("it") else "en"
+    lang = txt_lang.detect(question)                     # the language of the request (C511), not the installation's
     from PIL import Image
     p, lines, images = pipeline(), [], []
     for name, data in pictures:
@@ -247,7 +247,7 @@ def video_busy_answer(question: str, emit, run_id: str):
     v = gpu_busy()
     if not v:
         return None
-    it = str(cfg["AURORA_LANG_DEFAULT"]).startswith("it")
+    it = txt_lang.detect(question) == "it"               # the language of the request (C511)
     at = time.strftime("%H:%M", time.localtime(max(v["ready_at"], time.time() + 60)))
     text = (f"🎬 Sto creando il video «{v['title']}»: finché non ho finito il mio ragionatore è spento. "
             f"Dovrebbe essere pronto verso le {at}, ti avviso io." if it else
@@ -260,7 +260,7 @@ def make_video(question: str, vp: dict, picture: tuple[str, bytes] | None, emit,
     """A short video (mdl_video): Aurora answers at once with the time it will take, makes it in the background
     (the reasoner is off meanwhile) and notifies the owner; the video is kept with this turn of the conversation."""
     from aurora import mdl_media, mdl_video, sys_uploads
-    it = str(cfg["AURORA_LANG_DEFAULT"]).startswith("it")
+    it = txt_lang.detect(question) == "it"               # the language of the request (C511)
     cloud = mdl_media.provider(cfg, "video")[0] != "local"      # a cloud provider (Models page): the reasoner stays on
     if not cloud:
         sys_features.need(cfg, "video_make", "it" if it else "en")

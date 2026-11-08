@@ -18,6 +18,7 @@ import json
 import re
 
 from . import sec_fwapi, sec_fwdocs, sec_fwmodel, sec_fwwrite, sec_netmap, sys_config
+from . import txt_lang
 
 OPS = ("put_alias", "alias_add", "alias_del", "drop_alias", "put_rule", "drop_rule", "put_nat", "drop_nat")
 ENTITY = {"put_alias": "alias", "alias_add": "alias", "alias_del": "alias", "drop_alias": "alias",
@@ -26,10 +27,12 @@ UNDO = {"put_alias": "drop_alias", "put_rule": "drop_rule", "put_nat": "drop_nat
         "alias_del": "alias_add"}
 PROTOS = ("tcp", "udp", "tcp/udp", "icmp", "any", "")
 PORT = re.compile(r"^\d{1,5}(:\d{1,5})?$")
+READBACK_IT = "Dopo l'applicazione Aurora rilegge ogni oggetto: se il firewall non risponde più, annulla."
+READBACK_EN = "After applying, Aurora reads every object back: if the firewall stops answering, she undoes it."
 SYS = """You plan changes on a %KIND% firewall for its owner. Answer with ONE JSON object and nothing else:
-{"title": "<short, in Italian>", "why": "<what the change does and its effect, in Italian, 1-3 sentences>",
- "steps": [{"op": "<one of the operations>", ...its fields, "why": "<this step, in Italian>"}],
- "notes": ["<risks or things the owner must know, in Italian>"],
+{"title": "<short, in the language of the request>", "why": "<what the change does and its effect, in the language of the request, 1-3 sentences>",
+ "steps": [{"op": "<one of the operations>", ...its fields, "why": "<this step, in the language of the request>"}],
+ "notes": ["<risks or things the owner must know, in the language of the request>"],
  "questions": ["<only if the request cannot be done without an answer: then steps is empty>"]}
 Operations and their fields:
 - put_alias {name, addresses: [IP or CIDR], descr}: a new list of addresses; name "Aurora_<Word>" (letters, digits, _)
@@ -162,6 +165,7 @@ def plan(cfg: sys_config.Config, request: str, model) -> dict:
     system = SYS.replace("%KIND%", fwm["kind"]).replace("%AURORA%", own or "?").replace("%FIREWALL%", firewall)
     docs = "\n\n".join(f"[{h['kind']}] {h['title']}\n{h['text'][:1400]}" for h in sec_fwdocs.search(cfg, request, 5))
     user = f"REQUEST OF THE OWNER:\n{request}\n\nCONFIGURATION NOW:\n{_short(fwm, net)}\n\nTHE FIREWALL'S GUIDES:\n{docs}"
+    user += f"\n\nWrite title, why, steps' why and notes in {'English' if txt_lang.detect(request) == "en" else 'Italian'}."   # C511
     feedback = ""
     for _attempt in range(2):
         answer = model.complete(system, user + feedback, 4000, think=False).answer
@@ -180,7 +184,7 @@ def plan(cfg: sys_config.Config, request: str, model) -> dict:
             return {"kind": "request", "request": request, "title": str(data.get("title") or request[:80])[:120],
                     "why": str(data.get("why") or "")[:600], "steps": steps,
                     "notes": [str(n) for n in data.get("notes", [])][:8]
-                    + ["Dopo l'applicazione Aurora rilegge ogni oggetto: se il firewall non risponde più, annulla."],
+                    + [READBACK_EN if txt_lang.detect(request) == "en" else READBACK_IT],
                     "check": [(s["entity"], s["name"]) for s in steps if json.loads(s["xml"])["op"].startswith("put")]}
         problems = problems or ["no steps"]
         feedback = ("\n\nYOUR LAST PLAN HAD PROBLEMS — fix them and answer the whole JSON again:\n- " + "\n- ".join(problems)

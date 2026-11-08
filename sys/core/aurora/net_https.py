@@ -180,6 +180,14 @@ def caddyfile(cfg: sys_config.Config) -> Path:
     return cfg.path("AURORA_HTTPS_DIR") / "Caddyfile"
 
 
+def _certs_closed(f: Path) -> bool:
+    """A certificate or key the Caddyfile names that this account may not open (caddy's own error goes to its log)."""
+    import re
+    named = re.findall(r"^\s*tls\s+(\S+)\s+(\S+)", f.read_text(encoding="utf-8"), re.M)
+    paths = [Path(p.strip('"')) for pair in named for p in pair]
+    return any(p.exists() and not os.access(p, os.R_OK) for p in paths)
+
+
 def write(cfg: sys_config.Config, **over) -> Path:
     """Write the Caddyfile and have caddy validate it; an invalid one is not left in place."""
     f = caddyfile(cfg)
@@ -189,6 +197,11 @@ def write(cfg: sys_config.Config, **over) -> Path:
     f.write_text(render(cfg, **over), encoding="utf-8")
     check = subprocess.run([cfg["AURORA_CADDY_BIN"], "validate", "--config", str(f), "--adapter", "caddyfile"],
                            capture_output=True, text=True, timeout=60)
+    if check.returncode != 0 and _certs_closed(f):
+        # C519: from a person's shell the certificates (the service's, 600) cannot be opened: the syntax is checked
+        # without them; the service's own reload validates them for real
+        check = subprocess.run([cfg["AURORA_CADDY_BIN"], "adapt", "--config", str(f), "--adapter", "caddyfile"],
+                               capture_output=True, text=True, timeout=60)
     if check.returncode != 0:
         if before is not None:
             f.write_text(before, encoding="utf-8")

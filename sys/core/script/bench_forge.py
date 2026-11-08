@@ -112,6 +112,10 @@ def routines_active():
     return {"active": sum(1 for r in rs if r.get("enabled", True)), "total": len(rs)}
 
 
+def trace_files():
+    return {"files": sum(f.is_file() for f in (cfg.path("AURORA_LOG_DIR") / "trace").iterdir())}
+
+
 def log_mb(component="harvester"):
     size = sum(f.stat().st_size for f in (cfg.path("AURORA_LOG_DIR") / component).glob("*"))
     return {"mb": round(size / 1048576, 1)}
@@ -125,7 +129,8 @@ NEEDS = [
     ("Quante righe WARNING, ERROR o CRITICAL ha scritto ogni componente di Aurora nelle ultime 24 ore (le 5 con più righe), dai log in sys/logs", warnings_by_component),
     ("Quanti sogni (immagini dream-*.png) ha dipinto Aurora negli ultimi 7 giorni, nella cartella delle immagini", dreams),
     ("Quanti PDF ci sono nella cartella dei documenti di Aurora, sottocartelle incluse", documents_pdf),
-    ("Quante routine sono attive e quante in tutto, dal file routines.json dell'utente", routines_active),
+    # the routines are sealed and the core's since N64 (C509): the routines plugin answers that, a forged one never can
+    ("Quanti file ci sono nella cartella delle tracce di Aurora (sys/logs/trace), compresi quelli compressi", trace_files),
     ("Quanto spazio occupano, in MiB (1 MiB = 1024 × 1024 byte), i log dell'harvester (cartella sys/logs/harvester)", log_mb),
 ]
 

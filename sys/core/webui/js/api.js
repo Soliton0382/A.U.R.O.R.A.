@@ -29,6 +29,8 @@ export async function call(path, options = {}) {
     : (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`);
   // the server keeps answers up to 8 MB (aurora/sys_replay.py): a bigger upload is never sent twice by itself
   const again = !key || typeof options.body !== "string" || options.body.length <= 8 * 2 ** 20;
+  // a change asked by a click or a key (not a page's own background call): the page shown is drawn again (main.js)
+  const acted = key && !options.quiet && (navigator.userActivation ? navigator.userActivation.isActive : true);
   for (let attempt = 1; ; attempt++) {
     let res, out;
     try {
@@ -42,6 +44,7 @@ export async function call(path, options = {}) {
         throw Object.assign(new Error(JSON.stringify(body.detail || res.statusText)), { status: res.status });
       }
       out = await res.json();
+      if (acted) dispatchEvent(new CustomEvent("aurora:acted", { detail: { path, method } }));
     } catch (e) {
       if (e.status || e.name === "AbortError" || !lost(e) || !again || attempt >= TRIES) {
         throw lost(e) && !e.status ? Object.assign(new Error("connection lost (the work may still be running: try again in a moment)"), { lost: true }) : e;

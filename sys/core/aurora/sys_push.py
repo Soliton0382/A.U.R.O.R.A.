@@ -194,6 +194,11 @@ def _vapid_pem(cfg: sys_config.Config) -> Path:
             key = ec.generate_private_key(ec.SECP256R1())
             _write_private(pem, key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
                                                   serialization.NoEncryption()))
+        elif pem.stat().st_mode & 0o077:              # found 660 (C463, N69 d): the service's alone again
+            try:
+                os.chmod(pem, 0o600)
+            except PermissionError:                   # another account's copy (a person's shell): left as it is
+                pass
     return pem
 
 

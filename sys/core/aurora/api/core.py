@@ -59,8 +59,9 @@ _activity_cond = threading.Condition()
 MAX_ACTIVITY = 1000
 
 
-def note(source: str, event: str, payload: dict | None = None) -> dict:
-    """An item of the activity feed, the user's whose work it is (none given: the admin's); each user sees theirs."""
+def note(source: str, event: str, payload: dict | None = None, quiet: bool = False) -> dict:
+    """An item of the activity feed, the user's whose work it is (none given: the admin's); each user sees theirs.
+    quiet: in the feed only, no toast nor push (C406: the routine of security at 🚀, said in the digest)."""
     with _activity_cond:
         seq = (_activity[-1]["seq"] + 1) if _activity else 1
         item = {"seq": seq, "ts": time.time(), "source": source, "event": event, "payload": payload or {},
@@ -68,7 +69,8 @@ def note(source: str, event: str, payload: dict | None = None) -> dict:
         _activity.append(item)
         del _activity[:-MAX_ACTIVITY]
         _activity_cond.notify_all()
-    _push(event, item["payload"])
+    if not quiet:
+        _push(event, item["payload"])
     return item
 
 

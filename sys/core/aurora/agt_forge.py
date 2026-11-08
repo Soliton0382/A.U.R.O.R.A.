@@ -69,7 +69,7 @@ SYS_WRITE = ("You are Aurora's forge: you write a small MCP plugin, in Python, t
              "the tool with sys_config.get().values.get(KEY, \"\") — never at import — and, when one is missing, return "
              "\"Non configurato: manca KEY (Plugin → <name>)\". Standard library, httpx, aurora.sys_config and aurora.mdl_llm "
              "(LLM(sys_config.get()): the local model; .see(jpeg_bytes, instruction) looks at an image) only; tools return "
-             "plain text in Italian, short, never raise for 'no data'; docstrings and comments in English (the owner's "
+             "plain text in Italian, short, never raise for 'no data'; a file or folder it cannot find or open is never 'no data': it says so and that it could not read it, never zero or 'none' (C509); docstrings and comments in English (the owner's "
              "rule for the code: what a tool returns is Italian, what explains the code is English); wrap each tool body in try/except returning "
              "'ERRORE: ' and the traceback (as in the template); timestamps like 2026-10-01T23:42:53.023+02:00 parse with "
              "datetime.fromisoformat; no secrets in the code. Aurora's logs: one folder per component under sys/logs, the "
@@ -140,7 +140,7 @@ def shown(cfg: sys_config.Config, item: dict, viewer: str | None = None) -> dict
 # cards; in its cage it could not open them, and a plugin that could would be a way around the seals, the users'
 # separation and the visibility each person chose). Asked for, it is refused and said: a core tool, from the owner.
 CORE_STORES = re.compile(r"(?i)(sys_people|people\.sealed|sys_seal|\.sealed\b|sealed (store|file|data)|sys_users|users\.db|"
-                         r"sys_approvals|approvals\.json|sys_keyring|keyring|aurora-key|\.env\b|sys_config\.(write|set)|"
+                         r"sys_approvals|approvals\.json|routines\.json|react\.json|sys_keyring|keyring|aurora-key|\.env\b|sys_config\.(write|set)|"
                          r"sys_ethics|ethics/|MANIFEST\.json|vault keys?|memory (store|shards?)|sys_memory|reflection domain|"
                          r"session memor|another user'?s|other users'? (memor|conversation|data)|assist\.json|sys_assist)")
 CORE_REFUSAL = ("REFUSED: this reaches Aurora's own internal data (the people's cards, memories, users, keys, approvals, "

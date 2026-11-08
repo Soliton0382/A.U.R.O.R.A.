@@ -4796,7 +4796,7 @@ Median: HumanEval 35.1 against 32.7 s; simple 16.0 against 2.8; multiple 18.1 ag
 
 ### Not done
 - M266: done on 4 Nov, see its second round.
-- M217, M251: several nights; not started.
+- M217, M251: 20.66 days reached on 4 Nov (M251), 8 of 8; further nights only as they pass.
 - M243: the shadows are sealed: needs Aurora code reading them in-process, forbidden; no API found.
 - M250 (Opus as judge), bench_agi, bare-claude, judged sets: done on 4 Nov (M287, M288), the judge works from this shell since C489.
 - M252 lessons from the local model's own mistakes: bench_learn writes the shared lessons store; see M252.
@@ -4805,7 +4805,7 @@ Median: HumanEval 35.1 against 32.7 s; simple 16.0 against 2.8; multiple 18.1 ag
 - M249: drawing of circuits written by the model: same picture limit.
 - M260, M201: long runs writing a project in the owner's space; not started.
 - U6 fresh install: needs a snapshot revert, which needs asking.
-- bench_preflight not run: the owner's rule is for large cloud benchmarks after the weekly reset (Friday); this one had 40 answers. Say so to the owner.
+- bench_preflight: run before M287-M289 (4-5 Nov). Then: the owner's rule is for large cloud benchmarks after the weekly reset (Friday); this one had 40 answers. Say so to the owner.
 
 ## M277 — a picture asked while the reasoner writes (3 November 2026; BUGS C486)
 
@@ -5016,7 +5016,6 @@ With these two, M287's score on today's code is **0.927** (8 sections). A first 
 own sandbox had no sys/app (C507), and the agent's right fix was refused for a test that could not start; it said so and did
 not force the tests. The forge's two misses: the logs' size, 8.80 MB in decimal against an expected 8.4 in binary, a right answer
 and a question that did not say which (it says MiB now); and the routines, «no file: no routine configured» against 39. The
-forge ran in the services' identity. The second is not explained: a benchmark's plugin may look in another user's place than a
-real one's, and a file not found was told as none. Not measured: the same need asked by a real user; a proposal carried through
+forge ran in the services' identity. The second is C509: the forge offered a sealed file to a plugin, which told what it could not read as none. Not measured: the same need asked by a real user; a proposal carried through
 to a real change (the benchmark refuses each); how much the 13 days without a sandbox (C504) left undone.
 

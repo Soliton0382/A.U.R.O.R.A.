@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2026 A.U.R.O.R.A. Project
 import os
+import subprocess
 import sys
 
 import pytest
@@ -28,12 +29,12 @@ def test_the_console_menu_then_the_command(cfg, tmp_path, monkeypatch):
     ssh.chmod(0o755)
     monkeypatch.setenv("PATH", f"{tmp_path}{os.pathsep}{os.environ['PATH']}")
     key = tmp_path / "key"
-    key.write_text("k")
+    subprocess.run(["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", str(key)], check=True)   # a real one: sealed (C463)
     cfg.values.update({"AURORA_FIREWALL_API_KIND": "sophos", "AURORA_FIREWALL_API_URL": "https://10.0.0.1:4444",
                        "AURORA_FIREWALL_SSH_KEY": str(key), "AURORA_FIREWALL_SSH_USER": "admin"})
     sec_fwpower.act(cfg, "restart")
     log = (tmp_path / "ssh.log").read_text()
-    assert f"-i {key}" in log and "admin@10.0.0.1" in log and "typed: system restart all" in log
+    assert f"-i {key}.pub" in log and "IdentityAgent=" in log and "admin@10.0.0.1" in log and "typed: system restart all" in log
 
 
 def test_only_what_is_supported_is_sent(cfg):

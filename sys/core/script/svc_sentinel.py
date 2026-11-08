@@ -102,8 +102,8 @@ def main() -> int:
 
     def busy() -> bool:                                # a run working: a new network is not «from nothing»
         try:
-            return any(not r.get("done") for r in api.get(f"{BASE}/v1/aurora/runs").json())
-        except (httpx.HTTPError, ValueError):
+            return api.get(f"{BASE}/v1/aurora/runs/busy").json()["open"] > 0     # every user's runs (C512)
+        except (httpx.HTTPError, ValueError, KeyError, TypeError):
             return True                                # not known: never said «from nothing» on a guess
     ways = sec_egress_watch.EgressWatch(cfg, busy=busy)
     log.info("egress watch: %d networks listed (%s), this machine as %s", len(egress.deny.nets),

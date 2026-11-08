@@ -32,14 +32,20 @@ class PowerError(RuntimeError):
 
 def _console(cfg: sys_config.Config, command: str, timeout: float = 40) -> str:
     """The console reached through its menu, one command typed; the screens read, for the log."""
-    import pty                                         # not on Windows: the ports say «not supported»
     host = urlparse(str(cfg["AURORA_FIREWALL_API_URL"]).split()[0]).hostname
     key = Path(str(cfg["AURORA_FIREWALL_SSH_KEY"])).expanduser()
     if not host or not key.exists():
         raise PowerError(f"the firewall's console: no address or no key ({key})")
+    from . import sys_sshkey
+    with sys_sshkey.ssh_options(cfg, key) as opts:     # sealed at rest, in an agent of its own for this call (C463)
+        return _typed(cfg, host, opts, command, timeout)
+
+
+def _typed(cfg: sys_config.Config, host: str, opts: list[str], command: str, timeout: float) -> str:
+    import pty                                         # not on Windows: the ports say «not supported»
     pid, fd = pty.fork()
     if pid == 0:                                       # the child: ssh with a terminal, the key only, no prompt
-        os.execvp("ssh", ["ssh", "-tt", "-i", str(key), "-o", "IdentitiesOnly=yes", "-o", "BatchMode=yes",
+        os.execvp("ssh", ["ssh", "-tt", *opts, "-o", "IdentitiesOnly=yes", "-o", "BatchMode=yes",
                           "-o", "StrictHostKeyChecking=accept-new", "-o", "ConnectTimeout=8",
                           f"{cfg['AURORA_FIREWALL_SSH_USER']}@{host}"])
     seen = ""

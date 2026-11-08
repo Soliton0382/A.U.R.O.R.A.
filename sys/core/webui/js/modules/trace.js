@@ -215,8 +215,12 @@ export function renderAnswer(b, p, when) {
     pdf.addEventListener("click", async () => {         // the answer as a PDF, opened in the viewer (Download there)
       pdf.disabled = true;
       try {
-        const title = p.text.split("\n").find((l) => l.trim())?.replace(/[#*`]/g, "").trim().slice(0, 80) || "Aurora";
-        const doc = await call("/v1/aurora/documents/pdf", { method: "POST", body: JSON.stringify({ title, text: p.text }) });
+        // the title: the first line, cut at a word, no list mark; the sources listed under the text, numbered as cited
+        const first = p.text.split("\n").find((l) => l.trim())?.replace(/[#*`]/g, "").replace(/^\s*[-•]\s*/, "").trim() || "Aurora";
+        const title = first.length > 80 ? `${first.slice(0, 80).replace(/\s+\S*$/, "")}…` : first;
+        const cited = (p.sources || []).map((s) => `- [${s.n}] ${s.title || s.source}${s.url ? ` — ${s.url}` : ""}${s.domain ? ` (${s.domain})` : ""}`);
+        const text = cited.length ? `${p.text}\n\n## ${t("chat.sources")}\n\n${cited.join("\n")}` : p.text;
+        const doc = await call("/v1/aurora/documents/pdf", { method: "POST", body: JSON.stringify({ title, text }) });
         view(doc.url, doc.name, "application/pdf");
       } catch (e) { pdf.textContent = `⛔ ${e.message}`; }
       pdf.disabled = false;

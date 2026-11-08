@@ -40,6 +40,32 @@ from aurora import sys_config; print(sys_config.get().path('AURORA_STATUS_DIR'))
 TOKEN="$STATUS/cloudflare/tunnel.token"
 install -d -m 0700 -o "$USER_NAME" "$STATUS/cloudflare"
 
+# 🔐 the token sealed (C463, ROADMAP N69 g): a systemd credential bound to this machine (its TPM when it has one), opened by
+# systemd for cloudflared alone at each start, in a folder of its own; the file in clear removed, its SHA-256 left for
+# Aurora to know the same token again. A new token Aurora fetched (tunnel.token.new) is sealed here the same way.
+CRED="$TOKEN.cred"
+SOURCE_ARGS="--token-file $TOKEN"
+CREDENTIAL=""
+SYSTEMD_V="$(systemctl --version | sed -n '1s/^systemd \([0-9]*\).*/\1/p')"
+if command -v systemd-creds >/dev/null && [ "${SYSTEMD_V:-0}" -ge 254 ]; then     # %d: the credentials' folder
+  NEW="$TOKEN.new"
+  if [ -s "$NEW" ]; then PLAIN="$NEW"; elif [ -s "$TOKEN" ]; then PLAIN="$TOKEN"; else PLAIN=""; fi
+  if [ -n "$PLAIN" ]; then
+    systemd-creds encrypt --name=tunnel.token "$PLAIN" "$CRED.tmp"
+    chmod 0600 "$CRED.tmp" && mv -f "$CRED.tmp" "$CRED"
+    sha256sum "$PLAIN" | cut -d" " -f1 > "$TOKEN.sha256"
+    chown "$USER_NAME" "$TOKEN.sha256" && chmod 0600 "$TOKEN.sha256"
+    shred -u "$PLAIN"
+    if [ -e "$TOKEN" ]; then shred -u "$TOKEN"; fi
+    echo "🔐 tunnel token sealed: $CRED (the file in clear removed)"
+  fi
+  if [ -s "$CRED" ]; then
+    SOURCE_ARGS="--token-file %d/tunnel.token"
+    CREDENTIAL="LoadCredentialEncrypted=tunnel.token:$CRED"
+    TOKEN="$CRED"                                  # the unit's condition: the sealed file
+  fi
+fi
+
 cat > "$UNIT" <<UNIT_EOF
 # Installed by sys/deploy/cloudflared/install.sh — the token is written by the cloudflare plugin's «Salva»
 [Unit]
@@ -51,7 +77,8 @@ ConditionPathExists=$TOKEN
 [Service]
 Type=simple
 User=$USER_NAME
-ExecStart=$(command -v cloudflared) tunnel --no-autoupdate run --token-file $TOKEN
+$CREDENTIAL
+ExecStart=$(command -v cloudflared) tunnel --no-autoupdate run $SOURCE_ARGS
 Restart=on-failure
 RestartSec=10
 NoNewPrivileges=yes

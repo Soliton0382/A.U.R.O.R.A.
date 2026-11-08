@@ -20,6 +20,7 @@ import os
 import shutil
 import sys
 import threading
+import time
 from pathlib import Path
 
 from . import sys_config
@@ -31,6 +32,24 @@ def _declared(manifest: dict) -> set[str]:
     return set(manifest.get("env", [])) | set(manifest.get("env_as", {})) | set(manifest.get("requires", []))
 
 
+_scrubbed: set[str] = set()
+
+
+def _scrub(d: Path) -> None:
+    """Once per process: the env files written before C463 held a plugin's secrets in clear; each call writes its own
+    again, so one older than an hour is nobody's now and goes (a plugin starting this minute keeps its file)."""
+    if str(d) in _scrubbed:
+        return
+    _scrubbed.add(str(d))
+    old = time.time() - 3600
+    for f in d.glob("*.env"):
+        try:
+            if f.stat().st_mtime < old:
+                f.unlink()
+        except OSError:
+            pass
+
+
 def env_file(name: str, manifest: dict, cfg: sys_config.Config) -> Path:
     specs = {s["key"]: s for s in sys_config.load_schema()["settings"]}
     # the effective values of the plugin's user (the machine's, their own settings, their folders: U3), else the file
@@ -40,10 +59,13 @@ def env_file(name: str, manifest: dict, cfg: sys_config.Config) -> Path:
     for k, v in raw.items():
         if specs.get(k, {}).get("secret") and k not in mine:
             v = REDACTED if v else ""
+        elif specs.get(k, {}).get("secret") and v:     # its own: named here, the value in its environment (C463)
+            v = sys_config.ENV_REF + k
         lines.append(f"{k}={v}")
     d = cfg.path("AURORA_STATUS_DIR") / "plugins" / "env"
     d.mkdir(parents=True, exist_ok=True)
     os.chmod(d, 0o700)
+    _scrub(d)
     f = d / (f"{name}.{cfg.user}.env" if cfg.user else f"{name}.env")      # one per user: never each other's
     # a temporary file of this call only: two calls of the same plugin at once (the tool lists at start) collided
     # on one shared name and one failed (C115)

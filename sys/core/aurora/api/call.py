@@ -149,6 +149,9 @@ async def call_audio(ws: WebSocket, call_id: str) -> None:
     asyncio.create_task(asyncio.to_thread(kno_talk.warm, pipeline(), cfg.now(), lang))   # 🔥 no cold first answers (M285)
 
     async def failed(e: Exception) -> None:           # 🛟 a turn that breaks is told, never silence (C499)
+        if isinstance(e, WebSocketDisconnect):            # the phone hung up during the turn: nobody left to tell, no error
+            log.info("call: turn dropped, the caller hung up")
+            return
         log.error("call: turn failed: %r", e, exc_info=e)
         await voice.say("Scusa, ho avuto un problema. Riprova." if lang == "it" else "Sorry, something went wrong. Try again.")
 

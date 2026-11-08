@@ -75,10 +75,32 @@ def _save(path: Path, data: dict) -> None:
         pass
 
 
+SECRETS = ("password", "totp", "cookie")         # sealed with Aurora's key in the file (C463, ROADMAP N69 c)
+
+
+def _sealed_login(cfg, d: dict) -> dict:
+    from aurora import sys_seal
+    return {k: (sys_seal.seal_text(cfg, json.dumps(v), f"bench-login:{k}") if k in SECRETS and v else v) for k, v in d.items()}
+
+
+def _opened_login(cfg, d: dict) -> dict:
+    """The file's secrets in the clear; one written before C463 is taken as it is (sealed at the next save)."""
+    from aurora import sys_seal
+    out = dict(d)
+    for k in SECRETS:
+        v = d.get(k)
+        if isinstance(v, str) and v.startswith(sys_seal.TEXT):
+            out[k] = json.loads(sys_seal.open_text(cfg, v, f"bench-login:{k}"))
+    return out
+
+
 def login(name: str = "", password: str = "") -> dict:
-    """The test user's device cookie: logs in again when it expired (the authenticator's secret kept, 0600)."""
-    BASE, _, LOGIN, _ = _env()
-    d = json.loads(LOGIN.read_text(encoding="utf-8")) if LOGIN.is_file() else {}
+    """The test user's device cookie: logs in again when it expired (the authenticator's secret kept, sealed)."""
+    BASE, cfg, LOGIN, _ = _env()
+    raw = json.loads(LOGIN.read_text(encoding="utf-8")) if LOGIN.is_file() else {}
+    d = _opened_login(cfg, raw)
+    if any(raw.get(k) and raw[k] == d.get(k) for k in SECRETS):     # still in the clear (before C463): sealed now
+        _save(LOGIN, _sealed_login(cfg, d))
     name, password = name or d["name"], password or d["password"]
     if d.get("cookie") and httpx.get(f"{BASE}/v1/aurora/me", cookies=d["cookie"], timeout=30).status_code == 200:
         return d
@@ -88,7 +110,7 @@ def login(name: str = "", password: str = "") -> dict:
         d["totp"] = r["enroll"]["secret"]
     r = httpx.post(f"{BASE}/v1/aurora/login", json={**body, "code": totp(d["totp"])}, timeout=30).raise_for_status()
     d.update(name=name, password=password, cookie=dict(r.cookies))
-    _save(LOGIN, d)
+    _save(LOGIN, _sealed_login(cfg, d))
     return d
 
 

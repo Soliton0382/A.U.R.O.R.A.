@@ -157,6 +157,9 @@ class Stages:
                 + f"\n\nQUESTION: {question}")
         draft = []
         system = f"{SYS_SYNTH}{kno_split.SYS_CASE if kno_split.is_case(question) else ''}\nNOW: {sns_clock.now_text(self.cfg)}."
+        # the language named, not inferred (C511: an English question with Italian turns in the recent conversation
+        # was answered in Italian)
+        system += f"\nWrite the answer in {LANGS.get(txt_lang.detect(question), 'the language of the question')}."
         model = self._for("synthesis")
         for kind, piece in model.stream(system, user, self.cfg["AURORA_PIPELINE_THINK_TOKENS"], think=think):
             if kind == "answer":

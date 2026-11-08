@@ -262,6 +262,22 @@ if __name__ == "__main__":
             log.warning("memory sealing stopped: %s", e)
     app.router.add_event_handler("startup", lambda: threading.Thread(target=_seal_memory, name="seal-memory",
                                                                       daemon=True).start())
+    def _seal_ssh_keys() -> None:
+        """Aurora's SSH keys sealed at start (C463, N69 e), not at their first use: one never used stays in clear else."""
+        from aurora import sys_sshkey
+        keys = [cfg.path("AURORA_STATUS_DIR") / "keys" / "power_ed25519"]
+        if str(cfg["AURORA_FIREWALL_SSH_KEY"] or ""):
+            keys.append(Path(str(cfg["AURORA_FIREWALL_SSH_KEY"])).expanduser())
+        for k in keys:
+            try:
+                if k.is_file() and sys_sshkey.seal_in_place(cfg, k):
+                    log.info("ssh key %s: sealed at rest", k.name)
+            except Exception as e:                      # noqa: BLE001 - never fail the start; the first use tries again
+                log.warning("ssh key %s not sealed: %s", k.name, e)
+
+    app.router.add_event_handler("startup", lambda: threading.Thread(target=_seal_ssh_keys, name="seal-ssh-keys",
+                                                                      daemon=True).start())
+
     def _update_state() -> None:
         """The update's state checked again at start, without fetching: an update made by hand is seen at once."""
         try:

@@ -57,11 +57,26 @@ class AgentReport:
             out.append("- file scritti: " + ", ".join(files[:30]) + (" …" if len(files) > 30 else ""))
         return "\n".join(out)
 
-    def _record(self) -> str:
+    @staticmethod
+    def english(text: str) -> bool:
+        """The report is in English (a user who wrote in English): more of its common words are English than Italian."""
+        words = re.findall(r"[a-zàèéìòù']+", text.lower())
+        en = sum(w in ("the", "and", "is", "of", "to", "in", "it", "you", "with", "for", "on", "not") for w in words)
+        it = sum(w in ("il", "la", "e", "di", "che", "è", "per", "un", "una", "con", "non", "ho", "nel") for w in words)
+        return en > it
+
+    def _record(self, en: bool = False) -> str:
         own = ("list_files", "read_file", "search_code", "logs_inventory", "read_log", "sandbox_read", "sandbox_diff")
         reads = self._count(*own) + sum(1 for name, ok in self.ledger if ok and name.split(SEP)[-1] not in own
                                         and getattr(self, "effects", {}).get(name) == "read")   # the plugins' reads too
         failed = sum(1 for _, ok in self.ledger if not ok)
+        if en:
+            return (f"— Actions performed (from the log of calls): {len(self.ledger)} calls; {reads} reads; "
+                    f"{self._count('sandbox_create')} sandboxes created; {self._count('sandbox_replace', 'sandbox_write')} "
+                    f"changes in a sandbox; {self._count('run_tests')} test runs; "
+                    f"{self._count('propose_change')} proposed changes; "
+                    f"{self._written()} files written in projects; {self._count('run_in_project')} "
+                    f"runs in projects; {failed} failed calls.")
         return (f"— Azioni eseguite (dal registro delle chiamate): {len(self.ledger)} chiamate; {reads} letture; "
                 f"{self._count('sandbox_create')} sandbox create; {self._count('sandbox_replace', 'sandbox_write')} "
                 f"modifiche in sandbox; {self._count('run_tests')} esecuzioni di test; "

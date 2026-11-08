@@ -218,9 +218,5 @@ def data_places(cfg: sys_config.Config) -> str:
                 continue
             if not any(rel.startswith(n) for n in NEVER):
                 rows.append(f"- {rel} — in code cfg.path(\"{s['key']}\"): {s.get('en', '')[:140]}")
-    try:                                                 # this user's own state (routines, approvals): its real place
-        rows.append(f"- {shown(sys_users_layout.place(cfg, 'state', cfg.user))} — in code "
-                    "sys_users_layout.place(cfg, \"state\", cfg.user): this user's routines.json, approvals.json, react.json")
-    except ValueError:
-        pass
+    # a user's own state (routines, approvals) is sealed and the core's: never offered to a plugin (C509)
     return "\n".join(rows[:41])

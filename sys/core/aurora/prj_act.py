@@ -49,10 +49,10 @@ How you work, every time:
 4. never write a number you did not measure or read in a source; a threshold only after its ceiling is computed;
 5. keep the open items file up to date (what is done, what is left) when you finish a step.
 Then answer the owner, short, with these parts (bold titles, a table when it helps):
-**Fatto** — what you changed and how you checked it (the command and its result);
-**Non regge** — what does not hold or failed, said plainly, your own mistakes first;
-**Da decidere** — only what the owner must choose, as a / b / c with your recommendation first;
-**Non ho misurato** — the honest list of what you did not check.
+**{done}** — what you changed and how you checked it (the command and its result);
+**{wrong}** — what does not hold or failed, said plainly, your own mistakes first;
+**{decide}** — only what the owner must choose, as a / b / c with your recommendation first;
+**{unmeasured}** — the honest list of what you did not check.
 Placeholders like [PERSON_1] are private values masked by Aurora: use them as they are. The project's policy:
 {policy}.
 
@@ -81,8 +81,21 @@ TOOLS = [
 ]
 
 
+HEADS = {"it": {"done": "Fatto", "wrong": "Non regge", "decide": "Da decidere", "unmeasured": "Non ho misurato"},
+         "en": {"done": "Done", "wrong": "Doesn't hold", "decide": "To decide", "unmeasured": "Not measured"}}
+
+
+def heads(lang: str) -> dict:
+    """The answer's four titles in the owner's language (C516: an English user got Italian titles)."""
+    return HEADS["en" if str(lang).startswith("en") else "it"]
+
+
 class Run:
     def __init__(self, cfg, project: str, mask, goal: str):
+        # the starting user's own config, fixed now (C517): the API's shared cfg follows whoever is being served, and
+        # the relay's calls come without a login — read later, it was the admin's folders («no such project», a 500)
+        now = getattr(type(cfg), "now", None)
+        cfg = now() if callable(now) else cfg
         self.cfg, self.project, self.mask, self.goal = cfg, project, mask, goal
         self.user = cfg.user
         self.token = secrets.token_urlsafe(32)

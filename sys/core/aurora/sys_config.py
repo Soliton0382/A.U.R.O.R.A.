@@ -176,6 +176,11 @@ class Config:
         return (self.root / self.values[key]).resolve()
 
 
+# 🔐 a plugin's own secrets (C463, ROADMAP N69 a): its filtered .env on the disk says «aurenv:KEY» where the value was;
+# the value travels in the plugin process's environment alone (read by its account and root only), under this prefix
+ENV_REF, PLUGIN_SECRET = "aurenv:", "AURORA_PLUGIN_SECRET_"
+
+
 def load(env_file: Path | None = None, schema_file: Path = SCHEMA_FILE, check_root: bool = True) -> Config:
     env_file = Path(env_file) if env_file else env_file_path()
     if not env_file.is_file():
@@ -183,6 +188,8 @@ def load(env_file: Path | None = None, schema_file: Path = SCHEMA_FILE, check_ro
     schema = load_schema(schema_file)
     specs = {s["key"]: s for s in schema["settings"]}
     raw = parse_env(env_file.read_text(encoding="utf-8"), str(env_file))
+    if os.environ.get("AURORA_PLUGIN"):              # a plugin's filtered .env names its secrets, never holds them (C463)
+        raw = {k: (os.environ.get(PLUGIN_SECRET + k, "") if v == ENV_REF + k else v) for k, v in raw.items()}
     st = env_file.stat()
     shared = _group_name(st.st_gid) == SERVICE_GROUP     # U6: the services' own group reads and writes it too
     if st.st_mode & (0o007 if shared else 0o077):    # secrets inside: nobody else may read it
