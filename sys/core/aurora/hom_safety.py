@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2026 A.U.R.O.R.A. Project
-"""Which way a command to the house goes (owner, 9 Nov: «se la richiesta è la sicurezza (mettere l'allarme, chiudere
-le serrature) non serve conferma… se è il disinserimento allora la conferma ci sta»).
+"""Which way a command to the house goes (9 Nov, C536).
 
 An action that RAISES the house's security (arming the alarm, locking, closing the covers) follows the owner's usual
 rule for commands (AURORA_HA_COMMANDS); one that LOWERS it (disarming, unlocking, opening a door, a gate or the covers)

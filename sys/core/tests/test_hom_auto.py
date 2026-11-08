@@ -185,7 +185,7 @@ def test_a_scene_with_no_light_is_not_started_on_nothing_and_comes_back_on_its_l
 
 
 def test_what_lowers_the_house_s_security_waits_for_the_owner(cfg, monkeypatch):
-    """C536 (owner, 9 Nov): arming and locking need no confirmation; disarming and opening always the owner's own yes —
+    """C536: arming and locking need no confirmation; disarming and opening always the owner's own yes —
     an automation of Aurora's that opens stays off until he turns it on, and his own are not hers to change."""
     from aurora import hom_safety as S
     assert S.lowers("lock", "unlock") and S.lowers("alarm_control_panel", "alarm_disarm") and S.lowers("cover", "open_cover")

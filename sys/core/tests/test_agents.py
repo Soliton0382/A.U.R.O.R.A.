@@ -417,7 +417,7 @@ def test_a_home_command_the_owner_asked_for_is_done_one_a_run_decided_waits(cfg,
     assert run(False, 2) == (0, 3)                      # 2 without the exemption from level B: still waits
     assert run(False, 2, exempt=True) == (1, 3)
 
-    # C536 (owner, 9 Nov): disarming or opening waits for the owner even when asked in the chat and with no confirmation
+    # C536: disarming or opening waits for the owner even when asked in the chat and with no confirmation
     def lowering(asked):
         cfg.values["AURORA_CONFIRM_EXTERNAL_ACTIONS"], cfg.values["AURORA_HA_COMMANDS"] = False, 2
         monkeypatch.setattr("aurora.sys_ethics.exempt", lambda c=None: True)

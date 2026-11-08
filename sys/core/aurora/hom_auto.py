@@ -90,7 +90,7 @@ def _action(a: dict) -> dict:
 def save(cfg, spec: dict, owner: bool = False) -> dict:
     """A new automation, or the one with spec["id"] changed. `owner`: the person's own click in 🏠 Casa (api/home);
     without it (the agent) an automation that lowers the house's security is kept off until the owner turns it on, and
-    one the owner made is not Aurora's to change (C536, owner 9 Nov)."""
+    one the owner made is not Aurora's to change (C536)."""
     name = str(spec.get("name", "")).strip()[:80]
     if not name:
         raise AutoError("name: required")
