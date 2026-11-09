@@ -88,11 +88,14 @@ class AgentReport:
     NEG = re.compile(r"(?i)\b(?:non|nessun\w*|senza|né|not|never|no|didn't|did not|without)\b[^.!?\n]{0,40}$")
     # a heading answered at once by a denial: «**Cosa ho cambiato o proposto**\nNiente: ho solo letto» (C350)
     NEG_AFTER = re.compile(r"(?i)^[^\n]{0,40}\n+\W*(?:niente|nulla|nessun\w*|nothing|none|no)\b")
+    # the denial right after the verb: «I changed nothing and proposed nothing» (C545, an English report)
+    NEG_NEXT = re.compile(r"(?i)^\s*(?:nothing|none|anything|no\b|niente|nulla|nessun\w*)")
 
     def _claims(self, rx: re.Pattern, text: str) -> bool:
         """A match of a claim that is not denied in the words just before it, nor by the line just after it."""
         return any(not self.NEG.search(text[max(0, m.start() - 60):m.start()])
-                   and not self.NEG_AFTER.search(text[m.end():m.end() + 80]) for m in rx.finditer(text))
+                   and not self.NEG_AFTER.search(text[m.end():m.end() + 80])
+                   and not self.NEG_NEXT.search(text[m.end():m.end() + 20]) for m in rx.finditer(text))
 
     def _honest(self, summary: str) -> str:
         """Every claim the log of calls does not support gets a warning at the top of the report; actions still
@@ -108,6 +111,11 @@ class AgentReport:
             summary = head + "\n\n" + summary
         if false:
             self.log.warning("agent report claims actions that were not performed: %s", ", ".join(false))
+            if self.english(summary):                  # the reader's language, as the record's (C545)
+                names = {"sandbox": "sandboxes created", "edit": "code changes", "tests": "tests run",
+                         "proposal": "proposed changes"}
+                return ("⚠️ Warning: the report claims " + ", ".join(names[f] for f in false)
+                        + " that the log of calls does NOT hold: the log at the end is what counts.\n\n" + summary)
             names = {"sandbox": "sandbox create", "edit": "modifiche al codice", "tests": "test eseguiti",
                      "proposal": "proposte di modifica"}
             return ("⚠️ Attenzione: il resoconto dichiara " + ", ".join(names[f] for f in false)

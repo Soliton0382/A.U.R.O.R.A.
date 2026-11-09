@@ -426,6 +426,9 @@ step "10. Test"
 # ---------------------------------------------------------------------------------------------------
 step "11. $(t 'Codice di condotta: la chiave di questa installazione' 'Code of conduct: this installation'"'"'s key')"
 SIGN="sudo /usr/bin/python3 -I sys/core/script/sys_root.py setup --yes"   # a fresh copy: nothing to review yet
+# an update (aurora-root already there): root's own copy signs, and shows what changed — never the tree's copy with
+# --yes, which would run code the services can write and sign every drift unseen (audit, 10 Nov)
+[ -x /usr/local/sbin/aurora-root ] && SIGN="sudo /usr/local/sbin/aurora-root sign"
 [ "$EXEMPT" = 1 ] && SIGN="$SIGN --exempt"           # a false test before && does not stop set -e
 SUDO_LATER=0
 if sudo -n true 2>/dev/null || (exec </dev/tty) 2>/dev/null; then

@@ -102,6 +102,8 @@ export const groups = [
 // answers 403); their own preferences are in 👥 Users → My account, their plugins' settings in the plugins' cards
 // a page of this installation's own (js/local) goes into the area it names (v.group), the house's included above
 for (const g of groups) if (g.id !== "home") g.views.push(...local.views.filter((v) => v.group === g.id).map((v) => v.id));
+// an area of this installation's own (local.groups: its id, icon, title and pages), before ❓ Help
+groups.splice(groups.findIndex((g) => g.id === "help"), 0, ...(local.groups || []));
 
 export const adminOnly = new Set(["firewalls", "edge", "security", "ciso", "firewall", "aurorafw", "secdefence", "secwatch", "secout", "secegress", "sectrace", "models", "harvester", "synapses", "status", "updates", "import", "https"]);
 // a page may say it is the admin's alone (adminOnly: true), e.g. an installation's own pages about the house

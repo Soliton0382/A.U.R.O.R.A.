@@ -227,6 +227,18 @@ def test_a_project_s_report_is_not_flagged_as_false(cfg):
 
 
 
+def test_an_english_denial_after_the_verb_is_not_a_claim(cfg):
+    """C545: «I changed nothing and proposed nothing during this check» got the Italian warning on an English report."""
+    from types import SimpleNamespace
+    from aurora.agt_loop import Agent
+    a = Agent(SimpleNamespace(llm=None, _for=lambda r: None), cfg, host=SimpleNamespace())
+    a.ledger = []
+    text = "The calendar shows no trip. I changed nothing and proposed nothing during this check."
+    assert a._honest(text) == text
+    out = a._honest("I fixed the bug in the parser and the change is in place.")
+    assert out.startswith("⚠️ Warning: the report claims code changes")
+
+
 def test_a_denied_action_is_not_a_claim():
     """C155: «Non ho modificato codice, non ho creato sandbox e non ho proposto modifiche» flagged a weather report."""
     from aurora.agt_loop import Agent

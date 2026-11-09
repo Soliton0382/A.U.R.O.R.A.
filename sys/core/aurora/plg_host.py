@@ -154,6 +154,9 @@ class PluginHost:
         out, st = [], self._state()
         if not self.dir.is_dir():
             return out
+        from . import sys_ethics
+        signed = self.cfg.root / "sys" / "plugins"
+        outside = (self.cfg.root / sys_ethics.MANIFEST).is_file() and self.dir.resolve() != signed.resolve()
         for mf in sorted(self.dir.glob("*/plugin.json")):
             try:
                 manifest = json.loads(mf.read_text(encoding="utf-8"))
@@ -168,6 +171,12 @@ class PluginHost:
             if (bad := sys_ethics.forbidden_capabilities(manifest)):      # ethics code, level A: never loaded
                 p.error = f"refused by the ethics code (level A): {', '.join(bad)}"
                 self.log.warning("plugin %s refused by the ethics code: %s", p.name, ", ".join(bad))
+                out.append(p)
+                continue
+            if outside:                                        # a plugins' folder the signature does not cover (audit,
+                p.error = ("not in sys/plugins, the folder the owner's signature covers: "   # 10 Nov: a setting moved it)
+                           "set AURORA_PLUGINS_DIR back to sys/plugins")
+                self.log.warning("plugin %s: not loaded, outside the signed plugins' folder", p.name)
                 out.append(p)
                 continue
             if mf.parent.name in sys_ethics.unsigned_plugins(self.cfg.root):   # neither Aurora's (forged) nor signed
@@ -236,6 +245,10 @@ class PluginHost:
     async def _session(self, p: Plugin, work):
         from mcp import ClientSession
         from mcp.client.stdio import stdio_client
+        if p.manifest.get("url"):                         # a remote MCP server (owner, 10 Nov): its address only —
+            if p.manifest.get("kind") != "mcp" or p.manifest.get("forged"):    # the owner's own, never a forged one
+                raise RuntimeError("an address is only for the owner's MCP servers (kind mcp), never a forged plugin")
+            return await self._remote_session(p, work)
         errlog = _redacted_log(self.cfg.path("AURORA_LOG_DIR") / "plugins" / f"{p.name}.stderr.log")
         try:
             async with stdio_client(self._params(p), errlog=errlog) as (read, write):
@@ -244,6 +257,20 @@ class PluginHost:
                     return await work(session)
         finally:
             errlog.close()
+
+    async def _remote_session(self, p: Plugin, work):
+        """An MCP server at an address (streamable HTTP, http or https: owner, 10 Nov), reached there only — what it
+        answers is data from outside, through the honeypot (plg_mcp marks it from_network, C553)."""
+        from urllib.parse import urlparse
+        from mcp import ClientSession
+        from mcp.client.streamable_http import streamable_http_client
+        url = str(p.manifest["url"])
+        if urlparse(url).scheme not in ("http", "https"):
+            raise RuntimeError("a remote MCP server is reached over http or https only")
+        async with streamable_http_client(url) as streams:
+            async with ClientSession(streams[0], streams[1]) as session:
+                await session.initialize()
+                return await work(session)
 
     def _gateway(self) -> str:
         """Aurora in Docker: the plugins run in a container of their own, in their cage (docker/plugins_gateway.py),

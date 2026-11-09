@@ -259,3 +259,15 @@ def test_the_animated_hello_and_goodbye_are_used_when_made(cfg):
     K.intro_dir(cfg).mkdir(parents=True, exist_ok=True)
     (K.intro_dir(cfg) / "intro.mp4").write_bytes(b"x")
     assert K.opening(cfg, "intro").name == "intro.mp4" and K.opening(cfg, "outro") == K.FACE
+
+
+def test_a_reply_of_repeats_is_asked_again_naming_them():
+    """C543: the model copied topics from the ALREADY MADE list; the same request gave the same reply."""
+    asked = []
+
+    def complete(system, user, *a, **k):
+        asked.append(user)
+        return SimpleNamespace(answer='["Cos\'è un buco nero?"]' if len(asked) == 1 else '["Come nasce una cometa?"]')
+    llm = SimpleNamespace(complete=complete)
+    assert kno_story_auto.topics(llm, "", ["Cos'è un buco nero?"]) == ["Come nasce una cometa?"]
+    assert "ONLY REPEATED" in asked[1] and "Cos'è un buco nero?" in asked[1].split("ONLY REPEATED")[1]

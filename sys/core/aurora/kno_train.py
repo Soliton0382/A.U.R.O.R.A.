@@ -78,7 +78,8 @@ def train(pipeline, cfg: sys_config.Config, emit, n: int, seed: int | None = Non
             skipped += 1                                 # already in a shadow
             continue
         asked += 1
-        ans = pipeline.run(q, emit=lambda e, d: None, run_id=f"train-{int(time.time())}", remember=False, suggest=True)
+        ans = pipeline.run(q, emit=lambda e, d: None, run_id=f"train-{int(time.time())}", remember=False, suggest=True,
+                           alone=True)        # none of the owner's turns: these answers serve other users (audit, 10 Nov)
         if not ans.abstained and ans.mode == "knowledge" and ans.sources:
             kno_shadow.add(cfg, pipeline.search.embedder, q, ans.text, ans.sources, origin="train", follow=ans.suggestions)
             served += 1

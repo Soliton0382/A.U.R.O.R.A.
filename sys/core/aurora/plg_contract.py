@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import re
 
-KINDS = ("tool", "connector", "service")
+KINDS = ("tool", "connector", "service", "mcp")       # mcp: a server of the owner's, manifest only (plg_mcp)
 EFFECTS = ("read", "write_local", "external")
 NAME = re.compile(r"^[a-z][a-z0-9_]{1,40}$")
 SETTING = re.compile(r"^AURORA_[A-Z0-9_]+$")
@@ -23,9 +23,14 @@ SETTING = re.compile(r"^AURORA_[A-Z0-9_]+$")
 FIELDS = {
     "name": (str, True, "the folder's name: lowercase letters, digits, _; the tools are called <name>__<tool>"),
     "version": (str, True, "the plugin's own version"),
-    "kind": (str, True, "tool (works on this machine), connector (an account somewhere), service (no tools: a job)"),
+    "kind": (str, True, "tool (works on this machine), connector (an account somewhere), service (no tools: a job), "
+                        "mcp (an MCP server of the owner's, added from the Plugins page: plg_mcp)"),
     "description": (dict, True, "{it, en}: what it does, shown in the Plugins page and to the agent"),
-    "command": (list, True, "how its program starts: [\"{python}\", \"server.py\"], or a program of its own"),
+    "command": (list, True, "how its program starts: [\"{python}\", \"server.py\"], or a program of its own (a remote "
+                            "MCP server has an url instead)"),
+    "url": (str, False, "a remote MCP server's address, http or https (kind mcp): no command"),
+    "memory": (bool, False, "false: an answer that used it never enters Aurora's memory (kind mcp)"),
+    "chat": (bool, False, "false: kept out of the chat, only an agent that chose it uses it (kind mcp)"),
     "requires": (list, True, "settings without which it does not start (named, never their values)"),
     "effects": (dict, True, "tool → read | write_local | external; \"*\" for the rest"),
     "env": (list, False, "settings passed to its program"),
@@ -33,7 +38,8 @@ FIELDS = {
     "settings_spec": (list, False, "its own settings: {key AURORA_<NAME>_…, type, secret, scope, it, en}; scope "
                                    "\"user\": a person's account, kept in their own .env"),
     "setup": (dict, False, "{it, en, links}: how to set it up"),
-    "sandbox": (dict, False, "{network: bool or \"local\" (the local model only), write: [setting names of folders]}: the cage"),
+    "sandbox": (dict, False, "{network: bool, \"local\" (the local model only) or \"proxy\" (its hosts only), write: [setting "
+                             "names of folders], read: [absolute paths outside Aurora, kind mcp only]}: the cage"),
     "tests": ((list, dict), False, "read tools called by «Prova»: [{tool, args}] or {tool: args}"),
     "welcome": (dict, False, "{it, en}: said once when it is first switched on"),
     "publishes": (dict, False, "tool → the argument that is published (a post, a comment): checked before it leaves"),
@@ -41,7 +47,7 @@ FIELDS = {
     "on_demand": (dict, False, "{words: [...]}: its tools in the agent's catalog only when the goal names one (agt_tools)"),
     "cache": (dict, False, "tool → seconds an answer is kept"),
     "capabilities": (list, False, "what it lets Aurora do, checked by the ethics code"),
-    "from_network": (list, False, "tools whose answers come from the internet (marked as such)"),
+    "from_network": (list, False, "tools whose answers come from the internet (marked as such; «*»: all of them)"),
     "social": (dict, False, "a social platform: its statistics and posts in the 📣 Social page"),
     "routines": (list, False, "routines it proposes"),
     "private": (bool, False, "its data are private: after one of its reads the run uses the local model only"),
@@ -63,7 +69,7 @@ def check(m: dict, folder: str = "") -> list[str]:
     out = []
     for k, (typ, required, _) in FIELDS.items():
         if k not in m:
-            if required:
+            if required and not (k == "command" and m.get("url")):
                 out.append(f"{k}: missing")
         elif not isinstance(m[k], typ):
             out.append(f"{k}: {type(m[k]).__name__}, not {getattr(typ, '__name__', typ)}")
@@ -89,10 +95,18 @@ def check(m: dict, folder: str = "") -> list[str]:
         if e not in EFFECTS:
             out.append(f"effect_prefixes: {prefix}={e}")
     sb = m.get("sandbox") or {}
-    if bad := sorted(set(sb) - {"network", "write"}):
-        out.append(f"sandbox: {', '.join(bad)} not in the contract (network, write)")
-    if "network" in sb and not (isinstance(sb["network"], bool) or sb["network"] == "local"):
-        out.append("sandbox.network: true, false or \"local\" (the local model only)")
+    if bad := sorted(set(sb) - {"network", "write", "read"}):
+        out.append(f"sandbox: {', '.join(bad)} not in the contract (network, write, read)")
+    if "network" in sb and not (isinstance(sb["network"], bool) or sb["network"] in ("local", "proxy")):
+        out.append("sandbox.network: true, false, \"local\" (the local model only) or \"proxy\" (its hosts only)")
+    if sb.get("read") and m.get("kind") != "mcp":
+        out.append("sandbox.read: only an MCP server of the owner's (kind mcp) reads outside Aurora")
+    if bad := [r for r in sb.get("read") or [] if not str(r).startswith("/")]:
+        out.append(f"sandbox.read: absolute paths, not {', '.join(map(str, bad))}")
+    if m.get("url") and m.get("kind") != "mcp":
+        out.append("url: only an MCP server (kind mcp)")
+    if m.get("url") and not str(m["url"]).startswith(("http://", "https://")):
+        out.append("url: http:// or https://")
     if bad := [s for s in sb.get("write") or [] if not SETTING.match(str(s))]:
         out.append(f"sandbox.write: folders by their setting's name, not {', '.join(map(str, bad))}")
     if "page" in m and not re.fullmatch(r"[a-z][a-z0-9_]{1,30}", str(m["page"])):

@@ -12,16 +12,19 @@ Every plugin.json follows it (aurora/plg_contract.py: the tests check every plug
 |---|---|---|
 | `name` | yes | the folder's name: lowercase letters, digits, _; the tools are called <name>__<tool> |
 | `version` | yes | the plugin's own version |
-| `kind` | yes | tool (works on this machine), connector (an account somewhere), service (no tools: a job) |
+| `kind` | yes | tool (works on this machine), connector (an account somewhere), service (no tools: a job), mcp (an MCP server of the owner's, added from the Plugins page: plg_mcp) |
 | `description` | yes | {it, en}: what it does, shown in the Plugins page and to the agent |
-| `command` | yes | how its program starts: ["{python}", "server.py"], or a program of its own |
+| `command` | yes | how its program starts: ["{python}", "server.py"], or a program of its own (a remote MCP server has an url instead) |
+| `url` | — | a remote MCP server's address, http or https (kind mcp): no command |
+| `memory` | — | false: an answer that used it never enters Aurora's memory (kind mcp) |
+| `chat` | — | false: kept out of the chat, only an agent that chose it uses it (kind mcp) |
 | `requires` | yes | settings without which it does not start (named, never their values) |
 | `effects` | yes | tool → read | write_local | external; "*" for the rest |
 | `env` | — | settings passed to its program |
 | `settings` | — | settings shown in its card |
 | `settings_spec` | — | its own settings: {key AURORA_<NAME>_…, type, secret, scope, it, en}; scope "user": a person's account, kept in their own .env |
 | `setup` | — | {it, en, links}: how to set it up |
-| `sandbox` | — | {network: bool or "local" (the local model only), write: [setting names of folders]}: the cage |
+| `sandbox` | — | {network: bool, "local" (the local model only) or "proxy" (its hosts only), write: [setting names of folders], read: [absolute paths outside Aurora, kind mcp only]}: the cage |
 | `tests` | — | read tools called by «Prova»: [{tool, args}] or {tool: args} |
 | `welcome` | — | {it, en}: said once when it is first switched on |
 | `publishes` | — | tool → the argument that is published (a post, a comment): checked before it leaves |
@@ -53,6 +56,7 @@ A plugin the forge writes (`forged`) is held by its cage at every start, whateve
 | `astro` | tool | astro_profile (read), astro_darks (read), astro_files (read), astro_note (read), astro_nights (read), astro_polar (read), astro_pointing (read), astro_stars (read), astro_collimation (read), astro_advice (read), astro_imaging (read) | — |
 | `backup` | service | — | — |
 | `backup_files` | tool | backup_files_dest (read), backup_files_list (read), backup_files_check (read) | — |
+| `backup_verify` | tool | backup_verify_list (read), backup_verify_check (read) | AURORA_BACKUP_VERIFY_MOUNT |
 | `cad` | tool | cad_build (write_local), cad_drawings (write_local), cad_blueprint (write_local) | — |
 | `calendar` | tool | calendar_agenda (read), calendar_add (write_local), calendar_remind (write_local), calendar_change (write_local), calendar_delete (write_local), calendar_add_event (external) | — |
 | `cinema` | tool | — | AURORA_TMDB_TOKEN |
@@ -140,6 +144,18 @@ Nightly backup of your data to another disk or the NAS: encrypted, deduplicated,
 ## backup_files
 
 Backup details, read only: the destination folder's contents (snapshots, blobs, empty or unreadable files), the files recorded by the backup with a filter, and whether specific critical files are recorded and still exist.
+
+## backup_verify
+
+Backup destination, read only, file by file: the list of files on the mounted SMB share (size, date, empty or unreadable ones) and the check of the critical files (present, not empty, readable, recent).
+
+### Setup (EN)
+
+1) Mount the SMB share on this machine: with the file manager (Other locations → smb://server/share) it appears under /run/user/<your-uid>/gvfs/smb-share:server=SERVER,share=SHARE; or, permanently, with a cifs line in /etc/fstab (e.g. /mnt/nas). 2) Open that folder and go down to the backup destination (where the backup's files are). 3) Copy the full path into AURORA_BACKUP_VERIFY_MOUNT. 4) Optional: in AURORA_BACKUP_VERIFY_FILES write the files that must never be missing, relative to that folder, comma separated (e.g. config,keys/*,index/*). 5) Save in Plugin → backup_verify.
+
+### Configurazione (IT)
+
+1) Monta la condivisione SMB su questa macchina: con il file manager (Altre posizioni → smb://server/condivisione) appare in /run/user/<tuo-uid>/gvfs/smb-share:server=SERVER,share=CONDIVISIONE; oppure, in modo stabile, con una riga cifs in /etc/fstab (es. /mnt/nas). 2) Apri quella cartella e scendi fino alla destinazione del backup (dove stanno i file del backup). 3) Copia il percorso completo in AURORA_BACKUP_VERIFY_MOUNT. 4) Facoltativo: in AURORA_BACKUP_VERIFY_FILES scrivi i file che non devono mai mancare, relativi a quella cartella, separati da virgola (es. config,keys/*,index/*). 5) Salva in Plugin → backup_verify.
 
 ## cad
 

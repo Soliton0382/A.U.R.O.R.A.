@@ -8,6 +8,7 @@ import { el, toBase64, useCss } from "../dom.js";
 import { apply, lang, t } from "../i18n.js";
 import { renderMarkdown } from "../md.js";
 import { approvalCard } from "./approvals.js";
+import { mcpBox } from "./plugins_mcp.js";
 import { autonomySlot } from "./autonomy_box.js";
 import { settingsForm } from "./settings_form.js";
 
@@ -159,7 +160,9 @@ const view = {
       return b;
     }));
     this.root?.querySelector(".plug-forge")?.remove();
-    if (this.me.admin) this.grid.before(await forgeBox(() => this.enter()));   // the requests carry the runs' words: the admin's
+    if (this.me.admin) this.grid.before(await forgeBox(() => this.enter()));
+    this.root?.querySelector(".plug-mcp")?.remove();
+    if (this.me.admin) this.grid.after(await mcpBox(() => this.enter()));    // 🔌 the owner's MCP servers (10 Nov)   // the requests carry the runs' words: the admin's
     this.root?.querySelector(".plug-trash")?.remove();
     this.root?.querySelector(".plug-sign")?.remove();
     if (!this.me.admin) return;                      // the trash is the admin's, like deleting

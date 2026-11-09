@@ -61,7 +61,9 @@ git --git-dir="$GITTMP" --work-tree="$SRC" ls-files --others --exclude-standard 
 echo "$(wc -l < "$LIST") files"
 
 say "== forbidden paths"
-if grep -nE '^(sys/(vault|status|logs|models|runtime|sandbox|https|deploy/systemd|tmp)/|usr/|tmp/|\.claude/|CLAUDE\.md$|\.venv|.*\.env$|.*\.sig$|.*MANIFEST\.json$|.*id_(ed25519|rsa|ecdsa).*)' "$LIST"; then
+# the installation's own folders too, not only through .gitignore (audit, 10 Nov: one line lost from it and the
+# owner's house would have gone public): local/ anywhere, the owner's own plugins, the app's keys, the install log
+if grep -nE '^(sys/(vault|status|logs|models|runtime|sandbox|https|deploy/systemd|tmp)/|usr/|tmp/|\.claude/|CLAUDE\.md$|\.venv|.*\.env$|.*\.sig$|.*MANIFEST\.json$|.*id_(ed25519|rsa|ecdsa).*|(.*/)?local/|sys/plugins/(local_|ha_)[^/]*/|sys/app/keys/|install\.log$)' "$LIST"; then
   fail "forbidden paths above: fix .gitignore"
 fi
 

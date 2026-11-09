@@ -61,6 +61,8 @@ sys/plugins/local_*/
 # forged here for this house, with its devices' names (C508)
 sys/plugins/ha_states/
 sys/plugins/ha_history/
+# forged on this machine, not looked at for the public yet (dev_publish stops on them): kept here until the owner decides
+sys/plugins/backup_verify/
 
 # a plugin's own libraries and programs (plg_deps, ROADMAP 101): fetched on install, never published
 sys/plugins/*/.deps/

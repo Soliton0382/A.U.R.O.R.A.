@@ -189,7 +189,7 @@ def guard(cfg: sys_config.Config, model, source: str, text: str, mode: str | Non
 
 def from_network(manifest: dict, tool: str) -> bool:
     marked = manifest.get("from_network") or []
-    return marked is True or tool in marked
+    return marked is True or tool in marked or "*" in marked          # «*»: every tool (an MCP server's, 10 Nov)
 
 
 def source_of(plugin: str, tool: str, args: dict) -> str:

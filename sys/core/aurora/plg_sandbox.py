@@ -32,6 +32,43 @@ REDACTED = "redacted"
 FORGED_WRITE = {"AURORA_PROJECTS_DIR"}
 
 
+def read_paths(manifest: dict, cfg: sys_config.Config) -> list[Path]:
+    """The few places outside Aurora a plugin may read (its «sandbox.read»: an MCP server of the owner's that lives
+    elsewhere — its program, its code, its socket; owner, 10 Nov). Never for a forged plugin; never the root, the home or
+    a folder above it, a hidden place (.ssh, .gnupg…) or Aurora's own state. ValueError says which and why."""
+    if forged(manifest):
+        return []
+    home = Path(os.environ.get("HOME") or Path.home()).resolve()
+    status = cfg.path("AURORA_STATUS_DIR").resolve()
+    out = []
+    for raw in manifest.get("sandbox", {}).get("read", []):
+        p = Path(str(raw))
+        if not p.is_absolute():
+            raise ValueError(f"{raw}: an absolute path is needed")
+        p = p.resolve()
+        if p == Path("/") or p == home or home.is_relative_to(p):
+            raise ValueError(f"{raw}: the root, the home or a folder above it is never readable")
+        if any(part.startswith(".") and part not in (".venv",) for part in p.parts):
+            raise ValueError(f"{raw}: a hidden place is never readable")
+        if p.is_relative_to(status):
+            raise ValueError(f"{raw}: Aurora's own state is never readable")
+        if any(p.is_relative_to(n) or n.is_relative_to(p) for n in NEVER_READ):
+            raise ValueError(f"{raw}: the system's own places (/proc, /run, /dev, /sys, the credentials) are never readable")
+        if not p.exists():
+            raise ValueError(f"{raw}: does not exist")
+        out.append(p)
+    return out
+
+
+def _homes() -> list[Path]:
+    """The folders people's homes live in: /home and /root (a home elsewhere is the service's HOME, hidden apart)."""
+    return [p for p in (Path("/home"), Path("/root")) if p.is_dir()]
+
+
+NEVER_READ = (Path("/proc"), Path("/sys"), Path("/dev"), Path("/run"), Path("/etc/credstore"),
+              Path("/etc/credstore.encrypted"), Path("/boot"))   # the kernel's and the machine's secrets (audit, 10 Nov)
+
+
 def forged(manifest: dict) -> bool:
     return bool(manifest.get("forged"))
 
@@ -139,13 +176,21 @@ def wrap(cmd: list[str], folder: Path, manifest: dict, filtered_env: Path, cfg: 
     # the home hidden wherever Aurora is (C204, 8 Oct 2026: with Aurora outside the home — /opt, /srv — a plugin read
     # the whole home, ~/.ssh included; the ports' probe found it); Aurora's folder visible again when it is inside
     # the home or under /tmp (the tests), and the Python the venv runs on when it lives in the home (pyenv, uv)
+    # /home and /root hidden too, not only the service's own HOME (audit, 10 Nov: the service's HOME is inside Aurora,
+    # and a cage read the owner's own home through its open folders — documents, VPN profiles); Aurora's folder and
+    # the Python it runs on bound again when they live there, the service's HOME hidden again after
+    homes = [h for h in _homes() if h != Path("/")]
     if home != Path("/"):
-        args += ["--tmpfs", str(home)]
-    if (home != Path("/") and root.is_relative_to(home)) or root.is_relative_to("/tmp"):
+        homes.append(home)
+    for h in homes:
+        args += ["--tmpfs", str(h)]
+    if any(root.is_relative_to(h) for h in homes) or root.is_relative_to("/tmp"):
         args += ["--ro-bind", str(root), str(root)]
     for python in sorted({Path(sys.base_prefix).resolve(), Path(sys.prefix).resolve()}):
-        if home != Path("/") and python.is_relative_to(home) and not python.is_relative_to(root):
+        if any(python.is_relative_to(h) for h in homes) and not python.is_relative_to(root):
             args += ["--ro-bind", str(python), str(python)]
+    if home != Path("/") and home.is_relative_to(root):
+        args += ["--tmpfs", str(home)]
     args += ["--ro-bind", str(filtered_env), str(cfg.env_file)]
     # /run hidden (C420: docker, libvirt, the system D-Bus and the firewall helper's sockets were reachable from a
     # plugin), the resolver's folder put back for the plugins with a network (/etc/resolv.conf points there)
@@ -200,6 +245,8 @@ def wrap(cmd: list[str], folder: Path, manifest: dict, filtered_env: Path, cfg: 
         sock, port = plg_netproxy.bridge(str(manifest.get("name", folder.name)), manifest, cfg)
         args += ["--ro-bind", str(sock), str(sock), *plg_netproxy.environment(port)]
         cmd = plg_modelnet.wrap(cmd, sock, port)
+    for extra in read_paths(manifest, cfg):                    # an MCP server living elsewhere: what it reads (10 Nov)
+        args += ["--ro-bind", str(extra), str(extra)]
     args += ["--ro-bind", str(folder), str(folder)]           # the plugin's own code, wherever it lives
     args += ["--setenv", "AURORA_IN_SANDBOX", "1"]              # programs inside may rely on this cage (doc_pdf)
     return args + ["--chdir", str(folder), "--"] + cmd

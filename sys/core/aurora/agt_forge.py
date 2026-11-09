@@ -280,6 +280,8 @@ def check(manifest: dict, code: str, existing: set[str], people: set[str] = froz
         errs.append(f"settings_spec: {', '.join(bad)} belong to Aurora or another plugin: choose a name of your own")
     if any(k.startswith(f"AURORA_{name_up}_") for k in theirs):
         errs.append(f"name: AURORA_{name_up}_… is taken by Aurora's own settings or another plugin's: choose another name")
+    if manifest.get("kind", "tool") != "tool":
+        errs.append("kind: a plugin Aurora writes is a «tool», never an MCP server of the owner's")
     if bad := sorted(set(manifest) & FORBIDDEN_FIELDS):
         errs.append(f"{', '.join(bad)}: never in a plugin Aurora writes (sealed stores, the house's commands, "
                     "accounts, installs, social pages are the owner's plugins')")
@@ -319,7 +321,8 @@ def check(manifest: dict, code: str, existing: set[str], people: set[str] = froz
     return errs
 
 
-FORBIDDEN_FIELDS = {"seal_keys", "home_commands", "owner_only", "oauth", "install", "social", "publishes"}
+FORBIDDEN_FIELDS = {"seal_keys", "home_commands", "owner_only", "oauth", "install", "social", "publishes",
+                    "url"}                    # a remote server skips the cage and the proxy: never forged (audit, 10 Nov)
 
 
 def powers(manifest: dict, lang: str = "it") -> list[str]:

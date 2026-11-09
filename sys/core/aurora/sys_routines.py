@@ -289,8 +289,9 @@ def should_notify(r: dict, text: str, ok: bool) -> bool:
 
 
 def record(cfg: sys_config.Config, rid: str, text: str, ok: bool, run_id: str | None = None,
-           files: list[dict] | None = None) -> tuple[dict, bool]:
-    """Store a result; (routine, notify?)."""
+           files: list[dict] | None = None, remember: bool = True) -> tuple[dict, bool]:
+    """Store a result; (routine, notify?). `remember` False: the result is shown, never kept as the routine's memory
+    (it used an MCP server whose answers are never Aurora's: audit, 10 Nov)."""
     rs = all_routines(cfg)
     r = next((x for x in rs if x["id"] == rid), None)
     if r is None:
@@ -299,7 +300,7 @@ def record(cfg: sys_config.Config, rid: str, text: str, ok: bool, run_id: str | 
     r.update(last_run=time.time(), last_ok=ok, last_text=text[:4000], last_run_id=run_id, last_files=files or [])
     if notify and ok:
         r["last_notified"] = text[:4000]
-    if ok and text.strip() and not NOTHING.match(text):     # an agent's memory: its last real report, not "nothing new"
+    if ok and remember and text.strip() and not NOTHING.match(text):   # its memory: its last real report, not "nothing new"
         r["memory_text"], r["memory_at"] = text[:4000], time.time()
     _save(cfg, "routines.json", rs)
     return r, notify

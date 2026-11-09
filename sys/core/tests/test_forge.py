@@ -285,3 +285,10 @@ def test_a_forged_plugin_never_asks_for_more_than_its_own(tmp_path):
     said = F.powers(SERVICE, "it")
     assert said[0] == "🌐 rete solo verso: api.cloudy.example" and "non scrive niente" in said[1]
     assert any("aspetta la tua approvazione" in x for x in said) and said[-1].startswith("🚫 non può")
+
+
+def test_a_forged_plugin_never_names_an_address_nor_is_an_mcp_server():
+    """Audit, 10 Nov: a forged manifest with «url» went to a remote server, past the cage and the proxy."""
+    errs = F.check({**GOOD, "url": "https://example.org/mcp"}, CODE, set())
+    assert any("url" in e for e in errs)
+    assert any("kind" in e for e in F.check({**GOOD, "kind": "mcp"}, CODE, set()))

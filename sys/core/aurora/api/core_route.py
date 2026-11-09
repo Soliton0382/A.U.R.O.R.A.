@@ -49,7 +49,8 @@ def connected_services() -> list[str]:
                 "- phone: on the owner's phone (the Aurora app): an alarm or a timer, open a web page, an app or a web "
                 "search, the navigation to a place, a call or a message prepared (N68)"]
     return built_in + [f"- {p.name}: {(p.manifest.get('description') or {}).get('en', '')[:200]}"
-                       for p in plugin_host().plugins(with_tools=False) if p.available and p.name not in ROUTER_SKIP]
+                       for p in plugin_host().plugins(with_tools=False) if p.available and p.name not in ROUTER_SKIP
+                       and p.manifest.get("chat") is not False]       # an MCP server kept out of the chat (10 Nov)
 
 
 def wants_tools(question: str, recent: list, emit=None) -> bool:
@@ -334,6 +335,12 @@ def answer_or_acquire(question: str, emit, run_id: str, **kw):
     if not kw.get("attached") and wants_tools(question, recent, emit):     # a connected service, not the vault
         emit("route", {"mode": "tools"})
         context = "\n".join(f"{'Owner' if t.extra.get('role') == 'user' else 'Aurora'}: {t.text[:500]}" for t in recent[-4:])
+        if remember:                                  # C544: what the person told her, as the answers have (kno_about)
+            try:
+                from aurora import kno_about
+                context += kno_about.facts(p, question, emit)
+            except Exception as e:                    # noqa: BLE001 — a help, never a reason to fail
+                log.warning("the person's facts not read for the agent: %s", e)
         return _agent_job(question, context, remember=remember, label=question, asked=True)(question, emit, run_id)
     last = recent[-1] if recent else None
     if (last is not None and last.extra.get("role") == "assistant" and last.extra.get("abstained")

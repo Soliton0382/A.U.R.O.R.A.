@@ -180,6 +180,8 @@ class Agent(AgentMakers, AgentReport):
         for p in self.host.plugins():
             if not p.available or (self.allow is not None and p.name not in self.allow):
                 continue
+            if (getattr(p, "manifest", None) or {}).get("chat") is False and not (self.allow and p.name in self.allow):
+                continue                                 # an MCP server kept out of the chat: only an agent that chose it
             if not agt_tools.wanted(getattr(p, "manifest", None) or {}, goal):
                 self.deferred.append(p)
                 continue
@@ -445,6 +447,13 @@ class Agent(AgentMakers, AgentReport):
             emit("agent.file", f)
         return ("" if r["ok"] else "ERROR: ") + r["text"]
 
+    def kept_out(self) -> set[str]:
+        """The MCP servers used by this run whose answers never enter Aurora's memory (memory: false, 10 Nov): nothing
+        of the run is kept then — not its turn, not a reflection, not a routine's memory, not a project's report."""
+        from . import plg_mcp
+        used = {n.split(SEP)[0] for n, _ in self.ledger if SEP in n}
+        return plg_mcp.unremembered(self.host) & used if used else set()
+
     def run(self, goal: str, emit, run_id: str, context: str = "") -> Answer:
         """Work toward the goal; `self.trail` keeps the path (steps and reasoning) for memory."""
         t0 = time.time()
@@ -604,7 +613,7 @@ class Agent(AgentMakers, AgentReport):
                               "files": [f for f in self.produced if not f.get("mime", "").startswith("image/")],
                               "images": [{**f, "inline": True} for f in self.produced if f.get("mime", "").startswith("image/")]})
         self.log.info("agent run %s: %d steps in %.0f s", run_id, steps, seconds)
-        if self.projects:                                    # a project's work done: the owner is told, with the report's start
+        if self.projects and not self.kept_out():           # a project's work done: the owner is told, with the report's start
             from . import prj_reports
             for name in sorted(self.projects):                # and the report stays with each project (its page)
                 try:

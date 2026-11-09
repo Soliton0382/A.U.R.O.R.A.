@@ -68,7 +68,12 @@ def _agent_job(goal: str, context: str = "", after=None, remember: bool = False,
             for f in agent.produced:
                 if not f["url"].startswith("/v1/aurora/uploads/"):    # a picture it painted is kept already
                     sys_uploads.link(cfg, run_id, f["name"], f["url"], f["mime"])
-        if remember:
+        keep = remember
+        ans.kept_out = sorted(agent.kept_out())         # an MCP server whose answers are never hers (10 Nov): not kept,
+        if ans.kept_out:                                # nor by what runs after (a reflection: audit, 10 Nov)
+            emit("memory.skipped", {"servers": ans.kept_out})
+            keep = False
+        if keep:
             pipeline().remember(label or f"/agente {goal}", ans, run_id, emit, agent.trail, asked_at)
         if after:
             after(ans, emit)
@@ -492,8 +497,9 @@ def react(origin: str, title: str, error: str, run_id: str) -> str | None:
 
     def after(ans, emit):
         from aurora.kno_rem import Rem
-        Rem(p, cfg)._write(ans.text, "repair", f"react:{int(time.time())}",
-                           {"failed_run": run_id, "origin": origin, "run_id": ans.run_id}, emit)
+        if not getattr(ans, "kept_out", None):
+            Rem(p, cfg)._write(ans.text, "repair", f"react:{int(time.time())}",
+                               {"failed_run": run_id, "origin": origin, "run_id": ans.run_id}, emit)
         note("react", "react.done", {"text": f"{title[:60]}: {ans.text[:160]}", "run_id": ans.run_id, "failed_run": run_id})
     log.info("react: a failed %s request (run %s) is diagnosed now", origin, run_id)   # N64: no title in api.log
     return start_run(f"[riparazione] {title[:80]}", origin="react", job=_agent_job(agt_react.GOAL, ctx, after))["id"]
@@ -515,8 +521,9 @@ def rem_repair() -> dict:
 
     def after(ans, emit):
         from aurora.kno_rem import Rem
-        Rem(p, cfg)._write(ans.text, "repair", f"repair:{int(time.time())}",
-                           {"review": review.sid, "run_id": ans.run_id}, emit)
+        if not getattr(ans, "kept_out", None):
+            Rem(p, cfg)._write(ans.text, "repair", f"repair:{int(time.time())}",
+                               {"review": review.sid, "run_id": ans.run_id}, emit)
     from aurora import sys_logread
     evidence = sys_logread.problem_evidence(cfg)
     line = lambda e: (f"- {e['component']}: {e['count']} × {e['kind'][:140]} [{e['first'][11:]} → {e['last'][11:]}]; "

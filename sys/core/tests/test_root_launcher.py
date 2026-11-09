@@ -124,3 +124,17 @@ def test_a_protected_list_that_grows_is_signed_in_one_go(repo, monkeypatch):
     R.sign(R.snapshot(), yes=True)
     signed = json.loads((repo / sys_ethics.MANIFEST).read_text())["files"]
     assert extra in signed and not R.drift(R.snapshot())["unsigned"]
+
+
+def test_root_never_runs_the_trees_copy_once_aurora_root_exists(tmp_path, monkeypatch, capsys):
+    """Audit, 10 Nov: install.sh ran «sudo python3 -I sys/core/script/sys_root.py setup --yes» from the folder the
+    services write, also on an update: once the shim exists, only root's own copy acts."""
+    shim = tmp_path / "aurora-root"
+    shim.write_text("#!/bin/sh\n")
+    monkeypatch.setattr(R, "SHIM", shim)
+    for action in ("setup", "sign", "install"):
+        with pytest.raises(SystemExit):
+            R.main([action, "--yes"])
+        assert "questa copia sta nella cartella" in capsys.readouterr().err      # refused for that, not for sudo
+    text = (Path(R.__file__).resolve().parents[3] / "install.sh").read_text()
+    assert 'SIGN="sudo /usr/local/sbin/aurora-root sign"' in text

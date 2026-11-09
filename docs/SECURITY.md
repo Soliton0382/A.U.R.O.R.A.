@@ -40,7 +40,7 @@ encrypted to the platform (HTTPS) but readable by it; that is how those platform
 | an installation's own ciphers | the backup's frames may pass through a layer of the installation's own before AES-256-GCM (aurora.local.backup_layer), and the recovery code may be sealed by its own cipher (aurora.local.recovery_cipher); the published Aurora has neither: AES-256-GCM and Argon2id alone. A file says by its first bytes which made it; one made by a cipher not here is refused by name, never read as damaged | `test_backup_layer.py`, `test_key_recovery.py` |
 | health (diet, training, exams) | AES-256-GCM per file, one key per user kept apart (status/users/<name>/keys, 0600), the file's name bound to it; deletion final | `test_health.py`; protects at rest, not against root (the key is on this machine) |
 | the doctors' cards (hours, phone, notes) | the same as health: sealed with the user's key (hlt_doctor) | `test_doctor.py` |
-| the plugins' cage and the home | bubblewrap: the home a private tmpfs wherever Aurora is installed (C204: before, only when Aurora was inside the home); the Mac (sandbox-exec) and Windows (AppContainer) ports give the same contract (cage_plan) | `test_cage_users.py`; the ports' probe on real machines |
+| the plugins' cage and the home | bubblewrap: every home (/home, /root, the service's own) a private tmpfs wherever Aurora is installed, Aurora's folder bound again (C204; C548: before, only the service's own HOME); a plugins' folder other than the signed sys/plugins loads nothing (C550); the Mac (sandbox-exec) and Windows (AppContainer) ports give the same contract (cage_plan) | `test_cage_users.py`; the ports' probe on real machines |
 | the calendar (appointments, reminders) | the same as health, its own key "calendar" (cal_store); the alerts told are state, not sealed (ids and times, no titles) | `test_calendar.py`; the crossing test |
 | the network map (hosts by name, DHCP reservations with MAC addresses, interfaces, routes) | AES-256-GCM, its own key "network" (sec_netmap), the one before kept to say what changed; read only from the firewall's API, never written there; never in the repository | `test_netmap.py`; the owner's map: 363 hosts, 66 reservations (M114) |
 | pictures, edits, videos given to a cloud provider (mdl_media) | the words masked like any cloud call; a photo cannot be masked: an edit or a video from a photo leaves only on an installation the owner exempted, else the local model does it; every call counted in "What went out" | `test_media.py` |
@@ -81,6 +81,21 @@ way out. The forge refuses a manifest asking for more, and the owner's approval 
 acts outside shows first, in plain words, what it will be able to do. Her plugins stand outside the owner's code
 signature — the contract holds them, so she makes and uses them without a signature each time — while a plugin that is
 neither hers nor signed by the owner is not loaded.
+
+## 🔌 The owner's MCP servers (10 Nov 2026)
+
+An MCP server the owner adds from the Plugins page (plg_mcp) is a plugin made of a manifest only, kind «mcp», saved as
+«local_<name>» so that it is never published (C546), and like
+every plugin of his it is loaded only once signed (sudo aurora-root sign): nothing runs as Aurora without his yes. A local
+one runs in the plugins' cage with no network unless asked (through plg_netproxy to the hosts it names) and reads only
+the few absolute paths it names (sandbox.read: never the root, the home or a folder above it, a hidden place, Aurora's
+state, /proc, /run, /dev, /sys or the credentials (C554); never a forged plugin) — every home stays a private tmpfs
+(C548). A remote one is reached at its address only, http or https (http shown «in clear»); an address is never
+accepted from a forged plugin (C549). Its tools wait for the owner's approval unless he marks them as reads; a remote
+server's answers, or a proxied one's, go through the honeypot like a web page (from_network, C553). «chat»: false
+keeps it out of the chat; «memory»: false keeps any answer that used it out of Aurora's memory — the turn, a routine's
+memory, a forge request, a repair's reflection, a project's report (C551).
+`test_mcp_servers.py`: a real server living outside Aurora answers from its cage and cannot read a file of the home.
 
 ## Code of conduct (sys/core/ethics/CODE.md)
 

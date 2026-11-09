@@ -87,3 +87,15 @@ def test_aurora_s_services_reach_their_firewall_through_its_socket_not_sudo(tmp_
     assert sec_hostfw.call("block", "127.0.0.1", "600") == (2, "not a blockable IPv4: 127.0.0.1")
     assert asked == ["list", "block 127.0.0.1 600"]
     srv.close()
+
+
+def test_the_score_counts_campaigns_not_incidents_and_honours_verdicts_and_defences():
+    """C577 (owner, 10 Nov: «statistiche sballate»): 0/100 with 527 incidents, 447 judged noise and 52 blocked."""
+    w = sec_report._weight
+    base = {"kind": "ips_alert", "source": "8.8.4.4", "severity": "high"}
+    assert w(base) == 6
+    assert w({**base, "defence": "blocked"}) == 0                         # the defence that worked: not a hole
+    assert w({**base, "settled": "quiet"}) == 0 and w({**base, "settled": "ips_alert: 52 of 56 judged not right"}) == 0
+    assert w({**base, "verdict": "false_alarm"}) == 0
+    assert w({**base, "source": "127.0.0.1", "internal": True}) == 0     # Aurora herself
+    assert w({**base, "source": "192.168.0.9", "internal": True}) == 8   # an unknown device inside still weighs

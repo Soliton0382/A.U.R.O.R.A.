@@ -48,8 +48,16 @@ def ours(p: Path) -> bool:
 
 def _private_plugins() -> set[str]:
     """Plugins forged for this house, marked private and ignored by git (C508): not in the public map."""
-    return {f.parent.name for f in (ROOT / "sys" / "plugins").glob("*/plugin.json")
-            if '"private": true' in f.read_text(encoding="utf-8", errors="replace")}
+    marked = {f.parent.name for f in (ROOT / "sys" / "plugins").glob("*/plugin.json")
+              if '"private": true' in f.read_text(encoding="utf-8", errors="replace")}
+    # and those .gitignore keeps here by name (10 Nov: a forged plugin not looked at yet, sys/plugins/<name>/)
+    ignored = set()
+    gi = ROOT / ".gitignore"
+    for line in gi.read_text(encoding="utf-8").splitlines() if gi.is_file() else []:
+        m = re.fullmatch(r"sys/plugins/([a-z0-9_]+)/", line.strip())
+        if m:
+            ignored.add(m.group(1))
+    return marked | ignored
 
 
 def code_files() -> list[Path]:

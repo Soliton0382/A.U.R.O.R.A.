@@ -306,6 +306,8 @@ def main(argv: list[str]) -> int:
     action = args[0] if args else "status"
     if action in ("status", "check"):
         return status()
+    if SHIM.exists() and not HERE.is_relative_to(LIB):   # root never runs the writable tree's copy (audit, 10 Nov)
+        die(f"usa: sudo aurora-root {action} — questa copia sta nella cartella che i servizi possono scrivere")
     if os.geteuid() != 0:
         die("con sudo: la chiave del proprietario è di root (sudo aurora-root …)")
     if action == "setup":

@@ -52,12 +52,15 @@ def private_sources(reader, sources: list[dict]) -> list[str]:
 
 def topics(llm, news: str, done: list[str], n: int = 3, emit=None) -> list[str]:
     """Up to n new topics; asked twice when the first reply gives none (C303: one night's reply, 35 tokens, gave
-    none and was not kept — the routine failed and nobody could tell why). A reply that gives none is traced."""
+    none and was not kept — the routine failed and nobody could tell why). A reply that gives none is traced.
+    C543: the local model copied three topics from the ALREADY MADE list and, asked again with the same words, gave
+    the same reply. So a few more are asked than needed, and the second request names the ones it repeated."""
     user = (f"ALREADY MADE (never again, nor close to them):\n" + "\n".join(f"- {d}" for d in done[:40])
             + f"\n\nTODAY'S SCIENCE NEWS (hints only):\n{news[:4000] or '(none)'}")
     seen = {d.strip().lower() for d in done}
+    ask = user
     for _ in range(2):
-        raw = llm.complete(SYS_TOPIC.format(n=n), user, 400, think=False)
+        raw = llm.complete(SYS_TOPIC.format(n=n + 3), ask, 500, think=False)
         raw = str(getattr(raw, "answer", raw))
         m = re.search(r"\[.*\]", raw, re.S)
         try:
@@ -72,6 +75,9 @@ def topics(llm, news: str, done: list[str], n: int = 3, emit=None) -> list[str]:
             return out
         if emit:
             emit("story.no_topic", {"reply": raw[:600]})
+        repeated = [x.strip() for x in items if x.strip().lower() in seen]
+        ask = user + ("\n\nYOUR LAST REPLY ONLY REPEATED VIDEOS ALREADY MADE:\n" + "\n".join(f"- {r}" for r in repeated[:6])
+                      + "\nPropose NEW topics, on other subjects." if repeated else "\n\nReply with the JSON list only.")
     return []
 
 

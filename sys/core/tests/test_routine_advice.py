@@ -181,3 +181,29 @@ def test_the_themes_change_only_tokens_and_every_theme_has_its_words():
     assert all(f"theme.{i}" in it and f"theme.{i}" in en for i in ids)
     tokens = set(re.findall(r"(--[\w-]+):", (ROOT / "webui" / "app.css").read_text().split("}")[0]))
     assert set(re.findall(r"(--[\w-]+):", css)) <= tokens                 # a theme never invents a token
+
+
+def test_a_copy_is_seen_by_plugins_time_and_title_never_by_the_goals_words_alone():
+    """C576 (10 Nov): six copies Aurora had proposed passed — the goal's words shared 0.12–0.47 of the copy's, while
+    two different jobs reach 0.5; the paused routines were not looked at."""
+    from aurora import sys_routine_advice as A
+    day = lambda at: {"every": "day", "at": at}
+    links_old = {"kind": "agent", "title": "Check the links in the page's posts", "plugins": ["social", "linkcheck"],
+                 "goal": "Check every link with linkcheck.check_link", "schedule": day("21:00")}
+    links_new = {"kind": "agent", "title": "Broken links in the posts", "plugins": ["linkcheck", "social"],
+                 "goal": "If a link is broken tell the owner", "schedule": day("21:00")}
+    weekly = {"kind": "agent", "title": "Archive check", "plugins": ["archive"], "goal": "archive.archive_status",
+              "schedule": {"every": "week", "weekday": 0, "at": "11:30"}}
+    nightly = {"kind": "agent", "title": "Nightly archive integrity", "plugins": ["archive"],
+               "goal": "after the night's run use archive archive_status", "schedule": day("07:00")}
+    offline = {"kind": "agent", "title": "Devices offline", "plugins": ["house"], "goal": "list sensor.x_y entity_id",
+               "schedule": day("09:00")}
+    power = {"kind": "agent", "title": "Power peaks", "plugins": ["house"], "goal": "read sensor.x_y entity_id power",
+             "schedule": day("09:00")}
+    week_agenda = {"kind": "agent", "title": "The week's agenda and advice", "plugins": ["calendar"],
+                   "goal": "read calendar.agenda for 7 days and advise", "schedule": day("09:00")}
+    today = {"kind": "tool", "title": "Today's agenda", "plugin": "calendar", "tool": "agenda", "schedule": day("08:15")}
+    assert A.same_job(links_old, links_new) and A.same_job(weekly, nightly)
+    assert not A.same_job(offline, power) and not A.same_job(week_agenda, today)
+    paused = {**links_old, "id": "p1", "enabled": False}
+    assert A._copy_of({**links_new}, {"p1": paused}) is paused          # a paused one counts: a change, not a new one

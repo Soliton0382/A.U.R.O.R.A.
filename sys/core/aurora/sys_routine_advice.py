@@ -59,6 +59,40 @@ def _words(r: dict) -> set[str]:
     return {w for w in re.findall(r"[a-zà-ù]{4,}", f"{r.get('title', '')}".lower()) if w not in STOP}
 
 
+def _plugins(r: dict) -> set[str]:
+    return set(r.get("plugins") or ([r["plugin"]] if r.get("plugin") else []))
+
+
+def _tools(r: dict) -> set[str]:
+    """The tools a goal names: «plugin.tool», or a word that starts with the plugin's name (backup_status) — not any
+    word with an underscore (a device's entity_id is not a tool)."""
+    goal, out = str(r.get("goal") or "").lower(), set()
+    for p in _plugins(r):
+        out |= set(re.findall(rf"\b{re.escape(p)}\.([a-z_]+)", goal))
+        out |= {w for w in re.findall(r"[a-z]+_[a-z_]+", goal) if w.startswith(p + "_")}
+    return out
+
+
+def same_job(a: dict, b: dict) -> bool:
+    """Two routines doing one job (C576, measured 10 Nov on 42 routines and the 6 copies Aurora had proposed: the
+    goal's words alone never separated them — copies 0.12–0.47, distinct jobs up to 0.5): the same plugins (or one's
+    a part of the other's) at the same time of the same days with a word of the title in common; or an agent whose
+    goal names the very tool another's names (backup_status twice, weekly and nightly). Without plugins on either
+    side: two words of the title, as before. An agent beside a tool routine of its plugin is not a copy by that alone
+    (a week's agenda with suggestions and the day's agenda: different jobs)."""
+    if a.get("kind") == b.get("kind") == "tool":
+        return (a.get("plugin"), a.get("tool")) == (b.get("plugin"), b.get("tool"))
+    if a.get("kind") == b.get("kind") == "agent" and _plugins(a) and _plugins(a) == _plugins(b) and \
+            _tools(a) & _tools(b):                         # two agents of the same plugins calling the same tool
+        return True
+    when = _first(a["schedule"]) and _first(a["schedule"]) == _first(b["schedule"]) \
+        and _days(a["schedule"]) == _days(b["schedule"])
+    pa, pb = _plugins(a), _plugins(b)
+    if not pa or not pb:
+        return bool(when) and len(_words(a) & _words(b)) >= 2
+    return bool(when) and (pa <= pb or pb <= pa) and len(_words(a) & _words(b)) >= 1
+
+
 def _later(at: str, minutes: int) -> str:
     h, m = map(int, at.split(":"))
     t = min(h * 60 + m + minutes, 23 * 60 + 59)
@@ -82,9 +116,7 @@ def checks(routines: list[dict], ready: set[str]) -> list[dict]:
     for i, a in enumerate(on):                                # the same job twice
         for b in on[i + 1:]:
             same_tool = a.get("kind") == b.get("kind") == "tool" and (a.get("plugin"), a.get("tool")) == (b.get("plugin"), b.get("tool"))
-            same_subject = _first(a["schedule"]) and _first(a["schedule"]) == _first(b["schedule"]) \
-                and _days(a["schedule"]) == _days(b["schedule"]) and len(_words(a) & _words(b)) >= 2
-            if same_tool or same_subject:
+            if same_job(a, b):
                 drop = b if same_tool or b.get("kind") == "tool" else a        # keep the agent: it says more
                 keep = a if drop is b else b
                 out.append({"action": "pause", "routine": drop["id"], "title": f"Metti in pausa «{drop['title']}»",
@@ -149,9 +181,17 @@ def _goal_words(text: str) -> set[str]:
 
 def _copy_of(spec: dict, routines: dict) -> dict | None:
     """The routine a proposed new agent repeats (C395: Aurora proposed two agents whose goal was word for word a
-    routine's already there, and wrote so in her own «why»): the same plugins and most of the goal's words."""
+    routine's already there, and wrote so in her own «why»): the same plugins and most of the goal's words — or the
+    same job by same_job (C576), paused routines included: a better copy of a paused one is a change of it, not new."""
     words, plugins = _goal_words(spec.get("goal")), set(spec.get("plugins") or [])
+    me = {"kind": "agent", "title": spec.get("title", ""), "goal": spec.get("goal", ""), "plugins": sorted(plugins),
+          "schedule": spec.get("schedule") or {}}
     for r in routines.values():
+        try:
+            if same_job(me, r):
+                return r
+        except (KeyError, TypeError, AttributeError):
+            pass
         theirs = _goal_words(r.get("goal") or f"{r.get('plugin')}.{r.get('tool')}")
         same_plugins = set(r.get("plugins") or ([r["plugin"]] if r.get("plugin") else [])) == plugins
         if words and theirs and len(words & theirs) / len(words | theirs) >= (0.4 if same_plugins else 0.7):
@@ -159,7 +199,7 @@ def _copy_of(spec: dict, routines: dict) -> dict | None:
     return None
 
 
-def _checked(a: dict, by_id: dict) -> dict | None:
+def _checked(a: dict, by_id: dict, every: dict | None = None) -> dict | None:
     """The proposal made applicable, or None (an unknown routine, a spec validate refuses, a kind not allowed)."""
     act, rid = a.get("action"), a.get("routine")
     if act not in ("change", "pause", "new") or not str(a.get("title", "")).strip():
@@ -181,7 +221,7 @@ def _checked(a: dict, by_id: dict) -> dict | None:
         else:
             spec = {k: v for k, v in (a.get("change") or {}).items()
                     if k in ("goal", "title", "plugins", "schedule", "notify", "icon")}
-            if _copy_of(spec, by_id):
+            if _copy_of(spec, every if every is not None else by_id):
                 return None
             out["change"] = {"kind": "agent", "event": "routine.done", **sys_routines.validate({"kind": "agent", **spec})}
     except (ValueError, TypeError):
@@ -206,8 +246,9 @@ def review(llm, routines: list[dict], plugins: list[dict], system: list[str] = (
     except ValueError:
         items = []
     by_id = {r["id"]: r for r in on}
+    every = {r["id"]: r for r in routines}                  # a new one is checked against the paused ones too (C576)
     out, seen = [], set()
-    for c in (_checked(a, by_id) for a in items if isinstance(a, dict)):
+    for c in (_checked(a, by_id, every) for a in items if isinstance(a, dict)):
         if c and (c["action"] == "new" or c["routine"] not in seen):     # one proposal a routine: two may contradict
             out.append(c)
             seen.add(c["routine"])
@@ -286,6 +327,10 @@ def apply(cfg: sys_config.Config, aid: str, ready: set[str]) -> dict:
     elif a["action"] == "change":
         out["routine"] = sys_routines.update(cfg, a["routine"], a["change"])
     elif a["action"] == "new":
+        twin = _copy_of(a["change"], {r["id"]: r for r in sys_routines.all_routines(cfg)})
+        if twin is not None:                               # applied since it was proposed (C576): never twice
+            _close(cfg, a, "dismissed")
+            raise ValueError(f"c'è già «{twin.get('title')}», che fa lo stesso lavoro")
         out["routine"] = sys_routines.create(cfg, {**a["change"], "by": "aurora"})
     elif a["action"] == "run":
         out["run"] = a["routine"]

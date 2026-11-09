@@ -26,6 +26,7 @@ def _routine_job(r: dict):
 
     def job(q, emit, run_id):
         ok, text, files = True, "", []
+        kept_out: list[str] = []                             # set by an agent's run that used a memory: false server
         if r["kind"] == "story":                             # Aurora's videos on a schedule (kno_story_auto)
             from aurora import kno_story_auto
             try:
@@ -91,11 +92,15 @@ def _routine_job(r: dict):
                         "never runs by itself." if r.get("propose") else "Read only.")
                 ans = agent.run(goal, emit, run_id, f"Routine: {r.get('title', '')}. {rule}")
                 text, files = ans.text.strip(), agent.produced
+                kept_out = sorted(agent.kept_out())          # memory: false servers used (audit, 10 Nov): shown, not kept
+                if kept_out:
+                    emit("memory.skipped", {"servers": kept_out})
                 # R5 (2026-10-06): "I cannot read your e-mail" with no call made is a routine that did not work, not ✅
                 if not agent.ledger and re.match(r"(?i)\s*(⚠️[^\n]*\n+)?\s*(non posso|non riesco|non ho (?:nessuno|alcuno)|"
                                                  r"nessuno dei miei strumenti|i cannot|i can't|i can not|none of my tools)", text):
                     ok = False
-                _gap_check(agent, r["goal"], text, emit, run_id, r["id"])
+                if not kept_out:                             # their answers never into a forge request either
+                    _gap_check(agent, r["goal"], text, emit, run_id, r["id"])
                 # a report becomes a PDF; a routine that proposes actions (a post) does not: its result is the proposal;
                 # nor «NOTHING»: the actions' footer made it 200 characters, a PDF of nothing at every round (C327)
                 if (not r.get("propose") and len(text) >= 200 and not sys_routines.NOTHING.match(text)
@@ -106,7 +111,7 @@ def _routine_job(r: dict):
                 ok, text = False, f"{type(e).__name__}: {str(e)[:300]}"
                 ans = Answer(run_id, q, f"Routine non riuscita: {text}", False, mode="agent")
         try:
-            routine, notify = sys_routines.record(cfg, r["id"], text, ok, run_id, files)
+            routine, notify = sys_routines.record(cfg, r["id"], text, ok, run_id, files, remember=not kept_out)
         except KeyError:                                     # removed while it ran (2026-10-06): nothing to record
             log.info("routine %s removed while it ran: result not kept", r["id"])
             return ans
