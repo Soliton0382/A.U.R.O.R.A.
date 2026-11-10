@@ -537,3 +537,27 @@ def test_dropped_by_the_owner_it_stops_before_the_next_step(cfg):
     events = []
     ans = agent.run("prova", lambda e, p: events.append(e), "run1")
     assert len(agent.host.calls) == 1 and "agent.cancelled" in events and "Annullato" in ans.text
+
+
+def test_an_agent_kept_to_its_plugins_is_kept_from_the_built_in_tools_too(cfg):
+    """Audit, 11 Nov: allow covered the plugins only; an agent of Evidentia still saw search_vault and people_cards."""
+    agent = Agent(fake_pipeline(FakeLLM([])), cfg)
+    agent.host = FakeHost()
+    agent.allow = {"demo"}
+    names = {s["function"]["name"] for s in agent._catalog("read the log")[0]}
+    assert "search_vault" in names and "people_cards" in names          # allow alone: as before
+    agent.loop_tools = set()
+    specs, index = agent._catalog("read the log")
+    names = {s["function"]["name"] for s in specs}
+    assert not names & {"search_vault", "people_cards", "request_capability", "run_in_project", "create_picture",
+                        "create_artifact", "propose_change"}
+    assert "finish" in names and any(n.startswith("demo") for n in names)
+    out = agent._call("search_vault", {"query": "x"}, index, lambda *a: None, "r1")
+    assert out.startswith("ERROR") and "not one of this agent's tools" in out
+
+
+def test_a_pdf_never_fetches_an_image_of_its_text(cfg):
+    """Audit, 11 Nov: «![](http://…)» in a model's answer was fetched by Chrome while printing."""
+    from aurora import doc_pdf
+    page = doc_pdf.to_html("t", "![b](http://10.0.0.1/beacon?x=1)\n\ntext", "it", cfg)
+    assert "<img" not in page

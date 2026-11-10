@@ -54,6 +54,7 @@ ARCHIVE.md. Done = code and a test; partial = what is missing is named; owner = 
 ### Missing — not built
 | item | note |
 |---|---|
+| N134 Programs installed by Aurora, each in its own cage (owner, 11 Nov: «ogni programma un piccolo os dedicato… potremmo integrare già direttamente in aurora l'installazione di programmi così evitiamo di rivoluzionare le cose») | an idea, after Evidentia: not an operating system of its own — Linux underneath, Aurora as the programs' keeper: a program installed from Aurora runs in a cage with a contract like a plugin's (which folders, which network through plg_netproxy, which devices), said in plain words before the owner's yes and watched while it runs. Linux programs in a light container per program; Windows programs through Wine/Proton, one prefix per program (not those with drivers or anti-cheat: a VM, if ever); Mac programs out (macOS only on Apple's hardware). First step: one Linux program and one Windows program, each caged and started by Aurora |
 | N36 A.U.R.O.R.A. Astro, a light edition | an idea to weigh |
 | Astro: PixInsight headless (WBPP), Alpaca, Flickr, sky events (APOD, ISS, comets) | — |
 | Abuse reports as approvals (by e-mail) | — |

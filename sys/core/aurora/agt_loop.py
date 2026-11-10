@@ -152,6 +152,7 @@ def _report_lang(goal: str) -> str:
 class Agent(AgentMakers, AgentReport):
     between = None                                      # called between two steps (api/agents: api.core.give_way)
     cancelled = None                                    # asked between two steps: the owner said to drop it
+    loop_tools = None                                   # the built-in tools allowed; None = all (see __init__)
 
     def __init__(self, pipeline, cfg: sys_config.Config | None = None, notify=None, host: PluginHost | None = None):
         self.cfg = cfg or sys_config.get()
@@ -163,6 +164,10 @@ class Agent(AgentMakers, AgentReport):
         # a personal agent (sys_routines, owner 2026-10-06) may be given only some plugins and its own budget
         self.allow: set[str] | None = None
         self.local_only = False                               # a private plugin was read: the local model only
+        # the built-in tools (vault, people, forge, projects, pictures, the house…) this agent may use; None = all.
+        # allow alone covers the plugins only: an agent of Evidentia kept to its tools still saw search_vault and
+        # people_cards, and a document's text could have it copy the owner's data into a case (audit, 11 Nov)
+        self.loop_tools: set[str] | None = None
         self.asked = False                                    # the owner's own words in the chat: their consent (C281)
         self.max_steps = int(self.cfg["AURORA_AGENT_MAX_STEPS"])
         self.max_min = float(self.cfg["AURORA_AGENT_MAX_MIN"])
@@ -194,6 +199,8 @@ class Agent(AgentMakers, AgentReport):
         from . import agt_vault, hom_auto, hom_scenes
         for t in (LOOP_TOOLS + [agt_vault.TOOL, sys_people.TOOL] + ([hom_scenes.TOOL, hom_auto.TOOL] if any(v[0] == "homeassistant" for v in index.values()) else [])
                   + ([agt_tools.MORE] if self.deferred else [])):
+            if self.loop_tools is not None and t["name"] not in self.loop_tools | {"finish", "more_tools"}:
+                continue
             specs.append({"type": "function", "function": {"name": t["name"], "description": t["description"],
                                                            "parameters": t["input_schema"]}})
         return specs, index
@@ -280,6 +287,8 @@ class Agent(AgentMakers, AgentReport):
         return text
 
     def _call(self, name: str, args: dict, index: dict, emit, run_id: str) -> str:
+        if self.loop_tools is not None and name not in index and name not in self.loop_tools | {"finish", "more_tools"}:
+            return f"ERROR: {name} is not one of this agent's tools"     # a built-in it was never offered (audit)
         from . import sys_anon                               # 🕶️ the anonymous chat: she only reads
         if (refused := sys_anon.refusal(name, index, self.host)):
             return refused

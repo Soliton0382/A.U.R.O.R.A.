@@ -216,7 +216,7 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `cal_store` | `api.calendar`, `cal_share`, `cal_text`, `sys/plugins/calendar/server.py` | 2 |
 | `cal_text` | `api.calendar`, `cal_share`, `sys/plugins/calendar/server.py` | 1 |
 | `doc_artifact` | `agt_loop_make`, `api.preview`, `api.projects` | 2 |
-| `doc_pdf` | `api.documents`, `api.synapses`, `sys/plugins/documents/server.py`, `sys_routines`, `sys_uploads` | 2 |
+| `doc_pdf` | `api.documents`, `api.synapses`, `sys/plugins/documents/server.py`, `sys_routines`, `sys_uploads` | 3 |
 | `doc_preview` | `api.preview`, `api.projects_plan`, `prj_browse` | 1 |
 | `fin_store` | `api.money` | 1 |
 | `fw_drivers` | `sec_firewalls`, `sec_fwapi`, `sec_fwdocs`, `sec_fwmodel`, `sec_fwwrite`, `sec_netmap` | 4 |

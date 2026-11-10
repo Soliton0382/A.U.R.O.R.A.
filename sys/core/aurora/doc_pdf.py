@@ -45,7 +45,9 @@ def safe_name(title: str) -> str:
 
 def to_html(title: str, markdown: str, lang: str, cfg) -> str:
     from markdown_it import MarkdownIt
-    md = MarkdownIt("commonmark", {"html": False}).enable("table")
+    # no images (audit, 11 Nov): Chrome fetched any «![](http://…)» of the text while printing — a model's answer or a
+    # document's could send a case out, or probe the house's network; a link stays a link, never fetched
+    md = MarkdownIt("commonmark", {"html": False}).enable("table").disable("image")
     body = md.render(markdown)
     disclosure = sys_disclosure._line(cfg, lang) if sys_disclosure._on(cfg) else ""
     stamp = time.strftime("%Y-%m-%d %H:%M")
@@ -82,6 +84,7 @@ def create(title: str, markdown: str, lang: str = "it", cfg: sys_config.Config |
         cage = ["--no-sandbox"] if os.environ.get("AURORA_IN_SANDBOX") == "1" else []
         r = subprocess.run([str(cfg["AURORA_CHROME_BIN"]), *cage, "--headless=new", "--disable-gpu", "--no-first-run",
                             f"--user-data-dir={tmp}/profile", "--no-pdf-header-footer", f"--print-to-pdf={raw}",
+                            "--host-resolver-rules=MAP * ~NOTFOUND",   # the page is whole: no address resolves
                             page.as_uri()], capture_output=True, text=True, timeout=120)
         if r.returncode != 0 or not raw.exists():
             raise RuntimeError(f"PDF printing failed: {(r.stderr or r.stdout)[-500:]}")
@@ -94,5 +97,6 @@ def create(title: str, markdown: str, lang: str = "it", cfg: sys_config.Config |
         writer.add_metadata(meta)
         with open(target, "wb") as f:
             writer.write(f)
-    sys_log.get_logger("documents").info("pdf %s (%d bytes)", target.name, target.stat().st_size)
+    # the size only: the name carries the title (a case's, a document's), and this log is not sealed (audit, 11 Nov)
+    sys_log.get_logger("documents").info("pdf written (%d bytes)", target.stat().st_size)
     return target
