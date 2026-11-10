@@ -3,6 +3,7 @@
 import io
 import os
 import sqlite3
+from pathlib import Path
 
 import pytest
 
@@ -98,12 +99,65 @@ def test_a_blob_write_that_fails_once_is_tried_again(tmp_path, monkeypatch):
     B._write_blob(tmp_path / "f", bp, key, log)
     out = io.BytesIO()
     B.decrypt_stream(io.BytesIO(bp.read_bytes()), out, key)
-    assert out.getvalue() == b"data" * 1000 and not (bp.parent / "blob.part").exists()
+    assert out.getvalue() == b"data" * 1000 and not list(bp.parent.glob("blob.*part"))
     fails.clear()
     want, bp2 = 3, tmp_path / "ab" / "blob2"
     with pytest.raises(OSError):
         B._write_blob(tmp_path / "f", bp2, key, log)
-    assert not bp2.exists() and not (bp.parent / "blob2.part").exists()
+    assert not bp2.exists() and not list(bp.parent.glob("blob2.*part"))
+
+
+def test_a_nas_that_fails_the_cleanup_too_does_not_stop_the_tries(tmp_path, monkeypatch):
+    """C578: fsync gave EAGAIN on a stalled NAS, then the .part's unlink gave EIO and escaped the retry loop."""
+    import errno
+    real, real_unlink, fails = B.encrypt_stream, Path.unlink, []
+
+    def flaky(src, dst, key):
+        if not fails:
+            fails.append(1)
+            raise BlockingIOError(errno.EAGAIN, "Resource temporarily unavailable")
+        real(src, dst, key)
+
+    def bad_unlink(self, missing_ok=False):
+        if len(fails) == 1 and self.name.endswith(".part"):
+            fails.append(2)
+            raise OSError(errno.EIO, "Input/output error")
+        real_unlink(self, missing_ok=missing_ok)
+    monkeypatch.setattr(B, "encrypt_stream", flaky)
+    monkeypatch.setattr(Path, "unlink", bad_unlink)
+    monkeypatch.setattr(B.time, "sleep", lambda s: None)
+    (tmp_path / "f").write_bytes(b"data" * 1000)
+    key, bp, log = os.urandom(32), tmp_path / "ab" / "blob", __import__("logging").getLogger("t")
+    bp.parent.mkdir()
+    B._write_blob(tmp_path / "f", bp, key, log)
+    out = io.BytesIO()
+    B.decrypt_stream(io.BytesIO(bp.read_bytes()), out, key)
+    assert out.getvalue() == b"data" * 1000 and fails == [1, 2]
+
+
+def test_a_part_the_nas_still_holds_does_not_block_the_tries(tmp_path, monkeypatch):
+    """C578: a .part of a stalled session stayed «Permission denied»: a try under a new name writes the blob."""
+    import errno
+    real_open, real_unlink = open, Path.unlink
+    held = "blob.held.part"
+
+    def deny(path, *a, **k):
+        if str(path).endswith(held):
+            raise PermissionError(errno.EACCES, "Permission denied")
+        return real_open(path, *a, **k)
+
+    def deny_unlink(self, missing_ok=False):
+        if self.name == held:
+            raise PermissionError(errno.EACCES, "Permission denied")
+        real_unlink(self, missing_ok=missing_ok)
+    (tmp_path / "f").write_bytes(b"data" * 1000)
+    key, bp, log = os.urandom(32), tmp_path / "ab" / "blob", __import__("logging").getLogger("t")
+    bp.parent.mkdir()
+    (bp.parent / held).write_bytes(b"half")
+    monkeypatch.setattr("builtins.open", deny)
+    monkeypatch.setattr(Path, "unlink", deny_unlink)
+    B._write_blob(tmp_path / "f", bp, key, log)
+    assert bp.exists()
 
 
 def test_a_changed_or_cut_blob_and_a_wrong_key_are_refused():

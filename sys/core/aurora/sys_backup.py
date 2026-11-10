@@ -307,7 +307,12 @@ def prune(cfg: sys_config.Config, dest: Path, enc: bytes) -> tuple[int, int]:
     freed = 0
     for b in (dest / "blobs").glob("*/*"):
         if b.name.endswith(".part") or b.name not in used:
-            b.unlink()
+            try:
+                b.unlink()
+            except OSError:                        # C578: a .part a stalled NAS session still holds: next night
+                if not b.name.endswith(".part"):
+                    raise
+                continue
             freed += 1
     return gone, freed
 
@@ -442,9 +447,11 @@ def unit_failure(unit: str = "aurora-backup.service", after: float | None = None
 def _write_blob(source: Path, bp: Path, enc: bytes, log, tries: int = 3) -> None:
     """One encrypted blob, written as .part and renamed when whole. A write on the NAS (cifs, soft) failed once
     with Errno 14 twice, 90 s and 4 min after aurora-api restarted, and not again by hand later (C400): an I/O
-    error is tried again, 30 s apart, and logged."""
-    part = bp.with_name(bp.name + ".part")
+    error is tried again, 30 s apart, and logged. Each try writes its own .part (C578: a .part left by a stalled NAS
+    session stayed «Permission denied» to every later open of that name, so the same name failed three tries and the
+    next night's run too); the leftovers end in .part and are swept at prune."""
     for n in range(1, tries + 1):
+        part = bp.with_name(f"{bp.name}.{os.getpid()}-{n}.part")
         try:
             with open(source, "rb") as src, open(part, "wb") as dst:
                 encrypt_stream(src, dst, enc)
@@ -453,7 +460,10 @@ def _write_blob(source: Path, bp: Path, enc: bytes, log, tries: int = 3) -> None
             os.replace(part, bp)
             return
         except OSError as e:
-            part.unlink(missing_ok=True)
+            try:                                   # the NAS that failed the write may fail this too (C578)
+                part.unlink(missing_ok=True)
+            except OSError:
+                pass                               # the next try has its own name; a leftover .part is swept
             if n == tries or not source.exists():
                 raise
             log.warning("backup: writing %s failed (%s), try %d of %d", source.name, e, n + 1, tries)
