@@ -125,3 +125,15 @@ def test_a_rollback_puts_back_a_value_the_update_moved(cfg, tmp_path):
     out = sys_update.apply(cfg, root=here, run_tests=failed)
     assert seen == ["ADMIN=socket\n"]
     assert out["rolled_back"] and (here / ".env").read_text() == "ADMIN=127.0.0.1:2019\n"
+
+
+def test_new_libraries_wait_for_the_owner_when_the_venv_is_his(cfg, tmp_path, monkeypatch):
+    """C556: the venv is the owner's alone (its packages run in his Python): the services never pip into it."""
+    import os
+    here, there = setup(tmp_path)
+    commit(there, "requirements.txt", "requests\n", "Una libreria nuova")
+    real = os.access
+    monkeypatch.setattr(os, "access", lambda p, m, **k: False if m == os.W_OK and "site-packages" in str(p) else real(p, m, **k))
+    out = sys_update.apply(cfg, root=here, run_tests=lambda: {"ok": True})
+    assert not out["applied"] and "the venv is the owner" in out["reason"], out
+    assert not (here / "requirements.txt").exists() or (here / "requirements.txt").read_text() != "requests\n"

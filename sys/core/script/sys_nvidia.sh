@@ -37,7 +37,11 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+# root's signed copy (sudo aurora-root nvidia …, C556) is told Aurora's folder by the launcher; the tree finds its own
+case "$0" in
+  /usr/local/lib/aurora/*) ROOT="${INSTALL_ROOT:?aurora-root sets INSTALL_ROOT}" ;;
+  *) ROOT="$(cd "$(dirname "$0")/../../.." && pwd)" ;;
+esac
 LOG=/var/log/aurora-nvidia.log
 REPO=https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2604/x86_64
 UNITS="aurora-harvester aurora-rem aurora-sentinel aurora-api aurora-llm aurora-models"

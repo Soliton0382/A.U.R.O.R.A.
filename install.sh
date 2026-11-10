@@ -152,7 +152,9 @@ if [ -x /usr/local/cuda/bin/nvcc ]; then
 fi
 if [ "$NVCC_OK" = 0 ]; then
   echo "  $(t 'serve il CUDA toolkit ≥ 12.8 (solo il toolkit: il driver resta quello di Ubuntu)' 'the CUDA toolkit ≥ 12.8 is needed (toolkit only: the driver stays Ubuntu'"'"'s)')"
-  sudo sys/core/script/sys_nvidia.sh toolkit --yes
+  # C556: root runs the GPU's steps from its signed copy once aurora-root exists, never the folder's script
+  if [ -x /usr/local/sbin/aurora-root ]; then sudo /usr/local/sbin/aurora-root nvidia toolkit --yes
+  else sudo sys/core/script/sys_nvidia.sh toolkit --yes; fi
   [ -x /usr/local/cuda/bin/nvcc ] || die "CUDA toolkit"
 fi
 fi

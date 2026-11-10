@@ -2,6 +2,8 @@
 # Copyright 2026 A.U.R.O.R.A. Project
 """A full backup, a selective restore (sys_backup_parts): a part goes back whole, the rest is not touched."""
 import importlib.util
+import os
+import shutil
 from pathlib import Path
 
 import pytest
@@ -100,18 +102,88 @@ def test_a_failure_half_way_puts_all_back_and_aurora_starts_again(installed, mon
     R = _restore_script()
     asked = []
     monkeypatch.setattr(R.subprocess, "run", lambda cmd, **k: asked.append(cmd) or type("X", (), {"returncode": 0, "stdout": "inactive"})())
-    real, moved = R.shutil.move, []
+    real, moved = R._Trees.move, []
 
-    def fails(src, dst):
+    def fails(self, src, dst, own=None):
         if str(dst) == str(st / "routines.json") and not moved:              # the backup's copy going in place
             moved.append(1)
             raise PermissionError("no")
-        return real(src, dst)
-    monkeypatch.setattr(R.shutil, "move", fails)
+        return real(self, src, dst, own)
+    monkeypatch.setattr(R._Trees, "move", fails)
     with pytest.raises(SystemExit):
         R.apply_parts(cfg, {"snapshot": "latest", "compat": {"verdict": "same", "why": ""}, "stage": str(tmp_path / "s"), "aside": str(tmp_path / "a")}, ("config",))
     assert (st / "routines.json").read_text() == "today" and (cfg.root / ".env").read_text() == "AURORA_X=today\n"
     assert asked[-1][:2] == ["systemctl", "start"]
+
+
+def _planted(installed, monkeypatch, tmp_path_factory):
+    """A backup taken, today's data changed, a folder outside the installation an attacker would like root to write."""
+    cfg, tmp_path = installed, tmp_path_factory.mktemp("next-to-it")
+    B.run(cfg)
+    st, vault = cfg.path("AURORA_STATUS_DIR"), cfg.path("AURORA_VAULT_DIR")
+    (st / "routines.json").write_text("today")
+    (vault / "memory" / "conversation" / "0001.db").write_text("today")
+    outside = tmp_path_factory.mktemp("elsewhere")
+    (outside / "target").write_text("root must not write me")
+    R = _restore_script()
+    asked = []
+    monkeypatch.setattr(R.subprocess, "run", lambda cmd, **k: asked.append(cmd) or type("X", (), {"returncode": 0, "stdout": "inactive"})())
+    p = {"snapshot": "latest", "compat": {"verdict": "same", "why": ""}, "stage": str(tmp_path / "s"), "aside": str(tmp_path / "a")}
+    return cfg, R, p, outside, asked, tmp_path
+
+
+def _untouched(outside, snapshot_of_outside):
+    return {q.name: (q.is_symlink(), q.read_text() if q.is_file() else None) for q in sorted(outside.iterdir())} == snapshot_of_outside
+
+
+def test_a_link_planted_where_a_file_goes_is_refused_and_all_is_put_back(installed, monkeypatch, tmp_path_factory):
+    """C557: the service account replaces today's routines.json with a link to a file elsewhere — root must not write
+    the backup's copy through it (nor chown it). Refused, said, today's other files back where they were."""
+    cfg, R, p, outside, asked, tmp_path = _planted(installed, monkeypatch, tmp_path_factory)
+    st = cfg.path("AURORA_STATUS_DIR")
+    (st / "routines.json").unlink()
+    (st / "routines.json").symlink_to(outside / "target")
+    before = {q.name: (q.is_symlink(), q.read_text() if q.is_file() else None) for q in sorted(outside.iterdir())}
+    with pytest.raises(SystemExit):
+        R.apply_parts(cfg, p, ("config",))
+    assert _untouched(outside, before)
+    assert (st / "routines.json").is_symlink() and os.readlink(st / "routines.json") == str(outside / "target")
+    assert (cfg.root / ".env").read_text() == "AURORA_X=backup\n"             # a config file of today: back in place
+    assert not list((tmp_path / "a").rglob("*.json")) and not list((tmp_path / "a").rglob(".env"))
+    assert asked[-1][:2] == ["systemctl", "start"]
+
+
+def test_a_link_planted_as_a_folder_on_the_way_is_refused_and_all_is_put_back(installed, monkeypatch, tmp_path_factory):
+    """C557: a folder on the way to the memory becomes a link to a folder elsewhere — root must not descend it."""
+    cfg, R, p, outside, asked, tmp_path = _planted(installed, monkeypatch, tmp_path_factory)
+    vault = cfg.path("AURORA_VAULT_DIR")
+    (outside / "conversation").mkdir()
+    (outside / "conversation" / "0001.db").write_text("theirs")
+    shutil.rmtree(vault / "memory" / "conversation")
+    (vault / "memory" / "conversation").symlink_to(outside / "conversation", target_is_directory=True)
+    before = {q.name: (q.is_symlink(), q.read_text() if q.is_file() else None) for q in sorted(outside.iterdir())}
+    with pytest.raises(SystemExit):
+        R.apply_parts(cfg, p, ("memory",))
+    assert _untouched(outside, before) and (outside / "conversation" / "0001.db").read_text() == "theirs"
+    assert sorted(q.name for q in (outside / "conversation").iterdir()) == ["0001.db"]
+    assert (vault / "memory" / "conversation").is_symlink()
+    assert not [q for q in (tmp_path / "a").rglob("*") if q.is_file()]   # nothing of today left aside
+    assert asked[-1][:2] == ["systemctl", "start"]
+
+
+def test_as_root_owners_are_set_on_open_files_never_by_path(installed, monkeypatch, tmp_path_factory):
+    """C557: the chown that gives each restored file the owner of its folder goes through the open fd (fchown), so
+    that a link swapped in at the last moment cannot send it elsewhere. Root is pretended; fchown recorded."""
+    cfg, R, p, _, _, _ = _planted(installed, monkeypatch, tmp_path_factory)
+    st = cfg.path("AURORA_STATUS_DIR")
+    owned, by_path = [], []
+    monkeypatch.setattr(R, "_as_root", lambda: True)
+    monkeypatch.setattr(R.os, "fchown", lambda fd, uid, gid: owned.append((fd, uid, gid)))
+    monkeypatch.setattr(R.os, "chown", lambda *a, **k: by_path.append(a))
+    R.apply_parts(cfg, p, ("config",))
+    assert (st / "routines.json").read_text() == "backup"
+    assert owned and all(isinstance(fd, int) for fd, _, _ in owned) and not by_path
+    assert {uid for _, uid, _ in owned} == {os.getuid()}                     # the owner of the folders they went in
 
 
 def test_the_backup_s_own_key_never_goes_in_it(installed):

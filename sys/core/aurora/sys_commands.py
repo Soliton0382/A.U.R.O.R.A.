@@ -73,9 +73,9 @@ def by_hand(cfg: sys_config.Config) -> bool:
 
 def command(cfg: sys_config.Config, name: str) -> str:
     t = templates(cfg)[name]
-    if name == "sign" and "aurora-root" in t:          # Linux: the one-time setup first, until aurora-root is there
-        from . import sys_rootcmd
-        return sys_rootcmd.command("sign", cfg.root)
+    if name in ("sign", "account") and "aurora-root" in t:   # Linux: the one-time setup first, until aurora-root is there
+        from . import sys_rootcmd                     # (account through it: C556, never sudo .venv/bin/python)
+        return sys_rootcmd.command(name, cfg.root)
     return t.format(root=str(cfg.root), source=str(source(cfg)))
 
 

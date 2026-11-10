@@ -21,6 +21,11 @@ ok() { echo -e "  \e[32m✓\e[0m $*"; }
 warn() { echo -e "  \e[33m!\e[0m $*"; }
 run() { if [ "$DRY" = 1 ]; then echo "    [dry-run] $*"; else "$@"; fi; }
 [ "$(id -u)" != 0 ] || { echo "$(t 'Lancialo come utente normale: sudo verrà chiesto quando serve.' 'Run it as a normal user: sudo is asked when needed.')"; exit 1; }
+# C556: nothing of the folder runs as the owner (and with his sudo) unless it is as he signed it — asked to root's copy
+if [ -x /usr/local/sbin/aurora-root ] && ! /usr/local/sbin/aurora-root verify; then
+  echo "$(t 'Il codice non è come firmato: guarda la lista, poi sudo aurora-root sign e di nuovo.' 'The code is not as signed: read the list, then sudo aurora-root sign and again.')"; exit 1
+fi
+export PYTHONPYCACHEPREFIX="${XDG_CACHE_HOME:-$HOME/.cache}/aurora-pycache"
 
 # only the units this installation put there (sys/deploy/systemd), with their drop-in and .wants folders — never
 # other files with a similar name (an older installation's copies stay the owner's)

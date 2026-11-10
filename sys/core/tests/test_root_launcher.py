@@ -81,6 +81,24 @@ def test_a_link_in_the_code_base_is_refused(repo, tmp_path):
         R.snapshot()
 
 
+def test_a_link_in_a_plugins_sub_folder_is_refused_but_its_fetched_programs_are_not_signed(repo, tmp_path):
+    """C558: the plugins' sub-folders are signed and walked, so a link planted there is seen and refused like any other;
+    .bin and .deps are what plg_deps fetched (ngspice's tree carries links) — the services' writes, outside the signature,
+    or the owner could not sign at all."""
+    p = repo / "sys/plugins/circ"
+    (p / "lib").mkdir(parents=True)
+    (p / ".bin/ngspice/doc").mkdir(parents=True)
+    (p / "plugin.json").write_text(json.dumps({"name": "circ"}))
+    (p / "lib/models.py").write_text("# the owner's\n")
+    (p / ".bin/ngspice/doc/COPYING").symlink_to(tmp_path / "GPL-2")
+    snap = R.snapshot()                                                 # the link under .bin is not in the code base
+    assert "sys/plugins/circ/lib/models.py" in snap and not any(f.startswith("sys/plugins/circ/.bin") for f in snap)
+    (tmp_path / "shadow").write_text("root's")
+    (p / "lib/shadow.py").symlink_to(tmp_path / "shadow")
+    with pytest.raises(SystemExit):
+        R.snapshot()
+
+
 def test_root_never_writes_through_a_link(repo, tmp_path):
     target = tmp_path / "victim"
     target.write_text("intact")
@@ -138,3 +156,29 @@ def test_root_never_runs_the_trees_copy_once_aurora_root_exists(tmp_path, monkey
         assert "questa copia sta nella cartella" in capsys.readouterr().err      # refused for that, not for sudo
     text = (Path(R.__file__).resolve().parents[3] / "install.sh").read_text()
     assert 'SIGN="sudo /usr/local/sbin/aurora-root sign"' in text
+
+
+def test_verify_is_0_only_when_every_file_is_as_signed(repo, capsys):
+    """C556: the owner's scripts (publish, uninstall) ask root's copy before running the folder's code as him."""
+    assert R.verify() == 1                                             # nothing signed yet
+    R.sign(R.snapshot(), yes=True)
+    assert R.verify() == 0
+    (repo / "sys/core/aurora/x.py").write_text("changed by the services' account\n")
+    assert R.verify() == 1 and "sys/core/aurora/x.py" in capsys.readouterr().out
+
+
+def test_the_account_and_gpu_steps_run_from_roots_copy_as_signed(repo, monkeypatch):
+    """C556: never «sudo .venv/bin/python sys/core/script/…»: root's copy of the script, the system's Python."""
+    for name in ("sys_service_account.py", "sys_nvidia.sh"):
+        (repo / "sys/core/script" / name).write_text(f"# {name} as the owner wrote it\n")
+    R.sign(R.snapshot(), yes=True)
+    (repo / "sys/core/script/sys_service_account.py").write_text("# planted by the services' account\n")
+    ran = []
+    monkeypatch.setattr(R.subprocess, "run", lambda cmd, **k: ran.append((cmd, k)) or type("P", (), {"returncode": 0}))
+    monkeypatch.setattr(R.sys.stdin, "isatty", lambda: False)
+    cmd = ["/usr/bin/python3", "-I", str(R.LIB / "sys/core/script/sys_service_account.py")]
+    assert R._signed_run(cmd, yes=False) == 1 and not ran           # changed and nobody said yes: nothing runs
+    assert R._signed_run(cmd, yes=True) == 0                         # the owner signs what he saw, then root's copy
+    assert ran[0][0] == cmd and ran[0][1]["env"]["INSTALL_ROOT"] == str(repo)
+    assert (R.LIB / "sys/core/script/sys_service_account.py").read_text() == "# planted by the services' account\n"
+    assert (R.LIB / "sys/core/script/sys_nvidia.sh").exists()

@@ -66,7 +66,8 @@ def test_the_card_asks_for_the_migration_while_the_owner_runs_them(cfg, monkeypa
     monkeypatch.setattr(sys_commands, "by_hand", lambda cfg: False)
     (cfg.root / ".git").mkdir(exist_ok=True)
     c = [x for x in sys_commands.cards(cfg) if x["id"] == "account"]
-    assert c and "sys_service_account.py" in c[0]["command"] and c[0]["admin"]
+    assert c and "aurora-root" in c[0]["command"] and "account" in c[0]["command"] and c[0]["admin"]
+    assert ".venv" not in c[0]["command"]             # C556: root never runs the services' venv
     monkeypatch.setattr(sys_config, "service_user", lambda cfg: "aurora")
     assert not [x for x in sys_commands.cards(cfg) if x["id"] == "account"]
 
@@ -85,3 +86,34 @@ def test_the_units_have_one_umask_the_group_s():
     m = _load("sys_install_services")
     text = m.hardening(Path("/tmp"), pwd.getpwuid(os.getuid()).pw_name, False)
     assert text.count("UMask=") == 1 and "UMask=0007" in text
+
+
+@POSIX
+def test_the_services_never_get_to_write_what_the_owner_runs(tmp_path, monkeypatch):
+    """C556: the venv, the installers and the publish command: read and run by the group, written by the owner only;
+    the folders holding them sticky (no file of the owner's renamed or swapped by the services)."""
+    import stat
+    S = _load("sys_service_account")
+    for rel in (".venv/lib/site.py", "install.sh", "uninstall.sh", "sys/core/script/publish.sh",
+                "sys/core/script/other.py", "sys/core/aurora/x.py"):
+        p = tmp_path / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text("x")
+        p.chmod(0o644)
+    monkeypatch.setattr(S, "ROOT", tmp_path)
+    monkeypatch.setattr(S, "DRY", False)
+    S.tree()
+    mode = lambda rel: stat.S_IMODE(os.lstat(tmp_path / rel).st_mode)  # noqa: E731
+    for rel in (".venv", ".venv/lib", ".venv/lib/site.py", "install.sh", "uninstall.sh", "sys/core/script/publish.sh"):
+        assert not mode(rel) & 0o020 and mode(rel) & 0o040, rel
+    for rel in ("sys/core/script/other.py", "sys/core/aurora/x.py", "sys/core/aurora"):
+        assert mode(rel) & 0o020, rel                                  # Aurora's code: her approved changes go on
+    assert mode(".") & stat.S_ISVTX and mode("sys/core/script") & stat.S_ISVTX
+    assert not mode("sys/core/aurora") & stat.S_ISVTX
+
+
+def test_owner_only_paths():
+    from aurora import sys_rootcmd
+    assert sys_rootcmd.owner_only(".venv/bin/python") and sys_rootcmd.owner_only("sys/core/script/publish.sh")
+    assert not sys_rootcmd.owner_only("sys/core/script/publish.sh.bak") and not sys_rootcmd.owner_only(".venvx")
+    assert not sys_rootcmd.owner_only("sys/core/aurora/agt_change.py")

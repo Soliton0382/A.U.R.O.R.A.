@@ -58,9 +58,9 @@ sys/core/webui/css/local/
 sys/core/tests/local/
 docs/local/
 sys/plugins/local_*/
-# forged here for this house, with its devices' names (C508)
-sys/plugins/ha_states/
-sys/plugins/ha_history/
+# forged here for this house, with its devices' names (C508): every ha_* (ha_query forged on 11 Nov was not listed,
+# and dev_publish stopped on it)
+sys/plugins/ha_*/
 # forged on this machine, not looked at for the public yet (dev_publish stops on them): kept here until the owner decides
 sys/plugins/backup_verify/
 

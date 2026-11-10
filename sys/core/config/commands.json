@@ -3,5 +3,5 @@
  "update": "cd {source} && git pull --ff-only && bash install.sh",
  "sign": "cd {root} && sudo aurora-root sign",
  "restart": "systemctl restart aurora-api",
- "account": "cd {root} && sudo .venv/bin/python sys/core/script/sys_service_account.py"
+ "account": "sudo aurora-root account"
 }

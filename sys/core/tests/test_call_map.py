@@ -26,3 +26,13 @@ def test_loaded_by_name_counts_as_used_and_local_never_shows():
     assert not any(".local" in m or m.endswith("local") for m in mods)
     text = M.render()
     assert "local." not in text and "/local/" not in text
+
+
+def test_a_plugin_gitignore_keeps_by_a_pattern_is_not_in_the_public_map(tmp_path, monkeypatch):
+    """11 Nov: «sys/plugins/ha_*/» in .gitignore; a plugin forged that night (not named there) stopped the publish."""
+    for name in ("ha_query", "ha_states", "weather", "kept"):
+        (tmp_path / "sys" / "plugins" / name).mkdir(parents=True)
+        (tmp_path / "sys" / "plugins" / name / "plugin.json").write_text("{}")
+    (tmp_path / ".gitignore").write_text("sys/plugins/ha_*/\nsys/plugins/kept/\nsys/plugins/gone/\n")
+    monkeypatch.setattr(M, "ROOT", tmp_path)
+    assert M._private_plugins() == {"ha_query", "ha_states", "kept", "gone"}

@@ -18,6 +18,9 @@ set -euo pipefail
 SRC="$(cd "$(dirname "$0")/../../.." && pwd)"
 MIRROR="${AURORA_PUBLISH_MIRROR:-$(dirname "$SRC")/Aurora_git}"
 PY="$SRC/.venv/bin/python"
+# C556: the folder's bytecode is the services' to write: the owner's Python keeps its own, never loads theirs
+export PYTHONPYCACHEPREFIX="${XDG_CACHE_HOME:-$HOME/.cache}/aurora-pycache"
+ROOTCMD=/usr/local/sbin/aurora-root
 MSG=""; RELEASE=""; PUSH=1; CHECK=0
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -33,7 +36,10 @@ done
 say() { echo -e "\e[1m$*\e[0m"; }
 [ "$(id -u)" != 0 ] || { echo "run it as yourself, not with sudo (sudo is asked only for the signature)"; exit 2; }
 [ -d "$MIRROR/.git" ] || { echo "no mirror at $MIRROR (AURORA_PUBLISH_MIRROR or --mirror)"; exit 2; }
-if [ "$CHECK" = 1 ]; then exec bash "$SRC/sys/core/script/dev_publish.sh" "$MIRROR"; fi
+if [ "$CHECK" = 1 ]; then                # C556: the checks run the folder's code as the owner: only as signed
+  if [ -x "$ROOTCMD" ] && ! "$ROOTCMD" verify; then echo "sign first (sudo aurora-root sign), then --check"; exit 2; fi
+  exec bash "$SRC/sys/core/script/dev_publish.sh" "$MIRROR"
+fi
 [ -n "$MSG" ] || { echo 'a message: publish.sh "what changed"'; exit 2; }
 
 # The commit, the tag and the two pushes all use the git SSH key: its passphrase asked once here (kept in the agent
@@ -46,14 +52,17 @@ if [ -n "$KEY" ] && [ -f "$KEY" ]; then
 fi
 
 say "== the code of conduct"
-STATE="$("$PY" "$SRC/sys/core/script/sys_ethics_sign.py" check 2>/dev/null || true)"
-echo "$STATE" | sed 's/^/  /'
-if echo "$STATE" | grep -q "^OK: " && echo "$STATE" | grep -q "every file as signed"; then
-  echo "  nothing changed since the last signature"
-else
-  # root signs through aurora-root (sys_root.py, 9 Nov): the list of what changed, then «s»; the setup the first time
-  if [ -x /usr/local/sbin/aurora-root ]; then sudo /usr/local/sbin/aurora-root sign
-  else sudo /usr/bin/python3 -I "$SRC/sys/core/script/sys_root.py" setup; fi
+# C556: asked to root's copy with the system's Python (no sudo), never to the folder's own code: until the owner has
+# seen the list and signed, nothing of the folder runs as him
+if [ -x "$ROOTCMD" ]; then
+  if STATE="$("$ROOTCMD" verify)"; then echo "  nothing changed since the last signature"
+  else
+    echo "$STATE" | sed 's/^/  /'
+    sudo "$ROOTCMD" sign                 # root signs (sys_root.py, 9 Nov): the list of what changed, then «s»
+    "$ROOTCMD" verify >/dev/null || { echo "  the code is not as signed: nothing published"; exit 2; }
+  fi
+else                                     # the first time: the setup, from Aurora's folder
+  sudo /usr/bin/python3 -I "$SRC/sys/core/script/sys_root.py" setup
 fi
 
 KEEP=""

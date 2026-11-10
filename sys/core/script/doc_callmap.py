@@ -51,12 +51,16 @@ def _private_plugins() -> set[str]:
     marked = {f.parent.name for f in (ROOT / "sys" / "plugins").glob("*/plugin.json")
               if '"private": true' in f.read_text(encoding="utf-8", errors="replace")}
     # and those .gitignore keeps here by name (10 Nov: a forged plugin not looked at yet, sys/plugins/<name>/)
+    # — or by a pattern (11 Nov: «sys/plugins/ha_*/», every plugin forged for the house's devices)
+    import fnmatch
     ignored = set()
     gi = ROOT / ".gitignore"
+    names = [d.name for d in (ROOT / "sys" / "plugins").iterdir() if d.is_dir()] if (ROOT / "sys" / "plugins").is_dir() else []
     for line in gi.read_text(encoding="utf-8").splitlines() if gi.is_file() else []:
-        m = re.fullmatch(r"sys/plugins/([a-z0-9_]+)/", line.strip())
+        m = re.fullmatch(r"sys/plugins/([a-z0-9_*?]+)/", line.strip())
         if m:
-            ignored.add(m.group(1))
+            pat = m.group(1)
+            ignored |= {n for n in names if fnmatch.fnmatchcase(n, pat)} if any(c in pat for c in "*?") else {pat}
     return marked | ignored
 
 

@@ -140,6 +140,12 @@ def apply(cfg: sys_config.Config, emit=None, root: Path | None = None, run_tests
     local = dirty(root)
     if local:
         return {"applied": False, "reason": f"local changes not committed: {', '.join(local[:8])}"}
+    import os
+    import sysconfig
+    if info["requirements"] and not os.access(sysconfig.get_paths()["purelib"], os.W_OK):
+        # C556: the venv is the owner's alone (its packages run in every owner's Python): new libraries by his hand
+        return {"applied": False, "reason": "requirements changed and the venv is the owner's: run the update by "
+                                            "hand (the 🔄 card: git pull and install.sh)"}
     before = _git(root, "rev-parse", "HEAD").strip()
     ev("update.start", {"from": before[:10], "to": info["there"], "commits": info["behind"]})
     log.info("audit: update %s -> %s (%d commits)", before[:10], info["there"], info["behind"])

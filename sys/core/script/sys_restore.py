@@ -17,13 +17,17 @@ every folder; each file ends with the owner of the folder it goes in), and a fai
     (ethics/MANIFEST.json), stay this installation's — only plugins Aurora built that are missing here come back;
  6. the migrations, then the settings the code knows and the backup did not (sys_env_sync);
  7. Aurora starts again.
+Every write of steps 4–6 goes through directory fds opened with O_NOFOLLOW from the installation's root (rename on
+fds, fchown/fchmod on the open file): a symbolic link planted anywhere on the way is refused, and all is put back (C557).
 """
 from __future__ import annotations
 
 import argparse
+import errno
 import json
 import os
 import shutil
+import stat
 import subprocess
 import sys
 import time
@@ -58,6 +62,175 @@ def plan(cfg, snapshot: str) -> dict:
             "aside": str(here / f"before-restore-{stamp}")}
 
 
+_DIR = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+
+
+def _as_root() -> bool:
+    return hasattr(os, "geteuid") and os.geteuid() == 0
+
+
+class Linked(OSError):
+    """A symbolic link where root was about to write (C557): refused, said with its path; the caller puts all back."""
+
+    def __init__(self, where) -> None:
+        super().__init__(f"a symbolic link at {where}: nothing is written through a link")
+
+
+def _relocate(sfd: int, sname: str, dfd: int, dname: str) -> None:
+    """One file from a directory fd to another: rename; on another disk, copied through fds and the source removed."""
+    try:
+        os.rename(sname, dname, src_dir_fd=sfd, dst_dir_fd=dfd)
+        return
+    except OSError as e:
+        if e.errno != errno.EXDEV:
+            raise
+    src = os.open(sname, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=sfd)
+    try:
+        st = os.fstat(src)
+        if not stat.S_ISREG(st.st_mode):
+            raise OSError(f"{sname}: not a regular file")
+        dst = os.open(dname, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600, dir_fd=dfd)
+        try:
+            with os.fdopen(src, "rb", closefd=False) as a, os.fdopen(dst, "wb", closefd=False) as b:
+                shutil.copyfileobj(a, b)
+            os.fchmod(dst, stat.S_IMODE(st.st_mode))
+            os.utime(dst, ns=(st.st_atime_ns, st.st_mtime_ns))
+        finally:
+            os.close(dst)
+    finally:
+        os.close(src)
+    os.unlink(sname, dir_fd=sfd)
+
+
+class _Trees:
+    """Where the restore writes, reached only through directory fds (C557: as root, under folders the service account
+    can write, shutil followed a planted link — root's writes and a chown went elsewhere). Every folder is opened from
+    a trusted top — the installation's root for what is inside it, / for the rest — one component at a time with
+    O_NOFOLLOW; files move with rename on those fds; owner and mode are set on the open file. A link anywhere on the
+    way raises Linked, and nothing is written."""
+
+    def __init__(self, root: Path, aside: Path) -> None:
+        self.root, self.aside = Path(os.path.abspath(root)), Path(os.path.abspath(aside))
+        self.rootfd = os.open(self.root, os.O_RDONLY | os.O_DIRECTORY)     # the owner's folder: trusted as given
+        self.slashfd = os.open("/", os.O_RDONLY | os.O_DIRECTORY)
+
+    def close(self) -> None:
+        os.close(self.rootfd)
+        os.close(self.slashfd)
+
+    def folder(self, path: Path, make: bool = False, own: bool = False) -> int:
+        """`path` as a directory fd, no link on the way down from the trusted top. `make`: the folders missing are
+        created; `own`: as root they belong to who owns the folder they went in. The caller closes the fd."""
+        path = Path(os.path.abspath(path))
+        top = self.root if path.is_relative_to(self.root) else Path("/")
+        parts = path.relative_to(top).parts
+        fd = os.dup(self.rootfd if top == self.root else self.slashfd)
+        try:
+            for i, part in enumerate(parts):
+                try:
+                    nxt = os.open(part, _DIR, dir_fd=fd)
+                except FileNotFoundError:
+                    if not make:
+                        raise
+                    parent = os.fstat(fd)
+                    os.mkdir(part, 0o777, dir_fd=fd)
+                    nxt = os.open(part, _DIR, dir_fd=fd)
+                    if own and _as_root():
+                        os.fchown(nxt, parent.st_uid, parent.st_gid)
+                except OSError as e:
+                    if e.errno == errno.ELOOP:
+                        raise Linked(top.joinpath(*parts[:i + 1])) from None
+                    raise
+                os.close(fd)
+                fd = nxt
+            return fd
+        except BaseException:
+            os.close(fd)
+            raise
+
+    def files(self, top: Path) -> list[str]:
+        """Every regular file under `top`, relative to it, met through fds; a link anywhere below: Linked."""
+        out: list[str] = []
+
+        def walk(fd: int, rel: str) -> None:
+            with os.scandir(fd) as it:
+                entries = list(it)
+            for e in entries:
+                if e.is_symlink():
+                    raise Linked(top / (rel + e.name))
+                if e.is_dir(follow_symlinks=False):
+                    try:
+                        sub = os.open(e.name, _DIR, dir_fd=fd)
+                    except OSError as x:
+                        if x.errno == errno.ELOOP:
+                            raise Linked(top / (rel + e.name)) from None
+                        raise
+                    try:
+                        walk(sub, f"{rel}{e.name}/")
+                    finally:
+                        os.close(sub)
+                elif e.is_file(follow_symlinks=False):
+                    out.append(rel + e.name)
+        fd = self.folder(top)
+        try:
+            walk(fd, "")
+        finally:
+            os.close(fd)
+        return sorted(out)
+
+    def move(self, src: Path, dst: Path, own: bool | None = None) -> None:
+        """src → dst, regular files reached through fds, dst's folders made. As root, what lands inside the
+        installation (not aside) belongs to who owns the folder it went in: fchown on the open file."""
+        if own is None:
+            own = dst.is_relative_to(self.root) and not dst.is_relative_to(self.aside)
+        sfd = self.folder(src.parent)
+        try:
+            dfd = self.folder(dst.parent, make=True, own=own)
+            try:
+                if stat.S_ISLNK(os.lstat(src.name, dir_fd=sfd).st_mode):
+                    raise Linked(src)
+                try:
+                    if stat.S_ISLNK(os.lstat(dst.name, dir_fd=dfd).st_mode):
+                        raise Linked(dst)                # a link at the name: never replaced in silence
+                except FileNotFoundError:
+                    pass
+                _relocate(sfd, src.name, dfd, dst.name)
+                try:
+                    if stat.S_ISLNK(os.lstat(dst.name, dir_fd=dfd).st_mode):
+                        raise Linked(dst)                # swapped for a link while moving: back where it was
+                    if own and _as_root():
+                        parent = os.fstat(dfd)
+                        f = os.open(dst.name, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=dfd)
+                        try:
+                            os.fchown(f, parent.st_uid, parent.st_gid)
+                        finally:
+                            os.close(f)
+                except BaseException:
+                    _relocate(dfd, dst.name, sfd, src.name)
+                    raise
+            finally:
+                os.close(dfd)
+        finally:
+            os.close(sfd)
+
+    def swap_env(self) -> None:
+        """.env.proposed → .env in the root through its fd: the mode kept, root's chown on the open file (C557)."""
+        fd = self.rootfd
+        for name in (".env", ".env.proposed"):
+            if stat.S_ISLNK(os.lstat(name, dir_fd=fd).st_mode):
+                raise Linked(self.root / name)
+        mode = stat.S_IMODE(os.lstat(".env", dir_fd=fd).st_mode)
+        os.rename(".env.proposed", ".env", src_dir_fd=fd, dst_dir_fd=fd)
+        f = os.open(".env", os.O_RDONLY | os.O_NOFOLLOW, dir_fd=fd)
+        try:
+            os.fchmod(f, mode)
+            if _as_root():
+                owner = os.fstat(fd)
+                os.fchown(f, owner.st_uid, owner.st_gid)
+        finally:
+            os.close(f)
+
+
 def apply_parts(cfg, p: dict, parts: tuple[str, ...]) -> None:
     """Only some parts back; the rest of this installation is not touched. File by file: what a part holds here today
     goes aside, whole, so that a shard of today never stays next to a registry of the backup. Any failure puts all back
@@ -77,21 +250,11 @@ def apply_parts(cfg, p: dict, parts: tuple[str, ...]) -> None:
         subprocess.run(["systemctl", "start", "aurora.target"], check=False, timeout=300)
         raise SystemExit(f"⛔ Aurora could not be stopped: nothing changed (the snapshot is in {stage})")
     done: list[tuple[Path, Path]] = []
+    T = _Trees(root, aside)                              # C557: every write below through directory fds, no link followed
 
     def move(src: Path, dst: Path) -> None:
-        made = next(x for x in (dst.parent, *dst.parent.parents) if x.exists())
-        dst.parent.mkdir(parents=True, exist_ok=True)
-        shutil.move(str(src), str(dst))
+        T.move(src, dst)
         done.append((src, dst))
-        if dst.is_relative_to(root) and not dst.is_relative_to(aside):
-            like(dst, made)
-
-    def like(path: Path, folder: Path) -> None:
-        """As root: the file and the folders made for it belong to who owns the folder they went in."""
-        if hasattr(os, "geteuid") and os.geteuid() == 0:
-            st = folder.stat()
-            for x in (path, *[d for d in path.parents if folder in d.parents]):
-                os.chown(x, st.st_uid, st.st_gid)
     changed = "config" in parts and other_keys(cfg, stage)
     try:
         print(f"4/6 today's {', '.join(parts)} aside into {aside}")
@@ -110,8 +273,8 @@ def apply_parts(cfg, p: dict, parts: tuple[str, ...]) -> None:
         print("5/6 the restored parts in place")
         folder = root / plugins_rel
         plugins_here = {d.name for d in folder.iterdir()} if folder.is_dir() else set()
-        for src in sorted(x for x in stage.rglob("*") if x.is_file()):
-            rel = str(src.relative_to(stage))
+        for rel in T.files(stage):                       # a link in the stage (the service account's folder): refused
+            src = stage / rel
             if rel in KEEP_FROM_CODE:
                 continue
             if rel.startswith("external/"):              # a folder outside Aurora's root: left in the stage, said
@@ -128,22 +291,28 @@ def apply_parts(cfg, p: dict, parts: tuple[str, ...]) -> None:
         if "config" in parts:
             env_sync = Path(__file__).with_name("sys_env_sync.py")
             if subprocess.run([sys.executable, str(env_sync)], cwd=root, capture_output=True).returncode == 0 and (root / ".env.proposed").exists():
-                mode = (root / ".env").stat().st_mode & 0o777
-                (root / ".env.proposed").replace(root / ".env")
-                os.chmod(root / ".env", mode)
-                like(root / ".env", root)
+                T.swap_env()
+        if _as_root():                                   # what stays there is for Aurora's account to clear
+            uid = cfg.path("AURORA_STATUS_DIR").stat().st_uid
+            for folder in (stage, aside):
+                try:
+                    fd = T.folder(folder)
+                except FileNotFoundError:
+                    continue
+                try:
+                    os.fchown(fd, uid, -1)
+                finally:
+                    os.close(fd)
     except Exception as e:                               # noqa: BLE001 - whatever it is: back as it was, and said
         print(f"⛔ stopped: {type(e).__name__}: {e}\n   everything put back as it was", flush=True)
         for src, dst in reversed(done):
-            shutil.move(str(dst), str(src))
+            T.move(dst, src, own=False)
         raise SystemExit(1) from None
     finally:
+        T.close()
         print("6/6 starting Aurora …", flush=True)
         subprocess.run(["systemctl", "start", "aurora-backup.timer"], check=False, timeout=60)
         subprocess.run(["systemctl", "start", "aurora.target", "aurora-api"], check=False, timeout=300)
-    for folder in (stage, aside):                        # what stays there is for Aurora's account to clear
-        if folder.exists():
-            shutil.chown(folder, cfg.path("AURORA_STATUS_DIR").stat().st_uid) if hasattr(os, "geteuid") and os.geteuid() == 0 else None
     print(f"✅ restored {', '.join(parts)} of {p['snapshot']}. Today's are in {aside}: delete them when all is well, or move them back.")
     print(notes(parts))
 

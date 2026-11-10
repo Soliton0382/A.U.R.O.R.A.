@@ -31,7 +31,13 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[3]
+HERE = Path(__file__).resolve()
+# root runs this from its own signed copy (sudo aurora-root account, C556): Aurora's folder then comes from the
+# launcher (INSTALL_ROOT), the package from beside this file — never imported from the folder the services write
+LIB = Path("/usr/local/lib/aurora")
+ROOT = Path(os.environ["INSTALL_ROOT"]) if HERE.is_relative_to(LIB) and os.environ.get("INSTALL_ROOT") else HERE.parents[3]
+sys.path.insert(0, str(HERE.parents[1]))
+from aurora import sys_rootcmd  # noqa: E402 — stdlib only, the lists of C556
 ACCOUNT = "aurora"
 GPU_GROUPS = ("video", "render")
 DRY = "--dry-run" in sys.argv
@@ -161,8 +167,12 @@ def tree() -> None:
             if in_papers(p):                             # --with-papers: the group may read, nothing else; the
                 os.chmod(p, mode | (0o050 if p.is_dir() else 0o040))   # files stay the owner's, none written
                 continue
-            if p.is_dir():
-                os.chmod(p, mode | 0o070 | stat.S_ISGID)
+            rel = p.relative_to(ROOT).as_posix()
+            if sys_rootcmd.owner_only(rel):               # C556: the group reads and runs it, never writes it
+                add = 0o050 | stat.S_ISGID if p.is_dir() else 0o040 | (0o010 if mode & 0o100 else 0)
+                os.chmod(p, (mode | add) & ~0o020)
+            elif p.is_dir():
+                os.chmod(p, mode | 0o070 | stat.S_ISGID | (stat.S_ISVTX if rel in sys_rootcmd.STICKY else 0))
             elif name == ".env":
                 os.chmod(p, 0o660)
             else:
@@ -193,9 +203,8 @@ def from_home(who: str) -> None:
 def settings(who: str) -> None:
     py = ROOT / ".venv" / "bin" / "python"
     sets = [f"AURORA_SERVICE_USER={ACCOUNT}"]
-    sys.path.insert(0, str(ROOT / "sys" / "core"))
     try:
-        from aurora import sys_config
+        from aurora import sys_config                  # the package beside this file (C556)
         cfg = sys_config.load()
         key = str(cfg["AURORA_FIREWALL_SSH_KEY"] or "")
         if key.startswith("~"):                          # the owner's home, not root's (this runs with sudo)

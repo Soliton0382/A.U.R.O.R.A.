@@ -16,6 +16,9 @@ answers «s» to sign it: one command, one question.
     sudo aurora-root install systemd    the units, polkit, Aurora's sealed key (also: nft, tunnel; tunnel status|remove)
     sudo aurora-root exempt | private-cloud | verify-key | keygen [--rotate]
     sudo aurora-root restore --plan latest | --apply latest [--parts config]   a backup back (C538)
+    sudo aurora-root account [--dry-run]  the services on their own account (C556: never sudo .venv/bin/python)
+    sudo aurora-root nvidia toolkit|driver|llama …   the GPU's steps, from root's signed copy (C556)
+    aurora-root verify                  no sudo: 0 when every file is as signed (the owner's scripts ask it first)
     first time, from Aurora's folder:   sudo /usr/bin/python3 -I sys/core/script/sys_root.py setup
 
 Restarting Aurora from the WebUI is not root's: polkit lets the services' account do it (50-aurora.rules), unchanged.
@@ -38,7 +41,8 @@ HERE = Path(__file__).resolve()
 STEPS = {"systemd": "sys/deploy/systemd", "nft": "sys/deploy/nft", "tunnel": "sys/deploy/cloudflared"}
 # what root keeps of the code: the package and the scripts root runs (its units', this launcher's own)
 LIB_SCRIPTS = ("sys_nas_mount.py", "sys_backup_retime.py", "sys_cert_perms.py", "sys_ethics_sign.py", "sys_root.py",
-               "sys_root_sync.py", "sys_key_seal.py", "sys_restore.py", "sys_env_sync.py")
+               "sys_root_sync.py", "sys_key_seal.py", "sys_restore.py", "sys_env_sync.py",
+               "sys_service_account.py", "sys_nvidia.sh")      # C556: the account's and the GPU's cards, as signed
 SHIM_TEXT = f'#!/bin/sh\n# aurora-root (sys/core/script/sys_root.py): root\'s copy, the system\'s Python\nexec /usr/bin/python3 -I {LIB}/sys/core/script/sys_root.py "$@"\n'
 
 
@@ -300,12 +304,39 @@ def status() -> int:
     return 0
 
 
+def verify() -> int:
+    """C556: what the owner's own scripts (publish, uninstall) ask before they run any of the folder's code as him: 0
+    only when every file is as he signed it — read by root's copy with the system's Python, never by the folder's."""
+    snap = snapshot()
+    d = drift(snap)
+    ok, reason = sys_ethics.integrity(REPO)
+    if not ok:
+        print(f"✗ regole: {reason}")
+    if show(d) or not ok:
+        print("✗ codice non come firmato: sudo aurora-root sign (guarda la lista prima di dire «s»)")
+        return 1
+    print("✅ codice come firmato")
+    return 0
+
+
+def _signed_run(cmd: list[str], yes: bool) -> int:
+    """C556: a script of root's (the account's, the GPU's) run from root's copy as just signed, never from the folder."""
+    snap = snapshot()
+    d = drift(snap)
+    if (d["changed"] or d["added"] or d["removed"] or d["unsigned"]) and not sign(snap, yes):
+        return 1
+    print(f"  copia di root: {sync_lib(snap)} file")
+    return subprocess.run(cmd, cwd=str(REPO), env={**os.environ, "INSTALL_ROOT": str(REPO)}).returncode
+
+
 def main(argv: list[str]) -> int:
     yes = "--yes" in argv
     args = [a for a in argv if a != "--yes"]
     action = args[0] if args else "status"
     if action in ("status", "check"):
         return status()
+    if action == "verify":
+        return verify()
     if SHIM.exists() and not HERE.is_relative_to(LIB):   # root never runs the writable tree's copy (audit, 10 Nov)
         die(f"usa: sudo aurora-root {action} — questa copia sta nella cartella che i servizi possono scrivere")
     if os.geteuid() != 0:
@@ -338,11 +369,17 @@ def main(argv: list[str]) -> int:
             die("root's copy has no restore yet: sudo aurora-root sign first")
         return subprocess.run(["/usr/bin/python3", "-I", str(script), *args[1:]], cwd=str(REPO),
                               env={**os.environ, "INSTALL_ROOT": str(REPO)}).returncode
+    if action == "account":
+        return _signed_run(["/usr/bin/python3", "-I", str(LIB / "sys/core/script/sys_service_account.py"), *args[1:]], yes)
+    if action == "nvidia":
+        # its --yes is the GPU script's («install without asking»), never a signature without the owner's «s»
+        return _signed_run(["bash", str(LIB / "sys/core/script/sys_nvidia.sh"), *args[1:], *(["--yes"] if yes else [])], False)
     if action in ("exempt", "private-cloud", "verify-key", "keygen"):
         import sys_ethics_sign as S
         sys.argv = ["sys_ethics_sign.py", *args]
         return S.main()
-    die(f"unknown: {action} (status, sign, install, restore, exempt, private-cloud, verify-key, keygen, setup)")
+    die(f"unknown: {action} (status, verify, sign, install, restore, account, nvidia, exempt, private-cloud, "
+        "verify-key, keygen, setup)")
     return 1
 
 

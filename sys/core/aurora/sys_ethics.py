@@ -21,7 +21,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sys
+from collections.abc import Iterator
 from functools import lru_cache
 from pathlib import Path
 
@@ -106,11 +108,43 @@ def integrity(root: Path = CODE_ROOT, public_hex: str = "") -> tuple[bool, str]:
     return (False, f"changed without the owner's signature: {', '.join(changed)}") if changed else (True, "intact")
 
 
-CODE_PATTERNS = ("install.sh", "uninstall.sh", "requirements.txt", "sys/core/**/*.py", "sys/core/**/*.js",
+CODE_PATTERNS = ("install.sh", "uninstall.sh", "requirements.txt",
+                 "requirements.lock", "pyproject.toml",         # C558: what the installer resolves and pins
+                 "sys/core/**/*.py", "sys/core/**/*.js",
+                 "sys/core/**/*.mjs",                           # C558: modules served to browsers and the JS tests
                  "sys/core/**/*.css", "sys/core/**/*.html", "sys/core/**/*.json", "sys/core/**/*.md", "sys/core/**/*.sh",
-                 "sys/plugins/*/*",
+                 "sys/core/config/*",                           # C558: allowed_signers (the updater's trust) has no suffix
+                 "sys/plugins/**/*",                            # C558: a plugin's sub-folders too (unsigned_plugins: the same)
+                 ".github/**/*",                                # C558: what CI runs on the published code
                  "sys/deploy/**/*")   # what root installs: aurora-root runs only these files as signed (sys_root, 9 Nov)
 DATA_FILES = ("sys/core/config/shadow_seed.json",)  # rewritten every day by its timer (C401): data, not code
+# Folders the services write, never the owner (C558): Python's caches, and what plg_deps fetches into a plugin on the
+# owner's «install» (pip --target, dpkg-deb -x — every file checked against the hashes its plugin.json pins, and that
+# manifest IS signed) and removes on «uninstall». Signing them would make every install a drift, and ngspice's tree
+# carries symbolic links, which root's launcher refuses (sys_root.snapshot). Outside the signature, by folder name.
+RUNTIME_DIRS = ("__pycache__", ".deps", ".bin", ".deps.tmp", ".bin.tmp")
+
+
+def _forged_prefixes(root: Path) -> set[str]:
+    return {f"sys/plugins/{n}/" for n in forged_plugins(root)}
+
+
+def _is_code(rel: str, forged: set[str]) -> bool:
+    """One rule for code_files and unsigned_plugins (C558): with two, a plugin's file could be signed and never checked,
+    or checked and never signed."""
+    return (not any(part in RUNTIME_DIRS for part in rel.split("/"))
+            and rel not in (MANIFEST, "sys/core/ethics/exemption.sig") and rel not in DATA_FILES
+            and not any(rel.startswith(f) for f in forged))
+
+
+def _plugin_files(folder: Path) -> Iterator[Path]:
+    """Every file of one plugin, sub-folders included, the runtime folders pruned before they are entered (C558: .deps
+    and .bin hold thousands of files; walking them to discard them would cost every start). Links to folders are not
+    followed; a link to a file is yielded like a file, so that root's launcher sees and refuses it (sys_root.snapshot)."""
+    for dirpath, dirnames, filenames in os.walk(folder):
+        dirnames[:] = [d for d in dirnames if d not in RUNTIME_DIRS]
+        for name in filenames:
+            yield Path(dirpath) / name
 
 
 def forged_plugins(root: Path = CODE_ROOT) -> set[str]:
@@ -130,14 +164,15 @@ def forged_plugins(root: Path = CODE_ROOT) -> set[str]:
 def code_files(root: Path = CODE_ROOT) -> list[str]:
     """Every file of the code base the owner signs as a whole (the second tier: changes are reported, not fatal); the
     plugins Aurora wrote herself are not among them (forged_plugins: their contract holds them)."""
-    found, forged = set(), {f"sys/plugins/{n}/" for n in forged_plugins(root)}
+    found, forged = set(), _forged_prefixes(root)
     for pattern in CODE_PATTERNS:
-        for p in root.glob(pattern):
-            rel = p.relative_to(root).as_posix()
-            if (p.is_file() and "__pycache__" not in rel and rel not in (MANIFEST, "sys/core/ethics/exemption.sig")
-                    and rel not in DATA_FILES and not any(rel.startswith(f) for f in forged)):
-                found.add(rel)
-    return sorted(found)
+        if pattern == "sys/plugins/**/*":                 # C558: walked with the runtime folders pruned, not globbed through
+            for d in sorted((root / "sys" / "plugins").iterdir()) if (root / "sys" / "plugins").is_dir() else []:
+                if d.is_dir():
+                    found.update(p.relative_to(root).as_posix() for p in _plugin_files(d) if p.is_file())
+            continue
+        found.update(p.relative_to(root).as_posix() for p in root.glob(pattern) if p.is_file())
+    return sorted(rel for rel in found if _is_code(rel, forged))
 
 
 _unsigned_cache: dict = {}
@@ -149,8 +184,10 @@ def unsigned_plugins(root: Path = CODE_ROOT, public_hex: str = "") -> set[str]:
     port, an installation before the code was signed) nothing is held back: the integrity check speaks for it."""
     import time
     mf = root / MANIFEST
-    try:
-        stamp = (mf.stat().st_mtime, max((p.stat().st_mtime for p in (root / "sys" / "plugins").glob("*/*")), default=0))
+    plugins = root / "sys" / "plugins"
+    try:                                                   # C558: the sub-folders' files count in the stamp too
+        stamp = (mf.stat().st_mtime, max((p.stat().st_mtime for d in plugins.iterdir() if d.is_dir()
+                                          for p in _plugin_files(d)), default=0))
     except OSError:
         return set()
     hit = _unsigned_cache.get(str(root))
@@ -166,12 +203,12 @@ def unsigned_plugins(root: Path = CODE_ROOT, public_hex: str = "") -> set[str]:
     code = m.get("code") or {}
     if public_hex and code and _verify(_canonical(code), m.get("code_signature", ""), public_hex):
         forged = forged_plugins(root)
-        for d in (root / "sys" / "plugins").iterdir() if (root / "sys" / "plugins").is_dir() else []:
+        for d in plugins.iterdir() if plugins.is_dir() else []:
             if not d.is_dir() or d.name in forged or not (d / "plugin.json").exists():
                 continue
-            for f in d.iterdir():
-                rel = f"sys/plugins/{d.name}/{f.name}"
-                if f.is_file() and "__pycache__" not in rel and code.get(rel) != _sha(f):
+            for f in _plugin_files(d):                     # C558: the sub-folders too, with code_files' own exclusions
+                rel = f.relative_to(root).as_posix()
+                if f.is_file() and _is_code(rel, set()) and code.get(rel) != _sha(f):
                     out.add(d.name)
                     break
     _unsigned_cache[str(root)] = (stamp, time.time(), out)

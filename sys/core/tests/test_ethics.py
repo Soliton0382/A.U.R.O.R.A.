@@ -50,6 +50,42 @@ def test_the_daily_seed_is_data_not_signed_code(signed):
     assert sys_ethics.code_drift(root)["changed"] == ["sys/core/aurora/x.py"]
 
 
+def test_the_signature_covers_behaviour_files_and_a_plugins_sub_folders(signed):
+    """C558: allowed_signers, *.mjs, the locks, .github and a plugin's sub-folders are signed; what the services write
+    (a plugin's .deps/.bin, __pycache__, the daily seed) and Aurora's forged plugins are not — in code_files and in
+    unsigned_plugins alike."""
+    root, key = signed
+    pub = key.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw).hex()
+    covered = ["sys/core/webui/vendor/qr/qr.mjs", "sys/core/config/allowed_signers", "requirements.lock", "pyproject.toml",
+               ".github/workflows/ci.yml", "sys/plugins/mine/plugin.json", "sys/plugins/mine/lib/helper.py"]
+    outside = ["sys/plugins/mine/.deps/segno/__init__.py", "sys/plugins/mine/.bin/tool/usr/bin/tool",
+               "sys/plugins/mine/__pycache__/server.cpython-312.pyc", "sys/plugins/mine/lib/__pycache__/h.pyc",
+               "sys/plugins/sly/plugin.json", "sys/plugins/sly/sub/a.py", sys_ethics.DATA_FILES[0]]
+    for f in covered + outside:
+        (root / f).parent.mkdir(parents=True, exist_ok=True)
+        (root / f).write_text(f"# {f}\n")
+    (root / "sys/plugins/mine/plugin.json").write_text(json.dumps({"name": "mine"}))
+    (root / "sys/plugins/sly/plugin.json").write_text(json.dumps({"name": "sly", "forged": {"request": "r"}}))
+    files = sys_ethics.code_files(root)
+    assert all(f in files for f in covered) and not any(f in files for f in outside)
+    code = {f: sys_ethics._sha(root / f) for f in files}
+    m = json.loads((root / sys_ethics.MANIFEST).read_text())
+    m.update(code=code, code_signature=key.sign(sys_ethics._canonical(code)).hex())
+    (root / sys_ethics.MANIFEST).write_text(json.dumps(m))
+    sys_ethics._unsigned_cache.clear()
+    assert sys_ethics.unsigned_plugins(root, pub) == set()
+    assert sys_ethics.code_drift(root, pub) == {"changed": [], "added": [], "removed": []}
+    (root / "sys/plugins/mine/.deps/segno/__init__.py").write_text("# reinstalled by plg_deps\n")   # a service's write
+    (root / "sys/plugins/sly/sub/a.py").write_text("# Aurora's own, under contract\n")
+    sys_ethics._unsigned_cache.clear()
+    assert sys_ethics.unsigned_plugins(root, pub) == set()
+    assert sys_ethics.code_drift(root, pub) == {"changed": [], "added": [], "removed": []}
+    (root / "sys/plugins/mine/lib/helper.py").write_text("# changed in a sub-folder\n")
+    sys_ethics._unsigned_cache.clear()
+    assert sys_ethics.unsigned_plugins(root, pub) == {"mine"}
+    assert sys_ethics.code_drift(root, pub)["changed"] == ["sys/plugins/mine/lib/helper.py"]
+
+
 def test_a_manifest_signed_by_another_key_is_refused(signed):
     root, _ = signed
     other = Ed25519PrivateKey.generate()

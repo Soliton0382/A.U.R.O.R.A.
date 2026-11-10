@@ -54,7 +54,7 @@ Generated from the code by `sys/core/script/doc_callmap.py` (`--check` in publis
 | `mem_prune.py` | by hand |
 | `plg_install_all.py` | `install.sh` |
 | `plg_run.py` | `aurora/plg_deps.py`, `script/doc_plugins.py`, `sys/plugins/circuits/plugin.json`, `sys/plugins/patent/plugin.json`, `sys/plugins/qr/plugin.json`, `sys/plugins/qr/server.py`, `sys/plugins/spotify/plugin.json` |
-| `publish.sh` | `aurora/agt_loop.py`, `aurora/api/projects.py`, `aurora/api/routines.py`, `aurora/api/security_ciso.py`, `aurora/api/social.py`, `aurora/kno_social.py`, `aurora/kno_story_auto.py`, `aurora/prj_conduct.py`, `aurora/prj_policy.py`, `aurora/prj_talk.py`, `aurora/sec_detonate.py`, `aurora/sec_fwops.py`, `aurora/sec_fwwrite.py`, `aurora/sec_privacy.py`, `aurora/sys_approvals.py`, `aurora/sys_routines.py`, `aurora/sys_social_guard.py`, `aurora/sys_uploads.py`, `config/routine_templates.json`, `config/settings_schema.json`, `script/dev_license_headers.py`, `script/dev_privacy_scan.py`, `script/dev_publish.sh`, `script/doc_times.py`, `script/shadow_seed.py`, `script/svc_api.py`, `script/sys_install_services.py`, `sys/plugins/facebook/plugin.json`, `sys/plugins/facebook/server.py`, `sys/plugins/instagram/server.py`, `sys/plugins/mastodon/plugin.json`, `sys/plugins/projects/plugin.json`, `sys/plugins/security/plugin.json`, `sys/plugins/tiktok/server.py`, `webui/i18n/en_US.json`, `webui/js/modules/firewall.js`, `webui/js/modules/project_policy.js`, `webui/js/modules/projects.js`, `webui/js/modules/social.js` |
+| `publish.sh` | `aurora/agt_change.py`, `aurora/agt_loop.py`, `aurora/api/projects.py`, `aurora/api/routines.py`, `aurora/api/security_ciso.py`, `aurora/api/social.py`, `aurora/kno_social.py`, `aurora/kno_story_auto.py`, `aurora/prj_conduct.py`, `aurora/prj_policy.py`, `aurora/prj_talk.py`, `aurora/sec_detonate.py`, `aurora/sec_fwops.py`, `aurora/sec_fwwrite.py`, `aurora/sec_privacy.py`, `aurora/sys_approvals.py`, `aurora/sys_rootcmd.py`, `aurora/sys_routines.py`, `aurora/sys_social_guard.py`, `aurora/sys_uploads.py`, `config/routine_templates.json`, `config/settings_schema.json`, `script/dev_license_headers.py`, `script/dev_privacy_scan.py`, `script/dev_publish.sh`, `script/doc_times.py`, `script/shadow_seed.py`, `script/svc_api.py`, `script/sys_install_services.py`, `script/sys_root.py`, `sys/plugins/facebook/plugin.json`, `sys/plugins/facebook/server.py`, `sys/plugins/instagram/server.py`, `sys/plugins/mastodon/plugin.json`, `sys/plugins/projects/plugin.json`, `sys/plugins/security/plugin.json`, `sys/plugins/tiktok/server.py`, `webui/i18n/en_US.json`, `webui/js/modules/firewall.js`, `webui/js/modules/project_policy.js`, `webui/js/modules/projects.js`, `webui/js/modules/social.js` |
 | `shadow_seed.py` | its own timer (--schedule), `aurora/api/runs.py`, `aurora/kno_answer.py`, `aurora/kno_shadow.py`, `aurora/sys_ethics.py`, `script/svc_api.py`, `script/sys_domains.py` |
 | `story_intro_make.py` | `aurora/kno_story.py` |
 | `story_music_fetch.py` | `config/story_music.json` |
@@ -73,7 +73,7 @@ Generated from the code by `sys/core/script/doc_callmap.py` (`--check` in publis
 | `sys_doctor.py` | `install.sh` |
 | `sys_domains.py` | `install.sh` |
 | `sys_env_sync.py` | `aurora/sys_config.py`, `aurora/sys_ethics.py`, `aurora/sys_formats.py`, `install.sh`, `script/dev_publish.sh`, `script/sys_doctor.py`, `script/sys_restore.py`, `script/sys_root.py`, `script/sys_service_account.py` |
-| `sys_ethics_sign.py` | `aurora/agt_forge.py`, `aurora/sys_ethics.py`, `aurora/sys_update.py`, `install.sh`, `script/dev_license_headers.py`, `script/publish.sh`, `script/sys_doctor.py`, `script/sys_relocate.sh`, `script/sys_root.py` |
+| `sys_ethics_sign.py` | `aurora/agt_forge.py`, `aurora/sys_ethics.py`, `aurora/sys_update.py`, `install.sh`, `script/dev_license_headers.py`, `script/sys_doctor.py`, `script/sys_relocate.sh`, `script/sys_root.py` |
 | `sys_factory_reset.py` | `aurora/api/system.py`, `aurora/sys_reset.py`, `script/sys_install_services.py` |
 | `sys_github_mcp_install.sh` | `install.sh`, `sys/plugins/github/plugin.json` |
 | `sys_install_services.py` | its own timer (--schedule), `aurora/api/backup.py`, `aurora/api/security.py`, `aurora/api/system.py`, `aurora/net_https.py`, `aurora/sec_egress.py`, `aurora/sys_ethics.py`, `aurora/sys_ups.py`, `install.sh`, `script/sys_relocate.sh`, `script/sys_service_account.py`, `webui/i18n/en_US.json`, `webui/i18n/it_IT.json`, `webui/js/modules/ups.js` |
@@ -81,14 +81,14 @@ Generated from the code by `sys/core/script/doc_callmap.py` (`--check` in publis
 | `sys_model_check.py` | by hand |
 | `sys_models_fetch.py` | `aurora/mdl_video.py`, `aurora/sys_capabilities.py`, `aurora/sys_features.py`, `config/models.json`, `install.sh`, `script/sys_song_install.sh`, `script/sys_tts_install.sh`, `script/sys_tts_qwen_install.sh` |
 | `sys_nas_mount.py` | `aurora/api/system.py`, `aurora/net_certs.py`, `aurora/sys_backup.py`, `aurora/sys_ethics.py`, `script/sys_install_services.py`, `script/sys_root.py`, `script/sys_root_sync.py` |
-| `sys_nvidia.sh` | `install.sh` |
+| `sys_nvidia.sh` | `install.sh`, `script/sys_root.py` |
 | `sys_profile.py` | `aurora/mdl_custom.py`, `aurora/sys_features.py`, `install.sh`, `script/sys_calibrate.py`, `script/sys_model_check.py` |
 | `sys_ready.py` | `install.sh` |
 | `sys_relocate.sh` | by hand |
 | `sys_restore.py` | `aurora/api/backup.py`, `aurora/sys_backup_crypto.py`, `aurora/sys_ethics.py`, `script/sys_root.py` |
 | `sys_root.py` | `aurora/mdl_router.py`, `aurora/sys_ethics.py`, `aurora/sys_rootcmd.py`, `install.sh`, `script/publish.sh`, `script/sys_ethics_sign.py`, `script/sys_install_services.py`, `script/sys_relocate.sh`, `script/sys_service_account.py` |
 | `sys_root_sync.py` | `aurora/sys_config.py`, `aurora/sys_ethics.py`, `script/sys_cert_perms.py`, `script/sys_ethics_sign.py`, `script/sys_install_services.py`, `script/sys_root.py` |
-| `sys_service_account.py` | `aurora/sys_config.py`, `config/commands.json`, `install.sh`, `script/sys_install_services.py` |
+| `sys_service_account.py` | `aurora/sys_config.py`, `install.sh`, `script/sys_install_services.py`, `script/sys_root.py` |
 | `sys_song_install.sh` | `aurora/aud_song.py`, `aurora/sys_features.py`, `config/settings_schema.json`, `install.sh` |
 | `sys_tts_install.sh` | `aurora/mdl_tts.py`, `aurora/sys_capabilities.py`, `aurora/sys_features.py`, `config/settings_schema.json`, `install.sh` |
 | `sys_tts_qwen_install.sh` | `aurora/sys_features.py` |
@@ -429,7 +429,7 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `sys_push` | `api.core`, `api.knowledge`, `api.routines`, `script/bench_synapses.py`, `sec_outbound`, `sys_capabilities`, `sys_line`, `sys_ups` | 8 |
 | `sys_replay` | `script/svc_api.py` | 1 |
 | `sys_reset` | `api.system`, `script/sys_factory_reset.py` | 1 |
-| `sys_rootcmd` | `api.agents`, `script/sys_doctor.py`, `sys_commands` | 0 |
+| `sys_rootcmd` | `agt_change`, `api.agents`, `script/sys_doctor.py`, `script/sys_service_account.py`, `sys_commands` | 1 |
 | `sys_routine_advice` | `api.home`, `api.routine_advice`, `hom_devices` | 2 |
 | `sys_routine_templates` | `api.routine_advice` | 2 |
 | `sys_routines` | `api.forge`, `api.home`, `api.knowledge`, `api.routine_advice`, `api.routines`, `api.today`, `hom_auto`, `hom_devices`, `hom_scenes`, `sys_routine_advice`, `sys_routine_templates` | 9 |

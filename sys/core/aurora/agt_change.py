@@ -97,6 +97,10 @@ def apply(sandbox_id: str, emit, cfg: sys_config.Config | None = None, restart: 
     protected = [f for f in files if f in sys_ethics.PROTECTED or f == sys_ethics.MANIFEST]
     if protected:                                     # the rules change only with the owner's own signature
         return {"applied": False, "reason": f"protected by the ethics code, owner only: {', '.join(protected)}"}
+    from . import sys_rootcmd
+    owners = [f for f in files if sys_rootcmd.owner_only(f)]
+    if owners:                                        # C556: what the owner runs (publish…) is never the services'
+        return {"applied": False, "reason": f"the owner's own scripts, never changed by Aurora: {', '.join(owners)}"}
     clash = conflicts(box, root, files)
     if clash:                                         # the live code moved on under these files: redo the change on it
         return {"applied": False, "reason": f"changed in the live code since the sandbox was made: {', '.join(clash)}"}

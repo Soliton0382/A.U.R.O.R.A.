@@ -70,6 +70,15 @@ temporary folder. Inside the services' folders root follows no symbolic link (C5
 WebUI needs no root (polkit, 50-aurora.rules) and is unchanged. The first time, from Aurora's folder:
 `sudo /usr/bin/python3 -I sys/core/script/sys_root.py setup`.
 
+What the owner runs is not the services' to write either (C556, 11 Nov 2026): the venv, install.sh, uninstall.sh and
+publish.sh have no group write and their folders are sticky, so the services can neither change nor swap them; the
+account's and the GPU's root steps run from root's signed copy (`sudo aurora-root account`, `sudo aurora-root nvidia
+…`); publish.sh and uninstall.sh first ask `aurora-root verify` (root's copy, no sudo) and run nothing of the folder as
+the owner until every file is as he signed it; the owner's Python keeps its own bytecode. The signature covers the
+behaviour files too (C558: the locks, pyproject.toml, .github, *.mjs, the config folder, a plugin's sub-folders), and
+a restore as root writes only through directory handles that follow no link (C557). Open: a plugin's fetched
+programs are checked only when fetched, and install.sh runs the folder's tests before it signs (C579).
+
 ## 🔨 The contract of Aurora's own plugins (9 Nov 2026)
 
 A plugin Aurora writes herself (the forge, manifest «forged») is held by its cage at every start, whatever its
