@@ -182,3 +182,27 @@ def test_the_account_and_gpu_steps_run_from_roots_copy_as_signed(repo, monkeypat
     assert ran[0][0] == cmd and ran[0][1]["env"]["INSTALL_ROOT"] == str(repo)
     assert (R.LIB / "sys/core/script/sys_service_account.py").read_text() == "# planted by the services' account\n"
     assert (R.LIB / "sys/core/script/sys_nvidia.sh").exists()
+
+
+def test_a_code_list_that_grows_is_signed_in_one_command(repo):
+    """C580: new CODE_PATTERNS in the sys_ethics.py being signed — its new files signed by the same `sign`, not left
+    for a second one (root's copy, the previous signature, did not list them)."""
+    R.sign(R.snapshot(), yes=True)
+    (repo / "docs").mkdir()
+    (repo / "docs" / "extra.txt").write_text("now code\n")
+    (repo / "sys/core/aurora/sys_ethics.py").write_text(
+        f"PROTECTED = {tuple(sys_ethics.PROTECTED)!r}\n"
+        "def code_files(root):\n"
+        "    from aurora import sys_ethics as E\n"
+        "    return sorted(E.code_files(root) + ['docs/extra.txt'])\n")
+    assert "docs/extra.txt" not in R.snapshot()                       # root's copy's list
+    signed = R.sign_all(R.snapshot(), yes=True)
+    assert "docs/extra.txt" in signed
+    code = json.loads((repo / sys_ethics.MANIFEST).read_text())["code"]
+    assert "docs/extra.txt" in code and code["sys/core/aurora/sys_ethics.py"]
+
+
+def test_a_signed_list_that_cannot_be_read_leaves_root_s_list(repo, capsys):
+    (repo / "sys/core/aurora/sys_ethics.py").write_text("raise RuntimeError('broken')\n")
+    assert R.sign_all(R.snapshot(), yes=True) is not None
+    assert "non riletto" in capsys.readouterr().out

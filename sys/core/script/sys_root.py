@@ -83,10 +83,11 @@ def _read(path: Path) -> bytes:
         return h.read()
 
 
-def snapshot() -> dict[str, bytes]:
-    """Every file the owner signs, its bytes read once: what root signs, checks and runs is this, nothing read later."""
+def snapshot(files: list[str] | None = None) -> dict[str, bytes]:
+    """Every file the owner signs, its bytes read once: what root signs, checks and runs is this, nothing read later.
+    `files`: the list as the code just signed makes it (C580), instead of root's copy's."""
     out, links = {}, []
-    for rel in sys_ethics.code_files(REPO):
+    for rel in (sys_ethics.code_files(REPO) if files is None else files):
         p = REPO / rel
         if p.is_symlink() or any((REPO / q).is_symlink() for q in Path(rel).parents if str(q) != "."):
             links.append(rel)
@@ -226,6 +227,38 @@ def sign(snap: dict[str, bytes], yes: bool = False) -> bool:
     return True
 
 
+def signed_code_files(snap: dict[str, bytes]) -> list[str] | None:
+    """C580: the code files as the sys_ethics.py just signed lists them — root's copy is the previous signature, and a
+    list that grew (new CODE_PATTERNS) was signed without its new files, and `aurora-root verify` failed right after.
+    Run only once the owner has signed those bytes: what root would run from its copy anyway."""
+    import types
+    src = snap.get("sys/core/aurora/sys_ethics.py")
+    if src is None:
+        return None
+    mod = types.ModuleType("aurora._sys_ethics_signed")
+    mod.__package__, mod.__file__ = "aurora", str(REPO / "sys/core/aurora/sys_ethics.py")
+    try:
+        exec(compile(src, mod.__file__, "exec"), mod.__dict__)       # noqa: S102 — signed by the owner a moment ago
+        return list(mod.code_files(REPO)) if callable(getattr(mod, "code_files", None)) else None
+    except Exception as e:  # noqa: BLE001 — the list of root's copy stands; said aloud
+        print(f"  (elenco del codice firmato non riletto: {e}; se `aurora-root verify` fallisce, firma di nuovo)")
+        return None
+
+
+def sign_all(snap: dict[str, bytes], yes: bool = False) -> dict[str, bytes] | None:
+    """Sign what changed; when the code just signed lists other files than root's copy did (C580), show them and sign
+    once more — one command, never a second `sudo aurora-root sign`. Returns the snapshot signed, None when declined."""
+    if not sign(snap, yes):
+        return None
+    files = signed_code_files(snap)
+    if files is not None and set(files) != set(snap):
+        print("La firma nuova allarga (o stringe) l'elenco del codice firmato:")
+        snap = snapshot(files)
+        if not sign(snap, yes):
+            return None
+    return snap
+
+
 def sync_lib(snap: dict[str, bytes]) -> int:
     """Root's copy, written from the bytes just checked against the signature; the launcher's command beside it."""
     code = (_manifest().get("code") or {})
@@ -269,7 +302,8 @@ def install(step: str, extra: list[str], yes: bool) -> int:
     d = drift(snap)
     if d["changed"] or d["added"] or d["removed"] or d["unsigned"]:
         print("Prima di installare, il codice cambiato dall'ultima firma:")
-        if not sign(snap, yes):
+        snap = sign_all(snap, yes)
+        if snap is None:
             return 1
     print(f"  copia di root: {sync_lib(snap)} file")
     folder = STEPS[step] + "/"
@@ -354,8 +388,8 @@ def main(argv: list[str]) -> int:
             return S.main()
         return 0
     if action == "sign":
-        snap = snapshot()
-        if not sign(snap, yes):
+        snap = sign_all(snapshot(), yes)
+        if snap is None:
             return 1
         print(f"  copia di root: {sync_lib(snap)} file")
         return 0
