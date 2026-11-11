@@ -169,10 +169,13 @@ def connect(cfg, fid: str, docs: bool = True) -> dict:
         raise KeyError(fid)
     v = view(cfg, it)
     try:
+        if not bool(v["AURORA_FIREWALL_VERIFY_TLS"]):     # C567: the owner's click is the moment the certificate is
+            from . import sec_tlspin                      # trusted: learnt now, held at every later call
+            sec_tlspin.learn(v, sec_fwapi.base_url(v))
         test = sec_fwapi.test(v)
         d = sec_fwapi._driver(v)
         sec_fwapi.request(v, d.add_group(str(v["AURORA_FIREWALL_BLOCK_GROUP"])))
-    except sec_fwapi.FirewallAPIError as e:
+    except (sec_fwapi.FirewallAPIError, OSError) as e:     # OSError: the certificate not reached (C567)
         _mark(cfg, fid, confirmed=None, error=str(e)[:300])
         return {"ok": False, "error": str(e)}
     _mark(cfg, fid, confirmed=time.time(), error="")

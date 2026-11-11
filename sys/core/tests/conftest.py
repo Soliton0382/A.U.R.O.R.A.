@@ -69,3 +69,22 @@ def nothing_leaves_the_tests(monkeypatch, request):
     listeners = list(sys_log._listeners)
     yield sent
     sys_log._listeners[:] = listeners
+
+
+@pytest.fixture(autouse=True)
+def _no_tls_pin_over_the_network(request, monkeypatch):
+    """C567: a driver test's firewall is a stand-in; learning its certificate would reach the network. A test of the
+    pinning itself asks for the real one (the fixture «real_tls»)."""
+    if "real_tls" in request.fixturenames:
+        yield
+        return
+    from aurora import sec_tlspin
+    monkeypatch.setattr(sec_tlspin, "verify", lambda cfg, url, ca: True)
+    monkeypatch.setattr(sec_tlspin, "learn", lambda cfg, url, timeout=10.0: None)
+    yield
+
+
+@pytest.fixture()
+def real_tls():
+    """The real sec_tlspin (see _no_tls_pin_over_the_network)."""
+    return True

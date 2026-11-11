@@ -43,14 +43,16 @@ class _API:
         from ..sec_fwapi import base_url
         self.base = base_url(cfg) + "/api/v2"
         self.auth = (str(cfg["AURORA_FIREWALL_API_USER"]), str(cfg["AURORA_FIREWALL_API_PASSWORD"]))
-        self.verify = bool(cfg["AURORA_FIREWALL_VERIFY_TLS"])
+        self.cfg, self.ca = cfg, bool(cfg["AURORA_FIREWALL_VERIFY_TLS"])
 
     def __call__(self, method: str, path: str, **kw) -> dict:
         from ..sec_fwapi import FirewallAPIError
+        from .. import sec_tlspin                       # C567: the pinned certificate when the CA check is off
         try:
+            self.verify = sec_tlspin.verify(self.cfg, self.base, self.ca)
             r = httpx.request(method, self.base + path, auth=self.auth, verify=self.verify, timeout=30, **kw)
-        except httpx.HTTPError as e:
-            raise FirewallAPIError(f"the firewall does not answer: {e}") from None
+        except (httpx.HTTPError, OSError) as e:
+            raise FirewallAPIError(sec_tlspin.why(e)) from None
         if r.status_code == 401:
             raise FirewallAPIError("the firewall refused the login (user, password, or the REST API package missing)")
         try:

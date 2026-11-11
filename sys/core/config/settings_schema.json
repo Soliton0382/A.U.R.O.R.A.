@@ -4501,8 +4501,8 @@
    "category": "security",
    "recommended": "0",
    "evidence": "owner",
-   "en": "Check the firewall's HTTPS certificate (off for a firewall's own self-signed one).",
-   "it": "Verificare il certificato HTTPS del firewall (spento per quello autofirmato del firewall).",
+   "en": "Check the firewall's HTTPS certificate against the CAs (off for a firewall's own self-signed one: then the certificate seen when you connect the firewall is pinned, and any other is refused before the password is sent).",
+   "it": "Verificare il certificato HTTPS del firewall con le CA (spento per quello autofirmato del firewall: allora il certificato visto quando colleghi il firewall viene fissato, e ogni altro è rifiutato prima di inviare la password).",
    "services": [
     "aurora-api"
    ]

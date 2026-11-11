@@ -17,15 +17,17 @@ import httpx
 # ---- the call -------------------------------------------------------------------------------------------------------
 def request(cfg, body: str) -> str:
     """One API call; returns the firewall's XML answer. FirewallAPIError when the login or the call is refused."""
+    from .. import sec_tlspin
     from ..sec_fwapi import FirewallAPIError, _one_at_a_time, base_url
     xml = (f'<Request><Login><Username>{escape(str(cfg["AURORA_FIREWALL_API_USER"]))}</Username>'
            f'<Password>{escape(str(cfg["AURORA_FIREWALL_API_PASSWORD"]))}</Password></Login>{body}</Request>')
     url = base_url(cfg) + "/webconsole/APIController"
     try:
-        with _one_at_a_time(cfg):
-            r = httpx.post(url, files={"reqxml": (None, xml)}, timeout=30, verify=bool(cfg["AURORA_FIREWALL_VERIFY_TLS"]))
-    except httpx.HTTPError as e:
-        raise FirewallAPIError(f"the firewall does not answer: {e}") from None
+        with _one_at_a_time(cfg):                    # C567: the pinned certificate, the password sent only to it
+            tls = sec_tlspin.verify(cfg, url, bool(cfg["AURORA_FIREWALL_VERIFY_TLS"]))
+            r = httpx.post(url, files={"reqxml": (None, xml)}, timeout=30, verify=tls)
+    except (httpx.HTTPError, OSError) as e:
+        raise FirewallAPIError(sec_tlspin.why(e)) from None
     text = r.text
     if re.search(r"<Login>\s*<status>\s*Authentication Failure", text, re.I) or "Authentication Failure" in text:
         raise FirewallAPIError("the firewall refused the login (user, password, or Aurora's address not allowed for the API)")
