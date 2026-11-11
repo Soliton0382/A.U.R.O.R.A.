@@ -29,6 +29,8 @@ FIELDS = {
     "command": (list, True, "how its program starts: [\"{python}\", \"server.py\"], or a program of its own (a remote "
                             "MCP server has an url instead)"),
     "url": (str, False, "a remote MCP server's address, http or https (kind mcp): no command"),
+    "lan": (bool, False, "true: the remote MCP server is in the house (a private address); without it only a public "
+                         "one is reached (kind mcp)"),
     "memory": (bool, False, "false: an answer that used it never enters Aurora's memory (kind mcp)"),
     "chat": (bool, False, "false: kept out of the chat, only an agent that chose it uses it (kind mcp)"),
     "requires": (list, True, "settings without which it does not start (named, never their values)"),
@@ -38,7 +40,7 @@ FIELDS = {
     "settings_spec": (list, False, "its own settings: {key AURORA_<NAME>_…, type, secret, scope, it, en}; scope "
                                    "\"user\": a person's account, kept in their own .env"),
     "setup": (dict, False, "{it, en, links}: how to set it up"),
-    "sandbox": (dict, False, "{network: bool, \"local\" (the local model only) or \"proxy\" (its hosts only), write: [setting "
+    "sandbox": (dict, False, "{network: true (the host's), false (none: the default), \"local\" (the local model only) or \"proxy\" (its hosts only), write: [setting "
                              "names of folders], read: [absolute paths outside Aurora, kind mcp only]}: the cage"),
     "tests": ((list, dict), False, "read tools called by «Prova»: [{tool, args}] or {tool: args}"),
     "welcome": (dict, False, "{it, en}: said once when it is first switched on"),
@@ -105,6 +107,8 @@ def check(m: dict, folder: str = "") -> list[str]:
         out.append(f"sandbox.read: absolute paths, not {', '.join(map(str, bad))}")
     if m.get("url") and m.get("kind") != "mcp":
         out.append("url: only an MCP server (kind mcp)")
+    if m.get("lan") and not m.get("url"):
+        out.append("lan: only a remote MCP server (url)")
     if m.get("url") and not str(m["url"]).startswith(("http://", "https://")):
         out.append("url: http:// or https://")
     if bad := [s for s in sb.get("write") or [] if not SETTING.match(str(s))]:

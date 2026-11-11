@@ -8,6 +8,15 @@ import { t } from "./i18n.js";
 
 const done = new Set();
 
+// C565 (app 0.5.4): the app's actions take the key it gave this page's main frame; an app of before takes none
+export function appCall(name, arg) {
+  const app = window.AuroraApp;
+  try { return app[name](window.AuroraAppKey || "", arg); } catch (e) {
+    if (window.AuroraAppKey) throw e;                  // the new app: refused, never asked again without the key
+    return app[name](arg);
+  }
+}
+
 function link(p) {
   const q = encodeURIComponent;
   switch (p.action) {
@@ -26,7 +35,7 @@ export function phoneAction(p, into) {
   const line = el("div", "phone-act");
   if (window.AuroraApp?.act) {
     let r;
-    try { r = window.AuroraApp.act(JSON.stringify(p)); } catch { r = "bad"; }
+    try { r = appCall("act", JSON.stringify(p)); } catch { r = "bad"; }
     line.textContent = `📱 ${t(`phone.${r}`) || r}`;
   } else {
     const url = link(p);

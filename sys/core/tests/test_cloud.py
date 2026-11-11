@@ -94,7 +94,9 @@ def test_a_system_prompt_too_long_for_one_argument_goes_in_a_file_removed_after(
     monkeypatch.setattr(mdl_cloud.ClaudeCodeLLM, "_account", lambda self, d, s: None)
     llm = mdl_cloud.ClaudeCodeLLM.__new__(mdl_cloud.ClaudeCodeLLM)
     llm.cfg, llm.bin, llm.model, llm.cwd = cfg, "claude", "haiku", None
-    assert llm.complete("short", "user", 100).answer == "ok" and "--system-prompt" in seen["cmd"] and "path" not in seen
+    # C572: a short one too — a process's arguments are read by every local account
+    assert llm.complete("short", "user", 100).answer == "ok" and "--system-prompt" not in seen["cmd"]
+    assert seen["text"].startswith("short") and seen["mode"] == 0o600 and not _os.path.exists(seen["path"])
     long = "tool description. " * 10_000                                  # 180 KB
     assert llm.complete(long, "user", 100).answer == "ok"
     assert "--system-prompt" not in seen["cmd"] and seen["text"].startswith(long[:50]) and seen["mode"] == 0o600

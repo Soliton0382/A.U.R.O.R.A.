@@ -257,3 +257,11 @@ def test_a_firewall_that_stopped_speaking_is_said(cfg):
     os.utime(f, (time.time() - 8 * 3600, time.time() - 8 * 3600))
     text, fix = sys_health.syslog_silence(cfg)
     assert "480 min" in text and "sudo ufw allow from 10.0.0.1 to any port 5514 proto udp" in fix
+
+
+def test_an_answer_s_own_csp_is_kept_by_caddy(cfg):
+    """C574: Caddy sets the app's CSP only when the answer has none — an upload's «sandbox», a document's own policy
+    are no longer replaced by the WebUI's (which allows Aurora's scripts)."""
+    from aurora import net_https
+    text = net_https.render(cfg)
+    assert '?Content-Security-Policy "' in text and '\t\tContent-Security-Policy "' not in text

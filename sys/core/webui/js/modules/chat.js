@@ -17,7 +17,7 @@ import { attachMenu, settingsMenu, showGear, source } from "./chat_menu.js";
 import { actions, quoteBox, quoted } from "./chat_actions.js";
 import { composer } from "./composer.js";
 import { bargeIn } from "../vad.js";
-import { phoneAction } from "../phone.js";
+import { appCall, phoneAction } from "../phone.js";
 
 const HISTORY_TURNS = 8;          // 4 exchanges: the same memory Aurora keeps in context
 
@@ -112,7 +112,7 @@ export default {
       dial.disabled = true;
       try {
         const c = await call("/v1/aurora/call/dial", { method: "POST" });
-        window.AuroraApp.callAurora(c.id);
+        appCall("callAurora", c.id);                    // C565: with the page's key
       } catch (e) { input.placeholder = t("ev.error", { m: e.message }); } finally { dial.disabled = false; }
     });
     const shoot = root.querySelector(".shoot");

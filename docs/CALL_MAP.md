@@ -104,33 +104,37 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 
 | module | imported by (code) | tests |
 |---|---|---|
-| `aurora` | `agt_change`, `agt_forge`, `agt_forge_data`, `agt_loop`, `agt_loop_make`, `agt_react`, `api.access`, `api.accounts`, `api.activity`, `api.agents`, `api.assist`, `api.astro`, `api.autonomy`, `api.backup`, `api.bugreport`, `api.calendar`, `api.call`, `api.care`, `api.core`, `api.core_route`, `api.diet`, `api.dj`, `api.documents`, `api.edge`, `api.firewalls`, `api.forge`, `api.harvester`, `api.home`, `api.https`, `api.incidents`, `api.interpret`, `api.keys`, `api.knowledge`, `api.line`, `api.mcp_servers`, `api.models`, `api.models_custom`, `api.money`, `api.oauth`, `api.people`, `api.phone_app`, `api.places`, `api.power`, `api.preview`, `api.projects`, `api.projects_conduct`, `api.projects_plan`, `api.projects_print`, `api.projects_view`, `api.radio`, `api.rem`, `api.routine_advice`, `api.routines`, `api.runs`, `api.security`, `api.security_ciso`, `api.social`, `api.synapses`, `api.system`, `api.today`, `api.tunnel`, `api.updates`, `api.uploads`, `api.usage`, `api.users`, `api.voice`, `ast_advice`, `ast_autoguide`, `ast_donut`, `ast_frames`, `ast_guidelog`, `ast_inventory`, `ast_ocal`, `ast_rotate`, `ast_sensor`, `ast_seqexport`, `ast_seqwrite`, `ast_skyplan`, `ast_skythumb`, `ast_stars`, `aud_deck`, `aud_dj`, `aud_learn`, `aud_radio`, `aud_set`, `aud_song`, `aud_song_style`, `cal_external`, `cal_share`, `cal_store`, `cal_text`, `doc_artifact`, `doc_pdf`, `doc_preview`, `fin_store`, `fw_drivers.opnsense`, `fw_drivers.opnsense_read`, `fw_drivers.pfsense`, `fw_drivers.pfsense_read`, `fw_drivers.sophos`, `hlt_diet`, `hlt_doctor`, `hlt_labs`, `hlt_store`, `hom_auto`, `hom_devices`, `hom_scenes`, `kno_acquire`, `kno_acquire_more`, `kno_anger`, `kno_answer`, `kno_attach`, `kno_deduce`, `kno_dedup`, `kno_diary`, `kno_docs`, `kno_followup`, `kno_grid`, `kno_harvest`, `kno_harvest_plan`, `kno_ingest`, `kno_lessons`, `kno_memory_seal`, `kno_mood`, `kno_mood_work`, `kno_morning`, `kno_read`, `kno_rem`, `kno_review`, `kno_self`, `kno_shadow`, `kno_social`, `kno_sources`, `kno_split`, `kno_stages`, `kno_story`, `kno_story_auto`, `kno_study`, `kno_synapse`, `kno_synapse2`, `kno_talk`, `kno_think`, `kno_trail`, `kno_train`, `kno_vault_audit`, `kno_video`, `kno_web`, `mdl_accounts`, `mdl_budget`, `mdl_cloud`, `mdl_custom`, `mdl_embedder`, `mdl_formats`, `mdl_image`, `mdl_llm`, `mdl_media`, `mdl_modes`, `mdl_remote`, `mdl_reranker`, `mdl_router`, `mdl_services`, `mdl_stt`, `mdl_tts`, `mdl_user_roles`, `mdl_video`, `net_certs`, `net_cfwaf`, `net_cloudflare`, `net_dnsapi`, `net_geo`, `net_https`, `net_trace`, `plg_access`, `plg_host`, `plg_mcp`, `plg_modelnet`, `plg_netproxy`, `plg_sandbox`, `plg_shadow`, `plg_trash`, `prj_act`, `prj_browse`, `prj_conduct`, `prj_cover`, `prj_docs`, `prj_live`, `prj_plan`, `prj_policy`, `prj_print`, `prj_reports`, `prj_run`, `prj_sim`, `prj_talk`, `prj_term`, `prj_view`, `script/bench_common.py`, `script/bench_domain_assign.py`, `script/bench_domains.py`, `script/bench_followup.py`, `script/bench_forge.py`, `script/bench_honeypot.py`, `script/bench_image.py`, `script/bench_learn.py`, `script/bench_memory_days.py`, `script/bench_preflight.py`, `script/bench_public.py`, `script/bench_quality.py`, `script/bench_repair.py`, `script/bench_retrieval.py`, `script/bench_router.py`, `script/bench_synapses.py`, `script/bench_tokens.py`, `script/bench_vault_diag.py`, `script/dev_demo_video.py`, `script/dev_license_headers.py`, `script/dev_privacy_scan.py`, `script/img_ai.py`, `script/img_paint.py`, `script/kno_import.py`, `script/kno_migrate_legacy.py`, `script/mem_prune.py`, `script/plg_install_all.py`, `script/shadow_seed.py`, `script/story_intro_make.py`, `script/story_music_fetch.py`, `script/svc_api.py`, `script/svc_backup.py`, `script/svc_harvester.py`, `script/svc_llm.py`, `script/svc_models.py`, `script/svc_rem.py`, `script/svc_sentinel.py`, `script/sys_backup_retime.py`, `script/sys_calibrate.py`, `script/sys_cloud_setup.py`, `script/sys_commands_write.py`, `script/sys_doctor.py`, `script/sys_domains.py`, `script/sys_env_sync.py`, `script/sys_ethics_sign.py`, `script/sys_factory_reset.py`, `script/sys_install_services.py`, `script/sys_key_seal.py`, `script/sys_model_check.py`, `script/sys_nas_mount.py`, `script/sys_ready.py`, `script/sys_restore.py`, `script/sys_root.py`, `script/sys_root_sync.py`, `script/sys_service_account.py`, `script/sys_unseal_export.py`, `script/sys_users_migrate.py`, `script/vault_realign.py`, `script/vid_ai.py`, `sec_audit`, `sec_autopilot`, `sec_baseline`, `sec_defence`, `sec_detonate`, `sec_egress`, `sec_egress_watch`, `sec_filecheck`, `sec_firewalls`, `sec_fwapi`, `sec_fwconf`, `sec_fwdocs`, `sec_fwmodel`, `sec_fwops`, `sec_fwplan`, `sec_fwplan_ops`, `sec_fwport`, `sec_fwpower`, `sec_fwwrite`, `sec_hostaudit`, `sec_hostfw`, `sec_hunt`, `sec_incidents`, `sec_intel`, `sec_linkcheck`, `sec_mask`, `sec_mask_spot`, `sec_netmap`, `sec_outbound`, `sec_privacy`, `sec_profile`, `sec_quiet`, `sec_report`, `sec_rules`, `sec_scorecard`, `sec_shared`, `sec_tlspin`, `sns_av`, `sns_clock`, `sns_weather`, `sol_index`, `sol_lexical`, `sol_reader`, `sol_search`, `sol_vault`, `sol_writer`, `sys/plugins/astro/server.py`, `sys/plugins/backup/server.py`, `sys/plugins/backup_files/server.py`, `sys/plugins/cad/server.py`, `sys/plugins/calendar/server.py`, `sys/plugins/circuits/server.py`, `sys/plugins/cloud/server.py`, `sys/plugins/cloudflare/server.py`, `sys/plugins/diary/server.py`, `sys/plugins/dj/server.py`, `sys/plugins/documents/my_pdfs.py`, `sys/plugins/documents/server.py`, `sys/plugins/dropbox/authorize.py`, `sys/plugins/dropbox/server.py`, `sys/plugins/facebook/server.py`, `sys/plugins/homeassistant/server.py`, `sys/plugins/instagram/server.py`, `sys/plugins/linkcheck/server.py`, `sys/plugins/logs/server.py`, `sys/plugins/nextcloud/server.py`, `sys/plugins/notes/server.py`, `sys/plugins/ntfy/server.py`, `sys/plugins/patent/server.py`, `sys/plugins/projects/server.py`, `sys/plugins/publications/server.py`, `sys/plugins/pyenv/server.py`, `sys/plugins/routines/server.py`, `sys/plugins/runs/server.py`, `sys/plugins/security/server.py`, `sys/plugins/self/server.py`, `sys/plugins/senses/server.py`, `sys/plugins/sky/server.py`, `sys/plugins/tiktok/authorize.py`, `sys/plugins/tiktok/server.py`, `sys/plugins/vista/server.py`, `sys/plugins/weather/server.py`, `sys/plugins/web/server.py`, `sys_anon`, `sys_approvals`, `sys_assist`, `sys_autonomy`, `sys_backup`, `sys_backup_crypto`, `sys_backup_parts`, `sys_bugreport`, `sys_call`, `sys_call_ahead`, `sys_capabilities`, `sys_cloud_consent`, `sys_commands`, `sys_config`, `sys_consoles`, `sys_devices`, `sys_disclosure`, `sys_ethics`, `sys_features`, `sys_formats`, `sys_fresh`, `sys_health`, `sys_ideas`, `sys_key_recovery`, `sys_keyring`, `sys_line`, `sys_log`, `sys_logread`, `sys_metrics`, `sys_people`, `sys_persona`, `sys_phone_app`, `sys_power_hosts`, `sys_push`, `sys_reset`, `sys_routine_advice`, `sys_routine_templates`, `sys_routines`, `sys_seal`, `sys_soak`, `sys_social_guard`, `sys_sshkey`, `sys_tests`, `sys_trash`, `sys_update`, `sys_uploads`, `sys_ups`, `sys_usage`, `sys_user_config`, `sys_users`, `sys_users_layout`, `sys_users_mode`, `sys_users_perm` | 258 |
+| `aurora` | `agt_asked`, `agt_change`, `agt_forge`, `agt_forge_data`, `agt_logguard`, `agt_loop`, `agt_loop_make`, `agt_react`, `api.access`, `api.accounts`, `api.activity`, `api.agents`, `api.assist`, `api.astro`, `api.autonomy`, `api.backup`, `api.bugreport`, `api.calendar`, `api.call`, `api.care`, `api.core`, `api.core_guard`, `api.core_route`, `api.diet`, `api.dj`, `api.documents`, `api.edge`, `api.firewalls`, `api.forge`, `api.harvester`, `api.home`, `api.https`, `api.incidents`, `api.interpret`, `api.keys`, `api.knowledge`, `api.line`, `api.mcp_servers`, `api.models`, `api.models_custom`, `api.money`, `api.oauth`, `api.people`, `api.phone_app`, `api.places`, `api.power`, `api.preview`, `api.projects`, `api.projects_conduct`, `api.projects_plan`, `api.projects_print`, `api.projects_view`, `api.radio`, `api.rem`, `api.routine_advice`, `api.routines`, `api.runs`, `api.security`, `api.security_ciso`, `api.social`, `api.synapses`, `api.system`, `api.today`, `api.tunnel`, `api.updates`, `api.uploads`, `api.usage`, `api.users`, `api.voice`, `ast_advice`, `ast_autoguide`, `ast_donut`, `ast_frames`, `ast_guidelog`, `ast_inventory`, `ast_ocal`, `ast_rotate`, `ast_sensor`, `ast_seqexport`, `ast_seqwrite`, `ast_skyplan`, `ast_skythumb`, `ast_stars`, `aud_deck`, `aud_dj`, `aud_learn`, `aud_radio`, `aud_set`, `aud_song`, `aud_song_style`, `cal_external`, `cal_share`, `cal_store`, `cal_text`, `doc_artifact`, `doc_pdf`, `doc_preview`, `fin_store`, `fw_drivers.opnsense`, `fw_drivers.opnsense_read`, `fw_drivers.pfsense`, `fw_drivers.pfsense_read`, `fw_drivers.sophos`, `hlt_diet`, `hlt_doctor`, `hlt_labs`, `hlt_store`, `hom_auto`, `hom_devices`, `hom_scenes`, `kno_acquire`, `kno_acquire_more`, `kno_anger`, `kno_answer`, `kno_attach`, `kno_deduce`, `kno_dedup`, `kno_diary`, `kno_docs`, `kno_followup`, `kno_grid`, `kno_harvest`, `kno_harvest_plan`, `kno_ingest`, `kno_lessons`, `kno_memory_seal`, `kno_mood`, `kno_mood_work`, `kno_morning`, `kno_read`, `kno_rem`, `kno_review`, `kno_self`, `kno_shadow`, `kno_social`, `kno_sources`, `kno_split`, `kno_stages`, `kno_story`, `kno_story_auto`, `kno_study`, `kno_synapse`, `kno_synapse2`, `kno_talk`, `kno_think`, `kno_trail`, `kno_train`, `kno_vault_audit`, `kno_video`, `kno_web`, `mdl_accounts`, `mdl_budget`, `mdl_cloud`, `mdl_custom`, `mdl_embedder`, `mdl_formats`, `mdl_image`, `mdl_llm`, `mdl_media`, `mdl_modes`, `mdl_remote`, `mdl_reranker`, `mdl_router`, `mdl_services`, `mdl_stt`, `mdl_tts`, `mdl_user_roles`, `mdl_video`, `net_certs`, `net_cfwaf`, `net_cloudflare`, `net_dnsapi`, `net_geo`, `net_https`, `net_trace`, `plg_access`, `plg_deps`, `plg_host`, `plg_mcp`, `plg_modelnet`, `plg_netproxy`, `plg_sandbox`, `plg_shadow`, `plg_trash`, `prj_act`, `prj_browse`, `prj_conduct`, `prj_cover`, `prj_docs`, `prj_live`, `prj_plan`, `prj_policy`, `prj_print`, `prj_reports`, `prj_run`, `prj_sim`, `prj_talk`, `prj_term`, `prj_view`, `script/bench_common.py`, `script/bench_domain_assign.py`, `script/bench_domains.py`, `script/bench_followup.py`, `script/bench_forge.py`, `script/bench_honeypot.py`, `script/bench_image.py`, `script/bench_learn.py`, `script/bench_memory_days.py`, `script/bench_preflight.py`, `script/bench_public.py`, `script/bench_quality.py`, `script/bench_repair.py`, `script/bench_retrieval.py`, `script/bench_router.py`, `script/bench_synapses.py`, `script/bench_tokens.py`, `script/bench_vault_diag.py`, `script/dev_demo_video.py`, `script/dev_license_headers.py`, `script/dev_privacy_scan.py`, `script/img_ai.py`, `script/img_paint.py`, `script/kno_import.py`, `script/kno_migrate_legacy.py`, `script/mem_prune.py`, `script/plg_install_all.py`, `script/shadow_seed.py`, `script/story_intro_make.py`, `script/story_music_fetch.py`, `script/svc_api.py`, `script/svc_backup.py`, `script/svc_harvester.py`, `script/svc_llm.py`, `script/svc_models.py`, `script/svc_rem.py`, `script/svc_sentinel.py`, `script/sys_backup_retime.py`, `script/sys_calibrate.py`, `script/sys_cloud_setup.py`, `script/sys_commands_write.py`, `script/sys_doctor.py`, `script/sys_domains.py`, `script/sys_env_sync.py`, `script/sys_ethics_sign.py`, `script/sys_factory_reset.py`, `script/sys_install_services.py`, `script/sys_key_seal.py`, `script/sys_model_check.py`, `script/sys_nas_mount.py`, `script/sys_ready.py`, `script/sys_restore.py`, `script/sys_root.py`, `script/sys_root_sync.py`, `script/sys_service_account.py`, `script/sys_unseal_export.py`, `script/sys_users_migrate.py`, `script/vault_realign.py`, `script/vid_ai.py`, `sec_audit`, `sec_autopilot`, `sec_baseline`, `sec_defence`, `sec_detonate`, `sec_egress`, `sec_egress_watch`, `sec_filecheck`, `sec_firewalls`, `sec_fwapi`, `sec_fwconf`, `sec_fwdocs`, `sec_fwmodel`, `sec_fwops`, `sec_fwplan`, `sec_fwplan_ops`, `sec_fwport`, `sec_fwpower`, `sec_fwwrite`, `sec_hostaudit`, `sec_hostfw`, `sec_hunt`, `sec_incidents`, `sec_intel`, `sec_linkcheck`, `sec_mask`, `sec_mask_spot`, `sec_netmap`, `sec_outbound`, `sec_privacy`, `sec_profile`, `sec_quiet`, `sec_report`, `sec_rules`, `sec_scorecard`, `sec_shared`, `sec_tlspin`, `sns_av`, `sns_clock`, `sns_weather`, `sol_index`, `sol_index_seal`, `sol_lexical`, `sol_reader`, `sol_search`, `sol_vault`, `sol_writer`, `sys/plugins/astro/server.py`, `sys/plugins/backup/server.py`, `sys/plugins/backup_files/server.py`, `sys/plugins/cad/server.py`, `sys/plugins/calendar/server.py`, `sys/plugins/circuits/server.py`, `sys/plugins/cloud/server.py`, `sys/plugins/cloudflare/server.py`, `sys/plugins/diary/server.py`, `sys/plugins/dj/server.py`, `sys/plugins/documents/my_pdfs.py`, `sys/plugins/documents/server.py`, `sys/plugins/dropbox/authorize.py`, `sys/plugins/dropbox/server.py`, `sys/plugins/facebook/server.py`, `sys/plugins/homeassistant/server.py`, `sys/plugins/instagram/server.py`, `sys/plugins/linkcheck/server.py`, `sys/plugins/logs/server.py`, `sys/plugins/nextcloud/server.py`, `sys/plugins/notes/server.py`, `sys/plugins/ntfy/server.py`, `sys/plugins/patent/server.py`, `sys/plugins/projects/server.py`, `sys/plugins/publications/server.py`, `sys/plugins/pyenv/server.py`, `sys/plugins/routines/server.py`, `sys/plugins/runs/server.py`, `sys/plugins/security/server.py`, `sys/plugins/self/server.py`, `sys/plugins/senses/server.py`, `sys/plugins/sky/server.py`, `sys/plugins/tiktok/authorize.py`, `sys/plugins/tiktok/server.py`, `sys/plugins/vista/server.py`, `sys/plugins/weather/server.py`, `sys/plugins/web/server.py`, `sys_anon`, `sys_approvals`, `sys_assist`, `sys_autonomy`, `sys_backup`, `sys_backup_crypto`, `sys_backup_parts`, `sys_bugreport`, `sys_call`, `sys_call_ahead`, `sys_capabilities`, `sys_cloud_consent`, `sys_commands`, `sys_config`, `sys_consoles`, `sys_devices`, `sys_disclosure`, `sys_ethics`, `sys_features`, `sys_formats`, `sys_fresh`, `sys_health`, `sys_ideas`, `sys_key_recovery`, `sys_keyring`, `sys_line`, `sys_log`, `sys_logread`, `sys_metrics`, `sys_people`, `sys_persona`, `sys_phone_app`, `sys_power_hosts`, `sys_push`, `sys_reset`, `sys_routine_advice`, `sys_routine_templates`, `sys_routines`, `sys_seal`, `sys_soak`, `sys_social_guard`, `sys_sshkey`, `sys_tests`, `sys_trash`, `sys_update`, `sys_uploads`, `sys_ups`, `sys_usage`, `sys_user_config`, `sys_users`, `sys_users_layout`, `sys_users_mode`, `sys_users_perm` | 267 |
+| `agt_asked` | `agt_loop` | 1 |
 | `agt_calls` | `agt_loop`, `mdl_router` | 0 |
-| `agt_change` | `agt_loop_make`, `api.agents` | 3 |
-| `agt_forge` | `agt_forge_data`, `agt_loop`, `api.agents`, `api.forge`, `script/bench_forge.py`, `script/sys_root.py` | 2 |
+| `agt_change` | `agt_loop_make`, `api.agents` | 4 |
+| `agt_forge` | `agt_forge_data`, `agt_loop`, `api.agents`, `api.forge`, `script/bench_forge.py`, `script/sys_root.py` | 3 |
+| `agt_forge_budget` | `agt_forge`, `api.agents` | 1 |
 | `agt_forge_data` | `agt_forge` | 0 |
-| `agt_loop` | `api.agents`, `api.routines` | 7 |
-| `agt_loop_make` | `agt_loop` | 1 |
+| `agt_logguard` | `agt_loop`, `api.agents`, `kno_rem` | 1 |
+| `agt_loop` | `api.agents`, `api.routines` | 8 |
+| `agt_loop_make` | `agt_loop` | 2 |
 | `agt_loop_report` | `agt_loop` | 1 |
 | `agt_phone` | `agt_loop`, `sys_call`, `sys_call_ahead` | 2 |
 | `agt_react` | `api.agents` | 1 |
 | `agt_tools` | `agt_loop` | 1 |
 | `agt_vault` | `agt_loop`, `prj_act` | 1 |
-| `api` | `api.users`, `script/bench_router.py`, `script/svc_api.py` | 16 |
+| `api` | `api.users`, `script/bench_router.py`, `script/svc_api.py` | 17 |
 | `api.access` | `api (MODULES)` | 0 |
 | `api.accounts` | `api (MODULES)` | 0 |
 | `api.activity` | `api (MODULES)`, `api.core`, `api.rem`, `api.social`, `script/svc_api.py` | 1 |
 | `api.agents` | `api (MODULES)`, `api.core`, `api.core_route`, `api.projects_conduct`, `api.projects_plan`, `api.rem`, `api.routines`, `api.social`, `api.updates` | 0 |
 | `api.assist` | `api (MODULES)`, `api.routines` | 1 |
 | `api.astro` | `api (MODULES)`, `api.routines` | 1 |
-| `api.astro_cam` | `api (MODULES)` | 1 |
+| `api.astro_cam` | `api (MODULES)`, `api.core_guard` | 2 |
 | `api.autonomy` | `api (MODULES)` | 0 |
 | `api.backup` | `api (MODULES)`, `api.rem`, `api.system` | 0 |
 | `api.bugreport` | `api (MODULES)` | 0 |
 | `api.calendar` | `api (MODULES)`, `script/svc_api.py` | 0 |
 | `api.call` | `api (MODULES)`, `api.runs` | 0 |
 | `api.care` | `api (MODULES)` | 0 |
-| `api.core` | `api.access`, `api.accounts`, `api.activity`, `api.agents`, `api.assist`, `api.astro`, `api.astro_cam`, `api.autonomy`, `api.backup`, `api.bugreport`, `api.calendar`, `api.call`, `api.care`, `api.core_route`, `api.diet`, `api.dj`, `api.documents`, `api.edge`, `api.firewalls`, `api.forge`, `api.harvester`, `api.home`, `api.https`, `api.incidents`, `api.interpret`, `api.keys`, `api.knowledge`, `api.line`, `api.mcp_servers`, `api.models`, `api.models_custom`, `api.money`, `api.oai`, `api.oauth`, `api.people`, `api.phone_app`, `api.places`, `api.power`, `api.preview`, `api.projects`, `api.projects_conduct`, `api.projects_plan`, `api.projects_print`, `api.projects_view`, `api.radio`, `api.rem`, `api.routine_advice`, `api.routines`, `api.runs`, `api.security`, `api.security_ciso`, `api.social`, `api.synapses`, `api.system`, `api.today`, `api.tunnel`, `api.updates`, `api.uploads`, `api.usage`, `api.users`, `api.voice`, `prj_act`, `script/bench_router.py`, `script/svc_api.py` | 7 |
+| `api.core` | `api.access`, `api.accounts`, `api.activity`, `api.agents`, `api.assist`, `api.astro`, `api.astro_cam`, `api.autonomy`, `api.backup`, `api.bugreport`, `api.calendar`, `api.call`, `api.care`, `api.core_guard`, `api.core_route`, `api.diet`, `api.dj`, `api.documents`, `api.edge`, `api.firewalls`, `api.forge`, `api.harvester`, `api.home`, `api.https`, `api.incidents`, `api.interpret`, `api.keys`, `api.knowledge`, `api.line`, `api.mcp_servers`, `api.models`, `api.models_custom`, `api.money`, `api.oai`, `api.oauth`, `api.people`, `api.phone_app`, `api.places`, `api.power`, `api.preview`, `api.projects`, `api.projects_conduct`, `api.projects_plan`, `api.projects_print`, `api.projects_view`, `api.radio`, `api.rem`, `api.routine_advice`, `api.routines`, `api.runs`, `api.security`, `api.security_ciso`, `api.social`, `api.synapses`, `api.system`, `api.today`, `api.tunnel`, `api.updates`, `api.uploads`, `api.usage`, `api.users`, `api.voice`, `prj_act`, `script/bench_router.py`, `script/svc_api.py` | 8 |
+| `api.core_guard` | `api.accounts`, `api.activity`, `api.astro_cam`, `api.call`, `api.home`, `api.models`, `api.oai`, `api.oauth`, `api.places`, `api.projects`, `api.runs`, `api.security`, `api.system`, `api.users`, `script/svc_api.py` | 1 |
 | `api.core_route` | `api.agents`, `api.call`, `api.core`, `api.runs`, `script/bench_router.py` | 0 |
 | `api.diet` | `api (MODULES)`, `script/svc_api.py` | 0 |
 | `api.dj` | `api (MODULES)`, `api.rem` | 2 |
@@ -234,7 +238,7 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `hlt_store` | `api.care`, `api.diet`, `hlt_diet`, `hlt_labs` | 3 |
 | `hom_auto` | `agt_loop`, `api.home`, `api.routines` | 1 |
 | `hom_devices` | `api.home`, `api.routines`, `hom_auto` | 1 |
-| `hom_safety` | `agt_loop`, `hom_auto` | 1 |
+| `hom_safety` | `agt_loop`, `hom_auto` | 2 |
 | `hom_scenes` | `agt_loop`, `api.home`, `api.routines`, `hom_auto` | 2 |
 | `img_edit` | `api.core_route` | 1 |
 | `kno_about` | `api.core_route`, `kno_answer` | 1 |
@@ -248,7 +252,7 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `kno_cites` | `kno_split`, `script/bench_domains.py` | 1 |
 | `kno_deduce` | `api.rem`, `api.synapses`, `kno_memory_seal` | 1 |
 | `kno_dedup` | `api.knowledge`, `kno_ingest`, `kno_vault_audit`, `script/vault_realign.py` | 2 |
-| `kno_diary` | `kno_memory_seal`, `kno_rem`, `sys/plugins/diary/server.py` | 1 |
+| `kno_diary` | `kno_memory_seal`, `kno_rem`, `sys/plugins/diary/server.py` | 2 |
 | `kno_docs` | `kno_sources` | 1 |
 | `kno_domain` | `kno_vault_audit`, `script/svc_harvester.py`, `script/vault_realign.py` | 1 |
 | `kno_followup` | `api.core_route`, `api.runs`, `kno_answer` | 2 |
@@ -263,11 +267,11 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `kno_mood_work` | `kno_mood`, `kno_self` | 2 |
 | `kno_morning` | `api.rem` | 1 |
 | `kno_read` | `kno_think`, `script/bench_router.py`, `script/bench_vault_diag.py` | 4 |
-| `kno_rem` | `api.agents`, `api.rem`, `kno_morning`, `kno_review`, `kno_study` | 1 |
+| `kno_rem` | `api.agents`, `api.rem`, `kno_morning`, `kno_review`, `kno_study` | 2 |
 | `kno_review` | `api.rem` | 2 |
 | `kno_self` | `kno_answer`, `kno_talk` | 3 |
 | `kno_shadow` | `api.core_route`, `api.runs`, `kno_review`, `kno_train`, `script/shadow_seed.py`, `script/svc_api.py`, `sys_capabilities` | 5 |
-| `kno_social` | `api.rem`, `api.social`, `kno_rem`, `kno_story_auto` | 1 |
+| `kno_social` | `api.rem`, `api.social`, `kno_rem`, `kno_story_auto` | 2 |
 | `kno_sources` | `api.harvester`, `kno_acquire_more`, `kno_docs`, `kno_harvest_plan`, `kno_shadow`, `script/svc_harvester.py`, `script/sys_calibrate.py`, `script/sys_domains.py`, `script/vault_realign.py` | 6 |
 | `kno_split` | `kno_answer`, `kno_stages`, `script/bench_domains.py` | 1 |
 | `kno_stages` | `kno_answer`, `kno_deduce`, `kno_followup`, `kno_interpret`, `kno_split` | 2 |
@@ -285,7 +289,7 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `kno_web` | `kno_acquire`, `kno_read`, `sys/plugins/web/server.py` | 3 |
 | `mdl_accounts` | `api.accounts`, `mdl_cloud`, `mdl_router`, `mdl_services`, `mdl_user_roles` | 4 |
 | `mdl_budget` | `api.models`, `api.users`, `mdl_cloud`, `mdl_media`, `mdl_router`, `prj_talk`, `sys_health`, `sys_usage` | 5 |
-| `mdl_cloud` | `mdl_router`, `script/bench_agi.py`, `script/bench_domain_assign.py`, `script/bench_forge.py`, `script/bench_honesty.py`, `script/bench_memory_days.py`, `script/bench_public.py`, `script/bench_quality.py`, `script/bench_rejudge.py`, `script/bench_router.py` | 3 |
+| `mdl_cloud` | `mdl_router`, `script/bench_agi.py`, `script/bench_domain_assign.py`, `script/bench_forge.py`, `script/bench_honesty.py`, `script/bench_memory_days.py`, `script/bench_public.py`, `script/bench_quality.py`, `script/bench_rejudge.py`, `script/bench_router.py` | 4 |
 | `mdl_custom` | `api.models_custom`, `script/sys_model_check.py` | 1 |
 | `mdl_embedder` | `script/bench_retrieval.py`, `script/svc_models.py`, `script/sys_calibrate.py` | 1 |
 | `mdl_fit` | `agt_loop`, `agt_loop_report`, `mdl_router` | 2 |
@@ -309,21 +313,21 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `net_cloudflare` | `api.edge`, `api.system`, `api.tunnel`, `net_cfwaf`, `sys/plugins/cloudflare/server.py` | 2 |
 | `net_dnsapi` | `net_certs` | 1 |
 | `net_geo` | `api.security`, `net_trace` | 1 |
-| `net_https` | `api.agents`, `api.https`, `api.system`, `net_certs`, `script/sys_install_services.py`, `script/sys_ready.py` | 7 |
+| `net_https` | `api.agents`, `api.https`, `api.system`, `net_certs`, `script/sys_install_services.py`, `script/sys_ready.py` | 8 |
 | `net_public` | `api.agents`, `api.radio`, `aud_learn`, `aud_radio`, `cal_external`, `sys/plugins/nextcloud/server.py` | 2 |
 | `net_trace` | `api.incidents`, `api.security` | 1 |
 | `plg_access` | `api.agents`, `api.core` | 1 |
 | `plg_away` | `plg_host` | 1 |
-| `plg_contract` | `agt_forge`, `plg_mcp`, `script/doc_plugins.py` | 4 |
-| `plg_deps` | `api.agents`, `script/plg_install_all.py` | 1 |
-| `plg_host` | `agt_forge`, `agt_loop`, `api.agents`, `api.core`, `kno_rem`, `kno_social`, `plg_access`, `script/bench_forge.py` | 10 |
-| `plg_mcp` | `agt_loop`, `api.mcp_servers` | 1 |
+| `plg_contract` | `agt_forge`, `plg_mcp`, `script/doc_plugins.py` | 6 |
+| `plg_deps` | `api.agents`, `plg_host`, `script/plg_install_all.py` | 1 |
+| `plg_host` | `agt_forge`, `agt_loop`, `api.agents`, `api.core`, `kno_rem`, `kno_social`, `plg_access`, `script/bench_forge.py` | 11 |
+| `plg_mcp` | `agt_loop`, `api.mcp_servers`, `plg_host` | 2 |
 | `plg_modelnet` | `plg_sandbox` | 0 |
-| `plg_netproxy` | `agt_forge`, `plg_sandbox` | 1 |
-| `plg_sandbox` | `plg_host`, `plg_mcp` | 7 |
+| `plg_netproxy` | `agt_forge`, `plg_mcp`, `plg_sandbox` | 2 |
+| `plg_sandbox` | `plg_host`, `plg_mcp` | 9 |
 | `plg_shadow` | `agt_loop` | 2 |
 | `plg_trash` | `api.agents` | 1 |
-| `prj_act` | `api.projects`, `api.projects_conduct`, `prj_talk` | 1 |
+| `prj_act` | `api.core_guard`, `api.projects`, `api.projects_conduct`, `prj_talk` | 1 |
 | `prj_browse` | `api.projects`, `api.projects_plan` | 1 |
 | `prj_conduct` | `api.projects`, `api.projects_conduct`, `prj_act`, `prj_live`, `prj_talk` | 4 |
 | `prj_cover` | `api.projects_view` | 1 |
@@ -342,14 +346,14 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `prj_view` | `api.projects_view`, `prj_cover` | 1 |
 | `sec_audit` | `api.security_ciso`, `sys/plugins/security/server.py` | 3 |
 | `sec_autopilot` | `api.incidents`, `api.security` | 2 |
-| `sec_baseline` | `script/svc_rem.py`, `script/svc_sentinel.py` | 1 |
-| `sec_defence` | `api.incidents`, `api.security`, `kno_morning`, `net_cfwaf`, `script/sys_root_sync.py`, `sec_hostfw`, `sys_autonomy` | 3 |
-| `sec_detonate` | `agt_loop`, `api.knowledge`, `kno_ingest`, `kno_read`, `script/bench_honeypot.py`, `sec_linkcheck`, `sys/plugins/linkcheck/server.py` | 2 |
+| `sec_baseline` | `script/svc_rem.py`, `script/svc_sentinel.py` | 2 |
+| `sec_defence` | `api.incidents`, `api.security`, `kno_morning`, `net_cfwaf`, `script/sys_root_sync.py`, `sec_hostfw`, `sys_autonomy` | 4 |
+| `sec_detonate` | `agt_asked`, `agt_logguard`, `agt_loop`, `api.knowledge`, `kno_ingest`, `kno_read`, `script/bench_honeypot.py`, `sec_linkcheck`, `sys/plugins/linkcheck/server.py` | 4 |
 | `sec_egress` | `api.incidents`, `api.security`, `script/svc_sentinel.py`, `script/sys_install_services.py`, `sec_egress_watch` | 4 |
 | `sec_egress_watch` | `api.incidents`, `api.security`, `script/svc_sentinel.py` | 2 |
 | `sec_filecheck` | `api.knowledge`, `kno_attach` | 1 |
 | `sec_firewalls` | `api.firewalls`, `api.power`, `api.security`, `api.security_ciso`, `sec_defence`, `sec_fwwrite`, `sec_netmap`, `sys_capabilities`, `sys_ups` | 3 |
-| `sec_fwapi` | `api.core`, `api.incidents`, `api.security`, `api.security_ciso`, `fw_drivers.opnsense`, `fw_drivers.opnsense_read`, `fw_drivers.pfsense`, `fw_drivers.pfsense_read`, `fw_drivers.sophos`, `sec_audit`, `sec_defence`, `sec_firewalls`, `sec_fwconf`, `sec_fwops`, `sec_fwplan`, `sec_fwplan_ops`, `sec_fwport`, `sec_fwpower`, `sec_fwwrite`, `sec_hostfw`, `sec_netmap`, `sec_report`, `sys/plugins/security/server.py` | 8 |
+| `sec_fwapi` | `api.core`, `api.incidents`, `api.security`, `api.security_ciso`, `fw_drivers.opnsense`, `fw_drivers.opnsense_read`, `fw_drivers.pfsense`, `fw_drivers.pfsense_read`, `fw_drivers.sophos`, `sec_audit`, `sec_defence`, `sec_firewalls`, `sec_fwconf`, `sec_fwops`, `sec_fwplan`, `sec_fwplan_ops`, `sec_fwport`, `sec_fwpower`, `sec_fwwrite`, `sec_hostfw`, `sec_netmap`, `sec_report`, `sys/plugins/security/server.py` | 9 |
 | `sec_fwconf` | `sec_fwmodel`, `sec_fwplan`, `sec_fwport`, `sec_fwwrite`, `sys/plugins/security/server.py` | 1 |
 | `sec_fwdocs` | `api.firewalls`, `api.security_ciso`, `sec_firewalls`, `sec_fwplan`, `sec_fwplan_ops`, `sys/plugins/security/server.py` | 2 |
 | `sec_fwmodel` | `fw_drivers.opnsense_read`, `fw_drivers.pfsense_read`, `sec_audit`, `sec_fwops`, `sec_fwplan_ops` | 1 |
@@ -360,43 +364,45 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `sec_fwpower` | `api.power`, `api.routines`, `sys_ups` | 2 |
 | `sec_fwwrite` | `api.security_ciso`, `sec_fwplan`, `sec_fwplan_ops`, `sec_fwport`, `sys/plugins/security/server.py` | 5 |
 | `sec_hostaudit` | `api.security_ciso` | 1 |
-| `sec_hostfw` | `api.core`, `api.incidents`, `api.security`, `api.security_ciso`, `sec_report` | 1 |
+| `sec_hostfw` | `api.core`, `api.incidents`, `api.security`, `api.security_ciso`, `sec_report` | 2 |
 | `sec_hunt` | `api.security_ciso`, `sys/plugins/security/server.py` | 1 |
-| `sec_incidents` | `api.incidents`, `api.security`, `api.security_ciso`, `kno_mood`, `sec_autopilot`, `sec_report`, `sec_scorecard`, `sys_autonomy` | 7 |
+| `sec_incidents` | `api.incidents`, `api.security`, `api.security_ciso`, `kno_mood`, `sec_autopilot`, `sec_defence`, `sec_report`, `sec_scorecard`, `sys_autonomy` | 9 |
 | `sec_intel` | `api.incidents`, `api.security`, `net_cfwaf`, `script/svc_rem.py`, `sec_defence`, `sec_egress_watch`, `sec_fwport`, `sec_hunt`, `sec_report`, `sec_shared` | 5 |
-| `sec_linkcheck` | `agt_loop`, `kno_web`, `sec_detonate`, `sec_filecheck`, `sys/plugins/linkcheck/server.py` | 3 |
-| `sec_mask` | `agt_forge`, `agt_loop`, `api.accounts`, `api.social`, `kno_social`, `kno_web`, `mdl_media`, `mdl_router`, `prj_act`, `prj_talk`, `script/dev_demo_video.py`, `script/dev_privacy_scan.py`, `script/shadow_seed.py`, `sec_privacy`, `sys_bugreport` | 6 |
-| `sec_mask_spot` | `sec_mask` | 2 |
+| `sec_linkcheck` | `agt_loop`, `kno_web`, `sec_detonate`, `sec_filecheck`, `sys/plugins/linkcheck/server.py` | 4 |
+| `sec_mask` | `agt_forge`, `agt_loop`, `api.accounts`, `api.social`, `kno_social`, `kno_web`, `mdl_media`, `mdl_router`, `prj_act`, `prj_talk`, `script/dev_demo_video.py`, `script/dev_privacy_scan.py`, `script/shadow_seed.py`, `sec_privacy`, `sys_bugreport` | 7 |
+| `sec_mask_spot` | `sec_mask` | 3 |
 | `sec_netmap` | `api.incidents`, `api.security`, `api.security_ciso`, `sec_fwops`, `sec_fwplan_ops`, `sec_hunt`, `sys/plugins/security/server.py`, `sys_capabilities` | 2 |
 | `sec_outbound` | `api.security` | 0 |
 | `sec_playbook` | `api.security_ciso`, `sys/plugins/security/server.py` | 1 |
 | `sec_privacy` | `agt_loop`, `api.social`, `kno_story_auto`, `sys_bugreport` | 2 |
 | `sec_profile` | `api.security`, `sec_hunt` | 1 |
-| `sec_quiet` | `api.incidents`, `sec_autopilot` | 3 |
+| `sec_quiet` | `api.incidents`, `sec_autopilot` | 4 |
 | `sec_report` | `api.security`, `sys/plugins/security/server.py` | 1 |
 | `sec_rules` | `api.security`, `script/svc_sentinel.py`, `sec_profile` | 1 |
 | `sec_scorecard` | `api.incidents` | 1 |
-| `sec_sentinel` | `api.incidents`, `script/svc_sentinel.py`, `sec_hunt`, `sec_playbook`, `sec_profile`, `sys/plugins/security/server.py` | 3 |
+| `sec_sentinel` | `api.incidents`, `script/svc_sentinel.py`, `sec_defence`, `sec_hunt`, `sec_playbook`, `sec_profile`, `sys/plugins/security/server.py` | 4 |
 | `sec_shared` | `api.incidents` | 1 |
-| `sec_tlspin` | `fw_drivers.opnsense`, `fw_drivers.pfsense`, `fw_drivers.sophos`, `sec_firewalls` | 2 |
+| `sec_tlspin` | `fw_drivers.opnsense`, `fw_drivers.pfsense`, `fw_drivers.sophos`, `sec_firewalls` | 3 |
 | `sns_av` | `api.call`, `api.interpret`, `api.knowledge`, `kno_video`, `mdl_stt`, `sys/plugins/senses/server.py`, `sys_call_ahead` | 3 |
 | `sns_clock` | `agt_loop`, `hom_auto`, `kno_followup`, `kno_rem`, `kno_review`, `kno_self`, `kno_stages`, `kno_talk`, `script/bench_followup.py`, `script/svc_rem.py`, `sys_routines` | 2 |
 | `sns_weather` | `api.places`, `api.today`, `kno_rem`, `kno_self` | 1 |
 | `sol_ahead` | `sol_search` | 1 |
-| `sol_index` | `kno_answer`, `kno_harvest_plan`, `kno_ingest`, `kno_memory_seal`, `script/bench_retrieval.py`, `sol_search`, `sol_writer` | 12 |
+| `sol_index` | `kno_answer`, `kno_harvest_plan`, `kno_ingest`, `kno_memory_seal`, `script/bench_retrieval.py`, `sol_search`, `sol_writer` | 13 |
+| `sol_index_seal` | `sol_index` | 1 |
 | `sol_lexical` | `kno_memory_seal`, `sol_index`, `sol_search` | 1 |
 | `sol_reader` | `api.core`, `api.core_route`, `api.system`, `kno_answer`, `kno_ingest`, `kno_memory_seal`, `script/bench_quality.py`, `script/mem_prune.py`, `script/shadow_seed.py`, `sol_index`, `sol_search`, `sol_writer` | 15 |
-| `sol_schema` | `api.agents`, `api.call`, `api.core_route`, `api.harvester`, `api.knowledge`, `api.runs`, `kno_acquire`, `kno_answer`, `kno_attach`, `kno_domain`, `kno_followup`, `kno_ingest`, `kno_memory_seal`, `kno_rem`, `kno_self`, `script/bench_domain_assign.py`, `script/bench_followup.py`, `script/bench_retrieval.py`, `script/kno_migrate_legacy.py`, `script/svc_harvester.py`, `sol_reader`, `sol_search`, `sol_vault`, `sol_writer` | 18 |
+| `sol_schema` | `api.agents`, `api.call`, `api.core_route`, `api.harvester`, `api.knowledge`, `api.runs`, `kno_acquire`, `kno_answer`, `kno_attach`, `kno_domain`, `kno_followup`, `kno_ingest`, `kno_memory_seal`, `kno_rem`, `kno_self`, `script/bench_domain_assign.py`, `script/bench_followup.py`, `script/bench_retrieval.py`, `script/kno_migrate_legacy.py`, `script/svc_harvester.py`, `sol_reader`, `sol_search`, `sol_vault`, `sol_writer` | 19 |
 | `sol_search` | `kno_answer`, `kno_cites`, `kno_followup`, `kno_stages`, `script/bench_retrieval.py`, `script/bench_synapses.py` | 7 |
 | `sol_vault` | `kno_harvest_plan`, `kno_memory_seal`, `kno_rem`, `kno_vault_audit`, `script/bench_domain_assign.py`, `script/bench_vault_diag.py`, `script/svc_api.py`, `script/vault_realign.py`, `sol_index`, `sol_reader`, `sol_writer` | 5 |
-| `sol_writer` | `kno_answer`, `kno_ingest`, `kno_memory_seal`, `script/bench_retrieval.py` | 18 |
+| `sol_writer` | `kno_answer`, `kno_ingest`, `kno_memory_seal`, `script/bench_retrieval.py` | 19 |
 | `sys_anon` | `agt_loop`, `api.routines`, `api.runs` | 2 |
-| `sys_approvals` | `agt_loop`, `agt_loop_make`, `api.agents`, `api.autonomy`, `api.forge`, `api.routines`, `api.security`, `api.social`, `api.updates`, `kno_story_auto`, `sys_social_guard` | 9 |
-| `sys_assist` | `api.assist`, `api.core`, `api.users` | 2 |
-| `sys_autonomy` | `agt_loop`, `api.autonomy`, `api.core_route`, `api.forge`, `api.incidents`, `api.updates`, `hom_devices`, `net_cfwaf`, `sec_autopilot`, `sec_defence`, `sec_outbound`, `sys_users_perm` | 3 |
+| `sys_approvals` | `agt_loop`, `agt_loop_make`, `api.agents`, `api.autonomy`, `api.forge`, `api.routines`, `api.security`, `api.social`, `api.updates`, `kno_story_auto`, `sys_social_guard` | 10 |
+| `sys_assist` | `api.assist`, `api.core`, `api.core_guard`, `api.users` | 4 |
+| `sys_autonomy` | `agt_loop`, `api.autonomy`, `api.core_route`, `api.forge`, `api.incidents`, `api.updates`, `hom_devices`, `net_cfwaf`, `sec_autopilot`, `sec_defence`, `sec_outbound`, `sys_users_perm` | 4 |
 | `sys_backup` | `api.backup`, `ast_frames`, `net_certs`, `script/svc_backup.py`, `script/sys_doctor.py`, `script/sys_key_seal.py`, `script/sys_nas_mount.py`, `script/sys_restore.py`, `script/sys_users_migrate.py`, `sec_report`, `sys_backup_crypto`, `sys_capabilities`, `sys_health`, `sys_keyring` | 7 |
 | `sys_backup_crypto` | `script/sys_key_seal.py`, `sys_backup` | 2 |
 | `sys_backup_parts` | `script/svc_backup.py`, `script/sys_restore.py`, `sys_backup` | 1 |
+| `sys_bodylimit` | `api.core_guard`, `script/svc_api.py` | 1 |
 | `sys_bugreport` | `api.bugreport` | 1 |
 | `sys_call` | `api.call`, `sys_call_ahead` | 3 |
 | `sys_call_ahead` | `api.call` | 1 |
@@ -404,14 +410,14 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `sys_capabilities` | `api.knowledge` | 2 |
 | `sys_cloud_consent` | `mdl_modes`, `mdl_router`, `script/sys_ethics_sign.py` | 1 |
 | `sys_commands` | `api.updates`, `sys_update` | 2 |
-| `sys_config` | `agt_change`, `agt_forge`, `agt_forge_data`, `agt_loop`, `agt_react`, `api.autonomy`, `api.core`, `api.harvester`, `api.incidents`, `api.oauth`, `api.security`, `api.system`, `api.tunnel`, `api.updates`, `ast_inventory`, `aud_dj`, `aud_song`, `cal_external`, `cal_share`, `cal_store`, `doc_artifact`, `doc_pdf`, `doc_preview`, `fin_store`, `hlt_diet`, `hlt_doctor`, `hlt_labs`, `hlt_store`, `hom_devices`, `kno_acquire`, `kno_anger`, `kno_answer`, `kno_attach`, `kno_deduce`, `kno_dedup`, `kno_diary`, `kno_docs`, `kno_harvest`, `kno_harvest_plan`, `kno_ingest`, `kno_lessons`, `kno_memory_seal`, `kno_mood`, `kno_mood_work`, `kno_morning`, `kno_rem`, `kno_review`, `kno_shadow`, `kno_social`, `kno_sources`, `kno_story`, `kno_story_auto`, `kno_study`, `kno_synapse`, `kno_synapse2`, `kno_talk`, `kno_trail`, `kno_train`, `kno_vault_audit`, `kno_video`, `kno_web`, `mdl_accounts`, `mdl_budget`, `mdl_cloud`, `mdl_custom`, `mdl_embedder`, `mdl_formats`, `mdl_image`, `mdl_llm`, `mdl_media`, `mdl_modes`, `mdl_remote`, `mdl_reranker`, `mdl_router`, `mdl_services`, `mdl_stt`, `mdl_tts`, `mdl_user_roles`, `mdl_video`, `net_certs`, `net_cfwaf`, `net_cloudflare`, `net_dnsapi`, `net_geo`, `net_https`, `net_trace`, `plg_access`, `plg_host`, `plg_mcp`, `plg_modelnet`, `plg_netproxy`, `plg_sandbox`, `plg_shadow`, `plg_trash`, `prj_act`, `prj_browse`, `prj_conduct`, `prj_cover`, `prj_docs`, `prj_live`, `prj_plan`, `prj_policy`, `prj_print`, `prj_reports`, `prj_run`, `prj_sim`, `prj_talk`, `prj_term`, `prj_view`, `script/bench_common.py`, `script/bench_domain_assign.py`, `script/bench_domains.py`, `script/bench_followup.py`, `script/bench_forge.py`, `script/bench_honeypot.py`, `script/bench_image.py`, `script/bench_learn.py`, `script/bench_preflight.py`, `script/bench_quality.py`, `script/bench_repair.py`, `script/bench_retrieval.py`, `script/bench_router.py`, `script/bench_synapses.py`, `script/bench_tokens.py`, `script/bench_vault_diag.py`, `script/dev_demo_video.py`, `script/dev_privacy_scan.py`, `script/img_ai.py`, `script/img_paint.py`, `script/kno_import.py`, `script/kno_migrate_legacy.py`, `script/mem_prune.py`, `script/shadow_seed.py`, `script/story_intro_make.py`, `script/story_music_fetch.py`, `script/svc_api.py`, `script/svc_backup.py`, `script/svc_harvester.py`, `script/svc_llm.py`, `script/svc_models.py`, `script/svc_rem.py`, `script/svc_sentinel.py`, `script/sys_backup_retime.py`, `script/sys_calibrate.py`, `script/sys_cloud_setup.py`, `script/sys_commands_write.py`, `script/sys_doctor.py`, `script/sys_domains.py`, `script/sys_env_sync.py`, `script/sys_ethics_sign.py`, `script/sys_factory_reset.py`, `script/sys_install_services.py`, `script/sys_key_seal.py`, `script/sys_nas_mount.py`, `script/sys_ready.py`, `script/sys_restore.py`, `script/sys_root_sync.py`, `script/sys_service_account.py`, `script/sys_unseal_export.py`, `script/sys_users_migrate.py`, `script/vault_realign.py`, `script/vid_ai.py`, `sec_audit`, `sec_autopilot`, `sec_baseline`, `sec_defence`, `sec_detonate`, `sec_egress`, `sec_egress_watch`, `sec_filecheck`, `sec_firewalls`, `sec_fwapi`, `sec_fwconf`, `sec_fwdocs`, `sec_fwops`, `sec_fwplan`, `sec_fwplan_ops`, `sec_fwport`, `sec_fwpower`, `sec_fwwrite`, `sec_hostaudit`, `sec_hostfw`, `sec_hunt`, `sec_incidents`, `sec_intel`, `sec_linkcheck`, `sec_mask`, `sec_mask_spot`, `sec_netmap`, `sec_outbound`, `sec_privacy`, `sec_profile`, `sec_quiet`, `sec_report`, `sec_rules`, `sec_scorecard`, `sec_shared`, `sec_tlspin`, `sns_av`, `sns_clock`, `sns_weather`, `sol_index`, `sol_lexical`, `sol_reader`, `sol_search`, `sol_vault`, `sol_writer`, `sys/plugins/astro/server.py`, `sys/plugins/backup/server.py`, `sys/plugins/backup_files/server.py`, `sys/plugins/cad/server.py`, `sys/plugins/calendar/server.py`, `sys/plugins/circuits/server.py`, `sys/plugins/cloud/server.py`, `sys/plugins/cloudflare/server.py`, `sys/plugins/diary/server.py`, `sys/plugins/dj/server.py`, `sys/plugins/documents/my_pdfs.py`, `sys/plugins/documents/server.py`, `sys/plugins/dropbox/authorize.py`, `sys/plugins/dropbox/server.py`, `sys/plugins/facebook/server.py`, `sys/plugins/homeassistant/server.py`, `sys/plugins/instagram/server.py`, `sys/plugins/linkcheck/server.py`, `sys/plugins/logs/server.py`, `sys/plugins/nextcloud/server.py`, `sys/plugins/notes/server.py`, `sys/plugins/ntfy/server.py`, `sys/plugins/patent/server.py`, `sys/plugins/projects/server.py`, `sys/plugins/publications/server.py`, `sys/plugins/pyenv/server.py`, `sys/plugins/routines/server.py`, `sys/plugins/runs/server.py`, `sys/plugins/security/server.py`, `sys/plugins/self/server.py`, `sys/plugins/senses/server.py`, `sys/plugins/sky/server.py`, `sys/plugins/tiktok/authorize.py`, `sys/plugins/tiktok/server.py`, `sys/plugins/vista/server.py`, `sys/plugins/weather/server.py`, `sys_anon`, `sys_approvals`, `sys_assist`, `sys_autonomy`, `sys_backup`, `sys_backup_crypto`, `sys_backup_parts`, `sys_bugreport`, `sys_call`, `sys_capabilities`, `sys_cloud_consent`, `sys_commands`, `sys_consoles`, `sys_devices`, `sys_disclosure`, `sys_ethics`, `sys_features`, `sys_formats`, `sys_fresh`, `sys_health`, `sys_ideas`, `sys_key_recovery`, `sys_keyring`, `sys_line`, `sys_log`, `sys_logread`, `sys_people`, `sys_persona`, `sys_phone_app`, `sys_power_hosts`, `sys_push`, `sys_reset`, `sys_routine_advice`, `sys_routine_templates`, `sys_routines`, `sys_seal`, `sys_soak`, `sys_social_guard`, `sys_sshkey`, `sys_trash`, `sys_update`, `sys_uploads`, `sys_ups`, `sys_usage`, `sys_user_config`, `sys_users`, `sys_users_layout`, `sys_users_mode`, `sys_users_perm` | 54 |
+| `sys_config` | `agt_change`, `agt_forge`, `agt_forge_data`, `agt_logguard`, `agt_loop`, `agt_react`, `api.autonomy`, `api.core`, `api.harvester`, `api.incidents`, `api.oauth`, `api.security`, `api.system`, `api.tunnel`, `api.updates`, `ast_inventory`, `aud_dj`, `aud_song`, `cal_external`, `cal_share`, `cal_store`, `doc_artifact`, `doc_pdf`, `doc_preview`, `fin_store`, `hlt_diet`, `hlt_doctor`, `hlt_labs`, `hlt_store`, `hom_devices`, `kno_acquire`, `kno_anger`, `kno_answer`, `kno_attach`, `kno_deduce`, `kno_dedup`, `kno_diary`, `kno_docs`, `kno_harvest`, `kno_harvest_plan`, `kno_ingest`, `kno_lessons`, `kno_memory_seal`, `kno_mood`, `kno_mood_work`, `kno_morning`, `kno_rem`, `kno_review`, `kno_shadow`, `kno_social`, `kno_sources`, `kno_story`, `kno_story_auto`, `kno_study`, `kno_synapse`, `kno_synapse2`, `kno_talk`, `kno_trail`, `kno_train`, `kno_vault_audit`, `kno_video`, `kno_web`, `mdl_accounts`, `mdl_budget`, `mdl_cloud`, `mdl_custom`, `mdl_embedder`, `mdl_formats`, `mdl_image`, `mdl_llm`, `mdl_media`, `mdl_modes`, `mdl_remote`, `mdl_reranker`, `mdl_router`, `mdl_services`, `mdl_stt`, `mdl_tts`, `mdl_user_roles`, `mdl_video`, `net_certs`, `net_cfwaf`, `net_cloudflare`, `net_dnsapi`, `net_geo`, `net_https`, `net_trace`, `plg_access`, `plg_host`, `plg_mcp`, `plg_modelnet`, `plg_netproxy`, `plg_sandbox`, `plg_shadow`, `plg_trash`, `prj_act`, `prj_browse`, `prj_conduct`, `prj_cover`, `prj_docs`, `prj_live`, `prj_plan`, `prj_policy`, `prj_print`, `prj_reports`, `prj_run`, `prj_sim`, `prj_talk`, `prj_term`, `prj_view`, `script/bench_common.py`, `script/bench_domain_assign.py`, `script/bench_domains.py`, `script/bench_followup.py`, `script/bench_forge.py`, `script/bench_honeypot.py`, `script/bench_image.py`, `script/bench_learn.py`, `script/bench_preflight.py`, `script/bench_quality.py`, `script/bench_repair.py`, `script/bench_retrieval.py`, `script/bench_router.py`, `script/bench_synapses.py`, `script/bench_tokens.py`, `script/bench_vault_diag.py`, `script/dev_demo_video.py`, `script/dev_privacy_scan.py`, `script/img_ai.py`, `script/img_paint.py`, `script/kno_import.py`, `script/kno_migrate_legacy.py`, `script/mem_prune.py`, `script/shadow_seed.py`, `script/story_intro_make.py`, `script/story_music_fetch.py`, `script/svc_api.py`, `script/svc_backup.py`, `script/svc_harvester.py`, `script/svc_llm.py`, `script/svc_models.py`, `script/svc_rem.py`, `script/svc_sentinel.py`, `script/sys_backup_retime.py`, `script/sys_calibrate.py`, `script/sys_cloud_setup.py`, `script/sys_commands_write.py`, `script/sys_doctor.py`, `script/sys_domains.py`, `script/sys_env_sync.py`, `script/sys_ethics_sign.py`, `script/sys_factory_reset.py`, `script/sys_install_services.py`, `script/sys_key_seal.py`, `script/sys_nas_mount.py`, `script/sys_ready.py`, `script/sys_restore.py`, `script/sys_root_sync.py`, `script/sys_service_account.py`, `script/sys_unseal_export.py`, `script/sys_users_migrate.py`, `script/vault_realign.py`, `script/vid_ai.py`, `sec_audit`, `sec_autopilot`, `sec_baseline`, `sec_defence`, `sec_detonate`, `sec_egress`, `sec_egress_watch`, `sec_filecheck`, `sec_firewalls`, `sec_fwapi`, `sec_fwconf`, `sec_fwdocs`, `sec_fwops`, `sec_fwplan`, `sec_fwplan_ops`, `sec_fwport`, `sec_fwpower`, `sec_fwwrite`, `sec_hostaudit`, `sec_hostfw`, `sec_hunt`, `sec_incidents`, `sec_intel`, `sec_linkcheck`, `sec_mask`, `sec_mask_spot`, `sec_netmap`, `sec_outbound`, `sec_privacy`, `sec_profile`, `sec_quiet`, `sec_report`, `sec_rules`, `sec_scorecard`, `sec_shared`, `sec_tlspin`, `sns_av`, `sns_clock`, `sns_weather`, `sol_index`, `sol_index_seal`, `sol_lexical`, `sol_reader`, `sol_search`, `sol_vault`, `sol_writer`, `sys/plugins/astro/server.py`, `sys/plugins/backup/server.py`, `sys/plugins/backup_files/server.py`, `sys/plugins/cad/server.py`, `sys/plugins/calendar/server.py`, `sys/plugins/circuits/server.py`, `sys/plugins/cloud/server.py`, `sys/plugins/cloudflare/server.py`, `sys/plugins/diary/server.py`, `sys/plugins/dj/server.py`, `sys/plugins/documents/my_pdfs.py`, `sys/plugins/documents/server.py`, `sys/plugins/dropbox/authorize.py`, `sys/plugins/dropbox/server.py`, `sys/plugins/facebook/server.py`, `sys/plugins/homeassistant/server.py`, `sys/plugins/instagram/server.py`, `sys/plugins/linkcheck/server.py`, `sys/plugins/logs/server.py`, `sys/plugins/nextcloud/server.py`, `sys/plugins/notes/server.py`, `sys/plugins/ntfy/server.py`, `sys/plugins/patent/server.py`, `sys/plugins/projects/server.py`, `sys/plugins/publications/server.py`, `sys/plugins/pyenv/server.py`, `sys/plugins/routines/server.py`, `sys/plugins/runs/server.py`, `sys/plugins/security/server.py`, `sys/plugins/self/server.py`, `sys/plugins/senses/server.py`, `sys/plugins/sky/server.py`, `sys/plugins/tiktok/authorize.py`, `sys/plugins/tiktok/server.py`, `sys/plugins/vista/server.py`, `sys/plugins/weather/server.py`, `sys_anon`, `sys_approvals`, `sys_assist`, `sys_autonomy`, `sys_backup`, `sys_backup_crypto`, `sys_backup_parts`, `sys_bugreport`, `sys_call`, `sys_capabilities`, `sys_cloud_consent`, `sys_commands`, `sys_consoles`, `sys_devices`, `sys_disclosure`, `sys_ethics`, `sys_features`, `sys_formats`, `sys_fresh`, `sys_health`, `sys_ideas`, `sys_key_recovery`, `sys_keyring`, `sys_line`, `sys_log`, `sys_logread`, `sys_people`, `sys_persona`, `sys_phone_app`, `sys_power_hosts`, `sys_push`, `sys_reset`, `sys_routine_advice`, `sys_routine_templates`, `sys_routines`, `sys_seal`, `sys_soak`, `sys_social_guard`, `sys_sshkey`, `sys_trash`, `sys_update`, `sys_uploads`, `sys_ups`, `sys_usage`, `sys_user_config`, `sys_users`, `sys_users_layout`, `sys_users_mode`, `sys_users_perm` | 56 |
 | `sys_consoles` | `api.system` | 1 |
 | `sys_context` | `agt_forge`, `agt_loop`, `api.activity`, `api.assist`, `api.astro`, `api.calendar`, `api.call`, `api.care`, `api.core`, `api.core_route`, `api.diet`, `api.dj`, `api.knowledge`, `api.people`, `api.rem`, `api.routine_advice`, `api.routines`, `api.runs`, `api.tunnel`, `api.users`, `cal_external`, `hom_auto`, `hom_scenes`, `kno_attach`, `kno_self`, `mdl_budget`, `prj_act`, `sys_anon`, `sys_autonomy`, `sys_config`, `sys_log`, `sys_logread` | 9 |
-| `sys_csrf` | `script/svc_api.py` | 1 |
+| `sys_csrf` | `api.call`, `script/svc_api.py` | 2 |
 | `sys_cycle` | `sys_backup` | 1 |
-| `sys_devices` | `api.access`, `api.call`, `api.core`, `api.users`, `sys_csrf`, `sys_users_layout` | 4 |
+| `sys_devices` | `api.access`, `api.call`, `api.core`, `api.core_guard`, `api.users`, `sys_csrf`, `sys_users_layout` | 4 |
 | `sys_disclosure` | `agt_loop`, `api.calendar`, `api.core_route`, `api.social`, `doc_pdf`, `kno_social`, `kno_story`, `mdl_image`, `mdl_video`, `sys/plugins/projects/server.py` | 1 |
-| `sys_ethics` | `agt_change`, `agt_forge`, `agt_loop`, `agt_loop_make`, `api.agents`, `api.autonomy`, `api.edge`, `api.models`, `kno_self`, `mdl_cloud`, `mdl_media`, `mdl_modes`, `mdl_router`, `net_cfwaf`, `plg_host`, `script/bench_preflight.py`, `script/dev_license_headers.py`, `script/svc_api.py`, `script/svc_harvester.py`, `script/svc_llm.py`, `script/svc_models.py`, `script/svc_rem.py`, `script/svc_sentinel.py`, `script/sys_ethics_sign.py`, `script/sys_root.py`, `sec_defence`, `sys_approvals`, `sys_cloud_consent`, `sys_commands`, `sys_disclosure`, `sys_features`, `sys_fresh`, `sys_health`, `sys_update` | 13 |
+| `sys_ethics` | `agt_change`, `agt_forge`, `agt_loop`, `agt_loop_make`, `api.agents`, `api.autonomy`, `api.edge`, `api.models`, `kno_self`, `mdl_cloud`, `mdl_media`, `mdl_modes`, `mdl_router`, `net_cfwaf`, `plg_host`, `script/bench_preflight.py`, `script/dev_license_headers.py`, `script/svc_api.py`, `script/svc_harvester.py`, `script/svc_llm.py`, `script/svc_models.py`, `script/svc_rem.py`, `script/svc_sentinel.py`, `script/sys_ethics_sign.py`, `script/sys_root.py`, `sec_defence`, `sys_approvals`, `sys_cloud_consent`, `sys_commands`, `sys_disclosure`, `sys_features`, `sys_fresh`, `sys_health`, `sys_update` | 15 |
 | `sys_features` | `agt_loop_make`, `api.bugreport`, `api.core`, `api.core_route`, `api.interpret`, `api.knowledge`, `kno_attach`, `kno_rem`, `kno_video`, `mdl_modes`, `script/sys_doctor.py`, `sys_capabilities`, `sys_health` | 6 |
 | `sys_formats` | `script/sys_restore.py`, `sys_backup` | 1 |
 | `sys_fresh` | `api.rem`, `script/svc_rem.py` | 1 |
@@ -421,35 +427,35 @@ Tests are counted apart: a module imported only by tests is not used by Aurora.
 | `sys_keyring` | `api.keys`, `script/svc_api.py`, `script/sys_key_seal.py`, `sys_backup_crypto`, `sys_key_recovery`, `sys_seal` | 3 |
 | `sys_line` | `api.call`, `api.core`, `api.line`, `api.phone_app`, `api.routines`, `sys_call` | 2 |
 | `sys_log` | `agt_change`, `agt_forge`, `agt_loop`, `api.access`, `api.activity`, `api.autonomy`, `api.core`, `api.security`, `api.system`, `api.users`, `aud_song`, `doc_pdf`, `kno_acquire`, `kno_answer`, `kno_attach`, `kno_harvest_plan`, `kno_ingest`, `kno_lessons`, `kno_memory_seal`, `kno_read`, `kno_rem`, `kno_social`, `kno_story`, `kno_story_auto`, `kno_vault_audit`, `kno_video`, `mdl_budget`, `mdl_cloud`, `mdl_embedder`, `mdl_image`, `mdl_llm`, `mdl_media`, `mdl_reranker`, `mdl_router`, `mdl_stt`, `mdl_tts`, `mdl_video`, `net_certs`, `net_cfwaf`, `net_https`, `plg_host`, `plg_netproxy`, `plg_trash`, `prj_act`, `script/bench_retrieval.py`, `script/bench_synapses.py`, `script/kno_migrate_legacy.py`, `script/svc_backup.py`, `script/svc_harvester.py`, `script/svc_llm.py`, `script/svc_models.py`, `script/svc_rem.py`, `script/svc_sentinel.py`, `script/sys_cloud_setup.py`, `sec_defence`, `sec_detonate`, `sec_filecheck`, `sec_firewalls`, `sec_fwdocs`, `sec_fwport`, `sec_fwpower`, `sec_fwwrite`, `sec_incidents`, `sec_linkcheck`, `sec_mask_spot`, `sec_tlspin`, `sns_av`, `sns_weather`, `sol_index`, `sol_lexical`, `sol_search`, `sol_writer`, `sys_approvals`, `sys_autonomy`, `sys_backup`, `sys_logread`, `sys_power_hosts`, `sys_push`, `sys_update`, `sys_ups` | 12 |
-| `sys_logread` | `agt_react`, `api.activity`, `api.agents`, `kno_mood`, `kno_rem`, `kno_self`, `sys/plugins/self/server.py`, `sys_bugreport` | 3 |
+| `sys_logread` | `agt_react`, `api.activity`, `api.agents`, `kno_mood`, `kno_rem`, `kno_self`, `sys/plugins/self/server.py`, `sys_bugreport` | 4 |
 | `sys_metrics` | `api.routines`, `sys_health` | 1 |
 | `sys_people` | `agt_loop`, `api.people`, `kno_self` | 1 |
 | `sys_persona` | `api.users`, `kno_morning`, `kno_rem`, `kno_self`, `kno_social`, `kno_talk` | 1 |
 | `sys_phone_app` | `api.phone_app` | 1 |
 | `sys_power_hosts` | `api.power`, `sys_ups` | 2 |
 | `sys_push` | `api.core`, `api.knowledge`, `api.routines`, `script/bench_synapses.py`, `sec_outbound`, `sys_capabilities`, `sys_line`, `sys_ups` | 8 |
-| `sys_replay` | `script/svc_api.py` | 1 |
+| `sys_replay` | `script/svc_api.py` | 3 |
 | `sys_reset` | `api.system`, `script/sys_factory_reset.py` | 1 |
 | `sys_rootcmd` | `agt_change`, `api.agents`, `script/sys_doctor.py`, `script/sys_service_account.py`, `sys_commands` | 1 |
 | `sys_routine_advice` | `api.home`, `api.routine_advice`, `hom_devices` | 2 |
 | `sys_routine_templates` | `api.routine_advice` | 2 |
 | `sys_routines` | `api.forge`, `api.home`, `api.knowledge`, `api.routine_advice`, `api.routines`, `api.today`, `hom_auto`, `hom_devices`, `hom_scenes`, `sys_routine_advice`, `sys_routine_templates` | 9 |
 | `sys_runs` | `api.core` | 1 |
-| `sys_seal` | `api.care`, `api.diet`, `api.uploads`, `cal_store`, `fin_store`, `hlt_diet`, `hlt_doctor`, `hlt_labs`, `hlt_store`, `kno_anger`, `kno_diary`, `kno_mood`, `kno_review`, `kno_shadow`, `kno_study`, `mdl_accounts`, `mdl_tts`, `plg_host`, `plg_shadow`, `prj_act`, `prj_conduct`, `prj_plan`, `prj_reports`, `prj_talk`, `script/bench_memory_days.py`, `script/bench_synapses.py`, `script/sys_restore.py`, `script/sys_unseal_export.py`, `sec_firewalls`, `sec_mask_spot`, `sec_netmap`, `sol_index`, `sol_vault`, `sys/plugins/routines/server.py`, `sys/plugins/runs/server.py`, `sys_anon`, `sys_approvals`, `sys_assist`, `sys_config`, `sys_ideas`, `sys_line`, `sys_log`, `sys_people`, `sys_push`, `sys_routines`, `sys_sshkey`, `sys_uploads` | 12 |
+| `sys_seal` | `api.care`, `api.diet`, `api.uploads`, `cal_store`, `fin_store`, `hlt_diet`, `hlt_doctor`, `hlt_labs`, `hlt_store`, `kno_anger`, `kno_diary`, `kno_mood`, `kno_review`, `kno_shadow`, `kno_study`, `mdl_accounts`, `mdl_tts`, `plg_deps`, `plg_host`, `plg_shadow`, `prj_act`, `prj_conduct`, `prj_plan`, `prj_reports`, `prj_talk`, `script/bench_memory_days.py`, `script/bench_synapses.py`, `script/sys_restore.py`, `script/sys_unseal_export.py`, `sec_firewalls`, `sec_mask_spot`, `sec_netmap`, `sol_index`, `sol_index_seal`, `sol_vault`, `sys/plugins/routines/server.py`, `sys/plugins/runs/server.py`, `sys_anon`, `sys_approvals`, `sys_assist`, `sys_config`, `sys_ideas`, `sys_line`, `sys_log`, `sys_people`, `sys_push`, `sys_routines`, `sys_sshkey`, `sys_uploads` | 13 |
 | `sys_soak` | `api.activity`, `script/svc_rem.py` | 1 |
 | `sys_social_guard` | `agt_loop`, `api.social`, `kno_story_auto` | 1 |
 | `sys_sshkey` | `script/svc_api.py`, `sec_fwpower`, `sys_power_hosts` | 1 |
-| `sys_tests` | `agt_change`, `agt_loop_make`, `script/bench_repair.py`, `sys/plugins/self/server.py`, `sys_update` | 2 |
+| `sys_tests` | `agt_change`, `agt_loop_make`, `script/bench_repair.py`, `sys/plugins/self/server.py`, `sys_update` | 4 |
 | `sys_trash` | `api.dj`, `api.documents`, `api.projects`, `api.uploads`, `sys_uploads` | 1 |
 | `sys_update` | `api.agents`, `api.routines`, `api.updates`, `sys_commands` | 2 |
 | `sys_uploads` | `agt_loop_make`, `api.agents`, `api.core_route`, `api.knowledge`, `api.runs`, `api.social`, `api.uploads`, `doc_artifact`, `doc_preview`, `kno_review`, `kno_study`, `sys_routines` | 7 |
 | `sys_ups` | `api.power`, `api.system`, `script/svc_rem.py` | 1 |
 | `sys_usage` | `api.usage`, `sys_log`, `sys_users_layout` | 1 |
-| `sys_user_config` | `api.assist`, `api.autonomy`, `api.core`, `api.oauth`, `api.system`, `api.users`, `cal_share`, `script/mem_prune.py`, `script/svc_api.py`, `script/sys_nas_mount.py`, `sec_privacy`, `sys_config`, `sys_users_layout` | 7 |
-| `sys_users` | `agt_loop`, `api.autonomy`, `api.core`, `api.users`, `cal_external`, `kno_self`, `mdl_accounts`, `script/dev_demo_video.py`, `script/mem_prune.py`, `script/sys_users_migrate.py`, `sec_mask`, `sec_privacy`, `sys_users_layout`, `sys_users_mode` | 10 |
-| `sys_users_layout` | `agt_forge`, `agt_forge_data`, `agt_react`, `api.autonomy`, `api.oauth`, `api.projects`, `api.system`, `api.users`, `cal_store`, `kno_anger`, `kno_diary`, `kno_memory_seal`, `kno_mood`, `kno_review`, `kno_shadow`, `kno_story`, `kno_study`, `mdl_tts`, `mdl_user_roles`, `plg_sandbox`, `plg_shadow`, `prj_conduct`, `prj_cover`, `prj_docs`, `prj_plan`, `prj_policy`, `prj_reports`, `prj_talk`, `script/svc_api.py`, `script/sys_nas_mount.py`, `script/sys_unseal_export.py`, `script/sys_users_migrate.py`, `sec_mask_spot`, `sec_privacy`, `sol_index`, `sol_vault`, `sys/plugins/runs/server.py`, `sys_anon`, `sys_approvals`, `sys_assist`, `sys_config`, `sys_consoles`, `sys_ideas`, `sys_line`, `sys_log`, `sys_push`, `sys_routines`, `sys_seal`, `sys_trash`, `sys_user_config`, `sys_users_mode` | 12 |
+| `sys_user_config` | `api.assist`, `api.autonomy`, `api.core`, `api.home`, `api.oauth`, `api.system`, `api.users`, `cal_share`, `script/mem_prune.py`, `script/svc_api.py`, `script/sys_nas_mount.py`, `sec_privacy`, `sys_config`, `sys_users_layout` | 8 |
+| `sys_users` | `agt_loop`, `api.autonomy`, `api.core`, `api.core_guard`, `api.users`, `cal_external`, `kno_self`, `mdl_accounts`, `script/dev_demo_video.py`, `script/mem_prune.py`, `script/sys_users_migrate.py`, `sec_mask`, `sec_privacy`, `sys_users_layout`, `sys_users_mode` | 12 |
+| `sys_users_layout` | `agt_forge`, `agt_forge_data`, `agt_react`, `api.autonomy`, `api.oauth`, `api.projects`, `api.system`, `api.users`, `cal_store`, `kno_anger`, `kno_diary`, `kno_memory_seal`, `kno_mood`, `kno_review`, `kno_shadow`, `kno_story`, `kno_study`, `mdl_tts`, `mdl_user_roles`, `plg_sandbox`, `plg_shadow`, `prj_conduct`, `prj_cover`, `prj_docs`, `prj_plan`, `prj_policy`, `prj_reports`, `prj_talk`, `script/svc_api.py`, `script/sys_nas_mount.py`, `script/sys_unseal_export.py`, `script/sys_users_migrate.py`, `sec_mask_spot`, `sec_privacy`, `sol_index`, `sol_vault`, `sys/plugins/runs/server.py`, `sys_anon`, `sys_approvals`, `sys_assist`, `sys_config`, `sys_consoles`, `sys_ideas`, `sys_line`, `sys_log`, `sys_push`, `sys_routines`, `sys_seal`, `sys_trash`, `sys_user_config`, `sys_users_mode` | 14 |
 | `sys_users_mode` | `api.system` | 1 |
-| `sys_users_perm` | `api.system`, `api.users`, `mdl_budget` | 2 |
+| `sys_users_perm` | `api.system`, `api.users`, `mdl_budget` | 3 |
 | `txt_compress` | `kno_read`, `kno_stages`, `prj_act` | 1 |
 | `txt_headlines` | `api.today` | 1 |
 | `txt_ical` | `cal_external`, `cal_store`, `cal_text`, `sys/plugins/calendar/server.py` | 1 |
@@ -655,14 +661,14 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | GET `/v1/aurora/runs/{run_id}/record` | `api/activity.py` | `script/bench_agi.py`, `script/bench_memory_days.py`, `script/bench_quality.py`, `script/dev_demo_video.py`, `script/shadow_seed.py`, `script/svc_api.py`, `script/svc_sentinel.py`, `webui/js/api.js` |
 | GET `/v1/aurora/soak` | `api/activity.py` | `webui/js/modules/status.js` |
 | GET `/v1/aurora/video/status` | `api/activity.py` | `script/shadow_seed.py`, `webui/js/modules/chat.js` |
-| GET `/v1/aurora/health` | `api/activity.py` | `script/dev_demo_video.py`, `script/svc_api.py`, `webui/js/modules/alerts.js`, `webui/js/modules/status.js`, `webui/js/modules/today.js` |
+| GET `/v1/aurora/health` | `api/activity.py` | `aurora/sys_assist.py`, `script/dev_demo_video.py`, `script/svc_api.py`, `webui/js/modules/alerts.js`, `webui/js/modules/status.js`, `webui/js/modules/today.js` |
 | GET `/v1/aurora/answers/stats` | `api/activity.py` | `webui/js/modules/status.js` |
 | GET `/v1/aurora/memory/about-me` | `api/activity.py` | `script/mem_prune.py`, `webui/js/modules/memory.js` |
 | DELETE `/v1/aurora/memory/about-me` | `api/activity.py` | `script/mem_prune.py`, `webui/js/modules/memory.js` |
 | DELETE `/v1/aurora/memory/conversation` | `api/activity.py` | `script/dev_demo_video.py`, `script/mem_prune.py` |
 | DELETE `/v1/aurora/memory/reflection` | `api/activity.py` | `script/mem_prune.py` |
 | GET `/v1/aurora/reflections` | `api/activity.py` | `script/svc_api.py`, `webui/js/modules/diary.js`, `webui/js/modules/reports.js`, `webui/js/modules/today_pages.js` |
-| POST `/v1/aurora/agent` | `api/agents.py` | `script/bench_repair.py`, `script/svc_api.py`, `webui/js/modules/chat.js` |
+| POST `/v1/aurora/agent` | `api/agents.py` | `aurora/sys_assist.py`, `script/bench_repair.py`, `script/svc_api.py`, `webui/js/modules/chat.js` |
 | GET `/v1/aurora/plugins/signature` | `api/agents.py` | `webui/js/modules/plugins.js` |
 | GET `/v1/aurora/plugins` | `api/agents.py` | `script/svc_api.py`, `webui/js/main.js`, `webui/js/modules/approvals.js`, `webui/js/modules/plugin_slot.js`, `webui/js/modules/plugins.js`, `webui/js/modules/routines.js`, `webui/js/modules/today.js` |
 | PUT `/v1/aurora/plugins/{name}/away` | `api/agents.py` | `script/svc_api.py`, `webui/js/modules/plugins.js` |
@@ -674,7 +680,7 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | GET `/v1/aurora/plugins/{name}/icon` | `api/agents.py` | `script/svc_api.py`, `webui/js/modules/plugins.js` |
 | POST `/v1/aurora/services/restart` | `api/agents.py` | `script/svc_rem.py`, `webui/js/modules/autonomy.js`, `webui/js/modules/autonomy_box.js`, `webui/js/modules/firewall.js`, `webui/js/modules/harvester.js`, `webui/js/restart.js` |
 | POST `/v1/aurora/plugins/{name}/try/{tool}` | `api/agents.py` | `script/svc_api.py`, `webui/js/modules/plugins.js` |
-| GET `/v1/aurora/approvals` | `api/agents.py` | `script/bench_repair.py`, `script/svc_api.py`, `webui/js/modules/alerts.js`, `webui/js/modules/approvals.js`, `webui/js/modules/plugins.js`, `webui/js/modules/social.js`, `webui/js/modules/today.js` |
+| GET `/v1/aurora/approvals` | `api/agents.py` | `aurora/sys_assist.py`, `script/bench_repair.py`, `script/svc_api.py`, `webui/js/modules/alerts.js`, `webui/js/modules/approvals.js`, `webui/js/modules/plugins.js`, `webui/js/modules/social.js`, `webui/js/modules/today.js` |
 | GET `/v1/aurora/approvals/stats` | `api/agents.py` | `webui/js/modules/approvals.js` |
 | POST `/v1/aurora/approvals/{approval_id}/{decision}` | `api/agents.py` | `script/bench_repair.py`, `script/svc_api.py`, `webui/js/modules/approvals.js`, `webui/js/modules/social.js` |
 | POST `/v1/aurora/rem/repair` | `api/agents.py` | `script/svc_api.py` |
@@ -682,17 +688,17 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | POST `/v1/aurora/assist/grant` | `api/assist.py` | `aurora/sys_assist.py`, `webui/js/modules/users.js` |
 | POST `/v1/aurora/assist/revoke` | `api/assist.py` | `aurora/sys_assist.py`, `webui/js/modules/users.js` |
 | POST `/v1/aurora/assist/enter` | `api/assist.py` | `webui/js/modules/users.js` |
-| POST `/v1/aurora/assist/leave` | `api/assist.py` | `webui/js/main.js` |
+| POST `/v1/aurora/assist/leave` | `api/assist.py` | `aurora/sys_assist.py`, `webui/js/main.js` |
 | GET `/v1/aurora/astro` | `api/astro.py` | `webui/js/modules/astro.js` |
 | GET `/v1/aurora/astro/script` | `api/astro.py` | `webui/js/modules/astro.js` |
-| POST `/v1/aurora/astro/files` | `api/astro.py` | `webui/js/modules/astro.js` |
+| POST `/v1/aurora/astro/files` | `api/astro.py` | `aurora/sys_assist.py`, `webui/js/modules/astro.js` |
 | DELETE `/v1/aurora/astro/files/{name}` | `api/astro.py` | `webui/js/modules/astro.js` |
 | GET `/v1/aurora/astro/nights` | `api/astro.py` | `webui/js/modules/astro_nights.js` |
 | GET `/v1/aurora/astro/advice` | `api/astro.py` | `webui/js/modules/astro_advice.js` |
 | PUT `/v1/aurora/astro/advice` | `api/astro.py` | `webui/js/modules/astro_advice.js` |
 | GET `/v1/aurora/astro/imaging` | `api/astro.py` | `webui/js/modules/astro_imaging.js` |
 | PUT `/v1/aurora/astro/imaging` | `api/astro.py` | `webui/js/modules/astro_imaging.js` |
-| GET `/v1/aurora/astro/sky` | `api/astro.py` | `webui/js/modules/astro_sky.js`, `webui/js/modules/today.js` |
+| GET `/v1/aurora/astro/sky` | `api/astro.py` | `aurora/sys_assist.py`, `webui/js/modules/astro_sky.js`, `webui/js/modules/today.js` |
 | GET `/v1/aurora/astro/sky/thumb` | `api/astro.py` | `webui/js/modules/astro_sky.js`, `webui/js/modules/today.js` |
 | POST `/v1/aurora/astro/sky/sequence` | `api/astro.py` | `webui/js/modules/astro_sky.js` |
 | GET `/v1/aurora/astro/sky/sequence/file` | `api/astro.py` | `webui/js/modules/astro_sky.js` |
@@ -702,7 +708,7 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | GET `/v1/aurora/astro/nina/mount` | `api/astro.py` | `webui/js/modules/astro_mount.js` |
 | GET `/v1/aurora/astro/autoguide` | `api/astro.py` | `webui/js/modules/astro_tuner.js` |
 | PUT `/v1/aurora/astro/autoguide` | `api/astro.py` | `webui/js/modules/astro_tuner.js` |
-| GET `/v1/aurora/astro/collimation` | `api/astro.py` | `webui/js/modules/astro_collim.js` |
+| GET `/v1/aurora/astro/collimation` | `api/astro.py` | `aurora/sys_assist.py`, `webui/js/modules/astro_collim.js` |
 | PUT `/v1/aurora/astro/collimation/scope` | `api/astro.py` | `webui/js/modules/astro_collim_live.js` |
 | POST `/v1/aurora/astro/collimation/photo` | `api/astro.py` | `webui/js/modules/astro_collim.js`, `webui/js/modules/astro_collim_live.js` |
 | POST `/v1/aurora/astro/collimation/star` | `api/astro.py` | `webui/js/modules/astro_collim.js` |
@@ -714,7 +720,7 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | GET `/v1/aurora/astro/camera/frame` | `api/astro_cam.py` | — |
 | GET `/v1/aurora/astro/camera/stream` | `api/astro_cam.py` | `webui/js/modules/astro_collim_live.js` |
 | POST `/v1/aurora/astro/camera/pc` | `api/astro_cam.py` | `sys/plugins/astro/astro_camera.py` |
-| POST `/v1/aurora/astro/camera/push` | `api/astro_cam.py` | `sys/plugins/astro/astro_camera.py` |
+| POST `/v1/aurora/astro/camera/push` | `api/astro_cam.py` | `aurora/net_https.py`, `sys/plugins/astro/astro_camera.py` |
 | GET `/v1/aurora/autonomy` | `api/autonomy.py` | `webui/js/modules/autonomy.js`, `webui/js/modules/autonomy_box.js` |
 | PUT `/v1/aurora/autonomy` | `api/autonomy.py` | `webui/js/modules/autonomy.js`, `webui/js/modules/autonomy_box.js` |
 | PUT `/v1/aurora/autonomy/may-choose` | `api/autonomy.py` | `webui/js/modules/autonomy.js` |
@@ -724,13 +730,13 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | GET `/v1/aurora/backup/holds` | `api/backup.py` | — |
 | POST `/v1/aurora/backup/run` | `api/backup.py` | `webui/js/backup.js` |
 | POST `/v1/aurora/bugreport` | `api/bugreport.py` | `webui/js/modules/bugreport.js` |
-| GET `/v1/aurora/ideas` | `api/bugreport.py` | `webui/js/modules/ideas.js`, `webui/js/modules/today_pages.js` |
-| POST `/v1/aurora/ideas` | `api/bugreport.py` | `webui/js/modules/ideas.js`, `webui/js/modules/today_pages.js` |
+| GET `/v1/aurora/ideas` | `api/bugreport.py` | `aurora/sys_assist.py`, `webui/js/modules/ideas.js`, `webui/js/modules/today_pages.js` |
+| POST `/v1/aurora/ideas` | `api/bugreport.py` | `aurora/sys_assist.py`, `webui/js/modules/ideas.js`, `webui/js/modules/today_pages.js` |
 | PUT `/v1/aurora/ideas/{iid}` | `api/bugreport.py` | `webui/js/modules/ideas.js` |
 | POST `/v1/aurora/ideas/{iid}/issue` | `api/bugreport.py` | `webui/js/modules/ideas.js` |
 | GET `/v1/aurora/bugreports` | `api/bugreport.py` | `webui/js/modules/bugreport.js` |
 | GET `/v1/aurora/bugreports/{name}` | `api/bugreport.py` | — |
-| GET `/v1/aurora/calendar` | `api/calendar.py` | `webui/js/modules/calendar.js`, `webui/js/modules/today.js` |
+| GET `/v1/aurora/calendar` | `api/calendar.py` | `aurora/sys_assist.py`, `webui/js/modules/calendar.js`, `webui/js/modules/today.js` |
 | GET `/v1/aurora/calendar/people` | `api/calendar.py` | `webui/js/modules/calendar_form.js` |
 | POST `/v1/aurora/calendar/items` | `api/calendar.py` | `webui/js/modules/calendar_form.js` |
 | GET `/v1/aurora/calendar/items/{iid}` | `api/calendar.py` | `webui/js/modules/calendar.js`, `webui/js/modules/calendar_form.js` |
@@ -752,18 +758,18 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | DELETE `/v1/aurora/health/values/{vid}` | `api/care.py` | `webui/js/modules/care.js`, `webui/js/modules/care_values.js` |
 | GET `/v1/aurora/care/doctors` | `api/care.py` | `webui/js/modules/care_doctor.js` |
 | PUT `/v1/aurora/care/doctors` | `api/care.py` | `webui/js/modules/care_doctor.js` |
-| GET `/v1/aurora/care` | `api/care.py` | `webui/js/modules/care.js` |
+| GET `/v1/aurora/care` | `api/care.py` | `aurora/sys_assist.py`, `webui/js/modules/care.js` |
 | POST `/v1/aurora/care/{area}` | `api/care.py` | `webui/js/modules/care.js`, `webui/js/modules/care_doctor.js` |
 | POST `/v1/aurora/care/{area}/note` | `api/care.py` | `webui/js/modules/care.js`, `webui/js/modules/care_doctor.js` |
 | GET `/v1/aurora/care/{area}/{iid}` | `api/care.py` | `webui/js/modules/care.js`, `webui/js/modules/care_doctor.js` |
 | GET `/v1/aurora/care/{area}/{iid}/file` | `api/care.py` | `webui/js/modules/care.js`, `webui/js/modules/care_doctor.js` |
 | DELETE `/v1/aurora/care/{area}/{iid}` | `api/care.py` | `webui/js/modules/care.js`, `webui/js/modules/care_doctor.js` |
-| GET `/v1/aurora/diet` | `api/diet.py` | `webui/js/diet.js`, `webui/js/modules/care_diet.js` |
+| GET `/v1/aurora/diet` | `api/diet.py` | `aurora/sys_assist.py`, `webui/js/diet.js`, `webui/js/modules/care_diet.js` |
 | POST `/v1/aurora/diet/process` | `api/diet.py` | `webui/js/modules/care_diet.js` |
 | POST `/v1/aurora/diet/choice` | `api/diet.py` | `webui/js/diet.js` |
 | DELETE `/v1/aurora/diet/choice/{cid}` | `api/diet.py` | `webui/js/diet.js` |
 | GET `/v1/aurora/diet/pending` | `api/diet.py` | `webui/js/diet.js` |
-| GET `/v1/aurora/dj` | `api/dj.py` | `webui/js/modules/dj.js`, `webui/js/modules/dj_player.js`, `webui/js/modules/dj_radio.js`, `webui/js/modules/dj_set.js`, `webui/js/modules/dj_styles.js`, `webui/js/modules/today_pages.js` |
+| GET `/v1/aurora/dj` | `api/dj.py` | `aurora/sys_assist.py`, `webui/js/modules/dj.js`, `webui/js/modules/dj_player.js`, `webui/js/modules/dj_radio.js`, `webui/js/modules/dj_set.js`, `webui/js/modules/dj_styles.js`, `webui/js/modules/today_pages.js` |
 | PUT `/v1/aurora/dj/playlists` | `api/dj.py` | `webui/js/modules/dj_player.js` |
 | POST `/v1/aurora/dj/tracks` | `api/dj.py` | `webui/js/modules/dj_player.js` |
 | DELETE `/v1/aurora/dj/{kind}/{name}` | `api/dj.py` | `webui/js/modules/dj.js`, `webui/js/modules/dj_player.js`, `webui/js/modules/dj_radio.js`, `webui/js/modules/dj_set.js`, `webui/js/modules/dj_styles.js` |
@@ -781,7 +787,7 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | PUT `/v1/aurora/dj-song/{name}` | `api/dj.py` | `webui/js/modules/dj_player.js` |
 | POST `/v1/aurora/dj/listening` | `api/dj.py` | `webui/js/modules/dj_player.js` |
 | POST `/v1/aurora/documents/pdf` | `api/documents.py` | `webui/js/modules/trace.js` |
-| GET `/v1/aurora/documents` | `api/documents.py` | `webui/js/modules/uploads.js` |
+| GET `/v1/aurora/documents` | `api/documents.py` | `aurora/sys_assist.py`, `webui/js/modules/uploads.js` |
 | GET `/v1/aurora/documents/{name}` | `api/documents.py` | `aurora/doc_preview.py`, `aurora/sys_routines.py`, `aurora/sys_uploads.py`, `sys/plugins/documents/plugin.json`, `webui/js/modules/trace.js` |
 | DELETE `/v1/aurora/documents/{name}` | `api/documents.py` | `aurora/doc_preview.py`, `aurora/sys_routines.py`, `aurora/sys_uploads.py`, `sys/plugins/documents/plugin.json`, `webui/js/modules/trace.js` |
 | GET `/v1/aurora/security/edge` | `api/edge.py` | `webui/js/modules/security_edge.js` |
@@ -791,6 +797,7 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | GET `/v1/aurora/security/firewalls` | `api/firewalls.py` | `webui/js/main.js`, `webui/js/modules/security_firewalls.js` |
 | PUT `/v1/aurora/security/firewalls/{fid}` | `api/firewalls.py` | `webui/js/modules/security_firewalls.js` |
 | DELETE `/v1/aurora/security/firewalls/{fid}` | `api/firewalls.py` | `webui/js/modules/security_firewalls.js` |
+| POST `/v1/aurora/security/firewalls/{fid}/disconnect` | `api/firewalls.py` | `webui/js/modules/security_firewalls.js` |
 | POST `/v1/aurora/security/firewalls/{fid}/connect` | `api/firewalls.py` | `webui/js/modules/security_firewalls.js` |
 | GET `/v1/aurora/forge` | `api/forge.py` | `script/svc_api.py`, `webui/js/modules/plugins.js` |
 | POST `/v1/aurora/forge/tick` | `api/forge.py` | `script/svc_api.py`, `script/svc_rem.py` |
@@ -798,12 +805,12 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | GET `/v1/aurora/harvester` | `api/harvester.py` | `script/svc_api.py`, `webui/js/modules/harvester.js` |
 | POST `/v1/aurora/harvester/{action}` | `api/harvester.py` | `script/svc_api.py`, `webui/js/modules/harvest_plan.js`, `webui/js/modules/harvester.js` |
 | GET `/v1/aurora/home/devices` | `api/home.py` | `webui/js/modules/home.js`, `webui/js/modules/today.js`, `webui/js/welcome.js` |
-| POST `/v1/aurora/home/service` | `api/home.py` | `webui/js/modules/home.js`, `webui/js/modules/today.js` |
+| POST `/v1/aurora/home/service` | `api/home.py` | `aurora/sys_assist.py`, `webui/js/modules/home.js`, `webui/js/modules/today.js` |
 | GET `/v1/aurora/home/camera/{entity_id}` | `api/home.py` | `webui/js/modules/home.js` |
-| POST `/v1/aurora/home/look` | `api/home.py` | `webui/js/modules/home.js` |
+| POST `/v1/aurora/home/look` | `api/home.py` | `aurora/sys_assist.py`, `webui/js/modules/home.js` |
 | POST `/v1/aurora/home/agents/{device_id}` | `api/home.py` | `webui/js/modules/home.js` |
-| GET `/v1/aurora/home/scenes` | `api/home.py` | `webui/js/modules/home_auto.js`, `webui/js/modules/home_scenes.js` |
-| POST `/v1/aurora/home/scenes` | `api/home.py` | `webui/js/modules/home_auto.js`, `webui/js/modules/home_scenes.js` |
+| GET `/v1/aurora/home/scenes` | `api/home.py` | `aurora/sys_assist.py`, `webui/js/modules/home_auto.js`, `webui/js/modules/home_scenes.js` |
+| POST `/v1/aurora/home/scenes` | `api/home.py` | `aurora/sys_assist.py`, `webui/js/modules/home_auto.js`, `webui/js/modules/home_scenes.js` |
 | POST `/v1/aurora/home/scenes/{name}/{action}` | `api/home.py` | `webui/js/modules/home_scenes.js` |
 | GET `/v1/aurora/home/automations` | `api/home.py` | `webui/js/modules/home.js`, `webui/js/modules/home_auto.js` |
 | POST `/v1/aurora/home/automations` | `api/home.py` | `webui/js/modules/home.js`, `webui/js/modules/home_auto.js` |
@@ -829,7 +836,7 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | GET `/v1/aurora/incidents/quiet` | `api/incidents.py` | `webui/js/modules/security_quiet.js` |
 | POST `/v1/aurora/incidents/quiet` | `api/incidents.py` | `webui/js/modules/security_quiet.js` |
 | POST `/v1/aurora/incidents/{incident_id}/close` | `api/incidents.py` | `script/svc_api.py`, `webui/js/modules/security.js`, `webui/js/modules/security_quiet.js` |
-| POST `/v1/aurora/interpret` | `api/interpret.py` | `webui/js/modules/interpret.js` |
+| POST `/v1/aurora/interpret` | `api/interpret.py` | `aurora/sys_assist.py`, `webui/js/modules/interpret.js` |
 | GET `/v1/aurora/keys` | `api/keys.py` | `webui/js/modules/keys.js` |
 | POST `/v1/aurora/keys/recovery` | `api/keys.py` | `webui/js/modules/keys.js` |
 | POST `/v1/aurora/keys/recovery/check` | `api/keys.py` | `webui/js/modules/keys.js` |
@@ -863,16 +870,16 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | POST `/v1/aurora/models/custom/download` | `api/models_custom.py` | `webui/js/modules/models_custom.js` |
 | POST `/v1/aurora/models/custom/switch` | `api/models_custom.py` | `webui/js/modules/models_custom.js` |
 | POST `/v1/aurora/models/custom/revert` | `api/models_custom.py` | `webui/js/modules/models_custom.js` |
-| GET `/v1/aurora/expenses` | `api/money.py` | `webui/js/modules/expenses.js` |
+| GET `/v1/aurora/expenses` | `api/money.py` | `aurora/sys_assist.py`, `webui/js/modules/expenses.js` |
 | POST `/v1/aurora/expenses/moves` | `api/money.py` | `webui/js/modules/expenses.js` |
 | DELETE `/v1/aurora/expenses/moves/{kind}/{mid}` | `api/money.py` | `webui/js/modules/expenses.js` |
 | DELETE `/v1/aurora/expenses/fixed/{fid}` | `api/money.py` | `webui/js/modules/expenses.js` |
 | PUT `/v1/aurora/expenses/fixed/{fid}` | `api/money.py` | `webui/js/modules/expenses.js` |
 | PUT `/v1/aurora/expenses/goal` | `api/money.py` | `webui/js/modules/expenses.js` |
 | PUT `/v1/aurora/expenses/budget` | `api/money.py` | `webui/js/modules/expenses.js` |
-| GET `/health` | `api/oai.py` | `aurora/mdl_image.py`, `aurora/mdl_llm.py`, `aurora/mdl_remote.py`, `aurora/sys_health.py`, `config/settings_schema.json`, `script/dev_demo_video.py`, `script/doc_charts.py`, `script/svc_api.py`, `script/svc_harvester.py`, `script/svc_models.py`, `script/svc_rem.py`, `script/sys_install_services.py`, `webui/js/main.js`, `webui/js/modules/alerts.js`, `webui/js/modules/status.js`, `webui/js/modules/today.js`, `webui/js/restart.js` |
+| GET `/health` | `api/oai.py` | `aurora/mdl_image.py`, `aurora/mdl_llm.py`, `aurora/mdl_remote.py`, `aurora/sys_assist.py`, `aurora/sys_health.py`, `config/settings_schema.json`, `script/dev_demo_video.py`, `script/doc_charts.py`, `script/svc_api.py`, `script/svc_harvester.py`, `script/svc_models.py`, `script/svc_rem.py`, `script/sys_install_services.py`, `webui/js/main.js`, `webui/js/modules/alerts.js`, `webui/js/modules/status.js`, `webui/js/modules/today.js`, `webui/js/restart.js` |
 | GET `/v1/models` | `api/oai.py` | `aurora/aud_song.py`, `aurora/mdl_formats.py`, `script/dev_demo_video.py`, `script/svc_api.py`, `webui/js/main.js` |
-| POST `/v1/chat/completions` | `api/oai.py` | `aurora/mdl_llm.py`, `script/svc_api.py` |
+| POST `/v1/chat/completions` | `api/oai.py` | `aurora/mdl_llm.py`, `aurora/sys_assist.py`, `script/svc_api.py` |
 | POST `/v1/aurora/oauth/{provider}/start` | `api/oauth.py` | `webui/js/main.js`, `webui/js/modules/plugins.js` |
 | POST `/v1/aurora/oauth/finish` | `api/oauth.py` | `webui/js/main.js` |
 | GET `/v1/aurora/people` | `api/people.py` | `webui/js/modules/people.js` |
@@ -901,7 +908,7 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | POST `/v1/aurora/artifacts/open` | `api/preview.py` | `webui/js/artifact.js` |
 | GET `/v1/aurora/preview` | `api/preview.py` | `webui/js/viewer.js` |
 | GET `/v1/aurora/preview/page` | `api/preview.py` | `webui/js/modules/uploads.js`, `webui/js/viewer.js` |
-| GET `/v1/aurora/projects` | `api/projects.py` | `script/svc_api.py`, `webui/js/modules/projects.js`, `webui/js/modules/today_pages.js` |
+| GET `/v1/aurora/projects` | `api/projects.py` | `aurora/sys_assist.py`, `script/svc_api.py`, `webui/js/modules/projects.js`, `webui/js/modules/today_pages.js` |
 | GET `/v1/aurora/projects/github` | `api/projects.py` | `webui/js/modules/projects.js` |
 | GET `/v1/aurora/projects/papers` | `api/projects.py` | `webui/js/modules/projects.js` |
 | GET `/v1/aurora/projects/github/{owner}/{repo}/traffic` | `api/projects.py` | `webui/js/modules/projects.js` |
@@ -911,7 +918,7 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | GET `/v1/aurora/projects/{name}/log` | `api/projects.py` | `script/svc_api.py`, `webui/js/modules/project_conduct.js`, `webui/js/modules/project_docs.js`, `webui/js/modules/project_files.js`, `webui/js/modules/project_page.js`, `webui/js/modules/project_plan.js`, `webui/js/modules/project_policy.js`, `webui/js/modules/project_print.js`, `webui/js/modules/project_render.js`, `webui/js/modules/project_sim.js`, `webui/js/modules/project_talk.js`, `webui/js/modules/project_term.js`, `webui/js/modules/projects.js` |
 | POST `/v1/aurora/projects/{name}/preview` | `api/projects.py` | `script/svc_api.py`, `webui/js/modules/project_conduct.js`, `webui/js/modules/project_docs.js`, `webui/js/modules/project_files.js`, `webui/js/modules/project_page.js`, `webui/js/modules/project_plan.js`, `webui/js/modules/project_policy.js`, `webui/js/modules/project_print.js`, `webui/js/modules/project_render.js`, `webui/js/modules/project_sim.js`, `webui/js/modules/project_talk.js`, `webui/js/modules/project_term.js`, `webui/js/modules/projects.js` |
 | GET `/v1/preview/{token}/{path:path}` | `api/projects.py` | `aurora/doc_artifact.py`, `aurora/net_https.py`, `script/svc_api.py`, `webui/js/artifact.js` |
-| POST `/v1/aurora/projects` | `api/projects.py` | `script/svc_api.py`, `webui/js/modules/projects.js`, `webui/js/modules/today_pages.js` |
+| POST `/v1/aurora/projects` | `api/projects.py` | `aurora/sys_assist.py`, `script/svc_api.py`, `webui/js/modules/projects.js`, `webui/js/modules/today_pages.js` |
 | DELETE `/v1/aurora/projects/{name}` | `api/projects.py` | `script/svc_api.py`, `webui/js/modules/project_conduct.js`, `webui/js/modules/project_docs.js`, `webui/js/modules/project_files.js`, `webui/js/modules/project_page.js`, `webui/js/modules/project_plan.js`, `webui/js/modules/project_policy.js`, `webui/js/modules/project_print.js`, `webui/js/modules/project_render.js`, `webui/js/modules/project_sim.js`, `webui/js/modules/project_talk.js`, `webui/js/modules/project_term.js`, `webui/js/modules/projects.js` |
 | POST `/v1/aurora/projects/{name}/save` | `api/projects.py` | `script/svc_api.py`, `webui/js/modules/project_conduct.js`, `webui/js/modules/project_docs.js`, `webui/js/modules/project_files.js`, `webui/js/modules/project_page.js`, `webui/js/modules/project_plan.js`, `webui/js/modules/project_policy.js`, `webui/js/modules/project_print.js`, `webui/js/modules/project_render.js`, `webui/js/modules/project_sim.js`, `webui/js/modules/project_talk.js`, `webui/js/modules/project_term.js`, `webui/js/modules/projects.js` |
 | GET `/v1/aurora/projects/{name}/policy` | `api/projects.py` | `script/svc_api.py`, `webui/js/modules/project_conduct.js`, `webui/js/modules/project_docs.js`, `webui/js/modules/project_files.js`, `webui/js/modules/project_page.js`, `webui/js/modules/project_plan.js`, `webui/js/modules/project_policy.js`, `webui/js/modules/project_print.js`, `webui/js/modules/project_render.js`, `webui/js/modules/project_sim.js`, `webui/js/modules/project_talk.js`, `webui/js/modules/project_term.js`, `webui/js/modules/projects.js` |
@@ -945,7 +952,7 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | GET `/v1/aurora/projects/{name}/sims` | `api/projects_view.py` | `script/svc_api.py`, `webui/js/modules/project_conduct.js`, `webui/js/modules/project_docs.js`, `webui/js/modules/project_files.js`, `webui/js/modules/project_page.js`, `webui/js/modules/project_plan.js`, `webui/js/modules/project_policy.js`, `webui/js/modules/project_print.js`, `webui/js/modules/project_render.js`, `webui/js/modules/project_sim.js`, `webui/js/modules/project_talk.js`, `webui/js/modules/project_term.js`, `webui/js/modules/projects.js` |
 | GET `/v1/aurora/projects/{name}/cover` | `api/projects_view.py` | `script/svc_api.py`, `webui/js/modules/project_conduct.js`, `webui/js/modules/project_docs.js`, `webui/js/modules/project_files.js`, `webui/js/modules/project_page.js`, `webui/js/modules/project_plan.js`, `webui/js/modules/project_policy.js`, `webui/js/modules/project_print.js`, `webui/js/modules/project_render.js`, `webui/js/modules/project_sim.js`, `webui/js/modules/project_talk.js`, `webui/js/modules/project_term.js`, `webui/js/modules/projects.js` |
 | PUT `/v1/aurora/projects/{name}/cover` | `api/projects_view.py` | `script/svc_api.py`, `webui/js/modules/project_conduct.js`, `webui/js/modules/project_docs.js`, `webui/js/modules/project_files.js`, `webui/js/modules/project_page.js`, `webui/js/modules/project_plan.js`, `webui/js/modules/project_policy.js`, `webui/js/modules/project_print.js`, `webui/js/modules/project_render.js`, `webui/js/modules/project_sim.js`, `webui/js/modules/project_talk.js`, `webui/js/modules/project_term.js`, `webui/js/modules/projects.js` |
-| GET `/v1/aurora/radio` | `api/radio.py` | `webui/js/modules/dj_radio.js` |
+| GET `/v1/aurora/radio` | `api/radio.py` | `aurora/sys_assist.py`, `webui/js/modules/dj_radio.js` |
 | GET `/v1/aurora/radio/search` | `api/radio.py` | `webui/js/modules/dj_radio.js` |
 | POST `/v1/aurora/radio/favourites` | `api/radio.py` | `webui/js/modules/dj_radio.js` |
 | GET `/v1/aurora/radio/{sid}/stream` | `api/radio.py` | `aurora/aud_radio.py`, `webui/js/modules/dj_radio.js` |
@@ -980,15 +987,15 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | GET `/v1/aurora/images/{name}` | `api/routines.py` | `script/svc_api.py`, `webui/js/modules/diary.js`, `webui/js/modules/social.js` |
 | GET `/v1/aurora/metrics` | `api/routines.py` | `script/svc_api.py`, `webui/js/modules/metrics.js` |
 | GET `/v1/aurora/metrics/who` | `api/routines.py` | `webui/js/modules/metrics.js` |
-| POST `/v1/aurora/ask` | `api/runs.py` | `script/bench_agi.py`, `script/bench_memory_days.py`, `script/bench_public.py`, `script/bench_quality.py`, `script/dev_demo_video.py`, `script/shadow_seed.py`, `script/svc_api.py`, `webui/js/modules/chat.js`, `webui/js/modules/chat_anon.js` |
+| POST `/v1/aurora/ask` | `api/runs.py` | `aurora/sys_assist.py`, `script/bench_agi.py`, `script/bench_memory_days.py`, `script/bench_public.py`, `script/bench_quality.py`, `script/dev_demo_video.py`, `script/shadow_seed.py`, `script/svc_api.py`, `webui/js/modules/chat.js`, `webui/js/modules/chat_anon.js` |
 | POST `/v1/aurora/shadow/import` | `api/runs.py` | `script/shadow_seed.py` |
-| POST `/v1/aurora/acquire` | `api/runs.py` | `script/svc_api.py`, `webui/js/modules/chat.js` |
+| POST `/v1/aurora/acquire` | `api/runs.py` | `aurora/sys_assist.py`, `script/svc_api.py`, `webui/js/modules/chat.js` |
 | GET `/v1/aurora/runs` | `api/runs.py` | `script/bench_preflight.py`, `script/bench_repair.py`, `script/svc_api.py`, `webui/js/modules/brain.js`, `webui/js/modules/bugreport.js`, `webui/js/modules/runs.js`, `webui/js/modules/social_video.js` |
 | GET `/v1/aurora/runs/busy` | `api/runs.py` | `script/dev_demo_video.py`, `script/svc_sentinel.py` |
 | GET `/v1/aurora/runs/{run_id}/events` | `api/runs.py` | `script/bench_agi.py`, `script/bench_memory_days.py`, `script/bench_quality.py`, `script/dev_demo_video.py`, `script/shadow_seed.py`, `script/svc_api.py`, `script/svc_sentinel.py`, `webui/js/api.js` |
-| GET `/v1/aurora/chat/anon` | `api/runs.py` | `webui/js/modules/chat_anon.js` |
-| POST `/v1/aurora/chat/anon` | `api/runs.py` | `webui/js/modules/chat_anon.js` |
-| DELETE `/v1/aurora/chat/anon` | `api/runs.py` | `webui/js/modules/chat_anon.js` |
+| GET `/v1/aurora/chat/anon` | `api/runs.py` | `aurora/sys_assist.py`, `webui/js/modules/chat_anon.js` |
+| POST `/v1/aurora/chat/anon` | `api/runs.py` | `aurora/sys_assist.py`, `webui/js/modules/chat_anon.js` |
+| DELETE `/v1/aurora/chat/anon` | `api/runs.py` | `aurora/sys_assist.py`, `webui/js/modules/chat_anon.js` |
 | GET `/v1/aurora/security/profile` | `api/security.py` | `webui/js/modules/security_watch.js` |
 | POST `/v1/aurora/security/learn` | `api/security.py` | `webui/js/modules/security.js` |
 | PUT `/v1/aurora/security/rules` | `api/security.py` | `webui/js/modules/security_watch.js` |
@@ -1022,9 +1029,9 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | POST `/v1/aurora/security/aurora/block` | `api/security_ciso.py` | `webui/js/modules/aurorafw.js` |
 | GET `/v1/aurora/security/docs` | `api/security_ciso.py` | `webui/js/modules/firewall.js` |
 | GET `/v1/aurora/social` | `api/social.py` | `script/svc_api.py`, `webui/js/modules/social.js`, `webui/js/modules/today_pages.js` |
-| POST `/v1/aurora/social/draft` | `api/social.py` | `script/svc_api.py`, `webui/js/modules/social.js` |
+| POST `/v1/aurora/social/draft` | `api/social.py` | `aurora/sys_assist.py`, `script/svc_api.py`, `webui/js/modules/social.js` |
 | GET `/v1/aurora/social/privacy` | `api/social.py` | `webui/js/modules/social.js` |
-| POST `/v1/aurora/social/check` | `api/social.py` | `webui/js/modules/social.js` |
+| POST `/v1/aurora/social/check` | `api/social.py` | `aurora/sys_assist.py`, `webui/js/modules/social.js` |
 | POST `/v1/aurora/social/publish` | `api/social.py` | `script/svc_api.py`, `webui/js/modules/social.js` |
 | GET `/v1/aurora/social/stories` | `api/social.py` | `webui/js/modules/social_video.js` |
 | GET `/v1/aurora/social/stories/{stamp}/video` | `api/social.py` | `webui/js/modules/social_video.js` |
@@ -1035,7 +1042,7 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | GET `/v1/aurora/synapses/list` | `api/synapses.py` | `webui/js/modules/synapses.js` |
 | PUT `/v1/aurora/synapses/link` | `api/synapses.py` | `webui/js/modules/synapses.js` |
 | GET `/v1/aurora/synapses/concepts` | `api/synapses.py` | `webui/js/modules/synapses.js` |
-| GET `/v1/aurora/deductions` | `api/synapses.py` | `webui/js/modules/deductions_box.js` |
+| GET `/v1/aurora/deductions` | `api/synapses.py` | `aurora/sys_assist.py`, `webui/js/modules/deductions_box.js` |
 | PUT `/v1/aurora/deductions/{did}` | `api/synapses.py` | `webui/js/modules/deductions_box.js` |
 | POST `/v1/aurora/deductions/{did}/pdf` | `api/synapses.py` | `webui/js/modules/deductions_box.js` |
 | POST `/v1/aurora/deductions/round` | `api/synapses.py` | `webui/js/modules/deductions_box.js` |
@@ -1061,15 +1068,15 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | GET `/v1/aurora/commands` | `api/updates.py` | `webui/js/cards.js` |
 | POST `/v1/aurora/commands/{card}/verify` | `api/updates.py` | `webui/js/cards.js` |
 | POST `/v1/aurora/update/check` | `api/updates.py` | `script/svc_rem.py`, `webui/js/modules/updates.js` |
-| GET `/v1/aurora/uploads` | `api/uploads.py` | `script/svc_api.py`, `webui/js/modules/uploads.js` |
+| GET `/v1/aurora/uploads` | `api/uploads.py` | `aurora/sys_assist.py`, `script/svc_api.py`, `webui/js/modules/uploads.js` |
 | GET `/v1/aurora/uploads/{uid}` | `api/uploads.py` | `aurora/doc_artifact.py`, `aurora/doc_preview.py`, `aurora/sys_trash.py`, `aurora/sys_uploads.py`, `script/svc_api.py`, `script/svc_rem.py`, `webui/js/modules/trace.js`, `webui/js/modules/uploads.js` |
 | DELETE `/v1/aurora/uploads/{uid}` | `api/uploads.py` | `aurora/doc_artifact.py`, `aurora/doc_preview.py`, `aurora/sys_trash.py`, `aurora/sys_uploads.py`, `script/svc_api.py`, `script/svc_rem.py`, `webui/js/modules/trace.js`, `webui/js/modules/uploads.js` |
-| GET `/v1/aurora/trash` | `api/uploads.py` | `webui/js/modules/uploads.js` |
+| GET `/v1/aurora/trash` | `api/uploads.py` | `aurora/sys_assist.py`, `webui/js/modules/uploads.js` |
 | POST `/v1/aurora/trash/{tid}/restore` | `api/uploads.py` | `webui/js/modules/uploads.js` |
 | DELETE `/v1/aurora/trash/{tid}` | `api/uploads.py` | `webui/js/modules/uploads.js` |
 | POST `/v1/aurora/uploads/purge` | `api/uploads.py` | `aurora/sys_trash.py`, `script/svc_api.py`, `script/svc_rem.py` |
 | GET `/v1/aurora/usage` | `api/usage.py` | `webui/js/modules/today.js`, `webui/js/modules/usage.js` |
-| POST `/v1/aurora/login` | `api/users.py` | `aurora/sys_assist.py`, `script/bench_memory_days.py`, `script/dev_demo_video.py`, `webui/js/main.js` |
+| POST `/v1/aurora/login` | `api/users.py` | `aurora/sys_assist.py`, `aurora/sys_csrf.py`, `script/bench_memory_days.py`, `script/dev_demo_video.py`, `webui/js/main.js` |
 | GET `/v1/aurora/me` | `api/users.py` | `script/bench_memory_days.py`, `webui/js/main.js`, `webui/js/modules/plugin_slot.js`, `webui/js/modules/plugins.js`, `webui/js/modules/routines.js`, `webui/js/modules/settings.js`, `webui/js/modules/users.js` |
 | PUT `/v1/aurora/me/prefs` | `api/users.py` | `webui/js/dates.js`, `webui/js/modules/today_edit.js`, `webui/js/style.js`, `webui/js/theme.js` |
 | POST `/v1/aurora/me/welcomed` | `api/users.py` | `aurora/sys_assist.py`, `webui/js/welcome.js` |
@@ -1086,7 +1093,7 @@ Callers are found by the route's path in the WebUI, the scripts and the plugins;
 | POST `/v1/aurora/users/{name}/password` | `api/users.py` | `webui/js/modules/users.js` |
 | POST `/v1/aurora/users/{name}/totp-reset` | `api/users.py` | `webui/js/modules/users.js` |
 | DELETE `/v1/aurora/users/{name}` | `api/users.py` | `webui/js/modules/users.js` |
-| GET `/v1/aurora/tts` | `api/voice.py` | `webui/js/voice.js` |
-| POST `/v1/aurora/tts` | `api/voice.py` | `webui/js/voice.js` |
+| GET `/v1/aurora/tts` | `api/voice.py` | `aurora/sys_assist.py`, `webui/js/voice.js` |
+| POST `/v1/aurora/tts` | `api/voice.py` | `aurora/sys_assist.py`, `webui/js/voice.js` |
 
-Modules nobody in the code imports: 0; routes nobody in the repository names: 10 of 459.
+Modules nobody in the code imports: 0; routes nobody in the repository names: 10 of 460.

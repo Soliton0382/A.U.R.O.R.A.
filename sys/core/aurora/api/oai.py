@@ -86,4 +86,5 @@ async def chat_completions(request: Request):
         yield chunk({}, "stop")
         yield "data: [DONE]\n\n"
 
-    return StreamingResponse(quiet(gen()), media_type="text/event-stream")
+    from .core_guard import live                      # C535: ended when the key or the device is revoked
+    return StreamingResponse(quiet(live(request, gen())), media_type="text/event-stream")

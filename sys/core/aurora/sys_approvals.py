@@ -9,7 +9,8 @@ Every action has an effect (ECOSYSTEM §3.3):
                 posts on her social pages may go without waiting (AURORA_SOCIAL_AUTONOMY, a level-B-exempt
                 installation only, the listed tools, at most AURORA_SOCIAL_POSTS_PER_DAY a day): each is recorded
                 here with status "auto" and told to the owner
-  code_change   a change to Aurora's own code: waits for the owner when AURORA_FORGE_MODE is "ask"
+  code_change   a change to Aurora's own code: waits for the owner when AURORA_SELF_CHANGE_MODE is "ask" (C559: its
+                own setting — it rode on the forge's, so «forge: by herself» also applied code changes)
 
 A request keeps what is needed to decide and to act: who asks, why, the preview (a message,
 a diff with the test results), and what to execute once approved. Requests live in
@@ -23,12 +24,33 @@ import json
 import threading
 import time
 import uuid
+from contextlib import contextmanager
 from pathlib import Path
 
 from . import sys_config, sys_log, sys_seal
 
 EFFECTS = ("read", "write_local", "external", "code_change")
 _lock = threading.Lock()
+KEEP = 500               # decided rows kept; a pending one is never dropped to make room (C573)
+RESERVED_S = 3600        # a post's place held while it goes out; one never filled stops counting after this
+
+
+def trim(items: list[dict], now: float | None = None) -> list[dict]:
+    """The rows kept at a write: every one still waiting, and the newest decided ones up to KEEP in all (C573: the
+    last 500 of any state were kept — 500 autonomous posts or refusals later, a request still pending was gone, and
+    with it what the owner had to decide). A place reserved and never filled goes after RESERVED_S."""
+    now = now or time.time()
+    items = [a for a in items if a.get("status") != "reserved" or now - float(a.get("reserved") or 0) < RESERVED_S]
+    extra = len(items) - KEEP
+    if extra <= 0:
+        return items
+    out = []
+    for a in items:                                   # oldest first: the decided ones go, as many as needed
+        if extra > 0 and a.get("status") not in ("pending", "reserved"):
+            extra -= 1
+            continue
+        out.append(a)
+    return out
 
 
 def needs_owner(effect: str, cfg: sys_config.Config, action: str = "") -> bool:
@@ -41,7 +63,7 @@ def needs_owner(effect: str, cfg: sys_config.Config, action: str = "") -> bool:
             return False
         return bool(cfg["AURORA_CONFIRM_EXTERNAL_ACTIONS"])
     if effect == "code_change":
-        return cfg["AURORA_FORGE_MODE"] != "auto"
+        return cfg["AURORA_SELF_CHANGE_MODE"] != "auto"   # C559: never the forge's level
     return False
 
 
@@ -53,7 +75,8 @@ def social_auto(cfg: sys_config.Config, action: str) -> bool:
     """A post Aurora may publish by herself now: switched on by the owner, a listed tool, under today's number."""
     if not cfg["AURORA_SOCIAL_AUTONOMY"] or action not in auto_tools(cfg):
         return False
-    return Approvals(cfg).auto_today(auto_tools(cfg)) < int(cfg["AURORA_SOCIAL_POSTS_PER_DAY"])
+    # C573: counted and taken in one step — two runs at once both read «2 of 3» and both published
+    return Approvals(cfg).reserve_auto(action, auto_tools(cfg), int(cfg["AURORA_SOCIAL_POSTS_PER_DAY"]))
 
 
 # where an approval is decided, and its icon (owner, 9 Oct: «un alert che lampeggia nella barra in alto che mi porta
@@ -137,10 +160,10 @@ class Approvals:
         item = {"id": uuid.uuid4().hex[:10], "kind": kind, "effect": effect, "title": title[:200],
                 "purpose": purpose[:2000], "preview": preview, "action": action, "run_id": run_id,
                 "status": "pending", "created": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "decided": None, "result": None}
-        with _lock:
+        with self._locked():
             items = self._load()
             items.append(item)
-            self._save(items[-500:])
+            self._save(trim(items))
         self.log.info("audit: approval requested %s (%s, %s)", item["id"], kind, effect)   # the title quotes the chat
         sys_log.trace("approvals", "approval.request", {"id": item["id"], "kind": kind, "effect": effect, "title": title},
                       run_id=run_id)
@@ -152,19 +175,62 @@ class Approvals:
         item = {"id": uuid.uuid4().hex[:10], "kind": "tool_call", "effect": "external", "title": title[:200],
                 "purpose": purpose[:2000], "preview": action, "action": action, "run_id": run_id, "status": "auto",
                 "created": now, "decided": now, "result": result[:2000]}
-        with _lock:
+        with self._locked():
             items = self._load()
-            items.append(item)
-            self._save(items[-500:])
+            held = next((a for a in items if a.get("status") == "reserved" and a["title"] == title), None)
+            if held is not None:                      # the place taken when it was allowed (reserve_auto): filled
+                item["id"], item["created"] = held["id"], held["created"]
+                items[items.index(held)] = item
+            else:
+                items.append(item)
+            self._save(trim(items))
         self.log.info("audit: autonomous action %s", item["id"])
         sys_log.trace("approvals", "approval.auto", {"id": item["id"], "title": title}, run_id=run_id)
         return item
 
-    def auto_today(self, titles: set[str]) -> int:
-        today = time.strftime("%Y-%m-%d")
+    @contextmanager
+    def _locked(self):
+        """One writer at a time, in this process and across the services (the API, the night's work): the file's
+        own lock where the system has one."""
         with _lock:
-            return sum(1 for a in self._load() if a["status"] == "auto" and a["title"] in titles
-                       and str(a.get("created", "")).startswith(today))
+            fh = None
+            try:
+                import fcntl
+                self.file.parent.mkdir(parents=True, exist_ok=True)
+                fh = open(self.file.with_suffix(".lock"), "a")
+                fcntl.flock(fh, fcntl.LOCK_EX)
+            except (ImportError, OSError):            # no flock here (Windows), or a folder not writable: the thread lock
+                fh = fh.close() if fh else None
+            try:
+                yield
+            finally:
+                if fh:
+                    fh.close()                        # closing releases the lock
+
+    @staticmethod
+    def _today(items: list[dict], titles: set[str]) -> int:
+        today, now = time.strftime("%Y-%m-%d"), time.time()
+        return sum(1 for a in items if a["title"] in titles and str(a.get("created", "")).startswith(today)
+                   and (a["status"] == "auto" or (a["status"] == "reserved"
+                                                  and now - float(a.get("reserved") or 0) < RESERVED_S)))
+
+    def auto_today(self, titles: set[str]) -> int:
+        with _lock:
+            return self._today(self._load(), titles)
+
+    def reserve_auto(self, title: str, titles: set[str], most: int) -> bool:
+        """One of today's `most` autonomous posts taken for `title`, or False: the count and the place in one step,
+        under the lock (C573). record_auto fills the place once the post is out."""
+        now = time.strftime("%Y-%m-%dT%H:%M:%S%z")
+        with self._locked():
+            items = self._load()
+            if self._today(items, titles) >= most:
+                return False
+            items.append({"id": uuid.uuid4().hex[:10], "kind": "tool_call", "effect": "external", "title": title,
+                          "purpose": "", "preview": {}, "action": {}, "run_id": None, "status": "reserved",
+                          "reserved": time.time(), "created": now, "decided": None, "result": None})
+            self._save(trim(items))
+        return True
 
     def get(self, approval_id: str) -> dict | None:
         with _lock:
@@ -173,10 +239,10 @@ class Approvals:
     def list(self, status: str | None = None) -> list[dict]:
         with _lock:
             items = self._load()
-        return [a for a in reversed(items) if status is None or a["status"] == status]
+        return [a for a in reversed(items) if a["status"] != "reserved" and (status is None or a["status"] == status)]
 
     def update(self, approval_id: str, **fields) -> dict:
-        with _lock:
+        with self._locked():
             items = self._load()
             item = next((a for a in items if a["id"] == approval_id), None)
             if item is None:

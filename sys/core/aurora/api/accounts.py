@@ -149,7 +149,8 @@ async def try_service(request: Request) -> dict:
         r.raise_for_status()
         data = r.json().get("data") or r.json().get("models") or []
     except (httpx.HTTPError, ValueError) as e:
-        raise HTTPException(status_code=502, detail=f"{base}: {str(e)[:200]}") from None
+        from .core_guard import upstream_error           # C570: its kind, not its text
+        raise HTTPException(status_code=502, detail=f"{base}: {upstream_error(e)}") from None
     models = sorted({str(m.get("id") or m.get("name") or "") for m in data if isinstance(m, dict)} - {""})
     return {"ok": True, "models": models[:200], "count": len(models)}
 
@@ -248,4 +249,5 @@ async def my_models_list(provider: str) -> dict:
     try:
         return {"provider": provider, "models": await asyncio.to_thread(mdl_router.list_models, provider, c)}
     except Exception as e:                               # a wrong key, a provider down: said, not hidden
-        raise HTTPException(status_code=502, detail=f"{type(e).__name__}: {str(e)[:300]}")
+        from .core_guard import upstream_error           # C570: said without the provider's own text
+        raise HTTPException(status_code=502, detail=upstream_error(e, 300))

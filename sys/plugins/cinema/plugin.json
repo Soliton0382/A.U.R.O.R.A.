@@ -45,6 +45,7 @@
   "AURORA_TMDB_REGION"
  ],
  "sandbox": {
+  "network": true,
   "write": []
  }
 }

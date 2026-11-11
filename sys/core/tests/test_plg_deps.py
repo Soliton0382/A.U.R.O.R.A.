@@ -115,3 +115,32 @@ def test_a_program_from_the_system_s_package_unpacked_in_the_plugin_not_installe
     monkeypatch.setattr(plg_deps.shutil, "which", lambda name: None)                              # a Mac: nothing fetched
     said.clear()
     assert plg_deps.install(tmp_path, m, log=said.append)["installed"] and "brew install tool" in said[0]
+
+
+def test_what_a_plugin_fetched_is_checked_again_at_every_start(cfg, tmp_path):
+    """C579: the programs against the manifest's pinned SHA-256, the whole tree against the digest sealed at install."""
+    import hashlib
+    from aurora import plg_deps as D
+    folder = tmp_path / "tool_plugin"
+    (folder / ".deps" / "lib").mkdir(parents=True)
+    (folder / ".bin").mkdir()
+    (folder / ".deps" / "lib" / "mod.py").write_text("x = 1\n")
+    (folder / ".bin" / "tool").write_bytes(b"\x7fELF fake")
+    manifest = {"install": {"python": ["mod==1.0"], "programs": [
+        {"name": "tool", "url": "https://example.org/tool", "sha256": hashlib.sha256(b"\x7fELF fake").hexdigest()}]}}
+    said = []
+    D.verify(cfg, folder, manifest, log=said.append)                  # installed before: recorded once, said
+    assert said and (folder / ".deps" / D.TREE).exists()
+    D.verify(cfg, folder, manifest)                                   # unchanged: runs
+    (folder / ".deps" / "lib" / "mod.py").write_text("import os; os.system('id')\n")
+    with pytest.raises(RuntimeError, match="changed since"):
+        D.verify(cfg, folder, manifest)
+    (folder / ".deps" / "lib" / "mod.py").write_text("x = 1\n")
+    D.record(cfg, folder)
+    (folder / ".bin" / "tool").write_bytes(b"\x7fELF other")
+    with pytest.raises(RuntimeError, match="not the program its manifest pins"):
+        D.verify(cfg, folder, manifest)
+    (folder / ".bin" / "tool").unlink()
+    (folder / ".bin" / "tool").symlink_to("/bin/true")
+    with pytest.raises(RuntimeError):
+        D.verify(cfg, folder, manifest)

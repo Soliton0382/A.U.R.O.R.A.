@@ -298,3 +298,25 @@ def test_the_apps_signing_key_is_kept_and_its_toolchain_is_not(cfg):
         (cfg.root / "sys" / "app" / d / name).write_bytes(b"x")
     kept = {rel for rel, _ in B.files(cfg)}
     assert "sys/app/keys/aurora-app.jks" in kept and not any(r.startswith("sys/app/tools") for r in kept)
+
+
+def test_a_restore_never_writes_through_a_link_on_its_way(tmp_path):
+    """C579: each step opened from its parent's descriptor: a folder swapped for a link is refused, not followed."""
+    import os
+    from aurora import sys_backup as B
+    into, outside = tmp_path / "stage", tmp_path / "outside"
+    into.mkdir()
+    outside.mkdir()
+    top = os.open(into, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.close(B._open_under(top, "usr/a/notes.txt"))
+        assert (into / "usr/a/notes.txt").is_file()
+        (into / "sys").symlink_to(outside, target_is_directory=True)        # swapped in by someone else
+        with pytest.raises(OSError):
+            B._open_under(top, "sys/status/x.json")
+        for bad in ("../x", "/etc/x", "a//b", "a/./b"):
+            with pytest.raises(B.BackupError):
+                B._open_under(top, bad)
+    finally:
+        os.close(top)
+    assert not any(outside.iterdir())

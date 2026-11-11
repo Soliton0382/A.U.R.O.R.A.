@@ -25,7 +25,9 @@ router = APIRouter()
 # ---- agents, plugins, approvals ------------------------------------------------------------------
 def _gap_check(agent, goal: str, report: str, emit, run_id: str, routine: str | None = None) -> None:
     """After an agent run, by code: a report saying a tool is missing becomes a forge request (agt_forge.detect_gap)."""
-    from aurora import agt_forge
+    from aurora import agt_forge, agt_forge_budget
+    if agt_forge_budget.routine_quiet(agt_forge.requests(cfg), routine):   # C560: asked for it lately, not every round
+        return
     try:
         need = agt_forge.detect_gap(pipeline()._for("route"), goal, report, getattr(agent, "requested", False))
     except Exception:                                    # the check never breaks the run
@@ -34,6 +36,9 @@ def _gap_check(agent, goal: str, report: str, emit, run_id: str, routine: str | 
     if need:
         try:
             req = agt_forge.request(cfg, need, f"rilevato dopo il run: {goal[:300]}", run_id, routine)
+        except agt_forge.Spent:                          # C560: failed or declined lately, or today's number used up
+            log.info("gap after run %s: not queued, the forge's budget for this need is spent", run_id)
+            return
         except agt_forge.CoreNeed:                       # Aurora's own data: the core's, never a plugin's
             log.info("gap after run %s: refused, it reaches Aurora's own stores", run_id)
             return
@@ -267,7 +272,7 @@ def plugin_switch(name: str, action: str) -> dict:
             return {"name": name, "freed": freed, **plg_deps.state(p.folder, p.manifest)}
         if action == "install" or (st["wanted"] and not st["installed"]):  # «attivo il plugin e lei scarica e installa»
             try:
-                st = plg_deps.install(p.folder, p.manifest, log=lambda m: log.info("plugin %s: %s", name, m))
+                st = plg_deps.install(p.folder, p.manifest, log=lambda m: log.info("plugin %s: %s", name, m), cfg=cfg)
             except (RuntimeError, OSError, subprocess.SubprocessError) as e:
                 raise HTTPException(status_code=409, detail=f"not installed: {e}") from None
             log.info("audit: plugin %s: installed in its own folder (%d bytes)", name, st["bytes"])
@@ -493,7 +498,8 @@ def react(origin: str, title: str, error: str, run_id: str) -> str | None:
     try:
         if not agt_react.should_react(cfg, origin, error):
             return None
-        ctx = agt_react.context(cfg, origin, title, error, run_id)
+        from aurora import agt_logguard                    # C562: the error and the log's lines are data, tried first
+        ctx = agt_logguard.data(cfg, pipeline().llm, "react", agt_react.context(cfg, origin, title, error, run_id))
     except Exception:                                       # the reaction must never make the failure worse
         log.exception("react: not started")
         return None
@@ -553,6 +559,8 @@ def rem_repair() -> dict:
                f"started, or many times with no code changed since; work on these only):\n" + "\n".join(line(e) for e in alive)
                + "\n\nNOT RECURRING (not seen since the restart, and few: do not work on them):\n"
                + "\n".join(line(e) for e in gone[:20]))
+    from aurora import agt_logguard                        # C562: the review and its evidence quote the logs
+    context = agt_logguard.data(cfg, p.llm, "self-repair", context)
     return {"run_id": start_run("[repair]", origin="rem", job=_agent_job(goal, context, after))["id"]}
 
 

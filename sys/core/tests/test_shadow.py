@@ -141,3 +141,24 @@ def test_a_task_with_options_or_a_form_asked_gets_no_shadow():
     assert not task_like("Che cos'è l'entanglement quantistico?")
     assert task_like("Da dove viene la parola Easter?\n\nA) da Ēostre\nB) da Pasqua\n\nRisposta: X")
     assert task_like("Quanto fa 17*23? Alla fine scrivi «Risposta: N»") and task_like("x" * 401)
+
+
+def test_the_training_rows_made_before_c552_are_removed_once(cfg):
+    """C575: the «train» rows go at the first opening after the update; the ones made later stay."""
+    import sqlite3
+    from aurora import kno_shadow, sys_users_layout
+    d = sys_users_layout.place(cfg, "state", cfg.user)
+    d.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(d / "shadow.db") as con:
+        con.execute("CREATE TABLE shadows (id INTEGER PRIMARY KEY, question TEXT, vec BLOB, answer TEXT, sources TEXT,"
+                    " made REAL, used INTEGER DEFAULT 0, last REAL, origin TEXT DEFAULT 'chat')")
+        con.executemany("INSERT INTO shadows (question, origin) VALUES (?, ?)",
+                        [("a", "train"), ("b", "seed"), ("c", "chat"), ("d", "train")])
+    con = kno_shadow._db(cfg)
+    assert sorted(r[0] for r in con.execute("SELECT origin FROM shadows")) == ["chat", "seed"]
+    con.execute("INSERT INTO shadows (question, origin) VALUES ('e', 'train')")
+    con.commit()
+    con.close()
+    con = kno_shadow._db(cfg)
+    assert con.execute("SELECT COUNT(*) FROM shadows WHERE origin = 'train'").fetchone()[0] == 1   # once, never again
+    con.close()

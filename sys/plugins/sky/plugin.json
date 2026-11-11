@@ -53,6 +53,7 @@
  },
  "settings": [],
  "sandbox": {
+  "network": true,
   "write": ["AURORA_ASTRO_DIR"]
  }
 }

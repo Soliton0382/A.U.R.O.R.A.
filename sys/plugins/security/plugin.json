@@ -70,5 +70,5 @@
     "AURORA_FIREWALL_CONFIRM_S",
     "AURORA_QUARANTINE_GROUP"
   ],
-  "sandbox": {"write": ["AURORA_SECURITY_DIR"]}
+  "sandbox": {"network": true, "write": ["AURORA_SECURITY_DIR"]}
 }

@@ -11,11 +11,18 @@ sliding window per source address and raises an incident when:
   ips_alert    an intrusion-prevention (IPS/IDP) event
   auth_fail    failed authentications from one source >= 10 in the window
 An incident per (kind, source) is raised at most once an hour.
+
+What a line says is written by whoever sends it, and a UDP datagram's sender can be forged on the LAN (C566): so the
+detector never holds more than it can count — new sources a minute and incidents a minute and an hour are capped
+(Budget), what no longer counts is forgotten (prune), a datagram is one log line whatever it carries (one_line), and
+the decoys tell a touch at a person's pace (Touches). A forged line can still raise a false incident inside these
+limits: only a relay on this machine fed over TLS, or the firewall's own anti-spoofing, closes that.
 """
 from __future__ import annotations
 
 import ipaddress
 import re
+import threading
 import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
@@ -98,6 +105,88 @@ def household(f: dict) -> bool:
     return _broadcast(f.get("dst_ip", "")) or str(f.get("dst_port", "")) in HOUSE_PORTS
 
 
+_CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f\u2028\u2029]")
+_ESCAPES = {"\n": "\\n", "\r": "\\r", "\t": "\\t"}
+
+
+def one_line(text: str, limit: int = 8192) -> str:
+    """C566: a datagram is ONE log line. A line break inside it (or any control character) would write lines of the
+    sender's own making in firewall.log — a forged «allowed» address, a forged time — and the reports, the hunt and
+    the scorecard read that file. They are written as visible escapes; a line longer than `limit` is cut."""
+    return _CONTROL.sub(lambda m: _ESCAPES.get(m.group(0), f"\\x{ord(m.group(0)):02x}"), text.strip())[:limit]
+
+
+class Budget:
+    """C566: at most `per_min` in any minute and `per_hour` in any hour; what is refused is counted (`refused`)."""
+
+    def __init__(self, per_min: int, per_hour: int | None = None):
+        self.per_min, self.per_hour = per_min, per_hour if per_hour is not None else per_min * 60
+        self.taken: deque = deque()
+        self.refused = 0
+
+    def take(self, now: float) -> bool:
+        while self.taken and now - self.taken[0] >= 3600:
+            self.taken.popleft()
+        if len(self.taken) >= self.per_hour or sum(1 for t in reversed(self.taken) if now - t < 60) >= self.per_min:
+            self.refused += 1
+            return False
+        self.taken.append(now)
+        return True
+
+
+class Touches:
+    """C566: the decoys had no limit — every connection was an incident posted to the API, and from a source whose
+    incident was closed, a new one with its inquiry (a model run each). A touch is told at a person's pace: one
+    incident per source every QUIET_S, the touches in between counted into the next one; PER_MIN and PER_HOUR in all
+    (measured on 14.8 days of the owner's incidents, 12 Nov: 1 decoy incident; all the detector's kinds together 4 a
+    minute and 8 an hour at most). Used from one thread per decoy port."""
+    QUIET_S = 600
+    PER_MIN, PER_HOUR = 10, 30
+    MAX_SOURCES = 4096
+
+    def __init__(self):
+        self.last: dict[str, float] = {}
+        self.held: dict[str, int] = {}
+        self.budget = Budget(self.PER_MIN, self.PER_HOUR)
+        self._lock = threading.Lock()
+
+    def touch(self, src: str, now: float | None = None) -> int:
+        """How many touches to tell now for this source (0: none, it is counted for the next one)."""
+        now = time.time() if now is None else now
+        with self._lock:
+            for s in [s for s, t in self.last.items()
+                      if now - t >= self.QUIET_S and (not self.held.get(s) or now - t >= 3600)]:
+                del self.last[s]                           # a source that never came back: its count is not kept
+                self.held.pop(s, None)
+            if src not in self.last and len(self.last) >= self.MAX_SOURCES:
+                self.budget.refused += 1
+                return 0
+            n = self.held.get(src, 0) + 1
+            if (src in self.last and now - self.last[src] < self.QUIET_S) or not self.budget.take(now):
+                self.held[src] = n
+                self.last.setdefault(src, now - self.QUIET_S)      # held by the budget: told at the next touch
+                return 0
+            self.last[src] = now
+            self.held.pop(src, None)
+            return n
+
+
+def flood_incident(sender: str, skipped: int, held: int) -> dict:
+    """C566: the caps were reached — said once, as an incident, with what was left out. `sender` is the address the
+    datagrams say they come from (the firewall's: allowed), which on a LAN can be forged."""
+    stamp = time.strftime("%Y-%m-%dT%H:%M:%S%z")
+    return {"kind": "syslog_flood", "source": sender, "count": skipped + held, "internal": is_private(sender),
+            "first": stamp, "last": stamp, "samples": [],
+            "detail": {"title": "Troppi allarmi dai log del firewall",
+                       "why": f"Nell'ultimo minuto i log arrivati come {sender} hanno nominato più origini nuove o più "
+                              f"allarmi di quanti una rete di casa ne produca: {skipped} righe da origini nuove non "
+                              f"contate e {held} allarmi non aperti. O è una scansione molto estesa, o qualcuno nella "
+                              "rete locale sta scrivendo log falsi a nome del firewall (UDP non prova chi lo manda).",
+                       "action": "Guarda nel log del firewall (firewall.log) cosa è arrivato in quel minuto; se le "
+                                 "righe non sono del firewall, cerca il dispositivo che le manda. Nessun blocco "
+                                 "automatico parte da questo avviso."}}
+
+
 class Recon:
     """A device that looks around the house, then reaches out to a flagged address: the owner, 10 Oct — «una minaccia è
     se prova ad uscire esternamente, non limitarsi a mandare messaggi broadcast interni; un'accoppiata delle due in
@@ -110,11 +199,23 @@ class Recon:
     in 10 days on chatty devices, i.e. at every threat match they made."""
     WINDOW_S = 600
     MIN_PORTS = 8
+    MAX_SOURCES = 4096      # C566: devices remembered at once (a house has tens; a forged flood names millions)
 
     def __init__(self):
         self.seen: dict[str, deque] = {}
+        self._swept = 0.0
+
+    def prune(self, now: float) -> None:
+        """C566: a device silent for WINDOW_S is forgotten (every source was kept for ever)."""
+        self._swept = now
+        for src in [s for s, q in self.seen.items() if not q or now - q[-1][0] > self.WINDOW_S]:
+            del self.seen[src]
 
     def chatter(self, src: str, now: float, port: str = "") -> None:
+        if now - self._swept >= 60:
+            self.prune(now)
+        if src not in self.seen and len(self.seen) >= self.MAX_SOURCES:
+            return
         q = self.seen.setdefault(src, deque())
         q.append((now, port))
         while q and now - q[0][0] > self.WINDOW_S:
@@ -174,12 +275,49 @@ class Incident:
 
 
 class Detector:
+    # C566, the ceilings measured before the thresholds (12 Nov, 7.5 days of the owner's firewall, 2.8 M lines): at
+    # most 65 new sources of refused traffic in a minute (176 counting every line), 68 counted at once; the detector's
+    # incidents at most 4 in a minute and 8 in an hour (14.8 days). Beyond these a line is still logged, not counted.
+    NEW_SOURCES_PER_MIN = 600
+    RAISED_PER_MIN, RAISED_PER_HOUR = 20, 60
+
     def __init__(self, window_s: float, deny_threshold: int, scan_ports: int, auth_threshold: int = 10):
         self.window, self.deny_n, self.scan_n, self.auth_n = window_s, deny_threshold, scan_ports, auth_threshold
         self.denies: dict[str, deque] = defaultdict(deque)
         self.ports: dict[str, deque] = defaultdict(deque)
         self.auths: dict[str, deque] = defaultdict(deque)
         self.raised: dict[tuple[str, str], float] = {}
+        self.seen: dict[str, float] = {}                # C566: every source counted now, and when it last spoke
+        self.fresh = Budget(self.NEW_SOURCES_PER_MIN)
+        self.alarms = Budget(self.RAISED_PER_MIN, self.RAISED_PER_HOUR)
+        self._swept: float | None = None
+
+    def _admit(self, src: str, now: float) -> bool:
+        """C566: a source already counted, or a new one within the minute's budget."""
+        if src not in self.seen and not self.fresh.take(now):
+            return False
+        self.seen[src] = now
+        return True
+
+    def prune(self, now: float) -> None:
+        """C566: the counters kept every source for ever (an empty queue per address, an hour mark per alarm): what is
+        outside the window, and an alarm's mark older than its hour, is forgotten."""
+        self._swept = now
+        for table in (self.denies, self.ports, self.auths):
+            for src in list(table):
+                self._trim(table[src], now)
+                if not table[src]:
+                    del table[src]
+        for key in [k for k, t in self.raised.items() if now - t >= 3600]:
+            del self.raised[key]
+        for src in [s for s, t in self.seen.items() if now - t > self.window]:
+            del self.seen[src]
+
+    def pressure(self) -> tuple[int, int]:
+        """(lines of new sources not counted, incidents not raised) since the last call: the caps at work."""
+        out = self.fresh.refused, self.alarms.refused
+        self.fresh.refused = self.alarms.refused = 0
+        return out
 
     def _trim(self, q: deque, now: float) -> None:
         while q and now - q[0][0] > self.window:
@@ -188,6 +326,8 @@ class Detector:
     def _raise(self, kind: str, src: str, q: deque, now: float, detail: dict | None = None) -> Incident | None:
         last = self.raised.get((kind, src))
         if last is not None and now - last < 3600:
+            return None
+        if not self.alarms.take(now):                   # C566: not marked as raised — it may be once the flood is over
             return None
         self.raised[(kind, src)] = now
         return Incident(kind, src, len(q) if q else 1, q[0][0] if q else now, now, is_private(src),
@@ -201,16 +341,26 @@ class Detector:
         text = f["_raw"].lower()
         kind = (f.get("log_type") or "").lower()
         out = []
+        if self._swept is None or now - self._swept >= 60:
+            self.prune(now)
+        # C583 (the owner's choice, 12 Nov): this house's firewall says it in log_subtype="Denied" alone
+        denied = (f.get("status") or f.get("action") or f.get("log_subtype") or "").lower() in (
+            "deny", "denied", "drop", "dropped", "reject", "blocked")
+        failed = ("fail" in text or "invalid" in text) and ("auth" in text or "login" in text)
+        if not (is_ips(f) or denied or failed) or not self._admit(src, now):
+            return out                                  # nothing to count, or a new source beyond the budget (C566)
         if is_ips(f):
             if (i := self._raise("ips_alert", src, deque([(now, f["_raw"])]), now,
                                  {"signature": f.get("signature_msg") or f.get("message") or ""})):
                 out.append(i)
-        denied = (f.get("status") or f.get("action") or "").lower() in ("deny", "denied", "drop", "dropped", "reject", "blocked")
         if denied:
             q = self.denies[src]
             q.append((now, f["_raw"]))
             self._trim(q, now)
-            if len(q) >= self.deny_n and (i := self._raise("deny_burst", src, q, now)):
+            # C583, measured on 8.1 days (3.07 M lines): 1,168 bursts, 1,150 from the house's own devices — the rules
+            # refusing what they should, not an attack: a burst is told from outside only; a device inside that
+            # scans still is (port_scan), and its novelties are the baseline's
+            if len(q) >= self.deny_n and not is_private(src) and (i := self._raise("deny_burst", src, q, now)):
                 out.append(i)
             port = f.get("dst_port") or f.get("dstport") or f.get("dport")
             if port:
@@ -221,7 +371,7 @@ class Detector:
                 if len(distinct) >= self.scan_n and (i := self._raise("port_scan", src, p, now,
                                                                       {"ports": sorted(distinct, key=str)[:30]})):
                     out.append(i)
-        if ("fail" in text or "invalid" in text) and ("auth" in text or "login" in text):
+        if failed:
             q = self.auths[src]
             q.append((now, f["_raw"]))
             self._trim(q, now)

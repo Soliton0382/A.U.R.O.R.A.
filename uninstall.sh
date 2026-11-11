@@ -27,12 +27,27 @@ if [ -x /usr/local/sbin/aurora-root ] && ! /usr/local/sbin/aurora-root verify; t
 fi
 export PYTHONPYCACHEPREFIX="${XDG_CACHE_HOME:-$HOME/.cache}/aurora-pycache"
 
-# only the units this installation put there (sys/deploy/systemd), with their drop-in and .wants folders — never
-# other files with a similar name (an older installation's copies stay the owner's)
+# only the units this installation put there, with their drop-in and .wants folders — never other files with a
+# similar name (an older installation's copies stay the owner's). C574: the names are read from /etc/systemd/system
+# itself (root's folder), never from sys/deploy/systemd (a folder the services' account writes): an «aurora…» unit
+# of a plain name whose service names this folder; its timer, path and target with them (written by the same
+# generator, they name no folder)
 UNITS=""
-for f in sys/deploy/systemd/*.service sys/deploy/systemd/*.timer sys/deploy/systemd/*.target; do
-  [ -e "$f" ] || continue
+MINE=""
+GEN="sys/core/script/sys_install_services.py"
+ours() { [ -f "$1" ] && [ ! -L "$1" ] && case "$(basename "$1")" in *[!A-Za-z0-9@._-]*) false ;; *) true ;; esac; }
+for f in /etc/systemd/system/aurora*.service; do
+  ours "$f" && grep -qF -- "$ROOT" "$f" && MINE="$MINE $(basename "$f")"
+done
+for f in /etc/systemd/system/aurora*.timer /etc/systemd/system/aurora*.path /etc/systemd/system/aurora*.target; do
+  ours "$f" && head -1 "$f" | grep -q "^# Generated .*$GEN\$" || continue
   u=$(basename "$f")
+  case "$u" in
+    *.target) [ -n "$MINE" ] && MINE="$MINE $u" ;;
+    *) case " $MINE " in *" ${u%.*}.service "*) MINE="$MINE $u" ;; esac ;;
+  esac
+done
+for u in $MINE; do
   for x in "$u" "$u.d" "$u.wants"; do [ -e "/etc/systemd/system/$x" ] && UNITS="$UNITS $x"; done
 done
 step "$(t 'Rimozione di Aurora' 'Removing Aurora') — $ROOT"

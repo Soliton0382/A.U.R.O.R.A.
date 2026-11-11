@@ -12,6 +12,8 @@ import time
 from . import agt_change, sys_tests
 from .sys_approvals import needs_owner
 
+MAX_DIFF = 200_000       # characters, about 5,000 lines: shown whole in the approval; a longer change is refused (C573)
+
 
 class AgentMakers:
     """Mixed into agt_loop.Agent: uses its cfg, host, approvals, notify and produced."""
@@ -36,9 +38,13 @@ class AgentMakers:
         diff = self.host.call("self", "sandbox_diff", {"sandbox_id": sid}, run_id)["text"]
         if agt_change.fingerprint(box, files) != prints:
             return "REFUSED: the sandbox changed while it was being tested: propose it again"
-        preview = {"sandbox_id": sid, "files": files, "diff": diff[:60000], "tests": t["summary"],
-                   "services": agt_change.services_for(files),
-                   **({"diff_cut": f"the diff is {len(diff):,} characters: only the first 60,000 shown"} if len(diff) > 60000 else {})}
+        if len(diff) > MAX_DIFF:
+            # C573: it was shown cut at 60,000 characters and the whole of it applied — the owner approved what he
+            # had not read. The whole diff, or no proposal
+            return (f"REFUSED: the diff is {len(diff):,} characters, more than the {MAX_DIFF:,} the owner can be asked "
+                    "to read in one approval. Split the change into smaller ones, each proposed by itself.")
+        preview = {"sandbox_id": sid, "files": files, "diff": diff, "tests": t["summary"],
+                   "services": agt_change.services_for(files)}
         if needs_owner("code_change", self.cfg):
             req = self.approvals.request("code_change", "code_change", args.get("title", "change"),
                                          args.get("purpose", ""), preview, {"sandbox_id": sid, "hashes": prints}, run_id)
@@ -46,7 +52,7 @@ class AgentMakers:
             self.notify("approval.pending", {"id": req["id"], "kind": "code_change", "title": req["title"]})
             return f"PROPOSED: waiting for the owner's approval (request {req['id']}). Tests: {t['summary']}."
         out = agt_change.apply(sid, emit, self.cfg, expect=prints)
-        return f"APPLIED (forging is automatic): {json.dumps(out, ensure_ascii=False)[:2000]}"
+        return f"APPLIED (self-change is set to «by herself»): {json.dumps(out, ensure_ascii=False)[:2000]}"
 
     def _artifact(self, args: dict, emit, run_id: str) -> str:
         """An interactive page (doc_artifact), kept with this turn and shown live in the conversation."""

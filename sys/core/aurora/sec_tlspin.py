@@ -83,6 +83,19 @@ def learn(cfg: sys_config.Config, url: str, timeout: float = 10.0) -> str | None
     return fingerprint(pem)
 
 
+def forget(cfg: sys_config.Config, url: str) -> bool:
+    """The pin of this address removed (the firewall disconnected): learnt again at its next «Collega»."""
+    where = _where(url)
+    if where is None:
+        return False
+    with _lock:
+        pins = _pins(cfg)
+        gone = pins.pop(f"{where[0]}:{where[1]}", None) is not None
+        if gone:
+            _save(cfg, pins)
+    return gone
+
+
 def verify(cfg: sys_config.Config, url: str, ca: bool) -> bool | ssl.SSLContext:
     """What a driver passes to httpx as `verify`: True with the CA check on (or http://); the pinned certificate
     otherwise. Never pinned yet (a firewall connected before 12 Nov): learnt now, once, and said in the log."""

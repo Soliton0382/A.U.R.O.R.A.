@@ -7,9 +7,10 @@ A forged plugin's cage has no network of its own (--unshare-net). Its HTTP and H
 (HTTP_PROXY, HTTPS_PROXY), carried by a unix socket to this proxy in Aurora's process, which lets a connection through
 only to:
   - the host of each URL in the plugin's own settings (AURORA_<NAME>_…: the owner typed them, e.g. Home Assistant's
-    address on the LAN), at that URL's port;
+    address on the LAN), at that URL's port — never a link-local, multicast or reserved address (C571);
   - the public hosts the manifest lists in "hosts" (shown to the owner when he approves the plugin), port 443 or 80,
-    resolved to public addresses only;
+    resolved to public addresses only; so too the host of a URL the manifest only proposes for a setting (its
+    «recommended»: nobody typed it, C571);
 and never to Aurora's own services on this machine (the API, the models, the reasoner, HTTPS, Caddy's admin). Every
 connection is written in the plugins' log, let through or refused. Each plugin gets its own socket, and the cage
 sees only its own (plg_sandbox hides the others): one plugin never borrows another's way out.
@@ -31,19 +32,44 @@ _served: dict[str, Path] = {}
 _lock = threading.Lock()
 
 
-def own_urls(name: str, cfg: sys_config.Config) -> list[tuple[str, int]]:
-    """(host, port) of every URL in the plugin's own settings, as the owner set them."""
-    prefix, theirs = f"AURORA_{name.upper()}_", sys_config.others_keys(name)
+def _urls(value: str) -> list[tuple[str, int]]:
+    out = []
+    for one in re.split(r"[\s,]+", value.strip()):
+        u = urlsplit(one)
+        if u.scheme in ("http", "https") and u.hostname:
+            out.append((u.hostname.lower(), u.port or (443 if u.scheme == "https" else 80)))
+    return out
+
+
+def _suggested(manifest: dict | None) -> dict[str, str]:
+    """setting → the value the manifest itself proposes for it (settings_spec «recommended»)."""
+    return {str(s.get("key", "")): str(s.get("recommended", "") or "").strip()
+            for s in (manifest or {}).get("settings_spec") or [] if isinstance(s, dict)}
+
+
+def own_urls(name: str, cfg: sys_config.Config, manifest: dict | None = None) -> list[tuple[str, int]]:
+    """(host, port) of every URL in the plugin's own settings, as the owner set them. A value that is only the
+    manifest's own proposal was never typed by him (C571: a setting left empty reads its «recommended», and a plugin
+    proposing http://<a LAN address> reached it as «the owner's»): not here — see suggested_hosts."""
+    prefix, theirs, suggested = f"AURORA_{name.upper()}_", sys_config.others_keys(name), _suggested(manifest)
     out = []
     raw = dict(cfg.raw) or sys_config.parse_env(cfg.env_file.read_text(encoding="utf-8"), str(cfg.env_file))
     for k, v in raw.items():
         if not k.startswith(prefix) or k in theirs or not isinstance(v, str) or "://" not in v:
             continue
-        for one in re.split(r"[\s,]+", v.strip()):
-            u = urlsplit(one)
-            if u.scheme in ("http", "https") and u.hostname:
-                out.append((u.hostname.lower(), u.port or (443 if u.scheme == "https" else 80)))
+        if v.strip() == suggested.get(k):
+            continue
+        out += _urls(v)
     return sorted(set(out))
+
+
+def suggested_hosts(manifest: dict) -> list[str]:
+    """The hosts of the URLs the manifest proposes for its own settings: allowed like its «hosts» — a public name
+    resolved to public addresses, port 443 or 80 — never as an address of the owner's (C571)."""
+    name = str(manifest.get("name", ""))
+    prefix, theirs = f"AURORA_{name.upper()}_", sys_config.others_keys(name)
+    return sorted({h for k, v in _suggested(manifest).items() if k.startswith(prefix) and k not in theirs
+                   for h, _ in _urls(v) if HOST.match(h)})
 
 
 def declared_hosts(manifest: dict) -> list[str]:
@@ -71,6 +97,13 @@ def _mine(addr: str) -> bool:
         return False
 
 
+def _never(addr: str) -> bool:
+    """Addresses no plugin's proxy reaches whoever set them (C571): link-local (the cloud metadata service lives
+    there), multicast, unspecified, reserved. A LAN or loopback address stays the owner's to type (his Home Assistant)."""
+    ip = ipaddress.ip_address(addr.split("%")[0])
+    return ip.is_link_local or ip.is_multicast or ip.is_unspecified or (ip.is_reserved and not ip.is_loopback)
+
+
 def decide(host: str, port: int, owner: list[tuple[str, int]], public: list[str], cfg: sys_config.Config) -> tuple[str, str]:
     """(address to connect to, "") when allowed, ("", why) when not."""
     host = host.lower().strip(".")
@@ -87,6 +120,8 @@ def decide(host: str, port: int, owner: list[tuple[str, int]], public: list[str]
         return "", f"{host}: no address"
     if port in _aurora_ports(cfg) and any(_mine(a) for a in addrs):
         return "", f"{host}:{port} is Aurora's own service"
+    if any(_never(a) for a in addrs):                    # C571: not even typed by the owner
+        return "", f"{host} resolves to a link-local, multicast or reserved address: never reached"
     if not by_owner and not all(ipaddress.ip_address(a).is_global for a in addrs):
         return "", f"{host} resolves to a private address: only an address the owner set may be private"
     return addrs[0], ""
@@ -174,7 +209,8 @@ def folder(cfg: sys_config.Config) -> Path:
 
 def bridge(name: str, manifest: dict, cfg: sys_config.Config) -> tuple[Path, int]:
     """This plugin's own proxy socket in this process (served from the first call on), and the cage's port for it."""
-    owner, public = own_urls(name, cfg), declared_hosts(manifest)
+    owner = own_urls(name, cfg, manifest)
+    public = sorted(set(declared_hosts(manifest)) | set(suggested_hosts(manifest)))
     import hashlib                                       # short: a unix socket's path has 108 bytes at most
     key = hashlib.sha256(repr((name, cfg.user, owner, public)).encode()).hexdigest()[:12]
     sock = folder(cfg) / f"n{key}.sock"

@@ -37,7 +37,8 @@ async def places(q: str) -> dict:
     try:
         return {"places": await asyncio.to_thread(search, q[:80], lang)}
     except Exception as e:                               # noqa: BLE001 - offline or refused: said, never a crash
-        raise HTTPException(status_code=502, detail=f"geocoding: {str(e)[:160]}") from None
+        from .core_guard import upstream_error           # C570: its kind, not its text
+        raise HTTPException(status_code=502, detail=f"geocoding: {upstream_error(e)}") from None
 
 
 @router.get("/v1/aurora/weather/next", dependencies=[Depends(auth)])

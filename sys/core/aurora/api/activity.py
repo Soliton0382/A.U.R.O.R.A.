@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from .core import MAX_ACTIVITY, _activity, _activity_cond, _run_lock, auth, cfg, log, me, mine, note, pipeline, quiet
+from .core_guard import live
 from .users import admin_only  # noqa: E402
 
 router = APIRouter()
@@ -35,8 +36,9 @@ def get_activity(after: int = 0, limit: int = 200) -> list[dict]:
 
 
 @router.get("/v1/aurora/activity/stream", dependencies=[Depends(auth)])
-async def activity_stream(after: int | None = None):
-    """SSE of the activity feed from `after` (default: from now): the requesting user's items only."""
+async def activity_stream(request: Request, after: int | None = None):
+    """SSE of the activity feed from `after` (default: from now): the requesting user's items only; ended when the
+    caller's right is over (C535, core_guard.live)."""
     who = me()                                          # taken now, in the request: the stream keeps it
 
     def wait(seen: int) -> list[dict]:
@@ -56,7 +58,7 @@ async def activity_stream(after: int | None = None):
                     yield f"data: {json.dumps(a, ensure_ascii=False, default=str)}\n\n"
             if not items:
                 yield ": keep-alive\n\n"
-    return StreamingResponse(quiet(gen()), media_type="text/event-stream")
+    return StreamingResponse(quiet(live(request, gen())), media_type="text/event-stream")
 
 
 @router.get("/v1/aurora/logs", dependencies=[Depends(admin_only)])      # the machine's: every user's lines (C414)

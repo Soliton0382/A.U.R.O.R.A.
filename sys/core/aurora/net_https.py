@@ -45,6 +45,12 @@ CADDYFILE = Template("""# Generated from .env by sys/core/aurora/net_https.py â€
 $sites {
 	$tls
 	encode gzip zstd
+	# C535: the API's own ceiling (sys_bodylimit.CAP), held here first: a larger body never reaches it; the camera's
+	# frames are one endless POST, counted frame by frame by the API
+	@bounded not path /v1/aurora/astro/camera/push
+	request_body @bounded {
+		max_size 256MiB
+	}
 	reverse_proxy $api {
 		transport http {
 			dial_timeout 10s
@@ -68,7 +74,7 @@ $sites {
 		X-Content-Type-Options nosniff
 		Referrer-Policy strict-origin-when-cross-origin
 		X-Frame-Options DENY
-		Content-Security-Policy "$csp"
+		?Content-Security-Policy "$csp"
 		-Server
 	}
 }

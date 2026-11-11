@@ -13,6 +13,10 @@ back. Here:
 So an answer is never lost and a post, a firewall change or a video is never made twice. The key is bound to the
 caller's credentials (cookie, Authorization): nobody else can read an answer kept for another. Requests without a key
 (third-party clients, GET, uploads larger than MAX_BODY) pass through untouched.
+
+C570: a request with no credential (the login) passes through too — its key would be bound to nobody, so whoever sent
+the same key again got the kept answer — and an answer that sets a cookie is never kept (the login's reply stayed
+here ten minutes with its session). C535: a body of no declared length is not read whole here.
 """
 from __future__ import annotations
 
@@ -51,7 +55,9 @@ class Replay:
         headers = dict(scope.get("headers") or [])
         key = headers.get(b"x-aurora-request", b"")
         size = int(headers.get(b"content-length", b"0") or 0)
-        if not KEY.fullmatch(key) or size > MAX_BODY:
+        if not KEY.fullmatch(key) or size > MAX_BODY or b"transfer-encoding" in headers:
+            return await self.app(scope, receive, send)
+        if not headers.get(b"cookie") and not headers.get(b"authorization"):     # C570: nobody to bind the answer to
             return await self.app(scope, receive, send)
         who = hashlib.sha256(headers.get(b"cookie", b"") + b"\x00" + headers.get(b"authorization", b"")).hexdigest()[:24]
         k = (who, key, scope["method"], scope["path"])
@@ -96,12 +102,11 @@ class Replay:
 
         def finished(t: asyncio.Task) -> None:
             self.running.pop(k, None)
-            if not t.cancelled() and t.exception() is None and out["start"] is not None:
-                self.done[k] = (time.time(), out["start"], b"".join(out["body"]))
+            if not t.cancelled() and t.exception() is None and out["start"] is not None \
+                    and not any(name.lower() == b"set-cookie" for name, _ in out["start"].get("headers") or []):
+                self.done[k] = (time.time(), out["start"], b"".join(out["body"]))   # C570: never one with a session
 
         task.add_done_callback(finished)
         await asyncio.shield(task)                      # raises what the work raised: the usual 500
-        await asyncio.sleep(0)                          # the done callback has run
-        if k in self.done:
-            _, start, body = self.done[k]
-            await self._answer(send, start, body)
+        if out["start"] is not None:
+            await self._answer(send, out["start"], b"".join(out["body"]))

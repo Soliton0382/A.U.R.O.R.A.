@@ -62,6 +62,10 @@ public class MainActivity extends Activity {
     private TextView note;
     private String base;
     private volatile String page = "";
+    // C565: the bridge is in every frame, the sandboxed ones too (a model's HTML): its two actions need this key,
+    // made anew at every page and given to the main frame only (an opaque-origin frame cannot read the parent's)
+    private volatile String key = "";
+    private final java.security.SecureRandom random = new java.security.SecureRandom();
                                // the page shown: the bridge's thread may not ask the WebView
     private PermissionRequest waiting;                               // the page's mic request, until the user answers
     private ValueCallback<Uri[]> picking;
@@ -293,12 +297,20 @@ public class MainActivity extends Activity {
             }
 
             @Override
-            public void onPageStarted(WebView v, String url, android.graphics.Bitmap icon) { page = url == null ? "" : url; }
+            public void onPageStarted(WebView v, String url, android.graphics.Bitmap icon) {
+                page = url == null ? "" : url;
+                byte[] b = new byte[16];
+                random.nextBytes(b);
+                StringBuilder s = new StringBuilder();
+                for (byte x : b) s.append(String.format("%02x", x));
+                key = s.toString();
+            }
 
             @Override
             public void onPageFinished(WebView v, String url) {
                 // the first time too, right after «Connetti» and the login: the line needs the device's cookie
                 if (Address.inside(base, url)) {
+                    v.evaluateJavascript("window.AuroraAppKey=" + JSONObject.quote(key) + ";", null);   // C565
                     CookieManager.getInstance().flush();
                     LineService.start(MainActivity.this);
                 }
@@ -388,13 +400,20 @@ public class MainActivity extends Activity {
     final class Bridge {
         /** 📱 One of PhoneActions' actions, as JSON; the answer is a word for the page ("ok", "no_app"…). */
         @JavascriptInterface
-        public String act(String json) {
-            if (base == null || !Address.inside(base, page)) return "bad";
+        public String act(String k, String json) {
+            if (base == null || !Address.inside(base, page) || !mine(k)) return "bad";
             try {
                 return PhoneActions.run(MainActivity.this, new JSONObject(json));
             } catch (org.json.JSONException e) {
                 return "bad";
             }
+        }
+
+        /** C565: the main frame's key of this page, compared in constant time. */
+        private boolean mine(String k) {
+            String want = key;
+            return k != null && !want.isEmpty() && java.security.MessageDigest.isEqual(
+                k.getBytes(java.nio.charset.StandardCharsets.UTF_8), want.getBytes(java.nio.charset.StandardCharsets.UTF_8));
         }
 
         @JavascriptInterface
@@ -410,8 +429,8 @@ public class MainActivity extends Activity {
 
         /** 📞 The owner calls Aurora: the call Aurora made ready (POST /v1/aurora/call/dial), opened already answered. */
         @JavascriptInterface
-        public void callAurora(String id) {
-            if (id == null || !id.matches("[0-9a-f]{16}")) return;
+        public void callAurora(String k, String id) {
+            if (!mine(k) || id == null || !id.matches("[0-9a-f]{16}")) return;
             runOnUiThread(() -> startActivity(new Intent(MainActivity.this, CallActivity.class).setAction(CallActivity.ANSWER)
                 .putExtra(CallActivity.ID, id).putExtra(CallActivity.REASON, getString(R.string.call_out))));
         }

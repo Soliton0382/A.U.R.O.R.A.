@@ -357,7 +357,6 @@ def restore(cfg: sys_config.Config, into: Path, snapshot: str = "latest", prefix
             parts: tuple[str, ...] = ()) -> dict:
     """Write a snapshot's files into an empty folder (never over the live installation). `code`: the recovery code,
     when the key file is lost with the disk. `parts`: only these (sys_backup_parts)."""
-    from . import sys_backup_parts
     into = Path(into).resolve()
     own = (cfg.path("AURORA_STATUS_DIR") / "backup").resolve()       # the backup's own folder: never backed up, her account's
     if (into == cfg.root.resolve() or cfg.root.resolve() in into.parents) and own not in into.parents:
@@ -372,13 +371,42 @@ def restore(cfg: sys_config.Config, into: Path, snapshot: str = "latest", prefix
     if not snap.is_file():
         raise BackupError(f"no snapshot {snapshot}")
     data, n, size = read_snapshot(snap, enc), 0, 0
+    into.mkdir(parents=True, exist_ok=True)
+    top = os.open(into, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)   # C579: every write from this folder's fd
+    try:
+        n, size = _restore_files(data, top, into, dest, enc, idkey, prefix, parts, cfg)
+    finally:
+        os.close(top)
+    return {"snapshot": snap.stem, "files": n, "bytes": size, "into": str(into)}
+
+
+def _open_under(top: int, rel: str) -> int:
+    """C579: a new file at `rel` under the folder `top`, each step opened from its parent's descriptor and never
+    through a link (a folder swapped for a link while root restores is refused, not followed)."""
+    parts = rel.split("/")
+    if not rel or rel.startswith("/") or any(p in ("", ".", "..") for p in parts):
+        raise BackupError(f"unsafe path in the snapshot: {rel}")
+    fd = os.dup(top)
+    try:
+        for name in parts[:-1]:
+            try:
+                os.mkdir(name, 0o700, dir_fd=fd)
+            except FileExistsError:
+                pass
+            nxt = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+            os.close(fd)
+            fd = nxt
+        return os.open(parts[-1], os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=fd)
+    finally:
+        os.close(fd)
+
+
+def _restore_files(data, top, into, dest, enc, idkey, prefix, parts, cfg) -> tuple[int, int]:
+    from . import sys_backup_parts
+    n = size = 0
     for rel, sz, mtime, mode, bid in data["files"]:
         if prefix and not rel.startswith(prefix) or parts and sys_backup_parts.part_of(cfg, rel) not in parts or rel.endswith(OWN_KEY):
             continue                                     # (OWN_KEY: in a snapshot made before C491, it stays out)
-        out = into / rel
-        if into not in out.resolve().parents:
-            raise BackupError(f"unsafe path in the snapshot: {rel}")
-        out.parent.mkdir(parents=True, exist_ok=True)
         h = hmac.new(idkey, digestmod=hashlib.sha256)
 
         class _Tee:
@@ -388,14 +416,15 @@ def restore(cfg: sys_config.Config, into: Path, snapshot: str = "latest", prefix
             def write(self, b):
                 h.update(b)
                 self.f.write(b)
-        with open(_blob_path(dest, bid), "rb") as src, open(out, "wb") as dst:
+        with open(_blob_path(dest, bid), "rb") as src, os.fdopen(_open_under(top, rel), "wb") as dst:
             decrypt_stream(src, _Tee(dst), enc)
-        if h.hexdigest() != bid:
-            raise BackupError(f"{rel}: restored content does not match")
-        os.chmod(out, mode or 0o600)
-        os.utime(out, (mtime, mtime))
+            if h.hexdigest() != bid:
+                raise BackupError(f"{rel}: restored content does not match")
+            os.chmod(dst.fileno(), mode or 0o600)
+            dst.flush()
+            os.utime(dst.fileno(), (mtime, mtime))
         n, size = n + 1, size + sz
-    return {"snapshot": snap.stem, "files": n, "bytes": size, "into": str(into)}
+    return n, size
 
 
 def status(cfg: sys_config.Config | None = None) -> dict:

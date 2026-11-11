@@ -295,7 +295,7 @@ async def firewall_block(request: Request) -> dict:
 
 # ---- 🌍 the visual traceroute (net_trace, net_geo): hops streamed as Server-Sent Events --------------------------------
 @router.get("/v1/aurora/security/trace", dependencies=[Depends(admin_only)])
-async def trace_stream(target: str, incident: str = ""):
+async def trace_stream(request: Request, target: str, incident: str = ""):
     """Each hop as soon as it answers, with its place (offline databases), then the summary. The trace sends packets
     towards the address: the admin's, on purpose (a button, an address typed)."""
     import asyncio
@@ -331,7 +331,8 @@ async def trace_stream(target: str, incident: str = ""):
             if item is None:
                 return
             yield f"event: {item[0]}\ndata: {json.dumps(item[1], ensure_ascii=False)}\n\n"
-    return StreamingResponse(quiet(gen()), media_type="text/event-stream")
+    from .core_guard import live                      # C535: ended when the caller's right is over
+    return StreamingResponse(quiet(live(request, gen())), media_type="text/event-stream")
 
 
 @router.get("/v1/aurora/security/geo", dependencies=[Depends(admin_only)])

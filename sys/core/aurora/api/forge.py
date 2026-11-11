@@ -63,7 +63,7 @@ def _forge_job(raw: dict, cloud: bool = False):
             note("forge", "forge.failed", {"id": req["id"], "text": f"Non sono riuscita a costruire: {seen['need'][:120]}"})
             return Answer(run_id, q, "Forgia non riuscita: " + "; ".join(res["errors"])[:1500], False, mode="agent")
         m = res["manifest"]
-        if agt_forge.installs_alone(m):                 # read only, or a project's tool (owner, 21 Oct)
+        if agt_forge.installs_alone(m, cfg):            # read only or a project's tool, the forge «by herself» (C559)
             agt_forge.install(cfg, res["stage"])
             log.info("audit: forged plugin %s installed (%s)", m["name"],
                      "read only, no network" if agt_forge.read_only(m) else "a project's tool: projects folder, local model")
@@ -78,12 +78,14 @@ def _forge_job(raw: dict, cloud: bool = False):
             item = Approvals(cfg).request("plugin_install", "external", f"Installare il plugin «{m['name']}»?",
                                           f"{seen['need']}\n\nMotivo: {seen.get('why', '')}",
                                           {"cosa potrà fare": "\n".join(agt_forge.powers(m, "it")),   # plainly, first (9 Nov)
-                                           "manifest": m, "server.py": code[:6000]},
+                                           "manifest": m, "server.py": code},      # whole: what is installed (C573)
                                           {"request": req["id"], "stage": res["stage"], "name": m["name"],
                                            "hash": agt_forge.digest(res["stage"])}, run_id)   # C540: what is approved
             agt_forge.update(cfg, req["id"], status="proposed", plugin=m["name"], approval=item["id"])
             note("forge", "approval.pending", {"id": item["id"], "kind": "plugin_install", "title": item["title"]})
-            text = f"Plugin «{m['name']}» costruito e provato: scrive, invia o usa la rete, quindi aspetta la tua approvazione."
+            text = (f"Plugin «{m['name']}» costruito e provato: " + ("la forgia è su «chiede», quindi" if agt_forge.installs_alone(m)
+                                                                     else "scrive, invia o usa la rete, quindi")
+                    + " aspetta la tua approvazione.")
         return Answer(run_id, q, text, False, mode="agent")
     return job
 

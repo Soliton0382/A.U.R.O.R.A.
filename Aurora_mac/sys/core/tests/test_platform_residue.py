@@ -18,6 +18,7 @@ PLUGINS = CORE.parent / "plugins"
 LINUX_ONLY = re.compile(r'"systemctl"|\bfcntl\b|/proc/|"nvidia-smi"|import pwd|os\.getuid|os\.geteuid|"bwrap"|"pactl"|'
                         r'v4l2|/dev/video|\.venv/bin|journalctl|"sudo"|/usr/share/dict|/dev/null')
 WORDS_ALLOWED = {
+    ("sys_approvals.py", "fcntl"): "C573: guarded — imported inside, an ImportError (Windows) leaves the thread lock only",
     ("sys_config.py", "import pwd"): "guarded: Windows takes getpass (FILES)",
     ("sys_bugreport.py", '"nvidia-smi"'): "the driver's version in a bug report; not found = «not measured» everywhere",
     ("system.py", "/proc/"): "C389: the API's own memory for the owner's diagnosis; no /proc = «not available on this system»",
@@ -72,7 +73,8 @@ PROGRAMS_ALLOWED = {
     ("plg_deps.py", "dpkg-deb"): "the same package unpacked into the plugin's folder: with apt-get only",
 }
 # the scripts the owner or the installer runs: all of phase 3 (installers and admin scripts per system)
-SCRIPTS_PHASE_3 = {"systemctl", "journalctl", "runuser", "systemd-escape", "systemd-mount", "systemd-umount",
+SCRIPTS_PHASE_3 = {"visudo",                    # C574: aurora-root's sudoers check (Linux's root launcher)
+                   "systemctl", "journalctl", "runuser", "systemd-escape", "systemd-mount", "systemd-umount",
                    "nvidia-smi", "cfg['AURORA_CADDY_BIN']",
                    "ip"}                    # sys_root_sync: the root units and the firewall helper are Linux's (phase 3)
 # each port's own installer scripts start their system's own programs (phase 3, 9 Oct): the Mac's launchd agents

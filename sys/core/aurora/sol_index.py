@@ -101,6 +101,8 @@ def _vectors(cfg: sys_config.Config, f: "DomainFiles", m: dict):
         return np.memmap(f.vectors, dtype=np.float16, mode="r", shape=shape)
     with open(f.vectors, "rb") as h:
         raw = h.read(m["count"] * m["dim"] * 2)
+    from . import sol_index_seal
+    sol_index_seal.check(cfg, raw, m)                 # C572: a tagged file that is not the tagged one is never opened
     return np.frombuffer(_ctr(cfg, m, 0, raw), dtype=np.float16).reshape(shape)
 
 
@@ -159,12 +161,23 @@ class Indexer:
         if m["encoder"] != self.encoder.name or m["dim"] != dim:
             raise IndexMismatch(f"index of {domain} was built with {m['encoder']} ({m['dim']}-d), the encoder is "
                                 f"{self.encoder.name} ({dim}-d): rebuild it with rebuild('{domain}')")
+        cut = False
         for path, width in ((f.vectors, dim * 2), (f.sids, SID_BYTES)):   # cut crash leftovers
             if path.exists() and path.stat().st_size > m["count"] * width:
                 with open(path, "r+b") as fh:
                     fh.truncate(m["count"] * width)
+                cut = cut or path == f.vectors
                 self.log.warning("%s: cut %s back to %d rows (leftover of an interrupted update)",
                                  domain, path.name, m["count"])
+        tag = None
+        if m.get("sealed"):                              # C572: its integrity tag, and never a keystream used twice
+            from . import sol_index_seal
+            try:
+                tag = self._sealed_start(f, m, cut)
+            except sol_index_seal.Tampered as e:         # derived data: built again from the sealed memory, said
+                self.log.error("audit: index %s: %s — built again from the memory", domain, e)
+                self._clear(f)
+                return self._update(domain, extend_hnsw, run_id)
         t0, added = time.time(), 0
         batch: list = []
 
@@ -179,6 +192,8 @@ class Indexer:
                 fv.write(data)
                 fs.write("".join(s.sid for _, _, s in batch).encode("ascii"))
             m["count"] += len(batch)
+            if tag is not None:
+                sol_index_seal.stamp(m, tag.feed(data).at(m["count"]))
             m["position"] = [batch[-1][0], batch[-1][1]]
             m["updated"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")
             _write_json_atomic(f.manifest, m)
@@ -203,6 +218,38 @@ class Indexer:
         sys_log.trace(self.component, "index.update", {"domain": domain, "added": added, "total": m["count"],
                                                        "seconds": round(secs, 2)}, run_id=run_id)
         return added
+
+    @staticmethod
+    def _clear(f: DomainFiles) -> None:
+        for p in (f.vectors, f.sids, f.hnsw, f.manifest):
+            if p.exists():
+                os.remove(p)
+
+    def _sealed_start(self, f: DomainFiles, m: dict, cut: bool):
+        """A sealed vector file before an append (C572): its tag checked — Tampered when it does not match —, a file
+        of the first format tagged as it is (nothing written again), and one that was just cut back sealed again
+        whole under a new nonce: the bytes cut were written with this keystream, the next rows must not be. Returns
+        the running tag the appends go on from."""
+        from . import sol_index_seal as S
+        size = m["count"] * m["dim"] * 2
+        raw = f.vectors.read_bytes()[:size] if f.vectors.exists() else b""
+        if len(raw) != size:
+            raise S.Tampered(f"sealed vectors: {len(raw)} bytes where the manifest counts {size}")
+        S.check(self.cfg, raw, m)
+        if cut:
+            plain = _ctr(self.cfg, m, 0, raw)
+            m["sealed"] = S.fresh(m["sealed"]["user"])
+            raw = _ctr(self.cfg, m, 0, plain)
+            if size:
+                tmp = f.vectors.with_suffix(".tmp")
+                tmp.write_bytes(raw)
+                forget(f.folder)
+                os.replace(tmp, f.vectors)
+        tag = S.Tag(self.cfg, m["sealed"], m["dim"]).feed(raw)
+        if cut or not S.tagged(m):                       # sealed again, or a file of format 1: its tag from now on
+            S.stamp(m, tag.at(m["count"]))
+            _write_json_atomic(f.manifest, m)
+        return tag
 
     def _extend_hnsw(self, f: DomainFiles, m: dict) -> None:
         import faiss
@@ -266,12 +313,21 @@ class Indexer:
         tmp_v, tmp_s = f.vectors.with_suffix(".tmp"), f.sids.with_suffix(".tmp")
         if m.get("sealed"):
             m["sealed"] = {**m["sealed"], "nonce": os.urandom(16).hex()}           # a rewrite: a new nonce
+        tag = None
+        if m.get("sealed"):                              # C572: the rewritten file's own tag
+            from . import sol_index_seal
+            tag = sol_index_seal.Tag(self.cfg, m["sealed"], dim)
         with open(tmp_v, "wb") as fv:
             at = 0
             for i in range(0, n, 65536):
                 data = np.ascontiguousarray(vecs[i:i + 65536][keep[i:i + 65536]]).tobytes()
-                fv.write(_ctr(self.cfg, m, at, data) if m.get("sealed") else data)
+                data = _ctr(self.cfg, m, at, data) if m.get("sealed") else data
+                fv.write(data)
+                if tag is not None:
+                    tag.feed(data)
                 at += len(data)
+        if tag is not None:
+            sol_index_seal.stamp(m, tag.at(n - removed))
         tmp_s.write_bytes("".join(x for x, k in zip(all_sids, keep) if k).encode("ascii"))
         del vecs
         forget(f.folder)                              # the readers' maps of these files: Windows replaces no mapped file
@@ -333,8 +389,15 @@ class IndexSet:
         m = f.read_manifest()
         if not m or not m["count"]:
             return None
+        try:
+            vectors = _vectors(self.cfg, f, m)
+        except Exception as e:                           # noqa: BLE001 — only the tag's refusal is caught, by its name
+            if type(e).__name__ != "Tampered":
+                raise
+            self.log.error("audit: index %s: %s — not searched until the indexer builds it again", f.folder.name, e)
+            return None                                  # C572: closed, never a guess; the next update builds it again
         entry = {"mtime": mtime, "manifest": m,
-                 "vectors": _vectors(self.cfg, f, m),
+                 "vectors": vectors,
                  "sids": np.memmap(f.sids, dtype=f"S{SID_BYTES}", mode="r", shape=(m["count"],)),
                  "hnsw": None}
         if m["hnsw_count"] and f.hnsw.exists():

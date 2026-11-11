@@ -93,9 +93,42 @@ def snapshot(files: list[str] | None = None) -> dict[str, bytes]:
             links.append(rel)
             continue
         out[rel] = _read(p)
+    links += [x for x in hidden_links(REPO) if x not in links]
     if links:
         die("symbolic links in the code base, refused: " + ", ".join(links[:10]))
     return out
+
+
+CODE_DIRS = ("sys/core", "sys/plugins", "sys/deploy", ".github")
+
+
+def hidden_links(root: Path) -> list[str]:
+    """C579: the links code_files never lists — to a folder (glob does not enter it) or dangling (not a file) — found
+    by walking the code's folders without following links; the services' runtime folders (.deps, .bin, caches) and
+    the plugins Aurora forged (outside the signature) left out, as code_files leaves them."""
+    forged = {p.split("/")[2] for p in sys_ethics._forged_prefixes(root)}
+    found = [n for n in ("install.sh", "uninstall.sh", "requirements.txt", "requirements.lock", "pyproject.toml")
+             if (root / n).is_symlink()]
+    for top in CODE_DIRS:
+        for dirpath, dirnames, filenames in os.walk(root / top):
+            rel_dir = Path(dirpath).relative_to(root).as_posix()
+            parts = rel_dir.split("/")
+            if len(parts) >= 3 and parts[:2] == ["sys", "plugins"] and parts[2] in forged:
+                dirnames[:] = []
+                continue
+            dirnames[:] = [d for d in dirnames if d not in sys_ethics.RUNTIME_DIRS]
+            found += [f"{rel_dir}/{d}" for d in dirnames if (Path(dirpath) / d).is_symlink()]
+            for name in filenames:                       # a link to a file is the snapshot's (it lists it, refused)
+                p, rel = Path(dirpath) / name, f"{rel_dir}/{name}"
+                if p.is_symlink() and not p.exists() and _code_name(rel):
+                    found.append(rel)
+    return sorted(found)
+
+
+def _code_name(rel: str) -> bool:
+    """A path the code's patterns would list if it were a file (a dangling link's own name)."""
+    from pathlib import PurePosixPath
+    return any(PurePosixPath(rel).full_match(p) for p in sys_ethics.CODE_PATTERNS) and rel not in sys_ethics.DATA_FILES
 
 
 def protected(snap: dict[str, bytes]) -> tuple[str, ...]:
@@ -295,6 +328,90 @@ def sync_lib(snap: dict[str, bytes]) -> int:
     return len(pick)
 
 
+ROOT_UNITS = {"aurora-certs.service": "sys_cert_perms.py", "aurora-mount.service": "sys_nas_mount.py",
+              "aurora-retime.service": "sys_backup_retime.py"}
+EXEC = ("ExecStart=", "ExecStartPre=", "ExecStartPost=", "ExecStop=", "ExecStopPost=", "ExecReload=",
+        "ExecCondition=")
+
+
+def unit_problems(snap: dict[str, bytes], folder: str = "sys/deploy/systemd/") -> list[str]:
+    """C539: what the units about to be installed run, checked by root before installing them. Root only for its own
+    three units, each running its one script from root's signed copy with the system's Python (-I); every other unit
+    names a user that is not root, and none of its commands asks for root's rights («+», «!» prefixes) or another
+    user. The units are generated from the settings: a value that slipped past the generator stops here."""
+    bad = []
+    for rel, b in sorted(snap.items()):
+        if not (rel.startswith(folder) and rel.endswith(".service")):
+            continue
+        name, lines = rel.rsplit("/", 1)[1], b.decode("utf-8", "replace").splitlines()
+        users = [x.split("=", 1)[1].strip() for x in lines if x.startswith("User=")]
+        cmds = [x.split("=", 1)[1].strip() for x in lines if x.startswith(EXEC)]
+        if any(x.startswith(("PermissionsStartOnly=", "RootDirectory=", "DynamicUser=")) for x in lines):
+            bad.append(f"{name}: a directive that changes who or where it runs")
+        if name in ROOT_UNITS:
+            want = f"/usr/bin/python3 -I {LIB}/sys/core/script/{ROOT_UNITS[name]}"
+            if users not in ([], ["root"]) or not cmds or any(c != want and not c.startswith(want + " ") for c in cmds):
+                bad.append(f"{name}: root runs only {want}")
+            continue
+        if len(users) != 1 or users[0] in ("root", "0", ""):
+            bad.append(f"{name}: User= must name the services' account, never root")
+        if any(set(c[:len(c) - len(c.lstrip("@-:+!"))]) & {"+", "!"} for c in cmds):   # systemd's prefixes, any order
+            bad.append(f"{name}: a command asks for root's rights (+ or !)")
+    return bad
+
+
+def show_unit_diff(snap: dict[str, bytes], folder: str = "sys/deploy/systemd/", live: Path = Path("/etc/systemd/system"),
+                   limit: int = 200) -> int:
+    """C539: what root is about to change, as a diff of each unit against the one installed now."""
+    import difflib
+    out = []
+    for rel, b in sorted(snap.items()):
+        if not rel.startswith(folder) or rel.endswith(".sh"):
+            continue
+        name = rel.rsplit("/", 1)[1]
+        dst = live / name if name != "50-aurora.rules" else Path("/etc/polkit-1/rules.d/50-aurora.rules")
+        try:
+            old = dst.read_text(encoding="utf-8").splitlines()
+        except OSError:
+            old = []
+        new = b.decode("utf-8", "replace").splitlines()
+        out += list(difflib.unified_diff(old, new, str(dst), f"{name} (firmato)", lineterm="", n=1))
+    if out:
+        print("Cosa cambia root (unit installate → firmate):")
+        print("\n".join(out[:limit]) + (f"\n… altre {len(out) - limit} righe" if len(out) > limit else ""))
+    else:
+        print("  unit: nessuna differenza da quelle installate")
+    return len(out)
+
+
+SUDOERS, SUDOERS_KEEP = Path("/etc/sudoers.d"), {"aurora-nft"}
+
+
+def old_sudoers(yes: bool, folder: Path | None = None) -> list[str]:
+    """C574: the sudo fragments the first Aurora left (aurora-services, aurora-agi…; v2's restarts go through polkit,
+    its firewall through aurora-nft): shown whole, removed only on the owner's own «s» — never with --yes, a rule
+    of sudo is not removed unseen. Then visudo checks what remains."""
+    folder = folder or SUDOERS
+    old = sorted(p for p in folder.glob("aurora*") if p.name not in SUDOERS_KEEP and p.is_file() and not p.is_symlink())
+    if not old:
+        return []
+    print("Frammenti sudo lasciati dalla prima Aurora (la v2 non li usa: riavvii con polkit, firewall con aurora-nft):")
+    for p in old:
+        print(f"--- {p}")
+        print(p.read_text(encoding="utf-8", errors="replace").rstrip())
+    if yes:
+        print("  (con --yes non li tolgo: lancia il comando senza --yes per rispondere tu)")
+        return []
+    if not ask("Li tolgo?", False):
+        return []
+    for p in old:
+        p.unlink()
+    if shutil.which("visudo"):
+        ok = subprocess.run(["visudo", "-c"], capture_output=True).returncode == 0
+        print("  visudo: " + ("✅ le regole rimaste sono valide" if ok else "⚠️ controlla /etc/sudoers.d con visudo -c"))
+    return [p.name for p in old]
+
+
 def install(step: str, extra: list[str], yes: bool) -> int:
     if step not in STEPS:
         die(f"install: one of {', '.join(STEPS)}")
@@ -306,6 +423,13 @@ def install(step: str, extra: list[str], yes: bool) -> int:
         if snap is None:
             return 1
     print(f"  copia di root: {sync_lib(snap)} file")
+    if step == "systemd":
+        bad = unit_problems(snap)
+        if bad:
+            die("unit refused (C539): " + "; ".join(bad))
+        if show_unit_diff(snap) and not ask("Installo queste unit?", yes):
+            return 1
+        old_sudoers(yes)
     folder = STEPS[step] + "/"
     work = Path(tempfile.mkdtemp(prefix="aurora-root-"))
     try:

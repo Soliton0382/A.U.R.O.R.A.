@@ -129,7 +129,8 @@ async def models_list(provider: str) -> dict:
     try:
         return {"provider": provider, "models": await asyncio.to_thread(mdl_router.list_models, provider, cfg)}
     except Exception as e:                               # a wrong key, a provider down: said, not hidden
-        raise HTTPException(status_code=502, detail=f"{type(e).__name__}: {str(e)[:300]}")
+        from .core_guard import upstream_error           # C570: said without the provider's own text
+        raise HTTPException(status_code=502, detail=upstream_error(e, 300))
 
 
 @router.get("/v1/aurora/models/stats", dependencies=[Depends(admin_only)])

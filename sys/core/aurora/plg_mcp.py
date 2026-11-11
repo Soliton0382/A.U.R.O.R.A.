@@ -9,7 +9,8 @@ because it is the owner's own (its paths, its address): git ignores those folder
  - local: a program started on stdio, in the plugins' cage (plg_sandbox): no network unless asked, and it reads only
    the few places it names («read»: its program, its code, a socket — never the home, a hidden place, Aurora's state);
  - remote: an http or https address (owner, 10 Nov: «http e https… non limitiamoci»; http is said to travel in
-   clear on the page), reached only there (plg_host._remote_session).
+   clear on the page), reached only there (plg_host._remote_session); a public one, or one in the house when the
+   owner says so («lan»: true) — never Aurora's own services (C571, address_problem).
 Like every plugin of the owner's it is loaded only once signed (sudo aurora-root sign): nothing runs as Aurora without
 his yes. Its tools wait for his approval (effect «external») unless he marks them as reads; «memory»: false keeps any
 answer that used it out of Aurora's memory (a document archive the owner keeps apart never becomes hers: owner, 9 Nov)."""
@@ -22,6 +23,39 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from . import plg_sandbox, sys_config
+
+
+def address_problem(url: str, lan: bool, cfg: sys_config.Config, resolve: bool = True) -> str:
+    """Why a remote server's address is not reached ("" when it is). C571: any address was taken — one of the house's
+    devices, this machine's own services — though the owner had only said «a server somewhere». Now a public address,
+    or one in the house when he says so («lan»); never Aurora's own services, never a link-local or reserved one.
+    resolve=False looks at an address written as numbers only (the form: no name is looked up there)."""
+    import ipaddress
+    import socket
+    from . import plg_netproxy
+    u = urlparse(url)
+    host, port = (u.hostname or "").strip("."), u.port or (443 if u.scheme == "https" else 80)
+    try:
+        addrs = [str(ipaddress.ip_address(host))]
+    except ValueError:
+        if host.lower() == "localhost" or host.lower().endswith(".localhost"):
+            addrs = ["127.0.0.1"]
+        elif not resolve:
+            return ""
+        else:
+            try:
+                addrs = sorted({a[4][0] for a in socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)})
+            except OSError as e:
+                return f"{host}: {e}"
+            if not addrs:
+                return f"{host}: no address"
+    if port in plg_netproxy._aurora_ports(cfg) and any(plg_netproxy._mine(a) for a in addrs):
+        return f"{host}:{port} is Aurora's own service"
+    if any(plg_netproxy._never(a) for a in addrs):
+        return f"{host}: a link-local, multicast or reserved address is never reached"
+    if not lan and not all(ipaddress.ip_address(a.split("%")[0]).is_global for a in addrs):
+        return f"{host} is a private address: say that the server is in the house (lan) to reach it"
+    return ""
 
 NAME = re.compile(r"^[a-z][a-z0-9_]{1,29}$")              # the plugins' contract: the folder's name
 EFFECTS = ("read", "write_local", "external")
@@ -50,7 +84,11 @@ def manifest(cfg: sys_config.Config, body: dict) -> dict:
         u = urlparse(url)
         if u.scheme not in ("http", "https") or not u.hostname:      # both (owner, 10 Nov); http said «in chiaro»
             raise ValueError("address: http://host/… or https://host/…")
+        if why := address_problem(url, bool(body.get("lan")), cfg, resolve=False):     # C571; again at every call
+            raise ValueError(f"address: {why}")
         m["url"] = url
+        if body.get("lan"):
+            m["lan"] = True
     else:
         if not isinstance(command, list) or not command or not all(isinstance(a, str) and a for a in command):
             raise ValueError("command: the program and its arguments, as a list")

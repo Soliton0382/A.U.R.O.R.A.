@@ -73,3 +73,23 @@ def test_saving_without_a_change_to_the_connection_keeps_it_confirmed(cfg, monke
     assert next(x for x in sec_firewalls.items(cfg) if x["id"] == fid)["confirmed"]
     sec_firewalls.save(cfg, fid, {"url": "https://192.0.2.9"})
     assert not next(x for x in sec_firewalls.items(cfg) if x["id"] == fid)["confirmed"]
+
+
+def test_a_disconnected_firewall_gets_no_block_until_connected_again(cfg, monkeypatch):
+    """«Scollega» (owner, 12 Nov): no block of the suite and its pinned certificate forgotten; «Collega» brings it back.
+    The settings' firewall too, which received blocks without a connection made here."""
+    from aurora import sec_tlspin
+    monkeypatch.setattr(sec_fwapi, "test", lambda v: {"ok": True, "group_exists": True})
+    monkeypatch.setattr(sec_fwapi, "request", lambda v, body: "{}")
+    a = sec_firewalls.save(cfg, "new", {"name": "a", "kind": "pfsense", "url": "https://192.0.2.1:4444"}, "x")["id"]
+    assert sec_firewalls.connect(cfg, a, docs=False)["ok"]
+    sec_tlspin._save(cfg, {"192.0.2.1:4444": {"pem": "-", "sha256": "0" * 64, "at": 0}})
+    assert sec_firewalls.disconnect(cfg, a)["ok"]
+    assert a not in {x["id"] for x in sec_firewalls.receivers(cfg)} and "192.0.2.1:4444" not in sec_tlspin._pins(cfg)
+    assert sec_firewalls.connect(cfg, a, docs=False)["ok"]
+    assert a in {x["id"] for x in sec_firewalls.receivers(cfg)}
+    cfg.values.update(AURORA_FIREWALL_API_URL="https://192.0.2.9", AURORA_FIREWALL_API_USER="u",
+                      AURORA_FIREWALL_API_PASSWORD="p")
+    assert "main" in {x["id"] for x in sec_firewalls.receivers(cfg)}
+    sec_firewalls.disconnect(cfg, "main")
+    assert "main" not in {x["id"] for x in sec_firewalls.receivers(cfg)}

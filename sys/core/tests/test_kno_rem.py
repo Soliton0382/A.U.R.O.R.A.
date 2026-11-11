@@ -66,6 +66,9 @@ def test_trail_keeps_steps_and_reasoning_not_the_streamed_answer():
     assert len(out["trace"][1][1]["sentence"]) == Trail.MAX_TEXT + 1                # cut, with an ellipsis
 
 
+KNOWN = Soliton.new("Onde che non si disperdono.", "knowledge", "physics", "it", "doc:solitons", title="Solitoni")
+
+
 def dreaming(cfg, monkeypatch, paint):
     p = pipeline(cfg)
     p.writer.add_many([turn("user", "Parlami dei solitoni", 30), turn("assistant", "Onde che non si disperdono.", 29)])
@@ -73,7 +76,7 @@ def dreaming(cfg, monkeypatch, paint):
         answer="Sogno onde di luce.\nIMAGE: a luminous soliton wave")
     monkeypatch.setattr("aurora.kno_rem.mdl_image.paint", paint)
     monkeypatch.setattr("aurora.kno_rem.sys_features.ok", lambda cfg, name: True)   # the models, as on a full install
-    monkeypatch.setattr(Rem, "_random_knowledge", lambda self, n: [])
+    monkeypatch.setattr(Rem, "_random_knowledge", lambda self, n: [KNOWN])   # C564: her knowledge, never the turns
     out = Rem(p, cfg).dream(lambda e, x: None)
     return out, [s for s in p.reader.recent(5, domain="reflection") if s.extra.get("type") == "dream"][-1]
 
@@ -103,7 +106,7 @@ def test_without_the_dream_models_the_dream_is_written_and_says_why_it_is_not_pa
     p.llm.complete = lambda system, user, max_tokens, think=False: SimpleNamespace(
         answer="Sogno onde di luce.\nIMAGE: a luminous soliton wave")
     monkeypatch.setattr("aurora.kno_rem.mdl_image.paint", paint)
-    monkeypatch.setattr(Rem, "_random_knowledge", lambda self, n: [])
+    monkeypatch.setattr(Rem, "_random_knowledge", lambda self, n: [KNOWN])   # C564: her knowledge, never the turns
     monkeypatch.setattr("aurora.kno_rem.sys_features.ok", lambda cfg, name: False)
     monkeypatch.setattr("aurora.kno_rem.sys_features.check", lambda cfg, name: {"missing": ["image_base (18 file)"]})
     cfg.values["AURORA_IMAGE_ENABLED"] = True
@@ -135,7 +138,7 @@ def test_an_earlier_dream_is_no_fragment_and_a_copied_dream_is_dreamt_again(cfg,
     old = "Ero in una biblioteca di vetro e i libri cadevano come neve sulle mie mani, lenti e luminosi."
     p.writer.add_many([turn("user", "Parlami dei solitoni", 30), turn("assistant", "Onde che non si disperdono.", 29),
                        Soliton.new(old, "reflection", "reflection", "it", "dream:1", extra={"type": "dream"})])
-    monkeypatch.setattr(Rem, "_random_knowledge", lambda self, n: [])
+    monkeypatch.setattr(Rem, "_random_knowledge", lambda self, n: [KNOWN])   # C564: her knowledge, never the turns
     assert all(s.extra.get("type") != "dream" for s in Rem(p, cfg)._fragments())
     told = iter(["Onde che non si disperdono.", "Sogno onde di luce sopra un mare fermo.\nIMAGE: a wave"])
     p.llm.complete = lambda system, user, max_tokens, think=False: SimpleNamespace(answer=next(told))

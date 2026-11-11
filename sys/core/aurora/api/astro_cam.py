@@ -141,7 +141,8 @@ async def camera_stream(request: Request):
                 return
             await asyncio.sleep(0.04)
 
-    return StreamingResponse(frames(), media_type="multipart/x-mixed-replace; boundary=frame",
+    from .core_guard import live                      # C535: the frames stop when the caller's right is over
+    return StreamingResponse(live(request, frames()), media_type="multipart/x-mixed-replace; boundary=frame",
                              headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})
 
 

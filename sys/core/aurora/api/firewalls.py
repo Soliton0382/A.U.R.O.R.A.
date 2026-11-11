@@ -50,6 +50,16 @@ def firewall_remove(fid: str) -> dict:
     return {"removed": fid}
 
 
+@router.post("/v1/aurora/security/firewalls/{fid}/disconnect", dependencies=[Depends(admin_only)])
+def firewall_disconnect(fid: str) -> dict:
+    """«Scollega»: no more blocks to it, its certificate forgotten; «Collega» brings it back."""
+    from aurora import sec_firewalls
+    try:
+        return sec_firewalls.disconnect(cfg, fid)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="no such firewall") from None
+
+
 @router.post("/v1/aurora/security/firewalls/{fid}/connect", dependencies=[Depends(admin_only)])
 async def firewall_connect(fid: str) -> dict:
     """Log in, the blocking group, the guides indexed in the background: confirmed only if it worked."""

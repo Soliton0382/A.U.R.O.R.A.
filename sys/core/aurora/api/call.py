@@ -15,6 +15,7 @@ from aurora import sys_call, sys_context
 from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket, WebSocketDisconnect
 
 from .core import _admin, _from_this_machine, _is_key, auth, cfg, devices, is_maintenance_key, log, start_run
+from .core_guard import RECHECK_S
 
 router = APIRouter()
 BARGE_FRAMES = 15                                     # 0.3 s of the owner's voice over hers stops her
@@ -116,6 +117,10 @@ class _Voice:
 
 @router.websocket("/v1/aurora/call/{call_id}/audio")
 async def call_audio(ws: WebSocket, call_id: str) -> None:
+    from aurora.sys_csrf import foreign_socket
+    if foreign_socket(ws.headers):                    # C570: a socket opened by another site's page, with the cookie
+        await ws.close(code=4403)
+        return
     user = _who(ws)
     c = sys_call.calls.get(call_id)
     if user is False or not c or c["user"] != user or c["state"] not in ("ringing", "answered", "dialing"):
@@ -159,10 +164,16 @@ async def call_audio(ws: WebSocket, call_id: str) -> None:
     try:
         if not c.get("assistant"):
             await voice.say("Ciao, dimmi pure." if c.get("by") == "owner" else f"Ciao, sono Aurora. {c['reason']}")
+        checked = time.monotonic()
         while True:
             msg = await ws.receive()
             if msg.get("type") == "websocket.disconnect":
                 break
+            if time.monotonic() - checked >= RECHECK_S:   # C535: a device revoked during the call ends it
+                checked = time.monotonic()
+                if await asyncio.to_thread(_who, ws) != user:
+                    log.info("audit: call %s ended: its device's right is over", call_id)
+                    break
             j = json.loads(msg["text"]) if msg.get("text") else {}
             if j.get("type") == "hangup":
                 break

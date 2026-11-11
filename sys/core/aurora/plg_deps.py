@@ -62,7 +62,7 @@ def state(folder: Path, manifest: dict) -> dict:
             "bytes": _size(folder / DEPS) + _size(folder / BIN)}
 
 
-def install(folder: Path, manifest: dict, log=print, timeout: int = 900) -> dict:
+def install(folder: Path, manifest: dict, log=print, timeout: int = 900, cfg=None) -> dict:
     """Fetch and check what the manifest declares, into the plugin's folder; RuntimeError on any refusal (a wrong hash,
     a failed download): then nothing is left behind."""
     n = needs(manifest)
@@ -113,6 +113,8 @@ def install(folder: Path, manifest: dict, log=print, timeout: int = 900) -> dict
         deps_tmp.rename(folder / DEPS)
         if bin_tmp.exists():
             bin_tmp.rename(folder / BIN)
+        if cfg is not None:
+            record(cfg, folder)                              # C579: checked again at every start
     except Exception:
         for p in (deps_tmp, bin_tmp):
             shutil.rmtree(p, ignore_errors=True)
@@ -155,6 +157,88 @@ def _from_package(prog: dict, bin_tmp: Path, final: Path, log) -> None:
         raise RuntimeError(f"{name} does not start (a library of the system missing?): {(r.stderr or r.stdout).strip()[-300:]}")
     said = [ln.strip(" *") for ln in (r.stdout or r.stderr).splitlines() if name.lower() in ln.lower()]
     log(f"program {name}: {said[0][:80] if said else 'starts'}")
+
+
+# ---- C579: what was fetched, checked again at every start ----------------------------------------------------------
+TREE = "tree.sealed"
+_checked: dict[str, tuple] = {}
+
+
+def _listing(folder: Path) -> list[tuple]:
+    out = []
+    for top in (DEPS, BIN):
+        base = folder / top
+        if not base.is_dir():
+            continue
+        for dirpath, dirnames, filenames in os.walk(base):
+            for name in sorted(dirnames + filenames):
+                p = Path(dirpath) / name
+                rel = p.relative_to(folder).as_posix()
+                if rel == f"{DEPS}/{TREE}" or "__pycache__" in rel.split("/"):
+                    continue
+                st = os.lstat(p)
+                if os.path.islink(p):
+                    out.append((rel, "link", os.readlink(p)))
+                elif p.is_file():
+                    out.append((rel, st.st_size, st.st_mtime_ns))
+    return sorted(out)
+
+
+def tree_digest(folder: Path) -> str:
+    """Every file of .deps and .bin with its bytes, every link with its target (Python's caches left out)."""
+    h = hashlib.sha256()
+    for rel, kind, _ in _listing(folder):
+        h.update(rel.encode() + b"\0")
+        if kind == "link":
+            h.update(b"link:" + os.readlink(folder / rel).encode())
+        else:
+            with open(folder / rel, "rb") as f:
+                for chunk in iter(lambda: f.read(1 << 20), b""):
+                    h.update(chunk)
+        h.update(b"\0")
+    return h.hexdigest()
+
+
+def record(cfg, folder: Path) -> None:
+    """At install: the tree's digest sealed with Aurora's key (a copy made without the key does not open)."""
+    from . import sys_seal
+    if (folder / DEPS).is_dir():
+        sys_seal.write(cfg, folder / DEPS / TREE, tree_digest(folder).encode(), None, "plugins")
+    _checked.pop(str(folder), None)
+
+
+def verify(cfg, folder: Path, manifest: dict, log=None) -> None:
+    """C579: before a plugin starts, what it fetched is what was fetched — the programs downloaded by address against
+    the SHA-256 its signed manifest pins, the whole tree (libraries, packages unpacked) against the digest sealed at
+    install. RuntimeError when something changed: the plugin is not run. A plugin installed before 12 Nov has no
+    sealed digest: recorded now, once, and said. Hashed again only when a file's size or time changed."""
+    n = needs(manifest)
+    if not (n["python"] or n["programs"]) or not (folder / DEPS).is_dir():
+        return
+    seen = tuple(_listing(folder))
+    if _checked.get(str(folder)) == seen:
+        return
+    for prog in n["programs"]:
+        if prog.get("apt") or not prog.get("sha256"):
+            continue
+        f = folder / BIN / str(prog["name"])
+        if not f.is_file() or f.is_symlink() or hashlib.sha256(f.read_bytes()).hexdigest() != str(prog["sha256"]).lower():
+            raise RuntimeError(f"{folder.name}: {prog['name']} is not the program its manifest pins: not run (install it again)")
+    from . import sys_seal
+    sealed = folder / DEPS / TREE
+    if not sealed.exists():
+        record(cfg, folder)
+        if log:
+            log(f"plugin {folder.name}: its fetched files had no sealed digest (installed before C579): recorded now")
+    else:
+        try:
+            want = sys_seal.read(cfg, sealed, None, "plugins").decode()
+        except ValueError:
+            raise RuntimeError(f"{folder.name}: the digest of its fetched files does not open: not run (install it again)") from None
+        if tree_digest(folder) != want:
+            raise RuntimeError(f"{folder.name}: its fetched libraries or programs changed since they were installed: "
+                               "not run (install it again)")
+    _checked[str(folder)] = seen
 
 
 def uninstall(folder: Path) -> int:

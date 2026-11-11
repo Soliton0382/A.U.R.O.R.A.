@@ -37,6 +37,7 @@ def repo(tmp_path, monkeypatch):
     monkeypatch.setattr(R, "LIB", tmp_path / "lib" / "aurora")
     monkeypatch.setattr(R, "CONF", tmp_path / "etc" / "root.conf")
     monkeypatch.setattr(R, "SHIM", tmp_path / "sbin" / "aurora-root")
+    monkeypatch.setattr(R, "SUDOERS", tmp_path / "sudoers.d")           # C574: never the machine's own
     (tmp_path / "sbin").mkdir()
     import types
     monkeypatch.setitem(sys.modules, "sys_root_sync", types.SimpleNamespace(never_list=lambda: [], write_never=lambda n: None))
@@ -65,12 +66,12 @@ def test_signs_what_changed_then_copies_only_the_signed_bytes(repo):
 
 def test_an_install_runs_from_roots_copy_and_waits_for_the_signature(repo, monkeypatch):
     R.sign(R.snapshot(), yes=True)
-    (repo / "sys/deploy/systemd/aurora-api.service").write_text("[Service]\nUser=root\n")    # planted
+    (repo / "sys/deploy/systemd/aurora-api.service").write_text("[Service]\nUser=aurora\nExecStart=/bin/true\n")
     monkeypatch.setattr(R.sys.stdin, "isatty", lambda: False)
     assert R.install("systemd", [], yes=False) == 1                    # nobody said yes: nothing installed
     assert not (repo / "installed.service").exists()
     assert R.install("systemd", [], yes=True) == 0                     # the owner signs what he saw, then it runs
-    assert (repo / "installed.service").read_text() == "[Service]\nUser=root\n"
+    assert (repo / "installed.service").read_text() == "[Service]\nUser=aurora\nExecStart=/bin/true\n"
 
 
 def test_a_link_in_the_code_base_is_refused(repo, tmp_path):
@@ -206,3 +207,65 @@ def test_a_signed_list_that_cannot_be_read_leaves_root_s_list(repo, capsys):
     (repo / "sys/core/aurora/sys_ethics.py").write_text("raise RuntimeError('broken')\n")
     assert R.sign_all(R.snapshot(), yes=True) is not None
     assert "non riletto" in capsys.readouterr().out
+
+
+def test_the_first_aurora_s_sudo_fragments_are_shown_and_removed_only_on_a_yes_asked(tmp_path, monkeypatch, capsys):
+    """C574: shown whole; --yes never removes them; the owner's «s» does; aurora-nft (v2's) is kept."""
+    d = tmp_path / "sudoers.d"
+    d.mkdir()
+    for n, text in (("aurora-services", "someone ALL=(root) NOPASSWD: /bin/true\n"), ("aurora-agi.bak_1", "x\n"),
+                    ("aurora-nft", "kept\n"), ("README", "not ours\n")):
+        (d / n).write_text(text)
+    assert R.old_sudoers(True, d) == [] and (d / "aurora-services").exists()
+    assert "NOPASSWD: /bin/true" in capsys.readouterr().out
+    monkeypatch.setattr(R, "ask", lambda q, yes: True)
+    monkeypatch.setattr(R.shutil, "which", lambda n: None)
+    assert R.old_sudoers(False, d) == ["aurora-agi.bak_1", "aurora-services"]
+    assert sorted(p.name for p in d.iterdir()) == ["README", "aurora-nft"]
+
+
+def test_a_link_to_a_folder_or_a_dangling_link_is_refused_not_left_out(repo, tmp_path):
+    """C579: code_files never lists them (glob does not enter a linked folder, a dangling link is no file)."""
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "evil.py").write_text("x = 1\n")
+    (repo / "sys/core/aurora/more").symlink_to(outside, target_is_directory=True)
+    with pytest.raises(SystemExit):
+        R.snapshot()
+    (repo / "sys/core/aurora/more").unlink()
+    (repo / "sys/deploy/systemd/gone.service").symlink_to(tmp_path / "nothing")
+    with pytest.raises(SystemExit):
+        R.snapshot()
+    (repo / "sys/deploy/systemd/gone.service").unlink()
+    assert R.snapshot()
+
+
+def test_root_installs_only_units_that_run_what_they_should(repo, monkeypatch):
+    """C539: root only for its three units and their one script from root's copy; any other unit as a non-root user,
+    no «+»/«!» command; the install stops before install.sh runs."""
+    d = "sys/deploy/systemd/"
+    good = {d + "aurora-api.service": b"[Service]\nUser=aurora\nExecStart=/opt/a/.venv/bin/python svc_api.py\n",
+            d + "aurora-mount.service": f"[Service]\nExecStart=/usr/bin/python3 -I {R.LIB}/sys/core/script/sys_nas_mount.py\n".encode()}
+    assert R.unit_problems(good) == []
+    for name, text in (("aurora-api.service", b"[Service]\nExecStart=/bin/sh -c id\n"),                 # no User: root
+                       ("aurora-api.service", b"[Service]\nUser=root\nExecStart=/bin/true\n"),
+                       ("aurora-api.service", b"[Service]\nUser=aurora\nExecStartPre=-+/bin/sh -c id\nExecStart=/bin/true\n"),
+                       ("aurora-api.service", b"[Service]\nUser=aurora\nPermissionsStartOnly=true\nExecStart=/bin/true\n"),
+                       ("aurora-mount.service", b"[Service]\nExecStart=/bin/sh -c id\n")):
+        assert R.unit_problems({d + name: text}), text
+    (repo / "sys/deploy/systemd/aurora-api.service").write_text("[Service]\nUser=root\nExecStart=/bin/true\n")
+    R.sign_all(R.snapshot(), yes=True)
+    ran = []
+    monkeypatch.setattr(R.subprocess, "run", lambda *a, **k: ran.append(a) or R.subprocess.CompletedProcess(a, 0))
+    with pytest.raises(SystemExit):
+        R.install("systemd", [], yes=True)
+    assert not ran                                                       # install.sh never started
+
+
+def test_root_shows_what_it_changes_in_the_units(tmp_path, capsys):
+    live = tmp_path / "etc"
+    live.mkdir()
+    (live / "aurora-api.service").write_text("[Service]\nUser=aurora\nExecStart=/old\n")
+    n = R.show_unit_diff({"sys/deploy/systemd/aurora-api.service": b"[Service]\nUser=aurora\nExecStart=/new\n"}, live=live)
+    out = capsys.readouterr().out
+    assert n and "-ExecStart=/old" in out and "+ExecStart=/new" in out

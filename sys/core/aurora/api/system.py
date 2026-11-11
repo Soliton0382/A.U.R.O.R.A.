@@ -36,7 +36,7 @@ def status() -> dict:
         try:
             out[name] = httpx.get(url, timeout=3).json()
         except httpx.HTTPError as e:
-            out[name] = {"status": "down", "error": str(e)}
+            out[name] = {"status": "down", "error": type(e).__name__}    # C570: not the error's text (its address)
     return out
 
 
@@ -195,6 +195,15 @@ async def update_settings(request: Request) -> dict:
             problems.append(f"AURORA_HTTPS_PORT / AURORA_HTTP_PORT: {e}")
     if problems:
         raise HTTPException(status_code=422, detail=problems)
+    from .core_guard import address_problem, secrets_of
+    if user and admin and user != admin:                 # C535: a user's own address is not one of the house's
+        from aurora import sys_user_config as _uc
+        admin_view = _uc.for_user(cfg.now(), admin)
+        refused = [p for k, v in changes.items() if (p := address_problem(k, str(v), user, admin_view))]
+        if refused:
+            raise HTTPException(status_code=422, detail=refused)
+    forgotten = [k for k in secrets_of(changes, cfg) if k in specs]   # C535: a changed address forgets its secret
+    changes.update({k: "" for k in forgotten})
     moved = None
     if {"AURORA_HTTPS_PORT", "AURORA_HTTP_PORT"} & set(changes):
         # the ports: never only written — Caddy moved with them at once (C228: the .env changed, Caddy did not)
@@ -247,6 +256,7 @@ async def update_settings(request: Request) -> dict:
     from .backup import start_retime                        # a new backup time: the timer follows it
     retimed = "AURORA_BACKUP_TIME" in changes and start_retime()
     return {"changed": sorted(changes), "restart": restart, "mounting": mounting, "retimed": retimed, "tunnel": tunnel,
+            **({"forgotten": forgotten} if forgotten else {}),
             **({"moved": moved["urls"]} if moved and moved.get("changed") else {})}
 
 

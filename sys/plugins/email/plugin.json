@@ -2,6 +2,7 @@
   "name": "email",
   "version": "1.0",
   "kind": "connector",
+  "sandbox": {"network": true},
   "description": {
     "en": "The owner's mailbox over encrypted connections only (IMAPS, SMTP with TLS): read unread messages; sending waits for the owner and carries the AI disclosure.",
     "it": "La casella del proprietario solo su connessioni cifrate (IMAPS, SMTP con TLS): leggere i messaggi non letti; inviare aspetta il proprietario e porta la dichiarazione IA."

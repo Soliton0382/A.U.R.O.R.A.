@@ -27,7 +27,7 @@ def test_a_choice_becomes_settings_and_a_level_an_area_lacks_is_refused(cfg):
     assert machine == {"AURORA_SENTINEL_INVESTIGATE": "1", "AURORA_DEFENCE_MODE": "auto", "AURORA_UPDATE_MODE": "off"}
     assert user == {"AURORA_SOCIAL_AUTONOMY": "1"}
     with pytest.raises(ValueError):
-        A.changes({"repairs": 2})                        # code changes are always approved: no 🚀
+        A.changes({"repairs": 2})                        # a repair is proposed: how it is applied is «self_change»
     with pytest.raises(ValueError):
         A.changes({"nonsense": 1})
 
@@ -48,7 +48,7 @@ def test_an_area_proved_good_is_suggested_never_raised(cfg):
     items += [{"kind": "code_change", "title": "repair", "status": "rejected", "created": now}]
     st = A.statistics(cfg, items, {"facebook.post"})
     assert st["social"]["approved"] == 10 and st["social"]["rate"] == 1.0 and st["social"]["proved"]
-    assert st["repairs"]["refused"] == 1 and not st["repairs"]["proved"]
+    assert st["self_change"]["refused"] == 1 and not st["self_change"]["proved"]    # C559: a code change's own area
     assert A.levels(cfg)["social"] == 0                  # proved, and still where the owner left it
 
 

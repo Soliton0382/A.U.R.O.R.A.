@@ -73,6 +73,7 @@ def _main(cfg, data: dict) -> dict:
     it.update(id="main", name=data.get("main", {}).get("name") or "Firewall", blocks=data.get("main", {}).get("blocks", True),
               ups_off=bool(data.get("main", {}).get("ups_off")),
               confirmed=data.get("main", {}).get("confirmed"), error=data.get("main", {}).get("error", ""),
+              disconnected=data.get("main", {}).get("disconnected"),
               has_password=bool(base["AURORA_FIREWALL_API_PASSWORD"]))
     return it
 
@@ -178,12 +179,25 @@ def connect(cfg, fid: str, docs: bool = True) -> dict:
     except (sec_fwapi.FirewallAPIError, OSError) as e:     # OSError: the certificate not reached (C567)
         _mark(cfg, fid, confirmed=None, error=str(e)[:300])
         return {"ok": False, "error": str(e)}
-    _mark(cfg, fid, confirmed=time.time(), error="")
+    _mark(cfg, fid, confirmed=time.time(), error="", disconnected=None)
     if docs:
         from . import sec_fwdocs
         threading.Thread(target=lambda: sec_fwdocs.refresh(v), daemon=True, name=f"fwdocs-{fid}").start()
     sys_log.get_logger("security").info("audit: firewall %s (%s) connected", fid, it["kind"])
     return {"ok": True, "group_was_there": test.get("group_exists"), "docs": "indexing" if docs else "skipped"}
+
+
+def disconnect(cfg, fid: str) -> dict:
+    """The owner's «Scollega» (12 Nov: «mancherebbe il tasto scollega»): the firewall receives no block of the suite
+    and its pinned certificate is forgotten (C567) until «Collega» again; its settings and password stay."""
+    it = next((x for x in items(cfg) if x["id"] == fid), None)
+    if it is None:
+        raise KeyError(fid)
+    from . import sec_tlspin
+    sec_tlspin.forget(cfg, sec_fwapi.base_url(view(cfg, it)))
+    _mark(cfg, fid, confirmed=None, error="", disconnected=time.time())
+    sys_log.get_logger("security").info("audit: firewall %s (%s) disconnected by the owner", fid, it["kind"])
+    return {"ok": True}
 
 
 def ups_targets(cfg) -> list[dict]:
@@ -198,7 +212,7 @@ def receivers(cfg) -> list[dict]:
     out = []
     for x in items(cfg):
         legacy = x["id"] == "main" and sec_fwapi.configured(cfg.base or cfg) and not x.get("error")
-        if x.get("blocks", True) and (x.get("confirmed") or legacy):
+        if x.get("blocks", True) and (x.get("confirmed") or legacy) and not x.get("disconnected"):
             out.append(x)
     return out
 

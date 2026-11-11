@@ -8,11 +8,12 @@ env_file()  a .env for one plugin: every ordinary setting, but only the secrets 
 wrap()      the plugin's command inside bubblewrap (AURORA_PLUGIN_SANDBOX): the system read-only, the home
             hidden (a private tmpfs), Aurora's folder read-only with its .env replaced by the filtered one,
             the push keys, the registered devices and the other plugins' env files hidden, private /tmp,
-            own PID/IPC/UTS namespaces; with "sandbox": {"network": false} no network at all (forged plugins);
-            with "network": "local" none either, but the local model reached through a socket (plg_modelnet);
+            own PID/IPC/UTS namespaces; no network at all unless "sandbox": {"network": true} asks for the host's
+            (C568: the default was the host's); with "network": "local" none either, but the local model reached
+            through a socket (plg_modelnet); with "proxy" only the places plg_netproxy lets through (always, forged);
             writable only the folders the manifest names in "sandbox": {"write":
-            [settings]} (e.g. AURORA_PROJECTS_DIR). Network and devices stay (connectors talk to services,
-            the senses use the camera). Dies with Aurora.
+            [settings]} (e.g. AURORA_PROJECTS_DIR). The devices only for "devices": true (the senses use the
+            camera). Dies with Aurora.
 """
 from __future__ import annotations
 
@@ -131,6 +132,42 @@ def available() -> bool:
     return shutil.which("bwrap") is not None
 
 
+_swept: set[str] = set()
+
+
+def _sweep_bridges(bridges: Path) -> None:
+    """Once per process (C571): each Aurora process serves its plugins' sockets in bridge/<pid>/ and nothing removed
+    them when it ended. A folder goes when its process is gone and none of its sockets answers (a process of another
+    PID namespace — the plugins' gateway — is alive by its sockets, not by its number)."""
+    if str(bridges) in _swept:
+        return
+    _swept.add(str(bridges))
+    import socket
+    for d in bridges.iterdir() if bridges.is_dir() else []:
+        if not d.is_dir() or d.is_symlink() or not d.name.isdigit() or d.name == str(os.getpid()):
+            continue
+        try:
+            os.kill(int(d.name), 0)
+            continue                                   # alive here
+        except ProcessLookupError:
+            pass
+        except OSError:
+            continue                                   # alive, another account's
+        answers = False
+        for sock in d.glob("*.sock"):
+            c = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            c.settimeout(1)
+            try:
+                c.connect(str(sock))
+                answers = True
+            except OSError:
+                pass
+            finally:
+                c.close()
+        if not answers:
+            shutil.rmtree(d, ignore_errors=True)
+
+
 def _others_hidden(cfg: sys_config.Config) -> list[str]:
     """Multi-user: a plugin working for a user sees nothing of the others (their usr/<name>/, memory, index, state),
     nor the users store, nor its own user's whole .env (it gets its filtered one); the owner's top-level folders of
@@ -191,6 +228,24 @@ def wrap(cmd: list[str], folder: Path, manifest: dict, filtered_env: Path, cfg: 
             args += ["--ro-bind", str(python), str(python)]
     if home != Path("/") and home.is_relative_to(root):
         args += ["--tmpfs", str(home)]
+    # C571: the folders it writes first, everything hidden after — a write folder above a hidden one (the state, with
+    # its keys inside) would have shown it again, and the real .env under the filtered one
+    from . import sys_users_layout as L
+    usr = L.usr(cfg) if L.migrated(cfg) else None
+    writes = (manifest.get("sandbox") or {}).get("write", [])
+    if forged(manifest):                               # never Aurora's code, settings, approvals or other plugins
+        writes = [k for k in writes if k in FORGED_WRITE]
+    for key in writes:
+        p = cfg.path(key)
+        # a user's folder only: with the machine's configuration (no user: the tools listed at start) the path is
+        # usr/<x> itself, not anyone's — never made (owner, 28 Oct: «dentro usr ci sono cartelle che non dovrebbero
+        # esserci»: nine empty ones, made at a start)
+        if usr is not None and p.parent == usr and not p.exists():
+            continue
+        p.mkdir(parents=True, exist_ok=True)
+        args += ["--bind", str(p), str(p)]
+        if home != Path("/") and home.is_relative_to(root) and home != p and home.is_relative_to(p):
+            args += ["--tmpfs", str(home)]             # the service's HOME inside it: hidden again
     args += ["--ro-bind", str(filtered_env), str(cfg.env_file)]
     # /run hidden (C420: docker, libvirt, the system D-Bus and the firewall helper's sockets were reachable from a
     # plugin), the resolver's folder put back for the plugins with a network (/etc/resolv.conf points there)
@@ -212,25 +267,16 @@ def wrap(cmd: list[str], folder: Path, manifest: dict, filtered_env: Path, cfg: 
     if (status / "devices.json").exists():
         args += ["--ro-bind", "/dev/null", str(status / "devices.json")]
     args += _others_hidden(cfg)
-    from . import sys_users_layout as L
-    usr = L.usr(cfg) if L.migrated(cfg) else None
-    writes = manifest.get("sandbox", {}).get("write", [])
-    if forged(manifest):                               # never Aurora's code, settings, approvals or other plugins
-        writes = [k for k in writes if k in FORGED_WRITE]
-    for key in writes:
-        p = cfg.path(key)
-        # a user's folder only: with the machine's configuration (no user: the tools listed at start) the path is
-        # usr/<x> itself, not anyone's — never made (owner, 28 Oct: «dentro usr ci sono cartelle che non dovrebbero
-        # esserci»: nine empty ones, made at a start)
-        if usr is not None and p.parent == usr and not p.exists():
-            continue
-        p.mkdir(parents=True, exist_ok=True)
-        args += ["--bind", str(p), str(p)]
-    net = manifest.get("sandbox", {}).get("network")
+    # C568: no «network» in the manifest is no network (it was the host's: a plugin that never asked could reach
+    # 127.0.0.1 — Aurora's API, the models — and the house); true is said by the plugins that need it
+    net = (manifest.get("sandbox") or {}).get("network", False)
+    if net is not True and net not in ("local", "proxy"):
+        net = False
     if forged(manifest) and net not in (False, "local"):
         net = "proxy"                                           # a forged plugin: the owner's places only (plg_netproxy)
     bridges = status / "plugins" / "bridge"
     bridges.mkdir(parents=True, exist_ok=True)                  # hidden even for the first cage (audit 9 Nov)
+    _sweep_bridges(bridges)                                     # C571: the sockets of processes long gone
     if bridges.is_dir():                                        # the other plugins' ways out hidden; its own bound below
         args += ["--tmpfs", str(bridges)]
     if net is False or net in ("local", "proxy"):

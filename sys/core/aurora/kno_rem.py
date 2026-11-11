@@ -55,6 +55,8 @@ SYS_INTROSPECT = ("\nYou are reviewing yourself, once a day, from your own logs 
                   "probably already fixed; say so.")
 
 COPIED = 0.6                                             # a dream this similar to a fragment is that fragment
+# reflections a dream is never made of: her dreams (C330), and what retells a conversation or her logs (C564)
+NOT_DREAMT = ("dream", "session_memory", "self_review", "repair", "social_report")
 
 # C196 (owner, 2026-10-08: «la foto del sogno e la descrizione non mi sembrano complementari»): the dream was a list
 # of abstract sentences and the painting one object picked from them. A dream is seen: scenes, one central, and the
@@ -133,8 +135,9 @@ class Rem:
         if rep.rejected:
             raise ValueError(f"{typ} rejected: {rep.rejected}")
         if typ in kno_diary.KINDS:                        # the diary plugin's copy, under its own key (N64)
-            kno_diary.add(self.cfg, [{"at": sol.created_at, "type": typ, "text": text, "image": extra.get("image")}],
-                          self.p.writer.user)
+            from .kno_social import public                # C564: told outside only what the masker finds clean
+            kno_diary.add(self.cfg, [{"at": sol.created_at, "type": typ, "text": text, "image": extra.get("image"),
+                                      "public": public(self.cfg, text)}], self.p.writer.user)
         self.p.indexer.update("reflection")
         emit(f"rem.{typ}", {"sid": sol.sid, "text": text, **{k: v for k, v in extra.items() if k != "turns"}})
         return sol
@@ -193,6 +196,8 @@ class Rem:
         f = frag[0]
         last = [s for s in (self.p.reader.recent(10, domain="reflection") if self._has("reflection") else [])
                 if s.extra.get("type") == "session_memory"][-1:]
+        from .kno_social import public                 # C564: a thought reaches the diary too — a memory only if public
+        last = [s for s in last if public(self.cfg, s.text)]
         user = (f"FRAMMENTO DEL VAULT ({f.domain}, «{f.title}»):\n{f.text[:2500]}"
                 + (f"\n\nULTIMO RICORDO:\n{last[0].text}" if last else ""))
         text = self.p._for("rem").complete(self._identity() + SYS_REFLECT, user, 700).answer.strip()
@@ -212,7 +217,8 @@ class Rem:
                  "evidence": [{k: e[k] for k in ("component", "kind", "count", "last", "host_service",
                                                  "host_last_start", "seen_after_last_start")}
                               for e in sys_logread.problem_evidence(self.cfg)[:20]]}
-        user = json.dumps(facts, ensure_ascii=False, indent=1)
+        from . import agt_logguard                      # C562: the logs quote what strangers sent — honeypot, marks
+        user = agt_logguard.data(self.cfg, self.p.llm, "self-review", json.dumps(facts, ensure_ascii=False, indent=1))
         text = self.p._for("rem").complete(self._identity() + SYS_INTROSPECT, user, 900).answer.strip()
         sol = self._write(text, "self_review", f"self_review:{int(time.time())}",
                           {"problems": {k: {"warnings": v["warnings"], "errors": v["errors"]} for k, v in problems.items()},
@@ -232,11 +238,13 @@ class Rem:
     def _fragments(self) -> list[Soliton]:
         # C330: an earlier dream drawn as a memory was told again word for word (similarity 0.98-1.00, the other
         # nights 0.02-0.19): her own dreams are no fragments
+        # C564: a dream is told to the world (the diary plugin, her posts) and it was written from two real turns of
+        # a conversation and from the sessions' memories — health, work, family, reworded. Now only her knowledge and
+        # her own reflections, and of these only what the masker finds nothing private in (kno_social.public)
+        from .kno_social import public
         memories = [s for s in (self.p.reader.recent(30, domain="reflection") if self._has("reflection") else [])
-                    if s.extra.get("type") != "dream"]
-        turns = self.p.reader.recent(30)
-        return self._random_knowledge(2) + random.sample(memories, min(2, len(memories))) \
-            + random.sample(turns, min(2, len(turns)))
+                    if s.extra.get("type") not in NOT_DREAMT and public(self.cfg, s.text)]
+        return self._random_knowledge(2) + random.sample(memories, min(4, len(memories)))
 
     def dream(self, emit) -> dict:
         for attempt in range(2):                         # a dream that copies a fragment is dreamt once more

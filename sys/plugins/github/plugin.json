@@ -1,5 +1,6 @@
 {
  "name": "github",
+ "sandbox": {"network": true},
  "version": "1.12.2",
  "kind": "connector",
  "on_demand": {"words": ["github", "repository", "repositories", "repo", "repos", "pull request", "pull requests", "commit", "commits", "branch", "gist", "workflow", "release", "releases", "fork", "forks", "stelle", "stars"]},

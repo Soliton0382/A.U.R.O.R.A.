@@ -2,6 +2,7 @@
  "name": "facebook",
  "version": "1.0",
  "kind": "connector",
+ "sandbox": {"network": true},
  "page": "social",
  "description": {
   "en": "The owner's Facebook page through the Graph API: posts, statistics, comments, page info; whatever writes to the page waits for the owner's approval.",

@@ -91,6 +91,7 @@ export default {
 
   renderMe(me) {
     const box = this.meBox;
+    this.meNow = me;
     box.replaceChildren(el("p", "", t("users.me_line", { name: me.name || "—", role: t(`users.role.${me.admin ? "admin" : "user"}`),
       mode: me.mode })), el("p", "muted", `${me.has_password ? "✅" : "⚠️"} ${t("users.has_password")} · ${me.totp_on ? "✅" : "⚠️"} ${t("users.totp")}`));
     if (!me.name) { box.append(el("p", "muted", t("users.no_users"))); return; }
@@ -122,6 +123,10 @@ export default {
         const cur = prompt(t("users.totp_current"));
         if (!cur) return;
         ask = { password: pw, current: cur.trim() };
+      } else if (me.has_password) {                      // C570: the first one asks the password too
+        const pw = prompt(t("users.confirm_pw"));
+        if (!pw) return;
+        ask = { password: pw };
       }
       let r;
       try { r = await call("/v1/aurora/me/totp", { method: "POST", body: JSON.stringify(ask) }); }
@@ -204,7 +209,16 @@ export default {
     form.append(name, add);
     form.addEventListener("submit", async (ev) => {
       ev.preventDefault();
-      const r = await call("/v1/aurora/me/keys", { method: "POST", body: JSON.stringify({ name: name.value.trim() }) });
+      const body = { name: name.value.trim() };
+      const me = this.meNow || {};
+      if (me.has_password) {                         // C570: the password (and the code) again before a key is made
+        body.password = prompt(t("users.confirm_pw")) || "";
+        if (!body.password) return;
+        if (me.totp_on) { body.code = (prompt(t("users.confirm_code")) || "").trim(); if (!body.code) return; }
+      }
+      let r;
+      try { r = await call("/v1/aurora/me/keys", { method: "POST", body: JSON.stringify(body) }); }
+      catch (e) { shown.replaceChildren(el("p", "result error", t("ev.error", { m: e.message }))); return; }
       this.loadKeys(r.key);                          // the list again, with the new key shown once below it
     });
     if (justMade) shown.append(el("p", "", t("users.key_once")), el("code", "", justMade));

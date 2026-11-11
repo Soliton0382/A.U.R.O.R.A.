@@ -1367,11 +1367,28 @@
    "category": "autonomy",
    "recommended": "ask",
    "evidence": "owner",
-   "en": "Creating agents or plugins during a run. ask: state the purpose and permissions and wait for approval. auto: forge, test in the sandbox and enable without asking (always logged).",
-   "it": "Creazione di agenti o plugin durante un lavoro. ask: indicare scopo e permessi e attendere l'approvazione. auto: forgiare, collaudare nella sandbox e attivare senza chiedere (sempre registrato).",
+   "en": "The plugins Aurora builds for herself (the forge). ask: every plugin she builds, a read-only one too, waits for your approval before it is installed. auto: a read-only plugin without network, or a project's tool, is installed and switched on by itself after its tests in the cage (always logged); any other still waits. Changes to her own code have their own setting (AURORA_SELF_CHANGE_MODE).",
+   "it": "I plugin che Aurora si costruisce (la forgia). ask: ogni plugin che costruisce, anche di sola lettura, aspetta la tua approvazione prima di essere installato. auto: un plugin di sola lettura senza rete, o uno strumento di progetto, viene installato e acceso da solo dopo i test nella gabbia (sempre registrato); ogni altro aspetta comunque. Le modifiche al suo codice hanno la loro impostazione (AURORA_SELF_CHANGE_MODE).",
    "services": [
     "aurora-api"
    ]
+  },
+  {
+   "key": "AURORA_SELF_CHANGE_MODE",
+   "type": "enum",
+   "choices": [
+    "ask",
+    "auto"
+   ],
+   "category": "autonomy",
+   "recommended": "ask",
+   "evidence": "owner",
+   "en": "Changes to Aurora's own code (a repair, a proposal of hers). ask: each change waits for your approval, with its diff and its tests. auto: applied by herself once the tests pass in the cage, rolled back if the live tests fail — only on an installation exempted from level B; the files of the ethics code always need your signature.",
+   "it": "Le modifiche al codice di Aurora (una riparazione, una sua proposta). ask: ogni modifica aspetta la tua approvazione, con il diff e i test. auto: applicata da sola se i test passano nella gabbia, annullata se i test dal vivo falliscono — solo con l'esenzione dal livello B; i file del codice etico richiedono sempre la tua firma.",
+   "services": [
+    "aurora-api"
+   ],
+   "optional": true
   },
   {
    "key": "AURORA_CONFIRM_EXTERNAL_ACTIONS",
@@ -3400,8 +3417,8 @@
    "category": "agents",
    "recommended": "1",
    "evidence": "owner",
-   "en": "After a self-review that found problems, an agent investigates, fixes in the sandbox and proposes the change (applied as AURORA_FORGE_MODE says).",
-   "it": "Dopo un'autodiagnosi che ha trovato problemi, un agente indaga, corregge nella sandbox e propone la modifica (applicata come dice AURORA_FORGE_MODE).",
+   "en": "After a self-review that found problems, an agent investigates, fixes in the sandbox and proposes the change (applied as AURORA_SELF_CHANGE_MODE says).",
+   "it": "Dopo un'autodiagnosi che ha trovato problemi, un agente indaga, corregge nella sandbox e propone la modifica (applicata come dice AURORA_SELF_CHANGE_MODE).",
    "services": [
     "aurora-rem"
    ]

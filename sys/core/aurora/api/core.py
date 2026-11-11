@@ -191,9 +191,11 @@ def _from_this_machine(request) -> bool:
 
 # Failed logins per client address: after AURORA_AUTH_MAX_FAILS in AURORA_AUTH_WINDOW_S the address is refused
 # for the same window (429), and the owner is told (a security incident notification). A direct loopback
-# caller (no proxy header) is never counted nor locked: Aurora's own services live there, and a 256-bit key
-# cannot be guessed by trying; remote clients always come through Caddy and keep the lockout.
+# caller (no proxy header) is counted too, all of them as one address with a ceiling LOCAL_TIMES higher (C568: it was
+# never counted — a plugin or a local process could guess a password against the API's own port without limit);
+# never firewalled: Aurora's own services live there, and their valid key passes a lockout anyway (auth).
 _fails: dict[str, list[float]] = {}
+LOCAL, LOCAL_TIMES = "loopback", 10
 _fails_lock = threading.Lock()
 
 
@@ -216,20 +218,29 @@ def _local(request: Request) -> bool:
     return peer in ("127.0.0.1", "::1") and not request.headers.get("x-forwarded-for")
 
 
+def _ceiling(local: bool) -> int:
+    return int(cfg["AURORA_AUTH_MAX_FAILS"]) * (LOCAL_TIMES if local else 1)
+
+
 def _locked(request: Request) -> None:
-    if _local(request):
-        return
-    now, ip = time.time(), _client(request)
+    local = _local(request)
+    now, ip = time.time(), LOCAL if local else _client(request)
     with _fails_lock:
         recent = [t for t in _fails.get(ip, []) if now - t < cfg["AURORA_AUTH_WINDOW_S"]]
         _fails[ip] = recent
-    if len(recent) >= cfg["AURORA_AUTH_MAX_FAILS"]:
+    if len(recent) >= _ceiling(local):
         raise HTTPException(status_code=429, detail="too many failed attempts: try again later")
 
 
 def _failed(request: Request) -> None:
-    if _local(request):
-        log.warning("audit: wrong credential from a local process (not counted for the lockout)")
+    if _local(request):                                   # C568: counted, with its own ceiling; told once, no firewall
+        with _fails_lock:
+            _fails.setdefault(LOCAL, []).append(time.time())
+            n = len(_fails[LOCAL])
+        log.warning("audit: wrong credential from a local process (%d of %d before it is refused)", n, _ceiling(True))
+        if n == _ceiling(True):
+            note("security", "auth.lockout", {"title": f"{n} tentativi di accesso falliti da un programma su questo "
+                                                       "computer: rifiutati per qualche minuto", "ip": "127.0.0.1"})
         return
     ip = _client(request)
     with _fails_lock:
@@ -288,9 +299,9 @@ def _assisting(request: Request, dev: dict) -> None:
     if not s:
         return
     path = request.url.path
-    if not sys_assist.allowed(path):
-        raise HTTPException(status_code=403, detail="assistance: the password, the Authenticator, the keys and the "
-                                                    "devices stay the user's own")
+    if not sys_assist.allowed(path, request.method):     # C535: reads, and the changes of sys_assist.WRITES only
+        raise HTTPException(status_code=403, detail="assistance: the password, the Authenticator, the keys, the "
+                                                    "devices and the settings stay the user's own")
     request.state.assist = {"user": s["user"], "by": request.state.user, "until": s["until"]}
     request.state.user = s["user"]
     try:

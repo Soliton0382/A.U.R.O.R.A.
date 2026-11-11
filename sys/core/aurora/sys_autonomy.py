@@ -30,7 +30,13 @@ _lock = threading.Lock()
 # area: (scope, {level: {setting: value}}) — the levels an area has are the keys
 AREAS: dict[str, tuple[str, dict[int, dict[str, str]]]] = {
     "social": ("user", {0: {"AURORA_SOCIAL_AUTONOMY": "0"}, 2: {"AURORA_SOCIAL_AUTONOMY": "1"}}),
+    # C559 (owner, 12 Nov): three areas where there was one. «forge» is her plugins only — at 0 nothing she builds is
+    # installed by itself, not even a read-only one; «self_change» is her own code, with its own setting (it rode on
+    # the forge's: «forge: by herself» also applied code changes); «external» is every other action that leaves the
+    # machine, which had no place in the panel (AURORA_CONFIRM_EXTERNAL_ACTIONS, as it was set)
     "forge": ("machine", {0: {"AURORA_FORGE_MODE": "ask"}, 2: {"AURORA_FORGE_MODE": "auto"}}),
+    "self_change": ("machine", {0: {"AURORA_SELF_CHANGE_MODE": "ask"}, 2: {"AURORA_SELF_CHANGE_MODE": "auto"}}),
+    "external": ("machine", {0: {"AURORA_CONFIRM_EXTERNAL_ACTIONS": "1"}, 2: {"AURORA_CONFIRM_EXTERNAL_ACTIONS": "0"}}),
     "repairs": ("machine", {0: {"AURORA_SELF_REPAIR": "0"}, 1: {"AURORA_SELF_REPAIR": "1"}}),
     "security": ("machine", {0: {"AURORA_SENTINEL_INVESTIGATE": "0", "AURORA_DEFENCE_MODE": "suggest"},
                              1: {"AURORA_SENTINEL_INVESTIGATE": "1", "AURORA_DEFENCE_MODE": "suggest"},
@@ -66,8 +72,8 @@ AREAS: dict[str, tuple[str, dict[int, dict[str, str]]]] = {
 # the page's groups (owner, 2026-10-15: «nel medesimo stile» of the Models page): every area in exactly one
 GROUPS = {"learn": ["knowledge", "study", "harvest", "train", "shadow"],
           "mind": ["inner", "deduce", "synapses", "review", "morning"],
-          "code": ["forge", "repairs", "updates"],
-          "outside": ["social", "security", "edge"],
+          "code": ["forge", "self_change", "repairs", "updates"],
+          "outside": ["external", "social", "security", "edge"],
           "home": ["devices", "home"],
           "projects": ["projects"]}
 # what she always does by herself and that changes nothing: said on the page, no level to choose
@@ -76,17 +82,19 @@ ALWAYS = ["introspect", "react", "audit"]
 # attivo e funzionante»): its plugin on; the others are Aurora's own and always there
 NEEDS_PLUGIN = {"devices": "homeassistant", "home": "homeassistant", "edge": "cloudflare"}
 PROFILES = {
-    "careful": {"social": 0, "forge": 0, "repairs": 0, "security": 1, "updates": 1, "knowledge": 0, "inner": 2,
+    "careful": {"social": 0, "forge": 0, "self_change": 0, "external": 0, "repairs": 0, "security": 1, "updates": 1, "knowledge": 0, "inner": 2,
                 "study": 1, "shadow": 2, "morning": 2, "train": 0, "devices": 1, "home": 1,
                 "deduce": 2, "synapses": 2, "review": 1, "harvest": 2, "projects": 0, "edge": 0},
-    "balanced": {"social": 0, "forge": 0, "repairs": 1, "security": 1, "updates": 1, "knowledge": 2, "inner": 2,
+    "balanced": {"social": 0, "forge": 0, "self_change": 0, "external": 0, "repairs": 1, "security": 1, "updates": 1, "knowledge": 2, "inner": 2,
                  "study": 2, "shadow": 2, "morning": 2, "train": 2, "devices": 1, "home": 1,
                  "deduce": 2, "synapses": 2, "review": 2, "harvest": 2, "projects": 1, "edge": 0},
-    "free": {"social": 2, "forge": 2, "repairs": 1, "security": 2, "updates": 2, "knowledge": 2, "inner": 2,
+    # C559: no profile frees her own code or every external action: only the owner does, on that area («Su misura»)
+    "free": {"social": 2, "forge": 2, "self_change": 0, "external": 0, "repairs": 1, "security": 2, "updates": 2, "knowledge": 2, "inner": 2,
              "study": 2, "shadow": 2, "morning": 2, "train": 2, "devices": 2, "home": 2,
              "deduce": 2, "synapses": 2, "review": 2, "harvest": 2, "projects": 2, "edge": 2},
 }
-EXTERNAL = {"social", "security", "home", "edge"}       # their 🚀 acts outside the machine: level B decides
+# their 🚀 acts outside the machine or on her own code: level B decides (sys_approvals.needs_owner)
+EXTERNAL = {"social", "security", "home", "edge", "external", "self_change"}
 PROVED = {"days": 30, "decided": 10, "approved": 0.9}   # what "proved good" means; shown, never acted on alone
 
 
@@ -213,7 +221,7 @@ def area_of(item: dict, social_tools: set[str]) -> str:
     if kind in ("forge_cloud", "plugin_install"):
         return "forge"
     if kind == "code_change":
-        return "repairs"
+        return "self_change"                          # C559: what is decided there is a change to her code
     if title in social_tools or title.split(".")[0] in ("facebook", "instagram", "mastodon", "telegram"):
         return "social"
     return "other"
@@ -258,6 +266,8 @@ def statistics(cfg: sys_config.Config, approvals: list[dict], social_tools: set[
         if a not in out:
             continue
         st = it.get("status")
+        if st == "reserved":                          # C573: a post's place held while it goes out, not a proposal
+            continue
         out[a]["proposed"] += 1
         out[a]["approved" if st in ("approved", "executed") else "refused" if st == "rejected"
                else "alone" if st == "auto" else "failed" if st == "failed" else "pending"] += 1

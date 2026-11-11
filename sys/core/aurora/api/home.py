@@ -76,6 +76,13 @@ async def home_camera(entity_id: str) -> Response:
     if not ENTITY.fullmatch(entity_id) or not entity_id.startswith("camera."):
         raise HTTPException(status_code=422, detail="a camera entity is needed")
     url, token = str(cfg["AURORA_HA_URL"]).rstrip("/"), str(cfg["AURORA_HA_TOKEN"])
+    from .core import BASE, _admin
+    from .core_guard import address_problem
+    if me() != _admin():                                 # C535: an address saved before the rule is held to it too
+        from aurora import sys_user_config
+        admin_view = sys_user_config.for_user(BASE.base or BASE, _admin())
+        if await in_thread(address_problem, "AURORA_HA_URL", url, me(), admin_view):
+            raise HTTPException(status_code=403, detail="this Home Assistant address is the admin's to set")
     async with httpx.AsyncClient(timeout=30) as c:
         r = await c.get(f"{url}/api/camera_proxy/{entity_id}", headers={"Authorization": f"Bearer {token}"})
     if r.status_code >= 400:

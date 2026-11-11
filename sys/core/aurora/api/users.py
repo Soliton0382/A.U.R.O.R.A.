@@ -11,8 +11,33 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from .core import BASE, _admin, _failed, _locked, auth, cfg, devices, log, me
+from .core_guard import confirm_again, wrong
 
 router = APIRouter()
+# C570: the first authenticator belongs to the browser that was shown its QR — a ticket in an HttpOnly cookie, good
+# for ENROL_S; the first code is taken only with it (the password alone confirmed a secret begun by anyone)
+ENROL_COOKIE, ENROL_S, ENROL_PATH = "aurora_enrol", 600, "/v1/aurora/login"
+_enrolling: dict[str, tuple[str, float]] = {}        # user id -> (the ticket's SHA-256, good until)
+
+
+def _ticket_hash(ticket: str) -> str:
+    import hashlib
+    return hashlib.sha256(ticket.encode()).hexdigest()
+
+
+def _enrol_begin(uid: str) -> str:
+    import secrets
+    import time
+    ticket = secrets.token_urlsafe(32)
+    _enrolling[uid] = (_ticket_hash(ticket), time.time() + ENROL_S)
+    return ticket
+
+
+def _enrol_mine(uid: str, ticket: str) -> bool:
+    import secrets
+    import time
+    kept, until = _enrolling.get(uid, ("", 0.0))
+    return bool(ticket) and time.time() < until and secrets.compare_digest(kept, _ticket_hash(ticket))
 
 
 def _users() -> Users:
@@ -66,10 +91,17 @@ async def login(request: Request) -> JSONResponse:
     if mfa and not u["totp_on"]:
         if not code:                                       # the first login: scan the QR, then the first code
             secret = users.totp_begin(u["id"])
-            return JSONResponse({"enroll": {"secret": secret, "uri": otpauth_uri(secret, name)}})
+            resp = JSONResponse({"enroll": {"secret": secret, "uri": otpauth_uri(secret, name)}})
+            resp.set_cookie(ENROL_COOKIE, _enrol_begin(u["id"]), max_age=ENROL_S, httponly=True, secure=True,
+                            samesite="strict", path=ENROL_PATH)
+            return resp
+        if not _enrol_mine(u["id"], request.cookies.get(ENROL_COOKIE, "")):     # C570: not the browser shown the QR
+            raise HTTPException(status_code=401, detail="the enrolment begins again: leave the code empty")
         if not users.totp_confirm(u["id"], code):
             _failed(request)
             raise HTTPException(status_code=401, detail="wrong code")
+        _enrolling.pop(u["id"], None)
+        log.info("audit: %s enrolled their first authenticator at the login", u["name"])
     elif users.login(name, password, code, mfa=mfa) is None:
         _failed(request)
         raise HTTPException(status_code=401, detail="wrong code")
@@ -83,6 +115,8 @@ async def login(request: Request) -> JSONResponse:
     resp = JSONResponse({"user": u["name"], "role": u["role"]})
     resp.set_cookie(COOKIE, token, max_age=cfg["AURORA_DEVICE_DAYS"] * 86400, httponly=True, secure=True,
                     samesite="strict", path="/")
+    if request.cookies.get(ENROL_COOKIE):
+        resp.delete_cookie(ENROL_COOKIE, path=ENROL_PATH, secure=True, httponly=True, samesite="strict")
     return resp
 
 
@@ -189,8 +223,10 @@ async def my_password(request: Request) -> dict:
     u = users.by_name(name or "")
     if u is None:
         raise HTTPException(status_code=409, detail="no users on this installation yet")
-    if u["has_password"] and users.check_password(name, str(body.get("old", ""))) is None:
-        raise HTTPException(status_code=401, detail="the current password is wrong")
+    if u["has_password"]:
+        _locked(request)                                 # C570: a guess here is a failed login like any other
+        if users.check_password(name, str(body.get("old", ""))) is None:
+            raise wrong(request, "the current password is wrong")
     try:
         users.set_password(u["id"], str(body.get("new", "")))
     except ValueError as e:
@@ -212,14 +248,22 @@ async def my_totp(request: Request) -> dict:
     code = str(body.get("code", "")).strip()
     if not code:
         if u["totp_on"]:                                 # C440: changing an active authenticator asks for both first
+            _locked(request)                             # C570: guesses counted
             if users.check_password(name, str(body.get("password", ""))) is None:
-                raise HTTPException(status_code=401, detail="the password is wrong")
+                raise wrong(request, "the password is wrong")
             if not users.totp_current(u["id"], str(body.get("current", "")).strip()):
-                raise HTTPException(status_code=401, detail="the current authenticator's code is wrong")
+                raise wrong(request, "the current authenticator's code is wrong")
+        elif u["has_password"] and getattr(request.state, "device", None) is not None:
+            # C570: the first one too asks the password: a session alone enrolled its own authenticator, and the
+            # person's next login was refused
+            _locked(request)
+            if users.check_password(name, str(body.get("password", ""))) is None:
+                raise wrong(request, "the password is wrong")
         secret = users.totp_begin(u["id"])
         return {"secret": secret, "uri": otpauth_uri(secret, name)}
+    _locked(request)
     if not users.totp_confirm(u["id"], code):
-        raise HTTPException(status_code=401, detail="wrong code")
+        raise wrong(request, "wrong code")
     log.info("audit: %s enrolled an authenticator", name)
     return {"ok": True}
 
@@ -248,8 +292,12 @@ def my_keys() -> dict:
 
 @router.post("/v1/aurora/me/keys", dependencies=[Depends(auth)])
 async def my_key_new(request: Request) -> dict:
-    """{"name"}: a key for one program; shown only now, kept only as a hash; it works as this user."""
-    name = str((await request.json()).get("name", "")).strip()[:60] or "API"
+    """{"name", "password", "code"?}: a key for one program; shown only now, kept only as a hash; it works as this
+    user. The password (and the authenticator's code) again first (C570: a session left open made a key that outlives
+    it)."""
+    body = await request.json()
+    confirm_again(request, body)
+    name = str(body.get("name", "")).strip()[:60] or "API"
     token, rec = devices.register(name, "api key", user=me(), kind="api")
     log.info("audit: %s created an API key (%s)", me(), rec["id"])
     return {"key": token, **rec}

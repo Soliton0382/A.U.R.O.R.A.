@@ -1,5 +1,6 @@
 {
  "name": "tiktok",
+ "sandbox": {"network": true},
  "version": "1.0",
  "kind": "connector",
  "page": "social",

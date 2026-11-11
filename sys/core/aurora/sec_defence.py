@@ -124,17 +124,42 @@ def act(cfg: sys_config.Config, incident: dict) -> dict:
     return {**out, "until": rec["until"]}
 
 
+def decoy_blocks(cfg: sys_config.Config, incident: dict) -> bool:
+    """C534: may a decoy's touch take its source off this machine (sec_hostfw) by itself? Only a source from outside.
+    A device of the house can be made to touch a decoy from outside — a page its browser opens asks for
+    http://<this machine>:<decoy port> — or have its address taken on the LAN; blocked for hours, it is the owner's
+    phone that no longer reaches Aurora. An internal source is told (a high incident, never quieted) and the owner
+    decides. The address is judged here, not by the report's own "internal". The reason is kept on the incident."""
+    from . import sec_sentinel
+    src = str(incident.get("source", "")).strip()
+    try:
+        inside = not ipaddress.ip_address(src).is_global or sec_sentinel.is_private(src)
+    except ValueError:
+        inside = True                                   # not an address: nothing to block
+    if (inside or incident.get("internal")) and incident.get("id"):
+        from .sec_incidents import Incidents
+        Incidents(cfg).update(incident["id"], hostfw="not blocked: an address of the local network — told, the owner "
+                                                     "decides (🛡️ Security → this machine's firewall)")
+    return not (inside or incident.get("internal"))
+
+
 RULE = "Aurora_Block_List"      # the name suggested for the owner's drop rule on the firewall (Aurora writes no rule)
 
 
 def record_manual(cfg: sys_config.Config, ip: str, reason: str, incident: str | None = None) -> None:
     """A block made by the owner's click: kept here too, so the Security page can undo it (no expiry). Once per
-    address: a second click on a source already blocked adds nothing (C174: three rows for one address)."""
+    address: a second click on a source already blocked adds nothing (C174: three rows for one address).
+    C534: a block of Aurora's own on that address is not «already blocked» — its record expires, and release_due
+    then took the address out of the firewall's group: the owner's block undone by a timer. The owner's block
+    replaces the automatic record (closed as replaced, the address stays in the group)."""
     now = time.time()
     with _lock:
         items = _load(cfg)
-        if any(b["ip"] == ip and not b.get("released") and b["until"] > now for b in items):
+        mine = [b for b in items if b["ip"] == ip and not b.get("released")]
+        if any(not b.get("auto", True) and b["until"] > now for b in mine):
             return
+        for b in mine:                                  # automatic, running or overdue: the owner's takes its place
+            b["released"], b["released_by"] = now, "replaced by the owner's block"
         items.append({"ip": ip, "at": now, "until": now + 10 * 365 * 86400, "day": time.strftime("%Y-%m-%d"),
                       "incident": incident, "kind": "manual", "reason": reason, "auto": False, "released": None})
         _save(cfg, items)
@@ -153,6 +178,16 @@ def mark_released(cfg: sys_config.Config, ip: str, by: str) -> None:
         _save(cfg, items)
 
 
+def _close(cfg: sys_config.Config, rec: dict, by: str) -> None:
+    """One record closed, the firewall untouched."""
+    with _lock:
+        items = _load(cfg)
+        for b in items:
+            if b["ip"] == rec["ip"] and b.get("at") == rec.get("at") and not b.get("released"):
+                b["released"], b["released_by"] = time.time(), by
+        _save(cfg, items)
+
+
 def release(cfg: sys_config.Config, ip: str, by: str = "time") -> dict:
     out = sec_firewalls.unblock(cfg, ip)
     mark_released(cfg, ip, by)
@@ -164,7 +199,12 @@ def release(cfg: sys_config.Config, ip: str, by: str = "time") -> dict:
 def release_due(cfg: sys_config.Config) -> list[str]:
     """Lift every automatic block whose time is over; an error leaves it for the next round."""
     now, done = time.time(), []
-    for b in [b for b in _load(cfg) if not b.get("released") and b["until"] <= now and b.get("auto", True)]:
+    items = _load(cfg)
+    kept = {b["ip"] for b in items if not b.get("released") and b["until"] > now and not b.get("auto", True)}
+    for b in [b for b in items if not b.get("released") and b["until"] <= now and b.get("auto", True)]:
+        if b["ip"] in kept:                             # C534: the owner blocked it too — only the record is closed
+            _close(cfg, b, "replaced by the owner's block")
+            continue
         try:
             release(cfg, b["ip"])
             done.append(b["ip"])

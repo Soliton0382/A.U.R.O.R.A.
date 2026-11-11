@@ -95,7 +95,8 @@ async def finish(request: Request) -> dict:
         r = httpx.post(spec["token"], timeout=30, data={"client_key": key, "client_secret": secret, "code": code,
                                                         "grant_type": "authorization_code", "redirect_uri": redirect}).json()
     except (httpx.HTTPError, ValueError) as e:
-        raise HTTPException(status_code=502, detail=f"{got['provider']} does not answer: {str(e)[:200]}") from None
+        from .core_guard import upstream_error           # C570: its kind, not its text
+        raise HTTPException(status_code=502, detail=f"{got['provider']} does not answer: {upstream_error(e)}") from None
     if not r.get("refresh_token"):
         raise HTTPException(status_code=502, detail=f"{got['provider']}: {r.get('error_description') or r.get('error') or 'no token'}")
     if _own(me()):

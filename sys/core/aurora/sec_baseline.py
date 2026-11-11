@@ -29,6 +29,13 @@ UPLOAD_MIN = 500 * 2**20
 _lock = threading.Lock()
 
 
+# C584 (measured on the last 1,000 incidents, 12 Nov: 537 «behaviour», one device 200 «new port» in an hour, every
+# other device at most 23): each device tells at most PER_DEVICE in an hour one by one, the rest in one «burst»
+# incident of that hour with their count and values (still learnt, never told again); PER_HOUR in all; at most
+# MAX_DEVICES followed (37 here), a forged flood of addresses no longer grows the file without end
+PER_DEVICE, PER_HOUR, MAX_DEVICES = 5, 30, 1024
+
+
 class Baseline:
     def __init__(self, cfg: sys_config.Config, days: float | None = None):
         self.cfg = cfg
@@ -40,6 +47,9 @@ class Baseline:
             self.state = {"since": time.time(), "devices": {}, "told": []}
         self.told = set(self.state.get("told", []))
         self.saved = time.time()
+        self.paced: dict[str, list[float]] = {}                 # C584: per device, when each was told
+        self.all: list[float] = []
+        self.bursts: dict[tuple[str, int], dict] = {}
 
     def save(self, force: bool = False) -> None:
         if not force and time.time() - self.saved < 60:
@@ -66,6 +76,8 @@ class Baseline:
         devs = self.state["devices"]
         out = []
         d = devs.get(key)
+        if d is None and len(devs) >= MAX_DEVICES:
+            return []                                           # C584: no device beyond the ceiling is followed
         if d is None:
             d = devs[key] = {"first": now, "ip": f.get("src_ip"), "countries": [], "ports": [], "apps": [], "hours": [0] * 24,
                              "days": {}}
@@ -101,7 +113,37 @@ class Baseline:
                                      f"Oggi ha inviato {d['days'][day] / 2**20:.0f} MB, di solito {usual / 2**20:.0f} MB al giorno.",
                                      "Possibile fuga di dati o un backup nuovo: verifica."))
         self.save()
-        return [o for o in out if o]
+        return self._paced(key, [o for o in out if o], now)
+
+    def _paced(self, key: str, out: list[dict], now: float) -> list[dict]:
+        """C584: at a person's pace — one by one up to PER_DEVICE an hour for a device and PER_HOUR in all, then one
+        «burst» incident per device and hour that the later ones join (merged by kind and source, sec_incidents)."""
+        told = []
+        mine = [t for t in self.paced.get(key, []) if now - t < 3600]
+        self.all = [t for t in self.all if now - t < 3600]
+        for o in out:
+            if len(mine) < PER_DEVICE and len(self.all) < PER_HOUR:
+                mine.append(now)
+                self.all.append(now)
+                told.append(o)
+                continue
+            hour = int(now // 3600)
+            b = self.bursts.setdefault((key, hour), {"n": 0, "values": []})
+            b["n"] += 1
+            b["values"] = (b["values"] + [o["detail"]["title"]])[-20:]
+            stamp = time.strftime("%Y-%m-%dT%H:%M:%S%z")
+            told.append({"kind": "behaviour:burst", "source": o["source"], "count": 1, "internal": True,
+                         "first": stamp, "last": stamp, "samples": o.get("samples", [])[:1],
+                         "detail": {"title": "Molte novità da un dispositivo in un'ora",
+                                    "why": f"{b['n']} cose mai fatte prima oltre le {PER_DEVICE} dette una per una "
+                                           f"(le ultime: {', '.join(b['values'][-5:])}).",
+                                    "action": "Guarda cosa è cambiato su quel dispositivo: un aggiornamento, un programma "
+                                              "nuovo, o qualcosa che esplora la rete.",
+                                    "mac": o["detail"].get("mac", ""), "values": b["values"]}})
+        self.paced[key] = mine
+        for k in [k for k in self.bursts if k[1] < int(now // 3600) - 1]:
+            self.bursts.pop(k)
+        return told
 
     def _say(self, key: str, kind: str, value: str, f: dict, title: str, why: str, action: str) -> dict | None:
         tag = f"{key}|{kind}|{value}"

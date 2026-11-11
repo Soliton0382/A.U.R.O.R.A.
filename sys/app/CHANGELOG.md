@@ -1,5 +1,11 @@
 # Aurora's Android app — changelog
 
+## 0.5.4 - 2026-11-12
+
+- The page's actions on the phone (an action Aurora was asked for, calling Aurora) need a key the app gives the main
+  page only, made anew at every page: a sandboxed frame inside it (a document or a preview a model wrote) can no
+  longer open a link, set an alarm or dial (C565). The WebUI passes the key; with an app of before it calls as before.
+
 ## 0.5.3 - 2026-11-03
 
 - A WhatsApp message goes to the number WhatsApp has linked to the contact, not to the contact's first number (owner:

@@ -6,6 +6,13 @@ UDP on AURORA_SENTINEL_BIND; datagrams from addresses outside AURORA_SENTINEL_AL
 (counted in the log). Every accepted line goes to <AURORA_LOG_DIR>/firewall/firewall.log (rotated
 like every log); the detector (sec_sentinel) turns patterns into incidents, posted to
 POST /v1/aurora/sentinel/incident, which stores and investigates them. Defensive only.
+
+C566 — what the allow list is worth: a UDP datagram's sender is whatever the datagram says, so a device on the same
+LAN can write lines as the firewall. Bounded here (sec_sentinel): one datagram is one log line, new sources and
+incidents a minute are capped and told (syslog_flood), nothing is counted for ever, the decoys tell a touch at a
+person's pace. Not closed here: a forged line inside those limits still raises a false incident. What closes it is on
+the network's side — the firewall sending to a relay on this machine over TLS (then AURORA_SENTINEL_BIND on 127.0.0.1,
+the recommended value, and only 127.0.0.1 allowed), or the switch refusing forged senders.
 """
 from __future__ import annotations
 
@@ -20,7 +27,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import httpx  # noqa: E402
 
 from aurora import sys_config, sys_health, sys_log  # noqa: E402
-from aurora.sec_sentinel import Detector, Recon, household, is_ips, is_private, parse, src_of  # noqa: E402
+from aurora.sec_sentinel import (Detector, Recon, Touches, flood_incident, household, is_ips, is_private,  # noqa: E402
+                                 one_line, parse, src_of)
 
 cfg = sys_config.get()
 log = sys_log.get_logger("sentinel")
@@ -33,6 +41,7 @@ def honeypot(api: httpx.Client) -> None:
     """Decoy ports (owner, 2026-10-06): nothing real listens there, so whoever opens one is looking for a way in —
     told at once as a high incident; aurora-api may block them on this machine (sec_hostfw). Nothing is read or sent."""
     ports = [int(p) for p in str(cfg["AURORA_HONEYPOT_PORTS"] or "").split(",") if p.strip().isdigit()]
+    touches = Touches()                                # C566: one incident per source every ten minutes, a cap in all
 
     def watch(port: int) -> None:
         try:
@@ -51,8 +60,11 @@ def honeypot(api: httpx.Client) -> None:
             except (socket.timeout, OSError):
                 continue
             conn.close()
+            n = touches.touch(ip)
+            if not n:                                  # told a moment ago, or too many in all: counted for the next
+                continue
             now = time.strftime("%Y-%m-%dT%H:%M:%S%z")
-            incident = {"kind": "honeypot", "source": ip, "count": 1, "internal": is_private(ip), "first": now, "last": now,
+            incident = {"kind": "honeypot", "source": ip, "count": n, "internal": is_private(ip), "first": now, "last": now,
                         "samples": [f"connection to decoy port {port}"],
                         "detail": {"title": f"Esca toccata: porta {port}", "why": "Su questa porta non c'è nessun servizio: "
                                    "chi la apre sta cercando un modo per entrare.", "action": "Chi è questo dispositivo? "
@@ -109,7 +121,8 @@ def main() -> int:
     log.info("egress watch: %d networks listed (%s), this machine as %s", len(egress.deny.nets),
              ", ".join(map(str, sec_egress.asns(cfg))) or "none", ", ".join(sorted(egress.mine)) or "?")
     received = dropped = 0
-    beat = 0.0
+    beat = flood_at = 0.0
+    sender = ""                                        # the allowed address the last lines came as
     egress_at = time.time()
     while not _stop:
         if time.time() - beat > 60:
@@ -126,6 +139,16 @@ def main() -> int:
             if dropped:
                 log.warning("dropped %d datagrams from addresses not allowed", dropped)
                 dropped = 0
+            skipped, held = det.pressure()             # C566: the caps at work — said, and once an hour an incident
+            if skipped or held:
+                log.warning("flood: %d lines from new sources not counted, %d incidents not raised", skipped, held)
+                if time.time() - flood_at > 3600:
+                    flood_at = time.time()
+                    try:
+                        api.post(f"{BASE}/v1/aurora/sentinel/incident",
+                                 json=flood_incident(sender, skipped, held)).raise_for_status()
+                    except httpx.HTTPError as e:
+                        log.warning("flood incident not delivered: %s", e)
         if time.time() - model_at > 10:
             model_at = time.time()
             try:
@@ -147,7 +170,8 @@ def main() -> int:
             dropped += 1
             continue
         received += 1
-        line = data.decode("utf-8", errors="replace").strip()
+        sender = addr
+        line = one_line(data.decode("utf-8", errors="replace"))    # C566: one datagram, one line in firewall.log
         fw.info("%s %s", addr, line)
         f = parse(line)
         if own(cfg, src_of(f) or ""):                  # an address of Aurora's own (this installation's, aurora/local):

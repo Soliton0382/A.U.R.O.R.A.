@@ -283,12 +283,13 @@ def terminal_open(name: str) -> dict:
 
 
 @router.get("/v1/aurora/projects/{name}/terminal/{sid}/stream", dependencies=[Depends(auth)])
-async def terminal_stream(name: str, sid: str, after: int = 0):
+async def terminal_stream(request: Request, name: str, sid: str, after: int = 0):
     """The terminal's output as Server-Sent Events: {"n", "text"} chunks, then {"ended": true}."""
     import asyncio
     from fastapi.responses import StreamingResponse
     from aurora import prj_term
     from .core import me, quiet
+    from .core_guard import live
     who = me()
     _term(prj_term.get, sid, who)
 
@@ -308,7 +309,7 @@ async def terminal_stream(name: str, sid: str, after: int = 0):
                 return
             if not items:
                 yield ": keep-alive\n\n"
-    return StreamingResponse(quiet(gen()), media_type="text/event-stream")
+    return StreamingResponse(quiet(live(request, gen())), media_type="text/event-stream")   # C535: caller re-checked
 
 
 @router.post("/v1/aurora/projects/{name}/terminal/{sid}/input", dependencies=[Depends(auth)])

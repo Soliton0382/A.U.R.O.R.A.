@@ -33,7 +33,8 @@ PROPOSE_RIGHT = 0.2       # at most this share of its verdicts right (M262: 7 ri
 WINDOW_DAYS = 30          # the verdicts counted
 AGAIN_FA = 10             # a «no» asked again after this many more false alarms and none right (C406: the NAS's alert,
                           # declined at 3, had 53 false alarms a week later and was never proposed again)
-NEVER = {"honeypot", "recon_then_out", "egress_deny", "model_egress", "egress_new", "egress_upload"}
+NEVER = {"honeypot", "recon_then_out", "egress_deny", "model_egress", "egress_new", "egress_upload",
+         "syslog_flood"}                                # C566: forged logs are never a habit of the house
 _lock = threading.Lock()
 
 

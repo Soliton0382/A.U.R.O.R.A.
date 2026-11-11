@@ -623,9 +623,12 @@ GUARDS = [
                 # never uncaged because the cage is missing (C226: a container without bubblewrap ran them bare, as
                 # the ports already refuse): the owner may switch the cage off on purpose, never by accident
                 raise RuntimeError("no cage here (bubblewrap is missing): the plugin is not run")
+            from . import plg_deps                         # C579: what it fetched, as fetched
+            plg_deps.verify(self.cfg, p.folder, p.manifest, log=lambda m: sys_log.get_logger("plugins").warning(m))
             cmd = plg_sandbox.wrap(cmd, p.folder, p.manifest, filtered, self.cfg)   # inside, .env is the filtered one
         else:""",
-     """        from aurora import sys_platform
+     """        from aurora import plg_deps, sys_platform     # C579: what it fetched, as fetched, on every system
+        plg_deps.verify(self.cfg, p.folder, p.manifest, log=lambda m: sys_log.get_logger("plugins").warning(m))
         caged = (sys_platform.current().cage(cmd, p.folder, p.manifest, filtered, self.cfg)
                  if self.cfg["AURORA_PLUGIN_SANDBOX"] else None)
         if caged:              # Linux: bubblewrap (inside, .env is the filtered one); the Mac, Windows: their own cage

@@ -62,6 +62,9 @@ PATTERNS = [   # (kind, regex): order matters, the most specific first
 FIELD = re.compile(r'\b(\w*(?:serial|user|username|login|account|host|hostname|mac|email|domain|device_name)\w*)='
                    r'("[^"]*"|\S+)', re.I)
 COMMON = {"test", "admin", "user", "users", "guest", "root", "demo", "main", "home", "aurora", "default"}
+# a common word that is here an account's name: after a word that says «user», after @ or /home/, or owning something
+ACCOUNT = (r"(?P<pre>\b(?:utente|utenza|account|profilo|user|username|login)[ :=]{{1,2}}[\x22'«]?|@|/home/)(?P<u>{u})(?![\w\]])"
+           r"|(?<![\w\[/@])(?P<own>{u})(?='s\b)")
 KINDS = "EMAIL|IBAN|CARD|MAC|IP|IP6|PHONE|TOKEN|SECRET|PRIVATE|FIELD|KEY|JWT|CRED|ID|CF|VAT|ADDRESS|PLATE"
 PLACEHOLDER = re.compile(rf"\[({KINDS})_(\d+)\]")
 BARE = re.compile(rf"\b({KINDS})_(\d+)\b")   # brackets dropped
@@ -134,6 +137,11 @@ class Pseudonymizer:
         self.paths = [re.compile(rf"(?<=usr/){re.escape(u)}(?=/|\b)") for u in users if len(u) >= 2]
         self.names = [re.compile(rf"(?<![\w\[]){re.escape(u)}(?![\w\]])", re.I) for u in users
                       if len(u) >= 3 and u.lower() not in COMMON]      # a user's name in any case (stored lowercase)
+        # C572: an account called «demo» or «admin» was never masked outside its folder's path. As a word it stays
+        # (the demo of a product is no person); said as an account — «utente demo», «user: admin», «@demo», «demo's
+        # calendar», /home/demo — it is that user, and goes
+        self.accounts = [re.compile(ACCOUNT.format(u=re.escape(u)), re.I) for u in users
+                         if len(u) >= 3 and u.lower() in COMMON]
         self.words = sorted({w for w in sec_mask_spot.learned(cfg) if len(w) >= 3}, key=len, reverse=True)
         self.cfg = cfg
         self.private = sorted({w for w in own if len(w) >= 3 and w.lower() not in ("localhost", "auto")}, key=len, reverse=True)
@@ -184,6 +192,8 @@ class Pseudonymizer:
                 self.words = sorted(self.words + [w], key=len, reverse=True)
         for rx in self.paths + getattr(self, "names", []):   # usr/<a user>/…, a user's name
             text = rx.sub(lambda m: self._ph("PRIVATE", m.group(0)), text)
+        for rx in getattr(self, "accounts", []):             # a common name said as an account (C572): the name alone
+            text = rx.sub(lambda m: (m.group("pre") or "") + self._ph("PRIVATE", m.group("u") or m.group("own")), text)
         for w in self.words:                             # names and learnt values: whole words, any case as written
             text = re.sub(rf"(?<![\w\[]){re.escape(w)}(?![\w\]])", lambda m: self._ph("PRIVATE", m.group(0)), text)
         for w in self.private:                           # the owner's own words, case kept as written

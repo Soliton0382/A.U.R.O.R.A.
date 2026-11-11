@@ -1,5 +1,6 @@
 {
   "name": "linkcheck",
+  "sandbox": {"network": true},
   "version": "1.0",
   "kind": "tool",
   "description": {
@@ -69,6 +70,9 @@
     "report_malicious": "external",
     "*": "external"
   },
+  "owner_only": [
+    "honeypot_unlist"
+  ],
   "setup": {
     "it": "Funziona subito con i controlli del link stesso (credenziali nascoste, nomi in punycode). Per la reputazione spunta i servizi e metti le chiavi:\n- **VirusTotal**: registrati, *Profilo → API key* → `AURORA_LINKCHECK_VIRUSTOTAL_KEY`.\n- **URLhaus** (abuse.ch): accedi su auth.abuse.ch, crea una *Auth-Key* → `AURORA_LINKCHECK_URLHAUS_KEY`.\n- **AbuseIPDB**: usa la chiave già messa nel plugin netintel.\nUn servizio senza chiave o che non risponde vale «non controllato», mai «pulito». I verdetti restano in memoria un giorno.",
     "en": "Works at once with the link's own checks. For reputation tick the services and set their keys (VirusTotal, abuse.ch URLhaus; AbuseIPDB uses the netintel key).",

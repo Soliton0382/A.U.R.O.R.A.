@@ -7,7 +7,7 @@ Every AURORA_REM_TICK_S it reads GET /v1/aurora/rem/state and starts at most one
  dream        inside AURORA_REM_DREAM_HOURS (local), once per night, owner silent
  introspect   once a day, owner silent: a self-review from the logs (problems, causes, proposals)
  repair       after a self-review with problems (AURORA_SELF_REPAIR): an agent investigates, fixes in
-              the sandbox, proposes the change (the owner approves, AURORA_FORGE_MODE=ask)
+              the sandbox, proposes the change (the owner approves, AURORA_SELF_CHANGE_MODE=ask)
  routines     every tick, also with REM off: the owner's periodic checks that are due (sys_routines)
  project      a project carried by Aurora with an open step (prj_plan, AURORA_PROJECT_AUTONOMY): one step
  review       inside AURORA_REVIEW_HOURS, owner silent: past answers answered again; a better one is told

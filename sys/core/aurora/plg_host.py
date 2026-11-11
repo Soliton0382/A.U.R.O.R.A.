@@ -237,6 +237,8 @@ class PluginHost:
                 # never uncaged because the cage is missing (C226: a container without bubblewrap ran them bare, as
                 # the ports already refuse): the owner may switch the cage off on purpose, never by accident
                 raise RuntimeError("no cage here (bubblewrap is missing): the plugin is not run")
+            from . import plg_deps                         # C579: what it fetched, as fetched
+            plg_deps.verify(self.cfg, p.folder, p.manifest, log=lambda m: sys_log.get_logger("plugins").warning(m))
             cmd = plg_sandbox.wrap(cmd, p.folder, p.manifest, filtered, self.cfg)   # inside, .env is the filtered one
         else:
             env["AURORA_ENV_FILE"] = str(filtered)
@@ -267,6 +269,9 @@ class PluginHost:
         url = str(p.manifest["url"])
         if urlparse(url).scheme not in ("http", "https"):
             raise RuntimeError("a remote MCP server is reached over http or https only")
+        from . import plg_mcp                             # C571: where the name leads now, not when it was added
+        if why := await asyncio.to_thread(plg_mcp.address_problem, url, p.manifest.get("lan") is True, self.cfg):
+            raise RuntimeError(f"the MCP server's address is not reached: {why}")
         async with streamable_http_client(url) as streams:
             async with ClientSession(streams[0], streams[1]) as session:
                 await session.initialize()

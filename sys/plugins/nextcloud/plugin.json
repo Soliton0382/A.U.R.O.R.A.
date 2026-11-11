@@ -1,5 +1,6 @@
 {
  "name": "nextcloud",
+ "sandbox": {"network": true},
  "version": "1.0",
  "kind": "connector",
  "description": {

@@ -149,6 +149,19 @@ export default {
     edit.addEventListener("click", () => { edit.classList.toggle("on", !form.hidden); });
     const actions = el("div", "appr-actions fwl-actions");
     actions.append(...(it.id === "new" ? [] : [edit, connect]));
+    if (it.id !== "new" && it.confirmed) {             // «Scollega» (owner, 12 Nov): no more blocks, «Collega» brings it back
+      const off = el("button", "", `⏏️ ${t("fwl.disconnect")}`);
+      off.addEventListener("click", async () => {
+        if (!confirm(t("fwl.disconnect_ask"))) return;
+        try {
+          await call(`/v1/aurora/security/firewalls/${it.id}/disconnect`, { method: "POST" });
+          out.textContent = t("fwl.disconnected");
+          bus.emit("plugins");
+          this.enter();
+        } catch (e) { out.textContent = e.message; }
+      });
+      actions.append(off);
+    }
     if (it.id !== "new" && it.kind === "sophos") {      // the console the restart and the UPS use: in and out
       const con = el("button", "", `🖥️ ${t("fwl.console")}`);
       con.addEventListener("click", async () => {

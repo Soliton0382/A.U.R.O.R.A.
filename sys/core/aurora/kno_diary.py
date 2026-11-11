@@ -2,7 +2,11 @@
 # Copyright 2026 A.U.R.O.R.A. Project
 """Her diary for the diary plugin (N64): the dreams and thoughts the REM writes, copied into one file sealed with the
 user's «diary» key — the plugin, caged, gets that key alone (plg_host.SEAL_KEYS), never the memory's, so it reads her
-inner life that may be told and nothing of the conversations. The last KEEP entries."""
+inner life that may be told and nothing of the conversations. The last KEEP entries.
+
+C564: each entry says whether it is `public` — written from her knowledge and her own reflections, with nothing the
+masker would hide (kno_rem decides, with the keys the plugin does not have). The plugin tells only those: an entry
+of before, written from real conversation turns, has no mark and stays in the diary, untold."""
 from __future__ import annotations
 
 import json
@@ -29,7 +33,8 @@ def add(cfg: sys_config.Config, items: list[dict], user: str | None = None) -> i
     """Entries {at, type, text, image}, only dreams and thoughts; one already there (same at and type) not again."""
     rows = read(cfg, user)
     seen = {(r["at"], r["type"]) for r in rows}
-    new = [{"at": str(i["at"]), "type": i["type"], "text": str(i["text"]), "image": i.get("image")}
+    new = [{"at": str(i["at"]), "type": i["type"], "text": str(i["text"]), "image": i.get("image"),
+            "public": bool(i.get("public"))}
            for i in items if i.get("type") in KINDS and (str(i["at"]), i["type"]) not in seen]
     if new:
         rows = sorted(rows + new, key=lambda r: r["at"])[-KEEP:]
@@ -39,4 +44,6 @@ def add(cfg: sys_config.Config, items: list[dict], user: str | None = None) -> i
 
 def since(cfg: sys_config.Config, kinds: tuple[str, ...], when: datetime, user: str | None = None) -> list[dict]:
     iso = when.isoformat()
-    return [r for r in read(cfg, user) if r["type"] in kinds and r["at"] >= iso]
+    # C564: this is what the diary plugin tells (a post's material) — the entries marked public, nothing else; the
+    # filter is here, in the core, so that the plugin's signed code needs no change to be held to it
+    return [r for r in read(cfg, user) if r["type"] in kinds and r["at"] >= iso and r.get("public") is True]

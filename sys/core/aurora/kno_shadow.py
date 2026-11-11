@@ -100,6 +100,13 @@ def _db(cfg: sys_config.Config) -> sqlite3.Connection:
         con.execute("ALTER TABLE shadows ADD COLUMN follow TEXT")       # the answer's follow-up questions
     if "expires" not in {r[1] for r in con.execute("PRAGMA table_info(shadows)")}:
         con.execute("ALTER TABLE shadows ADD COLUMN expires REAL")      # a web answer's end (facts change); NULL: never
+    con.execute("CREATE TABLE IF NOT EXISTS done (step TEXT PRIMARY KEY)")
+    if con.execute("SELECT 1 FROM done WHERE step = 'c575'").fetchone() is None:
+        # C575 (the owner's decision, 12 Nov): the «train» rows made before C552 may carry context from the owner's
+        # turns and serve other users — removed once; the night's training makes them again, alone
+        con.execute("DELETE FROM shadows WHERE origin = 'train'")
+        con.execute("INSERT INTO done VALUES ('c575')")
+        con.commit()
     return con
 
 

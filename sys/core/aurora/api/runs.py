@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from .core import _runs, answer_or_acquire, mine, own_run, auth, cfg, edit_pictures, make_video, picture_intent, pipeline, quiet, start_run, video_busy_answer, wait_events
+from .core_guard import live
 from .users import admin_only  # noqa: E402
 
 router = APIRouter()
@@ -170,7 +171,7 @@ def runs_busy() -> dict:
 
 
 @router.get("/v1/aurora/runs/{run_id}/events", dependencies=[Depends(auth)])
-async def run_events(run_id: str, after: int = 0):
+async def run_events(request: Request, run_id: str, after: int = 0):
     run = own_run(run_id)                               # another user's run: as if it did not exist
 
     async def gen():
@@ -183,7 +184,7 @@ async def run_events(run_id: str, after: int = 0):
             if done and seen >= len(run["events"]):
                 yield "event: end\ndata: {}\n\n"
                 break
-    return StreamingResponse(quiet(gen()), media_type="text/event-stream")
+    return StreamingResponse(quiet(live(request, gen())), media_type="text/event-stream")   # C535: caller re-checked
 
 
 @router.get("/v1/aurora/chat/anon", dependencies=[Depends(auth)])

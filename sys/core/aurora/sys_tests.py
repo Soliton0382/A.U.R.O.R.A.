@@ -11,7 +11,32 @@ import time
 from pathlib import Path
 
 
-def run_suite(base: Path, select: str = "", timeout: int = 1800, caged: bool = False) -> dict:
+# what the live code's tests read of the installation (the same a sandbox copies: the self plugin's ROOT_FILES)
+LIVE_READ = ("sys/core", "sys/plugins", "sys/app", "pyproject.toml", "install.sh", "uninstall.sh", ".env.example",
+             "CHANGELOG.md", "README.md", "README.en.md", ".github")
+LIVE_HIDDEN = ("sys/app/keys", "sys/app/tools", "sys/app/build", "sys/app/out")
+
+
+def live_cage(base: Path, command: str, scratch: Path) -> list[str]:
+    """The cage for the LIVE code's tests after a change (C562: they ran as the service itself — a test file of the
+    change was code with the service's reach, before the owner had read a line of it when self-change is «by
+    herself»). The projects' cage (prj_run) around an empty folder: the installation hidden whole, then its code put
+    back read only — never .env, the keys, the state, the vault, the users' folders; no network. `scratch`: the
+    empty folder the tests may write in."""
+    from . import prj_run
+    run = prj_run.cage(None, scratch, command)
+    binds = []
+    for rel in LIVE_READ:
+        if (base / rel).exists():
+            binds += ["--ro-bind", str(base / rel), str(base / rel)]
+    for rel in LIVE_HIDDEN:
+        if (base / rel).is_dir():
+            binds += ["--tmpfs", str(base / rel)]
+    i = run.index("--clearenv")
+    return run[:i] + binds + run[i:]
+
+
+def run_suite(base: Path, select: str = "", timeout: int = 1800, caged: bool = False, live: bool = False) -> dict:
     """pytest on <base>/sys/core/tests without the GPU tests. {"ok", "passed", "failed", "summary", "output"}.
     `caged`: a sandbox's code, written by the agent and not reviewed yet — run in the projects' cage (prj_run: no
     network, no home, no .env, no host sockets, only the sandbox writable). C420, 28 Oct: those tests ran inside
@@ -23,8 +48,17 @@ def run_suite(base: Path, select: str = "", timeout: int = 1800, caged: bool = F
     if caged:
         import shlex
         from . import prj_run
-        run = prj_run.cage(None, base, f"PYTHONPATH={shlex.quote(f'{core}:{core / 'tests'}')} " + shlex.join(cmd))
-        r = subprocess.run(run, capture_output=True, text=True, timeout=timeout)
+        line = f"PYTHONPATH={shlex.quote(f'{core}:{core / 'tests'}')} " + shlex.join(cmd)
+        if live:                                      # the live code after a change: read only in its cage (C562)
+            import shutil
+            import tempfile
+            scratch = Path(tempfile.mkdtemp(prefix="aurora-live-tests-"))
+            try:
+                r = subprocess.run(live_cage(base, line, scratch), capture_output=True, text=True, timeout=timeout)
+            finally:
+                shutil.rmtree(scratch, ignore_errors=True)
+        else:
+            r = subprocess.run(prj_run.cage(None, base, line), capture_output=True, text=True, timeout=timeout)
     else:
         env = dict(os.environ, PYTHONPATH=f"{core}:{core / 'tests'}", PYTHONDONTWRITEBYTECODE="1")
         for k in ("AURORA_ENV_FILE", "AURORA_PLUGIN", "AURORA_IN_SANDBOX"):   # tests build their own .env, and are not

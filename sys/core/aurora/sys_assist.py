@@ -11,6 +11,10 @@ Exchange… il consenso è implicito all'atto di attivazione (basta un disclaime
 - Never, whoever asks: the password, the Authenticator, the API keys, the devices (sessions), the logout of the
   admin's own device while inside, the user's first-run screens marked seen (NEVER, refused by the API before the
   route); the WebUI inside sends none of the person's look up (style.adopt) nor shows the first run.
+- Inside, the admin reads everything of the account and works in it — a question, a file, a project, the calendar,
+  the records, a switch of the home — and nothing else is changed (C535, security audit of 9 Nov: a list of what was
+  refused let every new route through, so the assistance could leave what outlives it — a setting, an address of a
+  service, a routine, a subscription to the notifications, a cloud account). WRITES is the list of what may change.
 - Every step (the method and the path, no body) goes into the user's log (assist_log.jsonl, each line sealed with the
   user's key), shown on their page; the user is told when the admin enters and when the assistance ends (api.assist).
 
@@ -30,6 +34,15 @@ WINDOWS = (8, 16, 24, 48, 72)                          # hours a user can open i
 NEVER = ("/v1/aurora/me/password", "/v1/aurora/me/totp", "/v1/aurora/me/keys", "/v1/aurora/devices",
          "/v1/aurora/logout", "/v1/aurora/login", "/v1/aurora/assist/grant", "/v1/aurora/assist/revoke",
          "/v1/aurora/me/welcomed")                     # the first run's screens: the person's own to see
+# C535: what the admin may change inside a user's account — the person's work, nothing that stays as a setting
+READS = ("GET", "HEAD", "OPTIONS")
+WRITES = ("/v1/aurora/ask", "/v1/aurora/acquire", "/v1/aurora/agent", "/v1/aurora/chat/anon", "/v1/chat/completions",
+          "/v1/aurora/artifacts", "/v1/aurora/interpret", "/v1/aurora/tts", "/v1/aurora/uploads", "/v1/aurora/documents",
+          "/v1/aurora/deductions", "/v1/aurora/projects", "/v1/aurora/calendar", "/v1/aurora/care", "/v1/aurora/diet",
+          "/v1/aurora/health", "/v1/aurora/expenses", "/v1/aurora/dj", "/v1/aurora/dj-song", "/v1/aurora/radio",
+          "/v1/aurora/ideas", "/v1/aurora/trash", "/v1/aurora/astro/files", "/v1/aurora/astro/sky",
+          "/v1/aurora/astro/collimation", "/v1/aurora/home/service", "/v1/aurora/home/look", "/v1/aurora/home/scenes",
+          "/v1/aurora/approvals", "/v1/aurora/social/draft", "/v1/aurora/social/check", "/v1/aurora/assist/leave")
 STEP_GAP_S = 60                                        # the same page read again within a minute: one step, not many
 LOG_MAX = 3000
 _lock = threading.Lock()
@@ -145,9 +158,21 @@ def inside(base: sys_config.Config, user: str) -> bool:
     return any(s["user"] == user for s in _load(base)["sessions"].values())
 
 
-def allowed(path: str) -> bool:
-    """A path the admin may use inside a user's account (NEVER: the account's keys and sessions)."""
-    return not any(path == p or path.startswith(p + "/") for p in NEVER)
+def _under(path: str, prefixes) -> bool:
+    return any(path == p or path.startswith(p + "/") for p in prefixes)
+
+
+# the owner's choice (12 Nov, as on 29 Oct): the assistance is full access — everything but NEVER. WRITES stays the
+# list of the person's own work, for the day the owner wants the narrower assistance (FULL = False)
+FULL = True
+
+
+def allowed(path: str, method: str = "GET") -> bool:
+    """What the admin may do inside a user's account: anything but the account's keys and sessions (NEVER); with
+    FULL off, changes only in WRITES (C535)."""
+    if _under(path, NEVER):
+        return False
+    return FULL or method.upper() in READS or _under(path, WRITES)
 
 
 # ---- the user's log --------------------------------------------------------------------------------------------------

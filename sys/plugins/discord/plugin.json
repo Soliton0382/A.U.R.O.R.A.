@@ -2,6 +2,7 @@
  "name": "discord",
  "version": "1.0",
  "kind": "connector",
+ "sandbox": {"network": true},
  "description": {
   "it": "Un canale del tuo server Discord tramite un bot: leggere gli ultimi messaggi e scriverne (con la tua approvazione).",
   "en": "One channel of your Discord server through a bot: read the latest messages and write (with your approval)."

@@ -12,7 +12,7 @@ import { apiBack } from "../restart.js";
 useCss("/static/css/models_mode.css");
 
 const ICON = { 0: "🔒", 1: "🤝", 2: "🚀" };
-const AREA_ICON = { social: "📣", forge: "🧰", repairs: "🔧", security: "🛡️", updates: "⬆️", knowledge: "📚", inner: "💭",
+const AREA_ICON = { social: "📣", forge: "🧰", self_change: "🧬", external: "📤", repairs: "🔧", security: "🛡️", updates: "⬆️", knowledge: "📚", inner: "💭",
   study: "🌙", shadow: "🌗", morning: "☀️", train: "🏋️", devices: "🏠", home: "💡",
   deduce: "💡", synapses: "🧠", review: "🔁", harvest: "🌾", projects: "🏗️", edge: "☁️" };
 const TABS = ["choose", "custom", "done", "stats", "users"];

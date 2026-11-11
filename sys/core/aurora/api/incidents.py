@@ -89,7 +89,9 @@ async def sentinel_incident(request: Request) -> dict:
         note("sentinel", "incident", {"id": item["id"], "kind": item["kind"], "source": item["source"],
                                       "severity": item["severity"], "title": f"{item['kind']} · {who}"})
     defend(item)
-    if item["kind"] == "honeypot":                        # a decoy touched: off this machine at once (sec_hostfw)
+    # a decoy touched: off this machine at once (sec_hostfw) — a source from outside only: a device of the house is
+    # told, never blocked by a touch someone else can cause (C534, sec_defence.decoy_blocks)
+    if item["kind"] == "honeypot" and sec_defence.decoy_blocks(cfg, item):
         import threading
 
         def keep_out():

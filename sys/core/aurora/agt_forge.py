@@ -150,8 +150,17 @@ CORE_REFUSAL = ("REFUSED: this reaches Aurora's own internal data (the people's 
                 "search_vault for the vault — and, if one is missing, say so to the owner: it is the core's to add.")
 
 
-class CoreNeed(ValueError):
+class Refused(ValueError):
+    """A request the forge does not queue; its message is what the agent reads."""
+
+
+class CoreNeed(Refused):
     """A request for a plugin that would read Aurora's own stores (CORE_STORES): refused, never queued."""
+
+
+class Spent(Refused):
+    """Over the forge's budget (agt_forge_budget, C560): the need failed or was declined lately, or today's
+    requests are used up."""
 
 
 def core_need(need: str, why: str = "") -> bool:
@@ -159,17 +168,20 @@ def core_need(need: str, why: str = "") -> bool:
 
 
 def request(cfg: sys_config.Config, need: str, why: str, run_id: str | None, routine: str | None = None) -> dict:
-    """Queue a missing capability once: the same need asked again by the same user joins the open request. The need
-    and the why are sealed with the asking user's key in the shared file (N64 phase 4); the item returned is opened."""
-    from . import sys_context
+    """Queue a missing capability once: the same need asked again by the same user joins the request still alive;
+    one that failed or was declined lately, or one past the day's number, raises Spent (C560: agt_forge_budget). The
+    need and the why are sealed with the asking user's key in the shared file (N64 phase 4); the item returned is
+    opened."""
+    from . import agt_forge_budget, sys_context
     if core_need(need, why):
         raise CoreNeed(CORE_REFUSAL)
     need, user = need.strip()[:500], sys_context.user()
     items = requests(cfg)
-    same = next((o for i in items if i.get("user") == user and i["status"] in ("pending", "building", "proposed")
-                 and str((o := opened(cfg, i))["need"]).lower() == need.lower()), None)
-    if same:
-        return same
+    verdict, found = agt_forge_budget.decide([opened(cfg, i) for i in items if i.get("user") == user], need)
+    if verdict == "join":
+        return found
+    if verdict != "new":
+        raise Spent(agt_forge_budget.said(verdict, found))
     item = {"id": uuid.uuid4().hex[:10], "need": need, "why": why.strip()[:1000], "run_id": run_id, "routine": routine,
             "status": "pending", "created": time.time(), "attempts": 0, "plugin": None, "log": [], "user": user}
     items.append(sys_log.seal_fields(cfg, item, TEXT, f"forge/{item['id']}", user))
@@ -375,10 +387,13 @@ def read_only(manifest: dict) -> bool:
 PROJECT_WRITE = {"AURORA_PROJECTS_DIR"}
 
 
-def installs_alone(manifest: dict) -> bool:
+def installs_alone(manifest: dict, cfg: sys_config.Config | None = None) -> bool:
     """Installable without the owner (owner, 21 Oct: «queste cose per i progetti possano procedere senza bisogno di
     mia autorizzazione»): read only, or a project's tool — it writes only in the projects' folder and reaches at most
-    the local model; nothing it does leaves the machine (all enforced by the cage)."""
+    the local model; nothing it does leaves the machine (all enforced by the cage). With `cfg`: only where the owner
+    set the forge to «by herself» (C559: at «asks» these were installed and switched on all the same)."""
+    if cfg is not None and cfg["AURORA_FORGE_MODE"] != "auto":
+        return False
     sb = manifest.get("sandbox") or {}
     effects = manifest.get("effects") or {}
     return read_only(manifest) or (bool(effects) and all(v in ("read", "write_local") for v in effects.values())

@@ -5,7 +5,7 @@
  1. the sandbox tests must pass (again, now);
  2. the live files that change are copied into <sandbox>/.backup/ (new files are noted);
  3. the sandbox files are copied over the live ones;
- 4. the live tests must pass, otherwise everything is put back as it was (rollback);
+ 4. the live tests must pass (in the cage, the code read only: C562), otherwise everything is put back (rollback);
  5. the services that use the changed files are restarted (systemctl, allowed by the polkit rule).
 Only sys/core is ever changed. Every step is an event, a log line and a trace.
 """
@@ -129,7 +129,7 @@ def apply(sandbox_id: str, emit, cfg: sys_config.Config | None = None, restart: 
         return {"applied": False, "reason": f"could not write the change: {e!r}: rolled back"}
     log.info("audit: change %s applied: %s", sandbox_id, ", ".join(files))
     emit("change.applied", {"files": files})
-    live_t = sys_tests.run_suite(root)
+    live_t = sys_tests.run_suite(root, caged=True, live=True)   # C562: caged too — the code read only, nothing else
     emit("change.tests.live", {"ok": live_t["ok"], "summary": live_t["summary"]})
     if not live_t["ok"]:
         rollback(sandbox_id, cfg)

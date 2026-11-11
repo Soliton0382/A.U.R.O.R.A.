@@ -41,13 +41,15 @@ def report_malicious(url: str, why: str) -> str:
 def honeypot_sites() -> str:
     """The sites Aurora's honeypot caught carrying a prompt injection, and why (read only)."""
     from aurora import sec_detonate
-    sites = sec_detonate._load(sys_config.get())["sites"]
-    return "\n".join(f"{s}: {v['why'][:200]} ({v['url'][:120]})" for s, v in sites.items()) or "Nessun sito catturato."
+    d = sec_detonate._load(sys_config.get())
+    caught = {**d["sites"], **d["pages"]}             # whole sites, and single pages of shared sites (C534)
+    return "\n".join(f"{s}: {v['why'][:200]} ({v['url'][:120]})" for s, v in caught.items()) or "Nessun sito catturato."
 
 
 @server.tool()
 def honeypot_unlist(site: str) -> str:
-    """Take a site off the honeypot's list — the owner says it is safe (a false alarm)."""
+    """Take a site (its name) or one page of a shared site (its link) off the honeypot's list — only when the owner
+    asks for it in their own words: it is safe, a false alarm. It always waits for the owner's approval (C534)."""
     from aurora import sec_detonate
     return f"{site} tolto dalla lista." if sec_detonate.unlist(sys_config.get(), site) else f"{site} non era nella lista."
 

@@ -44,6 +44,12 @@ step() { echo; echo -e "\e[1;36m━━ $* ━━\e[0m"; }
 ok() { echo -e "  \e[32m✓\e[0m $*"; }
 warn() { echo -e "  \e[33m!\e[0m $*"; }
 die() { echo -e "\n\e[31m✗ $*\e[0m"; echo "$(t 'Dettagli in' 'Details in') $ROOT/install.log"; exit 1; }
+# C579: once aurora-root is installed, this folder's code (tests, setup scripts) runs only as the owner signed it —
+# an update is read and signed first (root's copy shows the list), then installed
+if [ -x /usr/local/sbin/aurora-root ] && ! /usr/local/sbin/aurora-root verify >/dev/null 2>&1; then
+  echo "$(t 'Il codice non è come firmato: guarda la lista e firma con sudo aurora-root sign, poi rilancia ./install.sh' 'The code is not as signed: read the list and sign with sudo aurora-root sign, then run ./install.sh again')"
+  exit 1
+fi
 ask() {  # ask "question" default [NAME] -> echo answer; AURORA_INSTALL_<NAME> answers without asking
   local q="$1" d="$2" a v="AURORA_INSTALL_${3:-}"
   if [ -n "${3:-}" ] && [ -n "${!v:-}" ]; then echo "${!v}"; return; fi

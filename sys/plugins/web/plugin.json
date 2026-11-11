@@ -1,5 +1,6 @@
 {
   "name": "web",
+  "sandbox": {"network": true},
   "version": "1.0",
   "kind": "tool",
   "description": {

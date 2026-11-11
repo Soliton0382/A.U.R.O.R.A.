@@ -176,6 +176,6 @@ def test_the_manifest_says_what_each_tool_does():
     m = json.loads((PLUGIN / "plugin.json").read_text(encoding="utf-8"))
     assert m["effects"]["calendar_agenda"] == "read" and m["effects"]["calendar_add_event"] == "external"
     assert {m["effects"][t] for t in ("calendar_add", "calendar_remind", "calendar_change", "calendar_delete")} == {"write_local"}
-    assert m["sandbox"] == {"write": ["AURORA_CALENDAR_DIR"]} and "network" not in m["sandbox"]     # the ICS links need it
+    assert m["sandbox"] == {"network": True, "write": ["AURORA_CALENDAR_DIR"]}     # the ICS links need it: said (C568)
     assert not m["requires"]                                                         # always there, nothing to set
     sys.modules.pop("calendar_plugin_server", None)

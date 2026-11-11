@@ -91,7 +91,8 @@ app = FastAPI(title="Aurora", docs_url=None, redoc_url=None, openapi_url=None)  
 async def upstream_down(request: Request, exc: httpx.HTTPError) -> JSONResponse:
     """A service Aurora depends on (models, reasoner) is not reachable: 503, retry later."""
     log.warning("upstream unavailable on %s: %s", request.url.path, exc)
-    return JSONResponse(status_code=503, content={"detail": f"a service is not reachable: {exc}"})
+    # C570: the error's own text names the house's addresses and ports: in the log, not in the answer
+    return JSONResponse(status_code=503, content={"detail": f"a service is not reachable ({type(exc).__name__})"})
 
 
 from aurora.sys_replay import Replay  # noqa: E402
@@ -100,6 +101,10 @@ app.add_middleware(Replay)                          # a request repeated after a
 from aurora.sys_csrf import SameOrigin  # noqa: E402
 
 app.add_middleware(SameOrigin)                      # a change with the session from another site: refused (C441)
+from aurora.api.core_guard import body_cap  # noqa: E402
+from aurora.sys_bodylimit import BodyLimit  # noqa: E402
+
+app.add_middleware(BodyLimit, cap=body_cap)         # outermost: a body counted before anything reads it (C535)
 
 for _name in MODULES:                               # each area of the API is its own module (aurora/api)
     app.include_router(__import__(f"aurora.api.{_name}", fromlist=["router"]).router)

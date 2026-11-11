@@ -40,6 +40,7 @@
   "AURORA_CALDAV_PASSWORD"
  ],
  "sandbox": {
+  "network": true,
   "write": [
    "AURORA_CALENDAR_DIR"
   ]

@@ -6,7 +6,7 @@
 
 Tools are the plugins' tools (plg_host) plus two of the loop itself:
   propose_change(sandbox_id, title, purpose)  a code change made in a sandbox: its tests must pass;
-                                              then it waits for the owner (AURORA_FORGE_MODE=ask)
+                                              then it waits for the owner (AURORA_SELF_CHANGE_MODE=ask)
                                               or is applied at once (auto), with rollback on failure
   finish(summary)                             the end: what was done, what was found, what is left
 The gate is the effect of each tool (sys_approvals): read and write_local run, external actions
@@ -22,7 +22,7 @@ import time
 
 import httpx
 
-from . import agt_phone, mdl_fit, sns_clock, sys_config, sys_log, sys_people
+from . import agt_asked, agt_phone, mdl_fit, sns_clock, sys_config, sys_log, sys_people
 from .kno_answer import Answer, Trail
 from .agt_loop_make import AgentMakers
 from . import agt_tools
@@ -229,20 +229,20 @@ class Agent(AgentMakers, AgentReport):
         admin = users.admin_name()
         return sys_people.tool_text(base, sys_context.user() or admin, names, admin)
 
-    def _home_free(self, plugin: str, tool: str) -> bool:
+    def _home_free(self, plugin: str, tool: str, args: dict | None = None) -> bool:
         """A command to the home's devices (a tool the plugin lists as `home_commands`) done without asking: when the
         owner asked for it in the chat (AURORA_HA_COMMANDS 1), or also when the run decided it (2, only with the
         exemption from level B). Owner, 2026-10-12: «se io le chiedo di farlo deve farlo automaticamente» (C281)."""
         m = self.host.get(plugin).manifest
         if m.get("forged"):                               # a plugin Aurora wrote herself never commands the house alone (9 Nov)
             return False
-        if tool in (m.get("owner_only") or []) and not self.asked:    # e.g. disarming an alarm: never a run's own idea
+        if tool in (m.get("owner_only") or []) and not agt_asked.covers(self, tool, args):   # e.g. disarming an alarm
             return False
-        return tool in (m.get("home_commands") or []) and self._may_command()
+        return tool in (m.get("home_commands") or []) and self._may_command(tool, args)
 
-    def _may_command(self) -> bool:
+    def _may_command(self, what: str = "", args: dict | None = None) -> bool:
         level = int(self.cfg["AURORA_HA_COMMANDS"] or 0)
-        if self.asked:
+        if agt_asked.covers(self, what, args):           # C561: asked, and not narrowed by what the run read since
             return level >= 1
         from . import sys_ethics
         return level >= 2 and sys_ethics.exempt(self.cfg)
@@ -294,13 +294,13 @@ class Agent(AgentMakers, AgentReport):
             return refused
         if name == "home_scene":                              # Aurora's own light scenes (hom_scenes, owner 2026-10-12)
             from . import hom_scenes
-            out = hom_scenes.tool(self.cfg, args, self._may_command(), self.log)
+            out = hom_scenes.tool(self.cfg, args, self._may_command("home_scene", args), self.log)
             if out.startswith(("STARTED", "STOPPED")):
                 self.notify("home.command", {"title": f"home_scene.{args.get('action')}", "arguments": args})
             return out
         if name == "home_automation":                         # Aurora's own automations on every device (hom_auto)
             from . import hom_auto
-            out = hom_auto.tool(self.cfg, args, self._may_command(), self.log)
+            out = hom_auto.tool(self.cfg, args, self._may_command("home_automation", args), self.log)
             if out.startswith("RAN"):
                 self.notify("home.command", {"title": "home_automation.run", "arguments": args})
             return out
@@ -309,6 +309,8 @@ class Agent(AgentMakers, AgentReport):
         if name == "phone_action":                           # 📱 done by the app on the owner's phone (agt_phone)
             if not self.asked:
                 return "ERROR: the phone acts only when the owner asks for it in the conversation"
+            if not agt_asked.covers(self, "phone_action", args):     # C561: after a page or a message was read
+                return agt_asked.refusal(self, "action on the phone")
             act = agt_phone.prepare(args)
             if isinstance(act, str):
                 return act
@@ -352,7 +354,7 @@ class Agent(AgentMakers, AgentReport):
             try:
                 req = agt_forge.request(self.cfg, str(args.get("need", "")), str(args.get("why", "")), run_id,
                                         getattr(self, "routine", None))
-            except agt_forge.CoreNeed as e:                   # Aurora's own data: the core's, never a plugin's
+            except agt_forge.Refused as e:                    # Aurora's own data, or the forge's budget spent (C560)
                 emit("forge.refused", {"need": str(args.get("need", ""))[:160]})
                 return str(e)
             self.requested = True
@@ -402,7 +404,7 @@ class Agent(AgentMakers, AgentReport):
             private += [v for v in m.to_ph if v not in private]
         from . import hom_safety                          # C536: lowering the house's security always waits for the owner
         lowers = hom_safety.call_lowers(self.host.get(plugin).manifest if self.host.get(plugin) else {}, tool, args)
-        home = not private and not lowers and self._home_free(plugin, tool)
+        home = not private and not lowers and self._home_free(plugin, tool, args)
         if home:
             emit("agent.home", {"plugin": plugin, "tool": tool, "asked": self.asked})
             self.notify("home.command", {"title": f"{plugin}.{tool}", "arguments": {k: v for k, v in args.items()
@@ -433,10 +435,13 @@ class Agent(AgentMakers, AgentReport):
                 plg_shadow.put(self.cfg, plugin, tool, args, r["text"])
         if not r["ok"] and "Connection closed" in r["text"]:   # the plugin died starting: its own last words say why
             r = {**r, "text": r["text"] + plugin_cause(self.cfg, plugin)}
+        agt_asked.mark(self, plugin, tool, emit)             # C561: from here «asked» covers only what the goal names
         if r["ok"]:                                          # from the network: tried on a decoy first (sec_detonate)
-            from . import sec_detonate
+            from . import agt_logguard, sec_detonate
             if (blocked := sec_detonate.agent_gate(self, plugin, tool, args, r["text"], emit, run_id)):
                 return blocked
+            if (seen := agt_logguard.agent_gate(self, plugin, tool, r["text"], emit)) is not None:
+                r = {**r, "text": seen}                      # C562: a log's lines are a stranger's words too
         if effect == "external":                             # done without the owner: recorded and told, never silent
             self.approvals.record_auto(f"{plugin}.{tool}", purpose, {"plugin": plugin, "tool": tool, "arguments": args},
                                        r["text"], run_id)
@@ -476,6 +481,7 @@ class Agent(AgentMakers, AgentReport):
         emit("agent.start", {"goal": goal, "tools": len(specs)})
         from . import prj_policy
         prj_policy.at_start(self, goal, emit)
+        agt_asked.start(self, goal)
         messages = [{"role": "system", "content": ""},
                     {"role": "user", "content": f"NOW: {sns_clock.now_text(self.cfg)}.\n\nGOAL: {goal}"
                                                 + (f"\n\nCONTEXT:\n{context}" if context else "")
@@ -545,6 +551,9 @@ class Agent(AgentMakers, AgentReport):
                 break
             ran = False                                     # a call of this turn already done
             for raw in calls:
+                if steps >= self.max_steps:              # C573: the cap per call — one turn with 40 calls ran them all
+                    emit("agent.nudge", {"reason": "step cap", "left": len(calls)})
+                    break
                 steps += 1
                 try:
                     call = json.loads(raw)

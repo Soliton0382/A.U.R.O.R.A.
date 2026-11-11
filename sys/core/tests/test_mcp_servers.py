@@ -23,8 +23,9 @@ def test_a_local_or_remote_server_becomes_a_manifest_that_keeps_the_contract(cfg
     assert local["kind"] == "mcp" and local["effects"] == {"find": "read", "*": "external"} and local["memory"] is False
     assert local["sandbox"] == {"read": [str(tmp_path)], "network": False}
     for url in ("https://mcp.example.org/mcp", "http://10.0.0.5:8000/mcp"):          # both, as the owner asked
-        remote = plg_mcp.manifest(cfg, {**FORM, "url": url})
-        assert remote["url"] == url and "command" not in remote
+        lan = {"lan": True} if "10.0.0.5" in url else {}                             # in the house: said (C571)
+        remote = plg_mcp.manifest(cfg, {**FORM, "url": url, **lan})
+        assert remote["url"] == url and "command" not in remote and remote.get("lan", False) is bool(lan)
         assert remote["from_network"] == ["*"]                     # its answers through the honeypot (audit, 10 Nov)
         assert plg_contract.check(remote, "local_archive") == []
     assert plg_contract.check(local, "local_archive") == [] and local["name"] == "local_archive"   # C546: never published

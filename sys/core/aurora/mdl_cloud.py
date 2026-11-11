@@ -27,7 +27,8 @@ import httpx
 
 from . import sys_config, sys_ethics, sys_log
 
-ARG_SPILL = 100_000      # bytes: past this the system prompt goes in a file (one argument: 128 KB on Linux)
+TRANSCRIPT_DAYS = 30     # the CLI's own copy of a conductor session not used for this long is removed (C572)
+_purged: dict[str, float] = {}
 from .mdl_llm import Completion
 
 API = "https://api.anthropic.com/v1"
@@ -46,6 +47,53 @@ def _flatten(messages: list[dict]) -> tuple[str, str]:
             lines.append(f"TOOL RESULT:\n<tool_response>\n{m['content']}\n</tool_response>")
     lines.append("Continue as ASSISTANT: write only your next turn.")
     return system, "\n\n".join(lines)
+
+
+def cli_folder(path) -> str:
+    """The name the CLI gives a working folder under <config>/projects: its path, every other character a dash."""
+    import re
+    return re.sub(r"[^A-Za-z0-9]", "-", str(path))
+
+
+def purge_transcripts(cfg: sys_config.Config, config_dir: str = "", now: float | None = None, every_s: float = 3600) -> int:
+    """C572: the CLI keeps each session it may resume (the conductor's talk, one per project and user) as a plain
+    file under its own configuration folder, for ever. It must stay readable by the CLI, so it cannot be sealed: what
+    Aurora sends there is masked, the folders are made the account's alone (0700/0600), and a session not used for
+    TRANSCRIPT_DAYS is removed — Aurora's own sealed copy of the talk stays, and the conductor starts a new CLI
+    session when the old one is gone. Only the folders of Aurora's own working folders (<status>/claude_code/…)
+    are touched, never another project of the same account. At most once every `every_s` per folder."""
+    from pathlib import Path
+    now = now or time.time()
+    home = Path(config_dir) if config_dir else Path.home() / ".claude"
+    if now - _purged.get(str(home), 0) < every_s:
+        return 0
+    _purged[str(home)] = now
+    mine = cli_folder(cfg.path("AURORA_STATUS_DIR") / "claude_code")
+    gone = 0
+    for d in (home / "projects").glob(mine + "*") if (home / "projects").is_dir() else []:
+        if not d.is_dir() or d.is_symlink():
+            continue
+        for f in sorted(d.rglob("*"), reverse=True):       # files first, then the folders they leave empty
+            try:
+                if f.is_symlink():
+                    continue
+                if f.is_file() and now - f.stat().st_mtime > TRANSCRIPT_DAYS * 86400:
+                    f.unlink()
+                    gone += 1
+                elif f.is_file():
+                    f.chmod(0o600)
+                elif f.is_dir() and not any(f.iterdir()):
+                    f.rmdir()
+            except OSError:
+                continue
+        try:
+            d.chmod(0o700)
+        except OSError:
+            pass
+    if gone:
+        sys_log.get_logger("llm_client").info("audit: claude_code: %d transcripts older than %d days removed",
+                                              gone, TRANSCRIPT_DAYS)
+    return gone
 
 
 class ClaudeCodeLLM:
@@ -68,14 +116,11 @@ class ClaudeCodeLLM:
 
     @contextmanager
     def _command(self, system: str, stream: bool, max_tokens: int):
-        """The command, with a system prompt too long for one argument (Linux: 128 KB each, an agent's prompt with
-        its tools went past it — C370, «Argument list too long», the local model answered) in a private file, the
-        file removed once the call is over."""
+        """The command, with its system prompt in a private file removed once the call is over — always (C572: under
+        100 KB it was an argument, and a process's arguments are read by every local account: the prompt is masked,
+        but it still carries the conversation). A long one never fitted an argument anyway (C370: Linux, 128 KB)."""
         cmd = self._cmd(system, stream, max_tokens)
         i = cmd.index("--system-prompt")
-        if len(cmd[i + 1].encode()) < ARG_SPILL:
-            yield cmd
-            return
         f = tempfile.NamedTemporaryFile("w", encoding="utf-8", prefix="aurora-sys-", suffix=".txt", delete=False)  # 0600
         try:
             with f:
@@ -121,6 +166,10 @@ class ClaudeCodeLLM:
         # the shared account's credentials are the service user's alone: from a shell, that shell's own login (C489)
         if self.shell_login and not os.access(os.path.join(account.get("CLAUDE_CONFIG_DIR", ""), ".credentials.json"), os.R_OK):
             account = {}
+        try:                                               # C572: the CLI's old transcripts of Aurora's sessions go
+            purge_transcripts(self.cfg, account.get("CLAUDE_CONFIG_DIR") or os.environ.get("CLAUDE_CONFIG_DIR") or "")
+        except OSError as e:
+            self.log.warning("claude_code: old transcripts not removed: %s", e)
         return {**self._cap(max_tokens), **account}
 
     def complete(self, system: str, user: str, max_tokens: int, think: bool = False) -> Completion:
