@@ -17,6 +17,7 @@ from __future__ import annotations
 import math
 import re
 from datetime import datetime
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 COORD = r"RA: (-?\d+):(\d+):(\d+); Dec: (-?)(\d+)° (\d+)' (\d+)\""
 LINE = re.compile(r"^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)[.\d]*\|(\w+)\|[^|]*\|[^|]*\|\d*\|(.*)$")
@@ -105,21 +106,25 @@ def square(jumps: list[dict]) -> dict | None:
 def text(p: dict) -> str:
     cs = p["centerings"]
     if not cs:
-        return ("Nessuna centratura nei log di N.I.N.A. dell'inventario: serve lo script 5 eseguito dopo una notte con "
-                "Center o Slew and center.")
+        return _t(("Nessuna centratura nei log di N.I.N.A. dell'inventario: serve lo script 5 eseguito dopo una notte con "
+                "Center o Slew and center."), ("No centring in the inventory's N.I.N.A. logs: script 5 is needed, run after a night with "
+                "Center or Slew and center."))
     errs = sorted(c["arcmin"] for c in cs)
-    lines = [f"{len(cs)} centrature: errore di puntamento al primo tentativo mediana {errs[len(errs) // 2]:.1f}′, "
+    lines = [_t(f"{len(cs)} centrature: errore di puntamento al primo tentativo mediana {errs[len(errs) // 2]:.1f}′, "
              f"massimo {errs[-1]:.1f}′ (dopo un sync è la differenza tra due punti del cielo: modello della montatura e "
-             "flessioni, non l'allineamento polare da solo)."]
+             "flessioni, non l'allineamento polare da solo).", f"{len(cs)} centrings: pointing error at the first attempt median {errs[len(errs) // 2]:.1f}′, "
+             f"maximum {errs[-1]:.1f}′ (after a sync it is the difference between two points of the sky: the mount's model and "
+             "flexures, not the polar alignment alone).")]
     jumps = flip_jumps(p)
     for j in jumps:
-        lines.append(f"Flip{' (dedotto dal ricentraggio)' if p.get('flips_guessed') else ''} del {j['at'][:10]} a Dec {j['dec']:+.0f}°: salto di {abs(j['jump_arcmin']):.1f}′ in RA → "
-                     f"cono + non ortogonalità ≈ {j['c_np_arcmin']:.1f}′ a quella declinazione.")
+        lines.append(_t(f"Flip{' (dedotto dal ricentraggio)' if p.get('flips_guessed') else ''} del {j['at'][:10]} a Dec {j['dec']:+.0f}°: salto di {abs(j['jump_arcmin']):.1f}′ in RA → "
+                     f"cono + non ortogonalità ≈ {j['c_np_arcmin']:.1f}′ a quella declinazione.", f"Flip{' (deduced from the re-centring)' if p.get('flips_guessed') else ''} of {j['at'][:10]} at Dec {j['dec']:+.0f}°: a jump of {abs(j['jump_arcmin']):.1f}′ in RA → "
+                     f"cone + non-orthogonality ≈ {j['c_np_arcmin']:.1f}′ at that declination."))
     sq = square(jumps)
     if sq:
-        lines.append(f"Da {sq['flips']} flip: cono ≈ {sq['cone_arcmin']:.1f}′, assi non ortogonali ≈ {sq['np_arcmin']:.1f}′.")
+        lines.append(_t(f"Da {sq['flips']} flip: cono ≈ {sq['cone_arcmin']:.1f}′, assi non ortogonali ≈ {sq['np_arcmin']:.1f}′.", f"From {sq['flips']} flips: cone ≈ {sq['cone_arcmin']:.1f}′, axes not orthogonal ≈ {sq['np_arcmin']:.1f}′."))
     elif not jumps:
-        lines.append("Nessun flip con il ricentraggio dello stesso oggetto: il cono e l'ortogonalità si misurano lì.")
+        lines.append(_t("Nessun flip con il ricentraggio dello stesso oggetto: il cono e l'ortogonalità si misurano lì.", "No flip with the same object centred again: the cone and the orthogonality are measured there."))
     else:
-        lines.append("Per separare cono e ortogonalità serve un altro flip a una declinazione lontana almeno 20°.")
+        lines.append(_t("Per separare cono e ortogonalità serve un altro flip a una declinazione lontana almeno 20°.", "To tell cone from orthogonality another flip is needed, at a declination at least 20° away."))
     return "\n".join(lines)

@@ -13,6 +13,14 @@ nonce, the width, the ciphertext and the row count, keyed from the user's own «
 sealed again whole under a new nonce (sol_index). A file of format 1 is read as it is and gets its tag at the next
 update, with nothing written again: no vector is lost, none encoded twice. A tag that does not match is never
 trusted: the index is derived data, the Indexer builds it again from the sealed memory.
+
+Format 3 (C593, the audit of 12 Nov): two gaps of format 2 —
+ - a manifest whose «mac» was taken away read as a file of format 1: opened without a check, and given a tag as
+   genuine at the next update;
+ - sids.bin (which row of the memory each vector is) was outside the tag: two rows swapped answered one question with
+   the other's memory.
+Now the tag covers the sids too, and a sealed file without a tag of this format is never opened: it is built again
+from the sealed memory, like a tampered one (the vectors are derived: no memory is lost, they are encoded once more).
 """
 from __future__ import annotations
 
@@ -22,7 +30,7 @@ from pathlib import Path
 
 from . import sys_config
 
-VERSION = 2
+VERSION = 3
 PIECE = 1 << 20
 
 
@@ -40,31 +48,38 @@ class Tag:
     bytes, not the whole file again)."""
 
     def __init__(self, cfg: sys_config.Config, sealed: dict, dim: int):
-        self.h = hmac.new(_mac_key(cfg, sealed.get("user")), digestmod=hashlib.sha256)
-        self.h.update(b"aurora-index-v2|" + bytes.fromhex(sealed["nonce"]) + int(dim).to_bytes(4, "big"))
+        key = _mac_key(cfg, sealed.get("user"))
+        start = bytes.fromhex(sealed["nonce"]) + int(dim).to_bytes(4, "big")
+        self.h = hmac.new(key, b"aurora-index-v3|" + start, hashlib.sha256)        # the vectors' ciphertext
+        self.s = hmac.new(key, b"aurora-index-v3-sids|" + start, hashlib.sha256)   # the sids, in the same order
+        self.key = key
 
-    def feed(self, data: bytes) -> "Tag":
+    def feed(self, data: bytes, sids: bytes = b"") -> "Tag":
         self.h.update(data)
+        self.s.update(sids)
         return self
 
     def at(self, count: int) -> str:
-        h = self.h.copy()
-        h.update(b"|" + int(count).to_bytes(8, "big"))
-        return h.hexdigest()
+        return hmac.new(self.key, self.h.copy().digest() + self.s.copy().digest() + b"|" + int(count).to_bytes(8, "big"),
+                        hashlib.sha256).hexdigest()
 
 
-def of_bytes(cfg: sys_config.Config, raw: bytes, m: dict) -> str:
-    return Tag(cfg, m["sealed"], m["dim"]).feed(raw).at(m["count"])
+def of_bytes(cfg: sys_config.Config, raw: bytes, m: dict, sids: bytes) -> str:
+    return Tag(cfg, m["sealed"], m["dim"]).feed(raw, sids).at(m["count"])
 
 
 def tagged(m: dict) -> bool:
-    return bool((m.get("sealed") or {}).get("mac"))
+    s = m.get("sealed") or {}
+    return bool(s.get("mac")) and s.get("v") == VERSION
 
 
-def check(cfg: sys_config.Config, raw: bytes, m: dict) -> None:
-    """Tampered when a tagged file's bytes are not the tagged ones; a file of format 1 (no tag yet) passes."""
-    if tagged(m) and not hmac.compare_digest(of_bytes(cfg, raw, m), str(m["sealed"]["mac"])):
-        raise Tampered(f"sealed vectors: the file is not the one its manifest was written for ({m['count']} rows)")
+def check(cfg: sys_config.Config, raw: bytes, m: dict, sids: bytes) -> None:
+    """Tampered when the vectors or the sids are not the tagged ones, and when there is no tag of this format (C593: a
+    tag taken away must not turn the file into a trusted «file of before»)."""
+    if not tagged(m):
+        raise Tampered(f"sealed vectors: no integrity tag of format {VERSION} (a file of before, or its tag was taken away)")
+    if not hmac.compare_digest(of_bytes(cfg, raw, m, sids), str(m["sealed"]["mac"])):
+        raise Tampered(f"sealed vectors: the files are not the ones the manifest was written for ({m['count']} rows)")
 
 
 def stamp(m: dict, mac: str) -> None:

@@ -27,6 +27,7 @@ from pathlib import Path
 
 from . import sec_fwapi, sec_fwconf, sys_config, sys_log
 from .fw_drivers import driver
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 D = driver()                                    # the objects of a plan, in the default dialect (step 1 of ROADMAP 108)
 
@@ -46,7 +47,7 @@ def target(cfg: sys_config.Config, fid: str = "main") -> sys_config.Config:
     from . import sec_firewalls
     item = next((x for x in sec_firewalls.items(cfg) if x["id"] == fid), None)
     if item is None:
-        raise WriteError(f"nessun firewall «{fid}»")
+        raise WriteError(_t(f"nessun firewall «{fid}»", f"no firewall «{fid}»"))
     return sec_firewalls.view(cfg, item)
 
 
@@ -129,10 +130,10 @@ def _ports(spec: str) -> list[tuple[str, str]]:
             continue
         m = re.fullmatch(r"(\d{1,5})(?:[-:](\d{1,5}))?(?:/(tcp|udp))?", part.lower())
         if not m or not 1 <= int(m[1]) <= 65535 or (m[2] and not int(m[1]) < int(m[2]) <= 65535):
-            raise WriteError(f"porta non valida: {part!r} (es. 443, 443/tcp, 8000-8010/udp)")
+            raise WriteError(_t(f"porta non valida: {part!r} (es. 443, 443/tcp, 8000-8010/udp)", f"not a valid port: {part!r} (e.g. 443, 443/tcp, 8000-8010/udp)"))
         out.append(((m[3] or "tcp").upper(), m[1] + (f":{m[2]}" if m[2] else "")))
     if not out:
-        raise WriteError("nessuna porta")
+        raise WriteError(_t("nessuna porta", "no port"))
     return out
 
 
@@ -141,7 +142,7 @@ def _zone_of(conf: dict, ip: str) -> str:
     for i in conf.get("Interface", []):
         if i.get("IPAddress") and i.get("Netmask") and a in ipaddress.ip_network(f"{i['IPAddress']}/{i['Netmask']}", strict=False):
             return str(i.get("NetworkZone") or "LAN")
-    raise WriteError(f"{ip} non è in nessuna rete del firewall")
+    raise WriteError(_t(f"{ip} non è in nessuna rete del firewall", f"{ip} is in none of the firewall's networks"))
 
 
 def _wan(conf: dict) -> tuple[str, str]:
@@ -149,7 +150,7 @@ def _wan(conf: dict) -> tuple[str, str]:
     for i in conf.get("Interface", []):
         if i.get("NetworkZone") == "WAN" and str(i.get("Status", "")).startswith("Connected") and i.get("IPAddress"):
             return f"#{i['Name']}", str(i["IPAddress"])
-    raise WriteError("nessuna interfaccia WAN collegata")
+    raise WriteError(_t("nessuna interfaccia WAN collegata", "no WAN interface connected"))
 
 
 def _ips_policy(conf: dict, name: str, zone: str) -> str:
@@ -184,19 +185,19 @@ def plan_publish(cfg: sys_config.Config, label: str, host: str, ports: str, sour
         raise WriteError("nome: lettere, cifre, - _ . (max 40)")
     ip = str(ipaddress.ip_address(host.strip()))
     if not ipaddress.ip_address(ip).is_private:
-        raise WriteError("si pubblica un server della casa: serve un indirizzo privato")
+        raise WriteError(_t("si pubblica un server della casa: serve un indirizzo privato", "a server of the house is published: a private address is needed"))
     if _neutral(cfg):
         return _ops(lambda o: o.plan_publish(cfg, label, ip, _ports(ports), [s.strip() for s in sources.split(",") if s.strip()]))
     conf = conf if conf is not None else sec_fwconf.read(cfg)
     zone = _zone_of(conf, ip)
     if zone == "WAN":
-        raise WriteError(f"{ip} è nella rete WAN")
+        raise WriteError(_t(f"{ip} è nella rete WAN", f"{ip} is in the WAN network"))
     wan, wan_ip = _wan(conf)
     plist = _ports(ports)
     n = PREFIX + label
     for entity in ("FirewallRule", "NATRule", "Services"):
         if _taken(conf, entity, n):
-            raise WriteError(f"esiste già un {entity} «{n}»: scegli un altro nome o ritira la pubblicazione")
+            raise WriteError(_t(f"esiste già un {entity} «{n}»: scegli un altro nome o ritira la pubblicazione", f"a {entity} «{n}» exists already: choose another name or withdraw the publication"))
     host_obj = next((h["Name"] for h in conf.get("IPHost", []) if h.get("IPAddress") == ip and h.get("HostType") == "IP"
                      and not str(h.get("Name", "")).startswith("aurora-block-")), None)
     srcs = [s.strip() for s in sources.split(",") if s.strip()]
@@ -205,7 +206,7 @@ def plan_publish(cfg: sys_config.Config, label: str, host: str, ports: str, sour
             ipaddress.ip_address(s)
         except ValueError:
             if not s or len(s) > 60:
-                raise WriteError(f"origine non valida: {s!r}") from None
+                raise WriteError(_t(f"origine non valida: {s!r}", f"not a valid source: {s!r}")) from None
     steps = []
     if not host_obj:
         host_obj = f"aurora-host-{ip}"
@@ -227,14 +228,15 @@ def plan_publish(cfg: sys_config.Config, label: str, host: str, ports: str, sour
     steps.append(dnat_step(n, desc, wan, host_obj, n, src_objs))
     notes = []
     if ipaddress.ip_address(wan_ip).is_private:           # a router in front (double NAT): it must forward the ports too
-        notes.append(f"Il firewall è dietro un altro router (WAN {wan_ip}, indirizzo privato): quel router deve inoltrare "
-                     f"{', '.join(q for _, q in plist)} a {wan_ip} (o avere il firewall in DMZ).")
+        notes.append(_t(f"Il firewall è dietro un altro router (WAN {wan_ip}, indirizzo privato): quel router deve inoltrare "
+                     f"{', '.join(q for _, q in plist)} a {wan_ip} (o avere il firewall in DMZ).", f"The firewall is behind another router (WAN {wan_ip}, a private address): that router must forward "
+                     f"{', '.join(q for _, q in plist)} to {wan_ip} (or have the firewall in its DMZ)."))
     if not after:
-        notes.append("Nessuna regola applica il gruppo dei blocchi: gli indirizzi bloccati da Aurora potrebbero entrare.")
+        notes.append(_t("Nessuna regola applica il gruppo dei blocchi: gli indirizzi bloccati da Aurora potrebbero entrare.", "No rule applies the blocking group: the addresses Aurora blocked could come in."))
     if not srcs:
-        notes.append("Aperto a tutta Internet: con un filtro per paese (es. «Italy») il servizio è meno esposto.")
-    return {"kind": "publish", "title": f"Pubblicare {label}: {', '.join(f'{p} {q}' for p, q in plist)} → {ip}",
-            "why": f"richiesta del proprietario; zona {zone}, IPS «{ips}», log attivo" + (f", dopo «{after}»" if after else ""),
+        notes.append(_t("Aperto a tutta Internet: con un filtro per paese (es. «Italy») il servizio è meno esposto.", "Open to the whole Internet: with a country filter (e.g. «Italy») the service is less exposed."))
+    return {"kind": "publish", "title": _t(f"Pubblicare {label}: {', '.join(f'{p} {q}' for p, q in plist)} → {ip}", f"Publish {label}: {', '.join(f'{p} {q}' for p, q in plist)} → {ip}"),
+            "why": _t(f"richiesta del proprietario; zona {zone}, IPS «{ips}», log attivo" + (f", dopo «{after}»" if after else ""), f"the owner's request; zone {zone}, IPS «{ips}», log on" + (f", after «{after}»" if after else "")),
             "steps": steps, "notes": notes, "check": [("FirewallRule", n), ("NATRule", n)]}
 
 
@@ -246,9 +248,9 @@ def plan_unpublish(cfg: sys_config.Config, label: str, conf: dict | None = None)
     steps = [step(e, n, _remove(e, n), "", f"togliere {e} {n}") for e in ("NATRule", "FirewallRule", "Services")
              if _taken(conf, e, n)]
     if not steps:
-        raise WriteError(f"nessuna pubblicazione «{n}» di Aurora")
-    return {"kind": "unpublish", "title": f"Ritirare la pubblicazione {n}", "why": "richiesta del proprietario",
-            "steps": steps, "notes": ["Chiusa da Internet: il servizio resta raggiungibile in casa."], "check": []}
+        raise WriteError(_t(f"nessuna pubblicazione «{n}» di Aurora", f"no publication «{n}» of Aurora's"))
+    return {"kind": "unpublish", "title": _t(f"Ritirare la pubblicazione {n}", f"Withdraw the publication {n}"), "why": _t("richiesta del proprietario", "the owner's request"),
+            "steps": steps, "notes": [_t("Chiusa da Internet: il servizio resta raggiungibile in casa.", "Closed from the Internet: the service can still be reached at home.")], "check": []}
 
 
 def plan_quarantine(cfg: sys_config.Config, ip: str, reason: str, conf: dict | None = None) -> dict:
@@ -257,7 +259,7 @@ def plan_quarantine(cfg: sys_config.Config, ip: str, reason: str, conf: dict | N
     talk to each other — said in the plan."""
     ip = sec_fwapi.blockable(cfg, ip)
     if not ipaddress.ip_address(ip).is_private:
-        raise WriteError("la quarantena è per i dispositivi della casa; un indirizzo di Internet si blocca")
+        raise WriteError(_t("la quarantena è per i dispositivi della casa; un indirizzo di Internet si blocca", "the quarantine is for the devices of the house; an Internet address is blocked"))
     if _neutral(cfg):
         return _ops(lambda o: o.plan_quarantine(cfg, ip, reason))
     conf = conf if conf is not None else sec_fwconf.read(cfg)
@@ -269,15 +271,17 @@ def plan_quarantine(cfg: sys_config.Config, ip: str, reason: str, conf: dict | N
         steps.append(step("IPHostGroup", group, _set("IPHostGroup", body), _remove("IPHostGroup", group), f"il gruppo {group}"))
     host = f"aurora-quarantine-{ip}"
     if _taken(conf, "IPHost", host):
-        raise WriteError(f"{ip} è già in quarantena")
+        raise WriteError(_t(f"{ip} è già in quarantena", f"{ip} is already in quarantine"))
     steps.append(host_step(host, ip, [group]))
     if not _taken(conf, "FirewallRule", rule):
         steps.append(rule_step(rule, "Aurora: i dispositivi in quarantena non escono", [], [], [], [group], [], "Drop", "None", None))
-    return {"kind": "quarantine", "title": f"Quarantena di {ip}", "why": reason[:300], "steps": steps,
-            "notes": ["Il firewall ferma solo il traffico che lo attraversa (Internet, altre reti): due dispositivi "
-                      "sullo stesso switch possono ancora parlarsi.",
-                      "Se il dispositivo prende un altro indirizzo dal DHCP esce dalla quarantena: meglio una "
-                      "prenotazione DHCP."], "check": [("IPHost", host)]}
+    return {"kind": "quarantine", "title": _t(f"Quarantena di {ip}", f"Quarantine of {ip}"), "why": reason[:300], "steps": steps,
+            "notes": [_t("Il firewall ferma solo il traffico che lo attraversa (Internet, altre reti): due dispositivi "
+                      "sullo stesso switch possono ancora parlarsi.", "The firewall stops only the traffic that crosses it (Internet, other networks): two devices "
+                      "on the same switch can still talk to each other."),
+                      _t("Se il dispositivo prende un altro indirizzo dal DHCP esce dalla quarantena: meglio una "
+                      "prenotazione DHCP.", "If the device gets another address from the DHCP it leaves the quarantine: better a "
+                      "DHCP reservation.")], "check": [("IPHost", host)]}
 
 
 def plan_release(cfg: sys_config.Config, ip: str, conf: dict | None = None) -> dict:
@@ -286,17 +290,17 @@ def plan_release(cfg: sys_config.Config, ip: str, conf: dict | None = None) -> d
     conf = conf if conf is not None else sec_fwconf.read(cfg)
     host = f"aurora-quarantine-{ip.strip()}"
     if not _taken(conf, "IPHost", host):
-        raise WriteError(f"{ip} non è in quarantena")
+        raise WriteError(_t(f"{ip} non è in quarantena", f"{ip} is not in quarantine"))
     body = D.release(host, ip.strip())
-    return {"kind": "release", "title": f"Fine della quarantena di {ip}", "why": "richiesta del proprietario",
-            "steps": [step("IPHost", host, _set("IPHost", body, "update"), "", "fuori dal gruppo"),
-                      step("IPHost", host, _remove("IPHost", host), "", "host rimosso")], "notes": [], "check": []}
+    return {"kind": "release", "title": _t(f"Fine della quarantena di {ip}", f"End of the quarantine of {ip}"), "why": _t("richiesta del proprietario", "the owner's request"),
+            "steps": [step("IPHost", host, _set("IPHost", body, "update"), "", _t("fuori dal gruppo", "out of the group")),
+                      step("IPHost", host, _remove("IPHost", host), "", _t("host rimosso", "host removed"))], "notes": [], "check": []}
 
 
 def raw_rule(cfg: sys_config.Config, name: str) -> str:
     found = D.find_rule(sec_fwapi.request(cfg, D.get_rules()), name)
     if not found:
-        raise WriteError(f"nessuna regola «{name}»")
+        raise WriteError(_t(f"nessuna regola «{name}»", f"no rule «{name}»"))
     return found
 
 
@@ -304,19 +308,20 @@ def plan_harden(cfg: sys_config.Config, rule: str, ips: str, log: bool = True) -
     """An IPS policy (and the log) on one of the owner's rules — the fix the audit proposes for a published service.
     The rule's XML before is the undo."""
     if _neutral(cfg):
-        raise WriteError("su questo firewall una regola non ha una sua policy IPS: si accende l'IPS del firewall "
-                         "(Suricata), e il log della regola dalla sua pagina")
+        raise WriteError(_t("su questo firewall una regola non ha una sua policy IPS: si accende l'IPS del firewall "
+                         "(Suricata), e il log della regola dalla sua pagina", "on this firewall a rule has no IPS policy of its own: the firewall's IPS is turned on "
+                         "(Suricata), and the rule's log from its page"))
     before = raw_rule(cfg, rule)
     if not D.network_rule(before):
-        raise WriteError("solo regole di rete")
+        raise WriteError(_t("solo regole di rete", "network rules only"))
     after = D.harden(before, ips, log)
     if after == before:
-        raise WriteError("la regola ha già questa protezione")
+        raise WriteError(_t("la regola ha già questa protezione", "the rule has this protection already"))
     inner_after, inner_before = D.inner(after), D.inner(before)
-    return {"kind": "harden", "title": f"Proteggere la regola «{rule}»: IPS «{ips}»" + (" e log" if log else ""),
-            "why": "rilievo dell'audit: servizio pubblicato senza IPS",
+    return {"kind": "harden", "title": _t(f"Proteggere la regola «{rule}»: IPS «{ips}»" + (" e log" if log else ""), f"Protect the rule «{rule}»: IPS «{ips}»" + (" and log" if log else "")),
+            "why": _t("rilievo dell'audit: servizio pubblicato senza IPS", "a finding of the audit: a service published without IPS"),
             "steps": [step("FirewallRule", rule, _set("FirewallRule", inner_after, "update"),
-                           _set("FirewallRule", inner_before, "update"), f"IPS «{ips}» sulla regola {rule}", owner_object=True)],
+                           _set("FirewallRule", inner_before, "update"), _t(f"IPS «{ips}» sulla regola {rule}", f"IPS «{ips}» on the rule {rule}"), owner_object=True)],
             "notes": [], "check": [("FirewallRule", rule)], "expect": {"IntrusionPrevention": ips}}
 
 
@@ -333,8 +338,8 @@ def _run(cfg: sys_config.Config, xml: str, entity: str) -> str:
     d = driver(cfg)                                    # the dialect of the firewall the change is for
     code, msg = d.step_status(sec_fwapi.request(cfg, xml), entity)
     if code != "200":
-        hint = d.READ_ONLY_HINT if d.read_only(code, msg) else ""
-        raise WriteError(f"{entity}: il firewall ha risposto {code or '?'} {msg[:200]}{hint}")
+        hint = _t(d.READ_ONLY_HINT, getattr(d, "READ_ONLY_HINT_EN", d.READ_ONLY_HINT)) if d.read_only(code, msg) else ""
+        raise WriteError(_t(f"{entity}: il firewall ha risposto {code or '?'} {msg[:200]}{hint}", f"{entity}: the firewall answered {code or '?'} {msg[:200]}{hint}"))
     return msg
 
 
@@ -343,7 +348,7 @@ def _allowed(st: dict) -> None:
     if st["owner_object"]:
         return
     if not (st["name"].startswith(PREFIX) or st["name"].lower().startswith(("aurora-", "aurora_"))):
-        raise WriteError(f"«{st['name']}» non è un oggetto di Aurora: non lo tocco")
+        raise WriteError(_t(f"«{st['name']}» non è un oggetto di Aurora: non lo tocco", f"«{st['name']}» is not an object of Aurora's: I do not touch it"))
 
 
 def _undo(cfg: sys_config.Config, done: list[dict]) -> list[str]:
@@ -361,7 +366,7 @@ def confirm(cfg: sys_config.Config, change: dict, wait: float | None = None) -> 
     """The firewall still answers and each object reads back (and, for harden, with the expected value): [] or the
     problems found within AURORA_FIREWALL_CONFIRM_S."""
     deadline = time.time() + float(wait if wait is not None else cfg["AURORA_FIREWALL_CONFIRM_S"])
-    problems = ["nessuna verifica"]
+    problems = [_t("nessuna verifica", "no check")]
     while time.time() < deadline:
         problems = []
         try:
@@ -369,16 +374,16 @@ def confirm(cfg: sys_config.Config, change: dict, wait: float | None = None) -> 
                 if _neutral(cfg):
                     from . import sec_fwops
                     if not sec_fwops.exists(cfg, entity, name):
-                        problems.append(f"{entity} {name} non si rilegge")
+                        problems.append(_t(f"{entity} {name} non si rilegge", f"{entity} {name} does not read back"))
                     continue
                 items = [x for x in sec_fwconf.get(cfg, entity) if x.get("Name") == name]
                 if not items:
-                    problems.append(f"{entity} {name} non si rilegge")
+                    problems.append(_t(f"{entity} {name} non si rilegge", f"{entity} {name} does not read back"))
                 elif change.get("expect") and entity == "FirewallRule":
                     pol = items[0].get("NetworkPolicy") or {}
                     problems += [f"{k} = {pol.get(k)!r}" for k, v in change["expect"].items() if pol.get(k) != v]
         except (sec_fwapi.FirewallAPIError, sec_fwconf.ConfigError) as e:
-            problems.append(f"il firewall non risponde: {e}")
+            problems.append(_t(f"il firewall non risponde: {e}", f"the firewall does not answer: {e}"))
         if not problems:
             return []
         time.sleep(3)
@@ -389,10 +394,10 @@ def apply(cfg: sys_config.Config, change_id: str) -> dict:
     """Apply a planned change (the owner approved it): step by step, undone at the first failure or when the
     confirmation fails. Returns the change with its status: applied | undone | failed (undo incomplete)."""
     if not cfg["AURORA_FIREWALL_WRITE"]:
-        raise WriteError("modifiche al firewall spente: attiva «AURORA_FIREWALL_WRITE» nella scheda Sicurezza")
+        raise WriteError(_t("modifiche al firewall spente: attiva «AURORA_FIREWALL_WRITE» nella scheda Sicurezza", "changes to the firewall are off: turn on «AURORA_FIREWALL_WRITE» in the Security card"))
     change = get_change(cfg, change_id)
     if change["status"] != "planned":
-        raise WriteError(f"la modifica {change_id} è già {change['status']}")
+        raise WriteError(_t(f"la modifica {change_id} è già {change['status']}", f"the change {change_id} is already {change['status']}"))
     record, cfg = cfg, target(cfg, change.get("fw", "main"))   # the record stays here; the steps go to that firewall
     log = sys_log.get_logger("security")
     for st in change["steps"]:
@@ -422,12 +427,12 @@ def apply(cfg: sys_config.Config, change_id: str) -> dict:
 def revert(cfg: sys_config.Config, change_id: str) -> dict:
     """Undo an applied change (its steps' undo, last first)."""
     if not cfg["AURORA_FIREWALL_WRITE"]:
-        raise WriteError("modifiche al firewall spente")
+        raise WriteError(_t("modifiche al firewall spente", "changes to the firewall are off"))
     change = get_change(cfg, change_id)
     if change["status"] != "applied":
-        raise WriteError(f"la modifica {change_id} è {change['status']}: non c'è nulla da annullare")
+        raise WriteError(_t(f"la modifica {change_id} è {change['status']}: non c'è nulla da annullare", f"the change {change_id} is {change['status']}: there is nothing to undo"))
     if not any(st.get("undo") for st in change["steps"]):
-        raise WriteError("questa modifica non ha un annullamento (è già un ritiro)")
+        raise WriteError(_t("questa modifica non ha un annullamento (è già un ritiro)", "this change has no undo (it is a withdrawal already)"))
     errors = _undo(target(cfg, change.get("fw", "main")), change["steps"])
     change.update(status="reverted" if not errors else "failed", reverted=time.time(), undo_errors=errors)
     _keep(cfg, change)
@@ -439,18 +444,18 @@ def discard(cfg: sys_config.Config, change_id: str) -> dict:
     """A planned change the owner does not want: kept in the record as discarded, never applied."""
     change = get_change(cfg, change_id)
     if change["status"] != "planned":
-        raise WriteError(f"la modifica {change_id} è {change['status']}: si scarta solo un piano")
+        raise WriteError(_t(f"la modifica {change_id} è {change['status']}: si scarta solo un piano", f"the change {change_id} is {change['status']}: only a plan is discarded"))
     change.update(status="discarded", discarded=time.time())
     _keep(cfg, change)
     return change
 
 
 def text(change: dict) -> str:
-    lines = [f"🧱 **{change['title']}** (modifica `{change['id']}`, {change['status']})", f"Perché: {change.get('why', '')}"]
+    lines = [_t(f"🧱 **{change['title']}** (modifica `{change['id']}`, {change['status']})", f"🧱 **{change['title']}** (change `{change['id']}`, {change['status']})"), _t(f"Perché: {change.get('why', '')}", f"Why: {change.get('why', '')}")]
     lines += [f"{i}. {st['why']}" for i, st in enumerate(change["steps"], 1)]
     lines += [f"⚠️ {n}" for n in change.get("notes", [])]
     if change.get("problems"):
-        lines.append("Problemi: " + "; ".join(change["problems"]))
+        lines.append(_t("Problemi: ", "Problems: ") + "; ".join(change["problems"]))
     if change.get("undo_errors"):
-        lines.append("❌ Annullamento incompleto: " + "; ".join(change["undo_errors"]))
+        lines.append(_t("❌ Annullamento incompleto: ", "❌ Undo not complete: ") + "; ".join(change["undo_errors"]))
     return "\n".join(lines)

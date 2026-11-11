@@ -7,7 +7,7 @@
 // personalizzare»), with what to photograph tonight when astro is on and the day's numbers.
 import { call } from "../api.js";
 import { bus } from "../bus.js";
-import { el } from "../dom.js";
+import { el, safeUrl } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { setTilePrefs, tilePrefs } from "../style.js";
 import astro from "./astro.js";
@@ -140,7 +140,7 @@ export default {
     const list = el("div", "td-list");
     for (const w of items.slice(0, 3)) {
       const a = el("a", "", w.title);
-      a.href = w.url;
+      if (safeUrl(w.url)) a.href = w.url;                 // C594: http(s) only, whatever the source says
       a.target = "_blank";
       a.rel = "noopener";
       const row = el("div", "");
@@ -180,7 +180,7 @@ export default {
     const track = el("div", "td-news-track");
     const items = d.items.map((n) => {
       const a = el("a", "td-news-item", n.title);
-      a.href = n.link;
+      if (safeUrl(n.link)) a.href = n.link;
       a.target = "_blank";
       a.rel = "noopener noreferrer";
       a.title = `${n.source} · ${n.when}\n${n.summary}`;

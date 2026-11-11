@@ -142,8 +142,14 @@ class Pseudonymizer:
         # calendar», /home/demo — it is that user, and goes
         self.accounts = [re.compile(ACCOUNT.format(u=re.escape(u)), re.I) for u in users
                          if len(u) >= 3 and u.lower() in COMMON]
+        # C593: the owner's name in any case, and each of its words alone (a surname alone is the person; «scrive
+        # mario rossi» passed because only the exact string «Mario Rossi» was looked for)
+        owner = str(cfg.values.get("AURORA_OWNER_NAME") or "").strip()
+        self.names += [re.compile(rf"(?<![\w\[]){re.escape(p)}(?![\w\]])", re.I)
+                       for p in dict.fromkeys([owner] + owner.split()) if len(p) >= 3 and p.lower() not in COMMON]
         self.words = sorted({w for w in sec_mask_spot.learned(cfg) if len(w) >= 3}, key=len, reverse=True)
         self.cfg = cfg
+        self.unseen = False                              # True once the local model could not look at a text (C593)
         self.private = sorted({w for w in own if len(w) >= 3 and w.lower() not in ("localhost", "auto")}, key=len, reverse=True)
         secrets = []
         for s in sys_config.load_schema()["settings"]:
@@ -187,7 +193,9 @@ class Pseudonymizer:
             text = rx.sub(rep, text)
         from . import sec_mask_spot                     # the local model's own look, before the text leaves
         self.words, self.paths = getattr(self, "words", []), getattr(self, "paths", [])   # one made by hand (tests)
-        for w in (sec_mask_spot.spot(self.cfg, PLACEHOLDER.sub(" ", text))[0] if getattr(self, "cfg", None) else []):
+        found, whole = sec_mask_spot.spot(self.cfg, PLACEHOLDER.sub(" ", text)) if getattr(self, "cfg", None) else ([], True)
+        self.unseen = getattr(self, "unseen", False) or not whole
+        for w in found:
             if w not in self.words and w not in self.private:
                 self.words = sorted(self.words + [w], key=len, reverse=True)
         for rx in self.paths + getattr(self, "names", []):   # usr/<a user>/…, a user's name
@@ -196,9 +204,10 @@ class Pseudonymizer:
             text = rx.sub(lambda m: (m.group("pre") or "") + self._ph("PRIVATE", m.group("u") or m.group("own")), text)
         for w in self.words:                             # names and learnt values: whole words, any case as written
             text = re.sub(rf"(?<![\w\[]){re.escape(w)}(?![\w\]])", lambda m: self._ph("PRIVATE", m.group(0)), text)
-        for w in self.private:                           # the owner's own words, case kept as written
-            if w in text:
-                text = text.replace(w, self._ph("PRIVATE", w))
+        for w in self.private:                           # the owner's own words, in any case (C593), kept as written
+            if w.lower() in text.lower():                # a placeholder already there is stepped over, never cut
+                text = re.sub(rf"\[(?:{KINDS})_\d+\]|({re.escape(w)})", lambda m: self._ph("PRIVATE", m.group(1))
+                              if m.group(1) else m.group(0), text, flags=re.I)
         from .kno_anger import INSULT                    # an insult said to her, in a turn read again: never sent
         return INSULT.sub("…", text)
 

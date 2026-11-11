@@ -11,10 +11,7 @@ run's events (followRun), as before.
 """
 from __future__ import annotations
 
-import subprocess
-
-from . import prj_conduct, prj_run, prj_talk, sys_config
-from .prj_run import GIT_SAFE
+from . import prj_browse, prj_conduct, prj_run, prj_talk, sys_config
 
 FILES = 30
 COMMITS = 15
@@ -26,14 +23,11 @@ def _head(text: str, n: int = 160) -> str:
     return line if len(line) <= n else line[:n] + "…"
 
 
-def _commits(root) -> list[dict]:
+def _commits(root, cfg: sys_config.Config | None = None) -> list[dict]:
     if not (root / ".git").exists():
         return []
-    try:
-        out = subprocess.run(["git", *GIT_SAFE, "-C", str(root), "log", f"-n{COMMITS}", "--format=%h%x09%ct%x09%s"],
-                             capture_output=True, text=True, timeout=10).stdout
-    except (OSError, subprocess.SubprocessError):
-        return []
+    # C591: in git's own cage (prj_browse.git_read) — the project's .git is not trusted
+    out = prj_browse.git_read(root, "log", f"-n{COMMITS}", "--format=%h%x09%ct%x09%s", cfg=cfg, timeout=10)
     rows = []
     for line in out.splitlines():
         parts = line.split("\t", 2)
@@ -52,7 +46,7 @@ def snapshot(cfg: sys_config.Config, project: str) -> dict:
         "conduct": conduct,
         "talk": {"n": len(turns), "last": [{"t": x.get("t"), "role": x.get("role"), "head": _head(x.get("text"))}
                                           for x in turns[-6:]]},
-        "commits": _commits(root),
+        "commits": _commits(root, cfg),
         "files": [{"path": p, "t": ns / 1e9, "size": size} for p, (ns, size) in files],
         "running": next((e["run_id"] for e in reversed(conduct)                 # judged: its run is still going
                          if e["status"] in ("running", "judging") and e["run_id"]), None),

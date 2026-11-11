@@ -9,7 +9,10 @@
     python sys/core/script/svc_backup.py failed                 # the unit could not start: tell the owner (OnFailure)
     python sys/core/script/svc_backup.py list                   # the snapshots kept
     python sys/core/script/svc_backup.py verify [--full]        # decrypt and check a sample (or every blob)
-    python sys/core/script/svc_backup.py restore --to DIR [--snapshot S] [--only sys/vault] [--parts config,memory] [--code RECOVERY]
+    python sys/core/script/svc_backup.py restore --to DIR [--snapshot S] [--only sys/vault] [--parts config,memory] [--code]
+
+--code asks for the recovery code (never typed on the command line: every local account reads the arguments of a
+running process, and the shell keeps them in its history — C593). From a script: pipe it on the standard input.
 
 The result goes to the API's activity feed: the owner is notified of a failure (and of a success if he asks).
 """
@@ -36,6 +39,21 @@ def tell(cfg, event: str, payload: dict) -> None:
         pass                                           # the log has it; the health shows the age of the last backup
 
 
+ASK = "\0ask"                                           # --code given alone: the value is asked, never an argument
+
+
+def asked_code(ap, given: str) -> str:
+    """The recovery code from the terminal, not echoed, or one line of the standard input (a script). A code typed
+    after --code is refused (C593): it was already in the process list and in the shell's history."""
+    if given != ASK:
+        ap.error("--code takes no value: the recovery code is asked (or read from the standard input), never typed "
+                 "on the command line, where every local account can read it")
+    if sys.stdin.isatty():
+        import getpass
+        return getpass.getpass("Backup recovery code: ").strip()
+    return sys.stdin.readline().strip()
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("action", choices=["init", "code", "run", "list", "verify", "restore", "failed"])
@@ -44,8 +62,11 @@ def main() -> int:
     ap.add_argument("--snapshot", default="latest")
     ap.add_argument("--only", default="", help="restore only paths starting with this (e.g. sys/vault)")
     ap.add_argument("--parts", default="", help="restore only these parts: config,memory,vault,files,plugins,history")
-    ap.add_argument("--code", default="", help="the recovery code, when the key file is lost")
+    ap.add_argument("--code", nargs="?", const=ASK, default="",
+                    help="ask for the recovery code, when the key file is lost (never given here: it is asked)")
     a = ap.parse_args()
+    if a.code:
+        a.code = asked_code(ap, a.code)
     cfg = sys_config.get()
     log = sys_log.get_logger("backup")
     try:

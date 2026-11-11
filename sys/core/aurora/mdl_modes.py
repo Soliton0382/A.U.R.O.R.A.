@@ -19,6 +19,7 @@ from __future__ import annotations
 import subprocess
 
 from . import mdl_media, mdl_router, sys_cloud_consent, sys_config, sys_ethics, sys_features
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 MODES = ("local", "mixed", "cloud_private", "cloud_full")
 EXEMPT_COMMAND = "sudo aurora-root exempt"
@@ -167,7 +168,7 @@ def apply(cfg: sys_config.Config, mode: str, provider: str = "", model: str = ""
         return {"mode": current(cfg), "restart": []}
     if mode == "local":
         if not local_reasoner(cfg):
-            raise ModeError("questa macchina non ha un ragionatore locale acceso: prima accendilo (o resta in cloud)",
+            raise ModeError(_t("questa macchina non ha un ragionatore locale acceso: prima accendilo (o resta in cloud)", "this machine has no local reasoner running: turn it on first (or stay in the cloud)"),
                             "local_model")
         mdl_router.set_assignments(cfg, {r: {"provider": "local", "model": ""} for r in mdl_router.ROLES})
         mdl_media.set_assignments(cfg, {t: {"provider": "local", "model": ""} for t in mdl_media.TASKS})
@@ -179,13 +180,13 @@ def apply(cfg: sys_config.Config, mode: str, provider: str = "", model: str = ""
     if spec is None or spec["kind"] == "local":
         raise ValueError(f"provider: one of {', '.join(p for p in mdl_router.PROVIDERS if p != 'local')}")
     if not sys_ethics.exempt(cfg):
-        raise ModeError("ogni modalità cloud richiede l'esenzione dal livello B, firmata da shell", "exempt", EXEMPT_COMMAND)
+        raise ModeError(_t("ogni modalità cloud richiede l'esenzione dal livello B, firmata da shell", "every cloud mode needs the exemption from level B, signed from a shell"), "exempt", EXEMPT_COMMAND)
     if not mdl_router.configured(provider, cfg):
-        raise ModeError(f"{provider}: manca la chiave o l'indirizzo, nella scheda del plugin ☁️ cloud", "key")
+        raise ModeError(_t(f"{provider}: manca la chiave o l'indirizzo, nella scheda del plugin ☁️ cloud", f"{provider}: its key or address is missing, in the ☁️ cloud plugin's card"), "key")
     if spec["kind"] == "openai" and not model:
-        raise ModeError(f"{provider}: scegli il modello (📋 elenco)", "model")
+        raise ModeError(_t(f"{provider}: scegli il modello (📋 elenco)", f"{provider}: choose the model (📋 list)"), "model")
     if mode == "cloud_full" and not sys_cloud_consent.signed(cfg):
-        raise ModeError("«Tutto cloud» manda fuori anche i dati privati, mascherati: serve il tuo consenso firmato da shell",
+        raise ModeError(_t("«Tutto cloud» manda fuori anche i dati privati, mascherati: serve il tuo consenso firmato da shell", "«Tutto cloud» sends out the private data too, masked: your consent is needed, signed from a shell"),
                         "consent", sys_cloud_consent.COMMAND)
     if mode == "cloud_private":
         sys_cloud_consent.revoke(cfg)
@@ -224,21 +225,21 @@ def reasoner(cfg: sys_config.Config, on: bool, run=subprocess.run) -> dict:
     cfg = now(cfg)
     if on:
         if not can_have_local(cfg):
-            raise ModeError("il modello locale o llama.cpp non sono su questa macchina: si installano con ./install.sh",
+            raise ModeError(_t("il modello locale o llama.cpp non sono su questa macchina: si installano con ./install.sh", "the local model or llama.cpp are not on this machine: ./install.sh installs them"),
                             "local_model", "./install.sh")
         from . import sys_health
         job = sys_health.gpu_job(cfg)
         if job:                                        # rule 6: one GPU, one job
-            raise ModeError(f"la GPU sta lavorando ({job}): riprova alla fine", "gpu")
+            raise ModeError(_t(f"la GPU sta lavorando ({job}): riprova alla fine", f"the GPU is working ({job}): try again when it ends"), "gpu")
         sys_config.write_env(_env(cfg), {"AURORA_LLM_BACKEND": "local"})
         code, said = _service("start", run)
     else:
         if not sys_ethics.exempt(cfg):
-            raise ModeError("senza ragionatore locale Aurora ragiona in cloud: serve l'esenzione dal livello B", "exempt",
+            raise ModeError(_t("senza ragionatore locale Aurora ragiona in cloud: serve l'esenzione dal livello B", "without a local reasoner Aurora reasons in the cloud: the exemption from level B is needed"), "exempt",
                             EXEMPT_COMMAND)
         why = mdl_router.CloudBase(cfg).problem()
         if why:
-            raise ModeError(f"prima scegli il provider cloud predefinito ({why})", "key")
+            raise ModeError(_t(f"prima scegli il provider cloud predefinito ({why})", f"choose the default cloud provider first ({why})"), "key")
         sys_config.write_env(_env(cfg), {"AURORA_LLM_BACKEND": "cloud"})
         code, said = _service("stop", run)
     if code != 0:

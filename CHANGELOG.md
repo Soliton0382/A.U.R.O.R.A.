@@ -2,6 +2,24 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.3.46 — 2026-11-12
+
+13 publications since v0.3.45.
+
+- 2026-11-12 Security audit round: plugin cages, agents and injection, root and install, accounts, sentinel, memory sealing, app 0.5.5, reader language, test isolation
+- 2026-11-11 Security round: sandbox network by default, body limits, paced detectors, forge budget, Android bridge key, unit checks, firewall disconnect
+- 2026-11-11 Firewall API: the certificate pinned when the CA check is off
+- 2026-11-11 aurora-root: a widened code list is signed in one command
+- 2026-11-11 Security: backup key path bounded, cloud keys sealed, forge drafts checked at install
+- 2026-11-10 Agents kept to their tools also for the built-ins; PDF never fetches images (C581, C582)
+- 2026-11-10 Security: root and the owner run only what he signed (C556-C558)
+- 2026-11-10 Backup: a NAS that stalls during a write is tried again (C578)
+- 2026-11-09 Sicurezza: gabbia dei plugin, firma e root, memoria dei server MCP, doppioni delle routine, punteggio di sicurezza (C547–C577)
+- 2026-11-08 the contract of Aurora's own plugins (held by the cage, network only through their proxy, outside the owner's signature); full security audit fixes (root units, forged plugins and core keys, self-repair tests caged, approved changes applied byte for byte, the house: lowering its security always asks); the restore through aurora-root; docs aligned
+- 2026-11-08 the contract of Aurora's own plugins (held by the cage, network only through their proxy, outside the owner's signature); full security audit fixes (root units, forged plugins and core keys, self-repair tests caged, approved changes applied byte for byte, the house: lowering its security always asks); the restore through aurora-root; docs aligned
+- 2026-11-08 aurora-root: root acts only on code the owner signed; proactive messages in the chat; per-user models and cloud ceiling notices; the chosen language kept per person; security audit fixes (tunnel installer, key sealing, UPS)
+- 2026-11-08 Secrets sealed at rest (plugins' env, SSH keys via a per-call agent, tunnel token as a TPM-bound systemd credential, camera streams fed on stdin); approved self-repairs written whole or rolled back (C518); UPS powers off after a set time on battery, firewall first; every action refreshes the page shown; deny list networks can be taken back; security routine quiet at autopilot (C406); installer validates the Caddyfile without the service's certificates (C519); conductor and agent answer in the request's language (C511, C516, C517); read-only backup_files plugin
+
 ## v0.3.45 — 2026-11-05
 
 3 publications since v0.3.42.

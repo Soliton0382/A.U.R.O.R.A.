@@ -24,6 +24,7 @@ from xml.sax.saxutils import escape
 
 from . import sec_fwapi, sec_fwconf, sec_fwdocs, sec_fwwrite, sys_config
 from . import txt_lang
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 ALLOWED = ("FirewallRule", "NATRule", "Services", "ServiceGroup", "IPHost", "IPHostGroup", "FQDNHost", "FQDNHostGroup",
            "MACHost", "IPSPolicy", "WebFilterPolicy", "ApplicationFilterPolicy")
@@ -361,18 +362,20 @@ def plan(cfg: sys_config.Config, request: str, model=None, conf: dict | None = N
     answer; WriteError when two attempts did not give valid steps."""
     request = request.strip()[:2000]
     if len(request) < 8:
-        raise sec_fwwrite.WriteError("scrivi cosa vuoi che venga fatto sul firewall")
+        raise sec_fwwrite.WriteError(_t("scrivi cosa vuoi che venga fatto sul firewall", "write what you want done on the firewall"))
     if model is None:
         from . import mdl_router
         model = mdl_router.private_model(mdl_router.base(cfg), cfg)   # local: the configuration never leaves the machine
         if model is None:                                  # C213: a machine without a local model plans nothing
-            raise sec_fwwrite.WriteError("questa installazione non ha un modello locale, e la configurazione del "
-                                         "firewall non va a un modello cloud: le modifiche si fanno a mano")
+            raise sec_fwwrite.WriteError(_t("questa installazione non ha un modello locale, e la configurazione del "
+                                         "firewall non va a un modello cloud: le modifiche si fanno a mano", "this installation has no local model, and the firewall's configuration "
+                                         "does not go to a cloud model: the changes are made by hand"))
     if ORIGIN_ASK.search(request) and not ORIGIN_GIVEN.search(request):
         return {"need": "origin", "request": request,
-                "questions": ["Da quali paesi o indirizzi deve poter arrivare? Scrivili tu (es. Italy, oppure un IP o una "
-                              "rete): Aurora non sceglie al posto tuo."],
-                "notes": ["Se il servizio deve restare raggiungibile da tutti, non serve cambiare niente."]}
+                "questions": [_t("Da quali paesi o indirizzi deve poter arrivare? Scrivili tu (es. Italy, oppure un IP o una "
+                              "rete): Aurora non sceglie al posto tuo.", "From which countries or addresses must it be reachable? Write them yourself (e.g. Italy, or an IP or a "
+                              "network): Aurora does not choose in your place.")],
+                "notes": [_t("Se il servizio deve restare raggiungibile da tutti, non serve cambiare niente.", "If the service must stay reachable by everyone, nothing needs changing.")]}
     if sec_fwwrite._neutral(cfg):                      # the dialects of the neutral operations (ROADMAP N8)
         from . import sec_fwplan_ops
         return sec_fwplan_ops.plan(cfg, request, model)
@@ -406,4 +409,4 @@ def plan(cfg: sys_config.Config, request: str, model=None, conf: dict | None = N
             problems = ["no steps"]
         feedback = ("\n\nYOUR LAST PLAN HAD PROBLEMS — fix them and answer the whole JSON again:\n- " + "\n- ".join(problems)
                     + f"\nYOUR LAST PLAN:\n{json.dumps(data, ensure_ascii=False)[:6000]}")
-    raise sec_fwwrite.WriteError("non sono riuscita a preparare un piano valido: " + feedback.strip()[:600])
+    raise sec_fwwrite.WriteError(_t("non sono riuscita a preparare un piano valido: ", "I could not prepare a valid plan: ") + feedback.strip()[:600])

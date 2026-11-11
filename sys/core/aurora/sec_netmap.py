@@ -19,6 +19,7 @@ import time
 import xml.etree.ElementTree as ET
 
 from . import sec_fwapi, sys_config, sys_seal
+from .sys_lang import say as _say   # each sentence in the reader's language (C526); _t is the XML reader here
 
 ENTITIES = ("IPHost", "IPHostGroup", "Interface", "Zone", "DHCPServer", "UnicastRoute")
 _names: dict = {"at": 0.0, "map": {}}
@@ -245,17 +246,17 @@ def find(m: dict, query: str) -> list[str]:
 def changes_text(c: dict) -> str:
     """What a look at the network found, in words; "" when nothing changed (a routine "only if there is something")."""
     if c.get("first"):
-        return "🗺️ Prima mappa della rete salvata: dal prossimo controllo ti dico cosa cambia."
-    parts = ([f"🆕 Nuovi: {', '.join(c['new'])}"] if c["new"] else []) + \
-            ([f"👋 Spariti: {', '.join(c['gone'])}"] if c["gone"] else []) + \
-            ([f"🔀 Indirizzo cambiato: {', '.join(c['moved'])}"] if c["moved"] else [])
-    return ("🗺️ La rete è cambiata.\n" + "\n".join(parts)) if parts else ""
+        return _say("🗺️ Prima mappa della rete salvata: dal prossimo controllo ti dico cosa cambia.", "🗺️ The first map of the network is saved: from the next check I tell you what changes.")
+    parts = ([_say(f"🆕 Nuovi: {', '.join(c['new'])}", f"🆕 New: {', '.join(c['new'])}")] if c["new"] else []) + \
+            ([_say(f"👋 Spariti: {', '.join(c['gone'])}", f"👋 Gone: {', '.join(c['gone'])}")] if c["gone"] else []) + \
+            ([_say(f"🔀 Indirizzo cambiato: {', '.join(c['moved'])}", f"🔀 Address changed: {', '.join(c['moved'])}")] if c["moved"] else [])
+    return (_say("🗺️ La rete è cambiata.\n", "🗺️ The network changed.\n") + "\n".join(parts)) if parts else ""
 
 
 def text(m: dict | None) -> str:
     """The map in words for the local model: interfaces and zones, DHCP, groups, how many hosts."""
     if not m:
-        return "Nessuna mappa di rete: aggiornala nella pagina 🛡️ Sicurezza (serve l'API del firewall)."
+        return _say("Nessuna mappa di rete: aggiornala nella pagina 🛡️ Sicurezza (serve l'API del firewall).", "No map of the network: update it in the page 🛡️ Security (the firewall's API is needed).")
     s = summary(m)
     lines = [f"Mappa del {time.strftime('%d/%m/%Y %H:%M', time.localtime(m['at']))}: {s['devices']} dispositivi con nome, "
              f"{s['hosts']} oggetti host, {s['groups']} gruppi, {s['reserved']} indirizzi riservati in DHCP."]

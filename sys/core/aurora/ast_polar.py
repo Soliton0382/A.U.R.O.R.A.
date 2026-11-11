@@ -18,6 +18,7 @@ mount whose axes are not square — and the Guiding Assistant's own estimate, a 
 from __future__ import annotations
 
 import math
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 WINDOW_S = 900
 PER_ARCMIN = 0.2625                   # ″/min of declination drift for 1′ of polar error, at the worst hour angle
@@ -92,18 +93,20 @@ def night(log: dict) -> dict:
 
 def text(n: dict) -> str:
     f = n["fit"]
-    head = f"Notte del {n['night']}: "
+    head = _t(f"Notte del {n['night']}: ", f"Night of {n['night']}: ")
     if not f:
-        out = head + "troppo poca guida lunga per misurare l'allineamento polare (servono almeno 45 minuti)."
+        out = head + _t("troppo poca guida lunga per misurare l'allineamento polare (servono almeno 45 minuti).", "too little long guiding to measure the polar alignment (at least 45 minutes are needed).")
     elif f["both"]:
-        out = (head + f"errore polare effettivo {f['arcmin']}′ ± {f['err_arcmin']}′, misurato sulla deriva in DEC di "
-               f"{f['windows']} finestre da 15 minuti su {f['span_h']} h di angolo orario.")
+        out = (head + _t(f"errore polare effettivo {f['arcmin']}′ ± {f['err_arcmin']}′, misurato sulla deriva in DEC di "
+               f"{f['windows']} finestre da 15 minuti su {f['span_h']} h di angolo orario.", f"effective polar error {f['arcmin']}′ ± {f['err_arcmin']}′, measured on the DEC drift of "
+               f"{f['windows']} windows of 15 minutes over {f['span_h']} h of hour angle."))
     else:
-        out = (head + f"almeno {f['at_least_arcmin']}′ ± {f['err_arcmin']}′ (la notte ha coperto solo {f['span_h']} h di "
-               "angolo orario: si vede una componente sola).")
+        out = (head + _t(f"almeno {f['at_least_arcmin']}′ ± {f['err_arcmin']}′ (la notte ha coperto solo {f['span_h']} h di "
+               "angolo orario: si vede una componente sola).", f"at least {f['at_least_arcmin']}′ ± {f['err_arcmin']}′ (the night covered only {f['span_h']} h of "
+               "hour angle: one component alone shows)."))
     if n["assistant_arcmin"] is not None:
-        out += f" Il Guiding Assistant, in pochi minuti, aveva stimato {n['assistant_arcmin']}′."
+        out += _t(f" Il Guiding Assistant, in pochi minuti, aveva stimato {n['assistant_arcmin']}′.", f" The Guiding Assistant, in a few minutes, had estimated {n['assistant_arcmin']}′.")
     if n["square_deg"] is not None:
-        out += (f" Calibrazione: RA e DEC fuori squadra di {n['square_deg']:.1f}°"
-                + (" ✅." if n["square_deg"] <= 5 else " ⚠️ (oltre 5°: gioco in DEC o assi non a squadra)."))
+        out += (_t(f" Calibrazione: RA e DEC fuori squadra di {n['square_deg']:.1f}°", f" Calibration: RA and DEC out of square by {n['square_deg']:.1f}°")
+                + (" ✅." if n["square_deg"] <= 5 else _t(" ⚠️ (oltre 5°: gioco in DEC o assi non a squadra).", " ⚠️ (beyond 5°: backlash in DEC or axes not square).")))
     return out

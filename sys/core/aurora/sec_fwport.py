@@ -15,6 +15,7 @@ import ipaddress
 import time
 
 from . import sec_fwapi, sec_fwconf, sec_fwwrite, sec_intel, sys_config, sys_log
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 # the ports Cloudflare's proxy forwards to an origin (HTTP and HTTPS), developers.cloudflare.com/fundamentals/…/ports
 PROXIED = {80, 8080, 8880, 2052, 2082, 2086, 2095, 443, 2053, 2083, 2087, 2096, 8443}
@@ -24,17 +25,19 @@ def plan_port_block(cfg: sys_config.Config, ip: str, ports: str, reason: str, ho
                     conf: dict | None = None) -> dict:
     ip = sec_fwapi.blockable(cfg, ip)
     if not ipaddress.ip_address(ip).is_global:
-        raise sec_fwwrite.WriteError("indirizzo+porta è per un indirizzo di Internet; un dispositivo di casa va in quarantena")
+        raise sec_fwwrite.WriteError(_t("indirizzo+porta è per un indirizzo di Internet; un dispositivo di casa va in quarantena", "address+port is for an Internet address; a device of the house goes into quarantine"))
     plist = sec_fwwrite._ports(ports)
     numbers = {int(p) for _, q in plist for p in q.split(":")}
     provider = sec_intel.shared(cfg, ip)
     if provider == "Cloudflare" and numbers & PROXIED:
         raise sec_fwwrite.WriteError(
-            f"{ip} è un nodo di Cloudflare e la porta {', '.join(map(str, sorted(numbers & PROXIED)))} è una di quelle "
+            _t(f"{ip} è un nodo di Cloudflare e la porta {', '.join(map(str, sorted(numbers & PROXIED)))} è una di quelle "
             "che il proxy porta ai tuoi siti: bloccarla escluderebbe i visitatori dietro quel nodo. Il vero autore si "
-            "blocca su Cloudflare (cloudflare_block).")
+            "blocca su Cloudflare (cloudflare_block).", f"{ip} is a Cloudflare node and the port {', '.join(map(str, sorted(numbers & PROXIED)))} is one of those "
+            "the proxy carries to your sites: blocking it would shut out the visitors behind that node. The real author is "
+            "blocked at Cloudflare (cloudflare_block)."))
     if not 1 <= float(hours) <= 24 * 30:
-        raise sec_fwwrite.WriteError("durata: da 1 ora a 30 giorni")
+        raise sec_fwwrite.WriteError(_t("durata: da 1 ora a 30 giorni", "duration: from 1 hour to 30 days"))
     tag = "_".join(q.replace(":", "-") for _, q in plist)[:12]
     name = f"{sec_fwwrite.PREFIX}PB-{ip}-{tag}"
     said = ", ".join(f"{p} {q}" for p, q in plist)
@@ -44,15 +47,15 @@ def plan_port_block(cfg: sys_config.Config, ip: str, ports: str, reason: str, ho
     else:
         conf = conf if conf is not None else sec_fwconf.read(cfg)
         if sec_fwwrite._taken(conf, "FirewallRule", name):
-            raise sec_fwwrite.WriteError(f"{ip} è già bloccato su {tag} («{name}»)")
+            raise sec_fwwrite.WriteError(_t(f"{ip} è già bloccato su {tag} («{name}»)", f"{ip} is already blocked on {tag} («{name}»)"))
         host = name.lower()
         steps = [sec_fwwrite.host_step(host, ip), sec_fwwrite.service_step(name, plist),
                  sec_fwwrite.rule_step(name, desc, ["WAN"], [], [name], [host], [], "Drop", "None", None)]
         check = [("FirewallRule", name)]
-    notes = [f"Tolto da solo dopo {hours:g} ore (o subito con «annulla»)."]
+    notes = [_t(f"Tolto da solo dopo {hours:g} ore (o subito con «annulla»).", f"Removed by itself after {hours:g} hours (or at once with «undo»).")]
     if provider:
-        notes.append(f"{ip} è di {provider}: il blocco vale solo per {said}, il resto del suo traffico passa.")
-    return {"kind": "portblock", "title": f"Bloccare {ip} su {said}", "why": reason[:300], "steps": steps,
+        notes.append(_t(f"{ip} è di {provider}: il blocco vale solo per {said}, il resto del suo traffico passa.", f"{ip} is {provider}'s: the block holds only for {said}, the rest of its traffic passes."))
+    return {"kind": "portblock", "title": _t(f"Bloccare {ip} su {said}", f"Block {ip} on {said}"), "why": reason[:300], "steps": steps,
             "notes": notes, "check": check, "hours": float(hours), "ip": ip}
 
 

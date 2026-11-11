@@ -285,7 +285,25 @@ def should_notify(r: dict, text: str, ok: bool) -> bool:
         return True
     if mode == "if_any":
         return not empty
-    return not empty and text.strip() != (r.get("last_notified") or "").strip()      # if_new
+    if empty:                                                                       # if_new
+        return False
+    # 12 Nov: a weather alert carries the forecast's numbers and hours (gusts, times), which move at every hourly
+    # fetch — the same alert went out 12 times in a day. Only its numbers changed: the same alert, said again
+    # after REPEAT_AFTER_S
+    last = (r.get("last_notified") or "").strip()
+    if text.strip() == last:                                                        # said once, as before
+        return False
+    if _shape(text) != _shape(last):
+        return True
+    return time.time() - float(r.get("last_notified_at") or r.get("last_run") or time.time()) >= REPEAT_AFTER_S
+
+
+REPEAT_AFTER_S = 12 * 3600
+
+
+def _shape(text: str) -> str:
+    """The text with its numbers and hours left out: what an alert says, not the values it says it with."""
+    return re.sub(r"\d+(?:[.,:]\d+)*", "#", text).strip()
 
 
 def record(cfg: sys_config.Config, rid: str, text: str, ok: bool, run_id: str | None = None,
@@ -299,7 +317,7 @@ def record(cfg: sys_config.Config, rid: str, text: str, ok: bool, run_id: str | 
     notify = should_notify(r, text, ok)
     r.update(last_run=time.time(), last_ok=ok, last_text=text[:4000], last_run_id=run_id, last_files=files or [])
     if notify and ok:
-        r["last_notified"] = text[:4000]
+        r["last_notified"], r["last_notified_at"] = text[:4000], time.time()
     if ok and remember and text.strip() and not NOTHING.match(text):   # its memory: its last real report, not "nothing new"
         r["memory_text"], r["memory_at"] = text[:4000], time.time()
     _save(cfg, "routines.json", rs)
@@ -356,8 +374,8 @@ def report_pdf(cfg: sys_config.Config, r: dict, text: str, run_id: str, emit, lo
     """A routine's report is also a PDF the owner can download (card, conversation, Files page), with the AI
     disclosure; a failure here never fails the routine."""
     from datetime import date
-    from . import doc_pdf, sys_uploads
-    lang = "it" if str(cfg["AURORA_LANG_DEFAULT"]).startswith("it") else "en"
+    from . import doc_pdf, sys_lang, sys_uploads
+    lang = sys_lang.reader(cfg)                       # the routine's owner reads it (C526)
     try:
         p = doc_pdf.create(f"{(r.get('title') or 'Routine')[:60]} — {date.today().isoformat()}", text, lang, cfg)
     except Exception as e:                               # noqa: BLE001 - the text report stays, the PDF is said missing

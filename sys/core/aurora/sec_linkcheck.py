@@ -28,6 +28,7 @@ from urllib.parse import urlsplit
 import httpx
 
 from . import sys_config, sys_log
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 SERVICES = ("virustotal", "urlhaus", "abuseipdb")
 KEEP_S = 24 * 3600
@@ -103,10 +104,10 @@ def form(url: str) -> tuple[str, list[str]]:
     host = (u.hostname or "").lower()
     why, level = [], "clean"
     if u.username or u.password:
-        why.append("il link contiene credenziali (utente@host): un trucco classico per mascherare il sito vero")
+        why.append(_t("il link contiene credenziali (utente@host): un trucco classico per mascherare il sito vero", "the link holds credentials (user@host): a classic trick to mask the real site"))
         level = "suspicious"
     if any(p.startswith("xn--") for p in host.split(".")):
-        why.append(f"il nome del sito è in punycode ({host}): può imitare un altro sito con lettere simili")
+        why.append(_t(f"il nome del sito è in punycode ({host}): può imitare un altro sito con lettere simili", f"the site's name is in punycode ({host}): it can imitate another site with similar letters"))
         level = "suspicious"
     return level, why
 
@@ -126,47 +127,47 @@ def _ip_of(host: str) -> str | None:
 def virustotal(c: httpx.Client, cfg, url: str) -> tuple[str, str]:
     key = _val(cfg, "AURORA_LINKCHECK_VIRUSTOTAL_KEY")
     if not key:
-        return "unknown", "VirusTotal: nessuna chiave"
+        return "unknown", _t("VirusTotal: nessuna chiave", "VirusTotal: no key")
     vid = base64.urlsafe_b64encode(url.encode()).decode().strip("=")
     r = c.get(f"https://www.virustotal.com/api/v3/urls/{vid}", headers={"x-apikey": key})
     if r.status_code == 404:
-        return "unknown", "VirusTotal: link mai analizzato"
+        return "unknown", _t("VirusTotal: link mai analizzato", "VirusTotal: link never analysed")
     r.raise_for_status()
     s = r.json()["data"]["attributes"].get("last_analysis_stats", {})
     bad, sus = int(s.get("malicious", 0)), int(s.get("suspicious", 0))
     level = "malicious" if bad >= 2 else "suspicious" if bad or sus else "clean"
-    return level, f"VirusTotal: {bad} motori lo dicono malevolo, {sus} sospetto"
+    return level, _t(f"VirusTotal: {bad} motori lo dicono malevolo, {sus} sospetto", f"VirusTotal: {bad} engines call it malicious, {sus} suspicious")
 
 
 def urlhaus(c: httpx.Client, cfg, url: str) -> tuple[str, str]:
     key = _val(cfg, "AURORA_LINKCHECK_URLHAUS_KEY")
     if not key:
-        return "unknown", "URLhaus: nessuna chiave (abuse.ch, gratuita)"
+        return "unknown", _t("URLhaus: nessuna chiave (abuse.ch, gratuita)", "URLhaus: no key (abuse.ch, free)")
     r = c.post("https://urlhaus-api.abuse.ch/v1/url/", data={"url": url}, headers={"Auth-Key": key})
     r.raise_for_status()
     d = r.json()
     if d.get("query_status") == "ok":
-        return "malicious", f"URLhaus: link di malware noto ({d.get('threat') or 'malware'}, {d.get('url_status', '')})"
+        return "malicious", _t(f"URLhaus: link di malware noto ({d.get('threat') or 'malware'}, {d.get('url_status', '')})", f"URLhaus: a known malware link ({d.get('threat') or 'malware'}, {d.get('url_status', '')})")
     host = urlsplit(url).hostname or ""
     r = c.post("https://urlhaus-api.abuse.ch/v1/host/", data={"host": host}, headers={"Auth-Key": key})
     if r.is_success and r.json().get("query_status") == "ok" and int(r.json().get("url_count") or 0):
-        return "suspicious", f"URLhaus: il sito {host} ha ospitato {r.json()['url_count']} link di malware"
-    return "clean", "URLhaus: non presente"
+        return "suspicious", _t(f"URLhaus: il sito {host} ha ospitato {r.json()['url_count']} link di malware", f"URLhaus: the site {host} hosted {r.json()['url_count']} malware links")
+    return "clean", _t("URLhaus: non presente", "URLhaus: not listed")
 
 
 def abuseipdb(c: httpx.Client, cfg, url: str) -> tuple[str, str]:
     key = _val(cfg, "AURORA_ABUSEIPDB_KEY")
     if not key:
-        return "unknown", "AbuseIPDB: nessuna chiave (quella del plugin netintel)"
+        return "unknown", _t("AbuseIPDB: nessuna chiave (quella del plugin netintel)", "AbuseIPDB: no key (the netintel plugin's)")
     ip = _ip_of(urlsplit(url).hostname or "")
     if not ip:
-        return "unknown", "AbuseIPDB: indirizzo del sito non risolto"
+        return "unknown", _t("AbuseIPDB: indirizzo del sito non risolto", "AbuseIPDB: the site's address did not resolve")
     r = c.get("https://api.abuseipdb.com/api/v2/check", params={"ipAddress": ip, "maxAgeInDays": 90},
               headers={"Key": key, "Accept": "application/json"})
     r.raise_for_status()
     score = int(r.json()["data"].get("abuseConfidenceScore", 0))
     level = "malicious" if score >= 75 else "suspicious" if score >= 25 else "clean"
-    return level, f"AbuseIPDB: {ip} segnalato con affidabilità {score}%"
+    return level, _t(f"AbuseIPDB: {ip} segnalato con affidabilità {score}%", f"AbuseIPDB: {ip} reported with confidence {score}%")
 
 
 CHECKS = {"virustotal": virustotal, "urlhaus": urlhaus, "abuseipdb": abuseipdb}
@@ -179,9 +180,9 @@ def check(url: str, cfg: sys_config.Config | None = None, client: httpx.Client |
     caught = sec_detonate.listed(cfg, url)
     if caught:
         return {"url": url, "blocked": True, "level": "malicious", "checked": ["honeypot"], "at": time.time(),
-                "reasons": [f"l'honeypot di Aurora: questo sito ha tentato una prompt injection ({caught['why'][:200]})"]}
+                "reasons": [_t(f"l'honeypot di Aurora: questo sito ha tentato una prompt injection ({caught['why'][:200]})", f"Aurora's honeypot: this site tried a prompt injection ({caught['why'][:200]})")]}
     if not enabled(cfg):
-        return {"url": url, "blocked": False, "level": "unknown", "reasons": ["controllo dei link spento"], "checked": []}
+        return {"url": url, "blocked": False, "level": "unknown", "reasons": [_t("controllo dei link spento", "link check off")], "checked": []}
     hit = _cached(cfg, url)
     if hit:
         return {**hit, "cached": True}
@@ -196,7 +197,7 @@ def check(url: str, cfg: sys_config.Config | None = None, client: httpx.Client |
             try:
                 lv, why = CHECKS[name](c, cfg, url)
             except Exception as e:                    # noqa: BLE001 — a service down: «not checked», never «clean»
-                lv, why = "unknown", f"{name}: non risponde ({type(e).__name__})"
+                lv, why = "unknown", _t(f"{name}: non risponde ({type(e).__name__})", f"{name}: does not answer ({type(e).__name__})")
             reasons.append(why)
             if lv != "unknown":
                 checked.append(name)
@@ -214,11 +215,14 @@ def check(url: str, cfg: sys_config.Config | None = None, client: httpx.Client |
 
 
 def refusal(v: dict) -> str:
-    """The words of a refusal, in Italian, with the reasons the services gave."""
-    bad = [r for r in v["reasons"] if not r.endswith(("nessuna chiave", "nessuna credenziale", "non presente",
-                                                      "mai analizzato"))]
-    return (f"Non apro questo link ({v['url'][:120]}): la sua reputazione è «{v['level']}». "
-            + "; ".join(bad[:4]) + ". Se sei sicuro che sia innocuo, aprilo tu dal browser.")
+    """The words of a refusal, in the reader's language, with the reasons the services gave."""
+    quiet = ("nessuna chiave", "nessuna credenziale", "non presente", "mai analizzato",      # no verdict: not a reason
+             "no key", "no credential", "not listed", "never analysed")
+    bad = [r for r in v["reasons"] if not r.endswith(quiet)]
+    return (_t(f"Non apro questo link ({v['url'][:120]}): la sua reputazione è «{v['level']}». ",
+               f"I am not opening this link ({v['url'][:120]}): its reputation is «{v['level']}». ")
+            + "; ".join(bad[:4]) + _t(". Se sei sicuro che sia innocuo, aprilo tu dal browser.",
+                                      ". If you are sure it is harmless, open it yourself in the browser."))
 
 
 def tool_call(cfg, plugin: str, args: dict, emit, log) -> str:
@@ -244,7 +248,7 @@ def report_virustotal(cfg, url: str, why: str, client: httpx.Client | None = Non
     weighs in VirusTotal's community score; the engines decide what is blocked — said, not promised."""
     key = _val(cfg, "AURORA_LINKCHECK_VIRUSTOTAL_KEY")
     if not key:
-        raise ValueError("VirusTotal: nessuna chiave (scheda del plugin linkcheck)")
+        raise ValueError(_t("VirusTotal: nessuna chiave (scheda del plugin linkcheck)", "VirusTotal: no key (the linkcheck plugin's card)"))
     vid = base64.urlsafe_b64encode(url.encode()).decode().strip("=")
     head = {"x-apikey": key}
     c = client or httpx.Client(timeout=15, headers={"User-Agent": "Aurora/1.0 (link reputation)"})
@@ -260,5 +264,5 @@ def report_virustotal(cfg, url: str, why: str, client: httpx.Client | None = Non
         if client is None:
             c.close()
     sys_log.get_logger("security").info("audit: %s reported to VirusTotal as malicious (%s)", url[:200], why[:120])
-    return f"Segnalato a VirusTotal: analisi chiesta, voto «malicious» e commento con il motivo ({url[:120]})."
+    return _t(f"Segnalato a VirusTotal: analisi chiesta, voto «malicious» e commento con il motivo ({url[:120]}).", f"Reported to VirusTotal: analysis asked, vote «malicious» and a comment with the reason ({url[:120]}).")
 

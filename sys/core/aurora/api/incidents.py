@@ -15,6 +15,12 @@ from .users import admin_only  # noqa: E402
 router = APIRouter()
 
 
+def _t(it: str, en: str) -> str:
+    """The sentence in the language of the person served (C526)."""
+    from aurora import sys_lang
+    return sys_lang.say(it, en, cfg.now())
+
+
 # ---- firewall incidents -------------------------------------------------------------------------
 @router.post("/v1/aurora/sentinel/incident", dependencies=[Depends(admin_only)])   # the service's key: the admin (C415)
 async def sentinel_incident(request: Request) -> dict:
@@ -26,13 +32,15 @@ async def sentinel_incident(request: Request) -> dict:
     if not name and incident.get("internal"):             # the same device by its MAC, with an address not its own
         dev = sec_netmap.by_mac(cfg, (incident.get("detail") or {}).get("mac", ""))
         if dev:
-            name = f"{dev[0]} (di solito {dev[1]})"
+            name = f"{dev[0]} ({_t('di solito', 'usually')} {dev[1]})"
             d = incident.setdefault("detail", {})
-            d["why"] = (d.get("why", "") + f" È un tuo dispositivo, «{dev[0]}» (di solito {dev[1]}), con un altro "
-                        f"indirizzo: {incident.get('source', '')}.").strip()
+            d["why"] = (d.get("why", "") + _t(f" È un tuo dispositivo, «{dev[0]}» (di solito {dev[1]}), con un altro "
+                                           f"indirizzo: {incident.get('source', '')}.",
+                                           f" It is a device of yours, «{dev[0]}» (usually {dev[1]}), with another "
+                                           f"address: {incident.get('source', '')}.")).strip()
     if name:                                              # one of the owner's devices (the firewall knows its name)
         incident["known"] = name
-    outbound = destination_of(incident)
+    outbound = await asyncio.to_thread(destination_of, incident)     # C596: its DNS question never in the event loop
     if outbound:                                          # a device at home reaching an address on a threat feed (M161)
         from aurora import net_trace
         mine = net_trace.own_trace(cfg, incident.get("source", ""), outbound["destination"])
@@ -134,15 +142,17 @@ def destination_of(incident: dict) -> dict:
     feed = re.search(r'threatfeed="([^"]+)"', " ".join(incident.get("samples") or []))
     if feed:
         out["destination_feed"] = feed.group(1)
+    # C596: asked in a thread of its own and waited for 2 s at most (the process's default socket timeout was set and
+    # reset here: every socket opened in between took it); the name is the address owner's own words: cut
+    import socket
+    from concurrent.futures import ThreadPoolExecutor, TimeoutError as Late
+    pool = ThreadPoolExecutor(1, thread_name_prefix="ptr")
     try:
-        import socket
-        socket.setdefaulttimeout(2)
-        out["destination_name"] = socket.gethostbyaddr(dst)[0]
-    except OSError:
+        out["destination_name"] = str(pool.submit(socket.gethostbyaddr, dst).result(timeout=2)[0])[:253]
+    except (OSError, Late):
         pass
     finally:
-        import socket as _s
-        _s.setdefaulttimeout(None)
+        pool.shutdown(wait=False)
     return out
 
 
@@ -160,7 +170,12 @@ def defend(item: dict) -> None:
     def run():
         try:
             out = sec_defence.act(cfg, item)
-            Incidents(cfg).update(item["id"], defence="blocked", blocked_until=out["until"])
+            Incidents(cfg).update(item["id"], blocked_until=out["until"], defence="blocked" if not out.get("failed") else
+                                  "blocked on " + ", ".join(out["firewalls"]) + "; NOT on "
+                                  + "; ".join(f"{k}: {v}" for k, v in out["failed"].items())[:300])
+            if out.get("failed"):                         # C596: half done across the firewalls: told, never silent
+                note("security", "defence.failed", {"title": f"⚠️ {item['source']} bloccato solo su una parte dei firewall",
+                                                    "text": "; ".join(out["failed"])[:180]})
             from aurora import sec_autopilot
             if sec_autopilot.on(cfg):                     # 🤖 said once a day with the others (digest)
                 sec_autopilot.settle(item["id"], cfg, "blocked")
@@ -221,9 +236,10 @@ async def incident_verdict(incident_id: str, request: Request) -> dict:
     said = sec_quiet.after_verdict(cfg, Incidents(cfg).list(), item)
     if said and said.get("propose") and not _quiet_alone(Incidents(cfg).list()):   # 🚀: quieted by herself, told
         x = said["propose"]
-        note("security", "quiet.propose", {"title": "🔇 Silenzio questo allarme su questo dispositivo?",
-             "text": f"«{x['label']}»: {x['false_alarm']} falsi allarmi e {x['right']} giusti su {x['judged']} giudizi. "
-                     "Rispondi nella pagina Sicurezza."})
+        note("security", "quiet.propose", {"title": _t("🔇 Silenzio questo allarme su questo dispositivo?", "🔇 Shall I quiet this alarm on this device?"),
+             "text": _t(f"«{x['label']}»: {x['false_alarm']} falsi allarmi e {x['right']} giusti su {x['judged']} giudizi. "
+                     "Rispondi nella pagina Sicurezza.", f"«{x['label']}»: {x['false_alarm']} false alarms and {x['right']} right ones out of {x['judged']} verdicts. "
+                     "Answer in the Security page.")})
     elif said and said.get("woke"):
         log.info("audit: incidents «%s» awake again: judged right", said["woke"])
         note("security", "quiet.woke", {"title": "🔔 Tipo di allarme riattivato", "text": f"«{said['label']}»: l'hai giudicato giusto, torna ad avvisarti."})
@@ -243,9 +259,10 @@ def _egress_alone(item: dict) -> dict:
     if item["kind"] == "egress_new" and d.get("busy"):
         sec_egress_watch.decide(cfg, d["service"], d["key"], "legit")
         sys_autonomy.log(cfg, "security", f"learnt {d['service']} → {d['key']} {d.get('holder', '')} (met during a run)")
-        note("security", "egress.learnt", {"title": "🌐 Ho imparato una nuova uscita",
-             "text": f"{d.get('title', '')}: incontrata durante un lavoro, la considero legittima. Se non lo è: pagina "
-                     "Sicurezza → Uscite."})
+        note("security", "egress.learnt", {"title": _t("🌐 Ho imparato una nuova uscita", "🌐 I learnt a new destination"),
+             "text": _t(f"{d.get('title', '')}: incontrata durante un lavoro, la considero legittima. Se non lo è: pagina "
+                     "Sicurezza → Uscite.", f"{d.get('title', '')}: met during a job, I take it as legitimate. If it is not: the page "
+                     "Security → Destinations.")})
         return Incidents(cfg).update(item["id"], status="closed", severity="low", closed=time.strftime("%Y-%m-%dT%H:%M:%S%z"),
                                      decided="learnt by Aurora")
     if d.get("shared") or not d.get("asn"):
@@ -269,9 +286,10 @@ def _deny_alone(item: dict) -> dict:
     sec_egress.refresh(cfg, force=True)
     sys_autonomy.log(cfg, "security", f"AS{d['asn']} {d.get('holder', '')} on the deny list: {d.get('title', '')}")
     log.warning("audit: AS%s added to the deny list by Aurora (security 🚀): %s", d["asn"], d.get("title", ""))
-    note("security", "egress.denied", {"title": "🚫 Ho messo una rete in blacklist",
-         "text": f"{d.get('title', '')} → AS{d['asn']} {d.get('holder', '')} è in blacklist e la sentinella la "
-                 "sorveglia. Perché anche i servizi non possano raggiungerla: reinstalla le unit."})
+    note("security", "egress.denied", {"title": _t("🚫 Ho messo una rete in blacklist", "🚫 I put a network on the deny list"),
+         "text": _t(f"{d.get('title', '')} → AS{d['asn']} {d.get('holder', '')} è in blacklist e la sentinella la "
+                 "sorveglia. Perché anche i servizi non possano raggiungerla: reinstalla le unit.", f"{d.get('title', '')} → AS{d['asn']} {d.get('holder', '')} is on the deny list and the sentinel "
+                 "watches it. So that the services cannot reach it either: install the units again.")})
     return Incidents(cfg).update(item["id"], deny="added by Aurora")
 
 
@@ -286,9 +304,10 @@ def _quiet_alone(items: list[dict]) -> list[str]:
     for x in sec_quiet.proposals(cfg, items):
         sec_quiet.answer(cfg, x["pattern"], "quiet", sec_quiet.tally(items)[x["pattern"]], x["name"])
         sys_autonomy.log(cfg, "security", f"quieted «{x['label']}»: {x['false_alarm']} false alarms, {x['right']} right")
-        note("security", "quiet.auto", {"title": "🔇 Ho silenziato un allarme su un dispositivo",
-             "text": f"«{x['label']}»: {x['false_alarm']} falsi allarmi e {x['right']} giusti su {x['judged']} tuoi "
-                     "giudizi. Restano nell'elenco come bassi; si riattiva dalla pagina Sicurezza, o da sé con un 👍."})
+        note("security", "quiet.auto", {"title": _t("🔇 Ho silenziato un allarme su un dispositivo", "🔇 I quieted an alarm on a device"),
+             "text": _t(f"«{x['label']}»: {x['false_alarm']} falsi allarmi e {x['right']} giusti su {x['judged']} tuoi "
+                     "giudizi. Restano nell'elenco come bassi; si riattiva dalla pagina Sicurezza, o da sé con un 👍.", f"«{x['label']}»: {x['false_alarm']} false alarms and {x['right']} right ones out of {x['judged']} verdicts of "
+                     "yours. They stay in the list as low; it comes back from the Security page, or by itself with a 👍.")})
         log.info("audit: incidents «%s» quieted by Aurora (security 🚀)", x["pattern"])
         done.append(x["pattern"])
     return done

@@ -18,6 +18,7 @@ from fastapi.responses import FileResponse, Response
 from .core import _admin, _runs, auth, cfg, give_way, in_thread, log, me, note, pipeline, plugin_host, start_run
 
 from .users import admin_only  # noqa: E402
+from aurora.sys_lang import say as _t  # noqa: E402 — each sentence in the reader's language (C526)
 
 router = APIRouter()
 
@@ -159,7 +160,7 @@ def _why(p) -> str:
         reason = next((l.strip() for l in reversed(lines) if l.strip() and not l.startswith((" ", "\t", "Traceback"))), "")
     except OSError:
         pass
-    return " — ".join(x for x in (str(p.error or "").strip(), reason[:300]) if x) or "non parte (nessun dettaglio)"
+    return " — ".join(x for x in (str(p.error or "").strip(), reason[:300]) if x) or _t("non parte (nessun dettaglio)", "it does not start (no detail)")
 
 
 @router.get("/v1/aurora/plugins", dependencies=[Depends(auth)])
@@ -170,7 +171,9 @@ def plugins() -> list[dict]:
     return [{"name": p.name, "users": plg_access.for_users(cfg, p.name), "version": p.manifest.get("version"), "kind": p.manifest.get("kind"),
              "description": p.manifest.get("description", {}), "enabled": p.enabled, "available": p.available,
              "away": p.away or {"on": False, "from": "", "to": ""}, "paused": p.paused,
-             "social": bool(p.manifest.get("social")), "missing": p.missing, "error": p.error, "setup": p.manifest.get("setup", {}),
+             "social": bool(p.manifest.get("social")), "missing": p.missing,
+             "error": p.error if admin or not p.error else "not working: ask the admin",   # C595: its text is the admin's
+             "setup": p.manifest.get("setup", {}),
              "oauth": p.manifest.get("oauth"),
              **({"install": plg_deps.state(p.folder, p.manifest)} if admin and p.manifest.get("install") else {}),
              **({"why": _why(p)} if admin else {}),

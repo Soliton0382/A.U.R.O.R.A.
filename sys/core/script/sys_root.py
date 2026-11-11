@@ -67,6 +67,12 @@ def repo() -> Path:
 
 
 REPO = repo()
+if __name__ == "__main__" and not HERE.is_relative_to(LIB):
+    # C592 (audit F2): the one-time setup runs from Aurora's folder, whose __pycache__ the services' account writes —
+    # Python would run a compiled file planted there instead of the source the owner signs. Compiled files are looked
+    # for only under a folder of root's (nobody else writes /usr/local/lib), and none is written.
+    sys.dont_write_bytecode = True
+    sys.pycache_prefix = f"{LIB}.pycache"
 os.environ["INSTALL_ROOT"] = str(REPO)                 # sys_config: the installation's data, never its code
 os.environ.setdefault("AURORA_ENV_FILE", str(REPO / ".env"))
 os.environ["AURORA_ROOT_LAUNCHER"] = "1"              # sys_ethics_sign: called from here, not run by hand
@@ -182,14 +188,17 @@ def drift(snap: dict[str, bytes]) -> dict:
     return {"unsigned": unsigned, "changed": changed, "added": added, "removed": removed, "protected": prot}
 
 
-def show(d: dict) -> int:
+def show(d: dict, limit: int = 0) -> int:
+    """What changed since the signature. C592 (audit F8): every name — the list stopped at 40 and the owner signed the
+    rest unseen (a file slipped in after 40 others). `limit`: only where nobody is asked (--yes)."""
     rows = [("✏️", f) for f in d["changed"]] + [("➕", f) for f in d["added"]] + [("➖", f) for f in d["removed"]]
     if d["unsigned"]:
         print(f"⚠️ {d['unsigned']}")
-    for mark, f in rows[:40]:
-        print(f"  {mark} {'🔒 ' if f in d['protected'] else ''}{f}")
-    if len(rows) > 40:
-        print(f"  … e altri {len(rows) - 40}")
+    for mark, f in rows[:limit or None]:
+        # a name with control characters (a carriage return, a terminal escape) could wipe its own line: shown escaped
+        print(f"  {mark} {'🔒 ' if f in d['protected'] else ''}{f if f.isprintable() else repr(f)}")
+    if limit and len(rows) > limit:
+        print(f"  … e altri {len(rows) - limit}")
     if d["protected"]:
         print("  🔒 = regole di Aurora (codice etico): senza firma i servizi non partono")
     return len(rows)
@@ -217,25 +226,51 @@ def ask(question: str, yes: bool) -> bool:
 
 
 # ---- writing as root, never through a link ---------------------------------------------------------------------
+def _dirfd(path: Path) -> int:
+    """A folder opened through no symbolic link, one step at a time from / down. The caller closes it."""
+    fd = os.open("/", os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        for part in Path(os.path.abspath(path)).parts[1:]:
+            nxt = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+            os.close(fd)
+            fd = nxt
+        return fd
+    except OSError:
+        os.close(fd)
+        raise
+
+
 def _write(path: Path, data: bytes, mode: int, owner: tuple[int, int] | None = None) -> None:
     for q in (path.parent, *path.parent.parents):
         if q.is_symlink():
             die(f"{q} is a symbolic link: refused")
-    tmp = path.with_name(f".{path.name}.aurora-root")
-    if os.path.lexists(tmp):
-        os.unlink(tmp)
-    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, mode)
-    with os.fdopen(fd, "wb") as h:
-        h.write(data)
-    os.chmod(tmp, mode)
-    if owner and os.geteuid() == 0:
-        os.chown(tmp, *owner, follow_symlinks=False)
-    os.replace(tmp, path)                               # a rename: a link at `path` is replaced, never followed
+    # C592 (audit F7): the check above is a moment, the write another — the folder is opened from / through no link
+    # and held; the file is made, its mode and owner set on the open file, and renamed, all inside that folder
+    tmp = f".{path.name}.aurora-root"
+    try:
+        d = _dirfd(path.parent)
+    except OSError as e:
+        die(f"{path.parent}: a symbolic link (or no folder) on the way: refused ({e.strerror})")
+    try:
+        try:
+            os.unlink(tmp, dir_fd=d)
+        except FileNotFoundError:
+            pass
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, mode, dir_fd=d)
+        with os.fdopen(fd, "wb") as h:
+            h.write(data)
+            h.flush()
+            os.fchmod(fd, mode)
+            if owner and os.geteuid() == 0:
+                os.fchown(fd, *owner)
+        os.rename(tmp, path.name, src_dir_fd=d, dst_dir_fd=d)   # a link at `path` is replaced, never followed
+    finally:
+        os.close(d)
 
 
 def sign(snap: dict[str, bytes], yes: bool = False) -> bool:
     d = drift(snap)
-    if not show(d):
+    if not show(d, 40 if yes else 0):                   # asked: the whole list; --yes (a fresh copy): nobody reads it
         print("✅ tutto il codice è già firmato")
         return True
     if not ask("Firmo questi file?", yes):
@@ -332,6 +367,16 @@ ROOT_UNITS = {"aurora-certs.service": "sys_cert_perms.py", "aurora-mount.service
               "aurora-retime.service": "sys_backup_retime.py"}
 EXEC = ("ExecStart=", "ExecStartPre=", "ExecStartPost=", "ExecStop=", "ExecStopPost=", "ExecReload=",
         "ExecCondition=")
+# C592 (audit F9): the directives the generator writes (sys_install_services) and no other. A list of what is forbidden
+# missed what makes a unit root in all but name: Group=/SupplementaryGroups= (disk, shadow, docker), capabilities,
+# LoadCredential= (any file of root's handed over), StandardOutput=file: (opened by root), PAMName=, a root image…
+UNIT_KEYS = frozenset((
+    "Description", "After", "Wants", "PartOf", "OnFailure", "WantedBy", "Type", "User", "WorkingDirectory", "Environment",
+    "ExecStart", "ExecReload", "Nice", "UMask", "NoNewPrivileges", "LockPersonality", "ReadWritePaths",
+    "InaccessiblePaths", "BindReadOnlyPaths", "AmbientCapabilities", "CapabilityBoundingSet"))
+UNIT_PREFIXES = ("Protect", "Restrict", "Private", "Limit", "Memory", "CPU", "IOScheduling", "IOWeight", "Timeout",
+                 "Restart", "Kill", "StartLimit", "IPAddress", "SystemCall")
+UNIT_CAPS = frozenset(("CAP_NET_BIND_SERVICE",))         # Caddy's ports below 1024, nothing else
 
 
 def unit_problems(snap: dict[str, bytes], folder: str = "sys/deploy/systemd/") -> list[str]:
@@ -343,17 +388,31 @@ def unit_problems(snap: dict[str, bytes], folder: str = "sys/deploy/systemd/") -
     for rel, b in sorted(snap.items()):
         if not (rel.startswith(folder) and rel.endswith(".service")):
             continue
-        name, lines = rel.rsplit("/", 1)[1], b.decode("utf-8", "replace").splitlines()
-        users = [x.split("=", 1)[1].strip() for x in lines if x.startswith("User=")]
-        cmds = [x.split("=", 1)[1].strip() for x in lines if x.startswith(EXEC)]
-        if any(x.startswith(("PermissionsStartOnly=", "RootDirectory=", "DynamicUser=")) for x in lines):
-            bad.append(f"{name}: a directive that changes who or where it runs")
+        name, text = rel.rsplit("/", 1)[1], b.decode("utf-8", "replace")
+        # C592 (audit F9): read as systemd reads it — spaces around a name and its «=» are dropped by systemd, and a
+        # line ending in «\» swallows the next (a «User=» that is only the tail of a comment leaves root)
+        pairs = [(k.strip(), v.strip()) for k, sep, v in (x.strip().partition("=") for x in text.splitlines())
+                 if sep and not k.lstrip().startswith(("#", ";"))]
+        if any(x.rstrip().endswith("\\") for x in text.splitlines()):
+            bad.append(f"{name}: a line continued with «\\»: refused, its directives cannot be checked")
+        users = [v for k, v in pairs if k == "User"]
+        cmds = [v for k, v in pairs if k + "=" in EXEC]
+        unknown = sorted({k for k, _ in pairs if k not in UNIT_KEYS and not k.startswith(UNIT_PREFIXES)})
+        if unknown:                                      # the generator's own directives, nothing else: a group, a
+            bad.append(f"{name}: not a directive Aurora's units use: {', '.join(unknown)}")   # credential, a file of root's
+        caps = {c for k, v in pairs if k in ("AmbientCapabilities", "CapabilityBoundingSet") for c in v.split()}
+        if caps - UNIT_CAPS:
+            bad.append(f"{name}: capabilities beyond {', '.join(sorted(UNIT_CAPS))}: {', '.join(sorted(caps - UNIT_CAPS))}")
         if name in ROOT_UNITS:
             want = f"/usr/bin/python3 -I {LIB}/sys/core/script/{ROOT_UNITS[name]}"
             if users not in ([], ["root"]) or not cmds or any(c != want and not c.startswith(want + " ") for c in cmds):
                 bad.append(f"{name}: root runs only {want}")
+            env = {v for k, v in pairs if k == "Environment"}
+            if env - {f"INSTALL_ROOT={REPO}", f"AURORA_ENV_FILE={REPO / '.env'}"} or caps:
+                bad.append(f"{name}: root's environment is only this installation's folder and .env, no capability")
             continue
-        if len(users) != 1 or users[0] in ("root", "0", ""):
+        if len(users) != 1 or users[0] in ("root", "0", "") or not users[0].replace("-", "").replace("_", "").replace(".", "").isalnum() \
+                or users[0].isdigit():
             bad.append(f"{name}: User= must name the services' account, never root")
         if any(set(c[:len(c) - len(c.lstrip("@-:+!"))]) & {"+", "!"} for c in cmds):   # systemd's prefixes, any order
             bad.append(f"{name}: a command asks for root's rights (+ or !)")

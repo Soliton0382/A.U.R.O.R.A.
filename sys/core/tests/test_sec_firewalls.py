@@ -85,7 +85,7 @@ def test_a_disconnected_firewall_gets_no_block_until_connected_again(cfg, monkey
     assert sec_firewalls.connect(cfg, a, docs=False)["ok"]
     sec_tlspin._save(cfg, {"192.0.2.1:4444": {"pem": "-", "sha256": "0" * 64, "at": 0}})
     assert sec_firewalls.disconnect(cfg, a)["ok"]
-    assert a not in {x["id"] for x in sec_firewalls.receivers(cfg)} and "192.0.2.1:4444" not in sec_tlspin._pins(cfg)
+    assert a not in {x["id"] for x in sec_firewalls.receivers(cfg)} and "pem" not in sec_tlspin._pins(cfg)["192.0.2.1:4444"]   # C596: a mark stays, never a certificate
     assert sec_firewalls.connect(cfg, a, docs=False)["ok"]
     assert a in {x["id"] for x in sec_firewalls.receivers(cfg)}
     cfg.values.update(AURORA_FIREWALL_API_URL="https://192.0.2.9", AURORA_FIREWALL_API_USER="u",

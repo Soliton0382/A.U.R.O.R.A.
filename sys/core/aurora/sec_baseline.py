@@ -22,6 +22,7 @@ import threading
 import time
 
 from . import sys_config
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 COMMON_PORTS = {"53", "80", "123", "443", "853", "993", "995", "465", "587", "5223", "5228", "3478", "8080", "8443", "1900", "5353"}
 NOT_A_COUNTRY = {"", "R1", "R2", "Reserved", "N/A", "-"}
@@ -34,6 +35,10 @@ _lock = threading.Lock()
 # incident of that hour with their count and values (still learnt, never told again); PER_HOUR in all; at most
 # MAX_DEVICES followed (37 here), a forged flood of addresses no longer grows the file without end
 PER_DEVICE, PER_HOUR, MAX_DEVICES = 5, 30, 1024
+# C596: at the ceiling no new device was ever followed again — 1,024 forged addresses and the baseline was blind for
+# good (the state is a file). A device silent for SILENT_S gives its place to a new one: the house's own speak every
+# day, a forged one spoke once. Looked for at most once a minute.
+SILENT_S = 86400.0
 
 
 class Baseline:
@@ -76,15 +81,20 @@ class Baseline:
         devs = self.state["devices"]
         out = []
         d = devs.get(key)
+        if d is None and len(devs) >= MAX_DEVICES and now - getattr(self, "_made_room", 0.0) >= 60:
+            self._made_room = now                               # C596: the devices silent for a day leave
+            for k in [k for k, v in devs.items() if now - float(v.get("last") or v.get("first") or 0) > SILENT_S]:
+                del devs[k]
         if d is None and len(devs) >= MAX_DEVICES:
             return []                                           # C584: no device beyond the ceiling is followed
         if d is None:
             d = devs[key] = {"first": now, "ip": f.get("src_ip"), "countries": [], "ports": [], "apps": [], "hours": [0] * 24,
                              "days": {}}
             if not self._learning(self.state["since"], now) and f.get("src_mac"):
-                out.append(self._say(key, "new_device", key, f, "Dispositivo mai visto nella rete",
-                                     "Un indirizzo MAC mai visto ha cominciato a usare la rete.", "Verifica che sia tuo; se non lo è, isolalo."))
+                out.append(self._say(key, "new_device", key, f, _t("Dispositivo mai visto nella rete", "A device never seen on the network"),
+                                     _t("Un indirizzo MAC mai visto ha cominciato a usare la rete.", "A MAC address never seen began using the network."), _t("Verifica che sia tuo; se non lo è, isolalo.", "Check that it is yours; if it is not, isolate it.")))
         d["ip"] = f.get("src_ip") or d["ip"]
+        d["last"] = now
         learning = self._learning(d["first"], now)
         day = time.strftime("%Y%m%d", time.localtime(now))
         d["days"][day] = d["days"].get(day, 0) + int(f.get("bytes_sent") or 0)
@@ -95,13 +105,13 @@ class Baseline:
         country, port, app = f.get("dst_country", ""), str(f.get("dst_port") or ""), f.get("app_name", "")
         if country not in NOT_A_COUNTRY and country not in d["countries"]:
             if not learning:
-                out.append(self._say(key, "new_country", country, f, f"Nuovo paese: {country}",
-                                     f"Non aveva mai parlato con {country}.", "Guarda quale applicazione e se te lo aspettavi."))
+                out.append(self._say(key, "new_country", country, f, _t(f"Nuovo paese: {country}", f"New country: {country}"),
+                                     _t(f"Non aveva mai parlato con {country}.", f"It had never talked to {country}."), _t("Guarda quale applicazione e se te lo aspettavi.", "See which application, and whether you expected it.")))
             d["countries"].append(country)
         if port and port not in d["ports"] and len(d["ports"]) < 500:
             if not learning and port not in COMMON_PORTS:
-                out.append(self._say(key, "new_port", port, f, f"Nuova porta: {port}",
-                                     f"Non aveva mai usato la porta {port} ({app or f.get('protocol', '')}).", "Controlla il servizio."))
+                out.append(self._say(key, "new_port", port, f, _t(f"Nuova porta: {port}", f"New port: {port}"),
+                                     _t(f"Non aveva mai usato la porta {port} ({app or f.get('protocol', '')}).", f"It had never used port {port} ({app or f.get('protocol', '')})."), _t("Controlla il servizio.", "Check the service.")))
             d["ports"].append(port)
         if app and app not in d["apps"] and len(d["apps"]) < 300:
             d["apps"].append(app)
@@ -109,9 +119,9 @@ class Baseline:
         if not learning and len(past) >= 3:
             usual = statistics.median(past)
             if d["days"][day] > max(UPLOAD_MIN, 10 * usual):
-                out.append(self._say(key, "upload", day, f, "Invio di dati insolito",
-                                     f"Oggi ha inviato {d['days'][day] / 2**20:.0f} MB, di solito {usual / 2**20:.0f} MB al giorno.",
-                                     "Possibile fuga di dati o un backup nuovo: verifica."))
+                out.append(self._say(key, "upload", day, f, _t("Invio di dati insolito", "An unusual upload of data"),
+                                     _t(f"Oggi ha inviato {d['days'][day] / 2**20:.0f} MB, di solito {usual / 2**20:.0f} MB al giorno.", f"Today it sent {d['days'][day] / 2**20:.0f} MB, usually {usual / 2**20:.0f} MB a day."),
+                                     _t("Possibile fuga di dati o un backup nuovo: verifica.", "Possibly data leaving, or a new backup: check.")))
         self.save()
         return self._paced(key, [o for o in out if o], now)
 
@@ -134,11 +144,13 @@ class Baseline:
             stamp = time.strftime("%Y-%m-%dT%H:%M:%S%z")
             told.append({"kind": "behaviour:burst", "source": o["source"], "count": 1, "internal": True,
                          "first": stamp, "last": stamp, "samples": o.get("samples", [])[:1],
-                         "detail": {"title": "Molte novità da un dispositivo in un'ora",
-                                    "why": f"{b['n']} cose mai fatte prima oltre le {PER_DEVICE} dette una per una "
-                                           f"(le ultime: {', '.join(b['values'][-5:])}).",
-                                    "action": "Guarda cosa è cambiato su quel dispositivo: un aggiornamento, un programma "
-                                              "nuovo, o qualcosa che esplora la rete.",
+                         "detail": {"title": _t("Molte novità da un dispositivo in un'ora", "Many new things from one device in an hour"),
+                                    "why": _t(f"{b['n']} cose mai fatte prima oltre le {PER_DEVICE} dette una per una "
+                                           f"(le ultime: {', '.join(b['values'][-5:])}).", f"{b['n']} things never done before beyond the {PER_DEVICE} told one by one "
+                                           f"(the latest: {', '.join(b['values'][-5:])})."),
+                                    "action": _t("Guarda cosa è cambiato su quel dispositivo: un aggiornamento, un programma "
+                                              "nuovo, o qualcosa che esplora la rete.", "See what changed on that device: an update, a new "
+                                              "program, or something exploring the network."),
                                     "mac": o["detail"].get("mac", ""), "values": b["values"]}})
         self.paced[key] = mine
         for k in [k for k in self.bursts if k[1] < int(now // 3600) - 1]:

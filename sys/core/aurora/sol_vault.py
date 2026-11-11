@@ -72,14 +72,42 @@ def seal_row(cfg: sys_config.Config, user: str | None, row: dict) -> dict:
                       for c in SEALED}}
 
 
-def open_row(cfg: sys_config.Config, user: str | None, row: dict) -> dict:
-    """A row as written: a sealed memory value opened, a plain one (the knowledge, a memory row of before) as it is."""
+def open_row(cfg: sys_config.Config, user: str | None, row: dict, strict: bool = False) -> dict:
+    """A row as written: a sealed memory value opened, a plain one (the knowledge, a memory row of before) as it is.
+    `strict` (C593: a memory row of a user whose memory is known to be all sealed, `all_sealed`): a plain value is
+    refused — it was put there in place of a sealed one, and read as her own memory it would speak for the user."""
     from . import sys_seal
     for c in SEALED:
         v = row.get(c)
         if isinstance(v, bytes) and v.startswith(sys_seal.MAGIC):
             row[c] = sys_seal.unseal(cfg, v, f"{row['sid']}/{c}", user, "memory").decode("utf-8")
+        elif strict:
+            raise ValueError(f"memory row {row.get('sid')}: «{c}» is not sealed, and this user's memory was all sealed: "
+                             f"not read (rows restored from before the sealing: delete {sealed_mark(cfg, user)} and "
+                             "restart, they are sealed again)")
     return row
+
+
+# C593: «every memory row of this user is sealed» — written by kno_memory_seal when it has sealed what was left, sealed
+# itself with the user's «memory» key (nobody without the key can make one). While it opens, a plain value in a memory
+# row is refused instead of read. Who can delete this file takes the check away again: said in docs/SECURITY.md.
+def sealed_mark(cfg: sys_config.Config, user: str | None) -> Path:
+    from . import sys_users_layout
+    return sys_users_layout.place(cfg, "state", user) / "memory_sealed"
+
+
+def all_sealed(cfg: sys_config.Config, user: str | None) -> bool:
+    from . import sys_seal
+    try:
+        return sys_seal.read(cfg, sealed_mark(cfg, user), user, "memory") == b"sealed"
+    except Exception:                                    # noqa: BLE001 — no mark, no key here: as before, not known
+        return False
+
+
+def mark_sealed(cfg: sys_config.Config, user: str | None) -> None:
+    from . import sys_seal
+    if not all_sealed(cfg, user):
+        sys_seal.write(cfg, sealed_mark(cfg, user), b"sealed", user, "memory")
 
 
 def _wal(con: sqlite3.Connection) -> None:

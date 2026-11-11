@@ -24,6 +24,7 @@ from pathlib import Path
 import httpx
 
 from . import sys_config
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 API = "https://api.cloudflare.com/client/v4"
 NOTE = "Aurora (cloudflare plugin)"
@@ -60,7 +61,7 @@ def conf(cfg: sys_config.Config) -> dict:
 
 def missing(c: dict) -> str:
     m = [n for n, k in (("AURORA_CLOUDFLARE_ACCOUNT_ID", "acc"), ("AURORA_CLOUDFLARE_API_TOKEN", "tok")) if not c[k]]
-    return ("Cloudflare non configurato: manca " + ", ".join(m) + " (la scheda del plugin cloudflare).") if m else ""
+    return _t(("Cloudflare non configurato: manca " + ", ".join(m) + " (la scheda del plugin cloudflare)."), ("Cloudflare is not configured: missing " + ", ".join(m) + " (the cloudflare plugin's card).")) if m else ""
 
 
 def _call(cl: httpx.Client, method: str, path: str, **kw):
@@ -68,7 +69,7 @@ def _call(cl: httpx.Client, method: str, path: str, **kw):
     try:
         r = cl.request(method, API + path, **kw)
     except httpx.HTTPError as e:
-        return None, f"rete non raggiungibile ({type(e).__name__})"
+        return None, _t(f"rete non raggiungibile ({type(e).__name__})", f"network not reachable ({type(e).__name__})")
     try:
         j = r.json()
     except ValueError:
@@ -177,78 +178,82 @@ def service_state() -> str:
 
 
 INSTALL = "sudo aurora-root install tunnel (una volta sola)"
+INSTALL_EN = "sudo aurora-root install tunnel (only once)"
 
 
 def analyse(c: dict, d: dict, service: str) -> tuple[list, list]:
     """(lines of state, things missing)."""
     lines, todo = [], []
-    lines.append(f"Token API: {d['token'] or 'sconosciuto'}")
+    lines.append(_t(f"Token API: {d['token'] or 'sconosciuto'}", f"API token: {d['token'] or 'unknown'}"))
     if d["token"] != "active":
-        todo.append("token API non valido o senza permessi (servono «Cloudflare Tunnel: Edit» e «Zero Trust: Edit»)")
+        todo.append(_t("token API non valido o senza permessi (servono «Cloudflare Tunnel: Edit» e «Zero Trust: Edit»)", "API token not valid or without permissions («Cloudflare Tunnel: Edit» and «Zero Trust: Edit» are needed)"))
     t = d["tunnel"]
     if d["tunnel_err"]:
-        lines.append(f"Tunnel: impossibile leggere ({d['tunnel_err']})")
+        lines.append(_t(f"Tunnel: impossibile leggere ({d['tunnel_err']})", f"Tunnel: cannot be read ({d['tunnel_err']})"))
     elif not t:
-        lines.append(f"Tunnel «{c['name']}»: non esiste")
-        todo.append(f"creare il tunnel «{c['name']}» (lo fa «Salva»)")
+        lines.append(_t(f"Tunnel «{c['name']}»: non esiste", f"Tunnel «{c['name']}»: does not exist"))
+        todo.append(_t(f"creare il tunnel «{c['name']}» (lo fa «Salva»)", f"create the tunnel «{c['name']}» («Save» does it)"))
     else:
         conns = t.get("connections") or []
-        colos = ", ".join(sorted({x.get("colo_name", "?") for x in conns})) or "nessuna"
-        lines.append(f"Tunnel «{c['name']}»: stato {t.get('status')}, {len(conns)} connessioni ({colos})")
+        colos = ", ".join(sorted({x.get("colo_name", "?") for x in conns})) or _t("nessuna", "none")
+        lines.append(_t(f"Tunnel «{c['name']}»: stato {t.get('status')}, {len(conns)} connessioni ({colos})", f"Tunnel «{c['name']}»: status {t.get('status')}, {len(conns)} connections ({colos})"))
         if t.get("status") != "healthy" and service == "active":
-            todo.append("il servizio aurora-tunnel gira ma il tunnel non è healthy: attendi un minuto, poi «Salva» di nuovo")
+            todo.append(_t("il servizio aurora-tunnel gira ma il tunnel non è healthy: attendi un minuto, poi «Salva» di nuovo", "the aurora-tunnel service runs but the tunnel is not healthy: wait a minute, then «Save» again"))
     if d.get("public"):
-        lines.append(f"⚠️ {c['host']}: il DNS pubblico risponde ({', '.join(d['public'][:2])}) — un record rimasto")
-        todo.append(f"cancellare il record di {c['host']} in Cloudflare → DNS → Records della zona {c['dom']} "
-                    "(serve solo il DNS di casa: senza, fuori casa si vede l'errore 1033)")
+        lines.append(_t(f"⚠️ {c['host']}: il DNS pubblico risponde ({', '.join(d['public'][:2])}) — un record rimasto", f"⚠️ {c['host']}: the public DNS answers ({', '.join(d['public'][:2])}) — a record left behind"))
+        todo.append(_t(f"cancellare il record di {c['host']} in Cloudflare → DNS → Records della zona {c['dom']} "
+                    "(serve solo il DNS di casa: senza, fuori casa si vede l'errore 1033)", f"delete the record of {c['host']} in Cloudflare → DNS → Records of the zone {c['dom']} "
+                    "(only the home DNS is needed: without it, away from home one sees error 1033)"))
     for h in d.get("published") or []:
-        lines.append(f"⚠️ {h}: PUBBLICATO su Internet da questo tunnel (chiunque arriva al login)")
-        todo.append(f"togliere {h} dalle «Published application routes» del tunnel (la rete privata non ne ha bisogno)")
+        lines.append(_t(f"⚠️ {h}: PUBBLICATO su Internet da questo tunnel (chiunque arriva al login)", f"⚠️ {h}: PUBLISHED on the Internet by this tunnel (anyone reaches the login)"))
+        todo.append(_t(f"togliere {h} dalle «Published application routes» del tunnel (la rete privata non ne ha bisogno)", f"remove {h} from the tunnel's «Published application routes» (the private network does not need it)"))
     tid = (t or {}).get("id")
     if not c["net"]:
-        lines.append("Rete privata: indirizzo di questo computer non determinato")
-        todo.append("impostare AURORA_CLOUDFLARE_NETWORK (IP/32)")
+        lines.append(_t("Rete privata: indirizzo di questo computer non determinato", "Private network: this computer's address could not be found"))
+        todo.append(_t("impostare AURORA_CLOUDFLARE_NETWORK (IP/32)", "set AURORA_CLOUDFLARE_NETWORK (IP/32)"))
     for net in nets(c):
         if d["routes_err"]:
-            lines.append(f"Rotte: impossibile leggere ({d['routes_err']})")
+            lines.append(_t(f"Rotte: impossibile leggere ({d['routes_err']})", f"Routes: cannot be read ({d['routes_err']})"))
             break
         hit = [r for r in d["routes"] if net_in(net, [{"address": r.get("network")}])]
         mine = [r for r in hit if tid and r.get("tunnel_id") == tid]
         if mine:
-            lines.append(f"Rotta {net}: presente sul tunnel ({mine[0].get('network')})")
+            lines.append(_t(f"Rotta {net}: presente sul tunnel ({mine[0].get('network')})", f"Route {net}: on the tunnel ({mine[0].get('network')})"))
         elif hit:
-            lines.append(f"Rotta {net}: coperta da {hit[0].get('network')} su un altro tunnel ({hit[0].get('tunnel_name')})")
-            todo.append(f"aggiungere la rotta {net} al tunnel «{c['name']}» (più specifica: vince lei)")
+            lines.append(_t(f"Rotta {net}: coperta da {hit[0].get('network')} su un altro tunnel ({hit[0].get('tunnel_name')})", f"Route {net}: covered by {hit[0].get('network')} on another tunnel ({hit[0].get('tunnel_name')})"))
+            todo.append(_t(f"aggiungere la rotta {net} al tunnel «{c['name']}» (più specifica: vince lei)", f"add the route {net} to the tunnel «{c['name']}» (more specific: it wins)"))
         else:
-            lines.append(f"Rotta {net}: assente")
-            todo.append(f"aggiungere la rotta privata {net} al tunnel «{c['name']}»")
+            lines.append(_t(f"Rotta {net}: assente", f"Route {net}: absent"))
+            todo.append(_t(f"aggiungere la rotta privata {net} al tunnel «{c['name']}»", f"add the private route {net} to the tunnel «{c['name']}»"))
         if d["split_err"]:
-            lines.append(f"Split tunnel: impossibile leggere ({d['split_err']})")
+            lines.append(_t(f"Split tunnel: impossibile leggere ({d['split_err']})", f"Split tunnel: cannot be read ({d['split_err']})"))
             continue
         cov = net_in(net, d["split"])
         if d["mode"] == "exclude":
-            lines.append(f"Split tunnel (exclude): {net} " + (f"ESCLUSO da {', '.join(cov)}" if cov else "passa in WARP"))
+            lines.append(f"Split tunnel (exclude): {net} " + _t((f"ESCLUSO da {', '.join(cov)}" if cov else "passa in WARP"), (f"EXCLUDED by {', '.join(cov)}" if cov else "goes through WARP")))
             if cov:
-                todo.append(f"togliere {net} dagli esclusi di WARP ({', '.join(cov)})")
+                todo.append(_t(f"togliere {net} dagli esclusi di WARP ({', '.join(cov)})", f"remove {net} from WARP's exclusions ({', '.join(cov)})"))
         else:
-            lines.append(f"Split tunnel (include): {net} " + ("incluso" if cov else "NON incluso"))
+            lines.append(f"Split tunnel (include): {net} " + _t(("incluso" if cov else "NON incluso"), ("included" if cov else "NOT included")))
             if not cov:
-                todo.append(f"aggiungere {net} agli inclusi di WARP")
+                todo.append(_t(f"aggiungere {net} agli inclusi di WARP", f"add {net} to WARP's inclusions"))
     dom = c["dom"]
     if dom:
         fb = [x for x in d["fallback"] if dom == x.get("suffix") or dom.endswith("." + str(x.get("suffix")))]
-        lines.append(f"Dominio interno {dom}: " + (f"fallback locale presente ({fb[0].get('suffix')} → "
+        lines.append(_t(f"Dominio interno {dom}: ", f"Internal domain {dom}: ") + _t((f"fallback locale presente ({fb[0].get('suffix')} → "
                                                   f"{', '.join(fb[0].get('dns_server') or []) or 'DNS del dispositivo'})"
-                                                  if fb else "nessun fallback locale"))
+                                                  if fb else "nessun fallback locale"), (f"local fallback present ({fb[0].get('suffix')} → "
+                                                  f"{', '.join(fb[0].get('dns_server') or []) or 'the device DNS'})"
+                                                  if fb else "no local fallback")))
         if not fb and not d["fb_err"]:
-            todo.append(f"aggiungere {dom} al Local Domain Fallback di WARP" + (f" (DNS {c['dns']})" if c["dns"] else ""))
+            todo.append(_t(f"aggiungere {dom} al Local Domain Fallback di WARP", f"add {dom} to WARP's Local Domain Fallback") + (f" (DNS {c['dns']})" if c["dns"] else ""))
         if not c["dns"]:
-            todo.append("impostare AURORA_CLOUDFLARE_DNS: il DNS di casa che risolve " + dom)
+            todo.append(_t("impostare AURORA_CLOUDFLARE_DNS: il DNS di casa che risolve ", "set AURORA_CLOUDFLARE_DNS: the home DNS that resolves ") + dom)
     else:
-        lines.append("Dominio interno: non impostato (AURORA_CLOUDFLARE_DOMAIN)")
-    lines.append("Servizio aurora-tunnel su questo computer: " + {"missing": "non installato", "active": "attivo"}.get(service, service))
+        lines.append(_t("Dominio interno: non impostato (AURORA_CLOUDFLARE_DOMAIN)", "Internal domain: not set (AURORA_CLOUDFLARE_DOMAIN)"))
+    lines.append(_t("Servizio aurora-tunnel su questo computer: ", "The aurora-tunnel service on this computer: ") + _t({"missing": "non installato", "active": "attivo"}, {"missing": "not installed", "active": "active"}).get(service, service))
     if service == "missing":
-        todo.append("installare cloudflared e il servizio: " + INSTALL)
+        todo.append(_t("installare cloudflared e il servizio: ", "install cloudflared and the service: ") + _t(INSTALL, INSTALL_EN))
     return lines, todo
 
 
@@ -266,8 +271,8 @@ def check(cfg: sys_config.Config) -> str:
         return m
     _, todo = analyse(c, collect(c), service_state())
     if not todo:
-        return f"Tutto pronto: Aurora è raggiungibile via WARP su {c['net']} tramite il tunnel «{c['name']}», senza porte aperte."
-    return "\n".join(["Per attivare l'accesso via WARP manca:"] + [f"{i}. {x}" for i, x in enumerate(todo, 1)])
+        return _t(f"Tutto pronto: Aurora è raggiungibile via WARP su {c['net']} tramite il tunnel «{c['name']}», senza porte aperte.", f"All set: Aurora can be reached through WARP at {c['net']} by the tunnel «{c['name']}», with no open ports.")
+    return "\n".join([_t("Per attivare l'accesso via WARP manca:", "To turn on the access through WARP this is missing:")] + [f"{i}. {x}" for i, x in enumerate(todo, 1)])
 
 
 def _write600(path: Path, text: str) -> None:
@@ -309,29 +314,29 @@ def apply(cfg: sys_config.Config, systemctl=None) -> dict:
     if m := missing(c):
         return {"ok": False, "done": [], "failed": [m], "text": m}
     if not c["net"]:
-        m = "indirizzo di questo computer non determinato: imposta AURORA_CLOUDFLARE_NETWORK (IP/32)"
+        m = _t("indirizzo di questo computer non determinato: imposta AURORA_CLOUDFLARE_NETWORK (IP/32)", "this computer's address could not be found: set AURORA_CLOUDFLARE_NETWORK (IP/32)")
         return {"ok": False, "done": [], "failed": [m], "text": m}
     a, done, failed, running = c["acc"], [], [], False
     d = collect(c)
     if d["token"] != "active":
-        m = f"token API non accettato ({d['token']}): servono «Cloudflare Tunnel: Edit» e «Zero Trust: Edit»"
+        m = _t(f"token API non accettato ({d['token']}): servono «Cloudflare Tunnel: Edit» e «Zero Trust: Edit»", f"API token not accepted ({d['token']}): «Cloudflare Tunnel: Edit» and «Zero Trust: Edit» are needed")
         return {"ok": False, "done": [], "failed": [m], "text": m}
     if d["tunnel_err"]:
-        m = f"tunnel non leggibile ({d['tunnel_err']}): nulla modificato"
+        m = _t(f"tunnel non leggibile ({d['tunnel_err']}): nulla modificato", f"the tunnel cannot be read ({d['tunnel_err']}): nothing changed")
         return {"ok": False, "done": [], "failed": [m], "text": m}
     with client(c) as cl:
         t = d["tunnel"]
         if not t:
             t, err = _call(cl, "POST", f"/accounts/{a}/cfd_tunnel", json={"name": c["name"], "config_src": "cloudflare"})
             if err:
-                m = f"tunnel «{c['name']}» non creato: {err}"
+                m = _t(f"tunnel «{c['name']}» non creato: {err}", f"tunnel «{c['name']}» not created: {err}")
                 return {"ok": False, "done": [], "failed": [m], "text": m}
-            done.append(f"tunnel «{c['name']}» creato")
+            done.append(_t(f"tunnel «{c['name']}» creato", f"tunnel «{c['name']}» created"))
         tid = t["id"]
         for net in nets(c):
             if not any(r.get("tunnel_id") == tid and net_in(net, [{"address": r.get("network")}]) for r in d["routes"]):
                 _, err = _call(cl, "POST", f"/accounts/{a}/teamnet/routes", json={"network": net, "tunnel_id": tid, "comment": NOTE})
-                (failed if err else done).append(f"rotta {net} " + (f"non aggiunta: {err}" if err else "aggiunta al tunnel"))
+                (failed if err else done).append(_t(f"rotta {net} " + (f"non aggiunta: {err}" if err else "aggiunta al tunnel"), f"route {net} " + (f"not added: {err}" if err else "added to the tunnel")))
         if not d["split_err"]:
             split = list(d["split"])
             for net in nets(c):
@@ -341,16 +346,18 @@ def apply(cfg: sys_config.Config, systemctl=None) -> dict:
                     split.append({"address": net, "description": "Aurora"})
             if split != d["split"]:
                 _, err = _call(cl, "PUT", f"/accounts/{a}/devices/policy/{d['mode']}", json=split)
-                (failed if err else done).append(f"split tunnel ({d['mode']}) " + (f"non aggiornato: {err}" if err else
-                                                 "aggiornato: WARP porta " + ", ".join(nets(c))))
+                (failed if err else done).append(_t(f"split tunnel ({d['mode']}) " + (f"non aggiornato: {err}" if err else
+                                                 "aggiornato: WARP porta " + ", ".join(nets(c))), f"split tunnel ({d['mode']}) " + (f"not updated: {err}" if err else
+                                                 "updated: WARP carries " + ", ".join(nets(c)))))
         if c["dom"] and c["dns"] and not d["fb_err"] and not any(c["dom"] == x.get("suffix") for x in d["fallback"]):
             _, err = _call(cl, "PUT", f"/accounts/{a}/devices/policy/fallback_domains",
                            json=d["fallback"] + [{"suffix": c["dom"], "dns_server": [c["dns"]], "description": NOTE}])
-            (failed if err else done).append(f"dominio {c['dom']} " + (f"non aggiunto al fallback: {err}" if err else
-                                             f"risolto da {c['dns']} anche fuori casa"))
+            (failed if err else done).append(_t(f"dominio {c['dom']} " + (f"non aggiunto al fallback: {err}" if err else
+                                             f"risolto da {c['dns']} anche fuori casa"), f"domain {c['dom']} " + (f"not added to the fallback: {err}" if err else
+                                             f"resolved by {c['dns']} away from home too")))
         token, err = _call(cl, "GET", f"/accounts/{a}/cfd_tunnel/{tid}/token")
     if err or not isinstance(token, str):
-        failed.append(f"token del tunnel non ottenuto: {err or 'risposta inattesa'}")
+        failed.append(_t(f"token del tunnel non ottenuto: {err or 'risposta inattesa'}", f"the tunnel's token was not obtained: {err or 'unexpected answer'}"))
     else:
         try:
             changed = _keep_token(cfg, token)
@@ -358,25 +365,25 @@ def apply(cfg: sys_config.Config, systemctl=None) -> dict:
             changed = None
         service = service_state()
         if changed is None:
-            failed.append("il tunnel lo avvia «Salva» nella scheda del plugin cloudflare (da qui non posso)")
+            failed.append(_t("il tunnel lo avvia «Salva» nella scheda del plugin cloudflare (da qui non posso)", "the tunnel is started by «Save» in the cloudflare plugin's card (from here I cannot)"))
             service = "cage"
         elif changed == "seal":                         # a new token while the old one is sealed: root seals it (C463)
-            failed.append("token del tunnel nuovo: per sigillarlo e usarlo, sudo aurora-root install tunnel")
+            failed.append(_t("token del tunnel nuovo: per sigillarlo e usarlo, sudo aurora-root install tunnel", "new tunnel token: to seal it and use it, sudo aurora-root install tunnel"))
             service = "cage"
         if service == "missing":
-            failed.append("servizio aurora-tunnel non installato: " + INSTALL)
+            failed.append(_t("servizio aurora-tunnel non installato: ", "the aurora-tunnel service is not installed: ") + _t(INSTALL, INSTALL_EN))
         elif service != "cage":
             r = systemctl("restart" if changed or service != "active" else "start")
             if r.returncode == 0 and (changed or service != "active"):
-                done.append("aurora-tunnel avviato: tra un minuto il tunnel risulta HEALTHY")
+                done.append(_t("aurora-tunnel avviato: tra un minuto il tunnel risulta HEALTHY", "aurora-tunnel started: in a minute the tunnel shows HEALTHY"))
             elif r.returncode == 0:
                 running = True
             else:
-                failed.append(f"aurora-tunnel non avviato: {(r.stderr or '').strip()[-200:]}")
-    warn = [f"⚠️ {h} è pubblicato su Internet da questo tunnel: toglilo dalle «Published application routes»"
+                failed.append(_t(f"aurora-tunnel non avviato: {(r.stderr or '').strip()[-200:]}", f"aurora-tunnel not started: {(r.stderr or '').strip()[-200:]}"))
+    warn = [_t(f"⚠️ {h} è pubblicato su Internet da questo tunnel: toglilo dalle «Published application routes»", f"⚠️ {h} is published on the Internet by this tunnel: remove it from the «Published application routes»")
             for h in d.get("published") or []]
-    text = "\n".join((["Fatto:"] + [f"✅ {x}" for x in done] if done else ["Account Cloudflare già a posto."])
-                     + (["🟢 aurora-tunnel attivo"] if running else []) + [f"❌ {x}" for x in failed] + warn)
+    text = "\n".join(([_t("Fatto:", "Done:")] + [f"✅ {x}" for x in done] if done else [_t("Account Cloudflare già a posto.", "The Cloudflare account is already in order.")])
+                     + ([_t("🟢 aurora-tunnel attivo", "🟢 aurora-tunnel active")] if running else []) + [f"❌ {x}" for x in failed] + warn)
     return {"ok": not failed, "done": done, "failed": failed, "text": text}
 
 

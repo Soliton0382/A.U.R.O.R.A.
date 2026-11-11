@@ -18,6 +18,7 @@ import time
 from pathlib import Path
 
 from . import sec_intel, sys_config
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 DENIED = re.compile(r'log_subtype="?Denied|action="?(?:Drop|Deny|Reject)', re.I)
 PORT = re.compile(r'dst_port="?(\d+)')
@@ -41,10 +42,12 @@ def classify(cfg: sys_config.Config, incident: dict) -> dict | None:
 
 def hint(provider: str, ports: list[int]) -> str:
     if provider == "Cloudflare" and set(ports) <= {80, 8080, 8880, 2052, 2082, 2086, 2095}:
-        return ("Cloudflare raggiunge il tuo server in HTTP, già rifiutato dal firewall: nel pannello di Cloudflare "
-                "imposta SSL/TLS «Full (strict)» e «Always Use HTTPS», così passa solo dalla 443 e questo rumore sparisce. Chi c'è dietro: chiedimi «chi c'è dietro Cloudflare?».")
-    return (f"{provider} ha cercato porte che il firewall rifiuta già ({', '.join(map(str, ports)) or '?'}): nessun "
-            "blocco serve; se una di queste porte la servi tu, controlla la configurazione del proxy di " + provider + ".")
+        return _t(("Cloudflare raggiunge il tuo server in HTTP, già rifiutato dal firewall: nel pannello di Cloudflare "
+                "imposta SSL/TLS «Full (strict)» e «Always Use HTTPS», così passa solo dalla 443 e questo rumore sparisce. Chi c'è dietro: chiedimi «chi c'è dietro Cloudflare?»."), ("Cloudflare reaches your server over HTTP, which the firewall refuses already: in Cloudflare's panel "
+                "set SSL/TLS «Full (strict)» and «Always Use HTTPS», so it only uses 443 and this noise goes away. Who is behind it: ask me «who is behind Cloudflare?»."))
+    return _t((f"{provider} ha cercato porte che il firewall rifiuta già ({', '.join(map(str, ports)) or '?'}): nessun "
+            "blocco serve; se una di queste porte la servi tu, controlla la configurazione del proxy di " + provider + "."), (f"{provider} tried ports the firewall refuses already ({', '.join(map(str, ports)) or '?'}): no "
+            "block is needed; if you serve one of these ports yourself, check the proxy configuration of " + provider + "."))
 
 
 def group(cfg: sys_config.Config, g: dict, now: float | None = None) -> str:
@@ -62,9 +65,11 @@ def group(cfg: sys_config.Config, g: dict, now: float | None = None) -> str:
     d["lines"] += g["lines"]
     d["sources"] = sorted(set(d["sources"]) | {g["source"]})[:500]
     d["ports"] = sorted(set(d["ports"]) | set(g["ports"]))
-    told = "" if d["told"] else (f"{g['provider']}: {d['lines']} tentativi già rifiutati da {len(d['sources'])} "
+    told = "" if d["told"] else _t((f"{g['provider']}: {d['lines']} tentativi già rifiutati da {len(d['sources'])} "
                                  f"indirizzi oggi (porte {', '.join(map(str, d['ports']))}). Non è un incidente. "
-                                 + hint(g["provider"], d["ports"]))
+                                 + hint(g["provider"], d["ports"])), (f"{g['provider']}: {d['lines']} attempts already refused from {len(d['sources'])} "
+                                 f"addresses today (ports {', '.join(map(str, d['ports']))}). It is not an incident. "
+                                 + hint(g["provider"], d["ports"])))
     d["told"] = True
     for old in sorted(data)[:-30]:                       # a month of days kept
         data.pop(old)

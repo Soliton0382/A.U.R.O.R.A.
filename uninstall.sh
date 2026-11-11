@@ -103,7 +103,15 @@ if [ "$CHOICE" = 1 ]; then
   echo "  $(t 'Per tornare: bash install.sh in questa cartella — è un aggiornamento: nessuna domanda, le scelte del .env restano.' 'To come back: bash install.sh in this folder — an update: no question asked, the choices in .env stay.')"
 else
   step "$(t 'Dati e chiavi' 'Data and keys')"
-  CRED=$(head -1 sys/status/keys/aurora.sealed 2>/dev/null)   # Aurora's own key, sealed by systemd (N64)
+  CRED=$(head -c 512 sys/status/keys/aurora.sealed 2>/dev/null | head -1)   # Aurora's own key, sealed by systemd (N64)
+  # C592 (audit F10): the marker is a file the services' account writes, and what it names is deleted with sudo and
+  # handed to systemd — only a sealed credential's own name in root's folder, no «/» or «..» after it, never a link
+  case "$CRED" in
+    /etc/credstore.encrypted/aurora-*)
+      case "${CRED#/etc/credstore.encrypted/}" in *[!A-Za-z0-9._-]*|*..*) CRED="" ;; esac
+      if [ -n "$CRED" ] && [ -L "$CRED" ]; then CRED=""; fi ;;
+    *) CRED="" ;;
+  esac
   if [ -d /etc/aurora ]; then run sudo rm -rf /etc/aurora; ok "/etc/aurora"; fi
   if [ -d "$HOME/.config/aurora" ]; then run rm -rf "$HOME/.config/aurora"; ok "~/.config/aurora"; fi
   # usr/ holds the people's own documents (papers, projects, health): kept outside unless asked a third time

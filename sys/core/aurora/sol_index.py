@@ -101,8 +101,8 @@ def _vectors(cfg: sys_config.Config, f: "DomainFiles", m: dict):
         return np.memmap(f.vectors, dtype=np.float16, mode="r", shape=shape)
     with open(f.vectors, "rb") as h:
         raw = h.read(m["count"] * m["dim"] * 2)
-    from . import sol_index_seal
-    sol_index_seal.check(cfg, raw, m)                 # C572: a tagged file that is not the tagged one is never opened
+    from . import sol_index_seal                      # C572, C593: never opened unless vectors and sids are the tagged ones
+    sol_index_seal.check(cfg, raw, m, f.sids.read_bytes()[: m["count"] * SID_BYTES] if f.sids.exists() else b"")
     return np.frombuffer(_ctr(cfg, m, 0, raw), dtype=np.float16).reshape(shape)
 
 
@@ -188,12 +188,13 @@ class Indexer:
             data = np.ascontiguousarray(vecs, dtype=np.float16).tobytes()
             if m.get("sealed"):
                 data = _ctr(self.cfg, m, m["count"] * dim * 2, data)
+            sids = "".join(s.sid for _, _, s in batch).encode("ascii")
             with open(f.vectors, "ab") as fv, open(f.sids, "ab") as fs:
                 fv.write(data)
-                fs.write("".join(s.sid for _, _, s in batch).encode("ascii"))
+                fs.write(sids)
             m["count"] += len(batch)
             if tag is not None:
-                sol_index_seal.stamp(m, tag.feed(data).at(m["count"]))
+                sol_index_seal.stamp(m, tag.feed(data, sids).at(m["count"]))
             m["position"] = [batch[-1][0], batch[-1][1]]
             m["updated"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")
             _write_json_atomic(f.manifest, m)
@@ -226,16 +227,18 @@ class Indexer:
                 os.remove(p)
 
     def _sealed_start(self, f: DomainFiles, m: dict, cut: bool):
-        """A sealed vector file before an append (C572): its tag checked — Tampered when it does not match —, a file
-        of the first format tagged as it is (nothing written again), and one that was just cut back sealed again
-        whole under a new nonce: the bytes cut were written with this keystream, the next rows must not be. Returns
-        the running tag the appends go on from."""
+        """A sealed vector file before an append (C572): its tag checked — Tampered when it does not match, and (C593)
+        when the file has rows and no tag of today's format: never tagged as it is —, and one that was just cut back
+        sealed again whole under a new nonce: the bytes cut were written with this keystream, the next rows must not
+        be. Returns the running tag the appends go on from."""
         from . import sol_index_seal as S
         size = m["count"] * m["dim"] * 2
         raw = f.vectors.read_bytes()[:size] if f.vectors.exists() else b""
-        if len(raw) != size:
+        sids = f.sids.read_bytes()[: m["count"] * SID_BYTES] if f.sids.exists() else b""
+        if len(raw) != size or len(sids) != m["count"] * SID_BYTES:
             raise S.Tampered(f"sealed vectors: {len(raw)} bytes where the manifest counts {size}")
-        S.check(self.cfg, raw, m)
+        if size:                                         # an index just begun has no rows and no tag yet
+            S.check(self.cfg, raw, m, sids)
         if cut:
             plain = _ctr(self.cfg, m, 0, raw)
             m["sealed"] = S.fresh(m["sealed"]["user"])
@@ -245,8 +248,8 @@ class Indexer:
                 tmp.write_bytes(raw)
                 forget(f.folder)
                 os.replace(tmp, f.vectors)
-        tag = S.Tag(self.cfg, m["sealed"], m["dim"]).feed(raw)
-        if cut or not S.tagged(m):                       # sealed again, or a file of format 1: its tag from now on
+        tag = S.Tag(self.cfg, m["sealed"], m["dim"]).feed(raw, sids)
+        if cut or not S.tagged(m):                       # sealed again, or an index just begun: its tag from now on
             S.stamp(m, tag.at(m["count"]))
             _write_json_atomic(f.manifest, m)
         return tag
@@ -309,7 +312,14 @@ class Indexer:
         removed = int((~keep).sum())
         if not removed:
             return 0
-        vecs = _vectors(self.cfg, f, m)
+        try:
+            vecs = _vectors(self.cfg, f, m)
+        except Exception as e:                           # noqa: BLE001 — only the tag's refusal, by its name
+            if type(e).__name__ != "Tampered":
+                raise
+            self.log.error("audit: index %s: %s — dropped whole, built again from the memory", domain, e)
+            self._clear(f)                               # C593: the next update indexes what the memory still holds
+            return 0
         tmp_v, tmp_s = f.vectors.with_suffix(".tmp"), f.sids.with_suffix(".tmp")
         if m.get("sealed"):
             m["sealed"] = {**m["sealed"], "nonce": os.urandom(16).hex()}           # a rewrite: a new nonce
@@ -326,9 +336,10 @@ class Indexer:
                 if tag is not None:
                     tag.feed(data)
                 at += len(data)
+        kept = "".join(x for x, k in zip(all_sids, keep) if k).encode("ascii")
         if tag is not None:
-            sol_index_seal.stamp(m, tag.at(n - removed))
-        tmp_s.write_bytes("".join(x for x, k in zip(all_sids, keep) if k).encode("ascii"))
+            sol_index_seal.stamp(m, tag.feed(b"", kept).at(n - removed))
+        tmp_s.write_bytes(kept)
         del vecs
         forget(f.folder)                              # the readers' maps of these files: Windows replaces no mapped file
         os.replace(tmp_v, f.vectors)

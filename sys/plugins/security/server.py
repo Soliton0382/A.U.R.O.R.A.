@@ -89,7 +89,9 @@ def summary(lines) -> dict:
         if is_ips(f):                                     # the sentinel's own rule (IDP, IPS, ATP)
             what = f.get("signature_msg") or f.get("message") or f.get("threatname") or f.get("log_subtype") or "?"
             dest = f.get("url") or f.get("domain") or f.get("dst_domain") or f.get("dst_ip") or ""
-            ips[f"{f.get('log_type', '?')} {what}{' → ' + dest if dest else ''} da {src_of(f) or '?'}"] += 1
+            # C596: these are a stranger's words (a signature's text, a url): short, and one line
+            what, dest = " ".join(str(what).split())[:120], " ".join(str(dest).split())[:120]
+            ips[f"{str(f.get('log_type', '?'))[:20]} {what}{' → ' + dest if dest else ''} da {str(src_of(f) or '?')[:45]}"] += 1
     return {"lines": n, "kinds": kinds.most_common(8), "components": comps.most_common(6),
             "denied_sources": denied_src.most_common(5), "denied_ports": ports.most_common(5), "ips": ips.most_common(5)}
 

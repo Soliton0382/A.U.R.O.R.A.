@@ -56,11 +56,19 @@ def _inside(project: Path, path: str) -> Path:
     return p
 
 
+def _git_env(**extra: str) -> dict:
+    """git's environment (C591): never this plugin's token or keys (the push gets the token as a header, for GitHub
+    only), and a repository is looked for in the project itself, never in a folder above it."""
+    env = {k: v for k, v in os.environ.items()
+           if k != "AURORA_GITHUB_TOKEN" and not k.startswith(("AURORA_PLUGIN_SECRET_", "AURORA_SEAL_KEY_"))}
+    return dict(env, GIT_TERMINAL_PROMPT="0", GIT_CEILING_DIRECTORIES=str(BASE), **extra)
+
+
 def _git(project: Path, *args: str, extra_env: dict | None = None) -> str:
     author = cfg["AURORA_GIT_AUTHOR_NAME"] or "Aurora"
     email = cfg["AURORA_GIT_AUTHOR_EMAIL"] or "aurora@localhost"
-    env = dict(os.environ, GIT_AUTHOR_NAME=author, GIT_AUTHOR_EMAIL=email, GIT_COMMITTER_NAME=author,
-               GIT_COMMITTER_EMAIL=email, GIT_TERMINAL_PROMPT="0", **(extra_env or {}))
+    env = _git_env(GIT_AUTHOR_NAME=author, GIT_AUTHOR_EMAIL=email, GIT_COMMITTER_NAME=author,
+                   GIT_COMMITTER_EMAIL=email, **(extra_env or {}))
     # a project's .git is not trusted (C420: the cage could write a hook or core.fsmonitor there): neither runs
     r = subprocess.run(["git", "-c", "core.fsmonitor=", "-c", f"core.hooksPath={os.devnull}", *args], cwd=project, env=env, capture_output=True, text=True, timeout=300)
     if r.returncode != 0:
@@ -84,7 +92,7 @@ def project_list() -> str:
     BASE.mkdir(parents=True, exist_ok=True)
     rows = []
     for p in sorted(x for x in BASE.iterdir() if (x / ".git").is_dir()):
-        last = subprocess.run(["git", "-c", "core.fsmonitor=", "-c", f"core.hooksPath={os.devnull}", "log", "-1", "--format=%cs %s"], cwd=p, capture_output=True, text=True).stdout.strip()
+        last = subprocess.run(["git", "-c", "core.fsmonitor=", "-c", f"core.hooksPath={os.devnull}", "log", "-1", "--format=%cs %s"], cwd=p, env=_git_env(), capture_output=True, text=True).stdout.strip()
         rows.append(f"{p.name}: {last or 'no commits'}")
     return "\n".join(rows) or "no projects"
 
@@ -236,7 +244,22 @@ def project_commit(name: str, message: str) -> str:
     return _git(p, "commit", "-m", message)
 
 
+GITHUB_URL = re.compile(r"https://github\.com/[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9._-]+")
+
+
 def _push(p: Path, url: str) -> str:
+    # C591: the token leaves for GitHub only. The address is read from the project's own configuration, which is not
+    # trusted: another host, or a configuration that rewrites addresses or changes how https is spoken (url.*.insteadOf,
+    # http.proxy, http.sslVerify, a credential helper), would have carried it elsewhere
+    if not GITHUB_URL.fullmatch(url.strip()):
+        raise ToolError("push: the project's address is not a GitHub repository (https://github.com/<owner>/<name>): "
+                        "the token is not sent")
+    odd = subprocess.run(["git", "config", "--local", "--includes", "--name-only", "--get-regexp",
+                          r"^(url|http|credential)\.|^core\.(sshcommand|gitproxy|askpass)$"], cwd=p, env=_git_env(),
+                         capture_output=True, text=True, timeout=30).stdout.split()
+    if odd:
+        raise ToolError(f"push: the project's own git configuration sets {', '.join(sorted(set(odd))[:6])}: "
+                        "the token is not sent (remove them from .git/config)")
     auth = base64.b64encode(f"x-access-token:{TOKEN}".encode()).decode()
     return _git(p, "-c", f"http.extraHeader=Authorization: Basic {auth}", "push", "-u", url, "main")
 

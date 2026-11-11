@@ -166,7 +166,8 @@ def test_every_built_in_routine_is_valid():
 def test_routes_of_the_advice_and_sets_need_a_login():
     src = (ROOT / "aurora" / "api" / "routine_advice.py").read_text()
     routes = re.findall(r'@router\.\w+\("([^"]+)", dependencies=\[Depends\((\w+)\)\]\)', src)
-    assert len(routes) == 7 and all(dep == "auth" for _, dep in routes)
+    assert len(routes) == 5 and all(dep == "auth" for _, dep in routes)
+    assert src.count('dependencies=[Depends(may_manage("routines"))]') == 2     # C595: applying needs the permission
     assert "/v1/aurora/plugins/signature\", dependencies=[Depends(admin_only)]" in (ROOT / "aurora" / "api" / "agents.py").read_text()
 
 

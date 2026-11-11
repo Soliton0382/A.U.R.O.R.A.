@@ -57,7 +57,9 @@ def public(cfg: sys_config.Config, text: str) -> bool:
     from .sec_mask import Pseudonymizer
     m = Pseudonymizer(cfg)
     m.mask(text)
-    return not m.to_ph
+    # C593: when the local model did not answer, nobody looked for the names no rule can see (a person, a town, an
+    # illness told in plain words): such a text is not known to be public, so it is not
+    return not m.to_ph and not m.unseen
 
 
 def drawn(p, cfg: sys_config.Config) -> tuple[list[str], list[str]]:

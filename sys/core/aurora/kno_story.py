@@ -27,6 +27,7 @@ import wave
 from pathlib import Path
 
 from . import sys_config, sys_disclosure, sys_log
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 FACE = Path(__file__).resolve().parents[1] / "webui" / "assets" / "aurora_face.png"
 FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
@@ -225,7 +226,7 @@ def make(pipeline, cfg: sys_config.Config, topic: str, emit, out_root: Path | No
     t0, took = time.time(), {}
     ans = pipeline.run(topic, emit, None, remember=False)
     if ans.abstained or ans.mode != "knowledge" or not ans.sources:
-        raise ValueError("il vault non risponde a questo argomento: nessun video senza fonti")
+        raise ValueError(_t("il vault non risponde a questo argomento: nessun video senza fonti", "the vault has no answer on this topic: no video without sources"))
     if accept and (why := accept(ans)):
         raise ValueError(why)
     took["answer"] = round(time.time() - t0, 1)

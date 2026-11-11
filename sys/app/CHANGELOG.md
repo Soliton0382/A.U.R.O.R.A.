@@ -1,5 +1,15 @@
 # Aurora's Android app — changelog
 
+## 0.5.5 - 2026-11-12
+
+- The key for the page's actions goes to the WebUI itself only: a preview or a file opened as the window's page (a
+  page a model wrote) gets none, and can ask the phone nothing (C594).
+- The assistant's screen (a live call) opens for this app and for the system only: another app can no longer start
+  it. The long press, the gesture and «Parla con Aurora» work as before.
+- A link that leaves the app opens only when it is a web address (http, https): no dialler, no message, no other
+  app's own links from a page.
+- Asking whether the notifications are on, and opening their settings, need the page's key too.
+
 ## 0.5.4 - 2026-11-12
 
 - The page's actions on the phone (an action Aurora was asked for, calling Aurora) need a key the app gives the main

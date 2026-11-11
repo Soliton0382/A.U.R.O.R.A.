@@ -141,7 +141,8 @@ def react(cfg: sys_config.Config, text: str, now: float | None = None) -> dict:
             with _lock:
                 _tally(cfg, "offence", now)
         return {"kind": "", "value": 0.0, "cool": "", "prefix": ""}
-    it = str(cfg["AURORA_LANG_DEFAULT"]).startswith("it")
+    from . import sys_lang
+    it = sys_lang.reader(cfg) == "it"               # her answer in the language of whoever wrote (C526)
     kind = heard(text)
     with _lock:
         rows = [r for r in _events(cfg) if now - r["at"] < KEEP_S]

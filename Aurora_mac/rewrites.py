@@ -87,13 +87,19 @@ SERVICES = [
     if after and failed_at.isdigit() and int(failed_at) < after:
         return None
     code = int(v.get("ExecMainStatus") or 0)
-    return UNIT_STATUS.get(code, f"esito {v.get('Result')}, codice {code}")''',
+    from . import sys_lang
+    en = sys_lang.reader() == "en"                    # the health page's reader (C526)
+    return (UNIT_STATUS_EN if en else UNIT_STATUS).get(
+        code, f"result {v.get('Result')}, code {code}" if en else f"esito {v.get('Result')}, codice {code}")''',
      f'''    {P}
     v = sys_platform.current().service_info(unit)
     if v["state"] == "missing" or (v["result"] or "success") == "success":
         return None
     code = v["status"] or 0
-    return UNIT_STATUS.get(code, f"esito {{v['result']}}, codice {{code}}")''',
+    from . import sys_lang
+    en = sys_lang.reader() == "en"
+    return (UNIT_STATUS_EN if en else UNIT_STATUS).get(
+        code, f"result {{v['result']}}, code {{code}}" if en else f"esito {{v['result']}}, codice {{code}}")''',
      "sys_backup: why the last backup failed"),
 
     ("sys/core/aurora/api/agents.py",
@@ -768,20 +774,17 @@ NETWORK = [
 _SOON = "non ancora disponibile su questo sistema"
 WORDS = [
     # the health card names the service manager of this system (Linux: systemd, as before)
-    ("sys/core/aurora/sys_health.py", """            add(unit, "warn", f"risponde ma systemd dice {state!r}", how)""",
-     f"""            {P}
-            add(unit, "warn", f"risponde ma {{sys_platform.current().manager}} dice {{state!r}}", how)""",
+    ("sys/core/aurora/sys_health.py", """            add(unit, "warn", _t(f"risponde ma systemd dice {state!r}", f"answers, but systemd says {state!r}"), how)""",
+     """            add(unit, "warn", _t(f"risponde ma {__import__('aurora.sys_platform', fromlist=['current']).current().manager} dice {state!r}", f"answers, but {__import__('aurora.sys_platform', fromlist=['current']).current().manager} says {state!r}"), how)""",
      "sys_health: «systemd» named as this system's manager (1)"),
-    ("sys/core/aurora/sys_health.py", """            add(unit, "down", f"non risponde ({how}), systemd: {state}", url)""",
-     f"""            {P}
-            add(unit, "down", f"non risponde ({{how}}), {{sys_platform.current().manager}}: {{state}}", url)""",
+    ("sys/core/aurora/sys_health.py", """            add(unit, "down", _t(f"non risponde ({how}), systemd: {state}", f"does not answer ({how}), systemd: {state}"), url)""",
+     """            add(unit, "down", _t(f"non risponde ({how}), {__import__('aurora.sys_platform', fromlist=['current']).current().manager}: {state}", f"does not answer ({how}), {__import__('aurora.sys_platform', fromlist=['current']).current().manager}: {state}"), url)""",
      "sys_health: «systemd» named as this system's manager (2)"),
-    ("sys/core/aurora/sys_health.py", """        "HTTPS attivo" if state == "active" and ok else f"HTTPS non risponde ({how}), systemd: {state}", how)""",
-     """        "HTTPS attivo" if state == "active" and ok else f"HTTPS non risponde ({how}), {__import__('aurora.sys_platform', fromlist=['current']).current().manager}: {state}", how)""",
+    ("sys/core/aurora/sys_health.py", """        _t("HTTPS attivo" if state == "active" and ok else f"HTTPS non risponde ({how}), systemd: {state}", "HTTPS active" if state == "active" and ok else f"HTTPS does not answer ({how}), systemd: {state}"), how)""",
+     """        _t("HTTPS attivo" if state == "active" and ok else f"HTTPS non risponde ({how}), {__import__('aurora.sys_platform', fromlist=['current']).current().manager}: {state}", "HTTPS active" if state == "active" and ok else f"HTTPS does not answer ({how}), {__import__('aurora.sys_platform', fromlist=['current']).current().manager}: {state}"), how)""",
      "sys_health: «systemd» named as this system's manager (3)"),
-    ("sys/core/aurora/sys_health.py", """            add(unit, "down", f"fermo (systemd: {state})")""",
-     f"""            {P}
-            add(unit, "down", f"fermo ({{sys_platform.current().manager}}: {{state}})")""",
+    ("sys/core/aurora/sys_health.py", """            add(unit, "down", _t(f"fermo (systemd: {state})", f"stopped (systemd: {state})"))""",
+     """            add(unit, "down", _t(f"fermo ({__import__('aurora.sys_platform', fromlist=['current']).current().manager}: {state})", f"stopped ({__import__('aurora.sys_platform', fromlist=['current']).current().manager}: {state})"))""",
      "sys_health: «systemd» named as this system's manager (4)"),
     ("sys/core/aurora/net_cloudflare.py", """INSTALL = "sudo aurora-root install tunnel (una volta sola)\"""",
      f"""{P}
@@ -794,9 +797,8 @@ INSTALL = ("sudo aurora-root install tunnel (una volta sola)" if sys_platform.cu
 NAMES = {{"firewall_api": "l'API del firewall", "hostfw": "il firewall di Aurora (sudo aurora-root install nft)"
          if sys_platform.current().name == "linux" else "il firewall di Aurora ({_SOON})",""",
      "sec_report: the host firewall's line"),
-    ("sys/core/aurora/sec_hostaudit.py",
-     """                        "fix": "capire quale programma è (sudo ss -tulnp) e chiuderlo o legarlo a 127.0.0.1", "port": s["port"]})""",
-     """                        "fix": f"capire quale programma è ({__import__('aurora.sys_platform', fromlist=['current']).current().listen_hint}) e chiuderlo o legarlo a 127.0.0.1", "port": s["port"]})""",
+    ("sys/core/aurora/sec_hostaudit.py", """                        "fix": _t("capire quale programma è (sudo ss -tulnp) e chiuderlo o legarlo a 127.0.0.1", "find which program it is (sudo ss -tulnp) and close it or bind it to 127.0.0.1"), "port": s["port"]})""",
+     """                        "fix": _t(f"capire quale programma è ({__import__('aurora.sys_platform', fromlist=['current']).current().listen_hint}) e chiuderlo o legarlo a 127.0.0.1", f"find which program it is ({__import__('aurora.sys_platform', fromlist=['current']).current().listen_hint}) and close it or bind it to 127.0.0.1"), "port": s["port"]})""",
      "sec_hostaudit: how to see which program listens, this system's way"),
     ("sys/core/aurora/sec_hostfw.py",
      """    if not HELPER.is_file() or not shutil.which("sudo"):

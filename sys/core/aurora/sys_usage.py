@@ -129,6 +129,8 @@ def rebuild(cfg: sys_config.Config, force: bool = False) -> dict[str, int]:
                 d = str(r.get("ts", ""))[:10].replace("-", "")
                 if len(d) != 8:
                     continue
+                from . import sys_log
+                r = sys_log.opened(cfg, r)                # C572: the traces' values are sealed
                 add(days.setdefault(d, {}), r.get("user") or "", r["component"], r["event"], r.get("payload") or {})
                 seen[d] = seen.get(d, 0) + 1
     out = _dir(cfg)

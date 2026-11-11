@@ -23,6 +23,8 @@ import math
 import numpy as np
 from scipy import ndimage
 
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
+
 SIGMA = 6.0                  # a star's peak above the background, in the background's noise
 BOX = 7                      # half the cutout, in cells
 MIN_STARS = 30
@@ -138,7 +140,7 @@ def _orient(sel: list[dict]) -> tuple[float, float]:
 def field(st: list[dict], w: int, h: int, scale: float) -> dict:
     """The field's map and what it says. `scale`: arcseconds a cell."""
     if len(st) < MIN_STARS:
-        return {"stars": len(st), "error": f"solo {len(st)} stelle misurabili (ne servono {MIN_STARS})"}
+        return {"stars": len(st), "error": _t(f"solo {len(st)} stelle misurabili (ne servono {MIN_STARS})", f"only {len(st)} measurable stars ({MIN_STARS} are needed)")}
     grid = []
     for gy in range(3):
         row = []
@@ -203,11 +205,14 @@ def field(st: list[dict], w: int, h: int, scale: float) -> dict:
 
 WAY = ["destra", "in basso a destra", "in basso", "in basso a sinistra", "sinistra", "in alto a sinistra", "in alto",
        "in alto a destra"]
+WAY_EN = ["the right", "the bottom right", "the bottom", "the bottom left", "the left", "the top left", "the top",
+          "the top right"]
 
 
 def way(deg: float) -> str:
     """An angle on the frame (0 = right, 90 = down: rows grow downward) in words."""
-    return WAY[int(((deg % 360) + 22.5) // 45) % 8]
+    i = int(((deg % 360) + 22.5) // 45) % 8
+    return _t(WAY[i], WAY_EN[i])
 
 
 def verdict(f: dict) -> list[dict]:
@@ -217,27 +222,36 @@ def verdict(f: dict) -> list[dict]:
     out = []
     seen = max(2.5 * f["gradient_err"], 0.1 * f["fwhm_median"])          # the night's own noise on the gradient
     if f["gradient"] > seen:
-        out.append({"code": "one_side", "text": f"le stelle si gonfiano verso {way(f['worse_toward_deg'])}: "
+        out.append({"code": "one_side", "text": _t(f"le stelle si gonfiano verso {way(f['worse_toward_deg'])}: "
                     f"+{f['gradient']:.2f}″ di FWHM dal centro al bordo (rumore ±{f['gradient_err']:.2f}″) — tilt del treno "
-                    "o primario scollimato"})
+                    "o primario scollimato", f"the stars swell towards {way(f['worse_toward_deg'])}: "
+                    f"+{f['gradient']:.2f}″ of FWHM from the centre to the edge (noise ±{f['gradient_err']:.2f}″) — tilt of the "
+                    "train or a primary out of collimation")})
     if f["best"] and f["best"]["off"] > 0.25 and f["curvature"] > 0.1:
-        out.append({"code": "best_off", "text": f"il punto con le stelle migliori è spostato verso "
+        out.append({"code": "best_off", "text": _t(f"il punto con le stelle migliori è spostato verso "
                     f"{way(math.degrees(math.atan2(f['best']['y'], f['best']['x'])))} ({f['best']['off']:.0%} della "
-                    "semidiagonale): il centro ottico non è al centro del sensore"})
+                    "semidiagonale): il centro ottico non è al centro del sensore", f"the point with the best stars is off towards "
+                    f"{way(math.degrees(math.atan2(f['best']['y'], f['best']['x'])))} ({f['best']['off']:.0%} of the "
+                    "half diagonal): the optical centre is not at the centre of the sensor")})
     if f["radial"] is not None and f["corner_stars"] >= 20 and abs(f["radial"]) > max(0.04, f["e_median"] * 0.4):
-        out.append({"code": "spacing", "text": f"negli angoli le stelle sono allungate "
+        out.append({"code": "spacing", "text": _t(f"negli angoli le stelle sono allungate "
                     f"{'lungo il raggio (verso il centro)' if f['radial'] > 0 else 'di traverso al raggio'} "
-                    f"(media {f['radial']:+.3f}): distanza correttore-sensore da rivedere"})
+                    f"(media {f['radial']:+.3f}): distanza correttore-sensore da rivedere", f"in the corners the stars are stretched "
+                    f"{'along the radius (towards the centre)' if f['radial'] > 0 else 'across the radius'} "
+                    f"(mean {f['radial']:+.3f}): the corrector-to-sensor distance is to be reviewed")})
     coma = f["tail"] > max(0.03, 0.5 * f["tail_typical"])
     if coma:
-        out.append({"code": "coma", "text": f"le stelle hanno la coda verso {way(f['tail_deg'])} in tutto il campo "
-                    f"(spostamento del nucleo {f['tail']:.2f} FWHM): coma uniforme, il segno di un primario scollimato"})
+        out.append({"code": "coma", "text": _t(f"le stelle hanno la coda verso {way(f['tail_deg'])} in tutto il campo "
+                    f"(spostamento del nucleo {f['tail']:.2f} FWHM): coma uniforme, il segno di un primario scollimato", f"the stars have a tail towards {way(f['tail_deg'])} over the whole field "
+                    f"(the core moved by {f['tail']:.2f} FWHM): uniform coma, the sign of a primary out of collimation")})
     if f["one_direction"] > 0.6 * f["e_median"] and f["e_median"] > 0.08 and not coma:
-        out.append({"code": "tracking", "text": f"le stelle sono allungate tutte nello stesso verso ({f['one_direction_deg']}° "
-                    f"sul fotogramma, ellitticità mediana {f['e_median']:.2f}) senza coda: inseguimento o guida, non l'ottica"})
+        out.append({"code": "tracking", "text": _t(f"le stelle sono allungate tutte nello stesso verso ({f['one_direction_deg']}° "
+                    f"sul fotogramma, ellitticità mediana {f['e_median']:.2f}) senza coda: inseguimento o guida, non l'ottica", f"the stars are all stretched the same way ({f['one_direction_deg']}° "
+                    f"on the frame, median ellipticity {f['e_median']:.2f}) with no tail: tracking or guiding, not the optics")})
     if not out:
-        out.append({"code": "ok", "text": f"campo uniforme: FWHM {f['fwhm_median']:.2f}″, angoli fra loro entro "
-                    f"{f['corner_spread']:.2f}″ — oltre è il seeing"})
+        out.append({"code": "ok", "text": _t(f"campo uniforme: FWHM {f['fwhm_median']:.2f}″, angoli fra loro entro "
+                    f"{f['corner_spread']:.2f}″ — oltre è il seeing", f"uniform field: FWHM {f['fwhm_median']:.2f}″, the corners within "
+                    f"{f['corner_spread']:.2f}″ of each other — beyond that it is the seeing")})
     return out
 
 
@@ -262,11 +276,11 @@ def night(cfg, date: str = "", most: int = 8) -> dict:
     if root is not None and not root.is_absolute():
         root = cfg.root / root
     if root is None or not root.is_dir():
-        return {"error": why or "la cartella dei frame (AURORA_ASTRO_FRAMES_DIR) non è raggiungibile"}
+        return {"error": why or _t("la cartella dei frame (AURORA_ASTRO_FRAMES_DIR) non è raggiungibile", "the frames folder (AURORA_ASTRO_FRAMES_DIR) cannot be reached")}
     lights = [h for h in F.scan(root, cache=A.folder(cfg) / "frames.json") if h.get("kind") == "light"]
     dates = sorted({h.get("date") for h in lights if h.get("date")})
     if not dates:
-        return {"error": "nessuna posa light nella cartella dei frame"}
+        return {"error": _t("nessuna posa light nella cartella dei frame", "no light frame in the frames folder")}
     day = date if date in dates else dates[-1]
     pick = sorted((h for h in lights if h.get("date") == day), key=lambda h: Path(h["file"]).name)
     pick = pick[::max(1, len(pick) // most)][:most]
@@ -303,26 +317,38 @@ def night_text(n: dict) -> str:
         return n["error"]
     good = [r for r in n["rows"] if "error" not in r]
     if not good:
-        return f"Notte del {n['date']}: nessuna posa misurabile."
-    unit = "″" if n["scale_known"] else " (unità di cella: scala non nota)"
-    lines = [f"Notte del {n['date']}: {len(good)} pose misurate su {n['frames']} scelte lungo la notte."]
+        return _t(f"Notte del {n['date']}: nessuna posa misurabile.", f"Night of {n['date']}: no measurable frame.")
+    unit = "″" if n["scale_known"] else _t(" (unità di cella: scala non nota)", " (cell units: scale unknown)")
+    lines = [_t(f"Notte del {n['date']}: {len(good)} pose misurate su {n['frames']} scelte lungo la notte.", f"Night of {n['date']}: {len(good)} frames measured out of {n['frames']} chosen along the night.")]
     for r in good:
-        lines.append(f"- {r['file'][11:19] if len(r['file']) > 19 else r['file']}: {r['stars']} stelle, FWHM "
-                     f"{r['fwhm_median']:.2f}{unit}, lato peggiore {way(r['worse_toward_deg'])} (+{r['gradient']:.2f}"
-                     f"±{r['gradient_err']:.2f}), ellitticità {r['e_median']:.2f}, coda {r['tail']:.3f} → "
+        name = r["file"][11:19] if len(r["file"]) > 19 else r["file"]
+        lines.append(_t(f"- {name}: {r['stars']} stelle, FWHM "
+                        f"{r['fwhm_median']:.2f}{unit}, lato peggiore {way(r['worse_toward_deg'])} (+{r['gradient']:.2f}"
+                        f"±{r['gradient_err']:.2f}), ellitticità {r['e_median']:.2f}, coda {r['tail']:.3f} → ",
+                        f"- {name}: {r['stars']} stars, FWHM "
+                        f"{r['fwhm_median']:.2f}{unit}, worse side {way(r['worse_toward_deg'])} (+{r['gradient']:.2f}"
+                        f"±{r['gradient_err']:.2f}), ellipticity {r['e_median']:.2f}, tail {r['tail']:.3f} → ")
                      + "; ".join(v["code"] for v in r["verdict"]))
     half = len(good) // 2 + 1
     common = [c for c, k in n["codes"].items() if k >= half]
-    words = {"one_side": f"un lato peggiore, quasi sempre {n['worse_side']}: tilt del treno (o collimazione, se c'è coda)",
+    words = _t({"one_side": f"un lato peggiore, quasi sempre {n['worse_side']}: tilt del treno (o collimazione, se c'è coda)",
              "best_off": "il punto migliore fuori dal centro", "spacing": "gli angoli allungati allo stesso modo: distanza "
              "correttore-sensore", "coma": "coda uniforme: primario scollimato", "tracking": "mosso nello stesso verso: "
-             "inseguimento o guida", "ok": "campo uniforme: niente da correggere oltre il seeing"}
+             "inseguimento o guida", "ok": "campo uniforme: niente da correggere oltre il seeing"}, {"one_side": f"one worse side, nearly always {n['worse_side']}: tilt of the train (or collimation, if there is a tail)",
+             "best_off": "the best point off the centre", "spacing": "the corners stretched the same way: corrector-to-sensor "
+             "distance", "coma": "uniform tail: primary out of collimation", "tracking": "moved the same way: "
+             "tracking or guiding", "ok": "uniform field: nothing to correct beyond the seeing"})
     c = n.get("constant")
     if c:
-        lines.append(f"Lo stesso lato peggiore in {c['frames']} pose su {c['of']}: {c['side']} (+{c['gradient'][0]:.2f}…"
-                     f"{c['gradient'][1]:.2f}{unit}, circa il {c['pct']:g}% della FWHM). Una direzione che non cambia con "
-                     "l'oggetto, l'ora e il seeing è nel treno ottico: tilt (o collimazione, se ci fosse coda — qui "
-                     + ("c'è" if "coma" in n["codes"] else "non c'è") + ").")
-    lines.append("Nella maggior parte delle pose: " + ("; ".join(words.get(c, c) for c in common) if common else
-                                                      "niente che si ripeta: le differenze sono quelle della notte") + ".")
+        lines.append(_t(
+            f"Lo stesso lato peggiore in {c['frames']} pose su {c['of']}: {c['side']} (+{c['gradient'][0]:.2f}…"
+            f"{c['gradient'][1]:.2f}{unit}, circa il {c['pct']:g}% della FWHM). Una direzione che non cambia con "
+            "l'oggetto, l'ora e il seeing è nel treno ottico: tilt (o collimazione, se ci fosse coda — qui "
+            + ("c'è" if "coma" in n["codes"] else "non c'è") + ").",
+            f"The same worse side in {c['frames']} frames out of {c['of']}: {c['side']} (+{c['gradient'][0]:.2f}…"
+            f"{c['gradient'][1]:.2f}{unit}, about {c['pct']:g}% of the FWHM). A direction that does not change with "
+            "the object, the hour and the seeing is in the optical train: tilt (or collimation, were there a tail — here "
+            + ("there is one" if "coma" in n["codes"] else "there is none") + ")."))
+    lines.append(_t("Nella maggior parte delle pose: ", "In most of the frames: ") + ("; ".join(words.get(c, c) for c in common) if common else
+                                                      _t("niente che si ripeta: le differenze sono quelle della notte", "nothing that repeats: the differences are the night's own")) + ".")
     return "\n".join(lines)

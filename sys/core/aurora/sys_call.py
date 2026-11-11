@@ -170,6 +170,8 @@ def pcm16k(wav_bytes: bytes) -> bytes:
 
 PHONE_SAID = {"ok": "Fatto.", "no_app": "Sul telefono non c'è un'app per farlo.", "no_contact": "Non trovo quel contatto.",
               "need_contacts": "Consenti l'accesso ai contatti e chiedimelo di nuovo."}
+PHONE_SAID_EN = {"ok": "Done.", "no_app": "There is no app on the phone to do it.", "no_contact": "I cannot find that contact.",
+                 "need_contacts": "Allow the access to the contacts and ask me again."}
 
 
 async def phone_now(ws, voice, text: str, lang: str, turn: int, log, model=None, guess=None) -> bool:
@@ -191,7 +193,7 @@ async def phone_now(ws, voice, text: str, lang: str, turn: int, log, model=None,
     except asyncio.TimeoutError:
         voice.phone.pop(act["id"], None)
         return False
-    said = PHONE_SAID.get(result) or ("Non ci sono riuscita." if lang == "it" else "I could not do it.")
+    said = (PHONE_SAID if lang == "it" else PHONE_SAID_EN).get(result) or ("Non ci sono riuscita." if lang == "it" else "I could not do it.")
     log.info("call: phone %s → %s", act["action"], result)
     await ws.send_text(json.dumps({"type": "said", "text": f"{agt_phone.said(act)} — {said}"}))
     await voice.say(said if lang == "it" else ("Done." if result == "ok" else said), turn)

@@ -96,7 +96,7 @@ def test_the_page_can_ask_the_app_only_about_its_notifications_to_call_aurora_an
     assert re.findall(r"@JavascriptInterface\s+(?:/\*\*.*?\*/\s+)?public \w+ (\w+)\(", bridge, re.S) == \
         ["act", "notifications", "settings", "callAurora"]
     act = bridge.split("public String act(")[1].split("\n        }\n")[0]
-    assert "Address.inside(base, page)" in act                          # only Aurora's own page asks the phone
+    assert "Address.home(base, page)" in act                            # only the WebUI itself asks the phone (C594)
     call = bridge.split("public void callAurora(")[1]
     assert 'id.matches("[0-9a-f]{16}")' in call and "CallActivity.ANSWER" in call      # only a call id, opened answered
 

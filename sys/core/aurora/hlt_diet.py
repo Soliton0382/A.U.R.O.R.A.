@@ -25,6 +25,7 @@ import time
 from datetime import date, datetime, timedelta
 
 from . import hlt_store, sys_config, sys_seal
+from .sys_lang import say as _t   # the card's reasons and hints in the reader's language (C526)
 from .hlt_diet_read import (DAYS, MAIN, MEALS, NAMES, _WORDS, _day, _key, _norm, _summary,  # noqa: F401
                             groups_of, parse_frequencies, parse_week)          # also for its callers
 
@@ -79,7 +80,7 @@ def process(cfg: sys_config.Config, llm=None) -> dict:
         if len(opts) > len(week):
             best, week = (it, text), opts
     if not week:
-        raise ValueError("nessun piano riconosciuto: servono i giorni (LUNEDÌ…) o i pasti (Colazione, Pranzo…)")
+        raise ValueError(_t("nessun piano riconosciuto: servono i giorni (LUNEDÌ…) o i pasti (Colazione, Pranzo…)", "no plan recognised: the days (LUNEDÌ…) or the meals (Colazione, Pranzo…) are needed"))
     freq = {}
     for _, text in ([best] + [d for d in docs if d is not best]):
         freq = freq or parse_frequencies(text)
@@ -168,24 +169,24 @@ def suggest(p: dict, rows: list[dict], day: date, meal: str) -> dict:
         score, why = 0.0, []
         if o["day"] == weekday:
             score += 1.0
-            why.append("previsto dal piano per oggi")
+            why.append(_t("previsto dal piano per oggi", "the plan has it for today"))
         for g, n in o["groups"].items():
             f, c = freq.get(g), counts.get(g, 0)
             if not f:
                 continue
             if c + n > f["max"]:
                 score -= 3.0
-                why.append(f"{NAMES[g]}: già {c} su massimo {f['max']} questa settimana")
+                why.append(_t(f"{NAMES[g]}: già {c} su massimo {f['max']} questa settimana", f"{NAMES[g]}: already {c} of at most {f['max']} this week"))
             elif c < f["min"]:
                 score += 2.0 * min(1.0, (f["min"] - c) / max(1, left))
-                why.append(f"{NAMES[g]}: {c} su {f['min']}–{f['max']} questa settimana")
+                why.append(_t(f"{NAMES[g]}: {c} su {f['min']}–{f['max']} questa settimana", f"{NAMES[g]}: {c} of {f['min']}–{f['max']} this week"))
         last = max((date.fromisoformat(r["day"]) for r in month if r["option"] == o["id"]), default=None)
         if last and (day - last).days <= 2:
             score -= 1.5
-            why.append("scelto " + ("ieri" if (day - last).days == 1 else "oggi" if last == day else "due giorni fa"))
+            why.append(_t("scelto " + ("ieri" if (day - last).days == 1 else "oggi" if last == day else "due giorni fa"), "chosen " + ("yesterday" if (day - last).days == 1 else "today" if last == day else "two days ago")))
         if picks.get(o["id"], 0) >= 4:
             score -= 0.5 * (picks[o["id"]] - 3)
-            why.append(f"scelto {picks[o['id']]} volte in 4 settimane")
+            why.append(_t(f"scelto {picks[o['id']]} volte in 4 settimane", f"chosen {picks[o['id']]} times in 4 weeks"))
         scored.append((score, o, why))
     scored.sort(key=lambda x: -x[0])
     pack = lambda s, o, why: {"id": o["id"], "day": o["day"], "items": o["items"], "note": o.get("note", ""),
@@ -197,14 +198,15 @@ def suggest(p: dict, rows: list[dict], day: date, meal: str) -> dict:
         often = next((o for o in pool if o["id"] == top[0]), None)
         fresh = min(pool, key=lambda o: (picks.get(o["id"], 0), o["id"] == top[0]))
         if often and fresh["id"] != often["id"]:
-            out["hints"].append(f"Scegli spesso «{_label(often)}» ({top[1]} volte in 4 settimane): prova «{_label(fresh)}».")
+            out["hints"].append(_t(f"Scegli spesso «{_label(often)}» ({top[1]} volte in 4 settimane): prova «{_label(fresh)}».", f"You often choose «{_label(often)}» ({top[1]} times in 4 weeks): try «{_label(fresh)}»."))
     for g, f in freq.items():                          # a group the week still needs and no option of this meal has
         need = f["min"] - counts.get(g, 0)
         # in no meal of the plan; «once a week» (cold cuts) is a ceiling, not a goal: never urged
         if meal in MAIN and need > 0 and f["min"] >= 2 and not any(g in o["groups"] for o in p["options"]):
-            many = f"Mancano {need} pasti" if need > 1 else "Manca 1 pasto"
-            out["hints"].append(f"{many} con {NAMES.get(g, g)} questa settimana: il piano permette di "
-                                "sostituire la proteina rispettando le dosi (chiedi conferma al dietologo sulle porzioni).")
+            many = _t(f"Mancano {need} pasti" if need > 1 else "Manca 1 pasto", f"{need} meals are missing" if need > 1 else "1 meal is missing")
+            out["hints"].append(_t(f"{many} con {NAMES.get(g, g)} questa settimana: il piano permette di "
+                                "sostituire la proteina rispettando le dosi (chiedi conferma al dietologo sulle porzioni).", f"{many} with {NAMES.get(g, g)} this week: the plan lets you "
+                                "swap the protein keeping the amounts (ask the dietitian to confirm the portions)."))
     out["hints"] = out["hints"][:2]
     free = int(p.get("free_meals_per_week") or 0)
     if free and meal in MAIN:

@@ -21,6 +21,7 @@ else the firewall's engine):
 from __future__ import annotations
 
 from . import sec_fwmodel, sys_config
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 RANK = {"high": 0, "medium": 1, "low": 2}
 ICON = {"high": "🔴", "medium": "🟠", "low": "🟡"}
@@ -59,7 +60,7 @@ def exposed(conf: dict) -> list[dict]:
             continue
         if r["dst_zones"] and set(r["dst_zones"]) <= {"WAN"}:
             continue
-        ports = r["ports"] or (["ogni servizio"] if not r["services"] else r["services"])
+        ports = r["ports"] or ([_t("ogni servizio", "every service")] if not r["services"] else r["services"])
         nats = [n for n in m["nat"] if n["enabled"] and (set(n["services"]) & set(r["services"]) or n.get("rule") == r["name"])]
         nat = [n["name"] for n in nats]
         # the origin may be limited on the NAT rule instead (the owner, 9 Oct: Plex «Italy» on the DNAT — the audit
@@ -71,27 +72,28 @@ def exposed(conf: dict) -> list[dict]:
         policy = _ips_for(m, r)
         problems, fixes = [], []
         if _no_ips(m, r):
-            problems.append("nessuna prevenzione delle intrusioni (IPS)")
+            problems.append(_t("nessuna prevenzione delle intrusioni (IPS)", "no intrusion prevention (IPS)"))
             if r["ips"] is None:
-                fixes.append(f"attivare la prevenzione delle intrusioni del firewall ({m['threat'].get('what') or 'IPS'})")
+                fixes.append(_t(f"attivare la prevenzione delle intrusioni del firewall ({m['threat'].get('what') or 'IPS'})", f"turn on the firewall's intrusion prevention ({m['threat'].get('what') or 'IPS'})"))
             else:
-                fixes.append(f"applicare la policy IPS «{policy}», che esiste già ma non è usata qui" if policy
-                             else "applicare una policy IPS adatta al servizio")
+                fixes.append(_t(f"applicare la policy IPS «{policy}», che esiste già ma non è usata qui", f"apply the IPS policy «{policy}», which exists already but is not used here") if policy
+                             else _t("applicare una policy IPS adatta al servizio", "apply an IPS policy that suits the service"))
         if not r["log"]:
-            problems.append("il traffico non è registrato")
-            fixes.append("attivare il log della regola, così Aurora vede chi entra")
+            problems.append(_t("il traffico non è registrato", "the traffic is not logged"))
+            fixes.append(_t("attivare il log della regola, così Aurora vede chi entra", "turn on the rule's log, so Aurora sees who comes in"))
         origin = r["src_nets"] or (nat_src if limited_by_nat else [])
         if not origin:
-            problems.append("aperta a tutta Internet")
-            fixes.append("limitare l'origine (paesi o indirizzi) se il servizio serve solo ad alcuni")
+            problems.append(_t("aperta a tutta Internet", "open to the whole Internet"))
+            fixes.append(_t("limitare l'origine (paesi o indirizzi) se il servizio serve solo ad alcuni", "limit the origin (countries or addresses) if the service is meant for a few"))
         sev = "high" if _no_ips(m, r) and not origin else ("medium" if problems else "low")
-        out.append(_f(f"exposed:{r['name']}", sev, f"Servizio pubblicato su Internet: {', '.join(ports)}",
-                      f"La regola «{r['name']}» lascia entrare da Internet verso {', '.join(r['dst_zones'] or r['dst_nets']) or 'ogni zona'}"
+        out.append(_f(f"exposed:{r['name']}", sev, _t(f"Servizio pubblicato su Internet: {', '.join(ports)}", f"Service published on the Internet: {', '.join(ports)}"),
+                      _t(f"La regola «{r['name']}» lascia entrare da Internet verso {', '.join(r['dst_zones'] or r['dst_nets']) or 'ogni zona'}",
+                         f"The rule «{r['name']}» lets the Internet in towards {', '.join(r['dst_zones'] or r['dst_nets']) or 'every zone'}")
                       + (f" (NAT: {', '.join(nat)})" if nat else "") + (": " + "; ".join(problems) if problems else
-                                                                          ": con IPS e log attivi")
-                      + (f"; origine limitata a {', '.join(origin)}" + (" dal NAT" if not r["src_nets"] else "")
-                         if origin else ""),
-                      "; ".join(fixes) or "nulla: va bene così se il servizio deve essere pubblico", r["name"],
+                                                                          _t(": con IPS e log attivi", ": with IPS and log on"))
+                      + (_t("; origine limitata a ", "; origin limited to ") + ", ".join(origin)
+                         + (_t(" dal NAT", " by the NAT") if not r["src_nets"] else "") if origin else ""),
+                      "; ".join(fixes) or _t("nulla: va bene così se il servizio deve essere pubblico", "nothing: fine as it is if the service must be public"), r["name"],
                       rule=r["name"], ports=ports, ips_policy=policy, ips=r["ips"], log=r["log"], origin=origin,
                       origin_from="rule" if r["src_nets"] else ("nat" if limited_by_nat else "")))
     return out
@@ -101,13 +103,13 @@ def zones(conf: dict) -> list[dict]:
     m = _m(conf)
     out, where = [], m.get("wan_zone", "WAN")
     if m["wan_admin"]:
-        out.append(_f("admin_wan", "high", f"Amministrazione del firewall raggiungibile da Internet ({', '.join(m['wan_admin'])})",
-                      "Chi trova la pagina di login può tentare le password o sfruttare una vulnerabilità del pannello",
-                      "togliere HTTPS e SSH dalla zona WAN; amministrare da LAN o dalla VPN", where))
+        out.append(_f("admin_wan", "high", _t(f"Amministrazione del firewall raggiungibile da Internet ({', '.join(m['wan_admin'])})", f"The firewall's administration can be reached from the Internet ({', '.join(m['wan_admin'])})"),
+                      _t("Chi trova la pagina di login può tentare le password o sfruttare una vulnerabilità del pannello", "Whoever finds the login page can try passwords or exploit a vulnerability of the panel"),
+                      _t("togliere HTTPS e SSH dalla zona WAN; amministrare da LAN o dalla VPN", "remove HTTPS and SSH from the WAN zone; administer from the LAN or the VPN"), where))
     if m["wan_services"]:
-        out.append(_f("wan_services", "low", f"Servizi del firewall aperti su Internet: {', '.join(m['wan_services'])}",
-                      "Normale se usati (per esempio la VPN da fuori); ogni servizio aperto è una porta in più",
-                      "tenerli solo se servono; con un filtro per paese o la VPN con autenticazione a due fattori", where))
+        out.append(_f("wan_services", "low", _t(f"Servizi del firewall aperti su Internet: {', '.join(m['wan_services'])}", f"Services of the firewall open on the Internet: {', '.join(m['wan_services'])}"),
+                      _t("Normale se usati (per esempio la VPN da fuori); ogni servizio aperto è una porta in più", "Normal if used (the VPN from outside, for example); every open service is one more door"),
+                      _t("tenerli solo se servono; con un filtro per paese o la VPN con autenticazione a due fattori", "keep them only if needed; with a country filter, or the VPN with two-factor authentication"), where))
     return out
 
 
@@ -116,25 +118,25 @@ def threat(conf: dict) -> list[dict]:
     out, th = [], m["threat"]
     if th.get("what") == "ATP":                            # the first dialect's engine, in its own words
         if th["state"] == "off":
-            out.append(_f("atp", "high", "Protezione dalle minacce avanzate (ATP) spenta",
-                          "Il firewall non riconosce i dispositivi che parlano con server di malware noti",
-                          "attivare ATP con la politica «Log and Drop»"))
+            out.append(_f("atp", "high", _t("Protezione dalle minacce avanzate (ATP) spenta", "Advanced Threat Protection (ATP) is off"),
+                          _t("Il firewall non riconosce i dispositivi che parlano con server di malware noti", "The firewall does not recognise the devices that talk to known malware servers"),
+                          _t("attivare ATP con la politica «Log and Drop»", "turn ATP on with the «Log and Drop» policy")))
         elif th["state"] == "log":
-            out.append(_f("atp", "medium", f"ATP solo in registrazione ({th.get('policy')})",
-                          "Il traffico verso i server malevoli viene visto ma non fermato", "politica «Log and Drop»"))
+            out.append(_f("atp", "medium", _t(f"ATP solo in registrazione ({th.get('policy')})", f"ATP only logs ({th.get('policy')})"),
+                          _t("Il traffico verso i server malevoli viene visto ma non fermato", "The traffic towards malicious servers is seen but not stopped"), _t("politica «Log and Drop»", "the «Log and Drop» policy")))
     elif th.get("state") == "off":
-        out.append(_f("ids", "high", f"Prevenzione delle intrusioni spenta ({th['what']})",
-                      "Il firewall non ispeziona il traffico: attacchi noti e dispositivi infetti passano senza essere visti",
-                      f"attivare {th['what']} in modalità di blocco (IPS) sulla WAN"))
+        out.append(_f("ids", "high", _t(f"Prevenzione delle intrusioni spenta ({th['what']})", f"Intrusion prevention is off ({th['what']})"),
+                      _t("Il firewall non ispeziona il traffico: attacchi noti e dispositivi infetti passano senza essere visti", "The firewall does not inspect the traffic: known attacks and infected devices pass unseen"),
+                      _t(f"attivare {th['what']} in modalità di blocco (IPS) sulla WAN", f"turn {th['what']} on in blocking mode (IPS) on the WAN")))
     elif th.get("state") == "log":
-        out.append(_f("ids", "medium", f"{th['what']} solo in rilevamento (IDS)",
-                      "Gli attacchi vengono visti ma non fermati", "passare alla modalità IPS (blocco)"))
+        out.append(_f("ids", "medium", _t(f"{th['what']} solo in rilevamento (IDS)", f"{th['what']} only detects (IDS)"),
+                      _t("Gli attacchi vengono visti ma non fermati", "The attacks are seen but not stopped"), _t("passare alla modalità IPS (blocco)", "switch to IPS mode (blocking)")))
     if m["login"].get("lockout") is False:
-        out.append(_f("login", "medium", "Nessun blocco dopo i login falliti",
-                      "Le password dell'amministratore si possono provare senza limite", "attivare il blocco del login"))
+        out.append(_f("login", "medium", _t("Nessun blocco dopo i login falliti", "No lockout after failed logins"),
+                      _t("Le password dell'amministratore si possono provare senza limite", "The administrator's passwords can be tried without limit"), _t("attivare il blocco del login", "turn on the login lockout")))
     if m["login"].get("complexity") is False:
-        out.append(_f("login_pw", "low", "Complessità delle password non richiesta", "Password deboli accettate",
-                      "attivare il controllo di complessità"))
+        out.append(_f("login_pw", "low", _t("Complessità delle password non richiesta", "Password complexity is not required"), _t("Password deboli accettate", "Weak passwords are accepted"),
+                      _t("attivare il controllo di complessità", "turn on the complexity check")))
     return out
 
 
@@ -143,14 +145,14 @@ def _unread(part: str, what: str, m: dict) -> list[dict]:
     name, err = sec_fwmodel.error_of(m, part)
     if err is None:
         return []
-    return [_f(f"unread:{name}", "medium", f"Non verificato: {what} ({name} non letto dal firewall)",
-               f"La lettura via API è fallita: {err}",
-               "controllare indirizzo, utente e password dell'API e che l'indirizzo di Aurora sia ammesso all'API", name)]
+    return [_f(f"unread:{name}", "medium", _t(f"Non verificato: {what} ({name} non letto dal firewall)", f"Not verified: {what} ({name} not read from the firewall)"),
+               _t(f"La lettura via API è fallita: {err}", f"Reading through the API failed: {err}"),
+               _t("controllare indirizzo, utente e password dell'API e che l'indirizzo di Aurora sia ammesso all'API", "check the API's address, user and password, and that Aurora's address is allowed to use the API"), name)]
 
 
 def blocklist(conf: dict, group: str) -> list[dict]:
     m = _m(conf, group)
-    unread = _unread("rules", "la regola dei blocchi di Aurora", m)
+    unread = _unread("rules", _t("la regola dei blocchi di Aurora", "the rule of Aurora's blocks"), m)
     if unread:
         return unread
     group = m.get("block_object") or group
@@ -158,31 +160,31 @@ def blocklist(conf: dict, group: str) -> list[dict]:
     idx = next((i for i, r in enumerate(rules) if r["enabled"] and group in r["src_nets"]
                 and r["action"] in ("Drop", "Reject")), None)
     if idx is None:
-        return [_f("blocklist", "high", f"I blocchi di Aurora non hanno effetto: nessuna regola attiva usa il gruppo «{group}»",
-                   "Aurora aggiunge gli indirizzi al gruppo, ma senza una regola Drop/Reject il firewall li lascia passare",
-                   f"una regola in cima: origine «{group}», azione Drop", group)]
+        return [_f("blocklist", "high", _t(f"I blocchi di Aurora non hanno effetto: nessuna regola attiva usa il gruppo «{group}»", f"Aurora's blocks have no effect: no enabled rule uses the group «{group}»"),
+                   _t("Aurora aggiunge gli indirizzi al gruppo, ma senza una regola Drop/Reject il firewall li lascia passare", "Aurora adds the addresses to the group, but without a Drop/Reject rule the firewall lets them through"),
+                   _t(f"una regola in cima: origine «{group}», azione Drop", f"a rule at the top: source «{group}», action Drop"), group)]
     before = [r["name"] for r in rules[:idx] if r["enabled"] and r["action"] == "Accept" and "WAN" in r["src_zones"]
               and not r["system"]]
     if before:
-        return [_f("blocklist_order", "medium", "La regola dei blocchi viene dopo regole che lasciano entrare da Internet",
-                   f"Un indirizzo bloccato passa comunque da: {', '.join(before)}",
-                   f"spostare la regola dei blocchi prima di {before[0]}", group)]
+        return [_f("blocklist_order", "medium", _t("La regola dei blocchi viene dopo regole che lasciano entrare da Internet", "The blocking rule comes after rules that let the Internet in"),
+                   _t(f"Un indirizzo bloccato passa comunque da: {', '.join(before)}", f"A blocked address still gets in through: {', '.join(before)}"),
+                   _t(f"spostare la regola dei blocchi prima di {before[0]}", f"move the blocking rule before {before[0]}"), group)]
     return []
 
 
 def syslog(conf: dict, own: set[str]) -> list[dict]:
     m = _m(conf)
-    unread = _unread("syslog", "l'invio del syslog ad Aurora", m)
+    unread = _unread("syslog", _t("l'invio del syslog ad Aurora", "the syslog sent to Aurora"), m)
     if unread:
         return unread
     mine = [s for s in m["syslog"] if s.get("address") in own]
     if not mine:
-        return [_f("syslog", "high", "Il firewall non manda il syslog ad Aurora",
-                   "Senza i log Aurora non vede attacchi, intrusioni né dispositivi sospetti",
-                   "aggiungere Aurora tra i server syslog (formato standard, porta della sentinella)")]
+        return [_f("syslog", "high", _t("Il firewall non manda il syslog ad Aurora", "The firewall does not send its syslog to Aurora"),
+                   _t("Senza i log Aurora non vede attacchi, intrusioni né dispositivi sospetti", "Without the logs Aurora sees no attacks, intrusions or suspicious devices"),
+                   _t("aggiungere Aurora tra i server syslog (formato standard, porta della sentinella)", "add Aurora to the syslog servers (standard format, the sentinel's port)"))]
     if mine[0]["threats_off"]:
-        return [_f("syslog_threats", "medium", f"Eventi di minaccia non inviati ad Aurora: {', '.join(mine[0]['threats_off'])}",
-                   "Aurora non vede una parte degli allarmi", "attivarli nel server syslog «" + str(mine[0].get("name")) + "»")]
+        return [_f("syslog_threats", "medium", _t(f"Eventi di minaccia non inviati ad Aurora: {', '.join(mine[0]['threats_off'])}", f"Threat events not sent to Aurora: {', '.join(mine[0]['threats_off'])}"),
+                   _t("Aurora non vede una parte degli allarmi", "Aurora does not see a part of the alarms"), _t("attivarli nel server syslog «", "turn them on in the syslog server «") + str(mine[0].get("name")) + "»")]
     return []
 
 
@@ -191,19 +193,19 @@ def rules_hygiene(conf: dict) -> list[dict]:
     out = []
     for r in rules:
         if r["enabled"] and r["action"] == "Accept" and not r["src_zones"] and not r["dst_zones"] and not r["src_nets"]:
-            out.append(_f(f"any_any:{r['name']}", "medium", f"Regola che accetta tutto: «{r['name']}»",
-                          "Nessuna zona né rete: lascia passare traffico che nessuno ha pensato",
-                          "indicare zone di origine e destinazione", r["name"]))
+            out.append(_f(f"any_any:{r['name']}", "medium", _t(f"Regola che accetta tutto: «{r['name']}»", f"A rule that accepts everything: «{r['name']}»"),
+                          _t("Nessuna zona né rete: lascia passare traffico che nessuno ha pensato", "No zone and no network: it lets through traffic nobody thought of"),
+                          _t("indicare zone di origine e destinazione", "name the source and destination zones"), r["name"]))
     no_ips = [r["name"] for r in rules if r["enabled"] and r["action"] == "Accept" and "WAN" in r["dst_zones"]
               and r["ips"] in ("None", "")]
     if no_ips:
-        out.append(_f("no_ips_out", "low", f"{len(no_ips)} regole verso Internet senza IPS",
-                      "Un dispositivo infetto che parla verso l'esterno non viene ispezionato da queste regole",
-                      "una policy IPS «LAN TO WAN» sulle regole generali", ", ".join(no_ips[:8])))
+        out.append(_f("no_ips_out", "low", _t(f"{len(no_ips)} regole verso Internet senza IPS", f"{len(no_ips)} rules towards the Internet without IPS"),
+                      _t("Un dispositivo infetto che parla verso l'esterno non viene ispezionato da queste regole", "An infected device talking to the outside is not inspected by these rules"),
+                      _t("una policy IPS «LAN TO WAN» sulle regole generali", "an IPS policy «LAN TO WAN» on the general rules"), ", ".join(no_ips[:8])))
     off = [r["name"] for r in rules if not r["enabled"]]
     if off:
-        out.append(_f("disabled", "low", f"{len(off)} regole disattivate", "Regole dimenticate confondono chi legge la configurazione",
-                      "cancellarle se non servono più", ", ".join(off[:8])))
+        out.append(_f("disabled", "low", _t(f"{len(off)} regole disattivate", f"{len(off)} disabled rules"), _t("Regole dimenticate confondono chi legge la configurazione", "Forgotten rules confuse whoever reads the configuration"),
+                      _t("cancellarle se non servono più", "delete them if no longer needed"), ", ".join(off[:8])))
     return out
 
 
@@ -222,11 +224,11 @@ def run(cfg: sys_config.Config, conf: dict | None = None) -> dict:
 
 def text(result: dict) -> str:
     c = result["counts"]
-    lines = [f"🛡️ Audit del firewall: {c['high']} 🔴 · {c['medium']} 🟠 · {c['low']} 🟡"]
+    lines = [_t(f"🛡️ Audit del firewall: {c['high']} 🔴 · {c['medium']} 🟠 · {c['low']} 🟡", f"🛡️ Firewall audit: {c['high']} 🔴 · {c['medium']} 🟠 · {c['low']} 🟡")]
     for f in result["findings"]:
         lines.append(f"\n{ICON[f['severity']]} **{f['title']}**\n   {f['why']}\n   ➜ {f['fix']}")
     if result.get("errors"):
-        lines.append("\nNon letti dal firewall: " + ", ".join(result["errors"]))
+        lines.append(_t("\nNon letti dal firewall: ", "\nNot read from the firewall: ") + ", ".join(result["errors"]))
         for reason in dict.fromkeys(result["errors"].values()):
-            lines.append(f"   motivo: {reason}")
+            lines.append(_t(f"   motivo: {reason}", f"   reason: {reason}"))
     return "\n".join(lines)

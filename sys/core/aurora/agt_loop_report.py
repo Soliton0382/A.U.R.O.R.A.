@@ -9,6 +9,7 @@ import re
 
 from .mdl_fit import SHORTENED
 from .mdl_llm import chatml_turns
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 SEP = "__"                                               # plugin__tool: a function name the model can write
 
@@ -47,14 +48,14 @@ class AgentReport:
         if not cmds and not files and reads:
             # C481: the local model read the user's expenses, then ran out of thinking twice and wrote nothing — what it
             # read is the answer's matter, not «nothing»
-            return "\n".join(["Il modello non ha scritto la risposta. Ecco quello che ho letto:"]
+            return "\n".join([_t("Il modello non ha scritto la risposta. Ecco quello che ho letto:", "The model did not write the answer. Here is what I read:")]
                              + [f"- {n.split(SEP)[0]}: {t}" for n, t in reads[-3:]])
         if not cmds and not files:
-            return "Nessun resoconto prodotto."
-        out = ["Il modello non ha scritto il resoconto. Dal registro delle chiamate:"]
-        out += [f"- comando in {p}: `{c}` → exit {e} in {s} s" for p, c, e, s in cmds]
+            return _t("Nessun resoconto prodotto.", "No report was produced.")
+        out = [_t("Il modello non ha scritto il resoconto. Dal registro delle chiamate:", "The model did not write the report. From the log of calls:")]
+        out += [_t(f"- comando in {p}: `{c}` → exit {e} in {s} s", f"- command in {p}: `{c}` → exit {e} in {s} s") for p, c, e, s in cmds]
         if files:
-            out.append("- file scritti: " + ", ".join(files[:30]) + (" …" if len(files) > 30 else ""))
+            out.append(_t("- file scritti: ", "- files written: ") + ", ".join(files[:30]) + (" …" if len(files) > 30 else ""))
         return "\n".join(out)
 
     @staticmethod
@@ -104,10 +105,10 @@ class AgentReport:
         false = [what for what, (rx, tools) in self.CLAIMS.items() if self._claims(rx, summary) and not self._count(*tools)
                  and not (what == "proposal" and pending)]       # "waiting for your approval" is true for a post
         if pending:
-            head = ("⏳ Proposto, non ancora fatto — aspetta la tua approvazione (🛎️ Approvazioni): "
+            head = (_t("⏳ Proposto, non ancora fatto — aspetta la tua approvazione (🛎️ Approvazioni): ", "⏳ Proposed, not done yet — it waits for your approval (🛎️ Approvals): ")
                     + ", ".join(dict.fromkeys(pending)) + ".")
             if self.DONE.search(summary):
-                head = "⚠️ Niente è stato ancora pubblicato o inviato.\n" + head
+                head = _t("⚠️ Niente è stato ancora pubblicato o inviato.\n", "⚠️ Nothing has been published or sent yet.\n") + head
             summary = head + "\n\n" + summary
         if false:
             self.log.warning("agent report claims actions that were not performed: %s", ", ".join(false))

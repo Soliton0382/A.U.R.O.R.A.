@@ -3,7 +3,7 @@
 // 📚 Projects → Papers: the user's works (the publications plugin, from Zenodo by ORCID) as cards, like the GitHub
 // ones: views and downloads (unique, and every one), the change since yesterday and in a week, the versions, the
 // licence, the keywords, and the views day by day once more than one day is kept. Reading only.
-import { el } from "../dom.js";
+import { el, safeUrl } from "../dom.js";
 import { t } from "../i18n.js";
 
 const SVGNS = "http://www.w3.org/2000/svg";
@@ -78,7 +78,8 @@ export function paperCard(w) {
   c.append(stats, trend(w.history));
   const foot = el("div", "mch-price prj-gh-foot");
   const a = el("a", "", w.url.includes("doi.org/") ? `🔗 ${w.url.split("doi.org/")[1]}` : t("prj.paper_open"));
-  a.href = w.url; a.target = "_blank"; a.rel = "noopener noreferrer";
+  if (safeUrl(w.url)) a.href = w.url;
+  a.target = "_blank"; a.rel = "noopener noreferrer";
   foot.append(a);
   if (w.published) foot.append(el("span", "muted", w.published));
   if (w.license) foot.append(el("span", "muted", w.license.toUpperCase()));

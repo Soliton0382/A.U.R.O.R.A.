@@ -18,7 +18,8 @@ FORM = {"name": "archive", "description": "Searches the archive of public docume
         "read_tools": ["find"], "memory": False}
 
 
-def test_a_local_or_remote_server_becomes_a_manifest_that_keeps_the_contract(cfg, tmp_path):
+def test_a_local_or_remote_server_becomes_a_manifest_that_keeps_the_contract(cfg, tmp_path_factory):
+    tmp_path = tmp_path_factory.mktemp("elsewhere")      # outside Aurora's folder (C591: never a place inside it)
     local = plg_mcp.manifest(cfg, {**FORM, "command": [sys.executable, "-I", "server.py"], "read": [str(tmp_path)]})
     assert local["kind"] == "mcp" and local["effects"] == {"find": "read", "*": "external"} and local["memory"] is False
     assert local["sandbox"] == {"read": [str(tmp_path)], "network": False}
@@ -51,14 +52,17 @@ def test_a_wrong_form_is_told_why(cfg, bad, why):
         plg_mcp.manifest(cfg, body)
 
 
-def test_the_cage_reads_only_the_places_named_never_the_home_or_a_hidden_one(cfg, tmp_path):
+def test_the_cage_reads_only_the_places_named_never_the_home_or_a_hidden_one(cfg, tmp_path, tmp_path_factory):
     home = Path(os.environ.get("HOME") or Path.home()).resolve()
     for place, why in ((home, "home"), (home.parent, "home"), (Path("/"), "root"), (home / ".ssh", "hidden"),
-                       (cfg.path("AURORA_STATUS_DIR"), "state"), (tmp_path / "missing", "exist")):
+                       (cfg.path("AURORA_STATUS_DIR"), "state"), (Path("/opt/aurora-test-missing"), "exist")):
         with pytest.raises(ValueError, match=why):
             plg_sandbox.read_paths({"kind": "mcp", "sandbox": {"read": [str(place)]}}, cfg)
-    assert plg_sandbox.read_paths({"kind": "mcp", "sandbox": {"read": [str(tmp_path)]}}, cfg) == [tmp_path.resolve()]
-    assert plg_sandbox.read_paths({"forged": {"at": 1}, "sandbox": {"read": [str(tmp_path)]}}, cfg) == []   # never forged
+    with pytest.raises(ValueError, match="outside Aurora|own state"):                         # C591: her own folder
+        plg_sandbox.read_paths({"kind": "mcp", "sandbox": {"read": [str(tmp_path)]}}, cfg)
+    out = tmp_path_factory.mktemp("elsewhere")
+    assert plg_sandbox.read_paths({"kind": "mcp", "sandbox": {"read": [str(out)]}}, cfg) == [out.resolve()]
+    assert plg_sandbox.read_paths({"forged": {"at": 1}, "sandbox": {"read": [str(out)]}}, cfg) == []   # never forged
     assert "sandbox.read: only an MCP server" in " ".join(
         plg_contract.check({"name": "x1", "version": "1", "kind": "tool", "description": {"it": "x", "en": "x"},
                             "command": ["a"], "requires": [], "effects": {}, "sandbox": {"read": ["/opt"]}}))
@@ -103,8 +107,8 @@ SERVER = textwrap.dedent('''
 
 
 @pytest.mark.skipif(not plg_sandbox.available(), reason="bubblewrap missing")
-def test_a_real_server_outside_aurora_answers_from_its_cage_and_sees_nothing_else(cfg, tmp_path):
-    srv = tmp_path / "elsewhere"
+def test_a_real_server_outside_aurora_answers_from_its_cage_and_sees_nothing_else(cfg, tmp_path, tmp_path_factory):
+    srv = tmp_path_factory.mktemp("outside") / "elsewhere"
     srv.mkdir()
     (srv / "server.py").write_text(SERVER)
     secret = Path(os.environ.get("HOME") or Path.home()) / ".bashrc"

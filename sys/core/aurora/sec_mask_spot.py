@@ -23,7 +23,7 @@ import threading
 import time
 from collections import OrderedDict
 
-from . import sys_config, sys_log, sys_seal
+from . import sys_config, sys_context, sys_log, sys_seal
 from . import sys_users_layout as L
 
 CHUNK = 3000                    # characters asked at once
@@ -133,8 +133,8 @@ def spot(cfg: sys_config.Config, text: str) -> tuple[list[str], bool]:
                 hit = hit + rules
         found += hit
     found = sorted(set(found), key=len, reverse=True)
-    if told:
-        _learn(cfg, told)
+    if told and not sys_context.anonymous_now():         # C593: an anonymous chat leaves nothing on disk, its names
+        _learn(cfg, told)                                # neither (masked now, never kept in mask_learned.json)
     if not whole:
         sys_log.get_logger("security").warning("dynamic masking: the local model did not answer, last-resort rule used")
     return found, whole

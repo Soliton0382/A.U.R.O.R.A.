@@ -15,11 +15,19 @@ export const scrollEnd = (box) => { box.scrollTop = box.scrollHeight; };
 // a link to ANOTHER site (a web source): opened apart; Aurora's own addresses never (they need the device's cookie,
 // which a new window of the installed app does not have: C39, C100)
 export function external(a, url) {
+  const u = safeUrl(url);
+  if (!u) { a.removeAttribute("href"); return a; }      // C594: «javascript:», «data:»… stay text, never a link
   a.href = url;
-  let u = null;
-  try { u = new URL(url, location.href); } catch { return a; }
   if (u.protocol === "https:" && u.origin !== location.origin) { a.target = "_blank"; a.rel = "noopener noreferrer"; }
   return a;
+}
+
+// C594: an address that came from outside (a web source, a plugin's manifest, a contact's page) is a link only when it
+// is http(s) — or mailto: —, whatever the page's policy does with the rest; null otherwise
+export function safeUrl(url) {
+  let u = null;
+  try { u = new URL(String(url ?? ""), location.href); } catch { return null; }
+  return ["https:", "http:", "mailto:"].includes(u.protocol) ? u : null;
 }
 
 export const toBase64 = (file) => new Promise((ok, fail) => {

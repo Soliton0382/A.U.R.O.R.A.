@@ -179,8 +179,8 @@ def _listing(folder: Path) -> list[tuple]:
                 st = os.lstat(p)
                 if os.path.islink(p):
                     out.append((rel, "link", os.readlink(p)))
-                elif p.is_file():
-                    out.append((rel, st.st_size, st.st_mtime_ns))
+                elif p.is_file():                    # its change time too: a file's own time can be set back
+                    out.append((rel, st.st_size, (st.st_mtime_ns, st.st_ctime_ns)))
     return sorted(out)
 
 
@@ -199,11 +199,19 @@ def tree_digest(folder: Path) -> str:
     return h.hexdigest()
 
 
+def seal_file(cfg, folder: Path) -> Path:
+    """Where a plugin's sealed digest lives: Aurora's state, under the plugin's name (C591: inside .deps it could be
+    deleted with the files it spoke for, and the next start recorded whatever was there)."""
+    base = getattr(cfg, "base", None) or cfg
+    return base.path("AURORA_STATUS_DIR") / "plugins" / "deps" / f"{folder.name}.sealed"
+
+
 def record(cfg, folder: Path) -> None:
     """At install: the tree's digest sealed with Aurora's key (a copy made without the key does not open)."""
     from . import sys_seal
-    if (folder / DEPS).is_dir():
-        sys_seal.write(cfg, folder / DEPS / TREE, tree_digest(folder).encode(), None, "plugins")
+    base = getattr(cfg, "base", None) or cfg
+    if (folder / DEPS).is_dir() or (folder / BIN).is_dir():
+        sys_seal.write(base, seal_file(cfg, folder), tree_digest(folder).encode(), None, "plugins")
     _checked.pop(str(folder), None)
 
 
@@ -211,9 +219,13 @@ def verify(cfg, folder: Path, manifest: dict, log=None) -> None:
     """C579: before a plugin starts, what it fetched is what was fetched — the programs downloaded by address against
     the SHA-256 its signed manifest pins, the whole tree (libraries, packages unpacked) against the digest sealed at
     install. RuntimeError when something changed: the plugin is not run. A plugin installed before 12 Nov has no
-    sealed digest: recorded now, once, and said. Hashed again only when a file's size or time changed."""
+    sealed digest: not run until it is installed again (C591). Hashed again only when a file's size or time changed."""
     n = needs(manifest)
-    if not (n["python"] or n["programs"]) or not (folder / DEPS).is_dir():
+    from . import sys_seal
+    base = getattr(cfg, "base", None) or cfg
+    sealed, old = seal_file(cfg, folder), folder / DEPS / TREE
+    # C591: «no .deps» is not «nothing fetched» — with .deps removed a swapped program in .bin was not looked at
+    if not (n["python"] or n["programs"]) or not ((folder / DEPS).is_dir() or (folder / BIN).is_dir()):
         return
     seen = tuple(_listing(folder))
     if _checked.get(str(folder)) == seen:
@@ -224,20 +236,26 @@ def verify(cfg, folder: Path, manifest: dict, log=None) -> None:
         f = folder / BIN / str(prog["name"])
         if not f.is_file() or f.is_symlink() or hashlib.sha256(f.read_bytes()).hexdigest() != str(prog["sha256"]).lower():
             raise RuntimeError(f"{folder.name}: {prog['name']} is not the program its manifest pins: not run (install it again)")
-    from . import sys_seal
-    sealed = folder / DEPS / TREE
-    if not sealed.exists():
-        record(cfg, folder)
-        if log:
-            log(f"plugin {folder.name}: its fetched files had no sealed digest (installed before C579): recorded now")
-    else:
+    # C591: a missing digest is never recorded at a start (deleting it blessed whatever was there). The one of before,
+    # kept inside .deps, is taken over once when it opens and still says what is there; without any, install again.
+    where = sealed if sealed.exists() else old if old.exists() else None
+    if where is None:
+        raise RuntimeError(f"{folder.name}: its fetched files have no sealed digest: not run (install it again)")
+    try:
+        want = sys_seal.read(base, where, None, "plugins").decode()
+    except (ValueError, OSError):
+        raise RuntimeError(f"{folder.name}: the digest of its fetched files does not open: not run (install it again)") from None
+    if tree_digest(folder) != want:
+        raise RuntimeError(f"{folder.name}: its fetched libraries or programs changed since they were installed: "
+                           "not run (install it again)")
+    if where is old:
+        sys_seal.write(base, sealed, want.encode(), None, "plugins")
         try:
-            want = sys_seal.read(cfg, sealed, None, "plugins").decode()
-        except ValueError:
-            raise RuntimeError(f"{folder.name}: the digest of its fetched files does not open: not run (install it again)") from None
-        if tree_digest(folder) != want:
-            raise RuntimeError(f"{folder.name}: its fetched libraries or programs changed since they were installed: "
-                               "not run (install it again)")
+            old.unlink()
+        except OSError:
+            pass
+        if log:
+            log(f"plugin {folder.name}: the sealed digest of its fetched files now lives in Aurora's state")
     _checked[str(folder)] = seen
 
 

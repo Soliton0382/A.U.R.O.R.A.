@@ -17,18 +17,24 @@ def _base():
     return BASE.base or BASE
 
 
-def tell(user: str, event: str, text: str) -> None:
-    """A notification to the user (their own, not the admin's): the assistance began or ended."""
+def tell(user: str, event: str, it: str, en: str) -> None:
+    """A notification to the user (their own, not the admin's): the assistance began or ended — in the language they
+    chose, not the admin's nor the machine's (C526)."""
+    from aurora import sys_lang
     with sys_context.acting_as(user):
+        text = sys_lang.say(it, en)
         note("assist", event, {"title": text, "text": text})
 
 
 def ended(user: str, why: str) -> None:
     """The assistance of a user is over: in their log, and told to them."""
     sys_assist.step(sys_user_config.for_user(_base(), user), _admin() or "", "end", why)
-    tell(user, "assist.end", {"revoke": "Hai chiuso l'assistenza: l'amministratore non può più entrare nel tuo account.",
-                              "leave": "L'amministratore è uscito dal tuo account.",
-                              "time": "L'assistenza è scaduta: l'amministratore non può più entrare nel tuo account."}[why])
+    tell(user, "assist.end", *{
+        "revoke": ("Hai chiuso l'assistenza: l'amministratore non può più entrare nel tuo account.",
+                   "You closed the assistance: the administrator can no longer enter your account."),
+        "leave": ("L'amministratore è uscito dal tuo account.", "The administrator left your account."),
+        "time": ("L'assistenza è scaduta: l'amministratore non può più entrare nel tuo account.",
+                 "The assistance expired: the administrator can no longer enter your account.")}[why])
 
 
 def expire_due() -> None:
@@ -88,7 +94,9 @@ async def assist_enter(request: Request) -> dict:
     sys_assist.step(sys_user_config.for_user(_base(), user), admin, "enter", dev.get("name", ""))
     log.info("audit: %s entered %s's account (assistance)", admin, user)
     tell(user, "assist.begin", "L'amministratore è entrato nel tuo account per assisterti: ogni passo è nel registro "
-                               "della pagina 👥 Utenti → 🛟 Assistenza.")
+                               "della pagina 👥 Utenti → 🛟 Assistenza.",
+         "The administrator entered your account to assist you: every step is in the log of the page 👥 Users → "
+         "🛟 Assistance.")
     return {"session": s}
 
 

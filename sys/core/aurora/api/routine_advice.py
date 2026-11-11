@@ -9,6 +9,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from .core import auth, cfg, log, me, note, pipeline, plugin_host
+from .users import may_manage  # noqa: E402
 
 router = APIRouter()
 _reviewing: set[str] = set()
@@ -67,7 +68,7 @@ def advice_review() -> dict:
     return {"started": _start(force=True)}
 
 
-@router.post("/v1/aurora/routines/advice/{aid}/{action}", dependencies=[Depends(auth)])
+@router.post("/v1/aurora/routines/advice/{aid}/{action}", dependencies=[Depends(may_manage("routines"))])   # C595
 def advice_action(aid: str, action: str) -> dict:
     """apply (the owner's click makes the change) or dismiss (never proposed again)."""
     from aurora import sys_routine_advice
@@ -93,7 +94,8 @@ def advice_action(aid: str, action: str) -> dict:
 
 # ---- sets of agents and routines by use, and the owner's own as a set (sys_routine_templates) -----------------
 def _lang() -> str:
-    return "it" if str(cfg["AURORA_LANG_DEFAULT"]).startswith("it") else "en"
+    from aurora import sys_lang
+    return sys_lang.reader(cfg.now())                 # the reader's language, not the machine's (C526)
 
 
 def _is_admin() -> bool:
@@ -108,7 +110,7 @@ def templates() -> list[dict]:
     return sys_routine_templates.view(cfg, _lang(), _ready(), _is_admin(), me())
 
 
-@router.post("/v1/aurora/routines/templates/{pack}/apply", dependencies=[Depends(auth)])
+@router.post("/v1/aurora/routines/templates/{pack}/apply", dependencies=[Depends(may_manage("routines"))])  # C595
 def template_apply(pack: str) -> dict:
     from aurora import sys_routine_templates
     try:

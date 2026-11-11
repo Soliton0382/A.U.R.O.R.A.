@@ -270,7 +270,9 @@ sealed() {  # the first line of a marker in the services' folder: a sealed crede
             # through a link, never anything but a path in /etc/credstore.encrypted — it goes into a unit's drop-in)
   [ -L "$$1" ] && { echo "✗ $$1 is a symbolic link: refused" >&2; return 1; }
   line="$$(head -c 512 "$$1" 2>/dev/null | head -1)"
-  case "$$line" in /etc/credstore.encrypted/aurora-*) case "$$line" in *[!A-Za-z0-9/._-]*) return 1;; esac
+  # C592: nothing but the credential's own name after the folder — with «/» and «..» it led anywhere from there
+  case "$$line" in /etc/credstore.encrypted/aurora-*)
+    case "$${line#/etc/credstore.encrypted/}" in *[!A-Za-z0-9._-]*|*..*) return 1;; esac
     printf '%s' "$$line";; *) return 1;; esac
 }
 if /usr/bin/python3 -I "$${AURORA_LIB:-/usr/local/lib/aurora}/sys/core/script/sys_key_seal.py" && key="$$(sealed "$keys/aurora.sealed")"; then
@@ -352,8 +354,28 @@ def hardening(root: Path, user: str, bind_low_port: bool, hosts_plugins: bool = 
             "RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK\n")
 
 
+HOST_SETTINGS = ("AURORA_DOMAIN", "AURORA_API_HOST", "AURORA_MODELS_HOST", "AURORA_LLM_HOST")
+TEXT_SETTINGS = ("AURORA_ROOT", "AURORA_VENV_DIR", "AURORA_CORE_DIR", "AURORA_STATUS_DIR", "AURORA_HTTPS_DIR",
+                 "AURORA_CADDY_BIN", "AURORA_TLS_CERT", "AURORA_TLS_KEY", "AURORA_BACKUP_DIR", "AURORA_BACKUP_KEY_FILE",
+                 "AURORA_SERVICE_USER")
+
+
+def unsafe_values(cfg) -> list[str]:
+    """C592 (audit F3): the settings written into the units and into the script root runs come from .env, which the
+    services' account writes — «localhost; id» as the domain became a command of root's. A host is letters, digits,
+    dots, dashes, colons and brackets; a path or a name holds nothing the shell or systemd reads as more than text
+    (a quote, «$», a backquote, a backslash, a line break). The names of the settings that do not pass."""
+    import re
+    bad = [k for k in HOST_SETTINGS if not re.fullmatch(r"[A-Za-z0-9._:\[\]-]{1,255}", str(cfg[k]))]
+    return bad + [k for k in TEXT_SETTINGS if re.search(r"[\x00-\x1f\x7f$`\"'\\;&|<>]", str(cfg[k] or ""))]
+
+
 def main() -> int:
     cfg = sys_config.get()
+    bad = unsafe_values(cfg)
+    if bad:
+        print("refused, nothing written: a value that is not plain text (a host name, a path) in " + ", ".join(bad))
+        return 1
     root = cfg.root
     py = root / cfg["AURORA_VENV_DIR"] / "bin" / "python"
     script = cfg.path("AURORA_CORE_DIR") / "script"
@@ -501,10 +523,20 @@ def main() -> int:
               "aurora-api": f"http://{cfg['AURORA_API_HOST']}:{cfg['AURORA_API_PORT']}/health",
               "aurora-https": f"https://{cfg['AURORA_DOMAIN']}:{cfg['AURORA_HTTPS_PORT']}/"}
     script_sh = out / "install.sh"
-    script_sh.write_text(INSTALL.substitute(py=py, script=script, keys=cfg.path("AURORA_STATUS_DIR") / "keys", bkmark=_backup_marker(cfg),
+    import re
+    import shlex
+    keys, bkmark = cfg.path("AURORA_STATUS_DIR") / "keys", _backup_marker(cfg)
+    # C592: the paths as resolved too (a folder of the services' turned into a link to a name with «$(…)» in it), and
+    # the units' names: they stand between double quotes, or bare, in the script root runs
+    odd = [str(v) for v in (py, script, keys, bkmark, *names, *units, *backup, *oneshots)
+           if re.search(r"[\x00-\x1f\x7f$`\"'\\;&|<>]", str(v))]
+    if odd:
+        print("refused, install.sh not written: not plain text: " + ", ".join(repr(v) for v in odd))
+        return 1
+    script_sh.write_text(INSTALL.substitute(py=py, script=script, keys=keys, bkmark=bkmark,
         src=out, units=" ".join(names), services=" ".join(f"{n}.service" for n in units), backup=" ".join(backup),
         oneshots=" ".join(oneshots),
-        checks="\n".join(f"check {n} {u} || fail=1" for n, u in checks.items()),
+        checks="\n".join(f"check {shlex.quote(n)} {shlex.quote(u)} || fail=1" for n, u in checks.items()),
         https_port=cfg["AURORA_HTTPS_PORT"], domain=cfg["AURORA_DOMAIN"]), encoding="utf-8")
     script_sh.chmod(0o755)
     print("\ninstall, start and check (as root, only what the owner signed):\n  sudo aurora-root install systemd")

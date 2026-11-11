@@ -4,7 +4,7 @@
 // official links, its own settings, its tools (read-only ones can be tried) and its icon.
 import { call } from "../api.js";
 import { bus } from "../bus.js";
-import { el, toBase64, useCss } from "../dom.js";
+import { el, safeUrl, toBase64, useCss } from "../dom.js";
 import { apply, lang, t } from "../i18n.js";
 import { renderMarkdown } from "../md.js";
 import { approvalCard } from "./approvals.js";
@@ -284,7 +284,8 @@ const view = {
         const ul = el("ul");
         for (const l of setup.links) {
           const a = el("a", "", l.label);
-          a.href = l.url; a.target = "_blank"; a.rel = "noopener noreferrer";
+          if (safeUrl(l.url)) a.href = l.url;
+          a.target = "_blank"; a.rel = "noopener noreferrer";
           const li = el("li"); li.append(a); ul.append(li);
         }
         g.append(el("div", "muted", t("plug.links")), ul);

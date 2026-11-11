@@ -52,4 +52,26 @@ final class Address {
             return false;
         }
     }
+
+    /** C594: the WebUI itself, Aurora's page at "/" (with or without a query): the only page given the bridge's key.
+     *  A preview or a file of the same host, opened as the window's page, is not (a model wrote it). */
+    static boolean home(String base, String url) {
+        if (!inside(base, url)) return false;
+        try {
+            String p = new URI(url).getPath();
+            return p == null || p.isEmpty() || "/".equals(p);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** C594: what a page may hand to another app: a web address, nothing else (tel:, sms:, intent:, content:, file:). */
+    static boolean web(String url) {
+        try {
+            String s = new URI(url).getScheme();
+            return "https".equalsIgnoreCase(s) || "http".equalsIgnoreCase(s);
+        } catch (Exception e) {
+            return false;
+        }
+    }
 }

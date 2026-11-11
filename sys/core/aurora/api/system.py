@@ -21,7 +21,7 @@ from aurora.net_cloudflare import KEYS as TUNNEL_KEYS  # noqa: E402
 
 # ---- status and settings -------------------------------------------------------------------
 @router.get("/v1/aurora/status", dependencies=[Depends(auth)])
-def status() -> dict:
+def status(request: Request) -> dict:
     import httpx
     from aurora.sol_reader import VaultReader
     out = {"vault": VaultReader(cfg).count()}
@@ -37,6 +37,9 @@ def status() -> dict:
             out[name] = httpx.get(url, timeout=3).json()
         except httpx.HTTPError as e:
             out[name] = {"status": "down", "error": type(e).__name__}    # C570: not the error's text (its address)
+    user = user_of(request)
+    if user and user != _admin():                        # C595: a user is told what works, not with what
+        out = {k: {"status": v.get("status", "ok")} if isinstance(v, dict) else v for k, v in out.items()}
     return out
 
 
@@ -84,7 +87,7 @@ async def settings_factory(request: Request) -> dict:
     return {**out, "command_mind": f"cd {cfg.root} && .venv/bin/python sys/core/script/sys_factory_reset.py --apply"}
 
 
-@router.get("/v1/aurora/factory", dependencies=[Depends(auth)])
+@router.get("/v1/aurora/factory", dependencies=[Depends(admin_only)])     # C595: the machine's folders, the admin's
 def factory_state() -> dict:
     """What «back to the factory» means here (ROADMAP 102): a copy of the installation's settings or not, what the
     mind's reset would move aside, and the last reset's result."""
@@ -185,6 +188,11 @@ async def update_settings(request: Request) -> dict:
     user, admin = user_of(request), _admin()
     if user and admin and user != admin and any(specs.get(k, {}).get("scope") != "user" for k in changes):
         raise HTTPException(status_code=403, detail="only the admin changes the machine's settings")   # before anything (C417)
+    if user and admin and user != admin:                 # C595: a user's autonomy is set where the admin's choice is asked
+        from aurora import sys_autonomy
+        levels = {k for scope, lv in sys_autonomy.AREAS.values() if scope == "user" for ch in lv.values() for k in ch}
+        if levels & set(changes) and not sys_autonomy.policy(cfg).get("may_choose", {}).get(user, False):
+            raise HTTPException(status_code=403, detail="the admin chooses your autonomy")
     if not problems and {"AURORA_HTTPS_PORT", "AURORA_HTTP_PORT"} & set(changes):
         from aurora import net_https                 # the 🔒 page's checks (C227: 9700, the API's port, was accepted)
         now = net_https.fresh(cfg)
@@ -250,7 +258,8 @@ async def update_settings(request: Request) -> dict:
     sys_log.trace("api", "settings.change", {"keys": sorted(changes), "restart": restart})
     from .backup import NAS_KEYS, start_mount             # the backup plugin saved with a NAS folder: mount it now
     mounting = bool(NAS_KEYS & set(changes)) and start_mount(str(changes.get("AURORA_BACKUP_DIR", cfg["AURORA_BACKUP_DIR"])))
-    mounting = mounting or start_mount(str(changes.get("AURORA_ASTRO_FRAMES_DIR", "")))   # the frames on the NAS (N29)
+    if not (user and admin and user != admin):            # C595: only the admin's frames share is ever mounted
+        mounting = mounting or start_mount(str(changes.get("AURORA_ASTRO_FRAMES_DIR", "")))   # the frames on the NAS (N29)
     from .tunnel import start_tunnel                        # the cloudflare plugin saved: everything set up (roadmap 56)
     tunnel = bool(TUNNEL_KEYS & set(changes)) and start_tunnel()
     from .backup import start_retime                        # a new backup time: the timer follows it

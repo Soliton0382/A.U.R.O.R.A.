@@ -32,9 +32,12 @@ def _harvested(cfg: sys_config.Config, since: float) -> tuple[int, int]:
                 continue
         except (ValueError, KeyError):
             continue
-        for d in e.get("payload", {}).get("domains", []):
-            docs += int(d.get("new", 0))
-            chunks += int(d.get("chunks", 0))
+        from . import sys_log
+        domains = sys_log.opened(cfg, e).get("payload", {}).get("domains", [])   # sealed since C572
+        for d in domains if isinstance(domains, list) else []:
+            if isinstance(d, dict):
+                docs += int(d.get("new", 0))
+                chunks += int(d.get("chunks", 0))
     return docs, chunks
 
 

@@ -10,12 +10,10 @@ counts the saved steps, curiosity the open items of the projects moved lately. R
 """
 from __future__ import annotations
 
-import subprocess
 import time
 from pathlib import Path
 
 from . import sys_config
-from .prj_run import GIT_SAFE
 
 EVERY_S = 300
 LIVE_DAYS = 3                     # a project moved in the last 3 days is being worked on: its open items count
@@ -23,10 +21,8 @@ _cache: dict[str, tuple[float, dict]] = {}
 
 
 def _git(p: Path, *args: str) -> str:
-    try:
-        return subprocess.run(["git", *GIT_SAFE, "-C", str(p), *args], capture_output=True, text=True, timeout=10).stdout
-    except (OSError, subprocess.SubprocessError):
-        return ""
+    from . import prj_browse                         # C591: in git's own cage — a project's .git is not trusted
+    return prj_browse.git_read(p, *args, timeout=10)
 
 
 def _open_items(p: Path) -> int:

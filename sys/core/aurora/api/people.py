@@ -47,9 +47,11 @@ def _view() -> dict:
     return sys_people.view(_base(), me() or "", _names(), _admin())
 
 
-def _tell(user: str, event: str, text: str) -> None:
-    from aurora import sys_context
+def _tell(user: str, event: str, say) -> None:
+    """`say(lang)` writes it in the language the user told chose, not the sender's nor the machine's (C526)."""
+    from aurora import sys_context, sys_lang
     with sys_context.acting_as(user):
+        text = say(sys_lang.reader())
         note("people", event, {"title": text, "text": text})
 
 
@@ -158,7 +160,10 @@ async def people_relation(request: Request) -> dict:
         r = sys_people.ask_relation(_base(), me() or "", str(b.get("to", "")), str(b.get("kind", "")), _names())
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from None
-    _tell(r["b"], "people.relation", f"🪪 {me()} dice di essere {sys_people.label(r, r['b'])} per te: confermi? 👥 Persone")
+    who = me()                                      # read here: inside _tell the context is the other user's
+    _tell(r["b"], "people.relation", lambda lang: (
+        f"🪪 {who} says to be your {sys_people.label(r, r['b'], 'en')}: do you confirm? 👥 People" if lang == "en" else
+        f"🪪 {who} dice di essere {sys_people.label(r, r['b'])} per te: confermi? 👥 Persone"))
     return {**_view(), "me": me()}
 
 
@@ -170,7 +175,10 @@ async def people_relation_answer(rid: str, request: Request) -> dict:
         r = sys_people.answer_relation(_base(), me() or "", rid, yes)
     except KeyError:
         raise HTTPException(status_code=404, detail="no such request") from None
-    _tell(r["a"], "people.relation_answer", f"🪪 {me()} ha {'confermato' if yes else 'rifiutato'} la relazione che hai indicato")
+    who = me()
+    _tell(r["a"], "people.relation_answer", lambda lang: (
+        f"🪪 {who} {'confirmed' if yes else 'declined'} the relation you named" if lang == "en" else
+        f"🪪 {who} ha {'confermato' if yes else 'rifiutato'} la relazione che hai indicato"))
     return {**_view(), "me": me()}
 
 

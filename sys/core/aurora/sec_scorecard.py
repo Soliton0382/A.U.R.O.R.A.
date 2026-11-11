@@ -22,6 +22,7 @@ from datetime import datetime
 from pathlib import Path
 
 from . import sys_config
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 VERDICTS = ("right", "overrated", "false_alarm", "unsure")
 BLIND_GAP_MIN = 30
@@ -95,9 +96,9 @@ def passes(w: dict) -> list[str]:
     if w["reviewed_share"] is not None and w["reviewed_share"] < BAR["reviewed"]:
         why.append(f"giudicato il {w['reviewed_share']:.0%} dei medi e gravi (serve l'{BAR['reviewed']:.0%})")
     if w["precision"] is not None and w["precision"] < BAR["precision"]:
-        why.append(f"precisione {w['precision']:.0%} (serve il {BAR['precision']:.0%})")
+        why.append(_t(f"precisione {w['precision']:.0%} (serve il {BAR['precision']:.0%})", f"precision {w['precision']:.0%} ({BAR['precision']:.0%} is needed)"))
     if w["blind_min"] > BAR["blind_min"]:
-        why.append(f"cieca per {w['blind_min']} min (il firewall non ha mandato niente)")
+        why.append(_t(f"cieca per {w['blind_min']} min (il firewall non ha mandato niente)", f"blind for {w['blind_min']} min (the firewall sent nothing)"))
     return why
 
 

@@ -25,15 +25,23 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from . import net_cloudflare, sec_intel, sys_config, sys_log
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 _lock = threading.Lock()
 QUERY = """query($zone: String!, $since: Time!, $until: Time!) { viewer { zones(filter: {zoneTag: $zone}) {
   httpRequestsAdaptiveGroups(limit: 200, orderBy: [count_DESC], filter: {datetime_geq: $since, datetime_leq: $until,
     edgeResponseStatus_geq: 520, edgeResponseStatus_leq: 526}) {
     count dimensions { clientIP clientRequestHTTPHost clientRequestPath edgeResponseStatus } } } } }"""
-NEEDS = ("il token di Cloudflare non ha i permessi: aggiungi Account · Account Firewall Access Rules · Edit, "
+NEEDS_IT = ("il token di Cloudflare non ha i permessi: aggiungi Account · Account Firewall Access Rules · Edit, "
          "Zone · Zone · Read e Zone · Analytics · Read — le ultime due scegliendo «Zone» nel PRIMO menu della riga, "
          "con Zone Resources: Include · All zones from an account (dash.cloudflare.com → il token → Edit)")
+NEEDS_EN = ("the Cloudflare token lacks the permissions: add Account · Account Firewall Access Rules · Edit, "
+            "Zone · Zone · Read and Zone · Analytics · Read — the last two by choosing «Zone» in the FIRST menu of the "
+            "row, with Zone Resources: Include · All zones from an account (dash.cloudflare.com → the token → Edit)")
+
+
+def _needs() -> str:
+    return _t(NEEDS_IT, NEEDS_EN)
 
 
 class CloudflareError(Exception):
@@ -69,7 +77,7 @@ def _conf(cfg: sys_config.Config) -> dict:
 def _call(cl, method: str, path: str, **kw):
     out, err = net_cloudflare._call(cl, method, path, **kw)
     if err:
-        raise CloudflareError(NEEDS if ("403" in err or "10000" in err) else err)
+        raise CloudflareError(_needs() if ("403" in err or "10000" in err) else err)
     return out
 
 
@@ -82,7 +90,7 @@ def culprits(cfg: sys_config.Config, hours: float = 24, limit: int = 20) -> list
     with net_cloudflare.client(c) as cl:
         zones = _call(cl, "GET", f"/zones?account.id={c['acc']}&per_page=50") or []
         if not zones:
-            raise CloudflareError(NEEDS + " — nessuna zona visibile")
+            raise CloudflareError(_needs() + _t(" — nessuna zona visibile", " — no zone visible"))
         for z in zones:
             for g in _graphql(cl, z["id"], since, until):
                 d = g["dimensions"]
@@ -94,9 +102,17 @@ def culprits(cfg: sys_config.Config, hours: float = 24, limit: int = 20) -> list
                 s["statuses"].add(d["edgeResponseStatus"])
     out = sorted(seen.values(), key=lambda s: -s["requests"])[:limit]
     return [{**s, "hosts": sorted(s["hosts"]), "statuses": sorted(s["statuses"]), "looks": looks(cfg, s),
+             "secret_paths": sum(1 for p in s["paths"] if SECRETS.search(p)),
+             "secret_requests": sum(n for p, n in s["paths"].items() if SECRETS.search(p)),
              "paths": [p for p, _ in sorted(s["paths"].items(), key=lambda x: -x[1])[:5]]} for s in out]
 
 
+# C596: blocked by herself only from AUTO_MIN_PATHS different secret-looking paths in the hour, or AUTO_MIN_REQUESTS
+# requests to them. One request was enough: a single «/admin» or a file ending in .yml — the owner's own, or a link
+# someone had them open — and the address was out for hours. A scanner asks for many, or for one many times; a person
+# for one. Below both the client is listed for the owner, who blocks with a click. (Not measured on real traffic:
+# floors chosen from how scanners behave.)
+AUTO_MIN_PATHS, AUTO_MIN_REQUESTS = 3, 10
 SECRETS = re.compile(r"\.env|\.git|\.aws|credential|\.netrc|wp-login|xmlrpc|phpinfo|\.ya?ml$|\.bak$|keyfile|"
                      r"wp-json|config\.|/admin|\.php$", re.I)
 
@@ -105,13 +121,18 @@ def looks(cfg: sys_config.Config, s: dict) -> str:
     """What a client seems, for the owner's judgement — a guess from the paths, never a verdict."""
     paths = list(s["paths"])
     if any(p.startswith("/v1/aurora/") for p in paths):
-        return "Aurora's own app (a device of yours away from home?): not to block"
+        return _t("l'app di Aurora (un tuo dispositivo fuori casa?): da non bloccare",
+                  "Aurora's own app (a device of yours away from home?): not to block")
     provider = sec_intel.shared(cfg, s["ip"])
     if any(SECRETS.search(p) for p in paths):
-        return "scanner (secrets, admin pages)" + (f" from a {provider} machine" if provider else "")
+        # both languages begin with «scanner»: autoblock() reads that word
+        return _t("scanner (segreti, pagine di amministrazione)" + (f" da una macchina di {provider}" if provider else ""),
+                  "scanner (secrets, admin pages)" + (f" from a {provider} machine" if provider else ""))
     if provider == "Google" and any(p.startswith("/.well-known/") for p in paths):
-        return "Google's own service (app links): not to block"
-    return "unknown, few requests" if s["requests"] < 5 else "unknown, many requests"
+        return _t("un servizio di Google (app links): da non bloccare", "Google's own service (app links): not to block")
+    few = s["requests"] < 5
+    return _t("sconosciuto, poche richieste" if few else "sconosciuto, molte richieste",
+              "unknown, few requests" if few else "unknown, many requests")
 
 
 def _graphql(cl, zone: str, since: datetime, until: datetime) -> list[dict]:
@@ -122,10 +143,10 @@ def _graphql(cl, zone: str, since: datetime, until: datetime) -> list[dict]:
             "zone": zone, "since": since.strftime("%Y-%m-%dT%H:%M:%SZ"), "until": until.strftime("%Y-%m-%dT%H:%M:%SZ")}})
         j = r.json()
     except (httpx.HTTPError, ValueError) as e:
-        raise CloudflareError(f"analytics di Cloudflare non raggiungibili ({type(e).__name__})") from None
+        raise CloudflareError(_t(f"analytics di Cloudflare non raggiungibili ({type(e).__name__})", f"Cloudflare's analytics cannot be reached ({type(e).__name__})")) from None
     if j.get("errors"):
         msg = "; ".join(str(e.get("message", "")) for e in j["errors"])[:300]
-        raise CloudflareError(NEEDS if "authz" in msg.lower() or "not authorized" in msg.lower() else msg)
+        raise CloudflareError(_needs() if "authz" in msg.lower() or "not authorized" in msg.lower() else msg)
     zones = ((j.get("data") or {}).get("viewer") or {}).get("zones") or []
     return zones[0].get("httpRequestsAdaptiveGroups", []) if zones else []
 
@@ -134,16 +155,19 @@ def blockable(cfg: sys_config.Config, ip: str) -> str:
     try:
         a = ipaddress.ip_address(ip.strip())
     except ValueError:
-        raise CloudflareError(f"{ip!r} non è un indirizzo") from None
+        raise CloudflareError(_t(f"{ip!r} non è un indirizzo", f"{ip!r} is not an address")) from None
     if not a.is_global:
-        raise CloudflareError("su Cloudflare si bloccano solo indirizzi di Internet")
+        raise CloudflareError(_t("su Cloudflare si bloccano solo indirizzi di Internet", "only Internet addresses are blocked at Cloudflare"))
     # only Cloudflare's own node is a carrier, never the author; a cloud's machine seen BY Cloudflare is the client
     # itself (C315: a Google Cloud VM reading /.aws/credentials was refused as «shared»)
     if sec_intel.shared(cfg, str(a)) == "Cloudflare":
-        raise CloudflareError(f"{a} è un nodo di Cloudflare, non l'autore")
+        raise CloudflareError(_t(f"{a} è un nodo di Cloudflare, non l'autore", f"{a} is a Cloudflare node, not the author"))
     from . import sec_defence
     if any(a in n for n in sec_defence.protected(cfg)):
-        raise CloudflareError(f"{a} è tra gli indirizzi protetti")
+        raise CloudflareError(_t(f"{a} è tra gli indirizzi protetti", f"{a} is among the protected addresses"))
+    if str(a) in sec_defence.house(cfg):                 # C596: the owner's own requests come from there
+        raise CloudflareError(_t(f"{a} è l'indirizzo pubblico di casa (la WAN del firewall)",
+                                 f"{a} is the house's own public address (the firewall's WAN)"))
     return str(a)
 
 
@@ -156,7 +180,7 @@ def block(cfg: sys_config.Config, ip: str, reason: str, hours: float = 24, auto:
     if not 1 <= float(hours) <= 24 * 30:
         raise CloudflareError("durata: da 1 ora a 30 giorni")
     if any(b["ip"] == ip for b in active(cfg)):
-        raise CloudflareError(f"{ip} è già bloccato su Cloudflare")
+        raise CloudflareError(_t(f"{ip} è già bloccato su Cloudflare", f"{ip} is already blocked at Cloudflare"))
     c, now = _conf(cfg), time.time()
     until = now + float(hours) * 3600
     note = f"Aurora: {reason[:200]} (fino al {time.strftime('%Y-%m-%d %H:%M', time.localtime(until))})"
@@ -176,12 +200,12 @@ def block(cfg: sys_config.Config, ip: str, reason: str, hours: float = 24, auto:
 def unblock(cfg: sys_config.Config, ip: str, by: str = "owner") -> dict:
     rec = next((b for b in active(cfg) if b["ip"] == ip.strip()), None)
     if not rec:
-        raise CloudflareError(f"{ip} non è bloccato da Aurora su Cloudflare")
+        raise CloudflareError(_t(f"{ip} non è bloccato da Aurora su Cloudflare", f"{ip} is not blocked by Aurora at Cloudflare"))
     c = _conf(cfg)
     with net_cloudflare.client(c) as cl:
         out, err = net_cloudflare._call(cl, "DELETE", f"/accounts/{c['acc']}/firewall/access_rules/rules/{rec['id']}")
     if err and "404" not in err:                         # gone already (removed in the dashboard): just recorded
-        raise CloudflareError(NEEDS if "403" in err else err)
+        raise CloudflareError(_needs() if "403" in err else err)
     with _lock:
         items = _load(cfg)
         for b in items:
@@ -227,6 +251,8 @@ def autoblock(cfg: sys_config.Config) -> list[dict]:
             break
         if not r["looks"].startswith("scanner") or r["ip"] in blocked:
             continue
+        if r.get("secret_paths", 0) < AUTO_MIN_PATHS and r.get("secret_requests", 0) < AUTO_MIN_REQUESTS:
+            continue                                     # C596: too little to tell a scanner from a person
         why = f"scanner: {r['requests']} richieste a {', '.join(r['paths'][:3])}"
         try:
             done.append(block(cfg, r["ip"], why, float(cfg["AURORA_DEFENCE_HOURS"]), auto=True))

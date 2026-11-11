@@ -5,6 +5,8 @@ installer runs (owner, 2026-10-21: «aggiorniamo anche l'installer così chi ins
 necessari… senza sporcare il sistema operativo»). One that fails is said and the others go on; already installed: left.
 
     python sys/core/script/plg_install_all.py [--again]     # --again: installed ones fetched again
+    sudo -u aurora -g aurora .venv/bin/python sys/core/script/plg_install_all.py --seal
+                                                            # as the services: each fetched tree sealed (C591)
 """
 from __future__ import annotations
 
@@ -38,5 +40,27 @@ def main(again: bool = False) -> int:
     return 1 if failed else 0
 
 
+def seal_all() -> int:
+    """C591: what a plugin fetched is checked at every start against a digest sealed with Aurora's key — the installer
+    fetches as the owner, who has no such key, so the services' account seals each installed tree right after the
+    account exists (install.sh, step 12). A tree already sealed is left as it is."""
+    from aurora import sys_config
+    cfg = sys_config.load()
+    failed = 0
+    for manifest in sorted(PLUGINS.glob("*/plugin.json")):
+        folder = manifest.parent
+        m = json.loads(manifest.read_text(encoding="utf-8"))
+        st = plg_deps.state(folder, m)
+        if not st["wanted"] or not st["installed"] or plg_deps.seal_file(cfg, folder).exists():
+            continue
+        try:
+            plg_deps.record(cfg, folder)
+            print(f"  ✓ {folder.name}: sealed")
+        except Exception as e:                           # noqa: BLE001
+            failed += 1
+            print(f"  ⚠ {folder.name}: not sealed — {str(e)[:200]}")
+    return 1 if failed else 0
+
+
 if __name__ == "__main__":
-    sys.exit(main("--again" in sys.argv[1:]))
+    sys.exit(seal_all() if "--seal" in sys.argv[1:] else main("--again" in sys.argv[1:]))

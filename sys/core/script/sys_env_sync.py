@@ -54,6 +54,28 @@ def migrated(current: dict[str, str], schema: dict) -> bool:
         return False
 
 
+def write_new(path: Path, text: str) -> None:
+    """C592 (audit F5): root runs this at a restore, in a folder the services' account writes — write_text followed a
+    link planted at .env.proposed. The old name is removed and a new file made (O_EXCL, never through a link), from
+    the folder's own descriptor; 0600 from its first byte: it holds the secrets."""
+    if os.open not in os.supports_dir_fd or not hasattr(os, "O_NOFOLLOW"):   # Windows: no such account, no such call
+        path.write_text(text, encoding="utf-8")
+        path.chmod(0o600)
+        return
+    d = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        try:
+            os.unlink(path.name, dir_fd=d)
+        except FileNotFoundError:
+            pass
+        fd = os.open(path.name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=d)
+        with os.fdopen(fd, "w", encoding="utf-8") as h:
+            h.write(text)
+            os.fchmod(h.fileno(), 0o600)
+    finally:
+        os.close(d)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--check", action="store_true", help="report only; exit 1 if .env is not in sync")
@@ -122,8 +144,7 @@ def main() -> int:
     for k in adopt:
         print(f"  = {k}={recommended[k]}  (adopted the recommended value)")
     proposed_file = env_file.parent / ".env.proposed"
-    proposed_file.write_text(render(schema, proposed), encoding="utf-8")
-    proposed_file.chmod(0o600)                       # it holds the secrets: owner only
+    write_new(proposed_file, render(schema, proposed))
     print(f"written {proposed_file} (review it, then: mv .env.proposed .env)")
     return 0
 

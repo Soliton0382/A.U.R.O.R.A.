@@ -17,6 +17,7 @@ from collections import Counter
 from pathlib import Path
 
 from . import ast_pointing, sys_config
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 ARCSEC = 206.265                                       # arcsec per pixel = 206.265 × pixel size (µm) / focal length (mm)
 # PHD2's guide algorithms by their number in its settings
@@ -24,7 +25,7 @@ ALGO = {"0": "nessuno", "1": "Hysteresis", "2": "Lowpass", "3": "Lowpass2", "4":
         "5": "Predictive PEC (GP)", "6": "Z-Filter"}
 SIMULATED = re.compile(r"(?i)simulator|omnisim|\bsim\b|justahub|devicehub")
 HEADER = "# astro inventory"
-NO_GUIDE_LOG = "Nessun log di guida di PHD2 utile"
+NO_GUIDE_LOG = "Nessun log di guida di PHD2 utile"        # the Italian sentence; the check's code is «no_guide_log»
 # ASCOM properties a driver may leave out (PropertyNotImplemented): N.I.N.A. logs an error reading them, harmless
 OPTIONAL_ASCOM = ("StepSize", "TempComp", "TempCompAvailable", "Temperature", "ElectronsPerADU", "FullWellCapacity")
 
@@ -259,47 +260,9 @@ def _rig(p: dict) -> dict:
 
 
 def _checks(p: dict) -> list[dict]:
-    """What is worth a look, each with why (never a verdict on the owner's choices)."""
-    out = []
-    rig = p["rig"]
-    if not p["darks"]:
-        where = ", ".join(p.get("darks_looked_in") or []) or "Documenti, D:, E:"
-        out.append({"what": "Nessuna cartella di dark trovata", "why": f"cercata in {where}"
-                    + ("" if p["script"] == 2 else "; lo script 1 non guardava la cartella delle immagini di N.I.N.A.: "
-                       "rigenera l'inventario con lo script nuovo")})
-    if not p["phd2"]["logs"] or p["phd2"]["latest_log"].endswith("(0 KB)"):
-        out.append({"what": NO_GUIDE_LOG, "why": "senza log non si giudica la guida (RMS, stelle perse)"})
-    for e in p["nina_errors"]:
-        m = re.search(r"GET of (\w+)\.(\w+)", e["text"])
-        if m and m.group(2) in OPTIONAL_ASCOM:            # N.I.N.A. asks every property on connecting; some are optional
-            continue
-        if e["times"] >= 3:
-            out.append({"what": f"N.I.N.A. ripete un errore ({e['times']} volte)", "why": e["text"]})
-    g = rig.get("guiding") or {}
-    if g.get("ratio") and g["ratio"] > 5:
-        out.append({"what": f"La scala di guida è {g['ratio']}× quella di ripresa",
-                    "why": "oltre circa 5× la guida fatica a vedere gli errori che la camera di ripresa registra"})
-    links = p.get("links") or {}
-    if p["script"] >= 3:
-        for s in links.get("servers", []):
-            if not s["ok"] and s["name"].startswith(("PHD2", "N.I.N.A.")):
-                out.append({"what": f"{s['name']}: non risponde", "why": "per seguire la guida e la sequenza dal vivo Aurora ne ha bisogno: "
-                            + ("in PHD2, Strumenti → Abilita server" if s["name"].startswith("PHD2")
-                               else "installa il plugin Advanced API di N.I.N.A. (Plugins → Available) e attivalo")})
-        wf = links.get("windows_firewall") or {}
-        # a «Public» network blocks what comes in only while Windows' firewall is on for it (unknown before script 4)
-        if any("Public" in x for x in links.get("profiles", [])) and wf.get("Public", True):
-            out.append({"what": "La rete del PC è «Pubblica» per Windows",
-                        "why": "Windows blocca le connessioni in entrata: per Aurora va messa su «Privata»"})
-        if links.get("listening") and not any(x["network"] for x in links["listening"]):
-            out.append({"what": "I server ascoltano solo il PC stesso", "why": "da un'altra macchina non si raggiungono: "
-                        "nelle loro impostazioni va permesso l'accesso dalla rete di casa"})
-    elif p["script"] < 3:
-        out.append({"what": "Collegamenti ai programmi non letti", "why": "lo script 3, lanciato con N.I.N.A. e PHD2 aperti, "
-                    "dice quali server offrono e come raggiungerli"})
-    if not rig.get("scale_arcsec_px"):
-        out.append({"what": "Scala di ripresa non calcolata", "why": "mancano la focale o la dimensione dei pixel nel profilo di N.I.N.A."})
-    return out
+    """What is worth a look, each with its code and why: written by ast_inventory_say, in the reader's language."""
+    from . import ast_inventory_say
+    return ast_inventory_say._checks(p)
 
 
 # ---- the darks' library on this machine (owner, 16 Oct: «i dark li trovi nel percorso del mio pc») ---------------
@@ -369,7 +332,7 @@ def darks_library(cfg: sys_config.Config) -> dict:
                 return {**json.loads(snap.read_text(encoding="utf-8")), "from": "snapshot"}
             except ValueError:
                 pass
-        return {"folder": where, "darks": [], "error": "cartella non trovata su questa macchina"}
+        return {"folder": where, "darks": [], "error": _t("cartella non trovata su questa macchina", "folder not found on this machine")}
     out = []
     for f in _darks_walk(d):
         if not DARK_FILE.search(f.name):
@@ -429,56 +392,29 @@ def profile(cfg: sys_config.Config) -> dict | None:
     lib = darks_library(cfg)
     if lib["darks"]:                                  # the library on this machine answers what the PC's search did not
         p["library"] = {**lib, **darks_for(lib, p["rig"])}
-        p["checks"] = [c for c in p["checks"] if not c["what"].startswith("Nessuna cartella di dark")]
+        p["checks"] = [c for c in p["checks"] if c.get("code") != "no_darks_folder"]   # by its code, never its sentence
         said = _num(cfg["AURORA_ASTRO_DARKS_TEMP"])          # the person's word when the files do not say it
         for d in lib["darks"]:
             if d.get("temp_c") is None and said is not None:
                 d["temp_c"], d["temp_from"] = said, "setting"
         cooling = p["rig"].get("cooling_c")
         if cooling is not None and not any(d.get("temp_c") is not None for d in lib["darks"]):
-            p["checks"].append({"what": "La temperatura dei dark integrati non è scritta",
-                                "why": f"né nel nome né nell'intestazione: valgono solo se fatti a {cooling:g} °C come la camera "
-                                       "adesso; scrivila nella pagina 🔭 Astro (temperatura dei dark)"})
+            p["checks"].append({"code": "darks_temp_unknown", "what": _t("La temperatura dei dark integrati non è scritta", "The integrated darks' temperature is not written"),
+                                "why": _t(f"né nel nome né nell'intestazione: valgono solo se fatti a {cooling:g} °C come la camera "
+                                       "adesso; scrivila nella pagina 🔭 Astro (temperatura dei dark)", f"neither in the name nor in the header: they hold only if taken at {cooling:g} °C like the camera "
+                                       "now; write it in the page 🔭 Astro (the darks' temperature)")})
         elif cooling is not None and any(d.get("temp_c") not in (None, cooling) for d in lib["darks"] if not d["old"]):
-            p["checks"].append({"what": "Integrated dark a un'altra temperatura",
-                                "why": f"la camera si raffredda a {cooling:g} °C, alcuni dark non sono a quella temperatura"})
+            p["checks"].append({"code": "darks_other_temp", "what": _t("Integrated dark a un'altra temperatura", "Integrated darks at another temperature"),
+                                "why": _t(f"la camera si raffredda a {cooling:g} °C, alcuni dark non sono a quella temperatura", f"the camera cools to {cooling:g} °C, some darks are not at that temperature")})
         if not p["library"]["match"]:
-            p["checks"].append({"what": "Nessun dark integrato con il gain e l'offset di N.I.N.A.",
-                                "why": f"gain {p['library']['gain']}, offset {p['library']['offset']}: i dark della libreria sono per altre impostazioni"})
+            p["checks"].append({"code": "darks_no_match", "what": _t("Nessun dark integrato con il gain e l'offset di N.I.N.A.", "No integrated dark with N.I.N.A.'s gain and offset"),
+                                "why": _t(f"gain {p['library']['gain']}, offset {p['library']['offset']}: i dark della libreria sono per altre impostazioni", f"gain {p['library']['gain']}, offset {p['library']['offset']}: the library's darks are for other settings")})
     elif lib["error"]:
-        p["checks"].append({"what": "Libreria dei dark non letta", "why": f"{lib['folder']}: {lib['error']}"})
+        p["checks"].append({"code": "darks_unread", "what": _t("Libreria dei dark non letta", "The darks library was not read"), "why": f"{lib['folder']}: {lib['error']}"})
     return p
 
 
 def text(p: dict | None) -> str:
-    """The profile in words, for the model and the plugin."""
-    if not p:
-        return "Nessun inventario dell'attrezzatura astro: caricalo nella pagina 🔭 Astro."
-    r = p["rig"]
-    lines = [f"Inventario del {p['written']} (script {p['script']}). PC: {p['system']}"]
-    if r.get("telescope") or r.get("mount"):
-        lines.append(f"- Telescopio: {r['telescope']} {r.get('focal_mm') or '?'} mm f/{r.get('focal_ratio') or '?'}; montatura: {r['mount']} ({r['mount_driver']})")
-    if r.get("camera"):
-        lines.append(f"- Camera di ripresa: {r['camera']}, pixel {r.get('pixel_um')} µm, gain {r.get('gain')}, offset {r.get('offset')}, "
-                     f"raffreddata a {r.get('cooling_c')} °C; scala {r.get('scale_arcsec_px', '?')}\"/px")
-    g = r.get("guiding")
-    if g:
-        lines.append(f"- Guida (PHD2, profilo «{g['profile']}»): {g.get('camera')}, focale {g.get('focal_mm')} mm, scala "
-                     f"{g.get('scale_arcsec_px', '?')}\"/px ({g.get('ratio', '?')}× la ripresa); esposizione {g.get('exposure_ms')} ms; "
-                     f"RA {g.get('ra_algorithm')}, DEC {g.get('dec_algorithm')}")
-    lines.append(f"- Focheggiatore: {r.get('focuser') or '—'}; ruota portafiltri: {r.get('filter_wheel') or '—'}"
-                 + (f" ({', '.join(r['filters'])})" if r.get("filters") else ""))
-    lines.append(f"- Plate solving: {r.get('solver') or '—'}, cataloghi ASTAP {' '.join(p['astap']['databases']) or '—'}; "
-                 f"immagini in {r.get('images') or '—'} ({r.get('file_type') or '?'})")
-    if r.get("site"):
-        lines.append(f"- Sito (arrotondato): lat {r['site']['lat']}, lon {r['site']['lon']}, {r['site']['elevation_m']:.0f} m")
-    lines.append("- Software: " + ", ".join(f"{s['name']} {s['version']}".strip() for s in p["software"]))
-    if p["darks"]:
-        lines.append("- Dark sul PC astro: " + "; ".join(f"{d['folder']} ({d['files']})" for d in p["darks"][:8]))
-    lib = p.get("library")
-    if lib:
-        lines.append(f"- Dark integrati su questa macchina ({len(lib['darks'])}): per gain {lib['gain']} e offset {lib['offset']} "
-                     f"le esposizioni {', '.join(f'{x:g} s' for x in lib['match']) or 'nessuna'}"
-                     + (f"; per altre impostazioni {', '.join(f'{x:g} s' for x in lib['other'])}" if lib["other"] else ""))
-    lines += [f"⚠️ {c['what']}: {c['why']}" for c in p["checks"]]
-    return "\n".join(lines)
+    """The profile in words, for the model and the plugin (ast_inventory_say)."""
+    from . import ast_inventory_say
+    return ast_inventory_say.text(p)

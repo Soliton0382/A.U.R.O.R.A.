@@ -17,6 +17,11 @@ detector never holds more than it can count — new sources a minute and inciden
 (Budget), what no longer counts is forgotten (prune), a datagram is one log line whatever it carries (one_line), and
 the decoys tell a touch at a person's pace (Touches). A forged line can still raise a false incident inside these
 limits: only a relay on this machine fed over TLS, or the firewall's own anti-spoofing, closes that.
+
+C596: what is counted per source costs the same whatever the source sends. The lines of a window are counted by the
+second (Window: one cell a second, the last five lines as samples, each cut to SAMPLE), the ports as one entry per
+port (never more than MAX_PORTS): one address sending 1,000 lines a second kept 300,000 whole lines and made every
+new line cost a pass over all of them (3.7 ms a line measured). Budget.take no longer walks its whole hour.
 """
 from __future__ import annotations
 
@@ -26,6 +31,7 @@ import threading
 import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 PAIR = re.compile(r'(\w+)=(?:"([^"]*)"|(\S+))')
 
@@ -122,16 +128,55 @@ class Budget:
     def __init__(self, per_min: int, per_hour: int | None = None):
         self.per_min, self.per_hour = per_min, per_hour if per_hour is not None else per_min * 60
         self.taken: deque = deque()
+        self.minute: deque = deque()                    # C596: the last minute's, kept apart: never the hour walked
         self.refused = 0
 
     def take(self, now: float) -> bool:
         while self.taken and now - self.taken[0] >= 3600:
             self.taken.popleft()
-        if len(self.taken) >= self.per_hour or sum(1 for t in reversed(self.taken) if now - t < 60) >= self.per_min:
+        while self.minute and now - self.minute[0] >= 60:
+            self.minute.popleft()
+        if len(self.taken) >= self.per_hour or len(self.minute) >= self.per_min:
             self.refused += 1
             return False
         self.taken.append(now)
+        self.minute.append(now)
         return True
+
+
+SAMPLE = 600                                            # C596: a line kept as an incident's sample (it was 8 KB)
+
+
+class Window:
+    """C596: the lines of one source in a sliding window, counted by the second: at most one cell a second whatever
+    the rate, the count exact, the last five lines kept as samples. A cell leaves when its first line is out of the
+    window."""
+    __slots__ = ("cells", "n", "last", "samples")
+
+    def __init__(self):
+        self.cells: deque = deque()                     # [whole second, lines, the first line's time]
+        self.n, self.last = 0, 0.0
+        self.samples: deque = deque(maxlen=5)
+
+    def add(self, now: float, raw: str = "") -> None:
+        if self.cells and self.cells[-1][0] == int(now):
+            self.cells[-1][1] += 1
+        else:
+            self.cells.append([int(now), 1, now])
+        self.n, self.last = self.n + 1, now
+        if raw:
+            self.samples.append(raw[:SAMPLE])
+
+    def trim(self, now: float, window: float) -> None:
+        while self.cells and now - self.cells[0][2] > window:
+            self.n -= self.cells.popleft()[1]
+
+    def __len__(self) -> int:
+        return self.n
+
+    @property
+    def first(self) -> float:
+        return self.cells[0][2] if self.cells else self.last
 
 
 class Touches:
@@ -177,14 +222,19 @@ def flood_incident(sender: str, skipped: int, held: int) -> dict:
     stamp = time.strftime("%Y-%m-%dT%H:%M:%S%z")
     return {"kind": "syslog_flood", "source": sender, "count": skipped + held, "internal": is_private(sender),
             "first": stamp, "last": stamp, "samples": [],
-            "detail": {"title": "Troppi allarmi dai log del firewall",
-                       "why": f"Nell'ultimo minuto i log arrivati come {sender} hanno nominato più origini nuove o più "
+            "detail": {"title": _t("Troppi allarmi dai log del firewall", "Too many alarms from the firewall's logs"),
+                       "why": _t(f"Nell'ultimo minuto i log arrivati come {sender} hanno nominato più origini nuove o più "
                               f"allarmi di quanti una rete di casa ne produca: {skipped} righe da origini nuove non "
                               f"contate e {held} allarmi non aperti. O è una scansione molto estesa, o qualcuno nella "
-                              "rete locale sta scrivendo log falsi a nome del firewall (UDP non prova chi lo manda).",
-                       "action": "Guarda nel log del firewall (firewall.log) cosa è arrivato in quel minuto; se le "
+                              "rete locale sta scrivendo log falsi a nome del firewall (UDP non prova chi lo manda).", f"In the last minute the logs that came as {sender} named more new sources or more "
+                              f"alarms than a home network makes: {skipped} lines from new sources not "
+                              f"counted and {held} alarms not opened. Either it is a very wide scan, or someone on the "
+                              "local network is writing false logs in the firewall's name (UDP does not prove who sends)."),
+                       "action": _t("Guarda nel log del firewall (firewall.log) cosa è arrivato in quel minuto; se le "
                                  "righe non sono del firewall, cerca il dispositivo che le manda. Nessun blocco "
-                                 "automatico parte da questo avviso."}}
+                                 "automatico parte da questo avviso.", "Look in the firewall's log (firewall.log) at what came in that minute; if the "
+                                 "lines are not the firewall's, find the device that sends them. No automatic "
+                                 "block starts from this notice.")}}
 
 
 class Recon:
@@ -235,12 +285,15 @@ class Recon:
         stamp = time.strftime("%Y-%m-%dT%H:%M:%S%z")
         return {"kind": "recon_then_out", "source": src, "count": len(q), "internal": True, "first": stamp,
                 "last": stamp, "samples": [f.get("_raw", "")[:600]],
-                "detail": {"title": "Ricognizione, poi uscita", "destination": dst, "ports": ports[:30],
-                           "why": f"{len(ports)} servizi diversi cercati nella rete di casa negli ultimi "
+                "detail": {"title": _t("Ricognizione, poi uscita", "Reconnaissance, then a way out"), "destination": dst, "ports": ports[:30],
+                           "why": _t(f"{len(ports)} servizi diversi cercati nella rete di casa negli ultimi "
                                   f"{self.WINDOW_S // 60} minuti (di solito un dispositivo ne usa 1-6), poi un contatto "
-                                  f"verso {dst}, segnalato come minaccia",
-                           "action": "Isola il dispositivo (Wi-Fi ospiti o blocco sul firewall) e controlla cosa ha "
-                                     "installato: è lo schema di un dispositivo compromesso"}}
+                                  f"verso {dst}, segnalato come minaccia", f"{len(ports)} different services looked for on the home network in the last "
+                                  f"{self.WINDOW_S // 60} minutes (a device usually uses 1-6), then a contact "
+                                  f"with {dst}, flagged as a threat"),
+                           "action": _t("Isola il dispositivo (Wi-Fi ospiti o blocco sul firewall) e controlla cosa ha "
+                                     "installato: è lo schema di un dispositivo compromesso", "Isolate the device (guest Wi-Fi or a block on the firewall) and check what it has "
+                                     "installed: it is the pattern of a compromised device")}}
 
 
 LOCAL_NETS = [ipaddress.ip_network(n) for n in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.0/8",
@@ -280,12 +333,13 @@ class Detector:
     # incidents at most 4 in a minute and 8 in an hour (14.8 days). Beyond these a line is still logged, not counted.
     NEW_SOURCES_PER_MIN = 600
     RAISED_PER_MIN, RAISED_PER_HOUR = 20, 60
+    MAX_PORTS = 1024                                    # C596: distinct ports remembered for one source
 
     def __init__(self, window_s: float, deny_threshold: int, scan_ports: int, auth_threshold: int = 10):
         self.window, self.deny_n, self.scan_n, self.auth_n = window_s, deny_threshold, scan_ports, auth_threshold
-        self.denies: dict[str, deque] = defaultdict(deque)
-        self.ports: dict[str, deque] = defaultdict(deque)
-        self.auths: dict[str, deque] = defaultdict(deque)
+        self.denies: dict[str, Window] = defaultdict(Window)
+        self.ports: dict[str, dict] = defaultdict(dict)   # source -> {port: when last asked}, the oldest first
+        self.auths: dict[str, Window] = defaultdict(Window)
         self.raised: dict[tuple[str, str], float] = {}
         self.seen: dict[str, float] = {}                # C566: every source counted now, and when it last spoke
         self.fresh = Budget(self.NEW_SOURCES_PER_MIN)
@@ -303,11 +357,15 @@ class Detector:
         """C566: the counters kept every source for ever (an empty queue per address, an hour mark per alarm): what is
         outside the window, and an alarm's mark older than its hour, is forgotten."""
         self._swept = now
-        for table in (self.denies, self.ports, self.auths):
+        for table in (self.denies, self.auths):
             for src in list(table):
-                self._trim(table[src], now)
+                table[src].trim(now, self.window)
                 if not table[src]:
                     del table[src]
+        for src in list(self.ports):
+            self._trim_ports(self.ports[src], now)
+            if not self.ports[src]:
+                del self.ports[src]
         for key in [k for k, t in self.raised.items() if now - t >= 3600]:
             del self.raised[key]
         for src in [s for s, t in self.seen.items() if now - t > self.window]:
@@ -319,19 +377,23 @@ class Detector:
         self.fresh.refused = self.alarms.refused = 0
         return out
 
-    def _trim(self, q: deque, now: float) -> None:
-        while q and now - q[0][0] > self.window:
-            q.popleft()
+    def _trim_ports(self, p: dict, now: float) -> None:
+        while p and (now - next(iter(p.values())) > self.window or len(p) > self.MAX_PORTS):
+            del p[next(iter(p))]
 
-    def _raise(self, kind: str, src: str, q: deque, now: float, detail: dict | None = None) -> Incident | None:
+    def _said(self, kind: str, src: str, now: float) -> bool:
         last = self.raised.get((kind, src))
-        if last is not None and now - last < 3600:
+        return last is not None and now - last < 3600
+
+    def _raise(self, kind: str, src: str, q: Window | None, now: float, detail: dict | None = None,
+               samples: list | None = None) -> Incident | None:
+        if self._said(kind, src, now):
             return None
         if not self.alarms.take(now):                   # C566: not marked as raised — it may be once the flood is over
             return None
         self.raised[(kind, src)] = now
-        return Incident(kind, src, len(q) if q else 1, q[0][0] if q else now, now, is_private(src),
-                        [x[1] for x in list(q)[-5:]] if q else [], detail or {})
+        return Incident(kind, src, len(q) if q else 1, q.first if q else now, now, is_private(src),
+                        (samples if samples is not None else list(q.samples)) if q else (samples or []), detail or {})
 
     def feed(self, f: dict, now: float | None = None) -> list[Incident]:
         now = time.time() if now is None else now
@@ -350,13 +412,14 @@ class Detector:
         if not (is_ips(f) or denied or failed) or not self._admit(src, now):
             return out                                  # nothing to count, or a new source beyond the budget (C566)
         if is_ips(f):
-            if (i := self._raise("ips_alert", src, deque([(now, f["_raw"])]), now,
-                                 {"signature": f.get("signature_msg") or f.get("message") or ""})):
+            if (i := self._raise("ips_alert", src, None, now,
+                                 {"signature": str(f.get("signature_msg") or f.get("message") or "")[:SAMPLE]},
+                                 samples=[f["_raw"][:SAMPLE]])):
                 out.append(i)
         if denied:
             q = self.denies[src]
-            q.append((now, f["_raw"]))
-            self._trim(q, now)
+            q.add(now, f["_raw"])
+            q.trim(now, self.window)
             # C583, measured on 8.1 days (3.07 M lines): 1,168 bursts, 1,150 from the house's own devices — the rules
             # refusing what they should, not an attack: a burst is told from outside only; a device inside that
             # scans still is (port_scan), and its novelties are the baseline's
@@ -365,16 +428,16 @@ class Detector:
             port = f.get("dst_port") or f.get("dstport") or f.get("dport")
             if port:
                 p = self.ports[src]
-                p.append((now, port))
-                self._trim(p, now)
-                distinct = {x[1] for x in p}
-                if len(distinct) >= self.scan_n and (i := self._raise("port_scan", src, p, now,
-                                                                      {"ports": sorted(distinct, key=str)[:30]})):
+                p.pop(port, None)                       # asked again: it moves to the end (the oldest stay first)
+                p[port] = now
+                self._trim_ports(p, now)
+                if len(p) >= self.scan_n and not self._said("port_scan", src, now) and (i := self._raise(
+                        "port_scan", src, q, now, {"ports": sorted(p, key=str)[:30]}, samples=list(p)[-5:])):
                     out.append(i)
         if failed:
             q = self.auths[src]
-            q.append((now, f["_raw"]))
-            self._trim(q, now)
+            q.add(now, f["_raw"])
+            q.trim(now, self.window)
             if len(q) >= self.auth_n and (i := self._raise("auth_fail", src, q, now)):
                 out.append(i)
         return out

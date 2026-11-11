@@ -5019,3 +5019,20 @@ and a question that did not say which (it says MiB now); and the routines, «no 
 forge ran in the services' identity. The second is C509: the forge offered a sealed file to a plugin, which told what it could not read as none. Not measured: the same need asked by a real user; a proposal carried through
 to a real change (the benchmark refuses each); how much the 13 days without a sandbox (C504) left undone.
 
+
+## M290 — the security pushes after C406's last fix, and the 12 Nov audit's own numbers (12 November 2026; push log, the auditors' benches)
+
+| | value |
+|---|---|
+| security pushes a day, 1–8 Nov (before) | 23–38 |
+| security pushes, 9 / 10 / 11 / 12 Nov (12th: to the afternoon) | 10 / 1 / 3 / 4 |
+| weather pushes, 12 Nov (one alert, its numbers moving each hour: C587) | 12 |
+| routine ticks over aurora-rem's 30 s, 30 Oct–12 Nov (12th: 38) | 196 |
+| sentinel, one source at 1,000 refused lines/s: cost a line before / after C596 | 3,732 µs / 5–6 µs |
+| sec_rules after 200,000 one-line sources, a day later: before / after | 200,001 queues, 280 MiB / 1 queue, 5 MiB |
+| the host's git on a project, plain / in its own cage (C591) | 1.1 ms / 5.9 ms |
+| server sentences in one language only (C526's scan; it misses the short ones) | 345 in 79 modules → 69 in 35 |
+| the suite inside the live cage (C585), before / after | 7 failed / 0 failed (1834 passed, 32 skipped) |
+
+C406 closes after a week from 9 Nov (16 Nov). Not measured: the pushes of the days left; which step makes the routine tick
+slow (timed from the next start: «routines tick took … s» in api.log).

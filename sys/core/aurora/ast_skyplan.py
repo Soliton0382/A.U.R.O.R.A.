@@ -22,6 +22,7 @@ from zoneinfo import ZoneInfo
 import numpy as np
 
 from . import ast_catalog, ast_sky
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 MIN_ALT = 30.0
 CLOUD_MAX = 50
@@ -44,7 +45,7 @@ def site(cfg, profile: dict | None) -> dict | None:
         lat, lon = float(cfg["AURORA_WEATHER_LAT"]), float(cfg["AURORA_WEATHER_LON"])
     except (TypeError, ValueError, KeyError):
         return None
-    return {"lat": round(lat, 1), "lon": round(lon, 1), "from": "luogo del meteo (arrotondato)"}
+    return {"lat": round(lat, 1), "lon": round(lon, 1), "from": _t("luogo del meteo (arrotondato)", "the weather's place (rounded)")}
 
 
 def field(folder, profile: dict | None) -> dict | None:
@@ -76,7 +77,7 @@ def field(folder, profile: dict | None) -> dict | None:
 def fit(o: dict, fov: dict | None) -> dict:
     """How the object fills the field: its share of the short side, and the mosaic's panels when it does not fit."""
     if not fov or not o.get("maj"):
-        return {"share": None, "panels": 1, "weight": 0.8, "words": "dimensione non nota" if fov else "campo non noto"}
+        return {"share": None, "panels": 1, "weight": 0.8, "words": _t("dimensione non nota" if fov else "campo non noto", "size unknown" if fov else "field unknown")}
     maj, mn = o["maj"] / 60, (o.get("min") or o["maj"]) / 60
     share = max(maj / fov["w_deg"], mn / fov["h_deg"])
     nx = max(1, math.ceil(maj / (fov["w_deg"] * OVERLAP))) if maj > fov["w_deg"] * 0.95 else 1
@@ -84,13 +85,13 @@ def fit(o: dict, fov: dict | None) -> dict:
     panels = nx * ny
     if panels > 1:
         return {"share": round(share, 2), "panels": panels, "weight": round(1 / math.sqrt(panels), 2),
-                "words": f"non entra: mosaico {nx}×{ny}"}
+                "words": _t(f"non entra: mosaico {nx}×{ny}", f"does not fit: mosaic {nx}×{ny}")}
     if share < TINY:
-        return {"share": round(share, 2), "panels": 1, "weight": 0.2, "words": f"molto piccolo (riempie il {share:.0%} del campo)"}
+        return {"share": round(share, 2), "panels": 1, "weight": 0.2, "words": _t(f"molto piccolo (riempie il {share:.0%} del campo)", f"very small (fills {share:.0%} of the field)")}
     if share < SMALL:
-        return {"share": round(share, 2), "panels": 1, "weight": 0.5, "words": f"piccolo (riempie il {share:.0%} del campo)"}
+        return {"share": round(share, 2), "panels": 1, "weight": 0.5, "words": _t(f"piccolo (riempie il {share:.0%} del campo)", f"small (fills {share:.0%} of the field)")}
     return {"share": round(share, 2), "panels": 1, "weight": 1.0 if share >= WELL else 0.75,
-            "words": f"entra (riempie il {share:.0%} del campo)"}
+            "words": _t(f"entra (riempie il {share:.0%} del campo)", f"fits (fills {share:.0%} of the field)")}
 
 
 def brightness(o: dict) -> float:
@@ -170,7 +171,7 @@ def plan(cfg, profile: dict | None, folder, date: str = "", min_alt: float = MIN
     """The night and the targets ranked; `name`: that one object's whole night instead of a ranking."""
     st = site(cfg, profile)
     if not st:
-        return {"error": "nessun sito: carica l'inventario del PC del telescopio (pagina 🔭 Astro) o indica il luogo del meteo"}
+        return {"error": _t("nessun sito: carica l'inventario del PC del telescopio (pagina 🔭 Astro) o indica il luogo del meteo", "no site: load the inventory of the telescope's PC (page 🔭 Astro) or give the weather's place")}
     tzname = str(cfg["AURORA_TIMEZONE"] or "UTC")
     tz = ZoneInfo(tzname)
     start = start_of(date, tz, now)
@@ -204,7 +205,7 @@ def plan(cfg, profile: dict | None, folder, date: str = "", min_alt: float = MIN
     if name:
         o = ast_catalog.find(objects, name)
         if not o:
-            out["error"] = f"«{name}» non è nel catalogo ({len(objects)} oggetti): prova il nome NGC/IC/M/Sh2"
+            out["error"] = _t(f"«{name}» non è nel catalogo ({len(objects)} oggetti): prova il nome NGC/IC/M/Sh2", f"«{name}» is not in the catalogue ({len(objects)} objects): try the NGC/IC/M/Sh2 name")
             return out
         pick = [o]
     j = n["jd"]
@@ -313,11 +314,11 @@ def with_set(cfg, p: dict, profile: dict | None) -> dict:
     for r in p.get("targets", []):
         k = sp["kinds"].get(r["kind"]) or {}
         if r["kind"] == "hdr":
-            r["set"] = f"HDR: gain {k.get('gain')}, pose {', '.join(f'{x:g} s' for x in k.get('exposures', []))}"
+            r["set"] = _t(f"HDR: gain {k.get('gain')}, pose {', '.join(f'{x:g} s' for x in k.get('exposures', []))}", f"HDR: gain {k.get('gain')}, exposures {', '.join(f'{x:g} s' for x in k.get('exposures', []))}")
         elif k.get("with_darks"):
-            r["set"] = f"gain {k['with_darks']['gain']:g}, offset {k['with_darks']['offset']:g}, posa {k['with_darks']['exposure_s']:g} s (con i tuoi dark)"
+            r["set"] = _t(f"gain {k['with_darks']['gain']:g}, offset {k['with_darks']['offset']:g}, posa {k['with_darks']['exposure_s']:g} s (con i tuoi dark)", f"gain {k['with_darks']['gain']:g}, offset {k['with_darks']['offset']:g}, exposure {k['with_darks']['exposure_s']:g} s (with your darks)")
         elif k.get("best"):
-            r["set"] = f"gain {k['best']['gain']:g}, offset {k['best']['offset']:g}, posa {k['best']['exposure_s']} s (nessun dark adatto)"
+            r["set"] = _t(f"gain {k['best']['gain']:g}, offset {k['best']['offset']:g}, posa {k['best']['exposure_s']} s (nessun dark adatto)", f"gain {k['best']['gain']:g}, offset {k['best']['offset']:g}, exposure {k['best']['exposure_s']} s (no suitable dark)")
     return p
 
 
@@ -326,42 +327,44 @@ def text(p: dict) -> str:
     if p.get("error") and not p.get("night"):
         return p["error"]
     nt, s = p["night"], p["site"]
-    lines = [f"Notte del {p['date']} a lat {s['lat']}, lon {s['lon']} ({s['from']}); altezza minima {p['min_alt']:g}°."]
+    lines = [_t(f"Notte del {p['date']} a lat {s['lat']}, lon {s['lon']} ({s['from']}); altezza minima {p['min_alt']:g}°.", f"Night of {p['date']} at lat {s['lat']}, lon {s['lon']} ({s['from']}); minimum altitude {p['min_alt']:g}°.")]
     if not nt["dusk"]:
-        return lines[0] + " Non diventa mai buio astronomico (Sole sempre sopra −18°)."
-    lines.append(f"Buio astronomico {nt['dusk']}–{nt['dawn']} ({nt['dark_h']} h); Luna illuminata al {nt['moon_lit']:.0%}, "
-                 f"sopra l'orizzonte {nt['moon_up_dark_h']} h di buio.")
+        return lines[0] + _t(" Non diventa mai buio astronomico (Sole sempre sopra −18°).", " It never gets astronomically dark (the Sun always above −18°).")
+    lines.append(_t(f"Buio astronomico {nt['dusk']}–{nt['dawn']} ({nt['dark_h']} h); Luna illuminata al {nt['moon_lit']:.0%}, "
+                 f"sopra l'orizzonte {nt['moon_up_dark_h']} h di buio.", f"Astronomical dark {nt['dusk']}–{nt['dawn']} ({nt['dark_h']} h); the Moon {nt['moon_lit']:.0%} lit, "
+                 f"above the horizon for {nt['moon_up_dark_h']} h of the dark."))
     if nt["cloud_mean"] is not None:
-        lines.append(f"Nuvole previste (Open-Meteo): {nt['cloud_mean']:.0f}% in media nel buio; ore serene (≤ {CLOUD_MAX}%): {nt['clear_dark_h']} h.")
+        lines.append(_t(f"Nuvole previste (Open-Meteo): {nt['cloud_mean']:.0f}% in media nel buio; ore serene (≤ {CLOUD_MAX}%): {nt['clear_dark_h']} h.", f"Clouds forecast (Open-Meteo): {nt['cloud_mean']:.0f}% on average in the dark; clear hours (≤ {CLOUD_MAX}%): {nt['clear_dark_h']} h."))
     if nt["seeing"]:
-        lines.append("Seeing e trasparenza (7Timer!, 1 = ottima … 8): " + "; ".join(
-            f"{x['at']} seeing {x['seeing']} trasp. {x['transparency']}" for x in nt["seeing"]))
+        lines.append(_t("Seeing e trasparenza (7Timer!, 1 = ottima … 8): ", "Seeing and transparency (7Timer!, 1 = best … 8): ") + "; ".join(
+            f"{x['at']} seeing {x['seeing']} " + _t("trasp.", "transp.") + f" {x['transparency']}" for x in nt["seeing"]))
     if nt["forecast_errors"]:
-        lines.append("Previsioni non lette: " + ", ".join(nt["forecast_errors"]) + " — piano fatto sul solo cielo.")
+        lines.append(_t("Previsioni non lette: ", "Forecasts not read: ") + ", ".join(nt["forecast_errors"]) + _t(" — piano fatto sul solo cielo.", " — the plan is made on the sky alone."))
     f = p.get("field")
     if f:
-        lines.append(f"Campo: {f['w_deg']}° × {f['h_deg']}° ({f['px'][0]}×{f['px'][1]} px a {f['scale']}″/px).")
+        lines.append(_t(f"Campo: {f['w_deg']}° × {f['h_deg']}° ({f['px'][0]}×{f['px'][1]} px a {f['scale']}″/px).", f"Field: {f['w_deg']}° × {f['h_deg']}° ({f['px'][0]}×{f['px'][1]} px at {f['scale']}″/px)."))
     if p.get("error"):
         lines.append(p["error"])
     if p.get("clouds_ignored"):
-        lines.append(f"⚠️ Nessuna ora serena prevista: la classifica qui sotto vale solo se il cielo si apre.")
+        lines.append(_t(f"⚠️ Nessuna ora serena prevista: la classifica qui sotto vale solo se il cielo si apre.", "⚠️ No clear hour forecast: the ranking below holds only if the sky opens."))
     for i, r in enumerate(p.get("targets", []), 1):
         alias = ", ".join(r["common"] + r["aliases"])
-        size = f"{r['size_arcmin'][0]:g}′" if r["size_arcmin"][0] else "dimensione ?"
+        size = f"{r['size_arcmin'][0]:g}′" if r["size_arcmin"][0] else _t("dimensione ?", "size ?")
         lines.append(f"{i}. {r['name']}{f' ({alias})' if alias else ''} — {r['type']}, {r['kind']}, {size}: "
-                     f"{r['hours']} h utili" + (" solo se il cielo si apre" if r.get("if_clear") else "")
+                     + _t(f"{r['hours']} h utili" + (" solo se il cielo si apre" if r.get("if_clear") else ""),
+                          f"{r['hours']} useful h" + (" only if the sky opens" if r.get("if_clear") else ""))
                      + (f" {r['from']}–{r['to']}" if r["from"] else "")
-                     + f", massimo {r['max_alt']:.0f}° alle {r['max_at']}, Luna a {r['moon_sep']:.0f}°; {r['fit']['words']}"
+                     + _t(f", massimo {r['max_alt']:.0f}° alle {r['max_at']}, Luna a {r['moon_sep']:.0f}°; {r['fit']['words']}", f", highest {r['max_alt']:.0f}° at {r['max_at']}, the Moon {r['moon_sep']:.0f}° away; {r['fit']['words']}")
                      + (f"; {r['set']}" if r.get("set") else ""))
     if p.get("hourly"):
         def hour(h):
-            cloud = "" if h["cloud"] is None else f" nuvole {h['cloud']}%"
+            cloud = "" if h["cloud"] is None else _t(f" nuvole {h['cloud']}%", f" clouds {h['cloud']}%")
             return f"{h['at']} {h['alt']:.0f}°{cloud}" + (" ✓" if h["usable"] else "")
-        lines.append("Ora per ora: " + "; ".join(hour(h) for h in p["hourly"]))
+        lines.append(_t("Ora per ora: ", "Hour by hour: ") + "; ".join(hour(h) for h in p["hourly"]))
     if p.get("error"):
         pass
     elif not p.get("targets"):
-        lines.append("Nessun oggetto riprendibile stanotte con questi vincoli.")
+        lines.append(_t("Nessun oggetto riprendibile stanotte con questi vincoli.", "No object can be imaged tonight within these limits."))
     else:
-        lines.append(f"({p.get('candidates', 0)} oggetti riprendibili su {p['catalogue']} del catalogo.)")
+        lines.append(_t(f"({p.get('candidates', 0)} oggetti riprendibili su {p['catalogue']} del catalogo.)", f"({p.get('candidates', 0)} objects that can be imaged out of the catalogue's {p['catalogue']}.)"))
     return "\n".join(lines)

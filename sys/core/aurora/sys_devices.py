@@ -99,11 +99,14 @@ class Devices:
             self._save(kept)
         return True
 
-    def revoke_user(self, user: str | None, keep: str | None = None) -> int:
-        """Every device of `user` out but `keep` (C428: a stolen session outlived a new password or authenticator)."""
+    def revoke_user(self, user: str | None, keep: str | None = None, unowned: bool = False) -> int:
+        """Every device of `user` out but `keep` (C428: a stolen session outlived a new password or authenticator).
+        `unowned`: the devices with no user too — those made with the installation's key, which act as the admin
+        (C595: they survived the admin's new password or authenticator)."""
         with _lock:
             items = self._load()
-            kept = [d for d in items if d.get("user") != user or d["id"] == keep]
+            kept = [d for d in items if d["id"] == keep
+                    or not (d.get("user") == user or (unowned and not d.get("user")))]
             if len(kept) != len(items):
                 self._save(kept)
         return len(items) - len(kept)

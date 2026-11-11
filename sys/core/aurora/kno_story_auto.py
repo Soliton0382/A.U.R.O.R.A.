@@ -21,6 +21,7 @@ import time
 from pathlib import Path
 
 from . import kno_story, sys_config, sys_log
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 PUBLIC = frozenset({"arxiv", "wikipedia", "wiki", "normattiva", "biorxiv", "medrxiv", "europepmc", "pmc", "docs", "github"})
 NEWS = ("astronomia", "fisica", "biologia", "spazio")
@@ -100,7 +101,7 @@ def make(pipeline, cfg: sys_config.Config, host, emit) -> dict:
     for topic in topics(pipeline.llm, _news(host), done, emit=emit):
         def accept(ans, topic=topic):
             private = private_sources(pipeline.reader, ans.sources)
-            return f"fonti non pubbliche ({', '.join(private[:3])}): nessun video" if private else ""
+            return _t(f"fonti non pubbliche ({', '.join(private[:3])}): nessun video", f"sources that are not public ({', '.join(private[:3])}): no video") if private else ""
         try:
             out = kno_story.make(pipeline, cfg, topic, emit, accept=accept)
         except ValueError as e:
@@ -109,7 +110,7 @@ def make(pipeline, cfg: sys_config.Config, host, emit) -> dict:
             continue
         (Path(out["folder"]) / "auto.json").write_text(json.dumps({"made": time.time(), "published": None}), encoding="utf-8")
         return {"topic": topic, "video": Path(out["video"]).name, "length_s": out["length_s"], "tried": tried}
-    raise ValueError("nessun argomento adatto: " + " · ".join(tried) if tried else "il modello non ha proposto argomenti")
+    raise ValueError(_t("nessun argomento adatto: ", "no suitable topic: ") + " · ".join(tried) if tried else _t("il modello non ha proposto argomenti", "the model proposed no topics"))
 
 
 def ready(cfg: sys_config.Config) -> list[dict]:
@@ -153,8 +154,8 @@ def publish(cfg: sys_config.Config, host, emit, run_id: str | None = None, fmt: 
         approvals = sys_approvals.Approvals(cfg)
         private = [f["value"] for f in sec_privacy.findings(text, cfg, txt_lang.detect(text), llm) if f["sure"]]
         if private or not sys_approvals.social_auto(cfg, title):
-            why = (f"privacy: {len(private)} dati da controllare" if private
-                   else "oltre il numero di post che Aurora pubblica da sola oggi")
+            why = (_t(f"privacy: {len(private)} dati da controllare", f"privacy: {len(private)} pieces of data to check") if private
+                   else _t("oltre il numero di post che Aurora pubblica da sola oggi", "beyond the number of posts Aurora publishes by herself today"))
             req = approvals.request("tool_call", "external", title, f"video «{item['topic']}» — {why}", action, action, run_id)
             _mark(item, published="waiting", result=req["id"])
             emit("approval.request", {"id": req["id"], "kind": "tool_call", "title": req["title"]})

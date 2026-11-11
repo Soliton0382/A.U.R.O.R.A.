@@ -17,7 +17,7 @@ def astro_profile() -> str:
     cfg = sys_config.get()
     p = ast_inventory.profile(cfg)
     if p and ast_guidelog.logs(ast_inventory.folder(cfg)):     # the guide logs added in the folder count
-        p = {**p, "checks": [c for c in p["checks"] if c["what"] != ast_inventory.NO_GUIDE_LOG]}
+        p = {**p, "checks": [c for c in p["checks"] if c.get("code") != "no_guide_log"]}
     return ast_inventory.text(p)
 
 

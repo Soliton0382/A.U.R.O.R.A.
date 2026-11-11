@@ -160,7 +160,9 @@ def _memory(cfg, texts, start=0):
 FIRST = ["Il pane di segale lievita in dodici ore.", "La bicicletta blu ha una ruota da ventotto."]
 
 
-def test_a_vector_file_of_the_first_format_is_read_and_tagged_without_losing_a_row(cfg):
+def test_a_vector_file_without_a_tag_is_never_trusted_and_built_again_without_losing_a_row(cfg):
+    """C572 read a file of the first format as it was and tagged it at the next update; C593: that is also what a file
+    whose tag was taken away looks like — so it is not searched, and the next update builds it again from the memory."""
     enc = FakeEncoder()
     _memory(cfg, FIRST)
     ix = Indexer(enc, cfg)
@@ -169,14 +171,12 @@ def test_a_vector_file_of_the_first_format_is_read_and_tagged_without_losing_a_r
     m = f.read_manifest()
     m["sealed"] = {"user": m["sealed"]["user"], "nonce": m["sealed"]["nonce"]}     # as written before C572: no tag
     sol_index._write_json_atomic(f.manifest, m)
-    before = f.vectors.read_bytes()
     found = lambda text: IndexSet(cfg).search(enc.encode_queries([text]), 1, sections={"memory"})[0][0][1]
-    assert found(FIRST[0]) > 0.99                                     # the old format still opens
+    assert IndexSet(cfg).search(enc.encode_queries([FIRST[0]]), 1, sections={"memory"}) == [[]]   # closed, no guess
     _memory(cfg, ["Il faro di levante gira ogni dieci secondi."], 10)
-    assert ix.update("conversation") == 1
+    assert ix.update("conversation") == 3                             # built again whole from the sealed memory
     m2 = f.read_manifest()
-    assert m2["sealed"]["v"] == 2 and m2["sealed"]["mac"] and m2["sealed"]["nonce"] == m["sealed"]["nonce"]
-    assert f.vectors.read_bytes()[:len(before)] == before             # nothing written again: the same bytes, then more
+    assert m2["sealed"]["v"] == sol_index_seal.VERSION and m2["sealed"]["mac"] and m2["sealed"]["nonce"] != m["sealed"]["nonce"]
     assert m2["count"] == 3 and all(found(t) > 0.99 for t in FIRST + ["Il faro di levante gira ogni dieci secondi."])
 
 

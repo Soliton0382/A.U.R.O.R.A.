@@ -257,12 +257,8 @@ def count(cfg: sys_config.Config) -> int:
 def user_lang(cfg: sys_config.Config) -> str:
     """"it" or "en": the language the person chose in the WebUI (ui_prefs.json, kept per person since 9 Nov), else the
     installation's (AURORA_LANG_DEFAULT): a notification in the language of whoever reads it."""
-    try:
-        lang = json.loads(((cfg.base or cfg).path("AURORA_STATUS_DIR") / "ui_prefs.json").read_text(encoding="utf-8")
-                          ).get(cfg.user or "", {}).get("lang", "")
-    except (OSError, ValueError, AttributeError):
-        lang = ""
-    return "en" if str(lang or cfg["AURORA_LANG_DEFAULT"]).startswith("en") else "it"
+    from . import sys_lang                          # one place for every sentence the server builds (C526)
+    return sys_lang.reader(cfg)
 
 
 def message(event: str, payload: dict, cfg: sys_config.Config, channel: str = "push") -> dict | None:

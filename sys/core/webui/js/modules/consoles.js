@@ -4,7 +4,7 @@
 // miei device… il firewall, il nas… cliccandoci su posso accedere alla pagina»): each user's own tiles, by group; a
 // click opens the device's page in a new tab; ✏️ changes one, 🗑️ removes it; the form adds or saves.
 import { call } from "../api.js";
-import { el, useCss } from "../dom.js";
+import { el, safeUrl, useCss } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { iconPicker } from "../icon_picker.js";
 
@@ -80,7 +80,8 @@ export default {
       const grid = el("div", "con-grid");
       for (const it of list) {
         const tile = el("div", "con-tile");
-        const a = Object.assign(el("a", "con-link"), { href: it.url, target: "_blank", rel: "noopener noreferrer" });
+        const a = Object.assign(el("a", "con-link"), { target: "_blank", rel: "noopener noreferrer" });
+        if (safeUrl(it.url)) a.href = it.url;
         a.append(el("span", "con-icon", it.icon || "🖥️"), el("span", "con-name", it.name),
           el("span", "con-url muted", it.url.replace(/^https?:\/\//, "")));
         if (it.note) a.append(el("span", "con-note muted", it.note));

@@ -161,6 +161,15 @@ def remove(cfg: sys_config.Config, account_id: str) -> None:
         shutil.rmtree(folder)
 
 
+def forget_user(cfg: sys_config.Config, user: str) -> int:
+    """C593: a purged user's own accounts gone, keys and Claude logins: a new user given the same name later must
+    never find a cloud account that was somebody else's. Returns how many."""
+    mine = [a["id"] for a in load(cfg)["accounts"] if a.get("scope") == "user" and a.get("user") == user]
+    for account_id in mine:
+        remove(cfg, account_id)
+    return len(mine)
+
+
 def set_policy(cfg: sys_config.Config, policy: str) -> None:
     if policy not in POLICIES:
         raise ValueError(f"policy: one of {POLICIES}")

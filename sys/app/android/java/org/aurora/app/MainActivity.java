@@ -62,8 +62,9 @@ public class MainActivity extends Activity {
     private TextView note;
     private String base;
     private volatile String page = "";
-    // C565: the bridge is in every frame, the sandboxed ones too (a model's HTML): its two actions need this key,
-    // made anew at every page and given to the main frame only (an opaque-origin frame cannot read the parent's)
+    // C565: the bridge is in every frame, the sandboxed ones too (a model's HTML): its actions need this key,
+    // made anew at every page and given to the main frame only (an opaque-origin frame cannot read the parent's) —
+    // and (C594) only when that frame is the WebUI itself, "/": a preview opened as the window's page gets none
     private volatile String key = "";
     private final java.security.SecureRandom random = new java.security.SecureRandom();
                                // the page shown: the bridge's thread may not ask the WebView
@@ -310,7 +311,8 @@ public class MainActivity extends Activity {
             public void onPageFinished(WebView v, String url) {
                 // the first time too, right after «Connetti» and the login: the line needs the device's cookie
                 if (Address.inside(base, url)) {
-                    v.evaluateJavascript("window.AuroraAppKey=" + JSONObject.quote(key) + ";", null);   // C565
+                    if (Address.home(base, url) && Address.home(base, v.getUrl()))                       // C565, C594
+                        v.evaluateJavascript("window.AuroraAppKey=" + JSONObject.quote(key) + ";", null);
                     CookieManager.getInstance().flush();
                     LineService.start(MainActivity.this);
                 }
@@ -401,7 +403,7 @@ public class MainActivity extends Activity {
         /** 📱 One of PhoneActions' actions, as JSON; the answer is a word for the page ("ok", "no_app"…). */
         @JavascriptInterface
         public String act(String k, String json) {
-            if (base == null || !Address.inside(base, page) || !mine(k)) return "bad";
+            if (base == null || !Address.home(base, page) || !mine(k)) return "bad";
             try {
                 return PhoneActions.run(MainActivity.this, new JSONObject(json));
             } catch (org.json.JSONException e) {
@@ -417,12 +419,13 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
-        public boolean notifications() {
-            return getSystemService(NotificationManager.class).areNotificationsEnabled();
+        public boolean notifications(String k) {                     // C594: with the key, like the actions
+            return mine(k) && getSystemService(NotificationManager.class).areNotificationsEnabled();
         }
 
         @JavascriptInterface
-        public void settings() {
+        public void settings(String k) {
+            if (!mine(k)) return;
             runOnUiThread(() -> startActivity(new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
                 .putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName())));
         }
@@ -437,6 +440,7 @@ public class MainActivity extends Activity {
     }
 
     private void outside(Uri u) {
+        if (u == null || !Address.web(u.toString())) return;         // C594: a web page, never tel:, intent:, file:…
         try {
             startActivity(new Intent(Intent.ACTION_VIEW, u));
         } catch (ActivityNotFoundException e) {

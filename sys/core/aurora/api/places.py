@@ -33,7 +33,8 @@ async def places(q: str) -> dict:
     q = q.strip()
     if len(q) < 2:
         return {"places": []}
-    lang = "it" if str(cfg["AURORA_LANG_DEFAULT"]).startswith("it") else "en"
+    from aurora import sys_lang
+    lang = sys_lang.reader(cfg.now())
     try:
         return {"places": await asyncio.to_thread(search, q[:80], lang)}
     except Exception as e:                               # noqa: BLE001 - offline or refused: said, never a crash

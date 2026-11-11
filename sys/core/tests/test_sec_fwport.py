@@ -131,7 +131,7 @@ def test_a_cloud_machine_seen_by_cloudflare_is_the_author_and_blockable(cloudfla
     assert net_cfwaf.blockable(cfg, "34.1.2.3") == "34.1.2.3"
     s = {"ip": "34.1.2.3", "requests": 1262, "paths": {"/.aws/credentials": 900}}
     assert net_cfwaf.looks(cfg, s).startswith("scanner") and "Google Cloud" in net_cfwaf.looks(cfg, s)
-    assert "not to block" in net_cfwaf.looks(cfg, {"ip": "81.2.69.160", "requests": 2, "paths": {"/v1/aurora/push-ack": 1}})
+    assert "da non bloccare" in net_cfwaf.looks(cfg, {"ip": "81.2.69.160", "requests": 2, "paths": {"/v1/aurora/push-ack": 1}})
 
 
 def test_an_ipv6_client_is_blocked_as_ip6(cloudflare):

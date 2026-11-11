@@ -4,7 +4,7 @@
 // others see it —, my biography with Aurora's proposals from my own memories (a line enters with my yes), the
 // relations asked and confirmed by both, and the others' cards as they let me see them.
 import { call } from "../api.js";
-import { el, useCss } from "../dom.js";
+import { el, safeUrl, useCss } from "../dom.js";
 import { apply, lang, t } from "../i18n.js";
 
 const FIELDS = [["name", "text"], ["birth", "date"], ["city", "text"], ["work", "text"]];
@@ -201,7 +201,7 @@ export default {
       if (c.birth) tile.append(el("span", "", `🎂 ${c.birth.split("-").reverse().join("/")}`));
       if (c.city) tile.append(el("span", "", `📍 ${c.city}`));
       if (c.work) tile.append(el("span", "", `💼 ${c.work}`));
-      for (const s of c.social || []) { const a = el("a", "", `🔗 ${s.label || s.url}`); a.href = s.url; a.target = "_blank"; a.rel = "noopener noreferrer"; tile.append(a); }
+      for (const s of c.social || []) { const a = el("a", "", `🔗 ${s.label || s.url}`); if (safeUrl(s.url)) a.href = s.url; a.target = "_blank"; a.rel = "noopener noreferrer"; tile.append(a); }
       for (const b of c.bio || []) tile.append(el("span", "muted", `· ${b.text}`));
       return tile;
     }) : [el("p", "muted", t("ppl.alone"))]));

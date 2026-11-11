@@ -7,7 +7,7 @@
 import { policyFields } from "./project_policy.js";
 import { call } from "../api.js";
 import { bus } from "../bus.js";
-import { clock, el, useCss } from "../dom.js";
+import { clock, el, safeUrl, useCss } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { openProject } from "./project_page.js";
 import { pluginSlot } from "./plugin_slot.js";
@@ -199,7 +199,8 @@ export default {
     foot.append(mine ? el("span", "prj-state ok", t("prj.gh_local")) : el("span", "muted", t("prj.gh_only")), a);
     if (r.has_pages || r.homepage) {
       const w = el("a", "", "🌐");
-      w.href = r.homepage || `https://${r.full_name.split("/")[0].toLowerCase()}.github.io/${r.name}/`;
+      // C594: the repository's «homepage» is whatever its owner typed: a link only when it is http(s)
+      w.href = (safeUrl(r.homepage) && r.homepage) || `https://${r.full_name.split("/")[0].toLowerCase()}.github.io/${r.name}/`;
       w.target = "_blank"; w.rel = "noopener noreferrer"; w.title = t("prj.site");
       w.addEventListener("click", (ev) => ev.stopPropagation());
       foot.append(w);

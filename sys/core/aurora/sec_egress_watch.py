@@ -29,6 +29,7 @@ import time
 from pathlib import Path
 
 from . import sec_egress, sys_config
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 LEARN_DAYS = 7
 SAMPLE_S = 10
@@ -208,18 +209,22 @@ class EgressWatch:
         who = f"{key} {net.get('holder', '')}".strip()
         name = svc.removesuffix(".service")
         if kind == "egress_new":
-            title = f"{name}: una rete mai vista, {who}"
-            why = (f"{name} ({s['process']}) ha aperto una connessione verso {s['peer']}:{s['port']} ({who}), una rete "
+            title = _t(f"{name}: una rete mai vista, {who}", f"{name}: a network never seen, {who}")
+            why = _t((f"{name} ({s['process']}) ha aperto una connessione verso {s['peer']}:{s['port']} ({who}), una rete "
                    "che non aveva mai raggiunto" + (" mentre nessun lavoro era in corso" if not busy
-                                                    else " durante un lavoro in corso") + f"; inviati {s['sent']} byte.")
+                                                    else " durante un lavoro in corso") + f"; inviati {s['sent']} byte."), (f"{name} ({s['process']}) opened a connection to {s['peer']}:{s['port']} ({who}), a network "
+                   "it had never reached" + (" while no job was running" if not busy
+                                             else " during a running job") + f"; {s['sent']} bytes sent."))
         elif kind == "egress_deny":
-            title = f"{name}: verso una rete in blacklist, {who}"
-            why = (f"{name} ({s['process']}) ha aperto una connessione verso {s['peer']}:{s['port']} ({who}), in una rete "
-                   f"della blacklist (AURORA_EGRESS_DENY_ASNS); inviati {s['sent']} byte.")
+            title = _t(f"{name}: verso una rete in blacklist, {who}", f"{name}: towards a network on the deny list, {who}")
+            why = _t((f"{name} ({s['process']}) ha aperto una connessione verso {s['peer']}:{s['port']} ({who}), in una rete "
+                   f"della blacklist (AURORA_EGRESS_DENY_ASNS); inviati {s['sent']} byte."), (f"{name} ({s['process']}) opened a connection to {s['peer']}:{s['port']} ({who}), in a network "
+                   f"of the deny list (AURORA_EGRESS_DENY_ASNS); {s['sent']} bytes sent."))
         else:
-            title = f"{name}: {s['sent'] // 2**20} MB inviati a {who}"
-            why = (f"{name} ({s['process']}) ha inviato {s['sent']} byte su una connessione verso {s['peer']}:{s['port']} "
-                   f"({who}), oltre il limite di {limit} byte di quello che aveva mai mandato lì.")
+            title = _t(f"{name}: {s['sent'] // 2**20} MB inviati a {who}", f"{name}: {s['sent'] // 2**20} MB sent to {who}")
+            why = _t((f"{name} ({s['process']}) ha inviato {s['sent']} byte su una connessione verso {s['peer']}:{s['port']} "
+                   f"({who}), oltre il limite di {limit} byte di quello che aveva mai mandato lì."), (f"{name} ({s['process']}) sent {s['sent']} bytes on a connection to {s['peer']}:{s['port']} "
+                   f"({who}), beyond the limit of {limit} bytes of what it had ever sent there."))
         return [{"kind": kind, "source": "127.0.0.1", "count": 1, "internal": True, "first": stamp, "last": stamp,
                  "samples": [json.dumps(s)],
                  "detail": {"title": title, "why": why, "service": svc, "key": key, "destination": s["peer"],

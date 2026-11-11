@@ -139,6 +139,10 @@ def convert(spec: dict, raw: str) -> Any:
         # on Windows "/x" is not absolute but rooted: joined to AURORA_ROOT it leaves it (C223); a drive too (C:x)
         if kind == "path" and (os.path.isabs(raw) or raw[:1] in ("/", "\\") or ntpath.splitdrive(raw)[0]):
             raise ValueError("must be relative to AURORA_ROOT")
+        # C592 (audit F11): «../../etc» is relative too, and left the installation — root's units write where a path
+        # setting says (the status folder), and .env is the services' account's to write
+        if kind == "path" and ".." in raw.replace("\\", "/").split("/"):
+            raise ValueError("must stay inside AURORA_ROOT (no «..»)")
         # only the two escapes a one-line .env value needs; unicode_escape would break accents
         return raw.replace("\\n", "\n").replace("\\t", "\t") if kind == "str" else raw
     if kind == "int":

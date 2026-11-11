@@ -59,6 +59,8 @@ def ok_codes(op: str) -> tuple[str, ...]:
 READ_ONLY_HINT = (" — l'utente API di Aurora sul firewall ha solo la lettura: nel Sophos, Amministrazione → Profili di "
                   "dispositivo, dagli lettura e scrittura su Regole e policy e su Oggetti di sistema; poi riprova "
                   "(il 9 ottobre: due modifiche annullate così)")
+READ_ONLY_HINT_EN = (" — Aurora's API user on the firewall can only read: in Sophos, Administration → Device access "
+                     "profiles, give it read and write on Rules and policies and on System objects; then try again")
 
 
 def read_only(code: str, msg: str) -> bool:

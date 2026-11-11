@@ -286,6 +286,11 @@ def check(manifest: dict, code: str, existing: set[str], people: set[str] = froz
                if k not in declared]:
         errs.append(f"env/requires/env_as: {', '.join(bad)} not declared in settings_spec (a forged plugin reads only "
                     "its own settings)")
+    from . import plg_contract                         # C591: env_as named PATH, and the host ran a planted program
+    env_as = manifest.get("env_as") if isinstance(manifest.get("env_as"), dict) else {}
+    if bad := sorted(str(v) for v in env_as.values() if not plg_contract.env_name_ok(v)):
+        errs.append(f"env_as: {', '.join(bad)}: the name its program reads, in capitals — never PATH, HOME, LD_…, "
+                    "PYTHON…, AURORA_…")
     # 9 Nov (owner: «se aurora si crea un plugin "per evadere"…»): what a plugin Aurora writes may never ask for —
     # the cage refuses it at every start anyway (plg_sandbox, plg_host); said here so that it never reaches the owner
     theirs = sys_config.others_keys(name)              # audit 9 Nov: a name that makes another's keys look like its own

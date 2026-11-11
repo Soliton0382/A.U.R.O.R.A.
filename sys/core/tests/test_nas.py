@@ -86,6 +86,8 @@ def test_the_frames_folder_of_a_person_is_found_for_the_mount(cfg, tmp_path, mon
     (tmp_path / "anna").mkdir()
     (tmp_path / "anna" / ".env").write_text("AURORA_ASTRO_FRAMES_DIR=smb://192.168.1.20/astro/lights\n")
     cfg.values["AURORA_ASTRO_FRAMES_DIR"] = ""
+    assert N.astro_url(cfg) == ""                                       # C595: not the admin's: never mounted
+    monkeypatch.setattr(N, "admin_name", lambda c: "anna")
     assert N.astro_url(cfg) == "smb://192.168.1.20/astro/lights"
     (tmp_path / "anna" / ".env").write_text("AURORA_ASTRO_FRAMES_DIR=/data/lights\n")
     assert N.astro_url(cfg) == ""                                       # a local folder: nothing to mount

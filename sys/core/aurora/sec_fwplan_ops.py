@@ -19,6 +19,7 @@ import re
 
 from . import sec_fwapi, sec_fwdocs, sec_fwmodel, sec_fwwrite, sec_netmap, sys_config
 from . import txt_lang
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 OPS = ("put_alias", "alias_add", "alias_del", "drop_alias", "put_rule", "drop_rule", "put_nat", "drop_nat")
 ENTITY = {"put_alias": "alias", "alias_add": "alias", "alias_del": "alias", "drop_alias": "alias",
@@ -189,5 +190,5 @@ def plan(cfg: sys_config.Config, request: str, model) -> dict:
         problems = problems or ["no steps"]
         feedback = ("\n\nYOUR LAST PLAN HAD PROBLEMS — fix them and answer the whole JSON again:\n- " + "\n- ".join(problems)
                     + f"\nYOUR LAST PLAN:\n{json.dumps(data, ensure_ascii=False)[:6000]}")
-    raise sec_fwwrite.WriteError("non sono riuscita a preparare un piano valido: " + feedback.strip()[:600])
+    raise sec_fwwrite.WriteError(_t("non sono riuscita a preparare un piano valido: ", "I could not prepare a valid plan: ") + feedback.strip()[:600])
 

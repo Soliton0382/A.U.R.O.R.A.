@@ -17,6 +17,7 @@ import uuid
 from collections import OrderedDict
 from pathlib import Path
 from aurora import sol_reader, sys_config, sys_context, sys_features, sys_log
+from aurora.sys_lang import say as _t   # each sentence in the reader's language (C526)
 from aurora.sys_devices import COOKIE, Devices
 from fastapi import HTTPException, Request
 
@@ -239,8 +240,9 @@ def _failed(request: Request) -> None:
             n = len(_fails[LOCAL])
         log.warning("audit: wrong credential from a local process (%d of %d before it is refused)", n, _ceiling(True))
         if n == _ceiling(True):
-            note("security", "auth.lockout", {"title": f"{n} tentativi di accesso falliti da un programma su questo "
-                                                       "computer: rifiutati per qualche minuto", "ip": "127.0.0.1"})
+            note("security", "auth.lockout", {"title": _t(f"{n} tentativi di accesso falliti da un programma su questo "
+                                                       "computer: rifiutati per qualche minuto", f"{n} failed login attempts from a program on this "
+                                                       "computer: refused for a few minutes"), "ip": "127.0.0.1"})
         return
     ip = _client(request)
     with _fails_lock:
@@ -250,8 +252,8 @@ def _failed(request: Request) -> None:
         tunnel = via_tunnel(ip)                           # every remote device shares it: said, and never firewalled
         log.warning("audit: %d failed logins from %s%s: refused for %d s", n, ip, " (tunnel or this machine)" if tunnel
                     else "", cfg["AURORA_AUTH_WINDOW_S"])
-        note("security", "auth.lockout", {"title": f"{n} tentativi di accesso falliti da {ip}" + (
-            " — dal tunnel Cloudflare o da questo computer: chi è fuori casa resta fuori per qualche minuto" if tunnel else ""),
+        note("security", "auth.lockout", {"title": _t(f"{n} tentativi di accesso falliti da {ip}", f"{n} failed login attempts from {ip}") + (
+            _t(" — dal tunnel Cloudflare o da questo computer: chi è fuori casa resta fuori per qualche minuto", " — from the Cloudflare tunnel or this computer: whoever is away from home stays out for a few minutes") if tunnel else ""),
             "ip": ip})
         if tunnel:
             return
@@ -522,17 +524,17 @@ def trace_line(e: dict) -> str | None:
     if name == "synthesis.delta":
         return p["text"] if p["kind"] == "thought" else None
     if name == "route":
-        return f"{icon} {'domanda su di me' if p['mode'] == 'self' else 'domanda di conoscenza'}\n"
+        return f"{icon} " + (_t("domanda su di me", "a question about me") if p["mode"] == "self" else _t("domanda di conoscenza", "a question of knowledge")) + "\n"
     if name == "translate":
-        return f"{icon} traduzione: {p['translation']}\n"
+        return f"{icon} {_t('traduzione', 'translation')}: {p['translation']}\n"
     if name == "retrieval.hits":
-        return f"{icon} {len(p['hits'])} passaggi: " + ", ".join(f"[{h['n']}] {h['domain']}" for h in p["hits"]) + "\n"
+        return f"{icon} {len(p['hits'])} {_t('passaggi', 'passages')}: " + ", ".join(f"[{h['n']}] {h['domain']}" for h in p["hits"]) + "\n"
     if name == "gate":
-        return f"{icon} cancello {'aperto: ' + str(p['passages']) if p['open'] else 'chiuso: nessun passaggio risponde'}\n"
+        return f"{icon} " + (_t("cancello aperto: ", "gate open: ") + str(p["passages"]) if p["open"] else _t("cancello chiuso: nessun passaggio risponde", "gate closed: no passage answers")) + "\n"
     if name == "synthesis.domain":
-        return f"{icon} {p['domain']}: {'estratto' if p['kept'] else 'niente di rilevante'}\n"
+        return f"{icon} {p['domain']}: " + (_t("estratto", "extracted") if p["kept"] else _t("niente di rilevante", "nothing relevant")) + "\n"
     if name in ("verify.drop",):
-        return f"{icon} tolta: {p['sentence'][:120]} ({p['reason']})\n"
+        return f"{icon} {_t('tolta', 'removed')}: {p['sentence'][:120]} ({p['reason']})\n"
     if icon:
         return f"{icon} {name}\n"
     return None
@@ -540,10 +542,10 @@ def trace_line(e: dict) -> str | None:
 
 def final_text(ans) -> str:
     if ans is None:
-        return "Si è verificato un errore: vedi la traccia."
+        return _t("Si è verificato un errore: vedi la traccia.", "An error happened: see the trace.")
     text = ans.text
     if ans.sources:
-        text += "\n\nFonti:\n" + "\n".join(f"[{s['n']}] {s['title'] or s['source']} ({s['domain']})" for s in ans.sources)
+        text += _t("\n\nFonti:\n", "\n\nSources:\n") + "\n".join(f"[{s['n']}] {s['title'] or s['source']} ({s['domain']})" for s in ans.sources)
     return text
 
 

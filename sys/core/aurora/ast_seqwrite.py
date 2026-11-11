@@ -21,6 +21,7 @@ import re
 from pathlib import Path
 
 from . import ast_sequence
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 OUT_SUFFIX = " Aurora"
 ROTATOR = ("SolveAndRotate", "MoveRotator", "RotatorMove", "ReverseRotator")
@@ -88,12 +89,12 @@ def build(template: dict, target: dict, exposure_s: float, count: int, gain: flo
     leaves = [n for n, _ in nodes if _kind(n) == "DeepSkyObjectContainer" and _has_exposure(n)
               and not any(_kind(x) == "DeepSkyObjectContainer" and x is not n for x, _ in _walk(n))]
     if not leaves:
-        raise ValueError("il modello non ha un bersaglio con delle pose (DeepSkyObjectContainer con TakeExposure)")
+        raise ValueError(_t("il modello non ha un bersaglio con delle pose (DeepSkyObjectContainer con TakeExposure)", "the template has no target with exposures (DeepSkyObjectContainer with TakeExposure)"))
     for extra in leaves[1:]:                           # a mosaic without a rotator: its first panel only
         holder = next(p for n, p in nodes if n is extra)
         holder.remove(extra)
     if len(leaves) > 1:
-        notes.append(f"mosaico di {len(leaves)} pannelli ridotto al primo (senza rotatore)")
+        notes.append(_t(f"mosaico di {len(leaves)} pannelli ridotto al primo (senza rotatore)", f"a mosaic of {len(leaves)} panels cut to the first (no rotator)"))
     for n, holder in _walk(seq):
         k = _kind(n)
         if holder is None or not any(x is n for x in holder):
@@ -103,11 +104,11 @@ def build(template: dict, target: dict, exposure_s: float, count: int, gain: flo
             notes.append(f"tolto {k}")
         elif k == "MessageBox" and re.search(r"rotat", str(n.get("Text", "")), re.I) and holder is not None:
             holder.remove(n)
-            notes.append(f"tolto il messaggio «{n.get('Text')}»")
+            notes.append(_t(f"tolto il messaggio «{n.get('Text')}»", f"the message «{n.get('Text')}» removed"))
         elif k == "CenterAndRotate":
             n["$type"] = n["$type"].replace("CenterAndRotate", "Center")
             n.pop("PositionAngle", None)
-            notes.append("CenterAndRotate diventato Center")
+            notes.append(_t("CenterAndRotate diventato Center", "CenterAndRotate turned into Center"))
     for n, _ in _walk(seq):
         k = _kind(n)
         if k == "SequenceRootContainer":
@@ -155,17 +156,18 @@ def _check_refs(seq: dict) -> None:
     text = json.dumps(seq)
     ids = set(re.findall(r'"\$id": "(\d+)"', text))
     if missing := set(re.findall(r'"\$ref": "(\d+)"', text)) - ids:
-        raise ValueError(f"la sequenza rimanda a nodi tolti ({', '.join(sorted(missing, key=int)[:5])}): non scritta")
+        raise ValueError(_t(f"la sequenza rimanda a nodi tolti ({', '.join(sorted(missing, key=int)[:5])}): non scritta", f"the sequence refers to removed nodes ({', '.join(sorted(missing, key=int)[:5])}): not written"))
 
 
 def template_for(folder: Path, kind: str, templates: dict) -> Path:
     name = templates.get(kind) or templates.get("broadband" if kind in ("hdr", "galaxy") else "")
     if not name:
-        raise ValueError(f"nessun modello per «{kind}»: indica in astro_setup.json \"templates\" quale sequenza usare "
-                         "(per esempio {\"narrowband\": \"...json\", \"broadband\": \"...json\"})")
+        raise ValueError(_t(f"nessun modello per «{kind}»: indica in astro_setup.json \"templates\" quale sequenza usare "
+                         "(per esempio {\"narrowband\": \"...json\", \"broadband\": \"...json\"})", f"no template for «{kind}»: say in astro_setup.json \"templates\" which sequence to use "
+                         "(for example {\"narrowband\": \"...json\", \"broadband\": \"...json\"})"))
     f = folder / "sequences" / name
     if not f.is_file():
-        raise ValueError(f"il modello «{name}» non è nella cartella sequences/")
+        raise ValueError(_t(f"il modello «{name}» non è nella cartella sequences/", f"the template «{name}» is not in the sequences/ folder"))
     return f
 
 
@@ -181,7 +183,7 @@ def write(folder: Path, kind: str, templates: dict, target: dict, exposure_s: fl
     safe = re.sub(r"[^\w .()+-]", "", str(target["name"])).strip() or "target"
     out = folder / "sequences" / f"{safe}{OUT_SUFFIX}.json"
     if out.resolve() == src.resolve():
-        raise ValueError("il file nuovo avrebbe il nome del modello: non lo sovrascrivo")
+        raise ValueError(_t("il file nuovo avrebbe il nome del modello: non lo sovrascrivo", "the new file would have the template's name: I do not overwrite it"))
     text = json.dumps(seq, ensure_ascii=False, indent=2)
     back = ast_sequence.parse(text, out.stem)
     out.write_text(text, encoding="utf-8")
@@ -200,13 +202,13 @@ def for_tonight(cfg, name: str, date: str = "", kind: str = "", count: int = 0, 
     saved = ast_advice.setup(folder)
     o = ast_catalog.find(ast_catalog.load(folder)["objects"], name)
     if not o:
-        raise ValueError(f"«{name}» non è nel catalogo: prova il nome NGC/IC/M/Sh2")
+        raise ValueError(_t(f"«{name}» non è nel catalogo: prova il nome NGC/IC/M/Sh2", f"«{name}» is not in the catalogue: try the NGC/IC/M/Sh2 name"))
     p = ast_skyplan.plan(cfg, profile, folder, date, min_alt, "", 1, name=name, saved=saved.get("kinds") or {})
     row = (p.get("targets") or [{}])[0]
     kind = kind or row.get("kind") or "broadband"
     notes = []
     if kind == "hdr":
-        notes.append("oggetto da HDR: per ora una sola posa, quella della banda larga")
+        notes.append(_t("oggetto da HDR: per ora una sola posa, quella della banda larga", "an HDR object: one exposure for now, the broadband one"))
     lib = ast_inventory.darks_library(cfg)["darks"]
     tpl_name = (saved.get("templates") or {}).get("narrowband" if kind == "narrowband" else "broadband")
     every = None
@@ -217,23 +219,24 @@ def for_tonight(cfg, name: str, date: str = "", kind: str = "", count: int = 0, 
     k = sp["kinds"].get("narrowband" if kind == "narrowband" else "broadband") or {}
     s = k.get("with_darks") or k.get("best")
     if not s:
-        raise ValueError("nessuna impostazione misurata per questo tipo: servono pose di prova nella cartella dei frame")
+        raise ValueError(_t("nessuna impostazione misurata per questo tipo: servono pose di prova nella cartella dei frame", "no measured setting for this kind: test frames are needed in the frames folder"))
     if not k.get("with_darks"):
-        notes.append("nessun dark adatto: la posa è quella ideale, i dark vanno fatti")
+        notes.append(_t("nessun dark adatto: la posa è quella ideale, i dark vanno fatti", "no suitable dark: the exposure is the ideal one, the darks are to be taken"))
     exp = float(exposure_s or s["exposure_s"])
     hours = float(row.get("hours") or 0)
     if not count:
         count = int(hours * 3600 // (exp + sp["overhead_s"]))
         if count < 1:
-            raise ValueError(f"«{o['name']}» non ha ore utili la notte del {p.get('date')} sopra {min_alt:g}°: "
-                             "indica tu il numero di pose")
+            raise ValueError(_t(f"«{o['name']}» non ha ore utili la notte del {p.get('date')} sopra {min_alt:g}°: "
+                             "indica tu il numero di pose", f"«{o['name']}» has no useful hours on the night of {p.get('date')} above {min_alt:g}°: "
+                             "say the number of frames yourself"))
     rig = profile.get("rig") or {}
     # the person's own values win over the measured ones (owner, 19 Oct: «modificare parametri base, come il numero di
     # scatti»); a gain or offset of their own may leave the darks' library without a match: said by the checks
     g = float(s["gain"] if gain is None else gain)
     off = float(s["offset"] if offset is None else offset)
     if gain is not None or offset is not None:
-        notes.append(f"gain {g:g} e offset {off:g} scelti da te (misurati: {s['gain']:g} e {s['offset']:g})")
+        notes.append(_t(f"gain {g:g} e offset {off:g} scelti da te (misurati: {s['gain']:g} e {s['offset']:g})", f"gain {g:g} and offset {off:g} chosen by you (measured: {s['gain']:g} and {s['offset']:g})"))
     out = write(folder, kind, saved.get("templates") or {}, {"name": o["name"], "ra_deg": o["ra"], "dec_deg": o["dec"]},
                 exp, count, g, off, rig, lib)
     out["params"] = {"count": int(count), "exposure_s": exp, "gain": g, "offset": off}
@@ -248,7 +251,7 @@ def written(folder: Path, name: str) -> Path:
     f = folder / "sequences" / name
     if not re.fullmatch(r"[\w .()+-]{1,120}\.json", name) or f.resolve().parent != (folder / "sequences").resolve() \
             or not f.is_file():
-        raise ValueError(f"«{name}» non è tra le sequenze")
+        raise ValueError(_t(f"«{name}» non è tra le sequenze", f"«{name}» is not among the sequences"))
     return f
 
 
@@ -262,7 +265,7 @@ def send(cfg, name: str, timeout: float = 20.0) -> dict:
     f = written(ast_inventory.folder(cfg), name)
     host, _ = ast_advice.telescope_host(cfg)
     if not host:
-        return {"error": "nessun indirizzo del PC del telescopio (AURORA_ASTRO_PC o l'inventario)"}
+        return {"error": _t("nessun indirizzo del PC del telescopio (AURORA_ASTRO_PC o l'inventario)", "no address of the telescope's PC (AURORA_ASTRO_PC or the inventory)")}
     req = urllib.request.Request(f"http://{host}:{ast_rotate.PORT}/v2/api/sequence/load", method="POST",
                                  data=f.read_bytes(), headers={"Content-Type": "application/json"})
     try:
@@ -274,28 +277,31 @@ def send(cfg, name: str, timeout: float = 20.0) -> dict:
         except ValueError:
             said = {"Error": f"HTTP {e.code}"}
     except (OSError, ValueError) as e:
-        return {"error": f"N.I.N.A. non risponde ({type(e).__name__}): è acceso, con l'Advanced API attiva?"}
+        return {"error": _t(f"N.I.N.A. non risponde ({type(e).__name__}): è acceso, con l'Advanced API attiva?", f"N.I.N.A. does not answer ({type(e).__name__}): is it on, with the Advanced API enabled?")}
     if not said.get("Success"):
-        why = {"Sequence is already running": "una sequenza è già in corso: fermala prima",
-               "Sequence is not initialized": "il sequencer di N.I.N.A. non è ancora pronto: apri la scheda Sequenza"}
-        return {"error": why.get(said.get("Error"), f"N.I.N.A. ha rifiutato: {said.get('Error') or 'senza motivo'}")}
-    return {"sent": f.name, "said": "caricata nel sequencer avanzato di N.I.N.A.: controllala e avviala da lì"}
+        why = {"Sequence is already running": _t("una sequenza è già in corso: fermala prima", "a sequence is already running: stop it first"),
+               "Sequence is not initialized": _t("il sequencer di N.I.N.A. non è ancora pronto: apri la scheda Sequenza", "N.I.N.A.'s sequencer is not ready yet: open the Sequence tab")}
+        return {"error": why.get(said.get("Error"), _t(f"N.I.N.A. ha rifiutato: {said.get('Error') or 'senza motivo'}", f"N.I.N.A. refused: {said.get('Error') or 'no reason given'}"))}
+    return {"sent": f.name, "said": _t("caricata nel sequencer avanzato di N.I.N.A.: controllala e avviala da lì", "loaded into N.I.N.A.'s advanced sequencer: check it and start it from there")}
 
 
 def text(r: dict) -> str:
     seq = r["sequence"]
     e = seq["exposures"][0] if seq["exposures"] else {}
-    lines = [f"Sequenza scritta: sequences/{r['file']} (dal modello {r['template']}).",
-             f"{r['object']}{' — ' + ', '.join(r['common']) if r['common'] else ''}, {r['kind']}, notte del {r['date']}: "
-             f"{r['hours']} h utili" + (f" ({r['window'][0]}–{r['window'][1]})" if r["window"][0] else "") + ".",
+    yes = (lambda on: _t("sì", "yes") if on else "no")
+    lines = [_t(f"Sequenza scritta: sequences/{r['file']} (dal modello {r['template']}).", f"Sequence written: sequences/{r['file']} (from the template {r['template']})."),
+             f"{r['object']}{' — ' + ', '.join(r['common']) if r['common'] else ''}, {r['kind']}, "
+             + _t(f"notte del {r['date']}: {r['hours']} h utili", f"night of {r['date']}: {r['hours']} useful h") + (f" ({r['window'][0]}–{r['window'][1]})" if r["window"][0] else "") + ".",
              f"{seq['targets'][0]['ra_h']:.4f} h, {seq['targets'][0]['dec_deg']:+.3f}° (J2000) · "
-             f"{r['count']} pose da {e.get('s'):g} s ({r['count'] * (e.get('s') or 0) / 3600:.1f} h di luci), "
-             f"gain {e.get('gain'):g}, offset {e.get('offset'):g} · "
-             f"dither ogni {seq['dither_every']} · raffreddamento {seq['cool_c']} °C · guida {'sì' if seq['guiding'] else 'no'}"
-             f" · autofocus {'sì' if seq['autofocus'] else 'no'} · flip {'sì' if seq['flip'] else 'no'}."]
+             + _t(f"{r['count']} pose da {e.get('s'):g} s ({r['count'] * (e.get('s') or 0) / 3600:.1f} h di luci), ",
+                  f"{r['count']} frames of {e.get('s'):g} s ({r['count'] * (e.get('s') or 0) / 3600:.1f} h of lights), ")
+             + f"gain {e.get('gain'):g}, offset {e.get('offset'):g} · "
+             + _t(f"dither ogni {seq['dither_every']} · raffreddamento {seq['cool_c']} °C · guida {yes(seq['guiding'])}",
+                  f"dither every {seq['dither_every']} · cooling {seq['cool_c']} °C · guiding {yes(seq['guiding'])}")
+             + f" · autofocus {yes(seq['autofocus'])} · flip {yes(seq['flip'])}."]
     if r["notes"]:
-        lines.append("Cambiato rispetto al modello: " + "; ".join(r["notes"]) + ".")
+        lines.append(_t("Cambiato rispetto al modello: ", "Changed from the template: ") + "; ".join(r["notes"]) + ".")
     if r["checks"]:
-        lines.append("Da controllare: " + "; ".join(f"{c['code']} ({c['level']})" for c in r["checks"]) + ".")
-    lines.append("Aprila in N.I.N.A. (Sequenza avanzata → Carica) e controllala prima di avviarla: Aurora non la avvia.")
+        lines.append(_t("Da controllare: ", "To check: ") + "; ".join(f"{c['code']} ({c['level']})" for c in r["checks"]) + ".")
+    lines.append(_t("Aprila in N.I.N.A. (Sequenza avanzata → Carica) e controllala prima di avviarla: Aurora non la avvia.", "Open it in N.I.N.A. (Advanced sequence → Load) and check it before starting it: Aurora does not start it."))
     return "\n".join(lines)

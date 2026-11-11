@@ -32,7 +32,7 @@ def test_cleared_at_once_and_a_run_in_it_writes_no_trace(cfg, tmp_path):
     with sys_context.anonymous():
         sys_log.trace("anontest", "seen", {"q": "segreto"})
     lines = [json.loads(x) for x in log.read_text().splitlines()] if log.exists() else []
-    assert [x["payload"]["q"] for x in lines] == ["normale"]
+    assert [sys_log.opened(cfg, x)["payload"]["q"] for x in lines] == ["normale"]   # sealed on disk since C572
 
 
 def test_in_the_anonymous_chat_she_only_reads(cfg):

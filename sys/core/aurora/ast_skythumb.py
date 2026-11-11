@@ -13,6 +13,7 @@ import re
 import urllib.parse
 import urllib.request
 from pathlib import Path
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 SERVICE = "https://alasky.cds.unistra.fr/hips-image-services/hips2fits"
 SURVEY = "CDS/P/DSS2/color"
@@ -60,5 +61,5 @@ def for_object(cfg, name: str) -> bytes:
     folder = ast_inventory.folder(cfg)
     o = ast_catalog.find(ast_catalog.load(folder)["objects"], name)
     if not o:
-        raise ValueError(f"«{name}» non è nel catalogo")
+        raise ValueError(_t(f"«{name}» non è nel catalogo", f"«{name}» is not in the catalogue"))
     return picture(folder, o, ast_skyplan.field(folder, ast_inventory.profile(cfg)))

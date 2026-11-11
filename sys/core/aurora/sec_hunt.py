@@ -33,6 +33,7 @@ from datetime import datetime
 
 from . import sys_config
 from .sec_sentinel import is_private
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 BEACON_MIN, BEACON_CV, BEACON_SPAN = 10, 0.15, 3600
 SWEEP_HOSTS, SWEEP_MIN = 15, 10
@@ -119,11 +120,11 @@ class Hunt:
         tld = name.lower().rsplit(".", 1)[-1]
         why, dangerous = [], any(b in cat.lower() for b in BAD_CATEGORY)
         if dangerous or any(b in cat.lower() for b in ODD_CATEGORY):
-            why.append(f"categoria del firewall: {cat}")
+            why.append(_t(f"categoria del firewall: {cat}", f"firewall category: {cat}"))
         if tld in RISKY_TLD:
-            why.append(f"dominio .{tld}, molto usato da phishing e malware")
+            why.append(_t(f"dominio .{tld}, molto usato da phishing e malware", f"a .{tld} domain, much used by phishing and malware"))
         if machine_made(name):
-            why.append("nome che sembra generato da una macchina")
+            why.append(_t("nome che sembra generato da una macchina", "a name that looks machine-made"))
         if why:
             d = self.domains.setdefault((src, name), {"src": src, "domain": name, "why": why, "count": 0,
                                                       "category": cat, "dangerous": dangerous})
@@ -160,12 +161,14 @@ class Hunt:
             if mean >= 60 and cv <= BEACON_CV:
                 listed = self.intel(dst) if self.intel else []
                 out.append({"kind": "beacon", "severity": "high" if listed else "medium", "source": src, "device": self.label(src),
-                            "title": f"Chiamate regolari verso {self.names.get(dst, dst)} ogni {mean / 60:.0f} min",
-                            "why": f"{self.label(src)} ha contattato {dst}:{port} {len(ts)} volte in {(ts[-1] - ts[0]) / 3600:.1f} h a "
+                            "title": _t(f"Chiamate regolari verso {self.names.get(dst, dst)} ogni {mean / 60:.0f} min", f"Regular calls to {self.names.get(dst, dst)} every {mean / 60:.0f} min"),
+                            "why": _t(f"{self.label(src)} ha contattato {dst}:{port} {len(ts)} volte in {(ts[-1] - ts[0]) / 3600:.1f} h a "
                                    f"intervalli quasi identici (variazione {cv:.0%}): così fanno i malware con il loro "
-                                   "server di comando, ma anche alcuni programmi legittimi (aggiornamenti, telemetria)"
-                                   + (f". L'indirizzo è nelle liste di attaccanti: {', '.join(listed)}" if listed else ""),
-                            "fix": "verificare quale programma lo fa su quel dispositivo; se non è riconosciuto, metterlo in quarantena",
+                                   "server di comando, ma anche alcuni programmi legittimi (aggiornamenti, telemetria)", f"{self.label(src)} contacted {dst}:{port} {len(ts)} times in {(ts[-1] - ts[0]) / 3600:.1f} h at "
+                                   f"nearly identical intervals (variation {cv:.0%}): malware does this with its command "
+                                   "server, and so do some legitimate programs (updates, telemetry)")
+                                   + (_t(f". L'indirizzo è nelle liste di attaccanti: {', '.join(listed)}", f". The address is in the lists of attackers: {', '.join(listed)}") if listed else ""),
+                            "fix": _t("verificare quale programma lo fa su quel dispositivo; se non è riconosciuto, metterlo in quarantena", "find which program does it on that device; if it is not recognised, quarantine it"),
                             "detail": {"dst": dst, "port": port, "count": len(ts), "every_s": round(mean), "cv": round(cv, 3),
                                        "domain": self.names.get(dst, "")}})
         return out
@@ -183,13 +186,16 @@ class Hunt:
                     best, best_at = hosts, seen[i][0]
             if len(best) >= SWEEP_HOSTS:
                 out.append({"kind": "sweep", "severity": "medium" if src in self.known else "high", "source": src,
-                            "title": f"{self.label(src)} ha toccato {len(best)} dispositivi della rete in {SWEEP_MIN} minuti",
-                            "why": "È il movimento di chi esplora la rete dall'interno (un dispositivo compromesso, o "
-                                   "un programma di scansione): un dispositivo normale parla con pochi altri"
-                                   + (". È un dispositivo che il firewall conosce per nome" if src in self.known else
-                                      ". Il firewall non lo conosce per nome"),
-                            "fix": "se non è un tuo strumento di rete, metterlo in quarantena e controllarlo; se lo è, "
-                                   "aggiungerlo a AURORA_HUNT_IGNORE",
+                            "title": _t(f"{self.label(src)} ha toccato {len(best)} dispositivi della rete in {SWEEP_MIN} minuti", f"{self.label(src)} touched {len(best)} devices of the network in {SWEEP_MIN} minutes"),
+                            "why": _t("È il movimento di chi esplora la rete dall'interno (un dispositivo compromesso, o "
+                                   "un programma di scansione): un dispositivo normale parla con pochi altri", "It is the move of someone exploring the network from inside (a compromised device, or "
+                                   "a scanning program): a normal device talks to few others")
+                                   + _t((". È un dispositivo che il firewall conosce per nome" if src in self.known else
+                                      ". Il firewall non lo conosce per nome"), (". It is a device the firewall knows by name" if src in self.known else
+                                      ". The firewall does not know it by name")),
+                            "fix": _t("se non è un tuo strumento di rete, metterlo in quarantena e controllarlo; se lo è, "
+                                   "aggiungerlo a AURORA_HUNT_IGNORE", "if it is not a network tool of yours, quarantine it and check it; if it is, "
+                                   "add it to AURORA_HUNT_IGNORE"),
                             "detail": {"hosts": sorted(best)[:20], "at": best_at}})
         return out
 
@@ -205,12 +211,15 @@ class Hunt:
         for (target, port), hits in inbound.items():
             sources = sorted({f"{h['src_ip']} ({h['src_country']})" for h in hits})
             out.append({"kind": "atp_in", "severity": "medium", "source": hits[0]["src_ip"],
-                        "title": f"{len(sources)} indirizzi segnalati da {hits[0]['threatfeed'] or hits[0]['malware']} "
-                                 f"bussano a {self.label(target)} porta {port}",
-                        "why": f"{', '.join(sources[:8])}: {len(hits)} tentativi. È un servizio raggiungibile da Internet, e "
-                               "chi lo scansiona lo sta catalogando per attaccarlo poi",
-                        "fix": "bloccarli (la difesa automatica lo fa da sola in modalità auto) e proteggere il servizio "
-                               "con IPS e un filtro per paese (vedi l'audit)",
+                        "title": _t(f"{len(sources)} indirizzi segnalati da {hits[0]['threatfeed'] or hits[0]['malware']} "
+                                 f"bussano a {self.label(target)} porta {port}", f"{len(sources)} addresses flagged by {hits[0]['threatfeed'] or hits[0]['malware']} "
+                                 f"knock at {self.label(target)} port {port}"),
+                        "why": _t(f"{', '.join(sources[:8])}: {len(hits)} tentativi. È un servizio raggiungibile da Internet, e "
+                               "chi lo scansiona lo sta catalogando per attaccarlo poi", f"{', '.join(sources[:8])}: {len(hits)} attempts. It is a service reachable from the Internet, and "
+                               "whoever scans it is cataloguing it to attack it later"),
+                        "fix": _t("bloccarli (la difesa automatica lo fa da sola in modalità auto) e proteggere il servizio "
+                               "con IPS e un filtro per paese (vedi l'audit)", "block them (the automatic defence does it by itself in auto mode) and protect the service "
+                               "with IPS and a country filter (see the audit)"),
                         "detail": {"target": target, "port": port, "sources": [h["src_ip"] for h in hits], "count": len(hits)}})
         for dst, hits in outbound.items():
             devices = sorted({h["src_ip"] for h in hits})
@@ -220,21 +229,25 @@ class Hunt:
             provider = self.shared(dst) if self.shared else ""
             domain = self.names.get(dst, "") if self.names.get(dst) != dst else ""
             if listed or feed.lower() not in ("greynoise",):
-                sev, verdict = "high", "da trattare come un dispositivo possibilmente compromesso"
+                sev, verdict = "high", _t("da trattare come un dispositivo possibilmente compromesso", "to be treated as a device that may be compromised")
             elif port in ("443", "80") and (len(devices) >= 2 or provider):
-                sev, verdict = "low", ("molto probabilmente un falso positivo: GreyNoise elenca gli scanner di "
+                sev, verdict = "low", _t(("molto probabilmente un falso positivo: GreyNoise elenca gli scanner di "
                                        "Internet, e un indirizzo cloud condiviso"
                                        + (f" (è di {provider})" if provider else "") + " chiamato sulla porta web è "
-                                       "di solito un servizio legittimo")
+                                       "di solito un servizio legittimo"), ("very likely a false positive: GreyNoise lists the scanners of the "
+                                       "Internet, and a shared cloud address"
+                                       + (f" (it is {provider}'s)" if provider else "") + " called on the web port is "
+                                       "usually a legitimate service"))
             else:
-                sev, verdict = "medium", "da verificare"
+                sev, verdict = "medium", _t("da verificare", "to be checked")
             out.append({"kind": "atp_out", "severity": sev, "source": devices[0],
-                        "title": f"{len(devices)} dispositivo/i della casa verso un indirizzo segnalato da {feed}",
+                        "title": _t(f"{len(devices)} dispositivo/i della casa verso un indirizzo segnalato da {feed}", f"{len(devices)} device(s) of the house towards an address flagged by {feed}"),
                         "why": f"{', '.join(self.label(d) for d in devices)} → {dst}:{port}" + (f" ({domain})" if domain else "")
-                               + f", {len(hits)} volte. Giudizio: {verdict}"
-                               + (f". Liste di attaccanti: {', '.join(listed)}" if listed else ""),
-                        "fix": "se il giudizio è grave, quarantena del dispositivo; se è un falso positivo, un'eccezione "
-                               "ATP sul firewall per quell'indirizzo",
+                               + _t(f", {len(hits)} volte. Giudizio: {verdict}", f", {len(hits)} times. Verdict: {verdict}")
+                               + (_t(f". Liste di attaccanti: {', '.join(listed)}", f". Lists of attackers: {', '.join(listed)}") if listed else ""),
+                        "fix": _t("se il giudizio è grave, quarantena del dispositivo; se è un falso positivo, un'eccezione "
+                               "ATP sul firewall per quell'indirizzo", "if the verdict is serious, quarantine the device; if it is a false positive, an ATP "
+                               "exception on the firewall for that address"),
                         "detail": {"dst": dst, "port": port, "devices": devices, "feed": feed, "domain": domain,
                                    "count": len(hits)}})
         return out
@@ -246,11 +259,11 @@ class Hunt:
             by_src[d["src"]].append(d)
         for src, items in by_src.items():
             sev = "high" if any(d["dangerous"] for d in items) else ("medium" if any(d["category"] for d in items
-                                                                                   if d["why"][0].startswith("categoria")) else "low")
+                                                                                   if d["why"][0].startswith(("categoria", "firewall category"))) else "low")
             out.append({"kind": "domain", "severity": sev, "source": src,
-                        "title": f"{self.label(src)}: {len(items)} domini dubbi",
+                        "title": _t(f"{self.label(src)}: {len(items)} domini dubbi", f"{self.label(src)}: {len(items)} doubtful domains"),
                         "why": "; ".join(f"{d['domain']} ({', '.join(d['why'])}, {d['count']}×)" for d in items[:6]),
-                        "fix": "controllare quale applicazione li contatta; con una categoria pericolosa, quarantena",
+                        "fix": _t("controllare quale applicazione li contatta; con una categoria pericolosa, quarantena", "check which application contacts them; with a dangerous category, quarantine"),
                         "detail": {"domains": [d["domain"] for d in items][:30]}})
         return out
 
@@ -259,23 +272,23 @@ class Hunt:
         failed = Counter(a["ip"] for a in self.admin if a["kind"] == "login" and not a["ok"])
         for ip, n in failed.items():
             out.append({"kind": "admin_fail", "severity": "high" if not is_private(ip) else "medium", "source": ip,
-                        "title": f"{n} login falliti all'amministrazione del firewall da {ip}",
-                        "why": "Qualcuno prova le password del firewall" + ("" if is_private(ip) else ", da fuori casa"),
-                        "fix": "se non sei tu: bloccare l'indirizzo e cambiare la password", "detail": {"count": n}})
+                        "title": _t(f"{n} login falliti all'amministrazione del firewall da {ip}", f"{n} failed logins to the firewall's administration from {ip}"),
+                        "why": _t("Qualcuno prova le password del firewall", "Someone is trying the firewall's passwords") + ("" if is_private(ip) else _t(", da fuori casa", ", from outside the house")),
+                        "fix": _t("se non sei tu: bloccare l'indirizzo e cambiare la password", "if it is not you: block the address and change the password"), "detail": {"count": n}})
         for a in self.admin:
             if a["kind"] == "login" and a["ok"] and a["ip"] and not is_private(a["ip"]):
                 out.append({"kind": "admin_outside", "severity": "high", "source": a["ip"],
-                            "title": f"Login all'amministrazione del firewall da fuori casa ({a['ip']}, utente {a['user']})",
-                            "why": "L'amministrazione dovrebbe essere raggiungibile solo dalla rete di casa o dalla VPN",
-                            "fix": "se non sei tu: cambiare subito la password, chiudere l'accesso da WAN", "detail": a})
+                            "title": _t(f"Login all'amministrazione del firewall da fuori casa ({a['ip']}, utente {a['user']})", f"A login to the firewall's administration from outside the house ({a['ip']}, user {a['user']})"),
+                            "why": _t("L'amministrazione dovrebbe essere raggiungibile solo dalla rete di casa o dalla VPN", "The administration should be reachable only from the home network or the VPN"),
+                            "fix": _t("se non sei tu: cambiare subito la password, chiudere l'accesso da WAN", "if it is not you: change the password at once, close the access from the WAN"), "detail": a})
         changes = [a for a in self.admin if a["kind"] == "change"]
         if changes:
             outside = [c for c in changes if c["ip"] and not is_private(c["ip"])]
             out.append({"kind": "admin_changes", "severity": "high" if outside else "low", "source": changes[-1]["ip"],
-                        "title": f"{len(changes)} modifiche alla configurazione del firewall",
+                        "title": _t(f"{len(changes)} modifiche alla configurazione del firewall", f"{len(changes)} changes to the firewall's configuration"),
                         "why": "; ".join(f"{time.strftime('%d/%m %H:%M', time.localtime(c['t']))} {c['what']} «{c['name']}» "
-                                         f"{c['verb']} da {c['user']} ({c['ip']})" for c in changes[-8:]),
-                        "fix": "controllare che siano tutte tue" + (" — alcune vengono da fuori casa" if outside else ""),
+                                         f"{c['verb']} " + _t("da", "by") + f" {c['user']} ({c['ip']})" for c in changes[-8:]),
+                        "fix": _t("controllare che siano tutte tue", "check that they are all yours") + (_t(" — alcune vengono da fuori casa", " — some come from outside the house") if outside else ""),
                         "detail": {"changes": changes[-30:]}})
         return out
 
@@ -324,8 +337,8 @@ ICON = {"high": "🔴", "medium": "🟠", "low": "🟡"}
 
 def text(result: dict) -> str:
     f = result["findings"]
-    head = (f"🔎 Caccia alle minacce, ultime {result['hours']:g} ore ({result['lines']} righe del firewall): "
-            + (f"{len(f)} rilievi" if f else "niente di anomalo"))
+    head = (_t(f"🔎 Caccia alle minacce, ultime {result['hours']:g} ore ({result['lines']} righe del firewall): ", f"🔎 Threat hunt, the last {result['hours']:g} hours ({result['lines']} lines of the firewall): ")
+            + _t((f"{len(f)} rilievi" if f else "niente di anomalo"), (f"{len(f)} findings" if f else "nothing unusual")))
     return "\n".join([head] + [f"\n{ICON[x['severity']]} **{x['title']}**\n   {x['why']}\n   ➜ {x['fix']}" for x in f])
 
 

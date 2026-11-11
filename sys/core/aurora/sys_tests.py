@@ -39,7 +39,7 @@ def live_cage(base: Path, command: str, scratch: Path) -> list[str]:
 def run_suite(base: Path, select: str = "", timeout: int = 1800, caged: bool = False, live: bool = False) -> dict:
     """pytest on <base>/sys/core/tests without the GPU tests. {"ok", "passed", "failed", "summary", "output"}.
     `caged`: a sandbox's code, written by the agent and not reviewed yet — run in the projects' cage (prj_run: no
-    network, no home, no .env, no host sockets, only the sandbox writable). C420, 28 Oct: those tests ran inside
+    network, no home, no .env, no host sockets, the sandbox read only and a scratch folder to write in). C420, 28 Oct: those tests ran inside
     aurora-api itself, before any approval — a test file written by a prompt-injected agent was code run as the API."""
     core = base / "sys" / "core"
     expr = "not gpu" + (f" and ({select})" if select else "")
@@ -47,18 +47,17 @@ def run_suite(base: Path, select: str = "", timeout: int = 1800, caged: bool = F
     t0 = time.time()
     if caged:
         import shlex
-        from . import prj_run
         line = f"PYTHONPATH={shlex.quote(f'{core}:{core / 'tests'}')} " + shlex.join(cmd)
-        if live:                                      # the live code after a change: read only in its cage (C562)
-            import shutil
-            import tempfile
-            scratch = Path(tempfile.mkdtemp(prefix="aurora-live-tests-"))
-            try:
-                r = subprocess.run(live_cage(base, line, scratch), capture_output=True, text=True, timeout=timeout)
-            finally:
-                shutil.rmtree(scratch, ignore_errors=True)
-        else:
-            r = subprocess.run(prj_run.cage(None, base, line), capture_output=True, text=True, timeout=timeout)
+        # the code read only in its cage, an empty folder to write in: the live code after a change (C562) and a
+        # sandbox alike (C590: the sandbox was writable whole — a conftest.py left at its root by an earlier test
+        # run rewrote the approved file during apply()'s own run, after the fingerprint check)
+        import shutil
+        import tempfile
+        scratch = Path(tempfile.mkdtemp(prefix="aurora-live-tests-" if live else "aurora-box-tests-"))
+        try:
+            r = subprocess.run(live_cage(base, line, scratch), capture_output=True, text=True, timeout=timeout)
+        finally:
+            shutil.rmtree(scratch, ignore_errors=True)
     else:
         env = dict(os.environ, PYTHONPATH=f"{core}:{core / 'tests'}", PYTHONDONTWRITEBYTECODE="1")
         for k in ("AURORA_ENV_FILE", "AURORA_PLUGIN", "AURORA_IN_SANDBOX"):   # tests build their own .env, and are not

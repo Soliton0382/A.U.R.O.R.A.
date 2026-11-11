@@ -16,6 +16,7 @@ import unicodedata
 from datetime import date, datetime, timedelta, timezone
 
 from . import cal_store, txt_ical
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 DAYS = ("lunedi", "martedi", "mercoledi", "giovedi", "venerdi", "sabato", "domenica")
 DAYS_EN = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
@@ -111,17 +112,17 @@ def line(o: dict) -> str:
 
 
 def agenda(occ: list[dict], today: date, first: date, days: int, failed: list[str] | None = None) -> str:
-    rows, cur = [f"Oggi è {date_it(today)}.", f"Agenda dal {first:%d/%m/%Y} per {days} giorni:"], None
+    rows, cur = [_t(f"Oggi è {date_it(today)}.", f"Today is {today:%A} {today.isoformat()}."), _t(f"Agenda dal {first:%d/%m/%Y} per {days} giorni:", f"Agenda from {first:%Y-%m-%d} for {days} days:")], None
     for o in occ:
         d = datetime.fromisoformat(o["start_iso"]).date()
         if d != cur:
             cur = d
-            rows.append(f"\n{date_it(d)}" + (" (oggi)" if d == today else " (domani)" if d == today + timedelta(days=1) else ""))
+            rows.append("\n" + _t(date_it(d), f"{d:%A} {d.isoformat()}") + _t((" (oggi)" if d == today else " (domani)" if d == today + timedelta(days=1) else ""), (" (today)" if d == today else " (tomorrow)" if d == today + timedelta(days=1) else "")))
         rows.append(line(o))
     if len(rows) == 2:
-        rows.append("nessun impegno")
+        rows.append(_t("nessun impegno", "nothing planned"))
     if failed:
-        rows.append(f"(non letti: {', '.join(failed)})")
+        rows.append(_t(f"(non letti: {', '.join(failed)})", f"(not read: {', '.join(failed)})"))
     return "\n".join(rows)
 
 

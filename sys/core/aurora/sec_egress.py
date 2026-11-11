@@ -29,6 +29,7 @@ import time
 from pathlib import Path
 
 from . import sys_config
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 RIPESTAT = "https://stat.ripe.net/data/announced-prefixes/data.json?resource=AS{asn}"
 REFRESH_DAYS = 7
@@ -141,14 +142,17 @@ class Watch:
         sent = f.get("sent_bytes") or f.get("bytes_sent") or ""
         return {"kind": "egress_deny", "source": src, "count": 1, "internal": True, "first": stamp, "last": stamp,
                 "samples": [f.get("_raw", "")[:600]],
-                "detail": {"title": f"Verso una rete in blacklist: {dst}",
-                           "why": f"Questa macchina ha aperto una connessione verso {dst}:{f.get('dst_port', '?')}, "
-                                  f"in una rete della blacklist (AURORA_EGRESS_DENY_ASNS)"
-                                  + (f"; processo: {who}" if who else "; il processo non si vede più")
-                                  + (f"; byte inviati: {sent}" if sent else "") + ".",
-                           "action": "Guarda il processo: un servizio di Aurora non può arrivarci (le sue unit lo "
+                "detail": {"title": _t(f"Verso una rete in blacklist: {dst}", f"Towards a network on the deny list: {dst}"),
+                           "why": _t(f"Questa macchina ha aperto una connessione verso {dst}:{f.get('dst_port', '?')}, "
+                                  f"in una rete della blacklist (AURORA_EGRESS_DENY_ASNS)", f"This machine opened a connection to {dst}:{f.get('dst_port', '?')}, "
+                                  f"in a network of the deny list (AURORA_EGRESS_DENY_ASNS)")
+                                  + _t((f"; processo: {who}" if who else "; il processo non si vede più"), (f"; process: {who}" if who else "; the process is no longer visible"))
+                                  + (_t(f"; byte inviati: {sent}", f"; bytes sent: {sent}") if sent else "") + ".",
+                           "action": _t("Guarda il processo: un servizio di Aurora non può arrivarci (le sue unit lo "
                                      "vietano), quindi è un altro programma di questa macchina, o le unit vanno "
-                                     "riscritte (install.sh).",
+                                     "riscritte (install.sh).", "Look at the process: a service of Aurora's cannot get there (its units forbid "
+                                     "it), so it is another program of this machine, or the units are to be "
+                                     "written again (install.sh)."),
                            "destination": dst, "process": who}}
 
 
@@ -230,15 +234,18 @@ class ModelWatch:
             self.told[peer] = now
             net = self.network(peer)
             stamp = time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime(now))
-            where = f"AS{net['asn']} {net['holder']}" if net else "rete non trovata"
+            where = f"AS{net['asn']} {net['holder']}" if net else _t("rete non trovata", "network not found")
             found.append({"kind": "model_egress", "source": "127.0.0.1", "count": 1, "internal": True,
                           "first": stamp, "last": stamp, "samples": [line[:600]],
-                          "detail": {"title": f"Il modello locale verso {peer} ({where})",
-                                     "why": f"Il processo del modello locale ({m.group(1)}, pid {m.group(2)}) ha una "
+                          "detail": {"title": _t(f"Il modello locale verso {peer} ({where})", f"The local model towards {peer} ({where})"),
+                                     "why": _t(f"Il processo del modello locale ({m.group(1)}, pid {m.group(2)}) ha una "
                                             f"connessione verso {peer}:{f[5].rsplit(':', 1)[-1]} (stato {f[1]}): il "
-                                            "modello non ha nessun motivo di uscire da questa macchina.",
-                                     "action": "Aggiungi la rete alla blacklist con il pulsante qui sotto; la unit "
-                                               "del modello già lo ferma, la blacklist ferma anche gli strumenti.",
+                                            "modello non ha nessun motivo di uscire da questa macchina.", f"The local model's process ({m.group(1)}, pid {m.group(2)}) has a "
+                                            f"connection to {peer}:{f[5].rsplit(':', 1)[-1]} (state {f[1]}): the "
+                                            "model has no reason to leave this machine."),
+                                     "action": _t("Aggiungi la rete alla blacklist con il pulsante qui sotto; la unit "
+                                               "del modello già lo ferma, la blacklist ferma anche gli strumenti.", "Add the network to the deny list with the button below; the model's "
+                                               "unit stops it already, the deny list stops the tools too."),
                                      "destination": peer, "process": m.group(1), **net}})
         return found
 

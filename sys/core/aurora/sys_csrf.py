@@ -33,7 +33,10 @@ def _elsewhere(headers) -> bool:
         if origin == "null":                             # a sandboxed frame (a preview, an artifact): never the session's
             return True
         host = headers.get("x-forwarded-host") or headers.get("host") or ""
-        return urlparse(origin).netloc.lower() != host.lower()
+        o = urlparse(origin)
+        if o.scheme.lower() == "http" and (headers.get("x-forwarded-proto") or "").lower() == "https":
+            return True                                  # C595: the same name over plain http is not this site
+        return o.netloc.lower() != host.lower()
     return headers.get("sec-fetch-site", "").lower() == "cross-site"
 
 

@@ -112,6 +112,10 @@ class Plugin:
 # FAILED_S later, and it is tried again
 FAILED_S = 600
 _FAILED: dict[tuple[str, float], tuple[float, str]] = {}
+# a plugin that is not loaded is said once per process, and again only after it loaded in between (12 Nov: with the
+# code unsigned for six minutes, «not loaded, not signed and not forged» was written 5,788 times — every listing, for
+# each plugin)
+_REFUSED: set[tuple[str, str]] = set()
 
 
 class PluginHost:
@@ -170,20 +174,21 @@ class PluginHost:
             from . import sys_ethics
             if (bad := sys_ethics.forbidden_capabilities(manifest)):      # ethics code, level A: never loaded
                 p.error = f"refused by the ethics code (level A): {', '.join(bad)}"
-                self.log.warning("plugin %s refused by the ethics code: %s", p.name, ", ".join(bad))
+                self._refused(p.name, "ethics", "plugin %s refused by the ethics code: %s", p.name, ", ".join(bad))
                 out.append(p)
                 continue
             if outside:                                        # a plugins' folder the signature does not cover (audit,
                 p.error = ("not in sys/plugins, the folder the owner's signature covers: "   # 10 Nov: a setting moved it)
                            "set AURORA_PLUGINS_DIR back to sys/plugins")
-                self.log.warning("plugin %s: not loaded, outside the signed plugins' folder", p.name)
+                self._refused(p.name, "outside", "plugin %s: not loaded, outside the signed plugins' folder", p.name)
                 out.append(p)
                 continue
             if mf.parent.name in sys_ethics.unsigned_plugins(self.cfg.root):   # neither Aurora's (forged) nor signed
                 p.error = "not signed by the owner and not one of Aurora's own plugins: sudo aurora-root sign"
-                self.log.warning("plugin %s: not loaded, not signed and not forged", p.name)
+                self._refused(p.name, "unsigned", "plugin %s: not loaded, not signed and not forged", p.name)
                 out.append(p)
                 continue
+            _REFUSED.difference_update({(p.name, why) for why in ("ethics", "outside", "unsigned")})   # loaded again
             if with_tools and p.enabled and not p.missing:
                 try:
                     p.tools = self._tools(p, mf.stat().st_mtime)
@@ -192,6 +197,11 @@ class PluginHost:
                     self.log.warning("plugin %s: cannot list tools: %s", p.name, p.error)
             out.append(p)
         return out
+
+    def _refused(self, name: str, why: str, msg: str, *args) -> None:
+        if (name, why) not in _REFUSED:
+            _REFUSED.add((name, why))
+            self.log.warning(msg, *args)
 
     def get(self, name: str) -> Plugin | None:
         return next((p for p in self.plugins() if p.name == name), None)
@@ -215,12 +225,19 @@ class PluginHost:
             mine = lambda k: k.startswith(f"AURORA_{p.name.upper()}_") and k not in theirs   # noqa: E731
         else:
             mine = lambda k: True                        # noqa: E731
+        fixed = dict(env)
+        from . import plg_contract
         for k in p.manifest.get("env", []):
-            if mine(k):
+            if mine(k) and plg_contract.SETTING.match(str(k)):
                 env[k] = str(self.cfg.values.get(k, "") or "")
-        for k, v in p.manifest.get("env_as", {}).items():     # .env key -> name the program expects
+        for k, v in (p.manifest.get("env_as") or {}).items():     # .env key -> name the program expects
+            # C591: never a name the system, the loader or Aurora read (PATH, LD_PRELOAD: the host itself ran a planted
+            # «bwrap» with them, outside the cage) — refused here at every start, whoever wrote the manifest
+            if not plg_contract.env_name_ok(v):
+                raise RuntimeError(f"env_as: {v!r} is not a name a plugin's program may be given: the plugin is not run")
             if mine(k):
                 env[v] = str(self.cfg.values.get(k, "") or "")
+        env.update(fixed)                                # what Aurora sets herself is never a manifest's to change
         # N64: the cage holds neither Aurora's key nor the user's key files; a plugin keeping sealed data of its own
         # gets that one key, opened — only the purposes below, never the memory's or the state's
         from . import sys_seal
@@ -252,6 +269,8 @@ class PluginHost:
                 raise RuntimeError("an address is only for the owner's MCP servers (kind mcp), never a forged plugin")
             return await self._remote_session(p, work)
         errlog = _redacted_log(self.cfg.path("AURORA_LOG_DIR") / "plugins" / f"{p.name}.stderr.log")
+        from . import plg_sandbox
+        marks = plg_sandbox.repo_marks(self.cfg) if plg_sandbox.forged(p.manifest) else None
         try:
             async with stdio_client(self._params(p), errlog=errlog) as (read, write):
                 async with ClientSession(read, write) as session:
@@ -259,6 +278,8 @@ class PluginHost:
                     return await work(session)
         finally:
             errlog.close()
+            if marks is not None:                        # C591: a repository or an environment it left behind
+                plg_sandbox.set_aside_new(self.cfg, marks, self.log.warning)
 
     async def _remote_session(self, p: Plugin, work):
         """An MCP server at an address (streamable HTTP, http or https: owner, 10 Nov), reached there only — what it

@@ -25,6 +25,7 @@ from xml.etree import ElementTree as ET
 from xml.sax.saxutils import escape
 
 from . import ast_sequence
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 FORMATS = ("nina", "ekos", "ccdciel", "csv")
 
@@ -70,7 +71,7 @@ def jobs(seq: dict) -> list[dict]:
 def read(seq: dict, name: str = "") -> dict:
     p = ast_sequence.parse(json.dumps(seq), name)
     if not p["targets"]:
-        raise ValueError("la sequenza non ha un oggetto con le coordinate")
+        raise ValueError(_t("la sequenza non ha un oggetto con le coordinate", "the sequence has no object with coordinates"))
     return {**p, "target": p["targets"][0], "jobs": jobs(seq)}
 
 
@@ -126,9 +127,11 @@ def ekos(p: dict, stem: str, folder: str = "") -> bytes:
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr(f"{stem}.esq", esq(p))
         z.writestr(f"{stem}.esl", esl(p, path))
-        z.writestr("LEGGIMI.txt", "Ekos: apri il file .esl nello Scheduler (o il .esq in Capture).\n"
+        z.writestr("LEGGIMI.txt", _t("Ekos: apri il file .esl nello Scheduler (o il .esq in Capture).\n"
                    f"Il .esl cerca la sequenza in: {path}\nSe l'hai salvata altrove, sceglila di nuovo nel lavoro.\n"
-                   "Guadagno e offset sono scritti per entrambi i modi dei driver INDI (CCD_GAIN e CCD_CONTROLS).\n")
+                   "Guadagno e offset sono scritti per entrambi i modi dei driver INDI (CCD_GAIN e CCD_CONTROLS).\n", "Ekos: open the .esl file in the Scheduler (or the .esq in Capture).\n"
+                   f"The .esl looks for the sequence in: {path}\nIf you saved it elsewhere, choose it again in the job.\n"
+                   "Gain and offset are written for both ways of the INDI drivers (CCD_GAIN and CCD_CONTROLS).\n"))
     return buf.getvalue()
 
 
@@ -215,10 +218,10 @@ def target_csv(p: dict, common: str = "") -> bytes:
 def export(seq: dict, stem: str, fmt: str, folder: str = "", common: str = "") -> tuple[bytes, str, str]:
     """(content, file name, media type) of the sequence in that format."""
     if fmt not in FORMATS[1:]:
-        raise ValueError(f"formato: uno di {', '.join(FORMATS)}")
+        raise ValueError(_t(f"formato: uno di {', '.join(FORMATS)}", f"format: one of {', '.join(FORMATS)}"))
     p = read(seq, stem)
     if not p["jobs"]:
-        raise ValueError("la sequenza non ha pose di luce da esportare")
+        raise ValueError(_t("la sequenza non ha pose di luce da esportare", "the sequence has no light frames to export"))
     if fmt == "ekos":
         return ekos(p, stem, folder), f"{stem} Ekos.zip", "application/zip"
     if fmt == "ccdciel":

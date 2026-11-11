@@ -58,8 +58,8 @@ def _list(folder) -> list[dict]:
 def dj_state() -> dict:
     from aurora import aud_dj
     d = _dir()
-    lang = str(cfg["AURORA_LANG_DEFAULT"])
-    from aurora import aud_playlists, aud_song, aud_song_style
+    from aurora import aud_playlists, aud_song, aud_song_style, sys_lang
+    lang = sys_lang.reader(cfg.now())                 # the styles' names in the reader's language (C526)
     tracks, mixes = _list(d), _list(d / "mixes")
     have = {t["name"] for t in tracks} | {f"mixes/{m['name']}" for m in mixes}
     return {"styles": aud_dj.styles(lang), "tracks": tracks, "mixes": mixes, "song": aud_song.installed(cfg),

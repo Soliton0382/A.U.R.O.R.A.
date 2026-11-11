@@ -111,7 +111,7 @@ class Rem:
         out = []
         for shard in self.p.reader.layout.shards("memory", "conversation"):
             with sol_vault.db(shard, readonly=True) as con:
-                out += [self.p.reader._sol(r) for r in con.execute(      # sealed turns opened (N64)
+                out += [self.p.reader._sol(r, "memory") for r in con.execute(      # sealed turns opened (N64)
                     f"SELECT {','.join(sol_vault.COLUMNS)} FROM solitons WHERE consolidated=0 ORDER BY created_at")]
         return out
 

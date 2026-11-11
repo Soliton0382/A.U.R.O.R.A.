@@ -2,6 +2,8 @@
 // Copyright 2026 A.U.R.O.R.A. Project
 // Access to aurora-api. The browser is a registered device: after one login with the API key the
 // server sets an HttpOnly cookie, sent automatically; page scripts never hold a credential.
+import { said } from "./i18n.js";
+
 const OLD_KEY = "aurora.key";
 try { localStorage.removeItem(OLD_KEY); } catch { /* storage unavailable */ }
 
@@ -38,16 +40,16 @@ export async function call(path, options = {}) {
         ...options, credentials: "same-origin",
         headers: { "Content-Type": "application/json", ...(key ? { "X-Aurora-Request": key } : {}), ...(options.headers || {}) },
       });
-      if (res.status === 401) throw Object.assign(new Error("unauthorized"), { status: 401 });
+      if (res.status === 401) throw Object.assign(new Error(said("unauthorized")), { status: 401 });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw Object.assign(new Error(JSON.stringify(body.detail || res.statusText)), { status: res.status });
+        throw Object.assign(new Error(JSON.stringify(said(body.detail) || res.statusText)), { status: res.status });
       }
       out = await res.json();
       if (acted) dispatchEvent(new CustomEvent("aurora:acted", { detail: { path, method } }));
     } catch (e) {
       if (e.status || e.name === "AbortError" || !lost(e) || !again || attempt >= TRIES) {
-        throw lost(e) && !e.status ? Object.assign(new Error("connection lost (the work may still be running: try again in a moment)"), { lost: true }) : e;
+        throw lost(e) && !e.status ? Object.assign(new Error(said("connection lost (the work may still be running: try again in a moment)")), { lost: true }) : e;
       }
       await back();
       await sleep(Math.min(1000 * 2 ** (attempt - 1), 8000));

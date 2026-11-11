@@ -20,6 +20,7 @@ import re
 import subprocess
 
 from . import sys_config
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 BRIDGES = ("virbr", "docker", "br-", "vnet", "lxc", "veth")        # this machine's own guests' networks
 
@@ -27,8 +28,8 @@ BRIDGES = ("virbr", "docker", "br-", "vnet", "lxc", "veth")        # this machin
 def known(cfg: sys_config.Config) -> dict:
     """Aurora's own doors, on the ports the settings give them."""
     https, http = str(cfg["AURORA_HTTPS_PORT"]), str(cfg["AURORA_HTTP_PORT"])
-    return {("tcp", https): "Caddy: l'interfaccia di Aurora (HTTPS)", ("udp", https): "Caddy: HTTP/3",
-            ("tcp", http): "Caddy: rinvio a HTTPS"}
+    return {("tcp", https): _t("Caddy: l'interfaccia di Aurora (HTTPS)", "Caddy: Aurora's interface (HTTPS)"), ("udp", https): "Caddy: HTTP/3",
+            ("tcp", http): _t("Caddy: rinvio a HTTPS", "Caddy: redirect to HTTPS")}
 
 
 def bridged() -> set[str]:
@@ -39,12 +40,19 @@ def bridged() -> set[str]:
         return set()
     return {m.group(2) for m in re.finditer(r"^\d+: (\S+)\s+inet6? ([0-9a-fA-F.:]+)/", out, re.M)
             if m.group(1).startswith(BRIDGES)}
-COMMON = {("tcp", "22"): ("SSH", "Accesso remoto alla macchina: va bene con le chiavi; con le password è il primo bersaglio",
+COMMON_IT = {("tcp", "22"): ("SSH", "Accesso remoto alla macchina: va bene con le chiavi; con le password è il primo bersaglio",
                           "usare solo le chiavi (PasswordAuthentication no) o limitarlo alla LAN"),
           ("tcp", "1716"): ("KDE Connect", "Lo scambio con il telefono del desktop KDE: ascolta su tutta la rete",
                             "se non lo usi, disattivalo; altrimenti va bene in casa"),
           ("udp", "1716"): ("KDE Connect", "La scoperta dei dispositivi di KDE Connect", "come sopra"),
           ("udp", "5353"): ("mDNS", "La scoperta dei dispositivi nella rete (stampanti, Chromecast)", "normale in casa")}
+COMMON_EN = {("tcp", "22"): ("SSH", "Remote access to the machine: fine with keys; with passwords it is the first target",
+                             "use keys only (PasswordAuthentication no) or limit it to the LAN"),
+             ("tcp", "1716"): ("KDE Connect", "The KDE desktop's exchange with the phone: it listens on the whole network",
+                               "if you do not use it, turn it off; otherwise fine at home"),
+             ("udp", "1716"): ("KDE Connect", "KDE Connect's device discovery", "as above"),
+             ("udp", "5353"): ("mDNS", "The discovery of devices on the network (printers, Chromecast)", "normal at home")}
+COMMON = COMMON_IT                                         # the name older code knows
 CLIENTS = ("cloudflared", "kdeconnectd", "avahi-daemon")             # their high UDP ports are a client's, not a door
 
 
@@ -84,26 +92,26 @@ def findings(cfg: sys_config.Config, socks: list[dict]) -> list[dict]:
     for s in socks:
         k = (s["proto"], s["port"])
         if s["local"]:
-            s["kind"], s["what"] = "local", "solo da questa macchina"
+            s["kind"], s["what"] = "local", _t("solo da questa macchina", "from this machine only")
         elif k in doors:
             s["kind"], s["what"] = "expected", doors[k]
         elif s["port"] in decoys and s["proto"] == "tcp":
-            s["kind"], s["what"] = "expected", "esca: chi la tocca viene bloccato"
+            s["kind"], s["what"] = "expected", _t("esca: chi la tocca viene bloccato", "decoy: whoever touches it is blocked")
         elif s["proto"] == "udp" and s["port"] == sentinel:
-            s["kind"], s["what"] = "expected", "la sentinella: riceve il syslog del firewall"
+            s["kind"], s["what"] = "expected", _t("la sentinella: riceve il syslog del firewall", "the sentinel: it receives the firewall's syslog")
         elif s["process"] in CLIENTS and k not in COMMON:
-            s["kind"], s["what"] = "client", f"porta di un client ({s['process']}), non un servizio"
+            s["kind"], s["what"] = "client", _t(f"porta di un client ({s['process']}), non un servizio", f"a client's port ({s['process']}), not a service")
         elif k in COMMON:
-            name, why, fix = COMMON[k]
+            name, why, fix = _t(COMMON_IT, COMMON_EN)[k]
             s["kind"], s["what"] = "exposed", name
-            out.append({"severity": "low", "title": f"{name} raggiungibile dalla rete ({s['proto']} {s['port']})",
+            out.append({"severity": "low", "title": _t(f"{name} raggiungibile dalla rete ({s['proto']} {s['port']})", f"{name} reachable from the network ({s['proto']} {s['port']})"),
                         "why": why, "fix": fix, "port": s["port"]})
         else:
-            s["kind"], s["what"] = "exposed", s["process"] or "servizio di sistema"
-            out.append({"severity": "medium", "title": f"Servizio sconosciuto raggiungibile dalla rete: {s['proto']} "
+            s["kind"], s["what"] = "exposed", s["process"] or _t("servizio di sistema", "system service")
+            out.append({"severity": "medium", "title": _t("Servizio sconosciuto raggiungibile dalla rete", "An unknown service reachable from the network") + f": {s['proto']} "
                                                      f"{s['address']}" + (f" ({s['process']})" if s["process"] else ""),
-                        "why": "Una porta aperta su tutta la rete che Aurora non riconosce: se non serve, è una porta in più",
-                        "fix": "capire quale programma è (sudo ss -tulnp) e chiuderlo o legarlo a 127.0.0.1", "port": s["port"]})
+                        "why": _t("Una porta aperta su tutta la rete che Aurora non riconosce: se non serve, è una porta in più", "A port open on the whole network that Aurora does not recognise: if not needed, it is one more door"),
+                        "fix": _t("capire quale programma è (sudo ss -tulnp) e chiuderlo o legarlo a 127.0.0.1", "find which program it is (sudo ss -tulnp) and close it or bind it to 127.0.0.1"), "port": s["port"]})
     # one finding per service, not one per address family
     unique = {f["title"].split(" (")[0] + f.get("port", ""): f for f in out}
     return sorted(unique.values(), key=lambda f: {"high": 0, "medium": 1, "low": 2}[f["severity"]])

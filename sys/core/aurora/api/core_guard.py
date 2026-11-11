@@ -149,7 +149,8 @@ def upstream_error(e: BaseException, limit: int = 160) -> str:
 # an address of a service the user gives, and the secrets Aurora sends to it
 ADDRESS_SECRETS = {"AURORA_HA_URL": ("AURORA_HA_TOKEN",), "AURORA_CALDAV_URL": ("AURORA_CALDAV_PASSWORD",),
                    "AURORA_WEBDAV_URL": ("AURORA_WEBDAV_PASSWORD",), "AURORA_MASTODON_URL": ("AURORA_MASTODON_TOKEN",),
-                   "AURORA_EMAIL_IMAP_HOST": ("AURORA_EMAIL_PASSWORD",), "AURORA_EMAIL_SMTP_HOST": ("AURORA_EMAIL_PASSWORD",)}
+                   "AURORA_EMAIL_IMAP_HOST": ("AURORA_EMAIL_PASSWORD",), "AURORA_EMAIL_SMTP_HOST": ("AURORA_EMAIL_PASSWORD",),
+                   "AURORA_ASTRO_PC": ()}                 # C595: no secret goes there, but host:port is reached and told
 
 
 def _same(a: str, b: str) -> bool:

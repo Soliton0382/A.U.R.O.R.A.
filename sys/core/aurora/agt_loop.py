@@ -26,6 +26,7 @@ from . import agt_asked, agt_phone, mdl_fit, sns_clock, sys_config, sys_log, sys
 from .kno_answer import Answer, Trail
 from .agt_loop_make import AgentMakers
 from . import agt_tools
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 from .agt_loop_report import SEP, AgentReport
 from .plg_host import PluginHost
 from .sys_approvals import Approvals, needs_owner
@@ -365,6 +366,7 @@ class Agent(AgentMakers, AgentReport):
         if name not in index:
             return f"ERROR: unknown tool {name}"
         plugin, tool, effect = index[name]
+        agt_asked.widen(self.host.get(plugin), plugin, tool, effect)   # C590: from the network? the core decides
         from . import sec_linkcheck                         # a link of bad reputation is never opened (linkcheck)
         refused = sec_linkcheck.tool_call(self.cfg, plugin, args, emit, self.log)
         if refused:
@@ -404,12 +406,26 @@ class Agent(AgentMakers, AgentReport):
             private += [v for v in m.to_ph if v not in private]
         from . import hom_safety                          # C536: lowering the house's security always waits for the owner
         lowers = hom_safety.call_lowers(self.host.get(plugin).manifest if self.host.get(plugin) else {}, tool, args)
-        home = not private and not lowers and self._home_free(plugin, tool, args)
+        manifest = self.host.get(plugin).manifest if self.host.get(plugin) else {}
+        carried = agt_asked.carries_out(self, manifest, args)   # C590: a way out after a network read
+        held = bool(carried) or (agt_asked.owner_decides(self, effect) and tool not in (manifest.get("home_commands") or []))
+        if held and not carried and field and isinstance(args.get(field), str):      # the owner's choice (12 Nov):
+            why_post = agt_asked.post_checked(self, self.cfg, f"{plugin}.{tool}", args[field],   # a post checked goes
+                                              self.p._for("service"))                          # out by itself
+            held = bool(why_post)
+            if why_post:
+                args["_purpose"] = (args.get("_purpose", "") + f" — {why_post}").strip(" —")
+        home = not private and not lowers and not carried and self._home_free(plugin, tool, args)
         if home:
             emit("agent.home", {"plugin": plugin, "tool": tool, "asked": self.asked})
             self.notify("home.command", {"title": f"{plugin}.{tool}", "arguments": {k: v for k, v in args.items()
                                                                                  if k != "_purpose"}})
-        if not home and (private or lowers or needs_owner(effect, self.cfg, f"{plugin}.{tool}")):
+        if not home and (private or lowers or held or needs_owner(effect, self.cfg, f"{plugin}.{tool}")):
+            if held:                                         # said to the owner, in the approval itself
+                why = (f"destination not in your request nor in what was read: {carried[:120]}" if carried else
+                       "the run had read content from the network: not done alone")
+                args["_purpose"] = (args.get("_purpose", "") + f" — {why}").strip(" —")
+                emit("agent.held", {"plugin": plugin, "tool": tool, "why": why[:200]})
             if private:
                 args["_purpose"] = (args.get("_purpose", "") + f" — privacy: {len(private)} sensitive "
                                     f"item(s) found, check before publishing").strip(" —")
@@ -436,6 +452,7 @@ class Agent(AgentMakers, AgentReport):
         if not r["ok"] and "Connection closed" in r["text"]:   # the plugin died starting: its own last words say why
             r = {**r, "text": r["text"] + plugin_cause(self.cfg, plugin)}
         agt_asked.mark(self, plugin, tool, emit)             # C561: from here «asked» covers only what the goal names
+        agt_asked.saw(self, plugin, tool, r["text"] if r["ok"] else "")
         if r["ok"]:                                          # from the network: tried on a decoy first (sec_detonate)
             from . import agt_logguard, sec_detonate
             if (blocked := sec_detonate.agent_gate(self, plugin, tool, args, r["text"], emit, run_id)):
@@ -507,7 +524,7 @@ class Agent(AgentMakers, AgentReport):
                 self.between()
             if self.cancelled and self.cancelled():         # 🛑 what is done stays, nothing more starts
                 emit("agent.cancelled", {"step": steps})
-                summary = "Annullato dal proprietario: il lavoro fatto finora è nel registro."
+                summary = _t("Annullato dal proprietario: il lavoro fatto finora è nel registro.", "Cancelled by the owner: the work done so far is in the log.")
                 break
             if model is not self._model():                  # the first step, or the local model after private data
                 model = self._model()
@@ -517,9 +534,11 @@ class Agent(AgentMakers, AgentReport):
                 c = self._model().complete_turns(messages, min(budget, room), think=True)
             except mdl_fit.CloudOut as e:                  # C385: the cloud ran out and the run is too long for the local
                 emit("agent.cloud_out", {"step": steps, "error": str(e)[:300]})
-                summary = (f"☁️ Cloud esaurito al passo {steps}: il modello cloud si è fermato e il lavoro fatto fin qui "
+                summary = _t((f"☁️ Cloud esaurito al passo {steps}: il modello cloud si è fermato e il lavoro fatto fin qui "
                            "non entra nella finestra del modello locale. La fase si ferma qui: 🔁 riprovala quando il "
-                           "cloud torna disponibile. Quello che è stato fatto finora è nel registro qui sotto.")
+                           "cloud torna disponibile. Quello che è stato fatto finora è nel registro qui sotto."), (f"☁️ Cloud used up at step {steps}: the cloud model stopped and the work done so far "
+                           "does not fit the local model's window. The phase stops here: 🔁 try it again when the "
+                           "cloud is available. What was done so far is in the log below."))
                 break
             text, calls, said = parse(c.answer)
             cut = not calls and bool(OPENED.search(said))      # a call begun and never ended: not an answer (C278)
@@ -616,7 +635,7 @@ class Agent(AgentMakers, AgentReport):
                 report = self._model().complete_turns(messages, min(1500, room), think=False).answer
             except (httpx.HTTPError, mdl_fit.CloudOut) as e:  # never a run without a report (C68, C385)
                 self.log.warning("agent run %s: final report failed: %s", run_id, e)
-                report = "Non sono riuscita a scrivere il resoconto finale (" + type(e).__name__ + ")."
+                report = _t("Non sono riuscita a scrivere il resoconto finale (" + type(e).__name__ + ").", "I could not write the final report (" + type(e).__name__ + ").")
             _, rcalls, rsaid = parse(report)
             ends = [json.loads(x)["arguments"].get("summary") for x in rcalls if '"finish"' in x]
             report = unwrap(str(ends[0]).strip() if ends and ends[0] else (rsaid or CALL.sub("", report).strip()))

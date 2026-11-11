@@ -461,9 +461,15 @@ fi
 step "12. $(t 'Servizi (systemd) e HTTPS, sul loro account «aurora»' 'Services (systemd) and HTTPS, on their own account «aurora»')"
 # U6: the services under an account of their own (no login, the GPU's groups only), the data theirs, the code yours;
 # the units, the polkit rule, root's copy of its units' code written for it, and the services started
-sudo .venv/bin/python sys/core/script/sys_service_account.py || die "$(t 'servizi' 'services')"
+# C592 (audit F2): root runs the account's steps from its own signed copy (aurora-root, there since step 11), never
+# this folder's script with the .venv's Python — both stand where the services' account can write
+if [ -x /usr/local/sbin/aurora-root ]; then sudo /usr/local/sbin/aurora-root account || die "$(t 'servizi' 'services')"
+else sudo /usr/bin/python3 -I sys/core/script/sys_service_account.py || die "$(t 'servizi' 'services')"; fi
 # from here the data are the account's, and you join its group only at your next login: read them as the account (C447)
 AS_SVC=(sudo -u aurora -g aurora)
+# C591: the plugins' fetched files (step 9) sealed with Aurora's key, which only the account holds: checked at each start
+if "${AS_SVC[@]}" .venv/bin/python sys/core/script/plg_install_all.py --seal; then ok "$(t 'file dei plugin sigillati' 'the plugins'"'"' files sealed')"
+else warn "$(t 'alcuni plugin non sigillati: reinstallali dalla loro pagina (Installa)' 'some plugins not sealed: install them again from their page (Install)')"; fi
 if [ "$TLS" = internal ] || [ "$TRUST" = internal ]; then
   ADMIN=$("${AS_SVC[@]}" .venv/bin/python -c 'import sys; sys.path.insert(0, "sys/core"); from aurora import sys_config, net_https; print(net_https.admin_address(sys_config.get()))')
   sudo caddy trust --address "$ADMIN" && ok "$(t 'certificato locale di Caddy riconosciuto da questo computer' 'Caddy local certificate trusted on this computer')"

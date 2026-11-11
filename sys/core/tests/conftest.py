@@ -36,6 +36,22 @@ def write_env(root: Path, **overrides: str) -> Path:
     return env
 
 
+def _never_the_installation() -> None:
+    """12 Nov: a project turn's test imported api.core, whose configuration is the process's own (sys_config.get()):
+    with this installation's .env next to the code, the test searched the owner's real knowledge and memory (36
+    indexes) and called the live models service — C208's class again. The process's configuration is now a test
+    installation of its own for the whole session, unless the run named one (AURORA_ENV_FILE: the no-.env check)."""
+    import os
+    import tempfile
+    if os.environ.get("AURORA_ENV_FILE"):
+        return
+    root = Path(tempfile.mkdtemp(prefix="aurora-tests-"))
+    os.environ["AURORA_ENV_FILE"] = str(write_env(root))
+
+
+_never_the_installation()
+
+
 def private(path) -> bool:
     """Only its owner may read it: mode 600 here. The Mac and Windows ports ask their system (sys_platform.is_private:
     an ACL on Windows, where a file's mode says nothing of who may read it — a real Windows, 8 Oct 2026)."""
@@ -88,3 +104,63 @@ def _no_tls_pin_over_the_network(request, monkeypatch):
 def real_tls():
     """The real sec_tlspin (see _no_tls_pin_over_the_network)."""
     return True
+
+
+def in_a_user_namespace() -> bool:
+    """Inside a cage (bubblewrap's --unshare-user: the sandbox stage of a change, the live cage after one) only the
+    runner's own id is mapped: /proc/self/uid_map is one line of one id, never the host's «0 0 4294967295»."""
+    try:
+        return Path("/proc/self/uid_map").read_text().split() != ["0", "0", "4294967295"]
+    except OSError:
+        return False                                   # no /proc (the Mac and Windows ports): not a Linux cage
+
+
+# C585: what a test needs that a cage takes away on purpose — said per test, so a skip is never silent
+CAGED = {
+    "test_evd_chat.py::test_the_chat_agent_has_evidentias_tools_only_and_saves_into_the_case":
+        "needs this installation's .env, hidden in the cage",
+    "test_evd_chat.py::test_the_page_reaches_the_reopen_of_a_lead_and_never_its_report":
+        "needs this installation's .env, hidden in the cage",
+    "tests/local/test_evd_worker.py": "needs this installation's .env, hidden in the cage",
+    "test_mcp_servers.py::test_a_real_server_outside_aurora_answers_from_its_cage_and_sees_nothing_else":
+        "starts its own cage: a cage inside the cage is refused",
+    "test_service_account.py::test_the_services_never_get_to_write_what_the_owner_runs":
+        "hands files to the services' group, which a user namespace does not map",
+    "test_sshkey.py::test_a_sealed_key_logs_in_through_its_own_agent":
+        "ssh refuses its system config, owned by an id the cage does not map",
+}
+
+
+def pytest_collection_modifyitems(config, items):
+    if not in_a_user_namespace():
+        return
+    for item in items:
+        for key, why in CAGED.items():
+            if item.nodeid.endswith(key) or key in item.nodeid:
+                item.add_marker(pytest.mark.skip(reason=f"in a cage: {why} (C585)"))
+
+
+@pytest.fixture(autouse=True, scope="module")
+def _this_installation_for_local_tests(request):
+    """tests/local: this installation's own tests (never published) read its configuration on purpose — Evidentia's
+    chat and worker against the live archive's settings. Every other test runs on a test installation of its own
+    (_never_the_installation); what a local test imported bound to this one (api.core's BASE, its pipelines) is
+    forgotten after its module, so a later test imports it again on its own test installation."""
+    import os
+    import sys
+    was = os.environ.get("AURORA_ENV_FILE", "")
+    local = f"{os.sep}tests{os.sep}local{os.sep}" in str(getattr(request, "path", "") or request.fspath)
+    if not local or not os.path.basename(os.path.dirname(was)).startswith("aurora-tests-"):
+        yield
+        return
+    del os.environ["AURORA_ENV_FILE"]
+    cached, before = sys_config._cached, set(sys.modules)
+    sys_config._cached = None
+    try:
+        yield
+    finally:
+        os.environ["AURORA_ENV_FILE"] = was
+        sys_config._cached = cached
+        for name in set(sys.modules) - before:
+            if name.startswith("aurora.api"):
+                sys.modules.pop(name, None)

@@ -27,6 +27,7 @@ import time
 from pathlib import Path
 
 from . import mdl_formats, mdl_gguf, sys_config
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 CUSTOM = Path("sys/models/llm/custom")
 HEAD_STEPS = (8, 32, 96)              # MiB asked of a remote file until its header is whole (the vocabulary is in it)
@@ -251,8 +252,9 @@ def switch(cfg: sys_config.Config, model: str, mmproj: str = "", run=subprocess.
     _previous_file(cfg).write_text(json.dumps(before), encoding="utf-8")
     vision = bool(mmproj)
     return {**trial, "model": model, "vision": vision, "experts_in_ram_layers": moe,
-            "note": "" if vision else "senza proiettore visivo il modello locale non vede le immagini: "
-                                      "nella pagina Modelli dai il ruolo Visione a un provider cloud, o resta spento"}
+            "note": "" if vision else _t("senza proiettore visivo il modello locale non vede le immagini: "
+                                      "nella pagina Modelli dai il ruolo Visione a un provider cloud, o resta spento", "without a vision projector the local model sees no pictures: "
+                                      "in the Models page give the Vision role to a cloud provider, or it stays off")}
 
 
 def revert(cfg: sys_config.Config, run=subprocess.run, wait_s: float = 600) -> dict:

@@ -34,6 +34,8 @@ import math
 import numpy as np
 from scipy import ndimage
 
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
+
 SIDES = (900, 1100, 1300)         # the picture is worked at these sizes (the long side); their spread is the error
 ROUND_OK = 0.99                   # axis ratio of the secondary's outline: round enough
 SPOT_OK = 0.03                    # centre spot off the collimator's reflection, × the secondary's radius
@@ -190,7 +192,7 @@ def _one(data: bytes, side: int) -> dict:
     try:
         im = load(data, side)
     except Exception as e:                                # noqa: BLE001 — not a picture: said
-        return {"error": f"non è un'immagine leggibile ({type(e).__name__})"}
+        return {"error": _t(f"non è un'immagine leggibile ({type(e).__name__})", f"not a readable picture ({type(e).__name__})")}
     g = np.asarray(im, dtype=np.float64).mean(axis=2)
     s = ndimage.gaussian_filter(ndimage.median_filter(g, size=7), 2)     # the moiré and the thin drawn lines away
     hist, edges = np.histogram(s, 256)
@@ -211,12 +213,13 @@ def _one(data: bytes, side: int) -> dict:
         if hs.max() > 0.002 * s.size and (hole is None or hs.max() > hole.sum()):
             disk, hole = filled, hl == (int(np.argmax(hs)) + 1)
     if disk is None:
-        return {"error": "non trovo il secondario con la sua ombra: serve la vista dal collimatore, a fuoco e intera — "
-                         "se il riflesso è tutto bianco, abbassa l'esposizione o il gain finché si vede lo spider"}
+        return {"error": _t("non trovo il secondario con la sua ombra: serve la vista dal collimatore, a fuoco e intera — "
+                         "se il riflesso è tutto bianco, abbassa l'esposizione o il gain finché si vede lo spider", "I cannot find the secondary with its shadow: the view from the collimator is needed, in focus and whole — "
+                         "if the reflection is all white, lower the exposure or the gain until the spider shows")}
     ys, xs = _edge(disk)
     cx, cy, r, kept, keep = _robust(ys, xs)
     if kept < 0.6 or r < 40:
-        return {"error": "il bordo del secondario non è abbastanza visibile per misurarlo"}
+        return {"error": _t("il bordo del secondario non è abbastanza visibile per misurarlo", "the secondary's edge is not visible enough to measure it")}
     rng = np.random.default_rng(0)
     idx = np.nonzero(keep)[0]
     ex, ey = xs[idx].astype(np.float64), ys[idx].astype(np.float64)
@@ -325,99 +328,10 @@ def place(o: dict, scope: dict | None) -> None:
     o["expected"] = e
 
 
-def _live(o: dict) -> list[dict]:
-    """The three steps on the live view (C365), the centre spot hidden behind the secondary's reflection: 1) the
-    primary's reflection centred in the drawtube (the secondary's tilt), 2) the secondary's border where the offset puts
-    it, 3) the secondary's reflection — the dark disk the collimator sits in — on the focuser's axis (the primary)."""
-    from .ast_stars import way
-    sec, d, ref, sh, out = o["secondary"], o["drawtube"], o["reflection"], o["shadow"], []
-
-    def step(code, n, what, p, screws):
-        off = math.hypot(p["x"] - d["x"], p["y"] - d["y"]) / sec["r"]
-        ok = off <= SPOT_OK
-        to = way(round(math.degrees(math.atan2(p["y"] - d["y"], p["x"] - d["x"]))))
-        out.append({"code": code, "ok": ok,
-                    "text": f"{n}) {what}: al centro del drawtube (scarto {off:.1%} del raggio del secondario)" if ok else
-                            f"{n}) {what}: spostato verso {to} di {off:.1%} del raggio del secondario rispetto al centro "
-                            f"del drawtube — {screws}"})
-    step("secondary_tilt", 1, "inclinazione del secondario, il riflesso del primario", ref, "le 3 viti del secondario")
-    e = o.get("expected")
-    if e:
-        top = max(abs(e["lo"]), abs(e["hi"])) + PLACE_TOL
-        ok = e["across"] <= PLACE_TOL and e["along"] <= top
-        out.append({"code": "secondary_place", "ok": ok,
-                    "text": f"2) posizione del secondario: il bordo è {e['along']:.1%} del suo raggio lungo il tubo (atteso "
-                            f"fino a {top:.0%}) e {e['across']:.1%} di traverso"
-                            + ("" if ok else " — " + ("di traverso: rotazione del secondario" if e["across"] > PLACE_TOL
-                                                      else "lungo il tubo: vite centrale del secondario"))})
-    step("primary", 3, "primario, il riflesso del secondario con il collimatore", sh,
-         "viti del primario (o la camera inclinata nel focheggiatore: la prova di rotazione lo dice)")
-    out.append({"code": "spot_hidden", "ok": None,
-                "text": "il salvabuchi è nascosto dal riflesso del secondario: il passo 3 usa quel riflesso sull'asse"})
-    return out
-
-
 def verdict(o: dict) -> list[dict]:
-    from .ast_stars import way
-    if o.get("view") == "live":
-        return _live(o)
-    sec, out = o["secondary"], []
-    d = o.get("drawtube")
-    # 1) the secondary's tilt: the centre spot on the focuser's axis (the drawtube's centre)
-    if d and "spot" in o:
-        sp = o["spot"]
-        off = math.hypot(sp["x"] - d["x"], sp["y"] - d["y"]) / sec["r"]
-        ok = off <= SPOT_OK
-        out.append({"code": "secondary_tilt", "ok": ok,
-                    "text": ("1) inclinazione del secondario: il salvabuchi è al centro del drawtube "
-                             f"(scarto {off:.1%} del raggio del secondario)" if ok else
-                             f"1) inclinazione del secondario: il salvabuchi è spostato verso "
-                             f"{way(round(math.degrees(math.atan2(sp['y'] - d['y'], sp['x'] - d['x']))))} di {off:.1%} "
-                             "del raggio del secondario rispetto al centro del drawtube — le 3 viti del secondario")})
-    err = sec["round_err"] or 0.0
-    if sec["round"] >= ROUND_OK - 2 * err:
-        out.append({"code": "secondary_round", "ok": True,
-                    "text": f"2) secondario rotondo: assi al {sec['round']:.1%} uno dell'altro (±{err:.2%})"})
-    else:
-        out.append({"code": "secondary_oval", "ok": False,
-                    "text": f"2) secondario ovale: assi al {sec['round']:.1%} uno dell'altro — rotazione o inclinazione del "
-                            "secondario da ritoccare"})
-    if d and o.get("expected"):
-        e = o["expected"]
-        top = max(abs(e["lo"]), abs(e["hi"])) + PLACE_TOL
-        ok = e["across"] <= PLACE_TOL and e["along"] <= top
-        out.append({"code": "secondary_place", "ok": ok,
-                    "text": (f"2) posizione del secondario: il contorno è dove l'offset lo mette — {e['along']:.1%} del "
-                             f"suo raggio lungo il tubo (atteso fino a {top:.0%}, il collimatore a circa {e['view_mm']} mm), "
-                             f"{e['across']:.1%} di traverso" if ok else
-                             f"2) posizione del secondario: il contorno è {e['along']:.1%} lungo il tubo (atteso fino a "
-                             f"{top:.0%}) e {e['across']:.1%} di traverso — "
-                             + ("di traverso: rotazione del secondario" if e["across"] > PLACE_TOL else
-                                "lungo il tubo: il secondario va avvicinato o allontanato dal primario (vite centrale)"))})
-    elif d:
-        out.append({"code": "secondary_place", "ok": None,
-                    "text": f"2) posizione del secondario: il contorno è a {d['off']:.1%} del raggio del drawtube dal centro "
-                            "— con l'offset non deve essere centrato; quanto spostato si calcola con le misure del tubo "
-                            "(diametro del secondario, apertura, focale)"})
-    else:
-        out.append({"code": "drawtube_unseen", "ok": None,
-                    "text": "il bordo del drawtube non è intero nella foto: la posizione del secondario non si giudica"})
-    if "spot" in o:
-        sp = o["spot"]
-        ok = sp["off"] <= SPOT_OK
-        pm = f" (±{sp['spread'] / 2:.1%} fra le misure)" if sp.get("spread") is not None else ""
-        out.append({"code": "primary", "ok": ok,
-                    "text": (f"3) primario: il salvabuchi è nel riflesso del collimatore, scarto {sp['off']:.1%} del raggio "
-                             f"del secondario{pm} — entro quello che una foto può vedere; il giudice finale sono le stelle"
-                             if ok else
-                             f"3) primario: il salvabuchi è spostato verso {way(sp['toward_deg'])} di {sp['off']:.1%} del "
-                             "raggio del secondario rispetto al riflesso del collimatore — viti del primario")})
-    else:
-        out.append({"code": "spot_unseen", "ok": None, "text": "non trovo il salvabuchi nel riflesso del collimatore"})
-    out.append({"code": "shadow", "ok": None,
-                "text": "l'ombra del secondario non si giudica: con il secondario decentrato di un Newton veloce appare "
-                        "spostata, ed è giusto"})
-    return out
+    """What the measures mean, step by step, in the reader's language: written by ast_ocal_verdict."""
+    from . import ast_ocal_verdict
+    return ast_ocal_verdict.verdict(o)
 
 
 def drawn(im, o: dict) -> str:

@@ -22,6 +22,7 @@ import re
 import time
 
 from . import sys_config
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 FILE = "ha_devices.json"
 # what the 🏠 page may do with a click (api/home): simple services of one entity; scripts, automations… stay in the chat
@@ -213,18 +214,21 @@ def message(report: dict) -> str:
     """The owner's notification, in Italian (empty when nothing new)."""
     said = ""
     if report.get("followed"):
-        said = (f"🏠 Hai cambiato l'ID di qualche entità in Home Assistant: ho aggiornato {len(report['followed'])} "
-                f"agenti che la usavano ({', '.join(report['followed'][:4])}). ")
+        said = _t((f"🏠 Hai cambiato l'ID di qualche entità in Home Assistant: ho aggiornato {len(report['followed'])} "
+                f"agenti che la usavano ({', '.join(report['followed'][:4])}). "), (f"🏠 You changed the ID of some entity in Home Assistant: I updated {len(report['followed'])} "
+                f"agents that used it ({', '.join(report['followed'][:4])}). "))
     if not report["new"]:
         return said.strip()
     names = ", ".join(f"«{n}»" for n in report["new"])
     if report["created"]:
-        return said + (f"🏠 Nuovo dispositivo in Home Assistant: {names}. Ho creato {len(report['created'])} agenti per "
-                f"tenerlo d'occhio: {', '.join(report['created'])} (🤖 Agenti e routine).")
+        return said + _t((f"🏠 Nuovo dispositivo in Home Assistant: {names}. Ho creato {len(report['created'])} agenti per "
+                f"tenerlo d'occhio: {', '.join(report['created'])} (🤖 Agenti e routine)."), (f"🏠 A new device in Home Assistant: {names}. I made {len(report['created'])} agents to "
+                f"keep an eye on it: {', '.join(report['created'])} (🤖 Agents and routines)."))
     if report["proposed"]:
-        return said + (f"🏠 Nuovo dispositivo in Home Assistant: {names}. Ti propongo {report['proposed']} agenti su misura "
-                "nella pagina 🤖 Agenti e routine, con «Applica».")
-    return said + f"🏠 Nuovo dispositivo in Home Assistant: {names}. Lo vedo; per ora non serve un controllo periodico."
+        return said + _t((f"🏠 Nuovo dispositivo in Home Assistant: {names}. Ti propongo {report['proposed']} agenti su misura "
+                "nella pagina 🤖 Agenti e routine, con «Applica»."), (f"🏠 A new device in Home Assistant: {names}. I suggest {report['proposed']} agents made for it "
+                "in the page 🤖 Agents and routines, with «Apply»."))
+    return said + _t(f"🏠 Nuovo dispositivo in Home Assistant: {names}. Lo vedo; per ora non serve un controllo periodico.", f"🏠 A new device in Home Assistant: {names}. I see it; no periodic check is needed for now.")
 
 
 def watching(devices: list[dict], routines: list[dict], advice: list[dict]) -> list[dict]:

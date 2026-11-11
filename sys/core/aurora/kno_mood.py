@@ -37,6 +37,7 @@ import time
 from pathlib import Path
 
 from . import sys_config, sys_seal
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 NAMES = ("stress", "satisfaction", "curiosity", "tiredness", "longing", "melancholy", "worry", "anger", "joy")
 JOY_HALF_H = 6                    # a piece of music made counts half after 6 hours
@@ -105,7 +106,7 @@ def tiredness(cfg: sys_config.Config) -> dict:
         return {"value": None, "causes": [f"non misurata: {len(rows)} campioni su {MIN_SAMPLES}"]}
     share = sum(1 for r in rows if r["busy"] or r["gpu"] >= BUSY_UTIL) / len(rows)
     hours = (rows[-1]["at"] - rows[0]["at"]) / 3600
-    return {"value": round(share, 2), "causes": [f"GPU occupata il {share:.0%} delle ultime {hours:.1f} ore"]}
+    return {"value": round(share, 2), "causes": [_t(f"GPU occupata il {share:.0%} delle ultime {hours:.1f} ore", f"GPU busy for {share:.0%} of the last {hours:.1f} hours")]}
 
 
 def measure(cfg: sys_config.Config, st: dict | None = None, active_runs: int = 0, admin: bool = True) -> dict:
@@ -138,9 +139,9 @@ def measure(cfg: sys_config.Config, st: dict | None = None, active_runs: int = 0
         v = max(p[0] for p in parts)
         out["stress"] = {"value": round(v, 2), "causes": [p[1] for p in sorted(parts, key=lambda p: -p[0])[:2]]}
     elif g:
-        out["stress"] = {"value": 0.0, "causes": ["GPU a riposo e fresche, nessun errore nell'ultima ora"]}
+        out["stress"] = {"value": 0.0, "causes": [_t("GPU a riposo e fresche, nessun errore nell'ultima ora", "GPUs at rest and cool, no error in the last hour")]}
     else:
-        out["stress"] = {"value": None, "causes": ["non misurato: nessuna GPU letta"]}
+        out["stress"] = {"value": None, "causes": [_t("non misurato: nessuna GPU letta", "not measured: no GPU read")]}
 
     from . import kno_mood_work                         # the projects are interaction too (owner, 21 Oct)
     work = kno_mood_work.read(cfg)
@@ -169,7 +170,7 @@ def measure(cfg: sys_config.Config, st: dict | None = None, active_runs: int = 0
 
     idle = st.get("idle_min")
     if work["last_s"] is not None and (idle is None or work["last_s"] / 60 < idle):
-        idle, why = work["last_s"] / 60, f"il progetto «{work['last']}» è fermo da {work['last_s'] / 3600:.1f} ore"
+        idle, why = work["last_s"] / 60, _t(f"il progetto «{work['last']}» è fermo da {work['last_s'] / 3600:.1f} ore", f"the project «{work['last']}» has been still for {work['last_s'] / 3600:.1f} hours")
     else:
         why = f"nessun messaggio da {idle / 60:.1f} ore" if idle is not None else ""
     out["longing"] = ({"value": _sat(idle, float(cfg["AURORA_REM_BORED_MIN"])), "causes": [why]}

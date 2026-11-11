@@ -424,8 +424,7 @@ def report(cfg, with_live: bool = True) -> dict:
             "live": {"phd2": bool(live.get("phd2")), "nina": bool(live.get("nina")), "at": live.get("at")}}
 
 
-def telescope_host(cfg, profile: dict | None = None) -> tuple[str, int]:
-    """The telescope's PC: AURORA_ASTRO_PC (host[:PHD2 port]), else the address the PC gave in its inventory."""
+def _named_host(cfg, profile: dict | None = None) -> tuple[str, int]:
     from aurora import ast_inventory as A, ast_phd2
     host = str(cfg["AURORA_ASTRO_PC"] or "").strip()
     if not host:
@@ -433,3 +432,33 @@ def telescope_host(cfg, profile: dict | None = None) -> tuple[str, int]:
         host = next((a.split("/")[0] for a in ((p or {}).get("links") or {}).get("addresses", [])), "")
     name, _, port = host.partition(":")
     return name, int(port) if port.isdigit() else ast_phd2.PORT
+
+
+def telescope_host(cfg, profile: dict | None = None) -> tuple[str, int]:
+    """The telescope's PC: AURORA_ASTRO_PC (host[:PHD2 port]), else the address the PC gave in its inventory.
+
+    C595: for a user who is not the admin, an address of the house or of this machine (anything but a literal public
+    address) is used only when it is the admin's telescope PC too — the setting and the inventory are both the
+    user's own words, and Aurora's connections to host:port told them what answers there (loopback included)."""
+    import ipaddress
+    name, port = _named_host(cfg, profile)
+    user = getattr(cfg, "user", None)
+    if not name or not user:
+        return name, port
+    try:
+        from aurora import sys_log, sys_user_config
+        base = cfg.base or cfg
+        admin = sys_log.admin_name(base)                  # from the layout's file: nothing opened for writing
+        if not admin or admin == user:
+            return name, port
+        try:
+            if ipaddress.ip_address(name).is_global:
+                return name, port
+        except ValueError:
+            pass                                          # a name: where it resolves is not ours to trust
+        if (name.lower(), port) == tuple(x.lower() if isinstance(x, str) else x
+                                         for x in _named_host(sys_user_config.for_user(base, admin))):
+            return name, port
+    except Exception:                                     # noqa: BLE001 - who the admin is cannot be told: no address
+        pass
+    return "", port

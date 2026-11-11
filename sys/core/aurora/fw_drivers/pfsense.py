@@ -171,6 +171,8 @@ def ok_codes(op: str) -> tuple[str, ...]:
 
 READ_ONLY_HINT = (" — l'utente API di Aurora su pfSense non ha i privilegi di scrittura: in System → User Manager "
                   "dagli quelli del pacchetto REST API su alias, regole del firewall e «apply»; poi riprova")
+READ_ONLY_HINT_EN = (" — Aurora's API user on pfSense lacks the write privileges: in System → User Manager "
+                     "give it those of the REST API package on aliases, firewall rules and «apply»; then try again")
 
 
 def read_only(code: str, msg: str) -> bool:

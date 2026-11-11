@@ -57,7 +57,9 @@ def plan(cfg, snapshot: str) -> dict:
     s = snaps.get(snapshot) or (list(snaps.values())[-1] if snapshot == "latest" and snaps else None)
     if s is None:
         raise SystemExit(f"no snapshot {snapshot}")
-    stamp, here = time.strftime("%Y%m%d-%H%M%S"), cfg.path("AURORA_STATUS_DIR") / "backup"     # never backed up nor restored
+    # never backed up nor restored. C592: the path as the setting writes it, not resolved — a link put at the status
+    # folder is then met, and refused, by the descriptors below instead of moving the stage where it points
+    stamp, here = time.strftime("%Y%m%d-%H%M%S"), cfg.root / str(cfg["AURORA_STATUS_DIR"]) / "backup"
     return {**s, "restorable": s["compat"]["verdict"] != "newer", "stage": str(here / f"restore-{stamp}"),
             "aside": str(here / f"before-restore-{stamp}")}
 
@@ -290,7 +292,8 @@ def apply_parts(cfg, p: dict, parts: tuple[str, ...]) -> None:
                 print(f"    {sys_formats.MIGRATIONS[(k, n)]}")
         if "config" in parts:
             env_sync = Path(__file__).with_name("sys_env_sync.py")
-            if subprocess.run([sys.executable, str(env_sync)], cwd=root, capture_output=True).returncode == 0 and (root / ".env.proposed").exists():
+            # -I (C592): as root nothing of the environment or of the folder it stands in is imported
+            if subprocess.run([sys.executable, "-I", str(env_sync)], cwd=root, capture_output=True).returncode == 0 and (root / ".env.proposed").exists():
                 T.swap_env()
         if _as_root():                                   # what stays there is for Aurora's account to clear
             uid = cfg.path("AURORA_STATUS_DIR").stat().st_uid

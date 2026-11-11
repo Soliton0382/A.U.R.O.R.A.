@@ -62,6 +62,34 @@ def protected(cfg: sys_config.Config) -> list[ipaddress._BaseNetwork]:
     return out
 
 
+def house(cfg: sys_config.Config) -> set[str]:
+    """C596: the house's own public addresses — the WAN interfaces of the connected firewalls, from their saved map
+    (sec_netmap). Never blocked: a request of the owner's own, or a packet written in the house's name, blocked the
+    house itself. Empty when no map is saved or the WAN address is not a public one (a modem in front)."""
+    out: set[str] = set()
+    try:
+        from . import sec_netmap
+        for fid in sec_netmap.stored(cfg):
+            for i in (sec_netmap.load(cfg, fid=fid) or {}).get("interfaces", []):
+                if str(i.get("zone", "")).upper() != "WAN":
+                    continue
+                try:
+                    a = ipaddress.ip_address(str(i.get("ip", "")).strip())
+                except ValueError:
+                    continue
+                if a.is_global:
+                    out.add(str(a))
+    except Exception:                                   # noqa: BLE001 - a map that cannot be read exempts nothing more
+        pass
+    return out
+
+
+# C596: kinds counted from packets the firewall refused. Nobody answered them, so the source address is whatever the
+# sender wrote: blocked by herself, anyone could have a third party's address (a DNS server, the owner's office)
+# blocked by sending packets in its name. Acted on alone only when the address is also on a list of known attackers.
+UNPROVEN = ("deny_burst", "port_scan")
+
+
 def active(cfg: sys_config.Config) -> list[dict]:
     now = time.time()
     return [b for b in _load(cfg) if not b.get("released") and b["until"] > now]
@@ -84,6 +112,12 @@ def decide(cfg: sys_config.Config, incident: dict) -> tuple[bool, str]:
         return False, "an address of the local network: told, never blocked by herself"
     if any(ip in net for net in protected(cfg)):
         return False, "a protected address"
+    if str(ip) in house(cfg):
+        return False, "the house's own public address (the firewall's WAN): never blocked by herself"
+    kind = str(incident.get("kind", ""))
+    if (kind in UNPROVEN or kind.startswith("rule:")) and not incident.get("intel_lists"):
+        return False, ("refused packets do not prove who sent them (the source address can be forged) and the address "
+                       "is on no list of known attackers: the owner decides")
     from . import sec_intel
     provider = sec_intel.shared(cfg, str(ip))
     if provider:                         # a CDN or cloud address serves many sites, the owner's tunnel too (C190)
@@ -111,7 +145,10 @@ def act(cfg: sys_config.Config, incident: dict) -> dict:
     now = time.time()
     rec = {"ip": ip, "at": now, "until": now + float(cfg["AURORA_DEFENCE_HOURS"]) * 3600, "day": time.strftime("%Y-%m-%d"),
            "incident": incident.get("id"), "kind": incident.get("kind"), "reason": reason, "auto": True,
-           "released": None}
+           "released": None, **({"failed": out["failed"]} if out.get("failed") else {})}
+    if out.get("failed"):                                # C596: done on some firewalls only — said, never silent
+        sys_log.get_logger("security").warning("audit: %s blocked on %s but NOT on %s", ip, ", ".join(out["firewalls"]),
+                                               "; ".join(f"{k}: {v}" for k, v in out["failed"].items()))
     with _lock:
         items = _load(cfg)
         items.append(rec)
@@ -192,6 +229,10 @@ def release(cfg: sys_config.Config, ip: str, by: str = "time") -> dict:
     out = sec_firewalls.unblock(cfg, ip)
     mark_released(cfg, ip, by)
     sys_log.get_logger("security").info("audit: block of %s lifted (%s)", ip, by)
+    if out.get("failed"):                                # C596: still blocked somewhere: said (the owner removes it there)
+        sys_log.get_logger("security").warning("audit: block of %s lifted on %s but STILL on %s", ip,
+                                               ", ".join(out["firewalls"]),
+                                               "; ".join(f"{k}: {v}" for k, v in out["failed"].items()))
     sys_log.trace("security", "defence.release", {"ip": ip, "by": by})
     return out
 

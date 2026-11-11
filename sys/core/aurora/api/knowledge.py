@@ -17,6 +17,12 @@ from .core import _run_lock, _state, _write_lock, auth, cfg, log, pipeline
 
 from .users import admin_only  # noqa: E402
 
+
+def _lang() -> str:
+    """The language of whoever speaks or reads: their own choice, not the machine's (C526)."""
+    from aurora import sys_lang
+    return sys_lang.reader(cfg.now())
+
 router = APIRouter()
 
 
@@ -258,7 +264,7 @@ async def senses_action(action: str, request: Request) -> dict:
     from aurora import sns_av
     if action in ("listen", "transcribe"):
         try:
-            sys_features.need(cfg, "speech", str(cfg["AURORA_LANG_DEFAULT"]))
+            sys_features.need(cfg, "speech", _lang())
         except sys_features.Missing as e:
             raise HTTPException(status_code=409, detail=str(e))
     try:
@@ -270,7 +276,7 @@ async def senses_action(action: str, request: Request) -> dict:
         if action == "listen":
             seconds = float((await request.json()).get("seconds", 6))
             audio = await asyncio.to_thread(sns_av.record, seconds, cfg)
-            out = await asyncio.to_thread(sns_av.transcribe, audio, str(cfg["AURORA_LANG_DEFAULT"])[:2], cfg)
+            out = await asyncio.to_thread(sns_av.transcribe, audio, _lang(), cfg)
             log.info("audit: owner dictated %.1f s (clear: %s)", out["audio_s"], out["clear"])
             return out
         if action == "transcribe":                       # the owner's own device (phone, PC browser) recorded it
@@ -285,7 +291,7 @@ async def senses_action(action: str, request: Request) -> dict:
                 audio = await asyncio.to_thread(sns_av.decode, data, cfg)
             except ValueError as e:
                 raise HTTPException(status_code=422, detail=str(e))
-            out = await asyncio.to_thread(sns_av.transcribe, audio, str(cfg["AURORA_LANG_DEFAULT"])[:2], cfg)
+            out = await asyncio.to_thread(sns_av.transcribe, audio, _lang(), cfg)
             if out.get("clear") and out.get("text"):      # her memory searched while the person still speaks, and with
                 pipeline().ahead(out["text"])            # the final words before they come back as the question (sol_ahead)
                 if body.get("partial") and body.get("conversation") is True:   # 🔮 hands-free: the answer ready too

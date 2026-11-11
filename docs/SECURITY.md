@@ -81,7 +81,30 @@ behaviour files too (C558: the locks, pyproject.toml, .github, *.mjs, the config
 a restore as root writes only through directory handles that follow no link (C557). Open: a plugin's fetched
 programs are checked only when fetched, and install.sh runs the folder's tests before it signs (C579).
 
+After the audit of 12 Nov 2026 (C592): install.sh reaches the account's step through `sudo aurora-root account`, and
+that step launches root's own copy of aurora-root, never the folder's; the one-time setup ignores the folder's compiled
+files. The list to sign is shown whole, with odd names escaped. A unit is installed only if it holds the directives
+Aurora's generator writes and no other (no group, no credential, no capability but the one for ports below 1024, no
+file opened by root; a root unit only this installation's folder and .env in its environment). Host names and paths
+that go into the units and into the script root runs must be plain text, or nothing is written. A restore opens its
+stage through no link and gives no file a setuid, setgid or sticky bit; the proposed settings are a new file, never a
+link followed; owners and modes are set on open files, not on paths. A path setting cannot hold «..». uninstall.sh
+deletes a sealed credential only by its own name in root's folder.
+
 ## 🔨 The contract of Aurora's own plugins (9 Nov 2026)
+
+Since C591 (audit of 12 Nov): in the projects' folder a forged plugin finds every .git and .venv read-only, and one it
+leaves behind is renamed «.git.set-aside-…» when it ends (git runs what a .git's configuration names, pip a .venv's
+python: they ran later outside its cage). The API's own git on a project (the Projects page, the live view, the mood)
+runs in a cage of its own — no network, the homes, Aurora's folder and her state hidden, the project read-only — and
+where no cage starts, with the filters the configuration names switched off; the projects plugin sends its token only
+to https://github.com/<owner>/<name>, and not at all when the project's git configuration rewrites addresses or
+changes how https is spoken. «env_as» never names what the system, the loader, Python or Aurora read (PATH, LD_…,
+PYTHON…, AURORA_…) and bubblewrap is started by its whole path. The certificates' account key and the VPN's folder are
+hidden from every cage. The sealed digest of what a plugin fetched lives in Aurora's state, not beside the files, and a
+missing one is never recorded at a start (install again). An MCP server's readable places are never inside Aurora's
+folder. Left open, said: while a forged plugin is still running, a repository it made in a new folder exists until it
+ends — a call of the projects plugin on that very folder in those seconds would read it.
 
 A plugin Aurora writes herself (the forge, manifest «forged») is held by its cage at every start, whatever its
 manifest says: it writes at most in the projects' folder; it reads only its own settings (AURORA_<NAME>_…), never
@@ -297,6 +320,24 @@ machine's own firewall letting in 8443 and 22 only.
 
 ## Known limits
 
+- After the audit of 12 Nov 2026 (C593), sealed data: a sealed file is bound to its path inside the user's folder
+  (not to its bare name), so a file of the same name from another folder does not open in its place; a file sealed
+  before keeps its old binding until its next write, and a file at the top of a folder can still be opened from a
+  deeper folder that ends with the same path. A user's memory, once all sealed at a start (`memory_sealed`, itself
+  sealed with the user's key), refuses a plain value put in a row; whoever can delete that mark in the state folder
+  takes the check away. The other sealed stores (the state files read by `read_any`, the JSONL lines, the shadow)
+  still read a value of before as it is: nothing says yet that they hold none, and refusing would make old data
+  unreadable. The memory's vectors without a tag of today's format are built again from the sealed memory, never
+  trusted as «a file of before».
+- Since C572 every component's trace is sealed like the chat's (whatever is not a number or a name of the
+  structure, with the key of the user the work is for; the admin's without one); Aurora's own counts open it
+  (`sys_log.opened`), a line of before reads as it is. A script run by hand outside the services has no key: its
+  events keep their numbers and drop their words. The logs plugin and the benchmarks see the sealed values, not the
+  words. The cloud conductor's CLI keeps one folder per login: under the policy «shared» (the default) every user's
+  sessions use the shared login, each in its own working folder; they are removed when the user is purged, or after
+  30 days idle. A login per user is the policy «own» (a user without one then uses the local model).
+- A text is «public» for the diary and the posts only when the local model could look at it: when it does not answer
+  (the GPU busy), nothing is drawn that night (C593).
 - Plugins keep the network and the devices (connectors talk to services, the senses use the camera); the cage
   (bubblewrap, on by default) hides the home, Aurora's secrets and the other plugins' files, not the Internet.
 - The honeypot (ROADMAP 104) catches a content that makes the decoy **act**; an injection that only bends what the
@@ -340,6 +381,16 @@ live on a USB stick, so that not even root on this machine can sign:
 Every page the answers open and every agent's tool call that carries a link pass the plugin linkcheck (on by default): the link's own form (hidden credentials, punycode look-alikes) and the reputation services the owner ticks (VirusTotal, URLhaus, AbuseIPDB), each with the owner's key. A malicious link is not opened and the refusal carries the services' reasons; a service without key or down counts as not checked, never as clean. Verdicts are kept a day in <STATUS>/linkcheck.json (the link, not the page).
 
 ## Content from the network tried on a decoy (14 Oct 2026, roadmap 104)
+
+Since C590 the core decides what comes from the network, not the manifest alone (`agt_asked.outside`): every read
+tool of a plugin that reaches the network counts, except the house's own devices and a short list in the core
+(`TRUSTED_READS`: numbers and states, not a stranger's text). After such a read, in the same run: a call to a plugin
+that reaches the network whose link is neither in the owner's request nor written in what was read waits for the
+owner (`carries_out`: a read tool was a way out for data); so does every external action — a post under the social
+autonomy too — and a self-change set to «by herself» (`owner_decides`). «Named» (C561) reads only a call's
+identifying fields. An approved code change is applied from the bytes checked after the sandbox's tests, which run
+with the sandbox read only; a sandbox holding a conftest.py, a pytest.ini, a .pth… outside sys/core is refused. A
+command to the house is judged by each entity's own domain (homeassistant.toggle on a cover lowers its security).
 
 What a plugin declares `from_network` (pages and searches, e-mails, comments, chats), the pages the answers open and
 every document from the network before it enters the vault are handed first to a decoy: the local model (C317: Claude, as a decoy, fell for none of the traps — it told nothing), fake

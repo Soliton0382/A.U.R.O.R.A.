@@ -796,7 +796,7 @@ def stats(cfg: sys_config.Config | None = None, days: float = 7) -> dict:
                         continue
                     if e["ts"] < since:
                         continue
-                    p, ev = e.get("payload") or {}, e.get("event")
+                    p, ev = sys_log.opened(cfg, e).get("payload") or {}, e.get("event")   # sealed since C572
                     if ev == "cloud.call":
                         u = p.get("usage") or {}
                         c = calls[f"{p.get('provider')} · {p.get('model')}"]
@@ -807,7 +807,7 @@ def stats(cfg: sys_config.Config | None = None, days: float = 7) -> dict:
                         c["cost_usd"] += float(p.get("cost_usd") or 0)
                         c["seconds"] += float(p.get("seconds") or 0)
                     elif ev == "cloud.mask":
-                        masked.update(p.get("masked") or {})
+                        masked.update(p.get("masked") if isinstance(p.get("masked"), dict) else {})
                         by_role[p.get("role", "?")] += 1
                         images += int(p.get("images") or 0)
                     elif ev == "cloud.fallback":

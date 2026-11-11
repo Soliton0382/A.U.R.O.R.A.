@@ -35,6 +35,15 @@ SHARED = {
     "Google Cloud": "https://www.gstatic.com/ipranges/cloud.json",
     "Google": "https://www.gstatic.com/ipranges/goog.json",
 }
+# C596: Cloudflare's own ranges as it publishes them (cloudflare.com/ips), built in. The downloaded lists are only
+# there when AURORA_INTEL_ENABLED is on and a download worked: without them no address was «shared», and the automatic
+# defence blocked Cloudflare's nodes — the owner's tunnel (C190 again). The downloaded lists are added to these.
+# Google's ranges are too many and change too often to be written here: with the lists off they are not known.
+BUILT_IN = {"Cloudflare": (
+    "173.245.48.0/20", "103.21.244.0/22", "103.22.200.0/22", "103.31.4.0/22", "141.101.64.0/18", "108.162.192.0/18",
+    "190.93.240.0/20", "188.114.96.0/20", "197.234.240.0/22", "198.41.128.0/17", "162.158.0.0/15", "104.16.0.0/13",
+    "104.24.0.0/14", "172.64.0.0/13", "131.0.72.0/22", "2400:cb00::/32", "2606:4700::/32", "2803:f800::/32",
+    "2405:b500::/32", "2405:8100::/32", "2a06:98c0::/29", "2c0f:f248::/32")}
 _shared: dict = {"at": 0.0, "nets": []}
 _NET = re.compile(r"^\s*(\d{1,3}(?:\.\d{1,3}){3}(?:/\d{1,2})?)")
 _cache: dict = {"at": 0.0, "ranges": [], "starts": []}
@@ -165,7 +174,7 @@ def shared(cfg: sys_config.Config, ip: str) -> str:
         except (OSError, ValueError):
             data = {}
         nets = []
-        for name, items in data.items():
+        for name, items in [*BUILT_IN.items(), *data.items()]:
             for n in items:
                 try:
                     nets.append((ipaddress.ip_network(n, strict=False), name))

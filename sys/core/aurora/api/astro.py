@@ -35,7 +35,7 @@ def astro() -> dict:
     if p:                                     # the guide logs added here count, even when the PC's latest are empty
         from aurora import ast_guidelog as G
         if G.logs(d):
-            p = {**p, "checks": [c for c in p["checks"] if c["what"] != A.NO_GUIDE_LOG]}
+            p = {**p, "checks": [c for c in p["checks"] if c.get("code") != "no_guide_log"]}
     try:
         where = str(d.relative_to(cfg.root))
     except ValueError:

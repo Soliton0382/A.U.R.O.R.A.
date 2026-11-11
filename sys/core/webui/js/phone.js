@@ -3,7 +3,7 @@
 // 📱 An action Aurora was asked for on the phone (agt_phone, N68): the Android app does it (AuroraApp.act →
 // PhoneActions: the phone's own browser, clock, calendar, maps, dialler); in a browser without the app, a link where
 // one exists. Each action once, even when the run's stream is read again.
-import { el } from "./dom.js";
+import { el, safeUrl } from "./dom.js";
 import { t } from "./i18n.js";
 
 const done = new Set();
@@ -20,7 +20,7 @@ export function appCall(name, arg) {
 function link(p) {
   const q = encodeURIComponent;
   switch (p.action) {
-    case "open_url": return p.url;
+    case "open_url": return safeUrl(p.url) ? p.url : "";   // C594: a page, never a «javascript:» link
     case "web_search": return `https://www.google.com/search?q=${q(p.query)}`;
     case "navigate": return `https://www.google.com/maps/search/?api=1&query=${q(p.destination)}`;
     case "call": return p.number ? `tel:${p.number}` : "";

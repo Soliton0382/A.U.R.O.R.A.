@@ -326,7 +326,12 @@ def purge(cfg: sys_config.Config, name: str, admin: str) -> dict:
     rec = next((u for u in users.list() if u["name"] == name), None)
     if rec:
         users.remove(rec["id"])
-    left = purge_plan(cfg, name) + [d for d in devices.list() if d.get("user") == name]
+    from . import mdl_cloud                                  # C572: their conductor sessions in the CLI's folders
+    mdl_cloud.forget_user(cfg, name)                         # (before the accounts: an own login's folder goes whole)
+    from . import mdl_accounts                               # C593: their cloud accounts too, never left for a new
+    accounts = mdl_accounts.forget_user(cfg, name)           # user of the same name
+    left = purge_plan(cfg, name) + [d for d in devices.list() if d.get("user") == name] \
+        + [a for a in mdl_accounts.load(cfg)["accounts"] if a.get("scope") == "user" and a.get("user") == name]
     if left or any(u["name"] == name for u in users.list()):
         raise RuntimeError(f"purge check failed: {left}")
-    return {"removed": plan, "devices": len(gone)}
+    return {"removed": plan, "devices": len(gone), "accounts": accounts}

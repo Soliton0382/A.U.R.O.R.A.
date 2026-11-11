@@ -4,7 +4,15 @@
 import shutil
 from types import SimpleNamespace
 
+import pytest
+
 from aurora import agt_change, sys_tests
+
+
+@pytest.fixture(autouse=True)
+def _a_log_of_the_tests_own(cfg):
+    """apply() writes its audit line: the log goes to the test's folder also where no installation's .env is (the
+    tests run alone, or in the mirror, found none and stopped at the logger)."""
 
 
 def _setup(tmp_path, monkeypatch):
@@ -35,16 +43,18 @@ def test_the_times_refused_do_not_stop_a_change(tmp_path, monkeypatch):
 
 def test_a_write_that_fails_puts_the_live_file_back(tmp_path, monkeypatch):
     live, cfg = _setup(tmp_path, monkeypatch)
-    real = shutil.copyfile
+    from pathlib import Path
+    real = Path.write_bytes
     broke = []
-    def half(src, dst, **k):                           # the content is written, then the copy breaks (once)
-        real(src, dst)
-        if "live" in str(dst) and not broke:
-            broke.append(dst)
+    def half(self, data, *a, **k):                     # the content is written, then the write breaks (once); the
+        real(self, data, *a, **k)                      # checked bytes are written, not the sandbox's file (C590)
+        if "live" in str(self) and not broke:
+            broke.append(self)
             raise PermissionError(1, "Operation not permitted")
-    monkeypatch.setattr(shutil, "copyfile", half)
+    monkeypatch.setattr(Path, "write_bytes", half)
     r = agt_change.apply("fix1", lambda *a: None, cfg, restart=False)
-    monkeypatch.setattr(shutil, "copyfile", real)
+    monkeypatch.setattr(Path, "write_bytes", real)
+    assert broke
     assert r["applied"] is False and "rolled back" in r["reason"]
     assert (live / "sys/core/aurora/a.py").read_text() == "a = 1\n"
 

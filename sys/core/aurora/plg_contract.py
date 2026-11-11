@@ -18,6 +18,19 @@ KINDS = ("tool", "connector", "service", "mcp")       # mcp: a server of the own
 EFFECTS = ("read", "write_local", "external")
 NAME = re.compile(r"^[a-z][a-z0-9_]{1,40}$")
 SETTING = re.compile(r"^AURORA_[A-Z0-9_]+$")
+# C591: the environment name «env_as» gives a setting's value to. Capitals, digits and _ only, and never a name the
+# system, the loader, Python or Aurora read themselves: with PATH or LD_PRELOAD the host ran a planted program, outside
+# the cage, when it started the cage.
+ENV_NAME = re.compile(r"^[A-Z][A-Z0-9_]{1,63}$")
+ENV_RESERVED = {"PATH", "HOME", "IFS", "ENV", "BASH_ENV", "SHELL", "USER", "LOGNAME", "TMPDIR", "TERM", "LANG", "PWD",
+                "HOSTALIASES", "LOCPATH", "NLSPATH", "RESOLV_HOST_CONF", "TZDIR", "MALLOC_TRACE"}
+ENV_RESERVED_PREFIX = ("LD_", "DYLD_", "PYTHON", "AURORA_", "GLIBC_", "GCONV_", "BASH_FUNC_", "LC_", "BWRAP_", "GIT_")
+
+
+def env_name_ok(name) -> bool:
+    """True for a name «env_as» may set in a plugin's environment."""
+    name = str(name)
+    return bool(ENV_NAME.match(name)) and name not in ENV_RESERVED and not name.startswith(ENV_RESERVED_PREFIX)
 
 # field: (type, required, what it is) — the order is the documentation's
 FIELDS = {
@@ -90,6 +103,12 @@ def check(m: dict, folder: str = "") -> list[str]:
     for k in ("requires", "env", "settings"):
         if bad := [s for s in m.get(k) or [] if not SETTING.match(str(s))]:
             out.append(f"{k}: not settings: {', '.join(map(str, bad))}")
+    env_as = m.get("env_as") if isinstance(m.get("env_as"), dict) else {}
+    if bad := [s for s in env_as if not SETTING.match(str(s))]:
+        out.append(f"env_as: not settings: {', '.join(map(str, bad))}")
+    if bad := [v for v in env_as.values() if not env_name_ok(v)]:
+        out.append(f"env_as: {', '.join(map(str, bad))}: not a name a plugin's program may be given (capitals, digits, _; "
+                   "never PATH, HOME, LD_…, PYTHON…, AURORA_…)")
     effects = m.get("effects") or {}
     if bad := [f"{t}={e}" for t, e in effects.items() if e not in EFFECTS]:
         out.append(f"effects: {', '.join(bad)} (read, write_local, external)")

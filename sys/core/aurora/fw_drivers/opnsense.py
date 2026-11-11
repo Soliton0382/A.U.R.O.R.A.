@@ -175,6 +175,8 @@ def ok_codes(op: str) -> tuple[str, ...]:
 
 READ_ONLY_HINT = (" — la chiave API di Aurora su OPNsense non ha i privilegi: in System → Access → Users dai al suo "
                   "utente le pagine «Firewall: Alias», «Firewall: Automation» e «Diagnostics: Show States»; poi riprova")
+READ_ONLY_HINT_EN = (" — Aurora's API key on OPNsense lacks the privileges: in System → Access → Users give its user "
+                     "the pages «Firewall: Alias», «Firewall: Automation» and «Diagnostics: Show States»; then try again")
 
 
 def read_only(code: str, msg: str) -> bool:

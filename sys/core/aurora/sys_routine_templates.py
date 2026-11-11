@@ -31,6 +31,18 @@ def _dir(cfg: sys_config.Config) -> Path:
     return (cfg.base or cfg).path("AURORA_STATUS_DIR") / "routine_templates"
 
 
+ADMIN_KINDS = ("story", "firewall")                     # the GPU's videos, the firewall's restart
+ADMIN_PLUGINS = {"security", "netintel", "backup", "self"}
+
+
+def admin_only(spec: dict) -> bool:
+    """A routine only the admin may have. Decided here from what the routine IS, at every view and apply (C595: it was
+    a flag written when the set was saved, and the firewall's restart was never flagged — a user applied the admin's
+    saved set and got it)."""
+    return bool(spec.get("admin")) or spec.get("kind") in ADMIN_KINDS or spec.get("plugin") in ADMIN_PLUGINS \
+        or bool(set(spec.get("plugins") or []) & ADMIN_PLUGINS)
+
+
 def _text(v, lang: str) -> str:
     return (v.get(lang) or v.get("en") or "") if isinstance(v, dict) else str(v or "")
 
@@ -94,7 +106,7 @@ def view(cfg: sys_config.Config, lang: str, ready: set[str], admin: bool, user: 
             continue
         items = []
         for spec in p["routines"]:
-            if spec.get("admin") and not admin:
+            if admin_only(spec) and not admin:
                 continue
             title = _text(spec.get("title"), lang)
             missing = [n for n in needs(spec) if n not in ready]
@@ -116,7 +128,7 @@ def apply(cfg: sys_config.Config, pack_id: str, lang: str, ready: set[str], admi
     created, skipped = [], []
     for spec in pack["routines"]:
         title = _text(spec.get("title"), lang)
-        if spec.get("admin") and not admin:
+        if admin_only(spec) and not admin:
             continue
         if _present(spec, title, sys_routines.all_routines(cfg)):
             skipped.append({"title": title, "why": "present"})
@@ -145,8 +157,7 @@ def save_mine(cfg: sys_config.Config, title: str, user: str | None, description:
     items = []
     for r in rs:
         spec = {k: r[k] for k in KEEP if k in r}
-        if r.get("kind") == "story" or r.get("plugin") in ("security", "netintel", "backup", "self") \
-                or set(r.get("plugins") or []) & {"security", "netintel", "backup", "self"}:
+        if admin_only(spec):
             spec["admin"] = True                                # never offered to another user
         items.append(spec)
     pack = {"id": pid, "icon": "📸", "title": {"it": title, "en": title}, "description": {"it": description, "en": description},

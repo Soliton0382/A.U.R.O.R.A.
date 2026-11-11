@@ -3,7 +3,6 @@
 """Routines (sys_routines): proposals, the owner's routines, the tick of aurora-rem."""
 from __future__ import annotations
 
-import asyncio
 import json
 import re
 import time
@@ -16,6 +15,16 @@ from .core import _admin, _run_lock, _runs, auth, cfg, everyone, log, me, note, 
 from .users import admin_only, may_manage  # noqa: E402
 
 router = APIRouter()
+
+
+def _reader() -> str:
+    """"it" or "en": the language of the person served, not the machine's (C526)."""
+    from aurora import sys_lang
+    return sys_lang.reader(cfg.now())
+
+
+def _t(it: str, en: str) -> str:
+    return en if _reader() == "en" else it
 
 
 # ---- routines: periodic checks the owner switched on (sys_routines) -------------------------------------
@@ -50,7 +59,7 @@ def _routine_job(r: dict):
                         f"⚠️ Firewall riavviato ma la sua API non risponde dopo {out['away_s']} s: controllalo")
             except Exception as e:                       # noqa: BLE001 - a restart not sent is recorded and said
                 log.exception("routine %s (firewall) failed", r["id"])
-                ok, text = False, f"Riavvio del firewall non inviato: {type(e).__name__}: {str(e)[:300]}"
+                ok, text = False, _t(f"Riavvio del firewall non inviato: {type(e).__name__}: {str(e)[:300]}", f"The firewall's restart was not sent: {type(e).__name__}: {str(e)[:300]}")
             emit("routine.result", {"routine": r["id"], "ok": ok, "text": text})
             ans = Answer(run_id, q, text, False, mode="agent")
         elif r["kind"] == "tool":
@@ -109,7 +118,7 @@ def _routine_job(r: dict):
             except Exception as e:                       # a failed routine is recorded and said, never left pending
                 log.exception("routine %s failed", r["id"])
                 ok, text = False, f"{type(e).__name__}: {str(e)[:300]}"
-                ans = Answer(run_id, q, f"Routine non riuscita: {text}", False, mode="agent")
+                ans = Answer(run_id, q, _t(f"Routine non riuscita: {text}", f"The routine did not succeed: {text}"), False, mode="agent")
         try:
             routine, notify = sys_routines.record(cfg, r["id"], text, ok, run_id, files, remember=not kept_out)
         except KeyError:                                     # removed while it ran (2026-10-06): nothing to record
@@ -136,7 +145,7 @@ def routines() -> dict:
     from aurora import sys_routines
     plugins = plugin_host().plugins(with_tools=False)
     rs = sys_routines.all_routines(cfg)
-    lang = "it" if str(cfg["AURORA_LANG_DEFAULT"]).startswith("it") else "en"
+    lang = _reader()
     return {"routines": rs, "suggestions": sys_routines.suggestions(plugins, rs),
             "welcome": [{"plugin": p.name, "text": (p.manifest.get("welcome") or {}).get(lang, "")}
                         for p in plugins if p.available and p.manifest.get("welcome")]}
@@ -146,7 +155,7 @@ def routines() -> dict:
 async def routine_create(request: Request) -> dict:
     from aurora import sys_routines
     body = await request.json()
-    lang = "it" if str(cfg["AURORA_LANG_DEFAULT"]).startswith("it") else "en"
+    lang = _reader()
     try:
         if body.get("kind") == "story" and me() != _admin():
             raise HTTPException(status_code=403, detail="the videos on a schedule are the admin's (GPU and the page)")
@@ -163,7 +172,7 @@ async def routine_create(request: Request) -> dict:
         raise HTTPException(status_code=404, detail="unknown suggestion")
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
-    log.info("audit: routine %s switched on: %s", r["id"], r.get("title"))
+    log.info("audit: routine %s switched on", r["id"])   # C593: its title is the person's words, sealed in its file
     return r
 
 
@@ -216,24 +225,43 @@ def routine_tick() -> dict:
     from aurora import sys_context, sys_routines
     from .assist import expire_due
     from .core import trim_memory
-    expire_due()                                      # 🛟 an assistance window ended by its time: the user told
-    trim_memory()                                     # C389: the memory glibc holds free, given back every half hour
+    import time as _t
+    spent: dict[str, float] = {}                      # 12 Nov: the tick passed aurora-rem's 30 s, 38 times a day —
+    t0 = _t.monotonic()                               # each step timed, the slow ones said
+
+    def timed(name, fn, *a):
+        s = _t.monotonic()
+        try:
+            return fn(*a)
+        finally:
+            spent[name] = spent.get(name, 0.0) + _t.monotonic() - s
+
+    def said():
+        total = _t.monotonic() - t0
+        if total >= 10:
+            slow = sorted(spent.items(), key=lambda x: -x[1])[:4]
+            log.warning("routines tick took %.1f s: %s", total, ", ".join(f"{k} {v:.1f} s" for k, v in slow))
+
+    timed("expire_due", expire_due)                   # 🛟 an assistance window ended by its time: the user told
+    timed("trim_memory", trim_memory)                 # C389: the memory glibc holds free, given back every half hour
     for who in everyone():                            # the home's automations keep their time, talk or not
         with sys_context.acting_as(who):
-            _automations(who)
-            _anon_expired(who)
+            timed("automations", _automations, who)
+            timed("anon_expired", _anon_expired, who)
     if (wait := _someone_talking()) is not None:      # a person first: the routines wait (owner, 2026-10-07)
+        said()
         return {"started": [], "welcomed": [], "deferred": wait}
     started, welcomed = [], set()
     for who in everyone():
         with sys_context.acting_as(who):
-            started += [_start_routine(r) for r in sys_routines.due(cfg)]
-            welcomed |= set(_welcome(sys_routines))
-            _devices_if_due(who)
-            _scenes_again(who)
-            _local_ticks(who)
-            _astro_again(who)
-            _people_first(who)
+            started += [timed("start_routine", _start_routine, r) for r in timed("due", sys_routines.due, cfg)]
+            welcomed |= set(timed("welcome", _welcome, sys_routines))
+            timed("devices", _devices_if_due, who)
+            timed("scenes", _scenes_again, who)
+            timed("local_ticks", _local_ticks, who)
+            timed("astro", _astro_again, who)
+            timed("people", _people_first, who)
+    said()
     return {"started": started, "welcomed": sorted(welcomed)}
 
 
@@ -355,7 +383,7 @@ def _someone_talking(now: float | None = None) -> str | None:
 
 def _welcome(sys_routines) -> list[str]:
     """This user's message about the plugins newly ready for them."""
-    lang = "it" if str(cfg["AURORA_LANG_DEFAULT"]).startswith("it") else "en"
+    lang = _reader()
     new = sys_routines.newly_ready(cfg, plugin_host().plugins(with_tools=False))
     if new:
         n = sum(len(p.manifest.get("routines", [])) for p in new)
@@ -364,32 +392,6 @@ def _welcome(sys_routines) -> list[str]:
             + (f" Ti propongo {n} controlli periodici nella pagina 🔁 Routine." if n and lang == "it"
                else f" I suggest {n} periodic checks in the 🔁 Routines page." if n else "")})
     return [p.name for p in new]
-
-
-@router.get("/v1/aurora/notifications", dependencies=[Depends(auth)])
-def notifications() -> dict:
-    from aurora import sys_push
-    lang = "it" if str(cfg["AURORA_LANG_DEFAULT"]).startswith("it") else "en"
-    admin = me() == _admin()                        # each user their own choice; the machine's kinds the admin's
-    return {"prefs": sys_push.prefs(cfg), "presets": sys_push.PRESETS, "subscriptions": sys_push.count(cfg),
-            "chat_suggested": sys_push.CHAT_SUGGESTED,
-            "kinds": [{"id": k, "label": v[lang], "it": v["it"], "en": v["en"]} for k, v in sys_push.KINDS.items()
-                      if admin or k not in sys_push.MACHINE]}
-
-
-@router.get("/v1/aurora/notifications/history", dependencies=[Depends(auth)])
-def notifications_history(n: int = 200) -> list[dict]:
-    from aurora import sys_push
-    return sys_push.history(cfg, max(1, min(n, 500)))
-
-
-@router.put("/v1/aurora/notifications", dependencies=[Depends(auth)])
-async def notifications_set(request: Request) -> dict:
-    from aurora import sys_push
-    p = sys_push.set_prefs(cfg, await request.json())
-    log.info("audit: notifications: push %s, webui %s, chat %s, masked %s", ",".join(p["push"]) or "-",
-             ",".join(p["webui"]) or "-", ",".join(p["chat"]) or "-", ",".join(p["masked"]) or "-")
-    return {"prefs": p}
 
 
 @router.post("/v1/aurora/update/apply", dependencies=[Depends(admin_only)])
@@ -402,54 +404,6 @@ def update_apply() -> dict:
     if info["protected"]:
         raise HTTPException(status_code=409, detail=f"protected files change: {', '.join(info['protected'])}")
     return {"run_id": _start_update(info["there"])}
-
-
-@router.get("/v1/aurora/push", dependencies=[Depends(auth)])
-def push_info() -> dict:
-    from aurora import sys_push
-    return {"public_key": sys_push.public_key(cfg), "subscriptions": sys_push.count(cfg),
-            "events": [e.strip() for e in cfg["AURORA_PUSH_EVENTS"].split(",") if e.strip()]}
-
-
-@router.post("/v1/aurora/push-ack")
-async def push_ack(request: Request) -> dict:
-    """The service worker got a push: no key (it has none), the push's random id is the proof (sys_push.ack)."""
-    from aurora import sys_push
-    try:
-        body = json.loads((await request.body())[:2048])
-    except ValueError:
-        raise HTTPException(status_code=422, detail="bad body")
-    return {"counted": await asyncio.to_thread(sys_push.ack, body.get("id"), body.get("endpoint", ""), cfg)}
-
-
-@router.get("/v1/aurora/push/delivery", dependencies=[Depends(auth)])
-def push_delivery(days: float = 7) -> dict:
-    from aurora import sys_push
-    return sys_push.delivery(cfg, max(1.0, min(days, 90)))
-
-
-@router.post("/v1/aurora/push/{action}", dependencies=[Depends(auth)])
-async def push_action(action: str, request: Request) -> dict:
-    from aurora import sys_push
-    body = await request.json() if action != "test" else {}
-    if action == "subscribe":
-        dev = getattr(request.state, "device", None)
-        try:
-            n = sys_push.subscribe(body.get("subscription"), (dev or {}).get("name") if isinstance(dev, dict) else None, cfg)
-        except ValueError as e:
-            raise HTTPException(status_code=422, detail=str(e))
-        log.info("audit: push subscription added (%d in all)", n)
-        return {"subscriptions": n}
-    if action == "unsubscribe":
-        n = sys_push.unsubscribe(str(body.get("endpoint", "")), cfg)
-        log.info("audit: push subscription removed (%d left)", n)
-        return {"subscriptions": n}
-    if action == "test":
-        msg = sys_push.message("test", {"text": "Aurora"}, cfg)
-        from aurora import sys_line
-        await asyncio.to_thread(sys_line.post, msg, cfg)              # the app's line too (aurora-app F2)
-        return await asyncio.to_thread(sys_push.send, msg, cfg)
-    raise HTTPException(status_code=404, detail="unknown action")
 
 
 @router.get("/v1/aurora/images/{name}", dependencies=[Depends(auth)])

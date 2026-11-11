@@ -27,6 +27,9 @@ class AgentMakers:
         if not files:
             return "ERROR: the sandbox has no differences from the live code"
         prints = agt_change.fingerprint(box, files)     # C541: taken before the tests and the diff the owner reads
+        if (stray := agt_change.strays(box, self.cfg.root)):   # C590: outside the diff, yet loaded by the tests
+            return ("REFUSED: the sandbox has files outside sys/core that steer the tests and are not the live "
+                    f"code's: {', '.join(stray[:10])}. Make a new sandbox and redo the change there.")
         from . import sys_ethics
         if (protected := [f for f in files if f in sys_ethics.PROTECTED]):
             return ("REFUSED: these files belong to the code of conduct and change only with the owner's own "
@@ -36,7 +39,7 @@ class AgentMakers:
         if not t["ok"]:
             return f"REFUSED: the sandbox tests fail ({t['summary']}). Fix them first.\n{t['output'][-3000:]}"
         diff = self.host.call("self", "sandbox_diff", {"sandbox_id": sid}, run_id)["text"]
-        if agt_change.fingerprint(box, files) != prints:
+        if agt_change.changed_files(box, self.cfg.root) != files or agt_change.fingerprint(box, files) != prints:
             return "REFUSED: the sandbox changed while it was being tested: propose it again"
         if len(diff) > MAX_DIFF:
             # C573: it was shown cut at 60,000 characters and the whole of it applied — the owner approved what he
@@ -45,7 +48,8 @@ class AgentMakers:
                     "to read in one approval. Split the change into smaller ones, each proposed by itself.")
         preview = {"sandbox_id": sid, "files": files, "diff": diff, "tests": t["summary"],
                    "services": agt_change.services_for(files)}
-        if needs_owner("code_change", self.cfg):
+        from . import agt_asked                          # C590: after a network read, never applied by the run alone
+        if agt_asked.owner_decides(self, "code_change") or needs_owner("code_change", self.cfg):
             req = self.approvals.request("code_change", "code_change", args.get("title", "change"),
                                          args.get("purpose", ""), preview, {"sandbox_id": sid, "hashes": prints}, run_id)
             emit("approval.request", {"id": req["id"], "kind": "code_change", "title": req["title"], "files": files})

@@ -24,6 +24,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from . import kno_dedup, sol_vault, sys_config, sys_log
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 SAMPLE = 40            # Wikipedia articles read again a night (the local model: ~1 s each)
 MISPLACED_TELL = 6     # of SAMPLE: binomial tail at the measured 2.9 % ≈ 0.001; at 58 % ≈ 1
@@ -102,9 +103,11 @@ def audit(cfg: sys_config.Config, llm, tell=None, sample: int = SAMPLE) -> dict:
     sys_log.trace("rem", "vault.audit", {k: v for k, v in out.items() if not k.endswith("examples")})
     fix = last(cfg)["fix"]
     if fix:
-        text = (f"Controllo del vault: {out['duplicates']} documenti in più copie, {out['arxiv_pdf']} paper arXiv ancora "
+        text = _t((f"Controllo del vault: {out['duplicates']} documenti in più copie, {out['arxiv_pdf']} paper arXiv ancora "
                 f"in PDF, {out['misplaced']} voci Wikipedia su {out['wikipedia_read']} in un dominio che non è il loro. "
-                "Il dettaglio e i comandi sono nella pagina Harvester: " + " · ".join(fix))
+                "Il dettaglio e i comandi sono nella pagina Harvester: " + " · ".join(fix)), (f"Vault check: {out['duplicates']} documents in several copies, {out['arxiv_pdf']} arXiv papers still "
+                f"in PDF, {out['misplaced']} Wikipedia entries out of {out['wikipedia_read']} in a domain that is not theirs. "
+                "The detail and the commands are in the Harvester page: " + " · ".join(fix)))
         if tell:
             tell("vault.audit", {"text": text, **{k: out[k] for k in ("duplicates", "arxiv_pdf", "misplaced")}})
         out["text"] = text

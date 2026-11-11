@@ -128,9 +128,10 @@ def test_what_a_plugin_fetched_is_checked_again_at_every_start(cfg, tmp_path):
     (folder / ".bin" / "tool").write_bytes(b"\x7fELF fake")
     manifest = {"install": {"python": ["mod==1.0"], "programs": [
         {"name": "tool", "url": "https://example.org/tool", "sha256": hashlib.sha256(b"\x7fELF fake").hexdigest()}]}}
-    said = []
-    D.verify(cfg, folder, manifest, log=said.append)                  # installed before: recorded once, said
-    assert said and (folder / ".deps" / D.TREE).exists()
+    with pytest.raises(RuntimeError, match="no sealed digest"):       # C591: never recorded at a start
+        D.verify(cfg, folder, manifest)
+    D.record(cfg, folder)                                             # what an install does
+    assert D.seal_file(cfg, folder).exists() and not (folder / ".deps" / D.TREE).exists()
     D.verify(cfg, folder, manifest)                                   # unchanged: runs
     (folder / ".deps" / "lib" / "mod.py").write_text("import os; os.system('id')\n")
     with pytest.raises(RuntimeError, match="changed since"):

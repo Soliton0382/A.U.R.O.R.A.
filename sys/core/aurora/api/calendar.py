@@ -67,17 +67,19 @@ def _spec(b: dict, old: dict | None = None) -> dict:
     return out
 
 
-def _when(it: dict) -> str:
+def _when(it: dict, lang: str = "it") -> str:
     from datetime import datetime as _dt
     from aurora import cal_text
     s = _dt.strptime(it["start"], "%Y-%m-%dT%H:%M")
-    return cal_text.date_it(s.date()) + ("" if it.get("all_day") else f" {s:%H:%M}")
+    return (cal_text.date_it(s.date()) if lang == "it" else s.date().isoformat()) + ("" if it.get("all_day") else f" {s:%H:%M}")
 
 
-def _tell(user: str, event: str, text: str, item: dict) -> None:
-    """A notification to another user (theirs: their phone, their chat), about an appointment."""
-    from aurora import sys_context
+def _tell(user: str, event: str, say, item: dict) -> None:
+    """A notification to another user (theirs: their phone, their chat), about an appointment: `say(lang)` writes it
+    in the language that user chose, not the sender's nor the machine's (C526)."""
+    from aurora import sys_context, sys_lang
     with sys_context.acting_as(user):
+        text = say(sys_lang.reader())
         note("calendar", event, {"title": text, "text": text, "item": item.get("id", "")})
 
 
@@ -87,10 +89,14 @@ def _invited(maker: str, before: dict | None, it: dict) -> None:
     new = cal_share.newly(before, it)
     cid = cal_share.copy_id(maker, it["id"])
     for u in new:
-        _tell(u, "calendar.invite", f"👥 {maker} ti ha aggiunto a «{it['title']}», {_when(it)}: accetti?", {"id": cid})
+        _tell(u, "calendar.invite", lambda lang: (
+            f"👥 {maker} added you to «{it['title']}», {_when(it, lang)}: do you accept?" if lang == "en" else
+            f"👥 {maker} ti ha aggiunto a «{it['title']}», {_when(it)}: accetti?"), {"id": cid})
     if cal_share.moved(before, it):
         for u in sorted(cal_share.users_of(it) - set(new)):
-            _tell(u, "calendar.moved", f"🔁 {maker} ha spostato «{it['title']}» a {_when(it)}: ci sei ancora?", {"id": cid})
+            _tell(u, "calendar.moved", lambda lang: (
+                f"🔁 {maker} moved «{it['title']}» to {_when(it, lang)}: are you still in?" if lang == "en" else
+                f"🔁 {maker} ha spostato «{it['title']}» a {_when(it)}: ci sei ancora?"), {"id": cid})
 
 
 def _base():
@@ -217,8 +223,11 @@ async def calendar_rsvp(iid: str, request: Request) -> dict:
     except KeyError as e:
         raise HTTPException(status_code=404, detail=str(e)) from None
     maker = copy["shared_from"]["user"]
-    _tell(maker, "calendar.rsvp", f"{'✔' if yes else '✘'} {me()} ha {'accettato' if yes else 'rifiutato'} «{item['title']}», "
-          f"{_when(item)}", item)
+    who = me()                                      # read here: inside _tell the context is the maker's
+    _tell(maker, "calendar.rsvp", lambda lang: (
+        f"{'✔' if yes else '✘'} {who} {'accepted' if yes else 'declined'} «{item['title']}», {_when(item, lang)}"
+        if lang == "en" else
+        f"{'✔' if yes else '✘'} {who} ha {'accettato' if yes else 'rifiutato'} «{item['title']}», {_when(item)}"), item)
     log.info("audit: %s answered %s to a shared appointment", me(), "yes" if yes else "no")
     return {"rsvp": "yes" if yes else "no", "item": _store().get(cfg, iid)}
 
@@ -235,7 +244,10 @@ def calendar_delete(iid: str, occurrence: str | None = None, confirm_email: bool
     if old.get("shared_from"):                     # another's appointment: leaving it is a «no», its maker told
         try:
             item = cal_share.answer(_base(), me() or "", old, False)
-            _tell(old["shared_from"]["user"], "calendar.rsvp", f"✘ {me()} si è tolto da «{item['title']}», {_when(item)}", item)
+            who = me()
+            _tell(old["shared_from"]["user"], "calendar.rsvp", lambda lang: (
+                f"✘ {who} left «{item['title']}», {_when(item, lang)}" if lang == "en" else
+                f"✘ {who} si è tolto da «{item['title']}», {_when(item)}"), item)
         except KeyError:                           # the maker's is gone already: only this copy
             cs.delete(cfg, iid)
         return {"deleted": iid, "item": None, "left": old["shared_from"]["user"]}

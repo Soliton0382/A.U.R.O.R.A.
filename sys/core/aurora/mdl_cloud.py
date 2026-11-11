@@ -96,6 +96,33 @@ def purge_transcripts(cfg: sys_config.Config, config_dir: str = "", now: float |
     return gone
 
 
+def forget_user(cfg: sys_config.Config, user: str) -> int:
+    """C572: a purged user's conductor sessions gone from the CLI too — their working folders
+    (<status>/claude_code/talk/<user>/<project>) and the transcripts the CLI kept for each of them, in every login's
+    folder (the shared accounts', the service's own): they waited there up to TRANSCRIPT_DAYS. Only the folders named
+    exactly after this user's working folders. Returns how many transcript folders were removed."""
+    import shutil
+    from pathlib import Path
+    base = cfg.base or cfg
+    talk = base.path("AURORA_STATUS_DIR") / "claude_code" / "talk" / user
+    if not user or "/" in user or user in (".", "..") or not talk.is_dir() or talk.is_symlink():
+        return 0
+    names = {cli_folder(p) for p in talk.iterdir() if p.is_dir()}
+    homes = [Path.home() / ".claude"] + [Path(os.environ[k]) for k in ("CLAUDE_CONFIG_DIR",) if os.environ.get(k)]
+    accounts = base.path("AURORA_STATUS_DIR") / "cloud_accounts"
+    homes += [d for d in accounts.iterdir() if d.is_dir()] if accounts.is_dir() else []
+    gone = 0
+    for home in homes:
+        for name in names:
+            d = home / "projects" / name
+            if d.is_dir() and not d.is_symlink():
+                shutil.rmtree(d, ignore_errors=True)
+                gone += 1
+    shutil.rmtree(talk, ignore_errors=True)
+    sys_log.get_logger("llm_client").info("audit: claude_code: a purged user's sessions removed (%d transcript folders)", gone)
+    return gone
+
+
 class ClaudeCodeLLM:
     name = "claude_code"
     context_tokens = 200_000
@@ -213,10 +240,17 @@ class ClaudeCodeLLM:
                         yield "thought", delta.get("thinking", "")
                 elif e.get("type") == "result":
                     self._account(e, time.time() - t0)
+                    if e.get("is_error") and "output token maximum" not in str(e.get("result", "")):
+                        # 12 Nov: the subscription's 5-hour limit came back as a «result» with is_error and no text:
+                        # the chat got an empty answer. Raised, the router answers with the local model
+                        p.kill()
+                        raise RuntimeError(f"claude -p: {str(e.get('result') or e.get('api_error_status'))[:300]}")
                     n = int(e.get("usage", {}).get("output_tokens", 0))
                     if n and first:
                         self.last_speed = {"tokens": n, "per_second": round(n / max(0.001, time.time() - first), 1)}
             p.wait(timeout=30)
+            if first is None and p.returncode:            # died with nothing said: the router's local fallback
+                raise RuntimeError(f"claude -p exited {p.returncode}: {(p.stderr.read() or '')[-300:]}")
 
     def complete_turns(self, messages: list[dict], max_tokens: int, think: bool = False) -> Completion:
         system, transcript = _flatten(messages)

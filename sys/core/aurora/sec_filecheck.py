@@ -19,6 +19,7 @@ import httpx
 
 from . import sec_linkcheck as L
 from . import sys_config, sys_log
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 
 def virustotal(c: httpx.Client, cfg, sha: str) -> tuple[str, str]:
@@ -90,9 +91,11 @@ def check(data: bytes, name: str = "", cfg: sys_config.Config | None = None, cli
 
 def refusal(v: dict) -> str:
     """The words of a refusal, in Italian, with the services' reasons."""
-    bad = [r for r in v["reasons"] if not r.endswith(("nessuna chiave", "(abuse.ch, gratuita)", "non presente",
-                                                      "mai analizzato"))]
-    return (f"Non leggo {v['name'] or 'questo file'}: la sua reputazione è «{v['level']}» (SHA-256 {v['sha256'][:16]}…). "
+    quiet = ("nessuna chiave", "(abuse.ch, gratuita)", "non presente", "mai analizzato",   # no verdict: not a reason
+             "no key", "(abuse.ch, free)", "not listed", "never analysed")
+    bad = [r for r in v["reasons"] if not r.endswith(quiet)]
+    return (_t(f"Non leggo {v['name'] or 'questo file'}: la sua reputazione è «{v['level']}» (SHA-256 {v['sha256'][:16]}…). ",
+               f"I am not reading {v['name'] or 'this file'}: its reputation is «{v['level']}» (SHA-256 {v['sha256'][:16]}…). ")
             + "; ".join(bad[:4]) + ".")
 
 

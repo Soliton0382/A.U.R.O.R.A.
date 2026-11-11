@@ -44,6 +44,44 @@ def _users() -> Users:
     return Users(BASE.base or BASE)
 
 
+# C595: wrong logins counted per account too. The count per address (core._failed) stops one address; a guesser with
+# many addresses had no limit on one person's password. NAME_TIMES the address's ceiling in the same window, then that
+# name is refused from outside the house; a caller on the house's own network is never refused by this count (a
+# stranger must not be able to keep the owner out of their own home — their address has its own count as before).
+NAME_TIMES, NAMES_KEPT = 4, 2000
+_name_fails: dict[str, list[float]] = {}
+
+
+def _at_home(request: Request) -> bool:
+    from aurora.sec_sentinel import is_private           # the house's networks (10/8, 172.16/12, 192.168/16…)
+    from .core import _client, via_tunnel
+    ip = _client(request)
+    return is_private(ip) and not ip.startswith("127.") and ip != "::1" and not via_tunnel(ip)
+
+
+def _name_recent(name: str) -> list[float]:
+    import time
+    now = time.time()
+    return [t for t in _name_fails.get(name, []) if now - t < cfg["AURORA_AUTH_WINDOW_S"]]
+
+
+def _name_locked(request: Request, name: str) -> None:
+    if len(_name_recent(name)) >= int(cfg["AURORA_AUTH_MAX_FAILS"]) * NAME_TIMES and not _at_home(request):
+        raise HTTPException(status_code=429, detail="too many failed attempts: try again later")
+
+
+def _name_failed(name: str) -> None:
+    import time
+    name = name[:40]
+    if name not in _name_fails and len(_name_fails) >= NAMES_KEPT:       # names are the caller's words: bounded
+        for k in [k for k in _name_fails if not _name_recent(k)] or [next(iter(_name_fails))]:
+            _name_fails.pop(k, None)
+    _name_fails[name] = _name_recent(name) + [time.time()]
+    if len(_name_fails[name]) == int(cfg["AURORA_AUTH_MAX_FAILS"]) * NAME_TIMES:
+        log.warning("audit: %d failed logins for one account in the window: refused from outside the house",
+                    len(_name_fails[name]))
+
+
 async def admin_only(request: Request) -> None:
     await auth(request)
     if me() != _admin():
@@ -79,6 +117,7 @@ async def login(request: Request) -> JSONResponse:
         raise HTTPException(status_code=409, detail="single-user without the admin's password: log in with the API key")
     body = await request.json()
     name, password, code = str(body.get("name", "")).strip(), str(body.get("password", "")), str(body.get("code", "")).strip()
+    _name_locked(request, name[:40])                     # C595: per account too, not only per address
     if str(cfg["AURORA_USER_MODE"]) != "multi" and name != _admin():     # single-user: the admin alone
         _failed(request)
         raise HTTPException(status_code=401, detail="wrong name or password")
@@ -86,6 +125,7 @@ async def login(request: Request) -> JSONResponse:
     u = users.check_password(name, password)
     if u is None:
         _failed(request)
+        _name_failed(name)
         raise HTTPException(status_code=401, detail="wrong name or password")
     mfa = bool(cfg["AURORA_USERS_MFA"])
     if mfa and not u["totp_on"]:
@@ -99,11 +139,13 @@ async def login(request: Request) -> JSONResponse:
             raise HTTPException(status_code=401, detail="the enrolment begins again: leave the code empty")
         if not users.totp_confirm(u["id"], code):
             _failed(request)
+            _name_failed(name)
             raise HTTPException(status_code=401, detail="wrong code")
         _enrolling.pop(u["id"], None)
         log.info("audit: %s enrolled their first authenticator at the login", u["name"])
     elif users.login(name, password, code, mfa=mfa) is None:
         _failed(request)
+        _name_failed(name)
         raise HTTPException(status_code=401, detail="wrong code")
     token, rec = devices.register(str(body.get("device", "")) or request.headers.get("user-agent", "")[:60],
                                   request.headers.get("user-agent", ""), user=u["name"])
@@ -232,7 +274,7 @@ async def my_password(request: Request) -> dict:
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from None
     here = getattr(request.state, "device", None)       # C428: the other sessions out, this one kept
-    out = devices.revoke_user(name, keep=here["id"] if here else None)
+    out = devices.revoke_user(name, keep=here["id"] if here else None, unowned=name == _admin())   # C595
     log.info("audit: %s changed their password; %d other device(s) logged out", name, out)
     return {"ok": True, "logged_out": out}
 
@@ -406,7 +448,7 @@ async def users_password(name: str, request: Request) -> dict:
         _users().set_password(u["id"], str((await request.json()).get("password", "")))
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from None
-    out = devices.revoke_user(name)                      # C428: whoever had a session of theirs is out
+    out = devices.revoke_user(name, unowned=name == _admin())   # C428: whoever had a session of theirs is out
     log.info("audit: password of %s reset by %s; %d device(s) logged out", name, me(), out)
     return {"ok": True, "logged_out": out}
 
@@ -417,7 +459,7 @@ def users_totp_reset(name: str) -> dict:
     if u is None:
         raise HTTPException(status_code=404, detail="no such user")
     _users().totp_reset(u["id"])
-    out = devices.revoke_user(name)                      # C428
+    out = devices.revoke_user(name, unowned=name == _admin())   # C428
     log.info("audit: authenticator of %s reset by %s; %d device(s) logged out", name, me(), out)
     return {"ok": True, "logged_out": out}
 

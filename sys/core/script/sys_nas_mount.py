@@ -189,20 +189,38 @@ def check(dest: Path, ro: bool, user) -> None:
     probe.unlink()
 
 
-def astro_url(cfg) -> str:
-    """The NAS frames folder: AURORA_ASTRO_FRAMES_DIR is each person's own (usr/<name>/.env), one share per machine —
-    the first person's smb://… is mounted."""
-    from aurora import sys_user_config as U, sys_users_layout as L
-    urls = [str(cfg["AURORA_ASTRO_FRAMES_DIR"] or "").strip()]
+def admin_name(cfg) -> str:
+    """The admin's name, read from the users' store without ever writing it: this runs as root on a file the service
+    owns (opened read only and «immutable»: no journal replayed, nothing created). "" when there is none."""
+    import sqlite3
+    from urllib.parse import quote
+    f = cfg.path("AURORA_STATUS_DIR") / "users.db"
+    if f.is_symlink() or not f.is_file():
+        return ""
     try:
-        homes = sorted(d.name for d in L.usr(cfg).iterdir() if (d / U.ENV).is_file())
-    except OSError:
-        homes = []
-    for name in homes:
+        con = sqlite3.connect(f"file:{quote(str(f))}?mode=ro&immutable=1", uri=True, timeout=5)
         try:
-            urls.append(str(U._own(cfg, name).get("AURORA_ASTRO_FRAMES_DIR", "")).strip())
+            r = con.execute("SELECT name FROM users WHERE role='admin' ORDER BY created LIMIT 1").fetchone()
+        finally:
+            con.close()
+    except sqlite3.Error:
+        return ""
+    name = str(r[0]) if r else ""
+    return name if re.fullmatch(r"[\w.-]{1,40}", name) and name not in (".", "..") else ""
+
+
+def astro_url(cfg) -> str:
+    """The NAS frames folder: the machine's AURORA_ASTRO_FRAMES_DIR, else the admin's own (usr/<admin>/.env). Never
+    another person's (C595: every person's smb://… was looked at and the first one mounted — by root, with the
+    house's NAS login: a user chose which share of which server that login was sent to)."""
+    from aurora import sys_user_config as U
+    urls = [str(cfg["AURORA_ASTRO_FRAMES_DIR"] or "").strip()]
+    admin = admin_name(cfg)
+    if admin:
+        try:
+            urls.append(str(U._own(cfg, admin).get("AURORA_ASTRO_FRAMES_DIR", "")).strip())
         except (OSError, ValueError):
-            continue
+            pass
     return next((u for u in urls if u.startswith("smb://")), "")
 
 
@@ -237,7 +255,9 @@ def report(out: dict, status: Path, user) -> None:
 def main() -> int:
     from aurora import sys_config
     cfg = sys_config.get()
-    status = cfg.path("AURORA_STATUS_DIR") / "backup"
+    # C592 (audit F11): the folder as the setting writes it under the installation, not resolved — cfg.path() follows
+    # a link put at the status folder, and _dirfd then walked the place it points to as if it were Aurora's
+    status = cfg.root / str(cfg["AURORA_STATUS_DIR"]) / "backup"
     try:                                                        # made inside its parent opened through no link
         d = _dirfd(status.parent)
         try:

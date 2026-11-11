@@ -41,6 +41,7 @@ def read_paths(manifest: dict, cfg: sys_config.Config) -> list[Path]:
         return []
     home = Path(os.environ.get("HOME") or Path.home()).resolve()
     status = cfg.path("AURORA_STATUS_DIR").resolve()
+    root = (cfg.base or cfg).root.resolve()
     out = []
     for raw in manifest.get("sandbox", {}).get("read", []):
         p = Path(str(raw))
@@ -51,8 +52,12 @@ def read_paths(manifest: dict, cfg: sys_config.Config) -> list[Path]:
             raise ValueError(f"{raw}: the root, the home or a folder above it is never readable")
         if any(part.startswith(".") and part not in (".venv",) for part in p.parts):
             raise ValueError(f"{raw}: a hidden place is never readable")
-        if p.is_relative_to(status):
+        if p.is_relative_to(status) or status.is_relative_to(p):
             raise ValueError(f"{raw}: Aurora's own state is never readable")
+        # C591: bound after everything the cage hides, a place inside Aurora (usr/, the HTTPS key's folder, sys/ whole)
+        # showed again what was hidden; what a plugin may see of Aurora it sees already
+        if p.is_relative_to(root) or root.is_relative_to(p):
+            raise ValueError(f"{raw}: a place outside Aurora is needed (her own folders are the cage's to show or hide)")
         if any(p.is_relative_to(n) or n.is_relative_to(p) for n in NEVER_READ):
             raise ValueError(f"{raw}: the system's own places (/proc, /run, /dev, /sys, the credentials) are never readable")
         if not p.exists():
@@ -128,8 +133,62 @@ def env_file(name: str, manifest: dict, cfg: sys_config.Config) -> Path:
     return f
 
 
+def bwrap() -> str | None:
+    """bubblewrap by its whole path, found in the system's own folders first (C591: started by name, it was looked up
+    in the PATH given to the plugin — a manifest that named PATH had the host run a planted «bwrap», uncaged)."""
+    return shutil.which("bwrap", path="/usr/bin:/bin:/usr/local/bin") or shutil.which("bwrap")
+
+
 def available() -> bool:
-    return shutil.which("bwrap") is not None
+    return bwrap() is not None
+
+
+# ---- C591: a plugin Aurora wrote never makes or changes a repository or a Python environment ---------------------------
+# git runs what a .git's configuration names (a filter, gpg.program), pip and the projects' commands run a .venv's
+# python: written by a forged plugin, they ran later where its cage does not reach (the API, the projects plugin with
+# its network and token). So the ones there are read-only inside its cage, and one it leaves behind is moved aside.
+REPO_PARTS = (".git", ".venv")
+
+
+def _repo_parts(base: Path) -> list[Path]:
+    """.git and .venv of the projects' folder itself (git looks upwards) and of each project in it."""
+    try:
+        folders = [base, *sorted(d for d in base.iterdir() if d.is_dir() and not d.is_symlink())]
+    except OSError:
+        return []
+    return [d / n for d in folders for n in REPO_PARTS if os.path.lexists(d / n)]
+
+
+def repo_marks(cfg: sys_config.Config) -> set[tuple[int, int]]:
+    """Before a forged plugin starts: which .git and .venv are there (by device and inode: a folder moved away and
+    made again under the same name is a new one)."""
+    out = set()
+    for q in _repo_parts(cfg.path("AURORA_PROJECTS_DIR")):
+        try:
+            st = os.lstat(q)
+            out.add((st.st_dev, st.st_ino))
+        except OSError:
+            pass
+    return out
+
+
+def set_aside_new(cfg: sys_config.Config, before: set[tuple[int, int]], log=None) -> list[Path]:
+    """After it ended: a .git or .venv that was not there is renamed «<name>.set-aside-<time>» — nothing runs it under
+    that name, nothing is deleted (made by someone else in the same seconds, it is renamed back by hand)."""
+    moved = []
+    for q in _repo_parts(cfg.path("AURORA_PROJECTS_DIR")):
+        try:
+            st = os.lstat(q)
+            if (st.st_dev, st.st_ino) in before:
+                continue
+            aside = q.with_name(f"{q.name}.set-aside-{int(time.time())}")
+            os.rename(q, aside)
+        except OSError:
+            continue
+        moved.append(aside)
+        if log:
+            log(f"a forged plugin left {q.parent.name}/{q.name}: set aside as {aside.name} (never run)")
+    return moved
 
 
 _swept: set[str] = set()
@@ -206,7 +265,7 @@ def wrap(cmd: list[str], folder: Path, manifest: dict, filtered_env: Path, cfg: 
     root = cfg.root
     status = cfg.path("AURORA_STATUS_DIR")
     home = Path(os.environ.get("HOME") or Path.home())
-    args = ["bwrap", "--die-with-parent", "--new-session", "--unshare-pid", "--unshare-ipc", "--unshare-uts",
+    args = [bwrap() or "bwrap", "--die-with-parent", "--new-session", "--unshare-pid", "--unshare-ipc", "--unshare-uts",
             "--unshare-cgroup-try", "--ro-bind", "/", "/", "--dev-bind" if _devices(manifest) else "--dev", "/dev",
             *(["/dev"] if _devices(manifest) else []), "--proc", "/proc",
             "--tmpfs", "/tmp"]
@@ -244,6 +303,10 @@ def wrap(cmd: list[str], folder: Path, manifest: dict, filtered_env: Path, cfg: 
             continue
         p.mkdir(parents=True, exist_ok=True)
         args += ["--bind", str(p), str(p)]
+        if forged(manifest):                           # C591: the repositories and environments in it, read-only
+            for q in _repo_parts(p):
+                if not q.is_symlink():
+                    args += ["--ro-bind", str(q), str(q)]
         if home != Path("/") and home.is_relative_to(root) and home != p and home.is_relative_to(p):
             args += ["--tmpfs", str(home)]             # the service's HOME inside it: hidden again
     args += ["--ro-bind", str(filtered_env), str(cfg.env_file)]
@@ -254,7 +317,9 @@ def wrap(cmd: list[str], folder: Path, manifest: dict, filtered_env: Path, cfg: 
         args += ["--ro-bind", "/run/systemd/resolve", "/run/systemd/resolve"]
     # the machine's keys and tokens, never a plugin's (C420): the SSH key for the computers, the tunnel's token, the
     # cloud accounts and the Claude logins, the cameras' keys, the HTTPS key, the phone app's signing keys
+    # C591: the certificates' account key (https/acme/account.key) and the VPN's profile and password were readable
     for hidden in (status / "keys", status / "cloudflare", status / "cloud_accounts", status / "claude_code", status / "caddy",
+                   status / "https", status / "vpn",
                    root / "sys" / "https" / "cert", root / "sys" / "app" / "keys"):
         if hidden.is_dir():
             args += ["--tmpfs", str(hidden)]

@@ -10,8 +10,10 @@ from __future__ import annotations
 
 import base64
 import mimetypes
+import os
 import re
 import secrets
+import shutil
 import subprocess
 import time
 from pathlib import Path
@@ -52,10 +54,76 @@ def inside(proj: Path, path: str) -> Path:
     return p
 
 
-def _git(proj: Path, *args: str) -> str:
-    # a project's own .git is not trusted (C420): no fsmonitor command, no hook runs here, outside the cage
-    r = subprocess.run(["git", *GIT_SAFE, "-C", str(proj), *args], capture_output=True, text=True, timeout=30)
-    return r.stdout.strip() if r.returncode == 0 else ""
+# ---- git on a project's own .git (C591) ---------------------------------------------------------------------------
+# A project's .git is not trusted: a plugin could write there, and git runs what the configuration names — a filter at
+# «status», gpg.program at «log» (C420 had switched off the hooks and fsmonitor only). The API reads it outside every
+# plugin's cage: so git runs in a cage of its own, without a network, the homes, Aurora's folder and her state hidden,
+# the project read-only. Where no cage starts (a port, a container) the commands the configuration names are switched
+# off one by one.
+_CODE_ROOT = Path(__file__).resolve().parents[3]
+_cage_ok: dict[str, bool] = {}
+
+
+def _git_cage(proj: Path, cfg: sys_config.Config | None) -> list[str] | None:
+    from . import plg_sandbox
+    bwrap, git = plg_sandbox.bwrap(), shutil.which("git", path="/usr/bin:/bin:/usr/local/bin")
+    if not bwrap or not git:
+        return None
+    args = [bwrap, "--die-with-parent", "--new-session", "--unshare-all", "--ro-bind", "/", "/", "--dev", "/dev",
+            "--proc", "/proc", "--tmpfs", "/tmp"]
+    hide = ["/home", "/root", "/mnt", "/media", "/srv", "/run", str(_CODE_ROOT)]
+    if cfg is not None:
+        hide += [str((cfg.base or cfg).root), str(cfg.path("AURORA_STATUS_DIR"))]
+    for hidden in dict.fromkeys(hide):
+        if hidden != "/" and Path(hidden).is_dir():
+            args += ["--tmpfs", hidden]
+    args += ["--ro-bind", str(proj), str(proj), "--clearenv", "--setenv", "PATH", "/usr/bin:/bin",
+             "--setenv", "HOME", "/tmp", "--setenv", "LANG", "C.UTF-8", "--setenv", "GIT_CONFIG_GLOBAL", os.devnull,
+             "--setenv", "GIT_CONFIG_NOSYSTEM", "1", "--setenv", "GIT_OPTIONAL_LOCKS", "0",
+             "--setenv", "GIT_CEILING_DIRECTORIES", str(proj.parent), "--chdir", str(proj), "--",
+             git, "-c", f"safe.directory={proj}"]
+    if "ok" not in _cage_ok:                             # once per process: does a cage start here at all
+        try:
+            _cage_ok["ok"] = subprocess.run([*args, "--version"], capture_output=True, timeout=20).returncode == 0
+        except (OSError, subprocess.SubprocessError):
+            _cage_ok["ok"] = False
+    return args if _cage_ok["ok"] else None
+
+
+def _git_bare(proj: Path) -> tuple[list[str], dict]:
+    """Without a cage: no signature program at «log», and every filter the configuration names switched off by name
+    (reading the configuration runs nothing)."""
+    env = dict(os.environ, GIT_CEILING_DIRECTORIES=str(proj.parent), GIT_OPTIONAL_LOCKS="0", GIT_TERMINAL_PROMPT="0")
+    cmd = ["git", *GIT_SAFE, "-c", "log.showSignature=false", "-C", str(proj)]
+    try:
+        names = subprocess.run([*cmd, "config", "-z", "--name-only", "--get-regexp", r"^filter\."], env=env,
+                               capture_output=True, text=True, timeout=10).stdout.split("\0")
+    except (OSError, subprocess.SubprocessError):
+        names = []
+    off = []
+    for name in sorted({n.rsplit(".", 1)[0] for n in names if n.count(".") >= 2}):
+        off += [x for k in ("clean", "smudge", "process") for x in ("-c", f"{name}.{k}=")]
+    return [*cmd[:-2], *off, "-C", str(proj)], env
+
+
+def git_read(proj: Path, *args: str, cfg: sys_config.Config | None = None, timeout: int = 30) -> str:
+    """What a reading git command says on a project ("" when it fails), run so that nothing the project's own .git
+    names runs outside a cage (prj_browse, prj_live, kno_mood_work)."""
+    proj = Path(proj)
+    try:
+        cage = _git_cage(proj, cfg)
+        if cage is not None:
+            r = subprocess.run([*cage, *GIT_SAFE, *args], capture_output=True, text=True, timeout=timeout)
+        else:
+            cmd, env = _git_bare(proj)
+            r = subprocess.run([*cmd, *args], env=env, capture_output=True, text=True, timeout=timeout)
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return r.stdout if r.returncode == 0 else ""
+
+
+def _git(proj: Path, *args: str, cfg: sys_config.Config | None = None) -> str:
+    return git_read(proj, *args, cfg=cfg).strip()
 
 
 def summary(cfg: sys_config.Config, proj: Path) -> dict:
@@ -68,12 +136,12 @@ def summary(cfg: sys_config.Config, proj: Path) -> dict:
             if line and not raw.startswith(("<", "!", "[", ">")) and line.lower() != proj.name.lower():
                 first = line[:200]
                 break
-    last = _git(proj, "log", "-1", "--format=%h%x1f%cI%x1f%s").split("\x1f")
+    last = _git(proj, "log", "-1", "--format=%h%x1f%cI%x1f%s", cfg=cfg).split("\x1f")
     return {"name": proj.name, "description": first, "readme": readme,
-            "branch": _git(proj, "rev-parse", "--abbrev-ref", "HEAD"),
+            "branch": _git(proj, "rev-parse", "--abbrev-ref", "HEAD", cfg=cfg),
             "last_commit": dict(zip(("hash", "date", "subject"), last)) if len(last) == 3 else None,
-            "changes": len([x for x in _git(proj, "status", "--porcelain").splitlines() if x.strip()]),
-            "remote": re.sub(r"//[^@/]+@", "//", _git(proj, "remote", "get-url", "origin")),
+            "changes": len([x for x in _git(proj, "status", "--porcelain", cfg=cfg).splitlines() if x.strip()]),
+            "remote": re.sub(r"//[^@/]+@", "//", _git(proj, "remote", "get-url", "origin", cfg=cfg)),
             "has_index_html": any((proj / d / "index.html").is_file() for d in ("", "docs", "public", "site", "web")),
             "policy": prj_policy.load(cfg, proj.name)}
 
@@ -122,7 +190,7 @@ def read_file(cfg: sys_config.Config, name: str, path: str) -> dict:
 
 
 def log(cfg: sys_config.Config, name: str, n: int = 20) -> list[dict]:
-    raw = _git(project(cfg, name), "log", f"-{n}", "--format=%h%x1f%cI%x1f%an%x1f%s")
+    raw = _git(project(cfg, name), "log", f"-{n}", "--format=%h%x1f%cI%x1f%an%x1f%s", cfg=cfg)
     return [dict(zip(("hash", "date", "author", "subject"), l.split("\x1f"))) for l in raw.splitlines() if l]
 
 

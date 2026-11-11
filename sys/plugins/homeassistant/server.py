@@ -127,7 +127,14 @@ def call_service(domain: str, service: str, entity_id: str, data: dict | None = 
     switch.turn_off, scene.turn_on on scene.x, script.turn_on on script.x. Scenes and scripts belong to no device: find
     them with states(filter="scene") or states(filter="script"). Done at once when the owner asked for it in the chat;
     decided by an agent or a routine, it waits for the owner (AURORA_HA_COMMANDS)."""
-    out = _api("POST", f"/services/{domain}/{service}", json={"entity_id": entity_id, **(data or {})})
+    if not re.fullmatch(r"[a-z0-9_]+", domain) or not re.fullmatch(r"[a-z0-9_]+", service):
+        raise ToolError("domain and service are plain names (light, turn_on)")
+    # C590: what the call acts on is entity_id alone — `data` was merged over it, so a call shown (and approved, and
+    # checked) for one entity could reach another, an area or a device
+    aimed = sorted(k for k in (data or {}) if k in ("entity_id", "target", "area_id", "device_id", "label_id", "floor_id"))
+    if aimed:
+        raise ToolError(f"data cannot name what the service acts on ({', '.join(aimed)}): use entity_id")
+    out = _api("POST", f"/services/{domain}/{service}", json={**(data or {}), "entity_id": entity_id})
     return f"{domain}.{service} on {entity_id}: {len(out)} states changed"
 
 

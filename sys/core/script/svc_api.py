@@ -124,7 +124,16 @@ class WebUIFiles(StaticFiles):
     async def get_response(self, path, scope):
         r = await super().get_response(path, scope)
         r.headers["Cache-Control"] = "no-cache"
+        r.headers.update(webui_headers())
         return r
+
+
+def webui_headers() -> dict:
+    """C594: the WebUI's security policy from the API itself — the one Caddy adds (net_https.csp), so a page reached
+    without Caddy (the API's own port, a container, another proxy) is not left without: script-src 'self' is what stops
+    a «javascript:» link and an injected script. Caddy sets its header only when none is there: one policy, not two."""
+    from aurora import net_https
+    return {"Content-Security-Policy": net_https.csp(cfg), "X-Content-Type-Options": "nosniff"}
 
 
 if WEBUI.is_dir():
@@ -133,13 +142,14 @@ if WEBUI.is_dir():
 
 @app.get("/")
 def index():
-    return FileResponse(WEBUI / "index.html", headers={"Cache-Control": "no-cache"})
+    return FileResponse(WEBUI / "index.html", headers={"Cache-Control": "no-cache", **webui_headers()})
 
 
 # The service worker must be served from the root to control the whole site (PWA).
 @app.get("/sw.js")
 def service_worker():
-    return FileResponse(WEBUI / "sw.js", media_type="text/javascript", headers={"Cache-Control": "no-cache"})
+    return FileResponse(WEBUI / "sw.js", media_type="text/javascript",
+                        headers={"Cache-Control": "no-cache", **webui_headers()})
 
 
 @app.get("/manifest.webmanifest")

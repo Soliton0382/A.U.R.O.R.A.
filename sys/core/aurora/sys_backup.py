@@ -357,12 +357,13 @@ def restore(cfg: sys_config.Config, into: Path, snapshot: str = "latest", prefix
             parts: tuple[str, ...] = ()) -> dict:
     """Write a snapshot's files into an empty folder (never over the live installation). `code`: the recovery code,
     when the key file is lost with the disk. `parts`: only these (sys_backup_parts)."""
-    into = Path(into).resolve()
+    into, root = Path(os.path.abspath(into)), cfg.root.resolve()    # C592: as written, never through a link at it
+    inside = into == root or root in into.parents
     own = (cfg.path("AURORA_STATUS_DIR") / "backup").resolve()       # the backup's own folder: never backed up, her account's
-    if (into == cfg.root.resolve() or cfg.root.resolve() in into.parents) and own not in into.parents:
+    if not inside and (into.parent.resolve() == root or root in into.parent.resolve().parents):
+        raise BackupError(f"{into} reaches the live installation through a link: refused")
+    if inside and own not in into.parents:
         raise BackupError("restore goes into a separate empty folder, never into the live installation")
-    if into.exists() and any(into.iterdir()):
-        raise BackupError(f"{into} is not empty")
     raw = key_from_code(code) if code else load_key(cfg)
     enc, idkey = _subkeys(raw)
     dest = target(cfg)
@@ -371,13 +372,39 @@ def restore(cfg: sys_config.Config, into: Path, snapshot: str = "latest", prefix
     if not snap.is_file():
         raise BackupError(f"no snapshot {snapshot}")
     data, n, size = read_snapshot(snap, enc), 0, 0
-    into.mkdir(parents=True, exist_ok=True)
-    top = os.open(into, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)   # C579: every write from this folder's fd
+    top = _empty_folder(into, root if inside else None)   # C579: every write from this folder's fd
     try:
         n, size = _restore_files(data, top, into, dest, enc, idkey, prefix, parts, cfg)
     finally:
         os.close(top)
     return {"snapshot": snap.stem, "files": n, "bytes": size, "into": str(into)}
+
+
+def _empty_folder(into: Path, root: Path | None) -> int:
+    """C592 (audit F4): the folder a restore fills, as a descriptor. Inside the installation (the stage, in a folder
+    the services' account writes) every step from the root is opened with O_NOFOLLOW: a link planted at the stage sent
+    root's files elsewhere. Outside, the folder itself is never a link. Made when missing; refused when not empty."""
+    nofollow = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+    try:
+        if root is None:
+            into.mkdir(parents=True, exist_ok=True)
+            fd = os.open(into, nofollow)
+        else:
+            fd = os.open(root, os.O_RDONLY | os.O_DIRECTORY)
+            for name in into.relative_to(root).parts:
+                try:
+                    os.mkdir(name, 0o700, dir_fd=fd)
+                except FileExistsError:
+                    pass
+                nxt = os.open(name, nofollow, dir_fd=fd)
+                os.close(fd)
+                fd = nxt
+    except OSError as e:
+        raise BackupError(f"{into}: a symbolic link (or no folder) on the way: nothing restored ({e.strerror})") from None
+    if os.listdir(fd):
+        os.close(fd)
+        raise BackupError(f"{into} is not empty")
+    return fd
 
 
 def _open_under(top: int, rel: str) -> int:
@@ -420,7 +447,7 @@ def _restore_files(data, top, into, dest, enc, idkey, prefix, parts, cfg) -> tup
             decrypt_stream(src, _Tee(dst), enc)
             if h.hexdigest() != bid:
                 raise BackupError(f"{rel}: restored content does not match")
-            os.chmod(dst.fileno(), mode or 0o600)
+            os.chmod(dst.fileno(), (mode & 0o777) or 0o600)   # C592: never a snapshot's setuid/setgid/sticky bit
             dst.flush()
             os.utime(dst.fileno(), (mtime, mtime))
         n, size = n + 1, size + sz
@@ -450,6 +477,7 @@ def status(cfg: sys_config.Config | None = None) -> dict:
 
 
 UNIT_STATUS = {226: "la cartella del backup (NAS) non era raggiungibile quando il servizio è partito"}
+UNIT_STATUS_EN = {226: "the backup folder (NAS) could not be reached when the service started"}
 
 
 def unit_failure(unit: str = "aurora-backup.service", after: float | None = None) -> str | None:
@@ -470,7 +498,10 @@ def unit_failure(unit: str = "aurora-backup.service", after: float | None = None
     if after and failed_at.isdigit() and int(failed_at) < after:
         return None
     code = int(v.get("ExecMainStatus") or 0)
-    return UNIT_STATUS.get(code, f"esito {v.get('Result')}, codice {code}")
+    from . import sys_lang
+    en = sys_lang.reader() == "en"                    # the health page's reader (C526)
+    return (UNIT_STATUS_EN if en else UNIT_STATUS).get(
+        code, f"result {v.get('Result')}, code {code}" if en else f"esito {v.get('Result')}, codice {code}")
 
 
 def _write_blob(source: Path, bp: Path, enc: bytes, log, tries: int = 3) -> None:

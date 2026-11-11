@@ -44,6 +44,27 @@ def changed_files(box: Path, root: Path) -> list[str]:
     return out
 
 
+# files that steer a test run from outside the tests' own folder: pytest and Python load them by their name
+STEERING = {"conftest.py", "pytest.ini", "tox.ini", "setup.cfg", "pyproject.toml", "sitecustomize.py",
+            "usercustomize.py"}
+
+
+def strays(box: Path, root: Path) -> list[str]:
+    """Files of the sandbox OUTSIDE sys/core that would steer its tests and are not the live code's own (C590, 12 Nov:
+    only sys/core is in the diff and the fingerprint — a conftest.py at the sandbox's root was in neither, and pytest
+    loaded it). A sandbox that has one is refused: its tests say nothing."""
+    out = []
+    for f in sorted(box.rglob("*")):
+        rel = f.relative_to(box)
+        if rel.parts[0] in (".base", ".backup") or rel.parts[:2] == ("sys", "core") or "__pycache__" in rel.parts:
+            continue
+        if (f.name in STEERING or f.suffix == ".pth") and (f.is_file() or f.is_symlink()):
+            ref = root / rel
+            if f.is_symlink() or not ref.is_file() or not filecmp.cmp(f, ref, shallow=False):
+                out.append(rel.as_posix())
+    return out
+
+
 def conflicts(box: Path, root: Path, files: list[str]) -> list[str]:
     """Files the change touches that changed in the live code too since the sandbox was made: never overwritten."""
     base = box / ".base"
@@ -70,10 +91,14 @@ def services_for(files: list[str]) -> list[str]:
     return sorted(svc)
 
 
-def _put(src: Path, dst: Path) -> None:
+def _put(src: Path, dst: Path, data: bytes | None = None) -> None:
     """The file's content in place, its mode where allowed: the live code belongs to the owner's account, not to the
-    service, so copying the times (shutil.copy2) is refused with EPERM after the content is already written (C518)."""
-    shutil.copyfile(src, dst)
+    service, so copying the times (shutil.copy2) is refused with EPERM after the content is already written (C518).
+    `data`: the bytes to write, already read and checked (C590) — src gives only the mode then."""
+    if data is None:
+        shutil.copyfile(src, dst)
+    else:
+        dst.write_bytes(data)
     try:
         shutil.copymode(src, dst)
     except PermissionError:
@@ -104,11 +129,23 @@ def apply(sandbox_id: str, emit, cfg: sys_config.Config | None = None, restart: 
     clash = conflicts(box, root, files)
     if clash:                                         # the live code moved on under these files: redo the change on it
         return {"applied": False, "reason": f"changed in the live code since the sandbox was made: {', '.join(clash)}"}
+    stray = strays(box, root)
+    if stray:                                         # C590: outside the diff, yet loaded by the tests
+        return {"applied": False, "reason": "files outside sys/core that steer the tests and are not the live "
+                                            f"code's: {', '.join(stray[:10])} — make a new sandbox"}
     emit("change.check", {"files": files})
+    before = fingerprint(box, files)
     t = sys_tests.run_suite(box, caged=True)           # the sandbox's code: in the cage (C420)
     emit("change.tests.sandbox", {"ok": t["ok"], "summary": t["summary"]})
     if not t["ok"]:
         return {"applied": False, "reason": "sandbox tests fail", "tests": t["summary"]}
+    # C590: the test run is code too. What is copied is read ONCE, here, after it, and must be the approved bytes —
+    # the same files, the same content; the copy below writes these bytes, never the sandbox's files read again
+    import hashlib
+    data = {rel: (box / rel).read_bytes() for rel in files} if changed_files(box, root) == files else {}
+    if {rel: hashlib.sha256(b).hexdigest() for rel, b in data.items()} != (expect if expect is not None else before):
+        return {"applied": False, "reason": "the sandbox changed while its tests ran: what the owner approved is not "
+                                            "what is there now — propose it again"}
     backup, new = box / ".backup", []
     for rel in files:
         live = root / rel
@@ -122,7 +159,7 @@ def apply(sandbox_id: str, emit, cfg: sys_config.Config | None = None, restart: 
     try:
         for rel in files:
             (root / rel).parent.mkdir(parents=True, exist_ok=True)
-            _put(box / rel, root / rel)
+            _put(box / rel, root / rel, data[rel])
     except OSError as e:                              # C518: never a change left half in, untested and unsaid
         rollback(sandbox_id, cfg)
         emit("change.rollback", {"reason": repr(e)})

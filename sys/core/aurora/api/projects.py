@@ -207,7 +207,9 @@ def project_delete(name: str) -> dict:
 async def project_save(name: str, request: Request) -> dict:
     """💾 Every change of the project kept in its history (a local commit, never a push): the page's «Salva»."""
     body = await request.json()
-    message = str(body.get("message") or "").strip()[:200] or "Salvato dalla pagina del progetto"
+    from aurora import sys_lang                      # the default note in the language of whoever saves (C526)
+    message = str(body.get("message") or "").strip()[:200] or sys_lang.say(
+        "Salvato dalla pagina del progetto", "Saved from the project's page", cfg.now())
 
     def work():
         return plugin_host().call("projects", "project_commit", {"name": name, "message": message})

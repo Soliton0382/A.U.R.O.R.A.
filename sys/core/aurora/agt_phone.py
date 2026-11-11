@@ -13,6 +13,7 @@ import json
 import re
 import secrets
 from datetime import datetime
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 ACTIONS = ("open_url", "web_search", "open_app", "alarm", "timer", "calendar", "navigate", "call", "message")
 
@@ -42,6 +43,10 @@ SAID = {"open_url": "📱 apro {url}", "web_search": "🔎 cerco «{query}»", "
         "alarm": "⏰ sveglia alle {hour:02d}:{minute:02d}", "timer": "⏱️ timer di {mins}",
         "calendar": "📅 «{title}» nel calendario del telefono", "navigate": "🧭 navigazione verso {destination}",
         "call": "📞 chiamata a {who} (premi chiama)", "message": "💬 messaggio a {who} (premi invia)"}
+SAID_EN = {"open_url": "📱 opening {url}", "web_search": "🔎 searching «{query}»", "open_app": "📱 opening {app}",
+           "alarm": "⏰ alarm at {hour:02d}:{minute:02d}", "timer": "⏱️ timer of {mins}",
+           "calendar": "📅 «{title}» in the phone's calendar", "navigate": "🧭 navigation to {destination}",
+           "call": "📞 call to {who} (press call)", "message": "💬 message to {who} (press send)"}
 
 
 def _ms(when: str) -> int:
@@ -100,7 +105,7 @@ def said(act: dict) -> str:
     """The action in a few words, for the conversation."""
     s = act.get("seconds", 0)
     mins = f"{s // 60} min" + (f" {s % 60} s" if s % 60 else "") if s >= 60 else f"{s} s"
-    return SAID[act["action"]].format_map({**act, "mins": mins, "who": act.get("contact") or act.get("number")})
+    return _t(SAID, SAID_EN)[act["action"]].format_map({**act, "mins": mins, "who": act.get("contact") or act.get("number")})
 
 
 # ⚡ The plain commands, understood without a model (owner, 1 Nov: «mi serve la stessa reattività della chiamata… per

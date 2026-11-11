@@ -122,15 +122,33 @@ def delete(cfg, aid: str) -> bool:
     return len(data["automations"]) < n
 
 
+_SUN: dict = {}                       # (url, day) -> today's times, or (url, "failed") -> when it last failed
+SUN_TIMEOUT_S, SUN_FAILED_S = 5, 300
+
+
 def _sun(cfg) -> dict:
-    """{"sunrise", "sunset"}: today's, from Home Assistant's sun.sun (its next ones, a day back when already past)."""
+    """{"sunrise", "sunset"}: today's, from Home Assistant's sun.sun (its next ones, a day back when already past).
+    12 Nov: asked at every routines' tick for every user with a sunrise or sunset automation, 15 s each when Home
+    Assistant was slow — the tick passed aurora-rem's 30 s (automations 38.2 s of 43.8). Now once a day per Home
+    Assistant, a failure remembered for SUN_FAILED_S (the clock's automations still go meanwhile)."""
+    import time as _time
     url, token = str(cfg["AURORA_HA_URL"]).rstrip("/"), str(cfg["AURORA_HA_TOKEN"])
-    r = httpx.get(f"{url}/api/states/sun.sun", headers={"Authorization": f"Bearer {token}"}, timeout=15)
-    r.raise_for_status()
-    attrs, today, out = r.json().get("attributes", {}), sns_clock.now(cfg), {}
+    today = sns_clock.now(cfg)
+    if (hit := _SUN.get((url, today.date()))) is not None:
+        return hit
+    if _time.time() - _SUN.get((url, "failed"), 0) < SUN_FAILED_S:
+        raise httpx.HTTPError("Home Assistant's sun: failed a moment ago")
+    try:
+        r = httpx.get(f"{url}/api/states/sun.sun", headers={"Authorization": f"Bearer {token}"}, timeout=SUN_TIMEOUT_S)
+        r.raise_for_status()
+    except httpx.HTTPError:
+        _SUN[(url, "failed")] = _time.time()
+        raise
+    attrs, out = r.json().get("attributes", {}), {}
     for k, attr in (("sunrise", "next_rising"), ("sunset", "next_setting")):
         nxt = datetime.fromisoformat(attrs[attr]).astimezone(today.tzinfo)
         out[k] = nxt if nxt.date() == today.date() else nxt - timedelta(days=(nxt.date() - today.date()).days)
+    _SUN[(url, today.date())] = out
     return out
 
 

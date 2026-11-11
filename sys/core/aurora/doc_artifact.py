@@ -6,8 +6,9 @@ live in the chat.
 An artifact is one self-contained HTML file kept with its turn (sys_uploads: the Files page, the conversation).
 It never runs as Aurora's own page: only under /v1/preview/, with a token valid 10 minutes that the logged-in
 WebUI asks for, in a sandbox (opaque origin: no cookie, no access to Aurora's API) and with no network at all
-(connect-src 'none'; no external script, style, font or image: everything inline). The download of the file
-stays a download (sys_uploads never serves HTML inline).
+(connect-src 'none'; no external script, style, font or image: everything inline; webrtc 'block' — C594: a peer
+connection is no fetch, connect-src does not stop it, and its ICE requests carried data out). The download of the
+file stays a download (sys_uploads never serves HTML inline).
 """
 from __future__ import annotations
 
@@ -23,7 +24,7 @@ TTL_S = 600
 PREFIX = "art-"                       # tokens of artifacts in the /v1/preview/ space (projects use theirs)
 CSP = ("sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; "
        "img-src data: blob:; font-src data:; media-src data: blob:; connect-src 'none'; form-action 'none'; "
-       "base-uri 'none'; frame-ancestors 'self'")
+       "base-uri 'none'; frame-ancestors 'self'; webrtc 'block'")
 UPLOAD_URL = re.compile(r"/v1/aurora/uploads/([0-9a-f]{16})")
 _tokens: dict[str, tuple[bytes, float]] = {}
 

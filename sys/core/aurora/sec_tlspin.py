@@ -23,6 +23,8 @@ from urllib.parse import urlparse
 from . import sys_config
 
 _lock = threading.Lock()
+FORGOTTEN = ("the firewall was disconnected and its certificate forgotten: connect it again in 🛡️ Security (its "
+             "certificate is confirmed by that click only)")
 NO_CHECK_TIME = 0x200000           # X509_V_FLAG_NO_CHECK_TIME: the exact certificate is trusted, expired or not
 
 
@@ -90,9 +92,11 @@ def forget(cfg: sys_config.Config, url: str) -> bool:
         return False
     with _lock:
         pins = _pins(cfg)
-        gone = pins.pop(f"{where[0]}:{where[1]}", None) is not None
-        if gone:
-            _save(cfg, pins)
+        gone = bool((pins.get(f"{where[0]}:{where[1]}") or {}).get("pem"))
+        # C596: a mark stays in the pin's place. With nothing there, the next call to that address «had no pin» and
+        # learnt whatever certificate answered, by itself: only the owner's «Collega» learns one again.
+        pins[f"{where[0]}:{where[1]}"] = {"forgotten": time.time()}
+        _save(cfg, pins)
     return gone
 
 
@@ -108,12 +112,16 @@ def verify(cfg: sys_config.Config, url: str, ca: bool) -> bool | ssl.SSLContext:
         from . import sys_log
         sys_log.get_logger("security").warning("tls pin: %s:%d had none, learnt at first use (C567)", *where)
         pin = _pins(cfg).get(f"{where[0]}:{where[1]}")
+    if not pin.get("pem"):                               # C596: disconnected by the owner: never learnt again alone
+        raise ssl.SSLError(FORGOTTEN)
     return context(pin["pem"])
 
 
 def why(error: Exception) -> str:
     """A refused handshake said plainly: the owner knows what to do."""
     text = str(error)
+    if FORGOTTEN in text:
+        return FORGOTTEN
     if "CERTIFICATE_VERIFY_FAILED" in text or "certificate verify failed" in text:
         return ("the firewall's certificate is not the one confirmed (C567): if you renewed it, connect the firewall "
                 "again in 🛡️ Security; otherwise something on the network is in the middle")

@@ -34,6 +34,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from . import sys_config, sys_log
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 _lock = threading.Lock()
 CHUNK, MAX_CHUNKS = 8000, 6
@@ -149,7 +150,24 @@ def pieces(text: str, whole: bool) -> list[str]:
                 a = max(0, m.start() - CHUNK // 2)
                 out.append(text[a:a + CHUNK])
                 covered = a + CHUNK
+    head = CHUNK * MAX_CHUNKS
+    if whole and len(text) > head:
+        # C596: «whole» stopped at the first 48,000 characters — an injection with no cue word placed after them was
+        # never tried, and the verdict said the content had been. The rest is read too, with the calls left: all of it
+        # when it fits, else pieces spread evenly over it; the end always (where an injection is most often put).
+        rest = len(text) - head
+        left = max(1, MAX_CHUNKS * 2 - len(out))
+        step = CHUNK if rest <= left * CHUNK else max(CHUNK, (rest - CHUNK) // max(1, left - 1))
+        starts = list(range(head, len(text), step))[:left]
+        if starts and starts[-1] + CHUNK < len(text):
+            starts[-1] = len(text) - CHUNK
+        out += [text[a:a + CHUNK] for a in starts]
     return out
+
+
+def partial(text: str, whole: bool = True) -> bool:
+    """Whether a «whole» try cannot have read every character (longer than every call's piece together)."""
+    return whole and len(text) > CHUNK * MAX_CHUNKS * 2
 
 
 def explode(model, text: str, whole: bool = True) -> tuple[bool, str]:
@@ -212,10 +230,13 @@ def guard(cfg: sys_config.Config, model, source: str, text: str, mode: str | Non
         boom, why = explode(model, text, whole=how == "whole")
     except Exception as e:  # noqa: BLE001 — the decoy failed: not tried, said; the content stays marked
         sys_log.get_logger("security").warning("honeypot: decoy failed on %s: %s", source[:100], e)
-        return {"exploded": False, "why": f"esca non riuscita ({type(e).__name__})", "cues": found, "tried": False,
+        return {"exploded": False, "why": _t(f"esca non riuscita ({type(e).__name__})", f"the decoy failed ({type(e).__name__})"), "cues": found, "tried": False,
                 "cached": False}
     v = {"exploded": boom, "why": why, "cues": found, "tried": how, "seconds": round(time.time() - t0, 1),
-         "source": source[:300], "at": time.time()}
+         "source": source[:300], "at": time.time(), **({"partial": True} if partial(text, how == "whole") else {})}
+    if v.get("partial") and not boom:                 # said, not hidden: this content was too long to try all of it
+        sys_log.get_logger("security").warning("honeypot: %s is %d characters: tried in pieces spread over it, not "
+                                               "every one", source[:100], len(text))
     with _lock:
         d = _load(cfg)
         d["verdicts"][key] = v

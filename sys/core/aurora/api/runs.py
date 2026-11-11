@@ -73,8 +73,10 @@ async def ask(request: Request) -> dict:
                 raise HTTPException(status_code=422, detail=str(e))
             files.append((name, data, a.get("mime", "")))
         if not question:
-            question = ("Descrivi l'immagine." if all(is_image(n, m) for n, _, m in files)
-                        else "Di cosa parla questo documento?")
+            from aurora import sys_lang                  # asked in the language of whoever sent the file (C526)
+            question = (sys_lang.say("Descrivi l'immagine.", "Describe the picture.", cfg.now())
+                        if all(is_image(n, m) for n, _, m in files)
+                        else sys_lang.say("Di cosa parla questo documento?", "What is this document about?", cfg.now()))
     if not question:
         raise HTTPException(status_code=400, detail="empty question")
     if body.get("talk") is True and remember and not files and not focus and not quote and not think:

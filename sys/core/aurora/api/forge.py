@@ -15,6 +15,12 @@ from .users import admin_only  # noqa: E402
 router = APIRouter()
 
 
+def _t(it: str, en: str) -> str:
+    """The sentence in the language of the person served (C526)."""
+    from aurora import sys_lang
+    return sys_lang.say(it, en, cfg.now())
+
+
 # ---- the capability forge (agt_forge): Aurora builds the plugin she is missing -----------------------------
 
 def _forge_done(req_id: str, name: str) -> None:
@@ -22,7 +28,7 @@ def _forge_done(req_id: str, name: str) -> None:
     from aurora import agt_forge, sys_routines
     req = agt_forge.shown(cfg, agt_forge.update(cfg, req_id, status="installed", plugin=name, installed=time.time()))
     note("forge", "forge.installed", {"id": req_id, "plugin": name,
-                                      "text": f"Mi sono costruita il plugin «{name}»: {req['need'][:160]}"})
+                                      "text": _t(f"Mi sono costruita il plugin «{name}»: {req['need'][:160]}", f"I built myself the plugin «{name}»: {req['need'][:160]}")})
     r = sys_routines.get(cfg, req["routine"]) if req.get("routine") else None
     if r:
         _start_routine(r)
@@ -49,19 +55,21 @@ def _forge_job(raw: dict, cloud: bool = False):
             from aurora.sys_approvals import Approvals
             m = agt_forge.Masker(cfg)
             sample = m(agt_forge.peek(cfg, re.findall(r"[\w./-]+/[\w./-]+", req["need"])[:3] or ["sys/logs"]))
-            item = Approvals(cfg).request("forge_cloud", "external", f"Posso farmi aiutare dal cloud per «{seen['need'][:80]}»?",
-                                          "La forgia locale non ci è riuscita. Il ragionatore cloud (Claude) vedrebbe la "
+            item = Approvals(cfg).request("forge_cloud", "external", _t(f"Posso farmi aiutare dal cloud per «{seen['need'][:80]}»?", f"May the cloud help me with «{seen['need'][:80]}»?"),
+                                          _t("La forgia locale non ci è riuscita. Il ragionatore cloud (Claude) vedrebbe la "
                                           "richiesta e questi campioni, mascherati (IP, email, token, nomi di dispositivi, "
-                                          "i tuoi dati personali). Il plugin girerebbe comunque solo qui, nella gabbia.",
+                                          "i tuoi dati personali). Il plugin girerebbe comunque solo qui, nella gabbia.", "The local forge did not manage. The cloud reasoner (Claude) would see the "
+                                          "request and these samples, masked (IPs, emails, tokens, device names, "
+                                          "your personal data). The plugin would still run only here, in the cage."),
                                           {"need": seen["need"], "campioni mascherati": sample[:4000],
                                            "errori locali": res["errors"][:3]}, {"request": req["id"]}, run_id)
             agt_forge.update(cfg, req["id"], status="awaiting_cloud", errors=res["errors"][:5], approval=item["id"])
             note("forge", "approval.pending", {"id": item["id"], "kind": "forge_cloud", "title": item["title"]})
-            return Answer(run_id, q, "Forgia locale non riuscita: chiedo il permesso per il cloud.", False, mode="agent")
+            return Answer(run_id, q, _t("Forgia locale non riuscita: chiedo il permesso per il cloud.", "The local forge did not manage: I am asking permission for the cloud."), False, mode="agent")
         if not res["ok"]:
             agt_forge.update(cfg, req["id"], status="failed", errors=res["errors"][:5])
-            note("forge", "forge.failed", {"id": req["id"], "text": f"Non sono riuscita a costruire: {seen['need'][:120]}"})
-            return Answer(run_id, q, "Forgia non riuscita: " + "; ".join(res["errors"])[:1500], False, mode="agent")
+            note("forge", "forge.failed", {"id": req["id"], "text": _t(f"Non sono riuscita a costruire: {seen['need'][:120]}", f"I could not build: {seen['need'][:120]}")})
+            return Answer(run_id, q, _t("Forgia non riuscita: ", "The forge did not manage: ") + "; ".join(res["errors"])[:1500], False, mode="agent")
         m = res["manifest"]
         if agt_forge.installs_alone(m, cfg):            # read only or a project's tool, the forge «by herself» (C559)
             agt_forge.install(cfg, res["stage"])

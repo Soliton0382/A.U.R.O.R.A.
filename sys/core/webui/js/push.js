@@ -12,10 +12,20 @@ async function registration() {
 // says whether Android lets it show them, and opens its settings
 export const inApp = () => typeof window.AuroraApp?.notifications === "function";
 
-export function appSettings() { window.AuroraApp?.settings(); }
+// C594 (app 0.5.5): these two take the key the app gave this page's main frame, like its actions (phone.js); an app
+// of before takes none
+function app(name) {
+  const a = window.AuroraApp;
+  try { return a[name](window.AuroraAppKey || ""); } catch (e) {
+    if (window.AuroraAppKey) throw e;
+    return a[name]();
+  }
+}
+
+export function appSettings() { if (inApp()) app("settings"); }
 
 export async function pushState() {
-  if (inApp()) return window.AuroraApp.notifications() ? "app" : "appoff";
+  if (inApp()) return app("notifications") ? "app" : "appoff";
   const reg = await registration();
   if (!reg) return "unsupported";
   if (Notification.permission === "denied") return "denied";

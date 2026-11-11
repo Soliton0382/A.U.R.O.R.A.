@@ -23,6 +23,10 @@
     <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
 
+    <!-- C594: who may open the assistant's screen (a live call, the microphone): this app (its service, its shortcut)
+         and the system — never another app. A signature permission nobody else can hold. -->
+    <permission android:name="org.aurora.app.permission.ASSIST" android:protectionLevel="signature" />
+
     <!-- «apri YouTube»: the launchable apps, found by their name (Android 11+ shows only what is declared here) -->
     <queries>
         <intent>
@@ -59,6 +63,7 @@
         <activity
             android:name=".AssistActivity"
             android:exported="true"
+            android:permission="org.aurora.app.permission.ASSIST"
             android:launchMode="singleTask"
             android:excludeFromRecents="true"
             android:taskAffinity="org.aurora.app.assist"

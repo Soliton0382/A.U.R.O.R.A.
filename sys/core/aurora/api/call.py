@@ -18,6 +18,12 @@ from .core import _admin, _from_this_machine, _is_key, auth, cfg, devices, is_ma
 from .core_guard import RECHECK_S
 
 router = APIRouter()
+
+
+def _t(it: str, en: str) -> str:
+    """The sentence in the language of the person served (C526)."""
+    from aurora import sys_lang
+    return sys_lang.say(it, en, cfg.now())
 BARGE_FRAMES = 15                                     # 0.3 s of the owner's voice over hers stops her
 
 
@@ -133,7 +139,8 @@ async def call_audio(ws: WebSocket, call_id: str) -> None:
         await asyncio.to_thread(sys_line.post, {"kind": "call_answered", "call": call_id}, cfg.now())
     sys_call.set_state(call_id, "answered", only_from="dialing")      # the owner's own call: nobody else rang
     log.info("audit: call answered %s", call_id)
-    lang = str(cfg["AURORA_LANG_DEFAULT"])[:2]
+    from aurora import sys_lang
+    lang = sys_lang.reader(cfg.now())                 # she speaks the language this person chose (C526)
     voice, seg, heard = _Voice(ws, lang), sys_call.Segmenter(), asyncio.Queue()
 
     from aurora import kno_talk, mdl_tts, sys_call_ahead
@@ -320,7 +327,7 @@ async def _turn(ws: WebSocket, voice: _Voice, audio, lang: str, ahead=None) -> N
     if turn != voice.turn and not handed:             # the owner spoke again: plain talk is not said
         return
     answer = run.get("answer")
-    said = str(getattr(answer, "text", answer) or "").strip() or "Scusa, non sono riuscita a rispondere."
+    said = str(getattr(answer, "text", answer) or "").strip() or _t("Scusa, non sono riuscita a rispondere.", "Sorry, I could not answer.")
     await ws.send_text(json.dumps({"type": "said", "text": said}))
     if handed or not spoken:                          # the whole path's answer, written for the chat: its gist said
         said = await asyncio.to_thread(sys_call.spoken, model, said)

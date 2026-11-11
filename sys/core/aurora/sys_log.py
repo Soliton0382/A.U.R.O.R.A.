@@ -95,8 +95,24 @@ def purge(folder: Path, retention_days: int, now: float | None = None) -> list[P
     return removed
 
 
+def keep_others_out(path) -> None:
+    """C593: a log is its service's (owner and group), never every local account's, whatever umask made it — a file
+    of before the services' UMask, or one made by a script run by hand. Not ours to change: left as it is."""
+    try:
+        mode = os.stat(path).st_mode
+        if mode & 0o007:
+            os.chmod(path, mode & 0o7770)
+    except OSError:
+        pass
+
+
 class GzipRotatingFileHandler(RotatingFileHandler):
     """Size-based rotation; the rotated file is gzip-compressed with a timestamp in its name."""
+
+    def _open(self):
+        stream = super()._open()
+        keep_others_out(self.baseFilename)
+        return stream
 
     def __init__(self, filename: Path, max_bytes: int, retention_days: int):
         Path(filename).parent.mkdir(parents=True, exist_ok=True)
@@ -117,6 +133,7 @@ class GzipRotatingFileHandler(RotatingFileHandler):
                 n += 1
             with open(live, "rb") as src, gzip.open(target, "wb") as dst:
                 shutil.copyfileobj(src, dst)
+            keep_others_out(target)
             live.unlink()
         purge(live.parent, self.retention_days)
         self.stream = self._open()
@@ -198,8 +215,10 @@ def trace(component: str, event: str, payload: dict[str, Any] | None = None,
     if sys_context.user():
         record["user"] = sys_context.user()
     if not sys_context.anonymous_now() and not (component in CHAT and event in OFF_DISK):
-        # an anonymous chat's run: nothing on disk (sys_anon); a chat's words sealed with its user's key (N64)
-        if component in CHAT and record["payload"]:
+        # an anonymous chat's run: nothing on disk (sys_anon); a chat's words sealed with its user's key (N64) — and
+        # since C572 every other component's too (a file's name, a title, an address: whatever is not a number or a
+        # name of the structure), with the key of the user the work is for (none: the admin's). Readers: `opened`
+        if record["payload"]:
             record["payload"] = seal_fields(_config(), record["payload"], chat_keys(record["payload"]),
                                             f"{run_id}/{event}", record.get("user"))
         tr.info(json.dumps(record, ensure_ascii=False, default=str))
@@ -259,6 +278,16 @@ def open_fields(cfg: sys_config.Config, d: dict, label: str, user: str | None) -
             except Exception:  # noqa: BLE001 — changed, or not this user's
                 out[k] = "(does not open)"
     return out
+
+
+def opened(cfg: sys_config.Config, record: dict) -> dict:
+    """A trace line for Aurora's own counting (the morning's facts, the usage, the cloud's costs): its sealed values
+    opened with the key of the user on the line (C572). A line of before, in plaintext, comes back as it is; a value
+    that does not open is the text «(does not open)» — a reader checks the type of what it uses."""
+    p = record.get("payload")
+    if not isinstance(p, dict):
+        return record
+    return {**record, "payload": open_fields(cfg, p, f"{record.get('run_id')}/{record.get('event')}", record.get("user"))}
 
 
 def hide_fields(d: dict, owner: str | None) -> dict:
@@ -326,6 +355,8 @@ def rotate_loose(cfg: sys_config.Config | None = None) -> list[Path]:
                 with gzip.open(target, "wb") as dst:
                     shutil.copyfileobj(src, dst)
                 src.truncate(0)
+            keep_others_out(target)
+            keep_others_out(live)
             out.append(target)
     return out
 

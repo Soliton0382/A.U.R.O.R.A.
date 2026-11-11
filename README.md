@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-1813%20passed-1baf7a" alt="Tests"> <img src="https://img.shields.io/badge/code-124k%20lines-6a4fd6" alt="Lines of code"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-1984%20passed-1baf7a" alt="Tests"> <img src="https://img.shields.io/badge/code-127k%20lines-6a4fd6" alt="Lines of code"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
 
 <p align="center">🇮🇹 <b>Italiano</b> · 🇬🇧 <a href="README.en.md">English</a></p>
 
@@ -487,7 +487,7 @@ cd ../.. && ./install.sh   # la sigilla di nuovo, legata al TPM nuovo
 **Il disco è perso.** Installa Aurora su un disco nuovo (`./install.sh`), poi ripristina l'ultimo backup:
 
 ```bash
-.venv/bin/python sys/core/script/svc_backup.py restore --to /tmp/aurora-restore --code <codice del backup>   # prova: una cartella vuota
+.venv/bin/python sys/core/script/svc_backup.py restore --to /tmp/aurora-restore --code   # prova: una cartella vuota; il codice del backup viene chiesto
 .venv/bin/python sys/core/script/sys_restore.py --plan latest      # cosa farebbe
 sudo aurora-root restore --apply latest     # lo fa (ti chiede di scrivere RIPRISTINA)
 sudo aurora-root restore --apply latest --parts config     # solo la configurazione, su un'Aurora appena installata
@@ -496,7 +496,7 @@ sudo aurora-root restore --apply latest --parts config     # solo la configurazi
 `--apply` va lanciato con `sudo` quando Aurora ha il suo account: solo root può fermare i servizi e scrivere in tutte le cartelle.
 
 Poi riapri la chiave di Aurora come sopra (`sys_key_recovery recover` con il suo codice, oppure `sys_keyring recover`, che chiede il codice del backup),
-rimetti la chiave del backup (`sudo -u aurora .venv/bin/python sys/core/script/svc_backup.py init --code <codice del backup>`: le copie vecchie restano leggibili)
+rimetti la chiave del backup (`sudo -u aurora .venv/bin/python sys/core/script/svc_backup.py init --code`, che chiede il codice del backup: le copie vecchie restano leggibili)
 e lancia di nuovo l'installer. Il ripristino non scrive mai sopra i dati di oggi: li sposta da parte, interi, in `sys/status/backup/before-restore-…`.
 
 Se perdi **entrambi** i codici e il disco, i dati non si riaprono: è il prezzo della cifratura, voluto.

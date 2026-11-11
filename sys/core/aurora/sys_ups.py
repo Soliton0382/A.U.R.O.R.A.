@@ -24,6 +24,7 @@ import subprocess
 import time
 
 from . import sys_config, sys_log
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 PORT = 3493
 POLL_S = 15
@@ -208,19 +209,19 @@ class Watch:
                     self.log.error("UPS: power-off refused: %s", err)
                     if not self.told_failed:
                         self.told_failed = True
-                        self.tell("ups.poweroff_failed", "⚠️ Non riesco a spegnere il computer",
-                                  f"{err[:160]}. Riprovo; serve sys_install_services.py con AURORA_UPS_MODE=shutdown.")
+                        self.tell("ups.poweroff_failed", _t("⚠️ Non riesco a spegnere il computer", "⚠️ I cannot power the computer off"),
+                                  _t(f"{err[:160]}. Riprovo; serve sys_install_services.py con AURORA_UPS_MODE=shutdown.", f"{err[:160]}. I try again; sys_install_services.py with AURORA_UPS_MODE=shutdown is needed."))
             elif not self.told_low:
                 self.told_low = True
                 self.log.warning("UPS low (%s): mode notify, not powering off", why)
-                self.tell("ups.low", "🔋 Batteria UPS quasi scarica", f"{why}. Lo spegnimento automatico è spento.")
+                self.tell("ups.low", _t("🔋 Batteria UPS quasi scarica", "🔋 The UPS battery is nearly empty"), _t(f"{why}. Lo spegnimento automatico è spento.", f"{why}. The automatic power-off is turned off."))
         if now - self.asked_at > 3600:                  # may this account power off with nobody to ask? (logind, polkit)
             self.asked_at, self.can_off = now, can_power_off()
             if self.cfg["AURORA_UPS_MODE"] == "shutdown" and self.can_off in ("challenge", "no") and not self.told_cannot:
                 self.told_cannot = True                 # the mode turned on after the installer: polkit not written
                 self.log.warning("UPS: mode shutdown but logind says %s to powering off", self.can_off)
-                self.tell("ups.cannot_poweroff", "⚠️ Spegnimento automatico: permesso mancante",
-                          "Rilancia sys_install_services.py: senza il permesso polkit lo spegnimento fallirebbe.")
+                self.tell("ups.cannot_poweroff", _t("⚠️ Spegnimento automatico: permesso mancante", "⚠️ Automatic power-off: permission missing"),
+                          _t("Rilancia sys_install_services.py: senza il permesso polkit lo spegnimento fallirebbe.", "Run sys_install_services.py again: without the polkit permission the power-off would fail."))
         login = getattr(self.client, "login_error", "")
         _save(self.cfg, {"at": now, "reachable": True, "server": server, **j, **({"login_refused": login} if login else {}),
                          "vars": {k: v[k] for k in KEEP if k in v}, "mode": self.cfg["AURORA_UPS_MODE"],

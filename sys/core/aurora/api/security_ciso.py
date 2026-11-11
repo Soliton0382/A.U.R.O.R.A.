@@ -22,6 +22,8 @@ _kept: dict = {}
 
 
 def _cached(key: str, make, seconds: float = 120, again: bool = False):
+    from aurora import sys_lang
+    key = f"{key}:{sys_lang.reader(cfg.now())}"       # its sentences are in the reader's language (C526)
     hit = _kept.get(key)
     if hit and not again and time.time() - hit[0] < seconds:
         return hit[1]
@@ -80,7 +82,7 @@ async def posture(hours: float = 24, again: bool = False) -> dict:
         for g in groups:
             g["label"] = ("firewall" if g["who"] == sec_playbook.FIREWALL
                           else f"{names[g['who']]} ({g['who']})" if g["who"] in names else g["who"])
-            pb = sec_playbook.PLAYBOOKS.get(g["scenario"])
+            pb = sec_playbook.playbooks().get(g["scenario"])
             g["playbook"] = {"title": pb["title"], "steps": [{"what": s, "who": w} for s, w in pb["steps"]]} if pb else None
         return {"risks": sec_playbook.register(a, groups), "groups": [g for g in groups if g["scenario"]],
                 "audit_error": err, "hunt": {"lines": h["lines"], "hours": h["hours"]}}
@@ -157,7 +159,8 @@ async def change_action(change_id: str, action: str) -> dict:
         out = await asyncio.to_thread(fn, cfg, change_id)
     except (sec_fwwrite.WriteError, sec_fwapi.FirewallAPIError) as e:
         raise HTTPException(status_code=409, detail=str(e)) from None
-    _kept.pop("audit", None)                        # the configuration changed: read it again next time
+    for key in [k for k in _kept if k.startswith("audit")]:      # the configuration changed: read it again next
+        _kept.pop(key, None)                                     # time, in every reader's language (C526)
     log.info("audit: owner %s firewall change %s → %s", action, change_id, out["status"])
     return out
 

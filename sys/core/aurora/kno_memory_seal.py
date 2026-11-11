@@ -21,7 +21,7 @@ import json
 import sqlite3
 from pathlib import Path
 
-from . import kno_diary, sol_vault, sys_config, sys_log
+from . import kno_diary, sol_index_seal, sol_vault, sys_config, sys_log
 from . import sys_users_layout as L
 from .sol_schema import Soliton
 
@@ -49,6 +49,14 @@ def seal_rows(cfg: sys_config.Config, user: str | None) -> int:
                 con.execute("BEGIN IMMEDIATE")
                 rows = con.execute("SELECT rowid, sid, text, title, extra FROM solitons WHERE typeof(text) = 'text' "
                                    "OR typeof(title) = 'text' OR typeof(extra) = 'text'").fetchall()
+                if rows and sol_vault.all_sealed(cfg, user):
+                    # C593: everything was sealed already — a plain row now was put there. Sealing it would make it
+                    # her own memory: left as it is (the reader refuses it), and said
+                    log().error("audit: memory of %s: %d row(s) in plaintext in %s after all was sealed: not sealed, "
+                                "not read (restored from before? delete %s and restart)", user or "the admin",
+                                len(rows), Path(shard).name, sol_vault.sealed_mark(cfg, user))
+                    con.execute("COMMIT")
+                    continue
                 for rowid, sid, text, title, extra in rows:
                     plain = sol_vault.open_row(cfg, user, {"sid": sid, "text": text, "title": title, "extra": extra})
                     s = sol_vault.seal_row(cfg, user, plain)
@@ -70,6 +78,9 @@ def reindex(cfg: sys_config.Config, user: str | None, encoder) -> int:
         m = ix.files(dom).read_manifest()
         if m is not None and not m.get("sealed"):
             ix.rebuild(dom)
+            done += 1
+        elif m is not None and m.get("count") and not sol_index_seal.tagged(m):
+            ix.update(dom)                               # C593: no tag of today's format — built again, never trusted
             done += 1
     return done
 
@@ -98,8 +109,8 @@ def _importer_of(cfg: sys_config.Config) -> dict[str, str]:
                         e = json.loads(line)
                     except ValueError:
                         continue
-                    src = (e.get("payload") or {}).get("source_id")
-                    if e.get("event") == "import" and src and e.get("user"):
+                    src = (sys_log.opened(cfg, e).get("payload") or {}).get("source_id")   # sealed since C572
+                    if e.get("event") == "import" and isinstance(src, str) and e.get("user"):
                         out[src] = e["user"]
         except OSError:
             continue
@@ -169,6 +180,7 @@ def run(cfg: sys_config.Config, encoder) -> dict:
     out = {"sealed": 0, "reindexed": 0, "diary": 0, "moved": 0}
     for user in _users(cfg):
         out["sealed"] += seal_rows(cfg, user)
+        sol_vault.mark_sealed(cfg, user)                 # C593: from now on a plain value in a memory row is refused
         out["reindexed"] += reindex(cfg, user, encoder)
         out["diary"] += fill_diary(cfg, user)
     out["moved"] = move_chat_documents(cfg, encoder)

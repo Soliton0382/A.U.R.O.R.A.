@@ -24,6 +24,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from . import sys_config, sys_seal
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 DAYS = 14                     # how far back answers are reviewed
 MIN_AGE_H = 6                 # an answer of the last hours: nothing new can be in the vault yet
@@ -158,7 +159,7 @@ def judge(llm, question: str, old: str, new: str) -> tuple[str, str]:
 def compose(item: dict, why: str, text: str, sources: list[dict], cfg: sys_config.Config) -> str:
     from . import sns_clock
     day = sns_clock.local(item["asked"], cfg)[:10]
-    head = f"Ripensando alla tua domanda del {day}, «{item['question'][:160]}»" + (f": {why}" if why else ".")
+    head = _t(f"Ripensando alla tua domanda del {day}, «{item['question'][:160]}»", f"Thinking again about your question of {day}, «{item['question'][:160]}»") + (f": {why}" if why else ".")
     names = "; ".join(dict.fromkeys(s.get("title") or s.get("source") or "" for s in sources if s))
     return "\n\n".join(x for x in (head, text.strip(), f"Fonti: {names}" if names else "") if x)
 

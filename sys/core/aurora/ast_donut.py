@@ -28,6 +28,8 @@ import urllib.request
 import numpy as np
 from scipy import ndimage
 
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
+
 PORT = 1888
 TOL = 0.03                 # the hole off the middle by less than this (× the ring's radius): collimated
 CENTRE = 0.12              # the ring farther than this from the frame's middle (× the half diagonal): uneven by itself
@@ -68,30 +70,30 @@ def measure(img: np.ndarray) -> dict:
     bg = float(np.median(np.concatenate([s[:10].ravel(), s[-10:].ravel(), s[:, :10].ravel(), s[:, -10:].ravel()])))
     top = float(np.percentile(s, 99.7))
     if top - bg <= 0:
-        return {"error": "nessuna stella: l'immagine è uniforme"}
+        return {"error": _t("nessuna stella: l'immagine è uniforme", "no star: the image is uniform")}
     lit = s > bg + 0.3 * (top - bg)
     lab, n = ndimage.label(lit)
     if n == 0:
-        return {"error": "nessuna stella sopra il fondo"}
+        return {"error": _t("nessuna stella sopra il fondo", "no star above the background")}
     sizes = ndimage.sum(lit, lab, range(1, n + 1))
     ring = lab == (int(np.argmax(sizes)) + 1)
     disk = ndimage.binary_fill_holes(ring)
     h, w = a.shape
     ys, xs = np.nonzero(disk)
     if ys.min() == 0 or xs.min() == 0 or ys.max() == h - 1 or xs.max() == w - 1:
-        return {"error": "la stella sfocata tocca il bordo dell'immagine: centrala o sfoca meno"}
+        return {"error": _t("la stella sfocata tocca il bordo dell'immagine: centrala o sfoca meno", "the defocused star touches the edge of the image: centre it or defocus less")}
     outer = _circle(*_edge(disk))
     hole = disk & ~ring
     if not outer or outer[2] < 12:
-        return {"error": "la stella è troppo piccola: sfoca di più (un anello di almeno 25 pixel)"}
+        return {"error": _t("la stella è troppo piccola: sfoca di più (un anello di almeno 25 pixel)", "the star is too small: defocus more (a ring of at least 25 pixels)")}
     hl, hn = ndimage.label(hole)
     if hn == 0:
-        return {"error": "non vedo l'ombra del secondario: sfoca di più finché al centro compare il buco scuro"}
+        return {"error": _t("non vedo l'ombra del secondario: sfoca di più finché al centro compare il buco scuro", "I cannot see the secondary's shadow: defocus more, until the dark hole shows in the middle")}
     hs = ndimage.sum(hole, hl, range(1, hn + 1))
     inner_mask = hl == (int(np.argmax(hs)) + 1)
     inner = _circle(*_edge(inner_mask))
     if not inner or not 0.15 <= inner[2] / outer[2] <= 0.7:
-        return {"error": "l'ombra del secondario non si misura bene: sfoca un po' di più o un po' di meno"}
+        return {"error": _t("l'ombra del secondario non si misura bene: sfoca un po' di più o un po' di meno", "the secondary's shadow cannot be measured well: defocus a little more or a little less")}
     dx, dy = (inner[0] - outer[0]) / outer[2], (inner[1] - outer[1]) / outer[2]
     half = math.hypot(w, h) / 2
     return {"ring": [round(v, 2) for v in outer], "hole": [round(v, 2) for v in inner],
@@ -116,10 +118,13 @@ def say_turn(t: dict) -> str:
     sixteenths = round(abs(t["eighths"]) * 2)
     if sixteenths == 0:
         return ""
-    frac = {1: "1/16", 2: "1/8", 3: "3/16", 4: "1/4", 6: "3/8", 8: "1/2", 12: "3/4", 16: "1 giro"}
+    frac = {1: "1/16", 2: "1/8", 3: "3/16", 4: "1/4", 6: "3/8", 8: "1/2", 12: "3/4"}
+    whole = sixteenths == 16
     amount = frac.get(sixteenths, f"{sixteenths}/16")
-    return f"la vite {t['screw']} di {amount}{'' if amount.endswith('giro') else ' di giro'} in senso " \
-           f"{'orario' if t['eighths'] > 0 else 'antiorario'}"
+    return _t(f"la vite {t['screw']} di {'1 giro' if whole else amount + ' di giro'} in senso "
+              f"{'orario' if t['eighths'] > 0 else 'antiorario'}",
+              f"the screw {t['screw']} by {'1 turn' if whole else amount + ' of a turn'} "
+              f"{'clockwise' if t['eighths'] > 0 else 'anticlockwise'}")
 
 
 def step(m: dict, state: dict, learn: tuple[str, float] | None = None) -> tuple[dict, dict]:
@@ -132,35 +137,41 @@ def step(m: dict, state: dict, learn: tuple[str, float] | None = None) -> tuple[
     if learn:
         name, eighths = learn
         if not last or not eighths:
-            return {"done": False, "say": "prima misura la stella, poi gira la vite e chiedimi di imparare"}, state
+            return {"done": False, "say": _t("prima misura la stella, poi gira la vite e chiedimi di imparare", "measure the star first, then turn the screw and ask me to learn")}, state
         mv = ((m["off_x"] - last["off_x"]) / eighths, (m["off_y"] - last["off_y"]) / eighths)
         if math.hypot(*mv) < 0.002:
-            out["say"] = (f"girando la vite {name} l'ombra non si è mossa in modo misurabile: gira un po' di più "
-                          "(per esempio 1/4) e riprova")
+            out["say"] = _t((f"girando la vite {name} l'ombra non si è mossa in modo misurabile: gira un po' di più "
+                          "(per esempio 1/4) e riprova"), (f"turning the screw {name} did not move the shadow measurably: turn a little more "
+                          "(1/4 for example) and try again"))
             return out, {**state, "last": {"off_x": m["off_x"], "off_y": m["off_y"], "at": time.time()}}
         screws[name] = [round(mv[0], 5), round(mv[1], 5)]
-        out["learned"] = f"vite {name}: ⅛ di giro in senso orario sposta l'ombra di {math.hypot(*mv):.3f} raggi"
+        out["learned"] = _t(f"vite {name}: ⅛ di giro in senso orario sposta l'ombra di {math.hypot(*mv):.3f} raggi", f"screw {name}: ⅛ of a turn clockwise moves the shadow by {math.hypot(*mv):.3f} radii")
     new = {**state, "screws": screws, "last": {"off_x": m["off_x"], "off_y": m["off_y"], "at": time.time()}}
     if m["centre_off"] > CENTRE:
-        out.update(done=False, say=f"la stella è lontana dal centro del campo ({m['centre_off']:.0%} della semidiagonale): "
-                                   "lì l'anello è irregolare da sé — centrala e rimisura")
+        out.update(done=False, say=_t(f"la stella è lontana dal centro del campo ({m['centre_off']:.0%} della semidiagonale): "
+                                   "lì l'anello è irregolare da sé — centrala e rimisura", f"the star is far from the centre of the field ({m['centre_off']:.0%} of the half diagonal): "
+                                   "the ring is uneven there by itself — centre it and measure again"))
         return out, new
     if m["offset"] <= TOL:
-        out.update(done=True, say=f"✅ Primario collimato: l'ombra è a {m['offset']:.1%} del raggio dal centro "
-                                  f"dell'anello (soglia {TOL:.0%}). Lascia le viti come sono.")
+        out.update(done=True, say=_t(f"✅ Primario collimato: l'ombra è a {m['offset']:.1%} del raggio dal centro "
+                                  f"dell'anello (soglia {TOL:.0%}). Lascia le viti come sono.", f"✅ Primary collimated: the shadow is {m['offset']:.1%} of the radius from the ring's "
+                                  f"centre (threshold {TOL:.0%}). Leave the screws as they are."))
         return out, new
-    where = ("destra", "in basso", "sinistra", "in alto")[int(((math.degrees(math.atan2(m["off_y"], m["off_x"])) % 360)
+    where = _t(("destra", "in basso", "sinistra", "in alto"), ("the right", "the bottom", "the left", "the top"))[int(((math.degrees(math.atan2(m["off_y"], m["off_x"])) % 360)
                                                                + 45) // 90) % 4]
     plan = turns((m["off_x"], m["off_y"]), screws)
     words = [x for x in (say_turn(t) for t in plan[:2]) if x]
     if words:
-        out.update(done=False, turns=plan, say=f"Ombra spostata verso {where} di {m['offset']:.1%} del raggio. Gira "
-                   + " e poi ".join(words) + ", poi rimisura.")
+        out.update(done=False, turns=plan, say=_t(f"Ombra spostata verso {where} di {m['offset']:.1%} del raggio. Gira "
+                   + " e poi ".join(words) + ", poi rimisura.", f"The shadow is off towards {where} by {m['offset']:.1%} of the radius. Turn "
+                   + " and then ".join(words) + ", then measure again."))
     else:
-        learned = ", ".join(screws) or "nessuna"
-        out.update(done=False, say=f"Ombra spostata verso {where} di {m['offset']:.1%} del raggio. Per dirti quale vite "
+        learned = _t(", ".join(screws) or "nessuna", ", ".join(screws) or "none")
+        out.update(done=False, say=_t(f"Ombra spostata verso {where} di {m['offset']:.1%} del raggio. Per dirti quale vite "
                    f"girare devo imparare cosa fa ciascuna (imparate: {learned}): gira una vite di 1/8 in senso orario "
-                   "e chiedimi di imparare quella vite, con il suo nome (per esempio «in basso a destra»).")
+                   "e chiedimi di imparare quella vite, con il suo nome (per esempio «in basso a destra»).", f"The shadow is off towards {where} by {m['offset']:.1%} of the radius. To tell you which "
+                   f"screw to turn I must learn what each one does (learned: {learned}): turn one screw 1/8 clockwise "
+                   "and ask me to learn that screw, by its name («bottom right», for example)."))
     return out, new
 
 
@@ -173,7 +184,7 @@ def capture_png(host: str, seconds: float, port: int = PORT, timeout: float = 12
         data = r.read()
     if data[:1] == b"{":
         d = json.loads(data.decode("utf-8", "replace"))
-        raise RuntimeError(str(d.get("Error") or d.get("Response") or "N.I.N.A. non ha restituito un'immagine")[:200])
+        raise RuntimeError(str(d.get("Error") or d.get("Response") or _t("N.I.N.A. non ha restituito un'immagine", "N.I.N.A. returned no image"))[:200])
     return np.asarray(Image.open(io.BytesIO(data)), dtype=np.float64)     # 8 or 16 bits, grey or colour (measure averages)
 
 
@@ -182,11 +193,11 @@ def run(cfg, seconds: float = 3.0, learn: tuple[str, float] | None = None) -> di
     folder = ast_inventory.folder(cfg)
     host, _ = ast_advice.telescope_host(cfg)
     if not host:
-        return {"say": "nessun indirizzo del PC del telescopio (AURORA_ASTRO_PC o l'inventario)"}
+        return {"say": _t("nessun indirizzo del PC del telescopio (AURORA_ASTRO_PC o l'inventario)", "no address of the telescope's PC (AURORA_ASTRO_PC or the inventory)")}
     try:
         img = capture_png(host, seconds)
     except (OSError, RuntimeError, ValueError) as e:
-        return {"say": f"N.I.N.A. non ha scattato: {e}"}
+        return {"say": _t(f"N.I.N.A. non ha scattato: {e}", f"N.I.N.A. took no picture: {e}")}
     out, state = step(measure(img), ast_advice.setup(folder).get("collimation") or {}, learn)
     ast_advice.save_part(folder, "collimation", state)
     return out

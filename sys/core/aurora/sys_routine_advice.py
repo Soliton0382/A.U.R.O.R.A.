@@ -22,6 +22,7 @@ import re
 import time
 
 from . import sys_config, sys_routines
+from .sys_lang import say as _t   # each sentence in the reader's language (C526)
 
 FILE = "routine_advice.json"
 DAY_S = 86400
@@ -111,16 +112,16 @@ def checks(routines: list[dict], ready: set[str]) -> list[dict]:
     on = [r for r in routines if r.get("enabled", True)]
     for r in on:                                              # a plugin switched off or not configured
         if r.get("plugin") and r.get("kind") == "tool" and r["plugin"] not in ready:
-            out.append({"action": "pause", "routine": r["id"], "title": f"Metti in pausa «{r['title']}»",
-                        "why": f"Il plugin {r['plugin']} non è pronto: la routine fallirebbe a ogni giro."})
+            out.append({"action": "pause", "routine": r["id"], "title": _t(f"Metti in pausa «{r['title']}»", f"Pause «{r['title']}»"),
+                        "why": _t(f"Il plugin {r['plugin']} non è pronto: la routine fallirebbe a ogni giro.", f"The plugin {r['plugin']} is not ready: the routine would fail at every round.")})
     for i, a in enumerate(on):                                # the same job twice
         for b in on[i + 1:]:
             same_tool = a.get("kind") == b.get("kind") == "tool" and (a.get("plugin"), a.get("tool")) == (b.get("plugin"), b.get("tool"))
             if same_job(a, b):
                 drop = b if same_tool or b.get("kind") == "tool" else a        # keep the agent: it says more
                 keep = a if drop is b else b
-                out.append({"action": "pause", "routine": drop["id"], "title": f"Metti in pausa «{drop['title']}»",
-                            "why": f"Fa lo stesso lavoro di «{keep['title']}», alla stessa ora: un doppione."})
+                out.append({"action": "pause", "routine": drop["id"], "title": _t(f"Metti in pausa «{drop['title']}»", f"Pause «{drop['title']}»"),
+                            "why": _t(f"Fa lo stesso lavoro di «{keep['title']}», alla stessa ora: un doppione.", f"It does the same job as «{keep['title']}», at the same hour: a duplicate.")})
     slots: dict[tuple, list[dict]] = {}                       # three or more in the same minute
     for r in on:
         if (first := _first(r["schedule"])):
@@ -330,7 +331,7 @@ def apply(cfg: sys_config.Config, aid: str, ready: set[str]) -> dict:
         twin = _copy_of(a["change"], {r["id"]: r for r in sys_routines.all_routines(cfg)})
         if twin is not None:                               # applied since it was proposed (C576): never twice
             _close(cfg, a, "dismissed")
-            raise ValueError(f"c'è già «{twin.get('title')}», che fa lo stesso lavoro")
+            raise ValueError(_t(f"c'è già «{twin.get('title')}», che fa lo stesso lavoro", f"«{twin.get('title')}» is there already, doing the same job"))
         out["routine"] = sys_routines.create(cfg, {**a["change"], "by": "aurora"})
     elif a["action"] == "run":
         out["run"] = a["routine"]
