@@ -292,3 +292,20 @@ def test_a_forged_plugin_never_names_an_address_nor_is_an_mcp_server():
     errs = F.check({**GOOD, "url": "https://example.org/mcp"}, CODE, set())
     assert any("url" in e for e in errs)
     assert any("kind" in e for e in F.check({**GOOD, "kind": "mcp"}, CODE, set()))
+
+
+def test_a_draft_changed_after_approval_is_never_installed_and_two_drafts_never_share_a_folder(cfg):
+    """C540: one stage folder per request, its digest checked at install."""
+    a = F._dir(cfg) / "stage" / "aaaa111111" / "pinger"
+    b = F._dir(cfg) / "stage" / "bbbb222222" / "pinger"
+    for s in (a, b):
+        s.mkdir(parents=True)
+        (s / "server.py").write_text(CODE, encoding="utf-8")
+    approved = F.digest(a)
+    (a / "server.py").write_text(CODE + "\n# changed\n", encoding="utf-8")
+    with pytest.raises(PermissionError, match="changed"):
+        F.install(cfg, str(a), expect=approved)
+    assert not (cfg.path("AURORA_PLUGINS_DIR") / "pinger").exists()
+    dest = F.install(cfg, str(b), expect=F.digest(b))
+    assert (dest / "server.py").read_text(encoding="utf-8") == CODE
+    assert not b.parent.exists() and a.exists()                     # its request's folder goes, the other stays

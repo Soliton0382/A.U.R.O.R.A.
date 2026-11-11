@@ -450,9 +450,13 @@ def decide(approval_id: str, decision: str) -> dict:
             elif item["kind"] == "plugin_install":          # a forged plugin the owner approved
                 from aurora import agt_forge
                 a = item["action"]
-                dest = agt_forge.install(cfg, a["stage"])
-                _forge_done(a["request"], a["name"])
-                out, ok = {"installed": str(dest)}, True
+                if a.get("hash") is None:                   # C540: proposed before its draft's digest was kept
+                    out, ok = {"installed": None, "reason": "proposed before 12 Nov without its draft's digest: "
+                                                            "forge it again"}, False
+                else:
+                    dest = agt_forge.install(cfg, a["stage"], expect=a["hash"])
+                    _forge_done(a["request"], a["name"])
+                    out, ok = {"installed": str(dest)}, True
             elif item["kind"] == "update":
                 from aurora import sys_update
                 out = sys_update.apply(cfg, emit)

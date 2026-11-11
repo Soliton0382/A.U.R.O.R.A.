@@ -10,8 +10,9 @@ own CLAUDE_CONFIG_DIR, `claude auth login` run by Aurora, the code pasted in the
   own              each user only their own; without one, the local model
   own_else_shared  their own first, else the shared one
 Without a shared account for a provider, the installation's setup of before (the .env's key, the service user's own
-claude login) is the shared one. The file and the login folders are the service user's alone (0600/0700): the
-machine's administrator can still read them — said on the page, never promised otherwise."""
+claude login) is the shared one. The file and the login folders are the service user's alone (0600/0700), the file
+sealed with Aurora's key (C563: a stolen disk or an opened backup gives no key); the machine's administrator can
+still read them — said on the page, never promised otherwise."""
 from __future__ import annotations
 
 import json
@@ -55,21 +56,18 @@ def claude_dir(cfg: sys_config.Config, account_id: str) -> Path:
 
 
 def load(cfg: sys_config.Config) -> dict:
-    try:
-        d = json.loads(_file(cfg).read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+    from . import sys_seal
+    try:                                                # C563: sealed like the .env's secrets; a file of before is
+        d = json.loads(sys_seal.read_any(_base(cfg), _file(cfg), None, "state"))   # read as it is, sealed at its
+    except (OSError, ValueError, RuntimeError):         # next write; without Aurora's key (Locked): none
         d = {}
     return {"policy": d.get("policy") if d.get("policy") in POLICIES else "shared", "accounts": d.get("accounts", [])}
 
 
 def _save(cfg: sys_config.Config, d: dict) -> None:
-    f = _file(cfg)
-    f.parent.mkdir(parents=True, exist_ok=True)
-    tmp = f.with_suffix(".tmp")
-    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "w", encoding="utf-8") as h:
-        json.dump(d, h, ensure_ascii=False, indent=1)
-    os.replace(tmp, f)
+    from . import sys_seal                              # C563: sealed first, then written 0600 (a process without
+    sys_seal.write(_base(cfg), _file(cfg), json.dumps(d, ensure_ascii=False, indent=1).encode("utf-8"),
+                   None, "state")                       # the key leaves the file as it was, C460)
 
 
 # ---- who uses what ------------------------------------------------------------------------------------------------

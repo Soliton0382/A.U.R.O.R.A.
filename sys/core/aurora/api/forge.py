@@ -79,7 +79,8 @@ def _forge_job(raw: dict, cloud: bool = False):
                                           f"{seen['need']}\n\nMotivo: {seen.get('why', '')}",
                                           {"cosa potrà fare": "\n".join(agt_forge.powers(m, "it")),   # plainly, first (9 Nov)
                                            "manifest": m, "server.py": code[:6000]},
-                                          {"request": req["id"], "stage": res["stage"], "name": m["name"]}, run_id)
+                                          {"request": req["id"], "stage": res["stage"], "name": m["name"],
+                                           "hash": agt_forge.digest(res["stage"])}, run_id)   # C540: what is approved
             agt_forge.update(cfg, req["id"], status="proposed", plugin=m["name"], approval=item["id"])
             note("forge", "approval.pending", {"id": item["id"], "kind": "plugin_install", "title": item["title"]})
             text = f"Plugin «{m['name']}» costruito e provato: scrive, invia o usa la rete, quindi aspetta la tua approvazione."

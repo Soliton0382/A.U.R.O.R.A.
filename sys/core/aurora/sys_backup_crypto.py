@@ -136,6 +136,7 @@ def seal_host(cfg: sys_config.Config, owner_home: Path | None = None) -> str:
     f = Path(svc.pw_dir) / raw[2:] if raw.startswith("~/") else Path(raw)
     cred, mark = cred_path(cfg), f.with_name(f.name + ".sealed")
     K.no_links(f, mark, mark.with_suffix(mark.suffix + ".tmp"))       # C524: the services' folder, never through a link
+    _bound(f, svc)                                                    # C537: never a root file named by the settings
     if mark.exists() and cred.exists():
         lines = mark.read_text().splitlines()
         if (lines[1] if len(lines) > 1 else "host") == "host+tpm2" or not K.tpm():
@@ -175,6 +176,10 @@ def seal_host(cfg: sys_config.Config, owner_home: Path | None = None) -> str:
         K._shred(f)
         done = f"sealed ({with_key})"
     mine = Path(owner_home) / ".config" / "aurora" / "backup.key" if owner_home else None
+    if mine is not None and os.path.lexists(mine):                  # C537: the owner's own file, never through a link
+        K.no_links(mine)
+        if os.lstat(mine).st_uid != os.stat(owner_home).st_uid:
+            raise BackupError(f"{mine} is not the owner's file: refused")
     if mine is not None and mine.is_file() and mine.resolve() != f.resolve():
         held = subprocess.run(["systemd-creds", "decrypt", f"--name={CRED}", str(cred), "-"], check=True,
                               capture_output=True).stdout
@@ -188,6 +193,21 @@ def seal_host(cfg: sys_config.Config, owner_home: Path | None = None) -> str:
         else:
             done += f"; {mine} is another key: left as it is"
     return done
+
+
+def _bound(f: Path, svc) -> None:
+    """C537: root seals and then destroys the key file the settings name — so it must be one of the services'
+    account: inside its home (no «..») and, when it is there, a regular file it owns. A path pointing at a root file
+    of 32 bytes is refused before it is read."""
+    home = Path(os.path.normpath(svc.pw_dir))
+    p = Path(os.path.normpath(f))
+    if not p.is_absolute() or p == home or not p.is_relative_to(home):
+        raise BackupError(f"{f}: the backup key must be inside {home} (AURORA_BACKUP_KEY_FILE): refused")
+    if os.path.lexists(p):
+        st = os.lstat(p)
+        import stat as S
+        if not S.S_ISREG(st.st_mode) or st.st_uid != svc.pw_uid:
+            raise BackupError(f"{f} is not a file of the services' account: refused")
 
 
 def _seal_checked(src: Path, cred: Path, with_key: str, key: bytes) -> None:

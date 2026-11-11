@@ -91,3 +91,25 @@ def test_a_key_sealed_before_the_tpm_worked_is_sealed_again_with_it(sealing, mon
     monkeypatch.setattr(sys_keyring, "tpm", lambda: True)
     assert bc.seal_host(sealing.cfg) == "sealed again with the TPM"
     assert bc.cred_path(sealing.cfg).read_bytes() == b"host+tpm2|" + sealing.key
+
+
+def test_a_key_path_outside_the_services_home_is_refused_before_it_is_read(sealing, tmp_path):
+    """C537: a setting naming a file elsewhere (a root file of 32 bytes) is never sealed nor destroyed."""
+    other = tmp_path / "elsewhere" / "secret.bin"
+    other.parent.mkdir()
+    other.write_bytes(os.urandom(32))
+    for raw in (str(other), "~/../elsewhere/secret.bin"):
+        sealing.cfg.values.update(AURORA_BACKUP_KEY_FILE=raw)
+        with pytest.raises(B.BackupError, match="inside"):
+            bc.seal_host(sealing.cfg, sealing.owner)
+    assert other.exists()
+
+
+def test_a_key_file_of_another_account_is_refused(sealing, monkeypatch):
+    import pwd
+    home = sealing.tmp / "svc"
+    monkeypatch.setattr(pwd, "getpwnam", lambda n: SimpleNamespace(pw_dir=str(home), pw_uid=os.getuid() + 1,
+                                                                   pw_gid=os.getgid()))
+    with pytest.raises(B.BackupError, match="services' account"):
+        bc.seal_host(sealing.cfg, sealing.owner)
+    assert B.key_path(sealing.cfg).exists()

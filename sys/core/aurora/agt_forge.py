@@ -16,6 +16,7 @@ and is shown as "made by Aurora, not signed" until the owner signs (sys_ethics_s
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import shutil
@@ -424,7 +425,9 @@ def build(cfg: sys_config.Config, llm, host, req: dict, emit, masker=None, judge
         manifest["forged"] = {"request": req["id"], "at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
                               "need": str(req.get("public", req["need"]))[:200]}
         errors = check(manifest, code, existing, people(cfg))
-        stage = _dir(cfg) / "stage" / str(manifest.get("name", "x"))
+        # C540: one folder per request — a second build of the same name never replaces a draft awaiting approval
+        rid = req["id"] if re.fullmatch(r"[a-f0-9]{6,32}", str(req.get("id", ""))) else uuid.uuid4().hex[:10]
+        stage = _dir(cfg) / "stage" / rid / str(manifest.get("name", "x"))
         if not errors:
             if stage.exists():
                 shutil.rmtree(stage)
@@ -514,9 +517,24 @@ def _copy_plain(src: Path, dest: Path) -> None:
         shutil.copyfile(f, dest / f.relative_to(src))
 
 
-def install(cfg: sys_config.Config, stage: str) -> Path:
-    """The tested plugin goes live: its folder is copied into the plugins directory (never over an existing one)."""
+def digest(stage: str | Path) -> str:
+    """C540: the draft's files as the owner is asked to approve them — every path and its bytes; a link refused."""
+    src, h = Path(stage), hashlib.sha256()
+    for f in sorted(src.rglob("*")):
+        if f.is_symlink():
+            raise PermissionError(f"{f} is a link: a draft never holds one")
+        if f.is_file():
+            rel = f.relative_to(src).as_posix().encode()
+            h.update(len(rel).to_bytes(4, "big") + rel + hashlib.sha256(f.read_bytes()).digest())
+    return h.hexdigest()
+
+
+def install(cfg: sys_config.Config, stage: str, expect: str | None = None) -> Path:
+    """The tested plugin goes live: its folder is copied into the plugins directory (never over an existing one).
+    `expect` (C540): the digest the owner approved — a draft changed since is refused."""
     src = Path(stage)
+    if expect is not None and digest(src) != expect:
+        raise PermissionError(f"the draft {src.name} changed after it was proposed: not installed (forge it again)")
     dest = cfg.path("AURORA_PLUGINS_DIR") / src.name
     if dest.exists():
         raise FileExistsError(f"plugin {src.name} exists already")
@@ -529,6 +547,8 @@ def install(cfg: sys_config.Config, stage: str) -> Path:
         shutil.copy(icon, dest / "icon.png")
     if src.parent == _dir(cfg) / "stage":               # installed: the draft is the plugin now
         shutil.rmtree(src, ignore_errors=True)
+    elif src.parent.parent == _dir(cfg) / "stage":      # C540: its request's folder
+        shutil.rmtree(src.parent, ignore_errors=True)
     return dest
 
 

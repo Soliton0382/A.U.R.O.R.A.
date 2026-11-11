@@ -90,3 +90,19 @@ def test_a_claude_subscription_signs_in_from_the_page(cfg, monkeypatch, tmp_path
     assert not folder.exists()                                          # the credentials go with the account
     with pytest.raises(ValueError):
         A.claude_dir(cfg, "../../etc")
+
+
+def test_the_accounts_file_is_sealed_and_a_file_of_before_is_still_read(cfg):
+    """C563: the providers' keys never plain on the disk; a plain file written before is read, sealed at its next write."""
+    import json
+    from aurora import sys_seal
+    f = A._file(cfg)
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text(json.dumps({"policy": "own", "accounts": [{"id": "a" * 12, "provider": "openai", "scope": "shared",
+                                                            "key": "sk-before-9999"}]}))
+    assert A.load(cfg)["policy"] == "own"
+    A.add(cfg, "anthropic", "shared", None, key="plain-anthropic-key-4321")
+    blob = f.read_bytes()
+    assert blob.startswith(sys_seal.MAGIC) and b"plain-anthropic-key" not in blob and b"sk-before" not in blob
+    assert stat.S_IMODE(os.stat(f).st_mode) == 0o600
+    assert {a.get("key") for a in A.load(cfg)["accounts"]} == {"sk-before-9999", "plain-anthropic-key-4321"}
