@@ -463,7 +463,7 @@ step "12. $(t 'Servizi (systemd) e HTTPS, sul loro account «aurora»' 'Services
 # the units, the polkit rule, root's copy of its units' code written for it, and the services started
 # C592 (audit F2): root runs the account's steps from its own signed copy (aurora-root, there since step 11), never
 # this folder's script with the .venv's Python — both stand where the services' account can write
-if [ -x /usr/local/sbin/aurora-root ]; then sudo /usr/local/sbin/aurora-root account || die "$(t 'servizi' 'services')"
+if [ -x /usr/local/sbin/aurora-root ]; then sudo /usr/local/sbin/aurora-root account $([ "$YES" = 1 ] && echo --yes) || die "$(t 'servizi' 'services')"
 else sudo /usr/bin/python3 -I sys/core/script/sys_service_account.py || die "$(t 'servizi' 'services')"; fi
 # from here the data are the account's, and you join its group only at your next login: read them as the account (C447)
 AS_SVC=(sudo -u aurora -g aurora)

@@ -343,11 +343,12 @@ def services(who: str) -> None:
          str(ROOT / "sys" / "core" / "script" / "sys_install_services.py"))
     # root installs through aurora-root (sys_root.py, 9 Nov): only what the owner signed, from root's own copy
     launcher = ["/usr/bin/python3", "-I", str(root_launcher()), "install"]
-    step("the units installed", run, *launcher, "systemd")
+    yes = ["--yes"] if "--yes" in sys.argv else []        # the owner's unattended install: its units signed unasked
+    step("the units installed", run, *launcher, "systemd", *yes)
     nft = ROOT / "sys" / "deploy" / "nft" / "install.sh"
     if Path("/usr/local/sbin/aurora-nft").exists() and nft.exists():
         step("the firewall helper's socket for the account", lambda: subprocess.run(
-            [*launcher, "nft"], env={**os.environ, "SVC_ACCOUNT": ACCOUNT}, check=True))
+            [*launcher, "nft", *yes], env={**os.environ, "SVC_ACCOUNT": ACCOUNT}, check=True))
     tunnel = ROOT / "sys" / "deploy" / "cloudflared" / "install.sh"
     if Path("/etc/systemd/system/aurora-tunnel.service").exists() and tunnel.exists():
         # the tunnel reads its token from the services' data: it runs on their account too, or the way in from

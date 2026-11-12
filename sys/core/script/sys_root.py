@@ -587,7 +587,10 @@ def main(argv: list[str]) -> int:
         return subprocess.run(["/usr/bin/python3", "-I", str(script), *args[1:]], cwd=str(REPO),
                               env={**os.environ, "INSTALL_ROOT": str(REPO)}).returncode
     if action == "account":
-        return _signed_run(["/usr/bin/python3", "-I", str(LIB / "sys/core/script/sys_service_account.py"), *args[1:]], yes)
+        # the owner's --yes (./install.sh --yes, unattended) reaches the account's own root steps (install systemd):
+        # without it the units it writes were never signed and the install stopped (CI, 12 Nov, after C592)
+        return _signed_run(["/usr/bin/python3", "-I", str(LIB / "sys/core/script/sys_service_account.py"), *args[1:],
+                            *(["--yes"] if yes else [])], yes)
     if action == "nvidia":
         # its --yes is the GPU script's («install without asking»), never a signature without the owner's «s»
         return _signed_run(["bash", str(LIB / "sys/core/script/sys_nvidia.sh"), *args[1:], *(["--yes"] if yes else [])], False)

@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.3.47 — 2026-11-12
+
+1 publications since v0.3.46.
+
+- 2026-11-12 Unattended install: the owner's --yes reaches the services step
+
 ## v0.3.46 — 2026-11-12
 
 13 publications since v0.3.45.
