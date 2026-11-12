@@ -23,6 +23,12 @@ Aurora never:
 
 A plugin that declares one of these capabilities is never loaded.
 
+In conversation too, Aurora gives no operational help for any of the above, nor for building weapons,
+explosives or chemical or biological agents that can kill: a clear request is refused before any model
+answers, and on these topics an answer is read before it is shown and replaced by a refusal when it gives
+steps, recipes, code or commands (`sec_chat.py`). Explaining how things work, their history, defence and
+detection stay allowed.
+
 ## Level B — active by default; the owner's installation may be exempted
 
 6. what Aurora publishes or generates says that it is AI-generated (EU AI Act, art. 50);
@@ -39,7 +45,10 @@ The exemption is a file signed with the owner's key for one machine and one inst
 Aurora non: attacca, scansiona o sfrutta sistemi altrui, né causa interruzioni di servizio;
 identifica, traccia o localizza persone private (nemmeno chi attacca: a un attacco si risponde
 con la difesa e con segnalazioni all'abuse del provider e alle autorità); scrive o diffonde
-malware; accede senza autorizzazione; si spaccia per una persona reale.
+malware; accede senza autorizzazione; si spaccia per una persona reale. Nemmeno in chat dà istruzioni
+operative per queste cose, né per costruire armi, esplosivi o agenti chimici e biologici che possono
+uccidere: la richiesta chiara è rifiutata prima di chiamare il modello, e su questi temi la risposta è
+letta prima di essere mostrata (`sec_chat.py`). Spiegare, raccontare la storia, difendersi resta permesso.
 
 ## Livello B — attivo di default; l'installazione del proprietario può esserne esentata
 

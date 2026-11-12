@@ -39,6 +39,7 @@ PROTECTED = ("sys/core/ethics/CODE.md", "sys/core/aurora/sys_ethics.py", "sys/co
              # audit 9 Nov: what holds her plugins to their contract, and every script root runs — never a self-change
              "sys/core/aurora/plg_netproxy.py", "sys/core/aurora/plg_modelnet.py", "sys/core/aurora/plg_contract.py",
              "sys/core/aurora/agt_forge.py", "sys/core/aurora/sys_tests.py",
+             "sys/core/aurora/sec_chat.py",                  # level A in what she says (N136)
              "sys/core/script/sys_root.py", "sys/core/script/sys_ethics_sign.py", "sys/core/script/sys_root_sync.py",
              "sys/core/script/sys_key_seal.py", "sys/core/script/sys_install_services.py",
              "sys/core/script/sys_nas_mount.py", "sys/core/script/sys_backup_retime.py", "sys/core/script/sys_cert_perms.py",

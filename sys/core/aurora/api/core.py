@@ -453,11 +453,20 @@ def start_run(question: str, origin: str, job=None) -> dict:
     def emit(event: str, payload: dict) -> None:          # only the run's own end ends it (C166, sys_runs)
         sys_runs.emit(run, event, payload)
 
+    from aurora import sec_chat                           # level A in what she says too (N136): a person's runs
+    guard = sec_chat.Guard(question, emit) if origin in sec_chat.ORIGINS else None
+
     def work() -> None:
         with _run_lock:
             try:
                 work_fn = job or (lambda q, emit, run_id: pipeline().run(q, emit=emit, run_id=run_id))
-                run["answer"] = work_fn(question, emit, run["id"])
+                if guard and sec_chat.intent(question):  # a clear request for harm: no model is asked
+                    run["answer"] = sec_chat.refused_answer(question, emit)
+                else:
+                    run["answer"] = work_fn(question, guard or emit, run["id"])
+                    run["answer"] = guard.answer(run["answer"]) if guard else run["answer"]
+            except sec_chat.Withheld:                    # the answer replaced by the refusal: nothing after it
+                run["answer"] = guard.answer(None)
             except sys_features.Missing as e:             # a model or setting this installation lacks: say what to do
                 log.info("run %s: %s", run["id"], e)
                 emit("feature.missing", {"feature": e.feature})

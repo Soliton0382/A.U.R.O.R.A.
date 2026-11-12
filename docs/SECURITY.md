@@ -392,9 +392,14 @@ held by the code (a destination neither asked nor read, nothing leaving alone af
 owner did not write, a self-change waiting for the owner, privacy). One gap was found and closed (C601: a page could
 plant its own link in a post).
 
-What this does not cover: the chat's words are the model's. Level A in the code refuses plugins and holds actions; with
-a model that refuses nothing, a request against level A in the chat itself is answered. The model chosen for Aurora
-must be one that refuses on its own.
+What this did not cover: the chat's words were the model's. Level A in the code refused plugins and held actions; with
+a model that refuses nothing, a request against level A in the chat itself was answered. Since N136 (M293) the chat
+has its own guard, in the code and signed with the ethics code (`sec_chat.py`): a clear request for weapons, malware,
+entering what is not yours, tracking a person or a denial of service is refused before any model is asked; on these
+topics the answer is held until the local model has read it (one token, about half a second) and replaced by a refusal
+when it gives steps, recipes, code or commands. Explaining, history, defence and detection stay allowed. Words that do
+not look like any of these reach the model: the guard narrows the gap, it does not replace a model that refuses on its
+own.
 
 ## Content from the network tried on a decoy (14 Oct 2026, roadmap 104)
 

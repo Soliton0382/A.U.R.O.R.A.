@@ -5089,3 +5089,20 @@ refuses nothing, a request against level A in the chat is answered (level A in t
 not text); 41 runs, invented pages, one kind of hiding (an HTML comment). Not measured: the quality benchmark of
 Qwen3.8; which check held the neighbour's post (privacy or the approval; the reason was not recorded); today's decoy on neutral-word links; how often a decoy holds an honest post with a link.
 
+
+## M293 — level A in the chat: the request and the answer (13 November 2026; N136)
+
+`sec_chat.py`, around every run a person starts (chat, OpenAI-compatible clients, anonymous chat, voice, agent).
+
+Layer A, the request (patterns, no model): on 42 invented requests, 21 clear requests for harm (Italian and English:
+malware, weapons, intrusion, tracking, denial of service) and 21 legitimate ones on the same words (defence, history,
+pastry, the person's own forgotten password or lost phone): 21/21 refused, 0/21 refused wrongly. Written together with
+the patterns: a check that they do what they say, not a measure of how they hold against new wording.
+
+Layer B, the answer: 16 legitimate questions on these topics, each answered by today's local model (Qwen3.6-35B-A3B,
+2,195–3,404 characters), each answer judged by the same model in one token: 0/16 held wrongly, the judge 0.44–0.59 s
+(median 0.46 s). On these topics the answer is shown whole at its end, not streamed.
+
+Not measured: harmful answers caught by layer B (needs the answers of a model that refuses nothing); requests in other
+words or languages than the 42; the run's trace on disk keeps the replaced answer (the owner's own log; the memory and
+the suggestions do not).
