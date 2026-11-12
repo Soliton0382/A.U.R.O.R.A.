@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import re
+import threading
 import time
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -218,10 +219,49 @@ def routine_run(rid: str) -> dict:
     return {"run_id": _start_routine(r)}
 
 
+_ticking = threading.Lock()
+TICK_PHOTO_S = 10                     # a tick still running after this long: what every thread of the API is doing, logged
+
+
+def threads_photo(skip: int | None = None, depth: int = 4) -> str:
+    """Each of the API's threads at this instant: its name and the last frames of Aurora's own code (13 Nov: the
+    plugin host took 5.4 s inside the API and 0.08 s outside it — something in the process was crowding the rest)."""
+    import sys as _sys
+    import traceback
+    names = {t.ident: t.name for t in threading.enumerate()}
+    rows = []
+    for ident, frame in _sys._current_frames().items():
+        if ident == skip:
+            continue
+        stack = [f for f in traceback.extract_stack(frame) if "/aurora/" in f.filename or "/script/" in f.filename]
+        if not stack:
+            continue
+        where = " < ".join(f"{f.filename.rsplit('/', 1)[-1]}:{f.lineno} {f.name}" for f in reversed(stack[-depth:]))
+        rows.append(f"{names.get(ident, ident)}: {where}")
+    return "; ".join(sorted(rows)) or "no thread in Aurora's code"
+
+
 @router.post("/v1/aurora/routines/tick", dependencies=[Depends(admin_only)])
 def routine_tick() -> dict:
-    """aurora-rem, every tick: start what is due, for every user (their routines run as their work); tell each, once,
-    what a newly ready plugin can do."""
+    """aurora-rem, every tick: one at a time (13 Nov: past aurora-rem's 30 s, rem sent the next while the first
+    still ran, and two ticks ran together — each slower: 74 slow ticks in a night, up to 176 s)."""
+    if not _ticking.acquire(blocking=False):
+        log.info("routines tick: the one before is still running, this one skipped")
+        return {"started": [], "welcomed": [], "busy": True}
+    photo = threading.Timer(TICK_PHOTO_S, lambda: log.warning("routines tick still running after %d s; the API's "
+                                                             "threads: %s", TICK_PHOTO_S, threads_photo(skip=threading.get_ident())))
+    photo.daemon = True
+    photo.start()
+    try:
+        return _routine_tick()
+    finally:
+        photo.cancel()
+        _ticking.release()
+
+
+def _routine_tick() -> dict:
+    """Start what is due, for every user (their routines run as their work); tell each, once, what a newly ready
+    plugin can do."""
     from aurora import sys_context, sys_routines
     from .assist import expire_due
     from .core import trim_memory
@@ -315,7 +355,10 @@ def _anon_expired(who: str | None) -> None:
 def _automations(who: str | None) -> None:
     """The home's automations due now (hom_auto), each user's: run."""
     from aurora import hom_auto
+    s = time.monotonic()
     p = plugin_host().get("homeassistant")
+    if (waited := time.monotonic() - s) >= 2:          # 13 Nov: the automations' slow ticks, before hom_auto's own
+        log.warning("home automations: the plugin host took %.1f s to answer", waited)
     if p is None or not p.available:
         return
     try:

@@ -250,15 +250,46 @@ def due(cfg, now: datetime | None = None) -> list[dict]:
     return out
 
 
+TICK_SLOW_S = 2                       # a tick of the automations logged, part by part, when it takes longer
+
+
 def tick(cfg, user: str = "", log=None) -> list[str]:
-    """The routines' tick: what is due, run."""
+    """The routines' tick: what is due, run. 13 Nov: 50-160 s a tick in a night with nothing run, untimed inside —
+    each part now timed and said when the tick is slow."""
+    import time as _time
+    spent, t0 = {}, _time.monotonic()
+
+    def mark(name, s):
+        spent[name] = spent.get(name, 0.0) + _time.monotonic() - s
     ran = []
-    for a in due(cfg):
+    s = _time.monotonic()
+    now_due = due(cfg)
+    mark("due", s)
+    for a in now_due:
+        s = _time.monotonic()
         run(cfg, a, user, log)
+        mark("run", s)
         ran.append(a["name"])
     t = sns_clock.now(cfg).timestamp()
-    for a in load(cfg)["automations"]:
+    s = _time.monotonic()
+    autos = load(cfg)["automations"]
+    mark("load", s)
+    try:
+        _retries(cfg, autos, ran, t, user, log, mark)
+    finally:
+        total = _time.monotonic() - t0
+        if log and total >= TICK_SLOW_S:
+            log.warning("home automations tick took %.1f s (%s): %s", total, user or "-",
+                        ", ".join(f"{k} {v:.1f} s" for k, v in sorted(spent.items(), key=lambda x: -x[1])))
+    return ran
+
+
+def _retries(cfg, autos: list, ran: list, t: float, user: str, log, mark) -> None:
+    """Those whose actions failed with Home Assistant away: tried again on time, or given up."""
+    import time as _time
+    for a in autos:
         if a.get("pending") and a["name"] not in ran:
+            s = _time.monotonic()
             if not a.get("enabled") or t >= a.get("pending_until", 0):
                 data = load(cfg)                         # too late, or paused: given up
                 for x in data["automations"]:
@@ -268,7 +299,7 @@ def tick(cfg, user: str = "", log=None) -> list[str]:
                 _save(cfg, data)
             elif t >= a.get("retry_at", 0) and run(cfg, a, user, log, only=a["pending"])["done"]:
                 ran.append(a["name"])
-    return ran
+            mark("retry", s)
 
 
 # the agent's tool (agt_loop): shown only while the homeassistant plugin is on — the way a vendor app's automations

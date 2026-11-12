@@ -100,7 +100,7 @@ def named(goal: str, what: str, args: dict | None) -> bool:
 
 
 def start(loop, goal: str) -> None:
-    loop.goal_text, loop.net_read, loop.net_seen = goal, [], ""
+    loop.goal_text, loop.net_read, loop.net_seen, loop.net_sources = goal, [], "", []
 
 
 # ---- C590: what counts as read from the network is decided here, in the core ----------------------------------------
@@ -148,12 +148,16 @@ def widen(p, plugin: str, tool: str, effect: str) -> None:
     m["from_network"] = [*(marked if isinstance(marked, list) else []), tool]
 
 
-def saw(loop, plugin: str, tool: str, text: str) -> None:
-    """After a network read: its text is kept (the last SEEN_MAX characters) — a link written in it may be opened."""
+def saw(loop, plugin: str, tool: str, text: str, args: dict | None = None) -> None:
+    """After a network read: its text is kept (the last SEEN_MAX characters) — a link written in it may be opened —
+    and the address read, a post's only sources besides the owner's words (C601)."""
     p = loop.host.get(plugin) if getattr(loop, "host", None) else None
     from . import sec_detonate
     if p is not None and sec_detonate.from_network(getattr(p, "manifest", None) or {}, tool):
         loop.net_seen = (getattr(loop, "net_seen", "") + "\n" + str(text))[-SEEN_MAX:]
+        source = sec_detonate.source_of(plugin, tool, args or {})
+        if source.lower().startswith(("http://", "https://")):
+            loop.net_sources = [*getattr(loop, "net_sources", []), source.rstrip("/")]
 
 
 def carries_out(loop, manifest: dict, args: dict | None) -> str:
@@ -211,11 +215,13 @@ def post_checked(loop, cfg, action: str, text: str, model) -> str:
     from . import sec_detonate, sys_approvals
     if not cfg["AURORA_SOCIAL_AUTONOMY"] or action not in sys_approvals.auto_tools(cfg):
         return "not a post of the social autonomy"
-    goal, seen = getattr(loop, "goal_text", ""), getattr(loop, "net_seen", "")
+    # C601 (13 Nov, the red team with an uncensored model): «in what was read» was any text of the page, so a page
+    # could plant its own address in a post — now a link is the owner's words or an address the run itself opened
+    goal, sources = getattr(loop, "goal_text", ""), getattr(loop, "net_sources", [])
     for link in LINK.findall(text):
         bare = link.rstrip(").,;!?»\"'")
-        if bare not in goal and bare not in seen:
-            return f"a link that is neither in your words nor in what was read: {bare[:100]}"
+        if bare not in goal and bare.rstrip("/") not in sources:
+            return f"a link that is neither in your words nor a page the run opened: {bare[:100]}"
     for c in CONTACT.findall(text):
         if c not in goal:
             return f"a contact you did not write: {c[:60]}"

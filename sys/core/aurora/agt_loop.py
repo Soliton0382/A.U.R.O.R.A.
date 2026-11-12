@@ -67,6 +67,7 @@ Rules:
 - A problem found in the logs may already be solved: compare its last time with the current code and with
   the service starts; if the cause is no longer in the code, report it as resolved, with the evidence."""
 
+PREPARED_SLOW_S = 10                 # a run's preparation (catalog, policy, prompt, fit) logged when it takes longer
 WRITE_ASK = re.compile(r"[Ww]rite (?:the |a )?(?:document |file )?`([\w./-]+\.(?:md|txt|tex|py|json|csv))`")
 
 
@@ -452,7 +453,7 @@ class Agent(AgentMakers, AgentReport):
         if not r["ok"] and "Connection closed" in r["text"]:   # the plugin died starting: its own last words say why
             r = {**r, "text": r["text"] + plugin_cause(self.cfg, plugin)}
         agt_asked.mark(self, plugin, tool, emit)             # C561: from here «asked» covers only what the goal names
-        agt_asked.saw(self, plugin, tool, r["text"] if r["ok"] else "")
+        agt_asked.saw(self, plugin, tool, r["text"] if r["ok"] else "", args)
         if r["ok"]:                                          # from the network: tried on a decoy first (sec_detonate)
             from . import agt_logguard, sec_detonate
             if (blocked := sec_detonate.agent_gate(self, plugin, tool, args, r["text"], emit, run_id)):
@@ -494,11 +495,21 @@ class Agent(AgentMakers, AgentReport):
             self.trail.add(event, payload)
             sys_log.trace("agent", event, payload, run_id=run_id)      # the path survives in the trace files
             outer(event, payload)
-        specs, index = self._catalog(goal + "\n" + context)
+        # 13 Nov: a home command waited 36 s more than the other runs before its first model call, untimed —
+        # each part before it now timed, said in the trace (agent.prepared) and in the log when slow
+        prep: dict[str, float] = {}
+
+        def timed(name, fn, *a):
+            s = time.monotonic()
+            try:
+                return fn(*a)
+            finally:
+                prep[name] = round(prep.get(name, 0.0) + time.monotonic() - s, 2)
+        specs, index = timed("catalog", self._catalog, goal + "\n" + context)
         emit("agent.start", {"goal": goal, "tools": len(specs)})
         from . import prj_policy
-        prj_policy.at_start(self, goal, emit)
-        agt_asked.start(self, goal)
+        timed("policy", prj_policy.at_start, self, goal, emit)
+        timed("asked", agt_asked.start, self, goal)
         messages = [{"role": "system", "content": ""},
                     {"role": "user", "content": f"NOW: {sns_clock.now_text(self.cfg)}.\n\nGOAL: {goal}"
                                                 + (f"\n\nCONTEXT:\n{context}" if context else "")
@@ -527,9 +538,16 @@ class Agent(AgentMakers, AgentReport):
                 summary = _t("Annullato dal proprietario: il lavoro fatto finora è nel registro.", "Cancelled by the owner: the work done so far is in the log.")
                 break
             if model is not self._model():                  # the first step, or the local model after private data
-                model = self._model()
-                messages[0]["content"] = self._prompt(specs, emit)
-            room = self._fit(messages, budget, emit)
+                model = timed("model", self._model) if not steps else self._model()
+                messages[0]["content"] = timed("prompt", self._prompt, specs, emit) if not steps else self._prompt(specs, emit)
+            room = timed("fit", self._fit, messages, budget, emit) if not steps else self._fit(messages, budget, emit)
+            if not steps and not nudged:
+                prep["total"] = round(time.time() - t0, 2)
+                sys_log.trace("agent", "agent.prepared", prep, run_id=run_id)
+                if prep["total"] >= PREPARED_SLOW_S:
+                    self.log.warning("agent run %s: %.1f s before the first model call: %s", run_id, prep["total"],
+                                     ", ".join(f"{k} {v:.1f} s" for k, v in sorted(prep.items(), key=lambda x: -x[1])
+                                               if k != "total"))
             try:
                 c = self._model().complete_turns(messages, min(budget, room), think=True)
             except mdl_fit.CloudOut as e:                  # C385: the cloud ran out and the run is too long for the local

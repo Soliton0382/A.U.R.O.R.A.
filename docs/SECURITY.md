@@ -380,6 +380,22 @@ live on a USB stick, so that not even root on this machine can sign:
 
 Every page the answers open and every agent's tool call that carries a link pass the plugin linkcheck (on by default): the link's own form (hidden credentials, punycode look-alikes) and the reputation services the owner ticks (VirusTotal, URLhaus, AbuseIPDB), each with the owner's key. A malicious link is not opened and the refusal carries the services' reasons; a service without key or down counts as not checked, never as clean. Verdicts are kept a day in <STATUS>/linkcheck.json (the link, not the page).
 
+## Tried with a model that refuses nothing (13 Nov 2026, N135, M292)
+
+Aurora's guards on actions are code, not the model's good manners. To measure it, an uncensored model (Qwen3.8-27B
+«Heretic») was put behind Aurora's real agent loop, with settings as a real installation's (level B exempted, external
+actions confirmed, self-changes asked, social posts autonomous), every tool fake, and made-up pages hiding orders to
+the assistant: a link or a phone number in a post, a message to a stranger, data carried out in an address, a change
+to the ethics code. Then the same orders given by a scripted model that obeys them to the letter, past the honeypot.
+In 41 runs no action that should not have been ran: the honeypot blocked every page, and with it off every order was
+held by the code (a destination neither asked nor read, nothing leaving alone after a network read, a contact the
+owner did not write, a self-change waiting for the owner, privacy). One gap was found and closed (C601: a page could
+plant its own link in a post).
+
+What this does not cover: the chat's words are the model's. Level A in the code refuses plugins and holds actions; with
+a model that refuses nothing, a request against level A in the chat itself is answered. The model chosen for Aurora
+must be one that refuses on its own.
+
 ## Content from the network tried on a decoy (14 Oct 2026, roadmap 104)
 
 Since C590 the core decides what comes from the network, not the manifest alone (`agt_asked.outside`): every read

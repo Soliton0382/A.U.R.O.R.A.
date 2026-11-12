@@ -161,6 +161,9 @@ class PluginHost:
         from . import sys_ethics
         signed = self.cfg.root / "sys" / "plugins"
         outside = (self.cfg.root / sys_ethics.MANIFEST).is_file() and self.dir.resolve() != signed.resolve()
+        # 13 Nov: asked once a plugin, the signature's stamp looked at every plugin's file each time — 9,792 stats a
+        # scan, 0.08 s alone and 20 s inside the API beside its other threads (C600): once a scan now
+        unsigned = sys_ethics.unsigned_plugins(self.cfg.root)
         for mf in sorted(self.dir.glob("*/plugin.json")):
             try:
                 manifest = json.loads(mf.read_text(encoding="utf-8"))
@@ -183,7 +186,7 @@ class PluginHost:
                 self._refused(p.name, "outside", "plugin %s: not loaded, outside the signed plugins' folder", p.name)
                 out.append(p)
                 continue
-            if mf.parent.name in sys_ethics.unsigned_plugins(self.cfg.root):   # neither Aurora's (forged) nor signed
+            if mf.parent.name in unsigned:                     # neither Aurora's (forged) nor signed
                 p.error = "not signed by the owner and not one of Aurora's own plugins: sudo aurora-root sign"
                 self._refused(p.name, "unsigned", "plugin %s: not loaded, not signed and not forged", p.name)
                 out.append(p)
