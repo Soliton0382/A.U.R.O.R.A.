@@ -36,7 +36,7 @@ AREAS: dict[str, tuple[str, dict[int, dict[str, str]]]] = {
     # machine, which had no place in the panel (AURORA_CONFIRM_EXTERNAL_ACTIONS, as it was set)
     "forge": ("machine", {0: {"AURORA_FORGE_MODE": "ask"}, 2: {"AURORA_FORGE_MODE": "auto"}}),
     "self_change": ("machine", {0: {"AURORA_SELF_CHANGE_MODE": "ask"}, 2: {"AURORA_SELF_CHANGE_MODE": "auto"}}),
-    "external": ("machine", {0: {"AURORA_CONFIRM_EXTERNAL_ACTIONS": "1"}, 2: {"AURORA_CONFIRM_EXTERNAL_ACTIONS": "0"}}),
+    "external": ("user", {0: {"AURORA_CONFIRM_EXTERNAL_ACTIONS": "1"}, 2: {"AURORA_CONFIRM_EXTERNAL_ACTIONS": "0"}}),
     "repairs": ("machine", {0: {"AURORA_SELF_REPAIR": "0"}, 1: {"AURORA_SELF_REPAIR": "1"}}),
     "security": ("machine", {0: {"AURORA_SENTINEL_INVESTIGATE": "0", "AURORA_DEFENCE_MODE": "suggest"},
                              1: {"AURORA_SENTINEL_INVESTIGATE": "1", "AURORA_DEFENCE_MODE": "suggest"},

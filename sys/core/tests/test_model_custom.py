@@ -119,3 +119,39 @@ def test_a_failed_switch_puts_back_the_model_of_now_not_the_one_of_the_start(cfg
     with pytest.raises(C.CustomError):
         C.switch(cfg, "sys/models/llm/c.gguf", wait_s=1, machine=(29.4, 58.0))
     assert sys_config.parse_env(cfg.env_file.read_text())["AURORA_LLM_MODEL"] == "sys/models/llm/b.gguf"
+
+
+def test_a_model_used_from_the_list_takes_the_projector_of_its_folder(cfg, monkeypatch):
+    """C604: «Usa» sent no projector, and a model downloaded with its own ran blind."""
+    from aurora import mdl_llm, mdl_modes, sys_health
+    d = cfg.root / "sys/models/llm/custom/M"
+    d.mkdir(parents=True)
+    (d / "M-Q4_K_M.gguf").write_bytes(b"x")
+    (d / "mmproj-M-f16.gguf").write_bytes(b"x")
+    monkeypatch.setattr(sys_health, "gpu_job", lambda c: "")
+    monkeypatch.setattr(mdl_modes, "_service", lambda verb, run=None: (0, ""))
+    monkeypatch.setattr(mdl_llm, "LLM", lambda c: SimpleNamespace(health=lambda: True,
+                                                                  complete=lambda *a: SimpleNamespace(answer="Roma")))
+    out = C.switch(cfg, "sys/models/llm/custom/M/M-Q4_K_M.gguf", wait_s=1, machine=(29.4, 58.0))
+    assert out["vision"] is True
+    assert sys_config.parse_env(cfg.env_file.read_text())["AURORA_LLM_MMPROJ"] == "sys/models/llm/custom/M/mmproj-M-f16.gguf"
+
+
+def test_two_projectors_in_a_folder_none_is_guessed(cfg):
+    d = cfg.root / "sys/models/llm/custom/N"
+    d.mkdir(parents=True)
+    for n in ("N.gguf", "mmproj-N-f16.gguf", "mmproj-N-q8.gguf"):
+        (d / n).write_bytes(b"x")
+    assert C.projector_of(cfg, "sys/models/llm/custom/N/N.gguf") == ""
+
+
+def test_the_list_holds_the_installations_own_model_and_the_model_of_now(cfg):
+    """C605: the model it came with was not in the list (only custom/), and «now» was the API's start, not the .env."""
+    for p in ("sys/models/llm/qwen3.6/Q.gguf", "sys/models/llm/qwen3.6/mmproj-F16.gguf", "sys/models/llm/custom/U/U.gguf"):
+        (cfg.root / p).parent.mkdir(parents=True, exist_ok=True)
+        (cfg.root / p).write_bytes(b"x")
+    cfg.values["AURORA_LLM_MODEL"] = "sys/models/llm/qwen3.6/Q.gguf"                  # the API's start
+    sys_config.write_env(cfg.env_file, {"AURORA_LLM_MODEL": "sys/models/llm/custom/U/U.gguf", "AURORA_LLM_MMPROJ": ""})
+    st = C.installed(cfg)
+    assert st["installed"] == ["sys/models/llm/custom/U/U.gguf", "sys/models/llm/qwen3.6/Q.gguf"]
+    assert st["current"]["model"] == "sys/models/llm/custom/U/U.gguf" and st["current"]["mmproj"] == ""

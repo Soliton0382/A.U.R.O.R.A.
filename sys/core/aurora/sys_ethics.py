@@ -15,6 +15,10 @@ Level A (always, for everyone): capabilities a plugin may never have.
 Level B (by default): external actions and code changes wait for the owner, AI disclosure on.
 The owner of an installation may exempt it from level B by a file signed with that
 installation's key for this machine and folder only (AURORA_ETHICS_EXEMPTION, never committed).
+Per user (N138): the admin may propose to lift level B's ceiling for named users — a department that needs a longer
+leash; the proposal is a file (POLICY, local: never published) that holds only once root has signed it with the code
+(`sudo aurora-root sign` lists it first). Lifted, rule 7 (external actions) and rule 9 (private data to cloud models)
+are what that user's autonomy and Models settings say, as on an exempted machine; rules 6 and 8 stay the machine's.
 Level A has no exemption.
 """
 from __future__ import annotations
@@ -291,6 +295,81 @@ def exempt(cfg: sys_config.Config | None = None) -> bool:
     if not p.exists() or not public_hex:
         return False
     return _exempt_cached(str(p), p.stat().st_mtime, str(cfg.root), public_hex)
+
+
+POLICY = "sys/core/config/local/ethics_policy.json"
+LIFTABLE = {"confirm_external": 7, "private_cloud": 9}    # level B rules a user's lift reaches; 6 and 8 never
+USER_LIFT = "level_b"                                       # the one switch per user: the ceiling lifted, the dial decides
+
+
+def _policy_users(raw) -> dict[str, list[str]]:
+    """{user: ["level_b"]} with plain names: anything else in the file is ignored."""
+    users = raw.get("users") if isinstance(raw, dict) else None
+    out: dict[str, list[str]] = {}
+    for name, rules in (users.items() if isinstance(users, dict) else []):
+        if isinstance(name, str) and name and "/" not in name and isinstance(rules, list):
+            keep = [USER_LIFT] if USER_LIFT in rules else []
+            if keep:
+                out[name] = keep
+    return out
+
+
+@lru_cache(maxsize=8)
+def _policy_cached(root: str, manifest_mtime: float, policy_mtime: float, public_hex: str) -> dict[str, list[str]]:
+    base = Path(root)
+    try:
+        m = json.loads((base / MANIFEST).read_text(encoding="utf-8"))
+        code = m.get("code") or {}
+        if POLICY not in code or not _verify(_canonical(code), m.get("code_signature", ""), public_hex):
+            return {}
+        if _sha(base / POLICY) != code[POLICY]:              # proposed, not signed yet: level B holds
+            return {}
+        return _policy_users(json.loads((base / POLICY).read_text(encoding="utf-8")))
+    except (OSError, ValueError):
+        return {}
+
+
+def signed_policy(root: Path = CODE_ROOT) -> dict[str, list[str]]:
+    """The per-user lifts root signed: {user: [rule]}; {} when there is none, or the file differs from the signed one."""
+    public_hex, _ = owner_public_key()
+    mf, pf = root / MANIFEST, root / POLICY
+    if not public_hex or not mf.exists() or not pf.exists():
+        return {}
+    return _policy_cached(str(root), mf.stat().st_mtime, pf.stat().st_mtime, public_hex)
+
+
+def lifted(rule: str, cfg: sys_config.Config | None = None, user: str | None = None) -> bool:
+    """Is level B's ceiling on `rule` lifted for this request? The machine's exemption lifts it for everyone; a signed
+    per-user policy for the users it names. Lifted, the settings decide (autonomy, Models). Rules 6, 8, level A: never."""
+    if rule not in LIFTABLE:
+        return False
+    cfg = cfg or sys_config.get()
+    if exempt(cfg):
+        return True
+    if user is None:
+        from . import sys_context
+        user = getattr(cfg, "user", None) or sys_context.user()
+    return bool(user) and USER_LIFT in signed_policy(cfg.root).get(user, [])
+
+
+def proposed_policy(root: Path = CODE_ROOT) -> dict[str, list[str]]:
+    """What the admin proposed (the file as it is, signed or not)."""
+    try:
+        return _policy_users(json.loads((root / POLICY).read_text(encoding="utf-8")))
+    except (OSError, ValueError):
+        return {}
+
+
+def propose_policy(users: dict, root: Path = CODE_ROOT) -> dict[str, list[str]]:
+    """The admin's proposal, written whole. It holds only after root signs it; a proposal that lifts less than the
+    signed one is safer at once: any change to the file makes the signed lifts void until the next signature."""
+    clean = _policy_users({"users": users})
+    p = root / POLICY
+    p.parent.mkdir(parents=True, exist_ok=True)
+    tmp = p.with_suffix(".tmp")
+    tmp.write_text(json.dumps({"users": clean}, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+    os.replace(tmp, p)
+    return clean
 
 
 def forbidden_capabilities(manifest: dict) -> list[str]:

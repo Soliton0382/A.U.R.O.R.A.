@@ -1401,7 +1401,8 @@
    "services": [
     "aurora-api",
     "aurora-plugins"
-   ]
+   ],
+   "scope": "user"
   },
   {
    "key": "AURORA_PROJECT_AUTONOMY",

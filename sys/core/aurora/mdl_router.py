@@ -628,7 +628,7 @@ def model_for(role: str, local, cfg: sys_config.Config | None = None):
     metered = Metered(local, role)                       # every local call traced with its step (what it would cost)
     if provider == "local" or LOCAL_ONLY.get():
         return metered
-    if not sys_ethics.exempt(cfg):                       # rule 9: no private data to cloud models without the exemption
+    if not sys_ethics.lifted("private_cloud", cfg):      # rule 9: no private data to cloud models, unless lifted (N138)
         return metered
     inner = cloud_client(provider, a["model"], cfg)
     if inner is None:

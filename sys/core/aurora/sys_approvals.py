@@ -56,8 +56,10 @@ def trim(items: list[dict], now: float | None = None) -> list[dict]:
 def needs_owner(effect: str, cfg: sys_config.Config, action: str = "") -> bool:
     """`action` is "plugin.tool": a post of Aurora's own may be autonomous (social_auto)."""
     from . import sys_ethics
-    if effect in ("external", "code_change") and not sys_ethics.exempt(cfg):
-        return True                                   # ethics code, level B: not negotiable by .env
+    if effect == "code_change" and not sys_ethics.exempt(cfg):
+        return True                                   # ethics code, level B rule 8: not negotiable by .env
+    if effect == "external" and not sys_ethics.lifted("confirm_external", cfg):
+        return True                                   # rule 7: the ceiling, unless root lifted it (machine or user, N138)
     if effect == "external":
         if action and social_auto(cfg, action):
             return False

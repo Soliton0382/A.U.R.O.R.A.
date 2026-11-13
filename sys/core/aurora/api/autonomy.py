@@ -55,6 +55,43 @@ async def autonomy(request: Request, days: int = 14) -> dict:
     return out
 
 
+@router.get("/v1/aurora/ethics/policy", dependencies=[Depends(admin_only)])
+async def ethics_policy() -> dict:
+    """Level B per user (N138): what the admin proposed, what root signed, and whether a signature is waited for."""
+    from aurora import sys_ethics
+    root = BASE.root
+    proposed, signed = sys_ethics.proposed_policy(root), sys_ethics.signed_policy(root)
+    return {"lift": sys_ethics.USER_LIFT, "rules": sorted(sys_ethics.LIFTABLE.values()), "proposed": proposed, "signed": signed,
+            "pending": (root / sys_ethics.POLICY).exists() and proposed != signed, "exempt": sys_ethics.exempt(cfg),
+            "sign": "sudo aurora-root sign"}
+
+
+@router.put("/v1/aurora/ethics/policy", dependencies=[Depends(admin_only)])
+async def ethics_policy_set(request: Request) -> dict:
+    """{"users": {name: ["level_b"]}}: a proposal (level B's ceiling lifted for them); it holds once root signs it."""
+    from aurora import sys_ethics
+    from aurora.sys_users import Users
+    body = await request.json()
+    users = body.get("users")
+    if not isinstance(users, dict):
+        raise HTTPException(status_code=422, detail="users: {name: [rule]}")
+    try:
+        known = {u["name"] for u in Users(BASE.base or BASE).list() if u["role"] != "admin"}
+    except Exception:                                 # noqa: BLE001 — single-user: nobody to lift a rule for
+        known = set()
+    unknown = sorted(set(users) - known)
+    if unknown:
+        raise HTTPException(status_code=422, detail=f"not users of this installation: {', '.join(unknown)}")
+    bad = sorted({str(r) for rules in users.values() if isinstance(rules, list) for r in rules} - {sys_ethics.USER_LIFT})
+    if bad:
+        raise HTTPException(status_code=422, detail=f"only {sys_ethics.USER_LIFT!r} per user (rules 7 and 9), not: {', '.join(bad)}")
+    clean = await asyncio.to_thread(sys_ethics.propose_policy, users, BASE.root)
+    log.warning("ethics level B per user proposed by the admin: %s (holds after sudo aurora-root sign)", clean or "none")
+    from .core import note
+    note("ethics", "ethics.policy.proposed", {"users": clean})
+    return {"proposed": clean, "pending": clean != sys_ethics.signed_policy(BASE.root), "sign": "sudo aurora-root sign"}
+
+
 @router.put("/v1/aurora/autonomy", dependencies=[Depends(auth)])
 async def autonomy_set(request: Request) -> dict:
     """{"profile": "careful|balanced|free"} or {"levels": {area: n}}, optional "user" (the admin choosing for a user).

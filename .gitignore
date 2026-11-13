@@ -53,6 +53,7 @@ install.log
 
 # This installation's own extensions (the owner's, loaded when present): never published
 sys/core/aurora/local/
+sys/core/config/local/
 sys/core/webui/js/local/
 sys/core/webui/css/local/
 sys/core/tests/local/

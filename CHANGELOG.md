@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.3.51 — 2026-11-13
+
+1 publications since v0.3.50.
+
+- 2026-11-13 Level B per person as a ceiling, autonomy as the dial; external actions each user's own area (N138); a model's own vision projector used (C604); every local model listed and the model of now shown (C605)
+
 ## v0.3.50 — 2026-11-13
 
 3 publications since v0.3.47.

@@ -197,6 +197,7 @@ in `/etc/aurora`:
 | `/etc/aurora/owner_ed25519` (private) | root, 0600 | only `sudo`, that is only the owner |
 | `/etc/aurora/owner_ed25519.pub` (public) | root, 0644 | read by the services; trusted only while root owns it and its folder and nobody else can write them |
 | `sys/core/ethics/MANIFEST.json`, `exemption.sig` | installation user | signed with this installation's key; not committed |
+| `sys/core/config/local/ethics_policy.json` (level B per user, N138) | installation user, written by the API for the admin | the admin's proposal to lift level B's ceiling on rule 7 (external actions confirmed) and rule 9 (no private data to cloud models) for named users — then their own autonomy settings decide, as on an exempted machine: it holds only when its hash is in the code list root signed (`sudo aurora-root sign` lists it among what changed); any change to it voids every lift until the next signature, so taking a lift away is safe at once; rules 6 and 8 and level A are never liftable per user; local, never published |
 | `sys/core/ethics/private_to_cloud.sig` («Tutto cloud») | installation user | the owner's consent that private data (health, the firewall's configuration) may go, masked, to the cloud where no local reasoner runs: signed with `sudo … sys_ethics_sign.py private-cloud`, never from the web; taken back from the Models page with no shell (going back to privacy is always easy); not committed |
 
 Why: the services run as the owner's user. A key that user could read or replace would let a

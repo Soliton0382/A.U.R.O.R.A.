@@ -47,8 +47,8 @@ def test_the_three_areas_their_settings_and_the_profiles(cfg):
     cfg.values["AURORA_CONFIRM_EXTERNAL_ACTIONS"] = False          # set by hand before the area existed: carried over
     assert A.levels(cfg)["external"] == 2
     machine, user = A.changes({"self_change": 2, "external": 0, "forge": 0})
-    assert machine == {"AURORA_SELF_CHANGE_MODE": "auto", "AURORA_CONFIRM_EXTERNAL_ACTIONS": "1",
-                       "AURORA_FORGE_MODE": "ask"} and user == {}
+    assert machine == {"AURORA_SELF_CHANGE_MODE": "auto", "AURORA_FORGE_MODE": "ask"}
+    assert user == {"AURORA_CONFIRM_EXTERNAL_ACTIONS": "1"}         # N138: each user's own area, as social
     assert A.area_of({"kind": "code_change"}, set()) == "self_change" and A.area_of({"kind": "plugin_install"}, set()) == "forge"
 
 

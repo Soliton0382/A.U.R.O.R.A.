@@ -194,7 +194,41 @@ export default {
     return [tbl, ...(quiet.length ? [el("p", "muted", t("auto.quiet", { a: quiet.join(" · ") }))] : [])];
   },
 
-  users(v) {
+  // Level B per user (N138): the admin proposes lifting rule 7 or 9 for a person; it holds once root signs it.
+  // Level A is shown, never offered: it is the same for everyone.
+  ethics(v, pol) {
+    const box = el("div", "mch-panel");
+    box.append(el("h4", "", t("auto.eth.title")), el("p", "", t("auto.eth.level_a")));
+    if (!pol) return box;
+    const state = el("p", pol.pending ? "error" : "muted", pol.pending ? t("auto.eth.pending", { cmd: pol.sign }) : t("auto.eth.signed"));
+    box.append(el("p", "muted", t("auto.eth.how")), state);
+    return box;
+  },
+
+  liftRows(u, pol) {
+    if (!pol) return [];
+    const rows = [];
+    for (const rule of [pol.lift]) {                  // one switch: the ceiling lifted; the areas above decide
+      const cb = el("input");
+      cb.type = "checkbox";
+      cb.checked = (pol.proposed[u] || []).includes(rule);
+      const signed = (pol.signed[u] || []).includes(rule);
+      cb.addEventListener("change", async () => {
+        const next = { ...pol.proposed, [u]: cb.checked ? [rule] : [] };
+        try {
+          const r = await call("/v1/aurora/ethics/policy", { method: "PUT", body: JSON.stringify({ users: next }) });
+          pol.proposed = r.proposed; pol.pending = r.pending;
+          this.enter();
+        } catch (e) { cb.checked = !cb.checked; this.q(".auto-out").textContent = t("ev.error", { m: e.message }); }
+      });
+      const lbl = el("label", "", "");
+      lbl.append(cb, el("span", "", ` ${t("auto.eth.lift", { rules: pol.rules.join(" e ") })} ${signed ? "✅" : cb.checked ? "⏳" : ""}`));
+      rows.push(lbl);
+    }
+    return rows;
+  },
+
+  users(v, pol) {
     if (!v.users.length) return [el("p", "muted", t("auto.no_users"))];
     return v.users.map((u) => {
       const box = el("div", "appr-card");
@@ -207,7 +241,7 @@ export default {
       const lbl = el("label", "", "");
       lbl.append(may, el("span", "", ` ${t("auto.may_choose")}`));
       const own = u.areas.filter((a) => a.scope === "user").map((a) => this.areaRow({ ...a, mine: true }, u.name));
-      box.append(el("div", "appr-head", `👤 ${u.name} · ${t(`auto.profile.${u.profile}`)}`), lbl, ...own);
+      box.append(el("div", "appr-head", `👤 ${u.name} · ${t(`auto.profile.${u.profile}`)}`), lbl, ...own, ...this.liftRows(u.name, pol));
       return box;
     });
   },
@@ -223,6 +257,8 @@ export default {
     for (const tab of ["stats", "users"]) this.root.querySelector(`.md-tabs [data-tab="${tab}"]`).hidden = !v.admin;
     if (!v.admin) return;
     this.q(".auto-stats").replaceChildren(...this.stats(v.stats));
-    this.q(".auto-users").replaceChildren(...this.users(v));
+    let pol = null;
+    try { pol = await call("/v1/aurora/ethics/policy"); } catch { pol = null; }     // an older API: the tab as before
+    this.q(".auto-users").replaceChildren(this.ethics(v, pol), ...this.users(v, pol));
   },
 };

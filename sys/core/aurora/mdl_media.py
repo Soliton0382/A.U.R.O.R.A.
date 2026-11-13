@@ -117,7 +117,7 @@ def _masked(cfg: sys_config.Config, text: str, task: str, p: str, model: str, pi
 
 def _picture_allowed(cfg: sys_config.Config, task: str) -> None:
     from . import sys_ethics
-    if not sys_ethics.exempt(cfg):
+    if not sys_ethics.lifted("private_cloud", cfg):
         raise PermissionError(f"{task}: a picture cannot be masked and goes to the cloud only on an exempted installation")
 
 
@@ -279,7 +279,7 @@ def heard(cfg: sys_config.Config, audio, lang: str) -> dict:
     import numpy as np
     p, model = provider(cfg, "speech")
     from . import sys_ethics
-    if not sys_ethics.exempt(cfg):
+    if not sys_ethics.lifted("private_cloud", cfg):
         raise PermissionError("speech: a voice cannot be masked and goes to the cloud only on an exempted installation")
     _allowed(cfg, p)
     t0 = time.time()

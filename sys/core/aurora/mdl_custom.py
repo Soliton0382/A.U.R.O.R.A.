@@ -191,12 +191,21 @@ def _previous_file(cfg: sys_config.Config) -> Path:
 
 
 def installed(cfg: sys_config.Config) -> dict:
-    root = cfg.root / CUSTOM
+    """C605: every local model of the installation (the one it came with too, not only those of custom/), and the
+    model of now as the machine's .env holds it — the API's configuration is the one of its start, before a switch."""
+    root = cfg.root / CUSTOM.parent
     models = sorted(str(p.relative_to(cfg.root)) for p in root.rglob("*.gguf")
                     if "mmproj" not in p.name.lower() and (_parts(p.name) or ("", 1))[1] == 1) if root.exists() else []
     prev = json.loads(_previous_file(cfg).read_text(encoding="utf-8")) if _previous_file(cfg).exists() else None
-    return {"current": {"model": str(cfg["AURORA_LLM_MODEL"]), "mmproj": str(cfg["AURORA_LLM_MMPROJ"]),
-                        "profile": mdl_formats.describe(mdl_formats.local(cfg))},
+    from . import mdl_modes
+    env = mdl_modes._env(cfg)
+    try:
+        now = sys_config.parse_env(env.read_text(encoding="utf-8")) if env.is_file() else {}
+    except OSError:
+        now = {}
+    model, mmproj = str(now.get("AURORA_LLM_MODEL", cfg["AURORA_LLM_MODEL"])), str(now.get("AURORA_LLM_MMPROJ", cfg["AURORA_LLM_MMPROJ"]))
+    return {"current": {"model": model, "mmproj": mmproj,
+                        "profile": mdl_formats.describe(mdl_formats.local(cfg, model))},
             "previous": prev, "installed": models}
 
 
@@ -218,9 +227,19 @@ def _restart_and_try(cfg: sys_config.Config, run, wait_s: float) -> dict:
     return {"answer": out.answer.strip()[:200], "seconds": round(time.time() - t0, 1)}
 
 
+def projector_of(cfg: sys_config.Config, model: str) -> str:
+    """The vision projector next to a model (its own folder, one mmproj*.gguf), or "" — C604: «Usa» on an installed
+    model sent no projector, and a model downloaded with its own ran blind («senza proiettore visivo»)."""
+    folder = (cfg.root / model).parent
+    found = sorted(p for p in folder.glob("*.gguf") if "mmproj" in p.name.lower()) if folder.is_dir() else []
+    return str(found[0].relative_to(cfg.root)) if len(found) == 1 else ""
+
+
 def switch(cfg: sys_config.Config, model: str, mmproj: str = "", run=subprocess.run, wait_s: float = 600,
            machine=None) -> dict:
-    """The local reasoner on another model; the one before kept to go back to. Undone at once if it does not answer."""
+    """The local reasoner on another model; the one before kept to go back to. Undone at once if it does not answer.
+    No projector named: the one in the model's folder, when there is exactly one (projector_of)."""
+    mmproj = mmproj or projector_of(cfg, model)
     from . import sys_health
     job = sys_health.gpu_job(cfg)
     if job:                                            # rule 6: one GPU, one job

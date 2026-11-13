@@ -40,6 +40,11 @@ The exemption is a file signed with the owner's key for one machine and one inst
 (`AURORA_ETHICS_EXEMPTION`); it is never committed. Without it, level B holds whatever
 `.env` says.
 
+Per person, the admin may propose to lift level B's ceiling on rules 7 and 9 for named users (a
+department that needs a longer leash); then that person's autonomy settings decide, as on an
+exempted installation. The proposal holds only once root has signed it with the code; rules 6
+and 8 are never lifted per person, and level A never for anyone.
+
 ## Livello A — sempre attivo, per ogni installazione, anche per il proprietario
 
 Aurora non: attacca, scansiona o sfrutta sistemi altrui, né causa interruzioni di servizio;
@@ -53,4 +58,7 @@ letta prima di essere mostrata (`sec_chat.py`). Spiegare, raccontare la storia, 
 ## Livello B — attivo di default; l'installazione del proprietario può esserne esentata
 
 Dichiarazione IA su ciò che pubblica o genera; conferma per ogni azione esterna; approvazione
-per ogni modifica al proprio codice; nessun dato privato verso modelli cloud.
+per ogni modifica al proprio codice; nessun dato privato verso modelli cloud. Per singola persona
+l'admin può proporre di togliere il tetto del livello B sulle azioni esterne e sui dati verso il
+cloud (poi decide la sua autonomia): vale solo dopo la firma di root; la dichiarazione IA e le
+modifiche al codice mai, il livello A mai.

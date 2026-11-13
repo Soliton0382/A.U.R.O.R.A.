@@ -152,7 +152,7 @@ def check(cfg: sys_config.Config, name: str) -> dict:
         p, _ = mdl_media.provider(cfg, task)
         if p != "local":                             # the Models page gave it to a cloud provider
             why = "" if mdl_router.configured(p, cfg) else f"{mdl_router.PROVIDERS[p]['key']} empty"
-            if not why and task in ("edit", "speech") and not sys_ethics.exempt(cfg):
+            if not why and task in ("edit", "speech") and not sys_ethics.lifted("private_cloud", cfg):
                 why = "a picture or a voice goes to the cloud only on an exempted installation"
             return {"ok": not why, "required": required, "label": label, "missing": [why] if why else [],
                     "fix": ["🧠 Modelli / Models"] if why else []}
@@ -163,7 +163,7 @@ def check(cfg: sys_config.Config, name: str) -> dict:
     if name == "vision" and missing:                 # vision assigned to a cloud model needs no local projector
         from . import mdl_router, sys_ethics
         a = mdl_router.assignments(cfg).get("vision", {})
-        if a.get("provider", "local") != "local" and sys_ethics.exempt(cfg):
+        if a.get("provider", "local") != "local" and sys_ethics.lifted("private_cloud", cfg):
             missing, fix = [], []
     for p in programs:
         if not shutil.which(p):
