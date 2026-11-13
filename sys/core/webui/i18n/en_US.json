@@ -1513,6 +1513,7 @@
  "viewer.close": "Close",
  "viewer.loading": "Preparing the preview…",
  "chat.deeper": "Go deeper:",
+ "chat.offered": "She offers:",
  "ev.question.standalone": "Question completed with the conversation: {q}",
  "ev.retrieval.focus": "Sources of the previous answer in focus: {k} passages entered ({n} sources)",
  "ev.route.shadow": "A question already answered: I use the shadow of the verified answer",

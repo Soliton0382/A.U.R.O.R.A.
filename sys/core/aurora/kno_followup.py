@@ -28,7 +28,10 @@ if TYPE_CHECKING:
 SYS_STANDALONE = ("You get the last turns of a conversation, Aurora's LAST ANSWER with its sources, and the owner's "
                   "LAST MESSAGE. If the last message can be understood only with what came before (it points to "
                   "something said there: 'it', 'he', 'that one', 'the author', 'and what about…', 'why?', or a place or "
-                  "a time said before: 'there', 'up there', 'lì', 'lassù', 'then', 'allora'), rewrite it "
+                  "a time said before: 'there', 'up there', 'lì', 'lassù', 'then', 'allora'), or it says yes to something Aurora's "
+                  "LAST ANSWER offered or proposed ('sì', 'dai, prova', 'ok vai', 'guarda', 'cerca', 'go ahead', 'yes please' — "
+                  "even with words of its own like 'what the articles say': the offer says about what; then the question "
+                  "is the owner's request for what was offered, never Aurora's offer repeated), rewrite it "
                   "as ONE complete question that names what it points to (the subject, and the work or source when "
                   "the conversation was about one), and keeps any figure stated there that the answer depends on (a "
                   "height, a date, a quantity: «a N metri», «nel N»), in the language of the last message, "
@@ -57,6 +60,15 @@ SYS_SUGGEST_UNSURE = ("Aurora could not answer the owner's QUESTION. Write 3 or 
                       "a court's registry office). Keep every place it names; for «here» or «near me» write «vicino "
                       "a» and the place it names. Never add a purpose it did not say. Each one COMPLETE, at most 20 "
                       "words, in the language of the QUESTION; all different. Output only JSON: [{\"q\": \"...\"}]")
+SYS_OFFERS = ("Find where Aurora's ANSWER offers to do something more for the owner: a sentence like 'se vuoi posso "
+              "cercare…', 'potrei prepararti…', 'vuoi che controlli…?', 'I could look up…', 'want me to check…?'. Turn "
+              "each offer into the owner's own request to do it, COMPLETE on its own (it names its subject: never 'it', "
+              "'this'), at most 20 words; at most 2. Example — ANSWER: «Ottima idea. Se ti va posso cercarti qualche "
+              "ricetta con i ceci.» → [{\"q\": \"Cercami qualche ricetta con i ceci\"}]. Sympathy, advice or an "
+              "invitation to just talk is not an offer: []. Output only JSON.")
+# an answer that may offer something: only these are asked to the model (most chat answers offer nothing)
+OFFER = re.compile(r"\b(?:posso|potrei|possiamo|vuoi\s+che|ti\s+va\s+(?:che|se|di)|se\s+(?:vuoi|ti\s+va|ti\s+interessa|preferisci)|"
+                   r"(?:i|we)\s+(?:can|could)|want\s+me\s+to|shall\s+i|should\s+i|if\s+you\s+(?:like|want))\b", re.I)
 MAX_FOCUS = 4                 # sources in focus
 PER_SOURCE = 120              # passages of one source scored at most (a paper is 20-60)
 ANSWER_CUT = 3000             # characters of the previous answer given to the rewrite
@@ -163,6 +175,32 @@ def with_focus(p: "Pipeline", question: str, translation: str | None, hits: list
     ev("retrieval.focus", {"sources": len(focus), "scored": len(cands),
                            "kept": sum(1 for h in merged if h.query_used == "focus")})
     return merged
+
+
+def offers(p: "Pipeline", answer_text: str, ev) -> list[dict]:
+    """What a chat answer offers to do («se vuoi posso cercare…»), as buttons with the owner's request written whole:
+    a click sends it, as the questions to go deeper do (owner, 13 Nov: «quando aurora propone, non potrebbe mettere
+    le opzioni di selezione come fa con gli approfondimenti?»)."""
+    if not OFFER.search(answer_text or ""):
+        return []
+    from .kno_stages import LANGS
+    from . import txt_lang
+    say = f"\n\nWrite the requests in {LANGS.get(txt_lang.detect(answer_text), 'the language of the ANSWER')}."
+    raw = p._for("translate").complete(SYS_OFFERS, f"ANSWER:\n{answer_text[-2500:]}{say}", 200).answer
+    m = re.search(r"\[.*\]", raw, re.S)
+    try:
+        items = json.loads(m.group(0)) if m else []
+    except ValueError:
+        items = []
+    out = []
+    for it in items if isinstance(items, list) else []:
+        q = str(it.get("q", "") if isinstance(it, dict) else "").strip()
+        if 8 <= len(q) <= 200 and "\n" not in q and q not in [o["question"] for o in out]:
+            out.append({"question": q, "focus": [], "offer": True})
+    out = out[:2]
+    if out:
+        ev("answer.suggestions", {"items": out})
+    return out
 
 
 def suggest(p: "Pipeline", question: str, answer_text: str, sources: list[dict], hits: list[Hit], ev,

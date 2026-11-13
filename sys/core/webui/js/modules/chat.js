@@ -310,9 +310,10 @@ export default {
     let nextFocus = null;
     const offerDeeper = (b, items) => {
       const row = el("div", "deeper");
-      row.append(el("div", "meta", t("chat.deeper")));
+      const offered = items.every((it) => it.offer);     // what she offered to do (kno_followup.offers), not a question
+      row.append(el("div", "meta", t(offered ? "chat.offered" : "chat.deeper")));
       for (const it of items) {
-        const go = el("button", "deeper-q", `🔎 ${it.question}`);
+        const go = el("button", "deeper-q", `${it.offer ? "👉" : "🔎"} ${it.question}`);
         go.type = "button";
         go.addEventListener("click", () => {
           if (send.disabled) return;

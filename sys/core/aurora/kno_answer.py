@@ -138,6 +138,11 @@ class Pipeline(Stages, SelfTalk):
             result.speed = self.speed
             ev("answer.final", {"text": result.text, "abstained": False, "sources": [], "dropped": [],
                                 "seconds": round(result.seconds, 1), "mode": "self", "speed": result.speed})
+            if suggest and self.cfg["AURORA_PIPELINE_SUGGEST"]:  # what she offers to do, as buttons (after the answer is shown)
+                try:
+                    result.suggestions = kno_followup.offers(self, result.text, ev)
+                except Exception as e:              # noqa: BLE001 — a help, never a reason to fail the answer
+                    self.log.warning("offers not read: %s", e)
             if remember:
                 self.remember(question, result, run_id, ev, trail, asked_at, quote)
             ev("run.end", {"seconds": round(result.seconds, 1)})

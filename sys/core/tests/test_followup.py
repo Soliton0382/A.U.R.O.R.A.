@@ -104,3 +104,35 @@ def test_an_answer_not_from_the_library_gets_follow_ups_on_its_own_subject():
     assert asked[0][0] == F.SYS_SUGGEST_FREE and "Macchie di vino" in asked[0][1] and "Cotton" not in asked[0][1]
     out = F.suggest(p, "cartolerie da qui a Borgoverde", "Non ho trovato…", [], hits, lambda *a: None, abstained=True)
     assert out and asked[1][0] == F.SYS_SUGGEST_UNSURE and "Non ho trovato" not in asked[1][1]
+
+
+class _Offers:
+    """A pipeline whose model writes `raw`; it counts the calls."""
+    def __init__(self, raw):
+        self.raw, self.calls = raw, 0
+
+    def _for(self, role):
+        def complete(system, user, n):
+            self.calls += 1
+            return SimpleNamespace(answer=self.raw)
+        return SimpleNamespace(complete=complete)
+
+
+def test_an_offer_becomes_a_button_with_the_request_whole():
+    p, seen = _Offers('[{"q": "Cerca cosa dicono gli studi sul sonno dei gatti anziani"}, {"q": "x"}]'), []
+    out = F.offers(p, "È normale. Se vuoi posso cercare cosa dicono gli studi sul sonno dei gatti anziani.",
+                   lambda e, pl: seen.append((e, pl)))
+    assert out == [{"question": "Cerca cosa dicono gli studi sul sonno dei gatti anziani", "focus": [], "offer": True}]
+    assert seen == [("answer.suggestions", {"items": out})]
+
+
+def test_an_answer_that_offers_nothing_asks_no_model():
+    p = _Offers('[{"q": "never asked"}]')
+    assert F.offers(p, "Domani a Roma c'è il sole, 18 gradi.", lambda e, pl: None) == [] and p.calls == 0
+
+
+def test_offers_unreadable_or_empty_give_no_buttons():
+    seen = []
+    assert F.offers(_Offers("non so"), "Se ti va posso guardarci.", lambda e, pl: seen.append(e)) == []
+    assert F.offers(_Offers("[]"), "Posso dirti solo che è tardi.", lambda e, pl: seen.append(e)) == []
+    assert seen == []

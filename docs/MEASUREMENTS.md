@@ -5106,3 +5106,35 @@ Layer B, the answer: 16 legitimate questions on these topics, each answered by t
 Not measured: harmful answers caught by layer B (needs the answers of a model that refuses nothing); requests in other
 words or languages than the 42; the run's trace on disk keeps the replaced answer (the owner's own log; the memory and
 the suggestions do not).
+
+## M294 — a yes to Aurora's offer, rewritten as the request (13 November 2026; C602)
+
+The follow-up rewrite (kno_followup.SYS_STANDALONE) on 8 invented conversations, today's local model (Qwen3.6-35B-A3B),
+the old rule against the new one: 5 where Aurora's last answer offers a search and the owner says yes in words of
+their own («ok vai, guarda cosa dicono gli articoli», «yes please, see what the literature says»), 2 complete questions
+that must be copied exactly, 1 refusal of the offer with another question.
+
+| rule | yes rewritten naming the offer | complete copied exactly | refusal not dragged to the offer | total |
+|---|---|---|---|---|
+| old | 0/5 | 2/2 | 1/1 | 3/8 |
+| new | 5/5 | 2/2 | 1/1 | 8/8 |
+
+The new rule twice, the same 8/8 (temperature 0: not independent runs). One of the five came out as Aurora's question
+(«Vuoi che cerchi la letteratura sugli effetti della caffeina sul sonno?»): the subject is there for the search, the form
+is not the owner's. Not measured: the whole answer after the rewrite; conversations longer than one exchange; other
+models.
+
+## M295 — what a chat answer offers, as buttons (13 November 2026; N137)
+
+kno_followup.offers on invented chat answers, today's local model (Qwen3.6-35B-A3B). A pattern picks the answers that may
+offer something («posso», «vuoi che», «I could»…); only those are asked to the model, which writes each offer as the
+owner's request.
+
+| set | answers with an offer, request written naming it | answers without one, no button | total |
+|---|---|---|---|
+| tuning (7, the prompt written on them; three wordings tried, 4/7 to 7/7) | 4/4 | 3/3 | 7/7, twice |
+| new (8, written after the prompt, not tuned on) | 4/4 | 4/4 | 8/8 |
+
+0.0 s when the pattern finds nothing, 0.3–0.5 s otherwise, after the answer is shown. The model's reading moved a lot
+with the wording (from 4/7 to 7/7 across three versions): the prompt is fragile. Not measured: real answers of
+the owner's chat; the click's answer.

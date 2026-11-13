@@ -2,6 +2,14 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.3.50 — 2026-11-13
+
+3 publications since v0.3.47.
+
+- 2026-11-13 A yes to Aurora's own offer is searched as the request it accepts (C602, M294); what a chat answer offers becomes buttons (N137, M295); opentelemetry-api 1.45.2 (C603)
+- 2026-11-12 Level A in the chat too: clear requests for harm refused before the model, answers on those topics read before they are shown (N136, M293)
+- 2026-11-12 Red team with an uncensored model: post links only from the owner or pages opened (C601); one routines tick at a time and the plugin scan's signature asked once (C600)
+
 ## v0.3.49 — 2026-11-13
 
 2 publications since v0.3.47.
