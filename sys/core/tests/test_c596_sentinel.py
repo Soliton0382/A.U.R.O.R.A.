@@ -159,6 +159,24 @@ def test_one_request_to_a_secret_looking_path_is_not_blocked_at_cloudflare(cfg, 
     assert done == ["8.8.8.8", "9.9.9.9"]                     # many paths, or one many times: a scanner
 
 
+def test_one_request_no_person_makes_is_enough(cfg, monkeypatch):
+    """C606: /.env, /.git/, a .sql dump, wp-login on a house without WordPress — blocked at the first request."""
+    from aurora import sys_ethics
+    cfg.values.update(AURORA_CLOUDFLARE_AUTOBLOCK=True, AURORA_DEFENCE_MAX_PER_DAY=9, AURORA_DEFENCE_HOURS=24)
+    monkeypatch.setattr(sys_ethics, "exempt", lambda c: True)
+    one = lambda ip, path: {"ip": ip, "requests": 1, "paths": [path], "looks": "scanner (…)",  # noqa: E731
+                            "secret_paths": 1, "secret_requests": 1,
+                            "unmistakable": int(bool(net_cfwaf.UNMISTAKABLE.search(path)))}
+    rows = [one("8.8.4.1", "/.env"), one("8.8.4.2", "/.git/HEAD"), one("8.8.4.3", "/backup/db.sql"),
+            one("8.8.4.4", "/wp-login.php"), one("8.8.4.5", "/admin"), one("8.8.4.6", "/config.yml"),
+            one("8.8.4.7", "/index.php")]
+    monkeypatch.setattr(net_cfwaf, "culprits", lambda c, hours, limit=20: rows)
+    done = []
+    monkeypatch.setattr(net_cfwaf, "block", lambda c, ip, why, hours, auto=False: done.append(ip) or {"ip": ip})
+    net_cfwaf.autoblock(cfg)
+    assert done == ["8.8.4.1", "8.8.4.2", "8.8.4.3", "8.8.4.4"]   # a link or a typo still needs C596's floors
+
+
 # ---- C6: Cloudflare's nodes are known with the lists off ---------------------------------------------------------
 def test_cloudflares_ranges_are_known_without_the_downloaded_lists(cfg):
     sec_intel._shared["at"] = 0.0

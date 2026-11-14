@@ -104,6 +104,7 @@ def culprits(cfg: sys_config.Config, hours: float = 24, limit: int = 20) -> list
     return [{**s, "hosts": sorted(s["hosts"]), "statuses": sorted(s["statuses"]), "looks": looks(cfg, s),
              "secret_paths": sum(1 for p in s["paths"] if SECRETS.search(p)),
              "secret_requests": sum(n for p, n in s["paths"].items() if SECRETS.search(p)),
+             "unmistakable": sum(n for p, n in s["paths"].items() if UNMISTAKABLE.search(p)),
              "paths": [p for p, _ in sorted(s["paths"].items(), key=lambda x: -x[1])[:5]]} for s in out]
 
 
@@ -113,8 +114,13 @@ def culprits(cfg: sys_config.Config, hours: float = 24, limit: int = 20) -> list
 # for one. Below both the client is listed for the owner, who blocks with a click. (Not measured on real traffic:
 # floors chosen from how scanners behave.)
 AUTO_MIN_PATHS, AUTO_MIN_REQUESTS = 3, 10
+# C606 (owner, 15 Nov: «Ok per a»): one request is enough again for the paths no person opens by mistake — a secrets
+# file, a repository's insides, a database dump, WordPress's login on a house with no WordPress. C596's floors stay for
+# the rest (/admin, *.php, *.yml: a link, a typo); the house's own address is never blocked either way.
+UNMISTAKABLE = re.compile(r"/\.env|/\.git/|/\.aws/|/\.ssh/|/\.netrc|\.sql(\.gz|\.zip)?$|/wp-login\.php|/xmlrpc\.php|"
+                          r"/wp-config|phpinfo|/wp-content/plugins/", re.I)
 SECRETS = re.compile(r"\.env|\.git|\.aws|credential|\.netrc|wp-login|xmlrpc|phpinfo|\.ya?ml$|\.bak$|keyfile|"
-                     r"wp-json|config\.|/admin|\.php$", re.I)
+                     r"wp-json|config\.|/admin|\.php$|\.sql(\.gz|\.zip)?$", re.I)
 
 
 def looks(cfg: sys_config.Config, s: dict) -> str:
@@ -251,7 +257,8 @@ def autoblock(cfg: sys_config.Config) -> list[dict]:
             break
         if not r["looks"].startswith("scanner") or r["ip"] in blocked:
             continue
-        if r.get("secret_paths", 0) < AUTO_MIN_PATHS and r.get("secret_requests", 0) < AUTO_MIN_REQUESTS:
+        if (not r.get("unmistakable") and r.get("secret_paths", 0) < AUTO_MIN_PATHS
+                and r.get("secret_requests", 0) < AUTO_MIN_REQUESTS):
             continue                                     # C596: too little to tell a scanner from a person
         why = f"scanner: {r['requests']} richieste a {', '.join(r['paths'][:3])}"
         try:

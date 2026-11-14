@@ -190,8 +190,10 @@ def watch_defence() -> None:
                      quiet=quiet)
             for b in (net_cfwaf.autoblock(cfg) if rounds % 6 == 0 else []):
                 until = _t.strftime("%d/%m %H:%M", _t.localtime(b["until"]))
+                # C606 (owner, 15 Nov): «voglio ricevere quando succede, non un resoconto giornaliero» — a push each
+                # time, at 🚀 too (C406 had made it quiet); the digest still counts them
                 note("security", "defence.block", {"title": f"☁️ {b['ip']} bloccato su Cloudflare fino al {until}",
-                                                   "text": b["reason"]}, quiet=quiet)
+                                                   "text": b["reason"]})
         except Exception as e:                        # noqa: BLE001 — a bad round never stops the next
             log.warning("defence: release round failed: %s", e)
 
