@@ -61,6 +61,24 @@ def dreamt_tonight(last_dream: str | None, now: datetime) -> bool:
     return datetime.fromisoformat(last_dream) >= night
 
 
+def owed_night(last_dream: str | None, now: datetime) -> bool:
+    """The last night window passed without Aurora's night (owner, 17 Nov: «vorrei spegnere aurora la notte… quelle
+    attività devono essere indipendenti dal fatto che la macchina sia accesa o spenta»): no dream INSIDE the most
+    recent window that has begun — the machine was off, or busy all night. Outside the window the night's tasks then
+    run as soon as the owner is silent, each one once (its own «tonight» flag); the next window owes nothing."""
+    start, end = (int(x) for x in str(cfg["AURORA_REM_DREAM_HOURS"]).split("-"))
+    if in_dream_window(now):
+        return False
+    s = now.replace(hour=start, minute=0, second=0, microsecond=0)
+    if s > now:
+        s -= timedelta(days=1)
+    e = s + timedelta(hours=(end - start) % 24 or 24)
+    if not last_dream:
+        return True
+    last = datetime.fromisoformat(last_dream)
+    return not (s <= last <= e)
+
+
 def choose(st: dict, system: bool = True) -> tuple[str | None, str]:
     """The task to start now and why (or None and why not). `system`: the admin's turn, the only one with Aurora's
     own self-review and repairs; each user's social pages have their own report."""
@@ -77,16 +95,20 @@ def choose(st: dict, system: bool = True) -> tuple[str | None, str]:
     now = sns_clock.now(cfg)
     if st["sessions_to_consolidate"]:
         return "consolidate", f"{st['sessions_to_consolidate']} closed sessions"
-    if in_dream_window(now) and not dreamt_tonight(st["last"]["dream"], now):
-        return "dream", "night window, no dream yet"
-    if in_dream_window(now) and st.get("to_study") and not st.get("studied_tonight"):
-        return "study", f"night window, {st['to_study']} questions declined and not studied yet"
-    if in_dream_window(now) and st.get("train_due"):
-        return "train", "night window, the shadow not trained tonight"
-    if in_dream_window(now) and st.get("deduce_due"):
-        return "deduce", "night window, no deductions looked for tonight"
-    if in_dream_window(now) and st.get("audit_due"):         # the vault watched (kno_vault_audit, owner 13 Oct)
-        return "audit", "night window, the vault not checked tonight"
+    night = in_dream_window(now)
+    owed = owed_night(st["last"]["dream"], now)            # the machine off at night: the night made up by day
+    when = "night window" if night else "the night missed, made up now"
+    if (night or owed) and not dreamt_tonight(st["last"]["dream"], now):
+        return "dream", f"{when}, no dream yet"
+    night = night or owed
+    if night and st.get("to_study") and not st.get("studied_tonight"):
+        return "study", f"{when}, {st['to_study']} questions declined and not studied yet"
+    if night and st.get("train_due"):
+        return "train", f"{when}, the shadow not trained tonight"
+    if night and st.get("deduce_due"):
+        return "deduce", f"{when}, no deductions looked for tonight"
+    if night and st.get("audit_due"):                      # the vault watched (kno_vault_audit, owner 13 Oct)
+        return "audit", f"{when}, the vault not checked tonight"
     if system and _minutes_since(st["last"].get("self_review")) >= 24 * 60:
         return "introspect", "no self-review in the last 24 hours"
     if st.get("social_platforms") and _minutes_since(st["last"].get("social_report")) >= 24 * 60:   # each user's pages
@@ -136,6 +158,34 @@ def ups_watch() -> None:
                 log.warning("UPS watch: %s", e)
             time.sleep(sys_ups.POLL_S)
     threading.Thread(target=loop, name="ups", daemon=True).start()
+
+
+def vault_fix(client: httpx.Client) -> None:
+    """C607: what the vault's nightly check found and confirmed, fixed here — outside aurora-api's run lock, which the
+    removal of a copy takes — once, and the owner told what was done (or what failed), never asked to run it."""
+    import subprocess
+    from aurora import kno_vault_audit
+    argv = kno_vault_audit.fix_argv(cfg)
+    if not argv:
+        return
+    results = []
+    for a in argv:
+        try:
+            p = subprocess.run([sys.executable, *a], capture_output=True, text=True, timeout=4 * 3600)
+            tail = (p.stdout or p.stderr).strip().splitlines()[-1:] or [""]
+            results.append({"command": " ".join(Path(a[0]).name.split() + a[1:3]), "ok": p.returncode == 0,
+                            "said": tail[0][:300]})
+        except (OSError, subprocess.TimeoutExpired) as e:
+            results.append({"command": Path(a[0]).name, "ok": False, "said": str(e)[:300]})
+    kno_vault_audit.mark_fixed(cfg, results)
+    ok = all(r["ok"] for r in results)
+    log.info("vault fixed by itself: %s", results) if ok else log.warning("vault fix failed: %s", results)
+    try:
+        client.post(f"{BASE}/v1/aurora/activity", json={"source": "rem", "event": "vault.fixed" if ok else "incident",
+                    "payload": {"title": "🗄️ Vault sistemato da sola" if ok else "🗄️ Sistemazione del vault non riuscita",
+                                "text": " · ".join(r["said"] for r in results)}})
+    except httpx.HTTPError:
+        pass
 
 
 def fresh_tick(client: httpx.Client, idle: bool, said: str) -> str:
@@ -268,6 +318,7 @@ def main() -> int:
                     idle = True
                     if reason != last_reason:
                         log.info("idle: %s", reason)
+                    vault_fix(client)                 # C607: the night's check confirmed something: fixed now
                 last_reason = reason
             except (httpx.HTTPError, KeyError, ValueError) as e:
                 log.warning("state or task failed: %s", e)

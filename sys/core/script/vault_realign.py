@@ -111,6 +111,9 @@ def wikipedia(cfg, a, api, get) -> int:
     state.parent.mkdir(parents=True, exist_ok=True)
     known = json.loads(state.read_text()) if state.exists() else {}
     groups = articles(cfg)
+    only = {i.strip() for i in (getattr(a, "only", "") or "").split(",") if i.strip()}
+    if only:                                      # the nightly check's confirmed ones only (kno_vault_audit, C607)
+        groups = {k: v for k, v in groups.items() if k in only}
     reader = mdl_router.model_for("route", LLM(cfg), cfg)
     moves = merges = fine = 0
     for n, (ident, copies) in enumerate(sorted(groups.items()), 1):
@@ -188,6 +191,8 @@ def main() -> int:
     ap.add_argument("--wikipedia", action="store_true", help="the Wikipedia articles: one copy each, in the domain their text says")
     ap.add_argument("--fresh", action="store_true",
                     help="with --wikipedia: choose every article's domain again, not the one kept from the last run")
+    ap.add_argument("--only", default="", help="with --wikipedia: only these identities (comma separated), their "
+                    "domain as kept in realign/wikipedia.json — what the nightly check confirmed")
     ap.add_argument("--drop-pdf-without-html", action="store_true",
                     help="remove a paper that arXiv has only as PDF (otherwise kept)")
     a = ap.parse_args()

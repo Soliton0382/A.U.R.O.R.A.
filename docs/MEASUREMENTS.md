@@ -5138,3 +5138,19 @@ owner's request.
 0.0 s when the pattern finds nothing, 0.3–0.5 s otherwise, after the answer is shown. The model's reading moved a lot
 with the wording (from 4/7 to 7/7 across three versions): the prompt is fragile. Not measured: real answers of
 the owner's chat; the click's answer.
+
+## M296 — the cloud mask with tens of thousands of learnt values (17 November 2026; C600)
+
+`sec_mask.Pseudonymizer.mask`, the part that masks the values the dynamic masking learnt (sec_mask_spot): about
+60,000 by 17 Nov (the sum of «learnt N new» in the security log since 28 Oct). Synthetic values (random lowercase
+words, 4–12 letters) over a 25,000-character text, this machine, one run each:
+
+| learnt values | one re.sub a value (before) | one pattern: compile | one pattern: pass | same text out |
+|---|---|---|---|---|
+| 1,000 | 0.25 s | 0.00 s | 0.004 s | yes |
+| 10,000 | 2.56 s | 0.04 s | 0.044 s | yes |
+| 60,000 | 15.20 s | 0.28 s | 0.263 s | yes |
+
+The pattern is compiled once per list (cached); a new value learnt compiles it again. In the API, 150 of the 165 photos
+of a routines' tick over 10 s (13–17 Nov) showed a run inside this function. Not measured: the real values (sealed);
+the ticks after the change (to read for a day before closing C600).

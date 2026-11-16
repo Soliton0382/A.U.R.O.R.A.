@@ -43,8 +43,48 @@ def last(cfg: sys_config.Config) -> dict | None:
     except (OSError, ValueError):
         return None
     fix = ([FIX_PAPERS] if out.get("duplicates") or out.get("arxiv_pdf") else []) \
-        + ([FIX_WIKI] if out.get("misplaced", 0) >= MISPLACED_TELL else [])
+        + ([f"{FIX_WIKI_ONLY} {','.join(c['ident'] for c in out['confirmed_list'])} --apply"]
+           if out.get("confirmed_list") else [])
     return {**out, "tell_from": MISPLACED_TELL, "fix": fix}
+
+
+# C607 (owner, 17 Nov: «le cose le voglio automatiche»): a Wikipedia entry is misplaced only when the chooser says the
+# same other domain on two different nights (it is asked again the night after), never on one night's word — the
+# 6 of 40 of 15 Nov that asked the owner for maintenance were 1 the night after. What is confirmed (and copies,
+# arXiv papers still in PDF) aurora-rem fixes by itself after the check (fix_argv, outside the API's run lock: the
+# removal takes it); the owner is told what was done, or what failed.
+FIX_WIKI_ONLY = "python sys/core/script/vault_realign.py --wikipedia --only"
+
+
+def fix_argv(cfg: sys_config.Config) -> list[list[str]]:
+    """The commands aurora-rem runs after a check that found something, once (none once they ran)."""
+    out = last(cfg)
+    if not out or out.get("fixed_at"):
+        return []
+    script = str(Path(__file__).resolve().parents[1] / "script" / "vault_realign.py")
+    argv = [[script, "--apply"]] if out.get("duplicates") or out.get("arxiv_pdf") else []
+    if out.get("confirmed_list"):
+        argv.append([script, "--wikipedia", "--only", ",".join(c["ident"] for c in out["confirmed_list"]), "--apply"])
+    return argv
+
+
+def mark_fixed(cfg: sys_config.Config, results: list[dict]) -> None:
+    out = json.loads(_state(cfg).read_text(encoding="utf-8"))
+    out.update(fixed_at=time.time(), fixed=results)
+    _state(cfg).write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
+
+
+def _confirm(cfg: sys_config.Config, confirmed: list[dict]) -> None:
+    """The confirmed entries' domain kept where vault_realign reads it (a «done» of before cleared: moved again)."""
+    f = cfg.path("AURORA_STATUS_DIR") / "realign" / "wikipedia.json"
+    try:
+        known = json.loads(f.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        known = {}
+    for c in confirmed:
+        known[c["ident"]] = {"target": c["would_be"]}
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text(json.dumps(known), encoding="utf-8")
 
 
 def done_tonight(cfg: sys_config.Config) -> bool:
@@ -85,7 +125,7 @@ def scan(cfg: sys_config.Config) -> dict:
 
 
 def audit(cfg: sys_config.Config, llm, tell=None, sample: int = SAMPLE) -> dict:
-    """The night's check: what it found, told when anything is wrong."""
+    """The night's check: what it found (`tell` kept for the callers; aurora-rem fixes and tells, C607)."""
     from . import kno_domain
     t0 = time.time()
     s = scan(cfg)
@@ -94,21 +134,34 @@ def audit(cfg: sys_config.Config, llm, tell=None, sample: int = SAMPLE) -> dict:
     for w in picked:
         chosen = kno_domain.choose(llm, w["title"], w["text"], w["domain"])
         if chosen != w["domain"]:
-            misplaced.append({"title": w["title"], "in": w["domain"], "would_be": chosen})
+            misplaced.append({"ident": w["ident"], "title": w["title"], "in": w["domain"], "would_be": chosen})
+    try:                                              # last night's doubts, asked again tonight (C607)
+        before = json.loads(_state(cfg).read_text(encoding="utf-8")).get("pending", [])
+    except (OSError, ValueError):
+        before = []
+    here = {w["ident"]: w for w in s["wiki"]}
+    confirmed = []
+    for p in before:
+        w = here.get(p.get("ident"))
+        if w and w["domain"] == p["in"] and kno_domain.choose(llm, w["title"], w["text"], w["domain"]) == p["would_be"]:
+            confirmed.append(p)
+    done = {c["ident"] for c in confirmed}
+    if confirmed:
+        _confirm(cfg, confirmed)
     out = {"at": time.time(), "duplicates": len(s["duplicates"]), "duplicate_examples": list(s["duplicates"].items())[:5],
            "arxiv_pdf": len(s["pdf"]), "wikipedia_read": len(picked), "misplaced": len(misplaced),
-           "misplaced_examples": misplaced[:5], "seconds": round(time.time() - t0)}
+           "misplaced_examples": misplaced[:5], "pending": [m for m in misplaced if m["ident"] not in done],
+           "confirmed": len(confirmed), "confirmed_list": confirmed, "seconds": round(time.time() - t0)}
     _state(cfg).parent.mkdir(parents=True, exist_ok=True)
     _state(cfg).write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
-    sys_log.trace("rem", "vault.audit", {k: v for k, v in out.items() if not k.endswith("examples")})
+    sys_log.trace("rem", "vault.audit", {k: v for k, v in out.items()
+                                         if not k.endswith(("examples", "_list")) and k != "pending"})
     fix = last(cfg)["fix"]
-    if fix:
+    if fix:                                           # C607: no notification here — aurora-rem fixes it, then tells
         text = _t((f"Controllo del vault: {out['duplicates']} documenti in più copie, {out['arxiv_pdf']} paper arXiv ancora "
                 f"in PDF, {out['misplaced']} voci Wikipedia su {out['wikipedia_read']} in un dominio che non è il loro. "
                 "Il dettaglio e i comandi sono nella pagina Harvester: " + " · ".join(fix)), (f"Vault check: {out['duplicates']} documents in several copies, {out['arxiv_pdf']} arXiv papers still "
                 f"in PDF, {out['misplaced']} Wikipedia entries out of {out['wikipedia_read']} in a domain that is not theirs. "
                 "The detail and the commands are in the Harvester page: " + " · ".join(fix)))
-        if tell:
-            tell("vault.audit", {"text": text, **{k: out[k] for k in ("duplicates", "arxiv_pdf", "misplaced")}})
         out["text"] = text
     return out

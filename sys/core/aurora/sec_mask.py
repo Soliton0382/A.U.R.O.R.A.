@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import re
 from collections import Counter
+from functools import lru_cache
 from pathlib import Path
 
 from . import sys_config
@@ -202,8 +203,8 @@ class Pseudonymizer:
             text = rx.sub(lambda m: self._ph("PRIVATE", m.group(0)), text)
         for rx in getattr(self, "accounts", []):             # a common name said as an account (C572): the name alone
             text = rx.sub(lambda m: (m.group("pre") or "") + self._ph("PRIVATE", m.group("u") or m.group("own")), text)
-        for w in self.words:                             # names and learnt values: whole words, any case as written
-            text = re.sub(rf"(?<![\w\[]){re.escape(w)}(?![\w\]])", lambda m: self._ph("PRIVATE", m.group(0)), text)
+        if self.words:                                   # names and learnt values: whole words, any case as written
+            text = _words_rx(tuple(self.words)).sub(lambda m: self._ph("PRIVATE", m.group(0)), text)
         for w in self.private:                           # the owner's own words, in any case (C593), kept as written
             if w.lower() in text.lower():                # a placeholder already there is stepped over, never cut
                 text = re.sub(rf"\[(?:{KINDS})_\d+\]|({re.escape(w)})", lambda m: self._ph("PRIVATE", m.group(1))
@@ -234,3 +235,12 @@ class Pseudonymizer:
                 yield "answer", self.unmask(out)
         if buf:
             yield "answer", self.unmask(buf)
+
+
+@lru_cache(maxsize=8)
+def _words_rx(words: tuple[str, ...]) -> re.Pattern:
+    """C600: every learnt value in ONE pattern, compiled once per list (longest first, so a longer value wins where two
+    start at the same place). One re.sub a value — 60,000 values learnt by 17 Nov, each compiled again past re's cache
+    — took 15.2 s a call over a 25,000-character history, all of it holding the interpreter: the API's other threads
+    (the routines' tick, a home command) waited behind it. Now 0.28 s to compile a new list, 0.26 s a pass (M296)."""
+    return re.compile(r"(?<![\w\[])(?:" + "|".join(map(re.escape, words)) + r")(?![\w\]])")

@@ -73,3 +73,26 @@ def test_a_plugin_scan_asks_the_signature_once_not_once_a_plugin(cfg, monkeypatc
     out = {p.name: p.error for p in plg_host.PluginHost(cfg).plugins(with_tools=False)}
     assert len(asked) == 1
     assert out["one"] == "" and out["three"] == "" and "not signed" in out["two"]
+
+
+def test_many_learnt_values_are_masked_in_one_pass():
+    """C600 (M296): 60,000 learnt values took 15.2 s a call, one re.sub each; one compiled pattern, the same result."""
+    import random
+    import re
+    import string
+    import time
+
+    from aurora import sec_mask
+    rnd = random.Random(7)
+    word = lambda: "".join(rnd.choices(string.ascii_lowercase, k=rnd.randint(4, 12)))   # noqa: E731
+    words = sorted({word() for _ in range(20000)}, key=len, reverse=True)
+    text = " ".join(word() for _ in range(2000)) + " " + " ".join(words[:50]) + " [PRIVATE_1] x" + words[0] + "y"
+    t = time.perf_counter()
+    got = sec_mask._words_rx(tuple(words)).sub("§", text)
+    t = time.perf_counter() - t
+    old = text
+    for w in words:                                  # the way it was: one value at a time, longest first
+        old = re.sub(rf"(?<![\w\[]){re.escape(w)}(?![\w\]])", "§", old)
+    assert got == old
+    assert "[PRIVATE_1]" in got and "x" + words[0] + "y" in got    # a placeholder, a value inside a word: untouched
+    assert t < 2.0
