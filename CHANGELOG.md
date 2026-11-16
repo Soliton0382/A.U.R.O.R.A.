@@ -2,6 +2,16 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.3.52 — 2026-11-17
+
+5 publications since v0.3.50.
+
+- 2026-11-17 Release 0.3.52: Cloudflare (C606), README della squadra rossa, maschera cloud in un passaggio (C600), vault automatico (C607), notte recuperata (N139)
+- 2026-11-16 Maschera cloud in un solo passaggio (C600), vault sistemato da sola su conferma di due notti (C607), lavori notturni recuperati se la macchina era spenta (N139)
+- 2026-11-16 README: la prova con un modello che non rifiuta niente e il livello A nella chat, con due grafici
+- 2026-11-14 Cloudflare: blocco alla prima richiesta sui percorsi inequivocabili, notifica a ogni blocco (C606)
+- 2026-11-13 Level B per person as a ceiling, autonomy as the dial; external actions each user's own area (N138); a model's own vision projector used (C604); every local model listed and the model of now shown (C605)
+
 ## v0.3.51 — 2026-11-13
 
 1 publications since v0.3.50.
