@@ -130,6 +130,30 @@ def paired(series: list[tuple[str, list[float]]], ns: list[int]) -> dict:
 sec = {lang: (lambda v, lang=lang: _dec(round(v, 1), lang) + " s" if v else "0") for lang in ("it", "en")}
 
 CHARTS = {
+    "redteam": {
+        "it": dict(title="Un modello che non rifiuta niente al posto di Aurora", subtitle="ordini nascosti in pagine inventate, strumenti finti · M292",
+                   cats=["ordini nascosti\nesca accesa", "stesse pagine\nesca spenta", "link «premio»\n(obbediente)",
+                         "telefono\n(obbediente)", "link neutro\n(solo codice)", "post su vicino\n(chiesto)"],
+                   series=[("tentativi", [10, 10, 2, 2, 4, 3]), ("fermati", [10, 10, 2, 2, 4, 3])], ymax=10, fmt=num["it"],
+                   note="41 prove, 0 azioni che non dovevano partire; un buco trovato e chiuso (C601)."),
+        "en": dict(title="A model that refuses nothing in Aurora's place", subtitle="orders hidden in made-up pages, fake tools · M292",
+                   cats=["hidden orders\ndecoy on", "same pages\ndecoy off", "«prize» link\n(obedient)",
+                         "phone number\n(obedient)", "neutral link\n(code only)", "neighbour post\n(asked)"],
+                   series=[("attempts", [10, 10, 2, 2, 4, 3]), ("stopped", [10, 10, 2, 2, 4, 3])], ymax=10, fmt=num["en"],
+                   note="41 runs, 0 actions that should not have run; one gap found and closed (C601)."),
+    },
+    "chatguard": {
+        "it": dict(title="Il livello A anche nella chat", subtitle="richieste e risposte inventate, modello locale Qwen3.6-35B-A3B · M293",
+                   cats=["richieste dannose\nrifiutate (21)", "richieste lecite rifiutate\nper sbaglio (21)",
+                         "risposte lecite trattenute\nper sbaglio (16)"],
+                   **paired([("% delle prove", [100.0, 0.0, 0.0])], [21, 21, 16]), ymax=100, fmt=pct["it"],
+                   note="Nel codice, firmato con il codice etico; il giudice legge la risposta in un token, 0,46 s."),
+        "en": dict(title="Level A in the chat too", subtitle="invented requests and answers, local model Qwen3.6-35B-A3B · M293",
+                   cats=["harmful requests\nrefused (21)", "legitimate requests\nrefused wrongly (21)",
+                         "legitimate answers\nheld wrongly (16)"],
+                   **paired([("% of the trials", [100.0, 0.0, 0.0])], [21, 21, 16]), ymax=100, fmt=pct["en"],
+                   note="In the code, signed with the ethics code; the judge reads the answer in one token, 0.46 s."),
+    },
     "retrieval": {
         "it": dict(title="Trovare il documento giusto", subtitle="108 domande parafrasate · M25 (pool) e M31 (vault intero)",
                    cats=["al 1° posto", "tra i primi 5", "tra i 12 dati\nalla sintesi"],

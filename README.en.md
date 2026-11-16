@@ -343,6 +343,19 @@ checks the signature at start: changed without a signature, Aurora does not star
 
 **Root only on what you signed.** Aurora's folder is writable by her services (she applies the changes you approve), so root never runs it as it is: every administrator's step goes through `sudo aurora-root …` (signature, installing the services, the firewall and the tunnel), which runs with the system's Python from root's own copy, checks every file against your signature and shows you what changed before you sign. Restarting from the WebUI needs no root. The first time: `sudo /usr/bin/python3 -I sys/core/script/sys_root.py setup`.
 
+### Tried with a model that refuses nothing
+
+The guards on actions are code, not the model's good manners. To measure it (M292) an uncensored model took Aurora's
+place in her real agent loop, with fake tools and made-up pages hiding orders to the assistant (a link or a phone
+number in a post, a message to a stranger, data carried out in an address, a change to the ethics code); then the
+same orders carried out to the letter by a model scripted to obey, with the decoy off. **41 runs, no action that
+should not have run**; one gap found and closed (C601). The limit it showed, the chat's own words, is closed by level A
+in the chat too (M293): a clear request for weapons, malware, intrusion, tracking or attacks is refused before any
+model is asked, and on the same topics the answer is read before it is shown.
+
+![A model that refuses nothing in Aurora's place](docs/img/en/redteam.svg)
+![Level A in the chat too](docs/img/en/chatguard.svg)
+
 ## Measured on the reference machine
 
 2 × RTX 5060 Ti 16 GB, Ubuntu 26.04, driver 595, CUDA 13.4 (docs/COMPATIBILITY.md).

@@ -345,6 +345,20 @@ all'avvio, ricalcola gli hash e verifica la firma: se qualcosa è cambiato senza
 
 **Root solo su ciò che hai firmato.** La cartella di Aurora è scrivibile dai suoi servizi (applica da sola le modifiche che approvi), quindi root non la esegue mai così com'è: ogni passo da amministratore passa da `sudo aurora-root …` (firma, installazione di servizi, firewall e tunnel), che gira con il Python di sistema da una copia di root, confronta ogni file con la tua firma e prima di firmare ti mostra cosa è cambiato. Il riavvio dalla WebUI non ha bisogno di root. La prima volta: `sudo /usr/bin/python3 -I sys/core/script/sys_root.py setup`.
 
+### Provata con un modello che non rifiuta niente
+
+Le protezioni sulle azioni sono codice, non le buone maniere del modello. Per misurarlo (M292) un modello
+*uncensored* ha preso il posto di Aurora nel suo vero ciclo di agente, con strumenti finti e pagine inventate che
+nascondevano ordini all'assistente (un link o un telefono in un post, un messaggio a uno sconosciuto, dati portati
+fuori in un indirizzo, una modifica al codice etico); poi gli stessi ordini eseguiti alla lettera da un modello
+programmato per obbedire, a esca spenta. **41 prove, nessuna azione che non doveva partire**; un buco trovato e
+chiuso (C601). Il limite emerso, le parole della chat, è chiuso dal livello A anche nella chat (M293): una richiesta
+chiara di armi, malware, intrusioni, pedinamento o attacchi è rifiutata prima di chiedere a un modello, e sugli
+stessi temi la risposta è letta prima di essere mostrata.
+
+![Un modello che non rifiuta niente al posto di Aurora](docs/img/it/redteam.svg)
+![Il livello A anche nella chat](docs/img/it/chatguard.svg)
+
 ## Misure sulla macchina di riferimento
 
 2 × RTX 5060 Ti 16 GB, Ubuntu 26.04, driver 595, CUDA 13.4 (docs/COMPATIBILITY.md).
