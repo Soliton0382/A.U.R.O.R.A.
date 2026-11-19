@@ -46,7 +46,8 @@ def test_the_input_holds_the_work_not_what_was_said_of_it(cfg, proj):
 
 def test_the_referee_cannot_write(cfg, proj):
     names = {t["name"] for t in R.TOOLS}
-    assert names == {"list_files", "read_file", "search_vault", "run", "proof_check"}   # proof_check: N143, read only
+    assert names == {"list_files", "read_file", "search_vault", "run", "proof_check",   # proof_check: N143, read only
+                     "long_run", "novelty_check"}   # N145 status/list only, N146 no report file (their tests)
     run = A.Run(cfg, "molla", Pseudonymizer(cfg), "g")
     run.tools, run.readonly, run.notes = R.TOOLS, True, False
     out = A.call(run, "write_file", {"path": "docs/x.md", "content": "x"})

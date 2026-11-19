@@ -78,8 +78,12 @@ async def sentinel_incident(request: Request) -> dict:
         item = _egress_alone(item)                        # 🚀: learnt, or denied, by herself (sec_egress_watch)
         if item.get("status") == "closed":
             return {"id": item["id"], "severity": item["severity"], "learnt": True}
-    from aurora import sec_quiet
-    quiet = sec_quiet.is_quiet(cfg, item)
+    from aurora import sec_quiet, sec_verdicts
+    judged = sec_verdicts.merged(cfg, Incidents(cfg).list())   # C406: the verdicts too whose incidents left the file
+    up = sec_quiet.raised(item, judged)                   # C406: a pattern the owner judged right: one step up, loud
+    if up:
+        item = Incidents(cfg).update(item["id"], severity=up, raised=f"{item['severity']} → {up}: judged right before")
+    quiet = None if up else sec_quiet.is_quiet(cfg, item)
     from aurora import sec_autopilot
     alone = sec_autopilot.on(cfg)                         # 🤖 security at 🚀: what she decides needs nobody
     if quiet:                                             # a pattern the owner quieted (sec_quiet): kept, low, not said
@@ -87,7 +91,7 @@ async def sentinel_incident(request: Request) -> dict:
         if alone:
             sec_autopilot.settle(item["id"], cfg, "quiet")
         return {"id": item["id"], "severity": "low", "quiet": quiet}
-    why = sec_autopilot.judged_false(item, Incidents(cfg).list()) if alone else None
+    why = sec_autopilot.judged_false(item, judged) if alone and not up else None
     if why:
         sec_autopilot.settle(item["id"], cfg, why)
         return {"id": item["id"], "severity": item["severity"], "settled": why}
@@ -232,9 +236,10 @@ async def incident_verdict(incident_id: str, request: Request) -> dict:
         raise HTTPException(status_code=404, detail="unknown incident")
     _score.clear()
     log.info("audit: incident %s judged %s by the owner", incident_id, verdict)
-    from aurora import sec_quiet                          # the verdict put to use: a pattern proposed, or woken
-    said = sec_quiet.after_verdict(cfg, Incidents(cfg).list(), item)
-    if said and said.get("propose") and not _quiet_alone(Incidents(cfg).list()):   # 🚀: quieted by herself, told
+    from aurora import sec_quiet, sec_verdicts            # the verdict put to use: a pattern proposed, or woken
+    judged = sec_verdicts.merged(cfg, Incidents(cfg).list())   # kept apart too: the file keeps 1,000 incidents (C406)
+    said = sec_quiet.after_verdict(cfg, judged, item)
+    if said and said.get("propose") and not _quiet_alone(judged):   # 🚀: quieted by herself, told
         x = said["propose"]
         note("security", "quiet.propose", {"title": _t("🔇 Silenzio questo allarme su questo dispositivo?", "🔇 Shall I quiet this alarm on this device?"),
              "text": _t(f"«{x['label']}»: {x['false_alarm']} falsi allarmi e {x['right']} giusti su {x['judged']} giudizi. "
@@ -331,9 +336,9 @@ def security_digest() -> dict:
 @router.get("/v1/aurora/incidents/quiet", dependencies=[Depends(admin_only)])
 def incidents_quiet(lang: str = "it") -> dict:
     """The patterns proposed for quiet (the owner's verdicts, sec_quiet) and the ones quiet now."""
-    from aurora import sec_quiet, sys_autonomy
+    from aurora import sec_quiet, sec_verdicts, sys_autonomy
     from aurora.sec_incidents import Incidents
-    items = Incidents(cfg).list()
+    items = sec_verdicts.merged(cfg, Incidents(cfg).list())
     if moved := sec_quiet.by_kind(cfg, items):            # C407: the answers given to a kind alone, made per device
         log.info("audit: incidents quiet per device now (C407): %s", ", ".join(moved))
     _quiet_alone(items)                                   # raised to 🚀 since a proposal: decided now
@@ -344,11 +349,11 @@ def incidents_quiet(lang: str = "it") -> dict:
 @router.post("/v1/aurora/incidents/quiet", dependencies=[Depends(admin_only)])
 async def incidents_quiet_answer(request: Request) -> dict:
     """The owner's answer on a pattern: quiet, declined or awake."""
-    from aurora import sec_quiet
+    from aurora import sec_quiet, sec_verdicts
     from aurora.sec_incidents import Incidents
     body = await request.json()
     p, state = str(body.get("pattern", "")), str(body.get("state", ""))
-    items = Incidents(cfg).list()
+    items = sec_verdicts.merged(cfg, Incidents(cfg).list())
     counts = sec_quiet.tally(items).get(p)
     if not p or (state == "quiet" and counts is None):
         raise HTTPException(status_code=404, detail="unknown pattern")

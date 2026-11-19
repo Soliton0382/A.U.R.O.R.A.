@@ -25,6 +25,7 @@ import time
 from datetime import timedelta
 
 from . import sns_clock, sys_config, sys_persona, txt_lang
+from .kno_self import clip                         # a turn cut says so (C6xx-a)
 
 log = logging.getLogger("aurora.api")
 
@@ -66,7 +67,7 @@ def system(cfg: sys_config.Config, recent: list, lang: str) -> str:
 
 
 def _turns(recent: list) -> str:
-    return "\n".join(f"{'Owner' if t.extra.get('role') == 'user' else 'Aurora'}: {t.text[:400]}" for t in recent[-RECENT:])
+    return "\n".join(f"{'Owner' if t.extra.get('role') == 'user' else 'Aurora'}: {clip(t.text, 400)}" for t in recent[-RECENT:])
 
 
 def talk(model, question: str, recent: list) -> bool:

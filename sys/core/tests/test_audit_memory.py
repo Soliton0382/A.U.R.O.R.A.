@@ -86,7 +86,7 @@ def test_the_live_tests_run_in_a_cage_that_shows_the_code_only(tmp_path, monkeyp
     sys_tests.run_suite(tmp_path, caged=True, live=True)
     cmd = ran[0]
     pairs = lambda flag: [cmd[i + 1] for i, a in enumerate(cmd) if a == flag]
-    assert cmd[0] == "bwrap" and "pytest" in cmd[-1]
+    assert "bwrap" in cmd[:5] and "pytest" in cmd[-1]
     assert str(tmp_path / "sys/core") in pairs("--ro-bind") and str(tmp_path / "sys/plugins") in pairs("--ro-bind")
     assert str(tmp_path / "sys/app/keys") in pairs("--tmpfs")
     bound = pairs("--ro-bind") + pairs("--bind")

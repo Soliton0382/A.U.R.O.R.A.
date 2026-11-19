@@ -116,6 +116,26 @@ def gpu_job(cfg: sys_config.Config) -> str:
             return fh.read().strip() or "a GPU job"
 
 
+# C676: the first pip with none of the advisories known on 20 Nov 2026 (PYSEC-2026-196, -1795, -1796, -2875, -2876,
+# -3721). The .venv is the owner's (C556): the services never upgrade it, so the check tells him the one command.
+PIP_FLOOR = (26, 2)
+
+
+def pip_line(version: str | None = None) -> tuple[str, str, str]:
+    """(level, text, detail) for the pip of Aurora's own environment."""
+    if version is None:
+        from importlib import metadata
+        try:
+            version = metadata.version("pip")
+        except metadata.PackageNotFoundError:
+            return "ok", _t("pip non installato nell'ambiente", "pip not installed in the environment"), ""
+    parts = tuple(int(x) if x.isdigit() else 0 for x in version.split(".")[:3])
+    if parts[:2] >= PIP_FLOOR:
+        return "ok", f"pip {version}", ""
+    return ("warn", _t(f"pip {version} ha vulnerabilità note: aggiornalo", f"pip {version} has known vulnerabilities: upgrade it"),
+            ".venv/bin/python -m pip install --upgrade pip (C676)")
+
+
 def check(cfg: sys_config.Config | None = None) -> dict:
     cfg = cfg or sys_config.get()
     items = []
@@ -214,6 +234,8 @@ def check(cfg: sys_config.Config | None = None) -> dict:
             add(*line)
     except ImportError:
         pass
+
+    add("pip", *pip_line())                              # C676: Aurora runs pip for the projects
 
     from . import sys_ethics                             # the code as the owner signed it (second tier)
     drift = sys_ethics.drift_summary(sys_ethics.code_drift(cfg.root))

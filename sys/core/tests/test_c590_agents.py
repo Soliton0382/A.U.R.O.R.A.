@@ -99,7 +99,7 @@ def test_the_sandbox_s_tests_run_with_the_sandbox_read_only(tmp_path, monkeypatc
     sys_tests.run_suite(tmp_path, caged=True)
     cmd = ran[0]
     pairs = lambda flag: [cmd[i + 1] for i, a in enumerate(cmd) if a == flag]
-    assert cmd[0] == "bwrap" and str(tmp_path / "sys/core") in pairs("--ro-bind")
+    assert "bwrap" in cmd[:5] and str(tmp_path / "sys/core") in pairs("--ro-bind")
     assert not any(w == str(tmp_path) or w.startswith(str(tmp_path) + "/") for w in pairs("--bind"))
     assert len(pairs("--bind")) == 1 and "aurora-box-tests-" in pairs("--bind")[0]
 

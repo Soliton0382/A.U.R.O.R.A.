@@ -19,6 +19,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from . import sns_clock
+from .kno_self import clip                      # a cut said in the text (C6xx-a)
 from .sol_schema import Soliton
 from .sol_search import Hit
 
@@ -102,7 +103,7 @@ def quoted(reader, raw) -> Soliton | None:
         kept = [t for t in reader.by_source("conversation", f"run:{run_id}", 8) if t.extra.get("role") == "assistant"]
         if kept:
             return kept[-1]
-    text = str(raw.get("text") or "").strip()[:QUOTE_CUT]
+    text = clip(str(raw.get("text") or "").strip(), QUOTE_CUT)
     if not text:
         return None
     return Soliton.new(text, "conversation", "conversation", "", "quote", extra={"role": "assistant", "quoted": True})
@@ -113,6 +114,24 @@ def with_quote(recent: list[Soliton], quote: Soliton | None) -> list[Soliton]:
     if quote is None:
         return recent
     return [t for t in recent if t.sid != quote.sid] + [quote]
+
+
+# C706: a message that leans on what came before, whatever the rewrite made of it (M318: «e quanto tempo ho?» copied as
+# it was): it opens with «and / but / what about…», or it is three words or fewer
+LEANS = re.compile(r"(?i)^\W*(?:e|ed|ma|però|pero|allora|anche|invece|quindi|and|but|also|so|what\s+about|how\s+about|"
+                   r"y|et|mais|und|aber|oder)\b")
+
+
+def _plain(text: str) -> str:
+    return " ".join(re.findall(r"\w+", (text or "").casefold()))
+
+
+def leans_on_before(asked: str, rewritten: str = "") -> bool:
+    """Whether the owner's message is a true follow-up (the law gate reads it with the turns before only then, C706):
+    the rewrite changed more than case and punctuation, or the message leans on what came before by its form."""
+    if rewritten and _plain(rewritten) != _plain(asked):
+        return True
+    return bool(LEANS.match(asked or "")) or len(re.findall(r"\w+", asked or "")) <= 3
 
 
 def standalone(p: "Pipeline", question: str, recent: list[Soliton], ev, quote: Soliton | None = None) -> tuple[str, list[dict]]:
@@ -130,9 +149,10 @@ def standalone(p: "Pipeline", question: str, recent: list[Soliton], ev, quote: S
     context = f"TURNS:\n{p._turns(recent, 4, 400)}"
     if prev is not None:
         titles = "; ".join(s.get("title") or s.get("source", "") for s in prev.extra.get("source_list") or [])
-        context += f"\n\nLAST ANSWER (whole):\n{prev.text[:ANSWER_CUT]}" + (f"\nITS SOURCES: {titles}" if titles else "")
+        # «whole» only when it is: a longer one says it was cut (C6xx-a)
+        context += f"\n\nLAST ANSWER (whole):\n{clip(prev.text, ANSWER_CUT)}" + (f"\nITS SOURCES: {titles}" if titles else "")
     if quote is not None:                       # a reply (↩️) is about the quoted message: always read against it
-        out = p._for("translate").complete(SYS_REPLY, f"QUOTED: {quote.text[:ANSWER_CUT]}\n\nLAST MESSAGE: {question}",
+        out = p._for("translate").complete(SYS_REPLY, f"QUOTED: {clip(quote.text, ANSWER_CUT)}\n\nLAST MESSAGE: {question}",
                                            200).answer.strip().strip('"«»').strip()
     else:
         from .kno_stages import LANGS                   # C511: Italian turns around turned an English question Italian

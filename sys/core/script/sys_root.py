@@ -373,7 +373,8 @@ EXEC = ("ExecStart=", "ExecStartPre=", "ExecStartPost=", "ExecStop=", "ExecStopP
 UNIT_KEYS = frozenset((
     "Description", "After", "Wants", "PartOf", "OnFailure", "WantedBy", "Type", "User", "WorkingDirectory", "Environment",
     "ExecStart", "ExecReload", "Nice", "UMask", "NoNewPrivileges", "LockPersonality", "ReadWritePaths",
-    "InaccessiblePaths", "BindReadOnlyPaths", "AmbientCapabilities", "CapabilityBoundingSet"))
+    "InaccessiblePaths", "BindReadOnlyPaths", "AmbientCapabilities", "CapabilityBoundingSet",
+    "Delegate"))                                         # C654: the API's own cgroup subtree, a cgroup per long run
 UNIT_PREFIXES = ("Protect", "Restrict", "Private", "Limit", "Memory", "CPU", "IOScheduling", "IOWeight", "Timeout",
                  "Restart", "Kill", "StartLimit", "IPAddress", "SystemCall")
 UNIT_CAPS = frozenset(("CAP_NET_BIND_SERVICE",))         # Caddy's ports below 1024, nothing else

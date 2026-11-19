@@ -62,7 +62,7 @@ def test_the_agent_s_sandbox_tests_run_caged(tmp_path, monkeypatch):
     ran = []
     monkeypatch.setattr(sys_tests.subprocess, "run", lambda cmd, **kw: ran.append(cmd) or subprocess.CompletedProcess(cmd, 0, "1 passed", ""))
     sys_tests.run_suite(tmp_path, caged=True)
-    assert ran[0][0] == "bwrap" and "/run" in _pairs(ran[0], "--tmpfs") and "pytest" in ran[0][-1]
+    assert "bwrap" in ran[0][:5] and "/run" in _pairs(ran[0], "--tmpfs") and "pytest" in ran[0][-1]
     sys_tests.run_suite(tmp_path)                                                    # the live code: as before
     assert ran[1][0] == sys.executable
 
@@ -123,3 +123,36 @@ def test_no_stray_folder_under_usr_with_the_machine_s_configuration(cfg, tmp_pat
     env.write_text("")
     args = plg_sandbox.wrap(["python3"], tmp_path, {"sandbox": {"write": ["AURORA_MUSIC_DIR"]}}, env, cfg)
     assert not music.exists() and str(music) not in args
+
+
+@LINUX
+def test_c615_a_venv_made_in_the_cage_never_becomes_python(tmp_path):
+    """C615 (N147's referee): a caged command made .venv/bin/python, and every later «python» of the project ran it."""
+    plant = ("mkdir -p .venv/bin 2>/dev/null; printf '#!/bin/sh\\necho HIJACK\\n' > .venv/bin/python 2>/dev/null "
+             "&& chmod +x .venv/bin/python && echo PLANTED; echo fake > prereg/LEDGER.jsonl 2>/dev/null && echo FORGED; "
+             "echo fake > discover/001_x.json 2>/dev/null && echo FORGED2; true")
+    r = subprocess.run(prj_run.cage(None, tmp_path, plant), capture_output=True, text=True, timeout=30)
+    if r.returncode or "PLANTED" in r.stdout and not (tmp_path / ".venv" / "bin" / "python").exists():
+        pytest.skip(f"the cage does not start here: {r.stderr.strip()[:80]}")
+    assert "PLANTED" not in r.stdout and "FORGED" not in r.stdout
+    assert not (tmp_path / ".venv" / "bin").exists() and not any((tmp_path / "prereg").iterdir())
+    # a script written there from outside the cage (a write tool) is not the project's environment either
+    (tmp_path / ".venv" / "bin").mkdir(parents=True)
+    (tmp_path / ".venv" / "bin" / "python").write_text("#!/bin/sh\necho HIJACK\n")
+    (tmp_path / ".venv" / "bin" / "python").chmod(0o755)
+    assert not prj_run.trusted_venv(tmp_path)
+    r = subprocess.run(prj_run.cage(None, tmp_path, "python -c 'print(6*7)'"), capture_output=True, text=True,
+                       timeout=30)
+    assert "HIJACK" not in r.stdout and "42" in r.stdout
+
+
+def test_c615_project_install_s_venv_is_still_first(tmp_path):
+    """The environment project_install makes (its python a link to Aurora's interpreter) stays first on PATH."""
+    b = tmp_path / ".venv" / "bin"
+    b.mkdir(parents=True)
+    (b / "python").symlink_to(sys.executable)
+    args = prj_run.cage(None, tmp_path, "true")
+    path = args[args.index("PATH") + 1]
+    assert prj_run.trusted_venv(tmp_path) and path.startswith(f"{b}:")
+    for d in ("prereg", "reviews", "discover", "longrun", "novelty"):
+        assert str(tmp_path / d) in _pairs(args, "--ro-bind")

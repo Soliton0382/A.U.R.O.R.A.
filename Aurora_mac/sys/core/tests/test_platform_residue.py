@@ -32,6 +32,18 @@ WORDS_ALLOWED = {
     ("kno_grid.py", '"bwrap"'): "ROADMAP 105: without bwrap a grid puzzle goes to the reasoning, as before (no cage, nothing is run)",
     ("prj_run.py", '"bwrap"'): "phase 4: without bwrap a project does not run («no cage, nothing is run»)",
     ("prj_proof.py", '"bwrap"'): "N143: without bwrap a Lean proof is not checked («no cage, nothing is compiled»), never run uncaged",
+    ("prj_discover.py", '"bwrap"'): "N147: without bwrap no law search is run («no cage, no search is run»), never uncaged",
+    ("prj_longrun.py", '"bwrap"'): "N145: without bwrap a long run does not start («no cage, nothing is run»), never run uncaged",
+    ("plg_launch.py", "/proc/"): "C672: a docstring — why the secrets leave bubblewrap's environment (/proc/1/environ); the launcher runs only in front of bubblewrap",
+    ("prj_gitsafe.py", "/proc/"): "C671: a comment — why the clone's token never goes on argv (/proc/<pid>/cmdline)",
+    ("prj_longrun_meter.py", "/proc/"): "C654: the whole run's CPU from the service's cgroup and /proc; long runs need bwrap (Linux only)",
+    ("prj_longrun_meter.py", "os.geteuid"): "C654: inside the delegated-cgroup branch only (Linux); never reached where there is no cage",
+    ("prj_package.py", "/dev/null"): "N148: the user's cage (bubblewrap) only; the package button says «no cage» elsewhere",
+    ("prj_provenance.py", "fcntl"): "C685: guarded — imported in a try, None on Windows (the ledger's lock is then the thread's own)",
+    ("prj_run_box.py", "/dev/null"): "C688: the limits in front of bubblewrap only; no cage, no command run (prj_run refuses without bwrap)",
+    ("prj_run_disk.py", "/proc/"): "C700, C710: the cage's held files from /proc; loaded only by prj_run_box, in front of bubblewrap",
+    ("prj_run_disk.py", "fcntl"): "C707: imported inside carries(), on the bubblewrap path only",
+    ("prj_longrun_cage.py", "/proc/"): "N145, C626: the whole run's CPU and memory summed over its process tree from /proc; elsewhere the run's own limits only (no cage there: long runs need bwrap)",
     ("prj_term.py", '"bwrap"'): "phase 4: without bwrap no project terminal («no cage, no terminal»), said on the page",
     ("plg_sandbox.py", '"bwrap"'): "phase 4: without a cage plugins do not run on the Mac or Windows (GUARDS)",
     ("plg_sandbox.py", "/dev/null"): "phase 4: bwrap's own arguments, Linux only",
@@ -105,6 +117,8 @@ def _programs(f: Path) -> set[str]:
 # the plugins (owner, 2026-10-08: «verifica che anche i vari plugin funzionino… vedi cloudflare»): their own code, beside
 # the core's — (plugin, word or program): why it may stay
 PLUGIN_WORDS_ALLOWED = {
+    ("projects", ".venv/bin"): "C692: a comment and the docstring of project_install (where a wheel's scripts go), no path run",
+    ("projects", "journalctl"): "C692: a name in SYSTEM_NAMES, the system programs a wheel's script may never shadow — never run",
     ("dropbox", ".venv/bin"): "the docstring of authorize.py, a command the owner reads (phase 3: per system)",
     ("tiktok", ".venv/bin"): "the docstring of authorize.py, a command the owner reads (phase 3: per system)",
 }

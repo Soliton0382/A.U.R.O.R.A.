@@ -21,10 +21,14 @@ SYS_ROUTE = ("Classify the owner's last message to the assistant Aurora. Reply S
              "her state, her memory, her knowledge base, the time now, the weather or anything around HER HOME) or "
              "about the conversation itself. Reply KNOWLEDGE if it asks "
              "for facts about the world: a subject, a document, a law, a person, an event, a definition, a procedure. "
+             "A person's own house, flat, room, network, heating, appliances or bills («casa mia», «di casa», «my "
+             "home») are not Aurora: a question about them asks how things work, KNOWLEDGE. "
              "Examples: 'come stai?' SELF; 'che ore sono?' SELF; 'piove lì da te?' SELF; 'che tempo fa a Tokyo?' KNOWLEDGE (another place: not hers); 'quanti solitoni hai nel "
-             "vault?' SELF; 'cosa sai fare?' SELF; 'grazie!' SELF; 'cos'è l'entanglement?' KNOWLEDGE; 'cosa dice "
+             "vault?' SELF; 'cosa sai fare?' SELF; 'grazie!' SELF; 'cos'è l'entanglement?' KNOWLEDGE; 'perché in casa mia "
+             "c'è tanta umidità?' KNOWLEDGE; 'quanto consuma la lavatrice di casa?' KNOWLEDGE; 'cosa dice "
              "l'articolo 1571?' KNOWLEDGE; 'e nel caso di un affitto breve?' KNOWLEDGE. "
              "Reply with exactly one word.")
+# C696: «perché il wifi di casa va lento la sera?» went the self route — «casa» read as Aurora's own home
 # a reply to a quoted message (↩️): working on the message itself is hers to do, with the message in front of her
 SYS_ROUTE_QUOTE = ("The owner replies to a MESSAGE of the assistant Aurora, quoted below. Reply ON if the reply asks her "
                    "to work on that message itself: explain it, summarise or shorten it, translate it, say it in other "
@@ -32,6 +36,19 @@ SYS_ROUTE_QUOTE = ("The owner replies to a MESSAGE of the assistant Aurora, quot
                    "for facts the message does not contain (more about its subject, a related question). "
                    "Examples: 'spiegamelo in due righe' ON; 'traducilo in inglese' ON; 'perché dici così?' ON; "
                    "'chi l'ha scoperto?' NEW; 'e come si misura?' NEW. Reply with exactly one word.")
+
+
+SELF_TURNS_CHARS = 16000      # the recent conversation in the self route: newest turns whole first (C6xx-a)
+MEMORY_LINE_CHARS = 700       # a remembered item in the memory block
+
+
+def clip(text: str, n: int | None) -> str:
+    """`text` held to `n` characters, saying so (C6xx-a): a cut the model is not told of reads as the whole — the owner's
+    report of a wrong answer reached her self route as 500 characters of each turn, and she said she had it only in
+    part without knowing what was missing."""
+    if n is None or len(text) <= n:
+        return text
+    return text[:n].rstrip() + f" […{len(text) - n} more characters not shown]"
 
 
 GOING_ON_S = 30 * 60                                      # a last turn this recent: the same conversation
@@ -74,10 +91,29 @@ def people_block(cfg, lang: str = "it", recent=None) -> str:
 
 
 class SelfTalk:
-    def _turns(self, recent: list[Soliton], n: int, cut: int | None = 500) -> str:
-        """The last n turns with their local time and day: '[mercoledì 2026-09-30 10:31 (ieri)] Owner: ...'."""
-        return "\n".join(f"[{sns_clock.when(s.created_at, self.cfg)}] {'Owner' if s.extra.get('role') == 'user' else 'Aurora'}: "
-                         f"{s.text[:cut] if cut else s.text}" for s in recent[-n:])
+    def _turns(self, recent: list[Soliton], n: int, cut: int | None = 500, budget: int | None = None) -> str:
+        """The last n turns with their local time and day: '[mercoledì 2026-09-30 10:31 (ieri)] Owner: ...'. A turn
+        longer than `cut` is shortened and says so; `budget` (characters, all turns): the newest whole first, an older
+        one shortened to what is left, the oldest left out with their number said (C6xx-a)."""
+        turns = recent[-n:] if n > 0 else []
+        texts = [s.text for s in turns]
+        omitted = 0
+        if budget is not None:
+            left, keep = budget, []
+            for t in reversed(texts):
+                if len(t) <= left:
+                    keep.append(t)
+                    left -= len(t)
+                elif left >= 300:
+                    keep.append(clip(t, left))
+                    left = 0
+                else:
+                    break
+            omitted = len(texts) - len(keep)
+            turns, texts = turns[omitted:], list(reversed(keep))
+        lines = [f"[{sns_clock.when(s.created_at, self.cfg)}] {'Owner' if s.extra.get('role') == 'user' else 'Aurora'}: "
+                 f"{clip(t, cut)}" for s, t in zip(turns, texts)]
+        return "\n".join(([f"[{omitted} older turns not shown]"] if omitted else []) + lines)
 
     def _route(self, question: str, recent: list[Soliton], quote: Soliton | None = None) -> str:
         """'self' for small talk and questions about Aurora, 'knowledge' for everything else; a reply that works on
@@ -169,7 +205,7 @@ class SelfTalk:
         C326: the newest won outright, and a week of session memories pushed out the conversation asked about."""
         def line(s: Soliton) -> str:
             kind = s.extra.get("type") or (self.cfg["AURORA_OWNER_NAME"] if s.extra.get("role") == "user" else f"tu ({sys_persona.name(self.cfg)})")
-            return f"- [{sns_clock.when(s.created_at, self.cfg)} · {kind}] {s.text[:700]}"
+            return f"- [{sns_clock.when(s.created_at, self.cfg)} · {kind}] {clip(s.text, MEMORY_LINE_CHARS)}"
         by_sid = {s.sid: s for s in mems}
         order = [by_sid[i] for i in asked if i in by_sid] + [s for s in reversed(mems) if s.sid not in set(asked)]
         keep, used = set(), 0
@@ -187,6 +223,8 @@ class SelfTalk:
         state = self.self_state()
         ev("self.state", state)
         mems, asked = self._memories(question, recent, ev)
+        if recent:                                   # what of the conversation she reads, in numbers (C6xx-a)
+            ev("self.turns", {"turns": len(recent), "chars": sum(len(t.text) for t in recent), "budget": SELF_TURNS_CHARS})
         today = sns_clock.now(self.cfg)
         days = "; ".join(f"{label} = {sns_clock.DAYS_IT[d.weekday()]} {d:%Y-%m-%d}" for label, d in
                          (("oggi", today), ("ieri", today - timedelta(days=1)), ("l'altro ieri", today - timedelta(days=2))))
@@ -196,7 +234,10 @@ class SelfTalk:
                   + (f"\n\nYOUR MEMORIES RELEVANT TO THE QUESTION (oldest first; each with its date and how long ago). "
                      f"If what is asked is not here, say you do not remember it, do not invent:\n{self._memory_block(mems, asked)}"
                      if mems else "\n\nYOUR MEMORIES: none found for this question; do not invent any.")
-                  + (f"\n\nRECENT CONVERSATION:\n{self._turns(recent, len(recent))}" if recent else "")
+                  # whole turns (C6xx-a: 500 characters of each, said nowhere — the owner's report of a wrong answer
+                  # and the answer itself reached her in part)
+                  + (f"\n\nRECENT CONVERSATION:\n{self._turns(recent, len(recent), cut=None, budget=SELF_TURNS_CHARS)}"
+                     if recent else "")
                   # a conversation going on: no greeting again (owner, 30 Oct: «mi ha salutata 2 volte consecutivamente…
                   # anche se… mi stava rispondendo al proseguo del messaggio precedente»)
                   + (NO_GREETING if self._going_on(recent) else "")

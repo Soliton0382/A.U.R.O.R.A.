@@ -37,13 +37,15 @@ def on(cfg: sys_config.Config) -> bool:
 
 
 def _kinds(items: list[dict], now: float | None = None) -> dict[str, Counter]:
-    """The owner's verdicts per kind on the house's known devices, over the verdicts' window."""
+    """The owner's verdicts per kind on the house's known devices, over the verdicts' window — a kind as sec_quiet.what
+    tells it (an IPS alert by direction and port, a new port by its range, C406: a verdict on DNS alerts is not one on
+    another port's)."""
     since = (time.time() if now is None else now) - sec_quiet.WINDOW_DAYS * 86400
     out: dict[str, Counter] = {}
     for i in items:
         if i.get("verdict") and i.get("internal") and i.get("known") \
                 and float(i.get("verdict_at") or i.get("received_ts") or 0) >= since:
-            out.setdefault(str(i.get("kind")), Counter())[i["verdict"]] += 1
+            out.setdefault(str(sec_quiet.what(i)), Counter())[i["verdict"]] += 1
     return out
 
 
@@ -54,7 +56,7 @@ def judged_false(item: dict, items: list[dict]) -> str | None:
         return None
     if kind in LOUD_KINDS or item.get("severity") in LOUD_SEVERITY or sec_quiet.what(item) is None:
         return None
-    c = _kinds(items).get(kind, Counter())
+    c = _kinds(items).get(str(sec_quiet.what(item)), Counter())
     n = sum(c.values())
     return f"{kind}: {n - c['right']} of {n} judged not right" if n >= MIN_JUDGED and c["right"] <= RIGHT * n else None
 

@@ -83,6 +83,9 @@ def why_not(cfg: sys_config.Config, runs: list[dict], backup_running: bool, now:
     open_ = [r for r in runs if not r.get("done")]
     if open_:
         return f"{len(open_)} run(s) open"
+    from . import prj_longrun                        # C631: a restart cut the long runs and spent their attempts
+    if (going := prj_longrun.any_alive()):
+        return f"{going} long run(s) going (long_run)"
     if any(r.get("origin") in PEOPLE and now - float(r.get("started") or 0) < QUIET_S for r in runs):
         return f"a person asked in the last {QUIET_S // 60} minutes"
     if backup_running:

@@ -4,7 +4,8 @@
 owner's projects are command-line Python programs, so their preview is running them).
 
 The same cage as prj_run (no network at all, an empty environment, a fresh /tmp, the home folders hidden, only the
-project's folder writable, Aurora's .venv readable — the project's own .venv first on the PATH when it has one), with
+project's folder writable, Aurora's .venv readable — the project's own .venv first on the PATH when project_install
+made it and none of its programs stands for a system one, git the system's and bash by its path: C692), with
 a pseudo-terminal: a program that asks for input (input(), a menu) works. No WebSocket library in Aurora: the output
 goes to the page as Server-Sent Events, what the user types comes back as POSTs.
 Limits: AURORA_PROJECT_TERM_MAX sessions a user, closed after AURORA_PROJECT_TERM_IDLE_MIN minutes without input and
@@ -50,14 +51,86 @@ def cage_works() -> str:
     return _cage_ok["why"]
 
 
+SYSTEM_DIRS = ("/usr/bin", "/bin", "/usr/local/bin", "/usr/sbin", "/sbin")
+GIT, BASH = "/usr/bin/git", "/bin/bash"
+
+
+def shadows(project) -> list[str]:
+    """C692: the programs of .venv/bin that stand for a system program (git, bash, any name in /usr/bin…), the
+    environment's own python links (to Aurora's interpreter) and activate scripts left out."""
+    import sys
+    from pathlib import Path
+    own = Path(project) / ".venv" / "bin"
+    exe = Path(sys.executable).resolve()
+    out = []
+    try:
+        entries = sorted(own.iterdir()) if own.is_dir() and not own.is_symlink() else []
+    except OSError:
+        return ["?"]                                           # not readable: not trusted
+    for e in entries:
+        n = e.name
+        if n.lower().startswith("activate"):
+            continue
+        try:
+            if e.is_symlink() and e.resolve() == exe:
+                continue
+        except OSError:
+            pass
+        if n.lower().startswith(("git", "python", "pip")) or n in ("bash", "sh", "env") or \
+                any(os.path.lexists(os.path.join(d, n)) for d in SYSTEM_DIRS):
+            out.append(n)
+    return out
+
+
+def open_on(project) -> int:
+    """How many terminals are open on this project's folder now (C701: a long run does not start meanwhile)."""
+    from pathlib import Path
+    try:
+        want = Path(project).resolve()
+    except OSError:
+        return 0
+    n = 0
+    for s in list(_sessions.values()):
+        try:
+            if s["proc"].poll() is None and Path(s["path"]).resolve() == want:
+                n += 1
+        except (KeyError, OSError):
+            continue
+    return n
+
+
+def _refuse_during_longrun(cfg: sys_config.Config, project) -> None:
+    """C701: a long run's end sets aside a .git it did not find (C658: its caged command may have made it) — a
+    repository the user made here meanwhile was moved away. Which of the two made it cannot be told apart (the run
+    writes the same folder; any mark of «the user's» it could forge), so the two never overlap: no terminal while a
+    long run of the project goes, no long run while a terminal is open (prj_longrun.start). Said, never silent."""
+    from pathlib import Path
+    from . import prj_longrun
+    if prj_longrun.busy(cfg, Path(project).name):
+        raise TermError("a long run of this project is going: the terminal opens when it ends or is stopped (its "
+                        "end sets aside a .git it did not find — a repository made here meanwhile would be moved "
+                        "away, C701)")
+    from . import prj_run                                      # C709: nor while an agent's command runs on it
+    if prj_run.going(project):
+        raise TermError("a command of Aurora's agent is running on this project: open the terminal again in a moment "
+                        "(its end sets aside a .git it did not find, C709)")
+
+
 def _cage(cfg: sys_config.Config, project) -> list[str]:
     from . import prj_run
-    args = prj_run.cage(cfg, project, "x")[:-4]               # the cage without its «-- bash -c command»
-    own = project / ".venv" / "bin"
-    if own.is_dir():                                           # the project's own environment first
-        i = args.index("PATH") + 1
-        args[i] = f"{own}:{args[i]}"
-    return args + ["--setenv", "TERM", "dumb", "--setenv", "PS1", r"\W $ ", "--", "bash", "--norc", "-i"]
+    _refuse_during_longrun(cfg, project)
+    # C675: the user's own git works here (commit) while Aurora runs no git on projects (C674); .git read only otherwise
+    args = prj_run.cage(cfg, project, "x", git_writable=True)[:-4]   # without «-- bash -c»
+    own = f"{project / '.venv' / 'bin'}:"
+    i = args.index("PATH") + 1
+    path = args[i][len(own):] if args[i].startswith(own) else args[i]
+    # C692: the project's own environment first only when project_install made it (prj_run.trusted_venv) and none of
+    # its programs stands for a system one; git a function calling the system's, bash by its path
+    if prj_run.trusted_venv(project) and not shadows(project):
+        path = own + path
+    args[i] = path
+    return args + ["--setenv", "TERM", "dumb", "--setenv", "PS1", r"\W $ ",
+                   "--setenv", "BASH_FUNC_git%%", f'() {{ {GIT} "$@"\n}}', "--", BASH, "--norc", "-i"]
 
 
 def start(cfg: sys_config.Config, name: str, user: str | None) -> dict:
@@ -69,20 +142,34 @@ def start(cfg: sys_config.Config, name: str, user: str | None) -> dict:
     if why := cage_works():
         raise TermError(f"the cage cannot start on this system ({why}): no terminal without it")
     project = prj_run.project_dir(cfg, name)
+    try:                                                       # C674: how to commit and publish from here
+        from . import prj_gitguide
+        prj_gitguide.ensure(project)
+    except (OSError, ValueError):                              # a link by that name: no guide, the terminal still opens
+        pass
     reap()
     with _lock:
         mine = [s for s in _sessions.values() if s["user"] == user and s["proc"].poll() is None]
         if len(mine) >= int(cfg["AURORA_PROJECT_TERM_MAX"]):
             raise TermError(f"already {len(mine)} terminals open: close one first")
-    ours, theirs = pty.openpty()
-    proc = subprocess.Popen(_cage(cfg, project), stdin=theirs, stdout=theirs, stderr=theirs, close_fds=True,
-                            start_new_session=True)
-    os.close(theirs)
-    sid = secrets.token_urlsafe(12)
-    s = {"id": sid, "name": name, "user": user, "proc": proc, "fd": ours, "out": deque(), "size": 0, "seq": 0,
-         "cond": threading.Condition(), "started": time.time(), "last": time.time(), "cfg": cfg}
-    with _lock:
-        _sessions[sid] = s
+    from . import prj_longrun
+    with prj_longrun._lock:                                    # C701: the check and the session together, against
+        args = _cage(cfg, project)                             # a long run starting meanwhile (its start looks here)
+        ours, theirs = pty.openpty()
+        try:
+            proc = subprocess.Popen(args, stdin=theirs, stdout=theirs, stderr=theirs, close_fds=True,
+                                    start_new_session=True)
+        except BaseException:
+            os.close(ours)
+            raise
+        finally:
+            os.close(theirs)
+        sid = secrets.token_urlsafe(12)
+        s = {"id": sid, "name": name, "user": user, "proc": proc, "fd": ours, "out": deque(), "size": 0, "seq": 0,
+             "cond": threading.Condition(), "started": time.time(), "last": time.time(), "cfg": cfg,
+             "path": str(project)}
+        with _lock:
+            _sessions[sid] = s
     threading.Thread(target=_read, args=(s,), daemon=True, name=f"term-{sid[:6]}").start()
     if not _reaper:                                            # one watcher closes what nobody looks at any more
         _reaper.append(threading.Thread(target=_watch, daemon=True, name="term-reaper"))

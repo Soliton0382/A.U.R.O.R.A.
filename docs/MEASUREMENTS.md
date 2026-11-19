@@ -5154,3 +5154,447 @@ words, 4–12 letters) over a 25,000-character text, this machine, one run each:
 The pattern is compiled once per list (cached); a new value learnt compiles it again. In the API, 150 of the 165 photos
 of a routines' tick over 10 s (13–17 Nov) showed a run inside this function. Not measured: the real values (sealed);
 the ticks after the change (to read for a day before closing C600).
+
+## M297 — the discovery engine on invented laws (19 November 2026; N147)
+
+`prj_discover_search` (the search, CPU, one thread) on invented noisy tables, 80 rows (100 for two variables), 70 %
+training / 30 % held-out, 200 tables per law (seeds 1000–1199), held-out rows never seen by the search. «found» = the
+chosen law is not the baseline; «confirmed» = D1 (held-out error at most the 99th percentile of the bootstrap of its
+out-of-fold residuals' ratio) and D2 (below 0.9 × the linear baseline's) both passed:
+
+| invented law (noise) | found | confirmed | error chosen |
+|---|---|---|---|
+| Kepler T = a^(3/2) (1 % relative) | 200 | 195 | relative 199, absolute 1 |
+| free fall d = ½ g t² (0.05 absolute) | 200 | 194 | absolute 200 |
+| decay N = 100 e^(−0.3 t) (2 % relative) | 200 | 196 | relative 200 |
+| pendulum T = 2π √(L/g), g fixed (1 %) | 200 | 194 | relative 186, absolute 14 |
+| pendulum T = 2π √(L/g), L and g (1 %) | 200 | 199 | relative 192, absolute 8 |
+| pure noise y ~ N(5, 1) | 6 | 0 | absolute 6 |
+
+Each search took about 0.02–0.05 s here, 65–143 formulas tried; the caged run of a whole discovery (bwrap, python
+started, the source on stdin) about 0.1 s. Two earlier bounds failed true laws and were replaced before this table:
+1.5 × the cross-validated RMSE (a true Kepler law failed in the tests), then the larger of that and the CV RMSE plus 2
+standard deviations of the folds (Kepler 183 of 200), and the bootstrap of the held-out rows alone with an absolute error
+(173–176 of 200: it ignored the uncertainty of the training error and noise growing with the value).
+
+**After the independent referee (19 Nov, C619–C624).** The referee measured what this table did not: with several
+inputs and few rows, pure noise beat the caller-chosen linear baseline (overfit) and was «discovered» in 3–30 % of
+tables; seed and baseline shopping reached 70 %. After the fixes (D2 against the better of constant and linear, at
+least max(20, 10 × inputs) held-out rows, the split fixed by the table, held-out rows used once), re-measured on
+fresh seeds (`D.direct`, AURORA_PREREG_MODE off, «would be claimed» = D1 and D2 passed):
+
+| pure noise, inputs | rows (held-out) | not the baseline | would be claimed |
+|---|---|---|---|
+| 1 | 67 (20) | 2 of 100 | 0 |
+| 1 | 500 (150) | 0 | 0 |
+| 2 | 67 (20) | 4 | 0 |
+| 2 | 500 (150) | 0 | 0 |
+| 4 | 134 (40) | 7 | 0 |
+| 4 | 500 (150) | 2 | 0 |
+| 8 | 267 (80) | 6 | 0 |
+| 8 | 500 (150) | 0 | 0 |
+
+The referee's worst case (30 rows, 8 inputs) is now refused (80 held-out rows needed). D1's coverage, the same five
+laws, 100 rows each (30 held-out), seeds 900000–900199 never used before: Kepler 197, free fall 198, decay 198,
+pendulum 198, pendulum with L and g 196 of 200 — 98–99 % against the nominal 99 %. Large tables in the real cage
+(y = x0^1.5 with 1 % noise, 70,000 training rows): 1 input 3.6 s, 4 inputs 21.6 s for the whole discovery, the
+law found both times, at most 183 MB (the children's peak RSS; the bootstrap now in blocks of at most 5,000 rows).
+Not measured: real data, laws outside the grammar, 200,000 rows, 8 inputs on 100,000 rows.
+
+## M298 — long runs and the literature check (19 November 2026; N145, N146)
+
+Long runs (`tests/test_longrun.py`, the real bwrap cage, invented commands, this machine): a short run started, ended,
+its output hashed and its frozen R1 closed in 0.2 s; the wall-time limit (1 s) stopped `sleep 30` in 1.1 s, the CPU
+limit (1 s) a busy loop in 1.3 s (SIGXCPU at the soft limit, the hard one 5 s above), the disk limit (1 MB) a 3 MB write
+in 0.3 s (the project measured every 0.2 s in the tests, every 15 s in use); a run left «running» by a simulated
+restart was resumed from its checkpoint (attempt 2, LONGRUN_RESUMED=1) and ended in 1.0 s. Not measured: a run of
+hours, a resume after a real night, a GPU run.
+
+The literature check, live once with invented claims (one query each, nothing kept): «the orbital period squared is
+proportional to the cube of the semi-major axis…» with keywords → FOUND in 9.0 s, the 4 sources answered (the web
+search after two engines said «no results»), best records 0.89 of the claim's content words (OpenAlex, the web);
+a nonsense claim about «purple teacups» → NOT FOUND in 4.1 s, best 0.20. AURORA_NOVELTY_MATCH 0.6 lies between the two;
+the share of real close works it misses (a paraphrase with other words) is not measured.
+
+Corrected by the second review (20 Nov): the limits above were the shell's, per process — six children used 6 s of CPU
+on 1 s declared (C626); «the web search said no results» was also what it says when it fails (C634); the threshold
+rested on these two claims only (C635). See M299.
+
+## M299 — the second review's fixes, measured (20 November 2026; N145, N146, N147; C625–C640)
+
+Corrected by the third review (20 Nov, C654): «the overshoot is at most one poll per busy process» holds only for
+processes Aurora sees: a parent that ignores SIGCHLD has its children reaped by the kernel, whose CPU never reaches
+it — 12 children of 0.5 s used 6.0 s and the sum read 0.44 s. The hard limits are per process (ulimit -t), 512
+processes at once and the wall time; the cage's /tmp (a RAM disk of the declared memory) comes on top of the memory.
+
+Long runs, the whole run's CPU (Aurora sums the process tree from /proc once a second; real cage, invented busy loops,
+cpu_s 3, poll 1 s): 4 busy processes stopped at 4.0 s used, 8 at 8.0 s — the overshoot is at most one poll per busy
+process; one process alone is stopped by its own ulimit at 3.0 s. Processes: ulimit -u counts in the cage's own user
+namespace — with -u 40, 38 forks succeeded and the 39th failed (EAGAIN), though the account runs ~1,650 threads outside;
+the long runs use 512. The cage's /tmp with bwrap --size 1 MB refused a 3 MB write (ENOSPC). No per-run cgroup: the
+services' account has no systemd user manager (not lingering), so systemd-run --user --scope is not available to it.
+
+The literature check's threshold (scratch script, 20 invented pairs: the English keywords sent and a record's title and
+abstract; 10 written to be the same work in other words, 10 sharing words but not the subject), scored on the query's
+words (stems): close works 0.50, 0.60, 0.667, 0.75, 0.80, 0.80, 1.0 ×4; unrelated 0, 0, 0, 0.167, 0.20, 0.20, 0.25,
+0.25, 0.333, 0.50. At 0.5: 10 of 10 found, 1 of 10 unrelated said close; at 0.6: 9 of 10, none; at 0.7: 7 of 10. A
+missed close work makes a false «not found» (the worse error: a result said unchecked-new), a false «close» only asks
+to cite: the default is 0.5. With 10 pairs per side the recall's 95 % lower bound is about 0.69 — the ceiling of what
+this measurement can say.
+
+Discovery tables: a 35 MB .csv (200,000 rows × 9 columns, 17 significant digits) read with genfromtxt grew the
+process's peak memory by 455 MB in 2.6 s; numpy's C reader (loadtxt) read it with 16 MB in 0.5 s. A .npz with a
+50 MB «junk» member is now refused before anything is decompressed (the reviewer's 292 KB file had grown the API by
+2.3 GB).
+
+## M300 — Lean + Mathlib on disk (20 November 2026; N143, N144; C641)
+The reference machine, `du -sh`: sys/runtime/lean 11 GB in all — elan with the v4.36.0 toolchain 3.1 GB, the workspace with
+Mathlib's packages and compiled library 7.5 GB. Downloads pinned: elan-x86_64-unknown-linux-gnu.tar.gz 5,341,840 B;
+lean-4.36.0-linux.tar.zst 607,649,028 B (GitHub release digests). Time of a full fresh install: NOT measured (it would
+download about 6 GB and leave 11 GB in a test folder).
+
+## M301 — the third review's fixes, measured (20 November 2026; N145, N146, N147; C642–C657)
+
+The check-then-open race (C643), tests/test_projects_review3.py: a thread swapping a project folder with a link to a
+folder outside (renameat2 RENAME_EXCHANGE, in a loop) while the conductor's write_file and read_file ran on a file in
+that folder for 2 s: more than 50 write+read pairs (the test's floor), none written outside — the reviewer had 24,399
+of 51,313 writes outside in 3 s with the earlier resolve-then-open. A FIFO under the next run's .keep: refused at once
+(FileExistsError, under 2 s) instead of hanging. The aurora-api unit on this machine: Delegate=no (systemctl show), so
+a per-run cgroup is not available today (C654). The installer: «dir --dry-run» and «--dry-run dir» both only print;
+a non-empty folder without the marker is refused (exit 1); on the live install «already installed» (the workspace's
+package revisions equal sys/deploy/lean's).
+
+## M302 — the fourth review's fixes, measured (20 November 2026; C658–C669)
+The git escape C658, on the reference machine: 4 of the 26 projects had no .git (a caged command could plant one);
+after the fix none of the 26 is refused by prj_gitsafe.refusal (their configurations name no program). The
+referee's proof (a .git with core.fsmonitor and a filter's clean command planted from the real cage) runs nothing
+on the host: the .git is set aside after the run, and a planted configuration put back by hand is refused by every
+host-side git (tests/test_projects_review4.py, 34 tests, 0 failed). project_install with local wheels: a namespace
+folder shared by two libraries kept, one dist-info after an upgrade, the console script run by the project's python.
+Not measured: the plugin's token pipe inside its real sandbox (the re-exec is tested in a plain child process).
+Correction (fifth review, 20 Nov): «runs nothing on the host» held for the planted .git of this proof only — five other
+plantings ran their command (C670), and the token was still in the cage's environments (C672). See M303.
+
+## M303 — the fifth review's fixes, measured (20 November 2026; C670–C673)
+Nesting, on the reference machine (bubblewrap 0.11.1, kernel.apparmor_restrict_unprivileged_userns=1, Yama
+ptrace_scope=1): a bubblewrap started inside a plugin-like cage fails with «No permissions to create a new
+namespace» — so the projects plugin cannot cage its own git, and C670 uses an allow-list there instead.
+The owner's 24 project folders: none refused by prj_gitsafe.refusal(deep=True) (read-only, 0.00–0.01 s each; the
+largest walk, 14,745 entries). tests/test_projects_review5.py: 14 tests, one per reproduced variant (a bare
+repository at the root, config.worktree, commondir, gpg.ssh.defaultKeyCommand, a nested repository with a filter,
+Git LFS, chmod 555, the secret in /proc/1/environ and /proc/self/environ through the real launch path, the
+clone's argv), each asserting no marker on the host, plus a plain repository's init → add → commit → remote add →
+push to a local bare repository. Not measured: the launcher with the live plugins (it needs the owner's signature
+of plg_host.py and a restart); a push to GitHub itself.
+
+
+## M304 — git by the user from the project's terminal (20 November 2026; C674, N148)
+The guide's steps (aurora-git.md) run as the terminal runs them, in prj_run's real cage on the reference machine:
+`git init -b main`, `git config user.name/user.email`, `git add -A`, `git commit`, `git bundle create aurora.bundle
+main` — exit 0; `git ls-files` lists the project's files only (the guide and the bundle stay out through .gitignore);
+`curl https://github.com` from the same cage fails (no network). The 355-byte bundle is served by the preview route's
+function (prj_browse.preview_file) as application/octet-stream, and `git clone -b main aurora.bundle` outside the cage
+gives back the commit and the files. With AURORA_PROJECTS_GIT at its default the plugin offers no git tool and
+project_tree / project_list never start git on a planted .git (a planted core.fsmonitor left no marker). Full suite
+with and without .env: exit 0 (tests/local excluded without .env: they need the machine's own configuration).
+Not measured: the download from a browser through the Projects page, and a push to GitHub from a computer of a user's.
+Correction (C675): this run made the repository inside the cage; on a project whose .git already existed the cage had it
+read only and `git commit` failed («Unable to create .git/index.lock: Read-only file system», reproduced). After C675
+(the terminal's and the package button's cage leave .git writable while AURORA_PROJECTS_GIT is off): test_prj_package,
+13 tests in the real cage — first package (repository, author, commit, bundle cloned, bundle and guide not committed),
+a second and third package on the existing repository (commit, then «no change»), the terminal's commit, an agent's run
+still unable to write .git, a bundle link refused at download.
+
+## M305 — known vulnerabilities in Aurora's Python libraries (20 November 2026; C676)
+pip-audit (PyPI's advisory database) on the reference machine: the .venv — one vulnerable package, pip 25.1.1, six
+distinct advisories (fixed by 26.2); after `pip install --upgrade pip` → pip 26.3, «No known vulnerabilities found»,
+and the tests that run pip (-k "install or pip or venv", 61) pass. The plugins' own libraries (circuits, patent, qr
+.deps): none. The system's Java (OpenJDK 8u514, 21.0.13.1, 25.0.5.1, builds of 17 November) is not among the
+upgradable packages with apt's lists of the same day; Aurora uses Java only to build the Android app.
+Not measured: the plugins' environments under the state folder (not readable from the owner's account), the Android
+app's Gradle libraries, the system packages' own advisories (84 upgradable, among them WebKitGTK and the kernel).
+
+## M306 — the package button and Aurora's git switched off, live (20 November 2026; C674, C675, N148)
+After the owner's signature and a restart of the reference machine (kernel 7.0.0-44), through the running API
+(127.0.0.1:9700) on an invented project made for it: the live projects plugin offers 7 tools — project_list,
+project_create, project_tree, project_read_file, project_write_file, project_edit_file, project_install — and none of
+project_status, project_commit, project_publish, project_push. Created from the API in 1.0 s (repository with its
+first commit, the guide not committed: «dirty» 0); «Salva» with nothing changed → saved false; a package with nothing
+new → committed false, bundle 3,315 bytes; the download route → 200, «attachment; filename="<project>.bundle"», the same
+3,315 bytes, cloned with `git clone -b main`. One file changed → «dirty» 1 → package → committed true with the
+author given, «dirty» 0; the second download pulled into the clone (`git pull <bundle> main`): «Add main» by the given
+author on top of «Initial scaffold».
+Not measured: the page in a browser (the browser automation was not connected after the restart), a push to GitHub.
+
+
+## M307 — the security round of C674 (closed), C676, C677 (20 November 2026)
+Offline, on the reference machine: the full suite with and without .env exits 0 (tests/local excluded without .env);
+the Mac and Windows ports build and pass their platform tests; doc_callmap (every file in MODULE_MAP), doc_times and
+the privacy scan of the published folders clean. tests/test_plg_launch_c677.py: the real launcher with a 4-line PEM
+key gives it back whole through sys_config.plugin_secret and leaves the file empty; refused without `--at`; for a
+program that is not Aurora's Python (the github plugin's shape) no prefixed secret and so no file, its token still by
+the name it expects. test_c672 (the real cage) passes with `--at`. pip_line: 25.1.1 and 26.1.2 → warn with the
+command, 26.2, 26.3, 27.0 → ok; on this machine «pip 26.3».
+Live, after the owner's signature and a restart of aurora-api (same day): 55 plugins listed, none enabled with an
+error; the github plugin (a program not of Aurora's Python, its token by the name it expects) answers with 45 tools,
+circuits and qr (Aurora's Python, caged) with theirs; the projects plugin offers the 7 tools without git; the health
+check's «pip» line: ok, «pip 26.3»; «firma del codice»: every file as signed.
+
+## M308 — the routines' ticks after the mask's fix, and the step that was left (20 November 2026; C600)
+
+| | value |
+|---|---|
+| ticks over 10 s / over 30 s / longest, 17 · 18 · 19 · 20 Nov (20th: to the morning) | 28/16/55.6 s · 2/1/32.8 s · 8/2/323.0 s · 3/1/35.2 s |
+| aurora-rem's «routines tick failed: timed out», 12–20 Nov a day | 40, 38, 36, 14, 24, 16, 1, 4, 1 |
+| ticks over 30 s since 18 Nov that were the first after a start of the API | 4 of 4 |
+| the start's own plugin listing (the owner's host), 17–20 Nov | 18.0–26.0 s; once 182.9 s |
+| a user's host asked by the automations at its first tick | 4.3–5.2 s (154.0 s with the machine crowded) |
+| the owner's host in the same tick, waiting behind the start's listing | 12.6–20.2 s |
+| ticks api.log says | only those of 10 s or more |
+| the first tick after a start, the change for the automations live (two starts, 20 Nov) | 34.6 s / 34.2 s: scenes 19.7 / 19.0 s, extensions 14.7 / 15.0 s, automations 0.04 / 0.1 s (before 34.7 s) |
+| the other ticks of the same morning (4) | the slowest step after those two: 0.06 s |
+| the first tick after the restart that brought plugin_on (same day) | scenes 0.02 s, the extensions 0.02 s (each timed: ≤ 0.01 s) |
+
+Not measured: the first tick after a start with the scenes' and the extensions' change live; how many ticks a day in all before the counter (sys_ticks counts them from the next start).
+
+## M309 — the owner's verdicts in the last 1,000 incidents (20 November 2026; BUGS C406, sec_verdicts)
+
+| | value |
+|---|---|
+| incidents in the file, from / verdicts left | 1,000, from 9 Nov / 28 (27 false alarm, 1 right) |
+| closed by quiet patterns / by her judgement / blocked / left | 814 / 62 / 77 / 47 |
+| her judgement's closures by day | 9–13 Nov: 62; 14–20 Nov: 0 (its counts «31 of 31» → «26 of 26» → under 10) |
+| left to the owner 14–19 Nov / on known devices of those kinds / judged false again | 31 / 18 / 15 |
+| incident pushes a day, 10–16 Nov (mean) / 17–19 Nov | 1, 3, 7, 6, 9, 5, 16 (6.7) / 8, 11, 3 |
+| the 814 quiet ones by their severity before | 498 low, 316 medium, 0 high |
+| the «raise on right» rule replayed | 0 raised (the one right's source never came back) |
+| sec_verdicts.merged on the live file | 0.2–0.4 ms (loading incidents.json: 10.7 ms) |
+
+Not measured: the per-signature judgement replayed on the 62 closures of 9–13 Nov (their verdicts are gone); a week with the ledger running; the new paths of api/incidents live (they load at the next start).
+
+## M310 — where an answer's material was cut, and C614 live (20 November 2026; C614, C678–C682)
+
+| | value |
+|---|---|
+| C614 live, before the fix (remember: false, an invented 670-character question, GPU idle) | 16 passages in 5 domains; gate [1, 3], both «general»; 5 extractions, 4 kept (general, society, law_it, biomedicine); the answer cites society and biomedicine; 3,786 characters in 137.8 s |
+| the 4 extractions outside the gate's domains | 35.0 s of the 137.8 |
+| the list «1, …, 22» on the local model | 77 tokens (the gate had 32) |
+| llama-server b11272: context per slot / a 34,001-token prompt | 32,768 (65,536 / 2) / HTTP 400 exceed_context_size_error — refused, never cut silently |
+| the field of a cut at n_predict | `stop_type: "limit"` (no more `stopped_limit`) |
+| bytes per token, an English sample / 700 tokens | ≈ 3.9 (250 bytes = 64 tokens) / ≈ 2,730 bytes |
+| kept extractions over 2,600 bytes in the kept traces | 2 of 35 (median 1,247; sizes from the sealed lengths) |
+| 19 Nov, the owner's report on C613: route / what reached her of the two turns | self / 500 characters of ≈ 800 and of ≈ 2,800 bytes |
+
+Live after the restart (same day), the same invented question: gate [1, 3]; gate.domains kept general, skipped
+biomedicine, law_it, medicine, society; the answer cites general 1, 3, 11 only; 3,392 characters in 114.5 s (−23.3 s).
+Not measured: whether dropping domains lowers long answers' quality (no
+benchmark); how often the synthesis stops at 6,000 tokens; C355's new cost now that it fires; cloud streams' cuts.
+
+## M311 — the whole long run's CPU, memory and processes (20 November 2026; C654, C684)
+
+| | value |
+|---|---|
+| before, through R.start and the real cage: SIGCHLD ignored, 10 children × 0.4 s, cpu_s 1 | 4 s used; «ended», exit 0, cpu_used_s 0.4, 4.5 s |
+| the referee's attack (12 children × 0.5 s, 6 s real): /proc each 1 s / each 0.1 s / a subreaper's RUSAGE_CHILDREN | 0.46 s / 0.48 s / 0.02 s seen |
+| after, the ledger (no delegation) / a cgroup: the attack at cpu_s 1 | stopped at 1.0 s (1.2 s long) / stopped at 1.0 s |
+| the attack at cpu_s 3; 8 busy processes at cpu_s 3 | stopped at 3.0 s; 3.3 s (both modes) |
+| one reading of the meter, 434 entries in /proc | 5.2–5.5 ms |
+| the ledger at rest for 30 s: CPU «not seen» / raw values | at most 0.01 s / −0.021 to +0.01 s |
+| a cgroup (a user service with Delegate=yes, real bwrap): the attack's CPU / /proc's | 1.82 s of 1.8 real / 0.28 |
+| pids.max 24 / 400 MB asked under memory.max 64 MB | 21 forks, then refused / SIGKILL, oom_kill 4 |
+| from inside the cage: raising memory.max, leaving the cgroup | refused (rc 1); the limit stays 67,108,864 |
+| aurora-api's cgroup today: processes / cpu.stat | 1 / readable by all (0444) |
+| core dumps on 19 / 20 Nov before C684, all from the tests' limit kills | 18 / 104 |
+| core dumps after C684, three test rounds and a SIGXCPU by hand | none |
+
+Live after the owner's signature and `aurora-root install systemd` (same day): aurora-api Delegate=yes, controllers
+cpu memory pids, ProtectControlGroups=private in the installed unit; the API's cgroup folder and cgroup.procs owned by
+Aurora's account, one process in it. Not measured: a long run in cgroup mode on this unit (N145 is off), runs of
+hours, GPU runs in a cgroup, the API's move into its main/ subgroup with plugins live, the ports.
+
+## M312 — the machine's limits in every cage (20 November 2026; C688, C689, C691)
+
+| | value |
+|---|---|
+| the referee's e4 (100 processes × 10 MB, disk_mb 10): before / after without a cgroup / after with a cgroup | 954 MB, stopped at 15.9 s / 34–95 MB peak in 5 runs, stopped at 1.2 s / 14–22 MB in 4 runs |
+| e7, one command writing: before / after | 1.5 GB in 0.4 s / the file stops at 1 GB («File too large») |
+| run(): 4 × 1 GB in parallel on a 2,048 MB budget | exit 95, 2,077 MB measured, 0.2 s |
+| a cgroup per cage: 400 MB under memory.max 64 MB / pids.max 24 / raising the limit from inside | SIGKILL with a note / 21 forks, then refused / refused (rc 1), no cgroup left |
+| RLIMIT_NPROC set before bwrap (40, 124 processes of the account) | bwrap refuses to start — so ulimit -u inside the cage's namespace |
+| a cage's start, median: before / read only / with the disk guard | 7 ms / 24 ms / 33 ms |
+| the disk guard's CPU | 0.025 s in 5 s (statvfs every 2 ms) |
+| e3, a link to / and a deep outputs pattern: before / after | 13 M matches, still running at 20 s / 0 matches in < 2 s, pattern refused |
+| the oracle (names skipped outside the project) | 40 and 9 → 0 and 0 |
+| e10, a set-aside name planted ahead | the .git stayed → set aside |
+
+Not measured: a cgroup per cage inside the real aurora-api (only a transient user service); Lean and Mathlib under
+memory.max 14.5 GB; the guard on real ext4 (all on tmpfs: delalloc and writeback not seen); terminals open for hours; a
+hard per-project quota (needs root); the ports.
+
+## M313 — N147's integrity after C685–C687 (20 November 2026)
+
+| | value |
+|---|---|
+| false DISCOVERED on pure noise (y crossing zero), 600 tables: before / after | 7 / 0 (95 % upper bound ≈ 0.5 %) |
+| positive log-normal y, 400 tables: before / after | 0 / 0 |
+| the referee's e8 (22,000 writes after fake.csv) | DISCOVERED → PASSED, NOT CLAIMABLE; 22,002 rows kept |
+| the referee's e2 (a long run copying the agent's table, one byte more) | DISCOVERED → PASSED, NOT CLAIMABLE |
+| record() on a 16.9 MB csv, bytes and numbers | 0.15–0.20 s (85–110 MB/s) |
+| verdict() on a 32.7 MB ledger (157,095 rows) / compaction with a cut | 0.43 s / 1.25 s, 16.0 MB and 67,968 rows kept, 277 MB peak (470 MB at 64 MB) |
+
+Not measured: D1's rate on true laws in the relative metric after the weighted baselines (the existing tests only);
+the lock under real concurrent processes; a cut with 300,000 distinct real tables.
+
+## M314 — confidentiality and the user's cages (20 November 2026; C690, C692)
+
+| | value |
+|---|---|
+| the referee's e5 (a «riservato» phase naming another project) | query sent to two indexes → NOT CHECKED, nothing sent |
+| a «models: local» project's long_run status read by a cloud run | local_only False → True (event agent.local) |
+| the referee's e6 (a package's `git` in .venv/bin) | «FAKE GIT» in the package's cage → the system's git; the script not copied |
+| prj_package.prepare with 4 fake programs planted in .venv/bin | 0.09–0.12 s over 5 runs, none run |
+| prj_term.shadows() | 0.24 ms a call (mean of 100) |
+
+Not measured: false refusals of the binding by name on real phases; the 2 MB cap against the real indexes; programs
+started from the terminal without the shell (a Makefile's git uses PATH, which then excludes a .venv with fake programs).
+
+## M315 — the legal domain on invented questions (20 November 2026; C694–C696, C614)
+86 invented questions (61 not legal, 16 of them ambiguous with «legal» words in the common sense; 20 legal; 5 either),
+16 more in English, Spanish, French through the pivot; labelled before measuring (sha256 kept with the set). Aurora's
+own functions only (route, pivot, kind, kno_split.search with kno_cites, the gate's prompt, the law_it extraction), the
+local model, the knowledge section only, read-only (no trace, the databases opened read-only), no cloud.
+
+| | not legal (61) | legal (20) |
+|---|---|---|
+| wrong route | 1 of 86 in all (C696) | 0 |
+| law_it among the 12 passages retrieved | 7 (short 4 of 57, long 3 of 4) | 19 |
+| the gate chooses law_it | 1 (an arguable label: «cos'è la Costituzione») | 15 — 5 false negatives |
+| law_it reaches the answering step (route «auto») | 2 | 17 |
+| kno_cites names articles (short questions) | 0 of 57 (C613 holds) | 8 of 17, the right ones, re-ranked ≤ 0.17 |
+| the same law_it presence as the Italian equivalent (16 pairs in other languages) | 16 of 16 | |
+
+A law_it gate by the centroid's margin on the English pivot (Qwen3 embeddings Aurora computes already): margin > 0 →
+0 false positives of 70, 2 false negatives of 25; margin > −0.01 → 2 of 70, 0 of 25; on the untranslated text → 12
+false positives of 70 (the pivot is needed); cost: 3.9 ms for an embedding of its own, µs for the margin. A re-rank
+threshold alone does not separate (non-legal up to 0.59, legal median 0.55). Searching inside law_it only does not
+change the best re-rank in 17 of 20 legal questions (a recall problem inside the domain).
+Not measured: the real answer (the cloud reader and gate not called); production's extraction (claude_code); memory
+and conversations competing in the search; the tools' router; the classifier on questions written by more than one
+person (95 by one: the interval is wide).
+
+## M316 — the eighth review's limits, closed (20 November 2026; C700–C702)
+
+| | value |
+|---|---|
+| the referee's n3, a deleted file still mapped, budget 100 MB: before / after | 480 MB, exit 0 / 95–103 MB, stopped |
+| 6 × 80 MB written, one page mapped / a descriptor in flight (SCM_RIGHTS) | 480 → 103 MB / 480 → 105 MB |
+| with the delegated cgroup | 100.6 and 106 MB |
+| the referee's n5, a long run with disk_mb 50 | 430 MB, «ended 0» → stopped at 51 MB |
+| n7, the owner's git in the terminal during a long run | set aside → the terminal refused, said; the commit after the run stays |
+| n4 without a cgroup (6 × 200 MB + 953 MB in /tmp, 300 MB profile) | unchanged, now said in the output (C702); with the cgroup: killed at 300 MB |
+| d0, writes under /etc/aurora and /sys/fs/cgroup from a cage | «WROTE» (an empty writable tmpfs) → «Read-only file system» |
+| /proc/<pid>/map_files from Aurora's account | EPERM (needs CAP_SYS_ADMIN) |
+
+Not measured: false stops of the socket/mapping rule in long runs while other programs write; the SCM_RIGHTS and
+write+page variants inside a long run; btrfs; the terminal/long-run lock under real concurrency; io_uring fixed files.
+
+## M317 — positive provenance (20 November 2026; C697–C699, C703, C704)
+
+| | value |
+|---|---|
+| the referee's n2, six spellings of the agent's own table path | 5 of 6 DISCOVERED → 0 of 6 |
+| n6, real ngspice through the circuits plugin's code | DISCOVERED → PASSED, NOT CLAIMABLE |
+| n9, project_read_file(name=a local project, project=scratch) through the real MCP validation | guard '' (cloud) → REFUSED |
+| n8, sparse 64 MB tables: 100 / 1,000 | 22.2 s → 0.2 s / 1.9 s |
+| the round's new tests on the old code / the new | 16 of 16 red / 16 of 16 green |
+
+Where the owner's origin is recorded: a clone from the page (every .csv/.npz, 120 s at most), an upload by POST
+/v1/aurora/projects/{name}/data (bytes or a chat attachment of role «user»; a file made by Aurora 403), the row written
+from the bytes received before the file is written. Not measured: whether an agent could reach that route with the
+owner's authentication (assumed impossible, not tried); the 1/16 sparse threshold on compressed filesystems (a refusal,
+never a false DISCOVERED); _canonical on one dense 64 MB table; a real clone through the API.
+
+## M318 — the law gate after C694 and C696 (20 November 2026)
+The frozen sets of M315 (sha256 checked) plus three new ones, frozen before measuring: 16 long questions, 12
+conversations of 2–3 turns, 6 topic changes. Aurora's own functions, the local model, the knowledge section, read only.
+
+| | before | after |
+|---|---|---|
+| wrong «self» route (the house's wifi) | 1 | 0 |
+| not legal (61): law_it among the passages / chosen by the gate / reaching the answer | 7 / 1 / 2 | 1 / 0 / 1 |
+| legal (20): law_it reaching the answer / false negatives of gate + extraction | 17 / 4 | 17 / the same 4 |
+| 16 pairs in other languages: the same law_it presence / the same gate decision | 16 / — | 16 / 16 |
+| long, 8 not legal: law_it reaching the answer | 5 | 0 |
+| long, 8 legal: the gate chooses law_it | 8 | 8 |
+| long questions, median time | 34.95 s | 26.75 s |
+| conversations: «legal» for the legal ones / for the everyday ones | — | 9 of 9 / 0 of 9 (one «uncertain») |
+| all sets: non-legal reaching the answer / legal let in by the gate | 8 of 87 | 1 of 87 / 42 of 42 |
+| cost a question / the local model's tie-break (61 of 136 questions) | — | 20 ms / 0.195 s median |
+
+Threshold and band: the margin alone left a gap of 0.002 between the highest non-legal (−0.0112) and the lowest legal
+(−0.0088): too narrow; −0.01 with a 0.05 band and every follow-up read by the model: 1 false positive of 84 (an
+arguable label), 0 false negatives of 39, 55 model calls of 130; a 0.08 band: 2 of 84, 80 calls. Left: one long legal
+question's best law re-rank 0.78 → 0.29 (still chosen); legal follow-ups not rewritten find no law (2 of 6 reach the
+answer). Not measured: the real answers (cloud reader and gate not called); memory and real conversations; the
+threshold after C695's move; questions by more than one author (164, one author); the tie-break with the model busy
+(timeout 8 s); kno_domain's effect on the harvester.
+
+## M319 — law_it after C695's move (20 November 2026)
+Read-only count of law_it's sources after the owner's vault_realign: normattiva 235,785, legacy 69 (d.lgs. 30/2005 and
+l. 102/2023), doc (Wikipedia) 0 — before: 1,428 Wikipedia passages of 178 articles. The law gate's centroids
+recomputed by themselves in 0.13 s. The margin alone on M318's frozen sets (main, other languages, long):
+
+| threshold | false positives | false negatives |
+|---|---|---|
+| −0.02 | 5 | 1 |
+| −0.01 (recommended) | 1 | 3 (two long legal questions, one in another language) |
+| −0.005 | 0 | 3 |
+
+All near the threshold, inside the 0.05 band where the local model decides; the whole gate measured again in C706's
+round. Not measured: the whole gate (margin + band + model) on today's vault in this line.
+
+## M320 — the ninth review's points closed, and the router on today's vault (20 November 2026; C705–C709)
+
+| | before | after |
+|---|---|---|
+| g5, phone_action web_search in a run that touched a «riservato» project | SENT, event emitted | REFUSED, no event |
+| g1, a clearly legal question (margin +0.64) with the model silent / a steering text in the turns | legal False after 8.0 s / decided by the text | legal True in 0.0 s / ignored |
+| g2, a command writing nothing, asyncio or a Pipe held, 300 MB written outside | exit 95 (107.1 / 105.7 MB) | exit 0 |
+| g2, a long run with disk_mb 50 in the same case | stopped at 55.5 MB | ended 0 |
+| C700's attacks (scm, n3b, n3, n5) and three new socket variants | — | still stopped at 95–107 MB |
+| g3, the agent's table from another project / a plugin's table, brought in by the owner | DISCOVERED | PASSED, NOT CLAIMABLE; the upload says «written in project …» |
+| g4, the owner's «Salva» while an agent's command runs | the commit set aside | refused while the command runs, .git intact |
+
+The router on today's vault (after C695), the frozen sets of M315/M318, the local model, one question at a time:
+
+| | M318 | now |
+|---|---|---|
+| non-legal questions with law_it reaching the answer | 1 of 87 | 1 of 87 |
+| legal questions let in by the gate | 42 of 42 | 42 of 42 |
+| gate decisions changed | — | 1 of 136 (an «either» label: the model's P(LAW) 0.713 → 0.388 on the same input) |
+| tie-break calls / «uncertain» | 61 of 136 / 1 | 60 of 136 (median 0.12–0.19 s) / 2 |
+
+The margin alone on today's vault, all 136: −0.005 → 2 false positives, 8 false negatives; −0.01 → 3 / 8; −0.02 → 9 / 5.
+The whole gate at −0.01 with a 0.05 band: 1 / 0 — kept. One legal long question sits 0.044 from the threshold, 0.006
+inside the band's edge; a 0.06 band sends 64 of 134 questions to the model instead of 58, a 0.08 band 84.
+Not measured: the real answers; the tie-break with the GPU busy on the real server; pidfd_getfd on kernels before 5.6;
+the echo comparison with many large tables; a real clone through the page; vault_realign on the real vault after O4.
+
+## M321 — the tenth review's points closed (20 November 2026; C710–C713)
+
+| | before | after |
+|---|---|---|
+| x1, run_in_project, budget 100 MB, a thread with its own table / a non-dumpable process | exit 0, 480 MB | exit 95 (106 MB / hidden holder) |
+| x2, long run disk_mb 50, the same two | ended 0, 466 / 480 MB lost | stopped at 53.0 / 53.2 MB |
+| the same with the delegated cgroup | — | 110 MB, hidden; 55.0 / 54.9 MB |
+| C700/C707's n3, n5, n3b, scm, scm2 / g2 (must not stop) | stopped / ends 0 | stopped at 101–107 MB, 51.8–52.0 MB / ends 0 |
+| x3, create_picture in a «riservato» / «models: local» run, images assigned to a cloud provider | the prompt at the provider's HTTP call | painted locally, nothing sent |
+| x4, a plugin's table cloned back | DISCOVERED | PASSED, NOT CLAIMABLE |
+| x5, a long run started during «Salva» | the owner's .git set aside | refused, .git intact |
+| held() with 100 descriptors, 1 / 64 / 256 threads | — | 1.0 / 19.7 / 80.0 ms |
+| a clone's record, 200 tables beside 200 others, without / with the echo check | — | 0.03 / 0.05 s |
+
+Not measured: PIDFD_THREAD on kernels before 6.9 (a thread's own socket then counts as a carrier); a real clone
+through the page with many large tables; the plan's put-off step in the real idle task; false «hidden» on legitimate
+non-dumpable programs.
+

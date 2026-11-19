@@ -25,8 +25,8 @@ PARTS = ("config", "memory", "vault", "files", "plugins", "history")
 MEMORY_STATUS = {"people.sealed", "synapses.db", "deductions.db", "mood_samples.json", "train.json"}
 MEMORY_USER = {"shadow.db"}
 HISTORY_STATUS = {"autonomy_ledger.jsonl", "autopilot.json", "fresh_start.txt", "forge", "geo", "harvest", "incidents.json",
-                  "incidents_quiet.json", "linkcheck.json", "llm_previous.json", "migrate", "preview", "realign",
-                  "rem_daily.txt", "soak.jsonl", "story", "traces_from_incidents.json", "update", "usage", "vault_audit.json",
+                  "incident_verdicts.json", "incidents_quiet.json", "linkcheck.json", "llm_previous.json", "migrate",
+                  "preview", "realign", "rem_daily.txt", "soak.jsonl", "story", "traces_from_incidents.json", "update", "usage", "vault_audit.json",
                   "welcomed.json"}
 
 

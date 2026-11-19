@@ -1,59 +1,47 @@
 {
-  "name": "projects",
-  "version": "1.0",
-  "kind": "tool",
-  "page": "projects",
-  "description": {
-    "en": "Software projects in AURORA_PROJECTS_DIR: scaffold (README, licence, .gitignore, changelog), write files, commit locally; publishing to GitHub and pushing wait for the owner.",
-    "it": "Progetti software in AURORA_PROJECTS_DIR: impalcatura (README, licenza, .gitignore, changelog), scrittura dei file, commit in locale; pubblicare su GitHub e fare push aspettano il proprietario."
-  },
-  "command": [
-    "{python}",
-    "server.py"
-  ],
-  "env": [
-    "AURORA_GITHUB_TOKEN"
-  ],
-  "requires": [],
-  "effects": {
-    "project_list": "read",
-    "project_tree": "read",
-    "project_read_file": "read",
-    "project_status": "read",
-    "project_create": "write_local",
-    "project_write_file": "write_local",
-    "project_edit_file": "write_local",
-    "project_commit": "write_local",
-    "project_publish": "external",
-    "project_push": "external",
-    "project_install": "write_local",
-    "*": "external"
-  },
-  "publishes": {},
-  "setup": {
-    "it": "Funziona subito in locale (`usr/projects`). Per **pubblicare** su GitHub serve il token del plugin **github** (`AURORA_GITHUB_TOKEN`, con *Administration* per creare repository). Facoltativi: `AURORA_GITHUB_OWNER`, `AURORA_GIT_AUTHOR_NAME`, `AURORA_GIT_AUTHOR_EMAIL` (titolare della licenza e autore dei commit).",
-    "en": "Works locally at once; publishing needs `AURORA_GITHUB_TOKEN`.",
-    "links": [
-      {
-        "label": "Token GitHub (serve per pubblicare)",
-        "url": "https://github.com/settings/personal-access-tokens"
-      }
-    ]
-  },
-  "settings": [
-    "AURORA_GITHUB_TOKEN",
-    "AURORA_GITHUB_OWNER",
-    "AURORA_GIT_AUTHOR_NAME",
-    "AURORA_GIT_AUTHOR_EMAIL"
-  ],
-  "sandbox": {
-    "network": true,
-    "write": [
-      "AURORA_PROJECTS_DIR"
-    ]
-  },
-  "welcome": {
-    "it": "📁 Progetti pronti. Posso creare un progetto nuovo pronto per GitHub (README, licenza, .gitignore), scriverne i file, fare commit in locale e, con il tuo ok, pubblicarlo. Li trovi nella pagina 📁 Progetti, con l'albero delle cartelle e l'anteprima delle pagine.",
-    "en": "📁 Projects ready. I can start a new project ready for GitHub (README, licence, .gitignore), write its files, commit locally and, with your approval, publish it. See them in the 📁 Projects page, with the folder tree and page previews."
-  }
+ "name": "projects",
+ "version": "1.0",
+ "kind": "tool",
+ "page": "projects",
+ "description": {
+  "en": "Software projects in AURORA_PROJECTS_DIR: scaffold (README, licence, .gitignore, changelog), write files, install a project's libraries. No git on existing projects and no token (C674): the user commits and makes the package to publish from the project's page («📦 Publish») or terminal, and pushes from their own computer.",
+  "it": "Progetti software in AURORA_PROJECTS_DIR: impalcatura (README, licenza, .gitignore, changelog), scrittura dei file, librerie del progetto. Niente git sui progetti esistenti e nessun token (C674): commit e pacchetto da pubblicare li fa l'utente dalla pagina del progetto («📦 Pubblica») o dal terminale, e il push dal proprio computer."
+ },
+ "command": [
+  "{python}",
+  "server.py"
+ ],
+ "env": [],
+ "requires": [],
+ "effects": {
+  "project_list": "read",
+  "project_tree": "read",
+  "project_read_file": "read",
+  "project_create": "write_local",
+  "project_write_file": "write_local",
+  "project_edit_file": "write_local",
+  "project_install": "write_local",
+  "*": "external"
+ },
+ "publishes": {},
+ "setup": {
+  "it": "Funziona subito in locale (`usr/projects`), senza token. Facoltativi: `AURORA_GITHUB_OWNER`, `AURORA_GIT_AUTHOR_NAME`, `AURORA_GIT_AUTHOR_EMAIL` (titolare della licenza e autore del primo commit). Per pubblicare: «📦 Pubblica» nella pagina del progetto, poi il push dal tuo computer.",
+  "en": "Works locally at once, with no token; publishing: «📦 Publish» on the project's page, then the push from your own computer."
+ },
+ "settings": [
+  "AURORA_GITHUB_TOKEN",
+  "AURORA_GITHUB_OWNER",
+  "AURORA_GIT_AUTHOR_NAME",
+  "AURORA_GIT_AUTHOR_EMAIL"
+ ],
+ "sandbox": {
+  "network": true,
+  "write": [
+   "AURORA_PROJECTS_DIR"
+  ]
+ },
+ "welcome": {
+  "it": "📁 Progetti pronti. Posso creare un progetto nuovo pronto per GitHub (README, licenza, .gitignore), scriverne i file, fare commit in locale e, con il tuo ok, pubblicarlo. Li trovi nella pagina 📁 Progetti, con l'albero delle cartelle e l'anteprima delle pagine.",
+  "en": "📁 Projects ready. I can start a new project ready for GitHub (README, licence, .gitignore), write its files, commit locally and, with your approval, publish it. See them in the 📁 Projects page, with the folder tree and page previews."
+ }
 }

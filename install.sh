@@ -15,6 +15,7 @@
 #            Mistral, OpenRouter, xAI or Claude Code), every call masked; the encoder and re-ranker on the CPU
 #            --no-optional-models (only the required models; add others later with sys_models_fetch.py)
 #            --with-video (also the video model under --yes, 34 GB)   --reset-venv   --skip-build
+#            --with-lean (formal proofs: Lean 4 + Mathlib, about 11 GB; asked otherwise, default no)
 #
 # Steps: system check → packages → NVIDIA (driver present, CUDA toolkit 13) or cloud → your answers → venv → cloud
 # key and model checked → hardware profile → .env → models from Hugging Face → llama.cpp for your GPUs (not in the
@@ -24,16 +25,17 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
-YES=0; SERVICES=1; OPTIONAL=1; RESET_VENV=0; BUILD=1; VIDEO=0
+YES=0; SERVICES=1; OPTIONAL=1; RESET_VENV=0; BUILD=1; VIDEO=0; LEAN=0
 for a in "$@"; do
   case "$a" in
     --yes|-y) YES=1 ;;
     --no-services) SERVICES=0 ;;
     --no-optional-models) OPTIONAL=0 ;;
     --with-video) VIDEO=1 ;;
+    --with-lean) LEAN=1 ;;
     --reset-venv) RESET_VENV=1 ;;
     --skip-build) BUILD=0 ;;
-    -h|--help) sed -n '4,15p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '4,18p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "unknown option $a"; exit 2 ;;
   esac
 done
@@ -103,7 +105,7 @@ fi
 # ---------------------------------------------------------------------------------------------------
 step "2. $(t 'Pacchetti di sistema' 'System packages')"
 # bubblewrap: the plugins' cage — without it no plugin runs (C226); it was missing here (C237, the Install run, 9 Oct)
-PKGS="python3-venv python3-dev build-essential cmake git curl ffmpeg poppler-utils caddy libnss3-tools openssl bubblewrap"
+PKGS="python3-venv python3-dev build-essential cmake git curl ffmpeg poppler-utils caddy libnss3-tools openssl bubblewrap zstd"
 for p in $TPM_LIBS; do apt-cache show "$p" >/dev/null 2>&1 && PKGS="$PKGS $p"; done   # the names this release has
 MISSING=$(for p in $PKGS; do dpkg -s "$p" >/dev/null 2>&1 || echo "$p"; done | tr '\n' ' ')
 if [ -n "${MISSING// /}" ]; then
@@ -424,6 +426,16 @@ else warn "$(t 'programma del plugin GitHub non installato' 'the GitHub plugin p
 # its own folder — nothing installed in the system (a program taken from its apt package, unpacked)
 if .venv/bin/python sys/core/script/plg_install_all.py; then ok "$(t 'librerie e programmi dei plugin' 'the plugins'"'"' libraries and programs')"
 else warn "$(t 'alcuni plugin senza le loro librerie: si installano dalla loro pagina (Installa)' 'some plugins without their libraries: install them from their page (Install)')"; fi
+
+# formal proofs (N143 proof_check, N144 «/lean …»): optional, about 11 GB (Lean 4 pinned by SHA-256, Mathlib by revision; its compiled cache trusted, C657);
+# already there (an update) it is only checked; without it the two features say «Lean non installato»
+if [ "$LEAN" = 1 ] || [ -d sys/runtime/lean/workspace ] || yesno "$(t 'Dimostrazioni formali con Lean 4 + Mathlib (+11 GB, rete)?' 'Formal proofs with Lean 4 + Mathlib (+11 GB, network)?')" n LEAN; then
+  if out="$(bash sys/core/script/sys_proofs_install.sh 2>&1)"; then ok "$(t 'dimostrazioni formali' 'formal proofs'): $(echo "$out" | tail -1)"
+  else warn "$(t 'dimostrazioni formali non installate (si aggiungono dopo con' 'formal proofs not installed (add them later with') bash sys/core/script/sys_proofs_install.sh): $(echo "$out" | tail -1)"; fi
+else ok "$(t 'dimostrazioni formali: no (si aggiungono dopo con' 'formal proofs: no (add them later with') bash sys/core/script/sys_proofs_install.sh)"; fi
+# the projects' AI referee (N142) runs on the Claude CLI: optional, a phase without it says «referee skipped»
+if command -v claude >/dev/null; then ok "$(t 'revisore AI dei progetti: Claude CLI trovato' 'projects'"'"' AI referee: Claude CLI found')"
+else warn "$(t 'revisore AI dei progetti: Claude CLI assente, il revisore automatico viene saltato (facoltativo)' 'projects'"'"' AI referee: no Claude CLI, the automatic referee is skipped (optional)')"; fi
 
 # ---------------------------------------------------------------------------------------------------
 step "10. Test"

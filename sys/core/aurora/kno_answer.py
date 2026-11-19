@@ -28,7 +28,7 @@ import time
 import uuid
 from typing import Callable
 
-from . import kno_abstain, kno_attach, kno_followup, kno_split, kno_think, mdl_router, sys_config, sys_log, txt_lang
+from . import kno_abstain, kno_attach, kno_followup, kno_lawgate, kno_split, kno_think, mdl_router, sys_config, sys_log, txt_lang
 from .kno_self import SelfTalk
 from .kno_stages import SYS_TRANSLATE, SYS_TRANSLATE_ALL, Emit, Stages, as_text, untag
 from .kno_trail import Answer, Trail, hebb  # noqa: F401 — imported from here by the API, the agents, the tests
@@ -176,6 +176,8 @@ class Pipeline(Stages, SelfTalk):
         if alone_file:
             ev("attach.only", {"files": [a.name for a in attached]})
 
+        law: dict = {}
+
         def retrieve(recall: list[str] | None = None):
             if alone_file:
                 hits = self._with_attached(question, translation, [], attached)
@@ -183,10 +185,20 @@ class Pipeline(Stages, SelfTalk):
                                                 "source": h.soliton.source_id, "rerank": round(h.rerank, 3)}
                                                for i, h in enumerate(hits, 1)]})
                 return hits, []
+            # whether the law may come in at all (C694): asked once, before the search and the gate
+            if "legal" not in law:
+                law["legal"] = kno_lawgate.legal(self, question, ev, native, bool(attached), focus, recent,
+                                                 followup=quote is not None or kno_followup.leans_on_before(asked, native))
             # a case told as a story is searched by its problems and the provisions they need (C183); the story whole
             # only when those find nothing
             hits, subs = kno_split.search(self, question, lambda: self.search.search(question, translation, run_id=run_id,
-                                                                                     recall=recall), ev, run_id)
+                                                                                     recall=recall), ev, run_id,
+                                          law["legal"], lang)
+            if not law["legal"]:
+                out = [h for h in hits if kno_lawgate.legal_hit(h)]
+                if out:
+                    hits = [h for h in hits if h not in out]
+                    ev("retrieval.filter", {"dropped_law": len(out)})
             same = [h for h in hits if kno_split.same_message(h, asked) or kno_split.same_message(h, question)]
             if same:                                     # the owner's own message asked before: not a source
                 hits = [h for h in hits if h not in same]

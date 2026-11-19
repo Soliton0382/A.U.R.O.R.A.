@@ -36,10 +36,48 @@ from . import sys_users_layout as L
 
 DIR = "prereg"
 LEDGER = "LEDGER.jsonl"
-LOCKED = (DIR, "reviews")       # written by Aurora only: the frozen predictions and the referee's reviews (N142)
+LOCKED = (DIR, "reviews", "discover", "longrun", "novelty")   # written by Aurora only: frozen predictions, reviews (N142),
+# discovery reports (N147), long runs' reports (N145), literature checks (N146)
 OUTCOMES = ("passed", "failed", "void")
 PROOF = "PROOF:"                # a prediction closed by Aurora's Lean check (prj_proof, N143)
 MAX_PREDICTIONS = 50
+# C624: titles and entries that only Aurora's engines write (the discovery engine, N147): an agent's freeze with such a
+# title is refused, and an entry with an «origin» is closed by its engine only
+RESERVED = ("Discovery split", "Discovered law", "Long run")   # the discovery engine's (N147), the long runs' (N145)
+
+
+# C653: letters of other scripts that look like Latin ones («Disсovered» with a Cyrillic «с» passed), mapped to them
+_LOOKALIKE = str.maketrans({**dict(zip("аеорсухіјѕԁӏкмнтвгпилАЕОРСУХІЈЅКМНТВ", "aeopcyxijsdlkmhtbrnuiAEOPCYXIJSKMHTB")),
+                            **dict(zip("αοριυνκτεχΑΒΕΗΙΚΜΝΟΡΤΥΧΖ", "aopiuvktexABEHIKMNOPTYXZ")),
+                            "ı": "i", "ℓ": "l", "ꓲ": "l", "ǀ": "l", "Ɩ": "l", "ɑ": "a", "ɡ": "g", "ο": "o"})
+
+
+def skeleton(title: str) -> str:
+    """The title as it reads: NFKC, format characters (Cf) dropped, accents dropped, lookalike letters of other scripts
+    mapped to Latin ones, case-folded, spaces squeezed."""
+    import unicodedata
+    t = unicodedata.normalize("NFKC", str(title or ""))
+    t = "".join(ch for ch in t if unicodedata.category(ch) != "Cf").translate(_LOOKALIKE)
+    t = "".join(ch for ch in unicodedata.normalize("NFKD", t) if not unicodedata.combining(ch))
+    return " ".join(t.split()).casefold()
+
+
+def letters(text: str) -> str:
+    """The skeleton's letters and digits only (C666: «Long-run», «Discovered_law» passed), a letter of another script
+    that no table maps kept as «?» (C666: an Armenian «օ» in «Lօng run» passed)."""
+    return "".join(c if c.isascii() else "?" for c in skeleton(text) if c.isalnum())
+
+
+def reserved(title: str) -> bool:
+    """A title only Aurora's engines may use, however it is written (C633: an invisible character before «Discovered»
+    passed; C653: a lookalike letter of another script; C666: a separator, or a letter no table maps): its letters
+    compared with the reserved ones, a «?» matching any letter. The engines' own entries carry «origin» besides."""
+    got = letters(title)
+    for r in RESERVED:
+        want = letters(r)
+        if len(got) >= len(want) and all(g in ("?", w) for g, w in zip(got, want)):
+            return True
+    return False
 
 RULE = ("Frozen predictions (Aurora's rule): before running any experiment whose result you will report, freeze its "
         "predictions with freeze_predictions (numbered, measurable, with the code files that test them); close them "
@@ -81,18 +119,33 @@ def rule(cfg: sys_config.Config) -> str:
 
 
 def locked(rel: str) -> bool:
-    """A path (relative to the project) that no write or edit tool may touch: under prereg/ or reviews/."""
+    """A path (relative to the project) that no write or edit tool may touch: under prereg/, reviews/ or discover/."""
     parts = posixpath.normpath(str(rel or "").replace("\\", "/").lstrip("/")).split("/")
     return bool(parts) and parts[0] in LOCKED
 
 
 def refusal(rel: str) -> str:
-    return (f"REFUSED: {rel} is under {'/ or '.join(LOCKED)}/ — frozen predictions and reviews are written by Aurora "
-            "only (immutable). Use freeze_predictions / close_predictions.")
+    return (f"REFUSED: {rel} is under {'/ or '.join(LOCKED)}/ — frozen predictions, reviews and discovery reports are "
+            "written by Aurora only (immutable). Use freeze_predictions / close_predictions.")
 
 
 def _sha(p: Path) -> str:
     return hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+def _sha_in(root: Path, rel: str) -> str:
+    """A project file's SHA-256, opened from the project's folder, no link followed, a regular file only (C665: a FIFO
+    swapped in by a long run hung the lock held around a freeze)."""
+    from . import prj_safeio
+    return prj_safeio.sha_in(root, rel)
+
+
+def _is_file(root: Path, rel: str) -> bool:
+    from . import prj_safeio
+    try:
+        return prj_safeio.is_file(root, rel)
+    except ValueError:
+        return False
 
 
 def _now() -> str:
@@ -122,9 +175,10 @@ def _append(cfg: sys_config.Config, root: Path, project: str, e: dict) -> None:
     (root / DIR).mkdir(exist_ok=True)
     s = _shadow(cfg, project)
     s.parent.mkdir(parents=True, exist_ok=True)
-    for f in (s, root / DIR / LEDGER):                       # the truth first (outside the cage), then the copy
-        with f.open("a", encoding="utf-8") as fh:
-            fh.write(line)
+    with s.open("a", encoding="utf-8") as fh:              # the truth first (outside the cage)
+        fh.write(line)
+    from . import prj_safeio                                 # then the project's copy, no link followed (C665)
+    prj_safeio.write_bytes(root, f"{DIR}/{LEDGER}", line.encode("utf-8"), append=True)
 
 
 def entries(cfg: sys_config.Config, project: str, since: float | None = None) -> list[dict]:
@@ -147,15 +201,19 @@ def ledger_intact(cfg: sys_config.Config, project: str) -> bool:
 
 
 def _rel_file(root: Path, rel: str) -> tuple[str, Path]:
-    p = (root / str(rel or "").strip()).resolve()
-    if not p.is_relative_to(root) or p == root:
+    """The path as the project sees it, checked lexically (C665: never resolved first and opened by name later)."""
+    from . import prj_safeio
+    try:
+        r = prj_safeio.norm(str(rel or "").strip(), root)
+    except ValueError:
+        raise ValueError(f"{rel}: outside the project") from None
+    if r == ".":
         raise ValueError(f"{rel}: outside the project")
-    r = p.relative_to(root).as_posix()
     if ".git" in r.split("/") or locked(r):
         raise ValueError(f"{rel}: not a code file of the project")
-    if not p.is_file():
+    if not _is_file(root, r):
         raise ValueError(f"{rel}: no such file in the project")
-    return r, p
+    return r, root / r
 
 
 def _proof_target(root: Path, text: str) -> str:
@@ -172,8 +230,10 @@ def _slug(title: str) -> str:
     return s or "predictions"
 
 
-def freeze(cfg: sys_config.Config, project: str, title: str, predictions: list, code_files: list) -> dict:
-    """The predictions written and hashed with their code; ValueError (said as REFUSED) for a bad request."""
+def freeze(cfg: sys_config.Config, project: str, title: str, predictions: list, code_files: list,
+           origin: str = "") -> dict:
+    """The predictions written and hashed with their code; ValueError (said as REFUSED) for a bad request. `origin`:
+    the engine that froze it (only Aurora's own code passes one; such an entry is closed by that engine only)."""
     root = prj_run.project_dir(cfg, project).resolve()
     title = " ".join(str(title or "").split())[:160]
     if not title:
@@ -187,12 +247,12 @@ def freeze(cfg: sys_config.Config, project: str, title: str, predictions: list, 
         raise ValueError(f"duplicate prediction ids: {', '.join(sorted({i for i in ids if ids.count(i) > 1}))}")
     code = {}
     for rel in code_files or []:
-        r, p = _rel_file(root, str(rel))
-        code[r] = _sha(p)
+        r, _ = _rel_file(root, str(rel))
+        code[r] = _sha_in(root, r)
     proofs = {x["id"]: _proof_target(root, x["text"]) for x in preds if x["text"].startswith(PROOF)}
     for rel in proofs.values():                             # the statement frozen too, when it is written already
-        if (root / rel).is_file():
-            code.setdefault(rel, _sha(root / rel))
+        if _is_file(root, rel):
+            code.setdefault(rel, _sha_in(root, rel))
     n = len(entries(cfg, project)) + 1
     eid = f"{n:03d}"
     rel = f"{DIR}/{eid}_{_slug(title)}.md"
@@ -202,13 +262,12 @@ def freeze(cfg: sys_config.Config, project: str, title: str, predictions: list, 
         text += ["", f"Predictions «{PROOF}» are closed by Aurora's Lean check (proof_check), never by the agent."]
     text += ["", "## Code files (SHA-256 at the freeze)", ""]
     text += [f"- `{k}` — {v}" for k, v in code.items()] or ["- (none listed: only the predictions are frozen)"]
-    f = root / rel
-    f.parent.mkdir(exist_ok=True)
-    if f.exists():
-        raise ValueError(f"{rel} exists already")
-    f.write_text("\n".join(text) + "\n", encoding="utf-8")
+    from . import prj_safeio                                 # C665: created exclusively, never through a link
+    blob = ("\n".join(text) + "\n").encode("utf-8")
+    rel = prj_safeio.write_new(root, rel, blob)             # a name taken: the next free one (never overwritten)
     e = {"event": "freeze", "id": eid, "title": title, "created": _now(), "t": time.time(), "file": rel,
-         "sha256": _sha(f), "code": code, "predictions": ids, "status": "open", **({"proofs": proofs} if proofs else {})}
+         "sha256": hashlib.sha256(blob).hexdigest(), "code": code, "predictions": ids, "status": "open", **({"proofs": proofs} if proofs else {}),
+         **({"origin": str(origin)} if origin else {})}
     _append(cfg, root, project, e)
     return e
 
@@ -234,11 +293,19 @@ def close(cfg: sys_config.Config, project: str, eid: str, outcomes: list, eviden
     if unknown or missing or len(set(given)) != len(given):
         raise ValueError("one outcome per frozen prediction" + (f"; unknown: {', '.join(unknown)}" if unknown else "")
                          + (f"; missing: {', '.join(missing)}" if missing else ""))
-    ev, _ = _rel_file(root, evidence)
+    if e.get("origin") and locked(str(evidence)):            # an engine's own evidence, in its locked folder (C625)
+        ev = posixpath.normpath(str(evidence).replace("\\", "/").lstrip("/"))
+        if not _is_file(root, ev):
+            raise ValueError(f"{evidence}: no such file in the project")
+    else:
+        ev, _ = _rel_file(root, evidence)
     changed = []
     for rel, h in [(e["file"], e["sha256"]), *e["code"].items()]:
-        p = root / rel
-        if not p.is_file() or _sha(p) != h:
+        try:
+            same = _sha_in(root, rel) == h
+        except (ValueError, OSError):
+            same = False
+        if not same:
             changed.append(rel)
     intact = not changed
     checks = {}
@@ -316,12 +383,19 @@ def tool(cfg: sys_config.Config, project: str, name: str, a: dict, done: set | N
     """A tool call → its text; a refusal says why. `done`: the projects frozen in this run (strict mode)."""
     try:
         if name == "freeze_predictions":
-            e = freeze(cfg, project, a.get("title", ""), a.get("predictions") or [], a.get("code_files") or [])
+            title = " ".join(str(a.get("title", "")).split())
+            if reserved(title):
+                raise ValueError(f"titles starting with {' / '.join(RESERVED)} are Aurora's engines' (discover_law, "
+                                 "long_run)")
+            e = freeze(cfg, project, title, a.get("predictions") or [], a.get("code_files") or [])
             if done is not None:
                 done.add(project)
             return (f"FROZEN {e['id']}: {len(e['predictions'])} predictions, {len(e['code'])} code files hashed "
                     f"({e['file']}). Run the experiment now; then close_predictions(id=\"{e['id']}\", …).")
         if name == "close_predictions":
+            mine = next((x for x in entries(cfg, project) if x["id"] == str(a.get("id", "")).strip()), None)
+            if mine and mine.get("origin"):
+                raise ValueError(f"entry {mine['id']} is closed by Aurora's {mine['origin']} engine, never by hand")
             e = close(cfg, project, str(a.get("id", "")), a.get("outcomes") or [], str(a.get("evidence", "")))
             failed = [o for o in e["outcomes"] if o["outcome"] == "failed"]
             out = f"CLOSED {e['id']}: integrity {e['integrity']}; counted {e['counted']}."

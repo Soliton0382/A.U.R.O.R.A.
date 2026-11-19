@@ -631,15 +631,25 @@ GUARDS = [
                 raise RuntimeError("no cage here (bubblewrap is missing): the plugin is not run")
             from . import plg_deps                         # C579: what it fetched, as fetched
             plg_deps.verify(self.cfg, p.folder, p.manifest, log=lambda m: sys_log.get_logger("plugins").warning(m))
+            inner = len(cmd)
             cmd = plg_sandbox.wrap(cmd, p.folder, p.manifest, filtered, self.cfg)   # inside, .env is the filtered one
+            # C672: the secrets leave the environment before bubblewrap starts — the launcher puts them in a file
+            # inside the cage, read once by the plugin (bubblewrap's /proc/1/environ held them for any program run there)
+            # C677: the index of the cage's «--» (right before the plugin's own command) given, never looked for
+            cmd = [sys.executable, "-I", str(Path(__file__).with_name("plg_launch.py")), "--at", str(len(cmd) - inner - 1),
+                   *cmd]
         else:""",
      """        from aurora import plg_deps, sys_platform     # C579: what it fetched, as fetched, on every system
         plg_deps.verify(self.cfg, p.folder, p.manifest, log=lambda m: sys_log.get_logger("plugins").warning(m))
+        inner = len(cmd)
         caged = (sys_platform.current().cage(cmd, p.folder, p.manifest, filtered, self.cfg)
                  if self.cfg["AURORA_PLUGIN_SANDBOX"] else None)
         if caged:              # Linux: bubblewrap (inside, .env is the filtered one); the Mac, Windows: their own cage
             cmd, inside = caged
             env.update(inside)
+            if sys.platform == "linux":   # C672, C677: bubblewrap's secrets in a file inside the cage, «--» given
+                cmd = [sys.executable, "-I", str(Path(__file__).with_name("plg_launch.py")), "--at",
+                       str(len(cmd) - inner - 1), *cmd]
         elif self.cfg["AURORA_PLUGIN_SANDBOX"]:
             # no cage here (bubblewrap or sandbox-exec missing, an AppContainer refused): never uncaged because of that
             raise RuntimeError(f"{p.name}: no cage for plugins on this system, so it does not run")

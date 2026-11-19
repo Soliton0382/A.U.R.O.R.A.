@@ -13,7 +13,8 @@ CORE = Path(__file__).resolve().parents[1]
 ROOT = CORE.parents[1]
 WEB = CORE / "webui"
 PROCESS_ENV = {"AURORA_ENV_FILE", "AURORA_IN_SANDBOX", "AURORA_PUBLISH_DENY", "AURORA_PUBLISH_MIRROR", "AURORA_PLUGIN", "AURORA_DOCKER", "AURORA_PLUGIN_GATEWAY", "AURORA_DOMAINS",
-               "AURORA_DEPLOY", "AURORA_LIB", "AURORA_ROOT_LAUNCHER"}   # aurora-root's (sys_root.py); variables of a process (AURORA_DOCKER, _PLUGIN_GATEWAY, _DOMAINS: docker/)
+               "AURORA_DEPLOY", "AURORA_LIB", "AURORA_ROOT_LAUNCHER",
+               "AURORA_GITHUB_TOKEN_FD", "AURORA_PLUGIN_SECRETS_FILE"}   # the projects plugin's token pipe after its re-exec (C659)   # aurora-root's (sys_root.py); variables of a process (AURORA_DOCKER, _PLUGIN_GATEWAY, _DOMAINS: docker/)
 # (AURORA_INSTALL_* too: the installer's unattended answers, read once by install.sh)
 
 

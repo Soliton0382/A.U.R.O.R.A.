@@ -57,6 +57,17 @@ class Server:
             try:
                 with self.ctx.wrap_socket(conn, server_side=True) as s:
                     data = s.recv(65536)
+                    # the whole request read before answering (C693): replying and closing with the body still
+                    # unread makes the kernel reset the connection, which reached the client first on some kernels
+                    head, _, body = data.partition(b"\r\n\r\n")
+                    want = next((int(l.split(b":", 1)[1]) for l in head.split(b"\r\n")
+                                 if l.lower().startswith(b"content-length:")), 0)
+                    while data and len(body) < want:
+                        more = s.recv(65536)
+                        if not more:
+                            break
+                        body += more
+                        data += more
                     if data:
                         self.got.append(data)
                         s.sendall(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok")

@@ -71,3 +71,11 @@ class UserPluginHost(PluginHost):
                     except Exception as e:  # noqa: BLE001 — a broken plugin must not break the others
                         p.error = _explain(e)
         return out
+
+
+def plugin_on(host, name: str) -> bool:
+    """Whether plugin `name` is on in this host, starting none (C600: host.get() lists every plugin's tools — at each
+    start of the API every user's host started them all from the routines' tick, 15–35 s a tick). For a caller that
+    needs the plugin on, not its tools: the home's scenes, automations and watchers reach Home Assistant directly."""
+    p = next((p for p in host.plugins(with_tools=False) if p.name == name), None)
+    return p is not None and bool(p.available)

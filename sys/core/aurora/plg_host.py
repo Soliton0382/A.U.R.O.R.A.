@@ -230,8 +230,16 @@ class PluginHost:
             mine = lambda k: True                        # noqa: E731
         fixed = dict(env)
         from . import plg_contract
+        specs = {s["key"]: s for s in sys_config.load_schema()["settings"]}
+        # C672: a plugin that writes the projects' folder works where a caged command can plant code a git or a pip
+        # of it then runs (C670): it holds no secret by its own name in any environment — its filtered .env names it,
+        # the value comes in the cage's file (plg_launch). The other plugins' programs read theirs by name, as before
+        by_file = bool(self.cfg["AURORA_PLUGIN_SANDBOX"]) and "AURORA_PROJECTS_DIR" in (
+            (p.manifest.get("sandbox") or {}).get("write") or [])
         for k in p.manifest.get("env", []):
             if mine(k) and plg_contract.SETTING.match(str(k)):
+                if by_file and specs.get(k, {}).get("secret"):
+                    continue
                 env[k] = str(self.cfg.values.get(k, "") or "")
         for k, v in (p.manifest.get("env_as") or {}).items():     # .env key -> name the program expects
             # C591: never a name the system, the loader or Aurora read (PATH, LD_PRELOAD: the host itself ran a planted
@@ -248,9 +256,12 @@ class PluginHost:
             if purpose in SEAL_KEYS:
                 env[f"AURORA_SEAL_KEY_{purpose.upper()}"] = sys_seal._key(self.cfg, self.cfg.user, purpose).hex()
         filtered = plg_sandbox.env_file(p.name, p.manifest, self.cfg)    # only this plugin's own secrets, by name
-        specs = {s["key"]: s for s in sys_config.load_schema()["settings"]}
+        # C677: only a program of Aurora's own Python reads these (sys_config.plugin_secret) and empties the launcher's
+        # file; another program (the github plugin's) gets its values by the names it expects (env_as) and would have
+        # left the file full in its cage for its whole life
+        ours = str((p.manifest.get("command") or [""])[0]) == "{python}"
         for k in plg_sandbox._declared(p.manifest):      # their values in its environment, never on the disk (C463)
-            if specs.get(k, {}).get("secret"):
+            if ours and specs.get(k, {}).get("secret"):
                 env[sys_config.PLUGIN_SECRET + k] = str(self.cfg.raw.get(k, "") or "")
         if self.cfg["AURORA_PLUGIN_SANDBOX"]:
             if not plg_sandbox.available():
@@ -259,7 +270,13 @@ class PluginHost:
                 raise RuntimeError("no cage here (bubblewrap is missing): the plugin is not run")
             from . import plg_deps                         # C579: what it fetched, as fetched
             plg_deps.verify(self.cfg, p.folder, p.manifest, log=lambda m: sys_log.get_logger("plugins").warning(m))
+            inner = len(cmd)
             cmd = plg_sandbox.wrap(cmd, p.folder, p.manifest, filtered, self.cfg)   # inside, .env is the filtered one
+            # C672: the secrets leave the environment before bubblewrap starts — the launcher puts them in a file
+            # inside the cage, read once by the plugin (bubblewrap's /proc/1/environ held them for any program run there)
+            # C677: the index of the cage's «--» (right before the plugin's own command) given, never looked for
+            cmd = [sys.executable, "-I", str(Path(__file__).with_name("plg_launch.py")), "--at", str(len(cmd) - inner - 1),
+                   *cmd]
         else:
             env["AURORA_ENV_FILE"] = str(filtered)
         return StdioServerParameters(command=cmd[0], args=cmd[1:], env=env, cwd=str(p.folder))

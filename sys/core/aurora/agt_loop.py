@@ -22,7 +22,7 @@ import time
 
 import httpx
 
-from . import agt_asked, agt_phone, kno_prove, mdl_fit, prj_prereg, prj_proof, sns_clock, sys_config, sys_log, sys_people
+from . import agt_asked, agt_phone, kno_prove, mdl_fit, prj_discover, prj_longrun, prj_novelty, prj_prereg, prj_proof, sns_clock, sys_config, sys_log, sys_people
 from .kno_answer import Answer, Trail
 from .agt_loop_make import AgentMakers
 from . import agt_tools
@@ -199,7 +199,7 @@ class Agent(AgentMakers, AgentReport):
                     "name": name, "description": f"[{t['effect']}] {t['description']}",
                     "parameters": t["input_schema"] or {"type": "object", "properties": {}}}})
         from . import agt_vault, hom_auto, hom_scenes
-        for t in (LOOP_TOOLS + prj_prereg.offered(self.cfg, goal) + prj_proof.offered(self.cfg, goal) + kno_prove.offered(self.cfg, goal) + [agt_vault.TOOL, sys_people.TOOL] + ([hom_scenes.TOOL, hom_auto.TOOL] if any(v[0] == "homeassistant" for v in index.values()) else [])
+        for t in (LOOP_TOOLS + prj_prereg.offered(self.cfg, goal) + prj_proof.offered(self.cfg, goal) + kno_prove.offered(self.cfg, goal) + prj_discover.offered(self.cfg, goal) + prj_longrun.offered(self.cfg, goal) + prj_novelty.offered(self.cfg, goal) + [agt_vault.TOOL, sys_people.TOOL] + ([hom_scenes.TOOL, hom_auto.TOOL] if any(v[0] == "homeassistant" for v in index.values()) else [])
                   + ([agt_tools.MORE] if self.deferred else [])):
             if self.loop_tools is not None and t["name"] not in self.loop_tools | {"finish", "more_tools"}:
                 continue
@@ -294,6 +294,9 @@ class Agent(AgentMakers, AgentReport):
         from . import sys_anon                               # 🕶️ the anonymous chat: she only reads
         if (refused := sys_anon.refusal(name, index, self.host)):
             return refused
+        from . import prj_policy                             # C705: a built-in leaving the machine, reserved run
+        if (refused := prj_policy.builtin_net_refusal(self, name, args)):
+            return refused
         if name == "home_scene":                              # Aurora's own light scenes (hom_scenes, owner 2026-10-12)
             from . import hom_scenes
             out = hom_scenes.tool(self.cfg, args, self._may_command("home_scene", args), self.log)
@@ -326,12 +329,23 @@ class Agent(AgentMakers, AgentReport):
         if name == "search_vault":                           # what the vault knows that the model does not
             from . import agt_vault
             return agt_vault.run(self.p, args, emit)
+        if name in prj_prereg.NAMES or name in (prj_proof.NAME, prj_discover.NAME, prj_longrun.NAME, prj_novelty.NAME,
+                                                "run_in_project"):
+            from . import prj_policy                         # C690: bound to the run's project, its policy first
+            if (refused := prj_policy.builtin_guard(self, name, args, emit)):
+                return refused
         if name in prj_prereg.NAMES:                         # 🔒 frozen predictions in a project (N142)
             return prj_prereg.agent_call(self, name, args)
         if name == prj_proof.NAME:                           # 📐 a Lean proof, checked in a read-only cage (N143)
             return prj_proof.agent_call(self, args)
         if name == kno_prove.NAME:                           # 📐 the Lean mathematician: a claim proved or not (N144)
             return kno_prove.agent_call(self, args)
+        if name == prj_discover.NAME:                        # 🔭 a law found in a table, tested on unseen rows (N147)
+            return prj_discover.agent_call(self, args)
+        if name == prj_longrun.NAME:                         # ⏳ a long experiment in the background (N145)
+            return prj_longrun.agent_call(self, args)
+        if name == prj_novelty.NAME:                         # 📚 the literature before «new» (N146)
+            return prj_novelty.agent_call(self, args)
         if name == "run_in_project":                         # Aurora's own code, in a cage without network (prj_run)
             from . import prj_run
             # «name» as the projects plugin's tools call it (C392: the local model wrote it, the run said the name
@@ -376,14 +390,15 @@ class Agent(AgentMakers, AgentReport):
             return f"ERROR: unknown tool {name}"
         plugin, tool, effect = index[name]
         agt_asked.widen(self.host.get(plugin), plugin, tool, effect)   # C590: from the network? the core decides
+        # the project's own way: local only, never published; every project named joins self.projects, and a run
+        # touching a reserved one reaches no network (C704) — before the link check, which asks services outside
+        from . import prj_policy
+        manifest = getattr(self.host.get(plugin), "manifest", None) or {}
+        if refused := prj_policy.guard(self, plugin, tool, args, emit, effect=effect, manifest=manifest):
+            return refused
         from . import sec_linkcheck                         # a link of bad reputation is never opened (linkcheck)
         refused = sec_linkcheck.tool_call(self.cfg, plugin, args, emit, self.log)
         if refused:
-            return refused
-        if plugin == "projects" and args.get("name"):
-            self.projects.add(str(args["name"]))
-        from . import prj_policy                            # the project's own way: local only, never published
-        if refused := prj_policy.guard(self, plugin, tool, args, emit):
             return refused
         if self.host.get(plugin).manifest.get("private") and not self.local_only:
             # health data never reaches a cloud model (owner, 2026-10-05) — but the question is answered (2026-10-06:
@@ -458,6 +473,8 @@ class Agent(AgentMakers, AgentReport):
             r = self.host.call(plugin, tool, args, run_id)
             if keep and r["ok"]:
                 plg_shadow.put(self.cfg, plugin, tool, args, r["text"])
+        if r["ok"] and plugin == "projects" and tool == "project_create" and args.get("name"):
+            self.__dict__.setdefault("created_projects", set()).add(str(args["name"]))   # its own (prj_policy.bound)
         if not r["ok"] and "Connection closed" in r["text"]:   # the plugin died starting: its own last words say why
             r = {**r, "text": r["text"] + plugin_cause(self.cfg, plugin)}
         agt_asked.mark(self, plugin, tool, emit)             # C561: from here «asked» covers only what the goal names
@@ -497,6 +514,7 @@ class Agent(AgentMakers, AgentReport):
     def run(self, goal: str, emit, run_id: str, context: str = "") -> Answer:
         """Work toward the goal; `self.trail` keeps the path (steps and reasoning) for memory."""
         t0 = time.time()
+        self.started = t0                                # prj_discover: tables written from now (C620)
         self.trail, outer = Trail(), emit
 
         def emit(event, payload):
@@ -529,6 +547,7 @@ class Agent(AgentMakers, AgentReport):
         self.pending: list[str] = []                        # actions waiting for the owner: said in the report
         self.requested = False                              # it asked the forge itself (request_capability)
         self.projects: set[str] = set()                     # the projects it worked on: told at the end
+        self.created_projects: set[str] = set()             # those it made itself (C690: bound to its own too)
         self.passed: set[str] = set()                       # those whose tests passed once: told at once
         self.ledger: list[tuple[str, bool]] = []
         self.touched: set[tuple[str, str]] = set()          # (project, file) written by the tool or by its commands

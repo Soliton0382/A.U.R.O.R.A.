@@ -66,6 +66,23 @@ SYS_VERIFY = ("You verify one sentence against passages. Reply with exactly one 
               "the sentence is stated in the passages, NO otherwise.")
 
 
+EXTRACT_CUT = ("\n[cut: this extraction reached its length limit; the passages of this domain may hold more than is "
+               "listed here]")
+SYNTH_CUT = {"it": "\n\n✂️ La risposta si è fermata al limite di lunghezza: può mancarne una parte.",
+             "en": "\n\n✂️ The answer stopped at its length limit: part of it may be missing."}
+
+
+def gate_budget(n: int) -> int:
+    """Tokens for the gate's list of passage numbers: ~3.5 a number with its comma (77 tokens for «1, …, 22» on the
+    local model, measured 20 Nov), so 32 cut any list past ~9 numbers (C6xx-c)."""
+    return max(32, 4 * n + 8)
+
+
+def relevant_domains(hits: list[Hit], chosen: set[int]) -> set[str]:
+    """The domains that hold at least one passage the gate chose or a sure one (C614)."""
+    return {hits[n - 1].soliton.domain for n in chosen if 1 <= n <= len(hits)}
+
+
 def _passages(hits: list[Hit], ids: list[int]) -> str:
     return "\n\n".join(f"[{n}] ({hits[n - 1].soliton.domain}, {hits[n - 1].soliton.title or hits[n - 1].soliton.source_id})\n"
                        f"{hits[n - 1].soliton.text}" for n in ids)
@@ -108,9 +125,11 @@ class Stages:
     # ---- stages 4-7 -------------------------------------------------------------
     def _answer(self, question: str, hits: list[Hit], recent: str, ev: Emit):
         ids = list(range(1, len(hits) + 1))
+        allowed = None                           # the domains to extract (C614); None: every domain, as before
         # only the files attached to this question: the gate would keep them all anyway (C318), so it is not asked
         if self.cfg["AURORA_PIPELINE_GATE"] and not all(h.query_used == "attachment" for h in hits):
-            g = self._for("gate").complete(SYS_GATE, f"PASSAGES:\n\n{_passages(hits, ids)}\n\nQUESTION: {question}", 32)
+            g = self._for("gate").complete(SYS_GATE, f"PASSAGES:\n\n{_passages(hits, ids)}\n\nQUESTION: {question}",
+                                           gate_budget(len(hits)))
             opened = [int(x) for x in re.findall(r"\d+", g.answer) if 1 <= int(x) <= len(hits)]
             closed = not opened or ABSTAIN_MARK in g.answer.upper()
             keep = float(self.cfg["AURORA_PIPELINE_GATE_KEEP"] or 0)
@@ -121,15 +140,28 @@ class Stages:
             # a file the owner attached to this very question is never «only the same topic» (C318: «descrivi la foto
             # che ti allego», the picture's description closed by the gate, the answer an abstention)
             sure += [n for n, h in enumerate(hits, 1) if h.query_used == "attachment" and n not in sure]
+            cut = bool(getattr(g, "truncated", False))
             ev("gate", {"open": not closed or bool(sure), "passages": opened if not closed else sure,
-                        **({"kept_by_reranker": sure} if closed and sure else {})})
+                        **({"kept_by_reranker": sure} if closed and sure else {}), **({"cut": True} if cut else {})})
             if closed and not sure:      # A18: a passage the re-ranker is sure of goes on to the extraction (M90)
                 return None
+            # C614: a long message is searched by its problems (kno_split), and each search's best passages come first
+            # whatever their score — religion, society, genomics at 0.15-0.18 beside a back pain. The gate named the
+            # passages it needs; a domain with none of them (nor a sure one) is not extracted: its extraction found
+            # «something relevant» to a long story and the synthesis used it. Short questions as before (measured so);
+            # a list cut at its budget is not a choice. Closed with sure passages: their domains.
+            if not cut and kno_split.wanted(question, int(self.cfg["AURORA_PIPELINE_SPLIT_CHARS"] or 0)):
+                chosen = (set() if closed else set(opened)) | set(sure)
+                allowed = relevant_domains(hits, chosen)
+                skipped = sorted({h.soliton.domain for h in hits} - allowed)
+                if skipped:
+                    ev("gate.domains", {"kept": sorted(allowed), "skipped": skipped})
 
         by_domain: dict[str, list[int]] = defaultdict(list)
         for n, h in enumerate(hits, 1):
-            by_domain[h.soliton.domain].append(n)
-        extracts = {}
+            if allowed is None or h.soliton.domain in allowed:
+                by_domain[h.soliton.domain].append(n)
+        extracts, cut_domains = {}, set()
         for domain, dom_ids in by_domain.items():
             system = SYS_EXTRACT + (kno_split.EXTRACT_CASE if kno_split.is_case(question) else "")
             x = self._for("extract").complete(system, f"QUESTION: {question}\n\nPASSAGES:\n\n{_passages(hits, dom_ids)}", 700)
@@ -141,15 +173,22 @@ class Stages:
                 story = question.split(f"\n\n{kno_split.MARK}")[0]
                 x = self._for("extract").complete(system, f"QUESTION: {story}\n\nPASSAGES:\n\n{_passages(hits, dom_ids)}", 700)
                 keep = x.answer.strip().upper() != ABSTAIN_MARK
-            ev("synthesis.domain", {"domain": domain, "passages": dom_ids, "kept": keep, "text": x.answer if keep else ""})
+            text = x.answer
+            if keep and getattr(x, "truncated", False):
+                # C6xx-d: 700 tokens ended a long domain's list mid-item, and the synthesis read it as the whole
+                text = text.rsplit("\n", 1)[0] if "\n" in text.strip() else text
+                cut_domains.add(domain)
+                ev("synthesis.domain_cut", {"domain": domain, "passages": len(dom_ids)})
+            ev("synthesis.domain", {"domain": domain, "passages": dom_ids, "kept": keep, "text": text if keep else ""})
             if keep:
-                extracts[domain] = x.answer
+                extracts[domain] = text
         if not extracts:
             return None
 
         think = self.cfg["AURORA_PIPELINE_THINKING"]
         if not mdl_router.is_local(self._for("synthesis"), self.llm) and self.cfg["AURORA_CLOUD_COMPRESSION"]:
             extracts = {d: self._compress(question, t, ev) for d, t in extracts.items()}
+        extracts = {d: t + (EXTRACT_CUT if d in cut_domains else "") for d, t in extracts.items()}   # after SSCC: kept
         heading = {"attachment": "attachment — THE FILE THE OWNER ATTACHED TO THIS QUESTION (what is seen and heard in it)"}
         ordered = sorted(extracts.items(), key=lambda kv: kv[0] != "attachment")      # the attached file first
         user = ("EXTRACTIONS BY DOMAIN:\n\n" + "\n\n".join(f"## {heading.get(d, d)}\n{t}" for d, t in ordered)
@@ -170,6 +209,9 @@ class Stages:
         text = "".join(draft).strip()
         if not text:
             return None
+        cut_off = bool(getattr(model, "last_truncated", False))
+        if cut_off:                              # C6xx-e: the room ended inside the answer: said, never passed off as whole
+            ev("synthesis.cut", {"chars": len(text)})
 
         dropped = []
         if self.cfg["AURORA_PIPELINE_VERIFY"]:
@@ -180,6 +222,8 @@ class Stages:
         sources = [{"n": n, "sid": hits[n - 1].sid, "title": hits[n - 1].soliton.title,
                     "source": hits[n - 1].soliton.source_id, "domain": hits[n - 1].soliton.domain} for n in cited]
         hebb(self.cfg, sources)
+        if cut_off:
+            text += SYNTH_CUT["it" if txt_lang.detect(question) == "it" else "en"]
         if kno_split.is_case(question) and sources:      # said by the code, never left to the model (C183)
             text += "\n\n" + kno_split.CASE_NOTE["it" if txt_lang.detect(question) == "it" else "en"]
         return text, sources, dropped

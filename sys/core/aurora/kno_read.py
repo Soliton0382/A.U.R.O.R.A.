@@ -129,10 +129,14 @@ def read(p, question: str, texts: list[dict], size: str) -> dict | None:
         return None
     texts = _for_cloud(p, question, texts)
     ctx = "\n\n".join(f"[{i}] {t['source'].get('title') or ''}\n{t['text']}" for i, t in enumerate(texts, 1))
-    ans = p._for("synthesis").complete(SYS_READ.format(size=SIZE[size]) + _exp(p), f"TEXTS:\n{ctx}\n\nQUESTION: {question}",
-                                       500 if size == "explain" else 200, think=False).answer.strip()
+    out = p._for("synthesis").complete(SYS_READ.format(size=SIZE[size]) + _exp(p), f"TEXTS:\n{ctx}\n\nQUESTION: {question}",
+                                       500 if size == "explain" else 200, think=False)
+    ans = out.answer.strip()
     if not ans or NOT_FOUND.search(ans) or EMPTY.search(ans):
         return None
+    if getattr(out, "truncated", False):              # C6xx-e: the room ended inside the answer — said, not hidden
+        from . import kno_stages, txt_lang
+        ans += kno_stages.SYNTH_CUT["it" if txt_lang.detect(question) == "it" else "en"]
     cited = sorted({int(n) for n in re.findall(r"\[(\d+)\]", ans) if 1 <= int(n) <= len(texts)})
     if not cited:                                        # an answer that cites nothing was not read from the texts
         return None
@@ -204,7 +208,8 @@ def from_vault(p, question: str, hits: list, size: str = "explain", n: int | Non
             n = int(p.cfg["AURORA_SEARCH_TOPK"])
         except KeyError:                              # a configuration without the setting (the tests): the old 12
             n = 12
-    texts = [{"text": h.soliton.text[:3000], "source": {"sid": h.sid, "title": h.soliton.title,
+    from .kno_self import clip                        # a passage cut says so (C6xx-a)
+    texts = [{"text": clip(h.soliton.text, 3000), "source": {"sid": h.sid, "title": h.soliton.title,
                                                          "source": h.soliton.source_id, "domain": h.soliton.domain}}
              for h in hits[:n]]
     return read(p, question, texts, size)

@@ -192,17 +192,25 @@ def cage(cfg: sys_config.Config, project: Path, tc: dict, script: str) -> list[s
 
 # ---- the check ----------------------------------------------------------------------------------------------------
 def _file(root: Path, rel: str) -> tuple[str, Path]:
-    p = (root / str(rel or "").strip()).resolve()
-    if p == root or not p.is_relative_to(root):
+    """The path checked lexically; the file is read from the project's folder, no link followed (C665)."""
+    from . import prj_safeio
+    try:
+        r = prj_safeio.norm(str(rel or "").strip(), root)
+    except ValueError:
+        raise ValueError(f"{rel}: outside the project") from None
+    if r == ".":
         raise ValueError(f"{rel}: outside the project")
-    r = p.relative_to(root).as_posix()
     if ".git" in r.split("/"):
         raise ValueError(f"{rel}: not a file of the project")
-    if p.suffix != ".lean":
+    if not r.endswith(".lean"):
         raise ValueError(f"{rel}: not a .lean file")
-    if not p.is_file():
+    try:
+        ok = prj_safeio.is_file(root, r)
+    except ValueError:
+        ok = False
+    if not ok:
         raise ValueError(f"{rel}: no such file in the project")
-    return r, p
+    return r, root / r
 
 
 def _deps(root: Path, rel: str, code: str) -> tuple[list[tuple[str, str, Path]], list[dict]]:
@@ -215,8 +223,14 @@ def _deps(root: Path, rel: str, code: str) -> tuple[list[tuple[str, str, Path]],
         for mod in imports(c):
             if mod.split(".")[0] in ROOTS:
                 continue
-            p = (root / (mod.replace(".", "/") + ".lean")).resolve()
-            if not p.is_relative_to(root) or not p.is_file():
+            from . import prj_safeio
+            dr = mod.replace(".", "/") + ".lean"            # C665: lexical, opened without links, a regular file
+            try:
+                ok = ".." not in dr.split("/") and prj_safeio.is_file(root, dr)
+            except ValueError:
+                ok = False
+            p = root / dr
+            if not ok:
                 bad.append({"what": f"import {mod} (not Mathlib / Std / Lean / Batteries / Aesop nor a file of the "
                                     "project)", "file": r, "line": 0})
                 continue
@@ -229,8 +243,7 @@ def _deps(root: Path, rel: str, code: str) -> tuple[list[tuple[str, str, Path]],
                 bad.append({"what": f"more than {MAX_DEPS} project files imported", "file": r, "line": 0})
                 return
             seen.add(mod)
-            dr = p.relative_to(root).as_posix()
-            dc = strip(p.read_text(encoding="utf-8", errors="replace"))
+            dc = strip(prj_safeio.read_text(root, dr))
             bad.extend(forbidden(dc, dr))
             visit(dr, dc, (*chain, mod))
             order.append((mod, dr, p))
@@ -308,8 +321,9 @@ def _check(cfg: sys_config.Config, project: str, path: str, r: dict) -> dict:
 
 def _in(cfg: sys_config.Config, root: Path, path: str, r: dict, limit: float | None = None) -> dict:
     """The verdict on the file `path` of the folder `root` (a project's, or check_source's scratch folder)."""
+    from . import prj_safeio
     rel, p = _file(root, path)
-    src = p.read_text(encoding="utf-8", errors="replace")
+    src = prj_safeio.read_text(root, rel)
     r.update(path=rel, sha256=hashlib.sha256(src.encode("utf-8")).hexdigest())
     code = strip(src)
     deps, bad = _deps(root, rel, code)

@@ -99,7 +99,7 @@ async def docs_go(name: str, request: Request) -> dict:
     if not targets:
         raise HTTPException(status_code=400, detail="tick at least one document")
     job = _agent_job(prj_docs.goal(name, targets), label=f"[documenti] {name}",
-                     quiet=("project.update", "project.progress"))
+                     quiet=("project.update", "project.progress"), project=name)
     run = start_run(f"[docs] {name}", origin="webui", job=job)
     prj_docs.save(cfg, name, targets, run["id"])
     log.info("audit: project %s: documentation asked (%s), run %s", name, ", ".join(targets), run["id"])
@@ -141,6 +141,8 @@ def rem_project() -> dict:
     def after(ans, emit):
         try:
             run = prj_run.run(cfg, name, step["test"])
+        except prj_run.Busy as e:                    # the owner's terminal or «Salva»: put off, not a failed try
+            run = {"exit": -2, "seconds": 0, "output": f"not run: {e}", "deferred": True}
         except (ValueError, RuntimeError) as e:
             run = {"exit": -2, "seconds": 0, "output": f"not run: {e}"}
         out = prj_plan.record(cfg, name, i, run, ans.run_id, ans.text)
@@ -162,5 +164,5 @@ def rem_project() -> dict:
 
     from aurora import prj_docs
     goal = prj_plan.goal_for(plan, name, i, prj_docs.plan_note(cfg, name))
-    job = _agent_job(goal, after=after, quiet=("project.update", "project.progress"))
+    job = _agent_job(goal, after=after, quiet=("project.update", "project.progress"), project=name)
     return {"run_id": start_run(f"[project] {name} {i + 1}", origin="rem", job=job)["id"]}

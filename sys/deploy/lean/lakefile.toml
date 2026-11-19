@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 A.U.R.O.R.A. Project
+# The workspace of Aurora's formal proofs (N143/N144): Mathlib only, pinned by lake-manifest.json.
+# sys/core/script/sys_proofs_install.sh copies this folder to AURORA_LEAN_HOME/workspace.
+name = "aurora_proofs"
+version = "0.1.0"
+
+[leanOptions]
+pp.unicode.fun = true
+relaxedAutoImplicit = false
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "v4.36.0"

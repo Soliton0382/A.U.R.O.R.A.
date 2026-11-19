@@ -80,8 +80,12 @@ class AgentMakers:
         if len(prompt) < 10:
             return "ERROR: describe the picture in English (subject, style, light)"
         name = f"aurora-{time.strftime('%Y%m%d-%H%M%S')}"
+        from . import prj_policy
+        # C711: the Models page may give pictures to a cloud provider: never in a run held to the local model (a
+        # «models: local» project, a private plugin read) nor in one touching a «riservato» project — painted here
+        local = bool(getattr(self, "local_only", False)) or bool(prj_policy.reserved_in(self))
         try:
-            out = mdl_image.paint(prompt, name, self.cfg, emit, title=title)
+            out = mdl_image.paint(prompt, name, self.cfg, emit, title=title, local_only=local)
         except Exception as e:                           # a failed painting is said, never hidden
             return f"ERROR: the picture was not painted: {type(e).__name__}: {str(e)[:300]}"
         path = self.cfg.path("AURORA_IMAGE_DIR") / out["file"]

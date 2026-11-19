@@ -34,8 +34,10 @@ def _host():
 
 
 def _plugin_on() -> bool:
-    p = plugin_host().get("homeassistant")
-    return p is not None and bool(p.available)
+    """The scenes' gate (hom_scenes.allowed), asked by the routines' tick and by each running scene: no plugin
+    started for it (C600: get() here cost the first tick after a start 19.7 s)."""
+    from aurora.plg_access import plugin_on
+    return plugin_on(plugin_host(), "homeassistant")
 
 
 hom_scenes.set_gate(_plugin_on)

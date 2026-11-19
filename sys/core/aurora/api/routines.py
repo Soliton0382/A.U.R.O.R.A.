@@ -247,6 +247,7 @@ def routine_tick() -> dict:
     still ran, and two ticks ran together — each slower: 74 slow ticks in a night, up to 176 s)."""
     if not _ticking.acquire(blocking=False):
         log.info("routines tick: the one before is still running, this one skipped")
+        _count_tick(None, busy=True)
         return {"started": [], "welcomed": [], "busy": True}
     photo = threading.Timer(TICK_PHOTO_S, lambda: log.warning("routines tick still running after %d s; the API's "
                                                              "threads: %s", TICK_PHOTO_S, threads_photo(skip=threading.get_ident())))
@@ -276,30 +277,33 @@ def _routine_tick() -> dict:
         finally:
             spent[name] = spent.get(name, 0.0) + _t.monotonic() - s
 
-    def said():
+    parts: dict[str, float] = {}                      # C600: a step's own parts («automations.due», «scenes.plugin»)
+
+    def said(deferred=False):
         total = _t.monotonic() - t0
         if total >= 10:
             slow = sorted(spent.items(), key=lambda x: -x[1])[:4]
             log.warning("routines tick took %.1f s: %s", total, ", ".join(f"{k} {v:.1f} s" for k, v in slow))
+        _count_tick(total, {**spent, **parts}, deferred)
 
     timed("expire_due", expire_due)                   # 🛟 an assistance window ended by its time: the user told
     timed("trim_memory", trim_memory)                 # C389: the memory glibc holds free, given back every half hour
     for who in everyone():                            # the home's automations keep their time, talk or not
         with sys_context.acting_as(who):
-            timed("automations", _automations, who)
+            timed("automations", _automations, who, parts)
             timed("anon_expired", _anon_expired, who)
     if (wait := _someone_talking()) is not None:      # a person first: the routines wait (owner, 2026-10-07)
-        said()
+        said(deferred=True)
         return {"started": [], "welcomed": [], "deferred": wait}
     started, welcomed = [], set()
     for who in everyone():
         with sys_context.acting_as(who):
             started += [timed("start_routine", _start_routine, r) for r in timed("due", sys_routines.due, cfg)]
             welcomed |= set(timed("welcome", _welcome, sys_routines))
-            timed("devices", _devices_if_due, who)
-            timed("scenes", _scenes_again, who)
-            timed("local_ticks", _local_ticks, who)
-            timed("astro", _astro_again, who)
+            timed("devices", _devices_if_due, who, parts)
+            timed("scenes", _scenes_again, who, parts)
+            timed("local_ticks", _local_ticks, who, parts)
+            timed("astro", _astro_again, who, parts)
             timed("people", _people_first, who)
     said()
     return {"started": started, "welcomed": sorted(welcomed)}
@@ -314,10 +318,36 @@ def _people_first(who: str | None) -> None:
         log.exception("people: first proposals failed")
 
 
-def _astro_again(who: str | None) -> None:
+def _count_tick(total: float | None, steps: dict | None = None, deferred: bool = False, busy: bool = False) -> None:
+    """C600: every tick counted, by day (sys_ticks), not only the slow ones api.log says; never a failed tick."""
+    from aurora import sys_ticks
+    try:
+        sys_ticks.record(cfg, total, steps, deferred=deferred, busy=busy, log=log)
+    except Exception as e:                               # noqa: BLE001 — a counter, never the tick's failure
+        log.warning("routines tick: not counted: %s", e)
+
+
+PLUGIN_SLOW_S = 2                                         # the plugin host's answer to the tick, said past this
+
+
+def _plugin_on(name: str, parts: dict | None = None, part: str = "") -> bool:
+    """Whether plugin `name` is on for this user, starting none. C600: get() lists every plugin's tools — at each
+    start of the API every user's host started them all (4–5 s a user, up to 323 s once): every tick over 30 s since
+    18 Nov. The tick's steps reach Home Assistant directly (hom_scenes._ha): the plugin on is enough."""
+    s = time.monotonic()
+    from aurora.plg_access import plugin_on
+    on = plugin_on(plugin_host(), name)
+    waited = time.monotonic() - s
+    if parts is not None and part:
+        parts[part] = parts.get(part, 0.0) + waited
+    if waited >= PLUGIN_SLOW_S:
+        log.warning("routines tick: the plugin host took %.1f s to say whether %s is on", waited, name)
+    return on
+
+
+def _astro_again(who: str | None, parts: dict | None = None) -> None:
     """The guiding tuner the person turned on runs again after a restart, without the page open (ast_autoguide)."""
-    p = plugin_host().get("astro")
-    if p is None or not p.available:
+    if not _plugin_on("astro", parts, "astro.plugin"):
         return
     try:
         from aurora.api.astro import autoguide_again
@@ -329,11 +359,10 @@ def _astro_again(who: str | None) -> None:
 _looking: set[str] = set()
 
 
-def _scenes_again(who: str | None) -> None:
+def _scenes_again(who: str | None, parts: dict | None = None) -> None:
     """A light scene that was running when the API stopped starts again, with the time it had left (hom_scenes)."""
     from aurora import hom_scenes
-    p = plugin_host().get("homeassistant")
-    if p is None or not p.available:
+    if not _plugin_on("homeassistant", parts, "scenes.plugin"):
         return
     try:
         if again := hom_scenes.resume(cfg, who or "", log):
@@ -352,41 +381,41 @@ def _anon_expired(who: str | None) -> None:
         log.exception("anonymous chat: not emptied")
 
 
-def _automations(who: str | None) -> None:
+def _automations(who: str | None, parts: dict | None = None) -> None:
     """The home's automations due now (hom_auto), each user's: run."""
     from aurora import hom_auto
-    s = time.monotonic()
-    p = plugin_host().get("homeassistant")
-    if (waited := time.monotonic() - s) >= 2:          # 13 Nov: the automations' slow ticks, before hom_auto's own
-        log.warning("home automations: the plugin host took %.1f s to answer", waited)
-    if p is None or not p.available:
+    if not _plugin_on("homeassistant", parts, "automations.plugin"):     # C600: was get(), every plugin started
         return
     try:
-        if ran := hom_auto.tick(cfg, who or "", log):
+        if ran := hom_auto.tick(cfg, who or "", log, spent=parts, prefix="automations."):
             log.info("home automations ran: %s", ran)
     except Exception:                                    # noqa: BLE001 — Home Assistant away: the next tick tries again
         log.exception("home automations: not run")
 
 
-def _local_ticks(who: str | None) -> None:
-    """This installation's own extensions (aurora/local), each user's tick; nothing when there are none."""
+def _local_ticks(who: str | None, parts: dict | None = None) -> None:
+    """This installation's own extensions (aurora/local), each user's tick, each timed (C600); none: nothing."""
     import importlib.util
     if not importlib.util.find_spec("aurora.local"):
         return
     from aurora import local
     for tick in local.ticks():
+        s = time.monotonic()
         try:
             tick(who)
         except Exception:                                # noqa: BLE001 — the next tick tries again
             log.exception("local extension: tick failed")
+        finally:
+            if parts is not None:
+                k = f"local_ticks.{getattr(tick, '__module__', '').rsplit('.', 1)[-1]}.{getattr(tick, '__name__', '?')}"
+                parts[k] = parts.get(k, 0.0) + time.monotonic() - s
 
 
-def _devices_if_due(who: str | None) -> None:
+def _devices_if_due(who: str | None, parts: dict | None = None) -> None:
     """A new device in this user's Home Assistant gets its agents (hom_devices), in the background."""
     from aurora import hom_devices, sys_context
-    p = plugin_host().get("homeassistant")
-    if (who or "") in _looking or p is None or not p.available or not hom_devices.due(cfg):
-        return
+    if (who or "") in _looking or not hom_devices.due(cfg) or not _plugin_on("homeassistant", parts, "devices.plugin"):
+        return                                           # the call itself (plugin_host().call) runs in the background
 
     def work(_who):
         try:

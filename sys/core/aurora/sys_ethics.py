@@ -39,7 +39,7 @@ PUBLIC_KEY = KEY_DIR / "owner_ed25519.pub"
 CODE_ROOT = Path(__file__).resolve().parents[3]
 PROTECTED = ("sys/core/ethics/CODE.md", "sys/core/aurora/sys_ethics.py", "sys/core/aurora/plg_host.py",
              "sys/core/aurora/sys_approvals.py", "sys/core/aurora/sys_disclosure.py", "sys/core/aurora/agt_change.py",
-             "sys/core/aurora/plg_sandbox.py",
+             "sys/core/aurora/plg_sandbox.py", "sys/core/aurora/plg_launch.py",   # C677: the cage's launcher
              # audit 9 Nov: what holds her plugins to their contract, and every script root runs — never a self-change
              "sys/core/aurora/plg_netproxy.py", "sys/core/aurora/plg_modelnet.py", "sys/core/aurora/plg_contract.py",
              "sys/core/aurora/agt_forge.py", "sys/core/aurora/sys_tests.py",

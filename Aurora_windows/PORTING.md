@@ -46,7 +46,8 @@ Left for phase 3 (the installer and the admin's scripts): install.sh, sys_nvidia
 task XML), sys_ethics_sign, sys_nas_mount, sys_backup_retime, sys_relocate, sys_restore,
 sys_factory_reset, sys_users_migrate, sys_doctor, the voice install scripts; the models' device («cuda» written in
 mdl_tts, img_paint, img_ai, tts_qwen_worker and the settings' cuda:N); the pages' words «systemd» in the health card.
-Phase 4: the cage (plg_sandbox, prj_run, prj_term, prj_proof) and the host firewall (sec_hostfw).
+Phase 4: the cage (plg_sandbox, prj_run, prj_term, prj_proof, prj_discover, prj_longrun) and the host firewall (sec_hostfw).
+Formal proofs (N143/N144, `sys_proofs_install.sh`, `install.sh --with-lean`): not on this platform yet — the Linux script installs pinned elan/Lean releases and Mathlib, and prj_proof checks only inside bwrap, so without the phase-4 cage proof_check and «/lean» say «Lean non installato». Lean publishes releases for Windows (x86_64) (the pins would go in the script: elan v4.4.0, Lean v4.36.0).
 
 ## Checked against the sources (2026-10-08) — and what that changed
 
@@ -94,7 +95,7 @@ Intended differences on Linux, none in behaviour the suite checks: a service tha
 | venv, programs | .venv/bin/python in hints and scripts; llama.cpp bin/llama-server (svc_llm) | `venv_python`, `executable` | .venv\Scripts\python.exe, llama-server.exe | 1 ✅ / 2 |
 | Tools missing | «sudo apt install ffmpeg / poppler-utils» (sys_features) | `install_hint` | winget install Gyan.FFmpeg; poppler: oschwartz10612.Poppler — **the winget ids are to be checked on Windows** | 1 ✅ / 3 |
 | Administrator commands | «sudo …» in hints (sign, nft, cloudflared, restore) | `as_admin` | PowerShell as administrator | 1 ✅ / 2 |
-| Plugin cage | bwrap (plg_sandbox, prj_run, prj_term, prj_proof) | `sandbox` | None yet. **plg_host (protected) today runs a plugin uncaged when bwrap is missing** (only its own secrets filtered, plg_host.py:140): on Windows that would be every plugin. Phase 2 must make plg_host refuse instead (the owner signs it) | 2 (refuse) / 4 (cage) |
+| Plugin cage | bwrap (plg_sandbox, prj_run, prj_term, prj_proof, prj_discover, prj_longrun) | `sandbox` | None yet. **plg_host (protected) today runs a plugin uncaged when bwrap is missing** (only its own secrets filtered, plg_host.py:140): on Windows that would be every plugin. Phase 2 must make plg_host refuse instead (the owner signs it) | 2 (refuse) / 4 (cage) |
 | Host firewall | nft through /usr/local/sbin/aurora-nft and an AF_UNIX socket (sec_hostfw) | `host_firewall` | Windows Firewall rules through a helper as SYSTEM; no AF_UNIX in Windows's Python: a named pipe or localhost | 4 |
 | Cloudflare tunnel | systemctl on cloudflared's unit (net_cloudflare) | `service_state`, `service_action` | cloudflared installs itself as a Windows service: `sc.exe` (not a task) | 3 |
 | HTTPS | Caddy (cross-platform), the Caddyfile generator | — | caddy.exe; the same Caddyfile (CSP included) | 3 |
@@ -163,3 +164,8 @@ Not yet: the local reasoner (llama.cpp CUDA), Piper's voice, the GitHub plugin's
 hashes (requirements.txt today), plugins: the AppContainer cage runs them (C231, 9 Oct: user32.dll needs the session's window station and desktop, now granted read — 20 plugins, 92 tools on the test VM, as in Docker). The whole suite on this Windows: 0 failed, 21 skipped each with its reason (C223: 37 failures fixed — 9 of them real bugs on every system).
 
 | Visual traceroute | mtr in raw mode (net_trace; mtr-packet with CAP_NET_RAW on Linux) | — | Mac: `brew install mtr` (its mtr-packet needs root there: not measured); Windows: no mtr — the page says so (WinMTR or tracert would be phase 4) | ❌ |
+
+20 Nov 2026 (C654, C671, C672, C677, C685, C688, C692, C700, C707, C710): Linux-only words in the new projects' modules
+are declared in test_platform_residue (each guarded, a comment, or on the bubblewrap path only: long runs, the
+cages' limits and the user's cage need bubblewrap and say «no cage» elsewhere). plg_host's rewrite anchor follows the
+launcher (C672, C677): on Linux the plugin still starts through plg_launch with «--at».

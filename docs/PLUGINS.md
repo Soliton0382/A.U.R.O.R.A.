@@ -86,7 +86,7 @@ A plugin the forge writes (`forged`) is held by its cage at every start, whateve
 | `notes` | tool | notes_list (read), notes_search (read), notes_read (read), notes_write (write_local) | — |
 | `ntfy` | tool | ntfy_send (external), ntfy_recent (read) | AURORA_NTFY_TOPIC |
 | `patent` | tool | patent_offices (read), patent_check (read), patent_document (write_local) | — |
-| `projects` | tool | project_list (read), project_tree (read), project_read_file (read), project_status (read), project_create (write_local), project_write_file (write_local), project_edit_file (write_local), project_commit (write_local), project_publish (external), project_push (external), project_install (write_local) | — |
+| `projects` | tool | project_list (read), project_tree (read), project_read_file (read), project_create (write_local), project_write_file (write_local), project_edit_file (write_local), project_install (write_local) — no git on existing projects and no token (C674): the user commits and publishes from the project's page («📦 Pubblica») or terminal, guide aurora-git.md | — |
 | `publications` | tool | — | — |
 | `pyenv` | tool | — | — |
 | `qr` | tool | — | — |

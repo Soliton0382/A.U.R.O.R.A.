@@ -93,6 +93,21 @@ deletes a sealed credential only by its own name in root's folder.
 
 ## 🔨 The contract of Aurora's own plugins (9 Nov 2026)
 
+Since C674 (20 Nov 2026): Aurora runs no git on an existing project outside its cage. A project's .git is written by
+code Aurora runs, and git reads far more of it than any check vouches for: six independent reviews in a row found a
+new way through (C658–C674), so the projects plugin's commit, publish and push tools were removed, with its token.
+Commits are made by the user in the project's cage — no network, only its folder writable, so git there has no more
+power than the project's own code (the page's «📦 Pubblica», or the terminal) — and publishing goes through a bundle
+(data only: no configuration, no hooks) pushed from the user's own computer with the user's own credentials. The
+plugins' launcher, plg_launch, is a PROTECTED file (C677). What the paragraph below says of git still holds for the
+reading git (in its cage) and for project_create (git on a folder it has just made).
+
+Where the API's unit delegates no cgroup (other machines, runs outside systemd), a caged command has no memory
+ceiling as a whole: each process is limited in address space only, and the command's output says so (C702). The disk
+guard cannot read the size of a file held only by a mapping or a descriptor in flight; while a cage holds such a
+thing, the free space the disk loses counts against its budget (C700). N147 calls a law DISCOVERED only on a table
+the owner brought in (an upload, a chat attachment, a clone from the page), recorded as it came in (C697).
+
 Since C591 (audit of 12 Nov): in the projects' folder a forged plugin finds every .git and .venv read-only, and one it
 leaves behind is renamed «.git.set-aside-…» when it ends (git runs what a .git's configuration names, pip a .venv's
 python: they ran later outside its cage). The API's own git on a project (the Projects page, the live view, the mood)

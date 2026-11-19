@@ -69,7 +69,17 @@ def snapshot(cfg: sys_config.Config) -> dict:
             "logs_mb": round(size / 1e6, 1),
             "gpu_swaps_24h": _lines_since(logs / "image" / "image.log", since, "planned swap: stopping"),
             "routines_failed_24h": _lines_since(logs / "api" / "api.log", since, "routine ", "failed"),
-            "disk_free_gb": round(shutil.disk_usage(cfg.root).free / 1e9, 1)}
+            "disk_free_gb": round(shutil.disk_usage(cfg.root).free / 1e9, 1),
+            "routine_ticks": _ticks(cfg)}
+
+
+def _ticks(cfg: sys_config.Config) -> dict | None:
+    """C600: the routines' last closed day — ticks, over aurora-rem's 30 s, the longest, the slowest step."""
+    from . import sys_ticks
+    try:
+        return sys_ticks.last_day(cfg)
+    except (OSError, ValueError, KeyError):
+        return None
 
 
 def record(cfg: sys_config.Config) -> dict:

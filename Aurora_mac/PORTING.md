@@ -46,7 +46,8 @@ Left for phase 3 (the installer and the admin's scripts): install.sh, sys_nvidia
 plists), sys_ethics_sign, sys_nas_mount, sys_backup_retime, sys_relocate, sys_restore,
 sys_factory_reset, sys_users_migrate, sys_doctor, the voice install scripts; the models' device («cuda» written in
 mdl_tts, img_paint, img_ai, tts_qwen_worker and the settings' cuda:N) → «mps»; the pages' words «systemd» in the health card.
-Phase 4: the cage (plg_sandbox, prj_run, prj_term, prj_proof) and the host firewall (sec_hostfw).
+Phase 4: the cage (plg_sandbox, prj_run, prj_term, prj_proof, prj_discover, prj_longrun) and the host firewall (sec_hostfw).
+Formal proofs (N143/N144, `sys_proofs_install.sh`, `install.sh --with-lean`): not on this platform yet — the Linux script installs pinned elan/Lean releases and Mathlib, and prj_proof checks only inside bwrap, so without the phase-4 cage proof_check and «/lean» say «Lean non installato». Lean publishes releases for macOS (x86_64, aarch64) (the pins would go in the script: elan v4.4.0, Lean v4.36.0).
 
 ## Checked against the sources (2026-10-08) — and what that changed
 
@@ -91,7 +92,7 @@ Intended differences on Linux, none in behaviour the suite checks: a service tha
 | venv, programs | .venv/bin/python; llama.cpp bin/llama-server (svc_llm) | `venv_python`, `executable` | The same paths | 1 ✅ |
 | Tools missing | «sudo apt install ffmpeg / poppler-utils» (sys_features) | `install_hint` | brew install ffmpeg / poppler | 1 ✅ |
 | Administrator commands | «sudo …» in hints | `as_admin` | sudo | 1 ✅ |
-| Plugin cage | bwrap (plg_sandbox, prj_run, prj_term, prj_proof) | `sandbox` | sandbox-exec (Seatbelt), present though deprecated by Apple: its profile is phase 4. **plg_host (protected) today runs a plugin uncaged when bwrap is missing** (only its own secrets filtered, plg_host.py:140): on the Mac that would be every plugin. Phase 2 must make plg_host refuse instead (the owner signs it) | 2 (refuse) / 4 (cage) |
+| Plugin cage | bwrap (plg_sandbox, prj_run, prj_term, prj_proof, prj_discover, prj_longrun) | `sandbox` | sandbox-exec (Seatbelt), present though deprecated by Apple: its profile is phase 4. **plg_host (protected) today runs a plugin uncaged when bwrap is missing** (only its own secrets filtered, plg_host.py:140): on the Mac that would be every plugin. Phase 2 must make plg_host refuse instead (the owner signs it) | 2 (refuse) / 4 (cage) |
 | Host firewall | nft through /usr/local/sbin/aurora-nft and an AF_UNIX socket (sec_hostfw) | `host_firewall` | pf with an anchor of Aurora's, through a root helper (a launchd daemon) and an AF_UNIX socket as on Linux | 4 |
 | Cloudflare tunnel | systemctl on cloudflared's unit (net_cloudflare) | `service_state`, `service_action` | cloudflared as a launchd service (brew services) | 3 |
 | HTTPS | Caddy, the Caddyfile generator | — | caddy from Homebrew; the same Caddyfile | 3 |
@@ -139,3 +140,8 @@ The whole Linux suite runs on the built tree in the Ports workflow; what fails t
 machine and not guessed. The run's public notices name each failed test and its reason.
 
 | Visual traceroute | mtr in raw mode (net_trace; mtr-packet with CAP_NET_RAW on Linux) | — | Mac: `brew install mtr` (its mtr-packet needs root there: not measured); Windows: no mtr — the page says so (WinMTR or tracert would be phase 4) | ❌ |
+
+20 Nov 2026 (C654, C671, C672, C677, C685, C688, C692, C700, C707, C710): Linux-only words in the new projects' modules
+are declared in test_platform_residue (each guarded, a comment, or on the bubblewrap path only: long runs, the
+cages' limits and the user's cage need bubblewrap and say «no cage» elsewhere). plg_host's rewrite anchor follows the
+launcher (C672, C677): on Linux the plugin still starts through plg_launch with «--at».

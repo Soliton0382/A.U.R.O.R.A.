@@ -2675,6 +2675,36 @@
    ]
   },
   {
+   "key": "AURORA_PIPELINE_LAW_GATE",
+   "type": "float",
+   "min": -1,
+   "max": 1,
+   "category": "pipeline",
+   "recommended": "-0.01",
+   "evidence": "C694, M315, M318",
+   "en": "The law gate: the English question's similarity to the Italian law domain's centroid minus the closest other domain's. At or below this the statutes (law_it) and the provisions named for a case stay out of the search; above, they come in as before. A question with an attached file, an article or act named, or a follow-up on legal sources stays legal. -1 = off (every question as before).",
+   "it": "Il cancello legale: la somiglianza della domanda in inglese al centroide del dominio del diritto italiano meno quella del dominio più vicino. Fino a questo valore le norme (law_it) e gli articoli nominati per un caso restano fuori dalla ricerca; sopra entrano come prima. Una domanda con un allegato, un articolo o un atto citato, o un seguito su fonti legali resta legale. -1 = spento (ogni domanda come prima).",
+   "services": [
+    "aurora-api"
+   ],
+   "optional": true
+  },
+  {
+   "key": "AURORA_PIPELINE_LAW_GATE_BAND",
+   "type": "float",
+   "min": 0,
+   "max": 0.5,
+   "category": "pipeline",
+   "recommended": "0.05",
+   "evidence": "M318",
+   "en": "Around the law gate's threshold, within this distance, and always for a follow-up in the same conversation, the local model decides with one token (LAW or OTHER), reading the conversation's last turns too; when it does not answer or is unsure the statutes stay out and the event says «uncertain». 0 = the margin alone.",
+   "it": "Attorno alla soglia del cancello legale, entro questa distanza, e sempre per un seguito nella stessa conversazione, decide il modello locale con un token (LAW o OTHER), leggendo anche gli ultimi turni della conversazione; se non risponde o è incerto le norme restano fuori e l'evento dice «uncertain». 0 = solo il margine.",
+   "services": [
+    "aurora-api"
+   ],
+   "optional": true
+  },
+  {
    "key": "AURORA_ANSWER_MODE",
    "type": "enum",
    "choices": [
@@ -4293,6 +4323,215 @@
    "evidence": "owner (N143)",
    "en": "Longest a formal proof check may take (Lean compiling the file in its cage), then it is stopped and said.",
    "it": "Durata massima di una verifica formale (Lean che compila il file nella sua gabbia), poi viene fermata e detto.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_DISCOVER_ENABLED",
+   "type": "bool",
+   "category": "projects",
+   "recommended": "false",
+   "old_recommended": [
+    "true"
+   ],
+   "optional": true,
+   "evidence": "owner (N147)",
+   "en": "The discovery engine in projects: the discover_law tool (conductor, phase agent) searches a law y = f(x) in a table of the project on its training rows only, in a read-only cage, freezes the split and the chosen law as predictions, then tests it on the held-out rows; «discovered» only when it predicted them better than the baseline.",
+   "it": "Il motore di scoperta nei progetti: lo strumento discover_law (conduttore, agente di fase) cerca una legge y = f(x) in una tabella del progetto solo sulle righe di addestramento, in una gabbia in sola lettura, congela la divisione e la legge scelta come previsioni, poi la prova sulle righe tenute da parte; «scoperta» solo se le ha previste meglio della legge di riferimento.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_DISCOVER_TIMEOUT_S",
+   "type": "int",
+   "min": 10,
+   "max": 3600,
+   "category": "projects",
+   "recommended": "120",
+   "optional": true,
+   "evidence": "owner (N147)",
+   "en": "Longest a law search may take (the formulas tried in the cage, one CPU thread), then it is stopped and said.",
+   "it": "Durata massima di una ricerca di legge (le formule provate nella gabbia, un solo thread della CPU), poi viene fermata e detto.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_DISCOVER_MAX_COMPLEXITY",
+   "type": "int",
+   "min": 3,
+   "max": 40,
+   "category": "projects",
+   "recommended": "12",
+   "optional": true,
+   "evidence": "owner (N147)",
+   "en": "Largest formula the discovery engine tries, counted in nodes (constants, variables, operations): simpler laws are preferred anyway.",
+   "it": "Formula più grande che il motore di scoperta prova, contata in nodi (costanti, variabili, operazioni): le leggi più semplici sono comunque preferite.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_LONGRUN_ENABLED",
+   "type": "bool",
+   "category": "projects",
+   "recommended": "false",
+   "old_recommended": [
+    "true"
+   ],
+   "optional": true,
+   "evidence": "owner (N145)",
+   "en": "Long experiments in projects: the long_run tool (conductor, phase agent) starts a command of hours in the project's cage in the background, its limits declared first (wall time, CPU, memory, disk, GPU), follows it without keeping a model call open, resumes it after a restart or the night, and hashes its outputs into the frozen predictions' ledger when it ends.",
+   "it": "Esperimenti lunghi nei progetti: lo strumento long_run (conduttore, agente di fase) avvia in sottofondo, nella gabbia del progetto, un comando di ore con i limiti dichiarati prima (tempo, CPU, memoria, disco, GPU), lo segue senza tenere aperta una chiamata al modello, lo riprende dopo un riavvio o la notte e alla fine mette gli hash dei risultati nel registro delle previsioni congelate.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_LONGRUN_MAX_HOURS",
+   "type": "int",
+   "min": 1,
+   "max": 72,
+   "category": "projects",
+   "recommended": "12",
+   "optional": true,
+   "evidence": "owner (N145)",
+   "en": "Longest wall time a long run may declare, all its attempts together.",
+   "it": "Durata massima che un esperimento lungo può dichiarare, sommando tutti i tentativi.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_LONGRUN_MAX_MEM_MB",
+   "type": "int",
+   "min": 256,
+   "max": 131072,
+   "category": "projects",
+   "recommended": "8192",
+   "optional": true,
+   "evidence": "owner (N145)",
+   "en": "Most memory a long run may declare (the shell's limit inside the cage).",
+   "it": "Memoria massima che un esperimento lungo può dichiarare (il limite della shell nella gabbia).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_LONGRUN_MAX_DISK_MB",
+   "type": "int",
+   "min": 10,
+   "max": 1048576,
+   "category": "projects",
+   "recommended": "2048",
+   "optional": true,
+   "evidence": "owner (N145)",
+   "en": "Most the project may grow by during a long run (measured by Aurora; past it the run is stopped and said).",
+   "it": "Crescita massima del progetto durante un esperimento lungo (misurata da Aurora; oltre, l'esperimento viene fermato e detto).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_LONGRUN_MAX_ACTIVE",
+   "type": "int",
+   "min": 1,
+   "max": 8,
+   "category": "projects",
+   "recommended": "1",
+   "optional": true,
+   "evidence": "owner (N145)",
+   "en": "Long runs a user may have going at once, across their projects.",
+   "it": "Esperimenti lunghi che una persona può avere in corso insieme, in tutti i suoi progetti.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_LONGRUN_RESUME",
+   "type": "bool",
+   "category": "projects",
+   "recommended": "true",
+   "optional": true,
+   "evidence": "owner (N145, N139)",
+   "en": "A long run cut by an API restart or by the night (Aurora off) is started again by Aurora when she is back, with the time it has left (at most 3 attempts); off: it is said interrupted.",
+   "it": "Un esperimento lungo interrotto da un riavvio o dalla notte (Aurora spenta) viene riavviato da Aurora quando torna, con il tempo che gli resta (al massimo 3 tentativi); spento: viene detto interrotto.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_NOVELTY_ENABLED",
+   "type": "bool",
+   "category": "projects",
+   "recommended": "false",
+   "old_recommended": [
+    "true"
+   ],
+   "optional": true,
+   "evidence": "owner (N146)",
+   "en": "The literature check before a result is called new: the novelty_check tool (conductor, phase agent, referee) sends one masked query on the subject to arXiv, OpenAlex, Crossref and the web search and says FOUND (close work), NOT FOUND in the literature checked, or NOT CHECKED; never «new».",
+   "it": "Il controllo della letteratura prima di dire nuovo un risultato: lo strumento novelty_check (conduttore, agente di fase, revisore) manda una sola query mascherata sull'argomento ad arXiv, OpenAlex, Crossref e alla ricerca web e dice TROVATO (lavori vicini), NON TROVATO nella letteratura controllata o NON CONTROLLATO; mai «nuovo».",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_NOVELTY_SOURCES",
+   "type": "str",
+   "category": "projects",
+   "recommended": "arxiv,openalex,crossref,web",
+   "optional": true,
+   "evidence": "owner (N146)",
+   "en": "The sources the literature check asks, comma separated (arxiv, openalex, crossref, web).",
+   "it": "Le fonti che il controllo della letteratura interroga, separate da virgole (arxiv, openalex, crossref, web).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_NOVELTY_MATCH",
+   "type": "float",
+   "min": 0.2,
+   "max": 1.0,
+   "category": "projects",
+   "recommended": 0.5,
+   "optional": true,
+   "evidence": "owner (N146); M298, M299 (C635: 20 invented pairs — 0.5 found 10/10 close works with 1/10 false; 0.6 missed 1/10): a missed close work makes a false «not found», worse than a false «found»",
+   "en": "Share of the query's words (stems) a record's title and abstract must hold to count as close work.",
+   "it": "Quota delle parole (radici) della ricerca inviata che titolo e riassunto di un lavoro devono contenere per contare come lavoro vicino.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_NOVELTY_QUERY_WORDS",
+   "type": "int",
+   "min": 3,
+   "max": 16,
+   "category": "projects",
+   "recommended": "10",
+   "optional": true,
+   "evidence": "owner (N146)",
+   "en": "Most words of the one query that leaves the machine (masked, the subject only).",
+   "it": "Parole massime dell'unica query che esce dalla macchina (mascherata, solo l'argomento).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_NOVELTY_TIMEOUT_S",
+   "type": "int",
+   "min": 5,
+   "max": 120,
+   "category": "projects",
+   "recommended": "20",
+   "optional": true,
+   "evidence": "owner (N146)",
+   "en": "Longest wait for each source of the literature check; a source that does not answer is said failed.",
+   "it": "Attesa massima per ogni fonte del controllo della letteratura; una fonte che non risponde viene detta fallita.",
    "services": [
     "aurora-api"
    ]

@@ -3,10 +3,11 @@
 """Projects page: local projects, GitHub repositories, files, history, sandboxed preview."""
 from __future__ import annotations
 
-import base64
 import json
+import os
 import re
 import subprocess
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import Response
@@ -211,13 +212,12 @@ async def project_save(name: str, request: Request) -> dict:
     message = str(body.get("message") or "").strip()[:200] or sys_lang.say(
         "Salvato dalla pagina del progetto", "Saved from the project's page", cfg.now())
 
-    def work():
-        return plugin_host().call("projects", "project_commit", {"name": name, "message": message})
-    out = await in_thread(work)
-    if not out["ok"]:
-        raise HTTPException(status_code=422, detail=out["text"][:400])
-    log.info("audit: project %s saved from the page", name)
-    return {"saved": "nothing to commit" not in out["text"], "text": out["text"][:300]}
+    from aurora import prj_package                   # C674: Aurora runs no git on projects — the commit in the cage
+    from .core import me
+    who = me()
+    out = await in_thread(lambda: _pkg(prj_package.prepare, name, who, message, bundle=False))
+    log.info("audit: project %s saved from the page (cage)", name)
+    return {"saved": out["committed"], "text": (out["commits"] or [""])[0][:300]}
 
 
 @router.get("/v1/aurora/projects/{name}/policy", dependencies=[Depends(auth)])
@@ -250,18 +250,109 @@ async def project_clone(request: Request) -> dict:
     if dest.exists():
         raise HTTPException(status_code=409, detail=f"{dest.name} already exists")
     token = str(cfg["AURORA_GITHUB_TOKEN"] or "")
-    extra = ["-c", "http.extraHeader=Authorization: Basic "
-             + base64.b64encode(f"x-access-token:{token}".encode()).decode()] if token else []
+    from aurora import prj_gitsafe
+    import shutil
+    import tempfile
+    # O3 (C708): cloned and hashed in a folder beside the projects' one, out of every cage's and plugin's reach, then
+    # renamed into place: nothing an agent writes during the clone is recorded as the owner's
+    tmp = Path(tempfile.mkdtemp(prefix=".aurora-clone-", dir=dest.parent.parent))
+    work_dir = tmp / dest.name
+    cmd, env = prj_gitsafe.clone_command(full, work_dir, token)   # C671: the token never on argv
 
     def work():
         import subprocess
-        return subprocess.run(["git", *extra, "clone", "--quiet", f"https://github.com/{full}.git", str(dest)],
-                              capture_output=True, text=True, timeout=900)
-    r = await in_thread(work)
-    log.info("audit: cloned %s into %s: %s", full, dest.name, "ok" if r.returncode == 0 else "failed")
-    if r.returncode != 0:
-        raise HTTPException(status_code=502, detail=(r.stderr or "git clone failed").replace(token, "***")[-400:])
-    return {"name": dest.name}
+        return subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=900)
+    try:
+        r = await in_thread(work)
+        log.info("audit: cloned %s into %s: %s", full, dest.name, "ok" if r.returncode == 0 else "failed")
+        if r.returncode != 0:
+            raise HTTPException(status_code=502, detail=(r.stderr or "git clone failed").replace(token, "***")[-400:])
+        from aurora import prj_provenance              # C697/C698: its tables came in by the owner's hand
+        from .core import me
+        who = me() or ""
+        tables = await in_thread(lambda: prj_provenance.record_owner(
+            cfg, dest.name, work_dir, prj_provenance.tables_in(work_dir), "clone", who, full, budget=CLONE_HASH_S))
+        if dest.exists():
+            raise HTTPException(status_code=409, detail=f"{dest.name} already exists")
+        try:
+            os.rename(work_dir, dest)
+        except OSError as e:
+            raise HTTPException(status_code=409, detail=f"{dest.name}: not put in place ({e.strerror})") from None
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    return {"name": dest.name, "tables": tables}
+
+
+# ---- 📥 data the owner brings into a project: the only tables a discovery can be claimed on (C697/C698) -------------
+CLONE_HASH_S = 120.0                                  # a clone's tables hashed within this; the rest «skipped»
+
+
+def _data_target(name: str, path: str):
+    from aurora import prj_browse, prj_prereg, prj_provenance, prj_run, prj_safeio
+    if not prj_run.NAME.fullmatch(name or ""):
+        raise HTTPException(status_code=400, detail="a project's name")
+    root = prj_browse.base(cfg) / name
+    if not root.is_dir():
+        raise HTTPException(status_code=404, detail="no such project")
+    try:
+        rel = prj_safeio.norm(str(path or ""))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    ps = rel.split("/")
+    if not rel.lower().endswith(prj_provenance.SUFFIXES) or {".git", ".venv"} & set(ps) or prj_prereg.locked(rel):
+        raise HTTPException(status_code=400, detail="a data table (.csv, .npz) of the project, outside .git, .venv and "
+                                                    "the frozen predictions")
+    return root, rel
+
+
+def _bring(name: str, path: str, data: bytes, how: str, note: str) -> dict:
+    """The owner's table: its row first, from the bytes received (prj_provenance.record_owner_bytes), then the file."""
+    from aurora import prj_provenance, prj_provenance_seen, prj_safeio
+    from .core import me
+    root, rel = _data_target(name, path)
+    if len(data) > prj_provenance.MAX_BYTES:
+        raise HTTPException(status_code=413, detail=f"at most {prj_provenance.MAX_BYTES >> 20} MB")
+    row = prj_provenance.record_owner_bytes(cfg, name, rel, data, how, me() or "", note)
+    try:
+        prj_safeio.write_bytes(root, rel, data)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e)) from None
+    log.info("audit: table %s brought into project %s by the owner (%s, %d bytes)", rel, name, how, len(data))
+    out = {"path": rel, "bytes": len(data), "sha256": row["sha256"], "how": how, "evidence": not row.get("echo")}
+    if row.get("echo"):                               # C708: said at once, kept in the row for good
+        out["warning"] = prj_provenance_seen.said(row["echo"])
+    return out
+
+
+@router.post("/v1/aurora/projects/{name}/data", dependencies=[Depends(auth)])
+async def project_data(name: str, request: Request) -> dict:
+    """📥 A data table the owner brings in: {path, data (base64)} from the page, or {path, upload: <id>} — a file the
+    owner attached in the chat (sys_uploads, role «user»: never one Aurora made). Recorded as the owner's (C697)."""
+    import base64
+    import binascii
+    body = await request.json()
+    path = str(body.get("path") or "")
+    if body.get("upload"):
+        from aurora import sys_uploads
+        uid = str(body["upload"])
+        if not re.fullmatch(r"[0-9a-f]{16}", uid):
+            raise HTTPException(status_code=400, detail="an upload's id")
+        try:
+            found = sys_uploads.read(cfg, uid)
+        except ValueError:
+            found = None
+        if found is None:
+            raise HTTPException(status_code=404, detail="no such upload")
+        data, item = found
+        if item.get("role") != "user":                # a file Aurora made is the agent's, never the owner's data
+            raise HTTPException(status_code=403, detail="a file Aurora made, not one the owner attached")
+        return await in_thread(_bring, name, path or str(item.get("name") or ""), data, "chat",
+                               str(item.get("name") or ""))
+    try:
+        data = base64.b64decode(str(body.get("data") or ""), validate=True)
+    except (binascii.Error, ValueError):
+        raise HTTPException(status_code=400, detail="data: base64") from None
+    return await in_thread(_bring, name, path, data, "upload", str(body.get("note") or "")[:200])
 
 
 # ---- a terminal in a project's cage (prj_term, roadmap 75): output as SSE, input as POST -----------------------------
@@ -329,3 +420,54 @@ def terminal_close(name: str, sid: str) -> dict:
     from .core import me
     _term(prj_term.stop, sid, me())
     return {"closed": True}
+
+
+# ---- 📦 the package to publish (N148, C674): commit + bundle in the project's cage, downloaded, pushed by the user ----
+
+def _pkg(fn, *a, **k):
+    from aurora import prj_package
+    try:
+        return fn(cfg, *a, **k)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="no package yet: prepare it first")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except prj_package.PackageError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+
+@router.get("/v1/aurora/projects/{name}/package", dependencies=[Depends(auth)])
+async def package_status(name: str) -> dict:
+    from aurora import prj_package
+    return await in_thread(lambda: _pkg(prj_package.status, name))
+
+
+@router.post("/v1/aurora/projects/{name}/package", dependencies=[Depends(auth)])
+async def package_prepare(name: str, request: Request) -> dict:
+    """Every change committed with the user's message and the history written to aurora.bundle, in the cage."""
+    from aurora import prj_package
+    from .core import me
+    body = await request.json()
+    who = me()
+    out = await in_thread(lambda: _pkg(prj_package.prepare, name, who, str(body.get("message", "")),
+                                       str(body.get("author", "")), str(body.get("email", ""))))
+    log.info("audit: package of project %s prepared (cage, no network)", name)
+    return out
+
+
+@router.get("/v1/aurora/projects/{name}/package/download", dependencies=[Depends(auth)])
+def package_download(name: str):
+    """The project's aurora.bundle as a download, read without following a link."""
+    import os
+    from fastapi.responses import StreamingResponse
+    from aurora import prj_package
+    fd, size = _pkg(prj_package.open_bundle, name)
+
+    def chunks():
+        with os.fdopen(fd, "rb") as f:
+            while block := f.read(1 << 20):
+                yield block
+    log.info("audit: package of project %s downloaded", name)
+    return StreamingResponse(chunks(), media_type="application/octet-stream", headers={
+        "Content-Disposition": f'attachment; filename="{name}.bundle"', "Content-Length": str(size),
+        "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store"})

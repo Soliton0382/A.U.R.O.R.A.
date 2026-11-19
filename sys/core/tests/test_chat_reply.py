@@ -35,7 +35,8 @@ def test_the_quoted_answer_is_read_as_aurora_kept_it_and_a_quote_from_the_page_o
     page = F.quoted(r, {"run_id": "ffffffffffff", "text": "Buongiorno! Stanotte ho studiato."})
     assert page.text == "Buongiorno! Stanotte ho studiato." and page.extra["role"] == "assistant"
     assert F.quoted(r, {"run_id": "../../etc", "text": ""}) is None and F.quoted(r, "x") is None
-    assert len(F.quoted(r, {"text": "a" * 10000}).text) == F.QUOTE_CUT
+    long = F.quoted(r, {"text": "a" * 10000}).text               # held to QUOTE_CUT, and said (C6xx-a)
+    assert long.startswith("a" * F.QUOTE_CUT) and long.endswith("[…7000 more characters not shown]")
 
 
 def test_a_reply_is_read_against_the_quote_however_old():

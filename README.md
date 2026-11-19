@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-2149%20passed-1baf7a" alt="Tests"> <img src="https://img.shields.io/badge/code-131k%20lines-6a4fd6" alt="Lines of code"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-2484%20passed-1baf7a" alt="Tests"> <img src="https://img.shields.io/badge/code-134k%20lines-6a4fd6" alt="Lines of code"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
 
 <p align="center">🇮🇹 <b>Italiano</b> · 🇬🇧 <a href="README.en.md">English</a></p>
 
@@ -61,7 +61,7 @@ con l'esenzione firmata dal proprietario, e ciò che parte è sempre mascherato 
 | **Codice di condotta** | livello A (mai: attacchi, localizzare persone, malware), livello B (conferme, dichiarazione IA) esentabile solo con una firma con la chiave della propria installazione; i servizi non partono se le regole cambiano senza firma |
 | **Progetti** | pagina 📁: progetti locali e repository GitHub (stelle, fork, issue), clone in locale, albero delle cartelle, file, README, storia, **anteprima delle pagine in sandbox**, «chiedi ad Aurora» su un progetto |
 | **Conduttore del progetto** | 🧑‍🔬 nella pagina del progetto: gli scrivi a parole tue, in una console; risponde ricordando la conversazione (una sessione per progetto e per utente) e con «🏗️ Fanne una fase» trasforma la richiesta nell'obiettivo di una fase, che leggi, correggi e avvii con un clic. La fase la esegue l'agente di Aurora nella gabbia del progetto, poi il conduttore legge il resoconto e ti dice cosa è fatto, cosa non regge e cosa decidere tu (scelte a / b / c, una consigliata). Il conduttore parla, non agisce. Due fasi di scrittura sul modello locale: tutti i numeri dalla fonte, 3 correzioni con 3 righe di diff (M260) |
-| **Progetti portati avanti da sola** | 🏗️ Piano: scrivi l'obiettivo, Aurora propone i passi (ognuno con il comando dei test che lo prova), tu li correggi e avvii; nei momenti liberi fa un passo alla volta, e un passo è fatto **solo se i suoi test passano** (lo decide il codice, non il modello); 3 fallimenti su un passo e si ferma e ti avvisa; 🤝 un passo e aspetta il tuo «vai avanti», 🚀 fino alla fine. Push e pubblicazioni aspettano sempre te. Pilota: 6 passi su 6 da sola (M201) |
+| **Progetti portati avanti da sola** | 🏗️ Piano: scrivi l'obiettivo, Aurora propone i passi (ognuno con il comando dei test che lo prova), tu li correggi e avvii; nei momenti liberi fa un passo alla volta, e un passo è fatto **solo se i suoi test passano** (lo decide il codice, non il modello); 3 fallimenti su un passo e si ferma e ti avvisa; 🤝 un passo e aspetta il tuo «vai avanti», 🚀 fino alla fine. Push e pubblicazioni aspettano sempre te, e di default li fai tu: Aurora non esegue git sui progetti: un pulsante («📦 Pubblica») fa il commit nella gabbia del progetto (senza rete) e ti dà il pacchetto da scaricare, oppure fai i commit dal terminale del progetto; la pubblicazione dal tuo computer con le tue credenziali GitHub, come spiega `aurora-git.md` in ogni progetto (C674). Pilota: 6 passi su 6 da sola (M201) |
 | **Disegni CAD e brevetti** | 📑 nella pagina del progetto: spunte (blueprint, brevetto IT, EP, US) e ▶ Procedi. Aurora scrive il modello CAD parte per parte (OpenSCAD), disegna il blueprint quotato (ISO 128, primo diedro, cartiglio, distinta) e le tavole per ufficio con i segni di riferimento, scrive descrizione, rivendicazioni e riassunto nella forma di ogni ufficio e controlla il pacchetto con le regole e le loro fonti (UIBM D.M. 33/2010, EPC, 37 CFR); nessun marchio IA sui documenti per gli uffici. Da un README di due righe: 175,6 s (M209, M210) |
 | **Plugin con le proprie librerie** | un plugin dichiara le sue librerie con l'hash: si installano nella sua cartella, mai nell'ambiente di Aurora, e si tolgono con lui (M208) |
 | **Routine** | pagina 🔁: i plugin collegati propongono controlli periodici (meteo ogni mattina, allerta ogni ora, report GitHub settimanale…), si attivano con un clic o a parole tue; lettura automatica, ogni scrittura aspetta l'approvazione |
@@ -302,6 +302,25 @@ La pagina del progetto ha tre gruppi di sezioni: **🛠️ Lavoro** (Conduttore,
 **📐 Disegni e modello** (Documenti, Vista realistica, Simulatore, Stampa 3D) e **📂 File e storia** (File, Storia,
 Anteprima). Sotto il conduttore, una console dell'attività dice riga per riga cosa si muove: la fase in corso, i
 salvataggi, i file scritti.
+
+### 🔬 Il metodo scientifico nei progetti
+
+Un progetto di ricerca non si fida del proprio agente: ogni risultato deve reggere a controlli che l'agente non può
+piegare.
+
+| Capacità | Cosa fa | Stato |
+|---|---|---|
+| 🔒 **Previsioni congelate** (N142) | prima di un esperimento l'agente scrive cosa si aspetta; Aurora lo congela con lo SHA-256 delle previsioni e del codice in un registro solo in aggiunta, tenuto anche fuori dal progetto. Un file cambiato dopo il congelamento è detto, e il suo «riuscito» non conta | ✅ attivo |
+| 🧑‍⚖️ **Revisore AI indipendente** (N142) | a fine fase un altro modello, con strumenti in sola lettura, rilegge obiettivo, file cambiati e previsioni (mai il resoconto dell'agente) e dà il suo verdetto, che apre la risposta; facoltativo, serve la CLI di Claude | ✅ attivo |
+| 📐 **Dimostrazioni verificate da Lean** (N143) | un file `.lean` del progetto viene controllato da Lean 4 + Mathlib in una gabbia in sola lettura: «dimostrato» solo senza `sorry` e scorciatoie e con i soli assiomi standard (`propext`, `Classical.choice`, `Quot.sound`) | ✅ attivo, installazione facoltativa |
+| 🧮 **Il matematico Lean in chat** (N144) | «/lean …» o «dimostra in Lean: …»: un modello scrive l'enunciato e la prova, il kernel di Lean la controlla, una seconda chiamata verifica che l'enunciato sia davvero la tua frase; il bollino «verificato» solo con entrambe | ✅ attivo, installazione facoltativa |
+| ⏳ Esperimenti lunghi in gabbia (N145) | — | 🔧 costruito, spento di default; undici giri di revisione indipendente fino al PRONTO (C615–C713) |
+| 📚 Controllo della letteratura prima di dire «nuovo» (N146) | — | 🔧 costruito, spento di default; undici giri di revisione indipendente fino al PRONTO (C615–C713) |
+| 🔭 Motore di scoperta di leggi dai dati (N147) | — | 🔧 costruito, spento di default; undici giri di revisione indipendente fino al PRONTO (C615–C713) |
+
+Prove dal vivo su casi inventati (docs/ROADMAP.md, righe N142–N144): una fase con due previsioni, revisore su un
+modello diverso dal conduttore, 85,5 s e 0,25 USD; un teorema vero dimostrato in 2,2 s e uno falso respinto; in chat
+«la somma di due numeri pari è pari» dimostrata e verificata in 15,9 s.
 
 ### Il ciclo autonomo
 
@@ -549,6 +568,13 @@ ingrandimento e scontorno (0,2 GB), modifiche creative delle foto (14,9 GB), cre
 tua macchina non regge (VRAM e RAM misurate) non vengono proposte. Alla fine `sys_doctor.py` controlla tutto:
 configurazione, firma, modelli, servizi. Una funzione non installata non si rompe: Aurora risponde che manca e
 con quale comando aggiungerla (la pagina ⚙️ Stato mostra lo stesso elenco).
+
+**Dimostrazioni formali** (N143, N144): facoltative, con `./install.sh --with-lean` o rispondendo sì alla domanda.
+Installano in `sys/runtime/lean` elan e Lean 4 da release fissate e controllate con lo SHA-256, e Mathlib alle
+revisioni fissate in `sys/deploy/lean/lake-manifest.json`, con la sua libreria compilata. Servono rete e circa 11 GB
+(misurati sulla macchina di riferimento). Senza, le due funzioni rispondono «Lean non installato» e il resto non cambia;
+si aggiungono dopo con `bash sys/core/script/sys_proofs_install.sh`. Il revisore dei progetti usa la CLI di Claude,
+se c'è: l'installer dice se l'ha trovata.
 
 ```bash
 .venv/bin/python sys/core/script/sys_doctor.py                          # è tutto a posto?

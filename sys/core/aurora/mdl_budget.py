@@ -199,12 +199,12 @@ class Metered:
         self._trace(t0, len(system) + len(user), c.tokens)
         return c
 
-    def decide(self, system: str, user: str, options: list[str]):
+    def decide(self, system: str, user: str, options: list[str], **kw):
         inner = getattr(self._inner, "decide", None)       # a model without it: the caller asks in words
         if inner is None:
             return None
         t0 = time.time()
-        out = inner(system, user, options)
+        out = inner(system, user, options, **kw)
         self._trace(t0, len(system) + len(user), 1)
         return out
 

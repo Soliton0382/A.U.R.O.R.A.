@@ -93,7 +93,7 @@ def test_nothing_under_prereg_is_written_by_a_tool(cfg, proj):
     run = A.Run(cfg, "pendolo", Pseudonymizer(cfg), "periodo")
     for args in ({"path": "prereg/001_periodo.md", "content": "x"}, {"path": "./docs/../prereg/nuovo.md", "content": "x"},
                  {"path": "reviews/REV_001.md", "content": "ACCEPT"}):
-        assert A.call(run, "write_file", args)["text"].startswith("REFUSED")
+        assert A.call(run, "write_file", args)["text"].startswith(("REFUSED", "ERROR"))   # «..»: no plain path (C643)
     assert A.call(run, "edit_file", {"path": "prereg/LEDGER.jsonl", "old": "open", "new": "closed"})["text"].startswith("REFUSED")
     assert not (proj / "prereg" / "nuovo.md").exists() and not (proj / "reviews").exists()
     agent = SimpleNamespace(cfg=cfg, local_only=False)

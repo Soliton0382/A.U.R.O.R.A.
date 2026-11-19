@@ -14,12 +14,15 @@ paper arXiv has no HTML of keeps its PDF unless --drop-pdf-without-html. Resumab
     python script/vault_realign.py                      # what it would do
     python script/vault_realign.py --apply [--limit 50] # do it (arXiv's pace: AURORA_ARXIV_DELAY_S between calls)
     python script/vault_realign.py --wikipedia [--fresh] [--apply]   # the Wikipedia articles, each in its domain
+    python script/vault_realign.py --wikipedia --fresh --only-file ids.txt --apply   # only those (one a line)
 """
 from __future__ import annotations
 
 import argparse
 import base64
+import hashlib
 import json
+import os
 import re
 import sys
 import time
@@ -101,6 +104,65 @@ def _write(api, name: str, domain: str, ident: str, text: str) -> dict:
     return r.json() if r.is_success else {"status": r.status_code}
 
 
+def _pending(cfg) -> Path:
+    """O4 (ninth review, 20 Nov): an article between its copies' DELETE and its write is kept here on disk, so a stop
+    in between (a kill, the night's shutdown, the API restarting) loses nothing: the next --apply writes it first."""
+    return cfg.path("AURORA_STATUS_DIR") / "realign" / "pending"
+
+
+def _keep_pending(cfg, rec: dict) -> Path:
+    """The article's texts written to disk (fsync, then renamed in place) BEFORE any copy is deleted."""
+    d = _pending(cfg)
+    d.mkdir(parents=True, exist_ok=True)
+    f = d / (hashlib.sha256(rec["ident"].encode()).hexdigest()[:32] + ".json")
+    tmp = f.with_name(f.name + ".tmp")
+    with open(tmp, "w", encoding="utf-8") as fh:
+        fh.write(json.dumps(rec, ensure_ascii=False))
+        fh.flush()
+        os.fsync(fh.fileno())
+    os.replace(tmp, f)
+    return f
+
+
+def _move(api, rec: dict) -> tuple[dict, dict | None]:
+    """The article written in its target; if it is not, its old passages put back where they were. (write, back)."""
+    r = _write(api, rec["name"], rec["target"], rec["ident"], rec["text"])
+    if r.get("written"):
+        return r, None
+    return r, _write(api, rec["title"], rec["domain"], rec["ident"], rec["old"])
+
+
+def resume(cfg, api, known: dict, groups: dict) -> int:
+    """O4: the articles a stop left between the DELETE and the write: written now (or put back). How many. One whose
+    copies are still in the vault is left to the normal pass (the file goes once that pass keeps its own)."""
+    n = 0
+    for f in sorted(_pending(cfg).glob("*.json")) if _pending(cfg).is_dir() else []:
+        try:
+            rec = json.loads(f.read_text(encoding="utf-8"))
+            ident = rec["ident"]
+        except (OSError, ValueError, KeyError):
+            continue
+        copies = groups.get(ident, [])
+        if any(c["domain"] == rec["target"] for c in copies):     # it was written before the stop
+            known.setdefault(ident, {"target": rec["target"]})["done"] = f"{rec['target']} · resumed"
+            f.unlink()
+            continue
+        if copies:
+            continue
+        r, back = _move(api, rec)
+        if back is None:
+            known.setdefault(ident, {"target": rec["target"]})["done"] = f"{rec['target']} · resumed"
+        else:
+            known.setdefault(ident, {"target": rec["target"]})["failed"] = str(r)[:200]
+        if r.get("written") or (back or {}).get("written"):
+            f.unlink()
+            n += 1
+        print(f"resumed {ident}: " + (f"→ {rec['target']} ({r.get('written')} passages)" if back is None else
+                                      f"NOT moved ({r}), put back in {rec['domain']} ({(back or {}).get('written')})"),
+              flush=True)
+    return n
+
+
 def wikipedia(cfg, a, api, get) -> int:
     """Every Wikipedia article once, in the domain its text says (kno_domain, M195): copies merged, wrong domains
     moved — imported in the right one as a declared replacement, then the others removed. The domain chosen once is
@@ -112,8 +174,15 @@ def wikipedia(cfg, a, api, get) -> int:
     known = json.loads(state.read_text()) if state.exists() else {}
     groups = articles(cfg)
     only = {i.strip() for i in (getattr(a, "only", "") or "").split(",") if i.strip()}
+    if getattr(a, "only_file", ""):                # one identity a line: a title may hold a comma (C695)
+        only |= {line.strip() for line in Path(a.only_file).read_text(encoding="utf-8").splitlines() if line.strip()}
     if only:                                      # the nightly check's confirmed ones only (kno_vault_audit, C607)
         groups = {k: v for k, v in groups.items() if k in only}
+    if a.apply and resume(cfg, api, known, articles(cfg) if only else groups):
+        state.write_text(json.dumps(known))
+        groups = articles(cfg)
+        if only:
+            groups = {k: v for k, v in groups.items() if k in only}
     reader = mdl_router.model_for("route", LLM(cfg), cfg)
     moves = merges = fine = 0
     for n, (ident, copies) in enumerate(sorted(groups.items()), 1):
@@ -144,12 +213,16 @@ def wikipedia(cfg, a, api, get) -> int:
             text = text if len(text) >= 500 else old
             # a knowledge passage is its text's hash, held once in the whole vault: the same text cannot be written
             # in the new domain while the old copies hold it (C298) — the copies go first, then the article is
-            # written; if it is not, the old passages go back where they were
+            # written; if it is not, the old passages go back where they were. O4: both texts on disk first
+            rec = {"ident": ident, "name": name, "target": target, "text": text, "title": first["title"],
+                   "domain": first["domain"], "old": old}
+            pending = _keep_pending(cfg, rec)
             removed = sum(api.delete("/v1/aurora/sources", params={"domain": c["domain"], "source_id": c["source_id"]})
                           .is_success for c in copies)
-            r = _write(api, name, target, ident, text)
-            if not r.get("written"):                  # a passage still found twice is another document's: not lost
-                back = _write(api, first["title"], first["domain"], ident, old)
+            r, back = _move(api, rec)
+            if r.get("written") or (back or {}).get("written"):
+                pending.unlink()
+            if back is not None:                      # a passage still found twice is another document's: not lost
                 print(f"{n:6}/{len(groups)} {ident} NOT moved ({r}): put back in {first['domain']} "
                       f"({back.get('written')} of {back.get('chunks')} passages)", flush=True)
                 known[ident]["failed"] = str(r)[:200]
@@ -193,6 +266,7 @@ def main() -> int:
                     help="with --wikipedia: choose every article's domain again, not the one kept from the last run")
     ap.add_argument("--only", default="", help="with --wikipedia: only these identities (comma separated), their "
                     "domain as kept in realign/wikipedia.json — what the nightly check confirmed")
+    ap.add_argument("--only-file", default="", help="with --wikipedia: like --only, one identity a line")
     ap.add_argument("--drop-pdf-without-html", action="store_true",
                     help="remove a paper that arXiv has only as PDF (otherwise kept)")
     a = ap.parse_args()

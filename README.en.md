@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.en.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-2149%20passed-1baf7a" alt="Tests"> <img src="https://img.shields.io/badge/code-131k%20lines-6a4fd6" alt="Lines of code"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-2484%20passed-1baf7a" alt="Tests"> <img src="https://img.shields.io/badge/code-134k%20lines-6a4fd6" alt="Lines of code"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
 
 <p align="center">🇮🇹 <a href="README.md">Italiano</a> · 🇬🇧 <b>English</b></p>
 
@@ -61,7 +61,7 @@ exemption, and what leaves is always masked (no setting turns it off).
 | **Code of conduct** | level A (never: attacks, locating people, malware), level B (confirmations, disclosure) exemptible only by a signature with the installation's own key; services refuse to start if the rules are changed unsigned |
 | **Projects** | 📁 page: local projects and GitHub repositories (stars, forks, issues), clone locally, folder tree, files, README, history, **sandboxed page preview**, "ask Aurora" about a project |
 | **The project's conductor** | 🧑‍🔬 on the project's page: you write to it in your own words, in a console; it answers remembering the conversation (one session per project and per user) and «🏗️ Make it a phase» turns the request into a phase's goal, which you read, change and start with one click. Aurora's agent runs the phase in the project's cage, then the conductor reads the report and tells you what is done, what does not hold and what only you can decide (choices a / b / c, one recommended). The conductor talks, it does not act. Two writing phases on the local model: every number from the source, 3 fixes in 3 lines of diff (M260) |
-| **Projects carried by herself** | 🏗️ Plan: write the goal, Aurora proposes the steps (each with the test command that proves it), you change them and start it; in idle time she does one step at a time, and a step is done **only when its tests pass** (the code decides, not the model); 3 failures on a step and she stops and tells you; 🤝 one step then she waits for your «go on», 🚀 to the end. Pushes and publishing always wait for you. Pilot: 6 of 6 steps alone (M201) |
+| **Projects carried by herself** | 🏗️ Plan: write the goal, Aurora proposes the steps (each with the test command that proves it), you change them and start it; in idle time she does one step at a time, and a step is done **only when its tests pass** (the code decides, not the model); 3 failures on a step and she stops and tells you; 🤝 one step then she waits for your «go on», 🚀 to the end. Pushes and publishing always wait for you — and by default they are yours: Aurora runs no git on a project: one button («📦 Publish») commits in the project's cage (no network) and gives you a package to download — or you commit from the project's terminal — and you publish from your own computer with your own GitHub credentials, as each project's `aurora-git.md` explains (C674). Pilot: 6 of 6 steps alone (M201) |
 | **CAD drawings and patents** | 📑 in the project's page: ticks (blueprint, patent IT, EP, US) and ▶ Proceed. Aurora writes the CAD model part by part (OpenSCAD), draws the dimensioned blueprint (ISO 128, first angle, title block, parts list) and each office's drawing sheets with reference signs, writes description, claims and abstract in each office's form and checks the package against the rules and their sources (UIBM D.M. 33/2010, EPC, 37 CFR); no AI mark on documents for the offices. From a two-line README: 175.6 s (M209, M210) |
 | **Plugins with their own libraries** | a plugin declares its libraries with their hash: installed in its own folder, never in Aurora's environment, removed with it (M208) |
 | **Routines** | 🔁 page: connected plugins propose periodic checks (weather every morning, alerts every hour, weekly GitHub report…), switched on with one click or in your own words; reading is automatic, every write waits for approval |
@@ -300,6 +300,24 @@ The project's page has three groups of sections: **🛠️ Work** (Conductor, Pl
 **📐 Drawings and model** (Documents, Realistic view, Simulator, 3D print) and **📂 Files and history** (Files,
 History, Preview). Under the conductor, an activity console tells line by line what moves: the running phase, the
 saves, the files written.
+
+### 🔬 The scientific method in projects
+
+A research project does not trust its own agent: every result must hold against checks the agent cannot bend.
+
+| Capability | What it does | State |
+|---|---|---|
+| 🔒 **Frozen predictions** (N142) | before an experiment the agent writes what it expects; Aurora freezes it with the SHA-256 of the predictions and of the code in an append-only ledger, also kept outside the project. A file changed after the freeze is said, and its «passed» does not count | ✅ live |
+| 🧑‍⚖️ **Independent AI referee** (N142) | at a phase's end another model, with read-only tools, reads the goal, the changed files and the predictions (never the agent's report) and gives its verdict, which opens the reply; optional, it needs the Claude CLI | ✅ live |
+| 📐 **Proofs checked by Lean** (N143) | a project's `.lean` file is checked by Lean 4 + Mathlib in a read-only cage: «proved» only without `sorry` or shortcuts and with the standard axioms only (`propext`, `Classical.choice`, `Quot.sound`) | ✅ live, optional install |
+| 🧮 **The Lean mathematician in the chat** (N144) | «/lean …» or «prove in Lean: …»: a model writes the statement and the proof, Lean's kernel checks it, a second call checks the statement really is your sentence; the «verified» badge only with both | ✅ live, optional install |
+| ⏳ Long experiments in a cage (N145) | — | 🔧 built, off by default; eleven rounds of independent review up to «ready» (C615–C713) |
+| 📚 A literature check before saying «new» (N146) | — | 🔧 built, off by default; eleven rounds of independent review up to «ready» (C615–C713) |
+| 🔭 An engine that discovers laws from data (N147) | — | 🔧 built, off by default; eleven rounds of independent review up to «ready» (C615–C713) |
+
+Live checks on invented cases (docs/ROADMAP.md, rows N142–N144): a phase with two predictions, the referee on a model
+other than the conductor's, 85.5 s and 0.25 USD; a true theorem proved in 2.2 s and a false one refused; in the chat
+«the sum of two even numbers is even» proved and verified in 15.9 s.
 
 ### The autonomic cycle
 
@@ -543,6 +561,13 @@ and cut-out (0.2 GB), creative photo edits (14.9 GB), making videos (34.2 GB). T
 (measured VRAM and RAM) are not offered. At the end `sys_doctor.py` checks everything: configuration, signature,
 models, services. A feature not installed never breaks: Aurora says it is missing and with which command to add it
 (the ⚙️ Status page shows the same list).
+
+**Formal proofs** (N143, N144): optional, with `./install.sh --with-lean` or by answering yes to the question. They
+install into `sys/runtime/lean` elan and Lean 4 from pinned releases checked by SHA-256, and Mathlib at the revisions
+pinned in `sys/deploy/lean/lake-manifest.json`, with its compiled library. Network and about 11 GB are needed
+(measured on the reference machine). Without them the two features answer «Lean non installato» and nothing else
+changes; add them later with `bash sys/core/script/sys_proofs_install.sh`. The projects' referee uses the Claude CLI
+when present: the installer says whether it found it.
 
 ```bash
 .venv/bin/python sys/core/script/sys_doctor.py                          # is everything in place?

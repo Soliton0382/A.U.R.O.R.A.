@@ -16,12 +16,12 @@ from __future__ import annotations
 
 import json
 import re
-import subprocess
 import time
 import uuid
 from pathlib import Path
 
-from . import prj_policy, prj_prereg, prj_proof, sys_config, sys_seal
+from . import (prj_browse, prj_discover, prj_longrun, prj_novelty, prj_policy, prj_prereg, prj_proof, sys_config,
+               sys_seal)
 from . import sys_users_layout as L
 
 OPEN_ITEMS = ("docs/DA_FARE.md", "DA_FARE.md")
@@ -60,12 +60,21 @@ DRAFT_RULE = ("\nThe goal must also say, as its own numbered point: before runni
 # N143: a theorem is claimed proved only through Aurora's Lean check
 PROOF_RULE = ("\nIf the request asks for a theorem or a proof, the goal must also say: a theorem is claimed proved only "
               "when proof_check says PROVED for its .lean file.")
+# N147: a law found in data is claimed discovered only through Aurora's discovery engine
+DISCOVER_RULE = ("\nIf the request asks to find a law or a formula in data, the goal must also say: a law is claimed "
+                 "discovered only when discover_law says DISCOVERED.")
+# N145, N146: experiments of hours through long_run; a result called new only after novelty_check
+LONGRUN_RULE = ("\nIf an experiment may run longer than a command's limit, the goal must also say: start it with long_run "
+                "with its limits declared and report it only from its status once it has ended.")
+NOVELTY_RULE = ("\nIf the request may produce a result called new, the goal must also say: run novelty_check on it first, and "
+                "say «not found in the literature checked» rather than «new».")
 
 
 def draft_system(cfg: sys_config.Config, project: str, policy: str) -> str:
     """The drafting prompt, with the frozen-predictions rule unless AURORA_PREREG_MODE is off."""
     return (DRAFT.format(name=project, policy=policy) + (DRAFT_RULE if prj_prereg.rule(cfg) else "")
-            + (PROOF_RULE if prj_proof.rule(cfg) else ""))
+            + (PROOF_RULE if prj_proof.rule(cfg) else "") + (DISCOVER_RULE if prj_discover.rule(cfg) else "")
+            + (LONGRUN_RULE if prj_longrun.rule(cfg) else "") + (NOVELTY_RULE if prj_novelty.rule(cfg) else ""))
 
 
 def _file(cfg: sys_config.Config, project: str) -> Path:
@@ -183,28 +192,33 @@ def folder_facts(cfg: sys_config.Config, project: str, goal: str, since: float |
     except ValueError:
         return "(the project's folder could not be read)"
     out = []
+    from . import prj_safeio
+    root = p.resolve()
     for rel in dict.fromkeys(FILES.findall(goal or "")):
-        f = (p / rel).resolve()
-        if not f.is_relative_to(p.resolve()):
+        try:                                              # C665: lexical, opened without links, a regular file
+            r = prj_safeio.norm(rel, root)
+            ok = r != "." and prj_safeio.is_file(root, r)
+        except ValueError:
             continue
-        if not f.is_file():
+        if not ok:
             out.append(f"- {rel}: NOT in the folder")
             continue
-        text = f.read_text(encoding="utf-8", errors="replace") if f.suffix in (".md", ".txt", ".py") else ""
+        f = root / r
+        text = prj_safeio.read_small(root, r, 2_000_000) if f.suffix in (".md", ".txt", ".py") else ""
         heads = [ln.strip()[:60] for ln in text.splitlines() if ln.startswith("#") or re.match(r"\*\*[^*]{2,40}\.?\*\*", ln)]
-        out.append(f"- {rel}: {f.stat().st_size} bytes" + (f"; sections: {' | '.join(heads[:12])}" if heads else ""))
+        out.append(f"- {rel}: {f.lstat().st_size} bytes" + (f"; sections: {' | '.join(heads[:12])}" if heads else ""))
 
-    def git(*a: str) -> str:
-        try:
-            r = subprocess.run(["git", "-c", f"safe.directory={p}", "-C", str(p), *a], capture_output=True, text=True,
-                               timeout=20)
-            return r.stdout.strip() if r.returncode == 0 else ""
-        except (OSError, subprocess.TimeoutExpired):
-            return ""
+    def git(*a: str) -> str:                             # C658: caged and hardened (a planted .git ran here)
+        return prj_browse.git_read(p, *a, cfg=cfg, timeout=20).strip()
     pending = git("status", "--short")
     out.append("- not committed: " + (", ".join(pending.splitlines()[:15]) if pending else "nothing"))
     out.append("- last commits: " + (" · ".join(git("log", "--format=%cr %s", "-3").splitlines()) or "none"))
     out.append("- " + prj_prereg.balance(cfg, project, since))         # N142: the ledger, read by Aurora
+    if prj_novelty.enabled(cfg):                                         # N146: the literature checks and their sources
+        out.append("- " + prj_novelty.balance(cfg, project, since))
+    lr = [r for r in prj_longrun.runs(cfg, project) if since is None or float(r.get("t") or 0) >= since]
+    if lr:                                                               # N145: the long runs of the phase
+        out.append("- long runs: " + "; ".join(f"{r['id']} {r['status']} «{r.get('title', '')[:50]}»" for r in lr[-6:]))
     return "\n".join(out)
 
 

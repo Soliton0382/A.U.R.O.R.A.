@@ -8,6 +8,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import sys
 import shutil
 import subprocess
 from pathlib import Path
@@ -176,7 +177,9 @@ def test_the_host_starts_bubblewrap_by_its_path_and_keeps_its_own_environment(cf
          "forged": None}
     cfg.values["AURORA_ZZ_WHERE"] = "there"
     params = plg_host.PluginHost(cfg)._params(plg_host.Plugin("zz", tmp_path, m))
-    assert params.command == "/usr/bin/bwrap" and os.path.isabs(plg_sandbox.wrap(["x"], tmp_path, m, tmp_path / "e", cfg)[0])
+    # C672: the launcher (by Aurora's own interpreter, its whole path) replaces itself with bubblewrap by its path
+    assert params.command == sys.executable and params.args[1].endswith("plg_launch.py")
+    assert params.args[2] == "--at" and params.args[4] == "/usr/bin/bwrap" and os.path.isabs(plg_sandbox.wrap(["x"], tmp_path, m, tmp_path / "e", cfg)[0])
     assert params.env["ZZ_WHERE"] == "there" and params.env["AURORA_PLUGIN"] == "zz"
     assert params.env["AURORA_ENV_FILE"] == str(cfg.env_file) and params.env["PATH"].startswith(str(drop))
 
@@ -260,32 +263,6 @@ def test_a_readable_place_is_never_inside_aurora_nor_above_her(cfg, tmp_path_fac
 
 
 # ---- the projects plugin: its token leaves for GitHub only ---------------------------------------------------------------------
-@pytest.mark.skipif(not GIT, reason="git")
-def test_the_projects_plugin_sends_its_token_to_github_only(cfg, monkeypatch):
-    proj = _project(cfg, monkeypatch)
-    monkeypatch.setattr(sys_config, "get", lambda *a, **k: cfg)
-    monkeypatch.setenv("AURORA_GITHUB_TOKEN", "not-a-real-token")
-    monkeypatch.setenv("AURORA_PLUGIN_SECRET_AURORA_GITHUB_TOKEN", "not-a-real-token")
-    spec = importlib.util.spec_from_file_location(
-        "projects_plugin_server", Path(__file__).resolve().parents[2] / "plugins" / "projects" / "server.py")
-    P = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(P)
-    env = P._git_env()
-    assert "not-a-real-token" not in env.values() and env["GIT_CEILING_DIRECTORIES"] == str(P.BASE)
-    pushed = []
-    monkeypatch.setattr(P, "_git", lambda p, *a, **k: pushed.append(a) or "ok")
-    for url in ("https://evil.example/x/y.git", "https://github.com.evil.example/x/y", "http://github.com/x/y",
-                "https://user@github.com/x/y", "ssh://github.com/x/y", "https://github.com/x"):
-        with pytest.raises(P.ToolError, match="not a GitHub repository"):
-            P._push(proj, url)
-    subprocess.run(["git", "-C", str(proj), "config", "url.https://evil.example/.insteadOf", "https://github.com/"], check=True)
-    with pytest.raises(P.ToolError, match="own git configuration"):
-        P._push(proj, "https://github.com/someone/demo.git")
-    assert pushed == []
-    subprocess.run(["git", "-C", str(proj), "config", "--unset", "url.https://evil.example/.insteadOf"], check=True)
-    assert P._push(proj, "https://github.com/someone/demo.git") == "ok" and len(pushed) == 1
-
-
 # ---- a refused plugin is said once ----------------------------------------------------------------------------------------------
 def test_a_plugin_not_loaded_is_said_once_not_at_every_listing(cfg, monkeypatch):
     from aurora import sys_ethics

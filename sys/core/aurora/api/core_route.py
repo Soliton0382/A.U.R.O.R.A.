@@ -11,6 +11,7 @@ import time
 from pathlib import Path
 
 from aurora import sol_reader, sys_context, sys_features, txt_lang
+from aurora.kno_self import clip                  # a turn cut says so (C6xx-a)
 
 from .core import cfg, log, note, pipeline, plugin_host
 
@@ -57,7 +58,7 @@ def wants_tools(question: str, recent: list, emit=None) -> bool:
     services = connected_services()
     if not services:
         return False
-    prev = "\n".join(f"{'Owner' if t.extra.get('role') == 'user' else 'Aurora'}: {t.text[:300]}" for t in recent[-2:])
+    prev = "\n".join(f"{'Owner' if t.extra.get('role') == 'user' else 'Aurora'}: {clip(t.text, 300)}" for t in recent[-2:])
     model, system = pipeline()._for("route"), SYS_TOOLS.replace("{services}", "\n".join(services))
     user = (f"PREVIOUS TURNS:\n{prev}\n\n" if prev else "") + f"LAST MESSAGE: {question}"
     sure = getattr(model, "decide", lambda *a: None)(system, user, ["TOOLS", "NO"])   # one token (M199), else words
@@ -338,7 +339,7 @@ def answer_or_acquire(question: str, emit, run_id: str, **kw):
     # also right after an abstention, where "check my repositories" is not a "yes, search arXiv"
     if not kw.get("attached") and wants_tools(question, recent, emit):     # a connected service, not the vault
         emit("route", {"mode": "tools"})
-        context = "\n".join(f"{'Owner' if t.extra.get('role') == 'user' else 'Aurora'}: {t.text[:500]}" for t in recent[-4:])
+        context = "\n".join(f"{'Owner' if t.extra.get('role') == 'user' else 'Aurora'}: {clip(t.text, 500)}" for t in recent[-4:])
         if remember:                                  # C544: what the person told her, as the answers have (kno_about)
             try:
                 from aurora import kno_about

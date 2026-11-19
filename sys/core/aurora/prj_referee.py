@@ -20,7 +20,6 @@ from __future__ import annotations
 import datetime
 import json
 import re
-import subprocess
 import time
 from pathlib import Path
 
@@ -37,14 +36,17 @@ HEAD = re.compile(r"^<!-- aurora-review (\{.*\}) -->", re.M)
 TOOLS = [({**t, "description": "Run a shell command in a READ-ONLY cage of the project (no network; nothing can be "
            "written in the project; scratch in /tmp): re-run its code, its tests, recompute a number."}
           if t["name"] == "run" else t) for t in prj_act.TOOLS
-         if t["name"] in ("list_files", "read_file", "search_vault", "run", "proof_check")]   # proof_check: N143
+         if t["name"] in ("list_files", "read_file", "search_vault", "run", "proof_check", "long_run", "novelty_check")]
+# proof_check: N143; long_run (status and list only in a read-only run): N145; novelty_check (no report file): N146
 
 PROMPT = """You are a severe, adversarial referee of the project «{name}». You are an AI reviewer: say so in your
 second line. You did not do the work and you do not trust it. Below are the phase's goal, the files it changed, the
 documents it wrote and the predictions it froze before its experiments. With the tools of the «aurora» server you can
 list and read the project's files, search Aurora's vault of verified papers, run commands in a READ-ONLY cage (no
 network; nothing you run changes the project; scratch in /tmp) and re-check a Lean proof with proof_check (a theorem
-counts as proved only when it says PROVED). You have no write tool.
+counts as proved only when it says PROVED), look at a long run's status with long_run and search the literature
+for a claim called new with novelty_check (nothing close found means «not found in the literature checked»,
+never «new»). You have no write tool.
 1. For EACH claim in the phase's documents (a result, a number, a derivation, «verified», a citation) give a verdict
    FATAL / MAJOR / MINOR / OK, its location (file and section or line) and its quantitative impact when you measured
    it (re-run the code, recompute); otherwise write «not measured». Never invent a measurement.
@@ -85,12 +87,8 @@ def model_for(cfg: sys_config.Config, conductor: str) -> str:
 
 
 def _git(root: Path, *a: str) -> str:
-    try:
-        r = subprocess.run(["git", *prj_run.GIT_SAFE, "-c", f"safe.directory={root}", "-C", str(root), *a],
-                           capture_output=True, text=True, timeout=20)
-        return r.stdout if r.returncode == 0 else ""
-    except (OSError, subprocess.TimeoutExpired):
-        return ""
+    from . import prj_browse                             # C658: caged and hardened, like every host-side git
+    return prj_browse.git_read(root, *a, timeout=20)
 
 
 def changed_files(cfg: sys_config.Config, project: str, since: float | None) -> list[str]:
@@ -98,7 +96,7 @@ def changed_files(cfg: sys_config.Config, project: str, since: float | None) -> 
     reviews/ (given apart, or Aurora's). No `since`: the whole project."""
     root = prj_run.project_dir(cfg, project)
     snap = prj_run.snapshot(root)
-    out = {k for k, (mt, _) in snap.items() if since is None or mt / 1e9 >= since}
+    out = {k for k, v in snap.items() if since is None or v[0] / 1e9 >= since}
     if since is not None and (root / ".git").is_dir():
         when = datetime.datetime.fromtimestamp(since, datetime.timezone.utc).isoformat()
         out |= {x.strip() for x in _git(root, "log", f"--since={when}", "--name-only", "--format=").splitlines() if x.strip()}
@@ -114,11 +112,15 @@ def inputs(cfg: sys_config.Config, project: str, goal: str, since: float | None)
              "## Files changed in the phase\n" + ("\n".join(f"- {f}" + ("" if (root / f).exists() else " (removed)")
                                                          for f in files) or "(none)")]
     room = DOCS_CHARS
+    from . import prj_safeio
     for f in files:
         p = root / f
-        if p.suffix.lower() not in DOC_SUFFIX or not p.is_file() or room <= 0:
+        if p.suffix.lower() not in DOC_SUFFIX or room <= 0:
             continue
-        text = p.read_text(encoding="utf-8", errors="replace")
+        try:                                             # C665: read from the project's folder, no link, no pipe
+            text = prj_safeio.read_text(root.resolve(), f)
+        except ValueError:
+            continue
         cut = text[:min(DOC_CHARS, room)]
         room -= len(cut)
         more = f"\n… {len(text)} characters in all: read_file for the rest" if len(cut) < len(text) else ""
@@ -126,15 +128,15 @@ def inputs(cfg: sys_config.Config, project: str, goal: str, since: float | None)
     rows = prj_prereg.entries(cfg, project, since)
     pre = []
     for e in rows:
-        try:
-            body = (root / e["file"]).read_text(encoding="utf-8", errors="replace")[:4000]
-        except OSError:
-            body = "(the predictions' file is missing)"
+        body = prj_safeio.read_small(root.resolve(), e["file"], 4000) or "(the predictions' file is missing)"
         pre.append(json.dumps({k: e.get(k) for k in ("id", "title", "created", "status", "outcomes", "evidence",
                                                       "closed", "integrity", "changed", "counted")}, ensure_ascii=False)
                    + "\n" + body)
     parts.append("## Frozen predictions of the phase (prereg/LEDGER.jsonl, kept by Aurora)\n"
                  + ("\n\n".join(pre) if pre else "(none frozen in this phase)"))
+    from . import prj_novelty
+    if prj_novelty.enabled(cfg):                         # N146: what the literature said, the sources with it
+        parts.append(prj_novelty.referee_part(cfg, project, since))
     return "\n\n".join(parts)
 
 
@@ -165,7 +167,7 @@ def review(cfg: sys_config.Config, project: str, goal: str, since: float | None,
     from .sec_mask import KEEP, Pseudonymizer
     run = prj_act.Run(cfg, project, Pseudonymizer(cfg), goal)
     cfg = run.cfg                                         # the user's own config, fixed (C517)
-    run.tools, run.readonly, run.notes = TOOLS, True, False
+    run.tools, run.readonly, run.notes = prj_act.available(cfg, TOOLS), True, False
     say, root = _say(lang), prj_run.project_dir(cfg, project)
     model, max_usd, limit = model_for(cfg, cc.model), float(cfg["AURORA_REFEREE_MAX_USD"]), int(cfg["AURORA_REFEREE_TIMEOUT_S"])
     system = PROMPT.format(name=project, lang="English" if str(lang).startswith("en") else "Italian")

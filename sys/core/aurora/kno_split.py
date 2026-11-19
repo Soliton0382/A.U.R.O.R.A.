@@ -18,12 +18,17 @@ from __future__ import annotations
 
 import re
 
-SYS_SPLIT = ("The user tells a situation with one or more problems. Write the questions a lawyer or an expert would "
-             "look up to help: one for EACH distinct problem, at most 4. Each is a short, plain question in natural "
-             "language (at most 15 words) about the general rule, as a reference book would answer it — e.g. «Chi "
-             "paga la riparazione della caldaia in un appartamento in affitto?», «Il proprietario può trattenere la "
-             "cauzione?». No people's names, no feelings, no story. Same language as the message. One per line, "
-             "nothing else.")
+SYS_SPLIT = ("The user tells a situation with one or more problems. Write the questions someone would look up in a "
+             "reference book to help: one for EACH distinct problem, at most 4. Each is a short, plain question in "
+             "natural language (at most 15 words) about the general rule or fact, as a manual, an encyclopedia or, "
+             "only when the message is about a right, a duty, a contract, a dispute or a fine, a code of law would "
+             "answer it — e.g. «Why does bread go stale faster in the fridge?», «How often should a cactus be "
+             "watered?», «Must a shop refund a faulty product?», «Can a neighbour cut branches that cross the "
+             "fence?». No people's names, no feelings, no story. {lang} One per line, nothing else.")
+# C694: the prompt asked for «the questions a lawyer would look up» with two tenancy examples in Italian, and wrote
+# the searches in Italian from the English pivot — in Italian they found Normattiva (a phone getting hot became four
+# questions on the legal guarantee). Neutral now, examples of both kinds, in the pivot's language when it is used.
+SAME_LANGUAGE, IN_ENGLISH = "Same language as the message.", "Write them in English."
 MARK = "THE PROBLEMS IT HOLDS"
 SYS_CASE = ("\nTHIS QUESTION IS A CASE told by the owner, with the problems it holds listed after it. For EACH problem, "
             "in its own short paragraph, say what the extracted provisions establish that applies to it (the rule, who "
@@ -54,9 +59,12 @@ def wanted(question: str, min_chars: int) -> bool:
     return bool(min_chars) and len(question) >= min_chars
 
 
-def split(model, question: str) -> list[str]:
+def split(model, question: str, english: bool = False, language: str = "") -> list[str]:
+    """At most 4 short searches; in English when the search works on the English pivot (C694), in `language` when
+    one is named."""
     out = []
-    for line in model.complete(SYS_SPLIT, question, 240).answer.splitlines():
+    system = SYS_SPLIT.format(lang=IN_ENGLISH if english else f"Write them in {language}." if language else SAME_LANGUAGE)
+    for line in model.complete(system, question, 240).answer.splitlines():
         s = re.sub(r"^[\s\-•*\d.)]+", "", line).strip().strip('"«»')
         if 3 <= len(s) <= 160 and s.lower() not in (x.lower() for x in out):
             out.append(s)
@@ -93,19 +101,29 @@ def merge(base: list, found: list[list], top_k: int, first: int = 3) -> list:
     return out[:top_k + len(found)]                   # one more passage per search: the whole's best still fit
 
 
-def search(pipeline, question: str, whole, ev, run_id: str | None = None) -> tuple[list, list[str]]:
+def search(pipeline, question: str, whole, ev, run_id: str | None = None, legal: bool = True,
+           lang: str = "") -> tuple[list, list[str]]:
     """(hits, problems): a long message searched by its problems and its provisions; `whole()` searches the message
-    itself — for a short one, or when the others find nothing (the story whole cost 10 s and found least: M128)."""
+    itself — for a short one, or when the others find nothing (the story whole cost 10 s and found least: M128).
+    `legal`: kno_lawgate's answer — False, no provision is named or fetched (C694). `lang`: the language the user
+    wrote in."""
     cfg = pipeline.cfg
     if not wanted(question, int(cfg["AURORA_PIPELINE_SPLIT_CHARS"] or 0)):
         return whole(), []
     from . import kno_cites
     from .kno_stages import SYS_TRANSLATE, as_text, untag       # here: kno_stages imports this module (C320)
-    cited = kno_cites.hits(pipeline, question, ev)       # the provisions a lawyer would read, from the vault
-    subs = split(pipeline._for("translate"), question)
+    cited = kno_cites.hits(pipeline, question, ev) if legal else []    # the provisions a lawyer would read
+    # the question is the English pivot: so are its searches — unless the law may answer: a statute is found by its own
+    # words (M318: English searches dropped the cases' best law re-rank, e.g. 0.98 → 0.10), so a legal case is split
+    # in the user's language and each search translated, as before; the law gate keeps that from everyday stories
+    from .kno_stages import LANGS
+    pivot = bool(getattr(pipeline, "_pivot", False))
+    native = LANGS.get(lang, "") if legal and lang and lang != "en" else ""
+    english = pivot and not native
+    subs = split(pipeline._for("translate"), question, english, native if pivot else "")
     found = []
     for s in (subs if len(subs) >= 2 else []):
-        tr = untag(pipeline._for("translate").complete(SYS_TRANSLATE, as_text(s), 120).answer)
+        tr = None if english else untag(pipeline._for("translate").complete(SYS_TRANSLATE, as_text(s), 120).answer)
         found.append(pipeline.search.search(s, tr, candidates=80, run_id=run_id))   # M128: same best as 150, 4.7 s each
     if not cited and not found:
         return whole(), []

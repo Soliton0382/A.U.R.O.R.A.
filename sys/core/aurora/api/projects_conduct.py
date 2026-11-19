@@ -55,7 +55,7 @@ async def conduct_start(name: str, entry: str, request: Request) -> dict:
     # Cloud»), the cloud only when asked and the project allows it; the judge (draft, reply) stays as assigned
     local = prj_conduct.local(cfg, name) or body.get("worker", "local") != "cloud"
 
-    from aurora import prj_prereg, prj_proof, prj_referee, txt_lang
+    from aurora import prj_discover, prj_longrun, prj_novelty, prj_prereg, prj_proof, prj_referee, txt_lang
     lang = txt_lang.detect(text)                      # the verdict in the goal's language (C516)
     since = time.time()                               # the phase's start: its frozen predictions, its changed files
 
@@ -83,8 +83,9 @@ async def conduct_start(name: str, entry: str, request: Request) -> dict:
             prj_conduct.add(cfg, name, "reply", ans.text)
         prj_conduct.update(cfg, name, entry, status="done")
 
-    rules = "\n\n".join(x for x in (prj_prereg.rule(cfg), prj_proof.rule(cfg)) if x)     # N142, N143
-    inner = _agent_job(text, rules, remember=False, asked=True, local=local, after=after)
+    rules = "\n\n".join(x for x in (prj_prereg.rule(cfg), prj_proof.rule(cfg), prj_discover.rule(cfg),   # N142, N143, N147
+                                      prj_longrun.rule(cfg), prj_novelty.rule(cfg)) if x)                # N145, N146
+    inner = _agent_job(text, rules, remember=False, asked=True, local=local, after=after, project=name)
 
     def job(q, emit, run_id):
         try:
@@ -224,6 +225,107 @@ async def proof_check(name: str, request: Request) -> dict:
         raise HTTPException(status_code=400, detail="a .lean file of the project: «path»")
     r = await in_thread(prj_proof.check, cfg, name, path)
     log.info("audit: proof check in project %s: %s, %s s", name, r["status"], r["seconds"])
+    return r
+
+
+# ---- 🔭 the discovery engine (prj_discover, N147) ---------------------------------------------------------------
+@router.get("/v1/aurora/projects/{name}/discover", dependencies=[Depends(auth)])
+def discover_list(name: str) -> dict:
+    """The project's last law searches (the user's state), newest first."""
+    from aurora import prj_discover
+    _check(name)
+    return {"items": list(reversed(prj_discover.history(cfg, name))), "enabled": prj_discover.enabled(cfg)}
+
+
+@router.post("/v1/aurora/projects/{name}/discover", dependencies=[Depends(auth)])
+async def discover_run(name: str, request: Request) -> dict:
+    """{data, target, inputs?, baseline?, seed?, holdout?}: a law searched on the training rows of a table of the
+    project (a read-only cage), frozen, then tested on the held-out rows; the result, kept in the history."""
+    from aurora import prj_discover
+    _check(name)
+    body = await request.json()
+    if not str(body.get("data", "")).strip() or not str(body.get("target", "")).strip():
+        raise HTTPException(status_code=400, detail="a table of the project («data») and its column to explain («target»)")
+    try:
+        a = prj_discover.run_args(body)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="seed: an integer; holdout: a number") from None
+    r = await in_thread(lambda: prj_discover.discover(cfg, name, **a))
+    log.info("audit: law search in project %s: %s, %s s", name, r["status"], r["seconds"])
+    return r
+
+
+# ---- ⏳ long runs (prj_longrun, N145) -------------------------------------------------------------------------------
+@router.get("/v1/aurora/projects/{name}/longruns", dependencies=[Depends(auth)])
+def longrun_list(name: str) -> dict:
+    """The project's long runs (the user's state), newest first; runs left without a watcher resumed first."""
+    from aurora import prj_longrun
+    _check(name)
+    if prj_longrun.enabled(cfg):
+        prj_longrun.sweep(cfg, name)
+    return {"items": list(reversed(prj_longrun.runs(cfg, name))), "enabled": prj_longrun.enabled(cfg)}
+
+
+@router.get("/v1/aurora/projects/{name}/longruns/{rid}", dependencies=[Depends(auth)])
+def longrun_status(name: str, rid: str) -> dict:
+    """One run: its state, its progress line and its log's end."""
+    from aurora import prj_longrun
+    _check(name)
+    try:
+        return prj_longrun.status(cfg, name, rid)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from None
+
+
+@router.post("/v1/aurora/projects/{name}/longruns", dependencies=[Depends(auth)])
+async def longrun_start(name: str, request: Request) -> dict:
+    """{command, title?, wall_s, mem_mb, disk_mb, cpu_s?, gpu?, outputs?, code_files?}: a long run started in the
+    background, its limits declared first."""
+    from aurora import prj_longrun
+    _check(name)
+    body = await request.json()
+    try:
+        st = await in_thread(lambda: prj_longrun.start(cfg, name, str(body.get("command") or ""),
+                                                        prj_longrun.limits(cfg, body), str(body.get("title") or ""),
+                                                        body.get("outputs") or [], body.get("code_files") or []))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    except RuntimeError as e:
+        raise HTTPException(status_code=409, detail=str(e)) from None
+    log.info("audit: long run %s started in project %s", st["id"], name)
+    return st
+
+
+@router.post("/v1/aurora/projects/{name}/longruns/{rid}/stop", dependencies=[Depends(auth)])
+def longrun_stop(name: str, rid: str) -> dict:
+    from aurora import prj_longrun
+    _check(name)
+    try:
+        st = prj_longrun.stop(cfg, name, rid)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from None
+    log.info("audit: long run %s stop asked in project %s", rid, name)
+    return st
+
+
+# ---- 📚 the literature check (prj_novelty, N146) ---------------------------------------------------------------
+@router.get("/v1/aurora/projects/{name}/novelty", dependencies=[Depends(auth)])
+def novelty_list(name: str) -> dict:
+    from aurora import prj_novelty
+    _check(name)
+    return {"items": list(reversed(prj_novelty.history(cfg, name))), "enabled": prj_novelty.enabled(cfg)}
+
+
+@router.post("/v1/aurora/projects/{name}/novelty", dependencies=[Depends(auth)])
+async def novelty_check(name: str, request: Request) -> dict:
+    """{claim, keywords?}: the literature searched for a statement (one masked query); the verdict, kept."""
+    from aurora import prj_novelty
+    _check(name)
+    body = await request.json()
+    if not str(body.get("claim", "")).strip():
+        raise HTTPException(status_code=400, detail="the result's statement: «claim»")
+    r = await in_thread(lambda: prj_novelty.check(cfg, project=name, **prj_novelty.args(body)))
+    log.info("audit: literature check in project %s: %s, %s s", name, r["status"], r["seconds"])
     return r
 
 

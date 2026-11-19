@@ -14,7 +14,9 @@ decisioni in modo indipendente»): at 🚀 by Aurora herself, written to her led
 notification, and a box on the Security page with the counts) and the owner says yes or no. A quiet pattern's
 incidents are still kept and listed, as low, with no notification and no inquiry; a verdict «right» on one of them
 wakes the pattern again, and so does the owner's click. Never quieted: a decoy touched, a known attacker's address, a
-device of the house reaching one, a reconnaissance followed by an exit.
+device of the house reaching one, a reconnaissance followed by an exit; nor a high or critical alert (C406). A «right»
+works the other way: the pattern's next alert comes one step higher, loud (raised). The verdicts are counted from
+sec_verdicts too, which keeps them after their incidents leave incidents.json (C406).
 State: <STATUS>/incidents_quiet.json, {pattern: {"state", "at", "fa", "right", "name"}}."""
 from __future__ import annotations
 
@@ -35,6 +37,8 @@ AGAIN_FA = 10             # a «no» asked again after this many more false alar
                           # declined at 3, had 53 false alarms a week later and was never proposed again)
 NEVER = {"honeypot", "recon_then_out", "egress_deny", "model_egress", "egress_new", "egress_upload",
          "syslog_flood"}                                # C566: forged logs are never a habit of the house
+LOUD_SEVERITY = {"high", "critical"}                    # never quieted by a pattern, whatever its history (C406)
+UP = {"low": "medium", "medium": "high"}                # a pattern judged right: its next alert one step up (C406)
 _lock = threading.Lock()
 
 
@@ -59,6 +63,8 @@ def _save(cfg: sys_config.Config, st: dict) -> None:
 
 def what(incident: dict) -> str | None:
     """What the incident is, without who; None for what is never quieted."""
+    if "_what" in incident:                            # a verdict kept after its incident left the file (sec_verdicts)
+        return incident["_what"]
     kind = str(incident.get("kind", ""))
     if kind in NEVER or incident.get("intel_lists") or incident.get("destination_lists"):
         return None
@@ -77,6 +83,8 @@ def device(incident: dict) -> str:
 
 
 def pattern(incident: dict) -> str | None:
+    if "_pattern" in incident:
+        return incident["_pattern"]
     w = what(incident)
     return f"{w}|{device(incident)}" if w else None
 
@@ -150,8 +158,26 @@ def quiet_list(cfg: sys_config.Config, lang: str = "it") -> list[dict]:
 
 
 def is_quiet(cfg: sys_config.Config, incident: dict) -> str | None:
+    """The quiet pattern this incident falls in; never for a high or critical one (C406: an answer about the habit of
+    one device must not hide a serious alert of that same device)."""
+    if incident.get("severity") in LOUD_SEVERITY:
+        return None
     p = pattern(incident)
     return p if p and load(cfg).get(p, {}).get("state") == "quiet" else None
+
+
+def raised(incident: dict, items: list[dict], now: float | None = None) -> str | None:
+    """C406: the owner judged this pattern (what, on which device or from which address) «right» within WINDOW_DAYS —
+    the new alert one step up (low → medium → high), never quiet nor settled; None otherwise."""
+    p = pattern(incident)
+    sev = str(incident.get("severity") or "low")
+    if not p or sev not in UP:
+        return None
+    since = (time.time() if now is None else now) - WINDOW_DAYS * 86400
+    me = incident.get("id")
+    hit = any(i.get("verdict") == "right" and i is not incident and (me is None or i.get("id") != me) and pattern(i) == p
+              and float(i.get("verdict_at") or i.get("received_ts") or 0) >= since for i in items)
+    return UP[sev] if hit else None
 
 
 def answer(cfg: sys_config.Config, p: str, state: str, counts: Counter | None = None, name: str = "") -> dict:

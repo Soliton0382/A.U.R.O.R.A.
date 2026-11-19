@@ -87,7 +87,8 @@ def test_a_user_s_own_ceiling_counts_every_provider_the_subscription_too(cfg):
 
 def test_a_user_at_their_ceiling_is_told_and_so_is_the_admin(cfg, monkeypatch):
     """9 Nov (106): the ceiling reached was a line in the log only; now the user hears it, and the admin too, once a day."""
-    from aurora import sys_context, sys_push, sys_users_perm as P
+    from aurora import sys_config, sys_context, sys_push, sys_users_perm as P
+    monkeypatch.setattr(sys_config, "get", lambda *a, **k: cfg)   # C683: api.core reads the config at import
     from aurora.api import core
     monkeypatch.setattr(core, "cfg", cfg)
     monkeypatch.setattr(core, "_admin", lambda: "owner")

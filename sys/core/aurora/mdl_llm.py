@@ -82,6 +82,12 @@ def model_now(cfg: sys_config.Config) -> str:
         return str(cfg["AURORA_LLM_MODEL"])
 
 
+def at_limit(data: dict) -> bool:
+    """llama-server stopped at n_predict: «stop_type»: «limit» (this build, measured 20 Nov), «stopped_limit» before
+    (C6xx-b: only the old field was read, so every local cut came back as a whole answer)."""
+    return data.get("stop_type") == "limit" or bool(data.get("stopped_limit"))
+
+
 class LLM:
     def __init__(self, cfg: sys_config.Config | None = None):
         self.cfg = cfg or sys_config.get()
@@ -177,16 +183,24 @@ class LLM:
         """No reasoning, in the model's own words (Qwen's: enable_thinking, as measured)."""
         return {"enable_thinking": False} if self.fmt.template == "chatml" else self.fmt.kwargs(False)
 
-    def decide(self, system: str, user: str, options: list[str]) -> dict[str, float] | None:
+    def decide(self, system: str, user: str, options: list[str], timeout: float | None = None) -> dict[str, float] | None:
         """A choice read from the probabilities of ONE answer token, nothing generated (M197, M199: the same decisions
         as a written word, in half the time, with how sure it is). {option: probability}, summing to 1; None when the
-        answer is not one of the options (the caller asks in words, as before)."""
+        answer is not one of the options (the caller asks in words, as before). `timeout`: the whole call bounded,
+        the swap's wait included (C706: a tie-break never left waiting on the model) — None after it."""
         system = sys_config.personal(system, self.cfg)
         if self.fmt.template == "native":
             system = self.fmt.system(system, False)
-        self._ready()
+        limit = min(self.timeout, timeout) if timeout else self.timeout
+        t0 = time.time()
+        if timeout:
+            from . import mdl_image
+            mdl_image.swap_wait(self.cfg, limit)
+            limit = max(0.1, limit - (time.time() - t0))
+        else:
+            self._ready()
         try:
-            r = httpx.post(self.url + "/v1/chat/completions", timeout=self.timeout, json={
+            r = httpx.post(self.url + "/v1/chat/completions", timeout=limit, json={
                 "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
                 "max_tokens": 1, "temperature": 0.0, "logprobs": True, "top_logprobs": 10, "cache_prompt": True,
                 "chat_template_kwargs": self._off()})
@@ -253,7 +267,7 @@ class LLM:
         else:
             thought, answer = "", text
         done = Completion(answer.strip(), thought.strip(), int(data.get("tokens_predicted", 0)),
-                          time.time() - t0, bool(data.get("stopped_limit")) or (think and not found))
+                          time.time() - t0, at_limit(data) or (think and not found))
         self.log.debug("complete: think=%s %d tokens in %.1f s%s", think, done.tokens, done.seconds,
                        " (truncated)" if done.truncated else "")
         return done
@@ -285,19 +299,23 @@ class LLM:
         else:
             thought, answer = "", text
         return Completion(answer.strip(), thought.strip(), int(data.get("tokens_predicted", 0)), time.time() - t0,
-                          bool(data.get("stopped_limit")) or (think and not found))
+                          at_limit(data) or (think and not found))
 
     def _stream_native(self, system: str, user: str, max_tokens: int, think: bool) -> Iterator[tuple[str, str]]:
         body = self._native([{"role": "system", "content": system}, {"role": "user", "content": user}], max_tokens,
                             think, stream=True)
         self.last_speed = None
+        self.last_truncated = False
         self._ready()
         with httpx.stream("POST", self.url + "/v1/chat/completions", json=body, timeout=self.timeout) as r:
             r.raise_for_status()
             for line in r.iter_lines():
                 if not line.startswith("data: ") or line.strip() == "data: [DONE]":
                     continue
-                delta = (json.loads(line[6:]).get("choices") or [{}])[0].get("delta") or {}
+                choice = (json.loads(line[6:]).get("choices") or [{}])[0]
+                if choice.get("finish_reason"):
+                    self.last_truncated = choice["finish_reason"] == "length"     # C6xx-e
+                delta = choice.get("delta") or {}
                 if delta.get("reasoning_content"):
                     yield "thought", delta["reasoning_content"]
                 if delta.get("content"):
@@ -311,6 +329,7 @@ class LLM:
         phase = "thought" if think else "answer"
         pending = ""
         self.last_speed = None
+        self.last_truncated = False
         with httpx.stream("POST", self.url + "/completion", json=self._body(system, user, max_tokens, think, True),
                           timeout=self.timeout) as r:
             r.raise_for_status()
@@ -319,6 +338,8 @@ class LLM:
                     continue
                 chunk = json.loads(line[6:])
                 piece = chunk.get("content", "")
+                if chunk.get("stop"):                               # the room ended inside the text (C6xx-e)
+                    self.last_truncated = at_limit(chunk)
                 if chunk.get("stop") and chunk.get("timings"):      # measured by llama-server, not estimated
                     tm = chunk["timings"]
                     self.last_speed = {"tokens": tm.get("predicted_n"), "per_second": round(tm.get("predicted_per_second", 0), 1)}

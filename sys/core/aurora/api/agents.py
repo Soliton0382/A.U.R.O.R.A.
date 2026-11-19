@@ -49,7 +49,7 @@ def _gap_check(agent, goal: str, report: str, emit, run_id: str, routine: str | 
 
 
 def _agent_job(goal: str, context: str = "", after=None, remember: bool = False, label: str | None = None,
-               asked: bool = False, quiet: tuple[str, ...] = (), local: bool = False):
+               asked: bool = False, quiet: tuple[str, ...] = (), local: bool = False, project: str = ""):
     """An agent run. `remember`: the owner asked for it, so goal and report become conversation turns
     (with the whole path), like any other answer; the autonomic ones become reflections (`after`). `asked`: the goal
     is the owner's own words (the chat, the agent page), so a home command it asks for is done (C281). `quiet`: the
@@ -61,6 +61,8 @@ def _agent_job(goal: str, context: str = "", after=None, remember: bool = False,
         asked_at = now_iso()
         agent = Agent(pipeline(), cfg, notify=lambda e, p: None if e in quiet else note("agent", e, p), host=plugin_host())
         agent.asked = asked
+        if project:                                    # C690: a project's phase is bound to its project, whatever
+            agent.bound_project = project              # its goal names (prj_policy.bound)
         agent.between = give_way                       # every agent runs under start_run: a phase can last 48 min (C498)
         agent.cancelled = lambda: bool((_runs.get(run_id) or {}).get("cancel"))   # 🛑 said in a call (api/call)
         if local:

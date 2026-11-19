@@ -201,6 +201,36 @@ class Config:
 # 🔐 a plugin's own secrets (C463, ROADMAP N69 a): its filtered .env on the disk says «aurenv:KEY» where the value was;
 # the value travels in the plugin process's environment alone (read by its account and root only), under this prefix
 ENV_REF, PLUGIN_SECRET = "aurenv:", "AURORA_PLUGIN_SECRET_"
+# C672: inside a plugin's cage the values come in a file the launcher (plg_launch) made inside the cage from a pipe —
+# never in an environment the kernel keeps (/proc/<pid>/environ of the plugin and of bubblewrap, readable by any
+# process of the same account in the cage): read once, kept in this process, and the file emptied
+PLUGIN_SECRETS_FILE = "AURORA_PLUGIN_SECRETS_FILE"
+_plugin_secrets: dict[str, str] | None = None
+
+
+def plugin_secret(key: str) -> str:
+    """A plugin's own secret: from the launcher's file (read once, then emptied) or, without a cage, its environment."""
+    global _plugin_secrets
+    if _plugin_secrets is None:
+        _plugin_secrets = {}
+        path = os.environ.pop(PLUGIN_SECRETS_FILE, "")
+        if path:
+            try:
+                with open(path, "r+", encoding="utf-8") as fh:
+                    for line in fh.read().splitlines():
+                        k, sep, v = line.partition("=")
+                        if sep:                          # C677: a JSON string (plg_launch), else as written
+                            if v.startswith('"'):
+                                try:
+                                    v = json.loads(v)
+                                except ValueError:
+                                    pass
+                            _plugin_secrets[k] = v
+                    fh.seek(0)
+                    fh.truncate()
+            except OSError:
+                pass
+    return _plugin_secrets.get(key) or os.environ.get(PLUGIN_SECRET + key, "")
 
 
 def load(env_file: Path | None = None, schema_file: Path = SCHEMA_FILE, check_root: bool = True) -> Config:
@@ -214,7 +244,7 @@ def load(env_file: Path | None = None, schema_file: Path = SCHEMA_FILE, check_ro
         raise ConfigError(f"{env_file} is a symbolic link: refused as root")   # a link the services' account planted
     raw = parse_env(env_file.read_text(encoding="utf-8"), str(env_file))
     if os.environ.get("AURORA_PLUGIN"):              # a plugin's filtered .env names its secrets, never holds them (C463)
-        raw = {k: (os.environ.get(PLUGIN_SECRET + k, "") if v == ENV_REF + k else v) for k, v in raw.items()}
+        raw = {k: (plugin_secret(k) if v == ENV_REF + k else v) for k, v in raw.items()}
     st = env_file.stat()
     shared = _group_name(st.st_gid) == SERVICE_GROUP     # U6: the services' own group reads and writes it too
     if st.st_mode & (0o007 if shared else 0o077) and not root:   # secrets inside: nobody else may read it (never
@@ -381,11 +411,26 @@ def add_missing(env: Path | None = None, schema: Path = SCHEMA_FILE) -> list[str
     settings = load_schema(schema)["settings"]
     missing = {s["key"]: s["recommended"] for s in settings
                if s["key"] not in current and not s.get("optional") and s.get("scope") != "user"}   # a user's own (C141)
-    missing |= {s["key"]: s["recommended"] for s in settings
-                if s["key"] in current and current[s["key"]] in s.get("old_recommended", ())
-                and current[s["key"]] != s["recommended"]}
+    # C669: once per key and old value — an owner who sets the old value again on purpose keeps it (the engines' «true»
+    # went back to «false» at every update); the moves done are kept beside the .env
+    done_f = env.with_name(env.name + ".migrated.json")
+    try:
+        done = json.loads(done_f.read_text(encoding="utf-8")) if done_f.exists() else {}
+    except (OSError, ValueError):
+        done = {}
+    moved = {s["key"]: s["recommended"] for s in settings
+             if s["key"] in current and current[s["key"]] in s.get("old_recommended", ())
+             and current[s["key"]] != s["recommended"] and current[s["key"]] not in done.get(s["key"], [])}
+    missing |= moved
     if missing:
         write_env(env, missing)
+    if moved:
+        for k in moved:
+            done.setdefault(k, []).append(current[k])
+        try:
+            done_f.write_text(json.dumps(done, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+        except OSError:
+            pass
     return list(missing)
 
 

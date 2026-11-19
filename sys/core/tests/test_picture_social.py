@@ -10,7 +10,7 @@ class Maker(agt_loop_make.AgentMakers):
 
 
 def _paint(cfg, monkeypatch):
-    def paint(prompt, name, c, emit, title=""):
+    def paint(prompt, name, c, emit, title="", local_only=False):      # C711: local_only passed
         (cfg.path("AURORA_IMAGE_DIR") / f"{name}.png").write_bytes(b"png")
         return {"file": f"{name}.png", "seconds": 1}
     cfg.path("AURORA_IMAGE_DIR").mkdir(parents=True, exist_ok=True)

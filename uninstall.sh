@@ -83,6 +83,24 @@ if command -v caddy >/dev/null && [ -d "$HOME/.local/share/caddy/pki" ]; then
 fi
 
 step "$(t 'Programmi' 'Programs')"
+# formal proofs (N143/N144): sys/runtime/lean goes with sys/runtime below; a folder set elsewhere in AURORA_LEAN_HOME
+# only if sys_proofs_install.sh created it (its .installed-by-aurora), never a Lean that was there before Aurora
+LEAN_HOME=$(sed -n 's/^AURORA_LEAN_HOME=//p' .env 2>/dev/null | tail -1)
+case "$LEAN_HOME" in
+  ""|sys/runtime|sys/runtime/*|"$ROOT/sys/runtime"|"$ROOT"/sys/runtime/*) ;;
+  *) [ "${LEAN_HOME#/}" = "$LEAN_HOME" ] && LEAN_HOME="$ROOT/$LEAN_HOME"
+     LEAN_REAL=$(realpath -m -- "$LEAN_HOME" 2>/dev/null || echo "$LEAN_HOME")
+     # C656: never a folder inside Aurora's own (the data the owner keeps: usr/, sys/vault…), and only a folder that
+     # holds exactly what sys_proofs_install.sh makes (elan/, workspace/, its marker)
+     ODD=$(find "$LEAN_REAL" -mindepth 1 -maxdepth 1 ! -name elan ! -name workspace ! -name .installed-by-aurora 2>/dev/null | head -1)
+     case "$LEAN_REAL/" in
+       "$ROOT"/*) ok "$(t 'Lean tenuto: AURORA_LEAN_HOME è dentro la cartella di Aurora' 'Lean kept: AURORA_LEAN_HOME is inside Aurora'\''s folder'): $LEAN_HOME" ;;
+       *) if [ -f "$LEAN_REAL/.installed-by-aurora" ] && [ ! -L "$LEAN_HOME" ] && [ -z "$ODD" ]; then
+            run rm -rf "$LEAN_REAL"; ok "Lean + Mathlib ($LEAN_REAL)"
+          elif [ -d "$LEAN_REAL" ]; then ok "$(t 'Lean tenuto, non installato da Aurora' 'Lean kept, not installed by Aurora'): $LEAN_HOME"; fi ;;
+     esac ;;
+esac
+[ -d sys/runtime/lean ] && ok "$(t 'Lean + Mathlib (sys/runtime/lean) va con sys/runtime' 'Lean + Mathlib (sys/runtime/lean) goes with sys/runtime')"
 # sudo: since U6 the runtime is the services' account's (sys_service_account), not the owner's to delete alone
 for d in .venv sys/runtime; do if [ -e "$d" ]; then run sudo rm -rf "$ROOT/$d"; ok "$d"; fi; done
 if [ -d sys/models ]; then

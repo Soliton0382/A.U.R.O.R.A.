@@ -345,7 +345,9 @@ def hardening(root: Path, user: str, bind_low_port: bool, hosts_plugins: bool = 
             # read-only vault connections are cached per thread: ~50 pooled threads x 37 shards x 3 files can pass
             # the default 1024 (C103)
             + ("LimitNOFILE=8192\n" if hosts_plugins else "")
-            + "ProtectKernelModules=yes\nProtectControlGroups=yes\n"
+            # C654: the API's delegated cgroup writable in a cgroup namespace of its own, the rest of the tree unseen
+            + "ProtectKernelModules=yes\n"
+            + f"ProtectControlGroups={'private' if hosts_plugins else 'yes'}\n"
             # the opened chats and keys never written to a swap file on the disk, which may be plain (C462)
             + "MemorySwapMax=0\n"
             "ProtectClock=yes\nSystemCallArchitectures=native\n"
@@ -395,7 +397,9 @@ def main() -> int:
         # glibc's arenas, one per thread by default: the API's 40-odd threads left a third of its memory free but
         # held (C389, 30 Oct: malloc_trim freed 272 of 770 MiB after an hour)
         "aurora-api": ("API, events and WebUI", "aurora-models.service" + ("" if cloud else " aurora-llm.service"),
-                       f"{py} {script / 'svc_api.py'}", "Environment=MALLOC_ARENA_MAX=2\n"),
+                       f"{py} {script / 'svc_api.py'}", "Environment=MALLOC_ARENA_MAX=2\n"
+                       # C654: a cgroup of its own for each long run (prj_longrun_meter moves the API into main/)
+                       "Delegate=cpu memory pids\n"),
         "aurora-rem": ("autonomic cycle (consolidation, reflections, dreams)", "aurora-api.service",
                        f"{py} {script / 'svc_rem.py'}", ""),
         "aurora-harvester": ("harvester (new knowledge)", "aurora-api.service",

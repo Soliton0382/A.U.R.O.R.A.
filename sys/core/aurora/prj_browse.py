@@ -71,7 +71,7 @@ def _git_cage(proj: Path, cfg: sys_config.Config | None) -> list[str] | None:
         return None
     args = [bwrap, "--die-with-parent", "--new-session", "--unshare-all", "--ro-bind", "/", "/", "--dev", "/dev",
             "--proc", "/proc", "--tmpfs", "/tmp"]
-    hide = ["/home", "/root", "/mnt", "/media", "/srv", "/run", str(_CODE_ROOT)]
+    hide = ["/home", "/root", "/mnt", "/media", "/srv", "/run", "/etc/aurora", "/sys/fs/cgroup", str(_CODE_ROOT)]   # O3
     if cfg is not None:
         hide += [str((cfg.base or cfg).root), str(cfg.path("AURORA_STATUS_DIR"))]
     for hidden in dict.fromkeys(hide):
@@ -80,7 +80,10 @@ def _git_cage(proj: Path, cfg: sys_config.Config | None) -> list[str] | None:
     args += ["--ro-bind", str(proj), str(proj), "--clearenv", "--setenv", "PATH", "/usr/bin:/bin",
              "--setenv", "HOME", "/tmp", "--setenv", "LANG", "C.UTF-8", "--setenv", "GIT_CONFIG_GLOBAL", os.devnull,
              "--setenv", "GIT_CONFIG_NOSYSTEM", "1", "--setenv", "GIT_OPTIONAL_LOCKS", "0",
-             "--setenv", "GIT_CEILING_DIRECTORIES", str(proj.parent), "--chdir", str(proj), "--",
+             "--setenv", "GIT_CEILING_DIRECTORIES", str(proj.parent),
+             # C670: the repository named, never looked for (a bare repository at the project's root is never used)
+             "--setenv", "GIT_DIR", str(proj / ".git"), "--setenv", "GIT_WORK_TREE", str(proj),
+             "--chdir", str(proj), "--",
              git, "-c", f"safe.directory={proj}"]
     if "ok" not in _cage_ok:                             # once per process: does a cage start here at all
         try:
@@ -93,8 +96,10 @@ def _git_cage(proj: Path, cfg: sys_config.Config | None) -> list[str] | None:
 def _git_bare(proj: Path) -> tuple[list[str], dict]:
     """Without a cage: no signature program at «log», and every filter the configuration names switched off by name
     (reading the configuration runs nothing)."""
-    env = dict(os.environ, GIT_CEILING_DIRECTORIES=str(proj.parent), GIT_OPTIONAL_LOCKS="0", GIT_TERMINAL_PROMPT="0")
-    cmd = ["git", *GIT_SAFE, "-c", "log.showSignature=false", "-C", str(proj)]
+    from . import prj_gitsafe
+    env = prj_gitsafe.env(proj.parent, project=proj)     # C658/C670: no system or global configuration, the
+                                                         # repository named
+    cmd = ["git", *GIT_SAFE, *prj_gitsafe.args(), "-C", str(proj)]
     try:
         names = subprocess.run([*cmd, "config", "-z", "--name-only", "--get-regexp", r"^filter\."], env=env,
                                capture_output=True, text=True, timeout=10).stdout.split("\0")
@@ -109,12 +114,15 @@ def _git_bare(proj: Path) -> tuple[list[str], dict]:
 def git_read(proj: Path, *args: str, cfg: sys_config.Config | None = None, timeout: int = 30) -> str:
     """What a reading git command says on a project ("" when it fails), run so that nothing the project's own .git
     names runs outside a cage (prj_browse, prj_live, kno_mood_work)."""
+    from . import prj_gitsafe
     proj = Path(proj)
     try:
         cage = _git_cage(proj, cfg)
-        if cage is not None:
-            r = subprocess.run([*cage, *GIT_SAFE, *args], capture_output=True, text=True, timeout=timeout)
-        else:
+        if cage is not None:                             # in its own cage whatever the .git names runs sealed (C591)
+            r = subprocess.run([*cage, *prj_gitsafe.args(), *args], capture_output=True, text=True, timeout=timeout)
+        elif prj_gitsafe.refusal(proj, prj_gitsafe.READ_NEUTRAL):   # C658: no cage here — what the overrides do not
+            return ""                                    # switch off (a work tree elsewhere, an include, a diff
+        else:                                            # or merge driver) is not read
             cmd, env = _git_bare(proj)
             r = subprocess.run([*cmd, *args], env=env, capture_output=True, text=True, timeout=timeout)
     except (OSError, subprocess.SubprocessError):

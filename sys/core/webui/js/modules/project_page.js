@@ -19,6 +19,8 @@ import { filesView } from "./project_files.js";
 import { printView } from "./project_print.js";
 import { renderView } from "./project_render.js";
 import { simView } from "./project_sim.js";
+import { dataView } from "./project_data.js";
+import { packageView } from "./project_package.js";
 import { terminalView } from "./project_term.js";
 
 // section → its label (existing keys) and whether it is made again each time it is opened (fresh lists)
@@ -26,12 +28,12 @@ const SECTIONS = [["conduct", "conduct.button"], ["plan", "plan.button"], ["docs
   ["sim", "prj.sim"], ["files", "prj.tab_files"],
   ["print", "prj.print"], ["term", "prj.term"], ["history", "prj.history", true], ["reports", "prj.reports", true],
   ["checks", "prj.checks", true],
-  ["preview", "prj.preview", true]];
+  ["preview", "prj.preview", true], ["package", "prj.pkg", true], ["data", "prj.data"]];
 // the sections in three groups (owner, 23 Oct: «dentro il progetto le diverse sezioni sembrano incasinate»): a row of
 // groups, then the row of the chosen group's sections — two short rows instead of eleven chips over four lines
 const GROUPS = [["work", "prj.g_work", ["conduct", "plan", "term", "reports", "checks"]],
   ["model", "prj.g_model", ["docs", "render", "sim", "print"]],
-  ["files", "prj.g_files", ["files", "history", "preview"]]];
+  ["files", "prj.g_files", ["files", "data", "history", "preview", "package"]]];
 const groupOf = (id) => GROUPS.find(([, , ids]) => ids.includes(id))?.[0] || "work";
 
 async function history(name) {
@@ -111,6 +113,8 @@ export function openProject(d, p, { base, back }) {
     print: () => [printView(name)],              // 🖨️ the models for a 3D printer (N41)
     term: () => [terminalView(name)],            // 🖥️ the project run in its cage (roadmap 75)
     history: () => history(name), reports: () => reports(name), preview: () => preview(name),
+    package: () => [packageView(name)],
+    data: () => [dataView(name)],                // 📥 the owner's tables, recorded as his (C697)          // 📦 commit + bundle in the cage, then the download (N148)
     checks: () => checksView(name),              // 🔒🧑‍⚖️ frozen predictions and severe reviews (N142)
   };
   const key = `aurora.prj.tab.${name}`;

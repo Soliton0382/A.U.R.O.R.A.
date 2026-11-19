@@ -31,7 +31,7 @@ import time
 import uuid
 from pathlib import Path
 
-from . import kno_prove, prj_conduct, prj_prereg, prj_proof, prj_run, sys_config, sys_context, sys_log, sys_seal
+from . import kno_prove, prj_conduct, prj_discover, prj_longrun, prj_novelty, prj_prereg, prj_proof, prj_run, sys_config, sys_context, sys_log, sys_seal
 
 READ_LINES = 400                # lines of a file returned at once
 LIST_MAX = 400                  # entries of a listing
@@ -81,7 +81,20 @@ TOOLS = [
     *prj_prereg.TOOLS,                                   # 🔒 frozen predictions (N142)
     prj_proof.TOOL,                                      # 📐 Lean proofs, checked in a read-only cage (N143)
     kno_prove.TOOL_MCP,                                  # 📐 a claim in words: the Lean mathematician (N144)
+    prj_discover.TOOL,                                   # 🔭 a law found in a table, tested on held-out rows (N147)
+    prj_longrun.TOOL,                                    # ⏳ long experiments in the background, limits declared (N145)
+    prj_novelty.TOOL,                                    # 📚 the literature checked before «new» (N146)
 ]
+
+
+# the engines still under review (N145-N147) are off by default: a tool of an engine that is off is not offered at all
+_ENGINES = {prj_discover.NAME: prj_discover.enabled, prj_longrun.NAME: prj_longrun.enabled,
+            prj_novelty.NAME: prj_novelty.enabled}
+
+
+def available(cfg, tools: list[dict]) -> list[dict]:
+    """The tools a run offers: those of an engine switched off are left out (C642)."""
+    return [t for t in tools if t["name"] not in _ENGINES or _ENGINES[t["name"]](cfg)]
 
 
 HEADS = {"it": {"done": "Fatto", "wrong": "Non regge", "decide": "Da decidere", "unmeasured": "Non ho misurato"},
@@ -105,8 +118,9 @@ class Run:
         self.proc: subprocess.Popen | None = None
         self.stopped = False
         # what this run may do: the conductor's tools, or the referee's (prj_referee: read only, its cage too)
-        self.tools, self.readonly, self.notes = TOOLS, False, True
+        self.tools, self.readonly, self.notes = available(cfg, TOOLS), False, True
         self.frozen: set[str] = set()                    # projects frozen in this run (AURORA_PREREG_MODE=strict)
+        self.started = time.time()                       # a table written from now on is no discovery (C620)
 
 
 _RUNS: dict[str, Run] = {}
@@ -150,14 +164,22 @@ def _note(cfg, project: str, **changes) -> None:
 
 
 # ---- the tools, done here for the relay ------------------------------------------------------------------------
-def _inside(run: Run, rel: str, write: bool = False) -> Path:
-    root = prj_run.project_dir(run.cfg, run.project).resolve()
-    p = (root / str(rel or ".")).resolve()
-    if p != root and root not in p.parents:
-        raise ValueError(f"{rel}: outside the project")
-    if write and (p == root or ".git" in p.relative_to(root).parts):
-        raise ValueError(f"{rel}: not writable (the project's folder itself or its .git)")
-    return p
+def _root(run: Run) -> Path:
+    return prj_run.project_dir(run.cfg, run.project).resolve()
+
+
+def _inside(run: Run, rel: str, write: bool = False) -> str:
+    """The path as the project sees it, checked LEXICALLY (no «..», no folder resolved first): the file is then opened
+    from the project's folder one component at a time, no link followed (prj_safeio, C643: a check by name and an
+    open by name let a long run swap a folder for a link in between)."""
+    from . import prj_longrun, prj_safeio
+    r = prj_safeio.norm(str(rel or "."), _root(run))
+    if write and (r == "." or {".git", ".venv"} & set(r.split("/"))):
+        raise ValueError(f"{rel}: not writable (the project's folder itself, its .git or its .venv: C629)")
+    if prj_longrun.busy(run.cfg, run.project):        # C643, the belt: no file tool while a run of it is writing
+        raise ValueError("a long run of this project is going: its files are read and written once it has ended "
+                         "(long_run status / stop)")
+    return r
 
 
 def _unmask_all(u, v):
@@ -171,8 +193,7 @@ def _unmask_all(u, v):
 
 def _rel(run: Run, rel: str) -> str:
     """A path as the project sees it (resolved), for the locked folders' check."""
-    root = prj_run.project_dir(run.cfg, run.project).resolve()
-    return _inside(run, rel).relative_to(root).as_posix()
+    return _inside(run, rel)
 
 
 def _prose(run: Run, text: str) -> str:
@@ -187,22 +208,18 @@ def _prose(run: Run, text: str) -> str:
 
 def _do(run: Run, name: str, a: dict) -> str:
     u = run.mask.unmask                                   # what the cloud wrote: the real values back
+    from . import prj_safeio
     if name == "list_files":
         base = _inside(run, u(str(a.get("path", "."))))
-        root = prj_run.project_dir(run.cfg, run.project).resolve()
-        rows = []
-        for p in sorted(base.rglob("*")):
-            rel = p.relative_to(root)
-            if {".git", ".venv", "__pycache__", "node_modules"} & set(rel.parts):
-                continue
-            rows.append(f"{rel}{'/' if p.is_dir() else ''}\t{p.stat().st_size if p.is_file() else ''}")
-            if len(rows) >= LIST_MAX:
-                rows.append(f"… more than {LIST_MAX}: list a sub-folder")
-                break
+        found = prj_safeio.walk(_root(run), base, frozenset({".git", ".venv", "__pycache__", "node_modules"}),
+                                LIST_MAX + 1)
+        rows = [f"{p}{'/' if d else ''}\t{'' if d else size}" for p, d, size in found[:LIST_MAX]]
+        if len(found) > LIST_MAX:
+            rows.append(f"… more than {LIST_MAX}: list a sub-folder")
         return "\n".join(rows) or "(empty)"
     if name == "read_file":
         p = _inside(run, u(str(a.get("path", ""))))
-        lines = p.read_text(encoding="utf-8", errors="replace").splitlines()
+        lines = prj_safeio.read_text(_root(run), p).splitlines()
         start = max(1, int(a.get("offset") or 1))
         part = lines[start - 1:start - 1 + READ_LINES]
         more = f"\n… {len(lines)} lines in all: read on from offset {start + READ_LINES}" if len(lines) >= start + READ_LINES else ""
@@ -213,16 +230,19 @@ def _do(run: Run, name: str, a: dict) -> str:
         return prj_prereg.tool(run.cfg, run.project, name, _unmask_all(u, a), run.frozen)
     if name == "write_file":
         p = _inside(run, u(str(a.get("path", ""))), write=True)
-        p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(u(str(a.get("content", ""))), encoding="utf-8")
-        return f"written {p.relative_to(prj_run.project_dir(run.cfg, run.project).resolve())}"
+        prj_safeio.write_text(_root(run), p, u(str(a.get("content", ""))))
+        from . import prj_provenance                     # C632: a data table written here is never evidence
+        prj_provenance.record(run.cfg, run.project, _root(run), [p], "write")
+        return f"written {p}"
     if name == "edit_file":
         p = _inside(run, u(str(a.get("path", ""))), write=True)
-        text, old = p.read_text(encoding="utf-8"), u(str(a.get("old", "")))
+        text, old = prj_safeio.read_text(_root(run), p), u(str(a.get("old", "")))
         n = text.count(old) if old else 0
         if n != 1:                                       # law 3: a unique anchor, else nothing changes
             return f"REFUSED: «old» found {n} times in {a.get('path')}; read the file again and give a unique piece"
-        p.write_text(text.replace(old, u(str(a.get("new", ""))), 1), encoding="utf-8")
+        prj_safeio.write_text(_root(run), p, text.replace(old, u(str(a.get("new", ""))), 1))
+        from . import prj_provenance
+        prj_provenance.record(run.cfg, run.project, _root(run), [p], "write")
         return f"edited {a.get('path')}"
     if name == "run":
         if not run.readonly and (refused := prj_prereg.strict_refusal(run.cfg, run.project, run.frozen)):
@@ -238,6 +258,19 @@ def _do(run: Run, name: str, a: dict) -> str:
         return prj_conduct.context(run.cfg, run.project)
     if name == prj_proof.NAME:                           # read only: the referee's too (N143)
         return prj_proof.text(prj_proof.check(run.cfg, run.project, u(str(a.get("path", "")))))
+    if name == prj_discover.NAME:                        # 🔭 writes prereg/ and discover/: never the referee's (N147)
+        if run.readonly:
+            return f"REFUSED: {name} writes frozen predictions and a report; not in a read-only run"
+        a = {k: u(v) if isinstance(v, str) else [u(str(x)) for x in v] if isinstance(v, list) else v for k, v in a.items()}
+        return _prose(run, prj_discover.text(prj_discover.discover(run.cfg, run.project, **prj_discover.run_args(a),
+                                                                    since=run.started)))   # C620: its own tables
+    if name == prj_longrun.NAME:                         # ⏳ start / stop write; a read-only run may only look (N145)
+        a = {k: u(v) if isinstance(v, str) else [u(str(x)) for x in v] if isinstance(v, list) else v for k, v in a.items()}
+        return _prose(run, prj_longrun.act(run.cfg, run.project, a, readonly=run.readonly))
+    if name == prj_novelty.NAME:                         # 📚 one masked query leaves; the referee's: no report file (N146)
+        a = {k: u(v) if isinstance(v, str) else [u(str(x)) for x in v] if isinstance(v, list) else v for k, v in a.items()}
+        return _prose(run, prj_novelty.text(prj_novelty.check(run.cfg, project=run.project, report=not run.readonly,
+                                                              **prj_novelty.args(a))))
     if name == kno_prove.NAME:                           # writes nothing in the project (a private scratch folder)
         return kno_prove.text(kno_prove.prove(run.cfg, u(str(a.get("statement", ""))),
                                               private=prj_conduct.local(run.cfg, run.project)))   # «local»: no cloud
@@ -387,6 +420,11 @@ def _work(run: Run, cc, system: str, s: dict) -> None:
         system += "\n\n" + rule
     if (rule := prj_proof.rule(cfg)):                    # 📐 theorems claimed proved only via proof_check (N143)
         system += "\n\n" + rule
+    if (rule := prj_discover.rule(cfg)):                 # 🔭 laws claimed discovered only via discover_law (N147)
+        system += "\n\n" + rule
+    for rule in (prj_longrun.rule(cfg), prj_novelty.rule(cfg)):   # ⏳ long runs (N145), 📚 «new» only after a check (N146)
+        if rule:
+            system += "\n\n" + rule
     ms, mu = p.mask(sys_config.personal(system, cfg)), p.mask(run.goal)
     if p.to_val:
         ms += KEEP

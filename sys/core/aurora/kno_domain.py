@@ -17,8 +17,14 @@ SYS = ("You assign a document to ONE domain of a library, the one it is mainly a
        "there)): {domains}. «general» only when no other domain fits. Reply with the domain id only.")
 
 
+# a country's statutes (law_it: Normattiva) come only from their official source's harvester, never by a text's
+# subject: C695 — 178 Wikipedia articles on law in general (contract, tort, divorce, the US constitution) were chosen
+# into law_it (M318: 174 of 178 again with the old list), and answered as Italian law
+STATUTES_ONLY = "law_"
+
+
 def _domains() -> tuple[list[str], str]:
-    tax = {k: v for k, v in load_taxonomy().items() if not v.get("memory")}
+    tax = {k: v for k, v in load_taxonomy().items() if not v.get("memory") and not k.startswith(STATUTES_ONLY)}
     ids = sorted(tax)
     return ids, "; ".join(f"{k} ({tax[k]['en']}: {tax[k].get('about', '')})" for k in ids)
 
@@ -32,4 +38,8 @@ def choose(llm, title: str, text: str, fallback: str) -> str:
     except Exception:                                 # noqa: BLE001 — the model down: the list's domain, as before
         return fallback
     m = re.search(r"[a-z_]+", out)
-    return m.group(0) if m and m.group(0) in ids else fallback
+    if m and m.group(0) in ids:
+        return m.group(0)
+    # not a domain it may choose: the list's — unless that is a statutes domain (C695: «law_it» said again for an
+    # article on law in general), then «general»; the model down keeps the list's (nothing moved by a failure)
+    return "general" if fallback.startswith(STATUTES_ONLY) else fallback

@@ -47,7 +47,7 @@ def snapshot(cfg: sys_config.Config, project: str) -> dict:
         "talk": {"n": len(turns), "last": [{"t": x.get("t"), "role": x.get("role"), "head": _head(x.get("text"))}
                                           for x in turns[-6:]]},
         "commits": _commits(root, cfg),
-        "files": [{"path": p, "t": ns / 1e9, "size": size} for p, (ns, size) in files],
+        "files": [{"path": p, "t": v[0] / 1e9, "size": v[1]} for p, v in files],
         "running": next((e["run_id"] for e in reversed(conduct)                 # judged: its run is still going
                          if e["status"] in ("running", "judging") and e["run_id"]), None),
     }

@@ -253,10 +253,11 @@ def due(cfg, now: datetime | None = None) -> list[dict]:
 TICK_SLOW_S = 2                       # a tick of the automations logged, part by part, when it takes longer
 
 
-def tick(cfg, user: str = "", log=None) -> list[str]:
+def tick(cfg, user: str = "", log=None, spent: dict | None = None, prefix: str = "") -> list[str]:
     """The routines' tick: what is due, run. 13 Nov: 50-160 s a tick in a night with nothing run, untimed inside —
-    each part now timed and said when the tick is slow."""
+    each part now timed and said when the tick is slow; `spent` (C600) gets them too, added up, names with `prefix`."""
     import time as _time
+    out = spent
     spent, t0 = {}, _time.monotonic()
 
     def mark(name, s):
@@ -281,6 +282,9 @@ def tick(cfg, user: str = "", log=None) -> list[str]:
         if log and total >= TICK_SLOW_S:
             log.warning("home automations tick took %.1f s (%s): %s", total, user or "-",
                         ", ".join(f"{k} {v:.1f} s" for k, v in sorted(spent.items(), key=lambda x: -x[1])))
+        if out is not None:
+            for k, v in spent.items():
+                out[prefix + k] = out.get(prefix + k, 0.0) + v
     return ran
 
 

@@ -2,6 +2,13 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.3.53 — 2026-11-20
+
+2 publications since v0.3.52.
+
+- 2026-11-20 Projects: no git on existing projects, «📦 Pubblica» and «📥 Dati» (N148, C674, C675, C697); long runs, novelty check and discovery engine reviewed in eleven independent rounds, off by default (N145-N147, C615-C713); the machine's limits in every cage, cgroup delegation, no core dumps on limit kills (C654, C684, C688, C700, C710); positive provenance for discoveries (C697-C708); reserved and local projects never reach the network or the cloud (C690, C699, C704, C705, C711); the plugins' launcher protected (C677); the law gate on the English pivot, law_it cleaned (C694-C696, C706); context cuts declared (C614, C678-C682); the owner's security verdicts kept (C406); the routines' first tick and a tick counter (C600); pip check (C676)
+- 2026-11-19 Projects: frozen predictions and AI referee (N142), Lean proof checks (N143), Lean mathematician in chat and AGI tests (N144); C613 legal citations off for non-legal questions; roadmap N145-N147
+
 ## v0.3.52 — 2026-11-17
 
 5 publications since v0.3.50.

@@ -138,15 +138,20 @@ def goal_for(plan: dict, project: str, i: int, docs: str = "") -> str:
 
 
 def record(cfg: sys_config.Config, project: str, i: int, run: dict, run_id: str, report: str) -> dict:
-    """The step's command result after the agent's run: done on exit 0, else one more failure (blocked at TRIES).
-    Returns {"plan", "event"}: the event to tell the owner (project.step, project.blocked, project.done) or ""."""
+    """The step's command result after the agent's run: done on exit 0, else one more failure (blocked at TRIES); a
+    run put off («deferred»: the owner's terminal open, a «Salva» going) is kept in the log, the step tried again
+    next time, no try spent. Returns {"plan", "event"}: the event to tell the owner (project.step, project.blocked,
+    project.done) or ""."""
     plan = load(cfg, project)
     s = plan["steps"][i]
     s["runs"] = (s.get("runs", []) + [{"at": time.time(), "run_id": run_id, "exit": run["exit"],
                                        "seconds": run.get("seconds"), "tail": run.get("output", "")[-800:],
-                                       "report": report[:600]}])[-10:]
+                                       "report": report[:600], **({"deferred": True} if run.get("deferred") else {})}
+                                     ])[-10:]
     event = ""
-    if run["exit"] == 0:
+    if run.get("deferred"):                                # the owner held the project: no try spent
+        pass
+    elif run["exit"] == 0:
         s["status"], event = "done", "project.step"
         if all(x["status"] == "done" for x in plan["steps"]):
             plan["active"], event = False, "project.done"
@@ -166,7 +171,8 @@ def daily_line(cfg: sys_config.Config, project: str, now: float | None = None) -
     day = time.strftime("%Y-%m-%d", time.localtime(now))
     if not plan or plan.get("told_day") == day:
         return ""
-    runs = [r for s in plan["steps"] for r in s.get("runs", []) if now - r.get("at", 0) < 86400]
+    runs = [r for s in plan["steps"] for r in s.get("runs", []) if now - r.get("at", 0) < 86400
+            and not r.get("deferred")]
     if not runs:
         return ""
     plan["told_day"] = day

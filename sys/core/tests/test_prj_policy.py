@@ -11,9 +11,12 @@ class _Agent:
 
 
 def test_the_default_is_the_old_way_and_a_choice_is_kept(cfg):
-    assert P.load(cfg, "prova") == {"models": "cloud", "publish": True}
-    assert P.save(cfg, "brevetto", {"models": "local", "publish": False}) == {"models": "local", "publish": False}
-    assert P.load(cfg, "brevetto") == {"models": "local", "publish": False}
+    assert P.load(cfg, "prova") == {"models": "cloud", "publish": True, "riservato": False}
+    assert P.save(cfg, "brevetto", {"models": "local", "publish": False}) == {"models": "local", "publish": False,
+                                                                              "riservato": False}
+    assert P.load(cfg, "brevetto") == {"models": "local", "publish": False, "riservato": False}
+    assert P.save(cfg, "brevetto", {"riservato": True})["riservato"] is True       # C636
+    assert P.save(cfg, "brevetto", {"models": "local"})["riservato"] is True        # the page's save keeps it
     assert P.load(cfg, "../x") == P.DEFAULT                                       # not a project's name
 
 
