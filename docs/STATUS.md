@@ -1,6 +1,6 @@
 # Status — work in progress
 
-Updated at every validated change (last: 2026-11-17; audited against the code on 2026-10-28). Details: BUGS.md (issues, 2 open / 600 closed),
+Updated at every validated change (last: 2026-11-17; audited against the code on 2026-10-28). Details: BUGS.md (issues, 2 open / 602 closed),
 MANUAL_TESTS.md (what the owner checks by hand),
 TESTS.md (tests and live checks), MEASUREMENTS.md (numbers), MODULE_MAP.md (who does what),
 SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSYSTEM.md (design and decisions).
@@ -162,6 +162,9 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | 🏠 the house | Home Assistant's devices, scenes and automations; the house's agents | test_hom_scenes |
 | 🧠 what she remembers of you | the memory page per person | memory.js |
 | 🧑‍🔬 the project's conductor | talk, phases, and on the Claude CLI it works in the project through Aurora's tools only (masked, SSCC, the cage) | test_prj_talk, test_prj_act |
+| 🔒🧑‍⚖️ frozen predictions and the severe referee (N142) | the projects' agents freeze their predictions with the code's hashes before an experiment (prereg/, an append-only ledger kept also outside the project; «avviso» mode by default); at a phase's end an AI referee on another CLI model, read-only tools and cage, never the agent's report, writes nothing — Aurora writes reviews/REV_NNN.md and the reply starts with its verdict; «Previsioni e revisioni» on the project's page. Unit-tested (19 Nov); not yet verified live: it needs the API restarted | test_prereg, test_referee |
+| 📐 Lean proofs in projects (N143) | proof_check: a project's .lean file scanned for cheats (sorry, native_decide, axiom, unsafe, custom tactics, foreign imports) and compiled by Lean 4 + Mathlib in a read-only cage; proved only when every theorem depends on propext, Classical.choice, Quot.sound at most; for the conductor, the phase's agent and the referee; «PROOF:» predictions closed by Aurora's check; the page's «Verifica formale» | tests/test_proof.py (the real toolchain: a true theorem proved in 2.4 s); live phase not measured |
+| 📐 the Lean mathematician (N144) | a mathematical claim in the chat («/lean …», «dimostra in Lean: …», or «è vero che / dimostra che …» with a mathematical sign; never in the anonymous chat) and the agents' and the conductor's tool `prove`: a model writes it in Lean 4, Aurora's Lean checks it (check_source, a private scratch folder), a second call confirms the statement is the claim; the badge «📐 Verificato in Lean (kernel), enunciato confermato» only for both, else «Non verificato» and why, the Lean source folded; the AGI battery's `--only lean` section (20 invented statements) | tests/test_prove.py (fake models; the real toolchain: a tiny true theorem from a string, the test 3.3 s); live chat, cloud cost and the AGI section not measured |
 | ⚙️ settings per user | everyone sees ⚙️ Impostazioni, a user only their own settings | test_users_crossing |
 
 ## Not working yet

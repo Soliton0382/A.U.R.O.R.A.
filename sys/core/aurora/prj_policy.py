@@ -80,6 +80,9 @@ def guard(agent, plugin: str, tool: str, args: dict, emit) -> str:
     project = project_of(plugin, tool, args)
     if not project:
         return ""
+    from . import prj_prereg
+    if tool in ("project_write_file", "project_edit_file") and prj_prereg.locked(str(args.get("path", ""))):
+        return prj_prereg.refusal(str(args.get("path", "")))   # frozen predictions and reviews: Aurora's (N142)
     policy = load(agent.cfg, project)
     if tool in PUBLISHING and not policy["publish"]:
         return (f"REFUSED: the project {project} is never published (its owner chose so when it was made). Do not "

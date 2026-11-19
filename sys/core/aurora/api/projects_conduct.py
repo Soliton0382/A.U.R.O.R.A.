@@ -4,6 +4,8 @@
 reply; and 💬 the conversation with it (prj_talk)."""
 from __future__ import annotations
 
+import time
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from .core import auth, cfg, in_thread, log, note, pipeline, start_run
@@ -53,27 +55,36 @@ async def conduct_start(name: str, entry: str, request: Request) -> dict:
     # Cloud»), the cloud only when asked and the project allows it; the judge (draft, reply) stays as assigned
     local = prj_conduct.local(cfg, name) or body.get("worker", "local") != "cloud"
 
-    from aurora import txt_lang
+    from aurora import prj_prereg, prj_proof, prj_referee, txt_lang
     lang = txt_lang.detect(text)                      # the verdict in the goal's language (C516)
+    since = time.time()                               # the phase's start: its frozen predictions, its changed files
 
-    def judge(goal_text, report):
+    def judge(goal_text, report, ran, ref):
         try:
-            return prj_conduct.review(cfg, name, goal_text, report, prj_conduct.model(cfg, name, pipeline()), lang)
+            return prj_conduct.review(cfg, name, goal_text, report, prj_conduct.model(cfg, name, pipeline()), lang,
+                                      commands=ran, since=since, referee=ref)
         except Exception as e:                          # the cloud judge out (a session limit): the local model judges
             log.warning("conductor judge failed for %s (%s): the local model judges", name, e)
-            return prj_conduct.review(cfg, name, goal_text, report, pipeline().llm, lang)
+            return prj_conduct.review(cfg, name, goal_text, report, pipeline().llm, lang, commands=ran, since=since,
+                                      referee=ref)
 
     def after(ans, emit):
         prj_conduct.update(cfg, name, entry, status="judging")    # the work is over, the conductor reads it (shown live)
+        ran = sum(1 for c in getattr(ans, "commands", []) if c and c[0] == name)
+        # 🧑‍⚖️ N142: the severe referee first (automatic), on what the phase left — never on the report
+        ref = prj_referee.phase(cfg, name, text, since, pipeline(), lang)
+        if ref:
+            emit("project.referee", {k: ref.get(k) for k in ("status", "verdict", "file", "cost_usd", "seconds")})
         try:
-            r = judge(text, ans.text)
+            r = judge(text, ans.text, ran, ref)
             note("agent", "project.update", {"project": name, "text": r["text"][:300]})
         except Exception as e:                          # the run's report stays in the history even so
             log.warning("conductor review failed for %s: %s", name, e)
             prj_conduct.add(cfg, name, "reply", ans.text)
         prj_conduct.update(cfg, name, entry, status="done")
 
-    inner = _agent_job(text, remember=False, asked=True, local=local, after=after)
+    rules = "\n\n".join(x for x in (prj_prereg.rule(cfg), prj_proof.rule(cfg)) if x)     # N142, N143
+    inner = _agent_job(text, rules, remember=False, asked=True, local=local, after=after)
 
     def job(q, emit, run_id):
         try:
@@ -85,7 +96,7 @@ async def conduct_start(name: str, entry: str, request: Request) -> dict:
             raise
 
     run_id = start_run(f"[{name}] {text[:120]}", origin="project", job=job)["id"]
-    prj_conduct.update(cfg, name, entry, status="running", text=text, run_id=run_id,
+    prj_conduct.update(cfg, name, entry, status="running", text=text, run_id=run_id, started=since,
                        worker="local" if local else "cloud")
     log.info("audit: conductor started a phase in project %s (worker: %s)", name, "local" if local else "cloud")
     return {"run_id": run_id}
@@ -159,9 +170,7 @@ def _run_of(request: Request):
 
 @router.post("/v1/aurora/conductor/tools")
 def conductor_tools(request: Request) -> dict:
-    from aurora import prj_act
-    _run_of(request)
-    return {"tools": prj_act.TOOLS}
+    return {"tools": _run_of(request).tools}           # the conductor's, or the referee's (read only, N142)
 
 
 @router.post("/v1/aurora/conductor/call")
@@ -177,3 +186,69 @@ def talk_new(name: str) -> dict:
     from aurora import prj_talk
     _check(name)
     return prj_talk.new(cfg, name)
+
+
+# ---- 🔒 frozen predictions and 🧑‍⚖️ severe reviews (prj_prereg, prj_referee, N142) -----------------------------------
+@router.get("/v1/aurora/projects/{name}/prereg", dependencies=[Depends(auth)])
+def prereg_list(name: str) -> dict:
+    """The ledger as Aurora keeps it: each entry open / closed, its outcomes counted, its integrity."""
+    from aurora import prj_prereg
+    _check(name)
+    return {"entries": prj_prereg.entries(cfg, name), "intact": prj_prereg.ledger_intact(cfg, name),
+            "mode": prj_prereg.mode(cfg)}
+
+
+@router.get("/v1/aurora/projects/{name}/reviews", dependencies=[Depends(auth)])
+def reviews_list(name: str) -> dict:
+    from aurora import prj_referee
+    _check(name)
+    return {"items": prj_referee.reviews(cfg, name), "enabled": bool(cfg["AURORA_REFEREE_ENABLED"])}
+
+
+# ---- 📐 formal proofs (prj_proof, N143) ---------------------------------------------------------------------------
+@router.get("/v1/aurora/projects/{name}/proof", dependencies=[Depends(auth)])
+def proof_list(name: str) -> dict:
+    """The project's last Lean checks (the user's state: the cage cannot reach it), newest first."""
+    from aurora import prj_proof
+    _check(name)
+    return {"items": list(reversed(prj_proof.history(cfg, name))), "enabled": prj_proof.enabled(cfg)}
+
+
+@router.post("/v1/aurora/projects/{name}/proof", dependencies=[Depends(auth)])
+async def proof_check(name: str, request: Request) -> dict:
+    """{path}: one .lean file of the project checked by Lean (a read-only cage); the check, kept in the history."""
+    from aurora import prj_proof
+    _check(name)
+    path = str((await request.json()).get("path", "")).strip()
+    if not path:
+        raise HTTPException(status_code=400, detail="a .lean file of the project: «path»")
+    r = await in_thread(prj_proof.check, cfg, name, path)
+    log.info("audit: proof check in project %s: %s, %s s", name, r["status"], r["seconds"])
+    return r
+
+
+@router.post("/v1/aurora/projects/{name}/referee", dependencies=[Depends(auth)])
+async def referee_start(name: str, request: Request) -> dict:
+    """A severe review started by hand: on the last phase done (its goal, from its start), else the whole project; its
+    verdict comes into the conductor's conversation."""
+    from aurora import prj_conduct, prj_referee, txt_lang
+    _check(name)
+    body = await request.json() if (await request.body()) else {}
+    done = [e for e in prj_conduct.history(cfg, name) if e.get("kind") == "goal" and e.get("status") == "done"]
+    last = done[-1] if done else {}
+    goal = str(body.get("text") or last.get("text") or "").strip()
+    since = last.get("started", last.get("t")) if last and not body.get("text") else None
+    lang = txt_lang.detect(goal) if goal else "it"
+
+    def job(q, emit, run_id):
+        ref = prj_referee.phase(cfg, name, goal, since, pipeline(), lang)
+        if ref is None:
+            raise RuntimeError("the severe referee is off (AURORA_REFEREE_ENABLED)")
+        prj_conduct.add(cfg, name, "reply", ref["summary"], **({"review": ref["file"]} if ref.get("file") else {}))
+        emit("answer.final", {"text": ref["summary"], "abstained": False, "sources": [],
+                              "seconds": ref.get("seconds") or 0.0, "mode": "agent"})
+        from aurora.kno_answer import Answer
+        return Answer(run_id, goal, ref["summary"], False, mode="agent")
+
+    log.info("audit: severe review started by hand in project %s", name)
+    return {"run_id": start_run(f"[{name}] revisione severa", origin="project", job=job)["id"]}

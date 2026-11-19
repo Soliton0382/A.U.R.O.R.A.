@@ -33,7 +33,11 @@ export default {
           <button type="button" class="cat-chip" data-tab="papers" data-i18n="prj.papers"></button></div>
         <div class="prj-tab" data-tab="papers" hidden><p class="muted" data-i18n="prj.papers_hint"></p><div class="prj-papers"></div></div>
         <div class="prj-tab" data-tab="github" hidden><p class="muted" data-i18n="prj.github_hint"></p><div class="prj-github"></div></div>
-        <div class="prj-tab" data-tab="local"><p class="muted" data-i18n="prj.local_hint"></p><div class="prj-local prj-grid"></div></div>
+        <div class="prj-tab" data-tab="local"><p class="muted" data-i18n="prj.local_hint"></p>
+          <label class="prj-sort muted"><span data-i18n="prj.sort"></span> <select name="sort">
+            <option value="modified" data-i18n="prj.sort_modified"></option><option value="created" data-i18n="prj.sort_created"></option>
+            <option value="name" data-i18n="prj.sort_name"></option></select></label>
+          <div class="prj-local prj-grid"></div></div>
         <div class="prj-tab" data-tab="brief" hidden><div class="mch-panel prj-panel"><h4 data-i18n="prj.brief"></h4>
         <p class="muted" data-i18n="prj.brief_hint"></p>
         <form class="import prj-brief">
@@ -56,6 +60,13 @@ export default {
     apply(root);
     this.root = root;
     this.local = root.querySelector(".prj-local");
+    // the order of the local projects (owner, 17 Nov): kept on this device only, as a convenience
+    this.sort = root.querySelector(".prj-sort select");
+    try { this.sort.value = localStorage.getItem("aurora.prj.sort") || "modified"; } catch { this.sort.value = "modified"; }
+    this.sort.addEventListener("change", () => {
+      try { localStorage.setItem("aurora.prj.sort", this.sort.value); } catch { /* private window: this visit only */ }
+      if (this.projects) this.showLocal();
+    });
     this.github = root.querySelector(".prj-github");
     this.papers = root.querySelector(".prj-papers");
     this.list = root.querySelector(".prj-list");
@@ -99,11 +110,19 @@ export default {
     this.root.querySelectorAll(".prj-tab").forEach((p) => { p.hidden = p.dataset.tab !== name; });
   },
 
+  showLocal() {
+    const by = this.sort?.value || "modified";
+    const key = (p) => (by === "name" ? p.name : p[by] || p.last_commit?.date || "");
+    const list = [...this.projects].sort((a, b) => (by === "name" ? key(a).localeCompare(key(b)) : key(b).localeCompare(key(a))));
+    this.local.replaceChildren(...(list.length ? list.map((p) => this.localCard(p)) : [el("p", "muted", t("prj.none", { base: this.base }))]));
+  },
+
   async refresh() {
     const { projects, base } = await call("/v1/aurora/projects");
     this.base = base;
     this.names = new Set(projects.map((p) => p.name));
-    this.local.replaceChildren(...(projects.length ? projects.map((p) => this.localCard(p)) : [el("p", "muted", t("prj.none", { base }))]));
+    this.projects = projects;
+    this.showLocal();
     this.github.replaceChildren(el("p", "muted", t("prj.loading")));
     this.refreshPapers();                    // on its own: Zenodo's answer never holds the GitHub tab back
     try {

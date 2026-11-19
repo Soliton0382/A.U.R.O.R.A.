@@ -31,7 +31,7 @@ import time
 import uuid
 from pathlib import Path
 
-from . import prj_conduct, prj_run, sys_config, sys_context, sys_log, sys_seal
+from . import kno_prove, prj_conduct, prj_prereg, prj_proof, prj_run, sys_config, sys_context, sys_log, sys_seal
 
 READ_LINES = 400                # lines of a file returned at once
 LIST_MAX = 400                  # entries of a listing
@@ -78,6 +78,9 @@ TOOLS = [
                      "required": ["query"]}},
     {"name": "project_notes", "description": "The project's open items, its documents and the phases so far.",
      "inputSchema": {"type": "object", "properties": {}}},
+    *prj_prereg.TOOLS,                                   # 🔒 frozen predictions (N142)
+    prj_proof.TOOL,                                      # 📐 Lean proofs, checked in a read-only cage (N143)
+    kno_prove.TOOL_MCP,                                  # 📐 a claim in words: the Lean mathematician (N144)
 ]
 
 
@@ -101,6 +104,9 @@ class Run:
         self.token = secrets.token_urlsafe(32)
         self.proc: subprocess.Popen | None = None
         self.stopped = False
+        # what this run may do: the conductor's tools, or the referee's (prj_referee: read only, its cage too)
+        self.tools, self.readonly, self.notes = TOOLS, False, True
+        self.frozen: set[str] = set()                    # projects frozen in this run (AURORA_PREREG_MODE=strict)
 
 
 _RUNS: dict[str, Run] = {}
@@ -154,6 +160,21 @@ def _inside(run: Run, rel: str, write: bool = False) -> Path:
     return p
 
 
+def _unmask_all(u, v):
+    """The real values back in every string of a tool's arguments, lists and objects too (the predictions' texts)."""
+    if isinstance(v, str):
+        return u(v)
+    if isinstance(v, list):
+        return [_unmask_all(u, x) for x in v]
+    return {k: _unmask_all(u, x) for k, x in v.items()} if isinstance(v, dict) else v
+
+
+def _rel(run: Run, rel: str) -> str:
+    """A path as the project sees it (resolved), for the locked folders' check."""
+    root = prj_run.project_dir(run.cfg, run.project).resolve()
+    return _inside(run, rel).relative_to(root).as_posix()
+
+
 def _prose(run: Run, text: str) -> str:
     """SSCC on what goes back to the cloud (prose only: never a file to edit), when the switch is on."""
     if len(text) <= SSCC_FROM or not run.cfg["AURORA_CLOUD_COMPRESSION"]:
@@ -186,6 +207,10 @@ def _do(run: Run, name: str, a: dict) -> str:
         part = lines[start - 1:start - 1 + READ_LINES]
         more = f"\n… {len(lines)} lines in all: read on from offset {start + READ_LINES}" if len(lines) >= start + READ_LINES else ""
         return "\n".join(f"{i}\t{x}" for i, x in enumerate(part, start)) + more
+    if name in ("write_file", "edit_file") and prj_prereg.locked(_rel(run, u(str(a.get("path", ""))))):
+        return prj_prereg.refusal(str(a.get("path", "")))   # frozen predictions and reviews: Aurora's only (N142)
+    if name in prj_prereg.NAMES:
+        return prj_prereg.tool(run.cfg, run.project, name, _unmask_all(u, a), run.frozen)
     if name == "write_file":
         p = _inside(run, u(str(a.get("path", ""))), write=True)
         p.parent.mkdir(parents=True, exist_ok=True)
@@ -200,7 +225,9 @@ def _do(run: Run, name: str, a: dict) -> str:
         p.write_text(text.replace(old, u(str(a.get("new", ""))), 1), encoding="utf-8")
         return f"edited {a.get('path')}"
     if name == "run":
-        r = prj_run.run(run.cfg, run.project, u(str(a.get("command", ""))))
+        if not run.readonly and (refused := prj_prereg.strict_refusal(run.cfg, run.project, run.frozen)):
+            return refused
+        r = prj_run.run(run.cfg, run.project, u(str(a.get("command", ""))), readonly=run.readonly)
         return _prose(run, f"exit {r['exit']} in {r['seconds']} s; changed: {', '.join(r['changed']) or 'nothing'}\n{r['output']}")
     if name == "search_vault":
         from . import agt_vault
@@ -209,6 +236,11 @@ def _do(run: Run, name: str, a: dict) -> str:
                                                               "top_k": a.get("top_k")}, lambda *x: None))
     if name == "project_notes":
         return prj_conduct.context(run.cfg, run.project)
+    if name == prj_proof.NAME:                           # read only: the referee's too (N143)
+        return prj_proof.text(prj_proof.check(run.cfg, run.project, u(str(a.get("path", "")))))
+    if name == kno_prove.NAME:                           # writes nothing in the project (a private scratch folder)
+        return kno_prove.text(kno_prove.prove(run.cfg, u(str(a.get("statement", ""))),
+                                              private=prj_conduct.local(run.cfg, run.project)))   # «local»: no cloud
     raise ValueError(f"no tool {name}")
 
 
@@ -216,12 +248,16 @@ def call(run: Run, name: str, args: dict) -> dict:
     """A relay's tools/call: {"text", "error"}, the text masked for the cloud."""
     with sys_context.acting_as(run.user):
         try:
+            if name not in {t["name"] for t in run.tools}:         # the referee has no write tool (N142)
+                raise ValueError(f"{name} is not one of this run's tools")
             text, error = _do(run, name, args if isinstance(args, dict) else {}), False
         except (OSError, ValueError, RuntimeError) as e:
             text, error = f"ERROR: {e}", True
     shown = ", ".join(f"{k}={str(run.mask.unmask(str(v)))[:60]!r}" for k, v in (args or {}).items() if k != "content")
-    _note(run.cfg, run.project, step=f"{'✗' if error else '⏺'} {name}({shown})")
-    sys_log.get_logger("projects").info("audit: conductor of %s for %s: %s %s", run.project, run.user, name, "failed" if error else "ok")
+    if run.notes:
+        _note(run.cfg, run.project, step=f"{'✗' if error else '⏺'} {name}({shown})")
+    sys_log.get_logger("projects").info("audit: %s of %s for %s: %s %s", "conductor" if run.notes else "referee",
+                                        run.project, run.user, name, "failed" if error else "ok")
     return {"text": run.mask.mask(str(text)), "error": error}
 
 
@@ -255,11 +291,15 @@ def stop(cfg, project: str) -> dict:
     return {"stopped": len(runs)}
 
 
-def _command(run: Run, cc, system_file: str, mcp_file: str, sid: str, resume: bool) -> list[str]:
-    allowed = ",".join(f"mcp__aurora__{t['name']}" for t in TOOLS)
-    cmd = [cc.bin, "-p", "--model", cc.model, "--tools", "", "--setting-sources", "", "--strict-mcp-config",
+def _command(run: Run, cc, system_file: str, mcp_file: str, sid: str, resume: bool, model: str | None = None,
+             max_usd: float | None = None, persist: bool = True) -> list[str]:
+    allowed = ",".join(f"mcp__aurora__{t['name']}" for t in run.tools)
+    budget = run.cfg["AURORA_CONDUCTOR_MAX_USD"] if max_usd is None else max_usd
+    cmd = [cc.bin, "-p", "--model", model or cc.model, "--tools", "", "--setting-sources", "", "--strict-mcp-config",
            "--mcp-config", mcp_file, "--allowedTools", allowed, "--system-prompt-file", system_file,
-           "--output-format", "stream-json", "--verbose", "--max-budget-usd", str(run.cfg["AURORA_CONDUCTOR_MAX_USD"])]
+           "--output-format", "stream-json", "--verbose", "--max-budget-usd", str(budget)]
+    if not persist:                                      # a one-off run (the referee): no session kept
+        return cmd + ["--no-session-persistence"]
     return cmd + (["--resume", sid] if resume else ["--session-id", sid])
 
 
@@ -278,22 +318,17 @@ def _vault_first(run: Run) -> str:
     return "\n\n## The vault on this request (searched by Aurora before you started; search again for more)\n" + _prose(run, found)
 
 
-def _work(run: Run, cc, system: str, s: dict) -> None:
-    from . import prj_talk
+def cli(run: Run, cc, ms: str, mu: str, folder: Path, sid: str, fresh: bool, *, model: str | None = None,
+        max_usd: float | None = None, timeout_s: int | None = None, persist: bool = True, on_text=None) -> tuple:
+    """One `claude -p` run with Aurora's relay as its only MCP server — the conductor's turn, the referee's review
+    (prj_referee): the masked system prompt and words in; (the result event or None, the session id, fresh, stderr)
+    out. A session the CLI lost is started again once; past the time limit the CLI is stopped."""
     from .mdl_router import _cloud_call
-    from .sec_mask import KEEP
-    cfg, project, p = run.cfg, run.project, run.mask
-    system += _vault_first(run)                          # the vault looked up by Aurora before the CLI starts
-    ms, mu = p.mask(sys_config.personal(system, cfg)), p.mask(run.goal)
-    if p.to_val:
-        ms += KEEP
-    folder = cfg.path("AURORA_STATUS_DIR") / "claude_code" / "talk" / str(run.user or "_") / project
-    folder.mkdir(parents=True, exist_ok=True, mode=0o700)    # empty: no project instructions, the session's home
+    cfg = run.cfg
     relay = Path(__file__).resolve().parent.parent / "script" / "mcp_relay.py"
     url = f"http://127.0.0.1:{cfg['AURORA_API_PORT']}/v1/aurora/conductor"
-    sid, fresh = s.get("session") or "", not s.get("session")
-    t0, result, cost = time.time(), None, None
-    files = []
+    limit = int(timeout_s or cfg["AURORA_CONDUCTOR_TIMEOUT_S"])
+    t0, result, err, files = time.time(), None, "", []
     try:
         for content, suffix in ((ms, ".txt"), (json.dumps({"mcpServers": {"aurora": {
                 "command": sys.executable, "args": ["-I", str(relay)],
@@ -307,12 +342,12 @@ def _work(run: Run, cc, system: str, s: dict) -> None:
             for attempt in (0, 1):
                 if fresh:
                     sid = str(uuid.uuid4())
-                run.proc = subprocess.Popen(_command(run, cc, files[0], files[1], sid, not fresh), cwd=folder,
+                run.proc = subprocess.Popen(_command(run, cc, files[0], files[1], sid, not fresh, model=model,
+                                                     max_usd=max_usd, persist=persist), cwd=folder,
                                             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                             text=True, env=cc._env(8000))
                 run.proc.stdin.write(mu)
                 run.proc.stdin.close()
-                tail = []
                 for line in run.proc.stdout:
                     try:
                         e = json.loads(line)
@@ -320,12 +355,11 @@ def _work(run: Run, cc, system: str, s: dict) -> None:
                         continue
                     if e.get("type") == "assistant":
                         for c in (e.get("message") or {}).get("content") or []:
-                            if c.get("type") == "text" and c.get("text", "").strip():
-                                tail.append(c["text"])
-                                _note(cfg, project, step="✻ " + p.unmask(c["text"]).strip().splitlines()[0])
+                            if c.get("type") == "text" and c.get("text", "").strip() and on_text:
+                                on_text(c["text"])
                     elif e.get("type") == "result":
                         result = e
-                    if time.time() - t0 > int(cfg["AURORA_CONDUCTOR_TIMEOUT_S"]):
+                    if time.time() - t0 > limit:
                         run.proc.terminate()
                         break
                 err = run.proc.stderr.read()
@@ -338,6 +372,31 @@ def _work(run: Run, cc, system: str, s: dict) -> None:
                 # session belongs to the login of before and resuming it fails «error_during_execution»: a new one
                 fresh, result = True, None
             cl.got = len(str((result or {}).get("result", "")))
+    finally:
+        for f in files:
+            Path(f).unlink(missing_ok=True)
+    return result, sid, fresh, err
+
+
+def _work(run: Run, cc, system: str, s: dict) -> None:
+    from . import prj_talk
+    from .sec_mask import KEEP
+    cfg, project, p = run.cfg, run.project, run.mask
+    system += _vault_first(run)                          # the vault looked up by Aurora before the CLI starts
+    if (rule := prj_prereg.rule(cfg)):                   # 🔒 frozen predictions (N142, «avviso» by default)
+        system += "\n\n" + rule
+    if (rule := prj_proof.rule(cfg)):                    # 📐 theorems claimed proved only via proof_check (N143)
+        system += "\n\n" + rule
+    ms, mu = p.mask(sys_config.personal(system, cfg)), p.mask(run.goal)
+    if p.to_val:
+        ms += KEEP
+    folder = cfg.path("AURORA_STATUS_DIR") / "claude_code" / "talk" / str(run.user or "_") / project
+    folder.mkdir(parents=True, exist_ok=True, mode=0o700)    # empty: no project instructions, the session's home
+    sid, fresh = s.get("session") or "", not s.get("session")
+    t0, cost = time.time(), None
+    try:
+        result, sid, fresh, err = cli(run, cc, ms, mu, folder, sid, fresh, on_text=lambda x: _note(
+            cfg, project, step="✻ " + p.unmask(x).strip().splitlines()[0]))
         if run.stopped:
             raise RuntimeError("stopped by the owner")
         if not result:
@@ -356,8 +415,6 @@ def _work(run: Run, cc, system: str, s: dict) -> None:
     except Exception as e:                                # never left «working»: the failure said in the talk
         prj_talk._add(cfg, project, "conductor", f"⚠️ {str(e)[:400]}", backend="cli", error=True)
     finally:
-        for f in files:
-            Path(f).unlink(missing_ok=True)
         with _lock:
             _RUNS.pop(run.token, None)
         _note(cfg, project, working=False, ended=time.time())

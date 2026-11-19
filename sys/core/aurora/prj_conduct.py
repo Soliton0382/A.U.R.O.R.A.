@@ -15,11 +15,13 @@ drafted goals and the replies; a line of before is read as it is, and sealed whe
 from __future__ import annotations
 
 import json
+import re
+import subprocess
 import time
 import uuid
 from pathlib import Path
 
-from . import prj_policy, sys_config, sys_seal
+from . import prj_policy, prj_prereg, prj_proof, sys_config, sys_seal
 from . import sys_users_layout as L
 
 OPEN_ITEMS = ("docs/DA_FARE.md", "DA_FARE.md")
@@ -45,7 +47,25 @@ Answer the owner in their language ({lang}), short and plain, with these parts:
 2. What does not hold: errors the agent found, assumptions, limits, anything the report says was not verified.
 3. Decisions for the owner: only those the owner alone can make, each as choices a / b / c with one recommended and
    why. If there is nothing to decide, say what the next phase should be.
-Never claim more than the report says."""
+Never claim more than the report says. Below the report is what the project's folder shows now, read by Aurora and
+not by the agent: where the report claims a file, a section or a commit the folder does not show, say so first, under
+part 2, plainly («the report says X, the folder shows Y») — the folder is right. The frozen predictions' balance there
+is Aurora's own reading of prereg/: report it as it is (failed predictions and entries «changed after freeze» under
+part 2), never the agent's version of it."""
+
+# N142, «avviso»: the draft asks the agent to freeze its predictions before an experiment (prj_prereg)
+DRAFT_RULE = ("\nThe goal must also say, as its own numbered point: before running any experiment whose result you will "
+              "report, freeze its predictions with freeze_predictions; close them afterwards with close_predictions; "
+              "report every failed prediction.")
+# N143: a theorem is claimed proved only through Aurora's Lean check
+PROOF_RULE = ("\nIf the request asks for a theorem or a proof, the goal must also say: a theorem is claimed proved only "
+              "when proof_check says PROVED for its .lean file.")
+
+
+def draft_system(cfg: sys_config.Config, project: str, policy: str) -> str:
+    """The drafting prompt, with the frozen-predictions rule unless AURORA_PREREG_MODE is off."""
+    return (DRAFT.format(name=project, policy=policy) + (DRAFT_RULE if prj_prereg.rule(cfg) else "")
+            + (PROOF_RULE if prj_proof.rule(cfg) else ""))
 
 
 def _file(cfg: sys_config.Config, project: str) -> Path:
@@ -140,7 +160,7 @@ def draft(cfg: sys_config.Config, project: str, words: str, llm, fallback=None) 
     policy = ("local model only" if pol["models"] == "local" else "masked cloud allowed") + \
         ("" if pol["publish"] else ", never published nor pushed")
     add(cfg, project, "ask", words)
-    system, user = DRAFT.format(name=project, policy=policy), f"{ctx}\n\n## the owner's request\n{words}"
+    system, user = draft_system(cfg, project, policy), f"{ctx}\n\n## the owner's request\n{words}"
     try:
         out = llm.complete(system, user, 2500)
     except Exception:
@@ -150,6 +170,55 @@ def draft(cfg: sys_config.Config, project: str, words: str, llm, fallback=None) 
     return add(cfg, project, "goal", out.answer.strip(), status="draft")
 
 
-def review(cfg: sys_config.Config, project: str, goal: str, report: str, llm, lang: str = "it") -> dict:
-    out = llm.complete(REVIEW.format(lang=lang), f"## goal\n{goal}\n\n## the agent's report\n{report}", 2500)
-    return add(cfg, project, "reply", out.answer.strip())
+FILES = re.compile(r"`([\w./-]+\.(?:md|py|json|csv|txt|scad|stl|tex))`")
+
+
+def folder_facts(cfg: sys_config.Config, project: str, goal: str, since: float | None = None) -> str:
+    """C608: what the folder shows, beside the agent's own report — each file the goal names (there or not, its size,
+    its section headings), the work not committed and the last commits. The judge read the report alone: on 17 Nov a
+    local phase reported «table copied, reading written, committed» over a document holding three lines of model and
+    no commit, and the verdict repeated it."""
+    try:
+        p = _project(cfg, project)
+    except ValueError:
+        return "(the project's folder could not be read)"
+    out = []
+    for rel in dict.fromkeys(FILES.findall(goal or "")):
+        f = (p / rel).resolve()
+        if not f.is_relative_to(p.resolve()):
+            continue
+        if not f.is_file():
+            out.append(f"- {rel}: NOT in the folder")
+            continue
+        text = f.read_text(encoding="utf-8", errors="replace") if f.suffix in (".md", ".txt", ".py") else ""
+        heads = [ln.strip()[:60] for ln in text.splitlines() if ln.startswith("#") or re.match(r"\*\*[^*]{2,40}\.?\*\*", ln)]
+        out.append(f"- {rel}: {f.stat().st_size} bytes" + (f"; sections: {' | '.join(heads[:12])}" if heads else ""))
+
+    def git(*a: str) -> str:
+        try:
+            r = subprocess.run(["git", "-c", f"safe.directory={p}", "-C", str(p), *a], capture_output=True, text=True,
+                               timeout=20)
+            return r.stdout.strip() if r.returncode == 0 else ""
+        except (OSError, subprocess.TimeoutExpired):
+            return ""
+    pending = git("status", "--short")
+    out.append("- not committed: " + (", ".join(pending.splitlines()[:15]) if pending else "nothing"))
+    out.append("- last commits: " + (" · ".join(git("log", "--format=%cr %s", "-3").splitlines()) or "none"))
+    out.append("- " + prj_prereg.balance(cfg, project, since))         # N142: the ledger, read by Aurora
+    return "\n".join(out)
+
+
+def review(cfg: sys_config.Config, project: str, goal: str, report: str, llm, lang: str = "it", commands: int = 0,
+           since: float | None = None, referee: dict | None = None) -> dict:
+    """The conductor's reply. `commands`, `since`: what the phase ran and when it began (a phase that ran commands and
+    froze nothing is said by Aurora, N142); `referee`: the severe review (prj_referee), its verdict first."""
+    missing = prj_prereg.missing_note(cfg, project, commands, since or 0.0, lang) if since is not None else ""
+    ref = referee or {}
+    extra = (f"\n\n## Aurora's own note\n{missing}" if missing else "") + (
+        f"\n\n## the severe referee's review (an AI reviewer; it did not read the report)\n{ref['text'][:6000]}"
+        if ref.get("text") else "")
+    out = llm.complete(REVIEW.format(lang=lang), f"## goal\n{goal}\n\n## the agent's report\n{report}\n\n"
+                       f"## what the project's folder shows now (read by Aurora)\n{folder_facts(cfg, project, goal, since)}"
+                       + extra, 2500)
+    text = "\n\n".join(x for x in (ref.get("summary", ""), missing, out.answer.strip()) if x)
+    return add(cfg, project, "reply", text, **({"review": ref["file"]} if ref.get("file") else {}))

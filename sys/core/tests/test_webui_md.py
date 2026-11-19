@@ -19,6 +19,7 @@ CASES = {
     "| A | B |\n|---|---|\n| off | **2** |\n| on | $6$ |":
         "div.md(div.table-wrap(table(tr(th(A) th(B)) tr(td(off) td(strong[2])) tr(td(on) td(span.math[6])))))",
     "Testo con `codice $x$` e *corsivo*.": "div.md(p(Testo con  code[codice $x$]  e  em[corsivo] .))",
+    "```lean fold\ntheorem claim : 1 = 1 := rfl\n```": "div.md(details.code-fold(summary[Lean] pre.code[theorem claim : 1 = 1 := rfl]))",
 }
 
 

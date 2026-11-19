@@ -4183,6 +4183,177 @@
    ]
   },
   {
+   "key": "AURORA_PREREG_MODE",
+   "type": "enum",
+   "choices": [
+    "off",
+    "warn",
+    "strict"
+   ],
+   "category": "projects",
+   "recommended": "warn",
+   "optional": true,
+   "evidence": "owner (N142)",
+   "en": "Frozen predictions in projects (prereg/): off; warn (the agents are told to freeze their predictions before an experiment, and a phase that ran commands without freezing anything is said in the conductor's reply); strict (warn, and a command in the project is refused until something was frozen in the same run).",
+   "it": "Previsioni congelate nei progetti (prereg/): off; warn (agli agenti si chiede di congelare le previsioni prima di un esperimento, e una fase che ha eseguito comandi senza congelare nulla è detta nella risposta del conduttore); strict (come warn, e un comando nel progetto è rifiutato finché nella stessa esecuzione non è stato congelato qualcosa).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_REFEREE_ENABLED",
+   "type": "bool",
+   "category": "projects",
+   "recommended": "true",
+   "optional": true,
+   "evidence": "owner (N142)",
+   "en": "The severe referee: when a project's phase ends, an AI reviewer on the Claude CLI (another model than the conductor's, read-only tools and cage) judges the phase's documents and frozen predictions; Aurora writes reviews/REV_NNN.md and the conductor's reply starts with its verdict. Never for a «local» project.",
+   "it": "Il revisore severo: alla fine di una fase di progetto un revisore IA sulla CLI di Claude (un modello diverso da quello del conduttore, strumenti e gabbia in sola lettura) giudica i documenti della fase e le previsioni congelate; Aurora scrive reviews/REV_NNN.md e la risposta del conduttore comincia dal suo verdetto. Mai per un progetto «locale».",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_REFEREE_MODEL",
+   "type": "str",
+   "category": "projects",
+   "recommended": "sonnet",
+   "optional": true,
+   "evidence": "owner (N142)",
+   "en": "The referee's model on the Claude CLI (an alias: opus, sonnet, haiku, or a full id). It must differ from the conductor's (AURORA_CLAUDE_CODE_MODEL, opus by default): when they are the same, the referee takes sonnet, or opus if the conductor is on sonnet.",
+   "it": "Il modello del revisore sulla CLI di Claude (alias: opus, sonnet, haiku, o id completo). Deve essere diverso da quello del conduttore (AURORA_CLAUDE_CODE_MODEL, opus di default): se coincidono, il revisore usa sonnet, oppure opus se il conduttore è su sonnet.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_REFEREE_TIMEOUT_S",
+   "type": "int",
+   "min": 60,
+   "max": 7200,
+   "category": "projects",
+   "recommended": "900",
+   "optional": true,
+   "evidence": "owner (N142)",
+   "en": "Longest a referee's review may work before it is stopped (said in the reply).",
+   "it": "Durata massima di una revisione severa, poi viene fermata (detto nella risposta).",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_REFEREE_MAX_USD",
+   "type": "float",
+   "min": 0.1,
+   "max": 50,
+   "category": "projects",
+   "recommended": "2",
+   "optional": true,
+   "evidence": "owner (N142)",
+   "en": "Most a referee's review may spend on the Claude CLI (its --max-budget-usd): past it the review stops and the reply says so; a review is skipped when today's cloud ceiling is reached.",
+   "it": "Spesa massima di una revisione severa sulla CLI di Claude (--max-budget-usd): oltre, la revisione si ferma e la risposta lo dice; è saltata quando il tetto giornaliero del cloud è raggiunto.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_PROOF_ENABLED",
+   "type": "bool",
+   "category": "projects",
+   "recommended": "true",
+   "optional": true,
+   "evidence": "owner (N143)",
+   "en": "Formal verification in projects: the proof_check tool (conductor, phase agent, referee) checks a .lean file of the project with Lean 4 + Mathlib in a read-only cage; a frozen prediction «PROOF: <file.lean>» is closed by Aurora's check.",
+   "it": "Verifica formale nei progetti: lo strumento proof_check (conduttore, agente di fase, revisore) controlla un file .lean del progetto con Lean 4 + Mathlib in una gabbia in sola lettura; una previsione congelata «PROOF: <file.lean>» è chiusa dal controllo di Aurora.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_LEAN_HOME",
+   "type": "path",
+   "category": "projects",
+   "recommended": "sys/runtime/lean",
+   "optional": true,
+   "evidence": "owner (N143)",
+   "en": "Where Lean lives: elan/ (the toolchains) and workspace/ (a Lake workspace with Mathlib built). Missing: proof_check says «Lean non installato».",
+   "it": "Dove sta Lean: elan/ (le toolchain) e workspace/ (uno spazio Lake con Mathlib compilata). Se manca: proof_check dice «Lean non installato».",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_PROOF_TIMEOUT_S",
+   "type": "int",
+   "min": 10,
+   "max": 7200,
+   "category": "projects",
+   "recommended": "600",
+   "optional": true,
+   "evidence": "owner (N143)",
+   "en": "Longest a formal proof check may take (Lean compiling the file in its cage), then it is stopped and said.",
+   "it": "Durata massima di una verifica formale (Lean che compila il file nella sua gabbia), poi viene fermata e detto.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_PROVE_ENABLED",
+   "type": "bool",
+   "category": "agents",
+   "recommended": "true",
+   "optional": true,
+   "evidence": "owner (N144)",
+   "en": "The Lean mathematician: a mathematical claim in the chat («/lean …», «dimostra in Lean: …», or a question asking whether a statement is true or for a proof) and the agents' prove tool are formalised by a model in Lean 4, checked by Aurora's Lean, and the statement's fidelity confirmed by a second call. Never in the anonymous chat.",
+   "it": "Il matematico Lean: un'affermazione matematica in chat («/lean …», «dimostra in Lean: …», o una domanda se un enunciato è vero o che chiede una dimostrazione) e lo strumento prove degli agenti sono formalizzati da un modello in Lean 4, verificati dal Lean di Aurora, e la fedeltà dell'enunciato confermata da una seconda chiamata. Mai nella chat anonima.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_PROVE_MODEL",
+   "type": "str",
+   "category": "agents",
+   "recommended": "",
+   "optional": true,
+   "evidence": "owner (N144)",
+   "en": "The Lean mathematician's model as provider:model (e.g. claude_code:opus). Empty: the agent's assignment on the Models page. Always masked, with the daily ceiling and the local fallback of every cloud call.",
+   "it": "Il modello del matematico Lean come provider:modello (es. claude_code:opus). Vuoto: quello assegnato all'agente nella pagina Modelli. Sempre mascherato, con il tetto giornaliero e il ripiego locale di ogni chiamata cloud.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_PROVE_ATTEMPTS",
+   "type": "int",
+   "min": 1,
+   "max": 10,
+   "category": "agents",
+   "recommended": "3",
+   "optional": true,
+   "evidence": "owner (N144)",
+   "en": "Attempts of the Lean mathematician on one claim: after each failure Lean's errors (or the fidelity check's objection) go back to the model.",
+   "it": "Tentativi del matematico Lean su un'affermazione: dopo ogni fallimento gli errori di Lean (o l'obiezione del controllo di fedeltà) tornano al modello.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_PROVE_TIMEOUT_S",
+   "type": "int",
+   "min": 30,
+   "max": 3600,
+   "category": "agents",
+   "recommended": "300",
+   "optional": true,
+   "evidence": "owner (N144)",
+   "en": "Longest the Lean mathematician may work on one claim (every attempt and check together), then it stops and says what it reached.",
+   "it": "Durata massima del lavoro del matematico Lean su un'affermazione (tutti i tentativi e le verifiche insieme), poi si ferma e dice dove è arrivato.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
    "key": "AURORA_PROJECT_TERM_MAX",
    "type": "int",
    "min": 1,

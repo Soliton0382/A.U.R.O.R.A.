@@ -22,7 +22,7 @@ import time
 
 import httpx
 
-from . import agt_asked, agt_phone, mdl_fit, sns_clock, sys_config, sys_log, sys_people
+from . import agt_asked, agt_phone, kno_prove, mdl_fit, prj_prereg, prj_proof, sns_clock, sys_config, sys_log, sys_people
 from .kno_answer import Answer, Trail
 from .agt_loop_make import AgentMakers
 from . import agt_tools
@@ -199,7 +199,7 @@ class Agent(AgentMakers, AgentReport):
                     "name": name, "description": f"[{t['effect']}] {t['description']}",
                     "parameters": t["input_schema"] or {"type": "object", "properties": {}}}})
         from . import agt_vault, hom_auto, hom_scenes
-        for t in (LOOP_TOOLS + [agt_vault.TOOL, sys_people.TOOL] + ([hom_scenes.TOOL, hom_auto.TOOL] if any(v[0] == "homeassistant" for v in index.values()) else [])
+        for t in (LOOP_TOOLS + prj_prereg.offered(self.cfg, goal) + prj_proof.offered(self.cfg, goal) + kno_prove.offered(self.cfg, goal) + [agt_vault.TOOL, sys_people.TOOL] + ([hom_scenes.TOOL, hom_auto.TOOL] if any(v[0] == "homeassistant" for v in index.values()) else [])
                   + ([agt_tools.MORE] if self.deferred else [])):
             if self.loop_tools is not None and t["name"] not in self.loop_tools | {"finish", "more_tools"}:
                 continue
@@ -326,6 +326,12 @@ class Agent(AgentMakers, AgentReport):
         if name == "search_vault":                           # what the vault knows that the model does not
             from . import agt_vault
             return agt_vault.run(self.p, args, emit)
+        if name in prj_prereg.NAMES:                         # 🔒 frozen predictions in a project (N142)
+            return prj_prereg.agent_call(self, name, args)
+        if name == prj_proof.NAME:                           # 📐 a Lean proof, checked in a read-only cage (N143)
+            return prj_proof.agent_call(self, args)
+        if name == kno_prove.NAME:                           # 📐 the Lean mathematician: a claim proved or not (N144)
+            return kno_prove.agent_call(self, args)
         if name == "run_in_project":                         # Aurora's own code, in a cage without network (prj_run)
             from . import prj_run
             # «name» as the projects plugin's tools call it (C392: the local model wrote it, the run said the name
@@ -333,6 +339,8 @@ class Agent(AgentMakers, AgentReport):
             name = str(args.get("project") or args.get("name") or "")
             if not name:
                 return "ERROR: run_in_project needs «project» (the project's name) and «command»."
+            if (refused := prj_prereg.strict_refusal(self.cfg, name, self.__dict__.get("prereg_frozen"))):
+                return refused
             try:
                 r = prj_run.run(self.cfg, name, str(args.get("command", "")))
             except (ValueError, RuntimeError) as e:
@@ -680,4 +688,5 @@ class Agent(AgentMakers, AgentReport):
                                            "text": f"{', '.join(sorted(self.projects))}: {summary[:160]}"})
         ans = Answer(run_id, goal, summary, False, mode="agent")
         ans.seconds = seconds
+        ans.commands = list(self.commands)                  # what it ran, for the conductor's reply (N142)
         return ans

@@ -17,6 +17,7 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import Response
 
+from aurora import hom_scenes
 from aurora.hom_devices import ALLOWED, watching
 
 from .core import auth, cfg, in_thread, log, me, pipeline, plugin_host
@@ -30,6 +31,19 @@ def _host():
     if p is None or not p.available:
         raise HTTPException(status_code=409, detail="the homeassistant plugin is not on")
     return plugin_host()
+
+
+def _plugin_on() -> bool:
+    p = plugin_host().get("homeassistant")
+    return p is not None and bool(p.available)
+
+
+hom_scenes.set_gate(_plugin_on)
+
+
+def _scene_owners() -> list[str]:
+    from .core import _admin
+    return hom_scenes.owners(me() or "", _admin())
 
 
 def _devices() -> list[dict]:
@@ -134,7 +148,8 @@ def home_scenes() -> dict:
     """Aurora's own light scenes (hom_scenes): saved, and which are running."""
     from aurora import hom_scenes
     _host()
-    return {"scenes": hom_scenes.load(cfg)["scenes"], "running": hom_scenes.running(me() or "")}
+    on = {k for who in _scene_owners() for k in hom_scenes.running(who)}
+    return {"scenes": hom_scenes.load(cfg)["scenes"], "running": sorted(on)}
 
 
 @router.post("/v1/aurora/home/scenes", dependencies=[Depends(auth)])
@@ -179,14 +194,18 @@ async def home_scene(name: str, action: str, request: Request) -> dict:
 
             def stop():
                 done = hom_scenes.stop_scene(cfg, name, me() or "", action == "off")
+                for who in _scene_owners()[1:]:         # C612: the one the tick or an automation started
+                    done = hom_scenes.stop_scene(cfg, name, who) or done
                 if lights:                              # the lights it was tried on: a white one is over at once
-                    hom_scenes.stop_on(cfg, lights, me() or "")
+                    for who in _scene_owners():
+                        hom_scenes.stop_on(cfg, lights, who)
                     if action == "off":
                         hom_scenes._ha(cfg, "light/turn_off", {"entity_id": lights})
                 return done or bool(lights)
             out = {"stopped": await in_thread(stop)}
         elif action == "delete":
-            hom_scenes.stop_scene(cfg, name, me() or "")
+            for who in _scene_owners():
+                hom_scenes.stop_scene(cfg, name, who)
             data = hom_scenes.load(cfg)
             out = {"deleted": data["scenes"].pop(hom_scenes.key(name), None) is not None}
             hom_scenes._save(cfg, data)

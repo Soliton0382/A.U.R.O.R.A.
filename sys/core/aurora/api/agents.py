@@ -358,7 +358,8 @@ async def restart_services(request: Request) -> dict:
     """Restart services from the WebUI (after a settings change). aurora-api restarts last, after this
     answer has left: the page reconnects by itself."""
     import subprocess
-    wanted = [u for u in (await request.json()).get("services", []) if u in UNITS
+    body = await request.json()
+    wanted = [u for u in body.get("services", []) if u in UNITS
               and not (u == "aurora-llm" and str(cfg["AURORA_LLM_BACKEND"]) == "cloud")]   # no such unit there
     if not wanted:
         raise HTTPException(status_code=400, detail="no known service")
@@ -377,7 +378,8 @@ async def restart_services(request: Request) -> dict:
     if "aurora-api" in wanted:
         threading.Timer(1.5, lambda: subprocess.run(["systemctl", "restart", "--no-block", "aurora-api"],
                                                     capture_output=True, timeout=30)).start()
-    log.info("audit: restart requested from the WebUI: %s", ", ".join(wanted))
+    from aurora.sys_fresh import restart_origin
+    log.info("audit: restart requested from %s: %s", restart_origin(body), ", ".join(wanted))
     return {"restarting": wanted}
 
 

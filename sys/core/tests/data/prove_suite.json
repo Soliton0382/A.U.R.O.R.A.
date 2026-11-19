@@ -1,0 +1,25 @@
+{
+ "about": "The Lean mathematician's fixed suite (ROADMAP N144, script/bench_agi.py --only lean): invented elementary statements, true and false. A true one is right only when proved (Lean's kernel AND the statement's fidelity); a false one when not claimed proved.",
+ "cases": [
+  {"id": "even_sum", "claim": "La somma di due numeri interi pari è pari.", "true": true},
+  {"id": "n2_plus_n_even", "claim": "Per ogni numero naturale n, n² + n è pari.", "true": true},
+  {"id": "infinite_primes", "claim": "Per ogni numero naturale n esiste un numero primo maggiore di n.", "true": true},
+  {"id": "sqrt2_irrational", "claim": "La radice quadrata di 2 è irrazionale.", "true": true},
+  {"id": "n3_minus_n_div6", "claim": "Per ogni intero n, n³ − n è divisibile per 6.", "true": true},
+  {"id": "square_nonneg", "claim": "Per ogni numero reale x, x² ≥ 0.", "true": true},
+  {"id": "odd_sum_square", "claim": "Per ogni naturale n, la somma dei primi n numeri dispari 1 + 3 + … + (2n − 1) è n².", "true": true},
+  {"id": "pow2_ge", "claim": "Per ogni naturale n, 2^n ≥ n + 1.", "true": true},
+  {"id": "prime_17", "claim": "17 è un numero primo.", "true": true},
+  {"id": "am_gm_two", "claim": "Per tutti i reali a e b, a² + b² ≥ 2ab.", "true": true},
+  {"id": "odd_product", "claim": "Il prodotto di due numeri interi dispari è dispari.", "true": true},
+  {"id": "div6_div12", "claim": "Every natural number that divides 6 also divides 12.", "true": true},
+  {"id": "primes_odd", "claim": "Ogni numero primo è dispari.", "true": false},
+  {"id": "euler_41", "claim": "Per ogni naturale n, n² + n + 41 è un numero primo.", "true": false},
+  {"id": "odd_sum_odd", "claim": "La somma di due numeri interi dispari è dispari.", "true": false},
+  {"id": "square_gt", "claim": "Per ogni numero reale x, x² > x.", "true": false},
+  {"id": "prime_91", "claim": "91 è un numero primo.", "true": false},
+  {"id": "pow2_gt_square", "claim": "Per ogni naturale n, 2^n > n².", "true": false},
+  {"id": "div4_div8", "claim": "Every integer divisible by 4 is divisible by 8.", "true": false},
+  {"id": "freshman", "claim": "Per tutti i reali a e b, (a + b)² = a² + b².", "true": false}
+ ]
+}

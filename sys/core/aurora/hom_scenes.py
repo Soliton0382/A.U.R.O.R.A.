@@ -157,6 +157,22 @@ def step(scene: dict, n: int) -> list[tuple[str, dict]]:
     return out
 
 
+_gate = lambda: True                            # C611: the API says here whether the homeassistant plugin is on
+
+
+def set_gate(check) -> None:
+    """How a running scene learns that its plugin was switched off (the API's plugin host, not known here)."""
+    global _gate
+    _gate = check
+
+
+def allowed() -> bool:
+    try:
+        return bool(_gate())
+    except Exception:                                # noqa: BLE001 - a failed look is not the owner switching it off
+        return True
+
+
 def _ha(cfg, path: str, body: dict) -> None:
     url, token = str(cfg["AURORA_HA_URL"]).rstrip("/"), str(cfg["AURORA_HA_TOKEN"])
     r = httpx.post(f"{url}/api/services/{path}", headers={"Authorization": f"Bearer {token}"}, json=body, timeout=15)
@@ -172,7 +188,7 @@ def _run(cfg, user: str, k: str, scene: dict, stop: threading.Event, until: floa
             except httpx.HTTPError as e:
                 if log:
                     log.warning("scene %s: %s not reached: %s", k, sw, e)
-        while scene["lights"] and not stop.is_set() and (not until or time.time() < until):
+        while scene["lights"] and not stop.is_set() and (not until or time.time() < until) and allowed():
             for light, data in step(scene, n):
                 try:
                     _ha(cfg, "light/turn_on", {"entity_id": light, **data})
@@ -241,12 +257,20 @@ def stop_on(cfg, lights: list, user: str = "") -> list[str]:
     return out
 
 
+def owners(user: str, admin: str) -> list[str]:
+    """C612: whose scenes a click reaches. What the routines' tick or an automation started for the admin runs under
+    "", the admin's click under the name: the admin reaches both, anyone else only their own."""
+    return [user, ""] if user and user == admin else [user]
+
+
 def running(user: str = "") -> list[str]:
     return sorted(k for (u, k) in _running if u == user)
 
 
 def resume(cfg, user: str = "", log=None) -> list[str]:
     """The scenes that were running when the API stopped, with time left: started again (the routines' tick)."""
+    if not allowed():                                # C611: the plugin is off, no scene comes back by itself
+        return []
     data, out = load(cfg), []
     for k, r in list(data["running"].items()):
         if (user, k) in _running or k not in data["scenes"]:

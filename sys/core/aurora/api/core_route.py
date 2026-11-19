@@ -312,6 +312,10 @@ def answer_or_acquire(question: str, emit, run_id: str, **kw):
     if busy:
         return busy
     p = pipeline()
+    from aurora import kno_prove_chat                 # 📐 a mathematical claim: the Lean mathematician (N144)
+    proved = kno_prove_chat.answer(p, cfg, question, emit, run_id, kw.get("remember", True), kw.get("attached"))
+    if proved is not None:
+        return proved
     from aurora import kno_followup
     # remember=False (a test asked with everything on, C270): a question alone — no recent turn read as its context,
     # nothing written to the memory, no shadow cast

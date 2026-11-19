@@ -196,7 +196,8 @@ def fresh_tick(client: httpx.Client, idle: bool, said: str) -> str:
         return client.get(f"{BASE}/v1/aurora/rem/fresh").raise_for_status().json()["why"]
 
     def restart() -> None:
-        client.post(f"{BASE}/v1/aurora/services/restart", json={"services": ["aurora-api"]}).raise_for_status()
+        client.post(f"{BASE}/v1/aurora/services/restart",
+                    json={"services": ["aurora-api"], "origin": "morning"}).raise_for_status()
 
     return sys_fresh.tick(cfg, sns_clock.now(cfg), idle, said, ask, restart, log)
 

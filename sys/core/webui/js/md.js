@@ -68,8 +68,14 @@ export function renderMarkdown(text) {
     if (/^```/.test(line)) {
       flush();
       const code = [];
+      const fold = line.match(/^```\s*(\w+)\s+fold\s*$/);   // «```lean fold»: drawn collapsed (kno_prove_chat, N144)
       for (i++; i < lines.length && !/^```/.test(lines[i]); i++) code.push(lines[i]);
-      root.append(el("pre", "code", code.join("\n")));
+      const pre = el("pre", "code", code.join("\n"));
+      if (fold) {
+        const box = el("details", "code-fold");
+        box.append(el("summary", "", fold[1][0].toUpperCase() + fold[1].slice(1)), pre);
+        root.append(box);
+      } else root.append(pre);
       i++;
       continue;
     }

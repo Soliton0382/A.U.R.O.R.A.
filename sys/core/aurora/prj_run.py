@@ -38,7 +38,9 @@ def project_dir(cfg: sys_config.Config, name: str) -> Path:
     return p
 
 
-def cage(cfg: sys_config.Config, project: Path, command: str) -> list[str]:
+def cage(cfg: sys_config.Config, project: Path, command: str, readonly: bool = False) -> list[str]:
+    """The bwrap command. `readonly` (the referee, N142): the project bound read only too; its scratch is the private
+    tmpfs /tmp, and pytest keeps no cache in the project."""
     venv = Path(sys.prefix)                         # the Python environment running Aurora (its .venv)
     args = ["bwrap", "--die-with-parent", "--new-session", "--unshare-all", "--ro-bind", "/", "/",
             "--dev", "/dev", "--proc", "/proc", "--tmpfs", "/tmp"]
@@ -54,13 +56,14 @@ def cage(cfg: sys_config.Config, project: Path, command: str) -> list[str]:
         args += ["--ro-bind", str(venv), str(venv)]
     own = project / ".venv" / "bin"                  # the libraries Aurora installed for it (projects.project_install)
     first = f"{own}:" if (own / "python").exists() else ""
-    args += ["--bind", str(project), str(project)]
+    args += ["--ro-bind" if readonly else "--bind", str(project), str(project)]
     for ro in (".git", ".venv"):                     # C420: a hook or core.fsmonitor in .git, a python in .venv ran
         if (project / ro).is_dir():                  # later outside the cage (git status, pip --python): read only
             args += ["--ro-bind", str(project / ro), str(project / ro)]
     args += ["--clearenv",
              "--setenv", "PATH", f"{first}{venv / 'bin'}:/usr/local/bin:/usr/bin:/bin", "--setenv", "HOME", "/tmp",
              "--setenv", "LANG", "C.UTF-8", "--setenv", "PYTHONDONTWRITEBYTECODE", "1",
+             *(["--setenv", "TMPDIR", "/tmp", "--setenv", "PYTEST_ADDOPTS", "-p no:cacheprovider"] if readonly else []),
              "--chdir", str(project), "--", "bash", "-c", command]
     return args
 
@@ -97,9 +100,10 @@ def changed(before: dict, after: dict) -> list[str]:
     return sorted(k for k, v in after.items() if before.get(k) != v)
 
 
-def run(cfg: sys_config.Config, name: str, command: str) -> dict:
+def run(cfg: sys_config.Config, name: str, command: str, readonly: bool = False) -> dict:
     """{"exit", "seconds", "output", "changed"}: the command's result in the cage and the files it wrote (C384: the
-    run's summary counted only the write tool's files); ValueError for a bad name or command."""
+    run's summary counted only the write tool's files); ValueError for a bad name or command. `readonly`: nothing of
+    the project can be written (the referee's cage, N142)."""
     if not shutil.which("bwrap"):
         raise RuntimeError("bubblewrap (bwrap) is not installed: no cage, nothing is run")
     command = str(command or "").strip()
@@ -110,7 +114,7 @@ def run(cfg: sys_config.Config, name: str, command: str) -> dict:
     before = snapshot(project)
     t0 = time.time()
     try:
-        r = subprocess.run(cage(cfg, project, command), capture_output=True, text=True, timeout=limit)
+        r = subprocess.run(cage(cfg, project, command, readonly), capture_output=True, text=True, timeout=limit)
         code, out = r.returncode, (r.stdout + ("\n" + r.stderr if r.stderr else ""))
     except subprocess.TimeoutExpired as e:
         code = -1

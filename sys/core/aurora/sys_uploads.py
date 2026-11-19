@@ -103,6 +103,15 @@ def link(cfg: sys_config.Config, run_id: str, name: str, url: str, mime: str, ro
     return item
 
 
+def unlink_url(cfg: sys_config.Config, url: str) -> int:
+    """The links to a document that left its folder (N141): the turns no longer offer a dead file."""
+    items = _index(cfg)
+    keep = [i for i in items if i.get("link") != url]
+    if len(keep) != len(items):
+        _write_index(cfg, keep)
+    return len(items) - len(keep)
+
+
 def public(item: dict) -> dict:
     return {k: v for k, v in item.items() if k not in ("path", "link")} | {"role": item.get("role", "user"),
                                                                          "url": item.get("link") or f"/v1/aurora/uploads/{item['id']}",

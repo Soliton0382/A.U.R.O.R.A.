@@ -34,6 +34,11 @@ def _end(cfg: sys_config.Config) -> int:
     return int(str(cfg["AURORA_REM_DREAM_HOURS"]).split("-")[1]) % 24
 
 
+def restart_origin(body: dict) -> str:
+    """Who asked for a restart, for the audit line (C610): only a known label, never the caller's text."""
+    return "the morning restart (aurora-rem)" if body.get("origin") == "morning" else "the WebUI"
+
+
 def in_window(cfg: sys_config.Config, now: datetime) -> bool:
     return (now.hour - _end(cfg)) % 24 < WINDOW_H
 

@@ -137,10 +137,27 @@ def summary(cfg: sys_config.Config, proj: Path) -> dict:
                 first = line[:200]
                 break
     last = _git(proj, "log", "-1", "--format=%h%x1f%cI%x1f%s", cfg=cfg).split("\x1f")
-    return {"name": proj.name, "description": first, "readme": readme,
+    status = [x for x in _git(proj, "status", "--porcelain", cfg=cfg).splitlines() if x.strip()]
+    # the order of the Projects page (owner, 17 Nov: «per nome, per data di creazione o di ultima modifica»): created =
+    # the first commit; modified = the newest of the last commit and the files changed and not committed yet
+    created = (_git(proj, "log", "--max-parents=0", "--format=%cI", cfg=cfg).splitlines() or [""])[-1]
+    mtimes = []
+    for line in status[:200]:
+        parts = line.split(maxsplit=1)                   # «XY path»; the output's first space is stripped by _git
+        f = proj / (parts[-1] if len(parts) > 1 else "").strip('"').split(" -> ")[-1]
+        try:
+            mtimes.append(f.stat().st_mtime)
+        except OSError:
+            pass
+    from datetime import datetime
+    modified = last[1] if len(last) == 3 else ""
+    if mtimes:
+        newest = datetime.fromtimestamp(max(mtimes)).astimezone().isoformat(timespec="seconds")
+        modified = max(modified, newest) if modified else newest
+    return {"name": proj.name, "description": first, "readme": readme, "created": created, "modified": modified,
             "branch": _git(proj, "rev-parse", "--abbrev-ref", "HEAD", cfg=cfg),
             "last_commit": dict(zip(("hash", "date", "subject"), last)) if len(last) == 3 else None,
-            "changes": len([x for x in _git(proj, "status", "--porcelain", cfg=cfg).splitlines() if x.strip()]),
+            "changes": len(status),
             "remote": re.sub(r"//[^@/]+@", "//", _git(proj, "remote", "get-url", "origin", cfg=cfg)),
             "has_index_html": any((proj / d / "index.html").is_file() for d in ("", "docs", "public", "site", "web")),
             "policy": prj_policy.load(cfg, proj.name)}

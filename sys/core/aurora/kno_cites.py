@@ -16,7 +16,8 @@ import sqlite3
 SYS_CITES = ("List the legal provisions a lawyer would read first for this situation: at most 6, the most relevant, "
              "each as «art. N <act>» with the act's usual name (codice civile, codice penale, codice di procedura "
              "civile, d.lgs. N/YYYY, d.P.R. N/YYYY, legge N/YYYY, d.l. N/YYYY). Only provisions you are sure exist. One "
-             "per line, nothing else.")
+             "per line, nothing else. If no right, duty, contract, dispute, offence or legal procedure is at stake (a "
+             "question about health, science, feelings or everyday life), answer only NONE.")
 
 # the codes by name; the other acts by their kind, number and year (Normattiva's URN)
 CODES = {
@@ -70,7 +71,10 @@ def lookup(reader, number: str, source: str, limit: int = 2) -> list[str]:
 
 
 def propose(model, question: str) -> list[str]:
-    return [l.strip() for l in model.complete(SYS_CITES, question, 200).answer.splitlines() if l.strip()][:6]
+    """C613: a long health question got four civil-code articles (re-ranker 0.0) as sure passages,
+    and the answer talked about the law; NONE = not a legal matter, nothing is fetched."""
+    lines = [l.strip() for l in model.complete(SYS_CITES, question, 200).answer.splitlines() if l.strip()]
+    return [] if any(l.strip(" .«»\"'").upper() == "NONE" for l in lines) else lines[:6]
 
 
 def hits(pipeline, question: str, ev) -> list:

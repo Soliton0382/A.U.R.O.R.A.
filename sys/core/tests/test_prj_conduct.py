@@ -82,3 +82,18 @@ def test_a_project_goes_to_the_trash_never_at_once():
     body = src.split('def project_delete(')[1].split("@router")[0]
     assert "prj_act.working(cfg, name)" in body and 'cfg["AURORA_TRASH_ENABLED"]' in body
     assert 'sys_trash.discard(cfg, folder, "project", name)' in body and "rmtree" not in body
+
+
+def test_the_judge_reads_the_folder_beside_the_report(cfg, project):
+    """C608: a report claiming a document and a commit the folder does not hold — the judge is shown the folder."""
+    p = cfg.path("AURORA_PROJECTS_DIR") / project
+    (p / "docs" / "02_seno.md").write_text("# 02 — Rotori a seno\n\n**Modello.** tre righe\n", encoding="utf-8")
+    goal = "Create `docs/02_seno.md` with «Fatti» and «Lettura»; write `dati/02_seno.md`; commit."
+    facts = C.folder_facts(cfg, project, goal)
+    assert "docs/02_seno.md:" in facts and "# 02 — Rotori a seno" in facts and "**Modello.**" in facts
+    assert "dati/02_seno.md: NOT in the folder" in facts and "not committed:" in facts
+    assert C.folder_facts(cfg, project, "read `../../etc/passwd.txt`").count("passwd") == 0     # never outside
+    llm = _LLM("ok")
+    C.review(cfg, project, goal, "Fatti e Lettura scritti, commit fatto.", llm)
+    system, user = llm.seen[0]
+    assert "the folder is right" in system and "NOT in the folder" in user

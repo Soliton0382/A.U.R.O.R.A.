@@ -12,6 +12,7 @@ import { apply, t } from "../i18n.js";
 import { renderMarkdown } from "../md.js";
 import { policyBox } from "./project_policy.js";
 import { conductView } from "./project_conduct.js";
+import { checksView } from "./project_checks.js";
 import { planView } from "./project_plan.js";
 import { docsView } from "./project_docs.js";
 import { filesView } from "./project_files.js";
@@ -24,10 +25,11 @@ import { terminalView } from "./project_term.js";
 const SECTIONS = [["conduct", "conduct.button"], ["plan", "plan.button"], ["docs", "docs.button"], ["render", "prj.render"],
   ["sim", "prj.sim"], ["files", "prj.tab_files"],
   ["print", "prj.print"], ["term", "prj.term"], ["history", "prj.history", true], ["reports", "prj.reports", true],
+  ["checks", "prj.checks", true],
   ["preview", "prj.preview", true]];
 // the sections in three groups (owner, 23 Oct: «dentro il progetto le diverse sezioni sembrano incasinate»): a row of
 // groups, then the row of the chosen group's sections — two short rows instead of eleven chips over four lines
-const GROUPS = [["work", "prj.g_work", ["conduct", "plan", "term", "reports"]],
+const GROUPS = [["work", "prj.g_work", ["conduct", "plan", "term", "reports", "checks"]],
   ["model", "prj.g_model", ["docs", "render", "sim", "print"]],
   ["files", "prj.g_files", ["files", "history", "preview"]]];
 const groupOf = (id) => GROUPS.find(([, , ids]) => ids.includes(id))?.[0] || "work";
@@ -109,6 +111,7 @@ export function openProject(d, p, { base, back }) {
     print: () => [printView(name)],              // 🖨️ the models for a 3D printer (N41)
     term: () => [terminalView(name)],            // 🖥️ the project run in its cage (roadmap 75)
     history: () => history(name), reports: () => reports(name), preview: () => preview(name),
+    checks: () => checksView(name),              // 🔒🧑‍⚖️ frozen predictions and severe reviews (N142)
   };
   const key = `aurora.prj.tab.${name}`;
   const show = async (id) => {

@@ -370,10 +370,22 @@ export default {
         asking++;
         // "/agente <goal>" (or "/agent"): an agent works on the goal with its tools
         const goal = question.match(/^\/agen(?:te|t)\s+(.+)/s)?.[1];
-        const { run_id } = await (goal
+        const start = () => (goal
           ? call("/v1/aurora/agent", { method: "POST", body: JSON.stringify({ goal }) })
-          : call("/v1/aurora/ask", { method: "POST", body: JSON.stringify({ question, attachments, suggest: true, ...(talking && !attachments.length && !focus && !reply ? { talk: true } : {}), ...(focus ? { focus } : {}), ...(reply ? { reply_to: reply } : {}), ...(thinking() ? { think: thinking() } : {}) }) })
-        ).finally(() => asking--);
+          : call("/v1/aurora/ask", { method: "POST", body: JSON.stringify({ question, attachments, suggest: true, ...(talking && !attachments.length && !focus && !reply ? { talk: true } : {}), ...(focus ? { focus } : {}), ...(reply ? { reply_to: reply } : {}), ...(thinking() ? { think: thinking() } : {}) }) }));
+        // C609: Aurora restarting (502/503, the connection dropped) before the question reached her: tried again
+        // for a minute, said in the bubble; never lost — if it still fails, the words go back to the composer
+        let run_id;
+        try {
+          for (let tries = 0; ; tries++) {
+            try { ({ run_id } = await start()); break; }
+            catch (e) {
+              if (tries >= 12 || (e.status && ![502, 503, 504].includes(e.status))) throw Object.assign(e, { unsent: true });
+              b.body.replaceChildren(el("p", "muted", t("chat.restarting")));
+              await new Promise((r) => setTimeout(r, 5000));
+            }
+          }
+        } finally { asking--; }
         mine.add(run_id);
         const speech = aloud ? aloudLive() : null;
         const final = await follow(run_id, b, messages, (name, p) => {
@@ -390,6 +402,10 @@ export default {
         if (final?.suggestions?.length) { const stick = messages.scrollHeight - messages.scrollTop - messages.clientHeight < 120; offerDeeper(b, final.suggestions); if (stick) scrollEnd(messages); }
       } catch (e) {
         b.body.replaceChildren(el("p", "error", t("ev.error", { m: e.message })));
+        if (e.unsent && !input.value.trim()) {          // C609: the question did not reach her: given back, not lost
+          input.value = question;
+          b.body.append(el("p", "muted", t("chat.unsent")));
+        }
         b.head.classList.remove("running");
         if (e.status === 401) ctx.relogin();
       } finally {

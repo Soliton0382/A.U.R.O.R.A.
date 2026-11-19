@@ -370,6 +370,28 @@ def newly_ready(cfg: sys_config.Config, plugins: list) -> list:
     return [p for p in plugins if p.name in ready - known and p.manifest.get("welcome")]
 
 
+def retire_reports(cfg: sys_config.Config, r: dict, keep: str, log) -> int:
+    """N141: the routine's previous report PDFs go to the owner's trash once a new one exists. Only a PDF Aurora wrote,
+    named by the routine's own last run, in the documents folder; anything else stays, and a failure stays silent to the run."""
+    from pathlib import Path
+    from . import doc_pdf, sys_trash, sys_uploads
+    moved, base = 0, cfg.path("AURORA_DOCUMENTS_DIR")
+    for old in r.get("last_files") or []:
+        url = str(old.get("url") or "")
+        name = Path(url).name
+        if old.get("mime") != "application/pdf" or url != f"/v1/aurora/documents/{name}" or name == keep:
+            continue
+        try:
+            f = base / name
+            if f.is_file() and doc_pdf.made_by_aurora(f):
+                sys_trash.discard(cfg, f, "document", name)
+                sys_uploads.unlink_url(cfg, url)
+                moved += 1
+        except Exception as e:                           # noqa: BLE001 - the new report is already safe
+            log.warning("routine %s: old report not moved to the trash: %s", r.get("id"), e)
+    return moved
+
+
 def report_pdf(cfg: sys_config.Config, r: dict, text: str, run_id: str, emit, log) -> list[dict]:
     """A routine's report is also a PDF the owner can download (card, conversation, Files page), with the AI
     disclosure; a failure here never fails the routine."""
@@ -384,5 +406,6 @@ def report_pdf(cfg: sys_config.Config, r: dict, text: str, run_id: str, emit, lo
         return []
     f = {"name": p.name, "url": f"/v1/aurora/documents/{p.name}", "mime": "application/pdf"}
     sys_uploads.link(cfg, run_id, f["name"], f["url"], f["mime"])
+    retire_reports(cfg, r, p.name, log)
     emit("routine.pdf", {"routine": r["id"], "ok": True, "name": p.name})
     return [f]

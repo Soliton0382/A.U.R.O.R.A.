@@ -66,3 +66,53 @@ def test_any_user_picks_plugs_too_and_they_follow_the_scene(cfg, monkeypatch):
     assert sent[0] == ("switch/turn_on", {"entity_id": "switch.presa_tavolo"})
     H.stop_scene(cfg, "cena", off=True)
     assert sent[-1] == ("switch/turn_off", {"entity_id": "switch.presa_tavolo"})
+
+
+def test_a_scene_ends_when_its_plugin_is_switched_off_and_does_not_come_back(cfg, monkeypatch):
+    on = [True]
+    sent = []
+    monkeypatch.setattr(H, "_ha", lambda c, path, body: sent.append(path))
+    monkeypatch.setattr(H, "_gate", lambda: on[0])
+    H.save(cfg, "Natale", LIGHTS, ["rosso", "verde"], every_s=3, minutes=5)
+    H.start(cfg, "natale", "u")
+    for _ in range(100):
+        if sent:
+            break
+        time.sleep(0.01)
+    assert sent and H.running("u") == ["natale"]
+    on[0] = False
+    data = H.load(cfg)["running"]["natale"]
+    H._running[("u", "natale")].set()                      # wakes the wait the way a next round would
+    for _ in range(100):
+        if not H.running("u"):
+            break
+        time.sleep(0.01)
+    assert not H.running("u")
+    stored = H.load(cfg)
+    stored["running"]["natale"] = data
+    H._save(cfg, stored)
+    assert H.resume(cfg, "u") == [] and not H.running("u")
+
+
+def test_the_loop_itself_sends_nothing_with_the_plugin_off(cfg, monkeypatch):
+    import threading
+    sent = []
+    monkeypatch.setattr(H, "_ha", lambda c, path, body: sent.append(path))
+    monkeypatch.setattr(H, "_gate", lambda: False)
+    H.save(cfg, "Natale", LIGHTS, ["rosso", "verde"], every_s=3)
+    _, scene = H.find(cfg, "natale")
+    H._run(cfg, "u", "natale", scene, threading.Event(), 0, None)      # returns at once: it would otherwise never end
+    assert sent == []
+
+
+def test_a_failed_look_at_the_plugin_does_not_stop_the_lights(monkeypatch):
+    def broken():
+        raise RuntimeError("host busy")
+    monkeypatch.setattr(H, "_gate", broken)
+    assert H.allowed()
+
+
+def test_the_admin_reaches_a_scene_started_for_nobody_and_others_do_not():
+    assert H.owners("anna", "anna") == ["anna", ""]
+    assert H.owners("bruno", "anna") == ["bruno"]
+    assert H.owners("", "anna") == [""]

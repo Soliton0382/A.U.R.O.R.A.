@@ -74,6 +74,17 @@ def test_a_provision_is_read_from_its_number():
     assert kno_cites.parse("il contratto") is None and kno_cites.parse("art. 3 Costituzione") is None
 
 
+def test_a_question_that_is_not_a_legal_matter_fetches_no_provision():
+    """C613: NONE from the model means no civil-code article is fetched and none passes the gate."""
+    from types import SimpleNamespace
+    from aurora import kno_cites
+    none = SimpleNamespace(complete=lambda *a: SimpleNamespace(answer="NONE"))
+    assert kno_cites.propose(none, "Quali esercizi aiutano con il mal di schiena dopo una lunga giornata in ufficio?") == []
+    legal = SimpleNamespace(complete=lambda *a: SimpleNamespace(answer="art. 2043 c.c.\nart. 1590 c.c."))
+    assert kno_cites.propose(legal, "Il vicino ha rotto il muro comune") == ["art. 2043 c.c.", "art. 1590 c.c."]
+    assert "NONE" in kno_cites.SYS_CITES
+
+
 def test_a_case_whose_provisions_were_refused_is_read_again_as_the_story():
     """C189: with the problems listed the extraction said NONE to the civil code; once more on the story alone."""
     import pytest
