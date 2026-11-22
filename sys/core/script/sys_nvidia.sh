@@ -13,7 +13,7 @@
 #   sudo sys/core/script/sys_nvidia.sh toolkit [--yes] [--cuda 13-4] [--cudnn]
 #   sudo sys/core/script/sys_nvidia.sh driver  [--yes] [--driver 595-open]     # optional, then reboot
 #        sys/core/script/sys_nvidia.sh verify                                  # after a reboot too
-#        sys/core/script/sys_nvidia.sh llama   [--yes] [--commit 7fee178]      # as your user, not root
+#        sys/core/script/sys_nvidia.sh llama   [--yes] [--commit 7778de0c3]      # as your user, not root
 #
 # Why the toolkit comes from NVIDIA but the driver from Ubuntu: Ubuntu ships the driver as signed,
 # precompiled modules for each kernel (no DKMS build that can fail at the next kernel update); NVIDIA's
@@ -22,7 +22,7 @@
 set -euo pipefail
 
 PHASE="${1:-help}"; shift || true
-YES=0; CUDA="13-4"; DRIVER=""; KEEP_CUDNN=0; CUDNN=0; PURGE_CONTAINER=0; COMMIT="7fee178"
+YES=0; CUDA="13-4"; DRIVER=""; KEEP_CUDNN=0; CUDNN=0; PURGE_CONTAINER=0; COMMIT="7778de0c3"
 while [ $# -gt 0 ]; do
   case "$1" in
     --yes) YES=1 ;;
@@ -226,8 +226,11 @@ llama)
   SRC="$ROOT/sys/runtime/llama.cpp-src"; OUT="$ROOT/sys/runtime/llama.cpp"
   say "llama.cpp $COMMIT for sm_$arch with $("$NVCC" --version | grep -o 'release [0-9.]*')"
   [ -d "$SRC/.git" ] || run "git clone https://github.com/ggml-org/llama.cpp '$SRC'"
-  run "git -C '$SRC' fetch --quiet origin && git -C '$SRC' checkout --quiet '$COMMIT'"
-  run "cmake -S '$SRC' -B '$SRC/build' -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=$arch -DCMAKE_CUDA_COMPILER=$NVCC -DLLAMA_CURL=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_RPATH='\$ORIGIN' -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON"
+  # the source belongs to the service account: git's ownership check would stop the owner's user (23 Nov)
+  GIT="git -c safe.directory='$SRC' -C '$SRC'"
+  run "$GIT fetch --quiet origin && $GIT checkout --quiet '$COMMIT'"
+  # --fresh: a cache left by a build in another folder (the tree moved, 23 Nov) stops cmake
+  run "cmake --fresh -S '$SRC' -B '$SRC/build' -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=$arch -DCMAKE_CUDA_COMPILER=$NVCC -DLLAMA_CURL=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_RPATH='\$ORIGIN' -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON"
   run "cmake --build '$SRC/build' -j\$(nproc) --target llama-server"
   say "The current build is kept as bin.previous; the new one replaces bin only after it starts"
   run "rm -rf '$OUT/bin.new' && mkdir -p '$OUT/bin.new' && cp -a '$SRC/build/bin/.' '$OUT/bin.new/'"

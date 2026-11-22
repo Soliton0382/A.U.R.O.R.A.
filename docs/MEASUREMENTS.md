@@ -5644,3 +5644,32 @@ From status/routine_ticks.jsonl (one line a closed day) and routine_ticks.json (
 
 The first tick after a start no longer passes aurora-rem's 30 s: C600 closed.
 Not measured: a day with several restarts from the WebUI; whether astro's 3.9 s grows with the night's captures.
+
+## M325 — the loud incidents with the verdicts kept apart (23 November 2026; BUGS C406 closed, sec_verdicts)
+
+| | 21 Nov | 22 Nov |
+|---|---|---|
+| incident pushes (push log, aurora-incident) | 9 | 11 |
+| loud incidents, deny_burst and the Cloudflare blocks out | 4 (egress_new 2, ips_alert 2) | 4 (new_country 3, ips_alert 1) |
+| deny_burst (kept loud by the owner, 18 Nov) | 0 | 4 |
+| quiet incidents | 0 | 11 (scanning_firewall_rules 8, new_country 1, new_port 1, invalid_traffic_spike 1) |
+
+Read from GET /v1/aurora/incidents (the incidents not archived). The owner's target (20 Nov): at most 3 a day; measured 4
+and 4. The owner closed C406 on these numbers, accepting about 4 a day.
+Not measured: a whole week; the archived incidents; which pushes were the Cloudflare blocks (the push log has no kind).
+
+## M326 — llama.cpp b12647 for the local model, and a looped model tried (23 November 2026; BUGS C726)
+
+| | b11272 (7fee178) | b12647 (7778de0c3) |
+|---|---|---|
+| Qwen3.6-35B-A3B Q4_K_M, llama-server, 256 tokens, 3 runs | 111.7 tok/s | 112.6 tok/s |
+| the same through aurora-llm after the update | — | 112.7 tok/s |
+| VRAM, -c 65536, --parallel 2, the two cards | 13,630 + 8,930 MiB | 13,662 + 8,932 MiB |
+| llama-bench pp512 / tg128 (b12647 only: the old build has no llama-bench) | — | 4,153 / 116.1 tok/s |
+| after the update: thinking on («17×23» → 391, 2.9 s), a picture read («Rosso»), a cut at n_predict reported as stop_type «limit» (C679) | — | as before |
+
+A looped open-weights model (Inkling 2 Mini, IQ4_NL, 26 B total, 3.4 B active, middle blocks run three times) on the
+same build and cards: tg128 25.7–30.3 tok/s (0.22–0.26 × the local model), pp512 475–547 tok/s, and about 2 GB more
+VRAM at the same context (compute buffers of 6–10 GB). Its predictions were frozen before (velocity 0.5–1.1 ×, at
+least 3 GB less memory): both failed. The owner stopped the trial before the quality sets; the model was not adopted.
+Not measured: its quality; the old build's prompt speed with llama-bench; a whole day of Aurora on b12647.

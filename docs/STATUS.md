@@ -151,7 +151,7 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | log rotation | handler logs rotate and compress by size; loose logs (plugins' stderr) too, in the daily purge; 12-month retention | M59 |
 | features and gates | 14 features, each with what it needs (the natural voice's line added 30 Oct; the abilities: the cards' avatars and the calendar's e-mail invitations too); a missing model or a contradicting setting becomes an answer with the command, never a crash mid-job (live: cut-out and dictation with the model pointed away); ⚙️ Status lists them; sys_doctor checks the whole installation; the installer offers optional groups by measured hardware | M58, C75–C77 |
 | models per step | 🧠 Models page in tabs: one choice first (local only · the best of both · cloud with privacy · custom, each with its measure), the 13 steps grouped under «Su misura», the page of before in «Panoramica» (ROADMAP 109); each of 13 steps on local or a cloud provider (keys in the ☁️ cloud plugin), masked by default (C72), fallback to local, statistics of calls, cost, masked items, pictures sent, SSCC | M56 |
-| local reasoner | Qwen3.6-35B-A3B with the English pivot (4.27, 15 s, vision) in use; Qwen3-Next-80B ready on the Models page (5.40, 30 s, no vision); a model larger than the GPUs placed by llama.cpp --fit; the client follows the running model's format | M174-M177; C254, C257 |
+| local reasoner | Qwen3.6-35B-A3B with the English pivot (4.27, 15 s, vision) in use; Qwen3-Next-80B ready on the Models page (5.40, 30 s, no vision); a model larger than the GPUs placed by llama.cpp --fit; the client follows the running model's format · on llama.cpp b12647 since 23 Nov, same speed (M326, C726) | M174-M177; C254, C257 |
 | guide | 📖 Guide page: first steps, cloud, phone, plugins, safety, and every page of the menu with a button | — |
 | logs | one file per component, rotation, gzip, 12-month retention, traces, lifecycle lines; Aurora reads them | sys_logread |
 | encryption | TLS 1.3 to clients, HTTPS everywhere outwards, secrets 0600; storage not encrypted (no LUKS) | SECURITY.md |
@@ -177,9 +177,9 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 
 The partial and missing items, checked against the code: ROADMAP.md, first section. The owner's checks: MANUAL_TESTS.md.
 
-## Open bugs (7)
+## Open bugs (0)
 
-C406 (the alerts that learn: built, closed after a week of the owner's verdicts), C526 (server text in one language: the notifications done, the rest file by file). C463 and C520 (the tunnel on the owner's login) closed 9 Nov; C521-C523 found by the security
+C406 (the alerts that learn) closed 23 Nov by the owner's decision at about 4 loud incidents a day against a target of 3 (M325); C526 closed. C463 and C520 (the tunnel on the owner's login) closed 9 Nov; C521-C523 found by the security
 audit of 9 Nov and fixed (the tunnel installer's links, a forged UPS «FSD», a refused power-off). Closed 4-5 Nov: C499-C510 (first night after them, 5-6 Nov: 0 watcher stops, 0 camera passwords in the logs, backup ok, a forged read-only plugin with no private names; self-repair's sandbox, a camera's password in a log, a forged plugin's false zero; M287-M289). Closed 3 Nov: C480 (a routine's sealed files), C484 (closed by the owner, not seen again), C485 (the
 wildcard certificate's request). C390 (the reasoner's night crashes) closed on
 30 Oct after a week without one; C462 (the swap file) the same day. Details in BUGS.md.

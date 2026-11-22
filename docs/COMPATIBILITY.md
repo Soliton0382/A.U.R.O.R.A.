@@ -11,7 +11,7 @@ What Aurora was measured on (**recommended**: the owner's machine), and what is 
 | GPUs | 2 × NVIDIA GeForce RTX 5060 Ti 16 GB (Blackwell, compute capability 12.0) | — | M23, M28 |
 | NVIDIA driver | **595-open (595.99.02 since 8 Oct, CUDA 13.2; 595.91.07 before)**; 580-server-open (580.178.04, CUDA 13.0) also measured | Ubuntu's signed, precompiled modules (`linux-modules-nvidia-*-generic`), never NVIDIA's driver packages | `sys_nvidia.sh verify`; M34: 112.4 tok/s on 595, 112.3 on 580 |
 | CUDA toolkit | 13.4 (`cuda-toolkit-13-4`) from NVIDIA's ubuntu2604 repository, toolkit only, apt pin against NVIDIA drivers | `sys_nvidia.sh toolkit` | M34 |
-| llama.cpp | commit 7fee178, built for sm_120 with CUDA 13.4, RUNPATH $ORIGIN | `sys_nvidia.sh llama` | M34: 112.3 tok/s |
+| llama.cpp | commit 7778de0c3 (b12647, 23 Nov; 7fee178 = b11272 before, kept as bin.previous), built for sm_120 with CUDA 13.4, RUNPATH $ORIGIN | `sys_nvidia.sh llama` | M326: 112.6 tok/s (b11272: 111.7) |
 | Python | 3.14 (venv) with torch 2.14 + cu130 (carries its own CUDA runtime and cuDNN) | requirements.txt | tests |
 | Reasoner | Qwen3.6-35B-A3B UD-Q4_K_M, ctx 32k, split 4.5,3.5 over two GPUs | — | M28 |
 | Encoder / re-ranker | Qwen3-Embedding-0.6B / bge-reranker-v2-m3 (GPU 1, ~3.3-6.2 GB) | — | M25, M31 |
