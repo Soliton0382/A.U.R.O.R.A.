@@ -321,7 +321,9 @@ def search(x: np.ndarray, y: np.ndarray, names: list[str], max_c: int = 12, seed
 
 # ---- the law in words (for people; never evaluated) --------------------------------------------------------------
 def _num(v: float) -> str:
-    return f"{v:.4g}"
+    """Five significant figures, the trailing zeros kept: a fitted 2.00005 reads «2.0000», never the integer «2» (C719)."""
+    t = f"{v:#.5g}"
+    return t[:-1] if t.endswith(".") else t
 
 
 def _exp(p: float) -> str:

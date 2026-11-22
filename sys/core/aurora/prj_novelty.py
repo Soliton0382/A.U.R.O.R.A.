@@ -14,8 +14,9 @@ check(cfg, claim, keywords) → what the literature says about a statement:
      work». A claim not in English without English keywords is refused (the indexes answer in English);
   4. the verdict: FOUND (close work: cite it), NOT FOUND (in the sources that answered, named — said «not found in the
      literature checked», never «new» nor «proved new»; only when at least one scholarly index answered), NOT CHECKED
-     (no scholarly index answered: nothing may be said of novelty; C634: the web search's empty answer is also its
-     failure, the two cannot be told apart, so it never makes a NOT FOUND alone);
+     (no scholarly index answered: nothing may be said of novelty; C634: the web search never makes a NOT FOUND
+     alone; C722: its «no results» from every engine is an answer, any other failure is said with its kind —
+     network, rate limited, key, format);
   5. a project marked «riservato» (prj_policy: a patent not yet filed, a private work) sends no query at all: NOT
      CHECKED, said why (C636: the masking hides the private values, not the subject).
 A project's check is written to novelty/NNN_<slug>.json (Aurora's, like prereg/) and kept in the user's state: the
@@ -96,6 +97,11 @@ def enabled(cfg: sys_config.Config) -> bool:
 
 def rule(cfg: sys_config.Config) -> str:
     return RULE if enabled(cfg) else ""
+
+
+def off_said(cfg) -> str:
+    """Off, or on in the settings and waiting for the restart (C723)."""
+    return sys_config.off_said(cfg, "AURORA_NOVELTY_ENABLED", "the literature check is off (AURORA_NOVELTY_ENABLED)")
 
 
 # ---- words, the query, the score ---------------------------------------------------------------------------------
@@ -220,9 +226,11 @@ def crossref(q: str, n: int, get) -> list[dict]:
 
 def web(q: str, n: int, get) -> list[dict]:
     from . import kno_web
-    found = kno_web.search(q, n)
-    if not found:                                   # C634: kno_web says [] for «nothing» and for «failed» alike
-        raise RuntimeError("no answer (an empty result and a failure cannot be told apart)")
+    found, why = kno_web.search_why(q, n)
+    if not found:                                   # C722: «no results» from every engine is an answer, else why
+        if why and all(w.endswith(": no results") for w in why):
+            return []
+        raise RuntimeError("; ".join(why) or "no engine answered")
     return [{"title": x.get("title", ""), "url": x.get("url", ""), "year": "", "authors": [], "text": x.get("text", "")}
             for x in found]
 
@@ -242,7 +250,7 @@ def check(cfg: sys_config.Config, claim: str, keywords: list | None = None, proj
          "errors": [], "seconds": 0.0}
     try:
         if not enabled(cfg):
-            raise RuntimeError("the literature check is off (AURORA_NOVELTY_ENABLED)")
+            raise RuntimeError(off_said(cfg))
         if not 10 <= len(claim) <= 2000:
             raise ValueError("a claim of 10 to 2000 characters")
         if withhold:
@@ -422,7 +430,7 @@ def agent_call(agent, a: dict) -> str:
     run's policy, not only the named project's: a run bound to another project is refused, and when the run touches a
     «riservato» project (bound to it, its goal names it, it worked on it) no query leaves, whatever project is named."""
     if not enabled(agent.cfg):                        # C667: a tool never offered is not called either
-        return "REFUSED: the literature check is off (AURORA_NOVELTY_ENABLED)"
+        return "REFUSED: " + off_said(agent.cfg)
     project = str(a.get("project") or a.get("name") or "") or None
     if not project:
         return ("REFUSED: name the project («project»): its policy decides whether a query may leave the machine "

@@ -53,6 +53,7 @@ def upload_get(uid: str, request: Request):
         raise HTTPException(status_code=404, detail="no such file")
     path, item = found
     inline = bool(sys_uploads.INLINE.match(item["mime"]))
+    show = inline and getattr(request, "query_params", {}).get("download") != "1"   # ?download=1: saved (C725)
     media = item["mime"] if inline else "application/octet-stream"
     headers = {"X-Content-Type-Options": "nosniff", "Content-Security-Policy": "sandbox",
                "Cache-Control": "private, max-age=86400"}
@@ -61,14 +62,14 @@ def upload_get(uid: str, request: Request):
         plain = f.read(len(sys_seal.MAGIC)) != sys_seal.MAGIC
     if plain:                                          # never sealed (before N64, Aurora's own media): as a file
         return FileResponse(path, media_type=media, filename=item["name"],
-                            content_disposition_type="inline" if inline else "attachment", headers=headers)
+                            content_disposition_type="inline" if show else "attachment", headers=headers)
     try:                                               # sealed with its owner's key (N64): opened here, in memory
         data = _plain(path, uid)
     except ValueError:
         raise HTTPException(status_code=404, detail="no such file") from None
     from urllib.parse import quote
     from fastapi.responses import Response
-    headers["Content-Disposition"] = f"{'inline' if inline else 'attachment'}; filename*=utf-8''{quote(item['name'])}"
+    headers["Content-Disposition"] = f"{'inline' if show else 'attachment'}; filename*=utf-8''{quote(item['name'])}"
     headers["Accept-Ranges"] = "bytes"
     span = _range(request.headers.get("range", ""), len(data))
     if span is None:

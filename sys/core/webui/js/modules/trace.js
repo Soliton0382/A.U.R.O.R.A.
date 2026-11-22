@@ -40,6 +40,8 @@ export function describe(name, p) {
     case "translate": return t("ev.translate", { text: p.translation });
     case "retrieval.filter": return t("ev.retrieval.filter", { n: p.dropped_own_answers ?? p.dropped_same_message });
     case "think": return t("ev.think", { m: t(`chat.think.${p.used}`), why: p.why ? ` — ${p.why}` : "" });
+    case "sources": return t("ev.sources", { list: p.chosen.map((s) => t(`chat.menu.sources.${s}`)).join(", "),
+      n: p.searched.length, used: Object.entries(p.used || {}).map(([d, k]) => `${d} (${k})`).join(", ") || "—" });
     case "read.web": return t("ev.read.web", { q: p.query, n: p.results.length });
     case "read.pages": return t("ev.read.pages", { list: p.opened.join(", ") || "—" });
     case "read.memory": return t("ev.read.memory");

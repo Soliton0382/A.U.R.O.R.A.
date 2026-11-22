@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 
 from . import sys_config
-from .prj_longrun import GONE, NAME, TOOL, enabled, limits, runs, start, status, stop, sweep
+from .prj_longrun import GONE, NAME, TOOL, enabled, limits, off_said, runs, start, status, stop, sweep
 
 
 def text(st: dict) -> str:
@@ -33,7 +33,7 @@ def act(cfg: sys_config.Config, project: str, a: dict, readonly: bool = False) -
     """The tool's answer (the conductor's and the agent's); a read-only run (the referee) may only look."""
     action = str(a.get("action") or "").strip()
     if not enabled(cfg):                              # C667: off means off — «status» and «list» too (through
-        return "REFUSED: long runs are off (AURORA_LONGRUN_ENABLED)"    # sweep they resumed runs)
+        return "REFUSED: " + off_said(cfg)    # sweep they resumed runs)
     if action in ("start", "stop") and readonly:
         return f"REFUSED: {NAME} {action} is not allowed in a read-only run"
     try:

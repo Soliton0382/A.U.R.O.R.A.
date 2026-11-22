@@ -2,11 +2,13 @@
 // Copyright 2026 A.U.R.O.R.A. Project
 // The composer's buttons as menus with their words (owner, 2026-10-08: «le icone cominciano ad essere tante... li
 // gestirei come il menù vero e proprio»): 📎 a file or a photo; ⚙️ how much Aurora thinks (🧠), whose camera and
-// microphone (📱 this device, 🖥️ Aurora's PC), answers aloud (🔊) and the voice. Every choice stays on this device.
+// microphone (📱 this device, 🖥️ Aurora's PC), answers aloud (🔊) and the voice; 📚 where she searches the vault
+// (chat_sources.js). Every choice stays on this device.
 import { el } from "../dom.js";
 import { lang, t } from "../i18n.js";
 import * as voice from "../voice.js";
 import { THINK, THINK_ICON, setThink, thinkMode } from "./chat_think.js";
+import { SOURCES, SOURCE_ICON, sourcesBadge, sourcesChoice, toggleSource } from "./chat_sources.js";
 
 const SRC_KEY = "aurora.senses.source";
 const VOICE_ICON = { voice: "🗣️", always: "🔊", off: "🔇" };
@@ -69,6 +71,9 @@ export function settingsMenu(host, gear, talk = null) {
       el("div", "compose-section", `🧠 ${t("chat.menu.think")}`),
       ...THINK.map((m) => row(THINK_ICON[m], t(`chat.menu.think.${m || "setting"}`), t(`chat.think.${m || "setting"}`),
         thinkMode() === m, () => { setThink(m); draw(); showGear(gear); })),
+      el("div", "compose-section", `📚 ${t("chat.menu.sources")}`),
+      ...["auto", ...SOURCES].map((s) => row(SOURCE_ICON[s], t(`chat.menu.sources.${s}`), t(`chat.sources.${s}`),
+        s === "auto" ? !sourcesChoice().length : sourcesChoice().includes(s), () => { toggleSource(s); draw(); showGear(gear); })),
       el("div", "compose-section", `🎥 ${t("chat.menu.source")}`),
       ...["device", "pc"].map((s) => row(s === "device" ? "📱" : "🖥️", t(`chat.menu.src.${s}`), "", src === s, () => {
         try { localStorage.setItem(SRC_KEY, s); } catch { /* storage unavailable */ }
@@ -91,9 +96,12 @@ export function settingsMenu(host, gear, talk = null) {
 // the gear says what is chosen without opening it
 export function showGear(gear) {
   const m = thinkMode();
-  gear.title = `${t("chat.menu.title")} · ${t(`chat.menu.think.${m || "setting"}`)}`;
+  const s = sourcesChoice();
+  gear.title = `${t("chat.menu.title")} · ${t(`chat.menu.think.${m || "setting"}`)} · 📚 ${
+    s.length ? s.map((x) => t(`chat.menu.sources.${x}`)).join(", ") : t("chat.menu.sources.auto")}`;
   gear.setAttribute("aria-label", gear.title);
   gear.dataset.think = m ? THINK_ICON[m] : "";
+  gear.dataset.sources = sourcesBadge(s);
 }
 
 // the voices: Aurora's own (from her computer) and this device's, each with ▶ to hear it

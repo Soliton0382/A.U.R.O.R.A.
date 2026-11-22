@@ -66,6 +66,29 @@ def more(deferred: list, name: str, index: dict, sep: str) -> str:
             + "\n".join(json.dumps(s, ensure_ascii=False) for s in specs) + "\n</tools>")
 
 
+def full_name(name: str, index: dict, sep: str, builtins=()) -> str:
+    """A plugin's tool called by its short name (C722: «project_tree» for projects__project_tree, a lost turn): the
+    full name when exactly one plugin has it and no built-in is called so; the name as it is otherwise."""
+    if name in index or name in builtins or sep in name:
+        return name
+    hits = [k for k in index if k.split(sep, 1)[-1] == name]
+    return hits[0] if len(hits) == 1 else name
+
+
+def unknown(name: str, index: dict, sep: str, deferred=()) -> str:
+    """The error of a tool not in the catalog, with the names it may have meant (C722)."""
+    import difflib
+    short = name.split(sep)[-1]
+    hits = sorted(k for k in index if k.split(sep, 1)[-1] == short) or difflib.get_close_matches(name, list(index), 3, 0.6)
+    later = [p.name for p in deferred if any(t.get("name") == short for t in getattr(p, "tools", []))]
+    out = f"ERROR: unknown tool {name}"
+    if hits:
+        out += f" — did you mean {' or '.join(hits)}? A plugin's tool is called <plugin>{sep}<tool>"
+    if later:
+        out += f"; {short} is in the plugin(s) on request {', '.join(later)}: call more_tools with its name first"
+    return out
+
+
 RESULT_CHARS = 12000
 
 

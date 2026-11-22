@@ -95,6 +95,11 @@ def rule(cfg: sys_config.Config) -> str:
     return RULE if enabled(cfg) else ""
 
 
+def off_said(cfg) -> str:
+    """Off, or on in the settings and waiting for the restart (C723)."""
+    return sys_config.off_said(cfg, "AURORA_LONGRUN_ENABLED", "long runs are off (AURORA_LONGRUN_ENABLED)")
+
+
 # ---- the state (the user's: outside the cage) --------------------------------------------------------------------
 def _dir(cfg: sys_config.Config, project: str) -> Path:
     if not prj_run.NAME.fullmatch(project or ""):     # C629: «p/../q» stopped another project's (or user's) run
@@ -187,7 +192,7 @@ def start(cfg: sys_config.Config, project: str, command: str, lim: dict, title: 
           code_files=None) -> dict:
     """The run's state once launched; ValueError for a bad request, RuntimeError when it cannot start now."""
     if not enabled(cfg):
-        raise RuntimeError("long runs are off (AURORA_LONGRUN_ENABLED)")
+        raise RuntimeError(off_said(cfg))
     command = str(command or "").strip()
     if not command or len(command) > 2000:
         raise ValueError("a command of 1 to 2000 characters")

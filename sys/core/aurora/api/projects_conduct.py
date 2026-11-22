@@ -228,13 +228,30 @@ async def proof_check(name: str, request: Request) -> dict:
     return r
 
 
+# ---- C723: the three engines switched off, or on in the settings and waiting for the restart: one answer ---------
+_KEYS = {"prj_discover": "AURORA_DISCOVER_ENABLED", "prj_longrun": "AURORA_LONGRUN_ENABLED",
+         "prj_novelty": "AURORA_NOVELTY_ENABLED"}
+
+
+def _state(engine) -> dict:
+    from aurora import sys_config
+    return {"enabled": engine.enabled(cfg),
+            "restart_needed": sys_config.on_after_restart(cfg, _KEYS[engine.__name__.rsplit(".", 1)[-1]])}
+
+
+def _on(engine) -> None:
+    """409 with the engine's own words when it is off (said «on after the restart» when the settings say on)."""
+    if not engine.enabled(cfg):
+        raise HTTPException(status_code=409, detail=engine.off_said(cfg))
+
+
 # ---- 🔭 the discovery engine (prj_discover, N147) ---------------------------------------------------------------
 @router.get("/v1/aurora/projects/{name}/discover", dependencies=[Depends(auth)])
 def discover_list(name: str) -> dict:
     """The project's last law searches (the user's state), newest first."""
     from aurora import prj_discover
     _check(name)
-    return {"items": list(reversed(prj_discover.history(cfg, name))), "enabled": prj_discover.enabled(cfg)}
+    return {"items": list(reversed(prj_discover.history(cfg, name))), **_state(prj_discover)}
 
 
 @router.post("/v1/aurora/projects/{name}/discover", dependencies=[Depends(auth)])
@@ -243,6 +260,7 @@ async def discover_run(name: str, request: Request) -> dict:
     project (a read-only cage), frozen, then tested on the held-out rows; the result, kept in the history."""
     from aurora import prj_discover
     _check(name)
+    await in_thread(_on, prj_discover)                                     # C723: off is 409 here as for long runs
     body = await request.json()
     if not str(body.get("data", "")).strip() or not str(body.get("target", "")).strip():
         raise HTTPException(status_code=400, detail="a table of the project («data») and its column to explain («target»)")
@@ -263,7 +281,7 @@ def longrun_list(name: str) -> dict:
     _check(name)
     if prj_longrun.enabled(cfg):
         prj_longrun.sweep(cfg, name)
-    return {"items": list(reversed(prj_longrun.runs(cfg, name))), "enabled": prj_longrun.enabled(cfg)}
+    return {"items": list(reversed(prj_longrun.runs(cfg, name))), **_state(prj_longrun)}
 
 
 @router.get("/v1/aurora/projects/{name}/longruns/{rid}", dependencies=[Depends(auth)])
@@ -283,6 +301,7 @@ async def longrun_start(name: str, request: Request) -> dict:
     background, its limits declared first."""
     from aurora import prj_longrun
     _check(name)
+    await in_thread(_on, prj_longrun)                                      # C723
     body = await request.json()
     try:
         st = await in_thread(lambda: prj_longrun.start(cfg, name, str(body.get("command") or ""),
@@ -313,7 +332,7 @@ def longrun_stop(name: str, rid: str) -> dict:
 def novelty_list(name: str) -> dict:
     from aurora import prj_novelty
     _check(name)
-    return {"items": list(reversed(prj_novelty.history(cfg, name))), "enabled": prj_novelty.enabled(cfg)}
+    return {"items": list(reversed(prj_novelty.history(cfg, name))), **_state(prj_novelty)}
 
 
 @router.post("/v1/aurora/projects/{name}/novelty", dependencies=[Depends(auth)])
@@ -321,6 +340,7 @@ async def novelty_check(name: str, request: Request) -> dict:
     """{claim, keywords?}: the literature searched for a statement (one masked query); the verdict, kept."""
     from aurora import prj_novelty
     _check(name)
+    await in_thread(_on, prj_novelty)                                      # C723
     body = await request.json()
     if not str(body.get("claim", "")).strip():
         raise HTTPException(status_code=400, detail="the result's statement: «claim»")

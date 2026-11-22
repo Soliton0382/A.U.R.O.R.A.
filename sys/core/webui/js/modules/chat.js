@@ -13,6 +13,7 @@ import { dietBubbles, dietCards } from "../diet.js";
 import { calendarBubbles } from "../calendar_alerts.js";
 import { dreamOf, madeOf, makeRecorder, morningOf, preRoll, shrink, toldOf } from "./chat_media.js";
 import { thinkMode } from "./chat_think.js";
+import { sourcesChoice } from "./chat_sources.js";
 import { attachMenu, settingsMenu, showGear, source } from "./chat_menu.js";
 import { actions, quoteBox, quoted } from "./chat_actions.js";
 import { composer } from "./composer.js";
@@ -372,7 +373,7 @@ export default {
         const goal = question.match(/^\/agen(?:te|t)\s+(.+)/s)?.[1];
         const start = () => (goal
           ? call("/v1/aurora/agent", { method: "POST", body: JSON.stringify({ goal }) })
-          : call("/v1/aurora/ask", { method: "POST", body: JSON.stringify({ question, attachments, suggest: true, ...(talking && !attachments.length && !focus && !reply ? { talk: true } : {}), ...(focus ? { focus } : {}), ...(reply ? { reply_to: reply } : {}), ...(thinking() ? { think: thinking() } : {}) }) }));
+          : call("/v1/aurora/ask", { method: "POST", body: JSON.stringify({ question, attachments, suggest: true, ...(talking && !attachments.length && !focus && !reply ? { talk: true } : {}), ...(focus ? { focus } : {}), ...(reply ? { reply_to: reply } : {}), ...(thinking() ? { think: thinking() } : {}), ...(sourcesChoice().length ? { sources: sourcesChoice() } : {}) }) }));
         // C609: Aurora restarting (502/503, the connection dropped) before the question reached her: tried again
         // for a minute, said in the bubble; never lost — if it still fails, the words go back to the composer
         let run_id;

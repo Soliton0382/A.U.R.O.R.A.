@@ -430,7 +430,7 @@ class IndexSet:
         return best_s[keep], best_i[keep]
 
     def search(self, queries: np.ndarray, k: int, sections: set[str] | None = None,
-               user: str | None = None) -> list[list[tuple[str, float, str, str]]]:
+               user: str | None = None, domains: frozenset | set | None = None) -> list[list[tuple[str, float, str, str]]]:
         """For each query vector: the k best (sid, cosine, section, domain) over every domain (of `sections`); the
         memory is `user`'s. One IndexSet serves every user: the knowledge stays loaded once."""
         queries = np.asarray(queries, dtype=np.float32)
@@ -438,6 +438,8 @@ class IndexSet:
         for section, domain, f in _index_dirs(self.cfg, user):
             if sections and section not in sections:
                 continue
+            if domains is not None and section == "knowledge" and domain not in domains:
+                continue                                 # a 📚 choice (kno_scope): only its knowledge domains
             e = self._load(f)
             if e is None:
                 continue

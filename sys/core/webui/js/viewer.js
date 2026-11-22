@@ -23,8 +23,16 @@ export function view(url, name, mime) {
   const save = el("a", "viewer-btn", `⬇️ ${t("viewer.save")}`);
   save.href = url;
   save.setAttribute("download", name || "");
+  const inApp = typeof window.AuroraApp === "object" && window.AuroraApp !== null;
+  const direct = inApp && /\/v1\/aurora\/uploads\/[0-9a-f]{16}(\?|$)/.test(url);
   save.addEventListener("click", async (ev) => {      // saved through this page (its cookie), never a navigation
     ev.preventDefault();
+    if (direct) {                                     // C725: the Android app's WebView drops blob: downloads; the
+      const a = el("a");                              // real address, sent as an attachment, reaches its download
+      a.href = new URL(url, location.href).href + (url.includes("?") ? "&" : "?") + "download=1";   // manager
+      a.click();                                      // (with this page's cookie, MainActivity.download)
+      return;
+    }
     try {
       const blob = await (await fetch(url, { credentials: "same-origin" })).blob();
       const a = el("a");

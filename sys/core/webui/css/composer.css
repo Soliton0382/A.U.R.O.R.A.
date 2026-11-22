@@ -15,6 +15,8 @@
 /* the gear tells how much she thinks without opening it */
 .ask .gear { position: relative; }
 .ask .gear[data-think]:not([data-think=""])::after { content: attr(data-think); position: absolute; right: -.2rem; bottom: -.2rem; font-size: .7rem; }
+/* and where she searches the vault (📚, chat_sources.js): the chosen icons over it */
+.ask .gear[data-sources]:not([data-sources=""])::before { content: attr(data-sources); position: absolute; right: -.3rem; top: -.35rem; font-size: .62rem; white-space: nowrap; }
 /* 🎙️ dictation or conversation: opens above the box */
 .mic-menu { position: absolute; bottom: calc(100% + .3rem); left: .5rem; z-index: 20; display: flex; flex-direction: column;
   gap: .25rem; padding: .35rem; border: 1px solid var(--line); border-radius: 10px; background: var(--modal-bg, var(--bg));

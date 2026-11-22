@@ -102,14 +102,22 @@ def merge(base: list, found: list[list], top_k: int, first: int = 3) -> list:
 
 
 def search(pipeline, question: str, whole, ev, run_id: str | None = None, legal: bool = True,
-           lang: str = "") -> tuple[list, list[str]]:
+           lang: str = "", short_cites: bool = False) -> tuple[list, list[str]]:
     """(hits, problems): a long message searched by its problems and its provisions; `whole()` searches the message
     itself — for a short one, or when the others find nothing (the story whole cost 10 s and found least: M128).
     `legal`: kno_lawgate's answer — False, no provision is named or fetched (C694). `lang`: the language the user
-    wrote in."""
+    wrote in. `short_cites`: the ⚖️ legal choice (kno_scope) — the provisions named for a short question too (M315:
+    on the short ones it named the right articles in 8 cases of 17)."""
     cfg = pipeline.cfg
     if not wanted(question, int(cfg["AURORA_PIPELINE_SPLIT_CHARS"] or 0)):
-        return whole(), []
+        if not short_cites:
+            return whole(), []
+        from . import kno_cites
+        top = kno_cites.hits(pipeline, question, ev)[:6]
+        base = whole()
+        if top:
+            ev("retrieval.split", {"searches": [], "best": [], "cited": len(top), "short": True})
+        return (top + [h for h in base if h.sid not in {c.sid for c in top}])[:int(cfg["AURORA_SEARCH_TOPK"]) + len(top)], []
     from . import kno_cites
     from .kno_stages import SYS_TRANSLATE, as_text, untag       # here: kno_stages imports this module (C320)
     cited = kno_cites.hits(pipeline, question, ev) if legal else []    # the provisions a lawyer would read

@@ -342,7 +342,13 @@ def test_a_plan_step_put_off_by_the_owner_spends_no_try(cfg, monkeypatch):
                               f"r{n}", "")
     s = out["plan"]["steps"][0]
     assert out["event"] == "" and s["status"] == "open" and s.get("tries", 0) == 0     # before: blocked
-    assert s["runs"][-1]["deferred"] and prj_plan.next_step(out["plan"]) == 0
+    assert s["deferred"][-1]["deferred"] and prj_plan.next_step(out["plan"]) == 0
+    assert s["runs"] == [] and len(s["deferred"]) == prj_plan.TRIES + 1  # C714: kept apart, never among the attempts
+    assert "PREVIOUS ATTEMPTS" not in prj_plan.goal_for(out["plan"], "demo", 0)
+    assert prj_plan.due(cfg, ["demo"], now=time.time() + prj_plan.GAP_S + 1) is None   # C714: held, no agent
+    monkeypatch.setattr(prj_term, "open_on", lambda project: 0)
+    assert prj_plan.due(cfg, ["demo"], now=time.time() + prj_plan.GAP_S + 1) == "demo"
+    assert prj_plan.due(cfg, ["demo"]) is None          # the put-off one still waits its GAP_S: not hammered
     assert prj_plan.daily_line(cfg, "demo") == ""      # put-off runs are no attempts
     out = prj_plan.record(cfg, "demo", 0, {"exit": 1, "output": "1 failed"}, "rx", "")
     assert out["plan"]["steps"][0]["tries"] == 1        # a real failure still counts

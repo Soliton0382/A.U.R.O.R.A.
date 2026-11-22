@@ -205,6 +205,8 @@ def test_c631_a_sweep_never_launches_a_run_its_starter_is_launching(cfg, proj, m
 def _down(monkeypatch):
     from aurora import kno_web
     monkeypatch.setattr(kno_web, "search", lambda q, n: [])
+    # C722: the novelty check asks search_why (results and each engine's failure): the network down, said so
+    monkeypatch.setattr(kno_web, "search_why", lambda q, n: ([], ["auto: network (ConnectError: unreachable)"]))
 
 
 def test_c634_network_down_is_never_not_found(cfg, monkeypatch):

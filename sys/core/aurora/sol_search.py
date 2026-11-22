@@ -16,8 +16,10 @@ sids and scores it kept.
 """
 from __future__ import annotations
 
+import functools
 import time
 from collections import defaultdict
+from contextvars import ContextVar
 from dataclasses import dataclass
 
 import numpy as np
@@ -26,7 +28,21 @@ from . import sys_config, sys_log
 from .sol_ahead import Ahead
 from .sol_index import IndexSet
 from .sol_reader import VaultReader
-from .sol_schema import Soliton
+from .sol_schema import Soliton, load_taxonomy
+
+# the knowledge domains a run's 📚 choice keeps (kno_scope), set by the pipeline for the run's thread; None: all.
+# Only the knowledge is narrowed: a search of the memory (kno_about, the self route) reads it as before.
+ONLY: ContextVar[frozenset | None] = ContextVar("aurora_only_domains", default=None)
+
+
+@functools.lru_cache(maxsize=1)
+def _memory_domains() -> frozenset:
+    return frozenset(k for k, v in load_taxonomy().items() if v.get("memory"))
+
+
+def kept(soliton: Soliton, only: frozenset | None) -> bool:
+    """A passage a 📚 choice keeps: any without a choice; else one of its domains, or a memory passage."""
+    return only is None or soliton.domain in only or soliton.domain in _memory_domains()
 
 
 @dataclass
@@ -54,6 +70,9 @@ class Searcher:
                recall: list[str] | None = None) -> list[Hit]:
         kw = {"translation": translation, "candidates": candidates, "top_k": top_k, "sections": sections,
               "recall": recall}
+        only = ONLY.get()
+        if only is not None:                              # a 📚 choice: never the search done ahead without it
+            return self._search(question, run_id=run_id, only=only, **kw)
         hits = self.ahead.take(question, kw)
         if hits is not None:
             self.log.info("search: taken from the search done while the question was spoken (%d hits)", len(hits))
@@ -62,7 +81,7 @@ class Searcher:
 
     def _search(self, question: str, translation: str | None = None, candidates: int | None = None,
                 top_k: int | None = None, run_id: str | None = None, sections: set[str] | None = None,
-                recall: list[str] | None = None) -> list[Hit]:
+                recall: list[str] | None = None, only: frozenset | None = None) -> list[Hit]:
         """`recall`: more texts that only bring candidates (the vector search), never judge them — e.g. the model's
         draft answer (M129: it changed the top 12, not the passage's rank); the re-ranker reads the question."""
         candidates = candidates or self.cfg["AURORA_SEARCH_CANDIDATES"]
@@ -73,7 +92,8 @@ class Searcher:
         qv = self.embedder.encode_queries(queries)
         t1 = time.time()
         dense: dict[str, float] = {}
-        for per_query in self.index.search(np.asarray(qv), candidates, sections, self.user):
+        narrow = {"domains": only} if only is not None else {}       # a 📚 choice: only its knowledge domains
+        for per_query in self.index.search(np.asarray(qv), candidates, sections, self.user, **narrow):
             for sid, score, _, _ in per_query:
                 dense[sid] = max(score, dense.get(sid, -1.0))
         lexical = int(self.cfg["AURORA_SEARCH_LEXICAL"])
@@ -90,6 +110,9 @@ class Searcher:
         t2 = time.time()
         sols = self.reader.get_many(dense)
         order = [sid for sid in dense if sid in sols]
+        if only is not None:                              # the words' candidates of other domains too (sol_lexical)
+            dense = {sid: v for sid, v in dense.items() if sid not in sols or kept(sols[sid], only)}
+            order = [sid for sid in order if sid in dense]
         if len(order) < len(dense):
             self.log.warning("%d indexed sids not found in the vault (index ahead of a reset?)", len(dense) - len(order))
         use_translation = [bool(translation) and sols[sid].lang == "en" for sid in order]
@@ -100,7 +123,7 @@ class Searcher:
         hits = [Hit(sid, sols[sid], dense[sid], float(s), "translation" if tr else "original") for sid, s, tr in ranked]
         spread: set[str] = set()
         if int(self.cfg["AURORA_SYNAPSE_EXPAND"]) > 0 and (sections is None or "knowledge" in sections):
-            hits, spread = self._synapses(hits, question, translation, top_k)
+            hits, spread = self._synapses(hits, question, translation, top_k, only)
             self._grow_where_used([h.sid for h in hits])
         through = [h.sid for h in hits if h.sid in spread]          # brought by a synapse and chosen by the re-ranker
         if through:
@@ -128,14 +151,15 @@ class Searcher:
                 self.log.warning("synapses: growth from use failed: %s", e)
         threading.Thread(target=work, name="synapse-grow", daemon=True).start()
 
-    def _synapses(self, hits: list[Hit], question: str, translation: str | None, top_k: int) -> tuple[list[Hit], set[str]]:
+    def _synapses(self, hits: list[Hit], question: str, translation: str | None, top_k: int,
+                  only: frozenset | None = None) -> tuple[list[Hit], set[str]]:
         """The passages linked to the chosen ones (kno_synapse) read by the re-ranker with the same question; one that
         beats the weakest chosen passage takes its place. Measured: from the vector candidates a link added nothing
         (its neighbours were there already), from the chosen passages it reaches new ones (M107)."""
         from . import kno_synapse
         nb = kno_synapse.neighbours(self.cfg, [h.sid for h in hits], int(self.cfg["AURORA_SYNAPSE_EXPAND"]))
         sols = self.reader.get_many({sid: 0 for sid, _, _ in nb})
-        new = [sid for sid, _, _ in nb if sid in sols]
+        new = [sid for sid, _, _ in nb if sid in sols and kept(sols[sid], only)]
         if not new:
             return hits, set()
         use_tr = [bool(translation) and sols[sid].lang == "en" for sid in new]

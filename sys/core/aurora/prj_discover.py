@@ -42,6 +42,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from pathlib import Path
 
@@ -65,7 +66,9 @@ TOOL = {"name": NAME, "description": "Find a law y = f(x) in a table of the proj
         "test it on rows it never saw: Aurora freezes the train / held-out split (fixed by the table), searches "
         "formulas on the training rows only (powers, log, exp, sin, cos, products, fitted constants; a cage), freezes "
         "the chosen law, then measures it on the held-out rows against the best of the constant, linear and zero laws. "
-        "Each table and target can be tried once. DISCOVERED means only that the formula predicted unseen rows "
+        "Each table and target can be tried ONCE: put every candidate input in ONE call (inputs [x, z], not one call "
+        "per input; the search tries laws of each input alone, products and sums of two, and a power law of all of "
+        "them). DISCOVERED means only that the formula predicted unseen rows "
         "≥10 % better than every baseline, as its residuals promised; not that the law is true.",
         "inputSchema": {"type": "object", "properties": {
             "data": {"type": "string", "description": "the table, a .csv or .npz file in the project"},
@@ -78,7 +81,9 @@ RULE = ("Laws found in data (Aurora's rule): call a law found in a table «disco
         "DISCOVERED, and say what that means: a formula frozen before it saw them predicted held-out rows ≥10 % better "
         "than the constant, linear and zero laws — evidence, not proof; otherwise say what it did not pass. Only data "
         "the owner brought in can be evidence: a table you wrote (any tool, any phase) never is; the output of your own "
-        "long_run is your simulation: a law found in it describes your code, never call it discovered.")
+        "long_run is your simulation: a law found in it describes your code, never call it discovered. Each table and "
+        "target is tried once: put every candidate input in a single discover_law call (C720), never one call per "
+        "input nor parallel calls on the same table and target.")
 
 
 def enabled(cfg: sys_config.Config) -> bool:
@@ -87,6 +92,11 @@ def enabled(cfg: sys_config.Config) -> bool:
 
 def rule(cfg: sys_config.Config) -> str:
     return RULE if enabled(cfg) else ""
+
+
+def off_said(cfg) -> str:
+    """Off, or on in the settings and waiting for the restart (C723)."""
+    return sys_config.off_said(cfg, "AURORA_DISCOVER_ENABLED", "the discovery engine is off (AURORA_DISCOVER_ENABLED)")
 
 
 # ---- the table: prj_discover_data (here under the same names) ----------------------------------------------------
@@ -193,6 +203,9 @@ def _valid_project(cfg: sys_config.Config, project: str) -> bool:
         return False
 
 
+_LOCK = threading.Lock()         # the check of the spent rows and their spending, never interleaved (C720)
+
+
 def discover(cfg: sys_config.Config, project: str, data: str, target: str, inputs: list | None = None,
              holdout: float = 0.3, record: bool = True, runner=None, since: float | None = None) -> dict:
     """The verdict on one table (see the module's docstring). `runner`: the search's runner (caged by default);
@@ -201,7 +214,8 @@ def discover(cfg: sys_config.Config, project: str, data: str, target: str, input
     r = {"status": "error", "errors": [], "data": str(data or ""), "target": str(target or ""), "law": "",
          "frozen": [], "seconds": 0.0}
     try:
-        r.update(_discover(cfg, project, data, target, inputs, float(holdout or 0.3), runner or caged, since))
+        with _LOCK:                                       # C720: parallel calls on one table, one at a time
+            r.update(_discover(cfg, project, data, target, inputs, float(holdout or 0.3), runner or caged, since))
     except ValueError as e:
         r.update(status="refused", errors=[str(e)])
     except (RuntimeError, OSError) as e:
@@ -218,7 +232,7 @@ def discover(cfg: sys_config.Config, project: str, data: str, target: str, input
 
 def _discover(cfg, project, data, target, inputs, holdout, runner, since) -> dict:
     if not enabled(cfg):
-        raise RuntimeError("the discovery engine is off (AURORA_DISCOVER_ENABLED)")
+        raise RuntimeError(off_said(cfg))
     if not 0.1 <= holdout <= 0.5:
         raise ValueError("holdout: a share from 0.1 to 0.5")
     root = prj_run.project_dir(cfg, project).resolve()
@@ -230,6 +244,12 @@ def _discover(cfg, project, data, target, inputs, holdout, runner, since) -> dic
     tnorm = target_key(t["target"])                         # C646: «y» and «Y», a lookalike letter: one target
     key = f"{t['canonical']}:{tnorm}"                       # C640: the numbers, not the bytes (a newline added)
     if (u := _used(cfg, project).get(key)):
+        if since is not None and float(u.get("t") or 0) >= since:          # C720: the same run, how to do it
+            raise ValueError(f"«{t['target']}» in {t['rel']} was already tried in this run (inputs "
+                             f"{u.get('inputs') or '?'}, {u.get('status')}): each table and target is tried once, "
+                             "so the next time put every candidate input in ONE discover_law call (inputs [a, b, …]: "
+                             "the search tries each input alone, products and sums of two, and a power law of all); "
+                             "these held-out rows are spent — new data are needed")
         raise ValueError(f"the held-out rows of «{t['target']}» in {t['rel']} were used already ({u.get('created')}, "
                          f"{u.get('status')}): each table and target is tried once — new data are needed")
     seed = seed_of(t["canonical"], t["target"])
@@ -274,6 +294,7 @@ def _discover(cfg, project, data, target, inputs, holdout, runner, since) -> dic
     chosen, bases = found["chosen"], found["baselines"]
     how = chosen.get("metric", "absolute")
     out.update(law=chosen["text"], complexity=chosen["complexity"], cv_rmse=chosen["cv_rmse"], metric=how,
+               cv_error=chosen.get("cv_error", chosen["cv_rmse"]), constants=list(chosen.get("c") or []),  # C719
                baseline_laws={b: bases[b]["text"] for b in BASELINES if b in bases},
                tried=found["tried"], search_stopped=found["stopped"],
                front=[{f2: f[f2] for f2 in ("text", "complexity", "cv_rmse")} for f in found["front"]])
@@ -360,7 +381,7 @@ def _use(cfg: sys_config.Config, project: str, key: str, out: dict) -> None:
     d = _used(cfg, project)
     d[key] = {"created": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "data": out["data"],
               "status": "law frozen" if out.get("law_sha256") else "nothing found", "frozen": list(out["frozen"]),
-              "target": out.get("target_key", "")}
+              "target": out.get("target_key", ""), "inputs": list(out.get("inputs") or []), "t": time.time()}
     f = _state(cfg, project) / "discover_used.json"
     f.parent.mkdir(parents=True, exist_ok=True)
     tmp = f.with_suffix(".tmp")
@@ -425,6 +446,14 @@ SOURCES = {"owner": "brought in by the owner",
            "unknown": "who wrote it is not known (see «not claimable»)"}
 
 
+def cv_said(r: dict) -> str:
+    """The cross-validated error in the metric the search chose, named (C719: «RMSE 0.04938» was the absolute
+    cv_rmse in seconds while the relative error, the one scored, was 0.0203)."""
+    if r.get("metric") == "relative":
+        return f"cross-validated relative error {r.get('cv_error', r.get('cv_rmse', 0)):.4g}"
+    return f"cross-validated RMSE {r.get('cv_error', r.get('cv_rmse', 0)):.4g}"
+
+
 def text(r: dict) -> str:
     """A result for a model: the status first, then the numbers behind it."""
     head = {"discovered": "DISCOVERED", "not_confirmed": "NOT CONFIRMED", "nothing": "NOTHING FOUND",
@@ -433,7 +462,9 @@ def text(r: dict) -> str:
             "refused": "REFUSED", "error": "ERROR"}[r["status"]]
     out = [f"{head}: {r.get('target')} from {r.get('data')} ({r['seconds']} s)"]
     if r.get("law"):
-        out.append(f"law: {r['law']} (complexity {r.get('complexity')}, cross-validated RMSE {r.get('cv_rmse', 0):.4g})")
+        out.append(f"law: {r['law']} (complexity {r.get('complexity')}, {cv_said(r)})")
+        if r.get("constants"):                              # C719: the fitted constants with their figures
+            out.append("fitted constants: " + ", ".join(f"{c:.8g}" for c in r["constants"]))
     if "heldout_rmse" in r:
         out.append(f"held-out {r.get('metric')} RMSE {r['heldout_rmse']:.4g} vs the better baseline ({r.get('baseline')}) "
                    f"{r.get('baseline_law')}: {r['baseline_heldout_rmse']:.4g}; D1 {r.get('D1', '-')}, D2 {r.get('D2', '-')}")
@@ -475,7 +506,7 @@ def run_args(a: dict) -> dict:
 
 def agent_call(agent, a: dict) -> str:
     if not enabled(agent.cfg):                        # C667: a tool never offered is not called either
-        return "REFUSED: the discovery engine is off (AURORA_DISCOVER_ENABLED)"
+        return "REFUSED: " + off_said(agent.cfg)
     project = str(a.get("project") or a.get("name") or "")
     if not project:
         return f"ERROR: {NAME} needs «project» (the project's name), «data» and «target»."

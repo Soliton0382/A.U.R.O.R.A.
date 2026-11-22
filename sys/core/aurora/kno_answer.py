@@ -28,7 +28,8 @@ import time
 import uuid
 from typing import Callable
 
-from . import kno_abstain, kno_attach, kno_followup, kno_lawgate, kno_split, kno_think, mdl_router, sys_config, sys_log, txt_lang
+from . import kno_abstain, kno_attach, kno_followup, kno_lawgate, kno_scope, kno_split, kno_think, mdl_router, sys_config, sys_log, txt_lang
+from .sol_search import ONLY
 from .kno_self import SelfTalk
 from .kno_stages import SYS_TRANSLATE, SYS_TRANSLATE_ALL, Emit, Stages, as_text, untag
 from .kno_trail import Answer, Trail, hebb  # noqa: F401 — imported from here by the API, the agents, the tests
@@ -100,7 +101,19 @@ class Pipeline(Stages, SelfTalk):
     def run(self, question: str, emit: Emit | None = None, run_id: str | None = None,
             remember: bool = True, attached: list | None = None, focus: list[dict] | None = None,
             suggest: bool = False, think: str | None = None, quote: Soliton | None = None,
-            alone: bool = False, lessons: bool = False) -> Answer:
+            alone: bool = False, lessons: bool = False, sources: dict | None = None) -> Answer:
+        """`sources`: the 📚 choice of the chat (kno_scope.parse; None: auto, as before) — the vault searched only in
+        its domains, for the whole run."""
+        token = ONLY.set(frozenset(sources["domains"]) if sources else None)
+        try:
+            return self._run(question, emit, run_id, remember, attached, focus, suggest, think, quote, alone, lessons,
+                             sources)
+        finally:
+            ONLY.reset(token)
+
+    def _run(self, question: str, emit: Emit | None, run_id: str | None, remember: bool, attached: list | None,
+             focus: list[dict] | None, suggest: bool, think: str | None, quote: Soliton | None, alone: bool,
+             lessons: bool, sources: dict | None) -> Answer:
         """`remember=False` leaves the memory untouched (a caller that retries remembers only the outcome).
         `attached`: kno_attach.Attached items; their passages come first for this question.
         `focus`: sources ({"source", "domain"}) whose passages compete with the search's (a suggested follow-up).
@@ -185,7 +198,11 @@ class Pipeline(Stages, SelfTalk):
                                                 "source": h.soliton.source_id, "rerank": round(h.rerank, 3)}
                                                for i, h in enumerate(hits, 1)]})
                 return hits, []
-            # whether the law may come in at all (C694): asked once, before the search and the gate
+            # whether the law may come in at all (C694): asked once, before the search and the gate — or the 📚
+            # choice says it (kno_scope): ⚖️ chosen, the law; chosen without it, none
+            if "legal" not in law and sources:
+                law["legal"] = sources["legal"]
+                ev("law.gate", {"legal": sources["legal"], "uncertain": False, "why": "sources chosen"})
             if "legal" not in law:
                 law["legal"] = kno_lawgate.legal(self, question, ev, native, bool(attached), focus, recent,
                                                  followup=quote is not None or kno_followup.leans_on_before(asked, native))
@@ -193,7 +210,7 @@ class Pipeline(Stages, SelfTalk):
             # only when those find nothing
             hits, subs = kno_split.search(self, question, lambda: self.search.search(question, translation, run_id=run_id,
                                                                                      recall=recall), ev, run_id,
-                                          law["legal"], lang)
+                                          law["legal"], lang, short_cites=bool(sources and sources["legal"]))
             if not law["legal"]:
                 out = [h for h in hits if kno_lawgate.legal_hit(h)]
                 if out:
@@ -214,6 +231,7 @@ class Pipeline(Stages, SelfTalk):
                 ev("retrieval.filter", {"dropped_own_answers": len(own)})
             if focus:
                 hits = kno_followup.with_focus(self, question, translation, hits, focus, ev)
+            hits = kno_scope.restrict(hits, sources, ev)     # 📚 only the chosen domains (the memory neither)
             if attached:
                 hits = self._with_attached(question, translation, hits, attached)
             ev("retrieval.hits", {"hits": [{"n": i, "sid": h.sid, "domain": h.soliton.domain, "title": h.soliton.title,
@@ -227,7 +245,8 @@ class Pipeline(Stages, SelfTalk):
         # how much to think (kno_think): the vault pipeline as before, or the way of the question's kind — the web
         # for a fact, the vault for an explanation, the deep pipeline for a case — read with where it was read
         # (kno_read); an attached file keeps the vault pipeline; a follow-up reads its sources in focus first
-        mode = "vault" if attached else kno_think.mode_of(self.cfg, think)
+        # ⚖️ the legal choice: the vault's statutes only, never a web page as the source of a provision (kno_scope)
+        mode = "vault" if attached or (sources and sources["legal"]) else kno_think.mode_of(self.cfg, think)
         classic = lambda h, sb: self._answer(kno_split.with_searches(question, sb), h, recent_block, ev) if h else None  # noqa: E731
         # her experience (kno_lessons): the lessons of method that fit this question, read by every reading prompt —
         # off unless asked: the trial of 13 Oct (M191) measured no effect (new questions 92 → 91 of 108), at ~1 s each
@@ -270,6 +289,13 @@ class Pipeline(Stages, SelfTalk):
         if self._pivot and not result.abstained:
             result.text = self._back(result.text, lang, ev)
         self._pivot = False
+        if sources:                                 # 📚 said in the answer: where she searched, what she cited
+            if sources["legal"] and not result.abstained and kno_split.CASE_NOTE["it"] not in result.text \
+                    and kno_split.CASE_NOTE["en"] not in result.text:
+                result.text += "\n\n" + kno_split.CASE_NOTE["it" if lang == "it" else "en"]
+            cited = kno_scope.used(result.sources)
+            ev("sources", kno_scope.event(sources, cited))
+            result.text += "\n\n" + kno_scope.line(sources, cited, lang)
         self._lessons = self._about = ""
         result.seconds = time.time() - t0
         result.speed = None if result.abstained else self.speed

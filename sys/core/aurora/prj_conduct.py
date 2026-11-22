@@ -37,8 +37,9 @@ the models' training) for findings that bear on the request, to apply those that
 vault has nothing; ask the agent to verify every result (a check against a known case, convergence, a second method),
 never to give a number it did not compute or did not declare as an assumption, to keep each run under 100 s; say which
 document to write (a new one takes the next number in docs/; a document the request names is changed in place, never
-copied to a new file), to update the open-items file, to commit, and to end with a summary
-that lists what it did, what does not hold and what is still open. Do not invent results, do not answer the request
+copied to a new file), to update the open-items file, and to end with a summary
+that lists what it did, what does not hold and what is still open. Never ask the agent to commit or to run git: the
+commits are the owner's («📦 Pubblica», «💾 Salva»; C718), the agent's .git is read only. Do not invent results, do not answer the request
 yourself. Reply with the goal text only."""
 
 REVIEW = """You conduct a project for its owner. The agent just finished a phase; below are the goal and its report.

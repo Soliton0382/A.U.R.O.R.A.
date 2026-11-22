@@ -97,7 +97,8 @@ TOOLS = [
                                                       "code_files": {"type": "array", "items": {"type": "string"}}},
                      "required": ["title", "predictions", "code_files"]}},
     {"name": "close_predictions", "description": "Close a frozen entry after the experiment: one outcome per "
-     "prediction (passed / failed / void, the measured value, a note) and the evidence (a file of the project). "
+     "prediction (passed / failed / void, the measured value, a note) and the evidence (a file of the project, or "
+     "a report of Aurora's under discover/, longrun/, novelty/ or reviews/). "
      "Aurora checks the hashes again: a file changed after the freeze is said, and its «passed» do not count.",
      "inputSchema": {"type": "object", "properties": {"id": {"type": "string"}, "outcomes": _OUTS,
                                                       "evidence": {"type": "string"}},
@@ -216,6 +217,25 @@ def _rel_file(root: Path, rel: str) -> tuple[str, Path]:
     return r, root / r
 
 
+EVIDENCE = ("discover", "longrun", "novelty", "reviews")   # Aurora's own reports, evidence for an agent's close (C721)
+
+
+def _evidence(root: Path, rel: str) -> str:
+    """The evidence of a close: a file of the project, or a report Aurora wrote in a folder only she writes (C721:
+    discover/002_y.json was refused as «not a code file», the most natural proof of a prediction on a discovery).
+    prereg/ never: an entry is not evidence of itself."""
+    from . import prj_safeio
+    try:
+        r = prj_safeio.norm(str(rel or "").strip(), root)
+    except ValueError:
+        raise ValueError(f"{rel}: outside the project") from None
+    if r.split("/")[0] in EVIDENCE and ".git" not in r.split("/"):
+        if not _is_file(root, r):
+            raise ValueError(f"{rel}: no such file in the project")
+        return r
+    return _rel_file(root, rel)[0]
+
+
 def _proof_target(root: Path, text: str) -> str:
     """«PROOF: <file.lean> …» → the file's path in the project; ValueError when it is not a .lean file inside it."""
     words = text[len(PROOF):].split()
@@ -298,7 +318,7 @@ def close(cfg: sys_config.Config, project: str, eid: str, outcomes: list, eviden
         if not _is_file(root, ev):
             raise ValueError(f"{evidence}: no such file in the project")
     else:
-        ev, _ = _rel_file(root, evidence)
+        ev = _evidence(root, evidence)
     changed = []
     for rel, h in [(e["file"], e["sha256"]), *e["code"].items()]:
         try:

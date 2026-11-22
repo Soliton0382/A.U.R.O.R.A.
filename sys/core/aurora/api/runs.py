@@ -31,6 +31,8 @@ async def ask(request: Request) -> dict:
     "roles": {role: {"provider", "model"}} (the admin only) — the models of this run alone, the installation's
     untouched (the benchmarks, C280).
     "think": vault, light, medium, deep or auto — how much to think for this message (kno_think; default the setting).
+    "sources": ["legal", "medicine", …] — 📚 the vault's domains to search (kno_scope: groups or domain ids, several
+    together; absent or ["auto"]: as before). Anything else: 422. The question then goes to the vault pipeline.
     "suggest": true asks for follow-up questions after a knowledge answer (the WebUI); "focus": [{"source", "domain"}]
     are the sources a suggested follow-up carries (kno_followup). "reply_to": {"run_id", "text"} is the message the owner
     replies to (↩️): read as the last turn, with its sources, however old (kno_followup.quoted). "shadow_seed": true (script/shadow_seed.py, with
@@ -44,6 +46,11 @@ async def ask(request: Request) -> dict:
     think = str(body.get("think") or "").lower() or None          # how much to think for this message (kno_think)
     if think and think not in MODES:
         raise HTTPException(status_code=422, detail=f"think: one of {', '.join(MODES)}")
+    from aurora import kno_scope
+    try:
+        sources = kno_scope.parse(body.get("sources"))                  # 📚 the vault's domains to search
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
     seed = body.get("shadow_seed") is True and not remember
     roles = None
     if body.get("roles"):                            # C280: a benchmark's models for this run only (the admin's)
@@ -79,7 +86,7 @@ async def ask(request: Request) -> dict:
                         else sys_lang.say("Di cosa parla questo documento?", "What is this document about?", cfg.now()))
     if not question:
         raise HTTPException(status_code=400, detail="empty question")
-    if body.get("talk") is True and remember and not files and not focus and not quote and not think:
+    if body.get("talk") is True and remember and not files and not focus and not quote and not think and not sources:
         # 🗣️ a sentence of the chat's hands-free conversation (owner, 3 Nov): a call's quick path, plain talk at once
         from .call import _talk
         from .core_route import mood_wrap
@@ -106,9 +113,10 @@ async def ask(request: Request) -> dict:
             from aurora.kno_attach import AttachmentHandler
             attached = AttachmentHandler(pipeline(), cfg).prepare(files, q, emit, run_id)
         # remember: false asks the vault alone — unless "tools": true, everything on with nothing remembered (C270)
-        if attached or (not remember and not full) or focus:          # a suggested follow-up is a question for the vault
+        # a suggested follow-up, or 📚 sources chosen (kno_scope), is a question for the vault: no shadow, no tools
+        if attached or (not remember and not full) or focus or sources:
             ans = pipeline().run(q, emit=emit, run_id=run_id, attached=attached, remember=remember, focus=focus,
-                                 suggest=suggest, think=think, quote=quote, alone=seed, lessons=lessons)
+                                 suggest=suggest, think=think, quote=quote, alone=seed, lessons=lessons, sources=sources)
             if seed and cfg["AURORA_SHADOW"] and not attached and not ans.abstained and ans.mode == "knowledge" and ans.sources:
                 from aurora import kno_shadow
                 kno_shadow.add(cfg, pipeline().search.embedder, q, ans.text, ans.sources, origin="seed",

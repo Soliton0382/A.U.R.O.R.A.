@@ -108,7 +108,7 @@ LOOP_TOOLS = [
     {"name": "run_in_project", "description": "Run a command in one of the owner's local projects (made with "
      "projects.project_create): its tests (python -m pytest -q), the program. A cage with NO network, no keys, only the "
      "project's folder writable, a time limit. Returns the exit code and the output's end: read it, fix the files "
-     "with projects.project_write_file, run again until it works; then commit.",
+     "with projects.project_write_file, run again until it works. Never commit: the commits are the owner's (C718).",
      "input_schema": {"type": "object", "properties": {
          "project": {"type": "string", "description": "the project's name"},
          "command": {"type": "string", "description": "a shell command run in the project's folder"}},
@@ -183,7 +183,7 @@ class Agent(AgentMakers, AgentReport):
         """Tool specs for the prompt, and name -> (plugin, tool, effect); a plugin on request (agt_tools) only when the
         goal names it, the others kept in self.deferred for more_tools."""
         specs, index = [], {}
-        self.deferred = []
+        self.deferred, self.builtin_names = [], set()
         for p in self.host.plugins():
             if not p.available or (self.allow is not None and p.name not in self.allow):
                 continue
@@ -201,6 +201,7 @@ class Agent(AgentMakers, AgentReport):
         from . import agt_vault, hom_auto, hom_scenes
         for t in (LOOP_TOOLS + prj_prereg.offered(self.cfg, goal) + prj_proof.offered(self.cfg, goal) + kno_prove.offered(self.cfg, goal) + prj_discover.offered(self.cfg, goal) + prj_longrun.offered(self.cfg, goal) + prj_novelty.offered(self.cfg, goal) + [agt_vault.TOOL, sys_people.TOOL] + ([hom_scenes.TOOL, hom_auto.TOOL] if any(v[0] == "homeassistant" for v in index.values()) else [])
                   + ([agt_tools.MORE] if self.deferred else [])):
+            self.builtin_names.add(t["name"])                # never taken for a plugin's short name (C722)
             if self.loop_tools is not None and t["name"] not in self.loop_tools | {"finish", "more_tools"}:
                 continue
             specs.append({"type": "function", "function": {"name": t["name"], "description": t["description"],
@@ -386,8 +387,8 @@ class Agent(AgentMakers, AgentReport):
             self.notify("forge.request", {"id": req["id"], "title": req["need"][:160]})
             return (f"REQUESTED (forge request {req['id']}, {req['status']}): the plugin is built and tested in the "
                     "background. Do not try to do it another way; finish, saying the capability was requested.")
-        if name not in index:
-            return f"ERROR: unknown tool {name}"
+        if name not in index:                               # C722: the names it may have meant
+            return agt_tools.unknown(name, index, SEP, getattr(self, "deferred", []))
         plugin, tool, effect = index[name]
         agt_asked.widen(self.host.get(plugin), plugin, tool, effect)   # C590: from the network? the core decides
         # the project's own way: local only, never published; every project named joins self.projects, and a run
@@ -625,6 +626,7 @@ class Agent(AgentMakers, AgentReport):
                 except (ValueError, KeyError, TypeError) as e:
                     messages.append({"role": "tool", "content": f"ERROR: bad tool call ({e}): {raw[:300]}"})
                     continue
+                name = agt_tools.full_name(name, index, SEP, getattr(self, "builtin_names", ()))   # C722
                 if name == "finish" and ran:
                     # a report written in the same turn as the calls above, before their results (C304: haiku wrote
                     # a whole imagined run, its results and the report, in one turn): not a report of what happened

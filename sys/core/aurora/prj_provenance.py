@@ -293,11 +293,16 @@ def record(cfg: sys_config.Config, project: str, root: Path, rels: list, by: str
     return len(rows)
 
 
+# C715: folders of installed packages and caches — no table in them is the owner's evidence or Aurora's output
+NOT_DATA_DIRS = frozenset({".git", ".venv", "venv", "site-packages", "node_modules", "__pycache__", ".ipynb_checkpoints"})
+
+
 def tables_in(root: Path, sub: str = ".", limit: int = 20000) -> list[str]:
-    """The data tables under root/sub, links never followed, .git skipped (a clone's tables)."""
+    """The data tables under root/sub, links never followed, .git and the package folders skipped (a clone's
+    tables; C715: a .venv's datasets are the packages', never evidence nor an echo)."""
     from . import prj_safeio
     try:
-        found = prj_safeio.walk(root, sub, skip=frozenset({".git"}), limit=limit)
+        found = prj_safeio.walk(root, sub, skip=NOT_DATA_DIRS, limit=limit)
     except (OSError, ValueError):
         return []
     return [p for p, is_dir, _ in found if not is_dir and p.lower().endswith(SUFFIXES)]

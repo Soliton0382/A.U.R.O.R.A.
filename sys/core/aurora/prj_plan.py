@@ -72,7 +72,8 @@ def steps_of(raw) -> list[dict]:
         if isinstance(s, dict) and str(s.get("title", "")).strip() and str(s.get("test", "")).strip():
             out.append({"title": str(s["title"]).strip()[:300], "test": str(s["test"]).strip()[:2000],
                         "status": s.get("status") if s.get("status") in ("open", "done", "blocked") else "open",
-                        "tries": int(s.get("tries") or 0), "runs": list(s.get("runs") or [])[-10:]})
+                        "tries": int(s.get("tries") or 0), "runs": list(s.get("runs") or [])[-10:],
+                        **({"deferred": list(s["deferred"])[-5:]} if isinstance(s.get("deferred"), list) else {})})
     return out
 
 
@@ -103,6 +104,17 @@ def next_step(plan: dict | None) -> int | None:
     return None
 
 
+def _held(cfg: sys_config.Config, name: str) -> bool:
+    """C714: whether the owner holds the project now (a terminal open on it, its «Salva» being made) — the step's
+    command would be put off (prj_run.Busy), so its agent is not started either."""
+    from . import prj_browse, prj_package, prj_term
+    try:
+        root = prj_browse.project(cfg, name)
+    except (ValueError, OSError):
+        return False
+    return bool(prj_term.open_on(root)) or prj_package.making(root)
+
+
 def due(cfg: sys_config.Config, projects: list[str], now: float | None = None) -> str | None:
     """The project to work on now (its level allows it, a step is open, no failed attempt in the last GAP_S), or None."""
     if int(cfg["AURORA_PROJECT_AUTONOMY"]) <= 0:
@@ -114,9 +126,10 @@ def due(cfg: sys_config.Config, projects: list[str], now: float | None = None) -
         except ValueError:                               # a bad name, or a sealed plan that does not open: not this one
             continue
         i = next_step(plan)
-        if i is None:
+        if i is None or _held(cfg, name):                # C714: the owner's terminal or «Salva» on it: no agent now
             continue
-        last = max((r for s in plan["steps"] for r in s.get("runs", [])), key=lambda r: r.get("at", 0), default=None)
+        last = max((r for s in plan["steps"] for r in s.get("runs", []) + s.get("deferred", [])),
+                   key=lambda r: r.get("at", 0), default=None)
         if not last or last["exit"] == 0 or now - last.get("at", 0) >= GAP_S:
             return name
     return None
@@ -127,7 +140,7 @@ def goal_for(plan: dict, project: str, i: int, docs: str = "") -> str:
     s, n = plan["steps"][i], len(plan["steps"])
     done = "\n".join(f"- ✓ {x['title']}" for x in plan["steps"][:i] if x["status"] == "done") or "- (none yet)"
     tried = "\n".join(f"- attempt at {time.strftime('%d/%m %H:%M', time.localtime(r['at']))}: exit {r['exit']}; "
-                      f"{r.get('tail', '')[-600:]}" for r in s.get("runs", [])[-2:])
+                      f"{r.get('tail', '')[-600:]}" for r in [r for r in s.get("runs", []) if not r.get("deferred")][-2:])
     return (f"Project «{project}», worked on by yourself (no one is watching: do not ask questions). GOAL OF THE "
             f"PROJECT: {plan['goal']}\n\nDONE:\n{done}\n\nNOW, step {i + 1} of {n}: {s['title']}\n"
             f"The step is done when this command exits 0 in the project's folder: `{s['test']}`. If the tests it runs "
@@ -144,10 +157,12 @@ def record(cfg: sys_config.Config, project: str, i: int, run: dict, run_id: str,
     project.done) or ""."""
     plan = load(cfg, project)
     s = plan["steps"][i]
-    s["runs"] = (s.get("runs", []) + [{"at": time.time(), "run_id": run_id, "exit": run["exit"],
-                                       "seconds": run.get("seconds"), "tail": run.get("output", "")[-800:],
-                                       "report": report[:600], **({"deferred": True} if run.get("deferred") else {})}
-                                     ])[-10:]
+    entry = {"at": time.time(), "run_id": run_id, "exit": run["exit"], "seconds": run.get("seconds"),
+             "tail": run.get("output", "")[-800:], "report": report[:600]}
+    if run.get("deferred"):                                # C714: kept apart, never among the attempts
+        s["deferred"] = (s.get("deferred", []) + [{**entry, "deferred": True}])[-5:]
+    else:
+        s["runs"] = (s.get("runs", []) + [entry])[-10:]
     event = ""
     if run.get("deferred"):                                # the owner held the project: no try spent
         pass

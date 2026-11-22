@@ -96,33 +96,66 @@ def brave(query: str, n: int, key: str) -> list[dict]:
 
 def search(query: str, n: int = 6, region: str = "it-it") -> list[dict]:
     """[{"title", "url", "text"}]: the results' titles and snippets; [] when every engine refuses or fails."""
+    return search_why(query, n, region)[0]
+
+
+def why_failed(e: BaseException) -> str:
+    """An engine's failure in words, its kind first (C722): «no results», «rate limited», «network», «key», «format»."""
+    name, msg = type(e).__name__, str(e)[:160]
+    if name == "RatelimitException":
+        return f"rate limited ({msg})"
+    if name == "DDGSException" and "no results" in msg.lower():
+        return "no results"
+    if isinstance(e, httpx.HTTPStatusError):
+        code = e.response.status_code
+        return (f"key refused (HTTP {code})" if code in (401, 403) else f"over quota (HTTP {code})" if code == 429
+                else f"HTTP {code}")
+    if isinstance(e, (httpx.TransportError, OSError)) or name == "TimeoutException":
+        return f"network ({name}: {msg})"
+    if isinstance(e, (ValueError, KeyError, TypeError)):
+        return f"format ({name}: {msg})"
+    return f"{name}: {msg}"
+
+
+def search_why(query: str, n: int = 6, region: str = "it-it") -> tuple[list[dict], list[str]]:
+    """(results, each engine's failure in words): «no results» from an engine that answered, anything else a failure
+    (C722: [] said «nothing» and «failed» alike)."""
     if not query.strip():
-        return []
+        return [], ["empty query"]
+    why = []
     key = brave_key()
     if key:
         try:
             found = brave(query, n, key)
         except Exception as e:  # noqa: BLE001 — over quota, down, a bad key: the engines without a key
             LOG.warning("web search: brave failed (%s: %s)", type(e).__name__, str(e)[:160])
-            found = []
+            found, _ = [], why.append(f"brave: {why_failed(e)}")
         if found:
-            return found
+            return found, why
+        if not why:
+            why.append("brave: no results")
     try:
         from ddgs import DDGS
     except ImportError:                                  # not installed: no web, said by the caller
-        return []
+        return [], why + ["ddgs: not installed (no key-free web search)"]
     for i, backend in enumerate(ENGINES):
         try:
             found = DDGS().text(query, region=region, max_results=n, backend=backend)
         except Exception as e:  # noqa: BLE001 — «No results found», a timeout, an engine down: the next one
             LOG.warning("web search: ddgs %s failed (%s: %s)", backend, type(e).__name__, str(e)[:160])
-            found = []
+            found, _ = [], why.append(f"{backend}: {why_failed(e)}")
+        else:
+            if not found:
+                why.append(f"{backend}: no results")
         if found:
-            return [{"title": x.get("title") or "", "url": x.get("href") or "", "text": x.get("body") or ""}
-                    for x in found if x.get("href", "").startswith(("https://", "http://"))]
+            got = [{"title": x.get("title") or "", "url": x.get("href") or "", "text": x.get("body") or ""}
+                   for x in found if x.get("href", "").startswith(("https://", "http://"))]
+            if got:
+                return got, why
+            why.append(f"{backend}: format (no result with a web address)")
         if i + 1 < len(ENGINES):
             time.sleep(1.5)
-    return []
+    return [], why
 
 
 def _public(url: str) -> str | None:

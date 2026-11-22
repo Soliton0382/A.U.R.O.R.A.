@@ -286,3 +286,14 @@ def test_c704_a_reserved_project_read_through_another_plugin_closes_the_network(
                       index, emit, "r")
     assert "NOT CHECKED" in out or out.startswith("REFUSED"), out
     assert sent == []
+
+
+def test_c715_tables_in_skips_package_folders(tmp_path):
+    """C715: a package's CSV inside .venv (or site-packages, node_modules) is neither the owner's nor an echo."""
+    proj = tmp_path / "lab"
+    for rel in ("data/a.csv", ".venv/lib/python3.12/site-packages/sklearn/datasets/data/iris.csv",
+                "env/lib/site-packages/pkg/x.csv", "web/node_modules/m/y.csv", "venv/z.csv"):
+        f = proj / rel
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text("x,y\n1,2\n")
+    assert V.tables_in(proj) == ["data/a.csv"]

@@ -499,6 +499,28 @@ def reload() -> Config:
     return _cached
 
 
+def on_after_restart(cfg, key: str) -> bool:
+    """A setting this process read off while the machine's .env now says on (C723: a PUT set it true, the feature still
+    said «off»): True only then. Read from the file each time; any doubt (no file, a bad value) says False."""
+    try:
+        if cfg[key]:
+            return False
+        base = getattr(cfg, "base", None) or cfg
+        raw = parse_env(Path(base.env_file).read_text(encoding="utf-8")).get(key)
+        return raw is not None and bool(convert(base.specs[key], raw))
+    except (AttributeError, KeyError, OSError, TypeError, ValueError, ConfigError):
+        return False
+
+
+def off_said(cfg, key: str, sentence: str) -> str:
+    """`sentence` («… is off (KEY)»), or, on in the .env but read off by this process, that the restart of aurora-api
+    turns it on (C723: the owner saw «on» in the settings and «off» in the project)."""
+    if on_after_restart(cfg, key):
+        return (sentence.replace(f" ({key})", "") + f" in this process ({key} read false when it started), on in the "
+                "settings — acceso nelle impostazioni: attivo dopo il riavvio di aurora-api")
+    return sentence
+
+
 OWNER_MARK = "%OWNER%"
 
 

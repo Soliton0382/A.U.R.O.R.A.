@@ -5598,3 +5598,49 @@ Not measured: PIDFD_THREAD on kernels before 6.9 (a thread's own socket then cou
 through the page with many large tables; the plan's put-off step in the real idle task; false «hidden» on legitimate
 non-dumpable programs.
 
+## M322 — N142–N147 live for the first time (20 November 2026)
+An invented project «prova-scoperta»: data/pendolo.csv (300 rows, T = 2π·√(L/9.81), 2 % noise, a useless column) and
+data/rumore.csv (independent noise), both brought in with «📥 Dati» (origin owner). Two conductor phases on the cloud
+(agent sonnet, referee opus), the three features switched on with PUT /v1/aurora/settings and a restart of aurora-api.
+
+| feature | result | time | cost |
+|---|---|---|---|
+| 📥 Dati | both tables recorded as the owner's | 0.8 s each | 0 |
+| N142 frozen predictions | 6 files (8 + 2 + 2 + 1 + …), all closed, the ledger intact, mode «warn» | — | — |
+| N142 severe referee | REV_001 and REV_002: MAJOR REVISION (0 fatal; 2 / 4 major, one of them spurious: C718) | 139.9 s / 89.8 s | 0.49 / 0.33 USD |
+| N147, the pendulum | DISCOVERED T = c·√L, c = 2.00005 (true 2.0064, 1.8 σ); held-out relative RMSE 0.0189 vs 0.0789 for the linear baseline; 69 structures tried | 0.2 s | 0 |
+| N147, the noise | y~x NOTHING FOUND (constant 5.052); y~z and y~(x,z) refused, «tried once» (C720) | 0.2 s | 0 |
+| N146 novelty | FOUND (close work), 3 of 4 indexes answered (arXiv, OpenAlex, Crossref; the web source failed: C722) | 13.5 s | 0 |
+| N145 long run | RK4 on 1,000 pendulums, meter «cgroup», limits 1,800 s / 512 MB / 200 MB disk / 1,800 s CPU, ended, exit 0, the manifest intact, R1 closed by Aurora | 2.0 s (CPU 1.9 s) | 0 |
+
+Phases: draft 19.6 / 20.8 s, whole run 558.7 / 377 s. No core dump; the GPU idle before each phase. Not measured: the
+agent's and the judge's cost in USD per phase (phase 2: 13 cloud calls, 289,461 tokens, the machine's counter); a long
+run of minutes or hours under load; discover_law with several inputs in one call; N143 inside a phase.
+
+
+## M323 — 📚 sources in the chat, live (N150, 20 November 2026)
+
+Three invented questions, one at a time, remember:false on /v1/aurora/ask, after the restart (docs/local/probe_sources_live.py).
+
+| choice | question (invented) | searched | passages found | cited | gate | time |
+|---|---|---|---|---|---|---|
+| ⚖️ legal | the days to return shoes bought online | law_it | law_it 13 | law_it 6 (art. 52 d.lgs. 206/2005 found by number) | «sources chosen», mode vault | 50.1 s |
+| 🩺 medicine | why too much paracetamol harms the liver | biomedicine, genomics, medicine, psychology | medicine 7, biomedicine 5 | medicine 4, biomedicine 2 | «sources chosen» | 30.3 s |
+| 🤖 auto | why the sky is blue and red at sunset | every domain | physics 1, earth_science 3, general 1 (+2 memory) | physics, earth_science, general | margin −0.181 < −0.01: law out, as before | 22.5 s |
+
+Every answer ends with «📚 Ho cercato solo in: …» when a choice is made; auto has no such line and the gate works as before.
+Not measured: whether the answers are right (read in the traces, not graded), recall inside a group, a choice of several groups live.
+
+
+## M324 — the routines' ticks, a whole day (21–22 November 2026; C600 closed)
+
+From status/routine_ticks.jsonl (one line a closed day) and routine_ticks.json (today), counted by `sys_ticks`.
+
+| day | ticks | over 30 s | max | where the max was | API start in the day |
+|---|---|---|---|---|---|
+| 20 Nov (before M308's fix live) | 818 | 2 | 34.59 s | scenes 19.7 s, local_ticks 14.74 s | yes |
+| 21 Nov | 1,345 | 0 | 5.35 s | local_ticks 1.21 s, scenes 1.10 s | yes (morning start) |
+| 22 Nov, partial | 432 | 0 | 4.08 s | astro 3.87 s | yes (morning start) |
+
+The first tick after a start no longer passes aurora-rem's 30 s: C600 closed.
+Not measured: a day with several restarts from the WebUI; whether astro's 3.9 s grows with the night's captures.
