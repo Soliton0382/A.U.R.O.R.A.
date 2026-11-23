@@ -1,0 +1,145 @@
+{
+ "_comment": "C728: invented science posts to tune sys_social_guard. Each topic is told three times with a different opening (how the agent proposed one subject 5 times in 10 hours); topics of one field are different subjects. No link: the link check is the easy case. The last four topics are near misses: the same object or field as an earlier topic, a different discovery.",
+ "topics": [
+  {
+   "id": "a-nana-bruna",
+   "field": "astronomia",
+   "posts": [
+    "🔭 Una nana bruna con le nuvole di sabbia\nIl telescopio Webb ha osservato una nana bruna a quaranta anni luce: nella sua atmosfera ci sono nuvole di silicati, granelli di sabbia che piovono verso l'interno. È la prima volta che vediamo il meteo di un oggetto a metà tra una stella e un pianeta.",
+    "Che tempo fa su una stella mancata?\nOsservando una nana bruna distante quaranta anni luce, il telescopio spaziale Webb ha trovato nuvole fatte di silicati: sabbia sospesa che precipita negli strati profondi. Un meteo alieno su un corpo né stella né pianeta.",
+    "🌫️ Piove sabbia, ma non sulla Terra\nNuvole di silicati nell'atmosfera di una nana bruna: le ha viste Webb a quaranta anni luce da noi. Questi oggetti sono troppo piccoli per accendersi come stelle, ma hanno un clima, con granelli che cadono verso l'interno."
+   ]
+  },
+  {
+   "id": "a-esopianeta-vapore",
+   "field": "astronomia",
+   "posts": [
+    "💧 Vapore acqueo su un pianeta lontano\nUn gruppo di astronomi ha misurato vapore acqueo nell'atmosfera di un esopianeta temperato, poco più grande della Terra, che orbita una stella rossa. La luce della stella filtrata dall'atmosfera porta la firma delle molecole d'acqua.",
+    "Acqua nell'aria di un mondo alieno\nLa luce di una stella rossa, passando attraverso l'atmosfera del suo esopianeta temperato, rivela vapore acqueo: il pianeta è appena più grande della Terra. Le molecole d'acqua lasciano un'impronta nello spettro.",
+    "🪐 Un pianeta poco più grande della Terra ha vapore acqueo\nGli astronomi hanno letto nello spettro della luce stellare filtrata la firma delle molecole d'acqua: l'esopianeta temperato orbita una stella rossa e la sua atmosfera contiene vapore acqueo."
+   ]
+  },
+  {
+   "id": "a-buco-nero-getto",
+   "field": "astronomia",
+   "posts": [
+    "🌀 Il getto di un buco nero che cambia direzione\nUn buco nero supermassiccio al centro di una galassia lontana ha un getto di plasma che ruota come una trottola: la precessione, misurata in vent'anni di osservazioni radio, rivela che il disco di materia attorno è inclinato rispetto alla rotazione.",
+    "Una trottola cosmica da miliardi di soli\nVent'anni di osservazioni radio mostrano che il getto di plasma di un buco nero supermassiccio cambia direzione: precessione, come una trottola. La causa è il disco di materia inclinato rispetto alla rotazione del buco nero.",
+    "Perché il getto di quel buco nero oscilla?\nLa risposta arriva da vent'anni di dati radio: il disco di materia attorno al buco nero supermassiccio è inclinato rispetto alla sua rotazione, e il getto di plasma compie una precessione lenta."
+   ]
+  },
+  {
+   "id": "a-cometa-interstellare",
+   "field": "astronomia",
+   "posts": [
+    "☄️ Una cometa venuta da un'altra stella\nUna cometa interstellare attraversa il Sistema solare su un'orbita iperbolica: non tornerà mai. Gli spettri della sua chioma mostrano più monossido di carbonio delle comete nostrane, segno che è nata in un ambiente più freddo.",
+    "Un visitatore da un altro sistema planetario\nSu un'orbita iperbolica, senza ritorno, una cometa interstellare sta passando vicino al Sole. La sua chioma è ricca di monossido di carbonio, molto più delle comete del Sistema solare: si è formata dove faceva più freddo.",
+    "🌌 Monossido di carbonio da un'altra stella\nLa chioma della cometa interstellare che attraversa il Sistema solare contiene più monossido di carbonio di quelle che conosciamo: nata in un ambiente freddo, segue un'orbita iperbolica e se ne andrà per sempre."
+   ]
+  },
+  {
+   "id": "a-anelli-saturno",
+   "field": "astronomia",
+   "posts": [
+    "🪐 Gli anelli di Saturno sono giovani?\nNuove misure della polvere che cade sugli anelli suggeriscono che il ghiaccio sia troppo pulito per avere quattro miliardi di anni: gli anelli potrebbero essersi formati poche centinaia di milioni di anni fa, quando sulla Terra c'erano già i dinosauri.",
+    "Anelli più giovani dei dinosauri\nIl ghiaccio degli anelli di Saturno è troppo pulito: la polvere che vi cade da sempre lo avrebbe sporcato in quattro miliardi di anni. Le misure indicano un'età di poche centinaia di milioni di anni.",
+    "Quanti anni hanno gli anelli di Saturno?\nPoche centinaia di milioni, secondo la polvere che li ricopre lentamente: il ghiaccio è ancora troppo pulito per essere antico quanto il pianeta. Si sarebbero formati quando i dinosauri camminavano già sulla Terra."
+   ]
+  },
+  {
+   "id": "f-orologio-nucleare",
+   "field": "fisica",
+   "posts": [
+    "⏱️ Un orologio che batte nel nucleo\nI fisici hanno eccitato con un laser una transizione del nucleo del torio: è il primo passo verso un orologio nucleare, mille volte meno sensibile ai disturbi degli orologi atomici. Potrebbe rivelare se le costanti della natura cambiano nel tempo.",
+    "Il torio e il futuro della misura del tempo\nCon un laser ultravioletto è stata eccitata la transizione nucleare del torio: un orologio nucleare sarebbe molto meno sensibile ai disturbi di quelli atomici, e capace di verificare se le costanti della natura variano.",
+    "Oltre l'orologio atomico\nIl nucleo del torio ha una transizione che un laser può eccitare: è la base di un orologio nucleare, più stabile degli orologi atomici e abbastanza preciso da cercare variazioni delle costanti della natura."
+   ]
+  },
+  {
+   "id": "f-superconduttore",
+   "field": "fisica",
+   "posts": [
+    "🧲 Un superconduttore a strati sottili\nIn un materiale fatto di strati atomici ruotati di un piccolo angolo, gli elettroni si accoppiano e la corrente scorre senza resistenza. Cambiando l'angolo di rotazione, i ricercatori accendono e spengono la superconduttività.",
+    "Ruotare due strati e la resistenza sparisce\nBasta un piccolo angolo tra due strati atomici perché gli elettroni si accoppino: la corrente scorre senza resistenza. Con l'angolo di rotazione si controlla la superconduttività, accesa o spenta.",
+    "La superconduttività con una manopola\nI ricercatori hanno impilato strati atomici ruotati l'uno sull'altro: a un certo angolo gli elettroni formano coppie e la resistenza elettrica scompare. Variando la rotazione la superconduttività si accende e si spegne."
+   ]
+  },
+  {
+   "id": "f-neutrini",
+   "field": "fisica",
+   "posts": [
+    "👻 I neutrini cambiano identità\nUn esperimento sotterraneo ha misurato con nuova precisione come i neutrini oscillano da un tipo all'altro durante il viaggio: il risultato restringe l'ordine delle loro masse, uno dei misteri aperti della fisica delle particelle.",
+    "Particelle fantasma che si trasformano\nViaggiando, i neutrini oscillano tra i loro tre tipi: un rivelatore sotterraneo ha misurato queste oscillazioni con una precisione mai vista, e restringe le possibilità sull'ordine delle masse.",
+    "L'ordine delle masse dei neutrini si avvicina\nNuove misure delle oscillazioni dei neutrini, raccolte in un laboratorio sotterraneo, dicono quale dei tre tipi è più pesante con meno incertezza: un mistero della fisica delle particelle un po' meno oscuro."
+   ]
+  },
+  {
+   "id": "b-polpo-sogni",
+   "field": "biologia",
+   "posts": [
+    "🐙 Anche i polpi sognano?\nDurante il sonno attivo la pelle dei polpi cambia colore come quando sono svegli e cacciano: i ricercatori pensano che rivivano esperienze recenti, una fase simile al sonno REM dei mammiferi.",
+    "Il sonno a colori dei polpi\nQuando dormono, i polpi attraversano una fase attiva in cui la loro pelle si accende degli stessi colori della caccia: potrebbero rivivere esperienze recenti, come facciamo noi nel sonno REM.",
+    "Colori che cambiano nel sonno\nNei polpi addormentati compare una fase di sonno attivo: la pelle ripete gli schemi di colore della veglia e della caccia. Per i ricercatori è un parallelo del sonno REM dei mammiferi, forse un modo di rivivere esperienze."
+   ]
+  },
+  {
+   "id": "b-alberi-comunicano",
+   "field": "biologia",
+   "posts": [
+    "🌳 La rete sotterranea delle foreste\nLe radici degli alberi sono collegate da funghi che scambiano zuccheri e segnali chimici: un albero attaccato dagli insetti può avvisare i vicini, che producono sostanze di difesa prima di essere colpiti.",
+    "Gli alberi si avvisano del pericolo\nAttraverso i funghi che collegano le radici, un albero attaccato dagli insetti manda segnali chimici ai vicini: questi preparano sostanze di difesa in anticipo. Nella rete passano anche zuccheri.",
+    "Sotto i nostri piedi, una rete di funghi\nFunghi e radici formano una rete che collega gli alberi di una foresta: passano zuccheri e segnali chimici, e quando gli insetti attaccano un albero i vicini preparano le loro difese."
+   ]
+  },
+  {
+   "id": "b-tardigradi",
+   "field": "biologia",
+   "posts": [
+    "🐻 Il segreto dei tardigradi\nQuesti animali di mezzo millimetro sopravvivono al vuoto, al gelo e alle radiazioni: una proteina avvolge il loro DNA e lo protegge dai danni. Inserita in cellule umane, la stessa proteina ne riduce le rotture.",
+    "Una proteina scudo per il DNA\nI tardigradi resistono a vuoto, gelo e radiazioni grazie a una proteina che avvolge il DNA e lo protegge. In laboratorio, cellule umane con quella proteina subiscono meno rotture.",
+    "Come fa un animale minuscolo a resistere a tutto?\nIl tardigrado, mezzo millimetro di vita, deve parte della sua resistenza a radiazioni, vuoto e gelo a una proteina che protegge il DNA: nelle cellule umane riduce le rotture."
+   ]
+  },
+  {
+   "id": "b-api-numeri",
+   "field": "biologia",
+   "posts": [
+    "🐝 Le api sanno contare\nIn un esperimento le api hanno imparato a scegliere il cartoncino con meno simboli, anche con lo zero: un cervello di meno di un milione di neuroni capisce il concetto di quantità e perfino il niente.",
+    "Lo zero visto da un'ape\nAddestrate con cartoncini e simboli, le api scelgono quello con la quantità minore e capiscono anche lo zero: un concetto astratto in un cervello di meno di un milione di neuroni.",
+    "Un milione di neuroni e il concetto di niente\nLe api, in un esperimento con cartoncini, hanno imparato a riconoscere la quantità minore di simboli, zero compreso: anche un cervello piccolissimo afferra il concetto di quantità."
+   ]
+  },
+  {
+   "id": "a-nana-bruna-aurore",
+   "field": "astronomia",
+   "posts": [
+    "✨ Aurore su una nana bruna\nIl telescopio Webb ha visto l'emissione del metano accendersi nell'alta atmosfera di una nana bruna fredda e isolata: un'aurora, come quelle polari della Terra, ma senza una stella vicina che fornisca il vento di particelle.",
+    "Un'aurora senza stella\nNell'alta atmosfera di una nana bruna fredda, lontana da qualunque stella, Webb ha osservato il metano che brilla: un'aurora che si accende senza il vento di particelle di un sole vicino."
+   ]
+  },
+  {
+   "id": "a-esopianeta-gigante",
+   "field": "astronomia",
+   "posts": [
+    "🔥 Un pianeta gigante che evapora\nUn esopianeta gigante e caldissimo, vicinissimo alla sua stella, perde la propria atmosfera: la coda di elio che si allunga dietro il pianeta è stata misurata nello spettro della luce stellare durante il transito.",
+    "Una coda di elio dietro un mondo rovente\nDurante il transito davanti alla sua stella, un esopianeta gigante e caldissimo mostra una coda di elio: sta perdendo l'atmosfera, strappata dal calore della stella vicinissima."
+   ]
+  },
+  {
+   "id": "a-buco-nero-ombra",
+   "field": "astronomia",
+   "posts": [
+    "🕳️ La nuova immagine dell'ombra di un buco nero\nUna rete di radiotelescopi sparsi sulla Terra ha fotografato di nuovo l'ombra del buco nero supermassiccio al centro di una galassia vicina: l'anello di luce è più nitido e mostra la polarizzazione del campo magnetico.",
+    "Un anello di luce più nitido\nCon radiotelescopi in tutto il pianeta, gli astronomi hanno rifatto l'immagine dell'ombra di un buco nero supermassiccio: l'anello luminoso ora rivela la polarizzazione, cioè il disegno del campo magnetico."
+   ]
+  },
+  {
+   "id": "b-polpo-mimetismo",
+   "field": "biologia",
+   "posts": [
+    "🐙 Il polpo che imita gli altri animali\nUn polpo dei mari tropicali sa imitare la forma e i movimenti di pesci velenosi e serpenti di mare: cambia colore, postura e nuoto per spaventare i predatori, scegliendo il modello giusto per ciascuno.",
+    "Il trasformista del mare\nCambiando colore, postura e nuoto, un polpo tropicale si fa passare per un pesce velenoso o un serpente di mare: sceglie quale animale imitare in base al predatore che ha davanti."
+   ]
+  }
+ ]
+}

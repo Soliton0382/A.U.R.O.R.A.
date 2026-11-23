@@ -433,7 +433,8 @@ def decide(approval_id: str, decision: str) -> dict:
         raise HTTPException(status_code=403, detail="only the admin decides on the machine's code and plugins")
     now = time.strftime("%Y-%m-%dT%H:%M:%S%z")
     if decision == "reject":
-        store.update(approval_id, status="rejected", decided=now)
+        if store.claim(approval_id, status="rejected", decided=now) is None:     # C736: decided meanwhile
+            raise HTTPException(status_code=409, detail="already decided")
         if item["kind"] in ("forge_cloud", "plugin_install"):      # the forge request ends with the owner's no
             from aurora import agt_forge
             try:
@@ -442,7 +443,8 @@ def decide(approval_id: str, decision: str) -> dict:
                 pass
         note("owner", "approval.rejected", {"id": approval_id, "title": item["title"]})
         return {"id": approval_id, "status": "rejected"}
-    store.update(approval_id, status="approved", decided=now)
+    if store.claim(approval_id, status="approved", decided=now) is None:         # C736: one tap runs it, not two
+        raise HTTPException(status_code=409, detail="already decided")
 
     def job(q, emit, run_id):
         emit("approval.execute", {"id": approval_id, "kind": item["kind"], "title": item["title"]})

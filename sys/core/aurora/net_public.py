@@ -45,6 +45,17 @@ def check(url: str, lan: bool = False) -> str:
     return (v4 or addrs)[0]
 
 
+# C735: what proves who asks never follows a redirect to another site (a token would reach a host nobody chose)
+CREDENTIAL_HEADERS = {"authorization", "proxy-authorization", "cookie", "x-api-key", "x-apikey", "api-key", "apikey",
+                      "auth-key", "key", "x-auth-token", "private-token"}
+
+
+def _same_origin(a: str, b: str) -> bool:
+    ua, ub = urlparse(a), urlparse(b)
+    port = lambda u: u.port or (443 if u.scheme == "https" else 80)
+    return (ua.scheme, (ua.hostname or "").lower(), port(ua)) == (ub.scheme, (ub.hostname or "").lower(), port(ub))
+
+
 def request(method: str, url: str, lan: bool = False, max_bytes: int = MAX_BYTES, timeout: float = 30, **kw) -> httpx.Response:
     """One request to `url` checked (and each redirect, for GET), the body read up to `max_bytes` (Refused beyond)."""
     for _ in range(REDIRECTS + 1):
@@ -57,8 +68,10 @@ def request(method: str, url: str, lan: bool = False, max_bytes: int = MAX_BYTES
         with httpx.Client(timeout=timeout, follow_redirects=False) as c:
             with c.stream(method, target, headers=headers, extensions=ext, **kw) as r:
                 if r.is_redirect and method == "GET" and r.headers.get("location"):
-                    url = urljoin(url, r.headers["location"])
-                    kw["headers"] = {k: v for k, v in headers.items() if k != "Host"}
+                    new = urljoin(url, r.headers["location"])
+                    kw["headers"] = {k: v for k, v in headers.items() if k != "Host"
+                                     and (_same_origin(url, new) or k.lower() not in CREDENTIAL_HEADERS)}
+                    url = new
                     continue
                 body = b""
                 for chunk in r.iter_bytes():

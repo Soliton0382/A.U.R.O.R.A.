@@ -394,7 +394,7 @@ live on a USB stick, so that not even root on this machine can sign:
 
 ## Links Aurora opens (13 Oct 2026, roadmap 96)
 
-Every page the answers open and every agent's tool call that carries a link pass the plugin linkcheck (on by default): the link's own form (hidden credentials, punycode look-alikes) and the reputation services the owner ticks (VirusTotal, URLhaus, AbuseIPDB), each with the owner's key. A malicious link is not opened and the refusal carries the services' reasons; a service without key or down counts as not checked, never as clean. Verdicts are kept a day in <STATUS>/linkcheck.json (the link, not the page).
+Every page the answers open and every agent's tool call that carries a link pass the plugin linkcheck (on by default): the link's own form (hidden credentials, punycode look-alikes) and the reputation services the owner ticks (VirusTotal, URLhaus, AbuseIPDB), each with the owner's key. A malicious link is not opened and the refusal carries the services' reasons; a service without key or down counts as not checked, never as clean (C733: the form alone gives «unknown»). Only the link's site (`scheme://host[:port]/`) goes to the services and into the day's memory in <STATUS>/linkcheck.json: a token in the path or the query never leaves the machine (C734); the form is checked on the whole link, locally.
 
 ## Tried with a model that refuses nothing (13 Nov 2026, N135, M292)
 

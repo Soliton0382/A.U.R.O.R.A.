@@ -5673,3 +5673,27 @@ same build and cards: tg128 25.7–30.3 tok/s (0.22–0.26 × the local model), 
 VRAM at the same context (compute buffers of 6–10 GB). Its predictions were frozen before (velocity 0.5–1.1 ×, at
 least 3 GB less memory): both failed. The owner stopped the trial before the quality sets; the model was not adopted.
 Not measured: its quality; the old build's prompt speed with llama-bench; a whole day of Aurora on b12647.
+
+## M327 — the repeated-post guard tuned on invented posts (23 November 2026; BUGS C728)
+
+tests/data/social_posts_c728.json: 16 invented subjects in astronomy, physics and biology, 44 posts (12 subjects told
+3 times with another opening, 4 near misses: the same object or field, another discovery); 40 pairs of one subject,
+906 of different subjects (297 of the same field).
+
+| rule | rewordings missed | different subjects taken |
+|---|---|---|
+| before (link, first 12 words, SequenceMatcher ≥ 0.6) | 40 / 40 | 0 |
+| content words, Jaccard on whole words ≥ 0.2 | 4 / 40 | 0 |
+| content words cut to 6 letters, Jaccard ≥ 0.2 (adopted) | 1 / 40 | 0 / 906 |
+| the whole repeat_of, ordered pairs | 2 / 80 | 0 / 1812 |
+
+Same subject: Jaccard from 0.143, median 0.414; different: at most 0.167 (two exoplanets) — a narrow margin.
+0.18–0.22 give the same result; 0.15 takes 6 different pairs, 0.25 misses 6. Every post is caught by another telling
+of its subject (0/44 missed). The title alone does not separate rewordings (different subjects reach 0.46), so it
+counts only from 0.8. Not measured: real posts of the page; English posts; a week of the guard live.
+
+## M328 — the code's filter of health and of the house for the social report (23 November 2026; BUGS C730)
+
+kno_social.private_topic on the invented texts of tests/test_social_report.py: 15/15 texts on health or on the
+house's state caught, 11/11 science thoughts and dreams kept. Conservative by design: a science thought naming sensors
+or a therapy is not drawn. Not measured: real memories; a night's report after the fix.

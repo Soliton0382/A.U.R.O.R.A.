@@ -97,7 +97,7 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | agents | agent loop with budgets (60 steps / 90 min), context compaction, honest report with the record of calls, `/agente <goal>` in the chat; code changes in a sandbox, tests, owner's approval, live tests, rollback | tests, live |
 | plugins (45 published) | the full list with what each does in PLUGINS.md; those with a page are set up in it (N21); the installation's private ones beside them | live listing and calls, test_plugin_contract |
 | approval gate | read/write_local automatic; external actions and code changes wait for the owner (Repairs page, pulsing bell) | tests, live |
-| social | platform statistics, daily ideas, drafts in Aurora's voice from any answer ("Share"), publishing by the owner's click | drafts tested live; publishing needs tokens |
+| social | platform statistics, daily ideas (never repeating the last 3 reports; health and the house's state never drawn, C730), drafts in Aurora's voice from any answer ("Share"), publishing by the owner's click; a post repeating one of the last 7 days — out, waiting or rejected — is not proposed (C728) | drafts tested live; publishing needs tokens |
 | projects | GitHub-ready scaffolding in usr/projects, local commits, publish/push with approval | tested in a temporary folder |
 | security | aurora-sentinel: firewall syslog, detector, incidents investigated with public network data, defensive reports; Security page and shield | end-to-end test with synthetic syslog |
 | ethics | code of conduct in two levels, signed integrity (services refuse to start if changed), owner's level-B exemption | tests, live tamper check |

@@ -13,6 +13,11 @@ Two sources, one list per user (<the user's state>/routine_advice.json):
 Every proposal is checked by sys_routines.validate before it is shown: what is shown can be applied. Applying is the
 owner's click (the same as switching on a plugin's suggestion); a new agent proposed by Aurora is created with
 "by": "aurora". A dismissed proposal is never proposed again.
+
+C727 (20 Nov: an applied proposal set the morning science post to every 2 hours — up to 19 posts a day proposed): a
+routine that publishes on a social page runs at most once a day. Aurora never proposes, and the page never shows or
+applies, a change or a new agent that makes one run more often; and the code checks propose to bring one that does
+back to once a day. What «publishes» means is in publishes() below; the owner's own edits are not limited here.
 """
 from __future__ import annotations
 
@@ -20,6 +25,7 @@ import hashlib
 import json
 import re
 import time
+from pathlib import Path
 
 from . import sys_config, sys_routines
 from .sys_lang import say as _t   # each sentence in the reader's language (C526)
@@ -106,10 +112,99 @@ def _shifted(sch: dict, minutes: int) -> dict:
     return {**sch, "times": [_later(x, minutes) for x in sch["times"]]}
 
 
-def checks(routines: list[dict], ready: set[str]) -> list[dict]:
+# ---- C727: a routine that publishes, at most once a day -----------------------------------------------------------
+PLUGINS = Path(__file__).resolve().parents[2] / "plugins"     # the plugins shipped, when no configuration is given
+PUBLISH = re.compile(r"\b(pubblic|publish)", re.I)
+ONCE_AT = "09:00"          # the time given to a routine «every n hours» brought back to once a day
+
+
+def publishing_tools(folder: Path | None = None) -> dict[str, set[str]]:
+    """{plugin: the tools that put something on its public page}: the plugins whose manifest has a «social» section,
+    and of each the tools that section names (post, photo, video) plus those of «publishes» whose name says publish or
+    post. A reply to a comment (reply_comment) is not a post; a message sent to a person (telegram, e-mail) is not
+    published on a page."""
+    out: dict[str, set[str]] = {}
+    for f in (folder or PLUGINS).glob("*/plugin.json"):
+        try:
+            m = json.loads(f.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        social = m.get("social") if isinstance(m, dict) else None
+        if not isinstance(social, dict):
+            continue
+        tools = {str(v["tool"]) for v in social.values() if isinstance(v, dict) and v.get("tool")}
+        tools |= {t for t in (m.get("publishes") or {}) if "publish" in t or "post" in t}
+        out[f.parent.name] = tools
+    return out
+
+
+def publishing(cfg: sys_config.Config | None) -> dict[str, set[str]]:
+    return publishing_tools(cfg.path("AURORA_PLUGINS_DIR") if cfg is not None else None)
+
+
+def publishes(r: dict, pub: dict[str, set[str]]) -> bool:
+    """Whether a routine publishes on a social page. A tool routine: its tool is one of publishing_tools. An agent:
+    among the plugins it may use (all of them when «plugins» is empty: an agent without a list has every plugin), a
+    social one whose publishing tool its goal names (publish_post, «facebook publish_post»), or whose name its goal
+    says with a verb of publishing («pubblica sulla pagina Facebook»). A story routine is not counted: its videos
+    have their own daily number (AURORA_SOCIAL_POSTS_PER_DAY, kno_story_auto), and the social set runs two a day."""
+    if r.get("kind") == "tool":
+        return str(r.get("tool")) in pub.get(str(r.get("plugin")), set())
+    if r.get("kind") != "agent":
+        return False
+    goal = str(r.get("goal") or "").lower()
+    for p in (set(r.get("plugins") or []) or set(pub)) & set(pub):
+        if any(re.search(rf"\b{re.escape(t)}\b", goal) for t in pub[p]):
+            return True
+        if re.search(rf"\b{re.escape(p)}\b", goal) and PUBLISH.search(goal):
+            return True
+    return False
+
+
+def per_day(sch: dict) -> float:
+    """How many times a day a schedule runs (a week's: 1/7)."""
+    every = (sch or {}).get("every")
+    if every == "hours":
+        return 24 / max(1, int(sch.get("hours") or 1))
+    if every == "custom":
+        return float(len(set(sch.get("times") or [])))
+    return 1.0 if every == "day" else 1 / 7 if every == "week" else 0.0
+
+
+def too_often(r: dict, pub: dict[str, set[str]]) -> bool:
+    """A routine that publishes and runs more than once a day (C727)."""
+    return publishes(r, pub) and per_day(r.get("schedule") or {}) > 1
+
+
+def once_a_day(sch: dict) -> dict:
+    """The schedule run once a day: a custom one keeps its first time and its days; «every n hours» runs at ONCE_AT."""
+    if sch.get("every") == "custom" and sch.get("times"):
+        return {**sch, "times": [sorted(sch["times"])[0]]}
+    return {"every": "custom", "times": [ONCE_AT], "group": "all"}
+
+
+def _makes_too_often(a: dict, by_id: dict, pub: dict[str, set[str]]) -> bool:
+    """A proposal that would leave a publishing routine running more than once a day (C727)."""
+    if a.get("action") == "new":
+        return too_often({"kind": "agent", **(a.get("change") or {})}, pub)
+    if a.get("action") == "change" and (r := by_id.get(a.get("routine"))) is not None:
+        return too_often({**r, **(a.get("change") or {})}, pub)
+    return False
+
+
+def checks(routines: list[dict], ready: set[str], pub: dict[str, set[str]] | None = None) -> list[dict]:
     """The advice that needs no model."""
     out = []
+    pub = publishing_tools() if pub is None else pub
     on = [r for r in routines if r.get("enabled", True)]
+    for r in on:                                              # C727: a routine that publishes, once a day
+        if too_often(r, pub):
+            n = per_day(r["schedule"])
+            out.append({"action": "change", "routine": r["id"],
+                        "title": _t(f"Riporta «{r['title']}» a una volta al giorno", f"Bring «{r['title']}» back to once a day"),
+                        "why": _t(f"Pubblica sui social e gira {n:g} volte al giorno: un post alla volta, una volta al giorno.",
+                                  f"It publishes on the social pages and runs {n:g} times a day: one post, once a day."),
+                        "change": {"schedule": once_a_day(r["schedule"])}})
     for r in on:                                              # a plugin switched off or not configured
         if r.get("plugin") and r.get("kind") == "tool" and r["plugin"] not in ready:
             out.append({"action": "pause", "routine": r["id"], "title": _t(f"Metti in pausa «{r['title']}»", f"Pause «{r['title']}»"),
@@ -149,7 +244,9 @@ SYS_REVIEW = (
     "to a tool routine's tool; in a new agent's goal name only tools listed. A NEW agent must do what no listed routine "
     "does: if one already has that goal, propose a change to it, or nothing. What the owner asked for in so many words "
     "in a goal («invia sempre», «ogni mattina») is their wish, not a fault. A result that waits for the owner's approval "
-    "(«⏳ … aspetta la tua approvazione») is the design: never a problem to fix. Judge only by the last result as shown. "
+    "(«⏳ … aspetta la tua approvazione») is the design: never a problem to fix. A routine that publishes on a social page "
+    "(a post, a photo, a video) runs at most once a day: never make one more frequent, never a new one more than once "
+    "a day. Judge only by the last result as shown. "
     "Reply ONLY with a JSON list of "
     "objects: {{\"action\": \"change\"|\"pause\"|\"new\", \"routine\": the id (change, pause) or null (new), \"title\": a short "
     "Italian title, \"why\": one or two Italian sentences, \"change\": for change only the fields to change among goal, "
@@ -200,9 +297,11 @@ def _copy_of(spec: dict, routines: dict) -> dict | None:
     return None
 
 
-def _checked(a: dict, by_id: dict, every: dict | None = None) -> dict | None:
-    """The proposal made applicable, or None (an unknown routine, a spec validate refuses, a kind not allowed)."""
+def _checked(a: dict, by_id: dict, every: dict | None = None, pub: dict[str, set[str]] | None = None) -> dict | None:
+    """The proposal made applicable, or None (an unknown routine, a spec validate refuses, a kind not allowed, a
+    publishing routine made to run more than once a day: C727)."""
     act, rid = a.get("action"), a.get("routine")
+    pub = publishing_tools() if pub is None else pub
     if act not in ("change", "pause", "new") or not str(a.get("title", "")).strip():
         return None
     out = {"action": act, "routine": rid, "title": str(a["title"])[:120], "why": str(a.get("why", ""))[:400]}
@@ -218,11 +317,13 @@ def _checked(a: dict, by_id: dict, every: dict | None = None) -> dict | None:
                 if not change:
                     return None
                 sys_routines.validate({**r, **change})
+                if too_often({**r, **change}, pub):
+                    return None
                 out["change"] = change
         else:
             spec = {k: v for k, v in (a.get("change") or {}).items()
                     if k in ("goal", "title", "plugins", "schedule", "notify", "icon")}
-            if _copy_of(spec, every if every is not None else by_id):
+            if _copy_of(spec, every if every is not None else by_id) or too_often({"kind": "agent", **spec}, pub):
                 return None
             out["change"] = {"kind": "agent", "event": "routine.done", **sys_routines.validate({"kind": "agent", **spec})}
     except (ValueError, TypeError):
@@ -230,7 +331,8 @@ def _checked(a: dict, by_id: dict, every: dict | None = None) -> dict | None:
     return out
 
 
-def review(llm, routines: list[dict], plugins: list[dict], system: list[str] = (), n: int = 6) -> list[dict]:
+def review(llm, routines: list[dict], plugins: list[dict], system: list[str] = (), n: int = 6,
+           pub: dict[str, set[str]] | None = None) -> list[dict]:
     """Aurora's proposals, each one checked. plugins: [{"name", "description", "tools"}]; system: what the machine does
     by itself outside the routines (the backup timer, the night's dreams and study…)."""
     ready = "\n".join(f"- {p['name']}: {str(p.get('description', ''))[:160]} — tools: {', '.join(p.get('tools', [])[:20])}"
@@ -249,7 +351,8 @@ def review(llm, routines: list[dict], plugins: list[dict], system: list[str] = (
     by_id = {r["id"]: r for r in on}
     every = {r["id"]: r for r in routines}                  # a new one is checked against the paused ones too (C576)
     out, seen = [], set()
-    for c in (_checked(a, by_id, every) for a in items if isinstance(a, dict)):
+    pub = publishing_tools() if pub is None else pub
+    for c in (_checked(a, by_id, every, pub) for a in items if isinstance(a, dict)):
         if c and (c["action"] == "new" or c["routine"] not in seen):     # one proposal a routine: two may contradict
             out.append(c)
             seen.add(c["routine"])
@@ -260,8 +363,8 @@ def current(cfg: sys_config.Config, ready: set[str]) -> dict:
     """{"items": the open advice (code's made now, Aurora's kept), "reviewed": when Aurora last looked}."""
     data = _load(cfg)
     closed = {a["key"] for a in data["items"] if a.get("status") in ("applied", "dismissed")}
-    code = []
-    for a in checks(sys_routines.all_routines(cfg), ready):
+    code, pub = [], publishing(cfg)
+    for a in checks(sys_routines.all_routines(cfg), ready, pub):
         a = {**a, "by": "code", "key": _key(a)}
         if a["key"] not in closed:
             code.append({**a, "id": a["key"], "status": "open"})
@@ -273,6 +376,8 @@ def current(cfg: sys_config.Config, ready: set[str]) -> dict:
     kept = [a for a in kept if a["action"] == "new" or a.get("routine") in live and (
             _seen(now[a["routine"]]) == a["seen"] if a.get("seen")
             else float(now[a["routine"]].get("last_run") or 0) <= a.get("at", 0))]
+    # C727: a proposal kept from before — never shown, so never applied — when it makes a publishing routine frequent
+    kept = [a for a in kept if not _makes_too_often(a, now, pub)]
     return {"items": code + kept, "reviewed": data.get("reviewed", 0)}
 
 

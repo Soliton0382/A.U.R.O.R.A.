@@ -208,3 +208,72 @@ def test_a_copy_is_seen_by_plugins_time_and_title_never_by_the_goals_words_alone
     assert not A.same_job(offline, power) and not A.same_job(week_agenda, today)
     paused = {**links_old, "id": "p1", "enabled": False}
     assert A._copy_of({**links_new}, {"p1": paused}) is paused          # a paused one counts: a change, not a new one
+
+
+# ---- C727: a routine that publishes, at most once a day ------------------------------------------------------------
+PUB = {"facebook": {"publish_post", "publish_photo", "publish_video"}, "mastodon": {"post_status"}}
+POST_GOAL = "Leggi le notizie di astronomia e pubblica un post con facebook publish_post. Niente politica."
+
+
+def test_what_publishes_is_read_from_the_tools_and_the_goal():
+    assert A.publishing_tools()["facebook"] >= {"publish_post", "publish_photo", "publish_video"}
+    assert "reply_comment" not in A.publishing_tools()["facebook"]          # a reply is not a post
+    assert "telegram" not in A.publishing_tools()                            # a message to a person is not a page
+    assert A.publishes(_r("a", "Post", goal=POST_GOAL, plugins=["facebook", "news"]), PUB)
+    assert A.publishes(_r("b", "Post", goal=POST_GOAL, plugins=None), PUB)              # no list: every plugin
+    assert A.publishes(_r("c", "Pagina", goal="Scrivi un pensiero e pubblicalo sulla pagina Facebook"), PUB)
+    assert A.publishes(_r("d", "Toot", "tool", plugin="mastodon", tool="post_status"), PUB)
+    assert not A.publishes(_r("e", "Post", goal=POST_GOAL, plugins=["news"]), PUB)      # facebook not among its plugins
+    assert not A.publishes(_r("f", "Commenti", goal="Leggi i commenti con facebook list_comments e proponi "
+                                                    "una risposta con facebook reply_comment"), PUB)
+    assert not A.publishes(_r("g", "Statistiche", "tool", plugin="facebook", tool="page_stats"), PUB)
+    assert not A.publishes({"kind": "story", "action": "publish", "title": "Reel"}, PUB)
+
+
+def test_a_publishing_routine_run_often_is_brought_back_to_once_a_day_by_the_code():
+    often = _r("a", "Post di astronomia", goal=POST_GOAL, schedule={"every": "hours", "hours": 2})
+    twice = _r("b", "Post di fisica", goal=POST_GOAL, schedule={"every": "custom", "times": ["18:00", "08:30"],
+                                                                 "group": "weekdays"})
+    daily = _r("c", "Post di biologia", goal=POST_GOAL, schedule={"every": "custom", "times": ["12:00"], "group": "all"})
+    hourly = _r("d", "Allerta meteo", "tool", plugin="weather", tool="weather_alerts", schedule={"every": "hours", "hours": 1})
+    out = {a["routine"]: a for a in A.checks([often, twice, daily, hourly], {"facebook", "weather"}, PUB)
+           if a["action"] == "change"}
+    assert set(out) == {"a", "b"}                              # a reading routine may run every hour
+    assert out["a"]["change"]["schedule"] == {"every": "custom", "times": [A.ONCE_AT], "group": "all"}
+    assert out["b"]["change"]["schedule"] == {"every": "custom", "times": ["08:30"], "group": "weekdays"}
+    assert A.per_day(A.once_a_day(often["schedule"])) == 1
+
+
+def test_aurora_never_proposes_to_publish_more_than_once_a_day():
+    """C727, the case of 20 Nov: the morning post set to every 2 hours by an applied proposal."""
+    rs = [_r("a", "Post di scienza del mattino", goal=POST_GOAL, plugins=["facebook", "news"]),
+          _r("w", "Allerta meteo", "tool", plugin="weather", tool="weather_alerts")]
+    reply = json.dumps([
+        {"action": "change", "routine": "a", "title": "Più post", "why": "la pagina cresce",
+         "change": {"schedule": {"every": "hours", "hours": 2}}},
+        {"action": "change", "routine": "w", "title": "Meteo ogni ora", "why": "allerte",
+         "change": {"schedule": {"every": "hours", "hours": 1}}},
+        {"action": "new", "routine": None, "title": "Post di chimica", "why": "",
+         "change": {"goal": "Scegli una notizia di chimica e pubblicala con facebook publish_post", "title": "Chimica",
+                    "plugins": ["facebook"], "schedule": {"every": "custom", "times": ["10:00", "16:00"], "group": "all"}}},
+        {"action": "new", "routine": None, "title": "Post di geologia", "why": "",
+         "change": {"goal": "Scegli una notizia di geologia e pubblicala con facebook publish_post", "title": "Geologia",
+                    "plugins": ["facebook"], "schedule": {"every": "custom", "times": ["13:00"], "group": "all"}}},
+    ])
+    llm = SimpleNamespace(complete=lambda *a, **k: SimpleNamespace(answer=reply))
+    out = A.review(llm, rs, [{"name": "facebook", "tools": ["publish_post"]}], pub=PUB)
+    assert [a["title"] for a in out] == ["Meteo ogni ora", "Post di geologia"]
+    assert "once a day" in A.SYS_REVIEW
+
+
+def test_a_proposal_kept_from_before_that_publishes_often_is_never_shown_nor_applied(cfg, monkeypatch):
+    monkeypatch.setattr(A, "publishing", lambda c: PUB)
+    r = sys_routines.create(cfg, {"kind": "agent", "goal": POST_GOAL, "title": "Post del mattino",
+                                  "plugins": ["facebook"], "schedule": {"every": "custom", "times": ["08:30"], "group": "all"}})
+    A.remember(cfg, [{"action": "change", "routine": r["id"], "title": "Ogni 2 ore", "why": "",
+                      "change": {"schedule": {"every": "hours", "hours": 2}}}])
+    assert A.current(cfg, {"facebook"})["items"] == []
+    key = A._key({"action": "change", "routine": r["id"], "change": {"schedule": {"every": "hours", "hours": 2}}})
+    with pytest.raises(KeyError):
+        A.apply(cfg, key, {"facebook"})
+    assert sys_routines.get(cfg, r["id"])["schedule"]["times"] == ["08:30"]

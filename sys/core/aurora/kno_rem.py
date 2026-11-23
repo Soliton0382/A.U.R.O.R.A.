@@ -232,7 +232,8 @@ class Rem:
         out = report(self.p, PluginHost(self.cfg), self.cfg)
         if "text" not in out:
             return out
-        sol = self._write(out["text"], "social_report", f"social:{int(time.time())}", {"platforms": sorted(out["stats"])}, emit)
+        sol = self._write(out["text"], "social_report", f"social:{int(time.time())}",
+                          {"platforms": sorted(out["stats"]), "stats_sig": out.get("stats_sig")}, emit)   # C730
         return {"sid": sol.sid, "platforms": sorted(out["stats"])}
 
     def _fragments(self) -> list[Soliton]:

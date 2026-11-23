@@ -243,6 +243,21 @@ class Approvals:
             items = self._load()
         return [a for a in reversed(items) if a["status"] != "reserved" and (status is None or a["status"] == status)]
 
+    def claim(self, approval_id: str, **fields) -> dict | None:
+        """The owner's decision on a pending request, in one step under the lock: the item updated, or None when it
+        was no longer pending (C736: two taps at once — the phone and the WebUI — ran the action twice)."""
+        with self._locked():
+            items = self._load()
+            item = next((a for a in items if a["id"] == approval_id), None)
+            if item is None or item["status"] != "pending":
+                return None
+            item.update(fields)
+            self._save(items)
+        self.log.info("audit: approval %s -> %s", approval_id, fields.get("status", item["status"]))
+        sys_log.trace("approvals", "approval.update", {"id": approval_id, **{k: v for k, v in fields.items()
+                                                                          if k in ("status", "decided")}})
+        return item
+
     def update(self, approval_id: str, **fields) -> dict:
         with self._locked():
             items = self._load()

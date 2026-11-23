@@ -12,7 +12,8 @@ own tool. The services the owner ticks — each needs its key, except the checks
     urlhaus     abuse.ch URLhaus: a listed malware URL or host → malicious
     abuseipdb   AbuseIPDB, for a raw IP or the host's address (the netintel key): confidence ≥ 75 malicious, ≥ 25 suspicious
 Blocked: any «malicious»; with AURORA_LINKCHECK_STRICT also a «suspicious» one. A service that fails or has no key
-says «not checked», never «clean». Verdicts are kept a day (<STATUS>/linkcheck.json): quotas are small (VirusTotal's
+says «not checked», never «clean». Only the link's site («scheme://host[:port]/») is sent and kept — a token in the
+path or the query never leaves (C734); the link's own form is checked whole, here. Verdicts are kept a day (<STATUS>/linkcheck.json): quotas are small (VirusTotal's
 free one: 4 a minute, 500 a day)."""
 from __future__ import annotations
 
@@ -60,16 +61,33 @@ def enabled(cfg) -> bool:
         return True
 
 
+def site(url: str) -> str:
+    """The link's site, «scheme://host[:port]/»: all that leaves the machine and all that is kept (C734: a token or a
+    private query in the path never reaches a reputation service, nor the cache)."""
+    u = urlsplit(url)
+    host = (u.hostname or "").lower()
+    if ":" in host:
+        host = f"[{host}]"
+    return f"{u.scheme.lower() or 'https'}://{host}{f':{u.port}' if u.port else ''}/"
+
+
+def _key(k: str) -> str:
+    """A link is kept by its site; another key (sec_filecheck's «file:<sha256>») as it is."""
+    return site(k) if k.lower().startswith(("http://", "https://")) else k
+
+
 def _cache_file(cfg) -> Path:
     return cfg.path("AURORA_STATUS_DIR") / "linkcheck.json"
 
 
 def _cached(cfg, url: str) -> dict | None:
     try:
-        d = json.loads(_cache_file(cfg).read_text(encoding="utf-8")).get(url)
+        d = json.loads(_cache_file(cfg).read_text(encoding="utf-8")).get(_key(url))
     except (OSError, ValueError):
         return None
-    return d if d and time.time() - d.get("at", 0) < KEEP_S else None
+    link = _key(url) != url or url.lower().startswith(("http://", "https://"))
+    ok = d and (not link or "levels" in d) and time.time() - d.get("at", 0) < KEEP_S   # C734: a link's old verdict: asked again
+    return d if ok else None
 
 
 def _keep(cfg, url: str, verdict: dict) -> None:
@@ -78,7 +96,7 @@ def _keep(cfg, url: str, verdict: dict) -> None:
     try:
         _write(cfg, url, verdict)
     except OSError as e:
-        sys_log.get_logger("security").debug("link verdict not kept (%s): %s", type(e).__name__, url[:100])
+        sys_log.get_logger("security").debug("link verdict not kept (%s): %s", type(e).__name__, site(url))
 
 
 def _write(cfg, url: str, verdict: dict) -> None:
@@ -89,8 +107,8 @@ def _write(cfg, url: str, verdict: dict) -> None:
         except (OSError, ValueError):
             d = {}
         now = time.time()
-        d = {k: v for k, v in d.items() if now - v.get("at", 0) < KEEP_S}
-        d[url] = verdict
+        d = {k: v for k, v in d.items() if now - v.get("at", 0) < KEEP_S and k == _key(k)}   # C734: whole links dropped
+        d[_key(url)] = verdict
         f.parent.mkdir(parents=True, exist_ok=True)
         tmp = f.with_suffix(".tmp")
         tmp.write_text(json.dumps(d, ensure_ascii=False), encoding="utf-8")
@@ -183,11 +201,38 @@ def check(url: str, cfg: sys_config.Config | None = None, client: httpx.Client |
                 "reasons": [_t(f"l'honeypot di Aurora: questo sito ha tentato una prompt injection ({caught['why'][:200]})", f"Aurora's honeypot: this site tried a prompt injection ({caught['why'][:200]})")]}
     if not enabled(cfg):
         return {"url": url, "blocked": False, "level": "unknown", "reasons": [_t("controllo dei link spento", "link check off")], "checked": []}
+    own_level, own_why = form(url)                    # the whole link, here only: credentials in it, a look-alike host
     hit = _cached(cfg, url)
     if hit:
-        return {**hit, "cached": True}
-    level, reasons = form(url)
-    checked, levels = ["form"], [level]
+        return _with_form(hit, url, own_level, own_why, cfg) | {"cached": True}
+    out = _services(cfg, site(url), client)
+    _keep(cfg, url, out)
+    out = _with_form(out, url, own_level, own_why, cfg)
+    sys_log.trace("security", "linkcheck", {k: out[k] for k in ("url", "blocked", "level", "checked")})
+    return out
+
+
+def _blocked(cfg, levels: list[str]) -> bool:
+    if not levels:
+        return False
+    strict = _on(cfg, "AURORA_LINKCHECK_STRICT", False)
+    worst = max(levels, key=lambda x: RANK[x])
+    return worst == "malicious" or (strict and worst == "suspicious") or levels.count("suspicious") >= 2
+
+
+def _with_form(v: dict, url: str, level: str, why: list[str], cfg) -> dict:
+    """The site's verdict with the whole link's own form added (never sent, never kept)."""
+    levels = [level] + list(v.get("levels", []))
+    worst = max(levels, key=lambda x: RANK[x])
+    if worst == "clean" and not v.get("checked"):         # C733: no service answered — the form alone says «unknown»
+        worst = "unknown"
+    return {**v, "url": url, "level": worst, "levels": levels, "reasons": why + list(v.get("reasons", [])),
+            "checked": ["form"] + list(v.get("checked", [])), "blocked": _blocked(cfg, levels)}
+
+
+def _services(cfg, url: str, client: httpx.Client | None) -> dict:
+    """The services' verdict on a site (C734: they see «scheme://host/» only); the form is the caller's."""
+    checked, levels, reasons = [], [], []
     own = client is None
     c = client or httpx.Client(timeout=8, headers={"User-Agent": "Aurora/1.0 (link reputation)"})
     try:
@@ -205,13 +250,8 @@ def check(url: str, cfg: sys_config.Config | None = None, client: httpx.Client |
     finally:
         if own:
             c.close()
-    worst = max(levels, key=lambda x: RANK[x])
-    strict = _on(cfg, "AURORA_LINKCHECK_STRICT", False)
-    blocked = worst == "malicious" or (strict and worst == "suspicious") or levels.count("suspicious") >= 2
-    out = {"url": url, "blocked": blocked, "level": worst, "reasons": reasons, "checked": checked, "at": time.time()}
-    _keep(cfg, url, out)
-    sys_log.trace("security", "linkcheck", {k: out[k] for k in ("url", "blocked", "level", "checked")})
-    return out
+    worst = max(levels, key=lambda x: RANK[x]) if levels else "unknown"
+    return {"url": url, "level": worst, "levels": levels, "reasons": reasons, "checked": checked, "at": time.time()}
 
 
 def refusal(v: dict) -> str:

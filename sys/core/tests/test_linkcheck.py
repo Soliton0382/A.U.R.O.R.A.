@@ -31,7 +31,7 @@ def test_a_service_down_is_not_checked_and_never_clean(on, monkeypatch):
     monkeypatch.setitem(L.CHECKS, "virustotal", down)
     monkeypatch.setitem(L.CHECKS, "urlhaus", lambda c, cfg, u: ("unknown", "URLhaus: nessuna chiave (abuse.ch, gratuita)"))
     v = L.check("https://fine.example/", on)
-    assert not v["blocked"] and v["checked"] == ["form"] and any("non risponde" in r for r in v["reasons"])
+    assert not v["blocked"] and v["checked"] == ["form"] and v["level"] == "unknown" and any("non risponde" in r for r in v["reasons"])
 
 
 def test_the_link_itself_hidden_credentials_and_two_suspicions(on, monkeypatch):
@@ -62,3 +62,31 @@ def test_a_read_only_status_folder_never_stops_the_check(on, monkeypatch):
         raise OSError(30, "Read-only file system")
     monkeypatch.setattr(L, "_write", read_only)
     assert L.check("https://ro.example/x", on)["blocked"]
+
+
+def test_only_the_site_leaves_and_is_kept(on, monkeypatch):
+    """C734: a token in a link's path or query never reaches a service, nor the cache."""
+    seen = []
+    def spy(c, cfg, u):
+        seen.append(u)
+        return ("clean", "ok")
+    monkeypatch.setitem(L.CHECKS, "virustotal", spy)
+    monkeypatch.setitem(L.CHECKS, "urlhaus", spy)
+    v = L.check("https://share.example:8443/reset?token=Zebra-Secret-91#x", on)
+    assert seen == ["https://share.example:8443/"] * 2 and v["level"] == "clean" and not v["blocked"]
+    assert "Zebra" in v["url"]                                                  # the caller still sees its own link
+    kept = (on.path("AURORA_STATUS_DIR") / "linkcheck.json").read_text(encoding="utf-8")
+    assert "Zebra" not in kept and "share.example:8443/" in kept
+    v2 = L.check("https://share.example:8443/other?token=Other-Secret", on)
+    assert v2["cached"] and len(seen) == 2                                     # the same site: asked once
+
+
+def test_the_whole_link_form_counts_once(on, monkeypatch):
+    """C734: the form is checked on the whole link only, so a look-alike host is one suspicion, not two."""
+    monkeypatch.setitem(L.CHECKS, "virustotal", lambda c, cfg, u: ("clean", "ok"))
+    monkeypatch.setitem(L.CHECKS, "urlhaus", lambda c, cfg, u: ("clean", "ok"))
+    v = L.check("https://xn--pple-43d.com/a", on)
+    assert v["level"] == "suspicious" and not v["blocked"] and v["levels"].count("suspicious") == 1
+    w = L.check("https://bank.it@good.example/", on)                            # credentials: seen though never sent
+    assert w["level"] == "suspicious" and L.site("https://bank.it@good.example/") == "https://good.example/"
+

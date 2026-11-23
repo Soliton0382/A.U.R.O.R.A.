@@ -204,6 +204,19 @@ def owner_decides(loop, effect: str) -> bool:
 
 CONTACT = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+|\+?\d[\d .-]{7,}\d")
 LINK = re.compile(r"https?://\S+|\bwww\.\S+", re.I)
+# C729: a link written without http:// or www (sciencedaily.com/releases/…) is a link too — it was read as no link, and
+# the article's number in it as a phone. A host with a path: «nasa.gov» alone stays text
+BARE_LINK = re.compile(r"(?<![\w@./-])(?:[a-z0-9-]+\.)+[a-z]{2,24}/[^\s]*", re.I)
+# C729: a paper's identifier is not a phone. arXiv: «arXiv:2611.00199», or a new-style one alone (YYMM.NNNNN, the
+# year from 2015 — an Italian number starts with 0 or 3, so 0612.34567 or 3471.23456 never reads as one); a DOI
+ARXIV = re.compile(r"\barxiv\s*:?\s*(?:\d{4}\.\d{4,5}|[a-z-]+(?:\.[a-z]{2})?/\d{7})(?:v\d+)?"
+                   r"|(?<![\d.+])(?:1[5-9]|[2-9]\d)(?:0[1-9]|1[0-2])\.\d{5}(?:v\d+)?(?![\d.])", re.I)
+DOI = re.compile(r"\b(?:doi\s*:?\s*)?10\.\d{4,9}/[^\s]+", re.I)
+
+
+def _plain(link: str) -> str:
+    """A link without its scheme, «www.» and last slash: how a link written bare is matched to a page opened."""
+    return re.sub(r"^(?:https?://)?(?:www\.)?", "", link.strip(), flags=re.I).rstrip("/").lower()
 
 
 def post_checked(loop, cfg, action: str, text: str, model) -> str:
@@ -222,7 +235,15 @@ def post_checked(loop, cfg, action: str, text: str, model) -> str:
         bare = link.rstrip(").,;!?»\"'")
         if bare not in goal and bare.rstrip("/") not in sources:
             return f"a link that is neither in your words nor a page the run opened: {bare[:100]}"
-    for c in CONTACT.findall(text):
+    opened = {_plain(x) for x in sources}
+    for link in BARE_LINK.findall(LINK.sub(" ", text)):                # C729: the same rule without the scheme
+        bare = link.rstrip(").,;!?»\"'")
+        if bare not in goal and _plain(bare) not in opened:
+            return f"a link that is neither in your words nor a page the run opened: {bare[:100]}"
+    # C729: every link is now known (the owner's or a page the run opened): the numbers inside one are its own, and a
+    # paper's identifier is no phone — what is left is the text, where a phone or an e-mail still waits
+    rest = DOI.sub(" ", ARXIV.sub(" ", BARE_LINK.sub(" ", LINK.sub(" ", text))))
+    for c in CONTACT.findall(rest):
         if c not in goal:
             return f"a contact you did not write: {c[:60]}"
     v = sec_detonate.guard(cfg, model, f"post:{action}", text, mode="whole")
