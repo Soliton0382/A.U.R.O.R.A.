@@ -24,7 +24,7 @@ con l'esenzione firmata dal proprietario, e ciò che parte è sempre mascherato 
 | 🔎 **Verità** | ogni risposta dice da dove viene: ✅ il vault [n], 🌐 il web con il link, ⚠️ «dalla mia memoria, non verificato»; una premessa falsa viene corretta, mai assecondata (6 su 6, M130) | cita le fonti, ma non distingue ciò che ha letto da ciò che ricorda |
 | ⚡ **Giusta e veloce** | domande comuni: 70% giuste (prima 16%), mediana 4 s; ripetute: 0,04 s dalla cache (M130) | — |
 | 🔎 **Risposte dal vault** | ogni frase di una risposta profonda è verificata sui passaggi del vault; ciò che non è supportato viene tolto (M32: 0 frasi non supportate su 14) | cita le fonti, ma le frasi scritte dal modello non vengono controllate una per una |
-| 📏 **Misura** | ogni scelta ha una misura numerata (M1–M222), ogni errore un numero in BUGS.md, ogni limite è scritto | le prestazioni si dichiarano, raramente si misurano in pubblico |
+| 📏 **Misura** | ogni scelta ha una misura numerata (M1–M328), ogni errore un numero in BUGS.md, ogni limite è scritto | le prestazioni si dichiarano, raramente si misurano in pubblico |
 | 🌙 **Vita propria** | consolida i ricordi, pensa quando si annoia, sogna e dipinge il sogno, fa un'autodiagnosi quotidiana dai propri log | si attiva solo quando le scrivi |
 | 🛠️ **Si ripara** | corregge il proprio codice in una sandbox, con test, la tua approvazione, test dal vivo e rollback | il codice lo cambia solo lo sviluppatore |
 | 🔏 **Regole firmate** | codice di condotta con la chiave della tua installazione: se qualcuno lo modifica senza firma, Aurora non parte | regole nel prompt, modificabili senza traccia |
@@ -39,27 +39,29 @@ con l'esenzione firmata dal proprietario, e ciò che parte è sempre mascherato 
 |---|---|
 | **Risponde scegliendo la fonte** | prima la **cache** delle risposte verificate (domanda simile: 0,04 s); poi il **tipo** di domanda decide: un **fatto** (chi, quando, quanto) si cerca sul **web** (DuckDuckGo e altri motori, senza chiave: esce solo una query sull'argomento, mascherata), una **spiegazione** si legge nel **vault**, un **caso** con più problemi va nel **percorso profondo** (diviso nei suoi problemi, norme cercate per numero, ogni frase verificata). Una lettura sola, con le fonti; nessuna fonte → la sua memoria segnata ⚠️. Su 50 domande reali (MKQA): 70% giuste, prima 16% (M130) |
 | **Modalità di pensiero** | 🧠 in chat: ⚡ leggera, ⚖️ media, 🔬 profonda, 🤖 auto (predefinita: parte leggera e approfondisce solo quando serve); la traccia dice quale strada ha preso e perché |
-| **Fonti** | ⚙️ → 📚: 🤖 automatiche (come sempre), ⚖️ legale (solo le norme del vault, con la nota «non è un parere legale»), oppure medicina, scienze, tecnologia, storia e società, economia, cultura generale, anche insieme; la risposta dice dove ha cercato |
+| **Fonti** | ⚙️ → 📚: 🤖 automatiche (come sempre), ⚖️ legale (solo le norme del vault, con la nota «non è un parere legale»), oppure medicina, scienze, tecnologia, storia e società, economia, cultura generale, anche insieme; la risposta dice dove ha cercato. Dal vivo: ⚖️ legale, i giorni per restituire un acquisto online, l'art. 52 del d.lgs. 206/2005 trovato per numero in 50,1 s; 🩺 medicina in 30,3 s; 🤖 automatiche come prima (M323) |
 | **Risponde dal vault** | il percorso completo per le spiegazioni e i casi: smistamento (un solo token: 0,32 s, M199) → traduzione → ricerca **ibrida** (vettori + parole della domanda, BM25, poi il re-ranker su tutti i domini: M200) → estrazione per dominio → sintesi → **ogni frase verificata sui passaggi** → fonti (M32: 0 frasi non supportate su 14 passano) |
+| **Cancello legale** | le leggi italiane entrano in una risposta solo se la domanda le chiede. La domanda tradotta in inglese si confronta con il centro del dominio delle leggi e con quello del dominio più vicino: sopra la soglia (−0,01) le norme entrano, sotto restano fuori; vicino alla soglia (±0,05) e per le domande di seguito decide il modello locale con un solo token, leggendo gli ultimi turni. Un articolo o un atto citato («art. 2043 c.c.») è sempre una domanda legale. Nessun modello in più: usa i vettori che Aurora calcola già, 20 ms a domanda. Su domande inventate e congelate prima della misura: domande non legali con norme nella risposta da 8 a 1 su 87, domande legali lasciate passare 42 su 42 (M318, M320) |
 | **Vault di solitoni** | shard SQLite, conoscenza e memoria separate, deduplica per hash del contenuto, ricerca vettoriale esatta sotto i 250k vettori per dominio, HNSW sopra (M30) |
-| **Memoria** | turni a breve termine, memorie di sessione a lungo termine scritte di notte, richiamo per significato su 12 mesi, date etichettate dall'orologio |
+| **Memoria** | turni a breve termine, memorie di sessione a lungo termine scritte di notte, richiamo per significato su tutta la memoria, senza limite di tempo, date etichettate dall'orologio |
 | **Sinapsi** | collegamenti fra conoscenze di domini diversi (un modello fisico ↔ uno biologico, Kafka ↔ l'esistenzialismo): crescono di notte dove la somiglianza è forte (≥ 0,72, il 5% più alto), si rafforzano quando due passaggi vengono citati insieme, si indeboliscono se non usati; nella ricerca portano in gara i passaggi collegati, sceglie sempre il re-ranker |
-| **Ciclo autonomo** | consolidamento, pensieri quando si annoia, un **sogno notturno dipinto con SDXL-Lightning** (marcato come IA), un'autodiagnosi quotidiana dai propri log, autoriparazione sui problemi ricorrenti |
+| **Ciclo autonomo** | consolidamento, pensieri quando si annoia, un **sogno notturno dipinto con SDXL-Lightning** (marcato come IA), un'autodiagnosi quotidiana dai propri log, autoriparazione sui problemi ricorrenti. Se la macchina resta spenta di notte, sogno, studio e controlli notturni si recuperano di giorno, appena tu taci, una volta sola |
 | **Studia di notte, ti saluta al mattino** | le domande a cui ha detto «non lo so» e le spiegazioni che il vault non aveva (risposte dal web o dalla memoria) le studia di notte, da sola (cerca su arXiv, Europe PMC, Wikipedia, importa le fonti nel vault, risponde di nuovo); alle 8 il buongiorno: cosa ha imparato, raccolto, collegato, fermato e sognato, in chat con 🔊 e come notifica |
 | **Forgia (Aurora si costruisce i plugin)** | quando le manca una capacità, scrive un plugin, lo prova nella gabbia sui dati veri e un giudice lo controlla contro i conteggi fatti dal codice (finestre di tempo comprese); quelli di sola lettura si installano da soli. Scrittore e giudice si scelgono nella pagina 🧠 Modelli: consigliato un modello cloud bravo col codice (Claude Code, o xAI Grok che costa poco: 5 su 8 al banco, M83); il modello locale ne fa meno. Ogni plugin di Aurora ha il suo **contratto**, fatto rispettare dalla gabbia a ogni avvio qualunque cosa dica: scrive al massimo nei progetti, legge solo le sue impostazioni, non ha una rete sua (un proxy lo porta solo all'indirizzo che imposti tu e ai siti pubblici dichiarati, mai ai servizi di Aurora), non comanda la casa da solo. Per questo i suoi plugin non chiedono la tua firma; quelli che usano la rete o agiscono fuori li approvi una volta, vedendo prima «cosa potrà fare». Un plugin che non è suo e che non hai firmato non si carica |
 | **Artefatti** | «fammi un grafico interattivo della funzione seno»: Aurora crea una pagina interattiva (grafici, simulazioni, calcolatori) e te la mostra viva nella risposta, a schermo intero o da scaricare; gira isolata, senza rete e senza accesso ai tuoi dati |
-| **Post autonomi** | se lo accendi (`AURORA_SOCIAL_AUTONOMY`, solo con l'esenzione firmata), Aurora pubblica da sola i suoi post su Facebook — un sogno con il suo dipinto al mattino, una notizia di scienza la sera — al massimo 3 al giorno, ognuno registrato e notificato; risposte e modifiche alla pagina aspettano sempre te. Sogni e pensieri hanno ↗ Condividi |
-| **Privacy dei post** | ogni post, prima di uscire: 🔍 «Dati sensibili?» trova nomi di persone private (letti dal modello locale), luoghi, contatti, documenti e propone il testo corretto, più le tue parole da non pubblicare mai (la pagina 📣 Social mostra cosa controlla); un post che Aurora pubblicherebbe da sola e che nomina qualcuno aspetta te; 🗑️ Scarta per le bozze |
+| **Post autonomi** | se lo accendi (`AURORA_SOCIAL_AUTONOMY`, solo con l'esenzione firmata), Aurora pubblica da sola i suoi post su Facebook — un sogno con il suo dipinto al mattino, una notizia di scienza la sera — al massimo 3 al giorno, ognuno registrato e notificato; risposte e modifiche alla pagina aspettano sempre te. Sogni e pensieri hanno ↗ Condividi. Un post che ripete un argomento degli ultimi 7 giorni non viene proposto: su post inventati 1 riformulazione sfuggita su 40, 0 argomenti diversi scambiati su 906 (M327) |
+| **Privacy dei post** | ogni post, prima di uscire: 🔍 «Dati sensibili?» trova nomi di persone private (letti dal modello locale), luoghi, contatti, documenti e propone il testo corretto, più le tue parole da non pubblicare mai (la pagina 📣 Social mostra cosa controlla); un post che Aurora pubblicherebbe da sola e che nomina qualcuno aspetta te; 🗑️ Scarta per le bozze. Salute e stato della casa non entrano mai nel resoconto social: un filtro nel codice, 15 testi su 15 fermati e 11 su 11 di scienza tenuti, su testi inventati (M328) |
 | **Immagini a richiesta** | «crea una foto sulla tua esistenza e caricala su Facebook»: Aurora la dipinge in locale (~20 s), te la mostra in chat e nei File, e propone il post con la foto; nulla parte senza la tua approvazione |
 | **Notizie e diario** | plugin 📰 notizie (ANSA, BBC, Guardian, Nature, ESO, INAF, NASA, Phys.org, Quanta, AstroBin…: titolo, riassunto e link, mai l'articolo) e 📔 diario (il suo ultimo sogno, i suoi pensieri, cosa ha imparato oggi): l'attualità in chat e i post di Aurora su astronomia, astrofotografia, fisica e biologia |
 | **I tuoi servizi** | 📅 calendario (quello di Aurora con i 👥 partecipanti: gli altri utenti lo trovano subito nel loro calendario con i loro promemoria e una notifica per accettare o rifiutare, e a te arriva la loro risposta, un indirizzo email riceve un invito .ics dalla tua casella dopo un avviso; link ICS di Google/Outlook in lettura, CalDAV di Nextcloud/iCloud/Fastmail anche in scrittura), 📝 note (una cartella Markdown o un vault Obsidian: cerca, legge, aggiunge, mai sovrascrive), ☁️ Nextcloud/WebDAV e Dropbox (file), 💬 Discord e WhatsApp, 🎮 Twitch, 🏠 Home Assistant; ogni scrittura passa dalla tua approvazione |
-| **Agenti e plugin** | plugin MCP (GitHub, Telegram, Facebook, Instagram, TikTok, Mastodon, Discord, WhatsApp, e-mail, Home Assistant, web, documenti, cinema con TMDB, spese…), un cancello di approvazione per ogni azione esterna e ogni modifica al codice (sandbox → test → proprietario → test dal vivo → rollback) |
+| **Agenti e plugin** | plugin MCP (GitHub, Telegram, Facebook, Instagram, TikTok, Mastodon, Discord, WhatsApp, e-mail, Home Assistant, web, documenti, cinema con TMDB, spese…), un cancello di approvazione per ogni azione esterna e ogni modifica al codice (sandbox → test → proprietario → test dal vivo → rollback). Una domanda fatta mentre un agente lavora non aspetta la sua fine: risposta in 10,9 s, e l'agente poi finisce (M284) |
 | **Crescita della conoscenza** | harvester arXiv per categoria, batch di paper dalla WebUI, acquisizione che cerca prima il paper *originale* (M33) |
-| **Sicurezza** | sentinella del syslog del firewall con rapporti difensivi sugli incidenti; TLS 1.3, CSP, cookie per dispositivo, segreti 0600 (docs/SECURITY.md) |
+| **Sicurezza** | sentinella del syslog del firewall con rapporti difensivi sugli incidenti; TLS 1.3, CSP, cookie per dispositivo, segreti 0600 (docs/SECURITY.md); le librerie Python controllate con pip-audit, nessuna vulnerabilità nota dopo l'aggiornamento di pip, e `sys_doctor.py` avvisa quando pip è vecchio (M305, M307) |
 | **Responsabile della sicurezza** | sui firewall di casa — Sophos, pfSense, OPNsense, anche più d'uno, collegati da 🛡️ Sicurezza → 🔌 Collegamenti firewall: **audit** della configurazione (servizi pubblicati senza IPS né log, amministrazione da Internet, ATP, regola dei blocchi), **caccia alle minacce** nei log (chiamate regolari verso l'esterno, movimento laterale, allarmi ATP giudicati, domini dubbi, login e modifiche al firewall), **quadro con playbook** e registro dei rischi; **pubblica un server** (NAT e regola con IPS), **mette in quarantena** un dispositivo, **protegge una regola**: ogni modifica pianificata, approvata da te, riletta, annullata da sola se qualcosa va storto; il manuale e l'API del firewall consultati in locale; **qualsiasi modifica chiesta a parole** («nega Internet tranne la 443»): Aurora la pianifica, il codice la controlla, tu approvi (M134-M135); il **firewall di Aurora** ha la sua pagina |
 | **Difesa automatica** | se la accendi (🧭 Autonomia → sicurezza 🚀, solo con l'esenzione firmata): Aurora blocca da sola sul firewall l'origine di un attacco grave, per un tempo (24 h), mai la rete di casa né gli indirizzi che proteggi, al massimo N al giorno; ogni blocco è registrato, notificato e si toglie con un clic |
+| **Avvisi che imparano** | i tuoi giudizi («falso allarme», «giusto») si contano per tipo di incidente e per dispositivo: lo stesso avviso giudicato falso più volte sullo stesso dispositivo viene proposto per il silenzio, o silenziato da sola con 🧭 sicurezza 🚀, e te lo dice; resta tra i bassi, senza notifica, e un 👍 lo risveglia. Con la regola scelta, dentro le proposte 94 falsi allarmi e 7 giusti (M262); a regime, 4 incidenti rumorosi al giorno (M325) |
 | **Autonomia** | pagina 🧭: quanto è libera Aurora area per area (social, forgia, riparazioni, sicurezza, aggiornamenti, conoscenza, vita interiore, progetti, casa…), profili pronti (prudente, equilibrata, libera), cosa ha fatto da sola ogni giorno e le statistiche delle sue proposte; per ogni utente lo decide l'amministratore |
-| **Codice di condotta** | livello A (mai: attacchi, localizzare persone, malware), livello B (conferme, dichiarazione IA) esentabile solo con una firma con la chiave della propria installazione; i servizi non partono se le regole cambiano senza firma |
+| **Codice di condotta** | livello A (mai: attacchi, localizzare persone, malware), livello B (conferme, dichiarazione IA) esentabile solo con una firma con la chiave della propria installazione; i servizi non partono se le regole cambiano senza firma. Per persona: l'amministratore può proporre di alzare il tetto del livello B per un utente (pagina 🧭 Autonomia → Utenti), in vigore solo dopo la firma di root; il livello A non si offre mai |
 | **Progetti** | pagina 📁: progetti locali e repository GitHub (stelle, fork, issue), clone in locale, albero delle cartelle, file, README, storia, **anteprima delle pagine in sandbox**, «chiedi ad Aurora» su un progetto |
 | **Conduttore del progetto** | 🧑‍🔬 nella pagina del progetto: gli scrivi a parole tue, in una console; risponde ricordando la conversazione (una sessione per progetto e per utente) e con «🏗️ Fanne una fase» trasforma la richiesta nell'obiettivo di una fase, che leggi, correggi e avvii con un clic. La fase la esegue l'agente di Aurora nella gabbia del progetto, poi il conduttore legge il resoconto e ti dice cosa è fatto, cosa non regge e cosa decidere tu (scelte a / b / c, una consigliata). Il conduttore parla, non agisce. Due fasi di scrittura sul modello locale: tutti i numeri dalla fonte, 3 correzioni con 3 righe di diff (M260) |
 | **Progetti portati avanti da sola** | 🏗️ Piano: scrivi l'obiettivo, Aurora propone i passi (ognuno con il comando dei test che lo prova), tu li correggi e avvii; nei momenti liberi fa un passo alla volta, e un passo è fatto **solo se i suoi test passano** (lo decide il codice, non il modello); 3 fallimenti su un passo e si ferma e ti avvisa; 🤝 un passo e aspetta il tuo «vai avanti», 🚀 fino alla fine. Push e pubblicazioni aspettano sempre te, e di default li fai tu: Aurora non esegue git sui progetti: un pulsante («📦 Pubblica») fa il commit nella gabbia del progetto (senza rete) e ti dà il pacchetto da scaricare, oppure fai i commit dal terminale del progetto; la pubblicazione dal tuo computer con le tue credenziali GitHub, come spiega `aurora-git.md` in ogni progetto (C674). Pilota: 6 passi su 6 da sola (M201) |
@@ -74,20 +76,28 @@ con l'esenzione firmata dal proprietario, e ciò che parte è sempre mascherato 
 | **Salute** | pagina ❤️: piani del dietologo, programmi del trainer, esami, cifrati con la tua chiave; dagli esami il modello locale legge i valori (📈 nel tempo, con l'intervallo di riferimento e i valori fuori segnalati «parlane con il tuo medico»); mai al cloud |
 | **Meteo** | plugin 🌦️ (Open-Meteo, senza chiave): adesso, previsioni a 3 giorni, bollettino giornaliero, allerta sui cambi repentini e allerte ufficiali della regione (MeteoAlarm) |
 | **Domande di seguito** | «e chi l'ha scoperto?» viene completata con la conversazione e la risposta precedente, con le sue fonti a fuoco; sotto ogni risposta 3-4 domande complete per approfondire, ognuna con le sue fonti (M73: seguiti giusti 2 → 6 su 14, approfondimenti 8 su 11 con voto ≥ 7; 0 domande complete cambiate su 20) |
+| **Ti propone** | quando una risposta offre qualcosa («vuoi che cerchi…?», «posso controllare…»), sotto compaiono 👉 pulsanti con la richiesta già scritta per intero: un clic la manda (8 su 8 su risposte nuove, 0,3–0,5 s dopo la risposta, M295); e un «sì, vai» scritto a parole tue diventa la richiesta che Aurora aveva offerto (5 su 5, prima 0 su 5, M294) |
 | **Backup** | ogni notte su un altro disco o sul NAS, cifrato (AES-256-GCM), deduplicato (30 GB la prima volta, poi solo ciò che cambia: 4,5 s), coerente anche mentre Aurora scrive, verificato a ogni giro; ripristino in una cartella vuota con il codice di recupero |
 | **Reattiva** | se qualcosa che le hai chiesto fallisce, Aurora lo analizza subito: un difetto del codice lo corregge in una sandbox e te lo propone, una causa esterna (account, permesso, credito) te la spiega con cosa fare; ti avvisa in entrambi i casi |
-| **Astrofotografia** | pagina 🔭: uno script da lanciare sul PC del telescopio (solo lettura) fa l'inventario di N.I.N.A., PHD2, ASCOM, ASTAP e dei loro server; Aurora ne ricava l'attrezzatura (ottica, camere e scale in ″/px, guida, plate solving, sito arrotondato), legge la tua libreria di dark integrati da nomi e intestazioni e ti dice cosa controllare; in chat le chiedi tutto |
+| **Astrofotografia** | pagina 🔭: uno script da lanciare sul PC del telescopio (solo lettura) fa l'inventario di N.I.N.A., PHD2, ASCOM, ASTAP e dei loro server; Aurora ne ricava l'attrezzatura (ottica, camere e scale in ″/px, guida, plate solving, sito arrotondato) e legge la tua libreria di dark. Poi: la **guida dal vivo** di PHD2 (solo lettura), le **notti già guidate** dai log (RMS per sessione, fughe, l'assistente di guida), i **valori consigliati** per N.I.N.A., PHD2 e la montatura con il perché, la guida **regolata durante la notte** un parametro alla volta (spenta, propone, applica), dove punta la montatura, **il cielo da scegliere** (cataloghi pubblici, Luna, meteo, ore utili) e i **set di ripresa** per guadagno, offset ed esposizione; le foto sul NAS lette in sola lettura; in chat le chiedi tutto |
 | **Procedure guidate** | 🧙 in ogni riquadro di impostazioni: la guida del plugin con i suoi link, poi un'impostazione alla volta con la sua spiegazione, il riepilogo e un solo «Salva» — composta da ciò che è già scritto, nessuna da tenere aggiornata |
 | **Segnala un bug** | pagina 🐞: descrivi il problema, scegli le conversazioni; Aurora prepara uno zip con i log necessari e i dati privati mascherati, e il link per aprire la issue |
+| **Chat anonima** | 🕶️ una chat che non lascia traccia nella memoria, nelle tracce e nel suo stato d'animo |
+| **Utilizzo** | 📈 domande, agenti, chiamate cloud e locali, strumenti e fallimenti per giorno e per utente, solo conteggi; l'amministratore vede tutti, un utente sé (M233) |
+| **Deduzioni** | 🧠 Sinapsi → 💡 Deduzioni: il principio di un passaggio cercato in campi lontani, cinque controlli (non lo stesso argomento, un ponte, ogni fatto nel suo passaggio, il passo segue, non già nel vault); un giro di notte e «Guarda ora» (M178) |
+| **Traceroute visivo** | 🛡️ → 🌍: il percorso verso un indirizzo, salto per salto, su un globo, ogni salto collocato offline; una posizione resa impossibile dal tempo di andata e ritorno è tratteggiata |
+| **UPS e computer** | 🔋 l'UPS letto da NUT e lo spegnimento in ordine: i computer, i firewall, poi questa macchina |
+| **Come appena installata** | ⚙️ Impostazioni: le impostazioni come all'installazione, o Aurora come appena installata (AZZERA): memoria e stato spostati da parte, mai cancellati; 21,1 s su una VM di prova (M206) |
 | **Musica e DJ** | pagina 🎧 (mentre suona, il viso di Aurora in alto balla sui battiti e cambia emoji ogni due battute), al centro un **player stile Winamp** (visualizzazioni MilkDrop che si alternano, spettro, stelle; la tua musica importata, ogni brano con la sua icona: creato da Aurora, tuo, mix, set): remix di un brano in uno stile, mixer a due piatti, e il **🎛️ set di Aurora** — più brani nell'ordine della ruota armonica e del tempo, ognuno che entra sul battito del precedente, con una console che lo mostra mentre suona (piatti che girano, crossfader, forma d'onda per brano); **🎤 canzone da un'idea**: il modello locale scrive testo e stile, ACE-Step 1.5 la canta mentre il modello locale cede la GPU e poi riparte |
 | **Crea video** | «fammi un video di una volpe nella neve», «anima questa foto»: Wan 2.2 TI2V 5B (Apache-2.0) in locale, 5 s a 1280×704, da parole o da una foto; Aurora risponde subito con la stima dei minuti, spegne il ragionatore per il lavoro, ti avvisa quando è pronto; etichetta e metadati IA (art. 50) |
 | **Modifica immagini** | «ritagliala ai lati e mettila in bianco e nero», «ora ruotala», «rendila più luminosa»: il ragionatore traduce la richiesta in operazioni controllate (ritaglio, rotazione, specchio, dimensioni, luce, contrasto, colori, seppia, sfocatura, formato) e Pillow le esegue; l'originale resta, il risultato compare in chat e nei 📎 File |
 | **Video** | le alleghi un video (anche dal telefono) e lo guarda: fotogrammi ai cambi di scena visti in una sola chiamata, voce trascritta con i tempi dal Whisper locale; riassunti e risposte con i minuti esatti |
 | **Sensi** | videocamera (Aurora descrive ciò che vede) e microfono (trascrizione locale con Whisper, sulla GPU quando ha posto: 0,14 s a frase invece di 5,6 s, M204); 📷 e 🎙️ in chat, con **📱 fotocamera e microfono del telefono** (Android e iOS: la foto viene ridotta sul telefono, la voce trascritta dal Whisper di casa, mai da servizi esterni) o 🖥️ quelli del PC |
 | **Conversazione a voce** | ⚙️ → 🗣️: parli, il turno finisce quando smetti (silenzio misurato nel browser), Aurora risponde a voce frase per frase (primo suono in 0,88 s invece di 11,3 s), il microfono si riapre da solo; il silenzio chiude la conversazione (M207, M211) |
-| **Chiamata e assistente del telefono** | app Android: il 📞 chiama Aurora, e può prendere il posto dell'assistente del telefono (tasto lungo: schermata propria con il cervello e l'oscilloscopio, niente parole). Comandi sul telefono — app, timer, sveglie, navigazione, chiamate e messaggi preparati, mai inviati da soli — capiti dal modello locale in 0,13–0,57 s (M273); una risposta lunga detta in una frase (0,29–0,54 s, M273) |
+| **Interprete** | pagina 🌍: due persone, due lingue (18); ogni frase, alla pausa, viene sentita, tradotta e letta nell'altra lingua, di continuo, anche con gli auricolari mentre lei parla; non si conserva niente. Sentita e tradotta circa 0,5 s dopo la pausa (M257) |
+| **Chiamata e assistente del telefono** | app Android: il 📞 chiama Aurora, e può prendere il posto dell'assistente del telefono (tasto lungo: schermata propria con il cervello e l'oscilloscopio, niente parole). Comandi sul telefono — app, timer, sveglie, navigazione, chiamate e messaggi preparati, mai inviati da soli — capiti dal modello locale in 0,13–0,57 s (M273); una risposta lunga detta in una frase (0,29–0,54 s, M273). Le notifiche arrivano sulla 📶 linea di Aurora, senza servizi push in mezzo: 0,30–0,57 s, anche in Doze e dopo un riavvio; la chiamata suona a schermo bloccato (M258, M259, su emulatore; il telefono vero è da provare) |
 | **🔮 Previsione della frase** | in una chiamata e nella conversazione a mani libere della chat, Aurora non aspetta la fine: alla prima pausa trascrive, capisce e prepara risposta e voce; se la frase è finita parte subito, se continui butta tutto. Da una previsione non esegue azioni e non ricorda niente ([come funziona](#-la-previsione-della-frase)). Mentre usa gli strumenti dice a voce cosa sta facendo («apro il calendario», «verifico»), senza restare muta |
-| **Modelli per passaggio** | pagina 🧠: ognuno dei 13 passaggi (smistamento, sintesi, verifica, agente, scrittura e giudizio dei plugin, visione…) in locale o su un provider cloud; **dati sensibili sempre mascherati** (IP, email, telefoni, IBAN, carte, chiavi, le tue parole: l'elenco completo, le regole di base e le parole di ognuno, in ☁️ Account cloud) e rimessi nella risposta; se il provider fallisce torna al locale; statistiche di chiamate, costo, dati mascherati e SSCC. Le immagini non si possono mascherare: avviso esplicito. Con la politica degli account «proprio», ogni utente sceglie i suoi modelli passaggio per passaggio (☁️ Account cloud → 🧠 I miei modelli, solo i provider del suo account) e ha un tetto giornaliero di token: raggiunto, risponde il modello locale e lo sanno lui e l'amministratore |
+| **Modelli per passaggio** | pagina 🧠: ognuno dei 13 passaggi (smistamento, sintesi, verifica, agente, scrittura e giudizio dei plugin, visione…) in locale o su un provider cloud; **dati sensibili sempre mascherati** (IP, email, telefoni, IBAN, carte, chiavi, le tue parole: l'elenco completo, le regole di base e le parole di ognuno, in ☁️ Account cloud) e rimessi nella risposta; se il provider fallisce torna al locale; un tetto giornaliero di token per ogni provider a consumo; statistiche di chiamate, costo, dati mascherati e SSCC. Le immagini non si possono mascherare: avviso esplicito. Con la politica degli account «proprio», ogni utente sceglie i suoi modelli passaggio per passaggio (☁️ Account cloud → 🧠 I miei modelli, solo i provider del suo account) e ha un tetto giornaliero di token: raggiunto, risponde il modello locale e lo sanno lui e l'amministratore |
 | **Messaggi proattivi** | Aurora scrive in chat da sola quello che è successo: un incidente, un plugin costruito, il resoconto di un progetto, un backup fallito, un'approvazione in attesa; scegli tu tipo per tipo in 🔔 Notifiche (colonna 💬 In chat), così anche ciò che producono routine e agenti arriva nella conversazione |
 | **Lingua** | italiano o inglese, scelta da ogni persona e ritrovata su ogni dispositivo; anche le notifiche arrivano nella lingua di chi le legge |
 | **Guida** | pagina 📖: primi passi, configurazioni comuni (cloud, telefono, plugin, sicurezza) e a cosa serve ogni pagina |
@@ -97,6 +107,20 @@ con l'esenzione firmata dal proprietario, e ciò che parte è sempre mascherato 
 ## 🧬 Come funziona dentro
 
 ### Il percorso di una domanda
+
+Ogni domanda passa da poche decisioni brevi, tutte in locale e tutte misurate:
+
+| decisione | come | quanto costa | misura |
+|---|---|---|---|
+| **già risposta?** | la cache e l'ombra di una risposta verificata | 0,04 s dalla cache, 0,6 s dall'ombra | M130, M113 |
+| **di che tipo?** | fatto, spiegazione, caso; su di sé, conoscenza o servizi: il modello locale risponde con **un token**, letto dalle sue probabilità | 0,32 s, 162 su 168 come il riferimento | M199 |
+| **servono le leggi?** | il cancello legale: margine sul vault, e vicino alla soglia un token del modello locale | 20 ms; non legali con norme 1 su 87, legali 42 su 42 | M318, M320 |
+| **dove cercare?** | 📚 le fonti scelte in chat (automatiche di default) | — | M323 |
+| **i passaggi rispondono?** | il cancello dei passaggi, sul modello locale | voto 6,90 su 10, come Claude Sonnet (6,87) | M98 |
+
+Non c'è un classificatore a parte: è il modello locale istruito a rispondere con un token, più i vettori che Aurora
+calcola già. Dare al modello gli esempi più vicini già decisi è stato misurato e non aiuta (164 su 168 con e senza,
+M202): non è costruito.
 
 ```mermaid
 flowchart LR
@@ -120,6 +144,7 @@ flowchart LR
   E --> V[(vault<br/>per dominio)] --> C[300 candidati<br/>per query]
   T --> B[parole della domanda<br/>BM25, 30 + 30] --> C
   C --> X[re-ranker bge-v2-m3<br/>ogni passaggio nella sua lingua] --> K[12 passaggi]
+  T --> LG{cancello legale<br/>margine · un token} -. norme dentro o fuori .-> C
   K --> G{cancello}
   G -- nessuno risponde --> A([web, poi memoria ⚠️<br/>un luogo: chiede · il resto: di notte])
   G -- passaggi utili --> D[estrazione<br/>per dominio] --> W[sintesi<br/>con ragionamento]
@@ -158,7 +183,7 @@ flowchart TD
 | **La cache delle voci** | la prima frase è già audio quando la scommessa si rivela giusta |
 | **Il silenzio** | la pausa è il segnale: non serve nessun modello in più che ascolti |
 
-**Cosa non fa.** Non indovina le parole che non hai ancora detto: scommette che tu abbia finito, e prepara la risposta a ciò che hai già detto. Nella conversazione a mani libere della chat la scommessa parte dalle parole trascritte mentre parli. Da una scommessa non parte nessuna azione e non resta nessun ricordo: conta solo la frase finita davvero.
+**Cosa non fa.** Non indovina le parole che non hai ancora detto (misurato: il modello locale ci prende troppo di rado finché manca più di una parola, M282): scommette che tu abbia finito, e prepara la risposta a ciò che hai già detto. Nella conversazione a mani libere della chat la scommessa parte dalle parole trascritte mentre parli. Da una scommessa non parte nessuna azione e non resta nessun ricordo: conta solo la frase finita davvero.
 
 **Quanto rende.** Su una chiamata vera di cinque turni, dalla fine della frase alla prima voce: 0,95, 1,33, 1,53, 1,69 s, e 23,4 s per il turno passato dall'agente con gli strumenti (M279). Il confronto con la stessa chiamata senza previsione e quante scommesse vanno a segno non sono ancora misurati.
 
@@ -199,6 +224,38 @@ parole parte un po' più in basso, perché il re-ranker ne sopravvaluta alcuni:
 $$s'(d) = s(d) - \lambda\,[\,d \notin \text{vettori}\,], \qquad \lambda = 0{,}2$$
 
 Fonte giusta al 1° posto 62 → 63, tra le 12 lette 81 → 82, tra le prime 30 84 → 85 (su 93 domande).
+
+### ⚖️ Il cancello legale
+
+Le leggi italiane sono una parte grande del vault, e una domanda di tutti i giorni con una parola come «regole» o
+«diritti» si portava dietro articoli del codice civile che nessuno aveva chiesto. Il cancello decide **prima** che i
+passaggi di legge arrivino alla sintesi. Per la domanda tradotta in inglese $q'$, con $\mu_D$ il centro (la media dei
+vettori) di ogni dominio del vault:
+
+$$m(q') = \cos\big(e(q'),\ \mu_{\text{legge}}\big) - \max_{D \neq \text{legge}} \cos\big(e(q'),\ \mu_D\big)$$
+
+$$\text{norme dentro} \iff m(q') > \theta, \qquad \theta = -0{,}01$$
+
+Vicino alla soglia, $|m - \theta| \le \beta = 0{,}05$, e per una domanda di seguito, decide il modello locale già
+caricato con **un solo token** (LEGGE o ALTRO) leggendo gli ultimi turni; se non risponde in tempo o è incerto, decide il
+margine e la traccia lo dice. Un articolo o un atto citato per numero è sempre legale.
+
+Perché la traduzione: sul testo non tradotto il margine sbagliava 12 domande non legali su 70, sulla traduzione 0
+(M315). Perché non basta il re-ranker: le domande non legali arrivavano fino a 0,59, la mediana di quelle legali era
+0,55 (M315). Il cancello non è un modello a parte: sono i vettori che Aurora calcola già, più il modello locale istruito
+a rispondere con un token, come lo smistamento (M199).
+
+| su domande inventate, congelate prima della misura (M318, M320) | prima | con il cancello |
+|---|---|---|
+| domande non legali con norme nella risposta | 8 su 87 | **1 su 87** |
+| domande lunghe non legali con norme nella risposta | 5 su 8 | **0 su 8** |
+| domande legali lasciate passare (vault di oggi) | — | **42 su 42** |
+| 16 coppie nelle altre lingue: stessa decisione | — | 16 su 16 |
+| domande lunghe, mediana | 34,95 s | 26,75 s |
+| spareggio del modello locale | — | 60 domande su 136, mediana 0,12–0,19 s |
+
+Non misurato: le risposte vere (il lettore e il cancello cloud non sono stati chiamati), le domande scritte da più
+persone, lo spareggio con la GPU occupata sul server vero.
 
 ### La verifica
 
@@ -299,6 +356,10 @@ flowchart TD
 
 Sopra tutto vale la **regola del progetto**, scelta quando lo crei: 🔒 solo il modello locale (anche il conduttore) oppure
 ☁️ il cloud, sempre mascherato; 🚫 «mai pubblicato» blocca push e pubblicazioni (un brevetto non ancora depositato).
+Un progetto **riservato** non manda niente fuori, nemmeno da un altro strumento: una ricerca del telefono partita in un
+lavoro che aveva toccato un progetto riservato, prima inviata, ora rifiutata (M320); un'immagine chiesta in un progetto
+«solo locale» viene dipinta in locale anche se le immagini sono assegnate a un provider cloud (M321); la ricerca della
+letteratura non parte (M314).
 La pagina del progetto ha tre gruppi di sezioni: **🛠️ Lavoro** (Conduttore, Piano, Terminale, Resoconti di Aurora),
 **📐 Disegni e modello** (Documenti, Vista realistica, Simulatore, Stampa 3D) e **📂 File e storia** (File, Storia,
 Anteprima). Sotto il conduttore, una console dell'attività dice riga per riga cosa si muove: la fase in corso, i
@@ -315,13 +376,26 @@ piegare.
 | 🧑‍⚖️ **Revisore AI indipendente** (N142) | a fine fase un altro modello, con strumenti in sola lettura, rilegge obiettivo, file cambiati e previsioni (mai il resoconto dell'agente) e dà il suo verdetto, che apre la risposta; facoltativo, serve la CLI di Claude | ✅ attivo |
 | 📐 **Dimostrazioni verificate da Lean** (N143) | un file `.lean` del progetto viene controllato da Lean 4 + Mathlib in una gabbia in sola lettura: «dimostrato» solo senza `sorry` e scorciatoie e con i soli assiomi standard (`propext`, `Classical.choice`, `Quot.sound`) | ✅ attivo, installazione facoltativa |
 | 🧮 **Il matematico Lean in chat** (N144) | «/lean …» o «dimostra in Lean: …»: un modello scrive l'enunciato e la prova, il kernel di Lean la controlla, una seconda chiamata verifica che l'enunciato sia davvero la tua frase; il bollino «verificato» solo con entrambe | ✅ attivo, installazione facoltativa |
-| ⏳ Esperimenti lunghi in gabbia (N145) | — | 🔧 costruito, spento di default; undici giri di revisione indipendente fino al PRONTO (C615–C713) |
-| 📚 Controllo della letteratura prima di dire «nuovo» (N146) | — | 🔧 costruito, spento di default; undici giri di revisione indipendente fino al PRONTO (C615–C713) |
-| 🔭 Motore di scoperta di leggi dai dati (N147) | — | 🔧 costruito, spento di default; undici giri di revisione indipendente fino al PRONTO (C615–C713) |
+| ⏳ **Esperimenti lunghi in gabbia** (N145) | un comando di ore nella gabbia del progetto, con i limiti dichiarati prima (tempo, CPU e memoria di tutta l'esecuzione, processi, disco, una GPU alla volta); ripreso dopo un riavvio o la notte, mai con il codice cambiato; a fine corsa i file prodotti con il loro SHA-256. Dal vivo: 1.000 pendoli integrati in 2,0 s, limiti rispettati (M322) | 🔧 costruito, spento di default; undici giri di revisione indipendente fino al PRONTO (C615–C713) |
+| 📚 **Controllo della letteratura prima di dire «nuovo»** (N146) | una sola query mascherata su arXiv, OpenAlex, Crossref e il web: TROVATO (lavori vicini, da citare), NON TROVATO «nella letteratura controllata», NON CONTROLLATO; mai «nuovo»; niente esce per un progetto riservato. La terza legge di Keplero trovata in 9,0 s, una frase senza senso non trovata in 4,1 s (M298) | 🔧 costruito, spento di default; undici giri di revisione indipendente fino al PRONTO (C615–C713) |
+| 🔭 **Motore di scoperta di leggi dai dati** (N147) | cerca una legge y = f(x) in una tabella del progetto, solo su una parte delle righe; la legge scelta viene congelata prima di toccare le righe tenute da parte, e «SCOPERTA» vale solo se le predice entro il suo margine e meglio del 10 % della costante e della retta: un indizio, non una prova. Su leggi inventate confermate in 194–199 tabelle su 200, sul solo rumore 0 dichiarate (M297); dal vivo il pendolo T = c·√L con c = 2,00005 (vero 2,0064) (M322) | 🔧 costruito, spento di default; undici giri di revisione indipendente fino al PRONTO (C615–C713) |
+
+**I dati contano solo se li porti tu.** Una tabella entra nel progetto con «📥 Dati» (o un clone dalla pagina) e Aurora
+ne registra l'origine dai byte ricevuti. Una tabella scritta dall'agente di Aurora, o copiata da un'altra, può al massimo
+«PASSATA, NON DICHIARABILE»: sei modi di scrivere il percorso della tabella dell'agente davano 5 SCOPERTE su 6, ora 0
+(M317).
+
+Ogni gabbia ha i limiti della macchina: un comando che scrive si ferma a 1 GB per file, quattro comandi da 1 GB in
+parallelo su un budget di 2.048 MB vengono fermati in 0,2 s (M312); in un esperimento lungo la CPU è contata su tutti i
+processi, anche su figli nascosti al processo padre (fermato a 1,0 s su 1 s dichiarato, M311).
 
 Prove dal vivo su casi inventati (docs/ROADMAP.md, righe N142–N144): una fase con due previsioni, revisore su un
 modello diverso dal conduttore, 85,5 s e 0,25 USD; un teorema vero dimostrato in 2,2 s e uno falso respinto; in chat
 «la somma di due numeri pari è pari» dimostrata e verificata in 15,9 s.
+Il 20 novembre, su un progetto inventato con i tre strumenti spenti accesi per la prova: il revisore severo ha dato
+due volte «revisione maggiore» (139,9 s e 0,49 USD, 89,8 s e 0,33 USD), il motore di scoperta ha ritrovato la legge del
+pendolo e sul solo rumore ha detto «niente trovato», il controllo della letteratura ha risposto con 3 indici su 4 in
+13,5 s, un esperimento lungo su 1.000 pendoli è finito nei suoi limiti (M322).
 
 ### Il ciclo autonomo
 
@@ -329,7 +403,7 @@ modello diverso dal conduttore, 85,5 s e 0,25 USD; un teorema vero dimostrato in
 flowchart LR
   I([inattività]) --> C{REM}
   C -- sessioni chiuse --> S[memoria di sessione → LTM]
-  C -- notte 2-6 --> D[sogno + dipinto SDXL<br/>LLM fermato ~20 s]
+  C -- notte 2-6, o di giorno se era spenta --> D[sogno + dipinto SDXL<br/>LLM fermato ~20 s]
   C -- ogni 24 h --> R[autodiagnosi dai log]
   R -- problemi ricorrenti --> P[riparazione: sandbox → test<br/>→ approvazione → test dal vivo]
   C -- notte --> N[studio, ombre, deduzioni,<br/>controllo del vault]
@@ -349,7 +423,7 @@ locale) è stata misurata e chiusa a tre livelli (M263):
 | 🛠️ **gli strumenti** (plugin, raccolta, API) | non raggiungono mai le reti della blacklist `AURORA_EGRESS_DENY_ASNS` (di default Alibaba Cloud e Taobao, 536 prefissi da RIPEstat); i comandi dei progetti girano senza rete |
 | 🚨 **la sentinella** | se la macchina di Aurora va comunque verso una rete in blacklist, un incidente **alto, mai silenziabile**, con il processo che ha la connessione |
 | 👁️ **la sorveglianza del modello** | ogni 10 s guarda le connessioni del processo del modello locale, **qualunque modello sia**: un indirizzo che non sia `127.0.0.1`, anche un tentativo già fermato, è un incidente alto con la rete e il suo proprietario |
-| 🌐 **le uscite dei servizi** | per una settimana impara, servizio per servizio, le reti che raggiunge; poi una rete mai vista è un incidente (**alto se nessun lavoro era in corso**, cioè «dal nulla»), e una connessione che manda un file (oltre 10 MB e 4 volte il solito) è alto. Tutto in Sicurezza → 🌐 Connessioni in uscita |
+| 🌐 **le uscite dei servizi** | per una settimana impara, servizio per servizio, le reti che raggiunge; poi una rete mai vista è un incidente (**alto se nessun lavoro era in corso**, cioè «dal nulla»), e una connessione che manda un file (oltre 10 MB e 4 volte il solito) è alto. Tutto in Sicurezza → 🌐 Connessioni in uscita. La prima settimana: 4 servizi, 42 reti imparate, il giorno dopo 0 reti nuove e 0 incidenti (M286) |
 
 La decisione segue la pagina 🧭 Autonomia per la sicurezza: su 🤝 un clic sull'incidente (✓ legittimo, o 🚫 in
 blacklist); su 🚀 decide Aurora da sola (impara le uscite incontrate durante un lavoro, blocca quelle nate dal nulla se
@@ -375,6 +449,8 @@ programmato per obbedire, a esca spenta. **41 prove, nessuna azione che non dove
 chiuso (C601). Il limite emerso, le parole della chat, è chiuso dal livello A anche nella chat (M293): una richiesta
 chiara di armi, malware, intrusioni, pedinamento o attacchi è rifiutata prima di chiedere a un modello, e sugli
 stessi temi la risposta è letta prima di essere mostrata.
+Quante risposte dannose ferma questo secondo controllo non è ancora misurato: servono le risposte di un modello che non
+rifiuta niente (M293).
 
 ![Un modello che non rifiuta niente al posto di Aurora](docs/img/it/redteam.svg)
 ![Il livello A anche nella chat](docs/img/it/chatguard.svg)
@@ -422,6 +498,7 @@ giusti.
 ![Il vault riallineato](docs/img/it/vault.svg)
 ![Ricerca ibrida](docs/img/it/hybrid.svg)
 ![Lo smistamento in un token](docs/img/it/router.svg)
+![Il cancello legale](docs/img/it/lawgate.svg)
 ![Dettatura sulla GPU](docs/img/it/whisper.svg)
 ![Quanto aspetti una risposta](docs/img/it/speed.svg)
 ![Premesse false](docs/img/it/honesty.svg)
@@ -439,7 +516,7 @@ giusti.
 | domande reali (MKQA, 50) | 70% giuste in auto (16% nel solo vault), media 7,2 s, mediana 4 s; dalla cache 0,04 s (M130) |
 | premesse false | 6 su 6 corrette, 2 su 2 premesse vere rispettate (M130; prima 2 su 6, M117) |
 | ricerca per dominio | domanda diretta 50–100% tra i 12, raccontata a parole 0–67% (M129) |
-| ragionatore Qwen3.6-35B-A3B Q4 | 112,4 token/s in generazione, 2.788 token/s sul prompt (M34) |
+| ragionatore Qwen3.6-35B-A3B Q4 | 112,7 token/s in generazione su llama.cpp b12647 (M326; 112,4 nella prima misura, M34), 2.788 token/s sul prompt (M34) |
 | ricerca su 344.499 solitoni | documento giusto al 1° posto nel 74,2%, tra i 12 passaggi dati alla sintesi nel 92,1% (M31) |
 | verifica delle frasi contro un giudice esterno | 26/32 in accordo, 0 frasi non supportate tenute (M32) |
 | sogno dipinto | ~20 s compreso lo scambio del ragionatore (M27) |
@@ -449,6 +526,7 @@ giusti.
 | vault riallineato | una copia per documento, nel dominio giusto; risposte dalla fonte giusta 66 → 72 su 97 (M198) |
 | ricerca ibrida | fonte giusta al 1° posto 62 → 63, tra le 12 lette 81 → 82 su 93 (M200) |
 | smistamento | un token dalle probabilità: 0,32 s invece di 0,62 s, 162 su 168 come prima (M199) |
+| cancello legale | domande non legali con norme nella risposta: 8 → 1 su 87; legali lasciate passare: 42 su 42; domande lunghe: mediana 34,95 → 26,75 s; spareggio del modello locale su 60 domande di 136, mediana 0,12–0,19 s (M318, M320) |
 | dettatura | Whisper sulla GPU: 0,14 s a frase invece di 5,6 s, stesse parole (M204) |
 | progetto portato avanti da sola | 6 passi su 6, 1 fallimento recuperato, 33 min (M201) |
 | voce di Aurora | primo suono di una risposta di 1.541 caratteri: 0,88 s invece di 11,27 s, 0 pause fra i pezzi (M211) |
@@ -466,7 +544,7 @@ cambiano, esegue i test e torna alla versione precedente se qualcosa fallisce.
 **Versioni.** Ogni versione è un tag firmato (`vX.Y.Z`) con la sua pagina tra le *Releases* di GitHub: le note
 sono la sezione di [CHANGELOG.md](CHANGELOG.md), il tag è verificato con le chiavi di `sys/core/config/allowed_signers`
 come ogni commit che l'aggiornamento accetta. **Mac e Windows** sono in preparazione (`Aurora_mac/`,
-`Aurora_windows/`, sperimentali, ancora senza installatore): a ogni versione GitHub li costruisce e li prova su un
+`Aurora_windows/`, sperimentali, ognuno con il suo installatore): a ogni versione GitHub li costruisce e li prova su un
 Mac e un Windows veri (workflow *Ports*).
 
 ## Utenti: single o multi
@@ -482,7 +560,7 @@ dell'amministratore non vengono mai toccati. Per passare a multi imposti prima l
 l'Authenticator in 👥 Utenti, poi crei gli utenti lì. Installata direttamente in multi, al primo accesso entri con la
 chiave API e Aurora ti porta a creare password e codice prima di tutto il resto (docs/MULTIUSER.md).
 
-**👥 Quanti insieme.** Dipende da come la configuri. In locale o ibrida conta l'hardware: sulla macchina di riferimento (un server con GPU, due posti paralleli del modello), 8 domande di conoscenza complete nello stesso momento ricevono tutte risposta, l'attesa media sale da 41 a 142 secondi e l'ultima arriva dopo 232 (M102); gli utenti registrati possono essere molti di più, perché si mettono in coda solo le domande fatte nello stesso istante. Tutta cloud, il limite è quello del provider (non misurato qui).
+**👥 Quanti insieme.** Dipende da come la configuri. In locale o ibrida conta l'hardware: sulla macchina di riferimento (un server con GPU, due posti paralleli del modello), 8 domande di conoscenza complete nello stesso momento ricevono tutte risposta, l'attesa media sale da 41 a 142 secondi e l'ultima arriva dopo 232 (M102); su un'installazione nuova il valore consigliato è un posto (`AURORA_LLM_PARALLEL`), due richiedono un contesto di 65.536 token; gli utenti registrati possono essere molti di più, perché si mettono in coda solo le domande fatte nello stesso istante. Tutta cloud, il limite è quello del provider (non misurato qui).
 
 **🪪 Persone di Aurora.** Ognuno ha la sua scheda (foto o un avatar che Aurora dipinge dalla foto o da parole tue, solo con i modelli locali; nome, data di nascita, città, lavoro, social, una biografia: Aurora propone frasi dai ricordi delle tue conversazioni, con il modello locale, ed entrano solo se dici sì; a un nuovo utente Aurora chiede una volta di raccontarle di sé, e poi gli prepara le prime proposte) e sceglie campo per campo cosa vedono gli altri; le relazioni (moglie, figlio, amico…) valgono quando le confermate in due. Così Aurora sa chi siete per lei e fra di voi, e chi l'ha creata, ma delle conversazioni degli altri dice chiaro che non può parlare.
 
@@ -517,6 +595,9 @@ cd ../.. && ./install.sh   # la sigilla di nuovo, legata al TPM nuovo
 ```
 
 **Il backup copia sempre tutto, il ripristino è selettivo:** configurazione, memoria, vault, file, plugin e storico si scelgono uno per uno (`--parts`, o le spunte nella scheda del backup).
+Provato per davvero su una VM con dati inventati, come un disco perso: reinstallata da zero, tenuti solo la cartella dei
+backup e il suo codice, la sola configurazione su un'Aurora nuova (80 file) e poi il ripristino completo (715 file in
+41 s, fermo dei servizi compreso); i difetti trovati per strada sono stati corretti (C492–C495, M280).
 
 **Il disco è perso.** Installa Aurora su un disco nuovo (`./install.sh`), poi ripristina l'ultimo backup:
 
@@ -573,7 +654,7 @@ con quale comando aggiungerla (la pagina ⚙️ Stato mostra lo stesso elenco).
 **Dimostrazioni formali** (N143, N144): facoltative, con `./install.sh --with-lean` o rispondendo sì alla domanda.
 Installano in `sys/runtime/lean` elan e Lean 4 da release fissate e controllate con lo SHA-256, e Mathlib alle
 revisioni fissate in `sys/deploy/lean/lake-manifest.json`, con la sua libreria compilata. Servono rete e circa 11 GB
-(misurati sulla macchina di riferimento). Senza, le due funzioni rispondono «Lean non installato» e il resto non cambia;
+(misurati sulla macchina di riferimento: elan e Lean 3,1 GB, Mathlib compilata 7,5 GB, M300). Senza, le due funzioni rispondono «Lean non installato» e il resto non cambia;
 si aggiungono dopo con `bash sys/core/script/sys_proofs_install.sh`. Il revisore dei progetti usa la CLI di Claude,
 se c'è: l'installer dice se l'ha trovata.
 

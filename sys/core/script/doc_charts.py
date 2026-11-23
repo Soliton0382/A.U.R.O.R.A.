@@ -120,6 +120,14 @@ whole = lambda v: f"{v:.0f}"                   # narrow paired bars: no room for
 N_BARE = [10, 20, 20, 10, 10, 10, 10, 10, 28, 128]                      # M214
 N_GRANULAR = [20, 20, 20, 19, 20, 20, 20, 20, 38, 197]                  # M219
 N_ABLATIONS = [197, 20, 20, 38]                                         # M222: total, ARC, HLE, edge
+# the law gate (M318): counts per bar, before C694/C696 and with the gate; order = the categories of «lawgate»
+LAWGATE_N = [87, 8, 20, 8]
+LAWGATE_BEFORE = [8, 5, 17, 8]                     # M318, column «before»
+LAWGATE_AFTER = [1, 0, 17, 8]                      # M318, column «after» (M320: 1 of 87 again on today's vault)
+
+
+def _share(ks: list[int], ns: list[int]) -> list[float]:
+    return [round(100 * k / n, 1) for k, n in zip(ks, ns)]
 
 
 def paired(series: list[tuple[str, list[float]]], ns: list[int]) -> dict:
@@ -287,6 +295,24 @@ CHARTS = {
                    cats=["a written word\n(before)", "one token, from its\nprobabilities (now)", "reasoning\nevery time"],
                    series=[("seconds", [0.62, 0.32, 7.88])], ymax=8, fmt=sec["en"],
                    note="Right: 162, 162 and 154 of 168. Reasoning is worse and slower: not adopted."),
+    },
+    "lawgate": {
+        "it": dict(title="Il cancello legale: le norme solo quando servono",
+                   subtitle="% delle domande inventate, congelate prima della misura, modello locale · M318, M320 · baffi: 95% (Wilson)",
+                   cats=["non legali con norme\nnella risposta (87)", "lunghe non legali\ncon norme (8)",
+                         "legali: norme nella\nrisposta (20)", "lunghe legali: norme\nscelte (8)"],
+                   **paired([("prima del cancello", _share(LAWGATE_BEFORE, LAWGATE_N)),
+                             ("con il cancello", _share(LAWGATE_AFTER, LAWGATE_N))], LAWGATE_N),
+                   ymax=100, fmt=whole,
+                   note="Legali lasciate passare: 42 su 42 · spareggio del modello locale: 60 su 136, 0,12–0,19 s (M320)."),
+        "en": dict(title="The law gate: statutes only when they are asked for",
+                   subtitle="% of the invented questions, frozen before measuring, local model · M318, M320 · whiskers: 95% (Wilson)",
+                   cats=["non-legal with statutes\nin the answer (87)", "long non-legal\nwith statutes (8)",
+                         "legal: statutes in\nthe answer (20)", "long legal: statutes\nchosen (8)"],
+                   **paired([("before the gate", _share(LAWGATE_BEFORE, LAWGATE_N)),
+                             ("with the gate", _share(LAWGATE_AFTER, LAWGATE_N))], LAWGATE_N),
+                   ymax=100, fmt=whole,
+                   note="Legal let in: 42 of 42 · the local model's tie-break: 60 of 136, 0.12–0.19 s (M320)."),
     },
     "whisper": {
         "it": dict(title="Dettatura: secondi per frase", subtitle="20 frasi italiane, Whisper large-v3-turbo, stesse parole · M204",

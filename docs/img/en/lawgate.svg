@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" width="720" height="380" role="img" aria-labelledby="t d">
+<title id="t">The law gate: statutes only when they are asked for</title>
+<desc id="d">% of the invented questions, frozen before measuring, local model · M318, M320 · whiskers: 95% (Wilson). before the gate: non-legal with statutes
+in the answer (87) 9, long non-legal
+with statutes (8) 62, legal: statutes in
+the answer (20) 85, long legal: statutes
+chosen (8) 100; with the gate: non-legal with statutes
+in the answer (87) 1, long non-legal
+with statutes (8) 0, legal: statutes in
+the answer (20) 85, long legal: statutes
+chosen (8) 100</desc>
+<style>
+.bg{fill:#fcfcfb}.t1{fill:#0b0b0b}.t2{fill:#52514e}.grid{stroke:#e4e3df}.axis{stroke:#bdbcb6}
+.s1{fill:#2a78d6}.s2{fill:#eb6834}.s3{fill:#1baf7a}.ref{stroke:#52514e}
+@media (prefers-color-scheme: dark){.bg{fill:#1a1a19}.t1{fill:#ffffff}.t2{fill:#c3c2b7}.grid{stroke:#383835}
+.axis{stroke:#5c5b57}.s1{fill:#3987e5}.s2{fill:#d95926}.s3{fill:#199e70}.ref{stroke:#c3c2b7}}
+text{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+</style>
+<rect class="bg" width="720" height="380" rx="8"/>
+<text class="t1" x="56" y="30" font-size="17" font-weight="600">The law gate: statutes only when they are asked for</text>
+<text class="t2" x="56" y="52" font-size="12.5">% of the invented questions, frozen before measuring, local model · M318, M320 · whiskers: 95% (Wilson)</text>
+<rect class="s1" x="56" y="68" width="12" height="12" rx="3"/><text class="t2" x="74" y="78.5" font-size="12.5">before the gate</text>
+<rect class="s2" x="191.0" y="68" width="12" height="12" rx="3"/><text class="t2" x="209.0" y="78.5" font-size="12.5">with the gate</text>
+<line class="grid" x1="56" x2="696" y1="316.0" y2="316.0" stroke-width="1"/><text class="t2" x="48" y="320.0" font-size="11" text-anchor="end">0</text>
+<line class="grid" x1="56" x2="696" y1="263.0" y2="263.0" stroke-width="1"/><text class="t2" x="48" y="267.0" font-size="11" text-anchor="end">25</text>
+<line class="grid" x1="56" x2="696" y1="210.0" y2="210.0" stroke-width="1"/><text class="t2" x="48" y="214.0" font-size="11" text-anchor="end">50</text>
+<line class="grid" x1="56" x2="696" y1="157.0" y2="157.0" stroke-width="1"/><text class="t2" x="48" y="161.0" font-size="11" text-anchor="end">75</text>
+<line class="grid" x1="56" x2="696" y1="104.0" y2="104.0" stroke-width="1"/><text class="t2" x="48" y="108.0" font-size="11" text-anchor="end">100</text>
+<path class="s1" d="M86.4,316.0 V300.5 Q86.4,296.5 90.4,296.5 H131.0 Q135.0,296.5 135.0,300.5 V316.0 Z"/>
+<line class="ref" x1="110.7" x2="110.7" y1="306.0" y2="279.7" stroke-width="1.5"/><line class="ref" x1="104.7" x2="116.7" y1="279.7" y2="279.7" stroke-width="1.5"/><line class="ref" x1="104.7" x2="116.7" y1="306.0" y2="306.0" stroke-width="1.5"/>
+<text class="t1" x="110.7" y="273.7" font-size="12" text-anchor="middle" font-weight="600">9</text>
+<path class="s2" d="M137.0,316.0 V316.0 Q137.0,313.7 139.3,313.7 H183.3 Q185.6,313.7 185.6,316.0 V316.0 Z"/>
+<line class="ref" x1="161.3" x2="161.3" y1="315.6" y2="302.9" stroke-width="1.5"/><line class="ref" x1="155.3" x2="167.3" y1="302.9" y2="302.9" stroke-width="1.5"/><line class="ref" x1="155.3" x2="167.3" y1="315.6" y2="315.6" stroke-width="1.5"/>
+<text class="t1" x="161.3" y="296.9" font-size="12" text-anchor="middle" font-weight="600">1</text>
+<text class="t2" x="136.0" y="334.0" font-size="12" text-anchor="middle">non-legal with statutes</text>
+<text class="t2" x="136.0" y="348.0" font-size="12" text-anchor="middle">in the answer (87)</text>
+<path class="s1" d="M246.4,316.0 V187.5 Q246.4,183.5 250.4,183.5 H291.0 Q295.0,183.5 295.0,187.5 V316.0 Z"/>
+<line class="ref" x1="270.7" x2="270.7" y1="251.1" y2="133.0" stroke-width="1.5"/><line class="ref" x1="264.7" x2="276.7" y1="133.0" y2="133.0" stroke-width="1.5"/><line class="ref" x1="264.7" x2="276.7" y1="251.1" y2="251.1" stroke-width="1.5"/>
+<text class="t1" x="270.7" y="127.0" font-size="12" text-anchor="middle" font-weight="600">62</text>
+<line class="ref" x1="321.3" x2="321.3" y1="316.0" y2="247.3" stroke-width="1.5"/><line class="ref" x1="315.3" x2="327.3" y1="247.3" y2="247.3" stroke-width="1.5"/><line class="ref" x1="315.3" x2="327.3" y1="316.0" y2="316.0" stroke-width="1.5"/>
+<text class="t1" x="321.3" y="241.3" font-size="12" text-anchor="middle" font-weight="600">0</text>
+<text class="t2" x="296.0" y="334.0" font-size="12" text-anchor="middle">long non-legal</text>
+<text class="t2" x="296.0" y="348.0" font-size="12" text-anchor="middle">with statutes (8)</text>
+<path class="s1" d="M406.4,316.0 V139.8 Q406.4,135.8 410.4,135.8 H451.0 Q455.0,135.8 455.0,139.8 V316.0 Z"/>
+<line class="ref" x1="430.7" x2="430.7" y1="180.3" y2="115.0" stroke-width="1.5"/><line class="ref" x1="424.7" x2="436.7" y1="115.0" y2="115.0" stroke-width="1.5"/><line class="ref" x1="424.7" x2="436.7" y1="180.3" y2="180.3" stroke-width="1.5"/>
+<text class="t1" x="430.7" y="109.0" font-size="12" text-anchor="middle" font-weight="600">85</text>
+<path class="s2" d="M457.0,316.0 V139.8 Q457.0,135.8 461.0,135.8 H501.6 Q505.6,135.8 505.6,139.8 V316.0 Z"/>
+<line class="ref" x1="481.3" x2="481.3" y1="180.3" y2="115.0" stroke-width="1.5"/><line class="ref" x1="475.3" x2="487.3" y1="115.0" y2="115.0" stroke-width="1.5"/><line class="ref" x1="475.3" x2="487.3" y1="180.3" y2="180.3" stroke-width="1.5"/>
+<text class="t1" x="481.3" y="109.0" font-size="12" text-anchor="middle" font-weight="600">85</text>
+<text class="t2" x="456.0" y="334.0" font-size="12" text-anchor="middle">legal: statutes in</text>
+<text class="t2" x="456.0" y="348.0" font-size="12" text-anchor="middle">the answer (20)</text>
+<path class="s1" d="M566.4,316.0 V108.0 Q566.4,104.0 570.4,104.0 H611.0 Q615.0,104.0 615.0,108.0 V316.0 Z"/>
+<line class="ref" x1="590.7" x2="590.7" y1="172.7" y2="104.0" stroke-width="1.5"/><line class="ref" x1="584.7" x2="596.7" y1="104.0" y2="104.0" stroke-width="1.5"/><line class="ref" x1="584.7" x2="596.7" y1="172.7" y2="172.7" stroke-width="1.5"/>
+<text class="t1" x="590.7" y="98.0" font-size="12" text-anchor="middle" font-weight="600">100</text>
+<path class="s2" d="M617.0,316.0 V108.0 Q617.0,104.0 621.0,104.0 H661.6 Q665.6,104.0 665.6,108.0 V316.0 Z"/>
+<line class="ref" x1="641.3" x2="641.3" y1="172.7" y2="104.0" stroke-width="1.5"/><line class="ref" x1="635.3" x2="647.3" y1="104.0" y2="104.0" stroke-width="1.5"/><line class="ref" x1="635.3" x2="647.3" y1="172.7" y2="172.7" stroke-width="1.5"/>
+<text class="t1" x="641.3" y="98.0" font-size="12" text-anchor="middle" font-weight="600">100</text>
+<text class="t2" x="616.0" y="334.0" font-size="12" text-anchor="middle">long legal: statutes</text>
+<text class="t2" x="616.0" y="348.0" font-size="12" text-anchor="middle">chosen (8)</text>
+<line class="axis" x1="56" x2="696" y1="316" y2="316" stroke-width="1"/>
+<text class="t2" x="56" y="368" font-size="11">Legal let in: 42 of 42 · the local model's tie-break: 60 of 136, 0.12–0.19 s (M320).</text>
+</svg>
