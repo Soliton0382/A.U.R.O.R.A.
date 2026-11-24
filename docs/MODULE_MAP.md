@@ -493,6 +493,15 @@ AT-SPI consent. `desk/__init__.py` is empty in phase 0.
 | `desk/bench/f7.py` | F7: parent, child, grandchild with an inherited socket, stranger; `SO_PEERCRED` and `SO_PEERPIDFD` (77) by pidfs inode; unreaped child vs fork and `clone3(set_tid)` | run_phase0 |
 | `desk/bench/f9.py` + `f9_apps.py` | F9: aurora-desk's test window with way A (`AT_SPI_BUS_ADDRESS` to nowhere) and a 50-node Qt tree read by libatspi; positive control without way A | run_phase0 |
 | `desk/bench/f13.py` | F13: baits (GStreamer plugin, Vulkan implicit layer, PipeWire module) in a bench home, the §4.2 environment with read-only «root» folders, `/proc/<pid>/maps`, markers; positive control | run_phase0 |
+| `desk/bench/lib_run.py` | the general library on the bench (M332): one procedure after another through AT-SPI actions (no input), the program in the procedure's locale, the task = applications that appeared after the launch plus the portal; stops the program's real process by PID (C743); checks of files and read values from the job | by hand |
+| `desk/bench/drafts/` | procedures not yet passing on the bench (Dolphin, System Settings: they need the keyboard, phase 2); not part of the library | — |
+
+### General library: `sys/core/desk/library/` and `desk/library_check.py` (N152, M332)
+
+| file | does | started by |
+|---|---|---|
+| `desk/library/<os>/<program>/<name>.json` | one procedure each: program and versions, network declared, parameters, steps with anchors (role, stable id or its end, name per language) and a class; only `.json` | read by the bench runners; aurora-desk later |
+| `desk/library_check.py` | the closed format: unknown fields invalid, fields that would widen Aurora's reach invalid (V1-h), a step's class never lower than the computed one (delete/overwrite verbs → irreversibile, send/share → esce, with a network every action → esce), the id from its folder | `tests/test_desk_library.py`; by hand |
 
 ### Windows bench: `sys/core/desk/bench_win/` (N152, M331)
 
@@ -506,6 +515,8 @@ not part of the ports.
 | `bench_win/testwin.cs` | the test window (plain, password box, magenta surface excluded or not from capture, a box that reports its text) | compiled once to `testwin.exe` |
 | `bench_win/w3b.ps1` | the second, declared measure of Edge's page (plain, then `--force-renderer-accessibility`) | scheduled task (LIMITED) |
 | `bench_win/pagina.html` | the test page (user, password, button, link, select, checkbox) | run.ps1, w3b.ps1 |
+| `bench_win/lib_run.ps1` | the general library on the VM: one procedure from a job file, UI Automation patterns, else a click at the element's centre and real keys; the role of classic Win32 controls from their window class (the managed client sees them as Pane); before every click and key the window in front and under the point must be the task's, or STOP (C744, not yet run) | scheduled task (LIMITED) |
+| `bench_win/drafts/` | the Notepad procedure, not yet passing (stopped by C744) | — |
 
 ## Android app: `sys/app/`
 

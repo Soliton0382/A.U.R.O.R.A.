@@ -1,0 +1,17 @@
+{
+  "format": 1,
+  "id": "gen:linux/kate/scrivi-e-salva",
+  "title": {"it": "Scrivi un testo in un file nuovo e salvalo", "en": "Write a text in a new file and save it"},
+  "os": "linux",
+  "program": {"name": "kate", "package": "kate", "versions": {"min": "4:25.12", "below": "4:26.08"}, "network": false,
+              "launch": {"exe": "/usr/bin/kate", "args": ["{percorso}"]}},
+  "params": {"testo": {"kind": "text", "max": 2000}, "percorso": {"kind": "path", "must_not_exist": true}},
+  "steps": [
+    {"n": 1, "do": "type", "target": {"role": "text", "id_end": "KTextEditor::ViewPrivate.KateViewInternal"}, "text": "{testo}", "class": "scrive in locale",
+     "expect": {"present": {"role": "frame", "name_re": {"it": "\\* — Kate$", "en": "\\* — Kate$"}}}},
+    {"n": 2, "do": "open_menu", "target": {"role": "menu item", "id_end": ".QMenuBar.file"}, "class": "legge"},
+    {"n": 3, "do": "press", "target": {"role": "menu item", "id_end": ".file_save", "offscreen_ok": true}, "class": "scrive in locale",
+     "expect": {"gone": {"role": "frame", "name_re": {"it": "\\* — Kate$", "en": "\\* — Kate$"}}}}
+  ],
+  "notes": {"it": "«Salva come» con il dialogo di KDE vuole la tastiera: il campo Nome non è modificabile via AT-SPI (fase 2).", "en": "Save As through the KDE dialog needs the keyboard: its Name field is not editable through AT-SPI (phase 2)."}
+}

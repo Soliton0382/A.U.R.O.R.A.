@@ -1,0 +1,20 @@
+{
+  "format": 1,
+  "id": "gen:linux/kcalc/calcola",
+  "title": {"it": "Calcola un'espressione e leggi il risultato", "en": "Compute an expression and read the result"},
+  "os": "linux",
+  "program": {"name": "kcalc", "package": "kcalc", "versions": {"min": "4:25.12", "below": "4:26.08"}, "network": false,
+              "launch": {"exe": "/usr/bin/kcalc", "args": []}},
+  "params": {"espressione": {"kind": "text", "max": 60, "chars": "0123456789+-*/()."}},
+  "steps": [
+    {"n": 1, "do": "press", "target": {"role": "button", "id_end": ".rightPad.pbAllClear"}, "class": "scrive in locale"},
+    {"n": 2, "do": "press_each", "target": {"role": "button"}, "text": "{espressione}", "class": "scrive in locale",
+     "keys_map": {"0": ".numericPad.pb0", "1": ".numericPad.pb1", "2": ".numericPad.pb2", "3": ".numericPad.pb3",
+                  "4": ".numericPad.pb4", "5": ".numericPad.pb5", "6": ".numericPad.pb6", "7": ".numericPad.pb7",
+                  "8": ".numericPad.pb8", "9": ".numericPad.pb9", "+": ".numericPad.pbPlus", "-": ".numericPad.pbMinus",
+                  "*": ".numericPad.pbMultiplication", "/": ".numericPad.pbDivision", ".": ".numericPad.pbPeriod",
+                  "(": ".rightPad.pbParenOpen", ")": ".rightPad.pbParenClose"}},
+    {"n": 3, "do": "press", "target": {"role": "button", "id_end": ".numericPad.pbEqual"}, "class": "scrive in locale"},
+    {"n": 4, "do": "read", "target": {"role": "text", "id_end": ".calc_display_frame.input_display"}, "into": "risultato", "class": "legge"}
+  ]
+}

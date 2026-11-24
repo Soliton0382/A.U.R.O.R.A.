@@ -1,0 +1,18 @@
+{
+  "format": 1,
+  "id": "gen:windows/notepad/scrivi-e-salva",
+  "title": {"it": "Scrivi un testo in un documento nuovo e salvalo con un nome", "en": "Write a text in a new document and save it under a name"},
+  "os": "windows",
+  "program": {"name": "notepad", "exe": "notepad.exe", "versions": {"min": "11.2607", "below": "12"}, "network": false,
+              "launch": {"exe": "notepad.exe", "args": []}},
+  "params": {"testo": {"kind": "text", "max": 2000}, "percorso": {"kind": "path"}},
+  "steps": [
+    {"n": 1, "do": "type", "target": {"role": "Document", "name": {"it": "Editor di testo", "en": "Text editor"}}, "text": "{testo}", "class": "scrive in locale"},
+    {"n": 2, "do": "open_menu", "target": {"role": "MenuItem", "id": "File"}, "class": "legge"},
+    {"n": 3, "do": "press", "target": {"role": "MenuItem", "name": {"it": "Salva con nome", "en": "Save as"}}, "class": "scrive in locale",
+     "expect": {"present": {"role": "Edit", "id": "1001"}}},
+    {"n": 4, "do": "type", "target": {"role": "Edit", "id": "1001"}, "text": "{percorso}", "class": "scrive in locale"},
+    {"n": 5, "do": "press", "target": {"role": "Button", "id": "1"}, "class": "scrive in locale",
+     "expect": {"gone": {"role": "Edit", "id": "1001"}}}
+  ]
+}

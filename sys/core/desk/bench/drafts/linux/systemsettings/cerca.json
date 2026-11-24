@@ -1,0 +1,13 @@
+{
+  "format": 1,
+  "id": "gen:linux/systemsettings/cerca",
+  "title": {"it": "Cerca un'impostazione e leggi le pagine trovate", "en": "Search for a setting and read the pages found"},
+  "os": "linux",
+  "program": {"name": "systemsettings", "package": "systemsettings", "versions": {"min": "4:6.6", "below": "4:6.8"}, "network": false,
+              "launch": {"exe": "/usr/bin/systemsettings", "args": []}},
+  "params": {"parola": {"kind": "text", "max": 60}},
+  "steps": [
+    {"n": 1, "do": "type", "target": {"role": "text", "name": {"it": "Cerca", "en": "Search"}}, "text": "{parola}", "class": "scrive in locale"},
+    {"n": 2, "do": "read_list", "target": {"role": "list item"}, "into": "pagine", "class": "legge", "timeout_s": 5}
+  ]
+}

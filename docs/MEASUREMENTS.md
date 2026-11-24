@@ -5729,3 +5729,19 @@ reach (UI Automation finds nothing, WM_SETTEXT access denied, text unchanged; th
 another medium process's memory read by the same user; 100/100 injected keys flagged by the low-level hook. One run
 did not reach Edge's page (Edge opened at login, before any UI Automation client; the page was read in the next two
 runs); why is not measured. Not measured: the mouse's injected flag, Chrome, a second user on the same machine.
+
+## M332 — N152 general library, first procedures on the Linux bench (25 November 2026)
+
+The virtual KWin of sys/core/desk/bench, programs in it_IT.UTF-8, a bench home and invented data; the runner
+sys/core/desk/bench/lib_run.py acts through AT-SPI actions only (no input). Against the frozen predictions (docs/local,
+sha256 checked after): first run, Kate 1/10 and KCalc 10/10 — the Kate prediction was wrong because of the runner
+(BUGS C743), not of the anchors; second, declared run after the fix: kate/scrivi-e-salva 10/10 files with identical
+content (accents, two lines, symbols; 1.26–1.33 s each), kcalc/calcola 10/10 results (1.4–2.6 s), read as predicted
+in Italian: «3,5», «-8» with an ASCII hyphen, «1000» without a thousands separator; 0 anchors not found. Found on the
+way: Qt 6 gives every widget a stable id (its object path, the same in every language) and KDE menu entries carry the
+action's name (file_save, file_save_as): anchors that do not depend on the language; QML ids carry type counters that
+changed between two starts (QMLTYPE_130 and 132), so in QML only role and name. A text set through AT-SPI in KCalc's
+display is not computed (12+30 read back as typed): the procedure presses the keypad's buttons, and only a check of
+the result showed it. Not reachable without the keyboard (phase 2): the Name field of KDE's file dialog and QML search
+fields are not editable through AT-SPI; Dolphin's menu is hidden. Not measured: Windows (the VM was shut down for an
+update), the same procedures on the owner's own desktop.

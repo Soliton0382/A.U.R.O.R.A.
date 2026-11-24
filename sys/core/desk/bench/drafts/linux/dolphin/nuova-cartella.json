@@ -1,0 +1,16 @@
+{
+  "format": 1,
+  "id": "gen:linux/dolphin/nuova-cartella",
+  "title": {"it": "Crea una cartella nuova dentro una cartella", "en": "Create a new folder inside a folder"},
+  "os": "linux",
+  "program": {"name": "dolphin", "package": "dolphin", "versions": {"min": "4:25.12", "below": "4:26.08"}, "network": false,
+              "launch": {"exe": "/usr/bin/dolphin", "args": ["--new-window", "{cartella}"]}},
+  "params": {"cartella": {"kind": "path"}, "nome": {"kind": "name", "max": 120}},
+  "steps": [
+    {"n": 1, "do": "press", "target": {"role": "menu item", "id_end": ".create_dir", "offscreen_ok": true}, "keys": "F10", "class": "scrive in locale",
+     "expect": {"present": {"role": "dialog"}}},
+    {"n": 2, "do": "type", "target": {"role": "text", "in_dialog": true}, "text": "{nome}", "class": "scrive in locale"},
+    {"n": 3, "do": "press", "target": {"role": "button", "name": {"it": "OK", "en": "OK"}}, "class": "scrive in locale",
+     "expect": {"present": {"role": "list item", "name": {"it": "{nome}", "en": "{nome}"}}}}
+  ]
+}
