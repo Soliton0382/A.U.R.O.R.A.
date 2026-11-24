@@ -97,3 +97,20 @@ def test_a_file_name_as_anchor_is_flagged():
 def test_qml_ids_are_not_anchors():
     assert draft.id_end("QApplication.MainWindow#1.PageRow_QMLTYPE_8_QML_144.Foo") == ""
     assert draft.id_end("QApplication.MainWindow#1.KCalculator.pbEqual") == ".KCalculator.pbEqual"
+
+
+DOLPHIN = {"name": "dolphin", "package": "dolphin", "exe": "/usr/bin/dolphin", "version": "4:25.12",
+           "args": ["--new-window", "/x/lavoro"]}
+
+
+def test_dolphin_menu_button_submenu_dialog_and_enter():
+    ev = json.loads((Path(__file__).parent / "data" / "desk_demo_dolphin.json").read_text(encoding="utf-8"))
+    d = draft.build(ev, DOLPHIN, network=False)
+    st = [(s["do"], s.get("target", {}).get("name", {}).get("it") or s.get("target", {}).get("id_end", "")
+           or s.get("keys")) for s in d["procedure"]["steps"]]
+    assert st[0] == ("open_menu", "Apri menu")               # the menu button touched right before the popup
+    assert st[1][0] == "open_menu" and st[1][1].endswith(".new_menu")
+    assert st[2] == ("press", "Cartella...")
+    assert st[3][0] == "type" and d["examples"] == {"p1": "Ricette"}     # not the dialog's own «Nuova cartella»
+    assert st[4] == ("key", "Enter") and any("dialogo chiuso" in f for f in d["flags"])
+    assert d["procedure"]["program"]["launch"]["args"] == ["--new-window", "{f1}"]

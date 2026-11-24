@@ -5802,3 +5802,21 @@ program, and keeping what was typed, not the result; 30/30 drafts valid as perso
 (before the predictions): the recorder must choose the program by name (a portal backend started meanwhile), and an
 effect right after a menu belongs to that menu (Kate adds a line end when saving). Not measured: the pointer, programs
 with dialogs, non-ASCII text, the owner's own desktop, the other version-1 tests (D2–D4, D7–D10).
+
+## M337 — N152 desktop app version 1: what the first real-desktop try and Dolphin showed (25 November 2026)
+
+Observations, not measures against frozen predictions (said so). The recorder on the owner's real desktop, while
+the Zenodo upload of a paper was driven in Chrome through a browser extension (not by real input), with accessibility
+on before Chrome started: 7 and then 32 events kept, all of the browser's frame (title, activation): nothing of the
+web page reached it — in the browser Aurora can learn only through its own extension (design phase 4). Dolphin on the
+bench with real keys (F10, the menu, «Cartella...», a name, Enter): the folder was made and the recorder saw the whole
+chain; the draft writer learned the menu button opened just before a popup, submenus, a dialog's own pre-filled text
+(not the owner's) and Enter from a dialog closing after typing; the draft could not be run again on the bench because
+Dolphin's menu button offers no AT-SPI action (a pointer is needed: phase 2). Found: Qt's GetRole/GetRoleName and
+libatspi name the same button differently («push button menu», «button menu», «button»): the recorder now uses role
+numbers with libatspi's names, the bench matches buttons as one family. System Settings' QML search field sends no
+text events. The app's window (desk/app/aurora_desk.py) builds; its store is tested; the window list found 5 windows on
+the real desktop (3 terminals, a file manager, the browser). Said aloud: the phase-0 test «nothing imports the bench» stopped the app, which starts the bench runner as a
+process for «Prova sul banco»; the test now still refuses any import of the bench and of its consent clickers, and
+allows only that one launch (the runner re-executes behind the bench's guard, never on the real bus or display). Not
+measured: the app end to end on the real desktop.

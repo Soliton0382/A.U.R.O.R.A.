@@ -16,6 +16,7 @@ EFFECT_S = 1.0          # an effect within this time after a menu closes makes t
 RUN_GAP_S = 0.35        # a whole-field replacement after this pause is the program's, not the owner's typing
 LONG_TEXT = 200         # bozza 8 §4: longer values become «ask each time», never an example
 NOISY = re.compile(r"(QMLTYPE_|_QML_\d)")
+GENERIC = re.compile(r"\.Q[A-Z]\w*$")                 # an id ending in a bare Qt class name
 
 
 def id_end(full: str) -> str:
@@ -38,6 +39,10 @@ def target(ev: dict, loc: str) -> tuple:
     flags = []
     if e:
         t["id_end"] = e
+        if GENERIC.search(e) and ev.get("name"):        # .QAction, .QToolButton…: not unique without the name
+            t["name"] = {loc: ev["name"]}
+            if private_looking(ev["name"]):
+                flags.append(f"ancora per nome che sembra un dato tuo: «{ev['name'][:40]}» (generalizza o togli)")
     elif ev.get("name"):
         t["name"] = {loc: ev["name"]}
         if private_looking(ev["name"]):
@@ -74,6 +79,10 @@ def build(events: list, program: dict, loc: str = "it", network: bool = True, la
     pending_menu = None
     replaced_fields = []
     quiet = {}                                           # path -> time until which edits are the program's
+    focused = set()                                      # paths that had the focus during the recording
+    chain = []                                           # menu items focused in popups, in order
+    opener = None                                        # the menu button touched right before a popup
+    last_button = None
     explained_until = -1.0                               # an effect already explained by a menu just emitted
 
     def close_run():
@@ -100,6 +109,8 @@ def build(events: list, program: dict, loc: str = "it", network: bool = True, la
                 quiet[ev["path"]] = ev["t"] + RUN_GAP_S
                 pending_menu = None
                 continue
+            if ev.get("top_role") == "dialog" and ev["path"] not in focused:
+                continue                                 # a dialog's own text, written before it has the focus
             if run is not None and ev["path"] == run.path:
                 whole = detail.startswith("delete") and ev.get("n", 0) >= len(run.value) > 0
                 if whole and ev["t"] - run.t1 > RUN_GAP_S:
@@ -117,14 +128,50 @@ def build(events: list, program: dict, loc: str = "it", network: bool = True, la
         if kind == "Focus:Focus" and ev["role"] == "menu item":
             close_run()
             if re.search(r"\.QMenuBar\.[^.]+$", ev.get("id") or ""):
-                menu_top, last_item = ev, None
+                menu_top, last_item, chain = ev, None, []
             else:
                 last_item = ev
+                chain.append(ev)
+            continue
+        if kind == "Focus:Focus":
+            focused.add(ev["path"])
+            continue
+        if ev["role"] in ("button menu", "push button menu") and kind == "Object:PropertyChange":
+            last_button = ev
+            continue
+        if kind == "Object:StateChanged" and detail == "showing" and ev["role"] == "popup menu" and ev.get("value") == 1:
+            if menu_top is None and not chain and last_button is not None and ev["t"] - last_button["t"] < 0.2:
+                opener = last_button
+            continue
+        if kind in ("Object:StateChanged", "Window:Activate") and ev["role"] == "dialog" and \
+                (kind == "Window:Activate" or (detail == "showing" and ev.get("value") == 1)):
+            if pending_menu:                             # a dialog appeared: the menu's effect
+                close_run()
+                _emit_menu(pending_menu, steps, loc, flags, cls_write)
+                explained_until = ev["t"] + EFFECT_S
+                pending_menu = None
+            continue
+        if ev["role"] == "dialog" and ((kind == "Object:StateChanged" and detail == "showing" and ev.get("value") == 0)
+                                       or kind == "Window:Deactivate"):
+            if run is not None and run.ev.get("top") == ev.get("top"):
+                close_run()                              # the dialog closed right after typing in it: Enter
+                steps.append({"do": "key", "keys": "Enter", "class": cls_write, "_t": ev["t"],
+                              "_flag": "tasto non visto: Invio dedotto dal dialogo chiuso dopo che hai scritto"})
             continue
         if kind == "Object:StateChanged" and detail == "showing" and ev["role"] == "popup menu" and ev.get("value") == 0:
-            if menu_top is not None and last_item is not None:
-                pending_menu = {"top": menu_top, "item": last_item, "closed": ev["t"]}
-            menu_top = last_item = None
+            if last_item is not None and (menu_top is not None or opener is not None or chain):
+                lid = last_item.get("id") or ""
+                seen, anc = set(), []
+                for c in chain[:-1]:
+                    cid = c.get("id") or ""
+                    if cid and lid.startswith(cid + ".") and cid not in seen:
+                        seen.add(cid)
+                        anc.append(c)
+                pending_menu = {"top": menu_top, "opener": opener, "ancestors": anc, "item": last_item,
+                                "closed": ev["t"]}
+            if last_item is not None or menu_top is not None:
+                menu_top = last_item = opener = None
+                chain = []
             continue
         if kind == "Object:PropertyChange" and detail == "accessible-name" and ev["role"] == "frame":
             before, after = ev.get("name") or "", ev.get("value") or ""
@@ -171,11 +218,23 @@ def build(events: list, program: dict, loc: str = "it", network: bool = True, la
 
 
 def _emit_menu(pm: dict, steps: list, loc: str, flags: list, cls_write: str) -> None:
-    top, f1 = target(pm["top"], loc)
     item, f2 = target(pm["item"], loc)
-    item["offscreen_ok"] = True
-    flags.extend(f1 + f2)
-    steps.append({"do": "open_menu", "target": top, "class": "legge", "_t": pm["closed"]})
+    if pm.get("top") is not None:                        # a menu of the menu bar
+        top, f1 = target(pm["top"], loc)
+        flags.extend(f1)
+        steps.append({"do": "open_menu", "target": top, "class": "legge", "_t": pm["closed"]})
+        item["offscreen_ok"] = True
+    elif pm.get("opener") is not None:                   # a menu button (Dolphin's «Apri menu», opened by F10)
+        op, f1 = target(pm["opener"], loc)
+        flags.extend(f1)
+        steps.append({"do": "open_menu", "target": op, "class": "legge", "_t": pm["closed"]})
+    else:
+        flags.append("menu aperto da un tasto non visto: aprilo tu nell'anteprima")
+    for a in pm.get("ancestors", []):
+        at, fa = target(a, loc)
+        flags.extend(fa)
+        steps.append({"do": "open_menu", "target": at, "class": "legge", "_t": pm["closed"]})
+    flags.extend(f2)
     steps.append({"do": "press", "target": item, "class": cls_write, "_t": pm["closed"]})
 
 

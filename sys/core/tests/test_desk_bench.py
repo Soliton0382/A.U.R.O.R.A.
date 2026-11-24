@@ -60,15 +60,26 @@ def test_guard_wants_a_private_runtime_dir(tmp_path):
 
 
 def test_nothing_imports_the_bench():
-    """The bench (and its consent clicker) is never imported by aurora-desk's code nor by Aurora (§13.1)."""
+    """The bench (and its consent clickers) is never imported by aurora-desk's code nor by Aurora (§13.1).
+    One exception, by design (bozza 7 §1, «Prova sul banco»): the app may START desk/bench/lib_run.py as a process
+    of its own, which re-executes inside the bench's dbus-run-session behind guard.check_env (never the real bus or
+    display), so the bench's consent clicker can never see the owner's portal. Changed on 25 Nov and recorded in
+    MEASUREMENTS M337: the launch is allowed, an import is not."""
     offenders = []
     for top in (CORE / "aurora", CORE / "script", DESK):
         for p in top.rglob("*.py"):
             if "bench" in p.relative_to(CORE).parts:
                 continue
             text = p.read_text(encoding="utf-8", errors="replace")
-            if "desk.bench" in text or "desk/bench" in text or "consent.py" in text:
-                offenders.append(str(p.relative_to(CORE)))
+            rel = str(p.relative_to(CORE))
+            if "desk.bench" in text or "from desk import bench" in text or "consent.py" in text \
+                    or "p4_measure" in text:
+                offenders.append(rel)
+            elif "desk/bench" in text:
+                ok = rel == "desk/app/aurora_desk.py" and text.count("desk/bench") == 1 \
+                    and 'CORE / "desk/bench/lib_run.py"' in text
+                if not ok:
+                    offenders.append(rel)
     assert offenders == []
 
 

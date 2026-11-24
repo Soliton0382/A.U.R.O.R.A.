@@ -44,8 +44,17 @@ def _safe(f, d=""):
         return d
 
 
+# The same Qt button is «button» to libatspi's cached tree and «push button menu» / «button menu» to Qt's GetRole /
+# GetRoleName (seen on Dolphin's «Apri menu», 25 Nov): one family when matching. Toggle buttons stay apart.
+_BUTTONS = {"button", "push button", "push button menu", "button menu"}
+
+
+def same_role(a: str, b: str) -> bool:
+    return a == b or (a in _BUTTONS and b in _BUTTONS)
+
+
 def matches(node, t: dict, loc: str, params: dict) -> bool:
-    if _safe(node.get_role_name) != t["role"]:
+    if not same_role(_safe(node.get_role_name), t["role"]):
         return False
     if t.get("id") and ident(node) != t["id"]:
         return False
@@ -129,8 +138,8 @@ class Task:
 
 
 def _press(node, do: str) -> str:
-    got = a11y.do_action(node, ("ShowMenu",) if do == "open_menu" else ("Press", "press", "click", "Toggle", "toggle",
-                                                                         "activate", "Activate"))
+    got = a11y.do_action(node, ("ShowMenu", "Press", "press") if do == "open_menu" else
+                         ("Press", "press", "click", "Toggle", "toggle", "activate", "Activate"))
     if not got:
         ai = node.get_action_iface()
         names = [ai.get_action_name(i) for i in range(ai.get_n_actions())] if ai is not None else []
@@ -153,6 +162,8 @@ def act(node, step: dict, params: dict, rec: dict) -> None:
         from gi.repository import Atspi
         Atspi.Component.grab_focus(node)
         time.sleep(0.2)
+        KEYS["kb"].tap("Ctrl", "a")                     # overwrite what the field holds, as a person would
+        time.sleep(0.1)
         KEYS["kb"].type(sub(step["text"], params))
         rec["via"] = "keys"
     elif do == "key":

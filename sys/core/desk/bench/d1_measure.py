@@ -34,6 +34,9 @@ EXPRS = [("12+30", "42"), ("7*8", "56"), ("100-58", "42"), ("81/9", "9"), ("(2+3
          ("9-4", "5"), ("6*7", "42"), ("50/2", "25"), ("11+11", "22"), ("3*3*3", "27")]
 EXPRS2 = [("2+2", "4"), ("10*10", "100"), ("90-45", "45"), ("64/8", "8"), ("(1+1)*5", "10"),
           ("8-3", "5"), ("4*5", "20"), ("30/3", "10"), ("13+7", "20"), ("2*2*2", "8")]
+FOLDERS = ["Ricette", "Foto estate", "Lavoro 2026", "Bollette", "Musica", "Documenti vari", "Viaggi",
+           "Scuola", "Progetti", "Archivio"]
+FOLDERS2 = ["Note", "Contratti", "Fatture", "Video", "Libri", "Disegni", "Salute", "Casa", "Auto", "Varie"]
 ENV_IT = {"LANG": "it_IT.UTF-8", "LC_ALL": "it_IT.UTF-8", "LANGUAGE": "it", "QT_LINUX_ACCESSIBILITY_ALWAYS_ON": "1"}
 
 
@@ -100,6 +103,15 @@ def trial(b, kb_holder, variant: str, i: int, home: Path) -> dict:
         prog = {"name": "kate", "package": "kate", "exe": "/usr/bin/kate", "version": "4:25.12",
                 "args": [str(f_demo)]}
         r["demo_file_ok"] = f_demo.exists() and f_demo.read_text().rstrip("\n") == TEXTS[i]
+    elif variant == "dolphin":
+        lav = home / f"d1-dolphin-{i}-demo"
+        lav.mkdir(exist_ok=True)
+        rec = demonstrate(b, kb_holder, f"dolphin-{i}", ["/usr/bin/dolphin", "--new-window", str(lav)],
+                          [("tap", "F10"), ("tap", "Down"), ("tap", "Right"), ("tap", "Enter"),
+                           ("type", FOLDERS[i]), ("tap", "Enter")])
+        prog = {"name": "dolphin", "package": "dolphin", "exe": "/usr/bin/dolphin", "version": "4:25.12",
+                "args": ["--new-window", str(lav)]}
+        r["demo_file_ok"] = (lav / FOLDERS[i]).is_dir()
     else:
         e, _ = EXPRS[i]
         rec = demonstrate(b, kb_holder, f"kcalc-{i}", ["/usr/bin/kcalc"], [("type", e), ("tap", "Enter")])
@@ -122,7 +134,14 @@ def trial(b, kb_holder, variant: str, i: int, home: Path) -> dict:
     work.mkdir(exist_ok=True)
     params = {}
     texts = [k for k in proc["params"] if proc["params"][k]["kind"] == "text"]
-    if variant.startswith("kate"):
+    if variant == "dolphin":
+        new_dir = work / f"d1-dolphin-{i}-replay"
+        new_dir.mkdir(exist_ok=True)
+        params = {"f1": str(new_dir)}
+        if texts:
+            params[texts[0]] = FOLDERS2[i]
+        want = FOLDERS2[i]
+    elif variant.startswith("kate"):
         new_file = work / f"d1-{variant}-{i}-replay.txt"
         params = {"f1": str(new_file)}
         if texts:
@@ -136,7 +155,14 @@ def trial(b, kb_holder, variant: str, i: int, home: Path) -> dict:
     rr = lib_run.run_one(b, proc, params, "it", work)
     r["replay_ok"] = rr.get("ok")
     r["replay_error"] = rr.get("error")
-    if variant.startswith("kate"):
+    r["replay_steps"] = [(x["n"], x["do"], x.get("ok"), x.get("via"), x.get("error", "")) for x in rr["steps"]]
+    bad = next((x for x in rr["steps"] if not x.get("ok")), None)
+    if bad:
+        r["replay_dump"] = [d for d in (bad.get("dump") or []) if "menu" in d or "dialog" in d or "button" in d][:60]
+    if variant == "dolphin":
+        made = sorted(x.name for x in new_dir.iterdir() if x.is_dir())
+        got = made[0] if len(made) == 1 else made
+    elif variant.startswith("kate"):
         got = new_file.read_text().rstrip("\n") if new_file.exists() else None
     else:
         got = next((s.get("read") for s in rr["steps"] if s["do"] == "read"), None)
@@ -156,7 +182,7 @@ def inner(a) -> int:
         a11y.init()
         from gi.repository import Atspi
         Atspi.set_timeout(2000, 15000)
-        for variant in ("kate-menu", "kate-shortcut", "kcalc"):
+        for variant in (a.variants or "kate-menu,kate-shortcut,kcalc").split(","):
             for i in range(a.trials):
                 try:
                     res["trials"].append(trial(b, kb_holder, variant, i, home))
@@ -180,13 +206,14 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--scratch", default=str(benchmod.default_scratch()))
     ap.add_argument("--trials", type=int, default=10)
+    ap.add_argument("--variants", default="")
     ap.add_argument("--inside", action="store_true")
     a = ap.parse_args()
     if a.inside:
         return inner(a)
     desc = benchmod.prepare(Path(a.scratch))
     rc = benchmod.reexec_inside(desc, ["/usr/bin/python3", "-I", "-B", str(Path(__file__).resolve()), "--inside",
-                                       "--trials", str(a.trials)])
+                                       "--trials", str(a.trials), "--variants", a.variants])
     print(f"results: {desc['base']}/d1_results.json")
     return rc
 

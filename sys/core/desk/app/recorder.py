@@ -19,8 +19,39 @@ from gi.repository import Gio, GLib  # noqa: E402
 EVENTS = ["object:text-changed", "object:property-change:accessible-name", "object:state-changed",
           "object:children-changed", "window:", "focus:"]
 IFACES = ("Object", "Window", "Focus")
+# AtspiRole number -> name as libatspi (atspi_role_get_name) names it, generated once from the installed libatspi
+# (25 Nov): Qt's GetRoleName answers other spellings («button menu» for «push button menu», «push button» for
+# «button»), and the procedures are matched by the bench through libatspi. GetRole + this table = the same names.
+ROLE_NAMES = {
+    0: 'invalid', 1: 'accelerator label', 2: 'alert', 3: 'animation', 4: 'arrow', 5: 'calendar', 6: 'canvas',
+    7: 'check box', 8: 'check menu item', 9: 'color chooser', 10: 'column header', 11: 'combo box',
+    12: 'date editor', 13: 'desktop icon', 14: 'desktop frame', 15: 'dial', 16: 'dialog', 17: 'directory pane',
+    18: 'drawing area', 19: 'file chooser', 20: 'filler', 21: 'focus traversable', 22: 'font chooser', 23: 'frame',
+    24: 'glass pane', 25: 'html container', 26: 'icon', 27: 'image', 28: 'internal frame', 29: 'label',
+    30: 'layered pane', 31: 'list', 32: 'list item', 33: 'menu', 34: 'menu bar', 35: 'menu item',
+    36: 'option pane', 37: 'page tab', 38: 'page tab list', 39: 'panel', 40: 'password text', 41: 'popup menu',
+    42: 'progress bar', 43: 'button', 44: 'radio button', 45: 'radio menu item', 46: 'root pane', 47: 'row header',
+    48: 'scroll bar', 49: 'scroll pane', 50: 'separator', 51: 'slider', 52: 'spin button', 53: 'split pane',
+    54: 'status bar', 55: 'table', 56: 'table cell', 57: 'table column header', 58: 'table row header',
+    59: 'tearoff menu item', 60: 'terminal', 61: 'text', 62: 'toggle button', 63: 'tool bar', 64: 'tool tip',
+    65: 'tree', 66: 'tree table', 67: 'unknown', 68: 'viewport', 69: 'window', 70: 'extended', 71: 'header',
+    72: 'footer', 73: 'paragraph', 74: 'ruler', 75: 'application', 76: 'autocomplete', 77: 'editbar',
+    78: 'embedded', 79: 'entry', 80: 'chart', 81: 'caption', 82: 'document frame', 83: 'heading', 84: 'page',
+    85: 'section', 86: 'redundant object', 87: 'form', 88: 'link', 89: 'input method window', 90: 'table row',
+    91: 'tree item', 92: 'document spreadsheet', 93: 'document presentation', 94: 'document text',
+    95: 'document web', 96: 'document email', 97: 'comment', 98: 'list box', 99: 'grouping', 100: 'image map',
+    101: 'notification', 102: 'info bar', 103: 'level bar', 104: 'title bar', 105: 'block quote', 106: 'audio',
+    107: 'video', 108: 'definition', 109: 'article', 110: 'landmark', 111: 'log', 112: 'marquee', 113: 'math',
+    114: 'rating', 115: 'timer', 116: 'static', 117: 'math fraction', 118: 'math root', 119: 'subscript',
+    120: 'superscript', 121: 'description list', 122: 'description term', 123: 'description value',
+    124: 'footnote', 125: 'content deletion', 126: 'content insertion', 127: 'mark', 128: 'suggestion',
+    129: 'push button menu', 130: 'switch', 131: 'last defined'
+}
+
 ACC = "org.a11y.atspi.Accessible"
-TOP_ROLES = {"frame", "dialog", "alert", "file chooser", "window"}
+TOP_ROLES = {"frame", "dialog", "alert", "file chooser", "window", "popup menu", "menu"}
+# a top-level of the same application born during the recording counts (its dialogs, its popup menus: a Qt popup
+# opened by a key is a top-level of its own, seen in Dolphin); its other frames never do
 PASSWORD_ROLES = {"password text"}
 STATE_EDITABLE, STATE_READ_ONLY = 7, 43      # AtspiStateType (read from libatspi: 7, 43)
 MAX_EVENTS = 20000                     # bozza 8 §3: ~20 MiB at ~1 KiB per event (calculation)
@@ -60,7 +91,8 @@ class App:
             return self.cache[path]
         d = {"path": path}
         try:
-            d["role"] = self._call(path, ACC, "GetRoleName", None, "(s)")[0]
+            num = self._call(path, ACC, "GetRole", None, "(u)")[0]
+            d["role"] = ROLE_NAMES.get(num) or self._call(path, ACC, "GetRoleName", None, "(s)")[0]
             d["name"] = self._prop(path, "Name")
             try:
                 d["id"] = self._prop(path, "AccessibleId")
@@ -181,6 +213,8 @@ class Recorder:
         tp = top.get("path")
         if tp != self.frame and not (top.get("role") in TOP_ROLES - {"frame"} and tp not in self.tops_at_start):
             self.counters["other_window"] += 1
+            k = f"{top.get('role')}{'(new)' if tp not in self.tops_at_start else ''}"
+            self.counters.setdefault("other_tops", {})[k] = self.counters.get("other_tops", {}).get(k, 0) + 1
             return
         ev = {"t": round(t - self.started, 3), "kind": f"{iface}:{member}", "detail": detail, "path": path,
               "role": info.get("role"), "name": info.get("name"), "id": info.get("id"), "top": tp,
