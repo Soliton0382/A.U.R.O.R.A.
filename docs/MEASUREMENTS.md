@@ -5835,3 +5835,16 @@ still arrive: residual). The switch: after a kill, back off with dconf false 20/
 20/20; left alone when changed meanwhile 20/20; after the bus launcher restarted it came back on (it persists) and was
 then put back off 20/20. Found before the predictions: a plain Qt window is a «filler», not a «frame», under the
 application. Not measured: a web page's password field, tabs, the login-time repair (with install).
+
+## M339 — N152 desktop app version 1: installing it, and a user unit without network (25 November 2026)
+
+`aurora-root install desk` / `uninstall desk` (sys/core/script/sys_root_desk.py, root's copy now carries
+sys/core/desk/): installed and removed in a folder of their own by the test (D10), they wrote the launcher (0755), the
+login unit, the menu entry and the icon (0644) and left no file behind, a link in place left alone, the personal
+library untouched. D9 on the owner's user manager, a harmless probe (sockets created, nothing connected), against a
+frozen prediction (docs/local, sha256 checked): the first run printed nothing 5/5 — a system call forbidden by
+SystemCallFilter kills the process by default (SIGSYS), so io_uring was blocked by killing and the rest was not seen;
+the second, declared run with SystemCallErrorNumber=EPERM (now in the launcher too): IPv4 and IPv6 sockets refused
+5/5 (EAFNOSUPPORT), AF_UNIX allowed 5/5, io_uring_setup refused with EPERM 5/5 — a transient user unit applies these
+filters without privileges. Not measured: the installed app on the real desktop; network reachable through D-Bus
+(portals, KIO) stays a declared residual of version 1.

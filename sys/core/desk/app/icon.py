@@ -1,4 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 A.U.R.O.R.A. Project
+"""Aurora Desktop's icon as text inside a signed file (an .svg is outside the owner's signature, and root's copy takes
+only signed files): Aurora's A in its ring, the web app's colours, with a small screen. `aurora-root install desk`
+writes it to /usr/local/share/icons/hicolor/scalable/apps/aurora-desk.svg; the app loads it from here."""
+
+SVG = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <!-- Aurora Desktop: Aurora's icon (the A in its ring, same colours as webui/assets/icon-512.png) with a small
        screen, so it is told apart from the web app at a glance. -->
   <defs>
@@ -17,3 +23,4 @@
     <rect x="36" y="112" width="68" height="10" rx="5" fill="#818cf8"/>
   </g>
 </svg>
+"""

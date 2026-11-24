@@ -76,6 +76,11 @@ if [ -n "$UNITS" ]; then
   ok "$(t 'servizi fermati e tolti' 'services stopped and removed')"
 fi
 if [ -f /etc/polkit-1/rules.d/50-aurora.rules ]; then run sudo rm -f /etc/polkit-1/rules.d/50-aurora.rules; ok "polkit"; fi
+# N152: Aurora Desktop (launcher, login unit, menu entry, icon) before root's copy goes, accessibility put back first;
+# the owner's personal library (~/.local/state/aurora-desk) is his and stays
+if [ -e /usr/local/bin/aurora-desk ] && [ -x /usr/local/sbin/aurora-root ]; then
+  run sudo /usr/local/sbin/aurora-root uninstall desk; ok "Aurora Desktop"
+fi
 # root's own copy of the code its units ran (sys_root_sync): nothing runs it any more
 if [ -d /usr/local/lib/aurora ]; then run sudo rm -rf /usr/local/lib/aurora; ok "/usr/local/lib/aurora"; fi
 if command -v caddy >/dev/null && [ -d "$HOME/.local/share/caddy/pki" ]; then

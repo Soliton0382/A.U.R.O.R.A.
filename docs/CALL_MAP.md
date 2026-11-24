@@ -87,7 +87,8 @@ Generated from the code by `sys/core/script/doc_callmap.py` (`--check` in publis
 | `sys_ready.py` | `install.sh` |
 | `sys_relocate.sh` | by hand |
 | `sys_restore.py` | `aurora/api/backup.py`, `aurora/sys_backup_crypto.py`, `aurora/sys_ethics.py`, `script/sys_root.py` |
-| `sys_root.py` | `aurora/mdl_router.py`, `aurora/sys_ethics.py`, `aurora/sys_rootcmd.py`, `install.sh`, `script/publish.sh`, `script/shadow_seed.py`, `script/sys_ethics_sign.py`, `script/sys_install_services.py`, `script/sys_relocate.sh`, `script/sys_service_account.py` |
+| `sys_root.py` | `aurora/mdl_router.py`, `aurora/sys_ethics.py`, `aurora/sys_rootcmd.py`, `install.sh`, `script/publish.sh`, `script/shadow_seed.py`, `script/sys_ethics_sign.py`, `script/sys_install_services.py`, `script/sys_relocate.sh`, `script/sys_root_desk.py`, `script/sys_service_account.py` |
+| `sys_root_desk.py` | its own timer (--schedule), `script/sys_root.py` |
 | `sys_root_sync.py` | `aurora/sys_config.py`, `aurora/sys_ethics.py`, `script/sys_cert_perms.py`, `script/sys_ethics_sign.py`, `script/sys_install_services.py`, `script/sys_root.py` |
 | `sys_service_account.py` | `aurora/sys_config.py`, `install.sh`, `script/sys_install_services.py`, `script/sys_root.py` |
 | `sys_song_install.sh` | `aurora/aud_song.py`, `aurora/sys_features.py`, `config/settings_schema.json`, `install.sh` |

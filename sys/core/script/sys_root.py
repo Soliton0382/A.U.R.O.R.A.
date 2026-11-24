@@ -43,7 +43,8 @@ STEPS = {"systemd": "sys/deploy/systemd", "nft": "sys/deploy/nft", "tunnel": "sy
 LIB_SCRIPTS = ("sys_nas_mount.py", "sys_backup_retime.py", "sys_cert_perms.py", "sys_ethics_sign.py", "sys_root.py",
                "sys_root_sync.py", "sys_key_seal.py", "sys_restore.py", "sys_env_sync.py",
                "sys_service_account.py", "sys_nvidia.sh",      # C556: the account's and the GPU's cards, as signed
-               "shadow_seed.py")       # C738: what the owner's own account runs, never the repo's writable copy
+               "shadow_seed.py",       # C738: what the owner's own account runs, never the repo's writable copy
+               "sys_root_desk.py")     # N152: install/uninstall desk (the app runs from root's copy, C738)
 SHIM_TEXT = f'#!/bin/sh\n# aurora-root (sys/core/script/sys_root.py): root\'s copy, the system\'s Python\nexec /usr/bin/python3 -I {LIB}/sys/core/script/sys_root.py "$@"\n'
 
 
@@ -333,7 +334,9 @@ def sync_lib(snap: dict[str, bytes]) -> int:
     code = (_manifest().get("code") or {})
     pick = {rel: b for rel, b in snap.items()
             if (rel.startswith("sys/core/aurora/") and rel.endswith(".py"))
-            or rel in {f"sys/core/script/{s}" for s in LIB_SCRIPTS}}
+            or rel in {f"sys/core/script/{s}" for s in LIB_SCRIPTS}
+            or (rel.startswith("sys/core/desk/") and rel.endswith(".py"))             # N152: Aurora Desktop runs
+            or (rel.startswith("sys/core/desk/library/") and rel.endswith(".json"))}  # as the owner, from here
     wrong = [rel for rel, b in pick.items() if code.get(rel) != _sha(b)]
     if wrong:
         die("not as signed, root's copy left as it was: " + ", ".join(wrong[:10]))
@@ -474,8 +477,8 @@ def old_sudoers(yes: bool, folder: Path | None = None) -> list[str]:
 
 
 def install(step: str, extra: list[str], yes: bool) -> int:
-    if step not in STEPS:
-        die(f"install: one of {', '.join(STEPS)}")
+    if step not in STEPS and step != "desk":
+        die(f"install: one of {', '.join(STEPS)}, desk")
     snap = snapshot()
     d = drift(snap)
     if d["changed"] or d["added"] or d["removed"] or d["unsigned"]:
@@ -484,6 +487,9 @@ def install(step: str, extra: list[str], yes: bool) -> int:
         if snap is None:
             return 1
     print(f"  copia di root: {sync_lib(snap)} file")
+    if step == "desk":                                  # N152: launcher, login unit, menu entry, icon (sys_root_desk)
+        import sys_root_desk
+        return sys_root_desk.main("install", _write, yes)
     if step == "systemd":
         bad = unit_problems(snap)
         if bad:
@@ -582,6 +588,11 @@ def main(argv: list[str]) -> int:
         if len(args) < 2:
             die("install: systemd, nft or tunnel")
         return install(args[1], args[2:], yes)
+    if action == "uninstall":
+        if args[1:2] != ["desk"]:
+            die("uninstall: desk")
+        import sys_root_desk                            # root's copy: what install desk wrote, and nothing else
+        return sys_root_desk.main("uninstall", _write, yes)
     if action == "restore":                             # C538: root's copy of the restore, the system's Python, data only
         script = LIB / "sys" / "core" / "script" / "sys_restore.py"
         if not script.is_file():
@@ -600,7 +611,7 @@ def main(argv: list[str]) -> int:
         import sys_ethics_sign as S
         sys.argv = ["sys_ethics_sign.py", *args]
         return S.main()
-    die(f"unknown: {action} (status, verify, sign, install, restore, account, nvidia, exempt, private-cloud, "
+    die(f"unknown: {action} (status, verify, sign, install, uninstall, restore, account, nvidia, exempt, private-cloud, "
         "verify-key, keygen, setup)")
     return 1
 

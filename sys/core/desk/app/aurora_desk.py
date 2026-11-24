@@ -24,13 +24,13 @@ CORE = HERE.parents[1]
 sys.path.insert(0, str(CORE))
 
 from PyQt6.QtCore import Qt, QTimer  # noqa: E402
-from PyQt6.QtGui import QIcon  # noqa: E402
+from PyQt6.QtGui import QIcon, QPixmap  # noqa: E402
 from PyQt6.QtWidgets import (QApplication, QCheckBox, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout,  # noqa
                              QLabel, QLineEdit, QListWidget, QListWidgetItem, QMainWindow, QMessageBox,
                              QPushButton, QRadioButton, QTableWidget, QTableWidgetItem, QTextEdit, QVBoxLayout,
                              QWidget)
 
-from desk.app import draft, explain, store  # noqa: E402
+from desk.app import draft, explain, icon, store  # noqa: E402
 
 PY = ["/usr/bin/python3", "-I", "-B"]
 KEEP_ENV = ("WAYLAND_DISPLAY", "XDG_RUNTIME_DIR", "DBUS_SESSION_BUS_ADDRESS", "HOME", "LANG", "LANGUAGE",
@@ -336,7 +336,9 @@ def main() -> int:
     app = QApplication(sys.argv)
     app.setApplicationName("Aurora Desktop")
     app.setDesktopFileName("aurora-desk")              # Wayland app id: the launcher's .desktop and its icon
-    app.setWindowIcon(QIcon(str(HERE / "aurora-desk.svg")))
+    pm = QPixmap()
+    pm.loadFromData(icon.SVG.encode(), "SVG")
+    app.setWindowIcon(QIcon(pm))
     m = Main()
     if left not in ("nothing recorded",):
         m.say(f"All'avvio ho rimesso l'accessibilità dopo una registrazione interrotta: {left}.")
