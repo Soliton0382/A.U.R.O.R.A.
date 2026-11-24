@@ -206,6 +206,8 @@ class Main(QMainWindow):
                                           str(self.stop)], env=child_env(), stdout=subprocess.DEVNULL,
                                     stderr=subprocess.DEVNULL)
         self.t0 = time.monotonic()
+        if getattr(self, "tray", None) is not None:
+            self.tray.recording(True, w["app"])
         self.show_btn.setEnabled(False)
         self.end_btn.setEnabled(True)
         self.timer.start(1000)
@@ -222,6 +224,8 @@ class Main(QMainWindow):
 
     def finish(self) -> None:
         self.timer.stop()
+        if getattr(self, "tray", None) is not None:
+            self.tray.recording(False)
         self.end_btn.setEnabled(False)
         self.show_btn.setEnabled(True)
         if self.rec is not None:
@@ -304,6 +308,11 @@ class Main(QMainWindow):
         self.say("Prova finita; la cartella del banco è stata cancellata.")
 
     def closeEvent(self, ev) -> None:                   # noqa: N802 — Qt's name
+        tray = getattr(self, "tray", None)
+        if tray is not None and tray.available and not tray.quitting:
+            ev.ignore()                                 # to the tray: a recording, if any, goes on
+            self.hide()
+            return
         if self.rec is not None:
             self.finish()
         self.put_back()
@@ -326,23 +335,28 @@ def _ask(parent, label: str, default: str):
 
 
 def main() -> int:
+    from desk.app import tray as traymod
+    hidden = "--tray" in sys.argv[1:]                  # the login autostart: straight to the tray
+    app = QApplication([sys.argv[0]])
     lock = store.single_instance()
-    if lock is None:
-        print("Aurora Desktop è già aperta.", file=sys.stderr)
-        return 1
+    if lock is None:                                    # already running: ask it to show itself, then go
+        if not hidden:
+            traymod.ask_running_to_show()
+        return 0
     store.private_dir(store.STATE)
     left = store.a11y_restore()                         # a recording left half-way (a crash, a logout)
     atexit.register(store.a11y_restore)
-    app = QApplication(sys.argv)
     app.setApplicationName("Aurora Desktop")
     app.setDesktopFileName("aurora-desk")              # Wayland app id: the launcher's .desktop and its icon
     pm = QPixmap()
     pm.loadFromData(icon.SVG.encode(), "SVG")
     app.setWindowIcon(QIcon(pm))
     m = Main()
+    m.tray = traymod.Tray(app, m, QIcon(pm))
     if left not in ("nothing recorded",):
         m.say(f"All'avvio ho rimesso l'accessibilità dopo una registrazione interrotta: {left}.")
-    m.show()
+    if not (hidden and m.tray.available):
+        m.show()
     return app.exec()
 
 

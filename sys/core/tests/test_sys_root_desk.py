@@ -27,9 +27,9 @@ def test_install_then_uninstall_leaves_nothing(tmp_path):
     lib.parent.mkdir(parents=True)
     lib.write_text("{}")                                 # the owner's personal library: never touched
     written = D.install(_write, prefix=tmp_path, run=lambda *a, **k: None)
-    assert len(written) == 4 and all(Path(p).is_file() for p in written)
+    assert len(written) == 5 and all(Path(p).is_file() for p in written)
     modes = {k: stat.S_IMODE(os.stat(tmp_path / f).st_mode) for k, f in D.FILES.items()}
-    assert modes == {"launcher": 0o755, "unit": 0o644, "desktop": 0o644, "icon": 0o644}
+    assert modes == {"launcher": 0o755, "unit": 0o644, "desktop": 0o644, "icon": 0o644, "autostart": 0o644}
     gone = D.uninstall(prefix=tmp_path, run=lambda *a, **k: None)
     assert sorted(gone) == sorted(written)
     assert _files(tmp_path) == ["home/.local/state/aurora-desk/library/bozze/x.json"]
@@ -61,6 +61,11 @@ def test_the_launcher_runs_roots_copy_with_a_written_environment():
 def test_the_login_unit_puts_accessibility_back():
     assert "a11y_fix.py" in D.UNIT_TEXT and "Type=oneshot" in D.UNIT_TEXT and "WantedBy=default.target" in D.UNIT_TEXT
     assert "/usr/local/lib/aurora/" in D.UNIT_TEXT
+
+
+def test_the_tray_at_login_and_the_launcher_takes_only_tray():
+    assert "Exec=/usr/local/bin/aurora-desk --tray" in D.AUTOSTART and "NoDisplay=true" in D.AUTOSTART
+    assert 'case "$*" in "" | --tray) ;;' in D.LAUNCHER and "aurora_desk.py $*" in D.LAUNCHER
 
 
 def test_the_menu_entry_and_icon():

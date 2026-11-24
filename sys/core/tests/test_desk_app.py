@@ -124,3 +124,40 @@ def test_the_app_window_builds_offscreen(home, switch, monkeypatch):
     assert m.show_btn.text() == "Mostrami" and not m.end_btn.isEnabled()
     m.close()
     app.processEvents()
+
+
+def test_a_second_start_asks_the_first_to_show(home, switch, monkeypatch, tmp_path):
+    pytest.importorskip("PyQt6.QtNetwork")
+    monkeypatch.setenv("QT_QPA_PLATFORM", "offscreen")
+    rt = tmp_path / "rt"
+    rt.mkdir(mode=0o700)
+    monkeypatch.setenv("XDG_RUNTIME_DIR", str(rt))
+    from PyQt6.QtGui import QIcon
+    from PyQt6.QtWidgets import QApplication
+    from desk.app import aurora_desk, tray
+    app = QApplication.instance() or QApplication([])
+    m = aurora_desk.Main()
+    t = tray.Tray(app, m, QIcon())
+    m.tray = t
+    assert not m.isVisible()
+    assert tray.ask_running_to_show() is True            # what a second start does
+    for _ in range(50):
+        app.processEvents()
+        if m.isVisible():
+            break
+    assert m.isVisible()
+    assert not t.available or t.icon is not None         # offscreen: no tray, the window is the way in
+    t.quit()
+    app.processEvents()
+
+
+def test_nobody_running_nothing_to_show(home, monkeypatch, tmp_path):
+    pytest.importorskip("PyQt6.QtNetwork")
+    monkeypatch.setenv("QT_QPA_PLATFORM", "offscreen")
+    rt = tmp_path / "rt2"
+    rt.mkdir(mode=0o700)
+    monkeypatch.setenv("XDG_RUNTIME_DIR", str(rt))
+    from PyQt6.QtWidgets import QApplication
+    from desk.app import tray
+    QApplication.instance() or QApplication([])
+    assert tray.ask_running_to_show() is False

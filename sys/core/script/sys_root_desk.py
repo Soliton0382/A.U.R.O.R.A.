@@ -12,6 +12,7 @@ done. It writes, all owned by root:
                                                  (enabled with --global; disabled and removed by uninstall)
   /usr/local/share/applications/aurora-desk.desktop  the menu entry (its name = the app's Wayland id)
   /usr/local/share/icons/hicolor/scalable/apps/aurora-desk.svg  the icon (from desk/app/icon.py, signed)
+  /etc/xdg/autostart/aurora-desk.desktop         in the tray at login (--tray; idle: accessibility stays off)
 Uninstall puts accessibility back as the owner first, then removes exactly these files. The owner's personal library
 (~/.local/state/aurora-desk) is never touched by either. Every path sits under `prefix` (default /) so a test can
 install and uninstall in a folder of its own (D10)."""
@@ -29,6 +30,7 @@ FILES = {
     "unit": f"etc/systemd/user/{UNIT}",
     "desktop": "usr/local/share/applications/aurora-desk.desktop",
     "icon": "usr/local/share/icons/hicolor/scalable/apps/aurora-desk.svg",
+    "autostart": "etc/xdg/autostart/aurora-desk.desktop",
 }
 
 LAUNCHER = f"""#!/bin/sh
@@ -37,6 +39,7 @@ LAUNCHER = f"""#!/bin/sh
 # unit with a random name, so no drop-in under ~/.config/systemd/user applies; accessibility put back when it stops.
 case "$XDG_RUNTIME_DIR" in /run/user/[0-9]*) ;; *) echo "aurora-desk: no session" >&2; exit 1 ;; esac
 case "$WAYLAND_DISPLAY" in wayland-[0-9]*) ;; *) echo "aurora-desk: Wayland only" >&2; exit 1 ;; esac
+case "$*" in "" | --tray) ;; *) echo "aurora-desk: only --tray" >&2; exit 1 ;; esac
 id=$(od -An -N4 -tx4 /dev/urandom | tr -d ' ')
 exec /usr/bin/systemd-run --user --quiet --collect --unit="aurora-desk-$id" \\
   -p LimitCORE=0 -p NoNewPrivileges=yes -p RestrictAddressFamilies=AF_UNIX -p SystemCallArchitectures=native \\
@@ -45,7 +48,7 @@ exec /usr/bin/systemd-run --user --quiet --collect --unit="aurora-desk-$id" \\
   /usr/bin/env -i PATH=/usr/bin:/bin HOME="$HOME" XDG_RUNTIME_DIR="$XDG_RUNTIME_DIR" \\
     WAYLAND_DISPLAY="$WAYLAND_DISPLAY" DBUS_SESSION_BUS_ADDRESS="$DBUS_SESSION_BUS_ADDRESS" \\
     LANG="${{LANG:-C.UTF-8}}" LANGUAGE="${{LANGUAGE:-}}" QT_QPA_PLATFORM=wayland \\
-    {PY} {APP}/aurora_desk.py
+    {PY} {APP}/aurora_desk.py $*
 """
 
 UNIT_TEXT = f"""[Unit]
@@ -59,6 +62,17 @@ ExecStart={PY} {APP}/a11y_fix.py
 
 [Install]
 WantedBy=default.target
+"""
+
+AUTOSTART = """[Desktop Entry]
+Type=Application
+Name=Aurora Desktop
+Comment=Aurora Desktop nell'area di notifica (non fa nulla finché non premi «Mostrami»)
+Exec=/usr/local/bin/aurora-desk --tray
+Icon=aurora-desk
+Terminal=false
+NoDisplay=true
+X-KDE-autostart-phase=2
 """
 
 DESKTOP = """[Desktop Entry]
@@ -97,6 +111,7 @@ def install(write, prefix: Path = Path("/"), run=subprocess.run) -> list:
     _put(write, prefix, "unit", UNIT_TEXT, 0o644)
     _put(write, prefix, "desktop", DESKTOP, 0o644)
     _put(write, prefix, "icon", _icon_svg(), 0o644)
+    _put(write, prefix, "autostart", AUTOSTART, 0o644)     # in the tray at login (Settings → Autostart turns it off)
     if prefix == Path("/"):
         run(["/usr/bin/systemctl", "--global", "enable", UNIT], check=False)
     return [str(prefix / f) for f in FILES.values()]
