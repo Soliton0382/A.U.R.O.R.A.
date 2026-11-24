@@ -5820,3 +5820,18 @@ the real desktop (3 terminals, a file manager, the browser). Said aloud: the pha
 process for «Prova sul banco»; the test now still refuses any import of the bench and of its consent clickers, and
 allows only that one launch (the runner re-executes behind the bench's guard, never on the real bus or display). Not
 measured: the app end to end on the real desktop.
+
+## M338 — N152 desktop app version 1: protected fields, the filter, the accessibility switch (25 November 2026)
+
+On the virtual bench with real keys and dconf inside the bench HOME, test programs with invented fields, against
+frozen predictions (docs/local, sha256 checked after), 25 trials per case: a canary typed in a Qt password field, in a
+plain Qt field named «Codice OTP» and in a GTK 3 password field never reached the recorder's output, the draft or the
+recorder's memory (0/25 each), a content-free «here the owner is needed» mark was left 25/25, and a control canary in
+a plain «Nome» field was recorded 25/25 in both toolkits. One prediction wrong, and serious: Qt sends the real
+characters of a password field in its accessibility events (25/25; GTK masks them, 0/25) — they reach the recorder,
+which drops them (BUGS C745). The filter: a canary typed in another program reached its field 25/25 and the recorder
+received 0 events from it; in a second window of the same program the recorder kept 0 and dropped its events (they
+still arrive: residual). The switch: after a kill, back off with dconf false 20/20; left on when the owner had it on
+20/20; left alone when changed meanwhile 20/20; after the bus launcher restarted it came back on (it persists) and was
+then put back off 20/20. Found before the predictions: a plain Qt window is a «filler», not a «frame», under the
+application. Not measured: a web page's password field, tabs, the login-time repair (with install).

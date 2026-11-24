@@ -24,6 +24,7 @@ CORE = HERE.parents[1]
 sys.path.insert(0, str(CORE))
 
 from PyQt6.QtCore import Qt, QTimer  # noqa: E402
+from PyQt6.QtGui import QIcon  # noqa: E402
 from PyQt6.QtWidgets import (QApplication, QCheckBox, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout,  # noqa
                              QLabel, QLineEdit, QListWidget, QListWidgetItem, QMainWindow, QMessageBox,
                              QPushButton, QRadioButton, QTableWidget, QTableWidgetItem, QTextEdit, QVBoxLayout,
@@ -214,7 +215,8 @@ class Main(QMainWindow):
         # only the state, never what is recorded: this window is accessible too (bozza 8 §1, D8)
         s = int(time.monotonic() - self.t0)
         self.say(f"● Registrazione di {self.window['app']} — {s // 60}:{s % 60:02d}. Lavora normalmente; "
-                 "premi «Fine» quando hai finito. Le password non le registro.")
+                 "premi «Fine» quando hai finito. Le password non le registro, ma NON scriverle adesso: i programmi "
+                 "Qt (KDE) mandano i loro caratteri a chiunque ascolti l'accessibilità (BUGS C745).")
         if self.rec is not None and self.rec.poll() is not None:
             self.finish()
 
@@ -333,6 +335,8 @@ def main() -> int:
     atexit.register(store.a11y_restore)
     app = QApplication(sys.argv)
     app.setApplicationName("Aurora Desktop")
+    app.setDesktopFileName("aurora-desk")              # Wayland app id: the launcher's .desktop and its icon
+    app.setWindowIcon(QIcon(str(HERE / "aurora-desk.svg")))
     m = Main()
     if left not in ("nothing recorded",):
         m.say(f"All'avvio ho rimesso l'accessibilità dopo una registrazione interrotta: {left}.")

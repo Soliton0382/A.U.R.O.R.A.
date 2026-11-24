@@ -8,6 +8,7 @@ program's text never arrives). Kept: events of the chosen window (the frame chos
 same application that appear during the recording. Password fields: nothing of theirs is kept (not the value, not the
 length); the event is counted as suppressed and dropped before any storage.
 Text is rebuilt by offsets (M335: concatenating insertions in order is wrong)."""
+import re
 import threading
 import time
 
@@ -53,6 +54,10 @@ TOP_ROLES = {"frame", "dialog", "alert", "file chooser", "window", "popup menu",
 # a top-level of the same application born during the recording counts (its dialogs, its popup menus: a Qt popup
 # opened by a key is a top-level of its own, seen in Dolphin); its other frames never do
 PASSWORD_ROLES = {"password text"}
+MASK_CHARS = set("•●*∗·\u25cf\u2022\u2217")
+# fields treated like passwords by their name (bozza 2 §5.5: passwords, codes, payments; bozza 8 D2)
+SECRET_NAME = re.compile(r"(?i)(password|passwort|parola d.ordine|\bpin\b|\botp\b|codice|\bcode\b|token|cvv|cvc"
+                         r"|iban|carta di credito|credit card|segret|secret|passphrase|frase segreta)")
 STATE_EDITABLE, STATE_READ_ONLY = 7, 43      # AtspiStateType (read from libatspi: 7, 43)
 MAX_EVENTS = 20000                     # bozza 8 §3: ~20 MiB at ~1 KiB per event (calculation)
 MAX_SECONDS = 30 * 60
@@ -117,11 +122,10 @@ class App:
             self.cache[path]["name"] = name
 
     def top(self, path: str) -> dict:
-        """The top-level window (frame, dialog…) above path, by Parent links (at most 60 steps)."""
+        """The top-level window above path: the ancestor hanging right under the application, whatever its role (a
+        plain Qt window is a «filler», not a «frame»: seen on the bench, 25 Nov). At most 60 Parent links."""
         cur = self.info(path)
         for _ in range(60):
-            if cur.get("role") in TOP_ROLES:
-                return cur
             p = cur.get("parent")
             if not p or p == "/org/a11y/atspi/accessible/root":
                 return cur
@@ -157,6 +161,7 @@ class Recorder:
         self.started = None
         self._q = []
         self._lock = threading.Lock()
+        self._marked = set()
 
     def start(self) -> None:
         self.conn = connect(self.addr)
@@ -206,8 +211,18 @@ class Recorder:
         u = body.unpack() if body is not None else ()
         detail = u[0] if u else ""
         info = self.app.info(path)
-        if info.get("role") in PASSWORD_ROLES:
+        if info.get("role") in PASSWORD_ROLES or SECRET_NAME.search(info.get("name") or ""):
             self.counters["password_suppressed"] += 1    # nothing of it: not the value, not the length
+            if member == "TextChanged" and len(u) > 3 and str(u[3]):
+                # counted only (never kept): whether the toolkit sends a protected field's characters at all
+                self.counters["password_events_with_text"] = self.counters.get("password_events_with_text", 0) + 1
+                if set(str(u[3])) - MASK_CHARS:              # characters that are not a toolkit's mask
+                    k = "plain_from_password_role" if info.get("role") in PASSWORD_ROLES else "plain_from_secret_name"
+                    self.counters[k] = self.counters.get(k, 0) + 1
+            if path not in self._marked:                 # one content-free mark: «here the owner is needed»
+                self._marked.add(path)
+                self.events.append({"t": round(t - self.started, 3), "kind": "Suppressed", "detail": "",
+                                    "path": "", "role": "", "name": "", "id": "", "top": "", "top_role": ""})
             return
         top = self.app.top(path)
         tp = top.get("path")

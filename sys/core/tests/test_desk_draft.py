@@ -114,3 +114,21 @@ def test_dolphin_menu_button_submenu_dialog_and_enter():
     assert st[3][0] == "type" and d["examples"] == {"p1": "Ricette"}     # not the dialog's own «Nuova cartella»
     assert st[4] == ("key", "Enter") and any("dialogo chiuso" in f for f in d["flags"])
     assert d["procedure"]["program"]["launch"]["args"] == ["--new-window", "{f1}"]
+
+
+def test_a_protected_field_leaves_only_a_note():
+    ev = [dict(e) for e in FX["A"]]
+    ev.insert(3, {"t": ev[3]["t"], "kind": "Suppressed", "detail": "", "path": "", "role": "", "name": "", "id": "",
+                  "top": "", "top_role": ""})
+    d = draft.build(ev, KATE, network=False)
+    assert any("campo protetto" in f for f in d["flags"])
+    assert "Suppressed" not in json.dumps(d["procedure"])
+
+
+def test_secret_names_are_recognised():
+    pytest.importorskip("gi")
+    from desk.app import recorder
+    for name in ("Password:", "Codice OTP", "PIN", "IBAN", "Frase segreta", "Codice fiscale"):
+        assert recorder.SECRET_NAME.search(name), name
+    for name in ("Nome", "a.txt", "Pinguino", "Ricette"):
+        assert not recorder.SECRET_NAME.search(name), name

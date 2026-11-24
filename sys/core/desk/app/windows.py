@@ -42,7 +42,7 @@ def list_windows(exclude_pid: int = -1) -> list:
             continue
         for k in app.children(path):
             i = app.info(k)
-            if i.get("role") in ("frame", "dialog") and i.get("name"):
+            if i.get("name") and i.get("role") not in ("application", "tool tip", "popup menu", "menu"):
                 out.append({"app": name, "title": i["name"], "pid": pid, "bus": bus, "frame": k,
                             "role": i["role"]})
     c.close_sync(None)

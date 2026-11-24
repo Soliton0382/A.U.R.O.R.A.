@@ -96,6 +96,11 @@ def build(events: list, program: dict, loc: str = "it", network: bool = True, la
 
     for ev in events:
         kind, detail = ev["kind"], str(ev.get("detail", ""))
+        if kind == "Suppressed":                         # a protected field: no step, a note for the owner
+            close_run()
+            flags.append(f"dopo il passo {len(steps)}: un campo protetto (password, codice, PIN): qui servi tu, "
+                         "Aurora non lo scrive mai")
+            continue
         # a menu that closed: the last item counts only if an effect follows
         if pending_menu and ev["t"] - pending_menu["closed"] > EFFECT_S:
             pending_menu = None
