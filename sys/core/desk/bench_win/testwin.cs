@@ -37,6 +37,19 @@ public static class TestWin {
                 }
             };
         }
+        if (mode == "cover") {
+            // a foreign surface always on top over the whole screen (like a system notice): counts what reaches it
+            f.FormBorderStyle = FormBorderStyle.None;
+            f.TopMost = true;
+            f.ShowInTaskbar = false;
+            f.BackColor = Color.FromArgb(40, 40, 40);
+            f.Bounds = Screen.PrimaryScreen.Bounds;
+            f.KeyPreview = true;
+            int clicks = 0, keys = 0;
+            f.MouseDown += delegate(object s, MouseEventArgs e) { clicks++; File.WriteAllText(report, clicks + "|" + keys); };
+            f.KeyDown += delegate(object s, KeyEventArgs e) { keys++; File.WriteAllText(report, clicks + "|" + keys); };
+            f.Shown += delegate(object s, EventArgs e) { File.WriteAllText(report, "0|0"); };
+        }
         if (mode == "elev") {
             TextBox t = new TextBox(); t.Name = "elevbox"; t.Text = "orig"; t.Left = 10; t.Top = 10; t.Width = 200;
             f.Controls.Add(t);

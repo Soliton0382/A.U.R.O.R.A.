@@ -512,11 +512,10 @@ not part of the ports.
 |---|---|---|
 | `bench_win/run.ps1` | W1–W8: windows and their process, UI Automation names, password fields, capture, capture exclusion, UIPI against an elevated window, same-user memory read, injected-input flag; results in `out\result.json` and the trees in `out\uia_*.json` | scheduled task (LIMITED) |
 | `bench_win/W0.cs` | the probes, compiled at run time by `Add-Type` (C# 5) | run.ps1, w3b.ps1 |
-| `bench_win/testwin.cs` | the test window (plain, password box, magenta surface excluded or not from capture, a box that reports its text) | compiled once to `testwin.exe` |
+| `bench_win/testwin.cs` | the test window (plain, password box, magenta surface excluded or not from capture, a box that reports its text, a cover always on top over the screen that counts the clicks and keys reaching it) | compiled once to `testwin.exe` |
 | `bench_win/w3b.ps1` | the second, declared measure of Edge's page (plain, then `--force-renderer-accessibility`) | scheduled task (LIMITED) |
 | `bench_win/pagina.html` | the test page (user, password, button, link, select, checkbox) | run.ps1, w3b.ps1 |
-| `bench_win/lib_run.ps1` | the general library on the VM: one procedure from a job file, UI Automation patterns, else a click at the element's centre and real keys; the role of classic Win32 controls from their window class (the managed client sees them as Pane); before every click and key the window in front and under the point must be the task's, or STOP (C744, not yet run) | scheduled task (LIMITED) |
-| `bench_win/drafts/` | the Notepad procedure, not yet passing (stopped by C744) | — |
+| `bench_win/lib_run.ps1` | the general library on the VM: one procedure from a job file, UI Automation patterns, else a click at the element's centre and real keys; the role of classic Win32 controls from their window class (the managed client sees them as Pane); before every click and key the window in front and under the point must be the task's, or STOP (C744, M333) | scheduled task (LIMITED) |
 
 ## Android app: `sys/app/`
 

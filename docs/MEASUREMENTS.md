@@ -5745,3 +5745,17 @@ display is not computed (12+30 read back as typed): the procedure presses the ke
 the result showed it. Not reachable without the keyboard (phase 2): the Name field of KDE's file dialog and QML search
 fields are not editable through AT-SPI; Dolphin's menu is hidden. Not measured: Windows (the VM was shut down for an
 update), the same procedures on the owner's own desktop.
+
+## M333 — N152 general library, the first Windows procedure on the test VM (25 November 2026)
+
+The test VM after its update, a lab user's console session, a scheduled task at medium integrity; the runner
+sys/core/desk/bench_win/lib_run.ps1 (UI Automation patterns, else a click at the element's centre and real keys, with
+the check of BUGS C744); invented data. Against the frozen predictions (docs/local, sha256 checked after):
+windows/notepad/scrivi-e-salva 10/10 files with the text identical (accents, symbols, two lines; UTF-8 without BOM,
+LF saved as CRLF); with a foreign window always on top over the whole screen, started before the task, 3/3 runs
+stopped at the first click («foreign window under the point»), 0 clicks and 0 keys reached it, 0 files written. Said
+aloud: the first try of the ten counted 1/10 because nine runs never started (ssh inside the shell loop read the
+loop's input): not a result, run again whole. Found on the way: .NET's managed UI Automation client sees classic
+Win32 controls (the save dialog's name field and buttons) as Pane, without patterns; setting the field's text by
+WM_SETTEXT changes what is shown but the dialog saves the old name; a click and real keys work. Not measured: the
+same with the native UI Automation client aurora-desk would use; Explorer, Calculator, Settings.
