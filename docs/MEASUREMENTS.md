@@ -5773,3 +5773,17 @@ RegisterEvent with its bus name and a match rule with sender=, received a canary
 in 10 (strace of every read on the process, and the messages); the control without sender= received it 10/10. Not
 measured: that the filtered recorder receives the chosen application's own events (none happened in the test), the
 recorder's memory, real keyboard input on the bench (P4).
+
+## M335 — N152 desktop app version 1: real keys on the virtual bench, and what a recorder sees (25 November 2026)
+
+Real keyboard input on the virtual KWin through the RemoteDesktop portal and libei (ctypes; libei/liboeffis 1.5.0
+installed, no Python binding). liboeffis's own session was refused by the portal («Permission denied»: its D-Bus
+connection cannot register an app id); the session opened over D-Bus after Registry.Register works: the portal's
+«Remote Control» dialog approved by the bench (the «Allow restoring» box never touched), a seat with keyboard and
+pointer. Against frozen predictions (docs/local, sha256 checked after), 10 trials typing ASCII text in Kate then
+Ctrl+S, while a recorder without libatspi listened filtered on Kate's bus name: the file held exactly the typed text
+10/10; the recorder saw no keyboard event 0/10 (keys are not AT-SPI signals here: a shortcut is seen only by its
+effect) and saw the save as the window's name losing its asterisk 10/10. One prediction wrong: the text inserted,
+concatenated in order, equalled the typed text 0/10 (the new document's own line end, and Kate closing a bracket by
+itself so the next insertion lands before it); replaying insertions and deletions at their offsets, an analysis added
+afterwards and declared, gave 10/10. Not measured: non-ASCII text (US key table), the pointer, other programs.

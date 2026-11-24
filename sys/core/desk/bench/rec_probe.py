@@ -17,29 +17,35 @@ from gi.repository import Gio, GLib  # noqa: E402
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--addr", required=True)
-    ap.add_argument("--event", default="object:text-changed")
+    ap.add_argument("--event", action="append", default=None)
     ap.add_argument("--app-bus", default="")
     ap.add_argument("--sender", default="")
     ap.add_argument("--seconds", type=float, default=4.0)
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
+    a.event = a.event or ["object:text-changed"]
     flags = Gio.DBusConnectionFlags.AUTHENTICATION_CLIENT | Gio.DBusConnectionFlags.MESSAGE_BUS_CONNECTION
     conn = Gio.DBusConnection.new_for_address_sync(a.addr, flags, None, None)
-    rep = {"register": None, "rule": None, "messages": 0, "event_signals": 0, "senders": {}, "bodies": []}
-    for sig, args in (("(sass)", (a.event, [], a.app_bus)), ("(sas)", (a.event, [])), ("(s)", (a.event,))):
-        try:
-            conn.call_sync("org.a11y.atspi.Registry", "/org/a11y/atspi/registry", "org.a11y.atspi.Registry",
-                           "RegisterEvent", GLib.Variant(sig, args), None, Gio.DBusCallFlags.NONE, 3000, None)
-            rep["register"] = sig
-            break
-        except GLib.Error as e:
-            rep.setdefault("register_errors", []).append(f"{sig}: {e.message}")
-    rule = "type='signal',interface='org.a11y.atspi.Event.Object'"
-    if a.sender:
-        rule += f",sender='{a.sender}'"
-    conn.call_sync("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "AddMatch",
-                   GLib.Variant("(s)", (rule,)), None, Gio.DBusCallFlags.NONE, 3000, None)
-    rep["rule"] = rule
+    rep = {"register": None, "rule": None, "messages": 0, "event_signals": 0, "senders": {}, "bodies": [],
+           "events": []}
+    for ev in a.event:
+        for sig, args in (("(sass)", (ev, [], a.app_bus)), ("(sas)", (ev, [])), ("(s)", (ev,))):
+            try:
+                conn.call_sync("org.a11y.atspi.Registry", "/org/a11y/atspi/registry", "org.a11y.atspi.Registry",
+                               "RegisterEvent", GLib.Variant(sig, args), None, Gio.DBusCallFlags.NONE, 3000, None)
+                rep["register"] = sig
+                break
+            except GLib.Error as e:
+                rep.setdefault("register_errors", []).append(f"{sig}: {e.message}")
+    rules = []
+    for iface in ("Object", "Window", "Focus", "Keyboard"):
+        rule = f"type='signal',interface='org.a11y.atspi.Event.{iface}'"
+        if a.sender:
+            rule += f",sender='{a.sender}'"
+        conn.call_sync("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "AddMatch",
+                       GLib.Variant("(s)", (rule,)), None, Gio.DBusCallFlags.NONE, 3000, None)
+        rules.append(rule)
+    rep["rule"] = rules
 
     def filt(c, msg, incoming):
         if incoming:
@@ -52,6 +58,12 @@ def main() -> int:
                 b = msg.get_body()
                 if b is not None and len(rep["bodies"]) < 50:
                     rep["bodies"].append(str(b.unpack())[:300])
+                if len(rep["events"]) < 2000:
+                    u = b.unpack() if b is not None else ()
+                    rep["events"].append({"i": msg.get_interface().rsplit(".", 1)[-1], "m": msg.get_member(),
+                                          "path": msg.get_path(), "detail": u[0] if u else "",
+                                          "d1": u[1] if len(u) > 1 else None, "d2": u[2] if len(u) > 2 else None,
+                                          "v": str(u[3])[:200] if len(u) > 3 else ""})
         return msg
 
     conn.add_filter(filt)

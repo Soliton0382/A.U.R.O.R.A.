@@ -495,7 +495,9 @@ AT-SPI consent. `desk/__init__.py` is empty in phase 0.
 | `desk/bench/f13.py` | F13: baits (GStreamer plugin, Vulkan implicit layer, PipeWire module) in a bench home, the §4.2 environment with read-only «root» folders, `/proc/<pid>/maps`, markers; positive control | run_phase0 |
 | `desk/bench/lib_run.py` | the general library on the bench (M332): one procedure after another through AT-SPI actions (no input), the program in the procedure's locale, the task = applications that appeared after the launch plus the portal; stops the program's real process by PID (C743); checks of files and read values from the job | by hand |
 | `desk/bench/p_measure.py` | M334: P1 (the accessibility switch in dconf, bench HOME only), P2 (Qt at run time), P3 (a recorder filtered on the bus, canary in another program, positive control) | by hand |
-| `desk/bench/rec_probe.py` | P3's recorder: no libatspi, Gio only; RegisterEvent with the application's bus name, a match rule with or without sender=, counts what arrives | p_measure |
+| `desk/bench/rec_probe.py` | P3/P4's recorder: no libatspi, Gio only; RegisterEvent (one or more events) with the application's bus name, match rules on Object/Window/Focus/Keyboard with or without sender=, counts and keeps what arrives | p_measure, p4_measure |
+| `desk/bench/ei_input.py` | real input on the bench: a RemoteDesktop portal session over D-Bus after Registry.Register (liboeffis was refused), ConnectToEIS, a libei sender by ctypes bound to the seat's keyboard; type() with a US key table (ASCII), tap() for chords | p4_measure |
+| `desk/bench/p4_measure.py` | M335: real keys into Kate and Ctrl+S, the bench approving «Remote Control» with «Approve» only; the filtered recorder's view of text, keys and the save | by hand |
 | `desk/bench/drafts/` | procedures not yet passing on the bench (Dolphin, System Settings: they need the keyboard, phase 2); not part of the library | — |
 
 ### General library: `sys/core/desk/library/` and `desk/library_check.py` (N152, M332)
