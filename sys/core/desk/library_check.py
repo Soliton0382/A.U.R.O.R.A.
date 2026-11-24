@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 
 LIBRARY = Path(__file__).resolve().parent / "library"
+UNKNOWN_VERSION = "sconosciuta"                                         # bozza 8 §4: per: only
 CLASSES = ["legge", "scrive in locale", "esce", "irreversibile"]          # increasing severity (design bozza 2 §5.2)
 OSES = {"linux", "windows"}
 # fields that would add programs, sites, folders, trusted entries or exceptions (V1-h): their presence = invalid
@@ -75,7 +76,7 @@ def computed_class(step: dict, network: bool) -> str:
     return "scrive in locale"
 
 
-def check(path: Path, root: Path = LIBRARY) -> list:
+def check(path: Path, root: Path = LIBRARY, ns: str = "gen") -> list:
     errs = []
     if path.suffix != ".json":
         return [f"{path.name}: only .json procedures in the library (V1-b: no images, nothing unread)"]
@@ -86,6 +87,8 @@ def check(path: Path, root: Path = LIBRARY) -> list:
     _keys("procedure", d, TOP, errs)
     if not isinstance(d, dict):
         return errs
+    if ns not in ("gen", "per"):
+        errs.append(f"namespace must be gen or per, not {ns!r}")
     if d.get("format") != 1:
         errs.append("format must be 1")
     os_ = d.get("os")
@@ -98,17 +101,20 @@ def check(path: Path, root: Path = LIBRARY) -> list:
             errs.append("program.network must be true or false (declared, never guessed)")
         _keys("program.launch", prog.get("launch") or {}, LAUNCH, errs)
         _keys("program.versions", prog.get("versions") or {}, VERSIONS, errs)
-        if not (prog.get("versions") or {}).get("min"):
+        vmin = (prog.get("versions") or {}).get("min")
+        if not vmin:
             errs.append("program.versions.min missing (V1-g)")
+        elif vmin == UNKNOWN_VERSION and ns != "per":
+            errs.append("an unknown version is allowed only in a personal procedure (per:)")
     try:
         rel = path.resolve().relative_to(root.resolve())
-        want = f"gen:{rel.parts[0]}/{'/'.join(rel.parts[1:-1])}/{path.stem}"
+        want = f"{ns}:{rel.parts[0]}/{'/'.join(rel.parts[1:-1])}/{path.stem}"
         if d.get("id") != want:
-            errs.append(f"id must be {want!r} (namespace gen:, from its folder)")
+            errs.append(f"id must be {want!r} (namespace {ns}:, from its folder)")
         if rel.parts[0] != os_:
             errs.append("os differs from the folder")
     except ValueError:
-        pass
+        errs.append(f"{path.name}: outside the library folder given ({root})")
     params = d.get("params") or {}
     if not isinstance(params, dict):
         errs.append("params: not an object")

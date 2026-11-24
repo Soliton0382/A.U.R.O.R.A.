@@ -493,19 +493,29 @@ AT-SPI consent. `desk/__init__.py` is empty in phase 0.
 | `desk/bench/f7.py` | F7: parent, child, grandchild with an inherited socket, stranger; `SO_PEERCRED` and `SO_PEERPIDFD` (77) by pidfs inode; unreaped child vs fork and `clone3(set_tid)` | run_phase0 |
 | `desk/bench/f9.py` + `f9_apps.py` | F9: aurora-desk's test window with way A (`AT_SPI_BUS_ADDRESS` to nowhere) and a 50-node Qt tree read by libatspi; positive control without way A | run_phase0 |
 | `desk/bench/f13.py` | F13: baits (GStreamer plugin, Vulkan implicit layer, PipeWire module) in a bench home, the §4.2 environment with read-only «root» folders, `/proc/<pid>/maps`, markers; positive control | run_phase0 |
-| `desk/bench/lib_run.py` | the general library on the bench (M332): one procedure after another through AT-SPI actions (no input), the program in the procedure's locale, the task = applications that appeared after the launch plus the portal; stops the program's real process by PID (C743); checks of files and read values from the job | by hand |
+| `desk/bench/lib_run.py` | the general library on the bench (M332): one procedure after another through AT-SPI actions (no input), the program in the procedure's locale, the task = applications that appeared after the launch plus the portal; stops the program's real process by PID (C743); checks of files and read values from the job; with job input «keys» (or `KEYS` set by a caller) «type» and «key» steps use real keys; a procedure given inline with its sha256 is never re-read from a path (T16c) | by hand, d1_measure |
 | `desk/bench/p_measure.py` | M334: P1 (the accessibility switch in dconf, bench HOME only), P2 (Qt at run time), P3 (a recorder filtered on the bus, canary in another program, positive control) | by hand |
 | `desk/bench/rec_probe.py` | P3/P4's recorder: no libatspi, Gio only; RegisterEvent (one or more events) with the application's bus name, match rules on Object/Window/Focus/Keyboard with or without sender=, counts and keeps what arrives | p_measure, p4_measure |
 | `desk/bench/ei_input.py` | real input on the bench: a RemoteDesktop portal session over D-Bus after Registry.Register (liboeffis was refused), ConnectToEIS, a libei sender by ctypes bound to the seat's keyboard; type() with a US key table (ASCII), tap() for chords | p4_measure |
+| `desk/bench/d1_measure.py` | M336: demonstration with real keys → recorder process → draft → check as per: → run again with new values; kate-menu, kate-shortcut, kcalc | by hand |
 | `desk/bench/p4_measure.py` | M335: real keys into Kate and Ctrl+S, the bench approving «Remote Control» with «Approve» only; the filtered recorder's view of text, keys and the save | by hand |
 | `desk/bench/drafts/` | procedures not yet passing on the bench (Dolphin, System Settings: they need the keyboard, phase 2); not part of the library | — |
+
+### Desktop app, version 1: `sys/core/desk/app/` (N152, M336)
+
+Learns from a demonstration, never acts on the owner's desktop (design bozza 7–8 in docs/local). Not installed yet.
+
+| file | does | started by |
+|---|---|---|
+| `desk/app/recorder.py` | the demonstration recorder: its own process, Gio only (no libatspi, R4), RegisterEvent with the chosen application's bus name and match rules with sender=; keeps the chosen frame and dialogs born during the recording; password fields dropped before storage; text rebuilt by offsets; caps 20 000 events / 30 min; `main()` records until a stop file and writes its events `0600` | d1_measure; the app later |
+| `desk/app/draft.py` | from events to a draft procedure, no model: typing runs (value before the program replaces it), menus (last item before closing, only with an effect), shortcuts and Enter deduced from effects and flagged, paths in the launch line become parameters, examples kept apart, private-looking anchors flagged, QML ids never used | d1_measure; `tests/test_desk_draft.py` |
 
 ### General library: `sys/core/desk/library/` and `desk/library_check.py` (N152, M332)
 
 | file | does | started by |
 |---|---|---|
 | `desk/library/<os>/<program>/<name>.json` | one procedure each: program and versions, network declared, parameters, steps with anchors (role, stable id or its end, name per language) and a class; only `.json` | read by the bench runners; aurora-desk later |
-| `desk/library_check.py` | the closed format: unknown fields invalid, fields that would widen Aurora's reach invalid (V1-h), a step's class never lower than the computed one (delete/overwrite verbs → irreversibile, send/share → esce, with a network every action → esce), the id from its folder | `tests/test_desk_library.py`; by hand |
+| `desk/library_check.py` | `check(path, root, ns)` with ns gen or per (per: allows the version «sconosciuta»); the closed format: unknown fields invalid, fields that would widen Aurora's reach invalid (V1-h), a step's class never lower than the computed one (delete/overwrite verbs → irreversibile, send/share → esce, with a network every action → esce), the id from its folder | `tests/test_desk_library.py`; by hand |
 
 ### Windows bench: `sys/core/desk/bench_win/` (N152, M331)
 

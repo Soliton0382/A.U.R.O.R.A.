@@ -5787,3 +5787,18 @@ effect) and saw the save as the window's name losing its asterisk 10/10. One pre
 concatenated in order, equalled the typed text 0/10 (the new document's own line end, and Kate closing a bracket by
 itself so the next insertion lands before it); replaying insertions and deletions at their offsets, an analysis added
 afterwards and declared, gave 10/10. Not measured: non-ASCII text (US key table), the pointer, other programs.
+
+## M336 — N152 desktop app version 1: learning from a demonstration, end to end on the bench (25 November 2026)
+
+The recorder (sys/core/desk/app/recorder.py: its own process, no libatspi, events registered for the chosen
+application and filtered with sender=, only the chosen window and dialogs born during the recording, password fields
+dropped before storage, text rebuilt by offsets) and the draft writer (desk/app/draft.py, no model) against frozen
+predictions (docs/local, sha256 checked after). The «person» used real keys only (M335). Each draft was checked as a
+personal procedure and run again on the bench with new values (a new text and file, a new expression); the metric is
+the outcome. Kate saved from the File menu with the keyboard: 10/10 outcomes, no warnings in the drafts; Kate saved
+with Ctrl+S: 10/10, each draft warning that the shortcut was deduced from the window's name losing its «*»; KCalc,
+an expression and Enter: 10/10 results, each draft warning that the key was deduced from the field replaced by the
+program, and keeping what was typed, not the result; 30/30 drafts valid as personal procedures. Found while building
+(before the predictions): the recorder must choose the program by name (a portal backend started meanwhile), and an
+effect right after a menu belongs to that menu (Kate adds a line end when saving). Not measured: the pointer, programs
+with dialogs, non-ASCII text, the owner's own desktop, the other version-1 tests (D2–D4, D7–D10).

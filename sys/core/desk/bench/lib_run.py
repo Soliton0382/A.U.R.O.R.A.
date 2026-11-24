@@ -20,6 +20,7 @@ sys.path.insert(0, str(HERE.parent.parent))
 from desk.bench import a11y, bench as benchmod, guard  # noqa: E402
 
 LOCALES = {"it": "it_IT.UTF-8", "en": "C.UTF-8"}
+KEYS = {}              # input by real keys (portal + libei, ei_input.py) when a job asks for it: {"kb": Keyboard}
 SETTLE = 0.25          # s after each action: the program handles it asynchronously (KCalc read 12+3 without it)
 
 
@@ -148,6 +149,21 @@ def act(node, step: dict, params: dict, rec: dict) -> None:
                 raise
             got = "Press (no reply: modal)"
         rec["via"] = got
+    elif do == "type" and KEYS.get("kb"):
+        from gi.repository import Atspi
+        Atspi.Component.grab_focus(node)
+        time.sleep(0.2)
+        KEYS["kb"].type(sub(step["text"], params))
+        rec["via"] = "keys"
+    elif do == "key":
+        if not KEYS.get("kb"):
+            raise RuntimeError("a key step needs real keys (job input: keys)")
+        if node is not None:
+            from gi.repository import Atspi
+            Atspi.Component.grab_focus(node)
+            time.sleep(0.2)
+        KEYS["kb"].tap(*step["keys"].split("+"))
+        rec["via"] = "keys"
     elif do == "type":
         e = node.get_editable_text_iface()
         if e is None:
@@ -201,6 +217,16 @@ def run_one(b, proc: dict, params: dict, loc: str, work: Path) -> dict:
     while time.monotonic() - t0 < 30 and not any(a.get_child_count() for a in task.roots() if a11y.app_pid(a) != portal):
         time.sleep(0.2)
     time.sleep(1.0)
+    if KEYS.get("pending"):                              # the portal wants a window open before its dialog
+        from desk.bench import ei_input
+        from desk.bench.p4_measure import approve
+        pt = ei_input.Portal()
+        kb = ei_input.Keyboard(pt.connect(approve, timeout=20))
+        if not kb.ready(10):
+            raise RuntimeError("keyboard not ready")
+        KEYS.update(pt=pt, kb=kb)
+        KEYS.pop("pending")
+        before |= {a11y.app_pid(a) for a in a11y.apps() if (a.get_name() or "") != proc["program"]["name"]}
     try:
         for st in proc["steps"]:
             rec = {"n": st["n"], "do": st["do"], "class": st["class"]}
@@ -230,7 +256,7 @@ def run_one(b, proc: dict, params: dict, loc: str, work: Path) -> dict:
                     if node is None:
                         raise RuntimeError("target not found")
                 act(node, st, params, rec)
-                if st["do"] in ("press", "open_menu", "type"):
+                if st["do"] in ("press", "open_menu", "type", "key"):
                     time.sleep(SETTLE)
                 ex = st.get("expect") or {}
                 if ex.get("present") and task.wait(ex["present"], loc, params, tmo) is None:
@@ -277,7 +303,17 @@ def inner(a) -> int:
         a11y.init()                                     # after up(): before it, libatspi would start its own bus
         Atspi.set_timeout(2000, 15000)                   # a modal dialog must not hold a step for 25 s
         for j in jobs:
-            proc = json.loads(Path(j["proc"]).read_text())
+            # T16c: the bytes already shown (inline, with their sha256), never re-read from a path when given
+            if "proc_json" in j:
+                import hashlib
+                raw = j["proc_json"].encode()
+                if j.get("sha256") and hashlib.sha256(raw).hexdigest() != j["sha256"]:
+                    raise RuntimeError("procedure bytes differ from the ones shown")
+                proc = json.loads(raw)
+            else:
+                proc = json.loads(Path(j["proc"]).read_text())
+            if j.get("input") == "keys" and not KEYS:
+                KEYS["pending"] = True
             params = {k: sub(str(v), {"lavoro": str(work)}) for k, v in j.get("params", {}).items()}
             r = run_one(b, proc, params, j.get("locale", "it"), work)
             r["files"] = sorted(str(x.relative_to(work)) for x in work.rglob("*"))
@@ -292,6 +328,9 @@ def inner(a) -> int:
                                                    if f.is_file() and "text" in chk else None})
             (outd / f"{j['tag']}.json").write_text(json.dumps(r, ensure_ascii=False, indent=1))
     finally:
+        if KEYS.get("kb"):
+            KEYS["kb"].close()
+            KEYS["pt"].close()
         b.down()
     return 0
 
