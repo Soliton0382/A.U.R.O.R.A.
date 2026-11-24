@@ -472,6 +472,28 @@ call downward (ECOSYSTEM §1).
 | `vault_realign.py` | every arXiv paper once, as HTML, in its own domain: dry run by default, `--apply` paper by paper through aurora-api; `--wikipedia` every article once in the domain its text says (`--fresh`: chosen again, not the kept choice) | by hand, when kno_vault_audit reports |; --only-file (titles holding a comma)
 | `doc_callmap.py` | docs/CALL_MAP.md from the code: what starts each script, who imports each module, who calls each route; `--check` (also every file named here); `--live` this machine's units and timers, printed only | publish.sh, after adding a file |
 
+## Desktop agent, phase 0 bench: `sys/core/desk/` (N152)
+
+Run by hand as the owner's user, never imported by the API nor by aurora-desk; no root, no input but the bench's
+AT-SPI consent. `desk/__init__.py` is empty in phase 0.
+
+| file | does | started by |
+|---|---|---|
+| `desk/bench/run_phase0.py` | phase 0 (F1, F2, F7, F9, F13, F14) on the bench: `--scratch DIR`, `--only`, `--quick`; results in `DIR/run-*/results.json` | by hand |
+| `desk/bench/bench.py` | the bench: a 0700 runtime dir, a bench HOME, an environment built from nothing, `dbus-run-session`; AT-SPI bus, `kwin_wayland --virtual` (Mesa llvmpipe, no NVIDIA EGL/GBM), PipeWire + WirePlumber (policy profile), the two portals; stopped by saved PID | run_phase0 |
+| `desk/bench/guard.py` | refuses the real runtime dir, session bus, `wayland-0`, X11 and the real system bus; lists `/run/user/<uid>/` before and after; `/dev/input`, GPU devices and system-bus clients of bench processes; PID-only stop | bench, run_phase0 |
+| `desk/bench/a11y.py` | libatspi through gi on the bench bus: walk, read, `doAction` | consent, f9 |
+| `desk/bench/consent.py` | the bench's only input: accepts the KDE ScreenCast dialog with AT-SPI «Press» on the virtual screen's card; logs every dialog (title, words, «Allow restoring» box) | run_phase0 |
+| `desk/bench/probe_capture.py` | the capture client standing in for aurora-desk: ScreenCast with `persist_mode = 0`, optional `Registry.Register`, dumpable 0 by `prctl` first, GStreamer `pipewiresrc`; `--serve` keeps the stream for F1's frames | f1, f2_f14, f13, run_phase0 |
+| `desk/bench/kwin_scripts.py` | F1: the KWin reader script (PID, internal id, transient, stacking, keep above, geometry, cursor) and the separate director script, run through `/Scripting`, answers by callDBus | f1 |
+| `desk/bench/testwin.py` | F1's test program: 1-3 frameless windows of unique colours, its own PID reported | f1 |
+| `desk/bench/f1.py` | F1: scenarios from a written seed, the pixel oracle (predicted picture vs ScreenCast frame), latency | run_phase0 |
+| `desk/bench/f2_f14.py` | F2 (a dialog at every session, no restore token; the Registry name) and F14 (dumpable 0 and 1, sibling attacks) | run_phase0 |
+| `desk/bench/attack.py` | F14's sibling attacker: `PTRACE_ATTACH`, `/proc/<pid>/mem`, `process_vm_readv`; `--self-test` on its own child (control) | f2_f14 |
+| `desk/bench/f7.py` | F7: parent, child, grandchild with an inherited socket, stranger; `SO_PEERCRED` and `SO_PEERPIDFD` (77) by pidfs inode; unreaped child vs fork and `clone3(set_tid)` | run_phase0 |
+| `desk/bench/f9.py` + `f9_apps.py` | F9: aurora-desk's test window with way A (`AT_SPI_BUS_ADDRESS` to nowhere) and a 50-node Qt tree read by libatspi; positive control without way A | run_phase0 |
+| `desk/bench/f13.py` | F13: baits (GStreamer plugin, Vulkan implicit layer, PipeWire module) in a bench home, the §4.2 environment with read-only «root» folders, `/proc/<pid>/maps`, markers; positive control | run_phase0 |
+
 ## Android app: `sys/app/`
 
 | File | What it does | Started by |

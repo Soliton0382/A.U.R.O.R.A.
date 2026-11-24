@@ -5697,3 +5697,21 @@ counts only from 0.8. Not measured: real posts of the page; English posts; a wee
 kno_social.private_topic on the invented texts of tests/test_social_report.py: 15/15 texts on health or on the
 house's state caught, 11/11 science thoughts and dreams kept. Conservative by design: a science thought naming sensors
 or a therapy is not drawn. Not measured: real memories; a night's report after the fix.
+
+## M329 — the services' start without bytecode (24 November 2026; BUGS C737)
+
+The imports of fastapi, uvicorn, httpx, numpy and agt_loop with the repo's bytecode and with PYTHONDONTWRITEBYTECODE=1
+plus a PYTHONPYCACHEPREFIX that does not exist, three runs each: 0.25–0.28 s → 0.90–0.91 s. The API after the units
+were installed again: about 9 s from systemd's start to «started» in its log, 0 .pyc written by the service in the
+repo afterwards. Not measured: the API's start with bytecode on the same day, to compare.
+
+## M330 — N152 phase 0: the desktop agent's read-only tests on a virtual compositor (24 November 2026)
+
+A virtual KWin 6.6.7 (software OpenGL) with its own runtime folder, session bus, PipeWire, portals and AT-SPI, as the
+owner's user; test windows with invented text; no input, the real desktop never captured. Against the frozen
+predictions (docs/local, sha256 checked before and after): windows and their process 200/200, stacking 200/200,
+p99 read 2.22 ms on 1000 reads; the portal's dialogue in 100/100 sessions, 0 without it, 0 restore tokens; the child
+told from strangers 300/300 and 0/300; AT-SPI on the bench 300/300; dumpable 0 refused by the portal, as predicted.
+One prediction wrong: liborc's JIT maps executable code from the runtime folder (100/100 starts), 0/100 with
+ORC_CODE=backup. Found and fixed on the way: the bench's first start read the real session's lock state over the
+system bus (BUGS C742). Not measured: anything as root; the cost of ORC_CODE=backup on capture.
