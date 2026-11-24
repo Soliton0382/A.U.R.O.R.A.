@@ -106,6 +106,27 @@ def _dummy() -> str:
 
 
 # ---- the store -----------------------------------------------------------------------------------
+def _private(path: Path) -> None:
+    """The store and SQLite's files next to it readable by their owner only (C739: made 0600 only when new, the file
+    was found 660, group aurora — the service's umask on a file made again by another path — so the owner's own
+    processes read every user's TOTP secret). A link is never followed; a file of another account is left as it is
+    (the kernel refuses its change). POSIX modes only: the ports keep the store in their account's own folder."""
+    if os.name != "posix":
+        return
+    for f in (path, *(path.with_name(path.name + x) for x in ("-wal", "-shm", "-journal"))):
+        try:
+            fd = os.open(f, os.O_RDONLY | os.O_NOFOLLOW)
+        except OSError:
+            continue
+        try:
+            if os.fstat(fd).st_mode & 0o077:
+                os.fchmod(fd, 0o600)
+        except PermissionError:
+            pass
+        finally:
+            os.close(fd)
+
+
 class Users:
     def __init__(self, cfg: sys_config.Config | None = None, path: Path | None = None):
         self.cfg = cfg or sys_config.get()
@@ -113,13 +134,11 @@ class Users:
 
     @contextmanager
     def _db(self):
-        new = not self.path.exists()
         self.path.parent.mkdir(parents=True, exist_ok=True)
         con = sqlite3.connect(self.path, timeout=10)
         con.row_factory = sqlite3.Row
         try:
-            if new:
-                os.chmod(self.path, 0o600)
+            _private(self.path)                       # C739: at every open, not only when new
             con.executescript(DDL)
             v = con.execute("SELECT value FROM meta WHERE key='schema'").fetchone()
             if v is None:

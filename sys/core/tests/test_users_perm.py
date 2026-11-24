@@ -40,3 +40,4 @@ def test_her_character_and_the_name_are_always_the_person_s_own():
     assert '["persona",' in welcome and "AURORA_PERSONALITY" in welcome
     choices = schema["AURORA_PERSONALITY"]["choices"]
     assert all(f'"{c}"' in welcome for c in choices)                 # the screen offers every character there is
+

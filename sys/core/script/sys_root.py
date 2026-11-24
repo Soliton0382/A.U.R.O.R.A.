@@ -42,7 +42,8 @@ STEPS = {"systemd": "sys/deploy/systemd", "nft": "sys/deploy/nft", "tunnel": "sy
 # what root keeps of the code: the package and the scripts root runs (its units', this launcher's own)
 LIB_SCRIPTS = ("sys_nas_mount.py", "sys_backup_retime.py", "sys_cert_perms.py", "sys_ethics_sign.py", "sys_root.py",
                "sys_root_sync.py", "sys_key_seal.py", "sys_restore.py", "sys_env_sync.py",
-               "sys_service_account.py", "sys_nvidia.sh")      # C556: the account's and the GPU's cards, as signed
+               "sys_service_account.py", "sys_nvidia.sh",      # C556: the account's and the GPU's cards, as signed
+               "shadow_seed.py")       # C738: what the owner's own account runs, never the repo's writable copy
 SHIM_TEXT = f'#!/bin/sh\n# aurora-root (sys/core/script/sys_root.py): root\'s copy, the system\'s Python\nexec /usr/bin/python3 -I {LIB}/sys/core/script/sys_root.py "$@"\n'
 
 

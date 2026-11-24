@@ -45,7 +45,8 @@ from aurora import sys_config  # noqa: E402
 cfg = sys_config.get()
 BASE = f"http://{cfg['AURORA_API_HOST']}:{cfg['AURORA_API_PORT']}"
 HEAD = {"Authorization": f"Bearer {cfg['AURORA_API_KEY']}"}
-CONFIG = Path(__file__).resolve().parents[1] / "config"
+LIB = Path("/usr/local/lib/aurora")                              # root's copy (sys_root.sync_lib)
+CONFIG = sys_config.CODE_ROOT / "sys" / "core" / "config"     # the installation's, also from root's copy (C738)
 
 
 def ask(q: str) -> dict:
@@ -118,7 +119,7 @@ Description=Aurora — the shadow seed, asked alone (shadow_seed.py), exported f
 Type=oneshot
 WorkingDirectory={root}
 ExecStart={py} {script} --limit {limit} --and-export
-Nice=10
+{env}Nice=10
 """
 TIMER = """[Unit]
 Description=Aurora — the shadow seed every day at {time}
@@ -147,11 +148,21 @@ def schedule(hhmm: str | None, limit: int) -> int:
     if not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", hhmm):
         print("--schedule HH:MM")
         return 2
-    root = Path(__file__).resolve().parents[3]
+    root = sys_config.CODE_ROOT
     UNITS.mkdir(parents=True, exist_ok=True)
-    venv = root / ".venv" / "bin" / "python"
-    (UNITS / "aurora-seed.service").write_text(SERVICE.format(root=root, py=venv if venv.exists() else sys.executable,
-                                                              script=Path(__file__).resolve(), limit=limit or 40))
+    # C738: the owner's account runs only code the services' account cannot write — root's signed copy with the
+    # system's Python, isolated (-I); without it (a port, an installation never signed) the repo's, and it is said
+    lib = LIB / "sys" / "core" / "script" / "shadow_seed.py"
+    if lib.is_file() and lib.stat().st_uid == 0:
+        py, script = "/usr/bin/python3 -I", lib
+        env = f"Environment=INSTALL_ROOT={root}\nEnvironment=AURORA_ENV_FILE={root / '.env'}\n"
+    else:
+        venv = root / ".venv" / "bin" / "python"
+        py, script, env = venv if venv.exists() else sys.executable, Path(__file__).resolve(), ""
+        print(f"warning: no root's copy of this script ({lib}): the owner's account runs the repo's code, which the "
+              "services' account can write (C738) — sudo aurora-root sign, then --schedule again")
+    (UNITS / "aurora-seed.service").write_text(SERVICE.format(root=root, py=py, script=script, env=env,
+                                                              limit=limit or 40))
     (UNITS / "aurora-seed.timer").write_text(TIMER.format(time=hhmm))
     subprocess.run(["systemctl", "--user", "daemon-reload"], check=True)
     subprocess.run(["systemctl", "--user", "enable", "--now", "aurora-seed.timer"], check=True)

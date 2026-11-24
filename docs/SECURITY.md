@@ -201,6 +201,10 @@ disclosure, the change applier) are signed in `MANIFEST.json`; a change without 
 signature stops every service at start (verified: one changed line gives "changed without the
 owner's signature"). This makes changes to the rules deliberate and evident; like any open-source
 program, a copy can be modified by whoever holds it, the check included.
+The check reads the sources, so the services never run bytecode: their units set PYTHONDONTWRITEBYTECODE and a
+PYTHONPYCACHEPREFIX that does not exist, and a .pyc left in the repo's `__pycache__` is not loaded (C737). What the
+owner's own account runs on a schedule (the shadow seed's user unit) is root's signed copy, never the repo's code the
+services' account can write (C738). The users' store is 0600 at every open (C739).
 
 ### One key per installation
 

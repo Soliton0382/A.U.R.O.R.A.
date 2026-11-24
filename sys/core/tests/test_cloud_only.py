@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from aurora import mdl_router, sys_config, sys_features
+from aurora import mdl_router, sys_config, sys_features, sys_log
 from aurora.mdl_llm import Completion
 
 from conftest import write_env
@@ -17,8 +17,10 @@ from conftest import write_env
 
 @pytest.fixture
 def cloud_cfg(tmp_path: Path) -> sys_config.Config:
-    return sys_config.load(write_env(tmp_path, AURORA_LLM_BACKEND="cloud", AURORA_CLOUD_PROVIDER="openai",
-                                     AURORA_CLOUD_MODEL="m1", AURORA_OPENAI_API_KEY="sk-test"), check_root=False)
+    config = sys_config.load(write_env(tmp_path, AURORA_LLM_BACKEND="cloud", AURORA_CLOUD_PROVIDER="openai",
+                                       AURORA_CLOUD_MODEL="m1", AURORA_OPENAI_API_KEY="sk-test"), check_root=False)
+    sys_log.configure(config)              # C740: the logs this test's code opens are its own, as with the cfg fixture
+    return config
 
 
 class Provider:

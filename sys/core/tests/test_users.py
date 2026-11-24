@@ -66,3 +66,20 @@ def test_login_needs_totp_and_refuses_replay(tmp_path):
 def test_uri():
     uri = sys_users.otpauth_uri("ABC", "guest")
     assert uri.startswith("otpauth://totp/Aurora:guest?secret=ABC") and "period=30" in uri
+
+
+def test_c739_the_store_is_made_private_again_at_every_open(tmp_path):
+    """A users' store found group-readable (660) is 0600 again at the next open, its SQLite files too (C739)."""
+    import os
+    import stat
+    from aurora.sys_users import Users
+    db = tmp_path / "users.db"
+    u = Users(cfg=object(), path=db)
+    u.list()
+    os.chmod(db, 0o660)
+    wal = tmp_path / "users.db-wal"
+    wal.write_bytes(b"")
+    os.chmod(wal, 0o664)
+    u.list()
+    assert stat.S_IMODE(db.stat().st_mode) == 0o600
+    assert stat.S_IMODE(wal.stat().st_mode) == 0o600

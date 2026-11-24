@@ -22,6 +22,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from aurora import sys_config  # noqa: E402
 
 
+# C737: the services never run nor write the repo's bytecode — the protected files' check reads the .py sources and
+# skips __pycache__, a folder the service may write; Python looks for .pyc only under a prefix that does not exist and
+# that the service cannot make (ProtectSystem=strict), so every module is compiled from its signed source at start
+# (measured 24 Nov: 0.25 s → 0.90 s for fastapi, uvicorn, httpx, numpy and agt_loop, three runs each). The two lines
+# are in every unit below that runs as the services' account; root's units run their own copy with python3 -I
+
 UNIT = Template("""# Generated from .env by sys/core/script/sys_install_services.py
 [Unit]
 Description=Aurora — $description
@@ -32,6 +38,8 @@ PartOf=aurora.target
 [Service]
 Type=simple
 User=$user
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONPYCACHEPREFIX=/nonexistent/aurora-pycache
 WorkingDirectory=$root
 ExecStart=$exec
 Restart=on-failure
@@ -60,6 +68,8 @@ OnFailure=aurora-backup-failed.service
 [Service]
 Type=oneshot
 User=$user
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONPYCACHEPREFIX=/nonexistent/aurora-pycache
 WorkingDirectory=$root
 ExecStart=$exec
 Nice=15
@@ -78,6 +88,8 @@ Description=Aurora — tell the owner that the backup failed
 [Service]
 Type=oneshot
 User=$user
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONPYCACHEPREFIX=/nonexistent/aurora-pycache
 WorkingDirectory=$root
 ExecStart=$exec
 TimeoutStartSec=60
@@ -169,6 +181,8 @@ Description=Aurora — back to the factory (as just installed, with the owner's 
 [Service]
 Type=oneshot
 User=$user
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONPYCACHEPREFIX=/nonexistent/aurora-pycache
 WorkingDirectory=$root
 ExecStart=$exec
 TimeoutStartSec=30min
