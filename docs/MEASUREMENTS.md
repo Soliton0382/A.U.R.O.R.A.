@@ -5759,3 +5759,17 @@ loop's input): not a result, run again whole. Found on the way: .NET's managed U
 Win32 controls (the save dialog's name field and buttons) as Pane, without patterns; setting the field's text by
 WM_SETTEXT changes what is shown but the dialog saves the old name; a click and real keys work. Not measured: the
 same with the native UI Automation client aurora-desk would use; Explorer, Calculator, Settings.
+
+## M334 — N152 desktop app version 1, preliminary measures on the bench (25 November 2026)
+
+Before building the first installable version (it learns from the owner's demonstration and does not act; design
+reviewed twice by an AI reviewer, MAJOR then MINOR), three questions the design rests on, on the virtual bench, against
+frozen predictions (docs/local, sha256 checked after); the owner's own dconf checked unchanged (same md5). P1: setting
+the AT-SPI bus's IsEnabled to true writes dconf's toolkit-accessibility key (false → true) and a new bus launcher
+reads it back as true: the switch persists, so turning it back off after a demonstration is needed. P2: Kate (Qt 6.10)
+started with accessibility off exposes no tree (0 nodes) and exposes it 0.68 s after IsEnabled turns true, without
+reopening it. P3: a recorder that does not load libatspi (Gio only), registered for one application through
+RegisterEvent with its bus name and a match rule with sender=, received a canary typed in another application 0 times
+in 10 (strace of every read on the process, and the messages); the control without sender= received it 10/10. Not
+measured: that the filtered recorder receives the chosen application's own events (none happened in the test), the
+recorder's memory, real keyboard input on the bench (P4).
