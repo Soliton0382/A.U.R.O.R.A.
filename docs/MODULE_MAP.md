@@ -494,6 +494,19 @@ AT-SPI consent. `desk/__init__.py` is empty in phase 0.
 | `desk/bench/f9.py` + `f9_apps.py` | F9: aurora-desk's test window with way A (`AT_SPI_BUS_ADDRESS` to nowhere) and a 50-node Qt tree read by libatspi; positive control without way A | run_phase0 |
 | `desk/bench/f13.py` | F13: baits (GStreamer plugin, Vulkan implicit layer, PipeWire module) in a bench home, the §4.2 environment with read-only «root» folders, `/proc/<pid>/maps`, markers; positive control | run_phase0 |
 
+### Windows bench: `sys/core/desk/bench_win/` (N152, M331)
+
+Copied by hand to the test VM's `C:\Aurora\desk_w0` and run from a scheduled task in a lab user's session; not Python,
+not part of the ports.
+
+| file | does | started by |
+|---|---|---|
+| `bench_win/run.ps1` | W1–W8: windows and their process, UI Automation names, password fields, capture, capture exclusion, UIPI against an elevated window, same-user memory read, injected-input flag; results in `out\result.json` and the trees in `out\uia_*.json` | scheduled task (LIMITED) |
+| `bench_win/W0.cs` | the probes, compiled at run time by `Add-Type` (C# 5) | run.ps1, w3b.ps1 |
+| `bench_win/testwin.cs` | the test window (plain, password box, magenta surface excluded or not from capture, a box that reports its text) | compiled once to `testwin.exe` |
+| `bench_win/w3b.ps1` | the second, declared measure of Edge's page (plain, then `--force-renderer-accessibility`) | scheduled task (LIMITED) |
+| `bench_win/pagina.html` | the test page (user, password, button, link, select, checkbox) | run.ps1, w3b.ps1 |
+
 ## Android app: `sys/app/`
 
 | File | What it does | Started by |

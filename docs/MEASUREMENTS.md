@@ -5715,3 +5715,17 @@ told from strangers 300/300 and 0/300; AT-SPI on the bench 300/300; dumpable 0 r
 One prediction wrong: liborc's JIT maps executable code from the runtime folder (100/100 starts), 0/100 with
 ORC_CODE=backup. Found and fixed on the way: the bench's first start read the real session's lock state over the
 system bus (BUGS C742). Not measured: anything as root; the cost of ORC_CODE=backup on capture.
+
+## M331 — N152 phase 0 on Windows: the desktop agent's read-only tests on the test VM (25 November 2026)
+
+Windows 11 Pro 26200 on the test VM, in a lab user's console session, from a scheduled task at medium integrity
+(S-1-16-8192 measured, not admin); PowerShell 5.1 and .NET's UI Automation only, nothing downloaded; test windows
+and a test page with invented text. Against the frozen predictions (docs/local, sha256 checked after): window and its
+process 50/50 (EnumWindows 0.36–0.79 ms); named controls by UI Automation 22/22 Notepad, 54–64 of 54–64 Explorer,
+34–42 of 34–42 Settings, 8–41 of 8–41 Calculator, 110/111 Paint, 25/27 Edge with its page; password fields flagged
+(WinForms and Edge's input type=password), plain fields not; a whole-screen capture with no question asked (99.9 %
+non-black); a capture-excluded window absent from it (0 % of its colour, control 100 %); an elevated window out of
+reach (UI Automation finds nothing, WM_SETTEXT access denied, text unchanged; the medium control changed both ways);
+another medium process's memory read by the same user; 100/100 injected keys flagged by the low-level hook. One run
+did not reach Edge's page (Edge opened at login, before any UI Automation client; the page was read in the next two
+runs); why is not measured. Not measured: the mouse's injected flag, Chrome, a second user on the same machine.
