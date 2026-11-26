@@ -10,6 +10,7 @@
 import fcntl
 import hashlib
 import json
+import time
 import os
 import re
 from pathlib import Path
@@ -139,11 +140,66 @@ def save_draft(proc: dict, os_: str, program: str, name: str, examples_kept: dic
     return {"path": str(path), "sha256": hashlib.sha256(raw.encode()).hexdigest(), "errors": []}
 
 
+SIDE = (".esempi.json", ".prove.json")                  # files kept beside a draft, not drafts themselves
+REMOVED = "tolte"                                        # «Togli» moves a draft into LIBRARY/tolte: it can go back
+
+
 def list_drafts() -> list:
     out = []
     if DRAFTS.exists():
         for f in sorted(DRAFTS.rglob("*.json")):
-            if f.name.endswith(".esempi.json"):
+            if f.name.endswith(SIDE):
                 continue
             out.append(f)
     return out
+
+
+def trials_path(draft: Path) -> Path:
+    return draft.with_name(draft.stem + ".prove.json")
+
+
+def record_trial(draft: Path, ok: bool, steps: list) -> None:
+    """Every bench trial of a draft is kept beside it (C747: what was learned must be checkable, not claimed)."""
+    f = trials_path(draft)
+    try:
+        old = json.loads(f.read_text()) if f.exists() else []
+    except (OSError, ValueError):
+        old = []
+    old.append({"date": time.strftime("%Y-%m-%d"), "ok": bool(ok), "steps_ok": sum(1 for s in steps if s.get("ok")),
+                "steps": len(steps)})
+    write_private(f, json.dumps(old, ensure_ascii=False))
+
+
+def learned(general_root: Path) -> list:
+    """What Aurora knows: the general library (signed, under general_root) and the person's drafts (not approved)."""
+    out = []
+    for kind, root, files in (("generale", general_root, sorted(general_root.rglob("*.json")) if general_root.exists() else []),
+                              ("bozza", DRAFTS, list_drafts())):
+        for f in files:
+            try:
+                proc = json.loads(f.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+            tf = trials_path(f)
+            try:
+                trials = json.loads(tf.read_text()) if kind == "bozza" and tf.exists() else []
+            except (OSError, ValueError):
+                trials = []
+            out.append({"kind": kind, "path": f, "id": proc.get("id", ""), "os": proc.get("os", ""),
+                        "program": (proc.get("program") or {}).get("name", ""),
+                        "title": (proc.get("title") or {}).get("it") or proc.get("id", f.stem),
+                        "steps": proc.get("steps", []), "params": proc.get("params", {}),
+                        "saved": time.strftime("%Y-%m-%d", time.localtime(f.stat().st_mtime)), "trials": trials})
+    return out
+
+
+def remove_draft(draft: Path) -> Path:
+    """Move a draft (and the files beside it) to «tolte»; never a general procedure, never a deletion."""
+    draft = draft.resolve()
+    if DRAFTS.resolve() not in draft.parents:
+        raise PermissionError("only the person's drafts can be taken away")
+    dest_dir = private_dir(LIBRARY / REMOVED / draft.parent.relative_to(DRAFTS.resolve()))
+    for f in [draft, *[draft.with_name(draft.stem + s) for s in SIDE]]:
+        if f.exists():
+            f.rename(dest_dir / f.name)
+    return dest_dir / draft.name

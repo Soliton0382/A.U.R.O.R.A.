@@ -7,7 +7,7 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
-from aurora import doc_pdf, sys_config, txt_lang
+from aurora import doc_odt, doc_pdf, sys_config, txt_lang
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from my_pdfs import _docs_dir, _scan, _size
@@ -27,12 +27,22 @@ def create_pdf(title: str, markdown: str) -> str:
 
 
 @server.tool()
+def create_odt(title: str, markdown: str) -> str:
+    """Write an editable document (.odt: Writer, Word and Google Docs open and edit it) from Markdown (headings, lists,
+    tables, code blocks), marked as AI-generated. Returns the file name; the owner downloads it from the WebUI."""
+    if not markdown.strip():
+        raise ToolError("empty document")
+    p = doc_odt.create(title, markdown, txt_lang.detect(markdown), cfg)
+    return f"created {p.name} ({max(1, p.stat().st_size // 1024)} KB)"
+
+
+@server.tool()
 def list_documents(limit: int = 100, contains: str = "") -> str:
-    """The PDF documents of the Documents page (AURORA_DOCUMENTS_DIR, its folders included: the routines file their
+    """The documents of the Documents page (PDF and editable .odt) (AURORA_DOCUMENTS_DIR, its folders included: the routines file their
     reports in folders of their own): how many in all and per folder, then the newest first; `contains` filters on
     the path."""
     d = cfg.path("AURORA_DOCUMENTS_DIR")
-    files = [f for f in d.rglob("*.pdf") if f.is_file()] if d.is_dir() else []
+    files = [f for f in d.rglob("*") if f.suffix in (".pdf", ".odt") and f.is_file()] if d.is_dir() else []
     if contains:
         files = [f for f in files if contains.lower() in str(f.relative_to(d)).lower()]
     if not files:
@@ -43,7 +53,7 @@ def list_documents(limit: int = 100, contains: str = "") -> str:
         top = rel.parts[0] if len(rel.parts) > 1 else "(main folder)"
         per[top] = per.get(top, 0) + 1
     files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
-    head = [f"{len(files)} PDF in all" + (f" with «{contains}»" if contains else "") + ": "
+    head = [f"{len(files)} documents in all" + (f" with «{contains}»" if contains else "") + ": "
             + ", ".join(f"{k} {v}" for k, v in sorted(per.items(), key=lambda kv: -kv[1]))]
     return "\n".join(head + [f"{f.relative_to(d)} ({f.stat().st_size // 1024} KB)" for f in files[:max(1, min(limit, 500))]])
 

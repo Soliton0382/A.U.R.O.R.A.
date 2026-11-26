@@ -48,10 +48,28 @@ def connected_services() -> list[str]:
                 "- artifacts: make an interactive page shown live in the chat (a chart, a plot of a function, a "
                 "calculator, a simulation, a small game or app)",
                 "- phone: on the owner's phone (the Aurora app): an alarm or a timer, open a web page, an app or a web "
-                "search, the navigation to a place, a call or a message prepared (N68)"]
+                "search, the navigation to a place, a call or a message prepared (N68)",
+                "- desktop: what Aurora learned to do in the computer's programs (Kate, KCalc…), step by step; she "
+                "explains, she does not act on the desktop yet (N157)"]
     return built_in + [f"- {p.name}: {(p.manifest.get('description') or {}).get('en', '')[:200]}"
                        for p in plugin_host().plugins(with_tools=False) if p.available and p.name not in ROUTER_SKIP
                        and p.manifest.get("chat") is not False]       # an MCP server kept out of the chat (10 Nov)
+
+
+def _compute(question: str, task: str, fem: bool, emit, run_id: str, remember: bool):
+    """A computation answered by the short path (kno_compute.solve), said like any other answer."""
+    from aurora import kno_compute
+    res = kno_compute.solve(cfg, task, fem, emit)
+    return _say(question, kno_compute.chat_text(res), emit, run_id, "compute", remember)
+
+
+def available_plugins() -> set[str]:
+    """The plugins that can work now (connected, configured, no error): the «/» commands tied to them (N158)."""
+    try:
+        return {p.name for p in plugin_host().plugins(with_tools=False) if p.available}
+    except Exception as e:                            # noqa: BLE001 — a listing, never a reason to fail the chat
+        log.warning("plugins not listed for the «/» commands: %s", e)
+        return set()
 
 
 def wants_tools(question: str, recent: list, emit=None) -> bool:
@@ -313,6 +331,17 @@ def answer_or_acquire(question: str, emit, run_id: str, **kw):
     if busy:
         return busy
     p = pipeline()
+    from aurora import chat_commands                  # «/…»: a tool asked for by name (N158); routing stays the default
+    if (f := chat_commands.forced(question, available_plugins())) and f[1] and not kw.get("attached"):
+        c, rest = f
+        emit("route", {"mode": "tools", "command": c["cmd"]})
+        if c["cmd"] in ("/calcola", "/fem"):          # the short path: fits the local model (27 Nov: the agent did not)
+            return _compute(question, rest, c["cmd"] == "/fem", emit, run_id, kw.get("remember", True))
+        if c["kind"] == "arxiv":                      # papers searched on arXiv and imported, with their sources
+            from aurora.kno_acquire import ArxivAgent
+            return ArxivAgent(p, cfg).run(rest, emit, run_id)
+        return _agent_job(chat_commands.goal(c, rest), "", remember=kw.get("remember", True), label=question,
+                          asked=True)(question, emit, run_id)
     from aurora import kno_prove_chat                 # 📐 a mathematical claim: the Lean mathematician (N144)
     proved = kno_prove_chat.answer(p, cfg, question, emit, run_id, kw.get("remember", True), kw.get("attached"))
     if proved is not None:
@@ -337,6 +366,11 @@ def answer_or_acquire(question: str, emit, run_id: str, **kw):
     recent = recent[-4:]
     # a request about a connected service (GitHub, e-mail, the house...) goes to the agent, before anything else:
     # also right after an abstention, where "check my repositories" is not a "yes, search arXiv"
+    from aurora import kno_compute                    # 🧮 a computation: the short path, before the tools' agent (N158)
+    if (not kw.get("attached") and kno_compute.enabled(cfg) and kno_compute.offered(cfg, question)
+            and kno_compute.wants(p._for("route"), question)):
+        emit("route", {"mode": "compute"})
+        return _compute(question, question, False, emit, run_id, remember)
     if not kw.get("attached") and wants_tools(question, recent, emit):     # a connected service, not the vault
         emit("route", {"mode": "tools"})
         context = "\n".join(f"{'Owner' if t.extra.get('role') == 'user' else 'Aurora'}: {clip(t.text, 500)}" for t in recent[-4:])

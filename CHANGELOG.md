@@ -2,6 +2,28 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.3.54 — 2026-11-27
+
+17 publications since v0.3.53.
+
+- 2026-11-27 Aurora app on the PC (WebUI window, integrated GPU only); Aurora Desktop: what was learned, tray click opens Aurora, notifications, bench without crash notices (C747, C748); chat: compute instead of remembering with a short path that fits the local model (N158, C750), 27 slash commands, editable .odt documents, desktop skills read only (N157 phase A); finite elements with FEniCSx in projects and chat (N155); harvester disk cap 100 GB; app signing key mitigation (C749)
+- 2026-11-24 N152: Aurora Desktop in the system tray; docs aligned
+- 2026-11-24 N152: install/uninstall desk (M339); C746; the Android call works on a real phone
+- 2026-11-24 N152: protected fields, filter and switch tested (M338); C745; the app's icon
+- 2026-11-24 N152: the desktop app's window and store, Dolphin learnt, first real-desktop try (M337)
+- 2026-11-24 N152: the recorder and the draft writer, demonstrations to working drafts on the bench (M336)
+- 2026-11-24 N152: real keys on the virtual bench through the portal and libei (M335)
+- 2026-11-24 N152: the desktop app version 1 designed, its founding questions measured (M334)
+- 2026-11-24 N152: the first Windows procedure and the foreground check (M333); C744 closed
+- 2026-11-24 N152: the general library starts, format check and two Linux procedures (M332); C743; C744 open
+- 2026-11-24 N152 phase 0 on Windows: a read-only bench on the test VM (M331)
+- 2026-11-24 N152 phase 0: a read-only bench on a virtual compositor (M330); C742; M329
+- 2026-11-24 C737–C740: services never run bytecode, the owner's seed runs root's signed copy, the users' store private at every open, a test made independent
+- 2026-11-23 README aligned to M1–M328: the legal gate (M318, M320), sources in the chat (M323), science in the projects (M322); N151 decisions, N152
+- 2026-11-23 C727–C736 closed: link check sends the site only, credentials dropped on cross-site redirects, approvals decided once; M327
+- 2026-11-22 C406 closed, llama.cpp b12647 (M325, M326, C726), N151
+- 2026-11-22 Security verdicts kept apart from the incidents, judged per signature, never hiding a high alert (C406); plan steps put off while the terminal is open no longer retried every gap, echo check skips project venvs (C714, C715); the routines' first tick fast again (C600); sources in the chat (N150); the first live discovery run's fixes (C718-C723); module overwrite guard (C724); image download in the Android app (C725)
+
 ## v0.3.53 — 2026-11-20
 
 2 publications since v0.3.52.

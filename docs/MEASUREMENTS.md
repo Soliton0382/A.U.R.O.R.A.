@@ -5848,3 +5848,55 @@ the second, declared run with SystemCallErrorNumber=EPERM (now in the launcher t
 5/5 (EAFNOSUPPORT), AF_UNIX allowed 5/5, io_uring_setup refused with EPERM 5/5 — a transient user unit applies these
 filters without privileges. Not measured: the installed app on the real desktop; network reachable through D-Bus
 (portals, KIO) stays a declared residual of version 1.
+
+## M340 — Aurora Desktop: learning from a browser demonstration, the bench's crash notices, the WebUI window (26 November 2026)
+
+C747 (learning in Chrome): Chrome started with `--force-renderer-accessibility`, Aurora's recorder on the Zenodo
+window during a full upload done through the browser extension: 914 events received, 869 kept, 0 passwords; the page
+was seen (every field and button by name) but not the steps: 1 focus event, no field text — the extension's clicks
+are not announced as a person's gestures. The recording was not saved through the app and was lost with a restart:
+nothing was learned (retracted aloud). C748 (bench): a run left 12 core dumps (xdg-desktop-portal-kde 11 copies,
+ksecretd 1) shown to the owner by his crash handler; a reordered teardown changed nothing (12 again), the PIDs fell
+between KWin's and the bench's own portal: services activated while KWin started, before the activation environment
+had WAYLAND_DISPLAY. With the screen's name given to the bus before KWin: 0 core dumps in 3 runs (kcalc 1, then kcalc,
+kate and dolphin twice each); kcalc and kate learnt and replayed with new values 5/5 and 4/4, dolphin 0/2 (needs the
+pointer, known). N156 (the WebUI in a window of its own, QtWebEngine): the window opened 21 handles to the NVIDIA cards
+and all three render nodes; with Mesa only (the bench's EGL/GLX vendor, CUDA hidden, the Radeon Vulkan driver) 0
+NVIDIA handles, only the integrated GPU's render node, Chromium's helpers none. User units of systemd cannot filter
+addresses («IP firewall, but not running as root»): the page blocks every other host itself. Not measured: the
+login kept across a reboot; the rate of learning over many trials.
+
+## M341 — Lessons on the bench saved in the personal library (26 November 2026)
+
+sys/core/desk/bench/teach.py, against a frozen prediction (docs/local, sha256 checked): per lesson one demonstration
+with real keys, recorded by Aurora's recorder, turned into a draft, replayed 3 times with new values and judged on the
+outcome; outside the bench the draft is saved with store.save_draft and every trial with store.record_trial, so
+«Cosa ho imparato» lists it. Kate «scrivi e salva» 3/3 and KCalc «calcola» 3/3, saved (predicted 3/3 each). Konsole
+«crea una cartella»: 0 events reach the recorder — the terminal's text area says nothing to accessibility (predicted
+1–3/3: wrong). LibreOffice Writer: first it did not start (its default interface wants X11; the bench now sets
+SAL_USE_VCLPLUGIN=kf6), then 179 events received but a draft with no steps (LibreOffice's roles unknown to the draft
+builder). Two more runs the same day: the welcome windows turned off in the bench profile changed nothing (the keys went to the save dialog after Ctrl+S, whose name field cannot be written through accessibility, as with Kate); opening an existing document made by LibreOffice itself (so Ctrl+S saves in place): 4 events only — through the Qt interface (kf6) Writer does not announce typed text; its GTK3 interface (package libreoffice-gtk3, not installed) is the one known to. 0 new core dumps in 6 bench runs. Not measured: the same lessons from the owner's own demonstration on his
+desktop.
+
+
+## M342 — FEniCSx inside Aurora (26 November 2026)
+
+sys/runtime/fenicsx, nothing in apt nor in the system's Python: micromamba 2.0.5-0 (SHA-256 checked), a dry run
+first (187 packages, 442 MB to download), then dolfinx 0.9.0, PETSc 3.24.4, MPICH 4.3.2, gmsh 4.15.2, Python 3.12: 2.1
+GB on disk once the package cache (1.6 GB) was emptied. Check: Poisson on the unit square with the exact solution
+1 + x² + 2y², Lagrange P2, LU: maximum error 2.6e-14 (8×8), 1.0e-13 (16×16), 4.0e-13 (32×32) — machine precision, as
+a quadratic must be. Run on the CPU only (CUDA hidden). Not measured: a problem with a known convergence rate (a
+non-polynomial solution); parallel runs; the time of a real 3-D eddy-current model.
+
+
+## M343 — FEniCSx in the projects' cage and the chat's `compute` tool; the 1 April FEniCS script redone (26 November 2026)
+
+The cage (prj_run.cage, read only) with FEniCSx bound read only: $FEM_PYTHON solved the exact-solution Poisson check at
+2.6e-14 … 4.0e-13; a connection to 1.1.1.1 failed («Network is unreachable»); of Aurora's folder only .venv and
+sys/runtime/fenicsx were visible (no .env, no usr). `compute` (kno_compute): SymPy's ∫e^(−x²) = sqrt(pi), SciPy's
+constants, network refused, its folder gone after. The pre-Aurora script (papers/Old/V1/fenics_wormhole.py, 1 April
+2026, read only) solved no equation (h00 = 8πG/c⁴·T00, units of a curvature); done properly with FEniCSx —
+∇²h00 = −8πG·T00/c⁴ in a 1 m ball, 76 950 cells, P2, far field on the boundary — against frozen predictions
+(sha256 checked): a uniform 10 T in 10 cm gives h00(0) = 4.124e-38 against the exact 4.131e-38 (0.17 %); the
+script's own field 5.9e-38 at most, 16 orders below what LIGO measures. Not measured: whether the chat's models call
+`compute` when they should (the next measure).

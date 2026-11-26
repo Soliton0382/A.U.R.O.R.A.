@@ -13,6 +13,9 @@ done. It writes, all owned by root:
   /usr/local/share/applications/aurora-desk.desktop  the menu entry (its name = the app's Wayland id)
   /usr/local/share/icons/hicolor/scalable/apps/aurora-desk.svg  the icon (from desk/app/icon.py, signed)
   /etc/xdg/autostart/aurora-desk.desktop         in the tray at login (--tray; idle: accessibility stays off)
+  /usr/local/share/applications/aurora.desktop   «Aurora»: the WebUI in a window of its own (--web, N156); its unit
+                                                 has network sockets and no system-call filter, the page blocks
+                                                 every host but Aurora's
 Uninstall puts accessibility back as the owner first, then removes exactly these files. The owner's personal library
 (~/.local/state/aurora-desk) is never touched by either. Every path sits under `prefix` (default /) so a test can
 install and uninstall in a folder of its own (D10)."""
@@ -25,12 +28,14 @@ LIB = "/usr/local/lib/aurora"
 PY = "/usr/bin/python3 -I -B -X pycache_prefix=/nonexistent/aurora-desk"
 APP = f"{LIB}/sys/core/desk/app"
 UNIT = "aurora-desk-a11y-fix.service"
+WEB_URL = "http://127.0.0.1:9700/"                      # Aurora on this computer (AURORA_API_PORT's default)
 FILES = {
     "launcher": "usr/local/bin/aurora-desk",
     "unit": f"etc/systemd/user/{UNIT}",
     "desktop": "usr/local/share/applications/aurora-desk.desktop",
     "icon": "usr/local/share/icons/hicolor/scalable/apps/aurora-desk.svg",
     "autostart": "etc/xdg/autostart/aurora-desk.desktop",
+    "web_desktop": "usr/local/share/applications/aurora.desktop",
 }
 
 LAUNCHER = f"""#!/bin/sh
@@ -39,8 +44,23 @@ LAUNCHER = f"""#!/bin/sh
 # unit with a random name, so no drop-in under ~/.config/systemd/user applies; accessibility put back when it stops.
 case "$XDG_RUNTIME_DIR" in /run/user/[0-9]*) ;; *) echo "aurora-desk: no session" >&2; exit 1 ;; esac
 case "$WAYLAND_DISPLAY" in wayland-[0-9]*) ;; *) echo "aurora-desk: Wayland only" >&2; exit 1 ;; esac
-case "$*" in "" | --tray) ;; *) echo "aurora-desk: only --tray" >&2; exit 1 ;; esac
+case "$*" in "" | --tray | --web) ;; *) echo "aurora-desk: only --tray or --web" >&2; exit 1 ;; esac
 id=$(od -An -N4 -tx4 /dev/urandom | tr -d ' ')
+if [ "$*" = "--web" ]; then
+  # N156: the WebUI window. Network sockets (Aurora is reached over HTTP), no system-call filter (Chromium's own
+  # sandbox needs its namespaces); the page itself blocks every host but Aurora's (desk/app/web.py).
+  # Mesa only, never the NVIDIA vendor library: the screen is on the integrated GPU and the RTX cards hold Aurora's
+  # models (owner, 26 Nov; measured: without these 21 NVIDIA handles, with them 0 and only the integrated render node)
+  exec /usr/bin/systemd-run --user --quiet --collect --unit="aurora-web-$id" \\
+    -p LimitCORE=0 -p "RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK" \\
+    /usr/bin/env -i PATH=/usr/bin:/bin HOME="$HOME" XDG_RUNTIME_DIR="$XDG_RUNTIME_DIR" \\
+      WAYLAND_DISPLAY="$WAYLAND_DISPLAY" DBUS_SESSION_BUS_ADDRESS="$DBUS_SESSION_BUS_ADDRESS" \\
+      LANG="${{LANG:-C.UTF-8}}" LANGUAGE="${{LANGUAGE:-}}" QT_QPA_PLATFORM=wayland \\
+      DESK_WEB_URL={WEB_URL} \\
+      __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/50_mesa.json __GLX_VENDOR_LIBRARY_NAME=mesa \\
+      CUDA_VISIBLE_DEVICES= VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/radeon_icd.json \\
+      {PY} {APP}/web.py
+fi
 exec /usr/bin/systemd-run --user --quiet --collect --unit="aurora-desk-$id" \\
   -p LimitCORE=0 -p NoNewPrivileges=yes -p RestrictAddressFamilies=AF_UNIX -p SystemCallArchitectures=native \\
   -p "SystemCallFilter=~io_uring_setup io_uring_enter io_uring_register" -p SystemCallErrorNumber=EPERM \\
@@ -88,6 +108,20 @@ StartupNotify=true
 """
 
 
+WEB_DESKTOP = """[Desktop Entry]
+Type=Application
+Name=Aurora
+GenericName=Aurora, l'app sul computer
+Comment=La WebUI di Aurora in una finestra sua, senza browser (N156)
+Exec=/usr/local/bin/aurora-desk --web
+Icon=aurora-desk
+Terminal=false
+Categories=Utility;
+StartupNotify=true
+StartupWMClass=aurora-desk
+"""
+
+
 def _icon_svg() -> str:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     from desk.app import icon
@@ -111,7 +145,8 @@ def install(write, prefix: Path = Path("/"), run=subprocess.run) -> list:
     _put(write, prefix, "unit", UNIT_TEXT, 0o644)
     _put(write, prefix, "desktop", DESKTOP, 0o644)
     _put(write, prefix, "icon", _icon_svg(), 0o644)
-    _put(write, prefix, "autostart", AUTOSTART, 0o644)     # in the tray at login (Settings → Autostart turns it off)
+    _put(write, prefix, "autostart", AUTOSTART, 0o644)
+    _put(write, prefix, "web_desktop", WEB_DESKTOP, 0o644)  # «Aurora» in the menu: the WebUI window (N156)     # in the tray at login (Settings → Autostart turns it off)
     if prefix == Path("/"):
         run(["/usr/bin/systemctl", "--global", "enable", UNIT], check=False)
     return [str(prefix / f) for f in FILES.values()]

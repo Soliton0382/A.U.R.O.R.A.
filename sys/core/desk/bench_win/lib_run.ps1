@@ -137,6 +137,16 @@ try {
             }
           }
         }
+        'press_each' {
+          # One button per character of the text; keys_map: character -> AutomationId (as on Linux).
+          foreach ($ch in (Sub ([string]$s.text)).ToCharArray()) {
+            $aid = $s.keys_map.([string]$ch); if (-not $aid) { throw "no button for '$ch'" }
+            $b = WaitT @{ role = $s.target.role; id = $aid } $tmo; if (-not $b) { throw "button $aid not found" }
+            $iv = Pat $b ([System.Windows.Automation.InvokePattern]::Pattern)
+            if ($iv) { $iv.Invoke() } else { Click $b; $r.via = 'click' }
+            Start-Sleep -Milliseconds 120
+          }
+        }
         'type' {
           $v = Pat $e ([System.Windows.Automation.ValuePattern]::Pattern)
           $txt = Sub ([string]$s.text)

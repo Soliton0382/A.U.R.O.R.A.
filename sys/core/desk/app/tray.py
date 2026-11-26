@@ -3,7 +3,8 @@
 """Aurora Desktop in the system tray (the owner, 25 Nov: «sarebbe utile avere aurora desk nella system tray, in
 questo modo si accede a lei più facilmente che dal menù»).
 
-- an icon beside the clock with a menu: Apri, Mostrami, Esci; a click opens the window;
+- an icon beside the clock with a menu: Aurora (the WebUI window, N156), Apri, Mostrami, Cosa ho imparato,
+  Esci; a click opens Aurora (the WebUI window; owner, 27 Nov), «Apri» this app's own window;
 - closing the window hides it in the tray; «Esci» really quits (accessibility put back first);
 - a second start (the menu entry, the login autostart) does not open a second app: it asks the running one to show
   itself through a local socket in the runtime folder (AF_UNIX, the only sockets the launcher allows);
@@ -15,6 +16,7 @@ from PyQt6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
 from desk.app import store
 
 SOCKET = "show.sock"
+WEB_LAUNCHER = "/usr/local/bin/aurora-desk"
 
 
 def ask_running_to_show() -> bool:
@@ -44,7 +46,8 @@ class Tray:
             self.icon = QSystemTrayIcon(icon)
             self.icon.setToolTip("Aurora Desktop — impara (versione 1)")
             menu = QMenu()
-            for text, slot in (("Apri", self.show), ("Mostrami", self._demonstrate), ("Esci", self.quit)):
+            for text, slot in (("Aurora", self._web), ("Apri", self.show), ("Mostrami", self._demonstrate),
+                               ("Cosa ho imparato", self._learned), ("Esci", self.quit)):
                 a = QAction(text, menu)
                 a.triggered.connect(slot)
                 menu.addAction(a)
@@ -65,15 +68,23 @@ class Tray:
 
     def _activated(self, reason) -> None:
         if reason in (QSystemTrayIcon.ActivationReason.Trigger, QSystemTrayIcon.ActivationReason.DoubleClick):
-            if self.main.isVisible() and not self.main.isMinimized():
-                self.main.hide()
-            else:
-                self.show()
+            self._web()                                  # the owner, 27 Nov: a click opens Aurora (the WebUI window);
+                                                         # Aurora Desktop's own window from the menu («Apri»)
 
     def show(self) -> None:
         self.main.showNormal()
         self.main.raise_()
         self.main.activateWindow()
+
+    def _web(self) -> None:
+        """The WebUI window (N156): its own unit, with the network this app has not (the launcher's --web)."""
+        import subprocess
+        subprocess.Popen([WEB_LAUNCHER, "--web"], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL, start_new_session=True)
+
+    def _learned(self) -> None:
+        self.show()
+        self.main.show_learned()
 
     def _demonstrate(self) -> None:
         self.show()

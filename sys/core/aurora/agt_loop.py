@@ -22,7 +22,7 @@ import time
 
 import httpx
 
-from . import agt_asked, agt_phone, kno_prove, mdl_fit, prj_discover, prj_longrun, prj_novelty, prj_prereg, prj_proof, sns_clock, sys_config, sys_log, sys_people
+from . import agt_asked, agt_phone, desk_catalog, kno_compute, kno_prove, mdl_fit, prj_discover, prj_longrun, prj_novelty, prj_prereg, prj_proof, sns_clock, sys_config, sys_log, sys_people
 from .kno_answer import Answer, Trail
 from .agt_loop_make import AgentMakers
 from . import agt_tools
@@ -199,7 +199,7 @@ class Agent(AgentMakers, AgentReport):
                     "name": name, "description": f"[{t['effect']}] {t['description']}",
                     "parameters": t["input_schema"] or {"type": "object", "properties": {}}}})
         from . import agt_vault, hom_auto, hom_scenes
-        for t in (LOOP_TOOLS + prj_prereg.offered(self.cfg, goal) + prj_proof.offered(self.cfg, goal) + kno_prove.offered(self.cfg, goal) + prj_discover.offered(self.cfg, goal) + prj_longrun.offered(self.cfg, goal) + prj_novelty.offered(self.cfg, goal) + [agt_vault.TOOL, sys_people.TOOL] + ([hom_scenes.TOOL, hom_auto.TOOL] if any(v[0] == "homeassistant" for v in index.values()) else [])
+        for t in (LOOP_TOOLS + prj_prereg.offered(self.cfg, goal) + prj_proof.offered(self.cfg, goal) + kno_prove.offered(self.cfg, goal) + kno_compute.offered(self.cfg, goal) + desk_catalog.offered(self.cfg, goal) + prj_discover.offered(self.cfg, goal) + prj_longrun.offered(self.cfg, goal) + prj_novelty.offered(self.cfg, goal) + [agt_vault.TOOL, sys_people.TOOL] + ([hom_scenes.TOOL, hom_auto.TOOL] if any(v[0] == "homeassistant" for v in index.values()) else [])
                   + ([agt_tools.MORE] if self.deferred else [])):
             self.builtin_names.add(t["name"])                # never taken for a plugin's short name (C722)
             if self.loop_tools is not None and t["name"] not in self.loop_tools | {"finish", "more_tools"}:
@@ -341,6 +341,10 @@ class Agent(AgentMakers, AgentReport):
             return prj_proof.agent_call(self, args)
         if name == kno_prove.NAME:                           # 📐 the Lean mathematician: a claim proved or not (N144)
             return kno_prove.agent_call(self, args)
+        if name == kno_compute.NAME:                         # 🧮 compute instead of remembering, in the cage (N158)
+            return kno_compute.agent_call(self, args)
+        if name == desk_catalog.NAME:                        # 🖥️ what she knows on a desktop, read only (N157 phase A)
+            return desk_catalog.agent_call(self, args)
         if name == prj_discover.NAME:                        # 🔭 a law found in a table, tested on unseen rows (N147)
             return prj_discover.agent_call(self, args)
         if name == prj_longrun.NAME:                         # ⏳ a long experiment in the background (N145)

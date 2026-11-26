@@ -30,6 +30,7 @@ WORDS_ALLOWED = {
     ("sys_metrics.py", '"nvidia-smi"'): "who uses each GPU, for the bar's popup (5 Nov): not found = nobody listed",
     ("sys_metrics.py", "/proc/"): "the service a process belongs to, for the bar's popup (5 Nov): not there = «other»",
     ("kno_grid.py", '"bwrap"'): "ROADMAP 105: without bwrap a grid puzzle goes to the reasoning, as before (no cage, nothing is run)",
+    ("kno_compute.py", '"bwrap"'): "N158: without bwrap the compute tool is not offered and the chat answers as before (no cage, nothing is run)",
     ("prj_run.py", '"bwrap"'): "phase 4: without bwrap a project does not run («no cage, nothing is run»)",
     ("prj_proof.py", '"bwrap"'): "N143: without bwrap a Lean proof is not checked («no cage, nothing is compiled»), never run uncaged",
     ("prj_discover.py", '"bwrap"'): "N147: without bwrap no law search is run («no cage, no search is run»), never uncaged",

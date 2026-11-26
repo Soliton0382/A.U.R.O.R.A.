@@ -46,12 +46,20 @@ ROLE_IT = {"text": "il campo", "menu item": "la voce di menu", "push button": "i
            "list item": "l'elemento"}
 
 
+def _in(what: str) -> str:
+    """«in» + article as Italian joins them: nel campo, nella casella, nell'elemento, in un elemento."""
+    for art, joined in (("il ", "nel "), ("la ", "nella "), ("l'", "nell'"), ("lo ", "nello ")):
+        if what.startswith(art):
+            return joined + what[len(art):]
+    return "in " + what
+
+
 def describe(step: dict, loc: str = "it") -> str:
     t = step.get("target") or {}
     what = f"{ROLE_IT.get(t.get('role'), t.get('role', ''))} {_anchor(t, loc)}".strip()
     do = step["do"]
     if do == "type":
-        return f"scrivi {step.get('text')} in {what}"
+        return f"scrivi {step.get('text')} {_in(what)}"
     if do == "press":
         return f"premi {what}"
     if do == "open_menu":

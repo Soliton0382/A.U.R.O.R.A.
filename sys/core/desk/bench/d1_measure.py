@@ -48,18 +48,27 @@ def frame_of(addr: str, bus: str) -> str:
     return ""
 
 
-def demonstrate(b, kb_holder, name: str, argv: list, actions: list) -> dict:
-    """The «person»: real keys only. Returns the recorder's output (from its own process)."""
+def demonstrate(b, kb_holder, name: str, argv: list, actions: list, app_names: tuple = (), wait_s: float = 5.0) -> dict:
+    """The «person»: real keys only. Returns the recorder's output (from its own process). app_names: the names the
+    program gives itself on the accessibility bus when not its file's (LibreOffice); wait_s: how long it may take."""
     before = {a11y.app_pid(x) for x in a11y.apps()}
     p = b.procs.start(f"d1-{name}", argv, b.wenv(**ENV_IT), stdout=b.out("d1"), stderr=-2)
     time.sleep(5.0)
+    names = {os.path.basename(argv[0]), *app_names}
+    t_end = time.monotonic() + max(0.0, wait_s - 5.0)
+    while time.monotonic() < t_end and not any(a11y.app_pid(x) not in before and x.get_name() in names
+                                               for x in a11y.apps()):
+        time.sleep(0.5)
     if "kb" not in kb_holder:
         pt = ei_input.Portal()
         kb = ei_input.Keyboard(pt.connect(approve, timeout=20))
         kb.ready(10)
         kb_holder.update(pt=pt, kb=kb)
-    prog = os.path.basename(argv[0])
-    app = next(x for x in a11y.apps() if a11y.app_pid(x) not in before and x.get_name() == prog)
+    app = next((x for x in a11y.apps() if a11y.app_pid(x) not in before and x.get_name() in names), None)
+    if app is None:
+        raise RuntimeError(f"no window of {sorted(names)}; new apps seen: "
+                           f"{sorted(x.get_name() for x in a11y.apps() if a11y.app_pid(x) not in before)}")
+    prog = app.get_name()
     addr = recorder.a11y_address()
     bus = bus_names_by_pid(addr)[a11y.app_pid(app)]
     frame = frame_of(addr, bus)

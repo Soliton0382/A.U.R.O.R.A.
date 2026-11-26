@@ -103,6 +103,9 @@ def cage(cfg: sys_config.Config, project: Path, command: str, readonly: bool = F
         args += ["--size", str(HIDDEN_KB * 1024), "--tmpfs", str(root)]
     if venv.is_dir():
         args += ["--ro-bind", str(venv), str(venv)]
+    fem = fem_home(root)                             # N155: FEniCSx (dolfinx, gmsh) read only, as $FEM_PYTHON
+    if fem:
+        args += ["--ro-bind", str(fem), str(fem)]
     own = project / ".venv" / "bin"                  # the libraries Aurora installed for it (projects.project_install)
     first = f"{own}:" if trusted_venv(project) else ""
     args += ["--ro-bind" if readonly else "--bind", str(project), str(project)]
@@ -120,8 +123,26 @@ def cage(cfg: sys_config.Config, project: Path, command: str, readonly: bool = F
              "--setenv", "PATH", f"{first}{venv / 'bin'}:/usr/local/bin:/usr/bin:/bin", "--setenv", "HOME", "/tmp",
              "--setenv", "LANG", "C.UTF-8", "--setenv", "PYTHONDONTWRITEBYTECODE", "1",
              *(["--setenv", "TMPDIR", "/tmp", "--setenv", "PYTEST_ADDOPTS", "-p no:cacheprovider"] if readonly else []),
+             *(["--setenv", "FEM_PYTHON", str(fem / "env" / "bin" / "python"), "--setenv", "CUDA_VISIBLE_DEVICES", "",
+                "--setenv", "OMPI_MCA_plm", "isolated", "--setenv", "OMP_NUM_THREADS", "4"] if fem else []),
              "--chdir", str(project), "--", "bash", "-c", B.command(lim, command)]
     return args
+
+
+def fem_home(root: Path) -> Path | None:
+    """sys/runtime/fenicsx when its environment is installed (sys_fem_install.sh), else None (N155)."""
+    home = (root / "sys" / "runtime" / "fenicsx").resolve()
+    return home if (home / "env" / "bin" / "python").is_file() else None
+
+
+FEM_RULE = ("Finite elements (Aurora's tool, N155): FEniCSx (dolfinx 0.9, PETSc, MPICH, gmsh, numpy, scipy) is in the "
+            "cage as $FEM_PYTHON: run a script of the project with `$FEM_PYTHON -I script.py` (CPU only, no network). "
+            "Use it to check a formula or a law with an independent method — Poisson, magnetostatics, eddy currents, "
+            "elasticity, heat — and always compare with a case whose exact solution is known first.")
+
+
+def fem_rule() -> str:
+    return FEM_RULE if fem_home(Path(sys.prefix).parent) else ""
 
 
 SKIP = {".git", ".venv", "node_modules", "__pycache__", ".pytest_cache", ".mypy_cache"}

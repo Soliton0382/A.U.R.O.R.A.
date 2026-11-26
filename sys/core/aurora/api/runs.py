@@ -167,6 +167,14 @@ async def acquire(request: Request) -> dict:
     return {"run_id": start_run(question, origin="acquire", job=job)["id"]}
 
 
+@router.get("/v1/aurora/chat/commands", dependencies=[Depends(auth)])
+def chat_commands(lang: str = "it") -> dict:
+    """The «/» commands the composer lists (N158): a tool asked for by name; the automatic routing stays the default."""
+    from aurora import chat_commands as C
+    from .core_route import available_plugins
+    return {"commands": C.listing(lang, available_plugins())}
+
+
 @router.get("/v1/aurora/runs", dependencies=[Depends(auth)])
 def runs() -> list[dict]:
     return [{"id": r["id"], "question": r["question"], "origin": r["origin"], "started": r["started"],

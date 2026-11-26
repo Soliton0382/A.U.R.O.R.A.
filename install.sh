@@ -16,6 +16,7 @@
 #            --no-optional-models (only the required models; add others later with sys_models_fetch.py)
 #            --with-video (also the video model under --yes, 34 GB)   --reset-venv   --skip-build
 #            --with-lean (formal proofs: Lean 4 + Mathlib, about 11 GB; asked otherwise, default no)
+#            --with-fem (finite elements: FEniCSx, about 2.1 GB; asked otherwise, default no)
 #
 # Steps: system check → packages → NVIDIA (driver present, CUDA toolkit 13) or cloud → your answers → venv → cloud
 # key and model checked → hardware profile → .env → models from Hugging Face → llama.cpp for your GPUs (not in the
@@ -25,7 +26,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
-YES=0; SERVICES=1; OPTIONAL=1; RESET_VENV=0; BUILD=1; VIDEO=0; LEAN=0
+YES=0; SERVICES=1; OPTIONAL=1; RESET_VENV=0; BUILD=1; VIDEO=0; LEAN=0; FEM=0
 for a in "$@"; do
   case "$a" in
     --yes|-y) YES=1 ;;
@@ -33,6 +34,7 @@ for a in "$@"; do
     --no-optional-models) OPTIONAL=0 ;;
     --with-video) VIDEO=1 ;;
     --with-lean) LEAN=1 ;;
+    --with-fem) FEM=1 ;;
     --reset-venv) RESET_VENV=1 ;;
     --skip-build) BUILD=0 ;;
     -h|--help) sed -n '4,18p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
@@ -433,6 +435,12 @@ if [ "$LEAN" = 1 ] || [ -d sys/runtime/lean/workspace ] || yesno "$(t 'Dimostraz
   if out="$(bash sys/core/script/sys_proofs_install.sh 2>&1)"; then ok "$(t 'dimostrazioni formali' 'formal proofs'): $(echo "$out" | tail -1)"
   else warn "$(t 'dimostrazioni formali non installate (si aggiungono dopo con' 'formal proofs not installed (add them later with') bash sys/core/script/sys_proofs_install.sh): $(echo "$out" | tail -1)"; fi
 else ok "$(t 'dimostrazioni formali: no (si aggiungono dopo con' 'formal proofs: no (add them later with') bash sys/core/script/sys_proofs_install.sh)"; fi
+# finite elements (N155): FEniCSx in sys/runtime/fenicsx, pinned (micromamba by SHA-256, packages by MD5 from the lock);
+# optional, about 2.1 GB; already there (an update) it is only checked
+if [ "$FEM" = 1 ] || [ -x sys/runtime/fenicsx/env/bin/python ] || yesno "$(t 'Elementi finiti con FEniCSx (+2,1 GB, rete)?' 'Finite elements with FEniCSx (+2.1 GB, network)?')" n FEM; then
+  if out="$(bash sys/core/script/sys_fem_install.sh 2>&1)"; then ok "$(t 'elementi finiti' 'finite elements'): $(echo "$out" | tail -1)"
+  else warn "$(t 'elementi finiti non installati (si aggiungono dopo con' 'finite elements not installed (add them later with') bash sys/core/script/sys_fem_install.sh): $(echo "$out" | tail -1)"; fi
+else ok "$(t 'elementi finiti: no (si aggiungono dopo con' 'finite elements: no (add them later with') bash sys/core/script/sys_fem_install.sh)"; fi
 # the projects' AI referee (N142) runs on the Claude CLI: optional, a phase without it says «referee skipped»
 if command -v claude >/dev/null; then ok "$(t 'revisore AI dei progetti: Claude CLI trovato' 'projects'"'"' AI referee: Claude CLI found')"
 else warn "$(t 'revisore AI dei progetti: Claude CLI assente, il revisore automatico viene saltato (facoltativo)' 'projects'"'"' AI referee: no Claude CLI, the automatic referee is skipped (optional)')"; fi

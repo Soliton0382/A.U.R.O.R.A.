@@ -152,7 +152,12 @@ class Main(QMainWindow):
         lay.addWidget(self.drafts)
         self.try_btn = QPushButton("Prova sul banco")
         self.try_btn.clicked.connect(self.try_on_bench)
-        lay.addWidget(self.try_btn)
+        self.learned_btn = QPushButton("Cosa ho imparato")      # C747: what is known, checkable
+        self.learned_btn.clicked.connect(self.show_learned)
+        brow = QHBoxLayout()
+        brow.addWidget(self.try_btn)
+        brow.addWidget(self.learned_btn)
+        lay.addLayout(brow)
         self.setCentralWidget(w)
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.tick)
@@ -160,6 +165,10 @@ class Main(QMainWindow):
         self.say("Pronta. Premi «Mostrami»: accendo l'accessibilità solo mentre ti guardo e poi la rimetto com'era. "
                  "Finché l'accessibilità è accesa, ogni programma tuo può leggere e comandare le finestre "
                  "accessibili.")
+
+    def show_learned(self) -> None:
+        from desk.app import learned
+        learned.Learned(self, CORE / "desk" / "library").exec()
 
     def say(self, text: str) -> None:
         self.status.setText(text)
@@ -302,6 +311,7 @@ class Main(QMainWindow):
         if res is None:
             self.say(f"Prova non riuscita a partire: {r.stderr[-300:]}")
             return
+        store.record_trial(path, bool(res.get("ok")), res["steps"])   # kept beside the draft (C747)
         lines = [f"{s['n']}. {s['do']}: {'ok' if s.get('ok') else 'NO — ' + s.get('error', '')}" for s in res["steps"]]
         QMessageBox.information(self, "Esito sul banco", ("Riuscita.\n\n" if res.get("ok") else "Non riuscita.\n\n")
                                 + "\n".join(lines))

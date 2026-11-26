@@ -25,6 +25,7 @@ from __future__ import annotations
 import base64
 import json
 import re
+import shutil
 import signal
 import sys
 import time
@@ -49,6 +50,23 @@ RETRY_STATUS = (429, 503)
 BACKOFF_S = (60, 180, 420)
 COOL_S = 1800
 _stop = False
+
+
+def disk_free_gb() -> float:
+    """Free space on the disk that holds the vault, in GB (the nearest existing folder of AURORA_VAULT_DIR)."""
+    p = Path(cfg["AURORA_VAULT_DIR"])
+    if not p.is_absolute():
+        p = sys_config.CODE_ROOT / p
+    while not p.exists() and p != p.parent:
+        p = p.parent
+    return shutil.disk_usage(p).free / 1e9
+
+
+def disk_low() -> float | None:
+    """The free GB when they are below AURORA_HARVEST_MIN_FREE_GB (0 = no cap), else None (owner, 26 Nov: 100 GB)."""
+    cap = cfg["AURORA_HARVEST_MIN_FREE_GB"]
+    free = disk_free_gb()
+    return free if cap and free < cap else None
 
 
 def retry_after(r: httpx.Response) -> int:
@@ -238,6 +256,9 @@ class Harvester:
             for doc in docs:
                 if _stop:
                     break
+                if disk_low() is not None:               # the cap is checked before every document, not per round
+                    stats["disk_low"] = True
+                    break
                 w = self.take(doc)
                 if w is None:
                     stats["failed"] += 1
@@ -246,6 +267,8 @@ class Harvester:
                     stats["chunks"] += w
                     st["taken"] = st.get("taken", 0) + 1
             kno_sources.save_state(cfg, domain, n, st)
+            if stats.get("disk_low"):
+                break
         return stats
 
     def ingest(self, e, domain: str) -> dict | None:
@@ -422,6 +445,13 @@ def main() -> int:
                 said_off = True
             kno_harvest.set_status(cfg, state="off", enabled=False)
             sleep(600)
+            continue
+        low = disk_low()
+        if low is not None:                             # below the owner's cap: nothing new until room is made
+            log.warning("only %.0f GB free (cap %d GB): not harvesting", low, cfg["AURORA_HARVEST_MIN_FREE_GB"])
+            h.tell("harvest.waiting", {"reason": "disk", "free_gb": round(low), "cap_gb": cfg["AURORA_HARVEST_MIN_FREE_GB"]})
+            kno_harvest.set_status(cfg, state="waiting", reason=f"disk: {low:.0f} GB free, cap {cfg['AURORA_HARVEST_MIN_FREE_GB']} GB")
+            sleep(3600)
             continue
         if time.time() >= next_round:
             kno_harvest.set_status(cfg, state="harvesting", enabled=True, started=time.time())

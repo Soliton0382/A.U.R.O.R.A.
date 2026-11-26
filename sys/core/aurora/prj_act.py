@@ -420,6 +420,8 @@ def _work(run: Run, cc, system: str, s: dict) -> None:
         system += "\n\n" + rule
     if (rule := prj_proof.rule(cfg)):                    # 📐 theorems claimed proved only via proof_check (N143)
         system += "\n\n" + rule
+    if (rule := prj_run.fem_rule()):                     # 🧮 finite elements in the cage as $FEM_PYTHON (N155)
+        system += "\n\n" + rule
     if (rule := prj_discover.rule(cfg)):                 # 🔭 laws claimed discovered only via discover_law (N147)
         system += "\n\n" + rule
     for rule in (prj_longrun.rule(cfg), prj_novelty.rule(cfg)):   # ⏳ long runs (N145), 📚 «new» only after a check (N146)

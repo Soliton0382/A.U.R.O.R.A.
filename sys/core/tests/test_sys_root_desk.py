@@ -27,9 +27,10 @@ def test_install_then_uninstall_leaves_nothing(tmp_path):
     lib.parent.mkdir(parents=True)
     lib.write_text("{}")                                 # the owner's personal library: never touched
     written = D.install(_write, prefix=tmp_path, run=lambda *a, **k: None)
-    assert len(written) == 5 and all(Path(p).is_file() for p in written)
+    assert len(written) == 6 and all(Path(p).is_file() for p in written)
     modes = {k: stat.S_IMODE(os.stat(tmp_path / f).st_mode) for k, f in D.FILES.items()}
-    assert modes == {"launcher": 0o755, "unit": 0o644, "desktop": 0o644, "icon": 0o644, "autostart": 0o644}
+    assert modes == {"launcher": 0o755, "unit": 0o644, "desktop": 0o644, "icon": 0o644, "autostart": 0o644,
+                     "web_desktop": 0o644}
     gone = D.uninstall(prefix=tmp_path, run=lambda *a, **k: None)
     assert sorted(gone) == sorted(written)
     assert _files(tmp_path) == ["home/.local/state/aurora-desk/library/bozze/x.json"]
@@ -63,9 +64,21 @@ def test_the_login_unit_puts_accessibility_back():
     assert "/usr/local/lib/aurora/" in D.UNIT_TEXT
 
 
-def test_the_tray_at_login_and_the_launcher_takes_only_tray():
+def test_the_tray_at_login_and_the_launcher_takes_only_tray_or_web():
     assert "Exec=/usr/local/bin/aurora-desk --tray" in D.AUTOSTART and "NoDisplay=true" in D.AUTOSTART
-    assert 'case "$*" in "" | --tray) ;;' in D.LAUNCHER and "aurora_desk.py $*" in D.LAUNCHER
+    assert 'case "$*" in "" | --tray | --web) ;;' in D.LAUNCHER and "aurora_desk.py $*" in D.LAUNCHER
+
+
+def test_the_web_window_has_its_own_unit_with_network_and_only_aurora_s_address():
+    t = D.LAUNCHER
+    web = t[t.index('if [ "$*" = "--web" ]'):t.index("\nfi\n")]
+    assert '--unit="aurora-web-$id"' in web and "LimitCORE=0" in web and "/usr/bin/env -i " in web
+    assert "RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK" in web
+    assert "DESK_WEB_URL=http://127.0.0.1:9700/" in web and web.rstrip().endswith("desk/app/web.py")
+    assert "aurora_desk.py" not in web                       # the learning app keeps AF_UNIX only
+    assert "__EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/50_mesa.json" in web     # never the RTX cards
+    assert "__GLX_VENDOR_LIBRARY_NAME=mesa" in web and "CUDA_VISIBLE_DEVICES= " in web
+    assert "Exec=/usr/local/bin/aurora-desk --web" in D.WEB_DESKTOP and D.FILES["web_desktop"].endswith("aurora.desktop")
 
 
 def test_the_menu_entry_and_icon():

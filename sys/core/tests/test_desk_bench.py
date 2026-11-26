@@ -95,3 +95,11 @@ def test_f1_pixel_oracle_sees_a_wrong_order():
     colour = {"a": (255, 0, 0), "b": (0, 0, 255)}
     assert f1.compare_frame(frame.tobytes(), W, H, ours, colour)["bad_pixels"] == 0
     assert f1.compare_frame(frame.tobytes(), W, H, list(reversed(ours)), colour)["bad_pixels"] > 0
+
+
+def test_the_screen_name_reaches_activated_services_before_kwin_starts():
+    """C748: a service the bench bus activates while KWin starts must find WAYLAND_DISPLAY (without it Qt aborted:
+    12 core dumps in a run, shown to the owner by his crash handler; 0 in 3 runs after the fix)."""
+    src = (Path(__file__).resolve().parents[1] / "desk" / "bench" / "bench.py").read_text(encoding="utf-8")
+    up = src[src.index("    def up(self)"):src.index("    def activation_env")]
+    assert up.index('self.activation_env({"WAYLAND_DISPLAY"') < up.index('self._start("kwin"')

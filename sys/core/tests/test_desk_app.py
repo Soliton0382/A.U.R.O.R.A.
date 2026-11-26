@@ -13,6 +13,10 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from desk.app import draft, store  # noqa: E402
+try:                                                     # QtWebEngine must come before any QApplication
+    import PyQt6.QtWebEngineWidgets  # noqa: F401,E402
+except ImportError:
+    pass
 
 FX = json.loads((Path(__file__).parent / "data" / "desk_demo_events.json").read_text(encoding="utf-8"))
 
@@ -161,3 +165,99 @@ def test_nobody_running_nothing_to_show(home, monkeypatch, tmp_path):
     from desk.app import tray
     QApplication.instance() or QApplication([])
     assert tray.ask_running_to_show() is False
+
+
+def test_the_web_window_loads_only_aurora_s_address():
+    """N156: the page may reach Aurora (and ws to it, data:, blob:), nothing else."""
+    pytest.importorskip("PyQt6.QtWebEngineWidgets", exc_type=ImportError)
+    from PyQt6.QtCore import QUrl
+    from desk.app import web
+    base = QUrl("http://127.0.0.1:9700/")
+    ok = ["http://127.0.0.1:9700/", "http://127.0.0.1:9700/v1/aurora/ask", "ws://127.0.0.1:9700/ws", "data:,x",
+          "blob:http://127.0.0.1:9700/abc"]
+    no = ["https://example.org/", "http://127.0.0.1:8088/", "http://localhost:9700/", "http://127.0.0.1/",
+          "https://127.0.0.1:9700/", "file:///etc/passwd"]
+    assert all(web.same_origin(QUrl(u), base) for u in ok)
+    assert not any(web.same_origin(QUrl(u), base) for u in no)
+
+
+def test_what_was_learned_lists_the_general_library_and_the_drafts_with_their_trials(home):
+    """C747: what Aurora knows is listed, with every bench trial; nothing is claimed that is not saved."""
+    general = Path(__file__).resolve().parents[1] / "desk" / "library"
+    d = draft.build(FX["C"], {"name": "kcalc", "exe": "/usr/bin/kcalc", "version": "4:25.12"}, network=False)
+    p = Path(store.save_draft(d["procedure"], "linux", "kcalc", "somma-1", {})["path"])
+    store.record_trial(p, True, [{"ok": True}, {"ok": True}])
+    store.record_trial(p, False, [{"ok": True}, {"ok": False}])
+    got = store.learned(general)
+    mine = [e for e in got if e["kind"] == "bozza"]
+    assert len(mine) == 1 and mine[0]["program"] == "kcalc" and mine[0]["steps"]
+    assert [(t["ok"], t["steps_ok"], t["steps"]) for t in mine[0]["trials"]] == [(True, 2, 2), (False, 1, 2)]
+    assert {e["id"] for e in got if e["kind"] == "generale"} >= {"gen:linux/kate/scrivi-e-salva", "gen:linux/kcalc/calcola"}
+    assert store.list_drafts() == [p]                                  # the trials file is not a draft
+    assert stat.S_IMODE(os.stat(store.trials_path(p)).st_mode) == 0o600
+
+
+def test_take_away_moves_a_draft_never_a_general_procedure(home):
+    d = draft.build(FX["C"], {"name": "kcalc", "exe": "/usr/bin/kcalc", "version": "4:25.12"}, network=False)
+    p = Path(store.save_draft(d["procedure"], "linux", "kcalc", "somma-1", {})["path"])
+    store.record_trial(p, True, [{"ok": True}])
+    moved = store.remove_draft(p)
+    assert not p.exists() and moved.exists() and moved.with_name("somma-1.prove.json").exists()
+    assert home in moved.parents and store.list_drafts() == []
+    general = Path(__file__).resolve().parents[1] / "desk" / "library" / "linux" / "kcalc" / "calcola.json"
+    with pytest.raises(PermissionError):
+        store.remove_draft(general)
+    assert general.exists()
+
+
+def test_the_learned_window_builds_offscreen(home, monkeypatch):
+    pytest.importorskip("PyQt6.QtWidgets")
+    monkeypatch.setenv("QT_QPA_PLATFORM", "offscreen")
+    from PyQt6.QtWidgets import QApplication
+    from desk.app import learned
+    app = QApplication.instance() or QApplication([])
+    w = learned.Learned(None, Path(__file__).resolve().parents[1] / "desk" / "library")
+    assert w.list.count() >= 3 and "Passi" in w.text.toHtml() and not w.remove_btn.isEnabled()
+    w.close()
+    app.processEvents()
+
+
+def test_a_click_on_the_tray_opens_aurora_and_the_menu_keeps_the_app_window():
+    src = (Path(__file__).resolve().parents[1] / "desk" / "app" / "tray.py").read_text(encoding="utf-8")
+    body = src[src.index("def _activated"):src.index("def show(")]
+    assert "self._web()" in body and "self.main" not in body
+    assert '("Apri", self.show)' in src
+
+
+def test_web_permissions_use_the_new_signal_and_notifications_reach_the_desktop():
+    pytest.importorskip("PyQt6.QtWebEngineWidgets", exc_type=ImportError)
+    from PyQt6.QtCore import QUrl
+    from desk.app import web
+    src = (Path(__file__).resolve().parents[1] / "desk" / "app" / "web.py").read_text(encoding="utf-8")
+    assert "self.permissionRequested.connect(self._permission_new)" in src
+    assert "setNotificationPresenter(self._notify)" in src and "/usr/bin/notify-send" in src
+
+    class Perm:
+        def __init__(self, url, kind):
+            self.url, self.kind, self.said = QUrl(url), kind, None
+
+        def origin(self):
+            return self.url
+
+        def permissionType(self):
+            return self.kind
+
+        def grant(self):
+            self.said = "grant"
+
+        def deny(self):
+            self.said = "deny"
+    from PyQt6.QtWebEngineCore import QWebEnginePermission as P
+    page = web.Page.__new__(web.Page)
+    page.base = QUrl("http://127.0.0.1:9700/")
+    p = Perm("https://example.org/", P.PermissionType.Notifications)
+    web.Page._permission_new(page, p)
+    assert p.said == "deny"                                   # another site: never asked, never granted
+    p = Perm("http://127.0.0.1:9700/", P.PermissionType.Geolocation)
+    web.Page._permission_new(page, p)
+    assert p.said == "deny"                                   # not in the list: denied

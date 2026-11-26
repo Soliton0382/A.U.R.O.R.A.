@@ -33,30 +33,34 @@ async def create_pdf(request: Request) -> dict:
 @router.get("/v1/aurora/documents", dependencies=[Depends(auth)])
 def documents() -> list[dict]:
     d = cfg.path("AURORA_DOCUMENTS_DIR")
-    files = sorted(d.glob("*.pdf"), key=lambda f: f.stat().st_mtime, reverse=True) if d.is_dir() else []
+    files = sorted([*d.glob("*.pdf"), *d.glob("*.odt")], key=lambda f: f.stat().st_mtime, reverse=True) if d.is_dir() else []
     return [{"name": f.name, "bytes": f.stat().st_size, "url": f"/v1/aurora/documents/{f.name}"} for f in files[:200]]
 
 
 @router.get("/v1/aurora/documents/{name}", dependencies=[Depends(auth)])
 def document(name: str):
     import re
-    if not re.fullmatch(r"[a-z0-9-]+\.pdf", name):
+    if not re.fullmatch(r"[a-z0-9-]+\.(pdf|odt)", name):
         raise HTTPException(status_code=404, detail="no such document")
     f = cfg.path("AURORA_DOCUMENTS_DIR") / name
     if not f.is_file():
         raise HTTPException(status_code=404, detail="no such document")
+    if name.endswith(".odt"):                         # an editable document (doc_odt, N158): downloaded, not shown
+        from aurora import doc_odt
+        return FileResponse(f, media_type=doc_odt.MIME, filename=name, content_disposition_type="attachment")
     # inline: the WebUI shows it in its viewer; the viewer's download button saves it (the link's download attribute)
     return FileResponse(f, media_type="application/pdf", filename=name, content_disposition_type="inline")
 
 
 @router.delete("/v1/aurora/documents/{name}", dependencies=[Depends(auth)])
 def document_delete(name: str) -> dict:
-    """Only a PDF Aurora wrote (its metadata say Creator: Aurora): never one of the owner's own documents."""
-    from aurora import doc_pdf
+    """Only a document Aurora wrote (a PDF whose metadata say Creator: Aurora, an .odt whose generator is Aurora):
+    never one of the owner's own documents."""
+    from aurora import doc_odt, doc_pdf
     f = cfg.path("AURORA_DOCUMENTS_DIR") / name
-    if not re.fullmatch(r"[a-z0-9-]+\.pdf", name) or not f.is_file():
+    if not re.fullmatch(r"[a-z0-9-]+\.(pdf|odt)", name) or not f.is_file():
         raise HTTPException(status_code=404, detail="no such document")
-    if not doc_pdf.made_by_aurora(f):
+    if not (doc_odt.made_by_aurora(f) if name.endswith(".odt") else doc_pdf.made_by_aurora(f)):
         raise HTTPException(status_code=403, detail="not a document Aurora wrote: delete it from its folder")
     from aurora import sys_trash
     tid = sys_trash.discard(cfg, f, "document")

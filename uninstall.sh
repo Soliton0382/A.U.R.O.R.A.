@@ -106,6 +106,7 @@ case "$LEAN_HOME" in
      esac ;;
 esac
 [ -d sys/runtime/lean ] && ok "$(t 'Lean + Mathlib (sys/runtime/lean) va con sys/runtime' 'Lean + Mathlib (sys/runtime/lean) goes with sys/runtime')"
+[ -d sys/runtime/fenicsx ] && ok "$(t 'FEniCSx (sys/runtime/fenicsx) va con sys/runtime' 'FEniCSx (sys/runtime/fenicsx) goes with sys/runtime')"
 # sudo: since U6 the runtime is the services' account's (sys_service_account), not the owner's to delete alone
 for d in .venv sys/runtime; do if [ -e "$d" ]; then run sudo rm -rf "$ROOT/$d"; ok "$d"; fi; done
 if [ -d sys/models ]; then

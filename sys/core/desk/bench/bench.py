@@ -60,6 +60,7 @@ def base_env(home: Path, rt: Path, data_dirs: str) -> dict:
         "GSETTINGS_BACKEND": "memory",
         "LIBGL_ALWAYS_SOFTWARE": "1",                  # GPUs are full of Aurora's model: software only
         "QT_QUICK_BACKEND": "software",
+        "SAL_USE_VCLPLUGIN": "kf6",                    # LibreOffice through Qt on Wayland: its default wants X11
         "NO_AT_BRIDGE": "0",
         "DBUS_SYSTEM_BUS_ADDRESS": f"unix:path={rt}/no-system-bus",   # never the real system bus (guard)
         # every bench client too: Mesa's EGL only, never the NVIDIA vendor library (measured: without these the
@@ -198,6 +199,9 @@ class Bench:
         times["sycoca"] = time.monotonic() - t1
         kenv = dict(self.env, KWIN_FORCE_SW_CURSOR="1", QT_LOGGING_RULES=os.environ.get("N152_KWIN_LOG", ""))
         kenv.update(SOFTWARE_GL)
+        # C748: a service the bus activates while KWin starts (the KDE portal, the wallet) must find the screen's name
+        # already: without it Qt aborts, the bus tries again, a core dump each time (12 in a run, 26 Nov)
+        self.activation_env({"WAYLAND_DISPLAY": SOCKET, "QT_QPA_PLATFORM": "wayland"})
         self._start("kwin", ["/usr/bin/kwin_wayland", "--virtual", "--socket", SOCKET,
                              "--width", str(WIDTH), "--height", str(HEIGHT)], kenv)
         times["kwin"] = self.wait_name("org.kde.KWin", 30)
@@ -266,17 +270,29 @@ class Bench:
                 out.append(int(d))
         return out
 
-    def down(self) -> dict:
+    def _stop_strays(self, grace: float = 3.0) -> list:
+        """The programs and services the bench bus activated, stopped by the PIDs just read; waited for."""
         # not dbus-run-session itself nor its daemon: dbus-run-session stops them when this process returns
         strays = [p for p in self.strays() if p != os.getppid() and _ppid(p) != os.getppid()]
-        self.procs.stop()
         killed = []
-        for pid in strays:                              # activated by the bench bus: stopped by the PID just read
+        for pid in strays:
             try:
                 os.kill(pid, 15)
                 killed.append(pid)
             except ProcessLookupError:
                 pass
+        t0 = time.monotonic()
+        while time.monotonic() - t0 < grace and any(Path(f"/proc/{p}").exists() and _ppid(p) != 1 for p in killed):
+            time.sleep(0.05)
+        return killed
+
+    def down(self) -> dict:
+        # The activated copies (programs, services) first, while the nested screen still exists; then the bench's own
+        # processes (portal before KWin); then whatever woke meanwhile. Not the cause of C748: the aborts happen while
+        # KWin is starting (measured 26 Nov, PIDs between KWin's and the bench's own portal).
+        killed = self._stop_strays()
+        self.procs.stop()
+        killed += self._stop_strays()
         self.check_real()
         self.log(f"down strays={killed}")
         return {"strays": killed}

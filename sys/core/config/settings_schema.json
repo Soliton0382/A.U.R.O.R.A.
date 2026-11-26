@@ -3363,6 +3363,21 @@
    "max": 200
   },
   {
+   "key": "AURORA_HARVEST_MIN_FREE_GB",
+   "type": "int",
+   "optional": true,
+   "category": "harvest",
+   "recommended": "100",
+   "evidence": "owner, 2026-11-26: «terrei 100 GB di soglia»",
+   "en": "Free space (GB) on the vault's disk below which the harvester takes nothing new; 0 = no cap.",
+   "it": "Spazio libero (GB) sul disco del vault sotto il quale l'harvester non prende niente di nuovo; 0 = nessun tetto.",
+   "services": [
+    "aurora-harvester"
+   ],
+   "min": 0,
+   "max": 100000
+  },
+  {
    "key": "AURORA_HARVEST_INTERVAL_H",
    "type": "int",
    "category": "harvest",
@@ -4548,6 +4563,34 @@
    "services": [
     "aurora-api"
    ]
+  },
+  {
+   "key": "AURORA_COMPUTE_ENABLED",
+   "type": "bool",
+   "category": "agents",
+   "recommended": "true",
+   "optional": true,
+   "evidence": "owner, 2026-11-26: «tutti questi strumenti… aurora li può e deve usare se arrivano domande in chat»",
+   "en": "The chat's agent may compute instead of remembering: a short Python program (numpy, scipy, sympy, mpmath; FEniCSx for finite elements) run in the projects' read-only cage, no network. Never in the anonymous chat.",
+   "it": "L'agente della chat può calcolare invece di ricordare: un breve programma Python (numpy, scipy, sympy, mpmath; FEniCSx per gli elementi finiti) eseguito nella gabbia dei progetti in sola lettura, senza rete. Mai nella chat anonima.",
+   "services": [
+    "aurora-api"
+   ]
+  },
+  {
+   "key": "AURORA_COMPUTE_TIMEOUT_S",
+   "type": "int",
+   "category": "agents",
+   "recommended": "60",
+   "optional": true,
+   "evidence": "owner, 2026-11-26 (a chat answer waits for it)",
+   "en": "Seconds a computation of the chat's agent may take at most.",
+   "it": "Secondi al massimo per un calcolo dell'agente della chat.",
+   "services": [
+    "aurora-api"
+   ],
+   "min": 5,
+   "max": 900
   },
   {
    "key": "AURORA_PROVE_MODEL",
